@@ -1,13 +1,11 @@
-use rspack_error::Result;
-
 use crate::{
-  CodeGeneratable, CodeGeneratableResult, Context, ContextMode, ContextOptions, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ModuleDependency,
+  Context, ContextMode, ContextOptions, Dependency, DependencyCategory, DependencyId,
+  DependencyType, ModuleDependency,
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub struct ContextElementDependency {
-  pub id: Option<DependencyId>,
+  pub id: DependencyId,
   // TODO remove this async dependency mark
   pub options: ContextOptions,
   pub request: String,
@@ -17,14 +15,6 @@ pub struct ContextElementDependency {
 }
 
 impl Dependency for ContextElementDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
-
   fn category(&self) -> &DependencyCategory {
     &self.category
   }
@@ -39,6 +29,10 @@ impl Dependency for ContextElementDependency {
 }
 
 impl ModuleDependency for ContextElementDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -64,14 +58,5 @@ impl ModuleDependency for ContextElementDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
-  }
-}
-
-impl CodeGeneratable for ContextElementDependency {
-  fn generate(
-    &self,
-    _context: &mut crate::CodeGeneratableContext,
-  ) -> Result<CodeGeneratableResult> {
-    Ok(CodeGeneratableResult::default())
   }
 }

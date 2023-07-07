@@ -1,74 +1,40 @@
 use rspack_core::{
-  import_statement, CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, Dependency, DependencyCategory, DependencyType,
-  ModuleDependency, ModuleIdentifier,
+  import_statement, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
+  DependencyId, ModuleDependency,
 };
-use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
 pub struct HarmonyAcceptDependency {
   start: u32,
   end: u32,
   has_callback: bool,
-  module_identifier: ModuleIdentifier,
-  deps: Vec<(JsWord, DependencyCategory, DependencyType)>,
+  dependency_ids: Vec<DependencyId>,
 }
 
 impl HarmonyAcceptDependency {
-  pub fn new(
-    start: u32,
-    end: u32,
-    has_callback: bool,
-    module_identifier: ModuleIdentifier,
-    deps: Vec<(JsWord, DependencyCategory, DependencyType)>,
-  ) -> Self {
+  pub fn new(start: u32, end: u32, has_callback: bool, dependency_ids: Vec<DependencyId>) -> Self {
     Self {
       start,
       end,
       has_callback,
-      module_identifier,
-      deps,
+      dependency_ids,
     }
   }
 }
 
-impl CodeReplaceSourceDependency for HarmonyAcceptDependency {
+impl CodeGeneratableDependency for HarmonyAcceptDependency {
   fn apply(
     &self,
-    source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let CodeReplaceSourceDependencyContext { compilation, .. } = code_generatable_context;
-
-    let dependencies = {
-      let ids = compilation
-        .module_graph
-        .dependencies_by_module_identifier(&self.module_identifier)
-        .expect("should have dependencies");
-      ids
-        .iter()
-        .map(|id| {
-          compilation
-            .module_graph
-            .dependency_by_id(id)
-            .expect("should have dependency")
-        })
-        .collect::<Vec<_>>()
-    };
+    let CodeGeneratableContext { compilation, .. } = code_generatable_context;
 
     let mut content = String::default();
 
-    self.deps.iter().for_each(|dep| {
-      if let Some(dep) = dependencies
-        .iter()
-        .find(|d| d.request() == &dep.0 && d.category() == &dep.1 && d.dependency_type() == &dep.2)
-      {
-        let stmts = import_statement(
-          code_generatable_context,
-          &dep.id().expect("should have dependency"),
-          dep.request(),
-          true,
-        );
+    self.dependency_ids.iter().for_each(|id| {
+      if let Some(dependency) = compilation.module_graph.dependency_by_id(id) {
+        let stmts = import_statement(code_generatable_context, id, dependency.request(), true);
         content.push_str(stmts.0.as_str());
         content.push_str(stmts.1.as_str());
       }

@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, ChunkLoading, Plugin,
+  AdditionalChunkRuntimeRequirementsArgs, ChunkLoading, ChunkLoadingType, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_error::Result;
@@ -29,7 +29,7 @@ impl Plugin for ModuleChunkLoadingPlugin {
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
     let compilation = &mut args.compilation;
     let chunk = args.chunk;
-    let chunk_loading_value = ChunkLoading::Import;
+    let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::Import);
     let is_enabled_for_chunk = is_enabled_for_chunk(chunk, &chunk_loading_value, compilation);
     let runtime_requirements = &mut args.runtime_requirements;
 

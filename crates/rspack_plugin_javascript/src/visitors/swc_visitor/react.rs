@@ -87,7 +87,7 @@ function $RefreshReg$(type, id) {
   __webpack_modules__.$ReactRefreshRuntime$.register(type, __webpack_module__.id+ "_" + id);
 }
 Promise.resolve().then(function(){
-  __webpack_modules__.$ReactRefreshRuntime$.refresh(__webpack_module__.id, module.hot);
+  __webpack_modules__.$ReactRefreshRuntime$.refresh(__webpack_module__.id, __webpack_module__.hot);
 })
 "#;
 
@@ -108,13 +108,13 @@ impl Fold for ReactHmrFolder {
       return program;
     }
 
-    let rumtime_stmts = RUNTIME_CODE_AST.body.clone();
+    let runtime_stmts = RUNTIME_CODE_AST.body.clone();
 
     match program {
       Program::Module(ref mut m) => m
         .body
-        .extend(rumtime_stmts.into_iter().map(ModuleItem::Stmt)),
-      Program::Script(ref mut s) => s.body.extend(rumtime_stmts),
+        .extend(runtime_stmts.into_iter().map(ModuleItem::Stmt)),
+      Program::Script(ref mut s) => s.body.extend(runtime_stmts),
     };
 
     program

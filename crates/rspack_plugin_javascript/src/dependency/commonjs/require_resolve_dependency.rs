@@ -1,16 +1,14 @@
 use rspack_core::{
-  module_id, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
-  CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, ContextOptions, Dependency, DependencyCategory,
-  DependencyId, DependencyType, ErrorSpan, ModuleDependency,
+  module_id, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
+  ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
+  ModuleDependency,
 };
-use rspack_error::Result;
 
 #[derive(Debug, Clone)]
 pub struct RequireResolveDependency {
   pub start: u32,
   pub end: u32,
-  pub id: Option<DependencyId>,
+  pub id: DependencyId,
   pub request: String,
   pub weak: bool,
   span: ErrorSpan,
@@ -32,19 +30,13 @@ impl RequireResolveDependency {
       request,
       weak,
       span,
-      id: None,
+      id: DependencyId::new(),
       optional,
     }
   }
 }
 
 impl Dependency for RequireResolveDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CommonJS
   }
@@ -55,6 +47,10 @@ impl Dependency for RequireResolveDependency {
 }
 
 impl ModuleDependency for RequireResolveDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -79,8 +75,8 @@ impl ModuleDependency for RequireResolveDependency {
     self.optional
   }
 
-  fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
-    Some(Box::new(self.clone()))
+  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+    Some(self)
   }
 
   fn set_request(&mut self, request: String) {
@@ -88,26 +84,18 @@ impl ModuleDependency for RequireResolveDependency {
   }
 }
 
-impl CodeGeneratable for RequireResolveDependency {
-  fn generate(&self, _context: &mut CodeGeneratableContext) -> Result<CodeGeneratableResult> {
-    todo!()
-  }
-}
-
-impl CodeReplaceSourceDependency for RequireResolveDependency {
+impl CodeGeneratableDependency for RequireResolveDependency {
   fn apply(
     &self,
-    source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let id: DependencyId = self.id().expect("should have dependency id");
-
     source.replace(
       self.start,
       self.end,
       module_id(
         code_generatable_context.compilation,
-        &id,
+        &self.id,
         &self.request,
         self.weak,
       )

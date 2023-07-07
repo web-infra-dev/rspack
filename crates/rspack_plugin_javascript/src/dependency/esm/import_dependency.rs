@@ -1,8 +1,7 @@
 use rspack_core::{
-  module_id_expr, ChunkGroupOptions, CodeGeneratable, CodeGeneratableContext,
-  CodeGeneratableResult, CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
+  module_namespace_promise, ChunkGroupOptions, CodeGeneratableContext, CodeGeneratableDependency,
+  CodeGeneratableSource, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
+  ModuleDependency,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -10,7 +9,7 @@ use swc_core::ecma::atoms::JsWord;
 pub struct ImportDependency {
   start: u32,
   end: u32,
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: JsWord,
   span: Option<ErrorSpan>,
   /// This is used to implement `webpackChunkName`, `webpackPrefetch` etc.
@@ -31,20 +30,13 @@ impl ImportDependency {
       end,
       request,
       span,
-      id: None,
+      id: DependencyId::new(),
       group_options,
     }
   }
 }
 
 impl Dependency for ImportDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -55,6 +47,10 @@ impl Dependency for ImportDependency {
 }
 
 impl ModuleDependency for ImportDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -67,8 +63,8 @@ impl ModuleDependency for ImportDependency {
     self.span.as_ref()
   }
 
-  fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
-    Some(Box::new(self.clone()))
+  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+    Some(self)
   }
 
   fn group_options(&self) -> Option<&ChunkGroupOptions> {
@@ -80,49 +76,16 @@ impl ModuleDependency for ImportDependency {
   }
 }
 
-impl CodeGeneratable for ImportDependency {
-  fn generate(
-    &self,
-    _code_generatable_context: &mut CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
-    todo!()
-  }
-}
-
-impl CodeReplaceSourceDependency for ImportDependency {
+impl CodeGeneratableDependency for ImportDependency {
   fn apply(
     &self,
-    source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let id: DependencyId = self.id().expect("should have dependency id");
-
-    let CodeReplaceSourceDependencyContext {
-      runtime_requirements,
-      compilation,
-      ..
-    } = code_generatable_context;
-
-    let module_id = compilation
-      .module_graph
-      .module_graph_module_by_dependency_id(&id)
-      .map(|m| m.id(&compilation.chunk_graph))
-      .expect("should have dependency id");
-
-    let module_id_str = module_id_expr(&self.request, module_id);
-
-    // Add interop require to runtime requirements, as dynamic imports have been transformed so `inject_runtime_helper` will not be able to detect this.
-    runtime_requirements.insert(RuntimeGlobals::INTEROP_REQUIRE);
-    runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
-    runtime_requirements.insert(RuntimeGlobals::LOAD_CHUNK_WITH_MODULE);
-
     source.replace(
       self.start,
       self.end,
-      format!(
-        "__webpack_require__.el({module_id_str}).then(__webpack_require__.bind(__webpack_require__, {module_id_str})).then(__webpack_require__.ir)",
-      )
-      .as_str(),
+      module_namespace_promise(code_generatable_context, &self.id, &self.request, false).as_str(),
       None,
     );
   }

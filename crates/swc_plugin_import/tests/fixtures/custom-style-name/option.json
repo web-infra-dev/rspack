@@ -1,0 +1,10 @@
+{
+  "extensions": {
+    "pluginImport": [
+      {
+        "libraryName": "foo",
+        "customStyleName": "foo/__custom__/{{kebabCase member}}"
+      }
+    ]
+  }
+}

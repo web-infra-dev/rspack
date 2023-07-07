@@ -1,6 +1,5 @@
 use rspack_core::{
-  BoxModuleDependency, BuildMeta, CodeReplaceSourceDependency, ErrorSpan, ModuleDependency,
-  ModuleIdentifier, ReplaceConstDependency, RuntimeGlobals, SpanExt,
+  BoxModuleDependency, BuildMeta, CodeGeneratableDependency, ErrorSpan, ModuleDependency, SpanExt,
 };
 use swc_core::{
   common::Spanned,
@@ -15,15 +14,14 @@ use super::{expr_matcher, is_module_hot_accept_call, is_module_hot_decline_call}
 use crate::{
   dependency::{
     HarmonyAcceptDependency, ImportMetaHotAcceptDependency, ImportMetaHotDeclineDependency,
-    NewModuleHotAcceptDependency, NewModuleHotDeclineDependency,
+    ModuleArgumentDependency, ModuleHotAcceptDependency, ModuleHotDeclineDependency,
   },
   visitors::{is_import_meta_hot_accept_call, is_import_meta_hot_decline_call},
 };
 
 pub struct HotModuleReplacementScanner<'a> {
   pub dependencies: &'a mut Vec<BoxModuleDependency>,
-  pub code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
-  pub module_identifier: ModuleIdentifier,
+  pub presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
   pub build_meta: &'a BuildMeta,
 }
 
@@ -32,14 +30,12 @@ type CreateDependency = fn(u32, u32, JsWord, Option<ErrorSpan>) -> BoxModuleDepe
 impl<'a> HotModuleReplacementScanner<'a> {
   pub fn new(
     dependencies: &'a mut Vec<BoxModuleDependency>,
-    code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
-    module_identifier: ModuleIdentifier,
+    presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
     build_meta: &'a BuildMeta,
   ) -> Self {
     Self {
       dependencies,
-      code_generable_dependencies,
-      module_identifier,
+      presentational_dependencies,
       build_meta,
     }
   }
@@ -50,12 +46,12 @@ impl<'a> HotModuleReplacementScanner<'a> {
     kind: &str,
     create_dependency: CreateDependency,
   ) {
-    let mut deps = vec![];
+    let mut dependencies: Vec<Box<dyn ModuleDependency>> = vec![];
 
     if let Some(first_arg) = call_expr.args.get(0) {
       match &*first_arg.expr {
         Expr::Lit(Lit::Str(s)) => {
-          deps.push(create_dependency(
+          dependencies.push(create_dependency(
             s.span.real_lo(),
             s.span.real_hi(),
             s.value.clone(),
@@ -66,7 +62,7 @@ impl<'a> HotModuleReplacementScanner<'a> {
           array_lit.elems.iter().for_each(|e| {
             if let Some(expr) = e {
               if let Expr::Lit(Lit::Str(s)) = &*expr.expr {
-                deps.push(create_dependency(
+                dependencies.push(create_dependency(
                   s.span.real_lo(),
                   s.span.real_hi(),
                   s.value.clone(),
@@ -81,40 +77,29 @@ impl<'a> HotModuleReplacementScanner<'a> {
     }
 
     if self.build_meta.esm && kind == "accept" && !call_expr.args.is_empty() {
-      let ref_deps = deps
-        .iter()
-        .map(|dep| {
-          (
-            dep.request().into(),
-            *dep.category(),
-            dep.dependency_type().clone(),
-          )
-        })
-        .collect::<Vec<_>>();
+      let dependency_ids = dependencies.iter().map(|dep| *dep.id()).collect::<Vec<_>>();
       if let Some(callback_arg) = call_expr.args.get(1) {
         self
-          .code_generable_dependencies
+          .presentational_dependencies
           .push(Box::new(HarmonyAcceptDependency::new(
             callback_arg.span().real_lo(),
             callback_arg.span().real_hi(),
             true,
-            self.module_identifier,
-            ref_deps,
+            dependency_ids,
           )));
       } else {
         self
-          .code_generable_dependencies
+          .presentational_dependencies
           .push(Box::new(HarmonyAcceptDependency::new(
             call_expr.span().real_hi() - 1,
             0,
             false,
-            self.module_identifier,
-            ref_deps,
+            dependency_ids,
           )));
       }
     }
 
-    self.dependencies.extend(deps);
+    self.dependencies.extend(dependencies);
   }
 }
 
@@ -124,12 +109,11 @@ impl<'a> Visit for HotModuleReplacementScanner<'a> {
   fn visit_expr(&mut self, expr: &Expr) {
     if expr_matcher::is_module_hot(expr) || expr_matcher::is_import_meta_webpack_hot(expr) {
       self
-        .code_generable_dependencies
-        .push(Box::new(ReplaceConstDependency::new(
+        .presentational_dependencies
+        .push(Box::new(ModuleArgumentDependency::new(
           expr.span().real_lo(),
           expr.span().real_hi(),
-          "module.hot".into(), // TODO module_argument
-          Some(RuntimeGlobals::MODULE),
+          Some("hot"),
         )));
     }
     expr.visit_children_with(self);
@@ -138,13 +122,11 @@ impl<'a> Visit for HotModuleReplacementScanner<'a> {
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
     if is_module_hot_accept_call(call_expr) {
       self.collect_dependencies(call_expr, "accept", |start, end, request, span| {
-        Box::new(NewModuleHotAcceptDependency::new(start, end, request, span))
+        Box::new(ModuleHotAcceptDependency::new(start, end, request, span))
       });
     } else if is_module_hot_decline_call(call_expr) {
       self.collect_dependencies(call_expr, "decline", |start, end, request, span| {
-        Box::new(NewModuleHotDeclineDependency::new(
-          start, end, request, span,
-        ))
+        Box::new(ModuleHotDeclineDependency::new(start, end, request, span))
       });
     } else if is_import_meta_hot_accept_call(call_expr) {
       self.collect_dependencies(call_expr, "accept", |start, end, request, span| {

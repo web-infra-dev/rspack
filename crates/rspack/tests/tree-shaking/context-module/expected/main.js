@@ -1,29 +1,19 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./child/child/index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./child/child/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'value': function() { return value; }
 });
-Object.defineProperty(exports, "value", {
-    enumerable: true,
-    get: function() {
-        return value;
-    }
-});
-const value = "dynamic";
+ const value = "dynamic";
 },
-"./child/index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./child/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'value': function() { return value; }
 });
-Object.defineProperty(exports, "value", {
-    enumerable: true,
-    get: function() {
-        return value;
-    }
-});
-const value = "dynamic";
+ const value = "dynamic";
 },
 "./child Sync  recursive ^\\.\\/.*\\.js$": function (module, exports, __webpack_require__) {
 var map = {"./child/index.js": "./child/child/index.js","./index.js": "./child/index.js",};
@@ -51,9 +41,9 @@ webpackContext.id = '"./child Sync  recursive ^\\.\\/.*\\.js$"';
       webpackContext.resolve = webpackContextResolve;
       module.exports = webpackContext;
       },
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (__unused_webpack_module, exports, __webpack_require__) {
 let a = "index";
-__webpack_require__("./child Sync  recursive ^\\.\\/.*\\.js$")(`./child/${a}.js`.replace("./child/", "./"));
+__webpack_require__(/* ./child */"./child Sync  recursive ^\\.\\/.*\\.js$")((`./child/${a}.js`).replace('./child/', './'));
 },
 
 },function(__webpack_require__) {

@@ -1,44 +1,34 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./Layout.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./Layout.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'defaults': function() { return defaults; }
 });
-Object.defineProperty(exports, "defaults", {
-    enumerable: true,
-    get: function() {
-        return defaults;
-    }
-});
-const defaults = {
+ const defaults = {
     test: 1000
 };
 },
-"./export.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./export.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'Something': function() { return Something; }
 });
-Object.defineProperty(exports, "Something", {
-    enumerable: true,
-    get: function() {
-        return Something;
-    }
-});
-var _Layout = __webpack_require__("./Layout.js");
+/* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./Layout */"./Layout.js");
+
 class Test {
-    test = _Layout.defaults.test + 20000;
+    test = _Layout__WEBPACK_IMPORTED_MODULE_0_["defaults"].test + 20000;
 }
-new Test();
-var Something = 333;
+ var Sider = new Test();
+ var Something = 333;
 },
-"./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _export = __webpack_require__("./export.js");
-(0, _export.Something)();
+"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./export */"./export.js");
+
+(0, _export__WEBPACK_IMPORTED_MODULE_0_["Something"])();
 },
 
 },function(__webpack_require__) {

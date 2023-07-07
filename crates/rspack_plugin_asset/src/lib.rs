@@ -291,7 +291,6 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         dependencies: vec![],
         ast_or_source: source.into(),
         presentational_dependencies: vec![],
-        code_replace_source_dependencies: vec![],
       }
       .with_empty_diagnostic(),
     )
@@ -399,6 +398,10 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         } else {
           unreachable!()
         };
+
+        generate_context
+          .runtime_requirements
+          .insert(RuntimeGlobals::MODULE);
 
         Ok(GenerationResult {
           ast_or_source: RawSource::from(format!(r#"module.exports = {exported_content};"#))

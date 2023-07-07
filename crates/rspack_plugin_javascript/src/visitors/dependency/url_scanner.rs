@@ -1,21 +1,26 @@
-use rspack_core::{ModuleDependency, SpanExt};
-use swc_core::common::Spanned;
+use rspack_core::ModuleDependency;
 use swc_core::ecma::{
-  ast::{Expr, ExprOrSpread, Ident, Lit, NewExpr},
-  atoms::js_word,
+  ast::NewExpr,
   visit::{noop_visit_type, Visit, VisitWith},
 };
 
-use super::expr_matcher;
-use crate::dependency::NewURLDependency;
+use crate::dependency::URLDependency;
+
 pub struct UrlScanner<'a> {
   pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+  worker_syntax_list: &'a rspack_core::needs_refactor::WorkerSyntaxList,
 }
 
 // new URL("./foo.png", import.meta.url);
 impl<'a> UrlScanner<'a> {
-  pub fn new(dependencies: &'a mut Vec<Box<dyn ModuleDependency>>) -> Self {
-    Self { dependencies }
+  pub fn new(
+    dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+    worker_syntax_list: &'a rspack_core::needs_refactor::WorkerSyntaxList,
+  ) -> Self {
+    Self {
+      dependencies,
+      worker_syntax_list,
+    }
   }
 }
 
@@ -23,34 +28,20 @@ impl Visit for UrlScanner<'_> {
   noop_visit_type!();
 
   fn visit_new_expr(&mut self, new_expr: &NewExpr) {
-    if let Expr::Ident(Ident {
-      sym: js_word!("URL"),
-      ..
-    }) = &*new_expr.callee
-    {
-      if let Some(args) = &new_expr.args {
-        if let (Some(first), Some(second)) = (args.first(), args.get(1)) {
-          if let (
-            ExprOrSpread {
-              spread: None,
-              expr: box Expr::Lit(Lit::Str(path)),
-            },
-            ExprOrSpread {
-              spread: None,
-              expr:
-                box expr
-            },
-          ) = (first, second) && expr_matcher::is_import_meta_url(expr)
-          {
-            self.dependencies.push(Box::new(NewURLDependency::new(
-              path.span.real_lo(),
-              expr.span().real_hi(),
-              path.value.clone(),
-              Some(new_expr.span.into()),
-            )));
-          }
-        }
+    // TODO: https://github.com/web-infra-dev/rspack/discussions/3619
+    if self.worker_syntax_list.match_new_worker(new_expr) && let Some(args) = &new_expr.args {
+      for arg in args.iter().skip(1) {
+        arg.visit_with(self);
       }
+      return;
+    }
+    if let Some((start, end, request)) = rspack_core::needs_refactor::match_new_url(new_expr) {
+      self.dependencies.push(Box::new(URLDependency::new(
+        start,
+        end,
+        request.into(),
+        Some(new_expr.span.into()),
+      )));
     } else {
       new_expr.visit_children_with(self);
     }

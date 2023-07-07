@@ -1,13 +1,12 @@
 use rspack_core::{
-  CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
-  DependencyId, DependencyType, ErrorSpan, ModuleDependency,
+  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
 };
 
 use crate::WasmNode;
 
 #[derive(Debug, Clone)]
 pub struct WasmImportDependency {
-  id: Option<DependencyId>,
+  id: DependencyId,
   name: String,
   request: String,
   // only_direct_import: bool,
@@ -20,7 +19,7 @@ pub struct WasmImportDependency {
 impl WasmImportDependency {
   pub fn new(request: String, name: String, desc: WasmNode) -> Self {
     Self {
-      id: None,
+      id: DependencyId::new(),
       name,
       request,
       desc,
@@ -34,13 +33,6 @@ impl WasmImportDependency {
 }
 
 impl Dependency for WasmImportDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Wasm
   }
@@ -51,6 +43,10 @@ impl Dependency for WasmImportDependency {
 }
 
 impl ModuleDependency for WasmImportDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -65,14 +61,5 @@ impl ModuleDependency for WasmImportDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
-  }
-}
-
-impl CodeGeneratable for WasmImportDependency {
-  fn generate(
-    &self,
-    _code_generatable_context: &mut CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
-    todo!()
   }
 }

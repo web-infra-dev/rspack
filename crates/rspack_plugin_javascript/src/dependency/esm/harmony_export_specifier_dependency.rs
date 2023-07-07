@@ -1,9 +1,8 @@
 use std::collections::HashSet;
 
 use rspack_core::{
-  tree_shaking::visitor::SymbolRef, CodeReplaceSourceDependency,
-  CodeReplaceSourceDependencyContext, CodeReplaceSourceDependencyReplaceSource, InitFragment,
-  InitFragmentStage, RuntimeGlobals,
+  tree_shaking::visitor::SymbolRef, CodeGeneratableContext, CodeGeneratableDependency,
+  CodeGeneratableSource, InitFragment, InitFragmentStage, RuntimeGlobals,
 };
 use rspack_symbol::{IndirectType, SymbolType, DEFAULT_JS_WORD};
 use swc_core::ecma::atoms::JsWord;
@@ -20,13 +19,13 @@ impl HarmonyExportSpecifierDependency {
   }
 }
 
-impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
+impl CodeGeneratableDependency for HarmonyExportSpecifierDependency {
   fn apply(
     &self,
-    _source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    _source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let CodeReplaceSourceDependencyContext {
+    let CodeGeneratableContext {
       runtime_requirements,
       init_fragments,
       compilation,
@@ -38,7 +37,7 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
       .module_graph_module_by_identifier(&module.identifier())
       .expect("should have mgm")
       .get_exports_argument();
-    runtime_requirements.add(RuntimeGlobals::EXPORTS);
+    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
 
     if !self.exports.is_empty() {
       let used_exports = if compilation.options.builtins.tree_shaking.is_true() {
@@ -62,7 +61,7 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
               Some(i.id())
             }
             SymbolRef::Indirect(i) if i.src == module.identifier() => match i.ty {
-              // IndirectType::Import(_, _) => Some(i.indirect_id()),
+              IndirectType::Import(_, _) => Some(i.indirect_id()),
               IndirectType::ImportDefault(_) => Some(&DEFAULT_JS_WORD),
               _ => None,
             },
@@ -85,7 +84,7 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
         })
         .collect::<Vec<_>>();
       if !exports.is_empty() {
-        runtime_requirements.add(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+        runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
         init_fragments.push(InitFragment::new(
           format!(
             "{}({exports_argument}, {});\n",
@@ -105,11 +104,11 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
 
 pub fn format_exports(exports: &[(JsWord, JsWord)]) -> String {
   format!(
-    "{{{}}}",
+    "{{\n  {}\n}}",
     exports
       .iter()
       .map(|s| format!("'{}': function() {{ return {}; }}", s.0, s.1))
       .collect::<Vec<_>>()
-      .join(", ")
+      .join(",\n  ")
   )
 }

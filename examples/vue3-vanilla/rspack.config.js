@@ -55,7 +55,7 @@ const config = {
 				type: "javascript/auto"
 			},
 			{
-				test: /\.svg/,
+				test: /\.svg$/,
 				type: "asset/resource"
 			}
 		]

@@ -5,8 +5,7 @@ use swc_core::ecma::atoms::JsWordStaticSet;
 
 bitflags! {
   pub struct RuntimeGlobals: u64 {
-
-    const INTEROP_REQUIRE = 1 << 0;
+    const REQUIRE_SCOPE = 1 << 0;
 
     const EXPORT_STAR = 1 << 1;
     /**
@@ -212,6 +211,10 @@ bitflags! {
     const COMPAT_GET_DEFAULT_EXPORT = 1 << 45;
 
     const CREATE_FAKE_NAMESPACE_OBJECT = 1 << 46;
+
+    const NODE_MODULE_DECORATOR = 1 << 47;
+
+    const HARMONY_MODULE_DECORATOR = 1 << 48;
   }
 }
 
@@ -229,16 +232,10 @@ impl Default for RuntimeGlobals {
 }
 
 impl RuntimeGlobals {
-  /// a self-mutating method of `union`, union any flags present in either self or other
-  /// It is used as a compatible function of HashSet's extend.
-  pub fn add(&mut self, other: RuntimeGlobals) {
-    *self |= other;
-  }
-
   pub fn name(&self) -> &'static str {
     use RuntimeGlobals as R;
     match *self {
-      R::INTEROP_REQUIRE => "ir",
+      R::REQUIRE_SCOPE => "__webpack_require__.*",
       R::EXPORT_STAR => "es",
       R::LOAD_CHUNK_WITH_MODULE => "__webpack_require__.el",
       R::MODULE => "module",
@@ -285,6 +282,8 @@ impl RuntimeGlobals {
       R::EXPORTS => "__webpack_exports__",
       R::COMPAT_GET_DEFAULT_EXPORT => "__webpack_require__.n",
       R::CREATE_FAKE_NAMESPACE_OBJECT => "__webpack_require__.t",
+      R::HARMONY_MODULE_DECORATOR => "__webpack_require__.hmd",
+      R::NODE_MODULE_DECORATOR => "__webpack_require__.nmd",
       r => panic!(
         "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
       ),
@@ -333,15 +332,6 @@ mod test {
     assert_eq!(format!("{flags}"), "__webpack_require__.p");
     let flags = RuntimeGlobals::GET_CHUNK_CSS_FILENAME;
     assert_eq!(format!("{flags}"), "__webpack_require__.k");
-  }
-
-  #[test]
-  fn test_runtime_globals_operation() {
-    let mut runtime = RuntimeGlobals::default();
-    assert!(runtime.is_empty());
-    runtime.add(RuntimeGlobals::PUBLIC_PATH | RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
-    assert!(!runtime.is_empty());
-    assert!(runtime.contains(RuntimeGlobals::PUBLIC_PATH));
   }
 
   #[test]

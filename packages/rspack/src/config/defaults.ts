@@ -70,6 +70,7 @@ export const applyRspackOptionsDefaults = (
 	F(options, "devtool", () => false as const);
 	D(options, "watch", false);
 
+	const futureDefaults = options.experiments.futureDefaults ?? false;
 	F(options, "cache", () => development);
 
 	applyExperimentsDefaults(options.experiments, { cache: options.cache! });
@@ -91,7 +92,8 @@ export const applyRspackOptionsDefaults = (
 			(Array.isArray(target) &&
 				target.some(target => target.startsWith("browserslist"))),
 		outputModule: options.experiments.outputModule,
-		entry: options.entry
+		entry: options.entry,
+		futureDefaults
 	});
 
 	applyExternalsPresetsDefaults(options.externalsPresets, {
@@ -350,13 +352,15 @@ const applyOutputDefaults = (
 		outputModule,
 		targetProperties: tp,
 		isAffectedByBrowserslist,
-		entry
+		entry,
+		futureDefaults
 	}: {
 		context: Context;
 		outputModule?: boolean;
 		targetProperties: any;
 		isAffectedByBrowserslist: boolean;
 		entry: EntryNormalized;
+		futureDefaults: boolean;
 	}
 ) => {
 	F(output, "uniqueName", () => {
@@ -420,9 +424,10 @@ const applyOutputDefaults = (
 		"publicPath",
 		tp && (tp.document || tp.importScripts) ? "auto" : ""
 	);
-	D(output, "hashFunction", "xxhash64");
+
+	D(output, "hashFunction", futureDefaults ? "xxhash64" : "md4");
 	D(output, "hashDigest", "hex");
-	D(output, "hashDigestLength", 16);
+	D(output, "hashDigestLength", futureDefaults ? 16 : 20);
 	D(output, "strictModuleErrorHandling", false);
 	if (output.library) {
 		F(output.library, "type", () => (output.module ? "module" : "var"));
@@ -485,6 +490,30 @@ const applyOutputDefaults = (
 		}
 		return false;
 	});
+	F(output, "workerChunkLoading", () => {
+		if (tp) {
+			switch (output.chunkFormat) {
+				case "array-push":
+					if (tp.importScriptsInWorker) return "import-scripts";
+					break;
+				case "commonjs":
+					if (tp.require) return "require";
+					if (tp.nodeBuiltins) return "async-node";
+					break;
+				case "module":
+					if (tp.dynamicImportInWorker) return "import";
+					break;
+			}
+			if (
+				tp.require === null ||
+				tp.nodeBuiltins === null ||
+				tp.importScriptsInWorker === null
+			) {
+				return "universal";
+			}
+		}
+		return false;
+	});
 	F(output, "wasmLoading", () => {
 		if (tp) {
 			if (tp.fetchWasm) return "fetch";
@@ -496,6 +525,7 @@ const applyOutputDefaults = (
 		}
 		return false;
 	});
+	F(output, "workerWasmLoading", () => output.wasmLoading);
 	F(output, "globalObject", () => {
 		if (tp) {
 			if (tp.global) return "global";
@@ -506,6 +536,7 @@ const applyOutputDefaults = (
 	D(output, "importFunctionName", "import");
 	F(output, "clean", () => !!output.clean);
 	D(output, "crossOriginLoading", false);
+	D(output, "workerPublicPath", "");
 	F(output, "sourceMapFilename", () => {
 		return "[file].map";
 	});
@@ -538,9 +569,9 @@ const applyOutputDefaults = (
 		if (output.chunkLoading) {
 			enabledChunkLoadingTypes.add(output.chunkLoading);
 		}
-		// if (output.workerChunkLoading) {
-		// 	enabledChunkLoadingTypes.add(output.workerChunkLoading);
-		// }
+		if (output.workerChunkLoading) {
+			enabledChunkLoadingTypes.add(output.workerChunkLoading);
+		}
 		forEachEntry(desc => {
 			if (desc.chunkLoading) {
 				enabledChunkLoadingTypes.add(desc.chunkLoading);
@@ -553,9 +584,9 @@ const applyOutputDefaults = (
 		if (output.wasmLoading) {
 			enabledWasmLoadingTypes.add(output.wasmLoading);
 		}
-		// if (output.workerWasmLoading) {
-		// 	enabledWasmLoadingTypes.add(output.workerWasmLoading);
-		// }
+		if (output.workerWasmLoading) {
+			enabledWasmLoadingTypes.add(output.workerWasmLoading);
+		}
 		// forEachEntry(desc => {
 		// 	if (desc.wasmLoading) {
 		// 		enabledWasmLoadingTypes.add(desc.wasmLoading);
@@ -718,10 +749,10 @@ const getResolveDefaults = ({
 			url: {
 				preferRelative: true
 			},
-			// worker: {
-			// 	...esmDeps(),
-			// 	preferRelative: true
-			// },
+			worker: {
+				...esmDeps(),
+				preferRelative: true
+			},
 			commonjs: cjsDeps(),
 			// amd: cjsDeps(),
 			// for backward-compat: loadModule

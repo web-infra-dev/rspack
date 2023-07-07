@@ -1,6 +1,6 @@
 use rspack_core::{
-  CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, InitFragment, InitFragmentStage, RuntimeGlobals,
+  CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, InitFragment,
+  InitFragmentStage, RuntimeGlobals,
 };
 
 // Mark module `__esModule`.
@@ -8,13 +8,13 @@ use rspack_core::{
 #[derive(Debug)]
 pub struct HarmonyCompatibilityDependency;
 
-impl CodeReplaceSourceDependency for HarmonyCompatibilityDependency {
+impl CodeGeneratableDependency for HarmonyCompatibilityDependency {
   fn apply(
     &self,
-    _source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    _source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let CodeReplaceSourceDependencyContext {
+    let CodeGeneratableContext {
       runtime_requirements,
       init_fragments,
       compilation,
@@ -22,8 +22,8 @@ impl CodeReplaceSourceDependency for HarmonyCompatibilityDependency {
       ..
     } = code_generatable_context;
     // TODO __esModule is used
-    runtime_requirements.add(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
-    runtime_requirements.add(RuntimeGlobals::EXPORTS);
+    runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     init_fragments.push(InitFragment::new(
       format!(
         "'use strict';\n{}({});\n", // todo remove strict
@@ -39,8 +39,8 @@ impl CodeReplaceSourceDependency for HarmonyCompatibilityDependency {
     ));
 
     if compilation.module_graph.is_async(&module.identifier()) {
-      runtime_requirements.add(RuntimeGlobals::MODULE);
-      runtime_requirements.add(RuntimeGlobals::ASYNC_MODULE);
+      runtime_requirements.insert(RuntimeGlobals::MODULE);
+      runtime_requirements.insert(RuntimeGlobals::ASYNC_MODULE);
       init_fragments.push(InitFragment::new(
         format!(
           "{}({}, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) {{ try {{\n",

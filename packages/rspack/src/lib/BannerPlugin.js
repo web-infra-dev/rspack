@@ -97,7 +97,7 @@ class BannerPlugin {
 							}
 
 							const data = {
-								// chunk,
+								chunk,
 								filename: file
 							};
 

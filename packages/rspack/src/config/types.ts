@@ -82,6 +82,7 @@ export type ChunkLoadingType =
 export interface EntryObject {
 	[k: string]: EntryItem | EntryDescription;
 }
+export type EntryFilename = FilenameTemplate;
 export interface EntryDescription {
 	import: EntryItem;
 	runtime?: EntryRuntime;
@@ -89,6 +90,7 @@ export interface EntryDescription {
 	asyncChunks?: boolean;
 	publicPath?: PublicPath;
 	baseUri?: string;
+	filename?: EntryFilename;
 }
 
 export type EntryNormalized = EntryStaticNormalized;
@@ -102,6 +104,7 @@ export interface EntryDescriptionNormalized {
 	asyncChunks?: boolean;
 	publicPath?: PublicPath;
 	baseUri?: string;
+	filename?: EntryFilename;
 }
 
 ///// Output /////
@@ -143,6 +146,9 @@ export interface Output {
 	hashFunction?: HashFunction;
 	hashSalt?: HashSalt;
 	asyncChunks?: boolean;
+	workerChunkLoading?: ChunkLoading;
+	workerWasmLoading?: WasmLoading;
+	workerPublicPath?: WorkerPublicPath;
 }
 export type Path = string;
 export type PublicPath = "auto" | RawPublicPath;
@@ -224,6 +230,7 @@ export type HashDigest = string;
 export type HashDigestLength = number;
 export type HashFunction = string;
 export type HashSalt = string;
+export type WorkerPublicPath = string;
 export interface OutputNormalized {
 	path?: Path;
 	clean?: Clean;
@@ -258,6 +265,9 @@ export interface OutputNormalized {
 	hashFunction?: HashFunction;
 	hashSalt?: HashSalt;
 	asyncChunks?: boolean;
+	workerChunkLoading?: ChunkLoading;
+	workerWasmLoading?: WasmLoading;
+	workerPublicPath?: WorkerPublicPath;
 }
 
 ///// Resolve /////
@@ -641,6 +651,7 @@ export interface ExperimentsNormalized {
 	outputModule?: boolean;
 	newSplitChunks?: boolean;
 	css?: boolean;
+	futureDefaults?: boolean;
 }
 
 ///// Watch /////

@@ -1,40 +1,30 @@
 use rspack_core::{
-  create_css_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, CssAstPath,
-  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
-};
-use swc_core::{
-  common::util::take::Take,
-  css::ast::{AtRulePrelude, Rule},
+  CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, Dependency,
+  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
 };
 
 #[derive(Debug, Clone)]
 pub struct CssImportDependency {
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: String,
   span: Option<ErrorSpan>,
-  #[allow(unused)]
-  ast_path: CssAstPath,
+  start: u32,
+  end: u32,
 }
 
 impl CssImportDependency {
-  pub fn new(request: String, span: Option<ErrorSpan>, ast_path: CssAstPath) -> Self {
+  pub fn new(request: String, span: Option<ErrorSpan>, start: u32, end: u32) -> Self {
     Self {
-      id: None,
+      id: DependencyId::new(),
       request,
       span,
-      ast_path,
+      start,
+      end,
     }
   }
 }
 
 impl Dependency for CssImportDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CssImport
   }
@@ -45,6 +35,10 @@ impl Dependency for CssImportDependency {
 }
 
 impl ModuleDependency for CssImportDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -60,28 +54,18 @@ impl ModuleDependency for CssImportDependency {
   fn set_request(&mut self, request: String) {
     self.request = request;
   }
+
+  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+    Some(self)
+  }
 }
 
-impl CodeGeneratable for CssImportDependency {
-  fn generate(
+impl CodeGeneratableDependency for CssImportDependency {
+  fn apply(
     &self,
+    source: &mut CodeGeneratableSource,
     _code_generatable_context: &mut CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
-    let mut code_gen = CodeGeneratableResult::default();
-    code_gen.visitors.push(
-      create_css_visitor!(visit_mut_stylesheet(n: &mut Stylesheet) {
-        n.rules = n
-          .rules
-          .take()
-          .into_iter()
-          .filter(|rule| match rule {
-            Rule::AtRule(at_rule) => !matches!(at_rule.prelude, Some(box AtRulePrelude::ImportPrelude(_))),
-            _ => true,
-          })
-          .collect();
-      }),
-    );
-
-    Ok(code_gen)
+  ) {
+    source.replace(self.start - 8 /* @import */, self.end, "", None);
   }
 }

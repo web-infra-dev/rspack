@@ -1,14 +1,14 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-__webpack_require__("./shared.js");
-__webpack_require__.el("./a.js").then(__webpack_require__.bind(__webpack_require__, "./a.js")).then(__webpack_require__.ir);
+"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./shared */"./shared.js");
+/* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_1__default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_1_);
+
+__webpack_require__.el(/* ./a */"./a.js").then(__webpack_require__.bind(__webpack_require__, /* ./a */"./a.js"));
 console.log('index');
 },
-"./shared.js": function (module, exports, __webpack_require__) {
+"./shared.js": function (__unused_webpack_module, exports, __webpack_require__) {
 console.log('shared');
 },
 

@@ -1,12 +1,12 @@
-use std::{fmt::Debug, hash::Hash};
+use std::{fmt::Debug, hash::Hash, sync::Arc};
 
 use rspack_database::DatabaseItem;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, EntryOptions, ModuleGraph,
-  RuntimeSpec, SourceType,
+  ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, EntryOptions, Filename,
+  ModuleGraph, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,6 +23,8 @@ pub struct Chunk {
   // - The name of chunks create by dynamic import is `None` unless users use
   // magic comment like `import(/* webpackChunkName: "someChunk" * / './someModule.js')` to specify it.
   pub name: Option<String>,
+  pub filename_template: Option<Filename>,
+  pub css_filename_template: Option<Filename>,
   pub ukey: ChunkUkey,
   pub id: Option<String>,
   pub ids: Vec<String>,
@@ -32,6 +34,7 @@ pub struct Chunk {
   pub runtime: RuntimeSpec,
   pub kind: ChunkKind,
   pub hash: Option<RspackHashDigest>,
+  pub rendered_hash: Option<Arc<str>>,
   pub content_hash: ChunkContentHash,
   pub chunk_reasons: Vec<String>,
 }
@@ -46,6 +49,8 @@ impl Chunk {
   pub fn new(name: Option<String>, kind: ChunkKind) -> Self {
     Self {
       name,
+      filename_template: None,
+      css_filename_template: None,
       ukey: ChunkUkey::new(),
       id: None,
       ids: vec![],
@@ -55,6 +60,7 @@ impl Chunk {
       runtime: HashSet::default(),
       kind,
       hash: None,
+      rendered_hash: None,
       content_hash: HashMap::default(),
       chunk_reasons: Default::default(),
     }

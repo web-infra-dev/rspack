@@ -34,6 +34,7 @@ rspack_plugin_schemes                   = { path = "../rspack_plugin_schemes" }
 rspack_plugin_split_chunks              = { path = "../rspack_plugin_split_chunks" }
 rspack_plugin_split_chunks_new          = { path = "../rspack_plugin_split_chunks_new" }
 rspack_plugin_wasm                      = { path = "../rspack_plugin_wasm" }
+rspack_plugin_worker                    = { path = "../rspack_plugin_worker" }
 rspack_regex                            = { path = "../rspack_regex" }
 
 anyhow            = { workspace = true, features = ["backtrace"] }
@@ -47,6 +48,6 @@ napi-derive       = { workspace = true }
 serde             = { workspace = true, features = ["derive"] }
 serde_json        = { workspace = true }
 swc_core          = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
-swc_plugin_import = { workspace = true }
+swc_plugin_import = { path = "../swc_plugin_import" }
 tokio             = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
 tracing           = { workspace = true }

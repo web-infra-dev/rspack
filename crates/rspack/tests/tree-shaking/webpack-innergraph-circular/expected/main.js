@@ -1,69 +1,50 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _inner = __webpack_require__("./inner.js");
-var _module = __webpack_require__("./module.js");
+"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _inner__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./inner */"./inner.js");
+/* harmony import */var _module__WEBPACK_IMPORTED_MODULE_2_ = __webpack_require__(/* ./module */"./module.js");
+
+
 it("export should be unused when only unused functions use it", ()=>{
-    expect((0, _module.y)("a")).toBe("okBAA");
-    expect(_inner.exportAUsed).toBe(true);
-    expect(_inner.exportBUsed).toBe(true);
-    expect(_inner.exportCUsed).toBe(false);
-    return __webpack_require__.el("./chunk.js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js")).then(__webpack_require__.ir);
+    expect((0, _module__WEBPACK_IMPORTED_MODULE_2_["y"])("a")).toBe("okBAA");
+    expect(_inner__WEBPACK_IMPORTED_MODULE_1_["exportAUsed"]).toBe(true);
+    expect(_inner__WEBPACK_IMPORTED_MODULE_1_["exportBUsed"]).toBe(true);
+    expect(_inner__WEBPACK_IMPORTED_MODULE_1_["exportCUsed"]).toBe(false);
+    return __webpack_require__.el(/* ./chunk */"./chunk.js").then(__webpack_require__.bind(__webpack_require__, /* ./chunk */"./chunk.js"));
 });
 },
-"./inner.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./inner.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'A': function() { return A; },
+  'B': function() { return B; },
+  'exportAUsed': function() { return exportAUsed; },
+  'exportBUsed': function() { return exportBUsed; },
+  'exportCUsed': function() { return exportCUsed; }
 });
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    A: function() {
-        return A;
-    },
-    B: function() {
-        return B;
-    },
-    exportAUsed: function() {
-        return exportAUsed;
-    },
-    exportBUsed: function() {
-        return exportBUsed;
-    },
-    exportCUsed: function() {
-        return exportCUsed;
-    }
-});
-function A(s) {
+ function A(s) {
     return s + "A";
 }
-function B(s) {
+ function B(s) {
     return s + "B";
 }
-const exportAUsed = __webpack_exports_info__.A.used;
-const exportBUsed = __webpack_exports_info__.B.used;
-const exportCUsed = __webpack_exports_info__.C.used;
+ function C(s) {
+    return s + "C";
+}
+ const exportAUsed = __webpack_exports_info__.A.used;
+ const exportBUsed = __webpack_exports_info__.B.used;
+ const exportCUsed = __webpack_exports_info__.C.used;
 },
-"./module.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'y': function() { return y; }
 });
-Object.defineProperty(exports, "y", {
-    enumerable: true,
-    get: function() {
-        return y;
-    }
-});
-var _inner = __webpack_require__("./inner.js");
+/* harmony import */var _inner__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./inner */"./inner.js");
+
 function x(type) {
     switch(type){
         case "a":
@@ -79,12 +60,17 @@ function y(v) {
 }
 function withA(v) {
     const value = x(v);
-    return (0, _inner.A)(value);
+    return (0, _inner__WEBPACK_IMPORTED_MODULE_0_["A"])(value);
 }
 function withB(v) {
     const value = x(v);
-    return (0, _inner.B)(value);
+    return (0, _inner__WEBPACK_IMPORTED_MODULE_0_["B"])(value);
 }
+function withC(v) {
+    const value = x(v);
+    return (0, _inner__WEBPACK_IMPORTED_MODULE_0_["C"])(value);
+}
+
 },
 
 },function(__webpack_require__) {

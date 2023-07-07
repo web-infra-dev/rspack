@@ -1,15 +1,13 @@
 use rspack_core::{
-  module_id, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
-  CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
+  module_id, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, Dependency,
+  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
 };
 use swc_core::ecma::atoms::JsWord;
 
 // Webpack RequireHeaderDependency + CommonJsRequireDependency
 #[derive(Debug, Clone)]
 pub struct CommonJsRequireDependency {
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: JsWord,
   optional: bool,
   start: u32,
@@ -26,7 +24,7 @@ impl CommonJsRequireDependency {
     optional: bool,
   ) -> Self {
     Self {
-      id: None,
+      id: DependencyId::new(),
       request,
       optional,
       start,
@@ -37,13 +35,6 @@ impl CommonJsRequireDependency {
 }
 
 impl Dependency for CommonJsRequireDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CommonJS
   }
@@ -54,6 +45,10 @@ impl Dependency for CommonJsRequireDependency {
 }
 
 impl ModuleDependency for CommonJsRequireDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -70,8 +65,8 @@ impl ModuleDependency for CommonJsRequireDependency {
     self.optional
   }
 
-  fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
-    Some(Box::new(self.clone()))
+  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+    Some(self)
   }
 
   fn set_request(&mut self, request: String) {
@@ -79,37 +74,26 @@ impl ModuleDependency for CommonJsRequireDependency {
   }
 }
 
-impl CodeGeneratable for CommonJsRequireDependency {
-  fn generate(
-    &self,
-    _code_generatable_context: &mut CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
-    Ok(CodeGeneratableResult::default())
-  }
-}
-
-impl CodeReplaceSourceDependency for CommonJsRequireDependency {
+impl CodeGeneratableDependency for CommonJsRequireDependency {
   fn apply(
     &self,
-    source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let CodeReplaceSourceDependencyContext {
+    let CodeGeneratableContext {
       runtime_requirements,
       compilation,
       ..
     } = code_generatable_context;
 
-    let id: DependencyId = self.id().expect("should have dependency id");
-
-    runtime_requirements.add(RuntimeGlobals::REQUIRE);
+    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     source.replace(
       self.start,
       self.end,
       format!(
         "{}({})",
         RuntimeGlobals::REQUIRE,
-        module_id(compilation, &id, &self.request, false).as_str()
+        module_id(compilation, &self.id, &self.request, false).as_str()
       )
       .as_str(),
       None,

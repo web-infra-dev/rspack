@@ -142,7 +142,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
     let resource_path = loader_context.resource_path.to_path_buf();
     let content = std::mem::take(&mut loader_context.content).expect("content should available");
 
-    let c = Compiler::new(Arc::from(swc_core::common::SourceMap::new(
+    let c: Compiler = Compiler::new(Arc::from(swc_core::common::SourceMap::new(
       FilePathMapping::empty(),
     )));
     let mut errors: Vec<Error> = Default::default();

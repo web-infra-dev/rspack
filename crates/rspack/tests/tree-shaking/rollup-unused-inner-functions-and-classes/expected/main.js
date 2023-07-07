@@ -1,51 +1,58 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _stuff = __webpack_require__("./stuff.js");
-(0, _stuff.bar)();
-var f = (0, _stuff.baz)();
+"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _stuff__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./stuff */"./stuff.js");
+
+(0, _stuff__WEBPACK_IMPORTED_MODULE_0_["bar"])();
+var f = (0, _stuff__WEBPACK_IMPORTED_MODULE_0_["baz"])();
 f();
 function getClass() {
     class MyClass {
     }
+    class UnusedInnerClass1 {
+    }
     return MyClass;
+}
+class UnusedClass {
 }
 console.log(getClass().name);
 },
-"./stuff.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./stuff.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'bar': function() { return bar; },
+  'baz': function() { return Baz; }
 });
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
+ function foo() {
+    console.log("outer foo");
 }
-_export(exports, {
-    bar: function() {
-        return bar;
-    },
-    baz: function() {
-        return Baz;
-    }
-});
-function bar() {
+ function bar() {
     console.log("outer bar");
 }
+ function bog() {
+    console.log("outer bog");
+}
+ function boo() {
+    console.log("outer boo");
+}
 function Baz() {
+    function foo() {
+        console.log("inner foo");
+    }
     function bar() {
         console.log("inner bar");
     }
     function bog() {
         console.log("inner bog");
     }
+    function boo() {
+        console.log("inner boo");
+    }
     return bar(), bog;
 }
+
 },
 
 },function(__webpack_require__) {

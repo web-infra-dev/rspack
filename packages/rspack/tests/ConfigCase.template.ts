@@ -66,7 +66,6 @@ export const describeCases = config => {
 		afterEach(() => {
 			stderr.restore();
 		});
-		jest.setTimeout(20000);
 
 		for (const category of categories) {
 			// eslint-disable-next-line no-loop-func
@@ -349,7 +348,7 @@ export const describeCases = config => {
 								} else {
 									if (jsonStats.errors!.length > 0) {
 										console.log(
-											`case: ${testName}\nerrors:\n`,
+											`case: ${category.name} ${testName}\nerrors:\n`,
 											`${jsonStats.errors!.map(x => x.message).join("\n")}`
 										);
 									}

@@ -160,7 +160,7 @@ impl SplitChunksPlugin {
   #[tracing::instrument(skip_all)]
   pub(crate) fn remove_all_modules_from_other_module_groups(
     &self,
-    item: &ModuleGroup,
+    current_module_group: &ModuleGroup,
     module_group_map: &mut ModuleGroupMap,
     used_chunks: &FxHashSet<ChunkUkey>,
     compilation: &mut Compilation,
@@ -177,46 +177,57 @@ impl SplitChunksPlugin {
           .next()
           .is_some()
       })
-      .filter_map(|(key, each_module_group)| {
-        item.modules.iter().for_each(|module| {
-          if each_module_group.modules.contains(module) {
+      .filter_map(|(key, other_module_group)| {
+        current_module_group.modules.iter().for_each(|module| {
+          if other_module_group.modules.contains(module) {
             tracing::trace!("remove module({module}) from {key}");
             let module = compilation
               .module_graph
               .module_by_identifier(module)
               .unwrap_or_else(|| panic!("Module({module}) not found"));
-            each_module_group.remove_module(&**module);
+            other_module_group.remove_module(&**module);
           }
         });
 
-        if each_module_group.modules.is_empty() {
+        if other_module_group.modules.is_empty() {
           tracing::trace!(
             "{key} is deleted for having empty modules",
           );
           return Some(key.clone());
         }
 
-        tracing::trace!("each_module_group: {each_module_group:#?}");
-        tracing::trace!("item.modules: {:#?}", item.modules);
+        tracing::trace!("other_module_group: {other_module_group:#?}");
+        tracing::trace!("item.modules: {:#?}", current_module_group.modules);
 
         // Since there are modules removed, make sure the rest of chunks are all used.
-        each_module_group.chunks.retain(|c| {
-          let is_used_chunk = each_module_group
+        other_module_group.chunks.retain(|c| {
+          let is_used_chunk = other_module_group
             .modules
             .iter()
             .any(|m| compilation.chunk_graph.is_module_in_chunk(m, *c));
           is_used_chunk
         });
 
-        let cache_group: &CacheGroup = &self.cache_groups[each_module_group.cache_group_index];
+        let cache_group = &self.cache_groups[other_module_group.cache_group_index];
 
-        // There are some unused chunks, which is removed
-        if each_module_group.chunks.len() < cache_group.min_chunks as usize {
-          // `min_size` is not satisfied, remove this invalid `ModuleGroup`
+        // Since we removed some modules and chunks from the `other_module_group`. There are chances
+        // that the `min_chunks` and `min_size` validation is not satisfied anymore.
+
+        // Validate `min_chunks` again
+        if other_module_group.chunks.len() < cache_group.min_chunks as usize {
           tracing::trace!(
             "{key} is deleted for each_module_group.chunks.len()({:?}) < cache_group.min_chunks({:?})",
-            each_module_group.chunks.len(),
+            other_module_group.chunks.len(),
             cache_group.min_chunks
+          );
+          return Some(key.clone());
+        }
+
+        // Validate `min_size` again
+        if Self::remove_min_size_violating_modules(key, compilation, other_module_group, cache_group) {
+          tracing::trace!(
+            "{key} is deleted for violating min_size {:#?}",
+            cache_group.min_size,
           );
           return Some(key.clone());
         }

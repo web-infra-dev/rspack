@@ -30,6 +30,10 @@ on:
         default: 'release'
         required: false
         type: string
+      test: # Run tests?
+        type: boolean
+        required: false
+        default: true
 
 jobs:
   select:
@@ -80,6 +84,15 @@ jobs:
 
       - name: Setup Rust Target
         run: rustup target add ${{ inputs.target }}
+
+      # Compile dependencies with optimization to make tests run faster
+      - name: Add optimization to debug profile
+        if: inputs.profile == 'debug'
+        shell: bash
+        run: |
+          echo '[profile.dev.package."*"]' >> Cargo.toml
+          echo 'opt-level = 3' >> Cargo.toml
+          echo 'codegen-units = 1' >> Cargo.toml
 
       # Linux
 
@@ -134,11 +147,6 @@ jobs:
         run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       # Mac
-      - uses: goto-bus-stop/setup-zig@v2
-        if: ${{ contains(inputs.target, 'apple') }}
-        with:
-          version: 0.10.1
-
       - name: Build x86_64-apple-darwin
         if: ${{ inputs.target == 'x86_64-apple-darwin' }}
         run: |
@@ -164,10 +172,10 @@ jobs:
   e2e:
     name: E2E Testing
     needs: [select, build]
-    if: inputs.target == 'x86_64-unknown-linux-gnu'
+    if: inputs.target == 'x86_64-unknown-linux-gnu' && inputs.test
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.33.0-jammy
+      image: mcr.microsoft.com/playwright:v1.35.0-jammy
     steps:
       - uses: actions/checkout@v3
 
@@ -190,6 +198,7 @@ jobs:
 
   test:
     needs: [select, build]
+    if: inputs.test
     runs-on: ${{ needs.select.outputs.host }}
     timeout-minutes: 30
     strategy:

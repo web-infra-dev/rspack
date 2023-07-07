@@ -1,11 +1,10 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _jsonjson = __webpack_require__.ir(__webpack_require__("./json.json"));
-console.log(_jsonjson.default);
+"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _json_json__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./json.json */"./json.json");
+
+console.log(_json_json__WEBPACK_IMPORTED_MODULE_0_);
 },
 "./json.json": function (module, exports, __webpack_require__) {
 module.exports = {

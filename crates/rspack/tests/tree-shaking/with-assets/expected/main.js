@@ -1,26 +1,21 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./a.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'a': function() { return a; }
 });
-Object.defineProperty(exports, "a", {
-    enumerable: true,
-    get: function() {
-        return a;
-    }
-});
-const a = 3;
+ const a = 3;
 },
-"./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _a = __webpack_require__("./a.js");
-var _asvg = __webpack_require__.ir(__webpack_require__("./a.svg"));
-_a.a;
-_asvg.default;
+"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a.js */"./a.js");
+/* harmony import */var _a_svg__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./a.svg */"./a.svg");
+
+
+_a_js__WEBPACK_IMPORTED_MODULE_0_["a"];
+_a_svg__WEBPACK_IMPORTED_MODULE_1_;
 },
 "./a.svg": function (module, exports, __webpack_require__) {
 module.exports = "data:image/svg+xml;base64,";},

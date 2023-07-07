@@ -66,6 +66,7 @@ pub(crate) mod expr_matcher {
     is_module_hot: "module.hot",
     is_module_id: "module.id",
     is_module_loaded: "module.loaded",
+    is_module_exports: "module.exports",
     is_require_cache: "require.cache",
     is_webpack_module_id: "__webpack_module__.id",
     is_import_meta_webpack_hot: "import.meta.webpackHot",

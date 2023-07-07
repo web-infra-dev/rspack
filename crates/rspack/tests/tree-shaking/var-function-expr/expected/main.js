@@ -1,51 +1,38 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./app.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./app.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'app': function() { return app; }
 });
-Object.defineProperty(exports, "app", {
-    enumerable: true,
-    get: function() {
-        return app;
-    }
-});
-var _lib = __webpack_require__("./lib.js");
-var app = function() {
-    _lib.result;
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
+
+ var app = function() {
+    _lib__WEBPACK_IMPORTED_MODULE_0_["result"];
 };
-(0, _lib.something)('app4');
-(0, _lib.something)('app3');
+ var app2 = ()=>{
+    _lib__WEBPACK_IMPORTED_MODULE_0_["secret"];
+};
+ var app4 = (0, _lib__WEBPACK_IMPORTED_MODULE_0_["something"])('app4'), app5 = 10000;
+ var app3 = (0, _lib__WEBPACK_IMPORTED_MODULE_0_["something"])('app3');
 },
-"./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _app = __webpack_require__("./app.js");
-(0, _app.app)();
+"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./app */"./app.js");
+
+(0, _app__WEBPACK_IMPORTED_MODULE_0_["app"])();
 },
-"./lib.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'result': function() { return result; },
+  'something': function() { return something; }
 });
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    result: function() {
-        return result;
-    },
-    something: function() {
-        return something;
-    }
-});
-const result = 20000;
-const something = function() {};
+ const secret = "888";
+ const result = 20000;
+ const something = function() {};
 },
 
 },function(__webpack_require__) {

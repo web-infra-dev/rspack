@@ -1,5 +1,6 @@
 use rspack_core::{
-  CodeReplaceSourceDependency, ReplaceConstDependency, ResourceData, RuntimeGlobals, SpanExt,
+  CodeGeneratableDependency, ConstDependency, ResourceData, RuntimeGlobals,
+  RuntimeRequirementsDependency, SpanExt,
 };
 use swc_core::{
   common::{Spanned, SyntaxContext},
@@ -10,9 +11,11 @@ use swc_core::{
 };
 
 use super::expr_matcher;
+use crate::dependency::ModuleArgumentDependency;
 pub const WEBPACK_HASH: &str = "__webpack_hash__";
 pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
 pub const WEBPACK_MODULES: &str = "__webpack_modules__";
+pub const WEBPACK_MODULE: &str = "__webpack_module__";
 pub const WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
 pub const WEBPACK_CHUNK_LOAD: &str = "__webpack_chunk_load__";
 
@@ -20,20 +23,20 @@ pub struct ApiScanner<'a> {
   pub unresolved_ctxt: &'a SyntaxContext,
   pub enter_assign: bool,
   pub resource_data: &'a ResourceData,
-  pub code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
+  pub presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
 }
 
 impl<'a> ApiScanner<'a> {
   pub fn new(
     unresolved_ctxt: &'a SyntaxContext,
     resource_data: &'a ResourceData,
-    code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
+    presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
   ) -> Self {
     Self {
       unresolved_ctxt,
       enter_assign: false,
       resource_data,
-      code_generable_dependencies,
+      presentational_dependencies,
     }
   }
 }
@@ -74,8 +77,8 @@ impl Visit for ApiScanner<'_> {
     match ident.sym.as_ref() as &str {
       WEBPACK_HASH => {
         self
-          .code_generable_dependencies
-          .push(Box::new(ReplaceConstDependency::new(
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
             ident.span.real_hi(),
             format!("{}()", RuntimeGlobals::GET_FULL_HASH).into(),
@@ -84,8 +87,8 @@ impl Visit for ApiScanner<'_> {
       }
       WEBPACK_PUBLIC_PATH => {
         self
-          .code_generable_dependencies
-          .push(Box::new(ReplaceConstDependency::new(
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
             ident.span.real_hi(),
             RuntimeGlobals::PUBLIC_PATH.name().into(),
@@ -97,8 +100,8 @@ impl Visit for ApiScanner<'_> {
           return;
         }
         self
-          .code_generable_dependencies
-          .push(Box::new(ReplaceConstDependency::new(
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
             ident.span.real_hi(),
             RuntimeGlobals::MODULE_FACTORIES.name().into(),
@@ -108,8 +111,8 @@ impl Visit for ApiScanner<'_> {
       WEBPACK_RESOURCE_QUERY => {
         if let Some(resource_query) = &self.resource_data.resource_query {
           self
-            .code_generable_dependencies
-            .push(Box::new(ReplaceConstDependency::new(
+            .presentational_dependencies
+            .push(Box::new(ConstDependency::new(
               ident.span.real_lo(),
               ident.span.real_hi(),
               serde_json::to_string(resource_query)
@@ -121,12 +124,21 @@ impl Visit for ApiScanner<'_> {
       }
       WEBPACK_CHUNK_LOAD => {
         self
-          .code_generable_dependencies
-          .push(Box::new(ReplaceConstDependency::new(
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
             ident.span.real_lo(),
             ident.span.real_hi(),
             RuntimeGlobals::ENSURE_CHUNK.name().into(),
             Some(RuntimeGlobals::ENSURE_CHUNK),
+          )));
+      }
+      WEBPACK_MODULE => {
+        self
+          .presentational_dependencies
+          .push(Box::new(ModuleArgumentDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            None,
           )));
       }
       _ => {}
@@ -136,8 +148,8 @@ impl Visit for ApiScanner<'_> {
   fn visit_expr(&mut self, expr: &Expr) {
     if expr_matcher::is_require_cache(expr) {
       self
-        .code_generable_dependencies
-        .push(Box::new(ReplaceConstDependency::new(
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
           expr.span().real_lo(),
           expr.span().real_hi(),
           RuntimeGlobals::MODULE_CACHE.name().into(),
@@ -145,13 +157,18 @@ impl Visit for ApiScanner<'_> {
         )));
     } else if expr_matcher::is_webpack_module_id(expr) {
       self
-        .code_generable_dependencies
-        .push(Box::new(ReplaceConstDependency::new(
+        .presentational_dependencies
+        .push(Box::new(RuntimeRequirementsDependency::new(
+          RuntimeGlobals::MODULE_ID,
+        )));
+      self
+        .presentational_dependencies
+        .push(Box::new(ModuleArgumentDependency::new(
           expr.span().real_lo(),
           expr.span().real_hi(),
-          "module.id".into(), // todo module_arguments
-          Some(RuntimeGlobals::MODULE_ID),
+          Some("id"),
         )));
+      return;
     }
     expr.visit_children_with(self);
   }

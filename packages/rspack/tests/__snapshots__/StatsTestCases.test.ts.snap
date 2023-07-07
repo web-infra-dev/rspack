@@ -16,7 +16,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "main.xxxx.js",
-      "size": 1426,
+      "size": 1105,
       "type": "asset",
     },
     {
@@ -30,7 +30,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "dynamic_js.xxxx.js",
-      "size": 218,
+      "size": 138,
       "type": "asset",
     },
   ],
@@ -134,10 +134,10 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "assets": [
         {
           "name": "main.xxxx.js",
-          "size": 1426,
+          "size": 1105,
         },
       ],
-      "assetsSize": 1426,
+      "assetsSize": 1105,
       "chunks": [
         "main",
       ],
@@ -146,7 +146,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "7ca11a09bf521d3d",
+  "hash": "516ee9d006cdd371c32a",
   "modules": [
     {
       "assets": [],
@@ -204,10 +204,10 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "assets": [
         {
           "name": "main.xxxx.js",
-          "size": 1426,
+          "size": 1105,
         },
       ],
-      "assetsSize": 1426,
+      "assetsSize": 1105,
       "chunks": [
         "main",
       ],
@@ -222,10 +222,10 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for filename 2`] = `
-"Hash: 7ca11a09bf521d3d
+"Hash: 516ee9d006cdd371c32a
              Asset       Size      Chunks             Chunk Names
-      main.xxxx.js   1.39 KiB        main  [emitted]  main
-dynamic_js.xxxx.js  218 bytes  dynamic_js  [emitted]  
+      main.xxxx.js   1.08 KiB        main  [emitted]  main
+dynamic_js.xxxx.js  138 bytes  dynamic_js  [emitted]  
 Entrypoint main = main.xxxx.js
 chunk {dynamic_js} dynamic_js.xxxx.js 32 bytes
  [426] ./dynamic.js 32 bytes {dynamic_js}
@@ -255,7 +255,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 9101,
+      "size": 9105,
       "type": "asset",
     },
   ],
@@ -308,10 +308,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 9101,
+          "size": 9105,
         },
       ],
-      "assetsSize": 9101,
+      "assetsSize": 9105,
       "chunks": [
         "main",
       ],
@@ -320,7 +320,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "1356db158c1d49b4",
+  "hash": "1043f57af226b2cb314e",
   "modules": [
     {
       "assets": [],
@@ -347,10 +347,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 9101,
+          "size": 9105,
         },
       ],
-      "assetsSize": 9101,
+      "assetsSize": 9105,
       "chunks": [
         "main",
       ],
@@ -365,7 +365,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 2`] = `
-"Hash: 1356db158c1d49b4
+"Hash: 1043f57af226b2cb314e
     Asset      Size  Chunks             Chunk Names
 bundle.js  8.89 KiB    main  [emitted]  main
 Entrypoint main = bundle.js
@@ -657,10 +657,10 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 1401,
+          "size": 1080,
         },
       ],
-      "assetsSize": 1401,
+      "assetsSize": 1080,
       "chunks": [
         "main",
       ],
@@ -672,10 +672,10 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
       "assets": [
         {
           "name": "cimanyd.bundle.js",
-          "size": 215,
+          "size": 135,
         },
       ],
-      "assetsSize": 215,
+      "assetsSize": 135,
       "chunks": [
         "cimanyd",
       ],
@@ -685,10 +685,10 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 1401,
+          "size": 1080,
         },
       ],
-      "assetsSize": 1401,
+      "assetsSize": 1080,
       "chunks": [
         "main",
       ],
@@ -1411,7 +1411,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 365,
+      "size": 725,
       "type": "asset",
     },
   ],
@@ -1495,10 +1495,10 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 365,
+          "size": 725,
         },
       ],
-      "assetsSize": 365,
+      "assetsSize": 725,
       "chunks": [
         "main",
       ],
@@ -1519,7 +1519,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
     },
   ],
   "errorsCount": 1,
-  "hash": "807cbcac3a2a8994",
+  "hash": "8c57c81df978e4e4fb32",
   "modules": [
     {
       "assets": [],
@@ -1577,10 +1577,10 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 365,
+          "size": 725,
         },
       ],
-      "assetsSize": 365,
+      "assetsSize": 725,
       "chunks": [
         "main",
       ],
@@ -1595,10 +1595,10 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
-"Hash: 807cbcac3a2a8994
+"Hash: 8c57c81df978e4e4fb32
 PublicPath: auto
     Asset       Size  Chunks             Chunk Names
-bundle.js  365 bytes    main  [emitted]  main
+bundle.js  725 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 211 bytes [entry]
  [10] ./index.js 51 bytes {main}
@@ -1635,7 +1635,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 974,
+      "size": 741,
       "type": "asset",
     },
   ],
@@ -1719,10 +1719,10 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "assets": [
         {
           "name": "bundle.js",
-          "size": 974,
+          "size": 741,
         },
       ],
-      "assetsSize": 974,
+      "assetsSize": 741,
       "chunks": [
         "main",
       ],
@@ -1738,7 +1738,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
     },
   ],
   "errorsCount": 1,
-  "hash": "2174ea0ee7679161",
+  "hash": "ba15915609ddb99bd40d",
   "modules": [
     {
       "assets": [],
@@ -1796,10 +1796,10 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "assets": [
         {
           "name": "bundle.js",
-          "size": 974,
+          "size": 741,
         },
       ],
-      "assetsSize": 974,
+      "assetsSize": 741,
       "chunks": [
         "main",
       ],
@@ -1814,9 +1814,9 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
-"Hash: 2174ea0ee7679161
+"Hash: ba15915609ddb99bd40d
     Asset       Size  Chunks             Chunk Names
-bundle.js  974 bytes    main  [emitted]  main
+bundle.js  741 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 199 bytes [entry]
  [10] ./index.js 39 bytes {main}
@@ -1848,7 +1848,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 319,
+      "size": 589,
       "type": "asset",
     },
   ],
@@ -1901,10 +1901,10 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 319,
+          "size": 589,
         },
       ],
-      "assetsSize": 319,
+      "assetsSize": 589,
       "chunks": [
         "main",
       ],
@@ -1913,7 +1913,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "5dfe02e19becf4c0",
+  "hash": "609719dbdc6f7f412d8a",
   "modules": [
     {
       "assets": [],
@@ -1940,10 +1940,10 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 319,
+          "size": 589,
         },
       ],
-      "assetsSize": 319,
+      "assetsSize": 589,
       "chunks": [
         "main",
       ],
@@ -1958,9 +1958,9 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for simple 2`] = `
-"Hash: 5dfe02e19becf4c0
+"Hash: 609719dbdc6f7f412d8a
     Asset       Size  Chunks             Chunk Names
-bundle.js  319 bytes    main  [emitted]  main
+bundle.js  589 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 26 bytes [entry]
  [10] ./index.js 26 bytes {main}
@@ -1976,10 +1976,12 @@ exports[`StatsTestCases should print correct stats for try-require--module 1`] =
   "warnings": [
     {
       "formatted": "warning[internal]: Resolve error
-  ┌─ tests/statsCases/try-require--module/index.js:2:2
-  │
-2 │     require('./missing-module')
-  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
+  ┌─ tests/statsCases/try-require--module/index.js:2:5
+  │  
+2 │       require('./missing-module')
+  │ ╭────────^
+3 │ │ } catch (e) {
+  │ ╰──^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
 
 ",
       "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js",
@@ -1992,10 +1994,12 @@ exports[`StatsTestCases should print correct stats for try-require--module 1`] =
 exports[`StatsTestCases should print correct stats for try-require--module 2`] = `
 "
 warning[internal]: Resolve error
-  ┌─ tests/statsCases/try-require--module/index.js:2:2
-  │
-2 │     require('./missing-module')
-  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
+  ┌─ tests/statsCases/try-require--module/index.js:2:5
+  │  
+2 │       require('./missing-module')
+  │ ╭────────^
+3 │ │ } catch (e) {
+  │ ╰──^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
 
 "
 `;
@@ -2007,10 +2011,12 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-modul
   "warnings": [
     {
       "formatted": "warning[internal]: Resolve error
-  ┌─ tests/statsCases/try-require-resolve-module/index.js:2:2
-  │
-2 │     require.resolve('./missing-module')
-  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
+  ┌─ tests/statsCases/try-require-resolve-module/index.js:2:5
+  │  
+2 │       require.resolve('./missing-module')
+  │ ╭────────^
+3 │ │ } catch (e) {
+  │ ╰──^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
 
 ",
       "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js",
@@ -2023,10 +2029,12 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-modul
 exports[`StatsTestCases should print correct stats for try-require-resolve-module 2`] = `
 "
 warning[internal]: Resolve error
-  ┌─ tests/statsCases/try-require-resolve-module/index.js:2:2
-  │
-2 │     require.resolve('./missing-module')
-  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
+  ┌─ tests/statsCases/try-require-resolve-module/index.js:2:5
+  │  
+2 │       require.resolve('./missing-module')
+  │ ╭────────^
+3 │ │ } catch (e) {
+  │ ╰──^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
 
 "
 `;
@@ -2038,10 +2046,12 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-weak-
   "warnings": [
     {
       "formatted": "warning[internal]: Resolve error
-  ┌─ tests/statsCases/try-require-resolve-weak-module/index.js:2:2
-  │
-2 │     require.resolveWeak('./missing-module')
-  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
+  ┌─ tests/statsCases/try-require-resolve-weak-module/index.js:2:5
+  │  
+2 │       require.resolveWeak('./missing-module')
+  │ ╭────────^
+3 │ │ } catch (e) {
+  │ ╰──^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
 
 ",
       "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js",
@@ -2054,10 +2064,12 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-weak-
 exports[`StatsTestCases should print correct stats for try-require-resolve-weak-module 2`] = `
 "
 warning[internal]: Resolve error
-  ┌─ tests/statsCases/try-require-resolve-weak-module/index.js:2:2
-  │
-2 │     require.resolveWeak('./missing-module')
-  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
+  ┌─ tests/statsCases/try-require-resolve-weak-module/index.js:2:5
+  │  
+2 │       require.resolveWeak('./missing-module')
+  │ ╭────────^
+3 │ │ } catch (e) {
+  │ ╰──^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
 
 "
 `;

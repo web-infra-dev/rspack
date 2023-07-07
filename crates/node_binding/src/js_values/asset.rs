@@ -21,7 +21,7 @@ pub struct JsAssetInfo {
   /// the value(s) of the full hash used for this asset
   // pub full_hash:
   /// the value(s) of the chunk hash used for this asset
-  // pub chunk_hash:
+  pub chunk_hash: Vec<String>,
   /// the value(s) of the module hash used for this asset
   // pub module_hash:
   /// the value(s) of the content hash used for this asset
@@ -50,6 +50,7 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
       minimized: i.minimized,
       development: i.development,
       hot_module_replacement: i.hot_module_replacement,
+      chunk_hash: i.chunk_hash.into_iter().collect(),
       related: i.related.into(),
       content_hash: i.content_hash.into_iter().collect(),
       version: i.version,
@@ -80,6 +81,7 @@ impl From<rspack_core::AssetInfo> for JsAssetInfo {
       development: info.development,
       hot_module_replacement: info.hot_module_replacement,
       related: info.related.into(),
+      chunk_hash: info.chunk_hash.into_iter().collect(),
       content_hash: info.content_hash.into_iter().collect(),
       version: info.version,
     }

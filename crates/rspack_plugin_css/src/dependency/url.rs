@@ -1,29 +1,28 @@
 use rspack_core::{
-  create_css_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
-  CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CssAstPath, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
-  PublicPath,
+  CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
+  CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency, DependencyCategory,
+  DependencyId, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier, PublicPath,
 };
-use swc_core::css::ast::UrlValue;
 
 use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER;
 
 #[derive(Debug, Clone)]
 pub struct CssUrlDependency {
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: String,
   span: Option<ErrorSpan>,
-  #[allow(unused)]
-  ast_path: CssAstPath,
+  start: u32,
+  end: u32,
 }
 
 impl CssUrlDependency {
-  pub fn new(request: String, span: Option<ErrorSpan>, ast_path: CssAstPath) -> Self {
+  pub fn new(request: String, span: Option<ErrorSpan>, start: u32, end: u32) -> Self {
     Self {
       request,
       span,
-      ast_path,
-      id: None,
+      start,
+      end,
+      id: DependencyId::new(),
     }
   }
 
@@ -56,13 +55,6 @@ impl CssUrlDependency {
 }
 
 impl Dependency for CssUrlDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Url
   }
@@ -73,6 +65,10 @@ impl Dependency for CssUrlDependency {
 }
 
 impl ModuleDependency for CssUrlDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -88,39 +84,25 @@ impl ModuleDependency for CssUrlDependency {
   fn set_request(&mut self, request: String) {
     self.request = request;
   }
+
+  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+    Some(self)
+  }
 }
 
-impl CodeGeneratable for CssUrlDependency {
-  fn generate(
+impl CodeGeneratableDependency for CssUrlDependency {
+  fn apply(
     &self,
+    source: &mut CodeGeneratableSource,
     code_generatable_context: &mut CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
+  ) {
     let CodeGeneratableContext { compilation, .. } = code_generatable_context;
-    let mut code_gen = CodeGeneratableResult::default();
-
-    if let Some(id) = self.id()
-      && let Some(mgm) = compilation
+    if let Some(mgm) = compilation
         .module_graph
-        .module_graph_module_by_dependency_id(&id)
+        .module_graph_module_by_dependency_id(self.id())
       && let Some(target_url) = self.get_target_url(&mgm.module_identifier, compilation)
     {
-      code_gen.visitors.push(
-        create_css_visitor!(exact &self.ast_path, visit_mut_url(url: &mut Url) {
-          match url.value {
-            Some(box UrlValue::Str(ref mut s)) => {
-              s.raw = None;
-              s.value = target_url.clone().into();
-            }
-            Some(box UrlValue::Raw(ref mut s)) => {
-              s.raw = None;
-              s.value = target_url.clone().into();
-            }
-            None => {}
-          }
-        }),
-      );
+      source.replace(self.start, self.end, format!("url({target_url})").as_str(), None);
     }
-
-    Ok(code_gen)
   }
 }

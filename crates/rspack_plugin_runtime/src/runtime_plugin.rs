@@ -14,8 +14,9 @@ use crate::runtime_module::{
   CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule, EnsureChunkRuntimeModule,
   GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
   GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
-  HasOwnPropertyRuntimeModule, LoadChunkWithModuleRuntimeModule, LoadScriptRuntimeModule,
-  MakeNamespaceObjectRuntimeModule, NormalRuntimeModule, OnChunkLoadedRuntimeModule,
+  HarmonyModuleDecoratorRuntimeModule, HasOwnPropertyRuntimeModule,
+  LoadChunkWithModuleRuntimeModule, LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule,
+  NodeModuleDecoratorRuntimeModule, NormalRuntimeModule, OnChunkLoadedRuntimeModule,
   PublicPathRuntimeModule,
 };
 
@@ -39,12 +40,15 @@ impl Plugin for RuntimePlugin {
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
     let compilation = &args.compilation;
     let chunk = args.chunk();
-    if !chunk
-      .get_all_async_chunks(&compilation.chunk_group_by_ukey)
-      .is_empty()
-      || args
+    if args
+      .runtime_requirements
+      .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
+      || (args
         .runtime_requirements
-        .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
+        .contains(RuntimeGlobals::ENSURE_CHUNK)
+        && !chunk
+          .get_all_async_chunks(&compilation.chunk_group_by_ukey)
+          .is_empty())
     {
       args
         .runtime_requirements
@@ -62,17 +66,6 @@ impl Plugin for RuntimePlugin {
     let compilation = &mut args.compilation;
     let chunk = args.chunk;
     let runtime_requirements = &mut args.runtime_requirements;
-
-    if runtime_requirements.contains(RuntimeGlobals::INTEROP_REQUIRE) {
-      compilation.add_runtime_module(
-        chunk,
-        NormalRuntimeModule::new(
-          RuntimeGlobals::INTEROP_REQUIRE,
-          include_str!("runtime/common/_interop_require.js"),
-        )
-        .boxed(),
-      )
-    }
 
     if runtime_requirements.contains(RuntimeGlobals::EXPORT_STAR) {
       compilation.add_runtime_module(
@@ -126,13 +119,20 @@ impl Plugin for RuntimePlugin {
       runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
     }
 
+    if runtime_requirements.contains(RuntimeGlobals::HARMONY_MODULE_DECORATOR)
+      || runtime_requirements.contains(RuntimeGlobals::NODE_MODULE_DECORATOR)
+    {
+      runtime_requirements.insert(RuntimeGlobals::MODULE);
+      runtime_requirements.insert(RuntimeGlobals::REQUIRE_SCOPE);
+    }
+
     for runtime_requirement in runtime_requirements.iter() {
       match runtime_requirement {
         RuntimeGlobals::ASYNC_MODULE => {
           compilation.add_runtime_module(chunk, AsyncRuntimeModule::default().boxed());
         }
         RuntimeGlobals::BASE_URI
-          if is_enabled_for_chunk(chunk, &ChunkLoading::False, compilation) =>
+          if is_enabled_for_chunk(chunk, &ChunkLoading::Disable, compilation) =>
         {
           compilation.add_runtime_module(chunk, BaseUriRuntimeModule::default().boxed());
         }
@@ -218,6 +218,13 @@ impl Plugin for RuntimePlugin {
           chunk,
           CompatGetDefaultExportRuntimeModule::default().boxed(),
         ),
+        RuntimeGlobals::HARMONY_MODULE_DECORATOR => compilation.add_runtime_module(
+          chunk,
+          HarmonyModuleDecoratorRuntimeModule::default().boxed(),
+        ),
+        RuntimeGlobals::NODE_MODULE_DECORATOR => {
+          compilation.add_runtime_module(chunk, NodeModuleDecoratorRuntimeModule::default().boxed())
+        }
         _ => {}
       }
     }

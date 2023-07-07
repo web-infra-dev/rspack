@@ -1,8 +1,8 @@
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  ChunkInitFragments, ChunkUkey, Compilation, InitFragment, RenderModuleContentArgs,
-  RuntimeGlobals, SourceType,
+  ChunkInitFragments, ChunkUkey, Compilation, InitFragment, ModuleGraphModule,
+  RenderModuleContentArgs, RuntimeGlobals, SourceType,
 };
 use rspack_error::{internal_error, Result};
 use rustc_hash::FxHashSet as HashSet;
@@ -52,15 +52,18 @@ pub fn render_chunk_modules(
           origin_source
         };
 
-        // module id isn't cacheable
-        let strict = mgm
-          .build_info
-          .as_ref()
-          .map(|m| m.strict)
-          .unwrap_or_default();
+        let runtime_requirements = compilation
+          .chunk_graph
+          .get_module_runtime_requirements(mgm.module_identifier, &chunk.runtime);
+
         Some((
           mgm.module_identifier,
-          render_module(module_source, strict, mgm.id(&compilation.chunk_graph)),
+          render_module(
+            module_source,
+            mgm,
+            runtime_requirements,
+            mgm.id(&compilation.chunk_graph),
+          ),
           &code_gen_result.chunk_init_fragments,
         ))
       } else {
@@ -102,12 +105,27 @@ pub fn render_chunk_modules(
 }
 
 /* remove `strict` parameter for now, let SWC manage `use strict` annotation directly */
-fn render_module(source: BoxSource, _strict: bool, module_id: &str) -> Result<BoxSource> {
+fn render_module(
+  source: BoxSource,
+  mgm: &ModuleGraphModule,
+  runtime_requirements: Option<&RuntimeGlobals>,
+  module_id: &str,
+) -> Result<BoxSource> {
+  // TODO unused exports_argument
+  let module_argument = {
+    let module_argument = mgm.get_module_argument();
+    if let Some(runtime_requirements) = runtime_requirements && runtime_requirements.contains(RuntimeGlobals::MODULE) {
+      module_argument.to_string()
+    } else {
+     format!("__unused_webpack_{module_argument}")
+    }
+  };
+  let exports_argument = mgm.get_exports_argument();
   let mut sources = ConcatSource::new([
     RawSource::from(serde_json::to_string(module_id).map_err(|e| internal_error!(e.to_string()))?),
     RawSource::from(": "),
     RawSource::from(format!(
-      "function (module, exports, {}) {{\n",
+      "function ({module_argument}, {exports_argument}, {}) {{\n",
       RuntimeGlobals::REQUIRE
     )),
   ]);

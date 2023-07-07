@@ -83,6 +83,7 @@ export function toJsAssetInfo(info?: AssetInfo): JsAssetInfo {
 		development: false,
 		hotModuleReplacement: false,
 		related: {},
+		chunkHash: [],
 		contentHash: [],
 		version: "",
 		...info

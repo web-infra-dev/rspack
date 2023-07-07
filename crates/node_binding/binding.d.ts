@@ -133,6 +133,9 @@ export interface JsAssetInfo {
   /**
    * the value(s) of the full hash used for this asset
    * the value(s) of the chunk hash used for this asset
+   */
+  chunkHash: Array<string>
+  /**
    * the value(s) of the module hash used for this asset
    * the value(s) of the content hash used for this asset
    */
@@ -371,6 +374,13 @@ export interface JsStatsWarning {
   formatted: string
 }
 
+export interface NodeFS {
+  writeFile: (...args: any[]) => any
+  removeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
+}
+
 export interface PathData {
   filename?: string
   hash?: string
@@ -536,6 +546,7 @@ export interface RawEntryDescription {
   asyncChunks?: boolean
   publicPath?: string
   baseUri?: string
+  filename?: string
 }
 
 export interface RawExperiments {
@@ -798,6 +809,9 @@ export interface RawOutputOptions {
   hashDigestLength: number
   hashSalt?: string
   asyncChunks: boolean
+  workerChunkLoading: string
+  workerWasmLoading: string
+  workerPublicPath: string
 }
 
 export interface RawParserOptions {
@@ -942,5 +956,13 @@ export interface RawStyleConfig {
 
 export interface RawTrustedTypes {
   policyName?: string
+}
+
+export interface ThreadsafeNodeFS {
+  writeFile: (...args: any[]) => any
+  removeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
+  removeDirAll: (...args: any[]) => any
 }
 

@@ -89,12 +89,12 @@ where
     // TODO: should use `records`
 
     let mut all_old_runtime: RuntimeSpec = Default::default();
-    for entrypoint_ukey in old.compilation.entrypoints.values() {
+    for entry_ukey in old.compilation.get_chunk_graph_entries() {
       if let Some(runtime) = old
         .compilation
-        .chunk_group_by_ukey
-        .get(entrypoint_ukey)
-        .map(|entrypoint| entrypoint.runtime.clone())
+        .chunk_by_ukey
+        .get(&entry_ukey)
+        .map(|entry_chunk| entry_chunk.runtime.clone())
       {
         all_old_runtime.extend(runtime);
       }

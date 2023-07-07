@@ -1,9 +1,9 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.tsx": function (module, exports, __webpack_require__) {
+"./index.tsx": function (__unused_webpack_module, exports, __webpack_require__) {
 class a {
 }
 function A() {
-    return React.createElement("div", null, "123");
+    return /*#__PURE__*/ React.createElement("div", null, "123");
 }
 const b = {
     a: 123

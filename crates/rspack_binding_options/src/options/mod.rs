@@ -112,6 +112,7 @@ impl RawOptionsApply for RawOptions {
                 async_chunks: desc.async_chunks,
                 public_path: desc.public_path.clone().map(Into::into),
                 base_uri: desc.base_uri.clone(),
+                filename: desc.filename.clone().map(Into::into),
               },
             )
             .boxed(),
@@ -221,6 +222,11 @@ impl RawOptionsApply for RawOptions {
     if experiments.async_web_assembly {
       plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
     }
+    rspack_plugin_worker::worker_plugin(
+      output.worker_chunk_loading.clone(),
+      output.worker_wasm_loading.clone(),
+      plugins,
+    );
     plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
     plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin {}.boxed());
     plugins.push(

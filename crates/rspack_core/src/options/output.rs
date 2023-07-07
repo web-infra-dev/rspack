@@ -48,6 +48,9 @@ pub struct OutputOptions {
   pub hash_digest_length: usize,
   pub hash_salt: HashSalt,
   pub async_chunks: bool,
+  pub worker_chunk_loading: ChunkLoading,
+  pub worker_wasm_loading: WasmLoading,
+  pub worker_public_path: String,
 }
 
 impl From<&OutputOptions> for RspackHash {
@@ -63,7 +66,21 @@ pub struct TrustedTypes {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChunkLoading {
-  False,
+  Enable(ChunkLoadingType),
+  Disable,
+}
+
+impl From<&str> for ChunkLoading {
+  fn from(value: &str) -> Self {
+    match value {
+      "false" => ChunkLoading::Disable,
+      v => ChunkLoading::Enable(v.into()),
+    }
+  }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ChunkLoadingType {
   Jsonp,
   ImportScripts,
   Require,
@@ -72,7 +89,7 @@ pub enum ChunkLoading {
   // TODO: Custom
 }
 
-impl From<&str> for ChunkLoading {
+impl From<&str> for ChunkLoadingType {
   fn from(value: &str) -> Self {
     match value {
       "jsonp" => Self::Jsonp,
@@ -80,19 +97,27 @@ impl From<&str> for ChunkLoading {
       "require" => Self::Require,
       "async-node" => Self::AsyncNode,
       "import" => Self::Import,
-      "false" => Self::False,
       _ => unimplemented!("custom chunkLoading in not supported yet"),
     }
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum WasmLoading {
   Enable(WasmLoadingType),
   Disable,
 }
 
-#[derive(Debug)]
+impl From<&str> for WasmLoading {
+  fn from(value: &str) -> Self {
+    match value {
+      "false" => Self::Disable,
+      v => Self::Enable(v.into()),
+    }
+  }
+}
+
+#[derive(Debug, Clone)]
 pub enum WasmLoadingType {
   Fetch,
   AsyncNode,
@@ -225,7 +250,7 @@ impl<'a> PathData<'a> {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Filename {
   template: String,
 }
@@ -349,7 +374,21 @@ impl Filename {
       if let Some(name) = chunk.name_for_filename_template() {
         template = template.replace(NAME_PLACEHOLDER, name);
       }
+      if let Some(d) = chunk.rendered_hash.as_ref() {
+        template = CHUNK_HASH_PLACEHOLDER
+          .replace_all(&template, |caps: &Captures| {
+            let hash = &**d;
+            let hash = &hash[..hash_len(hash, caps)];
+            if let Some(asset_info) = asset_info.as_mut() {
+              asset_info.set_immutable(true);
+              asset_info.set_chunk_hash(hash.to_owned());
+            }
+            hash
+          })
+          .into_owned();
+      }
     }
+
     if let Some(id) = &options.id {
       template = template.replace(ID_PLACEHOLDER, id);
     } else if let Some(module) = options.module {
@@ -363,6 +402,7 @@ impl Filename {
     if let Some(url) = options.url {
       template = template.replace(URL_PLACEHOLDER, url);
     }
+
     template
   }
 }
@@ -439,12 +479,14 @@ impl From<String> for PublicPath {
 
 #[allow(clippy::if_same_then_else)]
 pub fn get_css_chunk_filename_template<'filename>(
-  chunk: &Chunk,
+  chunk: &'filename Chunk,
   output_options: &'filename OutputOptions,
   chunk_group_by_ukey: &ChunkGroupByUkey,
 ) -> &'filename Filename {
   // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/css/CssModulesPlugin.js#L444
-  if chunk.can_be_initial(chunk_group_by_ukey) {
+  if let Some(css_filename_template) = &chunk.css_filename_template {
+    css_filename_template
+  } else if chunk.can_be_initial(chunk_group_by_ukey) {
     &output_options.css_filename
   } else {
     &output_options.css_chunk_filename
@@ -453,12 +495,14 @@ pub fn get_css_chunk_filename_template<'filename>(
 
 #[allow(clippy::if_same_then_else)]
 pub fn get_js_chunk_filename_template<'filename>(
-  chunk: &Chunk,
+  chunk: &'filename Chunk,
   output_options: &'filename OutputOptions,
   chunk_group_by_ukey: &ChunkGroupByUkey,
 ) -> &'filename Filename {
   // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/javascript/JavascriptModulesPlugin.js#L480
-  if chunk.can_be_initial(chunk_group_by_ukey) {
+  if let Some(filename_template) = &chunk.filename_template {
+    filename_template
+  } else if chunk.can_be_initial(chunk_group_by_ukey) {
     &output_options.filename
   } else if matches!(chunk.kind, ChunkKind::HotUpdate) {
     // TODO: Should return output_options.hotUpdateChunkFilename

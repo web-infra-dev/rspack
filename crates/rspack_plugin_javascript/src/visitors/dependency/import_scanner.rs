@@ -12,7 +12,7 @@ use swc_core::{
   },
 };
 
-use super::scanner::scanner_context_module;
+use super::context_helper::scanner_context_module;
 use crate::dependency::{ImportContextDependency, ImportDependency};
 
 pub struct ImportScanner<'a> {

@@ -18,6 +18,7 @@ async-trait       = { workspace = true }
 dojang            = "0.1.6"
 itertools         = { workspace = true }
 rayon             = { workspace = true }
+regex             = { workspace = true }
 rspack_base64     = { path = "../rspack_base64" }
 rspack_core       = { path = "../rspack_core" }
 rspack_error      = { path = "../rspack_error" }
