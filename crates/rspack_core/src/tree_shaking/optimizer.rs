@@ -32,8 +32,10 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
-  contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
-  DependencyType, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
+  contextify, join_string_component,
+  tree_shaking::{symbol_graph, utils::ConvertModulePath},
+  Compilation, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType,
+  NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -64,6 +66,10 @@ impl ModuleEliminator {
     !self.export_used && !self.is_bailout && self.side_effects_free && !self.is_entry
   }
 }
+
+// Wrapper of symbol_ref, the second element of the tuple marked if the symbol_ref is evaluated at
+// module top level
+pub type SymbolRefWithRootFlag = (SymbolRef, bool);
 
 impl<'a> CodeSizeOptimizer<'a> {
   pub fn new(compilation: &'a mut Compilation) -> Self {
@@ -135,15 +141,16 @@ impl<'a> CodeSizeOptimizer<'a> {
       }
     }
     tracing::debug!(side_effect_map = format!("{:#?}", side_effect_map));
+    dbg!(&evaluated_used_symbol_ref);
 
     self.side_effects_free_modules = self.get_side_effects_free_modules(side_effect_map);
-
     let inherit_export_ref_graph = get_inherit_export_ref_graph(&mut finalized_result_map);
     let mut errors = vec![];
     let mut used_symbol_ref = HashSet::default();
     let mut used_export_module_identifiers: IdentifierMap<ModuleUsedType> =
       IdentifierMap::default();
     let mut traced_tuple = HashMap::default();
+    let mut root_symbol_ref_collector = IdentifierMap::default();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
 
     // dbg!(&used_symbol_ref);
@@ -151,12 +158,17 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     self.mark_used_symbol_with(
       &finalized_result_map,
-      VecDeque::from_iter(evaluated_used_symbol_ref.into_iter()),
+      VecDeque::from_iter(
+        evaluated_used_symbol_ref
+          .into_iter()
+          .map(|symbol| (symbol, true)),
+      ),
       &mut evaluated_module_identifiers,
       &mut used_export_module_identifiers,
       &inherit_export_ref_graph,
       &mut traced_tuple,
       &mut visited_symbol_ref,
+      &mut root_symbol_ref_collector,
       &mut errors,
     );
 
@@ -168,6 +180,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       &inherit_export_ref_graph,
       &mut traced_tuple,
       &mut visited_symbol_ref,
+      &mut root_symbol_ref_collector,
       &mut errors,
     );
 
@@ -181,6 +194,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       inherit_export_ref_graph,
       traced_tuple,
       &mut visited_symbol_ref,
+      &mut root_symbol_ref_collector,
       &mut errors,
     );
     // let debug_graph = generate_debug_symbol_graph(
@@ -198,6 +212,8 @@ impl<'a> CodeSizeOptimizer<'a> {
       side_effects_options,
       used_export_module_identifiers,
       &mut used_symbol_ref,
+      visited_symbol_ref,
+      root_symbol_ref_collector,
       &dead_nodes_index,
     );
     Ok(
@@ -297,6 +313,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     inherit_export_ref_graph: GraphMap<Identifier, (), Directed>,
     mut traced_tuple: HashMap<(Identifier, Identifier), Vec<(SymbolRef, SymbolRef)>>,
     visited_symbol_ref: &mut HashSet<SymbolRef>,
+    root_symbol_ref_collector: &mut IdentifierMap<HashSet<SymbolRef>>,
     errors: &mut Vec<Error>,
   ) {
     let bailout_entry_modules = self.bailout_modules.keys().copied().collect::<Vec<_>>();
@@ -310,6 +327,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         &mut traced_tuple,
         EntryLikeType::Bailout,
         visited_symbol_ref,
+        root_symbol_ref_collector,
         errors,
       );
     }
@@ -324,6 +342,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     inherit_export_ref_graph: &GraphMap<Identifier, (), Directed>,
     traced_tuple: &mut HashMap<(Identifier, Identifier), Vec<(SymbolRef, SymbolRef)>>,
     visited_symbol_ref: &mut HashSet<SymbolRef>,
+    root_symbol_ref_collector: &mut IdentifierMap<HashSet<SymbolRef>>,
     errors: &mut Vec<Error>,
   ) {
     for entry in self.compilation.entry_modules() {
@@ -336,6 +355,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         traced_tuple,
         EntryLikeType::Entry,
         visited_symbol_ref,
+        root_symbol_ref_collector,
         errors,
       );
     }
@@ -346,6 +366,8 @@ impl<'a> CodeSizeOptimizer<'a> {
     side_effects_analyze: bool,
     used_export_module_identifiers: IdentifierMap<ModuleUsedType>,
     used_symbol_ref: &mut HashSet<SymbolRef>,
+    visited_symbol_ref: HashSet<SymbolRef>,
+    root_symbol_ref_collector: IdentifierMap<HashSet<SymbolRef>>,
     dead_node_index: &HashSet<NodeIndex>,
   ) -> IdentifierSet {
     let symbol_graph = &self.symbol_graph;
@@ -416,10 +438,19 @@ impl<'a> CodeSizeOptimizer<'a> {
               .get_node_index(symbol_ref)
               .expect("Can't get NodeIndex of SymbolRef");
             if !visited_symbol_node_index.contains(node_index) {
-              let mut bfs = Bfs::new(&symbol_graph.graph, *node_index);
-              while let Some(node_index) = bfs.next(&symbol_graph.graph) {
-                update_reachable_symbol(dead_node_index, node_index, &mut visited_symbol_node_index)
+              let mut reachable_node_index = HashSet::from_iter([*node_index]);
+              Self::rec(
+                &symbol_graph,
+                &mut HashSet::default(),
+                &vec![],
+                0,
+                *node_index,
+                &mut reachable_node_index,
+              );
+              for ni in reachable_node_index {
+                update_reachable_symbol(dead_node_index, ni, &mut visited_symbol_node_index)
               }
+              // while let Some(node_index) = bfs.next(&symbol_graph.graph) {}
             }
           }
         }
@@ -541,51 +572,69 @@ impl<'a> CodeSizeOptimizer<'a> {
     cur: NodeIndex,
     reachable_node_index: &mut HashSet<NodeIndex>,
   ) {
+    fn match_name(symbol: &SymbolRef, name: &str) -> bool {
+      match symbol {
+        SymbolRef::Declaration(symbol) => &symbol.id().atom == name,
+        SymbolRef::Indirect(indirect) => indirect.indirect_id() == name,
+        SymbolRef::Star(star_symbol) => star_symbol.binding() == name,
+        SymbolRef::Usage(_, _, _) => return false,
+        SymbolRef::Url { .. } => return false,
+      }
+    }
     if visited_symbol_node_index.contains(&cur) {
       return;
     }
     let symbol = graph.get_symbol(&cur).expect("Should get related symbol");
+    // dbg!(&symbol);
     visited_symbol_node_index.insert(cur);
-    if path.len() > 0 {
-      let name = &path[path_index];
-      let is_match = match symbol {
-        SymbolRef::Declaration(symbol) => &symbol.id().atom == name,
-        SymbolRef::Indirect(indirect) => indirect.indirect_id() == name,
-        SymbolRef::Star(star_symbol) => star_symbol.binding() == name,
-        SymbolRef::Usage(_, _, _) => return,
-        SymbolRef::Url { .. } => return,
-      };
-      if !is_match {
-        for neighbor in graph
-          .graph
-          .neighbors_directed(cur, petgraph::Direction::Outgoing)
-        {
+
+    if let Some(name) = path.get(path_index) {
+      // // TODO: something wrong here
+      // let is_match = if let Some(name) = name {
+      //   match_name(symbol, name)
+      // } else {
+      //   false
+      // };
+      let mut at_least_one_match = false;
+
+      for neighbor in graph
+        .graph
+        .neighbors_directed(cur, petgraph::Direction::Outgoing)
+      {
+        let neighbor_symbol = graph.get_symbol(&neighbor).unwrap();
+        let is_match = match_name(neighbor_symbol, name);
+        at_least_one_match = at_least_one_match || is_match;
+        if (is_match) {
           reachable_node_index.insert(neighbor);
           Self::rec(
             graph,
             visited_symbol_node_index,
-            &vec![],
-            0,
-            neighbor,
-            reachable_node_index,
-          );
-        }
-      } else {
-        for neighbor in graph
-          .graph
-          .neighbors_directed(cur, petgraph::Direction::Outgoing)
-        {
-          Self::rec(
-            graph,
-            visited_symbol_node_index,
-            &new_path,
+            &path,
             path_index + 1,
             neighbor,
             reachable_node_index,
           );
         }
       }
+      if at_least_one_match {
+        return;
+      }
+      for neighbor in graph
+        .graph
+        .neighbors_directed(cur, petgraph::Direction::Outgoing)
+      {
+        reachable_node_index.insert(neighbor);
+        Self::rec(
+          graph,
+          visited_symbol_node_index,
+          &vec![],
+          0,
+          neighbor,
+          reachable_node_index,
+        );
+      }
     } else {
+      reachable_node_index.insert(cur);
       match symbol {
         SymbolRef::Declaration(_) | SymbolRef::Indirect(_) | SymbolRef::Star(_) => {
           for neighbor in graph
@@ -603,8 +652,6 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
         }
         SymbolRef::Usage(local, member_chain, _) => {
-          let mut new_path = vec![local.atom.clone()];
-          new_path.extend_from_slice(member_chain);
           for neighbor in graph
             .graph
             .neighbors_directed(cur, petgraph::Direction::Outgoing)
@@ -612,7 +659,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             Self::rec(
               graph,
               visited_symbol_node_index,
-              &new_path,
+              member_chain,
               0,
               neighbor,
               reachable_node_index,
@@ -625,6 +672,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     }
     visited_symbol_node_index.remove(&cur);
   }
+
   fn get_side_effects_free_modules(
     &self,
     mut side_effect_map: IdentifierMap<SideEffectType>,
@@ -719,12 +767,14 @@ impl<'a> CodeSizeOptimizer<'a> {
   fn mark_used_symbol_with(
     &mut self,
     analyze_map: &IdentifierMap<OptimizeAnalyzeResult>,
-    mut init_queue: VecDeque<SymbolRef>,
+    mut init_queue: VecDeque<SymbolRefWithRootFlag>,
     evaluated_module_identifiers: &mut IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
     inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
     traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
     visited_symbol_ref: &mut HashSet<SymbolRef>,
+
+    root_symbol_ref_collector: &mut IdentifierMap<HashSet<SymbolRef>>,
     errors: &mut Vec<Error>,
   ) {
     while let Some(sym_ref) = init_queue.pop_front() {
@@ -737,6 +787,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         inherit_extend_graph,
         traced_tuple,
         visited_symbol_ref,
+        root_symbol_ref_collector,
         errors,
       );
     }
@@ -745,28 +796,40 @@ impl<'a> CodeSizeOptimizer<'a> {
   #[allow(clippy::too_many_arguments)]
   fn mark_symbol(
     &mut self,
-    current_symbol_ref: SymbolRef,
+    current_symbol_with_flag: SymbolRefWithRootFlag,
     analyze_map: &IdentifierMap<OptimizeAnalyzeResult>,
-    symbol_queue: &mut VecDeque<SymbolRef>,
+    symbol_queue: &mut VecDeque<SymbolRefWithRootFlag>,
     evaluated_module_identifiers: &mut IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
     inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
     traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
     visited_symbol_ref: &mut HashSet<SymbolRef>,
+    root_symbol_ref_collector: &mut IdentifierMap<HashSet<SymbolRef>>,
     errors: &mut Vec<Error>,
   ) {
+    let current_symbol_ref = current_symbol_with_flag.0;
     if visited_symbol_ref.contains(&current_symbol_ref) {
       return;
     } else {
       visited_symbol_ref.insert(current_symbol_ref.clone());
+    }
+    if current_symbol_with_flag.1 {
+      match root_symbol_ref_collector.entry(current_symbol_ref.importer()) {
+        Entry::Occupied(mut occ) => {
+          occ.get_mut().insert(current_symbol_ref.clone());
+        }
+        Entry::Vacant(vac) => {
+          vac.insert(HashSet::from_iter([current_symbol_ref.clone()]));
+        }
+      };
     }
 
     if !evaluated_module_identifiers.contains(&current_symbol_ref.importer()) {
       evaluated_module_identifiers.insert(current_symbol_ref.importer());
       if let Some(module_result) = analyze_map.get(&current_symbol_ref.importer()) {
         for used_symbol in module_result.used_symbol_refs.iter() {
-          // graph.add_edge(&current_symbol_ref, used_symbol);
-          symbol_queue.push_back(used_symbol.clone());
+          // TODO: DO we need to mark this as true
+          symbol_queue.push_back((used_symbol.clone(), true));
         }
       };
     }
@@ -837,7 +900,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             self
               .symbol_graph
               .add_edge(&current_symbol_ref, symbol_ref_ele);
-            symbol_queue.push_back(symbol_ref_ele.clone());
+            symbol_queue.push_back((symbol_ref_ele.clone(), false));
           }
         };
 
@@ -854,7 +917,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           self
             .symbol_graph
             .add_edge(&current_symbol_ref, import_symbol_ref);
-          symbol_queue.push_back(import_symbol_ref.clone());
+          symbol_queue.push_back((import_symbol_ref.clone(), false));
         }
       }
       SymbolRef::Indirect(ref indirect_symbol) => {
@@ -882,7 +945,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               if !is_same_symbol {
                 self.symbol_graph.add_edge(&current_symbol_ref, symbol);
               }
-              symbol_queue.push_back(symbol.clone());
+              symbol_queue.push_back((symbol.clone(), false));
               // if a bailout module has reexport symbol
               if let Some(set) = module_result
                 .reachable_import_of_export
@@ -890,13 +953,13 @@ impl<'a> CodeSizeOptimizer<'a> {
               {
                 for symbol_ref_ele in set.iter() {
                   self.symbol_graph.add_edge(symbol, symbol_ref_ele);
-                  symbol_queue.push_back(symbol_ref_ele.clone());
+                  symbol_queue.push_back((symbol_ref_ele.clone(), false));
                 }
               };
             }
             _ => {
               self.symbol_graph.add_edge(&current_symbol_ref, symbol);
-              symbol_queue.push_back(symbol.clone());
+              symbol_queue.push_back((symbol.clone(), false));
             }
           },
 
@@ -945,8 +1008,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                               analyze_map.get(&star_symbol.module_ident())
                             {
                               for used_symbol in module_result.used_symbol_refs.iter() {
-                                // graph.add_edge(&current_symbol_ref, used_symbol);
-                                symbol_queue.push_back(used_symbol.clone());
+                                symbol_queue.push_back((used_symbol.clone(), true));
                               }
                             };
                           }
@@ -1070,7 +1132,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                 ret[0].1.clone()
               }
             };
-            symbol_queue.push_back(selected_symbol);
+            symbol_queue.push_back((selected_symbol, false));
           }
         };
         // graph.add_edge(&current_symbol_ref, &symbol);
@@ -1118,7 +1180,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             self
               .symbol_graph
               .add_edge(&current_symbol_ref, export_symbol_ref);
-            symbol_queue.push_back(export_symbol_ref.clone());
+            symbol_queue.push_back((export_symbol_ref.clone(), false));
           }
         }
 
@@ -1130,7 +1192,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             StarSymbolKind::ReExportAll,
           ));
           self.symbol_graph.add_edge(&current_symbol_ref, &export_all);
-          symbol_queue.push_back(export_all.clone());
+          symbol_queue.push_back((export_all.clone(), false));
         }
       }
       SymbolRef::Url { .. } | SymbolRef::Worker { .. } => {}
@@ -1150,7 +1212,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           self
             .symbol_graph
             .add_edge(&current_symbol_ref, import_symbol_ref);
-          symbol_queue.push_back(import_symbol_ref.clone());
+          symbol_queue.push_back((import_symbol_ref.clone(), false));
         }
       }
     }
@@ -1166,9 +1228,10 @@ impl<'a> CodeSizeOptimizer<'a> {
     traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
     entry_type: EntryLikeType,
     visited_symbol_ref: &mut HashSet<SymbolRef>,
+    root_symbol_ref_collector: &mut IdentifierMap<HashSet<SymbolRef>>,
     errors: &mut Vec<Error>,
   ) {
-    let mut q = VecDeque::new();
+    let mut q: VecDeque<SymbolRefWithRootFlag> = VecDeque::new();
     let entry_module_result = match analyze_map.get(&entry_identifier) {
       Some(result) => result,
       None => {
@@ -1180,14 +1243,22 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     // by default webpack will not mark the `export *` as used in entry module
     if matches!(entry_type, EntryLikeType::Bailout) {
-      let inherit_export_symbols = get_inherit_export_symbol_ref(entry_module_result);
-      q.extend(inherit_export_symbols);
-      q.extend(entry_module_result.used_symbol_refs.iter().cloned());
+      let inherit_export_symbols_iter = get_inherit_export_symbol_ref(entry_module_result)
+        .into_iter()
+        .map(|item| (item, true));
+
+      q.extend(inherit_export_symbols_iter);
+      q.extend(
+        entry_module_result
+          .used_symbol_refs
+          .iter()
+          .map(|item| (item.clone(), true)),
+      );
     }
 
     for item in entry_module_result.export_map.values() {
       self.mark_symbol(
-        item.clone(),
+        (item.clone(), true),
         analyze_map,
         &mut q,
         evaluated_module_identifiers,
@@ -1195,13 +1266,14 @@ impl<'a> CodeSizeOptimizer<'a> {
         inherit_extend_graph,
         traced_tuple,
         visited_symbol_ref,
+        root_symbol_ref_collector,
         errors,
       );
     }
 
-    while let Some(symbol_ref) = q.pop_front() {
+    while let Some(symbol_ref_with_flag) = q.pop_front() {
       self.mark_symbol(
-        symbol_ref,
+        symbol_ref_with_flag,
         analyze_map,
         &mut q,
         evaluated_module_identifiers,
@@ -1209,6 +1281,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         inherit_extend_graph,
         traced_tuple,
         visited_symbol_ref,
+        root_symbol_ref_collector,
         errors,
       );
     }
