@@ -3,8 +3,7 @@
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'a': function() { return a; },
-  'dddd': function() { return dddd; }
+  'a': function() { return a; }
 });
  function a() {}
  function dddd() {}
