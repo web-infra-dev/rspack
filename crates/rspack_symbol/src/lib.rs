@@ -149,8 +149,6 @@ impl StarSymbol {
     }
   }
 
-  pub fn star_kind(&self) {}
-
   pub fn set_src(&mut self, src: Identifier) {
     self.src = src;
   }

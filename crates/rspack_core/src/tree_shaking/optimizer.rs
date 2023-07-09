@@ -428,8 +428,36 @@ impl<'a> CodeSizeOptimizer<'a> {
           .module_graph
           .module_graph_module_by_identifier_mut(&module_identifier)
           .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {module_identifier}"));
+
+        // if let Some(symbol_ref_list) = module_visited_symbol_ref.get(&module_identifier) {
+        //   for symbol_ref in symbol_ref_list {
+        //     let node_index = symbol_graph
+        //       .get_node_index(symbol_ref)
+        //       .expect("Can't get NodeIndex of SymbolRef");
+        //     update_reachable_dependency(
+        //       symbol_ref,
+        //       &mut reachable_dependency_identifier,
+        //       symbol_graph,
+        //     );
+        //     if !visited_symbol_node_index.contains(node_index) {
+        //       let mut reachable_node_index = HashSet::from_iter([*node_index]);
+        //       Self::rec(
+        //         &symbol_graph,
+        //         &mut HashSet::default(),
+        //         &vec![],
+        //         0,
+        //         *node_index,
+        //         &mut reachable_node_index,
+        //       );
+        //       for ni in reachable_node_index {
+        //         update_reachable_symbol(dead_node_index, ni, &mut visited_symbol_node_index);
+        //       }
+        //       // while let Some(node_index) = bfs.next(&symbol_graph.graph) {}
+        //     }
+        //   }
+        // }
         include_module_ids.insert(mgm.module_identifier);
-        if let Some(symbol_ref_list) = module_visited_symbol_ref.get(&module_identifier) {
+        if let Some(symbol_ref_list) = root_symbol_ref_collector.get(&module_identifier) {
           for symbol_ref in symbol_ref_list {
             let node_index = symbol_graph
               .get_node_index(symbol_ref)
@@ -449,14 +477,17 @@ impl<'a> CodeSizeOptimizer<'a> {
                 *node_index,
                 &mut reachable_node_index,
               );
+
+              println!("from ----->\n {:#?}:", symbol_ref);
               for ni in reachable_node_index {
                 update_reachable_symbol(dead_node_index, ni, &mut visited_symbol_node_index);
+                println!("{:#?}", symbol_graph.get_symbol(&ni).unwrap());
               }
               // while let Some(node_index) = bfs.next(&symbol_graph.graph) {}
             }
           }
         }
-        dbg!(&reachable_dependency_identifier);
+        // dbg!(&reachable_dependency_identifier);
 
         let mgm = self
           .compilation
@@ -514,12 +545,12 @@ impl<'a> CodeSizeOptimizer<'a> {
               | DependencyType::ImportContext
           );
 
-          if self.side_effects_free_modules.contains(module_identifier)
-            && !reachable_dependency_identifier.contains(module_identifier)
-            && !need_bailout
-          {
-            continue;
-          }
+          // if self.side_effects_free_modules.contains(module_identifier)
+          //   // && !reachable_dependency_identifier.contains(module_identifier)
+          //   && !need_bailout
+          // {
+          //   continue;
+          // }
 
           // we need to push either dependencies of context module instead of only its self, context module doesn't have ast,
           // which imply it will be treated as a external module in analyze phase
@@ -601,8 +632,8 @@ impl<'a> CodeSizeOptimizer<'a> {
         .graph
         .neighbors_directed(cur, petgraph::Direction::Outgoing)
       {
-        let neighbor_symbol = graph.get_symbol(&neighbor).unwrap();
-        let is_match = match neighbor_symbol {
+        let neighbor_symbol_path_not_empty = graph.get_symbol(&neighbor).unwrap();
+        let is_match = match neighbor_symbol_path_not_empty {
           SymbolRef::Declaration(symbol) => &symbol.id().atom == name,
           SymbolRef::Indirect(indirect) => indirect.indirect_id() == name,
           SymbolRef::Star(star_symbol) => {
@@ -625,7 +656,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         };
         at_least_one_match = at_least_one_match || is_match;
         if (is_match) {
-          dbg!(&neighbor_symbol);
+          dbg!(&neighbor_symbol_path_not_empty);
           reachable_node_index.insert(neighbor);
           Self::rec(
             graph,
@@ -635,11 +666,14 @@ impl<'a> CodeSizeOptimizer<'a> {
             neighbor,
             reachable_node_index,
           );
+        } else {
+          println!("not match, {name} {:#?}", neighbor_symbol_path_not_empty);
         }
       }
       if at_least_one_match {
         return true;
       }
+      println!("not even get a match: {:#?}", symbol);
       for neighbor in graph
         .graph
         .neighbors_directed(cur, petgraph::Direction::Outgoing)
@@ -678,10 +712,24 @@ impl<'a> CodeSizeOptimizer<'a> {
             .graph
             .neighbors_directed(cur, petgraph::Direction::Outgoing)
           {
+            let neighbor_symbol = graph.get_symbol(&neighbor).unwrap();
+            let mut new_path = match neighbor_symbol {
+              SymbolRef::Star(star) => match star.ty() {
+                StarSymbolKind::ReExportAllAs => vec![local.atom.clone()],
+                StarSymbolKind::ImportAllAs => vec![],
+                StarSymbolKind::ReExportAll => vec![local.atom.clone()],
+              },
+              SymbolRef::Indirect(indirect) => vec![local.atom.clone()],
+              SymbolRef::Declaration(_) | SymbolRef::Usage(_, _, _) | SymbolRef::Url { .. } => {
+                vec![local.atom.clone()]
+              }
+            };
+            new_path.extend_from_slice(&member_chain);
+            reachable_node_index.insert(neighbor);
             Self::rec(
               graph,
               visited_symbol_node_index,
-              member_chain,
+              &new_path,
               0,
               neighbor,
               reachable_node_index,
