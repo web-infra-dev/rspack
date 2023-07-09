@@ -429,11 +429,16 @@ impl<'a> CodeSizeOptimizer<'a> {
           .module_graph_module_by_identifier_mut(&module_identifier)
           .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {module_identifier}"));
         include_module_ids.insert(mgm.module_identifier);
-        if let Some(symbol_ref_list) = root_symbol_ref_collector.get(&module_identifier) {
+        if let Some(symbol_ref_list) = module_visited_symbol_ref.get(&module_identifier) {
           for symbol_ref in symbol_ref_list {
             let node_index = symbol_graph
               .get_node_index(symbol_ref)
               .expect("Can't get NodeIndex of SymbolRef");
+            update_reachable_dependency(
+              symbol_ref,
+              &mut reachable_dependency_identifier,
+              symbol_graph,
+            );
             if !visited_symbol_node_index.contains(node_index) {
               let mut reachable_node_index = HashSet::from_iter([*node_index]);
               Self::rec(
@@ -446,8 +451,6 @@ impl<'a> CodeSizeOptimizer<'a> {
               );
               for ni in reachable_node_index {
                 update_reachable_symbol(dead_node_index, ni, &mut visited_symbol_node_index);
-                let symbol = symbol_graph.get_symbol(&ni).unwrap();
-                reachable_dependency_identifier.insert(symbol.importer());
               }
               // while let Some(node_index) = bfs.next(&symbol_graph.graph) {}
             }
