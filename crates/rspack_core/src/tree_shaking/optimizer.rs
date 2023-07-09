@@ -462,11 +462,6 @@ impl<'a> CodeSizeOptimizer<'a> {
             let node_index = symbol_graph
               .get_node_index(symbol_ref)
               .expect("Can't get NodeIndex of SymbolRef");
-            // update_reachable_dependency(
-            //   symbol_ref,
-            //   &mut reachable_dependency_identifier,
-            //   symbol_graph,
-            // );
             reachable_dependency_identifier.insert(module_identifier);
             if !visited_symbol_node_index.contains(node_index) {
               let mut reachable_node_index = HashSet::from_iter([*node_index]);
