@@ -462,11 +462,12 @@ impl<'a> CodeSizeOptimizer<'a> {
             let node_index = symbol_graph
               .get_node_index(symbol_ref)
               .expect("Can't get NodeIndex of SymbolRef");
-            update_reachable_dependency(
-              symbol_ref,
-              &mut reachable_dependency_identifier,
-              symbol_graph,
-            );
+            // update_reachable_dependency(
+            //   symbol_ref,
+            //   &mut reachable_dependency_identifier,
+            //   symbol_graph,
+            // );
+            reachable_dependency_identifier.insert(module_identifier);
             if !visited_symbol_node_index.contains(node_index) {
               let mut reachable_node_index = HashSet::from_iter([*node_index]);
               Self::rec(
@@ -478,10 +479,12 @@ impl<'a> CodeSizeOptimizer<'a> {
                 &mut reachable_node_index,
               );
 
-              println!("from ----->\n {:#?}:", symbol_ref);
+              // println!("from ----->\n {:#?}:", symbol_ref);
               for ni in reachable_node_index {
                 update_reachable_symbol(dead_node_index, ni, &mut visited_symbol_node_index);
-                println!("{:#?}", symbol_graph.get_symbol(&ni).unwrap());
+                let symbol = symbol_graph.get_symbol(&ni).unwrap();
+                // println!("{:#?}",);
+                reachable_dependency_identifier.insert(symbol.src());
               }
               // while let Some(node_index) = bfs.next(&symbol_graph.graph) {}
             }
@@ -545,12 +548,12 @@ impl<'a> CodeSizeOptimizer<'a> {
               | DependencyType::ImportContext
           );
 
-          // if self.side_effects_free_modules.contains(module_identifier)
-          //   // && !reachable_dependency_identifier.contains(module_identifier)
-          //   && !need_bailout
-          // {
-          //   continue;
-          // }
+          if self.side_effects_free_modules.contains(module_identifier)
+            && !reachable_dependency_identifier.contains(module_identifier)
+            && !need_bailout
+          {
+            continue;
+          }
 
           // we need to push either dependencies of context module instead of only its self, context module doesn't have ast,
           // which imply it will be treated as a external module in analyze phase
@@ -620,12 +623,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     visited_symbol_node_index.insert(cur);
 
     if let Some(name) = path.get(path_index) {
-      // // TODO: something wrong here
-      // let is_match = if let Some(name) = name {
-      //   match_name(symbol, name)
-      // } else {
-      //   false
-      // };
       let mut at_least_one_match = false;
 
       for neighbor in graph
