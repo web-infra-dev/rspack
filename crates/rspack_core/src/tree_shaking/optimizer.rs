@@ -141,7 +141,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       }
     }
     tracing::debug!(side_effect_map = format!("{:#?}", side_effect_map));
-    dbg!(&evaluated_used_symbol_ref);
+    // dbg!(&evaluated_used_symbol_ref);
 
     self.side_effects_free_modules = self.get_side_effects_free_modules(side_effect_map);
     let inherit_export_ref_graph = get_inherit_export_ref_graph(&mut finalized_result_map);
@@ -378,7 +378,11 @@ impl<'a> CodeSizeOptimizer<'a> {
       .collect::<HashSet<SymbolRef>>();
     let mut include_module_ids = IdentifierSet::default();
 
+    // dbg!(&root_symbol_ref_collector);
     if side_effects_analyze {
+      let symbol_graph = &self.symbol_graph;
+
+      let mut reachable_dependency_identifier = IdentifierSet::default();
       let mut module_visited_symbol_ref: IdentifierMap<Vec<SymbolRef>> = IdentifierMap::default();
       for symbol in visited_symbol_ref {
         let module_identifier = symbol.importer();
@@ -419,21 +423,14 @@ impl<'a> CodeSizeOptimizer<'a> {
         } else {
         }
 
-        let mut reachable_dependency_identifier = IdentifierSet::default();
-
         let mgm = self
           .compilation
           .module_graph
           .module_graph_module_by_identifier_mut(&module_identifier)
           .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {module_identifier}"));
         include_module_ids.insert(mgm.module_identifier);
-        if let Some(symbol_ref_list) = module_visited_symbol_ref.get(&module_identifier) {
+        if let Some(symbol_ref_list) = root_symbol_ref_collector.get(&module_identifier) {
           for symbol_ref in symbol_ref_list {
-            update_reachable_dependency(
-              symbol_ref,
-              &mut reachable_dependency_identifier,
-              symbol_graph,
-            );
             let node_index = symbol_graph
               .get_node_index(symbol_ref)
               .expect("Can't get NodeIndex of SymbolRef");
@@ -448,12 +445,15 @@ impl<'a> CodeSizeOptimizer<'a> {
                 &mut reachable_node_index,
               );
               for ni in reachable_node_index {
-                update_reachable_symbol(dead_node_index, ni, &mut visited_symbol_node_index)
+                update_reachable_symbol(dead_node_index, ni, &mut visited_symbol_node_index);
+                let symbol = symbol_graph.get_symbol(&ni).unwrap();
+                reachable_dependency_identifier.insert(symbol.importer());
               }
               // while let Some(node_index) = bfs.next(&symbol_graph.graph) {}
             }
           }
         }
+        dbg!(&reachable_dependency_identifier);
 
         let mgm = self
           .compilation
@@ -561,6 +561,8 @@ impl<'a> CodeSizeOptimizer<'a> {
     } else {
       *used_symbol_ref = visited_symbol_ref;
     }
+    dbg!(&used_symbol_ref);
+    dbg!(&include_module_ids);
     include_module_ids
   }
 
@@ -571,19 +573,14 @@ impl<'a> CodeSizeOptimizer<'a> {
     path_index: usize,
     cur: NodeIndex,
     reachable_node_index: &mut HashSet<NodeIndex>,
-  ) {
-    fn match_name(symbol: &SymbolRef, name: &str) -> bool {
-      match symbol {
-        SymbolRef::Declaration(symbol) => &symbol.id().atom == name,
-        SymbolRef::Indirect(indirect) => indirect.indirect_id() == name,
-        SymbolRef::Star(star_symbol) => star_symbol.binding() == name,
-        SymbolRef::Usage(_, _, _) => return false,
-        SymbolRef::Url { .. } => return false,
-      }
-    }
+  ) -> bool {
+    // fn match_name(symbol: &SymbolRef, name: &str) -> bool {
+    //   // match symbol {}
+    // }
     if visited_symbol_node_index.contains(&cur) {
-      return;
+      return false;
     }
+    // reachable_node_index.insert(cur);
     let symbol = graph.get_symbol(&cur).expect("Should get related symbol");
     // dbg!(&symbol);
     visited_symbol_node_index.insert(cur);
@@ -602,9 +599,30 @@ impl<'a> CodeSizeOptimizer<'a> {
         .neighbors_directed(cur, petgraph::Direction::Outgoing)
       {
         let neighbor_symbol = graph.get_symbol(&neighbor).unwrap();
-        let is_match = match_name(neighbor_symbol, name);
+        let is_match = match neighbor_symbol {
+          SymbolRef::Declaration(symbol) => &symbol.id().atom == name,
+          SymbolRef::Indirect(indirect) => indirect.indirect_id() == name,
+          SymbolRef::Star(star_symbol) => {
+            // TODO:
+            if star_symbol.binding() == "" {
+              Self::rec(
+                graph,
+                visited_symbol_node_index,
+                &path,
+                path_index,
+                neighbor,
+                reachable_node_index,
+              )
+            } else {
+              star_symbol.binding() == name
+            }
+          }
+          SymbolRef::Usage(_, _, _) => return false,
+          SymbolRef::Url { .. } => return false,
+        };
         at_least_one_match = at_least_one_match || is_match;
         if (is_match) {
+          dbg!(&neighbor_symbol);
           reachable_node_index.insert(neighbor);
           Self::rec(
             graph,
@@ -617,7 +635,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         }
       }
       if at_least_one_match {
-        return;
+        return true;
       }
       for neighbor in graph
         .graph
@@ -633,6 +651,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           reachable_node_index,
         );
       }
+      return false;
     } else {
       reachable_node_index.insert(cur);
       match symbol {
@@ -671,6 +690,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       }
     }
     visited_symbol_node_index.remove(&cur);
+    return false;
   }
 
   fn get_side_effects_free_modules(
@@ -807,21 +827,21 @@ impl<'a> CodeSizeOptimizer<'a> {
     root_symbol_ref_collector: &mut IdentifierMap<HashSet<SymbolRef>>,
     errors: &mut Vec<Error>,
   ) {
+    if current_symbol_with_flag.1 {
+      match root_symbol_ref_collector.entry(current_symbol_with_flag.0.importer()) {
+        Entry::Occupied(mut occ) => {
+          occ.get_mut().insert(current_symbol_with_flag.0.clone());
+        }
+        Entry::Vacant(vac) => {
+          vac.insert(HashSet::from_iter([current_symbol_with_flag.0.clone()]));
+        }
+      };
+    }
     let current_symbol_ref = current_symbol_with_flag.0;
     if visited_symbol_ref.contains(&current_symbol_ref) {
       return;
     } else {
       visited_symbol_ref.insert(current_symbol_ref.clone());
-    }
-    if current_symbol_with_flag.1 {
-      match root_symbol_ref_collector.entry(current_symbol_ref.importer()) {
-        Entry::Occupied(mut occ) => {
-          occ.get_mut().insert(current_symbol_ref.clone());
-        }
-        Entry::Vacant(vac) => {
-          vac.insert(HashSet::from_iter([current_symbol_ref.clone()]));
-        }
-      };
     }
 
     if !evaluated_module_identifiers.contains(&current_symbol_ref.importer()) {
