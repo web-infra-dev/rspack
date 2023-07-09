@@ -714,15 +714,10 @@ impl<'a> CodeSizeOptimizer<'a> {
           {
             let neighbor_symbol = graph.get_symbol(&neighbor).unwrap();
             let mut new_path = match neighbor_symbol {
-              SymbolRef::Star(star) => match star.ty() {
-                StarSymbolKind::ReExportAllAs => vec![local.atom.clone()],
-                StarSymbolKind::ImportAllAs => vec![],
-                StarSymbolKind::ReExportAll => vec![local.atom.clone()],
-              },
-              SymbolRef::Indirect(indirect) => vec![local.atom.clone()],
-              SymbolRef::Declaration(_) | SymbolRef::Usage(_, _, _) | SymbolRef::Url { .. } => {
-                vec![local.atom.clone()]
+              SymbolRef::Star(star) if star.ty() == StarSymbolKind::ImportAllAs => {
+                vec![]
               }
+              _ => vec![local.atom.clone()],
             };
             new_path.extend_from_slice(&member_chain);
             reachable_node_index.insert(neighbor);
