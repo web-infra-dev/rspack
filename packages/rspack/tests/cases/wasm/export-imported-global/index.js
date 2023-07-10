@@ -1,4 +1,3 @@
-// TODO: currently using swc_visitor::build_module, needs align with webpack
 it("should export imported global", function () {
 	return import("./module").then(function ({ v, w, x, test }) {
 		if (WebAssembly.Global) {
