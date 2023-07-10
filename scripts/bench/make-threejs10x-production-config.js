@@ -10,10 +10,12 @@ const testConfig = `
 			"passes": 1,
 			"dropConsole": true,
 			"pureFuncs": []
-		}
+		},
+    "treeShaking": "true"
 	},
 	"optimization": {
-		"moduleIds": "deterministic"
+		"moduleIds": "deterministic",
+    "sideEffects": "true"
 	},
 	"entry": {
 			"index": {
