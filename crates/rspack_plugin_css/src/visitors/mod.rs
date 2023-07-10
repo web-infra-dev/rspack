@@ -13,7 +13,7 @@ use crate::{
 static IS_MODULE_REQUEST: Lazy<Regex> = Lazy::new(|| Regex::new(r"^~").expect("TODO:"));
 
 pub fn analyze_dependencies(
-  ss: &mut Stylesheet,
+  ss: &Stylesheet,
   code_generation_dependencies: &mut Vec<Box<dyn ModuleDependency>>,
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Vec<Box<dyn ModuleDependency>> {
