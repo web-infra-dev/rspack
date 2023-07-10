@@ -5,6 +5,6 @@ module.exports = function (config) {
 };
 
 */
-module.exports = () => {return false}
+module.exports = () => {return "blocked by https://github.com/web-infra-dev/rspack/issues/2408"}
 
 							
