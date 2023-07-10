@@ -7,12 +7,14 @@ use serde::{Deserialize, Serialize};
 #[napi(object)]
 pub struct RawProgressPluginConfig {
   pub prefix: Option<String>,
+  pub profile: Option<bool>,
 }
 
 impl From<RawProgressPluginConfig> for ProgressPluginConfig {
   fn from(value: RawProgressPluginConfig) -> Self {
     Self {
       prefix: value.prefix,
+      profile: value.profile,
     }
   }
 }
