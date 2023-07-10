@@ -115,7 +115,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let source_code = source.source().into_owned();
     let resource_path = &parse_context.resource_data.resource_path;
 
-    let is_enable_css_modules = matches!(module_type, ModuleType::CssModule | ModuleType::CssModule if REGEX_IS_MODULES.is_match(resource_path.to_string_lossy().as_ref()));
+    let is_enable_css_modules = matches!(module_type, ModuleType::CssModule | ModuleType::CssAuto if REGEX_IS_MODULES.is_match(resource_path.to_string_lossy().as_ref()));
 
     let TWithDiagnosticArray {
       inner: mut stylesheet,
