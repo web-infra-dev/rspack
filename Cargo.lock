@@ -2414,6 +2414,7 @@ name = "rspack_identifier"
 version = "0.1.0"
 dependencies = [
  "hashlink",
+ "serde",
  "ustr",
 ]
 
@@ -4861,6 +4862,7 @@ dependencies = [
  "byteorder",
  "lazy_static",
  "parking_lot 0.11.2",
+ "serde",
 ]
 
 [[package]]

@@ -1,0 +1,16 @@
+{
+	"optimization": {
+		"sideEffects": "true"
+	},
+  "entry": {
+    "main": {
+      "import": ["./src/index.js"]
+    }
+  },
+	"builtins": {
+		"treeShaking": "true",
+		"define": {
+			"process.env.NODE_ENV": "'development'"
+		}
+	}
+}

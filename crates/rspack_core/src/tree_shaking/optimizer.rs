@@ -5,6 +5,7 @@ use std::{
 
 use petgraph::{
   algo,
+  dot::Dot,
   prelude::{DiGraphMap, GraphMap},
   stable_graph::NodeIndex,
   visit::{Bfs, Dfs, EdgeRef},
@@ -32,8 +33,10 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
-  contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
-  DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
+  contextify, join_string_component,
+  tree_shaking::{symbol_graph::generate_debug_symbol_graph, utils::ConvertModulePath},
+  Compilation, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType,
+  NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -183,12 +186,12 @@ impl<'a> CodeSizeOptimizer<'a> {
       &mut visited_symbol_ref,
       &mut errors,
     );
-    // let debug_graph = generate_debug_symbol_graph(
-    //   &self.symbol_graph,
-    //   &self.compilation.module_graph,
-    //   &self.compilation.options.context.as_str().to_owned(),
-    // );
-    // println!("{:?}", Dot::new(&debug_graph));
+    let debug_graph = generate_debug_symbol_graph(
+      &self.symbol_graph,
+      &self.compilation.module_graph,
+      &self.compilation.options.context.as_str().to_owned(),
+    );
+    println!("{:?}", Dot::new(&debug_graph));
     self.check_symbol_query();
 
     let dead_nodes_index = HashSet::default();

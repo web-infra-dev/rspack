@@ -10,6 +10,7 @@ use rspack_symbol::{
   SymbolExt, SymbolFlag, SymbolType,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use serde::Serialize;
 use swc_core::common::SyntaxContext;
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
 use swc_core::ecma::ast::*;
@@ -33,7 +34,7 @@ use crate::{
   ModuleSyntax,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum SymbolRef {
   Direct(Symbol),
   Indirect(IndirectTopLevelSymbol),
