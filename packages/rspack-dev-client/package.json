@@ -4,12 +4,12 @@
   "license": "MIT",
   "description": "Development client for rspack",
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc -w",
+    "build": "echo success",
+    "dev": "echo success",
     "test": "echo success"
   },
   "files": [
-    "dist"
+    "src"
   ],
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -34,6 +34,7 @@
     }
   },
   "exports": {
-    "./react-refresh": "./dist/reactRefresh.js"
+    "./react-refresh": "./src/reactRefresh.js",
+    "./react-refresh-entry": "./src/reactRefreshEntry.js"
   }
 }

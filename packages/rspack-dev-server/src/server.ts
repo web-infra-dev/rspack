@@ -80,6 +80,12 @@ export class RspackDevServer extends WebpackDevServer {
 		// inject runtime first, avoid other additional entry after transfrom depend on it
 		const clientPath = require.resolve("webpack-dev-server/client/index.js");
 		if (this.options.hot) {
+			if (compiler.options.builtins.react?.refresh) {
+				const reactRefreshEntryPath = require.resolve(
+					"@rspack/dev-client/react-refresh-entry"
+				);
+				additionalEntries.push(reactRefreshEntryPath);
+			}
 			// #3356 make sure resolve webpack/hot/dev-server from webpack-dev-server
 			const hotUpdateEntryPath = require.resolve("webpack/hot/dev-server", {
 				paths: [clientPath]
