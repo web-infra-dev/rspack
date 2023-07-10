@@ -169,9 +169,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
     )?;
 
     let TWithDiagnosticArray {
-      inner: mut new_stylesheet_ast,
+      inner: new_stylesheet_ast,
       diagnostic: new_diagnostic,
-    } = swc_compiler.parse_file(
+    } = SwcCssCompiler::default().parse_file(
       &parse_context.resource_data.resource_path.to_string_lossy(),
       code.clone(),
       Default::default(),
@@ -179,7 +179,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     diagnostic.extend(new_diagnostic);
 
     let mut dependencies = analyze_dependencies(
-      &mut new_stylesheet_ast,
+      &new_stylesheet_ast,
       code_generation_dependencies,
       &mut diagnostic,
     );
