@@ -383,15 +383,16 @@ impl<'a> CodeSizeOptimizer<'a> {
       let symbol_graph = &self.symbol_graph;
 
       let mut reachable_dependency_identifier = IdentifierSet::default();
-      let mut module_visited_symbol_ref: IdentifierMap<Vec<SymbolRef>> = IdentifierMap::default();
+      let mut module_visited_symbol_ref: IdentifierMap<HashSet<SymbolRef>> =
+        IdentifierMap::default();
       for symbol in visited_symbol_ref {
         let module_identifier = symbol.importer();
         match module_visited_symbol_ref.entry(module_identifier) {
           Entry::Occupied(mut occ) => {
-            occ.get_mut().push(symbol);
+            occ.get_mut().insert(symbol);
           }
           Entry::Vacant(vac) => {
-            vac.insert(vec![symbol]);
+            vac.insert(HashSet::from_iter([symbol]));
           }
         }
       }
@@ -457,7 +458,15 @@ impl<'a> CodeSizeOptimizer<'a> {
         //   }
         // }
         include_module_ids.insert(mgm.module_identifier);
-        if let Some(symbol_ref_list) = root_symbol_ref_collector.get(&module_identifier) {
+        // dbg!(&module_visited_symbol_ref);
+        let safe_search = false;
+        let ref_map = if safe_search {
+          &module_visited_symbol_ref
+        } else {
+          &root_symbol_ref_collector
+        };
+
+        if let Some(symbol_ref_list) = ref_map.get(&module_identifier) {
           for symbol_ref in symbol_ref_list {
             let node_index = symbol_graph
               .get_node_index(symbol_ref)
@@ -593,8 +602,8 @@ impl<'a> CodeSizeOptimizer<'a> {
     } else {
       *used_symbol_ref = visited_symbol_ref;
     }
-    dbg!(&used_symbol_ref);
-    dbg!(&include_module_ids);
+    // dbg!(&used_symbol_ref);
+    // dbg!(&include_module_ids);
     include_module_ids
   }
 
@@ -648,7 +657,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         };
         at_least_one_match = at_least_one_match || is_match;
         if (is_match) {
-          dbg!(&neighbor_symbol_path_not_empty);
+          // dbg!(&neighbor_symbol_path_not_empty);
           reachable_node_index.insert(neighbor);
           Self::rec(
             graph,
@@ -659,13 +668,13 @@ impl<'a> CodeSizeOptimizer<'a> {
             reachable_node_index,
           );
         } else {
-          println!("not match, {name} {:#?}", neighbor_symbol_path_not_empty);
+          // println!("not match, {name} {:#?}", neighbor_symbol_path_not_empty);
         }
       }
       if at_least_one_match {
         return true;
       }
-      println!("not even get a match: {:#?}", symbol);
+      // println!("not even get a match: {:#?}", symbol);
       for neighbor in graph
         .graph
         .neighbors_directed(cur, petgraph::Direction::Outgoing)
