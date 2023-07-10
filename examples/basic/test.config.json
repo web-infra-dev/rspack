@@ -1,12 +1,12 @@
 {
-	"optimization": {
-		"sideEffects": "true"
-	},
   "entry": {
     "main": {
       "import": ["./src/index.js"]
     }
   },
+	"optimization": {
+		"sideEffects": "true"
+	},
 	"builtins": {
 		"treeShaking": "true",
 		"define": {
