@@ -11,11 +11,11 @@ const testConfig = `
 			"dropConsole": true,
 			"pureFuncs": []
 		},
-    "treeShaking": "true"
+		"treeShaking": "true"
 	},
 	"optimization": {
 		"moduleIds": "deterministic",
-    "sideEffects": "true"
+		"sideEffects": "true"
 	},
 	"entry": {
 			"index": {
