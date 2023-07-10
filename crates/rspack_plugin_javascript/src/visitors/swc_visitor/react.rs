@@ -1,14 +1,16 @@
 use std::sync::Arc;
 
-use once_cell::sync::Lazy;
-use rspack_core::{ModuleType, ReactOptions};
+use rspack_core::ReactOptions;
+use swc_core::common::DUMMY_SP;
 use swc_core::common::{comments::SingleThreadedComments, Mark, SourceMap};
-use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, ModuleItem, Program, Script};
+use swc_core::ecma::ast::{
+  BinExpr, BinaryOp, BlockStmt, CallExpr, Callee, Expr, ExprOrSpread, ExprStmt, FnDecl, FnExpr,
+  Function, Ident, MemberExpr, ModuleItem, Program, Stmt,
+};
 use swc_core::ecma::transforms::react::RefreshOptions;
 use swc_core::ecma::transforms::react::{react as swc_react, Options};
+use swc_core::ecma::utils::{member_expr, quote_ident, quote_str};
 use swc_core::ecma::visit::{noop_visit_type, Fold, Visit, VisitWith};
-
-use crate::ast::parse_js_code;
 
 pub fn react<'a>(
   top_level_mark: Mark,
@@ -41,8 +43,8 @@ pub fn react<'a>(
   )
 }
 
-pub fn fold_react_refresh() -> impl Fold {
-  ReactHmrFolder {}
+pub fn fold_react_refresh(unresolved_mark: Mark) -> impl Fold {
+  ReactHmrFolder { unresolved_mark }
 }
 
 #[derive(Default)]
@@ -80,24 +82,146 @@ impl Visit for ReactRefreshUsageFinder {
   }
 }
 
-// __webpack_require__.$ReactRefreshRuntime$ is injected by the react-refresh additional entry
-// See https://github.com/web-infra-dev/rspack/pull/2714 why we have a promise here
-static RUNTIME_CODE: &str = r#"
-function $RefreshReg$(type, id) {
-  __webpack_modules__.$ReactRefreshRuntime$.register(type, __webpack_module__.id+ "_" + id);
+// $ReactRefreshRuntime$ is injected by provide
+fn create_react_refresh_runtime_stmts(unresolved_mark: Mark) -> Vec<Stmt> {
+  fn create_react_refresh_runtime_ident(unresolved_mark: Mark) -> Box<Expr> {
+    Box::new(Expr::Ident(Ident {
+      span: DUMMY_SP.apply_mark(unresolved_mark),
+      sym: "$ReactRefreshRuntime$".into(),
+      optional: false,
+    }))
+  }
+  vec![
+    FnDecl {
+      ident: quote_ident!("$RefreshReg$"),
+      declare: false,
+      function: Box::new(Function {
+        params: vec![quote_ident!("type").into(), quote_ident!("id").into()],
+        decorators: Vec::new(),
+        span: DUMMY_SP,
+        body: Some(BlockStmt {
+          span: DUMMY_SP,
+          stmts: vec![Stmt::Expr(ExprStmt {
+            span: DUMMY_SP,
+            expr: CallExpr {
+              span: DUMMY_SP,
+              callee: Callee::Expr(
+                MemberExpr {
+                  span: DUMMY_SP,
+                  obj: create_react_refresh_runtime_ident(unresolved_mark),
+                  prop: quote_ident!("register").into(),
+                }
+                .into(),
+              ),
+              args: vec![
+                ExprOrSpread {
+                  spread: None,
+                  expr: quote_ident!("type").into(),
+                },
+                ExprOrSpread {
+                  spread: None,
+                  expr: BinExpr {
+                    span: DUMMY_SP,
+                    op: BinaryOp::Add,
+                    left: BinExpr {
+                      span: DUMMY_SP,
+                      op: BinaryOp::Add,
+                      left: member_expr!(DUMMY_SP, __webpack_module__),
+                      right: quote_str!("_").into(),
+                    }
+                    .into(),
+                    right: quote_ident!("id").into(),
+                  }
+                  .into(),
+                },
+              ],
+              type_args: None,
+            }
+            .into(),
+          })],
+        }),
+        is_generator: false,
+        is_async: false,
+        type_params: None,
+        return_type: None,
+      }),
+    }
+    .into(),
+    ExprStmt {
+      span: DUMMY_SP,
+      expr: CallExpr {
+        span: DUMMY_SP,
+        callee: Callee::Expr(
+          MemberExpr {
+            span: DUMMY_SP,
+            obj: CallExpr {
+              span: DUMMY_SP,
+              // See https://github.com/web-infra-dev/rspack/pull/2714 why we have a promise here
+              callee: member_expr!(DUMMY_SP, Promise.resolve).into(),
+              args: vec![],
+              type_args: None,
+            }
+            .into(),
+            prop: quote_ident!("then").into(),
+          }
+          .into(),
+        ),
+        args: vec![ExprOrSpread {
+          spread: None,
+          expr: FnExpr {
+            ident: None,
+            function: Box::new(Function {
+              params: Vec::new(),
+              decorators: Vec::new(),
+              span: DUMMY_SP,
+              body: Some(BlockStmt {
+                span: DUMMY_SP,
+                stmts: vec![Stmt::Expr(ExprStmt {
+                  span: DUMMY_SP,
+                  expr: CallExpr {
+                    span: DUMMY_SP,
+                    callee: Callee::Expr(
+                      MemberExpr {
+                        span: DUMMY_SP,
+                        obj: create_react_refresh_runtime_ident(unresolved_mark),
+                        prop: quote_ident!("refresh").into(),
+                      }
+                      .into(),
+                    ),
+                    args: vec![
+                      ExprOrSpread {
+                        spread: None,
+                        expr: member_expr!(DUMMY_SP, __webpack_module__.id),
+                      },
+                      ExprOrSpread {
+                        spread: None,
+                        expr: member_expr!(DUMMY_SP, __webpack_module__.hot),
+                      },
+                    ],
+                    type_args: None,
+                  }
+                  .into(),
+                })],
+              }),
+              is_generator: false,
+              is_async: false,
+              type_params: None,
+              return_type: None,
+            }),
+          }
+          .into(),
+        }],
+        type_args: None,
+      }
+      .into(),
+    }
+    .into(),
+  ]
 }
-Promise.resolve().then(function(){
-  __webpack_modules__.$ReactRefreshRuntime$.refresh(__webpack_module__.id, __webpack_module__.hot);
-})
-"#;
 
-static RUNTIME_CODE_AST: Lazy<Script> = Lazy::new(|| {
-  parse_js_code(RUNTIME_CODE.to_string(), &ModuleType::Js)
-    .expect("TODO:")
-    .expect_script()
-});
-
-pub struct ReactHmrFolder;
+pub struct ReactHmrFolder {
+  unresolved_mark: Mark,
+}
 
 impl Fold for ReactHmrFolder {
   fn fold_program(&mut self, mut program: Program) -> Program {
@@ -108,7 +232,7 @@ impl Fold for ReactHmrFolder {
       return program;
     }
 
-    let runtime_stmts = RUNTIME_CODE_AST.body.clone();
+    let runtime_stmts = create_react_refresh_runtime_stmts(self.unresolved_mark);
 
     match program {
       Program::Module(ref mut m) => m
