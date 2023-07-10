@@ -19,8 +19,8 @@ import {
 	RawFuncUseCtx
 } from "@rspack/binding";
 import assert from "assert";
-import { Compiler } from "../compiler";
-import { normalizeStatsPreset } from "../stats";
+import { Compiler } from "../Compiler";
+import { normalizeStatsPreset } from "../Stats";
 import { isNil } from "../util";
 import {
 	ComposeJsUseOptions,

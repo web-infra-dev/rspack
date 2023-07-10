@@ -32,15 +32,24 @@ export function getRspackMemoryAssets(
 		const filename = path.startsWith(publicPath)
 			? path.slice(publicPath.length)
 			: path.slice(1);
+
+		function getAssetSourceByFilename(name: string) {
+			let source = compiler.compilation.__internal__getAssetSource(name);
+			if (!source) {
+				return null;
+			}
+			return source.buffer();
+		}
+
 		let buffer =
-			compiler.getAsset(filename) ??
+			getAssetSourceByFilename(filename) ??
 			(() => {
 				const { index } = rdm.context.options;
 				const indexValue =
 					typeof index === "undefined" || typeof index === "boolean"
 						? "index.html"
 						: index;
-				return compiler.getAsset(filename + indexValue);
+				return getAssetSourceByFilename(filename + indexValue);
 			})();
 		if (!buffer) {
 			return next();

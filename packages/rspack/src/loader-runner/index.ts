@@ -16,9 +16,9 @@ import {
 	SourceMapSource
 } from "webpack-sources";
 
-import { Compiler } from "../compiler";
-import { NormalModule } from "../normalModule";
-import { Compilation } from "../compilation";
+import { Compiler } from "../Compiler";
+import { NormalModule } from "../NormalModule";
+import { Compilation } from "../Compilation";
 import {
 	LoaderContext,
 	LoaderObject,

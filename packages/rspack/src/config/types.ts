@@ -9,7 +9,7 @@
  */
 
 import watchpack from "watchpack";
-import { Compiler } from "../compiler";
+import { Compiler } from "../Compiler";
 import * as oldBuiltins from "./builtins";
 import { Compilation } from "..";
 import type * as webpackDevServer from "webpack-dev-server";
