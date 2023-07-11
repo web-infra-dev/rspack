@@ -23,8 +23,8 @@ use std::{
 };
 
 pub use const_dependency::ConstDependency;
-mod code_generatable_dependency;
-pub use code_generatable_dependency::*;
+mod dependency_template;
+pub use dependency_template::*;
 use dyn_clone::{clone_trait_object, DynClone};
 
 use crate::{ChunkGroupOptions, Context, ContextMode, ContextOptions, ErrorSpan};
@@ -210,7 +210,7 @@ pub trait ModuleDependency: Dependency {
     false
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
     None
   }
 
@@ -257,7 +257,7 @@ impl ModuleDependency for Box<dyn ModuleDependency> {
     (**self).set_request(request);
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
     (**self).as_code_generatable_dependency()
   }
 }

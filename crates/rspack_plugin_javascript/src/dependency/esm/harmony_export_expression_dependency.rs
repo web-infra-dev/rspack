@@ -1,4 +1,4 @@
-use rspack_core::{CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource};
+use rspack_core::{DependencyTemplate, TemplateContext, TemplateReplaceSource};
 
 pub const DEFAULT_EXPORT: &str = "__WEBPACK_DEFAULT_EXPORT__";
 // pub const NAMESPACE_OBJECT_EXPORT: &'static str = "__WEBPACK_NAMESPACE_OBJECT__";
@@ -35,11 +35,11 @@ impl HarmonyExpressionHeaderDependency {
   }
 }
 
-impl CodeGeneratableDependency for HarmonyExpressionHeaderDependency {
+impl DependencyTemplate for HarmonyExpressionHeaderDependency {
   fn apply(
     &self,
-    source: &mut CodeGeneratableSource,
-    _code_generatable_context: &mut CodeGeneratableContext,
+    source: &mut TemplateReplaceSource,
+    _code_generatable_context: &mut TemplateContext,
   ) {
     if self.declaration {
       source.replace(self.start, self.end, "", None);

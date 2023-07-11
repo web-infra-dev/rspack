@@ -1,7 +1,7 @@
 use rspack_core::{
-  CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
   CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier, PublicPath,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
+  PublicPath, TemplateContext, TemplateReplaceSource,
 };
 
 use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER;
@@ -85,18 +85,18 @@ impl ModuleDependency for CssUrlDependency {
     self.request = request;
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
     Some(self)
   }
 }
 
-impl CodeGeneratableDependency for CssUrlDependency {
+impl DependencyTemplate for CssUrlDependency {
   fn apply(
     &self,
-    source: &mut CodeGeneratableSource,
-    code_generatable_context: &mut CodeGeneratableContext,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
-    let CodeGeneratableContext { compilation, .. } = code_generatable_context;
+    let TemplateContext { compilation, .. } = code_generatable_context;
     if let Some(mgm) = compilation
         .module_graph
         .module_graph_module_by_dependency_id(self.id())

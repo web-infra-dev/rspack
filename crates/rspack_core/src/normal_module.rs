@@ -26,10 +26,10 @@ use serde_json::json;
 
 use crate::{
   contextify, get_context, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGeneratableDependency, CodeGenerationResult, Compilation, CompilerOptions, Context,
-  GenerateContext, GeneratorOptions, LibIdentOptions, LoaderRunnerPluginProcessResource, Module,
-  ModuleAst, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext,
-  ParseResult, ParserAndGenerator, ParserOptions, Resolve, SourceType,
+  CodeGenerationResult, Compilation, CompilerOptions, Context, DependencyTemplate, GenerateContext,
+  GeneratorOptions, LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleAst,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, ParserOptions, Resolve, SourceType,
 };
 
 bitflags! {
@@ -181,7 +181,7 @@ pub struct NormalModule {
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
 
   code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
-  presentational_dependencies: Option<Vec<Box<dyn CodeGeneratableDependency>>>,
+  presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
 }
 
 #[derive(Debug)]
@@ -521,7 +521,7 @@ impl Module for NormalModule {
     }
   }
 
-  fn get_presentational_dependencies(&self) -> Option<&[Box<dyn CodeGeneratableDependency>]> {
+  fn get_presentational_dependencies(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
     if let Some(deps) = self.presentational_dependencies.as_deref() && !deps.is_empty() {
       Some(deps)
     } else {

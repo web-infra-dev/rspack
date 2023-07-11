@@ -9,8 +9,8 @@ use rspack_core::{
     MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
     SourceMapSourceOptions,
   },
-  AstOrSource, BuildMetaExportsType, CodeGeneratableContext, GenerateContext, GenerationResult,
-  Module, ModuleType, ParseContext, ParseResult, ParserAndGenerator, SourceType,
+  AstOrSource, BuildMetaExportsType, GenerateContext, GenerationResult, Module, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
 };
 use rspack_core::{ModuleDependency, RuntimeGlobals};
 use rspack_error::{
@@ -255,7 +255,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       SourceType::Css => {
         let mut source = ReplaceSource::new(ast_or_source.to_owned().try_into_source()?);
         let compilation = generate_context.compilation;
-        let mut context = CodeGeneratableContext {
+        let mut context = TemplateContext {
           compilation,
           module,
           runtime_requirements: generate_context.runtime_requirements,

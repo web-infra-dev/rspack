@@ -1,8 +1,6 @@
 use std::borrow::Cow;
 
-use crate::{
-  CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, RuntimeGlobals,
-};
+use crate::{DependencyTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource};
 
 #[derive(Debug)]
 pub struct ConstDependency {
@@ -28,11 +26,11 @@ impl ConstDependency {
   }
 }
 
-impl CodeGeneratableDependency for ConstDependency {
+impl DependencyTemplate for ConstDependency {
   fn apply(
     &self,
-    source: &mut CodeGeneratableSource,
-    code_generatable_context: &mut CodeGeneratableContext,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
     if let Some(runtime_requirements) = &self.runtime_requirements {
       code_generatable_context

@@ -1,6 +1,6 @@
 use rspack_core::{
-  CodeGeneratableDependency, CompilerOptions, ConstDependency, NodeOption, ResourceData,
-  RuntimeGlobals, SpanExt,
+  CompilerOptions, ConstDependency, DependencyTemplate, NodeOption, ResourceData, RuntimeGlobals,
+  SpanExt,
 };
 use sugar_path::SugarPath;
 use swc_core::common::SyntaxContext;
@@ -12,7 +12,7 @@ const FILE_NAME: &str = "__filename";
 const GLOBAL: &str = "global";
 
 pub struct NodeStuffScanner<'a> {
-  pub presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+  pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   pub unresolved_ctxt: &'a SyntaxContext,
   pub compiler_options: &'a CompilerOptions,
   pub node_option: &'a NodeOption,
@@ -21,7 +21,7 @@ pub struct NodeStuffScanner<'a> {
 
 impl<'a> NodeStuffScanner<'a> {
   pub fn new(
-    presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+    presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: &'a SyntaxContext,
     compiler_options: &'a CompilerOptions,
     node_option: &'a NodeOption,

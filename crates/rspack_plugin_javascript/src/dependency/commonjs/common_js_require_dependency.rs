@@ -1,6 +1,6 @@
 use rspack_core::{
-  module_id, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
+  module_id, Dependency, DependencyCategory, DependencyId, DependencyTemplate, DependencyType,
+  ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -65,7 +65,7 @@ impl ModuleDependency for CommonJsRequireDependency {
     self.optional
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
     Some(self)
   }
 
@@ -74,13 +74,13 @@ impl ModuleDependency for CommonJsRequireDependency {
   }
 }
 
-impl CodeGeneratableDependency for CommonJsRequireDependency {
+impl DependencyTemplate for CommonJsRequireDependency {
   fn apply(
     &self,
-    source: &mut CodeGeneratableSource,
-    code_generatable_context: &mut CodeGeneratableContext,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
-    let CodeGeneratableContext {
+    let TemplateContext {
       runtime_requirements,
       compilation,
       ..

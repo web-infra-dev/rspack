@@ -1,5 +1,5 @@
 use rspack_core::{
-  CodeGeneratableDependency, ConstDependency, ContextMode, ContextOptions, DependencyCategory,
+  ConstDependency, ContextMode, ContextOptions, DependencyCategory, DependencyTemplate,
   ModuleDependency, RuntimeGlobals, SpanExt,
 };
 use rspack_regex::RspackRegex;
@@ -21,7 +21,7 @@ use crate::dependency::{
 
 pub struct CommonJsImportDependencyScanner<'a> {
   dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-  presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+  presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   unresolved_ctxt: &'a SyntaxContext,
   in_try: bool,
   in_if: bool,
@@ -30,7 +30,7 @@ pub struct CommonJsImportDependencyScanner<'a> {
 impl<'a> CommonJsImportDependencyScanner<'a> {
   pub fn new(
     dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-    presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+    presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: &'a SyntaxContext,
   ) -> Self {
     Self {

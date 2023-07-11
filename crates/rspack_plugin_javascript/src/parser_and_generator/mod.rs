@@ -2,8 +2,8 @@ use rspack_core::rspack_sources::{
   RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, WithoutOriginalOptions,
 };
 use rspack_core::{
-  AstOrSource, CodeGeneratableContext, GenerateContext, GenerationResult, Module, ModuleAst,
-  ParseContext, ParseResult, ParserAndGenerator, SourceType,
+  AstOrSource, GenerateContext, GenerationResult, Module, ModuleAst, ParseContext, ParseResult,
+  ParserAndGenerator, SourceType, TemplateContext,
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
@@ -156,7 +156,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       let mut source = ReplaceSource::new(ast_or_source.try_to_source()?);
       let compilation = generate_context.compilation;
       let mut init_fragments = vec![];
-      let mut context = CodeGeneratableContext {
+      let mut context = TemplateContext {
         compilation,
         module,
         runtime_requirements: generate_context.runtime_requirements,

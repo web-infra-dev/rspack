@@ -1,7 +1,7 @@
 use rspack_core::{
-  import_statement, tree_shaking::visitor::SymbolRef, CodeGeneratableContext,
-  CodeGeneratableDependency, CodeGeneratableSource, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ErrorSpan, InitFragment, InitFragmentStage, ModuleDependency, RuntimeGlobals,
+  import_statement, tree_shaking::visitor::SymbolRef, Dependency, DependencyCategory, DependencyId,
+  DependencyTemplate, DependencyType, ErrorSpan, InitFragment, InitFragmentStage, ModuleDependency,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rspack_symbol::IndirectTopLevelSymbol;
 use swc_core::ecma::atoms::JsWord;
@@ -49,11 +49,11 @@ impl HarmonyImportDependency {
   }
 }
 
-impl CodeGeneratableDependency for HarmonyImportDependency {
+impl DependencyTemplate for HarmonyImportDependency {
   fn apply(
     &self,
-    source: &mut CodeGeneratableSource,
-    code_generatable_context: &mut CodeGeneratableContext,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
     let compilation = &code_generatable_context.compilation;
     let module = &code_generatable_context.module;
@@ -155,7 +155,7 @@ impl CodeGeneratableDependency for HarmonyImportDependency {
     let content: (String, String) =
       import_statement(code_generatable_context, &self.id, &self.request, false);
 
-    let CodeGeneratableContext {
+    let TemplateContext {
       init_fragments,
       compilation,
       module,
@@ -246,7 +246,7 @@ impl ModuleDependency for HarmonyImportDependency {
     self.span.as_ref()
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
     Some(self)
   }
 
