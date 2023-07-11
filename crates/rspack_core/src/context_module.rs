@@ -3,7 +3,7 @@ use std::{
   fmt::{self, Display},
   fs,
   hash::Hash,
-  path::Path,
+  path::{Path, PathBuf},
   sync::Arc,
 };
 
@@ -14,6 +14,7 @@ use rspack_identifier::{Identifiable, Identifier};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   contextify, stringify_map, AstOrSource, BoxModuleDependency, BuildContext, BuildInfo, BuildMeta,
@@ -474,8 +475,12 @@ impl ContextModule {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
 
+    let mut context_dependencies: HashSet<PathBuf> = Default::default();
+    context_dependencies.insert(PathBuf::from(&self.options.resource));
+
     let build_info = BuildInfo {
       hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
+      context_dependencies,
       ..Default::default()
     };
 
