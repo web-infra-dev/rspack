@@ -1811,6 +1811,8 @@ checksum = "4dd7d28ee937e54fe3080c91faa1c3a46c06de6252988a7f4592ba2310ef22a4"
 dependencies = [
  "fixedbitset",
  "indexmap",
+ "serde",
+ "serde_derive",
 ]
 
 [[package]]
@@ -2414,6 +2416,7 @@ name = "rspack_identifier"
 version = "0.1.0"
 dependencies = [
  "hashlink",
+ "serde",
  "ustr",
 ]
 
@@ -4861,6 +4864,7 @@ dependencies = [
  "byteorder",
  "lazy_static",
  "parking_lot 0.11.2",
+ "serde",
 ]
 
 [[package]]

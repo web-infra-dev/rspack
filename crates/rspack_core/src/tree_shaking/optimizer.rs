@@ -188,7 +188,8 @@ impl<'a> CodeSizeOptimizer<'a> {
     //   &self.compilation.module_graph,
     //   &self.compilation.options.context.as_str().to_owned(),
     // );
-    // println!("{:?}", Dot::new(&debug_graph));
+    // let res = serde_json::to_string(&debug_graph).unwrap();
+    // println!("{}", res);
     self.check_symbol_query();
 
     let dead_nodes_index = HashSet::default();
