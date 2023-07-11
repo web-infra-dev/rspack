@@ -1,5 +1,6 @@
 use rspack_core::rspack_sources::{
-  RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, WithoutOriginalOptions,
+  MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
+  WithoutOriginalOptions,
 };
 use rspack_core::{
   AstOrSource, CodeGeneratableContext, GenerateContext, GenerationResult, Module, ModuleAst,
@@ -183,6 +184,23 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         dependencies
           .iter()
           .for_each(|dependency| dependency.apply(&mut source, &mut context));
+      };
+
+      let source = if let Some(map) = source.map(&MapOptions::new(
+        !generate_context.compilation.options.devtool.cheap(),
+      )) {
+        SourceMapSource::new(WithoutOriginalOptions {
+          value: source.source(),
+          name: generate_context
+            .resource_data
+            .resource_path
+            .to_string_lossy()
+            .to_string(),
+          source_map: map,
+        })
+        .boxed()
+      } else {
+        RawSource::from(source.source().to_string()).boxed()
       };
 
       Ok(GenerationResult {

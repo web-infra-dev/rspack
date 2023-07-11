@@ -39,6 +39,7 @@ pub struct GenerateContext<'a> {
   pub runtime_requirements: &'a mut RuntimeGlobals,
   pub data: &'a mut CodeGenerationData,
   pub requested_source_type: SourceType,
+  pub resource_data: &'a ResourceData,
 }
 
 pub trait ParserAndGenerator: Send + Sync + Debug {

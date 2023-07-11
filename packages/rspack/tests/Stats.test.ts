@@ -104,7 +104,7 @@ describe("Stats", () => {
 		  },
 		  "errors": [],
 		  "errorsCount": 0,
-		  "hash": "b7f56a8a8bf1dc7e4bf6",
+		  "hash": "245f4f14cda6ae338039",
 		  "modules": [
 		    {
 		      "assets": [],
@@ -156,7 +156,7 @@ describe("Stats", () => {
 		    entry ./fixtures/a
 		./fixtures/a.js [876] {main}
 		  entry ./fixtures/a
-		rspack compiled successfully (b7f56a8a8bf1dc7e4bf6)"
+		rspack compiled successfully (245f4f14cda6ae338039)"
 	`);
 	});
 
@@ -196,7 +196,11 @@ describe("Stats", () => {
 
 
 
+<<<<<<< HEAD
 		rspack compiled with 1 error (a9a924a6456cee91473e)"
+=======
+		rspack 0.2.5 compiled with 1 error (a85c92bee07411df0e74)"
+>>>>>>> 468365442 (perf: code generation use raw source)
 	`);
 	});
 });

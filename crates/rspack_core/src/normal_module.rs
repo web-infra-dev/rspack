@@ -452,6 +452,7 @@ impl Module for NormalModule {
             runtime_requirements: &mut code_generation_result.runtime_requirements,
             data: &mut code_generation_result.data,
             requested_source_type: *source_type,
+            resource_data: &self.resource_data,
           },
         )?;
         generation_result.ast_or_source = generation_result
