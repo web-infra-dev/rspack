@@ -1,4 +1,4 @@
-const { NormalModule } = require("webpack");
+const { NormalModule } = require("@rspack/core");
 
 const PLUGIN_NAME = "PluginWithLoader";
 const loaderPath = require.resolve("./loader.js");

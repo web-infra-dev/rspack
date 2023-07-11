@@ -1,1 +1,1 @@
-module.exports = () => {return false}
+module.exports = () => {return "blocked by builtins => plugins: https://github.com/web-infra-dev/rspack/issues/3740 and empty resource"}
