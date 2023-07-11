@@ -1,4 +1,4 @@
-use rspack_core::{CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource};
+use rspack_core::{DependencyTemplate, TemplateContext, TemplateReplaceSource};
 
 // Remove `export` label.
 // Before: `export const a = 1`
@@ -14,11 +14,11 @@ impl HarmonyExportHeaderDependency {
   }
 }
 
-impl CodeGeneratableDependency for HarmonyExportHeaderDependency {
+impl DependencyTemplate for HarmonyExportHeaderDependency {
   fn apply(
     &self,
-    source: &mut CodeGeneratableSource,
-    _code_generatable_context: &mut CodeGeneratableContext,
+    source: &mut TemplateReplaceSource,
+    _code_generatable_context: &mut TemplateContext,
   ) {
     source.replace(self.position, self.position + 6 /* export */, "", None);
   }

@@ -1,7 +1,6 @@
 use rspack_core::{
-  module_id, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
-  ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  ModuleDependency,
+  module_id, ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -75,7 +74,7 @@ impl ModuleDependency for RequireResolveDependency {
     self.optional
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
     Some(self)
   }
 
@@ -84,11 +83,11 @@ impl ModuleDependency for RequireResolveDependency {
   }
 }
 
-impl CodeGeneratableDependency for RequireResolveDependency {
+impl DependencyTemplate for RequireResolveDependency {
   fn apply(
     &self,
-    source: &mut CodeGeneratableSource,
-    code_generatable_context: &mut CodeGeneratableContext,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
     source.replace(
       self.start,

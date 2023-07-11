@@ -1,6 +1,4 @@
-use rspack_core::{
-  BuildInfo, BuildMeta, BuildMetaExportsType, CodeGeneratableDependency, ModuleType,
-};
+use rspack_core::{BuildInfo, BuildMeta, BuildMetaExportsType, DependencyTemplate, ModuleType};
 use swc_core::ecma::ast::{ModuleItem, Program};
 use swc_core::ecma::visit::{noop_visit_type, Visit};
 
@@ -11,7 +9,7 @@ pub struct HarmonyDetectionScanner<'a> {
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
   pub module_type: &'a ModuleType,
-  pub code_generable_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+  pub code_generable_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
 }
 
 impl<'a> HarmonyDetectionScanner<'a> {
@@ -19,7 +17,7 @@ impl<'a> HarmonyDetectionScanner<'a> {
     build_info: &'a mut BuildInfo,
     build_meta: &'a mut BuildMeta,
     module_type: &'a ModuleType,
-    code_generable_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+    code_generable_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   ) -> Self {
     Self {
       build_info,

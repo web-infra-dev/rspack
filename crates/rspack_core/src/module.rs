@@ -11,8 +11,8 @@ use rspack_util::ext::{AsAny, DynEq, DynHash};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  CodeGeneratableDependency, CodeGenerationResult, Compilation, CompilerContext, CompilerOptions,
-  Context, ContextModule, ExternalModule, ModuleDependency, ModuleType, NormalModule, RawModule,
+  CodeGenerationResult, Compilation, CompilerContext, CompilerOptions, Context, ContextModule,
+  DependencyTemplate, ExternalModule, ModuleDependency, ModuleType, NormalModule, RawModule,
   Resolve, SharedPluginDriver, SourceType,
 };
 
@@ -178,7 +178,7 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
     None
   }
 
-  fn get_presentational_dependencies(&self) -> Option<&[Box<dyn CodeGeneratableDependency>]> {
+  fn get_presentational_dependencies(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
     None
   }
 

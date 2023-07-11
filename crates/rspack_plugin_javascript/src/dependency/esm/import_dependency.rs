@@ -1,7 +1,7 @@
 use rspack_core::{
-  module_namespace_promise, ChunkGroupOptions, CodeGeneratableContext, CodeGeneratableDependency,
-  CodeGeneratableSource, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  ModuleDependency,
+  module_namespace_promise, ChunkGroupOptions, Dependency, DependencyCategory, DependencyId,
+  DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, TemplateContext,
+  TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -63,7 +63,7 @@ impl ModuleDependency for ImportDependency {
     self.span.as_ref()
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
     Some(self)
   }
 
@@ -76,11 +76,11 @@ impl ModuleDependency for ImportDependency {
   }
 }
 
-impl CodeGeneratableDependency for ImportDependency {
+impl DependencyTemplate for ImportDependency {
   fn apply(
     &self,
-    source: &mut CodeGeneratableSource,
-    code_generatable_context: &mut CodeGeneratableContext,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
     source.replace(
       self.start,

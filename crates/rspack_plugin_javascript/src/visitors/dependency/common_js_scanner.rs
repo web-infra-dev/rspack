@@ -1,4 +1,4 @@
-use rspack_core::{CodeGeneratableDependency, RuntimeGlobals, RuntimeRequirementsDependency};
+use rspack_core::{DependencyTemplate, RuntimeGlobals, RuntimeRequirementsDependency};
 use swc_core::common::SyntaxContext;
 use swc_core::ecma::ast::{Expr, Ident};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
@@ -7,13 +7,13 @@ use super::expr_matcher;
 
 pub struct CommonJsScanner<'a> {
   unresolved_ctxt: &'a SyntaxContext,
-  presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+  presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   has_module_ident: bool,
 }
 
 impl<'a> CommonJsScanner<'a> {
   pub fn new(
-    presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+    presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: &'a SyntaxContext,
   ) -> Self {
     Self {

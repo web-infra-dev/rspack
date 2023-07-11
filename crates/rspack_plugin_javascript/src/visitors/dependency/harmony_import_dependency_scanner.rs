@@ -1,7 +1,6 @@
 use indexmap::IndexMap;
 use rspack_core::{
-  CodeGeneratableDependency, ConstDependency, DependencyType, ModuleDependency, ModuleIdentifier,
-  SpanExt,
+  ConstDependency, DependencyTemplate, DependencyType, ModuleDependency, ModuleIdentifier, SpanExt,
 };
 use rspack_symbol::DEFAULT_JS_WORD;
 use rustc_hash::FxHashMap;
@@ -31,7 +30,7 @@ pub type Imports = IndexMap<(JsWord, DependencyType), (Span, Vec<Specifier>, boo
 
 pub struct HarmonyImportDependencyScanner<'a> {
   pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-  pub presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+  pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   pub import_map: &'a mut ImportMap,
   pub imports: Imports,
   pub module_identifier: ModuleIdentifier,
@@ -40,7 +39,7 @@ pub struct HarmonyImportDependencyScanner<'a> {
 impl<'a> HarmonyImportDependencyScanner<'a> {
   pub fn new(
     dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-    presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+    presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     import_map: &'a mut ImportMap,
     module_identifier: ModuleIdentifier,
   ) -> Self {

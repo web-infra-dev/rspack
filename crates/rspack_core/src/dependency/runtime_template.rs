@@ -1,19 +1,19 @@
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  CodeGeneratableContext, Compilation, DependencyId, ExportsType, InitFragment, InitFragmentStage,
-  ModuleGraph, ModuleIdentifier, RuntimeGlobals,
+  Compilation, DependencyId, ExportsType, InitFragment, InitFragmentStage, ModuleGraph,
+  ModuleIdentifier, RuntimeGlobals, TemplateContext,
 };
 
 pub fn export_from_import(
-  code_generatable_context: &mut CodeGeneratableContext,
+  code_generatable_context: &mut TemplateContext,
   default_interop: bool,
   import_var: &str,
   mut export_name: Vec<JsWord>,
   id: &DependencyId,
   is_call: bool,
 ) -> String {
-  let CodeGeneratableContext {
+  let TemplateContext {
     runtime_requirements,
     compilation,
     init_fragments,
@@ -121,12 +121,12 @@ pub fn module_id(
 }
 
 pub fn import_statement(
-  code_generatable_context: &mut CodeGeneratableContext,
+  code_generatable_context: &mut TemplateContext,
   id: &DependencyId,
   request: &str,
   update: bool, // whether a new variable should be created or the existing one updated
 ) -> (String, String) {
-  let CodeGeneratableContext {
+  let TemplateContext {
     runtime_requirements,
     compilation,
     module,
@@ -163,12 +163,12 @@ pub fn import_statement(
 }
 
 pub fn module_namespace_promise(
-  code_generatable_context: &mut CodeGeneratableContext,
+  code_generatable_context: &mut TemplateContext,
   id: &DependencyId,
   request: &str,
   weak: bool,
 ) -> String {
-  let CodeGeneratableContext {
+  let TemplateContext {
     runtime_requirements,
     compilation,
     module,

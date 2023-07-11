@@ -16,8 +16,8 @@ mod url_scanner;
 mod util;
 mod worker_scanner;
 use rspack_core::{
-  ast::javascript::Program, BuildInfo, BuildMeta, BuildMetaExportsType, CodeGeneratableDependency,
-  CompilerOptions, ModuleDependency, ModuleIdentifier, ModuleType, ResourceData,
+  ast::javascript::Program, BuildInfo, BuildMeta, BuildMetaExportsType, CompilerOptions,
+  DependencyTemplate, ModuleDependency, ModuleIdentifier, ModuleType, ResourceData,
 };
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
 pub use util::*;
@@ -37,7 +37,7 @@ use self::{
 
 pub type ScanDependenciesResult = (
   Vec<Box<dyn ModuleDependency>>,
-  Vec<Box<dyn CodeGeneratableDependency>>,
+  Vec<Box<dyn DependencyTemplate>>,
 );
 
 #[allow(clippy::too_many_arguments)]
@@ -52,7 +52,7 @@ pub fn scan_dependencies(
   module_identifier: ModuleIdentifier,
 ) -> ScanDependenciesResult {
   let mut dependencies: Vec<Box<dyn ModuleDependency>> = vec![];
-  let mut presentational_dependencies: Vec<Box<dyn CodeGeneratableDependency>> = vec![];
+  let mut presentational_dependencies: Vec<Box<dyn DependencyTemplate>> = vec![];
   let unresolved_ctxt = SyntaxContext::empty().apply_mark(unresolved_mark);
   let comments = program.comments.clone();
 

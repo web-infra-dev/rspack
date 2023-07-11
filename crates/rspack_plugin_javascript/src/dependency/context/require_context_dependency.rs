@@ -1,7 +1,7 @@
 use rspack_core::{
-  module_id_expr, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
-  ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  ModuleDependency, RuntimeGlobals,
+  module_id_expr, ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -56,7 +56,7 @@ impl ModuleDependency for RequireContextDependency {
     Some(&self.options)
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
     Some(self)
   }
 
@@ -65,13 +65,13 @@ impl ModuleDependency for RequireContextDependency {
   }
 }
 
-impl CodeGeneratableDependency for RequireContextDependency {
+impl DependencyTemplate for RequireContextDependency {
   fn apply(
     &self,
-    source: &mut CodeGeneratableSource,
-    code_generatable_context: &mut CodeGeneratableContext,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
-    let CodeGeneratableContext { compilation, .. } = code_generatable_context;
+    let TemplateContext { compilation, .. } = code_generatable_context;
 
     let module_id = compilation
       .module_graph

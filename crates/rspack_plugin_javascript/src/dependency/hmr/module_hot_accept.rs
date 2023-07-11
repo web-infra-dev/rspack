@@ -1,6 +1,6 @@
 use rspack_core::{
-  module_id, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
+  module_id, Dependency, DependencyCategory, DependencyId, DependencyTemplate, DependencyType,
+  ErrorSpan, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -57,7 +57,7 @@ impl ModuleDependency for ModuleHotAcceptDependency {
     self.span.as_ref()
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
     Some(self)
   }
 
@@ -66,11 +66,11 @@ impl ModuleDependency for ModuleHotAcceptDependency {
   }
 }
 
-impl CodeGeneratableDependency for ModuleHotAcceptDependency {
+impl DependencyTemplate for ModuleHotAcceptDependency {
   fn apply(
     &self,
-    source: &mut CodeGeneratableSource,
-    code_generatable_context: &mut CodeGeneratableContext,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
     source.replace(
       self.start,

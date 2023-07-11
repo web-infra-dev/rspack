@@ -1,7 +1,7 @@
 use rspack_core::{
-  ChunkGroupOptions, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
-  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
-  RuntimeGlobals,
+  ChunkGroupOptions, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -63,7 +63,7 @@ impl ModuleDependency for WorkerDependency {
     self.span.as_ref()
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
     Some(self)
   }
 
@@ -76,13 +76,13 @@ impl ModuleDependency for WorkerDependency {
   }
 }
 
-impl CodeGeneratableDependency for WorkerDependency {
+impl DependencyTemplate for WorkerDependency {
   fn apply(
     &self,
-    source: &mut CodeGeneratableSource,
-    code_generatable_context: &mut CodeGeneratableContext,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
-    let CodeGeneratableContext {
+    let TemplateContext {
       compilation,
       runtime_requirements,
       ..

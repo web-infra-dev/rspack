@@ -1,4 +1,4 @@
-use rspack_core::{CodeGeneratableDependency, ConstDependency, SpanExt};
+use rspack_core::{ConstDependency, DependencyTemplate, SpanExt};
 use rustc_hash::FxHashMap;
 use swc_core::common::SyntaxContext;
 use swc_core::ecma::ast::{FnDecl, Ident};
@@ -6,14 +6,14 @@ use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 pub struct CompatibilityScanner<'a> {
   unresolved_ctxt: &'a SyntaxContext,
-  presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+  presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   count: u8, // flag __webpack_require__ count
   name_map: FxHashMap<SyntaxContext, u8>,
 }
 
 impl<'a> CompatibilityScanner<'a> {
   pub fn new(
-    presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+    presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: &'a SyntaxContext,
   ) -> Self {
     Self {

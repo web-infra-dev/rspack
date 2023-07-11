@@ -1,6 +1,6 @@
 use rspack_core::{
-  CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
+  Dependency, DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -55,16 +55,16 @@ impl ModuleDependency for CssImportDependency {
     self.request = request;
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
     Some(self)
   }
 }
 
-impl CodeGeneratableDependency for CssImportDependency {
+impl DependencyTemplate for CssImportDependency {
   fn apply(
     &self,
-    source: &mut CodeGeneratableSource,
-    _code_generatable_context: &mut CodeGeneratableContext,
+    source: &mut TemplateReplaceSource,
+    _code_generatable_context: &mut TemplateContext,
   ) {
     source.replace(self.start - 8 /* @import */, self.end, "", None);
   }

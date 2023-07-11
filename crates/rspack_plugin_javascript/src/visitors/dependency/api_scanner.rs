@@ -1,6 +1,6 @@
 use rspack_core::{
-  CodeGeneratableDependency, ConstDependency, ResourceData, RuntimeGlobals,
-  RuntimeRequirementsDependency, SpanExt,
+  ConstDependency, DependencyTemplate, ResourceData, RuntimeGlobals, RuntimeRequirementsDependency,
+  SpanExt,
 };
 use swc_core::{
   common::{Spanned, SyntaxContext},
@@ -23,14 +23,14 @@ pub struct ApiScanner<'a> {
   pub unresolved_ctxt: &'a SyntaxContext,
   pub enter_assign: bool,
   pub resource_data: &'a ResourceData,
-  pub presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+  pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
 }
 
 impl<'a> ApiScanner<'a> {
   pub fn new(
     unresolved_ctxt: &'a SyntaxContext,
     resource_data: &'a ResourceData,
-    presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+    presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   ) -> Self {
     Self {
       unresolved_ctxt,

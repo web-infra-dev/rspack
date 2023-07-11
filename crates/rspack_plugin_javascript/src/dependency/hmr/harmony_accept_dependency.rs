@@ -1,6 +1,6 @@
 use rspack_core::{
-  import_statement, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
-  DependencyId, ModuleDependency,
+  import_statement, DependencyId, DependencyTemplate, ModuleDependency, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -22,13 +22,13 @@ impl HarmonyAcceptDependency {
   }
 }
 
-impl CodeGeneratableDependency for HarmonyAcceptDependency {
+impl DependencyTemplate for HarmonyAcceptDependency {
   fn apply(
     &self,
-    source: &mut CodeGeneratableSource,
-    code_generatable_context: &mut CodeGeneratableContext,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
-    let CodeGeneratableContext { compilation, .. } = code_generatable_context;
+    let TemplateContext { compilation, .. } = code_generatable_context;
 
     let mut content = String::default();
 
