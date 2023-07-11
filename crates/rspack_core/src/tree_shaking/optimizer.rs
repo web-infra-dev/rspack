@@ -186,13 +186,13 @@ impl<'a> CodeSizeOptimizer<'a> {
       &mut visited_symbol_ref,
       &mut errors,
     );
-    let debug_graph = generate_debug_symbol_graph(
-      &self.symbol_graph,
-      &self.compilation.module_graph,
-      &self.compilation.options.context.as_str().to_owned(),
-    );
-    let res = serde_json::to_string(&debug_graph).unwrap();
-    println!("{}", res);
+    // let debug_graph = generate_debug_symbol_graph(
+    //   &self.symbol_graph,
+    //   &self.compilation.module_graph,
+    //   &self.compilation.options.context.as_str().to_owned(),
+    // );
+    // let res = serde_json::to_string(&debug_graph).unwrap();
+    // println!("{}", res);
     self.check_symbol_query();
 
     let dead_nodes_index = HashSet::default();
