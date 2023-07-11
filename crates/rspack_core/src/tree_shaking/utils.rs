@@ -1,11 +1,10 @@
 use rspack_symbol::{IndirectTopLevelSymbol, StarSymbol, Symbol};
-use swc_core::base::sourcemap::locate_sourcemap_reference;
 use swc_core::common::Mark;
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit};
 use swc_core::ecma::atoms::{js_word, JsWord};
 
 use super::visitor::SymbolRef;
-use crate::{is_source_equal, ModuleGraph, ModuleIdentifier};
+use crate::{ModuleGraph, ModuleIdentifier};
 
 pub fn get_first_string_lit_arg(e: &CallExpr) -> Option<JsWord> {
   // we check the length at the begin of [is_require_literal_expr]

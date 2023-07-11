@@ -6,7 +6,7 @@ use rspack_symbol::{IndirectTopLevelSymbol, StarSymbol, Symbol};
 use rustc_hash::FxHashMap;
 
 use super::{utils::ConvertModulePath, visitor::SymbolRef};
-use crate::{contextify, ModuleGraph};
+use crate::ModuleGraph;
 
 #[derive(Default, Clone)]
 pub struct SymbolGraph {
@@ -97,7 +97,6 @@ impl SymbolGraph {
 pub fn generate_debug_symbol_graph(
   g: &SymbolGraph,
   module_graph: &ModuleGraph,
-  context: &str,
 ) -> StableDiGraph<SymbolRef, ()> {
   let mut debug_graph = SymbolGraph::default();
   for node_index in g.node_indexes() {
@@ -109,14 +108,12 @@ pub fn generate_debug_symbol_graph(
           .cloned()
           .expect("")
           .convert_module_identifier_to_module_path(module_graph),
-        context,
       );
       let to_symbol = simplify_symbol_ref(
         &g.get_symbol(&to)
           .cloned()
           .expect("")
           .convert_module_identifier_to_module_path(module_graph),
-        context,
       );
       debug_graph.add_edge(&from_symbol, &to_symbol);
     }
@@ -124,7 +121,7 @@ pub fn generate_debug_symbol_graph(
   debug_graph.graph
 }
 
-pub fn simplify_symbol_ref(symbol_ref: &SymbolRef, context: &str) -> SymbolRef {
+pub fn simplify_symbol_ref(symbol_ref: &SymbolRef) -> SymbolRef {
   match symbol_ref {
     SymbolRef::Direct(direct) => SymbolRef::Direct(Symbol::new(
       direct.src().as_str().into(),
