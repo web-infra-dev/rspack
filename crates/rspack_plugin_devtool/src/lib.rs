@@ -14,7 +14,7 @@ use rspack_core::{
   PluginJsChunkHashHookOutput, PluginProcessAssetsOutput, PluginRenderModuleContentOutput,
   ProcessAssetsArgs, RenderModuleContentArgs, SourceType,
 };
-use rspack_error::{internal_error, Result};
+use rspack_error::{internal_error, Error, Result};
 use rspack_util::swc::normalize_custom_filename;
 use rustc_hash::FxHashMap as HashMap;
 use serde_json::json;
@@ -99,40 +99,58 @@ impl Plugin for DevtoolPlugin {
     _ctx: PluginContext,
     args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
-    if !args.compilation.options.devtool.source_map() || args.compilation.options.devtool.eval() {
-      return Ok(());
-    }
+    let no_map =
+      !args.compilation.options.devtool.source_map() || args.compilation.options.devtool.eval();
     let context = args.compilation.options.context.clone();
-    let maps: HashMap<String, Vec<u8>> = args
+    let maps: HashMap<String, (Vec<u8>, Option<Vec<u8>>)> = args
       .compilation
       .assets_mut()
       .par_iter()
       .filter_map(|(filename, asset)| asset.get_source().map(|s| (filename, s)))
-      .filter_map(|(filename, source)| {
-        source.map(&MapOptions::new(self.columns)).map(|mut map| {
-          map.set_file(Some(filename.clone()));
-          for source in map.sources_mut() {
-            let resource_path = normalize_custom_filename(source);
-            let resource_path = contextify(&context, resource_path);
-            *source = self
-              .module_filename_template
-              .replace("[namespace]", &self.namespace)
-              .replace("[resourcePath]", &resource_path);
-          }
-          if self.no_sources {
-            for content in map.sources_content_mut() {
-              *content = String::default();
+      .map(|(filename, source)| {
+        let map = (!no_map)
+          .then_some(source)
+          .and_then(|source| source.map(&MapOptions::new(self.columns)))
+          .map(|mut map| {
+            map.set_file(Some(filename.clone()));
+            for source in map.sources_mut() {
+              let resource_path = normalize_custom_filename(source);
+              let resource_path = contextify(&context, resource_path);
+              *source = self
+                .module_filename_template
+                .replace("[namespace]", &self.namespace)
+                .replace("[resourcePath]", &resource_path);
             }
-          }
-          let mut map_buffer = Vec::new();
-          map
-            .to_writer(&mut map_buffer)
-            .map_err(|e| internal_error!(e.to_string()))?;
-          Ok((filename.to_owned(), map_buffer))
-        })
+            if self.no_sources {
+              for content in map.sources_content_mut() {
+                *content = String::default();
+              }
+            }
+            let mut map_buffer = Vec::new();
+            map
+              .to_writer(&mut map_buffer)
+              .map_err(|e| internal_error!(e.to_string()))?;
+            Ok::<Vec<u8>, Error>(map_buffer)
+          })
+          .transpose()?;
+        let mut code_buffer = Vec::new();
+        source.to_writer(&mut code_buffer)?;
+        Ok((filename.to_owned(), (code_buffer, map)))
       })
       .collect::<Result<_>>()?;
-    for (filename, map_buffer) in maps {
+    for (filename, (code_buffer, map_buffer)) in maps {
+      let mut asset = args
+        .compilation
+        .assets_mut()
+        .remove(&filename)
+        .expect("should have filename in compilation.assets");
+      // convert to one RawSource to reduce the JsCompatSource js <-> rust overhead
+      let raw_source = RawSource::from(code_buffer).boxed();
+      let Some(map_buffer) = map_buffer else {
+        asset.source = Some(raw_source);
+        args.compilation.emit_asset(filename, asset);
+        continue;
+      };
       let is_css = IS_CSS_FILE.is_match(&filename);
       let current_source_mapping_url_comment =
         self.source_mapping_url_comment.as_ref().map(|comment| {
@@ -146,19 +164,16 @@ impl Plugin for DevtoolPlugin {
         let current_source_mapping_url_comment = current_source_mapping_url_comment
           .expect("DevToolPlugin: append can't be false when inline is true.");
         let base64 = rspack_base64::encode_to_string(&map_buffer);
-        let mut asset = args
-          .compilation
-          .assets_mut()
-          .remove(&filename)
-          .unwrap_or_else(|| panic!("TODO:"));
         asset.source = Some(
           ConcatSource::new([
-            asset.source.expect("source should never be `None` here, because `maps` is collected by asset with `Some(source)`"),
+            raw_source,
             RawSource::from(current_source_mapping_url_comment.replace(
               "[url]",
               &format!("data:application/json;charset=utf-8;base64,{base64}"),
-            )).boxed(),
-          ]).boxed(),
+            ))
+            .boxed(),
+          ])
+          .boxed(),
         );
         args.compilation.emit_asset(filename, asset);
       } else {
@@ -201,18 +216,19 @@ impl Plugin for DevtoolPlugin {
           } else {
             source_map_filename.clone()
           };
-          let mut asset = args
-            .compilation
-            .assets_mut()
-            .remove(&filename)
-            .expect("TODO:");
-          asset.source = Some(ConcatSource::new([
-            asset.source.expect("source should never be `None` here, because `maps` is collected by asset with `Some(source)`"),
-            RawSource::from(current_source_mapping_url_comment.replace("[url]", &source_map_url)).boxed(),
-          ]).boxed());
+          asset.source = Some(
+            ConcatSource::new([
+              raw_source,
+              RawSource::from(current_source_mapping_url_comment.replace("[url]", &source_map_url))
+                .boxed(),
+            ])
+            .boxed(),
+          );
           asset.info.related.source_map = Some(source_map_filename.clone());
-          args.compilation.emit_asset(filename.clone(), asset);
+        } else {
+          asset.source = Some(raw_source);
         }
+        args.compilation.emit_asset(filename.clone(), asset);
         let mut source_map_asset_info = AssetInfo::default().with_development(true);
         if let Some(asset) = args.compilation.assets().get(&filename) {
           // set source map asset version to be the same as the target asset
