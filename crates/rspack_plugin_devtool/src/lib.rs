@@ -144,7 +144,7 @@ impl Plugin for DevtoolPlugin {
         .assets_mut()
         .remove(&filename)
         .expect("should have filename in compilation.assets");
-      // convert to one RawSource to reduce the JsCompatSource js <-> rust overhead
+      // convert to RawSource to reduce one time source map calculation when convert to JsCompatSource
       let raw_source = RawSource::from(code_buffer).boxed();
       let Some(map_buffer) = map_buffer else {
         asset.source = Some(raw_source);
