@@ -196,11 +196,7 @@ describe("Stats", () => {
 
 
 
-<<<<<<< HEAD
-		rspack compiled with 1 error (a9a924a6456cee91473e)"
-=======
-		rspack 0.2.5 compiled with 1 error (a85c92bee07411df0e74)"
->>>>>>> 468365442 (perf: code generation use raw source)
+		rspack compiled with 1 error (a85c92bee07411df0e74)"
 	`);
 	});
 });
