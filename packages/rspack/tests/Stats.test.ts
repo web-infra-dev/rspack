@@ -177,8 +177,9 @@ describe("Stats", () => {
 			context: __dirname,
 			entry: "./fixtures/abc"
 		});
-		expect(stats?.toString({ timings: false }).replace(/\\/g, "/"))
-			.toMatchInlineSnapshot(`
+		expect(
+			stats?.toString({ timings: false, version: false }).replace(/\\/g, "/")
+		).toMatchInlineSnapshot(`
 		"PublicPath: auto
 		asset main.js 419 bytes {main} [emitted] (name: main)
 		Entrypoint main 419 bytes = main.js
@@ -195,7 +196,7 @@ describe("Stats", () => {
 
 
 
-		rspack 0.2.5 compiled with 1 error (a9a924a6456cee91473e)"
+		rspack compiled with 1 error (a9a924a6456cee91473e)"
 	`);
 	});
 });
