@@ -1,6 +1,6 @@
 {
   "name": "@rspack/dev-middleware",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "license": "MIT",
   "description": "Development middleware for rspack",
   "main": "index.cjs",
