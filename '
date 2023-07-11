@@ -192,7 +192,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       &self.compilation.options.context.as_str().to_owned(),
     );
     let res = serde_json::to_string(&debug_graph).unwrap();
-    println!("{}", res);
+    println!("{:?}", res);
     self.check_symbol_query();
 
     let dead_nodes_index = HashSet::default();

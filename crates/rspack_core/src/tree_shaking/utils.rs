@@ -1,10 +1,11 @@
 use rspack_symbol::{IndirectTopLevelSymbol, StarSymbol, Symbol};
+use swc_core::base::sourcemap::locate_sourcemap_reference;
 use swc_core::common::Mark;
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit};
 use swc_core::ecma::atoms::{js_word, JsWord};
 
 use super::visitor::SymbolRef;
-use crate::{ModuleGraph, ModuleIdentifier};
+use crate::{is_source_equal, ModuleGraph, ModuleIdentifier};
 
 pub fn get_first_string_lit_arg(e: &CallExpr) -> Option<JsWord> {
   // we check the length at the begin of [is_require_literal_expr]
@@ -84,63 +85,48 @@ impl ConvertModulePath for SymbolRef {
 
 impl ConvertModulePath for Symbol {
   fn convert_module_identifier_to_module_path(mut self, module_graph: &ModuleGraph) -> Self {
-    self.set_src(
-      module_graph
-        .normal_module_source_path_by_identifier(&self.src())
-        .expect("Can't get module source path by identifier")
-        .as_ref()
-        .into(),
-    );
+    if let Some(source_path) = module_graph.normal_module_source_path_by_identifier(&self.src()) {
+      self.set_src(source_path.as_ref().into());
+    }
     self
   }
 }
 
 impl ConvertModulePath for IndirectTopLevelSymbol {
   fn convert_module_identifier_to_module_path(mut self, module_graph: &ModuleGraph) -> Self {
-    self.set_importer(
-      module_graph
-        .normal_module_source_path_by_identifier(&self.importer())
-        .expect("Can't get module source path by identifier")
-        .as_ref()
-        .into(),
-    );
-    self.set_src(
-      module_graph
-        .normal_module_source_path_by_identifier(&self.src())
-        .expect("Can't get module source path by identifier")
-        .as_ref()
-        .into(),
-    );
+    if let Some(source_path) =
+      module_graph.normal_module_source_path_by_identifier(&self.importer())
+    {
+      self.set_importer(source_path.as_ref().into());
+    }
+    if let Some(source_path) = module_graph.normal_module_source_path_by_identifier(&self.src()) {
+      self.set_src(source_path.as_ref().into());
+    }
     self
   }
 }
 
 impl ConvertModulePath for StarSymbol {
   fn convert_module_identifier_to_module_path(mut self, module_graph: &ModuleGraph) -> Self {
-    self.set_src(
-      module_graph
-        .normal_module_source_path_by_identifier(&self.src())
-        .expect("Can't get module source path by identifier")
-        .as_ref()
-        .into(),
-    );
-    self.set_module_ident(
-      module_graph
-        .normal_module_source_path_by_identifier(&self.module_ident())
-        .expect("Can't get module source path by identifier")
-        .as_ref()
-        .into(),
-    );
+    if let Some(source_path) = module_graph.normal_module_source_path_by_identifier(&self.src()) {
+      self.set_src(source_path.as_ref().into());
+    }
+
+    if let Some(source_path) =
+      module_graph.normal_module_source_path_by_identifier(&self.module_ident())
+    {
+      self.set_module_ident(source_path.as_ref().into());
+    };
     self
   }
 }
 
 impl ConvertModulePath for ModuleIdentifier {
   fn convert_module_identifier_to_module_path(self, module_graph: &ModuleGraph) -> Self {
-    module_graph
-      .normal_module_source_path_by_identifier(&self)
-      .expect("Can't get module source path by identifier")
-      .as_ref()
-      .into()
+    if let Some(source_path) = module_graph.normal_module_source_path_by_identifier(&self) {
+      source_path.as_ref().into()
+    } else {
+      self
+    }
   }
 }

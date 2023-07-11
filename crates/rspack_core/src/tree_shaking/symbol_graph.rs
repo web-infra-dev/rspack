@@ -127,24 +127,24 @@ pub fn generate_debug_symbol_graph(
 pub fn simplify_symbol_ref(symbol_ref: &SymbolRef, context: &str) -> SymbolRef {
   match symbol_ref {
     SymbolRef::Direct(direct) => SymbolRef::Direct(Symbol::new(
-      contextify(context, direct.src().as_str()).into(),
+      direct.src().as_str().into(),
       direct.id().clone(),
       *direct.ty(),
     )),
     SymbolRef::Indirect(indirect) => SymbolRef::Indirect(IndirectTopLevelSymbol {
-      src: contextify(context, indirect.src.as_str()).into(),
-      importer: contextify(context, indirect.importer().as_str()).into(),
+      src: indirect.src.as_str().into(),
+      importer: indirect.importer().as_str().into(),
       ..indirect.clone()
     }),
     SymbolRef::Star(star) => SymbolRef::Star(StarSymbol::new(
-      contextify(context, star.src().as_str()).into(),
+      star.src().as_str().into(),
       star.binding().clone(),
       star.module_ident(),
       star.ty(),
     )),
     SymbolRef::Url { importer, src } => SymbolRef::Url {
-      importer: contextify(context, importer.as_str()).into(),
-      src: contextify(context, src.as_str()).into(),
+      importer: importer.as_str().into(),
+      src: src.as_str().into(),
     },
   }
 }
