@@ -13,7 +13,7 @@ export const App = () => {
 		<div className="App">
 			<div className="header">Hello World</div>
 			<Button />
-			<div className="placeholder">__PLACE_HOLDER__</div>
+			<div className="placeholder">1</div>
 			<ContextComponent />
 			<ReactRefreshFinder />
 		</div>
