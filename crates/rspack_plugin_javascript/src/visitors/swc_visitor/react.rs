@@ -126,7 +126,7 @@ fn create_react_refresh_runtime_stmts(unresolved_mark: Mark) -> Vec<Stmt> {
                     left: BinExpr {
                       span: DUMMY_SP,
                       op: BinaryOp::Add,
-                      left: member_expr!(DUMMY_SP, __webpack_module__),
+                      left: member_expr!(DUMMY_SP, __webpack_module__.id),
                       right: quote_str!("_").into(),
                     }
                     .into(),
