@@ -76,4 +76,3 @@ tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test
 tracing = { workspace = true }
 url = { workspace = true }
 ustr = { workspace = true }
-xxhash-rust = { version = "0.8.6", features = ["xxh3"] }

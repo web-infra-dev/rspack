@@ -24,4 +24,3 @@ regex             = { workspace = true }
 rspack_error      = { path = "../rspack_error" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_sources    = { workspace = true }
-url               = { workspace = true }
