@@ -4,10 +4,12 @@ use anyhow::{Context, Result};
 use argh::FromArgs;
 use swc_core::{
   self,
-  common::{errors::HANDLER, FileName, Globals, GLOBALS},
+  common::{errors::HANDLER, FileName, Globals, Mark, GLOBALS},
   ecma::{
     ast::*,
     parser::{parse_file_as_module, Syntax, TsConfig},
+    transforms::base::resolver,
+    visit::VisitMutWith,
   },
 };
 use swc_error_reporters::handler::try_with_handler;
@@ -44,6 +46,9 @@ fn handle_javascript(input: String, keep_span: bool) -> Result<()> {
   let ast = try_with_handler(cm, Default::default(), |handler| {
     GLOBALS
       .set(&Globals::default(), || {
+        let unresolved_mark = Mark::new();
+        let top_level_mark = Mark::new();
+
         HANDLER.set(handler, || {
           parse_file_as_module(
             &fm,
@@ -57,6 +62,10 @@ fn handle_javascript(input: String, keep_span: bool) -> Result<()> {
             &mut errors,
           )
           .map(Program::Module)
+          .map(|mut program| {
+            program.visit_mut_with(&mut resolver(unresolved_mark, top_level_mark, false));
+            program
+          })
         })
       })
       .map_err(|err| anyhow::anyhow!("{err:?}"))
