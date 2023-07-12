@@ -1,3 +1,5 @@
+use once_cell::sync::Lazy;
+use regex::{Captures, Regex};
 use rspack_core::{
   CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency, DependencyCategory,
   DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
@@ -102,7 +104,44 @@ impl DependencyTemplate for CssUrlDependency {
         .module_graph_module_by_dependency_id(self.id())
       && let Some(target_url) = self.get_target_url(&mgm.module_identifier, compilation)
     {
-      source.replace(self.start, self.end, format!("url({target_url})").as_str(), None);
+      let content = format!("url({})", css_escape_string(&target_url));
+      source.replace(self.start, self.end, &content, None);
     }
+  }
+}
+
+static WHITE_OR_BRACKET_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r#"[\n\t ()'"\\]"#).expect("Invalid Regexp"));
+static QUOTATION_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r#"[\n"\\]"#).expect("Invalid Regexp"));
+static APOSTROPHE_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r#"[\n'\\]"#).expect("Invalid Regexp"));
+
+fn css_escape_string(s: &str) -> String {
+  let mut count_white_or_bracket = 0;
+  let mut count_quotation = 0;
+  let mut count_apostrophe = 0;
+  for c in s.chars() {
+    match c {
+      '\t' | '\n' | ' ' | '(' | ')' => count_white_or_bracket += 1,
+      '"' => count_quotation += 1,
+      '\'' => count_apostrophe += 1,
+      _ => {}
+    }
+  }
+  if count_white_or_bracket < 2 {
+    WHITE_OR_BRACKET_REGEX
+      .replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
+      .into_owned()
+  } else if count_quotation <= count_apostrophe {
+    format!(
+      "\"{}\"",
+      QUOTATION_REGEX.replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
+    )
+  } else {
+    format!(
+      "\'{}\'",
+      APOSTROPHE_REGEX.replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
+    )
   }
 }
