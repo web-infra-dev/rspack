@@ -4,10 +4,7 @@ module.exports = {
 	mode: "development",
 	entry: ["@rspack/dev-client/react-refresh-entry", "./src/index.jsx"],
 	devServer: {
-		hot: true,
-		devMiddleware: {
-			writeToDisk: true
-		}
+		hot: true
 	},
 	cache: false,
 	stats: "none",
