@@ -57,7 +57,7 @@ fn handle_javascript(input: String, keep_span: bool) -> Result<()> {
               decorators: true,
               ..Default::default()
             }),
-            EsVersion::Es2022,
+            EsVersion::EsNext,
             None,
             &mut errors,
           )
