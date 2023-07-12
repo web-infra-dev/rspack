@@ -1,6 +1,7 @@
 use std::{
   borrow::BorrowMut,
   collections::{hash_map::Entry, VecDeque},
+  time::Instant,
 };
 
 use petgraph::{
@@ -33,7 +34,10 @@ use super::{
 };
 use crate::{
   contextify, join_string_component,
-  tree_shaking::{symbol_graph, utils::ConvertModulePath},
+  tree_shaking::{
+    symbol_graph::{self, generate_debug_symbol_graph},
+    utils::ConvertModulePath,
+  },
   Compilation, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType,
   NormalModuleAstOrSource,
 };
@@ -197,13 +201,16 @@ impl<'a> CodeSizeOptimizer<'a> {
       &mut root_symbol_ref_collector,
       &mut errors,
     );
-    // let debug_graph = generate_debug_symbol_graph(
-    //   &self.symbol_graph,
-    //   &self.compilation.module_graph,
-    //   &self.compilation.options.context.as_str().to_owned(),
-    // );
-    // let res = serde_json::to_string(&debug_graph).unwrap();
-    // println!("{}", res);
+    let debug_graph =
+      generate_debug_symbol_graph(&self.symbol_graph, &self.compilation.module_graph);
+    let start = Instant::now();
+    let res = serde_json::to_string(&debug_graph).unwrap();
+    // std::fs::write(
+    //   "/Users/bytedance/Documents/bytedance/monorepo/apps/card-builder/result.json",
+    //   res,
+    // )
+    // .unwrap();
+
     self.check_symbol_query();
 
     let dead_nodes_index = HashSet::default();
@@ -420,6 +427,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         };
 
         if eliminator.could_be_skipped() {
+          dbg!(&eliminator);
           continue;
         } else {
         }
@@ -468,30 +476,32 @@ impl<'a> CodeSizeOptimizer<'a> {
 
         if let Some(symbol_ref_list) = ref_map.get(&module_identifier) {
           for symbol_ref in symbol_ref_list {
+            let src = symbol_ref.src();
             let node_index = symbol_graph
               .get_node_index(symbol_ref)
               .expect("Can't get NodeIndex of SymbolRef");
             reachable_dependency_identifier.insert(module_identifier);
-            if !visited_symbol_node_index.contains(node_index) {
-              let mut reachable_node_index = HashSet::from_iter([*node_index]);
-              Self::rec(
-                &symbol_graph,
-                &mut HashSet::default(),
-                &vec![],
-                0,
-                *node_index,
-                &mut reachable_node_index,
-              );
+            // if !visited_symbol_node_index.contains(node_index) {
+            let mut reachable_node_index = HashSet::from_iter([*node_index]);
+            Self::rec(
+              &symbol_graph,
+              &mut HashSet::default(),
+              &vec![],
+              0,
+              *node_index,
+              &mut reachable_node_index,
+            );
 
-              // println!("from ----->\n {:#?}:", symbol_ref);
-              for ni in reachable_node_index {
-                update_reachable_symbol(dead_node_index, ni, &mut visited_symbol_node_index);
-                let symbol = symbol_graph.get_symbol(&ni).unwrap();
-                // println!("{:#?}",);
-                reachable_dependency_identifier.insert(symbol.src());
-              }
-              // while let Some(node_index) = bfs.next(&symbol_graph.graph) {}
+            // println!("from ----->\n {:#?}:", symbol_ref);
+            // if symbol_ref.is_direct() && symbol_ref.src()
+            for ni in reachable_node_index {
+              update_reachable_symbol(dead_node_index, ni, &mut visited_symbol_node_index);
+              let symbol = symbol_graph.get_symbol(&ni).unwrap();
+              // println!("{:#?}",);
+              reachable_dependency_identifier.insert(symbol.src());
             }
+            // while let Some(node_index) = bfs.next(&symbol_graph.graph) {}
+            // }
           }
         }
         // dbg!(&reachable_dependency_identifier);
@@ -599,6 +609,8 @@ impl<'a> CodeSizeOptimizer<'a> {
             .clone(),
         );
       }
+
+      // dbg!(&reachable_dependency_identifier);
     } else {
       *used_symbol_ref = visited_symbol_ref;
     }
@@ -621,8 +633,17 @@ impl<'a> CodeSizeOptimizer<'a> {
     if visited_symbol_node_index.contains(&cur) {
       return false;
     }
+
     // reachable_node_index.insert(cur);
     let symbol = graph.get_symbol(&cur).expect("Should get related symbol");
+    let src = symbol.src();
+    let is_target = if (src == "/Users/bytedance/Documents/bytedance/monorepo/common/temp/node_modules/.pnpm/@kunlun+card-builder@0.3.27-alpha.2_qmcrsbrwnsokagj5zbn5htj2xq/node_modules/@kunlun/card-builder/dist/es/setters/components/rich-text/plugins/variable/index.js".into()) {
+            dbg!(&symbol);
+            dbg!(&path);
+            true
+            } else {
+            false
+        };
     // dbg!(&symbol);
     visited_symbol_node_index.insert(cur);
 
@@ -634,6 +655,9 @@ impl<'a> CodeSizeOptimizer<'a> {
         .neighbors_directed(cur, petgraph::Direction::Outgoing)
       {
         let neighbor_symbol_path_not_empty = graph.get_symbol(&neighbor).unwrap();
+        if is_target {
+          dbg!(&neighbor_symbol_path_not_empty);
+        }
         let is_match = match neighbor_symbol_path_not_empty {
           SymbolRef::Declaration(symbol) => &symbol.id().atom == name,
           SymbolRef::Indirect(indirect) => indirect.indirect_id() == name,
@@ -698,6 +722,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             .graph
             .neighbors_directed(cur, petgraph::Direction::Outgoing)
           {
+            reachable_node_index.insert(neighbor);
             Self::rec(
               graph,
               visited_symbol_node_index,
@@ -895,7 +920,6 @@ impl<'a> CodeSizeOptimizer<'a> {
       evaluated_module_identifiers.insert(current_symbol_ref.importer());
       if let Some(module_result) = analyze_map.get(&current_symbol_ref.importer()) {
         for used_symbol in module_result.used_symbol_refs.iter() {
-          // TODO: DO we need to mark this as true
           symbol_queue.push_back((used_symbol.clone(), true));
         }
       };
@@ -1053,13 +1077,15 @@ impl<'a> CodeSizeOptimizer<'a> {
                       }
                     }
                     Entry::Vacant(vac) => {
-                      for path in algo::all_simple_paths::<Vec<_>, _>(
+                      let paths = algo::all_simple_paths::<Vec<_>, _>(
                         &inherit_extend_graph,
                         indirect_symbol.src,
                         *module_identifier,
                         0,
                         None,
-                      ) {
+                      )
+                      .collect::<Vec<_>>();
+                      for path in paths {
                         let mut from = current_symbol_ref.clone();
                         let mut star_chain_start_end_pair = (from.clone(), from.clone());
                         for i in 0..path.len() - 1 {
