@@ -2,7 +2,7 @@
 module.exports = {
 	context: __dirname,
 	mode: "development",
-	entry: "./src/index.jsx",
+	entry: ["@rspack/dev-client/react-refresh-entry", "./src/index.jsx"],
 	devServer: {
 		hot: true
 	},
@@ -12,6 +12,9 @@ module.exports = {
 		debug: false
 	},
 	builtins: {
+		provide: {
+			$ReactRefreshRuntime$: [require.resolve("./react-refresh.js")]
+		},
 		html: [
 			{
 				template: "./src/index.html"
