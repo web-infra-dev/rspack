@@ -165,34 +165,42 @@ fn to_webpack_map(source: &dyn Source) -> Result<Option<Buffer>> {
     .map_err(|err| napi::Error::from_reason(err.to_string()))
 }
 
+macro_rules! cached_source_to_js_compat_source {
+  ($ty:ty, $ident:ident) => {
+    if let Some(s) = $ident.as_any().downcast_ref::<CachedSource<$ty>>() {
+      return s.to_js_compat_source();
+    }
+  };
+}
+
 impl ToJsCompatSource for dyn Source + '_ {
   fn to_js_compat_source(&self) -> Result<JsCompatSource> {
     if let Some(raw_source) = self.as_any().downcast_ref::<RawSource>() {
-      raw_source.to_js_compat_source()
-    } else if let Some(cached_source) = self.as_any().downcast_ref::<CachedSource<RawSource>>() {
-      cached_source.to_js_compat_source()
-    } else if let Some(cached_source) = self
-      .as_any()
-      .downcast_ref::<CachedSource<Box<dyn Source>>>()
-    {
-      cached_source.to_js_compat_source()
-    } else if let Some(cached_source) = self
-      .as_any()
-      .downcast_ref::<CachedSource<Arc<dyn Source>>>()
-    {
-      cached_source.to_js_compat_source()
-    } else if let Some(source) = self.as_any().downcast_ref::<Box<dyn Source>>() {
-      source.to_js_compat_source()
-    } else if let Some(source) = self.as_any().downcast_ref::<Arc<dyn Source>>() {
-      source.to_js_compat_source()
-    } else {
-      // If it's not a `RawSource` related type, then we regards it as a `Source` type.
-      Ok(JsCompatSource {
-        is_raw: false,
-        is_buffer: false,
-        source: self.buffer().to_vec().into(),
-        map: to_webpack_map(self)?,
-      })
+      return raw_source.to_js_compat_source();
     }
+
+    cached_source_to_js_compat_source!(RawSource, self);
+    cached_source_to_js_compat_source!(Box<dyn Source>, self);
+    cached_source_to_js_compat_source!(Arc<dyn Source>, self);
+
+    if let Some(source) = self.as_any().downcast_ref::<Box<dyn Source>>() {
+      return source.to_js_compat_source();
+    }
+
+    if let Some(source) = self.as_any().downcast_ref::<Arc<dyn Source>>() {
+      return source.to_js_compat_source();
+    }
+
+    cached_source_to_js_compat_source!(ConcatSource, self);
+    cached_source_to_js_compat_source!(OriginalSource, self);
+    cached_source_to_js_compat_source!(SourceMapSource, self);
+
+    // If it's not a `RawSource` related type, then we regards it as a `Source` type.
+    Ok(JsCompatSource {
+      is_raw: false,
+      is_buffer: false,
+      source: self.buffer().to_vec().into(),
+      map: to_webpack_map(self)?,
+    })
   }
 }
