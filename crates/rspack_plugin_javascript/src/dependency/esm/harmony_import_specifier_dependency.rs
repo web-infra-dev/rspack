@@ -1,8 +1,6 @@
 use rspack_core::{export_from_import, DependencyId, TemplateContext, TemplateReplaceSource};
 use swc_core::ecma::atoms::JsWord;
 
-use crate::utils::join_jsword_vec;
-
 #[derive(Debug, Clone)]
 pub struct HarmonyImportSpecifierDependency {
   shorthand: bool,
@@ -44,7 +42,7 @@ impl HarmonyImportSpecifierDependency {
       source.replace(
         self.start,
         self.end,
-        &format!("/* {} unused */undefined", join_jsword_vec(&self.ids, ",")),
+        &format!("/* {} unused */undefined", request),
         None,
       );
       return;

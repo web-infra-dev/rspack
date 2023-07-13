@@ -154,22 +154,3 @@ pub fn ecma_parse_error_to_rspack_error(
   .with_kind(diagnostic_kind);
   Error::TraceableError(traceable_error)
 }
-
-/// Jsword does not implement `Join` trait, compiler will complain
-/// ```
-/// = note: the following trait bounds were not satisfied:
-/// `[string_cache::atom::Atom<JsWordStaticSet>]: Join<_>`
-/// ```
-/// So reimplement `join` for Vec<JsWord>
-pub fn join_jsword_vec(vec: &Vec<JsWord>, sep: &str) -> String {
-  let mut total_len = vec.iter().fold(0, |acc, cur| acc + cur.len());
-  total_len += (vec.len() - 1) * sep.len();
-  let mut concated_string = String::with_capacity(total_len);
-  for i in 0..vec.len() {
-    concated_string.push_str(&vec[i]);
-    if i != 0 {
-      concated_string.push_str(sep);
-    }
-  }
-  concated_string
-}
