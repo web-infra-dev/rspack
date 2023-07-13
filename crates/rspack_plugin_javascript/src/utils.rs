@@ -160,6 +160,7 @@ pub fn ecma_parse_error_to_rspack_error(
 /// = note: the following trait bounds were not satisfied:
 /// `[string_cache::atom::Atom<JsWordStaticSet>]: Join<_>`
 /// ```
+/// So reimplement `join` for Vec<JsWord>
 pub fn join_jsword_vec(vec: &Vec<JsWord>, sep: &str) -> String {
   let mut total_len = vec.iter().fold(0, |acc, cur| acc + cur.len());
   total_len += (vec.len() - 1) * sep.len();
