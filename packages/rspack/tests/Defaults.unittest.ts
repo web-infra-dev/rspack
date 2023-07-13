@@ -111,9 +111,12 @@ describe("snapshots", () => {
 		-     "minifyOptions": undefined,
 		+     "minifyOptions": Object {
 		+       "dropConsole": false,
+		+       "exclude": undefined,
 		+       "extractComments": undefined,
+		+       "include": undefined,
 		+       "passes": 1,
 		+       "pureFuncs": Array [],
+		+       "test": undefined,
 		+     },
 		@@ ... @@
 		-     "treeShaking": "false",
@@ -160,9 +163,12 @@ describe("snapshots", () => {
 		-     "minifyOptions": undefined,
 		+     "minifyOptions": Object {
 		+       "dropConsole": false,
+		+       "exclude": undefined,
 		+       "extractComments": undefined,
+		+       "include": undefined,
 		+       "passes": 1,
 		+       "pureFuncs": Array [],
+		+       "test": undefined,
 		+     },
 		@@ ... @@
 		-     "treeShaking": "false",

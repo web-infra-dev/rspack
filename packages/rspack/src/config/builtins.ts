@@ -17,7 +17,9 @@ import type {
 	RawRelayConfig,
 	RawCodeGeneration,
 	RawBannerConditions,
-	RawBannerCondition
+	RawBannerCondition,
+	RawMinificationCondition,
+	RawMinificationConditions
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
 import { Optimization } from "..";
@@ -52,6 +54,9 @@ export type MinificationConfig = {
 	dropConsole?: boolean;
 	pureFuncs?: Array<string>;
 	extractComments?: boolean | RegExp;
+	test?: MinifyConditions;
+	exclude?: MinifyConditions;
+	include?: MinifyConditions;
 };
 
 export interface Builtins {
@@ -102,6 +107,10 @@ export type CopyConfig = {
 export type BannerCondition = string | RegExp;
 
 export type BannerConditions = BannerCondition | BannerCondition[];
+
+export type MinifyCondition = string | RegExp;
+
+export type MinifyConditions = MinifyCondition | MinifyCondition[];
 
 type BannerConfig =
 	| string
@@ -446,6 +455,39 @@ function getBannerConditions(
 	return getBannerCondition(condition);
 }
 
+function getMinifyCondition(
+	condition: MinifyCondition
+): RawMinificationCondition {
+	if (typeof condition === "string") {
+		return {
+			type: "string",
+			stringMatcher: condition
+		};
+	}
+	if (condition instanceof RegExp) {
+		return {
+			type: "regexp",
+			regexpMatcher: condition.source
+		};
+	}
+	throw new Error("unreachable: condition should be one of string, RegExp");
+}
+
+function getMinifyConditions(
+	condition?: MinifyConditions
+): RawMinificationConditions | undefined {
+	if (!condition) return undefined;
+
+	if (Array.isArray(condition)) {
+		return {
+			type: "array",
+			arrayMatcher: condition.map(i => getMinifyCondition(i))
+		};
+	}
+
+	return getMinifyCondition(condition);
+}
+
 function resolveBanner(
 	bannerConfigs?: BannerConfigs
 ): RawBannerConfig[] | undefined {
@@ -481,7 +523,10 @@ export function resolveMinifyOptions(
 		dropConsole: false,
 		pureFuncs: [],
 		...builtins.minifyOptions,
-		extractComments
+		extractComments,
+		test: getMinifyConditions(builtins.minifyOptions?.test),
+		include: getMinifyConditions(builtins.minifyOptions?.include),
+		exclude: getMinifyConditions(builtins.minifyOptions?.exclude)
 	};
 }
 
