@@ -33,7 +33,7 @@ use super::{
 };
 use crate::{
   contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
-  DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
+  DependencyType, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -676,7 +676,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     self.symbol_graph.add_node(&current_symbol_ref);
     // We don't need mark the symbol usage if it is from a bailout module because
     // bailout module will skipping tree-shaking anyway
-    let is_bailout_module_identifier = self.bailout_modules.contains_key(&current_symbol_ref.src());
+    // let is_bailout_module_identifier = self.bailout_modules.contains_key(&current_symbol_ref.src());
     match &current_symbol_ref {
       SymbolRef::Direct(symbol) => {
         merge_used_export_type(
@@ -886,11 +886,6 @@ impl<'a> CodeSizeOptimizer<'a> {
 
             let selected_symbol = match ret.len() {
               0 => {
-                // TODO: Better diagnostic handle if source module does not have the export
-                // let map = analyze_map.get(&module_result.module_identifier).expect("TODO:");
-                // dbg!(&map);
-
-                // TODO: only report when target module is a esm module
                 self.symbol_graph.add_edge(
                   &current_symbol_ref,
                   &SymbolRef::Direct(Symbol::new(
@@ -907,44 +902,45 @@ impl<'a> CodeSizeOptimizer<'a> {
                   current_symbol_ref.src(),
                   ModuleUsedType::INDIRECT,
                 );
+                return;
 
                 // Only report diagnostic when following conditions are satisfied:
                 // 1. src module is not a bailout module and src module using ESM syntax to export some symbols.
                 // 2. src module has no reexport or any reexport src module is not bailouted
-                let should_diagnostic = !is_bailout_module_identifier
-                  && module_result.module_syntax == ModuleSyntax::ESM
-                  && (module_result.inherit_export_maps.is_empty()
-                    || !has_bailout_module_identifiers);
-                if should_diagnostic {
-                  let module_path = self
-                    .compilation
-                    .module_graph
-                    .normal_module_source_path_by_identifier(&module_result.module_identifier);
-                  let importer_module_path = self
-                    .compilation
-                    .module_graph
-                    .normal_module_source_path_by_identifier(&indirect_symbol.importer());
-                  if let (Some(module_path), Some(importer_module_path)) =
-                    (module_path, importer_module_path)
-                  {
-                    let error_message = format!(
-                      "{} did not export `{}`, imported by {}",
-                      contextify(&self.compilation.options.context, &module_path),
-                      indirect_symbol.indirect_id(),
-                      contextify(&self.compilation.options.context, &importer_module_path),
-                    );
-                    errors.push(Error::InternalError(InternalError {
-                      error_message,
-                      severity: Severity::Warn,
-                    }));
-                  }
-                  return;
-                } else {
-                  // TODO: This branch should be remove after we analyze module.exports
-                  // If one of inherit module is a bailout module, that most probably means that module has some common js export
-                  // which we don't analyze yet, we just pass it. It is alright because we don't modified the ast of bailout module
-                  return;
-                }
+                // let should_diagnostic = !is_bailout_module_identifier
+                //   && module_result.module_syntax == ModuleSyntax::ESM
+                //   && (module_result.inherit_export_maps.is_empty()
+                //     || !has_bailout_module_identifiers);
+                // if should_diagnostic {
+                //   let module_path = self
+                //     .compilation
+                //     .module_graph
+                //     .normal_module_source_path_by_identifier(&module_result.module_identifier);
+                //   let importer_module_path = self
+                //     .compilation
+                //     .module_graph
+                //     .normal_module_source_path_by_identifier(&indirect_symbol.importer());
+                //   if let (Some(module_path), Some(importer_module_path)) =
+                //     (module_path, importer_module_path)
+                //   {
+                //     let error_message = format!(
+                //       "{} did not export `{}`, imported by {}",
+                //       contextify(&self.compilation.options.context, &module_path),
+                //       indirect_symbol.indirect_id(),
+                //       contextify(&self.compilation.options.context, &importer_module_path),
+                //     );
+                //     errors.push(Error::InternalError(InternalError {
+                //       error_message,
+                //       severity: Severity::Warn,
+                //     }));
+                //   }
+                //   return;
+                // } else {
+                //   // TODO: This branch should be remove after we analyze module.exports
+                //   // If one of inherit module is a bailout module, that most probably means that module has some common js export
+                //   // which we don't analyze yet, we just pass it. It is alright because we don't modified the ast of bailout module
+                //   return;
+                // }
               }
               1 => ret[0].1.clone(),
               // multiple export candidate in reexport
