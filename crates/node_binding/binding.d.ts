@@ -353,7 +353,7 @@ export interface JsStatsModule {
   issuerPath: Array<JsStatsModuleIssuer>
   reasons?: Array<JsStatsModuleReason>
   assets?: Array<string>
-  source?: string
+  source?: string | Buffer
 }
 
 export interface JsStatsModuleIssuer {
@@ -373,13 +373,6 @@ export interface JsStatsModuleReason {
 export interface JsStatsWarning {
   message: string
   formatted: string
-}
-
-export interface NodeFS {
-  writeFile: (...args: any[]) => any
-  removeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
 }
 
 export interface PathData {
@@ -974,13 +967,5 @@ export interface RawStyleConfig {
 
 export interface RawTrustedTypes {
   policyName?: string
-}
-
-export interface ThreadsafeNodeFS {
-  writeFile: (...args: any[]) => any
-  removeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-  removeDirAll: (...args: any[]) => any
 }
 

@@ -1,7 +1,8 @@
-use napi::bindgen_prelude::SharedReference;
+use napi::bindgen_prelude::Buffer;
+use napi::{bindgen_prelude::SharedReference, Either};
 use rspack_core::Stats;
 
-use super::JsCompilation;
+use super::{JsCompilation, ToJsCompatSource};
 
 #[napi(object)]
 #[derive(Debug)]
@@ -76,6 +77,7 @@ impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
   }
 }
 
+type JsStatsModuleSource = Either<String, Buffer>;
 #[napi(object)]
 pub struct JsStatsModule {
   pub r#type: &'static str,
@@ -91,11 +93,28 @@ pub struct JsStatsModule {
   pub issuer_path: Vec<JsStatsModuleIssuer>,
   pub reasons: Option<Vec<JsStatsModuleReason>>,
   pub assets: Option<Vec<String>>,
-  pub source: Option<String>,
+  pub source: Option<Either<String, Buffer>>,
 }
 
-impl From<rspack_core::StatsModule> for JsStatsModule {
+impl From<rspack_core::StatsModule<'_>> for JsStatsModule {
   fn from(stats: rspack_core::StatsModule) -> Self {
+    let source = stats
+      .source
+      .map(|source| {
+        source
+          .to_js_compat_source()
+          .map(|js_compat_source| {
+            if js_compat_source.is_buffer && js_compat_source.is_raw {
+              return JsStatsModuleSource::B(js_compat_source.source);
+            } else {
+              let source = Into::<Vec<u8>>::into(js_compat_source.source);
+              let s = String::from_utf8_lossy(&source).to_string();
+              return JsStatsModuleSource::A(s);
+            }
+          })
+          .ok()
+      })
+      .flatten();
     Self {
       r#type: stats.r#type,
       name: stats.name,
@@ -112,7 +131,7 @@ impl From<rspack_core::StatsModule> for JsStatsModule {
         .reasons
         .map(|i| i.into_iter().map(Into::into).collect()),
       assets: stats.assets,
-      source: stats.source,
+      source,
     }
   }
 }
@@ -170,7 +189,7 @@ pub struct JsStatsChunk {
   pub siblings: Option<Vec<String>>,
 }
 
-impl From<rspack_core::StatsChunk> for JsStatsChunk {
+impl From<rspack_core::StatsChunk<'_>> for JsStatsChunk {
   fn from(stats: rspack_core::StatsChunk) -> Self {
     Self {
       r#type: stats.r#type,
