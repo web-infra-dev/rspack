@@ -27,7 +27,7 @@ __webpack_require__.d(__webpack_exports__, {
     return 42;
 }
  function b() {
-    return /* default unused */undefined;
+    return /* "./unusedModule" unused */undefined;
 }
 },
 

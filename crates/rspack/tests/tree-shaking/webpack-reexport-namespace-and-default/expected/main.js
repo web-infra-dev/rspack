@@ -63,7 +63,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 function __WEBPACK_DEFAULT_EXPORT__(){
-    return /* default unused */undefined;
+    return /* "./script3" unused */undefined;
 }
 
  const exportDefaultUsed = __webpack_exports_info__.default.used;
