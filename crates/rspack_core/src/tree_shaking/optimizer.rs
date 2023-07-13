@@ -33,7 +33,7 @@ use super::{
 };
 use crate::{
   contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
-  DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
+  DependencyType, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -676,7 +676,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     self.symbol_graph.add_node(&current_symbol_ref);
     // We don't need mark the symbol usage if it is from a bailout module because
     // bailout module will skipping tree-shaking anyway
-    let is_bailout_module_identifier = self.bailout_modules.contains_key(&current_symbol_ref.src());
+    // let is_bailout_module_identifier = self.bailout_modules.contains_key(&current_symbol_ref.src());
     match &current_symbol_ref {
       SymbolRef::Direct(symbol) => {
         merge_used_export_type(
@@ -886,11 +886,6 @@ impl<'a> CodeSizeOptimizer<'a> {
 
             let selected_symbol = match ret.len() {
               0 => {
-                // TODO: Better diagnostic handle if source module does not have the export
-                // let map = analyze_map.get(&module_result.module_identifier).expect("TODO:");
-                // dbg!(&map);
-
-                // TODO: only report when target module is a esm module
                 self.symbol_graph.add_edge(
                   &current_symbol_ref,
                   &SymbolRef::Direct(Symbol::new(
@@ -907,6 +902,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                   current_symbol_ref.src(),
                   ModuleUsedType::INDIRECT,
                 );
+                return;
 
                 // Only report diagnostic when following conditions are satisfied:
                 // 1. src module is not a bailout module and src module using ESM syntax to export some symbols.
