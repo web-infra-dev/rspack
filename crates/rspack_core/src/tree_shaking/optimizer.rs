@@ -205,11 +205,11 @@ impl<'a> CodeSizeOptimizer<'a> {
       generate_debug_symbol_graph(&self.symbol_graph, &self.compilation.module_graph);
     let start = Instant::now();
     let res = serde_json::to_string(&debug_graph).unwrap();
-    // std::fs::write(
-    //   "/Users/bytedance/Documents/bytedance/monorepo/apps/card-builder/result.json",
-    //   res,
-    // )
-    // .unwrap();
+    std::fs::write(
+      "/Users/bytedance/Documents/bytedance/monorepo/apps/card-builder/result.json",
+      res,
+    )
+    .unwrap();
 
     self.check_symbol_query();
 
@@ -438,33 +438,6 @@ impl<'a> CodeSizeOptimizer<'a> {
           .module_graph_module_by_identifier_mut(&module_identifier)
           .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {module_identifier}"));
 
-        // if let Some(symbol_ref_list) = module_visited_symbol_ref.get(&module_identifier) {
-        //   for symbol_ref in symbol_ref_list {
-        //     let node_index = symbol_graph
-        //       .get_node_index(symbol_ref)
-        //       .expect("Can't get NodeIndex of SymbolRef");
-        //     update_reachable_dependency(
-        //       symbol_ref,
-        //       &mut reachable_dependency_identifier,
-        //       symbol_graph,
-        //     );
-        //     if !visited_symbol_node_index.contains(node_index) {
-        //       let mut reachable_node_index = HashSet::from_iter([*node_index]);
-        //       Self::rec(
-        //         &symbol_graph,
-        //         &mut HashSet::default(),
-        //         &vec![],
-        //         0,
-        //         *node_index,
-        //         &mut reachable_node_index,
-        //       );
-        //       for ni in reachable_node_index {
-        //         update_reachable_symbol(dead_node_index, ni, &mut visited_symbol_node_index);
-        //       }
-        //       // while let Some(node_index) = bfs.next(&symbol_graph.graph) {}
-        //     }
-        //   }
-        // }
         include_module_ids.insert(mgm.module_identifier);
         // dbg!(&module_visited_symbol_ref);
         let safe_search = false;
