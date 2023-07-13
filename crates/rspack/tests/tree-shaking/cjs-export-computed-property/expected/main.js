@@ -17,7 +17,7 @@ __webpack_require__.d(__webpack_exports__, {
 /* harmony import */var _locale_zh__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ../locale_zh */"./locale_zh.ts");
 
 const locales = {
-    zh_CN: _locale_zh__WEBPACK_IMPORTED_MODULE_0_["default"]
+    zh_CN _locale_zh__WEBPACK_IMPORTED_MODULE_0_["default"]
 };
 
 },

@@ -6,7 +6,7 @@ __webpack_require__.d(__webpack_exports__, {
   'b': function() { return b; }
 });
 
-var __WEBPACK_DEFAULT_EXPORT__ = /* unused */undefined;
+var __WEBPACK_DEFAULT_EXPORT__ = /* a unused */undefined;
  const b = 1;
 },
 "./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
