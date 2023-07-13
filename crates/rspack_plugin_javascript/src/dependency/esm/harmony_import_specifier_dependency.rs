@@ -39,7 +39,12 @@ impl HarmonyImportSpecifierDependency {
     used: bool,
   ) {
     if !used {
-      source.replace(self.start, self.end, "/* unused */undefined", None);
+      source.replace(
+        self.start,
+        self.end,
+        &format!("/* \"{}\" unused */undefined", request),
+        None,
+      );
       return;
     }
 
