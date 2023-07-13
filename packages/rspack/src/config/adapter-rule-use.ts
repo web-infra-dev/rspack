@@ -1,4 +1,8 @@
-import { JsAssetInfo, RawModuleRuleUse, RawOptions } from "@rspack/binding";
+import type {
+	JsAssetInfo,
+	RawModuleRuleUse,
+	RawOptions
+} from "@rspack/binding";
 import assert from "assert";
 import { ResolveRequest } from "enhanced-resolve";
 

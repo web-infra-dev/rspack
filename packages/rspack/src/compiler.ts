@@ -7,7 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import * as binding from "@rspack/binding";
+import type * as binding from "@rspack/binding";
 import fs from "fs";
 import path from "path";
 import * as tapable from "tapable";
@@ -37,6 +37,7 @@ import { Logger } from "./logging/Logger";
 import { NormalModuleFactory } from "./normalModuleFactory";
 import { WatchFileSystem } from "./util/fs";
 import { getScheme } from "./util/scheme";
+import { bindingVersionCheck } from "./util/bindingVersionCheck";
 import Watching from "./watching";
 import { NormalModule } from "./normalModule";
 import { normalizeJsModule } from "./util/normalization";
@@ -260,11 +261,10 @@ class Compiler {
 			this.options.output.hashFunction
 		);
 	}
-
 	/**
 	 * Lazy initialize instance so it could access the changed options
 	 */
-	get #instance() {
+	#getInstance(cb: (error?: Error | null, instance?: binding.Rspack) => void) {
 		const processResource = (
 			loaderContext: LoaderContext,
 			resourcePath: string,
@@ -284,80 +284,93 @@ class Compiler {
 				});
 		};
 		const options = getRawOptions(this.options, this, processResource);
+		try {
+			const instanceBindingVersion =
+				require("@rspack/binding/package.json").version;
 
-		this.#_instance =
-			this.#_instance ??
-			new binding.Rspack(
-				options,
-				{
-					beforeCompile: this.#beforeCompile.bind(this),
-					afterCompile: this.#afterCompile.bind(this),
-					finishMake: this.#finishMake.bind(this),
-					make: this.#make.bind(this),
-					emit: this.#emit.bind(this),
-					assetEmitted: this.#assetEmitted.bind(this),
-					afterEmit: this.#afterEmit.bind(this),
-					processAssetsStageAdditional: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
-					),
-					processAssetsStagePreProcess: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS
-					),
-					processAssetsStageAdditions: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_ADDITIONS
-					),
-					processAssetsStageNone: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_NONE
-					),
-					processAssetsStageOptimizeInline: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
-					),
-					processAssetsStageSummarize: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
-					),
-					processAssetsStageOptimizeHash: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
-					),
-					processAssetsStageReport: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_REPORT
-					),
-					// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
-					// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
-					// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
-					// So it is safe to create a new compilation here.
-					thisCompilation: this.#newCompilation.bind(this),
-					// The hook `Compilation` should be called whenever it's a call from the child compiler or normal compiler and
-					// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
-					// No matter how it will be implemented, it will be copied to the child compiler.
-					compilation: this.#compilation.bind(this),
-					optimizeModules: this.#optimizeModules.bind(this),
-					optimizeChunkModule: this.#optimizeChunkModules.bind(this),
-					finishModules: this.#finishModules.bind(this),
-					normalModuleFactoryResolveForScheme:
-						this.#normalModuleFactoryResolveForScheme.bind(this),
-					chunkAsset: this.#chunkAsset.bind(this),
-					beforeResolve: this.#beforeResolve.bind(this),
-					afterResolve: this.#afterResolve.bind(this),
-					contextModuleBeforeResolve:
-						this.#contextModuleBeforeResolve.bind(this),
-					succeedModule: this.#succeedModule.bind(this),
-					stillValidModule: this.#stillValidModule.bind(this),
-					buildModule: this.#buildModule.bind(this)
-				},
-				createThreadsafeNodeFSFromRaw(this.outputFileSystem),
-				loaderContext => runLoader(loaderContext, this)
-			);
+			bindingVersionCheck(instanceBindingVersion, err => {
+				if (err) cb && cb(err);
+			});
 
-		return this.#_instance;
+			const instanceBinding = require("@rspack/binding");
+
+			this.#_instance =
+				this.#_instance ??
+				new instanceBinding.Rspack(
+					options,
+					{
+						beforeCompile: this.#beforeCompile.bind(this),
+						afterCompile: this.#afterCompile.bind(this),
+						finishMake: this.#finishMake.bind(this),
+						make: this.#make.bind(this),
+						emit: this.#emit.bind(this),
+						assetEmitted: this.#assetEmitted.bind(this),
+						afterEmit: this.#afterEmit.bind(this),
+						processAssetsStageAdditional: this.#processAssets.bind(
+							this,
+							Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+						),
+						processAssetsStagePreProcess: this.#processAssets.bind(
+							this,
+							Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS
+						),
+						processAssetsStageAdditions: this.#processAssets.bind(
+							this,
+							Compilation.PROCESS_ASSETS_STAGE_ADDITIONS
+						),
+						processAssetsStageNone: this.#processAssets.bind(
+							this,
+							Compilation.PROCESS_ASSETS_STAGE_NONE
+						),
+						processAssetsStageOptimizeInline: this.#processAssets.bind(
+							this,
+							Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
+						),
+						processAssetsStageSummarize: this.#processAssets.bind(
+							this,
+							Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
+						),
+						processAssetsStageOptimizeHash: this.#processAssets.bind(
+							this,
+							Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
+						),
+						processAssetsStageReport: this.#processAssets.bind(
+							this,
+							Compilation.PROCESS_ASSETS_STAGE_REPORT
+						),
+						// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
+						// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
+						// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
+						// So it is safe to create a new compilation here.
+						thisCompilation: this.#newCompilation.bind(this),
+						// The hook `Compilation` should be called whenever it's a call from the child compiler or normal compiler and
+						// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
+						// No matter how it will be implemented, it will be copied to the child compiler.
+						compilation: this.#compilation.bind(this),
+						optimizeModules: this.#optimizeModules.bind(this),
+						optimizeChunkModule: this.#optimizeChunkModules.bind(this),
+						finishModules: this.#finishModules.bind(this),
+						normalModuleFactoryResolveForScheme:
+							this.#normalModuleFactoryResolveForScheme.bind(this),
+						chunkAsset: this.#chunkAsset.bind(this),
+						beforeResolve: this.#beforeResolve.bind(this),
+						afterResolve: this.#afterResolve.bind(this),
+						contextModuleBeforeResolve:
+							this.#contextModuleBeforeResolve.bind(this),
+						succeedModule: this.#succeedModule.bind(this),
+						stillValidModule: this.#stillValidModule.bind(this),
+						buildModule: this.#buildModule.bind(this)
+					},
+					createThreadsafeNodeFSFromRaw(this.outputFileSystem),
+					(loaderContext: binding.JsLoaderContext) =>
+						runLoader(loaderContext, this)
+				);
+			return cb(null, this.#_instance);
+		} catch (err: unknown) {
+			return cb(err as Error, undefined);
+		}
 	}
+
 	createChildCompiler(
 		compilation: Compilation,
 		compilerName: string,
@@ -571,8 +584,8 @@ class Compiler {
 		);
 	}
 
-	#updateDisabledHooks() {
-		const disabledHooks = [];
+	#updateDisabledHooks(cb?: (error?: Error) => void) {
+		const disabledHooks: string[] = [];
 		const hookMap = {
 			make: this.hooks.make,
 			beforeCompile: this.hooks.beforeCompile,
@@ -624,8 +637,13 @@ class Compiler {
 
 		// disabledHooks is in order
 		if (this.#disabledHooks.join() !== disabledHooks.join()) {
-			this.#instance.unsafe_set_disabled_hooks(disabledHooks);
-			this.#disabledHooks = disabledHooks;
+			this.#getInstance((error, instance) => {
+				if (error) {
+					cb && cb(error);
+				}
+				instance?.unsafe_set_disabled_hooks(disabledHooks);
+				this.#disabledHooks = disabledHooks;
+			});
 		}
 	}
 
@@ -873,14 +891,17 @@ class Compiler {
 	}
 	// Safety: This method is only valid to call if the previous build task is finished, or there will be data races.
 	build(cb: (error?: Error) => void) {
-		const unsafe_build = this.#instance.unsafe_build;
-		const build_cb = unsafe_build.bind(this.#instance) as typeof unsafe_build;
-		build_cb(err => {
-			if (err) {
-				cb(err);
-			} else {
-				cb(undefined);
-			}
+		this.#getInstance((err, instance) => {
+			if (err) cb && cb(err);
+			const unsafe_build = instance?.unsafe_build;
+			const build_cb = unsafe_build?.bind(instance) as typeof unsafe_build;
+			build_cb?.((err: any) => {
+				if (err) {
+					cb(err);
+				} else {
+					cb(undefined);
+				}
+			});
 		});
 	}
 	// Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
@@ -889,16 +910,23 @@ class Compiler {
 		removedFiles?: ReadonlySet<string>,
 		cb?: (error?: Error) => void
 	) {
-		const unsafe_rebuild = this.#instance.unsafe_rebuild;
-		const rebuild_cb = unsafe_rebuild.bind(
-			this.#instance
-		) as typeof unsafe_rebuild;
-		rebuild_cb([...(modifiedFiles ?? [])], [...(removedFiles ?? [])], err => {
-			if (err) {
-				cb && cb(err);
-			} else {
-				cb && cb(undefined);
-			}
+		this.#getInstance((err, instance) => {
+			if (err) cb && cb(err);
+			const unsafe_rebuild = instance?.unsafe_rebuild;
+			const rebuild_cb = unsafe_rebuild?.bind(
+				instance
+			) as typeof unsafe_rebuild;
+			rebuild_cb?.(
+				[...(modifiedFiles ?? [])],
+				[...(removedFiles ?? [])],
+				err => {
+					if (err) {
+						cb && cb(err);
+					} else {
+						cb && cb(undefined);
+					}
+				}
+			);
 		});
 	}
 

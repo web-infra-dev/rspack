@@ -1,4 +1,4 @@
-import { JsAssetInfo, JsStatsError } from "@rspack/binding";
+import type { JsAssetInfo, JsStatsError } from "@rspack/binding";
 import { AssetInfo } from "../compilation";
 
 export function mapValues(

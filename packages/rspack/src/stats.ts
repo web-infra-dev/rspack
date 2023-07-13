@@ -7,7 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import * as binding from "@rspack/binding";
+import type * as binding from "@rspack/binding";
 import { Compilation } from ".";
 import { StatsValue, StatsOptions } from "./config";
 import type { StatsCompilation } from "./stats/DefaultStatsFactoryPlugin";
