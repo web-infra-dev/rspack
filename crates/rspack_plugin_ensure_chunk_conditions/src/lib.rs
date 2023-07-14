@@ -44,8 +44,12 @@ impl Plugin for EnsureChunkConditionsPlugin {
       for chunk_key in chunk_keys {
         if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_key) {
           let mut chunk_group_keys = chunk.groups.iter().collect::<Vec<_>>();
-
+          let mut visited_chunk_group_keys = HashSet::new();
           'out: while let Some(chunk_group_key) = chunk_group_keys.pop() {
+            if visited_chunk_group_keys.contains(chunk_group_key) {
+              continue;
+            }
+            visited_chunk_group_keys.insert(chunk_group_key);
             if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group_key) {
               for chunk in &chunk_group.chunks {
                 if let Some(module) = compilation.module_graph.module_by_identifier(module_id) {
