@@ -41,7 +41,7 @@ export class RspackCLI {
 		options: RspackBuildCLIOptions,
 		rspackCommand: Command,
 		callback?: (e: Error, res?: Stats | MultiStats) => void
-	): Promise<Compiler | MultiCompiler> {
+	) {
 		process.env.RSPACK_CONFIG_VALIDATE = "loose";
 		let nodeEnv = process?.env?.NODE_ENV;
 		let rspackCommandDefaultEnv =
@@ -58,8 +58,7 @@ export class RspackCLI {
 			? (config as MultiRspackOptions).some(i => i.watch)
 			: (config as RspackOptions).watch;
 
-		const compiler = rspack(config, isWatch ? callback : undefined);
-		return compiler;
+		return rspack(config, isWatch ? callback : undefined);
 	}
 	createColors(useColor?: boolean): RspackCLIColors {
 		const { createColors, isColorSupported } = require("colorette");
@@ -89,6 +88,7 @@ export class RspackCLI {
 		};
 	}
 	async run(argv: string[]) {
+		// @ts-expect-error
 		if (semver.lt(semver.clean(process.version), "14.0.0")) {
 			this.getLogger().warn(
 				`Minimum recommended Node.js version is 14.0.0, current version is ${process.version}`
@@ -260,6 +260,7 @@ export class RspackCLI {
 		}
 
 		if (typeof loadedConfig === "function") {
+			// @ts-expect-error
 			loadedConfig = loadedConfig(options.argv?.env, options.argv);
 			// if return promise we should await its result
 			if (
@@ -268,6 +269,7 @@ export class RspackCLI {
 				loadedConfig = await loadedConfig;
 			}
 		}
+		// @ts-expect-error
 		return loadedConfig;
 	}
 

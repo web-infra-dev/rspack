@@ -2,6 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "include": ["src"],
   "compilerOptions": {
+    "strictNullChecks": true,
     "outDir": "dist",
     "rootDir": "src",
     "moduleResolution": "nodenext"

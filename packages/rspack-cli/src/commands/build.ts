@@ -96,6 +96,7 @@ export class BuildCommand implements RspackCommand {
 					errorHandler
 				);
 
+				if (!compiler) return;
 				if (cli.isWatch(compiler)) {
 					return;
 				} else {
