@@ -9,7 +9,7 @@ use serde::{Serialize, Serializer};
 use crate::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
   to_identifier, AstOrSource, BuildContext, BuildInfo, BuildMetaExportsType, BuildResult,
-  ChunkInitFragments, CodeGenerationDataUrl, CodeGenerationResult, Compilation, Context,
+  ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult, Compilation, Context,
   ExternalType, GenerationResult, InitFragment, InitFragmentStage, LibIdentOptions, Module,
   ModuleType, RuntimeGlobals, SourceType,
 };
@@ -221,6 +221,20 @@ impl Module for ExternalModule {
     } else {
       EXTERNAL_MODULE_JS_SOURCE_TYPES
     }
+  }
+
+  fn has_chunk_condition(&self) -> bool {
+    true
+  }
+
+  fn chunk_condition(&self, chunk_key: &ChunkUkey, compilation: &Compilation) -> bool {
+    if self.external_type == "css-import" {
+      return true;
+    }
+    compilation
+      .chunk_graph
+      .get_number_of_entry_modules(chunk_key)
+      > 0
   }
 
   fn original_source(&self) -> Option<&dyn Source> {

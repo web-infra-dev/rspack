@@ -2281,6 +2281,7 @@ dependencies = [
  "rspack_plugin_css",
  "rspack_plugin_dev_friendly_split_chunks",
  "rspack_plugin_devtool",
+ "rspack_plugin_ensure_chunk_conditions",
  "rspack_plugin_entry",
  "rspack_plugin_externals",
  "rspack_plugin_html",
@@ -2657,6 +2658,15 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+]
+
+[[package]]
+name = "rspack_plugin_ensure_chunk_conditions"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rspack_core",
+ "rspack_error",
 ]
 
 [[package]]
