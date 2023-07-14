@@ -21,7 +21,7 @@ impl Plugin for EnsureChunkConditionsPlugin {
       .modules()
       .iter()
       .for_each(|(module_id, module)| {
-        if !module.has_chunk_condition() {
+        if module.has_chunk_condition() {
           let source_chunks = compilation
             .chunk_graph
             .get_module_chunks(module.identifier())
