@@ -11,12 +11,9 @@ use rspack_util::ext::{AsAny, DynEq, DynHash};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  ChunkUkey, CodeGenerationResult, CodeGenerationResult, CodeReplaceSourceDependency, Compilation,
-  Compilation, CompilerContext, CompilerContext, CompilerOptions, CompilerOptions, Context,
-  Context, ContextModule, ContextModule, Dependency, DependencyTemplate, ExternalModule,
-  ExternalModule, ModuleDependency, ModuleDependency, ModuleType, ModuleType, NormalModule,
-  NormalModule, RawModule, RawModule, Resolve, Resolve, SharedPluginDriver, SharedPluginDriver,
-  SourceType, SourceType,
+  ChunkUkey, CodeGenerationResult, Compilation, CompilerContext, CompilerOptions, Context,
+  ContextModule, DependencyTemplate, ExternalModule, ModuleDependency, ModuleType, NormalModule,
+  RawModule, Resolve, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext<'a> {
