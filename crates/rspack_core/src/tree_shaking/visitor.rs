@@ -314,6 +314,7 @@ impl<'a> ModuleRefAnalyze<'a> {
             if only_import {
               None
             } else {
+              // TODO: remove this line
               match self.export_map.get(&id.atom) {
                 Some(sym_ref @ SymbolRef::Direct(sym)) => {
                   if sym.id() == id {
@@ -393,16 +394,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         SymbolRef::Direct(symbol) => {
           let reachable_import_and_export =
             self.get_all_import_or_export(symbol.id().clone(), true);
-          if key != &symbol.id().atom {
-            // export {xxx as xxx}
-            self.reachable_import_and_export.insert(
-              symbol.id().atom.clone(),
-              reachable_import_and_export.clone(),
-            );
-          }
+          // export {xxx as xxx}
           self
             .reachable_import_and_export
-            .insert(key.clone(), reachable_import_and_export);
+            .insert(symbol.exported().clone(), reachable_import_and_export);
         }
         // ignore any indirect symbol, because it will not generate binding, the reachable exports will
         // be calculated in the module where it is defined
@@ -706,6 +701,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   self.module_identifier,
                   class.ident.to_id().into(),
                   SymbolType::Define,
+                  None,
                 )),
               );
             }
@@ -717,6 +713,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   self.module_identifier,
                   function.ident.to_id().into(),
                   SymbolType::Define,
+                  None,
                 )),
               );
             }
@@ -781,6 +778,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         self.module_identifier,
         default_ident.clone(),
         SymbolType::Define,
+        None,
       )),
     );
     match self.export_default_name {
@@ -946,6 +944,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           self.module_identifier,
           default_ident.to_id().into(),
           SymbolType::Define,
+          None,
         )),
       );
       let body_owner_extend_symbol: SymbolExt = match self.export_default_name {
@@ -1050,6 +1049,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           self.module_identifier,
           default_ident.to_id().into(),
           SymbolType::Define,
+          None,
         )),
       );
       let body_owner_extend_symbol: SymbolExt = match self.export_default_name {
@@ -1175,6 +1175,7 @@ impl<'a> ModuleRefAnalyze<'a> {
             self.module_identifier,
             lhs.clone(),
             SymbolType::Define,
+            None,
           )),
         );
       }
@@ -1212,6 +1213,7 @@ impl<'a> ModuleRefAnalyze<'a> {
                     self.module_identifier,
                     lhs.clone(),
                     SymbolType::Define,
+                    None,
                   )),
                 );
               }
@@ -1506,17 +1508,20 @@ impl<'a> ModuleRefAnalyze<'a> {
               ModuleExportName::Str(_) => unreachable!(),
             };
 
-            let exported_atom = match named.exported {
-              Some(ref exported) => match exported {
-                ModuleExportName::Ident(ident) => ident.sym.clone(),
-                ModuleExportName::Str(str) => str.value.clone(),
-              },
-              None => id.atom.clone(),
-            };
-            let symbol_ref =
-              SymbolRef::Direct(Symbol::new(self.module_identifier, id, SymbolType::Temp));
+            let exported_jsword = named.exported.as_ref().map(|exported| match exported {
+              ModuleExportName::Ident(ident) => ident.sym.clone(),
+              ModuleExportName::Str(str) => str.value.clone(),
+            });
 
-            self.add_export(exported_atom, symbol_ref);
+            let export_name = exported_jsword.clone().unwrap_or_else(|| id.atom.clone());
+            let symbol_ref = SymbolRef::Direct(Symbol::new(
+              self.module_identifier,
+              id,
+              SymbolType::Temp,
+              exported_jsword,
+            ));
+
+            self.add_export(export_name, symbol_ref);
           }
         });
     };

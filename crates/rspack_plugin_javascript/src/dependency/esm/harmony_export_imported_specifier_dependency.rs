@@ -39,6 +39,10 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    {
+      dbg!(&code_generatable_context.module.identifier());
+      dbg!(&self.ids);
+    }
     let compilation = &code_generatable_context.compilation;
     let module = &code_generatable_context.module;
     let dependency_id = compilation
@@ -69,7 +73,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
             if *d.ty() == SymbolType::Temp {
               if let Some(key) = &self.ids.iter().find(|e| {
                 if let Some(v) = &e.1 {
-                  v == &d.id().atom && e.0 != d.id().atom
+                  e.0 == *d.exported()
                 } else {
                   false
                 }
@@ -95,6 +99,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
           _ => None,
         })
         .collect::<HashSet<_>>();
+      dbg!(&set);
       Some(set)
     } else {
       None

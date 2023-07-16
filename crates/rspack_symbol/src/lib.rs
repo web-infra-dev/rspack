@@ -20,7 +20,11 @@ bitflags! {
 #[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize)]
 pub struct Symbol {
   pub(crate) src: Identifier,
+  /// id means a local binding or a declaration in top level scope
   pub(crate) id: BetterId,
+  /// exported only used for `export {id as exported};` when there existed a alias in
+  /// `ExportNamedDeclaration`
+  pub(crate) exported: Option<JsWord>,
   pub(crate) ty: SymbolType,
 }
 
@@ -31,8 +35,20 @@ pub enum SymbolType {
 }
 
 impl Symbol {
-  pub fn new(src: Identifier, id: BetterId, ty: SymbolType) -> Self {
-    Self { src, id, ty }
+  pub fn new(src: Identifier, id: BetterId, ty: SymbolType, exported: Option<JsWord>) -> Self {
+    Self {
+      src,
+      id,
+      ty,
+      exported,
+    }
+  }
+
+  pub fn exported(&self) -> &JsWord {
+    match self.exported {
+      Some(ref exported) => &exported,
+      None => &self.id().atom,
+    }
   }
 
   pub fn src(&self) -> Identifier {

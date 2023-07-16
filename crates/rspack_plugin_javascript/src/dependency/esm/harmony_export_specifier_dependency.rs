@@ -25,6 +25,10 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    {
+      dbg!(code_generatable_context.module.identifier().clone());
+      dbg!(&self.exports);
+    }
     let TemplateContext {
       runtime_requirements,
       init_fragments,
@@ -47,11 +51,7 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
           .filter_map(|item| match item {
             SymbolRef::Direct(d) if d.src() == module.identifier() => {
               if *d.ty() == SymbolType::Temp {
-                if let Some(key) = self
-                  .exports
-                  .iter()
-                  .find(|e| e.1 == d.id().atom && e.0 != d.id().atom)
-                {
+                if let Some(key) = self.exports.iter().find(|e| e.0 == *d.exported()) {
                   return Some(&key.0);
                 }
               }
