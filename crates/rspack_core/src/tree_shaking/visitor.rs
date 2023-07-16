@@ -314,7 +314,6 @@ impl<'a> ModuleRefAnalyze<'a> {
             if only_import {
               None
             } else {
-              // TODO: remove this line
               match self.export_map.get(&id.atom) {
                 Some(sym_ref @ SymbolRef::Direct(sym)) => {
                   if sym.id() == id {
