@@ -25,10 +25,6 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    {
-      dbg!(code_generatable_context.module.identifier().clone());
-      dbg!(&self.exports);
-    }
     let TemplateContext {
       runtime_requirements,
       init_fragments,

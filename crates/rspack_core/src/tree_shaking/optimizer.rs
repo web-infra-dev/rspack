@@ -32,8 +32,8 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
-  contextify, dbg_matches, join_string_component, tree_shaking::utils::ConvertModulePath,
-  Compilation, DependencyType, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
+  contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
+  DependencyType, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -201,7 +201,6 @@ impl<'a> CodeSizeOptimizer<'a> {
       visited_symbol_ref,
       &dead_nodes_index,
     );
-    dbg!(&used_symbol_ref);
     Ok(
       OptimizeDependencyResult {
         used_symbol_ref,
@@ -1261,15 +1260,6 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
         } else {
           AssetModule::new(*module_identifier).analyze(compilation)
         };
-
-        dbg_matches!(
-          &module_identifier.as_str(),
-          &optimize_analyze_result.reachable_import_of_export,
-          &optimize_analyze_result.used_symbol_refs,
-          &optimize_analyze_result.export_map,
-          &optimize_analyze_result.import_map,
-          &optimize_analyze_result.side_effects
-        );
 
         Some((*module_identifier, optimize_analyze_result))
       })
