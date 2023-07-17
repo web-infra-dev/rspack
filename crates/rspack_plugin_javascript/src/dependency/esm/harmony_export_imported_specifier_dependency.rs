@@ -68,7 +68,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
           SymbolRef::Direct(d) if d.src() == module.identifier() => {
             if *d.ty() == SymbolType::Temp {
               if let Some(key) = &self.ids.iter().find(|e| {
-                if let Some(v) = &e.1 {
+                if let Some(_) = &e.1 {
                   e.0 == *d.exported()
                 } else {
                   false

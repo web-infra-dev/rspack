@@ -387,13 +387,12 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     self.unresolved_ctxt = self.unresolved_ctxt.apply_mark(self.unresolved_mark);
     node.visit_children_with(self);
     // calc reachable imports for each export symbol defined in current module
-    for (key, symbol) in self.export_map.iter() {
+    for (_, symbol) in self.export_map.iter() {
       match symbol {
         // At this time uri of symbol will always equal to `self.module_identifier`
         SymbolRef::Direct(symbol) => {
           let reachable_import_and_export =
             self.get_all_import_or_export(symbol.id().clone(), true);
-          // export {xxx as xxx}
           self
             .reachable_import_and_export
             .insert(symbol.exported().clone(), reachable_import_and_export);

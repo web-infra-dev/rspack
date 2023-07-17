@@ -46,7 +46,7 @@ impl Symbol {
 
   pub fn exported(&self) -> &JsWord {
     match self.exported {
-      Some(ref exported) => &exported,
+      Some(ref exported) => exported,
       None => &self.id().atom,
     }
   }
