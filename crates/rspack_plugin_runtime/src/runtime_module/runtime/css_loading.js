@@ -54,7 +54,7 @@ var loadStylesheet = function(chunkId, url, done, hmr) {
 		link.onload = onLinkComplete.bind(null, link.onload);
 	} else onLinkComplete(undefined, { type: "load", target: link });
 	hmr
-		? document.head.insertBefore(link, hmr)
+		? hmr.parentNode.insertBefore(link, hmr)
 		: needAttach && document.head.appendChild(link);
 	return link;
 };
