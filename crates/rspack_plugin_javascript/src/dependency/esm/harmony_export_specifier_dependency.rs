@@ -47,11 +47,7 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
           .filter_map(|item| match item {
             SymbolRef::Direct(d) if d.src() == module.identifier() => {
               if *d.ty() == SymbolType::Temp {
-                if let Some(key) = self
-                  .exports
-                  .iter()
-                  .find(|e| e.1 == d.id().atom && e.0 != d.id().atom)
-                {
+                if let Some(key) = self.exports.iter().find(|e| e.0 == *d.exported()) {
                   return Some(&key.0);
                 }
               }

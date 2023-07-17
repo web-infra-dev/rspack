@@ -733,7 +733,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         let module_result = analyze_map.get(&symbol.src()).expect("TODO:");
         if let Some(set) = module_result
           .reachable_import_of_export
-          .get(&symbol.id().atom)
+          .get(symbol.exported())
         {
           for symbol_ref_ele in set.iter() {
             self
@@ -895,6 +895,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                       atom: indirect_symbol.indirect_id().clone(),
                     },
                     SymbolType::Temp,
+                    None,
                   )),
                 );
                 merge_used_export_type(

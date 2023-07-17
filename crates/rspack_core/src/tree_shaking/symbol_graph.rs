@@ -127,6 +127,7 @@ pub fn simplify_symbol_ref(symbol_ref: &SymbolRef) -> SymbolRef {
       direct.src().as_str().into(),
       direct.id().clone(),
       *direct.ty(),
+      Some(direct.exported().clone()),
     )),
     SymbolRef::Indirect(indirect) => SymbolRef::Indirect(IndirectTopLevelSymbol {
       src: indirect.src.as_str().into(),
