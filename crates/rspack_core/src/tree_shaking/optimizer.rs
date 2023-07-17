@@ -139,6 +139,8 @@ impl<'a> CodeSizeOptimizer<'a> {
     self.side_effects_free_modules = self.get_side_effects_free_modules(side_effect_map);
 
     let inherit_export_ref_graph = get_inherit_export_ref_graph(&mut finalized_result_map);
+    let res = serde_json::to_string(&inherit_export_ref_graph).unwrap();
+    println!("{}", &res);
     let mut errors = vec![];
     let mut used_symbol_ref = HashSet::default();
     let mut used_export_module_identifiers: IdentifierMap<ModuleUsedType> =
@@ -149,9 +151,11 @@ impl<'a> CodeSizeOptimizer<'a> {
     // dbg!(&used_symbol_ref);
     let mut visited_symbol_ref: HashSet<SymbolRef> = HashSet::default();
 
+    let q = VecDeque::from_iter(evaluated_used_symbol_ref.into_iter());
+    dbg!(&q);
     self.mark_used_symbol_with(
       &finalized_result_map,
-      VecDeque::from_iter(evaluated_used_symbol_ref.into_iter()),
+      q.clone(),
       &mut evaluated_module_identifiers,
       &mut used_export_module_identifiers,
       &inherit_export_ref_graph,
@@ -159,6 +163,8 @@ impl<'a> CodeSizeOptimizer<'a> {
       &mut visited_symbol_ref,
       &mut errors,
     );
+
+    println!("after mark used_symbol_with");
 
     // We considering all export symbol in each entry module as used for now
     self.mark_entry_symbol(
@@ -663,6 +669,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     } else {
       visited_symbol_ref.insert(current_symbol_ref.clone());
     }
+    dbg!(&current_symbol_ref);
 
     if !evaluated_module_identifiers.contains(&current_symbol_ref.importer()) {
       evaluated_module_identifiers.insert(current_symbol_ref.importer());
@@ -832,6 +839,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                         0,
                         None,
                       ) {
+                        dbg!(&path);
                         let mut from = current_symbol_ref.clone();
                         let mut star_chain_start_end_pair = (from.clone(), from.clone());
                         for i in 0..path.len() - 1 {

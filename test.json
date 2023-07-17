@@ -1,0 +1,10 @@
+{
+	"nodes": [
+		"/Users/bytedance/Documents/rspack/rspack/examples/basic/src/containers/containers.js",
+		"/Users/bytedance/Documents/rspack/rspack/examples/basic/src/containers/page-container.js",
+		"/Users/bytedance/Documents/rspack/rspack/examples/basic/src/containers/platform-container.js"
+	],
+	"node_holes": [],
+	"edge_property": "directed",
+	"edges": [[0, 1, null], [0, 2, null]]
+}
