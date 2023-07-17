@@ -481,6 +481,7 @@ export interface RawBuiltins {
 export interface RawCacheGroupOptions {
   priority?: number
   test?: string
+  idHint?: string
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
   type?: RegExp | string

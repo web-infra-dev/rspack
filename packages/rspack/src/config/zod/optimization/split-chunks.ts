@@ -24,6 +24,7 @@ const cacheGroupOptions = z.strictObject({
 	enforce: z.boolean().optional(),
 	reuseExistingChunk: z.boolean().optional(),
 	type: z.string().or(z.instanceof(RegExp)).optional(),
+	idHint: z.string().optional(),
 	...sharedCacheGroupConfigPart
 });
 
