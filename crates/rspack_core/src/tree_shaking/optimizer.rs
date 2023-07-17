@@ -150,9 +150,9 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     // dbg!(&used_symbol_ref);
     let mut visited_symbol_ref: HashSet<SymbolRef> = HashSet::default();
+    let mut visited_intermediate_star: HashSet<SymbolRef> = HashSet::default();
 
     let q = VecDeque::from_iter(evaluated_used_symbol_ref.into_iter());
-    dbg!(&q);
     self.mark_used_symbol_with(
       &finalized_result_map,
       q.clone(),
@@ -161,6 +161,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       &inherit_export_ref_graph,
       &mut traced_tuple,
       &mut visited_symbol_ref,
+      &mut visited_intermediate_star,
       &mut errors,
     );
 
@@ -174,6 +175,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       &inherit_export_ref_graph,
       &mut traced_tuple,
       &mut visited_symbol_ref,
+      &mut visited_intermediate_star,
       &mut errors,
     );
 
@@ -187,6 +189,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       inherit_export_ref_graph,
       traced_tuple,
       &mut visited_symbol_ref,
+      &mut visited_intermediate_star,
       &mut errors,
     );
     // let debug_graph = generate_debug_symbol_graph(
@@ -197,7 +200,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     // let res = serde_json::to_string(&debug_graph).unwrap();
     // println!("{}", res);
     self.check_symbol_query();
-
+    visited_symbol_ref.extend(visited_intermediate_star);
     let dead_nodes_index = HashSet::default();
     // dependency_replacement();
     let include_module_ids = self.finalize_symbol(
@@ -302,6 +305,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     inherit_export_ref_graph: GraphMap<Identifier, (), Directed>,
     mut traced_tuple: HashMap<(Identifier, Identifier), Vec<(SymbolRef, SymbolRef)>>,
     visited_symbol_ref: &mut HashSet<SymbolRef>,
+    visited_intermediate_star: &mut HashSet<SymbolRef>,
     errors: &mut Vec<Error>,
   ) {
     let bailout_entry_modules = self.bailout_modules.keys().copied().collect::<Vec<_>>();
@@ -315,6 +319,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         &mut traced_tuple,
         EntryLikeType::Bailout,
         visited_symbol_ref,
+        visited_intermediate_star,
         errors,
       );
     }
@@ -329,6 +334,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     inherit_export_ref_graph: &GraphMap<Identifier, (), Directed>,
     traced_tuple: &mut HashMap<(Identifier, Identifier), Vec<(SymbolRef, SymbolRef)>>,
     visited_symbol_ref: &mut HashSet<SymbolRef>,
+    visited_intermediate_star: &mut HashSet<SymbolRef>,
     errors: &mut Vec<Error>,
   ) {
     for entry in self.compilation.entry_modules() {
@@ -341,6 +347,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         traced_tuple,
         EntryLikeType::Entry,
         visited_symbol_ref,
+        visited_intermediate_star,
         errors,
       );
     }
@@ -634,6 +641,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
     traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
     visited_symbol_ref: &mut HashSet<SymbolRef>,
+    visited_intermediate_star: &mut HashSet<SymbolRef>,
     errors: &mut Vec<Error>,
   ) {
     while let Some(sym_ref) = init_queue.pop_front() {
@@ -646,6 +654,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         inherit_extend_graph,
         traced_tuple,
         visited_symbol_ref,
+        visited_intermediate_star,
         errors,
       );
     }
@@ -662,6 +671,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
     traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
     visited_symbol_ref: &mut HashSet<SymbolRef>,
+    visited_intermediate_star: &mut HashSet<SymbolRef>,
     errors: &mut Vec<Error>,
   ) {
     if visited_symbol_ref.contains(&current_symbol_ref) {
@@ -669,7 +679,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     } else {
       visited_symbol_ref.insert(current_symbol_ref.clone());
     }
-    dbg!(&current_symbol_ref);
 
     if !evaluated_module_identifiers.contains(&current_symbol_ref.importer()) {
       evaluated_module_identifiers.insert(current_symbol_ref.importer());
@@ -839,7 +848,6 @@ impl<'a> CodeSizeOptimizer<'a> {
                         0,
                         None,
                       ) {
-                        dbg!(&path);
                         let mut from = current_symbol_ref.clone();
                         let mut star_chain_start_end_pair = (from.clone(), from.clone());
                         for i in 0..path.len() - 1 {
@@ -862,7 +870,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                           }
 
                           let to = SymbolRef::Star(star_symbol);
-                          visited_symbol_ref.insert(to.clone());
+                          visited_intermediate_star.insert(to.clone());
                           if i == 0 {
                             star_chain_start_end_pair.0 = to.clone();
                           }
@@ -1040,6 +1048,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             src_module_identifier,
             StarSymbolKind::ReExportAll,
           ));
+          // println!("{:?}", &export_all);
           self.symbol_graph.add_edge(&current_symbol_ref, &export_all);
           symbol_queue.push_back(export_all.clone());
         }
@@ -1104,6 +1113,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
     entry_type: EntryLikeType,
     visited_symbol_ref: &mut HashSet<SymbolRef>,
+    visited_intermediate_star: &mut HashSet<SymbolRef>,
     errors: &mut Vec<Error>,
   ) {
     let mut q = VecDeque::new();
@@ -1134,6 +1144,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         inherit_extend_graph,
         traced_tuple,
         visited_symbol_ref,
+        visited_intermediate_star,
         errors,
       );
     }
@@ -1148,6 +1159,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         inherit_extend_graph,
         traced_tuple,
         visited_symbol_ref,
+        visited_intermediate_star,
         errors,
       );
     }
