@@ -68,7 +68,7 @@ function withB(v) {
 }
 function withC(v) {
     const value = x(v);
-    return (0, _inner__WEBPACK_IMPORTED_MODULE_0_["C"])(value);
+    return /* "./inner" unused */null(value);
 }
 
 },

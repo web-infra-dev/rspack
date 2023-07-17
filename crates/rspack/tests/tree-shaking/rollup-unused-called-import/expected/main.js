@@ -18,7 +18,7 @@ function __WEBPACK_DEFAULT_EXPORT__(){
     return "foo";
 }
  function foodead() {
-    return "foo" + (0, _dead__WEBPACK_IMPORTED_MODULE_0_["default"])();
+    return "foo" + /* "./dead" unused */null();
 }
 },
 "./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {

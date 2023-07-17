@@ -144,5 +144,9 @@ pub fn simplify_symbol_ref(symbol_ref: &SymbolRef) -> SymbolRef {
       importer: importer.as_str().into(),
       src: src.as_str().into(),
     },
+    SymbolRef::Worker { importer, src } => SymbolRef::Worker {
+      importer: importer.as_str().into(),
+      src: src.as_str().into(),
+    },
   }
 }

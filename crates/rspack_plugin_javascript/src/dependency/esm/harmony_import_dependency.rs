@@ -6,8 +6,6 @@ use rspack_core::{
 use rspack_symbol::IndirectTopLevelSymbol;
 use swc_core::ecma::atoms::JsWord;
 
-use super::HarmonyImportSpecifierDependency;
-
 #[derive(Debug, Clone)]
 pub enum Specifier {
   Namespace(JsWord),
@@ -22,7 +20,6 @@ pub struct HarmonyImportDependency {
   pub request: JsWord,
   pub id: DependencyId,
   pub span: Option<ErrorSpan>,
-  pub refs: Vec<HarmonyImportSpecifierDependency>,
   pub specifiers: Vec<Specifier>,
   pub dependency_type: DependencyType,
   pub export_all: bool,
@@ -30,9 +27,9 @@ pub struct HarmonyImportDependency {
 
 impl HarmonyImportDependency {
   pub fn new(
+    id: DependencyId,
     request: JsWord,
     span: Option<ErrorSpan>,
-    refs: Vec<HarmonyImportSpecifierDependency>,
     specifiers: Vec<Specifier>,
     dependency_type: DependencyType,
     export_all: bool,
@@ -40,8 +37,7 @@ impl HarmonyImportDependency {
     Self {
       request,
       span,
-      id: DependencyId::new(),
-      refs,
+      id,
       specifiers,
       dependency_type,
       export_all,
@@ -52,7 +48,7 @@ impl HarmonyImportDependency {
 impl DependencyTemplate for HarmonyImportDependency {
   fn apply(
     &self,
-    source: &mut TemplateReplaceSource,
+    _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
     let compilation = &code_generatable_context.compilation;
@@ -66,15 +62,6 @@ impl DependencyTemplate for HarmonyImportDependency {
       .include_module_ids
       .contains(&ref_mgm.module_identifier)
     {
-      self.refs.iter().for_each(|dep| {
-        dep.apply(
-          source,
-          code_generatable_context,
-          &self.id,
-          self.request.as_ref(),
-          false,
-        )
-      });
       return;
     }
 
@@ -129,28 +116,9 @@ impl DependencyTemplate for HarmonyImportDependency {
           .side_effects_free_modules
           .contains(&ref_mgm.module_identifier)
       {
-        self.refs.iter().for_each(|dep| {
-          dep.apply(
-            source,
-            code_generatable_context,
-            &self.id,
-            self.request.as_ref(),
-            false,
-          )
-        });
         return;
       }
     }
-
-    self.refs.iter().for_each(|dep| {
-      dep.apply(
-        source,
-        code_generatable_context,
-        &self.id,
-        self.request.as_ref(),
-        true,
-      )
-    });
 
     let content: (String, String) =
       import_statement(code_generatable_context, &self.id, &self.request, false);

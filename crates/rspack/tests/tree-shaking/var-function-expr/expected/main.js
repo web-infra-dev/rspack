@@ -11,7 +11,7 @@ __webpack_require__.d(__webpack_exports__, {
     _lib__WEBPACK_IMPORTED_MODULE_0_["result"];
 };
  var app2 = ()=>{
-    _lib__WEBPACK_IMPORTED_MODULE_0_["secret"];
+    /* "./lib" unused */null;
 };
  var app4 = (0, _lib__WEBPACK_IMPORTED_MODULE_0_["something"])('app4'), app5 = 10000;
  var app3 = (0, _lib__WEBPACK_IMPORTED_MODULE_0_["something"])('app3');
