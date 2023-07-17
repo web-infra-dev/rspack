@@ -1,2 +1,0 @@
-import {usePlatform} from './'
-usePlatform
