@@ -58,7 +58,6 @@ impl SymbolRef {
       SymbolRef::Star(s) => s.src(),
       SymbolRef::Url { src, .. } => *src,
       SymbolRef::Worker { src, .. } => *src,
-      SymbolRef::Usage(_, src) => *src,
       SymbolRef::Usage(_, _, src) => *src,
     }
   }
@@ -70,7 +69,6 @@ impl SymbolRef {
       SymbolRef::Star(s) => s.module_ident(),
       SymbolRef::Url { importer, .. } => *importer,
       SymbolRef::Worker { importer, .. } => *importer,
-      SymbolRef::Usage(_, src) => *src,
       SymbolRef::Usage(_, _, src) => *src,
     }
   }
@@ -340,17 +338,6 @@ impl<'a> ModuleRefAnalyze<'a> {
         }
         Part::MemberExpr { object, property } => {
           self.import_map.get(object).map(|sym_ref| match sym_ref {
-            SymbolRef::Direct(_) | SymbolRef::Indirect(_) => sym_ref.clone(),
-            SymbolRef::Star(uri) => SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-              uri.src(),
-              self.module_identifier,
-              IndirectType::Import(property.clone(), None),
-            )),
-            SymbolRef::Url { .. } | SymbolRef::Worker { .. } => unreachable!(),
-            SymbolRef::Indirect(_) => {
-              SymbolRef::Usage(vec![object, property], self.module_identifier)
-            }
-            SymbolRef::Star(_) => SymbolRef::Usage(vec![object, property], self.module_identifier),
             SymbolRef::Indirect(_) => SymbolRef::Usage(
               object.clone(),
               vec![property.clone()],
@@ -361,9 +348,10 @@ impl<'a> ModuleRefAnalyze<'a> {
               vec![property.clone()],
               self.module_identifier,
             ),
-            SymbolRef::Declaration(_) => unreachable!(),
-            SymbolRef::Url { .. } => unreachable!(),
-            SymbolRef::Usage(..) => unreachable!(),
+            SymbolRef::Url { .. }
+            | SymbolRef::Worker { .. }
+            | SymbolRef::Declaration(_)
+            | SymbolRef::Usage(..) => unreachable!(),
           })
         }
         Part::Url(src) => {
@@ -1600,11 +1588,9 @@ impl<'a> ModuleRefAnalyze<'a> {
               },
               None => id.atom.clone(),
             };
-            let symbol_ref =
-              SymbolRef::Declaration(Symbol::new(self.module_identifier, id, SymbolType::Temp));
 
             let export_name = exported_jsword.clone().unwrap_or_else(|| id.atom.clone());
-            let symbol_ref = SymbolRef::Direct(Symbol::new(
+            let symbol_ref = SymbolRef::Declaration(Symbol::new(
               self.module_identifier,
               id,
               SymbolType::Temp,

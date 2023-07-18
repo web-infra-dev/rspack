@@ -610,13 +610,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     // reachable_node_index.insert(cur);
     let symbol = graph.get_symbol(&cur).expect("Should get related symbol");
     let src = symbol.src();
-    let is_target = if (src == "/Users/bytedance/Documents/bytedance/monorepo/common/temp/node_modules/.pnpm/@kunlun+card-builder@0.3.27-alpha.2_qmcrsbrwnsokagj5zbn5htj2xq/node_modules/@kunlun/card-builder/dist/es/setters/components/rich-text/plugins/variable/index.js".into()) {
-            dbg!(&symbol);
-            dbg!(&path);
-            true
-            } else {
-            false
-        };
     // dbg!(&symbol);
     visited_symbol_node_index.insert(cur);
 
@@ -628,9 +621,6 @@ impl<'a> CodeSizeOptimizer<'a> {
         .neighbors_directed(cur, petgraph::Direction::Outgoing)
       {
         let neighbor_symbol_path_not_empty = graph.get_symbol(&neighbor).unwrap();
-        if is_target {
-          dbg!(&neighbor_symbol_path_not_empty);
-        }
         let is_match = match neighbor_symbol_path_not_empty {
           SymbolRef::Declaration(symbol) => &symbol.id().atom == name,
           SymbolRef::Indirect(indirect) => indirect.indirect_id() == name,
@@ -651,6 +641,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
           SymbolRef::Usage(_, _, _) => return false,
           SymbolRef::Url { .. } => return false,
+          SymbolRef::Worker { .. } => return false,
         };
         at_least_one_match = at_least_one_match || is_match;
         if (is_match) {
@@ -732,6 +723,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         }
         // do nothing since we don't interested
         SymbolRef::Url { .. } => {}
+        SymbolRef::Worker { .. } => {}
       }
     }
     visited_symbol_node_index.remove(&cur);
