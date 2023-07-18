@@ -8,6 +8,7 @@ module.exports = {
 	stats: {
 		builtAt: false,
 		timings: false,
-		source: true
+		source: true,
+    version: false
 	}
 }

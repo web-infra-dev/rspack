@@ -109,8 +109,7 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
           if js_compat_source.is_raw && js_compat_source.is_buffer {
             JsStatsModuleSource::B(js_compat_source.source)
           } else {
-            let source = Into::<Vec<u8>>::into(js_compat_source.source);
-            let s = String::from_utf8_lossy(&source).to_string();
+            let s = String::from_utf8_lossy(js_compat_source.source.as_ref()).to_string();
             JsStatsModuleSource::A(s)
           }
         })
