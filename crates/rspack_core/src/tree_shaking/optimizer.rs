@@ -198,7 +198,6 @@ impl<'a> CodeSizeOptimizer<'a> {
       side_effects_options,
       used_export_module_identifiers,
       &mut used_symbol_ref,
-      visited_symbol_ref,
       &dead_nodes_index,
     );
     Ok(
@@ -345,13 +344,17 @@ impl<'a> CodeSizeOptimizer<'a> {
     side_effects_analyze: bool,
     used_export_module_identifiers: IdentifierMap<ModuleUsedType>,
     used_symbol_ref: &mut HashSet<SymbolRef>,
-    visited_symbol_ref: HashSet<SymbolRef>,
     dead_node_index: &HashSet<NodeIndex>,
   ) -> IdentifierSet {
+    let symbol_graph = &self.symbol_graph;
+    let visited_symbol_ref = symbol_graph
+      .symbol_to_index
+      .keys()
+      .cloned()
+      .collect::<HashSet<SymbolRef>>();
     let mut include_module_ids = IdentifierSet::default();
 
     if side_effects_analyze {
-      let symbol_graph = &self.symbol_graph;
       let mut module_visited_symbol_ref: IdentifierMap<Vec<SymbolRef>> = IdentifierMap::default();
       for symbol in visited_symbol_ref {
         let module_identifier = symbol.importer();
@@ -854,14 +857,13 @@ impl<'a> CodeSizeOptimizer<'a> {
                           }
 
                           let to = SymbolRef::Star(star_symbol);
-                          visited_symbol_ref.insert(to.clone());
+                          // visited_symbol_ref.insert(to.clone());
                           if i == 0 {
                             star_chain_start_end_pair.0 = to.clone();
                           }
                           self.symbol_graph.add_edge(&from, &to);
                           from = to;
                         }
-                        // visited_symbol_ref.insert(value.clone());
                         self.symbol_graph.add_edge(&from, value);
                         star_chain_start_end_pair.1 = from;
                         final_node_of_path.push(star_chain_start_end_pair);
@@ -1035,52 +1037,6 @@ impl<'a> CodeSizeOptimizer<'a> {
           self.symbol_graph.add_edge(&current_symbol_ref, &export_all);
           symbol_queue.push_back(export_all.clone());
         }
-
-        // for (_, extend_export_map) in analyze_refsult.inherit_export_maps.iter() {
-        //   for export_symbol_ref in extend_export_map.values() {
-        //     graph.add_edge(&current_symbol_ref, export_symbol_ref);
-        //     symbol_queue.push_back(export_symbol_ref.clone());
-        //     let tuple = (
-        //       star_symbol.src.into(),
-        //       export_symbol_ref.module_identifier(),
-        //     );
-        //     if !traced_tuple.contains_key(&tuple) {
-        //       let paths = algo::all_simple_paths::<Vec<_>, _>(
-        //         &inherit_extend_graph,
-        //         star_symbol.src.into(),
-        //         export_symbol_ref.module_identifier(),
-        //         0,
-        //         None,
-        //       );
-
-        //       for path in paths.into_iter() {
-        //         // dbg!(&path);
-        //         let mut from = current_symbol_ref.clone();
-        //         for i in 0..path.len() - 1 {
-        //           let star_symbol = StarSymbol {
-        //             src: path[i + 1].into(),
-        //             binding: Default::default(),
-        //             module_ident: path[i].into(),
-        //             ty: StarSymbolKind::ReExportAll,
-        //           };
-        //           let to = SymbolRef::Star(star_symbol);
-        //           graph.add_edge(&from, &to);
-        //           from = to;
-        //         }
-
-        //         for mi in path.iter().take(path.len() - 1) {
-        //           merge_used_export_type(
-        //             used_export_module_identifiers,
-        //             *mi,
-        //             ModuleUsedType::EXPORT_STAR,
-        //           );
-        //         }
-        //       }
-        //       // TODO: handle related symbol connection
-        //       traced_tuple.insert(tuple, vec![]);
-        //     }
-        //   }
-        // }
       }
       SymbolRef::Url { .. } | SymbolRef::Worker { .. } => {}
     }
@@ -1111,7 +1067,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     // by default webpack will not mark the `export *` as used in entry module
     if matches!(entry_type, EntryLikeType::Bailout) {
       let inherit_export_symbols = get_inherit_export_symbol_ref(entry_module_result);
-
       q.extend(inherit_export_symbols);
       q.extend(entry_module_result.used_symbol_refs.iter().cloned());
     }
