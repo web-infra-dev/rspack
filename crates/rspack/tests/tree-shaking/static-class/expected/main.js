@@ -15,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {
 }
 class Result {
     static test() {
-        _b_js__WEBPACK_IMPORTED_MODULE_0_["cc"];
+        /* "./b.js" unused */null;
     }
 }
  const a = 3;

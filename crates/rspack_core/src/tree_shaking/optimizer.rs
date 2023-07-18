@@ -251,7 +251,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           SymbolRef::Indirect(_) | SymbolRef::Star(_) => {
             continue;
           }
-          SymbolRef::Url { .. } => continue,
+          SymbolRef::Url { .. } | SymbolRef::Worker { .. } => continue,
         }
         let index = self
           .symbol_graph
@@ -1082,7 +1082,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         //   }
         // }
       }
-      SymbolRef::Url { .. } => {}
+      SymbolRef::Url { .. } | SymbolRef::Worker { .. } => {}
     }
   }
   #[allow(clippy::too_many_arguments)]

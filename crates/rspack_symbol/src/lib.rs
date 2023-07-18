@@ -347,6 +347,7 @@ pub enum Part {
   Id(BetterId),
   MemberExpr { object: BetterId, property: JsWord },
   Url(JsWord),
+  Worker(JsWord),
 }
 
 impl Part {
@@ -370,7 +371,7 @@ impl Part {
     match self {
       Part::Id(id) => Some(id),
       Part::MemberExpr { object, .. } => Some(object),
-      Part::Url(_) => None,
+      Part::Url(_) | Part::Worker(_) => None,
     }
   }
 }

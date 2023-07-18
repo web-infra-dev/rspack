@@ -4,7 +4,7 @@
 __webpack_require__.r(__webpack_exports__);
 
 function test() {
-    /* "./lib.js" unused */undefined;
+    /* "./lib.js" unused */null;
 }
 },
 

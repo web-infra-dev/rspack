@@ -78,6 +78,10 @@ impl ConvertModulePath for SymbolRef {
         importer: importer.convert_module_identifier_to_module_path(module_graph),
         src: src.convert_module_identifier_to_module_path(module_graph),
       },
+      SymbolRef::Worker { importer, src } => SymbolRef::Worker {
+        importer: importer.convert_module_identifier_to_module_path(module_graph),
+        src: src.convert_module_identifier_to_module_path(module_graph),
+      },
     }
   }
 }
