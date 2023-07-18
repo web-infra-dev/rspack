@@ -200,14 +200,13 @@ impl<'a> CodeSizeOptimizer<'a> {
     // let res = serde_json::to_string(&debug_graph).unwrap();
     // println!("{}", res);
     self.check_symbol_query();
-    visited_symbol_ref.extend(visited_intermediate_star);
+
     let dead_nodes_index = HashSet::default();
     // dependency_replacement();
     let include_module_ids = self.finalize_symbol(
       side_effects_options,
       used_export_module_identifiers,
       &mut used_symbol_ref,
-      visited_symbol_ref,
       &dead_nodes_index,
     );
     Ok(
@@ -358,13 +357,17 @@ impl<'a> CodeSizeOptimizer<'a> {
     side_effects_analyze: bool,
     used_export_module_identifiers: IdentifierMap<ModuleUsedType>,
     used_symbol_ref: &mut HashSet<SymbolRef>,
-    visited_symbol_ref: HashSet<SymbolRef>,
     dead_node_index: &HashSet<NodeIndex>,
   ) -> IdentifierSet {
+    let symbol_graph = &self.symbol_graph;
+    let visited_symbol_ref = symbol_graph
+      .symbol_to_index
+      .keys()
+      .cloned()
+      .collect::<HashSet<SymbolRef>>();
     let mut include_module_ids = IdentifierSet::default();
 
     if side_effects_analyze {
-      let symbol_graph = &self.symbol_graph;
       let mut module_visited_symbol_ref: IdentifierMap<Vec<SymbolRef>> = IdentifierMap::default();
       for symbol in visited_symbol_ref {
         let module_identifier = symbol.importer();
@@ -870,7 +873,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                           }
 
                           let to = SymbolRef::Star(star_symbol);
-                          visited_intermediate_star.insert(to.clone());
+                          // visited_symbol_ref.insert(to.clone());
                           if i == 0 {
                             star_chain_start_end_pair.0 = to.clone();
                           }
