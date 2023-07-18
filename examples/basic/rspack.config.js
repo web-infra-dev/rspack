@@ -3,26 +3,14 @@ const config = {
 	context: __dirname,
 	mode: "development",
 	entry: {
-		main: "./src/index.jsx"
-	},
-	module: {
-		rules: [
-		]
+		main: "./src/index.js"
 	},
 	builtins: {
 		html: [
 			{
 				template: "./index.html"
 			}
-		],
-		treeShaking: true,
-		react: {
-			refresh: false
-		}
-	},
-	optimization: {
-		sideEffects: true
-	},
-	target: ['web', 'es5']
+		]
+	}
 };
 module.exports = config;

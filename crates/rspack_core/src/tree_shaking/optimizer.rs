@@ -139,8 +139,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     self.side_effects_free_modules = self.get_side_effects_free_modules(side_effect_map);
 
     let inherit_export_ref_graph = get_inherit_export_ref_graph(&mut finalized_result_map);
-    // let res = serde_json::to_string(&inherit_export_ref_graph).unwrap();
-    // println!("{}", &res);
     let mut errors = vec![];
     let mut used_symbol_ref = HashSet::default();
     let mut used_export_module_identifiers: IdentifierMap<ModuleUsedType> =
@@ -1069,7 +1067,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     // by default webpack will not mark the `export *` as used in entry module
     if matches!(entry_type, EntryLikeType::Bailout) {
       let inherit_export_symbols = get_inherit_export_symbol_ref(entry_module_result);
-
       q.extend(inherit_export_symbols);
       q.extend(entry_module_result.used_symbol_refs.iter().cloned());
     }
