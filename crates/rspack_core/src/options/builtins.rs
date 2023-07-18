@@ -1,10 +1,14 @@
+use std::fmt::Debug;
+use std::hash::Hash;
 use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
+use async_recursion::async_recursion;
 use glob::Pattern as GlobPattern;
+use rspack_regex::RspackRegex;
 use swc_core::ecma::transforms::react::Runtime;
 use swc_plugin_import::PluginImportConfig;
 
-use crate::AssetInfo;
+use crate::{try_any, AssetInfo};
 
 pub type Define = HashMap<String, String>;
 pub type Provide = HashMap<String, Vec<String>>;
@@ -102,6 +106,43 @@ pub struct Minification {
   pub drop_console: bool,
   pub pure_funcs: Vec<String>,
   pub extract_comments: Option<String>,
+  pub test: Option<MinificationConditions>,
+  pub include: Option<MinificationConditions>,
+  pub exclude: Option<MinificationConditions>,
+}
+
+#[derive(Debug, Clone, Hash)]
+pub enum MinificationCondition {
+  String(String),
+  Regexp(RspackRegex),
+}
+
+impl MinificationCondition {
+  #[async_recursion]
+  pub async fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
+    match self {
+      Self::String(s) => Ok(data.starts_with(s)),
+      Self::Regexp(r) => Ok(r.test(data)),
+    }
+  }
+}
+
+#[derive(Debug, Clone, Hash)]
+pub enum MinificationConditions {
+  String(String),
+  Regexp(rspack_regex::RspackRegex),
+  Array(Vec<MinificationCondition>),
+}
+
+impl MinificationConditions {
+  #[async_recursion]
+  pub async fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
+    match self {
+      Self::String(s) => Ok(data.starts_with(s)),
+      Self::Regexp(r) => Ok(r.test(data)),
+      Self::Array(l) => try_any(l, |i| async { i.try_match(data).await }).await,
+    }
+  }
 }
 
 #[derive(Debug, Copy, Clone, Default)]

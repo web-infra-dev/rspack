@@ -2718,6 +2718,7 @@ name = "rspack_plugin_javascript"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-recursion",
  "async-trait",
  "either",
  "indexmap 1.9.3",

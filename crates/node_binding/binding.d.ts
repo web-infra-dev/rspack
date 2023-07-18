@@ -675,6 +675,22 @@ export interface RawMinification {
   dropConsole: boolean
   pureFuncs: Array<string>
   extractComments?: string
+  test?: RawMinificationConditions
+  include?: RawMinificationConditions
+  exclude?: RawMinificationConditions
+}
+
+export interface RawMinificationCondition {
+  type: "string" | "regexp"
+  stringMatcher?: string
+  regexpMatcher?: string
+}
+
+export interface RawMinificationConditions {
+  type: "string" | "regexp" | "array"
+  stringMatcher?: string
+  regexpMatcher?: string
+  arrayMatcher?: Array<RawMinificationCondition>
 }
 
 export interface RawModuleOptions {
