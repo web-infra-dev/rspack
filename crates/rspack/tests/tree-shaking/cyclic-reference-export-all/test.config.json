@@ -1,7 +1,7 @@
 {
   "entry": {
     "main": {
-      "import": ["./src/index.jsx"]
+      "import": ["./src/index.js"]
     }
   },
   "optimization": {
