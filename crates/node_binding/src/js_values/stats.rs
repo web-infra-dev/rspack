@@ -105,11 +105,11 @@ impl From<rspack_core::StatsModule<'_>> for JsStatsModule {
           .to_js_compat_source()
           .map(|js_compat_source| {
             if js_compat_source.is_buffer && js_compat_source.is_raw {
-              return JsStatsModuleSource::B(js_compat_source.source);
+              JsStatsModuleSource::B(js_compat_source.source)
             } else {
               let source = Into::<Vec<u8>>::into(js_compat_source.source);
               let s = String::from_utf8_lossy(&source).to_string();
-              return JsStatsModuleSource::A(s);
+              JsStatsModuleSource::A(s)
             }
           })
           .ok()
