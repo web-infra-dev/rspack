@@ -152,7 +152,13 @@ impl TryFrom<RawMinificationConditions> for MinificationConditions {
       "string" => Self::String(value.string_matcher.ok_or_else(|| {
         internal_error!("should have a string_matcher when MinificationConditions.type is \"string\"")
       })?),
-      "regexp" => Self::Regexp(rspack_regex::RspackRegex::new(&value.regexp_matcher.unwrap()).expect("should have a regexp_matcher when MinificationConditions.type is \"regexp\"")),
+      "regexp" => Self::Regexp(rspack_regex::RspackRegex::new(
+        &value.regexp_matcher.ok_or_else(|| {
+          internal_error!(
+            "should have a regexp_matcher when MinificationConditions.type is \"regexp\""
+          )
+        })?,
+      )?),
       "array" => Self::Array(
         value.array_matcher
           .ok_or_else(|| {

@@ -250,7 +250,7 @@ impl Plugin for JsPlugin {
           continue;
         }
 
-        let is_matched = crate::ast::match_object(&minify_options, &filename)
+        let is_matched = crate::ast::match_object(minify_options, filename)
           .await
           .unwrap_or(false);
 
