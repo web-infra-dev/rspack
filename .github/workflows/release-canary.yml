@@ -20,7 +20,6 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: ${{ matrix.target }}
-      profile: 'debug'
       test: false
 
   release:
