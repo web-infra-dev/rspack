@@ -110,6 +110,8 @@ pub struct Minification {
   pub include: Option<MinificationConditions>,
   pub exclude: Option<MinificationConditions>,
 }
+
+#[derive(Debug, Clone, Hash)]
 pub enum MinificationCondition {
   String(String),
   Regexp(RspackRegex),
@@ -125,33 +127,7 @@ impl MinificationCondition {
   }
 }
 
-impl fmt::Debug for MinificationCondition {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      Self::String(i) => Debug::fmt(&i, f),
-      Self::Regexp(i) => i.fmt(f),
-    }
-  }
-}
-
-impl Hash for MinificationCondition {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    match self {
-      Self::String(i) => i.hash(state),
-      Self::Regexp(i) => i.hash(state),
-    }
-  }
-}
-
-impl Clone for MinificationCondition {
-  fn clone(&self) -> Self {
-    match self {
-      Self::String(i) => MinificationCondition::String(i.to_owned().clone()),
-      Self::Regexp(i) => MinificationCondition::Regexp(i.to_owned().clone()),
-    }
-  }
-}
-
+#[derive(Debug, Clone, Hash)]
 pub enum MinificationConditions {
   String(String),
   Regexp(rspack_regex::RspackRegex),
@@ -165,36 +141,6 @@ impl MinificationConditions {
       Self::String(s) => Ok(data.starts_with(s)),
       Self::Regexp(r) => Ok(r.test(data)),
       Self::Array(l) => try_any(l, |i| async { i.try_match(data).await }).await,
-    }
-  }
-}
-
-impl fmt::Debug for MinificationConditions {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      Self::String(i) => Debug::fmt(&i, f),
-      Self::Regexp(i) => i.fmt(f),
-      Self::Array(i) => i.fmt(f),
-    }
-  }
-}
-
-impl Hash for MinificationConditions {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    match self {
-      Self::String(i) => i.hash(state),
-      Self::Regexp(i) => i.hash(state),
-      Self::Array(i) => i.hash(state),
-    }
-  }
-}
-
-impl Clone for MinificationConditions {
-  fn clone(&self) -> Self {
-    match self {
-      Self::String(i) => MinificationConditions::String(i.to_owned().clone()),
-      Self::Regexp(i) => MinificationConditions::Regexp(i.to_owned().clone()),
-      Self::Array(i) => MinificationConditions::Array(i.to_owned().clone()),
     }
   }
 }
