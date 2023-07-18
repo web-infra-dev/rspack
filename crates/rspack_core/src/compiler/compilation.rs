@@ -51,6 +51,12 @@ pub type BuildDependency = (
 
 #[derive(Debug)]
 pub struct Compilation {
+  // Mark compilation status, because the hash of `[hash].hot-update.js/json` is previous compilation hash.
+  // Status A(hash: A) -> Status B(hash: B) will generate `A.hot-update.js`
+  // Status A(hash: A) -> Status C(hash: C) will generate `A.hot-update.js`
+  // The status is different, should generate different hash for `.hot-update.js`
+  // So use compilation hash update `hot_index` to fix it.
+  pub hot_index: u32,
   pub options: Arc<CompilerOptions>,
   pub entries: Entry,
   pub module_graph: ModuleGraph,
@@ -106,6 +112,7 @@ impl Compilation {
     cache: Arc<Cache>,
   ) -> Self {
     Self {
+      hot_index: 0,
       options,
       module_graph,
       make_failed_dependencies: HashSet::default(),
@@ -1186,6 +1193,7 @@ impl Compilation {
       .for_each(|hash| {
         hash.hash(&mut compilation_hasher);
       });
+    self.hot_index.hash(&mut compilation_hasher);
     self.hash = Some(compilation_hasher.digest(&self.options.output.hash_digest));
 
     // here omit re-create full hash runtime module hash, only update compilation hash to runtime chunk content hash

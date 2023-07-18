@@ -146,7 +146,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "a670737f604edf10c3a5",
+  "hash": "c0a007e6ada8fae1eeea",
   "modules": [
     {
       "assets": [],
@@ -236,7 +236,7 @@ chunk {main} main.xxxx.js (main) >{dynamic_js}< [entry]
   entry ./index
 ./dynamic.js [426] {dynamic_js}
   dynamic import ./dynamic [10]
-rspack compiled successfully (a670737f604edf10c3a5)"
+rspack compiled successfully (c0a007e6ada8fae1eeea)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -320,7 +320,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "ef20fee42a97ca5c7e58",
+  "hash": "19cf9c030dc9af928025",
   "modules": [
     {
       "assets": [],
@@ -373,7 +373,7 @@ chunk {main} bundle.js (main) [entry]
     entry ./index.js
 ./index.js [10] {main}
   entry ./index.js
-rspack compiled successfully (ef20fee42a97ca5c7e58)"
+rspack compiled successfully (19cf9c030dc9af928025)"
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 1`] = `
@@ -1524,7 +1524,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
     },
   ],
   "errorsCount": 1,
-  "hash": "d881257a32aa70bceb9f",
+  "hash": "7e86dbef52589da42e78",
   "modules": [
     {
       "assets": [],
@@ -1621,7 +1621,7 @@ error[internal]: Resolve error
 
 
 
-rspack compiled with 1 error (d881257a32aa70bceb9f)"
+rspack compiled with 1 error (7e86dbef52589da42e78)"
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 1`] = `
@@ -1743,7 +1743,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
     },
   ],
   "errorsCount": 1,
-  "hash": "d8057e887969080686e5",
+  "hash": "9a7559ac75c691f9a69c",
   "modules": [
     {
       "assets": [],
@@ -1835,7 +1835,7 @@ chunk {main} bundle.js (main) [entry]
 Export should be relative path and start with "./", but got ../../index.js
 
 
-rspack compiled with 1 error (d8057e887969080686e5)"
+rspack compiled with 1 error (9a7559ac75c691f9a69c)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple 1`] = `
@@ -1919,7 +1919,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "88a79807adcdd74d05f9",
+  "hash": "cc09525e55ecef0acf29",
   "modules": [
     {
       "assets": [],
@@ -1972,7 +1972,7 @@ chunk {main} bundle.js (main) [entry]
     entry ./index
 ./index.js [10] {main}
   entry ./index
-rspack compiled successfully (88a79807adcdd74d05f9)"
+rspack compiled successfully (cc09525e55ecef0acf29)"
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 1`] = `
