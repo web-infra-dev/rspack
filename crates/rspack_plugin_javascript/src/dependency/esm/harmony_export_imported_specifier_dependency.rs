@@ -69,7 +69,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
             if *decl.ty() == SymbolType::Temp {
               if let Some(key) = &self.ids.iter().find(|e| {
                 if e.1.is_some() {
-                  e.0 == *d.exported()
+                  e.0 == *decl.exported()
                 } else {
                   false
                 }
