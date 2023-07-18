@@ -31,7 +31,7 @@ export function builtins() {
 				template: z.string().optional(),
 				templateParameters: z.record(z.string()).optional(),
 				inject: z.enum(["head", "body"]).optional(),
-				publicPathz: z.string().optional(),
+				publicPath: z.string().optional(),
 				scriptLoading: z.enum(["blocking", "defer", "module"]).optional(),
 				chunks: z.string().array().optional(),
 				excludedChunks: z.string().array().optional(),
