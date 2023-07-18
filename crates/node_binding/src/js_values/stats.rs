@@ -1,5 +1,8 @@
 use napi::bindgen_prelude::Buffer;
-use napi::{bindgen_prelude::SharedReference, Either};
+use napi::{
+  bindgen_prelude::{Result, SharedReference},
+  Either,
+};
 use rspack_core::Stats;
 
 use super::{JsCompilation, ToJsCompatSource};
@@ -96,26 +99,26 @@ pub struct JsStatsModule {
   pub source: Option<Either<String, Buffer>>,
 }
 
-impl From<rspack_core::StatsModule<'_>> for JsStatsModule {
-  fn from(stats: rspack_core::StatsModule) -> Self {
+impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
+  type Error = napi::Error;
+  fn try_from(stats: rspack_core::StatsModule) -> Result<Self> {
     let source = stats
       .source
       .map(|source| {
-        source
-          .to_js_compat_source()
-          .map(|js_compat_source| {
-            if js_compat_source.is_buffer && js_compat_source.is_raw {
-              JsStatsModuleSource::B(js_compat_source.source)
-            } else {
-              let source = Into::<Vec<u8>>::into(js_compat_source.source);
-              let s = String::from_utf8_lossy(&source).to_string();
-              JsStatsModuleSource::A(s)
-            }
-          })
-          .ok()
+        source.to_js_compat_source().map(|js_compat_source| {
+          if js_compat_source.is_raw && js_compat_source.is_buffer {
+            JsStatsModuleSource::B(js_compat_source.source)
+          } else {
+            let source = Into::<Vec<u8>>::into(js_compat_source.source);
+            let s = String::from_utf8_lossy(&source).to_string();
+            JsStatsModuleSource::A(s)
+          }
+        })
       })
-      .flatten();
-    Self {
+      .transpose()
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
+    Ok(Self {
       r#type: stats.r#type,
       name: stats.name,
       size: stats.size,
@@ -132,7 +135,7 @@ impl From<rspack_core::StatsModule<'_>> for JsStatsModule {
         .map(|i| i.into_iter().map(Into::into).collect()),
       assets: stats.assets,
       source,
-    }
+    })
   }
 }
 
@@ -189,9 +192,10 @@ pub struct JsStatsChunk {
   pub siblings: Option<Vec<String>>,
 }
 
-impl From<rspack_core::StatsChunk<'_>> for JsStatsChunk {
-  fn from(stats: rspack_core::StatsChunk) -> Self {
-    Self {
+impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
+  type Error = napi::Error;
+  fn try_from(stats: rspack_core::StatsChunk) -> Result<Self> {
+    Ok(Self {
       r#type: stats.r#type,
       files: stats.files,
       id: stats.id,
@@ -201,11 +205,12 @@ impl From<rspack_core::StatsChunk<'_>> for JsStatsChunk {
       size: stats.size,
       modules: stats
         .modules
-        .map(|i| i.into_iter().map(Into::into).collect()),
+        .map(|i| i.into_iter().map(|m| m.try_into()).collect::<Result<_>>())
+        .transpose()?,
       parents: stats.parents,
       children: stats.children,
       siblings: stats.siblings,
-    }
+    })
   }
 }
 
@@ -295,13 +300,13 @@ impl JsStats {
     module_assets: bool,
     nested_modules: bool,
     source: bool,
-  ) -> Vec<JsStatsModule> {
+  ) -> Result<Vec<JsStatsModule>> {
     self
       .inner
       .get_modules(reasons, module_assets, nested_modules, source)
-      .expect("Failed to get modules")
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?
       .into_iter()
-      .map(Into::into)
+      .map(TryInto::try_into)
       .collect()
   }
 
@@ -314,7 +319,7 @@ impl JsStats {
     module_assets: bool,
     nested_modules: bool,
     source: bool,
-  ) -> Vec<JsStatsChunk> {
+  ) -> Result<Vec<JsStatsChunk>> {
     self
       .inner
       .get_chunks(
@@ -325,9 +330,9 @@ impl JsStats {
         nested_modules,
         source,
       )
-      .expect("Failed to get chunks")
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?
       .into_iter()
-      .map(Into::into)
+      .map(TryInto::try_into)
       .collect()
   }
 
