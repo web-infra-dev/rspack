@@ -59,6 +59,8 @@ struct ModuleEliminator {
   module_identifier: ModuleIdentifier,
 }
 
+type SymbolRefWithMemberChain = (SymbolRef, Vec<JsWord>);
+
 impl ModuleEliminator {
   fn could_be_skipped(&self) -> bool {
     !self.export_used && !self.is_bailout && self.side_effects_free && !self.is_entry
@@ -147,11 +149,15 @@ impl<'a> CodeSizeOptimizer<'a> {
     // Marking used symbol and all reachable export symbol from the used symbol for each module
 
     // dbg!(&used_symbol_ref);
-    let mut visited_symbol_ref: HashSet<SymbolRef> = HashSet::default();
+    let mut visited_symbol_ref: HashSet<SymbolRefWithMemberChain> = HashSet::default();
 
     self.mark_used_symbol_with(
       &finalized_result_map,
-      VecDeque::from_iter(evaluated_used_symbol_ref.into_iter()),
+      VecDeque::from_iter(
+        evaluated_used_symbol_ref
+          .into_iter()
+          .map(|item| (item, vec![])),
+      ),
       &mut evaluated_module_identifiers,
       &mut used_export_module_identifiers,
       &inherit_export_ref_graph,
@@ -242,7 +248,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     let get_node_index_from_serde_symbol = |serde_symbol: &SerdeSymbol| {
       for symbol_ref in self.symbol_graph.symbol_refs() {
         match symbol_ref {
-          SymbolRef::Direct(direct) => {
+          SymbolRef::Declaration(direct) => {
             if direct.id().atom != serde_symbol.id || !direct.src().contains(&serde_symbol.uri) {
               continue;
             }
@@ -251,6 +257,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             continue;
           }
           SymbolRef::Url { .. } | SymbolRef::Worker { .. } => continue,
+          SymbolRef::Usage(_, _, _) => continue,
         }
         let index = self
           .symbol_graph
@@ -294,7 +301,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
     inherit_export_ref_graph: GraphMap<Identifier, (), Directed>,
     mut traced_tuple: HashMap<(Identifier, Identifier), Vec<(SymbolRef, SymbolRef)>>,
-    visited_symbol_ref: &mut HashSet<SymbolRef>,
+    visited_symbol_ref: &mut HashSet<SymbolRefWithMemberChain>,
     errors: &mut Vec<Error>,
   ) {
     let bailout_entry_modules = self.bailout_modules.keys().copied().collect::<Vec<_>>();
@@ -321,7 +328,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
     inherit_export_ref_graph: &GraphMap<Identifier, (), Directed>,
     traced_tuple: &mut HashMap<(Identifier, Identifier), Vec<(SymbolRef, SymbolRef)>>,
-    visited_symbol_ref: &mut HashSet<SymbolRef>,
+    visited_symbol_ref: &mut HashSet<SymbolRefWithMemberChain>,
     errors: &mut Vec<Error>,
   ) {
     for entry in self.compilation.entry_modules() {
@@ -625,12 +632,12 @@ impl<'a> CodeSizeOptimizer<'a> {
   fn mark_used_symbol_with(
     &mut self,
     analyze_map: &IdentifierMap<OptimizeAnalyzeResult>,
-    mut init_queue: VecDeque<SymbolRef>,
+    mut init_queue: VecDeque<SymbolRefWithMemberChain>,
     evaluated_module_identifiers: &mut IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
     inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
     traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
-    visited_symbol_ref: &mut HashSet<SymbolRef>,
+    visited_symbol_ref: &mut HashSet<SymbolRefWithMemberChain>,
     errors: &mut Vec<Error>,
   ) {
     while let Some(sym_ref) = init_queue.pop_front() {
@@ -651,28 +658,29 @@ impl<'a> CodeSizeOptimizer<'a> {
   #[allow(clippy::too_many_arguments)]
   fn mark_symbol(
     &mut self,
-    current_symbol_ref: SymbolRef,
+    current_symbol_ref_with_member_chain: SymbolRefWithMemberChain,
     analyze_map: &IdentifierMap<OptimizeAnalyzeResult>,
-    symbol_queue: &mut VecDeque<SymbolRef>,
+    symbol_queue: &mut VecDeque<SymbolRefWithMemberChain>,
     evaluated_module_identifiers: &mut IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
     inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
     traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
-    visited_symbol_ref: &mut HashSet<SymbolRef>,
+    visited_symbol_ref: &mut HashSet<SymbolRefWithMemberChain>,
     errors: &mut Vec<Error>,
   ) {
-    if visited_symbol_ref.contains(&current_symbol_ref) {
+    if visited_symbol_ref.contains(&current_symbol_ref_with_member_chain) {
       return;
     } else {
-      visited_symbol_ref.insert(current_symbol_ref.clone());
+      visited_symbol_ref.insert(current_symbol_ref_with_member_chain.clone());
     }
+    let (current_symbol_ref, member_chain) = current_symbol_ref_with_member_chain;
 
     if !evaluated_module_identifiers.contains(&current_symbol_ref.importer()) {
       evaluated_module_identifiers.insert(current_symbol_ref.importer());
       if let Some(module_result) = analyze_map.get(&current_symbol_ref.importer()) {
         for used_symbol in module_result.used_symbol_refs.iter() {
           // graph.add_edge(&current_symbol_ref, used_symbol);
-          symbol_queue.push_back(used_symbol.clone());
+          symbol_queue.push_back((used_symbol.clone(), vec![]));
         }
       };
     }
@@ -681,7 +689,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     // bailout module will skipping tree-shaking anyway
     // let is_bailout_module_identifier = self.bailout_modules.contains_key(&current_symbol_ref.src());
     match &current_symbol_ref {
-      SymbolRef::Direct(symbol) => {
+      SymbolRef::Declaration(symbol) => {
         merge_used_export_type(
           used_export_module_identifiers,
           symbol.src(),
@@ -732,7 +740,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       _ => {}
     };
     match current_symbol_ref {
-      SymbolRef::Direct(ref symbol) => {
+      SymbolRef::Declaration(ref symbol) => {
         let module_result = analyze_map.get(&symbol.src()).expect("TODO:");
         if let Some(set) = module_result
           .reachable_import_of_export
@@ -742,7 +750,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             self
               .symbol_graph
               .add_edge(&current_symbol_ref, symbol_ref_ele);
-            symbol_queue.push_back(symbol_ref_ele.clone());
+            symbol_queue.push_back((symbol_ref_ele.clone(), vec![]));
           }
         };
 
@@ -756,10 +764,35 @@ impl<'a> CodeSizeOptimizer<'a> {
         // the binding in `app.js` used for shake the `export {xxx}`
         // In other words, we need two binding for supporting indirect redirect.
         if let Some(import_symbol_ref) = module_result.import_map.get(symbol.id()) {
+          let next_member_chain = match import_symbol_ref {
+            SymbolRef::Declaration(_) => unreachable!(),
+            SymbolRef::Indirect(indirect) => match indirect.ty {
+              IndirectType::Temp(_) => vec![],
+              IndirectType::ReExport(_, _) => vec![],
+              IndirectType::Import(_, _) => member_chain,
+              IndirectType::ImportDefault(_) => member_chain,
+            },
+            SymbolRef::Star(StarSymbol {
+              src,
+              binding,
+              module_ident,
+              ty: StarSymbolKind::ImportAllAs,
+            }) => {
+              if member_chain.len() > 1 {
+                member_chain[1..].to_vec()
+              } else {
+                vec![]
+              }
+            }
+            SymbolRef::Usage(_, _, _) => unreachable!(),
+            SymbolRef::Url { importer, src } => unreachable!(),
+            SymbolRef::Worker { importer, src } => unreachable!(),
+            _ => unreachable!(),
+          };
           self
             .symbol_graph
             .add_edge(&current_symbol_ref, import_symbol_ref);
-          symbol_queue.push_back(import_symbol_ref.clone());
+          symbol_queue.push_back((import_symbol_ref.clone(), next_member_chain));
         }
       }
       SymbolRef::Indirect(ref indirect_symbol) => {
@@ -890,7 +923,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               0 => {
                 self.symbol_graph.add_edge(
                   &current_symbol_ref,
-                  &SymbolRef::Direct(Symbol::new(
+                  &SymbolRef::Declaration(Symbol::new(
                     module_result.module_identifier,
                     BetterId {
                       ctxt: SyntaxContext::empty(),
@@ -1039,6 +1072,15 @@ impl<'a> CodeSizeOptimizer<'a> {
         }
       }
       SymbolRef::Url { .. } | SymbolRef::Worker { .. } => {}
+      SymbolRef::Usage(ref binding, ref member_chain, ref src) => {
+        let analyze_result = analyze_map.get(&src).expect("Should have analyze result");
+        if let Some(import_symbol_ref) = analyze_result.import_map.get(&binding) {
+          self
+            .symbol_graph
+            .add_edge(&current_symbol_ref, import_symbol_ref);
+          symbol_queue.push_back(import_symbol_ref.clone());
+        }
+      }
     }
   }
   #[allow(clippy::too_many_arguments)]
@@ -1051,7 +1093,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
     traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
     entry_type: EntryLikeType,
-    visited_symbol_ref: &mut HashSet<SymbolRef>,
+    visited_symbol_ref: &mut HashSet<SymbolRefWithMemberChain>,
     errors: &mut Vec<Error>,
   ) {
     let mut q = VecDeque::new();
@@ -1067,8 +1109,18 @@ impl<'a> CodeSizeOptimizer<'a> {
     // by default webpack will not mark the `export *` as used in entry module
     if matches!(entry_type, EntryLikeType::Bailout) {
       let inherit_export_symbols = get_inherit_export_symbol_ref(entry_module_result);
-      q.extend(inherit_export_symbols);
-      q.extend(entry_module_result.used_symbol_refs.iter().cloned());
+      q.extend(
+        inherit_export_symbols
+          .into_iter()
+          .map(|item| (item, vec![])),
+      );
+      q.extend(
+        entry_module_result
+          .used_symbol_refs
+          .iter()
+          .cloned()
+          .map(|item| (item, vec![])),
+      );
     }
 
     for item in entry_module_result.export_map.values() {
