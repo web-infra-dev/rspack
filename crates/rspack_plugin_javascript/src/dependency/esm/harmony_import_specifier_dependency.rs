@@ -107,12 +107,12 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
 
     if !used {
       // TODO do this by PureExpressionDependency.
-      source.replace(
-        self.start,
-        self.end,
-        &format!("/* \"{}\" unused */null", self.request),
-        None,
-      );
+      let value = format!("/* \"{}\" unused */null", self.request);
+      if self.shorthand {
+        source.insert(self.end, &format!(": {value}"), None);
+      } else {
+        source.replace(self.start, self.end, &value, None)
+      }
       return;
     }
 
