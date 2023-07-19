@@ -43,6 +43,11 @@ pub struct CodeSizeOptimizer<'a> {
   symbol_graph: SymbolGraph,
 }
 
+enum ReExportConnectionStatus {
+  Vacant(Vec<Vec<SymbolRef>>),
+  Occupied(Vec<SymbolRef>),
+}
+
 enum EntryLikeType {
   Entry,
   Bailout,
@@ -840,15 +845,10 @@ impl<'a> CodeSizeOptimizer<'a> {
               // the path is a.js -> b.js -> d.js
               if let Some(value) = extends_export_map.get(indirect_symbol.indirect_id()) {
                 ret.push((inherit_module_identifier, value));
-                enum ReExportConnectionStatus {
-                  Vacant(Vec<Vec<SymbolRef>>),
-                  Occupied(Vec<SymbolRef>),
-                }
                 if is_first_result {
                   let tuple = (indirect_symbol.src, *inherit_module_identifier);
                   let connection_stats = match traced_tuple.entry(tuple) {
                     Entry::Occupied(occ) => {
-                      // TODO: handle this
                       // self.symbol_graph.add_edge(&current_symbol_ref, to);
                       ReExportConnectionStatus::Occupied(occ.get().clone())
                     }
@@ -1050,8 +1050,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             } else {
               vec![]
             };
-            // TODO: does export all as don't export default?
-            (false, next_member_chain)
+            (true, next_member_chain)
           }
           StarSymbolKind::ImportAllAs => {
             let next_member_chain = if let Some(name) = member_chain.get(0) && name == star_symbol.binding() {
@@ -1077,14 +1076,9 @@ impl<'a> CodeSizeOptimizer<'a> {
             analyze_refsult.inherit_export_maps.iter()
           {
             if let Some(value) = extends_export_map.get(name) {
-              enum ReExportConnectionStatus {
-                Vacant(Vec<Vec<SymbolRef>>),
-                Occupied(Vec<SymbolRef>),
-              }
               let tuple = (star_symbol.src, *inherit_module_identifier);
               let connection_stats = match traced_tuple.entry(tuple) {
                 Entry::Occupied(occ) => {
-                  // TODO: handle this
                   // self.symbol_graph.add_edge(&current_symbol_ref, to);
                   ReExportConnectionStatus::Occupied(occ.get().clone())
                 }
