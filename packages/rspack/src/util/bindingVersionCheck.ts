@@ -102,11 +102,6 @@ export const checkVersion = () => {
 		const BINDING_PKG_DIR = path.dirname(
 			require.resolve("@rspack/binding/package.json")
 		);
-		console.log(
-			BINDING_PKG_DIR,
-			readdirSync(BINDING_PKG_DIR),
-			`rspack.${platformArchAbi}.node`
-		);
 
 		const isLocal = readdirSync(BINDING_PKG_DIR).some(
 			item => item === `rspack.${platformArchAbi}.node`
