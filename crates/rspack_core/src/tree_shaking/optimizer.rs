@@ -1,14 +1,13 @@
 use std::{
   borrow::BorrowMut,
   collections::{hash_map::Entry, VecDeque},
-  time::Instant,
 };
 
 use petgraph::{
   algo,
   prelude::{DiGraphMap, GraphMap},
   stable_graph::NodeIndex,
-  visit::{Bfs, Dfs, EdgeRef},
+  visit::{Dfs, EdgeRef},
   Directed,
 };
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
@@ -34,12 +33,8 @@ use super::{
 };
 use crate::{
   contextify, join_string_component,
-  tree_shaking::{
-    symbol_graph::{self, generate_debug_symbol_graph},
-    utils::ConvertModulePath,
-  },
-  Compilation, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType,
-  NormalModuleAstOrSource,
+  tree_shaking::{symbol_graph::generate_debug_symbol_graph, utils::ConvertModulePath},
+  Compilation, DependencyType, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -146,7 +141,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     }
     tracing::debug!(side_effect_map = format!("{:#?}", side_effect_map));
     // dbg!(&evaluated_used_symbol_ref);
-
+    println!("something");
     self.side_effects_free_modules = self.get_side_effects_free_modules(side_effect_map);
     let inherit_export_ref_graph = get_inherit_export_ref_graph(&mut finalized_result_map);
     let mut errors = vec![];
@@ -201,16 +196,6 @@ impl<'a> CodeSizeOptimizer<'a> {
       &mut root_symbol_ref_collector,
       &mut errors,
     );
-    let debug_graph =
-      generate_debug_symbol_graph(&self.symbol_graph, &self.compilation.module_graph);
-    let start = Instant::now();
-    let res = serde_json::to_string(&debug_graph).unwrap();
-    std::fs::write(
-      "/Users/bytedance/Documents/bytedance/monorepo/apps/card-builder/result.json",
-      res,
-    )
-    .unwrap();
-
     self.check_symbol_query();
 
     let dead_nodes_index = HashSet::default();
@@ -219,7 +204,6 @@ impl<'a> CodeSizeOptimizer<'a> {
       side_effects_options,
       used_export_module_identifiers,
       &mut used_symbol_ref,
-      visited_symbol_ref,
       root_symbol_ref_collector,
       &dead_nodes_index,
     );
@@ -274,7 +258,6 @@ impl<'a> CodeSizeOptimizer<'a> {
             continue;
           }
           SymbolRef::Url { .. } | SymbolRef::Worker { .. } => continue,
-          SymbolRef::Url { .. } => continue,
           SymbolRef::Usage(_, _, _) => continue,
         }
         let index = self
@@ -373,7 +356,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     side_effects_analyze: bool,
     used_export_module_identifiers: IdentifierMap<ModuleUsedType>,
     used_symbol_ref: &mut HashSet<SymbolRef>,
-    visited_symbol_ref: HashSet<SymbolRef>,
     root_symbol_ref_collector: IdentifierMap<HashSet<SymbolRef>>,
     dead_node_index: &HashSet<NodeIndex>,
   ) -> IdentifierSet {
@@ -449,7 +431,7 @@ impl<'a> CodeSizeOptimizer<'a> {
 
         if let Some(symbol_ref_list) = ref_map.get(&module_identifier) {
           for symbol_ref in symbol_ref_list {
-            let src = symbol_ref.src();
+            // let src = symbol_ref.src();
             let node_index = symbol_graph
               .get_node_index(symbol_ref)
               .expect("Can't get NodeIndex of SymbolRef");
@@ -644,7 +626,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           SymbolRef::Worker { .. } => return false,
         };
         at_least_one_match = at_least_one_match || is_match;
-        if (is_match) {
+        if is_match {
           // dbg!(&neighbor_symbol_path_not_empty);
           reachable_node_index.insert(neighbor);
           Self::rec(
@@ -1266,7 +1248,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         // one for `app.js`, one for `lib.js`
         // the binding in `app.js` used for shake the `export {xxx}`
         // In other words, we need two binding for supporting indirect redirect.
-        if let Some(import_symbol_ref) = analyze_result.import_map.get(&binding) {
+        if let Some(import_symbol_ref) = analyze_result.import_map.get(binding) {
           self
             .symbol_graph
             .add_edge(&current_symbol_ref, import_symbol_ref);
