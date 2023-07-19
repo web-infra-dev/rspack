@@ -767,7 +767,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           self
             .symbol_graph
             .add_edge(&current_symbol_ref, import_symbol_ref);
-          symbol_queue.push_back((import_symbol_ref.clone(), vec![]));
+          symbol_queue.push_back((import_symbol_ref.clone(), member_chain));
         }
       }
       SymbolRef::Indirect(ref indirect_symbol) => {
@@ -795,7 +795,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               if !is_same_symbol {
                 self.symbol_graph.add_edge(&current_symbol_ref, symbol);
               }
-              symbol_queue.push_back((symbol.clone(), vec![]));
+              symbol_queue.push_back((symbol.clone(), member_chain.clone()));
               // if a bailout module has reexport symbol
               if let Some(set) = module_result
                 .reachable_import_of_export
@@ -803,13 +803,13 @@ impl<'a> CodeSizeOptimizer<'a> {
               {
                 for symbol_ref_ele in set.iter() {
                   self.symbol_graph.add_edge(symbol, symbol_ref_ele);
-                  symbol_queue.push_back((symbol_ref_ele.clone(), vec![]));
+                  symbol_queue.push_back((symbol_ref_ele.clone(), member_chain.clone()));
                 }
               };
             }
             _ => {
               self.symbol_graph.add_edge(&current_symbol_ref, symbol);
-              symbol_queue.push_back((symbol.clone(), vec![]));
+              symbol_queue.push_back((symbol.clone(), member_chain));
             }
           },
 
@@ -1006,7 +1006,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                 ret[0].1.clone()
               }
             };
-            symbol_queue.push_back((selected_symbol, vec![]));
+            symbol_queue.push_back((selected_symbol, member_chain));
           }
         };
         // graph.add_edge(&current_symbol_ref, &symbol);
