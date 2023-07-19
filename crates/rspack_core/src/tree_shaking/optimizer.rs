@@ -1022,11 +1022,6 @@ impl<'a> CodeSizeOptimizer<'a> {
         // then, all the exports in `test.js` including
         // export defined in `test.js` and all related
         // reexport should be marked as used
-        let include_default_export = match star_symbol.ty() {
-          StarSymbolKind::ReExportAllAs => false,
-          StarSymbolKind::ImportAllAs => true,
-          StarSymbolKind::ReExportAll => false,
-        };
         let src_module_identifier: Identifier = star_symbol.src();
         let analyze_refsult = match analyze_map.get(&src_module_identifier) {
           Some(analyze_result) => analyze_result,
@@ -1048,6 +1043,38 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
         };
 
+        let (include_default_export, next_member_chain) = match star_symbol.ty() {
+          StarSymbolKind::ReExportAllAs => {
+            let next_member_chain = if let Some(name) = member_chain.get(0) && name == star_symbol.binding() {
+              member_chain[1..].to_vec()
+            } else {
+              vec![]
+            };
+            // TODO: does export all as don't export default?
+            (false, next_member_chain)
+          }
+          StarSymbolKind::ImportAllAs => {
+            let next_member_chain = if let Some(name) = member_chain.get(0) && name == star_symbol.binding() {
+              member_chain[1..].to_vec()
+            } else {
+              vec![]
+            };
+            (true, next_member_chain)
+          }
+          StarSymbolKind::ReExportAll => (false, vec![]),
+        };
+        // try to access first member expr element
+        if let Some(name) = next_member_chain.get(0) {
+          if let Some(export_symbol_ref) = analyze_refsult.export_map.get(name) {
+            self
+              .symbol_graph
+              .add_edge(&current_symbol_ref, export_symbol_ref);
+            symbol_queue.push_back((export_symbol_ref.clone(), next_member_chain[1..].to_vec()));
+            return;
+          }
+        }
+
+        // Failed to look up a specific element, connect all
         for (key, export_symbol_ref) in analyze_refsult.export_map.iter() {
           if !include_default_export && key == "default" {
           } else {
