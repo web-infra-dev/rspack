@@ -129,7 +129,7 @@ export const checkVersion = () => {
 	}
 
 	const isMatch = [CORE_VERSION, BINDING_VERSION, ADDON_VERSION].every(
-		(v, i, arr) => i === 0 || (i > 0 && v === arr[i - 1])
+		(v, _, arr) => v === arr[0]
 	);
 
 	if (!isMatch) {
