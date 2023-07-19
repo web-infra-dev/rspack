@@ -1072,6 +1072,85 @@ impl<'a> CodeSizeOptimizer<'a> {
             symbol_queue.push_back((export_symbol_ref.clone(), next_member_chain[1..].to_vec()));
             return;
           }
+
+          for (inherit_module_identifier, extends_export_map) in
+            analyze_refsult.inherit_export_maps.iter()
+          {
+            if let Some(value) = extends_export_map.get(name) {
+              enum ReExportConnectionStatus {
+                Vacant(Vec<Vec<SymbolRef>>),
+                Occupied(Vec<SymbolRef>),
+              }
+              let tuple = (star_symbol.src, *inherit_module_identifier);
+              let connection_stats = match traced_tuple.entry(tuple) {
+                Entry::Occupied(occ) => {
+                  // TODO: handle this
+                  // self.symbol_graph.add_edge(&current_symbol_ref, to);
+                  ReExportConnectionStatus::Occupied(occ.get().clone())
+                }
+                Entry::Vacant(vac) => {
+                  let mut reexport_paths = vec![];
+                  for path in algo::all_simple_paths::<Vec<_>, _>(
+                    &inherit_extend_graph,
+                    star_symbol.src,
+                    *inherit_module_identifier,
+                    0,
+                    None,
+                  ) {
+                    let mut reexport_path = vec![];
+                    for i in 0..path.len() - 1 {
+                      let star_symbol = StarSymbol::new(
+                        path[i + 1],
+                        Default::default(),
+                        path[i],
+                        StarSymbolKind::ReExportAll,
+                      );
+
+                      let reexport_ref = SymbolRef::Star(star_symbol);
+                      reexport_path.push(reexport_ref);
+                    }
+                    reexport_paths.push(reexport_path);
+                  }
+                  let first_reexport_of_each_path = reexport_paths
+                    .iter()
+                    .filter_map(|path| path.get(0).cloned())
+                    .collect::<Vec<_>>();
+                  vac.insert(first_reexport_of_each_path);
+                  ReExportConnectionStatus::Vacant(reexport_paths)
+                }
+              };
+              match connection_stats {
+                ReExportConnectionStatus::Vacant(reexport_paths) => {
+                  for reexport_path in reexport_paths {
+                    let mut pre = &current_symbol_ref;
+                    for reexport_ref in reexport_path.iter() {
+                      self.symbol_graph.add_edge(&pre, reexport_ref);
+                      pre = reexport_ref;
+                      if !evaluated_module_identifiers.contains(&reexport_ref.importer()) {
+                        evaluated_module_identifiers.insert(reexport_ref.importer());
+                        if let Some(module_result) = analyze_map.get(&reexport_ref.importer()) {
+                          for used_symbol in module_result.used_symbol_refs.iter() {
+                            symbol_queue.push_back((used_symbol.clone(), vec![]));
+                          }
+                        };
+                      }
+                      merge_used_export_type(
+                        used_export_module_identifiers,
+                        reexport_ref.importer(),
+                        ModuleUsedType::EXPORT_ALL,
+                      );
+                    }
+                    self.symbol_graph.add_edge(&pre, value);
+                  }
+                }
+                ReExportConnectionStatus::Occupied(_) => {
+                  // TODO:
+                }
+              }
+            }
+            // has_bailout_module_identifiers = has_bailout_module_identifiers
+            //   || self.bailout_modules.contains_key(module_identifier);
+          }
         }
 
         // Failed to look up a specific element, connect all
@@ -1103,7 +1182,9 @@ impl<'a> CodeSizeOptimizer<'a> {
           self
             .symbol_graph
             .add_edge(&current_symbol_ref, import_symbol_ref);
-          symbol_queue.push_back((import_symbol_ref.clone(), vec![]));
+          let mut next_member_chain = vec![binding.atom.clone()];
+          next_member_chain.extend(member_chain.iter().cloned());
+          symbol_queue.push_back((import_symbol_ref.clone(), next_member_chain));
         }
       }
     }
