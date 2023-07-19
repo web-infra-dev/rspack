@@ -79,6 +79,7 @@ pub enum DependencyType {
   /// static exports
   StaticExports,
   Custom(Cow<'static, str>),
+  Provided,
 }
 
 impl Display for DependencyType {
@@ -108,6 +109,7 @@ impl Display for DependencyType {
       DependencyType::WasmExportImported => write!(f, "wasm export imported"),
       DependencyType::StaticExports => write!(f, "static exports"),
       DependencyType::Custom(ty) => write!(f, "custom {ty}"),
+      DependencyType::Provided => write!(f, "provided"),
     }
   }
 }

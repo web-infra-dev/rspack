@@ -11,6 +11,7 @@ mod hot_module_replacement_scanner;
 mod import_meta_scanner;
 mod import_scanner;
 mod node_stuff_scanner;
+mod provide_scanner;
 mod require_context_scanner;
 mod url_scanner;
 mod util;
@@ -31,8 +32,9 @@ use self::{
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
   hot_module_replacement_scanner::HotModuleReplacementScanner,
   import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
-  node_stuff_scanner::NodeStuffScanner, require_context_scanner::RequireContextScanner,
-  url_scanner::UrlScanner, worker_scanner::WorkerScanner,
+  node_stuff_scanner::NodeStuffScanner, provide_scanner::ProvideScanner,
+  require_context_scanner::RequireContextScanner, url_scanner::UrlScanner,
+  worker_scanner::WorkerScanner,
 };
 
 pub type ScanDependenciesResult = (
@@ -67,13 +69,20 @@ pub fn scan_dependencies(
     &unresolved_ctxt,
   ));
 
-  // TODO it should enable at js/auto or js/dynamic, but builtins provider will inject require at esm
-  program.visit_with(&mut CommonJsImportDependencyScanner::new(
-    &mut dependencies,
-    &mut presentational_dependencies,
-    &unresolved_ctxt,
-  ));
+  if !compiler_options.builtins.provide.is_empty() {
+    program.visit_with(&mut ProvideScanner::new(
+      &compiler_options.builtins.provide,
+      &unresolved_ctxt,
+      &mut dependencies,
+    ));
+  }
+
   if module_type.is_js_auto() || module_type.is_js_dynamic() {
+    program.visit_with(&mut CommonJsImportDependencyScanner::new(
+      &mut dependencies,
+      &mut presentational_dependencies,
+      &unresolved_ctxt,
+    ));
     // TODO webpack scan it at CommonJsExportsParserPlugin
     // use `Dynamic` as workaround
     build_meta.exports_type = BuildMetaExportsType::Dynamic;
