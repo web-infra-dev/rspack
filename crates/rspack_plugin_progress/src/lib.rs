@@ -74,38 +74,47 @@ impl ProgressPlugin {
       let mut last_state_info = self.last_state_info.write().expect("TODO:");
 
       let len = full_state.len().max(last_state_info.len());
+      let original_last_state_info_len = last_state_info.len();
       for i in (0..len).rev() {
-        if i + 1 > last_state_info.len() {
-          last_state_info.push(ProgressPluginStateInfo {
-            value: full_state[i].clone(),
-            time: now,
-          })
+        if i + 1 > original_last_state_info_len {
+          last_state_info.insert(
+            original_last_state_info_len,
+            ProgressPluginStateInfo {
+              value: full_state[i].clone(),
+              time: now,
+            },
+          )
         } else {
-          if i == full_state.len() {
-            last_state_info.truncate(i);
-            break;
-          } else {
-            if i + 1 > full_state.len() || last_state_info[i].value != full_state[i] {
-              let diff = now - last_state_info[i].time;
-              let report_state = if i > 0 {
-                last_state_info[i - 1].value.clone()
-                  + " > "
-                  + last_state_info[i].value.clone().as_str()
-              } else {
-                last_state_info[i].value.clone()
-              };
-              println!(
-                "{} {}ms {}",
-                " | ".repeat(i),
-                diff.as_millis(),
-                report_state
-              );
+          // if i == full_state.len() {
+          //   last_state_info.truncate(i);
+          //   break;
+          // } else {
+
+          if i + 1 > full_state.len() || last_state_info[i].value != full_state[i] {
+            let diff = now - last_state_info[i].time;
+            let report_state = if i > 0 {
+              last_state_info[i - 1].value.clone()
+                + " > "
+                + last_state_info[i].value.clone().as_str()
+            } else {
+              last_state_info[i].value.clone()
+            };
+            println!(
+              "{} {}ms {}",
+              " | ".repeat(i),
+              diff.as_millis(),
+              report_state
+            );
+            if i + 1 > full_state.len() {
+              last_state_info.truncate(i);
+            } else {
               last_state_info[i] = ProgressPluginStateInfo {
                 value: full_state[i].clone(),
                 time: now,
-              }
+              };
             }
           }
+          // }
         }
       }
       //   let report_state = if last_state_info.len() > i && i > 0 {
