@@ -196,8 +196,8 @@ impl IndirectTopLevelSymbol {
         Some(exported) => exported,
         None => original,
       },
-      IndirectType::Import(ref local, ref imported) => match imported {
-        Some(imported) => imported,
+      IndirectType::Import(ref local, ref original) => match original {
+        Some(original) => original,
         None => local,
       },
       // we store the binding just used for create [ModuleDecl], but it is always `default` when as `exported` or `imported`

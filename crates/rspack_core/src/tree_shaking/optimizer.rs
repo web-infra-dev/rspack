@@ -764,35 +764,10 @@ impl<'a> CodeSizeOptimizer<'a> {
         // the binding in `app.js` used for shake the `export {xxx}`
         // In other words, we need two binding for supporting indirect redirect.
         if let Some(import_symbol_ref) = module_result.import_map.get(symbol.id()) {
-          let next_member_chain = match import_symbol_ref {
-            SymbolRef::Declaration(_) => unreachable!(),
-            SymbolRef::Indirect(indirect) => match indirect.ty {
-              IndirectType::Temp(_) => vec![],
-              IndirectType::ReExport(_, _) => vec![],
-              IndirectType::Import(_, _) => member_chain,
-              IndirectType::ImportDefault(_) => member_chain,
-            },
-            SymbolRef::Star(StarSymbol {
-              src,
-              binding,
-              module_ident,
-              ty: StarSymbolKind::ImportAllAs,
-            }) => {
-              if member_chain.len() > 1 {
-                member_chain[1..].to_vec()
-              } else {
-                vec![]
-              }
-            }
-            SymbolRef::Usage(_, _, _) => unreachable!(),
-            SymbolRef::Url { importer, src } => unreachable!(),
-            SymbolRef::Worker { importer, src } => unreachable!(),
-            _ => unreachable!(),
-          };
           self
             .symbol_graph
             .add_edge(&current_symbol_ref, import_symbol_ref);
-          symbol_queue.push_back((import_symbol_ref.clone(), next_member_chain));
+          symbol_queue.push_back((import_symbol_ref.clone(), vec![]));
         }
       }
       SymbolRef::Indirect(ref indirect_symbol) => {
@@ -820,7 +795,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               if !is_same_symbol {
                 self.symbol_graph.add_edge(&current_symbol_ref, symbol);
               }
-              symbol_queue.push_back(symbol.clone());
+              symbol_queue.push_back((symbol.clone(), vec![]));
               // if a bailout module has reexport symbol
               if let Some(set) = module_result
                 .reachable_import_of_export
@@ -828,13 +803,13 @@ impl<'a> CodeSizeOptimizer<'a> {
               {
                 for symbol_ref_ele in set.iter() {
                   self.symbol_graph.add_edge(symbol, symbol_ref_ele);
-                  symbol_queue.push_back(symbol_ref_ele.clone());
+                  symbol_queue.push_back((symbol_ref_ele.clone(), vec![]));
                 }
               };
             }
             _ => {
               self.symbol_graph.add_edge(&current_symbol_ref, symbol);
-              symbol_queue.push_back(symbol.clone());
+              symbol_queue.push_back((symbol.clone(), vec![]));
             }
           },
 
@@ -842,34 +817,45 @@ impl<'a> CodeSizeOptimizer<'a> {
             // TODO: better diagnostic and handle if multiple extends_map has export same symbol
             let mut ret = vec![];
             // Checking if any inherit export map is belong to a bailout module
-            let mut has_bailout_module_identifiers = false;
+            // let mut has_bailout_module_identifiers = false;
             let mut is_first_result = true;
-            for (module_identifier, extends_export_map) in module_result.inherit_export_maps.iter()
+            for (inherit_module_identifier, extends_export_map) in
+              module_result.inherit_export_maps.iter()
             {
+              //
+              // ```js
+              // // index.js
+              // import {a} from './a.js'
+              // a
+              // // a.js
+              // export * from './b.js'
+              // export * from './c.js'
+              // //b.js
+              // export * from './d.js'
+              // //c.js
+              // export const c = 10;
+              // //d.js
+              // export const a = 3;
+              // ```
+              // the path is a.js -> b.js -> d.js
               if let Some(value) = extends_export_map.get(indirect_symbol.indirect_id()) {
-                ret.push((module_identifier, value));
+                ret.push((inherit_module_identifier, value));
                 if is_first_result {
                   let mut final_node_of_path = vec![];
-                  let tuple = (indirect_symbol.src, *module_identifier);
+                  let tuple = (indirect_symbol.src, *inherit_module_identifier);
                   match traced_tuple.entry(tuple) {
-                    Entry::Occupied(occ) => {
-                      let final_node_path = occ.get();
-                      // dbg!(&final_node_path, indi);
-                      for (start, end) in final_node_path {
-                        self.symbol_graph.add_edge(&current_symbol_ref, start);
-                        self.symbol_graph.add_edge(end, value);
-                      }
-                    }
+                    Entry::Occupied(occ) => {}
                     Entry::Vacant(vac) => {
                       for path in algo::all_simple_paths::<Vec<_>, _>(
                         &inherit_extend_graph,
                         indirect_symbol.src,
-                        *module_identifier,
+                        *inherit_module_identifier,
                         0,
                         None,
                       ) {
                         let mut from = current_symbol_ref.clone();
                         let mut star_chain_start_end_pair = (from.clone(), from.clone());
+                        let mut reexport_path = vec![];
                         for i in 0..path.len() - 1 {
                           let star_symbol = StarSymbol::new(
                             path[i + 1],
@@ -877,36 +863,30 @@ impl<'a> CodeSizeOptimizer<'a> {
                             path[i],
                             StarSymbolKind::ReExportAll,
                           );
-                          if !evaluated_module_identifiers.contains(&star_symbol.module_ident()) {
-                            evaluated_module_identifiers.insert(star_symbol.module_ident());
-                            if let Some(module_result) =
-                              analyze_map.get(&star_symbol.module_ident())
-                            {
+
+                          let reexport_ref = SymbolRef::Star(star_symbol);
+                          reexport_path.push(reexport_ref);
+                        }
+
+                        let mut pre = &current_symbol_ref;
+                        for reexport_ref in reexport_path.iter() {
+                          self.symbol_graph.add_edge(&pre, reexport_ref);
+                          pre = reexport_ref;
+                          if !evaluated_module_identifiers.contains(&reexport_ref.importer()) {
+                            evaluated_module_identifiers.insert(reexport_ref.importer());
+                            if let Some(module_result) = analyze_map.get(&reexport_ref.importer()) {
                               for used_symbol in module_result.used_symbol_refs.iter() {
-                                // graph.add_edge(&current_symbol_ref, used_symbol);
-                                symbol_queue.push_back(used_symbol.clone());
+                                symbol_queue.push_back((used_symbol.clone(), vec![]));
                               }
                             };
                           }
-
-                          let to = SymbolRef::Star(star_symbol);
-                          // visited_symbol_ref.insert(to.clone());
-                          if i == 0 {
-                            star_chain_start_end_pair.0 = to.clone();
-                          }
-                          self.symbol_graph.add_edge(&from, &to);
-                          from = to;
-                        }
-                        self.symbol_graph.add_edge(&from, value);
-                        star_chain_start_end_pair.1 = from;
-                        final_node_of_path.push(star_chain_start_end_pair);
-                        for mi in path.iter().take(path.len() - 1) {
                           merge_used_export_type(
                             used_export_module_identifiers,
-                            *mi,
+                            reexport_ref.importer(),
                             ModuleUsedType::EXPORT_ALL,
                           );
                         }
+                        self.symbol_graph.add_edge(&pre, value);
                       }
                       // used_export_module_identifiers.extend();
                       vac.insert(final_node_of_path);
@@ -915,8 +895,8 @@ impl<'a> CodeSizeOptimizer<'a> {
                   is_first_result = false;
                 }
               }
-              has_bailout_module_identifiers = has_bailout_module_identifiers
-                || self.bailout_modules.contains_key(module_identifier);
+              // has_bailout_module_identifiers = has_bailout_module_identifiers
+              //   || self.bailout_modules.contains_key(module_identifier);
             }
 
             let selected_symbol = match ret.len() {
@@ -982,7 +962,6 @@ impl<'a> CodeSizeOptimizer<'a> {
               // multiple export candidate in reexport
               // mark the first symbol_ref as used, align to webpack
               _ => {
-                // TODO: better traceable diagnostic
                 let mut error_message = format!(
                   "Conflicting star exports for the name '{}' in ",
                   indirect_symbol.indirect_id()
@@ -1008,7 +987,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                 ret[0].1.clone()
               }
             };
-            symbol_queue.push_back(selected_symbol);
+            symbol_queue.push_back((selected_symbol, vec![]));
           }
         };
         // graph.add_edge(&current_symbol_ref, &symbol);
@@ -1056,7 +1035,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             self
               .symbol_graph
               .add_edge(&current_symbol_ref, export_symbol_ref);
-            symbol_queue.push_back(export_symbol_ref.clone());
+            symbol_queue.push_back((export_symbol_ref.clone(), vec![]));
           }
         }
 
@@ -1068,7 +1047,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             StarSymbolKind::ReExportAll,
           ));
           self.symbol_graph.add_edge(&current_symbol_ref, &export_all);
-          symbol_queue.push_back(export_all.clone());
+          symbol_queue.push_back((export_all.clone(), vec![]));
         }
       }
       SymbolRef::Url { .. } | SymbolRef::Worker { .. } => {}
@@ -1078,7 +1057,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           self
             .symbol_graph
             .add_edge(&current_symbol_ref, import_symbol_ref);
-          symbol_queue.push_back(import_symbol_ref.clone());
+          symbol_queue.push_back((import_symbol_ref.clone(), vec![]));
         }
       }
     }
@@ -1125,7 +1104,7 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     for item in entry_module_result.export_map.values() {
       self.mark_symbol(
-        item.clone(),
+        (item.clone(), vec![]),
         analyze_map,
         &mut q,
         evaluated_module_identifiers,

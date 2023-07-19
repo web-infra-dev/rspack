@@ -39,11 +39,14 @@ impl SymbolGraph {
   }
 
   // #[track_caller]
-  pub fn add_edge(&mut self, from: &SymbolRef, to: &SymbolRef) {
+  pub fn add_edge(&mut self, from: &SymbolRef, to: &SymbolRef) -> bool {
     let from_index = self.add_node(from);
     let to_index = self.add_node(to);
     if !self.graph.contains_edge(from_index, to_index) {
       self.graph.add_edge(from_index, to_index, ());
+      return true;
+    } else {
+      return false;
     }
   }
 

@@ -1524,8 +1524,6 @@ impl<'a> ModuleRefAnalyze<'a> {
             unreachable!("Module has syntax error should not trigger tree_shaking")
           }
           ExportSpecifier::Named(named) => {
-            // TODO: what if the named binding is a unresolved_binding?
-            // TODO: handle `as xxx`
             let original = match &named.orig {
               ModuleExportName::Ident(ident) => ident.sym.clone(),
               ModuleExportName::Str(str) => str.value.clone(),
