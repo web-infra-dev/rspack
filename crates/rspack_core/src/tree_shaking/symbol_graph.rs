@@ -44,9 +44,9 @@ impl SymbolGraph {
     let to_index = self.add_node(to);
     if !self.graph.contains_edge(from_index, to_index) {
       self.graph.add_edge(from_index, to_index, ());
-      return true;
+      true
     } else {
-      return false;
+      false
     }
   }
 

@@ -426,7 +426,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         // be calculated in the module where it is defined
         SymbolRef::Indirect(_) | SymbolRef::Star(_) => {}
         SymbolRef::Url { .. } | SymbolRef::Worker { .. } => {}
-        SymbolRef::Url { .. } => {}
         SymbolRef::Usage(..) => {}
       }
     }
@@ -1579,13 +1578,6 @@ impl<'a> ModuleRefAnalyze<'a> {
               ModuleExportName::Ident(ident) => ident.sym.clone(),
               ModuleExportName::Str(str) => str.value.clone(),
             });
-            let exported_atom = match named.exported {
-              Some(ref exported) => match exported {
-                ModuleExportName::Ident(ident) => ident.sym.clone(),
-                ModuleExportName::Str(str) => str.value.clone(),
-              },
-              None => id.atom.clone(),
-            };
 
             let export_name = exported_jsword.clone().unwrap_or_else(|| id.atom.clone());
             let symbol_ref = SymbolRef::Declaration(Symbol::new(

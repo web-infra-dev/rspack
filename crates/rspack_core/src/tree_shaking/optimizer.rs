@@ -888,7 +888,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                       for reexport_path in reexport_paths {
                         let mut pre = &current_symbol_ref;
                         for reexport_ref in reexport_path.iter() {
-                          self.symbol_graph.add_edge(&pre, reexport_ref);
+                          self.symbol_graph.add_edge(pre, reexport_ref);
                           pre = reexport_ref;
                           if !evaluated_module_identifiers.contains(&reexport_ref.importer()) {
                             evaluated_module_identifiers.insert(reexport_ref.importer());
@@ -904,7 +904,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                             ModuleUsedType::EXPORT_ALL,
                           );
                         }
-                        self.symbol_graph.add_edge(&pre, value);
+                        self.symbol_graph.add_edge(pre, value);
                       }
                     }
                     ReExportConnectionStatus::Occupied(_) => {
@@ -1124,7 +1124,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                   for reexport_path in reexport_paths {
                     let mut pre = &current_symbol_ref;
                     for reexport_ref in reexport_path.iter() {
-                      self.symbol_graph.add_edge(&pre, reexport_ref);
+                      self.symbol_graph.add_edge(pre, reexport_ref);
                       pre = reexport_ref;
                       if !evaluated_module_identifiers.contains(&reexport_ref.importer()) {
                         evaluated_module_identifiers.insert(reexport_ref.importer());
@@ -1140,7 +1140,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                         ModuleUsedType::EXPORT_ALL,
                       );
                     }
-                    self.symbol_graph.add_edge(&pre, value);
+                    self.symbol_graph.add_edge(pre, value);
                   }
                 }
                 ReExportConnectionStatus::Occupied(_) => {
@@ -1177,8 +1177,8 @@ impl<'a> CodeSizeOptimizer<'a> {
       }
       SymbolRef::Url { .. } | SymbolRef::Worker { .. } => {}
       SymbolRef::Usage(ref binding, ref member_chain, ref src) => {
-        let analyze_result = analyze_map.get(&src).expect("Should have analyze result");
-        if let Some(import_symbol_ref) = analyze_result.import_map.get(&binding) {
+        let analyze_result = analyze_map.get(src).expect("Should have analyze result");
+        if let Some(import_symbol_ref) = analyze_result.import_map.get(binding) {
           self
             .symbol_graph
             .add_edge(&current_symbol_ref, import_symbol_ref);
