@@ -300,7 +300,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     mut evaluated_module_identifiers: IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
     inherit_export_ref_graph: GraphMap<Identifier, (), Directed>,
-    mut traced_tuple: HashMap<(Identifier, Identifier), Vec<(SymbolRef, SymbolRef)>>,
+    mut traced_tuple: HashMap<(Identifier, Identifier), Vec<SymbolRef>>,
     visited_symbol_ref: &mut HashSet<SymbolRefWithMemberChain>,
     errors: &mut Vec<Error>,
   ) {
@@ -327,7 +327,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     evaluated_module_identifiers: &mut IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
     inherit_export_ref_graph: &GraphMap<Identifier, (), Directed>,
-    traced_tuple: &mut HashMap<(Identifier, Identifier), Vec<(SymbolRef, SymbolRef)>>,
+    traced_tuple: &mut HashMap<(Identifier, Identifier), Vec<SymbolRef>>,
     visited_symbol_ref: &mut HashSet<SymbolRefWithMemberChain>,
     errors: &mut Vec<Error>,
   ) {
@@ -636,7 +636,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     evaluated_module_identifiers: &mut IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
     inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
-    traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
+    traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<SymbolRef>>,
     visited_symbol_ref: &mut HashSet<SymbolRefWithMemberChain>,
     errors: &mut Vec<Error>,
   ) {
@@ -664,7 +664,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     evaluated_module_identifiers: &mut IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
     inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
-    traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
+    traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<SymbolRef>>,
     visited_symbol_ref: &mut HashSet<SymbolRefWithMemberChain>,
     errors: &mut Vec<Error>,
   ) {
@@ -840,12 +840,20 @@ impl<'a> CodeSizeOptimizer<'a> {
               // the path is a.js -> b.js -> d.js
               if let Some(value) = extends_export_map.get(indirect_symbol.indirect_id()) {
                 ret.push((inherit_module_identifier, value));
+                enum ReExportConnectionStatus {
+                  Vacant(Vec<Vec<SymbolRef>>),
+                  Occupied(Vec<SymbolRef>),
+                }
                 if is_first_result {
-                  let mut final_node_of_path = vec![];
                   let tuple = (indirect_symbol.src, *inherit_module_identifier);
-                  match traced_tuple.entry(tuple) {
-                    Entry::Occupied(occ) => {}
+                  let connection_stats = match traced_tuple.entry(tuple) {
+                    Entry::Occupied(occ) => {
+                      // TODO: handle this
+                      // self.symbol_graph.add_edge(&current_symbol_ref, to);
+                      ReExportConnectionStatus::Occupied(occ.get().clone())
+                    }
                     Entry::Vacant(vac) => {
+                      let mut reexport_paths = vec![];
                       for path in algo::all_simple_paths::<Vec<_>, _>(
                         &inherit_extend_graph,
                         indirect_symbol.src,
@@ -853,8 +861,6 @@ impl<'a> CodeSizeOptimizer<'a> {
                         0,
                         None,
                       ) {
-                        let mut from = current_symbol_ref.clone();
-                        let mut star_chain_start_end_pair = (from.clone(), from.clone());
                         let mut reexport_path = vec![];
                         for i in 0..path.len() - 1 {
                           let star_symbol = StarSymbol::new(
@@ -867,7 +873,19 @@ impl<'a> CodeSizeOptimizer<'a> {
                           let reexport_ref = SymbolRef::Star(star_symbol);
                           reexport_path.push(reexport_ref);
                         }
-
+                        reexport_paths.push(reexport_path);
+                      }
+                      let first_reexport_of_each_path = reexport_paths
+                        .iter()
+                        .filter_map(|path| path.get(0).cloned())
+                        .collect::<Vec<_>>();
+                      vac.insert(first_reexport_of_each_path);
+                      ReExportConnectionStatus::Vacant(reexport_paths)
+                    }
+                  };
+                  match connection_stats {
+                    ReExportConnectionStatus::Vacant(reexport_paths) => {
+                      for reexport_path in reexport_paths {
                         let mut pre = &current_symbol_ref;
                         for reexport_ref in reexport_path.iter() {
                           self.symbol_graph.add_edge(&pre, reexport_ref);
@@ -888,8 +906,9 @@ impl<'a> CodeSizeOptimizer<'a> {
                         }
                         self.symbol_graph.add_edge(&pre, value);
                       }
-                      // used_export_module_identifiers.extend();
-                      vac.insert(final_node_of_path);
+                    }
+                    ReExportConnectionStatus::Occupied(_) => {
+                      // TODO:
                     }
                   }
                   is_first_result = false;
@@ -1070,7 +1089,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     evaluated_module_identifiers: &mut IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
     inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
-    traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
+    traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<SymbolRef>>,
     entry_type: EntryLikeType,
     visited_symbol_ref: &mut HashSet<SymbolRefWithMemberChain>,
     errors: &mut Vec<Error>,

@@ -14,7 +14,8 @@ __webpack_require__.d(__webpack_exports__, {
   'xxx': function() { return _test_js__WEBPACK_IMPORTED_MODULE_0_; }
 });
 __webpack_require__.d(__webpack_exports__, {
-  'square': function() { return square; }
+  'square': function() { return square; },
+  'cube': function() { return cube; }
 });
 /* harmony import */var _test_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./test.js */"./test.js");
 // maths.js
