@@ -1,12 +1,13 @@
 use std::sync::atomic::Ordering::SeqCst;
 use std::sync::RwLock;
+use std::time::Duration;
 use std::{cmp, sync::atomic::AtomicU32, time::Instant};
 
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rspack_core::{
-  Compilation, CompilationArgs, DoneArgs, MakeParam, Module, OptimizeChunksArgs, Plugin,
-  PluginBuildEndHookOutput, PluginContext, PluginMakeHookOutput, PluginOptimizeChunksOutput,
-  PluginProcessAssetsOutput, ProcessAssetsArgs, ThisCompilationArgs,
+  Compilation, DoneArgs, MakeParam, Module, OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput,
+  PluginContext, PluginMakeHookOutput, PluginOptimizeChunksOutput, PluginProcessAssetsOutput,
+  ProcessAssetsArgs,
 };
 use rspack_error::Result;
 
@@ -26,6 +27,7 @@ pub struct ProgressPlugin {
   pub last_modules_count: RwLock<Option<u32>>,
   pub last_active_module: RwLock<Option<String>>,
   pub last_state_info: RwLock<Vec<ProgressPluginStateInfo>>,
+  pub last_update_time: RwLock<Instant>,
 }
 #[derive(Debug)]
 pub struct ProgressPluginStateInfo {
@@ -49,9 +51,15 @@ impl ProgressPlugin {
       last_modules_count: RwLock::new(None),
       last_active_module: RwLock::new(None),
       last_state_info: RwLock::new(vec![]),
+      last_update_time: RwLock::new(Instant::now()),
     }
   }
-  pub fn update(&self) {
+  pub fn update_throttled(&self) {
+    if *self.last_update_time.read().expect("TODO:") + Duration::from_millis(50) < Instant::now() {
+      self.update();
+    }
+  }
+  fn update(&self) {
     let previous_modules_done = self.modules_done.fetch_add(1, SeqCst);
     let modules_done = previous_modules_done + 1;
     let percent = (modules_done as f32)
@@ -66,10 +74,11 @@ impl ProgressPlugin {
         state_items.push(last_active_module.clone());
       }
     }
-    self.handler(percent, String::from("building"), state_items);
+    self.handler(0.1 + percent * 0.55, String::from("building"), state_items);
+    *self.last_update_time.write().expect("TODO:") = Instant::now();
   }
   pub fn handler(&self, percent: f32, msg: String, state_items: Vec<String>) {
-    if self.options.profile.unwrap_or(true) {
+    if self.options.profile.unwrap_or(false) {
       self.default_handler(percent, msg, state_items);
     } else {
       self.progress_bar_handler(percent, msg, state_items);
@@ -93,11 +102,6 @@ impl ProgressPlugin {
             },
           )
         } else {
-          // if i == full_state.len() {
-          //   last_state_info.truncate(i);
-          //   break;
-          // } else {
-
           if i + 1 > full_state.len() || last_state_info[i].value != full_state[i] {
             let diff = now - last_state_info[i].time;
             let report_state = if i > 0 {
@@ -127,7 +131,9 @@ impl ProgressPlugin {
     }
   }
   fn progress_bar_handler(&self, percent: f32, msg: String, state_items: Vec<String>) {
-    self.progress_bar.set_message(msg);
+    self
+      .progress_bar
+      .set_message(msg + " " + state_items.join(" ").as_str());
     self.progress_bar.set_position((percent * 100.0) as u64);
   }
 }
@@ -143,7 +149,7 @@ impl Plugin for ProgressPlugin {
     _compilation: &mut Compilation,
     _param: &mut MakeParam,
   ) -> PluginMakeHookOutput {
-    if self.options.profile.unwrap_or(false) {
+    if self.options.profile.unwrap_or(false) == false {
       self.progress_bar.reset();
       self.progress_bar.set_prefix(
         self
@@ -159,15 +165,6 @@ impl Plugin for ProgressPlugin {
     Ok(())
   }
 
-  // async fn this_compilation(&self, _args: ThisCompilationArgs<'_>) -> Result<()> {
-  //   self.handler(
-  //     0.08,
-  //     String::from("setup"),
-  //     vec![String::from("compilation")],
-  //   );
-  //   Ok(())
-  // }
-
   async fn build_module(&self, module: &mut dyn Module) -> Result<()> {
     if let Some(module) = module.as_normal_module() {
       self
@@ -175,30 +172,11 @@ impl Plugin for ProgressPlugin {
         .write()
         .expect("TODO:")
         .replace(module.raw_request().to_string());
-      self.update()
-    } else {
-      self.handler(0.65, String::from("build"), vec![])
     }
     self.modules_count.fetch_add(1, SeqCst);
+    self.update_throttled();
     Ok(())
   }
-
-  // async fn succeed_module(&self, module: &dyn Module) -> Result<()> {
-  //   let previous_modules_done = self.modules_done.fetch_add(1, SeqCst);
-  //   let modules_done = previous_modules_done + 1;
-  //   let percent = (modules_done as f32)
-  //     / (cmp::max(
-  //       self.last_modules_count.read().expect("TODO:").unwrap_or(1),
-  //       self.modules_count.load(SeqCst),
-  //     ) as f32);
-  //   if self.options.profile.unwrap_or(false) {
-  //     self
-  //       .progress_bar
-  //       .set_position((10.0 + 55.0 * percent) as u64);
-  //   }
-  //   Ok(())
-  // }
-
   async fn optimize_chunks(
     &self,
     _ctx: PluginContext,
@@ -224,7 +202,7 @@ impl Plugin for ProgressPlugin {
     _args: DoneArgs<'s, 'c>,
   ) -> PluginBuildEndHookOutput {
     self.handler(1.0, String::from("done"), vec![]);
-    if self.options.profile.unwrap_or(false) {
+    if self.options.profile.unwrap_or(false) == false {
       self.progress_bar.finish();
     }
     *self.last_modules_count.write().expect("TODO:") = Some(self.modules_count.load(SeqCst));
