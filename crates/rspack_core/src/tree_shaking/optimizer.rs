@@ -16,13 +16,13 @@ use rspack_error::{
   TWithDiagnosticArray,
 };
 use rspack_identifier::{Identifier, IdentifierLinkedSet, IdentifierMap, IdentifierSet};
-use rspack_symbol::{
-  BetterId, IndirectTopLevelSymbol, IndirectType, SerdeSymbol, StarSymbol, StarSymbolKind, Symbol,
-  SymbolType,
-};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{common::SyntaxContext, ecma::atoms::JsWord};
 
+use super::symbol::{
+  BetterId, IndirectTopLevelSymbol, IndirectType, SerdeSymbol, StarSymbol, StarSymbolKind, Symbol,
+  SymbolType,
+};
 use super::{
   analyzer::OptimizeAnalyzer,
   asset_module::AssetModule,
@@ -33,7 +33,7 @@ use super::{
 };
 use crate::{
   contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
-  DependencyType, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
+  DependencyId, DependencyType, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -859,12 +859,14 @@ impl<'a> CodeSizeOptimizer<'a> {
                         None,
                       ) {
                         let mut reexport_path = vec![];
+                        // TODO: use real dependencyID
                         for i in 0..path.len() - 1 {
                           let star_symbol = StarSymbol::new(
                             path[i + 1],
                             Default::default(),
                             path[i],
                             StarSymbolKind::ReExportAll,
+                            DependencyId::default(),
                           );
 
                           let reexport_ref = SymbolRef::Star(star_symbol);
@@ -1092,11 +1094,13 @@ impl<'a> CodeSizeOptimizer<'a> {
                   ) {
                     let mut reexport_path = vec![];
                     for i in 0..path.len() - 1 {
+                      // TODO: use real depdency id
                       let star_symbol = StarSymbol::new(
                         path[i + 1],
                         Default::default(),
                         path[i],
                         StarSymbolKind::ReExportAll,
+                        DependencyId::default(),
                       );
 
                       let reexport_ref = SymbolRef::Star(star_symbol);
@@ -1165,6 +1169,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             Default::default(),
             src_module_identifier,
             StarSymbolKind::ReExportAll,
+            DependencyId::default(),
           ));
           self.symbol_graph.add_edge(&current_symbol_ref, &export_all);
           symbol_queue.push_back((export_all.clone(), vec![]));

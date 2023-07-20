@@ -1,10 +1,11 @@
 use std::collections::HashSet;
 
 use rspack_core::{
-  tree_shaking::visitor::SymbolRef, DependencyTemplate, InitFragment, InitFragmentStage,
-  RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  tree_shaking::symbol::{IndirectType, SymbolType, DEFAULT_JS_WORD},
+  tree_shaking::visitor::SymbolRef,
+  DependencyTemplate, InitFragment, InitFragmentStage, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource,
 };
-use rspack_symbol::{IndirectType, SymbolType, DEFAULT_JS_WORD};
 use swc_core::ecma::atoms::JsWord;
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for each export.

@@ -1,9 +1,9 @@
+use rspack_core::tree_shaking::symbol::IndirectTopLevelSymbol;
 use rspack_core::{
-  import_statement, tree_shaking::visitor::SymbolRef, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, InitFragment, InitFragmentStage, ModuleDependency,
-  RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  import_statement, tree_shaking::symbol, tree_shaking::visitor::SymbolRef, Dependency,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan, InitFragment,
+  InitFragmentStage, ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
-use rspack_symbol::IndirectTopLevelSymbol;
 use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
@@ -83,7 +83,7 @@ impl DependencyTemplate for HarmonyImportDependency {
                   .used_symbol_ref
                   .contains(&SymbolRef::Indirect(IndirectTopLevelSymbol {
                     src: ref_mgm.module_identifier,
-                    ty: rspack_symbol::IndirectType::ImportDefault(local.clone()),
+                    ty: symbol::IndirectType::ImportDefault(local.clone()),
                     importer: module.identifier(),
                   }))
               } else {
@@ -94,13 +94,13 @@ impl DependencyTemplate for HarmonyImportDependency {
               let symbol = if matches!(self.dependency_type, DependencyType::EsmImport) {
                 SymbolRef::Indirect(IndirectTopLevelSymbol {
                   src: ref_mgm.module_identifier,
-                  ty: rspack_symbol::IndirectType::Import(local.clone(), imported.clone()),
+                  ty: symbol::IndirectType::Import(local.clone(), imported.clone()),
                   importer: module.identifier(),
                 })
               } else {
                 SymbolRef::Indirect(IndirectTopLevelSymbol {
                   src: module.identifier(),
-                  ty: rspack_symbol::IndirectType::ReExport(local.clone(), imported.clone()),
+                  ty: symbol::IndirectType::ReExport(local.clone(), imported.clone()),
                   importer: module.identifier(),
                 })
               };

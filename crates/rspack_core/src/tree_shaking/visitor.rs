@@ -5,10 +5,6 @@ use std::{
 use bitflags::bitflags;
 use hashlink::LinkedHashMap;
 use rspack_identifier::{IdentifierLinkedMap, IdentifierMap};
-use rspack_symbol::{
-  BetterId, IndirectTopLevelSymbol, IndirectType, Part, StarSymbol, StarSymbolKind, Symbol,
-  SymbolExt, SymbolFlag, SymbolType,
-};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 use swc_core::common::SyntaxContext;
@@ -19,6 +15,10 @@ use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use swc_node_comments::SwcComments;
 
+use super::symbol::{
+  BetterId, IndirectTopLevelSymbol, IndirectType, Part, StarSymbol, StarSymbolKind, Symbol,
+  SymbolExt, SymbolFlag, SymbolType,
+};
 use super::SideEffectType;
 use super::{
   utils::{get_dynamic_import_string_literal, get_require_literal},
@@ -39,10 +39,12 @@ pub enum SymbolRef {
   Url {
     importer: ModuleIdentifier,
     src: ModuleIdentifier,
+    dep_id: DependencyId,
   },
   Worker {
     importer: ModuleIdentifier,
     src: ModuleIdentifier,
+    dep_id: DependencyId,
   },
 }
 
@@ -358,6 +360,7 @@ impl<'a> ModuleRefAnalyze<'a> {
           Some(SymbolRef::Url {
             importer: self.module_identifier,
             src: *src_module_id,
+            dep_id,
           })
         }
         Part::Worker(src) => {
@@ -368,6 +371,7 @@ impl<'a> ModuleRefAnalyze<'a> {
           Some(SymbolRef::Url {
             importer: self.module_identifier,
             src: *src_module_id,
+            dep_id,
           })
         }
       })
@@ -482,6 +486,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   return HashSet::from_iter([SymbolRef::Url {
                     importer: self.module_identifier,
                     src: *src_module_id,
+                    dep_id,
                   }]);
                 }
                 Part::Worker(src) => {
@@ -493,6 +498,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   return HashSet::from_iter([SymbolRef::Url {
                     importer: self.module_identifier,
                     src: *src_module_id,
+                    dep_id,
                   }]);
                 }
               };
@@ -537,6 +543,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 return HashSet::from_iter([SymbolRef::Url {
                   importer: self.module_identifier,
                   src: *src_module_id,
+                  dep_id,
                 }]);
               }
               Part::Worker(src) => {
@@ -547,6 +554,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 return HashSet::from_iter([SymbolRef::Url {
                   importer: self.module_identifier,
                   src: *src_module_id,
+                  dep_id,
                 }]);
               }
             };
@@ -588,6 +596,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           let url = SymbolRef::Url {
             importer: self.module_identifier,
             src: *src_module_id,
+            dep_id,
           };
           self.used_symbol_ref.insert(url);
         }
@@ -599,6 +608,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           let url = SymbolRef::Url {
             importer: self.module_identifier,
             src: *src_module_id,
+            dep_id,
           };
           self.used_symbol_ref.insert(url);
         }
@@ -753,6 +763,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                       namespace.local.sym.clone(),
                       self.module_identifier,
                       StarSymbolKind::ImportAllAs,
+                      dep_id,
                     )),
                   );
                 }
@@ -1504,6 +1515,7 @@ impl<'a> ModuleRefAnalyze<'a> {
                 atom,
                 self.module_identifier,
                 StarSymbolKind::ReExportAllAs,
+                dep_id,
               )),
             );
           }

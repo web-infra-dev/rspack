@@ -36,7 +36,6 @@ rspack_identifier = { path = "../rspack_identifier" }
 rspack_loader_runner = { path = "../rspack_loader_runner" }
 rspack_regex = { path = "../rspack_regex" }
 rspack_sources = { workspace = true }
-rspack_symbol = { path = "../rspack_symbol" }
 rspack_util = { path = "../rspack_util" }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
