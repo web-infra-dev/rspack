@@ -48,7 +48,8 @@ describe("StatsTestCases", () => {
 			const statsOptions = options.stats ?? {
 				all: true,
 				timings: false,
-				builtAt: false
+				builtAt: false,
+				version: false
 			};
 			const statsJson = stats.toJson(statsOptions);
 			// case ends with error should generate errors

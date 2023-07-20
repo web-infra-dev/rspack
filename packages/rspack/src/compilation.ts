@@ -10,7 +10,7 @@
 import * as tapable from "tapable";
 import { Source } from "webpack-sources";
 
-import {
+import type {
 	JsAssetInfo,
 	JsChunk,
 	JsCompatSource,
@@ -37,6 +37,7 @@ import { LogType, Logger } from "./logging/Logger";
 import { NormalModule } from "./normalModule";
 import { NormalModuleFactory } from "./normalModuleFactory";
 import { Stats, normalizeStatsPreset } from "./stats";
+import { StatsPrinter } from "./stats/StatsPrinter";
 import { concatErrorMsgAndStack, isJsStatsError, toJsAssetInfo } from "./util";
 import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import {
@@ -91,6 +92,7 @@ export class Compilation {
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
 		succeedModule: tapable.SyncHook<[JsModule], undefined>;
 		stillValidModule: tapable.SyncHook<[JsModule], undefined>;
+		statsPrinter: tapable.SyncHook<[StatsPrinter, StatsOptions], void>;
 		buildModule: tapable.SyncHook<[NormalizedJsModule]>;
 	};
 	options: RspackOptionsNormalized;
@@ -128,6 +130,7 @@ export class Compilation {
 			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
 			succeedModule: new tapable.SyncHook(["module"]),
 			stillValidModule: new tapable.SyncHook(["module"]),
+			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"]),
 			buildModule: new tapable.SyncHook(["module"])
 		};
 		this.compiler = compiler;
@@ -260,6 +263,7 @@ export class Compilation {
 		options.warnings = optionOrLocalFallback(options.warnings, true);
 		options.warningsCount = optionOrLocalFallback(options.warningsCount, true);
 		options.hash = optionOrLocalFallback(options.hash, true);
+		options.version = optionOrLocalFallback(options.version, true);
 		options.publicPath = optionOrLocalFallback(options.publicPath, true);
 		options.outputPath = optionOrLocalFallback(
 			options.outputPath,
@@ -275,8 +279,15 @@ export class Compilation {
 			options.nestedModules,
 			!context.forToString
 		);
+		options.source = optionOrLocalFallback(options.source, false);
 
 		return options;
+	}
+
+	createStatsPrinter(options: StatsOptions) {
+		const statsPrinter = new StatsPrinter();
+		this.hooks.statsPrinter.call(statsPrinter, options);
+		return statsPrinter;
 	}
 
 	/**

@@ -47,13 +47,7 @@ impl Plugin for SystemLibraryPlugin {
           .module_graph
           .module_by_identifier(identifier)
           .and_then(|module| module.as_external_module())
-          .and_then(|m| {
-            if m.get_external_type() == "system" {
-              Some(m)
-            } else {
-              None
-            }
-          })
+          .and_then(|m| (m.get_external_type() == "system").then_some(m))
       })
       .collect::<Vec<&ExternalModule>>();
     let external_deps_array = external_system_dep_array(&modules);

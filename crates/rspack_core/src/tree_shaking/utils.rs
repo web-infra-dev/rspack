@@ -65,8 +65,8 @@ pub trait ConvertModulePath {
 impl ConvertModulePath for SymbolRef {
   fn convert_module_identifier_to_module_path(self, module_graph: &ModuleGraph) -> Self {
     match self {
-      SymbolRef::Direct(direct) => {
-        SymbolRef::Direct(direct.convert_module_identifier_to_module_path(module_graph))
+      SymbolRef::Declaration(direct) => {
+        SymbolRef::Declaration(direct.convert_module_identifier_to_module_path(module_graph))
       }
       SymbolRef::Indirect(indirect) => {
         SymbolRef::Indirect(indirect.convert_module_identifier_to_module_path(module_graph))
@@ -78,69 +78,63 @@ impl ConvertModulePath for SymbolRef {
         importer: importer.convert_module_identifier_to_module_path(module_graph),
         src: src.convert_module_identifier_to_module_path(module_graph),
       },
+      SymbolRef::Worker { importer, src } => SymbolRef::Worker {
+        importer: importer.convert_module_identifier_to_module_path(module_graph),
+        src: src.convert_module_identifier_to_module_path(module_graph),
+      },
+      SymbolRef::Usage(binding, member_chain, src) => SymbolRef::Usage(
+        binding,
+        member_chain,
+        src.convert_module_identifier_to_module_path(module_graph),
+      ),
     }
   }
 }
 
 impl ConvertModulePath for Symbol {
   fn convert_module_identifier_to_module_path(mut self, module_graph: &ModuleGraph) -> Self {
-    self.set_src(
-      module_graph
-        .normal_module_source_path_by_identifier(&self.src())
-        .expect("Can't get module source path by identifier")
-        .as_ref()
-        .into(),
-    );
+    if let Some(source_path) = module_graph.normal_module_source_path_by_identifier(&self.src()) {
+      self.set_src(source_path.as_ref().into());
+    }
     self
   }
 }
 
 impl ConvertModulePath for IndirectTopLevelSymbol {
   fn convert_module_identifier_to_module_path(mut self, module_graph: &ModuleGraph) -> Self {
-    self.set_importer(
-      module_graph
-        .normal_module_source_path_by_identifier(&self.importer())
-        .expect("Can't get module source path by identifier")
-        .as_ref()
-        .into(),
-    );
-    self.set_src(
-      module_graph
-        .normal_module_source_path_by_identifier(&self.src())
-        .expect("Can't get module source path by identifier")
-        .as_ref()
-        .into(),
-    );
+    if let Some(source_path) =
+      module_graph.normal_module_source_path_by_identifier(&self.importer())
+    {
+      self.set_importer(source_path.as_ref().into());
+    }
+    if let Some(source_path) = module_graph.normal_module_source_path_by_identifier(&self.src()) {
+      self.set_src(source_path.as_ref().into());
+    }
     self
   }
 }
 
 impl ConvertModulePath for StarSymbol {
   fn convert_module_identifier_to_module_path(mut self, module_graph: &ModuleGraph) -> Self {
-    self.set_src(
-      module_graph
-        .normal_module_source_path_by_identifier(&self.src())
-        .expect("Can't get module source path by identifier")
-        .as_ref()
-        .into(),
-    );
-    self.set_module_ident(
-      module_graph
-        .normal_module_source_path_by_identifier(&self.module_ident())
-        .expect("Can't get module source path by identifier")
-        .as_ref()
-        .into(),
-    );
+    if let Some(source_path) = module_graph.normal_module_source_path_by_identifier(&self.src()) {
+      self.set_src(source_path.as_ref().into());
+    }
+
+    if let Some(source_path) =
+      module_graph.normal_module_source_path_by_identifier(&self.module_ident())
+    {
+      self.set_module_ident(source_path.as_ref().into());
+    };
     self
   }
 }
 
 impl ConvertModulePath for ModuleIdentifier {
   fn convert_module_identifier_to_module_path(self, module_graph: &ModuleGraph) -> Self {
-    module_graph
-      .normal_module_source_path_by_identifier(&self)
-      .expect("Can't get module source path by identifier")
-      .as_ref()
-      .into()
+    if let Some(source_path) = module_graph.normal_module_source_path_by_identifier(&self) {
+      source_path.as_ref().into()
+    } else {
+      self
+    }
   }
 }

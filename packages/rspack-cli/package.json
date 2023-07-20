@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "0.2.5",
+  "version": "0.2.8",
   "license": "MIT",
   "description": "CLI for rspack",
   "bin": {
@@ -9,8 +9,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "rimraf dist/ && tsc -b --force",
-    "clean": "rimraf dist/ && tsc -b --clean",
+    "build": "rimraf dist/ && tsc -b ./tsconfig.build.json --force",
     "dev": "tsc -b -w",
     "test": "jest --runInBand"
   },

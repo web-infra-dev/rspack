@@ -8,7 +8,7 @@
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
 
-import { JsLoaderContext } from "@rspack/binding";
+import type { JsLoaderContext } from "@rspack/binding";
 import {
 	OriginalSource,
 	RawSource,

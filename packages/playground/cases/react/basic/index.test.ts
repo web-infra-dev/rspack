@@ -33,3 +33,26 @@ test("context+component should work", async ({ page, fileAction, rspack }) => {
 test("ReactRefreshFinder should work", async ({ page }) => {
 	expect(await page.textContent("#nest-function")).toBe("nest-function");
 });
+
+test("update same export name from different module should work", async ({
+	page,
+	fileAction,
+	rspack
+}) => {
+	expect(await page.textContent(".same-export-name1")).toBe("__NAME_1__");
+	expect(await page.textContent(".same-export-name2")).toBe("__NAME_2__");
+	fileAction.updateFile("src/SameExportName1.jsx", content =>
+		content.replace("__NAME_1__", "__name_1__")
+	);
+	await rspack.waitingForHmr(async function () {
+		return (await page.textContent(".same-export-name1")) === "__name_1__";
+	});
+	expect(await page.textContent(".same-export-name2")).toBe("__NAME_2__");
+	fileAction.updateFile("src/SameExportName2.jsx", content =>
+		content.replace("__NAME_2__", "__name_2__")
+	);
+	await rspack.waitingForHmr(async function () {
+		return (await page.textContent(".same-export-name2")) === "__name_2__";
+	});
+	expect(await page.textContent(".same-export-name1")).toBe("__name_1__");
+});

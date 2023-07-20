@@ -456,20 +456,21 @@ impl ModuleGraph {
   }
 
   pub fn set_dependency_import_var(&mut self, module_identifier: ModuleIdentifier, request: &str) {
-    if self.import_var_map.get(&module_identifier).is_none() {
-      self
-        .import_var_map
-        .insert(module_identifier, Default::default());
-    }
+    self
+      .import_var_map
+      .entry(module_identifier)
+      .or_insert_with(Default::default);
     if let Some(module_var_map) = self.import_var_map.get_mut(&module_identifier) {
-      module_var_map.insert(
-        request.to_string(),
-        format!(
-          "{}__WEBPACK_IMPORTED_MODULE_{}_",
-          to_identifier(request),
-          module_var_map.len()
-        ),
-      );
+      if !module_var_map.contains_key(request) {
+        module_var_map.insert(
+          request.to_string(),
+          format!(
+            "{}__WEBPACK_IMPORTED_MODULE_{}_",
+            to_identifier(request),
+            module_var_map.len()
+          ),
+        );
+      }
     }
   }
 

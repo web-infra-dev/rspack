@@ -1,6 +1,4 @@
-use rspack_core::{
-  CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, RuntimeGlobals,
-};
+use rspack_core::{DependencyTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource};
 
 #[derive(Debug)]
 pub struct ModuleArgumentDependency {
@@ -15,13 +13,13 @@ impl ModuleArgumentDependency {
   }
 }
 
-impl CodeGeneratableDependency for ModuleArgumentDependency {
+impl DependencyTemplate for ModuleArgumentDependency {
   fn apply(
     &self,
-    source: &mut CodeGeneratableSource,
-    code_generatable_context: &mut CodeGeneratableContext,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
-    let CodeGeneratableContext {
+    let TemplateContext {
       runtime_requirements,
       compilation,
       module,

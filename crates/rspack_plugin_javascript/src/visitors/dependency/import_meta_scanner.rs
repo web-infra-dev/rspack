@@ -1,6 +1,4 @@
-use rspack_core::{
-  CodeGeneratableDependency, CompilerOptions, ConstDependency, ResourceData, SpanExt,
-};
+use rspack_core::{CompilerOptions, ConstDependency, DependencyTemplate, ResourceData, SpanExt};
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{Expr, Ident, NewExpr, UnaryExpr, UnaryOp};
 use swc_core::ecma::atoms::js_word;
@@ -19,14 +17,14 @@ use super::{
 // - evaluate expression. eg `import.meta.env && import.meta.env.xx` should be `false`
 // - add warning for `import.meta`
 pub struct ImportMetaScanner<'a> {
-  pub presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+  pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   pub compiler_options: &'a CompilerOptions,
   pub resource_data: &'a ResourceData,
 }
 
 impl<'a> ImportMetaScanner<'a> {
   pub fn new(
-    presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+    presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     resource_data: &'a ResourceData,
     compiler_options: &'a CompilerOptions,
   ) -> Self {

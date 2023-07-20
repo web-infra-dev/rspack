@@ -36,6 +36,7 @@ The Rspack Core Team consists of (in alphabetical order):
 - [@hyf0]
 - [@IWANABETHATGUY]
 - [@jerrykingxyz]
+- [@ScriptedAlchemy]
 - [@underfin]
 - [@zoolsher]
 
@@ -130,3 +131,4 @@ The contents of this document are based on [Node.js Project Governance](https://
 [@sanyuan0704]: https://github.com/sanyuan0704
 [@suxin2017]: https://github.com/suxin2017
 [@zackarychapple]: https://github.com/zackarychapple
+[@ScriptedAlchemy]: https://github.com/ScriptedAlchemy

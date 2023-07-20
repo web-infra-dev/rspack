@@ -1,4 +1,4 @@
-import {
+import type {
 	RawCacheGroupOptions,
 	RawExternalItem,
 	RawExternalItemValue,
@@ -14,7 +14,9 @@ import {
 	RawAssetGeneratorDataUrl,
 	RawAssetInlineGeneratorOptions,
 	RawAssetResourceGeneratorOptions,
-	RawIncrementalRebuild
+	RawIncrementalRebuild,
+	RawModuleRuleUses,
+	RawFuncUseCtx
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../compiler";
@@ -334,6 +336,20 @@ const getRawModuleRule = (
 			}
 		];
 	}
+	let funcUse;
+	if (typeof rule.use === "function") {
+		funcUse = (rawContext: RawFuncUseCtx) => {
+			const context = {
+				...rawContext,
+				compiler: options.compiler
+			};
+			const uses = (
+				rule.use as Exclude<RawModuleRuleUses["funcUse"], undefined>
+			)(context);
+
+			return createRawModuleRuleUses(uses ?? [], `${path}.use`, options);
+		};
+	}
 
 	return {
 		test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
@@ -361,7 +377,17 @@ const getRawModuleRule = (
 		scheme: rule.scheme ? getRawRuleSetCondition(rule.scheme) : undefined,
 		mimetype: rule.mimetype ? getRawRuleSetCondition(rule.mimetype) : undefined,
 		sideEffects: rule.sideEffects,
-		use: createRawModuleRuleUses(rule.use ?? [], `${path}.use`, options),
+		use:
+			typeof rule.use === "function"
+				? { type: "function", funcUse }
+				: {
+						type: "array",
+						arrayUse: createRawModuleRuleUses(
+							rule.use ?? [],
+							`${path}.use`,
+							options
+						)
+				  },
 		type: rule.type,
 		parser: rule.parser
 			? getRawParserOptions(rule.parser, rule.type ?? "javascript/auto")

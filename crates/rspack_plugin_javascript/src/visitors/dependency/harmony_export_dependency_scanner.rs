@@ -1,5 +1,5 @@
 use rspack_core::{
-  CodeGeneratableDependency, ConstDependency, ModuleDependency, ModuleIdentifier, SpanExt,
+  ConstDependency, DependencyTemplate, ModuleDependency, ModuleIdentifier, SpanExt,
 };
 use rspack_symbol::DEFAULT_JS_WORD;
 use swc_core::{
@@ -24,7 +24,7 @@ use crate::dependency::{
 
 pub struct HarmonyExportDependencyScanner<'a> {
   pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-  pub presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+  pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   pub import_map: &'a mut ImportMap,
   pub exports: Vec<(JsWord, JsWord)>,
   module_identifier: ModuleIdentifier,
@@ -33,7 +33,7 @@ pub struct HarmonyExportDependencyScanner<'a> {
 impl<'a> HarmonyExportDependencyScanner<'a> {
   pub fn new(
     dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-    presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+    presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     import_map: &'a mut ImportMap,
     module_identifier: ModuleIdentifier,
   ) -> Self {
@@ -98,8 +98,8 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
               if let Some(reference) = self.import_map.get(&orig.to_id()) {
                 self.presentational_dependencies.push(Box::new(
                   HarmonyExportImportedSpecifierDependency::new(
-                    reference.0.clone(),
-                    vec![(export, reference.1.clone())],
+                    reference.request.clone(),
+                    vec![(export, reference.names.clone())],
                     self.module_identifier,
                   ),
                 ));

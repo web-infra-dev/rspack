@@ -15,6 +15,7 @@ import { Compilation } from "..";
 import type * as webpackDevServer from "webpack-dev-server";
 import type { Options as RspackOptions } from "./zod/_rewrite";
 import type { OptimizationConfig as Optimization } from "./zod/optimization";
+import type { RawFuncUseCtx } from "@rspack/binding";
 export type { RspackOptions, Optimization };
 
 export type { BannerConditions, BannerCondition } from "./builtins";
@@ -350,7 +351,10 @@ export interface RuleSetLogicalConditions {
 	or?: RuleSetConditions;
 	not?: RuleSetCondition;
 }
-export type RuleSetUse = RuleSetUseItem[] | RuleSetUseItem;
+export type RuleSetUse =
+	| RuleSetUseItem[]
+	| RuleSetUseItem
+	| ((funcUseCtx: RawFuncUseCtx) => RuleSetUseItem[]);
 export type RuleSetUseItem = RuleSetLoaderWithOptions | RuleSetLoader;
 export type RuleSetLoader = string;
 export type RuleSetLoaderWithOptions = {
@@ -596,6 +600,7 @@ export interface StatsOptions {
 	errorsCount?: boolean;
 	colors?: boolean;
 	hash?: boolean;
+	version?: boolean;
 	reasons?: boolean;
 	publicPath?: boolean;
 	outputPath?: boolean;
@@ -605,6 +610,7 @@ export interface StatsOptions {
 	builtAt?: boolean;
 	moduleAssets?: boolean;
 	nestedModules?: boolean;
+	source?: boolean;
 }
 
 export type OptimizationRuntimeChunk =

@@ -6,7 +6,7 @@ use rspack_symbol::{IndirectTopLevelSymbol, StarSymbol, Symbol};
 use rustc_hash::FxHashMap;
 
 use super::{utils::ConvertModulePath, visitor::SymbolRef};
-use crate::{contextify, ModuleGraph};
+use crate::ModuleGraph;
 
 #[derive(Default, Clone)]
 pub struct SymbolGraph {
@@ -39,11 +39,14 @@ impl SymbolGraph {
   }
 
   // #[track_caller]
-  pub fn add_edge(&mut self, from: &SymbolRef, to: &SymbolRef) {
+  pub fn add_edge(&mut self, from: &SymbolRef, to: &SymbolRef) -> bool {
     let from_index = self.add_node(from);
     let to_index = self.add_node(to);
     if !self.graph.contains_edge(from_index, to_index) {
       self.graph.add_edge(from_index, to_index, ());
+      true
+    } else {
+      false
     }
   }
 
@@ -97,7 +100,6 @@ impl SymbolGraph {
 pub fn generate_debug_symbol_graph(
   g: &SymbolGraph,
   module_graph: &ModuleGraph,
-  context: &str,
 ) -> StableDiGraph<SymbolRef, ()> {
   let mut debug_graph = SymbolGraph::default();
   for node_index in g.node_indexes() {
@@ -109,14 +111,12 @@ pub fn generate_debug_symbol_graph(
           .cloned()
           .expect("")
           .convert_module_identifier_to_module_path(module_graph),
-        context,
       );
       let to_symbol = simplify_symbol_ref(
         &g.get_symbol(&to)
           .cloned()
           .expect("")
           .convert_module_identifier_to_module_path(module_graph),
-        context,
       );
       debug_graph.add_edge(&from_symbol, &to_symbol);
     }
@@ -124,27 +124,35 @@ pub fn generate_debug_symbol_graph(
   debug_graph.graph
 }
 
-pub fn simplify_symbol_ref(symbol_ref: &SymbolRef, context: &str) -> SymbolRef {
+pub fn simplify_symbol_ref(symbol_ref: &SymbolRef) -> SymbolRef {
   match symbol_ref {
-    SymbolRef::Direct(direct) => SymbolRef::Direct(Symbol::new(
-      contextify(context, direct.src().as_str()).into(),
+    SymbolRef::Declaration(direct) => SymbolRef::Declaration(Symbol::new(
+      direct.src().as_str().into(),
       direct.id().clone(),
       *direct.ty(),
+      Some(direct.exported().clone()),
     )),
     SymbolRef::Indirect(indirect) => SymbolRef::Indirect(IndirectTopLevelSymbol {
-      src: contextify(context, indirect.src.as_str()).into(),
-      importer: contextify(context, indirect.importer().as_str()).into(),
+      src: indirect.src.as_str().into(),
+      importer: indirect.importer().as_str().into(),
       ..indirect.clone()
     }),
     SymbolRef::Star(star) => SymbolRef::Star(StarSymbol::new(
-      contextify(context, star.src().as_str()).into(),
+      star.src().as_str().into(),
       star.binding().clone(),
       star.module_ident(),
       star.ty(),
     )),
     SymbolRef::Url { importer, src } => SymbolRef::Url {
-      importer: contextify(context, importer.as_str()).into(),
-      src: contextify(context, src.as_str()).into(),
+      importer: importer.as_str().into(),
+      src: src.as_str().into(),
     },
+    SymbolRef::Worker { importer, src } => SymbolRef::Worker {
+      importer: importer.as_str().into(),
+      src: src.as_str().into(),
+    },
+    SymbolRef::Usage(binding, member_chain, src) => {
+      SymbolRef::Usage(binding.clone(), member_chain.clone(), src.as_str().into())
+    }
   }
 }

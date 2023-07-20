@@ -16,7 +16,6 @@ rspack_error          = { path = "../rspack_error" }
 rspack_identifier     = { path = "../rspack_identifier" }
 rspack_plugin_runtime = { path = "../rspack_plugin_runtime" }
 serde_json            = { workspace = true }
-sugar_path            = { workspace = true }
 wasmparser            = "0.102.0"
 
 [dev-dependencies]

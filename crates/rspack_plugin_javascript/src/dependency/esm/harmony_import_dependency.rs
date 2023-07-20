@@ -1,12 +1,10 @@
 use rspack_core::{
-  import_statement, tree_shaking::visitor::SymbolRef, CodeGeneratableContext,
-  CodeGeneratableDependency, CodeGeneratableSource, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ErrorSpan, InitFragment, InitFragmentStage, ModuleDependency, RuntimeGlobals,
+  import_statement, tree_shaking::visitor::SymbolRef, Dependency, DependencyCategory, DependencyId,
+  DependencyTemplate, DependencyType, ErrorSpan, InitFragment, InitFragmentStage, ModuleDependency,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rspack_symbol::IndirectTopLevelSymbol;
 use swc_core::ecma::atoms::JsWord;
-
-use super::HarmonyImportSpecifierDependency;
 
 #[derive(Debug, Clone)]
 pub enum Specifier {
@@ -22,7 +20,6 @@ pub struct HarmonyImportDependency {
   pub request: JsWord,
   pub id: DependencyId,
   pub span: Option<ErrorSpan>,
-  pub refs: Vec<HarmonyImportSpecifierDependency>,
   pub specifiers: Vec<Specifier>,
   pub dependency_type: DependencyType,
   pub export_all: bool,
@@ -30,9 +27,9 @@ pub struct HarmonyImportDependency {
 
 impl HarmonyImportDependency {
   pub fn new(
+    id: DependencyId,
     request: JsWord,
     span: Option<ErrorSpan>,
-    refs: Vec<HarmonyImportSpecifierDependency>,
     specifiers: Vec<Specifier>,
     dependency_type: DependencyType,
     export_all: bool,
@@ -40,8 +37,7 @@ impl HarmonyImportDependency {
     Self {
       request,
       span,
-      id: DependencyId::new(),
-      refs,
+      id,
       specifiers,
       dependency_type,
       export_all,
@@ -49,11 +45,11 @@ impl HarmonyImportDependency {
   }
 }
 
-impl CodeGeneratableDependency for HarmonyImportDependency {
+impl DependencyTemplate for HarmonyImportDependency {
   fn apply(
     &self,
-    source: &mut CodeGeneratableSource,
-    code_generatable_context: &mut CodeGeneratableContext,
+    _source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
     let compilation = &code_generatable_context.compilation;
     let module = &code_generatable_context.module;
@@ -66,15 +62,6 @@ impl CodeGeneratableDependency for HarmonyImportDependency {
       .include_module_ids
       .contains(&ref_mgm.module_identifier)
     {
-      self.refs.iter().for_each(|dep| {
-        dep.apply(
-          source,
-          code_generatable_context,
-          &self.id,
-          self.request.as_ref(),
-          false,
-        )
-      });
       return;
     }
 
@@ -129,33 +116,14 @@ impl CodeGeneratableDependency for HarmonyImportDependency {
           .side_effects_free_modules
           .contains(&ref_mgm.module_identifier)
       {
-        self.refs.iter().for_each(|dep| {
-          dep.apply(
-            source,
-            code_generatable_context,
-            &self.id,
-            self.request.as_ref(),
-            false,
-          )
-        });
         return;
       }
     }
 
-    self.refs.iter().for_each(|dep| {
-      dep.apply(
-        source,
-        code_generatable_context,
-        &self.id,
-        self.request.as_ref(),
-        true,
-      )
-    });
-
     let content: (String, String) =
       import_statement(code_generatable_context, &self.id, &self.request, false);
 
-    let CodeGeneratableContext {
+    let TemplateContext {
       init_fragments,
       compilation,
       module,
@@ -246,7 +214,7 @@ impl ModuleDependency for HarmonyImportDependency {
     self.span.as_ref()
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
     Some(self)
   }
 

@@ -24,7 +24,7 @@ mime_guess = { workspace = true }
 nodejs-resolver = { workspace = true }
 once_cell = { workspace = true }
 paste = { workspace = true }
-petgraph = "0.6.3"
+petgraph = { version = "0.6.3", features = ["serde-1"] }
 rayon = { workspace = true }
 regex = { workspace = true }
 rspack_database = { path = "../rspack_database", features = ["rayon"] }
@@ -76,4 +76,3 @@ tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test
 tracing = { workspace = true }
 url = { workspace = true }
 ustr = { workspace = true }
-xxhash-rust = { version = "0.8.6", features = ["xxh3"] }

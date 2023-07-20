@@ -3,7 +3,6 @@ use std::hash::Hash;
 use std::sync::{mpsc, Mutex};
 
 use async_trait::async_trait;
-use rayon::prelude::*;
 use rspack_core::rspack_sources::{
   BoxSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
   SourceMapSourceOptions,
@@ -224,7 +223,7 @@ impl Plugin for JsPlugin {
     args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
     let compilation = args.compilation;
-    let minify_options = &compilation.options.builtins.minify_options;
+    let minify_options = &compilation.options.builtins.minify_options.clone();
     let is_module = compilation
       .options
       .output
@@ -245,54 +244,64 @@ impl Plugin for JsPlugin {
         ..Default::default()
       };
 
-      compilation
-        .assets_mut()
-        .par_iter_mut()
-        .filter(|(filename, _)| {
-          filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")
-        })
-        .try_for_each_with(tx, |tx, (filename, original)| -> Result<()> {
-          if original.get_info().minimized {
-            return Ok(());
-          }
+      for (filename, original) in compilation.assets_mut() {
+        if !(filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs"))
+        {
+          continue;
+        }
 
-          if let Some(original_source) = original.get_source() {
-            let input = original_source.source().to_string();
-            let input_source_map = original_source.map(&MapOptions::default());
-            let js_minify_options = JsMinifyOptions {
-              compress: BoolOrDataConfig::from_obj(compress.clone()),
-              source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
-              inline_sources_content: true, // Using true so original_source can be None in SourceMapSource
-              emit_source_map_columns,
-              module: is_module,
-              ..Default::default()
-            };
-            let output = match crate::ast::minify(&js_minify_options, input, filename, &all_extracted_comments, extract_comments_option) {
-              Ok(r) => r,
-              Err(e) => {
-                tx.send(e.into()).map_err(|e| internal_error!(e.to_string()))?;
-                return Ok(())
-              },
-            };
-            let source = if let Some(map) = &output.map {
-              SourceMapSource::new(SourceMapSourceOptions {
-                value: output.code,
-                name: filename,
-                source_map: SourceMap::from_json(map)
-                  .map_err(|e| internal_error!(e.to_string()))?,
-                original_source: None,
-                inner_source_map: input_source_map,
-                remove_original_source: true,
-              })
-              .boxed()
-            } else {
-              RawSource::from(output.code).boxed()
-            };
-            original.set_source(Some(source));
-            original.get_info_mut().minimized = true;
-          }
-          Ok(())
-        })?;
+        let is_matched = crate::ast::match_object(minify_options, filename)
+          .await
+          .unwrap_or(false);
+
+        if !is_matched || original.get_info().minimized {
+          continue;
+        }
+
+        if let Some(original_source) = original.get_source() {
+          let input = original_source.source().to_string();
+          let input_source_map = original_source.map(&MapOptions::default());
+          let js_minify_options = JsMinifyOptions {
+            compress: BoolOrDataConfig::from_obj(compress.clone()),
+            source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
+            inline_sources_content: true, /* Using true so original_source can be None in SourceMapSource */
+            emit_source_map_columns,
+            module: is_module,
+            ..Default::default()
+          };
+          let output = match crate::ast::minify(
+            &js_minify_options,
+            input,
+            filename,
+            &all_extracted_comments,
+            extract_comments_option,
+          ) {
+            Ok(r) => r,
+            Err(e) => {
+              tx.send(e.into())
+                .map_err(|e| internal_error!(e.to_string()))?;
+              continue;
+            }
+          };
+          let source = if let Some(map) = &output.map {
+            SourceMapSource::new(SourceMapSourceOptions {
+              value: output.code,
+              name: filename,
+              source_map: SourceMap::from_json(map).map_err(|e| internal_error!(e.to_string()))?,
+              original_source: None,
+              inner_source_map: input_source_map,
+              remove_original_source: true,
+            })
+            .boxed()
+          } else {
+            RawSource::from(output.code).boxed()
+          };
+          original.set_source(Some(source));
+          original.get_info_mut().minimized = true;
+        }
+      }
+
+      drop(tx);
 
       compilation.push_batch_diagnostic(rx.into_iter().flatten().collect::<Vec<_>>());
 

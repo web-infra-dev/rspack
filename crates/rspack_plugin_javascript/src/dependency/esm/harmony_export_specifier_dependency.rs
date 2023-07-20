@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
 use rspack_core::{
-  tree_shaking::visitor::SymbolRef, CodeGeneratableContext, CodeGeneratableDependency,
-  CodeGeneratableSource, InitFragment, InitFragmentStage, RuntimeGlobals,
+  tree_shaking::visitor::SymbolRef, DependencyTemplate, InitFragment, InitFragmentStage,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rspack_symbol::{IndirectType, SymbolType, DEFAULT_JS_WORD};
 use swc_core::ecma::atoms::JsWord;
@@ -19,13 +19,13 @@ impl HarmonyExportSpecifierDependency {
   }
 }
 
-impl CodeGeneratableDependency for HarmonyExportSpecifierDependency {
+impl DependencyTemplate for HarmonyExportSpecifierDependency {
   fn apply(
     &self,
-    _source: &mut CodeGeneratableSource,
-    code_generatable_context: &mut CodeGeneratableContext,
+    _source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
-    let CodeGeneratableContext {
+    let TemplateContext {
       runtime_requirements,
       init_fragments,
       compilation,
@@ -45,13 +45,9 @@ impl CodeGeneratableDependency for HarmonyExportSpecifierDependency {
           .used_symbol_ref
           .iter()
           .filter_map(|item| match item {
-            SymbolRef::Direct(d) if d.src() == module.identifier() => {
+            SymbolRef::Declaration(d) if d.src() == module.identifier() => {
               if *d.ty() == SymbolType::Temp {
-                if let Some(key) = self
-                  .exports
-                  .iter()
-                  .find(|e| e.1 == d.id().atom && e.0 != d.id().atom)
-                {
+                if let Some(key) = self.exports.iter().find(|e| e.0 == *d.exported()) {
                   return Some(&key.0);
                 }
               }

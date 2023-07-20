@@ -243,7 +243,7 @@ class Watching {
 				!this.#initial &&
 				(modifiedFiles?.size || deleteFiles?.size);
 
-			const onBuild = (err?: Error) => {
+			const onBuild = (err: Error | null) => {
 				if (err) return this._done(err, null);
 				// if (this.invalid) return this._done(null);
 				this._done(null, this.compiler.compilation);

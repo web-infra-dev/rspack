@@ -1,5 +1,5 @@
 use rspack_core::{
-  BoxModuleDependency, BuildMeta, CodeGeneratableDependency, ErrorSpan, ModuleDependency, SpanExt,
+  BoxModuleDependency, BuildMeta, DependencyTemplate, ErrorSpan, ModuleDependency, SpanExt,
 };
 use swc_core::{
   common::Spanned,
@@ -21,7 +21,7 @@ use crate::{
 
 pub struct HotModuleReplacementScanner<'a> {
   pub dependencies: &'a mut Vec<BoxModuleDependency>,
-  pub presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+  pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   pub build_meta: &'a BuildMeta,
 }
 
@@ -30,7 +30,7 @@ type CreateDependency = fn(u32, u32, JsWord, Option<ErrorSpan>) -> BoxModuleDepe
 impl<'a> HotModuleReplacementScanner<'a> {
   pub fn new(
     dependencies: &'a mut Vec<BoxModuleDependency>,
-    presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+    presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     build_meta: &'a BuildMeta,
   ) -> Self {
     Self {

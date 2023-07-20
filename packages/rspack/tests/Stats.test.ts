@@ -16,7 +16,12 @@ describe("Stats", () => {
 				main: "./fixtures/a"
 			}
 		});
-		const statsOptions = { all: true, timings: false, builtAt: false };
+		const statsOptions = {
+			all: true,
+			timings: false,
+			builtAt: false,
+			version: false
+		};
 		expect(typeof stats?.hash).toBe("string");
 		expect(stats?.toJson(statsOptions)).toMatchInlineSnapshot(`
 		{
@@ -70,6 +75,66 @@ describe("Stats", () => {
 		            },
 		          ],
 		          "size": 55,
+		          "source": {
+		            "data": [
+		              109,
+		              111,
+		              100,
+		              117,
+		              108,
+		              101,
+		              46,
+		              101,
+		              120,
+		              112,
+		              111,
+		              114,
+		              116,
+		              115,
+		              32,
+		              61,
+		              32,
+		              102,
+		              117,
+		              110,
+		              99,
+		              116,
+		              105,
+		              111,
+		              110,
+		              32,
+		              97,
+		              40,
+		              41,
+		              32,
+		              123,
+		              10,
+		              9,
+		              114,
+		              101,
+		              116,
+		              117,
+		              114,
+		              110,
+		              32,
+		              34,
+		              84,
+		              104,
+		              105,
+		              115,
+		              32,
+		              105,
+		              115,
+		              32,
+		              97,
+		              34,
+		              59,
+		              10,
+		              125,
+		              59,
+		            ],
+		            "type": "Buffer",
+		          },
 		          "type": "module",
 		        },
 		      ],
@@ -99,7 +164,7 @@ describe("Stats", () => {
 		  },
 		  "errors": [],
 		  "errorsCount": 0,
-		  "hash": "b7f56a8a8bf1dc7e4bf6",
+		  "hash": "f0a86c7e70b0de037daf",
 		  "modules": [
 		    {
 		      "assets": [],
@@ -118,6 +183,66 @@ describe("Stats", () => {
 		        },
 		      ],
 		      "size": 55,
+		      "source": {
+		        "data": [
+		          109,
+		          111,
+		          100,
+		          117,
+		          108,
+		          101,
+		          46,
+		          101,
+		          120,
+		          112,
+		          111,
+		          114,
+		          116,
+		          115,
+		          32,
+		          61,
+		          32,
+		          102,
+		          117,
+		          110,
+		          99,
+		          116,
+		          105,
+		          111,
+		          110,
+		          32,
+		          97,
+		          40,
+		          41,
+		          32,
+		          123,
+		          10,
+		          9,
+		          114,
+		          101,
+		          116,
+		          117,
+		          114,
+		          110,
+		          32,
+		          34,
+		          84,
+		          104,
+		          105,
+		          115,
+		          32,
+		          105,
+		          115,
+		          32,
+		          97,
+		          34,
+		          59,
+		          10,
+		          125,
+		          59,
+		        ],
+		        "type": "Buffer",
+		      },
 		      "type": "module",
 		    },
 		  ],
@@ -143,16 +268,15 @@ describe("Stats", () => {
 		}
 	`);
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
-		"Hash: b7f56a8a8bf1dc7e4bf6
-		PublicPath: auto
-		  Asset       Size  Chunks             Chunk Names
-		main.js  215 bytes    main  [emitted]  main
-		Entrypoint main = main.js
-		chunk {main} main.js (main) 55 bytes [entry]
-		 [876] ./fixtures/a.js 55 bytes {main}
-		     entry ./fixtures/a 
-		[876] ./fixtures/a.js 55 bytes {main}
-		    entry ./fixtures/a "
+		"PublicPath: auto
+		asset main.js 215 bytes {main} [emitted] (name: main)
+		Entrypoint main 215 bytes = main.js
+		chunk {main} main.js (main) [entry]
+		  ./fixtures/a.js [876] {main}
+		    entry ./fixtures/a
+		./fixtures/a.js [876] {main}
+		  entry ./fixtures/a
+		rspack compiled successfully (f0a86c7e70b0de037daf)"
 	`);
 	});
 
@@ -173,17 +297,16 @@ describe("Stats", () => {
 			context: __dirname,
 			entry: "./fixtures/abc"
 		});
-		expect(stats?.toString({ timings: false }).replace(/\\/g, "/"))
-			.toMatchInlineSnapshot(`
-		"Hash: a9a924a6456cee91473e
-		PublicPath: auto
-		  Asset       Size  Chunks             Chunk Names
-		main.js  419 bytes    main  [emitted]  main
-		Entrypoint main = main.js
-		[876] ./fixtures/a.js 55 bytes {main}
-		[211] ./fixtures/b.js 94 bytes {main}
-		[537] ./fixtures/c.js 72 bytes {main}
-		[222] ./fixtures/abc.js 83 bytes {main}
+		expect(
+			stats?.toString({ timings: false, version: false }).replace(/\\/g, "/")
+		).toMatchInlineSnapshot(`
+		"PublicPath: auto
+		asset main.js 419 bytes {main} [emitted] (name: main)
+		Entrypoint main 419 bytes = main.js
+		./fixtures/a.js [876] {main}
+		./fixtures/b.js [211] {main}
+		./fixtures/c.js [537] {main}
+		./fixtures/abc.js [222] {main}
 
 		error[javascript]: JavaScript parsing error
 		  ┌─ tests/fixtures/b.js:6:1
@@ -191,7 +314,9 @@ describe("Stats", () => {
 		6 │ return;
 		  │ ^^^^^^^ Return statement is not allowed here
 
-		"
+
+
+		rspack compiled with 1 error (418f650b35ab423e0e13)"
 	`);
 	});
 });

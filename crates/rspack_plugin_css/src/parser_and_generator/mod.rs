@@ -1,15 +1,16 @@
 #![allow(clippy::comparison_chain)]
-use std::sync::Arc;
 
 use indexmap::IndexMap;
+use once_cell::sync::Lazy;
 use preset_env_base::query::{Query, Targets};
+use regex::Regex;
 use rspack_core::{
   rspack_sources::{
     MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
     SourceMapSourceOptions,
   },
-  AstOrSource, BuildMetaExportsType, CodeGeneratableContext, GenerateContext, GenerationResult,
-  Module, ModuleType, ParseContext, ParseResult, ParserAndGenerator, SourceType,
+  AstOrSource, BuildMetaExportsType, GenerateContext, GenerationResult, Module, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
 };
 use rspack_core::{ModuleDependency, RuntimeGlobals};
 use rspack_error::{
@@ -27,11 +28,14 @@ use swc_core::{
   ecma::atoms::JsWord,
 };
 
-use crate::dependency::CssComposeDependency;
 use crate::plugin::CssConfig;
-use crate::swc_css_compiler::{SwcCssSourceMapGenConfig, SWC_COMPILER};
+use crate::swc_css_compiler::SwcCssSourceMapGenConfig;
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
+use crate::{dependency::CssComposeDependency, swc_css_compiler::SwcCssCompiler};
 use crate::{pxtorem::px_to_rem::px_to_rem, visitors::analyze_dependencies};
+
+static REGEX_IS_MODULES: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\.module(s)?\.[^.]+$").expect("Invalid regex"));
 
 pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
   &[SourceType::JavaScript, SourceType::Css];
@@ -102,24 +106,33 @@ impl ParserAndGenerator for CssParserAndGenerator {
       code_generation_dependencies,
       ..
     } = parse_context;
+
     build_info.strict = true;
-    // here different webpack
     build_meta.exports_type = BuildMetaExportsType::Default;
-    let cm: Arc<swc_core::common::SourceMap> = Default::default();
-    let content = source.source().to_string();
-    let css_modules = matches!(module_type, ModuleType::CssModule);
-    let filename = &resource_data
-      .resource_path
-      .relative(&compiler_options.context);
+
+    let swc_compiler = SwcCssCompiler::default();
+
+    let source_code = source.source().into_owned();
+    let resource_path = &parse_context.resource_data.resource_path;
+
+    let is_enable_css_modules = match module_type {
+      ModuleType::CssModule => true,
+      ModuleType::CssAuto
+        if REGEX_IS_MODULES.is_match(resource_path.to_string_lossy().as_ref()) =>
+      {
+        true
+      }
+      _ => false,
+    };
+
     let TWithDiagnosticArray {
       inner: mut stylesheet,
       mut diagnostic,
-    } = SWC_COMPILER.parse_file(
-      cm.clone(),
-      &parse_context.resource_data.resource_path.to_string_lossy(),
-      content,
+    } = swc_compiler.parse_file(
+      &resource_path.to_string_lossy(),
+      source_code,
       ParserConfig {
-        css_modules,
+        css_modules: is_enable_css_modules,
         legacy_ie: true,
         ..Default::default()
       },
@@ -135,11 +148,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
       stylesheet.visit_mut_with(&mut px_to_rem(config));
     }
 
-    let locals = if css_modules {
+    let locals = if is_enable_css_modules {
       let result = swc_core::css::modules::compile(
         &mut stylesheet,
         ModulesTransformConfig::new(
-          filename,
+          &resource_data
+            .resource_path
+            .relative(&compiler_options.context),
           &self.config.modules.local_ident_name,
           &compiler_options.output,
         ),
@@ -152,8 +167,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     };
     let devtool = &compiler_options.devtool;
 
-    let (code, source_map) = SWC_COMPILER.codegen(
-      cm,
+    let (code, source_map) = swc_compiler.codegen(
       &stylesheet,
       SwcCssSourceMapGenConfig {
         enable: devtool.source_map(),
@@ -163,10 +177,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
     )?;
 
     let TWithDiagnosticArray {
-      inner: mut new_stylesheet_ast,
+      inner: new_stylesheet_ast,
       diagnostic: new_diagnostic,
-    } = SWC_COMPILER.parse_file(
-      Default::default(),
+    } = SwcCssCompiler::default().parse_file(
       &parse_context.resource_data.resource_path.to_string_lossy(),
       code.clone(),
       Default::default(),
@@ -174,7 +187,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     diagnostic.extend(new_diagnostic);
 
     let mut dependencies = analyze_dependencies(
-      &mut new_stylesheet_ast,
+      &new_stylesheet_ast,
       code_generation_dependencies,
       &mut diagnostic,
     );
@@ -242,7 +255,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       SourceType::Css => {
         let mut source = ReplaceSource::new(ast_or_source.to_owned().try_into_source()?);
         let compilation = generate_context.compilation;
-        let mut context = CodeGeneratableContext {
+        let mut context = TemplateContext {
           compilation,
           module,
           runtime_requirements: generate_context.runtime_requirements,

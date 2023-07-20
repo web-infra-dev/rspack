@@ -1,6 +1,5 @@
 use crate::{
-  CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, Dependency,
-  RuntimeGlobals,
+  Dependency, DependencyTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
@@ -10,11 +9,11 @@ pub struct RuntimeRequirementsDependency {
 
 impl Dependency for RuntimeRequirementsDependency {}
 
-impl CodeGeneratableDependency for RuntimeRequirementsDependency {
+impl DependencyTemplate for RuntimeRequirementsDependency {
   fn apply(
     &self,
-    _source: &mut CodeGeneratableSource,
-    code_generatable_context: &mut CodeGeneratableContext,
+    _source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
     code_generatable_context
       .runtime_requirements

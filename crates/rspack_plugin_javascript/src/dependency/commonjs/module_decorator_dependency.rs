@@ -1,6 +1,6 @@
 use rspack_core::{
-  CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, InitFragment,
-  InitFragmentStage, RuntimeGlobals,
+  DependencyTemplate, InitFragment, InitFragmentStage, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -14,13 +14,13 @@ impl ModuleDecoratorDependency {
   }
 }
 
-impl CodeGeneratableDependency for ModuleDecoratorDependency {
+impl DependencyTemplate for ModuleDecoratorDependency {
   fn apply(
     &self,
-    _source: &mut CodeGeneratableSource,
-    code_generatable_context: &mut CodeGeneratableContext,
+    _source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
-    let CodeGeneratableContext {
+    let TemplateContext {
       runtime_requirements,
       init_fragments,
       compilation,

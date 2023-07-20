@@ -1,6 +1,6 @@
 use bitflags::bitflags;
 use rspack_identifier::Identifier;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use swc_core::ecma::ast::Id;
 use swc_core::ecma::atoms::JsWord;
 use swc_core::{common::SyntaxContext, ecma::atoms::js_word};
@@ -17,22 +17,38 @@ bitflags! {
         const EXPORT_DEFAULT = Self::DEFAULT.bits | Self::EXPORT.bits;
     }
 }
-#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Serialize)]
 pub struct Symbol {
   pub(crate) src: Identifier,
+  /// id means a local binding or a declaration in top level scope
   pub(crate) id: BetterId,
+  /// exported only used for `export {id as exported};` when there existed a alias in
+  /// `ExportNamedDeclaration`
+  pub(crate) exported: Option<JsWord>,
   pub(crate) ty: SymbolType,
 }
 
-#[derive(Debug, Hash, Clone, PartialEq, Eq, Copy)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Copy, Serialize)]
 pub enum SymbolType {
   Define,
   Temp,
 }
 
 impl Symbol {
-  pub fn new(src: Identifier, id: BetterId, ty: SymbolType) -> Self {
-    Self { src, id, ty }
+  pub fn new(src: Identifier, id: BetterId, ty: SymbolType, exported: Option<JsWord>) -> Self {
+    Self {
+      src,
+      id,
+      ty,
+      exported,
+    }
+  }
+
+  pub fn exported(&self) -> &JsWord {
+    match self.exported {
+      Some(ref exported) => exported,
+      None => &self.id().atom,
+    }
   }
 
   pub fn src(&self) -> Identifier {
@@ -52,7 +68,7 @@ impl Symbol {
   }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize)]
 pub enum IndirectType {
   Temp(JsWord),
   /// first argument is original, second argument is exported
@@ -103,7 +119,7 @@ pub static DEFAULT_JS_WORD: JsWord = js_word!("default");
 ///   reexporter: "a.js"
 /// }
 /// ```
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize)]
 pub struct StarSymbol {
   pub src: Identifier,
   pub binding: JsWord,
@@ -111,7 +127,7 @@ pub struct StarSymbol {
   pub ty: StarSymbolKind,
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize)]
 pub enum StarSymbolKind {
   ReExportAllAs,
   ImportAllAs,
@@ -132,8 +148,6 @@ impl StarSymbol {
       ty,
     }
   }
-
-  pub fn star_kind(&self) {}
 
   pub fn set_src(&mut self, src: Identifier) {
     self.src = src;
@@ -160,7 +174,7 @@ impl StarSymbol {
   }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize)]
 pub struct IndirectTopLevelSymbol {
   pub src: Identifier,
   pub ty: IndirectType,
@@ -182,8 +196,8 @@ impl IndirectTopLevelSymbol {
         Some(exported) => exported,
         None => original,
       },
-      IndirectType::Import(ref local, ref imported) => match imported {
-        Some(imported) => imported,
+      IndirectType::Import(ref local, ref original) => match original {
+        Some(original) => original,
         None => local,
       },
       // we store the binding just used for create [ModuleDecl], but it is always `default` when as `exported` or `imported`
@@ -239,7 +253,7 @@ impl IndirectTopLevelSymbol {
 /// `BetterId.debug()` -> `xxxxxxx|#10`
 /// debug of [swc_ecma_ast::Id] -> `(#1, atom: Atom('b' type=static))`
 /// We don't care the kind of inter of the [JsWord]
-#[derive(Hash, Clone, PartialEq, Eq, Default)]
+#[derive(Hash, Clone, PartialEq, Eq, Default, Serialize)]
 pub struct BetterId {
   pub ctxt: SyntaxContext,
   pub atom: JsWord,
@@ -331,6 +345,7 @@ pub enum Part {
   Id(BetterId),
   MemberExpr { object: BetterId, property: JsWord },
   Url(JsWord),
+  Worker(JsWord),
 }
 
 impl Part {
@@ -354,7 +369,7 @@ impl Part {
     match self {
       Part::Id(id) => Some(id),
       Part::MemberExpr { object, .. } => Some(object),
-      Part::Url(_) => None,
+      Part::Url(_) | Part::Worker(_) => None,
     }
   }
 }

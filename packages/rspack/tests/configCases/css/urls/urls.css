@@ -5,6 +5,34 @@
 } */
 
 div {
+	a13: green url(data:image/png;base64,AAA) url(http://example.com/image.jpg) url(//example.com/image.png) xyz;
+}
+
+div {
+	a14: url("data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 42 26' fill='%23007aff'><rect width='4' height='4'/><rect x='8' y='1' width='34' height='2'/><rect y='11' width='4' height='4'/><rect x='8' y='12' width='34' height='2'/><rect y='22' width='4' height='4'/><rect x='8' y='23' width='34' height='2'/></svg>");
+}
+
+div {
+	a15: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2042%2026%27%20fill%3D%27%2523007aff%27%3E%3Crect%20width%3D%274%27%20height%3D%274%27%2F%3E%3Crect%20x%3D%278%27%20y%3D%271%27%20width%3D%2734%27%20height%3D%272%27%2F%3E%3Crect%20y%3D%2711%27%20width%3D%274%27%20height%3D%274%27%2F%3E%3Crect%20x%3D%278%27%20y%3D%2712%27%20width%3D%2734%27%20height%3D%272%27%2F%3E%3Crect%20y%3D%2722%27%20width%3D%274%27%20height%3D%274%27%2F%3E%3Crect%20x%3D%278%27%20y%3D%2723%27%20width%3D%2734%27%20height%3D%272%27%2F%3E%3C%2Fsvg%3E");
+}
+
+div {
+	a16: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg"><filter id="filter"><feGaussianBlur in="SourceAlpha" stdDeviation="0" /><feOffset dx="1" dy="2" result="offsetblur" /><feFlood flood-color="rgba(255,255,255,1)" /><feComposite in2="offsetblur" operator="in" /><feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge></filter></svg>#filter');
+}
+
+div {
+	a17: url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%5C%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%5C%22%3E%3Cfilter%20id%3D%5C%22filter%5C%22%3E%3CfeGaussianBlur%20in%3D%5C%22SourceAlpha%5C%22%20stdDeviation%3D%5C%220%5C%22%20%2F%3E%3CfeOffset%20dx%3D%5C%221%5C%22%20dy%3D%5C%222%5C%22%20result%3D%5C%22offsetblur%5C%22%20%2F%3E%3CfeFlood%20flood-color%3D%5C%22rgba(255%2C255%2C255%2C1)%5C%22%20%2F%3E%3CfeComposite%20in2%3D%5C%22offsetblur%5C%22%20operator%3D%5C%22in%5C%22%20%2F%3E%3CfeMerge%3E%3CfeMergeNode%20%2F%3E%3CfeMergeNode%20in%3D%5C%22SourceGraphic%5C%22%20%2F%3E%3C%2FfeMerge%3E%3C%2Ffilter%3E%3C%2Fsvg%3E%23filter');
+}
+
+div {
+	a18: url(#highlight);
+}
+
+div {
+	a19: url('#line-marker');
+}
+
+div {
 	a148: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg"%3E%3Crect width="100%25" height="100%25" style="stroke: rgb(223,224,225); stroke-width: 2px; fill: none; stroke-dasharray: 6px 3px" /%3E%3C/svg%3E');
 	a149: url('DATA:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg"%3E%3Crect width="100%25" height="100%25" style="stroke: rgb(223,224,225); stroke-width: 2px; fill: none; stroke-dasharray: 6px 3px" /%3E%3C/svg%3E');
 	a150: url('DATA:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg"%3E%3Crect width="100%25" height="100%25" style="stroke: rgb(223,224,225); stroke-width: 2px; fill: none; stroke-dasharray: 6px 3px" /%3E%3C/svg%3E');

@@ -355,29 +355,31 @@ impl TestConfig {
             c::RuleSetCondition::Regexp(RspackRegex::new(&matcher).expect("should be valid regex"))
           }
         }),
-        r#use: rule
-          .r#use
-          .into_iter()
-          .map(|i| match i.builtin_loader.as_str() {
-            "builtin:sass-loader" => Arc::new(rspack_loader_sass::SassLoader::new(
-              i.options
-                .map(|options| {
-                  serde_json::from_str::<rspack_loader_sass::SassLoaderOptions>(&options)
-                    .expect("should give a right loader options")
-                })
-                .unwrap_or_default(),
-            )) as BoxLoader,
-            "builtin:swc-loader" => Arc::new(rspack_loader_swc::SwcLoader::new(
-              i.options
-                .map(|options| {
-                  serde_json::from_str::<rspack_loader_swc::SwcLoaderJsOptions>(&options)
-                    .expect("should give a right loader options")
-                })
-                .unwrap_or_default(),
-            )) as BoxLoader,
-            _ => panic!("should give a right loader"),
-          })
-          .collect::<Vec<BoxLoader>>(),
+        r#use: c::ModuleRuleUse::Array(
+          rule
+            .r#use
+            .into_iter()
+            .map(|i| match i.builtin_loader.as_str() {
+              "builtin:sass-loader" => Arc::new(rspack_loader_sass::SassLoader::new(
+                i.options
+                  .map(|options| {
+                    serde_json::from_str::<rspack_loader_sass::SassLoaderOptions>(&options)
+                      .expect("should give a right loader options")
+                  })
+                  .unwrap_or_default(),
+              )) as BoxLoader,
+              "builtin:swc-loader" => Arc::new(rspack_loader_swc::SwcLoader::new(
+                i.options
+                  .map(|options| {
+                    serde_json::from_str::<rspack_loader_swc::SwcLoaderJsOptions>(&options)
+                      .expect("should give a right loader options")
+                  })
+                  .unwrap_or_default(),
+              )) as BoxLoader,
+              _ => panic!("should give a right loader"),
+            })
+            .collect::<Vec<BoxLoader>>(),
+        ),
         side_effects: rule.side_effect,
         r#type: rule
           .r#type
@@ -465,6 +467,9 @@ impl TestConfig {
           drop_console: op.drop_console,
           pure_funcs: op.pure_funcs,
           extract_comments: op.extract_comments,
+          include: None,
+          exclude: None,
+          test: None,
         }),
         preset_env: self.builtins.preset_env.map(Into::into),
         code_generation: self.builtins.code_generation.map(|op| c::CodeGeneration {

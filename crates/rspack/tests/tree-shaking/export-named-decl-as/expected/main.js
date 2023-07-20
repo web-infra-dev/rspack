@@ -1,0 +1,38 @@
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./src/answer.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'formatNumber': function() { return _plugin_formatNumber__WEBPACK_IMPORTED_MODULE_0_["default"]; }
+});
+/* harmony import */var _plugin_formatNumber__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./plugin/formatNumber */"./src/plugin/formatNumber.js");
+
+
+},
+"./src/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./answer */"./src/answer.js");
+
+console.log(_answer__WEBPACK_IMPORTED_MODULE_0_);
+},
+"./src/plugin/formatNumber.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'default': function() { return formatNumber_default; }
+});
+function formatNumber(config) {}
+const plugin = (cls)=>{
+    cls.prototype.formatNumber = formatNumber;
+};
+var formatNumber_default = plugin;
+
+},
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./src/index.js"));
+
+}
+]);

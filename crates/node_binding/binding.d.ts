@@ -40,8 +40,8 @@ export class JsCompilation {
 
 export class JsStats {
   getAssets(): JsStatsGetAssets
-  getModules(reasons: boolean, moduleAssets: boolean, nestedModules: boolean): Array<JsStatsModule>
-  getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean, moduleAssets: boolean, nestedModules: boolean): Array<JsStatsChunk>
+  getModules(reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean): Array<JsStatsModule>
+  getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean): Array<JsStatsChunk>
   getEntrypoints(): Array<JsStatsChunkGroup>
   getNamedChunkGroups(): Array<JsStatsChunkGroup>
   getErrors(): Array<JsStatsError>
@@ -353,6 +353,7 @@ export interface JsStatsModule {
   issuerPath: Array<JsStatsModuleIssuer>
   reasons?: Array<JsStatsModuleReason>
   assets?: Array<string>
+  source?: string | Buffer
 }
 
 export interface JsStatsModuleIssuer {
@@ -481,6 +482,7 @@ export interface RawBuiltins {
 export interface RawCacheGroupOptions {
   priority?: number
   test?: string
+  idHint?: string
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
   type?: RegExp | string
@@ -600,6 +602,13 @@ export interface RawFallbackCacheGroupOptions {
   maxInitialSize?: number
 }
 
+export interface RawFuncUseCtx {
+  resource?: string
+  realResource?: string
+  resourceQuery?: string
+  issuer?: string
+}
+
 export interface RawGeneratorOptions {
   type: "asset" | "asset/inline" | "asset/resource" | "unknown"
   asset?: RawAssetGeneratorOptions
@@ -667,6 +676,22 @@ export interface RawMinification {
   dropConsole: boolean
   pureFuncs: Array<string>
   extractComments?: string
+  test?: RawMinificationConditions
+  include?: RawMinificationConditions
+  exclude?: RawMinificationConditions
+}
+
+export interface RawMinificationCondition {
+  type: "string" | "regexp"
+  stringMatcher?: string
+  regexpMatcher?: string
+}
+
+export interface RawMinificationConditions {
+  type: "string" | "regexp" | "array"
+  stringMatcher?: string
+  regexpMatcher?: string
+  arrayMatcher?: Array<RawMinificationCondition>
 }
 
 export interface RawModuleOptions {
@@ -687,7 +712,7 @@ export interface RawModuleRule {
   resourceFragment?: RawRuleSetCondition
   descriptionData?: Record<string, RawRuleSetCondition>
   sideEffects?: boolean
-  use?: Array<RawModuleRuleUse>
+  use?: RawModuleRuleUses
   type?: string
   parser?: RawParserOptions
   generator?: RawGeneratorOptions
@@ -717,6 +742,12 @@ export interface RawModuleRuleUse {
   jsLoader?: JsLoader
   builtinLoader?: string
   options?: string
+}
+
+export interface RawModuleRuleUses {
+  type: "array" | "function"
+  arrayUse?: Array<RawModuleRuleUse>
+  funcUse?: (...args: any[]) => any
 }
 
 export interface RawNodeOption {

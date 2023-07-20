@@ -1,5 +1,5 @@
 use rspack_core::{
-  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, CodeGeneratableDependency, ModuleType,
+  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, DependencyTemplate, ModuleType,
   RuntimeGlobals,
 };
 use swc_core::{
@@ -14,7 +14,7 @@ use super::expr_matcher;
 use crate::dependency::ModuleDecoratorDependency;
 
 pub struct CommonJsExportDependencyScanner<'a> {
-  presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+  presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   unresolved_ctxt: &'a SyntaxContext,
   build_meta: &'a mut BuildMeta,
   module_type: ModuleType,
@@ -23,7 +23,7 @@ pub struct CommonJsExportDependencyScanner<'a> {
 
 impl<'a> CommonJsExportDependencyScanner<'a> {
   pub fn new(
-    presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+    presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: &'a SyntaxContext,
     build_meta: &'a mut BuildMeta,
     module_type: ModuleType,

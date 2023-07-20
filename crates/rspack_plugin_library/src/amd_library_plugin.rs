@@ -49,6 +49,10 @@ impl Plugin for AmdLibraryPlugin {
           .module_graph
           .module_by_identifier(identifier)
           .and_then(|module| module.as_external_module())
+          .and_then(|m| {
+            let ty = m.get_external_type();
+            (ty == "amd" || ty == "amd-require").then_some(m)
+          })
       })
       .collect::<Vec<&ExternalModule>>();
     let external_deps_array = external_dep_array(&modules);

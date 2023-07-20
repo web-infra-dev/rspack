@@ -15,7 +15,7 @@ use rspack_error::Result;
 use rspack_hash::RspackHash;
 
 use crate::parser_and_generator::CssParserAndGenerator;
-use crate::swc_css_compiler::{SwcCssSourceMapGenConfig, SWC_COMPILER};
+use crate::swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig};
 use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX;
 use crate::CssPlugin;
 
@@ -129,7 +129,10 @@ impl Plugin for CssPlugin {
       .register_parser_and_generator_builder(ModuleType::Css, Box::new(builder.clone()));
     ctx
       .context
-      .register_parser_and_generator_builder(ModuleType::CssModule, Box::new(builder));
+      .register_parser_and_generator_builder(ModuleType::CssModule, Box::new(builder.clone()));
+    ctx
+      .context
+      .register_parser_and_generator_builder(ModuleType::CssAuto, Box::new(builder));
 
     Ok(())
   }
@@ -274,7 +277,7 @@ impl Plugin for CssPlugin {
         if let Some(original_source) = original.get_source() {
           let input = original_source.source().to_string();
           let input_source_map = original_source.map(&MapOptions::default());
-          let minimized_source = SWC_COMPILER.minify(
+          let minimized_source = SwcCssCompiler::default().minify(
             filename,
             input,
             input_source_map,

@@ -248,6 +248,8 @@ impl RawOptionsApply for RawOptions {
       plugins.push(rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin.boxed());
     }
 
+    plugins.push(rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin.boxed());
+
     Ok(Self::Options {
       context,
       mode,

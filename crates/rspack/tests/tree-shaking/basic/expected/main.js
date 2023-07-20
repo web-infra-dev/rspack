@@ -18,7 +18,7 @@ setTimeout(()=>{
  function render() {
     function test() {
         const container = document.getElementById("root");
-        container.innerHTML = `adddd333:${_lib__WEBPACK_IMPORTED_MODULE_0_["secret"]}:${_lib__WEBPACK_IMPORTED_MODULE_0_["myanswer"]}`;
+        container.innerHTML = `adddd333:${/* "./lib" unused */null}:${_lib__WEBPACK_IMPORTED_MODULE_0_["myanswer"]}`;
     }
 }
 if (module.hot?.accept) module.hot.accept((module1)=>{

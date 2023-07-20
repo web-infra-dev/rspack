@@ -16,10 +16,11 @@ jobs:
         target:
           - x86_64-apple-darwin
           - aarch64-apple-darwin
+          - x86_64-unknown-linux-gnu # For Cloud IDE
     uses: ./.github/workflows/reusable-build.yml
     with:
+      ref: refs/pull/${{ github.event.issue.number }}/head
       target: ${{ matrix.target }}
-      profile: 'debug'
       test: false
 
   release:
@@ -29,6 +30,9 @@ jobs:
     steps:
       - name: Checkout Branch
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+          ref: refs/pull/${{ github.event.issue.number }}/head
 
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
