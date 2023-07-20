@@ -1,4 +1,4 @@
-import { JsChunkGroup } from "@rspack/binding";
+import type { JsChunkGroup } from "@rspack/binding";
 
 export class ChunkGroup {
 	#inner: JsChunkGroup;

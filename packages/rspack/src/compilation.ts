@@ -10,7 +10,7 @@
 import * as tapable from "tapable";
 import { Source } from "webpack-sources";
 
-import {
+import type {
 	JsAssetInfo,
 	JsChunk,
 	JsCompatSource,

@@ -1,5 +1,5 @@
 // TODO: implement statsFactory and DefaultStatsFactoryPlugin
-import * as binding from "@rspack/binding";
+import type * as binding from "@rspack/binding";
 
 export type StatsChunkGroup = binding.JsStatsChunkGroup & Record<string, any>;
 
