@@ -2307,16 +2307,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_build"
-version = "0.1.0"
-dependencies = [
- "rspack_core",
- "rspack_fs",
- "rspack_testing",
- "tokio",
-]
-
-[[package]]
 name = "rspack_core"
 version = "0.1.0"
 dependencies = [
