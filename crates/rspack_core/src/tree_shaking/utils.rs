@@ -65,8 +65,8 @@ pub trait ConvertModulePath {
 impl ConvertModulePath for SymbolRef {
   fn convert_module_identifier_to_module_path(self, module_graph: &ModuleGraph) -> Self {
     match self {
-      SymbolRef::Direct(direct) => {
-        SymbolRef::Direct(direct.convert_module_identifier_to_module_path(module_graph))
+      SymbolRef::Declaration(direct) => {
+        SymbolRef::Declaration(direct.convert_module_identifier_to_module_path(module_graph))
       }
       SymbolRef::Indirect(indirect) => {
         SymbolRef::Indirect(indirect.convert_module_identifier_to_module_path(module_graph))
@@ -82,6 +82,11 @@ impl ConvertModulePath for SymbolRef {
         importer: importer.convert_module_identifier_to_module_path(module_graph),
         src: src.convert_module_identifier_to_module_path(module_graph),
       },
+      SymbolRef::Usage(binding, member_chain, src) => SymbolRef::Usage(
+        binding,
+        member_chain,
+        src.convert_module_identifier_to_module_path(module_graph),
+      ),
     }
   }
 }
