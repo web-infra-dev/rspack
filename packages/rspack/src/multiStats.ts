@@ -10,7 +10,7 @@
 
 import { KnownCreateStatsOptionsContext } from ".";
 import { SnapshotOptions } from "./config";
-import { StatsCompilation } from "./stats/DefaultStatsFactoryPlugin";
+import { StatsCompilation } from "./stats/statsFactoryUtils";
 import { Stats } from "./stats";
 import { indent } from "./util";
 import identifierUtils from "./util/identifier";
