@@ -121,7 +121,7 @@ pub struct RawCacheGroupOptions {
   pub test: Option<String>,
   //   pub filename: String,
   //   pub enforce: bool,
-  //   pub id_hint: String,
+  pub id_hint: Option<String>,
   /// What kind of chunks should be selected.
   #[serde(skip_deserializing)]
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
@@ -237,7 +237,7 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
             .unwrap_or_else(rspack_plugin_split_chunks_new::create_default_module_type_filter);
 
           new_split_chunks_plugin::CacheGroup {
-            id_hint: key.clone(),
+            id_hint: v.id_hint.unwrap_or_else(|| key.clone()),
             key,
             name: v
               .name

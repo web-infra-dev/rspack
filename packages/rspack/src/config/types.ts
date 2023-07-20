@@ -15,7 +15,7 @@ import { Compilation } from "..";
 import type * as webpackDevServer from "webpack-dev-server";
 import type { Options as RspackOptions } from "./zod/_rewrite";
 import type { OptimizationConfig as Optimization } from "./zod/optimization";
-import { RawFuncUseCtx } from "@rspack/binding";
+import type { RawFuncUseCtx } from "@rspack/binding";
 export type { RspackOptions, Optimization };
 
 export type { BannerConditions, BannerCondition } from "./builtins";
@@ -610,6 +610,7 @@ export interface StatsOptions {
 	builtAt?: boolean;
 	moduleAssets?: boolean;
 	nestedModules?: boolean;
+	source?: boolean;
 }
 
 export type OptimizationRuntimeChunk =

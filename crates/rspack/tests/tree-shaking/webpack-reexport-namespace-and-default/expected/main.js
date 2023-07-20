@@ -39,11 +39,11 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'exportDefaultUsed': function() { return exportDefaultUsed; }
 });
-/* harmony import */var _script1__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./script1 */"./package1/script1.js");
-/* harmony import */var _script1__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./script1 */"./package1/script1.js");
-__webpack_require__.es(_script1__WEBPACK_IMPORTED_MODULE_1_, __webpack_exports__);
+/* harmony import */var _script1__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./script1 */"./package1/script1.js");
+/* harmony import */var _script1__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./script1 */"./package1/script1.js");
+__webpack_require__.es(_script1__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
 
-var __WEBPACK_DEFAULT_EXPORT__ = _script1__WEBPACK_IMPORTED_MODULE_1_["default"];
+var __WEBPACK_DEFAULT_EXPORT__ = /* "./script1" unused */null;
 
  const exportDefaultUsed = __webpack_exports_info__.default.used;
 },
@@ -63,7 +63,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 
 function __WEBPACK_DEFAULT_EXPORT__(){
-    return /* "./script3" unused */undefined;
+    return /* "./script3" unused */null;
 }
 
  const exportDefaultUsed = __webpack_exports_info__.default.used;
@@ -75,11 +75,11 @@ __webpack_require__.d(__webpack_exports__, {
   'default': function() { return __WEBPACK_DEFAULT_EXPORT__; },
   'exportDefaultUsed': function() { return exportDefaultUsed; }
 });
-/* harmony import */var _script1__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./script1 */"./package2/script1.js");
-/* harmony import */var _script1__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./script1 */"./package2/script1.js");
-__webpack_require__.es(_script1__WEBPACK_IMPORTED_MODULE_1_, __webpack_exports__);
+/* harmony import */var _script1__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./script1 */"./package2/script1.js");
+/* harmony import */var _script1__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./script1 */"./package2/script1.js");
+__webpack_require__.es(_script1__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
 
-var __WEBPACK_DEFAULT_EXPORT__ = _script1__WEBPACK_IMPORTED_MODULE_1_["default"];
+var __WEBPACK_DEFAULT_EXPORT__ = _script1__WEBPACK_IMPORTED_MODULE_0_["default"];
 
  const exportDefaultUsed = __webpack_exports_info__.default.used;
 },

@@ -10,7 +10,7 @@
 import * as tapable from "tapable";
 import { Source } from "webpack-sources";
 
-import {
+import type {
 	JsAssetInfo,
 	JsChunk,
 	JsCompatSource,
@@ -282,6 +282,7 @@ export class Compilation {
 			options.nestedModules,
 			!context.forToString
 		);
+		options.source = optionOrLocalFallback(options.source, false);
 
 		return options;
 	}

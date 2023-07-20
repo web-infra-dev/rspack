@@ -44,6 +44,10 @@ pub enum SymbolRef {
     importer: ModuleIdentifier,
     src: ModuleIdentifier,
   },
+  Worker {
+    importer: ModuleIdentifier,
+    src: ModuleIdentifier,
+  },
 }
 
 impl SymbolRef {
@@ -53,6 +57,7 @@ impl SymbolRef {
       SymbolRef::Indirect(i) => i.src(),
       SymbolRef::Star(s) => s.src(),
       SymbolRef::Url { src, .. } => *src,
+      SymbolRef::Worker { src, .. } => *src,
     }
   }
 
@@ -62,6 +67,7 @@ impl SymbolRef {
       SymbolRef::Indirect(i) => i.importer,
       SymbolRef::Star(s) => s.module_ident(),
       SymbolRef::Url { importer, .. } => *importer,
+      SymbolRef::Worker { importer, .. } => *importer,
     }
   }
   /// Returns `true` if the symbol ref is [`Direct`].
@@ -336,12 +342,22 @@ impl<'a> ModuleRefAnalyze<'a> {
               self.module_identifier,
               IndirectType::Import(property.clone(), None),
             )),
-            SymbolRef::Url { .. } => unreachable!(),
+            SymbolRef::Url { .. } | SymbolRef::Worker { .. } => unreachable!(),
           })
         }
         Part::Url(src) => {
           let src_module_id = self
             .resolve_module_identifier(src, &DependencyType::NewUrl)
+            .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
+
+          Some(SymbolRef::Url {
+            importer: self.module_identifier,
+            src: *src_module_id,
+          })
+        }
+        Part::Worker(src) => {
+          let src_module_id = self
+            .resolve_module_identifier(src, &DependencyType::NewWorker)
             .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
 
           Some(SymbolRef::Url {
@@ -400,7 +416,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         // ignore any indirect symbol, because it will not generate binding, the reachable exports will
         // be calculated in the module where it is defined
         SymbolRef::Indirect(_) | SymbolRef::Star(_) => {}
-        SymbolRef::Url { .. } => {}
+        SymbolRef::Url { .. } | SymbolRef::Worker { .. } => {}
       }
     }
     // Any var declaration has reference a symbol from other module, it is marked as used
@@ -462,6 +478,17 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                     src: *src_module_id,
                   }]);
                 }
+                Part::Worker(src) => {
+                  let src_module_id = self
+                    .resolve_module_identifier(src, &DependencyType::NewWorker)
+                    .unwrap_or_else(|| {
+                      panic!("Can't resolve {} in {}", src, self.module_identifier)
+                    });
+                  return HashSet::from_iter([SymbolRef::Url {
+                    importer: self.module_identifier,
+                    src: *src_module_id,
+                  }]);
+                }
               };
               let ret = self.import_map.get(id);
               match ret {
@@ -506,6 +533,16 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   src: *src_module_id,
                 }]);
               }
+              Part::Worker(src) => {
+                let src_module_id = self
+                  .resolve_module_identifier(src, &DependencyType::NewWorker)
+                  .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
+
+                return HashSet::from_iter([SymbolRef::Url {
+                  importer: self.module_identifier,
+                  src: *src_module_id,
+                }]);
+              }
             };
             let ret = self.import_map.get(id);
             match ret {
@@ -542,6 +579,17 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         Part::Url(src) => {
           let src_module_id = self
             .resolve_module_identifier(src, &DependencyType::NewUrl)
+            .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
+
+          let url = SymbolRef::Url {
+            importer: self.module_identifier,
+            src: *src_module_id,
+          };
+          self.used_symbol_ref.insert(url);
+        }
+        Part::Worker(src) => {
+          let src_module_id = self
+            .resolve_module_identifier(src, &DependencyType::NewWorker)
             .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
 
           let url = SymbolRef::Url {
@@ -607,10 +655,26 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_new_expr(&mut self, new_expr: &NewExpr) {
     if self.worker_syntax_list.match_new_worker(new_expr) && let Some(args) = &new_expr.args {
-      for arg in args.iter().skip(1) {
-        arg.visit_with(self);
+      new_expr.callee.visit_with(self);
+      if let Some(ExprOrSpread {  expr: box Expr::New(new_expr) , .. }) = args.get(0)  {
+        if let Some((_, _, request)) = crate::needs_refactor::match_new_url(new_expr) {
+          let src = Part::Worker(request.into());
+          match self.current_body_owner_symbol_ext {
+            Some(ref body_owner_symbol_ext) => {
+              self.add_reference(body_owner_symbol_ext.clone(), src, false);
+            }
+            None => {
+              self.used_id_set.insert(src);
+            }
+          }
+          if let Some(args) = &new_expr.args {
+            for ele in args.iter().skip(1) {
+              ele.visit_with(self);
+            }
+          }
+          return;
+        }
       }
-      return;
     }
     if let Some((_, _, request)) = crate::needs_refactor::match_new_url(new_expr) {
       let src = Part::Url(request.into());

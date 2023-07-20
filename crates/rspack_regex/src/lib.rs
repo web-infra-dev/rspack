@@ -8,7 +8,7 @@ use self::algo::Algo;
 mod algo;
 
 /// Using wrapper type required by [TryFrom] trait
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct RspackRegex {
   pub algo: Algo,
 }

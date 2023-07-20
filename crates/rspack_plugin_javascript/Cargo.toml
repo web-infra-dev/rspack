@@ -10,6 +10,7 @@ rspack_testing = { path = "../rspack_testing" }
 
 [dependencies]
 anyhow = { workspace = true }
+async-recursion = { workspace = true }
 async-trait = { workspace = true }
 either = "1"
 indexmap = { workspace = true }

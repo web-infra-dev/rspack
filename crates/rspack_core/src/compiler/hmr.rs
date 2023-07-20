@@ -141,6 +141,8 @@ where
         state.set_is_not_first();
       }
 
+      new_compilation.hot_index = self.compilation.hot_index + 1;
+
       let is_incremental_rebuild_make = self.options.is_incremental_rebuild_make_enabled();
       if is_incremental_rebuild_make {
         // copy field from old compilation

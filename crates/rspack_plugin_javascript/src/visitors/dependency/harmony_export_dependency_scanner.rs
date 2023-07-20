@@ -98,8 +98,8 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
               if let Some(reference) = self.import_map.get(&orig.to_id()) {
                 self.presentational_dependencies.push(Box::new(
                   HarmonyExportImportedSpecifierDependency::new(
-                    reference.0.clone(),
-                    vec![(export, reference.1.clone())],
+                    reference.request.clone(),
+                    vec![(export, reference.names.clone())],
                     self.module_identifier,
                   ),
                 ));

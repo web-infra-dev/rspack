@@ -451,8 +451,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				options.chunkRelations!,
 				options.reasons!,
 				options.moduleAssets!,
-				options.nestedModules!
-				// options.source!
+				options.nestedModules!,
+				options.source!
 			);
 			object.chunks = factory.create(`${type}.chunks`, chunks, context);
 		},
@@ -463,12 +463,11 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			options: StatsOptions,
 			_factory
 		) => {
-			const { type } = context;
 			const modules = context._inner.getModules(
 				options.reasons!,
 				options.moduleAssets!,
-				options.nestedModules!
-				// options.source!
+				options.nestedModules!,
+				options.source!
 			);
 			// const array = Array.from(modules);
 			// const groupedModules = factory.create(`${type}.modules`, array, context);
@@ -532,10 +531,10 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object,
 			compilation,
 			context: KnownStatsFactoryContext,
-			options,
-			factory
+			_options,
+			_factory
 		) => {
-			const { type, cachedGetErrors } = context;
+			const { cachedGetErrors } = context;
 			object.errors = cachedGetErrors!(compilation);
 		},
 		errorsCount: (

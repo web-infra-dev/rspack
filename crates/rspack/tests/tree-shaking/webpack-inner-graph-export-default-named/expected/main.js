@@ -17,7 +17,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _dep_b__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dep?b */"./dep.js?b");
 
 function abc() {
-    return _dep_b__WEBPACK_IMPORTED_MODULE_0_["x"];
+    return /* "./dep?b" unused */null;
 }
 },
 "./c.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
@@ -109,7 +109,7 @@ __webpack_require__.r(__webpack_exports__);
 
 class def {
     method() {
-        return _dep_e__WEBPACK_IMPORTED_MODULE_0_["x"];
+        return /* "./dep?e" unused */null;
     }
 }
 },

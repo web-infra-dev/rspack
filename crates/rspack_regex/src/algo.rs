@@ -1,8 +1,51 @@
+use std::fmt::Debug;
+use std::hash::Hash;
+
 use regex_syntax::hir::literal::ExtractKind;
 use regex_syntax::hir::{Hir, HirKind, Look};
+use regress::Match;
 use rspack_error::{internal_error, Error};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
+pub struct HashRegressRegex {
+  pub regex: regress::Regex,
+  expr: String,
+  flags: String,
+}
+
+impl Hash for HashRegressRegex {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.expr.hash(state);
+    self.flags.hash(state)
+  }
+}
+
+impl Debug for HashRegressRegex {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    Debug::fmt(&self.regex, f)
+  }
+}
+
+impl HashRegressRegex {
+  pub(crate) fn new(expr: &str, flags: &str) -> Result<Self, Error> {
+    match regress::Regex::with_flags(expr, flags) {
+      Ok(regex) => Ok(Self {
+        regex,
+        expr: expr.to_string(),
+        flags: flags.to_string(),
+      }),
+      Err(err) => Err(internal_error!(
+        "Can't construct regex `/{expr}/{flags}`, original error message: {err}"
+      )),
+    }
+  }
+
+  fn find(&self, text: &str) -> Option<Match> {
+    self.regex.find(text)
+  }
+}
+
+#[derive(Clone, Debug, Hash)]
 pub enum Algo {
   /// Regress is considered having the same behaviors as RegExp in JS.
   /// But Regress has poor performance. To improve performance of regex matching,
@@ -11,7 +54,7 @@ pub enum Algo {
   EndWith {
     pats: Vec<String>,
   },
-  Regress(regress::Regex),
+  Regress(HashRegressRegex),
 }
 
 impl Algo {
@@ -20,11 +63,10 @@ impl Algo {
     if let Some(algo) = Self::try_compile_to_end_with_fast_path(expr) && !ignore_case {
       Ok(algo)
     } else {
-      regress::Regex::with_flags(expr, flags)
-        .map(Algo::Regress)
-        .map_err(|err| {
-          internal_error!("Can't construct regex `/{expr}/{flags}`, original error message: {err}")
-        })
+      match HashRegressRegex::new(expr, flags) {
+        Ok(regex) => Ok(Algo::Regress(regex)),
+        Err(e) => Err(e),
+      }
     }
   }
 

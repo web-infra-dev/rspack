@@ -467,6 +467,9 @@ impl TestConfig {
           drop_console: op.drop_console,
           pure_funcs: op.pure_funcs,
           extract_comments: op.extract_comments,
+          include: None,
+          exclude: None,
+          test: None,
         }),
         preset_env: self.builtins.preset_env.map(Into::into),
         code_generation: self.builtins.code_generation.map(|op| c::CodeGeneration {
