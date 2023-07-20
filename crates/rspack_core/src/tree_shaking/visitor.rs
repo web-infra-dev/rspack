@@ -827,7 +827,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 return;
               }
             };
-            let (&resolved_uri_key, dep_id) = resolved_uri;
+            let (&resolved_uri_key, _dep_id) = resolved_uri;
             self
               .inherit_export_maps
               .insert(resolved_uri_key, HashMap::default());
@@ -1067,7 +1067,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     if let Some(require_lit) = get_require_literal(node, self.unresolved_mark) {
       self.module_syntax.insert(ModuleSyntax::COMMONJS);
       match self.resolve_module_identifier(&require_lit, &DependencyType::CjsRequire) {
-        Some((&module_identifier, dep_id)) => {
+        Some((&module_identifier, _dep_id)) => {
           match self.bail_out_module_identifiers.entry(module_identifier) {
             Entry::Occupied(mut occ) => {
               *occ.get_mut() |= BailoutFlag::COMMONJS_REQUIRE;
@@ -1086,7 +1086,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       };
     } else if let Some(import_str) = get_dynamic_import_string_literal(node) {
       match self.resolve_module_identifier(&import_str, &DependencyType::DynamicImport) {
-        Some((&module_identifier, dep_id)) => {
+        Some((&module_identifier, _dep_id)) => {
           match self.bail_out_module_identifiers.entry(module_identifier) {
             Entry::Occupied(mut occ) => {
               *occ.get_mut() |= BailoutFlag::DYNAMIC_IMPORT;
