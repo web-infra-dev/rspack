@@ -848,10 +848,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                 if is_first_result {
                   let tuple = (indirect_symbol.src, *inherit_module_identifier);
                   let connection_stats = match traced_tuple.entry(tuple) {
-                    Entry::Occupied(occ) => {
-                      // self.symbol_graph.add_edge(&current_symbol_ref, to);
-                      ReExportConnectionStatus::Occupied(occ.get().clone())
-                    }
+                    Entry::Occupied(occ) => ReExportConnectionStatus::Occupied(occ.get().clone()),
                     Entry::Vacant(vac) => {
                       let mut reexport_paths = vec![];
                       for path in algo::all_simple_paths::<Vec<_>, _>(
@@ -907,8 +904,10 @@ impl<'a> CodeSizeOptimizer<'a> {
                         self.symbol_graph.add_edge(pre, value);
                       }
                     }
-                    ReExportConnectionStatus::Occupied(_) => {
-                      // TODO:
+                    ReExportConnectionStatus::Occupied(ref first_reexport_of_each_path) => {
+                      for reexport in first_reexport_of_each_path {
+                        self.symbol_graph.add_edge(&current_symbol_ref, reexport);
+                      }
                     }
                   }
                   is_first_result = false;
@@ -1137,8 +1136,10 @@ impl<'a> CodeSizeOptimizer<'a> {
                     self.symbol_graph.add_edge(pre, value);
                   }
                 }
-                ReExportConnectionStatus::Occupied(_) => {
-                  // TODO:
+                ReExportConnectionStatus::Occupied(ref first_reexport_of_each_path) => {
+                  for reexport in first_reexport_of_each_path {
+                    self.symbol_graph.add_edge(&current_symbol_ref, reexport);
+                  }
                 }
               }
             }
