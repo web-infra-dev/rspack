@@ -73,6 +73,7 @@ impl HarmonyImportSpecifierDependency {
           src: reference_mgm.module_identifier,
           ty: symbol::IndirectType::ImportDefault(local.clone()),
           importer: module.identifier(),
+          dep_id: self.id,
         });
         compilation.used_symbol_ref.contains(&symbol)
       }
@@ -81,6 +82,7 @@ impl HarmonyImportSpecifierDependency {
           src: reference_mgm.module_identifier,
           ty: symbol::IndirectType::Import(local.clone(), imported.clone()),
           importer: module.identifier(),
+          dep_id: self.id,
         });
         compilation.used_symbol_ref.contains(&symbol)
       }

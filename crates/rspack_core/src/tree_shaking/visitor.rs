@@ -741,6 +741,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                     resolved_uri_ukey,
                     self.module_identifier,
                     IndirectType::Import(local, imported),
+                    dep_id,
                   ));
 
                   self.add_import(named.local.to_id().into(), symbol_ref);
@@ -752,6 +753,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                       resolved_uri_ukey,
                       self.module_identifier,
                       IndirectType::ImportDefault(default.local.sym.clone()),
+                      dep_id,
                     )),
                   );
                 }
@@ -1542,6 +1544,7 @@ impl<'a> ModuleRefAnalyze<'a> {
                 resolved_uri_ukey,
                 self.module_identifier,
                 IndirectType::Temp(original.clone()),
+                dep_id,
               ))]),
             );
 
@@ -1549,6 +1552,7 @@ impl<'a> ModuleRefAnalyze<'a> {
               self.module_identifier,
               self.module_identifier,
               IndirectType::ReExport(original, exported),
+              dep_id,
             ));
             self.add_export(exported_atom, exported_symbol);
           }

@@ -187,11 +187,22 @@ pub struct IndirectTopLevelSymbol {
   pub ty: IndirectType,
   // module identifier of module that import me, only used for debugging
   pub importer: Identifier,
+  pub dep_id: DependencyId,
 }
 
 impl IndirectTopLevelSymbol {
-  pub fn new(src: Identifier, importer: Identifier, ty: IndirectType) -> Self {
-    Self { src, importer, ty }
+  pub fn new(
+    src: Identifier,
+    importer: Identifier,
+    ty: IndirectType,
+    dep_id: DependencyId,
+  ) -> Self {
+    Self {
+      src,
+      importer,
+      ty,
+      dep_id,
+    }
   }
 
   /// if `self.ty == IndirectType::Rexport`, it return `exported` if it is [Some] else it return `original`.

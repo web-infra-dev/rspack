@@ -85,6 +85,7 @@ impl DependencyTemplate for HarmonyImportDependency {
                     src: ref_mgm.module_identifier,
                     ty: symbol::IndirectType::ImportDefault(local.clone()),
                     importer: module.identifier(),
+                    dep_id: self.id,
                   }))
               } else {
                 unreachable!("`export v from ''` is a unrecoverable syntax error")
@@ -96,12 +97,14 @@ impl DependencyTemplate for HarmonyImportDependency {
                   src: ref_mgm.module_identifier,
                   ty: symbol::IndirectType::Import(local.clone(), imported.clone()),
                   importer: module.identifier(),
+                  dep_id: self.id,
                 })
               } else {
                 SymbolRef::Indirect(IndirectTopLevelSymbol {
                   src: module.identifier(),
                   ty: symbol::IndirectType::ReExport(local.clone(), imported.clone()),
                   importer: module.identifier(),
+                  dep_id: self.id,
                 })
               };
 
