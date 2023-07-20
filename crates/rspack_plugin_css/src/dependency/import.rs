@@ -66,6 +66,12 @@ impl DependencyTemplate for CssImportDependency {
     source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {
-    source.replace(self.start - 8 /* @import */, self.end, "", None);
+    source.replace(
+      self.start - 8, /* @import */
+      // Semicolon should be available and guarantee, or it's a syntax error.
+      self.end + 1, /* ; */
+      "",
+      None,
+    );
   }
 }
