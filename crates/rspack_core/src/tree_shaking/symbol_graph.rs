@@ -39,11 +39,14 @@ impl SymbolGraph {
   }
 
   // #[track_caller]
-  pub fn add_edge(&mut self, from: &SymbolRef, to: &SymbolRef) {
+  pub fn add_edge(&mut self, from: &SymbolRef, to: &SymbolRef) -> bool {
     let from_index = self.add_node(from);
     let to_index = self.add_node(to);
     if !self.graph.contains_edge(from_index, to_index) {
       self.graph.add_edge(from_index, to_index, ());
+      true
+    } else {
+      false
     }
   }
 
@@ -123,7 +126,7 @@ pub fn generate_debug_symbol_graph(
 
 pub fn simplify_symbol_ref(symbol_ref: &SymbolRef) -> SymbolRef {
   match symbol_ref {
-    SymbolRef::Direct(direct) => SymbolRef::Direct(Symbol::new(
+    SymbolRef::Declaration(direct) => SymbolRef::Declaration(Symbol::new(
       direct.src().as_str().into(),
       direct.id().clone(),
       *direct.ty(),
@@ -148,5 +151,8 @@ pub fn simplify_symbol_ref(symbol_ref: &SymbolRef) -> SymbolRef {
       importer: importer.as_str().into(),
       src: src.as_str().into(),
     },
+    SymbolRef::Usage(binding, member_chain, src) => {
+      SymbolRef::Usage(binding.clone(), member_chain.clone(), src.as_str().into())
+    }
   }
 }
