@@ -113,7 +113,7 @@ export const checkVersion = () => {
 		} else {
 			// Fetch addon package if installed from remote
 			ADDON_VERSION = require(require.resolve(
-				`@rspack/binding-${platformArchAbi}`,
+				`@rspack/binding-${platformArchAbi}/package.json`,
 				{
 					paths: [BINDING_PKG_DIR]
 				}
