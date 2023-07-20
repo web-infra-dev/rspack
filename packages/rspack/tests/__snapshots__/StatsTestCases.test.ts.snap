@@ -4,6 +4,20 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 {
   "assets": [
     {
+      "chunkNames": [],
+      "chunks": [
+        "dynamic_js",
+      ],
+      "emitted": true,
+      "info": {
+        "development": false,
+        "hotModuleReplacement": false,
+      },
+      "name": "dynamic_js.xxxx.js",
+      "size": 138,
+      "type": "asset",
+    },
+    {
       "chunkNames": [
         "main",
       ],
@@ -17,20 +31,6 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       },
       "name": "main.xxxx.js",
       "size": 1105,
-      "type": "asset",
-    },
-    {
-      "chunkNames": [],
-      "chunks": [
-        "dynamic_js",
-      ],
-      "emitted": true,
-      "info": {
-        "development": false,
-        "hotModuleReplacement": false,
-      },
-      "name": "dynamic_js.xxxx.js",
-      "size": 138,
       "type": "asset",
     },
   ],
@@ -223,8 +223,8 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 
 exports[`StatsTestCases should print correct stats for filename 2`] = `
 "PublicPath: (none)
-asset main.xxxx.js 1.08 KiB {main} [emitted] (name: main)
 asset dynamic_js.xxxx.js 138 bytes {dynamic_js} [emitted]
+asset main.xxxx.js 1.08 KiB {main} [emitted] (name: main)
 Entrypoint main 1.08 KiB = main.xxxx.js
 chunk {dynamic_js} dynamic_js.xxxx.js <{main}>
   ./dynamic.js [426] {dynamic_js}

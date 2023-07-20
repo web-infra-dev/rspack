@@ -11,13 +11,7 @@ import { HookMap, SyncBailHook, SyncWaterfallHook } from "tapable";
 import { concatComparators, Comparator } from "../util/comparators";
 import { smartGrouping, GroupConfig } from "../util/smartGrouping";
 import type { Compilation } from "../compilation";
-import {
-	JsStatsChunk as Chunk,
-	JsStatsModule as Module,
-	JsStats,
-	JsStatsError,
-	JsStatsWarning
-} from "@rspack/binding";
+import { JsStats, JsStatsError, JsStatsWarning } from "@rspack/binding";
 
 export type KnownStatsFactoryContext = {
 	type: string;
@@ -32,7 +26,8 @@ export type KnownStatsFactoryContext = {
 	_inner: JsStats;
 };
 
-export type StatsFactoryContext = KnownStatsFactoryContext;
+export type StatsFactoryContext = KnownStatsFactoryContext &
+	Record<string, any>;
 
 type Hooks = Readonly<{
 	extract: HookMap<SyncBailHook<[Object, any, StatsFactoryContext], undefined>>;

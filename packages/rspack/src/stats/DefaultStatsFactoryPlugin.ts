@@ -16,9 +16,8 @@ import type { GroupConfig } from "../util/smartGrouping";
 import type { StatsFactory, KnownStatsFactoryContext } from "./StatsFactory";
 import {
 	iterateConfig,
-	// spaceLimited,
+	spaceLimited,
 	moduleGroup,
-	// uniqueOrderedArray,
 	countWithChildren,
 	sortByField,
 	assetGroup
@@ -414,8 +413,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object,
 			_compilation,
 			context: KnownStatsFactoryContext,
-			_options,
-			_factory
+			options,
+			factory
 		) => {
 			const { assets, assetsByChunkName } = context._inner.getAssets();
 			object.assetsByChunkName = assetsByChunkName.reduce<
@@ -425,15 +424,19 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				return acc;
 			}, {});
 
-			object.assets = assets;
+			const groupedAssets = factory.create(`${context.type}.assets`, assets, {
+				...context
+				// compilationFileToChunks
+				// compilationAuxiliaryFileToChunks
+			});
+			const limited = spaceLimited(
+				groupedAssets,
+				options.assetsSpace || Infinity
+			);
 
-			// const groupedAssets = factory.create(
-			// 	`${type}.assets`,
-			// 	Array.from(assets),
-			// 	context
-			// );
+			// object.filteredAssets = limited.filteredChildren;
 			// const limited = spaceLimited(groupedAssets, options.assetsSpace);
-			// object.assets = limited.children;
+			object.assets = limited.children;
 		},
 		chunks: (
 			object,
@@ -451,13 +454,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				options.nestedModules!
 				// options.source!
 			);
-			// object.chunks = factory.create(
-			// 	`${type}.chunks`,
-			// 	Array.from(chunks),
-			// 	context
-			// );
-
-			object.chunks = chunks;
+			object.chunks = factory.create(`${type}.chunks`, chunks, context);
 		},
 		modules: (
 			object,
@@ -555,13 +552,13 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			compilation,
 			context: KnownStatsFactoryContext,
 			_options,
-			factory
+			_factory
 		) => {
-			const { type, cachedGetWarnings } = context;
+			const { cachedGetWarnings } = context;
 			object.warnings = cachedGetWarnings!(compilation);
 		},
 		warningsCount: (object, compilation, context: KnownStatsFactoryContext) => {
-			const { type, cachedGetWarnings } = context;
+			const { cachedGetWarnings } = context;
 			object.warningsCount = countWithChildren(compilation, c => {
 				return cachedGetWarnings!(c);
 			});
@@ -574,9 +571,27 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				context
 			);
 		}
+	},
+	asset: {
+		_: (object, asset, context: KnownStatsFactoryContext, options, factory) => {
+			Object.assign(object, asset);
+		}
+	},
+	chunk: {
+		_: (object, chunk) => {
+			Object.assign(object, chunk);
+		}
 	}
 };
 
+/**
+ * only support below factories:
+ * - compilation
+ * - compilation.assets
+ * - compilation.assets[].asset
+ * - compilation.chunks
+ * - compilation.chunks[].chunk
+ */
 export class DefaultStatsFactoryPlugin {
 	apply(compiler: Compiler) {
 		compiler.hooks.compilation.tap("DefaultStatsFactoryPlugin", compilation => {

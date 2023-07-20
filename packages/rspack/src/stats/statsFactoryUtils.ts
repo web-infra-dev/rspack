@@ -11,11 +11,7 @@ import type { StatsFactory } from "./StatsFactory";
 
 export type KnownStatsChunkGroup = binding.JsStatsChunkGroup;
 
-// type Chunk = binding.JsStatsChunk & {
-// 	name: string;
-// };
-
-type Chunk = binding.JsStatsChunk;
+export type KnownStatsChunk = binding.JsStatsChunk;
 
 export type StatsChunkGroup = binding.JsStatsChunkGroup & Record<string, any>;
 
@@ -23,7 +19,7 @@ export type KnownStatsAsset = binding.JsStatsAsset;
 
 export type StatsAsset = KnownStatsAsset & Record<string, any>;
 
-export type StatsChunk = Chunk & Record<string, any>;
+export type StatsChunk = KnownStatsChunk & Record<string, any>;
 
 export type KnownStatsModule = binding.JsStatsModule;
 
@@ -102,16 +98,15 @@ type ExtractorsByOption<T, O> = {
 	) => void;
 };
 
-// type PreprocessedAsset = StatsAsset & {
-// 	type: string;
-// 	related: PreprocessedAsset[];
-// };
+type PreprocessedAsset = StatsAsset & {
+	type: string;
+	related: PreprocessedAsset[];
+};
 
 export type SimpleExtractors = {
 	compilation: ExtractorsByOption<Compilation, StatsCompilation>;
-	// not aligned with webpack
-	// asset: ExtractorsByOption<PreprocessedAsset, StatsAsset>;
 	// asset$visible: ExtractorsByOption<PreprocessedAsset, StatsAsset>;
+	asset: ExtractorsByOption<PreprocessedAsset, StatsAsset>;
 	// chunkGroup: ExtractorsByOption<
 	// 	{
 	// 		name: string;
@@ -123,7 +118,7 @@ export type SimpleExtractors = {
 	// module$visible: ExtractorsByOption<Module, StatsModule>;
 	// moduleIssuer: ExtractorsByOption<Module, StatsModuleIssuer>;
 	// moduleReason: ExtractorsByOption<ModuleGraphConnection, StatsModuleReason>;
-	// chunk: ExtractorsByOption<Chunk, StatsChunk>;
+	chunk: ExtractorsByOption<StatsChunk, KnownStatsChunk>;
 	// chunkOrigin: ExtractorsByOption<OriginRecord, StatsChunkOrigin>;
 	// error: ExtractorsByOption<binding.JsStatsError, StatsError>;
 	// warning: ExtractorsByOption<binding.JsStatsWarning, StatsError>;
