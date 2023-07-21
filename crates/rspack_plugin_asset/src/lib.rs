@@ -5,6 +5,7 @@ use std::hash::Hash;
 use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::{
+  module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   AssetGeneratorDataUrl, AssetParserDataUrl, AssetParserOptions, AstOrSource,
   BuildMetaDefaultObject, BuildMetaExportsType, CodeGenerationDataAssetInfo,
@@ -494,13 +495,34 @@ impl Plugin for AssetPlugin {
         let module = compilation
           .module_graph
           .module_by_identifier(&m.identifier())
-          .ok_or_else(|| internal_error!("Failed to get module".to_owned()))
           // FIXME: use result
           .expect("Failed to get module");
+
+        let all_incoming_analyzed =
+          module_graph
+            .get_incomming_connections(module)
+            .iter()
+            .all(|c| {
+              if let Some(original_module_identifier) = c.original_module_identifier {
+                module_graph
+                  .module_graph_module_by_identifier(&original_module_identifier)
+                  .map(|original_module| {
+                    !compilation
+                      .bailout_module_identifiers
+                      .contains_key(&original_module.module_identifier)
+                      && original_module.module_type.is_js_like()
+                  })
+                  .unwrap_or(false)
+              } else {
+                false
+              }
+            });
+
         module.source_types().contains(&SourceType::Asset)
-          && compilation
-            .include_module_ids
-            .contains(&module.identifier())
+          && (!all_incoming_analyzed
+            || compilation
+              .include_module_ids
+              .contains(&module.identifier()))
       })
       .map(|m| {
         let code_gen_result = compilation
