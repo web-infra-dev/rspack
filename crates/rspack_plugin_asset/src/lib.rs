@@ -498,7 +498,7 @@ impl Plugin for AssetPlugin {
           // FIXME: use result
           .expect("Failed to get module");
 
-        let all_incoming_analyzed =
+        let all_incomming_analyzed =
           module_graph
             .get_incomming_connections(module)
             .iter()
@@ -519,7 +519,7 @@ impl Plugin for AssetPlugin {
             });
 
         module.source_types().contains(&SourceType::Asset)
-          && (!all_incoming_analyzed
+          && (!all_incomming_analyzed
             || compilation
               .include_module_ids
               .contains(&module.identifier()))
