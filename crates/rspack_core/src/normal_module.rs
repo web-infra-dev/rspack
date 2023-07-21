@@ -382,7 +382,12 @@ impl Module for NormalModule {
     };
     diagnostics.extend(ds);
 
-    let original_source = self.create_source(loader_result.content, loader_result.source_map)?;
+    let content = if self.module_type().is_binary() {
+      Content::Buffer(loader_result.content.into_bytes())
+    } else {
+      Content::String(loader_result.content.into_string_lossy())
+    };
+    let original_source = self.create_source(content, loader_result.source_map)?;
     let mut code_generation_dependencies: Vec<Box<dyn ModuleDependency>> = Vec::new();
 
     let (
@@ -544,8 +549,11 @@ impl Eq for NormalModule {}
 
 impl NormalModule {
   fn create_source(&self, content: Content, source_map: Option<SourceMap>) -> Result<BoxSource> {
+    if content.is_buffer() {
+      return Ok(RawSource::Buffer(content.into_bytes()).boxed());
+    }
     if self.options.devtool.enabled() && let Some(source_map) = source_map {
-      let content = content.try_into_string()?;
+      let content = content.into_string_lossy();
       return Ok(
         SourceMapSource::new(WithoutOriginalOptions {
           value: content,
@@ -558,7 +566,7 @@ impl NormalModule {
     if self.options.devtool.source_map() && let Content::String(content) = content {
       return Ok(OriginalSource::new(content, self.request()).boxed());
     }
-    Ok(RawSource::from(content.into_bytes()).boxed())
+    Ok(RawSource::from(content.into_string_lossy()).boxed())
   }
 }
 
