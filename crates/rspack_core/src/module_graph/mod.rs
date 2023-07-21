@@ -348,7 +348,7 @@ impl ModuleGraph {
       .unwrap_or_default()
   }
 
-  pub fn get_incomming_connections(&self, module: &BoxModule) -> HashSet<&ModuleGraphConnection> {
+  pub fn get_incoming_connections(&self, module: &BoxModule) -> HashSet<&ModuleGraphConnection> {
     self
       .module_graph_module_by_identifier(&module.identifier())
       .map(|mgm| {
