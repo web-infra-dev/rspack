@@ -156,6 +156,11 @@ impl ModuleType {
     )
   }
 
+  /// Webpack arbitrary determines the binary type from [NormalModule.binary](https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/NormalModule.js#L302)
+  pub fn is_binary(&self) -> bool {
+    self.is_asset_like() || self.is_wasm_like()
+  }
+
   pub fn as_str(&self) -> &str {
     match self {
       ModuleType::Js => "javascript/auto",
