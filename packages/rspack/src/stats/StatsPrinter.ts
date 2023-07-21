@@ -16,7 +16,7 @@ import type {
 	StatsModule,
 	StatsModuleReason,
 	StatsCompilation
-} from "./DefaultStatsFactoryPlugin";
+} from "./statsFactoryUtils";
 
 type PrintedElement = {
 	element: string;

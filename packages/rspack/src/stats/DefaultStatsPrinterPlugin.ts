@@ -11,7 +11,7 @@
 import type { Compiler } from "../compiler";
 import type { StatsPrinter, StatsPrinterContext } from "./StatsPrinter";
 import { formatSize } from "../util/SizeFormatHelpers";
-import { StatsChunkGroup, StatsCompilation } from "./DefaultStatsFactoryPlugin";
+import { StatsChunkGroup, StatsCompilation } from "./statsFactoryUtils";
 
 const DATA_URI_CONTENT_LENGTH = 16;
 

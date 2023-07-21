@@ -37,6 +37,7 @@ import { LogType, Logger } from "./logging/Logger";
 import { NormalModule } from "./normalModule";
 import { NormalModuleFactory } from "./normalModuleFactory";
 import { Stats, normalizeStatsPreset } from "./stats";
+import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
 import { concatErrorMsgAndStack, isJsStatsError, toJsAssetInfo } from "./util";
 import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
@@ -92,6 +93,7 @@ export class Compilation {
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
 		succeedModule: tapable.SyncHook<[JsModule], undefined>;
 		stillValidModule: tapable.SyncHook<[JsModule], undefined>;
+		statsFactory: tapable.SyncHook<[StatsFactory, StatsOptions], void>;
 		statsPrinter: tapable.SyncHook<[StatsPrinter, StatsOptions], void>;
 		buildModule: tapable.SyncHook<[NormalizedJsModule]>;
 	};
@@ -130,6 +132,7 @@ export class Compilation {
 			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
 			succeedModule: new tapable.SyncHook(["module"]),
 			stillValidModule: new tapable.SyncHook(["module"]),
+			statsFactory: new tapable.SyncHook(["statsFactory", "options"]),
 			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"]),
 			buildModule: new tapable.SyncHook(["module"])
 		};
@@ -282,6 +285,12 @@ export class Compilation {
 		options.source = optionOrLocalFallback(options.source, false);
 
 		return options;
+	}
+
+	createStatsFactory(options: StatsOptions) {
+		const statsFactory = new StatsFactory();
+		this.hooks.statsFactory.call(statsFactory, options);
+		return statsFactory;
 	}
 
 	createStatsPrinter(options: StatsOptions) {

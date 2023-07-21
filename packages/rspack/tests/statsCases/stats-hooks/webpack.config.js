@@ -33,21 +33,11 @@ class StatsPrinterTestPlugin {
 	}
 }
 
-/** @type {import('@rspack/cli').Configuration} */
-const config = {
-	context: __dirname,
-	mode: "development",
-	entry: {
-		main: "./src/index.js"
+module.exports = {
+	stats: {
+		builtAt: false,
+		timings: false,
+    version: false
 	},
-	stats: true,
 	plugins: [new StatsPrinterTestPlugin()],
-	builtins: {
-		html: [
-			{
-				template: "./index.html"
-			}
-		]
-	}
 };
-module.exports = config;
