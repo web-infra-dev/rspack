@@ -41,7 +41,7 @@ export interface RspackPreviewCLIOptions extends RspackCLIOptions {
 	host?: string;
 	open?: boolean;
 	server?: string;
-	publicPath: string;
+	publicPath?: string;
 }
 export interface RspackCommand {
 	apply(cli: RspackCLI): Promise<void>;
