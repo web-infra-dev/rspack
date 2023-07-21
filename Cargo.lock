@@ -2340,7 +2340,6 @@ dependencies = [
  "rspack_loader_runner",
  "rspack_regex",
  "rspack_sources",
- "rspack_symbol",
  "rspack_util",
  "rustc-hash",
  "serde",
@@ -2722,7 +2721,6 @@ dependencies = [
  "rspack_hash",
  "rspack_identifier",
  "rspack_regex",
- "rspack_symbol",
  "rspack_testing",
  "rustc-hash",
  "serde_json",
@@ -2908,16 +2906,6 @@ dependencies = [
  "smallvec",
  "str_indices",
  "substring",
-]
-
-[[package]]
-name = "rspack_symbol"
-version = "0.1.0"
-dependencies = [
- "bitflags 1.3.2",
- "rspack_identifier",
- "serde",
- "swc_core",
 ]
 
 [[package]]

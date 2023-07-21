@@ -1,11 +1,12 @@
 use std::collections::HashSet;
 
 use rspack_core::{
-  export_from_import, get_exports_type, tree_shaking::visitor::SymbolRef, DependencyId,
-  DependencyTemplate, ExportsType, InitFragment, InitFragmentStage, ModuleIdentifier,
+  export_from_import, get_exports_type,
+  tree_shaking::symbol::{IndirectType, StarSymbolKind, SymbolType, DEFAULT_JS_WORD},
+  tree_shaking::visitor::SymbolRef,
+  DependencyId, DependencyTemplate, ExportsType, InitFragment, InitFragmentStage, ModuleIdentifier,
   RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
-use rspack_symbol::{IndirectType, StarSymbolKind, SymbolType, DEFAULT_JS_WORD};
 use swc_core::ecma::atoms::JsWord;
 
 use super::format_exports;

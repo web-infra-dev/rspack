@@ -1,8 +1,10 @@
 use rspack_core::{
-  export_from_import, tree_shaking::visitor::SymbolRef, Compilation, DependencyId,
-  DependencyTemplate, Module, ModuleGraphModule, TemplateContext, TemplateReplaceSource,
+  export_from_import,
+  tree_shaking::symbol::IndirectTopLevelSymbol,
+  tree_shaking::{symbol, visitor::SymbolRef},
+  Compilation, DependencyId, DependencyTemplate, Module, ModuleGraphModule, TemplateContext,
+  TemplateReplaceSource,
 };
-use rspack_symbol::IndirectTopLevelSymbol;
 use swc_core::ecma::atoms::JsWord;
 
 use super::Specifier;
@@ -69,16 +71,18 @@ impl HarmonyImportSpecifierDependency {
       Specifier::Default(local) => {
         let symbol = SymbolRef::Indirect(IndirectTopLevelSymbol {
           src: reference_mgm.module_identifier,
-          ty: rspack_symbol::IndirectType::ImportDefault(local.clone()),
+          ty: symbol::IndirectType::ImportDefault(local.clone()),
           importer: module.identifier(),
+          dep_id: self.id,
         });
         compilation.used_symbol_ref.contains(&symbol)
       }
       Specifier::Named(local, imported) => {
         let symbol = SymbolRef::Indirect(IndirectTopLevelSymbol {
           src: reference_mgm.module_identifier,
-          ty: rspack_symbol::IndirectType::Import(local.clone(), imported.clone()),
+          ty: symbol::IndirectType::Import(local.clone(), imported.clone()),
           importer: module.identifier(),
+          dep_id: self.id,
         });
         compilation.used_symbol_ref.contains(&symbol)
       }

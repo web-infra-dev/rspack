@@ -5,6 +5,8 @@ use swc_core::ecma::ast::Id;
 use swc_core::ecma::atoms::JsWord;
 use swc_core::{common::SyntaxContext, ecma::atoms::js_word};
 
+use crate::DependencyId;
+
 bitflags! {
     pub struct SymbolFlag: u8 {
         const DEFAULT =  1 << 0;
@@ -125,6 +127,7 @@ pub struct StarSymbol {
   pub binding: JsWord,
   pub module_ident: Identifier,
   pub ty: StarSymbolKind,
+  pub dep_id: DependencyId,
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize)]
@@ -140,14 +143,18 @@ impl StarSymbol {
     binding: JsWord,
     module_ident: Identifier,
     ty: StarSymbolKind,
+    dep_id: DependencyId,
   ) -> Self {
     Self {
       src,
       binding,
       module_ident,
       ty,
+      dep_id,
     }
   }
+
+  pub fn star_kind(&self) {}
 
   pub fn set_src(&mut self, src: Identifier) {
     self.src = src;
@@ -180,11 +187,22 @@ pub struct IndirectTopLevelSymbol {
   pub ty: IndirectType,
   // module identifier of module that import me, only used for debugging
   pub importer: Identifier,
+  pub dep_id: DependencyId,
 }
 
 impl IndirectTopLevelSymbol {
-  pub fn new(src: Identifier, importer: Identifier, ty: IndirectType) -> Self {
-    Self { src, importer, ty }
+  pub fn new(
+    src: Identifier,
+    importer: Identifier,
+    ty: IndirectType,
+    dep_id: DependencyId,
+  ) -> Self {
+    Self {
+      src,
+      importer,
+      ty,
+      dep_id,
+    }
   }
 
   /// if `self.ty == IndirectType::Rexport`, it return `exported` if it is [Some] else it return `original`.
@@ -196,8 +214,8 @@ impl IndirectTopLevelSymbol {
         Some(exported) => exported,
         None => original,
       },
-      IndirectType::Import(ref local, ref original) => match original {
-        Some(original) => original,
+      IndirectType::Import(ref local, ref imported) => match imported {
+        Some(imported) => imported,
         None => local,
       },
       // we store the binding just used for create [ModuleDecl], but it is always `default` when as `exported` or `imported`

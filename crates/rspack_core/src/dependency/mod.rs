@@ -6,6 +6,7 @@ use std::sync::atomic::Ordering::Relaxed;
 pub use entry::*;
 use once_cell::sync::Lazy;
 use rspack_util::ext::AsAny;
+use serde::Serialize;
 pub use span::SpanExt;
 mod runtime_template;
 pub use runtime_template::*;
@@ -307,7 +308,7 @@ pub fn is_async_dependency(dep: &BoxModuleDependency) -> bool {
   false
 }
 
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct DependencyId(usize);
 
 pub static DEPENDENCY_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
