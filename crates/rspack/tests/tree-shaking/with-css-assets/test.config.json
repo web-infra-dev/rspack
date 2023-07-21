@@ -1,0 +1,19 @@
+{
+  "optimization": {
+    "sideEffects": "true"
+  },
+  "module": {
+    "rules": [
+      {
+        "test": {
+          "type": "regexp",
+          "matcher": "\\.svg$"
+        },
+        "type": "asset/resource"
+      }
+    ]
+  },
+  "builtins": {
+    "treeShaking": "true"
+  }
+}
