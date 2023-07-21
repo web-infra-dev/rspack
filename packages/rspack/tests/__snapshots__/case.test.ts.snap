@@ -44,9 +44,9 @@ exports[`cases exported tests data imports 1`] = `
 /*
 - type: css
 */
-;
-;
-;
+
+
+
 .class {
   a: url(9e6692140df1db2d46ae.svg);
   b: url(9e6692140df1db2d46ae.svg);
