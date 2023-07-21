@@ -1094,7 +1094,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                   ) {
                     let mut reexport_path = vec![];
                     for i in 0..path.len() - 1 {
-                      // TODO: use real depdency id
+                      // TODO: use real dependency id, currently we don't have
                       let star_symbol = StarSymbol::new(
                         path[i + 1],
                         Default::default(),
