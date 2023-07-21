@@ -94,7 +94,13 @@ pub fn run_before_pass(
       ),
       Optional::new(
         swc_visitor::fold_react_refresh(unresolved_mark),
-        should_transform_by_react && options.builtins.react.refresh.is_some()
+        should_transform_by_react
+          && options
+            .builtins
+            .react
+            .refresh
+            .and_then(|v| if v { Some(v) } else { None })
+            .is_some()
       ),
       either!(
         options.builtins.emotion,
