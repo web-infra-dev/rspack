@@ -2,13 +2,13 @@
 
 /** @type {import("@rspack/core").Configuration} */
 // empty object is a valid configuration
-export const shouldAcceptEmptyObject = {};
+const shouldAcceptEmptyObject = {};
 
 /** @type {import("@rspack/core").Configuration} */
-export const shouldAcceptEmptyArr = [];
+const shouldAcceptEmptyArr = [];
 
 /** @type {import("@rspack/core").Configuration} */
-export const shouldAcceptArrWithRealWorldConfig = [
+const shouldAcceptArrWithRealWorldConfig = [
 	{
 		context: __dirname,
 		module: {
@@ -32,7 +32,7 @@ export const shouldAcceptArrWithRealWorldConfig = [
 ];
 
 /** @type {import("@rspack/core").Configuration} */
-export const shouldRejectArrWithWrongConfig = [
+const shouldRejectArrWithWrongConfig = [
 	{
 		context: __dirname,
 		module: {
