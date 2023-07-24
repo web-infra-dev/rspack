@@ -348,6 +348,19 @@ impl ModuleGraph {
       .unwrap_or_default()
   }
 
+  pub fn get_incoming_connections(&self, module: &BoxModule) -> HashSet<&ModuleGraphConnection> {
+    self
+      .module_graph_module_by_identifier(&module.identifier())
+      .map(|mgm| {
+        mgm
+          .incoming_connections
+          .iter()
+          .filter_map(|id| self.connection_by_connection_id(id))
+          .collect()
+      })
+      .unwrap_or_default()
+  }
+
   /// Remove a connection and return connection origin module identifier and dependency
   fn revoke_connection(&mut self, connection_id: ConnectionId) -> Option<BuildDependency> {
     let connection = match self.connections[*connection_id].take() {
