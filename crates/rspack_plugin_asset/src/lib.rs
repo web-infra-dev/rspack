@@ -5,7 +5,6 @@ use std::hash::Hash;
 use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::{
-  module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   AssetGeneratorDataUrl, AssetParserDataUrl, AssetParserOptions, AstOrSource,
   BuildMetaDefaultObject, BuildMetaExportsType, CodeGenerationDataAssetInfo,
