@@ -111,6 +111,7 @@ const describeCases = config => {
 								target: config.target || "async-node",
 								devtool: config.devtool,
 								mode: config.mode || "none",
+								builtins: {treeShaking: true},
 								optimization: config.mode
 									? {
 											emitOnErrors: true,
@@ -216,7 +217,7 @@ const describeCases = config => {
 									asyncWebAssembly: true,
 									topLevelAwait: true,
 									backCompat: false,
-                  // RSPACK exclusive: Rspack enables `css` by default. 
+                  // RSPACK exclusive: Rspack enables `css` by default.
                   // Turning off here to fallback to webpack's default css processing logic.
                   css: false,
 									...(config.module ? { outputModule: true } : {})
