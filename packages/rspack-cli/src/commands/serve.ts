@@ -17,6 +17,7 @@ export class ServeCommand implements RspackCommand {
 					}
 				};
 				const compiler = await cli.createCompiler(rspackOptions, "serve");
+				if (!compiler) return;
 				const compilers = cli.isMultipleCompiler(compiler)
 					? compiler.compilers
 					: [compiler];
