@@ -106,12 +106,12 @@ const describeCases = config => {
 								parallel: false
 							});
 							let options = {
+								...testConfig,
 								context: casesPath,
 								entry: "./" + category.name + "/" + testName + "/",
 								target: config.target || "async-node",
 								devtool: config.devtool,
 								mode: config.mode || "none",
-								builtins: {treeShaking: true},
 								optimization: config.mode
 									? {
 											emitOnErrors: true,
