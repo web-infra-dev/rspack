@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "tests",
+    "allowJs": true,
+    "noEmit": true
+  },
+  "include": ["**/type/**/*"]
+}
