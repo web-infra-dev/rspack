@@ -21,8 +21,6 @@ impl From<JsAssetInfoRelated> for rspack_core::AssetInfoRelated {
   }
 }
 
-// pub type JsAssetInfo = AssetInfoMap;
-
 #[napi(object)]
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
