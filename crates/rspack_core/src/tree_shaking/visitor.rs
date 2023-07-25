@@ -78,7 +78,6 @@ impl SymbolRef {
           s.src = *module_id;
         }
       }
-      // TODO:
       SymbolRef::Url {
         dep_id,
         ref mut src,
@@ -162,7 +161,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   top_level_mark: Mark,
   unresolved_mark: Mark,
   module_identifier: ModuleIdentifier,
-  module_graph: &'a ModuleGraph,
+  factory_meta: &'a Option<FactoryMeta>,
   /// Value of `export_map` must have type [SymbolRef::Direct]
   pub(crate) export_map: HashMap<JsWord, SymbolRef>,
   pub(crate) import_map: HashMap<BetterId, SymbolRef>,
@@ -203,7 +202,7 @@ impl<'a> std::fmt::Debug for ModuleRefAnalyze<'a> {
       .field("top_level_mark", &self.top_level_mark)
       .field("unresolved_mark", &self.unresolved_mark)
       .field("module_identifier", &self.module_identifier)
-      .field("module_graph", &self.module_graph)
+      .field("factory_meta", &self.factory_meta)
       .field("export_map", &self.export_map)
       .field("import_map", &self.import_map)
       .field("export_all_dep_id", &self.export_all_dep_id)
@@ -257,8 +256,8 @@ impl MarkInfo {
 impl<'a> ModuleRefAnalyze<'a> {
   pub fn new(
     mark_info: MarkInfo,
-    uri: ModuleIdentifier,
-    dep_to_module_identifier: &'a ModuleGraph,
+    module_identifier: ModuleIdentifier,
+    factory_meta: &'a Option<FactoryMeta>,
     options: &'a Arc<CompilerOptions>,
     _comments: Option<&'a SwcComments>,
     worker_syntax_list: &'a WorkerSyntaxList,
@@ -266,8 +265,8 @@ impl<'a> ModuleRefAnalyze<'a> {
     Self {
       top_level_mark: mark_info.top_level_mark,
       unresolved_mark: mark_info.unresolved_mark,
-      module_identifier: uri,
-      module_graph: dep_to_module_identifier,
+      module_identifier,
+      factory_meta,
       export_map: HashMap::default(),
       import_map: HashMap::default(),
       current_body_owner_symbol_ext: None,
@@ -1354,12 +1353,11 @@ impl<'a> ModuleRefAnalyze<'a> {
   fn get_side_effects_from_config(&mut self) -> Option<SideEffectType> {
     // sideEffects in module.rule has higher priority,
     // we could early return if we match a rule.
-    if let Some(mgm) = self
-      .module_graph
-      .module_graph_module_by_identifier(&self.module_identifier)
-      && let Some(FactoryMeta { side_effects: Some(side_effects) }) = &mgm.factory_meta
+    if let Some(FactoryMeta {
+      side_effects: Some(side_effects),
+    }) = self.factory_meta
     {
-      return Some(SideEffectType::Configuration(*side_effects))
+      return Some(SideEffectType::Configuration(*side_effects));
     }
     None
   }

@@ -1379,7 +1379,7 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
             // A module can missing its AST if the module is failed to build
             .and_then(|ast| ast.as_javascript())
           {
-            Some(ast) => JsModule::new(ast, *module_identifier).analyze(compilation),
+            Some(ast) => JsModule::new(ast, mgm).analyze(compilation),
             None => {
               return None;
             }
