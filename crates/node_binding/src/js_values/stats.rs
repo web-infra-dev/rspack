@@ -53,22 +53,13 @@ pub struct JsStatsAsset {
 
 impl From<rspack_core::StatsAsset> for JsStatsAsset {
   fn from(stats: rspack_core::StatsAsset) -> Self {
-    let mut info = serde_json::Map::new();
-    info.insert(
-      "development".into(),
-      serde_json::Value::Bool(stats.info.development),
-    );
-    info.insert(
-      "hot_module_replacement".into(),
-      serde_json::Value::Bool(stats.info.hot_module_replacement),
-    );
     Self {
       r#type: stats.r#type,
       name: stats.name,
       size: stats.size,
       chunks: stats.chunks,
       chunk_names: stats.chunk_names,
-      info,
+      info: stats.info.into(),
       emitted: stats.emitted,
     }
   }

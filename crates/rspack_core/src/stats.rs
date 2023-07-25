@@ -52,6 +52,15 @@ impl Stats<'_> {
         .iter()
         .filter_map(|(name, asset)| {
           asset.get_source().map(|source| {
+            let mut info = StatsAssetInfo::new();
+            info.insert(
+              "development".into(),
+              serde_json::Value::Bool(asset.info.development),
+            );
+            info.insert(
+              "hot_module_replacement".into(),
+              serde_json::Value::Bool(asset.info.hot_module_replacement),
+            );
             (
               name,
               StatsAsset {
@@ -60,10 +69,7 @@ impl Stats<'_> {
                 size: source.size() as f64,
                 chunks: Vec::new(),
                 chunk_names: Vec::new(),
-                info: StatsAssetInfo {
-                  development: asset.info.development,
-                  hot_module_replacement: asset.info.hot_module_replacement,
-                },
+                info,
                 emitted: self.compilation.emitted_assets.contains(name),
               },
             )
@@ -511,11 +517,7 @@ pub struct StatsAssetsByChunkName {
   pub files: Vec<String>,
 }
 
-#[derive(Debug)]
-pub struct StatsAssetInfo {
-  pub development: bool,
-  pub hot_module_replacement: bool,
-}
+pub type StatsAssetInfo = serde_json::Map<String, serde_json::Value>;
 
 #[derive(Debug)]
 pub struct StatsModule<'a> {
