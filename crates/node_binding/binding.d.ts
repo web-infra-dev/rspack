@@ -17,7 +17,7 @@ export class JsCompilation {
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
   hasAsset(name: string): boolean
-  emitAsset(filename: string, source: JsCompatSource, assetInfo: AssetInfoMap): void
+  emitAsset(filename: string, source: JsCompatSource, assetInfo: Partial<JsAssetInfo> & Record<string, any>): void
   deleteAsset(filename: string): void
   get entrypoints(): Record<string, JsChunkGroup>
   get hash(): string | null
@@ -158,6 +158,7 @@ export interface JsAssetInfo {
    * An empty string means no version, it will always emit
    */
   version: string
+  allMap: AssetInfoMap
 }
 
 export interface JsAssetInfoRelated {

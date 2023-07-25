@@ -219,7 +219,9 @@ impl JsCompilation {
     Ok(self.inner.assets().contains_key(&name))
   }
 
-  #[napi]
+  #[napi(
+    ts_args_type = r#"filename: string, source: JsCompatSource, assetInfo: Partial<JsAssetInfo> & Record<string, any>"#r
+  )]
   pub fn emit_asset(
     &mut self,
     filename: String,
@@ -227,11 +229,13 @@ impl JsCompilation {
     asset_info: rspack_core::AssetInfoMap,
   ) -> Result<()> {
     let compat_source: CompatSource = source.into();
-    let js_asset_info: JsAssetInfo = asset_info.into();
+    let js_asset_info: JsAssetInfo = asset_info.clone().into();
+    let mut merged_asset_info: AssetInfo = js_asset_info.into();
+    merged_asset_info.all_map = asset_info;
 
     self.inner.emit_asset(
       filename,
-      rspack_core::CompilationAsset::new(Some(compat_source.boxed()), js_asset_info.into()),
+      rspack_core::CompilationAsset::new(Some(compat_source.boxed()), merged_asset_info),
     );
 
     Ok(())

@@ -1430,6 +1430,7 @@ pub struct AssetInfo {
   /// the asset version, emit can be skipped when both filename and version are the same
   /// An empty string means no version, it will always emit
   pub version: String,
+  pub all_map: AssetInfoMap,
 }
 
 impl AssetInfo {
