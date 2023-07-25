@@ -76,6 +76,7 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
 pub struct JsAsset {
   pub name: String,
   pub source: Option<JsCompatSource>,
+  #[napi(ts_type = "Partial<JsAssetInfo> & Record<string, any>")]
   pub info: AssetInfoMap,
 }
 
