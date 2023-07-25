@@ -158,7 +158,7 @@ export interface JsAssetInfo {
    * An empty string means no version, it will always emit
    */
   version: string
-  allMap: AssetInfoMap
+  allMap?: any
 }
 
 export interface JsAssetInfoRelated {
