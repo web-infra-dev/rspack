@@ -51,9 +51,6 @@ pub struct JsAssetInfo {
   /// the asset version, emit can be skipped when both filename and version are the same
   /// An empty string means no version, it will always emit
   pub version: String,
-
-  #[napi(ts_type = "any")]
-  pub all_map: Option<AssetInfoMap>,
 }
 
 impl From<JsAssetInfo> for rspack_core::AssetInfo {
@@ -99,7 +96,6 @@ impl From<rspack_core::AssetInfo> for JsAssetInfo {
       chunk_hash: info.chunk_hash.into_iter().collect(),
       content_hash: info.content_hash.into_iter().collect(),
       version: info.version,
-      all_map: None,
     }
   }
 }

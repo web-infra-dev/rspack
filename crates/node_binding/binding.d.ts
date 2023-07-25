@@ -116,7 +116,7 @@ export function initCustomTraceSubscriber(): void
 export interface JsAsset {
   name: string
   source?: JsCompatSource
-  info: AssetInfoMap
+  info: Partial<JsAssetInfo> & Record<string, any>
 }
 
 export interface JsAssetEmittedArgs {
@@ -158,7 +158,6 @@ export interface JsAssetInfo {
    * An empty string means no version, it will always emit
    */
   version: string
-  allMap?: any
 }
 
 export interface JsAssetInfoRelated {
