@@ -17,7 +17,7 @@ export class JsCompilation {
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
   hasAsset(name: string): boolean
-  emitAsset(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
+  emitAsset(filename: string, source: JsCompatSource, assetInfo: AssetInfoMap): void
   deleteAsset(filename: string): void
   get entrypoints(): Record<string, JsChunkGroup>
   get hash(): string | null

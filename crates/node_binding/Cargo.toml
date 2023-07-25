@@ -29,6 +29,7 @@ tracing     = { workspace = true }
 napi                 = { workspace = true }
 napi-derive          = { workspace = true }
 napi-sys             = { workspace = true }
+serde.workspace      = true
 serde_json.workspace = true
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]

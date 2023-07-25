@@ -1,6 +1,10 @@
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+
 use super::JsCompatSource;
 
 #[napi(object)]
+#[derive(Serialize, Deserialize)]
 pub struct JsAssetInfoRelated {
   pub source_map: Option<String>,
 }
@@ -13,6 +17,7 @@ impl From<JsAssetInfoRelated> for rspack_core::AssetInfoRelated {
   }
 }
 #[napi(object)]
+#[derive(Serialize, Deserialize)]
 pub struct JsAssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
   pub immutable: bool,
@@ -55,6 +60,14 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
       content_hash: i.content_hash.into_iter().collect(),
       version: i.version,
     }
+  }
+}
+
+pub type AssetInfoMap = serde_json::Map<String, serde_json::Value>;
+
+impl From<AssetInfoMap> for JsAssetInfo {
+  fn from(value: AssetInfoMap) -> Self {
+    serde_json::from_value(json!(value)).unwrap()
   }
 }
 

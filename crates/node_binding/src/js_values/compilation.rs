@@ -11,6 +11,7 @@ use rspack_identifier::Identifier;
 use rspack_napi_shared::NapiResultExt;
 
 use super::module::ToJsModule;
+use super::AssetInfoMap;
 use super::PathWithInfo;
 use crate::utils::callbackify;
 use crate::{
@@ -224,13 +225,14 @@ impl JsCompilation {
     &mut self,
     filename: String,
     source: JsCompatSource,
-    asset_info: JsAssetInfo,
+    asset_info: AssetInfoMap,
   ) -> Result<()> {
     let compat_source: CompatSource = source.into();
+    let js_asset_info: JsAssetInfo = asset_info.into();
 
     self.inner.emit_asset(
       filename,
-      rspack_core::CompilationAsset::new(Some(compat_source.boxed()), asset_info.into()),
+      rspack_core::CompilationAsset::new(Some(compat_source.boxed()), js_asset_info.into()),
     );
 
     Ok(())
