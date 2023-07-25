@@ -74,7 +74,6 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
 
 impl From<AssetInfoMap> for JsAssetInfo {
   fn from(value: AssetInfoMap) -> Self {
-    println!("from asset info map {:+?}\n", value);
     serde_json::from_value(value.into()).unwrap()
   }
 }
@@ -105,7 +104,7 @@ impl From<rspack_core::AssetInfo> for JsAssetInfo {
       chunk_hash: info.chunk_hash.into_iter().collect(),
       content_hash: info.content_hash.into_iter().collect(),
       version: info.version,
-      all_map: Some(info.all_map),
+      all_map: None,
     }
   }
 }

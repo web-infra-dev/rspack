@@ -230,7 +230,7 @@ impl JsCompilation {
     let compat_source: CompatSource = source.into();
     let js_asset_info: JsAssetInfo = asset_info.clone().into();
     let mut merged_asset_info: AssetInfo = js_asset_info.into();
-    merged_asset_info.all_map = asset_info;
+    merged_asset_info.set_all_map(asset_info);
 
     self.inner.emit_asset(
       filename,

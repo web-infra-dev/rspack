@@ -316,10 +316,7 @@ impl Plugin for JsPlugin {
             comments.comments_file_name,
             CompilationAsset {
               source: Some(comments.source),
-              info: AssetInfo {
-                minimized: true,
-                ..Default::default()
-              },
+              info: AssetInfo::default().with_minimized(true),
             },
           )
         });
