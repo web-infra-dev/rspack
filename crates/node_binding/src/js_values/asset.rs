@@ -1,4 +1,6 @@
-use rspack_core::AssetInfoMap;
+use std::collections::HashMap;
+
+use rspack_core::{AssetInfoMap, JsChunkHashArgs};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -19,10 +21,11 @@ impl From<JsAssetInfoRelated> for rspack_core::AssetInfoRelated {
   }
 }
 
+// pub type JsAssetInfo = AssetInfoMap;
+
 #[napi(object)]
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[deprecated]
 pub struct JsAssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
   pub immutable: bool,
@@ -82,7 +85,7 @@ impl From<AssetInfoMap> for JsAssetInfo {
 pub struct JsAsset {
   pub name: String,
   pub source: Option<JsCompatSource>,
-  pub info: JsAssetInfo,
+  pub info: AssetInfoMap,
 }
 
 impl From<rspack_core::AssetInfoRelated> for JsAssetInfoRelated {

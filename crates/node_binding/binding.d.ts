@@ -116,7 +116,7 @@ export function initCustomTraceSubscriber(): void
 export interface JsAsset {
   name: string
   source?: JsCompatSource
-  info: JsAssetInfo
+  info: AssetInfoMap
 }
 
 export interface JsAssetEmittedArgs {

@@ -21,6 +21,8 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 use swc_core::ecma::ast::ModuleItem;
 use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
@@ -1359,6 +1361,15 @@ impl Compilation {
 pub type CompilationAssets = HashMap<String, CompilationAsset>;
 pub type AssetInfoMap = serde_json::Map<String, serde_json::Value>;
 
+impl From<AssetInfo> for AssetInfoMap {
+  fn from(info: AssetInfo) -> Self {
+    let mut m: AssetInfoMap = serde_json::from_value(json!(info)).unwrap();
+    let mut base = info.all_map.unwrap_or_default().clone();
+    m.append(&mut base);
+    m
+  }
+}
+
 #[derive(Debug, Clone)]
 pub struct CompilationAsset {
   pub source: Option<BoxSource>,
@@ -1401,7 +1412,8 @@ impl CompilationAsset {
   }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
   pub immutable: bool,
@@ -1483,7 +1495,8 @@ impl AssetInfo {
   }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AssetInfoRelated {
   pub source_map: Option<String>,
 }
