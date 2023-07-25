@@ -145,7 +145,8 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     self.side_effects_free_modules = self.get_side_effects_free_modules(side_effect_map);
 
-    let inherit_export_ref_graph = get_inherit_export_ref_graph(&mut finalized_result_map);
+    let inherit_export_ref_graph =
+      get_inherit_export_ref_graph(&mut finalized_result_map, &self.compilation.module_graph);
     let mut errors = vec![];
     let mut used_symbol_ref = HashSet::default();
     let mut used_export_module_identifiers: IdentifierMap<ModuleUsedType> =
@@ -663,7 +664,7 @@ impl<'a> CodeSizeOptimizer<'a> {
   #[allow(clippy::too_many_arguments)]
   fn mark_symbol(
     &mut self,
-    current_symbol_ref_with_member_chain: SymbolRefWithMemberChain,
+    mut current_symbol_ref_with_member_chain: SymbolRefWithMemberChain,
     analyze_map: &IdentifierMap<OptimizeAnalyzeResult>,
     symbol_queue: &mut VecDeque<SymbolRefWithMemberChain>,
     evaluated_module_identifiers: &mut IdentifierSet,
@@ -673,6 +674,9 @@ impl<'a> CodeSizeOptimizer<'a> {
     visited_symbol_ref: &mut HashSet<SymbolRefWithMemberChain>,
     errors: &mut Vec<Error>,
   ) {
+    current_symbol_ref_with_member_chain.0 = current_symbol_ref_with_member_chain
+      .0
+      .update_src_from_dep_id(&self.compilation.module_graph);
     if visited_symbol_ref.contains(&current_symbol_ref_with_member_chain) {
       return;
     } else {
@@ -1289,15 +1293,12 @@ impl<'a> CodeSizeOptimizer<'a> {
 // };
 // }
 
-fn get_inherit_export_ref_graph(
-  analyze_result_map: &mut std::collections::HashMap<
-    Identifier,
-    OptimizeAnalyzeResult,
-    std::hash::BuildHasherDefault<ustr::IdentityHasher>,
-  >,
+fn get_inherit_export_ref_graph<'a, 'b>(
+  analyze_result_map: &'a mut IdentifierMap<OptimizeAnalyzeResult>,
+  mg: &'b ModuleGraph,
 ) -> GraphMap<Identifier, (), Directed> {
   // calculate relation of module that has `export * from 'xxxx'`
-  let inherit_export_ref_graph = create_inherit_graph(&*analyze_result_map);
+  let inherit_export_ref_graph = create_inherit_graph(&*analyze_result_map, mg);
   // key is the module_id of module that potential have reexport all symbol from other module
   // value is the set which contains several module_id the key related module need to inherit
   let map_of_inherit_map = get_extends_map(&inherit_export_ref_graph);
@@ -1489,11 +1490,14 @@ fn get_reachable(
 
 fn create_inherit_graph(
   analyze_map: &IdentifierMap<OptimizeAnalyzeResult>,
+  mg: &ModuleGraph,
 ) -> GraphMap<ModuleIdentifier, (), petgraph::Directed> {
   let mut g = DiGraphMap::new();
   for (module_id, result) in analyze_map.iter() {
-    for export_all_module_id in result.inherit_export_maps.keys().rev() {
-      g.add_edge(*module_id, *export_all_module_id, ());
+    for export_all_dep_id in result.export_all_dep_id.iter().rev() {
+      if let Some(export_all_module_id) = mg.module_identifier_by_dependency_id(export_all_dep_id) {
+        g.add_edge(*module_id, *export_all_module_id, ());
+      }
     }
   }
   g

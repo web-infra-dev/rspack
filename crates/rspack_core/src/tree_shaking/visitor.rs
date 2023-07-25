@@ -3,7 +3,7 @@ use std::{
 };
 
 use bitflags::bitflags;
-use hashlink::LinkedHashMap;
+use hashlink::{LinkedHashMap, LinkedHashSet};
 use rspack_identifier::{IdentifierLinkedMap, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
@@ -58,6 +58,43 @@ impl SymbolRef {
       SymbolRef::Worker { src, .. } => *src,
       SymbolRef::Usage(_, _, src) => *src,
     }
+  }
+
+  pub fn update_src_from_dep_id(mut self, mg: &ModuleGraph) -> SymbolRef {
+    match self {
+      SymbolRef::Declaration(_) => {}
+      SymbolRef::Indirect(ref mut i) => {
+        if let Some(module_id) = mg.module_identifier_by_dependency_id(&i.dep_id) {
+          i.src = *module_id;
+        }
+      }
+      SymbolRef::Star(ref mut s) => {
+        if let Some(module_id) = mg.module_identifier_by_dependency_id(&s.dep_id) {
+          s.src = *module_id;
+        }
+      }
+      // TODO:
+      SymbolRef::Url {
+        dep_id,
+        ref mut src,
+        ..
+      } => {
+        if let Some(module_id) = mg.module_identifier_by_dependency_id(&dep_id) {
+          *src = *module_id;
+        }
+      }
+      SymbolRef::Worker {
+        ref mut src,
+        dep_id,
+        ..
+      } => {
+        if let Some(module_id) = mg.module_identifier_by_dependency_id(&dep_id) {
+          *src = *module_id;
+        }
+      }
+      SymbolRef::Usage(_, _, _) => {}
+    }
+    self
   }
 
   pub fn importer(&self) -> ModuleIdentifier {
@@ -131,7 +168,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   /// ```
   /// then inherit_exports_maps become, `{"test.js": {...test_js_export_map} }`
   // Use `IndexMap` to keep the insertion order
-  pub inherit_export_maps: IdentifierLinkedMap<HashMap<JsWord, SymbolRef>>,
+  pub export_all_dep_id: LinkedHashSet<DependencyId>,
   current_body_owner_symbol_ext: Option<SymbolExt>,
   pub(crate) maybe_lazy_reference_map: HashMap<SymbolExt, HashSet<Part>>,
   pub(crate) immediate_evaluate_reference_map: HashMap<SymbolExt, HashSet<Part>>,
@@ -164,7 +201,7 @@ impl<'a> std::fmt::Debug for ModuleRefAnalyze<'a> {
       .field("module_graph", &self.module_graph)
       .field("export_map", &self.export_map)
       .field("import_map", &self.import_map)
-      .field("inherit_export_maps", &self.inherit_export_maps)
+      .field("export_all_dep_id", &self.export_all_dep_id)
       .field(
         "current_body_owner_symbol_ext",
         &self.current_body_owner_symbol_ext,
@@ -228,7 +265,6 @@ impl<'a> ModuleRefAnalyze<'a> {
       module_graph: dep_to_module_identifier,
       export_map: HashMap::default(),
       import_map: HashMap::default(),
-      inherit_export_maps: LinkedHashMap::default(),
       current_body_owner_symbol_ext: None,
       maybe_lazy_reference_map: HashMap::default(),
       reachable_import_and_export: HashMap::default(),
@@ -245,6 +281,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       unresolved_ctxt: SyntaxContext::empty(),
       potential_top_level_mark: HashSet::from_iter([mark_info.top_level_mark]),
       worker_syntax_list,
+      export_all_dep_id: LinkedHashSet::default(),
     }
   }
 
@@ -359,7 +396,7 @@ impl<'a> ModuleRefAnalyze<'a> {
 
           Some(SymbolRef::Url {
             importer: self.module_identifier,
-            src: *src_module_id,
+            src: "".into(),
             dep_id,
           })
         }
@@ -370,7 +407,7 @@ impl<'a> ModuleRefAnalyze<'a> {
 
           Some(SymbolRef::Url {
             importer: self.module_identifier,
-            src: *src_module_id,
+            src: "".into(),
             dep_id,
           })
         }
@@ -485,7 +522,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                     });
                   return HashSet::from_iter([SymbolRef::Url {
                     importer: self.module_identifier,
-                    src: *src_module_id,
+                    src: "".into(),
                     dep_id,
                   }]);
                 }
@@ -497,7 +534,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                     });
                   return HashSet::from_iter([SymbolRef::Url {
                     importer: self.module_identifier,
-                    src: *src_module_id,
+                    src: "".into(),
                     dep_id,
                   }]);
                 }
@@ -542,7 +579,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
                 return HashSet::from_iter([SymbolRef::Url {
                   importer: self.module_identifier,
-                  src: *src_module_id,
+                  src: "".into(),
                   dep_id,
                 }]);
               }
@@ -553,7 +590,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
                 return HashSet::from_iter([SymbolRef::Url {
                   importer: self.module_identifier,
-                  src: *src_module_id,
+                  src: "".into(),
                   dep_id,
                 }]);
               }
@@ -595,7 +632,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
           let url = SymbolRef::Url {
             importer: self.module_identifier,
-            src: *src_module_id,
+            src: "".into(),
             dep_id,
           };
           self.used_symbol_ref.insert(url);
@@ -607,7 +644,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
           let url = SymbolRef::Url {
             importer: self.module_identifier,
-            src: *src_module_id,
+            src: "".into(),
             dep_id,
           };
           self.used_symbol_ref.insert(url);
@@ -738,7 +775,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   let local = named.local.sym.clone();
 
                   let symbol_ref = SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-                    resolved_uri_ukey,
+                    "".into(),
                     self.module_identifier,
                     IndirectType::Import(local, imported),
                     dep_id,
@@ -750,7 +787,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   self.add_import(
                     default.local.to_id().into(),
                     SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-                      resolved_uri_ukey,
+                      "".into(),
                       self.module_identifier,
                       IndirectType::ImportDefault(default.local.sym.clone()),
                       dep_id,
@@ -761,7 +798,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   self.add_import(
                     namespace.local.to_id().into(),
                     SymbolRef::Star(StarSymbol::new(
-                      resolved_uri_ukey,
+                      "".into(),
                       namespace.local.sym.clone(),
                       self.module_identifier,
                       StarSymbolKind::ImportAllAs,
@@ -820,7 +857,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           }
 
           ModuleDecl::ExportAll(export_all) => {
-            let resolved_uri = match self
+            let (&resolved_uri_key, dep_id) = match self
               .resolve_module_identifier(&export_all.src.value, &DependencyType::EsmExport)
             {
               Some(module_identifier) => module_identifier,
@@ -829,10 +866,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 return;
               }
             };
-            let (&resolved_uri_key, _dep_id) = resolved_uri;
-            self
-              .inherit_export_maps
-              .insert(resolved_uri_key, HashMap::default());
+            self.export_all_dep_id.insert(dep_id);
           }
           ModuleDecl::TsImportEquals(_)
           | ModuleDecl::TsExportAssignment(_)
@@ -1513,7 +1547,7 @@ impl<'a> ModuleRefAnalyze<'a> {
             self.add_export(
               atom.clone(),
               SymbolRef::Star(StarSymbol::new(
-                resolved_uri_ukey,
+                "".into(),
                 atom,
                 self.module_identifier,
                 StarSymbolKind::ReExportAllAs,
@@ -1541,7 +1575,7 @@ impl<'a> ModuleRefAnalyze<'a> {
             self.reachable_import_and_export.insert(
               exported_atom.clone(),
               HashSet::from_iter([SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-                resolved_uri_ukey,
+                "".into(),
                 self.module_identifier,
                 IndirectType::Temp(original.clone()),
                 dep_id,
@@ -1639,7 +1673,8 @@ pub struct OptimizeAnalyzeResult {
   pub module_identifier: ModuleIdentifier,
   pub export_map: HashMap<JsWord, SymbolRef>,
   pub(crate) import_map: HashMap<BetterId, SymbolRef>,
-  pub inherit_export_maps: IdentifierLinkedMap<HashMap<JsWord, SymbolRef>>,
+  pub inherit_export_maps: LinkedHashMap<ModuleIdentifier, HashMap<JsWord, SymbolRef>>,
+  pub export_all_dep_id: LinkedHashSet<DependencyId>,
   // current_region: Option<BetterId>,
   // pub(crate) reference_map: HashMap<BetterId, HashSet<BetterId>>,
   pub(crate) reachable_import_of_export: HashMap<JsWord, HashSet<SymbolRef>>,
@@ -1658,7 +1693,7 @@ impl From<ModuleRefAnalyze<'_>> for OptimizeAnalyzeResult {
       module_identifier: analyze.module_identifier,
       export_map: analyze.export_map,
       import_map: analyze.import_map,
-      inherit_export_maps: analyze.inherit_export_maps,
+      inherit_export_maps: LinkedHashMap::default(),
       // current_region: analyze.current_body_owner_id),
       // reference_map: analyze.reference_map),
       reachable_import_of_export: analyze.reachable_import_and_export,
@@ -1667,6 +1702,7 @@ impl From<ModuleRefAnalyze<'_>> for OptimizeAnalyzeResult {
       bail_out_module_identifiers: analyze.bail_out_module_identifiers,
       side_effects: analyze.side_effects,
       module_syntax: analyze.module_syntax,
+      export_all_dep_id: analyze.export_all_dep_id,
     }
   }
 }
