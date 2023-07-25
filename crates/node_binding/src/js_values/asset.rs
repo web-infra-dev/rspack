@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use rspack_core::{AssetInfoMap, JsChunkHashArgs};
 use serde::{Deserialize, Serialize};
 use serde_json::json;

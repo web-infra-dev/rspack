@@ -1,7 +1,5 @@
 use rspack_core::AssetInfoMap;
 
-use super::JsAssetInfo;
-
 #[napi(object)]
 pub struct PathData {
   pub filename: Option<String>,
