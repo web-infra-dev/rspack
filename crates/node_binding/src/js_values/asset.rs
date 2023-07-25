@@ -72,12 +72,6 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
   }
 }
 
-impl From<AssetInfoMap> for JsAssetInfo {
-  fn from(value: AssetInfoMap) -> Self {
-    serde_json::from_value(value.into()).unwrap()
-  }
-}
-
 #[napi(object)]
 pub struct JsAsset {
   pub name: String,
