@@ -64,7 +64,7 @@ impl SymbolRef {
     match self {
       SymbolRef::Declaration(_) => {}
       SymbolRef::Indirect(ref mut i) => {
-        if let Some(module_id) = mg.module_identifier_by_dependency_id(&i.dep_id) {
+        if i.src.is_empty() && let Some(module_id) = mg.module_identifier_by_dependency_id(&i.dep_id) {
           i.src = *module_id;
         }
       }
