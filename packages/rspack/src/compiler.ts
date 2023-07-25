@@ -480,7 +480,6 @@ class Compiler {
 				// Do not emit asset if source is not available.
 				// Webpack will emit it anyway.
 				if (source) {
-					console.log({ info });
 					this.parentCompilation!.emitAsset(name, source, info);
 				}
 			}
