@@ -1,3 +1,5 @@
+use rspack_core::AssetInfoMap;
+
 use super::JsAssetInfo;
 
 #[napi(object)]
@@ -29,7 +31,7 @@ impl PathData {
 #[napi(object)]
 pub struct PathWithInfo {
   pub path: String,
-  pub info: JsAssetInfo,
+  pub info: AssetInfoMap,
 }
 
 impl From<(String, rspack_core::AssetInfo)> for PathWithInfo {

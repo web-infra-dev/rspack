@@ -5,6 +5,7 @@ use napi::bindgen_prelude::*;
 use napi::NapiRaw;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
+use rspack_core::AssetInfoMap;
 use rspack_core::ModuleIdentifier;
 use rspack_core::{rspack_sources::SourceExt, AstOrSource, NormalModuleAstOrSource};
 use rspack_identifier::Identifier;
@@ -71,12 +72,12 @@ impl JsCompilation {
                   call_js_function_with_napi_objects!(
                     env,
                     asset_info_fn,
-                    Into::<JsAssetInfo>::into(original_info.clone())
+                    Into::<AssetInfoMap>::into(original_info.clone())
                   )
                 }?;
 
                 let js_asset_info = unsafe {
-                  convert_raw_napi_value_to_napi_value!(env, JsAssetInfo, asset_info.raw())
+                  convert_raw_napi_value_to_napi_value!(env, AssetInfoMap, asset_info.raw())
                 }?;
                 Ok(js_asset_info.into())
               }

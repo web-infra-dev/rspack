@@ -393,7 +393,7 @@ export interface PathData {
 
 export interface PathWithInfo {
   path: string
-  info: JsAssetInfo
+  info: AssetInfoMap
 }
 
 export interface RawAssetGeneratorDataUrl {
