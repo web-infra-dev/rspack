@@ -1185,8 +1185,7 @@ describe("Compiler", () => {
 							{ _foo: "this is dd.js", _arr: [1], hotModuleReplacement: true }
 						);
 						compiler.hooks.emit.tap("Plugin", compilation => {
-							const a = compilation.getAsset("dd.js");
-							expect(a?.info).toEqual({
+							expect(compilation.getAsset("dd.js")?.info).toEqual({
 								chunkHash: [],
 								contentHash: [],
 								development: false,
