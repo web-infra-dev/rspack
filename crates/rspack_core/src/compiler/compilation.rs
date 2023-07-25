@@ -1371,6 +1371,15 @@ impl From<AssetInfo> for AssetInfoMap {
   }
 }
 
+impl From<AssetInfoMap> for AssetInfo {
+  fn from(value: AssetInfoMap) -> Self {
+    let cloned_map = value.clone();
+    let mut res: AssetInfo = serde_json::from_value(value.into()).unwrap();
+    res.set_all_map(cloned_map);
+    res
+  }
+}
+
 #[derive(Debug, Clone)]
 pub struct CompilationAsset {
   pub source: Option<BoxSource>,

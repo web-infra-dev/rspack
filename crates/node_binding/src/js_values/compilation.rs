@@ -228,13 +228,10 @@ impl JsCompilation {
     asset_info: rspack_core::AssetInfoMap,
   ) -> Result<()> {
     let compat_source: CompatSource = source.into();
-    let js_asset_info: JsAssetInfo = asset_info.clone().into();
-    let mut merged_asset_info: AssetInfo = js_asset_info.into();
-    merged_asset_info.set_all_map(asset_info);
 
     self.inner.emit_asset(
       filename,
-      rspack_core::CompilationAsset::new(Some(compat_source.boxed()), merged_asset_info),
+      rspack_core::CompilationAsset::new(Some(compat_source.boxed()), asset_info.into()),
     );
 
     Ok(())
