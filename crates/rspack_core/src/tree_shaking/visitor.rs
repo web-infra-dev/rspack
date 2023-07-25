@@ -4,7 +4,6 @@ use std::{
 
 use bitflags::bitflags;
 use hashlink::{LinkedHashMap, LinkedHashSet};
-use rspack_identifier::{IdentifierLinkedMap, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 use swc_core::common::SyntaxContext;

@@ -1307,9 +1307,9 @@ impl<'a> CodeSizeOptimizer<'a> {
 // };
 // }
 
-fn get_inherit_export_ref_graph<'a, 'b>(
-  analyze_result_map: &'a mut IdentifierMap<OptimizeAnalyzeResult>,
-  mg: &'b ModuleGraph,
+fn get_inherit_export_ref_graph(
+  analyze_result_map: &mut IdentifierMap<OptimizeAnalyzeResult>,
+  mg: &ModuleGraph,
 ) -> GraphMap<Identifier, (), Directed> {
   // calculate relation of module that has `export * from 'xxxx'`
   let inherit_export_ref_graph = create_inherit_graph(&*analyze_result_map, mg);
