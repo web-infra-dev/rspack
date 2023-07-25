@@ -28,7 +28,10 @@ mod dependency_template;
 pub use dependency_template::*;
 use dyn_clone::{clone_trait_object, DynClone};
 
-use crate::{ChunkGroupOptions, Context, ContextMode, ContextOptions, ErrorSpan};
+use crate::{
+  ChunkGroupOptions, ConnectionState, Context, ContextMode, ContextOptions, ErrorSpan, ModuleGraph,
+  ModuleGraphConnection, ReferencedExport, RuntimeSpec,
+};
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`
@@ -39,6 +42,7 @@ pub enum DependencyType {
   Entry,
   // Harmony import
   EsmImport,
+  EsmImportSpecifier,
   // Harmony export
   EsmExport,
   // import()
@@ -89,6 +93,7 @@ impl Display for DependencyType {
       DependencyType::Entry => write!(f, "entry"),
       DependencyType::EsmImport => write!(f, "esm import"),
       DependencyType::EsmExport => write!(f, "esm export"),
+      DependencyType::EsmImportSpecifier => write!(f, "esm import specifier"),
       DependencyType::DynamicImport => write!(f, "dynamic import"),
       DependencyType::CjsRequire => write!(f, "cjs require"),
       DependencyType::NewUrl => write!(f, "new URL()"),
@@ -169,6 +174,16 @@ pub trait Dependency: AsAny + DynClone + Send + Sync + Debug {
   fn get_context(&self) -> Option<&Context> {
     None
   }
+  // an identifier to merge equal requests
+  fn resource_identifier(&self) -> Option<&str> {
+    None
+  }
+}
+
+pub enum ExportsReferencedType {
+  No,     // NO_EXPORTS_REFERENCED
+  Object, // EXPORTS_OBJECT_REFERENCED
+  Value(Vec<ReferencedExport>),
 }
 
 impl Dependency for Box<dyn Dependency> {
@@ -191,6 +206,12 @@ impl<T: ModuleDependency> AsModuleDependency for T {
   fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
     Some(self)
   }
+}
+
+pub enum DependencyCondition {
+  Nil,
+  False,
+  Fn(Box<dyn Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState>),
 }
 
 pub trait ModuleDependency: Dependency {
@@ -218,6 +239,18 @@ pub trait ModuleDependency: Dependency {
   // TODO: wired to place ChunkGroupOptions on dependency, should place on AsyncDependenciesBlock
   fn group_options(&self) -> Option<&ChunkGroupOptions> {
     None
+  }
+
+  fn get_condition(&self, _module_graph: &ModuleGraph) -> DependencyCondition {
+    DependencyCondition::Nil
+  }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: &RuntimeSpec,
+  ) -> ExportsReferencedType {
+    ExportsReferencedType::Object
   }
 }
 

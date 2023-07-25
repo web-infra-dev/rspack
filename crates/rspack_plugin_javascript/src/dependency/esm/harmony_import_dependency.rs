@@ -1,8 +1,9 @@
 use rspack_core::tree_shaking::symbol::IndirectTopLevelSymbol;
 use rspack_core::{
   import_statement, tree_shaking::symbol, tree_shaking::visitor::SymbolRef, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan, InitFragment,
-  InitFragmentStage, ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ExportsReferencedType, InitFragment, InitFragmentStage, ModuleDependency, ModuleGraph,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -27,7 +28,6 @@ pub struct HarmonyImportDependency {
 
 impl HarmonyImportDependency {
   pub fn new(
-    id: DependencyId,
     request: JsWord,
     span: Option<ErrorSpan>,
     specifiers: Vec<Specifier>,
@@ -37,7 +37,7 @@ impl HarmonyImportDependency {
     Self {
       request,
       span,
-      id,
+      id: DependencyId::new(),
       specifiers,
       dependency_type,
       export_all,
@@ -223,5 +223,13 @@ impl ModuleDependency for HarmonyImportDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
+  }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: &RuntimeSpec,
+  ) -> ExportsReferencedType {
+    ExportsReferencedType::No
   }
 }

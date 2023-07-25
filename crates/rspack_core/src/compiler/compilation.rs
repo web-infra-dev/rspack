@@ -35,8 +35,8 @@ use crate::{
   BoxModuleDependency, BuildQueue, BuildTask, BuildTaskResult, Chunk, ChunkByUkey,
   ChunkContentHash, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey,
   CleanQueue, CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults,
-  CompilerOptions, ContentHashArgs, DependencyId, Entry, EntryData, EntryOptions, Entrypoint,
-  FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Module, ModuleGraph,
+  CompilerOptions, ContentHashArgs, DependencyId, DependencyType, Entry, EntryData, EntryOptions,
+  Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Module, ModuleGraph,
   ModuleIdentifier, ModuleType, PathData, ProcessAssetsArgs, ProcessDependenciesQueue,
   ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory,
   RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult,
@@ -512,6 +512,8 @@ impl Compilation {
             .dependency_by_id(&id)
             .expect("dependency expected");
 
+          // TODO here should be implement `sortedDependencies` by `dependency.getResourceIdentifier()`,
+          // see https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L1621
           self.handle_module_creation(
             &mut factorize_queue,
             Some(task.original_module_identifier),

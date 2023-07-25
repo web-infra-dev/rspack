@@ -15,6 +15,8 @@ pub use missing_module::*;
 mod normal_module;
 mod raw_module;
 pub use raw_module::*;
+mod exports_info;
+pub use exports_info::*;
 pub mod module;
 pub mod parser_and_generator;
 pub use module::*;

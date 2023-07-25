@@ -1,6 +1,8 @@
 use rspack_core::{
-  module_id, Dependency, DependencyCategory, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  get_dependency_used_by_exports_condition, module_id, Dependency, DependencyCategory,
+  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ModuleDependency, ModuleGraph, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  UsedByExports,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -11,6 +13,7 @@ pub struct URLDependency {
   id: DependencyId,
   request: JsWord,
   span: Option<ErrorSpan>,
+  used_by_exports: UsedByExports,
 }
 
 impl URLDependency {
@@ -21,6 +24,7 @@ impl URLDependency {
       id: DependencyId::new(),
       request,
       span,
+      used_by_exports: UsedByExports::default(),
     }
   }
 }
@@ -58,6 +62,10 @@ impl ModuleDependency for URLDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
+  }
+
+  fn get_condition(&self, module_graph: &ModuleGraph) -> DependencyCondition {
+    get_dependency_used_by_exports_condition(&self.id, &self.used_by_exports, module_graph)
   }
 }
 

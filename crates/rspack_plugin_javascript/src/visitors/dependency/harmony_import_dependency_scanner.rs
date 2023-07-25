@@ -89,17 +89,11 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
     // collect import map info
     program.visit_children_with(self);
 
-    let mut dependency_id_map: FxHashMap<JsWord, DependencyId> = Default::default();
     for ((request, dependency_type), importer_info) in std::mem::take(&mut self.imports).into_iter()
     {
-      let id = DependencyId::new();
-      if matches!(dependency_type, DependencyType::EsmImport) {
-        dependency_id_map.insert(request.clone(), id);
-      }
       self
         .dependencies
         .push(Box::new(HarmonyImportDependency::new(
-          id,
           request,
           Some(importer_info.span.into()),
           importer_info.specifiers,
@@ -111,8 +105,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
     // collect import reference info
     program.visit_children_with(&mut HarmonyImportRefDependencyScanner::new(
       self.import_map,
-      self.presentational_dependencies,
-      &dependency_id_map,
+      self.dependencies,
     ));
   }
 
@@ -267,20 +260,17 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
 pub struct HarmonyImportRefDependencyScanner<'a> {
   pub enter_callee: bool,
   pub import_map: &'a ImportMap,
-  pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-  pub dependency_id_map: &'a FxHashMap<JsWord, DependencyId>,
+  pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
 }
 
 impl<'a> HarmonyImportRefDependencyScanner<'a> {
   pub fn new(
     import_map: &'a ImportMap,
-    presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-    dependency_id_map: &'a FxHashMap<JsWord, DependencyId>,
+    dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   ) -> Self {
     Self {
       import_map,
-      presentational_dependencies,
-      dependency_id_map,
+      dependencies,
       enter_callee: false,
     }
   }
@@ -294,12 +284,8 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
       Prop::Shorthand(shorthand) => {
         if let Some(reference) = self.import_map.get(&shorthand.to_id()) {
           self
-            .presentational_dependencies
+            .dependencies
             .push(Box::new(HarmonyImportSpecifierDependency::new(
-              *self
-                .dependency_id_map
-                .get(&reference.request)
-                .expect("should have dependency id"),
               reference.request.clone(),
               true,
               shorthand.span.real_lo(),
@@ -317,12 +303,8 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
   fn visit_ident(&mut self, ident: &Ident) {
     if let Some(reference) = self.import_map.get(&ident.to_id()) {
       self
-        .presentational_dependencies
+        .dependencies
         .push(Box::new(HarmonyImportSpecifierDependency::new(
-          *self
-            .dependency_id_map
-            .get(&reference.request)
-            .expect("should have dependency id"),
           reference.request.clone(),
           false,
           ident.span.real_lo(),
@@ -354,12 +336,8 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
           let mut ids = reference.names.clone().map(|f| vec![f]).unwrap_or_default();
           ids.push(DEFAULT_JS_WORD.clone());
           self
-            .presentational_dependencies
+            .dependencies
             .push(Box::new(HarmonyImportSpecifierDependency::new(
-              *self
-                .dependency_id_map
-                .get(&reference.request)
-                .expect("should have dependency id"),
               reference.request.clone(),
               false,
               member_expr.span.real_lo(),
