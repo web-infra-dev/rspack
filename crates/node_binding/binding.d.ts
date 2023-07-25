@@ -289,8 +289,13 @@ export interface JsStatsAsset {
   size: number
   chunks: Array<string>
   chunkNames: Array<string>
-  info: Record<string, any>
+  info: JsStatsAssetInfo
   emitted: boolean
+}
+
+export interface JsStatsAssetInfo {
+  development: boolean
+  hotModuleReplacement: boolean
 }
 
 export interface JsStatsAssetsByChunkName {

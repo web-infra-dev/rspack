@@ -47,7 +47,7 @@ pub struct JsStatsAsset {
   pub size: f64,
   pub chunks: Vec<String>,
   pub chunk_names: Vec<String>,
-  pub info: serde_json::Map<String, serde_json::Value>,
+  pub info: JsStatsAssetInfo,
   pub emitted: bool,
 }
 
@@ -61,6 +61,21 @@ impl From<rspack_core::StatsAsset> for JsStatsAsset {
       chunk_names: stats.chunk_names,
       info: stats.info.into(),
       emitted: stats.emitted,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsStatsAssetInfo {
+  pub development: bool,
+  pub hot_module_replacement: bool,
+}
+
+impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
+  fn from(stats: rspack_core::StatsAssetInfo) -> Self {
+    Self {
+      development: stats.development,
+      hot_module_replacement: stats.hot_module_replacement,
     }
   }
 }

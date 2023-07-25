@@ -6,6 +6,7 @@ use super::JsCompatSource;
 
 #[napi(object)]
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct JsAssetInfoRelated {
   pub source_map: Option<String>,
 }
@@ -20,6 +21,7 @@ impl From<JsAssetInfoRelated> for rspack_core::AssetInfoRelated {
 
 #[napi(object)]
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 #[deprecated]
 pub struct JsAssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
@@ -72,7 +74,8 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
 
 impl From<AssetInfoMap> for JsAssetInfo {
   fn from(value: AssetInfoMap) -> Self {
-    serde_json::from_value(json!(value)).unwrap()
+    println!("from asset info map {:+?}\n", value);
+    serde_json::from_value(value.into()).unwrap()
   }
 }
 
