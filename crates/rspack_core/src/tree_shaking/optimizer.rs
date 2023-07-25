@@ -19,10 +19,6 @@ use rspack_identifier::{Identifier, IdentifierLinkedSet, IdentifierMap, Identifi
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{common::SyntaxContext, ecma::atoms::JsWord};
 
-use super::symbol::{
-  BetterId, IndirectTopLevelSymbol, IndirectType, SerdeSymbol, StarSymbol, StarSymbolKind, Symbol,
-  SymbolType,
-};
 use super::{
   analyzer::OptimizeAnalyzer,
   asset_module::AssetModule,
@@ -30,6 +26,13 @@ use super::{
   symbol_graph::SymbolGraph,
   visitor::{OptimizeAnalyzeResult, SymbolRef},
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
+};
+use super::{
+  symbol::{
+    BetterId, IndirectTopLevelSymbol, IndirectType, SerdeSymbol, StarSymbol, StarSymbolKind,
+    Symbol, SymbolType,
+  },
+  visitor::ModuleIdOrDepId,
 };
 use crate::{
   contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
@@ -225,8 +228,19 @@ impl<'a> CodeSizeOptimizer<'a> {
     )
   }
 
-  fn merge_bailout_modules_reason(&mut self, k: &Identifier, v: BailoutFlag) {
-    match self.bailout_modules.entry(*k) {
+  fn merge_bailout_modules_reason(&mut self, k: &ModuleIdOrDepId, v: BailoutFlag) {
+    let mg = &self.compilation.module_graph;
+    let normalized_module_id = match k {
+      ModuleIdOrDepId::ModuleId(module_id) => *module_id,
+      ModuleIdOrDepId::DepId(dep_id) => {
+        if let Some(module_id) = mg.module_identifier_by_dependency_id(dep_id) {
+          *module_id
+        } else {
+          return;
+        }
+      }
+    };
+    match self.bailout_modules.entry(normalized_module_id) {
       Entry::Occupied(mut occ) => {
         *occ.get_mut() |= v;
       }

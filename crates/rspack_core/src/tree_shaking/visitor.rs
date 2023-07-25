@@ -30,6 +30,12 @@ use crate::{
   ModuleIdentifier, ModuleSyntax,
 };
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ModuleIdOrDepId {
+  ModuleId(ModuleIdentifier),
+  DepId(DependencyId),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum SymbolRef {
   Declaration(Symbol),
@@ -183,7 +189,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   /// 1. `require()` -> CommonJs
   /// 2. `export ` -> ESM
   module_syntax: ModuleSyntax,
-  pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
+  pub(crate) bail_out_module_identifiers: HashMap<ModuleIdOrDepId, BailoutFlag>,
   pub(crate) side_effects: SideEffectType,
   pub(crate) options: &'a Arc<CompilerOptions>,
   pub(crate) has_side_effects_stmt: bool,
@@ -273,7 +279,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       used_symbol_ref: HashSet::default(),
       export_default_name: None,
       module_syntax: ModuleSyntax::empty(),
-      bail_out_module_identifiers: IdentifierMap::default(),
+      bail_out_module_identifiers: HashMap::default(),
       side_effects: SideEffectType::Analyze(true),
       immediate_evaluate_reference_map: HashMap::default(),
       options,
@@ -390,7 +396,7 @@ impl<'a> ModuleRefAnalyze<'a> {
           })
         }
         Part::Url(src) => {
-          let (src_module_id, dep_id) = self
+          let dep_id = self
             .resolve_module_identifier(src, &DependencyType::NewUrl)
             .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
 
@@ -401,7 +407,7 @@ impl<'a> ModuleRefAnalyze<'a> {
           })
         }
         Part::Worker(src) => {
-          let (src_module_id, dep_id) = self
+          let dep_id = self
             .resolve_module_identifier(src, &DependencyType::NewWorker)
             .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
 
@@ -429,7 +435,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       self.module_syntax.insert(ModuleSyntax::COMMONJS);
       match self
         .bail_out_module_identifiers
-        .entry(self.module_identifier)
+        .entry(ModuleIdOrDepId::ModuleId(self.module_identifier))
       {
         Entry::Occupied(mut occ) => {
           *occ.get_mut() |= BailoutFlag::COMMONJS_EXPORTS;
@@ -515,7 +521,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   _ => object,
                 },
                 Part::Url(src) => {
-                  let (src_module_id, dep_id) = self
+                  let dep_id = self
                     .resolve_module_identifier(src, &DependencyType::NewUrl)
                     .unwrap_or_else(|| {
                       panic!("Can't resolve {} in {}", src, self.module_identifier)
@@ -527,7 +533,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   }]);
                 }
                 Part::Worker(src) => {
-                  let (src_module_id, dep_id) = self
+                  let dep_id = self
                     .resolve_module_identifier(src, &DependencyType::NewWorker)
                     .unwrap_or_else(|| {
                       panic!("Can't resolve {} in {}", src, self.module_identifier)
@@ -573,7 +579,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 _ => object,
               },
               Part::Url(src) => {
-                let (src_module_id, dep_id) = self
+                let dep_id = self
                   .resolve_module_identifier(src, &DependencyType::NewUrl)
                   .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
 
@@ -584,7 +590,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 }]);
               }
               Part::Worker(src) => {
-                let (src_module_id, dep_id) = self
+                let dep_id = self
                   .resolve_module_identifier(src, &DependencyType::NewWorker)
                   .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
 
@@ -626,7 +632,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           }
         },
         Part::Url(src) => {
-          let (src_module_id, dep_id) = self
+          let dep_id = self
             .resolve_module_identifier(src, &DependencyType::NewUrl)
             .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
 
@@ -638,7 +644,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           self.used_symbol_ref.insert(url);
         }
         Part::Worker(src) => {
-          let (src_module_id, dep_id) = self
+          let dep_id = self
             .resolve_module_identifier(src, &DependencyType::NewWorker)
             .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
 
@@ -753,15 +759,13 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         match decl {
           ModuleDecl::Import(import) => {
             let src = &import.src.value;
-            let resolved_uri = match self.resolve_module_identifier(src, &DependencyType::EsmImport)
-            {
+            let dep_id = match self.resolve_module_identifier(src, &DependencyType::EsmImport) {
               Some(module_identifier) => module_identifier,
               None => {
                 // TODO: Ignore for now because swc helper interference.
                 return;
               }
             };
-            let (&resolved_uri_ukey, dep_id) = resolved_uri;
             import
               .specifiers
               .iter()
@@ -857,7 +861,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           }
 
           ModuleDecl::ExportAll(export_all) => {
-            let (&resolved_uri_key, dep_id) = match self
+            let dep_id = match self
               .resolve_module_identifier(&export_all.src.value, &DependencyType::EsmExport)
             {
               Some(module_identifier) => module_identifier,
@@ -1103,16 +1107,17 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     if let Some(require_lit) = get_require_literal(node, self.unresolved_mark) {
       self.module_syntax.insert(ModuleSyntax::COMMONJS);
       match self.resolve_module_identifier(&require_lit, &DependencyType::CjsRequire) {
-        Some((&module_identifier, _dep_id)) => {
-          match self.bail_out_module_identifiers.entry(module_identifier) {
-            Entry::Occupied(mut occ) => {
-              *occ.get_mut() |= BailoutFlag::COMMONJS_REQUIRE;
-            }
-            Entry::Vacant(vac) => {
-              vac.insert(BailoutFlag::COMMONJS_REQUIRE);
-            }
+        Some(dep_id) => match self
+          .bail_out_module_identifiers
+          .entry(ModuleIdOrDepId::DepId(dep_id))
+        {
+          Entry::Occupied(mut occ) => {
+            *occ.get_mut() |= BailoutFlag::COMMONJS_REQUIRE;
           }
-        }
+          Entry::Vacant(vac) => {
+            vac.insert(BailoutFlag::COMMONJS_REQUIRE);
+          }
+        },
         None => {
           eprintln!(
             "Can't resolve require {} in {}",
@@ -1122,16 +1127,17 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       };
     } else if let Some(import_str) = get_dynamic_import_string_literal(node) {
       match self.resolve_module_identifier(&import_str, &DependencyType::DynamicImport) {
-        Some((&module_identifier, _dep_id)) => {
-          match self.bail_out_module_identifiers.entry(module_identifier) {
-            Entry::Occupied(mut occ) => {
-              *occ.get_mut() |= BailoutFlag::DYNAMIC_IMPORT;
-            }
-            Entry::Vacant(vac) => {
-              vac.insert(BailoutFlag::DYNAMIC_IMPORT);
-            }
+        Some(dep_id) => match self
+          .bail_out_module_identifiers
+          .entry(ModuleIdOrDepId::DepId(dep_id))
+        {
+          Entry::Occupied(mut occ) => {
+            *occ.get_mut() |= BailoutFlag::DYNAMIC_IMPORT;
           }
-        }
+          Entry::Vacant(vac) => {
+            vac.insert(BailoutFlag::DYNAMIC_IMPORT);
+          }
+        },
         None => {
           eprintln!(
             "Can't resolve dynamic import {} in {}",
@@ -1521,7 +1527,7 @@ impl<'a> ModuleRefAnalyze<'a> {
   fn analyze_named_export(&mut self, named_export: &NamedExport) {
     let src = named_export.src.as_ref().map(|src| &src.value);
     if let Some(src) = src {
-      let resolved_uri = match self.resolve_module_identifier(src, &DependencyType::EsmExport) {
+      let dep_id = match self.resolve_module_identifier(src, &DependencyType::EsmExport) {
         Some(module_identifier) => module_identifier,
         None => {
           eprintln!(
@@ -1534,7 +1540,6 @@ impl<'a> ModuleRefAnalyze<'a> {
           return;
         }
       };
-      let (&resolved_uri_ukey, dep_id) = resolved_uri;
       named_export
         .specifiers
         .iter()
@@ -1641,7 +1646,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     &self,
     src: &str,
     dependency_type: &DependencyType,
-  ) -> Option<(&ModuleIdentifier, DependencyId)> {
+  ) -> Option<DependencyId> {
     self
       .module_graph
       .module_graph_module_by_identifier(&self.module_identifier)
@@ -1652,10 +1657,7 @@ impl<'a> ModuleRefAnalyze<'a> {
             .dependency_by_id(id)
             .expect("should have dependency");
           if dep.request() == src && dependency_type == dep.dependency_type() {
-            self
-              .module_graph
-              .module_graph_module_by_dependency_id(dep.id())
-              .map(|module| (&module.module_identifier, *dep.id()))
+            Some(*dep.id())
           } else {
             None
           }
@@ -1680,7 +1682,7 @@ pub struct OptimizeAnalyzeResult {
   pub(crate) reachable_import_of_export: HashMap<JsWord, HashSet<SymbolRef>>,
   state: AnalyzeState,
   pub(crate) used_symbol_refs: HashSet<SymbolRef>,
-  pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
+  pub(crate) bail_out_module_identifiers: HashMap<ModuleIdOrDepId, BailoutFlag>,
   pub(crate) side_effects: SideEffectType,
   pub(crate) module_syntax: ModuleSyntax,
 }
