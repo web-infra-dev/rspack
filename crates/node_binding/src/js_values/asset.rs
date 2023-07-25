@@ -24,6 +24,7 @@ impl From<JsAssetInfoRelated> for rspack_core::AssetInfoRelated {
 #[napi(object)]
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[deprecated]
 pub struct JsAssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
   pub immutable: bool,
