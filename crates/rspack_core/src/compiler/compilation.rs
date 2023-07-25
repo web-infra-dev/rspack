@@ -1499,8 +1499,7 @@ impl AssetInfo {
     self.immutable = v;
   }
 
-  #[deprecated]
-  pub fn set_all_map(&mut self, all_map: AssetInfoMap) {
+  fn set_all_map(&mut self, all_map: AssetInfoMap) {
     self.all_map = Some(all_map);
   }
 }
