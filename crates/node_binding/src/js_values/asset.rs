@@ -17,8 +17,10 @@ impl From<JsAssetInfoRelated> for rspack_core::AssetInfoRelated {
     }
   }
 }
+
 #[napi(object)]
 #[derive(Serialize, Deserialize)]
+#[deprecated]
 pub struct JsAssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
   pub immutable: bool,
@@ -60,6 +62,7 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
       related: i.related.into(),
       content_hash: i.content_hash.into_iter().collect(),
       version: i.version,
+      ..Default::default()
     }
   }
 }
