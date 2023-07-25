@@ -1357,6 +1357,7 @@ impl Compilation {
 }
 
 pub type CompilationAssets = HashMap<String, CompilationAsset>;
+pub type AssetInfoMap = serde_json::Map<String, serde_json::Value>;
 
 #[derive(Debug, Clone)]
 pub struct CompilationAsset {

@@ -1,3 +1,4 @@
+use rspack_core::AssetInfoMap;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -62,8 +63,6 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
     }
   }
 }
-
-pub type AssetInfoMap = serde_json::Map<String, serde_json::Value>;
 
 impl From<AssetInfoMap> for JsAssetInfo {
   fn from(value: AssetInfoMap) -> Self {
