@@ -1181,8 +1181,24 @@ describe("Compiler", () => {
 
 						compilation.emitAsset(
 							"dd.js",
-							new RawSource(`module.exports = "This is dd"`)
+							new RawSource(`module.exports = "This is dd"`),
+							{ _foo: "this is dd.js", _arr: [1], hotModuleReplacement: true }
 						);
+						compiler.hooks.emit.tap("Plugin", compilation => {
+							const a = compilation.getAsset("dd.js");
+							expect(a?.info).toEqual({
+								chunkHash: [],
+								contentHash: [],
+								development: false,
+								hotModuleReplacement: true,
+								immutable: false,
+								minimized: true,
+								related: {},
+								version: "",
+								_foo: "this is dd.js",
+								_arr: [1]
+							});
+						});
 						compilation.hooks.processAssets.tap("Plugin", assets => {
 							let names = Object.keys(assets);
 
