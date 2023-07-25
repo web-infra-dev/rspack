@@ -1364,9 +1364,10 @@ pub type AssetInfoMap = serde_json::Map<String, serde_json::Value>;
 impl From<AssetInfo> for AssetInfoMap {
   fn from(info: AssetInfo) -> Self {
     let mut m: AssetInfoMap = serde_json::from_value(json!(info)).unwrap();
+    m.remove("allMap");
     let mut base = info.all_map.unwrap_or_default().clone();
-    m.append(&mut base);
-    m
+    base.append(&mut m);
+    base
   }
 }
 

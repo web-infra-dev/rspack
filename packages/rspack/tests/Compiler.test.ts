@@ -1192,7 +1192,9 @@ describe("Compiler", () => {
 								hotModuleReplacement: true,
 								immutable: false,
 								minimized: true,
-								related: {},
+								related: {
+									sourceMap: null
+								},
 								version: "",
 								_foo: "this is dd.js",
 								_arr: [1]
