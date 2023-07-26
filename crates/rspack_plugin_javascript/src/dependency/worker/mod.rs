@@ -1,7 +1,7 @@
 use rspack_core::{
   ChunkGroupOptions, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource,
+  DependencyType, ErrorSpan, ExportsReferencedType, ModuleDependency, ModuleGraph, RuntimeGlobals,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -73,6 +73,14 @@ impl ModuleDependency for WorkerDependency {
 
   fn group_options(&self) -> Option<&ChunkGroupOptions> {
     Some(&self.group_options)
+  }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: &RuntimeSpec,
+  ) -> ExportsReferencedType {
+    ExportsReferencedType::No
   }
 }
 
