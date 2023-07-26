@@ -1,7 +1,7 @@
 use rspack_core::{
-  module_id_expr, normalize_context, ContextOptions, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource,
+  create_resource_identifier_for_context_dependency, module_id_expr, normalize_context,
+  ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyTemplate, DependencyType,
+  ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -12,6 +12,7 @@ pub struct CommonJsRequireContextDependency {
   pub id: DependencyId,
   pub options: ContextOptions,
   span: Option<ErrorSpan>,
+  resource_identifier: String,
 }
 
 impl CommonJsRequireContextDependency {
@@ -22,6 +23,7 @@ impl CommonJsRequireContextDependency {
     options: ContextOptions,
     span: Option<ErrorSpan>,
   ) -> Self {
+    let resource_identifier = create_resource_identifier_for_context_dependency(&options);
     Self {
       callee_start,
       callee_end,
@@ -29,6 +31,7 @@ impl CommonJsRequireContextDependency {
       options,
       span,
       id: DependencyId::new(),
+      resource_identifier,
     }
   }
 }
@@ -70,6 +73,10 @@ impl ModuleDependency for CommonJsRequireContextDependency {
 
   fn set_request(&mut self, request: String) {
     self.options.request = request;
+  }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
   }
 }
 

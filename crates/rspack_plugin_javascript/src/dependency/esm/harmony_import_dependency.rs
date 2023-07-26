@@ -4,6 +4,7 @@ use rspack_core::{
   DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan, InitFragment,
   InitFragmentStage, ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
+use rspack_core::{ExportsReferencedType, ModuleGraph, RuntimeSpec};
 use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
@@ -23,6 +24,7 @@ pub struct HarmonyImportDependency {
   pub specifiers: Vec<Specifier>,
   pub dependency_type: DependencyType,
   pub export_all: bool,
+  resource_identifier: String,
 }
 
 impl HarmonyImportDependency {
@@ -34,6 +36,7 @@ impl HarmonyImportDependency {
     dependency_type: DependencyType,
     export_all: bool,
   ) -> Self {
+    let resource_identifier = format!("{}|{}", DependencyCategory::Esm, &request);
     Self {
       request,
       span,
@@ -41,6 +44,7 @@ impl HarmonyImportDependency {
       specifiers,
       dependency_type,
       export_all,
+      resource_identifier,
     }
   }
 }
@@ -223,5 +227,17 @@ impl ModuleDependency for HarmonyImportDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
+  }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
+  }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: &RuntimeSpec,
+  ) -> ExportsReferencedType {
+    ExportsReferencedType::No
   }
 }

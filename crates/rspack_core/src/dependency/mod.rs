@@ -174,10 +174,6 @@ pub trait Dependency: AsAny + DynClone + Send + Sync + Debug {
   fn get_context(&self) -> Option<&Context> {
     None
   }
-  // an identifier to merge equal requests
-  fn resource_identifier(&self) -> Option<&str> {
-    None
-  }
 }
 
 pub enum ExportsReferencedType {
@@ -253,6 +249,11 @@ pub trait ModuleDependency: Dependency {
     _runtime: &RuntimeSpec,
   ) -> ExportsReferencedType {
     ExportsReferencedType::Object
+  }
+
+  // an identifier to merge equal requests
+  fn resource_identifier(&self) -> Option<&str> {
+    None
   }
 }
 
