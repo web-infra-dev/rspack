@@ -8,7 +8,8 @@ use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  BoxModule, Chunk, ChunkGroupUkey, Compilation, ModuleIdentifier, ModuleType, SourceType,
+  AssetInfo, BoxModule, Chunk, ChunkGroupUkey, Compilation, ModuleIdentifier, ModuleType,
+  SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -60,10 +61,7 @@ impl Stats<'_> {
                 size: source.size() as f64,
                 chunks: Vec::new(),
                 chunk_names: Vec::new(),
-                info: StatsAssetInfo {
-                  development: asset.info.development,
-                  hot_module_replacement: asset.info.hot_module_replacement,
-                },
+                info: asset.info.clone(),
                 emitted: self.compilation.emitted_assets.contains(name),
               },
             )
@@ -501,7 +499,7 @@ pub struct StatsAsset {
   pub size: f64,
   pub chunks: Vec<String>,
   pub chunk_names: Vec<String>,
-  pub info: StatsAssetInfo,
+  pub info: AssetInfo,
   pub emitted: bool,
 }
 
@@ -511,11 +509,11 @@ pub struct StatsAssetsByChunkName {
   pub files: Vec<String>,
 }
 
-#[derive(Debug)]
-pub struct StatsAssetInfo {
-  pub development: bool,
-  pub hot_module_replacement: bool,
-}
+// #[derive(Debug)]
+// pub struct StatsAssetInfo {
+//   pub development: bool,
+//   pub hot_module_replacement: bool,
+// }
 
 #[derive(Debug)]
 pub struct StatsModule<'a> {

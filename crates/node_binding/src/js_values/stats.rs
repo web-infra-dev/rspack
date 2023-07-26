@@ -3,7 +3,8 @@ use napi::{
   bindgen_prelude::{Result, SharedReference},
   Either,
 };
-use rspack_core::Stats;
+use rspack_core::{AssetInfoMap, Stats};
+use serde_json::json;
 
 use super::{JsCompilation, ToJsCompatSource};
 
@@ -40,6 +41,9 @@ impl From<rspack_core::StatsWarning> for JsStatsWarning {
   }
 }
 
+// TODO 裁剪字段
+type JsStatsAssetInfo = serde_json::Map<String, serde_json::Value>;
+
 #[napi(object)]
 pub struct JsStatsAsset {
   pub r#type: &'static str,
@@ -47,6 +51,7 @@ pub struct JsStatsAsset {
   pub size: f64,
   pub chunks: Vec<String>,
   pub chunk_names: Vec<String>,
+  #[napi(ts_type = "Partial<JsAssetInfo> & Record<string, any>")]
   pub info: JsStatsAssetInfo,
   pub emitted: bool,
 }
@@ -61,21 +66,6 @@ impl From<rspack_core::StatsAsset> for JsStatsAsset {
       chunk_names: stats.chunk_names,
       info: stats.info.into(),
       emitted: stats.emitted,
-    }
-  }
-}
-
-#[napi(object)]
-pub struct JsStatsAssetInfo {
-  pub development: bool,
-  pub hot_module_replacement: bool,
-}
-
-impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
-  fn from(stats: rspack_core::StatsAssetInfo) -> Self {
-    Self {
-      development: stats.development,
-      hot_module_replacement: stats.hot_module_replacement,
     }
   }
 }
