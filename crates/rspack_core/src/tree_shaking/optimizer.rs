@@ -212,6 +212,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       &mut used_symbol_ref,
       &dead_nodes_index,
     );
+    // dbg!(&used_symbol_ref);
     Ok(
       OptimizeDependencyResult {
         used_symbol_ref,
@@ -770,6 +771,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         // the binding in `app.js` used for shake the `export {xxx}`
         // In other words, we need two binding for supporting indirect redirect.
         if let Some(import_symbol_ref) = module_result.import_map.get(symbol.id()) {
+          // dbg!(&symbol, import_symbol_ref);
           self
             .symbol_graph
             .add_edge(&current_symbol_ref, import_symbol_ref);
@@ -1024,6 +1026,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         // then, all the exports in `test.js` including
         // export defined in `test.js` and all related
         // reexport should be marked as used
+        dbg!(&star_symbol);
         let src_module_identifier: Identifier = star_symbol.src();
         let analyze_refsult = match analyze_map.get(&src_module_identifier) {
           Some(analyze_result) => analyze_result,

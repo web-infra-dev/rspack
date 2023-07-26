@@ -61,6 +61,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       .module_graph
       .get_import_var(&module.identifier(), &self.request);
 
+    dbg!(&module.identifier());
     let used_exports = if compilation.options.builtins.tree_shaking.is_true() {
       let set = compilation
         .used_symbol_ref
@@ -68,13 +69,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         .filter_map(|item| match item {
           SymbolRef::Declaration(decl) if decl.src() == module.identifier() => {
             if *decl.ty() == SymbolType::Temp {
-              if let Some(key) = &self.ids.iter().find(|e| {
-                if e.1.is_some() {
-                  e.0 == *decl.exported()
-                } else {
-                  false
-                }
-              }) {
+              if let Some(key) = &self.ids.iter().find(|e| e.0 == *decl.exported()) {
                 return Some(&key.0);
               }
             }
@@ -101,8 +96,10 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       None
     };
 
+    dbg!(&used_exports);
     let mut exports = vec![];
 
+    dbg!(&self.ids);
     for id in &self.ids {
       if used_exports.is_none() || matches!(used_exports.as_ref(), Some(x) if x.contains(&id.0)) {
         exports.push((
@@ -118,6 +115,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         ));
       }
     }
+    dbg!(&exports);
 
     if !exports.is_empty() {
       let TemplateContext {
