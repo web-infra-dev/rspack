@@ -9,6 +9,7 @@ use derivative::Derivative;
 use futures_util::FutureExt;
 use napi::{Either, JsString};
 use rspack_core::{Chunk, ChunkGroupByUkey, Module, SourceType};
+use rspack_napi_shared::{JsRegExp, JsRegExpExt, JsStringExt};
 use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -58,11 +59,24 @@ pub fn create_module_filter_from_rspack_regex(re: rspack_regex::RspackRegex) -> 
   })
 }
 
+pub fn create_module_filter_from_rspack_str(st: String) -> ModuleFilter {
+  Arc::new(move |module| {
+    module
+      .name_for_condition()
+      .map_or(false, |name| name.starts_with(&st))
+  })
+}
+
 pub fn create_module_filter(re: Option<Either<JsString, JsRegExp>>) -> ModuleFilter {
-  re.map(|test| {
-    let re =
-      rspack_regex::RspackRegex::new(&test).unwrap_or_else(|_| panic!("Invalid regex: {}", &test));
-    create_module_filter_from_rspack_regex(re)
+  re.map(|test| match test {
+    Either::A(data) => {
+      let data = data.into_string();
+      create_module_filter_from_rspack_str(data)
+    }
+    Either::B(data) => {
+      let re = data.to_rspack_regex();
+      create_module_filter_from_rspack_regex(re)
+    }
   })
   .unwrap_or_else(create_default_module_filter)
 }
