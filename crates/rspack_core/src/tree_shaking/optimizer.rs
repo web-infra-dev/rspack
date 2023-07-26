@@ -35,8 +35,10 @@ use super::{
   visitor::ModuleIdOrDepId,
 };
 use crate::{
-  contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
-  DependencyId, DependencyType, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
+  contextify, join_string_component,
+  tree_shaking::{utils::ConvertModulePath, visitor::ModuleRefAnalyze},
+  Compilation, DependencyId, DependencyType, ModuleGraph, ModuleIdentifier, ModuleType,
+  NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -91,7 +93,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       .options
       .is_incremental_rebuild_make_enabled();
     let is_first_time_analyze = self.compilation.optimize_analyze_result_map.is_empty();
-    let analyze_result_map = par_analyze_module(self.compilation).await;
+    let mut analyze_result_map = par_analyze_module(self.compilation).await;
     let mut finalized_result_map = if is_incremental_rebuild {
       if is_first_time_analyze {
         analyze_result_map
@@ -109,6 +111,18 @@ impl<'a> CodeSizeOptimizer<'a> {
       analyze_result_map
     };
 
+    finalized_result_map
+      .iter_mut()
+      .for_each(|(module_identifier, optimize_analyze_result)| {
+        if let Some(factory_meta_side_effects) = self
+          .compilation
+          .module_graph
+          .module_graph_module_by_identifier(module_identifier)
+          .and_then(|mgm| ModuleRefAnalyze::get_side_effects_from_config(&mgm.factory_meta))
+        {
+          optimize_analyze_result.side_effects = factory_meta_side_effects;
+        }
+      });
     let mut evaluated_used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut evaluated_module_identifiers = IdentifierSet::default();
     let side_effects_options = self
@@ -1379,7 +1393,16 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
             // A module can missing its AST if the module is failed to build
             .and_then(|ast| ast.as_javascript())
           {
-            Some(ast) => JsModule::new(ast, mgm).analyze(compilation),
+            Some(ast) => JsModule::new(
+              ast,
+              &mgm
+                .dependencies
+                .iter()
+                .filter_map(|id| compilation.module_graph.dependency_by_id(id).cloned())
+                .collect::<Vec<_>>(),
+              *module_identifier,
+            )
+            .analyze(compilation),
             None => {
               return None;
             }
