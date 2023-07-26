@@ -10,7 +10,13 @@ const config = {
 			{
 				template: "./index.html"
 			}
-		]
+		],
+		treeShaking: true
+	},
+	optimization: {
+
+		sideEffects: true
 	}
+
 };
 module.exports = config;

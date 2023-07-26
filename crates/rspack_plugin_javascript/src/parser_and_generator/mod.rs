@@ -43,6 +43,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ..
     } = parse_context;
 
+    if module_identifier == "" {
+      println!("{}", source);
+    }
     let syntax = syntax_by_module_type(
       &resource_data.resource_path,
       module_type,
