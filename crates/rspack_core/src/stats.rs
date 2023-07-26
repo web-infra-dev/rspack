@@ -6,9 +6,10 @@ use rspack_error::{
 };
 use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use serde_json::json;
 
 use crate::{
-  AssetInfo, BoxModule, Chunk, ChunkGroupUkey, Compilation, ModuleIdentifier, ModuleType,
+  AssetInfoMap, BoxModule, Chunk, ChunkGroupUkey, Compilation, ModuleIdentifier, ModuleType,
   SourceType,
 };
 
@@ -53,6 +54,12 @@ impl Stats<'_> {
         .iter()
         .filter_map(|(name, asset)| {
           asset.get_source().map(|source| {
+            let mut info = asset.info.all_map.clone().unwrap_or_default();
+            info.insert("development".into(), json!(asset.info.development));
+            info.insert(
+              "hotModuleReplacement".into(),
+              json!(asset.info.hot_module_replacement),
+            );
             (
               name,
               StatsAsset {
@@ -61,7 +68,7 @@ impl Stats<'_> {
                 size: source.size() as f64,
                 chunks: Vec::new(),
                 chunk_names: Vec::new(),
-                info: asset.info.clone(),
+                info,
                 emitted: self.compilation.emitted_assets.contains(name),
               },
             )
@@ -499,7 +506,7 @@ pub struct StatsAsset {
   pub size: f64,
   pub chunks: Vec<String>,
   pub chunk_names: Vec<String>,
-  pub info: AssetInfo,
+  pub info: AssetInfoMap,
   pub emitted: bool,
 }
 
