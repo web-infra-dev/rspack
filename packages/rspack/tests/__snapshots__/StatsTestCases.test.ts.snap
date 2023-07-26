@@ -1494,6 +1494,13 @@ console.log(a);
               "type": "esm import",
               "userRequest": "cycle-alias/a",
             },
+            {
+              "moduleId": "10",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+              "moduleName": "./index.js",
+              "type": "esm import specifier",
+              "userRequest": "cycle-alias/a",
+            },
           ],
           "size": 160,
           "type": "module",
@@ -1588,6 +1595,13 @@ console.log(a);
           "type": "esm import",
           "userRequest": "cycle-alias/a",
         },
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+          "moduleName": "./index.js",
+          "type": "esm import specifier",
+          "userRequest": "cycle-alias/a",
+        },
       ],
       "size": 160,
       "type": "module",
@@ -1624,10 +1638,12 @@ chunk {main} bundle.js (main) [entry]
     entry ./index
   <PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing) [280] {main}
     esm import cycle-alias/a [10]
+    esm import specifier cycle-alias/a [10]
 ./index.js [10] {main}
   entry ./index
 <PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing) [280] {main}
   esm import cycle-alias/a [10]
+  esm import specifier cycle-alias/a [10]
 
 error[internal]: Resolve error
   ┌─ tests/statsCases/resolve-overflow/index.js:1:1
@@ -1724,6 +1740,13 @@ console.log(a);
               "type": "esm import",
               "userRequest": "pkg-a",
             },
+            {
+              "moduleId": "10",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+              "moduleName": "./index.js",
+              "type": "esm import specifier",
+              "userRequest": "pkg-a",
+            },
           ],
           "size": 160,
           "type": "module",
@@ -1813,6 +1836,13 @@ console.log(a);
           "type": "esm import",
           "userRequest": "pkg-a",
         },
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+          "moduleName": "./index.js",
+          "type": "esm import specifier",
+          "userRequest": "pkg-a",
+        },
       ],
       "size": 160,
       "type": "module",
@@ -1849,10 +1879,12 @@ chunk {main} bundle.js (main) [entry]
     entry ./index
   <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing) [788] {main}
     esm import pkg-a [10]
+    esm import specifier pkg-a [10]
 ./index.js [10] {main}
   entry ./index
 <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing) [788] {main}
   esm import pkg-a [10]
+  esm import specifier pkg-a [10]
 
 Export should be relative path and start with "./", but got ../../index.js
 

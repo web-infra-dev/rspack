@@ -446,6 +446,11 @@ impl ContextModule {
                   category: options.context_options.category,
                   context: options.resource.clone().into(),
                   options: options.context_options.clone(),
+                  resource_identifier: format!(
+                    "context{}|{}",
+                    &options.resource,
+                    path.to_string_lossy()
+                  ),
                 }));
               }
             })
@@ -574,4 +579,8 @@ fn alternative_requests(
   }
 
   items
+}
+
+pub fn create_resource_identifier_for_context_dependency(options: &ContextOptions) -> String {
+  format!("{options}")
 }

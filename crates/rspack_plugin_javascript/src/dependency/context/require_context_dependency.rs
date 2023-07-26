@@ -1,7 +1,7 @@
 use rspack_core::{
-  module_id_expr, ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource,
+  create_resource_identifier_for_context_dependency, module_id_expr, ContextOptions, Dependency,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -11,16 +11,19 @@ pub struct RequireContextDependency {
   pub id: DependencyId,
   pub options: ContextOptions,
   span: Option<ErrorSpan>,
+  resource_identifier: String,
 }
 
 impl RequireContextDependency {
   pub fn new(start: u32, end: u32, options: ContextOptions, span: Option<ErrorSpan>) -> Self {
+    let resource_identifier = create_resource_identifier_for_context_dependency(&options);
     Self {
       start,
       end,
       options,
       span,
       id: DependencyId::new(),
+      resource_identifier: resource_identifier,
     }
   }
 }
@@ -32,6 +35,10 @@ impl Dependency for RequireContextDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::RequireContext
+  }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
   }
 }
 

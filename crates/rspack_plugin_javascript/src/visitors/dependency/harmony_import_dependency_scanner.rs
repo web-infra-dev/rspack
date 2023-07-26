@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use rspack_core::{
-  tree_shaking::symbol::DEFAULT_JS_WORD, ConstDependency, DependencyId, DependencyTemplate,
-  DependencyType, ModuleDependency, ModuleIdentifier, SpanExt,
+  tree_shaking::symbol::DEFAULT_JS_WORD, ConstDependency, DependencyTemplate, DependencyType,
+  ModuleDependency, ModuleIdentifier, SpanExt,
 };
 use rustc_hash::FxHashMap;
 use swc_core::{

@@ -181,13 +181,19 @@ impl StarSymbol {
   }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize)]
+#[derive(Debug, Clone, Eq, Hash, Serialize)]
 pub struct IndirectTopLevelSymbol {
   pub src: Identifier,
   pub ty: IndirectType,
   // module identifier of module that import me, only used for debugging
   pub importer: Identifier,
   pub dep_id: DependencyId,
+}
+
+impl PartialEq for IndirectTopLevelSymbol {
+  fn eq(&self, other: &Self) -> bool {
+    self.src == other.src && self.ty == other.ty && self.importer == other.importer
+  }
 }
 
 impl IndirectTopLevelSymbol {

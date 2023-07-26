@@ -24,6 +24,7 @@ pub struct HarmonyImportDependency {
   pub specifiers: Vec<Specifier>,
   pub dependency_type: DependencyType,
   pub export_all: bool,
+  resource_identifier: String,
 }
 
 impl HarmonyImportDependency {
@@ -34,6 +35,7 @@ impl HarmonyImportDependency {
     dependency_type: DependencyType,
     export_all: bool,
   ) -> Self {
+    let resource_identifier = format!("{}|{}", DependencyCategory::Esm, &request);
     Self {
       request,
       span,
@@ -41,6 +43,7 @@ impl HarmonyImportDependency {
       specifiers,
       dependency_type,
       export_all,
+      resource_identifier,
     }
   }
 }
@@ -197,6 +200,10 @@ impl Dependency for HarmonyImportDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &self.dependency_type
+  }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
   }
 }
 

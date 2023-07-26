@@ -1,6 +1,5 @@
 use rspack_core::{
   export_from_import, get_dependency_used_by_exports_condition,
-  tree_shaking::symbol::IndirectTopLevelSymbol,
   tree_shaking::{symbol, visitor::SymbolRef},
   Compilation, Dependency, DependencyCategory, DependencyCondition, DependencyId,
   DependencyTemplate, DependencyType, ErrorSpan, ExportsReferencedType, Module, ModuleDependency,
@@ -24,6 +23,7 @@ pub struct HarmonyImportSpecifierDependency {
   specifier: Specifier,
   used_by_exports: UsedByExports,
   referenced_properties_in_destructuring: Option<HashSet<JsWord>>,
+  resource_identifier: String,
 }
 
 impl HarmonyImportSpecifierDependency {
@@ -37,6 +37,7 @@ impl HarmonyImportSpecifierDependency {
     is_call: bool,
     specifier: Specifier,
   ) -> Self {
+    let resource_identifier = format!("{}|{}", DependencyCategory::Esm, &request);
     Self {
       id: DependencyId::new(),
       request,
@@ -48,6 +49,7 @@ impl HarmonyImportSpecifierDependency {
       specifier,
       used_by_exports: UsedByExports::default(),
       referenced_properties_in_destructuring: None,
+      resource_identifier,
     }
   }
 
@@ -75,22 +77,20 @@ impl HarmonyImportSpecifierDependency {
     match &self.specifier {
       Specifier::Namespace(_) => true,
       Specifier::Default(local) => {
-        let symbol = SymbolRef::Indirect(IndirectTopLevelSymbol {
-          src: reference_mgm.module_identifier,
-          ty: symbol::IndirectType::ImportDefault(local.clone()),
-          importer: module.identifier(),
-          dep_id: self.id,
-        });
-        compilation.used_symbol_ref.contains(&symbol)
+        compilation.used_symbol_ref.iter().find(|symbol| {
+          matches!(
+            symbol,
+            SymbolRef::Indirect(indirect) if indirect.src == reference_mgm.module_identifier && indirect.ty == symbol::IndirectType::ImportDefault(local.clone()) && indirect.importer() == module.identifier()
+          )
+        }).is_some()
       }
       Specifier::Named(local, imported) => {
-        let symbol = SymbolRef::Indirect(IndirectTopLevelSymbol {
-          src: reference_mgm.module_identifier,
-          ty: symbol::IndirectType::Import(local.clone(), imported.clone()),
-          importer: module.identifier(),
-          dep_id: self.id,
-        });
-        compilation.used_symbol_ref.contains(&symbol)
+        compilation.used_symbol_ref.iter().find(|symbol| {
+          matches!(
+            symbol,
+            SymbolRef::Indirect(indirect) if indirect.src == reference_mgm.module_identifier && indirect.ty == symbol::IndirectType::Import(local.clone(), imported.clone()) && indirect.importer() == module.identifier()
+          )
+        }).is_some()
       }
     }
   }
@@ -131,6 +131,10 @@ impl Dependency for HarmonyImportSpecifierDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::EsmImportSpecifier
+  }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
   }
 }
 
