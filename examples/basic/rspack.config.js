@@ -15,7 +15,7 @@ const config = {
 	},
 	optimization: {
 
-		sideEffects: true
+		sideEffects: false
 	}
 
 };
