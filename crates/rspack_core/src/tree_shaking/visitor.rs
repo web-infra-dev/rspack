@@ -656,15 +656,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
     let side_effects_option = self.options.optimization.side_effects;
     if side_effects_option.is_enable() {
-      // self.side_effects = self.get_side_effects_from_config().unwrap_or_else(|| {
-      //   if side_effects_option.is_true() {
-      //     SideEffectType::Analyze(self.has_side_effects_stmt)
-      //   } else {
-      //     // side_effects_option must be `flag` here
-      //     SideEffectType::Configuration(true)
-      //   }
-      // });
-
       self.side_effects = if side_effects_option.is_true() {
         SideEffectType::Analyze(self.has_side_effects_stmt)
       } else {
