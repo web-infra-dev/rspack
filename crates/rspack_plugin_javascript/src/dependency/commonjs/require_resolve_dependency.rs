@@ -1,6 +1,7 @@
 use rspack_core::{
   module_id, ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  DependencyType, ErrorSpan, ExportsReferencedType, ModuleDependency, ModuleGraph, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -80,6 +81,14 @@ impl ModuleDependency for RequireResolveDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
+  }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: &RuntimeSpec,
+  ) -> ExportsReferencedType {
+    ExportsReferencedType::No
   }
 }
 

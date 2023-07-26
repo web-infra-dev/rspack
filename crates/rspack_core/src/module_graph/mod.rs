@@ -8,11 +8,11 @@ use rspack_identifier::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 mod connection;
-pub use connection::{ConnectionId, ModuleGraphConnection};
+pub use connection::{ConnectionId, ConnectionState, ModuleGraphConnection};
 
 use crate::{
   to_identifier, BoxModule, BoxModuleDependency, BuildDependency, BuildInfo, BuildMeta,
-  DependencyId, Module, ModuleGraphModule, ModuleIdentifier,
+  DependencyId, ExportsInfo, Module, ModuleGraphModule, ModuleIdentifier,
 };
 
 // TODO Here request can be used JsWord
@@ -494,6 +494,13 @@ impl ModuleGraph {
       .expect("should have module import var")
       .get(request)
       .unwrap_or_else(|| panic!("should have import var for {module_identifier} {request}"))
+  }
+
+  pub fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> &ExportsInfo {
+    let mgm = self
+      .module_graph_module_by_identifier(module_identifier)
+      .expect("should have mgm");
+    &mgm.exports
   }
 }
 
