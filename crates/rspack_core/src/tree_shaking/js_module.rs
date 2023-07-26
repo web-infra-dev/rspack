@@ -2,10 +2,7 @@ use super::{
   analyzer::OptimizeAnalyzer,
   visitor::{MarkInfo, ModuleRefAnalyze, OptimizeAnalyzeResult},
 };
-use crate::{
-  ast::javascript::Ast, CompilerOptions, Dependency, ModuleDependency, ModuleGraphModule,
-  ModuleIdentifier,
-};
+use crate::{ast::javascript::Ast, CompilerOptions, ModuleDependency, ModuleIdentifier};
 
 pub struct JsModule<'b, 'a: 'b> {
   ast: &'a Ast,
@@ -44,8 +41,8 @@ impl<'a, 'b> OptimizeAnalyzer for JsModule<'a, 'b> {
       let mut analyzer = ModuleRefAnalyze::new(
         MarkInfo::new(top_level_mark, unresolved_mark),
         self.module_identifier,
-        &self.dependencies,
-        &*self.compiler_options,
+        self.dependencies,
+        self.compiler_options,
         program.comments.as_ref(),
         worker_syntax_list,
       );

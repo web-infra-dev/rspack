@@ -1,5 +1,5 @@
 use super::{analyzer::OptimizeAnalyzer, visitor::OptimizeAnalyzeResult, SideEffectType};
-use crate::{Compilation, FactoryMeta, ModuleIdentifier};
+use crate::ModuleIdentifier;
 
 pub struct AssetModule {
   module_identifier: ModuleIdentifier,

@@ -10,7 +10,6 @@ use petgraph::{
   visit::{Bfs, Dfs, EdgeRef},
   Directed,
 };
-use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use rspack_error::{
   errors_to_diagnostics, Error, InternalError, IntoTWithDiagnosticArray, Result, Severity,
   TWithDiagnosticArray,
@@ -20,19 +19,16 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{common::SyntaxContext, ecma::atoms::JsWord};
 
 use super::{
-  analyzer::OptimizeAnalyzer,
-  asset_module::AssetModule,
-  js_module::JsModule,
-  symbol_graph::SymbolGraph,
-  visitor::{OptimizeAnalyzeResult, SymbolRef},
-  BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
-};
-use super::{
   symbol::{
     BetterId, IndirectTopLevelSymbol, IndirectType, SerdeSymbol, StarSymbol, StarSymbolKind,
     Symbol, SymbolType,
   },
   visitor::ModuleIdOrDepId,
+};
+use super::{
+  symbol_graph::SymbolGraph,
+  visitor::{OptimizeAnalyzeResult, SymbolRef},
+  BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
   contextify, join_string_component,
@@ -88,10 +84,10 @@ impl<'a> CodeSizeOptimizer<'a> {
   }
 
   pub async fn run(&mut self) -> Result<TWithDiagnosticArray<OptimizeDependencyResult>> {
-    let is_incremental_rebuild = self
-      .compilation
-      .options
-      .is_incremental_rebuild_make_enabled();
+    // let is_incremental_rebuild = self
+    //   .compilation
+    //   .options
+    //   .is_incremental_rebuild_make_enabled();
     // let mut analyze_result_map = par_analyze_module(self.compilation).await;
     // let mut finalized_result_map = if is_incremental_rebuild {
     //   if is_first_time_analyze {
@@ -124,10 +120,9 @@ impl<'a> CodeSizeOptimizer<'a> {
           optimize_analyze_result.side_effects = factory_meta_side_effects;
         }
       });
-    let mut finalized_result_map = std::mem::replace(
-      &mut self.compilation.optimize_analyze_result_map,
-      IdentifierMap::default(),
-    );
+    // We will set it back and return the analyze result, take is safe here.
+    let mut finalized_result_map =
+      std::mem::take(&mut self.compilation.optimize_analyze_result_map);
     let mut evaluated_used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut evaluated_module_identifiers = IdentifierSet::default();
     let side_effects_options = self
@@ -1383,55 +1378,55 @@ fn get_inherit_export_ref_graph(
   inherit_export_ref_graph
 }
 
-async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<OptimizeAnalyzeResult> {
-  let analyze_results = {
-    compilation
-      .module_graph
-      .module_graph_modules()
-      .par_iter()
-      .filter_map(|(module_identifier, mgm)| {
-        let optimize_analyze_result = if mgm.module_type.is_js_like() {
-          match compilation
-            .module_graph
-            .module_by_identifier(&mgm.module_identifier)
-            .and_then(|module| module.as_normal_module().and_then(|m| m.ast()))
-            // A module can missing its AST if the module is failed to build
-            .and_then(|ast| ast.as_javascript())
-          {
-            Some(ast) => JsModule::new(
-              ast,
-              &mgm
-                .dependencies
-                .iter()
-                .filter_map(|id| compilation.module_graph.dependency_by_id(id).cloned())
-                .collect::<Vec<_>>(),
-              *module_identifier,
-              &compilation.options,
-            )
-            .analyze(),
-            None => {
-              return None;
-            }
-          }
-        } else {
-          AssetModule::new(*module_identifier).analyze()
-        };
+// async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<OptimizeAnalyzeResult> {
+//   let analyze_results = {
+//     compilation
+//       .module_graph
+//       .module_graph_modules()
+//       .par_iter()
+//       .filter_map(|(module_identifier, mgm)| {
+//         let optimize_analyze_result = if mgm.module_type.is_js_like() {
+//           match compilation
+//             .module_graph
+//             .module_by_identifier(&mgm.module_identifier)
+//             .and_then(|module| module.as_normal_module().and_then(|m| m.ast()))
+//             // A module can missing its AST if the module is failed to build
+//             .and_then(|ast| ast.as_javascript())
+//           {
+//             Some(ast) => JsModule::new(
+//               ast,
+//               &mgm
+//                 .dependencies
+//                 .iter()
+//                 .filter_map(|id| compilation.module_graph.dependency_by_id(id).cloned())
+//                 .collect::<Vec<_>>(),
+//               *module_identifier,
+//               &compilation.options,
+//             )
+//             .analyze(),
+//             None => {
+//               return None;
+//             }
+//           }
+//         } else {
+//           AssetModule::new(*module_identifier).analyze()
+//         };
 
-        // dbg_matches!(
-        //   &module_identifier.as_str(),
-        //   &optimize_analyze_result.reachable_import_of_export,
-        //   &optimize_analyze_result.used_symbol_refs,
-        //   &optimize_analyze_result.export_map,
-        //   &optimize_analyze_result.import_map,
-        //   &optimize_analyze_result.side_effects
-        // );
+//         // dbg_matches!(
+//         //   &module_identifier.as_str(),
+//         //   &optimize_analyze_result.reachable_import_of_export,
+//         //   &optimize_analyze_result.used_symbol_refs,
+//         //   &optimize_analyze_result.export_map,
+//         //   &optimize_analyze_result.import_map,
+//         //   &optimize_analyze_result.side_effects
+//         // );
 
-        Some((*module_identifier, optimize_analyze_result))
-      })
-      .collect::<IdentifierMap<OptimizeAnalyzeResult>>()
-  };
-  analyze_results
-}
+//         Some((*module_identifier, optimize_analyze_result))
+//       })
+//       .collect::<IdentifierMap<OptimizeAnalyzeResult>>()
+//   };
+//   analyze_results
+// }
 
 fn update_reachable_dependency(
   symbol_ref: &SymbolRef,

@@ -131,7 +131,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         &scan_ast,
         &dependencies,
         module_identifier,
-        &compiler_options,
+        compiler_options,
       )
       .analyze()
     } else {

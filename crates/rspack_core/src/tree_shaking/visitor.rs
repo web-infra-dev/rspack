@@ -1,6 +1,4 @@
-use std::{
-  collections::hash_map::Entry, collections::VecDeque, hash::Hash, path::PathBuf, sync::Arc,
-};
+use std::{collections::hash_map::Entry, collections::VecDeque, hash::Hash, path::PathBuf};
 
 use bitflags::bitflags;
 use hashlink::{LinkedHashMap, LinkedHashSet};
