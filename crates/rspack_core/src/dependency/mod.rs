@@ -208,10 +208,12 @@ impl<T: ModuleDependency> AsModuleDependency for T {
   }
 }
 
+pub type DependencyConditionFn =
+  Box<dyn Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState>;
 pub enum DependencyCondition {
   Nil,
   False,
-  Fn(Box<dyn Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState>),
+  Fn(DependencyConditionFn),
 }
 
 pub trait ModuleDependency: Dependency {

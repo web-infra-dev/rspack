@@ -77,20 +77,20 @@ impl HarmonyImportSpecifierDependency {
     match &self.specifier {
       Specifier::Namespace(_) => true,
       Specifier::Default(local) => {
-        compilation.used_symbol_ref.iter().find(|symbol| {
+        compilation.used_symbol_ref.iter().any(|symbol| {
           matches!(
             symbol,
             SymbolRef::Indirect(indirect) if indirect.src == reference_mgm.module_identifier && indirect.ty == symbol::IndirectType::ImportDefault(local.clone()) && indirect.importer() == module.identifier()
           )
-        }).is_some()
+        })
       }
       Specifier::Named(local, imported) => {
-        compilation.used_symbol_ref.iter().find(|symbol| {
+        compilation.used_symbol_ref.iter().any(|symbol| {
           matches!(
             symbol,
             SymbolRef::Indirect(indirect) if indirect.src == reference_mgm.module_identifier && indirect.ty == symbol::IndirectType::Import(local.clone(), imported.clone()) && indirect.importer() == module.identifier()
           )
-        }).is_some()
+        })
       }
     }
   }
@@ -114,12 +114,10 @@ impl HarmonyImportSpecifierDependency {
           })
           .collect(),
       )
+    } else if let Some(v) = ids {
+      ExportsReferencedType::Value(vec![ReferencedExport::new(v.clone(), true)])
     } else {
-      if let Some(v) = ids {
-        ExportsReferencedType::Value(vec![ReferencedExport::new(v.clone(), true)])
-      } else {
-        ExportsReferencedType::Object
-      }
+      ExportsReferencedType::Object
     }
   }
 }
@@ -176,7 +174,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
       return self.get_referenced_exports_in_destructuring(None);
     }
     // TODO
-    return self.get_referenced_exports_in_destructuring(Some(&self.ids));
+    self.get_referenced_exports_in_destructuring(Some(&self.ids))
   }
 }
 

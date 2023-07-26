@@ -23,7 +23,7 @@ impl RequireContextDependency {
       options,
       span,
       id: DependencyId::new(),
-      resource_identifier: resource_identifier,
+      resource_identifier,
     }
   }
 }

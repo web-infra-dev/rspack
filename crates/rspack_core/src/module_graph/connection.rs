@@ -88,7 +88,7 @@ impl ModuleGraphConnection {
     match dependency.get_condition(module_graph) {
       DependencyCondition::Nil => ConnectionState::Bool(false),
       DependencyCondition::False => ConnectionState::Bool(true),
-      DependencyCondition::Fn(f) => f(&self, runtime, module_graph),
+      DependencyCondition::Fn(f) => f(self, runtime, module_graph),
     }
   }
 }

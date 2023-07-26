@@ -15,8 +15,8 @@ use crate::RuntimeSpec;
 pub struct ExportsInfo {
   exports: HashMap<JsWord, ExportInfo>,
   other_exports_info: ExportInfo,
-  side_effects_only_info: ExportInfo,
-  exports_are_ordered: bool,
+  _side_effects_only_info: ExportInfo,
+  _exports_are_ordered: bool,
   redirect_to: Option<Box<ExportsInfo>>,
 }
 
@@ -25,8 +25,8 @@ impl ExportsInfo {
     Self {
       exports: HashMap::default(),
       other_exports_info: ExportInfo::new("null"),
-      side_effects_only_info: ExportInfo::new("*side effects only*"),
-      exports_are_ordered: false,
+      _side_effects_only_info: ExportInfo::new("*side effects only*"),
+      _exports_are_ordered: false,
       redirect_to: None,
     }
   }
@@ -61,12 +61,18 @@ impl ExportsInfo {
 
   pub fn get_read_only_export_info(&self, name: &JsWord) -> &ExportInfo {
     if let Some(info) = self.exports.get(name) {
-      &info
+      info
     } else if let Some(redirect_to) = &self.redirect_to {
       redirect_to.get_read_only_export_info(name)
     } else {
       &self.other_exports_info
     }
+  }
+}
+
+impl Default for ExportsInfo {
+  fn default() -> Self {
+    Self::new()
   }
 }
 
@@ -77,14 +83,14 @@ pub enum UsedName {
 
 #[derive(Debug)]
 pub struct ExportInfo {
-  name: &'static str,
+  _name: &'static str,
   module_identifier: Option<ModuleIdentifier>,
 }
 
 impl ExportInfo {
-  pub fn new(name: &'static str) -> Self {
+  pub fn new(_name: &'static str) -> Self {
     Self {
-      name,
+      _name,
       module_identifier: None,
     }
   }
@@ -110,17 +116,12 @@ pub enum UsageState {
   Used,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum UsedByExports {
   Set(HashSet<JsWord>),
   Bool(bool),
+  #[default]
   Nil,
-}
-
-impl Default for UsedByExports {
-  fn default() -> Self {
-    UsedByExports::Nil
-  }
 }
 
 pub fn get_dependency_used_by_exports_condition(
@@ -131,7 +132,7 @@ pub fn get_dependency_used_by_exports_condition(
   match used_by_exports {
     UsedByExports::Set(used_by_exports) => {
       let module_identifier = module_graph
-        .parent_module_by_dependency_id(&dependency_id)
+        .parent_module_by_dependency_id(dependency_id)
         .expect("should have parent module");
       let used_by_exports = Arc::new(used_by_exports.clone());
       DependencyCondition::Fn(Box::new(move |_, runtime, module_graph| {
@@ -158,21 +159,21 @@ pub fn get_dependency_used_by_exports_condition(
 }
 
 pub struct ReferencedExport {
-  name: Vec<JsWord>,
-  can_mangle: bool,
+  _name: Vec<JsWord>,
+  _can_mangle: bool,
 }
 
 impl ReferencedExport {
-  pub fn new(name: Vec<JsWord>, can_mangle: bool) -> Self {
-    Self { name, can_mangle }
+  pub fn new(_name: Vec<JsWord>, _can_mangle: bool) -> Self {
+    Self { _name, _can_mangle }
   }
 }
 
 impl Default for ReferencedExport {
   fn default() -> Self {
     Self {
-      name: vec![],
-      can_mangle: true,
+      _name: vec![],
+      _can_mangle: true,
     }
   }
 }
