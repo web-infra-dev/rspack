@@ -92,26 +92,27 @@ impl<'a> CodeSizeOptimizer<'a> {
       .compilation
       .options
       .is_incremental_rebuild_make_enabled();
-    let is_first_time_analyze = self.compilation.optimize_analyze_result_map.is_empty();
-    let mut analyze_result_map = par_analyze_module(self.compilation).await;
-    let mut finalized_result_map = if is_incremental_rebuild {
-      if is_first_time_analyze {
-        analyze_result_map
-      } else {
-        for (ident, result) in analyze_result_map.into_iter() {
-          self
-            .compilation
-            .optimize_analyze_result_map
-            .insert(ident, result);
-        }
-        // Merge new analyze result with previous in incremental_rebuild mode
-        std::mem::take(&mut self.compilation.optimize_analyze_result_map)
-      }
-    } else {
-      analyze_result_map
-    };
+    // let mut analyze_result_map = par_analyze_module(self.compilation).await;
+    // let mut finalized_result_map = if is_incremental_rebuild {
+    //   if is_first_time_analyze {
+    //     analyze_result_map
+    //   } else {
+    //     for (ident, result) in analyze_result_map.into_iter() {
+    //       self
+    //         .compilation
+    //         .optimize_analyze_result_map
+    //         .insert(ident, result);
+    //     }
+    //     // Merge new analyze result with previous in incremental_rebuild mode
+    //     std::mem::take(&mut self.compilation.optimize_analyze_result_map)
+    //   }
+    // } else {
+    //   analyze_result_map
+    // };
 
-    finalized_result_map
+    self
+      .compilation
+      .optimize_analyze_result_map
       .iter_mut()
       .for_each(|(module_identifier, optimize_analyze_result)| {
         if let Some(factory_meta_side_effects) = self
@@ -123,6 +124,10 @@ impl<'a> CodeSizeOptimizer<'a> {
           optimize_analyze_result.side_effects = factory_meta_side_effects;
         }
       });
+    let mut finalized_result_map = std::mem::replace(
+      &mut self.compilation.optimize_analyze_result_map,
+      IdentifierMap::default(),
+    );
     let mut evaluated_used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut evaluated_module_identifiers = IdentifierSet::default();
     let side_effects_options = self
@@ -1401,14 +1406,15 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
                 .filter_map(|id| compilation.module_graph.dependency_by_id(id).cloned())
                 .collect::<Vec<_>>(),
               *module_identifier,
+              &compilation.options,
             )
-            .analyze(compilation),
+            .analyze(),
             None => {
               return None;
             }
           }
         } else {
-          AssetModule::new(*module_identifier).analyze(compilation)
+          AssetModule::new(*module_identifier).analyze()
         };
 
         // dbg_matches!(

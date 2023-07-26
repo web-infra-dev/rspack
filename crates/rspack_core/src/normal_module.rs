@@ -375,6 +375,7 @@ impl Module for NormalModule {
             build_info,
             build_meta: Default::default(),
             dependencies: Vec::new(),
+            analyze_result: Default::default(),
           }
           .with_diagnostic(e.into()),
         );
@@ -395,6 +396,7 @@ impl Module for NormalModule {
         ast_or_source,
         dependencies,
         presentational_dependencies,
+        analyze_result,
       },
       ds,
     ) = self
@@ -414,7 +416,6 @@ impl Module for NormalModule {
       })?
       .split_into_parts();
     diagnostics.extend(ds);
-
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
     self.original_source = Some(original_source);
@@ -439,6 +440,7 @@ impl Module for NormalModule {
         build_info,
         build_meta,
         dependencies,
+        analyze_result,
       }
       .with_diagnostic(diagnostics),
     )

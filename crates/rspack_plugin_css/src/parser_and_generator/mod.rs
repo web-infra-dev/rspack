@@ -239,6 +239,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         dependencies,
         presentational_dependencies: vec![],
         ast_or_source: AstOrSource::new(None, Some(new_source)),
+        analyze_result: Default::default(),
       }
       .with_diagnostic(diagnostic),
     )

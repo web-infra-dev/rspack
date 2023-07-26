@@ -189,7 +189,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   module_syntax: ModuleSyntax,
   pub(crate) bail_out_module_identifiers: HashMap<ModuleIdOrDepId, BailoutFlag>,
   pub(crate) side_effects: SideEffectType,
-  pub(crate) options: &'a Arc<CompilerOptions>,
+  pub(crate) options: &'a CompilerOptions,
   pub(crate) has_side_effects_stmt: bool,
   unresolved_ctxt: SyntaxContext,
   pub(crate) potential_top_level_mark: HashSet<Mark>,
@@ -258,7 +258,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     mark_info: MarkInfo,
     module_identifier: ModuleIdentifier,
     dependencies: &'a Vec<Box<dyn ModuleDependency>>,
-    options: &'a Arc<CompilerOptions>,
+    options: &'a CompilerOptions,
     _comments: Option<&'a SwcComments>,
     worker_syntax_list: &'a WorkerSyntaxList,
   ) -> Self {
@@ -1664,7 +1664,7 @@ impl<'a> ModuleRefAnalyze<'a> {
 }
 
 /// The `allow(unused)` will be removed after the Tree shaking is finished
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 #[allow(unused)]
 pub struct OptimizeAnalyzeResult {
   pub top_level_mark: Mark,

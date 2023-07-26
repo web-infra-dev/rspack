@@ -291,6 +291,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         dependencies: vec![],
         ast_or_source: source.into(),
         presentational_dependencies: vec![],
+        analyze_result: Default::default(),
       }
       .with_empty_diagnostic(),
     )

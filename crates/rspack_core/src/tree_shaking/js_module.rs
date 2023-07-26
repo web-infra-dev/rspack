@@ -3,13 +3,15 @@ use super::{
   visitor::{MarkInfo, ModuleRefAnalyze, OptimizeAnalyzeResult},
 };
 use crate::{
-  ast::javascript::Ast, Dependency, ModuleDependency, ModuleGraphModule, ModuleIdentifier,
+  ast::javascript::Ast, CompilerOptions, Dependency, ModuleDependency, ModuleGraphModule,
+  ModuleIdentifier,
 };
 
 pub struct JsModule<'b, 'a: 'b> {
   ast: &'a Ast,
   dependencies: &'b Vec<Box<dyn ModuleDependency>>,
   module_identifier: ModuleIdentifier,
+  compiler_options: &'a CompilerOptions,
 }
 
 impl<'a, 'b> JsModule<'b, 'a> {
@@ -17,17 +19,19 @@ impl<'a, 'b> JsModule<'b, 'a> {
     ast: &'a Ast,
     dependencies: &'b Vec<Box<dyn ModuleDependency>>,
     module_identifier: ModuleIdentifier,
+    compiler_options: &'a CompilerOptions,
   ) -> Self {
     Self {
       ast,
       dependencies,
       module_identifier,
+      compiler_options,
     }
   }
 }
 
 impl<'a, 'b> OptimizeAnalyzer for JsModule<'a, 'b> {
-  fn analyze(&self, compilation: &crate::Compilation) -> OptimizeAnalyzeResult {
+  fn analyze(&self) -> OptimizeAnalyzeResult {
     self.ast.visit(|program, context| {
       let top_level_mark = context.top_level_mark;
       let unresolved_mark = context.unresolved_mark;
@@ -41,7 +45,7 @@ impl<'a, 'b> OptimizeAnalyzer for JsModule<'a, 'b> {
         MarkInfo::new(top_level_mark, unresolved_mark),
         self.module_identifier,
         &self.dependencies,
-        &compilation.options,
+        &*self.compiler_options,
         program.comments.as_ref(),
         worker_syntax_list,
       );
