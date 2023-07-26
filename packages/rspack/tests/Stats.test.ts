@@ -178,6 +178,60 @@ describe("Stats", () => {
 		).toEqual({});
 	});
 
+	it("should have stats info", async () => {
+		class TestPlugin {
+			apply(compiler) {
+				compiler.hooks.thisCompilation.tap("testPlugin", compilation => {
+					compilation.emitAsset(
+						"test.txt",
+						new compiler.webpack.sources.RawSource("test"),
+						{
+							str: "test",
+							bool: true,
+							arr: [
+								{
+									nested: {}
+								}
+							]
+						}
+					);
+				});
+			}
+		}
+
+		const stats = await compile({
+			context: __dirname,
+			entry: {
+				main: "./fixtures/a"
+			},
+			plugins: [new TestPlugin()]
+		});
+		const assetStats = stats
+			?.toJson()
+			?.assets?.find(x => x.name === "test.txt");
+		expect(assetStats).toMatchInlineSnapshot(`
+		{
+		  "chunkNames": [],
+		  "chunks": [],
+		  "emitted": true,
+		  "info": {
+		    "development": false,
+		    "hotModuleReplacement": false,
+				"str": "test",
+				"bool": true,
+				"arr": [
+					{
+						"nested": {}
+					}
+				]
+		  },
+		  "name": "test.txt",
+		  "size": 4,
+		  "type": "asset",
+		}
+	`);
+	});
+
 	it("should look not bad for default stats toString", async () => {
 		const stats = await compile({
 			context: __dirname,
