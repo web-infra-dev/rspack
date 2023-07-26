@@ -4,4 +4,4 @@
 // 	return supportsWorker();
 // };
 
-module.exports = () => {return false}
+module.exports = () => {return 'HMR plugin'}

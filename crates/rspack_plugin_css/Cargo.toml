@@ -11,9 +11,7 @@ async-trait = { workspace = true }
 bitflags = { workspace = true }
 heck = "0.4.1"
 indexmap = { workspace = true }
-itertools = { workspace = true }
 once_cell = { workspace = true }
-paste = { workspace = true }
 preset_env_base = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
@@ -38,8 +36,9 @@ swc_core = { workspace = true, features = [
   "css_minifier",
 ] }
 tracing = { workspace = true }
+urlencoding = "2.1.2"
 
 [dev-dependencies]
 hrx-parser     = "0.1.1"
-insta          = "1.29.0"
+insta          = "1.30.0"
 rspack_testing = { path = "../rspack_testing" }

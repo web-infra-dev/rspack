@@ -1,5 +1,5 @@
-const webpack = require("../../../../");
-/** @type {import("../../../../").Configuration[]} */
+const webpack = require("@rspack/core");
+/** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
 	{
 		// no hmr

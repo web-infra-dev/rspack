@@ -1,55 +1,137 @@
 use rspack_core::{
-  export_from_import, get_import_var, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, DependencyId,
+  export_from_import,
+  tree_shaking::symbol::IndirectTopLevelSymbol,
+  tree_shaking::{symbol, visitor::SymbolRef},
+  Compilation, DependencyId, DependencyTemplate, Module, ModuleGraphModule, TemplateContext,
+  TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::JsWord;
 
+use super::Specifier;
+
 #[derive(Debug, Clone)]
 pub struct HarmonyImportSpecifierDependency {
+  id: DependencyId,
+  request: JsWord,
   shorthand: bool,
   start: u32,
   end: u32,
-  // harmony_harmony_import_dependency: &'a HarmonyImportDependency,
-  ids: Option<JsWord>,
+  ids: Vec<JsWord>,
+  is_call: bool,
+  specifier: Specifier,
 }
 
 impl HarmonyImportSpecifierDependency {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
+    id: DependencyId,
+    request: JsWord,
     shorthand: bool,
     start: u32,
     end: u32,
-    // harmony_harmony_import_dependency: &'a HarmonyImportDependency,
-    ids: Option<JsWord>,
+    ids: Vec<JsWord>,
+    is_call: bool,
+    specifier: Specifier,
   ) -> Self {
     Self {
+      id,
+      request,
       shorthand,
       start,
       end,
-      // harmony_harmony_import_dependency,
       ids,
+      is_call,
+      specifier,
     }
   }
 
-  pub fn apply(
+  // TODO move export_info
+  pub fn check_used(
     &self,
-    source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
-    id: &DependencyId,
-    request: &str,
+    module: &dyn Module,
+    reference_mgm: &ModuleGraphModule,
+    compilation: &Compilation,
+  ) -> bool {
+    if compilation.options.builtins.tree_shaking.is_false() {
+      return true;
+    }
+    if !compilation
+      .include_module_ids
+      .contains(&reference_mgm.module_identifier)
+    {
+      return false;
+    }
+
+    if !reference_mgm.module_type.is_js_like() {
+      return true;
+    }
+
+    match &self.specifier {
+      Specifier::Namespace(_) => true,
+      Specifier::Default(local) => {
+        let symbol = SymbolRef::Indirect(IndirectTopLevelSymbol {
+          src: reference_mgm.module_identifier,
+          ty: symbol::IndirectType::ImportDefault(local.clone()),
+          importer: module.identifier(),
+          dep_id: self.id,
+        });
+        compilation.used_symbol_ref.contains(&symbol)
+      }
+      Specifier::Named(local, imported) => {
+        let symbol = SymbolRef::Indirect(IndirectTopLevelSymbol {
+          src: reference_mgm.module_identifier,
+          ty: symbol::IndirectType::Import(local.clone(), imported.clone()),
+          importer: module.identifier(),
+          dep_id: self.id,
+        });
+        compilation.used_symbol_ref.contains(&symbol)
+      }
+    }
+  }
+}
+
+impl DependencyTemplate for HarmonyImportSpecifierDependency {
+  fn apply(
+    &self,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
-    let import_var = get_import_var(request);
+    let TemplateContext {
+      compilation,
+      module,
+      ..
+    } = code_generatable_context;
+
+    let reference_mgm = compilation
+      .module_graph
+      .module_graph_module_by_dependency_id(&self.id)
+      .expect("should have ref module");
+
+    let used = self.check_used(*module, reference_mgm, compilation);
+
+    if !used {
+      // TODO do this by PureExpressionDependency.
+      let value = format!("/* \"{}\" unused */null", self.request);
+      if self.shorthand {
+        source.insert(self.end, &format!(": {value}"), None);
+      } else {
+        source.replace(self.start, self.end, &value, None)
+      }
+      return;
+    }
+
+    let import_var = code_generatable_context
+      .compilation
+      .module_graph
+      .get_import_var(&code_generatable_context.module.identifier(), &self.request);
 
     let export_expr = export_from_import(
       code_generatable_context,
       true,
       import_var,
-      self
-        .ids
-        .as_ref()
-        .map(|i| vec![i.clone()])
-        .unwrap_or_default(),
-      id,
-      false,
+      self.ids.clone(),
+      &self.id,
+      self.is_call,
     );
     if self.shorthand {
       source.insert(self.end, format!(": {export_expr}").as_str(), None);

@@ -2,7 +2,7 @@
 
 const webpack = require("../../../../");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	plugins: [
 		new webpack.DefinePlugin({

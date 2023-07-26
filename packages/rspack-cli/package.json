@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "0.2.2",
+  "version": "0.2.9",
   "license": "MIT",
   "description": "CLI for rspack",
   "bin": {
@@ -9,8 +9,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "rimraf dist/ && tsc -b --force",
-    "clean": "rimraf dist/ && tsc -b --clean",
+    "build": "rimraf dist/ && tsc -b ./tsconfig.build.json --force",
     "dev": "tsc -b -w",
     "test": "jest --runInBand"
   },
@@ -26,6 +25,7 @@
     "directory": "packages/rspack-cli"
   },
   "devDependencies": {
+    "@types/rechoir": "^0.6.1",
     "@types/webpack-bundle-analyzer": "^4.6.0",
     "concat-stream": "^2.0.0",
     "execa": "^5.0.0",
@@ -33,19 +33,13 @@
     "source-map-support": "^0.5.19",
     "ts-node": "10.9.1"
   },
-  "peerDependencies": {
-    "ts-node": ">= 10"
-  },
-  "peerDependenciesMeta": {
-    "ts-node": {
-      "optional": true
-    }
-  },
   "dependencies": {
     "@discoveryjs/json-ext": "^0.5.7",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "workspace:*",
     "colorette": "2.0.19",
+    "interpret": "^3.1.1",
+    "rechoir": "^0.8.0",
     "semver": "6.3.0",
     "webpack-bundle-analyzer": "4.6.1",
     "yargs": "17.6.2"

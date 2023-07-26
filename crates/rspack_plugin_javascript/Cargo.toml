@@ -10,13 +10,12 @@ rspack_testing = { path = "../rspack_testing" }
 
 [dependencies]
 anyhow = { workspace = true }
+async-recursion = { workspace = true }
 async-trait = { workspace = true }
-bitflags = { workspace = true }
 either = "1"
 indexmap = { workspace = true }
 linked_hash_set = { workspace = true }
 once_cell = { workspace = true }
-paste = { workspace = true }
 preset_env_base = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
@@ -25,14 +24,12 @@ rspack_error = { path = "../rspack_error" }
 rspack_hash = { path = "../rspack_hash" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_regex = { path = "../rspack_regex" }
-rspack_symbol = { path = "../rspack_symbol" }
 rustc-hash = { workspace = true }
 serde_json = { workspace = true }
 sourcemap = "6.2.3"
 sugar_path = { workspace = true }
 swc_config = { workspace = true }
 swc_core = { workspace = true, features = [
-  "__base",
   "__parser",
   "__utils",
   "common_sourcemap",
@@ -47,7 +44,6 @@ swc_core = { workspace = true, features = [
 swc_ecma_minifier = { workspace = true, features = ["concurrent"] }
 swc_emotion = { workspace = true }
 swc_node_comments = { workspace = true }
-swc_plugin_import = { workspace = true }
-tokio = { workspace = true, features = ["rt"] }
-url = "2.3.1"
+swc_plugin_import = { path = "../swc_plugin_import" }
+url = "2.4.0"
 xxhash-rust = { version = "0.8.6", features = ["xxh32"] }

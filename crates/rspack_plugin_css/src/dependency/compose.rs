@@ -1,11 +1,10 @@
 use rspack_core::{
-  CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
-  DependencyId, DependencyType, ErrorSpan, ModuleDependency,
+  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
 };
 
 #[derive(Debug, Clone)]
 pub struct CssComposeDependency {
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: String,
   span: Option<ErrorSpan>,
 }
@@ -13,7 +12,7 @@ pub struct CssComposeDependency {
 impl CssComposeDependency {
   pub fn new(request: String, span: Option<ErrorSpan>) -> Self {
     Self {
-      id: None,
+      id: DependencyId::new(),
       request,
       span,
     }
@@ -21,13 +20,6 @@ impl CssComposeDependency {
 }
 
 impl Dependency for CssComposeDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CssCompose
   }
@@ -38,6 +30,10 @@ impl Dependency for CssComposeDependency {
 }
 
 impl ModuleDependency for CssComposeDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -52,14 +48,5 @@ impl ModuleDependency for CssComposeDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
-  }
-}
-
-impl CodeGeneratable for CssComposeDependency {
-  fn generate(
-    &self,
-    _code_generatable_context: &mut CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
-    Ok(CodeGeneratableResult::default())
   }
 }

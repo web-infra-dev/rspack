@@ -41,6 +41,7 @@ export class PreviewCommand implements RspackCommand {
 				const devServerOptions = config.devServer as DevServer;
 
 				let compiler = rspack({ entry: {} });
+				if (!compiler) return;
 				try {
 					const server = new RspackDevServer(devServerOptions, compiler);
 

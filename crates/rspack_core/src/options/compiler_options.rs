@@ -1,12 +1,11 @@
 use crate::{
-  Builtins, BundleEntries, CacheOptions, Context, DevServerOptions, Devtool, Experiments, Mode,
-  ModuleOptions, NodeOption, Optimization, OutputOptions, Resolve, SnapshotOptions, StatsOptions,
-  Target,
+  Builtins, CacheOptions, Context, DevServerOptions, Devtool, Experiments,
+  IncrementalRebuildMakeState, Mode, ModuleOptions, NodeOption, Optimization, OutputOptions,
+  Resolve, SnapshotOptions, StatsOptions, Target,
 };
 
 #[derive(Debug)]
 pub struct CompilerOptions {
-  pub entry: BundleEntries,
   pub context: Context,
   pub dev_server: DevServerOptions,
   pub output: OutputOptions,
@@ -26,7 +25,15 @@ pub struct CompilerOptions {
 }
 
 impl CompilerOptions {
-  pub fn is_make_use_incremental_rebuild(&self) -> bool {
-    self.experiments.incremental_rebuild.make && !matches!(self.cache, CacheOptions::Disabled)
+  pub fn is_incremental_rebuild_make_enabled(&self) -> bool {
+    self.experiments.incremental_rebuild.make.is_some()
+  }
+
+  pub fn get_incremental_rebuild_make_state(&self) -> Option<&IncrementalRebuildMakeState> {
+    self.experiments.incremental_rebuild.make.as_ref()
+  }
+
+  pub fn is_incremental_rebuild_emit_asset_enabled(&self) -> bool {
+    self.experiments.incremental_rebuild.emit_asset
   }
 }

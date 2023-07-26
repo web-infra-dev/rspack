@@ -1,7 +1,5 @@
-// var supportsWebAssembly = require("../../../helpers/supportsWebAssembly");
-//
-// module.exports = function(config) {
-// 	return supportsWebAssembly();
-// };
+var supportsWebAssembly = require("../../../helpers/supportsWebAssembly");
 
-module.exports = () => {return false}
+module.exports = function(config) {
+	return supportsWebAssembly();
+};

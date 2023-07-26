@@ -1,4 +1,4 @@
-import {
+import type {
 	RawCacheGroupOptions,
 	RawExternalItem,
 	RawExternalItemValue,
@@ -14,7 +14,9 @@ import {
 	RawAssetGeneratorDataUrl,
 	RawAssetInlineGeneratorOptions,
 	RawAssetResourceGeneratorOptions,
-	RawIncrementalRebuild
+	RawIncrementalRebuild,
+	RawModuleRuleUses,
+	RawFuncUseCtx
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../compiler";
@@ -122,9 +124,15 @@ function getRawEntry(entry: EntryNormalized): RawOptions["entry"] {
 	const raw: RawOptions["entry"] = {};
 	for (const key of Object.keys(entry)) {
 		const runtime = entry[key].runtime;
+		const chunkLoading = entry[key].chunkLoading;
 		raw[key] = {
 			import: entry[key].import!,
-			runtime: runtime === false ? undefined : runtime
+			publicPath: entry[key].publicPath,
+			baseUri: entry[key].baseUri,
+			runtime: runtime === false ? undefined : runtime,
+			chunkLoading: chunkLoading === false ? "false" : chunkLoading,
+			asyncChunks: entry[key].asyncChunks,
+			filename: entry[key].filename
 		};
 	}
 	return raw;
@@ -185,17 +193,19 @@ function getRawCrossOriginLoading(
 }
 
 function getRawOutput(output: OutputNormalized): RawOptions["output"] {
+	const chunkLoading = output.chunkLoading!;
 	const wasmLoading = output.wasmLoading!;
+	const workerChunkLoading = output.workerChunkLoading!;
+	const workerWasmLoading = output.workerWasmLoading!;
 	return {
 		path: output.path!,
 		publicPath: output.publicPath!,
 		clean: output.clean!,
 		assetModuleFilename: output.assetModuleFilename!,
 		filename: output.filename!,
-		chunkFormat: output.chunkFormat === false ? undefined : output.chunkFormat!,
+		chunkFormat: output.chunkFormat === false ? "false" : output.chunkFormat!,
 		chunkFilename: output.chunkFilename!,
-		chunkLoading:
-			output.chunkLoading === false ? undefined : output.chunkLoading!,
+		chunkLoading: chunkLoading === false ? "false" : chunkLoading,
 		crossOriginLoading: getRawCrossOriginLoading(output.crossOriginLoading!),
 		cssFilename: output.cssFilename!,
 		cssChunkFilename: output.cssChunkFilename!,
@@ -219,7 +229,13 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		hashFunction: output.hashFunction!,
 		hashDigest: output.hashDigest!,
 		hashDigestLength: output.hashDigestLength!,
-		hashSalt: output.hashSalt!
+		hashSalt: output.hashSalt!,
+		asyncChunks: output.asyncChunks!,
+		workerChunkLoading:
+			workerChunkLoading === false ? "false" : workerChunkLoading,
+		workerWasmLoading:
+			workerWasmLoading === false ? "false" : workerWasmLoading,
+		workerPublicPath: output.workerPublicPath!
 	};
 }
 
@@ -320,6 +336,20 @@ const getRawModuleRule = (
 			}
 		];
 	}
+	let funcUse;
+	if (typeof rule.use === "function") {
+		funcUse = (rawContext: RawFuncUseCtx) => {
+			const context = {
+				...rawContext,
+				compiler: options.compiler
+			};
+			const uses = (
+				rule.use as Exclude<RawModuleRuleUses["funcUse"], undefined>
+			)(context);
+
+			return createRawModuleRuleUses(uses ?? [], `${path}.use`, options);
+		};
+	}
 
 	return {
 		test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
@@ -347,7 +377,17 @@ const getRawModuleRule = (
 		scheme: rule.scheme ? getRawRuleSetCondition(rule.scheme) : undefined,
 		mimetype: rule.mimetype ? getRawRuleSetCondition(rule.mimetype) : undefined,
 		sideEffects: rule.sideEffects,
-		use: createRawModuleRuleUses(rule.use ?? [], `${path}.use`, options),
+		use:
+			typeof rule.use === "function"
+				? { type: "function", funcUse }
+				: {
+						type: "array",
+						arrayUse: createRawModuleRuleUses(
+							rule.use ?? [],
+							`${path}.use`,
+							options
+						)
+				  },
 		type: rule.type,
 		parser: rule.parser
 			? getRawParserOptions(rule.parser, rule.type ?? "javascript/auto")

@@ -9,10 +9,15 @@ use derivative::Derivative;
 use futures_util::FutureExt;
 use napi::{Either, JsString};
 use rspack_core::{Chunk, ChunkGroupByUkey, Module, SourceType};
-use rspack_napi_shared::JsRegExp;
+use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub type ChunkFilter = Arc<dyn Fn(&Chunk, &ChunkGroupByUkey) -> bool + Send + Sync>;
+pub type ModuleTypeFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
+
+pub fn create_default_module_type_filter() -> ModuleTypeFilter {
+  Arc::new(|_| true)
+}
 
 pub fn create_async_chunk_filter() -> ChunkFilter {
   Arc::new(|chunk, chunk_group_db| !chunk.can_be_initial(chunk_group_db))
@@ -35,10 +40,7 @@ pub fn create_chunk_filter_from_str(chunks: &str) -> ChunkFilter {
   }
 }
 
-pub fn create_regex_chunk_filter_from_str(regex: &str) -> ChunkFilter {
-  let re =
-    rspack_regex::RspackRegex::new(regex).unwrap_or_else(|_| panic!("Invalid regex: {regex}"));
-
+pub fn create_regex_chunk_filter_from_str(re: RspackRegex) -> ChunkFilter {
   Arc::new(move |chunk, _| chunk.name.as_ref().map_or(false, |name| re.test(name)))
 }
 

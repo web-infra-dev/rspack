@@ -1,7 +1,7 @@
 const { DefinePlugin } = require("../../../../");
 const currentWatchStep = require("../../../helpers/currentWatchStep");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	cache: {
 		type: "memory",

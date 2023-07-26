@@ -1,9 +1,9 @@
 /** @typedef {import("../../../../").Compiler} Compiler */
 /** @typedef {import("../../../../").Compilation} Compilation */
-/** @typedef {import("../../../../").Configuration} Configuration */
+/** @typedef {import("@rspack/core").Configuration} Configuration */
 
 /** @type {Configuration} */
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry() {
 		return Promise.resolve({

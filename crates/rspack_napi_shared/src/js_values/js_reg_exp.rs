@@ -22,6 +22,13 @@ impl JsRegExp {
       .get_named_property("source")
       .expect("RegExp should have `source` property")
   }
+
+  pub fn flags(&self) -> String {
+    self
+      .0
+      .get_named_property("flags")
+      .expect("RegExp should have `flags` property")
+  }
 }
 
 impl NapiRaw for JsRegExp {

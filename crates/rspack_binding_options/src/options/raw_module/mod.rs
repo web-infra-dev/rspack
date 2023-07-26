@@ -10,9 +10,9 @@ use napi_derive::napi;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlOptions, AssetGeneratorOptions,
   AssetInlineGeneratorOptions, AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions,
-  AssetResourceGeneratorOptions, BoxLoader, DescriptionData, GeneratorOptions,
-  GeneratorOptionsByModuleType, ModuleOptions, ModuleRule, ModuleRuleEnforce, ModuleType,
-  ParserOptions, ParserOptionsByModuleType,
+  AssetResourceGeneratorOptions, BoxLoader, DescriptionData, FuncUseCtx, GeneratorOptions,
+  GeneratorOptionsByModuleType, ModuleOptions, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
+  ModuleType, ParserOptions, ParserOptionsByModuleType,
 };
 use rspack_error::internal_error;
 use serde::Deserialize;
@@ -64,6 +64,27 @@ impl Debug for RawModuleRuleUse {
       .field("loader", &self.js_loader.as_ref().map(|i| &i.identifier))
       .field("builtin_loader", &self.builtin_loader)
       .field("options", &self.options)
+      .finish()
+  }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawModuleRuleUses {
+  #[napi(ts_type = r#""array" | "function""#)]
+  pub r#type: String,
+  pub array_use: Option<Vec<RawModuleRuleUse>>,
+  #[serde(skip_deserializing)]
+  pub func_use: Option<JsFunction>,
+}
+
+impl Debug for RawModuleRuleUses {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("RawModuleRuleUses")
+      .field("r#type", &self.r#type)
+      .field("array_use", &self.array_use)
+      .field("func_use", &"...")
       .finish()
   }
 }
@@ -140,7 +161,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
         internal_error!("should have a string_matcher when RawRuleSetCondition.type is \"string\"")
       })?),
       "regexp" => {
-        let reg = rspack_regex::RspackRegex::new_with_optimized(
+        let reg = rspack_regex::RspackRegex::new(
             x.regexp_matcher.as_ref().ok_or_else(|| {
               internal_error!(
                 "should have a regexp_matcher when RawRuleSetCondition.type is \"regexp\""
@@ -189,7 +210,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
               .borrow()
               .expect("Failed to get env, did you forget to call it from node?");
             let func_matcher =
-              rspack_binding_macros::js_fn_into_theadsafe_fn!(func_matcher, &Env::from(env));
+              rspack_binding_macros::js_fn_into_threadsafe_fn!(func_matcher, &Env::from(env));
             Ok(func_matcher)
           })?;
         let func_matcher = Arc::new(func_matcher);
@@ -234,7 +255,7 @@ pub struct RawModuleRule {
   pub resource_fragment: Option<RawRuleSetCondition>,
   pub description_data: Option<HashMap<String, RawRuleSetCondition>>,
   pub side_effects: Option<bool>,
-  pub r#use: Option<Vec<RawModuleRuleUse>>,
+  pub r#use: Option<RawModuleRuleUses>,
   pub r#type: Option<String>,
   pub parser: Option<RawParserOptions>,
   pub generator: Option<RawGeneratorOptions>,
@@ -484,6 +505,27 @@ pub struct RawModuleOptions {
   pub generator: Option<HashMap<String, RawGeneratorOptions>>,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawFuncUseCtx {
+  pub resource: Option<String>,
+  pub real_resource: Option<String>,
+  pub resource_query: Option<String>,
+  pub issuer: Option<String>,
+}
+
+impl From<FuncUseCtx> for RawFuncUseCtx {
+  fn from(value: FuncUseCtx) -> Self {
+    Self {
+      resource: value.resource,
+      real_resource: value.real_resource,
+      resource_query: value.resource_query,
+      issuer: value.issuer,
+    }
+  }
+}
+
 impl RawOptionsApply for RawModuleRule {
   type Options = ModuleRule;
 
@@ -493,26 +535,77 @@ impl RawOptionsApply for RawModuleRule {
     loader_runner: &JsLoaderRunner,
   ) -> std::result::Result<Self::Options, rspack_error::Error> {
     // Even this part is using the plural version of loader, it's recommended to use singular version from js side to reduce overhead (This behavior maybe changed later for advanced usage).
-    let uses = self
-        .r#use
-        .map(|uses| {
-          uses
-            .into_iter()
-            .map(|rule_use| {
-              {
-                if let Some(raw_js_loader) = rule_use.js_loader {
-                  return Ok(Arc::new(JsLoaderAdapter {runner: loader_runner.clone(), identifier: raw_js_loader.identifier.into()}) as BoxLoader);
+    let uses = self.r#use.map(|raw| {
+      match raw.r#type.as_str() {
+        "array" => {
+          let uses = raw
+          .array_use
+          .map(|uses| {
+            uses
+              .into_iter()
+              .map(|rule_use| {
+                {
+                  if let Some(raw_js_loader) = rule_use.js_loader {
+                    return Ok(Arc::new(JsLoaderAdapter {runner: loader_runner.clone(), identifier: raw_js_loader.identifier.into()}) as BoxLoader);
+                  }
                 }
-              }
-              if let Some(builtin_loader) = rule_use.builtin_loader {
-                return Ok(get_builtin_loader(&builtin_loader, rule_use.options.as_deref()));
-              }
-              panic!("`loader` field or `builtin_loader` field in `use` must not be `None` at the same time.");
+                if let Some(builtin_loader) = rule_use.builtin_loader {
+                  return Ok(get_builtin_loader(&builtin_loader, rule_use.options.as_deref()));
+                }
+                panic!("`loader` field or `builtin_loader` field in `use` must not be `None` at the same time.");
+              })
+              .collect::<anyhow::Result<Vec<_>>>()
+          })
+          .transpose()?
+          .unwrap_or_default();
+          Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
+        },
+        "function" =>  {
+          let func_use = raw.func_use.ok_or_else(|| {
+            internal_error!(
+              "should have a func_matcher when RawRuleSetCondition.type is \"function\""
+            )
+          })?;
+          let func_use: ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>> =
+          NAPI_ENV.with(|env| -> anyhow::Result<_> {
+            let env = env.borrow().expect("Failed to get env with external");
+            let func_use = rspack_binding_macros::js_fn_into_threadsafe_fn!(func_use, &Env::from(env));
+            Ok(func_use)
+          })?;
+          let func_use = Arc::new(func_use);
+          let loader_runner = Arc::new(loader_runner.clone());
+          Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Func(Box::new(move |ctx: FuncUseCtx| {
+            let func_use = func_use.clone();
+            let loader_runner = Arc::clone(&loader_runner);
+            Box::pin(async move {
+              let loader_runner = loader_runner;
+              func_use
+              .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
+              .into_rspack_result()?
+              .await
+              .map_err(|err| internal_error!("Failed to call rule.use function: {err}"))?
+              .map(|uses|
+                uses
+                .into_iter()
+                .map(|rule_use| {
+                  {
+                    if let Some(raw_js_loader) = rule_use.js_loader {
+                      return Ok(Arc::new(JsLoaderAdapter {runner:(*loader_runner).clone(), identifier: raw_js_loader.identifier.into()}) as BoxLoader);
+                    }
+                  }
+                  if let Some(builtin_loader) = rule_use.builtin_loader {
+                    return Ok(get_builtin_loader(&builtin_loader, rule_use.options.as_deref()));
+                  }
+                  panic!("`loader` field or `builtin_loader` field in `use` must not be `None` at the same time.");
+              }).collect::<rspack_error::Result<Vec<_>>>())?
             })
-            .collect::<anyhow::Result<Vec<_>>>()
-        })
-        .transpose()?
-        .unwrap_or_default();
+          })))
+        },
+        _ => {
+          Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(vec![]))
+        }
+      }
+    });
 
     let module_type = self.r#type.map(|t| (&*t).try_into()).transpose()?;
 
@@ -569,7 +662,7 @@ impl RawOptionsApply for RawModuleRule {
         .transpose()?,
       resource: self.resource.map(|raw| raw.try_into()).transpose()?,
       description_data,
-      r#use: uses,
+      r#use: uses.transpose()?.unwrap_or_default(),
       r#type: module_type,
       parser: self.parser.map(|raw| raw.into()),
       generator: self.generator.map(|raw| raw.into()),

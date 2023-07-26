@@ -15,6 +15,8 @@ pub use missing_module::*;
 mod normal_module;
 mod raw_module;
 pub use raw_module::*;
+mod exports_info;
+pub use exports_info::*;
 pub mod module;
 pub mod parser_and_generator;
 pub use module::*;
@@ -89,6 +91,7 @@ pub enum ModuleType {
   Json,
   Css,
   CssModule,
+  CssAuto,
   Js,
   JsDynamic,
   JsEsm,
@@ -107,7 +110,7 @@ pub enum ModuleType {
 
 impl ModuleType {
   pub fn is_css_like(&self) -> bool {
-    matches!(self, Self::Css | Self::CssModule)
+    matches!(self, Self::Css | Self::CssModule | Self::CssAuto)
   }
 
   pub fn is_js_like(&self) -> bool {
@@ -154,39 +157,45 @@ impl ModuleType {
       ModuleType::JsDynamic | ModuleType::JsxDynamic | ModuleType::Ts | ModuleType::Tsx
     )
   }
+
+  /// Webpack arbitrary determines the binary type from [NormalModule.binary](https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/NormalModule.js#L302)
+  pub fn is_binary(&self) -> bool {
+    self.is_asset_like() || self.is_wasm_like()
+  }
+
+  pub fn as_str(&self) -> &str {
+    match self {
+      ModuleType::Js => "javascript/auto",
+      ModuleType::JsEsm => "javascript/esm",
+      ModuleType::JsDynamic => "javascript/dynamic",
+
+      ModuleType::Jsx => "javascriptx",
+      ModuleType::JsxEsm => "javascriptx/esm",
+      ModuleType::JsxDynamic => "javascriptx/dynamic",
+
+      ModuleType::Ts => "typescript",
+      ModuleType::Tsx => "typescriptx",
+
+      ModuleType::Css => "css",
+      ModuleType::CssModule => "css/module",
+      ModuleType::CssAuto => "css/auto",
+
+      ModuleType::Json => "json",
+
+      ModuleType::WasmSync => "webassembly/sync",
+      ModuleType::WasmAsync => "webassembly/async",
+
+      ModuleType::Asset => "asset",
+      ModuleType::AssetSource => "asset/source",
+      ModuleType::AssetResource => "asset/resource",
+      ModuleType::AssetInline => "asset/inline",
+    }
+  }
 }
 
 impl fmt::Display for ModuleType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(
-      f,
-      "{}",
-      match self {
-        ModuleType::Js => "javascript/auto",
-        ModuleType::JsEsm => "javascript/esm",
-        ModuleType::JsDynamic => "javascript/dynamic",
-
-        ModuleType::Jsx => "javascriptx",
-        ModuleType::JsxEsm => "javascriptx/esm",
-        ModuleType::JsxDynamic => "javascriptx/dynamic",
-
-        ModuleType::Ts => "typescript",
-        ModuleType::Tsx => "typescriptx",
-
-        ModuleType::Css => "css",
-        ModuleType::CssModule => "css/module",
-
-        ModuleType::Json => "json",
-
-        ModuleType::WasmSync => "webassembly/sync",
-        ModuleType::WasmAsync => "webassembly/async",
-
-        ModuleType::Asset => "asset",
-        ModuleType::AssetSource => "asset/source",
-        ModuleType::AssetResource => "asset/resource",
-        ModuleType::AssetInline => "asset/inline",
-      }
-    )
+    write!(f, "{}", self.as_str(),)
   }
 }
 
@@ -210,6 +219,7 @@ impl TryFrom<&str> for ModuleType {
 
       "css" => Ok(Self::Css),
       "css/module" => Ok(Self::CssModule),
+      "css/auto" => Ok(Self::CssAuto),
 
       "json" => Ok(Self::Json),
 

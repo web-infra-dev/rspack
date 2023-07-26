@@ -1,103 +1,12 @@
 use rspack_core::{
-  create_javascript_visitor, module_id, CodeGeneratable, CodeGeneratableContext,
-  CodeGeneratableResult, CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ErrorSpan, JsAstPath, ModuleDependency,
+  module_id, Dependency, DependencyCategory, DependencyId, DependencyTemplate, DependencyType,
+  ErrorSpan, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
-use swc_core::ecma::atoms::{Atom, JsWord};
+use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
 pub struct ModuleHotDeclineDependency {
-  id: Option<DependencyId>,
-  request: JsWord,
-  // user_request: String,
-  category: &'static DependencyCategory,
-  dependency_type: &'static DependencyType,
-
-  span: Option<ErrorSpan>,
-  #[allow(unused)]
-  ast_path: JsAstPath,
-}
-
-impl ModuleHotDeclineDependency {
-  pub fn new(request: JsWord, span: Option<ErrorSpan>, ast_path: JsAstPath) -> Self {
-    Self {
-      id: None,
-      request,
-      category: &DependencyCategory::CommonJS,
-      dependency_type: &DependencyType::ModuleHotDecline,
-      span,
-      ast_path,
-    }
-  }
-}
-
-impl Dependency for ModuleHotDeclineDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
-
-  fn category(&self) -> &DependencyCategory {
-    self.category
-  }
-
-  fn dependency_type(&self) -> &DependencyType {
-    self.dependency_type
-  }
-}
-
-impl ModuleDependency for ModuleHotDeclineDependency {
-  fn request(&self) -> &str {
-    &self.request
-  }
-
-  fn user_request(&self) -> &str {
-    &self.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
-  }
-
-  fn set_request(&mut self, request: String) {
-    self.request = request.into();
-  }
-}
-
-impl CodeGeneratable for ModuleHotDeclineDependency {
-  fn generate(
-    &self,
-    code_generatable_context: &mut CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
-    let CodeGeneratableContext { compilation, .. } = code_generatable_context;
-
-    let mut code_gen = CodeGeneratableResult::default();
-
-    if let Some(id) = self.id() {
-      if let Some(module_id) = compilation
-        .module_graph
-        .module_graph_module_by_dependency_id(&id)
-        .map(|m| m.id(&compilation.chunk_graph).to_string())
-      {
-        code_gen.visitors.push(
-          create_javascript_visitor!(exact &self.ast_path, visit_mut_str(str: &mut Str) {
-            str.value = JsWord::from(&*module_id);
-            str.raw = Some(Atom::from(format!("\"{module_id}\"")));
-          }),
-        );
-      }
-    }
-
-    Ok(code_gen)
-  }
-}
-
-#[derive(Debug, Clone)]
-pub struct NewModuleHotDeclineDependency {
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: JsWord,
   start: u32,
   end: u32,
@@ -107,10 +16,10 @@ pub struct NewModuleHotDeclineDependency {
   span: Option<ErrorSpan>,
 }
 
-impl NewModuleHotDeclineDependency {
+impl ModuleHotDeclineDependency {
   pub fn new(start: u32, end: u32, request: JsWord, span: Option<ErrorSpan>) -> Self {
     Self {
-      id: None,
+      id: DependencyId::new(),
       request,
       category: &DependencyCategory::CommonJS,
       dependency_type: &DependencyType::ModuleHotDecline,
@@ -121,14 +30,7 @@ impl NewModuleHotDeclineDependency {
   }
 }
 
-impl Dependency for NewModuleHotDeclineDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
-
+impl Dependency for ModuleHotDeclineDependency {
   fn category(&self) -> &DependencyCategory {
     self.category
   }
@@ -138,7 +40,11 @@ impl Dependency for NewModuleHotDeclineDependency {
   }
 }
 
-impl ModuleDependency for NewModuleHotDeclineDependency {
+impl ModuleDependency for ModuleHotDeclineDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -151,8 +57,8 @@ impl ModuleDependency for NewModuleHotDeclineDependency {
     self.span.as_ref()
   }
 
-  fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
-    Some(Box::new(self.clone()))
+  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
+    Some(self)
   }
 
   fn set_request(&mut self, request: String) {
@@ -160,29 +66,18 @@ impl ModuleDependency for NewModuleHotDeclineDependency {
   }
 }
 
-impl CodeGeneratable for NewModuleHotDeclineDependency {
-  fn generate(
-    &self,
-    _code_generatable_context: &mut CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
-    todo!()
-  }
-}
-
-impl CodeReplaceSourceDependency for NewModuleHotDeclineDependency {
+impl DependencyTemplate for ModuleHotDeclineDependency {
   fn apply(
     &self,
-    source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
-    let id: DependencyId = self.id().expect("should have dependency id");
-
     source.replace(
       self.start,
       self.end,
       module_id(
         code_generatable_context.compilation,
-        &id,
+        &self.id,
         &self.request,
         false,
       )

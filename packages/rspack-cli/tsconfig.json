@@ -1,13 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["src", "tests/build/config/test.rspack.config.cjs"],
+  "include": ["src"],
   "compilerOptions": {
+    "strictNullChecks": true,
     "outDir": "dist",
     "rootDir": "src",
     "moduleResolution": "nodenext"
-  },
-  "ts-node": {
-    "transpileOnly": true
   },
   "references": [
     {

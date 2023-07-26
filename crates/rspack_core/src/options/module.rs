@@ -287,6 +287,15 @@ where
   }
   Ok(true)
 }
+pub struct FuncUseCtx {
+  pub resource: Option<String>,
+  pub real_resource: Option<String>,
+  pub resource_query: Option<String>,
+  pub issuer: Option<String>,
+}
+
+pub type FnUse =
+  Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<BoxLoader>>> + Sync + Send>;
 
 #[derive(Derivative, Default)]
 #[derivative(Debug)]
@@ -309,7 +318,7 @@ pub struct ModuleRule {
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
   #[derivative(Debug(format_with = "fmt_use"))]
-  pub r#use: Vec<BoxLoader>,
+  pub r#use: ModuleRuleUse,
   pub parser: Option<ParserOptions>,
   pub generator: Option<GeneratorOptions>,
   pub resolve: Option<Resolve>,
@@ -318,19 +327,33 @@ pub struct ModuleRule {
   pub enforce: ModuleRuleEnforce,
 }
 
+pub enum ModuleRuleUse {
+  Array(Vec<BoxLoader>),
+  Func(FnUse),
+}
+
+impl Default for ModuleRuleUse {
+  fn default() -> Self {
+    Self::Array(vec![])
+  }
+}
+
 fn fmt_use(
-  r#use: &[BoxLoader],
+  r#use: &ModuleRuleUse,
   f: &mut std::fmt::Formatter,
 ) -> std::result::Result<(), std::fmt::Error> {
-  write!(
-    f,
-    "{}",
-    r#use
-      .iter()
-      .map(|l| l.identifier().to_string())
-      .collect::<Vec<_>>()
-      .join("!")
-  )
+  match r#use {
+    ModuleRuleUse::Array(array_use) => write!(
+      f,
+      "{}",
+      array_use
+        .iter()
+        .map(|l| l.identifier().to_string())
+        .collect::<Vec<_>>()
+        .join("!")
+    ),
+    ModuleRuleUse::Func(_) => write!(f, "Fn(...)"),
+  }
 }
 
 #[derive(Debug, Default)]

@@ -7,15 +7,14 @@ mod resolver;
 use std::{path::Path, sync::Arc};
 
 pub use compilation::*;
-use dashmap::DashMap;
-use make::MakeParam;
+pub use make::MakeParam;
 pub use queue::*;
 pub use resolver::*;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
 use rspack_identifier::IdentifierSet;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
@@ -35,8 +34,8 @@ where
   pub resolver_factory: Arc<ResolverFactory>,
   pub cache: Arc<Cache>,
   /// emitted asset versions
-  /// the key of DashMap is filename, the value of DashMap is version
-  pub emitted_asset_versions: DashMap<String, String>,
+  /// the key of HashMap is filename, the value of HashMap is version
+  pub emitted_asset_versions: HashMap<String, String>,
 }
 
 impl<T> Compiler<T>
@@ -63,7 +62,6 @@ where
       options: options.clone(),
       compilation: Compilation::new(
         options,
-        Default::default(),
         Default::default(),
         plugin_driver.clone(),
         resolver_factory.clone(),
@@ -92,9 +90,7 @@ where
     fast_set(
       &mut self.compilation,
       Compilation::new(
-        // TODO: use Arc<T> instead
         self.options.clone(),
-        self.options.entry.clone(),
         Default::default(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
@@ -115,21 +111,9 @@ where
       .compilation(&mut self.compilation)
       .await?;
 
-    self.compilation.setup_entry_dependencies();
-
-    let deps = self
-      .compilation
-      .entry_dependencies
-      .iter()
-      .flat_map(|(_, deps)| {
-        deps
-          .clone()
-          .into_iter()
-          .map(|d| (d, None))
-          .collect::<Vec<_>>()
-      })
-      .collect::<HashSet<_>>();
-    self.compile(MakeParam::ForceBuildDeps(deps)).await?;
+    self
+      .compile(MakeParam::ForceBuildDeps(Default::default()))
+      .await?;
     self.cache.begin_idle();
     self.compile_done().await?;
     Ok(())
@@ -160,7 +144,11 @@ where
         .output
         .enabled_library_types
         .as_ref()
-        .map(|types| types.iter().any(|item| item == "module"))
+        .map(|types| {
+          types
+            .iter()
+            .any(|item| item == "module" || item == "commonjs-static")
+        })
         .unwrap_or(false)
     {
       let (analyze_result, diagnostics) = self
@@ -222,11 +210,10 @@ where
         let _ = self
           .emitted_asset_versions
           .iter()
-          .filter_map(|item| {
-            let filename = item.key();
+          .filter_map(|(filename, _version)| {
             if !assets.contains_key(filename) {
-              self.emitted_asset_versions.remove(filename);
-              Some(self.output_filesystem.remove_file(filename))
+              let file_path = Path::new(&self.options.output.path).join(filename);
+              Some(self.output_filesystem.remove_file(file_path))
             } else {
               None
             }
@@ -237,19 +224,28 @@ where
 
     self.plugin_driver.emit(&mut self.compilation).await?;
 
+    let mut new_emitted_asset_versions = HashMap::default();
     let results = self
       .compilation
       .assets()
       .iter()
       .filter_map(|(filename, asset)| {
+        // collect version info to new_emitted_asset_versions
+        if self.options.is_incremental_rebuild_emit_asset_enabled() {
+          new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
+        }
+
         if let Some(old_version) = self.emitted_asset_versions.get(filename) {
-          if old_version.as_str() == asset.info.version {
+          if old_version.as_str() == asset.info.version && !old_version.is_empty() {
             return None;
           }
         }
+
         Some(self.emit_asset(&self.options.output.path, filename, asset))
       })
       .collect::<FuturesResults<_>>();
+
+    self.emitted_asset_versions = new_emitted_asset_versions;
     // return first error
     for item in results.into_inner() {
       item?;
@@ -282,12 +278,6 @@ where
         .output_filesystem
         .write(&file_path, source.buffer())
         .await?;
-
-      if !asset.info.version.is_empty() && self.options.experiments.incremental_rebuild.emit_asset {
-        self
-          .emitted_asset_versions
-          .insert(filename.to_string(), asset.info.version.clone());
-      }
 
       self.compilation.emitted_assets.insert(filename.to_string());
 

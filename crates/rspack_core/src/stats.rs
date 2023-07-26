@@ -4,6 +4,7 @@ use rspack_error::{
   },
   Result,
 };
+use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
@@ -127,13 +128,14 @@ impl Stats<'_> {
     reasons: bool,
     module_assets: bool,
     nested_modules: bool,
+    source: bool,
   ) -> Result<Vec<StatsModule>> {
     let mut modules: Vec<StatsModule> = self
       .compilation
       .module_graph
       .modules()
       .values()
-      .map(|module| self.get_module(module, reasons, module_assets, nested_modules))
+      .map(|module| self.get_module(module, reasons, module_assets, nested_modules, source))
       .collect::<Result<_>>()?;
     Self::sort_modules(&mut modules);
     Ok(modules)
@@ -146,6 +148,7 @@ impl Stats<'_> {
     reasons: bool,
     module_assets: bool,
     nested_modules: bool,
+    source: bool,
   ) -> Result<Vec<StatsChunk>> {
     let mut chunks: Vec<StatsChunk> = self
       .compilation
@@ -161,7 +164,7 @@ impl Stats<'_> {
             .get_chunk_modules(&c.ukey, &self.compilation.module_graph);
           let mut chunk_modules = chunk_modules
             .into_iter()
-            .map(|m| self.get_module(m, reasons, module_assets, nested_modules))
+            .map(|m| self.get_module(m, reasons, module_assets, nested_modules, source))
             .collect::<Result<Vec<_>>>()?;
           Self::sort_modules(&mut chunk_modules);
           Some(chunk_modules)
@@ -303,13 +306,14 @@ impl Stats<'_> {
     });
   }
 
-  fn get_module(
-    &self,
-    module: &BoxModule,
+  fn get_module<'a>(
+    &'a self,
+    module: &'a BoxModule,
     reasons: bool,
     module_assets: bool,
     nested_modules: bool,
-  ) -> Result<StatsModule> {
+    source: bool,
+  ) -> Result<StatsModule<'a>> {
     let identifier = module.identifier();
     let mgm = self
       .compilation
@@ -418,6 +422,7 @@ impl Stats<'_> {
       reasons,
       assets,
       modules,
+      source: source.then(|| module.original_source()).flatten(),
     })
   }
 
@@ -513,7 +518,7 @@ pub struct StatsAssetInfo {
 }
 
 #[derive(Debug)]
-pub struct StatsModule {
+pub struct StatsModule<'a> {
   pub r#type: &'static str,
   pub module_type: ModuleType,
   pub identifier: ModuleIdentifier,
@@ -527,11 +532,12 @@ pub struct StatsModule {
   pub issuer_path: Vec<StatsModuleIssuer>,
   pub reasons: Option<Vec<StatsModuleReason>>,
   pub assets: Option<Vec<String>>,
-  pub modules: Option<Vec<StatsModule>>,
+  pub modules: Option<Vec<StatsModule<'a>>>,
+  pub source: Option<&'a dyn Source>,
 }
 
 #[derive(Debug)]
-pub struct StatsChunk {
+pub struct StatsChunk<'a> {
   pub r#type: &'static str,
   pub files: Vec<String>,
   pub id: String,
@@ -539,7 +545,7 @@ pub struct StatsChunk {
   pub initial: bool,
   pub names: Vec<String>,
   pub size: f64,
-  pub modules: Option<Vec<StatsModule>>,
+  pub modules: Option<Vec<StatsModule<'a>>>,
   pub parents: Option<Vec<String>>,
   pub children: Option<Vec<String>>,
   pub siblings: Option<Vec<String>>,

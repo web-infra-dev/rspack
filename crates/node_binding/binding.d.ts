@@ -40,8 +40,8 @@ export class JsCompilation {
 
 export class JsStats {
   getAssets(): JsStatsGetAssets
-  getModules(reasons: boolean, moduleAssets: boolean, nestedModules: boolean): Array<JsStatsModule>
-  getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean, moduleAssets: boolean, nestedModules: boolean): Array<JsStatsChunk>
+  getModules(reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean): Array<JsStatsModule>
+  getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean, moduleAssets: boolean, nestedModules: boolean, source: boolean): Array<JsStatsChunk>
   getEntrypoints(): Array<JsStatsChunkGroup>
   getNamedChunkGroups(): Array<JsStatsChunkGroup>
   getErrors(): Array<JsStatsError>
@@ -133,6 +133,9 @@ export interface JsAssetInfo {
   /**
    * the value(s) of the full hash used for this asset
    * the value(s) of the chunk hash used for this asset
+   */
+  chunkHash: Array<string>
+  /**
    * the value(s) of the module hash used for this asset
    * the value(s) of the content hash used for this asset
    */
@@ -350,6 +353,7 @@ export interface JsStatsModule {
   issuerPath: Array<JsStatsModuleIssuer>
   reasons?: Array<JsStatsModuleReason>
   assets?: Array<string>
+  source?: string | Buffer
 }
 
 export interface JsStatsModuleIssuer {
@@ -373,6 +377,7 @@ export interface JsStatsWarning {
 
 export interface NodeFS {
   writeFile: (...args: any[]) => any
+  removeFile: (...args: any[]) => any
   mkdir: (...args: any[]) => any
   mkdirp: (...args: any[]) => any
 }
@@ -477,8 +482,10 @@ export interface RawBuiltins {
 export interface RawCacheGroupOptions {
   priority?: number
   test?: string
+  idHint?: string
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
+  type?: RegExp | string
   minChunks?: number
   minSize?: number
   maxSize?: number
@@ -534,9 +541,14 @@ export interface RawDevServer {
   hot: boolean
 }
 
-export interface RawEntryItem {
+export interface RawEntryDescription {
   import: Array<string>
   runtime?: string
+  chunkLoading?: string
+  asyncChunks?: boolean
+  publicPath?: string
+  baseUri?: string
+  filename?: string
 }
 
 export interface RawExperiments {
@@ -588,6 +600,13 @@ export interface RawFallbackCacheGroupOptions {
   maxSize?: number
   maxAsyncSize?: number
   maxInitialSize?: number
+}
+
+export interface RawFuncUseCtx {
+  resource?: string
+  realResource?: string
+  resourceQuery?: string
+  issuer?: string
 }
 
 export interface RawGeneratorOptions {
@@ -657,6 +676,22 @@ export interface RawMinification {
   dropConsole: boolean
   pureFuncs: Array<string>
   extractComments?: string
+  test?: RawMinificationConditions
+  include?: RawMinificationConditions
+  exclude?: RawMinificationConditions
+}
+
+export interface RawMinificationCondition {
+  type: "string" | "regexp"
+  stringMatcher?: string
+  regexpMatcher?: string
+}
+
+export interface RawMinificationConditions {
+  type: "string" | "regexp" | "array"
+  stringMatcher?: string
+  regexpMatcher?: string
+  arrayMatcher?: Array<RawMinificationCondition>
 }
 
 export interface RawModuleOptions {
@@ -677,7 +712,7 @@ export interface RawModuleRule {
   resourceFragment?: RawRuleSetCondition
   descriptionData?: Record<string, RawRuleSetCondition>
   sideEffects?: boolean
-  use?: Array<RawModuleRuleUse>
+  use?: RawModuleRuleUses
   type?: string
   parser?: RawParserOptions
   generator?: RawGeneratorOptions
@@ -709,6 +744,12 @@ export interface RawModuleRuleUse {
   options?: string
 }
 
+export interface RawModuleRuleUses {
+  type: "array" | "function"
+  arrayUse?: Array<RawModuleRuleUse>
+  funcUse?: (...args: any[]) => any
+}
+
 export interface RawNodeOption {
   dirname: string
   filename: string
@@ -725,7 +766,7 @@ export interface RawOptimizationOptions {
 }
 
 export interface RawOptions {
-  entry: Record<string, RawEntryItem>
+  entry: Record<string, RawEntryDescription>
   /**
    * Using this Vector to track the original order of user land entry configuration
    * std::collection::HashMap does not guarantee the insertion order, for more details you could refer
@@ -776,8 +817,8 @@ export interface RawOutputOptions {
   importFunctionName: string
   iife: boolean
   module: boolean
-  chunkFormat?: string
-  chunkLoading?: string
+  chunkFormat: string
+  chunkLoading: string
   enabledChunkLoadingTypes?: Array<string>
   trustedTypes?: RawTrustedTypes
   sourceMapFilename: string
@@ -785,6 +826,10 @@ export interface RawOutputOptions {
   hashDigest: string
   hashDigestLength: number
   hashSalt?: string
+  asyncChunks: boolean
+  workerChunkLoading: string
+  workerWasmLoading: string
+  workerPublicPath: string
 }
 
 export interface RawParserOptions {

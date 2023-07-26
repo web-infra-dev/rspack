@@ -8,6 +8,7 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-once_cell  = { workspace = true }
-regex      = { workspace = true }
-sugar_path = { workspace = true }
+concat-string = { workspace = true }
+once_cell     = { workspace = true }
+regex         = { workspace = true }
+sugar_path    = { workspace = true }

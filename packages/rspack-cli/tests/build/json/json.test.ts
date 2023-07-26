@@ -10,7 +10,6 @@ describe("json", () => {
 			"--json",
 			"stats.json"
 		]);
-		debugger;
 		expect(exitCode).toBe(0);
 		expect(stderr).toContain(successMessage);
 		expect(stdout).toBeFalsy();

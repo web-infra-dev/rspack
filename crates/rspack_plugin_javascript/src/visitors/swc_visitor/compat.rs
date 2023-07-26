@@ -77,7 +77,7 @@ fn compat_by_es_version(
           nullish_coalescing: compat::es2020::nullish_coalescing::Config {
             no_document_all: assumptions.no_document_all
           },
-          optional_chaining: compat::es2020::opt_chaining::Config {
+          optional_chaining: compat::es2020::optional_chaining::Config {
             no_document_all: assumptions.no_document_all,
             pure_getter: assumptions.pure_getters
           }

@@ -1,45 +1,33 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (__unused_webpack_module, exports, __webpack_require__) {
 it("should be able to load package without side effects where modules are unused", ()=>{
-    __webpack_require__("./module.js");
+    __webpack_require__(/* ./module */"./module.js");
 });
 },
-"./module.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; },
+  'test': function() { return test; }
 });
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    default: function() {
-        return _default;
-    },
-    test: function() {
-        return test;
-    }
-});
-var _index = __webpack_require__("./package/index.js");
-var _default = _index.a;
-function test() {}
+/* harmony import */var _package__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./package */"./package/index.js");
+
+var __WEBPACK_DEFAULT_EXPORT__ = _package__WEBPACK_IMPORTED_MODULE_0_["a"];
+ function test() {}
 },
-"./package/index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./package/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'a': function() { return a; }
 });
-Object.defineProperty(exports, "a", {
-    enumerable: true,
-    get: function() {
-        return a;
-    }
-});
-function a() {
+
+ function a() {
     return 42;
+}
+ function b() {
+    return /* "./unusedModule" unused */null;
 }
 },
 

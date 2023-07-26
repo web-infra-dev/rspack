@@ -1,4 +1,4 @@
-import { JsAssetInfo, JsStatsError } from "@rspack/binding";
+import type { JsAssetInfo, JsStatsError } from "@rspack/binding";
 import { AssetInfo } from "../compilation";
 
 export function mapValues(
@@ -83,6 +83,7 @@ export function toJsAssetInfo(info?: AssetInfo): JsAssetInfo {
 		development: false,
 		hotModuleReplacement: false,
 		related: {},
+		chunkHash: [],
 		contentHash: [],
 		version: "",
 		...info

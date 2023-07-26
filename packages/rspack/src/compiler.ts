@@ -7,13 +7,14 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import * as binding from "@rspack/binding";
+import type * as binding from "@rspack/binding";
 import fs from "fs";
 import path from "path";
 import * as tapable from "tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
 import type { WatchOptions } from "watchpack";
 import {
+	EntryNormalized,
 	OutputNormalized,
 	RspackOptionsNormalized,
 	RspackPluginInstance
@@ -30,11 +31,13 @@ import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import Cache from "./lib/Cache";
 import { makePathsRelative } from "./util/identifier";
 import CacheFacade from "./lib/CacheFacade";
+import ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
 import { runLoader } from "./loader-runner";
 import { Logger } from "./logging/Logger";
 import { NormalModuleFactory } from "./normalModuleFactory";
 import { WatchFileSystem } from "./util/fs";
 import { getScheme } from "./util/scheme";
+import { checkVersion } from "./util/bindingVersionCheck";
 import Watching from "./watching";
 import { NormalModule } from "./normalModule";
 import { normalizeJsModule } from "./util/normalization";
@@ -138,6 +141,7 @@ class Compiler {
 		afterCompile: tapable.AsyncSeriesHook<[Compilation]>;
 		finishModules: tapable.AsyncSeriesHook<[any]>;
 		finishMake: tapable.AsyncSeriesHook<[Compilation]>;
+		entryOption: tapable.SyncBailHook<[string, EntryNormalized], any>;
 	};
 	options: RspackOptionsNormalized;
 	#disabledHooks: string[];
@@ -163,6 +167,7 @@ class Compiler {
 				return require("../package.json").version;
 			},
 			WebpackError: Error,
+			ModuleFilenameHelpers,
 			node: {
 				NodeTargetPlugin,
 				NodeTemplatePlugin
@@ -237,7 +242,8 @@ class Compiler {
 			beforeCompile: new tapable.AsyncSeriesHook(["params"]),
 			afterCompile: new tapable.AsyncSeriesHook(["compilation"]),
 			finishMake: new tapable.AsyncSeriesHook(["compilation"]),
-			finishModules: new tapable.AsyncSeriesHook(["modules"])
+			finishModules: new tapable.AsyncSeriesHook(["modules"]),
+			entryOption: new tapable.SyncBailHook(["context", "entry"])
 		};
 		this.modifiedFiles = undefined;
 		this.removedFiles = undefined;
@@ -255,11 +261,12 @@ class Compiler {
 			this.options.output.hashFunction
 		);
 	}
-
 	/**
 	 * Lazy initialize instance so it could access the changed options
 	 */
-	get #instance() {
+	#getInstance(
+		callback: (error: Error | null, instance?: binding.Rspack) => void
+	): void {
 		const processResource = (
 			loaderContext: LoaderContext,
 			resourcePath: string,
@@ -280,9 +287,16 @@ class Compiler {
 		};
 		const options = getRawOptions(this.options, this, processResource);
 
+		let error = checkVersion();
+		if (error) {
+			return callback(error);
+		}
+
+		const instanceBinding: typeof binding = require("@rspack/binding");
+
 		this.#_instance =
 			this.#_instance ??
-			new binding.Rspack(
+			new instanceBinding.Rspack(
 				options,
 				{
 					beforeCompile: this.#beforeCompile.bind(this),
@@ -348,11 +362,13 @@ class Compiler {
 					buildModule: this.#buildModule.bind(this)
 				},
 				createThreadsafeNodeFSFromRaw(this.outputFileSystem),
-				loaderContext => runLoader(loaderContext, this)
+				(loaderContext: binding.JsLoaderContext) =>
+					runLoader(loaderContext, this)
 			);
 
-		return this.#_instance;
+		callback(null, this.#_instance);
 	}
+
 	createChildCompiler(
 		compilation: Compilation,
 		compilerName: string,
@@ -566,8 +582,8 @@ class Compiler {
 		);
 	}
 
-	#updateDisabledHooks() {
-		const disabledHooks = [];
+	#updateDisabledHooks(callback?: (error?: Error) => void) {
+		const disabledHooks: string[] = [];
 		const hookMap = {
 			make: this.hooks.make,
 			beforeCompile: this.hooks.beforeCompile,
@@ -619,8 +635,13 @@ class Compiler {
 
 		// disabledHooks is in order
 		if (this.#disabledHooks.join() !== disabledHooks.join()) {
-			this.#instance.unsafe_set_disabled_hooks(disabledHooks);
-			this.#disabledHooks = disabledHooks;
+			this.#getInstance((error, instance) => {
+				if (error) {
+					return callback && callback(error);
+				}
+				instance?.unsafe_set_disabled_hooks(disabledHooks);
+				this.#disabledHooks = disabledHooks;
+			});
 		}
 	}
 
@@ -717,14 +738,14 @@ class Compiler {
 
 	async #optimizeChunkModules() {
 		await this.compilation.hooks.optimizeChunkModules.promise(
-			this.compilation.getChunks(),
-			this.compilation.getModules()
+			this.compilation.__internal__getChunks(),
+			this.compilation.modules
 		);
 		this.#updateDisabledHooks();
 	}
 	async #optimizeModules() {
 		await this.compilation.hooks.optimizeModules.promise(
-			this.compilation.getModules()
+			this.compilation.modules
 		);
 		this.#updateDisabledHooks();
 	}
@@ -736,7 +757,7 @@ class Compiler {
 
 	async #finishModules() {
 		await this.compilation.hooks.finishModules.promise(
-			this.compilation.getModules()
+			this.compilation.modules
 		);
 		this.#updateDisabledHooks();
 	}
@@ -867,33 +888,47 @@ class Compiler {
 		}
 	}
 	// Safety: This method is only valid to call if the previous build task is finished, or there will be data races.
-	build(cb: (error?: Error) => void) {
-		const unsafe_build = this.#instance.unsafe_build;
-		const build_cb = unsafe_build.bind(this.#instance) as typeof unsafe_build;
-		build_cb(err => {
-			if (err) {
-				cb(err);
-			} else {
-				cb(undefined);
+	build(callback: (error: Error | null) => void) {
+		this.#getInstance((error, instance) => {
+			if (error) {
+				return callback && callback(error);
 			}
+			const unsafe_build = instance?.unsafe_build;
+			const build_cb = unsafe_build?.bind(instance) as typeof unsafe_build;
+			build_cb?.(error => {
+				if (error) {
+					callback(error);
+				} else {
+					callback(null);
+				}
+			});
 		});
 	}
 	// Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
 	rebuild(
 		modifiedFiles?: ReadonlySet<string>,
 		removedFiles?: ReadonlySet<string>,
-		cb?: (error?: Error) => void
+		callback?: (error: Error | null) => void
 	) {
-		const unsafe_rebuild = this.#instance.unsafe_rebuild;
-		const rebuild_cb = unsafe_rebuild.bind(
-			this.#instance
-		) as typeof unsafe_rebuild;
-		rebuild_cb([...(modifiedFiles ?? [])], [...(removedFiles ?? [])], err => {
-			if (err) {
-				cb && cb(err);
-			} else {
-				cb && cb(undefined);
+		this.#getInstance((error, instance) => {
+			if (error) {
+				return callback && callback(error);
 			}
+			const unsafe_rebuild = instance?.unsafe_rebuild;
+			const rebuild_cb = unsafe_rebuild?.bind(
+				instance
+			) as typeof unsafe_rebuild;
+			rebuild_cb?.(
+				[...(modifiedFiles ?? [])],
+				[...(removedFiles ?? [])],
+				error => {
+					if (error) {
+						callback && callback(error);
+					} else {
+						callback && callback(null);
+					}
+				}
+			);
 		});
 	}
 

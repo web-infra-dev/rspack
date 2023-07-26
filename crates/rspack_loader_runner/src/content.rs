@@ -18,6 +18,13 @@ impl Content {
     }
   }
 
+  pub fn into_string_lossy(self) -> String {
+    match self {
+      Content::String(s) => s,
+      Content::Buffer(b) => String::from_utf8_lossy(&b).into_owned(),
+    }
+  }
+
   pub fn as_bytes(&self) -> &[u8] {
     match self {
       Content::String(s) => s.as_bytes(),
@@ -30,6 +37,14 @@ impl Content {
       Content::String(s) => s.into_bytes(),
       Content::Buffer(b) => b,
     }
+  }
+
+  pub fn is_buffer(&self) -> bool {
+    matches!(self, Content::Buffer(..))
+  }
+
+  pub fn is_string(&self) -> bool {
+    matches!(self, Content::String(..))
   }
 }
 

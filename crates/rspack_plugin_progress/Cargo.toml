@@ -9,6 +9,6 @@ version    = "0.1.0"
 
 [dependencies]
 async-trait  = { workspace = true }
-indicatif    = "0.17.3"
+indicatif    = "0.17.5"
 rspack_core  = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }

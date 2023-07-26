@@ -89,12 +89,12 @@ where
     // TODO: should use `records`
 
     let mut all_old_runtime: RuntimeSpec = Default::default();
-    for entrypoint_ukey in old.compilation.entrypoints.values() {
+    for entry_ukey in old.compilation.get_chunk_graph_entries() {
       if let Some(runtime) = old
         .compilation
-        .chunk_group_by_ukey
-        .get(entrypoint_ukey)
-        .map(|entrypoint| entrypoint.runtime.clone())
+        .chunk_by_ukey
+        .get(&entry_ukey)
+        .map(|entry_chunk| entry_chunk.runtime.clone())
       {
         all_old_runtime.extend(runtime);
       }
@@ -130,17 +130,21 @@ where
       self.plugin_driver.resolver_factory.clear_entries();
 
       let mut new_compilation = Compilation::new(
-        // TODO: use Arc<T> instead
         self.options.clone(),
-        self.options.entry.clone(),
         Default::default(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.cache.clone(),
       );
 
-      let is_incremental_rebuild = self.options.is_make_use_incremental_rebuild();
-      if is_incremental_rebuild {
+      if let Some(state) = self.options.get_incremental_rebuild_make_state() {
+        state.set_is_not_first();
+      }
+
+      new_compilation.hot_index = self.compilation.hot_index + 1;
+
+      let is_incremental_rebuild_make = self.options.is_incremental_rebuild_make_enabled();
+      if is_incremental_rebuild_make {
         // copy field from old compilation
         // make stage used
         new_compilation.module_graph = std::mem::take(&mut self.compilation.module_graph);
@@ -148,8 +152,7 @@ where
           std::mem::take(&mut self.compilation.make_failed_dependencies);
         new_compilation.make_failed_module =
           std::mem::take(&mut self.compilation.make_failed_module);
-        new_compilation.entry_dependencies =
-          std::mem::take(&mut self.compilation.entry_dependencies);
+        new_compilation.entries = std::mem::take(&mut self.compilation.entries);
         new_compilation.lazy_visit_modules =
           std::mem::take(&mut self.compilation.lazy_visit_modules);
         new_compilation.file_dependencies = std::mem::take(&mut self.compilation.file_dependencies);
@@ -172,11 +175,10 @@ where
         new_compilation.code_splitting_cache =
           std::mem::take(&mut self.compilation.code_splitting_cache);
 
-        self.compilation.has_module_import_export_change = false;
+        new_compilation.has_module_import_export_change = false;
         // remove prev build ast in modules
         fast_drop(
-          self
-            .compilation
+          new_compilation
             .module_graph
             .modules_mut()
             .values_mut()
@@ -194,8 +196,6 @@ where
             })
             .collect::<Vec<Option<NormalModuleAstOrSource>>>(),
         );
-      } else {
-        new_compilation.setup_entry_dependencies();
       }
 
       fast_set(&mut self.compilation, new_compilation);
@@ -213,22 +213,10 @@ where
         .compilation(&mut self.compilation)
         .await?;
 
-      let setup_make_params = if is_incremental_rebuild {
+      let setup_make_params = if is_incremental_rebuild_make {
         MakeParam::ModifiedFiles(modified_files)
       } else {
-        let deps = self
-          .compilation
-          .entry_dependencies
-          .iter()
-          .flat_map(|(_, deps)| {
-            deps
-              .clone()
-              .into_iter()
-              .map(|d| (d, None))
-              .collect::<Vec<_>>()
-          })
-          .collect::<HashSet<_>>();
-        MakeParam::ForceBuildDeps(deps)
+        MakeParam::ForceBuildDeps(Default::default())
       };
       self.compile(setup_make_params).await?;
       self.cache.begin_idle();
@@ -351,11 +339,8 @@ where
       }
 
       if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
-        let mut hot_update_chunk = Chunk::new(
-          Some(chunk_id.to_string()),
-          Some(chunk_id.to_string()),
-          ChunkKind::HotUpdate,
-        );
+        let mut hot_update_chunk = Chunk::new(None, ChunkKind::HotUpdate);
+        hot_update_chunk.id = Some(chunk_id.to_string());
         hot_update_chunk.runtime = new_runtime.clone();
         let mut chunk_hash = RspackHash::from(&self.compilation.options.output);
         let ukey = hot_update_chunk.ukey;

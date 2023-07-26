@@ -34,16 +34,21 @@ impl RuntimeModule for PublicPathRuntimeModule {
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
-    match &compilation.options.output.public_path {
+    let chunk = self.chunk.expect("The chunk should be attached");
+    let chunk = compilation
+      .chunk_by_ukey
+      .get(&chunk)
+      .expect("Chunk is not found, make sure you had attach chunkUkey successfully.");
+    let public_path = chunk
+      .get_entry_options(&compilation.chunk_group_by_ukey)
+      .and_then(|options| options.public_path.as_ref())
+      .unwrap_or(&compilation.options.output.public_path);
+    match public_path {
       PublicPath::String(str) => RawSource::from(
         include_str!("runtime/public_path.js").replace("__PUBLIC_PATH_PLACEHOLDER__", str),
       )
       .boxed(),
       PublicPath::Auto => {
-        let chunk = compilation
-          .chunk_by_ukey
-          .get(&self.chunk.expect("The chunk should be attached."))
-          .expect("Chunk is not found, make sure you had attach chunkUkey successfully.");
         let filename = get_js_chunk_filename_template(
           chunk,
           &compilation.options.output,

@@ -1,42 +1,35 @@
-mod new_url_dependency;
-pub use new_url_dependency::NewURLDependency;
 use rspack_core::{
-  create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
-  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, JsAstPath,
-  ModuleDependency, RuntimeGlobals,
+  get_dependency_used_by_exports_condition, module_id, Dependency, DependencyCategory,
+  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ModuleDependency, ModuleGraph, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  UsedByExports,
 };
-use swc_core::common::Spanned;
-use swc_core::ecma::utils::{member_expr, quote_ident, quote_str};
-use swc_core::ecma::{ast::*, atoms::JsWord};
+use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
 pub struct URLDependency {
-  id: Option<DependencyId>,
+  start: u32,
+  end: u32,
+  id: DependencyId,
   request: JsWord,
   span: Option<ErrorSpan>,
-  #[allow(unused)]
-  ast_path: JsAstPath,
+  used_by_exports: UsedByExports,
 }
 
 impl URLDependency {
-  pub fn new(request: JsWord, span: Option<ErrorSpan>, ast_path: JsAstPath) -> Self {
+  pub fn new(start: u32, end: u32, request: JsWord, span: Option<ErrorSpan>) -> Self {
     Self {
-      id: None,
+      start,
+      end,
+      id: DependencyId::new(),
       request,
       span,
-      ast_path,
+      used_by_exports: UsedByExports::default(),
     }
   }
 }
 
 impl Dependency for URLDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Url
   }
@@ -47,6 +40,10 @@ impl Dependency for URLDependency {
 }
 
 impl ModuleDependency for URLDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -59,61 +56,45 @@ impl ModuleDependency for URLDependency {
     self.span.as_ref()
   }
 
+  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
+    Some(self)
+  }
+
   fn set_request(&mut self, request: String) {
     self.request = request.into();
   }
+
+  fn get_condition(&self, module_graph: &ModuleGraph) -> DependencyCondition {
+    get_dependency_used_by_exports_condition(&self.id, &self.used_by_exports, module_graph)
+  }
 }
 
-impl CodeGeneratable for URLDependency {
-  fn generate(
+impl DependencyTemplate for URLDependency {
+  fn apply(
     &self,
-    code_generatable_context: &mut CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
-    let CodeGeneratableContext { compilation, .. } = code_generatable_context;
-    let mut code_gen = CodeGeneratableResult::default();
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let TemplateContext {
+      compilation,
+      runtime_requirements,
+      ..
+    } = code_generatable_context;
 
-    if let Some(id) = self.id() {
-      if let Some(module_id) = compilation
-        .module_graph
-        .module_graph_module_by_dependency_id(&id)
-        .map(|m| m.id(&compilation.chunk_graph).to_string())
-      {
-        code_generatable_context
-          .runtime_requirements
-          .insert(RuntimeGlobals::BASE_URI);
-        code_gen.visitors.push(
-          create_javascript_visitor!(exact &self.ast_path, visit_mut_new_expr(n: &mut NewExpr) {
-                let Some(args) = &mut n.args else { return };
+    runtime_requirements.insert(RuntimeGlobals::BASE_URI);
+    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
-                if let (Some(first), Some(second)) = (args.first(), args.get(1)) {
-                  let path_span = first.span();
-                  let meta_span = second.span();
-
-                  let require_call = CallExpr {
-                    span: path_span,
-                    callee: Callee::Expr(quote_ident!(RuntimeGlobals::REQUIRE).into()),
-                    args: vec![ExprOrSpread {
-                      spread: None,
-                      expr: quote_str!(&*module_id).into(),
-                    }],
-                    type_args: None,
-                  };
-
-                  args[0] = ExprOrSpread {
-                    spread: None,
-                    expr: require_call.into(),
-                  };
-
-                  args[1] = ExprOrSpread {
-                    spread: None,
-                    expr: member_expr!(meta_span, __webpack_require__.b),
-                  };
-                }
-          }),
-        );
-      }
-    }
-
-    Ok(code_gen)
+    source.replace(
+      self.start,
+      self.end,
+      format!(
+        "/* asset import */{}({}), {}",
+        RuntimeGlobals::REQUIRE,
+        module_id(compilation, &self.id, &self.request, false),
+        RuntimeGlobals::BASE_URI
+      )
+      .as_str(),
+      None,
+    );
   }
 }

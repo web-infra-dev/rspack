@@ -3,8 +3,9 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   is_async_dependency, module_graph::ConnectionId, BuildInfo, BuildMeta, BuildMetaDefaultObject,
-  BuildMetaExportsType, ChunkGraph, DependencyId, ExportsType, FactoryMeta, ModuleDependency,
-  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleIssuer, ModuleSyntax, ModuleType,
+  BuildMetaExportsType, ChunkGraph, ChunkGroupOptions, DependencyId, ExportsInfo, ExportsType,
+  FactoryMeta, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  ModuleIssuer, ModuleSyntax, ModuleType,
 };
 
 #[derive(Debug)]
@@ -26,6 +27,7 @@ pub struct ModuleGraphModule {
   pub factory_meta: Option<FactoryMeta>,
   pub build_info: Option<BuildInfo>,
   pub build_meta: Option<BuildMeta>,
+  pub exports: ExportsInfo,
 }
 
 impl ModuleGraphModule {
@@ -45,6 +47,7 @@ impl ModuleGraphModule {
       factory_meta: None,
       build_info: None,
       build_meta: None,
+      exports: ExportsInfo::new(),
     }
   }
 
@@ -127,7 +130,7 @@ impl ModuleGraphModule {
   pub fn dynamic_depended_modules<'a>(
     &self,
     module_graph: &'a ModuleGraph,
-  ) -> Vec<(&'a ModuleIdentifier, Option<&'a str>)> {
+  ) -> Vec<(&'a ModuleIdentifier, Option<&'a ChunkGroupOptions>)> {
     self
       .dependencies
       .iter()
@@ -140,7 +143,7 @@ impl ModuleGraphModule {
           .module_identifier_by_dependency_id(id)
           .expect("should have a module here");
 
-        let chunk_name = dep.chunk_name();
+        let chunk_name = dep.group_options();
         Some((module, chunk_name))
       })
       .collect()
@@ -172,12 +175,11 @@ impl ModuleGraphModule {
   }
 
   pub fn get_exports_argument(&self) -> &str {
-    "exports"
-    // self
-    //   .build_meta
-    //   .as_ref()
-    //   .map(|m| m.exports_argument)
-    //   .unwrap_or("exports")
+    self
+      .build_meta
+      .as_ref()
+      .map(|m| m.exports_argument)
+      .unwrap_or("exports")
   }
 
   pub fn get_module_argument(&self) -> &str {

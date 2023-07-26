@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	experiments: {
 		lazyCompilation: {

@@ -1,5 +1,4 @@
 
-/*
 const supportsOptionalCatchBinding = require("../../../helpers/supportsOptionalCatchBinding");
 
 module.exports = function(config) {
@@ -9,8 +8,4 @@ module.exports = function(config) {
 	}
 	return supportsOptionalCatchBinding();
 };
-
-*/
-module.exports = () => {return false}
-
 							

@@ -2,7 +2,7 @@
 
 const DefinePlugin = require("../../../../").DefinePlugin;
 
-/** @type {import("../../../../").Configuration[]} */
+/** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
 	{
 		name: "development",

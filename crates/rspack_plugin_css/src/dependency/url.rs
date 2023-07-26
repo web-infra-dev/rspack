@@ -1,29 +1,30 @@
+use once_cell::sync::Lazy;
+use regex::{Captures, Regex};
 use rspack_core::{
-  create_css_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
-  CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CssAstPath, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
-  PublicPath,
+  CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency, DependencyCategory,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
+  PublicPath, TemplateContext, TemplateReplaceSource,
 };
-use swc_core::css::ast::UrlValue;
 
 use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER;
 
 #[derive(Debug, Clone)]
 pub struct CssUrlDependency {
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: String,
   span: Option<ErrorSpan>,
-  #[allow(unused)]
-  ast_path: CssAstPath,
+  start: u32,
+  end: u32,
 }
 
 impl CssUrlDependency {
-  pub fn new(request: String, span: Option<ErrorSpan>, ast_path: CssAstPath) -> Self {
+  pub fn new(request: String, span: Option<ErrorSpan>, start: u32, end: u32) -> Self {
     Self {
       request,
       span,
-      ast_path,
-      id: None,
+      start,
+      end,
+      id: DependencyId::new(),
     }
   }
 
@@ -56,13 +57,6 @@ impl CssUrlDependency {
 }
 
 impl Dependency for CssUrlDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Url
   }
@@ -73,6 +67,10 @@ impl Dependency for CssUrlDependency {
 }
 
 impl ModuleDependency for CssUrlDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -88,39 +86,62 @@ impl ModuleDependency for CssUrlDependency {
   fn set_request(&mut self, request: String) {
     self.request = request;
   }
+
+  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
+    Some(self)
+  }
 }
 
-impl CodeGeneratable for CssUrlDependency {
-  fn generate(
+impl DependencyTemplate for CssUrlDependency {
+  fn apply(
     &self,
-    code_generatable_context: &mut CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
-    let CodeGeneratableContext { compilation, .. } = code_generatable_context;
-    let mut code_gen = CodeGeneratableResult::default();
-
-    if let Some(id) = self.id()
-      && let Some(mgm) = compilation
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let TemplateContext { compilation, .. } = code_generatable_context;
+    if let Some(mgm) = compilation
         .module_graph
-        .module_graph_module_by_dependency_id(&id)
+        .module_graph_module_by_dependency_id(self.id())
       && let Some(target_url) = self.get_target_url(&mgm.module_identifier, compilation)
     {
-      code_gen.visitors.push(
-        create_css_visitor!(exact &self.ast_path, visit_mut_url(url: &mut Url) {
-          match url.value {
-            Some(box UrlValue::Str(ref mut s)) => {
-              s.raw = None;
-              s.value = target_url.clone().into();
-            }
-            Some(box UrlValue::Raw(ref mut s)) => {
-              s.raw = None;
-              s.value = target_url.clone().into();
-            }
-            None => {}
-          }
-        }),
-      );
+      let content = format!("url({})", css_escape_string(&target_url));
+      source.replace(self.start, self.end, &content, None);
     }
+  }
+}
 
-    Ok(code_gen)
+static WHITE_OR_BRACKET_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r#"[\n\t ()'"\\]"#).expect("Invalid Regexp"));
+static QUOTATION_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r#"[\n"\\]"#).expect("Invalid Regexp"));
+static APOSTROPHE_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r#"[\n'\\]"#).expect("Invalid Regexp"));
+
+fn css_escape_string(s: &str) -> String {
+  let mut count_white_or_bracket = 0;
+  let mut count_quotation = 0;
+  let mut count_apostrophe = 0;
+  for c in s.chars() {
+    match c {
+      '\t' | '\n' | ' ' | '(' | ')' => count_white_or_bracket += 1,
+      '"' => count_quotation += 1,
+      '\'' => count_apostrophe += 1,
+      _ => {}
+    }
+  }
+  if count_white_or_bracket < 2 {
+    WHITE_OR_BRACKET_REGEX
+      .replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
+      .into_owned()
+  } else if count_quotation <= count_apostrophe {
+    format!(
+      "\"{}\"",
+      QUOTATION_REGEX.replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
+    )
+  } else {
+    format!(
+      "\'{}\'",
+      APOSTROPHE_REGEX.replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
+    )
   }
 }

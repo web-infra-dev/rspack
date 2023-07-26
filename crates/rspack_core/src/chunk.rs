@@ -1,11 +1,11 @@
-use std::{fmt::Debug, hash::Hash};
+use std::{fmt::Debug, hash::Hash, sync::Arc};
 
 use rspack_database::DatabaseItem;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  ChunkGraph, ChunkGroupByUkey, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation,
+  ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, EntryOptions, Filename,
   ModuleGraph, RuntimeSpec, SourceType,
 };
 
@@ -19,11 +19,12 @@ pub type ChunkContentHash = HashMap<SourceType, RspackHashDigest>;
 
 #[derive(Debug, Clone)]
 pub struct Chunk {
-  // - If the chunk is create by entry, the name is the entry name
-  // - (Rspack doesn't support it yet)If the chunk is create by dynamic import, the name
-  // is the valid in MagicComment `import(/* webpackChunkName: "someChunk" * / './someModule.js')`.
-  // - TODO: HMR chunk will have name. Not sure this is expected. Need to discuss with underfin
+  // - If the chunk is create by entry config, the name is the entry name
+  // - The name of chunks create by dynamic import is `None` unless users use
+  // magic comment like `import(/* webpackChunkName: "someChunk" * / './someModule.js')` to specify it.
   pub name: Option<String>,
+  pub filename_template: Option<Filename>,
+  pub css_filename_template: Option<Filename>,
   pub ukey: ChunkUkey,
   pub id: Option<String>,
   pub ids: Vec<String>,
@@ -33,6 +34,7 @@ pub struct Chunk {
   pub runtime: RuntimeSpec,
   pub kind: ChunkKind,
   pub hash: Option<RspackHashDigest>,
+  pub rendered_hash: Option<Arc<str>>,
   pub content_hash: ChunkContentHash,
   pub chunk_reasons: Vec<String>,
 }
@@ -44,11 +46,13 @@ impl DatabaseItem for Chunk {
 }
 
 impl Chunk {
-  pub fn new(name: Option<String>, id: Option<String>, kind: ChunkKind) -> Self {
+  pub fn new(name: Option<String>, kind: ChunkKind) -> Self {
     Self {
       name,
+      filename_template: None,
+      css_filename_template: None,
       ukey: ChunkUkey::new(),
-      id,
+      id: None,
       ids: vec![],
       id_name_hints: Default::default(),
       files: Default::default(),
@@ -56,9 +60,22 @@ impl Chunk {
       runtime: HashSet::default(),
       kind,
       hash: None,
+      rendered_hash: None,
       content_hash: HashMap::default(),
       chunk_reasons: Default::default(),
     }
+  }
+
+  pub fn get_entry_options<'a>(
+    &self,
+    chunk_group_by_ukey: &'a ChunkGroupByUkey,
+  ) -> Option<&'a EntryOptions> {
+    for group_ukey in &self.groups {
+      if let Some(group) = chunk_group_by_ukey.get(group_ukey) && group.kind.is_entrypoint() {
+        return group.options.entry_options.as_ref()
+      }
+    }
+    None
   }
 
   pub(crate) fn add_group(&mut self, group: ChunkGroupUkey) {
@@ -200,9 +217,7 @@ impl Chunk {
       .groups
       .iter()
       .filter_map(|ukey| chunk_group_by_ukey.get(ukey))
-      .any(|group| {
-        group.kind == ChunkGroupKind::Entrypoint && group.get_runtime_chunk() == self.ukey
-      })
+      .any(|group| group.kind.is_entrypoint() && group.get_runtime_chunk() == self.ukey)
   }
 
   pub fn get_all_async_chunks(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> HashSet<ChunkUkey> {

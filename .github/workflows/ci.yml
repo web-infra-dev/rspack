@@ -33,12 +33,14 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
+      profile: 'debug'
 
   test-windows:
     name: Test Windows
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
+      profile: 'debug'
 
   test-mac:
     name: Test Mac
@@ -46,6 +48,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-apple-darwin
+      profile: 'debug'
 
   spell:
     name: Spell check
@@ -76,8 +79,38 @@ jobs:
               - 'Cargo.toml'
               - 'rust-toolchain.toml'
 
-  rust:
+  rust_check:
     name: Rust check
+    needs: rust_changes
+    if: ${{ needs.rust_changes.outputs.changed == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          clippy: true
+          fmt: true
+          shared-key: check
+
+      - name: Run Cargo Check
+        run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
+
+      - name: Run Clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --workspace --all-targets -- -D warnings
+
+      - name: Run rustfmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  rust_test:
+    name: Rust test
     needs: rust_changes
     if: ${{ needs.rust_changes.outputs.changed == 'true' }}
     runs-on: ubuntu-latest
@@ -90,25 +123,15 @@ jobs:
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          clippy: true
-          fmt: true
           save-cache: ${{ github.ref_name == 'main' }}
           shared-key: check
 
-      - name: Run rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-
-      - name: Run Cargo Check
-        run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
-
-      - name: Run Clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --workspace --all-targets -- -D warnings
+      # Compile test without debug info for reducing the CI cache size
+      - name: Change profile.test
+        shell: bash
+        run: |
+          echo '[profile.test]' >> Cargo.toml
+          echo 'debug = false' >> Cargo.toml
 
       - name: Run test
         run: cargo test --workspace -- --nocapture

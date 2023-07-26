@@ -1,6 +1,6 @@
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH,
+  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH,
 };
 use rspack_identifier::Identifier;
 
@@ -22,6 +22,33 @@ impl RequireChunkLoadingRuntimeModule {
       chunk: None,
       runtime_requirements,
     }
+  }
+
+  fn generate_base_uri(
+    &self,
+    chunk: &Chunk,
+    compilation: &Compilation,
+    root_output_dir: &str,
+  ) -> BoxSource {
+    let base_uri = chunk
+      .get_entry_options(&compilation.chunk_group_by_ukey)
+      .and_then(|options| options.base_uri.as_ref())
+      .and_then(|base_uri| serde_json::to_string(base_uri).ok())
+      .unwrap_or_else(|| {
+        format!(
+          "require(\"url\").pathToFileURL({})",
+          if root_output_dir != "./" {
+            format!(
+              "__dirname + {}",
+              serde_json::to_string(&format!("/{root_output_dir}"))
+                .expect("should able to be serde_json::to_string")
+            )
+          } else {
+            "__filename".to_string()
+          }
+        )
+      });
+    RawSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed()
   }
 }
 
@@ -46,15 +73,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     let mut source = ConcatSource::default();
 
     if self.runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
-      source.add(RawSource::from(format!(
-        "{} = require(\"url\").pathToFileURL({});\n",
-        RuntimeGlobals::BASE_URI,
-        if &root_output_dir != "./" {
-          format!("__dirname + \"/{}\"", root_output_dir)
-        } else {
-          "__filename".to_string()
-        }
-      )))
+      source.add(self.generate_base_uri(chunk, compilation, &root_output_dir));
     }
 
     if with_hmr {

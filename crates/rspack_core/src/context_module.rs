@@ -3,7 +3,7 @@ use std::{
   fmt::{self, Display},
   fs,
   hash::Hash,
-  path::Path,
+  path::{Path, PathBuf},
   sync::Arc,
 };
 
@@ -14,12 +14,14 @@ use rspack_identifier::{Identifiable, Identifier};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   contextify, stringify_map, AstOrSource, BoxModuleDependency, BuildContext, BuildInfo, BuildMeta,
   BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ContextElementDependency,
-  DependencyCategory, DependencyType, GenerationResult, LibIdentOptions, Module, ModuleType,
-  Resolve, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, SourceType,
+  DependencyCategory, DependencyId, DependencyType, GenerationResult, LibIdentOptions, Module,
+  ModuleType, Resolve, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
+  SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -433,7 +435,7 @@ impl ContextModule {
             requests.iter().for_each(|r| {
               if options.context_options.reg_exp.test(&r.request) {
                 dependencies.push(Box::new(ContextElementDependency {
-                  id: None,
+                  id: DependencyId::new(),
                   request: format!(
                     "{}{}{}",
                     r.request,
@@ -473,8 +475,12 @@ impl ContextModule {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
 
+    let mut context_dependencies: HashSet<PathBuf> = Default::default();
+    context_dependencies.insert(PathBuf::from(&self.options.resource));
+
     let build_info = BuildInfo {
       hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
+      context_dependencies,
       ..Default::default()
     };
 

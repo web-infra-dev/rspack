@@ -1,16 +1,14 @@
 use rspack_core::{
-  module_id_expr, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
-  CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, ContextOptions, Dependency, DependencyCategory,
-  DependencyId, DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
+  module_id_expr, ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource,
 };
-use rspack_error::Result;
 
 #[derive(Debug, Clone)]
 pub struct RequireContextDependency {
   start: u32,
   end: u32,
-  pub id: Option<DependencyId>,
+  pub id: DependencyId,
   pub options: ContextOptions,
   span: Option<ErrorSpan>,
 }
@@ -22,18 +20,12 @@ impl RequireContextDependency {
       end,
       options,
       span,
-      id: None,
+      id: DependencyId::new(),
     }
   }
 }
 
 impl Dependency for RequireContextDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CommonJS
   }
@@ -44,6 +36,10 @@ impl Dependency for RequireContextDependency {
 }
 
 impl ModuleDependency for RequireContextDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.options.request
   }
@@ -60,8 +56,8 @@ impl ModuleDependency for RequireContextDependency {
     Some(&self.options)
   }
 
-  fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
-    Some(Box::new(self.clone()))
+  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
+    Some(self)
   }
 
   fn set_request(&mut self, request: String) {
@@ -69,25 +65,17 @@ impl ModuleDependency for RequireContextDependency {
   }
 }
 
-impl CodeGeneratable for RequireContextDependency {
-  fn generate(&self, _context: &mut CodeGeneratableContext) -> Result<CodeGeneratableResult> {
-    todo!()
-  }
-}
-
-impl CodeReplaceSourceDependency for RequireContextDependency {
+impl DependencyTemplate for RequireContextDependency {
   fn apply(
     &self,
-    source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
-    let CodeReplaceSourceDependencyContext { compilation, .. } = code_generatable_context;
-
-    let id: DependencyId = self.id().expect("should have dependency id");
+    let TemplateContext { compilation, .. } = code_generatable_context;
 
     let module_id = compilation
       .module_graph
-      .module_graph_module_by_dependency_id(&id)
+      .module_graph_module_by_dependency_id(&self.id)
       .map(|m| m.id(&compilation.chunk_graph))
       .expect("should have dependency id");
 

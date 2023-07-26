@@ -1,37 +1,33 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./app.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./app.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'something': function() { return _lib__WEBPACK_IMPORTED_MODULE_0_["default"]; }
 });
-Object.defineProperty(exports, "something", {
-    enumerable: true,
-    get: function() {
-        return _lib.default;
-    }
-});
-var _lib = __webpack_require__.ir(__webpack_require__("./lib.js"));
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
+
+ // export {
+ //   result as test
+ // }
 },
-"./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _app = __webpack_require__("./app.js");
-(0, _app.something)();
+"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./app */"./app.js");
+
+(0, _app__WEBPACK_IMPORTED_MODULE_0_["something"])();
 },
-"./lib.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: function() {
-        return _default;
-    }
-});
-function _default() {}
+ const secret = "888";
+ const result = 20000;
+ const something = function() {};
+function __WEBPACK_DEFAULT_EXPORT__(){}
 },
 
 },function(__webpack_require__) {

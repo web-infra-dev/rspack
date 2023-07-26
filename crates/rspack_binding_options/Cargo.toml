@@ -20,6 +20,8 @@ rspack_plugin_copy                      = { path = "../rspack_plugin_copy" }
 rspack_plugin_css                       = { path = "../rspack_plugin_css" }
 rspack_plugin_dev_friendly_split_chunks = { path = "../rspack_plugin_dev_friendly_split_chunks" }
 rspack_plugin_devtool                   = { path = "../rspack_plugin_devtool" }
+rspack_plugin_ensure_chunk_conditions   = { path = "../rspack_plugin_ensure_chunk_conditions" }
+rspack_plugin_entry                     = { path = "../rspack_plugin_entry" }
 rspack_plugin_externals                 = { path = "../rspack_plugin_externals" }
 rspack_plugin_html                      = { path = "../rspack_plugin_html" }
 rspack_plugin_javascript                = { path = "../rspack_plugin_javascript" }
@@ -33,6 +35,7 @@ rspack_plugin_schemes                   = { path = "../rspack_plugin_schemes" }
 rspack_plugin_split_chunks              = { path = "../rspack_plugin_split_chunks" }
 rspack_plugin_split_chunks_new          = { path = "../rspack_plugin_split_chunks_new" }
 rspack_plugin_wasm                      = { path = "../rspack_plugin_wasm" }
+rspack_plugin_worker                    = { path = "../rspack_plugin_worker" }
 rspack_regex                            = { path = "../rspack_regex" }
 
 anyhow            = { workspace = true, features = ["backtrace"] }
@@ -40,12 +43,11 @@ async-trait       = { workspace = true }
 better_scoped_tls = { workspace = true }
 derivative        = { workspace = true }
 glob              = { workspace = true }
-indexmap          = { workspace = true }
 napi              = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
 napi-derive       = { workspace = true }
 serde             = { workspace = true, features = ["derive"] }
 serde_json        = { workspace = true }
 swc_core          = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
-swc_plugin_import = { workspace = true }
+swc_plugin_import = { path = "../swc_plugin_import" }
 tokio             = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
 tracing           = { workspace = true }

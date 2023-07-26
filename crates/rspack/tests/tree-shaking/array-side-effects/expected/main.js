@@ -1,46 +1,38 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./app.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./app.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'app': function() { return app; }
 });
-Object.defineProperty(exports, "app", {
-    enumerable: true,
-    get: function() {
-        return app;
-    }
-});
-var _lib = __webpack_require__("./lib.js");
-function app() {}
-app.prototype.result = _lib.result;
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
+
+ function app() {}
+app.prototype.result = _lib__WEBPACK_IMPORTED_MODULE_0_["result"];
 },
-"./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-__webpack_require__("./src/a.js");
+"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _src_a__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./src/a */"./src/a.js");
+
+
 },
-"./lib.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'result': function() { return result; }
 });
-Object.defineProperty(exports, "result", {
-    enumerable: true,
-    get: function() {
-        return result;
-    }
-});
-const result = 20000;
+ const secret = "888";
+ const result = 20000;
+ const something = function() {};
 },
-"./src/a.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _app = __webpack_require__("./app.js");
-_app.app;
+"./src/a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ../app */"./app.js");
+
+_app__WEBPACK_IMPORTED_MODULE_0_["app"];
 },
 
 },function(__webpack_require__) {

@@ -1,7 +1,11 @@
-use napi::bindgen_prelude::SharedReference;
+use napi::bindgen_prelude::Buffer;
+use napi::{
+  bindgen_prelude::{Result, SharedReference},
+  Either,
+};
 use rspack_core::Stats;
 
-use super::JsCompilation;
+use super::{JsCompilation, ToJsCompatSource};
 
 #[napi(object)]
 #[derive(Debug)]
@@ -76,6 +80,7 @@ impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
   }
 }
 
+type JsStatsModuleSource = Either<String, Buffer>;
 #[napi(object)]
 pub struct JsStatsModule {
   pub r#type: &'static str,
@@ -91,16 +96,33 @@ pub struct JsStatsModule {
   pub issuer_path: Vec<JsStatsModuleIssuer>,
   pub reasons: Option<Vec<JsStatsModuleReason>>,
   pub assets: Option<Vec<String>>,
+  pub source: Option<Either<String, Buffer>>,
 }
 
-impl From<rspack_core::StatsModule> for JsStatsModule {
-  fn from(stats: rspack_core::StatsModule) -> Self {
-    Self {
+impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
+  type Error = napi::Error;
+  fn try_from(stats: rspack_core::StatsModule) -> Result<Self> {
+    let source = stats
+      .source
+      .map(|source| {
+        source.to_js_compat_source().map(|js_compat_source| {
+          if js_compat_source.is_raw && js_compat_source.is_buffer {
+            JsStatsModuleSource::B(js_compat_source.source)
+          } else {
+            let s = String::from_utf8_lossy(js_compat_source.source.as_ref()).to_string();
+            JsStatsModuleSource::A(s)
+          }
+        })
+      })
+      .transpose()
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
+    Ok(Self {
       r#type: stats.r#type,
       name: stats.name,
       size: stats.size,
       chunks: stats.chunks,
-      module_type: stats.module_type.to_string(),
+      module_type: stats.module_type.as_str().to_string(),
       identifier: stats.identifier.to_string(),
       id: stats.id,
       issuer: stats.issuer,
@@ -111,7 +133,8 @@ impl From<rspack_core::StatsModule> for JsStatsModule {
         .reasons
         .map(|i| i.into_iter().map(Into::into).collect()),
       assets: stats.assets,
-    }
+      source,
+    })
   }
 }
 
@@ -168,9 +191,10 @@ pub struct JsStatsChunk {
   pub siblings: Option<Vec<String>>,
 }
 
-impl From<rspack_core::StatsChunk> for JsStatsChunk {
-  fn from(stats: rspack_core::StatsChunk) -> Self {
-    Self {
+impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
+  type Error = napi::Error;
+  fn try_from(stats: rspack_core::StatsChunk) -> Result<Self> {
+    Ok(Self {
       r#type: stats.r#type,
       files: stats.files,
       id: stats.id,
@@ -180,11 +204,12 @@ impl From<rspack_core::StatsChunk> for JsStatsChunk {
       size: stats.size,
       modules: stats
         .modules
-        .map(|i| i.into_iter().map(Into::into).collect()),
+        .map(|i| i.into_iter().map(|m| m.try_into()).collect::<Result<_>>())
+        .transpose()?,
       parents: stats.parents,
       children: stats.children,
       siblings: stats.siblings,
-    }
+    })
   }
 }
 
@@ -273,13 +298,14 @@ impl JsStats {
     reasons: bool,
     module_assets: bool,
     nested_modules: bool,
-  ) -> Vec<JsStatsModule> {
+    source: bool,
+  ) -> Result<Vec<JsStatsModule>> {
     self
       .inner
-      .get_modules(reasons, module_assets, nested_modules)
-      .expect("Failed to get modules")
+      .get_modules(reasons, module_assets, nested_modules, source)
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?
       .into_iter()
-      .map(Into::into)
+      .map(TryInto::try_into)
       .collect()
   }
 
@@ -291,7 +317,8 @@ impl JsStats {
     reasons: bool,
     module_assets: bool,
     nested_modules: bool,
-  ) -> Vec<JsStatsChunk> {
+    source: bool,
+  ) -> Result<Vec<JsStatsChunk>> {
     self
       .inner
       .get_chunks(
@@ -300,10 +327,11 @@ impl JsStats {
         reasons,
         module_assets,
         nested_modules,
+        source,
       )
-      .expect("Failed to get chunks")
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?
       .into_iter()
-      .map(Into::into)
+      .map(TryInto::try_into)
       .collect()
   }
 

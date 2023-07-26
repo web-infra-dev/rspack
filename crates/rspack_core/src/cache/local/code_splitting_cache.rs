@@ -13,6 +13,7 @@ pub struct CodeSplittingCache {
   chunk_graph: ChunkGraph,
   chunk_group_by_ukey: Database<ChunkGroup>,
   entrypoints: IndexMap<String, ChunkGroupUkey>,
+  async_entrypoints: Vec<ChunkGroupUkey>,
   named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   named_chunks: HashMap<String, ChunkUkey>,
 }
@@ -26,7 +27,7 @@ where
   T: Fn(&'a mut Compilation) -> F,
   F: Future<Output = Result<&'a mut Compilation>>,
 {
-  let is_incremental_rebuild = compilation.options.is_make_use_incremental_rebuild();
+  let is_incremental_rebuild = compilation.options.is_incremental_rebuild_make_enabled();
   if !is_incremental_rebuild {
     task(compilation).await?;
     return Ok(());
@@ -39,6 +40,7 @@ where
       s.spawn(|_| compilation.chunk_graph = cache.chunk_graph.clone());
       s.spawn(|_| compilation.chunk_group_by_ukey = cache.chunk_group_by_ukey.clone());
       s.spawn(|_| compilation.entrypoints = cache.entrypoints.clone());
+      s.spawn(|_| compilation.async_entrypoints = cache.async_entrypoints.clone());
       s.spawn(|_| compilation.named_chunk_groups = cache.named_chunk_groups.clone());
       s.spawn(|_| compilation.named_chunks = cache.named_chunks.clone());
     });
@@ -53,6 +55,7 @@ where
     s.spawn(|_| cache.chunk_graph = compilation.chunk_graph.clone());
     s.spawn(|_| cache.chunk_group_by_ukey = compilation.chunk_group_by_ukey.clone());
     s.spawn(|_| cache.entrypoints = compilation.entrypoints.clone());
+    s.spawn(|_| cache.async_entrypoints = compilation.async_entrypoints.clone());
     s.spawn(|_| cache.named_chunk_groups = compilation.named_chunk_groups.clone());
     s.spawn(|_| cache.named_chunks = compilation.named_chunks.clone());
   });

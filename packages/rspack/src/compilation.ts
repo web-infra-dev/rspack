@@ -10,7 +10,7 @@
 import * as tapable from "tapable";
 import { Source } from "webpack-sources";
 
-import {
+import type {
 	JsAssetInfo,
 	JsChunk,
 	JsCompatSource,
@@ -37,6 +37,8 @@ import { LogType, Logger } from "./logging/Logger";
 import { NormalModule } from "./normalModule";
 import { NormalModuleFactory } from "./normalModuleFactory";
 import { Stats, normalizeStatsPreset } from "./stats";
+import { StatsFactory } from "./stats/StatsFactory";
+import { StatsPrinter } from "./stats/StatsPrinter";
 import { concatErrorMsgAndStack, isJsStatsError, toJsAssetInfo } from "./util";
 import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import {
@@ -91,6 +93,8 @@ export class Compilation {
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
 		succeedModule: tapable.SyncHook<[JsModule], undefined>;
 		stillValidModule: tapable.SyncHook<[JsModule], undefined>;
+		statsFactory: tapable.SyncHook<[StatsFactory, StatsOptions], void>;
+		statsPrinter: tapable.SyncHook<[StatsPrinter, StatsOptions], void>;
 		buildModule: tapable.SyncHook<[NormalizedJsModule]>;
 	};
 	options: RspackOptionsNormalized;
@@ -128,6 +132,8 @@ export class Compilation {
 			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
 			succeedModule: new tapable.SyncHook(["module"]),
 			stillValidModule: new tapable.SyncHook(["module"]),
+			statsFactory: new tapable.SyncHook(["statsFactory", "options"]),
+			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"]),
 			buildModule: new tapable.SyncHook(["module"])
 		};
 		this.compiler = compiler;
@@ -260,6 +266,7 @@ export class Compilation {
 		options.warnings = optionOrLocalFallback(options.warnings, true);
 		options.warningsCount = optionOrLocalFallback(options.warningsCount, true);
 		options.hash = optionOrLocalFallback(options.hash, true);
+		options.version = optionOrLocalFallback(options.version, true);
 		options.publicPath = optionOrLocalFallback(options.publicPath, true);
 		options.outputPath = optionOrLocalFallback(
 			options.outputPath,
@@ -275,8 +282,21 @@ export class Compilation {
 			options.nestedModules,
 			!context.forToString
 		);
+		options.source = optionOrLocalFallback(options.source, false);
 
 		return options;
+	}
+
+	createStatsFactory(options: StatsOptions) {
+		const statsFactory = new StatsFactory();
+		this.hooks.statsFactory.call(statsFactory, options);
+		return statsFactory;
+	}
+
+	createStatsPrinter(options: StatsOptions) {
+		const statsPrinter = new StatsPrinter();
+		this.hooks.statsPrinter.call(statsPrinter, options);
+		return statsPrinter;
 	}
 
 	/**
@@ -611,9 +631,10 @@ export class Compilation {
 	);
 
 	get modules() {
-		return this.getModules().map(item => normalizeJsModule(item));
+		return this.__internal__getModules().map(item => normalizeJsModule(item));
 	}
 
+	// FIXME: This is not aligned with Webpack.
 	get chunks() {
 		var stats = this.getStats().toJson({
 			all: false,
@@ -642,7 +663,7 @@ export class Compilation {
 	 * @internal
 	 */
 	__internal__getAssociatedModules(chunk: JsStatsChunk): any[] | undefined {
-		let modules = this.getModules();
+		let modules = this.__internal__getModules();
 		let moduleMap: Map<string, JsModule> = new Map();
 		for (let module of modules) {
 			moduleMap.set(module.moduleIdentifier, module);
@@ -682,10 +703,23 @@ export class Compilation {
 		return modules.get(identifier);
 	}
 
-	getModules(): JsModule[] {
+	/**
+	 *
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__getModules(): JsModule[] {
 		return this.#inner.getModules();
 	}
-	getChunks(): JsChunk[] {
+
+	/**
+	 *
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__getChunks(): JsChunk[] {
 		return this.#inner.getChunks();
 	}
 

@@ -55,7 +55,7 @@ impl WorkerTask for FactorizeTask {
     let dependencies = self
       .dependencies
       .iter()
-      .map(|d| d.id().expect("should have dependency"))
+      .map(|d| *d.id())
       .collect::<Vec<_>>();
     let dependency = &self.dependencies[0];
 

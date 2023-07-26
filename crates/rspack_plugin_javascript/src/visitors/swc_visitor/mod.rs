@@ -19,9 +19,6 @@ pub use provide::provide_builtin;
 mod compat;
 pub use compat::compat;
 
-mod build_module;
-pub use build_module::build_module;
-
 mod hygiene;
 pub use hygiene::hygiene;
 pub use swc_core::ecma::transforms::base::fixer::{fixer, paren_remover};

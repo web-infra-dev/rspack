@@ -1,51 +1,37 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./answer.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./answer.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'answer': function() { return answer; }
 });
-Object.defineProperty(exports, "answer", {
-    enumerable: true,
-    get: function() {
-        return answer;
-    }
-});
-const answer = 42;
+
+ const answer = 42;
 },
-"./app.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./app.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'myanswer': function() { return _lib__WEBPACK_IMPORTED_MODULE_0_["myanswer"]; }
 });
-Object.defineProperty(exports, "myanswer", {
-    enumerable: true,
-    get: function() {
-        return _lib.myanswer;
-    }
-});
-var _lib = __webpack_require__("./lib.js");
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
+
 },
-"./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _app = __webpack_require__("./app.js");
-__webpack_require__("./answer.js");
-(0, _app.myanswer)();
+"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./app */"./app.js");
+
+__webpack_require__(/* ./answer */"./answer.js");
+(0, _app__WEBPACK_IMPORTED_MODULE_1_["myanswer"])();
 },
-"./lib.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'myanswer': function() { return myanswer; }
 });
-Object.defineProperty(exports, "myanswer", {
-    enumerable: true,
-    get: function() {
-        return myanswer;
-    }
-});
-const myanswer = 'anyser';
+ const myanswer = 'anyser';
 },
 
 },function(__webpack_require__) {

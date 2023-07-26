@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-node-polyfill",
-  "version": "0.2.2",
+  "version": "0.2.9",
   "license": "MIT",
   "description": "Node polyfill plugin for rspack",
   "main": "src/index.js",
@@ -41,7 +41,6 @@
     "string_decoder": "^1.3.0",
     "timers-browserify": "^2.0.12",
     "tty-browserify": "^0.0.1",
-    "type-fest": "^2.14.0",
     "url": "^0.11.0",
     "util": "^0.12.4",
     "vm-browserify": "^1.1.2"

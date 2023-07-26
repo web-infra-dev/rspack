@@ -6,8 +6,28 @@ function chunkLoadingType() {
 		.or(z.string());
 }
 
+function chunkLoading() {
+	return z.literal(false).or(chunkLoadingType());
+}
+
 function wasmLoadingType() {
 	return z.enum(["...", "fetch-streaming", "fetch", "async-node"]);
+}
+
+function wasmLoading() {
+	return z.literal(false).or(wasmLoadingType());
+}
+
+export function publicPath() {
+	return z.literal("auto").or(z.string());
+}
+
+export function filename() {
+	return z.string();
+}
+
+function workerPublicPath() {
+	return z.string();
 }
 
 function libraryType() {
@@ -34,27 +54,47 @@ function libraryType() {
 	]);
 }
 
+const umdNamedDefine = z.boolean();
+
+const auxiliaryComment = z.string().or(
+	z.strictObject({
+		amd: z.string().optional(),
+		commonjs: z.string().optional(),
+		commonjs2: z.string().optional(),
+		root: z.string().optional()
+	})
+);
+
+const libraryName = z
+	.string()
+	.or(z.string().array())
+	.or(
+		z.strictObject({
+			amd: z.string().optional(),
+			commonjs: z.string().optional(),
+			root: z.string().or(z.string().array()).optional()
+		})
+	);
+
+const libraryOptions = z.strictObject({
+	auxiliaryComment: auxiliaryComment.optional(),
+	export: z.string().array().or(z.string()).optional(),
+	name: libraryName.optional(),
+	type: libraryType().optional(),
+	umdNamedDefine: umdNamedDefine.optional()
+});
+
 export function output() {
 	return z.strictObject({
 		iife: z.boolean().optional(),
 		clean: z.boolean().optional(),
 		assetModuleFilename: z.string().optional(),
-		auxiliaryComment: z
-			.string()
-			.or(
-				z.strictObject({
-					amd: z.string().optional(),
-					commonjs: z.string().optional(),
-					commonjs2: z.string().optional(),
-					root: z.string().optional()
-				})
-			)
-			.optional(),
+		auxiliaryComment: auxiliaryComment.optional(),
 		chunkFormat: z
 			.enum(["array-push", "commonjs", "module"])
 			.or(z.literal(false))
 			.optional(),
-		chunkLoading: z.literal(false).or(chunkLoadingType()).optional(),
+		chunkLoading: chunkLoading().optional(),
 		enabledChunkLoadingTypes: chunkLoadingType().array().optional(),
 		chunkFilename: z.string().optional(),
 		cssChunkFilename: z.string().optional(),
@@ -63,10 +103,10 @@ export function output() {
 		hotUpdateMainFilename: z.string().optional(),
 		webassemblyModuleFilename: z.string().optional(),
 		hashSalt: z.string().optional(),
-		filename: z.string().optional(),
+		filename: filename().optional(),
 		sourceMapFilename: z.string().optional(),
 		importFunctionName: z.string().optional(),
-		publicPath: z.string().optional(),
+		publicPath: publicPath().optional(),
 		uniqueName: z.string().optional(),
 		path: z.string().optional(),
 		crossOriginLoading: z
@@ -74,7 +114,7 @@ export function output() {
 			.or(z.enum(["anonymous", "use-credentials"]))
 			.optional(),
 		enabledWasmLoadingTypes: wasmLoadingType().array().optional(),
-		wasmLoading: z.literal(false).or(wasmLoadingType()).optional(),
+		wasmLoading: wasmLoading().optional(),
 		enabledLibraryTypes: libraryType().or(libraryType().array()).optional(),
 		globalObject: z.string().min(1).optional(),
 		libraryExport: z.string().min(1).or(z.string().min(1).array()).optional(),
@@ -82,12 +122,24 @@ export function output() {
 		hashFunction: z.string().or(z.function()).optional(),
 		// TODO(hyf0)
 		module: z.any().optional(),
-		strictModuleErrorHandling: z.any().optional(),
-		umdNamedDefine: z.any().optional(),
-		chunkLoadingGlobal: z.any().optional(),
-		trustedTypes: z.any().optional(),
-		hashDigest: z.any().optional(),
-		hashDigestLength: z.any().optional(),
-		library: z.any().optional()
+		strictModuleErrorHandling: z.boolean().optional(),
+		umdNamedDefine: umdNamedDefine.optional(),
+		chunkLoadingGlobal: z.string().optional(),
+		trustedTypes: z
+			.literal(true)
+			.or(z.string())
+			.or(
+				z.strictObject({
+					policyName: z.string().optional()
+				})
+			)
+			.optional(),
+		hashDigest: z.string().optional(),
+		hashDigestLength: z.number().optional(),
+		library: libraryName.or(libraryOptions).optional(),
+		asyncChunks: z.boolean().optional(),
+		workerChunkLoading: chunkLoading().optional(),
+		workerWasmLoading: wasmLoading().optional(),
+		workerPublicPath: workerPublicPath().optional()
 	});
 }

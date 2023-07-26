@@ -32,23 +32,17 @@ use crate::{
   is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModule,
-  BoxModuleDependency, BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey,
+  BoxModuleDependency, BuildQueue, BuildTask, BuildTaskResult, Chunk, ChunkByUkey,
   ChunkContentHash, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey,
   CleanQueue, CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults,
-  CompilerOptions, ContentHashArgs, DependencyId, EntryDependency, EntryItem, EntryOptions,
-  Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Module, ModuleGraph,
+  CompilerOptions, ContentHashArgs, DependencyId, Entry, EntryData, EntryOptions, Entrypoint,
+  FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Module, ModuleGraph,
   ModuleIdentifier, ModuleType, PathData, ProcessAssetsArgs, ProcessDependenciesQueue,
   ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory,
-  RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats, TaskResult, WorkerTask,
+  RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult,
+  WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
-
-#[derive(Debug)]
-pub struct EntryData {
-  pub name: String,
-  pub dependencies: Vec<DependencyId>,
-  pub options: EntryOptions,
-}
 
 pub type BuildDependency = (
   DependencyId,
@@ -57,9 +51,14 @@ pub type BuildDependency = (
 
 #[derive(Debug)]
 pub struct Compilation {
+  // Mark compilation status, because the hash of `[hash].hot-update.js/json` is previous compilation hash.
+  // Status A(hash: A) -> Status B(hash: B) will generate `A.hot-update.js`
+  // Status A(hash: A) -> Status C(hash: C) will generate `A.hot-update.js`
+  // The status is different, should generate different hash for `.hot-update.js`
+  // So use compilation hash update `hot_index` to fix it.
+  pub hot_index: u32,
   pub options: Arc<CompilerOptions>,
-  entries: BundleEntries,
-  pub entry_dependencies: HashMap<String, Vec<DependencyId>>,
+  pub entries: Entry,
   pub module_graph: ModuleGraph,
   pub make_failed_dependencies: HashSet<BuildDependency>,
   pub make_failed_module: HashSet<ModuleIdentifier>,
@@ -70,6 +69,7 @@ pub struct Compilation {
   pub chunk_by_ukey: Database<Chunk>,
   pub chunk_group_by_ukey: Database<ChunkGroup>,
   pub entrypoints: IndexMap<String, ChunkGroupUkey>,
+  pub async_entrypoints: Vec<ChunkGroupUkey>,
   assets: CompilationAssets,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: IndexSet<Diagnostic, BuildHasherDefault<FxHasher>>,
@@ -106,13 +106,13 @@ impl Compilation {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     options: Arc<CompilerOptions>,
-    entries: BundleEntries,
     module_graph: ModuleGraph,
     plugin_driver: SharedPluginDriver,
     resolver_factory: Arc<ResolverFactory>,
     cache: Arc<Cache>,
   ) -> Self {
     Self {
+      hot_index: 0,
       options,
       module_graph,
       make_failed_dependencies: HashSet::default(),
@@ -122,10 +122,10 @@ impl Compilation {
       runtime_module_code_generation_results: Default::default(),
       chunk_by_ukey: Default::default(),
       chunk_group_by_ukey: Default::default(),
-      entry_dependencies: Default::default(),
-      entries,
+      entries: Default::default(),
       chunk_graph: Default::default(),
       entrypoints: Default::default(),
+      async_entrypoints: Default::default(),
       assets: Default::default(),
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
@@ -157,8 +157,16 @@ impl Compilation {
     }
   }
 
-  pub fn add_entry(&mut self, name: String, detail: EntryItem) {
-    self.entries.insert(name, detail);
+  pub fn add_entry(&mut self, entry: DependencyId, name: String, options: EntryOptions) {
+    if let Some(data) = self.entries.get_mut(&name) {
+      data.dependencies.push(entry);
+    } else {
+      let data = EntryData {
+        dependencies: vec![entry],
+        options,
+      };
+      self.entries.insert(name.to_owned(), data);
+    }
   }
 
   pub fn update_asset(
@@ -293,7 +301,7 @@ impl Compilation {
         .expect("This should not happen");
       chunk
     } else {
-      let chunk = Chunk::new(Some(name.clone()), None, ChunkKind::Normal);
+      let chunk = Chunk::new(Some(name.clone()), ChunkKind::Normal);
       let ukey = chunk.ukey;
       named_chunks.insert(name, chunk.ukey);
       chunk_by_ukey.entry(ukey).or_insert_with(|| chunk)
@@ -301,57 +309,21 @@ impl Compilation {
   }
 
   pub fn add_chunk(chunk_by_ukey: &mut ChunkByUkey) -> &mut Chunk {
-    let chunk = Chunk::new(None, None, ChunkKind::Normal);
+    let chunk = Chunk::new(None, ChunkKind::Normal);
     let ukey = chunk.ukey;
     chunk_by_ukey.add(chunk);
     chunk_by_ukey.get_mut(&ukey).expect("chunk not found")
   }
 
-  #[instrument(name = "entry_data", skip(self))]
-  pub fn entry_data(&self) -> IndexMap<String, EntryData> {
-    self
-      .entries
-      .iter()
-      .map(|(name, item)| {
-        let dependencies = self
-          .entry_dependencies
-          .get(name)
-          .expect("should have dependencies")
-          .clone();
-        (
-          name.clone(),
-          EntryData {
-            dependencies,
-            name: name.clone(),
-            options: EntryOptions {
-              runtime: item.runtime.clone(),
-            },
-          },
-        )
-      })
-      .collect()
-  }
-
-  pub fn setup_entry_dependencies(&mut self) {
-    self.entries.iter().for_each(|(name, item)| {
-      let dependencies = item
-        .import
-        .iter()
-        .map(|detail| {
-          let dependency =
-            Box::new(EntryDependency::new(detail.to_string())) as BoxModuleDependency;
-          self.module_graph.add_dependency(dependency)
-        })
-        .collect::<Vec<_>>();
-      self
-        .entry_dependencies
-        .insert(name.to_string(), dependencies);
-    })
-  }
-
   #[instrument(name = "compilation:make", skip_all)]
-  pub async fn make(&mut self, param: MakeParam) -> Result<()> {
-    if let Some(e) = self.plugin_driver.clone().make(self).await.err() {
+  pub async fn make(&mut self, mut param: MakeParam) -> Result<()> {
+    if let Some(e) = self
+      .plugin_driver
+      .clone()
+      .make(self, &mut param)
+      .await
+      .err()
+    {
       self.push_batch_diagnostic(e.into());
     }
     let make_failed_module =
@@ -651,8 +623,11 @@ impl Compilation {
 
               let mut dep_ids = vec![];
               for dependency in build_result.dependencies {
-                let dep_id = self.module_graph.add_dependency(dependency);
-                dep_ids.push(dep_id);
+                self
+                  .module_graph
+                  .set_dependency_import_var(module.identifier(), dependency.request());
+                dep_ids.push(*dependency.id());
+                self.module_graph.add_dependency(dependency);
               }
 
               {
@@ -1036,7 +1011,14 @@ impl Compilation {
         .expect("chunk group not found");
       entrypoint.get_runtime_chunk()
     });
-    HashSet::from_iter(entries)
+    let async_entries = self.async_entrypoints.iter().map(|entrypoint_ukey| {
+      let entrypoint = self
+        .chunk_group_by_ukey
+        .get(entrypoint_ukey)
+        .expect("chunk group not found");
+      entrypoint.get_runtime_chunk()
+    });
+    HashSet::from_iter(entries.chain(async_entries))
   }
 
   #[instrument(name = "compilation:process_runtime_requirements", skip_all)]
@@ -1093,7 +1075,7 @@ impl Compilation {
           .chunk_graph
           .get_module_runtime_requirements(module.identifier(), &chunk.runtime)
         {
-          set.add(*runtime_requirements);
+          set.insert(*runtime_requirements);
         }
       }
       chunk_requirements.insert(*chunk_ukey, set);
@@ -1126,7 +1108,7 @@ impl Compilation {
         .iter()
       {
         let runtime_requirements = self.chunk_graph.get_chunk_runtime_requirements(chunk_ukey);
-        set.add(*runtime_requirements);
+        set.insert(*runtime_requirements);
       }
 
       plugin_driver.additional_tree_runtime_requirements(
@@ -1156,6 +1138,25 @@ impl Compilation {
     let mut compilation_hasher = RspackHash::from(&self.options.output);
     let runtime_chunk_ukeys = self.get_chunk_graph_entries();
 
+    fn try_process_chunk_hash_results(
+      compilation: &mut Compilation,
+      chunk_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>>,
+    ) -> Result<()> {
+      for hash_result in chunk_hash_results {
+        let (chunk_ukey, (chunk_hash, content_hash)) = hash_result?;
+        if let Some(chunk) = compilation.chunk_by_ukey.get_mut(&chunk_ukey) {
+          chunk.rendered_hash = Some(
+            chunk_hash
+              .rendered(compilation.options.output.hash_digest_length)
+              .into(),
+          );
+          chunk.hash = Some(chunk_hash);
+          chunk.content_hash = content_hash;
+        }
+      }
+      Ok(())
+    }
+
     let other_chunk_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
       self
         .chunk_by_ukey
@@ -1167,13 +1168,8 @@ impl Compilation {
         })
         .collect::<FuturesResults<_>>()
         .into_inner();
-    for hash_result in other_chunk_hash_results {
-      let (chunk_ukey, (chunk_hash, content_hash)) = hash_result?;
-      if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) {
-        chunk.hash = Some(chunk_hash);
-        chunk.content_hash = content_hash;
-      }
-    }
+
+    try_process_chunk_hash_results(self, other_chunk_hash_results)?;
 
     // runtime chunks should be hashed after all other chunks
     self.create_runtime_module_hash();
@@ -1187,13 +1183,7 @@ impl Compilation {
         })
         .collect::<FuturesResults<_>>()
         .into_inner();
-    for hash_result in runtime_chunk_hash_results {
-      let (chunk_ukey, (chunk_hash, content_hash)) = hash_result?;
-      if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) {
-        chunk.hash = Some(chunk_hash);
-        chunk.content_hash = content_hash;
-      }
-    }
+    try_process_chunk_hash_results(self, runtime_chunk_hash_results)?;
 
     self
       .chunk_by_ukey
@@ -1203,7 +1193,31 @@ impl Compilation {
       .for_each(|hash| {
         hash.hash(&mut compilation_hasher);
       });
+    self.hot_index.hash(&mut compilation_hasher);
     self.hash = Some(compilation_hasher.digest(&self.options.output.hash_digest));
+
+    // here omit re-create full hash runtime module hash, only update compilation hash to runtime chunk content hash
+    self.chunk_by_ukey.values_mut().for_each(|chunk| {
+      if runtime_chunk_ukeys.contains(&chunk.ukey) {
+        if let Some(chunk_hash) = &mut chunk.hash {
+          let mut hasher = RspackHash::from(&self.options.output);
+          chunk_hash.hash(&mut hasher);
+          self.hash.hash(&mut hasher);
+          *chunk_hash = hasher.digest(&self.options.output.hash_digest);
+          chunk.rendered_hash = Some(
+            chunk_hash
+              .rendered(self.options.output.hash_digest_length)
+              .into(),
+          );
+        }
+        if let Some(content_hash) = chunk.content_hash.get_mut(&SourceType::JavaScript) {
+          let mut hasher = RspackHash::from(&self.options.output);
+          content_hash.hash(&mut hasher);
+          self.hash.hash(&mut hasher);
+          *content_hash = hasher.digest(&self.options.output.hash_digest);
+        }
+      }
+    });
     Ok(())
   }
 
@@ -1395,7 +1409,7 @@ pub struct AssetInfo {
   /// the value(s) of the full hash used for this asset
   // pub full_hash:
   /// the value(s) of the chunk hash used for this asset
-  // pub chunk_hash:
+  pub chunk_hash: HashSet<String>,
   /// the value(s) of the module hash used for this asset
   // pub module_hash:
   /// the value(s) of the content hash used for this asset
@@ -1450,6 +1464,10 @@ impl AssetInfo {
 
   pub fn set_content_hash(&mut self, v: String) {
     self.content_hash.insert(v);
+  }
+
+  pub fn set_chunk_hash(&mut self, v: String) {
+    self.chunk_hash.insert(v);
   }
 
   pub fn set_immutable(&mut self, v: bool) {

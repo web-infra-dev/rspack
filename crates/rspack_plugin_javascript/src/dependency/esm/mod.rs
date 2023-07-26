@@ -1,7 +1,3 @@
-mod import;
-pub use import::*;
-mod export;
-pub use export::*;
 mod harmony_compatibility_dependency;
 pub use harmony_compatibility_dependency::*;
 mod harmony_evaluated_import_specifier_dependency;

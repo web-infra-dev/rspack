@@ -106,6 +106,7 @@ const describeCases = config => {
 								parallel: false
 							});
 							let options = {
+								...testConfig,
 								context: casesPath,
 								entry: "./" + category.name + "/" + testName + "/",
 								target: config.target || "async-node",
@@ -216,6 +217,9 @@ const describeCases = config => {
 									asyncWebAssembly: true,
 									topLevelAwait: true,
 									backCompat: false,
+                  // RSPACK exclusive: Rspack enables `css` by default.
+                  // Turning off here to fallback to webpack's default css processing logic.
+                  css: false,
 									...(config.module ? { outputModule: true } : {})
 								},
 								infrastructureLogging: config.cache && {

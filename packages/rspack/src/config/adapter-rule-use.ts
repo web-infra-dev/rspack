@@ -1,4 +1,8 @@
-import { JsAssetInfo, RawModuleRuleUse, RawOptions } from "@rspack/binding";
+import type {
+	JsAssetInfo,
+	RawModuleRuleUse,
+	RawOptions
+} from "@rspack/binding";
 import assert from "assert";
 import { ResolveRequest } from "enhanced-resolve";
 
@@ -194,7 +198,7 @@ export type LoaderDefinition<
 };
 
 export function createRawModuleRuleUses(
-	uses: RuleSetUse,
+	uses: RuleSetUseItem | RuleSetUseItem[],
 	path: string,
 	options: ComposeJsUseOptions
 ): RawModuleRuleUse[] {

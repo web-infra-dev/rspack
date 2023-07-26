@@ -12,3 +12,6 @@ extend-exclude = [
   "GOVERNANCE.md",
   "pnpm-lock.yaml",
 ]
+
+[default.extend-words]
+Nd = "Nd"

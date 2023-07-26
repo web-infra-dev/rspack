@@ -350,8 +350,8 @@ impl Rst {
 
           let actual_buf = fs::read(actual_dir.as_path()).expect("TODO:");
           let actual_str = String::from_utf8_lossy(&actual_buf);
-
-          if expected_str != actual_str {
+          // ignore newline diff for ci
+          if expected_str.replace("\r\n", "\n") != actual_str.replace("\r\n", "\n") {
             let diff = FileDiff {
               expected_path: expected_dir.clone(),
               actual_path: actual_dir.clone(),

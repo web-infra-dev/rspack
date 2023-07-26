@@ -1,70 +1,47 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./answer.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./answer.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'answer': function() { return answer; }
 });
-Object.defineProperty(exports, "answer", {
-    enumerable: true,
-    get: function() {
-        return answer;
-    }
-});
-const answer = 103330;
+ const answer = 103330; // export default answer;
 },
-"./app.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./app.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'render': function() { return render; },
+  'default': function() { return result; }
 });
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    render: function() {
-        return render;
-    },
-    default: function() {
-        return result;
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
+
+ function render() {
+    function test() {
+        const container = document.getElementById("root");
+        container.innerHTML = `adddd333:${_lib__WEBPACK_IMPORTED_MODULE_0_["secret"]}:${_lib__WEBPACK_IMPORTED_MODULE_0_["myanswer"]}`;
     }
-});
-__webpack_require__("./lib.js");
-function render() {}
+}
 function result() {}
 },
-"./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _app = __webpack_require__.ir(__webpack_require__("./app.js"));
-(0, _app.render)(_app.default);
+"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./app */"./app.js");
+
+(0, _app__WEBPACK_IMPORTED_MODULE_0_["render"])(_app__WEBPACK_IMPORTED_MODULE_0_["default"]);
 },
-"./lib.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+"./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'secret': function() { return secret; },
+  'myanswer': function() { return myanswer; }
 });
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    secret: function() {
-        return secret;
-    },
-    myanswer: function() {
-        return myanswer;
-    }
-});
-var _answer = __webpack_require__("./answer.js");
-const secret = "888";
-const myanswer = _answer.answer;
+/* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./answer */"./answer.js");
+
+ const secret = "888";
+ const myanswer = _answer__WEBPACK_IMPORTED_MODULE_0_["answer"], result = 20000;
 },
 
 },function(__webpack_require__) {

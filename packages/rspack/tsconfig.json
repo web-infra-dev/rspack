@@ -10,9 +10,5 @@
   "ts-node": {
     "transpileOnly": true
   },
-  "references": [
-    {
-      "path": "../rspack-dev-client"
-    }
-  ]
+  "references": []
 }

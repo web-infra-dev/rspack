@@ -43,15 +43,14 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
       return Ok(());
     }
 
-    // TODO: check if chunk is entrypoint
-    // if compilation
-    //   .chunk_graph
-    //   .get_number_of_entry_modules(chunk_ukey)
-    //   > 0
-    // {
-    runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-    // }
+    if compilation
+      .chunk_graph
+      .get_number_of_entry_modules(chunk_ukey)
+      > 0
+    {
+      runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
+      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+    }
     runtime_requirements.insert(RuntimeGlobals::CHUNK_CALLBACK);
 
     Ok(())

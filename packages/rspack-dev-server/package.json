@@ -1,13 +1,13 @@
 {
   "name": "@rspack/dev-server",
-  "version": "0.2.2",
+  "version": "0.2.9",
   "license": "MIT",
   "description": "Development server for rspack",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "rimraf dist/ && tsc",
-    "dev": "tsc -w",
+    "build": "rimraf dist/ && tsc -b tsconfig.build.json",
+    "dev": "tsc -w -b tsconfig.build.json",
     "test": "rimraf .test-temp && jest --runInBand"
   },
   "files": [

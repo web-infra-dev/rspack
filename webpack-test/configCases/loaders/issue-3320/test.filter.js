@@ -1,1 +1,1 @@
-module.exports = () => {return false}
+module.exports = () => {return "blocked by `resolveLoader` https://github.com/web-infra-dev/rspack/issues/3737"}

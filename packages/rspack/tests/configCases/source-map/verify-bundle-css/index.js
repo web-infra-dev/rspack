@@ -13,7 +13,8 @@ it("verify css bundle source map", async () => {
 	expect(map.sources).toEqual([
 		"./b-dir/c-dir/c.css",
 		"./b-dir/b.css",
-		"./a.css"
+		"./a.css",
+		"./entry.css"
 	]);
 	expect(map.file).toEqual("main.css");
 	const out = fs.readFileSync(path.resolve(__dirname, "main.css"), "utf-8");

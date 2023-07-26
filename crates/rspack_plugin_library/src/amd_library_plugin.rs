@@ -49,6 +49,10 @@ impl Plugin for AmdLibraryPlugin {
           .module_graph
           .module_by_identifier(identifier)
           .and_then(|module| module.as_external_module())
+          .and_then(|m| {
+            let ty = m.get_external_type();
+            (ty == "amd" || ty == "amd-require").then_some(m)
+          })
       })
       .collect::<Vec<&ExternalModule>>();
     let external_deps_array = external_dep_array(&modules);
@@ -77,7 +81,7 @@ impl Plugin for AmdLibraryPlugin {
         "define('{normalize_name}', {external_deps_array}, {fn_start}"
       )));
     } else if modules.is_empty() {
-      source.add(RawSource::from(format!("define({fn_start}, ")));
+      source.add(RawSource::from(format!("define({fn_start}")));
     } else {
       source.add(RawSource::from(format!(
         "define({external_deps_array}, {fn_start}"

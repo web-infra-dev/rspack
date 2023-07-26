@@ -11,6 +11,7 @@ pub mod asset_module;
 pub mod debug_helper;
 pub mod js_module;
 pub mod optimizer;
+pub mod symbol;
 pub mod symbol_graph;
 pub mod utils;
 pub mod visitor;

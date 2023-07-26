@@ -29,10 +29,7 @@ pub fn apply_from_fixture(fixture_path: &Path) -> (CompilerOptions, Vec<BoxPlugi
 pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
   enable_tracing_by_env();
 
-  let (mut options, plugins) = apply_from_fixture(fixture_path);
-  for (_, entry) in options.entry.iter_mut() {
-    entry.runtime = Some("runtime".to_string());
-  }
+  let (options, plugins) = apply_from_fixture(fixture_path);
   // clean output
   if options.output.path.exists() {
     std::fs::remove_dir_all(&options.output.path).expect("should remove output");
@@ -103,10 +100,7 @@ pub async fn test_rebuild_fixture(
 ) {
   enable_tracing_by_env();
 
-  let (mut options, plugins) = apply_from_fixture(fixture_path);
-  for (_, entry) in options.entry.iter_mut() {
-    entry.runtime = Some("runtime".to_string());
-  }
+  let (options, plugins) = apply_from_fixture(fixture_path);
   // clean output
   if options.output.path.exists() {
     std::fs::remove_dir_all(&options.output.path).expect("should remove output");

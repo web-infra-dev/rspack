@@ -9,12 +9,13 @@
  */
 
 import watchpack from "watchpack";
-import webpackDevServer from "webpack-dev-server";
 import { Compiler } from "../compiler";
 import * as oldBuiltins from "./builtins";
 import { Compilation } from "..";
+import type * as webpackDevServer from "webpack-dev-server";
 import type { Options as RspackOptions } from "./zod/_rewrite";
 import type { OptimizationConfig as Optimization } from "./zod/optimization";
+import type { RawFuncUseCtx } from "@rspack/binding";
 export type { RspackOptions, Optimization };
 
 export type { BannerConditions, BannerCondition } from "./builtins";
@@ -74,20 +75,22 @@ export type EntryStatic = EntryObject | EntryUnnamed;
 export type EntryUnnamed = EntryItem;
 export type EntryRuntime = false | string;
 export type EntryItem = string[] | string;
-export type IgnoreWarningsPattern = (
-	| RegExp
-	| ((warning: Error, compilation: Compilation) => boolean)
-)[];
-export type IgnoreWarningsNormalized = ((
-	warning: Error,
-	compilation: Compilation
-) => boolean)[];
+export type ChunkLoading = false | ChunkLoadingType;
+export type ChunkLoadingType =
+	| ("jsonp" | "import-scripts" | "require" | "async-node" | "import")
+	| string;
 export interface EntryObject {
 	[k: string]: EntryItem | EntryDescription;
 }
+export type EntryFilename = FilenameTemplate;
 export interface EntryDescription {
 	import: EntryItem;
 	runtime?: EntryRuntime;
+	chunkLoading?: ChunkLoading;
+	asyncChunks?: boolean;
+	publicPath?: PublicPath;
+	baseUri?: string;
+	filename?: EntryFilename;
 }
 
 export type EntryNormalized = EntryStaticNormalized;
@@ -97,6 +100,11 @@ export interface EntryStaticNormalized {
 export interface EntryDescriptionNormalized {
 	import?: string[];
 	runtime?: EntryRuntime;
+	chunkLoading?: ChunkLoading;
+	asyncChunks?: boolean;
+	publicPath?: PublicPath;
+	baseUri?: string;
+	filename?: EntryFilename;
 }
 
 ///// Output /////
@@ -137,6 +145,10 @@ export interface Output {
 	hashDigestLength?: HashDigestLength;
 	hashFunction?: HashFunction;
 	hashSalt?: HashSalt;
+	asyncChunks?: boolean;
+	workerChunkLoading?: ChunkLoading;
+	workerWasmLoading?: WasmLoading;
+	workerPublicPath?: WorkerPublicPath;
 }
 export type Path = string;
 export type PublicPath = "auto" | RawPublicPath;
@@ -218,6 +230,7 @@ export type HashDigest = string;
 export type HashDigestLength = number;
 export type HashFunction = string;
 export type HashSalt = string;
+export type WorkerPublicPath = string;
 export interface OutputNormalized {
 	path?: Path;
 	clean?: Clean;
@@ -251,6 +264,10 @@ export interface OutputNormalized {
 	hashDigestLength?: HashDigestLength;
 	hashFunction?: HashFunction;
 	hashSalt?: HashSalt;
+	asyncChunks?: boolean;
+	workerChunkLoading?: ChunkLoading;
+	workerWasmLoading?: WasmLoading;
+	workerPublicPath?: WorkerPublicPath;
 }
 
 ///// Resolve /////
@@ -334,7 +351,10 @@ export interface RuleSetLogicalConditions {
 	or?: RuleSetConditions;
 	not?: RuleSetCondition;
 }
-export type RuleSetUse = RuleSetUseItem[] | RuleSetUseItem;
+export type RuleSetUse =
+	| RuleSetUseItem[]
+	| RuleSetUseItem
+	| ((funcUseCtx: RawFuncUseCtx) => RuleSetUseItem[]);
 export type RuleSetUseItem = RuleSetLoaderWithOptions | RuleSetLoader;
 export type RuleSetLoader = string;
 export type RuleSetLoaderWithOptions = {
@@ -580,6 +600,7 @@ export interface StatsOptions {
 	errorsCount?: boolean;
 	colors?: boolean;
 	hash?: boolean;
+	version?: boolean;
 	reasons?: boolean;
 	publicPath?: boolean;
 	outputPath?: boolean;
@@ -589,6 +610,7 @@ export interface StatsOptions {
 	builtAt?: boolean;
 	moduleAssets?: boolean;
 	nestedModules?: boolean;
+	source?: boolean;
 }
 
 export type OptimizationRuntimeChunk =
@@ -631,6 +653,7 @@ export interface ExperimentsNormalized {
 	outputModule?: boolean;
 	newSplitChunks?: boolean;
 	css?: boolean;
+	futureDefaults?: boolean;
 }
 
 ///// Watch /////
@@ -643,6 +666,16 @@ export type WatchOptions = watchpack.WatchOptions;
 export interface DevServer extends webpackDevServer.Configuration {
 	hot?: boolean;
 }
+
+///// IgnoreWarnings /////
+export type IgnoreWarningsPattern = (
+	| RegExp
+	| ((warning: Error, compilation: Compilation) => boolean)
+)[];
+export type IgnoreWarningsNormalized = ((
+	warning: Error,
+	compilation: Compilation
+) => boolean)[];
 
 ///// Builtins /////
 export type Builtins = oldBuiltins.Builtins;

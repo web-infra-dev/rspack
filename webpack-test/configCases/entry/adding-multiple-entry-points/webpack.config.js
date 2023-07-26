@@ -1,5 +1,5 @@
 const EntryPlugin = require("../../../../").EntryPlugin;
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: () => ({}),
 	optimization: {

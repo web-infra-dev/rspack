@@ -4,7 +4,7 @@
 const testAllButHash = "[chunkhash].[chunkhash:16].[name].[id].[query]";
 const testHash = "[fullhash].[fullhash:16]";
 
-/** @type {import("../../../../").Configuration[]} */
+/** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
 	{
 		name: "webworker-all",

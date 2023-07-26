@@ -111,9 +111,12 @@ describe("snapshots", () => {
 		-     "minifyOptions": undefined,
 		+     "minifyOptions": Object {
 		+       "dropConsole": false,
+		+       "exclude": undefined,
 		+       "extractComments": undefined,
+		+       "include": undefined,
 		+       "passes": 1,
 		+       "pureFuncs": Array [],
+		+       "test": undefined,
 		+     },
 		@@ ... @@
 		-     "treeShaking": "false",
@@ -160,9 +163,12 @@ describe("snapshots", () => {
 		-     "minifyOptions": undefined,
 		+     "minifyOptions": Object {
 		+       "dropConsole": false,
+		+       "exclude": undefined,
 		+       "extractComments": undefined,
+		+       "include": undefined,
 		+       "passes": 1,
 		+       "pureFuncs": Array [],
+		+       "test": undefined,
 		+     },
 		@@ ... @@
 		-     "treeShaking": "false",
@@ -205,6 +211,9 @@ describe("snapshots", () => {
 		@@ ... @@
 		-   "cache": false,
 		+   "cache": true,
+		@@ ... @@
+		-       "make": false,
+		+       "make": true,
 		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "development",
@@ -567,6 +576,7 @@ describe("snapshots", () => {
 		+     "chunkLoading": "require",
 		@@ ... @@
 		-       "jsonp",
+		-       "import-scripts",
 		+       "require",
 		@@ ... @@
 		-       "fetch",
@@ -581,8 +591,19 @@ describe("snapshots", () => {
 		-     "wasmLoading": "fetch",
 		+     "wasmLoading": "async-node",
 		@@ ... @@
+		-     "workerChunkLoading": "import-scripts",
+		+     "workerChunkLoading": "require",
+		@@ ... @@
+		-     "workerWasmLoading": "fetch",
+		+     "workerWasmLoading": "async-node",
+		@@ ... @@
 		-     "browserField": true,
 		+     "browserField": false,
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
 		@@ ... @@
 		-         "browserField": true,
 		+         "browserField": false,
@@ -621,7 +642,6 @@ describe("snapshots", () => {
 		+     "chunkLoading": "import-scripts",
 		@@ ... @@
 		-       "jsonp",
-		+       "import-scripts",
 		@@ ... @@
 		+       "worker",
 		@@ ... @@
@@ -658,6 +678,7 @@ describe("snapshots", () => {
 		+     "chunkLoading": "require",
 		@@ ... @@
 		-       "jsonp",
+		-       "import-scripts",
 		+       "require",
 		@@ ... @@
 		-       "fetch",
@@ -672,8 +693,19 @@ describe("snapshots", () => {
 		-     "wasmLoading": "fetch",
 		+     "wasmLoading": "async-node",
 		@@ ... @@
+		-     "workerChunkLoading": "import-scripts",
+		+     "workerChunkLoading": "require",
+		@@ ... @@
+		-     "workerWasmLoading": "fetch",
+		+     "workerWasmLoading": "async-node",
+		@@ ... @@
 		-     "browserField": true,
 		+     "browserField": false,
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
 		@@ ... @@
 		-         "browserField": true,
 		+         "browserField": false,
@@ -731,6 +763,7 @@ describe("snapshots", () => {
 		+     "chunkLoading": "require",
 		@@ ... @@
 		-       "jsonp",
+		-       "import-scripts",
 		+       "require",
 		@@ ... @@
 		-       "fetch",
@@ -745,8 +778,19 @@ describe("snapshots", () => {
 		-     "wasmLoading": "fetch",
 		+     "wasmLoading": "async-node",
 		@@ ... @@
+		-     "workerChunkLoading": "import-scripts",
+		+     "workerChunkLoading": "require",
+		@@ ... @@
+		-     "workerWasmLoading": "fetch",
+		+     "workerWasmLoading": "async-node",
+		@@ ... @@
 		-     "browserField": true,
 		+     "browserField": false,
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
 		@@ ... @@
 		-         "browserField": true,
 		+         "browserField": false,
@@ -829,6 +873,9 @@ describe("snapshots", () => {
 		@@ ... @@
 		-   "cache": false,
 		+   "cache": true,
+		@@ ... @@
+		-       "make": false,
+		+       "make": true,
 	`)
 	);
 	test("cache filesystem", { cache: { type: "filesystem" } }, e =>
@@ -841,6 +888,9 @@ describe("snapshots", () => {
 		+   "cache": Object {
 		+     "type": "filesystem",
 		+   },
+		@@ ... @@
+		-       "make": false,
+		+       "make": true,
 	`)
 	);
 	test(
@@ -856,6 +906,9 @@ describe("snapshots", () => {
 			+   "cache": Object {
 			+     "type": "filesystem",
 			+   },
+			@@ ... @@
+			-       "make": false,
+			+       "make": true,
 			@@ ... @@
 			-   "mode": "none",
 			+   "mode": "development",
@@ -998,6 +1051,9 @@ describe("snapshots", () => {
 			+   },
 			+   "context": "<cwd>/tests/fixtures",
 			@@ ... @@
+			-       "make": false,
+			+       "make": true,
+			@@ ... @@
 			-     "chunkLoadingGlobal": "webpackChunk@rspack/core",
 			+     "chunkLoadingGlobal": "webpackChunk",
 			@@ ... @@
@@ -1049,6 +1105,11 @@ describe("snapshots", () => {
 
 			@@ ... @@
 			+     "futureDefaults": true,
+			@@ ... @@
+			-     "hashDigestLength": 20,
+			-     "hashFunction": "md4",
+			+     "hashDigestLength": 16,
+			+     "hashFunction": "xxhash64",
 		`)
 	);
 
@@ -1079,8 +1140,7 @@ describe("snapshots", () => {
 			-             },
 			-             "test": /\\.module\\.css$/i,
 			-             "type": "css/module",
-			-           },
-			-           Object {
+			@@ ... @@
 			-             "resolve": Object {
 			-               "fullySpecified": true,
 			-               "preferRelative": true,
@@ -1104,6 +1164,13 @@ describe("snapshots", () => {
 			-           "preferRelative": true,
 			-         },
 			-         "type": "css",
+			-       },
+			-       Object {
+			@@ ... @@
+			-     "hashDigestLength": 20,
+			-     "hashFunction": "md4",
+			+     "hashDigestLength": 16,
+			+     "hashFunction": "xxhash64",
 		`)
 	);
 });

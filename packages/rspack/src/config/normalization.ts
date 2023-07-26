@@ -147,7 +147,11 @@ export const getNormalizedRspackOptions = (
 				hashDigest: output.hashDigest,
 				hashDigestLength: output.hashDigestLength,
 				hashFunction: output.hashFunction,
-				hashSalt: output.hashSalt
+				hashSalt: output.hashSalt,
+				asyncChunks: output.asyncChunks,
+				workerChunkLoading: output.workerChunkLoading,
+				workerWasmLoading: output.workerWasmLoading,
+				workerPublicPath: output.workerPublicPath
 			};
 		}),
 		resolve: nestedConfig(config.resolve, resolve => ({
@@ -273,7 +277,12 @@ const getNormalizedEntryStatic = (entry: EntryStatic) => {
 		} else {
 			result[key] = {
 				import: Array.isArray(value.import) ? value.import : [value.import],
-				runtime: value.runtime
+				runtime: value.runtime,
+				publicPath: value.publicPath,
+				baseUri: value.baseUri,
+				chunkLoading: value.chunkLoading,
+				asyncChunks: value.asyncChunks,
+				filename: value.filename
 			};
 		}
 	}

@@ -1,24 +1,24 @@
 "use strict";
 
-const webpack = require("../../../../");
+const webpack = require("@rspack/core");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	node: {
 		__dirname: false,
-		__filename: false
+		__filename: false,
 	},
 	entry: {
 		"dist/banner": ["./index.js"],
-		vendors: ["./vendors.js"]
+		vendors: ["./vendors.js"],
 	},
 	output: {
-		filename: "[name].js?value"
+		filename: "[name].js?value",
 	},
 	plugins: [
 		new webpack.BannerPlugin({
 			banner:
-				"fullhash:[fullhash], chunkhash:[chunkhash], name:[name], base:[base], query:[query], file:[file], path:[path], ext:[ext]"
-		})
-	]
+				"fullhash:[fullhash], chunkhash:[chunkhash], name:[name], base:[base], query:[query], file:[file], path:[path], ext:[ext]",
+		}),
+	],
 };

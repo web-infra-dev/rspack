@@ -3,11 +3,10 @@ var inProgress = {};
 // var dataWebpackPrefix = "webpack:";
 // loadScript function to load a script via script tag
 __webpack_require__.l = function loadScript(url, done, key, chunkId) {
-	// TODO add this after hash
-	// if (inProgress[url]) {
-	// 	inProgress[url].push(done);
-	// 	return;
-	// }
+	if (inProgress[url]) {
+		inProgress[url].push(done);
+		return;
+	}
 	var script, needAttach;
 	if (key !== undefined) {
 		var scripts = document.getElementsByTagName("script");

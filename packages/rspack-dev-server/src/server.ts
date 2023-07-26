@@ -82,7 +82,7 @@ export class RspackDevServer extends WebpackDevServer {
 		if (this.options.hot) {
 			if (compiler.options.builtins.react?.refresh) {
 				const reactRefreshEntryPath = require.resolve(
-					"@rspack/dev-client/react-refresh"
+					"@rspack/dev-client/react-refresh-entry"
 				);
 				additionalEntries.push(reactRefreshEntryPath);
 			}
@@ -325,6 +325,10 @@ export class RspackDevServer extends WebpackDevServer {
 				compiler.options.builtins.react ??= {};
 				compiler.options.builtins.react.refresh ??= true;
 				compiler.options.builtins.react.development ??= true;
+				compiler.options.builtins.provide ??= {};
+				compiler.options.builtins.provide.$ReactRefreshRuntime$ ??= [
+					require.resolve("@rspack/dev-client/react-refresh")
+				];
 			} else if (compiler.options.builtins.react.refresh) {
 				if (mode === "production") {
 					this.logger.warn(

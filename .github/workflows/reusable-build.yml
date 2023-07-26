@@ -26,6 +26,17 @@ on:
       target:
         required: true
         type: string
+      profile: # Rust profile, "debug" or "release"
+        default: 'release'
+        required: false
+        type: string
+      test: # Run tests?
+        type: boolean
+        required: false
+        default: true
+      ref: # Git reference to checkout
+        required: false
+        type: string
 
 jobs:
   select:
@@ -58,6 +69,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
@@ -77,6 +90,15 @@ jobs:
       - name: Setup Rust Target
         run: rustup target add ${{ inputs.target }}
 
+      # Compile dependencies with optimization to make tests run faster
+      - name: Add optimization to debug profile
+        if: inputs.profile == 'debug'
+        shell: bash
+        run: |
+          echo '[profile.dev.package."*"]' >> Cargo.toml
+          echo 'opt-level = 3' >> Cargo.toml
+          echo 'codegen-units = 1' >> Cargo.toml
+
       # Linux
 
       - name: Build x86_64-unknown-linux-gnu in Docker
@@ -85,6 +107,7 @@ jobs:
         with:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
           target: ${{ inputs.target }}
+          profile: ${{ inputs.profile }}
           pre: unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
 
       - name: Build aarch64-unknown-linux-gnu in Docker
@@ -93,6 +116,7 @@ jobs:
         with:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
+          profile: ${{ inputs.profile }}
           pre: export JEMALLOC_SYS_WITH_LG_PAGE=16 && export CC_aarch64_unknown_linux_gnu=/usr/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gcc # for jemallocator to compile
 
       - name: Build x86_64-unknown-linux-musl in Docker
@@ -101,6 +125,7 @@ jobs:
         with:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+          profile: ${{ inputs.profile }}
 
       - name: Build aarch64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-musl' }}
@@ -108,6 +133,7 @@ jobs:
         with:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+          profile: ${{ inputs.profile }}
           pre: |
             export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
 
@@ -115,26 +141,21 @@ jobs:
 
       - name: Build i686-pc-windows-msvc
         if: ${{ inputs.target == 'i686-pc-windows-msvc' }}
-        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
+        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       - name: Build x86_64-pc-windows-msvc
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
-        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
+        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       - name: Build aarch64-pc-windows-msvc
         if: ${{ inputs.target == 'aarch64-pc-windows-msvc' }}
-        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
+        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       # Mac
-      - uses: goto-bus-stop/setup-zig@v2
-        if: ${{ contains(inputs.target, 'apple') }}
-        with:
-          version: 0.10.1
-
       - name: Build x86_64-apple-darwin
         if: ${{ inputs.target == 'x86_64-apple-darwin' }}
         run: |
-          RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
+          RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       - name: Build aarch64-apple-darwin
         if: ${{ inputs.target == 'aarch64-apple-darwin' }}
@@ -144,7 +165,7 @@ jobs:
           export CXX=$(xcrun -f clang++);
           SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
           export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
-          RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
+          RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
@@ -156,10 +177,10 @@ jobs:
   e2e:
     name: E2E Testing
     needs: [select, build]
-    if: inputs.target == 'x86_64-unknown-linux-gnu'
+    if: inputs.target == 'x86_64-unknown-linux-gnu' && inputs.test
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.33.0-jammy
+      image: mcr.microsoft.com/playwright:v1.35.0-jammy
     steps:
       - uses: actions/checkout@v3
 
@@ -182,6 +203,7 @@ jobs:
 
   test:
     needs: [select, build]
+    if: inputs.test
     runs-on: ${{ needs.select.outputs.host }}
     timeout-minutes: 30
     strategy:

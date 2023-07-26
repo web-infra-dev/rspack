@@ -5,7 +5,6 @@ use std::{
   sync::Arc,
 };
 
-use indexmap::IndexMap;
 use rspack_core::{
   run_loaders, CompilerContext, CompilerOptions, Loader, LoaderRunnerContext, ResourceData,
   SideEffectOption,
@@ -33,7 +32,6 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     &[],
     CompilerContext {
       options: std::sync::Arc::new(CompilerOptions {
-        entry: IndexMap::default(),
         context: rspack_core::Context::default(),
         dev_server: rspack_core::DevServerOptions::default(),
         devtool: rspack_core::Devtool::default(),
@@ -49,6 +47,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           chunk_filename: rspack_core::Filename::from_str("").expect("TODO:"),
           cross_origin_loading: rspack_core::CrossOriginLoading::Disable,
           unique_name: Default::default(),
+          chunk_loading: rspack_core::ChunkLoading::Enable(rspack_core::ChunkLoadingType::Jsonp),
           chunk_loading_global: "webpackChunkwebpack".to_string(),
           css_chunk_filename: rspack_core::Filename::from_str("").expect("TODO:"),
           css_filename: rspack_core::Filename::from_str("").expect("TODO:"),
@@ -67,6 +66,12 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           hash_digest: rspack_core::HashDigest::Hex,
           hash_digest_length: 16,
           hash_salt: rspack_core::HashSalt::None,
+          async_chunks: true,
+          worker_chunk_loading: rspack_core::ChunkLoading::Enable(
+            rspack_core::ChunkLoadingType::ImportScripts,
+          ),
+          worker_wasm_loading: rspack_core::WasmLoading::Disable,
+          worker_public_path: String::new(),
         },
         target: rspack_core::Target::new(&vec![String::from("web")]).expect("TODO:"),
         resolve: rspack_core::Resolve::default(),

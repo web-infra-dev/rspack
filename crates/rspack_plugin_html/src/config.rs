@@ -1,9 +1,10 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
 use rspack_core::{Compilation, PublicPath};
 #[cfg(feature = "testing")]
 use schemars::JsonSchema;
 use serde::Deserialize;
+use sugar_path::SugarPath;
 
 use crate::sri::HtmlSriHashFunction;
 
@@ -130,5 +131,15 @@ impl HtmlPluginConfig {
         .public_path
         .render(compilation, filename),
     }
+  }
+  pub fn get_relative_path(&self, compilation: &Compilation, filename: &str) -> String {
+    let mut file_path = PathBuf::from(filename);
+
+    if file_path.is_absolute() {
+      let context_path = PathBuf::from(compilation.options.context.to_string());
+      file_path = file_path.relative(context_path);
+    }
+
+    file_path.to_string_lossy().to_string()
   }
 }

@@ -1,1 +1,1 @@
-module.exports = () => {return false}
+module.exports = () => {return "Lacking support of chunkhash"}

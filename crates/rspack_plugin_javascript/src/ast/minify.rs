@@ -3,10 +3,11 @@ use std::{
   sync::{mpsc, Arc, Mutex},
 };
 
+use async_recursion::async_recursion;
 use regex::Regex;
 use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
-  ModuleType,
+  Minification, ModuleType,
 };
 use rspack_error::{internal_error, DiagnosticKind, Error, Result, TraceableError};
 use swc_core::{
@@ -40,6 +41,26 @@ use crate::{
   utils::ecma_parse_error_to_rspack_error, ExtractedCommentsInfo, IsModule, JsMinifyOptions,
   SourceMapsConfig, TransformOutput,
 };
+
+#[async_recursion]
+pub async fn match_object(obj: &Minification, str: &str) -> Result<bool> {
+  if let Some(condition) = &obj.test {
+    if !condition.try_match(str).await? {
+      return Ok(false);
+    }
+  }
+  if let Some(condition) = &obj.include {
+    if !condition.try_match(str).await? {
+      return Ok(false);
+    }
+  }
+  if let Some(condition) = &obj.exclude {
+    if condition.try_match(str).await? {
+      return Ok(false);
+    }
+  }
+  Ok(true)
+}
 
 pub fn minify(
   opts: &JsMinifyOptions,
@@ -102,7 +123,6 @@ pub fn minify(
         // top_level defaults to true if module is true
 
         // https://github.com/swc-project/swc/issues/2254
-
         if opts.module {
           if let Some(opts) = &mut min_opts.compress {
             if opts.top_level.is_none() {
@@ -127,7 +147,7 @@ pub fn minify(
             import_assertions: true,
             ..Default::default()
           }),
-          IsModule::Bool(false),
+          IsModule::Bool(opts.module),
           Some(&comments),
         )
         .map_err(|errs| {

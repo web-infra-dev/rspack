@@ -1,24 +1,23 @@
 #![allow(clippy::comparison_chain)]
 
-use std::sync::Arc;
-
 use indexmap::IndexMap;
+use once_cell::sync::Lazy;
 use preset_env_base::query::{Query, Targets};
+use regex::Regex;
 use rspack_core::{
-  ast::css::Ast as CssAst,
   rspack_sources::{
-    MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
+    MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
+    SourceMapSourceOptions,
   },
-  BuildMetaExportsType, GenerateContext, GenerationResult, Module, ModuleType, ParseContext,
-  ParseResult, ParserAndGenerator, SourceType,
+  AstOrSource, BuildMetaExportsType, GenerateContext, GenerationResult, Module, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
 };
-use rspack_core::{ModuleAst, ModuleDependency};
+use rspack_core::{ModuleDependency, RuntimeGlobals};
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
-use swc_core::css::visit::VisitMutWithPath;
 use swc_core::{
   css::{
     modules::CssClassName,
@@ -29,14 +28,14 @@ use swc_core::{
   ecma::atoms::JsWord,
 };
 
-use crate::dependency::{
-  collect_dependency_code_generation_visitors, CssComposeDependency,
-  DependencyCodeGenerationVisitors, DependencyVisitor,
-};
 use crate::plugin::CssConfig;
-use crate::swc_css_compiler::{SwcCssSourceMapGenConfig, SWC_COMPILER};
+use crate::swc_css_compiler::SwcCssSourceMapGenConfig;
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
+use crate::{dependency::CssComposeDependency, swc_css_compiler::SwcCssCompiler};
 use crate::{pxtorem::px_to_rem::px_to_rem, visitors::analyze_dependencies};
+
+static REGEX_IS_MODULES: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\.module(s)?\.[^.]+$").expect("Invalid regex"));
 
 pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
   &[SourceType::JavaScript, SourceType::Css];
@@ -99,6 +98,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       source,
       additional_data,
       module_type,
+      module_user_request,
       resource_data,
       compiler_options,
       build_info,
@@ -106,21 +106,33 @@ impl ParserAndGenerator for CssParserAndGenerator {
       code_generation_dependencies,
       ..
     } = parse_context;
+
     build_info.strict = true;
-    // here different webpack
     build_meta.exports_type = BuildMetaExportsType::Default;
-    let cm: Arc<swc_core::common::SourceMap> = Default::default();
-    let content = source.source().to_string();
-    let css_modules = matches!(module_type, ModuleType::CssModule);
+
+    let swc_compiler = SwcCssCompiler::default();
+
+    let source_code = source.source().into_owned();
+    let resource_path = &parse_context.resource_data.resource_path;
+
+    let is_enable_css_modules = match module_type {
+      ModuleType::CssModule => true,
+      ModuleType::CssAuto
+        if REGEX_IS_MODULES.is_match(resource_path.to_string_lossy().as_ref()) =>
+      {
+        true
+      }
+      _ => false,
+    };
+
     let TWithDiagnosticArray {
       inner: mut stylesheet,
       mut diagnostic,
-    } = SWC_COMPILER.parse_file(
-      cm.clone(),
-      &parse_context.resource_data.resource_path.to_string_lossy(),
-      content,
+    } = swc_compiler.parse_file(
+      &resource_path.to_string_lossy(),
+      source_code,
       ParserConfig {
-        css_modules,
+        css_modules: is_enable_css_modules,
         legacy_ie: true,
         ..Default::default()
       },
@@ -136,14 +148,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
       stylesheet.visit_mut_with(&mut px_to_rem(config));
     }
 
-    let locals = if css_modules {
-      let filename = &resource_data
-        .resource_path
-        .relative(&compiler_options.context);
+    let locals = if is_enable_css_modules {
       let result = swc_core::css::modules::compile(
         &mut stylesheet,
         ModulesTransformConfig::new(
-          filename,
+          &resource_data
+            .resource_path
+            .relative(&compiler_options.context),
           &self.config.modules.local_ident_name,
           &compiler_options.output,
         ),
@@ -154,9 +165,29 @@ impl ParserAndGenerator for CssParserAndGenerator {
     } else {
       None
     };
+    let devtool = &compiler_options.devtool;
+
+    let (code, source_map) = swc_compiler.codegen(
+      &stylesheet,
+      SwcCssSourceMapGenConfig {
+        enable: devtool.source_map(),
+        inline_sources_content: !devtool.no_sources(),
+        emit_columns: !devtool.cheap(),
+      },
+    )?;
+
+    let TWithDiagnosticArray {
+      inner: new_stylesheet_ast,
+      diagnostic: new_diagnostic,
+    } = SwcCssCompiler::default().parse_file(
+      &parse_context.resource_data.resource_path.to_string_lossy(),
+      code.clone(),
+      Default::default(),
+    )?;
+    diagnostic.extend(new_diagnostic);
 
     let mut dependencies = analyze_dependencies(
-      &mut stylesheet,
+      &new_stylesheet_ast,
       code_generation_dependencies,
       &mut diagnostic,
     );
@@ -186,12 +217,28 @@ impl ParserAndGenerator for CssParserAndGenerator {
       diagnostic.push(Diagnostic::warn("CSS Modules".to_string(), format!("file: {} is using `postcss.modules` and `builtins.css.modules` to process css modules at the same time, rspack will use `builtins.css.modules`'s result.", resource_data.resource_path.display()), 0, 0));
     }
 
+    let new_source = if let Some(source_map) = source_map {
+      SourceMapSource::new(SourceMapSourceOptions {
+        value: code,
+        name: module_user_request,
+        source_map: SourceMap::from_slice(&source_map)
+          .map_err(|e| internal_error!(e.to_string()))?,
+        // Safety: original source exists in code generation
+        original_source: Some(source.source().to_string()),
+        // Safety: original source exists in code generation
+        inner_source_map: source.map(&MapOptions::default()),
+        remove_original_source: false,
+      })
+      .boxed()
+    } else {
+      RawSource::from(code).boxed()
+    };
+
     Ok(
       ParseResult {
         dependencies,
         presentational_dependencies: vec![],
-        ast_or_source: ModuleAst::Css(CssAst::new(stylesheet, cm)).into(),
-        code_replace_source_dependencies: vec![],
+        ast_or_source: AstOrSource::new(None, Some(new_source)),
       }
       .with_diagnostic(diagnostic),
     )
@@ -206,76 +253,38 @@ impl ParserAndGenerator for CssParserAndGenerator {
   ) -> Result<rspack_core::GenerationResult> {
     let result = match generate_context.requested_source_type {
       SourceType::Css => {
-        let devtool = &generate_context.compilation.options.devtool;
-        let mut ast = ast_or_source
-          .to_owned()
-          .try_into_ast()
-          .expect("Expected AST for CSS generator, please file an issue.")
-          .try_into_css()
-          .expect("Expected CSS AST for CSS generation, please file an issue.");
-        let dependency_visitors =
-          collect_dependency_code_generation_visitors(module, generate_context)?;
-        let cm = ast.get_context().source_map.clone();
-        let stylesheet = ast.get_root_mut();
-        let DependencyCodeGenerationVisitors {
-          visitors,
-          root_visitors,
-          ..
-        } = dependency_visitors;
+        let mut source = ReplaceSource::new(ast_or_source.to_owned().try_into_source()?);
+        let compilation = generate_context.compilation;
+        let mut context = TemplateContext {
+          compilation,
+          module,
+          runtime_requirements: generate_context.runtime_requirements,
+          init_fragments: &mut vec![],
+        };
 
-        {
-          if !visitors.is_empty() {
-            stylesheet.visit_mut_with_path(
-              &mut DependencyVisitor::new(
-                visitors
-                  .iter()
-                  .map(|(ast_path, visitor)| (ast_path, &**visitor))
-                  .collect(),
-              ),
-              &mut Default::default(),
-            );
+        let mgm = compilation
+          .module_graph
+          .module_graph_module_by_identifier(&module.identifier())
+          .expect("should have module graph module");
+
+        mgm.dependencies.iter().for_each(|id| {
+          if let Some(dependency) = compilation
+            .module_graph
+            .dependency_by_id(id)
+            .expect("should have dependency")
+            .as_code_generatable_dependency()
+          {
+            dependency.apply(&mut source, &mut context)
           }
+        });
 
-          for (_, root_visitor) in root_visitors {
-            stylesheet.visit_mut_with(&mut root_visitor.create());
-          }
-        }
+        if let Some(dependencies) = module.get_presentational_dependencies() {
+          dependencies
+            .iter()
+            .for_each(|dependency| dependency.apply(&mut source, &mut context));
+        };
 
-        let (code, source_map) = SWC_COMPILER.codegen(
-          cm,
-          stylesheet,
-          SwcCssSourceMapGenConfig {
-            enable: devtool.source_map(),
-            inline_sources_content: !devtool.no_sources(),
-            emit_columns: !devtool.cheap(),
-          },
-        )?;
-        if let Some(source_map) = source_map {
-          let source = SourceMapSource::new(SourceMapSourceOptions {
-            value: code,
-            name: module.try_as_normal_module()?.user_request().to_string(),
-            source_map: SourceMap::from_slice(&source_map)
-              .map_err(|e| internal_error!(e.to_string()))?,
-            // Safety: original source exists in code generation
-            original_source: Some(
-              module
-                .original_source()
-                .expect("Failed to get original source, please file an issue.")
-                .source()
-                .to_string(),
-            ),
-            // Safety: original source exists in code generation
-            inner_source_map: module
-              .original_source()
-              .expect("Failed to get original source, please file an issue.")
-              .map(&MapOptions::default()),
-            remove_original_source: false,
-          })
-          .boxed();
-          Ok(source)
-        } else {
-          Ok(RawSource::from(code).boxed())
-        }
+        Ok(source.boxed())
       }
       SourceType::JavaScript => {
         let locals = if let Some(exports) = &self.exports {
@@ -294,6 +303,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
         } else {
           "".to_string()
         };
+        generate_context
+          .runtime_requirements
+          .insert(RuntimeGlobals::MODULE);
         Ok(RawSource::from(locals).boxed())
       }
       _ => Err(internal_error!(

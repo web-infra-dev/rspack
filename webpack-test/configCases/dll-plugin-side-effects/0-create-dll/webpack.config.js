@@ -1,7 +1,7 @@
 var path = require("path");
 var webpack = require("../../../../");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: ["./index"],
 	output: {

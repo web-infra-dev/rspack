@@ -2,7 +2,7 @@ use std::{
   collections::hash_map::DefaultHasher,
   fs,
   hash::{Hash, Hasher},
-  path::Path,
+  path::{Path, PathBuf},
 };
 
 use anyhow::Context;
@@ -61,10 +61,11 @@ impl Plugin for HtmlPlugin {
     let compilation = args.compilation;
 
     let parser = HtmlCompiler::new(config);
-    let (content, url) = if let Some(content) = &config.template_content {
+    let (content, url, normalized_template_name) = if let Some(content) = &config.template_content {
       (
         content.clone(),
         parse_to_url("template_content.html").path().to_string(),
+        "template_content.html".to_string(),
       )
     } else if let Some(template) = &config.template {
       // TODO: support loader query form
@@ -76,11 +77,16 @@ impl Plugin for HtmlPlugin {
         resolved_template.display(),
         &compilation.options.context
       ))?;
-      (content, resolved_template.to_string_lossy().to_string())
+      (
+        content,
+        resolved_template.to_string_lossy().to_string(),
+        template.clone(),
+      )
     } else {
       (
         default_template().to_owned(),
         parse_to_url("default.html").path().to_string(),
+        "default.html".to_string(),
       )
     };
 
@@ -179,9 +185,17 @@ impl Plugin for HtmlPlugin {
     let source = parser.codegen(&mut current_ast)?;
     let hash = hash_for_ast_or_source(&source);
     let html_file_name = Filename::from(config.filename.clone());
+    // Use the same filename as template
+    let output_path = compilation
+      .options
+      .output
+      .path
+      .join(normalized_template_name);
     let (output_path, asset_info) = compilation.get_path_with_info(
       &html_file_name,
-      PathData::default().filename(&url).content_hash(&hash),
+      PathData::default()
+        .filename(&output_path.to_string_lossy())
+        .content_hash(&hash),
     );
     compilation.emit_asset(
       output_path,
@@ -190,6 +204,8 @@ impl Plugin for HtmlPlugin {
 
     if let Some(favicon) = &self.config.favicon {
       let url = parse_to_url(favicon);
+      let favicon_file_path = PathBuf::from(config.get_relative_path(compilation, favicon));
+
       let resolved_favicon = AsRef::<Path>::as_ref(&compilation.options.context).join(url.path());
       let content = fs::read(resolved_favicon).context(format!(
         "failed to read `{}` from `{}`",
@@ -197,7 +213,7 @@ impl Plugin for HtmlPlugin {
         &compilation.options.context
       ))?;
       compilation.emit_asset(
-        favicon.clone(),
+        favicon_file_path.to_string_lossy().to_string(),
         CompilationAsset::from(RawSource::from(content).boxed()),
       );
     }

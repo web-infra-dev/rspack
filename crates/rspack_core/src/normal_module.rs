@@ -26,11 +26,10 @@ use serde_json::json;
 
 use crate::{
   contextify, get_context, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResult, CodeReplaceSourceDependency, Compilation, CompilerOptions, Context,
-  Dependency, GenerateContext, GeneratorOptions, LibIdentOptions,
-  LoaderRunnerPluginProcessResource, Module, ModuleAst, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
-  Resolve, SourceType,
+  CodeGenerationResult, Compilation, CompilerOptions, Context, DependencyTemplate, GenerateContext,
+  GeneratorOptions, LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleAst,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, ParserOptions, Resolve, SourceType,
 };
 
 bitflags! {
@@ -109,6 +108,14 @@ impl AstOrSource {
     }
   }
 
+  pub fn try_to_source(&self) -> Result<BoxSource> {
+    match &self.inner.1 {
+      Some(source) => Ok(source.clone()),
+      // TODO: change to user error
+      _ => Err(internal_error!("Failed to convert to source")),
+    }
+  }
+
   pub fn map<F, G>(self, f: F, g: G) -> Self
   where
     F: FnOnce(ModuleAst) -> ModuleAst,
@@ -174,8 +181,7 @@ pub struct NormalModule {
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
 
   code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
-  presentational_dependencies: Option<Vec<Box<dyn Dependency>>>,
-  code_replace_source_dependencies: Option<Vec<Box<dyn CodeReplaceSourceDependency>>>,
+  presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
 }
 
 #[derive(Debug)]
@@ -248,7 +254,6 @@ impl NormalModule {
       cached_source_sizes: DashMap::default(),
       code_generation_dependencies: None,
       presentational_dependencies: None,
-      code_replace_source_dependencies: None,
     }
   }
 
@@ -377,7 +382,12 @@ impl Module for NormalModule {
     };
     diagnostics.extend(ds);
 
-    let original_source = self.create_source(loader_result.content, loader_result.source_map)?;
+    let content = if self.module_type().is_binary() {
+      Content::Buffer(loader_result.content.into_bytes())
+    } else {
+      Content::String(loader_result.content.into_string_lossy())
+    };
+    let original_source = self.create_source(content, loader_result.source_map)?;
     let mut code_generation_dependencies: Vec<Box<dyn ModuleDependency>> = Vec::new();
 
     let (
@@ -385,7 +395,6 @@ impl Module for NormalModule {
         ast_or_source,
         dependencies,
         presentational_dependencies,
-        code_replace_source_dependencies,
       },
       ds,
     ) = self
@@ -395,6 +404,7 @@ impl Module for NormalModule {
         module_identifier: self.identifier(),
         module_parser_options: self.parser_options.as_ref(),
         module_type: &self.module_type,
+        module_user_request: &self.user_request,
         resource_data: &self.resource_data,
         compiler_options: build_context.compiler_options,
         additional_data: loader_result.additional_data,
@@ -411,7 +421,6 @@ impl Module for NormalModule {
     self.ast_or_source = NormalModuleAstOrSource::new_built(ast_or_source, &diagnostics);
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
-    self.code_replace_source_dependencies = Some(code_replace_source_dependencies);
 
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
@@ -517,18 +526,8 @@ impl Module for NormalModule {
     }
   }
 
-  fn get_presentational_dependencies(&self) -> Option<&[Box<dyn Dependency>]> {
+  fn get_presentational_dependencies(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
     if let Some(deps) = self.presentational_dependencies.as_deref() && !deps.is_empty() {
-      Some(deps)
-    } else {
-      None
-    }
-  }
-
-  fn get_string_replace_generation_dependencies(
-    &self,
-  ) -> Option<&[Box<dyn CodeReplaceSourceDependency>]> {
-    if let Some(deps) = self.code_replace_source_dependencies.as_deref() && !deps.is_empty() {
       Some(deps)
     } else {
       None
@@ -550,8 +549,11 @@ impl Eq for NormalModule {}
 
 impl NormalModule {
   fn create_source(&self, content: Content, source_map: Option<SourceMap>) -> Result<BoxSource> {
+    if content.is_buffer() {
+      return Ok(RawSource::Buffer(content.into_bytes()).boxed());
+    }
     if self.options.devtool.enabled() && let Some(source_map) = source_map {
-      let content = content.try_into_string()?;
+      let content = content.into_string_lossy();
       return Ok(
         SourceMapSource::new(WithoutOriginalOptions {
           value: content,
@@ -564,7 +566,7 @@ impl NormalModule {
     if self.options.devtool.source_map() && let Content::String(content) = content {
       return Ok(OriginalSource::new(content, self.request()).boxed());
     }
-    Ok(RawSource::from(content.into_bytes()).boxed())
+    Ok(RawSource::from(content.into_string_lossy()).boxed())
   }
 }
 

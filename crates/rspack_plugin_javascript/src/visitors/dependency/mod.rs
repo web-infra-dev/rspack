@@ -1,122 +1,47 @@
 mod api_scanner;
-mod code_generation;
+mod common_js_export_scanner;
 mod common_js_import_dependency_scanner;
 mod common_js_scanner;
+mod compatibility_scanner;
+mod context_helper;
 mod harmony_detection_scanner;
 mod harmony_export_dependency_scanner;
 mod harmony_import_dependency_scanner;
-mod hmr_scanner;
 mod hot_module_replacement_scanner;
 mod import_meta_scanner;
 mod import_scanner;
-mod new_common_js_scanner;
-mod new_import_meta_scanner;
-mod new_node_stuff_scanner;
 mod node_stuff_scanner;
 mod require_context_scanner;
-mod scanner;
 mod url_scanner;
 mod util;
-pub use code_generation::*;
+mod worker_scanner;
 use rspack_core::{
-  ast::javascript::Program, BuildInfo, BuildMeta, BuildMetaExportsType,
-  CodeReplaceSourceDependency, CompilerOptions, Dependency, ModuleDependency, ModuleIdentifier,
-  ModuleType, ResourceData,
+  ast::javascript::Program, BuildInfo, BuildMeta, BuildMetaExportsType, CompilerOptions,
+  DependencyTemplate, ModuleDependency, ModuleIdentifier, ModuleType, ResourceData,
 };
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
 pub use util::*;
 
 use self::{
-  api_scanner::ApiScanner, common_js_import_dependency_scanner::CommonJsImportDependencyScanner,
-  common_js_scanner::CommonJsScanner, harmony_detection_scanner::HarmonyDetectionScanner,
+  api_scanner::ApiScanner, common_js_export_scanner::CommonJsExportDependencyScanner,
+  common_js_import_dependency_scanner::CommonJsImportDependencyScanner,
+  common_js_scanner::CommonJsScanner, compatibility_scanner::CompatibilityScanner,
+  harmony_detection_scanner::HarmonyDetectionScanner,
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
-  hmr_scanner::HmrDependencyScanner, hot_module_replacement_scanner::HotModuleReplacementScanner,
+  hot_module_replacement_scanner::HotModuleReplacementScanner,
   import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
-  new_common_js_scanner::NewCommonJsScanner, new_import_meta_scanner::NewImportMetaScanner,
-  new_node_stuff_scanner::NewNodeStuffScanner, node_stuff_scanner::NodeStuffScanner,
-  require_context_scanner::RequireContextScanner, scanner::DependencyScanner,
-  url_scanner::UrlScanner,
+  node_stuff_scanner::NodeStuffScanner, require_context_scanner::RequireContextScanner,
+  url_scanner::UrlScanner, worker_scanner::WorkerScanner,
 };
 
 pub type ScanDependenciesResult = (
   Vec<Box<dyn ModuleDependency>>,
-  Vec<Box<dyn Dependency>>,
-  Vec<Box<dyn CodeReplaceSourceDependency>>,
+  Vec<Box<dyn DependencyTemplate>>,
 );
 
-pub fn scan_dependencies(
-  program: &Program,
-  unresolved_mark: Mark,
-  resource_data: &ResourceData,
-  compiler_options: &CompilerOptions,
-  module_type: &ModuleType,
-  build_info: &mut BuildInfo,
-  build_meta: &mut BuildMeta,
-) -> ScanDependenciesResult {
-  let mut dependencies: Vec<Box<dyn ModuleDependency>> = vec![];
-  let mut presentational_dependencies: Vec<Box<dyn Dependency>> = vec![];
-  let unresolved_ctxt = SyntaxContext::empty().apply_mark(unresolved_mark);
-  // Comments is wrapped by Arc/Rc
-  let comments = program.comments.clone();
-  program.visit_with_path(
-    &mut DependencyScanner::new(
-      &unresolved_ctxt,
-      resource_data,
-      compiler_options,
-      &mut dependencies,
-      &mut presentational_dependencies,
-      comments.as_ref().map(|c| c as &dyn Comments),
-    ),
-    &mut Default::default(),
-  );
-  program.visit_with_path(
-    &mut HmrDependencyScanner::new(&mut dependencies),
-    &mut Default::default(),
-  );
-
-  if module_type.is_js_auto() || module_type.is_js_dynamic() {
-    program.visit_with_path(
-      &mut CommonJsScanner::new(&mut dependencies, &mut presentational_dependencies),
-      &mut Default::default(),
-    );
-
-    if let Some(node_option) = &compiler_options.node {
-      program.visit_with_path(
-        &mut NodeStuffScanner::new(
-          &mut presentational_dependencies,
-          &unresolved_ctxt,
-          compiler_options,
-          node_option,
-          resource_data,
-        ),
-        &mut Default::default(),
-      );
-    }
-  }
-
-  if module_type.is_js_auto() || module_type.is_js_esm() {
-    program.visit_with(&mut HarmonyDetectionScanner::new(
-      build_info,
-      build_meta,
-      module_type,
-      &mut vec![],
-    ));
-    program.visit_with_path(
-      &mut ImportMetaScanner::new(
-        &mut presentational_dependencies,
-        resource_data,
-        compiler_options,
-      ),
-      &mut Default::default(),
-    );
-  }
-
-  (dependencies, presentational_dependencies, vec![])
-}
-
 #[allow(clippy::too_many_arguments)]
-pub fn scan_dependencies_with_string_replace(
+pub fn scan_dependencies(
   program: &Program,
   unresolved_mark: Mark,
   resource_data: &ResourceData,
@@ -127,34 +52,45 @@ pub fn scan_dependencies_with_string_replace(
   module_identifier: ModuleIdentifier,
 ) -> ScanDependenciesResult {
   let mut dependencies: Vec<Box<dyn ModuleDependency>> = vec![];
-  let presentational_dependencies: Vec<Box<dyn Dependency>> = vec![];
-  let mut code_replace_source_dependencies: Vec<Box<dyn CodeReplaceSourceDependency>> = vec![];
+  let mut presentational_dependencies: Vec<Box<dyn DependencyTemplate>> = vec![];
   let unresolved_ctxt = SyntaxContext::empty().apply_mark(unresolved_mark);
   let comments = program.comments.clone();
 
   program.visit_with(&mut ApiScanner::new(
     &unresolved_ctxt,
     resource_data,
-    &mut code_replace_source_dependencies,
+    &mut presentational_dependencies,
   ));
 
+  program.visit_with(&mut CompatibilityScanner::new(
+    &mut presentational_dependencies,
+    &unresolved_ctxt,
+  ));
+
+  // TODO it should enable at js/auto or js/dynamic, but builtins provider will inject require at esm
+  program.visit_with(&mut CommonJsImportDependencyScanner::new(
+    &mut dependencies,
+    &mut presentational_dependencies,
+    &unresolved_ctxt,
+  ));
   if module_type.is_js_auto() || module_type.is_js_dynamic() {
     // TODO webpack scan it at CommonJsExportsParserPlugin
     // use `Dynamic` as workaround
     build_meta.exports_type = BuildMetaExportsType::Dynamic;
-    program.visit_with(&mut NewCommonJsScanner::new(
-      &mut code_replace_source_dependencies,
-    ));
-    program.visit_with(&mut CommonJsImportDependencyScanner::new(
-      &mut dependencies,
-      &mut code_replace_source_dependencies,
+    program.visit_with(&mut CommonJsScanner::new(
+      &mut presentational_dependencies,
       &unresolved_ctxt,
     ));
     program.visit_with(&mut RequireContextScanner::new(&mut dependencies));
-
+    program.visit_with(&mut CommonJsExportDependencyScanner::new(
+      &mut presentational_dependencies,
+      &unresolved_ctxt,
+      build_meta,
+      *module_type,
+    ));
     if let Some(node_option) = &compiler_options.node {
-      program.visit_with(&mut NewNodeStuffScanner::new(
-        &mut code_replace_source_dependencies,
+      program.visit_with(&mut NodeStuffScanner::new(
+        &mut presentational_dependencies,
         &unresolved_ctxt,
         compiler_options,
         node_option,
@@ -173,24 +109,37 @@ pub fn scan_dependencies_with_string_replace(
       build_info,
       build_meta,
       module_type,
-      &mut code_replace_source_dependencies,
+      &mut presentational_dependencies,
     ));
     let mut import_map = Default::default();
     program.visit_with(&mut HarmonyImportDependencyScanner::new(
       &mut dependencies,
-      &mut code_replace_source_dependencies,
+      &mut presentational_dependencies,
       &mut import_map,
       module_identifier,
     ));
     program.visit_with(&mut HarmonyExportDependencyScanner::new(
       &mut dependencies,
-      &mut code_replace_source_dependencies,
+      &mut presentational_dependencies,
       &mut import_map,
       module_identifier,
     ));
-    program.visit_with(&mut UrlScanner::new(&mut dependencies));
-    program.visit_with(&mut NewImportMetaScanner::new(
-      &mut code_replace_source_dependencies,
+    let mut worker_syntax_scanner = rspack_core::needs_refactor::WorkerSyntaxScanner::new(
+      rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
+    );
+    program.visit_with(&mut worker_syntax_scanner);
+    let worker_syntax_list = &worker_syntax_scanner.into();
+    let mut worker_scanner = WorkerScanner::new(
+      &module_identifier,
+      &compiler_options.output,
+      worker_syntax_list,
+    );
+    program.visit_with(&mut worker_scanner);
+    dependencies.append(&mut worker_scanner.dependencies);
+    presentational_dependencies.append(&mut worker_scanner.presentational_dependencies);
+    program.visit_with(&mut UrlScanner::new(&mut dependencies, worker_syntax_list));
+    program.visit_with(&mut ImportMetaScanner::new(
+      &mut presentational_dependencies,
       resource_data,
       compiler_options,
     ));
@@ -199,15 +148,10 @@ pub fn scan_dependencies_with_string_replace(
   if compiler_options.dev_server.hot {
     program.visit_with(&mut HotModuleReplacementScanner::new(
       &mut dependencies,
-      &mut code_replace_source_dependencies,
-      module_identifier,
+      &mut presentational_dependencies,
       build_meta,
     ));
   }
 
-  (
-    dependencies,
-    presentational_dependencies,
-    code_replace_source_dependencies,
-  )
+  (dependencies, presentational_dependencies)
 }

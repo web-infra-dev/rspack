@@ -9,7 +9,7 @@ use serde::{Serialize, Serializer};
 use crate::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
   to_identifier, AstOrSource, BuildContext, BuildInfo, BuildMetaExportsType, BuildResult,
-  ChunkInitFragments, CodeGenerationDataUrl, CodeGenerationResult, Compilation, Context,
+  ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult, Compilation, Context,
   ExternalType, GenerationResult, InitFragment, InitFragmentStage, LibIdentOptions, Module,
   ModuleType, RuntimeGlobals, SourceType,
 };
@@ -180,7 +180,7 @@ impl ExternalModule {
               InitFragmentStage::STAGE_HARMONY_IMPORTS,
               None,
             ));
-          runtime_requirements.add(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+          runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
           format!(
             r#"var x = y => {{ var x = {{}}; {}(x, y); return x; }}
             var y = x => () => x
@@ -194,6 +194,7 @@ impl ExternalModule {
       // TODO "script"
       _ => "".to_string(),
     };
+    runtime_requirements.insert(RuntimeGlobals::MODULE);
     (
       RawSource::from(source).boxed(),
       chunk_init_fragments,
@@ -220,6 +221,20 @@ impl Module for ExternalModule {
     } else {
       EXTERNAL_MODULE_JS_SOURCE_TYPES
     }
+  }
+
+  fn has_chunk_condition(&self) -> bool {
+    true
+  }
+
+  fn chunk_condition(&self, chunk_key: &ChunkUkey, compilation: &Compilation) -> bool {
+    if self.external_type == "css-import" {
+      return true;
+    }
+    compilation
+      .chunk_graph
+      .get_number_of_entry_modules(chunk_key)
+      > 0
   }
 
   fn original_source(&self) -> Option<&dyn Source> {
@@ -310,7 +325,7 @@ impl Module for ExternalModule {
           GenerationResult::from(AstOrSource::from(source)),
         );
         cgr.chunk_init_fragments = chunk_init_fragments;
-        cgr.runtime_requirements.add(runtime_requirements);
+        cgr.runtime_requirements.insert(runtime_requirements);
         cgr.set_hash(
           &compilation.options.output.hash_function,
           &compilation.options.output.hash_digest,
@@ -318,6 +333,7 @@ impl Module for ExternalModule {
         );
       }
     };
+    cgr.runtime_requirements.insert(RuntimeGlobals::MODULE);
     Ok(cgr)
   }
 

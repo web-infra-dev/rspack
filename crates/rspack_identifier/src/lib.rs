@@ -3,6 +3,7 @@ use std::hash::BuildHasherDefault;
 use std::{convert::From, fmt, ops::Deref};
 
 use hashlink::{LinkedHashMap, LinkedHashSet};
+use serde::Serialize;
 use ustr::Ustr;
 
 pub trait Identifiable {
@@ -22,7 +23,7 @@ pub type IdentifierLinkedMap<V> =
 pub type IdentifierSet = HashSet<Identifier, BuildHasherDefault<IdentifierHasher>>;
 pub type IdentifierLinkedSet = LinkedHashSet<Identifier, BuildHasherDefault<IdentifierHasher>>;
 
-#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 pub struct Identifier(Ustr);
 
 impl Deref for Identifier {

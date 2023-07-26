@@ -1,9 +1,5 @@
-use rspack_error::Result;
-
 use crate::{
-  CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, CodeReplaceSourceDependency,
-  CodeReplaceSourceDependencyContext, CodeReplaceSourceDependencyReplaceSource, Dependency,
-  RuntimeGlobals,
+  Dependency, DependencyTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
@@ -13,28 +9,15 @@ pub struct RuntimeRequirementsDependency {
 
 impl Dependency for RuntimeRequirementsDependency {}
 
-impl CodeGeneratable for RuntimeRequirementsDependency {
-  fn generate(
-    &self,
-    code_generatable_context: &mut CodeGeneratableContext,
-  ) -> Result<CodeGeneratableResult> {
-    code_generatable_context
-      .runtime_requirements
-      .add(self.runtime_requirements);
-
-    Ok(CodeGeneratableResult::default())
-  }
-}
-
-impl CodeReplaceSourceDependency for RuntimeRequirementsDependency {
+impl DependencyTemplate for RuntimeRequirementsDependency {
   fn apply(
     &self,
-    _source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    _source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
   ) {
     code_generatable_context
       .runtime_requirements
-      .add(self.runtime_requirements);
+      .insert(self.runtime_requirements);
   }
 }
 

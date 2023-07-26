@@ -15,6 +15,8 @@ import {
 import fs from "graceful-fs";
 
 import { ResolveSwcPlugin } from "./web/ResolveSwcPlugin";
+import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
+import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { cleverMerge } from "./util/cleverMerge";
 import assert from "assert";
 
@@ -55,6 +57,9 @@ export class RspackOptionsApply {
 			options.output.strictModuleErrorHandling = true;
 		}
 		new ResolveSwcPlugin().apply(compiler);
+
+		new DefaultStatsFactoryPlugin().apply(compiler);
+		new DefaultStatsPrinterPlugin().apply(compiler);
 
 		compiler.hooks.afterPlugins.call(compiler);
 		if (!compiler.inputFileSystem) {
