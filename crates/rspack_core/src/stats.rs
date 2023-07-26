@@ -54,12 +54,6 @@ impl Stats<'_> {
         .iter()
         .filter_map(|(name, asset)| {
           asset.get_source().map(|source| {
-            let mut info = asset.info.all_map.clone().unwrap_or_default();
-            info.insert("development".into(), json!(asset.info.development));
-            info.insert(
-              "hotModuleReplacement".into(),
-              json!(asset.info.hot_module_replacement),
-            );
             (
               name,
               StatsAsset {
@@ -68,7 +62,7 @@ impl Stats<'_> {
                 size: source.size() as f64,
                 chunks: Vec::new(),
                 chunk_names: Vec::new(),
-                info,
+                info: asset.info.clone().into(),
                 emitted: self.compilation.emitted_assets.contains(name),
               },
             )

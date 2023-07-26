@@ -35,8 +35,16 @@ describe("Stats", () => {
 		      ],
 		      "emitted": true,
 		      "info": {
+		        "chunkHash": [],
+		        "contentHash": [],
 		        "development": false,
 		        "hotModuleReplacement": false,
+		        "immutable": false,
+		        "minimized": true,
+		        "related": {
+		          "sourceMap": null,
+		        },
+		        "version": "34195db8847a79fa86da",
 		      },
 		      "name": "main.js",
 		      "size": 215,
@@ -215,15 +223,23 @@ describe("Stats", () => {
 		  "chunks": [],
 		  "emitted": true,
 		  "info": {
+		    "arr": [
+		      {
+		        "nested": {},
+		      },
+		    ],
+		    "bool": true,
+		    "chunkHash": [],
+		    "contentHash": [],
 		    "development": false,
 		    "hotModuleReplacement": false,
-				"str": "test",
-				"bool": true,
-				"arr": [
-					{
-						"nested": {}
-					}
-				]
+		    "immutable": false,
+		    "minimized": false,
+		    "related": {
+		      "sourceMap": null,
+		    },
+		    "str": "test",
+		    "version": "",
 		  },
 		  "name": "test.txt",
 		  "size": 4,
