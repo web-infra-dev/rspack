@@ -1,1 +1,1 @@
-export * from './lib'
+export const answer = 42;

@@ -32,9 +32,8 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
-  contextify, dbg_matches, join_string_component, tree_shaking::utils::ConvertModulePath,
-  Compilation, DependencyId, DependencyType, ModuleGraph, ModuleIdentifier, ModuleType,
-  NormalModuleAstOrSource,
+  contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
+  DependencyId, DependencyType, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -212,7 +211,6 @@ impl<'a> CodeSizeOptimizer<'a> {
       &mut used_symbol_ref,
       &dead_nodes_index,
     );
-    // dbg!(&used_symbol_ref);
     Ok(
       OptimizeDependencyResult {
         used_symbol_ref,
@@ -771,7 +769,6 @@ impl<'a> CodeSizeOptimizer<'a> {
         // the binding in `app.js` used for shake the `export {xxx}`
         // In other words, we need two binding for supporting indirect redirect.
         if let Some(import_symbol_ref) = module_result.import_map.get(symbol.id()) {
-          // dbg!(&symbol, import_symbol_ref);
           self
             .symbol_graph
             .add_edge(&current_symbol_ref, import_symbol_ref);
@@ -779,7 +776,6 @@ impl<'a> CodeSizeOptimizer<'a> {
         }
       }
       SymbolRef::Indirect(ref indirect_symbol) => {
-        // dbg!(&current_symbol_ref);
         let _importer = indirect_symbol.importer();
         let module_result = match analyze_map.get(&indirect_symbol.src) {
           Some(module_result) => module_result,
@@ -1026,7 +1022,6 @@ impl<'a> CodeSizeOptimizer<'a> {
         // then, all the exports in `test.js` including
         // export defined in `test.js` and all related
         // reexport should be marked as used
-        dbg!(&star_symbol);
         let src_module_identifier: Identifier = star_symbol.src();
         let analyze_refsult = match analyze_map.get(&src_module_identifier) {
           Some(analyze_result) => analyze_result,
@@ -1378,14 +1373,14 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
           AssetModule::new(*module_identifier).analyze(compilation)
         };
 
-        dbg_matches!(
-          &module_identifier.as_str(),
-          &optimize_analyze_result.reachable_import_of_export,
-          &optimize_analyze_result.used_symbol_refs,
-          &optimize_analyze_result.export_map,
-          &optimize_analyze_result.import_map,
-          &optimize_analyze_result.side_effects
-        );
+        // dbg_matches!(
+        //   &module_identifier.as_str(),
+        //   &optimize_analyze_result.reachable_import_of_export,
+        //   &optimize_analyze_result.used_symbol_refs,
+        //   &optimize_analyze_result.export_map,
+        //   &optimize_analyze_result.import_map,
+        //   &optimize_analyze_result.side_effects
+        // );
 
         Some((*module_identifier, optimize_analyze_result))
       })
