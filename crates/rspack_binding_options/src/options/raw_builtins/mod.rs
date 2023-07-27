@@ -20,7 +20,6 @@ mod raw_css;
 mod raw_decorator;
 mod raw_html;
 mod raw_plugin_import;
-mod raw_postcss;
 mod raw_progress;
 mod raw_react;
 mod raw_relay;
@@ -28,7 +27,6 @@ mod raw_relay;
 pub use raw_css::*;
 pub use raw_decorator::*;
 pub use raw_html::*;
-pub use raw_postcss::*;
 pub use raw_progress::*;
 pub use raw_react::*;
 
@@ -207,7 +205,6 @@ impl From<RawCodeGeneration> for CodeGeneration {
 pub struct RawBuiltins {
   pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
-  pub postcss: Option<RawPostCssConfig>,
   pub minify_options: Option<RawMinification>,
   pub preset_env: Option<RawPresetEnv>,
   #[napi(ts_type = "Record<string, string>")]
@@ -248,7 +245,6 @@ impl RawOptionsApply for RawBuiltins {
           .as_ref()
           .map(|preset_env| preset_env.targets.clone())
           .unwrap_or_default(),
-        postcss: self.postcss.unwrap_or_default().into(),
         modules: css.modules.try_into()?,
       };
       plugins.push(CssPlugin::new(options).boxed());

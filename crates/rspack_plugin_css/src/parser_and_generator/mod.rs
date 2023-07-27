@@ -31,8 +31,8 @@ use swc_core::{
 use crate::plugin::CssConfig;
 use crate::swc_css_compiler::SwcCssSourceMapGenConfig;
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
+use crate::visitors::analyze_dependencies;
 use crate::{dependency::CssComposeDependency, swc_css_compiler::SwcCssCompiler};
-use crate::{pxtorem::px_to_rem::px_to_rem, visitors::analyze_dependencies};
 
 static REGEX_IS_MODULES: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\.module(s)?\.[^.]+$").expect("Invalid regex"));
@@ -142,10 +142,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
       stylesheet.visit_mut_with(&mut prefixer(Options {
         env: Some(Targets::Query(query)),
       }));
-    }
-
-    if let Some(config) = self.config.postcss.pxtorem.clone() {
-      stylesheet.visit_mut_with(&mut px_to_rem(config));
     }
 
     let locals = if is_enable_css_modules {
