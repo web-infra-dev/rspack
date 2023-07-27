@@ -16,7 +16,7 @@ use super::PathWithInfo;
 use crate::utils::callbackify;
 use crate::{
   js_values::{chunk::JsChunk, module::JsModule, PathData},
-  CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsStats, ToJsCompatSource,
+  CompatSource, JsAsset, JsChunkGroup, JsCompatSource, JsStats, ToJsCompatSource,
 };
 
 #[napi]
@@ -34,7 +34,7 @@ impl JsCompilation {
     env: Env,
     filename: String,
     new_source_or_function: Either<JsCompatSource, JsFunction>,
-    asset_info_update_or_function: Option<Either<JsAssetInfo, JsFunction>>,
+    asset_info_update_or_function: Option<Either<crate::js_values::JsAssetInfo, JsFunction>>,
   ) -> Result<()> {
     self
       .inner

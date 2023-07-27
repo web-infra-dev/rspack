@@ -126,38 +126,7 @@ export interface JsAssetEmittedArgs {
 }
 
 export interface JsAssetInfo {
-  /** if the asset can be long term cached forever (contains a hash) */
-  immutable: boolean
-  /** whether the asset is minimized */
-  minimized: boolean
-  /**
-   * the value(s) of the full hash used for this asset
-   * the value(s) of the chunk hash used for this asset
-   */
-  chunkHash: Array<string>
-  /**
-   * the value(s) of the module hash used for this asset
-   * the value(s) of the content hash used for this asset
-   */
-  contentHash: Array<string>
-  /**
-   * when asset was created from a source file (potentially transformed), the original filename relative to compilation context
-   * size in bytes, only set after asset has been emitted
-   * when asset is only used for development and doesn't count towards user-facing assets
-   */
-  development: boolean
-  /** when asset ships data for updating an existing application (HMR) */
-  hotModuleReplacement: boolean
-  /**
-   * when asset is javascript and an ESM
-   * related object to other assets, keyed by type of relation (only points from parent to child)
-   */
-  related: JsAssetInfoRelated
-  /**
-   * the asset version, emit can be skipped when both filename and version are the same
-   * An empty string means no version, it will always emit
-   */
-  version: string
+
 }
 
 export interface JsAssetInfoRelated {
