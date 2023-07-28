@@ -39,7 +39,9 @@ impl Stats<'_> {
   pub fn get_assets(&self) -> (Vec<StatsAsset>, Vec<StatsAssetsByChunkName>) {
     let mut compilation_file_to_chunks: HashMap<&String, Vec<&Chunk>> = HashMap::default();
     for chunk in self.compilation.chunk_by_ukey.values() {
-      for file in &chunk.files {
+      let files: HashSet<String> = chunk.files.union(&chunk.auxiliary_files).cloned().collect();
+
+      for file in &files {
         let chunks = compilation_file_to_chunks.entry(file).or_default();
         chunks.push(chunk);
       }

@@ -181,6 +181,7 @@ impl Plugin for JsPlugin {
       source,
       output_path,
       asset_info,
+      false,
     )])
   }
 

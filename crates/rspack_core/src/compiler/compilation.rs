@@ -236,6 +236,7 @@ impl Compilation {
       }
       self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
         chunk.files.remove(filename);
+        chunk.auxiliary_files.remove(filename);
       });
     }
   }
@@ -246,6 +247,10 @@ impl Compilation {
       self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
         if chunk.files.remove(filename) {
           chunk.files.insert(new_name.clone());
+        }
+
+        if chunk.auxiliary_files.remove(filename) {
+          chunk.auxiliary_files.insert(new_name.clone());
         }
       });
     }
@@ -901,7 +906,12 @@ impl Compilation {
           .chunk_by_ukey
           .get_mut(&chunk_ukey)
           .unwrap_or_else(|| panic!("chunk({chunk_ukey:?}) should be in chunk_by_ukey",));
-        current_chunk.files.insert(filename.clone());
+
+        if file_manifest.auxiliary {
+          current_chunk.auxiliary_files.insert(filename.clone());
+        } else {
+          current_chunk.files.insert(filename.clone());
+        }
 
         self.emit_asset(
           filename.clone(),
