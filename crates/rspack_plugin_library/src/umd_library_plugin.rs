@@ -83,7 +83,8 @@ impl Plugin for UmdLibraryPlugin {
 
     let define = if let (Some(amd), Some(_)) = &(amd, umd_named_define) {
       format!(
-        "define({amd}, {}, {amd_factory});\n",
+        "define({}, {}, {amd_factory});\n",
+        library_name(&[amd.to_string()], chunk, compilation),
         external_dep_array(&required_externals)
       )
     } else {
