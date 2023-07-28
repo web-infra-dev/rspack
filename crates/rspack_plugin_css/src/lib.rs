@@ -3,7 +3,6 @@
 pub mod dependency;
 pub(crate) mod parser_and_generator;
 pub mod plugin;
-pub mod pxtorem;
 mod swc_css_compiler;
 mod utils;
 pub mod visitors;
