@@ -776,7 +776,6 @@ impl<'a> CodeSizeOptimizer<'a> {
         }
       }
       SymbolRef::Indirect(ref indirect_symbol) => {
-        // dbg!(&current_symbol_ref);
         let _importer = indirect_symbol.importer();
         let module_result = match analyze_map.get(&indirect_symbol.src) {
           Some(module_result) => module_result,
