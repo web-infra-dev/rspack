@@ -12,19 +12,12 @@ use rspack_core::Filename;
 use rspack_core::{Chunk, ChunkGraph, Compilation, Module, ModuleGraph, PathData, SourceType};
 use rspack_identifier::IdentifierSet;
 
-use crate::pxtorem::options::PxToRemOptions;
-
 static ESCAPE_LOCAL_IDENT_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"[<>:"/\\|?*\.]"#).expect("Invalid regex"));
 
 #[derive(Debug)]
 pub struct CssPlugin {
   config: CssConfig,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct PostcssConfig {
-  pub pxtorem: Option<PxToRemOptions>,
 }
 
 #[derive(Debug, Clone)]
@@ -108,7 +101,6 @@ impl Default for LocalsConvention {
 #[derive(Debug, Clone)]
 pub struct CssConfig {
   pub targets: Vec<String>,
-  pub postcss: PostcssConfig,
   pub modules: ModulesConfig,
 }
 
