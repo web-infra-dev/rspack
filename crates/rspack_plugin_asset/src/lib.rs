@@ -542,7 +542,12 @@ impl Plugin for AssetPlugin {
               .get::<CodeGenerationDataAssetInfo>()
               .expect("should have asset_info")
               .inner();
-            RenderManifestEntry::new(source, asset_filename.to_owned(), asset_info.to_owned())
+            RenderManifestEntry::new(
+              source,
+              asset_filename.to_owned(),
+              asset_info.to_owned(),
+              true,
+            )
           });
 
         Ok(result)

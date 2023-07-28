@@ -1,5 +1,325 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] = `
+{
+  "assets": [
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "main",
+      ],
+      "emitted": true,
+      "info": {
+        "development": false,
+        "hotModuleReplacement": false,
+      },
+      "name": "220e6fb336d7b999e76d.png",
+      "size": 7,
+      "type": "asset",
+    },
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "main",
+      ],
+      "emitted": true,
+      "info": {
+        "development": false,
+        "hotModuleReplacement": false,
+      },
+      "name": "bundle.js",
+      "size": 446,
+      "type": "asset",
+    },
+  ],
+  "assetsByChunkName": {
+    "main": [
+      "220e6fb336d7b999e76d.png",
+      "bundle.js",
+    ],
+  },
+  "chunks": [
+    {
+      "auxiliaryFiles": [
+        "220e6fb336d7b999e76d.png",
+      ],
+      "children": [],
+      "entry": true,
+      "files": [
+        "bundle.js",
+      ],
+      "id": "main",
+      "initial": true,
+      "modules": [
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "692",
+          "identifier": "asset/resource|<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/raw.png",
+          "issuer": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+          "issuerId": "10",
+          "issuerName": "./index.js",
+          "issuerPath": [
+            {
+              "id": "10",
+              "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+              "name": "./index.js",
+            },
+          ],
+          "moduleType": "asset/resource",
+          "name": "./raw.png",
+          "reasons": [
+            {
+              "moduleId": "10",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+              "moduleName": "./index.js",
+              "type": "esm import",
+              "userRequest": "./raw.png",
+            },
+          ],
+          "size": 42,
+          "source": {
+            "data": [
+              114,
+              97,
+              119,
+              46,
+              112,
+              110,
+              103,
+            ],
+            "type": "Buffer",
+          },
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "10",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+          "issuerPath": [],
+          "moduleType": "javascript/auto",
+          "name": "./index.js",
+          "reasons": [
+            {
+              "type": "entry",
+              "userRequest": "./index",
+            },
+          ],
+          "size": 75,
+          "source": "import stringModule from './stringModule'
+import rawModule from './raw.png'",
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "363",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/stringModule.js",
+          "issuer": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+          "issuerId": "10",
+          "issuerName": "./index.js",
+          "issuerPath": [
+            {
+              "id": "10",
+              "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+              "name": "./index.js",
+            },
+          ],
+          "moduleType": "javascript/auto",
+          "name": "./stringModule.js",
+          "reasons": [
+            {
+              "moduleId": "10",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+              "moduleName": "./index.js",
+              "type": "esm import",
+              "userRequest": "./stringModule",
+            },
+          ],
+          "size": 1,
+          "source": "",
+          "type": "module",
+        },
+      ],
+      "names": [
+        "main",
+      ],
+      "parents": [],
+      "siblings": [],
+      "size": 125,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 446,
+        },
+      ],
+      "assetsSize": 446,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "errors": [],
+  "errorsCount": 0,
+  "hash": "a85c73152e145c5ef708",
+  "modules": [
+    {
+      "assets": [],
+      "chunks": [
+        "main",
+      ],
+      "id": "692",
+      "identifier": "asset/resource|<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/raw.png",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+      "issuerId": "10",
+      "issuerName": "./index.js",
+      "issuerPath": [
+        {
+          "id": "10",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+          "name": "./index.js",
+        },
+      ],
+      "moduleType": "asset/resource",
+      "name": "./raw.png",
+      "reasons": [
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+          "moduleName": "./index.js",
+          "type": "esm import",
+          "userRequest": "./raw.png",
+        },
+      ],
+      "size": 42,
+      "source": {
+        "data": [
+          114,
+          97,
+          119,
+          46,
+          112,
+          110,
+          103,
+        ],
+        "type": "Buffer",
+      },
+      "type": "module",
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "main",
+      ],
+      "id": "10",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+      "issuerPath": [],
+      "moduleType": "javascript/auto",
+      "name": "./index.js",
+      "reasons": [
+        {
+          "type": "entry",
+          "userRequest": "./index",
+        },
+      ],
+      "size": 75,
+      "source": "import stringModule from './stringModule'
+import rawModule from './raw.png'",
+      "type": "module",
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "main",
+      ],
+      "id": "363",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/stringModule.js",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+      "issuerId": "10",
+      "issuerName": "./index.js",
+      "issuerPath": [
+        {
+          "id": "10",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+          "name": "./index.js",
+        },
+      ],
+      "moduleType": "javascript/auto",
+      "name": "./stringModule.js",
+      "reasons": [
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+          "moduleName": "./index.js",
+          "type": "esm import",
+          "userRequest": "./stringModule",
+        },
+      ],
+      "size": 1,
+      "source": "",
+      "type": "module",
+    },
+  ],
+  "namedChunkGroups": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 446,
+        },
+      ],
+      "assetsSize": 446,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "outputPath": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/dist",
+  "publicPath": "",
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for auxiliary-files-test 2`] = `
+"PublicPath: (none)
+asset 220e6fb336d7b999e76d.png 7 bytes {main} [emitted] (name: main)
+asset bundle.js 446 bytes {main} [emitted] (name: main)
+Entrypoint main 446 bytes = bundle.js
+chunk {main} bundle.js (main) [entry]
+  ./raw.png [692] {main}
+    esm import ./raw.png [10]
+  ./index.js [10] {main}
+    entry ./index
+  ./stringModule.js [363] {main}
+    esm import ./stringModule [10]
+./raw.png [692] {main}
+  esm import ./raw.png [10]
+./index.js [10] {main}
+  entry ./index
+./stringModule.js [363] {main}
+  esm import ./stringModule [10]
+rspack compiled successfully (a85c73152e145c5ef708)"
+`;
+
 exports[`StatsTestCases should print correct stats for filename 1`] = `
 {
   "assets": [
@@ -41,6 +361,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   },
   "chunks": [
     {
+      "auxiliaryFiles": [],
       "children": [],
       "entry": false,
       "files": [
@@ -92,6 +413,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "type": "chunk",
     },
     {
+      "auxiliaryFiles": [],
       "children": [
         "dynamic_js",
       ],
@@ -272,6 +594,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   },
   "chunks": [
     {
+      "auxiliaryFiles": [],
       "children": [],
       "entry": true,
       "files": [
@@ -726,6 +1049,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 {
   "chunks": [
     {
+      "auxiliaryFiles": [],
       "entry": true,
       "files": [
         "e1.js",
@@ -739,6 +1063,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "type": "chunk",
     },
     {
+      "auxiliaryFiles": [],
       "entry": false,
       "files": [
         "e1~runtime.js",
@@ -752,6 +1077,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "type": "chunk",
     },
     {
+      "auxiliaryFiles": [],
       "entry": true,
       "files": [
         "e2.js",
@@ -765,6 +1091,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "type": "chunk",
     },
     {
+      "auxiliaryFiles": [],
       "entry": false,
       "files": [
         "e2~runtime.js",
@@ -871,6 +1198,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 {
   "chunks": [
     {
+      "auxiliaryFiles": [],
       "entry": true,
       "files": [
         "e1.js",
@@ -884,6 +1212,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "type": "chunk",
     },
     {
+      "auxiliaryFiles": [],
       "entry": true,
       "files": [
         "e2.js",
@@ -897,6 +1226,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "type": "chunk",
     },
     {
+      "auxiliaryFiles": [],
       "entry": false,
       "files": [
         "runtime~e1.js",
@@ -910,6 +1240,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "type": "chunk",
     },
     {
+      "auxiliaryFiles": [],
       "entry": false,
       "files": [
         "runtime~e2.js",
@@ -1016,6 +1347,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 {
   "chunks": [
     {
+      "auxiliaryFiles": [],
       "entry": true,
       "files": [
         "e1.js",
@@ -1029,6 +1361,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "type": "chunk",
     },
     {
+      "auxiliaryFiles": [],
       "entry": true,
       "files": [
         "e2.js",
@@ -1042,6 +1375,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "type": "chunk",
     },
     {
+      "auxiliaryFiles": [],
       "entry": false,
       "files": [
         "runtime.js",
@@ -1147,6 +1481,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 {
   "chunks": [
     {
+      "auxiliaryFiles": [],
       "entry": true,
       "files": [
         "e1.js",
@@ -1160,6 +1495,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "type": "chunk",
     },
     {
+      "auxiliaryFiles": [],
       "entry": true,
       "files": [
         "e2.js",
@@ -1173,6 +1509,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "type": "chunk",
     },
     {
+      "auxiliaryFiles": [],
       "entry": false,
       "files": [
         "runtime~e1.js",
@@ -1186,6 +1523,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "type": "chunk",
     },
     {
+      "auxiliaryFiles": [],
       "entry": false,
       "files": [
         "runtime~e2.js",
@@ -1410,6 +1748,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
   },
   "chunks": [
     {
+      "auxiliaryFiles": [],
       "children": [],
       "entry": true,
       "files": [
@@ -1640,6 +1979,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
   },
   "chunks": [
     {
+      "auxiliaryFiles": [],
       "children": [],
       "entry": true,
       "files": [
@@ -1860,6 +2200,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   },
   "chunks": [
     {
+      "auxiliaryFiles": [],
       "children": [],
       "entry": true,
       "files": [
@@ -2001,6 +2342,7 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
   },
   "chunks": [
     {
+      "auxiliaryFiles": [],
       "children": [],
       "entry": true,
       "files": [
@@ -2269,6 +2611,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
   },
   "chunks": [
     {
+      "auxiliaryFiles": [],
       "children": [],
       "entry": true,
       "files": [
