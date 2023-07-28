@@ -180,6 +180,7 @@ impl From<rspack_core::StatsModuleReason> for JsStatsModuleReason {
 pub struct JsStatsChunk {
   pub r#type: &'static str,
   pub files: Vec<String>,
+  pub auxiliary_files: Vec<String>,
   pub id: String,
   pub entry: bool,
   pub initial: bool,
@@ -197,6 +198,7 @@ impl TryFrom<rspack_core::StatsChunk<'_>> for JsStatsChunk {
     Ok(Self {
       r#type: stats.r#type,
       files: stats.files,
+      auxiliary_files: stats.auxiliary_files,
       id: stats.id,
       entry: stats.entry,
       initial: stats.initial,

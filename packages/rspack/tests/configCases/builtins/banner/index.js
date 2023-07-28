@@ -4,7 +4,6 @@ import png from "./empty.png";
 import("./b.js").then(res => {
 	// xxxx
 });
-console.log("png:", png);
 
 it("add comment should works", () => {
 	const mainFile = fs.readFileSync(__filename, "utf-8");

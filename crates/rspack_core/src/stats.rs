@@ -39,9 +39,12 @@ impl Stats<'_> {
   pub fn get_assets(&self) -> (Vec<StatsAsset>, Vec<StatsAssetsByChunkName>) {
     let mut compilation_file_to_chunks: HashMap<&String, Vec<&Chunk>> = HashMap::default();
     for chunk in self.compilation.chunk_by_ukey.values() {
-      let files: HashSet<String> = chunk.files.union(&chunk.auxiliary_files).cloned().collect();
+      for file in &chunk.files {
+        let chunks = compilation_file_to_chunks.entry(file).or_default();
+        chunks.push(chunk);
+      }
 
-      for file in &files {
+      for file in &chunk.auxiliary_files {
         let chunks = compilation_file_to_chunks.entry(file).or_default();
         chunks.push(chunk);
       }
@@ -159,6 +162,10 @@ impl Stats<'_> {
       .map(|c| -> Result<_> {
         let mut files = Vec::from_iter(c.files.iter().cloned());
         files.sort_unstable();
+
+        let mut auxiliary_files = Vec::from_iter(c.auxiliary_files.iter().cloned());
+        auxiliary_files.sort_unstable();
+
         let chunk_modules = if chunk_modules {
           let chunk_modules = self
             .compilation
@@ -183,6 +190,7 @@ impl Stats<'_> {
         Ok(StatsChunk {
           r#type: "chunk",
           files,
+          auxiliary_files,
           id: c.expect_id().to_string(),
           names: c.name.clone().map(|n| vec![n]).unwrap_or_default(),
           entry: c.has_entry_module(&self.compilation.chunk_graph),
@@ -542,6 +550,7 @@ pub struct StatsModule<'a> {
 pub struct StatsChunk<'a> {
   pub r#type: &'static str,
   pub files: Vec<String>,
+  pub auxiliary_files: Vec<String>,
   pub id: String,
   pub entry: bool,
   pub initial: bool,

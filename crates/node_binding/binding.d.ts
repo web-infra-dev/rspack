@@ -305,6 +305,7 @@ export interface JsStatsAssetsByChunkName {
 export interface JsStatsChunk {
   type: string
   files: Array<string>
+  auxiliaryFiles: Array<string>
   id: string
   entry: boolean
   initial: boolean

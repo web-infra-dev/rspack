@@ -177,6 +177,8 @@ impl Plugin for DevtoolPlugin {
           .boxed(),
         );
         args.compilation.emit_asset(filename, asset);
+        // TODO
+        // chunk.auxiliary_files.add(filename);
       } else {
         let mut source_map_filename = filename.to_owned() + ".map";
         // TODO(ahabhgk): refactor remove the for loop
@@ -188,7 +190,6 @@ impl Plugin for DevtoolPlugin {
               chunk.files.union(&chunk.auxiliary_files).cloned().collect();
 
             for file in &files {
-              println!("File: {}", file);
               if file == &filename {
                 let source_type = if is_css {
                   &SourceType::Css

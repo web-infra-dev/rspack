@@ -190,7 +190,6 @@ impl Plugin for BannerPlugin {
       }
 
       for file in &chunk.files {
-        dbg!(file);
         let is_match = match_object(&self.config, file).await.unwrap_or(false);
 
         if !is_match {
