@@ -34,7 +34,7 @@ impl Visit for CompatibilityScanner<'_> {
     program.visit_children_with(&mut ReplaceNestWebpackRequireVisitor {
       unresolved_ctxt: self.unresolved_ctxt,
       name_map: &self.name_map,
-      presentational_dependencies: &mut self.presentational_dependencies,
+      presentational_dependencies: self.presentational_dependencies,
     });
   }
 
