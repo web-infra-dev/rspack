@@ -501,22 +501,41 @@ impl Compilation {
       while let Some(task) = process_dependencies_queue.get_task() {
         active_task_count += 1;
 
+        let original_module_identifier = &task.original_module_identifier;
+        let module = self
+          .module_graph
+          .module_by_identifier(original_module_identifier)
+          .expect("Module expected");
+
+        let mut sorted_dependencies = HashMap::default();
+
         task.dependencies.into_iter().for_each(|id| {
-          let original_module_identifier = &task.original_module_identifier;
-          let module = self
-            .module_graph
-            .module_by_identifier(original_module_identifier)
-            .expect("Module expected");
           let dependency = self
             .module_graph
             .dependency_by_id(&id)
             .expect("dependency expected");
 
+          // TODO need implement more dependency `resource_identifier()`
+          // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L1621
+          let resource_identifier =
+            if let Some(resource_identifier) = dependency.resource_identifier() {
+              resource_identifier.to_string()
+            } else {
+              format!("{}|{}", dependency.dependency_type(), dependency.request())
+            };
+
+          sorted_dependencies
+            .entry(resource_identifier)
+            .or_insert(vec![])
+            .push(dependency.clone());
+        });
+
+        for dependencies in sorted_dependencies.into_values() {
           self.handle_module_creation(
             &mut factorize_queue,
             Some(task.original_module_identifier),
             module.get_context().cloned(),
-            vec![dependency.clone()],
+            dependencies,
             false,
             None,
             None,
@@ -527,7 +546,7 @@ impl Compilation {
               .and_then(|module| module.name_for_condition())
               .map(|issuer| issuer.to_string()),
           );
-        });
+        }
 
         result_tx
           .send(Ok(TaskResult::ProcessDependencies(

@@ -12,6 +12,7 @@ pub struct ContextElementDependency {
   pub user_request: String,
   pub category: DependencyCategory,
   pub context: Context,
+  pub resource_identifier: String,
 }
 
 impl Dependency for ContextElementDependency {
@@ -58,5 +59,9 @@ impl ModuleDependency for ContextElementDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
+  }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
   }
 }
