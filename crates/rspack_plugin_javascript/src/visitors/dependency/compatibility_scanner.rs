@@ -45,16 +45,7 @@ impl Visit for CompatibilityScanner<'_> {
     {
       self.count += 1;
       self.name_map.insert(fn_decl.ident.span.ctxt, self.count);
-      self
-        .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
-          fn_decl.ident.span.real_lo(),
-          fn_decl.ident.span.real_hi(),
-          format!("__nested_webpack_require_{}__", self.count).into(),
-          None,
-        )));
     }
-    fn_decl.function.visit_children_with(self);
   }
 }
 
