@@ -6,10 +6,6 @@ use rspack_testing::{fixture, test_fixture};
 fn webpack_css(fixture_path: PathBuf) {
   test_fixture(&fixture_path);
 }
-#[fixture("tests/fixtures/postcss/*")]
-fn postcss(fixture_path: PathBuf) {
-  test_fixture(&fixture_path);
-}
 
 #[fixture("tests/fixtures/custom/*")]
 fn custom(fixture_path: PathBuf) {

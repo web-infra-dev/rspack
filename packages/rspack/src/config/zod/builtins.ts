@@ -19,7 +19,7 @@ export function builtins() {
 			})
 			.refine(() => {
 				console.warn(
-					"warn: `builtins.postcss` is going to be deprecated and will be removed at 0.3. See details at https://github.com/web-infra-dev/rspack/issues/3452"
+					"warn: `builtins.postcss` is removed in 0.3.0. Please use `postcss-loader` instead."
 				);
 				return true;
 			})

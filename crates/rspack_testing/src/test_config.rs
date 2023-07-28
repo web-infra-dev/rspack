@@ -7,7 +7,6 @@ use std::{
 };
 
 use rspack_core::{BoxLoader, BoxPlugin, CompilerOptions, ModuleType, PluginExt};
-use rspack_plugin_css::pxtorem::options::PxToRemOptions;
 use rspack_plugin_html::config::HtmlPluginConfig;
 use rspack_regex::RspackRegex;
 use schemars::JsonSchema;
@@ -164,8 +163,6 @@ pub struct Builtins {
   #[serde(default)]
   pub provide: HashMap<String, Vec<String>>,
   #[serde(default)]
-  pub postcss: Postcss,
-  #[serde(default)]
   pub html: Vec<HtmlPluginConfig>,
   #[serde(default)]
   pub minify_options: Option<Minification>,
@@ -202,39 +199,6 @@ impl Default for ModulesConfig {
       locals_convention: "asIs".to_string(),
       local_ident_name: "[path][name][ext]__[local]".to_string(),
       exports_only: false,
-    }
-  }
-}
-
-#[derive(Debug, JsonSchema, Deserialize, Default)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct Postcss {
-  #[serde(default)]
-  pub pxtorem: Option<PxToRem>,
-}
-
-#[derive(Debug, JsonSchema, Deserialize, Default)]
-#[serde(rename_all = "camelCase", deny_unknown_fields, default)]
-pub struct PxToRem {
-  pub root_value: Option<u32>,
-  pub unit_precision: Option<u32>,
-  pub selector_black_list: Option<Vec<String>>,
-  pub prop_list: Option<Vec<String>>,
-  pub replace: Option<bool>,
-  pub media_query: Option<bool>,
-  pub min_pixel_value: Option<f64>,
-}
-
-impl From<PxToRem> for PxToRemOptions {
-  fn from(value: PxToRem) -> Self {
-    Self {
-      root_value: value.root_value,
-      unit_precision: value.unit_precision,
-      selector_black_list: value.selector_black_list,
-      prop_list: value.prop_list,
-      replace: value.replace,
-      media_query: value.media_query,
-      min_pixel_value: value.min_pixel_value,
     }
   }
 }
@@ -528,9 +492,6 @@ impl TestConfig {
     plugins.push(
       rspack_plugin_css::CssPlugin::new(rspack_plugin_css::plugin::CssConfig {
         targets,
-        postcss: rspack_plugin_css::plugin::PostcssConfig {
-          pxtorem: self.builtins.postcss.pxtorem.map(|i| i.into()),
-        },
         modules: rspack_plugin_css::plugin::ModulesConfig {
           locals_convention: rspack_plugin_css::plugin::LocalsConvention::from_str(
             &self.builtins.css.modules.locals_convention,
