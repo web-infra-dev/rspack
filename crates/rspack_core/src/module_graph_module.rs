@@ -3,9 +3,9 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   is_async_dependency, module_graph::ConnectionId, BuildInfo, BuildMeta, BuildMetaDefaultObject,
-  BuildMetaExportsType, ChunkGraph, ChunkGroupOptions, DependencyId, ExportsType, FactoryMeta,
-  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleIssuer,
-  ModuleSyntax, ModuleType,
+  BuildMetaExportsType, ChunkGraph, ChunkGroupOptions, DependencyId, ExportsInfo, ExportsType,
+  FactoryMeta, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  ModuleIssuer, ModuleSyntax, ModuleType,
 };
 
 #[derive(Debug)]
@@ -27,6 +27,7 @@ pub struct ModuleGraphModule {
   pub factory_meta: Option<FactoryMeta>,
   pub build_info: Option<BuildInfo>,
   pub build_meta: Option<BuildMeta>,
+  pub exports: ExportsInfo,
 }
 
 impl ModuleGraphModule {
@@ -46,6 +47,7 @@ impl ModuleGraphModule {
       factory_meta: None,
       build_info: None,
       build_meta: None,
+      exports: ExportsInfo::new(),
     }
   }
 

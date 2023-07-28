@@ -8,11 +8,11 @@ use rspack_identifier::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 mod connection;
-pub use connection::{ConnectionId, ModuleGraphConnection};
+pub use connection::{ConnectionId, ConnectionState, ModuleGraphConnection};
 
 use crate::{
   to_identifier, BoxModule, BoxModuleDependency, BuildDependency, BuildInfo, BuildMeta,
-  DependencyId, Module, ModuleGraphModule, ModuleIdentifier,
+  DependencyId, ExportsInfo, Module, ModuleGraphModule, ModuleIdentifier,
 };
 
 // TODO Here request can be used JsWord
@@ -348,6 +348,19 @@ impl ModuleGraph {
       .unwrap_or_default()
   }
 
+  pub fn get_incoming_connections(&self, module: &BoxModule) -> HashSet<&ModuleGraphConnection> {
+    self
+      .module_graph_module_by_identifier(&module.identifier())
+      .map(|mgm| {
+        mgm
+          .incoming_connections
+          .iter()
+          .filter_map(|id| self.connection_by_connection_id(id))
+          .collect()
+      })
+      .unwrap_or_default()
+  }
+
   /// Remove a connection and return connection origin module identifier and dependency
   fn revoke_connection(&mut self, connection_id: ConnectionId) -> Option<BuildDependency> {
     let connection = match self.connections[*connection_id].take() {
@@ -481,6 +494,13 @@ impl ModuleGraph {
       .expect("should have module import var")
       .get(request)
       .unwrap_or_else(|| panic!("should have import var for {module_identifier} {request}"))
+  }
+
+  pub fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> &ExportsInfo {
+    let mgm = self
+      .module_graph_module_by_identifier(module_identifier)
+      .expect("should have mgm");
+    &mgm.exports
   }
 }
 

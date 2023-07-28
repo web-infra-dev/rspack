@@ -1,10 +1,11 @@
 use std::collections::HashSet;
 
 use rspack_core::{
-  tree_shaking::visitor::SymbolRef, DependencyTemplate, InitFragment, InitFragmentStage,
-  RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  tree_shaking::symbol::{IndirectType, SymbolType, DEFAULT_JS_WORD},
+  tree_shaking::visitor::SymbolRef,
+  DependencyTemplate, InitFragment, InitFragmentStage, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource,
 };
-use rspack_symbol::{IndirectType, SymbolType, DEFAULT_JS_WORD};
 use swc_core::ecma::atoms::JsWord;
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for each export.
@@ -45,7 +46,7 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
           .used_symbol_ref
           .iter()
           .filter_map(|item| match item {
-            SymbolRef::Direct(d) if d.src() == module.identifier() => {
+            SymbolRef::Declaration(d) if d.src() == module.identifier() => {
               if *d.ty() == SymbolType::Temp {
                 if let Some(key) = self.exports.iter().find(|e| e.0 == *d.exported()) {
                   return Some(&key.0);

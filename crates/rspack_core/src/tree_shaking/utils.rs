@@ -1,8 +1,8 @@
-use rspack_symbol::{IndirectTopLevelSymbol, StarSymbol, Symbol};
 use swc_core::common::Mark;
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit};
 use swc_core::ecma::atoms::{js_word, JsWord};
 
+use super::symbol::{IndirectTopLevelSymbol, StarSymbol, Symbol};
 use super::visitor::SymbolRef;
 use crate::{ModuleGraph, ModuleIdentifier};
 
@@ -65,8 +65,8 @@ pub trait ConvertModulePath {
 impl ConvertModulePath for SymbolRef {
   fn convert_module_identifier_to_module_path(self, module_graph: &ModuleGraph) -> Self {
     match self {
-      SymbolRef::Direct(direct) => {
-        SymbolRef::Direct(direct.convert_module_identifier_to_module_path(module_graph))
+      SymbolRef::Declaration(direct) => {
+        SymbolRef::Declaration(direct.convert_module_identifier_to_module_path(module_graph))
       }
       SymbolRef::Indirect(indirect) => {
         SymbolRef::Indirect(indirect.convert_module_identifier_to_module_path(module_graph))
@@ -74,14 +74,29 @@ impl ConvertModulePath for SymbolRef {
       SymbolRef::Star(star) => {
         SymbolRef::Star(star.convert_module_identifier_to_module_path(module_graph))
       }
-      SymbolRef::Url { importer, src } => SymbolRef::Url {
+      SymbolRef::Url {
+        importer,
+        src,
+        dep_id,
+      } => SymbolRef::Url {
         importer: importer.convert_module_identifier_to_module_path(module_graph),
         src: src.convert_module_identifier_to_module_path(module_graph),
+        dep_id,
       },
-      SymbolRef::Worker { importer, src } => SymbolRef::Worker {
+      SymbolRef::Worker {
+        importer,
+        src,
+        dep_id,
+      } => SymbolRef::Worker {
         importer: importer.convert_module_identifier_to_module_path(module_graph),
         src: src.convert_module_identifier_to_module_path(module_graph),
+        dep_id,
       },
+      SymbolRef::Usage(binding, member_chain, src) => SymbolRef::Usage(
+        binding,
+        member_chain,
+        src.convert_module_identifier_to_module_path(module_graph),
+      ),
     }
   }
 }

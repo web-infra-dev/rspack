@@ -9,6 +9,11 @@ __webpack_require__.d(__webpack_exports__, {
 
  class Lib extends /* "./lib" unused */null {
 }
+function foo() {
+    return {
+        OriginLib: /* "./lib" unused */null
+    };
+}
  const v = _lib__WEBPACK_IMPORTED_MODULE_0_["value"];
 },
 "./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {

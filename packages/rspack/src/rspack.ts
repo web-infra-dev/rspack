@@ -97,18 +97,23 @@ function isMultiRspackOptions(o: unknown): o is MultiRspackOptions {
 	return Array.isArray(o);
 }
 
+function rspack(options: MultiRspackOptions): MultiCompiler;
+function rspack(options: RspackOptions): Compiler;
+function rspack(
+	options: MultiRspackOptions | RspackOptions
+): MultiCompiler | Compiler;
 function rspack(
 	options: MultiRspackOptions,
 	callback?: Callback<Error, MultiStats>
-): MultiCompiler;
+): null | MultiCompiler;
 function rspack(
 	options: RspackOptions,
 	callback?: Callback<Error, Stats>
-): Compiler;
+): null | Compiler;
 function rspack(
 	options: MultiRspackOptions | RspackOptions,
 	callback?: Callback<Error, MultiStats | Stats>
-): MultiCompiler | Compiler;
+): null | MultiCompiler | Compiler;
 function rspack(
 	options: MultiRspackOptions | RspackOptions,
 	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>

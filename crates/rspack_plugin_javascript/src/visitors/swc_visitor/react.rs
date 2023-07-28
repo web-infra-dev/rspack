@@ -3,13 +3,11 @@ use std::sync::Arc;
 use rspack_core::ReactOptions;
 use swc_core::common::DUMMY_SP;
 use swc_core::common::{comments::SingleThreadedComments, Mark, SourceMap};
-use swc_core::ecma::ast::{
-  BlockStmt, CallExpr, Callee, Expr, FnDecl, Function, Ident, ModuleItem, Program, Stmt,
-};
+use swc_core::ecma::ast::{BlockStmt, FnDecl, Function, Ident, ModuleItem, Program, Stmt};
 use swc_core::ecma::transforms::react::RefreshOptions;
 use swc_core::ecma::transforms::react::{react as swc_react, Options};
 use swc_core::ecma::utils::quote_ident;
-use swc_core::ecma::visit::{noop_visit_type, Fold, Visit, VisitWith};
+use swc_core::ecma::visit::Fold;
 use swc_core::quote;
 
 pub fn react<'a>(
@@ -45,41 +43,6 @@ pub fn react<'a>(
 
 pub fn fold_react_refresh(unresolved_mark: Mark) -> impl Fold {
   ReactHmrFolder { unresolved_mark }
-}
-
-#[derive(Default)]
-struct ReactRefreshUsageFinder {
-  pub is_founded: bool,
-}
-
-impl Visit for ReactRefreshUsageFinder {
-  noop_visit_type!();
-
-  fn visit_module_items(&mut self, items: &[ModuleItem]) {
-    for item in items {
-      item.visit_children_with(self);
-      if self.is_founded {
-        return;
-      }
-    }
-  }
-
-  fn visit_call_expr(&mut self, call_expr: &CallExpr) {
-    if self.is_founded {
-      return;
-    }
-
-    self.is_founded = matches!(call_expr, CallExpr {
-      callee: Callee::Expr(box Expr::Ident(Ident { sym, .. })),
-      ..
-    } if sym == "$RefreshReg$" || sym == "$RefreshSig$");
-
-    if self.is_founded {
-      return;
-    }
-
-    call_expr.visit_children_with(self);
-  }
 }
 
 // $ReactRefreshRuntime$ is injected by provide
@@ -132,13 +95,6 @@ pub struct ReactHmrFolder {
 
 impl Fold for ReactHmrFolder {
   fn fold_program(&mut self, mut program: Program) -> Program {
-    let mut f = ReactRefreshUsageFinder::default();
-
-    program.visit_with(&mut f);
-    if !f.is_founded {
-      return program;
-    }
-
     let runtime_stmts = create_react_refresh_runtime_stmts(self.unresolved_mark);
 
     match program {

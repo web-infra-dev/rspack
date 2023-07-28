@@ -1,11 +1,12 @@
 use std::collections::HashSet;
 
 use rspack_core::{
-  export_from_import, get_exports_type, tree_shaking::visitor::SymbolRef, DependencyId,
-  DependencyTemplate, ExportsType, InitFragment, InitFragmentStage, ModuleIdentifier,
+  export_from_import, get_exports_type,
+  tree_shaking::symbol::{IndirectType, StarSymbolKind, SymbolType, DEFAULT_JS_WORD},
+  tree_shaking::visitor::SymbolRef,
+  DependencyId, DependencyTemplate, ExportsType, InitFragment, InitFragmentStage, ModuleIdentifier,
   RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
-use rspack_symbol::{IndirectType, StarSymbolKind, SymbolType, DEFAULT_JS_WORD};
 use swc_core::ecma::atoms::JsWord;
 
 use super::format_exports;
@@ -65,11 +66,11 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         .used_symbol_ref
         .iter()
         .filter_map(|item| match item {
-          SymbolRef::Direct(d) if d.src() == module.identifier() => {
-            if *d.ty() == SymbolType::Temp {
+          SymbolRef::Declaration(decl) if decl.src() == module.identifier() => {
+            if *decl.ty() == SymbolType::Temp {
               if let Some(key) = &self.ids.iter().find(|e| {
                 if e.1.is_some() {
-                  e.0 == *d.exported()
+                  e.0 == *decl.exported()
                 } else {
                   false
                 }
@@ -77,7 +78,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
                 return Some(&key.0);
               }
             }
-            Some(&d.id().atom)
+            Some(&decl.id().atom)
           }
           SymbolRef::Indirect(i) if i.importer == module.identifier() && i.is_reexport() => {
             Some(i.id())

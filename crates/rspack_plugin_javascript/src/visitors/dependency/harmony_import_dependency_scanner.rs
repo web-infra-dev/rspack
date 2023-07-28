@@ -1,9 +1,8 @@
 use indexmap::IndexMap;
 use rspack_core::{
-  ConstDependency, DependencyId, DependencyTemplate, DependencyType, ModuleDependency,
-  ModuleIdentifier, SpanExt,
+  tree_shaking::symbol::DEFAULT_JS_WORD, ConstDependency, DependencyId, DependencyTemplate,
+  DependencyType, ModuleDependency, ModuleIdentifier, SpanExt,
 };
-use rspack_symbol::DEFAULT_JS_WORD;
 use rustc_hash::FxHashMap;
 use swc_core::{
   common::Span,
