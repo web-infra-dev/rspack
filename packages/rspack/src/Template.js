@@ -10,20 +10,34 @@ const { WEBPACK_MODULE_TYPE_RUNTIME } = require("./ModuleTypeConstants");
 const RuntimeGlobals = require("./RuntimeGlobals");
 
 /** @typedef {import("webpack-sources").Source} Source */
-/** @typedef {import("../declarations/WebpackOptions").Output} OutputOptions */
-/** @typedef {import("./Chunk")} Chunk */
-/** @typedef {import("./ChunkGraph")} ChunkGraph */
-/** @typedef {import("./CodeGenerationResults")} CodeGenerationResults */
-/** @typedef {import("./Compilation").AssetInfo} AssetInfo */
-/** @typedef {import("./Compilation").PathData} PathData */
-/** @typedef {import("./DependencyTemplates")} DependencyTemplates */
-/** @typedef {import("./Module")} Module */
-/** @typedef {import("./ModuleGraph")} ModuleGraph */
-/** @typedef {import("./ModuleTemplate")} ModuleTemplate */
-/** @typedef {import("./RuntimeModule")} RuntimeModule */
-/** @typedef {import("./RuntimeTemplate")} RuntimeTemplate */
-/** @typedef {import("./javascript/JavascriptModulesPlugin").ChunkRenderContext} ChunkRenderContext */
-/** @typedef {import("./javascript/JavascriptModulesPlugin").RenderContext} RenderContext */
+// /** @typedef {import("../declarations/WebpackOptions").Output} OutputOptions */
+/** @typedef {any} OutputOptions */
+// /** @typedef {import("./Chunk")} Chunk */
+/** @typedef {any} Chunk */
+// /** @typedef {import("./ChunkGraph")} ChunkGraph */
+/** @typedef {any} ChunkGraph */
+// /** @typedef {import("./CodeGenerationResults")} CodeGenerationResults */
+/** @typedef {any} CodeGenerationResults */
+// /** @typedef {import("./Compilation").AssetInfo} AssetInfo */
+/** @typedef {any} AssetInfo */
+// /** @typedef {import("./Compilation").PathData} PathData */
+/** @typedef {any} PathData */
+// /** @typedef {import("./DependencyTemplates")} DependencyTemplates */
+/** @typedef {any} DependencyTemplates */
+// /** @typedef {import("./Module")} Module */
+/** @typedef {any} Module */
+// /** @typedef {import("./ModuleGraph")} ModuleGraph */
+/** @typedef {any} ModuleGraph */
+// /** @typedef {import("./ModuleTemplate")} ModuleTemplate */
+/** @typedef {any} ModuleTemplate */
+// /** @typedef {import("./RuntimeModule")} RuntimeModule */
+/** @typedef {any} RuntimeModule */
+// /** @typedef {import("./RuntimeTemplate")} RuntimeTemplate */
+/** @typedef {any} RuntimeTemplate */
+// /** @typedef {import("./javascript/JavascriptModulesPlugin").ChunkRenderContext} ChunkRenderContext */
+/** @typedef {any} ChunkRenderContext */
+// /** @typedef {import("./javascript/JavascriptModulesPlugin").RenderContext} RenderContext */
+/** @typedef {any} RenderContext */
 
 const START_LOWERCASE_ALPHABET_CODE = "a".charCodeAt(0);
 const START_UPPERCASE_ALPHABET_CODE = "A".charCodeAt(0);
@@ -406,6 +420,7 @@ class Template {
 		return new PrefixSource(
 			"/******/ ",
 			new ConcatSource(
+				// @ts-expect-error
 				`function(${RuntimeGlobals.require}) { // webpackRuntimeModules\n`,
 				this.renderRuntimeModules(runtimeModules, renderContext),
 				"}\n"

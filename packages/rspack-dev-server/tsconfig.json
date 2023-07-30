@@ -4,6 +4,8 @@
     "src"
   ],
   "compilerOptions": {
+    // TODO: Remove skipLibCheck when fix upstream type bug
+    "skipLibCheck": true,
     "outDir": "dist",
     "rootDir": "src"
   }

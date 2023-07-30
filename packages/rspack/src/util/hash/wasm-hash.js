@@ -138,6 +138,7 @@ class WasmHash {
 		}
 	}
 
+	// @ts-expect-error
 	digest(type) {
 		const { exports, buffered, mem, digestSize } = this;
 		exports.final(buffered);
@@ -149,6 +150,7 @@ class WasmHash {
 	}
 }
 
+// @ts-expect-error
 const create = (wasmModule, instancesPool, chunkSize, digestSize) => {
 	if (instancesPool.length > 0) {
 		const old = instancesPool.pop();

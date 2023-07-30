@@ -1,6 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    // FIXME: If we use Node16, it will be a segmentation fault in unit test, so we can only use CommonJS here
+    // related issue: https://github.com/nodejs/node/issues/35889
+    "module": "CommonJS",
+    "moduleResolution": "Node10",
+    // TODO: Remove skipLibCheck when fix upstream type bug
+    "skipLibCheck": true,
     "outDir": "dist",
     "rootDir": "src"
   },

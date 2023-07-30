@@ -14,6 +14,7 @@ const loaderFlag = "LOADER_EXECUTION";
 
 const webpackOptionsFlag = "WEBPACK_OPTIONS";
 
+// @ts-expect-error
 exports.cutOffByFlag = (stack, flag) => {
 	stack = stack.split("\n");
 	for (let i = 0; i < stack.length; i++) {
@@ -23,26 +24,31 @@ exports.cutOffByFlag = (stack, flag) => {
 	}
 	return stack.join("\n");
 };
+// @ts-expect-error
 
 exports.cutOffLoaderExecution = stack =>
 	exports.cutOffByFlag(stack, loaderFlag);
-
+// @ts-expect-error
 exports.cutOffWebpackOptions = stack =>
 	exports.cutOffByFlag(stack, webpackOptionsFlag);
 
+// @ts-expect-error
 exports.cutOffMultilineMessage = (stack, message) => {
 	stack = stack.split("\n");
 	message = message.split("\n");
-
+	// @ts-expect-error
 	const result = [];
 
+	// @ts-expect-error
 	stack.forEach((line, idx) => {
 		if (!line.includes(message[idx])) result.push(line);
 	});
 
+	// @ts-expect-error
 	return result.join("\n");
 };
 
+// @ts-expect-error
 exports.cutOffMessage = (stack, message) => {
 	const nextLine = stack.indexOf("\n");
 	if (nextLine === -1) {
@@ -53,12 +59,14 @@ exports.cutOffMessage = (stack, message) => {
 	}
 };
 
+// @ts-expect-error
 exports.cleanUp = (stack, message) => {
 	stack = exports.cutOffLoaderExecution(stack);
 	stack = exports.cutOffMessage(stack, message);
 	return stack;
 };
 
+// @ts-expect-error
 exports.cleanUpWebpackOptions = (stack, message) => {
 	stack = exports.cutOffWebpackOptions(stack);
 	stack = exports.cutOffMultilineMessage(stack, message);

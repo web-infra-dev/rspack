@@ -10,7 +10,6 @@
 
 var assert = require("assert");
 var LoaderLoadingError = require("./LoaderLoadingError");
-var { stringifyLoaderObject } = require(".");
 var {
 	toBuffer,
 	serializeObject,
@@ -18,13 +17,16 @@ var {
 	toObject,
 	stringifyLoaderObject
 } = require("../util");
+/** @type {undefined | import('node:url')} */
 var url;
 
+// @ts-expect-error
 module.exports = function loadLoader(loader, callback) {
 	if (loader.type === "module") {
 		try {
 			if (url === undefined) url = require("url");
 			var loaderUrl = url.pathToFileURL(loader.path);
+			/** @type {Promise<any>} */
 			var modulePromise = eval(
 				"import(" + JSON.stringify(loaderUrl.toString()) + ")"
 			);
@@ -40,17 +42,23 @@ module.exports = function loadLoader(loader, callback) {
 			var module;
 
 			if (loader.path.startsWith("builtin:")) {
+				// @ts-expect-error
 				module = async function (content, sourceMap, additionalData) {
+					// @ts-expect-error
 					assert(!this.__internal__context.isPitching);
+					// @ts-expect-error
 					const callback = this.async();
 					const { runBuiltinLoader } = require("@rspack/binding");
+					// @ts-expect-error
 					let options = this.getOptions() ?? {};
 					// This is used an hack to tell `builtin:swc-loader` whether to return AST or source.
+					// @ts-expect-error
 					this.__internal__context.loaderIndexFromJs = this.loaderIndex;
 					try {
 						const context = await runBuiltinLoader(
 							stringifyLoaderObject(loader),
 							JSON.stringify(options),
+							// @ts-expect-error
 							Object.assign({}, this.__internal__context, {
 								content: isNil(content) ? undefined : toBuffer(content),
 								sourceMap: serializeObject(sourceMap),
@@ -58,11 +66,16 @@ module.exports = function loadLoader(loader, callback) {
 							})
 						);
 
+						// @ts-expect-error
 						this.__internal__context.additionalDataExternal =
 							context.additionalDataExternal;
+						// @ts-expect-error
 						context.fileDependencies.forEach(this.addDependency);
+						// @ts-expect-error
 						context.contextDependencies.forEach(this.addContextDependency);
+						// @ts-expect-error
 						context.missingDependencies.forEach(this.addMissingDependency);
+						// @ts-expect-error
 						context.buildDependencies.forEach(this.addBuildDependency);
 						callback(
 							null,
@@ -74,6 +87,7 @@ module.exports = function loadLoader(loader, callback) {
 								? undefined
 								: toObject(context.additionalData)
 						);
+						// @ts-expect-error
 						this._compilation.__internal__pushNativeDiagnostics(
 							context.diagnosticsExternal
 						);
@@ -81,6 +95,7 @@ module.exports = function loadLoader(loader, callback) {
 						return callback(e);
 					}
 				};
+				// @ts-expect-error
 				module.pitch = function () {
 					// Pitching for builtin loader is not supported
 				};
@@ -90,7 +105,9 @@ module.exports = function loadLoader(loader, callback) {
 		} catch (e) {
 			// it is possible for node to choke on a require if the FD descriptor
 			// limit has been reached. give it a chance to recover.
+			// @ts-expect-error
 			if (e instanceof Error && e.code === "EMFILE") {
+				// @ts-expect-error
 				var retry = loadLoader.bind(null, loader, callback);
 				if (typeof setImmediate === "function") {
 					// node >= 0.9.0
@@ -106,6 +123,7 @@ module.exports = function loadLoader(loader, callback) {
 	}
 };
 
+// @ts-expect-error
 function handleResult(loader, module, callback) {
 	if (typeof module !== "function" && typeof module !== "object") {
 		return callback(
