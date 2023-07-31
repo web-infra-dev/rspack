@@ -514,12 +514,7 @@ impl Compilation {
 
         let mut sorted_dependencies = HashMap::default();
 
-        task.dependencies.into_iter().for_each(|id| {
-          let dependency = self
-            .module_graph
-            .dependency_by_id(&id)
-            .expect("dependency expected");
-
+        task.dependencies.into_iter().for_each(|dependency| {
           // TODO need implement more dependency `resource_identifier()`
           // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L1621
           let resource_identifier =
@@ -532,7 +527,7 @@ impl Compilation {
           sorted_dependencies
             .entry(resource_identifier)
             .or_insert(vec![])
-            .push(dependency.clone());
+            .push(dependency);
         });
 
         for dependencies in sorted_dependencies.into_values() {
@@ -578,7 +573,8 @@ impl Compilation {
 
               tracing::trace!("Module created: {}", &module_identifier);
               if !diagnostics.is_empty() {
-                make_failed_dependencies.insert((dependencies[0], original_module_identifier));
+                make_failed_dependencies
+                  .insert((*dependencies[0].id(), original_module_identifier));
               }
 
               module_graph_module.set_issuer_if_unset(original_module_identifier);
@@ -646,12 +642,11 @@ impl Compilation {
                 .extend(build_result.build_info.build_dependencies.clone());
 
               let mut dep_ids = vec![];
-              for dependency in build_result.dependencies {
+              for dependency in build_result.dependencies.iter() {
                 self
                   .module_graph
                   .set_dependency_import_var(module.identifier(), dependency.request());
                 dep_ids.push(*dependency.id());
-                self.module_graph.add_dependency(dependency);
               }
 
               {
@@ -659,10 +654,10 @@ impl Compilation {
                   .module_graph
                   .module_graph_module_by_identifier_mut(&module.identifier())
                   .expect("Failed to get mgm");
-                mgm.dependencies = dep_ids.clone();
+                mgm.dependencies = dep_ids;
               }
               process_dependencies_queue.add_task(ProcessDependenciesTask {
-                dependencies: dep_ids.clone(),
+                dependencies: build_result.dependencies,
                 original_module_identifier: module.identifier(),
                 resolve_options: module.get_resolve_options().map(ToOwned::to_owned),
               });
