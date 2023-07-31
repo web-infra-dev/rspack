@@ -162,7 +162,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   dependencies: &'a Vec<Box<dyn ModuleDependency>>,
   /// Value of `export_map` must have type [SymbolRef::Direct]
   pub(crate) export_map: HashMap<JsWord, SymbolRef>,
-  pub(crate) import_map: HashMap<BetterId, SymbolRef>,
+  pub(crate) import_map: HashMap<JsWord, SymbolRef>,
   /// key is the module identifier, value is the corresponding export map
   /// This data structure is used for collecting reexport * from some module. e.g.
   /// ```js
@@ -294,7 +294,7 @@ impl<'a> ModuleRefAnalyze<'a> {
   /// xxx.test = aaa;
   /// ```
   pub fn add_reference(&mut self, from: SymbolExt, to: Part, force_insert: bool) {
-    if matches!(&to, Part::Id(to_id) if to_id == from.id()) && !force_insert {
+    if matches!(&to, Part::TopLevelId(to_id) if to_id == from.id()) && !force_insert {
       return;
     }
     // TODO: refactor this to use intersects
@@ -333,7 +333,7 @@ impl<'a> ModuleRefAnalyze<'a> {
   /// in rest of scenario we only count binding imported from other module.
   pub fn get_all_import_or_export(&self, start: BetterId, only_import: bool) -> HashSet<SymbolRef> {
     let mut visited: HashSet<Part> = HashSet::default();
-    let mut q: VecDeque<Part> = VecDeque::from_iter([Part::Id(start)]);
+    let mut q: VecDeque<Part> = VecDeque::from_iter([Part::TopLevelId(start)]);
     while let Some(cur) = q.pop_front() {
       if visited.contains(&cur) {
         continue;
@@ -354,8 +354,8 @@ impl<'a> ModuleRefAnalyze<'a> {
     return visited
       .iter()
       .filter_map(|part| match part {
-        Part::Id(id) => {
-          let ret = self.import_map.get(id).cloned().or_else(|| {
+        Part::TopLevelId(id) => {
+          let ret = self.import_map.get(&id.atom).cloned().or_else(|| {
             if only_import {
               None
             } else {
@@ -374,22 +374,25 @@ impl<'a> ModuleRefAnalyze<'a> {
           ret
         }
         Part::MemberExpr { object, property } => {
-          self.import_map.get(object).map(|sym_ref| match sym_ref {
-            SymbolRef::Indirect(_) => SymbolRef::Usage(
-              object.clone(),
-              vec![property.clone()],
-              self.module_identifier,
-            ),
-            SymbolRef::Star(_) => SymbolRef::Usage(
-              object.clone(),
-              vec![property.clone()],
-              self.module_identifier,
-            ),
-            SymbolRef::Url { .. }
-            | SymbolRef::Worker { .. }
-            | SymbolRef::Declaration(_)
-            | SymbolRef::Usage(..) => unreachable!(),
-          })
+          self
+            .import_map
+            .get(&object.atom)
+            .map(|sym_ref| match sym_ref {
+              SymbolRef::Indirect(_) => SymbolRef::Usage(
+                object.clone(),
+                vec![property.clone()],
+                self.module_identifier,
+              ),
+              SymbolRef::Star(_) => SymbolRef::Usage(
+                object.clone(),
+                vec![property.clone()],
+                self.module_identifier,
+              ),
+              SymbolRef::Url { .. }
+              | SymbolRef::Worker { .. }
+              | SymbolRef::Declaration(_)
+              | SymbolRef::Usage(..) => unreachable!(),
+            })
         }
         Part::Url(src) => {
           let dep_id = self
@@ -505,8 +508,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             .flat_map(|ref_part| {
               // Only used id imported from other module would generate a side effects.
               let id = match ref_part {
-                Part::Id(ref id) => id,
-                Part::MemberExpr { object, property } => match self.import_map.get(object) {
+                Part::TopLevelId(ref id) => id,
+                Part::MemberExpr { object, property } => match self.import_map.get(&object.atom) {
                   Some(_) => {
                     return HashSet::from_iter([SymbolRef::Usage(
                       object.clone(),
@@ -541,7 +544,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   }]);
                 }
               };
-              let ret = self.import_map.get(id);
+              let ret = self.import_map.get(&id.atom);
               match ret {
                 Some(ret) => HashSet::from_iter([ret.clone()]),
                 None => self.get_all_import_or_export(id.clone(), true),
@@ -563,8 +566,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           .flat_map(|ref_part| {
             // Only used id imported from other module would generate a side effects.
             let id = match ref_part {
-              Part::Id(ref id) => id,
-              Part::MemberExpr { object, property } => match self.import_map.get(object) {
+              Part::TopLevelId(ref id) => id,
+              Part::MemberExpr { object, property } => match self.import_map.get(&object.atom) {
                 Some(_) => {
                   return HashSet::from_iter([SymbolRef::Usage(
                     object.clone(),
@@ -597,7 +600,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 }]);
               }
             };
-            let ret = self.import_map.get(id);
+            let ret = self.import_map.get(&id.atom);
             match ret {
               Some(ret) => HashSet::from_iter([ret.clone()]),
               None => self.get_all_import_or_export(id.clone(), true),
@@ -610,11 +613,11 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     // all reachable export from used symbol in current module
     for used_id in &self.used_id_set {
       match used_id {
-        Part::Id(id) => {
+        Part::TopLevelId(id) => {
           let reachable_import = self.get_all_import_or_export(id.clone(), true);
           self.used_symbol_ref.extend(reachable_import);
         }
-        Part::MemberExpr { object, property } => match self.import_map.get(object) {
+        Part::MemberExpr { object, property } => match self.import_map.get(&object.atom) {
           Some(_) => {
             self.used_symbol_ref.insert(SymbolRef::Usage(
               object.clone(),
@@ -694,10 +697,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     if self.potential_top_level_mark.contains(&mark) {
       match self.current_body_owner_symbol_ext {
         Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id => {
-          self.add_reference(body_owner_symbol_ext.clone(), Part::Id(id), false);
+          self.add_reference(body_owner_symbol_ext.clone(), Part::TopLevelId(id), false);
         }
         None => {
-          self.used_id_set.insert(Part::Id(id));
+          self.used_id_set.insert(Part::TopLevelId(id));
         }
         _ => {}
       }
@@ -1071,12 +1074,12 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             let default_ident_ext: SymbolExt = BetterId::from(default_ident.to_id()).into();
             self.add_reference(
               default_ident_ext.clone(),
-              Part::Id(renamed_symbol_ext.id.clone()),
+              Part::TopLevelId(renamed_symbol_ext.id.clone()),
               false,
             );
             self.add_reference(
               renamed_symbol_ext.clone(),
-              Part::Id(default_ident_ext.id),
+              Part::TopLevelId(default_ident_ext.id),
               false,
             );
             renamed_symbol_ext
@@ -1178,12 +1181,12 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
             self.add_reference(
               symbol_ext.clone(),
-              Part::Id(default_ident.to_id().into()),
+              Part::TopLevelId(default_ident.to_id().into()),
               false,
             );
             self.add_reference(
               BetterId::from(default_ident.to_id()).into(),
-              Part::Id(symbol_ext.id.clone()),
+              Part::TopLevelId(symbol_ext.id.clone()),
               false,
             );
             symbol_ext
@@ -1509,12 +1512,12 @@ impl<'a> ModuleRefAnalyze<'a> {
   }
 
   fn add_import(&mut self, id: BetterId, symbol: SymbolRef) {
-    match self.import_map.entry(id) {
+    match self.import_map.entry(id.atom.clone()) {
       Entry::Occupied(_) => {
         // TODO: should add some Diagnostic
       }
       Entry::Vacant(vac) => {
-        self.potential_top_level_mark.insert(vac.key().ctxt.outer());
+        self.potential_top_level_mark.insert(id.ctxt.outer());
         vac.insert(symbol);
       }
     }
@@ -1660,7 +1663,7 @@ pub struct OptimizeAnalyzeResult {
   unresolved_mark: Mark,
   pub module_identifier: ModuleIdentifier,
   pub export_map: HashMap<JsWord, SymbolRef>,
-  pub(crate) import_map: HashMap<BetterId, SymbolRef>,
+  pub(crate) import_map: HashMap<JsWord, SymbolRef>,
   pub inherit_export_maps: LinkedHashMap<ModuleIdentifier, HashMap<JsWord, SymbolRef>>,
   pub export_all_dep_id: LinkedHashSet<DependencyId>,
   // current_region: Option<BetterId>,

@@ -800,7 +800,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         // one for `app.js`, one for `lib.js`
         // the binding in `app.js` used for shake the `export {xxx}`
         // In other words, we need two binding for supporting indirect redirect.
-        if let Some(import_symbol_ref) = module_result.import_map.get(symbol.id()) {
+        if let Some(import_symbol_ref) = module_result.import_map.get(&symbol.id().atom) {
           self
             .symbol_graph
             .add_edge(&current_symbol_ref, import_symbol_ref);
@@ -1209,7 +1209,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       SymbolRef::Url { .. } | SymbolRef::Worker { .. } => {}
       SymbolRef::Usage(ref binding, ref member_chain, ref src) => {
         let analyze_result = analyze_map.get(src).expect("Should have analyze result");
-        if let Some(import_symbol_ref) = analyze_result.import_map.get(binding) {
+        if let Some(import_symbol_ref) = analyze_result.import_map.get(&binding.atom) {
           self
             .symbol_graph
             .add_edge(&current_symbol_ref, import_symbol_ref);
