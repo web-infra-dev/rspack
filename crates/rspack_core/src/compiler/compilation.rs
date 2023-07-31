@@ -620,6 +620,11 @@ impl Compilation {
                 build_result,
                 diagnostics,
               } = task_result;
+              if self.options.builtins.tree_shaking.enable() {
+                self
+                  .optimize_analyze_result_map
+                  .insert(module.identifier(), build_result.analyze_result);
+              }
 
               if !diagnostics.is_empty() {
                 make_failed_module.insert(module.identifier());

@@ -1,6 +1,9 @@
 use rspack_core::rspack_sources::{
   RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, WithoutOriginalOptions,
 };
+use rspack_core::tree_shaking::analyzer::OptimizeAnalyzer;
+use rspack_core::tree_shaking::js_module::JsModule;
+use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
 use rspack_core::{
   AstOrSource, GenerateContext, GenerationResult, Module, ModuleAst, ParseContext, ParseResult,
   ParserAndGenerator, SourceType, TemplateContext,
@@ -62,6 +65,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             ast_or_source: RawSource::from(source.to_string()).boxed().into(),
             dependencies: vec![],
             presentational_dependencies: vec![],
+            analyze_result: Default::default(),
           }
           .with_diagnostic(e.into()),
         );
@@ -94,6 +98,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             ast_or_source: RawSource::from(output.code.clone()).boxed().into(),
             dependencies: vec![],
             presentational_dependencies: vec![],
+            analyze_result: Default::default(),
           }
           .with_diagnostic(e.into()),
         );
@@ -121,6 +126,18 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       )
     });
 
+    let analyze_result = if compiler_options.builtins.tree_shaking.enable() {
+      JsModule::new(
+        &scan_ast,
+        &dependencies,
+        module_identifier,
+        compiler_options,
+      )
+      .analyze()
+    } else {
+      OptimizeAnalyzeResult::default()
+    };
+
     let source = if let Some(map) = output.map {
       SourceMapSource::new(WithoutOriginalOptions {
         value: output.code,
@@ -137,6 +154,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         ast_or_source: AstOrSource::new(Some(ModuleAst::JavaScript(scan_ast)), Some(source)),
         dependencies,
         presentational_dependencies,
+        analyze_result,
       }
       .with_empty_diagnostic(),
     )

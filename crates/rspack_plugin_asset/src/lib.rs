@@ -6,6 +6,9 @@ use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
+  tree_shaking::{
+    analyzer::OptimizeAnalyzer, asset_module::AssetModule, visitor::OptimizeAnalyzeResult,
+  },
   AssetGeneratorDataUrl, AssetParserDataUrl, AssetParserOptions, AstOrSource,
   BuildMetaDefaultObject, BuildMetaExportsType, CodeGenerationDataAssetInfo,
   CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CompilerOptions, GenerateContext,
@@ -253,6 +256,8 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       build_meta,
       build_info,
       module_type,
+      compiler_options,
+      module_identifier,
       ..
     } = parse_context;
     build_info.strict = true;
@@ -284,6 +289,11 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         ))
       }
     };
+    let analyze_result = if compiler_options.builtins.tree_shaking.enable() {
+      AssetModule::new(module_identifier).analyze()
+    } else {
+      OptimizeAnalyzeResult::default()
+    };
 
     Ok(
       rspack_core::ParseResult {
@@ -291,6 +301,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         dependencies: vec![],
         ast_or_source: source.into(),
         presentational_dependencies: vec![],
+        analyze_result,
       }
       .with_empty_diagnostic(),
     )

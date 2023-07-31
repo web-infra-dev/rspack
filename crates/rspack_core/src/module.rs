@@ -10,6 +10,7 @@ use rspack_sources::Source;
 use rspack_util::ext::{AsAny, DynEq, DynHash};
 use rustc_hash::FxHashSet as HashSet;
 
+use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   BoxModuleDependency, ChunkUkey, CodeGenerationResult, Compilation, CompilerContext,
   CompilerOptions, Context, ContextModule, DependencyTemplate, ExternalModule, ModuleDependency,
@@ -94,6 +95,7 @@ pub struct BuildResult {
   /// Whether the result is cacheable, i.e shared between builds.
   pub build_meta: BuildMeta,
   pub build_info: BuildInfo,
+  pub analyze_result: OptimizeAnalyzeResult,
   pub dependencies: Vec<BoxModuleDependency>,
 }
 
@@ -141,6 +143,7 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
         build_info,
         build_meta: Default::default(),
         dependencies: Vec::new(),
+        analyze_result: Default::default(),
       }
       .with_empty_diagnostic(),
     )

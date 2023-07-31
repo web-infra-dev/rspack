@@ -494,6 +494,7 @@ impl ContextModule {
         build_info,
         build_meta: BuildMeta::default(),
         dependencies,
+        analyze_result: Default::default(),
       }
       .with_diagnostic(vec![]),
     )
