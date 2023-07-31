@@ -12,9 +12,9 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
-  ChunkUkey, CodeGenerationResult, Compilation, CompilerContext, CompilerOptions, Context,
-  ContextModule, DependencyTemplate, ExternalModule, ModuleDependency, ModuleType, NormalModule,
-  RawModule, Resolve, SharedPluginDriver, SourceType,
+  BoxModuleDependency, ChunkUkey, CodeGenerationResult, Compilation, CompilerContext,
+  CompilerOptions, Context, ContextModule, DependencyTemplate, ExternalModule, ModuleDependency,
+  ModuleType, NormalModule, RawModule, Resolve, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext<'a> {
@@ -95,8 +95,8 @@ pub struct BuildResult {
   /// Whether the result is cacheable, i.e shared between builds.
   pub build_meta: BuildMeta,
   pub build_info: BuildInfo,
-  pub dependencies: Vec<Box<dyn ModuleDependency>>,
   pub analyze_result: OptimizeAnalyzeResult,
+  pub dependencies: Vec<BoxModuleDependency>,
 }
 
 #[derive(Debug, Default, Clone)]
