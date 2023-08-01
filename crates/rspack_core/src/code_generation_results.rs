@@ -6,23 +6,13 @@ use anymap::CloneAny;
 use rspack_error::{internal_error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_identifier::IdentifierMap;
+use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  AssetInfo, AstOrSource, ChunkInitFragments, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
-  RuntimeSpecMap, SourceType,
+  AssetInfo, ChunkInitFragments, ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap,
+  SourceType,
 };
-
-#[derive(Debug, Clone)]
-pub struct GenerationResult {
-  pub ast_or_source: AstOrSource,
-}
-
-impl From<AstOrSource> for GenerationResult {
-  fn from(ast_or_source: AstOrSource) -> Self {
-    GenerationResult { ast_or_source }
-  }
-}
 
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataUrl {
@@ -90,7 +80,7 @@ impl DerefMut for CodeGenerationData {
 
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResult {
-  inner: HashMap<SourceType, GenerationResult>,
+  inner: HashMap<SourceType, BoxSource>,
   /// [definition in webpack](https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L75)
   pub data: CodeGenerationData,
   pub chunk_init_fragments: ChunkInitFragments,
@@ -99,35 +89,31 @@ pub struct CodeGenerationResult {
 }
 
 impl CodeGenerationResult {
-  pub fn with_javascript(mut self, generation_result: impl Into<GenerationResult>) -> Self {
-    self
-      .inner
-      .insert(SourceType::JavaScript, generation_result.into());
+  pub fn with_javascript(mut self, generation_result: BoxSource) -> Self {
+    self.inner.insert(SourceType::JavaScript, generation_result);
     self
   }
 
-  pub fn with_css(mut self, generation_result: impl Into<GenerationResult>) -> Self {
-    self.inner.insert(SourceType::Css, generation_result.into());
+  pub fn with_css(mut self, generation_result: BoxSource) -> Self {
+    self.inner.insert(SourceType::Css, generation_result);
     self
   }
 
-  pub fn with_asset(mut self, generation_result: impl Into<GenerationResult>) -> Self {
-    self
-      .inner
-      .insert(SourceType::Asset, generation_result.into());
+  pub fn with_asset(mut self, generation_result: BoxSource) -> Self {
+    self.inner.insert(SourceType::Asset, generation_result);
     self
   }
 
-  pub fn inner(&self) -> &HashMap<SourceType, GenerationResult> {
+  pub fn inner(&self) -> &HashMap<SourceType, BoxSource> {
     &self.inner
   }
 
-  pub fn get(&self, source_type: &SourceType) -> Option<&GenerationResult> {
+  pub fn get(&self, source_type: &SourceType) -> Option<&BoxSource> {
     self.inner.get(source_type)
   }
 
-  pub fn add(&mut self, source_type: SourceType, generation_result: impl Into<GenerationResult>) {
-    let result = self.inner.insert(source_type, generation_result.into());
+  pub fn add(&mut self, source_type: SourceType, generation_result: BoxSource) {
+    let result = self.inner.insert(source_type, generation_result);
     debug_assert!(result.is_none());
   }
 
@@ -138,11 +124,9 @@ impl CodeGenerationResult {
     hash_salt: &HashSalt,
   ) {
     let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
-    for (source_type, generation_result) in &self.inner {
+    for (source_type, source) in &self.inner {
       source_type.hash(&mut hasher);
-      if let Some(source) = generation_result.ast_or_source.as_source() {
-        source.hash(&mut hasher);
-      }
+      source.hash(&mut hasher);
     }
     for (k, v) in &self.chunk_init_fragments {
       k.hash(&mut hasher);

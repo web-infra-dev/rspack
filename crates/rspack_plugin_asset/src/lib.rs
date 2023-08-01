@@ -9,12 +9,12 @@ use rspack_core::{
   tree_shaking::{
     analyzer::OptimizeAnalyzer, asset_module::AssetModule, visitor::OptimizeAnalyzeResult,
   },
-  AssetGeneratorDataUrl, AssetParserDataUrl, AssetParserOptions, AstOrSource,
-  BuildMetaDefaultObject, BuildMetaExportsType, CodeGenerationDataAssetInfo,
-  CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CompilerOptions, GenerateContext,
-  GenerationResult, Module, NormalModule, ParseContext, ParserAndGenerator, PathData, Plugin,
-  PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry,
-  ResourceData, RuntimeGlobals, SourceType,
+  AssetGeneratorDataUrl, AssetParserDataUrl, AssetParserOptions, BuildMetaDefaultObject,
+  BuildMetaExportsType, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
+  CodeGenerationDataUrl, Compilation, CompilerOptions, GenerateContext, Module, NormalModule,
+  ParseContext, ParserAndGenerator, PathData, Plugin, PluginContext,
+  PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, ResourceData,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -110,13 +110,13 @@ impl AssetParserAndGenerator {
     }
   }
 
-  fn hash_for_ast_or_source(
+  fn hash_for_source(
     &self,
-    ast_or_source: &AstOrSource,
+    source: &BoxSource,
     compiler_options: &CompilerOptions,
   ) -> RspackHashDigest {
     let mut hasher = RspackHash::from(&compiler_options.output);
-    ast_or_source.hash(&mut hasher);
+    source.hash(&mut hasher);
     hasher.digest(&compiler_options.output.hash_digest)
   }
 
@@ -299,7 +299,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       rspack_core::ParseResult {
         // Assets do not have dependencies
         dependencies: vec![],
-        ast_or_source: source.into(),
+        source,
         presentational_dependencies: vec![],
         analyze_result,
       }
@@ -311,10 +311,10 @@ impl ParserAndGenerator for AssetParserAndGenerator {
   #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
-    ast_or_source: &rspack_core::AstOrSource,
+    source: &BoxSource,
     module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<rspack_core::GenerationResult> {
+  ) -> Result<BoxSource> {
     let compilation = generate_context.compilation;
     let module_type = module.module_type();
     let parsed_asset_config = self
@@ -334,13 +334,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             .and_then(|x| x.asset_data_url(module_type));
           let mimetype = self.get_mimetype(resource_data, data_url)?;
           let encoding = self.get_encoding(resource_data, data_url);
-          let encoded_content = self.get_encoded_content(
-            resource_data,
-            &encoding,
-            ast_or_source
-              .as_source()
-              .expect("Expected source for asset generator, please file an issue."),
-          )?;
+          let encoded_content = self.get_encoded_content(resource_data, &encoding, source)?;
           let encoded_source = format!(
             r#"data:{mimetype}{},{encoded_content}"#,
             if encoding.is_empty() {
@@ -362,7 +356,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             .and_then(|x| x.asset_filename(module_type))
             .unwrap_or(&compilation.options.output.asset_module_filename);
 
-          let contenthash = self.hash_for_ast_or_source(ast_or_source, &compilation.options);
+          let contenthash = self.hash_for_source(source, &compilation.options);
           let contenthash = contenthash.rendered(compilation.options.output.hash_digest_length);
 
           let source_file_name = self.get_source_file_name(normal_module, compilation);
@@ -399,13 +393,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
           asset_path
         } else if parsed_asset_config.is_source() {
-          format!(
-            r"{:?}",
-            ast_or_source
-              .as_source()
-              .expect("Expected source for asset generator, please file an issue.")
-              .source()
-          )
+          format!(r"{:?}", source.source())
         } else {
           unreachable!()
         };
@@ -414,11 +402,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           .runtime_requirements
           .insert(RuntimeGlobals::MODULE);
 
-        Ok(GenerationResult {
-          ast_or_source: RawSource::from(format!(r#"module.exports = {exported_content};"#))
-            .boxed()
-            .into(),
-        })
+        Ok(RawSource::from(format!(r#"module.exports = {exported_content};"#)).boxed())
       }
       SourceType::Asset => {
         if parsed_asset_config.is_source() || parsed_asset_config.is_inline() {
@@ -426,18 +410,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             "Inline or Source asset does not have source type `asset`"
           ))
         } else {
-          // Safety: This is safe because we returned the source in parser.
-          Ok(GenerationResult {
-            ast_or_source: RawSource::from(
-              ast_or_source
-                .as_source()
-                .expect("Expected source for asset generator, please file an issue.")
-                .buffer()
-                .to_vec(),
-            )
-            .boxed()
-            .into(),
-          })
+          Ok(RawSource::from(source.buffer().to_vec()).boxed())
         }
       }
       t => Err(internal_error!(format!(
@@ -538,28 +511,24 @@ impl Plugin for AssetPlugin {
           .code_generation_results
           .get(&m.identifier(), Some(&chunk.runtime))?;
 
-        let result = code_gen_result
-          .get(&SourceType::Asset)
-          .map(|result| result.ast_or_source.clone().try_into_source())
-          .transpose()?
-          .map(|source| {
-            let asset_filename = code_gen_result
-              .data
-              .get::<CodeGenerationDataFilename>()
-              .expect("should have filename for asset module")
-              .inner();
-            let asset_info = code_gen_result
-              .data
-              .get::<CodeGenerationDataAssetInfo>()
-              .expect("should have asset_info")
-              .inner();
-            RenderManifestEntry::new(
-              source,
-              asset_filename.to_owned(),
-              asset_info.to_owned(),
-              true,
-            )
-          });
+        let result = code_gen_result.get(&SourceType::Asset).map(|source| {
+          let asset_filename = code_gen_result
+            .data
+            .get::<CodeGenerationDataFilename>()
+            .expect("should have filename for asset module")
+            .inner();
+          let asset_info = code_gen_result
+            .data
+            .get::<CodeGenerationDataAssetInfo>()
+            .expect("should have asset_info")
+            .inner();
+          RenderManifestEntry::new(
+            source.clone(),
+            asset_filename.to_owned(),
+            asset_info.to_owned(),
+            true,
+          )
+        });
 
         Ok(result)
       })

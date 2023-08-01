@@ -10,8 +10,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::MakeParam;
 use crate::{
-  fast_drop, fast_set, AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler,
-  ModuleIdentifier, NormalModuleAstOrSource, PathData, RenderManifestArgs, RuntimeSpec,
+  fast_set, AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler, ModuleIdentifier,
+  PathData, RenderManifestArgs, RuntimeSpec,
 };
 
 #[derive(Default)]
@@ -176,26 +176,6 @@ where
           std::mem::take(&mut self.compilation.code_splitting_cache);
 
         new_compilation.has_module_import_export_change = false;
-        // remove prev build ast in modules
-        fast_drop(
-          new_compilation
-            .module_graph
-            .modules_mut()
-            .values_mut()
-            .map(|module| {
-              if let Some(m) = module.as_normal_module_mut() {
-                let is_ast_unbuild = matches!(m.ast_or_source(), NormalModuleAstOrSource::Unbuild);
-                if !is_ast_unbuild {
-                  return Some(std::mem::replace(
-                    m.ast_or_source_mut(),
-                    NormalModuleAstOrSource::Unbuild,
-                  ));
-                }
-              }
-              None
-            })
-            .collect::<Vec<Option<NormalModuleAstOrSource>>>(),
-        );
       }
 
       fast_set(&mut self.compilation, new_compilation);

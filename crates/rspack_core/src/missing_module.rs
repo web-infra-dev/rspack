@@ -6,9 +6,7 @@ use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::{RawSource, Source, SourceExt};
 use serde_json::json;
 
-use crate::{
-  AstOrSource, CodeGenerationResult, Compilation, Module, ModuleIdentifier, ModuleType, SourceType,
-};
+use crate::{CodeGenerationResult, Compilation, Module, ModuleIdentifier, ModuleType, SourceType};
 
 #[derive(Debug, Eq)]
 pub struct MissingModule {
@@ -55,16 +53,13 @@ impl Module for MissingModule {
   }
 
   fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
-    let mut code_gen = CodeGenerationResult::default().with_javascript(AstOrSource::new(
-      None,
-      Some(
-        RawSource::from(format!(
-          "throw new Error({});\n",
-          json!(&self.error_message)
-        ))
-        .boxed(),
-      ),
-    ));
+    let mut code_gen = CodeGenerationResult::default().with_javascript(
+      RawSource::from(format!(
+        "throw new Error({});\n",
+        json!(&self.error_message)
+      ))
+      .boxed(),
+    );
     code_gen.set_hash(
       &compilation.options.output.hash_function,
       &compilation.options.output.hash_digest,

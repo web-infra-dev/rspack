@@ -17,10 +17,10 @@ use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  contextify, get_exports_type_with_strict, stringify_map, AstOrSource, BoxModuleDependency,
-  BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
+  contextify, get_exports_type_with_strict, stringify_map, BoxModuleDependency, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
   ContextElementDependency, DependencyCategory, DependencyId, DependencyType, ExportsType,
-  FakeNamespaceObjectMode, GenerationResult, LibIdentOptions, Module, ModuleType, Resolve,
+  FakeNamespaceObjectMode, LibIdentOptions, Module, ModuleType, Resolve,
   ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, SourceType,
 };
 
@@ -524,10 +524,7 @@ impl Module for ContextModule {
         .runtime_requirements
         .insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
     }
-    code_generation_result.add(
-      SourceType::JavaScript,
-      GenerationResult::from(AstOrSource::from(self.get_source_string(compilation)?)),
-    );
+    code_generation_result.add(SourceType::JavaScript, self.get_source_string(compilation)?);
     code_generation_result.set_hash(
       &compilation.options.output.hash_function,
       &compilation.options.output.hash_digest,

@@ -1,6 +1,6 @@
 use rspack_error::Result;
 
-use crate::{cache::storage, BoxModule, CodeGenerationResult, NormalModuleAstOrSource};
+use crate::{cache::storage, BoxModule, CodeGenerationResult, NormalModuleSource};
 
 type Storage = dyn storage::Storage<CodeGenerationResult>;
 
@@ -34,7 +34,7 @@ impl CodeGenerateOccasion {
     if let Some(module) = module.as_normal_module() {
       // only cache normal module
       // TODO cache all module type
-      if matches!(module.ast_or_source(), NormalModuleAstOrSource::Unbuild) {
+      if matches!(module.source(), NormalModuleSource::Unbuild) {
         if let Some(data) = storage.get(&id) {
           return Ok(data);
         }

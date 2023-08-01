@@ -6,7 +6,7 @@ use napi::NapiRaw;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
 use rspack_core::ModuleIdentifier;
-use rspack_core::{rspack_sources::SourceExt, AstOrSource, NormalModuleAstOrSource};
+use rspack_core::{rspack_sources::SourceExt, NormalModuleSource};
 use rspack_identifier::Identifier;
 use rspack_napi_shared::NapiResultExt;
 
@@ -171,8 +171,7 @@ impl JsCompilation {
       Some(module) => match module.as_normal_module_mut() {
         Some(module) => {
           let compat_source = CompatSource::from(source).boxed();
-          *module.ast_or_source_mut() =
-            NormalModuleAstOrSource::new_built(AstOrSource::new(None, Some(compat_source)), &[]);
+          *module.source_mut() = NormalModuleSource::new_built(compat_source, &[]);
           true
         }
         None => false,

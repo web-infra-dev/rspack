@@ -73,18 +73,14 @@ impl Plugin for AsyncWasmPlugin {
           .code_generation_results
           .get(&m.identifier(), Some(&chunk.runtime))?;
 
-        let result = code_gen_result
-          .get(&SourceType::Wasm)
-          .map(|result| result.ast_or_source.clone().try_into_source())
-          .transpose()?
-          .map(|source| {
-            let (output_path, asset_info) = self
-              .module_id_to_filename_without_ext
-              .get(&m.identifier())
-              .map(|s| s.clone())
-              .expect("should have wasm_filename");
-            RenderManifestEntry::new(source, output_path, asset_info, false)
-          });
+        let result = code_gen_result.get(&SourceType::Wasm).map(|source| {
+          let (output_path, asset_info) = self
+            .module_id_to_filename_without_ext
+            .get(&m.identifier())
+            .map(|s| s.clone())
+            .expect("should have wasm_filename");
+          RenderManifestEntry::new(source.clone(), output_path, asset_info, false)
+        });
 
         Ok(result)
       })

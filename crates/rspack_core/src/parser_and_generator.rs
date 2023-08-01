@@ -5,10 +5,9 @@ use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
 
 use crate::{
-  tree_shaking::visitor::OptimizeAnalyzeResult, AstOrSource, BuildInfo, BuildMeta,
-  CodeGenerationData, Compilation, CompilerOptions, DependencyTemplate, GenerationResult,
-  GeneratorOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType, ParserOptions,
-  RuntimeGlobals, SourceType,
+  tree_shaking::visitor::OptimizeAnalyzeResult, BuildInfo, BuildMeta, CodeGenerationData,
+  Compilation, CompilerOptions, DependencyTemplate, GeneratorOptions, Module, ModuleDependency,
+  ModuleIdentifier, ModuleType, ParserOptions, RuntimeGlobals, SourceType,
 };
 
 #[derive(Debug)]
@@ -30,7 +29,7 @@ pub struct ParseContext<'a> {
 pub struct ParseResult {
   pub dependencies: Vec<Box<dyn ModuleDependency>>,
   pub presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
-  pub ast_or_source: AstOrSource,
+  pub source: BoxSource,
   pub analyze_result: OptimizeAnalyzeResult,
 }
 
@@ -53,8 +52,8 @@ pub trait ParserAndGenerator: Send + Sync + Debug {
   /// Generate source or AST based on the built source or AST
   fn generate(
     &self,
-    ast_or_source: &AstOrSource,
+    source: &BoxSource,
     module: &dyn Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<GenerationResult>;
+  ) -> Result<BoxSource>;
 }

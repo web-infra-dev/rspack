@@ -34,22 +34,17 @@ pub fn render_chunk_modules(
         .code_generation_results
         .get(&mgm.module_identifier, Some(&chunk.runtime))
         .expect("should have code generation result");
-      if let Some(result) = code_gen_result.get(&SourceType::JavaScript) {
-        let origin_source = result
-          .ast_or_source
-          .clone()
-          .try_into_source()
-          .expect("should be source");
+      if let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) {
         let module_source = if let Some(source) = plugin_driver
           .render_module_content(RenderModuleContentArgs {
             compilation,
-            module_source: &origin_source,
+            module_source: origin_source,
           })
           .expect("render_module_content failed")
         {
           source
         } else {
-          origin_source
+          origin_source.clone()
         };
 
         let runtime_requirements = compilation

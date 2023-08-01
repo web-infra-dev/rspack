@@ -34,7 +34,7 @@ use crate::{
   contextify, join_string_component,
   tree_shaking::{utils::ConvertModulePath, visitor::ModuleRefAnalyze},
   Compilation, DependencyId, DependencyType, ModuleGraph, ModuleIdentifier, ModuleType,
-  NormalModuleAstOrSource,
+  NormalModuleSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -484,9 +484,9 @@ impl<'a> CodeSizeOptimizer<'a> {
                 .module_graph
                 .module_by_identifier(&mgm.module_identifier)
                 .and_then(|module| module.as_normal_module())
-                .map(|normal_module| normal_module.ast_or_source())
+                .map(|normal_module| normal_module.source())
               {
-                Some(NormalModuleAstOrSource::BuiltFailed(_)) => {
+                Some(NormalModuleSource::BuiltFailed(_)) => {
                   // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
                   continue;
                 }
@@ -622,9 +622,9 @@ impl<'a> CodeSizeOptimizer<'a> {
         let ast_or_source = module_graph
           .module_by_identifier(&mgm.module_identifier)
           .and_then(|module| module.as_normal_module())
-          .map(|normal_module| normal_module.ast_or_source())
+          .map(|normal_module| normal_module.source())
           .unwrap_or_else(|| panic!("Failed to get normal module of {}", mgm.module_identifier));
-        if matches!(ast_or_source, NormalModuleAstOrSource::BuiltFailed(_)) {
+        if matches!(ast_or_source, NormalModuleSource::BuiltFailed(_)) {
           // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
           continue;
         } else {

@@ -27,9 +27,9 @@ use serde_json::json;
 use crate::{
   contextify, get_context, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
   CodeGenerationResult, Compilation, CompilerOptions, Context, DependencyTemplate, GenerateContext,
-  GeneratorOptions, LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleAst,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, SourceType,
+  GeneratorOptions, LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleDependency,
+  ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
+  ParserOptions, Resolve, SourceType,
 };
 
 bitflags! {
@@ -71,74 +71,6 @@ impl ModuleIssuer {
   }
 }
 
-// TODO Here should only has source for string replace codegen, but the tree-shaking analyzer need ast at now, so here use ast as workaround.
-#[derive(Debug, Clone, Hash)]
-pub struct AstOrSource {
-  inner: (Option<ModuleAst>, Option<BoxSource>),
-}
-
-impl AstOrSource {
-  pub fn new(ast: Option<ModuleAst>, source: Option<BoxSource>) -> Self {
-    Self {
-      inner: (ast, source),
-    }
-  }
-
-  pub fn as_ast(&self) -> Option<&ModuleAst> {
-    self.inner.0.as_ref()
-  }
-
-  pub fn as_source(&self) -> Option<&BoxSource> {
-    self.inner.1.as_ref()
-  }
-
-  pub fn try_into_ast(self) -> Result<ModuleAst> {
-    match self.inner.0 {
-      Some(ast) => Ok(ast),
-      // TODO: change to user error
-      _ => Err(internal_error!("Failed to convert to ast")),
-    }
-  }
-
-  pub fn try_into_source(self) -> Result<BoxSource> {
-    match self.inner.1 {
-      Some(source) => Ok(source),
-      // TODO: change to user error
-      _ => Err(internal_error!("Failed to convert to source")),
-    }
-  }
-
-  pub fn try_to_source(&self) -> Result<BoxSource> {
-    match &self.inner.1 {
-      Some(source) => Ok(source.clone()),
-      // TODO: change to user error
-      _ => Err(internal_error!("Failed to convert to source")),
-    }
-  }
-
-  pub fn map<F, G>(self, f: F, g: G) -> Self
-  where
-    F: FnOnce(ModuleAst) -> ModuleAst,
-    G: FnOnce(BoxSource) -> BoxSource,
-  {
-    let ast = self.inner.0.map(f);
-    let source = self.inner.1.map(g);
-    Self::new(ast, source)
-  }
-}
-
-impl From<ModuleAst> for AstOrSource {
-  fn from(ast: ModuleAst) -> Self {
-    AstOrSource::new(Some(ast), None)
-  }
-}
-
-impl From<BoxSource> for AstOrSource {
-  fn from(source: BoxSource) -> Self {
-    AstOrSource::new(None, Some(source))
-  }
-}
-
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct NormalModule {
@@ -165,8 +97,8 @@ pub struct NormalModule {
 
   /// Original content of this module, will be available after module build
   original_source: Option<BoxSource>,
-  /// Built AST or source of this module (passed with loaders)
-  ast_or_source: NormalModuleAstOrSource,
+  /// Built source of this module (passed with loaders)
+  source: NormalModuleSource,
 
   /// Resolve options derived from [Rule.resolve]
   resolve_options: Option<Resolve>,
@@ -185,16 +117,16 @@ pub struct NormalModule {
 }
 
 #[derive(Debug)]
-pub enum NormalModuleAstOrSource {
+pub enum NormalModuleSource {
   Unbuild,
-  BuiltSucceed(AstOrSource),
+  BuiltSucceed(BoxSource),
   BuiltFailed(String),
 }
 
-impl NormalModuleAstOrSource {
-  pub fn new_built(ast_or_source: AstOrSource, diagnostics: &[Diagnostic]) -> Self {
+impl NormalModuleSource {
+  pub fn new_built(source: BoxSource, diagnostics: &[Diagnostic]) -> Self {
     if diagnostics.iter().any(|d| d.severity == Severity::Error) {
-      NormalModuleAstOrSource::BuiltFailed(
+      NormalModuleSource::BuiltFailed(
         diagnostics
           .iter()
           .filter(|d| d.severity == Severity::Error)
@@ -203,7 +135,7 @@ impl NormalModuleAstOrSource {
           .join("\n"),
       )
     } else {
-      NormalModuleAstOrSource::BuiltSucceed(ast_or_source)
+      NormalModuleSource::BuiltSucceed(source)
     }
   }
 }
@@ -247,7 +179,7 @@ impl NormalModule {
       resolve_options,
       loaders,
       original_source: None,
-      ast_or_source: NormalModuleAstOrSource::Unbuild,
+      source: NormalModuleSource::Unbuild,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
 
       options,
@@ -277,28 +209,12 @@ impl NormalModule {
     &self.raw_request
   }
 
-  pub fn source(&self) -> Option<&dyn Source> {
-    match self.ast_or_source() {
-      NormalModuleAstOrSource::BuiltSucceed(ast_or_source) => {
-        ast_or_source.as_source().map(|source| source.as_ref())
-      }
-      _ => None,
-    }
+  pub fn source(&self) -> &NormalModuleSource {
+    &self.source
   }
 
-  pub fn ast(&self) -> Option<&ModuleAst> {
-    match self.ast_or_source() {
-      NormalModuleAstOrSource::BuiltSucceed(ast_or_source) => ast_or_source.as_ast(),
-      _ => None,
-    }
-  }
-
-  pub fn ast_or_source(&self) -> &NormalModuleAstOrSource {
-    &self.ast_or_source
-  }
-
-  pub fn ast_or_source_mut(&mut self) -> &mut NormalModuleAstOrSource {
-    &mut self.ast_or_source
+  pub fn source_mut(&mut self) -> &mut NormalModuleSource {
+    &mut self.source
   }
 
   pub fn loaders_mut_vec(&mut self) -> &mut Vec<BoxLoader> {
@@ -365,7 +281,7 @@ impl Module for NormalModule {
     let (loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
       Err(e) => {
-        self.ast_or_source = NormalModuleAstOrSource::BuiltFailed(e.to_string());
+        self.source = NormalModuleSource::BuiltFailed(e.to_string());
         let mut hasher = RspackHash::from(&build_context.compiler_options.output);
         self.update_hash(&mut hasher);
         build_meta.hash(&mut hasher);
@@ -393,7 +309,7 @@ impl Module for NormalModule {
 
     let (
       ParseResult {
-        ast_or_source,
+        source,
         dependencies,
         presentational_dependencies,
         analyze_result,
@@ -419,7 +335,7 @@ impl Module for NormalModule {
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
     self.original_source = Some(original_source);
-    self.ast_or_source = NormalModuleAstOrSource::new_built(ast_or_source, &diagnostics);
+    self.source = NormalModuleSource::new_built(source, &diagnostics);
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
 
@@ -447,11 +363,11 @@ impl Module for NormalModule {
   }
 
   fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
-    if let NormalModuleAstOrSource::BuiltSucceed(ast_or_source) = self.ast_or_source() {
+    if let NormalModuleSource::BuiltSucceed(source) = &self.source {
       let mut code_generation_result = CodeGenerationResult::default();
       for source_type in self.source_types() {
-        let mut generation_result = self.parser_and_generator.generate(
-          ast_or_source,
+        let generation_result = self.parser_and_generator.generate(
+          source,
           self,
           &mut GenerateContext {
             compilation,
@@ -461,10 +377,7 @@ impl Module for NormalModule {
             requested_source_type: *source_type,
           },
         )?;
-        generation_result.ast_or_source = generation_result
-          .ast_or_source
-          .map(|i| i, |s| CachedSource::new(s).boxed());
-        code_generation_result.add(*source_type, generation_result);
+        code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
       }
       code_generation_result.set_hash(
         &compilation.options.output.hash_function,
@@ -472,7 +385,7 @@ impl Module for NormalModule {
         &compilation.options.output.hash_salt,
       );
       Ok(code_generation_result)
-    } else if let NormalModuleAstOrSource::BuiltFailed(error_message) = self.ast_or_source() {
+    } else if let NormalModuleSource::BuiltFailed(error_message) = &self.source {
       let mut code_generation_result = CodeGenerationResult::default();
 
       // If the module build failed and the module is able to emit JavaScript source,
@@ -480,10 +393,7 @@ impl Module for NormalModule {
       if self.source_types().contains(&SourceType::JavaScript) {
         code_generation_result.add(
           SourceType::JavaScript,
-          AstOrSource::new(
-            None,
-            Some(RawSource::from(format!("throw new Error({});\n", json!(error_message))).boxed()),
-          ),
+          RawSource::from(format!("throw new Error({});\n", json!(error_message))).boxed(),
         );
       }
       code_generation_result.set_hash(

@@ -7,9 +7,9 @@ img.src = imgSrc.href;
 img.src = imgSrc2;
 },
 "./react.svg": function (module, exports, __webpack_require__) {
-module.exports = __webpack_require__.p + "751e775393b8ce2a.svg";},
+module.exports = __webpack_require__.p + "ef0c5aab88bb335e.svg";},
 "./vue.svg": function (module, exports, __webpack_require__) {
-module.exports = __webpack_require__.p + "ea9452531f910819.svg";},
+module.exports = __webpack_require__.p + "7908863e290b1fc6.svg";},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
