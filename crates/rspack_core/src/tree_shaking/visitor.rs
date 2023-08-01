@@ -63,17 +63,17 @@ impl SymbolRef {
     }
   }
 
-  pub fn update_src_from_dep_id(mut self, mg: &ModuleGraph) -> SymbolRef {
+  pub fn update_src_from_dep_id(mut self, mg: &Vec<Option<ModuleIdentifier>>) -> SymbolRef {
     match self {
       SymbolRef::Declaration(_) => {}
       SymbolRef::Indirect(ref mut i) => {
-        if i.src.is_empty() && let Some(module_id) = mg.module_identifier_by_dependency_id(&i.dep_id) {
+        if i.src.is_empty() && let Some(Some(module_id)) = mg.get( *i.dep_id ) {
           i.src = *module_id;
         }
       }
       SymbolRef::Star(ref mut s) => {
-        if let Some(module_id) = mg.module_identifier_by_dependency_id(&s.dep_id) {
-          s.src = *module_id;
+        if let Some(Some(module_id)) = mg.get( *s.dep_id ) {
+          s.src =*module_id;
         }
       }
       SymbolRef::Url {
@@ -81,7 +81,7 @@ impl SymbolRef {
         ref mut src,
         ..
       } => {
-        if let Some(module_id) = mg.module_identifier_by_dependency_id(&dep_id) {
+        if let Some(Some(module_id)) = mg.get( *dep_id ) {
           *src = *module_id;
         }
       }
@@ -90,7 +90,7 @@ impl SymbolRef {
         dep_id,
         ..
       } => {
-        if let Some(module_id) = mg.module_identifier_by_dependency_id(&dep_id) {
+        if let Some(Some(module_id)) = mg.get( *dep_id ) {
           *src = *module_id;
         }
       }

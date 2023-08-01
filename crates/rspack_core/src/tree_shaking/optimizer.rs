@@ -10,6 +10,7 @@ use petgraph::{
   visit::{Bfs, Dfs, EdgeRef},
   Directed,
 };
+use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use rspack_error::{
   errors_to_diagnostics, Error, InternalError, IntoTWithDiagnosticArray, Result, Severity,
   TWithDiagnosticArray,
@@ -162,6 +163,22 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     self.side_effects_free_modules = self.get_side_effects_free_modules(side_effect_map);
 
+    let max_dep_id = self
+      .compilation
+      .module_graph
+      .dependency_id_to_module_identifier()
+      .iter()
+      .fold(0, |acc, cur| acc.max(**cur.0));
+
+    let mut dep_module_id_map: Vec<Option<ModuleIdentifier>> = vec![None; max_dep_id + 1];
+    self
+      .compilation
+      .module_graph
+      .dependency_id_to_module_identifier()
+      .iter()
+      .for_each(|(dep, m)| {
+        dep_module_id_map[**dep] = Some(*m);
+      });
     let inherit_export_ref_graph =
       get_inherit_export_ref_graph(&mut finalized_result_map, &self.compilation.module_graph);
     let mut errors = vec![];
@@ -186,6 +203,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       &inherit_export_ref_graph,
       &mut traced_tuple,
       &mut visited_symbol_ref,
+      &dep_module_id_map,
       &mut errors,
     );
 
@@ -197,6 +215,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       &inherit_export_ref_graph,
       &mut traced_tuple,
       &mut visited_symbol_ref,
+      &dep_module_id_map,
       &mut errors,
     );
 
@@ -210,6 +229,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       inherit_export_ref_graph,
       traced_tuple,
       &mut visited_symbol_ref,
+      &dep_module_id_map,
       &mut errors,
     );
     // let debug_graph = generate_debug_symbol_graph(
@@ -336,6 +356,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     inherit_export_ref_graph: GraphMap<Identifier, (), Directed>,
     mut traced_tuple: HashMap<(Identifier, Identifier), Vec<SymbolRef>>,
     visited_symbol_ref: &mut HashSet<SymbolRefWithMemberChain>,
+    dep_module_id_map: &Vec<Option<ModuleIdentifier>>,
     errors: &mut Vec<Error>,
   ) {
     let bailout_entry_modules = self.bailout_modules.keys().copied().collect::<Vec<_>>();
@@ -349,6 +370,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         &mut traced_tuple,
         EntryLikeType::Bailout,
         visited_symbol_ref,
+        dep_module_id_map,
         errors,
       );
     }
@@ -363,6 +385,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     inherit_export_ref_graph: &GraphMap<Identifier, (), Directed>,
     traced_tuple: &mut HashMap<(Identifier, Identifier), Vec<SymbolRef>>,
     visited_symbol_ref: &mut HashSet<SymbolRefWithMemberChain>,
+    dep_module_id_map: &Vec<Option<ModuleIdentifier>>,
     errors: &mut Vec<Error>,
   ) {
     for entry in self.compilation.entry_modules() {
@@ -375,6 +398,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         traced_tuple,
         EntryLikeType::Entry,
         visited_symbol_ref,
+        dep_module_id_map,
         errors,
       );
     }
@@ -672,6 +696,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
     traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<SymbolRef>>,
     visited_symbol_ref: &mut HashSet<SymbolRefWithMemberChain>,
+    dep_module_id_map: &Vec<Option<ModuleIdentifier>>,
     errors: &mut Vec<Error>,
   ) {
     while let Some(sym_ref) = init_queue.pop_front() {
@@ -684,6 +709,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         inherit_extend_graph,
         traced_tuple,
         visited_symbol_ref,
+        dep_module_id_map,
         errors,
       );
     }
@@ -700,11 +726,12 @@ impl<'a> CodeSizeOptimizer<'a> {
     inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
     traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<SymbolRef>>,
     visited_symbol_ref: &mut HashSet<SymbolRefWithMemberChain>,
+    dep_id_module_id_map: &Vec<Option<ModuleIdentifier>>,
     errors: &mut Vec<Error>,
   ) {
     current_symbol_ref_with_member_chain.0 = current_symbol_ref_with_member_chain
       .0
-      .update_src_from_dep_id(&self.compilation.module_graph);
+      .update_src_from_dep_id(dep_id_module_id_map);
     if visited_symbol_ref.contains(&current_symbol_ref_with_member_chain) {
       return;
     } else {
@@ -1231,6 +1258,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<SymbolRef>>,
     entry_type: EntryLikeType,
     visited_symbol_ref: &mut HashSet<SymbolRefWithMemberChain>,
+    dep_module_id_map: &Vec<Option<ModuleIdentifier>>,
     errors: &mut Vec<Error>,
   ) {
     let mut q = VecDeque::new();
@@ -1270,6 +1298,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         inherit_extend_graph,
         traced_tuple,
         visited_symbol_ref,
+        dep_module_id_map,
         errors,
       );
     }
@@ -1284,6 +1313,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         inherit_extend_graph,
         traced_tuple,
         visited_symbol_ref,
+        dep_module_id_map,
         errors,
       );
     }

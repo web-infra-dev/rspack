@@ -59,6 +59,10 @@ impl ModuleGraph {
     &self.module_identifier_to_module_graph_module
   }
 
+  pub fn dependency_id_to_module_identifier(&self) -> &HashMap<DependencyId, ModuleIdentifier> {
+    &self.dependency_id_to_module_identifier
+  }
+
   pub fn add_module_graph_module(&mut self, module_graph_module: ModuleGraphModule) {
     if let Entry::Vacant(val) = self
       .module_identifier_to_module_graph_module
