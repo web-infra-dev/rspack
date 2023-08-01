@@ -2,7 +2,10 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{ModuleDependency, SpanExt};
 use rspack_error::{Diagnostic, DiagnosticKind};
-use swc_core::css::ast::{ImportHref, ImportPrelude, Stylesheet, Url, UrlValue};
+use swc_core::common::Span;
+use swc_core::css::ast::{
+  AtRule, AtRuleName, ImportHref, ImportPrelude, Stylesheet, Url, UrlValue,
+};
 use swc_core::css::visit::{Visit, VisitWith};
 
 use crate::{
@@ -21,6 +24,7 @@ pub fn analyze_dependencies(
     deps: Vec::new(),
     code_generation_dependencies,
     diagnostics,
+    nearest_at_import_span: None,
     // in_support_contdition: false,
   };
   ss.visit_with(&mut v);
@@ -33,6 +37,7 @@ struct Analyzer<'a> {
   deps: Vec<Box<dyn ModuleDependency>>,
   code_generation_dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   diagnostics: &'a mut Vec<Diagnostic>,
+  nearest_at_import_span: Option<Span>,
   // in_support_contdition: bool,
 }
 
@@ -54,7 +59,18 @@ fn replace_module_request_prefix(specifier: String, diagnostics: &mut Vec<Diagno
 }
 
 impl Visit for Analyzer<'_> {
+  fn visit_at_rule(&mut self, n: &AtRule) {
+    if let AtRuleName::Ident(ident) = &n.name && &*ident.value == "import" {
+      self.nearest_at_import_span = Some(n.span);
+    }
+    n.visit_children_with(self);
+  }
+
   fn visit_import_prelude(&mut self, n: &ImportPrelude) {
+    let Some(span) = self.nearest_at_import_span.take() else {
+      return;
+    };
+
     let specifier = match &*n.href {
       ImportHref::Url(u) => u.value.as_ref().map(|box s| match s {
         UrlValue::Str(s) => s.value.to_string(),
@@ -66,9 +82,9 @@ impl Visit for Analyzer<'_> {
       let specifier = replace_module_request_prefix(specifier, self.diagnostics);
       self.deps.push(Box::new(CssImportDependency::new(
         specifier,
-        Some(n.span.into()),
-        n.span.real_lo(),
-        n.span.real_hi(),
+        Some(span.into()),
+        span.real_lo(),
+        span.real_hi(),
       )));
     }
   }
