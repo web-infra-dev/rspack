@@ -236,6 +236,7 @@ impl Compilation {
       }
       self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
         chunk.files.remove(filename);
+        chunk.auxiliary_files.remove(filename);
       });
     }
   }
@@ -246,6 +247,10 @@ impl Compilation {
       self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
         if chunk.files.remove(filename) {
           chunk.files.insert(new_name.clone());
+        }
+
+        if chunk.auxiliary_files.remove(filename) {
+          chunk.auxiliary_files.insert(new_name.clone());
         }
       });
     }
@@ -501,22 +506,36 @@ impl Compilation {
       while let Some(task) = process_dependencies_queue.get_task() {
         active_task_count += 1;
 
-        task.dependencies.into_iter().for_each(|id| {
-          let original_module_identifier = &task.original_module_identifier;
-          let module = self
-            .module_graph
-            .module_by_identifier(original_module_identifier)
-            .expect("Module expected");
-          let dependency = self
-            .module_graph
-            .dependency_by_id(&id)
-            .expect("dependency expected");
+        let original_module_identifier = &task.original_module_identifier;
+        let module = self
+          .module_graph
+          .module_by_identifier(original_module_identifier)
+          .expect("Module expected");
 
+        let mut sorted_dependencies = HashMap::default();
+
+        task.dependencies.into_iter().for_each(|dependency| {
+          // TODO need implement more dependency `resource_identifier()`
+          // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L1621
+          let resource_identifier =
+            if let Some(resource_identifier) = dependency.resource_identifier() {
+              resource_identifier.to_string()
+            } else {
+              format!("{}|{}", dependency.dependency_type(), dependency.request())
+            };
+
+          sorted_dependencies
+            .entry(resource_identifier)
+            .or_insert(vec![])
+            .push(dependency);
+        });
+
+        for dependencies in sorted_dependencies.into_values() {
           self.handle_module_creation(
             &mut factorize_queue,
             Some(task.original_module_identifier),
             module.get_context().cloned(),
-            vec![dependency.clone()],
+            dependencies,
             false,
             None,
             None,
@@ -527,7 +546,7 @@ impl Compilation {
               .and_then(|module| module.name_for_condition())
               .map(|issuer| issuer.to_string()),
           );
-        });
+        }
 
         result_tx
           .send(Ok(TaskResult::ProcessDependencies(
@@ -554,7 +573,8 @@ impl Compilation {
 
               tracing::trace!("Module created: {}", &module_identifier);
               if !diagnostics.is_empty() {
-                make_failed_dependencies.insert((dependencies[0], original_module_identifier));
+                make_failed_dependencies
+                  .insert((*dependencies[0].id(), original_module_identifier));
               }
 
               module_graph_module.set_issuer_if_unset(original_module_identifier);
@@ -600,6 +620,11 @@ impl Compilation {
                 build_result,
                 diagnostics,
               } = task_result;
+              if self.options.builtins.tree_shaking.enable() {
+                self
+                  .optimize_analyze_result_map
+                  .insert(module.identifier(), build_result.analyze_result);
+              }
 
               if !diagnostics.is_empty() {
                 make_failed_module.insert(module.identifier());
@@ -622,12 +647,11 @@ impl Compilation {
                 .extend(build_result.build_info.build_dependencies.clone());
 
               let mut dep_ids = vec![];
-              for dependency in build_result.dependencies {
+              for dependency in build_result.dependencies.iter() {
                 self
                   .module_graph
                   .set_dependency_import_var(module.identifier(), dependency.request());
                 dep_ids.push(*dependency.id());
-                self.module_graph.add_dependency(dependency);
               }
 
               {
@@ -635,10 +659,10 @@ impl Compilation {
                   .module_graph
                   .module_graph_module_by_identifier_mut(&module.identifier())
                   .expect("Failed to get mgm");
-                mgm.dependencies = dep_ids.clone();
+                mgm.dependencies = dep_ids;
               }
               process_dependencies_queue.add_task(ProcessDependenciesTask {
-                dependencies: dep_ids.clone(),
+                dependencies: build_result.dependencies,
                 original_module_identifier: module.identifier(),
                 resolve_options: module.get_resolve_options().map(ToOwned::to_owned),
               });
@@ -901,7 +925,12 @@ impl Compilation {
           .chunk_by_ukey
           .get_mut(&chunk_ukey)
           .unwrap_or_else(|| panic!("chunk({chunk_ukey:?}) should be in chunk_by_ukey",));
-        current_chunk.files.insert(filename.clone());
+
+        if file_manifest.auxiliary {
+          current_chunk.auxiliary_files.insert(filename.clone());
+        } else {
+          current_chunk.files.insert(filename.clone());
+        }
 
         self.emit_asset(
           filename.clone(),

@@ -1,6 +1,6 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (__unused_webpack_module, exports, __webpack_require__) {
-__webpack_require__.el(/* ./index */"./index.js").then(__webpack_require__.t.bind(__webpack_require__, /* ./index */"./index.js", 21));
+__webpack_require__.el(/* ./index */"./index.js").then(__webpack_require__.t.bind(__webpack_require__, /* ./index */"./index.js", 23));
 console.log('index');
 },
 

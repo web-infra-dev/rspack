@@ -270,6 +270,7 @@ impl Module for ExternalModule {
       build_info,
       build_meta: Default::default(),
       dependencies: Vec::new(),
+      analyze_result: Default::default(),
     };
     // TODO add exports_type for request
     match self.external_type.as_str() {

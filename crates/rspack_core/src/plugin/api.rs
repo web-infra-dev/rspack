@@ -414,15 +414,16 @@ pub struct RenderManifestEntry {
   pub(crate) info: AssetInfo,
   // pub identifier: String,
   // hash?: string;
-  // auxiliary?: boolean;
+  pub(crate) auxiliary: bool,
 }
 
 impl RenderManifestEntry {
-  pub fn new(source: BoxSource, filename: String, info: AssetInfo) -> Self {
+  pub fn new(source: BoxSource, filename: String, info: AssetInfo, auxiliary: bool) -> Self {
     Self {
       source,
       filename,
       info,
+      auxiliary,
     }
   }
 

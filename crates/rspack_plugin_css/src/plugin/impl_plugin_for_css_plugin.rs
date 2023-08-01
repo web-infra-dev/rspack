@@ -245,6 +245,7 @@ impl Plugin for CssPlugin {
       source.boxed(),
       output_path,
       asset_info,
+      false,
     )])
   }
 

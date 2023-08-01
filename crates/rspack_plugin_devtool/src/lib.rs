@@ -1,5 +1,6 @@
 #![feature(let_chains)]
 
+use std::collections::HashSet;
 use std::{hash::Hash, path::Path};
 
 use dashmap::DashMap;
@@ -176,6 +177,8 @@ impl Plugin for DevtoolPlugin {
           .boxed(),
         );
         args.compilation.emit_asset(filename, asset);
+        // TODO
+        // chunk.auxiliary_files.add(filename);
       } else {
         let mut source_map_filename = filename.to_owned() + ".map";
         // TODO(ahabhgk): refactor remove the for loop
@@ -183,7 +186,10 @@ impl Plugin for DevtoolPlugin {
         if args.compilation.options.devtool.source_map() {
           let source_map_filename_config = &args.compilation.options.output.source_map_filename;
           for chunk in args.compilation.chunk_by_ukey.values() {
-            for file in &chunk.files {
+            let files: HashSet<String> =
+              chunk.files.union(&chunk.auxiliary_files).cloned().collect();
+
+            for file in &files {
               if file == &filename {
                 let source_type = if is_css {
                   &SourceType::Css

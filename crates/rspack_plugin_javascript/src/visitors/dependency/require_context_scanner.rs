@@ -1,4 +1,7 @@
-use rspack_core::{ContextMode, ContextOptions, DependencyCategory, ModuleDependency, SpanExt};
+use rspack_core::{
+  ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory, ModuleDependency,
+  SpanExt,
+};
 use rspack_regex::RspackRegex;
 use swc_core::ecma::{
   ast::{CallExpr, Lit},
@@ -71,6 +74,7 @@ impl Visit for RequireContextScanner<'_> {
               exclude: None,
               category: DependencyCategory::CommonJS,
               request: str.value.to_string(),
+              namespace_object: ContextNameSpaceObject::Unset,
             },
             Some(node.span.into()),
           )));

@@ -1,26 +1,26 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./child Lazy  recursive ^\\.\\/.*\\.js$": function (module, exports, __webpack_require__) {
 var map = {"./a.js": "./child/a.js","./b.js": "./child/b.js",};
-function webpackAsyncContext(req) {
-	if(!__webpack_require__.o(map, req)) {
-		return Promise.resolve().then(function() {
-			var e = new Error("Cannot find module '" + req + "'");
-			e.code = 'MODULE_NOT_FOUND';
-			throw e;
-		});
-	}
-	// extract logic from generate
-	var id = map[req];
 
-	return __webpack_require__.el(id).then(function() {
-		return __webpack_require__(id);
-	});
-}
-webpackAsyncContext.keys = function() {
-	return Object.keys(map);
-};
-webpackAsyncContext.id = "./child Lazy  recursive ^\.\/.*\.js$";
-module.exports = webpackAsyncContext;},
+      function webpackAsyncContext(req) {
+        if(!__webpack_require__.o(map, req)) {
+          return Promise.resolve().then(function() {
+            var e = new Error("Cannot find module '" + req + "'");
+            e.code = 'MODULE_NOT_FOUND';
+            throw e;
+          });
+        }
+        var id = map[req];
+        return __webpack_require__.el(id).then(function() {
+          return __webpack_require__(id);
+        });
+      }
+      webpackAsyncContext.keys = function() {
+        return Object.keys(map);
+      };
+      webpackAsyncContext.id = "./child Lazy  recursive ^\\.\\/.*\\.js$";
+      module.exports = webpackAsyncContext;
+      },
 "./index.js": function (__unused_webpack_module, exports, __webpack_require__) {
 const request = 'a';
 __webpack_require__.el(/* ./child/a.js */"./child/a.js").then(__webpack_require__.bind(__webpack_require__, /* ./child/a.js */"./child/a.js")).then(({ a })=>console.log("Literal", a));

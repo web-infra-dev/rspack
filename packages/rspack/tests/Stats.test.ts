@@ -50,6 +50,7 @@ describe("Stats", () => {
 		  },
 		  "chunks": [
 		    {
+		      "auxiliaryFiles": [],
 		      "children": [],
 		      "entry": true,
 		      "files": [

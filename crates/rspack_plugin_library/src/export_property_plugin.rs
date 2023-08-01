@@ -20,6 +20,14 @@ impl Plugin for ExportPropertyLibraryPlugin {
     _ctx: PluginContext,
     args: &RenderStartupArgs,
   ) -> PluginRenderStartupHookOutput {
+    if args
+      .compilation
+      .chunk_graph
+      .get_number_of_entry_modules(args.chunk)
+      == 0
+    {
+      return Ok(None);
+    }
     if let Some(export) = args
       .compilation
       .options

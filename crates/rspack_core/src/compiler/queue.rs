@@ -4,10 +4,10 @@ use rspack_error::{Diagnostic, Result};
 
 use crate::{
   cache::Cache, BoxModuleDependency, BuildContext, BuildResult, Compilation, CompilerContext,
-  CompilerOptions, Context, ContextModuleFactory, DependencyId, DependencyType, Module,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleGraphModule,
-  ModuleIdentifier, ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve,
-  ResolverFactory, SharedPluginDriver, WorkerQueue,
+  CompilerOptions, Context, ContextModuleFactory, DependencyType, Module, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
+  ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve, ResolverFactory,
+  SharedPluginDriver, WorkerQueue,
 };
 
 #[derive(Debug)]
@@ -44,7 +44,7 @@ pub struct FactorizeTaskResult {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub factory_result: ModuleFactoryResult,
   pub module_graph_module: Box<ModuleGraphModule>,
-  pub dependencies: Vec<DependencyId>,
+  pub dependencies: Vec<BoxModuleDependency>,
   pub diagnostics: Vec<Diagnostic>,
   pub is_entry: bool,
 }
@@ -52,11 +52,6 @@ pub struct FactorizeTaskResult {
 #[async_trait::async_trait]
 impl WorkerTask for FactorizeTask {
   async fn run(self) -> Result<TaskResult> {
-    let dependencies = self
-      .dependencies
-      .iter()
-      .map(|d| *d.id())
-      .collect::<Vec<_>>();
     let dependency = &self.dependencies[0];
 
     let context = if let Some(context) = dependency.get_context() {
@@ -114,7 +109,7 @@ impl WorkerTask for FactorizeTask {
       original_module_identifier: self.original_module_identifier,
       factory_result: result,
       module_graph_module: Box::new(mgm),
-      dependencies,
+      dependencies: self.dependencies,
       diagnostics,
     }))
   }
@@ -126,7 +121,7 @@ pub struct AddTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module: Box<dyn Module>,
   pub module_graph_module: Box<ModuleGraphModule>,
-  pub dependencies: Vec<DependencyId>,
+  pub dependencies: Vec<BoxModuleDependency>,
   pub is_entry: bool,
 }
 
@@ -148,7 +143,7 @@ impl AddTask {
       Self::set_resolved_module(
         &mut compilation.module_graph,
         self.original_module_identifier,
-        self.dependencies.clone(),
+        self.dependencies,
         module_identifier,
       )?;
 
@@ -164,7 +159,7 @@ impl AddTask {
     Self::set_resolved_module(
       &mut compilation.module_graph,
       self.original_module_identifier,
-      self.dependencies.clone(),
+      self.dependencies,
       module_identifier,
     )?;
 
@@ -184,7 +179,7 @@ impl AddTask {
   fn set_resolved_module(
     module_graph: &mut ModuleGraph,
     original_module_identifier: Option<ModuleIdentifier>,
-    dependencies: Vec<DependencyId>,
+    dependencies: Vec<BoxModuleDependency>,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
     for dependency in dependencies {
@@ -270,7 +265,7 @@ pub type BuildQueue = WorkerQueue<BuildTask>;
 
 pub struct ProcessDependenciesTask {
   pub original_module_identifier: ModuleIdentifier,
-  pub dependencies: Vec<DependencyId>,
+  pub dependencies: Vec<BoxModuleDependency>,
   pub resolve_options: Option<Resolve>,
 }
 

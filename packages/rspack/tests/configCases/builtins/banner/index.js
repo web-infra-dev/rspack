@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-
+import png from "./empty.png";
 import("./b.js").then(res => {
 	// xxxx
 });
@@ -30,4 +30,12 @@ it("add comment should works", () => {
 
 it("should keep source map", () => {
 	expect(fs.existsSync(path.resolve(__dirname, "main.js.map"))).toBe(true);
+});
+
+it("should not inject placeholder to asset", () => {
+	const pngContent = fs.readFileSync(
+		path.resolve(__dirname, "./empty.png"),
+		"utf-8"
+	);
+	expect(pngContent.startsWith("/*! MMMMMMM */")).toBeFalsy();
 });

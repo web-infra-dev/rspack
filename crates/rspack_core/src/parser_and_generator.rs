@@ -5,9 +5,10 @@ use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
 
 use crate::{
-  AstOrSource, BuildInfo, BuildMeta, CodeGenerationData, Compilation, CompilerOptions,
-  DependencyTemplate, GenerationResult, GeneratorOptions, Module, ModuleDependency,
-  ModuleIdentifier, ModuleType, ParserOptions, RuntimeGlobals, SourceType,
+  tree_shaking::visitor::OptimizeAnalyzeResult, AstOrSource, BuildInfo, BuildMeta,
+  CodeGenerationData, Compilation, CompilerOptions, DependencyTemplate, GenerationResult,
+  GeneratorOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType, ParserOptions,
+  RuntimeGlobals, SourceType,
 };
 
 #[derive(Debug)]
@@ -30,6 +31,7 @@ pub struct ParseResult {
   pub dependencies: Vec<Box<dyn ModuleDependency>>,
   pub presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
   pub ast_or_source: AstOrSource,
+  pub analyze_result: OptimizeAnalyzeResult,
 }
 
 #[derive(Debug)]

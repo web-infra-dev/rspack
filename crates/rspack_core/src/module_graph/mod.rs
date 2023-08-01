@@ -108,9 +108,11 @@ impl ModuleGraph {
   pub fn set_resolved_module(
     &mut self,
     original_module_identifier: Option<ModuleIdentifier>,
-    dependency_id: DependencyId,
+    dependency: BoxModuleDependency,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
+    let dependency_id = *dependency.id();
+    self.add_dependency(dependency);
     self
       .dependency_id_to_module_identifier
       .insert(dependency_id, module_identifier);
@@ -615,13 +617,12 @@ mod test {
     dep: Box<dyn ModuleDependency>,
   ) -> DependencyId {
     let dependency_id = *dep.id();
-    mg.add_dependency(dep);
     mg.dependency_id_to_module_identifier
       .insert(dependency_id, *to);
     if let Some(p_id) = from && let Some(mgm) = mg.module_graph_module_by_identifier_mut(p_id) {
       mgm.dependencies.push(dependency_id);
     }
-    mg.set_resolved_module(from.copied(), dependency_id, *to)
+    mg.set_resolved_module(from.copied(), dep, *to)
       .expect("failed to set resolved module");
 
     assert_eq!(
