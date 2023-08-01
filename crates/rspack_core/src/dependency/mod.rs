@@ -39,6 +39,7 @@ use crate::{
 pub enum DependencyType {
   #[default]
   Unknown,
+  Const,
   Entry,
   // Harmony import
   EsmImport,
@@ -114,6 +115,7 @@ impl Display for DependencyType {
       DependencyType::WasmExportImported => write!(f, "wasm export imported"),
       DependencyType::StaticExports => write!(f, "static exports"),
       DependencyType::Custom(ty) => write!(f, "custom {ty}"),
+      DependencyType::Const => write!(f, "const"),
     }
   }
 }

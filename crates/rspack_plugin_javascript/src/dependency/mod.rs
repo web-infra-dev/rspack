@@ -1,4 +1,5 @@
 mod commonjs;
+mod const_dep;
 mod context;
 mod esm;
 mod hmr;
