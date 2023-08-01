@@ -461,7 +461,6 @@ export interface RawBannerConfig {
 export interface RawBuiltins {
   html?: Array<RawHtmlPluginConfig>
   css?: RawCssPluginConfig
-  postcss?: RawPostCssConfig
   minifyOptions?: RawMinification
   presetEnv?: RawPresetEnv
   define: Record<string, string>
@@ -861,10 +860,6 @@ export interface RawPluginImportConfig {
   ignoreStyleComponent?: Array<string>
 }
 
-export interface RawPostCssConfig {
-  pxtorem?: RawPxToRemConfig
-}
-
 export interface RawPresetEnv {
   targets: Array<string>
   mode?: 'usage' | 'entry'
@@ -873,16 +868,6 @@ export interface RawPresetEnv {
 
 export interface RawProgressPluginConfig {
   prefix?: string
-}
-
-export interface RawPxToRemConfig {
-  rootValue?: number
-  unitPrecision?: number
-  selectorBlackList?: Array<string>
-  propList?: Array<string>
-  replace?: boolean
-  mediaQuery?: boolean
-  minPixelValue?: number
 }
 
 export interface RawReactOptions {

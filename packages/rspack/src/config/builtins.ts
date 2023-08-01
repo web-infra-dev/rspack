@@ -8,7 +8,6 @@ import type {
 	RawMinification,
 	RawReactOptions,
 	RawProgressPluginConfig,
-	RawPostCssConfig,
 	RawCopyConfig,
 	RawPattern,
 	RawPresetEnv,
@@ -61,7 +60,7 @@ export type MinificationConfig = {
 
 export interface Builtins {
 	css?: CssPluginConfig;
-	postcss?: RawPostCssConfig;
+	postcss?: any;
 	treeShaking?: boolean | "module";
 	progress?: boolean | RawProgressPluginConfig;
 	react?: RawReactOptions;
@@ -386,7 +385,6 @@ export function resolveBuiltinsOptions(
 				...builtins.css?.modules
 			}
 		},
-		postcss: { pxtorem: undefined, ...builtins.postcss },
 		treeShaking: resolveTreeShaking(builtins.treeShaking, production),
 		react: builtins.react ?? {},
 		noEmitAssets: builtins.noEmitAssets ?? false,

@@ -169,19 +169,23 @@ impl ParserAndGenerator for CssParserAndGenerator {
       dependencies
     };
 
-    let new_source = if let Some(source_map) = source_map {
-      SourceMapSource::new(SourceMapSourceOptions {
-        value: source_code,
-        name: module_user_request,
-        source_map: SourceMap::from_slice(&source_map)
-          .map_err(|e| internal_error!(e.to_string()))?,
-        // Safety: original source exists in code generation
-        original_source: Some(source.source().to_string()),
-        // Safety: original source exists in code generation
-        inner_source_map: source.map(&MapOptions::default()),
-        remove_original_source: false,
-      })
-      .boxed()
+    let new_source = if devtool.source_map() {
+      if let Some(source_map) = source_map {
+        SourceMapSource::new(SourceMapSourceOptions {
+          value: source_code,
+          name: module_user_request,
+          source_map: SourceMap::from_slice(&source_map)
+            .map_err(|e| internal_error!(e.to_string()))?,
+          // Safety: original source exists in code generation
+          original_source: Some(source.source().to_string()),
+          // Safety: original source exists in code generation
+          inner_source_map: source.map(&MapOptions::default()),
+          remove_original_source: false,
+        })
+        .boxed()
+      } else {
+        source
+      }
     } else {
       RawSource::from(source_code).boxed()
     };
