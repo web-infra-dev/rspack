@@ -189,24 +189,20 @@ describe("Stats", () => {
 		expect(
 			stats?.toString({ timings: false, version: false }).replace(/\\/g, "/")
 		).toMatchInlineSnapshot(`
-		"PublicPath: auto
-		asset main.js 419 bytes {main} [emitted] (name: main)
-		Entrypoint main 419 bytes = main.js
-		./fixtures/a.js [876] {main}
-		./fixtures/b.js [211] {main}
-		./fixtures/c.js [537] {main}
-		./fixtures/abc.js [222] {main}
+"PublicPath: auto
+asset main.js 419 bytes {main} [emitted] (name: main)
+Entrypoint main 419 bytes = main.js
+./fixtures/a.js [876] {main}
+./fixtures/b.js [211] {main}
+./fixtures/c.js [537] {main}
+./fixtures/abc.js [222] {main}
 
-		error[javascript]: JavaScript parsing error
-		  ┌─ tests/fixtures/b.js:6:1
-		  │
-		2 │     return "This is b";
-		3 │ };
-		4 │ 
-		5 │ // Test CJS top-level return
-		6 │ return;
-		  │ ^^^^^^^ Return statement is not allowed here
-		7 │ 
+
+error[javascript]: JavaScript parsing error
+  ┌─ fixtures/b.js:6:1
+  │
+6 │ return;
+  │ ^^^^^^^ Return statement is not allowed here
 
 
 
@@ -214,10 +210,18 @@ describe("Stats", () => {
 	`);
 	});
 
-	it("should have time log when logging verbose", async () => {
+	it("should include asset.info.sourceFilename", async () => {
 		const stats = await compile({
 			context: __dirname,
-			entry: "./fixtures/abc"
+			entry: "./fixtures/sourceFilename.js",
+			module: {
+				rules: [
+					{
+						test: /\.png$/,
+						type: "asset"
+					}
+				]
+			}
 		});
 		expect(
 			stats
@@ -265,7 +269,6 @@ describe("Stats", () => {
 		<t> hash to asset names: X ms
 
 		LOG from rspack.RemoveEmptyChunksPlugin
-		<t> remove empty chunks: X ms
 
 		LOG from rspack.SplitChunksPlugin
 		<t> prepare module group map: X ms
