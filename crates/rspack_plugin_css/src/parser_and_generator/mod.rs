@@ -2,7 +2,6 @@
 
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
-use preset_env_base::query::{Query, Targets};
 use regex::Regex;
 use rspack_core::{
   rspack_sources::{
@@ -17,12 +16,7 @@ use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagno
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
 use swc_core::{
-  css::{
-    modules::CssClassName,
-    parser::parser::ParserConfig,
-    prefixer::{options::Options, prefixer},
-    visit::VisitMutWith,
-  },
+  css::{modules::CssClassName, parser::parser::ParserConfig},
   ecma::atoms::JsWord,
 };
 
@@ -45,19 +39,6 @@ pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
 pub struct CssParserAndGenerator {
   pub config: CssConfig,
   pub exports: Option<IndexMap<JsWord, Vec<CssClassName>>>,
-}
-
-impl CssParserAndGenerator {
-  pub fn get_query(&self) -> Option<Query> {
-    // TODO(h-a-n-a): figure out if the prefixer visitMut is stateless
-    // I need to clone the preset_env every time, due to I don't know if it is stateless
-    // If it is true, I reduce this clone
-    if !self.config.targets.is_empty() {
-      Some(Query::Multiple(self.config.targets.clone()))
-    } else {
-      None
-    }
-  }
 }
 
 impl ParserAndGenerator for CssParserAndGenerator {
@@ -120,12 +101,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
         ..Default::default()
       },
     )?;
-
-    if let Some(query) = self.get_query() {
-      stylesheet.visit_mut_with(&mut prefixer(Options {
-        env: Some(Targets::Query(query)),
-      }));
-    }
 
     let locals = if is_enable_css_modules {
       let result = swc_core::css::modules::compile(
