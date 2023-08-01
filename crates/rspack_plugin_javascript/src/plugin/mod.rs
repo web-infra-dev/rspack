@@ -12,7 +12,8 @@ use rspack_error::Result;
 use rspack_hash::RspackHash;
 
 use crate::runtime::{
-  render_chunk_init_fragments, render_chunk_modules, render_runtime_modules, stringify_array,
+  render_chunk_init_fragments, render_chunk_modules, render_iife, render_runtime_modules,
+  stringify_array,
 };
 
 #[derive(Debug)]
@@ -309,7 +310,7 @@ impl JsPlugin {
       }
     }
     let mut final_source = if compilation.options.output.iife {
-      self.render_iife(sources.boxed())
+      render_iife(sources.boxed())
     } else {
       sources.boxed()
     };
@@ -329,8 +330,9 @@ impl JsPlugin {
     &self,
     args: &rspack_core::RenderManifestArgs<'_>,
   ) -> Result<BoxSource> {
+    let compilation = args.compilation;
     let (module_source, chunk_init_fragments) =
-      render_chunk_modules(args.compilation, &args.chunk_ukey)?;
+      render_chunk_modules(compilation, &args.chunk_ukey)?;
     let source = args
       .compilation
       .plugin_driver
@@ -342,7 +344,15 @@ impl JsPlugin {
       })
       .await?
       .expect("should run render_chunk hook");
-    Ok(render_chunk_init_fragments(source, chunk_init_fragments))
+    let final_source = render_chunk_init_fragments(source, chunk_init_fragments);
+    if let Some(source) = compilation.plugin_driver.render(RenderArgs {
+      compilation,
+      chunk: &args.chunk_ukey,
+      source: &final_source,
+    })? {
+      return Ok(source);
+    }
+    Ok(final_source)
   }
 
   #[inline]
@@ -373,14 +383,6 @@ impl JsPlugin {
     let (header, startup) = self.render_bootstrap(chunk_ukey, compilation);
     header.hash(hasher);
     startup.hash(hasher);
-  }
-
-  pub fn render_iife(&self, content: BoxSource) -> BoxSource {
-    let mut sources = ConcatSource::default();
-    sources.add(RawSource::from("(function() {\n"));
-    sources.add(content);
-    sources.add(RawSource::from("\n})()\n"));
-    sources.boxed()
   }
 }
 

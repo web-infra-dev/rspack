@@ -83,6 +83,14 @@ impl Plugin for AssignLibraryPlugin {
   }
 
   fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
+    if args
+      .compilation
+      .chunk_graph
+      .get_number_of_entry_modules(args.chunk)
+      == 0
+    {
+      return Ok(None);
+    }
     if self.options.declare {
       let base = &self.get_resolved_full_name(args.compilation, args.chunk())[0];
       if !is_name_valid(base) {
@@ -104,6 +112,14 @@ impl Plugin for AssignLibraryPlugin {
     _ctx: PluginContext,
     args: &RenderStartupArgs,
   ) -> PluginRenderStartupHookOutput {
+    if args
+      .compilation
+      .chunk_graph
+      .get_number_of_entry_modules(args.chunk)
+      == 0
+    {
+      return Ok(None);
+    }
     let mut source = ConcatSource::default();
     source.add(args.source.clone());
     // TODO: respect entryOptions.library
@@ -169,6 +185,14 @@ impl Plugin for AssignLibraryPlugin {
     _ctx: PluginContext,
     args: &mut JsChunkHashArgs,
   ) -> PluginJsChunkHashHookOutput {
+    if args
+      .compilation
+      .chunk_graph
+      .get_number_of_entry_modules(args.chunk_ukey)
+      == 0
+    {
+      return Ok(());
+    }
     self.name().hash(&mut args.hasher);
     args
       .compilation
