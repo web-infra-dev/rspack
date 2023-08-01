@@ -2603,7 +2603,6 @@ dependencies = [
  "indexmap 1.9.3",
  "insta",
  "once_cell",
- "preset_env_base",
  "rayon",
  "regex",
  "rspack_core",
