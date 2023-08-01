@@ -1,22 +1,29 @@
 body {
   background: red;
 }
+
 @import url("https://some/other/external/css");
 .c {
   background: red;
 }
 
 
+
 .c {
   color: yellow;
 }
+
 @import url("https://some/external/css");
 .b {
   background: red;
 }
 
+
+
 .b {
   color: yellow;
 }
+
+
 
 
