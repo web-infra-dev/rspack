@@ -17,11 +17,11 @@ use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  contextify, stringify_map, AstOrSource, BoxModuleDependency, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ContextElementDependency,
-  DependencyCategory, DependencyId, DependencyType, GenerationResult, LibIdentOptions, Module,
-  ModuleType, Resolve, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
-  SourceType,
+  contextify, get_exports_type_with_strict, stringify_map, AstOrSource, BoxModuleDependency,
+  BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
+  ContextElementDependency, DependencyCategory, DependencyId, DependencyType, ExportsType,
+  FakeNamespaceObjectMode, GenerationResult, LibIdentOptions, Module, ModuleType, Resolve,
+  ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -46,6 +46,20 @@ pub enum ContextMode {
   LazyOnce,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ContextNameSpaceObject {
+  Bool(bool),
+  Strict,
+  Unset,
+}
+
+impl ContextNameSpaceObject {
+  pub fn is_false(&self) -> bool {
+    matches!(self, ContextNameSpaceObject::Unset)
+      || matches!(self, ContextNameSpaceObject::Bool(v) if !v)
+  }
+}
+
 #[derive(Debug, Clone)]
 pub struct ContextOptions {
   pub mode: ContextMode,
@@ -56,20 +70,22 @@ pub struct ContextOptions {
   pub exclude: Option<String>,
   pub category: DependencyCategory,
   pub request: String,
+  pub namespace_object: ContextNameSpaceObject,
 }
 
 impl Display for ContextOptions {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(
       f,
-      "({:?}, {}, {},  {:?}, {:?},  {:?}, {})",
+      "({:?}, {}, {},  {:?}, {:?},  {:?}, {}, {:?})",
       self.mode,
       self.recursive,
       self.reg_str,
       self.include,
       self.exclude,
       self.category,
-      self.request
+      self.request,
+      self.namespace_object
     )
   }
 }
@@ -82,6 +98,8 @@ impl PartialEq for ContextOptions {
       && self.include == other.include
       && self.exclude == other.exclude
       && self.category == other.category
+      && self.request == other.request
+      && self.namespace_object == other.namespace_object
   }
 }
 
@@ -95,6 +113,8 @@ impl Hash for ContextOptions {
     self.include.hash(state);
     self.exclude.hash(state);
     self.category.hash(state);
+    self.request.hash(state);
+    self.namespace_object.hash(state);
   }
 }
 
@@ -115,6 +135,11 @@ impl Display for ContextModuleOptions {
       self.resource, self.resource_query, self.resource_fragment, self.context_options
     )
   }
+}
+
+pub enum FakeMapValue {
+  Bit(FakeNamespaceObjectMode),
+  Map(HashMap<String, FakeNamespaceObjectMode>),
 }
 
 #[derive(Debug)]
@@ -147,6 +172,93 @@ impl ContextModule {
       .as_ref()
       .expect("module id not found")
       .as_str()
+  }
+
+  pub fn get_fake_map(&self, compilation: &Compilation) -> FakeMapValue {
+    if self.options.context_options.namespace_object.is_false() {
+      return FakeMapValue::Bit(FakeNamespaceObjectMode::NAMESPACE);
+    }
+    let mut has_type = 0;
+    let mut fake_map = HashMap::default();
+    if let Some(dependencies) = compilation
+      .module_graph
+      .dependencies_by_module_identifier(&self.identifier)
+    {
+      for dependency_id in dependencies {
+        if let Some(module_identifier) = compilation
+          .module_graph
+          .module_identifier_by_dependency_id(dependency_id)
+        {
+          if let Some(module_id) = compilation
+            .chunk_graph
+            .get_module_id(*module_identifier)
+            .clone()
+          {
+            let exports_type = get_exports_type_with_strict(
+              &compilation.module_graph,
+              dependency_id,
+              matches!(
+                self.options.context_options.namespace_object,
+                ContextNameSpaceObject::Strict
+              ),
+            );
+            match exports_type {
+              ExportsType::Namespace => {
+                fake_map.insert(module_id, FakeNamespaceObjectMode::NAMESPACE);
+                has_type |= 1;
+              }
+              ExportsType::Dynamic => {
+                fake_map.insert(module_id, FakeNamespaceObjectMode::DYNAMIC);
+                has_type |= 2;
+              }
+              ExportsType::DefaultOnly => {
+                fake_map.insert(module_id, FakeNamespaceObjectMode::MODULE_ID);
+                has_type |= 4;
+              }
+              ExportsType::DefaultWithNamed => {
+                fake_map.insert(module_id, FakeNamespaceObjectMode::DEFAULT_WITH_NAMED);
+                has_type |= 8;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    match has_type {
+      0 | 1 => FakeMapValue::Bit(FakeNamespaceObjectMode::NAMESPACE),
+      2 => FakeMapValue::Bit(FakeNamespaceObjectMode::DYNAMIC),
+      4 => FakeMapValue::Bit(FakeNamespaceObjectMode::MODULE_ID),
+      8 => FakeMapValue::Bit(FakeNamespaceObjectMode::DEFAULT_WITH_NAMED),
+      _ => FakeMapValue::Map(fake_map),
+    }
+  }
+
+  pub fn get_return_module_object_source(
+    &self,
+    fake_map: &FakeMapValue,
+    async_module: bool,
+  ) -> String {
+    if let FakeMapValue::Bit(bit) = fake_map {
+      return self.get_return(bit, async_module);
+    }
+    format!(
+      "return {}(id, fakeMap[id]{});",
+      RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+      if async_module { "| 16" } else { "" },
+    )
+  }
+
+  pub fn get_return(&self, fake_map_bit: &FakeNamespaceObjectMode, async_module: bool) -> String {
+    if *fake_map_bit == FakeNamespaceObjectMode::NAMESPACE {
+      return format!("return {}(id);", RuntimeGlobals::REQUIRE);
+    }
+    format!(
+      "return {}(id, {}{});",
+      RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+      fake_map_bit,
+      if async_module { "| 16" } else { "" },
+    )
   }
 
   pub fn get_user_request_map(&self, compilation: &Compilation) -> HashMap<String, String> {
@@ -188,17 +300,62 @@ impl ContextModule {
 
   pub fn get_lazy_source(&self, compilation: &Compilation) -> BoxSource {
     let map = self.get_user_request_map(compilation);
-    RawSource::from(
-      include_str!("runtime/lazy_context_module.js")
-        .replace("$ID$", self.id(&compilation.chunk_graph))
-        .replace("$MAP$", &stringify_map(&map)),
-    )
-    .boxed()
+    let fake_map = self.get_fake_map(compilation);
+    let return_module_object = self.get_return_module_object_source(&fake_map, true);
+    let mut source = ConcatSource::default();
+    source.add(RawSource::from(format!(
+      "var map = {};\n",
+      stringify_map(&map)
+    )));
+    if let FakeMapValue::Map(map) = &fake_map {
+      source.add(RawSource::from(format!(
+        "var fakeMap = {};\n",
+        stringify_map(map)
+      )));
+    }
+    source.add(RawSource::from(format!(
+      r#"
+      function webpackAsyncContext(req) {{
+        if(!__webpack_require__.o(map, req)) {{
+          return Promise.resolve().then(function() {{
+            var e = new Error("Cannot find module '" + req + "'");
+            e.code = 'MODULE_NOT_FOUND';
+            throw e;
+          }});
+        }}
+        var id = map[req];
+        return __webpack_require__.el(id).then(function() {{
+          {return_module_object}
+        }});
+      }}
+      webpackAsyncContext.keys = function() {{
+        return Object.keys(map);
+      }};
+      webpackAsyncContext.id = {:?};
+      module.exports = webpackAsyncContext;
+      "#,
+      self.id(&compilation.chunk_graph)
+    )));
+    source.boxed()
   }
 
   pub fn generate_source(&self, compilation: &Compilation) -> Result<BoxSource> {
     let map = self.get_user_request_map(compilation);
+    let fake_map = self.get_fake_map(compilation);
     let mode = &self.options.context_options.mode;
+    let return_module_object = {
+      match *mode {
+        ContextMode::Sync | ContextMode::Weak | ContextMode::Eager => {
+          self.get_return_module_object_source(&fake_map, false)
+        }
+        ContextMode::AsyncWeak | ContextMode::LazyOnce => {
+          self.get_return_module_object_source(&fake_map, true)
+        }
+        ContextMode::Lazy => {
+          unreachable!("lazy mode shouldn't be handled by get_source_string")
+        }
+      }
+    };
     let is_async = matches!(
       mode,
       ContextMode::LazyOnce | ContextMode::AsyncWeak | ContextMode::Eager
@@ -208,6 +365,12 @@ impl ContextModule {
       "var map = {};\n",
       stringify_map(&map)
     )));
+    if let FakeMapValue::Map(map) = &fake_map {
+      source.add(RawSource::from(format!(
+        "var fakeMap = {};\n",
+        stringify_map(map)
+      )));
+    }
 
     // webpackContext
     source.add(RawSource::from("function webpackContext(req) {\n"));
@@ -229,7 +392,7 @@ impl ContextModule {
         "#,
       ));
     }
-    source.add(RawSource::from("\nreturn __webpack_require__(id);\n"));
+    source.add(RawSource::from(format!("\n{return_module_object}\n")));
     if is_async {
       source.add(RawSource::from("\n});\n"));
     }
@@ -355,7 +518,12 @@ impl Module for ContextModule {
       }
       _ => {}
     }
-
+    let fake_map = self.get_fake_map(compilation);
+    if !matches!(fake_map, FakeMapValue::Bit(bit) if bit == FakeNamespaceObjectMode::NAMESPACE) {
+      code_generation_result
+        .runtime_requirements
+        .insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+    }
     code_generation_result.add(
       SourceType::JavaScript,
       GenerationResult::from(AstOrSource::from(self.get_source_string(compilation)?)),

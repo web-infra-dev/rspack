@@ -99,11 +99,6 @@ pub fn scan_dependencies(
     }
   }
 
-  program.visit_with(&mut ImportScanner::new(
-    &mut dependencies,
-    comments.as_ref().map(|c| c as &dyn Comments),
-  ));
-
   if module_type.is_js_auto() || module_type.is_js_esm() {
     program.visit_with(&mut HarmonyDetectionScanner::new(
       build_info,
@@ -144,6 +139,12 @@ pub fn scan_dependencies(
       compiler_options,
     ));
   }
+
+  program.visit_with(&mut ImportScanner::new(
+    &mut dependencies,
+    comments.as_ref().map(|c| c as &dyn Comments),
+    &build_meta,
+  ));
 
   if compiler_options.dev_server.hot {
     program.visit_with(&mut HotModuleReplacementScanner::new(
