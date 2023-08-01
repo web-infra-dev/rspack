@@ -12,7 +12,6 @@ bitflags = { workspace = true }
 heck = "0.4.1"
 indexmap = { workspace = true }
 once_cell = { workspace = true }
-preset_env_base = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
 rspack_core = { path = "../rspack_core" }
