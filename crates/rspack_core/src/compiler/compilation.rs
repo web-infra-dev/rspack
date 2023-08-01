@@ -1554,6 +1554,7 @@ pub struct AssetInfo {
   /// the asset version, emit can be skipped when both filename and version are the same
   /// An empty string means no version, it will always emit
   pub version: String,
+  pub source_filename: Option<String>,
 }
 
 impl AssetInfo {
@@ -1597,6 +1598,10 @@ impl AssetInfo {
 
   pub fn set_immutable(&mut self, v: bool) {
     self.immutable = v;
+  }
+
+  pub fn set_source_filename(&mut self, v: String) {
+    self.source_filename = Some(v);
   }
 }
 

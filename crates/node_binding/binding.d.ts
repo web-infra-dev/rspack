@@ -142,8 +142,8 @@ export interface JsAssetInfo {
    * the value(s) of the content hash used for this asset
    */
   contentHash: Array<string>
+  sourceFilename?: string
   /**
-   * when asset was created from a source file (potentially transformed), the original filename relative to compilation context
    * size in bytes, only set after asset has been emitted
    * when asset is only used for development and doesn't count towards user-facing assets
    */
@@ -310,6 +310,7 @@ export interface JsStatsAsset {
 export interface JsStatsAssetInfo {
   development: boolean
   hotModuleReplacement: boolean
+  sourceFilename?: string
 }
 
 export interface JsStatsAssetsByChunkName {
