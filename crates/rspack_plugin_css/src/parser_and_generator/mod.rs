@@ -76,7 +76,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     let swc_compiler = SwcCssCompiler::default();
 
-    let source_code = source.source().into_owned();
+    let mut source_code = source.source().into_owned();
     let resource_path = &parse_context.resource_data.resource_path;
 
     let is_enable_css_modules = match module_type {
@@ -89,20 +89,24 @@ impl ParserAndGenerator for CssParserAndGenerator {
       _ => false,
     };
 
-    let TWithDiagnosticArray {
-      inner: mut stylesheet,
-      mut diagnostic,
-    } = swc_compiler.parse_file(
-      &resource_path.to_string_lossy(),
-      source_code,
-      ParserConfig {
-        css_modules: is_enable_css_modules,
-        legacy_ie: true,
-        ..Default::default()
-      },
-    )?;
+    let devtool = &compiler_options.devtool;
+    let mut source_map = None;
+    let mut diagnostic_vec = vec![];
 
-    let locals = if is_enable_css_modules {
+    if is_enable_css_modules {
+      let TWithDiagnosticArray {
+        inner: mut stylesheet,
+        diagnostic,
+      } = swc_compiler.parse_file(
+        &resource_path.to_string_lossy(),
+        source_code,
+        ParserConfig {
+          css_modules: is_enable_css_modules,
+          legacy_ie: true,
+          ..Default::default()
+        },
+      )?;
+
       let result = swc_core::css::modules::compile(
         &mut stylesheet,
         ModulesTransformConfig::new(
@@ -115,38 +119,39 @@ impl ParserAndGenerator for CssParserAndGenerator {
       );
       let mut exports: IndexMap<JsWord, _> = result.renamed.into_iter().collect();
       exports.sort_keys();
-      Some(exports)
-    } else {
-      None
-    };
-    let devtool = &compiler_options.devtool;
 
-    let (code, source_map) = swc_compiler.codegen(
-      &stylesheet,
-      SwcCssSourceMapGenConfig {
-        enable: devtool.source_map(),
-        inline_sources_content: !devtool.no_sources(),
-        emit_columns: !devtool.cheap(),
-      },
-    )?;
+      self.exports = Some(exports);
+
+      let (code, map) = swc_compiler.codegen(
+        &stylesheet,
+        SwcCssSourceMapGenConfig {
+          enable: devtool.source_map(),
+          inline_sources_content: !devtool.no_sources(),
+          emit_columns: !devtool.cheap(),
+        },
+      )?;
+      source_code = code;
+      source_map = map;
+      diagnostic_vec.extend(diagnostic)
+    }
 
     let TWithDiagnosticArray {
       inner: new_stylesheet_ast,
       diagnostic: new_diagnostic,
     } = SwcCssCompiler::default().parse_file(
       &parse_context.resource_data.resource_path.to_string_lossy(),
-      code.clone(),
+      source_code.clone(),
       Default::default(),
     )?;
-    diagnostic.extend(new_diagnostic);
+    diagnostic_vec.extend(new_diagnostic);
 
     let mut dependencies = analyze_dependencies(
       &new_stylesheet_ast,
       code_generation_dependencies,
-      &mut diagnostic,
+      &mut diagnostic_vec,
     );
 
-    let  dependencies = if let Some(locals) = &locals && !locals.is_empty() {
+    let  dependencies = if let Some(locals) = &self.exports && !locals.is_empty() {
       let mut dep_set = FxHashSet::default();
       let compose_deps = locals.iter().flat_map(|(_, value)| value).filter_map(|name| if let CssClassName::Import { from, .. } = name {
         if dep_set.contains(from.as_ref()) {
@@ -164,11 +169,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
       dependencies
     };
 
-    self.exports = locals;
-
     let new_source = if let Some(source_map) = source_map {
       SourceMapSource::new(SourceMapSourceOptions {
-        value: code,
+        value: source_code,
         name: module_user_request,
         source_map: SourceMap::from_slice(&source_map)
           .map_err(|e| internal_error!(e.to_string()))?,
@@ -180,7 +183,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       })
       .boxed()
     } else {
-      RawSource::from(code).boxed()
+      RawSource::from(source_code).boxed()
     };
 
     Ok(
@@ -190,7 +193,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         ast_or_source: AstOrSource::new(None, Some(new_source)),
         analyze_result: Default::default(),
       }
-      .with_diagnostic(diagnostic),
+      .with_diagnostic(diagnostic_vec),
     )
   }
 
