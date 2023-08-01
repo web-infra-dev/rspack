@@ -1,6 +1,5 @@
 it("should receive a namespace object when importing commonjs", function(done) {
 	import("./cjs").then(function(result) {
-		debugger
 		expect(result).toEqual(nsObj({ named: "named", default: { named: "named", default: "default" } }));
 		done();
 	}).catch(done);
