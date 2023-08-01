@@ -1,6 +1,6 @@
 use rspack_core::{
-  ConstDependency, ContextMode, ContextOptions, DependencyCategory, DependencyTemplate,
-  ModuleDependency, RuntimeGlobals, SpanExt,
+  ConstDependency, ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory,
+  DependencyTemplate, ModuleDependency, RuntimeGlobals, SpanExt,
 };
 use rspack_regex::RspackRegex;
 use swc_core::{
@@ -132,6 +132,7 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
                       exclude: None,
                       category: DependencyCategory::CommonJS,
                       request: context,
+                      namespace_object: ContextNameSpaceObject::Unset
                     },
                     Some(call_expr.span.into()),
                   )));

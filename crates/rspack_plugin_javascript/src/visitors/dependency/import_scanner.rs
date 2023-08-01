@@ -1,6 +1,7 @@
 use once_cell::sync::Lazy;
 use rspack_core::{
-  ChunkGroupOptions, ContextMode, ContextOptions, DependencyCategory, ModuleDependency, SpanExt,
+  BuildMeta, ChunkGroupOptions, ContextMode, ContextNameSpaceObject, ContextOptions,
+  DependencyCategory, ModuleDependency, SpanExt,
 };
 use rspack_regex::RspackRegex;
 use swc_core::{
@@ -18,16 +19,19 @@ use crate::dependency::{ImportContextDependency, ImportDependency};
 pub struct ImportScanner<'a> {
   pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   pub comments: Option<&'a dyn Comments>,
+  pub build_meta: &'a BuildMeta,
 }
 
 impl<'a> ImportScanner<'a> {
   pub fn new(
     dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
     comments: Option<&'a dyn Comments>,
+    build_meta: &'a BuildMeta,
   ) -> Self {
     Self {
       dependencies,
       comments,
+      build_meta,
     }
   }
 
@@ -116,6 +120,11 @@ impl Visit for ImportScanner<'_> {
                       exclude: None,
                       category: DependencyCategory::Esm,
                       request: context,
+                      namespace_object: if self.build_meta.strict_harmony_module {
+                        ContextNameSpaceObject::Strict
+                      } else {
+                        ContextNameSpaceObject::Bool(true)
+                      },
                     },
                     Some(node.span.into()),
                   )));

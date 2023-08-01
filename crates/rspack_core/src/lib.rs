@@ -4,7 +4,8 @@
 #![feature(anonymous_lifetime_in_impl_trait)]
 
 use std::{fmt, sync::Arc};
-
+mod fake_namespace_object;
+pub use fake_namespace_object::*;
 use rspack_database::Database;
 pub mod external_module;
 pub use external_module::*;

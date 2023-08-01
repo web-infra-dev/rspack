@@ -1,8 +1,8 @@
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  Compilation, DependencyId, ExportsType, InitFragment, InitFragmentStage, ModuleGraph,
-  ModuleIdentifier, RuntimeGlobals, TemplateContext,
+  Compilation, DependencyId, ExportsType, FakeNamespaceObjectMode, InitFragment, InitFragmentStage,
+  ModuleGraph, ModuleIdentifier, RuntimeGlobals, TemplateContext,
 };
 
 pub fn export_from_import(
@@ -79,6 +79,20 @@ pub fn get_exports_type(
     .module_graph_module_by_identifier(parent_module)
     .expect("should have mgm")
     .get_strict_harmony_module();
+  module_graph
+    .module_graph_module_by_identifier(module)
+    .expect("should have mgm")
+    .get_exports_type(strict)
+}
+
+pub fn get_exports_type_with_strict(
+  module_graph: &ModuleGraph,
+  id: &DependencyId,
+  strict: bool,
+) -> ExportsType {
+  let module = module_graph
+    .module_identifier_by_dependency_id(id)
+    .expect("should have module");
   module_graph
     .module_graph_module_by_identifier(module)
     .expect("should have mgm")
@@ -189,7 +203,7 @@ pub fn module_namespace_promise(
   } else {
     None
   };
-  let mut fake_type = 16;
+  let mut fake_type = FakeNamespaceObjectMode::PROMISE_LIKE;
   let mut appending;
   match exports_type {
     ExportsType::Namespace => {
@@ -206,10 +220,12 @@ pub fn module_namespace_promise(
     }
     _ => {
       if matches!(exports_type, ExportsType::Dynamic) {
-        fake_type |= 4;
+        fake_type |= FakeNamespaceObjectMode::RETURN_VALUE;
+        // TODO should remove this after implement cjs analyze
+        fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
       }
       if matches!(exports_type, ExportsType::DefaultWithNamed) {
-        fake_type |= 2;
+        fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
       }
       runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
       if compilation.module_graph.is_async(&module.identifier()) {
@@ -231,7 +247,7 @@ pub fn module_namespace_promise(
           .as_str(),
         );
       } else {
-        fake_type |= 1;
+        fake_type |= FakeNamespaceObjectMode::MODULE_ID;
         if let Some(header) = header {
           let expr = format!(
             "{}({module_id_expr}, {fake_type}))",
