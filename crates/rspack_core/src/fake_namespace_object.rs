@@ -9,9 +9,9 @@ bitflags! {
         const RETURN_VALUE = 1 << 2; // return value when already ns object
         const REQUIRE =  1 << 3;
         const PROMISE_LIKE = 1 << 4; // return value when it's Promise-like
-        const NAMESPACE = 1 << 0 | 1 << 3;
-        const DYNAMIC = 1 << 0 | 1 << 1 | 1 << 2;
-        const DEFAULT_WITH_NAMED = 1 << 0 | 1 << 1;
+        const NAMESPACE = Self::MODULE_ID.bits | Self::REQUIRE.bits;
+        const DYNAMIC = Self::MODULE_ID.bits | Self::MERGE_PROPERTIES.bits | Self::RETURN_VALUE.bits;
+        const DEFAULT_WITH_NAMED = Self::MODULE_ID.bits | Self::MERGE_PROPERTIES.bits;
     }
 }
 
