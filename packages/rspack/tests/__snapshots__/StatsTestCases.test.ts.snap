@@ -1114,10 +1114,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e1.js",
-          "size": 392,
+          "size": 412,
         },
       ],
-      "assetsSize": 2850,
+      "assetsSize": 2870,
       "chunks": [
         "e1~runtime",
         "e1",
@@ -1132,10 +1132,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e2.js",
-          "size": 392,
+          "size": 412,
         },
       ],
-      "assetsSize": 2850,
+      "assetsSize": 2870,
       "chunks": [
         "e2~runtime",
         "e2",
@@ -1153,10 +1153,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e1.js",
-          "size": 392,
+          "size": 412,
         },
       ],
-      "assetsSize": 2850,
+      "assetsSize": 2870,
       "chunks": [
         "e1~runtime",
         "e1",
@@ -1171,10 +1171,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e2.js",
-          "size": 392,
+          "size": 412,
         },
       ],
-      "assetsSize": 2850,
+      "assetsSize": 2870,
       "chunks": [
         "e2~runtime",
         "e2",
@@ -1186,8 +1186,8 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk 2`] = `
-"Entrypoint e1 2.78 KiB = e1~runtime.js 2.4 KiB e1.js 392 bytes
-Entrypoint e2 2.78 KiB = e2~runtime.js 2.4 KiB e2.js 392 bytes
+"Entrypoint e1 2.8 KiB = e1~runtime.js 2.4 KiB e1.js 412 bytes
+Entrypoint e2 2.8 KiB = e2~runtime.js 2.4 KiB e2.js 412 bytes
 chunk {e1} e1.js (e1) [entry]
 chunk {e1~runtime} e1~runtime.js (e1~runtime) [initial]
 chunk {e2} e2.js (e2) [entry]
@@ -1263,10 +1263,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e1.js",
-          "size": 386,
+          "size": 406,
         },
       ],
-      "assetsSize": 2844,
+      "assetsSize": 2864,
       "chunks": [
         "runtime~e1",
         "e1",
@@ -1281,10 +1281,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e2.js",
-          "size": 386,
+          "size": 406,
         },
       ],
-      "assetsSize": 2844,
+      "assetsSize": 2864,
       "chunks": [
         "runtime~e2",
         "e2",
@@ -1302,10 +1302,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e1.js",
-          "size": 386,
+          "size": 406,
         },
       ],
-      "assetsSize": 2844,
+      "assetsSize": 2864,
       "chunks": [
         "runtime~e1",
         "e1",
@@ -1320,10 +1320,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e2.js",
-          "size": 386,
+          "size": 406,
         },
       ],
-      "assetsSize": 2844,
+      "assetsSize": 2864,
       "chunks": [
         "runtime~e2",
         "e2",
@@ -1335,8 +1335,8 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-multiple 2`] = `
-"Entrypoint e1 2.78 KiB = runtime~e1.js 2.4 KiB e1.js 386 bytes
-Entrypoint e2 2.78 KiB = runtime~e2.js 2.4 KiB e2.js 386 bytes
+"Entrypoint e1 2.8 KiB = runtime~e1.js 2.4 KiB e1.js 406 bytes
+Entrypoint e2 2.8 KiB = runtime~e2.js 2.4 KiB e2.js 406 bytes
 chunk {e1} e1.js (e1) [entry]
 chunk {e2} e2.js (e2) [entry]
 chunk {runtime~e1} runtime~e1.js (runtime~e1) [initial]
@@ -1398,10 +1398,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e1.js",
-          "size": 389,
+          "size": 409,
         },
       ],
-      "assetsSize": 2844,
+      "assetsSize": 2864,
       "chunks": [
         "runtime",
         "e1",
@@ -1416,10 +1416,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e2.js",
-          "size": 389,
+          "size": 409,
         },
       ],
-      "assetsSize": 2844,
+      "assetsSize": 2864,
       "chunks": [
         "runtime",
         "e2",
@@ -1437,10 +1437,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e1.js",
-          "size": 389,
+          "size": 409,
         },
       ],
-      "assetsSize": 2844,
+      "assetsSize": 2864,
       "chunks": [
         "runtime",
         "e1",
@@ -1455,10 +1455,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e2.js",
-          "size": 389,
+          "size": 409,
         },
       ],
-      "assetsSize": 2844,
+      "assetsSize": 2864,
       "chunks": [
         "runtime",
         "e2",
@@ -1470,8 +1470,8 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-single 2`] = `
-"Entrypoint e1 2.78 KiB = runtime.js 2.4 KiB e1.js 389 bytes
-Entrypoint e2 2.78 KiB = runtime.js 2.4 KiB e2.js 389 bytes
+"Entrypoint e1 2.8 KiB = runtime.js 2.4 KiB e1.js 409 bytes
+Entrypoint e2 2.8 KiB = runtime.js 2.4 KiB e2.js 409 bytes
 chunk {e1} e1.js (e1) [entry]
 chunk {e2} e2.js (e2) [entry]
 chunk {runtime} runtime.js (runtime) [initial]"
@@ -1546,10 +1546,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e1.js",
-          "size": 386,
+          "size": 406,
         },
       ],
-      "assetsSize": 2844,
+      "assetsSize": 2864,
       "chunks": [
         "runtime~e1",
         "e1",
@@ -1564,10 +1564,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e2.js",
-          "size": 386,
+          "size": 406,
         },
       ],
-      "assetsSize": 2844,
+      "assetsSize": 2864,
       "chunks": [
         "runtime~e2",
         "e2",
@@ -1585,10 +1585,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e1.js",
-          "size": 386,
+          "size": 406,
         },
       ],
-      "assetsSize": 2844,
+      "assetsSize": 2864,
       "chunks": [
         "runtime~e1",
         "e1",
@@ -1603,10 +1603,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e2.js",
-          "size": 386,
+          "size": 406,
         },
       ],
-      "assetsSize": 2844,
+      "assetsSize": 2864,
       "chunks": [
         "runtime~e2",
         "e2",
@@ -1618,8 +1618,8 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-true 2`] = `
-"Entrypoint e1 2.78 KiB = runtime~e1.js 2.4 KiB e1.js 386 bytes
-Entrypoint e2 2.78 KiB = runtime~e2.js 2.4 KiB e2.js 386 bytes
+"Entrypoint e1 2.8 KiB = runtime~e1.js 2.4 KiB e1.js 406 bytes
+Entrypoint e2 2.8 KiB = runtime~e2.js 2.4 KiB e2.js 406 bytes
 chunk {e1} e1.js (e1) [entry]
 chunk {e2} e2.js (e2) [entry]
 chunk {runtime~e1} runtime~e1.js (runtime~e1) [initial]

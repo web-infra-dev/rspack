@@ -246,3 +246,11 @@ pub fn stringify_array(vec: &[String]) -> String {
     })
   )
 }
+
+pub fn render_iife(content: BoxSource) -> BoxSource {
+  let mut sources = ConcatSource::default();
+  sources.add(RawSource::from("(function() {\n"));
+  sources.add(content);
+  sources.add(RawSource::from("\n})()\n"));
+  sources.boxed()
+}
