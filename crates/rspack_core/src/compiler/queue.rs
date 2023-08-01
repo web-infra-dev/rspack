@@ -77,6 +77,7 @@ impl WorkerTask for FactorizeTask {
           .await?
           .split_into_parts()
       }
+      // DependencyType::ExportInfoApi => {}
       _ => {
         let factory = NormalModuleFactory::new(
           NormalModuleFactoryContext {

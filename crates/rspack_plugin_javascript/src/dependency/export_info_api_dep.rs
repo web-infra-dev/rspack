@@ -3,40 +3,41 @@ use rspack_core::{
   DependencyType, ErrorSpan, ExportsReferencedType, ModuleDependency, ModuleGraph, RuntimeGlobals,
   RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
+use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
-pub struct ConstDependency {
+pub struct ExportInfoApiDependency {
   start: u32,
   end: u32,
   id: DependencyId,
-  span: Option<ErrorSpan>,
-  expression: String,
+  export_name: Vec<JsWord>,
+  property: JsWord,
   // TODO: runtime_requirements
 }
 
-impl ConstDependency {
-  pub fn new(start: u32, end: u32, expression: String, span: Option<ErrorSpan>) -> Self {
+impl ExportInfoApiDependency {
+  pub fn new(start: u32, end: u32, export_name: Vec<JsWord>, property: JsWord) -> Self {
     Self {
       start,
       end,
       id: DependencyId::new(),
-      expression,
-      span,
+      export_name,
+      property,
     }
   }
 }
 
-impl Dependency for ConstDependency {
+impl Dependency for ExportInfoApiDependency {
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Unknown
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::Const
+    &DependencyType::ExportInfoApi
   }
 }
 
-impl ModuleDependency for ConstDependency {
+impl ModuleDependency for ExportInfoApiDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -50,7 +51,7 @@ impl ModuleDependency for ConstDependency {
   }
 
   fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
+    None
   }
 
   fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
@@ -68,19 +69,12 @@ impl ModuleDependency for ConstDependency {
   }
 }
 
-impl DependencyTemplate for ConstDependency {
+impl DependencyTemplate for ExportInfoApiDependency {
   fn apply(
     &self,
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    // TODO: insert runtime_requirements
-    let TemplateContext {
-      compilation,
-      runtime_requirements,
-      ..
-    } = code_generatable_context;
-
-    source.replace(self.start, self.end, self.expression.as_str(), None);
+    let TemplateContext { compilation, .. } = code_generatable_context;
   }
 }

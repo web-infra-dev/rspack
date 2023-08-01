@@ -40,6 +40,7 @@ pub enum DependencyType {
   #[default]
   Unknown,
   Const,
+  ExportInfoApi,
   Entry,
   // Harmony import
   EsmImport,
@@ -116,6 +117,7 @@ impl Display for DependencyType {
       DependencyType::StaticExports => write!(f, "static exports"),
       DependencyType::Custom(ty) => write!(f, "custom {ty}"),
       DependencyType::Const => write!(f, "const"),
+      DependencyType::ExportInfoApi => write!(f, "export info api"),
     }
   }
 }

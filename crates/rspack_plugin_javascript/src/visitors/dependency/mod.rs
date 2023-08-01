@@ -4,6 +4,7 @@ mod common_js_import_dependency_scanner;
 mod common_js_scanner;
 mod compatibility_scanner;
 mod context_helper;
+mod export_info_api_scanner;
 mod harmony_detection_scanner;
 mod harmony_export_dependency_scanner;
 mod harmony_import_dependency_scanner;
@@ -26,6 +27,7 @@ use self::{
   api_scanner::ApiScanner, common_js_export_scanner::CommonJsExportDependencyScanner,
   common_js_import_dependency_scanner::CommonJsImportDependencyScanner,
   common_js_scanner::CommonJsScanner, compatibility_scanner::CompatibilityScanner,
+  export_info_api_scanner::ExportInfoApiScanner,
   harmony_detection_scanner::HarmonyDetectionScanner,
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
@@ -65,6 +67,10 @@ pub fn scan_dependencies(
   program.visit_with(&mut CompatibilityScanner::new(
     &mut presentational_dependencies,
     &unresolved_ctxt,
+  ));
+  program.visit_with(&mut ExportInfoApiScanner::new(
+    &mut dependencies,
+    unresolved_ctxt,
   ));
 
   // TODO it should enable at js/auto or js/dynamic, but builtins provider will inject require at esm
