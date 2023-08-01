@@ -369,6 +369,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
               .hash(contenthash)
               .filename(&source_file_name),
           );
+
           let asset_path = if let Some(public_path) = generate_context
             .module_generator_options
             .and_then(|x| x.asset_public_path(module_type))
