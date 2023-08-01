@@ -143,7 +143,7 @@ pub fn scan_dependencies(
   program.visit_with(&mut ImportScanner::new(
     &mut dependencies,
     comments.as_ref().map(|c| c as &dyn Comments),
-    &build_meta,
+    build_meta,
   ));
 
   if compiler_options.dev_server.hot {
