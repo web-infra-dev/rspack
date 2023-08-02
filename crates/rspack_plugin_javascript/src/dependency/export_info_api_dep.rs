@@ -1,7 +1,7 @@
 use rspack_core::{
   ChunkGroupOptions, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
   DependencyType, ErrorSpan, ExportsReferencedType, ModuleDependency, ModuleGraph, RuntimeGlobals,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -78,3 +78,7 @@ impl DependencyTemplate for ExportInfoApiDependency {
     let TemplateContext { compilation, .. } = code_generatable_context;
   }
 }
+
+// impl ExportInfoApiDependency {
+//   fn get_property(&self, export_name: Vec<JsWord>, prop: JsWord) -> Option<UsageState> {}
+// }
