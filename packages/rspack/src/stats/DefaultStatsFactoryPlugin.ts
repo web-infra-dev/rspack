@@ -12,6 +12,7 @@ import { makePathsRelative } from "../util/identifier";
 import type { Compiler } from "../compiler";
 import type { StatsOptions } from "../config";
 import type { GroupConfig } from "../util/smartGrouping";
+import type * as binding from "@rspack/binding";
 
 import type { StatsFactory, KnownStatsFactoryContext } from "./StatsFactory";
 import {
@@ -31,6 +32,7 @@ import type {
 	StatsChunk,
 	NormalizedStatsOptions
 } from "./statsFactoryUtils";
+import { LogType } from "../logging/Logger";
 
 const compareIds = _compareIds as <T>(a: T, b: T) => -1 | 0 | 1;
 const GROUP_EXTENSION_REGEXP = /(\.[^.]+?)(?:\?|(?: \+ \d+ modules?)?$)/;
@@ -360,7 +362,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object,
 			compilation,
 			context: KnownStatsFactoryContext,
-			_options: StatsOptions
+			options: StatsOptions
 		) => {
 			if (!context.makePathsRelative) {
 				context.makePathsRelative = makePathsRelative.bindContextCache(
@@ -382,7 +384,84 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				object.name = compilation.name;
 			}
 			// TODO: support compilation.needAdditionalPass
-			// TODO: support compilation.logging
+			const { logging } = options;
+			if (logging) {
+				let acceptedTypes: Set<string>;
+				let collapsedGroups = false;
+				switch (logging) {
+					default:
+						acceptedTypes = new Set();
+						break;
+					case "error":
+						acceptedTypes = new Set([LogType.error]);
+						break;
+					case "warn":
+						acceptedTypes = new Set([LogType.error, LogType.warn]);
+						break;
+					case "info":
+						acceptedTypes = new Set([
+							LogType.error,
+							LogType.warn,
+							LogType.info
+						]);
+						break;
+					case "log":
+					case true:
+						acceptedTypes = new Set([
+							LogType.error,
+							LogType.warn,
+							LogType.info,
+							LogType.log,
+							LogType.group,
+							LogType.groupEnd,
+							LogType.groupCollapsed,
+							LogType.clear
+						]);
+						break;
+					case "verbose":
+						acceptedTypes = new Set([
+							LogType.error,
+							LogType.warn,
+							LogType.info,
+							LogType.log,
+							LogType.group,
+							LogType.groupEnd,
+							LogType.groupCollapsed,
+							LogType.profile,
+							LogType.profileEnd,
+							LogType.time,
+							LogType.status,
+							LogType.clear
+						]);
+						collapsedGroups = true;
+						break;
+				}
+				object.logging = {};
+				const compilationLogging: Map<
+					string,
+					Omit<binding.JsStatsLogging, "name">[]
+				> = new Map();
+				for (const { name, ...rest } of context._inner.getLogging()) {
+					const entry = compilationLogging.get(name);
+					if (entry) {
+						entry.push(rest);
+					} else {
+						compilationLogging.set(name, [rest]);
+					}
+				}
+				for (const [origin, logEntries] of compilationLogging) {
+					object.logging[origin] = {
+						entries: logEntries
+							.filter(logEntry => acceptedTypes.has(logEntry.type))
+							.map(logEntry => ({
+								type: logEntry.type,
+								message: logEntry.args
+							})),
+						filteredEntries: 0,
+						debug: false
+					};
+				}
+			}
 		},
 		hash: (object, _compilation, context: KnownStatsFactoryContext) => {
 			object.hash = context._inner.getHash();

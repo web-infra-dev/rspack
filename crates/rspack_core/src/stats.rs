@@ -8,7 +8,7 @@ use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  BoxModule, Chunk, ChunkGroupUkey, Compilation, ModuleIdentifier, ModuleType, SourceType,
+  BoxModule, Chunk, ChunkGroupUkey, Compilation, LogType, ModuleIdentifier, ModuleType, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -299,6 +299,10 @@ impl Stats<'_> {
         formatted: diagnostic_displayer.emit_diagnostic(d).expect("TODO:"),
       })
       .collect()
+  }
+
+  pub fn get_logging(&self) -> Vec<(String, LogType)> {
+    self.compilation.get_logging()
   }
 
   pub fn get_hash(&self) -> Option<&str> {

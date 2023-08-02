@@ -35,12 +35,12 @@ use crate::{
   BoxModuleDependency, BuildQueue, BuildTask, BuildTaskResult, Chunk, ChunkByUkey,
   ChunkContentHash, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey,
   CleanQueue, CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults,
-  CompilerOptions, ContentHashArgs, DependencyId, Entry, EntryData, EntryOptions, Entrypoint,
-  FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Module, ModuleGraph,
-  ModuleIdentifier, ModuleType, PathData, ProcessAssetsArgs, ProcessDependenciesQueue,
-  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory,
-  RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult,
-  WorkerTask,
+  CompilationLogger, CompilerOptions, ContentHashArgs, DependencyId, Entry, EntryData,
+  EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, LogType,
+  Logger, MessageCollector, Module, ModuleGraph, ModuleIdentifier, ModuleType, PathData,
+  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
+  RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec,
+  SharedPluginDriver, SourceType, Stats, TaskResult, WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
@@ -73,6 +73,7 @@ pub struct Compilation {
   assets: CompilationAssets,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: IndexSet<Diagnostic, BuildHasherDefault<FxHasher>>,
+  logging: MessageCollector<(String, LogType)>,
   pub plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
   pub named_chunks: HashMap<String, ChunkUkey>,
@@ -129,6 +130,7 @@ impl Compilation {
       assets: Default::default(),
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
+      logging: Default::default(),
       plugin_driver,
       resolver_factory,
       named_chunks: Default::default(),
@@ -290,6 +292,10 @@ impl Compilation {
       .filter(|d| matches!(d.severity, Severity::Warn))
   }
 
+  pub fn get_logging(&self) -> Vec<(String, LogType)> {
+    self.logging.iter().collect()
+  }
+
   pub fn get_stats(&self) -> Stats {
     Stats::new(self)
   }
@@ -322,6 +328,8 @@ impl Compilation {
 
   #[instrument(name = "compilation:make", skip_all)]
   pub async fn make(&mut self, mut param: MakeParam) -> Result<()> {
+    let logger = self.get_logger("rspack.Compiler");
+    let start = logger.time("make hook");
     if let Some(e) = self
       .plugin_driver
       .clone()
@@ -331,6 +339,7 @@ impl Compilation {
     {
       self.push_batch_diagnostic(e.into());
     }
+    logger.time_end(start);
     let make_failed_module =
       MakeParam::ForceBuildModules(std::mem::take(&mut self.make_failed_module));
     let make_failed_dependencies =
@@ -363,6 +372,7 @@ impl Compilation {
   }
 
   async fn update_module_graph(&mut self, params: Vec<MakeParam>) -> Result<()> {
+    let logger = self.get_logger("rspack.Compiler");
     let deps_builder = RebuildDepsBuilder::new(params, &self.module_graph);
     let mut origin_module_deps = HashMap::default();
 
@@ -438,7 +448,12 @@ impl Compilation {
         );
       });
 
+    let mut add_time = logger.time_aggregate("module add task");
+    let mut process_deps_time = logger.time_aggregate("module process dependencies task");
+    let mut factorize_time = logger.time_aggregate("module factorize task");
+    let mut build_time = logger.time_aggregate("module build task");
     tokio::task::block_in_place(|| loop {
+      let start = factorize_time.start();
       while let Some(task) = factorize_queue.get_task() {
         tokio::spawn({
           let result_tx = result_tx.clone();
@@ -468,7 +483,9 @@ impl Compilation {
           }
         });
       }
+      factorize_time.end(start);
 
+      let start = build_time.start();
       while let Some(task) = build_queue.get_task() {
         tokio::spawn({
           let result_tx = result_tx.clone();
@@ -496,13 +513,17 @@ impl Compilation {
           }
         });
       }
+      build_time.end(start);
 
+      let start = add_time.start();
       while let Some(task) = add_queue.get_task() {
         active_task_count += 1;
         let result = task.run(self);
         result_tx.send(result).expect("Failed to send add result");
       }
+      add_time.end(start);
 
+      let start = process_deps_time.start();
       while let Some(task) = process_dependencies_queue.get_task() {
         active_task_count += 1;
 
@@ -556,6 +577,7 @@ impl Compilation {
           )))
           .expect("Failed to send process dependencies result");
       }
+      process_deps_time.end(start);
 
       match result_rx.try_recv() {
         Ok(item) => {
@@ -701,6 +723,10 @@ impl Compilation {
         }
       }
     });
+    logger.time_aggregate_end(add_time);
+    logger.time_aggregate_end(process_deps_time);
+    logger.time_aggregate_end(factorize_time);
+    logger.time_aggregate_end(build_time);
 
     // TODO @jerrykingxyz make update_module_graph a pure function
     self
@@ -977,7 +1003,11 @@ impl Compilation {
   pub async fn optimize_dependency(
     &mut self,
   ) -> Result<TWithDiagnosticArray<OptimizeDependencyResult>> {
-    optimizer::CodeSizeOptimizer::new(self).run().await
+    let logger = self.get_logger("rspack.Compilation");
+    let start = logger.time("optimize dependencies");
+    let result = optimizer::CodeSizeOptimizer::new(self).run().await;
+    logger.time_end(start);
+    result
   }
 
   pub async fn done(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
@@ -1000,12 +1030,17 @@ impl Compilation {
 
   #[instrument(name = "compilation:finish", skip_all)]
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    let logger = self.get_logger("rspack.Compilation");
+    let start = logger.time("finish modules");
     plugin_driver.finish_modules(self).await?;
+    logger.time_end(start);
     Ok(())
   }
 
   #[instrument(name = "compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    let logger = self.get_logger("rspack.Compilation");
+    let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;
       plugin_driver.optimize_modules(compilation).await?;
@@ -1013,22 +1048,42 @@ impl Compilation {
       Ok(compilation)
     })
     .await?;
+    logger.time_end(start);
+
+    let start = logger.time("optimize");
     plugin_driver.optimize_chunk_modules(self).await?;
+    logger.time_end(start);
 
+    let start = logger.time("module ids");
     plugin_driver.module_ids(self)?;
+    logger.time_end(start);
+
+    let start = logger.time("chunk ids");
     plugin_driver.chunk_ids(self)?;
+    logger.time_end(start);
 
+    let start = logger.time("code generation");
     self.code_generation().await?;
+    logger.time_end(start);
 
+    let start = logger.time("runtime requirements");
     self
       .process_runtime_requirements(plugin_driver.clone())
       .await?;
+    logger.time_end(start);
 
+    let start = logger.time("hashing");
     self.create_hash(plugin_driver.clone()).await?;
+    logger.time_end(start);
 
+    let start = logger.time("create chunk assets");
     self.create_chunk_assets(plugin_driver.clone()).await;
+    logger.time_end(start);
 
+    let start = logger.time("process assets");
     self.process_assets(plugin_driver).await?;
+    logger.time_end(start);
+
     Ok(())
   }
 
@@ -1055,6 +1110,8 @@ impl Compilation {
     &mut self,
     plugin_driver: SharedPluginDriver,
   ) -> Result<()> {
+    let logger = self.get_logger("rspack.Compilation");
+    let start = logger.time("runtime requirements.modules");
     let mut module_runtime_requirements = self
       .module_graph
       .modules()
@@ -1091,8 +1148,9 @@ impl Compilation {
         )
       }
     }
-    tracing::trace!("runtime requirements.modules");
+    logger.time_end(start);
 
+    let start = logger.time("runtime requirements.chunks");
     let mut chunk_requirements = HashMap::default();
     for (chunk_ukey, chunk) in self.chunk_by_ukey.iter() {
       let mut set = RuntimeGlobals::default();
@@ -1122,8 +1180,9 @@ impl Compilation {
         .chunk_graph
         .add_chunk_runtime_requirements(chunk_ukey, std::mem::take(set));
     }
-    tracing::trace!("runtime requirements.chunks");
+    logger.time_end(start);
 
+    let start = logger.time("runtime requirements.entries");
     for entry_ukey in self.get_chunk_graph_entries().iter() {
       let entry = self
         .chunk_by_ukey
@@ -1158,12 +1217,13 @@ impl Compilation {
         .chunk_graph
         .add_tree_runtime_requirements(entry_ukey, set);
     }
-    tracing::trace!("runtime requirements.entries");
+    logger.time_end(start);
     Ok(())
   }
 
   #[instrument(name = "compilation:create_hash", skip_all)]
   pub async fn create_hash(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    let logger = self.get_logger("rspack.Compilation");
     let mut compilation_hasher = RspackHash::from(&self.options.output);
     let runtime_chunk_ukeys = self.get_chunk_graph_entries();
 
@@ -1186,6 +1246,7 @@ impl Compilation {
       Ok(())
     }
 
+    let start = logger.time("hashing: hash chunks");
     let other_chunk_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
       self
         .chunk_by_ukey
@@ -1199,8 +1260,10 @@ impl Compilation {
         .into_inner();
 
     try_process_chunk_hash_results(self, other_chunk_hash_results)?;
+    logger.time_end(start);
 
     // runtime chunks should be hashed after all other chunks
+    let start = logger.time("hashing: hash runtime chunks");
     self.create_runtime_module_hash();
 
     let runtime_chunk_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
@@ -1213,6 +1276,7 @@ impl Compilation {
         .collect::<FuturesResults<_>>()
         .into_inner();
     try_process_chunk_hash_results(self, runtime_chunk_hash_results)?;
+    logger.time_end(start);
 
     self
       .chunk_by_ukey
@@ -1226,6 +1290,7 @@ impl Compilation {
     self.hash = Some(compilation_hasher.digest(&self.options.output.hash_digest));
 
     // here omit re-create full hash runtime module hash, only update compilation hash to runtime chunk content hash
+    let start = logger.time("hashing: process full hash chunks");
     self.chunk_by_ukey.values_mut().for_each(|chunk| {
       if runtime_chunk_ukeys.contains(&chunk.ukey) {
         if let Some(chunk_hash) = &mut chunk.hash {
@@ -1247,6 +1312,7 @@ impl Compilation {
         }
       }
     });
+    logger.time_end(start);
     Ok(())
   }
 
@@ -1382,6 +1448,16 @@ impl Compilation {
     let mut info = AssetInfo::default();
     let path = filename.render(data, Some(&mut info));
     (path, info)
+  }
+
+  pub fn get_logger(&self, name: impl Into<String>) -> CompilationLogger {
+    CompilationLogger::new(
+      name.into(),
+      self
+        .logging
+        .sender()
+        .expect("Compilation::get_logger should use before MessageCollector start collect"),
+    )
   }
 }
 
