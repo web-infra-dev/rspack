@@ -72,7 +72,7 @@ impl ModuleDependency for ImportDependency {
   }
 
   fn set_request(&mut self, request: JsWord) {
-    self.request = request.into();
+    self.request = request;
   }
 }
 

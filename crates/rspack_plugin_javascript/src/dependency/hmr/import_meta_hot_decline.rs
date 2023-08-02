@@ -62,7 +62,7 @@ impl ModuleDependency for ImportMetaHotDeclineDependency {
   }
 
   fn set_request(&mut self, request: JsWord) {
-    self.request = request.into();
+    self.request = request;
   }
 }
 

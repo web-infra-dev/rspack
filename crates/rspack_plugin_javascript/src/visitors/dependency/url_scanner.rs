@@ -39,7 +39,7 @@ impl Visit for UrlScanner<'_> {
       self.dependencies.push(Box::new(URLDependency::new(
         start,
         end,
-        request.into(),
+        request,
         Some(new_expr.span.into()),
       )));
     } else {

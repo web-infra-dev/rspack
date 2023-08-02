@@ -61,7 +61,7 @@ impl ModuleDependency for URLDependency {
   }
 
   fn set_request(&mut self, request: JsWord) {
-    self.request = request.into();
+    self.request = request;
   }
 
   fn get_condition(&self, module_graph: &ModuleGraph) -> DependencyCondition {

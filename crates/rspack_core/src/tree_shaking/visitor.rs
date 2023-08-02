@@ -712,7 +712,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       new_expr.callee.visit_with(self);
       if let Some(ExprOrSpread {  expr: box Expr::New(new_expr) , .. }) = args.get(0)  {
         if let Some((_, _, request)) = crate::needs_refactor::match_new_url(new_expr) {
-          let src = Part::Worker(request.into());
+          let src = Part::Worker(request);
           match self.current_body_owner_symbol_ext {
             Some(ref body_owner_symbol_ext) => {
               self.add_reference(body_owner_symbol_ext.clone(), src, false);
@@ -731,7 +731,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       }
     }
     if let Some((_, _, request)) = crate::needs_refactor::match_new_url(new_expr) {
-      let src = Part::Url(request.into());
+      let src = Part::Url(request);
       match self.current_body_owner_symbol_ext {
         Some(ref body_owner_symbol_ext) => {
           self.add_reference(body_owner_symbol_ext.clone(), src, false);

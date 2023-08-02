@@ -504,7 +504,7 @@ impl TestConfig {
         plugins.push(
           rspack_plugin_entry::EntryPlugin::new(
             name.clone(),
-            request.to_owned(),
+            request.to_owned().into(),
             rspack_core::EntryOptions {
               runtime: Some("runtime".to_string()),
               chunk_loading: None,

@@ -70,7 +70,7 @@ impl ModuleDependency for CommonJsRequireDependency {
   }
 
   fn set_request(&mut self, request: JsWord) {
-    self.request = request.into();
+    self.request = request;
   }
 }
 
