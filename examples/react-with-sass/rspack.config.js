@@ -4,9 +4,6 @@ const config = {
 	entry: {
 		main: ["./src/index.jsx"]
 	},
-	output: {
-		publicPath: "http://localhost:3000"
-	},
 	module: {
 		rules: [
 			{
@@ -17,7 +14,11 @@ const config = {
 		]
 	},
 	builtins: {
-		html: [{}]
+		html: [
+			{
+				template: "index.html"
+			}
+		]
 	}
 };
 module.exports = config;
