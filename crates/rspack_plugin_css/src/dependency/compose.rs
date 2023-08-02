@@ -1,16 +1,17 @@
 use rspack_core::{
   Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
 };
+use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
 pub struct CssComposeDependency {
   id: DependencyId,
-  request: String,
+  request: JsWord,
   span: Option<ErrorSpan>,
 }
 
 impl CssComposeDependency {
-  pub fn new(request: String, span: Option<ErrorSpan>) -> Self {
+  pub fn new(request: JsWord, span: Option<ErrorSpan>) -> Self {
     Self {
       id: DependencyId::new(),
       request,
@@ -34,7 +35,7 @@ impl ModuleDependency for CssComposeDependency {
     &self.id
   }
 
-  fn request(&self) -> &str {
+  fn request(&self) -> &JsWord {
     &self.request
   }
 
@@ -46,7 +47,7 @@ impl ModuleDependency for CssComposeDependency {
     self.span.as_ref()
   }
 
-  fn set_request(&mut self, request: String) {
+  fn set_request(&mut self, request: JsWord) {
     self.request = request;
   }
 }

@@ -15,6 +15,7 @@ use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
+use swc_core::ecma::atoms::JsWord;
 
 use crate::{
   contextify, get_exports_type_with_strict, stringify_map, BoxModuleDependency, BuildContext,
@@ -69,7 +70,7 @@ pub struct ContextOptions {
   pub include: Option<String>,
   pub exclude: Option<String>,
   pub category: DependencyCategory,
-  pub request: String,
+  pub request: JsWord,
   pub namespace_object: ContextNameSpaceObject,
 }
 
@@ -606,7 +607,8 @@ impl ContextModule {
                     r.request,
                     options.resource_query.clone().unwrap_or_default(),
                     options.resource_fragment.clone().unwrap_or_default()
-                  ),
+                  )
+                  .into(),
                   user_request: r.request.to_string(),
                   category: options.context_options.category,
                   context: options.resource.clone().into(),

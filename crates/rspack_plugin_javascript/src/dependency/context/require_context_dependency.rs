@@ -3,6 +3,7 @@ use rspack_core::{
   DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
   ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
+use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
 pub struct RequireContextDependency {
@@ -43,7 +44,7 @@ impl ModuleDependency for RequireContextDependency {
     &self.id
   }
 
-  fn request(&self) -> &str {
+  fn request(&self) -> &JsWord {
     &self.options.request
   }
 
@@ -63,7 +64,7 @@ impl ModuleDependency for RequireContextDependency {
     Some(self)
   }
 
-  fn set_request(&mut self, request: String) {
+  fn set_request(&mut self, request: JsWord) {
     self.options.request = request;
   }
 

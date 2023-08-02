@@ -650,7 +650,7 @@ impl Compilation {
               for dependency in build_result.dependencies.iter() {
                 self
                   .module_graph
-                  .set_dependency_import_var(module.identifier(), dependency.request());
+                  .set_dependency_import_var(module.identifier(), dependency.request().clone());
                 dep_ids.push(*dependency.id());
               }
 

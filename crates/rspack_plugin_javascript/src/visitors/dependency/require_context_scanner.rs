@@ -73,7 +73,7 @@ impl Visit for RequireContextScanner<'_> {
               include: None,
               exclude: None,
               category: DependencyCategory::CommonJS,
-              request: str.value.to_string(),
+              request: str.value.clone(),
               namespace_object: ContextNameSpaceObject::Unset,
             },
             Some(node.span.into()),

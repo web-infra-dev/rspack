@@ -1,19 +1,19 @@
 #![feature(let_chains)]
-
 use rspack_core::{
   Compilation, EntryDependency, EntryOptions, MakeParam, ModuleDependency, Plugin, PluginContext,
   PluginMakeHookOutput,
 };
+use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug)]
 pub struct EntryPlugin {
   name: String,
   options: EntryOptions,
-  entry_request: String,
+  entry_request: JsWord,
 }
 
 impl EntryPlugin {
-  pub fn new(name: String, entry_request: String, options: EntryOptions) -> Self {
+  pub fn new(name: String, entry_request: JsWord, options: EntryOptions) -> Self {
     Self {
       name,
       options,

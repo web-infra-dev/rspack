@@ -180,7 +180,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                   .expect("should be wasm import dependency");
 
                 let dep_name = serde_json::to_string(dep.name()).expect("should be ok.");
-                let request = dep.request();
+                let request = dep.request().as_ref();
                 let val = (mgm.module_identifier, dep_name);
                 if let Some(deps) = &mut wasm_deps_by_request.get_mut(&request) {
                   deps.value_mut().push(val);

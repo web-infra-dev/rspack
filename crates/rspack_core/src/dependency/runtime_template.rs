@@ -137,7 +137,7 @@ pub fn module_id(
 pub fn import_statement(
   code_generatable_context: &mut TemplateContext,
   id: &DependencyId,
-  request: &str,
+  request: &JsWord,
   update: bool, // whether a new variable should be created or the existing one updated
 ) -> (String, String) {
   let TemplateContext {

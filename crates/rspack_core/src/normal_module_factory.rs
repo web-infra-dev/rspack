@@ -96,7 +96,9 @@ impl NormalModuleFactory {
     }
 
     data.context = before_resolve_args.context.into();
-    data.dependency.set_request(before_resolve_args.request);
+    data
+      .dependency
+      .set_request(before_resolve_args.request.into());
     Ok(None)
   }
 
@@ -139,7 +141,7 @@ impl NormalModuleFactory {
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
     let importer = self.context.original_module_identifier.as_ref();
-    let mut request_without_match_resource = data.dependency.request();
+    let mut request_without_match_resource = data.dependency.request().as_ref();
 
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
@@ -463,7 +465,7 @@ impl NormalModuleFactory {
     let normal_module = NormalModule::new(
       request,
       user_request,
-      data.dependency.request().to_owned(),
+      data.dependency.request().clone(),
       resolved_module_type,
       resolved_parser_and_generator,
       resolved_parser_options,

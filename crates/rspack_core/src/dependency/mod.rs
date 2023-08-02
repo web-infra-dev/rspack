@@ -15,6 +15,7 @@ pub use runtime_requirements_dependency::RuntimeRequirementsDependency;
 mod context_element_dependency;
 mod dependency_macro;
 pub use context_element_dependency::*;
+use swc_core::ecma::atoms::JsWord;
 mod const_dependency;
 use std::{
   any::Any,
@@ -214,13 +215,13 @@ pub enum DependencyCondition {
 
 pub trait ModuleDependency: Dependency {
   fn id(&self) -> &DependencyId;
-  fn request(&self) -> &str;
+  fn request(&self) -> &JsWord;
   fn user_request(&self) -> &str;
   fn span(&self) -> Option<&ErrorSpan>;
   fn weak(&self) -> bool {
     false
   }
-  fn set_request(&mut self, request: String);
+  fn set_request(&mut self, request: JsWord);
 
   // TODO should split to `ModuleDependency` and `ContextDependency`
   fn options(&self) -> Option<&ContextOptions> {
@@ -262,7 +263,7 @@ impl ModuleDependency for Box<dyn ModuleDependency> {
     (**self).id()
   }
 
-  fn request(&self) -> &str {
+  fn request(&self) -> &JsWord {
     (**self).request()
   }
 
@@ -290,7 +291,7 @@ impl ModuleDependency for Box<dyn ModuleDependency> {
     (**self).group_options()
   }
 
-  fn set_request(&mut self, request: String) {
+  fn set_request(&mut self, request: JsWord) {
     (**self).set_request(request);
   }
 
@@ -392,7 +393,7 @@ pub mod needs_refactor {
 
   use crate::SpanExt;
 
-  pub fn match_new_url(new_expr: &NewExpr) -> Option<(u32, u32, String)> {
+  pub fn match_new_url(new_expr: &NewExpr) -> Option<(u32, u32, JsWord)> {
     fn is_import_meta_url(expr: &Expr) -> bool {
       static IMPORT_META: Lazy<Expr> = Lazy::new(|| {
         Expr::Member(MemberExpr {
@@ -418,7 +419,7 @@ pub mod needs_refactor {
       ExprOrSpread { spread: None, expr: box Expr::Lit(Lit::Str(path)) },
       ExprOrSpread { spread: None, expr: box expr },
     ) = (first, second) && is_import_meta_url(expr) {
-      return Some((path.span.real_lo(), expr.span().real_hi(), path.value.to_string()))
+      return Some((path.span.real_lo(), expr.span().real_hi(), path.value.clone()))
     }
     None
   }

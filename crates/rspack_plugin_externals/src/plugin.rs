@@ -63,7 +63,7 @@ impl ExternalPlugin {
     Some(ExternalModule::new(
       external_module_config,
       external_module_type,
-      dependency.request().to_owned(),
+      dependency.request().clone(),
     ))
   }
 }
@@ -87,7 +87,7 @@ impl Plugin for ExternalPlugin {
     for external_item in &self.externals {
       match external_item {
         ExternalItem::Object(eh) => {
-          let request = args.dependency.request();
+          let request = args.dependency.request().as_ref();
 
           if let Some(value) = eh.get(request) {
             let maybe_module = self.handle_external(value, None, args.dependency);
@@ -106,7 +106,7 @@ impl Plugin for ExternalPlugin {
           }
         }
         ExternalItem::String(s) => {
-          let request = args.dependency.request();
+          let request = args.dependency.request().as_ref();
           if s == request {
             let maybe_module = self.handle_external(
               &ExternalItemValue::String(request.to_string()),

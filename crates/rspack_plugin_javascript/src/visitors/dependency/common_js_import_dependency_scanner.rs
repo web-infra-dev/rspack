@@ -50,7 +50,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
           .push(Box::new(RequireResolveDependency::new(
             node.span.real_lo(),
             node.span.real_hi(),
-            str.value.to_string(),
+            str.value.clone(),
             weak,
             node.span.into(),
             self.in_try,

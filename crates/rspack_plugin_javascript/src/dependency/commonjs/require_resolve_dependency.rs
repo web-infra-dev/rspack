@@ -3,13 +3,14 @@ use rspack_core::{
   DependencyType, ErrorSpan, ExportsReferencedType, ModuleDependency, ModuleGraph, RuntimeSpec,
   TemplateContext, TemplateReplaceSource,
 };
+use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
 pub struct RequireResolveDependency {
   pub start: u32,
   pub end: u32,
   pub id: DependencyId,
-  pub request: String,
+  pub request: JsWord,
   pub weak: bool,
   span: ErrorSpan,
   optional: bool,
@@ -19,7 +20,7 @@ impl RequireResolveDependency {
   pub fn new(
     start: u32,
     end: u32,
-    request: String,
+    request: JsWord,
     weak: bool,
     span: ErrorSpan,
     optional: bool,
@@ -51,7 +52,7 @@ impl ModuleDependency for RequireResolveDependency {
     &self.id
   }
 
-  fn request(&self) -> &str {
+  fn request(&self) -> &JsWord {
     &self.request
   }
 
@@ -79,7 +80,7 @@ impl ModuleDependency for RequireResolveDependency {
     Some(self)
   }
 
-  fn set_request(&mut self, request: String) {
+  fn set_request(&mut self, request: JsWord) {
     self.request = request;
   }
 

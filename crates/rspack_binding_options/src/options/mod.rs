@@ -105,7 +105,7 @@ impl RawOptionsApply for RawOptions {
           plugins.push(
             rspack_plugin_entry::EntryPlugin::new(
               name.clone(),
-              request,
+              request.into(),
               rspack_core::EntryOptions {
                 runtime: desc.runtime.clone(),
                 chunk_loading: desc.chunk_loading.as_deref().map(Into::into),

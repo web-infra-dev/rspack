@@ -9,14 +9,14 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 mod connection;
 pub use connection::{ConnectionId, ConnectionState, ModuleGraphConnection};
+use swc_core::ecma::atoms::JsWord;
 
 use crate::{
   to_identifier, BoxModule, BoxModuleDependency, BuildDependency, BuildInfo, BuildMeta,
   DependencyId, ExportsInfo, Module, ModuleGraphModule, ModuleIdentifier,
 };
 
-// TODO Here request can be used JsWord
-pub type ImportVarMap = HashMap<String /* request */, String /* import_var */>;
+pub type ImportVarMap = HashMap<JsWord /* request */, String /* import_var */>;
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
@@ -470,26 +470,28 @@ impl ModuleGraph {
     false
   }
 
-  pub fn set_dependency_import_var(&mut self, module_identifier: ModuleIdentifier, request: &str) {
+  pub fn set_dependency_import_var(
+    &mut self,
+    module_identifier: ModuleIdentifier,
+    request: JsWord,
+  ) {
     self
       .import_var_map
       .entry(module_identifier)
       .or_insert_with(Default::default);
     if let Some(module_var_map) = self.import_var_map.get_mut(&module_identifier) {
-      if !module_var_map.contains_key(request) {
-        module_var_map.insert(
-          request.to_string(),
-          format!(
-            "{}__WEBPACK_IMPORTED_MODULE_{}_",
-            to_identifier(request),
-            module_var_map.len()
-          ),
+      if !module_var_map.contains_key(&request) {
+        let value = format!(
+          "{}__WEBPACK_IMPORTED_MODULE_{}_",
+          to_identifier(&request),
+          module_var_map.len()
         );
+        module_var_map.insert(request, value);
       }
     }
   }
 
-  pub fn get_import_var(&self, module_identifier: &ModuleIdentifier, request: &str) -> &str {
+  pub fn get_import_var(&self, module_identifier: &ModuleIdentifier, request: &JsWord) -> &str {
     self
       .import_var_map
       .get(module_identifier)
@@ -513,6 +515,7 @@ mod test {
   use rspack_error::{Result, TWithDiagnosticArray};
   use rspack_identifier::Identifiable;
   use rspack_sources::Source;
+  use swc_core::ecma::atoms::JsWord;
 
   use crate::{
     BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, Dependency,
@@ -572,7 +575,7 @@ mod test {
 
   // Define a detailed edge type for `ModuleGraphConnection`s, tuple contains the parent module identifier and the child module specifier
   #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-  struct Edge(Option<ModuleIdentifier>, String, DependencyId);
+  struct Edge(Option<ModuleIdentifier>, JsWord, DependencyId);
 
   macro_rules! impl_noop_trait_dep_type {
     ($ident:ident) => {
@@ -583,8 +586,8 @@ mod test {
           &self.2
         }
 
-        fn request(&self) -> &str {
-          &*self.1
+        fn request(&self) -> &JsWord {
+          &self.1
         }
 
         fn user_request(&self) -> &str {
@@ -595,7 +598,7 @@ mod test {
           unreachable!()
         }
 
-        fn set_request(&mut self, request: String) {
+        fn set_request(&mut self, request: JsWord) {
           self.1 = request;
         }
       }

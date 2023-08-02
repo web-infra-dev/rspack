@@ -1,3 +1,5 @@
+use swc_core::ecma::atoms::JsWord;
+
 use crate::{
   Context, ContextMode, ContextOptions, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency,
@@ -8,7 +10,7 @@ pub struct ContextElementDependency {
   pub id: DependencyId,
   // TODO remove this async dependency mark
   pub options: ContextOptions,
-  pub request: String,
+  pub request: JsWord,
   pub user_request: String,
   pub category: DependencyCategory,
   pub context: Context,
@@ -34,7 +36,7 @@ impl ModuleDependency for ContextElementDependency {
     &self.id
   }
 
-  fn request(&self) -> &str {
+  fn request(&self) -> &JsWord {
     &self.request
   }
 
@@ -57,7 +59,7 @@ impl ModuleDependency for ContextElementDependency {
     Some(&self.options)
   }
 
-  fn set_request(&mut self, request: String) {
+  fn set_request(&mut self, request: JsWord) {
     self.request = request;
   }
 

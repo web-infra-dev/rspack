@@ -23,6 +23,7 @@ use rspack_sources::{
 };
 use rustc_hash::FxHasher;
 use serde_json::json;
+use swc_core::ecma::atoms::JsWord;
 
 use crate::{
   contextify, get_context, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
@@ -82,7 +83,7 @@ pub struct NormalModule {
   /// Request intended by user (without loaders from config)
   user_request: String,
   /// Request without resolving
-  raw_request: String,
+  raw_request: JsWord,
   /// The resolved module type of a module
   module_type: ModuleType,
   /// Affiliated parser and generator to the module type
@@ -147,7 +148,7 @@ impl NormalModule {
   pub fn new(
     request: String,
     user_request: String,
-    raw_request: String,
+    raw_request: JsWord,
     module_type: impl Into<ModuleType>,
     parser_and_generator: Box<dyn ParserAndGenerator>,
     parser_options: Option<ParserOptions>,

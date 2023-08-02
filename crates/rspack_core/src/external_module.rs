@@ -5,6 +5,7 @@ use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagno
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use serde::{Serialize, Serializer};
+use swc_core::ecma::atoms::JsWord;
 
 use crate::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
@@ -65,11 +66,11 @@ pub struct ExternalModule {
   pub request: ExternalRequest,
   external_type: ExternalType,
   /// Request intended by user (without loaders from config)
-  user_request: String,
+  user_request: JsWord,
 }
 
 impl ExternalModule {
-  pub fn new(request: Vec<String>, external_type: ExternalType, user_request: String) -> Self {
+  pub fn new(request: Vec<String>, external_type: ExternalType, user_request: JsWord) -> Self {
     Self {
       id: Identifier::from(format!("external {external_type} {request:?}")),
       request: ExternalRequest(request),
@@ -331,7 +332,7 @@ impl Module for ExternalModule {
   }
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
-    Some(Cow::Borrowed(self.user_request.as_str()))
+    Some(Cow::Borrowed(&self.user_request))
   }
 }
 

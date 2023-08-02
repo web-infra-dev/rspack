@@ -5,20 +5,21 @@ use rspack_core::{
   DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
   PublicPath, TemplateContext, TemplateReplaceSource,
 };
+use swc_core::ecma::atoms::JsWord;
 
 use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER;
 
 #[derive(Debug, Clone)]
 pub struct CssUrlDependency {
   id: DependencyId,
-  request: String,
+  request: JsWord,
   span: Option<ErrorSpan>,
   start: u32,
   end: u32,
 }
 
 impl CssUrlDependency {
-  pub fn new(request: String, span: Option<ErrorSpan>, start: u32, end: u32) -> Self {
+  pub fn new(request: JsWord, span: Option<ErrorSpan>, start: u32, end: u32) -> Self {
     Self {
       request,
       span,
@@ -71,7 +72,7 @@ impl ModuleDependency for CssUrlDependency {
     &self.id
   }
 
-  fn request(&self) -> &str {
+  fn request(&self) -> &JsWord {
     &self.request
   }
 
@@ -83,7 +84,7 @@ impl ModuleDependency for CssUrlDependency {
     self.span.as_ref()
   }
 
-  fn set_request(&mut self, request: String) {
+  fn set_request(&mut self, request: JsWord) {
     self.request = request;
   }
 

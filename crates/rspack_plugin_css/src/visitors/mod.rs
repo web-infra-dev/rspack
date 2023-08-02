@@ -7,6 +7,7 @@ use swc_core::css::ast::{
   AtRule, AtRuleName, ImportHref, ImportPrelude, Stylesheet, Url, UrlValue,
 };
 use swc_core::css::visit::{Visit, VisitWith};
+use swc_core::ecma::atoms::JsWord;
 
 use crate::{
   dependency::{CssImportDependency, CssUrlDependency},
@@ -41,7 +42,7 @@ struct Analyzer<'a> {
   // in_support_contdition: bool,
 }
 
-fn replace_module_request_prefix(specifier: String, diagnostics: &mut Vec<Diagnostic>) -> String {
+fn replace_module_request_prefix(specifier: JsWord, diagnostics: &mut Vec<Diagnostic>) -> JsWord {
   if IS_MODULE_REQUEST.is_match(&specifier) {
     diagnostics.push(
       Diagnostic::warn(
@@ -52,7 +53,7 @@ fn replace_module_request_prefix(specifier: String, diagnostics: &mut Vec<Diagno
       )
       .with_kind(DiagnosticKind::Css),
     );
-    IS_MODULE_REQUEST.replace(&specifier, "").to_string()
+    IS_MODULE_REQUEST.replace(&specifier, "").into()
   } else {
     specifier
   }
@@ -73,10 +74,10 @@ impl Visit for Analyzer<'_> {
 
     let specifier = match &*n.href {
       ImportHref::Url(u) => u.value.as_ref().map(|box s| match s {
-        UrlValue::Str(s) => s.value.to_string(),
-        UrlValue::Raw(r) => r.value.to_string(),
+        UrlValue::Str(s) => s.value.clone(),
+        UrlValue::Raw(r) => r.value.clone(),
       }),
-      ImportHref::Str(s) => Some(s.value.to_string()),
+      ImportHref::Str(s) => Some(s.value.clone()),
     };
     if let Some(specifier) = specifier {
       let specifier = replace_module_request_prefix(specifier, self.diagnostics);
@@ -105,12 +106,12 @@ impl Visit for Analyzer<'_> {
     // Wait for @supports
     // if !self.in_support_contdition {
     let specifier = u.value.as_ref().map(|box v| match v {
-      UrlValue::Str(s) => s.value.to_string(),
-      UrlValue::Raw(r) => r.value.to_string(),
+      UrlValue::Str(s) => s.value.clone(),
+      UrlValue::Raw(r) => r.value.clone(),
     });
     if let Some(specifier) = specifier && !specifier.is_empty(){
     let mut specifier = replace_module_request_prefix(specifier, self.diagnostics);
-    specifier = normalize_url(&specifier);
+    specifier = normalize_url(&specifier).into();
     let dep = Box::new(CssUrlDependency::new(
       specifier,
       Some(u.span.into()),

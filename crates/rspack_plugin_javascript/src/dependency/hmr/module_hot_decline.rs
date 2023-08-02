@@ -45,7 +45,7 @@ impl ModuleDependency for ModuleHotDeclineDependency {
     &self.id
   }
 
-  fn request(&self) -> &str {
+  fn request(&self) -> &JsWord {
     &self.request
   }
 
@@ -61,7 +61,7 @@ impl ModuleDependency for ModuleHotDeclineDependency {
     Some(self)
   }
 
-  fn set_request(&mut self, request: String) {
+  fn set_request(&mut self, request: JsWord) {
     self.request = request.into();
   }
 }

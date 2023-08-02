@@ -7,6 +7,7 @@ use rspack_core::{
 use rspack_hash::RspackHash;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::ObjectLit;
+use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::{
   ast::{Expr, ExprOrSpread, Lit, NewExpr},
   visit::{noop_visit_type, Visit, VisitWith},
@@ -140,7 +141,7 @@ impl Visit for WorkerScanner<'_> {
 #[derive(Debug)]
 struct ParsedNewWorkerPath {
   pub range: (u32, u32),
-  pub value: String,
+  pub value: JsWord,
 }
 
 #[derive(Debug)]

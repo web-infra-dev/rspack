@@ -1,6 +1,7 @@
 use rspack_core::{
   Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
 };
+use swc_core::ecma::atoms::JsWord;
 
 use crate::WasmNode;
 
@@ -8,7 +9,7 @@ use crate::WasmNode;
 pub struct WasmImportDependency {
   id: DependencyId,
   name: String,
-  request: String,
+  request: JsWord,
   // only_direct_import: bool,
   /// the WASM AST node
   pub desc: WasmNode,
@@ -17,7 +18,7 @@ pub struct WasmImportDependency {
 }
 
 impl WasmImportDependency {
-  pub fn new(request: String, name: String, desc: WasmNode) -> Self {
+  pub fn new(request: JsWord, name: String, desc: WasmNode) -> Self {
     Self {
       id: DependencyId::new(),
       name,
@@ -47,7 +48,7 @@ impl ModuleDependency for WasmImportDependency {
     &self.id
   }
 
-  fn request(&self) -> &str {
+  fn request(&self) -> &JsWord {
     &self.request
   }
 
@@ -59,7 +60,7 @@ impl ModuleDependency for WasmImportDependency {
     self.span.as_ref()
   }
 
-  fn set_request(&mut self, request: String) {
+  fn set_request(&mut self, request: JsWord) {
     self.request = request;
   }
 }

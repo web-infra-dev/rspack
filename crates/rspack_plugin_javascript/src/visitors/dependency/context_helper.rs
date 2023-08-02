@@ -1,17 +1,20 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
-use swc_core::ecma::ast::{BinExpr, BinaryOp, CallExpr, Callee, Expr, Lit, MemberProp, Tpl};
+use swc_core::ecma::{
+  ast::{BinExpr, BinaryOp, CallExpr, Callee, Expr, Lit, MemberProp, Tpl},
+  atoms::JsWord,
+};
 
 #[inline]
-fn split_context_from_prefix(prefix: String) -> (String, String) {
+fn split_context_from_prefix(prefix: String) -> (JsWord, String) {
   if let Some(idx) = prefix.rfind('/') {
-    (prefix[..idx].to_string(), format!(".{}", &prefix[idx..]))
+    (prefix[..idx].into(), format!(".{}", &prefix[idx..]))
   } else {
-    (".".to_string(), prefix)
+    (".".into(), prefix)
   }
 }
 
-pub fn scanner_context_module(expr: &Expr) -> Option<(String, String)> {
+pub fn scanner_context_module(expr: &Expr) -> Option<(JsWord, String)> {
   match expr {
     Expr::Tpl(tpl) if !tpl.exprs.is_empty() => Some(scan_context_module_tpl(tpl)),
     Expr::Bin(bin) => scan_context_module_bin(bin),
@@ -30,7 +33,7 @@ fn quote_meta(str: String) -> String {
 }
 
 // require(`./${a}.js`)
-fn scan_context_module_tpl(tpl: &Tpl) -> (String, String) {
+fn scan_context_module_tpl(tpl: &Tpl) -> (JsWord, String) {
   let prefix_raw = tpl
     .quasis
     .first()
@@ -65,7 +68,7 @@ fn scan_context_module_tpl(tpl: &Tpl) -> (String, String) {
 }
 
 // require("./" + a + ".js")
-fn scan_context_module_bin(bin: &BinExpr) -> Option<(String, String)> {
+fn scan_context_module_bin(bin: &BinExpr) -> Option<(JsWord, String)> {
   if !is_add_op_bin_expr(bin) {
     return None;
   }
@@ -116,7 +119,7 @@ fn is_add_op_bin_expr(bin: &BinExpr) -> bool {
 // require("./".concat(a, ".js"))
 // babel/swc will transform template literal to string concat, so we need to handle this case
 // see https://github.com/webpack/webpack/pull/5679
-fn scan_context_module_concat_call(expr: &CallExpr) -> Option<(String, String)> {
+fn scan_context_module_concat_call(expr: &CallExpr) -> Option<(JsWord, String)> {
   if !is_concat_call(expr) {
     return None;
   }

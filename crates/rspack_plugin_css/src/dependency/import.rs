@@ -2,18 +2,19 @@ use rspack_core::{
   Dependency, DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
   ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
+use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
 pub struct CssImportDependency {
   id: DependencyId,
-  request: String,
+  request: JsWord,
   span: Option<ErrorSpan>,
   start: u32,
   end: u32,
 }
 
 impl CssImportDependency {
-  pub fn new(request: String, span: Option<ErrorSpan>, start: u32, end: u32) -> Self {
+  pub fn new(request: JsWord, span: Option<ErrorSpan>, start: u32, end: u32) -> Self {
     Self {
       id: DependencyId::new(),
       request,
@@ -39,7 +40,7 @@ impl ModuleDependency for CssImportDependency {
     &self.id
   }
 
-  fn request(&self) -> &str {
+  fn request(&self) -> &JsWord {
     &self.request
   }
 
@@ -51,7 +52,7 @@ impl ModuleDependency for CssImportDependency {
     self.span.as_ref()
   }
 
-  fn set_request(&mut self, request: String) {
+  fn set_request(&mut self, request: JsWord) {
     self.request = request;
   }
 

@@ -66,7 +66,9 @@ impl ContextModuleFactory {
       ));
     }
     data.context = before_resolve_args.context.into();
-    data.dependency.set_request(before_resolve_args.request);
+    data
+      .dependency
+      .set_request(before_resolve_args.request.into());
     Ok(None)
   }
 

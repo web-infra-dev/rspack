@@ -1,3 +1,5 @@
+use swc_core::ecma::atoms::JsWord;
+
 use crate::{
   Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
 };
@@ -5,11 +7,11 @@ use crate::{
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct EntryDependency {
   id: DependencyId,
-  request: String,
+  request: JsWord,
 }
 
 impl EntryDependency {
-  pub fn new(request: String) -> Self {
+  pub fn new(request: JsWord) -> Self {
     Self {
       request,
       id: DependencyId::new(),
@@ -32,7 +34,7 @@ impl ModuleDependency for EntryDependency {
     &self.id
   }
 
-  fn request(&self) -> &str {
+  fn request(&self) -> &JsWord {
     &self.request
   }
 
@@ -44,7 +46,7 @@ impl ModuleDependency for EntryDependency {
     None
   }
 
-  fn set_request(&mut self, request: String) {
+  fn set_request(&mut self, request: JsWord) {
     self.request = request;
   }
 }

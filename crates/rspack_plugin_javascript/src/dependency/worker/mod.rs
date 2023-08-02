@@ -3,13 +3,14 @@ use rspack_core::{
   DependencyType, ErrorSpan, ExportsReferencedType, ModuleDependency, ModuleGraph, RuntimeGlobals,
   RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
+use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
 pub struct WorkerDependency {
   start: u32,
   end: u32,
   id: DependencyId,
-  request: String,
+  request: JsWord,
   span: Option<ErrorSpan>,
   group_options: ChunkGroupOptions,
   public_path: String,
@@ -19,7 +20,7 @@ impl WorkerDependency {
   pub fn new(
     start: u32,
     end: u32,
-    request: String,
+    request: JsWord,
     public_path: String,
     span: Option<ErrorSpan>,
     group_options: ChunkGroupOptions,
@@ -51,7 +52,7 @@ impl ModuleDependency for WorkerDependency {
     &self.id
   }
 
-  fn request(&self) -> &str {
+  fn request(&self) -> &JsWord {
     &self.request
   }
 
@@ -67,7 +68,7 @@ impl ModuleDependency for WorkerDependency {
     Some(self)
   }
 
-  fn set_request(&mut self, request: String) {
+  fn set_request(&mut self, request: JsWord) {
     self.request = request;
   }
 

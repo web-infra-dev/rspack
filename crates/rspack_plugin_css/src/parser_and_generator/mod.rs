@@ -195,11 +195,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let  dependencies = if let Some(locals) = &locals && !locals.is_empty() {
       let mut dep_set = FxHashSet::default();
       let compose_deps = locals.iter().flat_map(|(_, value)| value).filter_map(|name| if let CssClassName::Import { from, .. } = name {
-        if dep_set.contains(from.as_ref()) {
+        if dep_set.contains(from) {
           None
         } else {
-          dep_set.insert(from.to_string());
-          Some(Box::new(CssComposeDependency::new(from.to_string(), None)) as Box<dyn ModuleDependency>)
+          dep_set.insert(from.clone());
+          Some(Box::new(CssComposeDependency::new(from.clone(), None)) as Box<dyn ModuleDependency>)
         }
       } else {
         None
