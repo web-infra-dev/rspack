@@ -3,7 +3,7 @@ use rspack_core::{
   DependencyType, ErrorSpan, ExportsReferencedType, ModuleDependency, ModuleGraph, RuntimeGlobals,
   RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState,
 };
-use swc_core::ecma::atoms::{js_word, JsWord};
+use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
 pub struct ExportInfoApiDependency {
@@ -33,7 +33,7 @@ impl DependencyTemplate for ExportInfoApiDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let usage = match self.get_property(code_generatable_context) {
+    let usage = match self.get_property(context) {
       Some(UsageState::Used) => true,
       _ => false,
     };
@@ -53,7 +53,7 @@ impl ExportInfoApiDependency {
     // TODO: nested export_name, one level is enough for test
     if export_name.len() == 1 {
       let export_name = &export_name[0];
-      match prop.to_string().as_str() {
+      match prop.as_ref() {
         "used" => {
           let id = module.identifier();
           let mgm = compilation

@@ -45,7 +45,7 @@ __webpack_require__.es(_script1__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__
 
 var __WEBPACK_DEFAULT_EXPORT__ = /* "./script1" unused */null;
 
- const exportDefaultUsed = __webpack_exports_info__.default.used;
+ const exportDefaultUsed = false;
 },
 "./package1/script1.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
@@ -66,7 +66,7 @@ function __WEBPACK_DEFAULT_EXPORT__(){
     return /* "./script3" unused */null;
 }
 
- const exportDefaultUsed = __webpack_exports_info__.default.used;
+ const exportDefaultUsed = false;
 },
 "./package2/script.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
@@ -81,7 +81,7 @@ __webpack_require__.es(_script1__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__
 
 var __WEBPACK_DEFAULT_EXPORT__ = _script1__WEBPACK_IMPORTED_MODULE_0_["default"];
 
- const exportDefaultUsed = __webpack_exports_info__.default.used;
+ const exportDefaultUsed = true;
 },
 "./package2/script1.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';

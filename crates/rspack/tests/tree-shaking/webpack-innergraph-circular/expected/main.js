@@ -33,9 +33,9 @@ __webpack_require__.d(__webpack_exports__, {
  function C(s) {
     return s + "C";
 }
- const exportAUsed = __webpack_exports_info__.A.used;
- const exportBUsed = __webpack_exports_info__.B.used;
- const exportCUsed = __webpack_exports_info__.C.used;
+ const exportAUsed = true;
+ const exportBUsed = true;
+ const exportCUsed = false;
 },
 "./module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';

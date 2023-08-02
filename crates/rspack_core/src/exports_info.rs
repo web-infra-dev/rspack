@@ -85,7 +85,7 @@ pub enum UsedName {
 pub struct ExportInfo {
   _name: JsWord,
   module_identifier: Option<ModuleIdentifier>,
-  usage_state: UsageState,
+  pub usage_state: UsageState,
 }
 
 impl ExportInfo {
@@ -109,7 +109,7 @@ impl ExportInfo {
   }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum UsageState {
   Unused,
   OnlyPropertiesUsed,

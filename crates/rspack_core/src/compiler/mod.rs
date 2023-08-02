@@ -163,7 +163,8 @@ where
         self.compilation.push_batch_diagnostic(diagnostics);
       }
       self.compilation.used_symbol_ref = analyze_result.used_symbol_ref;
-      let mut hash_map: IdentifierMap<HashMap<JsWord, ExportInfo>> = IdentifierMap::default();
+      let mut exports_info_map: IdentifierMap<HashMap<JsWord, ExportInfo>> =
+        IdentifierMap::default();
       self.compilation.used_symbol_ref.iter().for_each(|item| {
         let importer = item.importer();
         let name = match item {
@@ -182,7 +183,7 @@ where
             dep_id,
           } => return,
         };
-        match hash_map.entry(importer) {
+        match exports_info_map.entry(importer) {
           Entry::Occupied(mut occ) => {
             let export_info = ExportInfo::new(name.clone(), UsageState::Used);
             occ.get_mut().insert(name.clone(), export_info);
@@ -205,9 +206,8 @@ where
         );
         for mgm in mi_to_mgm.values_mut() {
           // merge exports info
-          if let Some(exports_map) = hash_map.remove(&mgm.module_identifier) {
+          if let Some(exports_map) = exports_info_map.remove(&mgm.module_identifier) {
             mgm.exports.exports.extend(exports_map.into_iter());
-            dbg!(&mgm.exports);
           }
         }
         self
