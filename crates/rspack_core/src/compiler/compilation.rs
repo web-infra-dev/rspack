@@ -35,12 +35,12 @@ use crate::{
   BoxModuleDependency, BuildQueue, BuildTask, BuildTaskResult, Chunk, ChunkByUkey,
   ChunkContentHash, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey,
   CleanQueue, CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults,
-  CompilerOptions, ContentHashArgs, DependencyCategory, DependencyId, DependencyType, Entry,
-  EntryData, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult,
-  Filename, Module, ModuleGraph, ModuleIdentifier, ModuleType, PathData, ProcessAssetsArgs,
-  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
-  Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver,
-  SourceType, Stats, TaskResult, WorkerTask,
+  CompilerOptions, ContentHashArgs, DependencyId, Entry, EntryData, EntryOptions, Entrypoint,
+  FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Module, ModuleGraph,
+  ModuleIdentifier, ModuleType, PathData, ProcessAssetsArgs, ProcessDependenciesQueue,
+  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory,
+  RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult,
+  WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
@@ -507,19 +507,16 @@ impl Compilation {
         active_task_count += 1;
 
         let original_module_identifier = &task.original_module_identifier;
+        let module = self
+          .module_graph
+          .module_by_identifier(original_module_identifier)
+          .expect("Module expected");
 
         let mut sorted_dependencies = HashMap::default();
 
         task.dependencies.into_iter().for_each(|dependency| {
           // TODO need implement more dependency `resource_identifier()`
           // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L1621
-          if matches!(
-            dependency.dependency_type(),
-            DependencyType::ExportInfoApi | DependencyType::Const
-          ) {
-            self.module_graph.add_dependency(dependency);
-            return;
-          }
           let resource_identifier =
             if let Some(resource_identifier) = dependency.resource_identifier() {
               resource_identifier.to_string()
@@ -533,10 +530,6 @@ impl Compilation {
             .push(dependency);
         });
 
-        let module = self
-          .module_graph
-          .module_by_identifier(original_module_identifier)
-          .expect("Module expected");
         for dependencies in sorted_dependencies.into_values() {
           self.handle_module_creation(
             &mut factorize_queue,

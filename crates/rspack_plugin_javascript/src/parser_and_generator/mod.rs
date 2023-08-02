@@ -191,7 +191,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         if let Some(dependency) = compilation
           .module_graph
           .dependency_by_id(id)
-          .and_then(|item| item.as_code_generatable_dependency())
+          .expect("should have dependency")
+          .as_code_generatable_dependency()
         {
           dependency.apply(&mut source, &mut context)
         }

@@ -123,6 +123,7 @@ where
     Ok(())
   }
 
+  #[instrument(name = "compile", skip_all)]
   async fn compile(&mut self, params: MakeParam) -> Result<()> {
     let option = self.options.clone();
     self.compilation.make(params).await?;

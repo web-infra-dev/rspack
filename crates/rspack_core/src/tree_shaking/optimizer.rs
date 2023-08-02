@@ -31,7 +31,7 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
-  contextify, dependency, join_string_component,
+  contextify, join_string_component,
   tree_shaking::{utils::ConvertModulePath, visitor::ModuleRefAnalyze},
   Compilation, DependencyId, DependencyType, ModuleGraph, ModuleIdentifier, ModuleType,
   NormalModuleSource,
@@ -628,7 +628,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
           continue;
         } else {
-            continue;
+          panic!("Failed to resolve {dep:?}")
         }
       };
       module_ident_list.push(module_ident);
