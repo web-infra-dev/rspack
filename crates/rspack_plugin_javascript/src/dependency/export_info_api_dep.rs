@@ -27,48 +27,6 @@ impl ExportInfoApiDependency {
   }
 }
 
-impl Dependency for ExportInfoApiDependency {
-  fn category(&self) -> &DependencyCategory {
-    &DependencyCategory::Unknown
-  }
-
-  fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::ExportInfoApi
-  }
-}
-
-impl ModuleDependency for ExportInfoApiDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
-  fn request(&self) -> &str {
-    ""
-  }
-
-  fn user_request(&self) -> &str {
-    ""
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    None
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
-  }
-
-  fn set_request(&mut self, request: String) {}
-
-  fn get_referenced_exports(
-    &self,
-    _module_graph: &ModuleGraph,
-    _runtime: &RuntimeSpec,
-  ) -> ExportsReferencedType {
-    ExportsReferencedType::No
-  }
-}
-
 impl DependencyTemplate for ExportInfoApiDependency {
   fn apply(
     &self,

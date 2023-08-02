@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use rspack_core::{ExportInfo, ModuleDependency, SpanExt};
+use rspack_core::{DependencyTemplate, ExportInfo, ModuleDependency, ModuleIdentifier, SpanExt};
 use swc_core::{
   common::{Mark, SyntaxContext},
   ecma::{
@@ -13,19 +13,23 @@ use swc_core::{
 use crate::dependency::{ExportInfoApiDependency, URLDependency};
 
 pub struct ExportInfoApiScanner<'a> {
-  pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+  pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   unresolved_ctxt: SyntaxContext,
+  module_identifier: ModuleIdentifier,
 }
 
 //__webpack_exports_info__.a.used
 impl<'a> ExportInfoApiScanner<'a> {
   pub fn new(
-    dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+    presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
+    module_identifier: ModuleIdentifier,
   ) -> Self {
     Self {
-      dependencies,
+      presentational_dependencies,
       unresolved_ctxt,
+
+      module_identifier,
     }
   }
 }
@@ -35,12 +39,12 @@ impl Visit for ExportInfoApiScanner<'_> {
 
   fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
     let member_chain = extract_member_expression_chain(member_expr);
-
-    if &member_chain[0].0 == "__webpack_exports_info__" && member_chain[0].1 == self.unresolved_ctxt
+    if member_chain.len() > 0
+      && &member_chain[0].0 == "__webpack_exports_info__"
+      && member_chain[0].1 == self.unresolved_ctxt
     {
       let len = member_chain.len();
       if len >= 3 {
-        dbg!(&member_chain);
         let prop = member_chain[len - 1].0.clone();
         let dep = Box::new(ExportInfoApiDependency::new(
           member_expr.span.real_lo(),
@@ -53,7 +57,7 @@ impl Visit for ExportInfoApiScanner<'_> {
             .collect::<Vec<_>>(),
           prop,
         ));
-        self.dependencies.push(dep);
+        self.presentational_dependencies.push(dep);
       } else {
         // TODO: support other __webpack_exports_info__
       }

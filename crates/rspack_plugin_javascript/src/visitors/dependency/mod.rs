@@ -69,8 +69,9 @@ pub fn scan_dependencies(
     &unresolved_ctxt,
   ));
   program.visit_with(&mut ExportInfoApiScanner::new(
-    &mut dependencies,
+    &mut presentational_dependencies,
     unresolved_ctxt,
+    module_identifier,
   ));
 
   // TODO it should enable at js/auto or js/dynamic, but builtins provider will inject require at esm
