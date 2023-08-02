@@ -48,20 +48,20 @@ exports[`cases exported tests data imports 1`] = `
 
 
 .class {
-  a: url(9e6692140df1db2d46ae.svg);
-  b: url(9e6692140df1db2d46ae.svg);
-  c: url(9e6692140df1db2d46ae);
-  d: url(9e6692140df1db2d46ae);
+  a: url(ec5089dbf95c9eb9cdfc.svg);
+  b: url(ec5089dbf95c9eb9cdfc.svg);
+  c: url(ec5089dbf95c9eb9cdfc);
+  d: url(ec5089dbf95c9eb9cdfc);
 }
 /* #endregion "./index.css" */
 
 "
 `;
 
-exports[`cases exported tests should rewrite the css url() 1`] = `"de6009a508a4b3ceeeb6.png"`;
+exports[`cases exported tests should rewrite the css url() 1`] = `"eb587e4780c414fe3a22.png"`;
 
 exports[`cases exported tests should rewrite the css url() 2`] = `"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAOCAYAAAAbvf3sAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAEWSURBVHgBjZFRSsNAEIb/3fQAOUK9gfpe6YIovjU3UE+gJ2g8gTcw3sC+itUFrW+BeAN7ATFSKAjbHWcSC+mSlszLDrvfzvzzj0LHmNpZBtBQd4Gf7fuYgHPPueoCe1DK1UsHd7Dzw+P0daQj/SC5h09OzdGktw221vZXUBlVMN0ILPd6O9yzBBXX8CBdv6kWOGa4YLivQJNjM0ia73oTLsBwJjCB5gu4i7CgbsIey5ThEcOfKziTGFOGHypJeZ7jZ/Gbst4x2/fN9h2eGTNvgk92VrDEWLNmfJXLpIYrRy5b4Fs+9v2/pL0oUncI7FuHLI6PK5lJZGoe8qXNvrry27DesoRLpLPmNkTw9yEcxPWJMR+S/AFbfpAZqxwUNQAAAABJRU5ErkJggg=="`;
 
-exports[`cases exported tests should rewrite the css url() with publicPath and ~@ prefix 1`] = `"/image/logo.de6009a5.png"`;
+exports[`cases exported tests should rewrite the css url() with publicPath and ~@ prefix 1`] = `"/image/logo.eb587e47.png"`;
 
-exports[`cases exported tests should rewrite the css url() with publicPath when output.cssFilename is set 1`] = `"/image/logo.de6009a5.png"`;
+exports[`cases exported tests should rewrite the css url() with publicPath when output.cssFilename is set 1`] = `"/image/logo.eb587e47.png"`;

@@ -6,11 +6,11 @@ use preset_env_base::query::{Query, Targets};
 use regex::Regex;
 use rspack_core::{
   rspack_sources::{
-    MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
+    BoxSource, MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
     SourceMapSourceOptions,
   },
-  AstOrSource, BuildMetaExportsType, GenerateContext, GenerationResult, Module, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
+  BuildMetaExportsType, GenerateContext, Module, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, SourceType, TemplateContext,
 };
 use rspack_core::{ModuleDependency, RuntimeGlobals};
 use rspack_error::{
@@ -238,7 +238,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       ParseResult {
         dependencies,
         presentational_dependencies: vec![],
-        ast_or_source: AstOrSource::new(None, Some(new_source)),
+        source: new_source,
         analyze_result: Default::default(),
       }
       .with_diagnostic(diagnostic),
@@ -248,13 +248,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
   #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
-    ast_or_source: &rspack_core::AstOrSource,
+    source: &BoxSource,
     module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<rspack_core::GenerationResult> {
+  ) -> Result<BoxSource> {
     let result = match generate_context.requested_source_type {
       SourceType::Css => {
-        let mut source = ReplaceSource::new(ast_or_source.to_owned().try_into_source()?);
+        let mut source = ReplaceSource::new(source.clone());
         let compilation = generate_context.compilation;
         let mut context = TemplateContext {
           compilation,
@@ -315,8 +315,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
       )),
     }?;
 
-    Ok(GenerationResult {
-      ast_or_source: result.into(),
-    })
+    Ok(result)
   }
 }

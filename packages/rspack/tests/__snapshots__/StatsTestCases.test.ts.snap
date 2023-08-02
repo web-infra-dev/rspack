@@ -178,7 +178,7 @@ import rawModule from './raw.png'",
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "a85c73152e145c5ef708",
+  "hash": "f41b886e7001a4394e17",
   "modules": [
     {
       "assets": [],
@@ -317,7 +317,7 @@ chunk {main} bundle.js (main) [entry]
   entry ./index
 ./stringModule.js [363] {main}
   esm import ./stringModule [10]
-rspack compiled successfully (a85c73152e145c5ef708)"
+rspack compiled successfully (f41b886e7001a4394e17)"
 `;
 
 exports[`StatsTestCases should print correct stats for filename 1`] = `

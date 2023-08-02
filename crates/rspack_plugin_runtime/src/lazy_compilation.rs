@@ -4,8 +4,8 @@ use std::hash::Hash;
 use async_trait::async_trait;
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
-  ApplyContext, AstOrSource, Compilation, DependencyType, Module, ModuleArgs, ModuleType, Plugin,
-  PluginContext, PluginModuleHookOutput, RuntimeGlobals, SourceType,
+  ApplyContext, Compilation, DependencyType, Module, ModuleArgs, ModuleType, Plugin, PluginContext,
+  PluginModuleHookOutput, RuntimeGlobals, SourceType,
 };
 use rspack_core::{CodeGenerationResult, Context, ModuleIdentifier};
 use rspack_error::Result;
@@ -43,18 +43,13 @@ impl Module for LazyCompilationProxyModule {
     cgr.runtime_requirements.insert(RuntimeGlobals::MODULE);
     cgr.add(
       SourceType::JavaScript,
-      AstOrSource::new(
-        None,
-        Some(
-          RawSource::from(
-            include_str!("runtime/lazy_compilation.js")
-              // TODO
-              .replace("$CHUNK_ID$", self.module_identifier.to_string().as_str())
-              .replace("$MODULE_ID$", self.module_identifier.to_string().as_str()),
-          )
-          .boxed(),
-        ),
-      ),
+      RawSource::from(
+        include_str!("runtime/lazy_compilation.js")
+          // TODO
+          .replace("$CHUNK_ID$", self.module_identifier.to_string().as_str())
+          .replace("$MODULE_ID$", self.module_identifier.to_string().as_str()),
+      )
+      .boxed(),
     );
     cgr.set_hash(
       &compilation.options.output.hash_function,

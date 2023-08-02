@@ -37,13 +37,11 @@ impl CssPlugin {
           .code_generation_results
           .get(module_id, Some(&chunk.runtime))?;
 
-        let module_source = code_gen_result
-          .get(&SourceType::Css)
-          .map(|result| result.ast_or_source.clone().try_into_source())
-          .transpose();
-
-        module_source
-          .map(|source| source.map(|source| (CssModuleDebugInfo { module: *module }, source)))
+        Ok(
+          code_gen_result
+            .get(&SourceType::Css)
+            .map(|source| (CssModuleDebugInfo { module: *module }, source)),
+        )
       })
       .collect::<Result<Vec<_>>>()?;
 
@@ -58,7 +56,7 @@ impl CssPlugin {
         |mut acc, (debug_info, cur_source)| {
           let (start, end) = Self::render_module_debug_info(compilation, &debug_info);
           acc.add(start);
-          acc.add(cur_source);
+          acc.add(cur_source.clone());
           acc.add(RawSource::from("\n"));
           acc.add(end);
           acc

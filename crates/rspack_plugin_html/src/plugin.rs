@@ -183,7 +183,7 @@ impl Plugin for HtmlPlugin {
     current_ast.visit_mut_with(&mut visitor);
 
     let source = parser.codegen(&mut current_ast)?;
-    let hash = hash_for_ast_or_source(&source);
+    let hash = hash_for_source(&source);
     let html_file_name = Filename::from(config.filename.clone());
     // Use the same filename as template
     let output_path = compilation
@@ -222,8 +222,8 @@ impl Plugin for HtmlPlugin {
   }
 }
 
-fn hash_for_ast_or_source(ast_or_source: &str) -> String {
+fn hash_for_source(source: &str) -> String {
   let mut hasher = DefaultHasher::new();
-  ast_or_source.hash(&mut hasher);
+  source.hash(&mut hasher);
   format!("{:016x}", hasher.finish())
 }

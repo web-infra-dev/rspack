@@ -2,12 +2,12 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
 use dashmap::DashMap;
-use rspack_core::rspack_sources::{RawSource, Source, SourceExt};
+use rspack_core::rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
-  AssetInfo, AstOrSource, BuildMetaExportsType, Compilation, Dependency, Filename, GenerateContext,
-  GenerationResult, Module, ModuleDependency, ModuleIdentifier, NormalModule, ParseContext,
-  ParseResult, ParserAndGenerator, PathData, RuntimeGlobals, SourceType,
+  AssetInfo, BuildMetaExportsType, Compilation, Dependency, Filename, GenerateContext, Module,
+  ModuleDependency, ModuleIdentifier, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
+  PathData, RuntimeGlobals, SourceType,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
@@ -94,7 +94,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       ParseResult {
         dependencies,
         presentational_dependencies: vec![],
-        ast_or_source: source.into(),
+        source,
         analyze_result: Default::default(),
       }
       .with_diagnostic(diagnostic),
@@ -117,13 +117,13 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
-    ast_or_source: &AstOrSource,
+    source: &BoxSource,
     module: &dyn Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<GenerationResult> {
+  ) -> Result<BoxSource> {
     let compilation = generate_context.compilation;
     let wasm_filename_template = &compilation.options.output.webassembly_module_filename;
-    let hash = hash_for_ast_or_source(ast_or_source);
+    let hash = hash_for_source(source);
     let normal_module = module
       .as_normal_module()
       .expect("module should be a NormalModule in AsyncWasmParserAndGenerator::generate");
@@ -264,11 +264,9 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           ))
         };
 
-        Ok(GenerationResult {
-          ast_or_source: source.boxed().into(),
-        })
+        Ok(source.boxed())
       }
-      _ => Ok(ast_or_source.clone().into()),
+      _ => Ok(source.clone()),
     }
   }
 }
@@ -293,8 +291,8 @@ fn render_import_stmt(import_var: &str, module_id: &str) -> String {
   format!("var {import_var} = __webpack_require__({module_id});\n",)
 }
 
-fn hash_for_ast_or_source(ast_or_source: &AstOrSource) -> String {
+fn hash_for_source(source: &BoxSource) -> String {
   let mut hasher = DefaultHasher::new();
-  ast_or_source.hash(&mut hasher);
+  source.hash(&mut hasher);
   format!("{:016x}", hasher.finish())
 }
