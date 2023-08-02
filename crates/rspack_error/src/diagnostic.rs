@@ -38,6 +38,7 @@ pub struct Diagnostic {
   pub start: usize,
   pub end: usize,
   pub kind: DiagnosticKind,
+  pub notes: Vec<String>,
 }
 
 impl Diagnostic {
@@ -74,6 +75,10 @@ impl Diagnostic {
     self.source_info = Some(source);
     self
   }
+  pub fn with_notes(mut self, notes: Vec<String>) -> Self {
+    self.notes = notes;
+    self
+  }
 }
 
 impl From<Error> for Vec<Diagnostic> {
@@ -82,7 +87,7 @@ impl From<Error> for Vec<Diagnostic> {
     let severity = err.severity();
     let diagnostic = match err {
       Error::InternalError(err) => Diagnostic {
-        message: format!("{err}"),
+        message: err.error_message,
         source_info: None,
         start: 0,
         end: 0,
@@ -121,6 +126,7 @@ impl From<Error> for Vec<Diagnostic> {
         title,
         kind,
         severity,
+        ..Default::default()
       },
       Error::Io { source } => Diagnostic {
         message: source.to_string(),

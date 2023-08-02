@@ -2,7 +2,9 @@ use std::{path::Path, sync::Arc};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{
+  internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+};
 use rspack_identifier::Identifiable;
 use rspack_loader_runner::{get_scheme, Scheme};
 use sugar_path::{AsPath, SugarPath};
@@ -329,7 +331,52 @@ impl NormalModuleFactory {
         Err(ResolveError(runtime_error, internal_error)) => {
           let ident = format!("{}/{request_without_match_resource}", &data.context);
           let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
+          let mut file_dependencies = Default::default();
+          let mut missing_dependencies = Default::default();
+          let diagnostics: Vec<Diagnostic> = internal_error.into();
+          let mut diagnostic = diagnostics[0].clone();
+          if !data
+            .resolve_options
+            .as_ref()
+            .and_then(|x| x.fully_specified)
+            .unwrap_or(false)
+          {
+            let new_args = ResolveArgs {
+              importer,
+              context: if context_scheme != Scheme::None {
+                self.context.options.context.clone()
+              } else {
+                data.context.clone()
+              },
+              specifier: request_without_match_resource,
+              dependency_type: data.dependency.dependency_type(),
+              dependency_category: data.dependency.category(),
+              resolve_options: data.resolve_options.take(),
+              span: data.dependency.span().cloned(),
+              resolve_to_context: false,
+              optional,
+              missing_dependencies: &mut missing_dependencies,
+              file_dependencies: &mut file_dependencies,
+            };
+            let resource_data = self
+              .cache
+              .resolve_module_occasion
+              .use_cache(new_args, |args| resolve(args, plugin_driver))
+              .await;
+            if let Ok(ResolveResult::Resource(resource)) = resource_data {
+              let regex = Regex::new("^.*[\\/]").expect("wrong regex");
 
+              let resource_path = resource.path.to_string_lossy();
+
+              let resource = regex.replace_all(resource_path.as_ref(), "");
+              let original_resource = regex.replace_all(request_without_match_resource, "");
+              diagnostic = diagnostic.with_notes(vec![format!("Did you mean '{}'?
+BREAKING CHANGE: The request '{}' failed to resolve only because it was resolved as fully specified
+(probably because the origin is strict EcmaScript Module, e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\"type\": \"module\"').
+The extension in the request is mandatory for it to be fully specified.
+Add the extension to the request.",resource, original_resource)]);
+            }
+          }
           let missing_module = MissingModule::new(
             module_identifier,
             format!("{ident} (missing)"),
@@ -338,7 +385,7 @@ impl NormalModuleFactory {
           .boxed();
           self.context.module_type = Some(*missing_module.module_type());
           return Ok(Some(
-            ModuleFactoryResult::new(missing_module).with_diagnostic(internal_error.into()),
+            ModuleFactoryResult::new(missing_module).with_diagnostic(vec![diagnostic]),
           ));
         }
       }

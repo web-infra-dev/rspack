@@ -7,7 +7,7 @@ use codespan_reporting::files::SimpleFiles;
 use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
 use codespan_reporting::term::{self, Config};
 use sugar_path::SugarPath;
-use termcolor::{Buffer, Color, ColorSpec, StandardStreamLock, WriteColor};
+use termcolor::{Buffer, ColorSpec, StandardStreamLock, WriteColor};
 
 use crate::Diagnostic as RspackDiagnostic;
 
@@ -175,38 +175,37 @@ fn emit_diagnostic<T: Write + WriteColor>(
   pwd: impl AsRef<Path>,
   files: &mut SimpleFiles<String, String>,
 ) -> crate::Result<()> {
-  if let Some(info) = &diagnostic.source_info {
-    let file_path = Path::new(&info.path);
-    let relative_path = file_path.relative(&pwd);
-    let relative_path = relative_path.as_os_str().to_string_lossy().to_string();
-    let file_id = files.add(relative_path, info.source.clone());
-    let diagnostic = Diagnostic::new(diagnostic.severity.into())
-      .with_message(&diagnostic.title)
-      // Because we don't have error code now, and I don't think we have
-      // enough energy to matain error code either in the future, so I use
-      // this field to represent diagnostic kind, looks pretty neat.
-      .with_code(diagnostic.kind.to_string())
-      .with_labels(vec![Label::primary(
-        file_id,
-        diagnostic.start..diagnostic.end,
+  let (labels, message) = match &diagnostic.source_info {
+    Some(info) => {
+      let file_path = Path::new(&info.path);
+      let relative_path = file_path.relative(&pwd);
+      let relative_path = relative_path.as_os_str().to_string_lossy().to_string();
+      let file_id = files.add(relative_path, info.source.clone());
+      (
+        vec![Label::primary(file_id, diagnostic.start..diagnostic.end)
+          .with_message(&diagnostic.message)],
+        diagnostic.title.clone(),
       )
-      .with_message(&diagnostic.message)]);
+    }
+    None => (vec![], diagnostic.message.clone()),
+  };
 
-    let config = Config {
-      before_label_lines: 4,
-      after_label_lines: 4,
-      ..Config::default()
-    };
+  let diagnostic = Diagnostic::new(diagnostic.severity.into())
+    .with_message(message)
+    // Because we don't have error code now, and I don't think we have
+    // enough energy to matain error code either in the future, so I use
+    // this field to represent diagnostic kind, looks pretty neat.
+    .with_code(diagnostic.kind.to_string())
+    .with_notes(diagnostic.notes.clone())
+    .with_labels(labels);
 
-    term::emit(writer, &config, files, &diagnostic).expect("TODO:");
-  } else {
-    let color = match diagnostic.severity {
-      crate::Severity::Error => Color::Red,
-      crate::Severity::Warn => Color::Yellow,
-    };
-    writer.set_color(ColorSpec::new().set_fg(Some(color)))?;
-    writeln!(writer, "{}", diagnostic.message)?;
-  }
+  let config = Config {
+    before_label_lines: 4,
+    after_label_lines: 4,
+    ..Config::default()
+  };
+
+  term::emit(writer, &config, files, &diagnostic).expect("TODO:");
   // reset to original color after emitting a diagnostic, this avoids interference stdio of other procedure.
   writer.reset().map_err(|e| e.into())
 }

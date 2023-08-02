@@ -1103,7 +1103,8 @@ exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin
   },
   "warnings": [
     {
-      "formatted": "Experimental plugins are not currently supported.
+      "formatted": "warning[internal]: Experimental plugins are not currently supported.
+
 ",
       "message": "Experimental plugins are not currently supported.",
     },
@@ -1113,7 +1114,8 @@ exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin
 `;
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 2`] = `
-"Experimental plugins are not currently supported.
+"warning[internal]: Experimental plugins are not currently supported.
+
 
 
 rspack compiled with 1 warning"
@@ -2422,7 +2424,8 @@ console.log(a);
   },
   "errors": [
     {
-      "formatted": "Export should be relative path and start with "./", but got ../../index.js
+      "formatted": "error[internal]: Export should be relative path and start with "./", but got ../../index.js
+
 ",
       "message": "Export should be relative path and start with "./", but got ../../index.js",
       "title": "",
@@ -2557,7 +2560,8 @@ chunk {main} bundle.js (main) [entry]
   esm import pkg-a [10]
   esm import specifier pkg-a [10]
 
-Export should be relative path and start with "./", but got ../../index.js
+error[internal]: Export should be relative path and start with "./", but got ../../index.js
+
 
 
 rspack compiled with 1 error (5253c459917e9b8ecc01)"
