@@ -18,8 +18,7 @@ __webpack_require__.d(__webpack_exports__, {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'aa': function() { return aa; },
-  'cc': function() { return cc; }
+  'aa': function() { return aa; }
 });
  const aa = 3;
  const cc = 3;

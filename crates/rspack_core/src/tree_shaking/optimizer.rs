@@ -788,7 +788,13 @@ impl<'a> CodeSizeOptimizer<'a> {
             self
               .symbol_graph
               .add_edge(&current_symbol_ref, symbol_ref_ele);
-            symbol_queue.push_back((symbol_ref_ele.clone(), vec![]));
+            let is_imported = module_result.import_map.get(&symbol.id().atom).is_some();
+            let next_member_chain = if is_imported {
+              member_chain.clone()
+            } else {
+              vec![]
+            };
+            symbol_queue.push_back((symbol_ref_ele.clone(), next_member_chain));
           }
         };
 
@@ -801,12 +807,18 @@ impl<'a> CodeSizeOptimizer<'a> {
         // one for `app.js`, one for `lib.js`
         // the binding in `app.js` used for shake the `export {xxx}`
         // In other words, we need two binding for supporting indirect redirect.
-        if let Some(import_symbol_ref) = module_result.import_map.get(&symbol.id().atom) {
-          self
-            .symbol_graph
-            .add_edge(&current_symbol_ref, import_symbol_ref);
-          symbol_queue.push_back((import_symbol_ref.clone(), member_chain));
-        }
+        // if let Some(import_symbol_ref) = module_result.import_map.get(&symbol.id().atom) {
+        //   dbg!(&symbol);
+        //   dbg!(&member_chain);
+        //   dbg!(&import_symbol_ref);
+        //   self
+        //     .symbol_graph
+        //     .add_edge(&current_symbol_ref, import_symbol_ref);
+        //
+        //   symbol_queue.push_back((import_symbol_ref.clone(), member_chain));
+        //
+        //   dbg!(&symbol_queue);
+        // }
       }
       SymbolRef::Indirect(ref indirect_symbol) => {
         let _importer = indirect_symbol.importer();
