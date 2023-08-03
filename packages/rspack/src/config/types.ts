@@ -11,7 +11,7 @@
 import watchpack from "watchpack";
 import { Compiler } from "../compiler";
 import * as oldBuiltins from "./builtins";
-import { Compilation } from "..";
+import { Compilation, MultiRspackOptions } from "..";
 import type * as webpackDevServer from "webpack-dev-server";
 import type { Options as RspackOptions } from "./zod/_rewrite";
 import type { OptimizationConfig as Optimization } from "./zod/optimization";
@@ -26,7 +26,7 @@ export type {
 	LoaderDefinition
 } from "./adapter-rule-use";
 
-export type Configuration = RspackOptions;
+export type Configuration = MultiRspackOptions | RspackOptions;
 
 export interface RspackOptionsNormalized {
 	name?: Name;
