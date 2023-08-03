@@ -38,7 +38,7 @@ pub enum SymbolRef {
   Declaration(Symbol),
   Indirect(IndirectTopLevelSymbol),
   Star(StarSymbol),
-  Usage(BetterId, Vec<JsWord>, ModuleIdentifier),
+  Usage(JsWord, Vec<JsWord>, ModuleIdentifier),
   Url {
     importer: ModuleIdentifier,
     src: ModuleIdentifier,
@@ -331,9 +331,9 @@ impl<'a> ModuleRefAnalyze<'a> {
   /// when a export has been used from other module, we need to get all
   /// reachable import and export(defined in the same module)
   /// in rest of scenario we only count binding imported from other module.
-  pub fn get_all_import_or_export(&self, start: BetterId, only_import: bool) -> HashSet<SymbolRef> {
+  pub fn get_all_import_or_export(&self, start: JsWord, only_import: bool) -> HashSet<SymbolRef> {
     let mut visited: HashSet<Part> = HashSet::default();
-    let mut q: VecDeque<Part> = VecDeque::from_iter([Part::TopLevelId(start)]);
+    let mut q: VecDeque<Part> = VecDeque::from_iter([Part::TopLevelId(start.clone())]);
     while let Some(cur) = q.pop_front() {
       if visited.contains(&cur) {
         continue;
@@ -355,13 +355,13 @@ impl<'a> ModuleRefAnalyze<'a> {
       .iter()
       .filter_map(|part| match part {
         Part::TopLevelId(id) => {
-          let ret = self.import_map.get(&id.atom).cloned().or_else(|| {
+          let ret = self.import_map.get(&id).cloned().or_else(|| {
             if only_import {
               None
             } else {
-              match self.export_map.get(&id.atom) {
+              match self.export_map.get(&id) {
                 Some(sym_ref @ SymbolRef::Declaration(sym)) => {
-                  if sym.id() == id {
+                  if &sym.id().atom == id {
                     Some(sym_ref.clone())
                   } else {
                     None
@@ -373,27 +373,25 @@ impl<'a> ModuleRefAnalyze<'a> {
           });
           ret
         }
-        Part::MemberExpr { object, property } => {
-          self
-            .import_map
-            .get(&object.atom)
-            .map(|sym_ref| match sym_ref {
-              SymbolRef::Indirect(_) => SymbolRef::Usage(
-                object.clone(),
-                vec![property.clone()],
-                self.module_identifier,
-              ),
-              SymbolRef::Star(_) => SymbolRef::Usage(
-                object.clone(),
-                vec![property.clone()],
-                self.module_identifier,
-              ),
-              SymbolRef::Url { .. }
-              | SymbolRef::Worker { .. }
-              | SymbolRef::Declaration(_)
-              | SymbolRef::Usage(..) => unreachable!(),
-            })
-        }
+        Part::MemberExpr {
+          first: object,
+          rest: property,
+        } => self.import_map.get(&object).map(|sym_ref| match sym_ref {
+          SymbolRef::Indirect(_) => SymbolRef::Usage(
+            object.clone(),
+            vec![property.clone()],
+            self.module_identifier,
+          ),
+          SymbolRef::Star(_) => SymbolRef::Usage(
+            object.clone(),
+            vec![property.clone()],
+            self.module_identifier,
+          ),
+          SymbolRef::Url { .. }
+          | SymbolRef::Worker { .. }
+          | SymbolRef::Declaration(_)
+          | SymbolRef::Usage(..) => unreachable!(),
+        }),
         Part::Url(src) => {
           let dep_id = self
             .resolve_module_identifier(src, &DependencyType::NewUrl)
@@ -459,7 +457,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         // At this time uri of symbol will always equal to `self.module_identifier`
         SymbolRef::Declaration(symbol) => {
           let reachable_import_and_export =
-            self.get_all_import_or_export(symbol.id().clone(), true);
+            self.get_all_import_or_export(symbol.id().atom.clone(), true);
           self
             .reachable_import_and_export
             .insert(symbol.exported().clone(), reachable_import_and_export);
@@ -509,7 +507,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               // Only used id imported from other module would generate a side effects.
               let id = match ref_part {
                 Part::TopLevelId(ref id) => id,
-                Part::MemberExpr { object, property } => match self.import_map.get(&object.atom) {
+                Part::MemberExpr {
+                  first: object,
+                  rest: property,
+                } => match self.import_map.get(&object) {
                   Some(_) => {
                     return HashSet::from_iter([SymbolRef::Usage(
                       object.clone(),
@@ -544,7 +545,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   }]);
                 }
               };
-              let ret = self.import_map.get(&id.atom);
+              let ret = self.import_map.get(&id);
               match ret {
                 Some(ret) => HashSet::from_iter([ret.clone()]),
                 None => self.get_all_import_or_export(id.clone(), true),
@@ -567,7 +568,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             // Only used id imported from other module would generate a side effects.
             let id = match ref_part {
               Part::TopLevelId(ref id) => id,
-              Part::MemberExpr { object, property } => match self.import_map.get(&object.atom) {
+              Part::MemberExpr {
+                first: object,
+                rest: property,
+              } => match self.import_map.get(&object) {
                 Some(_) => {
                   return HashSet::from_iter([SymbolRef::Usage(
                     object.clone(),
@@ -600,7 +604,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 }]);
               }
             };
-            let ret = self.import_map.get(&id.atom);
+            let ret = self.import_map.get(&id);
             match ret {
               Some(ret) => HashSet::from_iter([ret.clone()]),
               None => self.get_all_import_or_export(id.clone(), true),
@@ -617,7 +621,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           let reachable_import = self.get_all_import_or_export(id.clone(), true);
           self.used_symbol_ref.extend(reachable_import);
         }
-        Part::MemberExpr { object, property } => match self.import_map.get(&object.atom) {
+        Part::MemberExpr {
+          first: object,
+          rest: property,
+        } => match self.import_map.get(&object) {
           Some(_) => {
             self.used_symbol_ref.insert(SymbolRef::Usage(
               object.clone(),
@@ -696,11 +703,15 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
     if self.potential_top_level_mark.contains(&mark) {
       match self.current_body_owner_symbol_ext {
-        Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id => {
-          self.add_reference(body_owner_symbol_ext.clone(), Part::TopLevelId(id), false);
+        Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id.atom => {
+          self.add_reference(
+            body_owner_symbol_ext.clone(),
+            Part::TopLevelId(id.atom.clone()),
+            false,
+          );
         }
         None => {
-          self.used_id_set.insert(Part::TopLevelId(id));
+          self.used_id_set.insert(Part::TopLevelId(id.atom));
         }
         _ => {}
       }
@@ -907,7 +918,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         self.export_default_name = Some("default".into());
       }
     }
-    let mut symbol_ext: SymbolExt = default_ident.into();
+    let mut symbol_ext: SymbolExt = default_ident.atom.into();
     symbol_ext.flag.insert(SymbolFlag::EXPORT_DEFAULT);
     match node.expr {
       box Expr::Fn(_) => symbol_ext.flag.insert(SymbolFlag::FUNCTION_EXPR),
@@ -937,7 +948,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     let valid_assign_target = target.is_some();
     if let Some(target) = target {
       self.current_body_owner_symbol_ext = Some(SymbolExt {
-        id: target.into(),
+        id: target.0.into(),
         flag: SymbolFlag::empty(),
       });
     }
@@ -979,12 +990,12 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
         if self.potential_top_level_mark.contains(&mark) {
           let member_expr = Part::MemberExpr {
-            object: id.clone(),
-            property: prop.sym.clone(),
+            first: id.atom.clone(),
+            rest: prop.sym.clone(),
           };
           match self.current_body_owner_symbol_ext {
             Some(ref body_owner_symbol_ext) => {
-              if body_owner_symbol_ext.id() != &id {
+              if body_owner_symbol_ext.id() != &id.atom {
                 self.add_reference(body_owner_symbol_ext.clone(), member_expr, false);
               } else if self.state.contains(AnalyzeState::ASSIGNMENT_LHS) {
                 self.add_reference(body_owner_symbol_ext.clone(), member_expr, true);
@@ -1010,12 +1021,12 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         let mark = id.ctxt.outer();
         if self.potential_top_level_mark.contains(&mark) {
           let member_expr = Part::MemberExpr {
-            object: id.clone(),
-            property: value.clone(),
+            first: id.atom.clone(),
+            rest: value.clone(),
           };
           match self.current_body_owner_symbol_ext {
             Some(ref body_owner_symbol_ext) => {
-              if body_owner_symbol_ext.id() != &id {
+              if body_owner_symbol_ext.id() != &id.atom {
                 self.add_reference(body_owner_symbol_ext.clone(), member_expr, false);
               } else if self.state.contains(AnalyzeState::ASSIGNMENT_LHS) {
                 self.add_reference(body_owner_symbol_ext.clone(), member_expr, true);
@@ -1070,8 +1081,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         None => {
           let symbol_flag = SymbolFlag::EXPORT_DEFAULT | SymbolFlag::CLASS_EXPR;
           let symbol_ext: SymbolExt = if let Some(ident) = &node.ident {
-            let renamed_symbol_ext = SymbolExt::new(ident.to_id().into(), symbol_flag);
-            let default_ident_ext: SymbolExt = BetterId::from(default_ident.to_id()).into();
+            let renamed_symbol_ext = SymbolExt::new(ident.sym.clone(), symbol_flag);
+            let default_ident_ext: SymbolExt = default_ident.sym.into();
             self.add_reference(
               default_ident_ext.clone(),
               Part::TopLevelId(renamed_symbol_ext.id.clone()),
@@ -1084,9 +1095,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             );
             renamed_symbol_ext
           } else {
-            SymbolExt::new(default_ident.to_id().into(), symbol_flag)
+            SymbolExt::new(default_ident.sym.clone(), symbol_flag)
           };
-          self.export_default_name = Some(symbol_ext.id().atom.clone());
+          self.export_default_name = Some(symbol_ext.id().clone());
           symbol_ext
         }
       };
@@ -1171,7 +1182,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         None => {
           let symbol_flag = SymbolFlag::EXPORT_DEFAULT | SymbolFlag::FUNCTION_EXPR;
           let symbol_ext: SymbolExt = if let Some(ident) = &node.ident {
-            let symbol_ext = SymbolExt::new(ident.to_id().into(), symbol_flag);
+            let symbol_ext = SymbolExt::new(ident.sym.clone(), symbol_flag);
             // considering default export has bind to new symbol e.g.
             // ```js
             // export default function test() {
@@ -1181,19 +1192,19 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
             self.add_reference(
               symbol_ext.clone(),
-              Part::TopLevelId(default_ident.to_id().into()),
+              Part::TopLevelId(default_ident.sym.clone()),
               false,
             );
             self.add_reference(
-              BetterId::from(default_ident.to_id()).into(),
+              default_ident.sym.into(),
               Part::TopLevelId(symbol_ext.id.clone()),
               false,
             );
             symbol_ext
           } else {
-            SymbolExt::new(default_ident.to_id().into(), symbol_flag)
+            SymbolExt::new(default_ident.sym.clone(), symbol_flag)
           };
-          self.export_default_name = Some(symbol_ext.id().atom.clone());
+          self.export_default_name = Some(symbol_ext.id().clone());
           symbol_ext
         }
       };
@@ -1214,7 +1225,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     let mark = id.ctxt.outer();
     let old_region = self.current_body_owner_symbol_ext.clone();
     if mark == self.top_level_mark {
-      self.current_body_owner_symbol_ext = Some(id.into());
+      self.current_body_owner_symbol_ext = Some(id.atom.into());
     }
     node.visit_children_with(self);
     self.current_body_owner_symbol_ext = old_region;
@@ -1225,7 +1236,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     let mark = id.ctxt.outer();
     let before_symbol_ext = self.current_body_owner_symbol_ext.clone();
     if mark == self.top_level_mark {
-      self.current_body_owner_symbol_ext = Some(id.into());
+      self.current_body_owner_symbol_ext = Some(id.atom.into());
     }
     node.function.visit_with(self);
     self.current_body_owner_symbol_ext = before_symbol_ext;
@@ -1241,7 +1252,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       };
       if let Some(ref init) = ele.init && self.potential_top_level_mark.contains(&lhs.ctxt.outer()) {
 
-        let mut symbol_ext = SymbolExt::new(lhs, SymbolFlag::VAR_DECL);
+        let mut symbol_ext = SymbolExt::new(lhs.atom, SymbolFlag::VAR_DECL);
         match init {
             box Expr::Fn(_) => symbol_ext.flag.insert(SymbolFlag::FUNCTION_EXPR),
             box Expr::Arrow(_) => symbol_ext.flag.insert(SymbolFlag::ARROW_EXPR),

@@ -1209,11 +1209,11 @@ impl<'a> CodeSizeOptimizer<'a> {
       SymbolRef::Url { .. } | SymbolRef::Worker { .. } => {}
       SymbolRef::Usage(ref binding, ref member_chain, ref src) => {
         let analyze_result = analyze_map.get(src).expect("Should have analyze result");
-        if let Some(import_symbol_ref) = analyze_result.import_map.get(&binding.atom) {
+        if let Some(import_symbol_ref) = analyze_result.import_map.get(&binding) {
           self
             .symbol_graph
             .add_edge(&current_symbol_ref, import_symbol_ref);
-          let mut next_member_chain = vec![binding.atom.clone()];
+          let mut next_member_chain = vec![binding.clone()];
           next_member_chain.extend(member_chain.iter().cloned());
           symbol_queue.push_back((import_symbol_ref.clone(), next_member_chain));
         }

@@ -292,7 +292,7 @@ impl From<Id> for BetterId {
 
 #[derive(Debug, Eq, Clone)]
 pub struct SymbolExt {
-  pub id: BetterId,
+  pub id: JsWord,
   pub flag: SymbolFlag,
 }
 
@@ -301,15 +301,15 @@ impl SymbolExt {
     self.flag
   }
 
-  pub fn id(&self) -> &BetterId {
+  pub fn id(&self) -> &JsWord {
     &self.id
   }
 
-  pub fn new(id: BetterId, flag: SymbolFlag) -> SymbolExt {
+  pub fn new(id: JsWord, flag: SymbolFlag) -> SymbolExt {
     SymbolExt { id, flag }
   }
 
-  pub fn set_id(&mut self, id: BetterId) {
+  pub fn set_id(&mut self, id: JsWord) {
     self.id = id;
   }
 
@@ -326,8 +326,8 @@ impl std::hash::Hash for SymbolExt {
   }
 }
 
-impl From<BetterId> for SymbolExt {
-  fn from(id: BetterId) -> Self {
+impl From<JsWord> for SymbolExt {
+  fn from(id: JsWord) -> Self {
     Self {
       id,
       flag: SymbolFlag::empty(),
@@ -360,8 +360,8 @@ impl PartialEq for SymbolExt {
 /// We use [Part::MemberExpr] to represent namespace access
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Part {
-  TopLevelId(BetterId),
-  MemberExpr { object: BetterId, property: JsWord },
+  TopLevelId(JsWord),
+  MemberExpr { first: JsWord, rest: JsWord },
   Url(JsWord),
   Worker(JsWord),
 }
@@ -383,10 +383,10 @@ impl Part {
     matches!(self, Self::MemberExpr { .. })
   }
 
-  pub fn get_id(&self) -> Option<&BetterId> {
+  pub fn get_id(&self) -> Option<&JsWord> {
     match self {
       Part::TopLevelId(id) => Some(id),
-      Part::MemberExpr { object, .. } => Some(object),
+      Part::MemberExpr { first: object, .. } => Some(object),
       Part::Url(_) | Part::Worker(_) => None,
     }
   }
