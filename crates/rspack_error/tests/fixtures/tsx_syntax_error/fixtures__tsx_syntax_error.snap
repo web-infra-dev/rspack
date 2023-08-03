@@ -1,6 +1,5 @@
 ---
 source: crates/rspack_error/tests/fixtures.rs
-assertion_line: 38
 expression: tsx_syntax_error
 ---
 error[tsx]: TSX parsing error
@@ -8,5 +7,6 @@ error[tsx]: TSX parsing error
   │
 1 │ let c = <test>/test>;
   │          ^^^^ Unexpected token `test`. Expected jsx identifier
+2 │ 
 
 

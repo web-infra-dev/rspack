@@ -5,84 +5,147 @@ expression: multiple_file_syntax_error
 error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/a.js:2:10
   │
+1 │ const CONST = 9000 % 2;
 2 │ const  D {
   │          ^ Expected a semicolon
+3 │     // Comma is required, but parser can recover because of the newline.
+4 │     d = 10
+5 │     g = CONST
+6 │ }
 
 error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/a.js:6:1
   │
+2 │ const  D {
+3 │     // Comma is required, but parser can recover because of the newline.
+4 │     d = 10
+5 │     g = CONST
 6 │ }
   │ ^ Expression expected
 
 error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/b.js:2:10
   │
+1 │ const CONST = 9000 % 2;
 2 │ const  D {
   │          ^ Expected a semicolon
+3 │     // Comma is required, but parser can recover because of the newline.
+4 │     d = 10
+5 │     g = CONST
+6 │ }
 
 error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/b.js:6:1
   │
+2 │ const  D {
+3 │     // Comma is required, but parser can recover because of the newline.
+4 │     d = 10
+5 │     g = CONST
 6 │ }
   │ ^ Expression expected
 
 error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/c.js:2:10
   │
+1 │ const CONST = 9000 % 2;
 2 │ const  D {
   │          ^ Expected a semicolon
+3 │     // Comma is required, but parser can recover because of the newline.
+4 │     d = 10
+5 │     g = CONST
+6 │ }
 
 error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/c.js:6:1
   │
+2 │ const  D {
+3 │     // Comma is required, but parser can recover because of the newline.
+4 │     d = 10
+5 │     g = CONST
 6 │ }
   │ ^ Expression expected
 
 error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/d.js:2:10
   │
+1 │ const CONST = 9000 % 2;
 2 │ const  D {
   │          ^ Expected a semicolon
+3 │     // Comma is required, but parser can recover because of the newline.
+4 │     d = 10
+5 │     g = CONST
+6 │ }
 
 error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/d.js:6:1
   │
+2 │ const  D {
+3 │     // Comma is required, but parser can recover because of the newline.
+4 │     d = 10
+5 │     g = CONST
 6 │ }
   │ ^ Expression expected
 
 error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/e.js:2:10
   │
+1 │ const CONST = 9000 % 2;
 2 │ const  D {
   │          ^ Expected a semicolon
+3 │     // Comma is required, but parser can recover because of the newline.
+4 │     d = 10
+5 │     g = CONST
+6 │ }
 
 error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/e.js:6:1
   │
+2 │ const  D {
+3 │     // Comma is required, but parser can recover because of the newline.
+4 │     d = 10
+5 │     g = CONST
 6 │ }
   │ ^ Expression expected
 
 error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/f.js:2:10
   │
+1 │ const CONST = 9000 % 2;
 2 │ const  D {
   │          ^ Expected a semicolon
+3 │     // Comma is required, but parser can recover because of the newline.
+4 │     d = 10
+5 │     g = CONST
+6 │ }
 
 error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/f.js:6:1
   │
+2 │ const  D {
+3 │     // Comma is required, but parser can recover because of the newline.
+4 │     d = 10
+5 │     g = CONST
 6 │ }
   │ ^ Expression expected
 
 error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/g.js:2:10
   │
+1 │ const CONST = 9000 % 2;
 2 │ const  D {
   │          ^ Expected a semicolon
+3 │     // Comma is required, but parser can recover because of the newline.
+4 │     d = 10
+5 │     g = CONST
+6 │ }
 
 error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/g.js:6:1
   │
+2 │ const  D {
+3 │     // Comma is required, but parser can recover because of the newline.
+4 │     d = 10
+5 │     g = CONST
 6 │ }
   │ ^ Expression expected
 
