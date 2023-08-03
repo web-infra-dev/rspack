@@ -156,8 +156,8 @@ bitflags! {
   }
 }
 pub(crate) struct ModuleRefAnalyze<'a> {
-  top_level_mark: Mark,
-  unresolved_mark: Mark,
+  top_level_ctxt: SyntaxContext,
+  unresolved_ctxt: SyntaxContext,
   module_identifier: ModuleIdentifier,
   dependencies: &'a Vec<Box<dyn ModuleDependency>>,
   /// Value of `export_map` must have type [SymbolRef::Direct]
@@ -189,16 +189,15 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) side_effects: SideEffectType,
   pub(crate) options: &'a CompilerOptions,
   pub(crate) has_side_effects_stmt: bool,
-  unresolved_ctxt: SyntaxContext,
-  pub(crate) potential_top_level_mark: HashSet<Mark>,
+  pub(crate) potential_top_level_ctxt: HashSet<SyntaxContext>,
   worker_syntax_list: &'a WorkerSyntaxList,
 }
 
 impl<'a> std::fmt::Debug for ModuleRefAnalyze<'a> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("ModuleRefAnalyze")
-      .field("top_level_mark", &self.top_level_mark)
-      .field("unresolved_mark", &self.unresolved_mark)
+      .field("top_level_mark", &self.top_level_ctxt)
+      .field("unresolved_mark", &self.unresolved_ctxt)
       .field("module_identifier", &self.module_identifier)
       .field("dependencies", &"..".to_string())
       .field("export_map", &self.export_map)
@@ -230,30 +229,30 @@ impl<'a> std::fmt::Debug for ModuleRefAnalyze<'a> {
       .field("options", &self.options)
       .field("has_side_effects_stmt", &self.has_side_effects_stmt)
       .field("unresolved_ctxt", &self.unresolved_ctxt)
-      .field("potential_top_mark", &self.potential_top_level_mark)
+      .field("potential_top_mark", &self.potential_top_level_ctxt)
       .field("comments", &"...")
       .field("worker_syntax_list", self.worker_syntax_list)
       .finish()
   }
 }
 
-pub struct MarkInfo {
-  top_level_mark: Mark,
-  unresolved_mark: Mark,
+pub struct SyntaxContextInfo {
+  top_level_ctxt: SyntaxContext,
+  unresolved_ctxt: SyntaxContext,
 }
 
-impl MarkInfo {
-  pub fn new(top_level_mark: Mark, unresolved_mark: Mark) -> Self {
+impl SyntaxContextInfo {
+  pub fn new(top_level_ctxt: SyntaxContext, unresolved_ctxt: SyntaxContext) -> Self {
     Self {
-      top_level_mark,
-      unresolved_mark,
+      top_level_ctxt,
+      unresolved_ctxt,
     }
   }
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
   pub fn new(
-    mark_info: MarkInfo,
+    mark_info: SyntaxContextInfo,
     module_identifier: ModuleIdentifier,
     dependencies: &'a Vec<Box<dyn ModuleDependency>>,
     options: &'a CompilerOptions,
@@ -261,8 +260,8 @@ impl<'a> ModuleRefAnalyze<'a> {
     worker_syntax_list: &'a WorkerSyntaxList,
   ) -> Self {
     Self {
-      top_level_mark: mark_info.top_level_mark,
-      unresolved_mark: mark_info.unresolved_mark,
+      top_level_ctxt: mark_info.top_level_ctxt,
+      unresolved_ctxt: mark_info.unresolved_ctxt,
       module_identifier,
       dependencies,
       export_map: HashMap::default(),
@@ -280,8 +279,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       immediate_evaluate_reference_map: HashMap::default(),
       options,
       has_side_effects_stmt: false,
-      unresolved_ctxt: SyntaxContext::empty(),
-      potential_top_level_mark: HashSet::from_iter([mark_info.top_level_mark]),
+      potential_top_level_ctxt: HashSet::from_iter([mark_info.top_level_ctxt]),
       worker_syntax_list,
       export_all_dep_id: LinkedHashSet::default(),
     }
@@ -417,7 +415,7 @@ impl<'a> ModuleRefAnalyze<'a> {
   fn generate_default_ident(&self) -> Ident {
     let mut default_ident = Ident::dummy();
     default_ident.sym = "default".into();
-    default_ident.span = default_ident.span.apply_mark(self.top_level_mark);
+    default_ident.span = default_ident.span.with_ctxt(self.top_level_ctxt);
     default_ident
   }
 
@@ -445,7 +443,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   noop_visit_type!();
   fn visit_program(&mut self, node: &Program) {
     assert!(GLOBALS.is_set());
-    self.unresolved_ctxt = self.unresolved_ctxt.apply_mark(self.unresolved_mark);
     node.visit_children_with(self);
     // calc reachable imports for each export symbol defined in current module
     for (_, symbol) in self.export_map.iter() {
@@ -695,9 +692,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_ident(&mut self, node: &Ident) {
     let id: BetterId = node.to_id().into();
-    let mark = id.ctxt.outer();
+    let ctxt = id.ctxt;
 
-    if self.potential_top_level_mark.contains(&mark) {
+    if self.potential_top_level_ctxt.contains(&ctxt) {
       match self.current_body_owner_symbol_ext {
         Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id.atom => {
           self.add_reference(
@@ -932,7 +929,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     let target = if before_owner_extend_symbol.is_none() {
       let target = first_ident_of_assign_lhs(node);
       target.and_then(|target| {
-        if target.1.outer() == self.top_level_mark {
+        if target.1 == self.top_level_ctxt {
           Some(target)
         } else {
           None
@@ -982,9 +979,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       (Expr::Ident(obj), MemberProp::Ident(prop)) => {
         self.check_commonjs_feature(obj, &prop.sym);
         let id: BetterId = obj.to_id().into();
-        let mark = id.ctxt.outer();
+        let ctxt = id.ctxt;
 
-        if self.potential_top_level_mark.contains(&mark) {
+        if self.potential_top_level_ctxt.contains(&ctxt) {
           let member_expr = Part::MemberExpr {
             first: id.atom.clone(),
             rest: vec![prop.sym.clone()],
@@ -1014,8 +1011,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         self.check_commonjs_feature(obj, value);
 
         let id: BetterId = obj.to_id().into();
-        let mark = id.ctxt.outer();
-        if self.potential_top_level_mark.contains(&mark) {
+        let ctxt = id.ctxt;
+        if self.potential_top_level_ctxt.contains(&ctxt) {
           let member_expr = Part::MemberExpr {
             first: id.atom.clone(),
             rest: vec![value.clone()],
@@ -1108,7 +1105,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     }
   }
   fn visit_call_expr(&mut self, node: &CallExpr) {
-    if let Some(require_lit) = get_require_literal(node, self.unresolved_mark) {
+    if let Some(require_lit) = get_require_literal(node, self.unresolved_ctxt) {
       self.module_syntax.insert(ModuleSyntax::COMMONJS);
       match self.resolve_module_identifier(&require_lit, &DependencyType::CjsRequire) {
         Some(dep_id) => match self
@@ -1218,9 +1215,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_class_decl(&mut self, node: &ClassDecl) {
     let id: BetterId = node.ident.to_id().into();
-    let mark = id.ctxt.outer();
+    let ctxt = id.ctxt;
     let old_region = self.current_body_owner_symbol_ext.clone();
-    if mark == self.top_level_mark {
+    if ctxt == self.top_level_ctxt {
       self.current_body_owner_symbol_ext = Some(id.atom.into());
     }
     node.visit_children_with(self);
@@ -1229,9 +1226,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_fn_decl(&mut self, node: &FnDecl) {
     let id: BetterId = node.ident.to_id().into();
-    let mark = id.ctxt.outer();
+    let ctxt = id.ctxt;
     let before_symbol_ext = self.current_body_owner_symbol_ext.clone();
-    if mark == self.top_level_mark {
+    if ctxt == self.top_level_ctxt {
       self.current_body_owner_symbol_ext = Some(id.atom.into());
     }
     node.function.visit_with(self);
@@ -1246,7 +1243,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         ele.init.visit_with(self);
         continue;
       };
-      if let Some(ref init) = ele.init && self.potential_top_level_mark.contains(&lhs.ctxt.outer()) {
+      if let Some(ref init) = ele.init && self.potential_top_level_ctxt.contains(&lhs.ctxt) {
 
         let mut symbol_ext = SymbolExt::new(lhs.atom, SymbolFlag::VAR_DECL);
         match init {
@@ -1283,7 +1280,7 @@ impl<'a> ModuleRefAnalyze<'a> {
   // other binding patterns like let [state, setState] = useState() will return None
   fn visit_var_decl_pattern(&mut self, pattern: &Pat, is_export: bool) -> Option<BetterId> {
     let mut add_export = |lhs: &BetterId| {
-      if is_export && lhs.ctxt.outer() == self.top_level_mark {
+      if is_export && lhs.ctxt == self.top_level_ctxt {
         self.add_export(
           lhs.atom.clone(),
           SymbolRef::Declaration(Symbol::new(
@@ -1321,7 +1318,7 @@ impl<'a> ModuleRefAnalyze<'a> {
               assign.value.visit_with(self);
               let lhs = BetterId::from(assign.key.to_id());
               // inline code here to avoid compiler complaints
-              if is_export && lhs.ctxt.outer() == self.top_level_mark {
+              if is_export && lhs.ctxt == self.top_level_ctxt {
                 self.add_export(
                   lhs.atom.clone(),
                   SymbolRef::Declaration(Symbol::new(
@@ -1524,7 +1521,7 @@ impl<'a> ModuleRefAnalyze<'a> {
         // TODO: should add some Diagnostic
       }
       Entry::Vacant(vac) => {
-        self.potential_top_level_mark.insert(id.ctxt.outer());
+        self.potential_top_level_ctxt.insert(id.ctxt);
         vac.insert(symbol);
       }
     }
@@ -1666,8 +1663,8 @@ impl<'a> ModuleRefAnalyze<'a> {
 #[derive(Debug, Default, Clone)]
 #[allow(unused)]
 pub struct OptimizeAnalyzeResult {
-  pub top_level_mark: Mark,
-  unresolved_mark: Mark,
+  pub top_level_ctxt: SyntaxContext,
+  unresolved_ctxt: SyntaxContext,
   pub module_identifier: ModuleIdentifier,
   pub export_map: HashMap<JsWord, SymbolRef>,
   pub(crate) import_map: HashMap<JsWord, SymbolRef>,
@@ -1686,8 +1683,8 @@ pub struct OptimizeAnalyzeResult {
 impl From<ModuleRefAnalyze<'_>> for OptimizeAnalyzeResult {
   fn from(analyze: ModuleRefAnalyze<'_>) -> Self {
     Self {
-      top_level_mark: analyze.top_level_mark,
-      unresolved_mark: analyze.unresolved_mark,
+      top_level_ctxt: analyze.top_level_ctxt,
+      unresolved_ctxt: analyze.unresolved_ctxt,
       module_identifier: analyze.module_identifier,
       export_map: analyze.export_map,
       import_map: analyze.import_map,
@@ -1735,7 +1732,7 @@ fn is_pure_expression(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
       op: op!("="),
       ..
     }) if is_module_exports_member_expr(left_expr, unresolved_ctxt)
-      && get_require_literal(call_expr_right, unresolved_ctxt.outer()).is_some() =>
+      && get_require_literal(call_expr_right, unresolved_ctxt).is_some() =>
     {
       true
     }
