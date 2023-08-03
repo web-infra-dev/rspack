@@ -46,7 +46,7 @@ impl DependencyTemplate for ModuleDecoratorDependency {
         self.decorator.name(),
         module_argument
       ),
-      InitFragmentStage::STAGE_PROVIDES,
+      InitFragmentStage::StageProvides,
       None,
     ));
   }

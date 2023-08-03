@@ -117,13 +117,11 @@ pub fn scan_dependencies(
       &mut dependencies,
       &mut presentational_dependencies,
       &mut import_map,
-      module_identifier,
     ));
     program.visit_with(&mut HarmonyExportDependencyScanner::new(
       &mut dependencies,
       &mut presentational_dependencies,
       &mut import_map,
-      module_identifier,
     ));
     let mut worker_syntax_scanner = rspack_core::needs_refactor::WorkerSyntaxScanner::new(
       rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,

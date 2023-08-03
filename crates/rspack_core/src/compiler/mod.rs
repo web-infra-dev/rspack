@@ -19,6 +19,7 @@ use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::JsWord;
 use tracing::instrument;
 
+use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
 use crate::tree_shaking::visitor::SymbolRef;
 use crate::{
   cache::Cache, fast_set, AssetEmittedArgs, CompilerOptions, Plugin, PluginDriver,
@@ -167,11 +168,18 @@ where
       let mut exports_info_map: IdentifierMap<HashMap<JsWord, ExportInfo>> =
         IdentifierMap::default();
       self.compilation.used_symbol_ref.iter().for_each(|item| {
-        let importer = item.importer();
-        let name = match item {
-          SymbolRef::Declaration(d) => d.exported(),
-          SymbolRef::Indirect(_) => return,
-          SymbolRef::Star(_) => return,
+        let (importer, name) = match item {
+          SymbolRef::Declaration(d) => (d.src(), d.exported()),
+          SymbolRef::Indirect(i) => match i.ty {
+            IndirectType::Import(_, _) => (i.src(), i.indirect_id()),
+            IndirectType::ImportDefault(_) => (i.src(), &DEFAULT_JS_WORD),
+            IndirectType::ReExport(_, _) => (i.importer(), i.id()),
+            _ => return,
+          },
+          SymbolRef::Star(s) => match s.ty() {
+            StarSymbolKind::ReExportAllAs => (s.module_ident(), s.binding()),
+            _ => return,
+          },
           SymbolRef::Usage(_, _, _) => return,
           SymbolRef::Url { .. } => return,
           SymbolRef::Worker { .. } => return,

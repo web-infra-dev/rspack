@@ -46,6 +46,7 @@ pub enum DependencyType {
   EsmImportSpecifier,
   // Harmony export
   EsmExport,
+  EsmExportImportedSpecifier,
   // import()
   DynamicImport,
   // cjs require
@@ -94,6 +95,7 @@ impl Display for DependencyType {
       DependencyType::Entry => write!(f, "entry"),
       DependencyType::EsmImport => write!(f, "esm import"),
       DependencyType::EsmExport => write!(f, "esm export"),
+      DependencyType::EsmExportImportedSpecifier => write!(f, "esm export import specifier"),
       DependencyType::EsmImportSpecifier => write!(f, "esm import specifier"),
       DependencyType::DynamicImport => write!(f, "dynamic import"),
       DependencyType::CjsRequire => write!(f, "cjs require"),

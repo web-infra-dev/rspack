@@ -1,8 +1,9 @@
-use rspack_core::tree_shaking::symbol::IndirectTopLevelSymbol;
+use rspack_core::tree_shaking::symbol::{self, IndirectTopLevelSymbol};
+use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
-  import_statement, tree_shaking::symbol, tree_shaking::visitor::SymbolRef, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan, InitFragment,
-  InitFragmentStage, ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  import_statement, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, InitFragment, InitFragmentStage, ModuleDependency, RuntimeGlobals,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_core::{ExportsReferencedType, ModuleGraph, RuntimeSpec};
 use swc_core::ecma::atoms::JsWord;
@@ -16,8 +17,6 @@ pub enum Specifier {
 
 #[derive(Debug, Clone)]
 pub struct HarmonyImportDependency {
-  // pub start: u32,
-  // pub end: u32,
   pub request: JsWord,
   pub id: DependencyId,
   pub span: Option<ErrorSpan>,
@@ -29,7 +28,6 @@ pub struct HarmonyImportDependency {
 
 impl HarmonyImportDependency {
   pub fn new(
-    id: DependencyId,
     request: JsWord,
     span: Option<ErrorSpan>,
     specifiers: Vec<Specifier>,
@@ -38,9 +36,9 @@ impl HarmonyImportDependency {
   ) -> Self {
     let resource_identifier = format!("{}|{}", DependencyCategory::Esm, &request);
     Self {
+      id: DependencyId::new(),
       request,
       span,
-      id,
       specifiers,
       dependency_type,
       export_all,
@@ -148,25 +146,25 @@ impl DependencyTemplate for HarmonyImportDependency {
     if compilation.module_graph.is_async(ref_module) {
       init_fragments.push(InitFragment::new(
         content.0,
-        InitFragmentStage::STAGE_HARMONY_IMPORTS,
+        InitFragmentStage::StageHarmonyImports,
         None,
       ));
       init_fragments.push(InitFragment::new(
         format!(
           "var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{import_var}]);\n([{import_var}] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__);"
         ),
-        InitFragmentStage::STAGE_HARMONY_IMPORTS,
+        InitFragmentStage::StageHarmonyImports,
         None,
       ));
       init_fragments.push(InitFragment::new(
         content.1,
-        InitFragmentStage::STAGE_ASYNC_HARMONY_IMPORTS,
+        InitFragmentStage::StageAsyncHarmonyImports,
         None,
       ));
     } else {
       init_fragments.push(InitFragment::new(
         format!("{}{}", content.0, content.1),
-        InitFragmentStage::STAGE_HARMONY_IMPORTS,
+        InitFragmentStage::StageHarmonyImports,
         None,
       ));
     }
@@ -184,9 +182,9 @@ impl DependencyTemplate for HarmonyImportDependency {
           RuntimeGlobals::EXPORT_STAR,
         ),
         if compilation.module_graph.is_async(ref_module) {
-          InitFragmentStage::STAGE_ASYNC_HARMONY_IMPORTS
+          InitFragmentStage::StageAsyncHarmonyImports
         } else {
-          InitFragmentStage::STAGE_HARMONY_IMPORTS
+          InitFragmentStage::StageHarmonyImports
         },
         None,
       ));

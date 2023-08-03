@@ -132,7 +132,7 @@ impl ExternalModule {
             .or_insert(InitFragment::new(
               "import { createRequire as __WEBPACK_EXTERNAL_createRequire } from 'module';\n"
                 .to_string(),
-              InitFragmentStage::STAGE_HARMONY_IMPORTS,
+              InitFragmentStage::StageHarmonyImports,
               None,
             ));
           format!(
@@ -176,7 +176,7 @@ impl ExternalModule {
                 "import * as __WEBPACK_EXTERNAL_MODULE_{identifier}__ from '{}';\n",
                 self.request.as_str()
               ),
-              InitFragmentStage::STAGE_HARMONY_IMPORTS,
+              InitFragmentStage::StageHarmonyImports,
               None,
             ));
           runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);

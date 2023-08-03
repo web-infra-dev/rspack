@@ -1,8 +1,4 @@
-use std::collections::HashSet;
-
 use rspack_core::{
-  tree_shaking::symbol::{IndirectType, SymbolType, DEFAULT_JS_WORD},
-  tree_shaking::visitor::SymbolRef,
   DependencyTemplate, InitFragment, InitFragmentStage, RuntimeGlobals, TemplateContext,
   TemplateReplaceSource,
 };
@@ -42,30 +38,12 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
 
     if !self.exports.is_empty() {
       let used_exports = if compilation.options.builtins.tree_shaking.is_true() {
-        let set = compilation
-          .used_symbol_ref
-          .iter()
-          .filter_map(|item| match item {
-            SymbolRef::Declaration(d) if d.src() == module.identifier() => {
-              if *d.ty() == SymbolType::Temp {
-                if let Some(key) = self.exports.iter().find(|e| e.0 == *d.exported()) {
-                  return Some(&key.0);
-                }
-              }
-              Some(&d.id().atom)
-            }
-            SymbolRef::Indirect(i) if i.importer == module.identifier() && i.is_reexport() => {
-              Some(i.id())
-            }
-            SymbolRef::Indirect(i) if i.src == module.identifier() => match i.ty {
-              IndirectType::Import(_, _) => Some(i.indirect_id()),
-              IndirectType::ImportDefault(_) => Some(&DEFAULT_JS_WORD),
-              _ => None,
-            },
-            _ => None,
-          })
-          .collect::<HashSet<_>>();
-        Some(set)
+        Some(
+          compilation
+            .module_graph
+            .get_exports_info(&module.identifier())
+            .get_used_exports(),
+        )
       } else {
         None
       };
@@ -88,7 +66,7 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
             RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
             format_exports(&exports)
           ),
-          InitFragmentStage::STAGE_HARMONY_EXPORTS,
+          InitFragmentStage::StageHarmonyExports,
           None,
         ));
       } else {
