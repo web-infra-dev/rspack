@@ -17,8 +17,8 @@ it("verify importing css js source map", async () => {
 	expect(
 		await checkMap(out, source, {
 			// *${id}* as the search key to aviod conflict with `Object.defineProperty(exports, ${id}, ...)`
-			["*a0*"]: "a.js",
-			["*a1*"]: "a.js"
+			['"*a0*"']: "a.js",
+			['"*a1*"']: "a.js"
 		})
 	).toBe(true);
 });
@@ -34,9 +34,9 @@ it("verify css source map", async () => {
 	const cssOut = fs.readFileSync(path.resolve(__dirname, "main.css"), "utf-8");
 	expect(
 		await checkMap(cssOut, cssSource, {
-			a0: "a.css",
-			a1: "a.css",
-			a2: "a.css"
+			[`a:nth-child(0):after { content: "a0"; }`]: "a.css",
+			[`a:nth-child(1):after { content: "a1"; }`]: "a.css",
+			[`a:nth-child(2):after { content: "a2"; }`]: "a.css"
 		})
 	).toBe(true);
 });
