@@ -710,6 +710,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     } else {
       visited_symbol_ref.insert(current_symbol_ref_with_member_chain.clone());
     }
+    dbg!(&current_symbol_ref_with_member_chain);
     let (current_symbol_ref, member_chain) = current_symbol_ref_with_member_chain;
 
     if !evaluated_module_identifiers.contains(&current_symbol_ref.importer()) {
@@ -1094,13 +1095,14 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
           StarSymbolKind::ReExportAll => (false, vec![]),
         };
+        dbg!(&next_member_chain);
         // try to access first member expr element
         if let Some(name) = next_member_chain.get(0) {
           if let Some(export_symbol_ref) = analyze_refsult.export_map.get(name) {
             self
               .symbol_graph
               .add_edge(&current_symbol_ref, export_symbol_ref);
-            symbol_queue.push_back((export_symbol_ref.clone(), next_member_chain[1..].to_vec()));
+            symbol_queue.push_back((export_symbol_ref.clone(), next_member_chain.to_vec()));
             return;
           }
 

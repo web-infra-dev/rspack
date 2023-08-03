@@ -990,6 +990,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           rest: member_chain
             .into_iter()
             .skip(1)
+            // .take(1)
             .map(|(name, _)| name)
             .collect::<Vec<_>>(),
         };
