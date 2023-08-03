@@ -1,5 +1,5 @@
 .color-red {
-  color: red;
+    color: red;
 }
 @charset "UTF-8";
 
@@ -7,6 +7,7 @@ body {
   font: 100% Helvetica, sans-serif;
   color: #333;
 }
+
 nav ul {
   margin: 0;
   padding: 0;
@@ -20,15 +21,18 @@ nav a {
   padding: 6px 12px;
   text-decoration: none;
 }
+
 .box {
   -webkit-border-radius: 10px;
   -moz-border-radius: 10px;
   -ms-border-radius: 10px;
   border-radius: 10px;
 }
+
 .foo:before {
   content: "\e0c6";
 }
+
 .bar:before {
   content: "∑";
 }
