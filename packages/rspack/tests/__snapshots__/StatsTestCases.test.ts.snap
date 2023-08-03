@@ -178,7 +178,34 @@ import rawModule from './raw.png'",
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "f41b886e7001a4394e17",
+  "hash": "e5ab76b035eb9887e5e7",
+  "logging": {
+    "rspack.Compilation": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.DevtoolPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.RealContentHashPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.buildChunkGraph": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+  },
   "modules": [
     {
       "assets": [],
@@ -317,7 +344,7 @@ chunk {main} bundle.js (main) [entry]
   entry ./index
 ./stringModule.js [363] {main}
   esm import ./stringModule [10]
-rspack compiled successfully (f41b886e7001a4394e17)"
+rspack compiled successfully (e5ab76b035eb9887e5e7)"
 `;
 
 exports[`StatsTestCases should print correct stats for filename 1`] = `
@@ -471,7 +498,34 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "c0a007e6ada8fae1eeea",
+  "hash": "bf37d8b0dde5966708fa",
+  "logging": {
+    "rspack.Compilation": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.DevtoolPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.RealContentHashPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.buildChunkGraph": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+  },
   "modules": [
     {
       "assets": [],
@@ -564,7 +618,7 @@ chunk {main} main.xxxx.js (main) >{dynamic_js}< [entry]
   entry ./index
 ./dynamic.js [426] {dynamic_js}
   dynamic import ./dynamic [10]
-rspack compiled successfully (c0a007e6ada8fae1eeea)"
+rspack compiled successfully (bf37d8b0dde5966708fa)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -651,7 +705,34 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "19cf9c030dc9af928025",
+  "hash": "157f73e421ef6bb25aee",
+  "logging": {
+    "rspack.Compilation": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.DevtoolPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.RealContentHashPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.buildChunkGraph": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+  },
   "modules": [
     {
       "assets": [],
@@ -706,7 +787,7 @@ chunk {main} bundle.js (main) [entry]
     entry ./index.js
 ./index.js [10] {main}
   entry ./index.js
-rspack compiled successfully (19cf9c030dc9af928025)"
+rspack compiled successfully (157f73e421ef6bb25aee)"
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 1`] = `
@@ -736,6 +817,33 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
     },
   ],
   "errorsCount": 2,
+  "logging": {
+    "rspack.Compilation": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.DevtoolPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.RealContentHashPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.buildChunkGraph": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+  },
   "warnings": [],
   "warningsCount": 0,
 }
@@ -886,6 +994,33 @@ exports[`StatsTestCases should print correct stats for issue-3558 1`] = `
 {
   "errors": [],
   "errorsCount": 0,
+  "logging": {
+    "rspack.Compilation": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.DevtoolPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.RealContentHashPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.buildChunkGraph": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+  },
   "warnings": [],
   "warningsCount": 0,
 }
@@ -897,6 +1032,33 @@ exports[`StatsTestCases should print correct stats for legacy-ie-css-warning 1`]
 {
   "errors": [],
   "errorsCount": 0,
+  "logging": {
+    "rspack.Compilation": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.DevtoolPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.RealContentHashPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.buildChunkGraph": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+  },
   "warnings": [],
   "warningsCount": 0,
 }
@@ -908,6 +1070,33 @@ exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin
 {
   "errors": [],
   "errorsCount": 0,
+  "logging": {
+    "rspack.Compilation": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.DevtoolPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.RealContentHashPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.buildChunkGraph": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+  },
   "warnings": [
     {
       "formatted": "Experimental plugins are not currently supported.
@@ -942,6 +1131,33 @@ exports[`StatsTestCases should print correct stats for minify-error-recovery 1`]
     },
   ],
   "errorsCount": 1,
+  "logging": {
+    "rspack.Compilation": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.DevtoolPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.RealContentHashPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.buildChunkGraph": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+  },
   "warnings": [],
   "warningsCount": 0,
 }
@@ -1028,6 +1244,33 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
     },
   ],
   "errorsCount": 1,
+  "logging": {
+    "rspack.Compilation": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.DevtoolPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.RealContentHashPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.buildChunkGraph": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+  },
   "warnings": [],
   "warningsCount": 0,
 }
@@ -1642,6 +1885,33 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
     },
   ],
   "errorsCount": 1,
+  "logging": {
+    "rspack.Compilation": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.DevtoolPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.RealContentHashPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.buildChunkGraph": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+  },
   "warnings": [],
   "warningsCount": 0,
 }
@@ -1849,7 +2119,34 @@ console.log(a);
     },
   ],
   "errorsCount": 1,
-  "hash": "7e86dbef52589da42e78",
+  "hash": "8741e5e888c5d1a69d1f",
+  "logging": {
+    "rspack.Compilation": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.DevtoolPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.RealContentHashPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.buildChunkGraph": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+  },
   "modules": [
     {
       "assets": [],
@@ -1949,7 +2246,7 @@ error[internal]: Resolve error
 
 
 
-rspack compiled with 1 error (7e86dbef52589da42e78)"
+rspack compiled with 1 error (8741e5e888c5d1a69d1f)"
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 1`] = `
@@ -2075,7 +2372,34 @@ console.log(a);
     },
   ],
   "errorsCount": 1,
-  "hash": "9a7559ac75c691f9a69c",
+  "hash": "5253c459917e9b8ecc01",
+  "logging": {
+    "rspack.Compilation": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.DevtoolPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.RealContentHashPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.buildChunkGraph": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+  },
   "modules": [
     {
       "assets": [],
@@ -2170,7 +2494,7 @@ chunk {main} bundle.js (main) [entry]
 Export should be relative path and start with "./", but got ../../index.js
 
 
-rspack compiled with 1 error (9a7559ac75c691f9a69c)"
+rspack compiled with 1 error (5253c459917e9b8ecc01)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple 1`] = `
@@ -2257,7 +2581,34 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "cc09525e55ecef0acf29",
+  "hash": "d398b0d9438a2b5f1b91",
+  "logging": {
+    "rspack.Compilation": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.DevtoolPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.RealContentHashPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.buildChunkGraph": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+  },
   "modules": [
     {
       "assets": [],
@@ -2312,7 +2663,7 @@ chunk {main} bundle.js (main) [entry]
     entry ./index
 ./index.js [10] {main}
   entry ./index
-rspack compiled successfully (cc09525e55ecef0acf29)"
+rspack compiled successfully (d398b0d9438a2b5f1b91)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple-module-source 1`] = `
@@ -2463,7 +2814,34 @@ import rawModule from './raw.png'",
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "721f3351321390431d13",
+  "hash": "b27310c33df4c13a5f56",
+  "logging": {
+    "rspack.Compilation": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.DevtoolPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.RealContentHashPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.buildChunkGraph": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+  },
   "modules": [
     {
       "assets": [],
@@ -2580,7 +2958,7 @@ Entrypoint main 631 bytes = bundle.js
 ./raw.png [98] {main}
 ./index.js [10] {main}
 ./stringModule.js [363] {main}
-rspack compiled successfully (721f3351321390431d13)"
+rspack compiled successfully (b27310c33df4c13a5f56)"
 `;
 
 exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
@@ -2666,7 +3044,34 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "cc09525e55ecef0acf29",
+  "hash": "d398b0d9438a2b5f1b91",
+  "logging": {
+    "rspack.Compilation": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.DevtoolPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.RealContentHashPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.buildChunkGraph": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+  },
   "modules": [
     {
       "assets": [],
@@ -2715,13 +3120,40 @@ exports[`StatsTestCases should print correct stats for stats-hooks 2`] = `
 asset bundle.js 589 bytes {main} [emitted111] (name: main) [testA: aaaaaa]
 Entrypoint main 589 bytes = bundle.js
 ./index.js [10] {main}
-rspack compiled successfully (cc09525e55ecef0acf29)"
+rspack compiled successfully (d398b0d9438a2b5f1b91)"
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 1`] = `
 {
   "errors": [],
   "errorsCount": 0,
+  "logging": {
+    "rspack.Compilation": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.DevtoolPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.RealContentHashPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.buildChunkGraph": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+  },
   "warnings": [
     {
       "formatted": "warning[internal]: Resolve error
@@ -2758,6 +3190,33 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-modul
 {
   "errors": [],
   "errorsCount": 0,
+  "logging": {
+    "rspack.Compilation": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.DevtoolPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.RealContentHashPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.buildChunkGraph": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+  },
   "warnings": [
     {
       "formatted": "warning[internal]: Resolve error
@@ -2794,6 +3253,33 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-weak-
 {
   "errors": [],
   "errorsCount": 0,
+  "logging": {
+    "rspack.Compilation": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.DevtoolPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.RealContentHashPlugin": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+    "rspack.buildChunkGraph": {
+      "debug": false,
+      "entries": [],
+      "filteredEntries": 0,
+    },
+  },
   "warnings": [
     {
       "formatted": "warning[internal]: Resolve error

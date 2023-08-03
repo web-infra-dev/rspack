@@ -1,19 +1,22 @@
 use std::{
   backtrace::Backtrace,
+  hash::BuildHasherDefault,
+  sync::Arc,
   time::{Duration, Instant},
 };
 
-use crossbeam_channel::Sender;
+use dashmap::DashMap;
+use rustc_hash::FxHasher;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LogType {
   Error {
     message: String,
-    trace: Backtrace,
+    trace: String,
   },
   Warn {
     message: String,
-    trace: Backtrace,
+    trace: String,
   },
   Info {
     message: String,
@@ -25,7 +28,7 @@ pub enum LogType {
     message: String,
   },
   Trace {
-    trace: Backtrace,
+    trace: String,
   },
   Group {
     message: String,
@@ -57,14 +60,14 @@ pub trait Logger {
   fn error(&self, message: String) {
     self.raw(LogType::Error {
       message,
-      trace: Backtrace::force_capture(),
+      trace: Backtrace::force_capture().to_string(),
     })
   }
 
   fn warn(&self, message: String) {
     self.raw(LogType::Warn {
       message,
-      trace: Backtrace::force_capture(),
+      trace: Backtrace::force_capture().to_string(),
     })
   }
 
@@ -88,7 +91,7 @@ pub trait Logger {
 
   fn trace(&self) {
     self.raw(LogType::Trace {
-      trace: Backtrace::force_capture(),
+      trace: Backtrace::force_capture().to_string(),
     })
   }
 
@@ -196,22 +199,25 @@ impl StartTimeAggregate {
   }
 }
 
+pub type CompilationLogging = Arc<DashMap<String, Vec<LogType>, BuildHasherDefault<FxHasher>>>;
+
 pub struct CompilationLogger {
-  tx: Sender<(String, LogType)>,
+  logging: CompilationLogging,
   name: String,
 }
 
 impl CompilationLogger {
-  pub fn new(name: String, sender: Sender<(String, LogType)>) -> Self {
-    Self { tx: sender, name }
+  pub fn new(name: String, logging: CompilationLogging) -> Self {
+    Self { logging, name }
   }
 }
 
 impl Logger for CompilationLogger {
   fn raw(&self, log_type: LogType) {
-    self
-      .tx
-      .send((self.name.clone(), log_type))
-      .expect("Logger::raw send message failed");
+    if let Some(mut value) = self.logging.get_mut(&self.name) {
+      value.push(log_type);
+    } else {
+      self.logging.insert(self.name.clone(), vec![log_type]);
+    }
   }
 }

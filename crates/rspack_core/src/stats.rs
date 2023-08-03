@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use rspack_error::{
   emitter::{
     DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
@@ -302,7 +303,17 @@ impl Stats<'_> {
   }
 
   pub fn get_logging(&self) -> Vec<(String, LogType)> {
-    self.compilation.get_logging()
+    self
+      .compilation
+      .get_logging()
+      .iter()
+      .map(|item| {
+        let (name, logs) = item.pair();
+        (name.to_owned(), logs.to_owned())
+      })
+      .sorted_by(|a, b| a.0.cmp(&b.0))
+      .flat_map(|item| item.1.into_iter().map(move |log| (item.0.clone(), log)))
+      .collect()
   }
 
   pub fn get_hash(&self) -> Option<&str> {

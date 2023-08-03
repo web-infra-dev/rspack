@@ -108,7 +108,34 @@ describe("Stats", () => {
 		  },
 		  "errors": [],
 		  "errorsCount": 0,
-		  "hash": "f0a86c7e70b0de037daf",
+		  "hash": "1788bb8a658f2310fbf6",
+		  "logging": {
+		    "rspack.Compilation": {
+		      "debug": false,
+		      "entries": [],
+		      "filteredEntries": 0,
+		    },
+		    "rspack.Compiler": {
+		      "debug": false,
+		      "entries": [],
+		      "filteredEntries": 0,
+		    },
+		    "rspack.DevtoolPlugin": {
+		      "debug": false,
+		      "entries": [],
+		      "filteredEntries": 0,
+		    },
+		    "rspack.RealContentHashPlugin": {
+		      "debug": false,
+		      "entries": [],
+		      "filteredEntries": 0,
+		    },
+		    "rspack.buildChunkGraph": {
+		      "debug": false,
+		      "entries": [],
+		      "filteredEntries": 0,
+		    },
+		  },
 		  "modules": [
 		    {
 		      "assets": [],
@@ -163,7 +190,7 @@ describe("Stats", () => {
 		    entry ./fixtures/a
 		./fixtures/a.js [876] {main}
 		  entry ./fixtures/a
-		rspack compiled successfully (f0a86c7e70b0de037daf)"
+		rspack compiled successfully (1788bb8a658f2310fbf6)"
 	`);
 	});
 
@@ -203,7 +230,67 @@ describe("Stats", () => {
 
 
 
-		rspack compiled with 1 error (418f650b35ab423e0e13)"
+		rspack compiled with 1 error (ffde5f6d186102c29eb9)"
+	`);
+	});
+
+	it("should have time log when logging verbose", async () => {
+		const stats = await compile({
+			context: __dirname,
+			entry: "./fixtures/abc"
+		});
+		expect(
+			stats
+				?.toString({ all: false, logging: "verbose" })
+				.replace(/\\/g, "/")
+				.replace(/\d+ ms/g, "X ms")
+		).toMatchInlineSnapshot(`
+		"LOG from rspack.Compilation
+		<t> finish modules: X ms
+		<t> optimize dependencies: X ms
+		<t> create chunks: X ms
+		<t> optimize: X ms
+		<t> module ids: X ms
+		<t> chunk ids: X ms
+		<t> code generation: X ms
+		<t> runtime requirements.modules: X ms
+		<t> runtime requirements.chunks: X ms
+		<t> runtime requirements.entries: X ms
+		<t> runtime requirements: X ms
+		<t> hashing: hash chunks: X ms
+		<t> hashing: hash runtime chunks: X ms
+		<t> hashing: process full hash chunks: X ms
+		<t> hashing: X ms
+		<t> create chunk assets: X ms
+		<t> process assets: X ms
+
+		LOG from rspack.Compiler
+		<t> make hook: X ms
+		<t> module add task: X ms
+		<t> module process dependencies task: X ms
+		<t> module factorize task: X ms
+		<t> module build task: X ms
+		<t> make: X ms
+		<t> finish make hook: X ms
+		<t> finish compilation: X ms
+		<t> seal compilation: X ms
+		<t> afterCompile hook: X ms
+		<t> emitAssets: X ms
+		<t> done hook: X ms
+
+		LOG from rspack.DevtoolPlugin
+		<t> collect source maps: X ms
+		<t> emit source map assets: X ms
+
+		LOG from rspack.RealContentHashPlugin
+		<t> hash to asset names: X ms
+
+		LOG from rspack.buildChunkGraph
+		<t> prepare entrypoints: X ms
+		<t> process queue: X ms
+		<t> extend chunkGroup runtime: X ms
+		<t> remove parent modules: X ms
+		"
 	`);
 	});
 });

@@ -35,12 +35,12 @@ use crate::{
   BoxModuleDependency, BuildQueue, BuildTask, BuildTaskResult, Chunk, ChunkByUkey,
   ChunkContentHash, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey,
   CleanQueue, CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults,
-  CompilationLogger, CompilerOptions, ContentHashArgs, DependencyId, Entry, EntryData,
-  EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, LogType,
-  Logger, MessageCollector, Module, ModuleGraph, ModuleIdentifier, ModuleType, PathData,
-  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
-  RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec,
-  SharedPluginDriver, SourceType, Stats, TaskResult, WorkerTask,
+  CompilationLogger, CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, Entry,
+  EntryData, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult,
+  Filename, Logger, Module, ModuleGraph, ModuleIdentifier, ModuleType, PathData, ProcessAssetsArgs,
+  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
+  Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver,
+  SourceType, Stats, TaskResult, WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
@@ -73,7 +73,7 @@ pub struct Compilation {
   assets: CompilationAssets,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: IndexSet<Diagnostic, BuildHasherDefault<FxHasher>>,
-  logging: MessageCollector<(String, LogType)>,
+  logging: CompilationLogging,
   pub plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
   pub named_chunks: HashMap<String, ChunkUkey>,
@@ -292,8 +292,8 @@ impl Compilation {
       .filter(|d| matches!(d.severity, Severity::Warn))
   }
 
-  pub fn get_logging(&self) -> Vec<(String, LogType)> {
-    self.logging.iter().collect()
+  pub fn get_logging(&self) -> &CompilationLogging {
+    &self.logging
   }
 
   pub fn get_stats(&self) -> Stats {
@@ -1451,13 +1451,7 @@ impl Compilation {
   }
 
   pub fn get_logger(&self, name: impl Into<String>) -> CompilationLogger {
-    CompilationLogger::new(
-      name.into(),
-      self
-        .logging
-        .sender()
-        .expect("Compilation::get_logger should use before MessageCollector start collect"),
-    )
+    CompilationLogger::new(name.into(), self.logging.clone())
   }
 }
 
