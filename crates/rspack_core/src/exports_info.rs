@@ -13,7 +13,7 @@ use crate::RuntimeSpec;
 
 #[derive(Debug)]
 pub struct ExportsInfo {
-  exports: HashMap<JsWord, ExportInfo>,
+  pub exports: HashMap<JsWord, ExportInfo>,
   other_exports_info: ExportInfo,
   _side_effects_only_info: ExportInfo,
   _exports_are_ordered: bool,
@@ -24,8 +24,8 @@ impl ExportsInfo {
   pub fn new() -> Self {
     Self {
       exports: HashMap::default(),
-      other_exports_info: ExportInfo::new("null"),
-      _side_effects_only_info: ExportInfo::new("*side effects only*"),
+      other_exports_info: ExportInfo::new("null".into(), UsageState::Unknown),
+      _side_effects_only_info: ExportInfo::new("*side effects only*".into(), UsageState::Unknown),
       _exports_are_ordered: false,
       redirect_to: None,
     }
@@ -83,15 +83,17 @@ pub enum UsedName {
 
 #[derive(Debug)]
 pub struct ExportInfo {
-  _name: &'static str,
+  _name: JsWord,
   module_identifier: Option<ModuleIdentifier>,
+  pub usage_state: UsageState,
 }
 
 impl ExportInfo {
-  pub fn new(_name: &'static str) -> Self {
+  pub fn new(_name: JsWord, usage_state: UsageState) -> Self {
     Self {
       _name,
       module_identifier: None,
+      usage_state,
     }
   }
 
@@ -107,7 +109,7 @@ impl ExportInfo {
   }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum UsageState {
   Unused,
   OnlyPropertiesUsed,

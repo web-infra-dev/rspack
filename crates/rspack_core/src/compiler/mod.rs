@@ -4,6 +4,7 @@ mod make;
 mod queue;
 mod resolver;
 
+use std::collections::hash_map::Entry;
 use std::{path::Path, sync::Arc};
 
 pub use compilation::*;
@@ -13,14 +14,17 @@ pub use resolver::*;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
-use rspack_identifier::IdentifierSet;
+use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rustc_hash::FxHashMap as HashMap;
+use swc_core::ecma::atoms::JsWord;
 use tracing::instrument;
 
+use crate::tree_shaking::visitor::SymbolRef;
 use crate::{
   cache::Cache, fast_set, AssetEmittedArgs, CompilerOptions, Plugin, PluginDriver,
   SharedPluginDriver,
 };
+use crate::{ExportInfo, UsageState};
 
 #[derive(Debug)]
 pub struct Compiler<T>
@@ -160,6 +164,51 @@ where
         self.compilation.push_batch_diagnostic(diagnostics);
       }
       self.compilation.used_symbol_ref = analyze_result.used_symbol_ref;
+      let mut exports_info_map: IdentifierMap<HashMap<JsWord, ExportInfo>> =
+        IdentifierMap::default();
+      self.compilation.used_symbol_ref.iter().for_each(|item| {
+        let importer = item.importer();
+        let name = match item {
+          SymbolRef::Declaration(d) => d.exported(),
+          SymbolRef::Indirect(_) => return,
+          SymbolRef::Star(_) => return,
+          SymbolRef::Usage(_, _, _) => return,
+          SymbolRef::Url { .. } => return,
+          SymbolRef::Worker { .. } => return,
+        };
+        match exports_info_map.entry(importer) {
+          Entry::Occupied(mut occ) => {
+            let export_info = ExportInfo::new(name.clone(), UsageState::Used);
+            occ.get_mut().insert(name.clone(), export_info);
+          }
+          Entry::Vacant(vac) => {
+            let mut map = HashMap::default();
+            let export_info = ExportInfo::new(name.clone(), UsageState::Used);
+            map.insert(name.clone(), export_info);
+            vac.insert(map);
+          }
+        }
+      });
+      {
+        // take the ownership to avoid rustc complain can't use `&` and `&mut` at the same time
+        let mut mi_to_mgm = std::mem::take(
+          &mut self
+            .compilation
+            .module_graph
+            .module_identifier_to_module_graph_module,
+        );
+        for mgm in mi_to_mgm.values_mut() {
+          // merge exports info
+          if let Some(exports_map) = exports_info_map.remove(&mgm.module_identifier) {
+            mgm.exports.exports.extend(exports_map.into_iter());
+          }
+        }
+        self
+          .compilation
+          .module_graph
+          .module_identifier_to_module_graph_module = mi_to_mgm;
+      }
+
       self.compilation.bailout_module_identifiers = analyze_result.bail_out_module_identifiers;
       self.compilation.side_effects_free_modules = analyze_result.side_effects_free_modules;
       self.compilation.module_item_map = analyze_result.module_item_map;

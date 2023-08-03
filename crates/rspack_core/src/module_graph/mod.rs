@@ -26,7 +26,7 @@ pub struct ModuleGraph {
   module_identifier_to_module: IdentifierMap<BoxModule>,
 
   /// Module identifier to its module graph module
-  module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
+  pub module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
 
   dependency_id_to_connection_id: HashMap<DependencyId, ConnectionId>,
   connection_id_to_dependency_id: HashMap<ConnectionId, DependencyId>,
