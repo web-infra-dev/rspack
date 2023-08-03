@@ -5,7 +5,7 @@ use rspack_core::{
 };
 use swc_core::ecma::atoms::JsWord;
 
-use super::format_exports;
+use super::{create_resource_identifier_for_esm_dependency, format_exports};
 
 // Create _webpack_require__.d(__webpack_exports__, {}).
 // import { a } from 'a'; export { a }
@@ -19,7 +19,7 @@ pub struct HarmonyExportImportedSpecifierDependency {
 
 impl HarmonyExportImportedSpecifierDependency {
   pub fn new(request: JsWord, ids: Vec<(JsWord, Option<JsWord>)>) -> Self {
-    let resource_identifier = format!("{}|{}", DependencyCategory::Esm, &request);
+    let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
       id: DependencyId::new(),
       request,

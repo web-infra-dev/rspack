@@ -8,6 +8,8 @@ use rspack_core::{
 use rspack_core::{ExportsReferencedType, ModuleGraph, RuntimeSpec};
 use swc_core::ecma::atoms::JsWord;
 
+use super::create_resource_identifier_for_esm_dependency;
+
 #[derive(Debug, Clone)]
 pub enum Specifier {
   Namespace(JsWord),
@@ -34,7 +36,7 @@ impl HarmonyImportDependency {
     dependency_type: DependencyType,
     export_all: bool,
   ) -> Self {
-    let resource_identifier = format!("{}|{}", DependencyCategory::Esm, &request);
+    let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
       id: DependencyId::new(),
       request,

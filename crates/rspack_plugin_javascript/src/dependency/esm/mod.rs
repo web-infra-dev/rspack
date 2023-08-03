@@ -16,3 +16,8 @@ pub use harmony_export_header_dependency::*;
 pub use harmony_import_specifier_dependency::*;
 mod import_dependency;
 pub use import_dependency::*;
+use rspack_core::DependencyCategory;
+
+pub fn create_resource_identifier_for_esm_dependency(request: &str) -> String {
+  format!("{}|{}", DependencyCategory::Esm, &request)
+}

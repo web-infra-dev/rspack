@@ -8,7 +8,7 @@ use rspack_core::{
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
 
-use super::Specifier;
+use super::{create_resource_identifier_for_esm_dependency, Specifier};
 
 #[derive(Debug, Clone)]
 pub struct HarmonyImportSpecifierDependency {
@@ -36,7 +36,7 @@ impl HarmonyImportSpecifierDependency {
     is_call: bool,
     specifier: Specifier,
   ) -> Self {
-    let resource_identifier = format!("{}|{}", DependencyCategory::Esm, &request);
+    let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
       id: DependencyId::new(),
       request,
