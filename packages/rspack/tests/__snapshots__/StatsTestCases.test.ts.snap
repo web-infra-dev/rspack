@@ -718,6 +718,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
   │
 1 │ let let = let;
   │     ^^^ \`let\` cannot be used as an identifier in strict mode
+2 │ 
 
 ",
       "message": "\`let\` cannot be used as an identifier in strict mode",
@@ -729,6 +730,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
   │
 1 │ let let = let;
   │           ^^^ \`let\` cannot be used as an identifier in strict mode
+2 │ 
 
 ",
       "message": "\`let\` cannot be used as an identifier in strict mode",
@@ -747,6 +749,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
   │
 1 │ let let = let;
   │     ^^^ \`let\` cannot be used as an identifier in strict mode
+2 │ 
 
 
 
@@ -755,6 +758,7 @@ error[javascript]: JavaScript parsing error
   │
 1 │ let let = let;
   │           ^^^ \`let\` cannot be used as an identifier in strict mode
+2 │ 
 
 
 
@@ -935,6 +939,10 @@ exports[`StatsTestCases should print correct stats for minify-error-recovery 1`]
   │
 1 │ const a {}
   │         ^ Expected a semicolon
+2 │ (function() {
+3 │ var __webpack_modules__ = {
+4 │ "10": function (__unused_webpack_module, exports, __webpack_require__) {
+5 │ console.log(0);
 
 ",
       "message": "Expected a semicolon",
@@ -953,6 +961,10 @@ exports[`StatsTestCases should print correct stats for minify-error-recovery 2`]
   │
 1 │ const a {}
   │         ^ Expected a semicolon
+2 │ (function() {
+3 │ var __webpack_modules__ = {
+4 │ "10": function (__unused_webpack_module, exports, __webpack_require__) {
+5 │ console.log(0);
 
 
 
@@ -1021,6 +1033,7 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
   │
 1 │ import "not-exist";
   │ ^^^^^^^^^^^^^^^^^^^ Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/index.js
+2 │ 
 
 ",
       "message": "Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/index.js",
@@ -1039,6 +1052,7 @@ exports[`StatsTestCases should print correct stats for normal-errors 2`] = `
   │
 1 │ import "not-exist";
   │ ^^^^^^^^^^^^^^^^^^^ Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/index.js
+2 │ 
 
 
 
@@ -1633,8 +1647,16 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
       "formatted": "error[javascript]: JavaScript parsing error
   ┌─ tests/statsCases/parse-error/b.js:6:8
   │
+2 │ code
+3 │ which
+4 │ includes
+5 │ a
 6 │ parser )
   │        ^ Expected ';', '}' or <eof>
+7 │ error
+8 │ in
+9 │ some
+10 │ line
 
 ",
       "message": "Expected ';', '}' or <eof>",
@@ -1651,8 +1673,16 @@ exports[`StatsTestCases should print correct stats for parse-error 2`] = `
 "error[javascript]: JavaScript parsing error
   ┌─ tests/statsCases/parse-error/b.js:6:8
   │
+2 │ code
+3 │ which
+4 │ includes
+5 │ a
 6 │ parser )
   │        ^ Expected ';', '}' or <eof>
+7 │ error
+8 │ in
+9 │ some
+10 │ line
 
 
 
@@ -1842,6 +1872,8 @@ console.log(a);
   │
 1 │ import { a } from "cycle-alias/a";
   │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias
+2 │ console.log(a);
+3 │ 
 
 ",
       "message": "Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias",
@@ -1946,6 +1978,8 @@ error[internal]: Resolve error
   │
 1 │ import { a } from "cycle-alias/a";
   │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias
+2 │ console.log(a);
+3 │ 
 
 
 
@@ -2727,10 +2761,14 @@ exports[`StatsTestCases should print correct stats for try-require--module 1`] =
       "formatted": "warning[internal]: Resolve error
   ┌─ tests/statsCases/try-require--module/index.js:2:5
   │  
+1 │   try {
 2 │       require('./missing-module')
   │ ╭────────^
 3 │ │ } catch (e) {
   │ ╰──^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
+4 │   
+5 │   }
+6 │   
 
 ",
       "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js",
@@ -2744,10 +2782,14 @@ exports[`StatsTestCases should print correct stats for try-require--module 2`] =
 "warning[internal]: Resolve error
   ┌─ tests/statsCases/try-require--module/index.js:2:5
   │  
+1 │   try {
 2 │       require('./missing-module')
   │ ╭────────^
 3 │ │ } catch (e) {
   │ ╰──^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
+4 │   
+5 │   }
+6 │   
 
 
 
@@ -2763,10 +2805,14 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-modul
       "formatted": "warning[internal]: Resolve error
   ┌─ tests/statsCases/try-require-resolve-module/index.js:2:5
   │  
+1 │   try {
 2 │       require.resolve('./missing-module')
   │ ╭────────^
 3 │ │ } catch (e) {
   │ ╰──^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
+4 │   
+5 │   }
+6 │   
 
 ",
       "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js",
@@ -2780,10 +2826,14 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-modul
 "warning[internal]: Resolve error
   ┌─ tests/statsCases/try-require-resolve-module/index.js:2:5
   │  
+1 │   try {
 2 │       require.resolve('./missing-module')
   │ ╭────────^
 3 │ │ } catch (e) {
   │ ╰──^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
+4 │   
+5 │   }
+6 │   
 
 
 
@@ -2799,10 +2849,14 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-weak-
       "formatted": "warning[internal]: Resolve error
   ┌─ tests/statsCases/try-require-resolve-weak-module/index.js:2:5
   │  
+1 │   try {
 2 │       require.resolveWeak('./missing-module')
   │ ╭────────^
 3 │ │ } catch (e) {
   │ ╰──^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
+4 │   
+5 │   }
+6 │   
 
 ",
       "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js",
@@ -2816,10 +2870,14 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-weak-
 "warning[internal]: Resolve error
   ┌─ tests/statsCases/try-require-resolve-weak-module/index.js:2:5
   │  
+1 │   try {
 2 │       require.resolveWeak('./missing-module')
   │ ╭────────^
 3 │ │ } catch (e) {
   │ ╰──^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
+4 │   
+5 │   }
+6 │   
 
 
 
