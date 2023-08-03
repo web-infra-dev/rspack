@@ -78,7 +78,7 @@ impl From<(String, rspack_core::LogType)> for JsStatsLogging {
       rspack_core::LogType::Trace { trace } => Self {
         name: value.0,
         r#type: "trace".to_string(),
-        args: trace.to_string(),
+        args: trace,
       },
       rspack_core::LogType::Group { message } => Self {
         name: value.0,
