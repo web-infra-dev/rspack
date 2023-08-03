@@ -23,12 +23,12 @@ it("verify es6 (esmodule) minify bundle source map", async () => {
 		await checkMap(out, source, {
 			// *${id}* as the search key to aviod conflict with `Object.defineProperty(exports, ${id}, ...)`
 			// "*a0*", "*a1*" is eliminate by minify
-			["*a2*"]: "a.js",
+			['"*a2*"']: "a.js",
 			// "*b0*", "*b1*" is eliminate by minify
-			["*b2*"]: "b-dir/b.js",
+			['"*b2*"']: "b-dir/b.js",
 			// "*c0*" is eliminate by minify
-			["*c1*"]: "b-dir/c-dir/c.js",
-			["*c2*"]: "b-dir/c-dir/c.js"
+			['"*c1*"']: "b-dir/c-dir/c.js",
+			['"*c2*"']: "b-dir/c-dir/c.js"
 		})
 	).toBe(true);
 });
