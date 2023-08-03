@@ -62,7 +62,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
           JsWord::from(export_from_import(
             code_generatable_context,
             true,
-            import_var.as_ref(),
+            import_var,
             id.1.clone().map(|i| vec![i]).unwrap_or_default(),
             &self.id,
             false,
