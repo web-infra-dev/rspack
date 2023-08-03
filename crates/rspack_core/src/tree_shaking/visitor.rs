@@ -23,8 +23,8 @@ use super::{
 };
 use crate::needs_refactor::WorkerSyntaxList;
 use crate::{
-  CompilerOptions, Dependency, DependencyId, DependencyType, FactoryMeta, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, ModuleSyntax,
+  extract_member_expression_chain, CompilerOptions, Dependency, DependencyId, DependencyType,
+  FactoryMeta, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleSyntax,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -419,10 +419,14 @@ impl<'a> ModuleRefAnalyze<'a> {
     default_ident
   }
 
-  fn check_commonjs_feature(&mut self, obj: &Ident, prop: &str) {
-    if self.state.contains(AnalyzeState::ASSIGNMENT_LHS)
-      && ((&obj.sym == "module" && prop == "exports") || &obj.sym == "exports")
-    {
+  fn check_commonjs_feature(&mut self, member_chain: &Vec<(JsWord, SyntaxContext)>) {
+    if self.state.contains(AnalyzeState::ASSIGNMENT_LHS) {
+      match &member_chain[..] {
+        [(js_word!("module"), first_ctxt), (second, _), ..]
+          if second == "exports" && first_ctxt == &self.unresolved_ctxt => {}
+        [(first, first_ctxt), ..] if first == "exports" && &self.unresolved_ctxt == first_ctxt => {}
+        _ => return,
+      }
       self.module_syntax.insert(ModuleSyntax::COMMONJS);
       match self
         .bail_out_module_identifiers
@@ -974,67 +978,37 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
 
   fn visit_member_expr(&mut self, node: &MemberExpr) {
-    match (&*node.obj, &node.prop) {
-      // a.b
-      (Expr::Ident(obj), MemberProp::Ident(prop)) => {
-        self.check_commonjs_feature(obj, &prop.sym);
-        let id: BetterId = obj.to_id().into();
-        let ctxt = id.ctxt;
-
-        if self.potential_top_level_ctxt.contains(&ctxt) {
-          let member_expr = Part::MemberExpr {
-            first: id.atom.clone(),
-            rest: vec![prop.sym.clone()],
-          };
-          match self.current_body_owner_symbol_ext {
-            Some(ref body_owner_symbol_ext) => {
-              if body_owner_symbol_ext.id() != &id.atom {
-                self.add_reference(body_owner_symbol_ext.clone(), member_expr, false);
-              } else if self.state.contains(AnalyzeState::ASSIGNMENT_LHS) {
-                self.add_reference(body_owner_symbol_ext.clone(), member_expr, true);
-              }
-            }
-            None => {
-              self.used_id_set.insert(member_expr);
-            }
-          }
-        }
-      }
-      // obj['prop']
-      (
-        Expr::Ident(obj),
-        MemberProp::Computed(ComputedPropName {
-          expr: box Expr::Lit(Lit::Str(Str { value, .. })),
-          ..
-        }),
-      ) => {
-        self.check_commonjs_feature(obj, value);
-
-        let id: BetterId = obj.to_id().into();
-        let ctxt = id.ctxt;
-        if self.potential_top_level_ctxt.contains(&ctxt) {
-          let member_expr = Part::MemberExpr {
-            first: id.atom.clone(),
-            rest: vec![value.clone()],
-          };
-          match self.current_body_owner_symbol_ext {
-            Some(ref body_owner_symbol_ext) => {
-              if body_owner_symbol_ext.id() != &id.atom {
-                self.add_reference(body_owner_symbol_ext.clone(), member_expr, false);
-              } else if self.state.contains(AnalyzeState::ASSIGNMENT_LHS) {
-                self.add_reference(body_owner_symbol_ext.clone(), member_expr, true);
-              }
-            }
-            None => {
-              self.used_id_set.insert(member_expr);
+    let member_chain = extract_member_expression_chain(node)
+      .into_iter()
+      .collect::<Vec<_>>();
+    self.check_commonjs_feature(&member_chain);
+    if member_chain.len() > 0 {
+      let (first, first_ctxt) = member_chain[0].clone();
+      if self.potential_top_level_ctxt.contains(&first_ctxt) {
+        let member_expr = Part::MemberExpr {
+          first: first.clone(),
+          rest: member_chain
+            .into_iter()
+            .skip(1)
+            .map(|(name, _)| name)
+            .collect::<Vec<_>>(),
+        };
+        match self.current_body_owner_symbol_ext {
+          Some(ref body_owner_symbol_ext) => {
+            if body_owner_symbol_ext.id() != &first {
+              self.add_reference(body_owner_symbol_ext.clone(), member_expr, false);
+            } else if self.state.contains(AnalyzeState::ASSIGNMENT_LHS) {
+              self.add_reference(body_owner_symbol_ext.clone(), member_expr, true);
             }
           }
+          None => {
+            self.used_id_set.insert(member_expr);
+          }
         }
-      }
-      _ => {
-        node.visit_children_with(self);
+        return;
       }
     }
+    node.obj.visit_with(self);
   }
 
   fn visit_export_default_decl(&mut self, node: &ExportDefaultDecl) {
