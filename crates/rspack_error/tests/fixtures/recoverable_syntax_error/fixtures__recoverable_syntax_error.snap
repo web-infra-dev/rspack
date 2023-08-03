@@ -1,6 +1,5 @@
 ---
 source: crates/rspack_error/tests/fixtures.rs
-assertion_line: 38
 expression: recoverable_syntax_error
 ---
 error[tsx]: TSX parsing error
@@ -8,11 +7,13 @@ error[tsx]: TSX parsing error
   │
 1 │ let c = <test>() => {}</test>;
   │                       ^ Expected a semicolon
+2 │ 
 
 error[tsx]: TSX parsing error
   ┌─ tests/fixtures/recoverable_syntax_error/index.tsx:1:24
   │
 1 │ let c = <test>() => {}</test>;
   │                        ^ Expression expected
+2 │ 
 
 

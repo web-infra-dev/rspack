@@ -4,8 +4,8 @@ use std::path::Path;
 use anyhow::Context;
 use codespan_reporting::diagnostic::{Diagnostic, Label, Severity};
 use codespan_reporting::files::SimpleFiles;
-use codespan_reporting::term;
 use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
+use codespan_reporting::term::{self, Config};
 use sugar_path::SugarPath;
 use termcolor::{Buffer, Color, ColorSpec, StandardStreamLock, WriteColor};
 
@@ -192,7 +192,11 @@ fn emit_diagnostic<T: Write + WriteColor>(
       )
       .with_message(&diagnostic.message)]);
 
-    let config = codespan_reporting::term::Config::default();
+    let config = Config {
+      before_label_lines: 4,
+      after_label_lines: 4,
+      ..Config::default()
+    };
 
     term::emit(writer, &config, files, &diagnostic).expect("TODO:");
   } else {

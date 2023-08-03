@@ -198,8 +198,13 @@ describe("Stats", () => {
 		error[javascript]: JavaScript parsing error
 		  ┌─ tests/fixtures/b.js:6:1
 		  │
+		2 │     return "This is b";
+		3 │ };
+		4 │ 
+		5 │ // Test CJS top-level return
 		6 │ return;
 		  │ ^^^^^^^ Return statement is not allowed here
+		7 │ 
 
 
 

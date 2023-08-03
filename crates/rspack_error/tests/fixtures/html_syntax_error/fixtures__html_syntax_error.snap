@@ -1,6 +1,5 @@
 ---
 source: crates/rspack_error/tests/fixtures.rs
-assertion_line: 38
 expression: html_syntax_error
 ---
 error[html]: HTML parsing error
@@ -8,10 +7,12 @@ error[html]: HTML parsing error
   │
 1 │ <head>
   │ ^^^^^^ Start tag seen without seeing a doctype first, expected "<!DOCTYPE html>"
+2 │   </something>
 
 error[html]: HTML parsing error
   ┌─ tests/fixtures/html_syntax_error/index.html:2:3
   │
+1 │ <head>
 2 │   </something>
   │   ^^^^^^^^^^^^ Stray end tag "something"
 

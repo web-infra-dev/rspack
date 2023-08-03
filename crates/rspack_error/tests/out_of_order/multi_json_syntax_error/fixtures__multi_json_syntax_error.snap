@@ -1,11 +1,12 @@
 ---
 source: crates/rspack_error/tests/fixtures.rs
-assertion_line: 63
 expression: multi_json_syntax_error
 ---
 error[json]: Json parsing error
   ┌─ tests/out_of_order/multi_json_syntax_error/a.json:3:1
   │
+1 │ {
+2 │   "a"
 3 │ }
   │ ^ Unexpected character }
 
