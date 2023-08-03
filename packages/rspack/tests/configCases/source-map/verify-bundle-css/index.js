@@ -20,15 +20,15 @@ it("verify css bundle source map", async () => {
 	const out = fs.readFileSync(path.resolve(__dirname, "main.css"), "utf-8");
 	expect(
 		await checkMap(out, source, {
-			'"a0"': '"a.css"',
-			'"a1"': '"a.css"',
-			'"a2"': '"a.css"',
-			'"b0"': '"b-dir/b.css"',
-			'"b1"': '"b-dir/b.css"',
-			'"b2"': '"b-dir/b.css"',
-			'"c0"': '"b-dir/c-dir/c.css"',
-			'"c1"': '"b-dir/c-dir/c.css"',
-			'"c2"': '"b-dir/c-dir/c.cs"s'
+			'a:nth-child(0):after { content: "a0"; }': "a.css",
+			'a:nth-child(1):after { content: "a1"; }': "a.css",
+			'a:nth-child(2):after { content: "a2"; }': "a.css",
+			'b:nth-child(0):after { content: "b0"; }': "b-dir/b.css",
+			'b:nth-child(1):after { content: "b1"; }': "b-dir/b.css",
+			'b:nth-child(2):after { content: "b2"; }': "b-dir/b.css",
+			'c:nth-child(0):after { content: "c0"; }': "b-dir/c-dir/c.css",
+			'c:nth-child(1):after { content: "c1"; }': "b-dir/c-dir/c.css",
+			'c:nth-child(2):after { content: "c2"; }': "b-dir/c-dir/c.css"
 		})
 	).toBe(true);
 });
