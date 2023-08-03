@@ -34,7 +34,7 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
           .expect("should have mgm")
           .get_exports_argument()
       ),
-      InitFragmentStage::STAGE_HARMONY_EXPORTS,
+      InitFragmentStage::StageHarmonyExportsCompatibility,
       None,
     ));
 
@@ -51,7 +51,7 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
             .expect("should have mgm")
             .get_module_argument()
         ),
-        InitFragmentStage::STAGE_ASYNC_BOUNDARY,
+        InitFragmentStage::StageAsyncBoundary,
         Some("\n__webpack_async_result__();\n} catch(e) { __webpack_async_result__(e); } });".to_string()),
       ));
     }

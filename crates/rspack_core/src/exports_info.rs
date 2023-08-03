@@ -31,6 +31,10 @@ impl ExportsInfo {
     }
   }
 
+  pub fn get_used_exports(&self) -> HashSet<&JsWord> {
+    self.exports.keys().collect::<HashSet<_>>()
+  }
+
   pub fn get_used(
     &self,
     name: UsedName,

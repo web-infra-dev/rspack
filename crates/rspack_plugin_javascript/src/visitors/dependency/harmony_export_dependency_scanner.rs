@@ -1,6 +1,6 @@
 use rspack_core::{
   tree_shaking::symbol::DEFAULT_JS_WORD, ConstDependency, DependencyTemplate, ModuleDependency,
-  ModuleIdentifier, SpanExt,
+  SpanExt,
 };
 use swc_core::{
   common::Spanned,
@@ -27,7 +27,6 @@ pub struct HarmonyExportDependencyScanner<'a> {
   pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   pub import_map: &'a mut ImportMap,
   pub exports: Vec<(JsWord, JsWord)>,
-  module_identifier: ModuleIdentifier,
 }
 
 impl<'a> HarmonyExportDependencyScanner<'a> {
@@ -35,14 +34,12 @@ impl<'a> HarmonyExportDependencyScanner<'a> {
     dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     import_map: &'a mut ImportMap,
-    module_identifier: ModuleIdentifier,
   ) -> Self {
     Self {
       dependencies,
       presentational_dependencies,
       import_map,
       exports: Default::default(),
-      module_identifier,
     }
   }
 }
@@ -96,13 +93,12 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                 _ => unreachable!(),
               };
               if let Some(reference) = self.import_map.get(&orig.to_id()) {
-                self.presentational_dependencies.push(Box::new(
-                  HarmonyExportImportedSpecifierDependency::new(
+                self
+                  .dependencies
+                  .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
                     reference.request.clone(),
                     vec![(export, reference.names.clone())],
-                    self.module_identifier,
-                  ),
-                ));
+                  )));
               } else {
                 self.exports.push((export, orig.sym.clone()));
               }
