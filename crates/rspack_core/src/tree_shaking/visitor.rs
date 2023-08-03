@@ -377,16 +377,12 @@ impl<'a> ModuleRefAnalyze<'a> {
           first: object,
           rest: property,
         } => self.import_map.get(&object).map(|sym_ref| match sym_ref {
-          SymbolRef::Indirect(_) => SymbolRef::Usage(
-            object.clone(),
-            vec![property.clone()],
-            self.module_identifier,
-          ),
-          SymbolRef::Star(_) => SymbolRef::Usage(
-            object.clone(),
-            vec![property.clone()],
-            self.module_identifier,
-          ),
+          SymbolRef::Indirect(_) => {
+            SymbolRef::Usage(object.clone(), property.clone(), self.module_identifier)
+          }
+          SymbolRef::Star(_) => {
+            SymbolRef::Usage(object.clone(), property.clone(), self.module_identifier)
+          }
           SymbolRef::Url { .. }
           | SymbolRef::Worker { .. }
           | SymbolRef::Declaration(_)
@@ -514,7 +510,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   Some(_) => {
                     return HashSet::from_iter([SymbolRef::Usage(
                       object.clone(),
-                      vec![property.clone()],
+                      property.clone(),
                       self.module_identifier,
                     )]);
                   }
@@ -575,7 +571,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 Some(_) => {
                   return HashSet::from_iter([SymbolRef::Usage(
                     object.clone(),
-                    vec![property.clone()],
+                    property.clone(),
                     self.module_identifier,
                   )]);
                 }
@@ -628,7 +624,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           Some(_) => {
             self.used_symbol_ref.insert(SymbolRef::Usage(
               object.clone(),
-              vec![property.clone()],
+              property.clone(),
               self.module_identifier,
             ));
           }
@@ -991,7 +987,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         if self.potential_top_level_mark.contains(&mark) {
           let member_expr = Part::MemberExpr {
             first: id.atom.clone(),
-            rest: prop.sym.clone(),
+            rest: vec![prop.sym.clone()],
           };
           match self.current_body_owner_symbol_ext {
             Some(ref body_owner_symbol_ext) => {
@@ -1022,7 +1018,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         if self.potential_top_level_mark.contains(&mark) {
           let member_expr = Part::MemberExpr {
             first: id.atom.clone(),
-            rest: value.clone(),
+            rest: vec![value.clone()],
           };
           match self.current_body_owner_symbol_ext {
             Some(ref body_owner_symbol_ext) => {

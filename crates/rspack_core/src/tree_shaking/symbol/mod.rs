@@ -361,7 +361,7 @@ impl PartialEq for SymbolExt {
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Part {
   TopLevelId(JsWord),
-  MemberExpr { first: JsWord, rest: JsWord },
+  MemberExpr { first: JsWord, rest: Vec<JsWord> },
   Url(JsWord),
   Worker(JsWord),
 }
