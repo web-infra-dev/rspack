@@ -1,15 +1,11 @@
-use rspack_core::{
-  ChunkGroupOptions, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ExportsReferencedType, ModuleDependency, ModuleGraph, RuntimeGlobals,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState,
-};
-use swc_core::ecma::atoms::{js_word, JsWord};
+use rspack_core::{DependencyTemplate, TemplateContext, TemplateReplaceSource, UsageState};
+use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
 pub struct ExportInfoApiDependency {
   start: u32,
   end: u32,
-  id: DependencyId,
+  // id: DependencyId,
   export_name: Vec<JsWord>,
   property: JsWord,
   // TODO: runtime_requirements
@@ -20,7 +16,7 @@ impl ExportInfoApiDependency {
     Self {
       start,
       end,
-      id: DependencyId::new(),
+      // id: DependencyId::new(),
       export_name,
       property,
     }
@@ -33,10 +29,10 @@ impl DependencyTemplate for ExportInfoApiDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let usage = match self.get_property(code_generatable_context) {
-      Some(UsageState::Used) => true,
-      _ => false,
-    };
+    let usage = matches!(
+      self.get_property(code_generatable_context),
+      Some(UsageState::Used)
+    );
     source.replace(self.start, self.end, usage.to_string().as_ref(), None);
   }
 }
@@ -64,7 +60,7 @@ impl ExportInfoApiDependency {
         }
         _ => {
           // TODO: support other prop
-          return None;
+          None
         }
       }
     } else {

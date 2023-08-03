@@ -174,7 +174,9 @@ where
           SymbolRef::Star(_) => return,
           SymbolRef::Usage(_, _, _) => return,
           SymbolRef::Url { .. } => return,
-          SymbolRef::Worker { .. } => return,
+          SymbolRef::Worker {
+                        ..
+          } => return,
         };
         match exports_info_map.entry(importer) {
           Entry::Occupied(mut occ) => {

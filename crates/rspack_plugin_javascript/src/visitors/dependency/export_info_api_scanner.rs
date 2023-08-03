@@ -1,21 +1,20 @@
 use std::collections::VecDeque;
 
-use rspack_core::{DependencyTemplate, ExportInfo, ModuleDependency, ModuleIdentifier, SpanExt};
+use rspack_core::{DependencyTemplate, SpanExt};
 use swc_core::{
-  common::{Mark, SyntaxContext},
+  common::SyntaxContext,
   ecma::{
     ast::*,
     atoms::JsWord,
-    visit::{noop_visit_type, Visit, VisitWith},
+    visit::{noop_visit_type, Visit},
   },
 };
 
-use crate::dependency::{ExportInfoApiDependency, URLDependency};
+use crate::dependency::ExportInfoApiDependency;
 
 pub struct ExportInfoApiScanner<'a> {
   pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   unresolved_ctxt: SyntaxContext,
-  module_identifier: ModuleIdentifier,
 }
 
 //__webpack_exports_info__.a.used
@@ -23,13 +22,10 @@ impl<'a> ExportInfoApiScanner<'a> {
   pub fn new(
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
-    module_identifier: ModuleIdentifier,
   ) -> Self {
     Self {
       presentational_dependencies,
       unresolved_ctxt,
-
-      module_identifier,
     }
   }
 }
@@ -39,7 +35,7 @@ impl Visit for ExportInfoApiScanner<'_> {
 
   fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
     let member_chain = extract_member_expression_chain(member_expr);
-    if member_chain.len() > 0
+    if !member_chain.is_empty()
       && &member_chain[0].0 == "__webpack_exports_info__"
       && member_chain[0].1 == self.unresolved_ctxt
     {
