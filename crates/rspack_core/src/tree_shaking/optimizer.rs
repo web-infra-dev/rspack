@@ -1106,6 +1106,8 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
           StarSymbolKind::ReExportAll => (false, vec![]),
         };
+
+        let mut find_at_least_one_match = false;
         // try to access first member expr element
         if let Some(name) = next_member_chain.get(0) {
           if let Some(export_symbol_ref) = analyze_refsult.export_map.get(name) {
@@ -1195,10 +1197,23 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
         }
 
+        dbg!(&current_symbol_ref);
+        dbg!(&find_at_least_one_match);
+        if !find_at_least_one_match && !matches!(star_symbol.ty(), StarSymbolKind) {
+          // It means the module has not export or reexport target reference, maybe the src module
+          // is a empty module, we should avoid to eliminate the module even it is a sideEffects
+          // free module
+          merge_used_export_type(
+            used_export_module_identifiers,
+            src_module_identifier,
+            ModuleUsedType::EXPORT_ALL,
+          );
+        }
         // Failed to look up a specific element, connect all
         for (key, export_symbol_ref) in analyze_refsult.export_map.iter() {
           if !include_default_export && key == "default" {
           } else {
+            find_at_least_one_match = true;
             self
               .symbol_graph
               .add_edge(&current_symbol_ref, export_symbol_ref);
