@@ -710,7 +710,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     } else {
       visited_symbol_ref.insert(current_symbol_ref_with_member_chain.clone());
     }
-    dbg!(&current_symbol_ref_with_member_chain);
     let (current_symbol_ref, member_chain) = current_symbol_ref_with_member_chain;
 
     if !evaluated_module_identifiers.contains(&current_symbol_ref.importer()) {
@@ -1107,7 +1106,6 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
           StarSymbolKind::ReExportAll => (false, vec![]),
         };
-        dbg!(&next_member_chain);
         // try to access first member expr element
         if let Some(name) = next_member_chain.get(0) {
           if let Some(export_symbol_ref) = analyze_refsult.export_map.get(name) {
@@ -1223,7 +1221,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       SymbolRef::Url { .. } | SymbolRef::Worker { .. } => {}
       SymbolRef::Usage(ref binding, ref member_chain, ref src) => {
         let analyze_result = analyze_map.get(src).expect("Should have analyze result");
-        if let Some(import_symbol_ref) = analyze_result.import_map.get(&binding) {
+        if let Some(import_symbol_ref) = analyze_result.import_map.get(binding) {
           self
             .symbol_graph
             .add_edge(&current_symbol_ref, import_symbol_ref);

@@ -5,7 +5,7 @@ use hashlink::{LinkedHashMap, LinkedHashSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 use swc_core::common::SyntaxContext;
-use swc_core::common::{util::take::Take, Mark, GLOBALS};
+use swc_core::common::{util::take::Take, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::atoms::{js_word, JsWord};
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
@@ -331,7 +331,7 @@ impl<'a> ModuleRefAnalyze<'a> {
   /// in rest of scenario we only count binding imported from other module.
   pub fn get_all_import_or_export(&self, start: JsWord, only_import: bool) -> HashSet<SymbolRef> {
     let mut visited: HashSet<Part> = HashSet::default();
-    let mut q: VecDeque<Part> = VecDeque::from_iter([Part::TopLevelId(start.clone())]);
+    let mut q: VecDeque<Part> = VecDeque::from_iter([Part::TopLevelId(start)]);
     while let Some(cur) = q.pop_front() {
       if visited.contains(&cur) {
         continue;
@@ -353,11 +353,11 @@ impl<'a> ModuleRefAnalyze<'a> {
       .iter()
       .filter_map(|part| match part {
         Part::TopLevelId(id) => {
-          let ret = self.import_map.get(&id).cloned().or_else(|| {
+          let ret = self.import_map.get(id).cloned().or_else(|| {
             if only_import {
               None
             } else {
-              match self.export_map.get(&id) {
+              match self.export_map.get(id) {
                 Some(sym_ref @ SymbolRef::Declaration(sym)) => {
                   if &sym.id().atom == id {
                     Some(sym_ref.clone())
@@ -374,7 +374,7 @@ impl<'a> ModuleRefAnalyze<'a> {
         Part::MemberExpr {
           first: object,
           rest: property,
-        } => self.import_map.get(&object).map(|sym_ref| match sym_ref {
+        } => self.import_map.get(object).map(|sym_ref| match sym_ref {
           SymbolRef::Indirect(_) => {
             SymbolRef::Usage(object.clone(), property.clone(), self.module_identifier)
           }
@@ -419,9 +419,9 @@ impl<'a> ModuleRefAnalyze<'a> {
     default_ident
   }
 
-  fn check_commonjs_feature(&mut self, member_chain: &Vec<(JsWord, SyntaxContext)>) {
+  fn check_commonjs_feature(&mut self, member_chain: &[(JsWord, SyntaxContext)]) {
     if self.state.contains(AnalyzeState::ASSIGNMENT_LHS) {
-      match &member_chain[..] {
+      match member_chain {
         [(js_word!("module"), first_ctxt), (second, _), ..]
           if second == "exports" && first_ctxt == &self.unresolved_ctxt => {}
         [(first, first_ctxt), ..] if first == "exports" && &self.unresolved_ctxt == first_ctxt => {}
@@ -507,7 +507,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 Part::MemberExpr {
                   first: object,
                   rest: property,
-                } => match self.import_map.get(&object) {
+                } => match self.import_map.get(object) {
                   Some(_) => {
                     return HashSet::from_iter([SymbolRef::Usage(
                       object.clone(),
@@ -542,7 +542,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   }]);
                 }
               };
-              let ret = self.import_map.get(&id);
+              let ret = self.import_map.get(id);
               match ret {
                 Some(ret) => HashSet::from_iter([ret.clone()]),
                 None => self.get_all_import_or_export(id.clone(), true),
@@ -568,7 +568,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               Part::MemberExpr {
                 first: object,
                 rest: property,
-              } => match self.import_map.get(&object) {
+              } => match self.import_map.get(object) {
                 Some(_) => {
                   return HashSet::from_iter([SymbolRef::Usage(
                     object.clone(),
@@ -601,7 +601,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 }]);
               }
             };
-            let ret = self.import_map.get(&id);
+            let ret = self.import_map.get(id);
             match ret {
               Some(ret) => HashSet::from_iter([ret.clone()]),
               None => self.get_all_import_or_export(id.clone(), true),
@@ -621,7 +621,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         Part::MemberExpr {
           first: object,
           rest: property,
-        } => match self.import_map.get(&object) {
+        } => match self.import_map.get(object) {
           Some(_) => {
             self.used_symbol_ref.insert(SymbolRef::Usage(
               object.clone(),
@@ -703,7 +703,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id.atom => {
           self.add_reference(
             body_owner_symbol_ext.clone(),
-            Part::TopLevelId(id.atom.clone()),
+            Part::TopLevelId(id.atom),
             false,
           );
         }
@@ -945,7 +945,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     let valid_assign_target = target.is_some();
     if let Some(target) = target {
       self.current_body_owner_symbol_ext = Some(SymbolExt {
-        id: target.0.into(),
+        id: target.0,
         flag: SymbolFlag::empty(),
       });
     }
@@ -982,7 +982,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       .into_iter()
       .collect::<Vec<_>>();
     self.check_commonjs_feature(&member_chain);
-    if member_chain.len() > 0 {
+    if !member_chain.is_empty() {
       let (first, first_ctxt) = member_chain[0].clone();
       if self.potential_top_level_ctxt.contains(&first_ctxt) {
         let member_expr = Part::MemberExpr {
@@ -1063,7 +1063,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             );
             renamed_symbol_ext
           } else {
-            SymbolExt::new(default_ident.sym.clone(), symbol_flag)
+            SymbolExt::new(default_ident.sym, symbol_flag)
           };
           self.export_default_name = Some(symbol_ext.id().clone());
           symbol_ext
@@ -1170,7 +1170,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             );
             symbol_ext
           } else {
-            SymbolExt::new(default_ident.sym.clone(), symbol_flag)
+            SymbolExt::new(default_ident.sym, symbol_flag)
           };
           self.export_default_name = Some(symbol_ext.id().clone());
           symbol_ext

@@ -1,11 +1,8 @@
-use std::collections::VecDeque;
-
 use rspack_core::{extract_member_expression_chain, DependencyTemplate, SpanExt};
 use swc_core::{
   common::SyntaxContext,
   ecma::{
     ast::*,
-    atoms::JsWord,
     visit::{noop_visit_type, Visit},
   },
 };
