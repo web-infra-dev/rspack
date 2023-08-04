@@ -30,7 +30,8 @@ import type {
 	SimpleExtractors,
 	StatsAsset,
 	StatsChunk,
-	NormalizedStatsOptions
+	NormalizedStatsOptions,
+	KnownStatsLoggingEntry
 } from "./statsFactoryUtils";
 import { LogType } from "../logging/Logger";
 
@@ -384,8 +385,12 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				object.name = compilation.name;
 			}
 			// TODO: support compilation.needAdditionalPass
-			const { logging } = options;
-			if (logging) {
+			const logging = options.logging!;
+			const loggingDebug = options.loggingDebug as ((
+				value: string
+			) => boolean)[];
+			const loggingTrace = options.loggingTrace!;
+			if (logging || (loggingDebug && loggingDebug.length > 0)) {
 				let acceptedTypes: Set<string>;
 				let collapsedGroups = false;
 				switch (logging) {
@@ -449,16 +454,63 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 						compilationLogging.set(name, [rest]);
 					}
 				}
+				let depthInCollapsedGroup = 0;
 				for (const [origin, logEntries] of compilationLogging) {
+					const debugMode = loggingDebug.some(fn => fn(origin));
+					if (logging === false && !debugMode) continue;
+					const groupStack: KnownStatsLoggingEntry[] = [];
+					const rootList: KnownStatsLoggingEntry[] = [];
+					let currentList = rootList;
+					let processedLogEntries = 0;
+					for (const entry of logEntries) {
+						let type = entry.type;
+						if (!debugMode && !acceptedTypes.has(type)) continue;
+
+						// Expand groups in verbose and debug modes
+						if (
+							type === LogType.groupCollapsed &&
+							(debugMode || collapsedGroups)
+						)
+							type = LogType.group;
+
+						if (depthInCollapsedGroup === 0) {
+							processedLogEntries++;
+						}
+
+						if (type === LogType.groupEnd) {
+							groupStack.pop();
+							if (groupStack.length > 0) {
+								currentList = groupStack[groupStack.length - 1].children!;
+							} else {
+								currentList = rootList;
+							}
+							if (depthInCollapsedGroup > 0) depthInCollapsedGroup--;
+							continue;
+						}
+						const newEntry: KnownStatsLoggingEntry = {
+							type,
+							message: entry.message ?? "",
+							trace: loggingTrace ? entry.trace : undefined,
+							children:
+								type === LogType.group || type === LogType.groupCollapsed
+									? []
+									: undefined
+						};
+						currentList.push(newEntry);
+						if (newEntry.children) {
+							groupStack.push(newEntry);
+							currentList = newEntry.children;
+							if (depthInCollapsedGroup > 0) {
+								depthInCollapsedGroup++;
+							} else if (type === LogType.groupCollapsed) {
+								depthInCollapsedGroup = 1;
+							}
+						}
+					}
 					object.logging[origin] = {
-						entries: logEntries
-							.filter(logEntry => acceptedTypes.has(logEntry.type))
-							.map(logEntry => ({
-								type: logEntry.type,
-								message: logEntry.args
-							})),
-						filteredEntries: 0,
-						debug: false
+						entries: rootList,
+						filteredEntries: logEntries.length - processedLogEntries,
+						debug: debugMode
 					};
 				}
 			}

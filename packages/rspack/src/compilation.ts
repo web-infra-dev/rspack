@@ -36,7 +36,12 @@ import ErrorHelpers from "./ErrorHelpers";
 import { LogType, Logger } from "./logging/Logger";
 import { NormalModule } from "./normalModule";
 import { NormalModuleFactory } from "./normalModuleFactory";
-import { Stats, normalizeStatsPreset } from "./stats";
+import {
+	Stats,
+	normalizeFilter,
+	normalizeStatsPreset,
+	optionsOrFallback
+} from "./stats";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
 import { concatErrorMsgAndStack, isJsStatsError, toJsAssetInfo } from "./util";
@@ -287,6 +292,13 @@ export class Compilation {
 			options.logging,
 			context.forToString ? "info" : true
 		);
+		options.loggingTrace = optionOrLocalFallback(
+			options.loggingTrace,
+			!context.forToString
+		);
+		options.loggingDebug = []
+			.concat(optionsOrFallback(options.loggingDebug, []))
+			.map(normalizeFilter);
 
 		return options;
 	}

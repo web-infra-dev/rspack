@@ -329,6 +329,19 @@ impl Compilation {
   #[instrument(name = "compilation:make", skip_all)]
   pub async fn make(&mut self, mut param: MakeParam) -> Result<()> {
     let logger = self.get_logger("rspack.Compiler");
+    logger.group("group");
+    logger.clear();
+    logger.error("error");
+    logger.warn("warn");
+    logger.trace();
+    logger.group_collapsed("collapsed");
+    logger.info("info");
+    logger.group_end();
+    logger.info("info");
+    logger.log("log");
+    logger.group_end();
+    logger.info("info");
+    logger.log("log");
     let start = logger.time("make hook");
     if let Some(e) = self
       .plugin_driver
