@@ -344,7 +344,7 @@ export interface JsStatsGetAssets {
 export interface JsStatsLogging {
   name: string
   type: string
-  message?: string
+  args?: Array<string>
   trace?: Array<string>
 }
 

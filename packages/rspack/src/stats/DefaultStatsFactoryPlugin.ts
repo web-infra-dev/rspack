@@ -450,7 +450,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 					const entry = {
 						type: rest.type,
 						trace: rest.trace,
-						args: [rest.message]
+						args: rest.args ?? []
 					};
 					if (value) {
 						value.push(entry);
