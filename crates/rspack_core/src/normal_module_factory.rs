@@ -364,18 +364,19 @@ impl NormalModuleFactory {
               .use_cache(new_args, |args| resolve(args, plugin_driver))
               .await;
             if let Ok(ResolveResult::Resource(resource)) = resource_data {
-              let regex = Regex::new("^.*[\\/]").expect("wrong regex");
-
-              let resource_path = resource.path.to_string_lossy();
-
-              let resource = regex.replace_all(resource_path.as_ref(), "");
-              println!("------{resource_path}");
-              let original_resource = regex.replace_all(request_without_match_resource, "");
-              diagnostic = diagnostic.with_notes(vec![format!("Did you mean '{resource}'?
-BREAKING CHANGE: The request '{original_resource}' failed to resolve only because it was resolved as fully specified
-(probably because the origin is strict EcmaScript Module, e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\"type\": \"module\"').
-The extension in the request is mandatory for it to be fully specified.
-Add the extension to the request.")]);
+              // TODO: Here windows resolver will return normalized path.
+              // eg. D:\a\rspack\rspack\packages\rspack\tests\fixtures\errors\resolve-fail-esm\answer.js
+              if let Some(extension) = resource.path.extension() {
+                let resource = format!(
+                  "{request_without_match_resource}.{}",
+                  extension.to_string_lossy()
+                );
+                diagnostic = diagnostic.with_notes(vec![format!("Did you mean '{resource}'?
+  BREAKING CHANGE: The request '{request_without_match_resource}' failed to resolve only because it was resolved as fully specified
+  (probably because the origin is strict EcmaScript Module, e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\"type\": \"module\"').
+  The extension in the request is mandatory for it to be fully specified.
+  Add the extension to the request.")]);
+              }
             }
           }
           let missing_module = MissingModule::new(
