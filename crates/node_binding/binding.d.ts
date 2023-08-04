@@ -46,6 +46,7 @@ export class JsStats {
   getNamedChunkGroups(): Array<JsStatsChunkGroup>
   getErrors(): Array<JsStatsError>
   getWarnings(): Array<JsStatsWarning>
+  getLogging(): Array<JsStatsLogging>
   getHash(): string
 }
 
@@ -338,6 +339,12 @@ export interface JsStatsError {
 export interface JsStatsGetAssets {
   assets: Array<JsStatsAsset>
   assetsByChunkName: Array<JsStatsAssetsByChunkName>
+}
+
+export interface JsStatsLogging {
+  name: string
+  type: string
+  args: string
 }
 
 export interface JsStatsModule {

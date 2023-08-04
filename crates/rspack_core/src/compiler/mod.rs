@@ -22,7 +22,7 @@ use tracing::instrument;
 use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
 use crate::tree_shaking::visitor::SymbolRef;
 use crate::{
-  cache::Cache, fast_set, AssetEmittedArgs, CompilerOptions, Plugin, PluginDriver,
+  cache::Cache, fast_set, AssetEmittedArgs, CompilerOptions, Logger, Plugin, PluginDriver,
   SharedPluginDriver,
 };
 use crate::{ExportInfo, UsageState};
@@ -126,15 +126,22 @@ where
 
   #[instrument(name = "compile", skip_all)]
   async fn compile(&mut self, params: MakeParam) -> Result<()> {
+    let logger = self.compilation.get_logger("rspack.Compiler");
     let option = self.options.clone();
+    let start = logger.time("make");
     self.compilation.make(params).await?;
+    logger.time_end(start);
 
+    let start = logger.time("finish make hook");
     self
       .plugin_driver
       .finish_make(&mut self.compilation)
       .await?;
+    logger.time_end(start);
 
+    let start = logger.time("finish compilation");
     self.compilation.finish(self.plugin_driver.clone()).await?;
+    logger.time_end(start);
     // by default include all module in final chunk
     self.compilation.include_module_ids = self
       .compilation
@@ -227,12 +234,16 @@ where
       }
       self.compilation.optimize_analyze_result_map = analyze_result.analyze_results;
     }
+    let start = logger.time("seal compilation");
     self.compilation.seal(self.plugin_driver.clone()).await?;
+    logger.time_end(start);
 
+    let start = logger.time("afterCompile hook");
     self
       .plugin_driver
       .after_compile(&mut self.compilation)
       .await?;
+    logger.time_end(start);
 
     // Consume plugin driver diagnostic
     let plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();
@@ -245,11 +256,16 @@ where
 
   #[instrument(name = "compile_done", skip_all)]
   async fn compile_done(&mut self) -> Result<()> {
+    let logger = self.compilation.get_logger("rspack.Compiler");
     if !self.compilation.options.builtins.no_emit_assets {
+      let start = logger.time("emitAssets");
       self.emit_assets().await?;
+      logger.time_end(start);
     }
 
+    let start = logger.time("done hook");
     self.compilation.done(self.plugin_driver.clone()).await?;
+    logger.time_end(start);
     Ok(())
   }
 

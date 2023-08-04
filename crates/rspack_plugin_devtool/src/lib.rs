@@ -8,6 +8,7 @@ use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rayon::prelude::*;
 use regex::Regex;
+use rspack_core::Logger;
 use rspack_core::{
   contextify,
   rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap},
@@ -64,8 +65,9 @@ static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(Dash
 #[async_trait::async_trait]
 impl Plugin for DevtoolPlugin {
   fn name(&self) -> &'static str {
-    "devtool"
+    "rspack.DevtoolPlugin"
   }
+
   fn render_module_content(
     &self,
     _ctx: PluginContext,
@@ -100,6 +102,8 @@ impl Plugin for DevtoolPlugin {
     _ctx: PluginContext,
     args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
+    let logger = args.compilation.get_logger(self.name());
+    let start = logger.time("collect source maps");
     let no_map =
       !args.compilation.options.devtool.source_map() || args.compilation.options.devtool.eval();
     let context = args.compilation.options.context.clone();
@@ -139,6 +143,9 @@ impl Plugin for DevtoolPlugin {
         Ok((filename.to_owned(), (code_buffer, map)))
       })
       .collect::<Result<_>>()?;
+    logger.time_end(start);
+
+    let start = logger.time("emit source map assets");
     for (filename, (code_buffer, map_buffer)) in maps {
       let mut asset = args
         .compilation
@@ -249,6 +256,7 @@ impl Plugin for DevtoolPlugin {
         );
       }
     }
+    logger.time_end(start);
     Ok(())
   }
 }
