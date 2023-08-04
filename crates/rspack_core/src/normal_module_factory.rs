@@ -370,11 +370,11 @@ impl NormalModuleFactory {
 
               let resource = regex.replace_all(resource_path.as_ref(), "");
               let original_resource = regex.replace_all(request_without_match_resource, "");
-              diagnostic = diagnostic.with_notes(vec![format!("Did you mean '{}'?
-BREAKING CHANGE: The request '{}' failed to resolve only because it was resolved as fully specified
+              diagnostic = diagnostic.with_notes(vec![format!("{resource_path} Did you mean '{resource}'?
+BREAKING CHANGE: The request '{original_resource}' failed to resolve only because it was resolved as fully specified
 (probably because the origin is strict EcmaScript Module, e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\"type\": \"module\"').
 The extension in the request is mandatory for it to be fully specified.
-Add the extension to the request.",resource, original_resource)]);
+Add the extension to the request.")]);
             }
           }
           let missing_module = MissingModule::new(
