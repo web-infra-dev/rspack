@@ -63,7 +63,7 @@ export interface Asset {
 export interface LogEntry {
 	type: string;
 	args: any[];
-	time: number;
+	time?: number;
 	trace?: string[];
 }
 

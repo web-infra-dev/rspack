@@ -55,6 +55,27 @@ pub enum LogType {
   },
 }
 
+impl LogType {
+  pub fn to_bit_flag(&self) -> u32 {
+    match self {
+      LogType::Error { .. } => 1 << 0,
+      LogType::Warn { .. } => 1 << 1,
+      LogType::Info { .. } => 1 << 2,
+      LogType::Log { .. } => 1 << 3,
+      LogType::Debug { .. } => 1 << 4,
+      LogType::Trace { .. } => 1 << 5,
+      LogType::Group { .. } => 1 << 6,
+      LogType::GroupCollapsed { .. } => 1 << 7,
+      LogType::GroupEnd => 1 << 8,
+      LogType::Profile { .. } => 1 << 9,
+      LogType::ProfileEnd { .. } => 1 << 10,
+      LogType::Time { .. } => 1 << 11,
+      LogType::Clear => 1 << 12,
+      LogType::Status { .. } => 1 << 13,
+    }
+  }
+}
+
 fn capture_trace() -> Vec<String> {
   Backtrace::force_capture()
     .to_string()

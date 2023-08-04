@@ -485,11 +485,15 @@ impl JsStats {
   }
 
   #[napi]
-  pub fn get_logging(&self) -> Vec<JsStatsLogging> {
+  pub fn get_logging(&self, accepted_types: u32) -> Vec<JsStatsLogging> {
     self
       .inner
       .get_logging()
       .into_iter()
+      .filter(|log| {
+        let bit = log.1.to_bit_flag();
+        accepted_types & bit == bit
+      })
       .map(Into::into)
       .collect()
   }

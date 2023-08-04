@@ -46,7 +46,7 @@ export class JsStats {
   getNamedChunkGroups(): Array<JsStatsChunkGroup>
   getErrors(): Array<JsStatsError>
   getWarnings(): Array<JsStatsWarning>
-  getLogging(): Array<JsStatsLogging>
+  getLogging(acceptedTypes: number): Array<JsStatsLogging>
   getHash(): string
 }
 

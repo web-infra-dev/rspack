@@ -385,7 +385,7 @@ export async function runLoader(
 		};
 	};
 	loaderContext.getLogger = function getLogger(name) {
-		return compiler.getInfrastructureLogger(() =>
+		return compiler.compilation.getLogger(
 			[name, resource].filter(Boolean).join("|")
 		);
 	};

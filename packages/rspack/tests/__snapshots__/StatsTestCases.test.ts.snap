@@ -1119,6 +1119,142 @@ exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin
 rspack compiled with 1 warning"
 `;
 
+exports[`StatsTestCases should print correct stats for logging 1`] = `
+{
+  "logging": {
+    "TestLoader|<PROJECT_ROOT>/tests/statsCases/logging/index.js": {
+      "debug": true,
+      "entries": [
+        {
+          "children": undefined,
+          "message": "info something",
+          "trace": undefined,
+          "type": "info",
+        },
+        {
+          "children": undefined,
+          "message": "log something",
+          "trace": undefined,
+          "type": "log",
+        },
+      ],
+      "filteredEntries": 0,
+    },
+    "rspack.Compiler": {
+      "debug": true,
+      "entries": [
+        {
+          "children": undefined,
+          "message": "make hook: 0 ms",
+          "trace": undefined,
+          "type": "time",
+        },
+        {
+          "children": undefined,
+          "message": "module add task: 1 ms",
+          "trace": undefined,
+          "type": "time",
+        },
+        {
+          "children": undefined,
+          "message": "module process dependencies task: 0 ms",
+          "trace": undefined,
+          "type": "time",
+        },
+        {
+          "children": undefined,
+          "message": "module factorize task: 0 ms",
+          "trace": undefined,
+          "type": "time",
+        },
+        {
+          "children": undefined,
+          "message": "module build task: 0 ms",
+          "trace": undefined,
+          "type": "time",
+        },
+        {
+          "children": undefined,
+          "message": "make: 10 ms",
+          "trace": undefined,
+          "type": "time",
+        },
+        {
+          "children": undefined,
+          "message": "finish make hook: 0 ms",
+          "trace": undefined,
+          "type": "time",
+        },
+        {
+          "children": undefined,
+          "message": "finish compilation: 0 ms",
+          "trace": undefined,
+          "type": "time",
+        },
+        {
+          "children": undefined,
+          "message": "seal compilation: 9 ms",
+          "trace": undefined,
+          "type": "time",
+        },
+        {
+          "children": undefined,
+          "message": "afterCompile hook: 0 ms",
+          "trace": undefined,
+          "type": "time",
+        },
+        {
+          "children": undefined,
+          "message": "emitAssets: 0 ms",
+          "trace": undefined,
+          "type": "time",
+        },
+        {
+          "children": undefined,
+          "message": "done hook: 0 ms",
+          "trace": undefined,
+          "type": "time",
+        },
+      ],
+      "filteredEntries": 0,
+    },
+  },
+}
+`;
+
+exports[`StatsTestCases should print correct stats for logging 2`] = `
+"DEBUG LOG from TestLoader|<PROJECT_ROOT>/tests/statsCases/logging/index.js
+<i> info something
+    log something
+
+DEBUG LOG from rspack.Compiler
+<t> make hook: 0 ms
+<t> module add task: 1 ms
+<t> module process dependencies task: 0 ms
+<t> module factorize task: 0 ms
+<t> module build task: 0 ms
+<t> make: 10 ms
+<t> finish make hook: 0 ms
+<t> finish compilation: 0 ms
+<t> seal compilation: 9 ms
+<t> afterCompile hook: 0 ms
+<t> emitAssets: 0 ms
+<t> done hook: 0 ms
+<t> make hook: 0 ms
+<t> module add task: 1 ms
+<t> module process dependencies task: 0 ms
+<t> module factorize task: 0 ms
+<t> module build task: 0 ms
+<t> make: 10 ms
+<t> finish make hook: 0 ms
+<t> finish compilation: 0 ms
+<t> seal compilation: 9 ms
+<t> afterCompile hook: 0 ms
+<t> emitAssets: 0 ms
+<t> done hook: 0 ms
+"
+`;
+
 exports[`StatsTestCases should print correct stats for minify-error-recovery 1`] = `
 {
   "errors": [
