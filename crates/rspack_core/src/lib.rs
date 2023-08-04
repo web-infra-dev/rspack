@@ -9,6 +9,8 @@ pub use fake_namespace_object::*;
 use rspack_database::Database;
 pub mod external_module;
 pub use external_module::*;
+mod logger;
+pub use logger::*;
 pub mod ast;
 pub mod cache;
 mod missing_module;

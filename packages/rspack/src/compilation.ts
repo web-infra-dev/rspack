@@ -283,6 +283,10 @@ export class Compilation {
 			!context.forToString
 		);
 		options.source = optionOrLocalFallback(options.source, false);
+		options.logging = optionOrLocalFallback(
+			options.logging,
+			context.forToString ? "info" : true
+		);
 
 		return options;
 	}

@@ -58,15 +58,23 @@ export type KnownStatsCompilation = {
 	warningsCount?: number;
 	filteredModules?: number;
 	children?: StatsCompilation[];
+	logging?: Record<string, StatsLogging>;
 
 	// TODO: not aligned with webpack
 	// env?: any;
 	// needAdditionalPass?: boolean;
 	// filteredAssets?: number;
-	// logging?: Record<string, StatsLogging>;
 };
 
 export type StatsCompilation = KnownStatsCompilation & Record<string, any>;
+
+type StatsLogging = KnownStatsLogging & Record<string, any>;
+
+type KnownStatsLogging = {
+	entries: StatsLoggingEntry[];
+	filteredEntries: number;
+	debug: boolean;
+};
 
 type StatsLoggingEntry = KnownStatsLoggingEntry & Record<string, any>;
 

@@ -41,6 +41,98 @@ impl From<rspack_core::StatsWarning> for JsStatsWarning {
 }
 
 #[napi(object)]
+pub struct JsStatsLogging {
+  pub name: String,
+  pub r#type: String,
+  pub args: String,
+}
+
+impl From<(String, rspack_core::LogType)> for JsStatsLogging {
+  fn from(value: (String, rspack_core::LogType)) -> Self {
+    match value.1 {
+      rspack_core::LogType::Error { message, .. } => Self {
+        name: value.0,
+        r#type: "error".to_string(),
+        args: message,
+      },
+      rspack_core::LogType::Warn { message, .. } => Self {
+        name: value.0,
+        r#type: "warn".to_string(),
+        args: message,
+      },
+      rspack_core::LogType::Info { message } => Self {
+        name: value.0,
+        r#type: "info".to_string(),
+        args: message,
+      },
+      rspack_core::LogType::Log { message } => Self {
+        name: value.0,
+        r#type: "log".to_string(),
+        args: message,
+      },
+      rspack_core::LogType::Debug { message } => Self {
+        name: value.0,
+        r#type: "debug".to_string(),
+        args: message,
+      },
+      rspack_core::LogType::Trace { trace } => Self {
+        name: value.0,
+        r#type: "trace".to_string(),
+        args: trace,
+      },
+      rspack_core::LogType::Group { message } => Self {
+        name: value.0,
+        r#type: "group".to_string(),
+        args: message,
+      },
+      rspack_core::LogType::GroupCollapsed { message } => Self {
+        name: value.0,
+        r#type: "groupCollapsed".to_string(),
+        args: message,
+      },
+      rspack_core::LogType::GroupEnd => Self {
+        name: value.0,
+        r#type: "groupEnd".to_string(),
+        args: String::new(),
+      },
+      rspack_core::LogType::Profile { label } => Self {
+        name: value.0,
+        r#type: "profile".to_string(),
+        args: label.to_string(),
+      },
+      rspack_core::LogType::ProfileEnd { label } => Self {
+        name: value.0,
+        r#type: "profileEnd".to_string(),
+        args: label.to_string(),
+      },
+      rspack_core::LogType::Time {
+        label,
+        secs,
+        subsec_nanos,
+      } => Self {
+        name: value.0,
+        r#type: "time".to_string(),
+        args: format!(
+          "{}: {} ms",
+          label,
+          secs * 1000 + subsec_nanos as u64 / 1000000
+        ),
+      },
+      rspack_core::LogType::Clear => Self {
+        name: value.0,
+        r#type: "clear".to_string(),
+        args: String::new(),
+      },
+      rspack_core::LogType::Status { message } => Self {
+        name: value.0,
+        r#type: "status".to_string(),
+        args: message,
+      },
+    }
+  }
+}
+
+#[napi(object)]
 pub struct JsStatsAsset {
   pub r#type: &'static str,
   pub name: String,
@@ -372,6 +464,16 @@ impl JsStats {
     self
       .inner
       .get_warnings()
+      .into_iter()
+      .map(Into::into)
+      .collect()
+  }
+
+  #[napi]
+  pub fn get_logging(&self) -> Vec<JsStatsLogging> {
+    self
+      .inner
+      .get_logging()
       .into_iter()
       .map(Into::into)
       .collect()

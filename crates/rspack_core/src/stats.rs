@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use rspack_error::{
   emitter::{
     DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
@@ -8,7 +9,7 @@ use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  BoxModule, Chunk, ChunkGroupUkey, Compilation, ModuleIdentifier, ModuleType, SourceType,
+  BoxModule, Chunk, ChunkGroupUkey, Compilation, LogType, ModuleIdentifier, ModuleType, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -298,6 +299,20 @@ impl Stats<'_> {
         message: d.message.clone(),
         formatted: diagnostic_displayer.emit_diagnostic(d).expect("TODO:"),
       })
+      .collect()
+  }
+
+  pub fn get_logging(&self) -> Vec<(String, LogType)> {
+    self
+      .compilation
+      .get_logging()
+      .iter()
+      .map(|item| {
+        let (name, logs) = item.pair();
+        (name.to_owned(), logs.to_owned())
+      })
+      .sorted_by(|a, b| a.0.cmp(&b.0))
+      .flat_map(|item| item.1.into_iter().map(move |log| (item.0.clone(), log)))
       .collect()
   }
 

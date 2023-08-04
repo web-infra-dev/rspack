@@ -8,7 +8,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use super::remove_parent_modules::RemoveParentModulesContext;
 use crate::{
   ChunkGroup, ChunkGroupInfo, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading,
-  ChunkUkey, Compilation, ModuleIdentifier, RuntimeSpec,
+  ChunkUkey, Compilation, Logger, ModuleIdentifier, RuntimeSpec,
 };
 
 pub(super) struct CodeSplitter<'me> {
@@ -169,7 +169,10 @@ impl<'me> CodeSplitter<'me> {
 
   #[tracing::instrument(skip_all)]
   pub fn split(mut self) -> Result<()> {
+    let logger = self.compilation.get_logger("rspack.buildChunkGraph");
+    let start = logger.time("prepare entrypoints");
     let input_entrypoints_and_modules = self.prepare_input_entrypoints_and_modules()?;
+    logger.time_end(start);
 
     for (chunk_group, modules) in input_entrypoints_and_modules {
       let chunk_group = self
@@ -197,15 +200,16 @@ impl<'me> CodeSplitter<'me> {
     }
     self.queue.reverse();
 
-    tracing::trace!("--- process_queue start ---");
+    let start = logger.time("process queue");
     while !self.queue.is_empty() || !self.queue_delayed.is_empty() {
       self.process_queue();
       if self.queue.is_empty() {
         self.queue = std::mem::take(&mut self.queue_delayed);
       }
     }
-    tracing::trace!("--- process_queue end ---");
+    logger.time_end(start);
 
+    let start = logger.time("extend chunkGroup runtime");
     for chunk_group in self.compilation.chunk_group_by_ukey.values() {
       for chunk_ukey in chunk_group.chunks.iter() {
         self
@@ -217,7 +221,9 @@ impl<'me> CodeSplitter<'me> {
           });
       }
     }
+    logger.time_end(start);
 
+    let start = logger.time("remove parent modules");
     if self
       .compilation
       .options
@@ -226,6 +232,7 @@ impl<'me> CodeSplitter<'me> {
     {
       self.remove_parent_modules();
     }
+    logger.time_end(start);
 
     // make sure all module (weak dependency particularly) has a mgm
     for module_identifier in self.compilation.module_graph.modules().keys() {
