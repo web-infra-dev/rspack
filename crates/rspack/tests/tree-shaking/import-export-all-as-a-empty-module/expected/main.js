@@ -15,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 
  const routes = {
-    answer: _answer__WEBPACK_IMPORTED_MODULE_0_
+    answer: _answer__WEBPACK_IMPORTED_MODULE_0_.something
 };
 },
 "./answer.js": function (__unused_webpack_module, exports, __webpack_require__) {
@@ -28,7 +28,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a.js */"./a.js");
 
 _a_js__WEBPACK_IMPORTED_MODULE_0_["routes"];
-_a_js__WEBPACK_IMPORTED_MODULE_0_["aaa"];
+_a_js__WEBPACK_IMPORTED_MODULE_0_["aaa"].result;
 },
 
 },function(__webpack_require__) {
