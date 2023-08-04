@@ -1199,7 +1199,7 @@ impl<'a> CodeSizeOptimizer<'a> {
 
         dbg!(&current_symbol_ref);
         dbg!(&find_at_least_one_match);
-        if !find_at_least_one_match && !matches!(star_symbol.ty(), StarSymbolKind) {
+        if !find_at_least_one_match && !matches!(star_symbol.ty(), StarSymbolKind::ReExportAll) {
           // It means the module has not export or reexport target reference, maybe the src module
           // is a empty module, we should avoid to eliminate the module even it is a sideEffects
           // free module
