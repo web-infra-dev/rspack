@@ -11,8 +11,8 @@ export { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
 export { BannerPlugin } from "./lib/BannerPlugin";
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
 export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
-import { RspackOptions } from "./config";
+import { Configuration } from "./config";
 // TODO(hyf0): should remove this re-export when we cleanup the exports of `@rspack/core`
 export type OptimizationSplitChunksOptions = NonNullable<
-	RspackOptions["optimization"]
+	Configuration["optimization"]
 >["splitChunks"];
