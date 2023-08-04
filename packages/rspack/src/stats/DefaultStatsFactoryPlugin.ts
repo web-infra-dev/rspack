@@ -492,7 +492,10 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 							if (depthInCollapsedGroup > 0) depthInCollapsedGroup--;
 							continue;
 						}
-						const message = util.format(entry.args[0], ...entry.args.slice(1));
+						const message =
+							entry.args && entry.args.length > 0
+								? util.format(entry.args[0], ...entry.args.slice(1))
+								: "";
 						const newEntry: KnownStatsLoggingEntry = {
 							type,
 							message,

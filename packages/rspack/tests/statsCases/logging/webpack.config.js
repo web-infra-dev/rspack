@@ -10,6 +10,6 @@ module.exports = {
 	},
 	stats: {
 		all: false,
-		loggingDebug: [/pack\.Compiler/, /TestLoader/]
+		loggingDebug: [/TestLoader/]
 	}
 };
