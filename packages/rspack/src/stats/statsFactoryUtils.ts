@@ -68,17 +68,17 @@ export type KnownStatsCompilation = {
 
 export type StatsCompilation = KnownStatsCompilation & Record<string, any>;
 
-type StatsLogging = KnownStatsLogging & Record<string, any>;
+export type StatsLogging = KnownStatsLogging & Record<string, any>;
 
-type KnownStatsLogging = {
+export type KnownStatsLogging = {
 	entries: StatsLoggingEntry[];
 	filteredEntries: number;
 	debug: boolean;
 };
 
-type StatsLoggingEntry = KnownStatsLoggingEntry & Record<string, any>;
+export type StatsLoggingEntry = KnownStatsLoggingEntry & Record<string, any>;
 
-type KnownStatsLoggingEntry = {
+export type KnownStatsLoggingEntry = {
 	type: string;
 	message: string;
 	trace?: string[] | undefined;

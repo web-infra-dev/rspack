@@ -612,6 +612,8 @@ export interface StatsOptions {
 	nestedModules?: boolean;
 	source?: boolean;
 	logging?: ("none" | "error" | "warn" | "info" | "log" | "verbose") | boolean;
+	loggingDebug?: boolean | FilterTypes;
+	loggingTrace?: boolean;
 }
 
 export type OptimizationRuntimeChunk =

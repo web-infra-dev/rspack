@@ -12,11 +12,11 @@ use rustc_hash::FxHasher;
 pub enum LogType {
   Error {
     message: String,
-    trace: String,
+    trace: Vec<String>,
   },
   Warn {
     message: String,
-    trace: String,
+    trace: Vec<String>,
   },
   Info {
     message: String,
@@ -28,7 +28,8 @@ pub enum LogType {
     message: String,
   },
   Trace {
-    trace: String,
+    message: String,
+    trace: Vec<String>,
   },
   Group {
     message: String,
@@ -54,36 +55,75 @@ pub enum LogType {
   },
 }
 
+impl LogType {
+  pub fn to_bit_flag(&self) -> u32 {
+    match self {
+      LogType::Error { .. } => 1 << 0,
+      LogType::Warn { .. } => 1 << 1,
+      LogType::Info { .. } => 1 << 2,
+      LogType::Log { .. } => 1 << 3,
+      LogType::Debug { .. } => 1 << 4,
+      LogType::Trace { .. } => 1 << 5,
+      LogType::Group { .. } => 1 << 6,
+      LogType::GroupCollapsed { .. } => 1 << 7,
+      LogType::GroupEnd => 1 << 8,
+      LogType::Profile { .. } => 1 << 9,
+      LogType::ProfileEnd { .. } => 1 << 10,
+      LogType::Time { .. } => 1 << 11,
+      LogType::Clear => 1 << 12,
+      LogType::Status { .. } => 1 << 13,
+    }
+  }
+}
+
+fn capture_trace() -> Vec<String> {
+  Backtrace::force_capture()
+    .to_string()
+    .split('\n')
+    .enumerate()
+    .filter(|(i, _)| i % 2 != 0) // even line is function name, odd line is code position, only need code positiion
+    .skip(5) // remove some useless lines
+    .take(8)
+    .map(|(_, line)| line[9..].to_owned()) // remove some empty chars
+    .collect()
+}
+
 pub trait Logger {
   fn raw(&self, log_type: LogType);
 
-  fn error(&self, message: String) {
+  fn error(&self, message: impl Into<String>) {
     self.raw(LogType::Error {
-      message,
-      trace: Backtrace::force_capture().to_string(),
+      message: message.into(),
+      trace: capture_trace(),
     })
   }
 
-  fn warn(&self, message: String) {
+  fn warn(&self, message: impl Into<String>) {
     self.raw(LogType::Warn {
-      message,
-      trace: Backtrace::force_capture().to_string(),
+      message: message.into(),
+      trace: capture_trace(),
     })
   }
 
-  fn info(&self, message: String) {
-    self.raw(LogType::Info { message })
+  fn info(&self, message: impl Into<String>) {
+    self.raw(LogType::Info {
+      message: message.into(),
+    })
   }
 
-  fn log(&self, message: String) {
-    self.raw(LogType::Log { message })
+  fn log(&self, message: impl Into<String>) {
+    self.raw(LogType::Log {
+      message: message.into(),
+    })
   }
 
-  fn debug(&self, message: String) {
-    self.raw(LogType::Debug { message })
+  fn debug(&self, message: impl Into<String>) {
+    self.raw(LogType::Debug {
+      message: message.into(),
+    })
   }
 
-  fn assert(&self, assertion: bool, message: String) {
+  fn assert(&self, assertion: bool, message: impl Into<String>) {
     if !assertion {
       self.error(message);
     }
@@ -91,7 +131,8 @@ pub trait Logger {
 
   fn trace(&self) {
     self.raw(LogType::Trace {
-      trace: Backtrace::force_capture().to_string(),
+      message: "Trace".to_string(),
+      trace: capture_trace(),
     })
   }
 
@@ -99,8 +140,10 @@ pub trait Logger {
     self.raw(LogType::Clear)
   }
 
-  fn status(&self, message: String) {
-    self.raw(LogType::Status { message })
+  fn status(&self, message: impl Into<String>) {
+    self.raw(LogType::Status {
+      message: message.into(),
+    })
   }
 
   fn profile(&self, label: &'static str) {
@@ -111,12 +154,16 @@ pub trait Logger {
     self.raw(LogType::ProfileEnd { label })
   }
 
-  fn group(&self, message: String) {
-    self.raw(LogType::Group { message })
+  fn group(&self, message: impl Into<String>) {
+    self.raw(LogType::Group {
+      message: message.into(),
+    })
   }
 
-  fn group_collapsed(&self, message: String) {
-    self.raw(LogType::GroupCollapsed { message })
+  fn group_collapsed(&self, message: impl Into<String>) {
+    self.raw(LogType::GroupCollapsed {
+      message: message.into(),
+    })
   }
 
   fn group_end(&self) {

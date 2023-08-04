@@ -109,33 +109,7 @@ describe("Stats", () => {
 		  "errors": [],
 		  "errorsCount": 0,
 		  "hash": "1788bb8a658f2310fbf6",
-		  "logging": {
-		    "rspack.Compilation": {
-		      "debug": false,
-		      "entries": [],
-		      "filteredEntries": 0,
-		    },
-		    "rspack.Compiler": {
-		      "debug": false,
-		      "entries": [],
-		      "filteredEntries": 0,
-		    },
-		    "rspack.DevtoolPlugin": {
-		      "debug": false,
-		      "entries": [],
-		      "filteredEntries": 0,
-		    },
-		    "rspack.RealContentHashPlugin": {
-		      "debug": false,
-		      "entries": [],
-		      "filteredEntries": 0,
-		    },
-		    "rspack.buildChunkGraph": {
-		      "debug": false,
-		      "entries": [],
-		      "filteredEntries": 0,
-		    },
-		  },
+		  "logging": {},
 		  "modules": [
 		    {
 		      "assets": [],

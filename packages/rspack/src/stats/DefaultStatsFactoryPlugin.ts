@@ -9,10 +9,10 @@
  */
 import { compareSelect, compareIds as _compareIds } from "../util/comparators";
 import { makePathsRelative } from "../util/identifier";
+import * as util from "node:util";
 import type { Compiler } from "../compiler";
 import type { StatsOptions } from "../config";
 import type { GroupConfig } from "../util/smartGrouping";
-import type * as binding from "@rspack/binding";
 
 import type { StatsFactory, KnownStatsFactoryContext } from "./StatsFactory";
 import {
@@ -30,9 +30,15 @@ import type {
 	SimpleExtractors,
 	StatsAsset,
 	StatsChunk,
-	NormalizedStatsOptions
+	NormalizedStatsOptions,
+	KnownStatsLoggingEntry
 } from "./statsFactoryUtils";
-import { LogType } from "../logging/Logger";
+import {
+	LogType,
+	getLogTypesBitFlag,
+	getLogTypeBitFlag,
+	LogTypeEnum
+} from "../logging/Logger";
 
 const compareIds = _compareIds as <T>(a: T, b: T) => -1 | 0 | 1;
 const GROUP_EXTENSION_REGEXP = /(\.[^.]+?)(?:\?|(?: \+ \d+ modules?)?$)/;
@@ -384,81 +390,136 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				object.name = compilation.name;
 			}
 			// TODO: support compilation.needAdditionalPass
-			const { logging } = options;
-			if (logging) {
-				let acceptedTypes: Set<string>;
+			const logging = options.logging!;
+			const loggingDebug = options.loggingDebug as ((
+				value: string
+			) => boolean)[];
+			const loggingTrace = options.loggingTrace!;
+			if (logging || (loggingDebug && loggingDebug.length > 0)) {
 				let collapsedGroups = false;
-				switch (logging) {
-					default:
-						acceptedTypes = new Set();
-						break;
-					case "error":
-						acceptedTypes = new Set([LogType.error]);
-						break;
-					case "warn":
-						acceptedTypes = new Set([LogType.error, LogType.warn]);
-						break;
-					case "info":
-						acceptedTypes = new Set([
-							LogType.error,
-							LogType.warn,
-							LogType.info
-						]);
-						break;
-					case "log":
-					case true:
-						acceptedTypes = new Set([
-							LogType.error,
-							LogType.warn,
-							LogType.info,
-							LogType.log,
-							LogType.group,
-							LogType.groupEnd,
-							LogType.groupCollapsed,
-							LogType.clear
-						]);
-						break;
-					case "verbose":
-						acceptedTypes = new Set([
-							LogType.error,
-							LogType.warn,
-							LogType.info,
-							LogType.log,
-							LogType.group,
-							LogType.groupEnd,
-							LogType.groupCollapsed,
-							LogType.profile,
-							LogType.profileEnd,
-							LogType.time,
-							LogType.status,
-							LogType.clear
-						]);
-						collapsedGroups = true;
-						break;
+				let acceptedTypes: number;
+				if (
+					logging === "verbose" ||
+					(loggingDebug && loggingDebug.length > 0)
+				) {
+					acceptedTypes = getLogTypesBitFlag([
+						LogType.error,
+						LogType.warn,
+						LogType.info,
+						LogType.log,
+						LogType.group,
+						LogType.groupEnd,
+						LogType.groupCollapsed,
+						LogType.profile,
+						LogType.profileEnd,
+						LogType.time,
+						LogType.status,
+						LogType.clear
+					]);
+					collapsedGroups = true;
+				} else if (logging === "log" || logging === true) {
+					acceptedTypes = getLogTypesBitFlag([
+						LogType.error,
+						LogType.warn,
+						LogType.info,
+						LogType.log,
+						LogType.group,
+						LogType.groupEnd,
+						LogType.groupCollapsed,
+						LogType.clear
+					]);
+				} else if (logging === "info") {
+					acceptedTypes = getLogTypesBitFlag([
+						LogType.error,
+						LogType.warn,
+						LogType.info
+					]);
+				} else if (logging === "warn") {
+					acceptedTypes = getLogTypesBitFlag([LogType.error, LogType.warn]);
+				} else if (logging === "error") {
+					acceptedTypes = getLogTypesBitFlag([LogType.error]);
+				} else {
+					acceptedTypes = getLogTypesBitFlag([]);
 				}
 				object.logging = {};
-				const compilationLogging: Map<
-					string,
-					Omit<binding.JsStatsLogging, "name">[]
-				> = new Map();
-				for (const { name, ...rest } of context._inner.getLogging()) {
-					const entry = compilationLogging.get(name);
-					if (entry) {
-						entry.push(rest);
+				const compilationLogging = compilation.logging;
+				for (const { name, ...rest } of context._inner.getLogging(
+					acceptedTypes
+				)) {
+					const value = compilationLogging.get(name);
+					const entry = {
+						type: rest.type,
+						trace: rest.trace,
+						args: rest.args ?? []
+					};
+					if (value) {
+						value.push(entry);
 					} else {
-						compilationLogging.set(name, [rest]);
+						compilationLogging.set(name, [entry]);
 					}
 				}
+				let depthInCollapsedGroup = 0;
 				for (const [origin, logEntries] of compilationLogging) {
+					const debugMode = loggingDebug.some(fn => fn(origin));
+					if (logging === false && !debugMode) continue;
+					const groupStack: KnownStatsLoggingEntry[] = [];
+					const rootList: KnownStatsLoggingEntry[] = [];
+					let currentList = rootList;
+					let processedLogEntries = 0;
+					for (const entry of logEntries) {
+						let type = entry.type;
+						const typeBitFlag = getLogTypeBitFlag(type as LogTypeEnum);
+						if (!debugMode && (acceptedTypes & typeBitFlag) !== typeBitFlag)
+							continue;
+						// Expand groups in verbose and debug modes
+						if (
+							type === LogType.groupCollapsed &&
+							(debugMode || collapsedGroups)
+						)
+							type = LogType.group;
+
+						if (depthInCollapsedGroup === 0) {
+							processedLogEntries++;
+						}
+
+						if (type === LogType.groupEnd) {
+							groupStack.pop();
+							if (groupStack.length > 0) {
+								currentList = groupStack[groupStack.length - 1].children!;
+							} else {
+								currentList = rootList;
+							}
+							if (depthInCollapsedGroup > 0) depthInCollapsedGroup--;
+							continue;
+						}
+						const message =
+							entry.args && entry.args.length > 0
+								? util.format(entry.args[0], ...entry.args.slice(1))
+								: "";
+						const newEntry: KnownStatsLoggingEntry = {
+							type,
+							message,
+							trace: loggingTrace ? entry.trace : undefined,
+							children:
+								type === LogType.group || type === LogType.groupCollapsed
+									? []
+									: undefined
+						};
+						currentList.push(newEntry);
+						if (newEntry.children) {
+							groupStack.push(newEntry);
+							currentList = newEntry.children;
+							if (depthInCollapsedGroup > 0) {
+								depthInCollapsedGroup++;
+							} else if (type === LogType.groupCollapsed) {
+								depthInCollapsedGroup = 1;
+							}
+						}
+					}
 					object.logging[origin] = {
-						entries: logEntries
-							.filter(logEntry => acceptedTypes.has(logEntry.type))
-							.map(logEntry => ({
-								type: logEntry.type,
-								message: logEntry.args
-							})),
-						filteredEntries: 0,
-						debug: false
+						entries: rootList,
+						filteredEntries: logEntries.length - processedLogEntries,
+						debug: debugMode
 					};
 				}
 			}

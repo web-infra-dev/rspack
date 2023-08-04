@@ -44,66 +44,78 @@ impl From<rspack_core::StatsWarning> for JsStatsWarning {
 pub struct JsStatsLogging {
   pub name: String,
   pub r#type: String,
-  pub args: String,
+  pub args: Option<Vec<String>>,
+  pub trace: Option<Vec<String>>,
 }
 
 impl From<(String, rspack_core::LogType)> for JsStatsLogging {
   fn from(value: (String, rspack_core::LogType)) -> Self {
     match value.1 {
-      rspack_core::LogType::Error { message, .. } => Self {
+      rspack_core::LogType::Error { message, trace } => Self {
         name: value.0,
         r#type: "error".to_string(),
-        args: message,
+        args: Some(vec![message]),
+        trace: Some(trace),
       },
-      rspack_core::LogType::Warn { message, .. } => Self {
+      rspack_core::LogType::Warn { message, trace } => Self {
         name: value.0,
         r#type: "warn".to_string(),
-        args: message,
+        args: Some(vec![message]),
+        trace: Some(trace),
       },
       rspack_core::LogType::Info { message } => Self {
         name: value.0,
         r#type: "info".to_string(),
-        args: message,
+        args: Some(vec![message]),
+        trace: None,
       },
       rspack_core::LogType::Log { message } => Self {
         name: value.0,
         r#type: "log".to_string(),
-        args: message,
+        args: Some(vec![message]),
+        trace: None,
       },
       rspack_core::LogType::Debug { message } => Self {
         name: value.0,
         r#type: "debug".to_string(),
-        args: message,
+        args: Some(vec![message]),
+        trace: None,
       },
-      rspack_core::LogType::Trace { trace } => Self {
+      rspack_core::LogType::Trace { message, trace } => Self {
         name: value.0,
         r#type: "trace".to_string(),
-        args: trace,
+        args: Some(vec![message]),
+        trace: Some(trace),
       },
       rspack_core::LogType::Group { message } => Self {
         name: value.0,
         r#type: "group".to_string(),
-        args: message,
+        args: Some(vec![message]),
+        trace: None,
       },
       rspack_core::LogType::GroupCollapsed { message } => Self {
         name: value.0,
         r#type: "groupCollapsed".to_string(),
-        args: message,
+        args: Some(vec![message]),
+        trace: None,
       },
       rspack_core::LogType::GroupEnd => Self {
         name: value.0,
         r#type: "groupEnd".to_string(),
-        args: String::new(),
+        args: None,
+        trace: None,
       },
       rspack_core::LogType::Profile { label } => Self {
         name: value.0,
         r#type: "profile".to_string(),
-        args: label.to_string(),
+        args: Some(vec![label.to_string()]),
+        trace: None,
       },
       rspack_core::LogType::ProfileEnd { label } => Self {
         name: value.0,
         r#type: "profileEnd".to_string(),
-        args: label.to_string(),
+        args: Some(vec![label.to_string()]),
+        trace: None,
       },
       rspack_core::LogType::Time {
         label,
@@ -112,21 +124,24 @@ impl From<(String, rspack_core::LogType)> for JsStatsLogging {
       } => Self {
         name: value.0,
         r#type: "time".to_string(),
-        args: format!(
+        args: Some(vec![format!(
           "{}: {} ms",
           label,
           secs * 1000 + subsec_nanos as u64 / 1000000
-        ),
+        )]),
+        trace: None,
       },
       rspack_core::LogType::Clear => Self {
         name: value.0,
         r#type: "clear".to_string(),
-        args: String::new(),
+        args: None,
+        trace: None,
       },
       rspack_core::LogType::Status { message } => Self {
         name: value.0,
         r#type: "status".to_string(),
-        args: message,
+        args: Some(vec![message]),
+        trace: None,
       },
     }
   }
@@ -470,11 +485,15 @@ impl JsStats {
   }
 
   #[napi]
-  pub fn get_logging(&self) -> Vec<JsStatsLogging> {
+  pub fn get_logging(&self, accepted_types: u32) -> Vec<JsStatsLogging> {
     self
       .inner
       .get_logging()
       .into_iter()
+      .filter(|log| {
+        let bit = log.1.to_bit_flag();
+        accepted_types & bit == bit
+      })
       .map(Into::into)
       .collect()
   }
