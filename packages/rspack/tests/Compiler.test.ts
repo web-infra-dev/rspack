@@ -1251,8 +1251,8 @@ describe("Compiler", () => {
 
 			compiler.build(err => {
 				const stats = new Stats(compiler.compilation);
-				expect(stats.toJson().errors[0].message).toBe(
-					"error[internal]: Conflict: Multiple assets emit different content to the same filename main.js\n"
+				expect(stats.toJson().errors[0].message).toMatchInlineSnapshot(
+					`"Conflict: Multiple assets emit different content to the same filename main.js"`
 				);
 				done();
 			});
