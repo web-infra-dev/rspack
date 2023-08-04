@@ -1,12 +1,10 @@
 
-/*
-var supportsClassFields = require("../../../helpers/supportsClassFields");
+// var supportsClassFields = require("../../../helpers/supportsClassFields");
+//
+// module.exports = function (config) {
+// 	return supportsClassFields();
+// };
 
-module.exports = function (config) {
-	return supportsClassFields();
-};
+module.exports = () => {return 'this is wrong'}
 
-*/
-module.exports = () => {return false}
 
-							
