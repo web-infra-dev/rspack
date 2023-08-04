@@ -66,6 +66,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
             id.1.clone().map(|i| vec![i]).unwrap_or_default(),
             &self.id,
             false,
+            false,
           )),
         ));
       }

@@ -1,3 +1,5 @@
+use once_cell::sync::Lazy;
+use regex::Regex;
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
@@ -12,6 +14,7 @@ pub fn export_from_import(
   mut export_name: Vec<JsWord>,
   id: &DependencyId,
   is_call: bool,
+  call_context: bool,
 ) -> String {
   let TemplateContext {
     runtime_requirements,
@@ -58,7 +61,7 @@ pub fn export_from_import(
   if !export_name.is_empty() {
     // TODO check used
     let access = format!("{import_var}{}", property_access(&export_name, 0));
-    if is_call {
+    if is_call && !call_context {
       return format!("(0, {access})");
     }
     access
@@ -99,11 +102,66 @@ pub fn get_exports_type_with_strict(
     .get_exports_type(strict)
 }
 
+static SAFE_IDENTIFIER_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^[_a-zA-Z$][_a-zA-Z$0-9]*$").expect("should init regex"));
+static RESERVED_IDENTIFIER: Lazy<[&str; 37]> = Lazy::new(|| {
+  [
+    "break",
+    "case",
+    "catch",
+    "class",
+    "const",
+    "continue",
+    "debugger",
+    "default",
+    "delete",
+    "do",
+    "else",
+    "enum",
+    "export",
+    "extends",
+    "false",
+    "finally",
+    "for",
+    "function",
+    "if",
+    "import",
+    "in",
+    "instanceof",
+    "new",
+    "null",
+    "package",
+    "return",
+    "super",
+    "switch",
+    "this",
+    "throw",
+    "true",
+    "try",
+    "typeof",
+    "var",
+    "void",
+    "while",
+    "with",
+  ]
+});
+
 fn property_access(o: &Vec<JsWord>, mut start: usize) -> String {
   let mut str = String::default();
   while start < o.len() {
     let property = &o[start];
-    str.push_str(format!(r#"["{property}"]"#).as_str());
+    if SAFE_IDENTIFIER_REGEX.is_match(property) && !RESERVED_IDENTIFIER.contains(&property.as_ref())
+    {
+      str.push_str(format!(".{property}").as_str());
+    } else {
+      str.push_str(
+        format!(
+          "[{}]",
+          serde_json::to_string(property).expect("should render property")
+        )
+        .as_str(),
+      );
+    }
     start += 1;
   }
   str

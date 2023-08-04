@@ -16,7 +16,7 @@ __webpack_require__.d(__webpack_exports__, {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'a': function() { return _baz__WEBPACK_IMPORTED_MODULE_0_["a"]; }
+  'a': function() { return _baz__WEBPACK_IMPORTED_MODULE_0_.a; }
 });
 /* harmony import */var _baz__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./baz */"./baz.js");
 /* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./bar */"./bar.js");
@@ -29,7 +29,7 @@ __webpack_require__.es(_bar__WEBPACK_IMPORTED_MODULE_1_, __webpack_exports__);
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo */"./foo.js");
 
-console.log(_foo__WEBPACK_IMPORTED_MODULE_0_["a"]);
+console.log(_foo__WEBPACK_IMPORTED_MODULE_0_.a);
 },
 
 },function(__webpack_require__) {

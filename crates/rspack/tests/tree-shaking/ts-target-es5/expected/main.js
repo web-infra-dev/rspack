@@ -37,7 +37,7 @@ function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  '_': function() { return tslib__WEBPACK_IMPORTED_MODULE_0_["__generator"]; }
+  '_': function() { return tslib__WEBPACK_IMPORTED_MODULE_0_.__generator; }
 });
 /* harmony import */var tslib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* tslib */"../../../../../node_modules/tslib/tslib.es6.js");
 
@@ -489,8 +489,8 @@ __webpack_require__.d(__webpack_exports__, {
     return _test.apply(this, arguments);
 }
 function _test() {
-    _test = (0, _swc_helpers_async_to_generator__WEBPACK_IMPORTED_MODULE_0_["_"])(function() {
-        return (0, _swc_helpers_ts_generator__WEBPACK_IMPORTED_MODULE_1_["_"])(this, function(_state) {
+    _test = (0, _swc_helpers_async_to_generator__WEBPACK_IMPORTED_MODULE_0_._)(function() {
+        return (0, _swc_helpers_ts_generator__WEBPACK_IMPORTED_MODULE_1_._)(this, function(_state) {
             return [
                 2
             ];

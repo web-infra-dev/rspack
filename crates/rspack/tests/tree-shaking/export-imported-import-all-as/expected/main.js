@@ -11,7 +11,7 @@ __webpack_require__.es(_lib__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./answer */"./answer.js");
 
-_answer__WEBPACK_IMPORTED_MODULE_0_["filter"];
+_answer__WEBPACK_IMPORTED_MODULE_0_.filter;
 },
 "./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';

@@ -15,7 +15,7 @@ var baz = bar || foo;
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _foo_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo.js */"./foo.js");
 
-console.log(_foo_js__WEBPACK_IMPORTED_MODULE_0_["foo"]);
+console.log(_foo_js__WEBPACK_IMPORTED_MODULE_0_.foo);
 },
 
 },function(__webpack_require__) {

@@ -29,7 +29,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 /* harmony import */var _antd_index__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./antd/index */"./antd/index.ts");
 
-_antd_index__WEBPACK_IMPORTED_MODULE_0_["locales"].zh_CN;
+_antd_index__WEBPACK_IMPORTED_MODULE_0_.locales.zh_CN;
  function test() {}
 },
 "./locale_zh.ts": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
