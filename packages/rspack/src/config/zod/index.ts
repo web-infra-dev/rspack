@@ -43,10 +43,10 @@ export function configSchema() {
 			plugins: plugins().optional(),
 			// TODO(hyf0): what's the usage of this?
 			name: z.string().optional(),
+			builtins: builtins().optional(),
 			// TODO
 			devServer: z.object({}).optional(),
 			output: output().optional(),
-			builtins: builtins().optional(),
 			module: z.any().optional()
 		})
 		.strict();
