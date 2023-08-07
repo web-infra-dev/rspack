@@ -376,7 +376,7 @@ where
           .expect("render_manifest failed in rebuild");
 
         for entry in render_manifest {
-          let filename = if entry.auxiliary {
+          let filename = if entry.has_filename() {
             entry.filename().to_string()
           } else {
             let chunk = self

@@ -415,15 +415,23 @@ pub struct RenderManifestEntry {
   // pub identifier: String,
   // hash?: string;
   pub(crate) auxiliary: bool,
+  has_filename: bool, /* webpack only asset has filename, js/css/wasm has filename template */
 }
 
 impl RenderManifestEntry {
-  pub fn new(source: BoxSource, filename: String, info: AssetInfo, auxiliary: bool) -> Self {
+  pub fn new(
+    source: BoxSource,
+    filename: String,
+    info: AssetInfo,
+    auxiliary: bool,
+    has_filename: bool,
+  ) -> Self {
     Self {
       source,
       filename,
       info,
       auxiliary,
+      has_filename,
     }
   }
 
@@ -433,6 +441,10 @@ impl RenderManifestEntry {
 
   pub fn filename(&self) -> &str {
     &self.filename
+  }
+
+  pub fn has_filename(&self) -> bool {
+    self.has_filename
   }
 }
 

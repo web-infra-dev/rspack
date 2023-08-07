@@ -244,6 +244,7 @@ impl Plugin for CssPlugin {
       output_path,
       asset_info,
       false,
+      false,
     )])
   }
 

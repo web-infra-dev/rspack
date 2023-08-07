@@ -182,6 +182,7 @@ impl Plugin for JsPlugin {
       output_path,
       asset_info,
       false,
+      false,
     )])
   }
 

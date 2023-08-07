@@ -527,6 +527,7 @@ impl Plugin for AssetPlugin {
             asset_filename.to_owned(),
             asset_info.to_owned(),
             true,
+            true,
           )
         });
 
