@@ -3,6 +3,8 @@
   <img alt="Rspack Banner" src="https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/rspack-banner-1610.png">
 </picture>
 
+# DEPRECATED! Use [webpack-dev-middleware](https://github.com/webpack/webpack-dev-middleware) instead
+
 # @rspack/dev-middleware
 
 Development middleware for rspack.
