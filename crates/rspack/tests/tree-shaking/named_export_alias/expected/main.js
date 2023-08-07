@@ -17,7 +17,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 
 var a = function test() {
-    _Something__WEBPACK_IMPORTED_MODULE_1_["something"];
+    _Something__WEBPACK_IMPORTED_MODULE_1_.something;
 };
 
 },

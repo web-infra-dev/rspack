@@ -21,7 +21,7 @@ __webpack_require__.d(__webpack_exports__, {
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo */"./foo.js");
 
-(0, _foo__WEBPACK_IMPORTED_MODULE_0_["Select"])();
+(0, _foo__WEBPACK_IMPORTED_MODULE_0_.Select)();
 },
 
 },function(__webpack_require__) {

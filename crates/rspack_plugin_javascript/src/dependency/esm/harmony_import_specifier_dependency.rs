@@ -19,6 +19,7 @@ pub struct HarmonyImportSpecifierDependency {
   end: u32,
   ids: Vec<JsWord>,
   is_call: bool,
+  direct_import: bool,
   specifier: Specifier,
   used_by_exports: UsedByExports,
   referenced_properties_in_destructuring: Option<HashSet<JsWord>>,
@@ -34,6 +35,7 @@ impl HarmonyImportSpecifierDependency {
     end: u32,
     ids: Vec<JsWord>,
     is_call: bool,
+    direct_import: bool,
     specifier: Specifier,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
@@ -45,6 +47,7 @@ impl HarmonyImportSpecifierDependency {
       end,
       ids,
       is_call,
+      direct_import,
       specifier,
       used_by_exports: UsedByExports::default(),
       referenced_properties_in_destructuring: None,
@@ -148,6 +151,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       self.ids.clone(),
       &self.id,
       self.is_call,
+      !self.direct_import,
     );
     if self.shorthand {
       source.insert(self.end, format!(": {export_expr}").as_str(), None);

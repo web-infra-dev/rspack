@@ -4,8 +4,8 @@
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _stuff__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./stuff */"./stuff.js");
 
-(0, _stuff__WEBPACK_IMPORTED_MODULE_0_["bar"])();
-var f = (0, _stuff__WEBPACK_IMPORTED_MODULE_0_["baz"])();
+(0, _stuff__WEBPACK_IMPORTED_MODULE_0_.bar)();
+var f = (0, _stuff__WEBPACK_IMPORTED_MODULE_0_.baz)();
 f();
 function getClass() {
     class MyClass {

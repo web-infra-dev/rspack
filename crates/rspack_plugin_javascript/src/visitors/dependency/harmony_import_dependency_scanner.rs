@@ -296,6 +296,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
               shorthand.span.real_hi(),
               reference.names.clone().map(|f| vec![f]).unwrap_or_default(),
               false,
+              false,
               reference.specifier.clone(),
             )));
         }
@@ -315,6 +316,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
           ident.span.real_hi(),
           reference.names.clone().map(|f| vec![f]).unwrap_or_default(),
           self.enter_callee,
+          true, // x()
           reference.specifier.clone(),
         )));
     }
@@ -322,7 +324,6 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
 
   fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
     if let Expr::Ident(ident) = &*member_expr.obj {
-      // xxx.default
       if let Some(reference) = self.import_map.get(&ident.to_id()) {
         let prop = match &member_expr.prop {
           MemberProp::Ident(ident) => Some(ident.sym.clone()),
@@ -335,10 +336,9 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
           }
           _ => None,
         };
-
-        if matches!(prop, Some(prop) if prop == DEFAULT_JS_WORD) {
+        if let Some(prop) = prop {
           let mut ids = reference.names.clone().map(|f| vec![f]).unwrap_or_default();
-          ids.push(DEFAULT_JS_WORD.clone());
+          ids.push(prop);
           self
             .dependencies
             .push(Box::new(HarmonyImportSpecifierDependency::new(
@@ -348,6 +348,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
               member_expr.span.real_hi(),
               ids,
               self.enter_callee,
+              !self.enter_callee, // x.xx()
               reference.specifier.clone(),
             )));
           return;

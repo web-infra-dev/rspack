@@ -1947,7 +1947,7 @@ console.log(a);
     },
   ],
   "errorsCount": 1,
-  "hash": "8741e5e888c5d1a69d1f",
+  "hash": "1d6eb289f284652279a5",
   "logging": {},
   "modules": [
     {
@@ -2059,7 +2059,7 @@ error[internal]: Resolve error
 
 
 
-rspack compiled with 1 error (8741e5e888c5d1a69d1f)"
+rspack compiled with 1 error (1d6eb289f284652279a5)"
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 1`] = `

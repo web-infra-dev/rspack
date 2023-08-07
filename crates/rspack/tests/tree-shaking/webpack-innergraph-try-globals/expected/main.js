@@ -4,8 +4,8 @@
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _module__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./module */"./module.js");
 
-expect(_module__WEBPACK_IMPORTED_MODULE_0_["ok"]).toBe(true);
-expect(_module__WEBPACK_IMPORTED_MODULE_0_["ok2"]).toBe(true);
+expect(_module__WEBPACK_IMPORTED_MODULE_0_.ok).toBe(true);
+expect(_module__WEBPACK_IMPORTED_MODULE_0_.ok2).toBe(true);
 },
 "./index.js": function (__unused_webpack_module, exports, __webpack_require__) {
 it("should not threat globals as pure", ()=>{

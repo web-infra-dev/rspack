@@ -5,7 +5,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _maths_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./maths.js */"./maths.js");
 /* TREE-SHAKING */ 
 console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0_.xxx.test);
-console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0_['square']);
+console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0_.square);
 },
 "./maths.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
