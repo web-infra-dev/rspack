@@ -498,7 +498,7 @@ impl JsStats {
       .collect()
   }
 
-  #[napi]
+  #[napi(catch_unwind)]
   pub fn get_hash(&self) -> String {
     self
       .inner
