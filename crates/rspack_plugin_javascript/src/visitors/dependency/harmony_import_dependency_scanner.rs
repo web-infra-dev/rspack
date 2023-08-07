@@ -348,7 +348,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
               member_expr.span.real_hi(),
               ids,
               self.enter_callee,
-              if self.enter_callee { false } else { true }, // x.xx()
+              !self.enter_callee, // x.xx()
               reference.specifier.clone(),
             )));
           return;
