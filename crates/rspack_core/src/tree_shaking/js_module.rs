@@ -1,6 +1,8 @@
+use swc_core::common::SyntaxContext;
+
 use super::{
   analyzer::OptimizeAnalyzer,
-  visitor::{MarkInfo, ModuleRefAnalyze, OptimizeAnalyzeResult},
+  visitor::{ModuleRefAnalyze, OptimizeAnalyzeResult, SyntaxContextInfo},
 };
 use crate::{ast::javascript::Ast, CompilerOptions, ModuleDependency, ModuleIdentifier};
 
@@ -32,6 +34,9 @@ impl<'a, 'b> OptimizeAnalyzer for JsModule<'a, 'b> {
     self.ast.visit(|program, context| {
       let top_level_mark = context.top_level_mark;
       let unresolved_mark = context.unresolved_mark;
+
+      let unresolved_ctxt = SyntaxContext::empty().apply_mark(unresolved_mark);
+      let top_level_ctxt = SyntaxContext::empty().apply_mark(top_level_mark);
       let mut worker_syntax_scanner = crate::needs_refactor::WorkerSyntaxScanner::new(
         crate::needs_refactor::DEFAULT_WORKER_SYNTAX,
       );
@@ -39,7 +44,7 @@ impl<'a, 'b> OptimizeAnalyzer for JsModule<'a, 'b> {
       let worker_syntax_list = &worker_syntax_scanner.into();
 
       let mut analyzer = ModuleRefAnalyze::new(
-        MarkInfo::new(top_level_mark, unresolved_mark),
+        SyntaxContextInfo::new(top_level_ctxt, unresolved_ctxt),
         self.module_identifier,
         self.dependencies,
         self.compiler_options,
