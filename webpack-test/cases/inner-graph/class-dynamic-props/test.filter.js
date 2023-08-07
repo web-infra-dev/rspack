@@ -5,6 +5,6 @@
 // 	return supportsClassFields();
 // };
 
-module.exports = () => {return 'this is wrong'}
+module.exports = () => {return 'need pure dependency'}
 
 

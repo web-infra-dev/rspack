@@ -1,4 +1,4 @@
 
-module.exports = () => {return 'result is wrong'}
+module.exports = () => {return true}
 
 
