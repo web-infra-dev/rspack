@@ -524,6 +524,7 @@ export function resolveMinifyOptions(
 		dropConsole: false,
 		pureFuncs: [],
 		...builtins.minifyOptions,
+		asciiOnly: builtins.minifyOptions?.asciiOnly ?? false,
 		extractComments,
 		test: getMinifyConditions(builtins.minifyOptions?.test),
 		include: getMinifyConditions(builtins.minifyOptions?.include),

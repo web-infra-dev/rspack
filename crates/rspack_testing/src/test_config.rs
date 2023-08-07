@@ -470,7 +470,7 @@ impl TestConfig {
           include: None,
           exclude: None,
           test: None,
-          ascii_only: None,
+          ascii_only: false,
         }),
         preset_env: self.builtins.preset_env.map(Into::into),
         code_generation: self.builtins.code_generation.map(|op| c::CodeGeneration {

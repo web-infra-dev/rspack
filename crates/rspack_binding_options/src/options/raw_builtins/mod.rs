@@ -65,7 +65,7 @@ pub struct RawMinificationConditions {
 pub struct RawMinification {
   pub passes: u32,
   pub drop_console: bool,
-  pub ascii_only: Option<bool>,
+  pub ascii_only: bool,
   pub pure_funcs: Vec<String>,
   pub extract_comments: Option<String>,
   pub test: Option<RawMinificationConditions>,
