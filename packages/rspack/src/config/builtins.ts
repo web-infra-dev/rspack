@@ -23,7 +23,6 @@ import type {
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
 import { Optimization } from "..";
-import { string } from "zod";
 
 export type BuiltinsHtmlPluginConfig = Omit<RawHtmlPluginConfig, "meta"> & {
 	meta?: Record<string, string | Record<string, string>>;
