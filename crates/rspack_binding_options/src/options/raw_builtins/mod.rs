@@ -59,12 +59,21 @@ pub struct RawMinificationConditions {
   pub array_matcher: Option<Vec<RawMinificationCondition>>,
 }
 
+// enum Comments {
+//   False,
+//   Some,
+//   All,
+// }
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawMinification {
   pub passes: u32,
   pub drop_console: bool,
+  // pub comments: Option<Comments>,
+  pub ascii_only: Option<bool>,
+  pub safari10: Option<bool>,
   pub pure_funcs: Vec<String>,
   pub extract_comments: Option<String>,
   pub test: Option<RawMinificationConditions>,
@@ -109,6 +118,7 @@ impl TryFrom<RawMinification> for Minification {
       passes: value.passes as usize,
       drop_console: value.drop_console,
       pure_funcs: value.pure_funcs,
+      ascii_only: value.ascii_only,
       extract_comments: value.extract_comments,
       test: try_condition(value.test)?,
       include: try_condition(value.include)?,

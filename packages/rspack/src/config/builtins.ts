@@ -55,6 +55,8 @@ export type MinificationConfig = {
 	pureFuncs?: Array<string>;
 	extractComments?: boolean | RegExp;
 	test?: MinifyConditions;
+	// comments?: false | "some" | "all";
+	asciiOnly?: boolean;
 	exclude?: MinifyConditions;
 	include?: MinifyConditions;
 };
