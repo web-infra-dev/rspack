@@ -23,6 +23,7 @@ import type {
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
 import { Optimization } from "..";
+import { string } from "zod";
 
 export type BuiltinsHtmlPluginConfig = Omit<RawHtmlPluginConfig, "meta"> & {
 	meta?: Record<string, string | Record<string, string>>;
@@ -54,9 +55,8 @@ export type MinificationConfig = {
 	dropConsole?: boolean;
 	pureFuncs?: Array<string>;
 	extractComments?: boolean | RegExp;
-	test?: MinifyConditions;
-	// comments?: false | "some" | "all";
 	asciiOnly?: boolean;
+	test?: MinifyConditions;
 	exclude?: MinifyConditions;
 	include?: MinifyConditions;
 };

@@ -17,7 +17,7 @@ use rspack_core::{
 use rspack_error::{internal_error, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use swc_config::config_types::BoolOrDataConfig;
-use swc_ecma_minifier::option::{terser::TerserCompressorOptions, MangleOptions};
+use swc_ecma_minifier::option::terser::TerserCompressorOptions;
 
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
 use crate::{JsMinifyFormatOptions, JsMinifyOptions, JsPlugin};
