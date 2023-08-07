@@ -1107,7 +1107,6 @@ impl<'a> CodeSizeOptimizer<'a> {
           StarSymbolKind::ReExportAll => (false, vec![]),
         };
 
-        let mut find_at_least_one_match = false;
         // try to access first member expr element
         if let Some(name) = next_member_chain.get(0) {
           if let Some(export_symbol_ref) = analyze_result.export_map.get(name) {
@@ -1197,7 +1196,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
         }
 
-        if !find_at_least_one_match && !matches!(star_symbol.ty(), StarSymbolKind::ReExportAll) {
+        if !matches!(star_symbol.ty(), StarSymbolKind::ReExportAll) {
           // It means the module has not export or reexport target reference, maybe the src module
           // is a empty module, we should avoid to eliminate the module even it is a sideEffects
           // free module
