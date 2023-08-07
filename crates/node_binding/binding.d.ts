@@ -871,8 +871,8 @@ export interface RawPresetEnv {
 }
 
 export interface RawProgressPluginConfig {
-  prefix?: string
-  profile?: boolean
+  prefix: string
+  profile: boolean
 }
 
 export interface RawPxToRemConfig {

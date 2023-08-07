@@ -14,8 +14,8 @@ use rspack_error::Result;
 #[derive(Debug, Clone, Default)]
 pub struct ProgressPluginConfig {
   // the prefix name of progress bar
-  pub prefix: Option<String>,
-  pub profile: Option<bool>,
+  pub prefix: String,
+  pub profile: bool,
 }
 
 #[derive(Debug)]
@@ -71,20 +71,20 @@ impl ProgressPlugin {
     {
       let last_active_module = self.last_active_module.read().expect("TODO:");
       if let Some(last_active_module) = last_active_module.clone() {
-        state_items.push(last_active_module.clone());
+        state_items.push(last_active_module);
       }
     }
     self.handler(0.1 + percent * 0.55, String::from("building"), state_items);
     *self.last_update_time.write().expect("TODO:") = Instant::now();
   }
   pub fn handler(&self, percent: f32, msg: String, state_items: Vec<String>) {
-    if self.options.profile.unwrap_or(false) {
+    if self.options.profile == true {
       self.default_handler(percent, msg, state_items);
     } else {
       self.progress_bar_handler(percent, msg, state_items);
     }
   }
-  fn default_handler(&self, percent: f32, msg: String, state_items: Vec<String>) {
+  fn default_handler(&self, _: f32, msg: String, state_items: Vec<String>) {
     let full_state = [vec![msg.clone()], state_items].concat();
     let now = Instant::now();
     {
@@ -112,7 +112,7 @@ impl ProgressPlugin {
               last_state_info[i].value.clone()
             };
             println!(
-              "{} {}ms {}",
+              "{} {} ms {}",
               " | ".repeat(i),
               diff.as_millis(),
               report_state
@@ -149,15 +149,9 @@ impl Plugin for ProgressPlugin {
     _compilation: &mut Compilation,
     _param: &mut MakeParam,
   ) -> PluginMakeHookOutput {
-    if self.options.profile.unwrap_or(false) == false {
+    if self.options.profile == false {
       self.progress_bar.reset();
-      self.progress_bar.set_prefix(
-        self
-          .options
-          .prefix
-          .clone()
-          .unwrap_or_else(|| "Rspack".to_string()),
-      );
+      self.progress_bar.set_prefix(self.options.prefix.clone());
     }
     self.handler(0.01, String::from("make"), vec![]);
     self.modules_count.store(0, SeqCst);
@@ -202,7 +196,7 @@ impl Plugin for ProgressPlugin {
     _args: DoneArgs<'s, 'c>,
   ) -> PluginBuildEndHookOutput {
     self.handler(1.0, String::from("done"), vec![]);
-    if self.options.profile.unwrap_or(false) == false {
+    if self.options.profile == false {
       self.progress_bar.finish();
     }
     *self.last_modules_count.write().expect("TODO:") = Some(self.modules_count.load(SeqCst));

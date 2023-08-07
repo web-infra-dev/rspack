@@ -252,15 +252,19 @@ function resolveDecorator(
 function resolveProgress(
 	progress: Builtins["progress"]
 ): RawProgressPluginConfig | undefined {
-	if (!progress) {
-		return undefined;
+	let profile;
+	let prefix = "";
+	if (typeof progress === "boolean") {
+		profile = false;
+	} else {
+		prefix = progress?.prefix ?? "";
+		profile = progress?.profile ?? false;
 	}
 
-	if (progress === true) {
-		progress = {};
-	}
-
-	return progress;
+	return {
+		profile,
+		prefix
+	};
 }
 
 function resolveEmotion(

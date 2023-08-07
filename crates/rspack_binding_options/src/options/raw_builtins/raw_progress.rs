@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawProgressPluginConfig {
-  pub prefix: Option<String>,
-  pub profile: Option<bool>,
+  pub prefix: String,
+  pub profile: bool,
 }
 
 impl From<RawProgressPluginConfig> for ProgressPluginConfig {
