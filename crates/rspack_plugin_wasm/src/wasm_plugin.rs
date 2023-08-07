@@ -79,7 +79,7 @@ impl Plugin for AsyncWasmPlugin {
             .get(&m.identifier())
             .map(|s| s.clone())
             .expect("should have wasm_filename");
-          RenderManifestEntry::new(source.clone(), output_path, asset_info, false)
+          RenderManifestEntry::new(source.clone(), output_path, asset_info, false, false)
         });
 
         Ok(result)
