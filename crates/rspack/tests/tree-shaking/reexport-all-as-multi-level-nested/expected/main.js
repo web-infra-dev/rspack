@@ -46,8 +46,8 @@ __webpack_require__.es(_autogen_index__WEBPACK_IMPORTED_MODULE_0_, __webpack_exp
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _package_src_index_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ../package/src/index.js */"./package/src/index.js");
 
-_package_src_index_js__WEBPACK_IMPORTED_MODULE_0_["a"].a;
-_package_src_index_js__WEBPACK_IMPORTED_MODULE_0_["a"].aa.aa;
+_package_src_index_js__WEBPACK_IMPORTED_MODULE_0_.a.a;
+_package_src_index_js__WEBPACK_IMPORTED_MODULE_0_.a.aa.aa;
 },
 
 },function(__webpack_require__) {
