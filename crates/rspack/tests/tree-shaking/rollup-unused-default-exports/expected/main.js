@@ -19,7 +19,7 @@ var __WEBPACK_DEFAULT_EXPORT__ = mutate(foo);
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo */"./foo.js");
 
-assert.equal(_foo__WEBPACK_IMPORTED_MODULE_0_["foo"].value, 2);
+assert.equal(_foo__WEBPACK_IMPORTED_MODULE_0_.foo.value, 2);
 },
 
 },function(__webpack_require__) {

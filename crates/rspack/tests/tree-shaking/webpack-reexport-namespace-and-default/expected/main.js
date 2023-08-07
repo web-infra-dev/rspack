@@ -13,12 +13,12 @@ it("should load module correctly", ()=>{
 });
 // if (process.env.NODE_ENV === "production") {
 it("default export should be unused", ()=>{
-    expect(_package1_script__WEBPACK_IMPORTED_MODULE_1_["exportDefaultUsed"]).toBe(false);
-    expect(_package1_script2__WEBPACK_IMPORTED_MODULE_2_["exportDefaultUsed"]).toBe(false);
+    expect(_package1_script__WEBPACK_IMPORTED_MODULE_1_.exportDefaultUsed).toBe(false);
+    expect(_package1_script2__WEBPACK_IMPORTED_MODULE_2_.exportDefaultUsed).toBe(false);
 });
 // }
 it("default export should be used", ()=>{
-    expect(_package2_script__WEBPACK_IMPORTED_MODULE_3_["exportDefaultUsed"]).toBe(true);
+    expect(_package2_script__WEBPACK_IMPORTED_MODULE_3_.exportDefaultUsed).toBe(true);
 });
 },
 "./module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {

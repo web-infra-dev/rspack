@@ -30,7 +30,7 @@ __webpack_require__.es(_result_js__WEBPACK_IMPORTED_MODULE_1_, __webpack_exports
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _bar_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./bar.js */"./bar.js");
 
-(0, _bar_js__WEBPACK_IMPORTED_MODULE_0_["b"])();
+(0, _bar_js__WEBPACK_IMPORTED_MODULE_0_.b)();
 },
 "./result.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';

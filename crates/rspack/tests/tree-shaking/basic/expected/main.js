@@ -13,12 +13,12 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
 
 setTimeout(()=>{
-    console.log(_lib__WEBPACK_IMPORTED_MODULE_0_["myanswer"]);
+    console.log(_lib__WEBPACK_IMPORTED_MODULE_0_.myanswer);
 }, 1000);
  function render() {
     function test() {
         const container = document.getElementById("root");
-        container.innerHTML = `adddd333:${/* "./lib" unused */null}:${_lib__WEBPACK_IMPORTED_MODULE_0_["myanswer"]}`;
+        container.innerHTML = `adddd333:${/* "./lib" unused */null}:${_lib__WEBPACK_IMPORTED_MODULE_0_.myanswer}`;
     }
 }
 if (module.hot?.accept) module.hot.accept((module1)=>{
@@ -40,7 +40,7 @@ __webpack_require__.d(__webpack_exports__, {
 /* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./answer */"./answer.js");
 
  const secret = "888";
- const myanswer = _answer__WEBPACK_IMPORTED_MODULE_0_["answer"], result = 20000;
+ const myanswer = _answer__WEBPACK_IMPORTED_MODULE_0_.answer, result = 20000;
 },
 
 },function(__webpack_require__) {

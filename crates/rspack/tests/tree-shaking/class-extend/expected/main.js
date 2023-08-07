@@ -14,14 +14,14 @@ function foo() {
         OriginLib: /* "./lib" unused */null
     };
 }
- const v = _lib__WEBPACK_IMPORTED_MODULE_0_["value"];
+ const v = _lib__WEBPACK_IMPORTED_MODULE_0_.value;
 },
 "./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./app */"./app.js");
 
-_app__WEBPACK_IMPORTED_MODULE_0_["v"];
+_app__WEBPACK_IMPORTED_MODULE_0_.v;
 },
 "./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';

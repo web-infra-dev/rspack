@@ -246,7 +246,7 @@ impl Plugin for JsPlugin {
       };
 
       let format = JsMinifyFormatOptions {
-        ascii_only: minify_options.ascii_only.is_some(),
+        ascii_only: minify_options.ascii_only.unwrap_or_default(),
         ..Default::default()
       };
 

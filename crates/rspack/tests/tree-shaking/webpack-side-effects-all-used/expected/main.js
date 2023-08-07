@@ -11,13 +11,13 @@ var b = "b";
 var c = "c";
 
 
-(0, _tracker__WEBPACK_IMPORTED_MODULE_0_["track"])("a.js");
+(0, _tracker__WEBPACK_IMPORTED_MODULE_0_.track)("a.js");
 },
 "../node_modules/pmodule/b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'z': function() { return _c__WEBPACK_IMPORTED_MODULE_0_["z"]; }
+  'z': function() { return _c__WEBPACK_IMPORTED_MODULE_0_.z; }
 });
 __webpack_require__.d(__webpack_exports__, {
   'x': function() { return x; }
@@ -29,7 +29,7 @@ var y = "y";
 
 
 
-(0, _tracker__WEBPACK_IMPORTED_MODULE_1_["track"])("b.js");
+(0, _tracker__WEBPACK_IMPORTED_MODULE_1_.track)("b.js");
 },
 "../node_modules/pmodule/c.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
@@ -41,14 +41,14 @@ __webpack_require__.d(__webpack_exports__, {
 var z = "z";
 
 
-(0, _tracker__WEBPACK_IMPORTED_MODULE_0_["track"])("c.js");
+(0, _tracker__WEBPACK_IMPORTED_MODULE_0_.track)("c.js");
 },
 "../node_modules/pmodule/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'x': function() { return _b__WEBPACK_IMPORTED_MODULE_1_["x"]; },
-  'z': function() { return _b__WEBPACK_IMPORTED_MODULE_1_["z"]; }
+  'x': function() { return _b__WEBPACK_IMPORTED_MODULE_1_.x; },
+  'z': function() { return _b__WEBPACK_IMPORTED_MODULE_1_.z; }
 });
 __webpack_require__.d(__webpack_exports__, {
   'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
@@ -60,7 +60,7 @@ __webpack_require__.es(_a__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
 
 
 
-(0, _tracker__WEBPACK_IMPORTED_MODULE_2_["track"])("index.js");
+(0, _tracker__WEBPACK_IMPORTED_MODULE_2_.track)("index.js");
 var __WEBPACK_DEFAULT_EXPORT__ = "def";
 },
 "../node_modules/pmodule/tracker.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
@@ -87,11 +87,11 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-(0, pmodule__WEBPACK_IMPORTED_MODULE_1_["default"]).should.be.eql("def");
-(0, pmodule__WEBPACK_IMPORTED_MODULE_1_["a"]).should.be.eql("a");
-(0, pmodule__WEBPACK_IMPORTED_MODULE_1_["x"]).should.be.eql("x");
-(0, pmodule__WEBPACK_IMPORTED_MODULE_1_["z"]).should.be.eql("z");
-(0, pmodule_tracker__WEBPACK_IMPORTED_MODULE_0_["log"]).should.be.eql([
+pmodule__WEBPACK_IMPORTED_MODULE_1_["default"].should.be.eql("def");
+pmodule__WEBPACK_IMPORTED_MODULE_1_.a.should.be.eql("a");
+pmodule__WEBPACK_IMPORTED_MODULE_1_.x.should.be.eql("x");
+pmodule__WEBPACK_IMPORTED_MODULE_1_.z.should.be.eql("z");
+pmodule_tracker__WEBPACK_IMPORTED_MODULE_0_.log.should.be.eql([
     "a.js",
     "b.js",
     "c.js",
