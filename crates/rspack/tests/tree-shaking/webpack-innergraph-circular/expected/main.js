@@ -7,10 +7,10 @@ __webpack_require__.r(__webpack_exports__);
 
 
 it("export should be unused when only unused functions use it", ()=>{
-    expect((0, _module__WEBPACK_IMPORTED_MODULE_1_["y"])("a")).toBe("okBAA");
-    expect(_inner__WEBPACK_IMPORTED_MODULE_0_["exportAUsed"]).toBe(true);
-    expect(_inner__WEBPACK_IMPORTED_MODULE_0_["exportBUsed"]).toBe(true);
-    expect(_inner__WEBPACK_IMPORTED_MODULE_0_["exportCUsed"]).toBe(false);
+    expect((0, _module__WEBPACK_IMPORTED_MODULE_1_.y)("a")).toBe("okBAA");
+    expect(_inner__WEBPACK_IMPORTED_MODULE_0_.exportAUsed).toBe(true);
+    expect(_inner__WEBPACK_IMPORTED_MODULE_0_.exportBUsed).toBe(true);
+    expect(_inner__WEBPACK_IMPORTED_MODULE_0_.exportCUsed).toBe(false);
     return __webpack_require__.el(/* ./chunk */"./chunk.js").then(__webpack_require__.bind(__webpack_require__, /* ./chunk */"./chunk.js"));
 });
 },
@@ -60,11 +60,11 @@ function y(v) {
 }
 function withA(v) {
     const value = x(v);
-    return (0, _inner__WEBPACK_IMPORTED_MODULE_0_["A"])(value);
+    return (0, _inner__WEBPACK_IMPORTED_MODULE_0_.A)(value);
 }
 function withB(v) {
     const value = x(v);
-    return (0, _inner__WEBPACK_IMPORTED_MODULE_0_["B"])(value);
+    return (0, _inner__WEBPACK_IMPORTED_MODULE_0_.B)(value);
 }
 function withC(v) {
     const value = x(v);

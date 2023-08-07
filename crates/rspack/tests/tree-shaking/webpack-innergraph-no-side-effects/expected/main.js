@@ -13,7 +13,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 /* harmony import */var _package__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./package */"./package/index.js");
 
-var __WEBPACK_DEFAULT_EXPORT__ = _package__WEBPACK_IMPORTED_MODULE_0_["a"];
+var __WEBPACK_DEFAULT_EXPORT__ = _package__WEBPACK_IMPORTED_MODULE_0_.a;
  function test() {}
 },
 "./package/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
