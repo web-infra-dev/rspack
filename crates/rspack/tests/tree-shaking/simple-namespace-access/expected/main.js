@@ -35,8 +35,7 @@ __webpack_require__.d(__webpack_exports__, {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'test': function() { return test; },
-  'ccc': function() { return ccc; }
+  'test': function() { return test; }
 });
  function test() {}
  function ccc() {}

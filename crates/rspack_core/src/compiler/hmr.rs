@@ -376,6 +376,23 @@ where
           .expect("render_manifest failed in rebuild");
 
         for entry in render_manifest {
+          let filename = if entry.has_filename() {
+            entry.filename().to_string()
+          } else {
+            let chunk = self
+              .compilation
+              .chunk_by_ukey
+              .get(&ukey)
+              .expect("should have update chunk");
+            self.compilation.get_path(
+              &self.compilation.options.output.hot_update_chunk_filename,
+              PathData::default().chunk(chunk).hash_optional(
+                old_hash
+                  .as_ref()
+                  .map(|hash| hash.rendered(self.compilation.options.output.hash_digest_length)),
+              ),
+            )
+          };
           let asset = CompilationAsset::new(
             Some(entry.source),
             // Reset version to make hmr generated assets always emit
@@ -383,20 +400,6 @@ where
               .info
               .with_hot_module_replacement(true)
               .with_version(Default::default()),
-          );
-
-          let chunk = self
-            .compilation
-            .chunk_by_ukey
-            .get(&ukey)
-            .expect("should have update chunk");
-          let filename = self.compilation.get_path(
-            &self.compilation.options.output.hot_update_chunk_filename,
-            PathData::default().chunk(chunk).hash_optional(
-              old_hash
-                .as_ref()
-                .map(|hash| hash.rendered(self.compilation.options.output.hash_digest_length)),
-            ),
           );
           self.compilation.emit_asset(filename, asset);
         }

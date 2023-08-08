@@ -30,6 +30,9 @@ pub use queue::*;
 mod find_graph_roots;
 pub use find_graph_roots::*;
 
+mod visitor;
+pub use visitor::*;
+
 pub fn parse_to_url(url: &str) -> url::Url {
   if !url.contains(':') {
     let mut construct_string = String::with_capacity("specifier:".len() + url.len());
