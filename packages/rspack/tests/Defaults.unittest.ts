@@ -110,6 +110,7 @@ describe("snapshots", () => {
 		@@ ... @@
 		-     "minifyOptions": undefined,
 		+     "minifyOptions": Object {
+		+       "asciiOnly": false,
 		+       "dropConsole": false,
 		+       "exclude": undefined,
 		+       "extractComments": undefined,
@@ -162,6 +163,7 @@ describe("snapshots", () => {
 		@@ ... @@
 		-     "minifyOptions": undefined,
 		+     "minifyOptions": Object {
+		+       "asciiOnly": false,
 		+       "dropConsole": false,
 		+       "exclude": undefined,
 		+       "extractComments": undefined,
