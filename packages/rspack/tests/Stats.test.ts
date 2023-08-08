@@ -261,8 +261,20 @@ describe("Stats", () => {
 		<t> collect source maps: X ms
 		<t> emit source map assets: X ms
 
+		LOG from rspack.EnsureChunkConditionsPlugin
+		<t> ensure chunk conditions: X ms
+
 		LOG from rspack.RealContentHashPlugin
 		<t> hash to asset names: X ms
+
+		LOG from rspack.RemoveEmptyChunksPlugin
+		<t> remove empty chunks: X ms
+
+		LOG from rspack.SplitChunksPlugin
+		<t> prepare module group map: X ms
+		<t> ensure min size fit: X ms
+		<t> process module group map: X ms
+		<t> ensure max size fit: X ms
 
 		LOG from rspack.buildChunkGraph
 		<t> prepare entrypoints: X ms
