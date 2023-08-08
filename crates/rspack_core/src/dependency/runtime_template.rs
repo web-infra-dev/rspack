@@ -277,8 +277,6 @@ pub fn module_namespace_promise(
     _ => {
       if matches!(exports_type, ExportsType::Dynamic) {
         fake_type |= FakeNamespaceObjectMode::RETURN_VALUE;
-        // TODO should remove this after implement cjs analyze
-        fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
       }
       if matches!(exports_type, ExportsType::DefaultWithNamed) {
         fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;

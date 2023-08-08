@@ -6,10 +6,10 @@ use crate::dependency::HarmonyCompatibilityDependency;
 
 // Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/HarmonyDetectionParserPlugin.js
 pub struct HarmonyDetectionScanner<'a> {
-  pub build_info: &'a mut BuildInfo,
-  pub build_meta: &'a mut BuildMeta,
-  pub module_type: &'a ModuleType,
-  pub code_generable_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
+  build_info: &'a mut BuildInfo,
+  build_meta: &'a mut BuildMeta,
+  module_type: &'a ModuleType,
+  code_generable_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
 }
 
 impl<'a> HarmonyDetectionScanner<'a> {
