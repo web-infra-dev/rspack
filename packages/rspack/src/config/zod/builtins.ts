@@ -130,7 +130,13 @@ const emotion = z
 			autoLabel: z.enum(["never", "dev-only", "always"]).optional(),
 			labelFormat: z.string().optional(),
 			importMap: z
-				.record(z.record(z.tuple([z.string(), z.string()])))
+				.record(
+					z.record(
+						z.strictObject({
+							canonicalImport: z.tuple([z.string(), z.string()]).optional()
+						})
+					)
+				)
 				.optional()
 		})
 	)
