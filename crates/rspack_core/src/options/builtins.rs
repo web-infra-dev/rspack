@@ -106,6 +106,7 @@ pub struct Minification {
   pub drop_console: bool,
   pub pure_funcs: Vec<String>,
   pub extract_comments: Option<String>,
+  pub ascii_only: bool,
   pub test: Option<MinificationConditions>,
   pub include: Option<MinificationConditions>,
   pub exclude: Option<MinificationConditions>,

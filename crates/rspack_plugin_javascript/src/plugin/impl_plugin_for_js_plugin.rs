@@ -20,7 +20,7 @@ use swc_config::config_types::BoolOrDataConfig;
 use swc_ecma_minifier::option::terser::TerserCompressorOptions;
 
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
-use crate::{JsMinifyOptions, JsPlugin};
+use crate::{JsMinifyFormatOptions, JsMinifyOptions, JsPlugin};
 
 #[async_trait]
 impl Plugin for JsPlugin {
@@ -246,6 +246,11 @@ impl Plugin for JsPlugin {
         ..Default::default()
       };
 
+      let format = JsMinifyFormatOptions {
+        ascii_only: minify_options.ascii_only,
+        ..Default::default()
+      };
+
       for (filename, original) in compilation.assets_mut() {
         if !(filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs"))
         {
@@ -265,6 +270,7 @@ impl Plugin for JsPlugin {
           let input_source_map = original_source.map(&MapOptions::default());
           let js_minify_options = JsMinifyOptions {
             compress: BoolOrDataConfig::from_obj(compress.clone()),
+            format: format.clone(),
             source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
             inline_sources_content: true, /* Using true so original_source can be None in SourceMapSource */
             emit_source_map_columns,

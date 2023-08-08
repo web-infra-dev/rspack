@@ -54,6 +54,7 @@ export type MinificationConfig = {
 	dropConsole?: boolean;
 	pureFuncs?: Array<string>;
 	extractComments?: boolean | RegExp;
+	asciiOnly?: boolean;
 	test?: MinifyConditions;
 	exclude?: MinifyConditions;
 	include?: MinifyConditions;
@@ -523,6 +524,7 @@ export function resolveMinifyOptions(
 		dropConsole: false,
 		pureFuncs: [],
 		...builtins.minifyOptions,
+		asciiOnly: builtins.minifyOptions?.asciiOnly ?? false,
 		extractComments,
 		test: getMinifyConditions(builtins.minifyOptions?.test),
 		include: getMinifyConditions(builtins.minifyOptions?.include),
