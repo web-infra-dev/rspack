@@ -169,7 +169,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   /// export * from './test.js'
   /// ```
   /// then inherit_exports_maps become, `{"test.js": {...test_js_export_map} }`
-  // Use `IndexMap` to keep the insertion order
+  // Use `LinkedHashSet` to keep the insertion order
   pub export_all_dep_id: LinkedHashSet<DependencyId>,
   current_body_owner_symbol_ext: Option<SymbolExt>,
   pub(crate) maybe_lazy_reference_map: HashMap<SymbolExt, HashSet<Part>>,

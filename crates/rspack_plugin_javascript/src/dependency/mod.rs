@@ -4,6 +4,7 @@ mod esm;
 mod export_info_api_dep;
 mod hmr;
 mod module_argument_dependency;
+mod pure_expr_dep;
 mod url;
 mod worker;
 pub use commonjs::*;
