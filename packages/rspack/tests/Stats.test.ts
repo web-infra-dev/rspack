@@ -108,6 +108,7 @@ describe("Stats", () => {
 		  },
 		  "errors": [],
 		  "errorsCount": 0,
+		  "filteredModules": undefined,
 		  "hash": "f9f4e86a4560388a500c",
 		  "logging": {},
 		  "modules": [
@@ -282,6 +283,28 @@ describe("Stats", () => {
 		<t> extend chunkGroup runtime: X ms
 		<t> remove parent modules: X ms
 		"
+	`);
+	});
+
+	it("should have module profile when profile is true", async () => {
+		const stats = await compile({
+			context: __dirname,
+			entry: "./fixtures/abc",
+			profile: true
+		});
+		expect(stats?.toString({ all: false, modules: true }).replace(/\\/g, "/"))
+			.toMatchInlineSnapshot(`
+		"./fixtures/a.js [876] {main}
+		  [222] ->
+		  0 ms (resolving: 0 ms, integration: 0 ms, building: 0 ms)
+		./fixtures/b.js [211] {main}
+		  [222] ->
+		  0 ms (resolving: 0 ms, integration: 0 ms, building: 0 ms)
+		./fixtures/c.js [537] {main}
+		  [222] ->
+		  0 ms (resolving: 0 ms, integration: 0 ms, building: 0 ms)
+		./fixtures/abc.js [222] {main}
+		  0 ms (resolving: 0 ms, integration: 0 ms, building: 0 ms)"
 	`);
 	});
 });
