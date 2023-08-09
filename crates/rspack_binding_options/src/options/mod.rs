@@ -85,6 +85,7 @@ pub struct RawOptions {
   pub cache: RawCacheOptions,
   pub experiments: RawExperiments,
   pub node: Option<RawNodeOption>,
+  pub profile: bool,
 }
 
 impl RawOptionsApply for RawOptions {
@@ -266,6 +267,7 @@ impl RawOptionsApply for RawOptions {
       node,
       dev_server,
       builtins,
+      profile: self.profile,
     })
   }
 }

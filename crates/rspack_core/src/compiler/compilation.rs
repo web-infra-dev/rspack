@@ -37,10 +37,10 @@ use crate::{
   CleanQueue, CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults,
   CompilationLogger, CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, Entry,
   EntryData, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult,
-  Filename, Logger, Module, ModuleGraph, ModuleIdentifier, ModuleType, PathData, ProcessAssetsArgs,
-  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
-  Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver,
-  SourceType, Stats, TaskResult, WorkerTask,
+  Filename, Logger, Module, ModuleGraph, ModuleIdentifier, ModuleProfile, ModuleType, PathData,
+  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
+  RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec,
+  SharedPluginDriver, SourceType, Stats, TaskResult, WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
@@ -590,6 +590,7 @@ impl Compilation {
                 mut module_graph_module,
                 diagnostics,
                 dependencies,
+                current_profile,
               } = task_result;
               let module_identifier = factory_result.module.identifier();
 
@@ -619,10 +620,14 @@ impl Compilation {
                 module_graph_module,
                 dependencies,
                 is_entry,
+                current_profile,
               });
             }
             Ok(TaskResult::Add(task_result)) => match task_result {
-              AddTaskResult::ModuleAdded { module } => {
+              AddTaskResult::ModuleAdded {
+                module,
+                current_profile,
+              } => {
                 tracing::trace!("Module added: {}", module.identifier());
                 build_queue.add_task(BuildTask {
                   module,
@@ -630,6 +635,7 @@ impl Compilation {
                   compiler_options: self.options.clone(),
                   plugin_driver: self.plugin_driver.clone(),
                   cache: self.cache.clone(),
+                  current_profile,
                 });
               }
               AddTaskResult::ModuleReused { module, .. } => {
@@ -641,6 +647,7 @@ impl Compilation {
                 module,
                 build_result,
                 diagnostics,
+                current_profile,
               } = task_result;
               if self.options.builtins.tree_shaking.enable() {
                 self
@@ -682,6 +689,9 @@ impl Compilation {
                   .module_graph_module_by_identifier_mut(&module.identifier())
                   .expect("Failed to get mgm");
                 mgm.dependencies = dep_ids;
+                if let Some(current_profile) = current_profile {
+                  mgm.set_profile(current_profile);
+                }
               }
               process_dependencies_queue.add_task(ProcessDependenciesTask {
                 dependencies: build_result.dependencies,
@@ -841,6 +851,7 @@ impl Compilation {
     lazy_visit_modules: std::collections::HashSet<String>,
     issuer: Option<String>,
   ) {
+    let current_profile = self.options.profile.then(ModuleProfile::default);
     queue.add_task(FactorizeTask {
       original_module_identifier,
       issuer,
@@ -855,6 +866,7 @@ impl Compilation {
       options: self.options.clone(),
       plugin_driver: self.plugin_driver.clone(),
       cache: self.cache.clone(),
+      current_profile,
     });
   }
 

@@ -242,6 +242,7 @@ export const getNormalizedRspackOptions = (
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
 		devServer: config.devServer,
+		profile: config.profile,
 		builtins: nestedConfig(config.builtins, builtins => ({
 			...builtins
 		}))

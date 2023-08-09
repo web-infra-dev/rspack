@@ -21,7 +21,18 @@ export type StatsAsset = KnownStatsAsset & Record<string, any>;
 
 export type StatsChunk = KnownStatsChunk & Record<string, any>;
 
-export type KnownStatsModule = binding.JsStatsModule;
+export type KnownStatsModule = binding.JsStatsModule & {
+	profile?: StatsProfile;
+};
+
+export type StatsProfile = KnownStatsProfile & Record<string, any>;
+
+export type KnownStatsProfile = {
+	total: number;
+	resolving: number;
+	integration: number;
+	building: number;
+};
 
 export type StatsModule = KnownStatsModule & Record<string, any>;
 
@@ -122,9 +133,10 @@ export type SimpleExtractors = {
 	// 	},
 	// 	StatsChunkGroup
 	// >;
-	// module: ExtractorsByOption<Module, StatsModule>;
+	module: ExtractorsByOption<binding.JsStatsModule, StatsModule>;
 	// module$visible: ExtractorsByOption<Module, StatsModule>;
 	// moduleIssuer: ExtractorsByOption<Module, StatsModuleIssuer>;
+	profile: ExtractorsByOption<binding.JsStatsModuleProfile, StatsProfile>;
 	// moduleReason: ExtractorsByOption<ModuleGraphConnection, StatsModuleReason>;
 	chunk: ExtractorsByOption<StatsChunk, KnownStatsChunk>;
 	// chunkOrigin: ExtractorsByOption<OriginRecord, StatsChunkOrigin>;
@@ -503,3 +515,7 @@ export const mergeToObject = (
 
 	return obj;
 };
+
+export function resolveStatsMillisecond(s: binding.JsStatsMillisecond) {
+	return s.secs * 1000 + s.subsecMillis;
+}

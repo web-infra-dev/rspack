@@ -21,7 +21,8 @@ import {
 	moduleGroup,
 	countWithChildren,
 	sortByField,
-	assetGroup
+	assetGroup,
+	resolveStatsMillisecond
 } from "./statsFactoryUtils";
 import type {
 	KnownStatsAsset,
@@ -31,7 +32,8 @@ import type {
 	StatsAsset,
 	StatsChunk,
 	NormalizedStatsOptions,
-	KnownStatsLoggingEntry
+	KnownStatsLoggingEntry,
+	StatsProfile
 } from "./statsFactoryUtils";
 import {
 	LogType,
@@ -598,29 +600,25 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		modules: (
 			object,
-			_compilation,
+			compilation,
 			context: KnownStatsFactoryContext,
 			options: StatsOptions,
-			_factory
+			factory
 		) => {
-			const modules = context._inner.getModules(
+			const { type } = context;
+			const array = context._inner.getModules(
 				options.reasons!,
 				options.moduleAssets!,
 				options.nestedModules!,
 				options.source!
 			);
-			// const array = Array.from(modules);
-			// const groupedModules = factory.create(`${type}.modules`, array, context);
-			// // options.modulesSpace
-			// const limited = spaceLimited(groupedModules, 15);
-			// object.modules = limited.children;
-			// object.filteredModules = limited.filteredChildren;
-
-			object.modules = modules;
-			if (options.modules && modules.length > 15) {
-				object.modules = modules.slice(0, 15);
-				object.filteredModules = modules.length - 15;
-			}
+			const groupedModules = factory.create(`${type}.modules`, array, context);
+			const limited = spaceLimited(
+				groupedModules,
+				15 /* options.modulesSpace */
+			);
+			object.modules = limited.children;
+			object.filteredModules = limited.filteredChildren;
 		},
 		entrypoints: (
 			object,
@@ -720,6 +718,36 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		_: (object, chunk) => {
 			Object.assign(object, chunk);
 		}
+	},
+	module: {
+		_: (
+			object,
+			module,
+			context: KnownStatsFactoryContext,
+			options,
+			factory
+		) => {
+			const { type } = context;
+			Object.assign(object, module);
+			const profile = module.profile;
+			if (profile) {
+				object.profile = factory.create(`${type}.profile`, profile, context);
+			}
+		}
+	},
+	profile: {
+		_: (object, profile) => {
+			const factory = resolveStatsMillisecond(profile.factory);
+			const integration = resolveStatsMillisecond(profile.integration);
+			const building = resolveStatsMillisecond(profile.building);
+			const statsProfile: StatsProfile = {
+				total: factory + integration + building,
+				resolving: factory,
+				integration,
+				building
+			};
+			Object.assign(object, statsProfile);
+		}
 	}
 };
 
@@ -730,6 +758,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
  * - compilation.assets[].asset
  * - compilation.chunks
  * - compilation.chunks[].chunk
+ * - compilation.modules
+ * - compilation.modules[].module
  */
 export class DefaultStatsFactoryPlugin {
 	apply(compiler: Compiler) {
