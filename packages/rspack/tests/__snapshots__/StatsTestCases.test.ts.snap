@@ -178,6 +178,7 @@ import rawModule from './raw.png'",
   },
   "errors": [],
   "errorsCount": 0,
+  "filteredModules": undefined,
   "hash": "c2196d4a6876028f1c57",
   "logging": {},
   "modules": [
@@ -472,6 +473,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
+  "filteredModules": undefined,
   "hash": "d96303f50e05d7754f6d",
   "logging": {},
   "modules": [
@@ -653,6 +655,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
+  "filteredModules": undefined,
   "hash": "fd7b7cf5b2803b0b7113",
   "logging": {},
   "modules": [
@@ -771,6 +774,7 @@ rspack compiled with 2 errors"
 
 exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
 {
+  "filteredModules": undefined,
   "modules": [
     {
       "chunks": [
@@ -1750,6 +1754,7 @@ rspack compiled with 1 error"
 
 exports[`StatsTestCases should print correct stats for reasons 1`] = `
 {
+  "filteredModules": undefined,
   "modules": [
     {
       "chunks": [
@@ -1947,6 +1952,7 @@ console.log(a);
     },
   ],
   "errorsCount": 1,
+  "filteredModules": undefined,
   "hash": "9a30ab81da0d81699cd4",
   "logging": {},
   "modules": [
@@ -2193,6 +2199,7 @@ console.log(a);
     },
   ],
   "errorsCount": 1,
+  "filteredModules": undefined,
   "hash": "dfcb34e009aa1d3ba1c6",
   "logging": {},
   "modules": [
@@ -2386,6 +2393,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
+  "filteredModules": undefined,
   "hash": "92d29d02b4c2bff57ea2",
   "logging": {},
   "modules": [
@@ -2593,6 +2601,7 @@ import rawModule from './raw.png'",
   },
   "errors": [],
   "errorsCount": 0,
+  "filteredModules": undefined,
   "hash": "f8f56b80d711a8ab4dbc",
   "logging": {},
   "modules": [
@@ -2797,6 +2806,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
+  "filteredModules": undefined,
   "hash": "92d29d02b4c2bff57ea2",
   "logging": {},
   "modules": [

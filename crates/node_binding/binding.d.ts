@@ -348,6 +348,11 @@ export interface JsStatsLogging {
   trace?: Array<string>
 }
 
+export interface JsStatsMillisecond {
+  secs: number
+  subsecMillis: number
+}
+
 export interface JsStatsModule {
   type: string
   moduleType: string
@@ -363,12 +368,19 @@ export interface JsStatsModule {
   reasons?: Array<JsStatsModuleReason>
   assets?: Array<string>
   source?: string | Buffer
+  profile?: JsStatsModuleProfile
 }
 
 export interface JsStatsModuleIssuer {
   identifier: string
   name: string
   id?: string
+}
+
+export interface JsStatsModuleProfile {
+  factory: JsStatsMillisecond
+  integration: JsStatsMillisecond
+  building: JsStatsMillisecond
 }
 
 export interface JsStatsModuleReason {
@@ -801,6 +813,7 @@ export interface RawOptions {
   cache: RawCacheOptions
   experiments: RawExperiments
   node?: RawNodeOption
+  profile: boolean
 }
 
 export interface RawOutputOptions {

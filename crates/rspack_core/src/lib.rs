@@ -6,6 +6,8 @@
 use std::{fmt, sync::Arc};
 mod fake_namespace_object;
 pub use fake_namespace_object::*;
+mod module_profile;
+pub use module_profile::*;
 use rspack_database::Database;
 pub mod external_module;
 pub use external_module::*;

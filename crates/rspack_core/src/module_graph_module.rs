@@ -5,7 +5,7 @@ use crate::{
   is_async_dependency, module_graph::ConnectionId, BuildInfo, BuildMeta, BuildMetaDefaultObject,
   BuildMetaExportsType, ChunkGraph, ChunkGroupOptions, DependencyId, ExportsInfo, ExportsType,
   FactoryMeta, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  ModuleIssuer, ModuleSyntax, ModuleType,
+  ModuleIssuer, ModuleProfile, ModuleSyntax, ModuleType,
 };
 
 #[derive(Debug)]
@@ -28,6 +28,7 @@ pub struct ModuleGraphModule {
   pub build_info: Option<BuildInfo>,
   pub build_meta: Option<BuildMeta>,
   pub exports: ExportsInfo,
+  pub profile: Option<ModuleProfile>,
 }
 
 impl ModuleGraphModule {
@@ -48,6 +49,7 @@ impl ModuleGraphModule {
       build_info: None,
       build_meta: None,
       exports: ExportsInfo::new(),
+      profile: None,
     }
   }
 
@@ -158,6 +160,14 @@ impl ModuleGraphModule {
       .iter()
       .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
       .collect()
+  }
+
+  pub fn set_profile(&mut self, profile: ModuleProfile) {
+    self.profile = Some(profile);
+  }
+
+  pub fn get_profile(&self) -> Option<&ModuleProfile> {
+    self.profile.as_ref()
   }
 
   pub fn set_issuer_if_unset(&mut self, issuer: Option<ModuleIdentifier>) {

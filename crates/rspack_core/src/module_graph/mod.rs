@@ -12,7 +12,7 @@ pub use connection::{ConnectionId, ConnectionState, ModuleGraphConnection};
 
 use crate::{
   to_identifier, BoxModule, BoxModuleDependency, BuildDependency, BuildInfo, BuildMeta,
-  DependencyId, ExportsInfo, Module, ModuleGraphModule, ModuleIdentifier,
+  DependencyId, ExportsInfo, Module, ModuleGraphModule, ModuleIdentifier, ModuleProfile,
 };
 
 // TODO Here request can be used JsWord
@@ -361,6 +361,12 @@ impl ModuleGraph {
           .collect()
       })
       .unwrap_or_default()
+  }
+
+  pub fn get_profile(&self, module: &BoxModule) -> Option<&ModuleProfile> {
+    self
+      .module_graph_module_by_identifier(&module.identifier())
+      .and_then(|mgm| mgm.get_profile())
   }
 
   /// Remove a connection and return connection origin module identifier and dependency

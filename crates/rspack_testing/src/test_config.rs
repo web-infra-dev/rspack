@@ -498,6 +498,7 @@ impl TestConfig {
         remove_empty_chunks: self.optimization.remove_empty_chunks,
         side_effects: c::SideEffectOption::from(self.optimization.side_effects.as_str()),
       },
+      profile: false,
     };
     let mut plugins = Vec::new();
     for (name, desc) in &self.entry {
