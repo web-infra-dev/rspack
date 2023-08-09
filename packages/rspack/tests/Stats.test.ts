@@ -292,19 +292,23 @@ describe("Stats", () => {
 			entry: "./fixtures/abc",
 			profile: true
 		});
-		expect(stats?.toString({ all: false, modules: true }).replace(/\\/g, "/"))
-			.toMatchInlineSnapshot(`
+		expect(
+			stats
+				?.toString({ all: false, modules: true })
+				.replace(/\\/g, "/")
+				.replace(/\d+ ms/g, "X ms")
+		).toMatchInlineSnapshot(`
 		"./fixtures/a.js [876] {main}
 		  [222] ->
-		  0 ms (resolving: 0 ms, integration: 0 ms, building: 0 ms)
+		  X ms (resolving: X ms, integration: X ms, building: X ms)
 		./fixtures/b.js [211] {main}
 		  [222] ->
-		  0 ms (resolving: 0 ms, integration: 0 ms, building: 0 ms)
+		  X ms (resolving: X ms, integration: X ms, building: X ms)
 		./fixtures/c.js [537] {main}
 		  [222] ->
-		  0 ms (resolving: 0 ms, integration: 0 ms, building: 0 ms)
+		  X ms (resolving: X ms, integration: X ms, building: X ms)
 		./fixtures/abc.js [222] {main}
-		  0 ms (resolving: 0 ms, integration: 0 ms, building: 0 ms)"
+		  X ms (resolving: X ms, integration: X ms, building: X ms)"
 	`);
 	});
 });
