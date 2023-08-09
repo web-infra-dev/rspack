@@ -48,8 +48,10 @@ pub enum IsModule {
   Unknown,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum JsMinifyCommentOption {
+  #[default]
+  False,
   PreserveSomeComments,
   PreserveAllComments,
 }
@@ -84,7 +86,7 @@ pub struct JsMinifyFormatOptions {
   pub ascii_only: bool,
   pub beautify: bool,
   pub braces: bool,
-  pub comments: BoolOrDataConfig<JsMinifyCommentOption>,
+  pub comments: JsMinifyCommentOption,
   pub ecma: usize,
   pub indent_level: Option<usize>,
   pub indent_start: bool,

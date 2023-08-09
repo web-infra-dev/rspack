@@ -65,6 +65,8 @@ pub struct RawMinificationConditions {
 pub struct RawMinification {
   pub passes: u32,
   pub drop_console: bool,
+  #[napi(ts_type = r#""all" | "some" | "false""#)]
+  pub comments: String,
   pub ascii_only: bool,
   pub pure_funcs: Vec<String>,
   pub extract_comments: Option<String>,
@@ -111,6 +113,7 @@ impl TryFrom<RawMinification> for Minification {
       drop_console: value.drop_console,
       pure_funcs: value.pure_funcs,
       ascii_only: value.ascii_only,
+      comments: value.comments,
       extract_comments: value.extract_comments,
       test: try_condition(value.test)?,
       include: try_condition(value.include)?,

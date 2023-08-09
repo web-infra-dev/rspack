@@ -683,6 +683,7 @@ export interface RawLibraryOptions {
 export interface RawMinification {
   passes: number
   dropConsole: boolean
+  comments: "all" | "some" | "false"
   asciiOnly: boolean
   pureFuncs: Array<string>
   extractComments?: string
