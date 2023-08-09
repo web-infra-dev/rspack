@@ -73,7 +73,7 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + Ord 
 ) -> Vec<Item> {
   use rayon::prelude::*;
   // early exit when there is only a single item
-  if items.len() == 1 {
+  if items.len() <= 1 {
     return items;
   }
 
@@ -110,8 +110,6 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + Ord 
   // that is not part of the cycle
   let mut root_cycles: FxHashSet<Ukey<Cycle<Ukey<Node<Item>>>>> = FxHashSet::default();
 
-  let mut select_nodes = db.keys().cloned().collect::<Vec<_>>();
-  select_nodes.sort_unstable_by_key(|node| &node.as_ref(&db).item);
   // For all non-marked nodes
   for select_node in db.keys().cloned().collect::<Vec<_>>() {
     if matches!(select_node.as_ref(&db).marker, Marker::NoMarker) {
@@ -173,11 +171,7 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + Ord 
               // we merge the cycles to a shared cycle
               {
                 let mut i = stack.len() - 1;
-                loop {
-                  if stack[i].node == dependency {
-                    break;
-                  }
-
+                while stack[i].node != dependency {
                   let node = stack[i].node;
                   if let Some(node_cycle) = node.as_ref(&db).cycle {
                     if node_cycle != cycle {
@@ -221,9 +215,9 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + Ord 
             _ => {}
           }
         } else {
-          // Order matters here
-          stack[top_of_stack_idx].node.as_mut(&mut db).marker = Marker::DoneMarker;
-          stack.pop();
+          if let Some(top_of_stack) = stack.pop() {
+            top_of_stack.node.as_mut(&mut db).marker = Marker::DoneMarker
+          }
         }
       }
       let cycle = select_node.as_ref(&db).cycle;
