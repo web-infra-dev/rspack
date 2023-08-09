@@ -1,3 +1,7 @@
 import { answer } from "./answer";
-const res = {}
-res[answer] = 1
+function render() {
+	document.getElementById(
+		"root"
+	).innerHTML = `the answer to the universe is ${answer}`;
+}
+render();
