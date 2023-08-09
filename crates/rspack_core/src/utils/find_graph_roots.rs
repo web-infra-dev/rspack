@@ -214,10 +214,8 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + Ord 
             }
             _ => {}
           }
-        } else {
-          if let Some(top_of_stack) = stack.pop() {
-            top_of_stack.node.as_mut(&mut db).marker = Marker::DoneMarker
-          }
+        } else if let Some(top_of_stack) = stack.pop() {
+          top_of_stack.node.as_mut(&mut db).marker = Marker::DoneMarker;
         }
       }
       let cycle = select_node.as_ref(&db).cycle;
