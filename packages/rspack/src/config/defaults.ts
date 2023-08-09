@@ -125,7 +125,8 @@ export const applyRspackOptionsDefaults = (
 	options.builtins = oldBuiltins.resolveBuiltinsOptions(options.builtins, {
 		contextPath: options.context!,
 		optimization: options.optimization,
-		production
+		production,
+		css: options.experiments.css!
 	}) as any;
 };
 
