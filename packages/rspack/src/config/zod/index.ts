@@ -47,7 +47,8 @@ export function configSchema() {
 			devServer: z.object({}).optional(),
 			output: output().optional(),
 			builtins: builtins().optional(),
-			module: z.any().optional()
+			module: z.any().optional(),
+			profile: z.boolean().optional()
 		})
 		.strict();
 }

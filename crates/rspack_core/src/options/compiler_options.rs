@@ -22,6 +22,7 @@ pub struct CompilerOptions {
   pub experiments: Experiments,
   pub node: Option<NodeOption>,
   pub optimization: Optimization,
+  pub profile: bool,
 }
 
 impl CompilerOptions {

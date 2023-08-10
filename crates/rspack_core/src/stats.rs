@@ -425,6 +425,18 @@ impl Stats<'_> {
 
     // TODO: a placeholder for concatenation modules
     let modules = nested_modules.then(Vec::new);
+    let profile = if let Some(p) = mgm.get_profile()
+    && let Some(factory) = p.factory.duration()
+    && let Some(integration) = p.integration.duration()
+    && let Some(building) = p.building.duration() {
+      Some(StatsModuleProfile {
+        factory: StatsMillisecond::new(factory.as_secs(), factory.subsec_millis()),
+        integration: StatsMillisecond::new(integration.as_secs(), integration.subsec_millis()),
+        building: StatsMillisecond::new(building.as_secs(), building.subsec_millis()),
+      })
+    } else {
+      None
+    };
 
     Ok(StatsModule {
       r#type: "module",
@@ -448,6 +460,7 @@ impl Stats<'_> {
       assets,
       modules,
       source: source.then(|| module.original_source()).flatten(),
+      profile,
     })
   }
 
@@ -559,6 +572,14 @@ pub struct StatsModule<'a> {
   pub assets: Option<Vec<String>>,
   pub modules: Option<Vec<StatsModule<'a>>>,
   pub source: Option<&'a dyn Source>,
+  pub profile: Option<StatsModuleProfile>,
+}
+
+#[derive(Debug)]
+pub struct StatsModuleProfile {
+  pub factory: StatsMillisecond,
+  pub integration: StatsMillisecond,
+  pub building: StatsMillisecond,
 }
 
 #[derive(Debug)]
@@ -605,4 +626,19 @@ pub struct StatsModuleReason {
   pub module_id: Option<String>,
   pub r#type: Option<String>,
   pub user_request: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct StatsMillisecond {
+  pub secs: u64,
+  pub subsec_millis: u32,
+}
+
+impl StatsMillisecond {
+  pub fn new(secs: u64, subsec_millis: u32) -> Self {
+    Self {
+      secs,
+      subsec_millis,
+    }
+  }
 }

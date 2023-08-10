@@ -53,8 +53,9 @@ export interface RspackOptionsNormalized {
 	watch?: Watch;
 	watchOptions: WatchOptions;
 	devServer?: DevServer;
-	builtins: Builtins;
 	ignoreWarnings?: IgnoreWarningsNormalized;
+	profile?: Profile;
+	builtins: Builtins;
 }
 
 ///// Name /////
@@ -679,6 +680,9 @@ export type IgnoreWarningsNormalized = ((
 	warning: Error,
 	compilation: Compilation
 ) => boolean)[];
+
+///// Profile /////
+export type Profile = boolean;
 
 ///// Builtins /////
 export type Builtins = oldBuiltins.Builtins;

@@ -85,6 +85,7 @@ pub struct RawOptions {
   pub cache: RawCacheOptions,
   pub experiments: RawExperiments,
   pub node: Option<RawNodeOption>,
+  pub profile: bool,
 }
 
 impl RawOptionsApply for RawOptions {
@@ -241,7 +242,7 @@ impl RawOptionsApply for RawOptions {
       .boxed(),
     );
 
-    plugins.push(rspack_ids::StableNamedChunkIdsPlugin::new(None, None).boxed());
+    plugins.push(rspack_ids::NamedChunkIdsPlugin::new(None, None).boxed());
 
     // Notice the plugin need to be placed after SplitChunksPlugin
     if optimization.remove_empty_chunks {
@@ -266,6 +267,7 @@ impl RawOptionsApply for RawOptions {
       node,
       dev_server,
       builtins,
+      profile: self.profile,
     })
   }
 }

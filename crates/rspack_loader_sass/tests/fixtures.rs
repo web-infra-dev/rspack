@@ -87,6 +87,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           remove_empty_chunks: true,
           side_effects: SideEffectOption::False,
         },
+        profile: false,
       }),
       resolver_factory: Default::default(),
     },

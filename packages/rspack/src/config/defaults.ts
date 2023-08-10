@@ -69,6 +69,7 @@ export const applyRspackOptionsDefaults = (
 
 	F(options, "devtool", () => false as const);
 	D(options, "watch", false);
+	D(options, "profile", false);
 
 	const futureDefaults = options.experiments.futureDefaults ?? false;
 	F(options, "cache", () => development);
@@ -125,7 +126,8 @@ export const applyRspackOptionsDefaults = (
 	options.builtins = oldBuiltins.resolveBuiltinsOptions(options.builtins, {
 		contextPath: options.context!,
 		optimization: options.optimization,
-		production
+		production,
+		css: options.experiments.css!
 	}) as any;
 };
 

@@ -204,6 +204,7 @@ pub struct JsStatsModule {
   pub reasons: Option<Vec<JsStatsModuleReason>>,
   pub assets: Option<Vec<String>>,
   pub source: Option<Either<String, Buffer>>,
+  pub profile: Option<JsStatsModuleProfile>,
 }
 
 impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
@@ -241,7 +242,40 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
         .map(|i| i.into_iter().map(Into::into).collect()),
       assets: stats.assets,
       source,
+      profile: stats.profile.map(|p| p.into()),
     })
+  }
+}
+
+#[napi(object)]
+pub struct JsStatsModuleProfile {
+  pub factory: JsStatsMillisecond,
+  pub integration: JsStatsMillisecond,
+  pub building: JsStatsMillisecond,
+}
+
+impl From<rspack_core::StatsModuleProfile> for JsStatsModuleProfile {
+  fn from(value: rspack_core::StatsModuleProfile) -> Self {
+    Self {
+      factory: value.factory.into(),
+      integration: value.integration.into(),
+      building: value.building.into(),
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsStatsMillisecond {
+  pub secs: u32,
+  pub subsec_millis: u32,
+}
+
+impl From<rspack_core::StatsMillisecond> for JsStatsMillisecond {
+  fn from(value: rspack_core::StatsMillisecond) -> Self {
+    Self {
+      secs: value.secs as u32,
+      subsec_millis: value.subsec_millis,
+    }
   }
 }
 

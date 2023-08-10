@@ -6,8 +6,8 @@ use crate::{
   cache::Cache, BoxModuleDependency, BuildContext, BuildResult, Compilation, CompilerContext,
   CompilerOptions, Context, ContextModuleFactory, DependencyType, Module, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
-  ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve, ResolverFactory,
-  SharedPluginDriver, WorkerQueue,
+  ModuleProfile, ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve,
+  ResolverFactory, SharedPluginDriver, WorkerQueue,
 };
 
 #[derive(Debug)]
@@ -37,6 +37,7 @@ pub struct FactorizeTask {
   pub lazy_visit_modules: std::collections::HashSet<String>,
   pub plugin_driver: SharedPluginDriver,
   pub cache: Arc<Cache>,
+  pub current_profile: Option<ModuleProfile>,
 }
 
 #[derive(Debug)]
@@ -47,11 +48,15 @@ pub struct FactorizeTaskResult {
   pub dependencies: Vec<BoxModuleDependency>,
   pub diagnostics: Vec<Diagnostic>,
   pub is_entry: bool,
+  pub current_profile: Option<ModuleProfile>,
 }
 
 #[async_trait::async_trait]
 impl WorkerTask for FactorizeTask {
   async fn run(self) -> Result<TaskResult> {
+    if let Some(current_profile) = &self.current_profile {
+      current_profile.mark_factory_start();
+    }
     let dependency = &self.dependencies[0];
 
     let context = if let Some(context) = dependency.get_context() {
@@ -104,6 +109,10 @@ impl WorkerTask for FactorizeTask {
 
     let mgm = ModuleGraphModule::new(result.module.identifier(), *result.module.module_type());
 
+    if let Some(current_profile) = &self.current_profile {
+      current_profile.mark_factory_end();
+    }
+
     Ok(TaskResult::Factorize(FactorizeTaskResult {
       is_entry: self.is_entry,
       original_module_identifier: self.original_module_identifier,
@@ -111,6 +120,7 @@ impl WorkerTask for FactorizeTask {
       module_graph_module: Box::new(mgm),
       dependencies: self.dependencies,
       diagnostics,
+      current_profile: self.current_profile,
     }))
   }
 }
@@ -123,16 +133,25 @@ pub struct AddTask {
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<BoxModuleDependency>,
   pub is_entry: bool,
+  pub current_profile: Option<ModuleProfile>,
 }
 
 #[derive(Debug)]
 pub enum AddTaskResult {
-  ModuleReused { module: Box<dyn Module> },
-  ModuleAdded { module: Box<dyn Module> },
+  ModuleReused {
+    module: Box<dyn Module>,
+  },
+  ModuleAdded {
+    module: Box<dyn Module>,
+    current_profile: Option<ModuleProfile>,
+  },
 }
 
 impl AddTask {
   pub fn run(self, compilation: &mut Compilation) -> Result<TaskResult> {
+    if let Some(current_profile) = &self.current_profile {
+      current_profile.mark_integration_start();
+    }
     let module_identifier = self.module.identifier();
 
     if compilation
@@ -169,8 +188,13 @@ impl AddTask {
         .insert(module_identifier);
     }
 
+    if let Some(current_profile) = &self.current_profile {
+      current_profile.mark_integration_end();
+    }
+
     Ok(TaskResult::Add(AddTaskResult::ModuleAdded {
       module: self.module,
+      current_profile: self.current_profile,
     }))
   }
 }
@@ -201,6 +225,7 @@ pub struct BuildTask {
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
   pub cache: Arc<Cache>,
+  pub current_profile: Option<ModuleProfile>,
 }
 
 #[derive(Debug)]
@@ -208,11 +233,16 @@ pub struct BuildTaskResult {
   pub module: Box<dyn Module>,
   pub build_result: Box<BuildResult>,
   pub diagnostics: Vec<Diagnostic>,
+  pub current_profile: Option<ModuleProfile>,
 }
 
 #[async_trait::async_trait]
 impl WorkerTask for BuildTask {
   async fn run(self) -> Result<TaskResult> {
+    if let Some(current_profile) = &self.current_profile {
+      current_profile.mark_building_start();
+    }
+
     let mut module = self.module;
     let compiler_options = self.compiler_options;
     let resolver_factory = self.resolver_factory;
@@ -249,6 +279,10 @@ impl WorkerTask for BuildTask {
       plugin_driver.still_valid_module(module.as_ref()).await?;
     }
 
+    if let Some(current_profile) = &self.current_profile {
+      current_profile.mark_building_end();
+    }
+
     build_result.map(|build_result| {
       let (build_result, diagnostics) = build_result.split_into_parts();
 
@@ -256,6 +290,7 @@ impl WorkerTask for BuildTask {
         module,
         build_result: Box::new(build_result),
         diagnostics,
+        current_profile: self.current_profile,
       })
     })
   }
