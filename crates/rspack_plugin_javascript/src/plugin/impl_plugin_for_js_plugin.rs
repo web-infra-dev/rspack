@@ -20,7 +20,7 @@ use swc_config::config_types::BoolOrDataConfig;
 use swc_ecma_minifier::option::terser::TerserCompressorOptions;
 
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
-use crate::{JsMinifyFormatOptions, JsMinifyOptions, JsPlugin};
+use crate::{JsMinifyCommentOption, JsMinifyFormatOptions, JsMinifyOptions, JsPlugin};
 
 #[async_trait]
 impl Plugin for JsPlugin {
@@ -246,8 +246,16 @@ impl Plugin for JsPlugin {
         ..Default::default()
       };
 
+      let comments = match minify_options.comments.as_str() {
+        "false" => JsMinifyCommentOption::False,
+        "all" => JsMinifyCommentOption::PreserveAllComments,
+        "some" => JsMinifyCommentOption::PreserveSomeComments,
+        _ => JsMinifyCommentOption::False,
+      };
+
       let format = JsMinifyFormatOptions {
         ascii_only: minify_options.ascii_only,
+        comments,
         ..Default::default()
       };
 

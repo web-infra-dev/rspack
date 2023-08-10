@@ -470,6 +470,7 @@ impl TestConfig {
           include: None,
           exclude: None,
           test: None,
+          comments: "false".to_string(),
           ascii_only: false,
         }),
         preset_env: self.builtins.preset_env.map(Into::into),

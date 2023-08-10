@@ -13,7 +13,7 @@ use rspack_error::{internal_error, DiagnosticKind, Error, Result, TraceableError
 use swc_core::{
   common::{
     collections::AHashMap,
-    comments::{CommentKind, Comments, SingleThreadedComments},
+    comments::{Comment, CommentKind, Comments, SingleThreadedComments},
     errors::{Emitter, Handler, HANDLER},
     BytePos, FileName, Mark, SourceMap, GLOBALS,
   },
@@ -38,8 +38,8 @@ use swc_ecma_minifier::{
 use super::parse::parse_js;
 use super::stringify::{print, SourceMapConfig};
 use crate::{
-  utils::ecma_parse_error_to_rspack_error, ExtractedCommentsInfo, IsModule, JsMinifyOptions,
-  SourceMapsConfig, TransformOutput,
+  utils::ecma_parse_error_to_rspack_error, ExtractedCommentsInfo, IsModule, JsMinifyCommentOption,
+  JsMinifyOptions, SourceMapsConfig, TransformOutput,
 };
 
 #[async_recursion]
@@ -60,6 +60,40 @@ pub async fn match_object(obj: &Minification, str: &str) -> Result<bool> {
     }
   }
   Ok(true)
+}
+
+/**
+ * Some code is modified based on
+ * https://github.com/swc-project/swc/blob/6e5d8b3cf1af74d614d5c073d966da543c26e302/crates/swc/src/lib.rs#L689
+ * Apache-2.0 licensed
+ * Author Donny/강동윤
+ * Copyright (c)
+ */
+pub(crate) fn minify_file_comments(
+  comments: &SingleThreadedComments,
+  preserve_comments: JsMinifyCommentOption,
+) {
+  match preserve_comments {
+    JsMinifyCommentOption::PreserveAllComments => {}
+
+    JsMinifyCommentOption::PreserveSomeComments => {
+      let preserve_excl = |_: &BytePos, vc: &mut Vec<Comment>| -> bool {
+        // Preserve license comments.
+        vc.retain(|c: &Comment| c.text.contains("@license") || c.text.starts_with('!'));
+        !vc.is_empty()
+      };
+      let (mut l, mut t) = comments.borrow_all_mut();
+
+      l.retain(preserve_excl);
+      t.retain(preserve_excl);
+    }
+
+    JsMinifyCommentOption::False => {
+      let (mut l, mut t) = comments.borrow_all_mut();
+      l.clear();
+      t.clear();
+    }
+  }
 }
 
 pub fn minify(
@@ -257,6 +291,8 @@ pub fn minify(
           }
         }
 
+        minify_file_comments(&comments, opts.format.comments.to_owned());
+
         print(
           &program,
           cm.clone(),
@@ -268,7 +304,7 @@ pub fn minify(
             names: source_map_names,
           },
           true,
-          None,
+          Some(&comments),
           opts.format.ascii_only,
         )
       },
