@@ -7,13 +7,15 @@ extern crate napi_derive;
 #[macro_use]
 extern crate rspack_binding_macros;
 
+use std::cell::Cell;
 use std::collections::HashSet;
+use std::path::Path;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use dashmap::DashMap;
 use napi::bindgen_prelude::*;
-use once_cell::sync::Lazy;
+use once_cell::sync::{Lazy, OnceCell};
 use rspack_core::PluginExt;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
 use rspack_napi_shared::NAPI_ENV;
@@ -27,6 +29,7 @@ use hook::*;
 use js_values::*;
 use plugins::*;
 use rspack_binding_options::*;
+use rspack_tracing::chrome::FlushGuard;
 use utils::*;
 
 #[cfg(not(target_os = "linux"))]
@@ -145,8 +148,6 @@ impl Rspack {
     output_filesystem: ThreadsafeNodeFS,
     js_loader_runner: JsFunction,
   ) -> Result<Self> {
-    init_custom_trace_subscriber(env);
-    // rspack_tracing::enable_tracing_by_env();
     Self::prepare_environment(&env);
     tracing::info!("raw_options: {:#?}", &options);
 
@@ -308,4 +309,59 @@ impl Rspack {
   fn prepare_environment(env: &Env) {
     NAPI_ENV.with(|napi_env| *napi_env.borrow_mut() = Some(env.raw()));
   }
+}
+
+static CUSTOM_TRACE_SUBSCRIBER: OnceCell<bool> = OnceCell::new();
+
+/**
+ * Some code is modified based on
+ * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58
+ * Apache-2.0 licensed
+ * Author Donny/강동윤
+ * Copyright (c)
+ */
+#[napi(catch_unwind)]
+pub fn register_global_trace(
+  mut env: Env,
+  filter: String,
+  layer: String,
+  output: String,
+) -> Result<()> {
+  CUSTOM_TRACE_SUBSCRIBER.get_or_init(|| {
+    let guard = match layer.as_str() {
+      "chrome" => {
+        rspack_tracing::enable_tracing_by_env_with_chrome_layer(&filter, Path::new(&output))
+      }
+      "logger" => {
+        rspack_tracing::enable_tracing_by_env(&filter);
+        None
+      }
+      _ => panic!("not supported layer type:{layer}"),
+    };
+    if let Some(guard) = guard {
+      env
+        .add_env_cleanup_hook(guard, |flush_guard| {
+          flush_guard.flush();
+          drop(flush_guard);
+        })
+        .expect("Should able to initialize cleanup for custom trace subscriber");
+    }
+    true
+  });
+
+  Ok(())
+}
+
+thread_local! {
+  static CUSTOM_TRACE_CHROME_FLUSH_GUARD: Cell<Option<FlushGuard>> = Cell::new(None);
+}
+
+#[napi]
+pub fn cleanup_custom_trace_subscriber() {
+  CUSTOM_TRACE_CHROME_FLUSH_GUARD.with(|v| {
+    if let Some(g) = v.take() {
+      g.flush();
+      // drop
+    }
+  })
 }

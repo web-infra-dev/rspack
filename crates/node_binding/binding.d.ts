@@ -107,15 +107,6 @@ export interface FactoryMeta {
   sideEffects?: boolean
 }
 
-/**
- * Some code is modified based on
- * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58
- * Apache-2.0 licensed
- * Author Donny/강동윤
- * Copyright (c)
- */
-export function initCustomTraceSubscriber(): void
-
 export interface JsAsset {
   name: string
   source?: JsCompatSource
@@ -1009,6 +1000,15 @@ export interface RawStyleConfig {
 export interface RawTrustedTypes {
   policyName?: string
 }
+
+/**
+ * Some code is modified based on
+ * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58
+ * Apache-2.0 licensed
+ * Author Donny/강동윤
+ * Copyright (c)
+ */
+export function registerGlobalTrace(filter: string, layer: string, output: string): void
 
 export interface ThreadsafeNodeFS {
   writeFile: (...args: any[]) => any

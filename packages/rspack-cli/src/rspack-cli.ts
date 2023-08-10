@@ -24,8 +24,13 @@ import { normalizeEnv } from "./utils/options";
 import { loadRspackConfig } from "./utils/loadConfig";
 import findConfig from "./utils/findConfig";
 import { Mode } from "@rspack/core/src/config";
-import { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
+import {
+	RspackPluginInstance,
+	RspackPluginFunction,
+	registerGlobalTrace
+} from "@rspack/core";
 import path from "path";
+import { RspackJsCPUProfilePlugin, resolveProfile } from "./utils/profile";
 
 type Command = "serve" | "build";
 
@@ -144,6 +149,21 @@ export class RspackCLI {
 						new BundleAnalyzerPlugin({
 							generateStatsFile: true
 						}).apply(compiler as any);
+					}
+				});
+			}
+			if (process.env.RSPACK_PROFILE) {
+				resolveProfile(process.env.RSPACK_PROFILE).forEach(profileOptions => {
+					if (profileOptions.kind === "rust trace") {
+						registerGlobalTrace(
+							profileOptions.filter,
+							"chrome",
+							profileOptions.output
+						);
+					} else if (profileOptions.kind === "js cpu profile") {
+						(item.plugins ??= []).push(
+							new RspackJsCPUProfilePlugin(profileOptions.output)
+						);
 					}
 				});
 			}
