@@ -2,9 +2,11 @@ use std::{collections::hash_map::Entry, collections::VecDeque, hash::Hash, path:
 
 use bitflags::bitflags;
 use hashlink::{LinkedHashMap, LinkedHashSet};
+use once_cell::sync::Lazy;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
-use swc_core::common::SyntaxContext;
+use swc_core::common::Spanned;
+use swc_core::common::{comments, SyntaxContext};
 use swc_core::common::{util::take::Take, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::atoms::{js_word, JsWord};
@@ -189,14 +191,15 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) side_effects: SideEffectType,
   pub(crate) options: &'a CompilerOptions,
   pub(crate) has_side_effects_stmt: bool,
-  pub(crate) potential_top_level_ctxt: HashSet<SyntaxContext>,
+  pub(crate) top_level_ctxt_set: HashSet<SyntaxContext>,
   worker_syntax_list: &'a WorkerSyntaxList,
+  comments: Option<&'a SwcComments>,
 }
 
 impl<'a> std::fmt::Debug for ModuleRefAnalyze<'a> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("ModuleRefAnalyze")
-      .field("top_level_mark", &self.top_level_ctxt)
+      .field("top_level_mark", &self.top_level_ctxt_set)
       .field("unresolved_mark", &self.unresolved_ctxt)
       .field("module_identifier", &self.module_identifier)
       .field("dependencies", &"..".to_string())
@@ -229,7 +232,7 @@ impl<'a> std::fmt::Debug for ModuleRefAnalyze<'a> {
       .field("options", &self.options)
       .field("has_side_effects_stmt", &self.has_side_effects_stmt)
       .field("unresolved_ctxt", &self.unresolved_ctxt)
-      .field("potential_top_mark", &self.potential_top_level_ctxt)
+      .field("potential_top_mark", &self.top_level_ctxt_set)
       .field("comments", &"...")
       .field("worker_syntax_list", self.worker_syntax_list)
       .finish()
@@ -256,7 +259,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     module_identifier: ModuleIdentifier,
     dependencies: &'a Vec<Box<dyn ModuleDependency>>,
     options: &'a CompilerOptions,
-    _comments: Option<&'a SwcComments>,
+    comments: Option<&'a SwcComments>,
     worker_syntax_list: &'a WorkerSyntaxList,
   ) -> Self {
     Self {
@@ -279,9 +282,10 @@ impl<'a> ModuleRefAnalyze<'a> {
       immediate_evaluate_reference_map: HashMap::default(),
       options,
       has_side_effects_stmt: false,
-      potential_top_level_ctxt: HashSet::from_iter([mark_info.top_level_ctxt]),
+      top_level_ctxt_set: HashSet::from_iter([mark_info.top_level_ctxt]),
       worker_syntax_list,
       export_all_dep_id: LinkedHashSet::default(),
+      comments,
     }
   }
 
@@ -689,7 +693,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_script(&mut self, node: &Script) {
     for stmt in &node.body {
-      self.analyze_stmt_side_effects(stmt);
+      self.analyze_stmt_side_effects(stmt, self.comments);
       stmt.visit_with(self);
     }
   }
@@ -698,7 +702,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     let id: BetterId = node.to_id().into();
     let ctxt = id.ctxt;
 
-    if self.potential_top_level_ctxt.contains(&ctxt) {
+    if self.top_level_ctxt_set.contains(&ctxt) {
       match self.current_body_owner_symbol_ext {
         Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id.atom => {
           self.add_reference(
@@ -933,7 +937,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     let target = if before_owner_extend_symbol.is_none() {
       let target = first_ident_of_assign_lhs(node);
       target.and_then(|target| {
-        if target.1 == self.top_level_ctxt {
+        if self.top_level_ctxt_set.contains(&target.1) {
           Some(target)
         } else {
           None
@@ -984,7 +988,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     self.check_commonjs_feature(&member_chain);
     if !member_chain.is_empty() {
       let (first, first_ctxt) = member_chain[0].clone();
-      if self.potential_top_level_ctxt.contains(&first_ctxt) {
+      if self.top_level_ctxt_set.contains(&first_ctxt) {
         let member_expr = Part::MemberExpr {
           first: first.clone(),
           rest: member_chain
@@ -1193,7 +1197,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     let id: BetterId = node.ident.to_id().into();
     let ctxt = id.ctxt;
     let old_region = self.current_body_owner_symbol_ext.clone();
-    if ctxt == self.top_level_ctxt {
+    if self.top_level_ctxt_set.contains(&ctxt) {
       self.current_body_owner_symbol_ext = Some(id.atom.into());
     }
     node.visit_children_with(self);
@@ -1204,7 +1208,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     let id: BetterId = node.ident.to_id().into();
     let ctxt = id.ctxt;
     let before_symbol_ext = self.current_body_owner_symbol_ext.clone();
-    if ctxt == self.top_level_ctxt {
+    if self.top_level_ctxt_set.contains(&ctxt) {
       self.current_body_owner_symbol_ext = Some(id.atom.into());
     }
     node.function.visit_with(self);
@@ -1212,14 +1216,13 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
 
   fn visit_var_decl(&mut self, node: &VarDecl) {
+    let is_export = self.state.contains(AnalyzeState::EXPORT_DECL);
     for ele in node.decls.iter() {
-      // TODO: I think it is safe to move is_export out of loop.
-      let is_export = self.state.contains(AnalyzeState::EXPORT_DECL);
       let Some(lhs) = self.visit_var_decl_pattern(&ele.name, is_export) else {
         ele.init.visit_with(self);
         continue;
       };
-      if let Some(ref init) = ele.init && self.potential_top_level_ctxt.contains(&lhs.ctxt) {
+      if let Some(ref init) = ele.init && self.top_level_ctxt_set.contains(&lhs.ctxt) {
 
         let mut symbol_ext = SymbolExt::new(lhs.atom, SymbolFlag::VAR_DECL);
         match init {
@@ -1230,6 +1233,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         if is_export {
           symbol_ext.flag.insert(SymbolFlag::EXPORT);
         }
+        let is_init_pure = is_pure_expression(init, self.unresolved_ctxt, self.comments);
         let before_symbol_ext = self.current_body_owner_symbol_ext.clone();
         self.current_body_owner_symbol_ext = Some(symbol_ext);
         init.visit_with(self);
@@ -1256,7 +1260,7 @@ impl<'a> ModuleRefAnalyze<'a> {
   // other binding patterns like let [state, setState] = useState() will return None
   fn visit_var_decl_pattern(&mut self, pattern: &Pat, is_export: bool) -> Option<BetterId> {
     let mut add_export = |lhs: &BetterId| {
-      if is_export && lhs.ctxt == self.top_level_ctxt {
+      if is_export && self.top_level_ctxt_set.contains(&lhs.ctxt) {
         self.add_export(
           lhs.atom.clone(),
           SymbolRef::Declaration(Symbol::new(
@@ -1294,7 +1298,7 @@ impl<'a> ModuleRefAnalyze<'a> {
               assign.value.visit_with(self);
               let lhs = BetterId::from(assign.key.to_id());
               // inline code here to avoid compiler complaints
-              if is_export && lhs.ctxt == self.top_level_ctxt {
+              if is_export && self.top_level_ctxt_set.contains(&lhs.ctxt) {
                 self.add_export(
                   lhs.atom.clone(),
                   SymbolRef::Declaration(Symbol::new(
@@ -1374,14 +1378,14 @@ impl<'a> ModuleRefAnalyze<'a> {
     match ele {
       ModuleItem::ModuleDecl(module_decl) => match module_decl {
         ModuleDecl::ExportDecl(decl) => {
-          if !is_pure_decl(&decl.decl, self.unresolved_ctxt) {
+          if !is_pure_decl(&decl.decl, self.unresolved_ctxt, self.comments) {
             self.has_side_effects_stmt = true;
           }
         }
         ModuleDecl::ExportDefaultDecl(decl) => {
           match decl.decl {
             DefaultDecl::Class(ref class) => {
-              if !is_pure_class(&class.class, self.unresolved_ctxt) {
+              if !is_pure_class(&class.class, self.unresolved_ctxt, self.comments) {
                 self.has_side_effects_stmt = true;
               }
             }
@@ -1390,7 +1394,7 @@ impl<'a> ModuleRefAnalyze<'a> {
           };
         }
         ModuleDecl::ExportDefaultExpr(expr) => {
-          if !is_pure_expression(&expr.expr, self.unresolved_ctxt) {
+          if !is_pure_expression(&expr.expr, self.unresolved_ctxt, self.comments) {
             self.has_side_effects_stmt = true;
           }
         }
@@ -1401,35 +1405,37 @@ impl<'a> ModuleRefAnalyze<'a> {
         | ModuleDecl::TsExportAssignment(_)
         | ModuleDecl::TsNamespaceExport(_) => {}
       },
-      ModuleItem::Stmt(stmt) => self.analyze_stmt_side_effects(stmt),
+      ModuleItem::Stmt(stmt) => self.analyze_stmt_side_effects(stmt, self.comments),
     }
   }
 
   /// If we find a stmt that has side effects, we will skip the rest of the stmts.
   /// And mark the module as having side effects.
-  fn analyze_stmt_side_effects(&mut self, ele: &Stmt) {
+  fn analyze_stmt_side_effects(&mut self, ele: &Stmt, comments: Option<&SwcComments>) {
     if !self.has_side_effects_stmt {
       match ele {
         Stmt::If(stmt) => {
-          if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
+          if !is_pure_expression(&stmt.test, self.unresolved_ctxt, comments) {
             self.has_side_effects_stmt = true;
           }
         }
         Stmt::While(stmt) => {
-          if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
+          if !is_pure_expression(&stmt.test, self.unresolved_ctxt, comments) {
             self.has_side_effects_stmt = true;
           }
         }
         Stmt::DoWhile(stmt) => {
-          if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
+          if !is_pure_expression(&stmt.test, self.unresolved_ctxt, comments) {
             self.has_side_effects_stmt = true;
           }
         }
         Stmt::For(stmt) => {
           let pure_init = match stmt.init {
             Some(ref init) => match init {
-              VarDeclOrExpr::VarDecl(decl) => is_pure_var_decl(decl, self.unresolved_ctxt),
-              VarDeclOrExpr::Expr(expr) => is_pure_expression(expr, self.unresolved_ctxt),
+              VarDeclOrExpr::VarDecl(decl) => {
+                is_pure_var_decl(decl, self.unresolved_ctxt, comments)
+              }
+              VarDeclOrExpr::Expr(expr) => is_pure_expression(expr, self.unresolved_ctxt, comments),
             },
             None => true,
           };
@@ -1440,7 +1446,7 @@ impl<'a> ModuleRefAnalyze<'a> {
           }
 
           let pure_test = match stmt.test {
-            Some(box ref test) => is_pure_expression(test, self.unresolved_ctxt),
+            Some(box ref test) => is_pure_expression(test, self.unresolved_ctxt, comments),
             None => true,
           };
 
@@ -1450,7 +1456,7 @@ impl<'a> ModuleRefAnalyze<'a> {
           }
 
           let pure_update = match stmt.update {
-            Some(ref expr) => is_pure_expression(expr, self.unresolved_ctxt),
+            Some(ref expr) => is_pure_expression(expr, self.unresolved_ctxt, comments),
             None => true,
           };
 
@@ -1459,17 +1465,17 @@ impl<'a> ModuleRefAnalyze<'a> {
           }
         }
         Stmt::Expr(stmt) => {
-          if !is_pure_expression(&stmt.expr, self.unresolved_ctxt) {
+          if !is_pure_expression(&stmt.expr, self.unresolved_ctxt, comments) {
             self.has_side_effects_stmt = true;
           }
         }
         Stmt::Switch(stmt) => {
-          if !is_pure_expression(&stmt.discriminant, self.unresolved_ctxt) {
+          if !is_pure_expression(&stmt.discriminant, self.unresolved_ctxt, comments) {
             self.has_side_effects_stmt = true;
           }
         }
         Stmt::Decl(stmt) => {
-          if !is_pure_decl(stmt, self.unresolved_ctxt) {
+          if !is_pure_decl(stmt, self.unresolved_ctxt, comments) {
             self.has_side_effects_stmt = true;
           }
         }
@@ -1497,7 +1503,7 @@ impl<'a> ModuleRefAnalyze<'a> {
         // TODO: should add some Diagnostic
       }
       Entry::Vacant(vac) => {
-        self.potential_top_level_ctxt.insert(id.ctxt);
+        self.top_level_ctxt_set.insert(id.ctxt);
         vac.insert(symbol);
       }
     }
@@ -1699,7 +1705,16 @@ impl Visit for FirstIdentVisitor {
   }
 }
 
-fn is_pure_expression(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
+static PURE_COMMENTS: Lazy<regex::Regex> = Lazy::new(|| {
+  let reg = regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex");
+  reg
+});
+
+fn is_pure_expression(
+  expr: &Expr,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&SwcComments>,
+) -> bool {
   match expr {
     // Mark `module.exports = require('xxx')` as pure
     Expr::Assign(AssignExpr {
@@ -1707,11 +1722,12 @@ fn is_pure_expression(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
       right: box Expr::Call(call_expr_right),
       op: op!("="),
       ..
-    }) if is_module_exports_member_expr(left_expr, unresolved_ctxt)
+    }) if is_module_exports_member_expr(left_expr, unresolved_ctxt, comments)
       && get_require_literal(call_expr_right, unresolved_ctxt).is_some() =>
     {
       true
     }
+    Expr::Call(call_expr) => is_pure_call_expr(call_expr, unresolved_ctxt, comments),
     _ => !expr.may_have_side_effects(&ExprCtx {
       unresolved_ctxt,
       is_unresolved_ref_safe: false,
@@ -1719,8 +1735,57 @@ fn is_pure_expression(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
   }
 }
 
+fn is_pure_call_expr<'a, 'b>(
+  call_expr: &'a CallExpr,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&'b SwcComments>,
+) -> bool {
+  let callee = &call_expr.callee;
+  // dbg!(&call_expr);
+  let unwrap_callee_span = match callee {
+    // super is keyword in rust
+    Callee::Super(su) => su.span,
+    Callee::Import(import) => import.span,
+    Callee::Expr(box expr) => match expr {
+      Expr::Paren(exp) => exp.expr.span(),
+      _ => expr.span(),
+    },
+  };
+  // dbg!(&unwrap_callee_span);
+  // dbg!(&callee.span());
+  let pure_flag = comments
+    .and_then(|comments| {
+      // dbg!(&comments.leading);
+      let comment_list = comments.leading.get(&callee.span_lo())?;
+      let last_comment = comment_list.last()?;
+      match last_comment.kind {
+        comments::CommentKind::Line => None,
+        comments::CommentKind::Block => Some(PURE_COMMENTS.is_match(&last_comment.text)),
+      }
+    })
+    .unwrap_or(false);
+  if !pure_flag {
+    let expr = Expr::Call(call_expr.clone());
+    !expr.may_have_side_effects(&ExprCtx {
+      unresolved_ctxt,
+      is_unresolved_ref_safe: false,
+    })
+  } else {
+    call_expr.args.iter().all(|arg| {
+      if arg.spread.is_some() {
+        return false;
+      } else {
+        is_pure_expression(&arg.expr, unresolved_ctxt, comments)
+      }
+    })
+  }
+}
 /// Check if the expression is `module.exports`
-fn is_module_exports_member_expr(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
+fn is_module_exports_member_expr(
+  expr: &Expr,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&SwcComments>,
+) -> bool {
   matches!(expr, Expr::Member(MemberExpr {
     obj:
       box Expr::Ident(Ident {
@@ -1733,11 +1798,15 @@ fn is_module_exports_member_expr(expr: &Expr, unresolved_ctxt: SyntaxContext) ->
   }) if obj_span.ctxt == unresolved_ctxt && prop_sym == "exports")
 }
 
-fn is_pure_decl(stmt: &Decl, unresolved_ctxt: SyntaxContext) -> bool {
+fn is_pure_decl(
+  stmt: &Decl,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&SwcComments>,
+) -> bool {
   match stmt {
-    Decl::Class(class) => is_pure_class(&class.class, unresolved_ctxt),
+    Decl::Class(class) => is_pure_class(&class.class, unresolved_ctxt, comments),
     Decl::Fn(_) => true,
-    Decl::Var(var) => is_pure_var_decl(var, unresolved_ctxt),
+    Decl::Var(var) => is_pure_var_decl(var, unresolved_ctxt, comments),
     Decl::Using(_) => false,
     Decl::TsInterface(_) => unreachable!(),
     Decl::TsTypeAlias(_) => unreachable!(),
@@ -1747,16 +1816,22 @@ fn is_pure_decl(stmt: &Decl, unresolved_ctxt: SyntaxContext) -> bool {
   }
 }
 
-fn is_pure_class(class: &Class, unresolved_ctxt: SyntaxContext) -> bool {
+fn is_pure_class(
+  class: &Class,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&SwcComments>,
+) -> bool {
   if let Some(ref super_class) = class.super_class {
-    if !is_pure_expression(super_class, unresolved_ctxt) {
+    if !is_pure_expression(super_class, unresolved_ctxt, comments) {
       return false;
     }
   }
   let is_pure_key = |key: &PropName| -> bool {
     match key {
       PropName::BigInt(_) | PropName::Ident(_) | PropName::Str(_) | PropName::Num(_) => true,
-      PropName::Computed(ref computed) => is_pure_expression(&computed.expr, unresolved_ctxt),
+      PropName::Computed(ref computed) => {
+        is_pure_expression(&computed.expr, unresolved_ctxt, comments)
+      }
     }
   };
 
@@ -1764,26 +1839,31 @@ fn is_pure_class(class: &Class, unresolved_ctxt: SyntaxContext) -> bool {
     match item {
       ClassMember::Constructor(cons) => is_pure_key(&cons.key),
       ClassMember::Method(method) => is_pure_key(&method.key),
-      ClassMember::PrivateMethod(method) => {
-        is_pure_expression(&Expr::PrivateName(method.key.clone()), unresolved_ctxt)
-      }
+      ClassMember::PrivateMethod(method) => is_pure_expression(
+        &Expr::PrivateName(method.key.clone()),
+        unresolved_ctxt,
+        comments,
+      ),
       ClassMember::ClassProp(prop) => {
         is_pure_key(&prop.key)
           && (!prop.is_static
             || if let Some(ref value) = prop.value {
-              is_pure_expression(value, unresolved_ctxt)
+              is_pure_expression(value, unresolved_ctxt, comments)
             } else {
               true
             })
       }
       ClassMember::PrivateProp(prop) => {
-        is_pure_expression(&Expr::PrivateName(prop.key.clone()), unresolved_ctxt)
-          && (!prop.is_static
-            || if let Some(ref value) = prop.value {
-              is_pure_expression(value, unresolved_ctxt)
-            } else {
-              true
-            })
+        is_pure_expression(
+          &Expr::PrivateName(prop.key.clone()),
+          unresolved_ctxt,
+          comments,
+        ) && (!prop.is_static
+          || if let Some(ref value) = prop.value {
+            is_pure_expression(value, unresolved_ctxt, comments)
+          } else {
+            true
+          })
       }
       ClassMember::TsIndexSignature(_) => unreachable!(),
       ClassMember::Empty(_) => true,
@@ -1793,10 +1873,14 @@ fn is_pure_class(class: &Class, unresolved_ctxt: SyntaxContext) -> bool {
   })
 }
 
-fn is_pure_var_decl(var: &VarDecl, unresolved_ctxt: SyntaxContext) -> bool {
+fn is_pure_var_decl(
+  var: &VarDecl,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&SwcComments>,
+) -> bool {
   var.decls.iter().all(|decl| {
     if let Some(ref init) = decl.init {
-      is_pure_expression(init, unresolved_ctxt)
+      is_pure_expression(init, unresolved_ctxt, comments)
     } else {
       true
     }
