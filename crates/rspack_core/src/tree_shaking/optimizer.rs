@@ -1067,7 +1067,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         // export defined in `test.js` and all related
         // reexport should be marked as used
         let src_module_identifier: Identifier = star_symbol.src();
-        let analyze_refsult = match analyze_map.get(&src_module_identifier) {
+        let analyze_result = match analyze_map.get(&src_module_identifier) {
           Some(analyze_result) => analyze_result,
           None => {
             if is_js_like_uri(&src_module_identifier) {
@@ -1106,9 +1106,10 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
           StarSymbolKind::ReExportAll => (false, vec![]),
         };
+
         // try to access first member expr element
         if let Some(name) = next_member_chain.get(0) {
-          if let Some(export_symbol_ref) = analyze_refsult.export_map.get(name) {
+          if let Some(export_symbol_ref) = analyze_result.export_map.get(name) {
             self
               .symbol_graph
               .add_edge(&current_symbol_ref, export_symbol_ref);
@@ -1117,7 +1118,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
 
           for (inherit_module_identifier, extends_export_map) in
-            analyze_refsult.inherit_export_maps.iter()
+            analyze_result.inherit_export_maps.iter()
           {
             if let Some(value) = extends_export_map.get(name) {
               let tuple = (star_symbol.src, *inherit_module_identifier);
@@ -1195,8 +1196,18 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
         }
 
+        if !matches!(star_symbol.ty(), StarSymbolKind::ReExportAll) {
+          // It means the module has not export or reexport target reference, maybe the src module
+          // is a empty module, we should avoid to eliminate the module even it is a sideEffects
+          // free module
+          merge_used_export_type(
+            used_export_module_identifiers,
+            src_module_identifier,
+            ModuleUsedType::EXPORT_ALL,
+          );
+        }
         // Failed to look up a specific element, connect all
-        for (key, export_symbol_ref) in analyze_refsult.export_map.iter() {
+        for (key, export_symbol_ref) in analyze_result.export_map.iter() {
           if !include_default_export && key == "default" {
           } else {
             self
@@ -1206,7 +1217,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
         }
 
-        for (key, _) in analyze_refsult.inherit_export_maps.iter() {
+        for (key, _) in analyze_result.inherit_export_maps.iter() {
           let export_all = SymbolRef::Star(StarSymbol::new(
             *key,
             Default::default(),
