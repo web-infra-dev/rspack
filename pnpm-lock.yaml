@@ -938,7 +938,6 @@ importers:
       util: 0.12.5
       wast-loader: ^1.11.4
       watchpack: ^2.4.0
-      webpack-dev-server: 4.13.1
       webpack-sources: 3.2.3
       zod: ^3.21.4
       zod-validation-error: 1.2.0
@@ -984,7 +983,6 @@ importers:
       terser: 5.16.1
       ts-node: 10.9.1
       wast-loader: 1.11.4
-      webpack-dev-server: 4.13.1
 
   packages/rspack-cli:
     specifiers:
