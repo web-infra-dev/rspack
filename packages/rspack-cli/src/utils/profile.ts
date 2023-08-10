@@ -19,7 +19,7 @@ const defaultJsCPUProfileOutput = `./rspack.jscpuprofile`;
 const defaultRustTraceFilter = "trace";
 
 export function resolveProfile(value: string): ProfileOptions[] {
-	if (value === "ALL") {
+	if (value.toUpperCase() === "ALL") {
 		return [
 			{
 				kind: "rust trace",
@@ -36,10 +36,10 @@ export function resolveProfile(value: string): ProfileOptions[] {
 }
 
 function resolveProfileOptions(value: string): ProfileOptions | undefined {
-	if (value.startsWith("TRACE")) {
+	if (value.toUpperCase().startsWith("TRACE")) {
 		return resolveRustTrace(value);
 	}
-	if (value.startsWith("JSCPU")) {
+	if (value.toUpperCase().startsWith("JSCPU")) {
 		return { kind: "js cpu profile", output: defaultJsCPUProfileOutput };
 	}
 }
@@ -47,7 +47,10 @@ function resolveProfileOptions(value: string): ProfileOptions | undefined {
 // TRACE=trace
 function resolveRustTrace(value: string): RustTrace {
 	const [kind, filter] = [value.slice(0, 5), value.slice(6)];
-	assert(kind === "TRACE", "value should start with TRACE in resolveRustTrace");
+	assert(
+		kind.toUpperCase() === "TRACE",
+		"value should start with TRACE in resolveRustTrace"
+	);
 	return {
 		kind: "rust trace",
 		filter: filter || defaultRustTraceFilter,

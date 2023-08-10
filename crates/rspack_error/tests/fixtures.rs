@@ -4,7 +4,6 @@ use insta::Settings;
 use rspack_core::{Compiler, Stats};
 use rspack_fs::AsyncNativeFileSystem;
 use rspack_testing::{apply_from_fixture, fixture};
-use rspack_tracing::enable_tracing_by_env;
 
 #[tokio::main]
 pub async fn test_fixture<F: FnOnce(&Stats, Settings) -> rspack_error::Result<()>>(
@@ -27,7 +26,6 @@ pub async fn test_fixture<F: FnOnce(&Stats, Settings) -> rspack_error::Result<()
 
 #[fixture("tests/fixtures/*", exclude("export_star_error"))]
 fn custom(fixture_path: PathBuf) {
-  enable_tracing_by_env();
   test_fixture(&fixture_path, |stats, settings| {
     let dirname = fixture_path
       .components()

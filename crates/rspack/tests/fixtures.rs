@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use rspack_testing::test_fixture;
-use rspack_tracing::enable_tracing_by_env;
 use testing_macros::fixture;
 
 #[fixture("tests/fixtures/*")]
