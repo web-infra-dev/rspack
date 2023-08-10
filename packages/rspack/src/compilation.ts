@@ -402,12 +402,11 @@ export class Compilation {
 		const assets = this.#inner.getAssets();
 
 		return assets.map(asset => {
-			const source = asset.source
-				? createSourceFromRaw(asset.source)
-				: undefined;
 			return {
 				...asset,
-				source
+				get source() {
+					return asset.source ? createSourceFromRaw(asset.source) : undefined;
+				}
 			};
 		});
 	}
