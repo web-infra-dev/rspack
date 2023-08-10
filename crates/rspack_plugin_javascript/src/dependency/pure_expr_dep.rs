@@ -3,6 +3,7 @@ use rspack_core::{
 };
 use swc_core::ecma::atoms::JsWord;
 
+#[derive(Debug, Clone)]
 pub enum UsedByExports {
   False,
   Array(Vec<JsWord>),
@@ -38,11 +39,11 @@ impl DependencyTemplate for PureExpressionDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let usage = matches!(
-      self.get_property(code_generatable_context),
-      Some(UsageState::Used)
-    );
-    source.replace(self.start, self.end, usage.to_string().as_ref(), None);
+    // let usage = matches!(
+    //   self.get_property(code_generatable_context),
+    //   Some(UsageState::Used)
+    // );
+    // source.replace(self.start, self.end, usage.to_string().as_ref(), None);
   }
 }
 
