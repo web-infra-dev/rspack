@@ -1010,6 +1010,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       }
     }
     node.obj.visit_with(self);
+    node.prop.visit_with(self);
   }
 
   fn visit_export_default_decl(&mut self, node: &ExportDefaultDecl) {

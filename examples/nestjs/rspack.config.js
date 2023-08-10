@@ -1,11 +1,24 @@
+const { RunScriptWebpackPlugin } = require("run-script-webpack-plugin");
+
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
 	context: __dirname,
 	target: "node",
 	entry: {
-		main: "./src/main.ts"
+		main: ["webpack/hot/poll?100", "./src/main.ts"]
 	},
 	externalsType: "commonjs",
+	plugins: [
+		new RunScriptWebpackPlugin({
+			name: "main.js",
+			autoRestart: false
+		})
+	],
+	devServer: {
+		devMiddleware: {
+			writeToDisk: true
+		}
+	},
 	externals: [
 		function (obj, callback) {
 			const resource = obj.request;
