@@ -234,14 +234,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn process_assets_stage_additions(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
   async fn process_assets_stage_pre_process(
     &self,
     _ctx: PluginContext,
@@ -250,7 +242,47 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn process_assets_stage_derived(
+    &self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  async fn process_assets_stage_additions(
+    &self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
   async fn process_assets_stage_none(
+    &self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  async fn process_assets_stage_optimize(
+    &self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  async fn process_assets_stage_optimize_count(
+    &self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  async fn process_assets_stage_optimize_compatibility(
     &self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,
@@ -291,6 +323,22 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn process_assets_stage_optimize_hash(
+    &self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  async fn process_assets_stage_optimize_transfer(
+    &self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  async fn process_assets_stage_analyse(
     &self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,

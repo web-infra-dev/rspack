@@ -848,11 +848,19 @@ export class Compilation {
 
 	static PROCESS_ASSETS_STAGE_ADDITIONAL = -2000;
 	static PROCESS_ASSETS_STAGE_PRE_PROCESS = -1000;
+	static PROCESS_ASSETS_STAGE_DERIVED = -200;
 	static PROCESS_ASSETS_STAGE_ADDITIONS = -100;
 	static PROCESS_ASSETS_STAGE_NONE = 0;
+	static PROCESS_ASSETS_STAGE_OPTIMIZE = 100;
+	static PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT = 200;
+	static PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY = 300;
+	static PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE = 400;
+	static PROCESS_ASSETS_STAGE_DEV_TOOLING = 500;
 	static PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE = 700;
 	static PROCESS_ASSETS_STAGE_SUMMARIZE = 1000;
 	static PROCESS_ASSETS_STAGE_OPTIMIZE_HASH = 2500;
+	static PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER = 3000;
+	static PROCESS_ASSETS_STAGE_ANALYSE = 4000;
 	static PROCESS_ASSETS_STAGE_REPORT = 5000;
 
 	__internal_getProcessAssetsHookByStage(stage: number) {
@@ -877,16 +885,32 @@ export class Compilation {
 				return this.hooks.processAssets.stageAdditional;
 			case Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS:
 				return this.hooks.processAssets.stagePreProcess;
+			case Compilation.PROCESS_ASSETS_STAGE_DERIVED:
+				return this.hooks.processAssets.stageDerived;
 			case Compilation.PROCESS_ASSETS_STAGE_ADDITIONS:
 				return this.hooks.processAssets.stageAdditions;
 			case Compilation.PROCESS_ASSETS_STAGE_NONE:
 				return this.hooks.processAssets.stageNone;
+			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE:
+				return this.hooks.processAssets.stageOptimize;
+			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT:
+				return this.hooks.processAssets.stageOptimizeCount;
+			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY:
+				return this.hooks.processAssets.stageOptimizeCompatibility;
+			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE:
+				return this.hooks.processAssets.stageOptimizeSize;
+			case Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING:
+				return this.hooks.processAssets.stageDevTooling;
 			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE:
 				return this.hooks.processAssets.stageOptimizeInline;
 			case Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE:
 				return this.hooks.processAssets.stageSummarize;
 			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH:
 				return this.hooks.processAssets.stageOptimizeHash;
+			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER:
+				return this.hooks.processAssets.stageOptimizeTransfer;
+			case Compilation.PROCESS_ASSETS_STAGE_ANALYSE:
+				return this.hooks.processAssets.stageAnalyse;
 			case Compilation.PROCESS_ASSETS_STAGE_REPORT:
 				return this.hooks.processAssets.stageReport;
 			default:

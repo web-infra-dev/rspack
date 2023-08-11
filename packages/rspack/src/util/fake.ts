@@ -32,11 +32,19 @@ export const createFakeProcessAssetsHook = (compilation: Compilation) => {
 		) => createFakeTap(options, fn, "tapPromise"),
 		stageAdditional: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stagePreProcess: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageDerived: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stageAdditions: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stageNone: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageOptimize: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageOptimizeCount: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageOptimizeCompatibility: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageOptimizeSize: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageDevTooling: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stageOptimizeInline: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stageSummarize: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stageOptimizeHash: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageOptimizeTransfer: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageAnalyse: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stageReport: new tapable.AsyncSeriesHook<Assets>(["assets"])
 	};
 };
