@@ -333,7 +333,7 @@ impl<'a> ModuleRefAnalyze<'a> {
   /// when a export has been used from other module, we need to get all
   /// reachable import and export(defined in the same module)
   /// in rest of scenario we only count binding imported from other module.
-  pub fn get_all_import_or_export(&self, start: JsWord, only_import: bool) -> HashSet<SymbolRef> {
+  pub fn get_all_import_or_export(&self, start: JsWord) -> HashSet<SymbolRef> {
     let mut visited: HashSet<Part> = HashSet::default();
     let mut q: VecDeque<Part> = VecDeque::from_iter([Part::TopLevelId(start)]);
     while let Some(cur) = q.pop_front() {
@@ -356,25 +356,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     return visited
       .iter()
       .filter_map(|part| match part {
-        Part::TopLevelId(id) => {
-          let ret = self.import_map.get(id).cloned().or_else(|| {
-            if only_import {
-              None
-            } else {
-              match self.export_map.get(id) {
-                Some(sym_ref @ SymbolRef::Declaration(sym)) => {
-                  if &sym.id().atom == id {
-                    Some(sym_ref.clone())
-                  } else {
-                    None
-                  }
-                }
-                _ => None,
-              }
-            }
-          });
-          ret
-        }
+        Part::TopLevelId(id) => self.import_map.get(id).cloned(),
         Part::MemberExpr {
           first: object,
           rest: property,
@@ -457,8 +439,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       match symbol {
         // At this time uri of symbol will always equal to `self.module_identifier`
         SymbolRef::Declaration(symbol) => {
-          let reachable_import_and_export =
-            self.get_all_import_or_export(symbol.id().atom.clone(), true);
+          let reachable_import_and_export = self.get_all_import_or_export(symbol.id().atom.clone());
           self
             .reachable_import_and_export
             .insert(symbol.exported().clone(), reachable_import_and_export);
@@ -549,7 +530,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               let ret = self.import_map.get(id);
               match ret {
                 Some(ret) => HashSet::from_iter([ret.clone()]),
-                None => self.get_all_import_or_export(id.clone(), true),
+                None => self.get_all_import_or_export(id.clone()),
               }
             })
             .collect::<Vec<_>>()
@@ -608,7 +589,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             let ret = self.import_map.get(id);
             match ret {
               Some(ret) => HashSet::from_iter([ret.clone()]),
-              None => self.get_all_import_or_export(id.clone(), true),
+              None => self.get_all_import_or_export(id.clone()),
             }
           })
           .collect::<Vec<_>>()
@@ -619,7 +600,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     for used_id in &self.used_id_set {
       match used_id {
         Part::TopLevelId(id) => {
-          let reachable_import = self.get_all_import_or_export(id.clone(), true);
+          let reachable_import = self.get_all_import_or_export(id.clone());
           self.used_symbol_ref.extend(reachable_import);
         }
         Part::MemberExpr {
@@ -634,7 +615,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             ));
           }
           _ => {
-            let reachable_import = self.get_all_import_or_export(object.clone(), true);
+            let reachable_import = self.get_all_import_or_export(object.clone());
             self.used_symbol_ref.extend(reachable_import);
           }
         },
@@ -1233,7 +1214,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         if is_export {
           symbol_ext.flag.insert(SymbolFlag::EXPORT);
         }
-        let is_init_pure = is_pure_expression(init, self.unresolved_ctxt, self.comments);
+        let is_init_pure = is_pure_expression(init, self.unresolved_ctxt, self.comments) && !matches!(init, box Expr::Fn(_) |  box Expr::Lit(_) | box Expr::Arrow(_));
+        if is_init_pure {
+            symbol_ext.flag.insert(SymbolFlag::PURE);
+        }
         let before_symbol_ext = self.current_body_owner_symbol_ext.clone();
         self.current_body_owner_symbol_ext = Some(symbol_ext);
         init.visit_with(self);
