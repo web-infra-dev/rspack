@@ -190,11 +190,19 @@ export interface JsCompatSource {
 export interface JsHooks {
   processAssetsStageAdditional: (...args: any[]) => any
   processAssetsStagePreProcess: (...args: any[]) => any
+  processAssetsStageDerived: (...args: any[]) => any
   processAssetsStageAdditions: (...args: any[]) => any
   processAssetsStageNone: (...args: any[]) => any
+  processAssetsStageOptimize: (...args: any[]) => any
+  processAssetsStageOptimizeCount: (...args: any[]) => any
+  processAssetsStageOptimizeCompatibility: (...args: any[]) => any
+  processAssetsStageOptimizeSize: (...args: any[]) => any
+  processAssetsStageDevTooling: (...args: any[]) => any
   processAssetsStageOptimizeInline: (...args: any[]) => any
   processAssetsStageSummarize: (...args: any[]) => any
   processAssetsStageOptimizeHash: (...args: any[]) => any
+  processAssetsStageOptimizeTransfer: (...args: any[]) => any
+  processAssetsStageAnalyse: (...args: any[]) => any
   processAssetsStageReport: (...args: any[]) => any
   compilation: (...args: any[]) => any
   thisCompilation: (...args: any[]) => any

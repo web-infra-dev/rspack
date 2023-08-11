@@ -314,6 +314,10 @@ class Compiler {
 						this,
 						Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS
 					),
+					processAssetsStageDerived: this.#processAssets.bind(
+						this,
+						Compilation.PROCESS_ASSETS_STAGE_DERIVED
+					),
 					processAssetsStageAdditions: this.#processAssets.bind(
 						this,
 						Compilation.PROCESS_ASSETS_STAGE_ADDITIONS
@@ -321,6 +325,26 @@ class Compiler {
 					processAssetsStageNone: this.#processAssets.bind(
 						this,
 						Compilation.PROCESS_ASSETS_STAGE_NONE
+					),
+					processAssetsStageOptimize: this.#processAssets.bind(
+						this,
+						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE
+					),
+					processAssetsStageOptimizeCount: this.#processAssets.bind(
+						this,
+						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT
+					),
+					processAssetsStageOptimizeCompatibility: this.#processAssets.bind(
+						this,
+						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY
+					),
+					processAssetsStageOptimizeSize: this.#processAssets.bind(
+						this,
+						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE
+					),
+					processAssetsStageDevTooling: this.#processAssets.bind(
+						this,
+						Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING
 					),
 					processAssetsStageOptimizeInline: this.#processAssets.bind(
 						this,
@@ -333,6 +357,14 @@ class Compiler {
 					processAssetsStageOptimizeHash: this.#processAssets.bind(
 						this,
 						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
+					),
+					processAssetsStageOptimizeTransfer: this.#processAssets.bind(
+						this,
+						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER
+					),
+					processAssetsStageAnalyse: this.#processAssets.bind(
+						this,
+						Compilation.PROCESS_ASSETS_STAGE_ANALYSE
 					),
 					processAssetsStageReport: this.#processAssets.bind(
 						this,
@@ -600,9 +632,37 @@ class Compiler {
 				this.compilation.__internal_getProcessAssetsHookByStage(
 					Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS
 				),
+			processAssetsStageDerived:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_DERIVED
+				),
+			processAssetsStageAdditions:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_ADDITIONS
+				),
 			processAssetsStageNone:
 				this.compilation.__internal_getProcessAssetsHookByStage(
 					Compilation.PROCESS_ASSETS_STAGE_NONE
+				),
+			processAssetsStageOptimize:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE
+				),
+			processAssetsStageOptimizeCount:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT
+				),
+			processAssetsStageOptimizeCompatibility:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY
+				),
+			processAssetsStageOptimizeSize:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE
+				),
+			processAssetsStageDevTooling:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING
 				),
 			processAssetsStageOptimizeInline:
 				this.compilation.__internal_getProcessAssetsHookByStage(
@@ -611,6 +671,18 @@ class Compiler {
 			processAssetsStageSummarize:
 				this.compilation.__internal_getProcessAssetsHookByStage(
 					Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
+				),
+			processAssetsStageOptimizeHash:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
+				),
+			processAssetsStageOptimizeTransfer:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER
+				),
+			processAssetsStageAnalyse:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_ANALYSE
 				),
 			processAssetsStageReport:
 				this.compilation.__internal_getProcessAssetsHookByStage(

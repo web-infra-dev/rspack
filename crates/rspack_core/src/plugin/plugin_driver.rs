@@ -436,13 +436,19 @@ impl PluginDriver {
     }
     run_stage!(process_assets_stage_additional);
     run_stage!(process_assets_stage_pre_process);
+    run_stage!(process_assets_stage_derived);
     run_stage!(process_assets_stage_additions);
     run_stage!(process_assets_stage_none);
+    run_stage!(process_assets_stage_optimize);
+    run_stage!(process_assets_stage_optimize_count);
+    run_stage!(process_assets_stage_optimize_compatibility);
     run_stage!(process_assets_stage_optimize_size);
     run_stage!(process_assets_stage_dev_tooling);
     run_stage!(process_assets_stage_optimize_inline);
     run_stage!(process_assets_stage_summarize);
     run_stage!(process_assets_stage_optimize_hash);
+    run_stage!(process_assets_stage_optimize_transfer);
+    run_stage!(process_assets_stage_analyse);
     run_stage!(process_assets_stage_report);
     Ok(())
   }
