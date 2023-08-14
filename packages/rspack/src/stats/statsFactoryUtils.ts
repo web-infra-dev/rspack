@@ -4,7 +4,7 @@ import {
 	compareSelect,
 	compareIds
 } from "../util/comparators";
-import type { Compilation } from "../compilation";
+import type { Compilation } from "../Compilation";
 import type { StatsOptions } from "../config";
 
 import type { StatsFactory } from "./StatsFactory";
