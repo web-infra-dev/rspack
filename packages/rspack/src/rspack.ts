@@ -161,6 +161,13 @@ function rspack(
 	}
 }
 
+// Flush trace on `SIGINT` when enabled
+if (process.env.TRACE) {
+	process.on("SIGINT", () => {
+		require("@rspack/binding").cleanupCustomTraceSubscriber();
+	});
+}
+
 // deliberately alias rspack as webpack
 export { rspack, createCompiler, createMultiCompiler };
 export default rspack;

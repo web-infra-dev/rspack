@@ -101,6 +101,8 @@ export interface BeforeResolveData {
   context: string
 }
 
+export function cleanupCustomTraceSubscriber(): void
+
 export interface FactoryMeta {
   sideEffects?: boolean
 }

@@ -7,6 +7,10 @@ use tracing_subscriber::{fmt::format::FmtSpan, layer::Filter};
 use tracing_subscriber::{EnvFilter, Layer};
 // use tracing_chrome::FlushGuard;
 
+pub mod chrome {
+  pub use tracing_chrome::FlushGuard;
+}
+
 static IS_TRACING_ENABLED: AtomicBool = AtomicBool::new(false);
 // skip event because it's not useful for performance analysis
 struct FilterEvent;
