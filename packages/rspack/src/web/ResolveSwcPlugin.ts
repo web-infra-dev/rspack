@@ -1,4 +1,4 @@
-import { Compiler } from "../compiler";
+import { Compiler } from "../Compiler";
 import path from "path";
 import { compareVersions } from "compare-versions";
 

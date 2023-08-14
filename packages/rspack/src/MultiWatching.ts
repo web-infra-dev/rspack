@@ -8,13 +8,13 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { MultiCompiler } from "./multiCompiler";
-import Watching from "./watching";
+import { MultiCompiler } from "./MultiCompiler";
+import Watching from "./Watching";
 import asyncLib from "neo-async";
 import { Callback } from "tapable";
 
-/** @typedef {import("./multiCompiler")} MultiCompiler */
-/** @typedef {import("./watching")} Watching */
+/** @typedef {import("./MultiCompiler")} MultiCompiler */
+/** @typedef {import("./Watching")} Watching */
 
 /**
  * @template T

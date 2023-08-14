@@ -6,7 +6,7 @@ import {
 	rspack,
 	RspackOptions
 } from "../src";
-import { Stats } from "../src/stats";
+import { Stats } from "../src/Stats";
 const path = require("path");
 import { createFsFromVolume, Volume } from "memfs";
 const captureStdio = require("./helpers/captureStdio");
