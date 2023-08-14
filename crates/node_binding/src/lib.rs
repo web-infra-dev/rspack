@@ -1,4 +1,5 @@
 #![recursion_limit = "256"]
+#![feature(let_chains)]
 #![feature(try_blocks)]
 #[macro_use]
 extern crate napi_derive;
@@ -144,7 +145,7 @@ impl Rspack {
     output_filesystem: ThreadsafeNodeFS,
     js_loader_runner: JsFunction,
   ) -> Result<Self> {
-    init_custom_trace_subscriber(env)?;
+    init_custom_trace_subscriber(env);
     // rspack_tracing::enable_tracing_by_env();
     Self::prepare_environment(&env);
     tracing::info!("raw_options: {:#?}", &options);

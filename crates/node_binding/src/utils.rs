@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::ffi::CStr;
 use std::io::Write;
 use std::ptr;
@@ -11,8 +12,13 @@ use rspack_error::CatchUnwindFuture;
 use rspack_napi_shared::threadsafe_function::{
   ThreadSafeContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
 };
+use rspack_tracing::chrome::FlushGuard;
 
 static CUSTOM_TRACE_SUBSCRIBER: OnceCell<bool> = OnceCell::new();
+
+thread_local! {
+  static CUSTOM_TRACE_CHROME_FLUSH_GUARD: Cell<Option<FlushGuard>> = Cell::new(None);
+}
 
 /// Try to resolve the string value of a given named property
 #[allow(unused)]
@@ -80,33 +86,46 @@ pub(crate) fn get_named_property_value_string<T: NapiRaw>(
  * Author Donny/강동윤
  * Copyright (c)
  */
-#[napi]
+#[napi(catch_unwind)]
 pub fn init_custom_trace_subscriber(
   mut env: Env,
   // trace_out_file_path: Option<String>,
-) -> Result<()> {
+) {
   CUSTOM_TRACE_SUBSCRIBER.get_or_init(|| {
     let layer = std::env::var("layer").unwrap_or("logger".to_string());
-    let guard = match layer.as_str() {
-      "chrome" => rspack_tracing::enable_tracing_by_env_with_chrome_layer(),
-      "logger" => {
-        rspack_tracing::enable_tracing_by_env();
-        None
+
+    CUSTOM_TRACE_CHROME_FLUSH_GUARD.with(|v| {
+      let mut guard = v.take();
+      if guard.is_none() {
+        guard = match layer.as_str() {
+          "chrome" => rspack_tracing::enable_tracing_by_env_with_chrome_layer(),
+          "logger" => {
+            rspack_tracing::enable_tracing_by_env();
+            None
+          }
+          _ => panic!("not supported layer type:{layer}"),
+        }
       }
-      _ => panic!("not supported layer type:{layer}"),
-    };
-    if let Some(guard) = guard {
-      env
-        .add_env_cleanup_hook(guard, |flush_guard| {
-          flush_guard.flush();
-          drop(flush_guard);
-        })
-        .expect("Should able to initialize cleanup for custom trace subscriber");
-    }
+      v.set(guard);
+    });
+
+    env
+      .add_env_cleanup_hook((), |_| {
+        cleanup_custom_trace_subscriber();
+      })
+      .expect("Should able to initialize cleanup for custom trace subscriber");
     true
   });
+}
 
-  Ok(())
+#[napi]
+pub fn cleanup_custom_trace_subscriber() {
+  CUSTOM_TRACE_CHROME_FLUSH_GUARD.with(|v| {
+    if let Some(g) = v.take() {
+      g.flush();
+      // drop
+    }
+  })
 }
 
 pub fn callbackify<R, F>(env: Env, f: JsFunction, fut: F) -> Result<()>
