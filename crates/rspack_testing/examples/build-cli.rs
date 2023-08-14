@@ -17,7 +17,7 @@ use rspack_tracing::enable_tracing_by_env;
 
 #[tokio::main]
 async fn main() {
-  enable_tracing_by_env(&std::env::var("TRACE").ok().unwrap_or_default());
+  enable_tracing_by_env(&std::env::var("TRACE").ok().unwrap_or_default(), "stdout");
 
   let config = env::args().nth(1).expect("path");
   let emit = matches!(env::args().nth(2), Some(arg) if arg == "--emit");
