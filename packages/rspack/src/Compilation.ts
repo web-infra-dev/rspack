@@ -44,8 +44,8 @@ import {
 } from "./Stats";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
-import { concatErrorMsgAndStack, isJsStatsError, toJsAssetInfo } from "./util";
-import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
+import { concatErrorMsgAndStack, isJsStatsError } from "./util";
+import { source as sourceKit, asset as assetKit } from "./values";
 import {
 	createFakeCompilationDependencies,
 	createFakeProcessAssetsHook
@@ -338,22 +338,23 @@ export class Compilation {
 
 		if (typeof newSourceOrFunction === "function") {
 			compatNewSourceOrFunction = function newSourceFunction(
-				source: JsCompatSource
+				s: JsCompatSource
 			) {
-				return createRawFromSource(
-					newSourceOrFunction(createSourceFromRaw(source))
+				return sourceKit.toRustSource(
+					newSourceOrFunction(sourceKit.toJsSource(s))
 				);
 			};
 		} else {
-			compatNewSourceOrFunction = createRawFromSource(newSourceOrFunction);
+			compatNewSourceOrFunction = sourceKit.toRustSource(newSourceOrFunction);
 		}
 
 		this.#inner.updateAsset(
 			filename,
 			compatNewSourceOrFunction,
 			typeof assetInfoUpdateOrFunction === "function"
-				? jsAssetInfo => toJsAssetInfo(assetInfoUpdateOrFunction(jsAssetInfo))
-				: toJsAssetInfo(assetInfoUpdateOrFunction)
+				? jsAssetInfo =>
+						assetKit.toJsAssetInfo(assetInfoUpdateOrFunction(jsAssetInfo))
+				: assetKit.toJsAssetInfo(assetInfoUpdateOrFunction)
 		);
 	}
 
@@ -383,8 +384,8 @@ export class Compilation {
 	emitAsset(filename: string, source: Source, assetInfo?: AssetInfo) {
 		this.#inner.emitAsset(
 			filename,
-			createRawFromSource(source),
-			toJsAssetInfo(assetInfo)
+			sourceKit.toRustSource(source),
+			assetKit.toJsAssetInfo(assetInfo)
 		);
 	}
 
@@ -405,7 +406,7 @@ export class Compilation {
 			return {
 				...asset,
 				get source() {
-					return asset.source ? createSourceFromRaw(asset.source) : undefined;
+					return asset.source ? sourceKit.toJsSource(asset.source) : undefined;
 				}
 			};
 		});
@@ -418,8 +419,7 @@ export class Compilation {
 		}
 		return {
 			...asset,
-			// @ts-expect-error
-			source: createSourceFromRaw(asset.source)
+			source: asset.source && sourceKit.toJsSource(asset.source)
 		};
 	}
 
@@ -792,7 +792,7 @@ export class Compilation {
 		if (!rawSource) {
 			return null;
 		}
-		return createSourceFromRaw(rawSource);
+		return sourceKit.toJsSource(rawSource);
 	}
 
 	/**
@@ -803,7 +803,7 @@ export class Compilation {
 	 * @internal
 	 */
 	__internal__setAssetSource(filename: string, source: Source) {
-		this.#inner.setAssetSource(filename, createRawFromSource(source));
+		this.#inner.setAssetSource(filename, sourceKit.toRustSource(source));
 	}
 
 	/**
