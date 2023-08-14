@@ -800,8 +800,6 @@ impl<'a> CodeSizeOptimizer<'a> {
               vec![]
             };
 
-            dbg!(&symbol_ref_ele);
-            dbg!(&member_chain);
             symbol_queue.push_back((symbol_ref_ele.clone(), next_member_chain));
           }
         };
