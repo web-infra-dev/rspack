@@ -27,7 +27,8 @@ import { Mode } from "@rspack/core/src/config";
 import {
 	RspackPluginInstance,
 	RspackPluginFunction,
-	registerGlobalTrace
+	experimental_registerGlobalTrace as registerGlobalTrace,
+	experimental_cleanupGlobalTrace as cleanupGlobalTrace
 } from "@rspack/core";
 import path from "path";
 import { RspackJsCPUProfilePlugin, resolveProfile } from "./utils/profile";
@@ -157,6 +158,8 @@ export class RspackCLI {
 					([kind, value]) => {
 						if (kind === "TRACE" && "filter" in value) {
 							registerGlobalTrace(value.filter, value.layer, value.output);
+							// Flush trace on `SIGINT` when enabled
+							process.on("SIGINT", cleanupGlobalTrace);
 						} else if (kind === "JSCPU") {
 							(item.plugins ??= []).push(
 								new RspackJsCPUProfilePlugin(value.output)

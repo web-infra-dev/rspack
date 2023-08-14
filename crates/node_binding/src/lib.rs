@@ -14,7 +14,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use dashmap::DashMap;
 use napi::bindgen_prelude::*;
-use once_cell::sync::{Lazy, OnceCell};
+use once_cell::sync::Lazy;
 use rspack_core::PluginExt;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
 use rspack_napi_shared::NAPI_ENV;
@@ -310,7 +310,16 @@ impl Rspack {
   }
 }
 
-static CUSTOM_TRACE_SUBSCRIBER: OnceCell<bool> = OnceCell::new();
+#[derive(Default)]
+enum TraceState {
+  On(Option<FlushGuard>),
+  #[default]
+  Off,
+}
+
+thread_local! {
+  static GLOBAL_TRACE_STATE: Cell<TraceState> = Cell::new(TraceState::default());
+}
 
 /**
  * Some code is modified based on
@@ -321,42 +330,33 @@ static CUSTOM_TRACE_SUBSCRIBER: OnceCell<bool> = OnceCell::new();
  */
 #[napi(catch_unwind)]
 pub fn register_global_trace(
-  mut env: Env,
   filter: String,
   #[napi(ts_arg_type = "\"chrome\" | \"logger\"")] layer: String,
   output: String,
-) -> Result<()> {
-  CUSTOM_TRACE_SUBSCRIBER.get_or_init(|| {
-    let guard = match layer.as_str() {
-      "chrome" => rspack_tracing::enable_tracing_by_env_with_chrome_layer(&filter, &output),
-      "logger" => {
-        rspack_tracing::enable_tracing_by_env(&filter, &output);
-        None
-      }
-      _ => panic!("not supported layer type:{layer}"),
+) {
+  GLOBAL_TRACE_STATE.with(|v| {
+    let state = v.take();
+    let new_state = if matches!(state, TraceState::Off) {
+      let guard = match layer.as_str() {
+        "chrome" => rspack_tracing::enable_tracing_by_env_with_chrome_layer(&filter, &output),
+        "logger" => {
+          rspack_tracing::enable_tracing_by_env(&filter, &output);
+          None
+        }
+        _ => panic!("not supported layer type:{layer}"),
+      };
+      TraceState::On(guard)
+    } else {
+      state
     };
-    if let Some(guard) = guard {
-      env
-        .add_env_cleanup_hook(guard, |flush_guard| {
-          flush_guard.flush();
-          drop(flush_guard);
-        })
-        .expect("Should able to initialize cleanup for custom trace subscriber");
-    }
-    true
+    v.set(new_state);
   });
-
-  Ok(())
-}
-
-thread_local! {
-  static CUSTOM_TRACE_CHROME_FLUSH_GUARD: Cell<Option<FlushGuard>> = Cell::new(None);
 }
 
 #[napi]
-pub fn cleanup_custom_trace_subscriber() {
-  CUSTOM_TRACE_CHROME_FLUSH_GUARD.with(|v| {
-    if let Some(g) = v.take() {
+pub fn cleanup_global_trace() {
+  GLOBAL_TRACE_STATE.with(|v| {
+    if let TraceState::On(Some(g)) = v.take() {
       g.flush();
       // drop
     }

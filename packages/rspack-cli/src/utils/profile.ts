@@ -1,7 +1,7 @@
 import inspector from "inspector";
 import fs from "fs";
 import { URLSearchParams } from "url";
-import { registerGlobalTrace } from "@rspack/core";
+import { experimental_registerGlobalTrace as registerGlobalTrace } from "@rspack/core";
 
 type JSCPUProfileOptionsOutput = string;
 export type JSCPUProfileOptions = {
