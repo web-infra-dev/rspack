@@ -142,9 +142,9 @@ it("should emit warnings for resolve failure in esm", async () => {
 		Object {
 		  "errors": Array [
 		    Object {
-		      "formatted": "error[internal]: Failed to resolve ./answer in javascript/esm|<cwd>/tests/fixtures/errors/resolve-fail-esm/index.js\\n = Did you mean './answer.js'?\\n     BREAKING CHANGE: The request './answer' failed to resolve only because it was resolved as fully specified\\n     (probably because the origin is strict EcmaScript Module, e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"').\\n     The extension in the request is mandatory for it to be fully specified.\\n     Add the extension to the request.\\n\\n",
+		      "formatted": "error[internal]: Resolve error\\n  ┌─ tests/fixtures/errors/resolve-fail-esm/index.js:1:1\\n  │\\n1 │ import { answer } from './answer'\\n  │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./answer in javascript/esm|<cwd>/tests/fixtures/errors/resolve-fail-esm/index.js\\n  │\\n  = Did you mean './answer.js'?\\n      BREAKING CHANGE: The request './answer' failed to resolve only because it was resolved as fully specified\\n      (probably because the origin is strict EcmaScript Module, e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\\"type\\": \\"module\\"').\\n      The extension in the request is mandatory for it to be fully specified.\\n      Add the extension to the request.\\n\\n",
 		      "message": "Failed to resolve ./answer in javascript/esm|<cwd>/tests/fixtures/errors/resolve-fail-esm/index.js",
-		      "title": "",
+		      "title": "Resolve error",
 		    },
 		  ],
 		  "warnings": Array [],

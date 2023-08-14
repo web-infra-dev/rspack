@@ -91,7 +91,12 @@ pub async fn resolve(
         ResolveError(
           runtime_message,
           TraceableError::from_real_file_path(
-            Path::new(importer),
+            Path::new(
+              importer
+                .split_once('|')
+                .map(|(_, path)| path)
+                .unwrap_or(importer),
+            ),
             span.start as usize,
             span.end as usize,
             "Resolve error".to_string(),
