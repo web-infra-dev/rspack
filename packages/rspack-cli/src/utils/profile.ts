@@ -21,7 +21,7 @@ export type ProfileOptions = {
 	JSCPU?: JSCPUProfileOptions;
 };
 
-const defaultJsCPUProfileOutput = `./rspack.jscpuprofile`;
+const defaultJSCPUProfileOutput = `./rspack.jscpuprofile`;
 const defaultRustTraceChromeOutput = `./rspack.trace`;
 const defaultRustTraceLoggerOutput = `stdout`;
 const defaultRustTraceFilter = "trace";
@@ -35,20 +35,20 @@ export function resolveProfile(value: string): ProfileOptions {
 				layer: defaultRustTraceLayer,
 				output: defaultRustTraceChromeOutput
 			},
-			JSCPU: { output: defaultJsCPUProfileOutput }
+			JSCPU: { output: defaultJSCPUProfileOutput }
 		};
 	}
 	if (value.startsWith("[") && value.endsWith("]")) {
 		return {
 			TRACE: resolveRustTraceOptions(value.slice(1, value.length - 1)),
-			JSCPU: { output: defaultJsCPUProfileOutput }
+			JSCPU: { output: defaultJSCPUProfileOutput }
 		};
 	}
 	return value.split("|").reduce<ProfileOptions>((acc, cur) => {
-		if (cur.toUpperCase().startsWith("TRACE=")) {
+		if (cur.toUpperCase().startsWith("TRACE")) {
 			acc.TRACE = resolveRustTraceOptions(cur.slice(6));
 		}
-		if (cur.toUpperCase().startsWith("JSCPU=")) {
+		if (cur.toUpperCase().startsWith("JSCPU")) {
 			acc.JSCPU = resolveJSCPUProfileOptions(cur.slice(6));
 		}
 		return acc;
@@ -60,10 +60,10 @@ function resolveJSCPUProfileOptions(value: string): JSCPUProfileOptions {
 	// output=stderr
 	if (value.includes("=")) {
 		const parsed = new URLSearchParams(value);
-		return { output: parsed.get("output") || defaultJsCPUProfileOutput };
+		return { output: parsed.get("output") || defaultJSCPUProfileOutput };
 	}
 	// stderr
-	return { output: value };
+	return { output: value || defaultJSCPUProfileOutput };
 }
 
 // TRACE=value
@@ -72,25 +72,21 @@ function resolveRustTraceOptions(value: string): RustTraceOptions {
 	if (value.includes("=")) {
 		const parsed = new URLSearchParams(value);
 		const filter = parsed.get("filter") || defaultRustTraceFilter;
-		const layer = parsed.get("layer");
-		const output = parsed.get("output");
-		if (layer === "chrome") {
-			return {
-				filter,
-				layer,
-				output: output || defaultRustTraceChromeOutput
-			};
+		const layer = parsed.get("layer") || defaultRustTraceLayer;
+		const output =
+			layer === "chrome"
+				? parsed.get("output") || defaultRustTraceChromeOutput
+				: parsed.get("output") || defaultRustTraceLoggerOutput;
+		if (layer !== "chrome" && layer !== "logger") {
+			throw new Error(
+				`${layer} is not a valid layer, should be chrome or logger`
+			);
 		}
-		if (layer === "logger") {
-			return {
-				filter,
-				layer,
-				output: output || defaultRustTraceLoggerOutput
-			};
-		}
-		throw new Error(
-			`${layer} is not a valid layer, should be chrome or logger`
-		);
+		return {
+			filter,
+			layer,
+			output
+		};
 	}
 	// trace
 	return {
