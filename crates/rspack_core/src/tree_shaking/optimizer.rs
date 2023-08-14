@@ -1190,6 +1190,9 @@ impl<'a> CodeSizeOptimizer<'a> {
                   }
                 }
               }
+
+              symbol_queue.push_back((value.clone(), next_member_chain));
+              return;
             }
             // has_bailout_module_identifiers = has_bailout_module_identifiers
             //   || self.bailout_modules.contains_key(module_identifier);
