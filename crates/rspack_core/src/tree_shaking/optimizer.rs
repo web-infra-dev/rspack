@@ -794,7 +794,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               // import * as _Lib from "./lib";
               // export { _Lib as Lib };
               let mut normalized_member_chain = vec![symbol.id().atom.clone()];
-              normalized_member_chain.extend(member_chain.iter().cloned().skip(1));
+              normalized_member_chain.extend(member_chain.iter().skip(1).cloned());
               normalized_member_chain
             } else {
               vec![]
