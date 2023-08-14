@@ -789,10 +789,17 @@ impl<'a> CodeSizeOptimizer<'a> {
               .add_edge(&current_symbol_ref, symbol_ref_ele);
             let is_imported = module_result.import_map.get(&symbol.id().atom).is_some();
             let next_member_chain = if is_imported {
-              member_chain.clone()
+              // Considering following scenario, so we need to replace first name with local id
+              // instead of exported name
+              // import * as _Lib from "./lib";
+              // export { _Lib as Lib };
+              let mut normalized_member_chain = vec![symbol.id().atom.clone()];
+              normalized_member_chain.extend(member_chain.iter().skip(1).cloned());
+              normalized_member_chain
             } else {
               vec![]
             };
+
             symbol_queue.push_back((symbol_ref_ele.clone(), next_member_chain));
           }
         };
