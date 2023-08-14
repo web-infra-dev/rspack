@@ -153,19 +153,17 @@ export class RspackCLI {
 				});
 			}
 			if (process.env.RSPACK_PROFILE) {
-				resolveProfile(process.env.RSPACK_PROFILE).forEach(profileOptions => {
-					if (profileOptions.kind === "rust trace") {
-						registerGlobalTrace(
-							profileOptions.filter,
-							"chrome",
-							profileOptions.output
-						);
-					} else if (profileOptions.kind === "js cpu profile") {
-						(item.plugins ??= []).push(
-							new RspackJsCPUProfilePlugin(profileOptions.output)
-						);
+				Object.entries(resolveProfile(process.env.RSPACK_PROFILE)).forEach(
+					([kind, value]) => {
+						if (kind === "TRACE" && "filter" in value) {
+							registerGlobalTrace(value.filter, value.layer, value.output);
+						} else if (kind === "JSCPU") {
+							(item.plugins ??= []).push(
+								new RspackJsCPUProfilePlugin(value.output)
+							);
+						}
 					}
-				});
+				);
 			}
 			// cli --watch overrides the watch config
 			if (options.watch) {

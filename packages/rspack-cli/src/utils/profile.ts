@@ -1,60 +1,102 @@
-import assert from "assert";
 import inspector from "inspector";
 import fs from "fs";
+import { URLSearchParams } from "url";
+import { registerGlobalTrace } from "@rspack/core";
 
-export type JavascriptCPUProfile = {
-	kind: "js cpu profile";
-	output: string;
+type JSCPUProfileOptionsOutput = string;
+export type JSCPUProfileOptions = {
+	output: JSCPUProfileOptionsOutput;
 };
-export type RustTrace = {
-	kind: "rust trace";
-	filter: string;
-	output: string;
+type ParametersOfRegisterGlobalTrace = Parameters<typeof registerGlobalTrace>;
+type RustTraceOptionsFilter = ParametersOfRegisterGlobalTrace[0];
+type RustTraceOptionsLayer = ParametersOfRegisterGlobalTrace[1];
+type RustTraceOptionsOutput = ParametersOfRegisterGlobalTrace[2];
+export type RustTraceOptions = {
+	filter: RustTraceOptionsFilter;
+	layer: RustTraceOptionsLayer;
+	output: RustTraceOptionsOutput;
+};
+export type ProfileOptions = {
+	TRACE?: RustTraceOptions;
+	JSCPU?: JSCPUProfileOptions;
 };
 
-export type ProfileOptions = JavascriptCPUProfile | RustTrace;
-
-const defaultRustTraceOutput = `./rspack.trace`;
 const defaultJsCPUProfileOutput = `./rspack.jscpuprofile`;
+const defaultRustTraceChromeOutput = `./rspack.trace`;
+const defaultRustTraceLoggerOutput = `stdout`;
 const defaultRustTraceFilter = "trace";
+const defaultRustTraceLayer = "chrome";
 
-export function resolveProfile(value: string): ProfileOptions[] {
+export function resolveProfile(value: string): ProfileOptions {
 	if (value.toUpperCase() === "ALL") {
-		return [
-			{
-				kind: "rust trace",
+		return {
+			TRACE: {
 				filter: defaultRustTraceFilter,
-				output: defaultRustTraceOutput
+				layer: defaultRustTraceLayer,
+				output: defaultRustTraceChromeOutput
 			},
-			{ kind: "js cpu profile", output: defaultJsCPUProfileOutput }
-		];
+			JSCPU: { output: defaultJsCPUProfileOutput }
+		};
 	}
-	return value
-		.split("|")
-		.map(resolveProfileOptions)
-		.filter((p): p is ProfileOptions => p !== undefined);
+	if (value.startsWith("[") && value.endsWith("]")) {
+		return {
+			TRACE: resolveRustTraceOptions(value.slice(1, value.length - 1)),
+			JSCPU: { output: defaultJsCPUProfileOutput }
+		};
+	}
+	return value.split("|").reduce<ProfileOptions>((acc, cur) => {
+		if (cur.toUpperCase().startsWith("TRACE=")) {
+			acc.TRACE = resolveRustTraceOptions(cur.slice(6));
+		}
+		if (cur.toUpperCase().startsWith("JSCPU=")) {
+			acc.JSCPU = resolveJSCPUProfileOptions(cur.slice(6));
+		}
+		return acc;
+	}, {});
 }
 
-function resolveProfileOptions(value: string): ProfileOptions | undefined {
-	if (value.toUpperCase().startsWith("TRACE")) {
-		return resolveRustTrace(value);
+// JSCPU=value
+function resolveJSCPUProfileOptions(value: string): JSCPUProfileOptions {
+	// output=stderr
+	if (value.includes("=")) {
+		const parsed = new URLSearchParams(value);
+		return { output: parsed.get("output") || defaultJsCPUProfileOutput };
 	}
-	if (value.toUpperCase().startsWith("JSCPU")) {
-		return { kind: "js cpu profile", output: defaultJsCPUProfileOutput };
-	}
+	// stderr
+	return { output: value };
 }
 
-// TRACE=trace
-function resolveRustTrace(value: string): RustTrace {
-	const [kind, filter] = [value.slice(0, 5), value.slice(6)];
-	assert(
-		kind.toUpperCase() === "TRACE",
-		"value should start with TRACE in resolveRustTrace"
-	);
+// TRACE=value
+function resolveRustTraceOptions(value: string): RustTraceOptions {
+	// filter=trace&output=stderr&layer=logger
+	if (value.includes("=")) {
+		const parsed = new URLSearchParams(value);
+		const filter = parsed.get("filter") || defaultRustTraceFilter;
+		const layer = parsed.get("layer");
+		const output = parsed.get("output");
+		if (layer === "chrome") {
+			return {
+				filter,
+				layer,
+				output: output || defaultRustTraceChromeOutput
+			};
+		}
+		if (layer === "logger") {
+			return {
+				filter,
+				layer,
+				output: output || defaultRustTraceLoggerOutput
+			};
+		}
+		throw new Error(
+			`${layer} is not a valid layer, should be chrome or logger`
+		);
+	}
+	// trace
 	return {
-		kind: "rust trace",
-		filter: filter || defaultRustTraceFilter,
-		output: defaultRustTraceOutput
+		filter: value || defaultRustTraceFilter,
+		layer: defaultRustTraceLayer,
+		output: defaultRustTraceChromeOutput
 	};
 }
 

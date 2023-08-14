@@ -27,7 +27,7 @@ pub fn apply_from_fixture(fixture_path: &Path) -> (CompilerOptions, Vec<BoxPlugi
 
 #[tokio::main]
 pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
-  enable_tracing_by_env(&std::env::var("TRACE").ok().unwrap_or_default());
+  enable_tracing_by_env(&std::env::var("TRACE").ok().unwrap_or_default(), "stdout");
 
   let (options, plugins) = apply_from_fixture(fixture_path);
   // clean output
@@ -98,7 +98,7 @@ pub async fn test_rebuild_fixture(
   fixture_path: &Path,
   cb: Option<Box<dyn FnOnce(Compiler<AsyncNativeFileSystem>)>>,
 ) {
-  enable_tracing_by_env(&std::env::var("TRACE").ok().unwrap_or_default());
+  enable_tracing_by_env(&std::env::var("TRACE").ok().unwrap_or_default(), "stdout");
 
   let (options, plugins) = apply_from_fixture(fixture_path);
   // clean output

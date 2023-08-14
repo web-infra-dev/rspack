@@ -9,7 +9,6 @@ extern crate rspack_binding_macros;
 
 use std::cell::Cell;
 use std::collections::HashSet;
-use std::path::Path;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
 
@@ -324,16 +323,14 @@ static CUSTOM_TRACE_SUBSCRIBER: OnceCell<bool> = OnceCell::new();
 pub fn register_global_trace(
   mut env: Env,
   filter: String,
-  layer: String,
+  #[napi(ts_arg_type = "\"chrome\" | \"logger\"")] layer: String,
   output: String,
 ) -> Result<()> {
   CUSTOM_TRACE_SUBSCRIBER.get_or_init(|| {
     let guard = match layer.as_str() {
-      "chrome" => {
-        rspack_tracing::enable_tracing_by_env_with_chrome_layer(&filter, Path::new(&output))
-      }
+      "chrome" => rspack_tracing::enable_tracing_by_env_with_chrome_layer(&filter, &output),
       "logger" => {
-        rspack_tracing::enable_tracing_by_env(&filter);
+        rspack_tracing::enable_tracing_by_env(&filter, &output);
         None
       }
       _ => panic!("not supported layer type:{layer}"),

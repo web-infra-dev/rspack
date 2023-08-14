@@ -1008,7 +1008,7 @@ export interface RawTrustedTypes {
  * Author Donny/강동윤
  * Copyright (c)
  */
-export function registerGlobalTrace(filter: string, layer: string, output: string): void
+export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", output: string): void
 
 export interface ThreadsafeNodeFS {
   writeFile: (...args: any[]) => any
