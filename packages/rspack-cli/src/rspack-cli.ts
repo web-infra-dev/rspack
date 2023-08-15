@@ -160,6 +160,7 @@ export class RspackCLI {
 							registerGlobalTrace(value.filter, value.layer, value.output);
 							// Flush trace on `SIGINT` when enabled
 							process.on("SIGINT", cleanupGlobalTrace);
+							process.on("SIGTERM", cleanupGlobalTrace);
 						} else if (kind === "JSCPU") {
 							(item.plugins ??= []).push(
 								new RspackJsCPUProfilePlugin(value.output)
