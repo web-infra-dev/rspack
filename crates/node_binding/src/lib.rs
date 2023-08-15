@@ -7,10 +7,10 @@ extern crate napi_derive;
 #[macro_use]
 extern crate rspack_binding_macros;
 
-use std::cell::Cell;
 use std::collections::HashSet;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Mutex;
 
 use dashmap::DashMap;
 use napi::bindgen_prelude::*;
@@ -317,9 +317,8 @@ enum TraceState {
   Off,
 }
 
-thread_local! {
-  static GLOBAL_TRACE_STATE: Cell<TraceState> = Cell::new(TraceState::default());
-}
+static GLOBAL_TRACE_STATE: Lazy<Mutex<TraceState>> =
+  Lazy::new(|| Mutex::new(TraceState::default()));
 
 /**
  * Some code is modified based on
@@ -334,31 +333,31 @@ pub fn register_global_trace(
   #[napi(ts_arg_type = "\"chrome\" | \"logger\"")] layer: String,
   output: String,
 ) {
-  GLOBAL_TRACE_STATE.with(|v| {
-    let state = v.take();
-    let new_state = if matches!(state, TraceState::Off) {
-      let guard = match layer.as_str() {
-        "chrome" => rspack_tracing::enable_tracing_by_env_with_chrome_layer(&filter, &output),
-        "logger" => {
-          rspack_tracing::enable_tracing_by_env(&filter, &output);
-          None
-        }
-        _ => panic!("not supported layer type:{layer}"),
-      };
-      TraceState::On(guard)
-    } else {
-      state
+  let mut state = GLOBAL_TRACE_STATE
+    .lock()
+    .expect("Failed to lock GLOBAL_TRACE_STATE");
+  if matches!(&*state, TraceState::Off) {
+    let guard = match layer.as_str() {
+      "chrome" => rspack_tracing::enable_tracing_by_env_with_chrome_layer(&filter, &output),
+      "logger" => {
+        rspack_tracing::enable_tracing_by_env(&filter, &output);
+        None
+      }
+      _ => panic!("not supported layer type:{layer}"),
     };
-    v.set(new_state);
-  });
+    let new_state = TraceState::On(guard);
+    *state = new_state;
+  }
 }
 
-#[napi]
+#[napi(catch_unwind)]
 pub fn cleanup_global_trace() {
-  GLOBAL_TRACE_STATE.with(|v| {
-    if let TraceState::On(Some(g)) = v.take() {
-      g.flush();
-      // drop
-    }
-  })
+  let mut state = GLOBAL_TRACE_STATE
+    .lock()
+    .expect("Failed to lock GLOBAL_TRACE_STATE");
+  if let TraceState::On(Some(g)) = &*state {
+    g.flush();
+    let new_state = TraceState::Off;
+    *state = new_state;
+  }
 }
