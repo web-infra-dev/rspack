@@ -994,6 +994,7 @@ importers:
       colorette: 2.0.19
       concat-stream: ^2.0.0
       execa: ^5.0.0
+      exit-hook: ^3.2.0
       internal-ip: 6.2.0
       interpret: ^3.1.1
       rechoir: ^0.8.0
@@ -1007,6 +1008,7 @@ importers:
       '@rspack/core': link:../rspack
       '@rspack/dev-server': link:../rspack-dev-server
       colorette: 2.0.19
+      exit-hook: 3.2.0
       interpret: 3.1.1
       rechoir: 0.8.0
       semver: 6.3.0
@@ -16239,6 +16241,11 @@ packages:
       pify: 2.3.0
     dev: true
     optional: true
+
+  /exit-hook/3.2.0:
+    resolution: {integrity: sha512-aIQN7Q04HGAV/I5BszisuHTZHXNoC23WtLkxdCLuYZMdWviRD0TMIt2bnUBi9MrHaF/hH8b3gwG9iaAUHKnJGA==}
+    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
+    dev: false
 
   /exit/0.1.2:
     resolution: {integrity: sha512-Zk/eNKV2zbjpKzrsQ+n1G6poVbErQxJ0LBOJXaKZ1EViLzH+hrLu9cdXI4zw9dBQJslwBEpbQ2P1oS7nDxs6jQ==}

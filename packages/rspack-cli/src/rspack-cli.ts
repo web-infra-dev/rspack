@@ -24,8 +24,14 @@ import { normalizeEnv } from "./utils/options";
 import { loadRspackConfig } from "./utils/loadConfig";
 import findConfig from "./utils/findConfig";
 import { Mode } from "@rspack/core/src/config";
-import { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
+import {
+	RspackPluginInstance,
+	RspackPluginFunction,
+	experimental_registerGlobalTrace as registerGlobalTrace,
+	experimental_cleanupGlobalTrace as cleanupGlobalTrace
+} from "@rspack/core";
 import path from "path";
+import { RspackJsCPUProfilePlugin, resolveProfile } from "./utils/profile";
 
 type Command = "serve" | "build";
 
@@ -146,6 +152,21 @@ export class RspackCLI {
 						}).apply(compiler as any);
 					}
 				});
+			}
+			if (process.env.RSPACK_PROFILE) {
+				const { default: exitHook } = await import("exit-hook");
+				Object.entries(resolveProfile(process.env.RSPACK_PROFILE)).forEach(
+					([kind, value]) => {
+						if (kind === "TRACE" && "filter" in value) {
+							registerGlobalTrace(value.filter, value.layer, value.output);
+							exitHook(cleanupGlobalTrace);
+						} else if (kind === "JSCPU") {
+							(item.plugins ??= []).push(
+								new RspackJsCPUProfilePlugin(value.output)
+							);
+						}
+					}
+				);
 			}
 			// cli --watch overrides the watch config
 			if (options.watch) {

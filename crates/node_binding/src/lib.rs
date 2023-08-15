@@ -10,6 +10,7 @@ extern crate rspack_binding_macros;
 use std::collections::HashSet;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Mutex;
 
 use dashmap::DashMap;
 use napi::bindgen_prelude::*;
@@ -27,6 +28,7 @@ use hook::*;
 use js_values::*;
 use plugins::*;
 use rspack_binding_options::*;
+use rspack_tracing::chrome::FlushGuard;
 use utils::*;
 
 #[cfg(not(target_os = "linux"))]
@@ -145,8 +147,6 @@ impl Rspack {
     output_filesystem: ThreadsafeNodeFS,
     js_loader_runner: JsFunction,
   ) -> Result<Self> {
-    init_custom_trace_subscriber(env);
-    // rspack_tracing::enable_tracing_by_env();
     Self::prepare_environment(&env);
     tracing::info!("raw_options: {:#?}", &options);
 
@@ -307,5 +307,58 @@ impl ObjectFinalize for Rspack {
 impl Rspack {
   fn prepare_environment(env: &Env) {
     NAPI_ENV.with(|napi_env| *napi_env.borrow_mut() = Some(env.raw()));
+  }
+}
+
+#[derive(Default)]
+enum TraceState {
+  On(Option<FlushGuard>),
+  #[default]
+  Off,
+}
+
+static GLOBAL_TRACE_STATE: Lazy<Mutex<TraceState>> =
+  Lazy::new(|| Mutex::new(TraceState::default()));
+
+/**
+ * Some code is modified based on
+ * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58
+ * Apache-2.0 licensed
+ * Author Donny/강동윤
+ * Copyright (c)
+ */
+#[napi(catch_unwind)]
+pub fn register_global_trace(
+  filter: String,
+  #[napi(ts_arg_type = "\"chrome\" | \"logger\"")] layer: String,
+  output: String,
+) {
+  let mut state = GLOBAL_TRACE_STATE
+    .lock()
+    .expect("Failed to lock GLOBAL_TRACE_STATE");
+  if matches!(&*state, TraceState::Off) {
+    let guard = match layer.as_str() {
+      "chrome" => rspack_tracing::enable_tracing_by_env_with_chrome_layer(&filter, &output),
+      "logger" => {
+        rspack_tracing::enable_tracing_by_env(&filter, &output);
+        None
+      }
+      _ => panic!("not supported layer type:{layer}"),
+    };
+    let new_state = TraceState::On(guard);
+    *state = new_state;
+  }
+}
+
+#[napi(catch_unwind)]
+pub fn cleanup_global_trace() {
+  let mut state = GLOBAL_TRACE_STATE
+    .lock()
+    .expect("Failed to lock GLOBAL_TRACE_STATE");
+  if let TraceState::On(guard) = &mut *state && let Some(g) = guard.take() {
+    g.flush();
+    drop(g);
+    let new_state = TraceState::Off;
+    *state = new_state;
   }
 }

@@ -1,17 +1,21 @@
+use std::fs;
+use std::io;
+use std::path::Path;
 use std::str::FromStr;
 use std::sync::atomic::AtomicBool;
 
 use tracing::Level;
 use tracing_chrome::FlushGuard;
+use tracing_subscriber::fmt::writer::BoxMakeWriter;
 use tracing_subscriber::{fmt::format::FmtSpan, layer::Filter};
 use tracing_subscriber::{EnvFilter, Layer};
-// use tracing_chrome::FlushGuard;
 
 pub mod chrome {
   pub use tracing_chrome::FlushGuard;
 }
 
 static IS_TRACING_ENABLED: AtomicBool = AtomicBool::new(false);
+
 // skip event because it's not useful for performance analysis
 struct FilterEvent;
 
@@ -24,12 +28,12 @@ impl<S> Filter<S> for FilterEvent {
     !meta.is_event()
   }
 }
-pub fn enable_tracing_by_env() -> Option<FlushGuard> {
-  let trace_var = std::env::var("TRACE").ok();
-  let is_enable_tracing = trace_var.is_some();
-  if is_enable_tracing && !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
+
+pub fn enable_tracing_by_env(filter: &str, output: &str) {
+  if !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
     use tracing_subscriber::{fmt, prelude::*};
-    let layers = generate_common_layers(trace_var);
+    let layers = generate_common_layers(filter);
+    let trace_writer = TraceWriter::from(output);
 
     tracing_subscriber::registry()
       // .with(EnvFilter::from_env("TRACE").and_then(rspack_only_layer))
@@ -39,18 +43,18 @@ pub fn enable_tracing_by_env() -> Option<FlushGuard> {
           .pretty()
           .with_file(true)
           // To keep track of the closing point of spans
-          .with_span_events(FmtSpan::CLOSE),
+          .with_span_events(FmtSpan::CLOSE)
+          .with_writer(trace_writer.make_writer()),
       )
       .init();
     tracing::trace!("enable_tracing_by_env");
   }
-  None
 }
 
 fn generate_common_layers(
-  trace_var: Option<String>,
+  filter: &str,
 ) -> Vec<Box<dyn Layer<tracing_subscriber::Registry> + Send + Sync>> {
-  let default_level = trace_var.as_ref().and_then(|var| Level::from_str(var).ok());
+  let default_level = Level::from_str(filter).ok();
 
   let mut layers = vec![];
   if let Some(default_level) = default_level {
@@ -72,7 +76,7 @@ fn generate_common_layers(
     // unexpected, then panic is reasonable
     let env_layer = EnvFilter::builder()
       .with_regex(true)
-      .parse(trace_var.expect("Should not be empty"))
+      .parse(filter)
       .expect("Parse tracing directive syntax failed,for details about the directive syntax you could refer https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives");
 
     layers.push(env_layer.boxed());
@@ -80,15 +84,17 @@ fn generate_common_layers(
   layers
 }
 
-pub fn enable_tracing_by_env_with_chrome_layer() -> Option<FlushGuard> {
-  let trace_var = std::env::var("TRACE").ok();
-  let is_enable_tracing = trace_var.is_some();
-  if is_enable_tracing && !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
+pub fn enable_tracing_by_env_with_chrome_layer(filter: &str, output: &str) -> Option<FlushGuard> {
+  if !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
     use tracing_chrome::ChromeLayerBuilder;
     use tracing_subscriber::prelude::*;
 
-    let (chrome_layer, guard) = ChromeLayerBuilder::new().include_args(true).build();
-    let layers = generate_common_layers(trace_var);
+    let trace_writer = TraceWriter::from(output);
+    let (chrome_layer, guard) = ChromeLayerBuilder::new()
+      .include_args(true)
+      .writer(trace_writer.writer())
+      .build();
+    let layers = generate_common_layers(filter);
     // If we don't do this. chrome_layer will collect nothing.
     // std::mem::forget(guard);
     tracing_subscriber::registry()
@@ -98,5 +104,45 @@ pub fn enable_tracing_by_env_with_chrome_layer() -> Option<FlushGuard> {
     Some(guard)
   } else {
     None
+  }
+}
+
+enum TraceWriter<'a> {
+  Stdout,
+  Stderr,
+  File { path: &'a Path },
+}
+
+impl<'a> From<&'a str> for TraceWriter<'a> {
+  fn from(s: &'a str) -> Self {
+    match s {
+      "stdout" => Self::Stdout,
+      "stderr" => Self::Stderr,
+      path => Self::File {
+        path: Path::new(path),
+      },
+    }
+  }
+}
+
+impl TraceWriter<'_> {
+  pub fn make_writer(&self) -> BoxMakeWriter {
+    match self {
+      TraceWriter::Stdout => BoxMakeWriter::new(io::stdout),
+      TraceWriter::Stderr => BoxMakeWriter::new(io::stderr),
+      TraceWriter::File { path } => {
+        BoxMakeWriter::new(fs::File::create(path).expect("Failed to create trace file"))
+      }
+    }
+  }
+
+  pub fn writer(&self) -> Box<dyn io::Write + Send + 'static> {
+    match self {
+      TraceWriter::Stdout => Box::new(io::stdout()),
+      TraceWriter::Stderr => Box::new(io::stderr()),
+      TraceWriter::File { path } => {
+        Box::new(fs::File::create(path).expect("Failed to create trace file"))
+      }
+    }
   }
 }
