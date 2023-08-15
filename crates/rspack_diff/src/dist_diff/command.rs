@@ -1,8 +1,8 @@
-use clap::ArgMatches;
+use clap::{Command, Arg, builder::ValueParser};
 
 use crate::{
   result::CliRunResult,
-  runner::{Runner, RunnerOptions},
+  runner::{Runner},
 };
 
 #[derive(Debug)]
@@ -11,25 +11,6 @@ pub struct DistDiffRunnerOptions {
   pub dst_path: String,
 }
 
-impl RunnerOptions for DistDiffRunnerOptions {
-  fn build_args(cmd: clap::Command) -> clap::Command {
-    cmd
-  }
-}
-impl From<ArgMatches> for DistDiffRunnerOptions {
-  fn from(matches: ArgMatches) -> Self {
-    Self {
-      src_path: matches
-        .get_one::<String>("src_path")
-        .expect("msg_path is required")
-        .to_owned(),
-      dst_path: matches
-        .get_one::<String>("dst_path")
-        .expect("dst_path is requried")
-        .to_owned(),
-    }
-  }
-}
 #[derive(Debug)]
 pub struct DistDiffRunner {
   options: DistDiffRunnerOptions,
@@ -43,9 +24,16 @@ impl Runner for DistDiffRunner {
   type Options = DistDiffRunnerOptions;
 
   fn new(options: Self::Options) -> Self {
+    dbg!(options);
     todo!()
   }
   fn run(&self) -> CliRunResult {
     todo!()
   }
+}
+
+pub fn stats_diff_command(command: Command) -> Command {
+  command.arg_required_else_help(true)
+  .arg(Arg::new("src_path").value_name("src_path").value_parser(ValueParser::path_buf()))
+  .arg(Arg::new("dst_path").value_name("dst_path").value_parser(ValueParser::path_buf()))
 }

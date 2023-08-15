@@ -1,5 +1,7 @@
 use clap::{Arg, Command};
 
+use crate::{dist_diff::DistDiffRunner, runner::Runner};
+
 pub fn dist_diff_command() -> Command {
   Command::new("dist_diff")
     .about("diff the bundled output of webpack and rspack")
@@ -7,12 +9,7 @@ pub fn dist_diff_command() -> Command {
     .arg(Arg::new("src_path"))
     .arg(Arg::new("dst_path"))
 }
-pub fn stats_diff_command() -> Command {
-  Command::new("stats_diff")
-    .about("diff the bundled stats of webpack and rspack")
-    .arg_required_else_help(true)
-    .arg(Arg::new("rspack_path"))
-}
+
 
 pub fn command() -> Command {
   Command::new("rspack_diff")
@@ -20,6 +17,6 @@ pub fn command() -> Command {
     .about("diff webpack and rspack build result")
     .arg_required_else_help(true)
     .subcommand_required(true)
-    .subcommand(dist_diff_command())
-    .subcommand(stats_diff_command())
+    .subcommand(DistDiffRunner::command())
+    
 }

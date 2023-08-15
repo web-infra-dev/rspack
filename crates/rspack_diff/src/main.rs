@@ -1,7 +1,6 @@
 use rspack_diff::{
   command::command,
-  dist_diff::command::{DistDiffRunner, DistDiffRunnerOptions},
-  result::CliRunResult,
+  dist_diff::{DistDiffRunner, DistDiffRunnerOptions},
   runner::Runner,
 };
 
