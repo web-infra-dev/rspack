@@ -183,7 +183,7 @@ impl<C> Display for LoaderItem<C> {
 }
 
 #[derive(Debug)]
-pub struct LoaderItemList<'l, C>(pub(crate) &'l [LoaderItem<C>]);
+pub struct LoaderItemList<'l, C>(pub &'l [LoaderItem<C>]);
 
 impl<'l, C> Deref for LoaderItemList<'l, C> {
   type Target = [LoaderItem<C>];

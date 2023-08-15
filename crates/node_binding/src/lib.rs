@@ -20,11 +20,13 @@ use rspack_napi_shared::NAPI_ENV;
 
 mod hook;
 mod js_values;
+mod loader;
 mod plugins;
 mod utils;
 
 use hook::*;
 use js_values::*;
+use loader::*;
 use plugins::*;
 use rspack_binding_options::*;
 use rspack_tracing::chrome::FlushGuard;

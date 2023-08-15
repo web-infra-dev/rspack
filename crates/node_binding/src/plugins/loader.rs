@@ -26,37 +26,92 @@ impl Plugin for JsLoaderResolver {
 
     let mut loaders: Vec<BoxLoader> = vec![];
 
-    let mut starting_point = 0;
-    for (idx, l) in old_loaders.iter().enumerate() {
-      if l.identifier().starts_with("builtin:") {
-        // Compose JS loaders
-        let composed = old_loaders[starting_point..idx]
-          .iter()
-          .map(|l| l.identifier().as_str())
-          .collect::<Vec<_>>()
-          .join("$");
-        loaders.push(Arc::new(JsLoaderAdapter {
-          runner: self.js_loader_runner.clone(),
-          identifier: composed.into(),
-        }));
-        loaders.push(l.clone());
-        starting_point = idx + 1;
-      }
-    }
-    // Compose the rest of JS loaders
-    if starting_point < old_loaders.len() {
-      let composed = old_loaders[starting_point..]
+    loaders.push(Arc::new(JsLoaderAdapter {
+      runner: self.js_loader_runner.clone(),
+      identifier: old_loaders
         .iter()
         .map(|l| l.identifier().as_str())
         .collect::<Vec<_>>()
-        .join("$");
-      loaders.push(Arc::new(JsLoaderAdapter {
-        runner: self.js_loader_runner.clone(),
-        identifier: composed.into(),
-      }));
-    }
+        .join("$")
+        .into(),
+    }));
 
     *module.loaders_mut_vec() = loaders;
+
+    // optimization
+    // if old_loaders
+    //   .iter()
+    //   .any(|l| !l.identifier().starts_with("builtin:"))
+    // {
+    //   // if any JS loader is used.
+    //   let mut loaders: Vec<BoxLoader> = vec![];
+
+    //   let mut starting_point = 0;
+    //   for (idx, l) in old_loaders.iter().enumerate() {
+    //     if l.identifier().starts_with("builtin:") {
+    //       // Compose JS loaders
+    //       let composed = old_loaders[starting_point..idx]
+    //         .iter()
+    //         .map(|l| l.identifier().as_str())
+    //         .collect::<Vec<_>>()
+    //         .join("$");
+    //       loaders.push(Arc::new(JsLoaderAdapter {
+    //         runner: self.js_loader_runner.clone(),
+    //         identifier: composed.into(),
+    //       }));
+    //       loaders.push(l.clone());
+    //       starting_point = idx + 1;
+    //     }
+    //   }
+    //   // Compose the rest of JS loaders
+    //   if starting_point < old_loaders.len() {
+    //     let composed = old_loaders[starting_point..]
+    //       .iter()
+    //       .map(|l| l.identifier().as_str())
+    //       .collect::<Vec<_>>()
+    //       .join("$");
+    //     loaders.push(Arc::new(JsLoaderAdapter {
+    //       runner: self.js_loader_runner.clone(),
+    //       identifier: composed.into(),
+    //     }));
+    //   }
+
+    //   *module.loaders_mut_vec() = loaders;
+    // }
+
+    // let mut loaders: Vec<BoxLoader> = vec![];
+
+    // let mut starting_point = 0;
+    // for (idx, l) in old_loaders.iter().enumerate() {
+    //   if l.identifier().starts_with("builtin:") {
+    //     // Compose JS loaders
+    //     let composed = old_loaders[starting_point..idx]
+    //       .iter()
+    //       .map(|l| l.identifier().as_str())
+    //       .collect::<Vec<_>>()
+    //       .join("$");
+    //     loaders.push(Arc::new(JsLoaderAdapter {
+    //       runner: self.js_loader_runner.clone(),
+    //       identifier: composed.into(),
+    //     }));
+    //     loaders.push(l.clone());
+    //     starting_point = idx + 1;
+    //   }
+    // }
+    // // Compose the rest of JS loaders
+    // if starting_point < old_loaders.len() {
+    //   let composed = old_loaders[starting_point..]
+    //     .iter()
+    //     .map(|l| l.identifier().as_str())
+    //     .collect::<Vec<_>>()
+    //     .join("$");
+    //   loaders.push(Arc::new(JsLoaderAdapter {
+    //     runner: self.js_loader_runner.clone(),
+    //     identifier: composed.into(),
+    //   }));
+    // }
+
+    // *module.loaders_mut_vec() = loaders;
 
     Ok(())
   }

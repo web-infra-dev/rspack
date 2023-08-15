@@ -23,7 +23,7 @@ use {
 
 use crate::{RawOptionsApply, RawResolveOptions};
 
-fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
+pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
   match builtin {
     "builtin:sass-loader" => Arc::new(rspack_loader_sass::SassLoader::new(
       serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
@@ -53,7 +53,7 @@ fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
 #[napi(object)]
 pub struct RawModuleRuleUse {
   #[serde(skip_deserializing)]
-  pub js_loader: Option<JsLoader>,
+  pub js_loader: Option<String>,
   pub builtin_loader: Option<String>,
   pub options: Option<String>,
 }
@@ -61,7 +61,7 @@ pub struct RawModuleRuleUse {
 impl Debug for RawModuleRuleUse {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("RawModuleRuleUse")
-      .field("loader", &self.js_loader.as_ref().map(|i| &i.identifier))
+      .field("loader", &self.js_loader)
       .field("builtin_loader", &self.builtin_loader)
       .field("options", &self.options)
       .finish()
@@ -546,7 +546,7 @@ impl RawOptionsApply for RawModuleRule {
               .map(|rule_use| {
                 {
                   if let Some(raw_js_loader) = rule_use.js_loader {
-                    return Ok(Arc::new(JsLoaderAdapter {runner: loader_runner.clone(), identifier: raw_js_loader.identifier.into()}) as BoxLoader);
+                    return Ok(Arc::new(JsLoaderAdapter {runner: loader_runner.clone(), identifier: raw_js_loader.into()}) as BoxLoader);
                   }
                 }
                 if let Some(builtin_loader) = rule_use.builtin_loader {
@@ -590,7 +590,7 @@ impl RawOptionsApply for RawModuleRule {
                 .map(|rule_use| {
                   {
                     if let Some(raw_js_loader) = rule_use.js_loader {
-                      return Ok(Arc::new(JsLoaderAdapter {runner:(*loader_runner).clone(), identifier: raw_js_loader.identifier.into()}) as BoxLoader);
+                      return Ok(Arc::new(JsLoaderAdapter {runner:(*loader_runner).clone(), identifier: raw_js_loader.into()}) as BoxLoader);
                     }
                   }
                   if let Some(builtin_loader) = rule_use.builtin_loader {
