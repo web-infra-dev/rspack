@@ -88,6 +88,12 @@ importers:
     devDependencies:
       '@napi-rs/cli': 3.0.0-alpha.3
 
+  crates/rspack_diff/fixtures/basic:
+    specifiers:
+      rspack-manifest-plugin: 5.0.0-alpha0
+    dependencies:
+      rspack-manifest-plugin: 5.0.0-alpha0
+
   crates/rspack_fs_node:
     specifiers:
       '@napi-rs/cli': 2.14.2
@@ -24195,7 +24201,6 @@ packages:
     dependencies:
       tapable: 2.2.1
       webpack-sources: 2.3.1
-    dev: true
 
   /run-async/2.4.1:
     resolution: {integrity: sha512-tvVnVv01b8c1RrA6Ep7JkStj85Guv/YrMcwqYQnwjsAS2cTmmPGBBjAjpCW7RrSodNSoE2/qg9O4bceNvUuDgQ==}
@@ -25038,7 +25043,6 @@ packages:
 
   /source-list-map/2.0.1:
     resolution: {integrity: sha512-qnQ7gVMxGNxsiL4lEuJwe/To8UnK7fAnmbGEEH8RpLouuKbeEm0lhbQVFIrNSuB+G7tVrAlVsZgETT5nljf+Iw==}
-    dev: true
 
   /source-map-js/1.0.2:
     resolution: {integrity: sha512-R0XvVJ9WusLiqTCEiGCmICCMplcCkIwwR11mOSD9CR5u+IXYdiseeEuXCVAjS54zqwkLcPNnmU4OeJ6tUrWhDw==}
@@ -27951,7 +27955,6 @@ packages:
     dependencies:
       source-list-map: 2.0.1
       source-map: 0.6.1
-    dev: true
 
   /webpack-sources/3.2.3:
     resolution: {integrity: sha512-/DyMEOrDgLKKIG0fmvtz+4dUX/3Ghozwgm6iPp8KRhvn+eQf9+Q7GWxVNMk3+uCPWfdXYC4ExGBckIXdFEfH1w==}

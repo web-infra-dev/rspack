@@ -1,0 +1,19 @@
+{
+  "name": "diff-basic",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build:webpack": "webpack -c rspack.config.js -o webpack-dist --json webpack-dist/stats.json",
+    "build:rspack": "rspack -c rspack.config.js --json rspack-dist/stats.json",
+    "build": "npm run build:rspack && npm run build:webpack",
+    "diff": "cargo run --fixture basic"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    
+    "rspack-manifest-plugin": "5.0.0-alpha0"
+  }
+}

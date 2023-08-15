@@ -112,6 +112,7 @@ out
 .nuxt
 dist
 webpack-dist
+rspack-dist
 
 # Gatsby files
 .cache/
