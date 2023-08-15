@@ -38,11 +38,11 @@ export type EmotionConfigImportMap = {
 export type EmotionConfig =
 	| boolean
 	| {
-		sourceMap?: boolean;
-		autoLabel?: "never" | "dev-only" | "always";
-		labelFormat?: string;
-		importMap?: EmotionConfigImportMap;
-	};
+			sourceMap?: boolean;
+			autoLabel?: "never" | "dev-only" | "always";
+			labelFormat?: string;
+			importMap?: EmotionConfigImportMap;
+	  };
 
 export type CssPluginConfig = {
 	modules?: Partial<RawCssModulesConfig>;
@@ -100,8 +100,8 @@ export type CopyConfig = {
 	patterns: (
 		| string
 		| ({
-			from: string;
-		} & Partial<RawPattern>)
+				from: string;
+		  } & Partial<RawPattern>)
 	)[];
 };
 
@@ -116,14 +116,14 @@ export type MinifyConditions = MinifyCondition | MinifyCondition[];
 type BannerConfig =
 	| string
 	| {
-		banner: string;
-		entryOnly?: boolean;
-		footer?: boolean;
-		raw?: boolean;
-		test?: BannerConditions;
-		exclude?: BannerConditions;
-		include?: BannerConditions;
-	};
+			banner: string;
+			entryOnly?: boolean;
+			footer?: boolean;
+			raw?: boolean;
+			test?: BannerConditions;
+			exclude?: BannerConditions;
+			include?: BannerConditions;
+	  };
 
 export type BannerConfigs = BannerConfig | BannerConfig[];
 
@@ -195,8 +195,8 @@ function resolveTreeShaking(
 	return treeShaking !== undefined
 		? treeShaking.toString()
 		: production
-			? "true"
-			: "false";
+		? "true"
+		: "false";
 }
 
 function resolveProvide(
@@ -364,7 +364,7 @@ function getRelayConfigFromProject(
 					artifactDirectory: finalConfig.artifactDirectory
 				};
 			}
-		} catch (_) { }
+		} catch (_) {}
 	}
 }
 
@@ -387,17 +387,16 @@ export function resolveBuiltinsOptions(
 	return {
 		css: css
 			? {
-				modules: {
-					localsConvention: "asIs",
-					localIdentName: production
-						? "[hash]"
-						: "[path][name][ext]__[local]",
-					exportsOnly: false,
-					...builtins.css?.modules
-				}
-			}
+					modules: {
+						localsConvention: "asIs",
+						localIdentName: production
+							? "[hash]"
+							: "[path][name][ext]__[local]",
+						exportsOnly: false,
+						...builtins.css?.modules
+					}
+			  }
 			: undefined,
-		postcss: { pxtorem: undefined, ...builtins.postcss },
 		treeShaking: resolveTreeShaking(builtins.treeShaking, production),
 		react: builtins.react ?? {},
 		noEmitAssets: builtins.noEmitAssets ?? false,
