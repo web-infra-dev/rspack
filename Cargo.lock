@@ -2438,6 +2438,7 @@ name = "rspack_ids"
 version = "0.1.0"
 dependencies = [
  "dashmap",
+ "itertools",
  "once_cell",
  "rayon",
  "regex",

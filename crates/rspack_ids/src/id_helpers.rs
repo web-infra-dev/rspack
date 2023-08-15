@@ -5,11 +5,16 @@ use std::{
   hash::{Hash, Hasher},
 };
 
+use itertools::{
+  EitherOrBoth::{Both, Left, Right},
+  Itertools,
+};
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier,
+  compare_runtime, BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleGraph,
+  ModuleIdentifier,
 };
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
@@ -407,6 +412,30 @@ pub fn get_long_chunk_name(
   shorten_long_string(chunk_name, delimiter)
 }
 
+pub fn get_full_chunk_name(
+  chunk: &Chunk,
+  chunk_graph: &ChunkGraph,
+  module_graph: &ModuleGraph,
+  context: &str,
+) -> String {
+  if let Some(name) = &chunk.name {
+    return name.to_owned();
+  }
+
+  let full_module_names = chunk_graph
+    .get_chunk_root_modules(&chunk.ukey, module_graph)
+    .iter()
+    .map(|id| {
+      module_graph
+        .module_by_identifier(id)
+        .expect("Module not found")
+    })
+    .map(|module| get_full_module_name(module, context))
+    .collect::<Vec<_>>();
+
+  full_module_names.join(",")
+}
+
 static REGEX1: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(\.\.?/)+").expect("Invalid regex"));
 static REGEX2: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("Invalid regex"));
@@ -463,4 +492,57 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compil
       }
     }
   }
+}
+
+fn compare_chunks_by_modules(
+  chunk_graph: &ChunkGraph,
+  module_graph: &ModuleGraph,
+  a: &Chunk,
+  b: &Chunk,
+) -> Ordering {
+  let a_modules = chunk_graph.get_chunk_modules(&a.ukey, module_graph);
+  let b_modules = chunk_graph.get_chunk_modules(&b.ukey, module_graph);
+
+  a_modules
+    .into_iter()
+    .zip_longest(b_modules.into_iter())
+    .find_map(|pair| match pair {
+      Both(a_module, b_module) => {
+        let a_module_id = chunk_graph.get_module_id(a_module.identifier());
+        let b_module_id = chunk_graph.get_module_id(b_module.identifier());
+        let ordering = compare_ids(
+          &a_module_id.clone().unwrap_or_default(),
+          &b_module_id.clone().unwrap_or_default(),
+        );
+        if ordering != Ordering::Equal {
+          return Some(ordering);
+        }
+        None
+      }
+      Left(_) => Some(Ordering::Greater),
+      Right(_) => Some(Ordering::Less),
+    })
+    .unwrap_or(Ordering::Equal)
+}
+
+pub fn compare_chunks_natural(
+  chunk_graph: &ChunkGraph,
+  module_graph: &ModuleGraph,
+  a: &Chunk,
+  b: &Chunk,
+) -> Ordering {
+  let name_ordering = compare_ids(
+    &a.name.clone().unwrap_or_default(),
+    &b.name.clone().unwrap_or_default(),
+  );
+  if name_ordering != Ordering::Equal {
+    return name_ordering;
+  }
+
+  let runtime_ordering = compare_runtime(&a.runtime, &b.runtime);
+  if runtime_ordering != Ordering::Equal {
+    return runtime_ordering;
+  }
+
+  compare_chunks_by_modules(chunk_graph, module_graph, a, b)
 }

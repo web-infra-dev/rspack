@@ -792,6 +792,7 @@ export interface RawNodeOption {
 export interface RawOptimizationOptions {
   splitChunks?: RawSplitChunksOptions
   moduleIds: string
+  chunkIds: string
   removeAvailableModules: boolean
   removeEmptyChunks: boolean
   sideEffects: string

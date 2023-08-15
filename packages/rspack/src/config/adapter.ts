@@ -663,6 +663,7 @@ function getRawOptimization(
 ): RawOptions["optimization"] {
 	assert(
 		!isNil(optimization.moduleIds) &&
+			!isNil(optimization.chunkIds) &&
 			!isNil(optimization.removeAvailableModules) &&
 			!isNil(optimization.removeEmptyChunks) &&
 			!isNil(optimization.sideEffects) &&
@@ -670,6 +671,7 @@ function getRawOptimization(
 		"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash should not be nil after defaults"
 	);
 	return {
+		chunkIds: optimization.chunkIds,
 		splitChunks: toRawSplitChunksOptions(optimization.splitChunks),
 		moduleIds: optimization.moduleIds,
 		removeAvailableModules: optimization.removeAvailableModules,
