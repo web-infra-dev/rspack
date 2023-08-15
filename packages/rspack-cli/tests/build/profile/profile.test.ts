@@ -61,7 +61,7 @@ describe("profile", () => {
 			__dirname,
 			[],
 			{},
-			{ RSPACK_PROFILE: "[rspack_node]" }
+			{ RSPACK_PROFILE: "[rspack_core]" }
 		);
 		expect(exitCode).toBe(0);
 		const trace = resolve(__dirname, defaultTracePath);
@@ -70,8 +70,8 @@ describe("profile", () => {
 		expect(
 			out
 				.filter(line => line.cat)
-				.every(line => line.cat!.startsWith("rspack_node"))
-		);
+				.every(line => line.cat!.startsWith("rspack_core"))
+		).toBe(true);
 	});
 
 	it("should be able to customize output path", async () => {
@@ -96,6 +96,6 @@ describe("profile", () => {
 			{ RSPACK_PROFILE: `TRACE=layer=logger&filter=rspack_node::plugins` }
 		);
 		expect(exitCode).toBe(0);
-		expect(stdout.includes("rspack_node::plugins"));
+		expect(stdout.includes("rspack_node::plugins")).toBe(true);
 	});
 });

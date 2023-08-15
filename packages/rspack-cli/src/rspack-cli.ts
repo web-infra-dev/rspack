@@ -154,13 +154,12 @@ export class RspackCLI {
 				});
 			}
 			if (process.env.RSPACK_PROFILE) {
+				const { default: exitHook } = await import("exit-hook");
 				Object.entries(resolveProfile(process.env.RSPACK_PROFILE)).forEach(
 					([kind, value]) => {
 						if (kind === "TRACE" && "filter" in value) {
 							registerGlobalTrace(value.filter, value.layer, value.output);
-							// Flush trace on `SIGINT` when enabled
-							process.on("SIGINT", cleanupGlobalTrace);
-							process.on("SIGTERM", cleanupGlobalTrace);
+							exitHook(cleanupGlobalTrace);
 						} else if (kind === "JSCPU") {
 							(item.plugins ??= []).push(
 								new RspackJsCPUProfilePlugin(value.output)
