@@ -1,5 +1,5 @@
 import type { JsAssetInfo, JsStatsError } from "@rspack/binding";
-import { AssetInfo } from "../Compilation";
+import { AssetInfo } from "../compilation";
 
 export function mapValues(
 	record: Record<string, string>,

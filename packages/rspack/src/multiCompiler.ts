@@ -17,18 +17,18 @@ import {
 } from ".";
 import ResolverFactory from "./ResolverFactory";
 import { WatchFileSystem } from "./util/fs";
-import Watching from "./Watching";
+import Watching from "./watching";
 import tapable, {
 	AsyncSeriesHook,
 	Callback,
 	MultiHook,
 	SyncHook
 } from "tapable";
-import MultiStats from "./MultiStats";
+import MultiStats from "./multiStats";
 import asyncLib from "neo-async";
 import ArrayQueue from "./util/ArrayQueue";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
-import MultiWatching from "./MultiWatching";
+import MultiWatching from "./multiWatching";
 import { WatchOptions } from "./config";
 import { IFs } from "memfs";
 import assert from "assert";

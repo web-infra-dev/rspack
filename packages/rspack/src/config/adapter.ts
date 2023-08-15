@@ -19,14 +19,14 @@ import type {
 	RawFuncUseCtx
 } from "@rspack/binding";
 import assert from "assert";
-import { Compiler } from "../Compiler";
-import { normalizeStatsPreset } from "../Stats";
+import { Compiler } from "../compiler";
+import { normalizeStatsPreset } from "../stats";
 import { isNil } from "../util";
 import {
 	ComposeJsUseOptions,
 	LoaderContext,
 	createRawModuleRuleUses
-} from "./adapterRuleUse";
+} from "./adapter-rule-use";
 import {
 	CrossOriginLoading,
 	EntryNormalized,
