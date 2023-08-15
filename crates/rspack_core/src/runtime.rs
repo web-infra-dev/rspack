@@ -1,4 +1,4 @@
-use std::{fmt::Debug, sync::Arc};
+use std::{cmp::Ordering, fmt::Debug, sync::Arc};
 
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -31,6 +31,21 @@ pub fn get_runtime_key(runtime: RuntimeSpec) -> String {
   let mut runtime: Vec<Arc<str>> = Vec::from_iter(runtime.into_iter());
   runtime.sort_unstable();
   runtime.join("\n")
+}
+
+pub fn compare_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> Ordering {
+  if a == b {
+    return Ordering::Equal;
+  }
+  let a_key = get_runtime_key(a.clone());
+  let b_key = get_runtime_key(b.clone());
+  if a_key < b_key {
+    return Ordering::Less;
+  }
+  if a_key > b_key {
+    return Ordering::Greater;
+  }
+  Ordering::Equal
 }
 
 #[derive(Default, Clone, Debug)]

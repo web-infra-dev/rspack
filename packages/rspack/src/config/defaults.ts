@@ -662,6 +662,7 @@ const applyOptimizationDefaults = (
 		if (production) return "deterministic";
 		return "named";
 	});
+	F(optimization, "chunkIds", (): "named" | "deterministic" => "named");
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
 	D(optimization, "runtimeChunk", false);
 	D(optimization, "realContentHash", production);
