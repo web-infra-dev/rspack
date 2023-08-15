@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Compiler } from "../../Compiler";
+import { Compiler } from "../../compiler";
 
 const rspackPluginFunction = z
 	.function()

@@ -30,18 +30,18 @@ import {
 } from "./config";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import ResolverFactory from "./ResolverFactory";
-import { ChunkGroup } from "./ChunkGroup";
-import { Compiler } from "./Compiler";
+import { ChunkGroup } from "./chunk_group";
+import { Compiler } from "./compiler";
 import ErrorHelpers from "./ErrorHelpers";
 import { LogType, Logger } from "./logging/Logger";
-import { NormalModule } from "./NormalModule";
-import { NormalModuleFactory } from "./NormalModuleFactory";
+import { NormalModule } from "./normalModule";
+import { NormalModuleFactory } from "./normalModuleFactory";
 import {
 	Stats,
 	normalizeFilter,
 	normalizeStatsPreset,
 	optionsOrFallback
-} from "./Stats";
+} from "./stats";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
 import { concatErrorMsgAndStack, isJsStatsError, toJsAssetInfo } from "./util";

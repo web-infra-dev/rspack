@@ -6,7 +6,7 @@ import type {
 import assert from "assert";
 import { ResolveRequest } from "enhanced-resolve";
 
-import { Compiler } from "../Compiler";
+import { Compiler } from "../compiler";
 import { Logger } from "../logging/Logger";
 import Hash from "../util/hash";
 import {
