@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Compiler } from "../../../compiler";
+import { Compiler } from "../../../Compiler";
 import { splitChunks } from "./split-chunks";
 
 const rspackPluginInstance = z.object({

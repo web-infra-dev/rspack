@@ -6,7 +6,7 @@
 "use strict";
 
 const ModuleFilenameHelpers = require("./ModuleFilenameHelpers");
-const { NormalModule } = require("../normalModule");
+const { NormalModule } = require("../NormalModule");
 const createSchemaValidation = require("./util/create-schema-validation");
 
 /** @typedef {import("../declarations/plugins/LoaderOptionsPlugin").LoaderOptionsPluginOptions} LoaderOptionsPluginOptions */
