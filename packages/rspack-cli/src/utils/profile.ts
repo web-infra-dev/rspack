@@ -16,9 +16,14 @@ export type RustTraceOptions = {
 	layer: RustTraceOptionsLayer;
 	output: RustTraceOptionsOutput;
 };
+type LoggingOutputOptions = string;
+export type LoggingOptions = {
+	output: LoggingOutputOptions;
+};
 export type ProfileOptions = {
 	TRACE?: RustTraceOptions;
 	JSCPU?: JSCPUProfileOptions;
+	LOGGING?: LoggingOptions;
 };
 
 const defaultJSCPUProfileOutput = `./rspack.jscpuprofile`;
@@ -26,6 +31,7 @@ const defaultRustTraceChromeOutput = `./rspack.trace`;
 const defaultRustTraceLoggerOutput = `stdout`;
 const defaultRustTraceFilter = "trace";
 const defaultRustTraceLayer = "chrome";
+const defaultLoggingOutput = `./rspack.logging`;
 
 export function resolveProfile(value: string): ProfileOptions {
 	if (value.toUpperCase() === "ALL") {
@@ -35,13 +41,15 @@ export function resolveProfile(value: string): ProfileOptions {
 				layer: defaultRustTraceLayer,
 				output: defaultRustTraceChromeOutput
 			},
-			JSCPU: { output: defaultJSCPUProfileOutput }
+			JSCPU: { output: defaultJSCPUProfileOutput },
+			LOGGING: { output: defaultLoggingOutput }
 		};
 	}
 	if (value.startsWith("[") && value.endsWith("]")) {
 		return {
 			TRACE: resolveRustTraceOptions(value.slice(1, value.length - 1)),
-			JSCPU: { output: defaultJSCPUProfileOutput }
+			JSCPU: { output: defaultJSCPUProfileOutput },
+			LOGGING: { output: defaultLoggingOutput }
 		};
 	}
 	return value.split("|").reduce<ProfileOptions>((acc, cur) => {
@@ -51,24 +59,27 @@ export function resolveProfile(value: string): ProfileOptions {
 		if (cur.toUpperCase().startsWith("JSCPU")) {
 			acc.JSCPU = resolveJSCPUProfileOptions(cur.slice(6));
 		}
+		if (cur.toUpperCase().startsWith("LOGGING")) {
+			acc.LOGGING = resolveLoggingOptions(cur.slice(8));
+		}
 		return acc;
 	}, {});
 }
 
 // JSCPU=value
 function resolveJSCPUProfileOptions(value: string): JSCPUProfileOptions {
-	// output=stderr
+	// output=filepath
 	if (value.includes("=")) {
 		const parsed = new URLSearchParams(value);
 		return { output: parsed.get("output") || defaultJSCPUProfileOutput };
 	}
-	// stderr
+	// filepath
 	return { output: value || defaultJSCPUProfileOutput };
 }
 
 // TRACE=value
 function resolveRustTraceOptions(value: string): RustTraceOptions {
-	// filter=trace&output=stderr&layer=logger
+	// filter=trace&output=stdout&layer=logger
 	if (value.includes("=")) {
 		const parsed = new URLSearchParams(value);
 		const filter = parsed.get("filter") || defaultRustTraceFilter;
@@ -96,7 +107,18 @@ function resolveRustTraceOptions(value: string): RustTraceOptions {
 	};
 }
 
-export class RspackJsCPUProfilePlugin {
+// LOGGING=value
+function resolveLoggingOptions(value: string): LoggingOptions {
+	// output=filepath
+	if (value.includes("=")) {
+		const parsed = new URLSearchParams(value);
+		return { output: parsed.get("output") || defaultLoggingOutput };
+	}
+	// filepath
+	return { output: value || defaultLoggingOutput };
+}
+
+export class RspackProfileJSCPUProfilePlugin {
 	constructor(private output: string) {}
 
 	apply(compiler) {
@@ -105,7 +127,7 @@ export class RspackJsCPUProfilePlugin {
 		session.post("Profiler.enable");
 		session.post("Profiler.start");
 		compiler.hooks.done.tapAsync(
-			RspackJsCPUProfilePlugin.name,
+			RspackProfileJSCPUProfilePlugin.name,
 			(stats, callback) => {
 				if (compiler.watchMode) return callback();
 				session.post("Profiler.stop", (error, param) => {
@@ -115,6 +137,27 @@ export class RspackJsCPUProfilePlugin {
 					}
 					fs.writeFileSync(this.output, JSON.stringify(param.profile));
 				});
+				return callback();
+			}
+		);
+	}
+}
+
+export class RspackProfileLoggingPlugin {
+	constructor(private output: string) {}
+
+	apply(compiler) {
+		compiler.hooks.done.tapAsync(
+			RspackProfileLoggingPlugin.name,
+			(stats, callback) => {
+				if (compiler.watchMode) return callback();
+				const logging = stats.toJson({
+					all: false,
+					logging: "verbose",
+					loggingTrace: true
+				});
+				fs.writeFileSync(this.output, JSON.stringify(logging));
+				return callback();
 			}
 		);
 	}

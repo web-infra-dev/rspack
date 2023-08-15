@@ -31,7 +31,11 @@ import {
 	experimental_cleanupGlobalTrace as cleanupGlobalTrace
 } from "@rspack/core";
 import path from "path";
-import { RspackJsCPUProfilePlugin, resolveProfile } from "./utils/profile";
+import {
+	RspackProfileJSCPUProfilePlugin,
+	RspackProfileLoggingPlugin,
+	resolveProfile
+} from "./utils/profile";
 
 type Command = "serve" | "build";
 
@@ -162,7 +166,11 @@ export class RspackCLI {
 							exitHook(cleanupGlobalTrace);
 						} else if (kind === "JSCPU") {
 							(item.plugins ??= []).push(
-								new RspackJsCPUProfilePlugin(value.output)
+								new RspackProfileJSCPUProfilePlugin(value.output)
+							);
+						} else if (kind === "LOGGING") {
+							(item.plugins ??= []).push(
+								new RspackProfileLoggingPlugin(value.output)
 							);
 						}
 					}
