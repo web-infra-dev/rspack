@@ -1,9 +1,6 @@
-use clap::{Command, Arg, builder::ValueParser};
+use clap::{builder::ValueParser, Arg, Command};
 
-use crate::{
-  result::CliRunResult,
-  runner::{Runner},
-};
+use crate::{result::CliRunResult, runner::Runner};
 
 #[derive(Debug)]
 pub struct DistDiffRunnerOptions {
@@ -33,7 +30,8 @@ impl Runner for DistDiffRunner {
 }
 
 pub fn stats_diff_command(command: Command) -> Command {
-  command.arg_required_else_help(true)
-  .arg(Arg::new("src_path").value_name("src_path").value_parser(ValueParser::path_buf()))
-  .arg(Arg::new("dst_path").value_name("dst_path").value_parser(ValueParser::path_buf()))
+  command
+    .arg_required_else_help(true)
+    .arg(Arg::new("src_path"))
+    .arg(Arg::new("dst_path"))
 }
