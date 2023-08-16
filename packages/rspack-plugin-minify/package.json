@@ -4,6 +4,11 @@
   "license": "MIT",
   "description": "Minify plugin for rspack",
   "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    }
+  },
   "scripts": {},
   "files": [
     "src"

@@ -23,7 +23,6 @@ import {
 import { normalizeEnv } from "./utils/options";
 import { loadRspackConfig } from "./utils/loadConfig";
 import findConfig from "./utils/findConfig";
-import { Mode } from "@rspack/core/src/config";
 import {
 	RspackPluginInstance,
 	RspackPluginFunction,
@@ -166,7 +165,7 @@ export class RspackCLI {
 			}
 			// user parameters always has highest priority than default mode and config mode
 			if (options.mode) {
-				item.mode = options.mode as Mode;
+				item.mode = options.mode as RspackOptions["mode"];
 			}
 
 			// false is also a valid value for sourcemap, so don't override it
