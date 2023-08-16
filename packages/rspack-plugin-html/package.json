@@ -5,6 +5,12 @@
   "description": "HTML plugin for rspack",
   "main": "index.cjs",
   "typings": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc --build --force",
     "dev": "tsc -w",
