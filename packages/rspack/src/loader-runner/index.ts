@@ -16,15 +16,15 @@ import {
 	SourceMapSource
 } from "webpack-sources";
 
-import { Compiler } from "../compiler";
-import { NormalModule } from "../normalModule";
-import { Compilation } from "../compilation";
+import { Compiler } from "../Compiler";
+import { NormalModule } from "../NormalModule";
+import { Compilation } from "../Compilation";
 import {
 	LoaderContext,
 	LoaderObject,
 	isUseSimpleSourceMap,
 	isUseSourceMap
-} from "../config/adapter-rule-use";
+} from "../config/adapterRuleUse";
 import { concatErrorMsgAndStack, isNil, toBuffer, toObject } from "../util";
 import { absolutify, contextify, makePathsRelative } from "../util/identifier";
 import { memoize } from "../util/memoize";
