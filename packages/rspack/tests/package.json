@@ -1,0 +1,8 @@
+{
+  "name": "rspack-core-tests",
+  "version": "1.0.0",
+  "description": "this is generated to avoid lookup @rspack/core's package.json and affected by the exports field ",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
