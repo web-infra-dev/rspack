@@ -20,12 +20,12 @@ import {
 	RspackPluginInstance
 } from "./config";
 import { RuleSetCompiler } from "./RuleSetCompiler";
-import { Stats } from "./stats";
-import { Compilation, CompilationParams } from "./compilation";
+import { Stats } from "./Stats";
+import { Compilation, CompilationParams } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import ResolverFactory from "./ResolverFactory";
 import { getRawOptions } from "./config/adapter";
-import { LoaderContext, LoaderResult } from "./config/adapter-rule-use";
+import { LoaderContext, LoaderResult } from "./config/adapterRuleUse";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import Cache from "./lib/Cache";
@@ -34,12 +34,12 @@ import CacheFacade from "./lib/CacheFacade";
 import ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
 import { runLoader } from "./loader-runner";
 import { Logger } from "./logging/Logger";
-import { NormalModuleFactory } from "./normalModuleFactory";
+import { NormalModuleFactory } from "./NormalModuleFactory";
 import { WatchFileSystem } from "./util/fs";
 import { getScheme } from "./util/scheme";
 import { checkVersion } from "./util/bindingVersionCheck";
-import Watching from "./watching";
-import { NormalModule } from "./normalModule";
+import Watching from "./Watching";
+import { NormalModule } from "./NormalModule";
 import { normalizeJsModule } from "./util/normalization";
 
 class EntryPlugin {
