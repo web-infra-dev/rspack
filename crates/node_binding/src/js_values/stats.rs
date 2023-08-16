@@ -218,7 +218,7 @@ impl JsStatsModule {
     source: bool,
   ) -> Result<Self> {
     let js_source = source
-      .then(|| m.source)
+      .then_some(m.source)
       .and_then(|i| i)
       .map(|source| {
         source.to_js_compat_source().map(|js_compat_source| {
@@ -245,7 +245,7 @@ impl JsStatsModule {
       issuer_id: m.issuer_id,
       issuer_path: m.issuer_path.into_iter().map(Into::into).collect(),
       reasons: reasons.then(|| m.reasons.into_iter().map(Into::into).collect()),
-      assets: module_assets.then(|| m.assets),
+      assets: module_assets.then_some(m.assets),
       modules: nested_modules
         .then(|| {
           m.modules
