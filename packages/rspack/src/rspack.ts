@@ -162,5 +162,5 @@ function rspack(
 }
 
 // deliberately alias rspack as webpack
-export { rspack, createCompiler, createMultiCompiler };
+export { rspack, createCompiler, createMultiCompiler, Stats, MultiStats };
 export default rspack;

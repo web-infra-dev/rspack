@@ -4,6 +4,11 @@
   "license": "MIT",
   "description": "Node polyfill plugin for rspack",
   "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    }
+  },
   "scripts": {
     "test": "echo success"
   },
