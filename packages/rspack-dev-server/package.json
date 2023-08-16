@@ -5,6 +5,12 @@
   "description": "Development server for rspack",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "rimraf dist/ && tsc -b tsconfig.build.json",
     "dev": "tsc -w -b tsconfig.build.json",
