@@ -513,6 +513,7 @@ dependencies = [
  "cfg-if",
  "itoa",
  "ryu",
+ "serde",
  "static_assertions",
 ]
 
@@ -1844,6 +1845,9 @@ dependencies = [
  "oxc_span",
  "oxc_syntax",
  "rustc-hash",
+ "ryu-js",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -1895,6 +1899,7 @@ checksum = "928b474c24d5e3d794de59bd3e29beafa2b45f8114236e0b04183d3d81e5d4de"
 dependencies = [
  "compact_str",
  "miette 5.10.0",
+ "serde",
 ]
 
 [[package]]
@@ -1907,6 +1912,7 @@ dependencies = [
  "oxc_index",
  "oxc_span",
  "rustc-hash",
+ "serde",
  "unicode-id-start",
 ]
 
@@ -2595,7 +2601,12 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap 4.3.21",
+ "oxc_allocator",
+ "oxc_ast",
  "oxc_parser",
+ "oxc_span",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -3387,9 +3398,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.100"
+version = "1.0.105"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f1e14e89be7aa4c4b78bdbdc9eb5bf8517829a600ae8eaa39a6e1d960b5185c"
+checksum = "693151e1ac27563d6dbcec9dee9fbd5da8539b20fa14ad3752b2e6d363ace360"
 dependencies = [
  "indexmap 2.0.0",
  "itoa",

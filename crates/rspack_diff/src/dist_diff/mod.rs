@@ -1,4 +1,5 @@
-mod options;
 mod command;
-pub use options::*;
+mod options;
+mod parse;
 pub use command::*;
+pub use options::*;

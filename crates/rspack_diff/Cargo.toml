@@ -6,6 +6,12 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow     = { workspace = true }
-clap       = { workspace = true }
-oxc_parser = "0.1.0"
+anyhow          = { workspace = true }
+clap            = { workspace = true }
+oxc_allocator   = "^0.1.0"
+oxc_ast         = { version = "^0.1.0", features = ["serde"] }
+oxc_parser      = "^0.1.0"
+oxc_span        = "^0.1.0"
+serde.workspace = true
+
+serde_json.workspace = true
