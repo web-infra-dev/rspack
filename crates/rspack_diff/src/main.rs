@@ -7,7 +7,7 @@ use rspack_diff::{
 fn main() {
   let matches = command().get_matches();
   match matches.subcommand() {
-    Some((subcommand, options)) => match subcommand {
+    Some((subcommand, matches)) => match subcommand {
       DistDiffRunner::NAME => {
         let options = DistDiffRunnerOptions::from(matches);
         DistDiffRunner::new(options).run();

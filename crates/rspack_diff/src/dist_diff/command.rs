@@ -1,12 +1,7 @@
 use clap::{builder::ValueParser, Arg, Command};
 
+use super::DistDiffRunnerOptions;
 use crate::{result::CliRunResult, runner::Runner};
-
-#[derive(Debug)]
-pub struct DistDiffRunnerOptions {
-  pub src_path: String,
-  pub dst_path: String,
-}
 
 #[derive(Debug)]
 pub struct DistDiffRunner {
@@ -21,7 +16,6 @@ impl Runner for DistDiffRunner {
   type Options = DistDiffRunnerOptions;
 
   fn new(options: Self::Options) -> Self {
-    dbg!(options);
     todo!()
   }
   fn run(&self) -> CliRunResult {

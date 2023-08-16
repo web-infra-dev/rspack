@@ -1,22 +1,21 @@
 use clap;
 use clap::ArgMatches;
-use clap::Command;
 
 use super::stats_diff_command;
-use super::DistDiffRunnerOptions;
 use crate::runner::RunnerOptions;
 
+#[derive(Debug)]
+pub struct DistDiffRunnerOptions {
+  pub src_path: String,
+  pub dst_path: String,
+}
 impl RunnerOptions for DistDiffRunnerOptions {
   fn build_args(cmd: clap::Command) -> clap::Command {
     stats_diff_command(cmd)
   }
 }
-
-impl From<ArgMatches> for DistDiffRunnerOptions {
-  fn from(matches: ArgMatches) -> Self {
-    dbg!(&matches);
-    let x = matches.get_one::<String>("dst_path");
-    dbg!(x);
+impl From<&ArgMatches> for DistDiffRunnerOptions {
+  fn from(matches: &ArgMatches) -> Self {
     Self {
       src_path: matches
         .get_one::<String>("src_path")
