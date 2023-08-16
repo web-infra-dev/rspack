@@ -7,6 +7,8 @@ export * from "./stats";
 export * from "./multiStats";
 export * from "./chunk_group";
 export * from "./normalModuleFactory";
+export { RuntimeGlobals } from "./runtimeGlobals";
+
 export { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
 export { BannerPlugin } from "./lib/BannerPlugin";
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
