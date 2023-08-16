@@ -18,8 +18,8 @@ use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_loader_runner::{run_loaders, Content, ResourceData};
 use rspack_sources::{
-  BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
-  SourceMapSource, WithoutOriginalOptions,
+  BoxSource, CachedSource, OriginalSource, RawSource, SourceExt, SourceMap, SourceMapSource,
+  WithoutOriginalOptions,
 };
 use rustc_hash::FxHasher;
 use serde_json::json;
@@ -239,8 +239,8 @@ impl Module for NormalModule {
     self.parser_and_generator.source_types()
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
-    self.original_source.as_deref()
+  fn original_source(&self) -> Option<BoxSource> {
+    self.original_source.clone()
   }
 
   fn readable_identifier(&self, context: &Context) -> Cow<str> {

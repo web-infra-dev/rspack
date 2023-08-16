@@ -47,7 +47,7 @@ export class JsStats {
   getErrors(): Array<JsStatsError>
   getWarnings(): Array<JsStatsWarning>
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
-  getHash(): string
+  getHash(): string | null
 }
 
 export class Rspack {
@@ -368,6 +368,7 @@ export interface JsStatsModule {
   issuerPath: Array<JsStatsModuleIssuer>
   reasons?: Array<JsStatsModuleReason>
   assets?: Array<string>
+  modules?: Array<JsStatsModule>
   source?: string | Buffer
   profile?: JsStatsModuleProfile
 }
