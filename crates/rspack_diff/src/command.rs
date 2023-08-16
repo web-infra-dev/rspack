@@ -10,7 +10,6 @@ pub fn dist_diff_command() -> Command {
     .arg(Arg::new("dst_path"))
 }
 
-
 pub fn command() -> Command {
   Command::new("rspack_diff")
     .bin_name("rspack_diff")
@@ -18,5 +17,4 @@ pub fn command() -> Command {
     .arg_required_else_help(true)
     .subcommand_required(true)
     .subcommand(DistDiffRunner::command())
-    
 }
