@@ -176,7 +176,7 @@ impl<'c, C> LoaderContext<'c, C> {
     &self.__loader_items[self.__loader_index]
   }
 
-  pub fn __loader_index(&self) -> usize {
+  pub fn loader_index(&self) -> usize {
     self.__loader_index
   }
 }
