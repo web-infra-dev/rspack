@@ -2,26 +2,31 @@ import fs from "fs";
 import { run } from "../../utils/test-utils";
 import { resolve } from "path";
 
-const defaultTracePath = "./rspack.trace";
-const defaultJSCPUPath = "./rspack.jscpuprofile";
-const defaultLoggingPath = "./rspack.logging";
+const defaultTracePath = "./trace.json";
+const defaultJSCPUPath = "./jscpuprofile.json";
+const defaultLoggingPath = "./logging.json";
 const customTracePath = "./custom.trace";
 const customJSCPUPath = "./custom.jscpuprofile";
 const customLoggingPath = "./custom.logging";
 
+function findDefaultOutputDirname() {
+	const files = fs.readdirSync(__dirname);
+	const file = files.filter(file => file.startsWith(".rspack-profile"));
+	expect(file.length).toBe(1);
+	return resolve(__dirname, file[0]);
+}
+
 describe("profile", () => {
 	afterEach(() => {
+		const dirname = findDefaultOutputDirname();
 		[
-			defaultTracePath,
-			defaultJSCPUPath,
-			defaultLoggingPath,
-			customTracePath,
-			customJSCPUPath,
-			customLoggingPath
+			dirname,
+			resolve(__dirname, customTracePath),
+			resolve(__dirname, customJSCPUPath),
+			resolve(__dirname, customLoggingPath)
 		].forEach(p => {
-			const pp = resolve(__dirname, p);
-			if (fs.existsSync(pp)) {
-				fs.rmSync(pp);
+			if (fs.existsSync(p)) {
+				fs.rmSync(p, { recursive: true });
 			}
 		});
 	});
@@ -34,9 +39,14 @@ describe("profile", () => {
 			{ RSPACK_PROFILE: "ALL" }
 		);
 		expect(exitCode).toBe(0);
-		expect(fs.existsSync(resolve(__dirname, defaultTracePath))).toBeTruthy();
-		expect(fs.existsSync(resolve(__dirname, defaultJSCPUPath))).toBeTruthy();
-		expect(fs.existsSync(resolve(__dirname, defaultLoggingPath))).toBeTruthy();
+		const dirname = findDefaultOutputDirname();
+		console.log(
+			resolve(dirname, defaultTracePath),
+			fs.existsSync(resolve(dirname, defaultTracePath))
+		);
+		expect(fs.existsSync(resolve(dirname, defaultTracePath))).toBeTruthy();
+		expect(fs.existsSync(resolve(dirname, defaultJSCPUPath))).toBeTruthy();
+		expect(fs.existsSync(resolve(dirname, defaultLoggingPath))).toBeTruthy();
 	});
 
 	it("should store js cpu profile file when RSPACK_PROFILE=JSCPU enabled", async () => {
@@ -47,7 +57,8 @@ describe("profile", () => {
 			{ RSPACK_PROFILE: "JSCPU" }
 		);
 		expect(exitCode).toBe(0);
-		expect(fs.existsSync(resolve(__dirname, defaultJSCPUPath))).toBeTruthy();
+		const dirname = findDefaultOutputDirname();
+		expect(fs.existsSync(resolve(dirname, defaultJSCPUPath))).toBeTruthy();
 	});
 
 	it("should store rust trace file when RSPACK_PROFILE=TRACE enabled", async () => {
@@ -58,7 +69,8 @@ describe("profile", () => {
 			{ RSPACK_PROFILE: "TRACE" }
 		);
 		expect(exitCode).toBe(0);
-		expect(fs.existsSync(resolve(__dirname, defaultTracePath))).toBeTruthy();
+		const dirname = findDefaultOutputDirname();
+		expect(fs.existsSync(resolve(dirname, defaultTracePath))).toBeTruthy();
 	});
 
 	it("should store logging file when RSPACK_PROFILE=LOGGING enabled", async () => {
@@ -69,7 +81,8 @@ describe("profile", () => {
 			{ RSPACK_PROFILE: "LOGGING" }
 		);
 		expect(exitCode).toBe(0);
-		expect(fs.existsSync(resolve(__dirname, defaultLoggingPath))).toBeTruthy();
+		const dirname = findDefaultOutputDirname();
+		expect(fs.existsSync(resolve(dirname, defaultLoggingPath))).toBeTruthy();
 	});
 
 	it("should filter trace event when use RSPACK_PROFILE=[crate1,crate2]", async () => {
@@ -80,7 +93,8 @@ describe("profile", () => {
 			{ RSPACK_PROFILE: "[rspack_core]" }
 		);
 		expect(exitCode).toBe(0);
-		const trace = resolve(__dirname, defaultTracePath);
+		const dirname = findDefaultOutputDirname();
+		const trace = resolve(dirname, defaultTracePath);
 		expect(fs.existsSync(trace)).toBeTruthy();
 		const out: { cat?: string }[] = JSON.parse(fs.readFileSync(trace, "utf-8"));
 		expect(

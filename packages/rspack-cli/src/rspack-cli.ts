@@ -31,11 +31,6 @@ import {
 	experimental_cleanupGlobalTrace as cleanupGlobalTrace
 } from "@rspack/core";
 import path from "path";
-import {
-	RspackProfileJSCPUProfilePlugin,
-	RspackProfileLoggingPlugin,
-	resolveProfile
-} from "./utils/profile";
 
 type Command = "serve" | "build";
 
@@ -158,23 +153,8 @@ export class RspackCLI {
 				});
 			}
 			if (process.env.RSPACK_PROFILE) {
-				const { default: exitHook } = await import("exit-hook");
-				Object.entries(resolveProfile(process.env.RSPACK_PROFILE)).forEach(
-					([kind, value]) => {
-						if (kind === "TRACE" && "filter" in value) {
-							registerGlobalTrace(value.filter, value.layer, value.output);
-							exitHook(cleanupGlobalTrace);
-						} else if (kind === "JSCPU") {
-							(item.plugins ??= []).push(
-								new RspackProfileJSCPUProfilePlugin(value.output)
-							);
-						} else if (kind === "LOGGING") {
-							(item.plugins ??= []).push(
-								new RspackProfileLoggingPlugin(value.output)
-							);
-						}
-					}
-				);
+				const { applyProfile } = await import("./utils/profile.js");
+				await applyProfile(process.env.RSPACK_PROFILE, item);
 			}
 			// cli --watch overrides the watch config
 			if (options.watch) {
