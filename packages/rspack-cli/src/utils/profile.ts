@@ -1,39 +1,52 @@
 import inspector from "inspector";
 import fs from "fs";
+import path from "path";
 import { URLSearchParams } from "url";
-import { experimental_registerGlobalTrace as registerGlobalTrace } from "@rspack/core";
+import {
+	experimental_registerGlobalTrace as registerGlobalTrace,
+	experimental_cleanupGlobalTrace as cleanupGlobalTrace,
+	RspackOptions
+} from "@rspack/core";
 
 type JSCPUProfileOptionsOutput = string;
-export type JSCPUProfileOptions = {
+type JSCPUProfileOptions = {
 	output: JSCPUProfileOptionsOutput;
 };
 type ParametersOfRegisterGlobalTrace = Parameters<typeof registerGlobalTrace>;
 type RustTraceOptionsFilter = ParametersOfRegisterGlobalTrace[0];
 type RustTraceOptionsLayer = ParametersOfRegisterGlobalTrace[1];
 type RustTraceOptionsOutput = ParametersOfRegisterGlobalTrace[2];
-export type RustTraceOptions = {
+type RustTraceOptions = {
 	filter: RustTraceOptionsFilter;
 	layer: RustTraceOptionsLayer;
 	output: RustTraceOptionsOutput;
 };
 type LoggingOutputOptions = string;
-export type LoggingOptions = {
+type LoggingOptions = {
 	output: LoggingOutputOptions;
 };
-export type ProfileOptions = {
+type ProfileOptions = {
 	TRACE?: RustTraceOptions;
 	JSCPU?: JSCPUProfileOptions;
 	LOGGING?: LoggingOptions;
 };
 
-const defaultJSCPUProfileOutput = `./rspack.jscpuprofile`;
-const defaultRustTraceChromeOutput = `./rspack.trace`;
+const timestamp = Date.now();
+const defaultOutputDirname = path.resolve(`.rspack-profile-${timestamp}`);
+const defaultJSCPUProfileOutput = path.join(
+	defaultOutputDirname,
+	`./jscpuprofile.json`
+);
+const defaultRustTraceChromeOutput = path.join(
+	defaultOutputDirname,
+	`./trace.json`
+);
 const defaultRustTraceLoggerOutput = `stdout`;
 const defaultRustTraceFilter = "trace";
 const defaultRustTraceLayer = "chrome";
-const defaultLoggingOutput = `./rspack.logging`;
+const defaultLoggingOutput = path.join(defaultOutputDirname, `./logging.json`);
 
-export function resolveProfile(value: string): ProfileOptions {
+function resolveProfile(value: string): ProfileOptions {
 	if (value.toUpperCase() === "ALL") {
 		return {
 			TRACE: {
@@ -118,7 +131,7 @@ function resolveLoggingOptions(value: string): LoggingOptions {
 	return { output: value || defaultLoggingOutput };
 }
 
-export class RspackProfileJSCPUProfilePlugin {
+class RspackProfileJSCPUProfilePlugin {
 	constructor(private output: string) {}
 
 	apply(compiler) {
@@ -143,7 +156,7 @@ export class RspackProfileJSCPUProfilePlugin {
 	}
 }
 
-export class RspackProfileLoggingPlugin {
+class RspackProfileLoggingPlugin {
 	constructor(private output: string) {}
 
 	apply(compiler) {
@@ -161,4 +174,23 @@ export class RspackProfileLoggingPlugin {
 			}
 		);
 	}
+}
+
+export async function applyProfile(profileValue: string, item: RspackOptions) {
+	const { default: exitHook } = await import("exit-hook");
+	const entries = Object.entries(resolveProfile(profileValue));
+	if (entries.length <= 0) return;
+	await fs.promises.mkdir(defaultOutputDirname);
+	entries.forEach(([kind, value]) => {
+		if (kind === "TRACE" && "filter" in value) {
+			registerGlobalTrace(value.filter, value.layer, value.output);
+			exitHook(cleanupGlobalTrace);
+		} else if (kind === "JSCPU") {
+			(item.plugins ??= []).push(
+				new RspackProfileJSCPUProfilePlugin(value.output)
+			);
+		} else if (kind === "LOGGING") {
+			(item.plugins ??= []).push(new RspackProfileLoggingPlugin(value.output));
+		}
+	});
 }
