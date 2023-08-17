@@ -1,5 +1,6 @@
 import type {
 	JsAssetInfo,
+	JsLoaderContext,
 	RawModuleRuleUse,
 	RawOptions
 } from "@rspack/binding";
@@ -150,8 +151,14 @@ export interface LoaderContext<OptionsType = {}> {
 	 *
 	 * @internal
 	 */
-	__internal__isPitching: boolean;
-	// TODO: LoaderPluginLoaderContext
+	__internal__context: JsLoaderContext;
+	/**
+	 * Internal field for interoperability.
+	 * Do not use this in anywhere else.
+	 *
+	 * @internal
+	 */
+	__internal__pushNativeDiagnostics: (diagnostics: any) => void;
 }
 
 export interface LoaderResult {
@@ -222,20 +229,12 @@ function createRawModuleRuleUsesImpl(
 	}
 
 	return uses.map((use, index) => {
-		if (
-			typeof use.loader === "string" &&
-			use.loader.startsWith(BUILTIN_LOADER_PREFIX)
-		) {
-			return createBuiltinUse(use);
-		}
 		return {
-			jsLoader: {
-				identifier: resolveStringifyLoaders(
-					use,
-					`${path}[${index}]`,
-					options.compiler
-				)
-			}
+			jsLoader: resolveStringifyLoaders(
+				use,
+				`${path}[${index}]`,
+				options.compiler
+			)
 		};
 	});
 }
@@ -246,9 +245,12 @@ function resolveStringifyLoaders(
 	compiler: Compiler
 ) {
 	const obj = parsePathQueryFragment(use.loader);
-	obj.path = require.resolve(obj.path, {
-		paths: [compiler.context]
-	});
+	// Do not handle builtin loader
+	if (!use.loader.startsWith(BUILTIN_LOADER_PREFIX)) {
+		obj.path = require.resolve(obj.path, {
+			paths: [compiler.context]
+		});
+	}
 	let ident: string | null = null;
 
 	if (use.options === null) obj.query = "";

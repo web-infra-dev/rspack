@@ -11,6 +11,7 @@ import * as tapable from "tapable";
 import { Source } from "webpack-sources";
 
 import type {
+	ExternalObject,
 	JsAssetInfo,
 	JsChunk,
 	JsCompatSource,
@@ -429,6 +430,10 @@ export class Compilation {
 		message: string
 	) {
 		this.#inner.pushDiagnostic(severity, title, message);
+	}
+
+	__internal__pushNativeDiagnostics(diagnostics: ExternalObject<any>) {
+		this.#inner.pushNativeDiagnostics(diagnostics);
 	}
 
 	get errors() {

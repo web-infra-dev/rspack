@@ -9,6 +9,8 @@
  */
 
 var LoaderLoadingError = require("./LoaderLoadingError");
+var { toBuffer, serializeObject, isNil, toObject } = require("../util");
+const assert = require("assert");
 var url;
 
 module.exports = function loadLoader(loader, callback) {
@@ -28,7 +30,52 @@ module.exports = function loadLoader(loader, callback) {
 		}
 	} else {
 		try {
-			var module = require(loader.path);
+			var module;
+
+			if (loader.path.startsWith("builtin:")) {
+				module = async function (content, sourceMap, additionalData) {
+					assert(!this.__internal__context.isPitching);
+					const callback = this.async();
+					const { runBuiltinLoader } = require("@rspack/binding");
+					let options = this.getOptions() ?? {};
+					try {
+						const context = await runBuiltinLoader(
+							loader.path,
+							JSON.stringify(options),
+							Object.assign({}, this.__internal__context, {
+								content: isNil(content) ? undefined : toBuffer(content),
+								sourceMap: serializeObject(sourceMap),
+								additionalData: serializeObject(additionalData)
+							})
+						);
+
+						context.fileDependencies.forEach(this.addDependency);
+						context.contextDependencies.forEach(this.addContextDependency);
+						context.missingDependencies.forEach(this.addMissingDependency);
+						context.buildDependencies.forEach(this.addBuildDependency);
+						callback(
+							null,
+							context.content,
+							isNil(context.sourceMap)
+								? undefined
+								: toObject(context.sourceMap),
+							isNil(context.additionalData)
+								? undefined
+								: toObject(context.additionalData)
+						);
+						this._compilation.__internal__pushNativeDiagnostics(
+							context.diagnostics
+						);
+					} catch (e) {
+						return callback(e);
+					}
+				};
+				module.pitch = function () {
+					// Pitching for builtin loader is not supported
+				};
+			} else {
+				module = require(loader.path);
+			}
 		} catch (e) {
 			// it is possible for node to choke on a require if the FD descriptor
 			// limit has been reached. give it a chance to recover.

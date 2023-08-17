@@ -25,7 +25,13 @@ import {
 	isUseSimpleSourceMap,
 	isUseSourceMap
 } from "../config/adapter-rule-use";
-import { concatErrorMsgAndStack, isNil, toBuffer, toObject } from "../util";
+import {
+	concatErrorMsgAndStack,
+	isNil,
+	serializeObject,
+	toBuffer,
+	toObject
+} from "../util";
 import { absolutify, contextify, makePathsRelative } from "../util/identifier";
 import { memoize } from "../util/memoize";
 import { createHash } from "../util/createHash";
@@ -157,23 +163,6 @@ function getCurrentLoader(
 	return null;
 }
 
-function serializeObject(
-	map: string | object | undefined | null
-): Buffer | undefined {
-	if (isNil(map)) {
-		return undefined;
-	}
-
-	if (typeof map === "string") {
-		if (map) {
-			return toBuffer(map);
-		}
-		return undefined;
-	}
-
-	return toBuffer(JSON.stringify(map));
-}
-
 export async function runLoader(
 	rawContext: JsLoaderContext,
 	compiler: Compiler
@@ -189,7 +178,6 @@ export async function runLoader(
 	const contextDirectory = dirname(resourcePath);
 
 	// execution state
-	let isPitching = rawContext.isPitching;
 	let cacheable = true;
 	let fileDependencies: string[] = rawContext.fileDependencies.slice();
 	let contextDependencies: string[] = rawContext.contextDependencies.slice();
@@ -201,7 +189,7 @@ export async function runLoader(
 		.split("$")
 		.map(loader => createLoaderObject(loader, compiler));
 
-	loaderContext.__internal__isPitching = isPitching;
+	loaderContext.__internal__context = rawContext;
 	loaderContext.context = contextDirectory;
 	loaderContext.loaderIndex = 0;
 	loaderContext.loaders = loaders;
@@ -414,6 +402,10 @@ export async function runLoader(
 			)})`
 		);
 	};
+	loaderContext.__internal__pushNativeDiagnostics =
+		function __internal__pushNativeDiagnostics(diagnostics) {
+			compiler.compilation.__internal__pushNativeDiagnostics(diagnostics);
+		};
 	loaderContext.emitFile = function emitFile(
 		name,
 		content,
@@ -549,7 +541,7 @@ export async function runLoader(
 	}
 
 	return new Promise((resolve, reject) => {
-		if (isPitching) {
+		if (loaderContext.__internal__context.isPitching) {
 			iteratePitchingLoaders(loaderContext, [], (err: Error, result: any[]) => {
 				if (err) {
 					return reject(err);
@@ -565,7 +557,7 @@ export async function runLoader(
 					contextDependencies,
 					missingDependencies,
 					assetFilenames,
-					isPitching: loaderContext.__internal__isPitching
+					isPitching: loaderContext.__internal__context.isPitching
 				});
 			});
 		} else {
@@ -597,7 +589,7 @@ export async function runLoader(
 						contextDependencies,
 						missingDependencies,
 						assetFilenames,
-						isPitching: loaderContext.__internal__isPitching
+						isPitching: loaderContext.__internal__context.isPitching
 					});
 				}
 			);
@@ -738,7 +730,7 @@ function iteratePitchingLoaders(
 				// then It should execute normal loaders too.
 				if (hasArg) {
 					// Instruct rust side to execute loaders in backwards.
-					loaderContext.__internal__isPitching = false;
+					loaderContext.__internal__context.isPitching = false;
 					loaderContext.loaderIndex--;
 					iterateNormalLoaders(loaderContext, args, callback);
 				} else {

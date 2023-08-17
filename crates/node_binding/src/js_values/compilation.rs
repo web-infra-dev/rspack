@@ -7,6 +7,7 @@ use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
 use rspack_core::ModuleIdentifier;
 use rspack_core::{rspack_sources::SourceExt, NormalModuleSource};
+use rspack_error::Diagnostic;
 use rspack_identifier::Identifier;
 use rspack_napi_shared::NapiResultExt;
 
@@ -306,6 +307,13 @@ impl JsCompilation {
       _ => rspack_error::Diagnostic::error(title, message, 0, 0),
     };
     self.inner.push_diagnostic(diagnostic);
+  }
+
+  #[napi]
+  pub fn push_native_diagnostics(&mut self, mut diagnostics: External<Vec<Diagnostic>>) {
+    while let Some(diagnostic) = diagnostics.pop() {
+      self.inner.push_diagnostic(diagnostic);
+    }
   }
 
   #[napi]
