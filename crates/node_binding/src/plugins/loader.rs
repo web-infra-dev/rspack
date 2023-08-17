@@ -30,9 +30,7 @@ impl Plugin for JsLoaderResolver {
       .iter()
       .any(|l| !l.identifier().starts_with("builtin:"))
     {
-      let mut loaders: Vec<BoxLoader> = vec![];
-
-      loaders.push(Arc::new(JsLoaderAdapter {
+      *module.loaders_mut_vec() = vec![Arc::new(JsLoaderAdapter {
         runner: self.js_loader_runner.clone(),
         identifier: old_loaders
           .iter()
@@ -40,9 +38,7 @@ impl Plugin for JsLoaderResolver {
           .collect::<Vec<_>>()
           .join("$")
           .into(),
-      }));
-
-      *module.loaders_mut_vec() = loaders;
+      })];
     }
 
     Ok(())
