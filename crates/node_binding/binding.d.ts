@@ -226,11 +226,6 @@ export interface JsHooks {
   stillValidModule: (...args: any[]) => any
 }
 
-export interface JsLoader {
-  /** composed loader name, xx-loader$yy-loader$zz-loader */
-  identifier: string
-}
-
 export interface JsLoaderContext {
   /** Content maybe empty in pitching stage */
   content?: Buffer
@@ -775,7 +770,7 @@ export interface RawModuleRule {
  * `builtin_loader`.
  */
 export interface RawModuleRuleUse {
-  jsLoader?: JsLoader
+  jsLoader?: string
   builtinLoader?: string
   options?: string
 }
