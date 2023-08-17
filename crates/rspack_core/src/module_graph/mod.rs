@@ -518,7 +518,7 @@ mod test {
 
   use rspack_error::{Result, TWithDiagnosticArray};
   use rspack_identifier::Identifiable;
-  use rspack_sources::Source;
+  use rspack_sources::BoxSource;
 
   use crate::{
     BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, Dependency,
@@ -548,7 +548,7 @@ mod test {
           unreachable!()
         }
 
-        fn original_source(&self) -> Option<&dyn Source> {
+        fn original_source(&self) -> Option<BoxSource> {
           unreachable!()
         }
 

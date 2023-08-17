@@ -317,10 +317,8 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_stats(&self, reference: Reference<JsCompilation>, env: Env) -> Result<JsStats> {
-    Ok(JsStats::new(reference.share_with(env, |compilation| {
-      Ok(compilation.inner.get_stats())
-    })?))
+  pub fn get_stats(&self) -> Result<JsStats> {
+    self.inner.get_stats().try_into()
   }
 
   #[napi]

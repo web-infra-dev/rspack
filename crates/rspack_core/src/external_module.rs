@@ -7,7 +7,7 @@ use rspack_identifier::{Identifiable, Identifier};
 use serde::{Serialize, Serializer};
 
 use crate::{
-  rspack_sources::{BoxSource, RawSource, Source, SourceExt},
+  rspack_sources::{BoxSource, RawSource, SourceExt},
   to_identifier, BuildContext, BuildInfo, BuildMetaExportsType, BuildResult, ChunkInitFragments,
   ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult, Compilation, Context, ExternalType,
   InitFragment, InitFragmentStage, LibIdentOptions, Module, ModuleType, RuntimeGlobals, SourceType,
@@ -236,7 +236,7 @@ impl Module for ExternalModule {
       > 0
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
+  fn original_source(&self) -> Option<BoxSource> {
     None
   }
 
