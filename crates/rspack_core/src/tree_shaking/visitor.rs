@@ -1815,29 +1815,25 @@ pub enum SideEffects {
 }
 
 impl SideEffects {
-  pub fn from_description(description: &nodejs_resolver::DescriptionData) -> Option<Self> {
-    description
-      .data()
-      .raw()
-      .get("sideEffects")
-      .and_then(|value| {
-        if let Some(b) = value.as_bool() {
-          Some(SideEffects::Bool(b))
-        } else if let Some(s) = value.as_str() {
-          Some(SideEffects::String(s.to_owned()))
-        } else if let Some(vec) = value.as_array() {
-          let mut ans = vec![];
-          for value in vec {
-            if let Some(str) = value.as_str() {
-              ans.push(str.to_string());
-            } else {
-              return None;
-            }
+  pub fn from_description(description: &serde_json::Value) -> Option<Self> {
+    description.get("sideEffects").and_then(|value| {
+      if let Some(b) = value.as_bool() {
+        Some(SideEffects::Bool(b))
+      } else if let Some(s) = value.as_str() {
+        Some(SideEffects::String(s.to_owned()))
+      } else if let Some(vec) = value.as_array() {
+        let mut ans = vec![];
+        for value in vec {
+          if let Some(str) = value.as_str() {
+            ans.push(str.to_string());
+          } else {
+            return None;
           }
-          Some(SideEffects::Array(ans))
-        } else {
-          None
         }
-      })
+        Some(SideEffects::Array(ans))
+      } else {
+        None
+      }
+    })
   }
 }
