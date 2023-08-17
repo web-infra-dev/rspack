@@ -310,10 +310,10 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn push_native_diagnostics(&mut self, diagnostics: External<Vec<Diagnostic>>) {
-    diagnostics.iter().for_each(|diagnostic| {
-      self.inner.push_diagnostic(diagnostic.clone());
-    })
+  pub fn push_native_diagnostics(&mut self, mut diagnostics: External<Vec<Diagnostic>>) {
+    while let Some(diagnostic) = diagnostics.pop() {
+      self.inner.push_diagnostic(diagnostic);
+    }
   }
 
   #[napi]
