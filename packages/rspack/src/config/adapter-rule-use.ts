@@ -223,13 +223,11 @@ function createRawModuleRuleUsesImpl(
 
 	return uses.map((use, index) => {
 		return {
-			jsLoader: {
-				identifier: resolveStringifyLoaders(
-					use,
-					`${path}[${index}]`,
-					options.compiler
-				)
-			}
+			jsLoader: resolveStringifyLoaders(
+				use,
+				`${path}[${index}]`,
+				options.compiler
+			)
 		};
 	});
 }
