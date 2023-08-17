@@ -63,6 +63,9 @@ module.exports = function loadLoader(loader, callback) {
 								? undefined
 								: toObject(context.additionalData)
 						);
+						this._compilation.__internal__pushNativeDiagnostics(
+							context.diagnostics
+						);
 					} catch (e) {
 						return callback(e);
 					}

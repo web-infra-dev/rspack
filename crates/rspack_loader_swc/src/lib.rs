@@ -164,7 +164,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
     }
 
     if options.config.jsc.experimental.plugins.is_some() {
-      loader_context.diagnostic.push(Diagnostic::warn(
+      loader_context.diagnostics.push(Diagnostic::warn(
         LOADER_IDENTIFIER.to_string(),
         "Experimental plugins are not currently supported.".to_string(),
         0,
@@ -221,7 +221,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       }
     });
     loader_context
-      .diagnostic
+      .diagnostics
       .append(&mut errors_to_diagnostics(errors));
     Ok(())
   }

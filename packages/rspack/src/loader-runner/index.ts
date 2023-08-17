@@ -402,6 +402,10 @@ export async function runLoader(
 			)})`
 		);
 	};
+	loaderContext.__internal__pushNativeDiagnostics =
+		function __internal__pushNativeDiagnostics(diagnostics) {
+			compiler.compilation.__internal__pushNativeDiagnostics(diagnostics);
+		};
 	loaderContext.emitFile = function emitFile(
 		name,
 		content,

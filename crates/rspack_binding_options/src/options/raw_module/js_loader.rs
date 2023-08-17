@@ -2,6 +2,7 @@ use std::{path::PathBuf, str::FromStr};
 
 use napi_derive::napi;
 use rspack_core::{rspack_sources::SourceMap, Content, ResourceData};
+use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet as HashSet;
 use tracing::{span_enabled, Level};
 use {
@@ -238,6 +239,9 @@ pub struct JsLoaderContext {
   /// Internal loader context
   /// @internal
   pub context: External<rspack_core::LoaderRunnerContext>,
+  /// Internal loader diagnostic
+  /// @internal
+  pub diagnostics: External<Vec<Diagnostic>>,
 }
 
 impl TryFrom<&rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
@@ -291,6 +295,7 @@ impl TryFrom<&rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
       current_loader: cx.current_loader().to_string(),
       is_pitching: true,
       context: External::new(cx.context.clone()),
+      diagnostics: External::new(cx.diagnostics.clone()),
     })
   }
 }
@@ -349,7 +354,8 @@ pub async fn run_builtin_loader(
         .map(|m| PathBuf::from_str(m).expect("Should convert to path")),
     ),
     asset_filenames: HashSet::from_iter(loader_context.asset_filenames.into_iter()),
-    diagnostic: vec![],
+    // Initialize with no diagnostic
+    diagnostics: vec![],
 
     __resource_data: &ResourceData::new(Default::default(), Default::default()),
     __loader_items: LoaderItemList(list),

@@ -149,7 +149,7 @@ pub struct LoaderContext<'c, C> {
   pub __plugins: &'c [Box<dyn LoaderRunnerPlugin>],
   pub __resource_data: &'c ResourceData,
 
-  pub diagnostic: Vec<Diagnostic>,
+  pub diagnostics: Vec<Diagnostic>,
 }
 
 impl<'c, C> LoaderContext<'c, C> {
@@ -243,7 +243,7 @@ async fn create_loader_context<'c, C: 'c>(
     __loader_items: LoaderItemList(__loader_items),
     __plugins: plugins,
     __resource_data: resource_data,
-    diagnostic: vec![],
+    diagnostics: vec![],
   };
 
   Ok(loader_context)
@@ -344,7 +344,7 @@ impl<C> TryFrom<LoaderContext<'_, C>> for TWithDiagnosticArray<LoaderResult> {
         source_map: loader_context.source_map,
         additional_data: loader_context.additional_data,
       }
-      .with_diagnostic(loader_context.diagnostic),
+      .with_diagnostic(loader_context.diagnostics),
     )
   }
 }

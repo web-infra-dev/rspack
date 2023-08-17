@@ -152,6 +152,13 @@ export interface LoaderContext<OptionsType = {}> {
 	 * @internal
 	 */
 	__internal__context: JsLoaderContext;
+	/**
+	 * Internal field for interoperability.
+	 * Do not use this in anywhere else.
+	 *
+	 * @internal
+	 */
+	__internal__pushNativeDiagnostics: (diagnostics: any) => void;
 }
 
 export interface LoaderResult {

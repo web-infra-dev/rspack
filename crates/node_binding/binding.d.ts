@@ -33,6 +33,7 @@ export class JsCompilation {
   getMissingDependencies(): Array<string>
   getBuildDependencies(): Array<string>
   pushDiagnostic(severity: "error" | "warning", title: string, message: string): void
+  pushNativeDiagnostics(diagnostics: ExternalObject<Array<Diagnostic>>): void
   getStats(): JsStats
   getAssetPath(filename: string, data: PathData): string
   getAssetPathWithInfo(filename: string, data: PathData): PathWithInfo
@@ -248,6 +249,11 @@ export interface JsLoaderContext {
    * @internal
    */
   context: ExternalObject<LoaderRunnerContext>
+  /**
+   * Internal loader diagnostic
+   * @internal
+   */
+  diagnostics: ExternalObject<Array<Diagnostic>>
 }
 
 export interface JsLoaderResult {
