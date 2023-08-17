@@ -4,11 +4,14 @@ name: Need Documentation
 
 on:
   pull_request:
-    types:
-      - closed
-      - labeled
+    types: [closed, labeled]
 
 jobs:
+  check_label:
+    name: Check Label
+    runs-on: ubuntu-latest
+    steps:
+      - run: ehcho "Label ${{github.event.pull_request.merged}} ${{github.event.label.name}}"
   doc:
     name: Need Documentation
     runs-on: ubuntu-latest
