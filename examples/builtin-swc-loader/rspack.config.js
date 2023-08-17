@@ -8,30 +8,28 @@ const config = {
 		rules: [
 			{
 				test: /\.jsx$/,
-				use: [
-					{
-						loader: "builtin:swc-loader",
-						options: {
-							// Enable source map
-							sourceMap: true,
-							jsc: {
-								parser: {
-									syntax: "ecmascript",
-									jsx: true
-								},
-								transform: {
-									react: {
-										pragma: "React.createElement",
-										pragmaFrag: "React.Fragment",
-										throwIfNamespace: true,
-										development: false,
-										useBuiltins: false
-									}
+				use: {
+					loader: "builtin:swc-loader",
+					options: {
+						// Enable source map
+						sourceMap: true,
+						jsc: {
+							parser: {
+								syntax: "ecmascript",
+								jsx: true
+							},
+							transform: {
+								react: {
+									pragma: "React.createElement",
+									pragmaFrag: "React.Fragment",
+									throwIfNamespace: true,
+									development: false,
+									useBuiltins: false
 								}
 							}
 						}
 					}
-				],
+				},
 				type: "javascript/auto"
 			},
 			{
