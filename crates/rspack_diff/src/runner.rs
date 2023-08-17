@@ -1,6 +1,6 @@
 use clap::Command;
 
-use crate::result::{self, CliRunResult};
+use crate::result::{self};
 
 pub trait RunnerOptions {
   fn build_args(cmd: Command) -> Command;

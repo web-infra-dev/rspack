@@ -2607,6 +2607,7 @@ dependencies = [
  "oxc_span",
  "serde",
  "serde_json",
+ "swc_core",
 ]
 
 [[package]]

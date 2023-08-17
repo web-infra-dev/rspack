@@ -1,4 +1,4 @@
-use clap::{builder::ValueParser, Arg, Command};
+use clap::{Arg, Command};
 
 use super::DistDiffRunnerOptions;
 use crate::{result::CliRunResult, runner::Runner};
@@ -15,7 +15,7 @@ impl Runner for DistDiffRunner {
   const ABOUT: &'static str = "diff the bundle dist";
   type Options = DistDiffRunnerOptions;
 
-  fn new(options: Self::Options) -> Self {
+  fn new(_options: Self::Options) -> Self {
     todo!()
   }
   fn run(&self) -> CliRunResult {
