@@ -302,7 +302,7 @@ pub async fn run_builtin_loader(
 ) -> Result<JsLoaderContext> {
   use rspack_loader_runner::__private::loader::LoaderItemList;
 
-  let loader = get_builtin_loader(&*builtin, options);
+  let loader = get_builtin_loader(&builtin, options);
   let loader_item = loader.clone().into();
   let list = &[loader_item];
 
@@ -311,7 +311,7 @@ pub async fn run_builtin_loader(
       .content
       .map(|c| Content::from(c.as_ref().to_owned())),
     resource: &loader_context.resource,
-    resource_path: &*PathBuf::from_str(&loader_context.resource_path)?,
+    resource_path: &PathBuf::from_str(&loader_context.resource_path)?,
     resource_query: loader_context.resource_query.as_deref(),
     resource_fragment: loader_context.resource_fragment.as_deref(),
     context: loader_context.context.clone(),
