@@ -80,6 +80,13 @@ impl ModuleGraph {
     self.dependencies.insert(*dependency.id(), dependency);
   }
 
+  pub fn get_condition_by_connection_id(
+    &self,
+    connection_id: &ConnectionId,
+  ) -> Option<&DependencyCondition> {
+    self.connection_to_condition.get(connection_id)
+  }
+
   pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxModuleDependency> {
     self.dependencies.get(dependency_id)
   }
@@ -209,6 +216,10 @@ impl ModuleGraph {
     self.module_identifier_to_module.get_mut(identifier)
   }
 
+  #[inline]
+  pub fn connection_id_by_dependency_id(&self, dep_id: &DependencyId) -> Option<&ConnectionId> {
+    self.dependency_id_to_connection_id.get(dep_id)
+  }
   /// Uniquely identify a module graph module by its module's identifier and return the aliased reference
   #[inline]
   pub fn module_graph_module_by_identifier(

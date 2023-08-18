@@ -34,27 +34,6 @@ pub struct ModuleGraphConnection {
   conditional: bool,
 }
 
-// /// implementing hash by hand because condition maybe a function, which can't be hash
-// impl Hash for ModuleGraphConnection {
-//   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-//     self.original_module_identifier.hash(state);
-//     self.module_identifier.hash(state);
-//     self.dependency_id.hash(state);
-//     self.active.hash(state);
-//     self.conditional.hash(state);
-//   }
-// }
-// /// implementing hash by hand because condition maybe a function, which can't be hash
-// impl PartialEq for ModuleGraphConnection {
-//   fn eq(&self, other: &Self) -> bool {
-//     self.original_module_identifier == other.original_module_identifier
-//       && self.module_identifier == other.module_identifier
-//       && self.dependency_id == other.dependency_id
-//       && self.active == other.active
-//       && self.conditional == other.conditional
-//   }
-// }
-
 impl ModuleGraphConnection {
   pub fn new(
     original_module_identifier: Option<ModuleIdentifier>,
@@ -103,19 +82,23 @@ impl ModuleGraphConnection {
     self.get_condition_state(module_graph, runtime)
   }
 
-  // Here avoid move condition, so use dependency id to search
+  /// ## Panic
+  /// This function will panic if, we can't get condition from module graph
+  /// Here avoid move condition, so use dependency id to search
   pub fn get_condition_state(
     &self,
     module_graph: &ModuleGraph,
     runtime: &RuntimeSpec,
   ) -> ConnectionState {
-    let dependency = module_graph
-      .dependency_by_id(&self.dependency_id)
-      .expect("should have dependency");
-    match dependency.get_condition(module_graph) {
-      None => ConnectionState::Bool(false),
-      Some(DependencyCondition::False) => ConnectionState::Bool(true),
-      Some(DependencyCondition::Fn(f)) => f(self, runtime, module_graph),
+    let condition_id = module_graph
+      .connection_id_by_dependency_id(&self.dependency_id)
+      .expect("should have corresponding connection id");
+    let condition = module_graph
+      .get_condition_by_connection_id(condition_id)
+      .expect("should have condition");
+    match condition {
+      DependencyCondition::False => ConnectionState::Bool(false),
+      DependencyCondition::Fn(f) => f(self, runtime, module_graph),
     }
   }
 }
