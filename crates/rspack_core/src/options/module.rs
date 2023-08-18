@@ -10,7 +10,7 @@ use rspack_error::Result;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{BoxLoader, Filename, ModuleType, PublicPath, Resolve};
+use crate::{Filename, ModuleType, PublicPath, Resolve};
 
 #[derive(Debug)]
 pub struct ParserOptionsByModuleType(HashMap<ModuleType, ParserOptions>);
@@ -294,8 +294,16 @@ pub struct FuncUseCtx {
   pub issuer: Option<String>,
 }
 
+#[derive(Clone)]
+pub struct ModuleRuleUseLoader {
+  /// Loader identifier with query and fragments
+  pub loader: String,
+  /// Loader options
+  pub options: Option<String>,
+}
+
 pub type FnUse =
-  Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<BoxLoader>>> + Sync + Send>;
+  Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<ModuleRuleUseLoader>>> + Sync + Send>;
 
 #[derive(Derivative, Default)]
 #[derivative(Debug)]
@@ -328,7 +336,7 @@ pub struct ModuleRule {
 }
 
 pub enum ModuleRuleUse {
-  Array(Vec<BoxLoader>),
+  Array(Vec<ModuleRuleUseLoader>),
   Func(FnUse),
 }
 
@@ -348,7 +356,7 @@ fn fmt_use(
       "{}",
       array_use
         .iter()
-        .map(|l| l.identifier().to_string())
+        .map(|l| &*l.loader)
         .collect::<Vec<_>>()
         .join("!")
     ),

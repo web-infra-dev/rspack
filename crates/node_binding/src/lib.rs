@@ -88,7 +88,7 @@ impl Rspack {
     );
 
     let compiler_options = options
-      .apply(&mut plugins, &js_loader_runner)
+      .apply(&mut plugins)
       .map_err(|e| Error::from_reason(format!("{e}")))?;
 
     tracing::info!("normalized_options: {:#?}", &compiler_options);

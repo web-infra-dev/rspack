@@ -777,8 +777,7 @@ export interface RawModuleRule {
  * `builtin_loader`.
  */
 export interface RawModuleRuleUse {
-  jsLoader?: string
-  builtinLoader?: string
+  loader: string
   options?: string
 }
 

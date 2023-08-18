@@ -366,25 +366,25 @@ impl TestConfig {
             .r#use
             .into_iter()
             .map(|i| match i.builtin_loader.as_str() {
-              "builtin:sass-loader" => Arc::new(rspack_loader_sass::SassLoader::new(
-                i.options
-                  .map(|options| {
-                    serde_json::from_str::<rspack_loader_sass::SassLoaderOptions>(&options)
-                      .expect("should give a right loader options")
-                  })
-                  .unwrap_or_default(),
-              )) as BoxLoader,
-              "builtin:swc-loader" => Arc::new(rspack_loader_swc::SwcLoader::new(
-                i.options
-                  .map(|options| {
-                    serde_json::from_str::<rspack_loader_swc::SwcLoaderJsOptions>(&options)
-                      .expect("should give a right loader options")
-                  })
-                  .unwrap_or_default(),
-              )) as BoxLoader,
-              _ => panic!("should give a right loader"),
+              // "builtin:sass-loader" => Arc::new(rspack_loader_sass::SassLoader::new(
+              //   i.options
+              //     .map(|options| {
+              //       serde_json::from_str::<rspack_loader_sass::SassLoaderOptions>(&options)
+              //         .expect("should give a right loader options")
+              //     })
+              //     .unwrap_or_default(),
+              // )) as BoxLoader,
+              // "builtin:swc-loader" => Arc::new(rspack_loader_swc::SwcLoader::new(
+              //   i.options
+              //     .map(|options| {
+              //       serde_json::from_str::<rspack_loader_swc::SwcLoaderJsOptions>(&options)
+              //         .expect("should give a right loader options")
+              //     })
+              //     .unwrap_or_default(),
+              // )) as BoxLoader,
+              _ => unimplemented!("TODO: support builtin loader on Rust side"),
             })
-            .collect::<Vec<BoxLoader>>(),
+            .collect::<Vec<_>>(),
         ),
         side_effects: rule.side_effect,
         r#type: rule

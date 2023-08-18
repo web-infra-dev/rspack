@@ -18,6 +18,7 @@ import {
 	RuleSetLoaderWithOptions
 } from "./types";
 import { parsePathQueryFragment } from "../loader-runner";
+import { isNil } from "../util";
 
 const BUILTIN_LOADER_PREFIX = "builtin:";
 
@@ -229,12 +230,21 @@ function createRawModuleRuleUsesImpl(
 	}
 
 	return uses.map((use, index) => {
+		let o;
+		if (use.loader.startsWith(BUILTIN_LOADER_PREFIX)) {
+			o = isNil(use.options)
+				? undefined
+				: typeof use.options === "string"
+				? use.options
+				: JSON.stringify(use.options);
+		}
 		return {
-			jsLoader: resolveStringifyLoaders(
+			loader: resolveStringifyLoaders(
 				use,
 				`${path}[${index}]`,
 				options.compiler
-			)
+			),
+			options: o
 		};
 	});
 }

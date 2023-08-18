@@ -12,8 +12,6 @@ use rspack_plugin_html::HtmlPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use serde::Deserialize;
 
-use crate::JsLoaderRunner;
-
 mod raw_banner;
 mod raw_copy;
 mod raw_css;
@@ -239,7 +237,6 @@ impl RawOptionsApply for RawBuiltins {
   fn apply(
     self,
     plugins: &mut Vec<rspack_core::BoxPlugin>,
-    _: &JsLoaderRunner,
   ) -> Result<Self::Options, rspack_error::Error> {
     if let Some(htmls) = self.html {
       for html in htmls {

@@ -78,7 +78,7 @@ mod module_graph_module;
 pub use module_graph_module::*;
 pub mod tree_shaking;
 
-pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme};
+pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme, BUILTIN_LOADER_PREFIX};
 pub use rspack_sources;
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]

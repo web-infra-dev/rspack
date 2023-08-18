@@ -8,9 +8,10 @@
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
 
+var assert = require("assert");
 var LoaderLoadingError = require("./LoaderLoadingError");
+var { BUILTIN_LOADER_PREFIX } = require("../config");
 var { toBuffer, serializeObject, isNil, toObject } = require("../util");
-const assert = require("assert");
 var url;
 
 module.exports = function loadLoader(loader, callback) {
@@ -32,7 +33,7 @@ module.exports = function loadLoader(loader, callback) {
 		try {
 			var module;
 
-			if (loader.path.startsWith("builtin:")) {
+			if (loader.path.startsWith(BUILTIN_LOADER_PREFIX)) {
 				module = async function (content, sourceMap, additionalData) {
 					assert(!this.__internal__context.isPitching);
 					const callback = this.async();

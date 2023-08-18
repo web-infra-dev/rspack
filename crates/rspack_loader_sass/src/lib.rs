@@ -370,6 +370,8 @@ pub struct SassLoader {
   options: SassLoaderOptions,
 }
 
+pub const SASS_LOADER_IDENTIFIER: &str = "builtin:sass-loader";
+
 impl SassLoader {
   pub fn new(options: SassLoaderOptions) -> Self {
     Self { options }

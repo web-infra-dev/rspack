@@ -395,6 +395,7 @@ pub trait Plugin: Debug + Send + Sync {
     _context: &Path,
     _resolver: &Resolver,
     _loader_request: &str,
+    _loader_options: Option<&str>,
   ) -> Result<Option<BoxLoader>> {
     Ok(None)
   }
