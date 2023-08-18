@@ -1,7 +1,7 @@
 mod entry;
 mod span;
-use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
+use std::sync::{atomic::AtomicUsize, Arc};
 
 pub use entry::*;
 use once_cell::sync::Lazy;
@@ -208,11 +208,21 @@ impl<T: ModuleDependency> AsModuleDependency for T {
 }
 
 pub type DependencyConditionFn =
-  Box<dyn Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState>;
+  Box<dyn Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState + Send + Sync>;
+
 pub enum DependencyCondition {
-  Nil,
   False,
   Fn(DependencyConditionFn),
+}
+
+impl Debug for DependencyCondition {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      // Self::Nil => write!(f, "Nil"),
+      Self::False => write!(f, "False"),
+      Self::Fn(_) => write!(f, "Fn"),
+    }
+  }
 }
 
 pub trait ModuleDependency: Dependency {
@@ -242,8 +252,8 @@ pub trait ModuleDependency: Dependency {
     None
   }
 
-  fn get_condition(&self, _module_graph: &ModuleGraph) -> DependencyCondition {
-    DependencyCondition::Nil
+  fn get_condition(&self, _module_graph: &ModuleGraph) -> Option<DependencyCondition> {
+    None
   }
 
   fn get_referenced_exports(

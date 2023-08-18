@@ -20,7 +20,7 @@ impl From<usize> for ConnectionId {
 }
 // ,
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq,PartialEq, Hash)]
 pub struct ModuleGraphConnection {
   /// The referencing module identifier
   pub original_module_identifier: Option<ModuleIdentifier>,
@@ -60,9 +60,14 @@ impl ModuleGraphConnection {
     original_module_identifier: Option<ModuleIdentifier>,
     dependency_id: DependencyId,
     module_identifier: ModuleIdentifier,
+    condition: Option<ConnectionState>,
     active: bool,
     conditional: bool,
   ) -> Self {
+    let active = match condition {
+      Some(c) => !matches!(c, ConnectionState::Bool(false)),
+      None => false,
+    };
     Self {
       original_module_identifier,
       module_identifier,
@@ -113,9 +118,9 @@ impl ModuleGraphConnection {
       .dependency_by_id(&self.dependency_id)
       .expect("should have dependency");
     match dependency.get_condition(module_graph) {
-      None => ConnectionState::Bool(false),
-      Some(DependencyCondition::False) => ConnectionState::Bool(true),
-      Some(DependencyCondition::Fn(f)) => f(self, runtime, module_graph),
+      DependencyCondition::Nil => ConnectionState::Bool(false),
+      DependencyCondition::False => ConnectionState::Bool(true),
+      DependencyCondition::Fn(f) => f(self, runtime, module_graph),
     }
   }
 }

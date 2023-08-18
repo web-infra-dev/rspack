@@ -130,37 +130,40 @@ pub enum UsedByExports {
   Nil,
 }
 
+// https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/InnerGraph.js#L319-L338
 pub fn get_dependency_used_by_exports_condition(
   dependency_id: &DependencyId,
   used_by_exports: &UsedByExports,
   module_graph: &ModuleGraph,
-) -> DependencyCondition {
+) -> Option<DependencyCondition> {
   match used_by_exports {
     UsedByExports::Set(used_by_exports) => {
       let module_identifier = module_graph
         .parent_module_by_dependency_id(dependency_id)
         .expect("should have parent module");
       let used_by_exports = Arc::new(used_by_exports.clone());
-      DependencyCondition::Fn(Box::new(move |_, runtime, module_graph| {
-        let exports_info = module_graph.get_exports_info(&module_identifier);
-        for export_name in used_by_exports.iter() {
-          if exports_info.get_used(UsedName::Str(export_name.clone()), runtime, module_graph)
-            != UsageState::Unused
-          {
-            return ConnectionState::Bool(true);
+      Some(DependencyCondition::Fn(Box::new(
+        move |_, runtime, module_graph: &ModuleGraph| {
+          let exports_info = module_graph.get_exports_info(&module_identifier);
+          for export_name in used_by_exports.iter() {
+            if exports_info.get_used(UsedName::Str(export_name.clone()), runtime, module_graph)
+              != UsageState::Unused
+            {
+              return ConnectionState::Bool(true);
+            }
           }
-        }
-        ConnectionState::Bool(false)
-      }))
+          ConnectionState::Bool(false)
+        },
+      )))
     }
     UsedByExports::Bool(bool) => {
       if *bool {
-        DependencyCondition::Nil
+        return None;
       } else {
-        DependencyCondition::False
+        Some(DependencyCondition::False)
       }
     }
-    UsedByExports::Nil => DependencyCondition::Nil,
+    UsedByExports::Nil => None,
   }
 }
 

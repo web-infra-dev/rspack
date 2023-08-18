@@ -12,7 +12,8 @@ pub use connection::{ConnectionId, ConnectionState, ModuleGraphConnection};
 
 use crate::{
   to_identifier, BoxModule, BoxModuleDependency, BuildDependency, BuildInfo, BuildMeta,
-  DependencyId, ExportsInfo, Module, ModuleGraphModule, ModuleIdentifier, ModuleProfile,
+  DependencyCondition, DependencyId, ExportsInfo, Module, ModuleGraphModule, ModuleIdentifier,
+  ModuleProfile,
 };
 
 // TODO Here request can be used JsWord
@@ -41,6 +42,7 @@ pub struct ModuleGraph {
 
   /// Module graph connections table index for `ConnectionId`
   connections_map: HashMap<ModuleGraphConnection, ConnectionId>,
+  connection_to_condition: HashMap<ConnectionId, DependencyCondition>,
 
   import_var_map: IdentifierMap<ImportVarMap>,
 }
@@ -117,8 +119,17 @@ impl ModuleGraph {
       .dependency_id_to_module_identifier
       .insert(dependency_id, module_identifier);
 
-    let new_connection =
-      ModuleGraphConnection::new(original_module_identifier, dependency_id, module_identifier);
+    // TODO: just a placeholder here, finish this when we have basic `getCondition` logic
+    let condition: Option<DependencyCondition> = None;
+    let active = !matches!(condition, Some(DependencyCondition::False));
+    let conditional = condition.is_some();
+    let new_connection = ModuleGraphConnection::new(
+      original_module_identifier,
+      dependency_id,
+      module_identifier,
+      active,
+      conditional,
+    );
 
     let connection_id = if let Some(connection_id) = self.connections_map.get(&new_connection) {
       *connection_id
@@ -130,6 +141,12 @@ impl ModuleGraph {
         .insert(new_connection, new_connection_id);
       new_connection_id
     };
+
+    if let Some(condition) = condition {
+      self
+        .connection_to_condition
+        .insert(connection_id, condition);
+    }
 
     self
       .dependency_id_to_connection_id
