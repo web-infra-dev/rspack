@@ -83,7 +83,7 @@ impl ModuleGraphConnection {
   }
 
   /// ## Panic
-  /// This function will panic if, we can't get condition from module graph
+  /// This function will panic if we can't get condition from module graph
   /// Here avoid move condition, so use dependency id to search
   pub fn get_condition_state(
     &self,
