@@ -80,12 +80,7 @@ impl Rspack {
     }
 
     let js_loader_runner: JsLoaderRunner = JsLoaderRunner::try_from(js_loader_runner)?;
-    plugins.push(
-      JsLoaderResolver {
-        js_loader_runner: js_loader_runner.clone(),
-      }
-      .boxed(),
-    );
+    plugins.push(JsLoaderResolver { js_loader_runner }.boxed());
 
     let compiler_options = options
       .apply(&mut plugins)

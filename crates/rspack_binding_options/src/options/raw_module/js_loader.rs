@@ -319,7 +319,7 @@ pub async fn run_builtin_loader(
       .content
       .map(|c| Content::from(c.as_ref().to_owned())),
     resource: &loader_context.resource,
-    resource_path: &Path::new(&loader_context.resource_path),
+    resource_path: Path::new(&loader_context.resource_path),
     resource_query: loader_context.resource_query.as_deref(),
     resource_fragment: loader_context.resource_fragment.as_deref(),
     context: loader_context.context.clone(),
