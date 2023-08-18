@@ -294,7 +294,7 @@ pub struct FuncUseCtx {
   pub issuer: Option<String>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ModuleRuleUseLoader {
   /// Loader identifier with query and fragments
   pub loader: String,

@@ -10,7 +10,6 @@
 
 var assert = require("assert");
 var LoaderLoadingError = require("./LoaderLoadingError");
-var { BUILTIN_LOADER_PREFIX } = require("../config");
 var { toBuffer, serializeObject, isNil, toObject } = require("../util");
 var url;
 
@@ -33,7 +32,7 @@ module.exports = function loadLoader(loader, callback) {
 		try {
 			var module;
 
-			if (loader.path.startsWith(BUILTIN_LOADER_PREFIX)) {
+			if (loader.path.startsWith("builtin:")) {
 				module = async function (content, sourceMap, additionalData) {
 					assert(!this.__internal__context.isPitching);
 					const callback = this.async();
