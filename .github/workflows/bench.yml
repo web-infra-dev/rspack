@@ -1,7 +1,6 @@
 name: Benchmark
 
 on:
-  merge_group:
   issue_comment:
     types: [created]
 
@@ -13,7 +12,7 @@ concurrency:
 jobs:
   trigger:
     runs-on: ubuntu-latest
-    if: github.event_name == 'merge_group' || github.event.issue.pull_request && startsWith(github.event.comment.body, '!bench')
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '!bench')
     steps:
       - uses: actions/github-script@v6
         with:
@@ -81,6 +80,6 @@ jobs:
               ref: 'main',
               inputs: {
                 prNumber: '' + prData.num,
-                reportComment: `${{ github.event_name }}` == `merge_group` ? "false" : "true"
+                reportComment: "true"
               }
             })
