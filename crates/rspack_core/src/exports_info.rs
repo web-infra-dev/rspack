@@ -158,7 +158,7 @@ pub fn get_dependency_used_by_exports_condition(
     }
     UsedByExports::Bool(bool) => {
       if *bool {
-        return None;
+        None
       } else {
         Some(DependencyCondition::False)
       }

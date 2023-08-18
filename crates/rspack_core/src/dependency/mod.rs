@@ -1,7 +1,7 @@
 mod entry;
 mod span;
+use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
-use std::sync::{atomic::AtomicUsize, Arc};
 
 pub use entry::*;
 use once_cell::sync::Lazy;
