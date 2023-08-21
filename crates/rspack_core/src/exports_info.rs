@@ -143,7 +143,7 @@ pub fn get_dependency_used_by_exports_condition(
         .expect("should have parent module");
       let used_by_exports = Arc::new(used_by_exports.clone());
       Some(DependencyCondition::Fn(Box::new(
-        move |_, runtime, module_graph: &ModuleGraph| {
+        move |_, runtime, module_graph| {
           let exports_info = module_graph.get_exports_info(&module_identifier);
           for export_name in used_by_exports.iter() {
             if exports_info.get_used(UsedName::Str(export_name.clone()), runtime, module_graph)

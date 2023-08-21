@@ -207,9 +207,35 @@ impl<T: ModuleDependency> AsModuleDependency for T {
   }
 }
 
-pub type DependencyConditionFn =
-  Box<dyn Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState + Send + Sync>;
+pub type DependencyConditionFn = Box<dyn Function>;
 
+pub trait Function:
+  Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState + Send + Sync
+{
+  fn clone_boxed(&self) -> Box<dyn Function>;
+}
+
+/// Copy from https://github.com/rust-lang/rust/issues/24000#issuecomment-479425396
+impl<T> Function for T
+where
+  T: 'static
+    + Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState
+    + Send
+    + Sync
+    + Clone,
+{
+  fn clone_boxed(&self) -> Box<dyn Function> {
+    Box::new(self.clone())
+  }
+}
+
+impl Clone for Box<dyn Function> {
+  fn clone(&self) -> Self {
+    self.clone_boxed()
+  }
+}
+
+#[derive(Clone)]
 pub enum DependencyCondition {
   False,
   Fn(DependencyConditionFn),

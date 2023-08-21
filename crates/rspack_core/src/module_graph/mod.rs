@@ -128,32 +128,23 @@ impl ModuleGraph {
 
     // TODO: just a placeholder here, finish this when we have basic `getCondition` logic
     let condition: Option<DependencyCondition> = None;
-    let active = !matches!(condition, Some(DependencyCondition::False));
-    let conditional = condition.is_some();
     let new_connection = ModuleGraphConnection::new(
       original_module_identifier,
       dependency_id,
       module_identifier,
-      active,
-      conditional,
+      condition,
     );
 
     let connection_id = if let Some(connection_id) = self.connections_map.get(&new_connection) {
       *connection_id
     } else {
       let new_connection_id = ConnectionId::from(self.connections.len());
-      self.connections.push(Some(new_connection));
+      self.connections.push(Some(new_connection.clone()));
       self
         .connections_map
         .insert(new_connection, new_connection_id);
       new_connection_id
     };
-
-    if let Some(condition) = condition {
-      self
-        .connection_to_condition
-        .insert(connection_id, condition);
-    }
 
     self
       .dependency_id_to_connection_id
