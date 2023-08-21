@@ -1,0 +1,21 @@
+name: Benchmark Merge Queue
+
+on:
+  merge_group:
+
+# cancel previous job runs for the same workflow + pr
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: convictional/trigger-workflow-and-wait@v1.6.1
+        with:
+          owner: '${{ context.repo.owner }}',
+          repo: 'rspack-ecosystem-benchmark',
+          workflow_id: 'bench_rspack_merge_queue.yml',
+          ref: 'main',
+          client_payload: '{"prNumber":"${{ context.issue.number }}"}'
