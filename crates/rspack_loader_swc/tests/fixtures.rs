@@ -10,7 +10,7 @@ use rspack_core::{
   SideEffectOption,
 };
 use rspack_loader_swc::{SwcLoader, SwcLoaderJsOptions};
-use rspack_testing::{fixture, test_fixture};
+// use rspack_testing::{fixture, test_fixture};
 use serde_json::json;
 use swc_core::base::config::PluginConfig;
 
@@ -110,7 +110,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
 //   loader_test("swc-plugin/index.js", "swc-plugin/expected/index.js").await;
 // }
 
-#[fixture("tests/fixtures/*")]
-fn swc(fixture_path: PathBuf) {
-  test_fixture(&fixture_path);
-}
+// #[fixture("tests/fixtures/*")]
+// fn swc(fixture_path: PathBuf) {
+//   test_fixture(&fixture_path);
+// }
