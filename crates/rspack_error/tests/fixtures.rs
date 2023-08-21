@@ -16,7 +16,7 @@ pub async fn test_fixture<F: FnOnce(&Stats, Settings) -> rspack_error::Result<()
   compiler
     .build()
     .await
-    .unwrap_or_else(|_| panic!("failed to compile in fixtrue {fixture_path:?}"));
+    .unwrap_or_else(|e| panic!("{e}, failed to compile in fixture {fixture_path:?}"));
   let stats = compiler.compilation.get_stats();
   let mut settings = Settings::clone_current();
   settings.remove_snapshot_suffix();
@@ -24,10 +24,7 @@ pub async fn test_fixture<F: FnOnce(&Stats, Settings) -> rspack_error::Result<()
   f(&stats, settings)
 }
 
-#[fixture(
-  "tests/fixtures/*",
-  exclude("export_star_error", "char-based-offset-error-span", "sass-warnings")
-)]
+#[fixture("tests/fixtures/*", exclude("export_star_error"))]
 fn custom(fixture_path: PathBuf) {
   test_fixture(&fixture_path, |stats, settings| {
     let dirname = fixture_path

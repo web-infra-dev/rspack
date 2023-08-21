@@ -8,11 +8,6 @@ fn rspack(fixture_path: PathBuf) {
   test_fixture(&fixture_path);
 }
 
-#[fixture("tests/fixtures/code-splitting")]
-fn rspack2(fixture_path: PathBuf) {
-  test_fixture(&fixture_path);
-}
-
 #[fixture("tests/samples/**/test.config.json")]
 fn samples(fixture_path: PathBuf) {
   test_fixture(fixture_path.parent().expect("should exist"));

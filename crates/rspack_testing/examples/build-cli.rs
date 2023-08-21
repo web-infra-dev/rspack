@@ -41,12 +41,12 @@ async fn main() {
   compiler
     .build()
     .await
-    .unwrap_or_else(|e| panic!("failed to compile in fixtrue {config:?}, {e:#?}"));
+    .unwrap_or_else(|e| panic!("failed to compile in fixture {config:?}, {e:#?}"));
   let stats = compiler.compilation.get_stats();
   let errors = stats.get_errors();
   if !errors.is_empty() {
     eprintln!(
-      "Failed to compile in fixtrue {:?}, errors: {:?}",
+      "Failed to compile in fixture {:?}, errors: {:?}",
       config,
       stats
         .emit_diagnostics_string(true)
