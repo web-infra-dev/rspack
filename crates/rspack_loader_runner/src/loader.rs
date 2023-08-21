@@ -13,7 +13,7 @@ use regex::{Match, Regex};
 use rspack_error::Result;
 use rspack_identifier::{Identifiable, Identifier};
 
-use crate::runner::LoaderContext;
+use crate::{runner::LoaderContext, BUILTIN_LOADER_PREFIX};
 
 #[derive(Debug)]
 struct LoaderItemDataInner {
@@ -109,7 +109,7 @@ impl Display for LoaderItemDataMeta {
     let proto = if self.has_js() {
       "js:"
     } else if self.has_builtin() {
-      "builtin:"
+      BUILTIN_LOADER_PREFIX
     } else {
       ""
     };
@@ -122,7 +122,7 @@ impl From<&str> for LoaderItemDataMeta {
   fn from(value: &str) -> Self {
     let mut meta = Self::empty();
 
-    if value.starts_with("builtin:") {
+    if value.starts_with(BUILTIN_LOADER_PREFIX) {
       meta.insert_builtin();
     }
 

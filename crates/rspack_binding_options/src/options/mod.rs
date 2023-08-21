@@ -47,11 +47,7 @@ pub use raw_target::*;
 
 pub trait RawOptionsApply {
   type Options;
-  fn apply(
-    self,
-    plugins: &mut Vec<BoxPlugin>,
-    loader_runner: &JsLoaderRunner,
-  ) -> Result<Self::Options, rspack_error::Error>;
+  fn apply(self, plugins: &mut Vec<BoxPlugin>) -> Result<Self::Options, rspack_error::Error>;
 }
 
 #[derive(Deserialize, Debug)]
@@ -91,11 +87,7 @@ pub struct RawOptions {
 impl RawOptionsApply for RawOptions {
   type Options = CompilerOptions;
 
-  fn apply(
-    mut self,
-    plugins: &mut Vec<BoxPlugin>,
-    loader_runner: &JsLoaderRunner,
-  ) -> Result<Self::Options, rspack_error::Error> {
+  fn apply(mut self, plugins: &mut Vec<BoxPlugin>) -> Result<Self::Options, rspack_error::Error> {
     let context = self.context.into();
     // https://github.com/web-infra-dev/rspack/discussions/3252#discussioncomment-6182939
     // will solve the order problem by add EntryOptionPlugin on js side, and we can only
@@ -121,12 +113,12 @@ impl RawOptionsApply for RawOptions {
         }
       }
     }
-    let output: OutputOptions = self.output.apply(plugins, loader_runner)?;
+    let output: OutputOptions = self.output.apply(plugins)?;
     let resolve = self.resolve.try_into()?;
     let devtool: Devtool = self.devtool.into();
     let mode = self.mode.unwrap_or_default().into();
-    let module: ModuleOptions = self.module.apply(plugins, loader_runner)?;
-    let target = self.target.apply(plugins, loader_runner)?;
+    let module: ModuleOptions = self.module.apply(plugins)?;
+    let target = self.target.apply(plugins)?;
     let cache = self.cache.into();
     let experiments = Experiments {
       lazy_compilation: self.experiments.lazy_compilation,
@@ -143,13 +135,13 @@ impl RawOptionsApply for RawOptions {
       css: self.experiments.css,
     };
     let optimization = IS_ENABLE_NEW_SPLIT_CHUNKS.set(&experiments.new_split_chunks, || {
-      self.optimization.apply(plugins, loader_runner)
+      self.optimization.apply(plugins)
     })?;
     let stats = self.stats.into();
     let snapshot = self.snapshot.into();
     let node = self.node.map(|n| n.into());
     let dev_server: DevServerOptions = self.dev_server.into();
-    let builtins = self.builtins.apply(plugins, loader_runner)?;
+    let builtins = self.builtins.apply(plugins)?;
 
     plugins.push(rspack_plugin_schemes::DataUriPlugin.boxed());
     plugins.push(rspack_plugin_schemes::FileUriPlugin.boxed());

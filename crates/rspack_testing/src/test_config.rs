@@ -3,10 +3,9 @@ use std::{
   convert::TryFrom,
   path::{Path, PathBuf},
   str::FromStr,
-  sync::Arc,
 };
 
-use rspack_core::{BoxLoader, BoxPlugin, CompilerOptions, ModuleType, PluginExt};
+use rspack_core::{BoxPlugin, CompilerOptions, ModuleType, PluginExt};
 use rspack_plugin_css::pxtorem::options::PxToRemOptions;
 use rspack_plugin_html::config::HtmlPluginConfig;
 use rspack_regex::RspackRegex;
@@ -303,6 +302,7 @@ pub enum ModuleRuleTest {
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub struct ModuleRuleUse {
   builtin_loader: String,
+  #[allow(unused)]
   options: Option<String>,
 }
 
@@ -365,26 +365,29 @@ impl TestConfig {
           rule
             .r#use
             .into_iter()
-            .map(|i| match i.builtin_loader.as_str() {
-              "builtin:sass-loader" => Arc::new(rspack_loader_sass::SassLoader::new(
-                i.options
-                  .map(|options| {
-                    serde_json::from_str::<rspack_loader_sass::SassLoaderOptions>(&options)
-                      .expect("should give a right loader options")
-                  })
-                  .unwrap_or_default(),
-              )) as BoxLoader,
-              "builtin:swc-loader" => Arc::new(rspack_loader_swc::SwcLoader::new(
-                i.options
-                  .map(|options| {
-                    serde_json::from_str::<rspack_loader_swc::SwcLoaderJsOptions>(&options)
-                      .expect("should give a right loader options")
-                  })
-                  .unwrap_or_default(),
-              )) as BoxLoader,
-              _ => panic!("should give a right loader"),
-            })
-            .collect::<Vec<BoxLoader>>(),
+            .map(
+              #[allow(clippy::match_single_binding)]
+              |i| match i.builtin_loader.as_str() {
+                // "builtin:sass-loader" => Arc::new(rspack_loader_sass::SassLoader::new(
+                //   i.options
+                //     .map(|options| {
+                //       serde_json::from_str::<rspack_loader_sass::SassLoaderOptions>(&options)
+                //         .expect("should give a right loader options")
+                //     })
+                //     .unwrap_or_default(),
+                // )) as BoxLoader,
+                // "builtin:swc-loader" => Arc::new(rspack_loader_swc::SwcLoader::new(
+                //   i.options
+                //     .map(|options| {
+                //       serde_json::from_str::<rspack_loader_swc::SwcLoaderJsOptions>(&options)
+                //         .expect("should give a right loader options")
+                //     })
+                //     .unwrap_or_default(),
+                // )) as BoxLoader,
+                _ => unimplemented!("TODO: support builtin loader on Rust side"),
+              },
+            )
+            .collect::<Vec<_>>(),
         ),
         side_effects: rule.side_effect,
         r#type: rule

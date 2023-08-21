@@ -1,4 +1,7 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{
+  path::{Path, PathBuf},
+  str::FromStr,
+};
 
 use napi_derive::napi;
 use rspack_core::{rspack_sources::SourceMap, Content, ResourceData};
@@ -316,7 +319,7 @@ pub async fn run_builtin_loader(
       .content
       .map(|c| Content::from(c.as_ref().to_owned())),
     resource: &loader_context.resource,
-    resource_path: &PathBuf::from_str(&loader_context.resource_path)?,
+    resource_path: Path::new(&loader_context.resource_path),
     resource_query: loader_context.resource_query.as_deref(),
     resource_fragment: loader_context.resource_fragment.as_deref(),
     context: loader_context.context.clone(),

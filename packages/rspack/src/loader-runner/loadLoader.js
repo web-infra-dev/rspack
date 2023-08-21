@@ -8,9 +8,9 @@
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
 
+var assert = require("assert");
 var LoaderLoadingError = require("./LoaderLoadingError");
 var { toBuffer, serializeObject, isNil, toObject } = require("../util");
-const assert = require("assert");
 var url;
 
 module.exports = function loadLoader(loader, callback) {

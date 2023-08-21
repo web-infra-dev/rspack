@@ -1,10 +1,11 @@
 <script lang="ts">
 import HelloWorld from "./components/HelloWorld.vue";
+let title: string = "Rspack + Vue";
 export default {
 	components: { HelloWorld },
 	data() {
 		return {
-			msg: "Rspack + Vue"
+			title
 		};
 	}
 };
@@ -20,7 +21,7 @@ export default {
 				<img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
 			</a>
 		</div>
-		<HelloWorld :msg="msg" />
+		<HelloWorld :msg="title" />
 	</div>
 </template>
 

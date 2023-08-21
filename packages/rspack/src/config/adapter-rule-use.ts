@@ -18,6 +18,7 @@ import {
 	RuleSetLoaderWithOptions
 } from "./types";
 import { parsePathQueryFragment } from "../loader-runner";
+import { isNil } from "../util";
 
 const BUILTIN_LOADER_PREFIX = "builtin:";
 
@@ -229,12 +230,28 @@ function createRawModuleRuleUsesImpl(
 	}
 
 	return uses.map((use, index) => {
+		let o;
+		if (use.loader.startsWith(BUILTIN_LOADER_PREFIX)) {
+			o = use.options;
+			if (use.loader === `${BUILTIN_LOADER_PREFIX}sass-loader`) {
+				(o ??= {} as any).__exePath = require.resolve(
+					`sass-embedded-${process.platform}-${
+						process.arch
+					}/dart-sass-embedded/dart-sass-embedded${
+						process.platform === "win32" ? ".bat" : ""
+					}`
+				);
+			}
+			o = isNil(o) ? undefined : typeof o === "string" ? o : JSON.stringify(o);
+		}
+
 		return {
-			jsLoader: resolveStringifyLoaders(
+			loader: resolveStringifyLoaders(
 				use,
 				`${path}[${index}]`,
 				options.compiler
-			)
+			),
+			options: o
 		};
 	});
 }
@@ -269,28 +286,6 @@ function resolveStringifyLoaders(
 	}
 
 	return obj.path + obj.query + obj.fragment;
-}
-
-function createBuiltinUse(use: RuleSetLoaderWithOptions): RawModuleRuleUse {
-	assert(
-		typeof use.loader === "string" &&
-			use.loader.startsWith(BUILTIN_LOADER_PREFIX)
-	);
-
-	if (use.loader === `${BUILTIN_LOADER_PREFIX}sass-loader`) {
-		(use.options ??= {} as any).__exePath = require.resolve(
-			`sass-embedded-${process.platform}-${
-				process.arch
-			}/dart-sass-embedded/dart-sass-embedded${
-				process.platform === "win32" ? ".bat" : ""
-			}`
-		);
-	}
-
-	return {
-		builtinLoader: use.loader,
-		options: JSON.stringify(use.options)
-	};
 }
 
 export function isUseSourceMap(devtool: RawOptions["devtool"]): boolean {
