@@ -36,7 +36,7 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem
   compiler
     .build()
     .await
-    .unwrap_or_else(|e| panic!("failed to compile in fixtrue {fixture_path:?}, {e:#?}"));
+    .unwrap_or_else(|e| panic!("failed to compile in fixture {fixture_path:?}, {e:#?}"));
   let stats = compiler.compilation.get_stats();
   let output_name = make_relative_from(&compiler.options.output.path, fixture_path);
   let rst = RstBuilder::default()
@@ -48,7 +48,7 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem
   let errors = stats.get_errors();
   if !warnings.is_empty() && errors.is_empty() {
     println!(
-      "Warning to compile in fixtrue {:?}, warnings: {:?}",
+      "Warning to compile in fixture {:?}, warnings: {:?}",
       fixture_path,
       stats
         .emit_diagnostics_string(true)
@@ -57,7 +57,7 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem
   }
   if !errors.is_empty() {
     panic!(
-      "Failed to compile in fixtrue {:?}, errors: {:?}",
+      "Failed to compile in fixture {:?}, errors: {:?}",
       fixture_path,
       stats
         .emit_diagnostics_string(true)
@@ -107,7 +107,7 @@ pub async fn test_rebuild_fixture(
   compiler
     .build()
     .await
-    .unwrap_or_else(|e| panic!("failed to compile in fixtrue {fixture_path:?}, {e:#?}"));
+    .unwrap_or_else(|e| panic!("failed to compile in fixture {fixture_path:?}, {e:#?}"));
 
   let mut files_map: HashMap<String, FsOptionEnum> = HashMap::new();
   let changed_files: HashSet<String> =
@@ -189,7 +189,7 @@ pub async fn test_rebuild_fixture(
   let errors = stats.get_errors();
   if !errors.is_empty() {
     panic!(
-      "Failed to compile in fixtrue {:?}, errors: {:?}",
+      "Failed to compile in fixture {:?}, errors: {:?}",
       fixture_path,
       stats
         .emit_diagnostics_string(true)

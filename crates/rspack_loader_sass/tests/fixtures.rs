@@ -10,7 +10,7 @@ use rspack_core::{
   SideEffectOption,
 };
 use rspack_loader_sass::{SassLoader, SassLoaderOptions};
-// use rspack_testing::{fixture, test_fixture};
+use rspack_testing::{fixture, test_fixture};
 use sass_embedded::Url;
 
 // UPDATE_SASS_LOADER_TEST=1 cargo test --package rspack_loader_sass test_fn_name -- --exact --nocapture
@@ -110,7 +110,7 @@ async fn rspack_importer() {
   loader_test("scss/language.scss", "expected/rspack_importer.css").await;
 }
 
-// #[fixture("tests/fixtures/*")]
-// fn sass(fixture_path: PathBuf) {
-//   test_fixture(&fixture_path);
-// }
+#[fixture("tests/fixtures/*")]
+fn sass(fixture_path: PathBuf) {
+  test_fixture(&fixture_path);
+}

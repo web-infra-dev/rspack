@@ -1,4 +1,5 @@
 mod eval_raw;
+mod loader;
 mod run_fixture;
 mod test_config;
 pub use eval_raw::evaluate_to_json;
