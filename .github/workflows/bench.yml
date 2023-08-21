@@ -79,7 +79,6 @@ jobs:
               workflow_id: 'bench_rspack_pr.yml',
               ref: 'main',
               inputs: {
-                prNumber: '' + prData.num,
-                reportComment: "true"
+                prNumber: '' + prData.num
               }
             })
