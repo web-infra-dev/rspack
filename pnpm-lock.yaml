@@ -17,6 +17,7 @@ importers:
       jest-environment-node: 29.5.0
       lint-staged: ^12.5.0
       npm-run-all: 4.1.5
+      oxlint: 0.0.10
       prettier: 2.5.1
       rimraf: 3.0.2
       sass-embedded-darwin-arm64: 1.58.3
@@ -53,6 +54,7 @@ importers:
       jest-environment-node: 29.5.0
       lint-staged: 12.5.0
       npm-run-all: 4.1.5
+      oxlint: 0.0.10
       prettier: 2.5.1
       rimraf: 3.0.2
       ts-jest: 29.1.0_44ttdtjaknnkcgzh5px4h2qxl4
@@ -7583,6 +7585,54 @@ packages:
     dependencies:
       '@octokit/openapi-types': 17.1.0
     dev: true
+
+  /@oxlint/darwin-arm64/0.0.10:
+    resolution: {integrity: sha512-OCZODSvvN6tf1ynSU7x6sgdOdNbkmAHANcgpRvHAx2jpIwmD3K4rY1dCeMly2QDbmhiMyUH0yxq2P3ob03ot9g==}
+    cpu: [arm64]
+    os: [darwin]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@oxlint/darwin-x64/0.0.10:
+    resolution: {integrity: sha512-ZZZz0NDowShzYv4EK0yigsNpAh2PUjXBEkTIEQb6O/vUYtGovsOxIHPqN0qazG5QHjIAivDh7TF7qSNN4gkqBQ==}
+    cpu: [x64]
+    os: [darwin]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@oxlint/linux-arm64/0.0.10:
+    resolution: {integrity: sha512-Prvc1FItOByDZzE+i5nAo2QT2L7tujONJC0sO2raLASkjb8z9Ct3GMd4QieU/620+gtrG7aVaCPjsj5Uy9QFRA==}
+    cpu: [arm64]
+    os: [linux]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@oxlint/linux-x64/0.0.10:
+    resolution: {integrity: sha512-a1dy65CU3Oxv4foR8HQRb83IYKOt9SEFYOZAtTSjDmmlHxtZpC4QZG2pAEqmBypzL7lTbbBTojWDWb8BXJEICA==}
+    cpu: [x64]
+    os: [linux]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@oxlint/win32-arm64/0.0.10:
+    resolution: {integrity: sha512-Dq8HE54Rb2R37ruIine9NhNpZrC7ZlKd+6Eo0Z/6w5ZvbFF1ZB+eOiMthu1DKY8cbwOP7qnn2xzm1rSttW4T/A==}
+    cpu: [arm64]
+    os: [win32]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@oxlint/win32-x64/0.0.10:
+    resolution: {integrity: sha512-Xt1GUWY+t/Ik9vwMYrQ3Y6yJM24OhqcKk92Xy7fteom40lnAag5dijWXCKjt7Yx4skB924sdBWoWSPfql6zChw==}
+    cpu: [x64]
+    os: [win32]
+    requiresBuild: true
+    dev: true
+    optional: true
 
   /@perfsee/bundle-analyzer/1.6.0:
     resolution: {integrity: sha512-RdOzu04TNW5YPaxPUmIqmd6QeINJT8h8tZPnjHdDqdoaogWi+yUoOjzke02dedKDxcZvqWuiiRuE4iGlPOUcJQ==}
@@ -21800,6 +21850,19 @@ packages:
       type-fest: 0.11.0
     dev: true
     optional: true
+
+  /oxlint/0.0.10:
+    resolution: {integrity: sha512-iYvSfGEoNhNHidGD4e3pEZjYdxW4SWWAMgbgqFNqgWl5nqk5TMy2x0x6WB2HaY++xKNE0m/6FYbp19FNJY2Imw==}
+    engines: {node: '>=14.*'}
+    hasBin: true
+    optionalDependencies:
+      '@oxlint/darwin-arm64': 0.0.10
+      '@oxlint/darwin-x64': 0.0.10
+      '@oxlint/linux-arm64': 0.0.10
+      '@oxlint/linux-x64': 0.0.10
+      '@oxlint/win32-arm64': 0.0.10
+      '@oxlint/win32-x64': 0.0.10
+    dev: true
 
   /p-cancelable/0.3.0:
     resolution: {integrity: sha512-RVbZPLso8+jFeq1MfNvgXtCRED2raz/dKpacfTNxsx6pLEpEomM7gah6VeHSYV3+vo0OAi4MkArtQcWWXuQoyw==}
