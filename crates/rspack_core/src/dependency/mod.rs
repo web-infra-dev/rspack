@@ -18,7 +18,6 @@ pub use context_element_dependency::*;
 mod const_dependency;
 use std::{
   any::Any,
-  borrow::Cow,
   fmt::{Debug, Display},
   hash::Hash,
 };
@@ -85,7 +84,7 @@ pub enum DependencyType {
   WasmExportImported,
   /// static exports
   StaticExports,
-  Custom(Cow<'static, str>),
+  Custom(Box<str>), // TODO it will increase large layout size
 }
 
 impl Display for DependencyType {
