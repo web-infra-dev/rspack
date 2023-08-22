@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "rspack serve",
     "start": "node dist/main.js",
-    "build": "rspack build"
+    "build": "BUILD=true rspack build"
   },
   "dependencies": {
     "run-script-webpack-plugin": "0.2.0",
