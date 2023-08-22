@@ -13,6 +13,7 @@ pub struct CompilerOptions {
   pub target: Target,
   pub mode: Mode,
   pub resolve: Resolve,
+  pub resolve_loader: Resolve,
   pub builtins: Builtins,
   pub module: ModuleOptions,
   pub devtool: Devtool,

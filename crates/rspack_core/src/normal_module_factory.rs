@@ -172,7 +172,7 @@ impl NormalModuleFactory {
     let context_scheme = get_scheme(data.context.as_ref());
     let context = data.context.as_path();
     let plugin_driver = &self.plugin_driver;
-    let loader_resolver = self.get_loader_resolver(data.resolve_options.clone());
+    let loader_resolver = self.get_loader_resolver(Some(data.resolve_loader_options.clone()));
 
     let mut match_resource_data: Option<ResourceData> = None;
     let mut inline_loaders: Vec<ModuleRuleUseLoader> = vec![];

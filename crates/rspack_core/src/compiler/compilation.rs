@@ -443,6 +443,7 @@ impl Compilation {
           None,
           None,
           parent_module.and_then(|module| module.get_resolve_options().map(ToOwned::to_owned)),
+          self.options.resolve_loader.clone(),
           self.lazy_visit_modules.clone(),
           parent_module
             .and_then(|m| m.as_normal_module())
@@ -571,6 +572,7 @@ impl Compilation {
             None,
             None,
             task.resolve_options.clone(),
+            self.options.resolve_loader.clone(),
             self.lazy_visit_modules.clone(),
             module
               .as_normal_module()
@@ -860,6 +862,7 @@ impl Compilation {
     module_type: Option<ModuleType>,
     side_effects: Option<bool>,
     resolve_options: Option<Resolve>,
+    resolve_loader_options: Resolve,
     lazy_visit_modules: std::collections::HashSet<String>,
     issuer: Option<String>,
   ) {
@@ -873,6 +876,7 @@ impl Compilation {
       module_type,
       side_effects,
       resolve_options,
+      resolve_loader_options,
       lazy_visit_modules,
       resolver_factory: self.resolver_factory.clone(),
       options: self.options.clone(),

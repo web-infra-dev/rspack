@@ -815,6 +815,7 @@ export interface RawOptions {
   context: string
   output: RawOutputOptions
   resolve: RawResolveOptions
+  resolveLoader: RawResolveOptions
   module: RawModuleOptions
   builtins: RawBuiltins
   externals?: Array<RawExternalItem>

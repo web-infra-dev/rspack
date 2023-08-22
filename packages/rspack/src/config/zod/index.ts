@@ -40,6 +40,7 @@ export function configSchema() {
 			snapshot: snapshot().optional(),
 			optimization: optimization().optional(),
 			resolve: resolve().optional(),
+			resolveLoader: resolve().optional(),
 			plugins: plugins().optional(),
 			// TODO(hyf0): what's the usage of this?
 			name: z.string().optional(),

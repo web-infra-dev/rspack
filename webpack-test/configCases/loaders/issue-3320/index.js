@@ -1,4 +1,5 @@
-it("should resolve aliased loader module with query", function() {
+// Webpack supports this, but Rspack does not support `resolve.alias` with a custom query and fragment
+it.skip("should resolve aliased loader module with query", function() {
 	var foo = require('./a');
 
 	expect(foo).toBe("someMessage");

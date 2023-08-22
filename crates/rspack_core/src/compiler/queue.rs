@@ -32,6 +32,7 @@ pub struct FactorizeTask {
   pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,
   pub resolve_options: Option<Resolve>,
+  pub resolve_loader_options: Resolve,
   pub resolver_factory: Arc<ResolverFactory>,
   pub options: Arc<CompilerOptions>,
   pub lazy_visit_modules: std::collections::HashSet<String>,
@@ -76,6 +77,7 @@ impl WorkerTask for FactorizeTask {
         factory
           .create(ModuleFactoryCreateData {
             resolve_options: self.resolve_options,
+            resolve_loader_options: self.resolve_loader_options,
             context,
             dependency: dependency.clone(),
           })
@@ -99,6 +101,7 @@ impl WorkerTask for FactorizeTask {
         factory
           .create(ModuleFactoryCreateData {
             resolve_options: self.resolve_options,
+            resolve_loader_options: self.resolve_loader_options,
             context,
             dependency: dependency.clone(),
           })

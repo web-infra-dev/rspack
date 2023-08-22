@@ -36,6 +36,7 @@ export interface RspackOptionsNormalized {
 	entry: EntryNormalized;
 	output: OutputNormalized;
 	resolve: Resolve;
+	resolveLoader: Resolve;
 	module: ModuleOptionsNormalized;
 	target?: Target;
 	externals?: Externals;

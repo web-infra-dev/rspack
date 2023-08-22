@@ -67,6 +67,7 @@ pub struct RawOptions {
   pub context: RawContext,
   pub output: RawOutputOptions,
   pub resolve: RawResolveOptions,
+  pub resolve_loader: RawResolveOptions,
   pub module: RawModuleOptions,
   pub builtins: RawBuiltins,
   pub externals: Option<Vec<RawExternalItem>>,
@@ -115,6 +116,7 @@ impl RawOptionsApply for RawOptions {
     }
     let output: OutputOptions = self.output.apply(plugins)?;
     let resolve = self.resolve.try_into()?;
+    let resolve_loader = self.resolve_loader.try_into()?;
     let devtool: Devtool = self.devtool.into();
     let mode = self.mode.unwrap_or_default().into();
     let module: ModuleOptions = self.module.apply(plugins)?;
@@ -253,6 +255,7 @@ impl RawOptionsApply for RawOptions {
       target,
       output,
       resolve,
+      resolve_loader,
       devtool,
       experiments,
       stats,
