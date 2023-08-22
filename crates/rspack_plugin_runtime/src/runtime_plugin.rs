@@ -6,7 +6,6 @@ use rspack_core::{
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   RuntimeGlobals, RuntimeModuleExt, SourceType,
 };
-use rspack_error::Result;
 
 use crate::runtime_module::{
   is_enabled_for_chunk, AsyncRuntimeModule, BaseUriRuntimeModule,
@@ -27,10 +26,6 @@ pub struct RuntimePlugin;
 impl Plugin for RuntimePlugin {
   fn name(&self) -> &'static str {
     "RuntimePlugin"
-  }
-
-  fn apply(&self, _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
-    Ok(())
   }
 
   fn additional_tree_runtime_requirements(

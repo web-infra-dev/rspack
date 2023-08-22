@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use rayon::prelude::*;
 use rspack_core::{
-  ApplyContext, ModuleType, ParserAndGenerator, Plugin, PluginContext,
+  ApplyContext, CompilerOptions, ModuleType, ParserAndGenerator, Plugin, PluginContext,
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 use rspack_error::Result;
@@ -30,7 +30,11 @@ impl Plugin for AsyncWasmPlugin {
     "AsyncWebAssemblyModulesPlugin"
   }
 
-  fn apply(&self, ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
     let module_id_to_filename_without_ext = self.module_id_to_filename_without_ext.clone();
 
     let builder = move || {

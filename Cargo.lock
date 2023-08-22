@@ -2295,6 +2295,8 @@ dependencies = [
  "rspack_plugin_schemes",
  "rspack_plugin_split_chunks",
  "rspack_plugin_split_chunks_new",
+ "rspack_plugin_swc_css_minimizer",
+ "rspack_plugin_swc_js_minimizer",
  "rspack_plugin_wasm",
  "rspack_plugin_worker",
  "rspack_regex",
@@ -2569,6 +2571,7 @@ dependencies = [
  "rspack_error",
  "rspack_regex",
  "rspack_testing",
+ "rspack_util",
  "testing_macros",
 ]
 
@@ -2727,9 +2730,7 @@ dependencies = [
  "serde_json",
  "sourcemap",
  "sugar_path",
- "swc_config",
  "swc_core",
- "swc_ecma_minifier",
  "swc_emotion",
  "swc_node_comments",
  "swc_plugin_import",
@@ -2853,6 +2854,34 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_swc_css_minimizer"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rayon",
+ "rspack_core",
+ "rspack_error",
+ "rspack_plugin_css",
+]
+
+[[package]]
+name = "rspack_plugin_swc_js_minimizer"
+version = "0.1.0"
+dependencies = [
+ "async-recursion",
+ "async-trait",
+ "regex",
+ "rspack_core",
+ "rspack_error",
+ "rspack_plugin_javascript",
+ "rspack_regex",
+ "rspack_util",
+ "swc_config",
+ "swc_core",
+ "swc_ecma_minifier",
 ]
 
 [[package]]

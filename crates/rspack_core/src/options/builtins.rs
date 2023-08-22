@@ -1,17 +1,68 @@
 use std::fmt::Debug;
-use std::hash::Hash;
 use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
-use async_recursion::async_recursion;
 use glob::Pattern as GlobPattern;
-use rspack_regex::RspackRegex;
+use rspack_error::Result;
 use swc_core::ecma::transforms::react::Runtime;
 use swc_plugin_import::PluginImportConfig;
 
-use crate::{try_any, AssetInfo};
+use crate::{ApplyContext, AssetInfo, CompilerOptions, Plugin, PluginContext};
 
 pub type Define = HashMap<String, String>;
+
+#[derive(Debug)]
+pub struct DefinePlugin {
+  options: Define,
+}
+
+impl DefinePlugin {
+  pub fn new(options: Define) -> Self {
+    Self { options }
+  }
+}
+
+impl Plugin for DefinePlugin {
+  fn name(&self) -> &'static str {
+    "rspack.DefinePlugin"
+  }
+
+  fn apply(
+    &self,
+    _ctx: PluginContext<&mut ApplyContext>,
+    options: &mut CompilerOptions,
+  ) -> Result<()> {
+    options.builtins.define.extend(self.options.clone());
+    Ok(())
+  }
+}
+
 pub type Provide = HashMap<String, Vec<String>>;
+
+#[derive(Debug)]
+pub struct ProvidePlugin {
+  options: Provide,
+}
+
+impl ProvidePlugin {
+  pub fn new(options: Provide) -> Self {
+    Self { options }
+  }
+}
+
+impl Plugin for ProvidePlugin {
+  fn name(&self) -> &'static str {
+    "rspack.ProvidePlugin"
+  }
+
+  fn apply(
+    &self,
+    _ctx: PluginContext<&mut ApplyContext>,
+    options: &mut CompilerOptions,
+  ) -> Result<()> {
+    options.builtins.provide.extend(self.options.clone());
+    Ok(())
+  }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct ReactOptions {
@@ -26,12 +77,64 @@ pub struct ReactOptions {
   pub refresh: Option<bool>,
 }
 
+#[derive(Debug)]
+pub struct ReactOptionsPlugin {
+  options: ReactOptions,
+}
+
+impl ReactOptionsPlugin {
+  pub fn new(options: ReactOptions) -> Self {
+    Self { options }
+  }
+}
+
+impl Plugin for ReactOptionsPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.ReactOptionsPlugin"
+  }
+
+  fn apply(
+    &self,
+    _ctx: PluginContext<&mut ApplyContext>,
+    options: &mut CompilerOptions,
+  ) -> Result<()> {
+    options.builtins.react = self.options.clone();
+    Ok(())
+  }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct DecoratorOptions {
   // https://swc.rs/docs/configuration/compilation#jsctransformlegacydecorator
   pub legacy: bool,
   // https://swc.rs/docs/configuration/compilation#jsctransformdecoratormetadata
   pub emit_metadata: bool,
+}
+
+#[derive(Debug)]
+pub struct DecoratorOptionsPlugin {
+  options: DecoratorOptions,
+}
+
+impl DecoratorOptionsPlugin {
+  pub fn new(options: DecoratorOptions) -> Self {
+    Self { options }
+  }
+}
+
+impl Plugin for DecoratorOptionsPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.DecoratorOptionsPlugin"
+  }
+
+  fn apply(
+    &self,
+    _ctx: PluginContext<&mut ApplyContext>,
+    options: &mut CompilerOptions,
+  ) -> Result<()> {
+    options.builtins.decorator = Some(self.options.clone());
+    Ok(())
+  }
 }
 
 #[derive(Debug, Clone, Default, Copy)]
@@ -83,73 +186,80 @@ impl From<String> for TreeShaking {
   }
 }
 
+#[derive(Debug)]
+pub struct TreeShakingPlugin {
+  options: TreeShaking,
+}
+
+impl TreeShakingPlugin {
+  pub fn new(options: TreeShaking) -> Self {
+    Self { options }
+  }
+}
+
+impl Plugin for TreeShakingPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.TreeShakingPlugin"
+  }
+
+  fn apply(
+    &self,
+    _ctx: PluginContext<&mut ApplyContext>,
+    options: &mut CompilerOptions,
+  ) -> Result<()> {
+    options.builtins.tree_shaking = self.options.clone();
+    Ok(())
+  }
+}
+
+#[derive(Debug)]
+pub struct NoEmitAssetsPlugin {
+  options: bool,
+}
+
+impl NoEmitAssetsPlugin {
+  pub fn new(options: bool) -> Self {
+    Self { options }
+  }
+}
+
+impl Plugin for NoEmitAssetsPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.NoEmitAssetsPlugin"
+  }
+
+  fn apply(
+    &self,
+    _ctx: PluginContext<&mut ApplyContext>,
+    options: &mut CompilerOptions,
+  ) -> Result<()> {
+    options.builtins.no_emit_assets = self.options;
+    Ok(())
+  }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct Builtins {
-  pub minify_options: Option<Minification>,
+  // TODO: migrate to builtin:swc-loader
   pub preset_env: Option<PresetEnv>,
+  // TODO: refactor to string-replacement based
   pub define: Define,
+  // TODO: refactor to string-replacement based
   pub provide: Provide,
+  // TODO: refactoring
   pub tree_shaking: TreeShaking,
+  // TODO: migrate to builtin:swc-loader
   pub react: ReactOptions,
+  // TODO: migrate to builtin:swc-loader
   pub decorator: Option<DecoratorOptions>,
+  // TODO: remove this when drop support for builtin options (0.6.0)
   pub no_emit_assets: bool,
+  // TODO: migrate to builtin:swc-loader
   pub emotion: Option<swc_emotion::EmotionOptions>,
-  pub dev_friendly_split_chunks: bool,
+  // TODO: migrate to builtin:swc-loader
   pub plugin_import: Option<Vec<PluginImportConfig>>,
+  // TODO: migrate to builtin:swc-loader
   pub relay: Option<RelayConfig>,
-  pub code_generation: Option<CodeGeneration>,
-}
-
-#[derive(Debug, Clone, Default, Hash)]
-pub struct Minification {
-  pub passes: usize,
-  pub drop_console: bool,
-  pub pure_funcs: Vec<String>,
-  pub extract_comments: Option<String>,
-  pub ascii_only: bool,
-  pub comments: String,
-  pub test: Option<MinificationConditions>,
-  pub include: Option<MinificationConditions>,
-  pub exclude: Option<MinificationConditions>,
-}
-
-#[derive(Debug, Clone, Hash)]
-pub enum MinificationCondition {
-  String(String),
-  Regexp(RspackRegex),
-}
-
-impl MinificationCondition {
-  #[async_recursion]
-  pub async fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
-    match self {
-      Self::String(s) => Ok(data.starts_with(s)),
-      Self::Regexp(r) => Ok(r.test(data)),
-    }
-  }
-}
-
-#[derive(Debug, Clone, Hash)]
-pub enum MinificationConditions {
-  String(String),
-  Regexp(rspack_regex::RspackRegex),
-  Array(Vec<MinificationCondition>),
-}
-
-impl MinificationConditions {
-  #[async_recursion]
-  pub async fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
-    match self {
-      Self::String(s) => Ok(data.starts_with(s)),
-      Self::Regexp(r) => Ok(r.test(data)),
-      Self::Array(l) => try_any(l, |i| async { i.try_match(data).await }).await,
-    }
-  }
-}
-
-#[derive(Debug, Copy, Clone, Default)]
-pub struct CodeGeneration {
-  pub keep_comments: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -207,6 +317,32 @@ pub struct PresetEnv {
   pub core_js: Option<String>,
 }
 
+#[derive(Debug)]
+pub struct PresetEnvPlugin {
+  options: PresetEnv,
+}
+
+impl PresetEnvPlugin {
+  pub fn new(options: PresetEnv) -> Self {
+    Self { options }
+  }
+}
+
+impl Plugin for PresetEnvPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.PresetEnvPlugin"
+  }
+
+  fn apply(
+    &self,
+    _ctx: PluginContext<&mut ApplyContext>,
+    options: &mut CompilerOptions,
+  ) -> Result<()> {
+    options.builtins.preset_env = Some(self.options.clone());
+    Ok(())
+  }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct RelayConfig {
   pub artifact_directory: Option<PathBuf>,
@@ -223,5 +359,83 @@ pub enum RelayLanguageConfig {
 impl Default for RelayLanguageConfig {
   fn default() -> Self {
     Self::Flow
+  }
+}
+
+#[derive(Debug)]
+pub struct RelayPlugin {
+  options: RelayConfig,
+}
+
+impl RelayPlugin {
+  pub fn new(options: RelayConfig) -> Self {
+    Self { options }
+  }
+}
+
+impl Plugin for RelayPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.RelayPlugin"
+  }
+
+  fn apply(
+    &self,
+    _ctx: PluginContext<&mut ApplyContext>,
+    options: &mut CompilerOptions,
+  ) -> Result<()> {
+    options.builtins.relay = Some(self.options.clone());
+    Ok(())
+  }
+}
+
+#[derive(Debug)]
+pub struct EmotionPlugin {
+  options: swc_emotion::EmotionOptions,
+}
+
+impl EmotionPlugin {
+  pub fn new(options: swc_emotion::EmotionOptions) -> Self {
+    Self { options }
+  }
+}
+
+impl Plugin for EmotionPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.EmotionPlugin"
+  }
+
+  fn apply(
+    &self,
+    _ctx: PluginContext<&mut ApplyContext>,
+    options: &mut CompilerOptions,
+  ) -> Result<()> {
+    options.builtins.emotion = Some(self.options.clone());
+    Ok(())
+  }
+}
+
+#[derive(Debug)]
+pub struct PluginImportPlugin {
+  options: Vec<PluginImportConfig>,
+}
+
+impl PluginImportPlugin {
+  pub fn new(options: Vec<PluginImportConfig>) -> Self {
+    Self { options }
+  }
+}
+
+impl Plugin for PluginImportPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.PluginImportPlugin"
+  }
+
+  fn apply(
+    &self,
+    _ctx: PluginContext<&mut ApplyContext>,
+    options: &mut CompilerOptions,
+  ) -> Result<()> {
+    options.builtins.plugin_import = Some(self.options.clone());
+    Ok(())
   }
 }

@@ -3,7 +3,6 @@ use rspack_core::{
   AdditionalChunkRuntimeRequirementsArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
   PluginContext, RuntimeGlobals, RuntimeModuleExt,
 };
-use rspack_error::Result;
 
 use crate::runtime_module::HotModuleReplacementRuntimeModule;
 
@@ -14,10 +13,6 @@ pub struct HotModuleReplacementPlugin;
 impl Plugin for HotModuleReplacementPlugin {
   fn name(&self) -> &'static str {
     "HotModuleReplacementPlugin"
-  }
-
-  fn apply(&self, _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
-    Ok(())
   }
 
   fn additional_tree_runtime_requirements(

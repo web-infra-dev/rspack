@@ -7,6 +7,7 @@ use rspack_core::{
 };
 use serde::Deserialize;
 
+mod builtin_plugin;
 mod raw_builtins;
 mod raw_cache;
 mod raw_context;
@@ -26,6 +27,7 @@ mod raw_split_chunks;
 mod raw_stats;
 mod raw_target;
 
+pub use builtin_plugin::*;
 pub use raw_builtins::*;
 pub use raw_cache::*;
 pub use raw_context::*;

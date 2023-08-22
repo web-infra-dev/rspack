@@ -90,10 +90,6 @@ impl Plugin for LazyCompilationPlugin {
     "LazyCompilationPlugin"
   }
 
-  fn apply(&self, _ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
-    Ok(())
-  }
-
   async fn module(&self, _ctx: PluginContext, args: &ModuleArgs) -> PluginModuleHookOutput {
     if args.indentfiler.contains("rspack-dev-client")
       || args.lazy_visit_modules.contains(args.indentfiler.as_str())

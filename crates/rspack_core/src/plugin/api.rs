@@ -46,7 +46,11 @@ pub trait Plugin: Debug + Send + Sync {
     "unknown"
   }
 
-  fn apply(&self, _ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
+  fn apply(
+    &self,
+    _ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
     Ok(())
   }
 

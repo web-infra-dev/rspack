@@ -3,8 +3,8 @@ use json::Error::{
 };
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
-  BuildMetaDefaultObject, BuildMetaExportsType, GenerateContext, Module, ParserAndGenerator,
-  Plugin, RuntimeGlobals, SourceType,
+  BuildMetaDefaultObject, BuildMetaExportsType, CompilerOptions, GenerateContext, Module,
+  ParserAndGenerator, Plugin, RuntimeGlobals, SourceType,
 };
 use rspack_error::{
   internal_error, DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
@@ -139,7 +139,11 @@ impl Plugin for JsonPlugin {
     "json"
   }
 
-  fn apply(&self, ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
+  fn apply(
+    &self,
+    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::Json,
       Box::new(|| Box::new(JsonParserAndGenerator {})),

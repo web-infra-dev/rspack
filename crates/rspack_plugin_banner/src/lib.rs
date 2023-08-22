@@ -6,10 +6,11 @@ use async_recursion::async_recursion;
 use async_trait::async_trait;
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  to_comment, try_any, Logger, Plugin,
+  to_comment, Logger, Plugin,
 };
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
+use rspack_util::try_any;
 
 pub enum BannerCondition {
   String(String),

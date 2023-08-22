@@ -1,8 +1,5 @@
 use napi_derive::napi;
-use rspack_core::{
-  Builtins, CodeGeneration, Define, Minification, MinificationCondition, MinificationConditions,
-  PluginExt, PresetEnv, Provide,
-};
+use rspack_core::{Builtins, Define, PluginExt, PresetEnv, Provide};
 use rspack_error::internal_error;
 use rspack_plugin_banner::{BannerConfig, BannerPlugin};
 use rspack_plugin_copy::CopyPlugin;
@@ -10,6 +7,7 @@ use rspack_plugin_css::{plugin::CssConfig, CssPlugin};
 use rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin;
 use rspack_plugin_html::HtmlPlugin;
 use rspack_plugin_progress::ProgressPlugin;
+use rspack_plugin_swc_js_minimizer::{Minification, MinificationCondition, MinificationConditions};
 use serde::Deserialize;
 
 mod raw_banner;
@@ -28,7 +26,7 @@ pub use raw_html::*;
 pub use raw_progress::*;
 pub use raw_react::*;
 
-use self::{
+pub use self::{
   raw_banner::RawBannerConfig, raw_copy::RawCopyConfig, raw_plugin_import::RawPluginImportConfig,
   raw_relay::RawRelayConfig,
 };
@@ -69,23 +67,6 @@ pub struct RawMinification {
   pub test: Option<RawMinificationConditions>,
   pub include: Option<RawMinificationConditions>,
   pub exclude: Option<RawMinificationConditions>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawPresetEnv {
-  pub targets: Vec<String>,
-  #[napi(ts_type = "'usage' | 'entry'")]
-  pub mode: Option<String>,
-  pub core_js: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawCodeGeneration {
-  pub keep_comments: bool,
 }
 
 impl TryFrom<RawMinification> for Minification {
@@ -181,6 +162,16 @@ impl TryFrom<RawMinificationConditions> for MinificationConditions {
   }
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawPresetEnv {
+  pub targets: Vec<String>,
+  #[napi(ts_type = "'usage' | 'entry'")]
+  pub mode: Option<String>,
+  pub core_js: Option<String>,
+}
+
 impl From<RawPresetEnv> for PresetEnv {
   fn from(raw_preset_env: RawPresetEnv) -> Self {
     Self {
@@ -195,13 +186,6 @@ impl From<RawPresetEnv> for PresetEnv {
   }
 }
 
-impl From<RawCodeGeneration> for CodeGeneration {
-  fn from(raw_code_generation: RawCodeGeneration) -> Self {
-    Self {
-      keep_comments: raw_code_generation.keep_comments,
-    }
-  }
-}
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
@@ -211,21 +195,20 @@ pub struct RawBuiltins {
   pub minify_options: Option<RawMinification>,
   pub preset_env: Option<RawPresetEnv>,
   #[napi(ts_type = "Record<string, string>")]
-  pub define: Define,
+  pub define: Define, // ok
   #[napi(ts_type = "Record<string, string[]>")]
-  pub provide: Provide,
-  pub tree_shaking: String,
+  pub provide: Provide, // ok
+  pub tree_shaking: String,                    // ok
   pub progress: Option<RawProgressPluginConfig>,
-  pub react: RawReactOptions,
-  pub decorator: Option<RawDecoratorOptions>,
-  pub no_emit_assets: bool,
-  pub emotion: Option<String>,
+  pub react: RawReactOptions,                 // ok
+  pub decorator: Option<RawDecoratorOptions>, // ok
+  pub no_emit_assets: bool,                   // ok
+  pub emotion: Option<String>,                // ok
   pub dev_friendly_split_chunks: bool,
   pub copy: Option<RawCopyConfig>,
-  pub banner: Option<Vec<RawBannerConfig>>,
-  pub plugin_import: Option<Vec<RawPluginImportConfig>>,
-  pub relay: Option<RawRelayConfig>,
-  pub code_generation: Option<RawCodeGeneration>,
+  pub banner: Option<Vec<RawBannerConfig>>, // ok
+  pub plugin_import: Option<Vec<RawPluginImportConfig>>, // ok
+  pub relay: Option<RawRelayConfig>,        // ok
 }
 
 impl RawOptionsApply for RawBuiltins {
@@ -273,7 +256,6 @@ impl RawOptionsApply for RawBuiltins {
     }
 
     Ok(Builtins {
-      minify_options: self.minify_options.map(|i| i.try_into()).transpose()?,
       preset_env: self.preset_env.map(Into::into),
       define: self.define,
       provide: self.provide,
@@ -281,7 +263,6 @@ impl RawOptionsApply for RawBuiltins {
       react: self.react.into(),
       decorator: self.decorator.map(|i| i.into()),
       no_emit_assets: self.no_emit_assets,
-      dev_friendly_split_chunks: self.dev_friendly_split_chunks,
       emotion: self
         .emotion
         .map(|i| serde_json::from_str(&i))
@@ -291,7 +272,6 @@ impl RawOptionsApply for RawBuiltins {
         .plugin_import
         .map(|plugin_imports| plugin_imports.into_iter().map(Into::into).collect()),
       relay: self.relay.map(Into::into),
-      code_generation: self.code_generation.map(Into::into),
     })
   }
 }

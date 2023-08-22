@@ -419,21 +419,7 @@ impl TestConfig {
         define: self.builtins.define,
         provide: self.builtins.provide,
         tree_shaking: self.builtins.tree_shaking.into(),
-        minify_options: self.builtins.minify_options.map(|op| c::Minification {
-          passes: op.passes,
-          drop_console: op.drop_console,
-          pure_funcs: op.pure_funcs,
-          extract_comments: op.extract_comments,
-          include: None,
-          exclude: None,
-          test: None,
-          comments: "false".to_string(),
-          ascii_only: false,
-        }),
         preset_env: self.builtins.preset_env.map(Into::into),
-        code_generation: self.builtins.code_generation.map(|op| c::CodeGeneration {
-          keep_comments: op.keep_comments,
-        }),
         ..Default::default()
       },
       module: c::ModuleOptions {

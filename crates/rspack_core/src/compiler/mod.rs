@@ -54,15 +54,9 @@ where
     plugins: Vec<Box<dyn Plugin>>,
     output_filesystem: T,
   ) -> Self {
-    let options = Arc::new(options);
-
     let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
     let loader_resolver_factory = Arc::new(ResolverFactory::new(options.resolve_loader.clone()));
-    let plugin_driver = Arc::new(PluginDriver::new(
-      options.clone(),
-      plugins,
-      resolver_factory.clone(),
-    ));
+    let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
     let cache = Arc::new(Cache::new(options.clone()));
 
     Self {
