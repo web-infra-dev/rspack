@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "rspack serve",
     "start": "node dist/main.js",
-    "build": "BUILD=true rspack build"
+    "build": "cross-env BUILD=true rspack build"
   },
   "dependencies": {
     "run-script-webpack-plugin": "0.2.0",
