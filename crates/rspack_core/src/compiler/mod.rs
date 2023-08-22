@@ -37,6 +37,7 @@ where
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
+  pub loader_resolver_factory: Arc<ResolverFactory>,
   pub cache: Arc<Cache>,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
@@ -56,6 +57,7 @@ where
     let options = Arc::new(options);
 
     let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
+    let loader_resolver_factory = Arc::new(ResolverFactory::new(options.resolve_loader.clone()));
     let plugin_driver = Arc::new(PluginDriver::new(
       options.clone(),
       plugins,
@@ -70,11 +72,13 @@ where
         Default::default(),
         plugin_driver.clone(),
         resolver_factory.clone(),
+        loader_resolver_factory.clone(),
         cache.clone(),
       ),
       output_filesystem,
       plugin_driver,
       resolver_factory,
+      loader_resolver_factory,
       cache,
       emitted_asset_versions: Default::default(),
     }
@@ -99,6 +103,7 @@ where
         Default::default(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
+        self.loader_resolver_factory.clone(),
         self.cache.clone(),
       ),
     );

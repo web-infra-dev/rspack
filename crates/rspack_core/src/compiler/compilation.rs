@@ -76,6 +76,7 @@ pub struct Compilation {
   logging: CompilationLogging,
   pub plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
+  pub loader_resolver_factory: Arc<ResolverFactory>,
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   pub entry_module_identifiers: IdentifierSet,
@@ -110,6 +111,7 @@ impl Compilation {
     module_graph: ModuleGraph,
     plugin_driver: SharedPluginDriver,
     resolver_factory: Arc<ResolverFactory>,
+    loader_resolver_factory: Arc<ResolverFactory>,
     cache: Arc<Cache>,
   ) -> Self {
     Self {
@@ -133,6 +135,7 @@ impl Compilation {
       logging: Default::default(),
       plugin_driver,
       resolver_factory,
+      loader_resolver_factory,
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
       entry_module_identifiers: IdentifierSet::default(),
@@ -443,7 +446,6 @@ impl Compilation {
           None,
           None,
           parent_module.and_then(|module| module.get_resolve_options().map(ToOwned::to_owned)),
-          self.options.resolve_loader.clone(),
           self.lazy_visit_modules.clone(),
           parent_module
             .and_then(|m| m.as_normal_module())
@@ -572,7 +574,6 @@ impl Compilation {
             None,
             None,
             task.resolve_options.clone(),
-            self.options.resolve_loader.clone(),
             self.lazy_visit_modules.clone(),
             module
               .as_normal_module()
@@ -862,7 +863,6 @@ impl Compilation {
     module_type: Option<ModuleType>,
     side_effects: Option<bool>,
     resolve_options: Option<Resolve>,
-    resolve_loader_options: Resolve,
     lazy_visit_modules: std::collections::HashSet<String>,
     issuer: Option<String>,
   ) {
@@ -876,9 +876,9 @@ impl Compilation {
       module_type,
       side_effects,
       resolve_options,
-      resolve_loader_options,
       lazy_visit_modules,
       resolver_factory: self.resolver_factory.clone(),
+      loader_resolver_factory: self.loader_resolver_factory.clone(),
       options: self.options.clone(),
       plugin_driver: self.plugin_driver.clone(),
       cache: self.cache.clone(),

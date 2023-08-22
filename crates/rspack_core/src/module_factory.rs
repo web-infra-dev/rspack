@@ -8,7 +8,6 @@ use crate::{BoxDependency, BoxModule, Context, FactoryMeta, Resolve};
 #[derive(Debug)]
 pub struct ModuleFactoryCreateData {
   pub resolve_options: Option<Resolve>,
-  pub resolve_loader_options: Resolve,
   pub context: Context,
   pub dependency: BoxDependency,
 }
