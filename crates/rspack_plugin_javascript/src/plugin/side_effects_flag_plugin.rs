@@ -102,17 +102,17 @@ impl SideEffectsFlagPlugin {
       match ele {
         Stmt::If(stmt) => {
           if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
-            self.side_effects_span = Some(stmt.span.clone());
+            self.side_effects_span = Some(stmt.span);
           }
         }
         Stmt::While(stmt) => {
           if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
-            self.side_effects_span = Some(stmt.span.clone());
+            self.side_effects_span = Some(stmt.span);
           }
         }
         Stmt::DoWhile(stmt) => {
           if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
-            self.side_effects_span = Some(stmt.span.clone());
+            self.side_effects_span = Some(stmt.span);
           }
         }
         Stmt::For(stmt) => {
@@ -125,7 +125,7 @@ impl SideEffectsFlagPlugin {
           };
 
           if !pure_init {
-            self.side_effects_span = Some(stmt.span.clone());
+            self.side_effects_span = Some(stmt.span);
             return;
           }
 
@@ -135,7 +135,7 @@ impl SideEffectsFlagPlugin {
           };
 
           if !pure_test {
-            self.side_effects_span = Some(stmt.span.clone());
+            self.side_effects_span = Some(stmt.span);
             return;
           }
 
@@ -145,17 +145,17 @@ impl SideEffectsFlagPlugin {
           };
 
           if !pure_update {
-            self.side_effects_span = Some(stmt.span.clone());
+            self.side_effects_span = Some(stmt.span);
           }
         }
         Stmt::Expr(stmt) => {
           if !is_pure_expression(&stmt.expr, self.unresolved_ctxt) {
-            self.side_effects_span = Some(stmt.span.clone());
+            self.side_effects_span = Some(stmt.span);
           }
         }
         Stmt::Switch(stmt) => {
           if !is_pure_expression(&stmt.discriminant, self.unresolved_ctxt) {
-            self.side_effects_span = Some(stmt.span.clone());
+            self.side_effects_span = Some(stmt.span);
           }
         }
         Stmt::Decl(stmt) => {
