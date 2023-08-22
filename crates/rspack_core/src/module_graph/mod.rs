@@ -12,7 +12,8 @@ pub use connection::{ConnectionId, ConnectionState, ModuleGraphConnection};
 
 use crate::{
   to_identifier, BoxModule, BoxModuleDependency, BuildDependency, BuildInfo, BuildMeta,
-  DependencyId, ExportsInfo, Module, ModuleGraphModule, ModuleIdentifier, ModuleProfile,
+  DependencyCondition, DependencyId, ExportsInfo, Module, ModuleGraphModule, ModuleIdentifier,
+  ModuleProfile,
 };
 
 // TODO Here request can be used JsWord
@@ -41,6 +42,7 @@ pub struct ModuleGraph {
 
   /// Module graph connections table index for `ConnectionId`
   connections_map: HashMap<ModuleGraphConnection, ConnectionId>,
+  connection_to_condition: HashMap<ConnectionId, DependencyCondition>,
 
   import_var_map: IdentifierMap<ImportVarMap>,
 }
@@ -76,6 +78,13 @@ impl ModuleGraph {
 
   pub fn add_dependency(&mut self, dependency: BoxModuleDependency) {
     self.dependencies.insert(*dependency.id(), dependency);
+  }
+
+  pub fn get_condition_by_connection_id(
+    &self,
+    connection_id: &ConnectionId,
+  ) -> Option<&DependencyCondition> {
+    self.connection_to_condition.get(connection_id)
   }
 
   pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxModuleDependency> {
@@ -117,14 +126,20 @@ impl ModuleGraph {
       .dependency_id_to_module_identifier
       .insert(dependency_id, module_identifier);
 
-    let new_connection =
-      ModuleGraphConnection::new(original_module_identifier, dependency_id, module_identifier);
+    // TODO: just a placeholder here, finish this when we have basic `getCondition` logic
+    let condition: Option<DependencyCondition> = None;
+    let new_connection = ModuleGraphConnection::new(
+      original_module_identifier,
+      dependency_id,
+      module_identifier,
+      condition,
+    );
 
     let connection_id = if let Some(connection_id) = self.connections_map.get(&new_connection) {
       *connection_id
     } else {
       let new_connection_id = ConnectionId::from(self.connections.len());
-      self.connections.push(Some(new_connection));
+      self.connections.push(Some(new_connection.clone()));
       self
         .connections_map
         .insert(new_connection, new_connection_id);
@@ -192,6 +207,10 @@ impl ModuleGraph {
     self.module_identifier_to_module.get_mut(identifier)
   }
 
+  #[inline]
+  pub fn connection_id_by_dependency_id(&self, dep_id: &DependencyId) -> Option<&ConnectionId> {
+    self.dependency_id_to_connection_id.get(dep_id)
+  }
   /// Uniquely identify a module graph module by its module's identifier and return the aliased reference
   #[inline]
   pub fn module_graph_module_by_identifier(
