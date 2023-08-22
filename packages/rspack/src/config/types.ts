@@ -9,7 +9,7 @@
  */
 
 import watchpack from "watchpack";
-import { Compiler } from "../Compiler";
+import { Compiler } from "../compiler";
 import * as oldBuiltins from "./builtins";
 import { Compilation } from "..";
 import type * as webpackDevServer from "webpack-dev-server";
@@ -24,7 +24,7 @@ export type {
 	LoaderContext,
 	LoaderDefinitionFunction,
 	LoaderDefinition
-} from "./adapterRuleUse";
+} from "./adapter-rule-use";
 
 export type Configuration = RspackOptions;
 

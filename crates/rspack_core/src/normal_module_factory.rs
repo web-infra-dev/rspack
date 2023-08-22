@@ -17,10 +17,10 @@ use crate::{
   BoxLoader, CompilerOptions, Dependency, DependencyCategory, DependencyType, FactorizeArgs,
   FactoryMeta, FuncUseCtx, GeneratorOptions, MissingModule, ModuleArgs, ModuleDependency,
   ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
-  ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleType, NormalModule,
+  ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
   NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, ParserOptions, RawModule, Resolve,
-  ResolveArgs, ResolveError, ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory,
-  ResourceData, ResourceParsedData, SharedPluginDriver,
+  ResolveArgs, ResolveError, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
+  ResolverFactory, ResourceData, ResourceParsedData, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -136,6 +136,16 @@ impl NormalModuleFactory {
     }
     Ok(None)
   }
+
+  fn get_loader_resolver(&self, loader_resolve_options: Option<Resolve>) -> Arc<Resolver> {
+    self.resolver_factory.get(ResolveOptionsWithDependencyType {
+      resolve_options: loader_resolve_options,
+      resolve_to_context: false,
+      dependency_type: DependencyType::CjsRequire,
+      dependency_category: DependencyCategory::CommonJS,
+    })
+  }
+
   pub async fn factorize_normal_module(
     &mut self,
     data: &mut ModuleFactoryCreateData,
@@ -148,10 +158,12 @@ impl NormalModuleFactory {
 
     let scheme = get_scheme(request_without_match_resource);
     let context_scheme = get_scheme(data.context.as_ref());
+    let context = data.context.as_path();
     let plugin_driver = &self.plugin_driver;
+    let loader_resolver = self.get_loader_resolver(data.resolve_options.clone());
 
     let mut match_resource_data: Option<ResourceData> = None;
-    let mut inline_loaders: Vec<BoxLoader> = vec![];
+    let mut inline_loaders: Vec<ModuleRuleUseLoader> = vec![];
     let mut no_pre_auto_loaders = false;
     let mut no_auto_loaders = false;
     let mut no_pre_post_auto_loaders = false;
@@ -171,8 +183,6 @@ impl NormalModuleFactory {
     // TODO: resource within scheme, call resolveInScheme hook
     else {
       {
-        let plugin_driver = &self.plugin_driver;
-        let context = data.context.as_path();
         request_without_match_resource = {
           let match_resource_match = MATCH_RESOURCE_REGEX.captures(request_without_match_resource);
           if let Some(m) = match_resource_match {
@@ -260,20 +270,10 @@ impl NormalModuleFactory {
           .pop()
           .ok_or_else(|| internal_error!("Invalid request: {request_without_match_resource}"))?;
 
-        let loader_resolver = self.resolver_factory.get(ResolveOptionsWithDependencyType {
-          resolve_options: data.resolve_options.clone(),
-          resolve_to_context: false,
-          dependency_type: DependencyType::CjsRequire,
-          dependency_category: DependencyCategory::CommonJS,
-        });
-
-        for element in raw_elements {
-          let res = plugin_driver
-            .resolve_loader(&self.context.options, context, &loader_resolver, element)
-            .await?
-            .ok_or_else(|| internal_error!("Loader expected"))?;
-          inline_loaders.push(res);
-        }
+        inline_loaders.extend(raw_elements.into_iter().map(|r| ModuleRuleUseLoader {
+          loader: r.to_owned(),
+          options: None,
+        }));
       }
       let optional = data.dependency.get_optional();
 
@@ -415,14 +415,14 @@ impl NormalModuleFactory {
         suffix.into_owned()
       }
     };
+    let contains_inline = !inline_loaders.is_empty();
 
     // dbg!(&user_request);
 
-    // TODO: move loader resolver to rust
     let loaders: Vec<BoxLoader> = {
-      let mut pre_loaders: Vec<BoxLoader> = vec![];
-      let mut post_loaders: Vec<BoxLoader> = vec![];
-      let mut normal_loaders: Vec<BoxLoader> = vec![];
+      let mut pre_loaders: Vec<ModuleRuleUseLoader> = vec![];
+      let mut post_loaders: Vec<ModuleRuleUseLoader> = vec![];
+      let mut normal_loaders: Vec<ModuleRuleUseLoader> = vec![];
 
       for rule in &resolved_module_rules {
         match &rule.r#use {
@@ -471,7 +471,22 @@ impl NormalModuleFactory {
       }
       all_loaders.extend(pre_loaders);
 
-      all_loaders
+      let mut loader = Vec::with_capacity(all_loaders.len());
+      for l in all_loaders {
+        loader.push(
+          plugin_driver
+            .resolve_loader(
+              &self.context.options,
+              context,
+              &loader_resolver,
+              &l.loader,
+              l.options.as_deref(),
+            )
+            .await?
+            .ok_or_else(|| internal_error!("Unable to resolve loader {}", &l.loader))?,
+        );
+      }
+      loader
     };
 
     let request = if !loaders.is_empty() {
@@ -522,6 +537,7 @@ impl NormalModuleFactory {
       resolved_resolve_options,
       loaders,
       self.context.options.clone(),
+      contains_inline,
     );
 
     let module = if let Some(module) = self

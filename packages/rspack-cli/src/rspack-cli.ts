@@ -24,7 +24,12 @@ import { normalizeEnv } from "./utils/options";
 import { loadRspackConfig } from "./utils/loadConfig";
 import findConfig from "./utils/findConfig";
 import { Mode } from "@rspack/core/src/config";
-import { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
+import {
+	RspackPluginInstance,
+	RspackPluginFunction,
+	experimental_registerGlobalTrace as registerGlobalTrace,
+	experimental_cleanupGlobalTrace as cleanupGlobalTrace
+} from "@rspack/core";
 import path from "path";
 
 type Command = "serve" | "build";
@@ -146,6 +151,10 @@ export class RspackCLI {
 						}).apply(compiler as any);
 					}
 				});
+			}
+			if (process.env.RSPACK_PROFILE) {
+				const { applyProfile } = await import("./utils/profile.js");
+				await applyProfile(process.env.RSPACK_PROFILE, item);
 			}
 			// cli --watch overrides the watch config
 			if (options.watch) {

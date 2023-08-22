@@ -518,10 +518,17 @@ impl PluginDriver {
     context: &Path,
     resolver: &Resolver,
     loader_request: &str,
+    loader_options: Option<&str>,
   ) -> Result<Option<BoxLoader>> {
     for plugin in &self.plugins {
       if let Some(loader) = plugin
-        .resolve_loader(compiler_options, context, resolver, loader_request)
+        .resolve_loader(
+          compiler_options,
+          context,
+          resolver,
+          loader_request,
+          loader_options,
+        )
         .await?
       {
         return Ok(Some(loader));

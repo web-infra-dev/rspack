@@ -18,8 +18,8 @@ use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_loader_runner::{run_loaders, Content, ResourceData};
 use rspack_sources::{
-  BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
-  SourceMapSource, WithoutOriginalOptions,
+  BoxSource, CachedSource, OriginalSource, RawSource, SourceExt, SourceMap, SourceMapSource,
+  WithoutOriginalOptions,
 };
 use rustc_hash::FxHasher;
 use serde_json::json;
@@ -94,6 +94,8 @@ pub struct NormalModule {
   /// Loaders for the module
   #[derivative(Debug = "ignore")]
   loaders: Vec<BoxLoader>,
+  /// Whether loaders list contains inline loader
+  contains_inline_loader: bool,
 
   /// Original content of this module, will be available after module build
   original_source: Option<BoxSource>,
@@ -157,6 +159,7 @@ impl NormalModule {
     resolve_options: Option<Resolve>,
     loaders: Vec<BoxLoader>,
     options: Arc<CompilerOptions>,
+    contains_inline_loader: bool,
   ) -> Self {
     let module_type = module_type.into();
     let identifier = if module_type == ModuleType::Js {
@@ -178,6 +181,7 @@ impl NormalModule {
       resource_data,
       resolve_options,
       loaders,
+      contains_inline_loader,
       original_source: None,
       source: NormalModuleSource::Unbuild,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
@@ -220,6 +224,10 @@ impl NormalModule {
   pub fn loaders_mut_vec(&mut self) -> &mut Vec<BoxLoader> {
     &mut self.loaders
   }
+
+  pub fn contains_inline_loader(&self) -> bool {
+    self.contains_inline_loader
+  }
 }
 
 impl Identifiable for NormalModule {
@@ -239,8 +247,8 @@ impl Module for NormalModule {
     self.parser_and_generator.source_types()
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
-    self.original_source.as_deref()
+  fn original_source(&self) -> Option<BoxSource> {
+    self.original_source.clone()
   }
 
   fn readable_identifier(&self, context: &Context) -> Cow<str> {
@@ -267,17 +275,15 @@ impl Module for NormalModule {
 
     build_context.plugin_driver.before_loaders(self).await?;
 
-    let loader_result = {
-      run_loaders(
-        &self.loaders,
-        &self.resource_data,
-        &[Box::new(LoaderRunnerPluginProcessResource {
-          plugin_driver: build_context.plugin_driver.clone(),
-        })],
-        build_context.compiler_context,
-      )
-      .await
-    };
+    let loader_result = run_loaders(
+      &self.loaders,
+      &self.resource_data,
+      &[Box::new(LoaderRunnerPluginProcessResource {
+        plugin_driver: build_context.plugin_driver.clone(),
+      })],
+      build_context.compiler_context,
+    )
+    .await;
     let (loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
       Err(e) => {

@@ -10,7 +10,7 @@
 import { HookMap, SyncBailHook, SyncWaterfallHook } from "tapable";
 import { concatComparators, Comparator } from "../util/comparators";
 import { smartGrouping, GroupConfig } from "../util/smartGrouping";
-import type { Compilation } from "../Compilation";
+import type { Compilation } from "../compilation";
 import { JsStats, JsStatsError, JsStatsWarning } from "@rspack/binding";
 
 export type KnownStatsFactoryContext = {

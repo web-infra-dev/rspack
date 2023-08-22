@@ -98,7 +98,7 @@ async fn run(relative_path: &str, #[cfg(feature = "tracing")] layer: Layer) {
   compiler
     .build()
     .await
-    .unwrap_or_else(|e| panic!("{e:?}, failed to compile in fixtrue {bundle_dir:?}"));
+    .unwrap_or_else(|e| panic!("{e:?}, failed to compile in fixture {bundle_dir:?}"));
   println!("{:?}", start.elapsed());
   #[cfg(feature = "hmr")]
   {

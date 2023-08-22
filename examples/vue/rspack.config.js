@@ -31,6 +31,19 @@ const config = {
 				}
 			},
 			{
+				test: /\.ts$/,
+				loader: "builtin:swc-loader",
+				options: {
+					sourceMap: true,
+					jsc: {
+						parser: {
+							syntax: "typescript"
+						}
+					}
+				},
+				type: "javascript/auto"
+			},
+			{
 				test: /\.less$/,
 				loader: "less-loader",
 				type: "css"

@@ -11,6 +11,7 @@ import * as tapable from "tapable";
 import { Source } from "webpack-sources";
 
 import type {
+	ExternalObject,
 	JsAssetInfo,
 	JsChunk,
 	JsCompatSource,
@@ -30,18 +31,18 @@ import {
 } from "./config";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import ResolverFactory from "./ResolverFactory";
-import { ChunkGroup } from "./ChunkGroup";
-import { Compiler } from "./Compiler";
+import { ChunkGroup } from "./chunk_group";
+import { Compiler } from "./compiler";
 import ErrorHelpers from "./ErrorHelpers";
 import { LogType, Logger } from "./logging/Logger";
-import { NormalModule } from "./NormalModule";
-import { NormalModuleFactory } from "./NormalModuleFactory";
+import { NormalModule } from "./normalModule";
+import { NormalModuleFactory } from "./normalModuleFactory";
 import {
 	Stats,
 	normalizeFilter,
 	normalizeStatsPreset,
 	optionsOrFallback
-} from "./Stats";
+} from "./stats";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
 import { concatErrorMsgAndStack, isJsStatsError, toJsAssetInfo } from "./util";
@@ -429,6 +430,10 @@ export class Compilation {
 		message: string
 	) {
 		this.#inner.pushDiagnostic(severity, title, message);
+	}
+
+	__internal__pushNativeDiagnostics(diagnostics: ExternalObject<any>) {
+		this.#inner.pushNativeDiagnostics(diagnostics);
 	}
 
 	get errors() {

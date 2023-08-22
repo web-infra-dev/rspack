@@ -16,8 +16,10 @@ test  = false
 [dependencies]
 rspack_binding_options                  = { path = "../rspack_binding_options" }
 rspack_core                             = { path = "../rspack_core" }
+rspack_error                            = { path = "../rspack_error" }
 rspack_fs                               = { path = "../rspack_fs", features = ["async", "rspack-error"] }
 rspack_ids                              = { path = "../rspack_ids" }
+rspack_loader_runner                    = { path = "../rspack_loader_runner" }
 rspack_loader_sass                      = { path = "../rspack_loader_sass" }
 rspack_loader_swc                       = { path = "../rspack_loader_swc" }
 rspack_plugin_asset                     = { path = "../rspack_plugin_asset" }
@@ -36,6 +38,7 @@ rspack_plugin_wasm                      = { path = "../rspack_plugin_wasm" }
 rspack_regex                            = { path = "../rspack_regex" }
 rspack_tracing                          = { path = "../rspack_tracing" }
 
+async-trait    = { workspace = true }
 cargo-rst      = { path = "../cargo-rst" }
 schemars       = { workspace = true }
 serde          = { workspace = true }

@@ -19,14 +19,14 @@ import type {
 	RawFuncUseCtx
 } from "@rspack/binding";
 import assert from "assert";
-import { Compiler } from "../Compiler";
-import { normalizeStatsPreset } from "../Stats";
+import { Compiler } from "../compiler";
+import { normalizeStatsPreset } from "../stats";
 import { isNil } from "../util";
 import {
 	ComposeJsUseOptions,
 	LoaderContext,
 	createRawModuleRuleUses
-} from "./adapterRuleUse";
+} from "./adapter-rule-use";
 import {
 	CrossOriginLoading,
 	EntryNormalized,
@@ -663,6 +663,7 @@ function getRawOptimization(
 ): RawOptions["optimization"] {
 	assert(
 		!isNil(optimization.moduleIds) &&
+			!isNil(optimization.chunkIds) &&
 			!isNil(optimization.removeAvailableModules) &&
 			!isNil(optimization.removeEmptyChunks) &&
 			!isNil(optimization.sideEffects) &&
@@ -670,6 +671,7 @@ function getRawOptimization(
 		"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash should not be nil after defaults"
 	);
 	return {
+		chunkIds: optimization.chunkIds,
 		splitChunks: toRawSplitChunksOptions(optimization.splitChunks),
 		moduleIds: optimization.moduleIds,
 		removeAvailableModules: optimization.removeAvailableModules,

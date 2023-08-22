@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use crate::{DependencyCondition, DependencyId, ModuleGraph, ModuleIdentifier, RuntimeSpec};
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
@@ -16,8 +18,9 @@ impl From<usize> for ConnectionId {
     Self(id)
   }
 }
+// ,
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone)]
 pub struct ModuleGraphConnection {
   /// The referencing module identifier
   pub original_module_identifier: Option<ModuleIdentifier>,
@@ -27,8 +30,35 @@ pub struct ModuleGraphConnection {
 
   /// The referencing dependency id
   pub dependency_id: DependencyId,
+  active: bool,
+  conditional: bool,
+  condition: Option<DependencyCondition>,
+}
 
-  active: Option<bool>,
+/// implementing hash by hand because condition maybe a function, which can't be hash
+impl Hash for ModuleGraphConnection {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.original_module_identifier.hash(state);
+    self.module_identifier.hash(state);
+    self.dependency_id.hash(state);
+    self.active.hash(state);
+    self.conditional.hash(state);
+  }
+}
+/// implementing hash by hand because condition maybe a function, which can't be hash
+impl PartialEq for ModuleGraphConnection {
+  fn eq(&self, other: &Self) -> bool {
+    self.original_module_identifier == other.original_module_identifier
+      && self.module_identifier == other.module_identifier
+      && self.dependency_id == other.dependency_id
+      && self.active == other.active
+      && self.conditional == other.conditional
+  }
+}
+
+/// implementing eq
+impl Eq for ModuleGraphConnection {
+  fn assert_receiver_is_total_eq(&self) {}
 }
 
 impl ModuleGraphConnection {
@@ -36,22 +66,27 @@ impl ModuleGraphConnection {
     original_module_identifier: Option<ModuleIdentifier>,
     dependency_id: DependencyId,
     module_identifier: ModuleIdentifier,
+    condition: Option<DependencyCondition>,
   ) -> Self {
+    let active = !matches!(condition, Some(DependencyCondition::False));
+    let conditional = condition.is_some();
     Self {
       original_module_identifier,
       module_identifier,
       dependency_id,
-      active: None,
+      active,
+      conditional,
+      condition,
     }
   }
 
   pub fn set_active(&mut self, value: bool) {
-    self.active = Some(value);
+    self.active = value;
   }
 
   pub fn is_active(&self, module_graph: &ModuleGraph, runtime: &RuntimeSpec) -> bool {
-    if let Some(value) = self.active {
-      return value;
+    if !self.conditional {
+      return self.active;
     }
     self
       .get_condition_state(module_graph, runtime)
@@ -59,8 +94,8 @@ impl ModuleGraphConnection {
   }
 
   pub fn is_target_active(&self, module_graph: &ModuleGraph, runtime: &RuntimeSpec) -> bool {
-    if let Some(value) = self.active {
-      return value;
+    if !self.conditional {
+      return self.active;
     }
     self.get_condition_state(module_graph, runtime).is_true()
   }
@@ -70,24 +105,23 @@ impl ModuleGraphConnection {
     module_graph: &ModuleGraph,
     runtime: &RuntimeSpec,
   ) -> ConnectionState {
-    if let Some(value) = self.active {
-      return ConnectionState::Bool(value);
+    if !self.conditional {
+      return ConnectionState::Bool(self.active);
     }
     self.get_condition_state(module_graph, runtime)
   }
 
-  // Here avoid move condition, so use dependency id to search
+  /// ## Panic
+  /// This function will panic if we don't have condition, make sure you checked if `condition`
+  /// exists before you invoke this function
+  /// Here avoid move condition, so use dependency id to search
   pub fn get_condition_state(
     &self,
     module_graph: &ModuleGraph,
     runtime: &RuntimeSpec,
   ) -> ConnectionState {
-    let dependency = module_graph
-      .dependency_by_id(&self.dependency_id)
-      .expect("should have dependency");
-    match dependency.get_condition(module_graph) {
-      DependencyCondition::Nil => ConnectionState::Bool(false),
-      DependencyCondition::False => ConnectionState::Bool(true),
+    match self.condition.as_ref().expect("should have condition") {
+      DependencyCondition::False => ConnectionState::Bool(false),
       DependencyCondition::Fn(f) => f(self, runtime, module_graph),
     }
   }
@@ -95,20 +129,16 @@ impl ModuleGraphConnection {
 
 pub enum ConnectionState {
   Bool(bool),
+  CircularConnection,
+  TransitiveOnly,
 }
 
 impl ConnectionState {
   pub fn is_true(&self) -> bool {
-    match self {
-      ConnectionState::Bool(bool) => *bool,
-    }
-    // other should return false
+    matches!(self, ConnectionState::Bool(true))
   }
 
   pub fn is_not_false(&self) -> bool {
-    match self {
-      ConnectionState::Bool(bool) => *bool,
-    }
-    // other should return false
+    !matches!(self, ConnectionState::Bool(false))
   }
 }

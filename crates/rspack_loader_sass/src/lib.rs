@@ -370,6 +370,8 @@ pub struct SassLoader {
   options: SassLoaderOptions,
 }
 
+pub const SASS_LOADER_IDENTIFIER: &str = "builtin:sass-loader";
+
 impl SassLoader {
   pub fn new(options: SassLoaderOptions) -> Self {
     Self { options }
@@ -505,7 +507,7 @@ impl Loader<LoaderRunnerContext> for SassLoader {
     loader_context.content = Some(result.css.into());
     loader_context.source_map = source_map;
     loader_context
-      .diagnostic
+      .diagnostics
       .append(&mut rx.into_iter().flatten().collect_vec());
     Ok(())
   }

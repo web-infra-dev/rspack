@@ -7,6 +7,7 @@ use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
 use rspack_core::ModuleIdentifier;
 use rspack_core::{rspack_sources::SourceExt, NormalModuleSource};
+use rspack_error::Diagnostic;
 use rspack_identifier::Identifier;
 use rspack_napi_shared::NapiResultExt;
 
@@ -309,10 +310,15 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_stats(&self, reference: Reference<JsCompilation>, env: Env) -> Result<JsStats> {
-    Ok(JsStats::new(reference.share_with(env, |compilation| {
-      Ok(compilation.inner.get_stats())
-    })?))
+  pub fn push_native_diagnostics(&mut self, mut diagnostics: External<Vec<Diagnostic>>) {
+    while let Some(diagnostic) = diagnostics.pop() {
+      self.inner.push_diagnostic(diagnostic);
+    }
+  }
+
+  #[napi]
+  pub fn get_stats(&self) -> Result<JsStats> {
+    self.inner.get_stats().try_into()
   }
 
   #[napi]
