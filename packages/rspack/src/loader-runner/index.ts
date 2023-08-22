@@ -698,10 +698,6 @@ function iteratePitchingLoaders(
 		return iteratePitchingLoaders(loaderContext, args, callback);
 	}
 
-	if (currentLoaderObject.path.includes("esm/index.js")) {
-		console.log(loaderContext);
-	}
-
 	// load loader module
 	loadLoader(currentLoaderObject, function (err: Error) {
 		if (err) {
