@@ -557,7 +557,7 @@ impl NormalModuleFactory {
           .resolve_loader(
             compiler_options,
             context,
-            &loader_resolver,
+            loader_resolver,
             loader_request,
             loader_options,
           )
