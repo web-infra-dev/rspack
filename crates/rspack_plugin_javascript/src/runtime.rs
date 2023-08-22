@@ -200,9 +200,11 @@ pub fn render_chunk_init_fragments(
   render_init_fragments(source, &mut fragments)
 }
 
-pub fn render_init_fragments(source: BoxSource, fragments: &mut [InitFragment]) -> BoxSource {
+pub fn render_init_fragments(source: BoxSource, fragments: &mut Vec<InitFragment>) -> BoxSource {
   // here use sort_by_key because need keep order equal stage fragments
-  fragments.sort_by_key(|m| m.stage.clone());
+  fragments.sort_by_key(|m| m.stage);
+  // merge same init fragments
+  fragments.dedup();
 
   let mut sources = ConcatSource::default();
 
