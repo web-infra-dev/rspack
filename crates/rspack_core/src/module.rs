@@ -72,7 +72,8 @@ pub struct BuildMeta {
   pub default_object: BuildMetaDefaultObject,
   pub module_argument: &'static str,
   pub exports_argument: &'static str,
-  pub side_effect_free: bool,
+  // TODO: Don't delete this comment, it will be used in near future
+  // pub side_effect_free: bool,
 }
 
 impl Default for BuildMeta {
@@ -86,7 +87,7 @@ impl Default for BuildMeta {
       default_object: Default::default(),
       module_argument: "module",
       exports_argument: "exports",
-      side_effect_free: false,
+      // side_effect_free: false,
     }
   }
 }
