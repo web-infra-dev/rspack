@@ -2271,6 +2271,7 @@ dependencies = [
  "rspack_error",
  "rspack_identifier",
  "rspack_ids",
+ "rspack_loader_runner",
  "rspack_loader_sass",
  "rspack_loader_swc",
  "rspack_napi_shared",
@@ -2297,6 +2298,7 @@ dependencies = [
  "rspack_plugin_wasm",
  "rspack_plugin_worker",
  "rspack_regex",
+ "rustc-hash",
  "serde",
  "serde_json",
  "swc_core",
@@ -2438,6 +2440,7 @@ name = "rspack_ids"
 version = "0.1.0"
 dependencies = [
  "dashmap",
+ "itertools",
  "once_cell",
  "rayon",
  "regex",
@@ -2911,11 +2914,14 @@ dependencies = [
 name = "rspack_testing"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "cargo-rst",
  "rspack_binding_options",
  "rspack_core",
+ "rspack_error",
  "rspack_fs",
  "rspack_ids",
+ "rspack_loader_runner",
  "rspack_loader_sass",
  "rspack_loader_swc",
  "rspack_plugin_asset",

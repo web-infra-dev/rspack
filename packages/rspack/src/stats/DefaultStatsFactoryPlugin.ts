@@ -10,7 +10,7 @@
 import { compareSelect, compareIds as _compareIds } from "../util/comparators";
 import { makePathsRelative } from "../util/identifier";
 import * as util from "node:util";
-import type { Compiler } from "../Compiler";
+import type { Compiler } from "../compiler";
 import type { StatsOptions } from "../config";
 import type { GroupConfig } from "../util/smartGrouping";
 
@@ -527,7 +527,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 		},
 		hash: (object, _compilation, context: KnownStatsFactoryContext) => {
-			object.hash = context._inner.getHash();
+			object.hash = context._inner.getHash() ?? undefined;
 		},
 		version: object => {
 			const { version, webpackVersion } = require("../../package.json");

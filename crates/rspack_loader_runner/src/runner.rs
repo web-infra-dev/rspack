@@ -143,48 +143,48 @@ pub struct LoaderContext<'c, C> {
 
   pub asset_filenames: HashSet<String>,
 
-  pub(crate) loader_index: usize,
-  pub(crate) loader_items: LoaderItemList<'c, C>,
+  pub __loader_index: usize,
+  pub __loader_items: LoaderItemList<'c, C>,
   #[derivative(Debug = "ignore")]
-  pub(crate) plugins: &'c [Box<dyn LoaderRunnerPlugin>],
-  pub(crate) resource_data: &'c ResourceData,
+  pub __plugins: &'c [Box<dyn LoaderRunnerPlugin>],
+  pub __resource_data: &'c ResourceData,
 
-  pub diagnostic: Vec<Diagnostic>,
+  pub diagnostics: Vec<Diagnostic>,
 }
 
 impl<'c, C> LoaderContext<'c, C> {
   pub fn remaining_request(&self) -> LoaderItemList<'_, C> {
-    if self.loader_index >= self.loader_items.len() - 1 {
+    if self.__loader_index >= self.__loader_items.len() - 1 {
       return Default::default();
     }
-    LoaderItemList(&self.loader_items[self.loader_index + 1..])
+    LoaderItemList(&self.__loader_items[self.__loader_index + 1..])
   }
 
   pub fn current_request(&self) -> LoaderItemList<'_, C> {
-    LoaderItemList(&self.loader_items[self.loader_index..])
+    LoaderItemList(&self.__loader_items[self.__loader_index..])
   }
 
   pub fn previous_request(&self) -> LoaderItemList<'_, C> {
-    LoaderItemList(&self.loader_items[..self.loader_index])
+    LoaderItemList(&self.__loader_items[..self.__loader_index])
   }
 
   pub fn request(&self) -> LoaderItemList<'_, C> {
-    LoaderItemList(&self.loader_items[..])
+    LoaderItemList(&self.__loader_items[..])
   }
 
   pub fn current_loader(&self) -> &LoaderItem<C> {
-    &self.loader_items[self.loader_index]
+    &self.__loader_items[self.__loader_index]
   }
 
   pub fn loader_index(&self) -> usize {
-    self.loader_index
+    self.__loader_index
   }
 }
 
 async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) -> Result<()> {
-  for plugin in loader_context.plugins {
+  for plugin in loader_context.__plugins {
     if let Some(processed_resource) = plugin
-      .process_resource(loader_context.resource_data)
+      .process_resource(loader_context.__resource_data)
       .await?
     {
       loader_context.content = Some(processed_resource);
@@ -192,16 +192,16 @@ async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) ->
   }
 
   if loader_context.content.is_none() {
-    let result = tokio::fs::read(&loader_context.resource_data.resource_path).await?;
+    let result = tokio::fs::read(&loader_context.__resource_data.resource_path).await?;
     loader_context.content = Some(Content::from(result));
   }
 
   // Bail out if loader does not exist,
   // or the last loader has been executed.
-  if loader_context.loader_index == 0
-    && (loader_context.loader_items.get(0).is_none()
+  if loader_context.__loader_index == 0
+    && (loader_context.__loader_items.get(0).is_none()
       || loader_context
-        .loader_items
+        .__loader_items
         .get(0)
         .map(|loader| loader.normal_executed())
         .unwrap_or_default())
@@ -209,12 +209,12 @@ async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) ->
     return Ok(());
   }
 
-  loader_context.loader_index = loader_context.loader_items.len() - 1;
+  loader_context.__loader_index = loader_context.__loader_items.len() - 1;
   iterate_normal_loaders(loader_context).await
 }
 
 async fn create_loader_context<'c, C: 'c>(
-  loader_items: &'c [LoaderItem<C>],
+  __loader_items: &'c [LoaderItem<C>],
   resource_data: &'c ResourceData,
   plugins: &'c [Box<dyn LoaderRunnerPlugin>],
   context: C,
@@ -239,11 +239,11 @@ async fn create_loader_context<'c, C: 'c>(
     context,
     source_map: None,
     additional_data: None,
-    loader_index: 0,
-    loader_items: LoaderItemList(loader_items),
-    plugins,
-    resource_data,
-    diagnostic: vec![],
+    __loader_index: 0,
+    __loader_items: LoaderItemList(__loader_items),
+    __plugins: plugins,
+    __resource_data: resource_data,
+    diagnostics: vec![],
   };
 
   Ok(loader_context)
@@ -254,10 +254,10 @@ async fn iterate_normal_loaders<C: Send>(loader_context: &mut LoaderContext<'_, 
   let current_loader_item = loader_context.current_loader();
 
   if current_loader_item.normal_executed() {
-    if loader_context.loader_index == 0 {
+    if loader_context.__loader_index == 0 {
       return Ok(());
     }
-    loader_context.loader_index -= 1;
+    loader_context.__loader_index -= 1;
     return iterate_normal_loaders(loader_context).await;
   }
 
@@ -272,14 +272,14 @@ async fn iterate_normal_loaders<C: Send>(loader_context: &mut LoaderContext<'_, 
 async fn iterate_pitching_loaders<C: Send>(
   loader_context: &mut LoaderContext<'_, C>,
 ) -> Result<()> {
-  if loader_context.loader_index >= loader_context.loader_items.len() {
+  if loader_context.__loader_index >= loader_context.__loader_items.len() {
     return process_resource(loader_context).await;
   }
 
   let current_loader_item = loader_context.current_loader();
 
   if current_loader_item.pitch_executed() {
-    loader_context.loader_index += 1;
+    loader_context.__loader_index += 1;
     return iterate_pitching_loaders(loader_context).await;
   }
 
@@ -295,10 +295,10 @@ async fn iterate_pitching_loaders<C: Send>(
   // Or, if a pitching loader finishes the normal stage, then we should execute backwards.
   // Yes, the second one is a backdoor for JS loaders.
   if loader_context.content.is_some() || current_loader_item.normal_executed() {
-    if loader_context.loader_index == 0 {
+    if loader_context.__loader_index == 0 {
       return Ok(());
     }
-    loader_context.loader_index -= 1;
+    loader_context.__loader_index -= 1;
     iterate_normal_loaders(loader_context).await?;
   } else {
     iterate_pitching_loaders(loader_context).await?;
@@ -324,8 +324,8 @@ impl<C> TryFrom<LoaderContext<'_, C>> for TWithDiagnosticArray<LoaderResult> {
   type Error = rspack_error::Error;
   fn try_from(loader_context: LoaderContext<'_, C>) -> std::result::Result<Self, Self::Error> {
     let content = loader_context.content.ok_or_else(|| {
-      if !loader_context.loader_items.is_empty() {
-        let loader = loader_context.loader_items[0].to_string();
+      if !loader_context.__loader_items.is_empty() {
+        let loader = loader_context.__loader_items[0].to_string();
         internal_error!("Final loader({loader}) didn't return a Buffer or String")
       } else {
         internal_error!("Content is not available, it is a bug")
@@ -344,7 +344,7 @@ impl<C> TryFrom<LoaderContext<'_, C>> for TWithDiagnosticArray<LoaderResult> {
         source_map: loader_context.source_map,
         additional_data: loader_context.additional_data,
       }
-      .with_diagnostic(loader_context.diagnostic),
+      .with_diagnostic(loader_context.diagnostics),
     )
   }
 }

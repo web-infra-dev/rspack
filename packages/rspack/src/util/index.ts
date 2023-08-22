@@ -1,5 +1,5 @@
 import type { JsAssetInfo, JsStatsError } from "@rspack/binding";
-import { AssetInfo } from "../Compilation";
+import { AssetInfo } from "../compilation";
 
 export function mapValues(
 	record: Record<string, string>,
@@ -38,6 +38,23 @@ export const toObject = (input: string | Buffer | object): object => {
 
 	return JSON.parse(s);
 };
+
+export function serializeObject(
+	map: string | object | undefined | null
+): Buffer | undefined {
+	if (isNil(map)) {
+		return undefined;
+	}
+
+	if (typeof map === "string") {
+		if (map) {
+			return toBuffer(map);
+		}
+		return undefined;
+	}
+
+	return toBuffer(JSON.stringify(map));
+}
 
 export function isPromiseLike(value: unknown): value is Promise<any> {
 	return (

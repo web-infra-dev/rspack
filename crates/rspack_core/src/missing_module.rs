@@ -3,7 +3,7 @@ use std::hash::Hash;
 
 use rspack_error::Result;
 use rspack_identifier::{Identifiable, Identifier};
-use rspack_sources::{RawSource, Source, SourceExt};
+use rspack_sources::{BoxSource, RawSource, SourceExt};
 use serde_json::json;
 
 use crate::{CodeGenerationResult, Compilation, Module, ModuleIdentifier, ModuleType, SourceType};
@@ -39,7 +39,7 @@ impl Module for MissingModule {
     &[SourceType::JavaScript]
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
+  fn original_source(&self) -> Option<BoxSource> {
     None
   }
 

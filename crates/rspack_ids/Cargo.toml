@@ -9,6 +9,7 @@ version    = "0.1.0"
 
 [dependencies]
 dashmap      = { workspace = true }
+itertools    = { workspace = true }
 once_cell    = { workspace = true }
 rayon        = { workspace = true }
 regex        = { workspace = true }

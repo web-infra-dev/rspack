@@ -3,10 +3,9 @@ use std::{
   convert::TryFrom,
   path::{Path, PathBuf},
   str::FromStr,
-  sync::Arc,
 };
 
-use rspack_core::{BoxLoader, BoxPlugin, CompilerOptions, ModuleType, PluginExt};
+use rspack_core::{BoxPlugin, CompilerOptions, ModuleType, PluginExt};
 use rspack_plugin_css::pxtorem::options::PxToRemOptions;
 use rspack_plugin_html::config::HtmlPluginConfig;
 use rspack_regex::RspackRegex;
@@ -66,6 +65,10 @@ fn default_optimization_module_ids() -> String {
   "named".to_string()
 }
 
+fn default_optimization_chunk_ids() -> String {
+  "named".to_string()
+}
+
 fn default_optimization_side_effects() -> String {
   "false".to_string()
 }
@@ -117,6 +120,8 @@ pub struct Optimization {
   pub remove_empty_chunks: bool,
   #[serde(default = "default_optimization_module_ids")]
   pub module_ids: String,
+  #[serde(default = "default_optimization_chunk_ids")]
+  pub chunk_ids: String,
   #[serde(default = "default_optimization_side_effects")]
   pub side_effects: String,
 }
@@ -296,7 +301,7 @@ pub enum ModuleRuleTest {
 #[derive(Debug, JsonSchema, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub struct ModuleRuleUse {
-  builtin_loader: String,
+  loader: String,
   options: Option<String>,
 }
 
@@ -317,6 +322,15 @@ impl From<PresetEnv> for rspack_core::PresetEnv {
       }),
       targets: preset_env.targets,
       core_js: preset_env.core_js,
+    }
+  }
+}
+
+impl From<ModuleRuleUse> for rspack_core::ModuleRuleUseLoader {
+  fn from(value: ModuleRuleUse) -> Self {
+    Self {
+      loader: value.loader,
+      options: value.options,
     }
   }
 }
@@ -356,29 +370,7 @@ impl TestConfig {
           }
         }),
         r#use: c::ModuleRuleUse::Array(
-          rule
-            .r#use
-            .into_iter()
-            .map(|i| match i.builtin_loader.as_str() {
-              "builtin:sass-loader" => Arc::new(rspack_loader_sass::SassLoader::new(
-                i.options
-                  .map(|options| {
-                    serde_json::from_str::<rspack_loader_sass::SassLoaderOptions>(&options)
-                      .expect("should give a right loader options")
-                  })
-                  .unwrap_or_default(),
-              )) as BoxLoader,
-              "builtin:swc-loader" => Arc::new(rspack_loader_swc::SwcLoader::new(
-                i.options
-                  .map(|options| {
-                    serde_json::from_str::<rspack_loader_swc::SwcLoaderJsOptions>(&options)
-                      .expect("should give a right loader options")
-                  })
-                  .unwrap_or_default(),
-              )) as BoxLoader,
-              _ => panic!("should give a right loader"),
-            })
-            .collect::<Vec<BoxLoader>>(),
+          rule.r#use.into_iter().map(|i| i.into()).collect::<Vec<_>>(),
         ),
         side_effects: rule.side_effect,
         r#type: rule
@@ -596,6 +588,11 @@ impl TestConfig {
     } else {
       plugins.push(rspack_ids::DeterministicModuleIdsPlugin::default().boxed());
     }
+    if self.optimization.chunk_ids == "named" {
+      plugins.push(rspack_ids::NamedChunkIdsPlugin::new(None, None).boxed());
+    } else {
+      plugins.push(rspack_ids::DeterministicChunkIdsPlugin::default().boxed());
+    }
     plugins.push(rspack_ids::StableNamedChunkIdsPlugin::new(None, None).boxed());
     // Notice the plugin need to be placed after SplitChunksPlugin
     plugins.push(rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin.boxed());
@@ -606,6 +603,9 @@ impl TestConfig {
       plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
     }
     plugins.push(rspack_plugin_externals::http_url_external_plugin(true));
+
+    // Support resolving builtin loaders on the Native side
+    plugins.push(crate::loader::BuiltinLoaderResolver.boxed());
 
     (options, plugins)
   }

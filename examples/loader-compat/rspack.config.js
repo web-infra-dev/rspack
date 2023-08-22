@@ -90,7 +90,7 @@ const config = {
 				type: "javascript/auto"
 			},
 			{
-				test: /\h.png$/,
+				test: /h\.png$/,
 				use: ["file-loader"]
 			},
 			{
@@ -106,7 +106,7 @@ const config = {
 			},
 			{
 				test: /\.png$/,
-				exclude: /\h.png$/,
+				exclude: /h\.png$/,
 				use: ({ resource, realResource, resourceQuery, compiler, issuer }) => {
 					console.log('resource', resource)
 					console.log('issuer',issuer)

@@ -6,7 +6,7 @@
 "use strict";
 
 const { ConcatSource } = require("webpack-sources");
-const Compilation = require("../Compilation");
+const Compilation = require("../compilation");
 const ModuleFilenameHelpers = require("./ModuleFilenameHelpers");
 const Template = require("./Template");
 const createSchemaValidation = require("./util/create-schema-validation");

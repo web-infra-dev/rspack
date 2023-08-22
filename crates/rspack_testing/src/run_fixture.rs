@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use cargo_rst::{helper::make_relative_from, rst::RstBuilder};
-use rspack_binding_options::{JsLoaderRunner, RawOptions, RawOptionsApply};
+use rspack_binding_options::{RawOptions, RawOptionsApply};
 use rspack_core::{BoxPlugin, Compiler, CompilerOptions};
 use rspack_fs::AsyncNativeFileSystem;
 use rspack_tracing::enable_tracing_by_env;
@@ -15,9 +15,7 @@ pub fn apply_from_fixture(fixture_path: &Path) -> (CompilerOptions, Vec<BoxPlugi
     let raw = evaluate_to_json(&js_config);
     let raw: RawOptions = serde_json::from_slice(&raw).expect("ok");
     let mut plugins = Vec::new();
-    let compiler_options = raw
-      .apply(&mut plugins, &JsLoaderRunner::noop())
-      .expect("should be ok");
+    let compiler_options = raw.apply(&mut plugins).expect("should be ok");
     return (compiler_options, plugins);
   }
   let json_config = fixture_path.join("test.config.json");
@@ -27,7 +25,7 @@ pub fn apply_from_fixture(fixture_path: &Path) -> (CompilerOptions, Vec<BoxPlugi
 
 #[tokio::main]
 pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
-  enable_tracing_by_env();
+  enable_tracing_by_env(&std::env::var("TRACE").ok().unwrap_or_default(), "stdout");
 
   let (options, plugins) = apply_from_fixture(fixture_path);
   // clean output
@@ -38,7 +36,7 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem
   compiler
     .build()
     .await
-    .unwrap_or_else(|e| panic!("failed to compile in fixtrue {fixture_path:?}, {e:#?}"));
+    .unwrap_or_else(|e| panic!("failed to compile in fixture {fixture_path:?}, {e:#?}"));
   let stats = compiler.compilation.get_stats();
   let output_name = make_relative_from(&compiler.options.output.path, fixture_path);
   let rst = RstBuilder::default()
@@ -50,7 +48,7 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem
   let errors = stats.get_errors();
   if !warnings.is_empty() && errors.is_empty() {
     println!(
-      "Warning to compile in fixtrue {:?}, warnings: {:?}",
+      "Warning to compile in fixture {:?}, warnings: {:?}",
       fixture_path,
       stats
         .emit_diagnostics_string(true)
@@ -59,7 +57,7 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem
   }
   if !errors.is_empty() {
     panic!(
-      "Failed to compile in fixtrue {:?}, errors: {:?}",
+      "Failed to compile in fixture {:?}, errors: {:?}",
       fixture_path,
       stats
         .emit_diagnostics_string(true)
@@ -98,7 +96,7 @@ pub async fn test_rebuild_fixture(
   fixture_path: &Path,
   cb: Option<Box<dyn FnOnce(Compiler<AsyncNativeFileSystem>)>>,
 ) {
-  enable_tracing_by_env();
+  enable_tracing_by_env(&std::env::var("TRACE").ok().unwrap_or_default(), "stdout");
 
   let (options, plugins) = apply_from_fixture(fixture_path);
   // clean output
@@ -109,7 +107,7 @@ pub async fn test_rebuild_fixture(
   compiler
     .build()
     .await
-    .unwrap_or_else(|e| panic!("failed to compile in fixtrue {fixture_path:?}, {e:#?}"));
+    .unwrap_or_else(|e| panic!("failed to compile in fixture {fixture_path:?}, {e:#?}"));
 
   let mut files_map: HashMap<String, FsOptionEnum> = HashMap::new();
   let changed_files: HashSet<String> =
@@ -191,7 +189,7 @@ pub async fn test_rebuild_fixture(
   let errors = stats.get_errors();
   if !errors.is_empty() {
     panic!(
-      "Failed to compile in fixtrue {:?}, errors: {:?}",
+      "Failed to compile in fixture {:?}, errors: {:?}",
       fixture_path,
       stats
         .emit_diagnostics_string(true)

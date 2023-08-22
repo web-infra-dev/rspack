@@ -6,7 +6,6 @@ use rspack_core::{
 use rspack_error::internal_error;
 use serde::Deserialize;
 
-use crate::JsLoaderRunner;
 use crate::RawOptionsApply;
 
 #[derive(Debug, Deserialize)]
@@ -156,11 +155,7 @@ pub struct RawOutputOptions {
 
 impl RawOptionsApply for RawOutputOptions {
   type Options = OutputOptions;
-  fn apply(
-    self,
-    plugins: &mut Vec<BoxPlugin>,
-    _: &JsLoaderRunner,
-  ) -> Result<OutputOptions, rspack_error::Error> {
+  fn apply(self, plugins: &mut Vec<BoxPlugin>) -> Result<OutputOptions, rspack_error::Error> {
     self.apply_chunk_format_plugin(plugins)?;
     if let Some(chunk_loading_types) = self.enabled_chunk_loading_types.as_ref() {
       for chunk_loading_type in chunk_loading_types {

@@ -18,7 +18,6 @@ pub use context_element_dependency::*;
 mod const_dependency;
 use std::{
   any::Any,
-  borrow::Cow,
   fmt::{Debug, Display},
   hash::Hash,
 };
@@ -85,7 +84,7 @@ pub enum DependencyType {
   WasmExportImported,
   /// static exports
   StaticExports,
-  Custom(Cow<'static, str>),
+  Custom(Box<str>), // TODO it will increase large layout size
 }
 
 impl Display for DependencyType {
@@ -208,12 +207,48 @@ impl<T: ModuleDependency> AsModuleDependency for T {
   }
 }
 
-pub type DependencyConditionFn =
-  Box<dyn Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState>;
+pub type DependencyConditionFn = Box<dyn Function>;
+
+pub trait Function:
+  Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState + Send + Sync
+{
+  fn clone_boxed(&self) -> Box<dyn Function>;
+}
+
+/// Copy from https://github.com/rust-lang/rust/issues/24000#issuecomment-479425396
+impl<T> Function for T
+where
+  T: 'static
+    + Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState
+    + Send
+    + Sync
+    + Clone,
+{
+  fn clone_boxed(&self) -> Box<dyn Function> {
+    Box::new(self.clone())
+  }
+}
+
+impl Clone for Box<dyn Function> {
+  fn clone(&self) -> Self {
+    self.clone_boxed()
+  }
+}
+
+#[derive(Clone)]
 pub enum DependencyCondition {
-  Nil,
   False,
   Fn(DependencyConditionFn),
+}
+
+impl Debug for DependencyCondition {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      // Self::Nil => write!(f, "Nil"),
+      Self::False => write!(f, "False"),
+      Self::Fn(_) => write!(f, "Fn"),
+    }
+  }
 }
 
 pub trait ModuleDependency: Dependency {
@@ -243,8 +278,8 @@ pub trait ModuleDependency: Dependency {
     None
   }
 
-  fn get_condition(&self, _module_graph: &ModuleGraph) -> DependencyCondition {
-    DependencyCondition::Nil
+  fn get_condition(&self, _module_graph: &ModuleGraph) -> Option<DependencyCondition> {
+    None
   }
 
   fn get_referenced_exports(
