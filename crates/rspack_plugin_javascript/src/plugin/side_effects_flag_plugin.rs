@@ -1,45 +1,33 @@
-use std::{collections::hash_map::Entry, collections::VecDeque, hash::Hash, path::PathBuf};
-
-use rspack_core::ModuleIdentifier;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::common::SyntaxContext;
-use swc_core::common::{util::take::Take, GLOBALS};
+use swc_core::common::{Span, Spanned, SyntaxContext, GLOBALS};
 use swc_core::ecma::ast::*;
-use swc_core::ecma::atoms::{js_word, JsWord};
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
-use swc_node_comments::SwcComments;
 
 #[derive(Debug)]
 pub struct SideEffectsFlagPlugin {
-  top_level_ctxt: SyntaxContext,
   unresolved_ctxt: SyntaxContext,
-  module_identifier: ModuleIdentifier,
-  has_side_effects_stmt: bool,
+  // module_identifier: ModuleIdentifier,
+  side_effects_span: Option<Span>,
+  is_top_level: bool,
 }
 
 #[derive(Debug)]
 pub struct SyntaxContextInfo {
-  top_level_ctxt: SyntaxContext,
   unresolved_ctxt: SyntaxContext,
 }
 
 impl SyntaxContextInfo {
-  pub fn new(top_level_ctxt: SyntaxContext, unresolved_ctxt: SyntaxContext) -> Self {
-    Self {
-      top_level_ctxt,
-      unresolved_ctxt,
-    }
+  pub fn new(unresolved_ctxt: SyntaxContext) -> Self {
+    Self { unresolved_ctxt }
   }
 }
 
 impl SideEffectsFlagPlugin {
-  pub fn new(mark_info: SyntaxContextInfo, module_identifier: ModuleIdentifier) -> Self {
+  pub fn new(mark_info: SyntaxContextInfo) -> Self {
     Self {
-      top_level_ctxt: mark_info.top_level_ctxt,
       unresolved_ctxt: mark_info.unresolved_ctxt,
-      module_identifier,
-      has_side_effects_stmt: false,
+      side_effects_span: None,
+      is_top_level: true,
     }
   }
 }
@@ -54,7 +42,6 @@ impl Visit for SideEffectsFlagPlugin {
   fn visit_module(&mut self, node: &Module) {
     for module_item in &node.body {
       if !is_import_decl(module_item) {
-        self.analyze_module_item_side_effects(module_item);
         module_item.visit_with(self);
       }
     }
@@ -62,69 +49,70 @@ impl Visit for SideEffectsFlagPlugin {
 
   fn visit_script(&mut self, node: &Script) {
     for stmt in &node.body {
-      self.analyze_stmt_side_effects(stmt);
       stmt.visit_with(self);
     }
   }
 
   fn visit_stmt(&mut self, node: &Stmt) {
-    self.analyze_stmt_side_effects(node);
-  }
-}
-impl SideEffectsFlagPlugin {
-  fn analyze_module_item_side_effects(&mut self, ele: &ModuleItem) {
-    match ele {
-      ModuleItem::ModuleDecl(module_decl) => match module_decl {
-        ModuleDecl::ExportDecl(decl) => {
-          if !is_pure_decl(&decl.decl, self.unresolved_ctxt) {
-            self.has_side_effects_stmt = true;
-          }
-        }
-        ModuleDecl::ExportDefaultDecl(decl) => {
-          match decl.decl {
-            DefaultDecl::Class(ref class) => {
-              if !is_pure_class(&class.class, self.unresolved_ctxt) {
-                self.has_side_effects_stmt = true;
-              }
-            }
-            DefaultDecl::Fn(_) => {}
-            DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
-          };
-        }
-        ModuleDecl::ExportDefaultExpr(expr) => {
-          if !is_pure_expression(&expr.expr, self.unresolved_ctxt) {
-            self.has_side_effects_stmt = true;
-          }
-        }
-        ModuleDecl::ExportAll(_)
-        | ModuleDecl::Import(_)
-        | ModuleDecl::ExportNamed(_)
-        | ModuleDecl::TsImportEquals(_)
-        | ModuleDecl::TsExportAssignment(_)
-        | ModuleDecl::TsNamespaceExport(_) => {}
-      },
-      ModuleItem::Stmt(stmt) => self.analyze_stmt_side_effects(stmt),
+    if !self.is_top_level {
+      return;
     }
+    self.analyze_stmt_side_effects(node);
+    node.visit_children_with(self);
   }
 
+  fn visit_class_member(&mut self, node: &ClassMember) {
+    if let Some(key) = node.class_key() && key.is_computed() {
+      key.visit_with(self);
+    }
+
+    let top_level = self.is_top_level;
+    self.is_top_level = false;
+    node.visit_children_with(self);
+    self.is_top_level = top_level;
+  }
+
+  fn visit_fn_decl(&mut self, node: &FnDecl) {
+    let top_level = self.is_top_level;
+    self.is_top_level = false;
+    node.visit_children_with(self);
+    self.is_top_level = top_level;
+  }
+
+  fn visit_fn_expr(&mut self, node: &FnExpr) {
+    let top_level = self.is_top_level;
+    self.is_top_level = false;
+    node.visit_children_with(self);
+    self.is_top_level = top_level;
+  }
+
+  fn visit_arrow_expr(&mut self, node: &ArrowExpr) {
+    let top_level = self.is_top_level;
+    self.is_top_level = false;
+    node.visit_children_with(self);
+    self.is_top_level = top_level;
+  }
+}
+
+impl SideEffectsFlagPlugin {
   /// If we find a stmt that has side effects, we will skip the rest of the stmts.
   /// And mark the module as having side effects.
   fn analyze_stmt_side_effects(&mut self, ele: &Stmt) {
-    if !self.has_side_effects_stmt {
+    if self.side_effects_span.is_none() {
       match ele {
         Stmt::If(stmt) => {
           if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
-            self.has_side_effects_stmt = true;
+            self.side_effects_span = Some(stmt.span.clone());
           }
         }
         Stmt::While(stmt) => {
           if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
-            self.has_side_effects_stmt = true;
+            self.side_effects_span = Some(stmt.span.clone());
           }
         }
         Stmt::DoWhile(stmt) => {
           if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
-            self.has_side_effects_stmt = true;
+            self.side_effects_span = Some(stmt.span.clone());
           }
         }
         Stmt::For(stmt) => {
@@ -137,7 +125,7 @@ impl SideEffectsFlagPlugin {
           };
 
           if !pure_init {
-            self.has_side_effects_stmt = true;
+            self.side_effects_span = Some(stmt.span.clone());
             return;
           }
 
@@ -147,7 +135,7 @@ impl SideEffectsFlagPlugin {
           };
 
           if !pure_test {
-            self.has_side_effects_stmt = true;
+            self.side_effects_span = Some(stmt.span.clone());
             return;
           }
 
@@ -157,28 +145,28 @@ impl SideEffectsFlagPlugin {
           };
 
           if !pure_update {
-            self.has_side_effects_stmt = true;
+            self.side_effects_span = Some(stmt.span.clone());
           }
         }
         Stmt::Expr(stmt) => {
           if !is_pure_expression(&stmt.expr, self.unresolved_ctxt) {
-            self.has_side_effects_stmt = true;
+            self.side_effects_span = Some(stmt.span.clone());
           }
         }
         Stmt::Switch(stmt) => {
           if !is_pure_expression(&stmt.discriminant, self.unresolved_ctxt) {
-            self.has_side_effects_stmt = true;
+            self.side_effects_span = Some(stmt.span.clone());
           }
         }
         Stmt::Decl(stmt) => {
           if !is_pure_decl(stmt, self.unresolved_ctxt) {
-            self.has_side_effects_stmt = true;
+            self.side_effects_span = Some(stmt.span());
           }
         }
         Stmt::Empty(_) => {}
         Stmt::Labeled(_) => {}
         Stmt::Block(_) => {}
-        _ => self.has_side_effects_stmt = true,
+        _ => self.side_effects_span = Some(ele.span()),
       };
     }
   }
@@ -263,4 +251,27 @@ fn is_pure_var_decl(var: &VarDecl, unresolved_ctxt: SyntaxContext) -> bool {
 
 fn is_import_decl(module_item: &ModuleItem) -> bool {
   matches!(module_item, ModuleItem::ModuleDecl(ModuleDecl::Import(_)))
+}
+
+pub trait ClassKey {
+  fn class_key(&self) -> Option<&PropName>;
+}
+
+impl ClassKey for ClassMember {
+  fn class_key(&self) -> Option<&PropName> {
+    match self {
+      ClassMember::Constructor(c) => Some(&c.key),
+      ClassMember::Method(m) => Some(&m.key),
+      ClassMember::PrivateMethod(_) => None,
+      ClassMember::ClassProp(c) => Some(&c.key),
+      ClassMember::PrivateProp(_) => None,
+      ClassMember::TsIndexSignature(_) => unreachable!(),
+      ClassMember::Empty(_) => None,
+      ClassMember::StaticBlock(_) => None,
+      ClassMember::AutoAccessor(a) => match a.key {
+        Key::Private(_) => None,
+        Key::Public(ref public) => Some(public),
+      },
+    }
+  }
 }
