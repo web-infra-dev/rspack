@@ -580,17 +580,21 @@ impl TestConfig {
     }
     // plugins.push(rspack_plugin_externals::ExternalPlugin::default().boxed());
     plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
-    plugins.push(
-      rspack_plugin_devtool::DevtoolPlugin::new(rspack_plugin_devtool::DevtoolPluginOptions {
-        inline: options.devtool.inline(),
-        append: !options.devtool.hidden(),
-        namespace: options.output.unique_name.clone(),
-        columns: !options.devtool.cheap(),
-        no_sources: options.devtool.no_sources(),
-        public_path: None,
-      })
-      .boxed(),
-    );
+
+    if options.devtool.plugin_enabled() {
+      plugins.push(
+        rspack_plugin_devtool::DevtoolPlugin::new(rspack_plugin_devtool::DevtoolPluginOptions {
+          inline: options.devtool.inline(),
+          append: !options.devtool.hidden(),
+          namespace: options.output.unique_name.clone(),
+          columns: !options.devtool.cheap(),
+          no_sources: options.devtool.no_sources(),
+          public_path: None,
+        })
+        .boxed(),
+      );
+    }
+
     if self.optimization.module_ids == "named" {
       plugins.push(rspack_ids::NamedModuleIdsPlugin::default().boxed());
     } else {

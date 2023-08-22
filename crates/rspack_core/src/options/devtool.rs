@@ -71,6 +71,10 @@ impl Devtool {
     self.inner.contains(DevtoolFlags::EVAL)
   }
 
+  pub fn plugin_enabled(&self) -> bool {
+    !(self.inner.is_empty())
+  }
+
   /// for loader author whether need to care about source map.
   pub fn enabled(&self) -> bool {
     self.source_map() && self.module()
@@ -80,6 +84,11 @@ impl Devtool {
 impl From<String> for Devtool {
   fn from(s: String) -> Self {
     let mut devtool = Self::default();
+
+    if s.is_empty() {
+      return devtool;
+    }
+
     if s.contains("source-map") {
       devtool.add_source_map();
     }
