@@ -414,6 +414,7 @@ impl TestConfig {
         ),
         ..Default::default()
       },
+      resolve_loader: c::Resolve::default(),
       builtins: c::Builtins {
         define: self.builtins.define,
         provide: self.builtins.provide,
