@@ -5,7 +5,7 @@ use std::{
   str::FromStr,
 };
 
-use rspack_core::{BoxLoader, BoxPlugin, CompilerOptions, ModuleType, PluginExt};
+use rspack_core::{BoxPlugin, CompilerOptions, ModuleType, PluginExt};
 use rspack_plugin_html::config::HtmlPluginConfig;
 use rspack_regex::RspackRegex;
 use schemars::JsonSchema;
