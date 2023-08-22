@@ -18,7 +18,7 @@ use swc_core::{
 
 use crate::dependency::{
   HarmonyExportImportedSpecifierDependency, HarmonyImportDependency,
-  HarmonyImportSpecifierDependency, Specifier,
+  HarmonyImportSideEffectDependency, HarmonyImportSpecifierDependency, Specifier,
 };
 
 pub struct ImporterReferenceInfo {
@@ -114,12 +114,16 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
       self
         .dependencies
         .push(Box::new(HarmonyImportDependency::new(
-          request,
+          request.clone(),
           Some(importer_info.span.into()),
           importer_info.specifiers,
           dependency_type,
           importer_info.exports_all,
         )));
+      // TODO merge HarmonyImportSideEffectDependency and HarmonyImportDependency
+      self
+        .dependencies
+        .push(Box::new(HarmonyImportSideEffectDependency::new(request)));
     }
 
     // collect import reference info

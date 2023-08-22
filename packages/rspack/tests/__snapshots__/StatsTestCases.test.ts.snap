@@ -79,6 +79,13 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
               "moduleId": "10",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
               "moduleName": "./index.js",
+              "type": "esm import side effect",
+              "userRequest": "./raw.png",
+            },
+            {
+              "moduleId": "10",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+              "moduleName": "./index.js",
               "type": "esm import",
               "userRequest": "./raw.png",
             },
@@ -146,6 +153,13 @@ import rawModule from './raw.png'",
               "type": "esm import",
               "userRequest": "./stringModule",
             },
+            {
+              "moduleId": "10",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+              "moduleName": "./index.js",
+              "type": "esm import side effect",
+              "userRequest": "./stringModule",
+            },
           ],
           "size": 1,
           "source": "",
@@ -202,6 +216,13 @@ import rawModule from './raw.png'",
       "moduleType": "asset/resource",
       "name": "./raw.png",
       "reasons": [
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+          "moduleName": "./index.js",
+          "type": "esm import side effect",
+          "userRequest": "./raw.png",
+        },
         {
           "moduleId": "10",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
@@ -273,6 +294,13 @@ import rawModule from './raw.png'",
           "type": "esm import",
           "userRequest": "./stringModule",
         },
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+          "moduleName": "./index.js",
+          "type": "esm import side effect",
+          "userRequest": "./stringModule",
+        },
       ],
       "size": 1,
       "source": "",
@@ -308,17 +336,21 @@ asset bundle.js 446 bytes {main} [emitted] (name: main)
 Entrypoint main 446 bytes = bundle.js
 chunk {main} bundle.js (main) [entry]
   ./raw.png [692] {main}
+    esm import side effect ./raw.png [10]
     esm import ./raw.png [10]
   ./index.js [10] {main}
     entry ./index
   ./stringModule.js [363] {main}
     esm import ./stringModule [10]
+    esm import side effect ./stringModule [10]
 ./raw.png [692] {main}
+  esm import side effect ./raw.png [10]
   esm import ./raw.png [10]
 ./index.js [10] {main}
   entry ./index
 ./stringModule.js [363] {main}
   esm import ./stringModule [10]
+  esm import side effect ./stringModule [10]
 rspack compiled successfully (aa724e620c7dec1cbd69)"
 `;
 
@@ -1904,6 +1936,13 @@ console.log(a);
               "moduleId": "10",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
               "moduleName": "./index.js",
+              "type": "esm import side effect",
+              "userRequest": "cycle-alias/a",
+            },
+            {
+              "moduleId": "10",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+              "moduleName": "./index.js",
               "type": "esm import specifier",
               "userRequest": "cycle-alias/a",
             },
@@ -2009,6 +2048,13 @@ console.log(a);
           "moduleId": "10",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
           "moduleName": "./index.js",
+          "type": "esm import side effect",
+          "userRequest": "cycle-alias/a",
+        },
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+          "moduleName": "./index.js",
           "type": "esm import specifier",
           "userRequest": "cycle-alias/a",
         },
@@ -2048,11 +2094,13 @@ chunk {main} bundle.js (main) [entry]
     entry ./index
   <PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing) [280] {main}
     esm import cycle-alias/a [10]
+    esm import side effect cycle-alias/a [10]
     esm import specifier cycle-alias/a [10]
 ./index.js [10] {main}
   entry ./index
 <PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing) [280] {main}
   esm import cycle-alias/a [10]
+  esm import side effect cycle-alias/a [10]
   esm import specifier cycle-alias/a [10]
 
 error[internal]: Resolve error
@@ -2151,6 +2199,13 @@ console.log(a);
               "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
               "moduleName": "./index.js",
               "type": "esm import",
+              "userRequest": "pkg-a",
+            },
+            {
+              "moduleId": "10",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+              "moduleName": "./index.js",
+              "type": "esm import side effect",
               "userRequest": "pkg-a",
             },
             {
@@ -2256,6 +2311,13 @@ console.log(a);
           "moduleId": "10",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
           "moduleName": "./index.js",
+          "type": "esm import side effect",
+          "userRequest": "pkg-a",
+        },
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+          "moduleName": "./index.js",
           "type": "esm import specifier",
           "userRequest": "pkg-a",
         },
@@ -2295,11 +2357,13 @@ chunk {main} bundle.js (main) [entry]
     entry ./index
   <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing) [788] {main}
     esm import pkg-a [10]
+    esm import side effect pkg-a [10]
     esm import specifier pkg-a [10]
 ./index.js [10] {main}
   entry ./index
 <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing) [788] {main}
   esm import pkg-a [10]
+  esm import side effect pkg-a [10]
   esm import specifier pkg-a [10]
 
 error[internal]: Export should be relative path and start with "./", but got ../../index.js
@@ -2513,6 +2577,13 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
               "moduleId": "10",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
               "moduleName": "./index.js",
+              "type": "esm import side effect",
+              "userRequest": "./raw.png",
+            },
+            {
+              "moduleId": "10",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
+              "moduleName": "./index.js",
               "type": "esm import",
               "userRequest": "./raw.png",
             },
@@ -2567,6 +2638,13 @@ import rawModule from './raw.png'",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
               "moduleName": "./index.js",
               "type": "esm import",
+              "userRequest": "./stringModule",
+            },
+            {
+              "moduleId": "10",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
+              "moduleName": "./index.js",
+              "type": "esm import side effect",
               "userRequest": "./stringModule",
             },
           ],
@@ -2629,6 +2707,13 @@ import rawModule from './raw.png'",
           "moduleId": "10",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
           "moduleName": "./index.js",
+          "type": "esm import side effect",
+          "userRequest": "./raw.png",
+        },
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
+          "moduleName": "./index.js",
           "type": "esm import",
           "userRequest": "./raw.png",
         },
@@ -2683,6 +2768,13 @@ import rawModule from './raw.png'",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
           "moduleName": "./index.js",
           "type": "esm import",
+          "userRequest": "./stringModule",
+        },
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
+          "moduleName": "./index.js",
+          "type": "esm import side effect",
           "userRequest": "./stringModule",
         },
       ],

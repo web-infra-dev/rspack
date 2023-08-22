@@ -142,3 +142,22 @@ impl ConnectionState {
     !matches!(self, ConnectionState::Bool(false))
   }
 }
+
+pub fn add_connection_states(a: ConnectionState, b: ConnectionState) -> ConnectionState {
+  if matches!(a, ConnectionState::Bool(true)) || matches!(b, ConnectionState::Bool(true)) {
+    return ConnectionState::Bool(true);
+  }
+  if matches!(a, ConnectionState::Bool(false)) {
+    return ConnectionState::Bool(false);
+  }
+  if matches!(b, ConnectionState::Bool(false)) {
+    return ConnectionState::Bool(false);
+  }
+  if matches!(a, ConnectionState::TransitiveOnly) {
+    return b;
+  }
+  if matches!(b, ConnectionState::TransitiveOnly) {
+    return a;
+  }
+  a
+}

@@ -8,7 +8,7 @@ use rspack_identifier::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 mod connection;
-pub use connection::{ConnectionId, ConnectionState, ModuleGraphConnection};
+pub use connection::*;
 
 use crate::{
   to_identifier, BoxDependency, BoxModule, BuildDependency, BuildInfo, BuildMeta,

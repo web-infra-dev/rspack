@@ -21,15 +21,16 @@ use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, SourceExt, SourceMap, SourceMapSource,
   WithoutOriginalOptions,
 };
+use rustc_hash::FxHashSet as HashSet;
 use rustc_hash::FxHasher;
 use serde_json::json;
 
 use crate::{
-  contextify, get_context, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResult, Compilation, CompilerOptions, Context, DependencyTemplate, GenerateContext,
-  GeneratorOptions, LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
-  ParserOptions, Resolve, SourceType,
+  add_connection_states, contextify, get_context, BoxLoader, BoxModule, BuildContext, BuildInfo,
+  BuildMeta, BuildResult, CodeGenerationResult, Compilation, CompilerOptions, ConnectionState,
+  Context, DependencyTemplate, GenerateContext, GeneratorOptions, LibIdentOptions,
+  LoaderRunnerPluginProcessResource, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, SourceType,
 };
 
 bitflags! {
@@ -454,6 +455,40 @@ impl Module for NormalModule {
 
   fn get_context(&self) -> Option<&Context> {
     Some(&self.context)
+  }
+
+  // Port from https://github.com/webpack/webpack/blob/main/lib/NormalModule.js#L1120
+  fn get_side_effects_connection_state(
+    &self,
+    module_graph: &ModuleGraph,
+    module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    if let Some(mgm) = module_graph.module_graph_module_by_identifier(&self.identifier()) {
+      if let Some(side_effect) = mgm.factory_meta.as_ref().and_then(|m| m.side_effects) {
+        return ConnectionState::Bool(side_effect);
+      }
+      if let Some(side_effect_free) = mgm.build_meta.as_ref().and_then(|m| m.side_effect_free) && side_effect_free {
+        // use module chain instead of is_evaluating_side_effects to mut module graph
+        if module_chain.contains(&self.identifier()) {
+          return ConnectionState::CircularConnection;
+        }
+        module_chain.insert(self.identifier());
+        let mut current = ConnectionState::Bool(false);
+        for dependency_id in mgm.dependencies.iter() {
+          if let Some(dependency) = module_graph.dependency_by_id(dependency_id).expect("should have dependency").as_module_dependency() {
+            let state = dependency.get_module_evaluation_side_effects_state(module_graph, module_chain);
+            if matches!(state, ConnectionState::Bool(true)) {
+              // TODO add optimization bailout
+              return ConnectionState::Bool(true);
+            } else if matches!(state, ConnectionState::CircularConnection) {
+              current = add_connection_states(current, state);
+            }
+          }
+        }
+        return current;
+      }
+    }
+    ConnectionState::Bool(true)
   }
 }
 
