@@ -59,7 +59,7 @@ export class JsStats {
 }
 
 export class Rspack {
-  constructor(options: RawOptions, jsHooks: JsHooks | undefined | null, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
+  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks | undefined | null, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
   unsafe_set_disabled_hooks(hooks: Array<string>): void
   /**
    * Build with the given option passed to the constructor
@@ -107,6 +107,31 @@ export interface AfterResolveData {
 export interface BeforeResolveData {
   request: string
   context: string
+}
+
+export interface BuiltinPlugin {
+  kind: BuiltinPluginKind
+  options: unknown
+}
+
+export enum BuiltinPluginKind {
+  Define = 0,
+  Provide = 1,
+  Banner = 2,
+  SwcJsMinimizer = 3,
+  SwcCssMinimizer = 4,
+  PresetEnv = 5,
+  TreeShaking = 6,
+  ReactOptions = 7,
+  DecoratorOptions = 8,
+  NoEmitAssets = 9,
+  Emotion = 10,
+  Relay = 11,
+  PluginImport = 12,
+  DevFriendlySplitChunks = 13,
+  Progress = 14,
+  Copy = 15,
+  Html = 16
 }
 
 export function cleanupGlobalTrace(): void
@@ -492,27 +517,6 @@ export interface RawBannerConfig {
   exclude?: RawBannerConditions
 }
 
-export interface RawBuiltins {
-  html?: Array<RawHtmlPluginConfig>
-  css?: RawCssPluginConfig
-  minifyOptions?: RawMinification
-  presetEnv?: RawPresetEnv
-  define: Record<string, string>
-  provide: Record<string, string[]>
-  treeShaking: string
-  progress?: RawProgressPluginConfig
-  react: RawReactOptions
-  decorator?: RawDecoratorOptions
-  noEmitAssets: boolean
-  emotion?: string
-  devFriendlySplitChunks: boolean
-  copy?: RawCopyConfig
-  banner?: Array<RawBannerConfig>
-  pluginImport?: Array<RawPluginImportConfig>
-  relay?: RawRelayConfig
-  codeGeneration?: RawCodeGeneration
-}
-
 export interface RawCacheGroupOptions {
   priority?: number
   test?: string
@@ -542,10 +546,6 @@ export interface RawCacheOptions {
   version: string
 }
 
-export interface RawCodeGeneration {
-  keepComments: boolean
-}
-
 export interface RawCopyConfig {
   patterns: Array<RawPattern>
 }
@@ -556,14 +556,10 @@ export interface RawCrossOriginLoading {
   boolPayload?: boolean
 }
 
-export interface RawCssModulesConfig {
+export interface RawCssExperimentOptions {
   localsConvention: "asIs" | "camelCase" | "camelCaseOnly" | "dashes" | "dashesOnly"
   localIdentName: string
   exportsOnly: boolean
-}
-
-export interface RawCssPluginConfig {
-  modules: RawCssModulesConfig
 }
 
 export interface RawDecoratorOptions {
@@ -590,7 +586,7 @@ export interface RawExperiments {
   incrementalRebuild: RawIncrementalRebuild
   asyncWebAssembly: boolean
   newSplitChunks: boolean
-  css: boolean
+  css?: RawCssExperimentOptions
 }
 
 export interface RawExternalItem {
@@ -816,7 +812,6 @@ export interface RawOptions {
   resolve: RawResolveOptions
   resolveLoader: RawResolveOptions
   module: RawModuleOptions
-  builtins: RawBuiltins
   externals?: Array<RawExternalItem>
   externalsType: string
   externalsPresets: RawExternalsPresets

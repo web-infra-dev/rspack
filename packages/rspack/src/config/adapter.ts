@@ -116,9 +116,7 @@ export const getRawOptions = (
 		},
 		experiments: getRawExperiments(options.experiments),
 		node: getRawNode(options.node),
-		profile: options.profile!,
-		// TODO: refactor builtins
-		builtins: options.builtins as any
+		profile: options.profile!
 	};
 };
 

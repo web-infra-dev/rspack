@@ -1,277 +1,134 @@
-use napi_derive::napi;
-use rspack_core::{Builtins, Define, PluginExt, PresetEnv, Provide};
-use rspack_error::internal_error;
-use rspack_plugin_banner::{BannerConfig, BannerPlugin};
-use rspack_plugin_copy::CopyPlugin;
-use rspack_plugin_css::{plugin::CssConfig, CssPlugin};
-use rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin;
-use rspack_plugin_html::HtmlPlugin;
-use rspack_plugin_progress::ProgressPlugin;
-use rspack_plugin_swc_js_minimizer::{Minification, MinificationCondition, MinificationConditions};
-use serde::Deserialize;
-
 mod raw_banner;
 mod raw_copy;
-mod raw_css;
 mod raw_decorator;
 mod raw_html;
 mod raw_plugin_import;
+mod raw_preset_env;
 mod raw_progress;
 mod raw_react;
 mod raw_relay;
+mod raw_swc_js_minimizer;
 
-pub use raw_css::*;
-pub use raw_decorator::*;
-pub use raw_html::*;
-pub use raw_progress::*;
-pub use raw_react::*;
+use napi::{
+  bindgen_prelude::{FromNapiValue, ToNapiValue},
+  JsUnknown,
+};
+use napi_derive::napi;
+use rspack_core::{
+  BoxPlugin, CopyPluginConfig, DecoratorOptionsPlugin, Define, DefinePlugin, EmotionPlugin,
+  NoEmitAssetsPlugin, PluginExt, PluginImportPlugin, PresetEnvPlugin, Provide, ProvidePlugin,
+  ReactOptionsPlugin, RelayPlugin, TreeShakingPlugin,
+};
+use rspack_error::{internal_error, Error, Result};
+use rspack_napi_shared::NapiResultExt;
+use rspack_plugin_banner::BannerPlugin;
+use rspack_plugin_copy::CopyPlugin;
+use rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin;
+use rspack_plugin_html::HtmlPlugin;
+use rspack_plugin_progress::ProgressPlugin;
+use rspack_plugin_swc_css_minimizer::SwcCssMinimizerPlugin;
+use rspack_plugin_swc_js_minimizer::SwcJsMinimizerPlugin;
 
 pub use self::{
-  raw_banner::RawBannerConfig, raw_copy::RawCopyConfig, raw_plugin_import::RawPluginImportConfig,
-  raw_relay::RawRelayConfig,
+  raw_banner::RawBannerConfig, raw_copy::RawCopyConfig, raw_decorator::RawDecoratorOptions,
+  raw_html::RawHtmlPluginConfig, raw_plugin_import::RawPluginImportConfig,
+  raw_preset_env::RawPresetEnv, raw_progress::RawProgressPluginConfig, raw_react::RawReactOptions,
+  raw_relay::RawRelayConfig, raw_swc_js_minimizer::RawMinification,
 };
-use crate::RawOptionsApply;
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[napi]
+pub enum BuiltinPluginKind {
+  Define,
+  Provide,
+  Banner,
+  SwcJsMinimizer,
+  SwcCssMinimizer,
+  PresetEnv,
+  TreeShaking,
+  ReactOptions,
+  DecoratorOptions,
+  NoEmitAssets,
+  Emotion,
+  Relay,
+  PluginImport,
+  DevFriendlySplitChunks,
+  Progress,
+  Copy,
+  Html,
+}
+
 #[napi(object)]
-pub struct RawMinificationCondition {
-  #[napi(ts_type = r#""string" | "regexp""#)]
-  pub r#type: String,
-  pub string_matcher: Option<String>,
-  pub regexp_matcher: Option<String>,
+pub struct BuiltinPlugin {
+  pub kind: BuiltinPluginKind,
+  pub options: JsUnknown,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawMinificationConditions {
-  #[napi(ts_type = r#""string" | "regexp" | "array""#)]
-  pub r#type: String,
-  pub string_matcher: Option<String>,
-  pub regexp_matcher: Option<String>,
-  pub array_matcher: Option<Vec<RawMinificationCondition>>,
-}
+impl TryFrom<BuiltinPlugin> for BoxPlugin {
+  type Error = Error;
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawMinification {
-  pub passes: u32,
-  pub drop_console: bool,
-  #[napi(ts_type = r#""all" | "some" | "false""#)]
-  pub comments: String,
-  pub ascii_only: bool,
-  pub pure_funcs: Vec<String>,
-  pub extract_comments: Option<String>,
-  pub test: Option<RawMinificationConditions>,
-  pub include: Option<RawMinificationConditions>,
-  pub exclude: Option<RawMinificationConditions>,
-}
-
-impl TryFrom<RawMinification> for Minification {
-  type Error = rspack_error::Error;
-
-  fn try_from(value: RawMinification) -> rspack_error::Result<Self> {
-    fn try_condition(
-      raw_condition: Option<RawMinificationConditions>,
-    ) -> Result<Option<MinificationConditions>, rspack_error::Error> {
-      let condition: Option<MinificationConditions> = if let Some(test) = raw_condition {
-        Some(test.try_into()?)
-      } else {
-        None
-      };
-
-      Ok(condition)
-    }
-
-    Ok(Self {
-      passes: value.passes as usize,
-      drop_console: value.drop_console,
-      pure_funcs: value.pure_funcs,
-      ascii_only: value.ascii_only,
-      comments: value.comments,
-      extract_comments: value.extract_comments,
-      test: try_condition(value.test)?,
-      include: try_condition(value.include)?,
-      exclude: try_condition(value.exclude)?,
-    })
-  }
-}
-
-impl TryFrom<RawMinificationCondition> for MinificationCondition {
-  type Error = rspack_error::Error;
-
-  fn try_from(x: RawMinificationCondition) -> rspack_error::Result<Self> {
-    let result = match x.r#type.as_str() {
-      "string" => Self::String(x.string_matcher.ok_or_else(|| {
-        internal_error!(
-          "should have a string_matcher when MinificationConditions.type is \"string\""
-        )
-      })?),
-      "regexp" => Self::Regexp(rspack_regex::RspackRegex::new(
-        &x.regexp_matcher.ok_or_else(|| {
-          internal_error!(
-            "should have a regexp_matcher when MinificationConditions.type is \"regexp\""
-          )
-        })?,
-      )?),
-      _ => panic!(
-        "Failed to resolve the condition type {}. Expected type is `string`, `regexp` or `array`.",
-        x.r#type
-      ),
-    };
-
-    Ok(result)
-  }
-}
-
-impl TryFrom<RawMinificationConditions> for MinificationConditions {
-  type Error = rspack_error::Error;
-
-  fn try_from(value: RawMinificationConditions) -> rspack_error::Result<Self> {
-    let result: MinificationConditions = match value.r#type.as_str() {
-      "string" => Self::String(value.string_matcher.ok_or_else(|| {
-        internal_error!("should have a string_matcher when MinificationConditions.type is \"string\"")
-      })?),
-      "regexp" => Self::Regexp(rspack_regex::RspackRegex::new(
-        &value.regexp_matcher.ok_or_else(|| {
-          internal_error!(
-            "should have a regexp_matcher when MinificationConditions.type is \"regexp\""
-          )
-        })?,
-      )?),
-      "array" => Self::Array(
-        value.array_matcher
-          .ok_or_else(|| {
-            internal_error!(
-              "should have a array_matcher when MinificationConditions.type is \"array\""
-            )
-          })?
-          .into_iter()
-          .map(|i| i.try_into())
-          .collect::<rspack_error::Result<Vec<_>>>()?,
-      ),
-      _ => panic!(
-        "Failed to resolve the MinificationContions type {}. Expected type is `string`, `regexp`, `array`.",
-        value.r#type
-      ),
-    };
-
-    Ok(result)
-  }
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawPresetEnv {
-  pub targets: Vec<String>,
-  #[napi(ts_type = "'usage' | 'entry'")]
-  pub mode: Option<String>,
-  pub core_js: Option<String>,
-}
-
-impl From<RawPresetEnv> for PresetEnv {
-  fn from(raw_preset_env: RawPresetEnv) -> Self {
-    Self {
-      targets: raw_preset_env.targets,
-      mode: raw_preset_env.mode.and_then(|mode| match mode.as_str() {
-        "usage" => Some(swc_core::ecma::preset_env::Mode::Usage),
-        "entry" => Some(swc_core::ecma::preset_env::Mode::Entry),
-        _ => None,
-      }),
-      core_js: raw_preset_env.core_js,
-    }
-  }
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawBuiltins {
-  pub html: Option<Vec<RawHtmlPluginConfig>>,
-  pub css: Option<RawCssPluginConfig>,
-  pub minify_options: Option<RawMinification>,
-  pub preset_env: Option<RawPresetEnv>,
-  #[napi(ts_type = "Record<string, string>")]
-  pub define: Define, // ok
-  #[napi(ts_type = "Record<string, string[]>")]
-  pub provide: Provide, // ok
-  pub tree_shaking: String,                    // ok
-  pub progress: Option<RawProgressPluginConfig>,
-  pub react: RawReactOptions,                 // ok
-  pub decorator: Option<RawDecoratorOptions>, // ok
-  pub no_emit_assets: bool,                   // ok
-  pub emotion: Option<String>,                // ok
-  pub dev_friendly_split_chunks: bool,
-  pub copy: Option<RawCopyConfig>,
-  pub banner: Option<Vec<RawBannerConfig>>, // ok
-  pub plugin_import: Option<Vec<RawPluginImportConfig>>, // ok
-  pub relay: Option<RawRelayConfig>,        // ok
-}
-
-impl RawOptionsApply for RawBuiltins {
-  type Options = Builtins;
-
-  fn apply(
-    self,
-    plugins: &mut Vec<rspack_core::BoxPlugin>,
-  ) -> Result<Self::Options, rspack_error::Error> {
-    if let Some(htmls) = self.html {
-      for html in htmls {
-        plugins.push(HtmlPlugin::new(html.into()).boxed());
+  fn try_from(value: BuiltinPlugin) -> Result<Self> {
+    let plugin = match value.kind {
+      BuiltinPluginKind::Define => {
+        DefinePlugin::new(downcast_into::<Define>(value.options)?).boxed()
       }
-    }
-    if let Some(css) = self.css {
-      let options = CssConfig {
-        targets: self
-          .preset_env
-          .as_ref()
-          .map(|preset_env| preset_env.targets.clone())
-          .unwrap_or_default(),
-        modules: css.modules.try_into()?,
-      };
-      plugins.push(CssPlugin::new(options).boxed());
-    }
-    if let Some(progress) = self.progress {
-      plugins.push(ProgressPlugin::new(progress.into()).boxed());
-    }
-    if self.dev_friendly_split_chunks {
-      plugins.push(DevFriendlySplitChunksPlugin::new().boxed());
-    }
-    if let Some(copy) = self.copy {
-      plugins.push(CopyPlugin::new(copy.patterns.into_iter().map(Into::into).collect()).boxed());
-    }
-
-    if let Some(banners) = self.banner {
-      let configs: Vec<BannerConfig> = banners
-        .into_iter()
-        .map(|banner| banner.try_into())
-        .collect::<rspack_error::Result<Vec<_>>>()?;
-
-      configs
-        .into_iter()
-        .for_each(|banner| plugins.push(BannerPlugin::new(banner).boxed()));
-    }
-
-    Ok(Builtins {
-      preset_env: self.preset_env.map(Into::into),
-      define: self.define,
-      provide: self.provide,
-      tree_shaking: self.tree_shaking.into(),
-      react: self.react.into(),
-      decorator: self.decorator.map(|i| i.into()),
-      no_emit_assets: self.no_emit_assets,
-      emotion: self
-        .emotion
-        .map(|i| serde_json::from_str(&i))
-        .transpose()
-        .map_err(|e| internal_error!(e.to_string()))?,
-      plugin_import: self
-        .plugin_import
-        .map(|plugin_imports| plugin_imports.into_iter().map(Into::into).collect()),
-      relay: self.relay.map(Into::into),
-    })
+      BuiltinPluginKind::Provide => {
+        ProvidePlugin::new(downcast_into::<Provide>(value.options)?).boxed()
+      }
+      BuiltinPluginKind::Banner => {
+        BannerPlugin::new(downcast_into::<RawBannerConfig>(value.options)?.try_into()?).boxed()
+      }
+      BuiltinPluginKind::SwcJsMinimizer => {
+        SwcJsMinimizerPlugin::new(downcast_into::<RawMinification>(value.options)?.try_into()?)
+          .boxed()
+      }
+      BuiltinPluginKind::SwcCssMinimizer => SwcCssMinimizerPlugin {}.boxed(),
+      BuiltinPluginKind::PresetEnv => {
+        PresetEnvPlugin::new(downcast_into::<RawPresetEnv>(value.options)?.into()).boxed()
+      }
+      BuiltinPluginKind::TreeShaking => {
+        TreeShakingPlugin::new(downcast_into::<String>(value.options)?.into()).boxed()
+      }
+      BuiltinPluginKind::ReactOptions => {
+        ReactOptionsPlugin::new(downcast_into::<RawReactOptions>(value.options)?.into()).boxed()
+      }
+      BuiltinPluginKind::DecoratorOptions => {
+        DecoratorOptionsPlugin::new(downcast_into::<RawDecoratorOptions>(value.options)?.into())
+          .boxed()
+      }
+      BuiltinPluginKind::NoEmitAssets => {
+        NoEmitAssetsPlugin::new(downcast_into::<bool>(value.options)?).boxed()
+      }
+      BuiltinPluginKind::Emotion => EmotionPlugin::new(
+        serde_json::from_str(&downcast_into::<String>(value.options)?)
+          .map_err(|e| internal_error!(e.to_string()))?,
+      )
+      .boxed(),
+      BuiltinPluginKind::Relay => {
+        RelayPlugin::new(downcast_into::<RawRelayConfig>(value.options)?.into()).boxed()
+      }
+      BuiltinPluginKind::PluginImport => PluginImportPlugin::new(
+        downcast_into::<Vec<RawPluginImportConfig>>(value.options)?
+          .into_iter()
+          .map(|i| i.into())
+          .collect(),
+      )
+      .boxed(),
+      BuiltinPluginKind::DevFriendlySplitChunks => DevFriendlySplitChunksPlugin::new().boxed(),
+      BuiltinPluginKind::Progress => {
+        ProgressPlugin::new(downcast_into::<RawProgressPluginConfig>(value.options)?.into()).boxed()
+      }
+      BuiltinPluginKind::Copy => CopyPlugin::new(
+        CopyPluginConfig::from(downcast_into::<RawCopyConfig>(value.options)?).patterns,
+      )
+      .boxed(),
+      BuiltinPluginKind::Html => {
+        HtmlPlugin::new(downcast_into::<RawHtmlPluginConfig>(value.options)?.into()).boxed()
+      }
+    };
+    Ok(plugin)
   }
+}
+
+fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> Result<T> {
+  <T as FromNapiValue>::from_unknown(o).into_rspack_result()
 }

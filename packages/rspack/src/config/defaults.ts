@@ -128,12 +128,10 @@ export const applyRspackOptionsDefaults = (
 	);
 
 	// TODO: refactor builtins
-	options.builtins = oldBuiltins.resolveBuiltinsOptions(options.builtins, {
-		contextPath: options.context!,
-		optimization: options.optimization,
-		production,
-		css: options.experiments.css!
-	}) as any;
+	options.builtins = oldBuiltins.deprecated_resolveBuiltins(
+		options.builtins,
+		options
+	) as any;
 };
 
 export const applyRspackOptionsBaseDefaults = (

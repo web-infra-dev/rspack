@@ -18,8 +18,6 @@ import type { OptimizationConfig as Optimization } from "./zod/optimization";
 import type { RawFuncUseCtx } from "@rspack/binding";
 export type { RspackOptions, Optimization };
 
-export type { BannerConditions, BannerCondition } from "./builtins";
-
 export type {
 	LoaderContext,
 	LoaderDefinitionFunction,

@@ -344,13 +344,6 @@ impl TestConfig {
       }
     }));
 
-    let targets = self
-      .builtins
-      .preset_env
-      .as_ref()
-      .map(|preset_env| preset_env.targets.clone())
-      .unwrap_or_default();
-
     assert!(context.is_absolute());
 
     let options = CompilerOptions {
