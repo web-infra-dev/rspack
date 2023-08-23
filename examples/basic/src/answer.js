@@ -1,4 +1,1 @@
-const res = require("./lib.js")
-exports.test = function () {
-	res
-}
+export const answer = 42;

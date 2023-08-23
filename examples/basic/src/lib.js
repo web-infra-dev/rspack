@@ -1,1 +1,1 @@
-export * from './a.js'
+export const a = 3;
