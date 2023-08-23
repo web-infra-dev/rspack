@@ -5,6 +5,8 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'a': function() { return a; }
 });
+/* harmony import */var _side_effects_js__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./side-effects.js */"./side-effects.js");
+/* harmony import */var _side_effects_js__WEBPACK_IMPORTED_MODULE_1__default = /*#__PURE__*/__webpack_require__.n(_side_effects_js__WEBPACK_IMPORTED_MODULE_1_);
 
 
  const a = 3;
@@ -15,6 +17,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./app */"./app.js");
 
 _app__WEBPACK_IMPORTED_MODULE_0_.a;
+},
+"./side-effects.js": function (__unused_webpack_module, exports, __webpack_require__) {
+console.log("side effect");
 },
 
 },function(__webpack_require__) {

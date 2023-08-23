@@ -1286,18 +1286,18 @@ impl<'a> CodeSizeOptimizer<'a> {
       let inherit_export_symbols = get_inherit_export_symbol_ref(entry_module_result);
       if !inherit_export_symbols.is_empty() {
         // transitive bailout
-        inherit_export_symbols.iter().for_each(|item| {
-          q.push_back((
-            SymbolRef::Star(StarSymbol::new(
-              item.src(),
-              Default::default(),
-              entry_identifier,
-              StarSymbolKind::ReExportAll,
-              DependencyId::default(),
-            )),
-            vec![],
-          ));
-        });
+        // inherit_export_symbols.iter().for_each(|item| {
+        //   q.push_back((
+        //     SymbolRef::Star(StarSymbol::new(
+        //       item.src(),
+        //       Default::default(),
+        //       entry_identifier,
+        //       StarSymbolKind::ReExportAll,
+        //       DependencyId::default(),
+        //     )),
+        //     vec![],
+        //   ));
+        // });
       }
       q.extend(
         inherit_export_symbols
