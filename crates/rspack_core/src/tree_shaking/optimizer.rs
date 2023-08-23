@@ -408,6 +408,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
         }
       }
+      dbg!(&module_visited_symbol_ref);
       // pruning
       let mut visited_symbol_node_index: HashSet<NodeIndex> = HashSet::default();
       let mut visited = IdentifierSet::default();
@@ -436,6 +437,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         } else {
         }
 
+        dbg!(&eliminator);
         let mut reachable_dependency_identifier = IdentifierSet::default();
 
         let mgm = self
@@ -445,6 +447,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {module_identifier}"));
         include_module_ids.insert(mgm.module_identifier);
         if let Some(symbol_ref_list) = module_visited_symbol_ref.get(&module_identifier) {
+          dbg!(&symbol_ref_list);
           for symbol_ref in symbol_ref_list {
             update_reachable_dependency(
               symbol_ref,
@@ -569,6 +572,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     } else {
       *used_symbol_ref = visited_symbol_ref;
     }
+    dbg!(&used_symbol_ref);
     include_module_ids
   }
 
@@ -710,6 +714,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     } else {
       visited_symbol_ref.insert(current_symbol_ref_with_member_chain.clone());
     }
+    // dbg!(&current_symbol_ref_with_member_chain);
     let (current_symbol_ref, member_chain) = current_symbol_ref_with_member_chain;
 
     if !evaluated_module_identifiers.contains(&current_symbol_ref.importer()) {
@@ -1279,6 +1284,21 @@ impl<'a> CodeSizeOptimizer<'a> {
     // by default webpack will not mark the `export *` as used in entry module
     if matches!(entry_type, EntryLikeType::Bailout) {
       let inherit_export_symbols = get_inherit_export_symbol_ref(entry_module_result);
+      if !inherit_export_symbols.is_empty() {
+        // transitive bailout
+        inherit_export_symbols.iter().for_each(|item| {
+          q.push_back((
+            SymbolRef::Star(StarSymbol::new(
+              item.src(),
+              Default::default(),
+              entry_identifier,
+              StarSymbolKind::ReExportAll,
+              DependencyId::default(),
+            )),
+            vec![],
+          ));
+        });
+      }
       q.extend(
         inherit_export_symbols
           .into_iter()

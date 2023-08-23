@@ -46,14 +46,6 @@ var __WEBPACK_DEFAULT_EXPORT__ = /* "./script1" unused */null;
 
  const exportDefaultUsed = false;
 },
-"./package1/script1.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-'use strict';
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */var _script2__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./script2 */"./package1/script2.js");
-__webpack_require__.es(_script2__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
-
-var __WEBPACK_DEFAULT_EXPORT__ = 1;
-},
 "./package1/script2.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
@@ -95,4 +87,3 @@ var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack
 var __webpack_exports__ = (__webpack_exec__("./index.js"));
 
 }
-]);
