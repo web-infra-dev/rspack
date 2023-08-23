@@ -75,5 +75,10 @@
     "sass-embedded-win32-ia32": "1.58.3",
     "sass-embedded-win32-x64": "1.58.3"
   },
-  "packageManager": "pnpm@7.32.0"
+  "packageManager": "pnpm@7.32.0",
+  "pnpm": {
+    "patchedDependencies": {
+      "@napi-rs/cli@3.0.0-alpha.3": "patches/@napi-rs__cli@3.0.0-alpha.3.patch"
+    }
+  }
 }
