@@ -19,7 +19,6 @@ exports.test = function() {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./answer */"./answer.js");
-/* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0__default = /*#__PURE__*/__webpack_require__.n(_answer__WEBPACK_IMPORTED_MODULE_0_);
 
 _answer__WEBPACK_IMPORTED_MODULE_0_.test;
 },
