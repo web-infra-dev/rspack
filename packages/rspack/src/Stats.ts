@@ -40,7 +40,11 @@ export class Stats {
 
 		const statsFactory = this.compilation.createStatsFactory(options);
 
-		// FIXME: This is a really ugly workaround for
+		// FIXME: This is a really ugly workaround for avoid panic for accessing previous compilation.
+		// webpack-dev-server and Modern.js dev server will detect whether the returned stats is available.
+		// So this does not do harm to these frameworks.
+		// webpack-dev-server: https://github.com/webpack/webpack-dev-server/blob/540c43852ea33f9cb18820e1cef05d5ddb86cc3e/lib/Server.js#L3222
+		// Modern.js: https://github.com/web-infra-dev/modern.js/blob/63f916f882f7d16096949e264e119218c0ab8d7d/packages/server/server/src/dev-tools/dev-middleware/socketServer.ts#L172
 		let stats: StatsCompilation | null = null;
 		try {
 			stats = statsFactory.create("compilation", this.compilation, {
@@ -49,7 +53,8 @@ export class Stats {
 			});
 		} catch (e) {
 			console.warn(
-				"Failed to get stats. Are you trying to access the previous stats in future compilations?"
+				"Failed to get stats. " +
+					"Are you trying to access the stats from the previous compilation?"
 			);
 		}
 		return stats as StatsCompilation;
@@ -63,12 +68,29 @@ export class Stats {
 
 		const statsPrinter = this.compilation.createStatsPrinter(options);
 
-		const data = statsFactory.create("compilation", this.compilation, {
-			compilation: this.compilation,
-			_inner: this.#inner
-		});
+		// FIXME: This is a really ugly workaround for avoid panic for accessing previous compilation.
+		// webpack-dev-server and Modern.js dev server will detect whether the returned stats is available.
+		// So this does not do harm to these frameworks.
+		// webpack-dev-server: https://github.com/webpack/webpack-dev-server/blob/540c43852ea33f9cb18820e1cef05d5ddb86cc3e/lib/Server.js#L3222
+		// Modern.js: https://github.com/web-infra-dev/modern.js/blob/63f916f882f7d16096949e264e119218c0ab8d7d/packages/server/server/src/dev-tools/dev-middleware/socketServer.ts#L172
+		let stats: StatsCompilation | null = null;
+		try {
+			stats = statsFactory.create("compilation", this.compilation, {
+				compilation: this.compilation,
+				_inner: this.#inner
+			});
+		} catch (e) {
+			console.warn(
+				"Failed to get stats. " +
+					"Are you trying to access the stats from the previous compilation?"
+			);
+		}
 
-		const result = statsPrinter.print("compilation", data);
+		if (!stats) {
+			return "";
+		}
+
+		const result = statsPrinter.print("compilation", stats);
 
 		return result === undefined ? "" : result;
 	}
