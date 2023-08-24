@@ -30,17 +30,17 @@ export function create<T, R>(
 	resolve: (options: T) => R
 ) {
 	return class Plugin extends BuiltinPlugin {
-		#options: T;
+		#options: R;
 
 		constructor(options: T) {
 			super();
-			this.#options = options;
+			this.#options = resolve(options);
 		}
 
 		raw(): binding.BuiltinPlugin {
 			return {
 				kind,
-				options: resolve(this.#options)
+				options: this.#options
 			};
 		}
 	};

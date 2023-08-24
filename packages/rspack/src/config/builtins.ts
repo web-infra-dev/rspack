@@ -23,7 +23,11 @@ import {
 	BannerPluginOptions,
 	SwcJsMinimizerPluginOptions
 } from "../builtin-plugin";
-import { EmotionConfig } from "../builtin-plugin/depracate-by-swc-loader";
+import {
+	EmotionConfig,
+	PluginImportConfig
+} from "../builtin-plugin/depracate-by-swc-loader";
+import { CopyPluginOptions } from "../builtin-plugin/copy";
 
 export type BuiltinsHtmlPluginConfig = Omit<RawHtmlPluginConfig, "meta"> & {
 	meta?: Record<string, string | Record<string, string>>;
@@ -43,77 +47,11 @@ export interface Builtins {
 	minifyOptions?: SwcJsMinimizerPluginOptions;
 	emotion?: boolean | EmotionConfig;
 	presetEnv?: Partial<RawPresetEnv>;
-	polyfill?: boolean;
 	devFriendlySplitChunks?: boolean;
-	copy?: CopyConfig;
+	copy?: CopyPluginOptions;
 	banner?: BannerPluginOptions | BannerPluginOptions[];
 	pluginImport?: PluginImportConfig[];
 	relay?: boolean | RawRelayConfig;
-}
-
-export type PluginImportConfig = {
-	libraryName: string;
-	libraryDirectory?: string;
-	customName?: string;
-	customStyleName?: string;
-	style?: string | boolean;
-	styleLibraryDirectory?: string;
-	camelToDashComponentName?: boolean;
-	transformToDefaultImport?: boolean;
-	ignoreEsComponent?: Array<string>;
-	ignoreStyleComponent?: Array<string>;
-};
-
-export type CopyConfig = {
-	patterns: (
-		| string
-		| ({
-				from: string;
-		  } & Partial<RawPattern>)
-	)[];
-};
-
-function resolvePresetEnv(
-	presetEnv: Builtins["presetEnv"],
-	context: string
-): RawPresetEnv | undefined {
-	if (!presetEnv) {
-		return undefined;
-	}
-	return {
-		targets: presetEnv?.targets ?? loadConfig({ path: context }) ?? [],
-		mode: presetEnv?.mode,
-		coreJs: presetEnv?.coreJs
-	};
-}
-
-function resolvePluginImport(
-	pluginImport?: PluginImportConfig[]
-): RawPluginImportConfig[] | undefined {
-	if (!pluginImport) {
-		return undefined;
-	}
-
-	return pluginImport.map(config => {
-		const rawConfig: RawPluginImportConfig = {
-			...config,
-			style: {} // As babel-plugin-import style config is very flexible, we convert it to a more specific structure
-		};
-
-		if (typeof config.style === "boolean") {
-			rawConfig.style!.bool = config.style;
-		} else if (typeof config.style === "string") {
-			const isTpl = config.style.includes("{{");
-			rawConfig.style![isTpl ? "custom" : "css"] = config.style;
-		}
-
-		// This option will overrides the behavior of style
-		if (config.styleLibraryDirectory) {
-			rawConfig.style = { styleLibraryDirectory: config.styleLibraryDirectory };
-		}
-
-		return rawConfig;
-	});
 }
 
 function resolveTreeShaking(
@@ -125,18 +63,6 @@ function resolveTreeShaking(
 		: production
 		? "true"
 		: "false";
-}
-
-function resolveProvide(
-	provide: Builtins["provide"] = {}
-): Record<string, string[]> {
-	const entries = Object.entries(provide).map(([key, value]) => {
-		if (typeof value === "string") {
-			value = [value];
-		}
-		return [key, value];
-	});
-	return Object.fromEntries(entries);
 }
 
 function resolveHtml(html: BuiltinsHtmlPluginConfig[]): RawHtmlPluginConfig[] {
@@ -172,38 +98,11 @@ function resolveProgress(
 	return progress;
 }
 
-function resolveCopy(copy?: Builtins["copy"]): RawCopyConfig | undefined {
-	if (!copy) {
-		return undefined;
-	}
-
-	const ret: RawCopyConfig = {
-		patterns: []
-	};
-
-	ret.patterns = (copy.patterns || []).map(pattern => {
-		if (typeof pattern === "string") {
-			pattern = { from: pattern };
-		}
-
-		pattern.force ??= false;
-		pattern.noErrorOnMissing ??= false;
-		pattern.priority ??= 0;
-		pattern.globOptions ??= {};
-
-		return pattern as RawPattern;
-	});
-
-	return ret;
-}
-
 export function deprecated_resolveBuiltins(
 	builtins: Builtins,
 	options: RspackOptionsNormalized
 ) {
 	const contextPath = options.context!;
-	const presetEnv = resolvePresetEnv(builtins.presetEnv, contextPath);
-	builtins.presetEnv ?? loadConfig({ path: contextPath }) ?? [];
 	options.plugins.push();
 
 	// return {
