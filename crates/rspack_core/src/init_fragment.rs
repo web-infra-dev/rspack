@@ -1,6 +1,6 @@
 use rustc_hash::FxHashMap as HashMap;
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct InitFragment {
   pub content: String,
   pub stage: InitFragmentStage,
@@ -17,7 +17,7 @@ impl InitFragment {
   }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, PartialOrd, Eq, Ord)]
 pub enum InitFragmentStage {
   StageConstants,
   StageAsyncBoundary,
