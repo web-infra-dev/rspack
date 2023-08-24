@@ -5,7 +5,6 @@ use std::{
 };
 
 use derivative::Derivative;
-use nodejs_resolver::DescriptionData;
 use once_cell::sync::OnceCell;
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
@@ -31,7 +30,7 @@ pub struct ResourceData {
   pub resource_query: Option<String>,
   /// Resource fragment with `#` prefix
   pub resource_fragment: Option<String>,
-  pub resource_description: Option<Arc<DescriptionData>>,
+  pub resource_description: Option<DescriptionData>,
   pub mimetype: Option<String>,
   pub parameters: Option<String>,
   pub encoding: Option<String>,
@@ -79,12 +78,12 @@ impl ResourceData {
     self
   }
 
-  pub fn description(mut self, v: Arc<DescriptionData>) -> Self {
+  pub fn description(mut self, v: DescriptionData) -> Self {
     self.resource_description = Some(v);
     self
   }
 
-  pub fn description_optional(mut self, v: Option<Arc<DescriptionData>>) -> Self {
+  pub fn description_optional(mut self, v: Option<DescriptionData>) -> Self {
     self.resource_description = v;
     self
   }
@@ -107,6 +106,31 @@ impl ResourceData {
   pub fn encoded_content(mut self, v: String) -> Self {
     self.encoded_content = Some(v);
     self
+  }
+}
+
+/// Used for [Rule.descriptionData](https://www.rspack.dev/config/module.html#ruledescriptiondata) and
+/// package.json.sideEffects in tree shaking.
+#[derive(Debug, Clone)]
+pub struct DescriptionData {
+  /// Path to package.json
+  path: PathBuf,
+
+  /// Raw package.json
+  json: Arc<serde_json::Value>,
+}
+
+impl DescriptionData {
+  pub fn new(path: PathBuf, json: Arc<serde_json::Value>) -> Self {
+    Self { path, json }
+  }
+
+  pub fn path(&self) -> &Path {
+    &self.path
+  }
+
+  pub fn json(&self) -> &serde_json::Value {
+    self.json.as_ref()
   }
 }
 

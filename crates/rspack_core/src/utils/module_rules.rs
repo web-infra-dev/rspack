@@ -103,12 +103,7 @@ pub async fn module_rule_matcher<'a>(
   if let Some(description_data) = &module_rule.description_data {
     if let Some(resource_description) = &resource_data.resource_description {
       for (k, matcher) in description_data {
-        if let Some(v) = resource_description
-          .data()
-          .raw()
-          .get(k)
-          .and_then(|v| v.as_str())
-        {
+        if let Some(v) = resource_description.json().get(k).and_then(|v| v.as_str()) {
           if !matcher.try_match(v).await? {
             return Ok(false);
           }

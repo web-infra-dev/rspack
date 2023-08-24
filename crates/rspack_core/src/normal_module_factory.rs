@@ -6,7 +6,7 @@ use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
 use rspack_identifier::Identifiable;
-use rspack_loader_runner::{get_scheme, Scheme};
+use rspack_loader_runner::{get_scheme, DescriptionData, Scheme};
 use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
 
@@ -318,10 +318,13 @@ impl NormalModuleFactory {
       match resource_data {
         Ok(ResolveResult::Resource(resource)) => {
           let uri = resource.join().display().to_string();
+          let description_data = resource.description.map(|d| {
+            DescriptionData::new(d.dir().as_ref().to_path_buf(), Arc::clone(d.data().raw()))
+          });
           ResourceData::new(uri, resource.path)
             .query_optional(resource.query)
             .fragment_optional(resource.fragment)
-            .description_optional(resource.description)
+            .description_optional(description_data)
         }
         Ok(ResolveResult::Ignored) => {
           let ident = format!("{}/{}", &data.context, request_without_match_resource);
@@ -620,8 +623,8 @@ impl NormalModuleFactory {
     }
     let resource_path = &resource_data.resource_path;
     let description = resource_data.resource_description.as_ref()?;
-    let package_path = description.dir().as_ref();
-    let side_effects = SideEffects::from_description(description)?;
+    let package_path = description.path();
+    let side_effects = SideEffects::from_description(description.json())?;
 
     let relative_path = resource_path.relative(package_path);
     side_effect_res = Some(get_side_effects_from_package_json(
