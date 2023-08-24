@@ -40,10 +40,19 @@ export class Stats {
 
 		const statsFactory = this.compilation.createStatsFactory(options);
 
-		return statsFactory.create("compilation", this.compilation, {
-			compilation: this.compilation,
-			_inner: this.#inner
-		});
+		// FIXME: This is a really ugly workaround for
+		let stats: StatsCompilation | null = null;
+		try {
+			stats = statsFactory.create("compilation", this.compilation, {
+				compilation: this.compilation,
+				_inner: this.#inner
+			});
+		} catch (e) {
+			console.warn(
+				"Failed to get stats. Are you trying to access the previous stats in future compilations?"
+			);
+		}
+		return stats as StatsCompilation;
 	}
 
 	toString(opts?: StatsValue) {
