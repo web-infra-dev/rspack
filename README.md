@@ -62,7 +62,7 @@ This repo has adopted the ByteDance Open Source Code of Conduct. Please check [C
 
 ## Benchmark
 
-See [Benchmark](https://speedy-js.github.io/metrics/dev/bench/)
+See [Benchmark](https://web-infra-dev.github.io/rspack-ecosystem-benchmark/)
 
 ## Credits
 
