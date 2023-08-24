@@ -1,10 +1,5 @@
 lockfileVersion: 5.4
 
-patchedDependencies:
-  '@napi-rs/cli@3.0.0-alpha.3':
-    hash: pamit5ghkukf6tmlutm46b4pdm
-    path: patches/@napi-rs__cli@3.0.0-alpha.3.patch
-
 importers:
 
   .:
@@ -93,7 +88,7 @@ importers:
       '@rspack/binding-linux-x64-gnu': link:../../npm/linux-x64-gnu
       '@rspack/binding-win32-x64-msvc': link:../../npm/win32-x64-msvc
     devDependencies:
-      '@napi-rs/cli': 3.0.0-alpha.3_pamit5ghkukf6tmlutm46b4pdm
+      '@napi-rs/cli': 3.0.0-alpha.3
 
   crates/rspack_fs_node:
     specifiers:
@@ -7086,7 +7081,7 @@ packages:
     hasBin: true
     dev: true
 
-  /@napi-rs/cli/3.0.0-alpha.3_pamit5ghkukf6tmlutm46b4pdm:
+  /@napi-rs/cli/3.0.0-alpha.3:
     resolution: {integrity: sha512-s5RHKqbqUVVfwgr/wO7S/vdqQ9shQzvIETgdz57r1Gg4bRv8kqy2Q1LfJAQJ09Y9Ddao9jKErvz4+11gHZZrWA==}
     engines: {node: '>= 16'}
     hasBin: true
@@ -7103,7 +7098,6 @@ packages:
       - encoding
       - supports-color
     dev: true
-    patched: true
 
   /@ndelangen/get-tarball/3.0.7:
     resolution: {integrity: sha512-NqGfTZIZpRFef1GoVaShSSRwDC3vde3ThtTeqFdcYd6ipKqnfEVhjK2hUeHjCQUcptyZr2TONqcloFXM+5QBrQ==}
