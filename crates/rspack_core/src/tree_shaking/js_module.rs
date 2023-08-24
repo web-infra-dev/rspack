@@ -4,11 +4,11 @@ use super::{
   analyzer::OptimizeAnalyzer,
   visitor::{ModuleRefAnalyze, OptimizeAnalyzeResult, SyntaxContextInfo},
 };
-use crate::{ast::javascript::Ast, CompilerOptions, ModuleDependency, ModuleIdentifier};
+use crate::{ast::javascript::Ast, BoxDependency, CompilerOptions, ModuleIdentifier};
 
 pub struct JsModule<'b, 'a: 'b> {
   ast: &'a Ast,
-  dependencies: &'b Vec<Box<dyn ModuleDependency>>,
+  dependencies: &'b Vec<BoxDependency>,
   module_identifier: ModuleIdentifier,
   compiler_options: &'a CompilerOptions,
 }
@@ -16,7 +16,7 @@ pub struct JsModule<'b, 'a: 'b> {
 impl<'a, 'b> JsModule<'b, 'a> {
   pub fn new(
     ast: &'a Ast,
-    dependencies: &'b Vec<Box<dyn ModuleDependency>>,
+    dependencies: &'b Vec<BoxDependency>,
     module_identifier: ModuleIdentifier,
     compiler_options: &'a CompilerOptions,
   ) -> Self {

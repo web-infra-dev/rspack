@@ -31,6 +31,10 @@ impl ImportMetaHotAcceptDependency {
 }
 
 impl Dependency for ImportMetaHotAcceptDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     self.category
   }
@@ -41,10 +45,6 @@ impl Dependency for ImportMetaHotAcceptDependency {
 }
 
 impl ModuleDependency for ImportMetaHotAcceptDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -55,10 +55,6 @@ impl ModuleDependency for ImportMetaHotAcceptDependency {
 
   fn span(&self) -> Option<&ErrorSpan> {
     self.span.as_ref()
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
   }
 
   fn set_request(&mut self, request: String) {

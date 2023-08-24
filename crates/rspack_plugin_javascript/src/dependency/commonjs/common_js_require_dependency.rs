@@ -35,6 +35,10 @@ impl CommonJsRequireDependency {
 }
 
 impl Dependency for CommonJsRequireDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CommonJS
   }
@@ -45,10 +49,6 @@ impl Dependency for CommonJsRequireDependency {
 }
 
 impl ModuleDependency for CommonJsRequireDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -63,10 +63,6 @@ impl ModuleDependency for CommonJsRequireDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
   }
 
   fn set_request(&mut self, request: String) {

@@ -1,5 +1,6 @@
 use crate::{
-  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
+  AsDependencyTemplate, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
+  ModuleDependency,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -18,6 +19,10 @@ impl EntryDependency {
 }
 
 impl Dependency for EntryDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -28,10 +33,6 @@ impl Dependency for EntryDependency {
 }
 
 impl ModuleDependency for EntryDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -48,3 +49,5 @@ impl ModuleDependency for EntryDependency {
     self.request = request;
   }
 }
+
+impl AsDependencyTemplate for EntryDependency {}

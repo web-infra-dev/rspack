@@ -30,6 +30,10 @@ impl URLDependency {
 }
 
 impl Dependency for URLDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Url
   }
@@ -40,10 +44,6 @@ impl Dependency for URLDependency {
 }
 
 impl ModuleDependency for URLDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -54,10 +54,6 @@ impl ModuleDependency for URLDependency {
 
   fn span(&self) -> Option<&ErrorSpan> {
     self.span.as_ref()
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
   }
 
   fn set_request(&mut self, request: String) {

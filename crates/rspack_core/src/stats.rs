@@ -346,7 +346,8 @@ impl Stats<'_> {
           let dependency = self
             .compilation
             .module_graph
-            .dependency_by_id(&connection.dependency_id);
+            .dependency_by_id(&connection.dependency_id)
+            .and_then(|dep| dep.as_module_dependency());
 
           let r#type = dependency.map(|d| d.dependency_type().to_string());
 

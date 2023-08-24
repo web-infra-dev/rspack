@@ -1,20 +1,45 @@
 use rspack_core::{
-  DependencyTemplate, InitFragment, InitFragmentStage, RuntimeGlobals, TemplateContext,
+  AsModuleDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
+  DependencyType, ExportsSpec, InitFragment, InitFragmentStage, RuntimeGlobals, TemplateContext,
   TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::JsWord;
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for each export.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HarmonyExportSpecifierDependency {
+  id: DependencyId,
   exports: Vec<(JsWord, JsWord)>,
 }
 
 impl HarmonyExportSpecifierDependency {
   pub fn new(exports: Vec<(JsWord, JsWord)>) -> Self {
-    Self { exports }
+    Self {
+      id: DependencyId::new(),
+      exports,
+    }
   }
 }
+
+impl Dependency for HarmonyExportSpecifierDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
+  fn category(&self) -> &DependencyCategory {
+    &DependencyCategory::Esm
+  }
+
+  fn dependency_type(&self) -> &DependencyType {
+    &DependencyType::EsmExportSpecifier
+  }
+
+  fn get_exports(&self) -> Option<ExportsSpec> {
+    None
+  }
+}
+
+impl AsModuleDependency for HarmonyExportSpecifierDependency {}
 
 impl DependencyTemplate for HarmonyExportSpecifierDependency {
   fn apply(

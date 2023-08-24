@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rspack_error::{Diagnostic, Result};
 
 use crate::{
-  cache::Cache, BoxModuleDependency, BuildContext, BuildResult, Compilation, CompilerContext,
+  cache::Cache, BoxDependency, BuildContext, BuildResult, Compilation, CompilerContext,
   CompilerOptions, Context, ContextModuleFactory, DependencyType, Module, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
   ModuleProfile, ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve,
@@ -27,7 +27,7 @@ pub struct FactorizeTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub original_module_context: Option<Context>,
   pub issuer: Option<String>,
-  pub dependencies: Vec<BoxModuleDependency>,
+  pub dependencies: Vec<BoxDependency>,
   pub is_entry: bool,
   pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,
@@ -45,7 +45,7 @@ pub struct FactorizeTaskResult {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub factory_result: ModuleFactoryResult,
   pub module_graph_module: Box<ModuleGraphModule>,
-  pub dependencies: Vec<BoxModuleDependency>,
+  pub dependencies: Vec<BoxDependency>,
   pub diagnostics: Vec<Diagnostic>,
   pub is_entry: bool,
   pub current_profile: Option<ModuleProfile>,
@@ -131,7 +131,7 @@ pub struct AddTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module: Box<dyn Module>,
   pub module_graph_module: Box<ModuleGraphModule>,
-  pub dependencies: Vec<BoxModuleDependency>,
+  pub dependencies: Vec<BoxDependency>,
   pub is_entry: bool,
   pub current_profile: Option<ModuleProfile>,
 }
@@ -203,7 +203,7 @@ impl AddTask {
   fn set_resolved_module(
     module_graph: &mut ModuleGraph,
     original_module_identifier: Option<ModuleIdentifier>,
-    dependencies: Vec<BoxModuleDependency>,
+    dependencies: Vec<BoxDependency>,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
     for dependency in dependencies {
@@ -300,7 +300,7 @@ pub type BuildQueue = WorkerQueue<BuildTask>;
 
 pub struct ProcessDependenciesTask {
   pub original_module_identifier: ModuleIdentifier,
-  pub dependencies: Vec<BoxModuleDependency>,
+  pub dependencies: Vec<BoxDependency>,
   pub resolve_options: Option<Resolve>,
 }
 

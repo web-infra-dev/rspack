@@ -37,6 +37,10 @@ impl WorkerDependency {
 }
 
 impl Dependency for WorkerDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Worker
   }
@@ -47,10 +51,6 @@ impl Dependency for WorkerDependency {
 }
 
 impl ModuleDependency for WorkerDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -61,10 +61,6 @@ impl ModuleDependency for WorkerDependency {
 
   fn span(&self) -> Option<&ErrorSpan> {
     self.span.as_ref()
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
   }
 
   fn set_request(&mut self, request: String) {

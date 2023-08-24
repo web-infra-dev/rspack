@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  ChunkGroupOptions, ConstDependency, DependencyTemplate, EntryOptions, ModuleDependency,
+  BoxDependency, BoxDependencyTemplate, ChunkGroupOptions, ConstDependency, EntryOptions,
   ModuleIdentifier, OutputOptions, SpanExt,
 };
 use rspack_hash::RspackHash;
@@ -16,8 +16,8 @@ use crate::dependency::WorkerDependency;
 
 // TODO: should created by WorkerPlugin
 pub struct WorkerScanner<'a> {
-  pub presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
-  pub dependencies: Vec<Box<dyn ModuleDependency>>,
+  pub presentational_dependencies: Vec<BoxDependencyTemplate>,
+  pub dependencies: Vec<BoxDependency>,
   index: usize,
   module_identifier: &'a ModuleIdentifier,
   output_options: &'a OutputOptions,

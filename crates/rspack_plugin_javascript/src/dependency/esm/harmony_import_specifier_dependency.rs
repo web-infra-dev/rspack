@@ -162,6 +162,10 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
 }
 
 impl Dependency for HarmonyImportSpecifierDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -172,10 +176,6 @@ impl Dependency for HarmonyImportSpecifierDependency {
 }
 
 impl ModuleDependency for HarmonyImportSpecifierDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -186,10 +186,6 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
 
   fn span(&self) -> Option<&ErrorSpan> {
     None
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
   }
 
   fn set_request(&mut self, request: String) {

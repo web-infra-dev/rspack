@@ -1,5 +1,6 @@
 use rspack_core::{
-  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
+  AsDependencyTemplate, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
+  ModuleDependency,
 };
 
 use crate::WasmNode;
@@ -33,6 +34,10 @@ impl WasmImportDependency {
 }
 
 impl Dependency for WasmImportDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Wasm
   }
@@ -43,10 +48,6 @@ impl Dependency for WasmImportDependency {
 }
 
 impl ModuleDependency for WasmImportDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -63,3 +64,5 @@ impl ModuleDependency for WasmImportDependency {
     self.request = request;
   }
 }
+
+impl AsDependencyTemplate for WasmImportDependency {}

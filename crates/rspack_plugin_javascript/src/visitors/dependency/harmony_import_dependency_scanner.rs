@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use rspack_core::{
-  tree_shaking::symbol::DEFAULT_JS_WORD, ConstDependency, DependencyTemplate, DependencyType,
-  ModuleDependency, SpanExt,
+  tree_shaking::symbol::DEFAULT_JS_WORD, BoxDependency, BoxDependencyTemplate, ConstDependency,
+  DependencyType, SpanExt,
 };
 use rustc_hash::FxHashMap;
 use swc_core::{
@@ -58,16 +58,16 @@ impl ImporterInfo {
 pub type Imports = IndexMap<(JsWord, DependencyType), ImporterInfo>;
 
 pub struct HarmonyImportDependencyScanner<'a> {
-  pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-  pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
+  pub dependencies: &'a mut Vec<BoxDependency>,
+  pub presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
   pub import_map: &'a mut ImportMap,
   pub imports: Imports,
 }
 
 impl<'a> HarmonyImportDependencyScanner<'a> {
   pub fn new(
-    dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-    presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
+    dependencies: &'a mut Vec<BoxDependency>,
+    presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
     import_map: &'a mut ImportMap,
   ) -> Self {
     Self {
@@ -264,14 +264,11 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
 pub struct HarmonyImportRefDependencyScanner<'a> {
   pub enter_callee: bool,
   pub import_map: &'a ImportMap,
-  pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+  pub dependencies: &'a mut Vec<BoxDependency>,
 }
 
 impl<'a> HarmonyImportRefDependencyScanner<'a> {
-  pub fn new(
-    import_map: &'a ImportMap,
-    dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-  ) -> Self {
+  pub fn new(import_map: &'a ImportMap, dependencies: &'a mut Vec<BoxDependency>) -> Self {
     Self {
       import_map,
       dependencies,

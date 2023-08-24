@@ -3,15 +3,15 @@
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use rspack_core::RuntimeGlobals;
 use rspack_core::{
   rspack_sources::{
     BoxSource, MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
     SourceMapSourceOptions,
   },
-  BuildMetaExportsType, GenerateContext, Module, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, SourceType, TemplateContext,
+  BoxDependency, BuildMetaExportsType, GenerateContext, Module, ModuleType, ParseContext,
+  ParseResult, ParserAndGenerator, SourceType, TemplateContext,
 };
-use rspack_core::{ModuleDependency, RuntimeGlobals};
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
@@ -158,7 +158,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           None
         } else {
           dep_set.insert(from.to_string());
-          Some(Box::new(CssComposeDependency::new(from.to_string(), None)) as Box<dyn ModuleDependency>)
+          Some(Box::new(CssComposeDependency::new(from.to_string(), None)) as BoxDependency)
         }
       } else {
         None
@@ -229,7 +229,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .module_graph
             .dependency_by_id(id)
             .expect("should have dependency")
-            .as_code_generatable_dependency()
+            .as_dependency_template()
           {
             dependency.apply(&mut source, &mut context)
           }

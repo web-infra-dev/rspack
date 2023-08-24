@@ -1,6 +1,5 @@
 use rspack_core::{
-  ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory, ModuleDependency,
-  SpanExt,
+  BoxDependency, ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt,
 };
 use rspack_regex::RspackRegex;
 use swc_core::ecma::{
@@ -12,11 +11,11 @@ use super::is_require_context_call;
 use crate::dependency::RequireContextDependency;
 
 pub struct RequireContextScanner<'a> {
-  pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+  pub dependencies: &'a mut Vec<BoxDependency>,
 }
 
 impl<'a> RequireContextScanner<'a> {
-  pub fn new(dependencies: &'a mut Vec<Box<dyn ModuleDependency>>) -> Self {
+  pub fn new(dependencies: &'a mut Vec<BoxDependency>) -> Self {
     Self { dependencies }
   }
 }
