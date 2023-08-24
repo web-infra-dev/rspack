@@ -222,17 +222,20 @@ impl RawOptionsApply for RawOptions {
     );
     plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
     plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin {}.boxed());
-    plugins.push(
-      rspack_plugin_devtool::DevtoolPlugin::new(rspack_plugin_devtool::DevtoolPluginOptions {
-        inline: devtool.inline(),
-        append: !devtool.hidden(),
-        namespace: output.unique_name.clone(),
-        columns: !devtool.cheap(),
-        no_sources: devtool.no_sources(),
-        public_path: None,
-      })
-      .boxed(),
-    );
+
+    if devtool.source_map() {
+      plugins.push(
+        rspack_plugin_devtool::DevtoolPlugin::new(rspack_plugin_devtool::DevtoolPluginOptions {
+          inline: devtool.inline(),
+          append: !devtool.hidden(),
+          namespace: output.unique_name.clone(),
+          columns: !devtool.cheap(),
+          no_sources: devtool.no_sources(),
+          public_path: None,
+        })
+        .boxed(),
+      );
+    }
 
     plugins.push(rspack_ids::NamedChunkIdsPlugin::new(None, None).boxed());
 

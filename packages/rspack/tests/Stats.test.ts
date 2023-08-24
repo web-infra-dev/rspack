@@ -109,7 +109,7 @@ describe("Stats", () => {
 		  "errors": [],
 		  "errorsCount": 0,
 		  "filteredModules": undefined,
-		  "hash": "0c547b7afec4981bde28",
+		  "hash": "efeb16c0b857d2dca7eb",
 		  "logging": {},
 		  "modules": [
 		    {
@@ -165,7 +165,7 @@ describe("Stats", () => {
 		    entry ./fixtures/a
 		./fixtures/a.js [876] {main}
 		  entry ./fixtures/a
-		rspack compiled successfully (0c547b7afec4981bde28)"
+		rspack compiled successfully (efeb16c0b857d2dca7eb)"
 	`);
 	});
 
@@ -210,7 +210,7 @@ describe("Stats", () => {
 
 
 
-		rspack compiled with 1 error (c9cbdf0f608678e27319)"
+		rspack compiled with 1 error (c7f1b431a5ddf56b18af)"
 	`);
 	});
 
@@ -257,10 +257,6 @@ describe("Stats", () => {
 		<t> afterCompile hook: X ms
 		<t> emitAssets: X ms
 		<t> done hook: X ms
-
-		LOG from rspack.DevtoolPlugin
-		<t> collect source maps: X ms
-		<t> emit source map assets: X ms
 
 		LOG from rspack.EnsureChunkConditionsPlugin
 		<t> ensure chunk conditions: X ms
