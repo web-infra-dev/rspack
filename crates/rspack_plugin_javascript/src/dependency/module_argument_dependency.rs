@@ -42,7 +42,7 @@ impl DependencyTemplate for ModuleArgumentDependency {
         None,
       );
     } else {
-      source.replace(self.start, self.end, module_argument, None);
+      source.replace(self.start, self.end, &format!("{module_argument}"), None);
     }
   }
 }

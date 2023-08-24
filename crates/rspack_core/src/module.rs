@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::hash::Hash;
 use std::path::PathBuf;
 use std::{any::Any, borrow::Cow, fmt::Debug};
@@ -62,7 +63,39 @@ pub enum BuildMetaDefaultObject {
   RedirectWarn,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Default, Clone, Copy, Hash)]
+pub enum ModuleArgument {
+  #[default]
+  Module,
+  WebpackModule,
+}
+
+impl Display for ModuleArgument {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      ModuleArgument::Module => write!(f, "module"),
+      ModuleArgument::WebpackModule => write!(f, "__webpack_module__"),
+    }
+  }
+}
+
+#[derive(Debug, Default, Clone, Copy, Hash)]
+pub enum ExportsArgument {
+  #[default]
+  Exports,
+  WebpackExports,
+}
+
+impl Display for ExportsArgument {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      ExportsArgument::Exports => write!(f, "exports"),
+      ExportsArgument::WebpackExports => write!(f, "__webpack_exports__"),
+    }
+  }
+}
+
+#[derive(Debug, Default, Clone, Hash)]
 pub struct BuildMeta {
   pub strict: bool,
   pub strict_harmony_module: bool,
@@ -70,26 +103,10 @@ pub struct BuildMeta {
   pub esm: bool,
   pub exports_type: BuildMetaExportsType,
   pub default_object: BuildMetaDefaultObject,
-  pub module_argument: &'static str,
-  pub exports_argument: &'static str,
+  pub module_argument: ModuleArgument,
+  pub exports_argument: ExportsArgument,
   // TODO: Don't delete this comment, it will be used in near future
   // pub side_effect_free: bool,
-}
-
-impl Default for BuildMeta {
-  fn default() -> Self {
-    Self {
-      strict: Default::default(),
-      strict_harmony_module: Default::default(),
-      is_async: Default::default(),
-      esm: Default::default(),
-      exports_type: Default::default(),
-      default_object: Default::default(),
-      module_argument: "module",
-      exports_argument: "exports",
-      // side_effect_free: false,
-    }
-  }
 }
 
 // webpack build info

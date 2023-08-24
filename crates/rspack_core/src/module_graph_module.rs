@@ -3,9 +3,9 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   is_async_dependency, module_graph::ConnectionId, BuildInfo, BuildMeta, BuildMetaDefaultObject,
-  BuildMetaExportsType, ChunkGraph, ChunkGroupOptions, DependencyId, ExportsInfo, ExportsType,
-  FactoryMeta, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleIssuer, ModuleProfile,
-  ModuleSyntax, ModuleType,
+  BuildMetaExportsType, ChunkGraph, ChunkGroupOptions, DependencyId, ExportsArgument, ExportsInfo,
+  ExportsType, FactoryMeta, ModuleArgument, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  ModuleIssuer, ModuleProfile, ModuleSyntax, ModuleType,
 };
 
 #[derive(Debug)]
@@ -196,20 +196,20 @@ impl ModuleGraphModule {
     &self.issuer
   }
 
-  pub fn get_exports_argument(&self) -> &str {
+  pub fn get_exports_argument(&self) -> ExportsArgument {
     self
       .build_meta
       .as_ref()
       .map(|m| m.exports_argument)
-      .unwrap_or("exports")
+      .unwrap_or_default()
   }
 
-  pub fn get_module_argument(&self) -> &str {
+  pub fn get_module_argument(&self) -> ModuleArgument {
     self
       .build_meta
       .as_ref()
       .map(|m| m.module_argument)
-      .unwrap_or("module")
+      .unwrap_or_default()
   }
 
   pub fn get_exports_type(&self, strict: bool) -> ExportsType {

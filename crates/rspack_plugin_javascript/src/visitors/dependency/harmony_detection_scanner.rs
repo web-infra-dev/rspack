@@ -1,4 +1,7 @@
-use rspack_core::{BuildInfo, BuildMeta, BuildMetaExportsType, DependencyTemplate, ModuleType};
+use rspack_core::{
+  BuildInfo, BuildMeta, BuildMetaExportsType, DependencyTemplate, ExportsArgument, ModuleArgument,
+  ModuleType,
+};
 use swc_core::ecma::ast::{ModuleItem, Program};
 use swc_core::ecma::visit::{noop_visit_type, Visit};
 
@@ -43,12 +46,12 @@ impl Visit for HarmonyDetectionScanner<'_> {
       self.build_meta.esm = true;
       self.build_meta.exports_type = BuildMetaExportsType::Namespace;
       self.build_info.strict = true;
-      self.build_meta.exports_argument = "__webpack_exports__";
+      self.build_meta.exports_argument = ExportsArgument::WebpackExports;
     }
 
     if strict_harmony_module {
       self.build_meta.strict_harmony_module = true;
-      self.build_meta.module_argument = "__webpack_module__";
+      self.build_meta.module_argument = ModuleArgument::WebpackModule;
     }
   }
 }
