@@ -23,8 +23,8 @@ use super::{
 };
 use crate::needs_refactor::WorkerSyntaxList;
 use crate::{
-  extract_member_expression_chain, CompilerOptions, Dependency, DependencyId, DependencyType,
-  FactoryMeta, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleSyntax,
+  extract_member_expression_chain, BoxDependency, CompilerOptions, DependencyId, DependencyType,
+  FactoryMeta, ModuleGraph, ModuleIdentifier, ModuleSyntax,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -159,7 +159,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   top_level_ctxt: SyntaxContext,
   unresolved_ctxt: SyntaxContext,
   module_identifier: ModuleIdentifier,
-  dependencies: &'a Vec<Box<dyn ModuleDependency>>,
+  dependencies: &'a Vec<BoxDependency>,
   /// Value of `export_map` must have type [SymbolRef::Direct]
   pub(crate) export_map: HashMap<JsWord, SymbolRef>,
   pub(crate) import_map: HashMap<JsWord, SymbolRef>,
@@ -254,7 +254,7 @@ impl<'a> ModuleRefAnalyze<'a> {
   pub fn new(
     mark_info: SyntaxContextInfo,
     module_identifier: ModuleIdentifier,
-    dependencies: &'a Vec<Box<dyn ModuleDependency>>,
+    dependencies: &'a Vec<BoxDependency>,
     options: &'a CompilerOptions,
     _comments: Option<&'a SwcComments>,
     worker_syntax_list: &'a WorkerSyntaxList,
@@ -1626,7 +1626,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     dependency_type: &DependencyType,
   ) -> Option<DependencyId> {
     self.dependencies.iter().find_map(|dep| {
-      if dep.request() == src && dependency_type == dep.dependency_type() {
+      if let Some(dep) = dep.as_module_dependency() && dep.request() == src && dependency_type == dep.dependency_type() {
         Some(*dep.id())
       } else {
         None

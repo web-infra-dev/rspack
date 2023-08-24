@@ -5,7 +5,7 @@ use dashmap::DashMap;
 use rspack_core::rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
-  AssetInfo, BuildMetaExportsType, Compilation, Dependency, Filename, GenerateContext, Module,
+  AssetInfo, BoxDependency, BuildMetaExportsType, Compilation, Filename, GenerateContext, Module,
   ModuleDependency, ModuleIdentifier, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
   PathData, RuntimeGlobals, SourceType,
 };
@@ -36,7 +36,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     let source = parse_context.source;
 
     let mut exports = Vec::with_capacity(1);
-    let mut dependencies = Vec::with_capacity(1);
+    let mut dependencies: Vec<BoxDependency> = Vec::with_capacity(1);
     let mut diagnostic = Vec::with_capacity(1);
 
     for payload in Parser::new(0).parse_all(&source.buffer()) {
@@ -59,10 +59,11 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             for import in s {
               match import {
                 Ok(Import { module, name, ty }) => {
-                  let dep = Box::new(WasmImportDependency::new(module.into(), name.into(), ty))
-                    as Box<dyn ModuleDependency>;
-
-                  dependencies.push(dep);
+                  dependencies.push(Box::new(WasmImportDependency::new(
+                    module.into(),
+                    name.into(),
+                    ty,
+                  )));
                 }
                 Err(err) => diagnostic.push(Diagnostic::error(
                   "Wasm Import Parse Error".into(),

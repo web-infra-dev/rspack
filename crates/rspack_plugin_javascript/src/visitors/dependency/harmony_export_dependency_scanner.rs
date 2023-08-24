@@ -1,5 +1,5 @@
 use rspack_core::{
-  tree_shaking::symbol::DEFAULT_JS_WORD, ConstDependency, DependencyTemplate, ModuleDependency,
+  tree_shaking::symbol::DEFAULT_JS_WORD, BoxDependency, BoxDependencyTemplate, ConstDependency,
   SpanExt,
 };
 use swc_core::{
@@ -23,16 +23,16 @@ use crate::dependency::{
 };
 
 pub struct HarmonyExportDependencyScanner<'a> {
-  pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-  pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
+  pub dependencies: &'a mut Vec<BoxDependency>,
+  pub presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
   pub import_map: &'a mut ImportMap,
   pub exports: Vec<(JsWord, JsWord)>,
 }
 
 impl<'a> HarmonyExportDependencyScanner<'a> {
   pub fn new(
-    dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-    presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
+    dependencies: &'a mut Vec<BoxDependency>,
+    presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
     import_map: &'a mut ImportMap,
   ) -> Self {
     Self {

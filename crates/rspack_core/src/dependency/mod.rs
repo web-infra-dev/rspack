@@ -46,6 +46,7 @@ pub enum DependencyType {
   // Harmony export
   EsmExport,
   EsmExportImportedSpecifier,
+  EsmExportSpecifier,
   // import()
   DynamicImport,
   // cjs require
@@ -94,6 +95,7 @@ impl Display for DependencyType {
       DependencyType::Entry => write!(f, "entry"),
       DependencyType::EsmImport => write!(f, "esm import"),
       DependencyType::EsmExport => write!(f, "esm export"),
+      DependencyType::EsmExportSpecifier => write!(f, "esm export specifier"),
       DependencyType::EsmExportImportedSpecifier => write!(f, "esm export import specifier"),
       DependencyType::EsmImportSpecifier => write!(f, "esm import specifier"),
       DependencyType::DynamicImport => write!(f, "dynamic import"),
@@ -165,7 +167,11 @@ impl Display for DependencyCategory {
   }
 }
 
-pub trait Dependency: AsAny + DynClone + Send + Sync + Debug {
+pub trait Dependency:
+  AsDependencyTemplate + AsModuleDependency + AsAny + DynClone + Send + Sync + Debug
+{
+  fn id(&self) -> &DependencyId;
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Unknown
   }
@@ -177,6 +183,36 @@ pub trait Dependency: AsAny + DynClone + Send + Sync + Debug {
   fn get_context(&self) -> Option<&Context> {
     None
   }
+
+  fn get_exports(&self) -> Option<ExportsSpec> {
+    None
+  }
+}
+
+#[derive(Debug, Default)]
+pub struct ExportSpec {
+  _name: String,
+  _can_mangle: bool,
+  _terminal_binding: bool,
+  _priority: u8,
+  _hidden: bool,
+}
+
+impl ExportSpec {
+  pub fn new(_name: String) -> Self {
+    Self {
+      _name,
+      ..Default::default()
+    }
+  }
+}
+
+#[derive(Debug, Default)]
+pub struct ExportsSpec {
+  _exports: ExportSpec,
+  _priority: u8,
+  _can_mangle: bool,
+  _terminal_binding: bool,
 }
 
 pub enum ExportsReferencedType {
@@ -185,24 +221,22 @@ pub enum ExportsReferencedType {
   Value(Vec<ReferencedExport>),
 }
 
-impl Dependency for Box<dyn Dependency> {
-  fn category(&self) -> &DependencyCategory {
-    (**self).category()
-  }
-
-  fn dependency_type(&self) -> &DependencyType {
-    (**self).dependency_type()
-  }
-}
-
 pub trait AsModuleDependency {
   fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
+    None
+  }
+
+  fn as_module_dependency_mut(&mut self) -> Option<&mut dyn ModuleDependency> {
     None
   }
 }
 
 impl<T: ModuleDependency> AsModuleDependency for T {
   fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
+    Some(self)
+  }
+
+  fn as_module_dependency_mut(&mut self) -> Option<&mut dyn ModuleDependency> {
     Some(self)
   }
 }
@@ -252,7 +286,6 @@ impl Debug for DependencyCondition {
 }
 
 pub trait ModuleDependency: Dependency {
-  fn id(&self) -> &DependencyId;
   fn request(&self) -> &str;
   fn user_request(&self) -> &str;
   fn span(&self) -> Option<&ErrorSpan>;
@@ -267,10 +300,6 @@ pub trait ModuleDependency: Dependency {
   }
   fn get_optional(&self) -> bool {
     false
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    None
   }
 
   // TODO: wired to place ChunkGroupOptions on dependency, should place on AsyncDependenciesBlock
@@ -296,62 +325,6 @@ pub trait ModuleDependency: Dependency {
   }
 }
 
-impl ModuleDependency for Box<dyn ModuleDependency> {
-  fn id(&self) -> &DependencyId {
-    (**self).id()
-  }
-
-  fn request(&self) -> &str {
-    (**self).request()
-  }
-
-  fn user_request(&self) -> &str {
-    (**self).user_request()
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    (**self).span()
-  }
-
-  fn weak(&self) -> bool {
-    (**self).weak()
-  }
-
-  fn options(&self) -> Option<&ContextOptions> {
-    (**self).options()
-  }
-
-  fn get_optional(&self) -> bool {
-    (**self).get_optional()
-  }
-
-  fn group_options(&self) -> Option<&ChunkGroupOptions> {
-    (**self).group_options()
-  }
-
-  fn set_request(&mut self, request: String) {
-    (**self).set_request(request);
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    (**self).as_code_generatable_dependency()
-  }
-}
-
-impl Dependency for Box<dyn ModuleDependency> {
-  fn category(&self) -> &DependencyCategory {
-    (**self).category()
-  }
-
-  fn dependency_type(&self) -> &DependencyType {
-    (**self).dependency_type()
-  }
-
-  fn get_context(&self) -> Option<&Context> {
-    (**self).get_context()
-  }
-}
-
 impl dyn Dependency + '_ {
   pub fn downcast_ref<D: Any>(&self) -> Option<&D> {
     self.as_any().downcast_ref::<D>()
@@ -368,7 +341,7 @@ clone_trait_object!(ModuleDependency);
 pub type BoxModuleDependency = Box<dyn ModuleDependency>;
 pub type BoxDependency = Box<dyn Dependency>;
 
-pub fn is_async_dependency(dep: &BoxModuleDependency) -> bool {
+pub fn is_async_dependency(dep: &dyn ModuleDependency) -> bool {
   if matches!(dep.dependency_type(), DependencyType::DynamicImport) {
     return true;
   }

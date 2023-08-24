@@ -11,7 +11,7 @@ mod connection;
 pub use connection::{ConnectionId, ConnectionState, ModuleGraphConnection};
 
 use crate::{
-  to_identifier, BoxModule, BoxModuleDependency, BuildDependency, BuildInfo, BuildMeta,
+  to_identifier, BoxDependency, BoxModule, BuildDependency, BuildInfo, BuildMeta,
   DependencyCondition, DependencyId, ExportsInfo, Module, ModuleGraphModule, ModuleIdentifier,
   ModuleProfile,
 };
@@ -34,7 +34,7 @@ pub struct ModuleGraph {
 
   /// Dependencies indexed by `DependencyId`
   /// None means the dependency has been removed
-  dependencies: HashMap<DependencyId, BoxModuleDependency>,
+  dependencies: HashMap<DependencyId, BoxDependency>,
 
   /// Dependencies indexed by `ConnectionId`
   /// None means the connection has been removed
@@ -76,7 +76,7 @@ impl ModuleGraph {
     }
   }
 
-  pub fn add_dependency(&mut self, dependency: BoxModuleDependency) {
+  pub fn add_dependency(&mut self, dependency: BoxDependency) {
     self.dependencies.insert(*dependency.id(), dependency);
   }
 
@@ -87,7 +87,7 @@ impl ModuleGraph {
     self.connection_to_condition.get(connection_id)
   }
 
-  pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxModuleDependency> {
+  pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxDependency> {
     self.dependencies.get(dependency_id)
   }
 
@@ -117,14 +117,18 @@ impl ModuleGraph {
   pub fn set_resolved_module(
     &mut self,
     original_module_identifier: Option<ModuleIdentifier>,
-    dependency: BoxModuleDependency,
+    dependency: BoxDependency,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
+    let module_dependency = dependency.as_module_dependency().is_some();
     let dependency_id = *dependency.id();
     self.add_dependency(dependency);
     self
       .dependency_id_to_module_identifier
       .insert(dependency_id, module_identifier);
+    if !module_dependency {
+      return Ok(());
+    }
 
     // TODO: just a placeholder here, finish this when we have basic `getCondition` logic
     let condition: Option<DependencyCondition> = None;
@@ -262,7 +266,7 @@ impl ModuleGraph {
   pub fn dependency_by_connection_id(
     &self,
     connection_id: &ConnectionId,
-  ) -> Option<&BoxModuleDependency> {
+  ) -> Option<&BoxDependency> {
     self
       .connection_id_to_dependency_id
       .get(connection_id)
@@ -540,9 +544,9 @@ mod test {
   use rspack_sources::BoxSource;
 
   use crate::{
-    BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, Dependency,
-    DependencyId, Module, ModuleDependency, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
-    ModuleType, SourceType,
+    BoxDependency, BuildContext, BuildResult, CodeGenerationResult, Compilation, Context,
+    Dependency, DependencyId, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
+    ModuleIdentifier, ModuleType, SourceType,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s
@@ -601,13 +605,13 @@ mod test {
 
   macro_rules! impl_noop_trait_dep_type {
     ($ident:ident) => {
-      impl Dependency for $ident {}
-
-      impl ModuleDependency for $ident {
+      impl Dependency for $ident {
         fn id(&self) -> &DependencyId {
           &self.2
         }
+      }
 
+      impl ModuleDependency for $ident {
         fn request(&self) -> &str {
           &*self.1
         }
@@ -624,6 +628,8 @@ mod test {
           self.1 = request;
         }
       }
+
+      impl crate::AsDependencyTemplate for $ident {}
     };
   }
 
@@ -639,7 +645,7 @@ mod test {
     mg: &mut ModuleGraph,
     from: Option<&ModuleIdentifier>,
     to: &ModuleIdentifier,
-    dep: Box<dyn ModuleDependency>,
+    dep: BoxDependency,
   ) -> DependencyId {
     let dependency_id = *dep.id();
     mg.dependency_id_to_module_identifier

@@ -192,7 +192,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .module_graph
           .dependency_by_id(id)
           .expect("should have dependency")
-          .as_code_generatable_dependency()
+          .as_dependency_template()
         {
           dependency.apply(&mut source, &mut context)
         }

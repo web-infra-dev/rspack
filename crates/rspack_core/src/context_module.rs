@@ -17,11 +17,11 @@ use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  contextify, get_exports_type_with_strict, stringify_map, BoxModuleDependency, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
-  ContextElementDependency, DependencyCategory, DependencyId, DependencyType, ExportsType,
-  FakeNamespaceObjectMode, LibIdentOptions, Module, ModuleType, Resolve,
-  ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, SourceType,
+  contextify, get_exports_type_with_strict, stringify_map, BoxDependency, BuildContext, BuildInfo,
+  BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ContextElementDependency,
+  DependencyCategory, DependencyId, DependencyType, ExportsType, FakeNamespaceObjectMode,
+  LibIdentOptions, Module, ModuleType, Resolve, ResolveOptionsWithDependencyType, ResolverFactory,
+  RuntimeGlobals, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -272,18 +272,20 @@ impl ContextModule {
           .module_graph
           .module_identifier_by_dependency_id(dependency)
         {
-          let dependency = compilation
+          if let Some(dependency) = compilation
             .module_graph
             .dependency_by_id(dependency)
-            .expect("should have dependency");
-          map.insert(
-            dependency.user_request().to_string(),
-            if let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier) {
-              format!("\"{module_id}\"")
-            } else {
-              "null".to_string()
-            },
-          );
+            .and_then(|d| d.as_module_dependency())
+          {
+            map.insert(
+              dependency.user_request().to_string(),
+              if let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier) {
+                format!("\"{module_id}\"")
+              } else {
+                "null".to_string()
+              },
+            );
+          }
         }
       }
     }
@@ -559,7 +561,7 @@ impl ContextModule {
     fn visit_dirs(
       ctx: &str,
       dir: &Path,
-      dependencies: &mut Vec<BoxModuleDependency>,
+      dependencies: &mut Vec<BoxDependency>,
       options: &ContextModuleOptions,
       resolve_options: &nodejs_resolver::Options,
     ) -> Result<()> {

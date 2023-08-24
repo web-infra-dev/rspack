@@ -31,16 +31,16 @@ use crate::{
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
   is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
-  AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModule,
-  BoxModuleDependency, BuildQueue, BuildTask, BuildTaskResult, Chunk, ChunkByUkey,
-  ChunkContentHash, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey,
-  CleanQueue, CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults,
-  CompilationLogger, CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, Entry,
-  EntryData, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult,
-  Filename, Logger, Module, ModuleGraph, ModuleIdentifier, ModuleProfile, ModuleType, PathData,
-  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
-  RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec,
-  SharedPluginDriver, SourceType, Stats, TaskResult, WorkerTask,
+  AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxDependency,
+  BoxModule, BuildQueue, BuildTask, BuildTaskResult, Chunk, ChunkByUkey, ChunkContentHash,
+  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue,
+  CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
+  CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, Entry, EntryData,
+  EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger,
+  Module, ModuleGraph, ModuleIdentifier, ModuleProfile, ModuleType, PathData, ProcessAssetsArgs,
+  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
+  Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver,
+  SourceType, Stats, TaskResult, WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
@@ -427,7 +427,10 @@ impl Compilation {
           .expect("dependency not found");
         let parent_module =
           parent_module_identifier.and_then(|id| self.module_graph.module_by_identifier(&id));
-        if parent_module_identifier.is_some() && parent_module.is_none() {
+        if parent_module_identifier.is_some()
+          && parent_module.is_none()
+          && dependency.as_module_dependency().is_none()
+        {
           return;
         }
 
@@ -536,19 +539,26 @@ impl Compilation {
         let mut sorted_dependencies = HashMap::default();
 
         task.dependencies.into_iter().for_each(|dependency| {
-          // TODO need implement more dependency `resource_identifier()`
-          // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L1621
-          let resource_identifier =
-            if let Some(resource_identifier) = dependency.resource_identifier() {
-              resource_identifier.to_string()
-            } else {
-              format!("{}|{}", dependency.dependency_type(), dependency.request())
-            };
+          // only module dependency can put into resolve queue.
+          if let Some(module_dependency) = dependency.as_module_dependency() {
+            // TODO need implement more dependency `resource_identifier()`
+            // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L1621
+            let resource_identifier =
+              if let Some(resource_identifier) = module_dependency.resource_identifier() {
+                resource_identifier.to_string()
+              } else {
+                format!(
+                  "{}|{}",
+                  module_dependency.dependency_type(),
+                  module_dependency.request()
+                )
+              };
 
-          sorted_dependencies
-            .entry(resource_identifier)
-            .or_insert(vec![])
-            .push(dependency);
+            sorted_dependencies
+              .entry(resource_identifier)
+              .or_insert(vec![])
+              .push(dependency);
+          }
         });
 
         for dependencies in sorted_dependencies.into_values() {
@@ -677,9 +687,11 @@ impl Compilation {
 
               let mut dep_ids = vec![];
               for dependency in build_result.dependencies.iter() {
-                self
-                  .module_graph
-                  .set_dependency_import_var(module.identifier(), dependency.request());
+                if let Some(dependency) = dependency.as_module_dependency() {
+                  self
+                    .module_graph
+                    .set_dependency_import_var(module.identifier(), dependency.request());
+                }
                 dep_ids.push(*dependency.id());
               }
 
@@ -843,7 +855,7 @@ impl Compilation {
     queue: &mut FactorizeQueue,
     original_module_identifier: Option<ModuleIdentifier>,
     original_module_context: Option<Context>,
-    dependencies: Vec<BoxModuleDependency>,
+    dependencies: Vec<BoxDependency>,
     is_entry: bool,
     module_type: Option<ModuleType>,
     side_effects: Option<bool>,

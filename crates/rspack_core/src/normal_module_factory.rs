@@ -14,13 +14,13 @@ use crate::{
   cache::Cache,
   module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
   tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
-  BoxLoader, CompilerOptions, Dependency, DependencyCategory, DependencyType, FactorizeArgs,
-  FactoryMeta, FuncUseCtx, GeneratorOptions, MissingModule, ModuleArgs, ModuleDependency,
-  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
-  ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
-  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, ParserOptions, RawModule, Resolve,
-  ResolveArgs, ResolveError, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  ResolverFactory, ResourceData, ResourceParsedData, SharedPluginDriver,
+  BoxLoader, CompilerOptions, DependencyCategory, DependencyType, FactorizeArgs, FactoryMeta,
+  FuncUseCtx, GeneratorOptions, MissingModule, ModuleArgs, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
+  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleBeforeResolveArgs, ParserOptions, RawModule, Resolve, ResolveArgs, ResolveError,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
+  ResourceParsedData, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -71,9 +71,13 @@ impl NormalModuleFactory {
     &mut self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
+    let dependency = data
+      .dependency
+      .as_module_dependency_mut()
+      .expect("should be module dependency");
     // allow javascript plugin to modify args
     let mut before_resolve_args = NormalModuleBeforeResolveArgs {
-      request: data.dependency.request().to_string(),
+      request: dependency.request().to_string(),
       context: data.context.to_string(),
     };
     if let Ok(Some(false)) = self
@@ -81,7 +85,7 @@ impl NormalModuleFactory {
       .before_resolve(&mut before_resolve_args)
       .await
     {
-      let request_without_match_resource = data.dependency.request();
+      let request_without_match_resource = dependency.request();
       let ident = format!("{}/{request_without_match_resource}", &data.context);
       let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
 
@@ -98,7 +102,7 @@ impl NormalModuleFactory {
     }
 
     data.context = before_resolve_args.context.into();
-    data.dependency.set_request(before_resolve_args.request);
+    dependency.set_request(before_resolve_args.request);
     Ok(None)
   }
 
@@ -107,10 +111,14 @@ impl NormalModuleFactory {
     data: &ModuleFactoryCreateData,
     factory_result: &ModuleFactoryResult,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
+    let dependency = data
+      .dependency
+      .as_module_dependency()
+      .expect("should be module dependency");
     if let Ok(Some(false)) = self
       .plugin_driver
       .after_resolve(NormalModuleAfterResolveArgs {
-        request: data.dependency.request(),
+        request: dependency.request(),
         context: data.context.as_ref(),
         file_dependencies: &factory_result.file_dependencies,
         context_dependencies: &factory_result.context_dependencies,
@@ -119,7 +127,7 @@ impl NormalModuleFactory {
       })
       .await
     {
-      let request_without_match_resource = data.dependency.request();
+      let request_without_match_resource = dependency.request();
       let ident = format!("{}/{request_without_match_resource}", &data.context);
       let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
 
@@ -150,8 +158,12 @@ impl NormalModuleFactory {
     &mut self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
+    let dependency = data
+      .dependency
+      .as_module_dependency()
+      .expect("should be module dependency");
     let importer = self.context.original_module_identifier.as_ref();
-    let mut request_without_match_resource = data.dependency.request();
+    let mut request_without_match_resource = dependency.request();
 
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
@@ -275,7 +287,7 @@ impl NormalModuleFactory {
           options: None,
         }));
       }
-      let optional = data.dependency.get_optional();
+      let optional = dependency.get_optional();
 
       let resolve_args = ResolveArgs {
         importer,
@@ -285,9 +297,9 @@ impl NormalModuleFactory {
           data.context.clone()
         },
         specifier: request_without_match_resource,
-        dependency_type: data.dependency.dependency_type(),
-        dependency_category: data.dependency.category(),
-        span: data.dependency.span().cloned(),
+        dependency_type: dependency.dependency_type(),
+        dependency_category: dependency.category(),
+        span: dependency.span().cloned(),
         // take the options is safe here, because it
         // is not used in after_resolve hooks
         resolve_options: data.resolve_options.take(),
@@ -349,10 +361,10 @@ impl NormalModuleFactory {
                 data.context.clone()
               },
               specifier: request_without_match_resource,
-              dependency_type: data.dependency.dependency_type(),
-              dependency_category: data.dependency.category(),
+              dependency_type: dependency.dependency_type(),
+              dependency_category: dependency.category(),
               resolve_options: data.resolve_options.take(),
-              span: data.dependency.span().cloned(),
+              span: dependency.span().cloned(),
               resolve_to_context: false,
               optional,
               missing_dependencies: &mut missing_dependencies,
@@ -527,7 +539,7 @@ impl NormalModuleFactory {
     let normal_module = NormalModule::new(
       request,
       user_request,
-      data.dependency.request().to_owned(),
+      dependency.request().to_owned(),
       resolved_module_type,
       resolved_parser_and_generator,
       resolved_parser_options,
@@ -660,12 +672,16 @@ impl NormalModuleFactory {
     &mut self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
+    let dependency = data
+      .dependency
+      .as_module_dependency()
+      .expect("should be module dependency");
     let result = self
       .plugin_driver
       .factorize(
         FactorizeArgs {
           context: &data.context,
-          dependency: &*data.dependency,
+          dependency,
           plugin_driver: &self.plugin_driver,
         },
         &mut self.context,

@@ -12,9 +12,9 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
-  BoxModuleDependency, ChunkUkey, CodeGenerationResult, Compilation, CompilerContext,
-  CompilerOptions, Context, ContextModule, DependencyTemplate, ExternalModule, ModuleDependency,
-  ModuleType, NormalModule, RawModule, Resolve, SharedPluginDriver, SourceType,
+  BoxDependency, ChunkUkey, CodeGenerationResult, Compilation, CompilerContext, CompilerOptions,
+  Context, ContextModule, DependencyTemplate, ExternalModule, ModuleDependency, ModuleType,
+  NormalModule, RawModule, Resolve, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext<'a> {
@@ -99,7 +99,7 @@ pub struct BuildResult {
   pub build_meta: BuildMeta,
   pub build_info: BuildInfo,
   pub analyze_result: OptimizeAnalyzeResult,
-  pub dependencies: Vec<BoxModuleDependency>,
+  pub dependencies: Vec<BoxDependency>,
 }
 
 #[derive(Debug, Default, Clone)]

@@ -1,7 +1,7 @@
 #![feature(let_chains)]
 
 use rspack_core::{
-  Compilation, EntryDependency, EntryOptions, MakeParam, ModuleDependency, Plugin, PluginContext,
+  BoxDependency, Compilation, EntryDependency, EntryOptions, MakeParam, Plugin, PluginContext,
   PluginMakeHookOutput,
 };
 
@@ -33,7 +33,7 @@ impl Plugin for EntryPlugin {
     if let Some(state) = compilation.options.get_incremental_rebuild_make_state() && !state.is_first() {
       return Ok(());
     }
-    let dependency = Box::new(EntryDependency::new(self.entry_request.clone()));
+    let dependency: BoxDependency = Box::new(EntryDependency::new(self.entry_request.clone()));
     let dependency_id = dependency.id();
     compilation.add_entry(*dependency_id, self.name.clone(), self.options.clone());
     param.add_force_build_dependency(*dependency_id, None);

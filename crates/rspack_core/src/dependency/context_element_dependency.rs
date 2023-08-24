@@ -1,6 +1,6 @@
 use crate::{
-  Context, ContextMode, ContextOptions, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ModuleDependency,
+  AsDependencyTemplate, Context, ContextMode, ContextOptions, Dependency, DependencyCategory,
+  DependencyId, DependencyType, ModuleDependency,
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
@@ -16,6 +16,10 @@ pub struct ContextElementDependency {
 }
 
 impl Dependency for ContextElementDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &self.category
   }
@@ -30,10 +34,6 @@ impl Dependency for ContextElementDependency {
 }
 
 impl ModuleDependency for ContextElementDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -65,3 +65,5 @@ impl ModuleDependency for ContextElementDependency {
     Some(&self.resource_identifier)
   }
 }
+
+impl AsDependencyTemplate for ContextElementDependency {}

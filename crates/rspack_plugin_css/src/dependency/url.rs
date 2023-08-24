@@ -57,6 +57,10 @@ impl CssUrlDependency {
 }
 
 impl Dependency for CssUrlDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Url
   }
@@ -67,10 +71,6 @@ impl Dependency for CssUrlDependency {
 }
 
 impl ModuleDependency for CssUrlDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -85,10 +85,6 @@ impl ModuleDependency for CssUrlDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
   }
 }
 

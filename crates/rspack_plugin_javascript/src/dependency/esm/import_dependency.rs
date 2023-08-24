@@ -37,6 +37,10 @@ impl ImportDependency {
 }
 
 impl Dependency for ImportDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -47,10 +51,6 @@ impl Dependency for ImportDependency {
 }
 
 impl ModuleDependency for ImportDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -61,10 +61,6 @@ impl ModuleDependency for ImportDependency {
 
   fn span(&self) -> Option<&ErrorSpan> {
     self.span.as_ref()
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
   }
 
   fn group_options(&self) -> Option<&ChunkGroupOptions> {

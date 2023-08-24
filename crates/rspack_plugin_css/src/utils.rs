@@ -4,7 +4,7 @@ use heck::{ToKebabCase, ToLowerCamelCase};
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
-use rspack_core::{Compilation, ModuleDependency, OutputOptions, PathData, RuntimeGlobals};
+use rspack_core::{Compilation, OutputOptions, PathData, RuntimeGlobals};
 use rspack_error::{internal_error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
 use swc_core::css::modules::CssClassName;
@@ -91,7 +91,10 @@ pub fn css_modules_exports_to_string(
             .and_then(|mgm| {
               // workaround
               mgm.dependencies.iter().find_map(|id| {
-                let dependency = compilation.module_graph.dependency_by_id(id);
+                let dependency = compilation
+                  .module_graph
+                  .dependency_by_id(id)
+                  .and_then(|d| d.as_module_dependency());
                 if let Some(dependency) = dependency {
                   if dependency.request() == from {
                     return compilation

@@ -21,3 +21,17 @@ pub trait DependencyTemplate: Debug + Sync + Send {
     code_generatable_context: &mut TemplateContext,
   );
 }
+
+pub type BoxDependencyTemplate = Box<dyn DependencyTemplate>;
+
+pub trait AsDependencyTemplate {
+  fn as_dependency_template(&self) -> Option<&dyn DependencyTemplate> {
+    None
+  }
+}
+
+impl<T: DependencyTemplate> AsDependencyTemplate for T {
+  fn as_dependency_template(&self) -> Option<&dyn DependencyTemplate> {
+    Some(self)
+  }
+}
