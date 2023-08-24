@@ -1075,6 +1075,17 @@ importers:
       fs-extra: 11.1.0
       puppeteer: 19.4.0
 
+  packages/rspack-diff:
+    specifiers:
+      '@rspack/core': workspace:*
+      acorn: ^8.0.4
+      acorn-walk: ^8.0.0
+    dependencies:
+      acorn: 8.8.2
+      acorn-walk: 8.2.0
+    devDependencies:
+      '@rspack/core': link:../rspack
+
   packages/rspack-plugin-html:
     specifiers:
       '@rspack/core': workspace:*
@@ -12175,6 +12186,14 @@ packages:
       acorn: ^8
     dependencies:
       acorn: 8.8.0
+
+  /acorn-import-assertions/1.8.0_acorn@8.8.2:
+    resolution: {integrity: sha512-m7VZ3jwz4eK6A4Vtt8Ew1/mNbP24u0FhdyfA7fSvnJR6LMdfOYnmuIrrJAgrYfYJ10F/otaHTtrtrtmHdMNzEw==}
+    peerDependencies:
+      acorn: ^8
+    dependencies:
+      acorn: 8.8.2
+    dev: true
 
   /acorn-jsx/5.3.2_acorn@7.4.1:
     resolution: {integrity: sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==}
@@ -26272,7 +26291,7 @@ packages:
     hasBin: true
     dependencies:
       '@jridgewell/source-map': 0.3.2
-      acorn: 8.8.0
+      acorn: 8.8.2
       commander: 2.20.3
       source-map-support: 0.5.21
 
@@ -28116,8 +28135,8 @@ packages:
       '@webassemblyjs/ast': 1.11.5
       '@webassemblyjs/wasm-edit': 1.11.5
       '@webassemblyjs/wasm-parser': 1.11.5
-      acorn: 8.8.0
-      acorn-import-assertions: 1.8.0_acorn@8.8.0
+      acorn: 8.8.2
+      acorn-import-assertions: 1.8.0_acorn@8.8.2
       browserslist: 4.21.5
       chrome-trace-event: 1.0.3
       enhanced-resolve: 5.13.0

@@ -1,0 +1,31 @@
+{
+  "name": "@rspack/diff",
+  "version": "0.3.0",
+  "license": "MIT",
+  "description": "DiffTool for Rspack and Webpack",
+  "main": "./src/index.js",
+  "bin": {
+    "rspack-diff": "./src/index.js"
+  },
+  "scripts": {
+    "build:fixture": "cd fixtures/basic && pnpm build",
+    "diff": "node . dist fixtures/basic/rspack-dist/main.js fixtures/basic/webpack-dist/main.js"
+  },
+  "files": [
+    "src"
+  ],
+  "homepage": "https://rspack.dev",
+  "bugs": "https://github.com/web-infra-dev/rspack/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack-diff"
+  },
+  "dependencies": {
+    "acorn": "^8.0.4",
+    "acorn-walk": "^8.0.0"
+  },
+  "devDependencies": {
+    "@rspack/core": "workspace:*"
+  }
+}
