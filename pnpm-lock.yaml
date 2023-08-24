@@ -877,7 +877,7 @@ importers:
     specifiers:
       '@playwright/test': 1.35.0
       '@rspack/core': workspace:*
-      '@rspack/dev-client': workspace:^0.2.6
+      '@rspack/dev-client': workspace:*
       '@rspack/dev-server': workspace:*
       '@types/fs-extra': 11.0.1
       fs-extra: 11.1.1
