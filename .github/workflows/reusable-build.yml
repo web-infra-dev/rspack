@@ -96,6 +96,7 @@ jobs:
         shell: bash
         run: |
           echo '[profile.dev.package."*"]' >> Cargo.toml
+          echo 'debug = false' >> Cargo.toml
           echo 'opt-level = 3' >> Cargo.toml
           echo 'codegen-units = 1' >> Cargo.toml
 
