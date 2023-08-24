@@ -15,34 +15,39 @@ import type {
 	RawBannerConditions,
 	RawBannerCondition,
 	RawMinificationCondition,
-	RawMinificationConditions
+	RawMinificationConditions,
+	RawCssExperimentOptions
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
-import { Optimization, RspackOptionsNormalized } from "..";
+import { Optimization, RspackOptions, RspackOptionsNormalized } from "..";
 import {
 	BannerPluginOptions,
-	SwcJsMinimizerPluginOptions
+	NoEmitAssetsPlugin,
+	SwcJsMinimizerPluginOptions,
+	TreeShakingPlugin
 } from "../builtin-plugin";
 import {
 	EmotionConfig,
-	PluginImportConfig
-} from "../builtin-plugin/depracate-by-swc-loader";
+	PluginImportConfig,
+	ReactOptionsPlugin
+} from "../builtin-plugin/deprecate-by-swc-loader";
 import { CopyPluginOptions } from "../builtin-plugin/copy";
+import { HtmlPluginOptions } from "../builtin-plugin/html";
+import { termlink, deprecatedWarn } from "../util";
 
-export type BuiltinsHtmlPluginConfig = Omit<RawHtmlPluginConfig, "meta"> & {
-	meta?: Record<string, string | Record<string, string>>;
+export type BuiltinsCssConfig = {
+	modules?: Partial<RawCssExperimentOptions>;
 };
 
 export interface Builtins {
-	css?: CssPluginConfig;
-	postcss?: any;
+	css?: BuiltinsCssConfig;
 	treeShaking?: boolean | "module";
 	progress?: boolean | RawProgressPluginConfig;
 	react?: RawReactOptions;
 	noEmitAssets?: boolean;
 	define?: Record<string, string | boolean | undefined>;
 	provide?: Record<string, string | string[]>;
-	html?: Array<BuiltinsHtmlPluginConfig>;
+	html?: Array<HtmlPluginOptions>;
 	decorator?: boolean | Partial<RawDecoratorOptions>;
 	minifyOptions?: SwcJsMinimizerPluginOptions;
 	emotion?: boolean | EmotionConfig;
@@ -54,74 +59,50 @@ export interface Builtins {
 	relay?: boolean | RawRelayConfig;
 }
 
-function resolveTreeShaking(
-	treeShaking: Builtins["treeShaking"],
-	production: boolean
-): string {
-	return treeShaking !== undefined
-		? treeShaking.toString()
-		: production
-		? "true"
-		: "false";
-}
-
-function resolveHtml(html: BuiltinsHtmlPluginConfig[]): RawHtmlPluginConfig[] {
-	return html.map(c => {
-		const meta: Record<string, Record<string, string>> = {};
-		for (const key in c.meta) {
-			const value = c.meta[key];
-			if (typeof value === "string") {
-				meta[key] = {
-					name: key,
-					content: value
-				};
-			}
-		}
-		return {
-			...c,
-			meta
-		};
-	});
-}
-
-function resolveProgress(
-	progress: Builtins["progress"]
-): RawProgressPluginConfig | undefined {
-	if (!progress) {
-		return undefined;
-	}
-
-	if (progress === true) {
-		progress = {};
-	}
-
-	return progress;
-}
-
 export function deprecated_resolveBuiltins(
-	builtins: Builtins,
+	builtins: Builtins | undefined,
 	options: RspackOptionsNormalized
 ) {
+	if (!builtins) return;
+	const defaultEnableDeprecatedWarning = false; // enable this when all prepare is ready
+	const enableDeprecatedWarning =
+		(process.env.RSPACK_BUILTINS_DEPRECATED ??
+			`${defaultEnableDeprecatedWarning}`) !== "false";
+	deprecatedWarn(
+		`configuration.builtins has been deprecated, and will be drop support in 0.6.0, please follow ${termlink(
+			"the migration guide",
+			"https://www.rspack.dev/en/config/builtins.html"
+		)}`,
+		enableDeprecatedWarning
+	);
 	const contextPath = options.context!;
-	options.plugins.push();
-
+	const production = options.mode === "production" || !options.mode;
+	if (builtins.css) {
+		deprecatedWarn(
+			`You are still using builtins.css, please migrate to experiments.css`,
+			enableDeprecatedWarning
+		);
+		options.experiments.css = {
+			localsConvention: "asIs",
+			localIdentName: production ? "[hash]" : "[path][name][ext]__[local]",
+			exportsOnly: false,
+			...builtins.css?.modules
+		};
+	}
+	if (builtins.treeShaking) {
+		// TODO: wait tree shaking refactor
+		// deprecatedWarn(`You are still using builtins.treeShaking = ${JSON.stringify(builtins.treeShaking)}, please migrate to ...`, enableDeprecatedWarning)
+		options.plugins.push(
+			new TreeShakingPlugin({ production, enable: builtins.treeShaking })
+		);
+	}
+	// TODO: wait builtin:swc-loader
+	// deprecatedWarn(`You are still using builtins.react = ${JSON.stringify(builtins.react)}, please migrate to builtin:swc-loader`, enableDeprecatedWarning)
+	options.plugins.push(new ReactOptionsPlugin(builtins.react));
+	if (builtins.noEmitAssets) {
+		options.plugins.push(new NoEmitAssetsPlugin(undefined));
+	}
 	// return {
-	// 	css: css
-	// 		? {
-	// 				modules: {
-	// 					localsConvention: "asIs",
-	// 					localIdentName: production
-	// 						? "[hash]"
-	// 						: "[path][name][ext]__[local]",
-	// 					exportsOnly: false,
-	// 					...builtins.css?.modules
-	// 				}
-	// 		  }
-	// 		: undefined,
-	// 	postcss: { pxtorem: undefined, ...builtins.postcss },
-	// 	treeShaking: resolveTreeShaking(builtins.treeShaking, production),
-	// 	react: builtins.react ?? {},
-	// 	noEmitAssets: builtins.noEmitAssets ?? false,
 	// 	define: resolveDefine(builtins.define || {}),
 	// 	provide: resolveProvide(builtins.provide),
 	// 	html: resolveHtml(builtins.html || []),

@@ -41,6 +41,7 @@ import { checkVersion } from "./util/bindingVersionCheck";
 import Watching from "./Watching";
 import { NormalModule } from "./NormalModule";
 import { normalizeJsModule } from "./util/normalization";
+import { RspackBuiltinPlugin } from "./builtin-plugin";
 
 class EntryPlugin {
 	constructor(
@@ -89,6 +90,7 @@ class Compiler {
 	webpack: any;
 	// @ts-expect-error
 	compilation: Compilation;
+	builtinPlugins: RspackBuiltinPlugin[];
 	root: Compiler;
 	running: boolean;
 	idle: boolean;
@@ -151,6 +153,7 @@ class Compiler {
 		this.options = options;
 		this.cache = new Cache();
 		this.compilerPath = "";
+		this.builtinPlugins = [];
 		// to workaround some plugin access webpack, we may change dev-server to avoid this hack in the future
 		this.webpack = {
 			EntryPlugin, // modernjs/server use this to inject dev-client
@@ -298,6 +301,7 @@ class Compiler {
 			this.#_instance ??
 			new instanceBinding.Rspack(
 				options,
+				this.builtinPlugins.map(bp => bp.raw()),
 				{
 					beforeCompile: this.#beforeCompile.bind(this),
 					afterCompile: this.#afterCompile.bind(this),
@@ -1051,6 +1055,10 @@ class Compiler {
 			return null;
 		}
 		return source.buffer();
+	}
+
+	__internal__registerBuiltinPlugin(plugin: RspackBuiltinPlugin) {
+		this.builtinPlugins.push(plugin);
 	}
 }
 

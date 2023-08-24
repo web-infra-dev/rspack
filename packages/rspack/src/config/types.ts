@@ -16,6 +16,7 @@ import type * as webpackDevServer from "webpack-dev-server";
 import type { Options as RspackOptions } from "./zod/_rewrite";
 import type { OptimizationConfig as Optimization } from "./zod/optimization";
 import type { RawFuncUseCtx } from "@rspack/binding";
+import { RspackBuiltinPlugin } from "../builtin-plugin";
 export type { RspackOptions, Optimization };
 
 export type {
@@ -629,7 +630,11 @@ export type OptimizationRuntimeChunkNormalized =
 	  };
 
 ///// Plugins /////
-export type Plugins = (RspackPluginInstance | RspackPluginFunction)[];
+export type Plugins = (
+	| RspackPluginInstance
+	| RspackPluginFunction
+	| RspackBuiltinPlugin
+)[];
 export interface RspackPluginInstance {
 	apply: (compiler: Compiler) => void;
 	[k: string]: any;
@@ -643,11 +648,21 @@ export interface Experiments {
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	newSplitChunks?: boolean;
-	css?: boolean;
+	css?: boolean | CssExperimentOptions;
 }
 export interface IncrementalRebuildOptions {
 	make?: boolean;
 	emitAsset?: boolean;
+}
+export interface CssExperimentOptions {
+	exportsOnly?: boolean;
+	localsConvention?:
+		| "asIs"
+		| "camelCase"
+		| "camelCaseOnly"
+		| "dashes"
+		| "dashesOnly";
+	localIdentName?: string;
 }
 export interface ExperimentsNormalized {
 	lazyCompilation?: boolean;
@@ -655,7 +670,7 @@ export interface ExperimentsNormalized {
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	newSplitChunks?: boolean;
-	css?: boolean;
+	css?: false | CssExperimentOptions;
 	futureDefaults?: boolean;
 }
 

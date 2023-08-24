@@ -118,10 +118,10 @@ export const PresetEnvPlugin = create<
 	};
 });
 
-export const ReactOptionsPlugin = create<RawReactOptions, RawReactOptions>(
-	BuiltinPluginKind.ReactOptions,
-	(options = {}) => options
-);
+export const ReactOptionsPlugin = create<
+	undefined | RawReactOptions,
+	RawReactOptions
+>(BuiltinPluginKind.ReactOptions, (options = {}) => options);
 
 export type PluginImportConfig = {
 	libraryName: string;

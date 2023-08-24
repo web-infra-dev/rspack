@@ -16,7 +16,8 @@ import type {
 	RawAssetResourceGeneratorOptions,
 	RawIncrementalRebuild,
 	RawModuleRuleUses,
-	RawFuncUseCtx
+	RawFuncUseCtx,
+	RawCssExperimentOptions
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../Compiler";
@@ -56,7 +57,8 @@ import {
 	ParserOptionsByModuleType,
 	GeneratorOptionsByModuleType,
 	ExperimentsNormalized,
-	IncrementalRebuildOptions
+	IncrementalRebuildOptions,
+	CssExperimentOptions
 } from "./types";
 import { SplitChunksConfig } from "./zod/optimization/split-chunks";
 
@@ -757,7 +759,7 @@ function getRawExperiments(
 		incrementalRebuild: getRawIncrementalRebuild(incrementalRebuild),
 		asyncWebAssembly,
 		newSplitChunks,
-		css
+		css: getRawCssExperimentOptions(css)
 	};
 }
 
@@ -775,6 +777,19 @@ function getRawIncrementalRebuild(
 	return {
 		make,
 		emitAsset
+	};
+}
+
+function getRawCssExperimentOptions(
+	css: false | CssExperimentOptions
+): RawOptions["experiments"]["css"] {
+	if (css === false) {
+		return undefined;
+	}
+	return {
+		localIdentName: css.localIdentName!,
+		localsConvention: css.localsConvention!,
+		exportsOnly: css.exportsOnly!
 	};
 }
 

@@ -213,13 +213,11 @@ impl Plugin for TreeShakingPlugin {
 }
 
 #[derive(Debug)]
-pub struct NoEmitAssetsPlugin {
-  options: bool,
-}
+pub struct NoEmitAssetsPlugin;
 
 impl NoEmitAssetsPlugin {
-  pub fn new(options: bool) -> Self {
-    Self { options }
+  pub fn new() -> Self {
+    Self
   }
 }
 
@@ -233,7 +231,7 @@ impl Plugin for NoEmitAssetsPlugin {
     _ctx: PluginContext<&mut ApplyContext>,
     options: &mut CompilerOptions,
   ) -> Result<()> {
-    options.builtins.no_emit_assets = self.options;
+    options.builtins.no_emit_assets = true;
     Ok(())
   }
 }

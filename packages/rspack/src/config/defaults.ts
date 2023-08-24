@@ -22,6 +22,7 @@ import {
 import type {
 	AvailableTarget,
 	Context,
+	CssExperimentOptions,
 	Entry,
 	EntryDescription,
 	EntryDescriptionNormalized,
@@ -74,7 +75,11 @@ export const applyRspackOptionsDefaults = (
 	const futureDefaults = options.experiments.futureDefaults ?? false;
 	F(options, "cache", () => development);
 
-	applyExperimentsDefaults(options.experiments, { cache: options.cache! });
+	applyExperimentsDefaults(options.experiments, {
+		cache: options.cache!,
+		targetProperties,
+		production
+	});
 
 	applySnapshotDefaults(options.snapshot, { production });
 
@@ -155,13 +160,17 @@ const applyInfrastructureLoggingDefaults = (
 
 const applyExperimentsDefaults = (
 	experiments: ExperimentsNormalized,
-	{ cache }: { cache: boolean }
+	{
+		cache,
+		targetProperties,
+		production
+	}: { cache: boolean; targetProperties: any; production: boolean }
 ) => {
 	D(experiments, "incrementalRebuild", {});
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", false);
 	D(experiments, "newSplitChunks", true);
-	D(experiments, "css", true); // we not align with webpack about the default value for better DX
+	D(experiments, "css", {}); // we not align with webpack about the default value for better DX
 
 	if (typeof experiments.incrementalRebuild === "object") {
 		D(experiments.incrementalRebuild, "make", true);
@@ -175,6 +184,20 @@ const applyExperimentsDefaults = (
 	) {
 		experiments.incrementalRebuild.make = false;
 		// TODO: use logger to warn user enable cache for incrementalRebuild.make
+	}
+
+	if (typeof experiments.css === "object") {
+		D(
+			experiments.css,
+			"exportsOnly",
+			!targetProperties || !targetProperties.document
+		);
+		D(
+			experiments.css,
+			"localIdentName",
+			production ? "[hash]" : "[path][name][ext]__[local]"
+		);
+		D(experiments.css, "localsConvention", "asIs");
 	}
 };
 
@@ -196,7 +219,10 @@ const applySnapshotDefaults = (
 
 const applyModuleDefaults = (
 	module: ModuleOptions,
-	{ asyncWebAssembly, css }: { asyncWebAssembly: boolean; css: boolean }
+	{
+		asyncWebAssembly,
+		css
+	}: { asyncWebAssembly: boolean; css: CssExperimentOptions | false }
 ) => {
 	F(module.parser!, "asset", () => ({}));
 	F(module.parser!.asset!, "dataUrlCondition", () => ({}));

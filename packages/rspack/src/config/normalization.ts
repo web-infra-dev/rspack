@@ -8,6 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import { deprecatedWarn } from "../util";
 import type {
 	EntryStatic,
 	EntryStaticNormalized,
@@ -59,8 +60,6 @@ export const getNormalizedRspackOptions = (
 					: undefined;
 			// DEPRECATE: remove this in after version
 			{
-				const yellow = (content: string) =>
-					`\u001b[1m\u001b[33m${content}\u001b[39m\u001b[22m`;
 				const ext = "[ext]";
 				const filenames = [
 					"filename",
@@ -74,10 +73,8 @@ export const getNormalizedRspackOptions = (
 						const newFilename =
 							oldFilename.slice(0, -ext.length) +
 							(prop.includes("css") ? ".css" : ".js");
-						console.warn(
-							yellow(
-								`Deprecated: output.${prop} ends with [ext] is now deprecated, please use ${newFilename} instead.`
-							)
+						deprecatedWarn(
+							`Deprecated: output.${prop} ends with [ext] is now deprecated, please use ${newFilename} instead.`
 						);
 						output[prop] = newFilename;
 					}
@@ -237,6 +234,9 @@ export const getNormalizedRspackOptions = (
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => ({
 			...experiments,
+			css: optionalNestedConfig(experiments.css, options =>
+				options === true ? {} : options
+			),
 			incrementalRebuild: optionalNestedConfig(
 				experiments.incrementalRebuild,
 				options => (options === true ? {} : options)

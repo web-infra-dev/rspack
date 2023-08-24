@@ -223,7 +223,6 @@ impl RawOptionsApply for RawOptions {
     );
     if let Some(css) = self.experiments.css {
       let options = CssConfig {
-        postcss: Default::default(),
         modules: css.try_into()?,
       };
       plugins.push(rspack_plugin_css::CssPlugin::new(options).boxed());

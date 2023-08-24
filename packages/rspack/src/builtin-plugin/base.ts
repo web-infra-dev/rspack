@@ -1,4 +1,5 @@
 import * as binding from "@rspack/binding";
+import { Compiler } from "..";
 
 // TODO: workaround for https://github.com/napi-rs/napi-rs/pull/1690
 export enum BuiltinPluginKind {
@@ -21,15 +22,18 @@ export enum BuiltinPluginKind {
 	Html = 16
 }
 
-export abstract class BuiltinPlugin {
+export abstract class RspackBuiltinPlugin {
 	abstract raw(): binding.BuiltinPlugin;
+	apply(compiler: Compiler) {
+		compiler.__internal__registerBuiltinPlugin(this);
+	}
 }
 
 export function create<T, R>(
 	kind: BuiltinPluginKind,
 	resolve: (options: T) => R
 ) {
-	return class Plugin extends BuiltinPlugin {
+	return class Plugin extends RspackBuiltinPlugin {
 		#options: R;
 
 		constructor(options: T) {

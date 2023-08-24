@@ -95,9 +95,7 @@ impl TryFrom<BuiltinPlugin> for BoxPlugin {
         DecoratorOptionsPlugin::new(downcast_into::<RawDecoratorOptions>(value.options)?.into())
           .boxed()
       }
-      BuiltinPluginKind::NoEmitAssets => {
-        NoEmitAssetsPlugin::new(downcast_into::<bool>(value.options)?).boxed()
-      }
+      BuiltinPluginKind::NoEmitAssets => NoEmitAssetsPlugin::new().boxed(),
       BuiltinPluginKind::Emotion => EmotionPlugin::new(
         serde_json::from_str(&downcast_into::<String>(value.options)?)
           .map_err(|e| internal_error!(e.to_string()))?,
