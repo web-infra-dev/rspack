@@ -17,8 +17,8 @@ mod url_scanner;
 mod util;
 mod worker_scanner;
 use rspack_core::{
-  ast::javascript::Program, BuildInfo, BuildMeta, BuildMetaExportsType, CompilerOptions,
-  DependencyTemplate, ModuleDependency, ModuleIdentifier, ModuleType, ResourceData,
+  ast::javascript::Program, BuildInfo, BuildMeta, CompilerOptions, DependencyTemplate,
+  ModuleDependency, ModuleIdentifier, ModuleType, ResourceData,
 };
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
 pub use util::*;
@@ -57,7 +57,7 @@ pub fn scan_dependencies(
   let mut presentational_dependencies: Vec<Box<dyn DependencyTemplate>> = vec![];
   let unresolved_ctxt = SyntaxContext::empty().apply_mark(unresolved_mark);
   let comments = program.comments.clone();
-
+  let mut parser_exports_state = None;
   program.visit_with(&mut ApiScanner::new(
     &unresolved_ctxt,
     resource_data,
@@ -80,9 +80,6 @@ pub fn scan_dependencies(
     &unresolved_ctxt,
   ));
   if module_type.is_js_auto() || module_type.is_js_dynamic() {
-    // TODO webpack scan it at CommonJsExportsParserPlugin
-    // use `Dynamic` as workaround
-    build_meta.exports_type = BuildMetaExportsType::Dynamic;
     program.visit_with(&mut CommonJsScanner::new(
       &mut presentational_dependencies,
       &unresolved_ctxt,
@@ -93,6 +90,7 @@ pub fn scan_dependencies(
       &unresolved_ctxt,
       build_meta,
       *module_type,
+      &mut parser_exports_state,
     ));
     if let Some(node_option) = &compiler_options.node {
       program.visit_with(&mut NodeStuffScanner::new(
