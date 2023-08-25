@@ -1,6 +1,6 @@
 mod entry;
 mod span;
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 
 pub use entry::*;
@@ -357,9 +357,9 @@ pub fn is_async_dependency(dep: &dyn ModuleDependency) -> bool {
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
-pub struct DependencyId(usize);
+pub struct DependencyId(u32);
 
-pub static DEPENDENCY_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
+pub static DEPENDENCY_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
 
 impl DependencyId {
   pub fn new() -> Self {
@@ -373,15 +373,15 @@ impl Default for DependencyId {
 }
 
 impl std::ops::Deref for DependencyId {
-  type Target = usize;
+  type Target = u32;
 
   fn deref(&self) -> &Self::Target {
     &self.0
   }
 }
 
-impl From<usize> for DependencyId {
-  fn from(id: usize) -> Self {
+impl From<u32> for DependencyId {
+  fn from(id: u32) -> Self {
     Self(id)
   }
 }

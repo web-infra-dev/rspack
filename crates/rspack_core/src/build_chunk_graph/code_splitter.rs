@@ -13,8 +13,8 @@ use crate::{
 
 pub(super) struct CodeSplitter<'me> {
   pub(super) compilation: &'me mut Compilation,
-  next_free_module_pre_order_index: usize,
-  next_free_module_post_order_index: usize,
+  next_free_module_pre_order_index: u32,
+  next_free_module_post_order_index: u32,
   queue: Vec<QueueItem>,
   queue_delayed: Vec<QueueItem>,
   split_point_modules: IdentifierSet,

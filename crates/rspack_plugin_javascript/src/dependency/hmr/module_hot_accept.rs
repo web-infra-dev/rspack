@@ -10,9 +10,6 @@ pub struct ModuleHotAcceptDependency {
   request: JsWord,
   start: u32,
   end: u32,
-  category: &'static DependencyCategory,
-  dependency_type: &'static DependencyType,
-
   span: Option<ErrorSpan>,
 }
 
@@ -21,8 +18,6 @@ impl ModuleHotAcceptDependency {
     Self {
       id: DependencyId::new(),
       request,
-      category: &DependencyCategory::CommonJS,
-      dependency_type: &DependencyType::ModuleHotAccept,
       span,
       start,
       end,
@@ -36,11 +31,11 @@ impl Dependency for ModuleHotAcceptDependency {
   }
 
   fn category(&self) -> &DependencyCategory {
-    self.category
+    &DependencyCategory::CommonJS
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    self.dependency_type
+    &DependencyType::ModuleHotAccept
   }
 }
 
