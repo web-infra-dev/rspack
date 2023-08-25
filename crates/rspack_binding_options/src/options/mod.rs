@@ -5,7 +5,6 @@ use rspack_core::{
   BoxPlugin, CompilerOptions, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
   IncrementalRebuildMakeState, ModuleOptions, ModuleType, OutputOptions, PluginExt,
 };
-use rspack_plugin_css::plugin::CssConfig;
 use serde::Deserialize;
 
 mod raw_builtins;
@@ -83,6 +82,7 @@ pub struct RawOptions {
   pub experiments: RawExperiments,
   pub node: Option<RawNodeOption>,
   pub profile: bool,
+  pub builtins: RawBuiltins,
 }
 
 impl RawOptionsApply for RawOptions {
@@ -135,7 +135,6 @@ impl RawOptionsApply for RawOptions {
       async_web_assembly: self.experiments.async_web_assembly,
       new_split_chunks: self.experiments.new_split_chunks,
     };
-    let experiments_css = self.experiments.css.is_some();
     let optimization = IS_ENABLE_NEW_SPLIT_CHUNKS.set(&experiments.new_split_chunks, || {
       self.optimization.apply(plugins)
     })?;
@@ -208,9 +207,9 @@ impl RawOptionsApply for RawOptions {
         plugins,
       );
     }
-    if self.externals_presets.web || (self.externals_presets.node && experiments_css) {
+    if self.externals_presets.web || (self.externals_presets.node && self.experiments.css) {
       plugins.push(rspack_plugin_externals::http_url_external_plugin(
-        experiments_css,
+        self.experiments.css,
       ));
     }
     if experiments.async_web_assembly {
@@ -221,12 +220,6 @@ impl RawOptionsApply for RawOptions {
       output.worker_wasm_loading.clone(),
       plugins,
     );
-    if let Some(css) = self.experiments.css {
-      let options = CssConfig {
-        modules: css.try_into()?,
-      };
-      plugins.push(rspack_plugin_css::CssPlugin::new(options).boxed());
-    }
     plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
     plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin {}.boxed());
 
@@ -270,7 +263,7 @@ impl RawOptionsApply for RawOptions {
       node,
       dev_server,
       profile: self.profile,
-      builtins: Default::default(),
+      builtins: self.builtins.apply(plugins)?,
     })
   }
 }

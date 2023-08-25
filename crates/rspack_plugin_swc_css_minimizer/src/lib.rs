@@ -13,6 +13,8 @@ impl Plugin for SwcCssMinimizerPlugin {
     "rspack.SwcCssMinimizerPlugin"
   }
 
+  // TODO: chunk hash
+
   async fn process_assets_stage_optimize_size(
     &self,
     _ctx: rspack_core::PluginContext,

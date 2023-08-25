@@ -77,64 +77,12 @@ pub struct ReactOptions {
   pub refresh: Option<bool>,
 }
 
-#[derive(Debug)]
-pub struct ReactOptionsPlugin {
-  options: ReactOptions,
-}
-
-impl ReactOptionsPlugin {
-  pub fn new(options: ReactOptions) -> Self {
-    Self { options }
-  }
-}
-
-impl Plugin for ReactOptionsPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.ReactOptionsPlugin"
-  }
-
-  fn apply(
-    &self,
-    _ctx: PluginContext<&mut ApplyContext>,
-    options: &mut CompilerOptions,
-  ) -> Result<()> {
-    options.builtins.react = self.options.clone();
-    Ok(())
-  }
-}
-
 #[derive(Debug, Clone, Default)]
 pub struct DecoratorOptions {
   // https://swc.rs/docs/configuration/compilation#jsctransformlegacydecorator
   pub legacy: bool,
   // https://swc.rs/docs/configuration/compilation#jsctransformdecoratormetadata
   pub emit_metadata: bool,
-}
-
-#[derive(Debug)]
-pub struct DecoratorOptionsPlugin {
-  options: DecoratorOptions,
-}
-
-impl DecoratorOptionsPlugin {
-  pub fn new(options: DecoratorOptions) -> Self {
-    Self { options }
-  }
-}
-
-impl Plugin for DecoratorOptionsPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.DecoratorOptionsPlugin"
-  }
-
-  fn apply(
-    &self,
-    _ctx: PluginContext<&mut ApplyContext>,
-    options: &mut CompilerOptions,
-  ) -> Result<()> {
-    options.builtins.decorator = Some(self.options.clone());
-    Ok(())
-  }
 }
 
 #[derive(Debug, Clone, Default, Copy)]
@@ -186,64 +134,14 @@ impl From<String> for TreeShaking {
   }
 }
 
-#[derive(Debug)]
-pub struct TreeShakingPlugin {
-  options: TreeShaking,
-}
-
-impl TreeShakingPlugin {
-  pub fn new(options: TreeShaking) -> Self {
-    Self { options }
-  }
-}
-
-impl Plugin for TreeShakingPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.TreeShakingPlugin"
-  }
-
-  fn apply(
-    &self,
-    _ctx: PluginContext<&mut ApplyContext>,
-    options: &mut CompilerOptions,
-  ) -> Result<()> {
-    options.builtins.tree_shaking = self.options.clone();
-    Ok(())
-  }
-}
-
-#[derive(Debug)]
-pub struct NoEmitAssetsPlugin;
-
-impl NoEmitAssetsPlugin {
-  pub fn new() -> Self {
-    Self
-  }
-}
-
-impl Plugin for NoEmitAssetsPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.NoEmitAssetsPlugin"
-  }
-
-  fn apply(
-    &self,
-    _ctx: PluginContext<&mut ApplyContext>,
-    options: &mut CompilerOptions,
-  ) -> Result<()> {
-    options.builtins.no_emit_assets = true;
-    Ok(())
-  }
-}
-
 #[derive(Debug, Clone, Default)]
 pub struct Builtins {
-  // TODO: migrate to builtin:swc-loader
-  pub preset_env: Option<PresetEnv>,
   // TODO: refactor to string-replacement based
   pub define: Define,
   // TODO: refactor to string-replacement based
   pub provide: Provide,
+  // TODO: migrate to builtin:swc-loader
+  pub preset_env: Option<PresetEnv>,
   // TODO: refactoring
   pub tree_shaking: TreeShaking,
   // TODO: migrate to builtin:swc-loader
@@ -315,32 +213,6 @@ pub struct PresetEnv {
   pub core_js: Option<String>,
 }
 
-#[derive(Debug)]
-pub struct PresetEnvPlugin {
-  options: PresetEnv,
-}
-
-impl PresetEnvPlugin {
-  pub fn new(options: PresetEnv) -> Self {
-    Self { options }
-  }
-}
-
-impl Plugin for PresetEnvPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.PresetEnvPlugin"
-  }
-
-  fn apply(
-    &self,
-    _ctx: PluginContext<&mut ApplyContext>,
-    options: &mut CompilerOptions,
-  ) -> Result<()> {
-    options.builtins.preset_env = Some(self.options.clone());
-    Ok(())
-  }
-}
-
 #[derive(Debug, Default, Clone)]
 pub struct RelayConfig {
   pub artifact_directory: Option<PathBuf>,
@@ -357,83 +229,5 @@ pub enum RelayLanguageConfig {
 impl Default for RelayLanguageConfig {
   fn default() -> Self {
     Self::Flow
-  }
-}
-
-#[derive(Debug)]
-pub struct RelayPlugin {
-  options: RelayConfig,
-}
-
-impl RelayPlugin {
-  pub fn new(options: RelayConfig) -> Self {
-    Self { options }
-  }
-}
-
-impl Plugin for RelayPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.RelayPlugin"
-  }
-
-  fn apply(
-    &self,
-    _ctx: PluginContext<&mut ApplyContext>,
-    options: &mut CompilerOptions,
-  ) -> Result<()> {
-    options.builtins.relay = Some(self.options.clone());
-    Ok(())
-  }
-}
-
-#[derive(Debug)]
-pub struct EmotionPlugin {
-  options: swc_emotion::EmotionOptions,
-}
-
-impl EmotionPlugin {
-  pub fn new(options: swc_emotion::EmotionOptions) -> Self {
-    Self { options }
-  }
-}
-
-impl Plugin for EmotionPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.EmotionPlugin"
-  }
-
-  fn apply(
-    &self,
-    _ctx: PluginContext<&mut ApplyContext>,
-    options: &mut CompilerOptions,
-  ) -> Result<()> {
-    options.builtins.emotion = Some(self.options.clone());
-    Ok(())
-  }
-}
-
-#[derive(Debug)]
-pub struct PluginImportPlugin {
-  options: Vec<PluginImportConfig>,
-}
-
-impl PluginImportPlugin {
-  pub fn new(options: Vec<PluginImportConfig>) -> Self {
-    Self { options }
-  }
-}
-
-impl Plugin for PluginImportPlugin {
-  fn name(&self) -> &'static str {
-    "rspack.PluginImportPlugin"
-  }
-
-  fn apply(
-    &self,
-    _ctx: PluginContext<&mut ApplyContext>,
-    options: &mut CompilerOptions,
-  ) -> Result<()> {
-    options.builtins.plugin_import = Some(self.options.clone());
-    Ok(())
   }
 }

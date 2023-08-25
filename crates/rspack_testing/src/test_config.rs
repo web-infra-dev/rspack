@@ -466,7 +466,6 @@ impl TestConfig {
     }
     plugins.push(
       rspack_plugin_css::CssPlugin::new(rspack_plugin_css::plugin::CssConfig {
-        targets,
         modules: rspack_plugin_css::plugin::ModulesConfig {
           locals_convention: rspack_plugin_css::plugin::LocalsConvention::from_str(
             &self.builtins.css.modules.locals_convention,
