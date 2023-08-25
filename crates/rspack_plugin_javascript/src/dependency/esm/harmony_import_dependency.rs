@@ -1,11 +1,12 @@
 use rspack_core::tree_shaking::symbol::{self, IndirectTopLevelSymbol};
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
-  import_statement, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, InitFragment, InitFragmentStage, ModuleDependency, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource,
+  import_statement, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, InitFragment, InitFragmentStage,
+  ModuleDependency, ModuleIdentifier, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rspack_core::{ExportsReferencedType, ModuleGraph, RuntimeSpec};
+use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
 
 use super::create_resource_identifier_for_esm_dependency;
@@ -17,6 +18,7 @@ pub enum Specifier {
   Named(JsWord, Option<JsWord>),
 }
 
+// HarmonyImportDependency is merged HarmonyImportSideEffectDependency.
 #[derive(Debug, Clone)]
 pub struct HarmonyImportDependency {
   pub request: JsWord,
@@ -235,5 +237,38 @@ impl ModuleDependency for HarmonyImportDependency {
     _runtime: &RuntimeSpec,
   ) -> ExportsReferencedType {
     ExportsReferencedType::No
+  }
+
+  // It's from HarmonyImportSideEffectDependency.
+  fn get_condition(&self, _module_graph: &ModuleGraph) -> Option<DependencyCondition> {
+    let id = self.id;
+    Some(DependencyCondition::Fn(Box::new(
+      move |_, _, module_graph| {
+        if let Some(module) = module_graph
+          .parent_module_by_dependency_id(&id)
+          .and_then(|module_identifier| module_graph.module_by_identifier(&module_identifier))
+        {
+          module.get_side_effects_connection_state(module_graph, &mut HashSet::default())
+        } else {
+          ConnectionState::Bool(true)
+        }
+      },
+    )))
+  }
+
+  // It's from HarmonyImportSideEffectDependency.
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    module_graph: &ModuleGraph,
+    module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    if let Some(module) = module_graph
+      .parent_module_by_dependency_id(&self.id)
+      .and_then(|module_identifier| module_graph.module_by_identifier(&module_identifier))
+    {
+      module.get_side_effects_connection_state(module_graph, module_chain)
+    } else {
+      ConnectionState::Bool(true)
+    }
   }
 }
