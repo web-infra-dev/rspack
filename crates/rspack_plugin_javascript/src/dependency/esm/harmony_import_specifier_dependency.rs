@@ -1,9 +1,10 @@
 use rspack_core::{
   export_from_import, get_dependency_used_by_exports_condition,
-  tree_shaking::symbol::DEFAULT_JS_WORD, Compilation, Dependency, DependencyCategory,
-  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ExportsReferencedType, ModuleDependency, ModuleGraph, ModuleGraphModule, ReferencedExport,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports,
+  tree_shaking::symbol::DEFAULT_JS_WORD, Compilation, ConnectionState, Dependency,
+  DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
+  ErrorSpan, ExportsReferencedType, ModuleDependency, ModuleGraph, ModuleGraphModule,
+  ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsedByExports,
 };
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
@@ -198,6 +199,14 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
 
   fn get_condition(&self, module_graph: &ModuleGraph) -> Option<DependencyCondition> {
     get_dependency_used_by_exports_condition(&self.id, &self.used_by_exports, module_graph)
+  }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    ConnectionState::Bool(false)
   }
 
   fn get_referenced_exports(

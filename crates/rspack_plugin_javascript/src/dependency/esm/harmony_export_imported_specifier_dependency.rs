@@ -1,8 +1,10 @@
 use rspack_core::{
-  export_from_import, get_exports_type, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ExportsType, InitFragment, InitFragmentStage,
-  ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  export_from_import, get_exports_type, ConnectionState, Dependency, DependencyCategory,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportsType, InitFragment,
+  InitFragmentStage, ModuleDependency, ModuleGraph, ModuleIdentifier, RuntimeGlobals,
+  TemplateContext, TemplateReplaceSource,
 };
+use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
 
 use super::{create_resource_identifier_for_esm_dependency, format_exports};
@@ -134,6 +136,14 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
 
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
+  }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    ConnectionState::Bool(false)
   }
 }
 

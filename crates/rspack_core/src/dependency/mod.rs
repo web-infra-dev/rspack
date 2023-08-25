@@ -6,6 +6,7 @@ use std::sync::atomic::Ordering::Relaxed;
 pub use entry::*;
 use once_cell::sync::Lazy;
 use rspack_util::ext::AsAny;
+use rustc_hash::FxHashSet as HashSet;
 use serde::Serialize;
 pub use span::SpanExt;
 mod runtime_template;
@@ -29,7 +30,7 @@ use dyn_clone::{clone_trait_object, DynClone};
 
 use crate::{
   ChunkGroupOptions, ConnectionState, Context, ContextMode, ContextOptions, ErrorSpan, ModuleGraph,
-  ModuleGraphConnection, ReferencedExport, RuntimeSpec,
+  ModuleGraphConnection, ModuleIdentifier, ReferencedExport, RuntimeSpec,
 };
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
@@ -43,6 +44,7 @@ pub enum DependencyType {
   // Harmony import
   EsmImport,
   EsmImportSpecifier,
+  EsmImportSideEffect,
   // Harmony export
   EsmExport,
   EsmExportImportedSpecifier,
@@ -94,6 +96,7 @@ impl Display for DependencyType {
       DependencyType::Unknown => write!(f, "unknown"),
       DependencyType::Entry => write!(f, "entry"),
       DependencyType::EsmImport => write!(f, "esm import"),
+      DependencyType::EsmImportSideEffect => write!(f, "esm import side effect"),
       DependencyType::EsmExport => write!(f, "esm export"),
       DependencyType::EsmExportSpecifier => write!(f, "esm export specifier"),
       DependencyType::EsmExportImportedSpecifier => write!(f, "esm export import specifier"),
@@ -309,6 +312,14 @@ pub trait ModuleDependency: Dependency {
 
   fn get_condition(&self, _module_graph: &ModuleGraph) -> Option<DependencyCondition> {
     None
+  }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    ConnectionState::Bool(true)
   }
 
   fn get_referenced_exports(

@@ -14,8 +14,8 @@ use rustc_hash::FxHashSet as HashSet;
 use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   BoxDependency, ChunkUkey, CodeGenerationResult, Compilation, CompilerContext, CompilerOptions,
-  Context, ContextModule, DependencyTemplate, ExternalModule, ModuleDependency, ModuleType,
-  NormalModule, RawModule, Resolve, SharedPluginDriver, SourceType,
+  ConnectionState, Context, ContextModule, DependencyTemplate, ExternalModule, ModuleDependency,
+  ModuleGraph, ModuleType, NormalModule, RawModule, Resolve, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext<'a> {
@@ -105,8 +105,7 @@ pub struct BuildMeta {
   pub default_object: BuildMetaDefaultObject,
   pub module_argument: ModuleArgument,
   pub exports_argument: ExportsArgument,
-  // TODO: Don't delete this comment, it will be used in near future
-  // pub side_effect_free: bool,
+  pub side_effect_free: Option<bool>,
 }
 
 // webpack build info
@@ -222,6 +221,14 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
 
   fn chunk_condition(&self, _chunk_key: &ChunkUkey, _compilation: &Compilation) -> bool {
     true
+  }
+
+  fn get_side_effects_connection_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    ConnectionState::Bool(true)
   }
 }
 
