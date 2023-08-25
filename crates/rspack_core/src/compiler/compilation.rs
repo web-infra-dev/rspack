@@ -76,6 +76,7 @@ pub struct Compilation {
   logging: CompilationLogging,
   pub plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
+  pub loader_resolver_factory: Arc<ResolverFactory>,
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   pub entry_module_identifiers: IdentifierSet,
@@ -110,6 +111,7 @@ impl Compilation {
     module_graph: ModuleGraph,
     plugin_driver: SharedPluginDriver,
     resolver_factory: Arc<ResolverFactory>,
+    loader_resolver_factory: Arc<ResolverFactory>,
     cache: Arc<Cache>,
   ) -> Self {
     Self {
@@ -133,6 +135,7 @@ impl Compilation {
       logging: Default::default(),
       plugin_driver,
       resolver_factory,
+      loader_resolver_factory,
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
       entry_module_identifiers: IdentifierSet::default(),
@@ -875,6 +878,7 @@ impl Compilation {
       resolve_options,
       lazy_visit_modules,
       resolver_factory: self.resolver_factory.clone(),
+      loader_resolver_factory: self.loader_resolver_factory.clone(),
       options: self.options.clone(),
       plugin_driver: self.plugin_driver.clone(),
       cache: self.cache.clone(),

@@ -157,6 +157,9 @@ export const getNormalizedRspackOptions = (
 		resolve: nestedConfig(config.resolve, resolve => ({
 			...resolve
 		})),
+		resolveLoader: nestedConfig(config.resolveLoader, resolve => ({
+			...resolve
+		})),
 		module: nestedConfig(config.module, module => ({
 			parser: keyedNestedConfig(
 				module.parser as Record<string, any>,

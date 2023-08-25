@@ -122,6 +122,11 @@ export const applyRspackOptionsDefaults = (
 		options.resolve
 	);
 
+	options.resolveLoader = cleverMerge(
+		getResolveLoaderDefaults(),
+		options.resolveLoader
+	);
+
 	// TODO: refactor builtins
 	options.builtins = oldBuiltins.resolveBuiltinsOptions(options.builtins, {
 		contextPath: options.context!,
@@ -699,6 +704,18 @@ const applyOptimizationDefaults = (
 			}));
 		}
 	}
+};
+
+const getResolveLoaderDefaults = () => {
+	const resolveOptions: ResolveOptions = {
+		conditionNames: ["loader", "require", "node"],
+		exportsFields: ["exports"],
+		mainFields: ["loader", "main"],
+		extensions: [".js"],
+		mainFiles: ["index"]
+	};
+
+	return resolveOptions;
 };
 
 const getResolveDefaults = ({

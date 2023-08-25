@@ -6,7 +6,7 @@ use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
 use rspack_identifier::Identifiable;
-use rspack_loader_runner::{get_scheme, DescriptionData, Scheme};
+use rspack_loader_runner::{get_scheme, DescriptionData, Loader, Scheme};
 use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
 
@@ -14,8 +14,8 @@ use crate::{
   cache::Cache,
   module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
   tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
-  BoxLoader, CompilerOptions, DependencyCategory, DependencyType, FactorizeArgs, FactoryMeta,
-  FuncUseCtx, GeneratorOptions, MissingModule, ModuleArgs, ModuleExt, ModuleFactory,
+  BoxLoader, CompilerContext, CompilerOptions, DependencyCategory, DependencyType, FactorizeArgs,
+  FactoryMeta, FuncUseCtx, GeneratorOptions, MissingModule, ModuleArgs, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
   ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
   NormalModuleBeforeResolveArgs, ParserOptions, RawModule, Resolve, ResolveArgs, ResolveError,
@@ -26,7 +26,7 @@ use crate::{
 #[derive(Debug)]
 pub struct NormalModuleFactory {
   context: NormalModuleFactoryContext,
-  resolver_factory: Arc<ResolverFactory>,
+  loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
   cache: Arc<Cache>,
 }
@@ -55,13 +55,13 @@ static MATCH_RESOURCE_REGEX: Lazy<Regex> =
 impl NormalModuleFactory {
   pub fn new(
     context: NormalModuleFactoryContext,
-    resolver_factory: Arc<ResolverFactory>,
+    loader_resolver_factory: Arc<ResolverFactory>,
     plugin_driver: SharedPluginDriver,
     cache: Arc<Cache>,
   ) -> Self {
     Self {
       context,
-      resolver_factory,
+      loader_resolver_factory,
       plugin_driver,
       cache,
     }
@@ -145,13 +145,15 @@ impl NormalModuleFactory {
     Ok(None)
   }
 
-  fn get_loader_resolver(&self, loader_resolve_options: Option<Resolve>) -> Arc<Resolver> {
-    self.resolver_factory.get(ResolveOptionsWithDependencyType {
-      resolve_options: loader_resolve_options,
-      resolve_to_context: false,
-      dependency_type: DependencyType::CjsRequire,
-      dependency_category: DependencyCategory::CommonJS,
-    })
+  fn get_loader_resolver(&self) -> Arc<Resolver> {
+    self
+      .loader_resolver_factory
+      .get(ResolveOptionsWithDependencyType {
+        resolve_options: None,
+        resolve_to_context: false,
+        dependency_type: DependencyType::CjsRequire,
+        dependency_category: DependencyCategory::CommonJS,
+      })
   }
 
   pub async fn factorize_normal_module(
@@ -172,7 +174,7 @@ impl NormalModuleFactory {
     let context_scheme = get_scheme(data.context.as_ref());
     let context = data.context.as_path();
     let plugin_driver = &self.plugin_driver;
-    let loader_resolver = self.get_loader_resolver(data.resolve_options.clone());
+    let loader_resolver = self.get_loader_resolver();
 
     let mut match_resource_data: Option<ResourceData> = None;
     let mut inline_loaders: Vec<ModuleRuleUseLoader> = vec![];
@@ -476,32 +478,94 @@ impl NormalModuleFactory {
         pre_loaders.len() + post_loaders.len() + normal_loaders.len() + inline_loaders.len(),
       );
 
-      all_loaders.extend(post_loaders);
-      if match_resource_data.is_some() {
-        all_loaders.extend(normal_loaders);
-        all_loaders.extend(inline_loaders);
-      } else {
-        all_loaders.extend(inline_loaders);
-        all_loaders.extend(normal_loaders);
+      for l in post_loaders {
+        all_loaders.push(
+          resolve_each(
+            plugin_driver,
+            &self.context.options,
+            self.context.options.context.as_ref(),
+            &loader_resolver,
+            &l.loader,
+            l.options.as_deref(),
+          )
+          .await?,
+        )
       }
-      all_loaders.extend(pre_loaders);
 
-      let mut loader = Vec::with_capacity(all_loaders.len());
-      for l in all_loaders {
-        loader.push(
-          plugin_driver
-            .resolve_loader(
-              &self.context.options,
-              context,
-              &loader_resolver,
-              &l.loader,
-              l.options.as_deref(),
-            )
-            .await?
-            .ok_or_else(|| internal_error!("Unable to resolve loader {}", &l.loader))?,
-        );
+      let mut resolved_inline_loaders = vec![];
+      let mut resolved_normal_loaders = vec![];
+
+      for l in inline_loaders {
+        resolved_inline_loaders.push(
+          resolve_each(
+            plugin_driver,
+            &self.context.options,
+            context,
+            &loader_resolver,
+            &l.loader,
+            l.options.as_deref(),
+          )
+          .await?,
+        )
       }
-      loader
+
+      for l in normal_loaders {
+        resolved_normal_loaders.push(
+          resolve_each(
+            plugin_driver,
+            &self.context.options,
+            self.context.options.context.as_ref(),
+            &loader_resolver,
+            &l.loader,
+            l.options.as_deref(),
+          )
+          .await?,
+        )
+      }
+
+      if match_resource_data.is_some() {
+        all_loaders.extend(resolved_normal_loaders);
+        all_loaders.extend(resolved_inline_loaders);
+      } else {
+        all_loaders.extend(resolved_inline_loaders);
+        all_loaders.extend(resolved_normal_loaders);
+      }
+
+      for l in pre_loaders {
+        all_loaders.push(
+          resolve_each(
+            plugin_driver,
+            &self.context.options,
+            self.context.options.context.as_ref(),
+            &loader_resolver,
+            &l.loader,
+            l.options.as_deref(),
+          )
+          .await?,
+        )
+      }
+
+      async fn resolve_each(
+        plugin_driver: &SharedPluginDriver,
+        compiler_options: &CompilerOptions,
+        context: &Path,
+        loader_resolver: &Resolver,
+        loader_request: &str,
+        loader_options: Option<&str>,
+      ) -> Result<Arc<dyn Loader<CompilerContext>>> {
+        plugin_driver
+          .resolve_loader(
+            compiler_options,
+            context,
+            loader_resolver,
+            loader_request,
+            loader_options,
+          )
+          .await?
+          .ok_or_else(|| internal_error!("Unable to resolve loader {}", loader_request))
+      }
+
+      all_loaders
     };
 
     let request = if !loaders.is_empty() {
