@@ -391,7 +391,7 @@ impl Stats<'_> {
             }
           })
           .collect();
-        reasons.sort_unstable_by(|a, b| a.module_identifier.cmp(&b.module_identifier));
+        reasons.sort_unstable();
         Ok(reasons)
       })
       .transpose()?;
@@ -620,7 +620,7 @@ pub struct StatsModuleIssuer {
   pub id: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct StatsModuleReason {
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,

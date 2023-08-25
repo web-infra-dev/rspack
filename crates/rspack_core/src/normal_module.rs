@@ -77,7 +77,7 @@ impl ModuleIssuer {
 pub struct NormalModule {
   id: ModuleIdentifier,
   /// Context of this module
-  context: Context,
+  context: Box<Context>,
   /// Request with loaders from config
   request: String,
   /// Request intended by user (without loaders from config)
@@ -104,7 +104,7 @@ pub struct NormalModule {
   source: NormalModuleSource,
 
   /// Resolve options derived from [Rule.resolve]
-  resolve_options: Option<Resolve>,
+  resolve_options: Option<Box<Resolve>>,
   /// Parser options derived from [Rule.parser]
   parser_options: Option<ParserOptions>,
   /// Generator options derived from [Rule.generator]
@@ -157,7 +157,7 @@ impl NormalModule {
     generator_options: Option<GeneratorOptions>,
     match_resource: Option<ResourceData>,
     resource_data: ResourceData,
-    resolve_options: Option<Resolve>,
+    resolve_options: Option<Box<Resolve>>,
     loaders: Vec<BoxLoader>,
     options: Arc<CompilerOptions>,
     contains_inline_loader: bool,
@@ -170,7 +170,7 @@ impl NormalModule {
     };
     Self {
       id: ModuleIdentifier::from(identifier),
-      context: get_context(&resource_data),
+      context: Box::new(get_context(&resource_data)),
       request,
       user_request,
       raw_request,
@@ -417,7 +417,7 @@ impl Module for NormalModule {
     }
   }
 
-  fn name_for_condition(&self) -> Option<Cow<str>> {
+  fn name_for_condition(&self) -> Option<Box<str>> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/NormalModule.js#L375
     let resource = self.resource_data.resource.as_str();
     let idx = resource.find('?');
@@ -433,8 +433,8 @@ impl Module for NormalModule {
     Some(Cow::Owned(contextify(options.context, self.user_request())))
   }
 
-  fn get_resolve_options(&self) -> Option<&Resolve> {
-    self.resolve_options.as_ref()
+  fn get_resolve_options(&self) -> Option<Box<Resolve>> {
+    self.resolve_options.clone()
   }
 
   fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
@@ -453,8 +453,8 @@ impl Module for NormalModule {
     }
   }
 
-  fn get_context(&self) -> Option<&Context> {
-    Some(&self.context)
+  fn get_context(&self) -> Option<Box<Context>> {
+    Some(self.context.clone())
   }
 
   // Port from https://github.com/webpack/webpack/blob/main/lib/NormalModule.js#L1120

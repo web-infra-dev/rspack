@@ -177,7 +177,7 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult>;
 
   /// Name matched against bundle-splitting conditions.
-  fn name_for_condition(&self) -> Option<Cow<str>> {
+  fn name_for_condition(&self) -> Option<Box<str>> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/Module.js#L852
     None
   }
@@ -207,11 +207,11 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   /// Resolve options matched by module rules.
   /// e.g `javascript/esm` may have special resolving options like `fullySpecified`.
   /// `css` and `css/module` may have special resolving options like `preferRelative`.
-  fn get_resolve_options(&self) -> Option<&Resolve> {
+  fn get_resolve_options(&self) -> Option<Box<Resolve>> {
     None
   }
 
-  fn get_context(&self) -> Option<&Context> {
+  fn get_context(&self) -> Option<Box<Context>> {
     None
   }
 

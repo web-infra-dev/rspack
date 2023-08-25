@@ -660,11 +660,11 @@ impl NormalModuleFactory {
     Ok(rules)
   }
 
-  fn calculate_resolve_options(&self, module_rules: &[&ModuleRule]) -> Option<Resolve> {
+  fn calculate_resolve_options(&self, module_rules: &[&ModuleRule]) -> Option<Box<Resolve>> {
     let mut resolved = None;
     module_rules.iter().for_each(|rule| {
       if let Some(resolve) = rule.resolve.as_ref() {
-        resolved = Some(resolve.to_owned());
+        resolved = Some(Box::new(resolve.to_owned()));
       }
     });
     resolved
@@ -777,7 +777,7 @@ pub struct NormalModuleFactoryContext {
   pub side_effects: Option<bool>,
   pub options: Arc<CompilerOptions>,
   pub lazy_visit_modules: std::collections::HashSet<String>,
-  pub issuer: Option<String>,
+  pub issuer: Option<Box<str>>,
 }
 
 /// Using `u32` instead of `usize` to reduce memory usage,
