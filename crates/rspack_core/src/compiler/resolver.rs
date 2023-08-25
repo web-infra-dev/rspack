@@ -22,7 +22,7 @@ pub struct ResolverFactory {
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub struct ResolveOptionsWithDependencyType {
-  pub resolve_options: Option<Resolve>,
+  pub resolve_options: Option<Box<Resolve>>,
   pub resolve_to_context: bool,
   pub dependency_type: DependencyType,
   pub dependency_category: DependencyCategory,
@@ -60,7 +60,7 @@ impl ResolverFactory {
     } else {
       let base_options = self.base_options.clone();
       let merged_options = match &options.resolve_options {
-        Some(o) => base_options.merge(o.clone()),
+        Some(o) => base_options.merge(*o.clone()),
         None => base_options,
       };
       let normalized = merged_options.to_inner_options(

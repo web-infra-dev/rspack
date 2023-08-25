@@ -12,10 +12,10 @@ use crate::{
 
 #[derive(Debug)]
 pub enum TaskResult {
-  Factorize(FactorizeTaskResult),
-  Add(AddTaskResult),
-  Build(BuildTaskResult),
-  ProcessDependencies(ProcessDependenciesResult),
+  Factorize(Box<FactorizeTaskResult>),
+  Add(Box<AddTaskResult>),
+  Build(Box<BuildTaskResult>),
+  ProcessDependencies(Box<ProcessDependenciesResult>),
 }
 
 #[async_trait::async_trait]
@@ -25,20 +25,20 @@ pub trait WorkerTask {
 
 pub struct FactorizeTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
-  pub original_module_context: Option<Context>,
-  pub issuer: Option<String>,
+  pub original_module_context: Option<Box<Context>>,
+  pub issuer: Option<Box<str>>,
   pub dependencies: Vec<BoxDependency>,
   pub is_entry: bool,
   pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,
-  pub resolve_options: Option<Resolve>,
+  pub resolve_options: Option<Box<Resolve>>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub options: Arc<CompilerOptions>,
   pub lazy_visit_modules: std::collections::HashSet<String>,
   pub plugin_driver: SharedPluginDriver,
   pub cache: Arc<Cache>,
-  pub current_profile: Option<ModuleProfile>,
+  pub current_profile: Option<Box<ModuleProfile>>,
 }
 
 #[derive(Debug)]
@@ -49,7 +49,7 @@ pub struct FactorizeTaskResult {
   pub dependencies: Vec<BoxDependency>,
   pub diagnostics: Vec<Diagnostic>,
   pub is_entry: bool,
-  pub current_profile: Option<ModuleProfile>,
+  pub current_profile: Option<Box<ModuleProfile>>,
 }
 
 #[async_trait::async_trait]
@@ -114,7 +114,7 @@ impl WorkerTask for FactorizeTask {
       current_profile.mark_factory_end();
     }
 
-    Ok(TaskResult::Factorize(FactorizeTaskResult {
+    Ok(TaskResult::Factorize(Box::new(FactorizeTaskResult {
       is_entry: self.is_entry,
       original_module_identifier: self.original_module_identifier,
       factory_result: result,
@@ -122,7 +122,7 @@ impl WorkerTask for FactorizeTask {
       dependencies: self.dependencies,
       diagnostics,
       current_profile: self.current_profile,
-    }))
+    })))
   }
 }
 
@@ -134,7 +134,7 @@ pub struct AddTask {
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<BoxDependency>,
   pub is_entry: bool,
-  pub current_profile: Option<ModuleProfile>,
+  pub current_profile: Option<Box<ModuleProfile>>,
 }
 
 #[derive(Debug)]
@@ -144,7 +144,7 @@ pub enum AddTaskResult {
   },
   ModuleAdded {
     module: Box<dyn Module>,
-    current_profile: Option<ModuleProfile>,
+    current_profile: Option<Box<ModuleProfile>>,
   },
 }
 
@@ -167,9 +167,9 @@ impl AddTask {
         module_identifier,
       )?;
 
-      return Ok(TaskResult::Add(AddTaskResult::ModuleReused {
+      return Ok(TaskResult::Add(Box::new(AddTaskResult::ModuleReused {
         module: self.module,
-      }));
+      })));
     }
 
     compilation
@@ -193,10 +193,10 @@ impl AddTask {
       current_profile.mark_integration_end();
     }
 
-    Ok(TaskResult::Add(AddTaskResult::ModuleAdded {
+    Ok(TaskResult::Add(Box::new(AddTaskResult::ModuleAdded {
       module: self.module,
       current_profile: self.current_profile,
-    }))
+    })))
   }
 }
 
@@ -226,7 +226,7 @@ pub struct BuildTask {
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
   pub cache: Arc<Cache>,
-  pub current_profile: Option<ModuleProfile>,
+  pub current_profile: Option<Box<ModuleProfile>>,
 }
 
 #[derive(Debug)]
@@ -234,7 +234,7 @@ pub struct BuildTaskResult {
   pub module: Box<dyn Module>,
   pub build_result: Box<BuildResult>,
   pub diagnostics: Vec<Diagnostic>,
-  pub current_profile: Option<ModuleProfile>,
+  pub current_profile: Option<Box<ModuleProfile>>,
 }
 
 #[async_trait::async_trait]
@@ -287,12 +287,12 @@ impl WorkerTask for BuildTask {
     build_result.map(|build_result| {
       let (build_result, diagnostics) = build_result.split_into_parts();
 
-      TaskResult::Build(BuildTaskResult {
+      TaskResult::Build(Box::new(BuildTaskResult {
         module,
         build_result: Box::new(build_result),
         diagnostics,
         current_profile: self.current_profile,
-      })
+      }))
     })
   }
 }
@@ -302,7 +302,7 @@ pub type BuildQueue = WorkerQueue<BuildTask>;
 pub struct ProcessDependenciesTask {
   pub original_module_identifier: ModuleIdentifier,
   pub dependencies: Vec<BoxDependency>,
-  pub resolve_options: Option<Resolve>,
+  pub resolve_options: Option<Box<Resolve>>,
 }
 
 #[derive(Debug)]

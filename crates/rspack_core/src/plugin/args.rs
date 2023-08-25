@@ -122,7 +122,7 @@ pub struct ResolveArgs<'a> {
   pub dependency_type: &'a DependencyType,
   pub dependency_category: &'a DependencyCategory,
   pub span: Option<ErrorSpan>,
-  pub resolve_options: Option<Resolve>,
+  pub resolve_options: Option<Box<Resolve>>,
   pub resolve_to_context: bool,
   pub optional: bool,
   pub file_dependencies: &'a mut HashSet<PathBuf>,
