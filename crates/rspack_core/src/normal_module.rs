@@ -222,6 +222,10 @@ impl NormalModule {
     &mut self.source
   }
 
+  pub fn loaders(&self) -> &[BoxLoader] {
+    &self.loaders
+  }
+
   pub fn loaders_mut_vec(&mut self) -> &mut Vec<BoxLoader> {
     &mut self.loaders
   }
@@ -357,6 +361,14 @@ impl Module for NormalModule {
     build_info.missing_dependencies = loader_result.missing_dependencies;
     build_info.build_dependencies = loader_result.build_dependencies;
     build_info.asset_filenames = loader_result.asset_filenames;
+
+    if self
+      .resource_resolved_data()
+      .resource
+      .contains("builtin-loader-ident")
+    {
+      dbg!(&dependencies);
+    }
 
     Ok(
       BuildResult {
