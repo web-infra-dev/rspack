@@ -1,12 +1,17 @@
 //!  There are methods whose verb is `ChunkGraphModule`
 
+use std::io::Write;
+
+use rspack_hash::RspackHash;
+use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::ChunkGraph;
 use crate::{
-  ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, ModuleIdentifier,
-  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  BoxModule, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey,
+  ModuleGraphConnection, ModuleIdentifier, OutputOptions, RuntimeGlobals, RuntimeSpec,
+  RuntimeSpecMap, RuntimeSpecSet,
 };
+use crate::{ChunkGraph, ModuleGraph};
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraphModule {
@@ -162,5 +167,84 @@ impl ChunkGraph {
     chunk_group: ChunkGroupUkey,
   ) {
     self.block_to_chunk_group_ukey.insert(block, chunk_group);
+  }
+
+  pub fn get_module_graph_hash(
+    &self,
+    hash_options: &OutputOptions,
+    module: &BoxModule,
+    module_graph: &ModuleGraph,
+    with_connections: bool,
+  ) -> String {
+    let mut hasher = RspackHash::new(&hash_options.hash_function);
+
+    fn process_module_graph_module(
+      hasher: &mut RspackHash,
+      module: &BoxModule,
+      module_graph: &ModuleGraph,
+    ) {
+      module.identifier().dyn_hash(hasher);
+      module.source_types().dyn_hash(hasher);
+      module_graph.is_async(&module.identifier()).dyn_hash(hasher);
+      module_graph
+        .get_exports_info(&module.identifier())
+        .dyn_hash(hasher);
+    }
+
+    // hash module build_info
+    module_graph
+      .get_module_hash(&module.identifier())
+      .dyn_hash(&mut hasher);
+    // hash module graph module
+    process_module_graph_module(&mut hasher, module, module_graph);
+
+    if with_connections {
+      let strict: bool = module_graph
+        .module_graph_module_by_identifier(&module.identifier())
+        .unwrap_or_else(|| {
+          panic!(
+            "Module({}) should be added before using",
+            module.identifier()
+          )
+        })
+        .get_strict_harmony_module();
+      let mut connections = module_graph
+        .get_outgoing_connections(module)
+        .into_iter()
+        .collect::<Vec<_>>();
+
+      connections.sort_by(|a, b| a.module_identifier.cmp(&b.module_identifier));
+
+      // hash connection module graph modules
+      for connection in connections {
+        module_graph
+          .module_graph_module_by_identifier(&connection.module_identifier)
+          .unwrap_or_else(|| {
+            panic!(
+              "Module({}) should be added before using",
+              connection.module_identifier
+            )
+          })
+          .get_exports_type(strict)
+          .dyn_hash(&mut hasher);
+        process_module_graph_module(
+          &mut hasher,
+          module_graph
+            .module_by_identifier(&connection.module_identifier)
+            .unwrap_or_else(|| {
+              panic!(
+                "Module({}) should be added before using",
+                connection.module_identifier
+              )
+            }),
+          module_graph,
+        );
+      }
+    }
+
+    hasher
+      .digest(&hash_options.hash_digest)
+      .rendered(hash_options.hash_digest_length)
+      .to_owned()
   }
 }

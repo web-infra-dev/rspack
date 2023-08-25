@@ -1,3 +1,4 @@
+use std::hash::Hash;
 use std::sync::Arc;
 
 use rustc_hash::FxHashMap as HashMap;
@@ -18,6 +19,19 @@ pub struct ExportsInfo {
   _side_effects_only_info: ExportInfo,
   _exports_are_ordered: bool,
   redirect_to: Option<Box<ExportsInfo>>,
+}
+
+impl Hash for ExportsInfo {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    for (name, info) in &self.exports {
+      name.hash(state);
+      info.hash(state);
+    }
+    self.other_exports_info.hash(state);
+    self._side_effects_only_info.hash(state);
+    self._exports_are_ordered.hash(state);
+    self.redirect_to.hash(state);
+  }
 }
 
 impl ExportsInfo {
@@ -85,7 +99,7 @@ pub enum UsedName {
   Vec(Vec<JsWord>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub struct ExportInfo {
   _name: JsWord,
   module_identifier: Option<ModuleIdentifier>,
@@ -113,7 +127,7 @@ impl ExportInfo {
   }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Hash)]
 pub enum UsageState {
   Unused,
   OnlyPropertiesUsed,

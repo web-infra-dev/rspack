@@ -1,6 +1,11 @@
-use rspack_error::Result;
+use std::io::Write;
 
-use crate::{cache::storage, BoxModule, CodeGenerationResult, NormalModuleSource};
+use rspack_error::Result;
+use rspack_identifier::Identifier;
+
+use crate::{
+  cache::storage, BoxModule, CodeGenerationResult, Compilation, NormalModule, NormalModuleSource,
+};
 
 type Storage = dyn storage::Storage<CodeGenerationResult>;
 
@@ -18,6 +23,7 @@ impl CodeGenerateOccasion {
   pub fn use_cache<'a, G>(
     &self,
     module: &'a BoxModule,
+    compilation: &Compilation,
     generator: G,
   ) -> Result<CodeGenerationResult>
   where
@@ -29,24 +35,44 @@ impl CodeGenerateOccasion {
       None => return generator(module),
     };
 
-    let mut need_cache = false;
-    let id = module.identifier();
-    if let Some(module) = module.as_normal_module() {
+    let mut cache_id = None;
+
+    if let Some(normal_module) = module.as_normal_module() {
       // only cache normal module
       // TODO cache all module type
-      if matches!(module.source(), NormalModuleSource::Unbuild) {
-        if let Some(data) = storage.get(&id) {
-          return Ok(data);
-        }
+      let id = Identifier::from(compilation.chunk_graph.get_module_graph_hash(
+        &compilation.options.output,
+        module,
+        &compilation.module_graph,
+        true,
+      ));
+
+      if matches!(normal_module.source(), NormalModuleSource::Unbuild) {
+        std::io::stdout().write_fmt(format_args!(
+          "id: {} {} {}\n",
+          id,
+          storage.get(&id).is_some(),
+          module.identifier().to_owned()
+        ));
+      }
+
+      // let id = module.identifier();
+
+      // currently no need to seperate module hash by runtime
+      if let Some(data) = storage.get(&id) {
+        return Ok(data);
+      }
+
+      if matches!(normal_module.source(), NormalModuleSource::Unbuild) {
         // unbuild and no cache is unexpected
         panic!("unexpected unbuild module");
       }
-      need_cache = true;
+      cache_id = Some(id);
     }
 
     // run generator and save to cache
     let data = generator(module)?;
-    if need_cache {
+    if let Some(id) = cache_id {
       storage.set(id, data.clone());
     }
     Ok(data)

@@ -2,6 +2,7 @@ use std::{
   borrow::Cow,
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
+  io::Write,
   sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
@@ -118,7 +119,7 @@ pub struct NormalModule {
   presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum NormalModuleSource {
   Unbuild,
   BuiltSucceed(BoxSource),
