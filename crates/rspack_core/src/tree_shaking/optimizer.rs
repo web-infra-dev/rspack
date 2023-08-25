@@ -171,7 +171,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     let mut traced_tuple = HashMap::default();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
 
-    // dbg!(&used_symbol_ref);
     let mut visited_symbol_ref: HashSet<SymbolRefWithMemberChain> = HashSet::default();
 
     self.mark_used_symbol_with(
@@ -1279,6 +1278,21 @@ impl<'a> CodeSizeOptimizer<'a> {
     // by default webpack will not mark the `export *` as used in entry module
     if matches!(entry_type, EntryLikeType::Bailout) {
       let inherit_export_symbols = get_inherit_export_symbol_ref(entry_module_result);
+      if !inherit_export_symbols.is_empty() {
+        // transitive bailout
+        inherit_export_symbols.iter().for_each(|item| {
+          q.push_back((
+            SymbolRef::Star(StarSymbol::new(
+              item.src(),
+              Default::default(),
+              entry_identifier,
+              StarSymbolKind::ReExportAll,
+              DependencyId::default(),
+            )),
+            vec![],
+          ));
+        });
+      }
       q.extend(
         inherit_export_symbols
           .into_iter()
