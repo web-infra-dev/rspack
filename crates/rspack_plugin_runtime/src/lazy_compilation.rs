@@ -3,7 +3,7 @@ use std::hash::Hash;
 
 use async_trait::async_trait;
 use rspack_core::{
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{RawSource, Source, SourceExt},
   ApplyContext, Compilation, DependencyType, Module, ModuleArgs, ModuleType, Plugin, PluginContext,
   PluginModuleHookOutput, RuntimeGlobals, SourceType,
 };
@@ -25,7 +25,7 @@ impl Module for LazyCompilationProxyModule {
     &[SourceType::JavaScript]
   }
 
-  fn original_source(&self) -> Option<BoxSource> {
+  fn original_source(&self) -> Option<&dyn Source> {
     None
   }
 

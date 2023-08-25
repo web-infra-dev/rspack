@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, Identifier};
-use rspack_sources::BoxSource;
+use rspack_sources::Source;
 use rspack_util::ext::{AsAny, DynEq, DynHash};
 use rustc_hash::FxHashSet as HashSet;
 
@@ -135,7 +135,7 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
 
   /// The original source of the module. This could be optional, modules like the `NormalModule` can have the corresponding original source.
   /// However, modules that is created from "nowhere" (e.g. `ExternalModule` and `MissingModule`) does not have its original source.
-  fn original_source(&self) -> Option<BoxSource>;
+  fn original_source(&self) -> Option<&dyn Source>;
 
   /// User readable identifier of the module.
   fn readable_identifier(&self, _context: &Context) -> Cow<str>;
@@ -322,7 +322,7 @@ mod test {
 
   use rspack_error::{Result, TWithDiagnosticArray};
   use rspack_identifier::{Identifiable, Identifier};
-  use rspack_sources::BoxSource;
+  use rspack_sources::Source;
 
   use super::Module;
   use crate::{
@@ -378,7 +378,7 @@ mod test {
           unreachable!()
         }
 
-        fn original_source(&self) -> Option<BoxSource> {
+        fn original_source(&self) -> Option<&dyn Source> {
           unreachable!()
         }
 
