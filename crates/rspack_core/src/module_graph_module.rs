@@ -20,15 +20,15 @@ pub struct ModuleGraphModule {
   pub module_identifier: ModuleIdentifier,
   // TODO remove this since its included in module
   pub module_type: ModuleType,
-  pub dependencies: Vec<DependencyId>,
-  pub(crate) pre_order_index: Option<usize>,
-  pub post_order_index: Option<usize>,
+  pub dependencies: Box<Vec<DependencyId>>,
+  pub(crate) pre_order_index: Option<u32>,
+  pub post_order_index: Option<u32>,
   pub module_syntax: ModuleSyntax,
   pub factory_meta: Option<FactoryMeta>,
   pub build_info: Option<BuildInfo>,
   pub build_meta: Option<BuildMeta>,
-  pub exports: ExportsInfo,
-  pub profile: Option<ModuleProfile>,
+  pub exports: Box<ExportsInfo>,
+  pub profile: Option<Box<ModuleProfile>>,
 }
 
 impl ModuleGraphModule {
@@ -48,7 +48,7 @@ impl ModuleGraphModule {
       factory_meta: None,
       build_info: None,
       build_meta: None,
-      exports: ExportsInfo::new(),
+      exports: Box::new(ExportsInfo::new()),
       profile: None,
     }
   }
@@ -175,11 +175,11 @@ impl ModuleGraphModule {
   }
 
   pub fn set_profile(&mut self, profile: ModuleProfile) {
-    self.profile = Some(profile);
+    self.profile = Some(Box::new(profile));
   }
 
   pub fn get_profile(&self) -> Option<&ModuleProfile> {
-    self.profile.as_ref()
+    self.profile.as_deref()
   }
 
   pub fn set_issuer_if_unset(&mut self, issuer: Option<ModuleIdentifier>) {

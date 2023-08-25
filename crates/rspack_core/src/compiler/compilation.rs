@@ -700,7 +700,7 @@ impl Compilation {
                   .module_graph
                   .module_graph_module_by_identifier_mut(&module.identifier())
                   .expect("Failed to get mgm");
-                mgm.dependencies = dep_ids;
+                mgm.dependencies = Box::new(dep_ids);
                 if let Some(current_profile) = current_profile {
                   mgm.set_profile(current_profile);
                 }

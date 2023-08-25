@@ -325,7 +325,7 @@ impl ModuleGraph {
     removed
   }
 
-  pub fn get_pre_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<usize> {
+  pub fn get_pre_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<u32> {
     self
       .module_graph_module_by_identifier(module_identifier)
       .and_then(|mgm| mgm.pre_order_index)
