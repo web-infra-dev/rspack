@@ -1,3 +1,4 @@
+import type Watching from "./Watching";
 export * from "./Compiler";
 export * from "./MultiCompiler";
 export * from "./Compilation";
@@ -21,3 +22,5 @@ import { Configuration } from "./config";
 export type OptimizationSplitChunksOptions = NonNullable<
 	Configuration["optimization"]
 >["splitChunks"];
+
+export { Watching };
