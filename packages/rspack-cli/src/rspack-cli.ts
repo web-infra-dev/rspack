@@ -23,12 +23,7 @@ import {
 import { normalizeEnv } from "./utils/options";
 import { loadRspackConfig } from "./utils/loadConfig";
 import findConfig from "./utils/findConfig";
-import {
-	RspackPluginInstance,
-	RspackPluginFunction,
-	experimental_registerGlobalTrace as registerGlobalTrace,
-	experimental_cleanupGlobalTrace as cleanupGlobalTrace
-} from "@rspack/core";
+import { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
 import path from "path";
 
 type Command = "serve" | "build";
@@ -62,7 +57,9 @@ export class RspackCLI {
 			? (config as MultiRspackOptions).some(i => i.watch)
 			: (config as RspackOptions).watch;
 
-		return rspack(config, isWatch ? callback : undefined);
+		return rspack(config, isWatch ? callback : undefined) as
+			| MultiCompiler
+			| Compiler;
 	}
 	createColors(useColor?: boolean): RspackCLIColors {
 		const { createColors, isColorSupported } = require("colorette");
