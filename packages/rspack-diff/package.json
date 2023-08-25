@@ -8,8 +8,11 @@
     "rspack-diff": "./src/index.js"
   },
   "scripts": {
-    "build:fixture": "cd fixtures/basic && pnpm build",
-    "diff": "node . dist fixtures/basic/rspack-dist/main.js fixtures/basic/webpack-dist/main.js"
+    "build": "node scripts/buildAll.js",
+    "test": "node scripts/testAll.js",
+    "diff:basic": "node . dist fixtures/basic/rspack-dist/main.js fixtures/basic/webpack-dist/main.js",
+    "diff:antd": "node . dist fixtures/antd/rspack-dist/main.js fixtures/antd/webpack-dist/main.js",
+    "diff:three": "node . dist fixtures/three/rspack-dist/main.js fixtures/three/webpack-dist/main.js"
   },
   "files": [
     "src"
@@ -26,6 +29,9 @@
     "acorn-walk": "^8.0.0"
   },
   "devDependencies": {
-    "@rspack/core": "workspace:*"
+    "@rspack/core": "workspace:*",
+    "lodash": "4.17.21",
+    "three": "0.155.0",
+    "antd": "5.8.4"
   }
 }

@@ -1,9 +1,12 @@
 {
-  "name": "rspack-diff-basic",
-  "private":true,
+  "name": "rspack-diff-antd",
+  "private": true,
   "scripts": {
     "build:webpack": "webpack -o webpack-dist -c rspack.config.js",
     "build:rspack": "rspack",
     "build": "npm run build:rspack && npm run build:webpack"
+  },
+  "dependencies": {
+    
   }
 }

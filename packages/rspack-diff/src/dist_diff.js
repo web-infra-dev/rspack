@@ -24,9 +24,8 @@ function distDiffBundler(src, dst) {
 	for (const [key, value] of Object.entries(module1)) {
 		fs.mkdirSync(path.resolve(dirctory, "src"), { recursive: true });
 		fs.mkdirSync(path.resolve(dirctory, "dst"), { recursive: true });
-		const srcTmp = path.resolve(dirctory, "src", key);
-		const dstTmp = path.resolve(dirctory, "dst", key);
-
+		const srcTmp = path.resolve(dirctory, "src", path.basename(key));
+		const dstTmp = path.resolve(dirctory, "dst", path.basename(key));
 		fs.writeFileSync(srcTmp, module1[key], "utf-8");
 		if (!module2[key]) {
 			console.info(`${dst} missing module: ${key}`);
