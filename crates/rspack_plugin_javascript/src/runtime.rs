@@ -1,7 +1,7 @@
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  ChunkInitFragments, ChunkUkey, Compilation, InitFragment, ModuleGraphModule,
+  render_init_fragments, ChunkInitFragments, ChunkUkey, Compilation, ModuleGraphModule,
   RenderModuleContentArgs, RuntimeGlobals, SourceType,
 };
 use rspack_error::{internal_error, Result};
@@ -197,30 +197,7 @@ pub fn render_chunk_init_fragments(
   chunk_init_fragments: ChunkInitFragments,
 ) -> BoxSource {
   let mut fragments = chunk_init_fragments.into_values().collect::<Vec<_>>();
-  render_init_fragments(source, &mut fragments)
-}
-
-pub fn render_init_fragments(source: BoxSource, fragments: &mut Vec<InitFragment>) -> BoxSource {
-  // here use sort_by_key because need keep order equal stage fragments
-  fragments.sort_by_key(|m| m.stage);
-  // merge same init fragments
-  fragments.dedup();
-
-  let mut sources = ConcatSource::default();
-
-  fragments.iter_mut().for_each(|f| {
-    sources.add(RawSource::from(std::mem::take(&mut f.content)));
-  });
-
-  sources.add(source);
-
-  fragments.iter_mut().rev().for_each(|f| {
-    if let Some(end_content) = std::mem::take(&mut f.end_content) {
-      sources.add(RawSource::from(end_content));
-    }
-  });
-
-  sources.boxed()
+  render_init_fragments(source, &mut fragments.iter_mut().collect::<Vec<_>>())
 }
 
 pub fn stringify_chunks_to_array(chunks: &HashSet<String>) -> String {

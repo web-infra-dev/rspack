@@ -1,7 +1,7 @@
 use rspack_core::{
   export_from_import, get_exports_type, ConnectionState, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportsType, InitFragment,
-  InitFragmentStage, ModuleDependency, ModuleGraph, ModuleIdentifier, RuntimeGlobals,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportsType, InitFragmentStage,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeGlobals,
   TemplateContext, TemplateReplaceSource,
 };
 use rustc_hash::FxHashSet as HashSet;
@@ -90,7 +90,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         .get_exports_argument();
       runtime_requirements.insert(RuntimeGlobals::EXPORTS);
       runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-      init_fragments.push(InitFragment::new(
+      init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
           "{}({exports_argument}, {});\n",
           RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
@@ -98,7 +98,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         ),
         InitFragmentStage::StageHarmonyExports,
         None,
-      ));
+      )));
     }
   }
 }

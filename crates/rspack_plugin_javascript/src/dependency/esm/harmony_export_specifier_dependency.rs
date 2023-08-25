@@ -1,7 +1,7 @@
 use rspack_core::{
   AsModuleDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ExportsSpec, InitFragment, InitFragmentStage, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource,
+  DependencyType, ExportsSpec, InitFragmentStage, NormalInitFragment, RuntimeGlobals,
+  TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -85,7 +85,7 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
         .collect::<Vec<_>>();
       if !exports.is_empty() {
         runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-        init_fragments.push(InitFragment::new(
+        init_fragments.push(Box::new(NormalInitFragment::new(
           format!(
             "{}({exports_argument}, {});\n",
             RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
@@ -93,7 +93,7 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
           ),
           InitFragmentStage::StageHarmonyExports,
           None,
-        ));
+        )));
       } else {
         // dbg!(&used_exports);
         // dbg!(&self.exports);

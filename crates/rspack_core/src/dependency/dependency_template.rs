@@ -2,13 +2,13 @@ use std::fmt::Debug;
 
 use rspack_sources::{BoxSource, ReplaceSource};
 
-use crate::{Compilation, InitFragment, Module, RuntimeGlobals};
+use crate::{BoxInitFragment, Compilation, Module, RuntimeGlobals};
 
 pub struct TemplateContext<'a> {
   pub compilation: &'a Compilation,
   pub module: &'a dyn Module,
   pub runtime_requirements: &'a mut RuntimeGlobals,
-  pub init_fragments: &'a mut Vec<InitFragment>,
+  pub init_fragments: &'a mut Vec<BoxInitFragment>,
 }
 
 pub type TemplateReplaceSource = ReplaceSource<BoxSource>;
