@@ -1,16 +1,21 @@
 use std::{path::Path, sync::Arc};
 
 use futures::Future;
-use rspack_error::{Result, TWithDiagnosticArray};
+use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
+use rspack_sources::BoxSource;
 
 use crate::{
   cache::snapshot::{Snapshot, SnapshotManager},
   cache::storage,
-  BoxModule, BuildResult,
+  BoxModule, BuildResult, NormalModuleSource,
 };
 
-type Storage = dyn storage::Storage<(Snapshot, TWithDiagnosticArray<BuildResult>)>;
+type Storage = dyn storage::Storage<(
+  Snapshot,
+  Option<NormalModuleSource>,
+  TWithDiagnosticArray<BuildResult>,
+)>;
 
 #[derive(Debug)]
 pub struct BuildModuleOccasion {
@@ -32,14 +37,14 @@ impl BuildModuleOccasion {
     }
   }
 
-  pub async fn use_cache<'a, G, F>(
+  pub async fn use_cache<'a, 'b: 'a, G, F>(
     &self,
-    module: &'a mut BoxModule,
+    module: &'b mut BoxModule,
     generator: G,
   ) -> Result<(Result<TWithDiagnosticArray<BuildResult>>, bool)>
   where
     G: Fn(&'a mut BoxModule) -> F,
-    F: Future<Output = Result<TWithDiagnosticArray<BuildResult>>>,
+    F: Future<Output = Result<TWithDiagnosticArray<BuildResult>>> + 'static,
   {
     let storage = match &self.storage {
       Some(s) => s,
@@ -52,13 +57,16 @@ impl BuildModuleOccasion {
     if module.as_normal_module().is_some() {
       // normal module
       // TODO cache all module type
-      if let Some((snapshot, data)) = storage.get(&id) {
+      if let Some((snapshot, source, data)) = storage.get(&id) {
         let valid = self
           .snapshot_manager
           .check_snapshot_valid(&snapshot)
           .await
           .unwrap_or(false);
         if valid {
+          if let Some(module) = module.as_normal_module_mut() {
+            *module.source_mut() = source.unwrap();
+          }
           return Ok((Ok(data), true));
         }
       };
@@ -67,6 +75,7 @@ impl BuildModuleOccasion {
 
     // run generator and save to cache
     let data = generator(module).await?;
+    let source = module.as_normal_module().unwrap().source().clone();
     if need_cache && data.inner.build_info.cacheable {
       let mut paths: Vec<&Path> = Vec::new();
       paths.extend(
@@ -106,7 +115,7 @@ impl BuildModuleOccasion {
         .snapshot_manager
         .create_snapshot(&paths, |option| &option.module)
         .await?;
-      storage.set(id, (snapshot, data.clone()));
+      storage.set(id, (snapshot, None, data.clone()));
     }
     Ok((Ok(data), false))
   }

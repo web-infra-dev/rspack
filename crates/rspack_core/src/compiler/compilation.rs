@@ -913,7 +913,9 @@ impl Compilation {
           compilation
             .cache
             .code_generate_occasion
-            .use_cache(module, |module| module.code_generation(compilation))
+            .use_cache(module, compilation, |module| {
+              module.code_generation(compilation)
+            })
             .map(|result| (*module_identifier, result))
         })
         .collect::<Result<Vec<(ModuleIdentifier, CodeGenerationResult)>>>()?;

@@ -1,4 +1,5 @@
 use std::collections::hash_map::Entry;
+use std::hash::Hash;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
@@ -50,6 +51,19 @@ impl std::ops::Deref for ExportInfoId {
 impl From<usize> for ExportInfoId {
   fn from(id: usize) -> Self {
     Self(id)
+  }
+}
+
+impl Hash for ExportsInfo {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    for (name, info) in &self.exports {
+      name.hash(state);
+      info.hash(state);
+    }
+    self.other_exports_info.hash(state);
+    self._side_effects_only_info.hash(state);
+    self._exports_are_ordered.hash(state);
+    self.redirect_to.hash(state);
   }
 }
 
@@ -148,7 +162,7 @@ pub struct ExportInfoTargetValue {
   priority: u8,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 #[allow(unused)]
 pub struct ExportInfo {
   name: JsWord,
@@ -266,7 +280,7 @@ impl ExportInfo {
   }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Hash)]
 pub enum UsageState {
   Unused,
   OnlyPropertiesUsed,
