@@ -55,7 +55,7 @@ export class JsStats {
   getErrors(): Array<JsStatsError>
   getWarnings(): Array<JsStatsWarning>
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
-  getHash(): string | null
+  getHash(): string
 }
 
 export class Rspack {
@@ -381,7 +381,6 @@ export interface JsStatsModule {
   issuerPath: Array<JsStatsModuleIssuer>
   reasons?: Array<JsStatsModuleReason>
   assets?: Array<string>
-  modules?: Array<JsStatsModule>
   source?: string | Buffer
   profile?: JsStatsModuleProfile
 }
@@ -815,6 +814,7 @@ export interface RawOptions {
   context: string
   output: RawOutputOptions
   resolve: RawResolveOptions
+  resolveLoader: RawResolveOptions
   module: RawModuleOptions
   builtins: RawBuiltins
   externals?: Array<RawExternalItem>

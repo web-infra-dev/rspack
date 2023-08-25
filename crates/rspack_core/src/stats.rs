@@ -5,7 +5,7 @@ use rspack_error::{
   },
   Result,
 };
-use rspack_sources::{BoxSource, Source};
+use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
@@ -129,19 +129,33 @@ impl Stats<'_> {
     (assets, assets_by_chunk_name)
   }
 
-  pub fn get_modules(&self) -> Result<Vec<StatsModule>> {
+  pub fn get_modules(
+    &self,
+    reasons: bool,
+    module_assets: bool,
+    nested_modules: bool,
+    source: bool,
+  ) -> Result<Vec<StatsModule>> {
     let mut modules: Vec<StatsModule> = self
       .compilation
       .module_graph
       .modules()
       .values()
-      .map(|module| self.get_module(module))
+      .map(|module| self.get_module(module, reasons, module_assets, nested_modules, source))
       .collect::<Result<_>>()?;
     Self::sort_modules(&mut modules);
     Ok(modules)
   }
 
-  pub fn get_chunks(&self) -> Result<Vec<StatsChunk>> {
+  pub fn get_chunks(
+    &self,
+    chunk_modules: bool,
+    chunk_relations: bool,
+    reasons: bool,
+    module_assets: bool,
+    nested_modules: bool,
+    source: bool,
+  ) -> Result<Vec<StatsChunk>> {
     let mut chunks: Vec<StatsChunk> = self
       .compilation
       .chunk_by_ukey
@@ -153,19 +167,27 @@ impl Stats<'_> {
         let mut auxiliary_files = Vec::from_iter(c.auxiliary_files.iter().cloned());
         auxiliary_files.sort_unstable();
 
-        let chunk_modules = {
+        let chunk_modules = if chunk_modules {
           let chunk_modules = self
             .compilation
             .chunk_graph
             .get_chunk_modules(&c.ukey, &self.compilation.module_graph);
           let mut chunk_modules = chunk_modules
             .into_iter()
-            .map(|m| self.get_module(m))
+            .map(|m| self.get_module(m, reasons, module_assets, nested_modules, source))
             .collect::<Result<Vec<_>>>()?;
           Self::sort_modules(&mut chunk_modules);
-          chunk_modules
+          Some(chunk_modules)
+        } else {
+          None
         };
-        let (parents, children, siblings) = self.get_chunk_relations(c);
+        let (parents, children, siblings) = if let Some((parents, children, siblings)) =
+          chunk_relations.then(|| self.get_chunk_relations(c))
+        {
+          (Some(parents), Some(children), Some(siblings))
+        } else {
+          (None, None, None)
+        };
         Ok(StatsChunk {
           r#type: "chunk",
           files,
@@ -309,7 +331,14 @@ impl Stats<'_> {
     });
   }
 
-  fn get_module(&self, module: &BoxModule) -> Result<StatsModule> {
+  fn get_module<'a>(
+    &'a self,
+    module: &'a BoxModule,
+    reasons: bool,
+    module_assets: bool,
+    nested_modules: bool,
+    source: bool,
+  ) -> Result<StatsModule<'a>> {
     let identifier = module.identifier();
     let mgm = self
       .compilation
@@ -334,36 +363,38 @@ impl Stats<'_> {
     }
     issuer_path.reverse();
 
-    let reasons = {
-      let mut reasons: Vec<StatsModuleReason> = mgm
-        .incoming_connections_unordered(&self.compilation.module_graph)?
-        .map(|connection| {
-          let (module_name, module_id) = connection
-            .original_module_identifier
-            .and_then(|i| self.compilation.module_graph.module_by_identifier(&i))
-            .map(|m| get_stats_module_name_and_id(m, self.compilation))
-            .unzip();
-          let dependency = self
-            .compilation
-            .module_graph
-            .dependency_by_id(&connection.dependency_id)
-            .and_then(|dep| dep.as_module_dependency());
+    let reasons = reasons
+      .then(|| -> Result<_> {
+        let mut reasons: Vec<StatsModuleReason> = mgm
+          .incoming_connections_unordered(&self.compilation.module_graph)?
+          .map(|connection| {
+            let (module_name, module_id) = connection
+              .original_module_identifier
+              .and_then(|i| self.compilation.module_graph.module_by_identifier(&i))
+              .map(|m| get_stats_module_name_and_id(m, self.compilation))
+              .unzip();
+            let dependency = self
+              .compilation
+              .module_graph
+              .dependency_by_id(&connection.dependency_id)
+              .and_then(|d| d.as_module_dependency());
 
-          let r#type = dependency.map(|d| d.dependency_type().to_string());
+            let r#type = dependency.map(|d| d.dependency_type().to_string());
 
-          let user_request = dependency.map(|d| d.user_request().to_string());
-          StatsModuleReason {
-            module_identifier: connection.original_module_identifier.map(|i| i.to_string()),
-            module_name,
-            module_id: module_id.and_then(|i| i),
-            r#type,
-            user_request,
-          }
-        })
-        .collect();
-      reasons.sort_unstable_by(|a, b| a.module_identifier.cmp(&b.module_identifier));
-      reasons
-    };
+            let user_request = dependency.map(|d| d.user_request().to_string());
+            StatsModuleReason {
+              module_identifier: connection.original_module_identifier.map(|i| i.to_string()),
+              module_name,
+              module_id: module_id.and_then(|i| i),
+              r#type,
+              user_request,
+            }
+          })
+          .collect();
+        reasons.sort_unstable();
+        Ok(reasons)
+      })
+      .transpose()?;
 
     let mut chunks: Vec<String> = self
       .compilation
@@ -383,7 +414,7 @@ impl Stats<'_> {
       .collect();
     chunks.sort_unstable();
 
-    let assets = {
+    let assets = module_assets.then(|| {
       let mut assets: Vec<_> = mgm
         .build_info
         .as_ref()
@@ -391,10 +422,10 @@ impl Stats<'_> {
         .unwrap_or_default();
       assets.sort();
       assets
-    };
+    });
 
     // TODO: a placeholder for concatenation modules
-    let modules = Vec::new();
+    let modules = nested_modules.then(Vec::new);
     let profile = if let Some(p) = mgm.get_profile()
     && let Some(factory) = p.factory.duration()
     && let Some(integration) = p.integration.duration()
@@ -429,7 +460,7 @@ impl Stats<'_> {
       reasons,
       assets,
       modules,
-      source: module.original_source(),
+      source: source.then(|| module.original_source()).flatten(),
       profile,
     })
   }
@@ -489,20 +520,20 @@ fn get_stats_module_name_and_id(
   (name.to_string(), id)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct StatsError {
   pub message: String,
   pub formatted: String,
   pub title: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct StatsWarning {
   pub message: String,
   pub formatted: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct StatsAsset {
   pub r#type: &'static str,
   pub name: String,
@@ -513,20 +544,20 @@ pub struct StatsAsset {
   pub emitted: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct StatsAssetsByChunkName {
   pub name: String,
   pub files: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct StatsAssetInfo {
   pub development: bool,
   pub hot_module_replacement: bool,
 }
 
-#[derive(Debug, Clone)]
-pub struct StatsModule {
+#[derive(Debug)]
+pub struct StatsModule<'a> {
   pub r#type: &'static str,
   pub module_type: ModuleType,
   pub identifier: ModuleIdentifier,
@@ -538,22 +569,22 @@ pub struct StatsModule {
   pub issuer_name: Option<String>,
   pub issuer_id: Option<String>,
   pub issuer_path: Vec<StatsModuleIssuer>,
-  pub reasons: Vec<StatsModuleReason>,
-  pub assets: Vec<String>,
-  pub modules: Vec<StatsModule>,
-  pub source: Option<BoxSource>,
+  pub reasons: Option<Vec<StatsModuleReason>>,
+  pub assets: Option<Vec<String>>,
+  pub modules: Option<Vec<StatsModule<'a>>>,
+  pub source: Option<&'a dyn Source>,
   pub profile: Option<StatsModuleProfile>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct StatsModuleProfile {
   pub factory: StatsMillisecond,
   pub integration: StatsMillisecond,
   pub building: StatsMillisecond,
 }
 
-#[derive(Debug, Clone)]
-pub struct StatsChunk {
+#[derive(Debug)]
+pub struct StatsChunk<'a> {
   pub r#type: &'static str,
   pub files: Vec<String>,
   pub auxiliary_files: Vec<String>,
@@ -562,19 +593,19 @@ pub struct StatsChunk {
   pub initial: bool,
   pub names: Vec<String>,
   pub size: f64,
-  pub modules: Vec<StatsModule>,
-  pub parents: Vec<String>,
-  pub children: Vec<String>,
-  pub siblings: Vec<String>,
+  pub modules: Option<Vec<StatsModule<'a>>>,
+  pub parents: Option<Vec<String>>,
+  pub children: Option<Vec<String>>,
+  pub siblings: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct StatsChunkGroupAsset {
   pub name: String,
   pub size: f64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct StatsChunkGroup {
   pub name: String,
   pub assets: Vec<StatsChunkGroupAsset>,
@@ -582,14 +613,14 @@ pub struct StatsChunkGroup {
   pub assets_size: f64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct StatsModuleIssuer {
   pub identifier: String,
   pub name: String,
   pub id: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct StatsModuleReason {
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,
@@ -598,7 +629,7 @@ pub struct StatsModuleReason {
   pub user_request: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct StatsMillisecond {
   pub secs: u64,
   pub subsec_millis: u32,

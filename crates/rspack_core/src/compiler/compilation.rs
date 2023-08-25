@@ -76,6 +76,7 @@ pub struct Compilation {
   logging: CompilationLogging,
   pub plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
+  pub loader_resolver_factory: Arc<ResolverFactory>,
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   pub entry_module_identifiers: IdentifierSet,
@@ -110,6 +111,7 @@ impl Compilation {
     module_graph: ModuleGraph,
     plugin_driver: SharedPluginDriver,
     resolver_factory: Arc<ResolverFactory>,
+    loader_resolver_factory: Arc<ResolverFactory>,
     cache: Arc<Cache>,
   ) -> Self {
     Self {
@@ -133,6 +135,7 @@ impl Compilation {
       logging: Default::default(),
       plugin_driver,
       resolver_factory,
+      loader_resolver_factory,
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
       entry_module_identifiers: IdentifierSet::default(),
@@ -437,17 +440,16 @@ impl Compilation {
         self.handle_module_creation(
           &mut factorize_queue,
           parent_module_identifier,
-          parent_module.and_then(|m| m.get_context()).cloned(),
+          parent_module.and_then(|m| m.get_context()),
           vec![dependency.clone()],
           parent_module_identifier.is_none(),
           None,
           None,
-          parent_module.and_then(|module| module.get_resolve_options().map(ToOwned::to_owned)),
+          parent_module.and_then(|module| module.get_resolve_options()),
           self.lazy_visit_modules.clone(),
           parent_module
             .and_then(|m| m.as_normal_module())
-            .and_then(|module| module.name_for_condition())
-            .map(|issuer| issuer.to_string()),
+            .and_then(|module| module.name_for_condition()),
         );
       });
 
@@ -565,7 +567,7 @@ impl Compilation {
           self.handle_module_creation(
             &mut factorize_queue,
             Some(task.original_module_identifier),
-            module.get_context().cloned(),
+            module.get_context(),
             dependencies,
             false,
             None,
@@ -574,17 +576,16 @@ impl Compilation {
             self.lazy_visit_modules.clone(),
             module
               .as_normal_module()
-              .and_then(|module| module.name_for_condition())
-              .map(|issuer| issuer.to_string()),
+              .and_then(|module| module.name_for_condition()),
           );
         }
 
         result_tx
-          .send(Ok(TaskResult::ProcessDependencies(
+          .send(Ok(TaskResult::ProcessDependencies(Box::new(
             ProcessDependenciesResult {
               module_identifier: task.original_module_identifier,
             },
-          )))
+          ))))
           .expect("Failed to send process dependencies result");
       }
       process_deps_time.end(start);
@@ -592,7 +593,7 @@ impl Compilation {
       match result_rx.try_recv() {
         Ok(item) => {
           match item {
-            Ok(TaskResult::Factorize(task_result)) => {
+            Ok(TaskResult::Factorize(box task_result)) => {
               let FactorizeTaskResult {
                 is_entry,
                 original_module_identifier,
@@ -633,7 +634,7 @@ impl Compilation {
                 current_profile,
               });
             }
-            Ok(TaskResult::Add(task_result)) => match task_result {
+            Ok(TaskResult::Add(box task_result)) => match task_result {
               AddTaskResult::ModuleAdded {
                 module,
                 current_profile,
@@ -652,7 +653,7 @@ impl Compilation {
                 tracing::trace!("Module reused: {}, skipping build", module.identifier());
               }
             },
-            Ok(TaskResult::Build(task_result)) => {
+            Ok(TaskResult::Build(box task_result)) => {
               let BuildTaskResult {
                 module,
                 build_result,
@@ -708,7 +709,7 @@ impl Compilation {
               process_dependencies_queue.add_task(ProcessDependenciesTask {
                 dependencies: build_result.dependencies,
                 original_module_identifier: module.identifier(),
-                resolve_options: module.get_resolve_options().map(ToOwned::to_owned),
+                resolve_options: module.get_resolve_options(),
               });
               self.module_graph.set_module_build_info_and_meta(
                 &module.identifier(),
@@ -854,16 +855,16 @@ impl Compilation {
     &self,
     queue: &mut FactorizeQueue,
     original_module_identifier: Option<ModuleIdentifier>,
-    original_module_context: Option<Context>,
+    original_module_context: Option<Box<Context>>,
     dependencies: Vec<BoxDependency>,
     is_entry: bool,
     module_type: Option<ModuleType>,
     side_effects: Option<bool>,
-    resolve_options: Option<Resolve>,
+    resolve_options: Option<Box<Resolve>>,
     lazy_visit_modules: std::collections::HashSet<String>,
-    issuer: Option<String>,
+    issuer: Option<Box<str>>,
   ) {
-    let current_profile = self.options.profile.then(ModuleProfile::default);
+    let current_profile = self.options.profile.then(Box::<ModuleProfile>::default);
     queue.add_task(FactorizeTask {
       original_module_identifier,
       issuer,
@@ -875,6 +876,7 @@ impl Compilation {
       resolve_options,
       lazy_visit_modules,
       resolver_factory: self.resolver_factory.clone(),
+      loader_resolver_factory: self.loader_resolver_factory.clone(),
       options: self.options.clone(),
       plugin_driver: self.plugin_driver.clone(),
       cache: self.cache.clone(),

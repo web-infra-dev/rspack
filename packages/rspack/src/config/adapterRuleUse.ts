@@ -262,12 +262,6 @@ function resolveStringifyLoaders(
 	compiler: Compiler
 ) {
 	const obj = parsePathQueryFragment(use.loader);
-	// Do not handle builtin loader
-	if (!use.loader.startsWith(BUILTIN_LOADER_PREFIX)) {
-		obj.path = require.resolve(obj.path, {
-			paths: [compiler.context]
-		});
-	}
 	let ident: string | null = null;
 
 	if (use.options === null) obj.query = "";

@@ -134,6 +134,7 @@ where
         Default::default(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
+        self.loader_resolver_factory.clone(),
         self.cache.clone(),
       );
 

@@ -44,7 +44,6 @@ pub enum DependencyType {
   // Harmony import
   EsmImport,
   EsmImportSpecifier,
-  EsmImportSideEffect,
   // Harmony export
   EsmExport,
   EsmExportImportedSpecifier,
@@ -96,7 +95,6 @@ impl Display for DependencyType {
       DependencyType::Unknown => write!(f, "unknown"),
       DependencyType::Entry => write!(f, "entry"),
       DependencyType::EsmImport => write!(f, "esm import"),
-      DependencyType::EsmImportSideEffect => write!(f, "esm import side effect"),
       DependencyType::EsmExport => write!(f, "esm export"),
       DependencyType::EsmExportSpecifier => write!(f, "esm export specifier"),
       DependencyType::EsmExportImportedSpecifier => write!(f, "esm export import specifier"),

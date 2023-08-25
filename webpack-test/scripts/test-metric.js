@@ -18,7 +18,10 @@ process.stdin.on("end", () => {
 
 	// "numFailedTestSuites": 0,
 	// "numFailedTests": 0,
-	const jsonObj = JSON.parse(data) || {};
+  let jsonObj = {}
+  try {
+    jsonObj = JSON.parse(data)
+  } catch(e) {}
 	if (isEmptyObject(jsonObj)) {
 		process.exit(-1);
 	}

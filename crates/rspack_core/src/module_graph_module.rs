@@ -174,8 +174,8 @@ impl ModuleGraphModule {
       .collect()
   }
 
-  pub fn set_profile(&mut self, profile: ModuleProfile) {
-    self.profile = Some(Box::new(profile));
+  pub fn set_profile(&mut self, profile: Box<ModuleProfile>) {
+    self.profile = Some(profile);
   }
 
   pub fn get_profile(&self) -> Option<&ModuleProfile> {

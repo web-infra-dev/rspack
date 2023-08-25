@@ -83,6 +83,7 @@ export const getRawOptions = (
 		context: options.context,
 		output: getRawOutput(options.output),
 		resolve: getRawResolve(options.resolve),
+		resolveLoader: getRawResolve(options.resolveLoader),
 		module: getRawModule(options.module, {
 			compiler,
 			devtool,

@@ -37,7 +37,7 @@ macro_rules! impl_runtime_module {
         self.name().as_str().into()
       }
 
-      fn original_source(&self) -> Option<rspack_core::rspack_sources::BoxSource> {
+      fn original_source(&self) -> Option<&dyn rspack_core::rspack_sources::Source> {
         None
       }
 

@@ -124,7 +124,7 @@ pub struct ContextModuleOptions {
   pub resource_query: Option<String>,
   pub resource_fragment: Option<String>,
   pub context_options: ContextOptions,
-  pub resolve_options: Option<Resolve>,
+  pub resolve_options: Option<Box<Resolve>>,
 }
 
 impl Display for ContextModuleOptions {
@@ -454,7 +454,7 @@ impl Module for ContextModule {
     &[SourceType::JavaScript]
   }
 
-  fn original_source(&self) -> Option<BoxSource> {
+  fn original_source(&self) -> Option<&dyn rspack_sources::Source> {
     None
   }
 

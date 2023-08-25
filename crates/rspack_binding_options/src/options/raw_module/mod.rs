@@ -526,7 +526,7 @@ impl From<FuncUseCtx> for RawFuncUseCtx {
       resource: value.resource,
       real_resource: value.real_resource,
       resource_query: value.resource_query,
-      issuer: value.issuer,
+      issuer: value.issuer.map(|s| s.to_string()),
     }
   }
 }

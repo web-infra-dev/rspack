@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, Identifier};
-use rspack_sources::BoxSource;
+use rspack_sources::Source;
 use rspack_util::ext::{AsAny, DynEq, DynHash};
 use rustc_hash::FxHashSet as HashSet;
 
@@ -135,7 +135,7 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
 
   /// The original source of the module. This could be optional, modules like the `NormalModule` can have the corresponding original source.
   /// However, modules that is created from "nowhere" (e.g. `ExternalModule` and `MissingModule`) does not have its original source.
-  fn original_source(&self) -> Option<BoxSource>;
+  fn original_source(&self) -> Option<&dyn Source>;
 
   /// User readable identifier of the module.
   fn readable_identifier(&self, _context: &Context) -> Cow<str>;
@@ -177,7 +177,7 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult>;
 
   /// Name matched against bundle-splitting conditions.
-  fn name_for_condition(&self) -> Option<Cow<str>> {
+  fn name_for_condition(&self) -> Option<Box<str>> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/Module.js#L852
     None
   }
@@ -207,11 +207,11 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   /// Resolve options matched by module rules.
   /// e.g `javascript/esm` may have special resolving options like `fullySpecified`.
   /// `css` and `css/module` may have special resolving options like `preferRelative`.
-  fn get_resolve_options(&self) -> Option<&Resolve> {
+  fn get_resolve_options(&self) -> Option<Box<Resolve>> {
     None
   }
 
-  fn get_context(&self) -> Option<&Context> {
+  fn get_context(&self) -> Option<Box<Context>> {
     None
   }
 
@@ -322,7 +322,7 @@ mod test {
 
   use rspack_error::{Result, TWithDiagnosticArray};
   use rspack_identifier::{Identifiable, Identifier};
-  use rspack_sources::BoxSource;
+  use rspack_sources::Source;
 
   use super::Module;
   use crate::{
@@ -378,7 +378,7 @@ mod test {
           unreachable!()
         }
 
-        fn original_source(&self) -> Option<BoxSource> {
+        fn original_source(&self) -> Option<&dyn Source> {
           unreachable!()
         }
 
