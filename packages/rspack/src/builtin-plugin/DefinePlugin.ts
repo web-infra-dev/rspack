@@ -1,9 +1,9 @@
 import { BuiltinPluginKind, create } from "./base";
 
 export type DefinePluginOptions = Record<string, string | boolean | undefined>;
-export const DefinePlugin = create<DefinePluginOptions, Record<string, string>>(
+export const DefinePlugin = create(
 	BuiltinPluginKind.Define,
-	define => {
+	(define: DefinePluginOptions): Record<string, string> => {
 		const entries = Object.entries(define).map(([key, value]) => {
 			if (typeof value !== "string") {
 				value = value === undefined ? "undefined" : JSON.stringify(value);

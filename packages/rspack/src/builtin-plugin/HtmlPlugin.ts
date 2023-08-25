@@ -4,9 +4,9 @@ import { BuiltinPluginKind, create } from "./base";
 export type HtmlPluginOptions = Omit<RawHtmlPluginConfig, "meta"> & {
 	meta?: Record<string, string | Record<string, string>>;
 };
-export const HtmlPlugin = create<HtmlPluginOptions, RawHtmlPluginConfig>(
+export const HtmlPlugin = create(
 	BuiltinPluginKind.Html,
-	c => {
+	(c: HtmlPluginOptions): RawHtmlPluginConfig => {
 		const meta: Record<string, Record<string, string>> = {};
 		for (const key in c.meta) {
 			const value = c.meta[key];

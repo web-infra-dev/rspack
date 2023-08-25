@@ -50,9 +50,9 @@ function getBannerConditions(
 	return getBannerCondition(condition);
 }
 
-export const BannerPlugin = create<BannerPluginOptions, RawBannerConfig>(
+export const BannerPlugin = create(
 	BuiltinPluginKind.Banner,
-	bannerConfig => {
+	(bannerConfig: BannerPluginOptions): RawBannerConfig => {
 		if (typeof bannerConfig === "string") {
 			return {
 				banner: bannerConfig

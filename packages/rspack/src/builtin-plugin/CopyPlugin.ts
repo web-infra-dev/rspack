@@ -10,9 +10,9 @@ export type CopyPluginOptions = {
 	)[];
 };
 
-export const CopyPlugin = create<CopyPluginOptions, RawCopyConfig>(
+export const CopyPlugin = create(
 	BuiltinPluginKind.Copy,
-	copy => {
+	(copy: CopyPluginOptions): RawCopyConfig => {
 		const ret: RawCopyConfig = {
 			patterns: []
 		};

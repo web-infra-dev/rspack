@@ -10,7 +10,7 @@
 
 import watchpack from "watchpack";
 import { Compiler } from "../Compiler";
-import * as oldBuiltins from "./builtins";
+import * as oldBuiltins from "../builtin-plugin";
 import { Compilation } from "..";
 import type * as webpackDevServer from "webpack-dev-server";
 import type { Options as RspackOptions } from "./zod/_rewrite";
@@ -670,7 +670,7 @@ export interface ExperimentsNormalized {
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	newSplitChunks?: boolean;
-	css?: false | CssExperimentOptions;
+	css?: boolean;
 	futureDefaults?: boolean;
 }
 

@@ -41,7 +41,10 @@ import { checkVersion } from "./util/bindingVersionCheck";
 import Watching from "./Watching";
 import { NormalModule } from "./NormalModule";
 import { normalizeJsModule } from "./util/normalization";
-import { RspackBuiltinPlugin } from "./builtin-plugin";
+import {
+	RspackBuiltinPlugin,
+	deprecated_resolveBuiltins
+} from "./builtin-plugin";
 
 class EntryPlugin {
 	constructor(
@@ -270,6 +273,15 @@ class Compiler {
 	#getInstance(
 		callback: (error: Error | null, instance?: binding.Rspack) => void
 	): void {
+		const error = checkVersion();
+		if (error) {
+			return callback(error);
+		}
+
+		if (this.#_instance) {
+			return callback(null, this.#_instance);
+		}
+
 		const processResource = (
 			loaderContext: LoaderContext,
 			resourcePath: string,
@@ -288,119 +300,117 @@ class Compiler {
 					return callback(null, result);
 				});
 		};
-		const options = getRawOptions(this.options, this, processResource);
 
-		let error = checkVersion();
-		if (error) {
-			return callback(error);
-		}
+		// TODO: remove this when drop support for builtins options
+		this.options.builtins = deprecated_resolveBuiltins(
+			this.options.builtins,
+			this.options,
+			this
+		) as any;
+		const options = getRawOptions(this.options, this, processResource);
 
 		const instanceBinding: typeof binding = require("@rspack/binding");
 
-		this.#_instance =
-			this.#_instance ??
-			new instanceBinding.Rspack(
-				options,
-				this.builtinPlugins.map(bp => bp.raw()),
-				{
-					beforeCompile: this.#beforeCompile.bind(this),
-					afterCompile: this.#afterCompile.bind(this),
-					finishMake: this.#finishMake.bind(this),
-					make: this.#make.bind(this),
-					emit: this.#emit.bind(this),
-					assetEmitted: this.#assetEmitted.bind(this),
-					afterEmit: this.#afterEmit.bind(this),
-					processAssetsStageAdditional: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
-					),
-					processAssetsStagePreProcess: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS
-					),
-					processAssetsStageDerived: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_DERIVED
-					),
-					processAssetsStageAdditions: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_ADDITIONS
-					),
-					processAssetsStageNone: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_NONE
-					),
-					processAssetsStageOptimize: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE
-					),
-					processAssetsStageOptimizeCount: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT
-					),
-					processAssetsStageOptimizeCompatibility: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY
-					),
-					processAssetsStageOptimizeSize: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE
-					),
-					processAssetsStageDevTooling: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING
-					),
-					processAssetsStageOptimizeInline: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
-					),
-					processAssetsStageSummarize: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
-					),
-					processAssetsStageOptimizeHash: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
-					),
-					processAssetsStageOptimizeTransfer: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER
-					),
-					processAssetsStageAnalyse: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_ANALYSE
-					),
-					processAssetsStageReport: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_REPORT
-					),
-					// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
-					// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
-					// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
-					// So it is safe to create a new compilation here.
-					thisCompilation: this.#newCompilation.bind(this),
-					// The hook `Compilation` should be called whenever it's a call from the child compiler or normal compiler and
-					// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
-					// No matter how it will be implemented, it will be copied to the child compiler.
-					compilation: this.#compilation.bind(this),
-					optimizeModules: this.#optimizeModules.bind(this),
-					optimizeChunkModule: this.#optimizeChunkModules.bind(this),
-					finishModules: this.#finishModules.bind(this),
-					normalModuleFactoryResolveForScheme:
-						this.#normalModuleFactoryResolveForScheme.bind(this),
-					chunkAsset: this.#chunkAsset.bind(this),
-					beforeResolve: this.#beforeResolve.bind(this),
-					afterResolve: this.#afterResolve.bind(this),
-					contextModuleBeforeResolve:
-						this.#contextModuleBeforeResolve.bind(this),
-					succeedModule: this.#succeedModule.bind(this),
-					stillValidModule: this.#stillValidModule.bind(this),
-					buildModule: this.#buildModule.bind(this)
-				},
-				createThreadsafeNodeFSFromRaw(this.outputFileSystem),
-				(loaderContext: binding.JsLoaderContext) =>
-					runLoader(loaderContext, this)
-			);
+		this.#_instance = new instanceBinding.Rspack(
+			options,
+			this.builtinPlugins.map(bp => bp.raw()),
+			{
+				beforeCompile: this.#beforeCompile.bind(this),
+				afterCompile: this.#afterCompile.bind(this),
+				finishMake: this.#finishMake.bind(this),
+				make: this.#make.bind(this),
+				emit: this.#emit.bind(this),
+				assetEmitted: this.#assetEmitted.bind(this),
+				afterEmit: this.#afterEmit.bind(this),
+				processAssetsStageAdditional: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+				),
+				processAssetsStagePreProcess: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS
+				),
+				processAssetsStageDerived: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_DERIVED
+				),
+				processAssetsStageAdditions: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_ADDITIONS
+				),
+				processAssetsStageNone: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_NONE
+				),
+				processAssetsStageOptimize: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE
+				),
+				processAssetsStageOptimizeCount: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT
+				),
+				processAssetsStageOptimizeCompatibility: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY
+				),
+				processAssetsStageOptimizeSize: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE
+				),
+				processAssetsStageDevTooling: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING
+				),
+				processAssetsStageOptimizeInline: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
+				),
+				processAssetsStageSummarize: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
+				),
+				processAssetsStageOptimizeHash: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
+				),
+				processAssetsStageOptimizeTransfer: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER
+				),
+				processAssetsStageAnalyse: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_ANALYSE
+				),
+				processAssetsStageReport: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_REPORT
+				),
+				// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
+				// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
+				// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
+				// So it is safe to create a new compilation here.
+				thisCompilation: this.#newCompilation.bind(this),
+				// The hook `Compilation` should be called whenever it's a call from the child compiler or normal compiler and
+				// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
+				// No matter how it will be implemented, it will be copied to the child compiler.
+				compilation: this.#compilation.bind(this),
+				optimizeModules: this.#optimizeModules.bind(this),
+				optimizeChunkModule: this.#optimizeChunkModules.bind(this),
+				finishModules: this.#finishModules.bind(this),
+				normalModuleFactoryResolveForScheme:
+					this.#normalModuleFactoryResolveForScheme.bind(this),
+				chunkAsset: this.#chunkAsset.bind(this),
+				beforeResolve: this.#beforeResolve.bind(this),
+				afterResolve: this.#afterResolve.bind(this),
+				contextModuleBeforeResolve: this.#contextModuleBeforeResolve.bind(this),
+				succeedModule: this.#succeedModule.bind(this),
+				stillValidModule: this.#stillValidModule.bind(this),
+				buildModule: this.#buildModule.bind(this)
+			},
+			createThreadsafeNodeFSFromRaw(this.outputFileSystem),
+			(loaderContext: binding.JsLoaderContext) => runLoader(loaderContext, this)
+		);
 
 		callback(null, this.#_instance);
 	}

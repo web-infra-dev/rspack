@@ -52,21 +52,21 @@ function getMinifyConditions(
 	return getMinifyCondition(condition);
 }
 
-export const SwcJsMinimizerPlugin = create<
-	SwcJsMinimizerPluginOptions,
-	RawMinification
->(BuiltinPluginKind.SwcJsMinimizer, options => {
-	return {
-		passes: options.passes ?? 1,
-		dropConsole: options.dropConsole ?? false,
-		pureFuncs: options.pureFuncs ?? [],
-		comments: options.comments ? options.comments : "false",
-		asciiOnly: options.asciiOnly ?? false,
-		extractComments: options.extractComments
-			? String(options.extractComments)
-			: undefined,
-		test: getMinifyConditions(options.test),
-		include: getMinifyConditions(options.include),
-		exclude: getMinifyConditions(options.exclude)
-	};
-});
+export const SwcJsMinimizerPlugin = create(
+	BuiltinPluginKind.SwcJsMinimizer,
+	(options?: SwcJsMinimizerPluginOptions): RawMinification => {
+		return {
+			passes: options?.passes ?? 1,
+			dropConsole: options?.dropConsole ?? false,
+			pureFuncs: options?.pureFuncs ?? [],
+			comments: options?.comments ? options.comments : "false",
+			asciiOnly: options?.asciiOnly ?? false,
+			extractComments: options?.extractComments
+				? String(options.extractComments)
+				: undefined,
+			test: getMinifyConditions(options?.test),
+			include: getMinifyConditions(options?.include),
+			exclude: getMinifyConditions(options?.exclude)
+		};
+	}
+);

@@ -234,9 +234,6 @@ export const getNormalizedRspackOptions = (
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => ({
 			...experiments,
-			css: optionalNestedConfig(experiments.css, options =>
-				options === true ? {} : options
-			),
 			incrementalRebuild: optionalNestedConfig(
 				experiments.incrementalRebuild,
 				options => (options === true ? {} : options)
