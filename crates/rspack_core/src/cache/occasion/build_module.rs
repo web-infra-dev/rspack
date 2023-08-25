@@ -37,19 +37,19 @@ impl BuildModuleOccasion {
     }
   }
 
-  pub async fn use_cache<'a, 'b: 'a, G, F>(
+  pub async fn use_cache<'m, G, F>(
     &self,
-    module: &'b mut BoxModule,
+    module: &'m mut BoxModule,
     generator: G,
   ) -> Result<(Result<TWithDiagnosticArray<BuildResult>>, bool)>
   where
-    G: Fn(&'a mut BoxModule) -> F,
-    F: Future<Output = Result<TWithDiagnosticArray<BuildResult>>> + 'static,
+    G: Fn(&'m mut BoxModule) -> (F),
+    F: Future<Output = Result<(TWithDiagnosticArray<BuildResult>, &'m mut BoxModule)>>,
   {
     let storage = match &self.storage {
       Some(s) => s,
       // no cache return directly
-      None => return Ok((Ok(generator(module).await?), false)),
+      None => return Ok((Ok(generator(module).await?.0), false)),
     };
 
     let mut need_cache = false;
@@ -74,8 +74,9 @@ impl BuildModuleOccasion {
     }
 
     // run generator and save to cache
-    let data = generator(module).await?;
+    let (data, module) = generator(module).await?;
     let source = module.as_normal_module().unwrap().source().clone();
+    std::mem::drop(source);
     if need_cache && data.inner.build_info.cacheable {
       let mut paths: Vec<&Path> = Vec::new();
       paths.extend(
