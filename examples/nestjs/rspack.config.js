@@ -7,13 +7,17 @@ const config = {
 	entry: {
 		main: ["webpack/hot/poll?100", "./src/main.ts"]
 	},
+	optimization: {
+		minimize: false
+	},
 	externalsType: "commonjs",
 	plugins: [
-		new RunScriptWebpackPlugin({
-			name: "main.js",
-			autoRestart: false
-		})
-	],
+		!process.env.BUILD &&
+			new RunScriptWebpackPlugin({
+				name: "main.js",
+				autoRestart: false
+			})
+	].filter(Boolean),
 	devServer: {
 		devMiddleware: {
 			writeToDisk: true
