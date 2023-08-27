@@ -189,20 +189,24 @@ describe("Stats", () => {
 		expect(
 			stats?.toString({ timings: false, version: false }).replace(/\\/g, "/")
 		).toMatchInlineSnapshot(`
-"PublicPath: auto
-asset main.js 419 bytes {main} [emitted] (name: main)
-Entrypoint main 419 bytes = main.js
-./fixtures/a.js [876] {main}
-./fixtures/b.js [211] {main}
-./fixtures/c.js [537] {main}
-./fixtures/abc.js [222] {main}
+		"PublicPath: auto
+		asset main.js 419 bytes {main} [emitted] (name: main)
+		Entrypoint main 419 bytes = main.js
+		./fixtures/a.js [876] {main}
+		./fixtures/b.js [211] {main}
+		./fixtures/c.js [537] {main}
+		./fixtures/abc.js [222] {main}
 
-
-error[javascript]: JavaScript parsing error
-  ┌─ fixtures/b.js:6:1
-  │
-6 │ return;
-  │ ^^^^^^^ Return statement is not allowed here
+		error[javascript]: JavaScript parsing error
+		  ┌─ tests/fixtures/b.js:6:1
+		  │
+		2 │     return "This is b";
+		3 │ };
+		4 │ 
+		5 │ // Test CJS top-level return
+		6 │ return;
+		  │ ^^^^^^^ Return statement is not allowed here
+		7 │ 
 
 
 
@@ -210,18 +214,10 @@ error[javascript]: JavaScript parsing error
 	`);
 	});
 
-	it("should include asset.info.sourceFilename", async () => {
+	it("should have time log when logging verbose", async () => {
 		const stats = await compile({
 			context: __dirname,
-			entry: "./fixtures/sourceFilename.js",
-			module: {
-				rules: [
-					{
-						test: /\.png$/,
-						type: "asset"
-					}
-				]
-			}
+			entry: "./fixtures/abc"
 		});
 		expect(
 			stats
@@ -269,6 +265,7 @@ error[javascript]: JavaScript parsing error
 		<t> hash to asset names: X ms
 
 		LOG from rspack.RemoveEmptyChunksPlugin
+		<t> remove empty chunks: X ms
 
 		LOG from rspack.SplitChunksPlugin
 		<t> prepare module group map: X ms
@@ -310,4 +307,63 @@ error[javascript]: JavaScript parsing error
 		  X ms (resolving: X ms, integration: X ms, building: X ms)"
 	`);
 	});
+});
+it("should include asset.info.sourceFilename", async () => {
+	const stats = await compile({
+		context: __dirname,
+		entry: "./fixtures/sourceFilename.js",
+		module: {
+			rules: [
+				{
+					test: /\.png$/,
+					type: "asset/resource"
+				}
+			]
+		}
+	});
+	expect(stats?.toJson({ assets: true, all: false })).toMatchInlineSnapshot(`
+{
+  "assets": [
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "main",
+      ],
+      "emitted": true,
+      "info": {
+        "development": false,
+        "hotModuleReplacement": false,
+        "sourceFilename": "fixtures/empty.png",
+      },
+      "name": "487c3f5e2b0d6a79324e.png",
+      "size": 0,
+      "type": "asset",
+    },
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "main",
+      ],
+      "emitted": true,
+      "info": {
+        "development": false,
+        "hotModuleReplacement": false,
+      },
+      "name": "main.js",
+      "size": 751,
+      "type": "asset",
+    },
+  ],
+  "assetsByChunkName": {
+    "main": [
+      "487c3f5e2b0d6a79324e.png",
+      "main.js",
+    ],
+  },
+}
+`);
 });
