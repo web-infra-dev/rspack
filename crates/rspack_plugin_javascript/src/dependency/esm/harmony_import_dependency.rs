@@ -2,8 +2,8 @@ use rspack_core::tree_shaking::symbol::{self, IndirectTopLevelSymbol};
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
   import_statement, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
-  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, InitFragment, InitFragmentStage,
-  ModuleDependency, ModuleIdentifier, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, InitFragmentStage, ModuleDependency,
+  ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rspack_core::{ExportsReferencedType, ModuleGraph, RuntimeSpec};
 use rustc_hash::FxHashSet as HashSet;
@@ -148,29 +148,29 @@ impl DependencyTemplate for HarmonyImportDependency {
       .module_graph
       .get_import_var(&module.identifier(), &self.request);
     if compilation.module_graph.is_async(ref_module) {
-      init_fragments.push(InitFragment::new(
+      init_fragments.push(Box::new(NormalInitFragment::new(
         content.0,
         InitFragmentStage::StageHarmonyImports,
         None,
-      ));
-      init_fragments.push(InitFragment::new(
+      )));
+      init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
           "var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{import_var}]);\n([{import_var}] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__);"
         ),
         InitFragmentStage::StageHarmonyImports,
         None,
-      ));
-      init_fragments.push(InitFragment::new(
+      )));
+      init_fragments.push(Box::new(NormalInitFragment::new(
         content.1,
         InitFragmentStage::StageAsyncHarmonyImports,
         None,
-      ));
+      )));
     } else {
-      init_fragments.push(InitFragment::new(
+      init_fragments.push(Box::new(NormalInitFragment::new(
         format!("{}{}", content.0, content.1),
         InitFragmentStage::StageHarmonyImports,
         None,
-      ));
+      )));
     }
     if self.export_all {
       runtime_requirements.insert(RuntimeGlobals::EXPORT_STAR);
@@ -179,7 +179,7 @@ impl DependencyTemplate for HarmonyImportDependency {
         .module_graph_module_by_identifier(&module.identifier())
         .expect("should have mgm")
         .get_exports_argument();
-      init_fragments.push(InitFragment::new(
+      init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
           "{}.{}({import_var}, {exports_argument});\n",
           RuntimeGlobals::REQUIRE,
@@ -191,7 +191,7 @@ impl DependencyTemplate for HarmonyImportDependency {
           InitFragmentStage::StageHarmonyImports
         },
         None,
-      ));
+      )));
     }
   }
 }

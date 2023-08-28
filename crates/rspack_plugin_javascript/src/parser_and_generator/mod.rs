@@ -6,12 +6,11 @@ use rspack_core::tree_shaking::analyzer::OptimizeAnalyzer;
 use rspack_core::tree_shaking::js_module::JsModule;
 use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
 use rspack_core::{
-  GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator, SourceType,
-  TemplateContext,
+  render_box_init_fragments, GenerateContext, Module, ParseContext, ParseResult,
+  ParserAndGenerator, SourceType, TemplateContext,
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
-use crate::runtime::render_init_fragments;
 use crate::utils::syntax_by_module_type;
 use crate::visitors::{run_before_pass, scan_dependencies, swc_visitor::resolver};
 #[derive(Debug)]
@@ -204,7 +203,12 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .for_each(|dependency| dependency.apply(&mut source, &mut context));
       };
 
-      Ok(render_init_fragments(source.boxed(), &mut init_fragments))
+      Ok(render_box_init_fragments(
+        init_fragments,
+        source.boxed(),
+        mgm.get_exports_argument(),
+        generate_context.runtime_requirements,
+      ))
     } else {
       Err(internal_error!(
         "Unsupported source type {:?} for plugin JavaScript",

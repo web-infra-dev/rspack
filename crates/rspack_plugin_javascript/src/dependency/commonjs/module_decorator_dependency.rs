@@ -1,5 +1,5 @@
 use rspack_core::{
-  DependencyTemplate, InitFragment, InitFragmentStage, RuntimeGlobals, TemplateContext,
+  DependencyTemplate, InitFragmentStage, NormalInitFragment, RuntimeGlobals, TemplateContext,
   TemplateReplaceSource,
 };
 
@@ -39,7 +39,7 @@ impl DependencyTemplate for ModuleDecoratorDependency {
       .expect("should have mgm")
       .get_module_argument();
 
-    init_fragments.push(InitFragment::new(
+    init_fragments.push(Box::new(NormalInitFragment::new(
       format!(
         "/* module decorator */ {} = {}({});\n",
         module_argument,
@@ -48,6 +48,6 @@ impl DependencyTemplate for ModuleDecoratorDependency {
       ),
       InitFragmentStage::StageProvides,
       None,
-    ));
+    )));
   }
 }
