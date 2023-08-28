@@ -192,13 +192,14 @@ pub trait Dependency:
 }
 
 #[derive(Debug, Default)]
-#[allow(unused)]
 pub struct ExportSpec {
-  name: String,
-  can_mangle: bool,
-  terminal_binding: bool,
-  priority: u8,
-  hidden: bool,
+  pub name: String,
+  pub export: Option<Vec<String>>,
+  pub exports: Option<Vec<ExportNameOrSpec>>,
+  pub can_mangle: Option<bool>,
+  pub terminal_binding: bool,
+  pub priority: Option<u8>,
+  pub hidden: Option<bool>,
   pub from: Option<ModuleGraphConnection>,
 }
 
@@ -211,11 +212,16 @@ impl ExportSpec {
   }
 }
 
-#[derive(Debug, Default)]
-pub enum ExportsSpecArrayElement {
-  #[default]
-  String,
-  ExportSpec,
+#[derive(Debug)]
+pub enum ExportNameOrSpec {
+  String(String),
+  ExportSpec(ExportSpec),
+}
+
+impl Default for ExportNameOrSpec {
+  fn default() -> Self {
+    Self::String("".to_string())
+  }
 }
 
 #[derive(Debug, Default)]
@@ -223,7 +229,7 @@ pub enum ExportsOfExportsSpec {
   True,
   #[default]
   Null,
-  Array(ExportsSpecArrayElement),
+  Array(Vec<ExportNameOrSpec>),
 }
 
 #[derive(Debug, Default)]

@@ -184,7 +184,7 @@ pub struct ExportInfo {
   module_identifier: Option<ModuleIdentifier>,
   pub usage_state: UsageState,
   used_name: Option<String>,
-  target: HashMap<JsWord, ExportInfoTargetValue>,
+  target: HashMap<DependencyId, ExportInfoTargetValue>,
 }
 
 pub enum ExportInfoProvided {
@@ -216,6 +216,20 @@ impl ExportInfo {
     self
       .module_identifier
       .map(|id| module_graph.get_exports_info(&id))
+  }
+
+  pub fn unuset_target(&mut self, key: &DependencyId) -> bool {
+    if self.target.is_empty() {
+      false
+    } else {
+      match self.target.remove(&key) {
+        Some(_) => {
+          // TODO: max target
+          true
+        }
+        _ => false,
+      }
+    }
   }
 }
 

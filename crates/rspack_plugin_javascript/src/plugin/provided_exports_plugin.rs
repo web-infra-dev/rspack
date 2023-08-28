@@ -1,8 +1,8 @@
 use std::collections::VecDeque;
 
 use rspack_core::{
-  export_info_mut, DependencyId, ExportInfo, ExportsInfo, ExportsSpec, ModuleGraph,
-  ModuleIdentifier, UsageState,
+  export_info_mut, DependencyId, ExportInfo, ExportNameOrSpec, ExportsInfo, ExportsOfExportsSpec,
+  ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, UsageState,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
@@ -36,14 +36,54 @@ impl<'a> ProvidedExportsPlugin<'a> {
   ) {
     let exports = &exports_desc.exports;
     let global_can_mangle = &exports_desc.can_mangle;
-    let global_from = &exports_desc.from;
+    let global_from = exports_desc.from.as_ref();
     let global_priority = &exports_desc.priority;
     let global_terminal_binding = exports_desc.terminal_binding.clone().unwrap_or(false);
     let export_dependencies = &exports_desc.dependencies;
     if !exports_desc.hide_export.is_empty() {
       for name in exports_desc.hide_export.iter() {
         let export_info = exports_info.export_info_mut(name);
+        export_info.unuset_target(&dep_id);
       }
     }
+    match exports {
+      ExportsOfExportsSpec::True => {
+        // TODO: unknown exports https://github.com/webpack/webpack/blob/853bfda35a0080605c09e1bdeb0103bcb9367a10/lib/FlagDependencyExportsPlugin.js#L165-L175
+      }
+      ExportsOfExportsSpec::Null => {}
+      ExportsOfExportsSpec::Array(ele) => {}
+    }
   }
+
+  // pub fn merge_exports(
+  //   &mut self,
+  //   exports_info: &mut ExportsInfo,
+  //   exports: &Vec<ExportNameOrSpec>,
+  //   global_export_info: DefaultExportInfo,
+  // ) {
+  //   for export_name_or_spec in exports {
+  //     let (name, can_mangle, terminal_binding, exports, from, from_export, priority, hidden) =
+  //       match export_name_or_spec {
+  //         ExportNameOrSpec::String(name) => (
+  //           name,
+  //           global_export_info.can_mangle,
+  //           global_export_info.terminal_binding,
+  //           None,
+  //           global_export_info.from,
+  //           None,
+  //           global_export_info.priority,
+  //           false,
+  //         ),
+  //         ExportNameOrSpec::ExportSpec(spec) => (spec.name, spec.can_mangle.unwrap_or(global), spec),
+  //       };
+  //   }
+  // }
+}
+
+/// Used for reducing nums of params
+struct DefaultExportInfo<'a> {
+  can_mangle: bool,
+  terminal_binding: bool,
+  from: Option<&'a ModuleGraphConnection>,
+  priority: u8,
 }
