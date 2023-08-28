@@ -5,6 +5,10 @@ function buildAll() {
 	const root = process.cwd();
 	for (const dir of fs.readdirSync("./fixtures")) {
 		const cwd = path.resolve(root, "fixtures", dir);
+		const stat = fs.lstatSync(cwd);
+		if (!stat.isDirectory()) {
+			continue;
+		}
 		console.log("cwd:", cwd);
 		execSync("pnpm build", {
 			cwd,
