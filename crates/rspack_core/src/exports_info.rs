@@ -1,3 +1,5 @@
+use std::collections::hash_map::Entry;
+use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 
 use rustc_hash::FxHashMap as HashMap;
@@ -21,9 +23,39 @@ pub struct ExportsInfo {
   pub redirect_to: Option<Box<ExportsInfo>>,
 }
 
+// #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
+// pub struct ExportInfoId(usize);
+//
+// pub static EXPORT_INFO_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
+//
+// impl ExportInfoId {
+//   pub fn new() -> Self {
+//     Self(EXPORT_INFO_ID.fetch_add(1, Relaxed))
+//   }
+// }
+// impl Default for ExportInfoId {
+//   fn default() -> Self {
+//     Self::new()
+//   }
+// }
+//
+// impl std::ops::Deref for ExportInfoId {
+//   type Target = usize;
+//
+//   fn deref(&self) -> &Self::Target {
+//     &self.0
+//   }
+// }
+//
+// impl From<usize> for DependencyId {
+//   fn from(id: usize) -> Self {
+//     Self(id)
+//   }
+// }
+
 #[macro_export]
 macro_rules! export_info_mut {
-  ($exports_info:ident, $name:expr) => {
+  ($exports_info:expr, $name:expr) => {
     if let Some(info) = $exports_info.exports.get_mut($name) {
       info
     } else if let Some(ref mut redirect_to) = $exports_info.redirect_to {
@@ -102,38 +134,29 @@ impl ExportsInfo {
     }
   }
 
-  // getExportInfo(name) {
-  // 	const info = this._exports.get(name);
-  // 	if (info !== undefined) return info;
-  // 	if (this._redirectTo !== undefined)
-  // 		return this._redirectTo.getExportInfo(name);
-  // 	const newInfo = new ExportInfo(name, this._otherExportsInfo);
-  // 	this._exports.set(name, newInfo);
-  // 	this._exportsAreOrdered = false;
-  // 	return newInfo;
-  // }
-
-  pub fn get_export_info_mut<'a>(&'a mut self, name: &str) -> &'a mut ExportInfo {
-    if let Some(info) = self.exports.get_mut(&JsWord::from(name)) {
-      return info;
-    } else {
-      self.redirect_to.as_mut().unwrap().get_export_info_mut(name)
-      // if let Some(ref mut redirect_to) = self.redirect_to {
-      //   return redirect_to
-      // }
-      // let new_info = ExportInfo::new(
-      //   name.into(),
-      //   UsageState::Unknown,
-      //   Some(&self.other_exports_info),
-      // );
-      // self.exports.insert(name.into(), new_info);
-      // self._exports_are_ordered = false;
-      // // SAFETY: because we insert the export info above
-      // self
-      //   .exports
-      //   .get_mut(&JsWord::from(name))
-      //   .expect("This is unreachable")
+  pub fn export_info_mut<'a>(&'a mut self, name: &JsWord) -> &'a mut ExportInfo {
+    match self.exports.entry(name.clone()) {
+      Entry::Occupied(o) => o.into_mut(),
+      Entry::Vacant(vac) => {
+        if let Some(ref mut redirect_to) = self.redirect_to {
+          redirect_to.export_info_mut(name)
+        } else {
+          let new_info = ExportInfo::new(
+            name.clone(),
+            UsageState::Unknown,
+            Some(&self.other_exports_info),
+          );
+          self._exports_are_ordered = false;
+          vac.insert(new_info)
+        }
+      }
     }
+    // if  {
+    //   info
+    // } else if let Some(ref mut redirect_to) = self.redirect_to {
+    //   redirect_to.export_info_mut(name)
+    // } else {
+    // }
   }
 }
 

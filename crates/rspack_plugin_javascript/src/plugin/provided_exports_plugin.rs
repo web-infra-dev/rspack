@@ -34,19 +34,6 @@ impl<'a> ProvidedExportsPlugin<'a> {
     exports_desc: ExportsSpec,
     exports_info: &mut ExportsInfo,
   ) {
-    // const exports = exportDesc.exports;
-    // const globalCanMangle = exportDesc.canMangle;
-    // const globalFrom = exportDesc.from;
-    // const globalPriority = exportDesc.priority;
-    // const globalTerminalBinding =
-    // 	exportDesc.terminalBinding || false;
-    // const exportDeps = exportDesc.dependencies;
-    // if (exportDesc.hideExports) {
-    // 	for (const name of exportDesc.hideExports) {
-    // 		const exportInfo = exportsInfo.getExportInfo(name);
-    // 		exportInfo.unsetTarget(dep);
-    // 	}
-    // }
     let exports = &exports_desc.exports;
     let global_can_mangle = &exports_desc.can_mangle;
     let global_from = &exports_desc.from;
@@ -55,7 +42,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
     let export_dependencies = &exports_desc.dependencies;
     if !exports_desc.hide_export.is_empty() {
       for name in exports_desc.hide_export.iter() {
-        let export_info = export_info_mut!(exports_info, name);
+        let export_info = exports_info.export_info_mut(name);
       }
     }
   }
