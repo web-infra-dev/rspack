@@ -37,7 +37,6 @@ impl ModuleFactory for NormalModuleFactory {
     mut self,
     mut data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
-    std::io::stdout().write_fmt(format_args!("create: {}\n", data.dependency.request()));
     if let Ok(Some(before_resolve_data)) = self.before_resolve(&mut data).await {
       return Ok(before_resolve_data);
     }
