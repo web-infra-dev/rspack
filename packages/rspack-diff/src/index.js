@@ -44,7 +44,7 @@ yargs(process.argv.slice(2))
 			return yargs;
 		},
 		args => {
-			return statDiff();
+			return statDiff(args);
 		}
 	)
 	.showHelpOnFail()

@@ -4,7 +4,7 @@ const path = require("path");
  * @type {import('webpack').Configuration}
  */
 module.exports = {
-	mode: "development",
+	mode: "production",
 	devtool: false,
 	entry: {
 		main: "./index.js"
@@ -31,7 +31,6 @@ module.exports = {
 						compiler.options.output.path,
 						"stats.json"
 					);
-
 					fs.writeFileSync(dstPath, JSON.stringify(statsJson, null, 2));
 				});
 			}
