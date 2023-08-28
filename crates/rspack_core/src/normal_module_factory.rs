@@ -281,10 +281,6 @@ impl NormalModuleFactory {
             .collect::<Vec<_>>()
         };
 
-        if dependency.request().contains("ruleSet[0].use[0]") {
-          dbg!(&raw_elements);
-        }
-
         request_without_match_resource = raw_elements
           .pop()
           .ok_or_else(|| internal_error!("Invalid request: {request_without_match_resource}"))?;
@@ -415,9 +411,6 @@ impl NormalModuleFactory {
       }
     };
 
-    if dependency.request().contains("ruleSet[0].use[0]") {
-      dbg!(&resource_data);
-    }
     //TODO: with contextScheme
     let resolved_module_rules = self
       .calculate_module_rules(

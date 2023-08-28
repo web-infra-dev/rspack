@@ -362,14 +362,6 @@ impl Module for NormalModule {
     build_info.build_dependencies = loader_result.build_dependencies;
     build_info.asset_filenames = loader_result.asset_filenames;
 
-    if self
-      .resource_resolved_data()
-      .resource
-      .contains("builtin-loader-ident")
-    {
-      dbg!(&dependencies);
-    }
-
     Ok(
       BuildResult {
         build_info,
