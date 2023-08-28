@@ -22,7 +22,6 @@ import {
 import type {
 	AvailableTarget,
 	Context,
-	CssExperimentOptions,
 	Entry,
 	EntryDescription,
 	EntryDescriptionNormalized,

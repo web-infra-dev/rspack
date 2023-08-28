@@ -56,8 +56,7 @@ import {
 	ParserOptionsByModuleType,
 	GeneratorOptionsByModuleType,
 	ExperimentsNormalized,
-	IncrementalRebuildOptions,
-	CssExperimentOptions
+	IncrementalRebuildOptions
 } from "./types";
 import { SplitChunksConfig } from "./zod/optimization/split-chunks";
 
