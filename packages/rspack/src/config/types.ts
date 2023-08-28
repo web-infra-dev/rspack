@@ -648,22 +648,23 @@ export interface Experiments {
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	newSplitChunks?: boolean;
-	css?: boolean | CssExperimentOptions;
+	css?: boolean;
 }
 export interface IncrementalRebuildOptions {
 	make?: boolean;
 	emitAsset?: boolean;
 }
-export interface CssExperimentOptions {
-	exportsOnly?: boolean;
-	localsConvention?:
-		| "asIs"
-		| "camelCase"
-		| "camelCaseOnly"
-		| "dashes"
-		| "dashesOnly";
-	localIdentName?: string;
-}
+// TODO: discuss with webpack, should move to css generator options
+// export interface CssExperimentOptions {
+// 	exportsOnly?: boolean;
+// 	localsConvention?:
+// 		| "asIs"
+// 		| "camelCase"
+// 		| "camelCaseOnly"
+// 		| "dashes"
+// 		| "dashesOnly";
+// 	localIdentName?: string;
+// }
 export interface ExperimentsNormalized {
 	lazyCompilation?: boolean;
 	incrementalRebuild?: false | IncrementalRebuildOptions;
