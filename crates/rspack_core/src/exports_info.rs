@@ -174,7 +174,7 @@ pub enum UsedName {
 #[derive(Debug)]
 pub struct ExportInfoTargetValue {
   connection: Option<ModuleGraphConnection>,
-  exports: Vec<String>,
+  exports: Vec<JsWord>,
   priority: u8,
 }
 
@@ -188,8 +188,11 @@ pub struct ExportInfo {
   pub provided: Option<ExportInfoProvided>,
   pub can_mangle_provide: Option<bool>,
   pub terminal_binding: bool,
+  /// This is rspack only variable, it is used to flag if the target has been initialized
+  target_is_set: bool,
 }
 
+#[derive(Debug)]
 pub enum ExportInfoProvided {
   True,
   False,
@@ -204,12 +207,13 @@ impl ExportInfo {
       name,
       module_identifier: None,
       usage_state,
-      // TODO: init this
       used_name: None,
+      // TODO: init this
       target: HashMap::default(),
       provided: None,
       can_mangle_provide: None,
       terminal_binding: false,
+      target_is_set: false,
     }
   }
 
@@ -236,6 +240,58 @@ impl ExportInfo {
         _ => false,
       }
     }
+  }
+
+  pub fn set_target(
+    &mut self,
+    key: &DependencyId,
+    connection: Option<ModuleGraphConnection>,
+    export_name: Option<&Vec<JsWord>>,
+    priority: Option<u8>,
+  ) -> bool {
+    let normalized_priority = priority.unwrap_or(0);
+    if !self.target_is_set {
+      self.target.insert(
+        key.clone(),
+        ExportInfoTargetValue {
+          connection,
+          exports: export_name.cloned().unwrap(),
+          priority: normalized_priority,
+        },
+      );
+      return true;
+    }
+    if let Some(old_target) = self.target.get_mut(key) {
+      if old_target.connection != connection
+        || old_target.priority != normalized_priority
+        || if let Some(export_name) = export_name {
+          export_name == &old_target.exports
+        } else {
+          old_target.exports.is_empty()
+        }
+      {
+        old_target.exports = export_name.cloned().unwrap();
+        old_target.priority = normalized_priority;
+        old_target.connection = connection;
+        // TODO: reset max target
+        return true;
+      }
+    } else {
+      if let Some(connection) = connection {
+        self.target.insert(
+          key.clone(),
+          ExportInfoTargetValue {
+            connection: Some(connection),
+            exports: export_name.cloned().unwrap(),
+            priority: normalized_priority,
+          },
+        );
+        // TODO: reset max target
+        return true;
+      }
+    }
+
+    return false;
   }
 }
 

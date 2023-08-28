@@ -194,7 +194,7 @@ pub trait Dependency:
 #[derive(Debug, Default)]
 pub struct ExportSpec {
   pub name: JsWord,
-  pub export: Option<Vec<String>>,
+  pub export: Option<Vec<JsWord>>,
   pub exports: Option<Vec<ExportNameOrSpec>>,
   pub can_mangle: Option<bool>,
   pub terminal_binding: Option<bool>,

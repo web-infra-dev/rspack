@@ -61,6 +61,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
     exports_info: &mut ExportsInfo,
     exports: &Vec<ExportNameOrSpec>,
     global_export_info: DefaultExportInfo,
+    dep_id: DependencyId,
   ) {
     for export_name_or_spec in exports {
       let (name, can_mangle, terminal_binding, exports, from, from_export, priority, hidden) =
@@ -71,7 +72,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
             global_export_info.terminal_binding,
             None::<&Vec<ExportNameOrSpec>>,
             global_export_info.from.cloned(),
-            None::<&Vec<String>>,
+            None::<&Vec<JsWord>>,
             global_export_info.priority,
             false,
           ),
@@ -95,22 +96,33 @@ impl<'a> ProvidedExportsPlugin<'a> {
       let export_info = exports_info.export_info_mut(&name);
       if let Some(provided) = export_info.provided && matches!(provided, ExportInfoProvided::False | ExportInfoProvided::Null) {
         provided = ExportInfoProvided::True;
-        // TODO; changed to true
+        // TODO; adjust global changed
       }
 
       if Some(false) != export_info.can_mangle_provide && can_mangle == false {
         export_info.can_mangle_provide = Some(false);
-        // TODO; changed to true
+        // TODO; adjust global changed
       }
 
       if terminal_binding && !export_info.terminal_binding {
         export_info.terminal_binding = true;
-        // TODO; changed to true
+        // TODO; adjust global changed
       }
 
       if let Some(exports) = exports {
         // let nested_exports_info = export_info.create_nested_exports_info();
         // self.merge_exports(nested_exports_info, exports, global_export_info);
+      }
+
+      if let Some(from) = from {
+        let changed = if hidden {
+          export_info.unuset_target(&dep_id)
+        } else {
+          export_info.set_target(&dep_id, Some(from), export_name, Some(priority))
+        };
+        if changed {
+          // TODO; adjust global changed
+        }
       }
     }
   }
