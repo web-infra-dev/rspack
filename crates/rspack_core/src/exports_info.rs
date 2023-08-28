@@ -8,6 +8,7 @@ use crate::ConnectionState;
 use crate::DependencyCondition;
 use crate::DependencyId;
 use crate::ModuleGraph;
+use crate::ModuleGraphConnection;
 use crate::ModuleIdentifier;
 use crate::RuntimeSpec;
 
@@ -18,6 +19,30 @@ pub struct ExportsInfo {
   pub _side_effects_only_info: ExportInfo,
   pub _exports_are_ordered: bool,
   pub redirect_to: Option<Box<ExportsInfo>>,
+}
+
+#[macro_export]
+macro_rules! export_info_mut {
+  ($exports_info:ident, $name:expr) => {
+    if let Some(info) = $exports_info.exports.get_mut($name) {
+      info
+    } else if let Some(ref mut redirect_to) = $exports_info.redirect_to {
+      redirect_to.get_export_info_mut($name)
+    } else {
+      let new_info = ExportInfo::new(
+        $name.clone(),
+        UsageState::Unknown,
+        Some(&$exports_info.other_exports_info),
+      );
+      $exports_info.exports.insert($name.clone(), new_info);
+      $exports_info._exports_are_ordered = false;
+      // SAFETY: because we insert the export info above
+      $exports_info
+        .exports
+        .get_mut($name)
+        .expect("This is unreachable")
+    }
+  };
 }
 
 impl ExportsInfo {
@@ -124,11 +149,19 @@ pub enum UsedName {
 }
 
 #[derive(Debug)]
+pub struct ExportInfoTargetValue {
+  connection: Option<ModuleGraphConnection>,
+  exports: Vec<String>,
+  priority: u8,
+}
+
+#[derive(Debug)]
 pub struct ExportInfo {
   name: JsWord,
   module_identifier: Option<ModuleIdentifier>,
   pub usage_state: UsageState,
   used_name: Option<String>,
+  target: HashMap<JsWord, ExportInfoTargetValue>,
 }
 
 pub enum ExportInfoProvided {
@@ -147,6 +180,7 @@ impl ExportInfo {
       usage_state,
       // TODO: init this
       used_name: None,
+      target: HashMap::default(),
     }
   }
 
