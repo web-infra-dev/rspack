@@ -1,9 +1,8 @@
 use std::{path::Path, sync::Arc};
 
 use futures::Future;
-use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
+use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
-use rspack_sources::BoxSource;
 
 use crate::{
   cache::snapshot::{Snapshot, SnapshotManager},
@@ -37,14 +36,14 @@ impl BuildModuleOccasion {
     }
   }
 
-  pub async fn use_cache<'m, G, F>(
+  pub async fn use_cache<'a, G, F>(
     &self,
-    module: &'m mut BoxModule,
+    module: &'a mut BoxModule,
     generator: G,
   ) -> Result<(Result<TWithDiagnosticArray<BuildResult>>, bool)>
   where
-    G: Fn(&'m mut BoxModule) -> (F),
-    F: Future<Output = Result<(TWithDiagnosticArray<BuildResult>, &'m mut BoxModule)>>,
+    G: Fn(&'a mut BoxModule) -> F,
+    F: Future<Output = Result<(TWithDiagnosticArray<BuildResult>, &'a mut BoxModule)>>,
   {
     let storage = match &self.storage {
       Some(s) => s,
@@ -65,7 +64,9 @@ impl BuildModuleOccasion {
           .unwrap_or(false);
         if valid {
           if let Some(module) = module.as_normal_module_mut() {
-            *module.source_mut() = source.unwrap();
+            if let Some(module_source) = source {
+              *module.source_mut() = module_source;
+            }
           }
           return Ok((Ok(data), true));
         }
@@ -75,8 +76,6 @@ impl BuildModuleOccasion {
 
     // run generator and save to cache
     let (data, module) = generator(module).await?;
-    let source = module.as_normal_module().unwrap().source().clone();
-    std::mem::drop(source);
     if need_cache && data.inner.build_info.cacheable {
       let mut paths: Vec<&Path> = Vec::new();
       paths.extend(
@@ -116,7 +115,14 @@ impl BuildModuleOccasion {
         .snapshot_manager
         .create_snapshot(&paths, |option| &option.module)
         .await?;
-      storage.set(id, (snapshot, None, data.clone()));
+      storage.set(
+        id,
+        (
+          snapshot,
+          Some(module.as_normal_module().unwrap().source().clone()),
+          data.clone(),
+        ),
+      );
     }
     Ok((Ok(data), false))
   }
