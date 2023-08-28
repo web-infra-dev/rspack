@@ -7,7 +7,6 @@ use std::{
   sync::Arc,
 };
 
-use nodejs_resolver::EnforceExtension;
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
@@ -20,8 +19,8 @@ use crate::{
   contextify, get_exports_type_with_strict, stringify_map, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ContextElementDependency,
   DependencyCategory, DependencyId, DependencyType, ExportsType, FakeNamespaceObjectMode,
-  LibIdentOptions, Module, ModuleType, Resolve, ResolveOptionsWithDependencyType, ResolverFactory,
-  RuntimeGlobals, SourceType,
+  LibIdentOptions, Module, ModuleType, Resolve, ResolveInnerOptions,
+  ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -563,7 +562,7 @@ impl ContextModule {
       dir: &Path,
       dependencies: &mut Vec<BoxDependency>,
       options: &ContextModuleOptions,
-      resolve_options: &nodejs_resolver::Options,
+      resolve_options: &ResolveInnerOptions,
     ) -> Result<()> {
       if dir.is_dir() {
         for entry in fs::read_dir(dir)? {
@@ -639,7 +638,7 @@ impl ContextModule {
       Path::new(&self.options.resource),
       &mut dependencies,
       &self.options,
-      resolver.options(),
+      &resolver.options(),
     )?;
 
     tracing::trace!("resolving dependencies for {:?}", dependencies);
@@ -683,15 +682,15 @@ pub fn normalize_context(str: &str) -> String {
 }
 
 fn alternative_requests(
-  resolve_options: &nodejs_resolver::Options,
+  resolve_options: &ResolveInnerOptions,
   mut items: Vec<AlternativeRequest>,
 ) -> Vec<AlternativeRequest> {
   // TODO: should respect fullySpecified resolve options
   for mut item in std::mem::take(&mut items) {
-    if !matches!(resolve_options.enforce_extension, EnforceExtension::Enabled) {
+    if !resolve_options.is_enforce_extension_enabled() {
       items.push(item.clone());
     }
-    for ext in &resolve_options.extensions {
+    for ext in resolve_options.extensions() {
       if item.request.ends_with(ext) {
         items.push(AlternativeRequest::new(
           item.context.clone(),
@@ -706,7 +705,7 @@ fn alternative_requests(
 
   for mut item in std::mem::take(&mut items) {
     items.push(item.clone());
-    for main_file in &resolve_options.main_files {
+    for main_file in resolve_options.main_files() {
       if item.request.ends_with(&format!("/{main_file}")) {
         items.push(AlternativeRequest::new(
           item.context.clone(),
@@ -730,7 +729,7 @@ fn alternative_requests(
   for mut item in std::mem::take(&mut items) {
     items.push(item.clone());
     // TODO resolveOptions.modules can be array
-    for module in &resolve_options.modules {
+    for module in resolve_options.modules() {
       let dir = module.replace('\\', "/");
       let mut full_path: String = format!(
         "{}{}",

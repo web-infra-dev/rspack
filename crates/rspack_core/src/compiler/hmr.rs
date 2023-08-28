@@ -127,7 +127,7 @@ where
       self
         .cache
         .set_modified_files(modified_files.iter().cloned().collect::<Vec<_>>());
-      self.plugin_driver.resolver_factory.clear_entries();
+      self.plugin_driver.resolver_factory.clear_cache();
 
       let mut new_compilation = Compilation::new(
         self.options.clone(),

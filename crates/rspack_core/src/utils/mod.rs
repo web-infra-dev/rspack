@@ -3,9 +3,6 @@ use std::fmt::Display;
 use itertools::Itertools;
 use rustc_hash::FxHashMap as HashMap;
 
-mod hooks;
-pub use hooks::*;
-
 mod identifier;
 pub use identifier::*;
 

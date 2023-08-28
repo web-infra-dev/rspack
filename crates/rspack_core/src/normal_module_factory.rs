@@ -6,7 +6,7 @@ use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
 use rspack_identifier::Identifiable;
-use rspack_loader_runner::{get_scheme, DescriptionData, Loader, Scheme};
+use rspack_loader_runner::{get_scheme, Loader, Scheme};
 use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
 
@@ -320,14 +320,11 @@ impl NormalModuleFactory {
         .await;
       match resource_data {
         Ok(ResolveResult::Resource(resource)) => {
-          let uri = resource.join().display().to_string();
-          let description_data = resource.description.map(|d| {
-            DescriptionData::new(d.dir().as_ref().to_path_buf(), Arc::clone(d.data().raw()))
-          });
+          let uri = resource.full_path().display().to_string();
           ResourceData::new(uri, resource.path)
             .query_optional(resource.query)
             .fragment_optional(resource.fragment)
-            .description_optional(description_data)
+            .description_optional(resource.description_data)
         }
         Ok(ResolveResult::Ignored) => {
           let ident = format!("{}/{}", &data.context, request_without_match_resource);
