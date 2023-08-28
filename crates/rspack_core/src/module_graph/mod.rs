@@ -533,6 +533,13 @@ impl ModuleGraph {
       .expect("should have mgm");
     &mgm.exports
   }
+
+  pub fn get_exports_info_mut(&mut self, module_identifier: &ModuleIdentifier) -> &mut ExportsInfo {
+    let mgm = self
+      .module_graph_module_by_identifier_mut(module_identifier)
+      .expect("should have mgm");
+    &mut mgm.exports
+  }
 }
 
 #[cfg(test)]

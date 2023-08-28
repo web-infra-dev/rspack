@@ -10,6 +10,7 @@ use swc_core::ecma::atoms::JsWord;
 
 pub struct ProvidedExportsPlugin<'a> {
   mg: &'a mut ModuleGraph,
+  changed: bool,
 }
 
 impl<'a> ProvidedExportsPlugin<'a> {
@@ -17,33 +18,67 @@ impl<'a> ProvidedExportsPlugin<'a> {
     let mut dependencies: HashMap<ModuleIdentifier, HashSet<ModuleIdentifier>> = HashMap::default();
     let mut q = VecDeque::new();
     while let Some(module_id) = q.pop_back() {
+      self.changed = false;
       let mut changed = false;
-      let exports_specs_from_dependencies: HashMap<DependencyId, ExportsSpec> = HashMap::default();
-      self.process_dependencies_block(module_id);
-      // for (const [dep, exportsSpec] of exportsSpecsFromDependencies) {
-      // 	processExportsSpec(dep, exportsSpec);
-      // }
+      let mut exports_specs_from_dependencies: HashMap<DependencyId, ExportsSpec> =
+        HashMap::default();
+      self.process_dependencies_block(module_id, &mut exports_specs_from_dependencies);
+      // I use this trick because rustc borrow rules, it is safe becuase provided is sync, no other program visit exports info
+      let mut exports_info = {
+        let exports_info_mut = self.mg.get_exports_info_mut(&module_id);
+        std::mem::take(exports_info_mut)
+      };
+      for (dep_id, exports_spec) in exports_specs_from_dependencies.into_iter() {
+        self.process_exports_spec(dep_id, exports_spec, &mut exports_info);
+      }
+      // Swap it back
+      {
+        std::mem::replace(self.mg.get_exports_info_mut(&module_id), exports_info)
+      };
+      if self.changed {
+        // TODO:
+      }
     }
   }
 
-  pub fn process_dependencies_block(&mut self, mi: ModuleIdentifier) -> Option<()> {
+  pub fn process_dependencies_block(
+    &mut self,
+    mi: ModuleIdentifier,
+    exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
+  ) -> Option<()> {
+    let mgm = self.mg.module_graph_module_by_identifier(&mi)?;
+    // This clone is aiming to avoid use mut ref and immutable ref at the same time.
+    for ele in mgm.dependencies.clone().iter() {
+      self.process_dependency(ele, exports_specs_from_dependencies);
+    }
     None
+  }
+
+  pub fn process_dependency(
+    &mut self,
+    dep_id: &DependencyId,
+    exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
+  ) -> Option<()> {
+    let dep = self.mg.dependency_by_id(dep_id)?;
+    let exports_specs = dep.get_exports()?;
+    exports_specs_from_dependencies.insert(dep_id.clone(), exports_specs);
+    Some(())
   }
 
   pub fn process_exports_spec(
     &mut self,
     dep_id: DependencyId,
-    exports_desc: ExportsSpec,
+    exports_spec: ExportsSpec,
     exports_info: &mut ExportsInfo,
   ) {
-    let exports = &exports_desc.exports;
-    let global_can_mangle = &exports_desc.can_mangle;
-    let global_from = exports_desc.from.as_ref();
-    let global_priority = &exports_desc.priority;
-    let global_terminal_binding = exports_desc.terminal_binding.clone().unwrap_or(false);
-    let export_dependencies = &exports_desc.dependencies;
-    if !exports_desc.hide_export.is_empty() {
-      for name in exports_desc.hide_export.iter() {
+    let exports = &exports_spec.exports;
+    let global_can_mangle = &exports_spec.can_mangle;
+    let global_from = exports_spec.from.as_ref();
+    let global_priority = &exports_spec.priority;
+    let global_terminal_binding = exports_spec.terminal_binding.clone().unwrap_or(false);
+    let export_dependencies = &exports_spec.dependencies;
+    if !exports_spec.hide_export.is_empty() {
+      for name in exports_spec.hide_export.iter() {
         let export_info = exports_info.export_info_mut(name);
         export_info.unuset_target(&dep_id);
       }
@@ -115,20 +150,21 @@ impl<'a> ProvidedExportsPlugin<'a> {
       let export_info = exports_info.export_info_mut(&name);
       if let Some(ref mut provided) = export_info.provided && matches!(provided, ExportInfoProvided::False | ExportInfoProvided::Null) {
         *provided = ExportInfoProvided::True;
-        // TODO; adjust global changed
+        self.changed = true;
       }
 
       if Some(false) != export_info.can_mangle_provide && can_mangle == Some(false) {
         export_info.can_mangle_provide = Some(false);
-        // TODO; adjust global changed
+        self.changed = true;
       }
 
       if terminal_binding && !export_info.terminal_binding {
         export_info.terminal_binding = true;
-        // TODO; adjust global changed
+        self.changed = true;
       }
 
       if let Some(exports) = exports {
+        // TODO:
         // let nested_exports_info = export_info.create_nested_exports_info();
         // self.merge_exports(nested_exports_info, exports, global_export_info);
       }
@@ -146,9 +182,11 @@ impl<'a> ProvidedExportsPlugin<'a> {
           export_info.set_target(&dep_id, Some(from), export_name, priority)
         };
         if changed {
-          // TODO; adjust global changed
+          self.changed = changed;
         }
       }
+
+      // Recalculate target exportsInfo
     }
   }
 }
