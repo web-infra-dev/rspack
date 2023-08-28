@@ -172,6 +172,18 @@ class Compiler {
 			get rspackVersion() {
 				return require("../package.json").version;
 			},
+			get BannerPlugin() {
+				return require("./builtin-plugin").BannerPlugin;
+			},
+			get DefinePlugin() {
+				return require("./builtin-plugin").DefinePlugin;
+			},
+			get ProgressPlugin() {
+				return require("./builtin-plugin").ProgressPlugin;
+			},
+			get ProvidePlugin() {
+				return require("./builtin-plugin").ProvidePlugin;
+			},
 			WebpackError: Error,
 			ModuleFilenameHelpers,
 			node: {

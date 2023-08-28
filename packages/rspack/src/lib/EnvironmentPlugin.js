@@ -5,6 +5,8 @@
 
 "use strict";
 
+import { DefinePlugin } from "../builtin-plugin";
+
 const WebpackError = require("./WebpackError");
 
 /** @typedef {import("./Compiler")} Compiler */
@@ -54,13 +56,7 @@ class EnvironmentPlugin {
 			definitions[`process.env.${key}`] =
 				value === undefined ? "undefined" : JSON.stringify(value);
 		}
-		compiler.hooks.initialize.tap("EnvironmentPlugin", () => {
-			let define = compiler.options.builtins.define;
-			compiler.options.builtins.define = {
-				...define,
-				...definitions
-			};
-		});
+		new DefinePlugin(definitions).apply(compiler);
 	}
 }
 

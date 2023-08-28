@@ -22,5 +22,23 @@ import { Configuration } from "./config";
 export type OptimizationSplitChunksOptions = NonNullable<
 	Configuration["optimization"]
 >["splitChunks"];
+export {
+	DefinePlugin,
+	ProvidePlugin,
+	ProgressPlugin,
+	HtmlPlugin,
+	SwcJsMinimizerPlugin,
+	SwcCssMinimizerPlugin,
+	CopyPlugin
+} from "./builtin-plugin";
+export type {
+	DefinePluginOptions,
+	ProvidePluginOptions,
+	ProgressPluginOptions,
+	BannerPluginOptions,
+	HtmlPluginOptions,
+	SwcJsMinimizerPluginOptions,
+	CopyPluginOptions
+} from "./builtin-plugin";
 
 export { Watching };
