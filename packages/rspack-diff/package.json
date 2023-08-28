@@ -10,10 +10,11 @@
   "scripts": {
     "build": "node scripts/buildAll.js",
     "test": "node scripts/testAll.js",
-    "diff:basic": "node . dist fixtures/basic/rspack-dist/main.js fixtures/basic/webpack-dist/main.js",
+    "diff:basic": "node . dist fixtures/basic/rspack-dist/main.js fixtures/basic/webpack-dist/main.js --no-dry",
     "diff:antd": "node . dist fixtures/antd/rspack-dist/main.js fixtures/antd/webpack-dist/main.js",
     "diff:three": "node . dist fixtures/three/rspack-dist/main.js fixtures/three/webpack-dist/main.js",
-    "diff:lodash": "node . dist fixtures/lodash/rspack-dist/main.js fixtures/lodash/webpack-dist/main.js"
+    "diff:lodash": "node . dist fixtures/lodash/rspack-dist/main.js fixtures/lodash/webpack-dist/main.js",
+    "diff:lodash_stats": "node . stats fixtures/lodash/rspack-dist/stats.json fixtures/lodash/webpack-dist/stats.json"
   },
   "files": [
     "src"

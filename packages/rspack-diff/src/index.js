@@ -1,6 +1,7 @@
 const yargs = require("yargs");
 const { hideBin } = require("yargs/helpers");
 const { distDiff } = require("./dist_diff");
+const { statDiff } = require("./stat_diff");
 yargs(process.argv.slice(2))
 	.version()
 	.command(
