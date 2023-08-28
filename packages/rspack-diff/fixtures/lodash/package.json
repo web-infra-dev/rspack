@@ -1,0 +1,9 @@
+{
+  "name": "rspack-diff-lodash",
+  "private":true,
+  "scripts": {
+    "build:webpack": "webpack -o webpack-dist -c rspack.config.js",
+    "build:rspack": "rspack",
+    "build": "npm run build:rspack && npm run build:webpack"
+  }
+}

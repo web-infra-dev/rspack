@@ -4,6 +4,7 @@ const path = require("path");
 const { parseBundle } = require("./parseUtils");
 const { dir } = require("console");
 const { exec, execSync } = require("child_process");
+const { result } = require("lodash");
 /**
  *
  * @param {string} src
@@ -19,8 +20,9 @@ function distDiffBundler(src, dst) {
 	const module2 = dstResult.modules;
 	console.log(Object.keys(module1));
 	console.log(Object.keys(module2));
-	const tmp = os.tmpdir();
-	const dirctory = fs.mkdtempSync(tmp);
+	const dirctory = path.resolve(process.cwd(), ".diff");
+	fs.mkdirSync(dirctory, { recursive: true });
+	let i = 0;
 	for (const [key, value] of Object.entries(module1)) {
 		fs.mkdirSync(path.resolve(dirctory, "src"), { recursive: true });
 		fs.mkdirSync(path.resolve(dirctory, "dst"), { recursive: true });
@@ -31,7 +33,9 @@ function distDiffBundler(src, dst) {
 			console.info(`${dst} missing module: ${key}`);
 		} else {
 			fs.writeFileSync(dstTmp, module2[key], "utf-8");
-			const rsult = execSync(`difft ${srcTmp} ${dstTmp}`, { stdio: "inherit" });
+			// const result = execSync(`difft ${srcTmp} ${dstTmp}`, {
+			// 	stdio: "inherit"
+			// });
 		}
 	}
 	for (const key of Object.keys(module2)) {
