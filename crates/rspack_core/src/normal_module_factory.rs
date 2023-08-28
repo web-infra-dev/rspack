@@ -280,6 +280,7 @@ impl NormalModuleFactory {
             .filter(|item| !item.is_empty())
             .collect::<Vec<_>>()
         };
+
         request_without_match_resource = raw_elements
           .pop()
           .ok_or_else(|| internal_error!("Invalid request: {request_without_match_resource}"))?;
@@ -409,6 +410,7 @@ impl NormalModuleFactory {
         }
       }
     };
+
     //TODO: with contextScheme
     let resolved_module_rules = self
       .calculate_module_rules(
@@ -433,8 +435,6 @@ impl NormalModuleFactory {
       }
     };
     let contains_inline = !inline_loaders.is_empty();
-
-    // dbg!(&user_request);
 
     let loaders: Vec<BoxLoader> = {
       let mut pre_loaders: Vec<ModuleRuleUseLoader> = vec![];

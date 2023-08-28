@@ -222,6 +222,10 @@ impl NormalModule {
     &mut self.source
   }
 
+  pub fn loaders(&self) -> &[BoxLoader] {
+    &self.loaders
+  }
+
   pub fn loaders_mut_vec(&mut self) -> &mut Vec<BoxLoader> {
     &mut self.loaders
   }
