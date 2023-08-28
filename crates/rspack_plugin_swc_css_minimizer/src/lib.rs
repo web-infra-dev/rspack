@@ -5,7 +5,7 @@ use rspack_error::Result;
 use rspack_plugin_css::swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig};
 
 #[derive(Debug)]
-pub struct SwcCssMinimizerPlugin {}
+pub struct SwcCssMinimizerPlugin;
 
 #[async_trait]
 impl Plugin for SwcCssMinimizerPlugin {
