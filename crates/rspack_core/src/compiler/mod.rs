@@ -2,7 +2,6 @@ mod compilation;
 mod hmr;
 mod make;
 mod queue;
-mod resolver;
 
 use std::collections::hash_map::Entry;
 use std::{path::Path, sync::Arc};
@@ -10,7 +9,6 @@ use std::{path::Path, sync::Arc};
 pub use compilation::*;
 pub use make::MakeParam;
 pub use queue::*;
-pub use resolver::*;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
@@ -23,7 +21,7 @@ use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD}
 use crate::tree_shaking::visitor::SymbolRef;
 use crate::{
   cache::Cache, fast_set, AssetEmittedArgs, CompilerOptions, Logger, Plugin, PluginDriver,
-  SharedPluginDriver,
+  ResolverFactory, SharedPluginDriver,
 };
 use crate::{ExportInfo, UsageState};
 
@@ -94,7 +92,7 @@ where
     self.cache.end_idle();
     // TODO: clear the outdate cache entries in resolver,
     // TODO: maybe it's better to use external entries.
-    self.plugin_driver.resolver_factory.clear_entries();
+    self.plugin_driver.resolver_factory.clear_cache();
 
     fast_set(
       &mut self.compilation,
