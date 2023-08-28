@@ -1082,6 +1082,7 @@ importers:
       acorn-walk: ^8.0.0
       antd: 5.8.4
       lodash: 4.17.21
+      lodash-es: 4.17.21
       three: 0.155.0
     dependencies:
       acorn: 8.8.2
@@ -1090,6 +1091,7 @@ importers:
       '@rspack/core': link:../rspack
       antd: 5.8.4
       lodash: 4.17.21
+      lodash-es: 4.17.21
       three: 0.155.0
 
   packages/rspack-plugin-html:

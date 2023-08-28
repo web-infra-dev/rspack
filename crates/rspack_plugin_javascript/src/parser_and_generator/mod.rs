@@ -1,3 +1,5 @@
+use std::process::Output;
+
 use rspack_core::rspack_sources::{
   BoxSource, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
   WithoutOriginalOptions,
@@ -82,12 +84,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_type,
       &source,
     )?;
-
-    let output: crate::TransformOutput =
-      crate::ast::stringify(&ast, &compiler_options.devtool, Some(true))?;
-
     let mut scan_ast = match crate::ast::parse(
-      output.code.clone(), // TODO avoid code clone
+      source.to_string(), // TODO avoid code clone
       syntax,
       &resource_data.resource_path.to_string_lossy(),
       module_type,
@@ -96,7 +94,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Err(e) => {
         return Ok(
           ParseResult {
-            source: RawSource::from(output.code.clone()).boxed(),
+            source: RawSource::from(source.to_string()).boxed(),
             dependencies: vec![],
             presentational_dependencies: vec![],
             analyze_result: Default::default(),
@@ -139,16 +137,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       OptimizeAnalyzeResult::default()
     };
 
-    let source = if let Some(map) = output.map {
-      SourceMapSource::new(WithoutOriginalOptions {
-        value: output.code,
-        name: resource_data.resource_path.to_string_lossy().to_string(),
-        source_map: SourceMap::from_json(&map).map_err(|e| internal_error!(e.to_string()))?,
-      })
-      .boxed()
-    } else {
-      RawSource::from(output.code).boxed()
-    };
+
+    let source = RawSource::from(source.to_string()).boxed();
+    
 
     Ok(
       ParseResult {

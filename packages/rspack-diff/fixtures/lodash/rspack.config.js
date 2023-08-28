@@ -16,3 +16,8 @@ module.exports = {
 		path: "rspack-dist"
 	}
 };
+if (process.env.RSPACK) {
+	module.exports.builtins = {
+		treeShaking: false
+	};
+}

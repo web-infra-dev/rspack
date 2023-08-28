@@ -10,9 +10,9 @@ const { result } = require("lodash");
  * @param {string} src
  * @param {string} dst
  */
-function distDiffBundler(src, dst) {
-	const srcResult = parseBundle(src);
-	const dstResult = parseBundle(dst);
+function distDiffBundler(rspack_dist, webpack_dist) {
+	const srcResult = parseBundle(rspack_dist);
+	const dstResult = parseBundle(webpack_dist);
 	/**
 	 * diff modules
 	 */
@@ -24,23 +24,23 @@ function distDiffBundler(src, dst) {
 	fs.mkdirSync(dirctory, { recursive: true });
 	let i = 0;
 	for (const [key, value] of Object.entries(module1)) {
-		fs.mkdirSync(path.resolve(dirctory, "src"), { recursive: true });
-		fs.mkdirSync(path.resolve(dirctory, "dst"), { recursive: true });
-		const srcTmp = path.resolve(dirctory, "src", path.basename(key));
-		const dstTmp = path.resolve(dirctory, "dst", path.basename(key));
+		fs.mkdirSync(path.resolve(dirctory, "rspack"), { recursive: true });
+		fs.mkdirSync(path.resolve(dirctory, "webpack"), { recursive: true });
+		const srcTmp = path.resolve(dirctory, "rspack", path.basename(key));
+		const dstTmp = path.resolve(dirctory, "webpack", path.basename(key));
 		fs.writeFileSync(srcTmp, module1[key], "utf-8");
 		if (!module2[key]) {
-			console.info(`${dst} missing module: ${key}`);
+			console.info(`webpack missing module: ${key}`);
 		} else {
 			fs.writeFileSync(dstTmp, module2[key], "utf-8");
-			// const result = execSync(`difft ${srcTmp} ${dstTmp}`, {
-			// 	stdio: "inherit"
-			// });
+			const result = execSync(`difft ${srcTmp} ${dstTmp}`, {
+				stdio: "inherit"
+			});
 		}
 	}
 	for (const key of Object.keys(module2)) {
 		if (!module1[key]) {
-			console.info(`${src} missing module: ${key}`);
+			console.info(`rspack missing module: ${key}`);
 		}
 	}
 }
