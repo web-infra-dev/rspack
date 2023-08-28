@@ -53,7 +53,19 @@ impl<'a> ProvidedExportsPlugin<'a> {
         // TODO: unknown exports https://github.com/webpack/webpack/blob/853bfda35a0080605c09e1bdeb0103bcb9367a10/lib/FlagDependencyExportsPlugin.js#L165-L175
       }
       ExportsOfExportsSpec::Null => {}
-      ExportsOfExportsSpec::Array(ele) => {}
+      ExportsOfExportsSpec::Array(ele) => {
+        self.merge_exports(
+          exports_info,
+          ele,
+          DefaultExportInfo {
+            can_mangle: *global_can_mangle,
+            terminal_binding: global_terminal_binding,
+            from: global_from,
+            priority: *global_priority,
+          },
+          dep_id,
+        );
+      }
     }
   }
 
@@ -79,7 +91,10 @@ impl<'a> ProvidedExportsPlugin<'a> {
           ),
           ExportNameOrSpec::ExportSpec(spec) => (
             spec.name.clone(),
-            spec.can_mangle.unwrap_or(global_export_info.can_mangle),
+            match spec.can_mangle {
+              Some(v) => Some(v),
+              None => global_export_info.can_mangle,
+            },
             spec
               .terminal_binding
               .unwrap_or(global_export_info.terminal_binding),
@@ -90,7 +105,10 @@ impl<'a> ProvidedExportsPlugin<'a> {
               global_export_info.from.cloned()
             },
             spec.export.as_ref(),
-            spec.priority.unwrap_or(global_export_info.priority),
+            match spec.priority {
+              Some(v) => Some(v),
+              None => global_export_info.priority,
+            },
             spec.hidden.unwrap_or(false),
           ),
         };
@@ -100,7 +118,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
         // TODO; adjust global changed
       }
 
-      if Some(false) != export_info.can_mangle_provide && can_mangle == false {
+      if Some(false) != export_info.can_mangle_provide && can_mangle == Some(false) {
         export_info.can_mangle_provide = Some(false);
         // TODO; adjust global changed
       }
@@ -125,7 +143,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
           } else {
             Some(&fallback)
           };
-          export_info.set_target(&dep_id, Some(from), export_name, Some(priority))
+          export_info.set_target(&dep_id, Some(from), export_name, priority)
         };
         if changed {
           // TODO; adjust global changed
@@ -137,8 +155,8 @@ impl<'a> ProvidedExportsPlugin<'a> {
 
 /// Used for reducing nums of params
 pub struct DefaultExportInfo<'a> {
-  can_mangle: bool,
+  can_mangle: Option<bool>,
   terminal_binding: bool,
   from: Option<&'a ModuleGraphConnection>,
-  priority: u8,
+  priority: Option<u8>,
 }
