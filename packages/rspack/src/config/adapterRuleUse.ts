@@ -273,10 +273,9 @@ function resolveStringifyLoaders(
 	else if (typeof use.options === "object") obj.query = "??" + (ident = path);
 	else obj.query = "?" + JSON.stringify(use.options);
 
-	if (ident) {
-		if (typeof use.options === "object") {
-			compiler.ruleSet.references.set(ident, use.options);
-		}
+	if (use.options && typeof use.options === "object") {
+		if (!ident) ident = "[[missing ident]]";
+		compiler.ruleSet.references.set(ident, use.options);
 	}
 
 	return obj.path + obj.query + obj.fragment;
