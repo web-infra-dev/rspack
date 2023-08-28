@@ -1,7 +1,7 @@
 mod entry;
 mod span;
-use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
+use std::{default, sync::atomic::AtomicU32};
 
 pub use entry::*;
 use once_cell::sync::Lazy;
@@ -212,9 +212,24 @@ impl ExportSpec {
 }
 
 #[derive(Debug, Default)]
+pub enum ExportsSpecArrayElement {
+  #[default]
+  String,
+  ExportSpec,
+}
+
+#[derive(Debug, Default)]
+pub enum ExportsOfExportsSpec {
+  True,
+  #[default]
+  Null,
+  Array(ExportsSpecArrayElement),
+}
+
+#[derive(Debug, Default)]
 #[allow(unused)]
 pub struct ExportsSpec {
-  pub exports: ExportSpec,
+  pub exports: ExportsOfExportsSpec,
   pub priority: Option<u8>,
   pub can_mangle: Option<bool>,
   pub terminal_binding: Option<bool>,
