@@ -1,15 +1,12 @@
 //!  There are methods whose verb is `ChunkGraphModule`
 
-use std::io::Write;
-
 use rspack_hash::RspackHash;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   BoxModule, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey,
-  ModuleGraphConnection, ModuleIdentifier, OutputOptions, RuntimeGlobals, RuntimeSpec,
-  RuntimeSpecMap, RuntimeSpecSet,
+  ModuleIdentifier, OutputOptions, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
 };
 use crate::{ChunkGraph, ModuleGraph};
 

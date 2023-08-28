@@ -39,24 +39,13 @@ impl CodeGenerateOccasion {
 
     if let Some(normal_module) = module.as_normal_module() {
       // only cache normal module
-      // TODO cache all module type
+      // TODO: cache all module type
       let id = Identifier::from(compilation.chunk_graph.get_module_graph_hash(
         &compilation.options.output,
         module,
         &compilation.module_graph,
         true,
       ));
-
-      if matches!(normal_module.source(), NormalModuleSource::Unbuild) {
-        std::io::stdout().write_fmt(format_args!(
-          "id: {} {} {}\n",
-          id,
-          storage.get(&id).is_some(),
-          module.identifier().to_owned()
-        ));
-      }
-
-      // let id = module.identifier();
 
       // currently no need to seperate module hash by runtime
       if let Some(data) = storage.get(&id) {
