@@ -39,12 +39,9 @@ import type {
 	RuleSetRules,
 	SnapshotOptions
 } from "./types";
-import { Compiler } from "..";
 
 export const applyRspackOptionsDefaults = (
-	options: RspackOptionsNormalized,
-	// TODO: remove this when drop support for builtins options
-	compiler: Compiler
+	options: RspackOptionsNormalized
 ) => {
 	F(options, "context", () => process.cwd());
 	F(options, "target", () => {
@@ -131,13 +128,6 @@ export const applyRspackOptionsDefaults = (
 		getResolveLoaderDefaults(),
 		options.resolveLoader
 	);
-
-	// TODO: remove this when drop support for builtins options
-	options.builtins = deprecated_resolveBuiltins(
-		options.builtins,
-		options,
-		compiler
-	) as any;
 };
 
 export const applyRspackOptionsBaseDefaults = (

@@ -63,12 +63,7 @@ expect.addSnapshotSerializer({
 
 const getDefaultConfig = config => {
 	config = getNormalizedRspackOptions(config);
-	const builtinPluginsForBuiltinsOptions = [];
-	applyRspackOptionsDefaults(config, {
-		__internal__registerBuiltinPlugin(plugin) {
-			builtinPluginsForBuiltinsOptions.push(plugin);
-		}
-	});
+	applyRspackOptionsDefaults(config);
 	process.chdir(cwd);
 	return config;
 };
@@ -110,12 +105,6 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-         "localIdentName": "[path][name][ext]__[local]",
-		+         "localIdentName": "[hash]",
-		@@ ... @@
-		-     "treeShaking": "false",
-		+     "treeShaking": "true",
-		@@ ... @@
 		-   "mode": "none",
 		+   "mode": undefined,
 		@@ ... @@
@@ -150,12 +139,6 @@ describe("snapshots", () => {
 		- Expected
 		+ Received
 
-		@@ ... @@
-		-         "localIdentName": "[path][name][ext]__[local]",
-		+         "localIdentName": "[hash]",
-		@@ ... @@
-		-     "treeShaking": "false",
-		+     "treeShaking": "true",
 		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "production",
@@ -1110,15 +1093,6 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-     "css": Object {
-			-       "modules": Object {
-			-         "exportsOnly": false,
-			-         "localIdentName": "[path][name][ext]__[local]",
-			-         "localsConvention": "asIs",
-			-       },
-			-     },
-			+     "css": undefined,
-			@@ ... @@
 			-     "css": true,
 			+     "css": false,
 			+     "futureDefaults": true,
@@ -1129,10 +1103,9 @@ describe("snapshots", () => {
 			-           Object {
 			-             "resolve": Object {
 			-               "fullySpecified": true,
-			@@ ... @@
+			-             },
 			-             "test": /\\.module\\.css$/i,
 			-             "type": "css/module",
-			-           },
 			@@ ... @@
 			-             "resolve": Object {
 			-               "fullySpecified": true,

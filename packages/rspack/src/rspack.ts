@@ -75,7 +75,7 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 			}
 		}
 	}
-	applyRspackOptionsDefaults(compiler.options, compiler);
+	applyRspackOptionsDefaults(compiler.options);
 	logger.debug(
 		"NormalizedOptions:",
 		util.inspect(compiler.options, { colors: true, depth: null })
