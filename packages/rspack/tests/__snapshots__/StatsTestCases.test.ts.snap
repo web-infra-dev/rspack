@@ -179,7 +179,7 @@ import rawModule from './raw.png'",
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "aa724e620c7dec1cbd69",
+  "hash": "31df38a93780ad25981d",
   "logging": {},
   "modules": [
     {
@@ -319,7 +319,7 @@ chunk {main} bundle.js (main) [entry]
   entry ./index
 ./stringModule.js [363] {main}
   esm import ./stringModule [10]
-rspack compiled successfully (aa724e620c7dec1cbd69)"
+rspack compiled successfully (31df38a93780ad25981d)"
 `;
 
 exports[`StatsTestCases should print correct stats for filename 1`] = `
@@ -474,7 +474,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "e568b45196476fe37e35",
+  "hash": "dab84cbef48dbc9f0e6b",
   "logging": {},
   "modules": [
     {
@@ -568,7 +568,7 @@ chunk {main} main.xxxx.js (main) >{dynamic_js}< [entry]
   entry ./index
 ./dynamic.js [426] {dynamic_js}
   dynamic import ./dynamic [10]
-rspack compiled successfully (e568b45196476fe37e35)"
+rspack compiled successfully (dab84cbef48dbc9f0e6b)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -656,7 +656,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "e9653c93fd3cd4b684e9",
+  "hash": "d71f062b534cbc5af842",
   "logging": {},
   "modules": [
     {
@@ -712,7 +712,7 @@ chunk {main} bundle.js (main) [entry]
     entry ./index.js
 ./index.js [10] {main}
   entry ./index.js
-rspack compiled successfully (e9653c93fd3cd4b684e9)"
+rspack compiled successfully (d71f062b534cbc5af842)"
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 1`] = `
@@ -1953,7 +1953,7 @@ console.log(a);
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "86ea2188224d2c841707",
+  "hash": "7d2d2ee1a9384ad715fa",
   "logging": {},
   "modules": [
     {
@@ -2065,7 +2065,7 @@ error[internal]: Resolve error
 
 
 
-rspack compiled with 1 error (86ea2188224d2c841707)"
+rspack compiled with 1 error (7d2d2ee1a9384ad715fa)"
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 1`] = `
@@ -2200,7 +2200,7 @@ console.log(a);
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "849095ff2a92e9af6650",
+  "hash": "d4ff2f3bc5aba8d564b3",
   "logging": {},
   "modules": [
     {
@@ -2306,7 +2306,7 @@ error[internal]: Export should be relative path and start with "./", but got ../
 
 
 
-rspack compiled with 1 error (849095ff2a92e9af6650)"
+rspack compiled with 1 error (d4ff2f3bc5aba8d564b3)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple 1`] = `
@@ -2394,7 +2394,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "89c117df351780208f3f",
+  "hash": "44e8a78970b06279cd26",
   "logging": {},
   "modules": [
     {
@@ -2450,7 +2450,7 @@ chunk {main} bundle.js (main) [entry]
     entry ./index
 ./index.js [10] {main}
   entry ./index
-rspack compiled successfully (89c117df351780208f3f)"
+rspack compiled successfully (44e8a78970b06279cd26)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple-module-source 1`] = `
@@ -2602,7 +2602,7 @@ import rawModule from './raw.png'",
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "287198b80afbf7f0f8b0",
+  "hash": "a563cef06d977112d3e1",
   "logging": {},
   "modules": [
     {
@@ -2720,7 +2720,7 @@ Entrypoint main 631 bytes = bundle.js
 ./raw.png [98] {main}
 ./index.js [10] {main}
 ./stringModule.js [363] {main}
-rspack compiled successfully (287198b80afbf7f0f8b0)"
+rspack compiled successfully (a563cef06d977112d3e1)"
 `;
 
 exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
@@ -2807,7 +2807,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "89c117df351780208f3f",
+  "hash": "44e8a78970b06279cd26",
   "logging": {},
   "modules": [
     {
@@ -2857,7 +2857,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 2`] = `
 asset bundle.js 589 bytes {main} [emitted111] (name: main) [testA: aaaaaa]
 Entrypoint main 589 bytes = bundle.js
 ./index.js [10] {main}
-rspack compiled successfully (89c117df351780208f3f)"
+rspack compiled successfully (44e8a78970b06279cd26)"
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 1`] = `

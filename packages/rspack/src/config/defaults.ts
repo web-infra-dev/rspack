@@ -13,7 +13,7 @@ import fs from "fs";
 import path from "path";
 import { isNil } from "../util";
 import { cleverMerge } from "../util/cleverMerge";
-import { SwcCssMinimizerPlugin, SwcJsMinimizerPlugin } from "../builtin-plugin";
+import { deprecated_resolveBuiltins } from "../builtin-plugin";
 import {
 	getDefaultTarget,
 	getTargetProperties,
@@ -40,9 +40,12 @@ import type {
 	RuleSetRules,
 	SnapshotOptions
 } from "./types";
+import { Compiler } from "..";
 
 export const applyRspackOptionsDefaults = (
-	options: RspackOptionsNormalized
+	options: RspackOptionsNormalized,
+	// TODO: remove this when drop support for builtins options
+	compiler: Compiler
 ) => {
 	F(options, "context", () => process.cwd());
 	F(options, "target", () => {
@@ -76,9 +79,7 @@ export const applyRspackOptionsDefaults = (
 	F(options, "cache", () => development);
 
 	applyExperimentsDefaults(options.experiments, {
-		cache: options.cache!,
-		targetProperties,
-		production
+		cache: options.cache!
 	});
 
 	applySnapshotDefaults(options.snapshot, { production });
@@ -131,6 +132,13 @@ export const applyRspackOptionsDefaults = (
 		getResolveLoaderDefaults(),
 		options.resolveLoader
 	);
+
+	// TODO: remove this when drop support for builtins options
+	options.builtins = deprecated_resolveBuiltins(
+		options.builtins,
+		options,
+		compiler
+	) as any;
 };
 
 export const applyRspackOptionsBaseDefaults = (
@@ -154,11 +162,7 @@ const applyInfrastructureLoggingDefaults = (
 
 const applyExperimentsDefaults = (
 	experiments: ExperimentsNormalized,
-	{
-		cache,
-		targetProperties,
-		production
-	}: { cache: boolean; targetProperties: any; production: boolean }
+	{ cache }: { cache: boolean }
 ) => {
 	D(experiments, "incrementalRebuild", {});
 	D(experiments, "lazyCompilation", false);

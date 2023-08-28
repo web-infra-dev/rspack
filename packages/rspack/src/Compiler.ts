@@ -301,12 +301,6 @@ class Compiler {
 				});
 		};
 
-		// TODO: remove this when drop support for builtins options
-		this.options.builtins = deprecated_resolveBuiltins(
-			this.options.builtins,
-			this.options,
-			this
-		) as any;
 		const options = getRawOptions(this.options, this, processResource);
 
 		const instanceBinding: typeof binding = require("@rspack/binding");

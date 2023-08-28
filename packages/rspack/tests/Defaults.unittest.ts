@@ -63,7 +63,12 @@ expect.addSnapshotSerializer({
 
 const getDefaultConfig = config => {
 	config = getNormalizedRspackOptions(config);
-	applyRspackOptionsDefaults(config);
+	const builtinPluginsForBuiltinsOptions = [];
+	applyRspackOptionsDefaults(config, {
+		__internal__registerBuiltinPlugin(plugin) {
+			builtinPluginsForBuiltinsOptions.push(plugin);
+		}
+	});
 	process.chdir(cwd);
 	return config;
 };
@@ -108,19 +113,6 @@ describe("snapshots", () => {
 		-         "localIdentName": "[path][name][ext]__[local]",
 		+         "localIdentName": "[hash]",
 		@@ ... @@
-		-     "minifyOptions": undefined,
-		+     "minifyOptions": Object {
-		+       "asciiOnly": false,
-		+       "comments": "false",
-		+       "dropConsole": false,
-		+       "exclude": undefined,
-		+       "extractComments": undefined,
-		+       "include": undefined,
-		+       "passes": 1,
-		+       "pureFuncs": Array [],
-		+       "test": undefined,
-		+     },
-		@@ ... @@
 		-     "treeShaking": "false",
 		+     "treeShaking": "true",
 		@@ ... @@
@@ -161,19 +153,6 @@ describe("snapshots", () => {
 		@@ ... @@
 		-         "localIdentName": "[path][name][ext]__[local]",
 		+         "localIdentName": "[hash]",
-		@@ ... @@
-		-     "minifyOptions": undefined,
-		+     "minifyOptions": Object {
-		+       "asciiOnly": false,
-		+       "comments": "false",
-		+       "dropConsole": false,
-		+       "exclude": undefined,
-		+       "extractComments": undefined,
-		+       "include": undefined,
-		+       "passes": 1,
-		+       "pureFuncs": Array [],
-		+       "test": undefined,
-		+     },
 		@@ ... @@
 		-     "treeShaking": "false",
 		+     "treeShaking": "true",

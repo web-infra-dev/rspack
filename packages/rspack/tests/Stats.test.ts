@@ -109,7 +109,7 @@ describe("Stats", () => {
 		  "errors": [],
 		  "errorsCount": 0,
 		  "filteredModules": undefined,
-		  "hash": "efeb16c0b857d2dca7eb",
+		  "hash": "b32fac08a5e8721cacff",
 		  "logging": {},
 		  "modules": [
 		    {
@@ -165,7 +165,7 @@ describe("Stats", () => {
 		    entry ./fixtures/a
 		./fixtures/a.js [876] {main}
 		  entry ./fixtures/a
-		rspack compiled successfully (efeb16c0b857d2dca7eb)"
+		rspack compiled successfully (b32fac08a5e8721cacff)"
 	`);
 	});
 
@@ -210,7 +210,7 @@ describe("Stats", () => {
 
 
 
-		rspack compiled with 1 error (c7f1b431a5ddf56b18af)"
+		rspack compiled with 1 error (27ec1c09308b67dcfd6f)"
 	`);
 	});
 

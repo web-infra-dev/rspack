@@ -253,7 +253,7 @@ export function deprecated_resolveBuiltins(
 	options: RspackOptionsNormalized,
 	compiler: Compiler
 ): RawBuiltins {
-	const defaultEnableDeprecatedWarning = true;
+	const defaultEnableDeprecatedWarning = false;
 	const enableDeprecatedWarning =
 		(process.env.RSPACK_BUILTINS_DEPRECATED ??
 			`${defaultEnableDeprecatedWarning}`) !== "false";

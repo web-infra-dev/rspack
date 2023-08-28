@@ -75,12 +75,7 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 			}
 		}
 	}
-
-	if (options.ignoreWarnings !== undefined) {
-		new IgnoreWarningsPlugin(options.ignoreWarnings).apply(compiler);
-	}
-
-	applyRspackOptionsDefaults(compiler.options);
+	applyRspackOptionsDefaults(compiler.options, compiler);
 	logger.debug(
 		"NormalizedOptions:",
 		util.inspect(compiler.options, { colors: true, depth: null })

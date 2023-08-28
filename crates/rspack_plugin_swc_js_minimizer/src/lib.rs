@@ -216,9 +216,7 @@ impl Plugin for SwcJsMinimizerPlugin {
     _ctx: PluginContext,
     args: &mut JsChunkHashArgs,
   ) -> PluginJsChunkHashHookOutput {
-    // self.name().hash(&mut args.hasher);
-    // TODO: keep the hash unchanged, change it in a sperate PR
-    "javascript".hash(&mut args.hasher);
+    self.name().hash(&mut args.hasher);
     self.options.hash(&mut args.hasher);
     Ok(())
   }
