@@ -185,6 +185,9 @@ pub struct ExportInfo {
   pub usage_state: UsageState,
   used_name: Option<String>,
   target: HashMap<DependencyId, ExportInfoTargetValue>,
+  pub provided: Option<ExportInfoProvided>,
+  pub can_mangle_provide: Option<bool>,
+  pub terminal_binding: bool,
 }
 
 pub enum ExportInfoProvided {
@@ -204,6 +207,9 @@ impl ExportInfo {
       // TODO: init this
       used_name: None,
       target: HashMap::default(),
+      provided: None,
+      can_mangle_provide: None,
+      terminal_binding: false,
     }
   }
 

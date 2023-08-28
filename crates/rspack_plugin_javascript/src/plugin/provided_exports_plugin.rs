@@ -1,8 +1,9 @@
 use std::collections::VecDeque;
 
 use rspack_core::{
-  export_info_mut, DependencyId, ExportInfo, ExportNameOrSpec, ExportsInfo, ExportsOfExportsSpec,
-  ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, UsageState,
+  export_info_mut, DependencyId, ExportInfo, ExportInfoProvided, ExportNameOrSpec, ExportsInfo,
+  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  UsageState,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
@@ -55,33 +56,68 @@ impl<'a> ProvidedExportsPlugin<'a> {
     }
   }
 
-  // pub fn merge_exports(
-  //   &mut self,
-  //   exports_info: &mut ExportsInfo,
-  //   exports: &Vec<ExportNameOrSpec>,
-  //   global_export_info: DefaultExportInfo,
-  // ) {
-  //   for export_name_or_spec in exports {
-  //     let (name, can_mangle, terminal_binding, exports, from, from_export, priority, hidden) =
-  //       match export_name_or_spec {
-  //         ExportNameOrSpec::String(name) => (
-  //           name,
-  //           global_export_info.can_mangle,
-  //           global_export_info.terminal_binding,
-  //           None,
-  //           global_export_info.from,
-  //           None,
-  //           global_export_info.priority,
-  //           false,
-  //         ),
-  //         ExportNameOrSpec::ExportSpec(spec) => (spec.name, spec.can_mangle.unwrap_or(global), spec),
-  //       };
-  //   }
-  // }
+  pub fn merge_exports(
+    &mut self,
+    exports_info: &mut ExportsInfo,
+    exports: &Vec<ExportNameOrSpec>,
+    global_export_info: DefaultExportInfo,
+  ) {
+    for export_name_or_spec in exports {
+      let (name, can_mangle, terminal_binding, exports, from, from_export, priority, hidden) =
+        match export_name_or_spec {
+          ExportNameOrSpec::String(name) => (
+            name.clone(),
+            global_export_info.can_mangle,
+            global_export_info.terminal_binding,
+            None::<&Vec<ExportNameOrSpec>>,
+            global_export_info.from.cloned(),
+            None::<&Vec<String>>,
+            global_export_info.priority,
+            false,
+          ),
+          ExportNameOrSpec::ExportSpec(spec) => (
+            spec.name.clone(),
+            spec.can_mangle.unwrap_or(global_export_info.can_mangle),
+            spec
+              .terminal_binding
+              .unwrap_or(global_export_info.terminal_binding),
+            spec.exports.as_ref(),
+            if spec.from.is_some() {
+              spec.from.clone()
+            } else {
+              global_export_info.from.cloned()
+            },
+            spec.export.as_ref(),
+            spec.priority.unwrap_or(global_export_info.priority),
+            spec.hidden.unwrap_or(false),
+          ),
+        };
+      let export_info = exports_info.export_info_mut(&name);
+      if let Some(provided) = export_info.provided && matches!(provided, ExportInfoProvided::False | ExportInfoProvided::Null) {
+        provided = ExportInfoProvided::True;
+        // TODO; changed to true
+      }
+
+      if Some(false) != export_info.can_mangle_provide && can_mangle == false {
+        export_info.can_mangle_provide = Some(false);
+        // TODO; changed to true
+      }
+
+      if terminal_binding && !export_info.terminal_binding {
+        export_info.terminal_binding = true;
+        // TODO; changed to true
+      }
+
+      if let Some(exports) = exports {
+        // let nested_exports_info = export_info.create_nested_exports_info();
+        // self.merge_exports(nested_exports_info, exports, global_export_info);
+      }
+    }
+  }
 }
 
 /// Used for reducing nums of params
-struct DefaultExportInfo<'a> {
+pub struct DefaultExportInfo<'a> {
   can_mangle: bool,
   terminal_binding: bool,
   from: Option<&'a ModuleGraphConnection>,

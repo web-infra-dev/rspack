@@ -193,20 +193,21 @@ pub trait Dependency:
 
 #[derive(Debug, Default)]
 pub struct ExportSpec {
-  pub name: String,
+  pub name: JsWord,
   pub export: Option<Vec<String>>,
   pub exports: Option<Vec<ExportNameOrSpec>>,
   pub can_mangle: Option<bool>,
-  pub terminal_binding: bool,
+  pub terminal_binding: Option<bool>,
   pub priority: Option<u8>,
   pub hidden: Option<bool>,
   pub from: Option<ModuleGraphConnection>,
+  pub from_export: Option<ModuleGraphConnection>,
 }
 
 impl ExportSpec {
   pub fn new(name: String) -> Self {
     Self {
-      name,
+      name: JsWord::from(name),
       ..Default::default()
     }
   }
@@ -214,13 +215,13 @@ impl ExportSpec {
 
 #[derive(Debug)]
 pub enum ExportNameOrSpec {
-  String(String),
+  String(JsWord),
   ExportSpec(ExportSpec),
 }
 
 impl Default for ExportNameOrSpec {
   fn default() -> Self {
-    Self::String("".to_string())
+    Self::String(JsWord::default())
   }
 }
 
