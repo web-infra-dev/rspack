@@ -29,6 +29,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
   pub fn process_dependencies_block(&mut self, mi: ModuleIdentifier) -> Option<()> {
     None
   }
+
   pub fn process_exports_spec(
     &mut self,
     dep_id: DependencyId,
@@ -94,8 +95,8 @@ impl<'a> ProvidedExportsPlugin<'a> {
           ),
         };
       let export_info = exports_info.export_info_mut(&name);
-      if let Some(provided) = export_info.provided && matches!(provided, ExportInfoProvided::False | ExportInfoProvided::Null) {
-        provided = ExportInfoProvided::True;
+      if let Some(ref mut provided) = export_info.provided && matches!(provided, ExportInfoProvided::False | ExportInfoProvided::Null) {
+        *provided = ExportInfoProvided::True;
         // TODO; adjust global changed
       }
 
@@ -118,6 +119,12 @@ impl<'a> ProvidedExportsPlugin<'a> {
         let changed = if hidden {
           export_info.unuset_target(&dep_id)
         } else {
+          let fallback = vec![name];
+          let export_name = if let Some(from) = from_export {
+            Some(from)
+          } else {
+            Some(&fallback)
+          };
           export_info.set_target(&dep_id, Some(from), export_name, Some(priority))
         };
         if changed {

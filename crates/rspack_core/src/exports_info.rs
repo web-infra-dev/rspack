@@ -267,7 +267,7 @@ impl ExportInfo {
         || if let Some(export_name) = export_name {
           export_name == &old_target.exports
         } else {
-          old_target.exports.is_empty()
+          !old_target.exports.is_empty()
         }
       {
         old_target.exports = export_name.cloned().unwrap();
