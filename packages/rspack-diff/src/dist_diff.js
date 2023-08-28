@@ -7,10 +7,9 @@ const { exec, execSync } = require("child_process");
 const { result } = require("lodash");
 /**
  *
- * @param {string} src
- * @param {string} dst
+ * @param {{rspack_dist:string, webpack_dist:string, dry: boolean}} param0
  */
-function distDiffBundler(rspack_dist, webpack_dist) {
+function distDiff({ rspack_dist, webpack_dist, dry }) {
 	const srcResult = parseBundle(rspack_dist);
 	const dstResult = parseBundle(webpack_dist);
 	/**
@@ -33,9 +32,11 @@ function distDiffBundler(rspack_dist, webpack_dist) {
 			console.info(`webpack missing module: ${key}`);
 		} else {
 			fs.writeFileSync(dstTmp, module2[key], "utf-8");
-			const result = execSync(`difft ${srcTmp} ${dstTmp}`, {
-				stdio: "inherit"
-			});
+			if (!dry) {
+				const result = execSync(`difft ${srcTmp} ${dstTmp}`, {
+					stdio: "inherit"
+				});
+			}
 		}
 	}
 	for (const key of Object.keys(module2)) {
@@ -46,5 +47,5 @@ function distDiffBundler(rspack_dist, webpack_dist) {
 }
 
 module.exports = {
-	distDiffBundler
+	distDiff
 };

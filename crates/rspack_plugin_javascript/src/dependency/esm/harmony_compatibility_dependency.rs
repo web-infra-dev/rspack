@@ -26,7 +26,7 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     init_fragments.push(InitFragment::new(
       format!(
-        "'use strict';\n{}({});\n", // todo remove strict
+        "\"use strict\";\n{}({});\n", // todo remove strict
         RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
         compilation
           .module_graph

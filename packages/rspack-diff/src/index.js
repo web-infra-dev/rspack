@@ -1,25 +1,49 @@
 const yargs = require("yargs");
 const { hideBin } = require("yargs/helpers");
-const { distDiffBundler } = require("./dist_diff");
+const { distDiff } = require("./dist_diff");
 yargs(process.argv.slice(2))
 	.version()
 	.command(
-		"dist <src> <dst>",
+		"dist <rspack_dist> <webpack_dist>",
 		"diff dist of rspack and webpack output dist",
 		yargs => {
 			yargs
-				.positional("src", {
+				.positional("rspack_dist", {
 					type: "string",
-					describe: "dist path of src"
+					describe: "dist path of rspack"
 				})
-				.positional("dst", {
+				.positional("webpack_dist", {
 					type: "string",
-					describe: "dist path of dst"
+					describe: "dist path of webpack"
+				})
+				.option("dry", {
+					type: "boolean",
+					default: true,
+					describe: "whether use difftastic to diff the module"
 				});
 			return yargs;
 		},
-		arg => {
-			return distDiffBundler(arg.src, arg.dst);
+		args => {
+			return distDiff(args);
+		}
+	)
+	.command(
+		"stats <rspack_stats> <webpack_stats>",
+		"diff stats of rspack and webpack",
+		yargs => {
+			yargs
+				.positional("rspack_stats", {
+					type: "string",
+					describe: "stats path of rspack"
+				})
+				.positional("webpack_stats", {
+					type: "string",
+					describe: "stats path of rspack"
+				});
+			return yargs;
+		},
+		args => {
+			return statDiff();
 		}
 	)
 	.showHelpOnFail()
