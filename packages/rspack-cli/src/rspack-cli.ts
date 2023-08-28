@@ -57,9 +57,7 @@ export class RspackCLI {
 			? (config as MultiRspackOptions).some(i => i.watch)
 			: (config as RspackOptions).watch;
 
-		return rspack(config, isWatch ? callback : undefined) as
-			| MultiCompiler
-			| Compiler;
+		return rspack(config, isWatch ? callback : undefined);
 	}
 	createColors(useColor?: boolean): RspackCLIColors {
 		const { createColors, isColorSupported } = require("colorette");
