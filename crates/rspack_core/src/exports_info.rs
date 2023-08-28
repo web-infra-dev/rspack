@@ -14,18 +14,22 @@ use crate::RuntimeSpec;
 #[derive(Debug)]
 pub struct ExportsInfo {
   pub exports: HashMap<JsWord, ExportInfo>,
-  other_exports_info: ExportInfo,
-  _side_effects_only_info: ExportInfo,
-  _exports_are_ordered: bool,
-  redirect_to: Option<Box<ExportsInfo>>,
+  pub other_exports_info: ExportInfo,
+  pub _side_effects_only_info: ExportInfo,
+  pub _exports_are_ordered: bool,
+  pub redirect_to: Option<Box<ExportsInfo>>,
 }
 
 impl ExportsInfo {
   pub fn new() -> Self {
     Self {
       exports: HashMap::default(),
-      other_exports_info: ExportInfo::new("null".into(), UsageState::Unknown),
-      _side_effects_only_info: ExportInfo::new("*side effects only*".into(), UsageState::Unknown),
+      other_exports_info: ExportInfo::new("null".into(), UsageState::Unknown, None),
+      _side_effects_only_info: ExportInfo::new(
+        "*side effects only*".into(),
+        UsageState::Unknown,
+        None,
+      ),
       _exports_are_ordered: false,
       redirect_to: None,
     }
@@ -72,6 +76,40 @@ impl ExportsInfo {
       &self.other_exports_info
     }
   }
+
+  // getExportInfo(name) {
+  // 	const info = this._exports.get(name);
+  // 	if (info !== undefined) return info;
+  // 	if (this._redirectTo !== undefined)
+  // 		return this._redirectTo.getExportInfo(name);
+  // 	const newInfo = new ExportInfo(name, this._otherExportsInfo);
+  // 	this._exports.set(name, newInfo);
+  // 	this._exportsAreOrdered = false;
+  // 	return newInfo;
+  // }
+
+  pub fn get_export_info_mut<'a>(&'a mut self, name: &str) -> &'a mut ExportInfo {
+    if let Some(info) = self.exports.get_mut(&JsWord::from(name)) {
+      return info;
+    } else {
+      self.redirect_to.as_mut().unwrap().get_export_info_mut(name)
+      // if let Some(ref mut redirect_to) = self.redirect_to {
+      //   return redirect_to
+      // }
+      // let new_info = ExportInfo::new(
+      //   name.into(),
+      //   UsageState::Unknown,
+      //   Some(&self.other_exports_info),
+      // );
+      // self.exports.insert(name.into(), new_info);
+      // self._exports_are_ordered = false;
+      // // SAFETY: because we insert the export info above
+      // self
+      //   .exports
+      //   .get_mut(&JsWord::from(name))
+      //   .expect("This is unreachable")
+    }
+  }
 }
 
 impl Default for ExportsInfo {
@@ -87,17 +125,28 @@ pub enum UsedName {
 
 #[derive(Debug)]
 pub struct ExportInfo {
-  _name: JsWord,
+  name: JsWord,
   module_identifier: Option<ModuleIdentifier>,
   pub usage_state: UsageState,
+  used_name: Option<String>,
+}
+
+pub enum ExportInfoProvided {
+  True,
+  False,
+  /// `Null` has real semantic in webpack https://github.com/webpack/webpack/blob/853bfda35a0080605c09e1bdeb0103bcb9367a10/lib/ExportsInfo.js#L830  
+  Null,
 }
 
 impl ExportInfo {
-  pub fn new(_name: JsWord, usage_state: UsageState) -> Self {
+  // TODO: remove usage_state in the future
+  pub fn new(name: JsWord, usage_state: UsageState, init_from: Option<&ExportInfo>) -> Self {
     Self {
-      _name,
+      name,
       module_identifier: None,
       usage_state,
+      // TODO: init this
+      used_name: None,
     }
   }
 

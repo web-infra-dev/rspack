@@ -16,6 +16,7 @@ pub use runtime_requirements_dependency::RuntimeRequirementsDependency;
 mod context_element_dependency;
 mod dependency_macro;
 pub use context_element_dependency::*;
+use swc_core::ecma::atoms::JsWord;
 mod const_dependency;
 use std::{
   any::Any,
@@ -191,29 +192,35 @@ pub trait Dependency:
 }
 
 #[derive(Debug, Default)]
+#[allow(unused)]
 pub struct ExportSpec {
-  _name: String,
-  _can_mangle: bool,
-  _terminal_binding: bool,
-  _priority: u8,
-  _hidden: bool,
+  name: String,
+  can_mangle: bool,
+  terminal_binding: bool,
+  priority: u8,
+  hidden: bool,
+  pub from: Option<ModuleGraphConnection>,
 }
 
 impl ExportSpec {
-  pub fn new(_name: String) -> Self {
+  pub fn new(name: String) -> Self {
     Self {
-      _name,
+      name,
       ..Default::default()
     }
   }
 }
 
 #[derive(Debug, Default)]
+#[allow(unused)]
 pub struct ExportsSpec {
-  _exports: ExportSpec,
-  _priority: u8,
-  _can_mangle: bool,
-  _terminal_binding: bool,
+  pub exports: ExportSpec,
+  pub priority: Option<u8>,
+  pub can_mangle: Option<bool>,
+  pub terminal_binding: Option<bool>,
+  pub from: Option<ModuleGraphConnection>,
+  pub dependencies: Vec<ModuleIdentifier>,
+  pub hide_export: Vec<JsWord>,
 }
 
 pub enum ExportsReferencedType {
