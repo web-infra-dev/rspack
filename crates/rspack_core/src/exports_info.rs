@@ -150,7 +150,7 @@ pub enum UsedName {
 
 #[derive(Debug, Clone)]
 pub struct ExportInfoTargetValue {
-  connection: Option<ModuleGraphConnection>,
+  connection: ModuleGraphConnection,
   exports: Vec<JsWord>,
   priority: u8,
 }
@@ -210,6 +210,22 @@ pub enum ExportInfoProvided {
   False,
   /// `Null` has real semantic in webpack https://github.com/webpack/webpack/blob/853bfda35a0080605c09e1bdeb0103bcb9367a10/lib/ExportsInfo.js#L830  
   Null,
+}
+
+pub struct ResolvedExportInfoTarget {
+  module: ModuleIdentifier,
+  exports: Option<Vec<JsWord>>,
+  connection: ModuleGraphConnection,
+}
+
+struct UnResolvedExportInfoTarget {
+  connection: ModuleGraphConnection,
+  exports: Option<Vec<JsWord>>,
+}
+
+pub enum ResolvedExportInfoTargetWithCircular {
+  Target(ResolvedExportInfoTarget),
+  Circular,
 }
 
 impl ExportInfo {
@@ -288,10 +304,72 @@ impl ExportInfo {
     return &self.max_target;
   }
 
+  pub fn get_target<'a>(&mut self, mg: &'a ModuleGraph) -> Option<ResolvedExportInfoTarget> {
+    let mut already_visited = HashSet::default();
+    self._get_target(mg, Box::new(|_| true), &mut already_visited);
+    None
+  }
+
+  pub fn _get_target<'a>(
+    &mut self,
+    mg: &'a ModuleGraph,
+    resolve_filter: Box<dyn Fn(&ResolvedExportInfoTarget) -> bool>,
+    already_visited: &mut HashSet<ExportInfoId>,
+  ) -> Option<ResolvedExportInfoTargetWithCircular> {
+    fn resolve_target(
+      target: Option<UnResolvedExportInfoTarget>,
+      already_visited: &mut HashSet<ExportInfoId>,
+    ) -> Option<ResolvedExportInfoTargetWithCircular> {
+      todo!()
+    }
+    if self.target.len() == 0 {
+      return None;
+    }
+    if already_visited.contains(&self.id) {
+      return Some(ResolvedExportInfoTargetWithCircular::Circular);
+    }
+    already_visited.insert(self.id);
+    let mut values = self
+      .get_max_target()
+      .values()
+      .map(|item| UnResolvedExportInfoTarget {
+        connection: item.connection.clone(),
+        exports: Some(item.exports.clone()),
+      })
+      .clone();
+    let target = resolve_target(values.next(), already_visited);
+    match target {
+      Some(ResolvedExportInfoTargetWithCircular::Circular) => {
+        return Some(ResolvedExportInfoTargetWithCircular::Circular)
+      }
+      None => return None,
+      Some(ResolvedExportInfoTargetWithCircular::Target(target)) => {
+        while let Some(val) = values.next() {
+          let t = resolve_target(Some(val), already_visited);
+          match t {
+            Some(ResolvedExportInfoTargetWithCircular::Circular) => {
+              return Some(ResolvedExportInfoTargetWithCircular::Circular);
+            }
+            Some(ResolvedExportInfoTargetWithCircular::Target(tt)) => {
+              if target.module != tt.module {
+                return None;
+              }
+              if target.exports != tt.exports {
+                return None;
+              }
+            }
+            None => return None,
+          }
+        }
+        return Some(ResolvedExportInfoTargetWithCircular::Target(target));
+      }
+    }
+  }
+
   pub fn set_target(
     &mut self,
     key: &DependencyId,
-    connection: Option<ModuleGraphConnection>,
+    connection: ModuleGraphConnection,
     export_name: Option<&Vec<JsWord>>,
     priority: Option<u8>,
   ) -> bool {
@@ -323,11 +401,11 @@ impl ExportInfo {
         self.max_target_is_set = false;
         return true;
       }
-    } else if let Some(connection) = connection {
+    } else {
       self.target.insert(
         *key,
         ExportInfoTargetValue {
-          connection: Some(connection),
+          connection,
           exports: export_name.cloned().unwrap_or_default(),
           priority: normalized_priority,
         },

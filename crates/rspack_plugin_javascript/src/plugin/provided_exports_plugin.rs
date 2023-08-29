@@ -194,7 +194,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
           } else {
             Some(&fallback)
           };
-          export_info.set_target(&dep_id, Some(from), export_name, priority)
+          export_info.set_target(&dep_id, from, export_name, priority)
         };
         self.changed |= changed;
       }
