@@ -2,9 +2,7 @@ import { z } from "zod";
 import { Compiler } from "../../../Compiler";
 import { splitChunks } from "./split-chunks";
 
-const rspackPluginInstance = z.object({
-	apply: z.function()
-});
+const rspackPluginInstance = z.any();
 
 export function optimization() {
 	return z.strictObject({

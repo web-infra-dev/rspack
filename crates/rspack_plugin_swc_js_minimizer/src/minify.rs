@@ -7,9 +7,15 @@ use async_recursion::async_recursion;
 use regex::Regex;
 use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
-  Minification, ModuleType,
+  ModuleType,
 };
 use rspack_error::{internal_error, DiagnosticKind, Error, Result, TraceableError};
+use rspack_plugin_javascript::ast::parse_js;
+use rspack_plugin_javascript::ast::{print, SourceMapConfig};
+use rspack_plugin_javascript::{
+  utils::ecma_parse_error_to_rspack_error, ExtractedCommentsInfo, IsModule, SourceMapsConfig,
+  TransformOutput,
+};
 use swc_core::{
   common::{
     collections::AHashMap,
@@ -35,12 +41,7 @@ use swc_ecma_minifier::{
   option::{MinifyOptions, TopLevelOptions},
 };
 
-use super::parse::parse_js;
-use super::stringify::{print, SourceMapConfig};
-use crate::{
-  utils::ecma_parse_error_to_rspack_error, ExtractedCommentsInfo, IsModule, JsMinifyCommentOption,
-  JsMinifyOptions, SourceMapsConfig, TransformOutput,
-};
+use crate::{JsMinifyCommentOption, JsMinifyOptions, Minification};
 
 #[async_recursion]
 pub async fn match_object(obj: &Minification, str: &str) -> Result<bool> {
@@ -113,27 +114,17 @@ pub fn minify(
         let fm = cm.new_source_file(FileName::Custom(filename.to_string()), input);
         let target = opts.ecma.clone().into();
 
-        let (source_map, _) = opts
+        let source_map = opts
           .source_map
           .as_ref()
-          .map(|obj| -> std::result::Result<_, anyhow::Error> {
-            let orig = obj
-              .content
-              .as_ref()
-              .map(|s| sourcemap::SourceMap::from_slice(s.as_bytes()));
-            let orig = match orig {
-              Some(v) => Some(v?),
-              None => None,
-            };
-            Ok((SourceMapsConfig::Bool(true), orig))
-          })
+          .map(|_| SourceMapsConfig::Bool(true))
           .unwrap_as_option(|v| {
-            Some(Ok(match v {
-              Some(true) => (SourceMapsConfig::Bool(true), None),
-              _ => (SourceMapsConfig::Bool(false), None),
-            }))
+            Some(match v {
+              Some(true) => SourceMapsConfig::Bool(true),
+              _ => SourceMapsConfig::Bool(false),
+            })
           })
-          .expect("TODO:")?;
+          .expect("TODO:");
 
         let mut min_opts = MinifyOptions {
           compress: opts

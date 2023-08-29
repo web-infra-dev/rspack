@@ -13,7 +13,7 @@ import fs from "fs";
 import path from "path";
 import { isNil } from "../util";
 import { cleverMerge } from "../util/cleverMerge";
-import * as oldBuiltins from "./builtins";
+import { deprecated_resolveBuiltins } from "../builtin-plugin";
 import {
 	getDefaultTarget,
 	getTargetProperties,
@@ -74,7 +74,9 @@ export const applyRspackOptionsDefaults = (
 	const futureDefaults = options.experiments.futureDefaults ?? false;
 	F(options, "cache", () => development);
 
-	applyExperimentsDefaults(options.experiments, { cache: options.cache! });
+	applyExperimentsDefaults(options.experiments, {
+		cache: options.cache!
+	});
 
 	applySnapshotDefaults(options.snapshot, { production });
 
@@ -126,14 +128,6 @@ export const applyRspackOptionsDefaults = (
 		getResolveLoaderDefaults(),
 		options.resolveLoader
 	);
-
-	// TODO: refactor builtins
-	options.builtins = oldBuiltins.resolveBuiltinsOptions(options.builtins, {
-		contextPath: options.context!,
-		optimization: options.optimization,
-		production,
-		css: options.experiments.css!
-	}) as any;
 };
 
 export const applyRspackOptionsBaseDefaults = (
@@ -672,7 +666,11 @@ const applyOptimizationDefaults = (
 	D(optimization, "runtimeChunk", false);
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
-	A(optimization, "minimizer", () => []);
+	A(optimization, "minimizer", () => [
+		// TODO: enable this when drop support for builtins options
+		// new SwcJsMinimizerPlugin(),
+		// new SwcCssMinimizerPlugin()
+	]);
 	const { splitChunks } = optimization;
 	if (splitChunks) {
 		// A(splitChunks, "defaultSizeTypes", () =>

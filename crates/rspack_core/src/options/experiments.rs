@@ -27,5 +27,4 @@ pub struct Experiments {
   pub incremental_rebuild: IncrementalRebuild,
   pub async_web_assembly: bool,
   pub new_split_chunks: bool,
-  pub css: bool,
 }

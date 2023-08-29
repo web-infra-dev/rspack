@@ -75,11 +75,6 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 			}
 		}
 	}
-
-	if (options.ignoreWarnings !== undefined) {
-		new IgnoreWarningsPlugin(options.ignoreWarnings).apply(compiler);
-	}
-
 	applyRspackOptionsDefaults(compiler.options);
 	logger.debug(
 		"NormalizedOptions:",

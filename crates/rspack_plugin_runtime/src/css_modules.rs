@@ -3,7 +3,6 @@ use rspack_core::{
   AdditionalChunkRuntimeRequirementsArgs, ChunkLoading, ChunkLoadingType, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeGlobals, RuntimeModuleExt,
 };
-use rspack_error::Result;
 
 use crate::runtime_module::{is_enabled_for_chunk, CssLoadingRuntimeModule};
 
@@ -14,10 +13,6 @@ pub struct CssModulesPlugin;
 impl Plugin for CssModulesPlugin {
   fn name(&self) -> &'static str {
     "CssModulesPlugin"
-  }
-
-  fn apply(&self, _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
-    Ok(())
   }
 
   fn runtime_requirements_in_tree(

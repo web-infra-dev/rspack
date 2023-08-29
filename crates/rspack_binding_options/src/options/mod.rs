@@ -69,7 +69,6 @@ pub struct RawOptions {
   pub resolve: RawResolveOptions,
   pub resolve_loader: RawResolveOptions,
   pub module: RawModuleOptions,
-  pub builtins: RawBuiltins,
   pub externals: Option<Vec<RawExternalItem>>,
   pub externals_type: String,
   pub externals_presets: RawExternalsPresets,
@@ -83,6 +82,7 @@ pub struct RawOptions {
   pub experiments: RawExperiments,
   pub node: Option<RawNodeOption>,
   pub profile: bool,
+  pub builtins: RawBuiltins,
 }
 
 impl RawOptionsApply for RawOptions {
@@ -134,7 +134,6 @@ impl RawOptionsApply for RawOptions {
       },
       async_web_assembly: self.experiments.async_web_assembly,
       new_split_chunks: self.experiments.new_split_chunks,
-      css: self.experiments.css,
     };
     let optimization = IS_ENABLE_NEW_SPLIT_CHUNKS.set(&experiments.new_split_chunks, || {
       self.optimization.apply(plugins)
@@ -143,7 +142,6 @@ impl RawOptionsApply for RawOptions {
     let snapshot = self.snapshot.into();
     let node = self.node.map(|n| n.into());
     let dev_server: DevServerOptions = self.dev_server.into();
-    let builtins = self.builtins.apply(plugins)?;
 
     plugins.push(rspack_plugin_schemes::DataUriPlugin.boxed());
     plugins.push(rspack_plugin_schemes::FileUriPlugin.boxed());
@@ -209,9 +207,9 @@ impl RawOptionsApply for RawOptions {
         plugins,
       );
     }
-    if self.externals_presets.web || (self.externals_presets.node && experiments.css) {
+    if self.externals_presets.web || (self.externals_presets.node && self.experiments.css) {
       plugins.push(rspack_plugin_externals::http_url_external_plugin(
-        experiments.css,
+        self.experiments.css,
       ));
     }
     if experiments.async_web_assembly {
@@ -264,8 +262,8 @@ impl RawOptionsApply for RawOptions {
       optimization,
       node,
       dev_server,
-      builtins,
       profile: self.profile,
+      builtins: self.builtins.apply(plugins)?,
     })
   }
 }

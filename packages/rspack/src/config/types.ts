@@ -10,15 +10,14 @@
 
 import watchpack from "watchpack";
 import { Compiler } from "../Compiler";
-import * as oldBuiltins from "./builtins";
+import * as oldBuiltins from "../builtin-plugin";
 import { Compilation } from "..";
 import type * as webpackDevServer from "webpack-dev-server";
 import type { Options as RspackOptions } from "./zod/_rewrite";
 import type { OptimizationConfig as Optimization } from "./zod/optimization";
 import type { RawFuncUseCtx } from "@rspack/binding";
+import { RspackBuiltinPlugin } from "../builtin-plugin";
 export type { RspackOptions, Optimization };
-
-export type { BannerConditions, BannerCondition } from "./builtins";
 
 export type {
 	LoaderContext,
@@ -631,7 +630,11 @@ export type OptimizationRuntimeChunkNormalized =
 	  };
 
 ///// Plugins /////
-export type Plugins = (RspackPluginInstance | RspackPluginFunction)[];
+export type Plugins = (
+	| RspackPluginInstance
+	| RspackPluginFunction
+	| RspackBuiltinPlugin
+)[];
 export interface RspackPluginInstance {
 	apply: (compiler: Compiler) => void;
 	[k: string]: any;
@@ -651,6 +654,17 @@ export interface IncrementalRebuildOptions {
 	make?: boolean;
 	emitAsset?: boolean;
 }
+// TODO: discuss with webpack, should move to css generator options
+// export interface CssExperimentOptions {
+// 	exportsOnly?: boolean;
+// 	localsConvention?:
+// 		| "asIs"
+// 		| "camelCase"
+// 		| "camelCaseOnly"
+// 		| "dashes"
+// 		| "dashesOnly";
+// 	localIdentName?: string;
+// }
 export interface ExperimentsNormalized {
 	lazyCompilation?: boolean;
 	incrementalRebuild?: false | IncrementalRebuildOptions;

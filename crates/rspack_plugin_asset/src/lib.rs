@@ -428,7 +428,11 @@ impl Plugin for AssetPlugin {
     "asset"
   }
 
-  fn apply(&self, ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
+  fn apply(
+    &self,
+    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
     let data_url_condition = self
       .config
       .parse_options

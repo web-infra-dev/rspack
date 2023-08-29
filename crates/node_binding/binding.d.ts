@@ -59,7 +59,7 @@ export class JsStats {
 }
 
 export class Rspack {
-  constructor(options: RawOptions, jsHooks: JsHooks | undefined | null, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
+  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, jsHooks: JsHooks | undefined | null, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
   unsafe_set_disabled_hooks(hooks: Array<string>): void
   /**
    * Build with the given option passed to the constructor
@@ -107,6 +107,22 @@ export interface AfterResolveData {
 export interface BeforeResolveData {
   request: string
   context: string
+}
+
+export interface BuiltinPlugin {
+  kind: BuiltinPluginKind
+  options: unknown
+}
+
+export const enum BuiltinPluginKind {
+  Define = 0,
+  Provide = 1,
+  Banner = 2,
+  Progress = 3,
+  Copy = 4,
+  Html = 5,
+  SwcJsMinimizer = 6,
+  SwcCssMinimizer = 7
 }
 
 export function cleanupGlobalTrace(): void
@@ -493,24 +509,16 @@ export interface RawBannerConfig {
 }
 
 export interface RawBuiltins {
-  html?: Array<RawHtmlPluginConfig>
   css?: RawCssPluginConfig
-  minifyOptions?: RawMinification
   presetEnv?: RawPresetEnv
-  define: Record<string, string>
-  provide: Record<string, string[]>
   treeShaking: string
-  progress?: RawProgressPluginConfig
   react: RawReactOptions
   decorator?: RawDecoratorOptions
   noEmitAssets: boolean
   emotion?: string
   devFriendlySplitChunks: boolean
-  copy?: RawCopyConfig
-  banner?: Array<RawBannerConfig>
   pluginImport?: Array<RawPluginImportConfig>
   relay?: RawRelayConfig
-  codeGeneration?: RawCodeGeneration
 }
 
 export interface RawCacheGroupOptions {
@@ -540,10 +548,6 @@ export interface RawCacheOptions {
   cacheLocation: string
   name: string
   version: string
-}
-
-export interface RawCodeGeneration {
-  keepComments: boolean
 }
 
 export interface RawCopyConfig {
@@ -816,7 +820,6 @@ export interface RawOptions {
   resolve: RawResolveOptions
   resolveLoader: RawResolveOptions
   module: RawModuleOptions
-  builtins: RawBuiltins
   externals?: Array<RawExternalItem>
   externalsType: string
   externalsPresets: RawExternalsPresets
@@ -829,6 +832,7 @@ export interface RawOptions {
   experiments: RawExperiments
   node?: RawNodeOption
   profile: boolean
+  builtins: RawBuiltins
 }
 
 export interface RawOutputOptions {

@@ -3,7 +3,6 @@ use std::{
   sync::{Arc, Mutex},
 };
 
-use rayon::prelude::*;
 use rspack_error::{Diagnostic, Result};
 use rspack_loader_runner::ResourceData;
 use rustc_hash::FxHashMap as HashMap;
@@ -50,16 +49,19 @@ impl std::fmt::Debug for PluginDriver {
 
 impl PluginDriver {
   pub fn new(
-    options: Arc<CompilerOptions>,
-    mut plugins: Vec<Box<dyn Plugin>>,
+    mut options: CompilerOptions,
+    plugins: Vec<Box<dyn Plugin>>,
     resolver_factory: Arc<ResolverFactory>,
-  ) -> Self {
+  ) -> (Arc<Self>, Arc<CompilerOptions>) {
     let registered_parser_and_generator_builder = plugins
-      .par_iter_mut()
+      .iter()
       .map(|plugin| {
         let mut apply_context = ApplyContext::default();
         plugin
-          .apply(PluginContext::with_context(&mut apply_context))
+          .apply(
+            PluginContext::with_context(&mut apply_context),
+            &mut options,
+          )
           .expect("TODO:");
         apply_context
       })
@@ -71,14 +73,19 @@ impl PluginDriver {
       })
       .collect::<HashMap<ModuleType, BoxedParserAndGeneratorBuilder>>();
 
-    Self {
+    let options = Arc::new(options);
+
+    (
+      Arc::new(Self {
+        options: options.clone(),
+        plugins,
+        resolver_factory,
+        // registered_parser,
+        registered_parser_and_generator_builder,
+        diagnostics: Arc::new(Mutex::new(vec![])),
+      }),
       options,
-      plugins,
-      resolver_factory,
-      // registered_parser,
-      registered_parser_and_generator_builder,
-      diagnostics: Arc::new(Mutex::new(vec![])),
-    }
+    )
   }
 
   pub fn take_diagnostic(&self) -> Vec<Diagnostic> {
