@@ -193,12 +193,14 @@ pub struct ExportInfo {
   pub usage_state: UsageState,
   used_name: Option<String>,
   target: HashMap<DependencyId, ExportInfoTargetValue>,
+  max_target: HashMap<DependencyId, ExportInfoTargetValue>,
   pub provided: Option<ExportInfoProvided>,
   pub can_mangle_provide: Option<bool>,
   pub terminal_binding: bool,
   /// This is rspack only variable, it is used to flag if the target has been initialized
   target_is_set: bool,
   pub id: ExportInfoId,
+  max_target_is_set: bool,
   pub exports_info: Box<ExportsInfoId>,
 }
 
@@ -224,8 +226,10 @@ impl ExportInfo {
       can_mangle_provide: None,
       terminal_binding: false,
       target_is_set: false,
+      max_target_is_set: false,
       id: ExportInfoId::new(),
       exports_info: Box::new(ExportsInfoId::new()),
+      max_target: HashMap::default(),
     }
   }
 
@@ -246,7 +250,8 @@ impl ExportInfo {
     } else {
       match self.target.remove(key) {
         Some(_) => {
-          // TODO: max target
+          self.max_target.clear();
+          self.max_target_is_set = false;
           true
         }
         _ => false,
@@ -285,7 +290,8 @@ impl ExportInfo {
         old_target.exports = export_name.cloned().unwrap_or_default();
         old_target.priority = normalized_priority;
         old_target.connection = connection;
-        // TODO: reset max target
+        self.max_target.clear();
+        self.max_target_is_set = false;
         return true;
       }
     } else if let Some(connection) = connection {
@@ -297,7 +303,8 @@ impl ExportInfo {
           priority: normalized_priority,
         },
       );
-      // TODO: reset max target
+      self.max_target.clear();
+      self.max_target_is_set = false;
       return true;
     }
 
