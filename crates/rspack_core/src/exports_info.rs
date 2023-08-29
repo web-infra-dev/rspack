@@ -1,17 +1,18 @@
 use std::collections::hash_map::Entry;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
 
+use once_cell::sync::Lazy;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
+use serde::Serialize;
 use swc_core::ecma::atoms::JsWord;
 
-use crate::ConnectionState;
-use crate::DependencyCondition;
-use crate::DependencyId;
-use crate::ModuleGraph;
-use crate::ModuleGraphConnection;
-use crate::ModuleIdentifier;
-use crate::RuntimeSpec;
+use crate::{
+  ConnectionState, DependencyCondition, DependencyId, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier, RuntimeSpec,
+};
 
 #[derive(Debug)]
 pub struct ExportsInfo {
@@ -22,35 +23,35 @@ pub struct ExportsInfo {
   pub redirect_to: Option<Box<ExportsInfo>>,
 }
 
-// #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
-// pub struct ExportInfoId(usize);
-//
-// pub static EXPORT_INFO_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
-//
-// impl ExportInfoId {
-//   pub fn new() -> Self {
-//     Self(EXPORT_INFO_ID.fetch_add(1, Relaxed))
-//   }
-// }
-// impl Default for ExportInfoId {
-//   fn default() -> Self {
-//     Self::new()
-//   }
-// }
-//
-// impl std::ops::Deref for ExportInfoId {
-//   type Target = usize;
-//
-//   fn deref(&self) -> &Self::Target {
-//     &self.0
-//   }
-// }
-//
-// impl From<usize> for DependencyId {
-//   fn from(id: usize) -> Self {
-//     Self(id)
-//   }
-// }
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
+pub struct ExportInfoId(usize);
+
+pub static EXPORT_INFO_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
+
+impl ExportInfoId {
+  pub fn new() -> Self {
+    Self(EXPORT_INFO_ID.fetch_add(1, Relaxed))
+  }
+}
+impl Default for ExportInfoId {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
+impl std::ops::Deref for ExportInfoId {
+  type Target = usize;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl From<usize> for ExportInfoId {
+  fn from(id: usize) -> Self {
+    Self(id)
+  }
+}
 
 impl ExportsInfo {
   pub fn new() -> Self {
@@ -126,12 +127,6 @@ impl ExportsInfo {
         }
       }
     }
-    // if  {
-    //   info
-    // } else if let Some(ref mut redirect_to) = self.redirect_to {
-    //   redirect_to.export_info_mut(name)
-    // } else {
-    // }
   }
 }
 
@@ -166,6 +161,7 @@ pub struct ExportInfo {
   pub terminal_binding: bool,
   /// This is rspack only variable, it is used to flag if the target has been initialized
   target_is_set: bool,
+  pub id: ExportInfoId,
 }
 
 #[derive(Debug)]
@@ -190,6 +186,7 @@ impl ExportInfo {
       can_mangle_provide: None,
       terminal_binding: false,
       target_is_set: false,
+      id: ExportInfoId::new(),
     }
   }
 
