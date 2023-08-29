@@ -18,7 +18,6 @@ impl From<usize> for ConnectionId {
     Self(id)
   }
 }
-// ,
 
 #[derive(Debug, Clone)]
 pub struct ModuleGraphConnection {

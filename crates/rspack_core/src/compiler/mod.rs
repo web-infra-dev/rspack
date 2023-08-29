@@ -196,12 +196,12 @@ where
         };
         match exports_info_map.entry(importer) {
           Entry::Occupied(mut occ) => {
-            let export_info = ExportInfo::new(name.clone(), UsageState::Used);
+            let export_info = ExportInfo::new(name.clone(), UsageState::Used, None);
             occ.get_mut().insert(name.clone(), export_info);
           }
           Entry::Vacant(vac) => {
             let mut map = HashMap::default();
-            let export_info = ExportInfo::new(name.clone(), UsageState::Used);
+            let export_info = ExportInfo::new(name.clone(), UsageState::Used, None);
             map.insert(name.clone(), export_info);
             vac.insert(map);
           }

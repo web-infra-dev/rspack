@@ -1,5 +1,6 @@
 #![feature(let_chains)]
 #![feature(box_patterns)]
+#![recursion_limit = "256"]
 
 pub(crate) mod dependency;
 mod plugin;
