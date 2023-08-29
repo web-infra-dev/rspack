@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use cargo_rst::{helper::make_relative_from, rst::RstBuilder};
 use insta::{assert_snapshot, Settings};
+use itertools::Itertools;
 use rspack_binding_options::{RawOptions, RawOptionsApply};
 use rspack_core::{BoxPlugin, Compiler, CompilerOptions};
 use rspack_fs::AsyncNativeFileSystem;
@@ -66,7 +67,7 @@ pub async fn test_fixture_insta(
         None
       }
     })
-    .collect::<Vec<_>>()
+    .sorted()
     .join("\n");
   settings.bind(|| {
     assert_snapshot!("output", content);

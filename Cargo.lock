@@ -2961,6 +2961,7 @@ dependencies = [
  "async-trait",
  "cargo-rst",
  "insta",
+ "itertools",
  "rspack_binding_options",
  "rspack_core",
  "rspack_error",
