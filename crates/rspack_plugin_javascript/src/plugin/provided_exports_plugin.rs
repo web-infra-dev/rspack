@@ -11,19 +11,29 @@ use swc_core::ecma::atoms::JsWord;
 pub struct ProvidedExportsPlugin<'a> {
   mg: &'a mut ModuleGraph,
   changed: bool,
+  current_module_id: ModuleIdentifier,
+  dependencies: HashMap<ModuleIdentifier, HashSet<ModuleIdentifier>>,
 }
 
 impl<'a> ProvidedExportsPlugin<'a> {
+  pub fn new(mg: &'a mut ModuleGraph) -> Self {
+    Self {
+      mg,
+      changed: false,
+      current_module_id: ModuleIdentifier::default(),
+      dependencies: HashMap::default(),
+    }
+  }
+
   pub fn apply(&mut self) {
-    let mut dependencies: HashMap<ModuleIdentifier, HashSet<ModuleIdentifier>> = HashMap::default();
     let mut q = VecDeque::new();
     while let Some(module_id) = q.pop_back() {
       self.changed = false;
-      let mut changed = false;
+      self.current_module_id = module_id;
       let mut exports_specs_from_dependencies: HashMap<DependencyId, ExportsSpec> =
         HashMap::default();
       self.process_dependencies_block(module_id, &mut exports_specs_from_dependencies);
-      // I use this trick because rustc borrow rules, it is safe becuase provided is sync, no other program visit exports info
+      // I use this trick because of rustc borrow rules, it is safe becuase dependency provide plugin is sync, there are no other methods using it at the same time.
       let mut exports_info = {
         let exports_info_mut = self.mg.get_exports_info_mut(&module_id);
         std::mem::take(exports_info_mut)
@@ -36,7 +46,15 @@ impl<'a> ProvidedExportsPlugin<'a> {
         std::mem::replace(self.mg.get_exports_info_mut(&module_id), exports_info)
       };
       if self.changed {
-        // TODO:
+        self.notify_dependencies(&mut q);
+      }
+    }
+  }
+
+  pub fn notify_dependencies(&mut self, q: &mut VecDeque<ModuleIdentifier>) {
+    if let Some(set) = self.dependencies.get(&self.current_module_id) {
+      for mi in set.iter() {
+        q.push_back(mi.clone());
       }
     }
   }
@@ -164,7 +182,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
       }
 
       if let Some(exports) = exports {
-        // TODO:
+        // TODO: nested import
         // let nested_exports_info = export_info.create_nested_exports_info();
         // self.merge_exports(nested_exports_info, exports, global_export_info);
       }
@@ -181,9 +199,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
           };
           export_info.set_target(&dep_id, Some(from), export_name, priority)
         };
-        if changed {
-          self.changed = changed;
-        }
+        self.changed |= changed;
       }
 
       // Recalculate target exportsInfo
