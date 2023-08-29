@@ -37,6 +37,10 @@ impl ImportContextDependency {
 }
 
 impl Dependency for ImportContextDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -47,10 +51,6 @@ impl Dependency for ImportContextDependency {
 }
 
 impl ModuleDependency for ImportContextDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.options.request
   }
@@ -65,10 +65,6 @@ impl ModuleDependency for ImportContextDependency {
 
   fn options(&self) -> Option<&ContextOptions> {
     Some(&self.options)
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
   }
 
   fn set_request(&mut self, request: String) {

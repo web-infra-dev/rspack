@@ -13,7 +13,7 @@ import fs from "fs";
 import path from "path";
 import { isNil } from "../util";
 import { cleverMerge } from "../util/cleverMerge";
-import * as oldBuiltins from "./builtins";
+import { deprecated_resolveBuiltins } from "../builtin-plugin";
 import {
 	getDefaultTarget,
 	getTargetProperties,
@@ -69,11 +69,14 @@ export const applyRspackOptionsDefaults = (
 
 	F(options, "devtool", () => false as const);
 	D(options, "watch", false);
+	D(options, "profile", false);
 
 	const futureDefaults = options.experiments.futureDefaults ?? false;
 	F(options, "cache", () => development);
 
-	applyExperimentsDefaults(options.experiments, { cache: options.cache! });
+	applyExperimentsDefaults(options.experiments, {
+		cache: options.cache!
+	});
 
 	applySnapshotDefaults(options.snapshot, { production });
 
@@ -121,12 +124,10 @@ export const applyRspackOptionsDefaults = (
 		options.resolve
 	);
 
-	// TODO: refactor builtins
-	options.builtins = oldBuiltins.resolveBuiltinsOptions(options.builtins, {
-		contextPath: options.context!,
-		optimization: options.optimization,
-		production
-	}) as any;
+	options.resolveLoader = cleverMerge(
+		getResolveLoaderDefaults(),
+		options.resolveLoader
+	);
 };
 
 export const applyRspackOptionsBaseDefaults = (
@@ -660,11 +661,16 @@ const applyOptimizationDefaults = (
 		if (production) return "deterministic";
 		return "named";
 	});
+	F(optimization, "chunkIds", (): "named" | "deterministic" => "named");
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
 	D(optimization, "runtimeChunk", false);
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
-	A(optimization, "minimizer", () => []);
+	A(optimization, "minimizer", () => [
+		// TODO: enable this when drop support for builtins options
+		// new SwcJsMinimizerPlugin(),
+		// new SwcCssMinimizerPlugin()
+	]);
 	const { splitChunks } = optimization;
 	if (splitChunks) {
 		// A(splitChunks, "defaultSizeTypes", () =>
@@ -696,6 +702,18 @@ const applyOptimizationDefaults = (
 			}));
 		}
 	}
+};
+
+const getResolveLoaderDefaults = () => {
+	const resolveOptions: ResolveOptions = {
+		conditionNames: ["loader", "require", "node"],
+		exportsFields: ["exports"],
+		mainFields: ["loader", "main"],
+		extensions: [".js"],
+		mainFiles: ["index"]
+	};
+
+	return resolveOptions;
 };
 
 const getResolveDefaults = ({

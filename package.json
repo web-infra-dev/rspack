@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "0.2.10",
+  "version": "0.3.1",
   "license": "MIT",
   "description": "A Fast Rust-based web bundler",
   "private": true,
@@ -17,7 +17,7 @@
     "format:js": "npx prettier \"packages/**/*.{ts,js}\" \"crates/rspack_plugin_runtime/**/*.{ts,js}\" --check --write",
     "format-ci:toml": "npx @taplo/cli format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
     "format:toml": "npx @taplo/cli format '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
-    "lint:js": "npx prettier \"packages/**/*.{ts,js}\" --check",
+    "lint:js": "oxlint .",
     "lint:rs": "node ./scripts/check_rust_dependency.cjs",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
     "build:binding:release": "pnpm --filter @rspack/binding run build:release",
@@ -28,13 +28,6 @@
     "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
     "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:example && pnpm run test:unit && pnpm test:webpack",
     "test:webpack": "pnpm --filter \"webpack-test\" test:metric"
-  },
-  "lint-staged": {
-    "*.rs": "rustfmt --edition 2021",
-    "packages/**/*.{ts,js}": "prettier --write",
-    "x.mjs": "prettier --write",
-    "crates/rspack_plugin_runtime/**/*.{ts,js}": "prettier --write",
-    "*.toml": "npx @taplo/cli format"
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -56,6 +49,7 @@
     "jest-environment-node": "29.5.0",
     "lint-staged": "^12.5.0",
     "npm-run-all": "4.1.5",
+    "oxlint": "0.0.10",
     "prettier": "2.5.1",
     "rimraf": "3.0.2",
     "ts-jest": "29.1.0",

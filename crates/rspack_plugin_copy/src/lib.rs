@@ -11,26 +11,12 @@ use dashmap::DashSet;
 use glob::MatchOptions;
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::RawSource, AssetInfo, Compilation, CompilationAsset, Filename, FromType,
-  PathData, Pattern, Plugin, ToType,
+  rspack_sources::RawSource, AssetInfo, Compilation, CompilationAsset, CompilationLogger, Filename,
+  FromType, Logger, PathData, Pattern, Plugin, ToType,
 };
 use rspack_error::Diagnostic;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use sugar_path::{AsPath, SugarPath};
-use tracing::Level;
-
-#[derive(Debug)]
-struct Logger(&'static str);
-
-impl Logger {
-  pub fn log(&self, msg: &str) {
-    tracing::event!(Level::INFO, msg);
-  }
-
-  pub fn debug(&self, msg: &str) {
-    tracing::event!(Level::DEBUG, msg);
-  }
-}
 
 #[derive(Debug, Clone)]
 pub struct RunPatternResult {
@@ -42,8 +28,6 @@ pub struct RunPatternResult {
   pub force: bool,
   pub priority: i32,
 }
-
-static LOGGER: Logger = Logger("copy-rspack-plugin");
 
 #[derive(Debug)]
 pub struct CopyPlugin {
@@ -88,6 +72,7 @@ impl CopyPlugin {
     file_dependencies: &DashSet<PathBuf>,
     diagnostics: &DashSet<Diagnostic>,
     compilation: &Compilation,
+    logger: &CompilationLogger,
   ) -> Option<RunPatternResult> {
     // Exclude directories
     if entry.is_dir() {
@@ -101,7 +86,7 @@ impl CopyPlugin {
 
     let from = entry.as_path().to_path_buf();
 
-    LOGGER.debug(&format!("found '{}'", from.display()));
+    logger.debug(format!("found '{}'", from.display()));
 
     let absolute_filename = if from.is_absolute() {
       from.clone()
@@ -129,7 +114,7 @@ impl CopyPlugin {
       ToType::File
     };
 
-    LOGGER.log(&format!("'to' option '{to}' determined as '{to_type}'"));
+    logger.log(&format!("'to' option '{to}' determined as '{to_type}'"));
 
     let relative = pathdiff::diff_paths(&absolute_filename, context);
     let filename = if matches!(to_type, ToType::Dir) {
@@ -148,7 +133,7 @@ impl CopyPlugin {
       filename
     };
 
-    LOGGER.log(&format!(
+    logger.log(format!(
       "determined that '{}' should write to '{}'",
       from.display(),
       filename.display()
@@ -158,7 +143,7 @@ impl CopyPlugin {
 
     // If this came from a glob or dir, add it to the file dependencies
     if matches!(from_type, FromType::Dir | FromType::Glob) {
-      LOGGER.debug(&format!(
+      logger.debug(format!(
         "added '{}' as a file dependency",
         absolute_filename.display()
       ));
@@ -168,12 +153,12 @@ impl CopyPlugin {
 
     // TODO cache
 
-    LOGGER.debug(&format!("reading '{}'...", absolute_filename.display()));
+    logger.debug(format!("reading '{}'...", absolute_filename.display()));
     // TODO inputFileSystem
 
     let source = match tokio::fs::read(absolute_filename.clone()).await {
       Ok(data) => {
-        LOGGER.debug(&format!("read '{}'...", absolute_filename.display()));
+        logger.debug(format!("read '{}'...", absolute_filename.display()));
 
         RawSource::Buffer(data)
       }
@@ -187,7 +172,7 @@ impl CopyPlugin {
     };
 
     let filename = if matches!(&to_type, ToType::Template) {
-      LOGGER.log(&format!(
+      logger.log(format!(
         "interpolating template '{}' for '${}'...`",
         filename.display(),
         source_filename.display()
@@ -208,7 +193,7 @@ impl CopyPlugin {
           .hash_optional(compilation.get_hash()),
       );
 
-      LOGGER.log(&format!(
+      logger.log(format!(
         "interpolated template '{template_str}' for '{}'",
         filename.display()
       ));
@@ -236,6 +221,7 @@ impl CopyPlugin {
     file_dependencies: &DashSet<PathBuf>,
     context_dependencies: &DashSet<PathBuf>,
     diagnostics: &DashSet<Diagnostic>,
+    logger: &CompilationLogger,
   ) -> Option<Vec<Option<RunPatternResult>>> {
     let orig_from = &pattern.from;
     let normalized_orig_from = PathBuf::from(orig_from);
@@ -244,7 +230,7 @@ impl CopyPlugin {
       .clone()
       .unwrap_or(compilation.options.context.as_path().to_path_buf());
 
-    LOGGER.log(&format!(
+    logger.log(format!(
       "starting to process a pattern from '{}' using '{:?}' context",
       normalized_orig_from.display(),
       pattern.context.as_ref().map(|p| p.display())
@@ -256,24 +242,24 @@ impl CopyPlugin {
       context.join(&normalized_orig_from)
     };
 
-    LOGGER.debug(&format!("getting stats for '{}'...", abs_from.display()));
+    logger.debug(format!("getting stats for '{}'...", abs_from.display()));
 
     let from_type = if let Ok(meta) = fs::metadata(&abs_from) {
       if meta.is_dir() {
-        LOGGER.debug(&format!(
+        logger.debug(format!(
           "determined '{}' is a directory",
           abs_from.display()
         ));
         FromType::Dir
       } else if meta.is_file() {
-        LOGGER.debug(&format!("determined '{}' is a file", abs_from.display()));
+        logger.debug(format!("determined '{}' is a file", abs_from.display()));
         FromType::File
       } else {
-        LOGGER.debug(&format!("determined '{}' is a unknown", abs_from.display()));
+        logger.debug(format!("determined '{}' is a unknown", abs_from.display()));
         FromType::Glob
       }
     } else {
-      LOGGER.debug(&format!("determined '{}' is a glob", abs_from.display()));
+      logger.debug(format!("determined '{}' is a glob", abs_from.display()));
       FromType::Glob
     };
 
@@ -287,7 +273,7 @@ impl CopyPlugin {
     let mut need_add_context_to_dependency = false;
     let glob_query = match from_type {
       FromType::Dir => {
-        LOGGER.debug(&format!(
+        logger.debug(format!(
           "added '{}' as a context dependency",
           abs_from.display()
         ));
@@ -303,7 +289,7 @@ impl CopyPlugin {
         escaped.to_string_lossy().to_string()
       }
       FromType::File => {
-        LOGGER.debug(&format!(
+        logger.debug(format!(
           "added '{}' as a file dependency",
           abs_from.display()
         ));
@@ -329,7 +315,7 @@ impl CopyPlugin {
       }
     };
 
-    LOGGER.log(&format!("begin globbing '{glob_query}'..."));
+    logger.log(format!("begin globbing '{glob_query}'..."));
 
     let glob_entries = glob::glob_with(
       &glob_query,
@@ -369,7 +355,7 @@ impl CopyPlugin {
 
         if entries.is_empty() {
           if pattern.no_error_on_missing {
-            LOGGER.log(
+            logger.log(
               "finished to process a pattern from '${normalizedOriginalFrom}' using '${pattern.context}' context to '${pattern.to}'"
             );
             return None;
@@ -397,6 +383,7 @@ impl CopyPlugin {
               file_dependencies,
               diagnostics,
               compilation,
+              logger,
             )
             .await
           })
@@ -421,7 +408,7 @@ impl CopyPlugin {
       }
       Err(e) => {
         if pattern.no_error_on_missing {
-          LOGGER.log(&format!(
+          logger.log(format!(
             "finished to process a pattern from '{}' using '{}' context to '{:?}'",
             PathBuf::from(orig_from).display(),
             context.display(),
@@ -447,7 +434,7 @@ impl CopyPlugin {
 #[async_trait]
 impl Plugin for CopyPlugin {
   fn name(&self) -> &'static str {
-    "copy-rspack-plugin"
+    "rspack.CopyPlugin"
   }
 
   async fn process_assets_stage_additional(
@@ -455,6 +442,8 @@ impl Plugin for CopyPlugin {
     _ctx: rspack_core::PluginContext,
     mut args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsOutput {
+    let logger = args.compilation.get_logger(self.name());
+    let start = logger.time("run pattern");
     let file_dependencies = DashSet::default();
     let context_dependencies = DashSet::default();
     let diagnostics = DashSet::default();
@@ -478,6 +467,7 @@ impl Plugin for CopyPlugin {
           &file_dependencies,
           &context_dependencies,
           &diagnostics,
+          &logger,
         )
       })
       .collect::<Vec<_>>()
@@ -491,7 +481,9 @@ impl Plugin for CopyPlugin {
           .collect::<Vec<_>>()
       })
       .collect();
+    logger.time_end(start);
 
+    let start = logger.time("emit assets");
     let compilation = &mut args.compilation;
     compilation.file_dependencies.extend(file_dependencies);
     compilation
@@ -517,6 +509,7 @@ impl Plugin for CopyPlugin {
         )
       }
     });
+    logger.time_end(start);
 
     Ok(())
   }

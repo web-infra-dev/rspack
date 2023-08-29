@@ -2,13 +2,13 @@ use std::fmt::Debug;
 
 use rspack_sources::{BoxSource, ReplaceSource};
 
-use crate::{Compilation, InitFragment, Module, RuntimeGlobals};
+use crate::{BoxInitFragment, Compilation, Module, RuntimeGlobals};
 
 pub struct TemplateContext<'a> {
   pub compilation: &'a Compilation,
   pub module: &'a dyn Module,
   pub runtime_requirements: &'a mut RuntimeGlobals,
-  pub init_fragments: &'a mut Vec<InitFragment>,
+  pub init_fragments: &'a mut Vec<BoxInitFragment>,
 }
 
 pub type TemplateReplaceSource = ReplaceSource<BoxSource>;
@@ -20,4 +20,18 @@ pub trait DependencyTemplate: Debug + Sync + Send {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   );
+}
+
+pub type BoxDependencyTemplate = Box<dyn DependencyTemplate>;
+
+pub trait AsDependencyTemplate {
+  fn as_dependency_template(&self) -> Option<&dyn DependencyTemplate> {
+    None
+  }
+}
+
+impl<T: DependencyTemplate> AsDependencyTemplate for T {
+  fn as_dependency_template(&self) -> Option<&dyn DependencyTemplate> {
+    Some(self)
+  }
 }

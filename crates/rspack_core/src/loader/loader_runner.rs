@@ -4,7 +4,7 @@ pub use rspack_loader_runner::{run_loaders, Content, Loader, LoaderContext, Reso
 
 use crate::{CompilerOptions, ResolverFactory};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CompilerContext {
   pub options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,

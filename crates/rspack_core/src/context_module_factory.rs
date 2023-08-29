@@ -4,10 +4,10 @@ use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, MissingModule,
-  ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleIdentifier, NormalModuleBeforeResolveArgs, RawModule, ResolveArgs, ResolveError,
-  ResolveResult, SharedPluginDriver,
+  cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, MissingModule, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
+  NormalModuleBeforeResolveArgs, RawModule, ResolveArgs, ResolveError, ResolveResult,
+  SharedPluginDriver,
 };
 
 pub struct ContextModuleFactory {
@@ -41,8 +41,12 @@ impl ContextModuleFactory {
     &mut self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
+    let dependency = data
+      .dependency
+      .as_module_dependency_mut()
+      .expect("should be module dependency");
     let mut before_resolve_args = NormalModuleBeforeResolveArgs {
-      request: data.dependency.request().to_string(),
+      request: dependency.request().to_string(),
       context: data.context.to_string(),
     };
     if let Ok(Some(false)) = self
@@ -50,7 +54,7 @@ impl ContextModuleFactory {
       .context_module_before_resolve(&mut before_resolve_args)
       .await
     {
-      let specifier = data.dependency.request();
+      let specifier = dependency.request();
       let ident = format!("{}{specifier}", data.context);
 
       let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
@@ -66,7 +70,7 @@ impl ContextModuleFactory {
       ));
     }
     data.context = before_resolve_args.context.into();
-    data.dependency.set_request(before_resolve_args.request);
+    dependency.set_request(before_resolve_args.request);
     Ok(None)
   }
 
@@ -74,18 +78,22 @@ impl ContextModuleFactory {
     &self,
     data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
+    let dependency = data
+      .dependency
+      .as_module_dependency()
+      .expect("should be module dependency");
     let factory_meta = Default::default();
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
     let context_dependencies = Default::default();
-    let specifier = data.dependency.request();
+    let specifier = dependency.request();
     let resolve_args = ResolveArgs {
       context: data.context.clone(),
       importer: None,
       specifier,
-      dependency_type: data.dependency.dependency_type(),
-      dependency_category: data.dependency.category(),
-      span: data.dependency.span().cloned(),
+      dependency_type: dependency.dependency_type(),
+      dependency_category: dependency.category(),
+      span: dependency.span().cloned(),
       resolve_options: data.resolve_options.clone(),
       resolve_to_context: true,
       optional: false,
@@ -106,11 +114,7 @@ impl ContextModuleFactory {
           resource_query: resource.query,
           resource_fragment: resource.fragment,
           resolve_options: data.resolve_options,
-          context_options: data
-            .dependency
-            .options()
-            .expect("should has options")
-            .clone(),
+          context_options: dependency.options().expect("should has options").clone(),
         },
         plugin_driver.resolver_factory.clone(),
       )) as BoxModule,

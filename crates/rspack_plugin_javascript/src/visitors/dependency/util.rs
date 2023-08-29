@@ -74,7 +74,23 @@ pub(crate) mod expr_matcher {
     is_import_meta_webpack_hot_decline: "import.meta.webpackHot.decline",
     is_import_meta_url: "import.meta.url",
     is_import_meta: "import.meta",
+    is_exports_esmodule: "exports.__esModule",
+    is_this_esmodule: "this.__esModule",
+    is_module_exports_esmodule: "module.exports.__esModule",
+    is_object_define_property: "Object.defineProperty",
   });
+}
+
+pub fn is_require_call_expr(expr: &Expr, ctxt: &SyntaxContext) -> bool {
+  matches!(expr, Expr::Call(call_expr) if is_require_call(call_expr, ctxt))
+}
+
+pub fn is_require_call(node: &CallExpr, ctxt: &SyntaxContext) -> bool {
+  node
+    .callee
+    .as_expr()
+    .map(|expr| matches!(expr, box Expr::Ident(ident) if &ident.sym == "require" && ident.span.ctxt == *ctxt))
+    .unwrap_or_default()
 }
 
 pub fn is_require_context_call(node: &CallExpr) -> bool {

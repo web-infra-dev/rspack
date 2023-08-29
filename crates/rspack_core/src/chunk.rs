@@ -80,7 +80,7 @@ impl Chunk {
     None
   }
 
-  pub(crate) fn add_group(&mut self, group: ChunkGroupUkey) {
+  pub fn add_group(&mut self, group: ChunkGroupUkey) {
     self.groups.insert(group);
   }
 
@@ -223,15 +223,19 @@ impl Chunk {
   }
 
   pub fn get_all_async_chunks(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> HashSet<ChunkUkey> {
+    use rustc_hash::FxHashSet;
+
     let mut queue = HashSet::default();
     let mut chunks = HashSet::default();
-    let initial_chunks: HashSet<ChunkUkey> = self
+
+    let initial_chunks = self
       .groups
       .iter()
-      .filter_map(|ukey| chunk_group_by_ukey.get(ukey))
-      .flat_map(|chunk_group| chunk_group.chunks.iter())
-      .cloned()
-      .collect();
+      .map(|chunk_group| chunk_group.as_ref(chunk_group_by_ukey))
+      .map(|group| group.chunks.iter().copied().collect::<FxHashSet<_>>())
+      .reduce(|acc, prev| acc.intersection(&prev).copied().collect::<FxHashSet<_>>())
+      .unwrap_or_default();
+
     let mut initial_queue = self.groups.clone();
     let mut visit_chunk_groups = HashSet::default();
 

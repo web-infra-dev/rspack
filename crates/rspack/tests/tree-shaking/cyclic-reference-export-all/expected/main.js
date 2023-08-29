@@ -7,7 +7,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 /* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./containers */"./src/containers/index.js");
 
-const { PlatformProvider } = _containers__WEBPACK_IMPORTED_MODULE_0_["containers"];
+const { PlatformProvider } = _containers__WEBPACK_IMPORTED_MODULE_0_.containers;
 const Index = ()=>{
     console.log("PlatformProvider", PlatformProvider);
     return 'something';

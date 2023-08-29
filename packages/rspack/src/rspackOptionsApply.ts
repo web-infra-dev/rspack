@@ -19,6 +19,7 @@ import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { cleverMerge } from "./util/cleverMerge";
 import assert from "assert";
+import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
 
 export class RspackOptionsApply {
 	constructor() {}
@@ -60,6 +61,10 @@ export class RspackOptionsApply {
 
 		new DefaultStatsFactoryPlugin().apply(compiler);
 		new DefaultStatsPrinterPlugin().apply(compiler);
+
+		if (options.ignoreWarnings && options.ignoreWarnings.length > 0) {
+			new IgnoreWarningsPlugin(options.ignoreWarnings).apply(compiler);
+		}
 
 		compiler.hooks.afterPlugins.call(compiler);
 		if (!compiler.inputFileSystem) {

@@ -6,9 +6,13 @@
 use std::{fmt, sync::Arc};
 mod fake_namespace_object;
 pub use fake_namespace_object::*;
+mod module_profile;
+pub use module_profile::*;
 use rspack_database::Database;
 pub mod external_module;
 pub use external_module::*;
+mod logger;
+pub use logger::*;
 pub mod ast;
 pub mod cache;
 mod missing_module;
@@ -72,9 +76,11 @@ mod ukey;
 pub use ukey::*;
 mod module_graph_module;
 pub use module_graph_module::*;
+pub mod resolver;
+pub use resolver::*;
 pub mod tree_shaking;
 
-pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme};
+pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme, BUILTIN_LOADER_PREFIX};
 pub use rspack_sources;
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]

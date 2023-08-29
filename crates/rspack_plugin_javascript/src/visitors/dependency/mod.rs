@@ -4,6 +4,7 @@ mod common_js_import_dependency_scanner;
 mod common_js_scanner;
 mod compatibility_scanner;
 mod context_helper;
+mod export_info_api_scanner;
 mod harmony_detection_scanner;
 mod harmony_export_dependency_scanner;
 mod harmony_import_dependency_scanner;
@@ -16,8 +17,8 @@ mod url_scanner;
 mod util;
 mod worker_scanner;
 use rspack_core::{
-  ast::javascript::Program, BuildInfo, BuildMeta, BuildMetaExportsType, CompilerOptions,
-  DependencyTemplate, ModuleDependency, ModuleIdentifier, ModuleType, ResourceData,
+  ast::javascript::Program, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
+  CompilerOptions, ModuleIdentifier, ModuleType, ResourceData,
 };
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
 pub use util::*;
@@ -26,6 +27,7 @@ use self::{
   api_scanner::ApiScanner, common_js_export_scanner::CommonJsExportDependencyScanner,
   common_js_import_dependency_scanner::CommonJsImportDependencyScanner,
   common_js_scanner::CommonJsScanner, compatibility_scanner::CompatibilityScanner,
+  export_info_api_scanner::ExportInfoApiScanner,
   harmony_detection_scanner::HarmonyDetectionScanner,
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
@@ -35,10 +37,7 @@ use self::{
   url_scanner::UrlScanner, worker_scanner::WorkerScanner,
 };
 
-pub type ScanDependenciesResult = (
-  Vec<Box<dyn ModuleDependency>>,
-  Vec<Box<dyn DependencyTemplate>>,
-);
+pub type ScanDependenciesResult = (Vec<BoxDependency>, Vec<BoxDependencyTemplate>);
 
 #[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies(
@@ -51,11 +50,11 @@ pub fn scan_dependencies(
   build_meta: &mut BuildMeta,
   module_identifier: ModuleIdentifier,
 ) -> ScanDependenciesResult {
-  let mut dependencies: Vec<Box<dyn ModuleDependency>> = vec![];
-  let mut presentational_dependencies: Vec<Box<dyn DependencyTemplate>> = vec![];
+  let mut dependencies: Vec<BoxDependency> = vec![];
+  let mut presentational_dependencies: Vec<BoxDependencyTemplate> = vec![];
   let unresolved_ctxt = SyntaxContext::empty().apply_mark(unresolved_mark);
   let comments = program.comments.clone();
-
+  let mut parser_exports_state = None;
   program.visit_with(&mut ApiScanner::new(
     &unresolved_ctxt,
     resource_data,
@@ -66,6 +65,10 @@ pub fn scan_dependencies(
     &mut presentational_dependencies,
     &unresolved_ctxt,
   ));
+  program.visit_with(&mut ExportInfoApiScanner::new(
+    &mut presentational_dependencies,
+    unresolved_ctxt,
+  ));
 
   // TODO it should enable at js/auto or js/dynamic, but builtins provider will inject require at esm
   program.visit_with(&mut CommonJsImportDependencyScanner::new(
@@ -74,9 +77,6 @@ pub fn scan_dependencies(
     &unresolved_ctxt,
   ));
   if module_type.is_js_auto() || module_type.is_js_dynamic() {
-    // TODO webpack scan it at CommonJsExportsParserPlugin
-    // use `Dynamic` as workaround
-    build_meta.exports_type = BuildMetaExportsType::Dynamic;
     program.visit_with(&mut CommonJsScanner::new(
       &mut presentational_dependencies,
       &unresolved_ctxt,
@@ -87,6 +87,7 @@ pub fn scan_dependencies(
       &unresolved_ctxt,
       build_meta,
       *module_type,
+      &mut parser_exports_state,
     ));
     if let Some(node_option) = &compiler_options.node {
       program.visit_with(&mut NodeStuffScanner::new(
@@ -111,13 +112,11 @@ pub fn scan_dependencies(
       &mut dependencies,
       &mut presentational_dependencies,
       &mut import_map,
-      module_identifier,
     ));
     program.visit_with(&mut HarmonyExportDependencyScanner::new(
       &mut dependencies,
       &mut presentational_dependencies,
       &mut import_map,
-      module_identifier,
     ));
     let mut worker_syntax_scanner = rspack_core::needs_refactor::WorkerSyntaxScanner::new(
       rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,

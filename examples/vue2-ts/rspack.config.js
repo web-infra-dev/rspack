@@ -25,11 +25,20 @@ const config = {
 		rules: [
 			{
 				test: /\.vue$/,
-				use: ["vue-loader"]
+				use: "vue-loader"
 			},
 			{
-				resourceQuery: /lang=ts/,
-				type: "ts"
+				test: /\.ts$/,
+				loader: "builtin:swc-loader",
+				options: {
+					sourceMap: true,
+					jsc: {
+						parser: {
+							syntax: "typescript"
+						}
+					}
+				},
+				type: "javascript/auto"
 			},
 			{
 				test: /\.less$/,

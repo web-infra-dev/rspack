@@ -10,9 +10,6 @@ pub struct ImportMetaHotAcceptDependency {
   request: JsWord,
   start: u32,
   end: u32,
-  category: &'static DependencyCategory,
-  dependency_type: &'static DependencyType,
-
   span: Option<ErrorSpan>,
 }
 
@@ -22,8 +19,6 @@ impl ImportMetaHotAcceptDependency {
       start,
       end,
       request,
-      category: &DependencyCategory::Esm,
-      dependency_type: &DependencyType::ImportMetaHotAccept,
       span,
       id: DependencyId::new(),
     }
@@ -31,20 +26,20 @@ impl ImportMetaHotAcceptDependency {
 }
 
 impl Dependency for ImportMetaHotAcceptDependency {
-  fn category(&self) -> &DependencyCategory {
-    self.category
-  }
-
-  fn dependency_type(&self) -> &DependencyType {
-    self.dependency_type
-  }
-}
-
-impl ModuleDependency for ImportMetaHotAcceptDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
 
+  fn category(&self) -> &DependencyCategory {
+    &DependencyCategory::Esm
+  }
+
+  fn dependency_type(&self) -> &DependencyType {
+    &DependencyType::ImportMetaHotAccept
+  }
+}
+
+impl ModuleDependency for ImportMetaHotAcceptDependency {
   fn request(&self) -> &str {
     &self.request
   }
@@ -55,10 +50,6 @@ impl ModuleDependency for ImportMetaHotAcceptDependency {
 
   fn span(&self) -> Option<&ErrorSpan> {
     self.span.as_ref()
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
   }
 
   fn set_request(&mut self, request: String) {

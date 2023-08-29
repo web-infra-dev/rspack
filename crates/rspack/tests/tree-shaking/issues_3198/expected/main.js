@@ -4,7 +4,7 @@
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _test__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./test */"./test.js");
 
-_test__WEBPACK_IMPORTED_MODULE_0_["obj"]['test'] = 1;
+_test__WEBPACK_IMPORTED_MODULE_0_.obj.test = 1;
 },
 "./test.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';

@@ -5,15 +5,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _maths_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./maths.js */"./maths.js");
 /* TREE-SHAKING */ 
 console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0_.xxx.test);
-console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0_['square']);
+console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0_.square);
 },
 "./maths.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'xxx': function() { return _test_js__WEBPACK_IMPORTED_MODULE_0_; }
-});
-__webpack_require__.d(__webpack_exports__, {
+  'xxx': function() { return _test_js__WEBPACK_IMPORTED_MODULE_0_; },
   'square': function() { return square; }
 });
 /* harmony import */var _test_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./test.js */"./test.js");
@@ -35,8 +33,7 @@ __webpack_require__.d(__webpack_exports__, {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'test': function() { return test; },
-  'ccc': function() { return ccc; }
+  'test': function() { return test; }
 });
  function test() {}
  function ccc() {}

@@ -9,7 +9,7 @@ version    = "0.1.0"
 
 [dependencies]
 anyhow             = { workspace = true, features = ["backtrace"] }
-codespan-reporting = "0.11.1"
+codespan-reporting = { git = "https://github.com/brendanzab/codespan", branch = "master" }
 futures            = { workspace = true }
 rspack_util        = { path = "../rspack_util" }
 sugar_path         = { workspace = true }

@@ -8,6 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import { deprecatedWarn } from "../util";
 import type {
 	EntryStatic,
 	EntryStaticNormalized,
@@ -59,8 +60,6 @@ export const getNormalizedRspackOptions = (
 					: undefined;
 			// DEPRECATE: remove this in after version
 			{
-				const yellow = (content: string) =>
-					`\u001b[1m\u001b[33m${content}\u001b[39m\u001b[22m`;
 				const ext = "[ext]";
 				const filenames = [
 					"filename",
@@ -74,10 +73,8 @@ export const getNormalizedRspackOptions = (
 						const newFilename =
 							oldFilename.slice(0, -ext.length) +
 							(prop.includes("css") ? ".css" : ".js");
-						console.warn(
-							yellow(
-								`Deprecated: output.${prop} ends with [ext] is now deprecated, please use ${newFilename} instead.`
-							)
+						deprecatedWarn(
+							`Deprecated: output.${prop} ends with [ext] is now deprecated, please use ${newFilename} instead.`
 						);
 						output[prop] = newFilename;
 					}
@@ -155,6 +152,9 @@ export const getNormalizedRspackOptions = (
 			};
 		}),
 		resolve: nestedConfig(config.resolve, resolve => ({
+			...resolve
+		})),
+		resolveLoader: nestedConfig(config.resolveLoader, resolve => ({
 			...resolve
 		})),
 		module: nestedConfig(config.module, module => ({
@@ -242,6 +242,7 @@ export const getNormalizedRspackOptions = (
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
 		devServer: config.devServer,
+		profile: config.profile,
 		builtins: nestedConfig(config.builtins, builtins => ({
 			...builtins
 		}))

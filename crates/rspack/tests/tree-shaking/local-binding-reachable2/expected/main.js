@@ -18,7 +18,7 @@ __webpack_require__.d(__webpack_exports__, {
 /* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./Layout */"./Layout.js");
 
 class Test {
-    test = _Layout__WEBPACK_IMPORTED_MODULE_0_["defaults"].test + 20000;
+    test = _Layout__WEBPACK_IMPORTED_MODULE_0_.defaults.test + 20000;
 }
  var Sider = new Test();
  var Something = 333;
@@ -28,7 +28,7 @@ class Test {
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./export */"./export.js");
 
-(0, _export__WEBPACK_IMPORTED_MODULE_0_["Something"])();
+(0, _export__WEBPACK_IMPORTED_MODULE_0_.Something)();
 },
 
 },function(__webpack_require__) {

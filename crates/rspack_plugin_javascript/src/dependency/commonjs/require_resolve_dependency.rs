@@ -37,6 +37,10 @@ impl RequireResolveDependency {
 }
 
 impl Dependency for RequireResolveDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CommonJS
   }
@@ -47,10 +51,6 @@ impl Dependency for RequireResolveDependency {
 }
 
 impl ModuleDependency for RequireResolveDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -73,10 +73,6 @@ impl ModuleDependency for RequireResolveDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
   }
 
   fn set_request(&mut self, request: String) {

@@ -1,35 +1,32 @@
-use std::collections::HashSet;
-
 use rspack_core::{
-  export_from_import, get_exports_type,
-  tree_shaking::symbol::{IndirectType, StarSymbolKind, SymbolType, DEFAULT_JS_WORD},
-  tree_shaking::visitor::SymbolRef,
-  DependencyId, DependencyTemplate, ExportsType, InitFragment, InitFragmentStage, ModuleIdentifier,
-  RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  export_from_import, get_exports_type, ConnectionState, Dependency, DependencyCategory,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportsType,
+  HarmonyExportInitFragment, ModuleDependency, ModuleGraph, ModuleIdentifier, TemplateContext,
+  TemplateReplaceSource,
 };
+use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
 
-use super::format_exports;
+use super::create_resource_identifier_for_esm_dependency;
 
 // Create _webpack_require__.d(__webpack_exports__, {}).
 // import { a } from 'a'; export { a }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HarmonyExportImportedSpecifierDependency {
+  pub id: DependencyId,
   pub request: JsWord,
   pub ids: Vec<(JsWord, Option<JsWord>)>,
-  module_identifier: ModuleIdentifier,
+  resource_identifier: String,
 }
 
 impl HarmonyExportImportedSpecifierDependency {
-  pub fn new(
-    request: JsWord,
-    ids: Vec<(JsWord, Option<JsWord>)>,
-    module_identifier: ModuleIdentifier,
-  ) -> Self {
+  pub fn new(request: JsWord, ids: Vec<(JsWord, Option<JsWord>)>) -> Self {
+    let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
+      id: DependencyId::new(),
       request,
       ids,
-      module_identifier,
+      resource_identifier,
     }
   }
 }
@@ -42,61 +39,23 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
   ) {
     let compilation = &code_generatable_context.compilation;
     let module = &code_generatable_context.module;
-    let dependency_id = compilation
-      .module_graph
-      .dependencies_by_module_identifier(&self.module_identifier)
-      .expect("should have dependencies")
-      .iter()
-      .map(|id| {
-        compilation
-          .module_graph
-          .dependency_by_id(id)
-          .expect("should have dependency")
-      })
-      .find(|d| d.request() == &self.request)
-      .expect("should have dependency")
-      .id();
 
     let import_var = compilation
       .module_graph
       .get_import_var(&module.identifier(), &self.request);
 
     let used_exports = if compilation.options.builtins.tree_shaking.is_true() {
-      let set = compilation
-        .used_symbol_ref
-        .iter()
-        .filter_map(|item| match item {
-          SymbolRef::Declaration(decl) if decl.src() == module.identifier() => {
-            if *decl.ty() == SymbolType::Temp {
-              if let Some(key) = &self.ids.iter().find(|e| e.0 == *decl.exported()) {
-                return Some(&key.0);
-              }
-            }
-            Some(&decl.id().atom)
-          }
-          SymbolRef::Indirect(i) if i.importer == module.identifier() && i.is_reexport() => {
-            Some(i.id())
-          }
-          SymbolRef::Indirect(i) if i.src == module.identifier() => match i.ty {
-            IndirectType::Import(_, _) => Some(i.indirect_id()),
-            IndirectType::ImportDefault(_) => Some(&DEFAULT_JS_WORD),
-            _ => None,
-          },
-          SymbolRef::Star(s)
-            if s.module_ident == module.identifier() && s.ty() == StarSymbolKind::ReExportAllAs =>
-          {
-            Some(s.binding())
-          }
-          _ => None,
-        })
-        .collect::<HashSet<_>>();
-      Some(set)
+      Some(
+        compilation
+          .module_graph
+          .get_exports_info(&module.identifier())
+          .get_used_exports(),
+      )
     } else {
       None
     };
 
     let mut exports = vec![];
-
     for id in &self.ids {
       if used_exports.is_none() || matches!(used_exports.as_ref(), Some(x) if x.contains(&id.0)) {
         exports.push((
@@ -104,41 +63,65 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
           JsWord::from(export_from_import(
             code_generatable_context,
             true,
-            import_var.clone(),
+            import_var,
             id.1.clone().map(|i| vec![i]).unwrap_or_default(),
-            dependency_id,
+            &self.id,
+            false,
             false,
           )),
         ));
       }
     }
 
-    if !exports.is_empty() {
-      let TemplateContext {
-        runtime_requirements,
-        init_fragments,
-        compilation,
-        module,
-        ..
-      } = code_generatable_context;
-
-      let exports_argument = compilation
-        .module_graph
-        .module_graph_module_by_identifier(&module.identifier())
-        .expect("should have mgm")
-        .get_exports_argument();
-      runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-      runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-      init_fragments.push(InitFragment::new(
-        format!(
-          "{}({exports_argument}, {});\n",
-          RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-          format_exports(&exports)
-        ),
-        InitFragmentStage::STAGE_HARMONY_EXPORTS,
-        None,
-      ));
+    for export in exports {
+      code_generatable_context
+        .init_fragments
+        .push(Box::new(HarmonyExportInitFragment::new(export)));
     }
+  }
+}
+
+impl Dependency for HarmonyExportImportedSpecifierDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
+  fn category(&self) -> &DependencyCategory {
+    &DependencyCategory::Esm
+  }
+
+  fn dependency_type(&self) -> &DependencyType {
+    &DependencyType::EsmExportImportedSpecifier
+  }
+}
+
+impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
+  fn request(&self) -> &str {
+    &self.request
+  }
+
+  fn user_request(&self) -> &str {
+    &self.request
+  }
+
+  fn span(&self) -> Option<&ErrorSpan> {
+    None
+  }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request.into();
+  }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
+  }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    ConnectionState::Bool(false)
   }
 }
 

@@ -28,7 +28,6 @@ rustc-hash = { workspace = true }
 serde_json = { workspace = true }
 sourcemap = "6.2.3"
 sugar_path = { workspace = true }
-swc_config = { workspace = true }
 swc_core = { workspace = true, features = [
   "__parser",
   "__utils",
@@ -41,7 +40,6 @@ swc_core = { workspace = true, features = [
   "ecma_transforms_typescript",
   "ecma_quote",
 ] }
-swc_ecma_minifier = { workspace = true, features = ["concurrent"] }
 swc_emotion = { workspace = true }
 swc_node_comments = { workspace = true }
 swc_plugin_import = { path = "../swc_plugin_import" }

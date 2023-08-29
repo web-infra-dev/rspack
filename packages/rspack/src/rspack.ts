@@ -15,8 +15,8 @@ import {
 	RspackPluginFunction,
 	validateConfig
 } from "./config";
-import { Compiler } from "./compiler";
-import { Stats } from "./stats";
+import { Compiler } from "./Compiler";
+import { Stats } from "./Stats";
 import util from "util";
 
 import { RspackOptionsApply } from "./rspackOptionsApply";
@@ -25,9 +25,9 @@ import {
 	MultiCompiler,
 	MultiCompilerOptions,
 	MultiRspackOptions
-} from "./multiCompiler";
+} from "./MultiCompiler";
 import { Callback } from "tapable";
-import MultiStats from "./multiStats";
+import MultiStats from "./MultiStats";
 import assert from "assert";
 import { asArray, isNil } from "./util";
 import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
@@ -75,11 +75,6 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 			}
 		}
 	}
-
-	if (options.ignoreWarnings !== undefined) {
-		new IgnoreWarningsPlugin(options.ignoreWarnings).apply(compiler);
-	}
-
 	applyRspackOptionsDefaults(compiler.options);
 	logger.debug(
 		"NormalizedOptions:",
@@ -162,5 +157,5 @@ function rspack(
 }
 
 // deliberately alias rspack as webpack
-export { rspack, createCompiler, createMultiCompiler };
+export { rspack, createCompiler, createMultiCompiler, Stats, MultiStats };
 export default rspack;

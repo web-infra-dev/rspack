@@ -35,13 +35,13 @@ function getType(obj) {
 }
 // Local functions
 function doSomethingWithBlock(obj) {
-    return (0, _some_module__WEBPACK_IMPORTED_MODULE_0_["Block"]).doSomething(obj);
+    return _some_module__WEBPACK_IMPORTED_MODULE_0_.Block.doSomething(obj);
 }
 function doSomethingWithInline(obj) {
-    return (0, _some_module__WEBPACK_IMPORTED_MODULE_0_["Inline"]).doSomething(obj);
+    return _some_module__WEBPACK_IMPORTED_MODULE_0_.Inline.doSomething(obj);
 }
 function doSomethingWithDocument(obj) {
-    return (0, _some_module__WEBPACK_IMPORTED_MODULE_0_["Document"]).doSomething(obj);
+    return _some_module__WEBPACK_IMPORTED_MODULE_0_.Document.doSomething(obj);
 }
 // Exported functions
 function doSomething(obj) {

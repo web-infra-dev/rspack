@@ -29,7 +29,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 /* harmony import */var _antd_index__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./antd/index */"./antd/index.ts");
 
-_antd_index__WEBPACK_IMPORTED_MODULE_0_["locales"].zh_CN;
+_antd_index__WEBPACK_IMPORTED_MODULE_0_.locales.zh_CN;
  function test() {}
 },
 "./locale_zh.ts": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
@@ -39,9 +39,8 @@ __webpack_require__.d(__webpack_exports__, {
   'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
 /* harmony import */var _zh_locale__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./zh_locale */"./zh_locale.js");
-/* harmony import */var _zh_locale__WEBPACK_IMPORTED_MODULE_0__default = /*#__PURE__*/__webpack_require__.n(_zh_locale__WEBPACK_IMPORTED_MODULE_0_);
 
-var __WEBPACK_DEFAULT_EXPORT__ = _zh_locale__WEBPACK_IMPORTED_MODULE_0__default;
+var __WEBPACK_DEFAULT_EXPORT__ = _zh_locale__WEBPACK_IMPORTED_MODULE_0_["default"];
 },
 
 },function(__webpack_require__) {

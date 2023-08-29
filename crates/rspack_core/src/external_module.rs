@@ -8,10 +8,10 @@ use serde::{Serialize, Serializer};
 
 use crate::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
-  to_identifier, AstOrSource, BuildContext, BuildInfo, BuildMetaExportsType, BuildResult,
-  ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult, Compilation, Context,
-  ExternalType, GenerationResult, InitFragment, InitFragmentStage, LibIdentOptions, Module,
-  ModuleType, RuntimeGlobals, SourceType,
+  to_identifier, BuildContext, BuildInfo, BuildMetaExportsType, BuildResult, ChunkInitFragments,
+  ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult, Compilation, Context, ExternalType,
+  InitFragmentStage, LibIdentOptions, Module, ModuleType, NormalInitFragment, RuntimeGlobals,
+  SourceType,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -130,10 +130,10 @@ impl ExternalModule {
         if compilation.options.output.module {
           chunk_init_fragments
             .entry("external module node-commonjs".to_string())
-            .or_insert(InitFragment::new(
+            .or_insert(NormalInitFragment::new(
               "import { createRequire as __WEBPACK_EXTERNAL_createRequire } from 'module';\n"
                 .to_string(),
-              InitFragmentStage::STAGE_HARMONY_IMPORTS,
+              InitFragmentStage::StageHarmonyImports,
               None,
             ));
           format!(
@@ -172,12 +172,12 @@ impl ExternalModule {
           let identifier = to_identifier(id);
           chunk_init_fragments
             .entry(format!("external module import {identifier}"))
-            .or_insert(InitFragment::new(
+            .or_insert(NormalInitFragment::new(
               format!(
                 "import * as __WEBPACK_EXTERNAL_MODULE_{identifier}__ from '{}';\n",
                 self.request.as_str()
               ),
-              InitFragmentStage::STAGE_HARMONY_IMPORTS,
+              InitFragmentStage::StageHarmonyImports,
               None,
             ));
           runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
@@ -293,14 +293,12 @@ impl Module for ExternalModule {
       "asset" => {
         cgr.add(
           SourceType::JavaScript,
-          GenerationResult::from(AstOrSource::from(
-            RawSource::from(format!(
-              "module.exports = {};",
-              serde_json::to_string(&self.request.as_str())
-                .map_err(|e| internal_error!(e.to_string()))?
-            ))
-            .boxed(),
-          )),
+          RawSource::from(format!(
+            "module.exports = {};",
+            serde_json::to_string(&self.request.as_str())
+              .map_err(|e| internal_error!(e.to_string()))?
+          ))
+          .boxed(),
         );
         cgr.data.insert(CodeGenerationDataUrl::new(
           self.request.as_str().to_string(),
@@ -309,22 +307,17 @@ impl Module for ExternalModule {
       "css-import" => {
         cgr.add(
           SourceType::Css,
-          GenerationResult::from(AstOrSource::from(
-            RawSource::from(format!(
-              "@import url({});",
-              serde_json::to_string(&self.request.as_str())
-                .map_err(|e| internal_error!(e.to_string()))?
-            ))
-            .boxed(),
-          )),
+          RawSource::from(format!(
+            "@import url({});",
+            serde_json::to_string(&self.request.as_str())
+              .map_err(|e| internal_error!(e.to_string()))?
+          ))
+          .boxed(),
         );
       }
       _ => {
         let (source, chunk_init_fragments, runtime_requirements) = self.get_source(compilation);
-        cgr.add(
-          SourceType::JavaScript,
-          GenerationResult::from(AstOrSource::from(source)),
-        );
+        cgr.add(SourceType::JavaScript, source);
         cgr.chunk_init_fragments = chunk_init_fragments;
         cgr.runtime_requirements.insert(runtime_requirements);
         cgr.set_hash(

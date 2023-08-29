@@ -31,6 +31,9 @@
     "crates/node_binding/Cargo.toml",
     "./crates/rspack_plugin_ensure_chunk_conditions/Cargo.toml"
   ],
+  "files.associations": {
+    "*.snap": "markdown"
+  },
   "cSpell.words": [
     "contextify",
     "Ctxt",

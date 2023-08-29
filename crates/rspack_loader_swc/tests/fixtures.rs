@@ -27,7 +27,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     json!(null),
   )]);
   let (result, _) = run_loaders(
-    &[Arc::new(SwcLoader::new(options)) as Arc<dyn Loader<LoaderRunnerContext>>],
+    &[Arc::new(SwcLoader::new(options, None)) as Arc<dyn Loader<LoaderRunnerContext>>],
     &ResourceData::new(actual_path.to_string_lossy().to_string(), actual_path),
     &[],
     CompilerContext {
@@ -75,6 +75,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
         },
         target: rspack_core::Target::new(&vec![String::from("web")]).expect("TODO:"),
         resolve: rspack_core::Resolve::default(),
+        resolve_loader: rspack_core::Resolve::default(),
         builtins: Default::default(),
         module: Default::default(),
         stats: Default::default(),
@@ -87,6 +88,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           remove_empty_chunks: true,
           side_effects: SideEffectOption::False,
         },
+        profile: false,
       }),
       resolver_factory: Default::default(),
     },

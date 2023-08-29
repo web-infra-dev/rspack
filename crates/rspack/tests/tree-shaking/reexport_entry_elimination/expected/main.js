@@ -32,7 +32,7 @@ var __WEBPACK_DEFAULT_EXPORT__ = 10;
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a.js */"./a.js");
 
-_a_js__WEBPACK_IMPORTED_MODULE_0_["b"];
+_a_js__WEBPACK_IMPORTED_MODULE_0_.b;
 },
 
 },function(__webpack_require__) {

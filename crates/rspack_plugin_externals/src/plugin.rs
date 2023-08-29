@@ -3,11 +3,10 @@ use std::fmt::Debug;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  ApplyContext, ExternalItem, ExternalItemFnCtx, ExternalItemValue, ExternalModule, ExternalType,
-  FactorizeArgs, ModuleDependency, ModuleExt, ModuleFactoryResult, NormalModuleFactoryContext,
-  Plugin, PluginContext, PluginFactorizeHookOutput,
+  ExternalItem, ExternalItemFnCtx, ExternalItemValue, ExternalModule, ExternalType, FactorizeArgs,
+  ModuleDependency, ModuleExt, ModuleFactoryResult, NormalModuleFactoryContext, Plugin,
+  PluginContext, PluginFactorizeHookOutput,
 };
-use rspack_error::Result;
 
 static UNSPECIFIED_EXTERNAL_TYPE_REGEXP: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^[a-z0-9-]+ ").expect("Invalid regex"));
@@ -72,10 +71,6 @@ impl ExternalPlugin {
 impl Plugin for ExternalPlugin {
   fn name(&self) -> &'static str {
     "external"
-  }
-
-  fn apply(&self, _ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
-    Ok(())
   }
 
   async fn factorize(

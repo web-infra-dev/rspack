@@ -9,7 +9,7 @@
 
 use std::{env, path::PathBuf};
 
-use rspack_binding_options::{JsLoaderRunner, RawOptions, RawOptionsApply};
+use rspack_binding_options::{RawOptions, RawOptionsApply};
 use rspack_core::Compiler;
 use rspack_fs::AsyncNativeFileSystem;
 use rspack_testing::evaluate_to_json;
@@ -17,7 +17,7 @@ use rspack_tracing::enable_tracing_by_env;
 
 #[tokio::main]
 async fn main() {
-  enable_tracing_by_env();
+  enable_tracing_by_env(&std::env::var("TRACE").ok().unwrap_or_default(), "stdout");
 
   let config = env::args().nth(1).expect("path");
   let emit = matches!(env::args().nth(2), Some(arg) if arg == "--emit");
@@ -36,19 +36,17 @@ async fn main() {
   }
   let raw: RawOptions = serde_json::from_slice(&raw).expect("ok");
   let mut plugins = Vec::new();
-  let options = raw
-    .apply(&mut plugins, &JsLoaderRunner::noop())
-    .expect("should be ok");
+  let options = raw.apply(&mut plugins).expect("should be ok");
   let mut compiler = Compiler::new(options, plugins, AsyncNativeFileSystem);
   compiler
     .build()
     .await
-    .unwrap_or_else(|e| panic!("failed to compile in fixtrue {config:?}, {e:#?}"));
+    .unwrap_or_else(|e| panic!("failed to compile in fixture {config:?}, {e:#?}"));
   let stats = compiler.compilation.get_stats();
   let errors = stats.get_errors();
   if !errors.is_empty() {
     eprintln!(
-      "Failed to compile in fixtrue {:?}, errors: {:?}",
+      "Failed to compile in fixture {:?}, errors: {:?}",
       config,
       stats
         .emit_diagnostics_string(true)

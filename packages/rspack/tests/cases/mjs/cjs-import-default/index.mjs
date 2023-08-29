@@ -167,6 +167,7 @@ it("should get correct values when importing named exports from a dynamic (non-f
 			data: "ok"
 		})
 	);
+	expect(dynamicStar.data).toEqual('ok');
 	expect({ dynamicStar }).toEqual({
 		dynamicStar: nsObj({
 			default: {

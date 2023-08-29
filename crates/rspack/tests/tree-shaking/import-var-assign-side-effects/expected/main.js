@@ -24,7 +24,7 @@ __webpack_require__.d(__webpack_exports__, {
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./export */"./export.js");
 
-(0, _export__WEBPACK_IMPORTED_MODULE_0_["Sider"])();
+(0, _export__WEBPACK_IMPORTED_MODULE_0_.Sider)();
 },
 
 },function(__webpack_require__) {

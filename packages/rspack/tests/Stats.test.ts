@@ -108,7 +108,9 @@ describe("Stats", () => {
 		  },
 		  "errors": [],
 		  "errorsCount": 0,
-		  "hash": "f0a86c7e70b0de037daf",
+		  "filteredModules": undefined,
+		  "hash": "b32fac08a5e8721cacff",
+		  "logging": {},
 		  "modules": [
 		    {
 		      "assets": [],
@@ -163,7 +165,7 @@ describe("Stats", () => {
 		    entry ./fixtures/a
 		./fixtures/a.js [876] {main}
 		  entry ./fixtures/a
-		rspack compiled successfully (f0a86c7e70b0de037daf)"
+		rspack compiled successfully (b32fac08a5e8721cacff)"
 	`);
 	});
 
@@ -198,12 +200,111 @@ describe("Stats", () => {
 		error[javascript]: JavaScript parsing error
 		  ┌─ tests/fixtures/b.js:6:1
 		  │
+		2 │     return "This is b";
+		3 │ };
+		4 │ 
+		5 │ // Test CJS top-level return
 		6 │ return;
 		  │ ^^^^^^^ Return statement is not allowed here
+		7 │ 
 
 
 
-		rspack compiled with 1 error (418f650b35ab423e0e13)"
+		rspack compiled with 1 error (27ec1c09308b67dcfd6f)"
+	`);
+	});
+
+	it("should have time log when logging verbose", async () => {
+		const stats = await compile({
+			context: __dirname,
+			entry: "./fixtures/abc"
+		});
+		expect(
+			stats
+				?.toString({ all: false, logging: "verbose" })
+				.replace(/\\/g, "/")
+				.replace(/\d+ ms/g, "X ms")
+		).toMatchInlineSnapshot(`
+		"LOG from rspack.Compilation
+		<t> finish modules: X ms
+		<t> optimize dependencies: X ms
+		<t> create chunks: X ms
+		<t> optimize: X ms
+		<t> module ids: X ms
+		<t> chunk ids: X ms
+		<t> code generation: X ms
+		<t> runtime requirements.modules: X ms
+		<t> runtime requirements.chunks: X ms
+		<t> runtime requirements.entries: X ms
+		<t> runtime requirements: X ms
+		<t> hashing: hash chunks: X ms
+		<t> hashing: hash runtime chunks: X ms
+		<t> hashing: process full hash chunks: X ms
+		<t> hashing: X ms
+		<t> create chunk assets: X ms
+		<t> process assets: X ms
+
+		LOG from rspack.Compiler
+		<t> make hook: X ms
+		<t> module add task: X ms
+		<t> module process dependencies task: X ms
+		<t> module factorize task: X ms
+		<t> module build task: X ms
+		<t> make: X ms
+		<t> finish make hook: X ms
+		<t> finish compilation: X ms
+		<t> seal compilation: X ms
+		<t> afterCompile hook: X ms
+		<t> emitAssets: X ms
+		<t> done hook: X ms
+
+		LOG from rspack.EnsureChunkConditionsPlugin
+		<t> ensure chunk conditions: X ms
+
+		LOG from rspack.RealContentHashPlugin
+		<t> hash to asset names: X ms
+
+		LOG from rspack.RemoveEmptyChunksPlugin
+		<t> remove empty chunks: X ms
+
+		LOG from rspack.SplitChunksPlugin
+		<t> prepare module group map: X ms
+		<t> ensure min size fit: X ms
+		<t> process module group map: X ms
+		<t> ensure max size fit: X ms
+
+		LOG from rspack.buildChunkGraph
+		<t> prepare entrypoints: X ms
+		<t> process queue: X ms
+		<t> extend chunkGroup runtime: X ms
+		<t> remove parent modules: X ms
+		"
+	`);
+	});
+
+	it("should have module profile when profile is true", async () => {
+		const stats = await compile({
+			context: __dirname,
+			entry: "./fixtures/abc",
+			profile: true
+		});
+		expect(
+			stats
+				?.toString({ all: false, modules: true })
+				.replace(/\\/g, "/")
+				.replace(/\d+ ms/g, "X ms")
+		).toMatchInlineSnapshot(`
+		"./fixtures/a.js [876] {main}
+		  [222] ->
+		  X ms (resolving: X ms, integration: X ms, building: X ms)
+		./fixtures/b.js [211] {main}
+		  [222] ->
+		  X ms (resolving: X ms, integration: X ms, building: X ms)
+		./fixtures/c.js [537] {main}
+		  [222] ->
+		  X ms (resolving: X ms, integration: X ms, building: X ms)
+		./fixtures/abc.js [222] {main}
+		  X ms (resolving: X ms, integration: X ms, building: X ms)"
 	`);
 	});
 });

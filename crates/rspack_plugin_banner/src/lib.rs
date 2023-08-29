@@ -6,10 +6,11 @@ use async_recursion::async_recursion;
 use async_trait::async_trait;
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  to_comment, try_any, Plugin,
+  to_comment, Logger, Plugin,
 };
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
+use rspack_util::try_any;
 
 pub enum BannerCondition {
   String(String),
@@ -170,7 +171,7 @@ impl BannerPlugin {
 #[async_trait]
 impl Plugin for BannerPlugin {
   fn name(&self) -> &'static str {
-    "banner-rspack-plugin"
+    "rspack.BannerPlugin"
   }
 
   async fn process_assets_stage_additions(
@@ -179,6 +180,8 @@ impl Plugin for BannerPlugin {
     args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsOutput {
     let compilation = args.compilation;
+    let logger = compilation.get_logger(self.name());
+    let start = logger.time("add banner");
     let mut chunk_files = vec![];
 
     // filter file
@@ -208,6 +211,7 @@ impl Plugin for BannerPlugin {
         Ok((new, info))
       });
     }
+    logger.time_end(start);
 
     Ok(())
   }

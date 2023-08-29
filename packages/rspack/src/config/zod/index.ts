@@ -40,6 +40,7 @@ export function configSchema() {
 			snapshot: snapshot().optional(),
 			optimization: optimization().optional(),
 			resolve: resolve().optional(),
+			resolveLoader: resolve().optional(),
 			plugins: plugins().optional(),
 			// TODO(hyf0): what's the usage of this?
 			name: z.string().optional(),
@@ -47,7 +48,8 @@ export function configSchema() {
 			devServer: z.object({}).optional(),
 			output: output().optional(),
 			builtins: builtins().optional(),
-			module: z.any().optional()
+			module: z.any().optional(),
+			profile: z.boolean().optional()
 		})
 		.strict();
 }

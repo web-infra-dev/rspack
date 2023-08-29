@@ -19,14 +19,14 @@ import type {
 	RawFuncUseCtx
 } from "@rspack/binding";
 import assert from "assert";
-import { Compiler } from "../compiler";
-import { normalizeStatsPreset } from "../stats";
+import { Compiler } from "../Compiler";
+import { normalizeStatsPreset } from "../Stats";
 import { isNil } from "../util";
 import {
 	ComposeJsUseOptions,
 	LoaderContext,
 	createRawModuleRuleUses
-} from "./adapter-rule-use";
+} from "./adapterRuleUse";
 import {
 	CrossOriginLoading,
 	EntryNormalized,
@@ -83,6 +83,7 @@ export const getRawOptions = (
 		context: options.context,
 		output: getRawOutput(options.output),
 		resolve: getRawResolve(options.resolve),
+		resolveLoader: getRawResolve(options.resolveLoader),
 		module: getRawModule(options.module, {
 			compiler,
 			devtool,
@@ -115,7 +116,8 @@ export const getRawOptions = (
 		},
 		experiments: getRawExperiments(options.experiments),
 		node: getRawNode(options.node),
-		// TODO: refactor builtins
+		profile: options.profile!,
+		// TODO: remove this
 		builtins: options.builtins as any
 	};
 };
@@ -662,6 +664,7 @@ function getRawOptimization(
 ): RawOptions["optimization"] {
 	assert(
 		!isNil(optimization.moduleIds) &&
+			!isNil(optimization.chunkIds) &&
 			!isNil(optimization.removeAvailableModules) &&
 			!isNil(optimization.removeEmptyChunks) &&
 			!isNil(optimization.sideEffects) &&
@@ -669,6 +672,7 @@ function getRawOptimization(
 		"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash should not be nil after defaults"
 	);
 	return {
+		chunkIds: optimization.chunkIds,
 		splitChunks: toRawSplitChunksOptions(optimization.splitChunks),
 		moduleIds: optimization.moduleIds,
 		removeAvailableModules: optimization.removeAvailableModules,

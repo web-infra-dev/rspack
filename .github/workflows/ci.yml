@@ -60,6 +60,27 @@ jobs:
         with:
           files: .
 
+  oxlint:
+    name: Lint JS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            src:
+              - '**/*.{ts,js,mjs}'
+
+      - name: Pnpm Cache
+        if: steps.changes.outputs.src == 'true'
+        uses: ./.github/actions/pnpm-cache
+
+      - name: oxlint
+        if: steps.changes.outputs.src == 'true'
+        run: pnpm run lint:js
+
   rust_changes:
     name: Rust Changes
     runs-on: ubuntu-latest

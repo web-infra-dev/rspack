@@ -16,7 +16,7 @@ __webpack_require__.d(__webpack_exports__, {
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./app */"./app.js");
 
-_app__WEBPACK_IMPORTED_MODULE_0_["a"];
+_app__WEBPACK_IMPORTED_MODULE_0_.a;
 },
 "./side-effects.js": function (__unused_webpack_module, exports, __webpack_require__) {
 console.log("side effect");

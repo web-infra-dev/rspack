@@ -13,7 +13,7 @@ pub fn compare_ids(a: &str, b: &str) -> Ordering {
   }
 }
 #[allow(clippy::comparison_chain)]
-pub fn compare_numbers(a: usize, b: usize) -> Ordering {
+pub fn compare_numbers(a: u32, b: u32) -> Ordering {
   if a < b {
     Ordering::Less
   } else if a > b {

@@ -2,9 +2,9 @@ use json::Error::{
   ExceededDepthLimit, FailedUtf8Parsing, UnexpectedCharacter, UnexpectedEndOfJson, WrongType,
 };
 use rspack_core::{
-  rspack_sources::{RawSource, Source, SourceExt},
-  BuildMetaDefaultObject, BuildMetaExportsType, GenerateContext, Module, ParserAndGenerator,
-  Plugin, RuntimeGlobals, SourceType,
+  rspack_sources::{BoxSource, RawSource, Source, SourceExt},
+  BuildMetaDefaultObject, BuildMetaExportsType, CompilerOptions, GenerateContext, Module,
+  ParserAndGenerator, Plugin, RuntimeGlobals, SourceType,
 };
 use rspack_error::{
   internal_error, DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
@@ -95,7 +95,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       rspack_core::ParseResult {
         presentational_dependencies: vec![],
         dependencies: vec![],
-        ast_or_source: box_source.into(),
+        source: box_source,
         analyze_result: Default::default(),
       }
       .with_diagnostic(diagnostics),
@@ -106,28 +106,22 @@ impl ParserAndGenerator for JsonParserAndGenerator {
   #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
-    ast_or_source: &rspack_core::AstOrSource,
+    source: &BoxSource,
     _module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<rspack_core::GenerationResult> {
+  ) -> Result<BoxSource> {
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
         generate_context
           .runtime_requirements
           .insert(RuntimeGlobals::MODULE);
-        Ok(rspack_core::GenerationResult {
-          ast_or_source: RawSource::from(format!(
+        Ok(
+          RawSource::from(format!(
             r#"module.exports = {};"#,
-            utils::escape_json(
-              &ast_or_source
-                .as_source()
-                .expect("Expected source for JSON generator, please file an issue.")
-                .source()
-            )
+            utils::escape_json(&source.source())
           ))
-          .boxed()
-          .into(),
-        })
+          .boxed(),
+        )
       }
       _ => Err(internal_error!(format!(
         "Unsupported source type {:?} for plugin Json",
@@ -145,7 +139,11 @@ impl Plugin for JsonPlugin {
     "json"
   }
 
-  fn apply(&self, ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
+  fn apply(
+    &self,
+    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::Json,
       Box::new(|| Box::new(JsonParserAndGenerator {})),

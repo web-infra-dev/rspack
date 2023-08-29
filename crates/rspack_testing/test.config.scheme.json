@@ -407,10 +407,10 @@
     "ModuleRuleUse": {
       "type": "object",
       "required": [
-        "builtinLoader"
+        "loader"
       ],
       "properties": {
-        "builtinLoader": {
+        "loader": {
           "type": "string"
         },
         "options": {

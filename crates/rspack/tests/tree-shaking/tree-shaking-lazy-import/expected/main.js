@@ -13,7 +13,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./app */"./app.js");
 
 const a = test(()=>__webpack_require__.el(/* ./lib */"./lib.js").then(__webpack_require__.bind(__webpack_require__, /* ./lib */"./lib.js")));
-(0, _app__WEBPACK_IMPORTED_MODULE_0_["answer"])();
+(0, _app__WEBPACK_IMPORTED_MODULE_0_.answer)();
 a;
 },
 

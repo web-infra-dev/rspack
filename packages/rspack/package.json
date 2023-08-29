@@ -1,11 +1,17 @@
 {
   "name": "@rspack/core",
-  "version": "0.2.10",
+  "version": "0.3.1",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "A Fast Rust-based Web Bundler",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
     "prepare": "pnpm precompile-schema",
@@ -27,7 +33,6 @@
     "@rspack/core": "workspace:*",
     "@rspack/plugin-minify": "workspace:^",
     "@rspack/plugin-node-polyfill": "workspace:^",
-    "@rspack/postcss-loader": "workspace:^",
     "@types/watchpack": "^2.4.0",
     "@types/webpack-sources": "3.2.0",
     "@types/ws": "8.5.3",
@@ -47,8 +52,7 @@
     "source-map": "^0.7.4",
     "terser": "5.16.1",
     "ts-node": "10.9.1",
-    "wast-loader": "^1.11.4",
-    "webpack-dev-server": "4.13.1"
+    "wast-loader": "^1.11.4"
   },
   "dependencies": {
     "@rspack/binding": "workspace:*",
@@ -62,6 +66,7 @@
     "react-refresh": "0.14.0",
     "schema-utils": "^4.0.0",
     "tapable": "2.2.1",
+    "terminal-link": "^2.1.1",
     "util": "0.12.5",
     "watchpack": "^2.4.0",
     "webpack-sources": "3.2.3",

@@ -9,22 +9,21 @@
  */
 
 import watchpack from "watchpack";
-import { Compiler } from "../compiler";
-import * as oldBuiltins from "./builtins";
+import { Compiler } from "../Compiler";
+import * as oldBuiltins from "../builtin-plugin";
 import { Compilation } from "..";
 import type * as webpackDevServer from "webpack-dev-server";
 import type { Options as RspackOptions } from "./zod/_rewrite";
 import type { OptimizationConfig as Optimization } from "./zod/optimization";
 import type { RawFuncUseCtx } from "@rspack/binding";
+import { RspackBuiltinPlugin } from "../builtin-plugin";
 export type { RspackOptions, Optimization };
-
-export type { BannerConditions, BannerCondition } from "./builtins";
 
 export type {
 	LoaderContext,
 	LoaderDefinitionFunction,
 	LoaderDefinition
-} from "./adapter-rule-use";
+} from "./adapterRuleUse";
 
 export type Configuration = RspackOptions;
 
@@ -36,6 +35,7 @@ export interface RspackOptionsNormalized {
 	entry: EntryNormalized;
 	output: OutputNormalized;
 	resolve: Resolve;
+	resolveLoader: Resolve;
 	module: ModuleOptionsNormalized;
 	target?: Target;
 	externals?: Externals;
@@ -53,8 +53,9 @@ export interface RspackOptionsNormalized {
 	watch?: Watch;
 	watchOptions: WatchOptions;
 	devServer?: DevServer;
-	builtins: Builtins;
 	ignoreWarnings?: IgnoreWarningsNormalized;
+	profile?: Profile;
+	builtins: Builtins;
 }
 
 ///// Name /////
@@ -611,6 +612,9 @@ export interface StatsOptions {
 	moduleAssets?: boolean;
 	nestedModules?: boolean;
 	source?: boolean;
+	logging?: ("none" | "error" | "warn" | "info" | "log" | "verbose") | boolean;
+	loggingDebug?: boolean | FilterTypes;
+	loggingTrace?: boolean;
 }
 
 export type OptimizationRuntimeChunk =
@@ -626,7 +630,11 @@ export type OptimizationRuntimeChunkNormalized =
 	  };
 
 ///// Plugins /////
-export type Plugins = (RspackPluginInstance | RspackPluginFunction)[];
+export type Plugins = (
+	| RspackPluginInstance
+	| RspackPluginFunction
+	| RspackBuiltinPlugin
+)[];
 export interface RspackPluginInstance {
 	apply: (compiler: Compiler) => void;
 	[k: string]: any;
@@ -646,6 +654,17 @@ export interface IncrementalRebuildOptions {
 	make?: boolean;
 	emitAsset?: boolean;
 }
+// TODO: discuss with webpack, should move to css generator options
+// export interface CssExperimentOptions {
+// 	exportsOnly?: boolean;
+// 	localsConvention?:
+// 		| "asIs"
+// 		| "camelCase"
+// 		| "camelCaseOnly"
+// 		| "dashes"
+// 		| "dashesOnly";
+// 	localIdentName?: string;
+// }
 export interface ExperimentsNormalized {
 	lazyCompilation?: boolean;
 	incrementalRebuild?: false | IncrementalRebuildOptions;
@@ -676,6 +695,9 @@ export type IgnoreWarningsNormalized = ((
 	warning: Error,
 	compilation: Compilation
 ) => boolean)[];
+
+///// Profile /////
+export type Profile = boolean;
 
 ///// Builtins /////
 export type Builtins = oldBuiltins.Builtins;

@@ -8,7 +8,7 @@ use rspack_core::{
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRenderChunkHookOutput, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
-use rspack_error::{internal_error, Result};
+use rspack_error::internal_error;
 use rspack_plugin_javascript::runtime::render_chunk_runtime_modules;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -24,10 +24,6 @@ pub struct ModuleChunkFormatPlugin;
 impl Plugin for ModuleChunkFormatPlugin {
   fn name(&self) -> &'static str {
     "ModuleChunkFormatPlugin"
-  }
-
-  fn apply(&self, _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
-    Ok(())
   }
 
   fn additional_chunk_runtime_requirements(

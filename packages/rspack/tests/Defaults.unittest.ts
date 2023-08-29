@@ -105,23 +105,6 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-         "localIdentName": "[path][name][ext]__[local]",
-		+         "localIdentName": "[hash]",
-		@@ ... @@
-		-     "minifyOptions": undefined,
-		+     "minifyOptions": Object {
-		+       "dropConsole": false,
-		+       "exclude": undefined,
-		+       "extractComments": undefined,
-		+       "include": undefined,
-		+       "passes": 1,
-		+       "pureFuncs": Array [],
-		+       "test": undefined,
-		+     },
-		@@ ... @@
-		-     "treeShaking": "false",
-		+     "treeShaking": "true",
-		@@ ... @@
 		-   "mode": "none",
 		+   "mode": undefined,
 		@@ ... @@
@@ -156,23 +139,6 @@ describe("snapshots", () => {
 		- Expected
 		+ Received
 
-		@@ ... @@
-		-         "localIdentName": "[path][name][ext]__[local]",
-		+         "localIdentName": "[hash]",
-		@@ ... @@
-		-     "minifyOptions": undefined,
-		+     "minifyOptions": Object {
-		+       "dropConsole": false,
-		+       "exclude": undefined,
-		+       "extractComments": undefined,
-		+       "include": undefined,
-		+       "passes": 1,
-		+       "pureFuncs": Array [],
-		+       "test": undefined,
-		+     },
-		@@ ... @@
-		-     "treeShaking": "false",
-		+     "treeShaking": "true",
 		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "production",

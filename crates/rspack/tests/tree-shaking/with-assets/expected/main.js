@@ -14,7 +14,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _a_svg__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./a.svg */"./a.svg");
 
 
-_a_js__WEBPACK_IMPORTED_MODULE_0_["a"];
+_a_js__WEBPACK_IMPORTED_MODULE_0_.a;
 _a_svg__WEBPACK_IMPORTED_MODULE_1_;
 },
 "./a.svg": function (module, exports, __webpack_require__) {

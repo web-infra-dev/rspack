@@ -66,6 +66,10 @@ impl Plugin for UmdLibraryPlugin {
           .module_graph
           .module_by_identifier(identifier)
           .and_then(|module| module.as_external_module())
+          .and_then(|m| {
+            let ty = m.get_external_type();
+            (ty == "umd" || ty == "umd2").then_some(m)
+          })
       })
       .collect::<Vec<&ExternalModule>>();
     // TODO check if external module is optional

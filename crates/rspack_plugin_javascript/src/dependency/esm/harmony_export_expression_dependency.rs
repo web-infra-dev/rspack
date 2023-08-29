@@ -12,14 +12,14 @@ pub struct AnonymousFunctionRangeInfo {
 }
 
 #[derive(Debug)]
-pub struct HarmonyExpressionHeaderDependency {
+pub struct HarmonyExportExpressionDependency {
   pub start: u32,
   pub end: u32,
   pub declaration: bool,
   pub function: Option<AnonymousFunctionRangeInfo>,
 }
 
-impl HarmonyExpressionHeaderDependency {
+impl HarmonyExportExpressionDependency {
   pub fn new(
     start: u32,
     end: u32,
@@ -35,7 +35,7 @@ impl HarmonyExpressionHeaderDependency {
   }
 }
 
-impl DependencyTemplate for HarmonyExpressionHeaderDependency {
+impl DependencyTemplate for HarmonyExportExpressionDependency {
   fn apply(
     &self,
     source: &mut TemplateReplaceSource,

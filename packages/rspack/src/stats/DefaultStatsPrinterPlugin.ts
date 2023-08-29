@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import type { Compiler } from "../compiler";
+import type { Compiler } from "../Compiler";
 import type { StatsPrinter, StatsPrinterContext } from "./StatsPrinter";
 import { formatSize } from "../util/SizeFormatHelpers";
 import { StatsChunkGroup, StatsCompilation } from "./statsFactoryUtils";
@@ -215,14 +215,17 @@ const SIMPLE_PRINTERS: Record<
 					"assets"
 			  )}`
 			: undefined,
-	// "compilation.logging": (logging, context, printer) =>
-	// 	Array.isArray(logging)
-	// 		? undefined
-	// 		: printer.print(
-	// 				context.type,
-	// 				Object.entries(logging).map(([name, value]) => ({ ...value, name })),
-	// 				context
-	// 		  ),
+	"compilation.logging": (logging, context, printer) =>
+		Array.isArray(logging)
+			? undefined
+			: printer.print(
+					context.type,
+					Object.entries(logging).map(([name, value]) => ({
+						...(value as any),
+						name
+					})),
+					context
+			  ),
 	"compilation.warningsInChildren!": (_, { yellow, compilation }) => {
 		if (
 			!compilation.children &&

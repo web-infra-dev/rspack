@@ -21,15 +21,16 @@ use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
 };
+use rustc_hash::FxHashSet as HashSet;
 use rustc_hash::FxHasher;
 use serde_json::json;
 
 use crate::{
-  contextify, get_context, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResult, Compilation, CompilerOptions, Context, DependencyTemplate, GenerateContext,
-  GeneratorOptions, LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleAst,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, SourceType,
+  add_connection_states, contextify, get_context, BoxLoader, BoxModule, BuildContext, BuildInfo,
+  BuildMeta, BuildResult, CodeGenerationResult, Compilation, CompilerOptions, ConnectionState,
+  Context, DependencyTemplate, GenerateContext, GeneratorOptions, LibIdentOptions,
+  LoaderRunnerPluginProcessResource, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, SourceType,
 };
 
 bitflags! {
@@ -71,80 +72,12 @@ impl ModuleIssuer {
   }
 }
 
-// TODO Here should only has source for string replace codegen, but the tree-shaking analyzer need ast at now, so here use ast as workaround.
-#[derive(Debug, Clone, Hash)]
-pub struct AstOrSource {
-  inner: (Option<ModuleAst>, Option<BoxSource>),
-}
-
-impl AstOrSource {
-  pub fn new(ast: Option<ModuleAst>, source: Option<BoxSource>) -> Self {
-    Self {
-      inner: (ast, source),
-    }
-  }
-
-  pub fn as_ast(&self) -> Option<&ModuleAst> {
-    self.inner.0.as_ref()
-  }
-
-  pub fn as_source(&self) -> Option<&BoxSource> {
-    self.inner.1.as_ref()
-  }
-
-  pub fn try_into_ast(self) -> Result<ModuleAst> {
-    match self.inner.0 {
-      Some(ast) => Ok(ast),
-      // TODO: change to user error
-      _ => Err(internal_error!("Failed to convert to ast")),
-    }
-  }
-
-  pub fn try_into_source(self) -> Result<BoxSource> {
-    match self.inner.1 {
-      Some(source) => Ok(source),
-      // TODO: change to user error
-      _ => Err(internal_error!("Failed to convert to source")),
-    }
-  }
-
-  pub fn try_to_source(&self) -> Result<BoxSource> {
-    match &self.inner.1 {
-      Some(source) => Ok(source.clone()),
-      // TODO: change to user error
-      _ => Err(internal_error!("Failed to convert to source")),
-    }
-  }
-
-  pub fn map<F, G>(self, f: F, g: G) -> Self
-  where
-    F: FnOnce(ModuleAst) -> ModuleAst,
-    G: FnOnce(BoxSource) -> BoxSource,
-  {
-    let ast = self.inner.0.map(f);
-    let source = self.inner.1.map(g);
-    Self::new(ast, source)
-  }
-}
-
-impl From<ModuleAst> for AstOrSource {
-  fn from(ast: ModuleAst) -> Self {
-    AstOrSource::new(Some(ast), None)
-  }
-}
-
-impl From<BoxSource> for AstOrSource {
-  fn from(source: BoxSource) -> Self {
-    AstOrSource::new(None, Some(source))
-  }
-}
-
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct NormalModule {
   id: ModuleIdentifier,
   /// Context of this module
-  context: Context,
+  context: Box<Context>,
   /// Request with loaders from config
   request: String,
   /// Request intended by user (without loaders from config)
@@ -162,14 +95,16 @@ pub struct NormalModule {
   /// Loaders for the module
   #[derivative(Debug = "ignore")]
   loaders: Vec<BoxLoader>,
+  /// Whether loaders list contains inline loader
+  contains_inline_loader: bool,
 
   /// Original content of this module, will be available after module build
   original_source: Option<BoxSource>,
-  /// Built AST or source of this module (passed with loaders)
-  ast_or_source: NormalModuleAstOrSource,
+  /// Built source of this module (passed with loaders)
+  source: NormalModuleSource,
 
   /// Resolve options derived from [Rule.resolve]
-  resolve_options: Option<Resolve>,
+  resolve_options: Option<Box<Resolve>>,
   /// Parser options derived from [Rule.parser]
   parser_options: Option<ParserOptions>,
   /// Generator options derived from [Rule.generator]
@@ -185,16 +120,16 @@ pub struct NormalModule {
 }
 
 #[derive(Debug)]
-pub enum NormalModuleAstOrSource {
+pub enum NormalModuleSource {
   Unbuild,
-  BuiltSucceed(AstOrSource),
+  BuiltSucceed(BoxSource),
   BuiltFailed(String),
 }
 
-impl NormalModuleAstOrSource {
-  pub fn new_built(ast_or_source: AstOrSource, diagnostics: &[Diagnostic]) -> Self {
+impl NormalModuleSource {
+  pub fn new_built(source: BoxSource, diagnostics: &[Diagnostic]) -> Self {
     if diagnostics.iter().any(|d| d.severity == Severity::Error) {
-      NormalModuleAstOrSource::BuiltFailed(
+      NormalModuleSource::BuiltFailed(
         diagnostics
           .iter()
           .filter(|d| d.severity == Severity::Error)
@@ -203,7 +138,7 @@ impl NormalModuleAstOrSource {
           .join("\n"),
       )
     } else {
-      NormalModuleAstOrSource::BuiltSucceed(ast_or_source)
+      NormalModuleSource::BuiltSucceed(source)
     }
   }
 }
@@ -222,9 +157,10 @@ impl NormalModule {
     generator_options: Option<GeneratorOptions>,
     match_resource: Option<ResourceData>,
     resource_data: ResourceData,
-    resolve_options: Option<Resolve>,
+    resolve_options: Option<Box<Resolve>>,
     loaders: Vec<BoxLoader>,
     options: Arc<CompilerOptions>,
+    contains_inline_loader: bool,
   ) -> Self {
     let module_type = module_type.into();
     let identifier = if module_type == ModuleType::Js {
@@ -234,7 +170,7 @@ impl NormalModule {
     };
     Self {
       id: ModuleIdentifier::from(identifier),
-      context: get_context(&resource_data),
+      context: Box::new(get_context(&resource_data)),
       request,
       user_request,
       raw_request,
@@ -246,8 +182,9 @@ impl NormalModule {
       resource_data,
       resolve_options,
       loaders,
+      contains_inline_loader,
       original_source: None,
-      ast_or_source: NormalModuleAstOrSource::Unbuild,
+      source: NormalModuleSource::Unbuild,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
 
       options,
@@ -277,32 +214,24 @@ impl NormalModule {
     &self.raw_request
   }
 
-  pub fn source(&self) -> Option<&dyn Source> {
-    match self.ast_or_source() {
-      NormalModuleAstOrSource::BuiltSucceed(ast_or_source) => {
-        ast_or_source.as_source().map(|source| source.as_ref())
-      }
-      _ => None,
-    }
+  pub fn source(&self) -> &NormalModuleSource {
+    &self.source
   }
 
-  pub fn ast(&self) -> Option<&ModuleAst> {
-    match self.ast_or_source() {
-      NormalModuleAstOrSource::BuiltSucceed(ast_or_source) => ast_or_source.as_ast(),
-      _ => None,
-    }
+  pub fn source_mut(&mut self) -> &mut NormalModuleSource {
+    &mut self.source
   }
 
-  pub fn ast_or_source(&self) -> &NormalModuleAstOrSource {
-    &self.ast_or_source
-  }
-
-  pub fn ast_or_source_mut(&mut self) -> &mut NormalModuleAstOrSource {
-    &mut self.ast_or_source
+  pub fn loaders(&self) -> &[BoxLoader] {
+    &self.loaders
   }
 
   pub fn loaders_mut_vec(&mut self) -> &mut Vec<BoxLoader> {
     &mut self.loaders
+  }
+
+  pub fn contains_inline_loader(&self) -> bool {
+    self.contains_inline_loader
   }
 }
 
@@ -351,21 +280,19 @@ impl Module for NormalModule {
 
     build_context.plugin_driver.before_loaders(self).await?;
 
-    let loader_result = {
-      run_loaders(
-        &self.loaders,
-        &self.resource_data,
-        &[Box::new(LoaderRunnerPluginProcessResource {
-          plugin_driver: build_context.plugin_driver.clone(),
-        })],
-        build_context.compiler_context,
-      )
-      .await
-    };
+    let loader_result = run_loaders(
+      &self.loaders,
+      &self.resource_data,
+      &[Box::new(LoaderRunnerPluginProcessResource {
+        plugin_driver: build_context.plugin_driver.clone(),
+      })],
+      build_context.compiler_context,
+    )
+    .await;
     let (loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
       Err(e) => {
-        self.ast_or_source = NormalModuleAstOrSource::BuiltFailed(e.to_string());
+        self.source = NormalModuleSource::BuiltFailed(e.to_string());
         let mut hasher = RspackHash::from(&build_context.compiler_options.output);
         self.update_hash(&mut hasher);
         build_meta.hash(&mut hasher);
@@ -393,7 +320,7 @@ impl Module for NormalModule {
 
     let (
       ParseResult {
-        ast_or_source,
+        source,
         dependencies,
         presentational_dependencies,
         analyze_result,
@@ -419,7 +346,7 @@ impl Module for NormalModule {
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
     self.original_source = Some(original_source);
-    self.ast_or_source = NormalModuleAstOrSource::new_built(ast_or_source, &diagnostics);
+    self.source = NormalModuleSource::new_built(source, &diagnostics);
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
 
@@ -447,11 +374,11 @@ impl Module for NormalModule {
   }
 
   fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
-    if let NormalModuleAstOrSource::BuiltSucceed(ast_or_source) = self.ast_or_source() {
+    if let NormalModuleSource::BuiltSucceed(source) = &self.source {
       let mut code_generation_result = CodeGenerationResult::default();
       for source_type in self.source_types() {
-        let mut generation_result = self.parser_and_generator.generate(
-          ast_or_source,
+        let generation_result = self.parser_and_generator.generate(
+          source,
           self,
           &mut GenerateContext {
             compilation,
@@ -461,10 +388,7 @@ impl Module for NormalModule {
             requested_source_type: *source_type,
           },
         )?;
-        generation_result.ast_or_source = generation_result
-          .ast_or_source
-          .map(|i| i, |s| CachedSource::new(s).boxed());
-        code_generation_result.add(*source_type, generation_result);
+        code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
       }
       code_generation_result.set_hash(
         &compilation.options.output.hash_function,
@@ -472,7 +396,7 @@ impl Module for NormalModule {
         &compilation.options.output.hash_salt,
       );
       Ok(code_generation_result)
-    } else if let NormalModuleAstOrSource::BuiltFailed(error_message) = self.ast_or_source() {
+    } else if let NormalModuleSource::BuiltFailed(error_message) = &self.source {
       let mut code_generation_result = CodeGenerationResult::default();
 
       // If the module build failed and the module is able to emit JavaScript source,
@@ -480,10 +404,7 @@ impl Module for NormalModule {
       if self.source_types().contains(&SourceType::JavaScript) {
         code_generation_result.add(
           SourceType::JavaScript,
-          AstOrSource::new(
-            None,
-            Some(RawSource::from(format!("throw new Error({});\n", json!(error_message))).boxed()),
-          ),
+          RawSource::from(format!("throw new Error({});\n", json!(error_message))).boxed(),
         );
       }
       code_generation_result.set_hash(
@@ -500,7 +421,7 @@ impl Module for NormalModule {
     }
   }
 
-  fn name_for_condition(&self) -> Option<Cow<str>> {
+  fn name_for_condition(&self) -> Option<Box<str>> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/NormalModule.js#L375
     let resource = self.resource_data.resource.as_str();
     let idx = resource.find('?');
@@ -516,8 +437,8 @@ impl Module for NormalModule {
     Some(Cow::Owned(contextify(options.context, self.user_request())))
   }
 
-  fn get_resolve_options(&self) -> Option<&Resolve> {
-    self.resolve_options.as_ref()
+  fn get_resolve_options(&self) -> Option<Box<Resolve>> {
+    self.resolve_options.clone()
   }
 
   fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
@@ -536,8 +457,42 @@ impl Module for NormalModule {
     }
   }
 
-  fn get_context(&self) -> Option<&Context> {
-    Some(&self.context)
+  fn get_context(&self) -> Option<Box<Context>> {
+    Some(self.context.clone())
+  }
+
+  // Port from https://github.com/webpack/webpack/blob/main/lib/NormalModule.js#L1120
+  fn get_side_effects_connection_state(
+    &self,
+    module_graph: &ModuleGraph,
+    module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    if let Some(mgm) = module_graph.module_graph_module_by_identifier(&self.identifier()) {
+      if let Some(side_effect) = mgm.factory_meta.as_ref().and_then(|m| m.side_effects) {
+        return ConnectionState::Bool(side_effect);
+      }
+      if let Some(side_effect_free) = mgm.build_meta.as_ref().and_then(|m| m.side_effect_free) && side_effect_free {
+        // use module chain instead of is_evaluating_side_effects to mut module graph
+        if module_chain.contains(&self.identifier()) {
+          return ConnectionState::CircularConnection;
+        }
+        module_chain.insert(self.identifier());
+        let mut current = ConnectionState::Bool(false);
+        for dependency_id in mgm.dependencies.iter() {
+          if let Some(dependency) = module_graph.dependency_by_id(dependency_id).expect("should have dependency").as_module_dependency() {
+            let state = dependency.get_module_evaluation_side_effects_state(module_graph, module_chain);
+            if matches!(state, ConnectionState::Bool(true)) {
+              // TODO add optimization bailout
+              return ConnectionState::Bool(true);
+            } else if matches!(state, ConnectionState::CircularConnection) {
+              current = add_connection_states(current, state);
+            }
+          }
+        }
+        return current;
+      }
+    }
+    ConnectionState::Bool(true)
   }
 }
 

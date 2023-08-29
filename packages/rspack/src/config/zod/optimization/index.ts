@@ -1,14 +1,13 @@
 import { z } from "zod";
-import { Compiler } from "../../../compiler";
+import { Compiler } from "../../../Compiler";
 import { splitChunks } from "./split-chunks";
 
-const rspackPluginInstance = z.object({
-	apply: z.function()
-});
+const rspackPluginInstance = z.any();
 
 export function optimization() {
 	return z.strictObject({
 		moduleIds: z.enum(["named", "deterministic"]).optional(),
+		chunkIds: z.enum(["named", "deterministic"]).optional(),
 		minimize: z.boolean().optional(),
 		minimizer: z.literal("...").or(rspackPluginInstance).array().optional(),
 		splitChunks: splitChunks().optional(),

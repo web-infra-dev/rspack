@@ -1,16 +1,16 @@
 use rspack_core::rspack_sources::{
-  RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, WithoutOriginalOptions,
+  BoxSource, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
+  WithoutOriginalOptions,
 };
 use rspack_core::tree_shaking::analyzer::OptimizeAnalyzer;
 use rspack_core::tree_shaking::js_module::JsModule;
 use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
 use rspack_core::{
-  AstOrSource, GenerateContext, GenerationResult, Module, ModuleAst, ParseContext, ParseResult,
+  render_box_init_fragments, GenerateContext, Module, ParseContext, ParseResult,
   ParserAndGenerator, SourceType, TemplateContext,
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
-use crate::runtime::render_init_fragments;
 use crate::utils::syntax_by_module_type;
 use crate::visitors::{run_before_pass, scan_dependencies, swc_visitor::resolver};
 #[derive(Debug)]
@@ -62,7 +62,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Err(e) => {
         return Ok(
           ParseResult {
-            ast_or_source: RawSource::from(source.to_string()).boxed().into(),
+            source: RawSource::from(source.to_string()).boxed(),
             dependencies: vec![],
             presentational_dependencies: vec![],
             analyze_result: Default::default(),
@@ -95,7 +95,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Err(e) => {
         return Ok(
           ParseResult {
-            ast_or_source: RawSource::from(output.code.clone()).boxed().into(),
+            source: RawSource::from(output.code.clone()).boxed(),
             dependencies: vec![],
             presentational_dependencies: vec![],
             analyze_result: Default::default(),
@@ -151,7 +151,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     Ok(
       ParseResult {
-        ast_or_source: AstOrSource::new(Some(ModuleAst::JavaScript(scan_ast)), Some(source)),
+        source,
         dependencies,
         presentational_dependencies,
         analyze_result,
@@ -163,15 +163,15 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
-    ast_or_source: &AstOrSource,
+    source: &BoxSource,
     module: &dyn Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<GenerationResult> {
+  ) -> Result<BoxSource> {
     if matches!(
       generate_context.requested_source_type,
       SourceType::JavaScript
     ) {
-      let mut source = ReplaceSource::new(ast_or_source.try_to_source()?);
+      let mut source = ReplaceSource::new(source.clone());
       let compilation = generate_context.compilation;
       let mut init_fragments = vec![];
       let mut context = TemplateContext {
@@ -191,7 +191,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .module_graph
           .dependency_by_id(id)
           .expect("should have dependency")
-          .as_code_generatable_dependency()
+          .as_dependency_template()
         {
           dependency.apply(&mut source, &mut context)
         }
@@ -203,9 +203,12 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .for_each(|dependency| dependency.apply(&mut source, &mut context));
       };
 
-      Ok(GenerationResult {
-        ast_or_source: render_init_fragments(source.boxed(), &mut init_fragments).into(),
-      })
+      Ok(render_box_init_fragments(
+        init_fragments,
+        source.boxed(),
+        mgm.get_exports_argument(),
+        generate_context.runtime_requirements,
+      ))
     } else {
       Err(internal_error!(
         "Unsupported source type {:?} for plugin JavaScript",

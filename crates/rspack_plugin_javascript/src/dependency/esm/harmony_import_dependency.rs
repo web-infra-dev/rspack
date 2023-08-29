@@ -1,11 +1,15 @@
-use rspack_core::tree_shaking::symbol::IndirectTopLevelSymbol;
+use rspack_core::tree_shaking::symbol::{self, IndirectTopLevelSymbol};
+use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
-  import_statement, tree_shaking::symbol, tree_shaking::visitor::SymbolRef, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan, InitFragment,
-  InitFragmentStage, ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  import_statement, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, InitFragmentStage, ModuleDependency,
+  ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rspack_core::{ExportsReferencedType, ModuleGraph, RuntimeSpec};
+use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
+
+use super::create_resource_identifier_for_esm_dependency;
 
 #[derive(Debug, Clone)]
 pub enum Specifier {
@@ -14,10 +18,9 @@ pub enum Specifier {
   Named(JsWord, Option<JsWord>),
 }
 
+// HarmonyImportDependency is merged HarmonyImportSideEffectDependency.
 #[derive(Debug, Clone)]
 pub struct HarmonyImportDependency {
-  // pub start: u32,
-  // pub end: u32,
   pub request: JsWord,
   pub id: DependencyId,
   pub span: Option<ErrorSpan>,
@@ -29,18 +32,17 @@ pub struct HarmonyImportDependency {
 
 impl HarmonyImportDependency {
   pub fn new(
-    id: DependencyId,
     request: JsWord,
     span: Option<ErrorSpan>,
     specifiers: Vec<Specifier>,
     dependency_type: DependencyType,
     export_all: bool,
   ) -> Self {
-    let resource_identifier = format!("{}|{}", DependencyCategory::Esm, &request);
+    let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
+      id: DependencyId::new(),
       request,
       span,
-      id,
       specifiers,
       dependency_type,
       export_all,
@@ -146,29 +148,29 @@ impl DependencyTemplate for HarmonyImportDependency {
       .module_graph
       .get_import_var(&module.identifier(), &self.request);
     if compilation.module_graph.is_async(ref_module) {
-      init_fragments.push(InitFragment::new(
+      init_fragments.push(Box::new(NormalInitFragment::new(
         content.0,
-        InitFragmentStage::STAGE_HARMONY_IMPORTS,
+        InitFragmentStage::StageHarmonyImports,
         None,
-      ));
-      init_fragments.push(InitFragment::new(
+      )));
+      init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
           "var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{import_var}]);\n([{import_var}] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__);"
         ),
-        InitFragmentStage::STAGE_HARMONY_IMPORTS,
+        InitFragmentStage::StageHarmonyImports,
         None,
-      ));
-      init_fragments.push(InitFragment::new(
+      )));
+      init_fragments.push(Box::new(NormalInitFragment::new(
         content.1,
-        InitFragmentStage::STAGE_ASYNC_HARMONY_IMPORTS,
+        InitFragmentStage::StageAsyncHarmonyImports,
         None,
-      ));
+      )));
     } else {
-      init_fragments.push(InitFragment::new(
+      init_fragments.push(Box::new(NormalInitFragment::new(
         format!("{}{}", content.0, content.1),
-        InitFragmentStage::STAGE_HARMONY_IMPORTS,
+        InitFragmentStage::StageHarmonyImports,
         None,
-      ));
+      )));
     }
     if self.export_all {
       runtime_requirements.insert(RuntimeGlobals::EXPORT_STAR);
@@ -177,24 +179,28 @@ impl DependencyTemplate for HarmonyImportDependency {
         .module_graph_module_by_identifier(&module.identifier())
         .expect("should have mgm")
         .get_exports_argument();
-      init_fragments.push(InitFragment::new(
+      init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
           "{}.{}({import_var}, {exports_argument});\n",
           RuntimeGlobals::REQUIRE,
           RuntimeGlobals::EXPORT_STAR,
         ),
         if compilation.module_graph.is_async(ref_module) {
-          InitFragmentStage::STAGE_ASYNC_HARMONY_IMPORTS
+          InitFragmentStage::StageAsyncHarmonyImports
         } else {
-          InitFragmentStage::STAGE_HARMONY_IMPORTS
+          InitFragmentStage::StageHarmonyImports
         },
         None,
-      ));
+      )));
     }
   }
 }
 
 impl Dependency for HarmonyImportDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -205,10 +211,6 @@ impl Dependency for HarmonyImportDependency {
 }
 
 impl ModuleDependency for HarmonyImportDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -219,10 +221,6 @@ impl ModuleDependency for HarmonyImportDependency {
 
   fn span(&self) -> Option<&ErrorSpan> {
     self.span.as_ref()
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
   }
 
   fn set_request(&mut self, request: String) {
@@ -239,5 +237,38 @@ impl ModuleDependency for HarmonyImportDependency {
     _runtime: &RuntimeSpec,
   ) -> ExportsReferencedType {
     ExportsReferencedType::No
+  }
+
+  // It's from HarmonyImportSideEffectDependency.
+  fn get_condition(&self, _module_graph: &ModuleGraph) -> Option<DependencyCondition> {
+    let id = self.id;
+    Some(DependencyCondition::Fn(Box::new(
+      move |_, _, module_graph| {
+        if let Some(module) = module_graph
+          .parent_module_by_dependency_id(&id)
+          .and_then(|module_identifier| module_graph.module_by_identifier(&module_identifier))
+        {
+          module.get_side_effects_connection_state(module_graph, &mut HashSet::default())
+        } else {
+          ConnectionState::Bool(true)
+        }
+      },
+    )))
+  }
+
+  // It's from HarmonyImportSideEffectDependency.
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    module_graph: &ModuleGraph,
+    module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    if let Some(module) = module_graph
+      .parent_module_by_dependency_id(&self.id)
+      .and_then(|module_identifier| module_graph.module_by_identifier(&module_identifier))
+    {
+      module.get_side_effects_connection_state(module_graph, module_chain)
+    } else {
+      ConnectionState::Bool(true)
+    }
   }
 }

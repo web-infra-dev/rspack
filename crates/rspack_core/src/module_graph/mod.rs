@@ -8,11 +8,12 @@ use rspack_identifier::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 mod connection;
-pub use connection::{ConnectionId, ConnectionState, ModuleGraphConnection};
+pub use connection::*;
 
 use crate::{
-  to_identifier, BoxModule, BoxModuleDependency, BuildDependency, BuildInfo, BuildMeta,
-  DependencyId, ExportsInfo, Module, ModuleGraphModule, ModuleIdentifier,
+  to_identifier, BoxDependency, BoxModule, BuildDependency, BuildInfo, BuildMeta,
+  DependencyCondition, DependencyId, ExportsInfo, Module, ModuleGraphModule, ModuleIdentifier,
+  ModuleProfile,
 };
 
 // TODO Here request can be used JsWord
@@ -26,14 +27,14 @@ pub struct ModuleGraph {
   module_identifier_to_module: IdentifierMap<BoxModule>,
 
   /// Module identifier to its module graph module
-  module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
+  pub module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
 
   dependency_id_to_connection_id: HashMap<DependencyId, ConnectionId>,
   connection_id_to_dependency_id: HashMap<ConnectionId, DependencyId>,
 
   /// Dependencies indexed by `DependencyId`
   /// None means the dependency has been removed
-  dependencies: HashMap<DependencyId, BoxModuleDependency>,
+  dependencies: HashMap<DependencyId, BoxDependency>,
 
   /// Dependencies indexed by `ConnectionId`
   /// None means the connection has been removed
@@ -41,6 +42,7 @@ pub struct ModuleGraph {
 
   /// Module graph connections table index for `ConnectionId`
   connections_map: HashMap<ModuleGraphConnection, ConnectionId>,
+  connection_to_condition: HashMap<ConnectionId, DependencyCondition>,
 
   import_var_map: IdentifierMap<ImportVarMap>,
 }
@@ -74,11 +76,18 @@ impl ModuleGraph {
     }
   }
 
-  pub fn add_dependency(&mut self, dependency: BoxModuleDependency) {
+  pub fn add_dependency(&mut self, dependency: BoxDependency) {
     self.dependencies.insert(*dependency.id(), dependency);
   }
 
-  pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxModuleDependency> {
+  pub fn get_condition_by_connection_id(
+    &self,
+    connection_id: &ConnectionId,
+  ) -> Option<&DependencyCondition> {
+    self.connection_to_condition.get(connection_id)
+  }
+
+  pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxDependency> {
     self.dependencies.get(dependency_id)
   }
 
@@ -108,23 +117,33 @@ impl ModuleGraph {
   pub fn set_resolved_module(
     &mut self,
     original_module_identifier: Option<ModuleIdentifier>,
-    dependency: BoxModuleDependency,
+    dependency: BoxDependency,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
+    let module_dependency = dependency.as_module_dependency().is_some();
     let dependency_id = *dependency.id();
     self.add_dependency(dependency);
     self
       .dependency_id_to_module_identifier
       .insert(dependency_id, module_identifier);
+    if !module_dependency {
+      return Ok(());
+    }
 
-    let new_connection =
-      ModuleGraphConnection::new(original_module_identifier, dependency_id, module_identifier);
+    // TODO: just a placeholder here, finish this when we have basic `getCondition` logic
+    let condition: Option<DependencyCondition> = None;
+    let new_connection = ModuleGraphConnection::new(
+      original_module_identifier,
+      dependency_id,
+      module_identifier,
+      condition,
+    );
 
     let connection_id = if let Some(connection_id) = self.connections_map.get(&new_connection) {
       *connection_id
     } else {
       let new_connection_id = ConnectionId::from(self.connections.len());
-      self.connections.push(Some(new_connection));
+      self.connections.push(Some(new_connection.clone()));
       self
         .connections_map
         .insert(new_connection, new_connection_id);
@@ -192,6 +211,10 @@ impl ModuleGraph {
     self.module_identifier_to_module.get_mut(identifier)
   }
 
+  #[inline]
+  pub fn connection_id_by_dependency_id(&self, dep_id: &DependencyId) -> Option<&ConnectionId> {
+    self.dependency_id_to_connection_id.get(dep_id)
+  }
   /// Uniquely identify a module graph module by its module's identifier and return the aliased reference
   #[inline]
   pub fn module_graph_module_by_identifier(
@@ -243,7 +266,7 @@ impl ModuleGraph {
   pub fn dependency_by_connection_id(
     &self,
     connection_id: &ConnectionId,
-  ) -> Option<&BoxModuleDependency> {
+  ) -> Option<&BoxDependency> {
     self
       .connection_id_to_dependency_id
       .get(connection_id)
@@ -302,7 +325,7 @@ impl ModuleGraph {
     removed
   }
 
-  pub fn get_pre_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<usize> {
+  pub fn get_pre_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<u32> {
     self
       .module_graph_module_by_identifier(module_identifier)
       .and_then(|mgm| mgm.pre_order_index)
@@ -361,6 +384,12 @@ impl ModuleGraph {
           .collect()
       })
       .unwrap_or_default()
+  }
+
+  pub fn get_profile(&self, module: &BoxModule) -> Option<&ModuleProfile> {
+    self
+      .module_graph_module_by_identifier(&module.identifier())
+      .and_then(|mgm| mgm.get_profile())
   }
 
   /// Remove a connection and return connection origin module identifier and dependency
@@ -504,6 +533,13 @@ impl ModuleGraph {
       .expect("should have mgm");
     &mgm.exports
   }
+
+  pub fn get_exports_info_mut(&mut self, module_identifier: &ModuleIdentifier) -> &mut ExportsInfo {
+    let mgm = self
+      .module_graph_module_by_identifier_mut(module_identifier)
+      .expect("should have mgm");
+    &mut mgm.exports
+  }
 }
 
 #[cfg(test)]
@@ -515,9 +551,9 @@ mod test {
   use rspack_sources::Source;
 
   use crate::{
-    BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, Dependency,
-    DependencyId, Module, ModuleDependency, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
-    ModuleType, SourceType,
+    BoxDependency, BuildContext, BuildResult, CodeGenerationResult, Compilation, Context,
+    Dependency, DependencyId, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
+    ModuleIdentifier, ModuleType, SourceType,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s
@@ -576,13 +612,13 @@ mod test {
 
   macro_rules! impl_noop_trait_dep_type {
     ($ident:ident) => {
-      impl Dependency for $ident {}
-
-      impl ModuleDependency for $ident {
+      impl Dependency for $ident {
         fn id(&self) -> &DependencyId {
           &self.2
         }
+      }
 
+      impl ModuleDependency for $ident {
         fn request(&self) -> &str {
           &*self.1
         }
@@ -599,6 +635,8 @@ mod test {
           self.1 = request;
         }
       }
+
+      impl crate::AsDependencyTemplate for $ident {}
     };
   }
 
@@ -614,7 +652,7 @@ mod test {
     mg: &mut ModuleGraph,
     from: Option<&ModuleIdentifier>,
     to: &ModuleIdentifier,
-    dep: Box<dyn ModuleDependency>,
+    dep: BoxDependency,
   ) -> DependencyId {
     let dependency_id = *dep.id();
     mg.dependency_id_to_module_identifier

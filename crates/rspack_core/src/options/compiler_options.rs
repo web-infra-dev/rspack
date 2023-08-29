@@ -13,7 +13,7 @@ pub struct CompilerOptions {
   pub target: Target,
   pub mode: Mode,
   pub resolve: Resolve,
-  pub builtins: Builtins,
+  pub resolve_loader: Resolve,
   pub module: ModuleOptions,
   pub devtool: Devtool,
   pub stats: StatsOptions,
@@ -22,6 +22,8 @@ pub struct CompilerOptions {
   pub experiments: Experiments,
   pub node: Option<NodeOption>,
   pub optimization: Optimization,
+  pub profile: bool,
+  pub builtins: Builtins,
 }
 
 impl CompilerOptions {

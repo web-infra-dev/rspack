@@ -5,12 +5,21 @@ expression: js_syntax_error
 error[javascript]: JavaScript parsing error
   ┌─ tests/fixtures/js_syntax_error/index.js:2:10
   │
+1 │ const CONST = 9000 % 2;
 2 │ const  D {
   │          ^ Expected a semicolon
+3 │     // Comma is required, but parser can recover because of the newline.
+4 │     d = 10
+5 │     g = CONST
+6 │ }
 
 error[javascript]: JavaScript parsing error
   ┌─ tests/fixtures/js_syntax_error/index.js:6:1
   │
+2 │ const  D {
+3 │     // Comma is required, but parser can recover because of the newline.
+4 │     d = 10
+5 │     g = CONST
 6 │ }
   │ ^ Expression expected
 

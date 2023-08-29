@@ -1,6 +1,6 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::{ModuleDependency, SpanExt};
+use rspack_core::{BoxDependency, ModuleDependency, SpanExt};
 use rspack_error::{Diagnostic, DiagnosticKind};
 use swc_core::common::Span;
 use swc_core::css::ast::{
@@ -19,7 +19,7 @@ pub fn analyze_dependencies(
   ss: &Stylesheet,
   code_generation_dependencies: &mut Vec<Box<dyn ModuleDependency>>,
   diagnostics: &mut Vec<Diagnostic>,
-) -> Vec<Box<dyn ModuleDependency>> {
+) -> Vec<BoxDependency> {
   let mut v = Analyzer {
     deps: Vec::new(),
     code_generation_dependencies,
@@ -34,7 +34,7 @@ pub fn analyze_dependencies(
 
 #[derive(Debug)]
 struct Analyzer<'a> {
-  deps: Vec<Box<dyn ModuleDependency>>,
+  deps: Vec<BoxDependency>,
   code_generation_dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   diagnostics: &'a mut Vec<Diagnostic>,
   nearest_at_import_span: Option<Span>,

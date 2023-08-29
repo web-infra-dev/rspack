@@ -25,6 +25,10 @@ impl CssImportDependency {
 }
 
 impl Dependency for CssImportDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CssImport
   }
@@ -35,10 +39,6 @@ impl Dependency for CssImportDependency {
 }
 
 impl ModuleDependency for CssImportDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -53,10 +53,6 @@ impl ModuleDependency for CssImportDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
   }
 }
 

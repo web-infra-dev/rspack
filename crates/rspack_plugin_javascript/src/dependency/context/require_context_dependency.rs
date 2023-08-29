@@ -29,6 +29,10 @@ impl RequireContextDependency {
 }
 
 impl Dependency for RequireContextDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CommonJS
   }
@@ -39,10 +43,6 @@ impl Dependency for RequireContextDependency {
 }
 
 impl ModuleDependency for RequireContextDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.options.request
   }
@@ -57,10 +57,6 @@ impl ModuleDependency for RequireContextDependency {
 
   fn options(&self) -> Option<&ContextOptions> {
     Some(&self.options)
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
   }
 
   fn set_request(&mut self, request: String) {

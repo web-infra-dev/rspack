@@ -20,7 +20,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-_a_js__WEBPACK_IMPORTED_MODULE_0_["a"];
+_a_js__WEBPACK_IMPORTED_MODULE_0_.a;
 },
 
 },function(__webpack_require__) {

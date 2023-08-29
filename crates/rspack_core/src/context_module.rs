@@ -7,7 +7,6 @@ use std::{
   sync::Arc,
 };
 
-use nodejs_resolver::EnforceExtension;
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
@@ -17,10 +16,10 @@ use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  contextify, get_exports_type_with_strict, stringify_map, AstOrSource, BoxModuleDependency,
-  BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
-  ContextElementDependency, DependencyCategory, DependencyId, DependencyType, ExportsType,
-  FakeNamespaceObjectMode, GenerationResult, LibIdentOptions, Module, ModuleType, Resolve,
+  contextify, get_exports_type_with_strict, stringify_map, BoxDependency, BuildContext, BuildInfo,
+  BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ContextElementDependency,
+  DependencyCategory, DependencyId, DependencyType, ExportsType, FakeNamespaceObjectMode,
+  LibIdentOptions, Module, ModuleType, Resolve, ResolveInnerOptions,
   ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, SourceType,
 };
 
@@ -124,7 +123,7 @@ pub struct ContextModuleOptions {
   pub resource_query: Option<String>,
   pub resource_fragment: Option<String>,
   pub context_options: ContextOptions,
-  pub resolve_options: Option<Resolve>,
+  pub resolve_options: Option<Box<Resolve>>,
 }
 
 impl Display for ContextModuleOptions {
@@ -272,18 +271,20 @@ impl ContextModule {
           .module_graph
           .module_identifier_by_dependency_id(dependency)
         {
-          let dependency = compilation
+          if let Some(dependency) = compilation
             .module_graph
             .dependency_by_id(dependency)
-            .expect("should have dependency");
-          map.insert(
-            dependency.user_request().to_string(),
-            if let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier) {
-              format!("\"{module_id}\"")
-            } else {
-              "null".to_string()
-            },
-          );
+            .and_then(|d| d.as_module_dependency())
+          {
+            map.insert(
+              dependency.user_request().to_string(),
+              if let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier) {
+                format!("\"{module_id}\"")
+              } else {
+                "null".to_string()
+              },
+            );
+          }
         }
       }
     }
@@ -524,10 +525,7 @@ impl Module for ContextModule {
         .runtime_requirements
         .insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
     }
-    code_generation_result.add(
-      SourceType::JavaScript,
-      GenerationResult::from(AstOrSource::from(self.get_source_string(compilation)?)),
-    );
+    code_generation_result.add(SourceType::JavaScript, self.get_source_string(compilation)?);
     code_generation_result.set_hash(
       &compilation.options.output.hash_function,
       &compilation.options.output.hash_digest,
@@ -562,9 +560,9 @@ impl ContextModule {
     fn visit_dirs(
       ctx: &str,
       dir: &Path,
-      dependencies: &mut Vec<BoxModuleDependency>,
+      dependencies: &mut Vec<BoxDependency>,
       options: &ContextModuleOptions,
-      resolve_options: &nodejs_resolver::Options,
+      resolve_options: &ResolveInnerOptions,
     ) -> Result<()> {
       if dir.is_dir() {
         for entry in fs::read_dir(dir)? {
@@ -640,7 +638,7 @@ impl ContextModule {
       Path::new(&self.options.resource),
       &mut dependencies,
       &self.options,
-      resolver.options(),
+      &resolver.options(),
     )?;
 
     tracing::trace!("resolving dependencies for {:?}", dependencies);
@@ -684,15 +682,15 @@ pub fn normalize_context(str: &str) -> String {
 }
 
 fn alternative_requests(
-  resolve_options: &nodejs_resolver::Options,
+  resolve_options: &ResolveInnerOptions,
   mut items: Vec<AlternativeRequest>,
 ) -> Vec<AlternativeRequest> {
   // TODO: should respect fullySpecified resolve options
   for mut item in std::mem::take(&mut items) {
-    if !matches!(resolve_options.enforce_extension, EnforceExtension::Enabled) {
+    if !resolve_options.is_enforce_extension_enabled() {
       items.push(item.clone());
     }
-    for ext in &resolve_options.extensions {
+    for ext in resolve_options.extensions() {
       if item.request.ends_with(ext) {
         items.push(AlternativeRequest::new(
           item.context.clone(),
@@ -707,7 +705,7 @@ fn alternative_requests(
 
   for mut item in std::mem::take(&mut items) {
     items.push(item.clone());
-    for main_file in &resolve_options.main_files {
+    for main_file in resolve_options.main_files() {
       if item.request.ends_with(&format!("/{main_file}")) {
         items.push(AlternativeRequest::new(
           item.context.clone(),
@@ -731,7 +729,7 @@ fn alternative_requests(
   for mut item in std::mem::take(&mut items) {
     items.push(item.clone());
     // TODO resolveOptions.modules can be array
-    for module in &resolve_options.modules {
+    for module in resolve_options.modules() {
       let dir = module.replace('\\', "/");
       let mut full_path: String = format!(
         "{}{}",

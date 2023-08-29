@@ -80,6 +80,7 @@ impl Devtool {
 impl From<String> for Devtool {
   fn from(s: String) -> Self {
     let mut devtool = Self::default();
+
     if s.contains("source-map") {
       devtool.add_source_map();
     }

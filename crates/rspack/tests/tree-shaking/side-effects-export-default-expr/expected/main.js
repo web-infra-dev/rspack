@@ -14,7 +14,7 @@ var __WEBPACK_DEFAULT_EXPORT__ = /* "./lib" unused */null;
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./app */"./app.js");
 
-_app__WEBPACK_IMPORTED_MODULE_0_["b"];
+_app__WEBPACK_IMPORTED_MODULE_0_.b;
 },
 
 },function(__webpack_require__) {

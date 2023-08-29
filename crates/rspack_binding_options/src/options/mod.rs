@@ -47,11 +47,7 @@ pub use raw_target::*;
 
 pub trait RawOptionsApply {
   type Options;
-  fn apply(
-    self,
-    plugins: &mut Vec<BoxPlugin>,
-    loader_runner: &JsLoaderRunner,
-  ) -> Result<Self::Options, rspack_error::Error>;
+  fn apply(self, plugins: &mut Vec<BoxPlugin>) -> Result<Self::Options, rspack_error::Error>;
 }
 
 #[derive(Deserialize, Debug)]
@@ -71,8 +67,8 @@ pub struct RawOptions {
   pub context: RawContext,
   pub output: RawOutputOptions,
   pub resolve: RawResolveOptions,
+  pub resolve_loader: RawResolveOptions,
   pub module: RawModuleOptions,
-  pub builtins: RawBuiltins,
   pub externals: Option<Vec<RawExternalItem>>,
   pub externals_type: String,
   pub externals_presets: RawExternalsPresets,
@@ -85,16 +81,14 @@ pub struct RawOptions {
   pub cache: RawCacheOptions,
   pub experiments: RawExperiments,
   pub node: Option<RawNodeOption>,
+  pub profile: bool,
+  pub builtins: RawBuiltins,
 }
 
 impl RawOptionsApply for RawOptions {
   type Options = CompilerOptions;
 
-  fn apply(
-    mut self,
-    plugins: &mut Vec<BoxPlugin>,
-    loader_runner: &JsLoaderRunner,
-  ) -> Result<Self::Options, rspack_error::Error> {
+  fn apply(mut self, plugins: &mut Vec<BoxPlugin>) -> Result<Self::Options, rspack_error::Error> {
     let context = self.context.into();
     // https://github.com/web-infra-dev/rspack/discussions/3252#discussioncomment-6182939
     // will solve the order problem by add EntryOptionPlugin on js side, and we can only
@@ -120,12 +114,13 @@ impl RawOptionsApply for RawOptions {
         }
       }
     }
-    let output: OutputOptions = self.output.apply(plugins, loader_runner)?;
+    let output: OutputOptions = self.output.apply(plugins)?;
     let resolve = self.resolve.try_into()?;
+    let resolve_loader = self.resolve_loader.try_into()?;
     let devtool: Devtool = self.devtool.into();
     let mode = self.mode.unwrap_or_default().into();
-    let module: ModuleOptions = self.module.apply(plugins, loader_runner)?;
-    let target = self.target.apply(plugins, loader_runner)?;
+    let module: ModuleOptions = self.module.apply(plugins)?;
+    let target = self.target.apply(plugins)?;
     let cache = self.cache.into();
     let experiments = Experiments {
       lazy_compilation: self.experiments.lazy_compilation,
@@ -139,16 +134,14 @@ impl RawOptionsApply for RawOptions {
       },
       async_web_assembly: self.experiments.async_web_assembly,
       new_split_chunks: self.experiments.new_split_chunks,
-      css: self.experiments.css,
     };
     let optimization = IS_ENABLE_NEW_SPLIT_CHUNKS.set(&experiments.new_split_chunks, || {
-      self.optimization.apply(plugins, loader_runner)
+      self.optimization.apply(plugins)
     })?;
     let stats = self.stats.into();
     let snapshot = self.snapshot.into();
     let node = self.node.map(|n| n.into());
     let dev_server: DevServerOptions = self.dev_server.into();
-    let builtins = self.builtins.apply(plugins, loader_runner)?;
 
     plugins.push(rspack_plugin_schemes::DataUriPlugin.boxed());
     plugins.push(rspack_plugin_schemes::FileUriPlugin.boxed());
@@ -165,7 +158,7 @@ impl RawOptionsApply for RawOptions {
     );
     plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
     if dev_server.hot {
-      plugins.push(rspack_plugin_runtime::HotModuleReplacementPlugin {}.boxed());
+      plugins.push(rspack_plugin_hmr::HotModuleReplacementPlugin {}.boxed());
     }
     plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
     if experiments.lazy_compilation {
@@ -214,9 +207,9 @@ impl RawOptionsApply for RawOptions {
         plugins,
       );
     }
-    if self.externals_presets.web || (self.externals_presets.node && experiments.css) {
+    if self.externals_presets.web || (self.externals_presets.node && self.experiments.css) {
       plugins.push(rspack_plugin_externals::http_url_external_plugin(
-        experiments.css,
+        self.experiments.css,
       ));
     }
     if experiments.async_web_assembly {
@@ -229,19 +222,22 @@ impl RawOptionsApply for RawOptions {
     );
     plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
     plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin {}.boxed());
-    plugins.push(
-      rspack_plugin_devtool::DevtoolPlugin::new(rspack_plugin_devtool::DevtoolPluginOptions {
-        inline: devtool.inline(),
-        append: !devtool.hidden(),
-        namespace: output.unique_name.clone(),
-        columns: !devtool.cheap(),
-        no_sources: devtool.no_sources(),
-        public_path: None,
-      })
-      .boxed(),
-    );
 
-    plugins.push(rspack_ids::StableNamedChunkIdsPlugin::new(None, None).boxed());
+    if devtool.source_map() {
+      plugins.push(
+        rspack_plugin_devtool::DevtoolPlugin::new(rspack_plugin_devtool::DevtoolPluginOptions {
+          inline: devtool.inline(),
+          append: !devtool.hidden(),
+          namespace: output.unique_name.clone(),
+          columns: !devtool.cheap(),
+          no_sources: devtool.no_sources(),
+          public_path: None,
+        })
+        .boxed(),
+      );
+    }
+
+    plugins.push(rspack_ids::NamedChunkIdsPlugin::new(None, None).boxed());
 
     // Notice the plugin need to be placed after SplitChunksPlugin
     if optimization.remove_empty_chunks {
@@ -257,6 +253,7 @@ impl RawOptionsApply for RawOptions {
       target,
       output,
       resolve,
+      resolve_loader,
       devtool,
       experiments,
       stats,
@@ -265,7 +262,8 @@ impl RawOptionsApply for RawOptions {
       optimization,
       node,
       dev_server,
-      builtins,
+      profile: self.profile,
+      builtins: self.builtins.apply(plugins)?,
     })
   }
 }

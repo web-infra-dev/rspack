@@ -4,7 +4,7 @@ import {
 	compareSelect,
 	compareIds
 } from "../util/comparators";
-import type { Compilation } from "../compilation";
+import type { Compilation } from "../Compilation";
 import type { StatsOptions } from "../config";
 
 import type { StatsFactory } from "./StatsFactory";
@@ -21,7 +21,18 @@ export type StatsAsset = KnownStatsAsset & Record<string, any>;
 
 export type StatsChunk = KnownStatsChunk & Record<string, any>;
 
-export type KnownStatsModule = binding.JsStatsModule;
+export type KnownStatsModule = binding.JsStatsModule & {
+	profile?: StatsProfile;
+};
+
+export type StatsProfile = KnownStatsProfile & Record<string, any>;
+
+export type KnownStatsProfile = {
+	total: number;
+	resolving: number;
+	integration: number;
+	building: number;
+};
 
 export type StatsModule = KnownStatsModule & Record<string, any>;
 
@@ -58,19 +69,27 @@ export type KnownStatsCompilation = {
 	warningsCount?: number;
 	filteredModules?: number;
 	children?: StatsCompilation[];
+	logging?: Record<string, StatsLogging>;
 
 	// TODO: not aligned with webpack
 	// env?: any;
 	// needAdditionalPass?: boolean;
 	// filteredAssets?: number;
-	// logging?: Record<string, StatsLogging>;
 };
 
 export type StatsCompilation = KnownStatsCompilation & Record<string, any>;
 
-type StatsLoggingEntry = KnownStatsLoggingEntry & Record<string, any>;
+export type StatsLogging = KnownStatsLogging & Record<string, any>;
 
-type KnownStatsLoggingEntry = {
+export type KnownStatsLogging = {
+	entries: StatsLoggingEntry[];
+	filteredEntries: number;
+	debug: boolean;
+};
+
+export type StatsLoggingEntry = KnownStatsLoggingEntry & Record<string, any>;
+
+export type KnownStatsLoggingEntry = {
 	type: string;
 	message: string;
 	trace?: string[] | undefined;
@@ -114,9 +133,10 @@ export type SimpleExtractors = {
 	// 	},
 	// 	StatsChunkGroup
 	// >;
-	// module: ExtractorsByOption<Module, StatsModule>;
+	module: ExtractorsByOption<binding.JsStatsModule, StatsModule>;
 	// module$visible: ExtractorsByOption<Module, StatsModule>;
 	// moduleIssuer: ExtractorsByOption<Module, StatsModuleIssuer>;
+	profile: ExtractorsByOption<binding.JsStatsModuleProfile, StatsProfile>;
 	// moduleReason: ExtractorsByOption<ModuleGraphConnection, StatsModuleReason>;
 	chunk: ExtractorsByOption<StatsChunk, KnownStatsChunk>;
 	// chunkOrigin: ExtractorsByOption<OriginRecord, StatsChunkOrigin>;
@@ -495,3 +515,7 @@ export const mergeToObject = (
 
 	return obj;
 };
+
+export function resolveStatsMillisecond(s: binding.JsStatsMillisecond) {
+	return s.secs * 1000 + s.subsecMillis;
+}
