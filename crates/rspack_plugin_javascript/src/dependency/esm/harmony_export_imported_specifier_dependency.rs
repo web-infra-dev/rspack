@@ -1,13 +1,13 @@
 use rspack_core::{
   export_from_import, get_exports_type, ConnectionState, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportsType, InitFragmentStage,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportsType,
+  HarmonyExportInitFragment, ModuleDependency, ModuleGraph, ModuleIdentifier, TemplateContext,
+  TemplateReplaceSource,
 };
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
 
-use super::{create_resource_identifier_for_esm_dependency, format_exports};
+use super::create_resource_identifier_for_esm_dependency;
 
 // Create _webpack_require__.d(__webpack_exports__, {}).
 // import { a } from 'a'; export { a }
@@ -56,7 +56,6 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
     };
 
     let mut exports = vec![];
-
     for id in &self.ids {
       if used_exports.is_none() || matches!(used_exports.as_ref(), Some(x) if x.contains(&id.0)) {
         exports.push((
@@ -74,31 +73,10 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       }
     }
 
-    if !exports.is_empty() {
-      let TemplateContext {
-        runtime_requirements,
-        init_fragments,
-        compilation,
-        module,
-        ..
-      } = code_generatable_context;
-
-      let exports_argument = compilation
-        .module_graph
-        .module_graph_module_by_identifier(&module.identifier())
-        .expect("should have mgm")
-        .get_exports_argument();
-      runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-      runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-      init_fragments.push(Box::new(NormalInitFragment::new(
-        format!(
-          "{}({exports_argument}, {});\n",
-          RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-          format_exports(&exports)
-        ),
-        InitFragmentStage::StageHarmonyExports,
-        None,
-      )));
+    for export in exports {
+      code_generatable_context
+        .init_fragments
+        .push(Box::new(HarmonyExportInitFragment::new(export)));
     }
   }
 }

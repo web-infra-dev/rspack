@@ -471,6 +471,16 @@ impl<'a> CodeSizeOptimizer<'a> {
           });
         // reachable_dependency_identifier.extend(analyze_result.inherit_export_maps.keys());
         for dependency_id in mgm.dependencies.iter() {
+          if self
+            .compilation
+            .module_graph
+            .dependency_by_id(dependency_id)
+            .expect("should have dependency")
+            .as_module_dependency()
+            .is_none()
+          {
+            continue;
+          }
           let module_identifier = match self
             .compilation
             .module_graph
@@ -617,19 +627,27 @@ impl<'a> CodeSizeOptimizer<'a> {
       .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {cur}"));
     let mut module_ident_list = vec![];
     for dep in mgm.dependencies.iter() {
+      if module_graph
+        .dependency_by_id(dep)
+        .expect("should have dependency")
+        .as_module_dependency()
+        .is_none()
+      {
+        continue;
+      }
       let Some(&module_ident) = module_graph.module_identifier_by_dependency_id(dep) else {
-        let ast_or_source = module_graph
-          .module_by_identifier(&mgm.module_identifier)
-          .and_then(|module| module.as_normal_module())
-          .map(|normal_module| normal_module.source())
-          .unwrap_or_else(|| panic!("Failed to get normal module of {}", mgm.module_identifier));
-        if matches!(ast_or_source, NormalModuleSource::BuiltFailed(_)) {
-          // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
-          continue;
-        } else {
-          panic!("Failed to resolve {dep:?}")
-        }
-      };
+          let ast_or_source = module_graph
+            .module_by_identifier(&mgm.module_identifier)
+            .and_then(|module| module.as_normal_module())
+            .map(|normal_module| normal_module.source())
+            .unwrap_or_else(|| panic!("Failed to get normal module of {}", mgm.module_identifier));
+          if matches!(ast_or_source, NormalModuleSource::BuiltFailed(_)) {
+            // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
+            continue;
+          } else {
+            panic!("Failed to resolve {dep:?}")
+          }
+        };
       module_ident_list.push(module_ident);
       Self::normalize_side_effects(module_ident, module_graph, visited_module, side_effects_map);
     }

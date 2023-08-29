@@ -3,10 +3,8 @@
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
+  'a': function() { return a; },
   'aa': function() { return _aa__WEBPACK_IMPORTED_MODULE_0_; }
-});
-__webpack_require__.d(__webpack_exports__, {
-  'a': function() { return a; }
 });
 /* harmony import */var _aa__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./aa */"./package/autogen/aa.js");
 

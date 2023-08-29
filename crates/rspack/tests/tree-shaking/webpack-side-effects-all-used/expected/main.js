@@ -17,9 +17,7 @@ var c = "c";
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'z': function() { return _c__WEBPACK_IMPORTED_MODULE_0_.z; }
-});
-__webpack_require__.d(__webpack_exports__, {
+  'z': function() { return _c__WEBPACK_IMPORTED_MODULE_0_.z; },
   'x': function() { return x; }
 });
 /* harmony import */var _c__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./c */"../node_modules/pmodule/c.js");
@@ -48,9 +46,7 @@ var z = "z";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'x': function() { return _b__WEBPACK_IMPORTED_MODULE_1_.x; },
-  'z': function() { return _b__WEBPACK_IMPORTED_MODULE_1_.z; }
-});
-__webpack_require__.d(__webpack_exports__, {
+  'z': function() { return _b__WEBPACK_IMPORTED_MODULE_1_.z; },
   'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
 /* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a */"../node_modules/pmodule/a.js");

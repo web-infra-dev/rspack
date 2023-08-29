@@ -11,9 +11,7 @@ console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0_.square);
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'xxx': function() { return _test_js__WEBPACK_IMPORTED_MODULE_0_; }
-});
-__webpack_require__.d(__webpack_exports__, {
+  'xxx': function() { return _test_js__WEBPACK_IMPORTED_MODULE_0_; },
   'square': function() { return square; }
 });
 /* harmony import */var _test_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./test.js */"./test.js");
