@@ -1,19 +1,21 @@
-use std::{path::Path, sync::Arc};
+use std::{collections::HashMap, path::Path, sync::Arc};
 
 use futures::Future;
+use rkyv::AlignedVec;
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
 
 use crate::{
   cache::snapshot::{Snapshot, SnapshotManager},
   cache::storage,
-  BoxModule, BuildResult, NormalModuleSource,
+  BoxModule, BuildExtraDataType, BuildResult, NormalModuleSource,
 };
 
 type Storage = dyn storage::Storage<(
   Snapshot,
   Option<NormalModuleSource>,
   TWithDiagnosticArray<BuildResult>,
+  HashMap<BuildExtraDataType, AlignedVec>,
 )>;
 
 #[derive(Debug)]
@@ -56,7 +58,7 @@ impl BuildModuleOccasion {
     if module.as_normal_module().is_some() {
       // normal module
       // TODO cache all module type
-      if let Some((snapshot, source, data)) = storage.get(&id) {
+      if let Some((snapshot, source, data, extra_data)) = storage.get(&id) {
         let valid = self
           .snapshot_manager
           .check_snapshot_valid(&snapshot)
@@ -66,6 +68,7 @@ impl BuildModuleOccasion {
           if let Some(module) = module.as_normal_module_mut() {
             if let Some(module_source) = source {
               *module.source_mut() = module_source;
+              module.parser_and_generator_mut().resume(&extra_data);
             }
           }
           return Ok((Ok(data), true));
@@ -115,12 +118,19 @@ impl BuildModuleOccasion {
         .snapshot_manager
         .create_snapshot(&paths, |option| &option.module)
         .await?;
+      let mut extra_data = HashMap::new();
+      module
+        .as_normal_module()
+        .unwrap()
+        .parser_and_generator()
+        .store(&mut extra_data);
       storage.set(
         id,
         (
           snapshot,
           Some(module.as_normal_module().unwrap().source().clone()),
           data.clone(),
+          extra_data,
         ),
       );
     }

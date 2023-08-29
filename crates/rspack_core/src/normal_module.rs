@@ -229,6 +229,14 @@ impl NormalModule {
   pub fn contains_inline_loader(&self) -> bool {
     self.contains_inline_loader
   }
+
+  pub fn parser_and_generator(&self) -> &Box<dyn ParserAndGenerator> {
+    &self.parser_and_generator
+  }
+
+  pub fn parser_and_generator_mut(&mut self) -> &mut Box<dyn ParserAndGenerator> {
+    &mut self.parser_and_generator
+  }
 }
 
 impl Identifiable for NormalModule {

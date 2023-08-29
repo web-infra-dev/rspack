@@ -1,16 +1,19 @@
 #![allow(clippy::comparison_chain)]
 
+use std::collections::HashMap;
+
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use preset_env_base::query::{Query, Targets};
 use regex::Regex;
+use rkyv::{from_bytes_unchecked, to_bytes, AlignedVec};
 use rspack_core::{
   rspack_sources::{
     BoxSource, MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
     SourceMapSourceOptions,
   },
-  BuildMetaExportsType, GenerateContext, Module, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, SourceType, TemplateContext,
+  BuildExtraDataType, BuildMetaExportsType, GenerateContext, Module, ModuleType, ParseContext,
+  ParseResult, ParserAndGenerator, SourceType, TemplateContext,
 };
 use rspack_core::{ModuleDependency, RuntimeGlobals};
 use rspack_error::{
@@ -28,11 +31,13 @@ use swc_core::{
   ecma::atoms::JsWord,
 };
 
-use crate::plugin::CssConfig;
-use crate::swc_css_compiler::SwcCssSourceMapGenConfig;
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
 use crate::{dependency::CssComposeDependency, swc_css_compiler::SwcCssCompiler};
+use crate::{plugin::CssConfig, utils::css_modules_exports_key_to_string};
 use crate::{pxtorem::px_to_rem::px_to_rem, visitors::analyze_dependencies};
+use crate::{
+  swc_css_compiler::SwcCssSourceMapGenConfig, utils::css_modules_exports_elements_to_string,
+};
 
 static REGEX_IS_MODULES: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\.module(s)?\.[^.]+$").expect("Invalid regex"));
@@ -53,7 +58,7 @@ struct RspackPostcssModules {
 pub struct CssParserAndGenerator {
   pub config: CssConfig,
   pub meta: Option<String>,
-  pub exports: Option<IndexMap<JsWord, Vec<CssClassName>>>,
+  pub exports: Option<IndexMap<Vec<String>, Vec<(String, Option<String>)>>>,
 }
 
 impl CssParserAndGenerator {
@@ -211,7 +216,20 @@ impl ParserAndGenerator for CssParserAndGenerator {
     };
 
     self.meta = additional_data.and_then(|data| if data.is_empty() { None } else { Some(data) });
-    self.exports = locals;
+    self.exports = match locals {
+      Some(map) => Some(IndexMap::from_iter(
+        map
+          .iter()
+          .map(|(key, elements)| {
+            (
+              css_modules_exports_key_to_string(key, &self.config.modules.locals_convention),
+              css_modules_exports_elements_to_string(elements),
+            )
+          })
+          .collect::<Vec<_>>(),
+      )),
+      None => None,
+    };
 
     if self.exports.is_some() && let Some(meta) = &self.meta && serde_json::from_str::<RspackPostcssModules>(meta).is_ok() {
       diagnostic.push(Diagnostic::warn("CSS Modules".to_string(), format!("file: {} is using `postcss.modules` and `builtins.css.modules` to process css modules at the same time, rspack will use `builtins.css.modules`'s result.", resource_data.resource_path.display()), 0, 0));
@@ -293,7 +311,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
             exports,
             module,
             generate_context.compilation,
-            &self.config.modules.locals_convention,
           )?
         } else if let Some(meta) = &self.meta
           && let Ok(meta) = serde_json::from_str::<RspackPostcssModules>(meta)
@@ -316,5 +333,24 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }?;
 
     Ok(result)
+  }
+  fn store(&self, extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) -> () {
+    let data = (self.meta.to_owned(), self.exports.to_owned());
+    extra_data.insert(
+      BuildExtraDataType::CssParserAndGenerator,
+      to_bytes::<_, 256>(&data).expect("Failed to store extra data"),
+    );
+  }
+  fn resume(&mut self, extra_data: &HashMap<BuildExtraDataType, AlignedVec>) -> () {
+    if let Some(data) = extra_data.get(&BuildExtraDataType::CssParserAndGenerator) {
+      let data = unsafe {
+        from_bytes_unchecked::<(
+          Option<String>,
+          Option<IndexMap<Vec<String>, Vec<(String, Option<String>)>>>,
+        )>(&data)
+        .expect("Failed to resume extra data")
+      };
+      (self.meta, self.exports) = data;
+    }
   }
 }

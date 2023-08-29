@@ -23,6 +23,13 @@ pub struct BuildContext<'a> {
   pub compiler_options: &'a CompilerOptions,
 }
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum BuildExtraDataType {
+  CssParserAndGenerator,
+  AssetParserAndGenerator,
+  JavaScriptParserAndGenerator,
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
