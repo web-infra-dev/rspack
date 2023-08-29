@@ -709,6 +709,16 @@ function getRawSnapshotOptions(
 	};
 }
 
+function getRawRspackFuture(
+	rspackFuture: RspackFutureOptions
+): RawOptions["experiments"]["rspackFuture"] {
+	return {
+		disableTransformByDefault: false,
+		newResolver: false,
+		...rspackFuture
+	};
+}
+
 function getRawExperiments(
 	experiments: ExperimentsNormalized
 ): RawOptions["experiments"] {

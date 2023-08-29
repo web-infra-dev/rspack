@@ -24,6 +24,10 @@ macro_rules! either {
       Either::Right(noop())
     }
   };
+
+  ($config:expr, $f:expr, $optional:expr) => {
+    Optional::new(either!($config, $f), $optional)
+  };
 }
 
 /// return (ast, top_level_mark, unresolved_mark, globals)
@@ -37,13 +41,14 @@ pub fn run_before_pass(
   module_type: &ModuleType,
   source: &str,
 ) -> Result<()> {
+  let transform_by_default = !options.should_transform_by_default();
   let es_version = match options.target.es_version {
     rspack_core::TargetEsVersion::Esx(es_version) => Some(es_version),
     _ => None,
   };
   let cm = ast.get_context().source_map.clone();
   // TODO: should use react-loader to get exclude/include
-  let should_transform_by_react = module_type.is_jsx_like();
+  let should_transform_by_react = transform_by_default && module_type.is_jsx_like();
   ast.transform_with_handler(cm.clone(), |_handler, program, context| {
     let top_level_mark = context.top_level_mark;
     let unresolved_mark = context.unresolved_mark;
@@ -68,12 +73,12 @@ pub fn run_before_pass(
       //      ),
       Optional::new(
         swc_visitor::decorator(assumptions, &options.builtins.decorator),
-        syntax.decorators()
+        transform_by_default && syntax.decorators()
       ),
       //    swc_visitor::import_assertions(),
       Optional::new(
         swc_visitor::typescript(assumptions, top_level_mark, comments, &cm),
-        syntax.typescript()
+        transform_by_default && syntax.typescript()
       ),
       Optional::new(
         rspack_swc_visitors::react(
@@ -86,14 +91,8 @@ pub fn run_before_pass(
         should_transform_by_react
       ),
       Optional::new(
-        rspack_swc_visitors::fold_react_refresh(unresolved_mark),
-        should_transform_by_react
-          && options
-            .builtins
-            .react
-            .refresh
-            .and_then(|v| if v { Some(v) } else { None })
-            .is_some()
+        swc_visitor::fold_react_refresh(unresolved_mark),
+        should_transform_by_react && options.builtins.react.refresh.unwrap_or_default()
       ),
       either!(
         options.builtins.emotion,
@@ -105,19 +104,26 @@ pub fn run_before_pass(
             cm.clone(),
             comments,
           )
-        }
+        },
+        transform_by_default
       ),
-      either!(options.builtins.relay, |relay_option| {
-        rspack_swc_visitors::relay(
-          relay_option,
-          resource_data.resource_path.as_path(),
-          PathBuf::from(AsRef::<Path>::as_ref(&options.context)),
-          unresolved_mark,
-        )
-      }),
-      either!(options.builtins.plugin_import, |options| {
-        rspack_swc_visitors::import(options)
-      }),
+      either!(
+        options.builtins.relay,
+        |relay_option| {
+          relay(
+            relay_option,
+            &resource_data.resource_path,
+            PathBuf::from(AsRef::<Path>::as_ref(&options.context)),
+            unresolved_mark,
+          )
+        },
+        transform_by_default
+      ),
+      either!(
+        options.builtins.plugin_import,
+        |config| { swc_plugin_import::plugin_import(config) },
+        transform_by_default
+      ),
       // enable if configurable
       // swc_visitor::const_modules(cm, globals),
       Optional::new(
@@ -148,12 +154,16 @@ pub fn run_before_pass(
           comments,
           syntax.typescript()
         ),
-        !resource_path.contains("@swc/helpers")
+        transform_by_default
+          && !resource_path.contains("@swc/helpers")
           && !resource_path.contains("tslib")
           && !resource_path.contains("core-js")
       ),
-      swc_visitor::reserved_words(),
-      swc_visitor::inject_helpers(unresolved_mark),
+      Optional::new(swc_visitor::reserved_words(), transform_by_default),
+      Optional::new(
+        swc_visitor::inject_helpers(unresolved_mark),
+        transform_by_default
+      ),
       // The ordering of these two is important, `expr_simplifier` goes first and `dead_branch_remover` goes second.
       swc_visitor::expr_simplifier(unresolved_mark, Default::default()),
       swc_visitor::dead_branch_remover(unresolved_mark),

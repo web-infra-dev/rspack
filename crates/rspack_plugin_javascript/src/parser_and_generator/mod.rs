@@ -85,7 +85,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let output: crate::TransformOutput =
       crate::ast::stringify(&ast, &compiler_options.devtool, Some(true))?;
 
-    let mut scan_ast = match crate::ast::parse(
+    ast = match crate::ast::parse(
       output.code.clone(), // TODO avoid code clone
       syntax,
       &resource_data.resource_path.to_string_lossy(),
@@ -105,7 +105,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       }
     };
 
-    scan_ast.transform(|program, context| {
+    ast.transform(|program, context| {
       program.visit_mut_with(&mut resolver(
         context.unresolved_mark,
         context.top_level_mark,
@@ -113,7 +113,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ));
     });
 
-    let (dependencies, presentational_dependencies) = scan_ast.visit(|program, context| {
+    let (dependencies, presentational_dependencies) = ast.visit(|program, context| {
       scan_dependencies(
         program,
         context.unresolved_mark,
@@ -127,13 +127,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     });
 
     let analyze_result = if compiler_options.builtins.tree_shaking.enable() {
-      JsModule::new(
-        &scan_ast,
-        &dependencies,
-        module_identifier,
-        compiler_options,
-      )
-      .analyze()
+      JsModule::new(&ast, &dependencies, module_identifier, compiler_options).analyze()
     } else {
       OptimizeAnalyzeResult::default()
     };

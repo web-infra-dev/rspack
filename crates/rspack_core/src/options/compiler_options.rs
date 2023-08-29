@@ -42,4 +42,8 @@ impl CompilerOptions {
   pub fn is_new_tree_shaking(&self) -> bool {
     self.experiments.rspack_future.new_treeshaking
   }
+
+  pub fn should_transform_by_default(&self) -> bool {
+    !self.experiments.rspack_future.disable_transform_by_default
+  }
 }

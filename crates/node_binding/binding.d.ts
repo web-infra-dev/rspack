@@ -964,6 +964,7 @@ export interface RawResolveOptions {
 export interface RawRspackFuture {
   newResolver: boolean
   newTreeshaking: boolean
+  disableTransformByDefault: boolean
 }
 
 export interface RawRuleSetCondition {
