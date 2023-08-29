@@ -59,17 +59,14 @@ impl ChunkGraph {
     &cgc.entry_modules
   }
 
-  pub(crate) fn get_chunk_graph_chunk_mut(
-    &mut self,
-    chunk_ukey: ChunkUkey,
-  ) -> &mut ChunkGraphChunk {
+  pub fn get_chunk_graph_chunk_mut(&mut self, chunk_ukey: ChunkUkey) -> &mut ChunkGraphChunk {
     self
       .chunk_graph_chunk_by_chunk_ukey
       .get_mut(&chunk_ukey)
       .expect("Chunk should be added before")
   }
 
-  pub(crate) fn get_chunk_graph_chunk(&self, chunk_ukey: &ChunkUkey) -> &ChunkGraphChunk {
+  pub fn get_chunk_graph_chunk(&self, chunk_ukey: &ChunkUkey) -> &ChunkGraphChunk {
     self
       .chunk_graph_chunk_by_chunk_ukey
       .get(chunk_ukey)

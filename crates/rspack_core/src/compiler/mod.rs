@@ -7,6 +7,7 @@ use std::collections::hash_map::Entry;
 use std::{path::Path, sync::Arc};
 
 pub use compilation::*;
+pub use hmr::{collect_changed_modules, CompilationRecords};
 pub use make::MakeParam;
 pub use queue::*;
 use rspack_error::Result;
@@ -65,6 +66,7 @@ where
         plugin_driver.clone(),
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
+        None,
         cache.clone(),
       ),
       output_filesystem,
@@ -96,6 +98,7 @@ where
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
+        None,
         self.cache.clone(),
       ),
     );

@@ -80,7 +80,7 @@ impl Chunk {
     None
   }
 
-  pub(crate) fn add_group(&mut self, group: ChunkGroupUkey) {
+  pub fn add_group(&mut self, group: ChunkGroupUkey) {
     self.groups.insert(group);
   }
 

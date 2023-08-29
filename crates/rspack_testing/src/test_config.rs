@@ -505,7 +505,7 @@ impl TestConfig {
     plugins.push(rspack_plugin_runtime::JsonpChunkLoadingPlugin {}.boxed());
     plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
     if options.dev_server.hot {
-      plugins.push(rspack_plugin_runtime::HotModuleReplacementPlugin {}.boxed());
+      plugins.push(rspack_plugin_hmr::HotModuleReplacementPlugin.boxed());
     }
     if options.experiments.lazy_compilation {
       plugins.push(rspack_plugin_runtime::LazyCompilationPlugin {}.boxed());

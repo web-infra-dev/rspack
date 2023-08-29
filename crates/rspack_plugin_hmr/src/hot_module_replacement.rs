@@ -3,8 +3,7 @@ use rspack_core::{
   Compilation, RuntimeModule,
 };
 use rspack_identifier::Identifier;
-
-use crate::impl_runtime_module;
+use rspack_plugin_runtime::impl_runtime_module;
 
 #[derive(Debug, Eq)]
 pub struct HotModuleReplacementRuntimeModule {
