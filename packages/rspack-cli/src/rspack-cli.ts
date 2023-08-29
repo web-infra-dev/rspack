@@ -23,12 +23,7 @@ import {
 import { normalizeEnv } from "./utils/options";
 import { loadRspackConfig } from "./utils/loadConfig";
 import findConfig from "./utils/findConfig";
-import {
-	RspackPluginInstance,
-	RspackPluginFunction,
-	experimental_registerGlobalTrace as registerGlobalTrace,
-	experimental_cleanupGlobalTrace as cleanupGlobalTrace
-} from "@rspack/core";
+import { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
 import path from "path";
 
 type Command = "serve" | "build";
