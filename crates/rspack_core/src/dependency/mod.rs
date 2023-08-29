@@ -241,8 +241,8 @@ pub struct ExportsSpec {
   pub can_mangle: Option<bool>,
   pub terminal_binding: Option<bool>,
   pub from: Option<ModuleGraphConnection>,
-  pub dependencies: Vec<ModuleIdentifier>,
-  pub hide_export: Vec<JsWord>,
+  pub dependencies: Option<Vec<ModuleIdentifier>>,
+  pub hide_export: Option<Vec<JsWord>>,
 }
 
 pub enum ExportsReferencedType {

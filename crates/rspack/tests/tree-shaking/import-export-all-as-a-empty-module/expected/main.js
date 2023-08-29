@@ -3,9 +3,7 @@
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'aaa': function() { return _app__WEBPACK_IMPORTED_MODULE_1_; }
-});
-__webpack_require__.d(__webpack_exports__, {
+  'aaa': function() { return _app__WEBPACK_IMPORTED_MODULE_1_; },
   'routes': function() { return routes; }
 });
 /* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./answer */"./answer.js");

@@ -92,8 +92,8 @@ impl<'a> ProvidedExportsPlugin<'a> {
     let global_priority = &exports_spec.priority;
     let global_terminal_binding = exports_spec.terminal_binding.unwrap_or(false);
     let _export_dependencies = &exports_spec.dependencies;
-    if !exports_spec.hide_export.is_empty() {
-      for name in exports_spec.hide_export.iter() {
+    if let Some(hide_export) = exports_spec.hide_export {
+      for name in hide_export.iter() {
         let export_info = exports_info.export_info_mut(name);
         export_info.unuset_target(&dep_id);
       }

@@ -532,12 +532,6 @@ impl Compilation {
       while let Some(task) = process_dependencies_queue.get_task() {
         active_task_count += 1;
 
-        let original_module_identifier = &task.original_module_identifier;
-        let module = self
-          .module_graph
-          .module_by_identifier(original_module_identifier)
-          .expect("Module expected");
-
         let mut sorted_dependencies = HashMap::default();
 
         task.dependencies.into_iter().for_each(|dependency| {
@@ -560,8 +554,16 @@ impl Compilation {
               .entry(resource_identifier)
               .or_insert(vec![])
               .push(dependency);
+          } else {
+            self.module_graph.add_dependency(dependency);
           }
         });
+
+        let original_module_identifier = &task.original_module_identifier;
+        let module = self
+          .module_graph
+          .module_by_identifier(original_module_identifier)
+          .expect("Module expected");
 
         for dependencies in sorted_dependencies.into_values() {
           self.handle_module_creation(

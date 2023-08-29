@@ -30,7 +30,13 @@ impl InitFragment for NormalInitFragment {}
 
 #[derive(Debug)]
 pub struct HarmonyExportInitFragment {
-  pub export_map: HashMap<JsWord, JsWord>,
+  pub export: (JsWord, JsWord),
+}
+
+impl HarmonyExportInitFragment {
+  pub fn new(export: (JsWord, JsWord)) -> Self {
+    Self { export }
+  }
 }
 
 impl InitFragment for HarmonyExportInitFragment {}
@@ -122,23 +128,38 @@ fn merge_harmony_export_init_fragments(
   exports_argument: ExportsArgument,
   runtime_requirements: &mut RuntimeGlobals,
 ) -> Option<NormalInitFragment> {
-  let mut export_map = HashMap::default();
+  let mut exports = vec![];
   fragments.iter_mut().for_each(|f| {
     if let Some(f) = f.as_harmony_export_init_fragment_mut() {
-      export_map.extend(std::mem::take(&mut f.export_map))
+      exports.push(std::mem::take(&mut f.export));
     }
   });
 
-  if !export_map.is_empty() {
+  if !exports.is_empty() {
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
 
     return Some(NormalInitFragment::new(
-      format!("{}({exports_argument}, {});\n", "", ""),
+      format!(
+        "{}({exports_argument}, {});\n",
+        RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+        format_exports(&exports)
+      ),
       InitFragmentStage::StageHarmonyExports,
       None,
     ));
   }
 
   None
+}
+
+pub fn format_exports(exports: &[(JsWord, JsWord)]) -> String {
+  format!(
+    "{{\n  {}\n}}",
+    exports
+      .iter()
+      .map(|s| format!("'{}': function() {{ return {}; }}", s.0, s.1))
+      .collect::<Vec<_>>()
+      .join(",\n  ")
+  )
 }
