@@ -2,6 +2,8 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use cargo_rst::{helper::make_relative_from, rst::RstBuilder};
+use insta::{assert_snapshot, Settings};
+use itertools::Itertools;
 use rspack_binding_options::{RawOptions, RawOptionsApply};
 use rspack_core::{BoxPlugin, Compiler, CompilerOptions};
 use rspack_fs::AsyncNativeFileSystem;
@@ -21,6 +23,77 @@ pub fn apply_from_fixture(fixture_path: &Path) -> (CompilerOptions, Vec<BoxPlugi
   let json_config = fixture_path.join("test.config.json");
   let test_config = TestConfig::from_config_path(&json_config);
   test_config.apply(fixture_path.to_path_buf())
+}
+
+#[tokio::main]
+pub async fn test_fixture_insta(
+  fixture_path: &Path,
+  stats_filter: &dyn Fn(&str) -> bool,
+) -> Compiler<AsyncNativeFileSystem> {
+  enable_tracing_by_env(&std::env::var("TRACE").ok().unwrap_or_default(), "stdout");
+
+  let (options, plugins) = apply_from_fixture(fixture_path);
+  // clean output
+  if options.output.path.exists() {
+    std::fs::remove_dir_all(&options.output.path).expect("should remove output");
+  }
+  let mut compiler = Compiler::new(options, plugins, AsyncNativeFileSystem);
+
+  compiler
+    .build()
+    .await
+    .unwrap_or_else(|e| panic!("failed to compile in fixture {fixture_path:?}, {e:#?}"));
+  let assets = compiler.compilation.assets();
+
+  let mut settings = Settings::clone_current();
+  settings.set_snapshot_path(Path::new(fixture_path).join("snapshot"));
+  settings.set_omit_expression(true);
+  settings.set_prepend_module_to_snapshot(false);
+  let content = assets
+    .iter()
+    .filter_map(|(filename, asset)| {
+      if stats_filter(filename) {
+        println!("{:?}", settings.description());
+        let content = asset
+          .get_source()
+          .map(|x| x.source().to_string())
+          .unwrap_or(String::from("this is an empty asset"));
+        let tag = Path::new(filename)
+          .extension()
+          .map(|x| x.to_string_lossy())
+          .unwrap_or(std::borrow::Cow::Borrowed("txt"));
+        Some(format!("```{tag} title={filename}\n{content}\n```"))
+      } else {
+        None
+      }
+    })
+    .sorted()
+    .join("\n");
+  settings.bind(|| {
+    assert_snapshot!("output", content);
+  });
+  let stats = compiler.compilation.get_stats();
+  let warnings = stats.get_warnings();
+  let errors = stats.get_errors();
+  if !warnings.is_empty() && errors.is_empty() {
+    println!(
+      "Warning to compile in fixture {:?}, warnings: {:?}",
+      fixture_path,
+      stats
+        .emit_diagnostics_string(true)
+        .expect("failed to emit diagnostics to string")
+    )
+  }
+  if !errors.is_empty() {
+    panic!(
+      "Failed to compile in fixture {:?}, errors: {:?}",
+      fixture_path,
+      stats
+        .emit_diagnostics_string(true)
+        .expect("failed to emit diagnostics to string")
+    );
+  }
+  compiler
 }
 
 #[tokio::main]

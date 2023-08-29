@@ -47,3 +47,6 @@ serde_json     = { workspace = true }
 swc_core       = { workspace = true }
 testing_macros = { workspace = true, features = [] }
 tokio          = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
+
+insta     = { version = "1.31.0", features = ["json"] }
+itertools = { workspace = true }

@@ -1,3 +1,7 @@
+---
+source: crates/rspack_testing/src/run_fixture.rs
+---
+```html title=output.html
 <!DOCTYPE html>
 <html>
 <head>
@@ -10,3 +14,4 @@
 
 
 </body></html>
+```
