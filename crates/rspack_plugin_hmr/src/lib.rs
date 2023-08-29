@@ -21,7 +21,7 @@ pub struct HotModuleReplacementPlugin;
 
 #[async_trait]
 impl Plugin for HotModuleReplacementPlugin {
-  fn name() -> &'static str {
+  fn name(&self) -> &'static str {
     "rspack.HotModuleReplacementPlugin"
   }
 
