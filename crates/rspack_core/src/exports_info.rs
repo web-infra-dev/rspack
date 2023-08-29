@@ -148,7 +148,7 @@ pub enum UsedName {
   Vec(Vec<JsWord>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExportInfoTargetValue {
   connection: Option<ModuleGraphConnection>,
   exports: Vec<JsWord>,
@@ -257,6 +257,35 @@ impl ExportInfo {
         _ => false,
       }
     }
+  }
+
+  fn get_max_target(&mut self) -> &HashMap<DependencyId, ExportInfoTargetValue> {
+    if self.max_target_is_set {
+      return &self.max_target;
+    }
+    if self.target.len() <= 1 {
+      self.max_target_is_set = true;
+      self.max_target = self.target.clone();
+      return &self.max_target;
+    }
+    let mut max_priority = u8::MIN;
+    let mut min_priority = u8::MAX;
+    for value in self.target.values() {
+      max_priority = max_priority.max(value.priority);
+      min_priority = min_priority.min(value.priority);
+    }
+    if max_priority == min_priority {
+      self.max_target_is_set = true;
+      self.max_target = self.target.clone();
+      return &self.max_target;
+    }
+    let mut map = HashMap::default();
+    for (k, v) in self.target.iter() {
+      if max_priority == v.priority {
+        map.insert(*k, v.clone());
+      }
+    }
+    return &self.max_target;
   }
 
   pub fn set_target(
