@@ -25,7 +25,10 @@ use swc_core::ecma::ast::ModuleItem;
 use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
 
-use super::make::{MakeParam, RebuildDepsBuilder};
+use super::{
+  hmr::CompilationRecords,
+  make::{MakeParam, RebuildDepsBuilder},
+};
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
@@ -57,6 +60,7 @@ pub struct Compilation {
   // The status is different, should generate different hash for `.hot-update.js`
   // So use compilation hash update `hot_index` to fix it.
   pub hot_index: u32,
+  pub records: Option<CompilationRecords>,
   pub options: Arc<CompilerOptions>,
   pub entries: Entry,
   pub module_graph: ModuleGraph,
@@ -112,10 +116,12 @@ impl Compilation {
     plugin_driver: SharedPluginDriver,
     resolver_factory: Arc<ResolverFactory>,
     loader_resolver_factory: Arc<ResolverFactory>,
+    records: Option<CompilationRecords>,
     cache: Arc<Cache>,
   ) -> Self {
     Self {
       hot_index: 0,
+      records,
       options,
       module_graph,
       make_failed_dependencies: HashSet::default(),

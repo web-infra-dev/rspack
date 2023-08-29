@@ -158,7 +158,7 @@ impl RawOptionsApply for RawOptions {
     );
     plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
     if dev_server.hot {
-      plugins.push(rspack_plugin_runtime::HotModuleReplacementPlugin {}.boxed());
+      plugins.push(rspack_plugin_hmr::HotModuleReplacementPlugin {}.boxed());
     }
     plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
     if experiments.lazy_compilation {

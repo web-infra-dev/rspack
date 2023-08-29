@@ -462,9 +462,9 @@ impl<T: Plugin + 'static> PluginExt for T {
 
 #[derive(Debug, Clone)]
 pub struct RenderManifestEntry {
-  pub(crate) source: BoxSource,
+  pub source: BoxSource,
   filename: String,
-  pub(crate) info: AssetInfo,
+  pub info: AssetInfo,
   // pub identifier: String,
   // hash?: string;
   pub(crate) auxiliary: bool,
