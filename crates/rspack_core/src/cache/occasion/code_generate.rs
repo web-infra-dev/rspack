@@ -1,11 +1,7 @@
-use std::io::Write;
-
 use rspack_error::Result;
 use rspack_identifier::Identifier;
 
-use crate::{
-  cache::storage, BoxModule, CodeGenerationResult, Compilation, NormalModule, NormalModuleSource,
-};
+use crate::{cache::storage, BoxModule, CodeGenerationResult, Compilation, NormalModuleSource};
 
 type Storage = dyn storage::Storage<CodeGenerationResult>;
 
