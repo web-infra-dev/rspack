@@ -204,7 +204,7 @@ pub struct ExportInfo {
   pub exports_info: Box<ExportsInfoId>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum ExportInfoProvided {
   True,
   False,
@@ -226,6 +226,28 @@ struct UnResolvedExportInfoTarget {
 pub enum ResolvedExportInfoTargetWithCircular {
   Target(ResolvedExportInfoTarget),
   Circular,
+}
+
+pub type ResolveFilterFnTy = Box<dyn ResolveFilterFn>;
+
+pub trait ResolveFilterFn: Fn(&ResolvedExportInfoTarget) -> bool + Send + Sync {
+  fn clone_boxed(&self) -> Box<dyn ResolveFilterFn>;
+}
+
+/// Copy from https://github.com/rust-lang/rust/issues/24000#issuecomment-479425396
+impl<T> ResolveFilterFn for T
+where
+  T: 'static + Fn(&ResolvedExportInfoTarget) -> bool + Send + Sync + Clone,
+{
+  fn clone_boxed(&self) -> Box<dyn ResolveFilterFn> {
+    Box::new(self.clone())
+  }
+}
+
+impl Clone for Box<dyn ResolveFilterFn> {
+  fn clone(&self) -> Self {
+    self.clone_boxed()
+  }
 }
 
 impl ExportInfo {
@@ -304,7 +326,8 @@ impl ExportInfo {
     return &self.max_target;
   }
 
-  pub fn get_target<'a>(&mut self, mg: &'a ModuleGraph) -> Option<ResolvedExportInfoTarget> {
+  pub fn get_target<'a>(&mut self, mg: &'a mut ModuleGraph) -> Option<ResolvedExportInfoTarget> {
+    // TODO: dynamic resolve filter
     let mut already_visited = HashSet::default();
     self._get_target(mg, Box::new(|_| true), &mut already_visited);
     None
@@ -312,15 +335,92 @@ impl ExportInfo {
 
   pub fn _get_target<'a>(
     &mut self,
-    mg: &'a ModuleGraph,
-    resolve_filter: Box<dyn Fn(&ResolvedExportInfoTarget) -> bool>,
+    mg: &'a mut ModuleGraph,
+    resolve_filter: ResolveFilterFnTy,
     already_visited: &mut HashSet<ExportInfoId>,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
-    fn resolve_target(
-      target: Option<UnResolvedExportInfoTarget>,
+    fn resolve_target<'a>(
+      input_target: Option<UnResolvedExportInfoTarget>,
       already_visited: &mut HashSet<ExportInfoId>,
+      resolve_filter: ResolveFilterFnTy,
+      mg: &'a mut ModuleGraph,
     ) -> Option<ResolvedExportInfoTargetWithCircular> {
-      todo!()
+      if let Some(input_target) = input_target {
+        let mut target = ResolvedExportInfoTarget {
+          module: input_target.connection.module_identifier,
+          exports: input_target.exports,
+          connection: input_target.connection,
+        };
+        if target.exports.is_none() {
+          return Some(ResolvedExportInfoTargetWithCircular::Target(target));
+        }
+        if !resolve_filter(&target) {
+          return Some(ResolvedExportInfoTargetWithCircular::Target(target));
+        }
+        let mut already_visited_owned = false;
+        loop {
+          let name = if let Some(export) = target
+            .exports
+            .as_ref()
+            .and_then(|exports| exports.get(0).clone())
+          {
+            export
+          } else {
+            return Some(ResolvedExportInfoTargetWithCircular::Target(target));
+          };
+
+          // use export_info_mut
+          let mut export_info = {
+            let mut exports_info = mg.get_exports_info_mut(&target.module);
+            exports_info.export_info_mut(name).clone()
+          };
+          if already_visited.contains(&export_info.id) {
+            return Some(ResolvedExportInfoTargetWithCircular::Circular);
+          }
+          let new_target = export_info._get_target(mg, resolve_filter.clone(), already_visited);
+          let export_info_id = export_info.id;
+          std::mem::replace(
+            mg.get_exports_info_mut(&target.module)
+              .export_info_mut(name),
+            export_info,
+          );
+
+          match new_target {
+            Some(ResolvedExportInfoTargetWithCircular::Circular) => {
+              return Some(ResolvedExportInfoTargetWithCircular::Circular)
+            }
+            None => return None,
+            Some(ResolvedExportInfoTargetWithCircular::Target(t)) => {
+              // SAFETY: if the target.exports is None, program will not reach here
+              let target_exports = target.exports.as_ref().expect("should have exports");
+              if target_exports.len() == 1 {
+                target = t;
+                if target.exports.is_none() {
+                  return Some(ResolvedExportInfoTargetWithCircular::Target(target));
+                }
+              } else {
+                target.module = t.module;
+                target.connection = t.connection;
+                target.exports = if let Some(mut exports) = t.exports {
+                  exports.extend_from_slice(&target_exports[1..]);
+                  Some(exports)
+                } else {
+                  Some(target_exports[1..].to_vec())
+                }
+              }
+            }
+          }
+          if !resolve_filter(&target) {
+            return Some(ResolvedExportInfoTargetWithCircular::Target(target));
+          }
+          if !already_visited_owned {
+            already_visited_owned = true;
+          }
+          already_visited.insert(export_info_id);
+        }
+      } else {
+        None
+      }
     }
     if self.target.len() == 0 {
       return None;
@@ -337,7 +437,7 @@ impl ExportInfo {
         exports: Some(item.exports.clone()),
       })
       .clone();
-    let target = resolve_target(values.next(), already_visited);
+    let target = resolve_target(values.next(), already_visited, resolve_filter.clone(), mg);
     match target {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => {
         return Some(ResolvedExportInfoTargetWithCircular::Circular)
@@ -345,7 +445,7 @@ impl ExportInfo {
       None => return None,
       Some(ResolvedExportInfoTargetWithCircular::Target(target)) => {
         while let Some(val) = values.next() {
-          let t = resolve_target(Some(val), already_visited);
+          let t = resolve_target(Some(val), already_visited, resolve_filter.clone(), mg);
           match t {
             Some(ResolvedExportInfoTargetWithCircular::Circular) => {
               return Some(ResolvedExportInfoTargetWithCircular::Circular);
@@ -419,11 +519,12 @@ impl ExportInfo {
   }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Default)]
 pub enum UsageState {
   Unused,
   OnlyPropertiesUsed,
   NoInfo,
+  #[default]
   Unknown,
   Used,
 }
