@@ -1,5 +1,4 @@
 use std::collections::hash_map::Entry;
-use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 
 use rustc_hash::FxHashMap as HashMap;
@@ -52,30 +51,6 @@ pub struct ExportsInfo {
 //     Self(id)
 //   }
 // }
-
-#[macro_export]
-macro_rules! export_info_mut {
-  ($exports_info:expr, $name:expr) => {
-    if let Some(info) = $exports_info.exports.get_mut($name) {
-      info
-    } else if let Some(ref mut redirect_to) = $exports_info.redirect_to {
-      redirect_to.get_export_info_mut($name)
-    } else {
-      let new_info = ExportInfo::new(
-        $name.clone(),
-        UsageState::Unknown,
-        Some(&$exports_info.other_exports_info),
-      );
-      $exports_info.exports.insert($name.clone(), new_info);
-      $exports_info._exports_are_ordered = false;
-      // SAFETY: because we insert the export info above
-      $exports_info
-        .exports
-        .get_mut($name)
-        .expect("This is unreachable")
-    }
-  };
-}
 
 impl ExportsInfo {
   pub fn new() -> Self {
@@ -179,6 +154,7 @@ pub struct ExportInfoTargetValue {
 }
 
 #[derive(Debug)]
+#[allow(unused)]
 pub struct ExportInfo {
   name: JsWord,
   module_identifier: Option<ModuleIdentifier>,
@@ -202,7 +178,7 @@ pub enum ExportInfoProvided {
 
 impl ExportInfo {
   // TODO: remove usage_state in the future
-  pub fn new(name: JsWord, usage_state: UsageState, init_from: Option<&ExportInfo>) -> Self {
+  pub fn new(name: JsWord, usage_state: UsageState, _init_from: Option<&ExportInfo>) -> Self {
     Self {
       name,
       module_identifier: None,
@@ -232,7 +208,7 @@ impl ExportInfo {
     if self.target.is_empty() {
       false
     } else {
-      match self.target.remove(&key) {
+      match self.target.remove(key) {
         Some(_) => {
           // TODO: max target
           true
@@ -252,10 +228,10 @@ impl ExportInfo {
     let normalized_priority = priority.unwrap_or(0);
     if !self.target_is_set {
       self.target.insert(
-        key.clone(),
+        *key,
         ExportInfoTargetValue {
           connection,
-          exports: export_name.cloned().unwrap(),
+          exports: export_name.cloned().unwrap_or_default(),
           priority: normalized_priority,
         },
       );
@@ -270,28 +246,26 @@ impl ExportInfo {
           !old_target.exports.is_empty()
         }
       {
-        old_target.exports = export_name.cloned().unwrap();
+        old_target.exports = export_name.cloned().unwrap_or_default();
         old_target.priority = normalized_priority;
         old_target.connection = connection;
         // TODO: reset max target
         return true;
       }
-    } else {
-      if let Some(connection) = connection {
-        self.target.insert(
-          key.clone(),
-          ExportInfoTargetValue {
-            connection: Some(connection),
-            exports: export_name.cloned().unwrap(),
-            priority: normalized_priority,
-          },
-        );
-        // TODO: reset max target
-        return true;
-      }
+    } else if let Some(connection) = connection {
+      self.target.insert(
+        *key,
+        ExportInfoTargetValue {
+          connection: Some(connection),
+          exports: export_name.cloned().unwrap_or_default(),
+          priority: normalized_priority,
+        },
+      );
+      // TODO: reset max target
+      return true;
     }
 
-    return false;
+    false
   }
 }
 

@@ -1,9 +1,8 @@
 use std::collections::VecDeque;
 
 use rspack_core::{
-  export_info_mut, DependencyId, ExportInfo, ExportInfoProvided, ExportNameOrSpec, ExportsInfo,
-  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  UsageState,
+  DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfo, ExportsOfExportsSpec,
+  ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
@@ -42,9 +41,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
         self.process_exports_spec(dep_id, exports_spec, &mut exports_info);
       }
       // Swap it back
-      {
-        std::mem::replace(self.mg.get_exports_info_mut(&module_id), exports_info)
-      };
+      _ = std::mem::replace(self.mg.get_exports_info_mut(&module_id), exports_info);
       if self.changed {
         self.notify_dependencies(&mut q);
       }
@@ -54,7 +51,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
   pub fn notify_dependencies(&mut self, q: &mut VecDeque<ModuleIdentifier>) {
     if let Some(set) = self.dependencies.get(&self.current_module_id) {
       for mi in set.iter() {
-        q.push_back(mi.clone());
+        q.push_back(*mi);
       }
     }
   }
@@ -79,7 +76,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
   ) -> Option<()> {
     let dep = self.mg.dependency_by_id(dep_id)?;
     let exports_specs = dep.get_exports()?;
-    exports_specs_from_dependencies.insert(dep_id.clone(), exports_specs);
+    exports_specs_from_dependencies.insert(*dep_id, exports_specs);
     Some(())
   }
 
@@ -93,8 +90,8 @@ impl<'a> ProvidedExportsPlugin<'a> {
     let global_can_mangle = &exports_spec.can_mangle;
     let global_from = exports_spec.from.as_ref();
     let global_priority = &exports_spec.priority;
-    let global_terminal_binding = exports_spec.terminal_binding.clone().unwrap_or(false);
-    let export_dependencies = &exports_spec.dependencies;
+    let global_terminal_binding = exports_spec.terminal_binding.unwrap_or(false);
+    let _export_dependencies = &exports_spec.dependencies;
     if !exports_spec.hide_export.is_empty() {
       for name in exports_spec.hide_export.iter() {
         let export_info = exports_info.export_info_mut(name);
@@ -181,7 +178,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
         self.changed = true;
       }
 
-      if let Some(exports) = exports {
+      if let Some(_exports) = exports {
         // TODO: nested import
         // let nested_exports_info = export_info.create_nested_exports_info();
         // self.merge_exports(nested_exports_info, exports, global_export_info);
