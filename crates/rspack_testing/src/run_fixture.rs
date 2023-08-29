@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use cargo_rst::{helper::make_relative_from, rst::RstBuilder};
-use insta::{assert_snapshot, with_settings, Settings};
+use insta::{assert_snapshot, Settings};
 use rspack_binding_options::{RawOptions, RawOptionsApply};
 use rspack_core::{BoxPlugin, Compiler, CompilerOptions};
 use rspack_fs::AsyncNativeFileSystem;
@@ -48,7 +48,7 @@ pub async fn test_fixture_insta(
   settings.set_snapshot_path(Path::new(fixture_path).join("snapshot"));
   settings.set_omit_expression(true);
   settings.set_prepend_module_to_snapshot(false);
-  let mut content = assets
+  let content = assets
     .iter()
     .filter_map(|(filename, asset)| {
       if stats_filter(filename) {
@@ -95,7 +95,6 @@ pub async fn test_fixture_insta(
   compiler
 }
 
-#[deprecated(note = "please use `test_fixture_insta` instead")]
 #[tokio::main]
 pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
   enable_tracing_by_env(&std::env::var("TRACE").ok().unwrap_or_default(), "stdout");
