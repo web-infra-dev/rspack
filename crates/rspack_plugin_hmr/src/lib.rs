@@ -21,6 +21,10 @@ pub struct HotModuleReplacementPlugin;
 
 #[async_trait]
 impl Plugin for HotModuleReplacementPlugin {
+  fn name() -> &'static str {
+    "rspack.HotModuleReplacementPlugin"
+  }
+
   fn additional_tree_runtime_requirements(
     &self,
     _ctx: PluginContext,
