@@ -1,8 +1,8 @@
 use std::collections::VecDeque;
 
 use rspack_core::{
-  DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfo, ExportsOfExportsSpec,
-  ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfo, ExportsInfoId,
+  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
@@ -105,7 +105,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
       ExportsOfExportsSpec::Null => {}
       ExportsOfExportsSpec::Array(ele) => {
         self.merge_exports(
-          exports_info,
+          exports_info.id,
           ele,
           DefaultExportInfo {
             can_mangle: *global_can_mangle,
@@ -121,7 +121,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
 
   pub fn merge_exports(
     &mut self,
-    exports_info: &mut ExportsInfo,
+    exports_info: ExportsInfoId,
     exports: &Vec<ExportNameOrSpec>,
     global_export_info: DefaultExportInfo,
     dep_id: DependencyId,
@@ -162,7 +162,9 @@ impl<'a> ProvidedExportsPlugin<'a> {
             spec.hidden.unwrap_or(false),
           ),
         };
-      let export_info = exports_info.export_info_mut(&name);
+      let exports_info_id = exports_info.export_info_mut(&name, self.mg);
+      let exports_info = self.mg.get_exports_info_mut_by_id(&exports_info_id);
+      let mut export_info = exports_info.exports.get_mut(&name).unwrap().clone();
       if let Some(ref mut provided) = export_info.provided && matches!(provided, ExportInfoProvided::False | ExportInfoProvided::Null) {
         *provided = ExportInfoProvided::True;
         self.changed = true;
@@ -178,17 +180,22 @@ impl<'a> ProvidedExportsPlugin<'a> {
         self.changed = true;
       }
 
-      if let Some(_exports) = exports {
+      if let Some(exports) = exports {
         // TODO: nested import
         let nested_exports_info = export_info.create_nested_exports_info(self.mg);
-        // self.merge_exports(nested_exports_info, exports, global_export_info);
+        self.merge_exports(
+          nested_exports_info,
+          exports,
+          global_export_info.clone(),
+          dep_id,
+        );
       }
 
       if let Some(from) = from {
         let changed = if hidden {
           export_info.unuset_target(&dep_id)
         } else {
-          let fallback = vec![name];
+          let fallback = vec![name.clone()];
           let export_name = if let Some(from) = from_export {
             Some(from)
           } else {
@@ -201,6 +208,11 @@ impl<'a> ProvidedExportsPlugin<'a> {
 
       // Recalculate target exportsInfo
       let target = export_info.get_target(self.mg, None);
+
+      let exports_info = self.mg.get_exports_info_mut_by_id(&exports_info_id);
+      let mut export_info_old = exports_info.exports.get_mut(&name).unwrap();
+      std::mem::replace(export_info_old, export_info);
+
       let mut target_exports_info: Option<&ExportsInfo> = None;
       if let Some(target) = target {
         target_exports_info = Some(self.mg.get_exports_info(&target.module));
@@ -210,6 +222,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
 }
 
 /// Used for reducing nums of params
+#[derive(Debug, Clone)]
 pub struct DefaultExportInfo<'a> {
   can_mangle: Option<bool>,
   terminal_binding: bool,

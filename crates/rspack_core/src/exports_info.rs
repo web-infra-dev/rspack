@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 use std::sync::atomic::AtomicU32;
@@ -108,10 +109,39 @@ impl ExportsInfoId {
     unreachable!()
   }
 
-  pub fn export_info_mut<'a>(&self, name: &JsWord, mg: &'a ModuleGraph) -> &mut ExportInfo {
-    // let exports_info = mg.get_exports_info_mut_by_id(self);
-    // exports_info.export_info_mut(name, mg)
-    todo!()
+  pub fn export_info_mut<'a>(&self, name: &JsWord, mg: &'a mut ModuleGraph) -> ExportsInfoId {
+    let exports_info = mg.get_exports_info_by_id(self);
+    let mut cur = exports_info;
+    // get redirect chain, because you can't pass a mut ref into a recursive call
+    let mut chain = VecDeque::new();
+    chain.push_back(cur.id);
+    while let Some(id) = cur.redirect_to {
+      chain.push_back(id);
+      cur = mg.get_exports_info_by_id(&id);
+    }
+
+    let len = chain.len();
+
+    for (i, id) in chain.into_iter().enumerate() {
+      let is_last = i == len - 1;
+      let exports_info = mg.get_exports_info_mut_by_id(self);
+      match exports_info.exports.entry(name.clone()) {
+        Entry::Occupied(o) => return exports_info.id,
+        Entry::Vacant(vac) => {
+          if is_last {
+            let new_info = ExportInfo::new(
+              name.clone(),
+              UsageState::Unknown,
+              Some(&exports_info.other_exports_info),
+            );
+            exports_info._exports_are_ordered = false;
+            vac.insert(new_info);
+            return exports_info.id;
+          }
+        }
+      }
+    }
+    unreachable!()
   }
 }
 impl Default for ExportsInfoId {
@@ -193,22 +223,6 @@ impl ExportsInfo {
   }
 
   pub fn export_info_mut<'a>(&'a mut self, name: &JsWord) -> &mut ExportInfo {
-    // match self.exports.entry(name.clone()) {
-    //   Entry::Occupied(o) => o.into_mut(),
-    //   Entry::Vacant(vac) => {
-    //     if let Some(ref mut redirect_to) = self.redirect_to {
-    //       redirect_to.export_info_mut(name)
-    //     } else {
-    //       let new_info = ExportInfo::new(
-    //         name.clone(),
-    //         UsageState::Unknown,
-    //         Some(&self.other_exports_info),
-    //       );
-    //       self._exports_are_ordered = false;
-    //       vac.insert(new_info)
-    //     }
-    //   }
-    // }
     todo!()
   }
 
@@ -288,7 +302,7 @@ impl From<u32> for ExportInfoId {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 #[allow(unused)]
 pub struct ExportInfo {
   name: JsWord,
@@ -497,11 +511,17 @@ impl ExportInfo {
           }
           let new_target = export_info._get_target(mg, resolve_filter.clone(), already_visited);
           let export_info_id = export_info.id;
-          std::mem::replace(
-            mg.get_exports_info_mut(&target.module)
-              .export_info_mut(name),
-            export_info,
-          );
+          // std::mem::replace(
+          //   {
+          //     let exports_info_id = mg.get_exports_info_mut(&target.module).id;
+          //
+          //     mg.get_exports_info_mut_by_id(&exports_info_id)
+          //       .exports
+          //       .get_mut(name)
+          //       .unwrap()
+          //   },
+          //   export_info,
+          // );
 
           match new_target {
             Some(ResolvedExportInfoTargetWithCircular::Circular) => {
