@@ -4,7 +4,6 @@ use rspack_core::{
   RUNTIME_MODULE_STAGE_ATTACH,
 };
 use rspack_identifier::Identifier;
-use rspack_plugin_javascript::runtime::stringify_chunks_to_array;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::impl_runtime_module;
@@ -48,22 +47,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         .get(&chunk_ukey)
         .expect("Chunk not found");
 
-      let all_async_chunks = chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey);
-      let mut async_chunk_ids_with_css = HashSet::default();
-      for chunk_ukey in all_async_chunks.iter() {
-        if Self::chunk_has_css(
-          chunk_ukey,
-          &compilation.chunk_graph,
-          &compilation.module_graph,
-        ) {
-          let chunk = compilation
-            .chunk_by_ukey
-            .get(chunk_ukey)
-            .expect("Chunk not found");
-          async_chunk_ids_with_css.insert(chunk.expect_id().to_string());
-        }
-      }
-
       let with_hmr = self
         .runtime_requirements
         .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
@@ -72,25 +55,28 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         .runtime_requirements
         .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
 
-      if !with_hmr && !with_loading && async_chunk_ids_with_css.is_empty() {
-        return RawSource::from("").boxed();
-      }
-
       let mut initial_chunk_ids_with_css = HashSet::default();
+      let mut initial_chunk_ids_without_css = HashSet::default();
       let initial_chunks = chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey);
 
       for chunk_ukey in initial_chunks.iter() {
+        let chunk = compilation
+          .chunk_by_ukey
+          .get(chunk_ukey)
+          .expect("Chunk not found");
         if Self::chunk_has_css(
           chunk_ukey,
           &compilation.chunk_graph,
           &compilation.module_graph,
         ) {
-          let chunk = compilation
-            .chunk_by_ukey
-            .get(chunk_ukey)
-            .expect("Chunk not found");
           initial_chunk_ids_with_css.insert(chunk.expect_id().to_string());
+        } else {
+          initial_chunk_ids_without_css.insert(chunk.expect_id().to_string());
         }
+      }
+
+      if !with_hmr && !with_loading && initial_chunk_ids_with_css.is_empty() {
+        return RawSource::from("").boxed();
       }
 
       let mut source = ConcatSource::default();
@@ -99,7 +85,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
       source.add(RawSource::from(format!(
         "var installedChunks = {};\n",
-        &stringify_chunks(&initial_chunk_ids_with_css, 0)
+        &stringify_chunks(&initial_chunk_ids_without_css, 0)
       )));
 
       source.add(RawSource::from(
@@ -111,14 +97,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       if with_loading {
         source.add(RawSource::from(
-          include_str!("runtime/css_loading_with_loading.js").replace(
-            "CSS_MATCHER",
-            format!(
-              "{}.indexOf(chunkId) > -1",
-              stringify_chunks_to_array(&async_chunk_ids_with_css)
-            )
-            .as_str(),
-          ),
+          include_str!("runtime/css_loading_with_loading.js").replace("CSS_MATCHER", "chunkId"),
         ));
       }
 
