@@ -346,8 +346,10 @@ impl TestConfig {
 
     assert!(context.is_absolute());
 
+    let root = c::Context::new(context.to_string_lossy().to_string());
+
     let options = CompilerOptions {
-      context: c::Context::new(context.to_string_lossy().to_string()),
+      context: root.clone(),
       output: c::OutputOptions {
         clean: self.output.clean,
         filename: c::Filename::from_str(&self.output.filename).expect("Should exist"),
@@ -442,9 +444,10 @@ impl TestConfig {
       for request in &desc.import {
         plugins.push(
           rspack_plugin_entry::EntryPlugin::new(
-            name.clone(),
+            root.clone(),
             request.to_owned(),
             rspack_core::EntryOptions {
+              name: Some(name.clone()),
               runtime: Some("runtime".to_string()),
               chunk_loading: None,
               async_chunks: Some(true),

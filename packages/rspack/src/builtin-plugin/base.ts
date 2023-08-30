@@ -10,7 +10,8 @@ export enum BuiltinPluginKind {
 	Copy = 4,
 	Html = 5,
 	SwcJsMinimizer = 6,
-	SwcCssMinimizer = 7
+	SwcCssMinimizer = 7,
+	Entry = 8
 }
 
 export abstract class RspackBuiltinPlugin {

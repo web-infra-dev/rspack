@@ -168,7 +168,8 @@ impl Compilation {
     }
   }
 
-  pub fn add_entry(&mut self, entry: DependencyId, name: String, options: EntryOptions) {
+  pub fn add_entry(&mut self, entry: DependencyId, options: EntryOptions) {
+    let name = options.name.as_ref().cloned().unwrap_or_default();
     if let Some(data) = self.entries.get_mut(&name) {
       data.dependencies.push(entry);
     } else {

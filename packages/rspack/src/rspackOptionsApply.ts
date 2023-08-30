@@ -20,17 +20,34 @@ import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { cleverMerge } from "./util/cleverMerge";
 import assert from "assert";
 import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
+import EntryOptionPlugin from "./lib/EntryOptionPlugin";
 
 export class RspackOptionsApply {
 	constructor() {}
 	process(options: RspackOptionsNormalized, compiler: Compiler) {
 		assert(
 			options.output.path,
-			"options.output.path should at least have a default value after `applyRspackOptionsDefaults`"
+			"options.output.path should have value after `applyRspackOptionsDefaults`"
+		);
+		assert(
+			options.context,
+			"options.context should have value after `applyRspackOptionsDefaults`"
 		);
 		compiler.outputPath = options.output.path;
 		compiler.name = options.name;
 		compiler.outputFileSystem = fs;
+
+		const runtimeChunk = options.optimization
+			.runtimeChunk as OptimizationRuntimeChunkNormalized;
+		if (runtimeChunk) {
+			Object.entries(options.entry).forEach(([entryName, value]) => {
+				if (value.runtime === undefined) {
+					value.runtime = runtimeChunk.name({ name: entryName });
+				}
+			});
+		}
+		new EntryOptionPlugin().apply(compiler);
+		compiler.hooks.entryOption.call(options.context, options.entry);
 
 		const { minimize, minimizer } = options.optimization;
 		if (minimize && minimizer) {
@@ -42,15 +59,7 @@ export class RspackOptionsApply {
 				}
 			}
 		}
-		const runtimeChunk = options.optimization
-			.runtimeChunk as OptimizationRuntimeChunkNormalized;
-		if (runtimeChunk) {
-			Object.entries(options.entry).forEach(([entryName, value]) => {
-				if (value.runtime === undefined) {
-					value.runtime = runtimeChunk.name({ name: entryName });
-				}
-			});
-		}
+
 		if (options.builtins.devFriendlySplitChunks) {
 			options.optimization.splitChunks = undefined;
 		}

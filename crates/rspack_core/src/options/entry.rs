@@ -1,6 +1,6 @@
 use indexmap::IndexMap;
 
-use crate::{ChunkLoading, DependencyId, Filename, PublicPath};
+use crate::{ChunkLoading, DependencyId, EntryOptions, Filename, PublicPath};
 
 pub type Entry = IndexMap<String, EntryData>;
 
@@ -21,14 +21,4 @@ pub struct EntryDescription {
 pub struct EntryData {
   pub dependencies: Vec<DependencyId>,
   pub options: EntryOptions,
-}
-
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct EntryOptions {
-  pub runtime: Option<String>,
-  pub chunk_loading: Option<ChunkLoading>,
-  pub async_chunks: Option<bool>,
-  pub public_path: Option<PublicPath>,
-  pub base_uri: Option<String>,
-  pub filename: Option<Filename>,
 }

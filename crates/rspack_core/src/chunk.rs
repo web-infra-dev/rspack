@@ -73,8 +73,9 @@ impl Chunk {
     chunk_group_by_ukey: &'a ChunkGroupByUkey,
   ) -> Option<&'a EntryOptions> {
     for group_ukey in &self.groups {
-      if let Some(group) = chunk_group_by_ukey.get(group_ukey) && group.kind.is_entrypoint() {
-        return group.options.entry_options.as_ref()
+      if let Some(group) = chunk_group_by_ukey.get(group_ukey)
+      && let Some(entry_options) = group.kind.get_entry_options() {
+        return Some(entry_options)
       }
     }
     None

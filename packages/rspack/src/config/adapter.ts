@@ -74,10 +74,7 @@ export const getRawOptions = (
 		"context, devtool, cache should not be nil after defaults"
 	);
 	const devtool = options.devtool === false ? "" : options.devtool;
-	let rawEntry = getRawEntry(options.entry);
 	return {
-		entry: rawEntry,
-		entryOrder: Object.keys(rawEntry),
 		mode: options.mode,
 		target: getRawTarget(options.target),
 		context: options.context,
@@ -121,24 +118,6 @@ export const getRawOptions = (
 		builtins: options.builtins as any
 	};
 };
-
-function getRawEntry(entry: EntryNormalized): RawOptions["entry"] {
-	const raw: RawOptions["entry"] = {};
-	for (const key of Object.keys(entry)) {
-		const runtime = entry[key].runtime;
-		const chunkLoading = entry[key].chunkLoading;
-		raw[key] = {
-			import: entry[key].import!,
-			publicPath: entry[key].publicPath,
-			baseUri: entry[key].baseUri,
-			runtime: runtime === false ? undefined : runtime,
-			chunkLoading: chunkLoading === false ? "false" : chunkLoading,
-			asyncChunks: entry[key].asyncChunks,
-			filename: entry[key].filename
-		};
-	}
-	return raw;
-}
 
 function getRawTarget(target: Target | undefined): RawOptions["target"] {
 	if (!target) {

@@ -4,6 +4,7 @@ export * from "./DefinePlugin";
 export * from "./ProvidePlugin";
 export * from "./BannerPlugin";
 export * from "./ProgressPlugin";
+export * from "./EntryPlugin";
 
 export * from "./HtmlPlugin";
 export * from "./CopyPlugin";
