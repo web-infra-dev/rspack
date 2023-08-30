@@ -10,6 +10,7 @@ version    = "0.1.0"
 [dependencies]
 async-trait           = { workspace = true }
 dashmap               = { workspace = true }
+indexmap              = { workspace = true }
 rayon                 = { workspace = true }
 rspack_core           = { path = "../rspack_core" }
 rspack_error          = { path = "../rspack_error" }

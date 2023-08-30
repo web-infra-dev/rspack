@@ -2907,6 +2907,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "dashmap",
+ "indexmap 1.9.3",
  "rayon",
  "rspack_core",
  "rspack_error",
