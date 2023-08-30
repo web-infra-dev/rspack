@@ -2,7 +2,6 @@ use std::{
   borrow::Cow,
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
-  io::Write,
   sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
