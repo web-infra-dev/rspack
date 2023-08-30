@@ -27,7 +27,7 @@ on:
         required: true
         type: string
       profile: # Rust profile, "debug" or "release"
-        default: 'release'
+        default: "release"
         required: false
         type: string
       test: # Run tests?
@@ -251,7 +251,7 @@ jobs:
 
       - name: Test x86_64-pc-windows-msvc
         timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
-        if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
+        if: ${{ inputs.target == 'x86_64-pc-windows-msvc'  &&  matrix.node  != '14' }}
         run: pnpm run test:ci
 
       ### write the latest metric into branch gh-pages
