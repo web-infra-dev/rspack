@@ -12,6 +12,7 @@ source: crates/rspack_testing/src/run_fixture.rs
   
 </body></html>
 ```
+
 ```html title=index.a23ce667a9bd8055.html
 <!DOCTYPE html>
 <html>

@@ -12,6 +12,7 @@ body {
 
 
 ```
+
 ```css title=async-two.css
 body {
   background: purple;
@@ -23,6 +24,7 @@ body {
 
 
 ```
+
 ```css title=main.css
 body {
   background: red;

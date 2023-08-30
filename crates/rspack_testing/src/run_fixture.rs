@@ -30,7 +30,10 @@ pub async fn test_fixture_html(fixture_path: &Path) -> Compiler<AsyncNativeFileS
 }
 #[tokio::main]
 pub async fn test_fixture_js(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
-  test_fixture_share(fixture_path, &|s| s.ends_with(".js")).await
+  test_fixture_share(fixture_path, &|s| {
+    s.ends_with(".js") && !s.contains("runtime.js")
+  })
+  .await
 }
 #[tokio::main]
 pub async fn test_fixture_css(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
@@ -45,7 +48,10 @@ pub async fn test_fixture_insta(
 }
 #[tokio::main]
 pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
-  test_fixture_share(fixture_path, &|s| s.ends_with(".js")).await
+  test_fixture_share(fixture_path, &|s| {
+    s.ends_with(".js") && !s.contains("runtime.js")
+  })
+  .await
 }
 
 pub async fn test_fixture_share(
@@ -90,7 +96,7 @@ pub async fn test_fixture_share(
       }
     })
     .sorted()
-    .join("\n");
+    .join("\n\n");
   settings.bind(|| {
     assert_snapshot!("output", content);
   });
