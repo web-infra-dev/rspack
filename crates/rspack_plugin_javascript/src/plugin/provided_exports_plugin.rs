@@ -200,6 +200,11 @@ impl<'a> ProvidedExportsPlugin<'a> {
       }
 
       // Recalculate target exportsInfo
+      let target = export_info.get_target(self.mg, None);
+      let mut target_exports_info: Option<&ExportsInfo> = None;
+      if let Some(target) = target {
+        target_exports_info = Some(self.mg.get_exports_info(&target.module));
+      }
     }
   }
 }

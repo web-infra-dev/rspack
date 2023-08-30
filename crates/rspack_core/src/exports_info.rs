@@ -213,7 +213,7 @@ pub enum ExportInfoProvided {
 }
 
 pub struct ResolvedExportInfoTarget {
-  module: ModuleIdentifier,
+  pub module: ModuleIdentifier,
   exports: Option<Vec<JsWord>>,
   connection: ModuleGraphConnection,
 }
