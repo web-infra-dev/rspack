@@ -248,7 +248,32 @@ pub struct ExportsSpec {
 pub enum ExportsReferencedType {
   No,     // NO_EXPORTS_REFERENCED
   Object, // EXPORTS_OBJECT_REFERENCED
-  Value(Vec<ReferencedExport>),
+  String(Box<Vec<Vec<JsWord>>>),
+  Value(Box<Vec<ReferencedExport>>),
+}
+
+impl From<JsWord> for ExportsReferencedType {
+  fn from(value: JsWord) -> Self {
+    ExportsReferencedType::String(Box::new(vec![vec![value]]))
+  }
+}
+
+impl From<Vec<Vec<JsWord>>> for ExportsReferencedType {
+  fn from(value: Vec<Vec<JsWord>>) -> Self {
+    ExportsReferencedType::String(Box::new(value))
+  }
+}
+
+impl From<Vec<JsWord>> for ExportsReferencedType {
+  fn from(value: Vec<JsWord>) -> Self {
+    ExportsReferencedType::String(Box::new(vec![value]))
+  }
+}
+
+impl From<Vec<ReferencedExport>> for ExportsReferencedType {
+  fn from(value: Vec<ReferencedExport>) -> Self {
+    ExportsReferencedType::Value(Box::new(value))
+  }
 }
 
 pub trait AsModuleDependency {

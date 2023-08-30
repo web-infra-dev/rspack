@@ -1,5 +1,5 @@
 use std::collections::hash_map::Entry;
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
 
@@ -14,6 +14,36 @@ use crate::{
   ModuleIdentifier, RuntimeSpec,
 };
 
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
+pub struct ExportsInfoId(u32);
+
+pub static EXPORTS_INFO_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
+
+impl ExportsInfoId {
+  pub fn new() -> Self {
+    Self(EXPORTS_INFO_ID.fetch_add(1, Relaxed))
+  }
+}
+impl Default for ExportsInfoId {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
+impl std::ops::Deref for ExportsInfoId {
+  type Target = u32;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl From<u32> for ExportsInfoId {
+  fn from(id: u32) -> Self {
+    Self(id)
+  }
+}
+
 #[derive(Debug)]
 pub struct ExportsInfo {
   pub exports: HashMap<JsWord, ExportInfo>,
@@ -21,36 +51,7 @@ pub struct ExportsInfo {
   pub _side_effects_only_info: ExportInfo,
   pub _exports_are_ordered: bool,
   pub redirect_to: Option<Box<ExportsInfo>>,
-}
-
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
-pub struct ExportInfoId(usize);
-
-pub static EXPORT_INFO_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
-
-impl ExportInfoId {
-  pub fn new() -> Self {
-    Self(EXPORT_INFO_ID.fetch_add(1, Relaxed))
-  }
-}
-impl Default for ExportInfoId {
-  fn default() -> Self {
-    Self::new()
-  }
-}
-
-impl std::ops::Deref for ExportInfoId {
-  type Target = usize;
-
-  fn deref(&self) -> &Self::Target {
-    &self.0
-  }
-}
-
-impl From<usize> for ExportInfoId {
-  fn from(id: usize) -> Self {
-    Self(id)
-  }
+  pub id: ExportsInfoId,
 }
 
 impl ExportsInfo {
@@ -65,6 +66,7 @@ impl ExportsInfo {
       ),
       _exports_are_ordered: false,
       redirect_to: None,
+      id: ExportsInfoId::new(),
     }
   }
 
@@ -128,6 +130,11 @@ impl ExportsInfo {
       }
     }
   }
+
+  pub fn get_ordered_exports(&self) -> impl Iterator<Item = &ExportInfo> {
+    // TODO need order
+    self.exports.values()
+  }
 }
 
 impl Default for ExportsInfo {
@@ -148,6 +155,36 @@ pub struct ExportInfoTargetValue {
   priority: u8,
 }
 
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
+pub struct ExportInfoId(u32);
+
+pub static EXPORT_INFO_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
+
+impl ExportInfoId {
+  pub fn new() -> Self {
+    Self(EXPORT_INFO_ID.fetch_add(1, Relaxed))
+  }
+}
+impl Default for ExportInfoId {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
+impl std::ops::Deref for ExportInfoId {
+  type Target = u32;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl From<u32> for ExportInfoId {
+  fn from(id: u32) -> Self {
+    Self(id)
+  }
+}
+
 #[derive(Debug)]
 #[allow(unused)]
 pub struct ExportInfo {
@@ -162,6 +199,7 @@ pub struct ExportInfo {
   /// This is rspack only variable, it is used to flag if the target has been initialized
   target_is_set: bool,
   pub id: ExportInfoId,
+  pub exports_info: Box<ExportsInfoId>,
 }
 
 #[derive(Debug)]
@@ -187,6 +225,7 @@ impl ExportInfo {
       terminal_binding: false,
       target_is_set: false,
       id: ExportInfoId::new(),
+      exports_info: Box::new(ExportsInfoId::new()),
     }
   }
 
@@ -337,5 +376,54 @@ impl Default for ReferencedExport {
       _name: vec![],
       _can_mangle: true,
     }
+  }
+}
+
+pub fn process_export_info(
+  module_graph: &ModuleGraph,
+  runtime: &RuntimeSpec,
+  referenced_export: &mut Vec<Vec<JsWord>>,
+  prefix: Vec<JsWord>,
+  export_info: Option<&ExportInfo>,
+  default_points_to_self: bool,
+  already_visited: &mut HashSet<ExportInfoId>,
+) {
+  if let Some(export_info) = export_info {
+    let used = export_info.get_used(runtime);
+    if used == UsageState::Unused {
+      return;
+    }
+    if already_visited.contains(&export_info.id) {
+      referenced_export.push(prefix);
+      return;
+    }
+    already_visited.insert(export_info.id);
+    if used != UsageState::OnlyPropertiesUsed {
+      already_visited.remove(&export_info.id);
+      referenced_export.push(prefix);
+      return;
+    }
+    if let Some(exports_info) = module_graph.exports_info_map.get(&export_info.exports_info) {
+      for export_info in exports_info.get_ordered_exports() {
+        process_export_info(
+          module_graph,
+          runtime,
+          referenced_export,
+          if default_points_to_self && &export_info.name == "default" {
+            prefix.clone()
+          } else {
+            let mut value = prefix.clone();
+            value.push(export_info.name.clone());
+            value
+          },
+          Some(export_info),
+          false,
+          already_visited,
+        );
+      }
+    }
+    already_visited.remove(&export_info.id);
+  } else {
+    referenced_export.push(prefix);
   }
 }

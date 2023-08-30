@@ -12,8 +12,8 @@ pub use connection::*;
 
 use crate::{
   to_identifier, BoxDependency, BoxModule, BuildDependency, BuildInfo, BuildMeta,
-  DependencyCondition, DependencyId, ExportsInfo, Module, ModuleGraphModule, ModuleIdentifier,
-  ModuleProfile,
+  DependencyCondition, DependencyId, ExportsInfo, ExportsInfoId, Module, ModuleGraphModule,
+  ModuleIdentifier, ModuleProfile,
 };
 
 // TODO Here request can be used JsWord
@@ -45,6 +45,7 @@ pub struct ModuleGraph {
   connection_to_condition: HashMap<ConnectionId, DependencyCondition>,
 
   import_var_map: IdentifierMap<ImportVarMap>,
+  pub exports_info_map: HashMap<ExportsInfoId, ExportsInfo>,
 }
 
 impl ModuleGraph {
