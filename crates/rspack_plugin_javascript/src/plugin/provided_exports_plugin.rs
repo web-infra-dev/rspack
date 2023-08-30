@@ -180,7 +180,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
 
       if let Some(_exports) = exports {
         // TODO: nested import
-        // let nested_exports_info = export_info.create_nested_exports_info();
+        let nested_exports_info = export_info.create_nested_exports_info(self.mg);
         // self.merge_exports(nested_exports_info, exports, global_export_info);
       }
 

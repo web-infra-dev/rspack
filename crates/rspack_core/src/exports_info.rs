@@ -1,4 +1,5 @@
 use std::collections::hash_map::Entry;
+use std::collections::VecDeque;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
@@ -22,6 +23,95 @@ pub static EXPORTS_INFO_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
 impl ExportsInfoId {
   pub fn new() -> Self {
     Self(EXPORTS_INFO_ID.fetch_add(1, Relaxed))
+  }
+
+  /// # Panic
+  /// it will panic if you provide a export info that does not exists in the module graph  
+  pub fn set_has_provide_info<'a>(&self, mg: &'a mut ModuleGraph) {
+    let exports_info = mg.get_exports_info_by_id(self);
+    let mut cur = exports_info;
+    // get redirect chain, because you can't pass a mut ref into a recursive call
+    let mut chain = VecDeque::new();
+    chain.push_back(cur.id);
+    while let Some(id) = cur.redirect_to {
+      chain.push_back(id);
+      cur = mg.get_exports_info_by_id(&id);
+    }
+    let len = chain.len();
+    for (i, id) in chain.into_iter().enumerate() {
+      let is_last = i == len - 1;
+
+      let exports_info = mg.get_exports_info_mut_by_id(self);
+
+      for e in exports_info.exports.values_mut() {
+        if e.provided.is_none() {
+          e.provided = Some(ExportInfoProvided::False);
+        }
+        if e.can_mangle_provide.is_none() {
+          e.can_mangle_provide = Some(true);
+        }
+      }
+      if is_last {
+        if exports_info.other_exports_info.provided.is_none() {
+          exports_info.other_exports_info.provided = Some(ExportInfoProvided::False);
+        }
+        if exports_info.other_exports_info.can_mangle_provide.is_none() {
+          exports_info.other_exports_info.can_mangle_provide = Some(true);
+        }
+      }
+    }
+  }
+
+  pub fn set_redirect_name_to<'a>(&self, mg: &'a mut ModuleGraph, id: ExportsInfoId) -> bool {
+    let exports_info = mg.get_exports_info_mut_by_id(self);
+    if exports_info.redirect_to == Some(id) {
+      return false;
+    }
+    exports_info.redirect_to = Some(id);
+    return true;
+  }
+
+  pub fn get_read_only_export_info<'a>(
+    &self,
+    name: &JsWord,
+    mg: &'a ModuleGraph,
+  ) -> &'a ExportInfo {
+    let exports_info = mg.get_exports_info_by_id(self);
+    let mut cur = exports_info;
+    // get redirect chain, because you can't pass a mut ref into a recursive call
+    let mut chain = VecDeque::new();
+    chain.push_back(cur.id);
+    while let Some(id) = cur.redirect_to {
+      chain.push_back(id);
+      cur = mg.get_exports_info_by_id(&id);
+    }
+
+    let len = chain.len();
+    for (i, id) in chain.into_iter().enumerate() {
+      let exports_info = mg.get_exports_info_by_id(self);
+      let is_last = i == len - 1;
+
+      if let Some(info) = exports_info.exports.get(name) {
+        return info;
+      }
+      if is_last {
+        return &exports_info.other_exports_info;
+      }
+      // if let Some(info) = self.exports.get(name) {
+      //   info
+      // } else if let Some(redirect_to) = &self.redirect_to {
+      //   redirect_to.get_read_only_export_info(name)
+      // } else {
+      //   &self.other_exports_info
+      // }
+    }
+    unreachable!()
+  }
+
+  pub fn export_info_mut<'a>(&self, name: &JsWord, mg: &'a ModuleGraph) -> &mut ExportInfo {
+    // let exports_info = mg.get_exports_info_mut_by_id(self);
+    // exports_info.export_info_mut(name, mg)
+    todo!()
   }
 }
 impl Default for ExportsInfoId {
@@ -50,7 +140,7 @@ pub struct ExportsInfo {
   pub other_exports_info: ExportInfo,
   pub _side_effects_only_info: ExportInfo,
   pub _exports_are_ordered: bool,
-  pub redirect_to: Option<Box<ExportsInfo>>,
+  pub redirect_to: Option<ExportsInfoId>,
   pub id: ExportsInfoId,
 }
 
@@ -82,14 +172,14 @@ impl ExportsInfo {
   ) -> UsageState {
     match &name {
       UsedName::Str(value) => {
-        let info = self.get_read_only_export_info(value);
+        let info = self.id.get_read_only_export_info(value, module_graph);
         info.get_used(runtime)
       }
       UsedName::Vec(value) => {
         if value.is_empty() {
           return self.other_exports_info.get_used(runtime);
         }
-        let info = self.get_read_only_export_info(&value[0]);
+        let info = self.id.get_read_only_export_info(&value[0], module_graph);
         if let Some(exports_info) = info.get_exports_info(module_graph) {
           return exports_info.get_used(
             UsedName::Vec(value.iter().skip(1).cloned().collect::<Vec<_>>()),
@@ -102,38 +192,51 @@ impl ExportsInfo {
     }
   }
 
-  pub fn get_read_only_export_info(&self, name: &JsWord) -> &ExportInfo {
-    if let Some(info) = self.exports.get(name) {
-      info
-    } else if let Some(redirect_to) = &self.redirect_to {
-      redirect_to.get_read_only_export_info(name)
-    } else {
-      &self.other_exports_info
-    }
-  }
-
-  pub fn export_info_mut<'a>(&'a mut self, name: &JsWord) -> &'a mut ExportInfo {
-    match self.exports.entry(name.clone()) {
-      Entry::Occupied(o) => o.into_mut(),
-      Entry::Vacant(vac) => {
-        if let Some(ref mut redirect_to) = self.redirect_to {
-          redirect_to.export_info_mut(name)
-        } else {
-          let new_info = ExportInfo::new(
-            name.clone(),
-            UsageState::Unknown,
-            Some(&self.other_exports_info),
-          );
-          self._exports_are_ordered = false;
-          vac.insert(new_info)
-        }
-      }
-    }
+  pub fn export_info_mut<'a>(&'a mut self, name: &JsWord) -> &mut ExportInfo {
+    // match self.exports.entry(name.clone()) {
+    //   Entry::Occupied(o) => o.into_mut(),
+    //   Entry::Vacant(vac) => {
+    //     if let Some(ref mut redirect_to) = self.redirect_to {
+    //       redirect_to.export_info_mut(name)
+    //     } else {
+    //       let new_info = ExportInfo::new(
+    //         name.clone(),
+    //         UsageState::Unknown,
+    //         Some(&self.other_exports_info),
+    //       );
+    //       self._exports_are_ordered = false;
+    //       vac.insert(new_info)
+    //     }
+    //   }
+    // }
+    todo!()
   }
 
   pub fn get_ordered_exports(&self) -> impl Iterator<Item = &ExportInfo> {
     // TODO need order
     self.exports.values()
+  }
+  pub fn set_redirect_name_to(&mut self) {}
+
+  pub fn set_has_provide_info<'a>(&mut self, mg: &'a mut ModuleGraph) {
+    for e in self.exports.values_mut() {
+      if e.provided.is_none() {
+        e.provided = Some(ExportInfoProvided::False);
+      }
+      if e.can_mangle_provide.is_none() {
+        e.can_mangle_provide = Some(true);
+      }
+    }
+    if let Some(ref mut redirect_to) = self.redirect_to {
+      redirect_to.set_has_provide_info(mg);
+    } else {
+      if self.other_exports_info.provided.is_none() {
+        self.other_exports_info.provided = Some(ExportInfoProvided::False);
+      }
+      if self.other_exports_info.can_mangle_provide.is_none() {
+        self.other_exports_info.can_mangle_provide = Some(true);
+      }
+    }
   }
 }
 
@@ -185,7 +288,7 @@ impl From<u32> for ExportInfoId {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(unused)]
 pub struct ExportInfo {
   name: JsWord,
@@ -201,7 +304,8 @@ pub struct ExportInfo {
   target_is_set: bool,
   pub id: ExportInfoId,
   max_target_is_set: bool,
-  pub exports_info: Box<ExportsInfoId>,
+  pub exports_info: Option<ExportsInfoId>,
+  pub exports_info_owned: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -266,8 +370,9 @@ impl ExportInfo {
       target_is_set: false,
       max_target_is_set: false,
       id: ExportInfoId::new(),
-      exports_info: Box::new(ExportsInfoId::new()),
+      exports_info: None,
       max_target: HashMap::default(),
+      exports_info_owned: false,
     }
   }
 
@@ -379,7 +484,12 @@ impl ExportInfo {
 
           // use export_info_mut
           let mut export_info = {
-            let exports_info = mg.get_exports_info_mut(&target.module);
+            let mgm = mg
+              .module_graph_module_by_identifier(&target.module)
+              .expect("should have mgm")
+              .exports
+              .id;
+            let exports_info = mg.get_exports_info_mut_by_id(&mgm);
             exports_info.export_info_mut(name).clone()
           };
           if already_visited.contains(&export_info.id) {
@@ -525,6 +635,27 @@ impl ExportInfo {
 
     false
   }
+
+  pub fn create_nested_exports_info<'a>(&mut self, mg: &'a mut ModuleGraph) -> ExportsInfoId {
+    if (self.exports_info_owned) {
+      return self
+        .exports_info
+        .expect("should have exports_info when exports_info is true");
+    }
+    let mut new_exports_info = ExportsInfo::new();
+    let new_exports_info_id = new_exports_info.id;
+
+    let old_exports_info = self.exports_info;
+    new_exports_info.id.set_has_provide_info(mg);
+    self.exports_info_owned = true;
+    self.exports_info = Some(new_exports_info.id);
+    if let Some(exports_info) = old_exports_info {
+      exports_info.set_redirect_name_to(mg, new_exports_info_id);
+    }
+    mg.exports_info_map
+      .insert(new_exports_info_id, new_exports_info);
+    return new_exports_info_id;
+  }
 }
 
 #[derive(Debug, PartialEq, Copy, Clone, Default)]
@@ -626,7 +757,10 @@ pub fn process_export_info(
       referenced_export.push(prefix);
       return;
     }
-    if let Some(exports_info) = module_graph.exports_info_map.get(&export_info.exports_info) {
+    if let Some(exports_info) = module_graph
+      .exports_info_map
+      .get(&export_info.exports_info.expect("should have exports info"))
+    {
       for export_info in exports_info.get_ordered_exports() {
         process_export_info(
           module_graph,
