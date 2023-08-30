@@ -1,0 +1,420 @@
+---
+source: crates/rspack_testing/src/run_fixture.rs
+---
+```js title=main.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
+// import assert from "assert";
+// import { equal } from "assert";
+
+const lib = __webpack_require__(/* ./lib */"./lib.js");
+const { DO_NOT_CONVERTED9 } = __webpack_require__(/* ./lib */"./lib.js");
+equal(true, true);
+// require("assert").deepStrictEqual(FALSE, false);
+assert.deepStrictEqual(5, 5);
+assert.deepStrictEqual(null, null);
+assert.deepStrictEqual(undefined, undefined);
+// assert.equal(FUNCTION(5), 6);
+// assert.equal(typeof FUNCTION, "function");
+assert.deepStrictEqual(100.05, 100.05);
+assert.deepStrictEqual(0, 0);
+let ZERO_OBJ = {
+    ZERO: 0
+};
+assert.deepStrictEqual(ZERO_OBJ.ZERO, 0);
+assert.deepStrictEqual(ZERO_OBJ[0], undefined);
+assert.deepStrictEqual(ZERO_OBJ[0], undefined);
+assert.deepStrictEqual(ZERO_OBJ["ZERO"], 0);
+assert.deepStrictEqual(BigInt(10000), 10000n);
+assert.deepStrictEqual(100000000000n, 100000000000n);
+assert.deepStrictEqual(0, 0);
+assert.deepStrictEqual(-0, -0);
+assert.deepStrictEqual(100.25, 100.25);
+assert.deepStrictEqual(-100.25, -100.25);
+assert.deepStrictEqual("string", "string");
+assert.deepStrictEqual("", "");
+assert.deepStrictEqual(/abc/i, /abc/i);
+assert.deepStrictEqual(0..ABC, undefined);
+let error_count = 0;
+try {
+    error_count += 1;
+    MEMBER_PROPS_SHOULD_DO_NOT_CONVERTED.ZERO;
+    error_count += 1;
+} catch (err) {}
+assert.deepStrictEqual(error_count, 1);
+try {
+    error_count += 1;
+    MEMBER_PROPS_SHOULD_DO_NOT_CONVERTED.REGEXP.REGEXP;
+    error_count += 1;
+} catch (err1) {}
+assert.deepStrictEqual(error_count, 2);
+assert.deepStrictEqual([
+    300,
+    [
+        "six"
+    ]
+], [
+    300,
+    [
+        "six"
+    ]
+]);
+assert.deepStrictEqual(300, 300);
+assert.deepStrictEqual(300[1], undefined);
+assert.deepStrictEqual([
+    "six"
+], [
+    "six"
+]);
+assert.deepStrictEqual([
+    "six"
+][0], "six");
+assert.deepStrictEqual([
+    "six"
+][0][0], "s");
+assert.deepStrictEqual([
+    "six"
+], [
+    "six"
+]);
+assert.deepStrictEqual([
+    300,
+    [
+        "six"
+    ]
+][[
+    300,
+    [
+        "six"
+    ]
+]], undefined);
+assert.deepStrictEqual({
+    UNDEFINED: undefined,
+    REGEXP: /def/i,
+    STR: "string",
+    OBJ: {
+        NUM: 1
+    }
+}, {
+    UNDEFINED: undefined,
+    REGEXP: /def/i,
+    STR: "string",
+    OBJ: {
+        NUM: 1
+    }
+});
+assert.deepStrictEqual({
+    UNDEFINED: undefined,
+    REGEXP: /def/i,
+    STR: "string",
+    OBJ: {
+        NUM: 1
+    }
+}.OBJ, {
+    NUM: 1
+});
+assert.deepStrictEqual({
+    UNDEFINED: undefined,
+    REGEXP: /def/i,
+    STR: "string",
+    OBJ: {
+        NUM: 1
+    }
+}.OBJ.NUM, 1);
+assert.deepStrictEqual({
+    UNDEFINED: undefined,
+    REGEXP: /def/i,
+    STR: "string",
+    OBJ: {
+        NUM: 1
+    }
+}.UNDEFINED, undefined);
+assert.deepStrictEqual({
+    UNDEFINED: undefined,
+    REGEXP: /def/i,
+    STR: "string",
+    OBJ: {
+        NUM: 1
+    }
+}.REGEXP, /def/i);
+assert.deepStrictEqual({
+    UNDEFINED: undefined,
+    REGEXP: /def/i,
+    STR: "string",
+    OBJ: {
+        NUM: 1
+    }
+}.STR, "string");
+assert.deepStrictEqual({
+    UNDEFINED: undefined,
+    REGEXP: /def/i,
+    STR: "string",
+    OBJ: {
+        NUM: 1
+    }
+}.AAA, undefined);
+assert.deepStrictEqual(301, 301);
+assert.deepStrictEqual("302", "302");
+assert.deepStrictEqual(303, 303);
+assert.deepStrictEqual(304, 304);
+assert.deepStrictEqual(303..P4, undefined); // "303.P4"
+try {
+    error_count += 1;
+    P4.P1;
+    error_count += 1;
+} catch (err2) {}
+assert.deepStrictEqual(error_count, 3);
+assert.deepStrictEqual("302".P1, undefined);
+assert.deepStrictEqual("302".P3, undefined);
+assert.deepStrictEqual("302".P4, undefined);
+const DO_NOT_CONVERTED = 201;
+assert.deepStrictEqual(DO_NOT_CONVERTED, 201);
+let { DO_NOT_CONVERTED2 } = {
+    DO_NOT_CONVERTED2: 202
+};
+assert.deepStrictEqual(DO_NOT_CONVERTED2, 202);
+const { c: DO_NOT_CONVERTED3 } = {
+    c: 203
+};
+assert.deepStrictEqual(DO_NOT_CONVERTED3, 203);
+try {
+    error_count += 1;
+    DO_NOT_CONVERTED4;
+    error_count += 1;
+} catch (err3) {}
+assert.deepStrictEqual(error_count, 4);
+let DO_NOT_CONVERTED4 = 204;
+const USELESS = {
+    ZERO: 0
+};
+{
+    const A = DO_NOT_CONVERTED4;
+    assert.deepStrictEqual(A, 204);
+    const DO_NOT_CONVERTED3 = 205;
+    assert.deepStrictEqual(DO_NOT_CONVERTED3, 205);
+    const B = 0;
+    assert.deepStrictEqual(B, 0);
+    let IN_BLOCK = 2;
+    assert.deepStrictEqual(IN_BLOCK, 2);
+    assert.deepStrictEqual(205, 205);
+}try {
+    error_count += 1;
+    SHOULD_BE_CONVERTED_IN_UNDEFINED_BLOCK;
+    error_count += 1;
+} catch (err4) {}
+assert.deepStrictEqual(error_count, 5);
+assert.deepStrictEqual(USELESS, {
+    ZERO: 0
+});
+assert.deepStrictEqual({}.DO_NOT_CONVERTED5, undefined);
+assert.deepStrictEqual({}.DO_NOT_CONVERTED6, undefined);
+assert.deepStrictEqual(_lib__WEBPACK_IMPORTED_MODULE_0_.DO_NOT_CONVERTED7, 402);
+assert.deepStrictEqual(_lib__WEBPACK_IMPORTED_MODULE_0_["default"], 401);
+assert.deepStrictEqual(DO_NOT_CONVERTED9, 403);
+assert.deepStrictEqual(lib.DO_NOT_CONVERTED9, 403);
+try {
+    error_count += 1;
+    M1;
+    error_count += 1;
+} catch (err5) {}
+assert.deepStrictEqual(error_count, 6);
+// try {
+//   error_count += 1;
+//   SHOULD_CONVERTED = 205; // syntax error
+//   error_count += 1;
+// } catch (err) {
+// }
+// deepStrictEqual(error_count, 6);
+// try {
+//   error_count += 1;
+//   SHOULD_CONVERTED = SHOULD_CONVERTED = 205; // syntax error
+//   error_count += 1;
+// } catch (err) {
+// }
+// deepStrictEqual(error_count, 7);
+try {
+    error_count += 1;
+    aa = 205;
+    error_count += 1;
+} catch (err6) {}
+assert.deepStrictEqual(error_count, 7);
+assert.deepStrictEqual(true, true);
+assert.deepStrictEqual(false, false);
+try {
+    error_count += 1;
+    A1.A2.A3;
+    error_count += 1;
+} catch (err7) {}
+assert.deepStrictEqual(error_count, 8);
+// just make sure `MemberExpr` fold success.
+console.log(console.log(console.log)); // TODO: recursive
+ // assert.equal(wurst, unde);
+ // assert.equal(suppe, wurst);
+},
+"./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; },
+  'DO_NOT_CONVERTED7': function() { return DO_NOT_CONVERTED7; },
+  'DO_NOT_CONVERTED9': function() { return DO_NOT_CONVERTED9; }
+});
+const DO_NOT_CONVERTED7 = 402;
+const DO_NOT_CONVERTED9 = 403;
+var __WEBPACK_DEFAULT_EXPORT__ = 401; // DO_NOT_CONVERTED8
+
+},
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```
+```js title=runtime.js
+(function() {
+var __webpack_modules__ = {
+
+}
+// The module cache
+ var __webpack_module_cache__ = {};
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+        var cachedModule = __webpack_module_cache__[moduleId];
+        if (cachedModule !== undefined) {
+      return cachedModule.exports;
+      }
+      // Create a new module (and put it into the cache)
+      var module = (__webpack_module_cache__[moduleId] = {
+       exports: {}
+      });
+      // Execute the module function
+      __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+// Return the exports of the module
+ return module.exports;
+
+}
+// expose the modules object (__webpack_modules__)
+ __webpack_require__.m = __webpack_modules__;
+// webpack/runtime/has_own_property
+(function() {
+__webpack_require__.o = function (obj, prop) {
+	return Object.prototype.hasOwnProperty.call(obj, prop);
+};
+
+})();
+// webpack/runtime/on_chunk_loaded
+(function() {
+var deferred = [];
+__webpack_require__.O = function (result, chunkIds, fn, priority) {
+	if (chunkIds) {
+		priority = priority || 0;
+		for (var i = deferred.length; i > 0 && deferred[i - 1][2] > priority; i--)
+			deferred[i] = deferred[i - 1];
+		deferred[i] = [chunkIds, fn, priority];
+		return;
+	}
+	var notFulfilled = Infinity;
+	for (var i = 0; i < deferred.length; i++) {
+		var chunkIds = deferred[i][0],
+			fn = deferred[i][1],
+			priority = deferred[i][2];
+		var fulfilled = true;
+		for (var j = 0; j < chunkIds.length; j++) {
+			if (
+				(priority & (1 === 0) || notFulfilled >= priority) &&
+				Object.keys(__webpack_require__.O).every(function (key) {
+					return __webpack_require__.O[key](chunkIds[j]);
+				})
+			) {
+				chunkIds.splice(j--, 1);
+			} else {
+				fulfilled = false;
+				if (priority < notFulfilled) notFulfilled = priority;
+			}
+		}
+		if (fulfilled) {
+			deferred.splice(i--, 1);
+			var r = fn();
+			if (r !== undefined) result = r;
+		}
+	}
+	return result;
+};
+
+})();
+// webpack/runtime/define_property_getters
+(function() {
+__webpack_require__.d = function(exports, definition) {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/make_namespace_object
+(function() {
+// define __esModule on exports
+__webpack_require__.r = function(exports) {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+
+})();
+// webpack/runtime/jsonp_chunk_loading
+(function() {
+var installedChunks = {"runtime": 0,};
+__webpack_require__.O.j = function (chunkId) {
+	return installedChunks[chunkId] === 0;
+};
+// install a JSONP callback for chunk loading
+var webpackJsonpCallback = function (parentChunkLoadingFunction, data) {
+	var chunkIds = data[0],
+	moreModules = data[1],
+	runtime = data[2];
+	// add "moreModules" to the modules object,
+	// then flag all "chunkIds" as loaded and fire callback
+	var moduleId,
+		chunkId,
+		i = 0;
+	if (chunkIds.some(function(id) { return installedChunks[id] !== 0 })) {
+		for (moduleId in moreModules) {
+			if (__webpack_require__.o(moreModules, moduleId)) {
+				__webpack_require__.m[moduleId] = moreModules[moduleId];
+			}
+		}
+		if (runtime) var result = runtime(__webpack_require__);
+	}
+	if (parentChunkLoadingFunction) parentChunkLoadingFunction(data);
+	for (; i < chunkIds.length; i++) {
+		chunkId = chunkIds[i];
+		if (
+			__webpack_require__.o(installedChunks, chunkId) &&
+			installedChunks[chunkId]
+		) {
+			installedChunks[chunkId][0]();
+		}
+		installedChunks[chunkId] = 0;
+	}
+	return __webpack_require__.O(result);
+};
+
+var chunkLoadingGlobal = self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || [];
+chunkLoadingGlobal.forEach(webpackJsonpCallback.bind(null, 0));
+chunkLoadingGlobal.push = webpackJsonpCallback.bind(
+	null,
+	chunkLoadingGlobal.push.bind(chunkLoadingGlobal)
+);
+
+})();
+
+})()
+
+```

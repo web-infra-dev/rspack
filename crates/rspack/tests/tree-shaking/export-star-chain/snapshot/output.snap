@@ -1,0 +1,261 @@
+---
+source: crates/rspack_testing/src/run_fixture.rs
+---
+```js title=main.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./Layout.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _something__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./something */"./something/index.js");
+__webpack_require__.es(_something__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
+
+
+},
+"./colors/a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'red': function() { return red; }
+});
+ const red = 'red';
+},
+"./colors/b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'blue': function() { return blue; }
+});
+ const blue = 'blue';
+},
+"./colors/c.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _result__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./result */"./colors/result.js");
+__webpack_require__.es(_result__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
+
+},
+"./colors/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a */"./colors/a.js");
+__webpack_require__.es(_a__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
+/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./b */"./colors/b.js");
+__webpack_require__.es(_b__WEBPACK_IMPORTED_MODULE_1_, __webpack_exports__);
+/* harmony import */var _c__WEBPACK_IMPORTED_MODULE_2_ = __webpack_require__(/* ./c */"./colors/c.js");
+__webpack_require__.es(_c__WEBPACK_IMPORTED_MODULE_2_, __webpack_exports__);
+
+
+
+},
+"./colors/result.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'result': function() { return result; }
+});
+ const result = 'ssss';
+},
+"./export.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./Layout */"./Layout.js");
+__webpack_require__.es(_Layout__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
+
+},
+"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./export */"./export.js");
+
+_export__WEBPACK_IMPORTED_MODULE_0_.Colors;
+_export__WEBPACK_IMPORTED_MODULE_0_.Something;
+},
+"./something/Something.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'Something': function() { return Something; }
+});
+ class Something {
+}
+},
+"./something/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'Colors': function() { return _colors_index__WEBPACK_IMPORTED_MODULE_0_; }
+});
+/* harmony import */var _colors_index__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ../colors/index */"./colors/index.js");
+/* harmony import */var _Something__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./Something */"./something/Something.js");
+__webpack_require__.es(_Something__WEBPACK_IMPORTED_MODULE_1_, __webpack_exports__);
+
+
+
+},
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```
+```js title=runtime.js
+(function() {
+var __webpack_modules__ = {
+
+}
+// The module cache
+ var __webpack_module_cache__ = {};
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+        var cachedModule = __webpack_module_cache__[moduleId];
+        if (cachedModule !== undefined) {
+      return cachedModule.exports;
+      }
+      // Create a new module (and put it into the cache)
+      var module = (__webpack_module_cache__[moduleId] = {
+       exports: {}
+      });
+      // Execute the module function
+      __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+// Return the exports of the module
+ return module.exports;
+
+}
+// expose the modules object (__webpack_modules__)
+ __webpack_require__.m = __webpack_modules__;
+// es
+(function() {
+__webpack_require__.es = function (from, to) {
+	Object.keys(from).forEach(function (k) {
+		if (k !== "default" && !Object.prototype.hasOwnProperty.call(to, k))
+			Object.defineProperty(to, k, {
+				enumerable: true,
+				get: function () {
+					return from[k];
+				}
+			});
+	});
+	return from;
+};
+
+})();
+// webpack/runtime/has_own_property
+(function() {
+__webpack_require__.o = function (obj, prop) {
+	return Object.prototype.hasOwnProperty.call(obj, prop);
+};
+
+})();
+// webpack/runtime/on_chunk_loaded
+(function() {
+var deferred = [];
+__webpack_require__.O = function (result, chunkIds, fn, priority) {
+	if (chunkIds) {
+		priority = priority || 0;
+		for (var i = deferred.length; i > 0 && deferred[i - 1][2] > priority; i--)
+			deferred[i] = deferred[i - 1];
+		deferred[i] = [chunkIds, fn, priority];
+		return;
+	}
+	var notFulfilled = Infinity;
+	for (var i = 0; i < deferred.length; i++) {
+		var chunkIds = deferred[i][0],
+			fn = deferred[i][1],
+			priority = deferred[i][2];
+		var fulfilled = true;
+		for (var j = 0; j < chunkIds.length; j++) {
+			if (
+				(priority & (1 === 0) || notFulfilled >= priority) &&
+				Object.keys(__webpack_require__.O).every(function (key) {
+					return __webpack_require__.O[key](chunkIds[j]);
+				})
+			) {
+				chunkIds.splice(j--, 1);
+			} else {
+				fulfilled = false;
+				if (priority < notFulfilled) notFulfilled = priority;
+			}
+		}
+		if (fulfilled) {
+			deferred.splice(i--, 1);
+			var r = fn();
+			if (r !== undefined) result = r;
+		}
+	}
+	return result;
+};
+
+})();
+// webpack/runtime/define_property_getters
+(function() {
+__webpack_require__.d = function(exports, definition) {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/make_namespace_object
+(function() {
+// define __esModule on exports
+__webpack_require__.r = function(exports) {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+
+})();
+// webpack/runtime/jsonp_chunk_loading
+(function() {
+var installedChunks = {"runtime": 0,};
+__webpack_require__.O.j = function (chunkId) {
+	return installedChunks[chunkId] === 0;
+};
+// install a JSONP callback for chunk loading
+var webpackJsonpCallback = function (parentChunkLoadingFunction, data) {
+	var chunkIds = data[0],
+	moreModules = data[1],
+	runtime = data[2];
+	// add "moreModules" to the modules object,
+	// then flag all "chunkIds" as loaded and fire callback
+	var moduleId,
+		chunkId,
+		i = 0;
+	if (chunkIds.some(function(id) { return installedChunks[id] !== 0 })) {
+		for (moduleId in moreModules) {
+			if (__webpack_require__.o(moreModules, moduleId)) {
+				__webpack_require__.m[moduleId] = moreModules[moduleId];
+			}
+		}
+		if (runtime) var result = runtime(__webpack_require__);
+	}
+	if (parentChunkLoadingFunction) parentChunkLoadingFunction(data);
+	for (; i < chunkIds.length; i++) {
+		chunkId = chunkIds[i];
+		if (
+			__webpack_require__.o(installedChunks, chunkId) &&
+			installedChunks[chunkId]
+		) {
+			installedChunks[chunkId][0]();
+		}
+		installedChunks[chunkId] = 0;
+	}
+	return __webpack_require__.O(result);
+};
+
+var chunkLoadingGlobal = self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || [];
+chunkLoadingGlobal.forEach(webpackJsonpCallback.bind(null, 0));
+chunkLoadingGlobal.push = webpackJsonpCallback.bind(
+	null,
+	chunkLoadingGlobal.push.bind(chunkLoadingGlobal)
+);
+
+})();
+
+})()
+
+```

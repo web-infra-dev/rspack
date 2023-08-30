@@ -24,9 +24,31 @@ pub fn apply_from_fixture(fixture_path: &Path) -> (CompilerOptions, Vec<BoxPlugi
   let test_config = TestConfig::from_config_path(&json_config);
   test_config.apply(fixture_path.to_path_buf())
 }
-
+#[tokio::main]
+pub async fn test_fixture_html(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
+  test_fixture_share(fixture_path, &|s| s.ends_with(".html")).await
+}
+#[tokio::main]
+pub async fn test_fixture_js(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
+  test_fixture_share(fixture_path, &|s| s.ends_with(".js")).await
+}
+#[tokio::main]
+pub async fn test_fixture_css(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
+  test_fixture_share(fixture_path, &|s| s.ends_with(".css")).await
+}
 #[tokio::main]
 pub async fn test_fixture_insta(
+  fixture_path: &Path,
+  stats_filter: &dyn Fn(&str) -> bool,
+) -> Compiler<AsyncNativeFileSystem> {
+  test_fixture_share(fixture_path, stats_filter).await
+}
+#[tokio::main]
+pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
+  test_fixture_share(fixture_path, &|s| s.ends_with(".js")).await
+}
+
+pub async fn test_fixture_share(
   fixture_path: &Path,
   stats_filter: &dyn Fn(&str) -> bool,
 ) -> Compiler<AsyncNativeFileSystem> {
@@ -93,52 +115,6 @@ pub async fn test_fixture_insta(
         .expect("failed to emit diagnostics to string")
     );
   }
-  compiler
-}
-
-#[tokio::main]
-pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
-  enable_tracing_by_env(&std::env::var("TRACE").ok().unwrap_or_default(), "stdout");
-
-  let (options, plugins) = apply_from_fixture(fixture_path);
-  // clean output
-  if options.output.path.exists() {
-    std::fs::remove_dir_all(&options.output.path).expect("should remove output");
-  }
-  let mut compiler = Compiler::new(options, plugins, AsyncNativeFileSystem);
-  compiler
-    .build()
-    .await
-    .unwrap_or_else(|e| panic!("failed to compile in fixture {fixture_path:?}, {e:#?}"));
-  let stats = compiler.compilation.get_stats();
-  let output_name = make_relative_from(&compiler.options.output.path, fixture_path);
-  let rst = RstBuilder::default()
-    .fixture(PathBuf::from(fixture_path))
-    .actual(output_name)
-    .build()
-    .expect("TODO:");
-  let warnings = stats.get_warnings();
-  let errors = stats.get_errors();
-  if !warnings.is_empty() && errors.is_empty() {
-    println!(
-      "Warning to compile in fixture {:?}, warnings: {:?}",
-      fixture_path,
-      stats
-        .emit_diagnostics_string(true)
-        .expect("failed to emit diagnostics to string")
-    )
-  }
-  if !errors.is_empty() {
-    panic!(
-      "Failed to compile in fixture {:?}, errors: {:?}",
-      fixture_path,
-      stats
-        .emit_diagnostics_string(true)
-        .expect("failed to emit diagnostics to string")
-    );
-  }
-  rst.assert();
-
   compiler
 }
 
