@@ -10,7 +10,7 @@ use rspack_core::{
   SideEffectOption,
 };
 use rspack_loader_sass::{SassLoader, SassLoaderOptions};
-use rspack_testing::{fixture, test_fixture, test_fixture_css};
+use rspack_testing::{fixture, test_fixture_css};
 use sass_embedded::Url;
 
 // UPDATE_SASS_LOADER_TEST=1 cargo test --package rspack_loader_sass test_fn_name -- --exact --nocapture
