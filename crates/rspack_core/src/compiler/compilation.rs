@@ -63,6 +63,7 @@ pub struct Compilation {
   pub records: Option<CompilationRecords>,
   pub options: Arc<CompilerOptions>,
   pub entries: Entry,
+  pub global_entry: EntryData,
   pub module_graph: ModuleGraph,
   pub make_failed_dependencies: HashSet<BuildDependency>,
   pub make_failed_module: HashSet<ModuleIdentifier>,
@@ -132,6 +133,7 @@ impl Compilation {
       chunk_by_ukey: Default::default(),
       chunk_group_by_ukey: Default::default(),
       entries: Default::default(),
+      global_entry: Default::default(),
       chunk_graph: Default::default(),
       entrypoints: Default::default(),
       async_entrypoints: Default::default(),
@@ -169,15 +171,18 @@ impl Compilation {
   }
 
   pub fn add_entry(&mut self, entry: DependencyId, options: EntryOptions) {
-    let name = options.name.as_ref().cloned().unwrap_or_default();
-    if let Some(data) = self.entries.get_mut(&name) {
-      data.dependencies.push(entry);
+    if let Some(name) = options.name.clone() {
+      if let Some(data) = self.entries.get_mut(&name) {
+        data.dependencies.push(entry);
+      } else {
+        let data = EntryData {
+          dependencies: vec![entry],
+          options,
+        };
+        self.entries.insert(name, data);
+      }
     } else {
-      let data = EntryData {
-        dependencies: vec![entry],
-        options,
-      };
-      self.entries.insert(name.to_owned(), data);
+      self.global_entry.dependencies.push(entry);
     }
   }
 

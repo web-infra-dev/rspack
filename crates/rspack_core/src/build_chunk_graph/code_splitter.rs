@@ -47,7 +47,11 @@ impl<'me> CodeSplitter<'me> {
 
     for (name, entry_data) in &compilation.entries {
       let options = &entry_data.options;
-      let dependencies = &entry_data.dependencies;
+      let dependencies = [
+        compilation.global_entry.dependencies.clone(),
+        entry_data.dependencies.clone(),
+      ]
+      .concat();
       let module_identifiers = dependencies
         .iter()
         .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
