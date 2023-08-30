@@ -1,8 +1,8 @@
 use rspack_core::{
-  export_from_import, get_exports_type, ConnectionState, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportsType,
-  HarmonyExportInitFragment, ModuleDependency, ModuleGraph, ModuleIdentifier, TemplateContext,
-  TemplateReplaceSource,
+  export_from_import, get_exports_type, process_export_info, ConnectionState, Dependency,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfo,
+  ExportsReferencedType, ExportsType, HarmonyExportInitFragment, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
@@ -16,6 +16,7 @@ pub struct HarmonyExportImportedSpecifierDependency {
   pub id: DependencyId,
   pub request: JsWord,
   pub ids: Vec<(JsWord, Option<JsWord>)>,
+  name: Option<JsWord>,
   resource_identifier: String,
 }
 
@@ -24,6 +25,7 @@ impl HarmonyExportImportedSpecifierDependency {
     let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
       id: DependencyId::new(),
+      name: None,
       request,
       ids,
       resource_identifier,
@@ -123,10 +125,74 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
   ) -> ConnectionState {
     ConnectionState::Bool(false)
   }
+
+  fn get_referenced_exports(
+    &self,
+    module_graph: &ModuleGraph,
+    runtime: &RuntimeSpec,
+  ) -> ExportsReferencedType {
+    let mode = get_mode(
+      self.name.clone(),
+      &self.ids.iter().map(|id| id.0.clone()).collect::<Vec<_>>(),
+      module_graph,
+      &self.id,
+    );
+    match mode.kind {
+      ExportModeType::Missing
+      | ExportModeType::Unused
+      | ExportModeType::EmptyStar
+      | ExportModeType::ReexportUndefined => ExportsReferencedType::No,
+      ExportModeType::ReexportDynamicDefault | ExportModeType::DynamicReexport => {
+        ExportsReferencedType::Object
+      }
+      ExportModeType::ReexportNamedDefault
+      | ExportModeType::ReexportNamespaceObject
+      | ExportModeType::ReexportFakeNamespaceObject => {
+        if let Some(partial_namespace_export_info) = &mode.partial_namespace_export_info {
+          let mut referenced_exports = vec![];
+          process_export_info(
+            module_graph,
+            runtime,
+            &mut referenced_exports,
+            vec![],
+            Some(partial_namespace_export_info),
+            mode.kind == ExportModeType::ReexportFakeNamespaceObject,
+            &mut Default::default(),
+          );
+          referenced_exports.into()
+        } else {
+          ExportsReferencedType::Object
+        }
+      }
+      ExportModeType::NormalReexport => {
+        let mut referenced_exports = vec![];
+        if let Some(items) = mode.items {
+          for item in items {
+            if item.hidden {
+              continue;
+            }
+            process_export_info(
+              module_graph,
+              runtime,
+              &mut referenced_exports,
+              item.ids,
+              Some(item.export_info),
+              false,
+              &mut Default::default(),
+            );
+          }
+        }
+        referenced_exports.into()
+      }
+      ExportModeType::Unset => {
+        unreachable!("should not export mode unset");
+      }
+    }
+  }
 }
 
 #[allow(unused)]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub enum ExportModeType {
   #[default]
   Unset,
@@ -142,54 +208,57 @@ pub enum ExportModeType {
   DynamicReexport,
 }
 
-#[derive(Debug, Default)]
-pub struct NormalReexportItem {
-  pub name: String,
-  pub ids: Vec<String>,
+#[derive(Debug)]
+pub struct NormalReexportItem<'a> {
+  pub name: JsWord,
+  pub ids: Vec<JsWord>,
+  pub hidden: bool,
+  pub checked: bool,
+  pub export_info: &'a ExportInfo,
 }
 
 #[derive(Debug, Default)]
-pub struct ExportMode {
+pub struct ExportMode<'a> {
   pub kind: ExportModeType,
-  pub items: Option<Vec<NormalReexportItem>>,
-  pub name: Option<String>,
+  pub items: Option<Vec<NormalReexportItem<'a>>>,
+  pub name: Option<JsWord>,
   pub fake_type: Option<u8>,
+  pub partial_namespace_export_info: Option<ExportInfo>,
 }
 
+// TODO cache get_mode result
 #[allow(unused)]
-pub fn get_mode(
-  name: Option<String>,
-  ids: Vec<String>,
-  code_generatable_context: &mut TemplateContext,
+pub fn get_mode<'a>(
+  name: Option<JsWord>,
+  ids: &Vec<JsWord>,
+  module_graph: &'a ModuleGraph,
   id: &DependencyId,
-) -> ExportMode {
-  let TemplateContext {
-    compilation,
-    module,
-    ..
-  } = code_generatable_context;
-
-  let exports_type = get_exports_type(&compilation.module_graph, id, &module.identifier());
-
-  if let Some(name) = &name && !ids.is_empty() && let Some(id) = ids.get(0) && *id == "default" {
+) -> ExportMode<'a> {
+  let parent_module = module_graph
+    .parent_module_by_dependency_id(id)
+    .expect("should have parent module");
+  let exports_type = get_exports_type(module_graph, id, &parent_module);
+  let exports_info = module_graph.get_exports_info(&parent_module);
+  if let Some(name) = name.as_ref() && !ids.is_empty() && let Some(id) = ids.get(0) && id == "default" {
     match exports_type {
       ExportsType::Dynamic => {
-        return ExportMode { kind: ExportModeType::ReexportDynamicDefault, name: Some(name.to_string()), ..Default::default() }
+        return ExportMode { kind: ExportModeType::ReexportDynamicDefault, name: Some(name.clone()), ..Default::default() }
       },
       ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
-        return ExportMode { kind: ExportModeType::ReexportNamedDefault, name: Some(name.to_string()), ..Default::default() }
+        return ExportMode { kind: ExportModeType::ReexportNamedDefault, name: Some(name.clone()), ..Default::default() }
       },
       _ => {}
     }
   }
 
-  if let Some(name) = &name {
+  if let Some(name) = name {
+    let export_info = exports_info.get_read_only_export_info(&name);
     if !ids.is_empty() {
       match exports_type {
         ExportsType::DefaultOnly => {
           return ExportMode {
             kind: ExportModeType::ReexportUndefined,
-            name: Some(name.to_string()),
+            name: Some(name),
             ..Default::default()
           }
         }
@@ -197,8 +266,11 @@ pub fn get_mode(
           return ExportMode {
             kind: ExportModeType::NormalReexport,
             items: Some(vec![NormalReexportItem {
-              name: name.to_string(),
-              ids,
+              name,
+              ids: ids.to_vec(),
+              hidden: false,
+              checked: false,
+              export_info,
             }]),
             ..Default::default()
           }
@@ -209,7 +281,7 @@ pub fn get_mode(
         ExportsType::DefaultOnly => {
           return ExportMode {
             kind: ExportModeType::ReexportFakeNamespaceObject,
-            name: Some(name.to_string()),
+            name: Some(name),
             fake_type: Some(0),
             ..Default::default()
           }
@@ -217,7 +289,7 @@ pub fn get_mode(
         ExportsType::DefaultWithNamed => {
           return ExportMode {
             kind: ExportModeType::ReexportFakeNamespaceObject,
-            name: Some(name.to_string()),
+            name: Some(name),
             fake_type: Some(2),
             ..Default::default()
           }
@@ -225,7 +297,7 @@ pub fn get_mode(
         _ => {
           return ExportMode {
             kind: ExportModeType::ReexportNamespaceObject,
-            name: Some(name.to_string()),
+            name: Some(name),
             ..Default::default()
           }
         }

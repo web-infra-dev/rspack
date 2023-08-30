@@ -617,6 +617,7 @@ impl ContextModule {
                     &options.resource,
                     path.to_string_lossy()
                   ),
+                  referenced_exports: None,
                 }));
               }
             })
