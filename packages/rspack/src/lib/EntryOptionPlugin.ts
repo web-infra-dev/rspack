@@ -39,7 +39,7 @@ export default class EntryOptionPlugin {
 				);
 				assert(
 					desc.import !== undefined,
-					"desc.import should not be undefined when EntryOptionPlugin.applyEntryOption"
+					"desc.import should not be `undefined` once `EntryOptionPlugin.applyEntryOption` is called"
 				);
 				for (const entry of desc.import) {
 					new EntryPlugin(context, entry, options).apply(compiler);
