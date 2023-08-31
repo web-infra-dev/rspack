@@ -186,7 +186,12 @@ impl<'a> ProvidedExportsPlugin<'a> {
         };
       let exports_info_id = exports_info.export_info_mut(&name, self.mg);
       let exports_info = self.mg.get_exports_info_mut_by_id(&exports_info_id);
-      let mut export_info = exports_info.exports.get_mut(&name).unwrap().clone();
+      let mut export_info = exports_info
+        .exports
+        .get_mut(&name)
+        .expect("should have export info")
+        .clone();
+
       if let Some(ref mut provided) = export_info.provided && matches!(provided, ExportInfoProvided::False | ExportInfoProvided::Null) {
         *provided = ExportInfoProvided::True;
         self.changed = true;
@@ -222,7 +227,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
           } else {
             Some(&fallback)
           };
-          export_info.set_target(&dep_id, from, export_name, priority)
+          export_info.set_target(&dep_id, Some(from), export_name, priority)
         };
         self.changed |= changed;
       }
@@ -235,7 +240,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
         .exports
         .get_mut(&name)
         .expect("should have export info");
-      std::mem::replace(export_info_old, export_info);
+      _ = std::mem::replace(export_info_old, export_info);
 
       let mut target_exports_info: Option<ExportsInfoId> = None;
       if let Some(target) = target {

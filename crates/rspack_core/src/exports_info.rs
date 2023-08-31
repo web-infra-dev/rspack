@@ -110,7 +110,7 @@ impl ExportsInfoId {
         export_info.set_target(
           &target_key,
           // TODO: remove this unwrap, you can't unwrap here
-          target_module.clone().unwrap(),
+          target_module.clone(),
           Some(&vec![export_info.name.clone()]),
           priority,
         );
@@ -139,12 +139,9 @@ impl ExportsInfoId {
       }
 
       if let Some(target_key) = target_key {
-        exports_info.other_exports_info.set_target(
-          &target_key,
-          target_module.unwrap(),
-          None,
-          priority,
-        );
+        exports_info
+          .other_exports_info
+          .set_target(&target_key, target_module, None, priority);
       }
 
       if !can_mangle && exports_info.other_exports_info.can_mangle_provide != Some(false) {
@@ -354,8 +351,8 @@ pub enum UsedName {
 
 #[derive(Debug, Clone)]
 pub struct ExportInfoTargetValue {
-  connection: ModuleGraphConnection,
-  exports: Vec<JsWord>,
+  connection: Option<ModuleGraphConnection>,
+  exports: Option<Vec<JsWord>>,
   priority: u8,
 }
 
@@ -424,7 +421,7 @@ pub struct ResolvedExportInfoTarget {
 }
 
 struct UnResolvedExportInfoTarget {
-  connection: ModuleGraphConnection,
+  connection: Option<ModuleGraphConnection>,
   exports: Option<Vec<JsWord>>,
 }
 
@@ -561,9 +558,13 @@ impl ExportInfo {
     ) -> Option<ResolvedExportInfoTargetWithCircular> {
       if let Some(input_target) = input_target {
         let mut target = ResolvedExportInfoTarget {
-          module: input_target.connection.module_identifier,
+          module: input_target
+            .connection
+            .as_ref()
+            .expect("should have connection")
+            .module_identifier,
           exports: input_target.exports,
-          connection: input_target.connection,
+          connection: input_target.connection.expect("should have connection"),
         };
         if target.exports.is_none() {
           return Some(ResolvedExportInfoTargetWithCircular::Target(target));
@@ -589,7 +590,11 @@ impl ExportInfo {
               .id;
             let exports_info_id = id.export_info_mut(name, mg);
             let exports_info = mg.get_exports_info_mut_by_id(&exports_info_id);
-            exports_info.exports.get_mut(name).unwrap().clone()
+            exports_info
+              .exports
+              .get_mut(name)
+              .expect("should have export info")
+              .clone()
           };
           if already_visited.contains(&export_info.id) {
             return Some(ResolvedExportInfoTargetWithCircular::Circular);
@@ -597,14 +602,14 @@ impl ExportInfo {
           let new_target = export_info._get_target(mg, resolve_filter.clone(), already_visited);
           let export_info_id = export_info.id;
 
-          std::mem::replace(
+          _ = std::mem::replace(
             {
               let exports_info_id = mg.get_exports_info_mut(&target.module).id;
 
               mg.get_exports_info_mut_by_id(&exports_info_id)
                 .exports
                 .get_mut(name)
-                .unwrap()
+                .expect("should have export info")
             },
             export_info,
           );
@@ -658,7 +663,7 @@ impl ExportInfo {
       .values()
       .map(|item| UnResolvedExportInfoTarget {
         connection: item.connection.clone(),
-        exports: Some(item.exports.clone()),
+        exports: item.exports.clone(),
       })
       .clone();
     let target = resolve_target(values.next(), already_visited, resolve_filter.clone(), mg);
@@ -694,7 +699,7 @@ impl ExportInfo {
   pub fn set_target(
     &mut self,
     key: &DependencyId,
-    connection: ModuleGraphConnection,
+    connection: Option<ModuleGraphConnection>,
     export_name: Option<&Vec<JsWord>>,
     priority: Option<u8>,
   ) -> bool {
@@ -704,7 +709,7 @@ impl ExportInfo {
         *key,
         ExportInfoTargetValue {
           connection,
-          exports: export_name.cloned().unwrap_or_default(),
+          exports: Some(export_name.cloned().unwrap_or_default()),
           priority: normalized_priority,
         },
       );
@@ -713,25 +718,23 @@ impl ExportInfo {
     if let Some(old_target) = self.target.get_mut(key) {
       if old_target.connection != connection
         || old_target.priority != normalized_priority
-        || if let Some(export_name) = export_name {
-          export_name == &old_target.exports
-        } else {
-          !old_target.exports.is_empty()
-        }
+        || old_target.exports.as_ref() != export_name
       {
-        old_target.exports = export_name.cloned().unwrap_or_default();
+        old_target.exports = Some(export_name.cloned().unwrap_or_default());
         old_target.priority = normalized_priority;
         old_target.connection = connection;
         self.max_target.clear();
         self.max_target_is_set = false;
         return true;
       }
+    } else if connection.is_none() {
+      return false;
     } else {
       self.target.insert(
         *key,
         ExportInfoTargetValue {
           connection,
-          exports: export_name.cloned().unwrap_or_default(),
+          exports: Some(export_name.cloned().unwrap_or_default()),
           priority: normalized_priority,
         },
       );
