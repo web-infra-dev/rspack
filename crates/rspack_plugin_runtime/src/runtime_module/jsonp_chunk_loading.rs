@@ -74,7 +74,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       .contains(RuntimeGlobals::ON_CHUNKS_LOADED);
 
     if with_loading {
-      // If chunkId not correspending chunkName will skip load it.
+      // If chunkId not corresponding chunkName will skip load it.
       // Webpack will render `JS_MATCHER` with match chunkId. eg xxx === chunkId
       // Rspack will render `JS_MATCHER` with `__webpack_require__.u(chunkId)`, because rspack already render the chunkId to map.
       source.add(RawSource::from(

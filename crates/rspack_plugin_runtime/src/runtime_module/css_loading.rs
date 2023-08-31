@@ -54,7 +54,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           .chunk_by_ukey
           .get(chunk_ukey)
           .expect("Chunk not found");
-        if chunk_has_css(chunk_ukey, &compilation) {
+        if chunk_has_css(chunk_ukey, compilation) {
           initial_chunk_ids_with_css.insert(chunk.expect_id().to_string());
         } else {
           initial_chunk_ids_without_css.insert(chunk.expect_id().to_string());
