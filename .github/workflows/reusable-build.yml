@@ -90,16 +90,6 @@ jobs:
       - name: Setup Rust Target
         run: rustup target add ${{ inputs.target }}
 
-      # Compile dependencies with optimization to make tests run faster
-      - name: Add optimization to debug profile
-        if: inputs.profile == 'debug'
-        shell: bash
-        run: |
-          echo '[profile.dev.package."*"]' >> Cargo.toml
-          echo 'debug = false' >> Cargo.toml
-          echo 'opt-level = 3' >> Cargo.toml
-          echo 'codegen-units = 1' >> Cargo.toml
-
       # Linux
 
       - name: Build x86_64-unknown-linux-gnu in Docker
@@ -251,7 +241,7 @@ jobs:
 
       - name: Test x86_64-pc-windows-msvc
         timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
-        if: ${{ inputs.target == 'x86_64-pc-windows-msvc'  &&  matrix.node  != '14' }}
+        if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
         run: pnpm run test:ci
 
       ### write the latest metric into branch gh-pages
