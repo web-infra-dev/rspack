@@ -169,7 +169,6 @@ pub fn minify(
             jsx: true,
             decorators: true,
             decorators_before_export: true,
-            import_assertions: true,
             ..Default::default()
           }),
           IsModule::Bool(opts.module),
