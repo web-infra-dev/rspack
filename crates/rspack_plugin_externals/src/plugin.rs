@@ -11,12 +11,12 @@ use rspack_core::{
 static UNSPECIFIED_EXTERNAL_TYPE_REGEXP: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^[a-z0-9-]+ ").expect("Invalid regex"));
 
-pub struct ExternalPlugin {
+pub struct ExternalsPlugin {
   externals: Vec<ExternalItem>,
   r#type: ExternalType,
 }
 
-impl Debug for ExternalPlugin {
+impl Debug for ExternalsPlugin {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("ExternalPlugin")
       .field("externals", &"Function")
@@ -25,7 +25,7 @@ impl Debug for ExternalPlugin {
   }
 }
 
-impl ExternalPlugin {
+impl ExternalsPlugin {
   pub fn new(r#type: ExternalType, externals: Vec<ExternalItem>) -> Self {
     Self { externals, r#type }
   }
@@ -68,7 +68,7 @@ impl ExternalPlugin {
 }
 
 #[async_trait::async_trait]
-impl Plugin for ExternalPlugin {
+impl Plugin for ExternalsPlugin {
   fn name(&self) -> &'static str {
     "external"
   }
