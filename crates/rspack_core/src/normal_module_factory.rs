@@ -1,4 +1,4 @@
-use std::{io::Write, path::Path, sync::Arc};
+use std::{path::Path, sync::Arc};
 
 use once_cell::sync::Lazy;
 use regex::Regex;

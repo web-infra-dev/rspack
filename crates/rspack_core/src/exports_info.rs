@@ -67,19 +67,6 @@ impl Hash for ExportsInfo {
   }
 }
 
-impl Hash for ExportsInfo {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    for (name, info) in &self.exports {
-      name.hash(state);
-      info.hash(state);
-    }
-    self.other_exports_info.hash(state);
-    self._side_effects_only_info.hash(state);
-    self._exports_are_ordered.hash(state);
-    self.redirect_to.hash(state);
-  }
-}
-
 impl ExportsInfo {
   pub fn new() -> Self {
     Self {
