@@ -252,7 +252,9 @@ pub fn get_mode<'a>(
   }
 
   if let Some(name) = name {
-    let export_info = exports_info.get_read_only_export_info(&name);
+    let export_info = exports_info
+      .id
+      .get_read_only_export_info(&name, module_graph);
     if !ids.is_empty() {
       match exports_type {
         ExportsType::DefaultOnly => {
