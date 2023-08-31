@@ -62,9 +62,6 @@ pub struct RawOptions {
   pub resolve: RawResolveOptions,
   pub resolve_loader: RawResolveOptions,
   pub module: RawModuleOptions,
-  pub externals: Option<Vec<RawExternalItem>>,
-  pub externals_type: String,
-  pub externals_presets: RawExternalsPresets,
   #[napi(ts_type = "string")]
   pub devtool: RawDevtool,
   pub optimization: RawOptimizationOptions,
@@ -132,54 +129,6 @@ impl RawOptionsApply for RawOptions {
     plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
     if experiments.lazy_compilation {
       plugins.push(rspack_plugin_runtime::LazyCompilationPlugin {}.boxed());
-    }
-    if let Some(externals) = self.externals {
-      plugins.push(
-        rspack_plugin_externals::ExternalPlugin::new(
-          self.externals_type,
-          externals
-            .into_iter()
-            .map(|e| e.try_into())
-            .collect::<Result<Vec<_>, _>>()?,
-        )
-        .boxed(),
-      );
-    }
-    if self.externals_presets.node {
-      plugins.push(rspack_plugin_externals::node_target_plugin());
-    }
-    if self.externals_presets.electron_main {
-      rspack_plugin_externals::electron_target_plugin(
-        rspack_plugin_externals::ElectronTargetContext::Main,
-        plugins,
-      );
-    }
-    if self.externals_presets.electron_preload {
-      rspack_plugin_externals::electron_target_plugin(
-        rspack_plugin_externals::ElectronTargetContext::Preload,
-        plugins,
-      );
-    }
-    if self.externals_presets.electron_renderer {
-      rspack_plugin_externals::electron_target_plugin(
-        rspack_plugin_externals::ElectronTargetContext::Renderer,
-        plugins,
-      );
-    }
-    if self.externals_presets.electron
-      && !self.externals_presets.electron_main
-      && !self.externals_presets.electron_preload
-      && !self.externals_presets.electron_renderer
-    {
-      rspack_plugin_externals::electron_target_plugin(
-        rspack_plugin_externals::ElectronTargetContext::None,
-        plugins,
-      );
-    }
-    if self.externals_presets.web || (self.externals_presets.node && self.experiments.css) {
-      plugins.push(rspack_plugin_externals::http_url_external_plugin(
-        self.experiments.css,
-      ));
     }
     if experiments.async_web_assembly {
       plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());

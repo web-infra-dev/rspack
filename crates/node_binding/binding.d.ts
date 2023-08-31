@@ -123,7 +123,11 @@ export const enum BuiltinPluginKind {
   Html = 'Html',
   SwcJsMinimizer = 'SwcJsMinimizer',
   SwcCssMinimizer = 'SwcCssMinimizer',
-  Entry = 'Entry'
+  Entry = 'Entry',
+  Externals = 'Externals',
+  NodeTarget = 'NodeTarget',
+  ElectronTarget = 'ElectronTarget',
+  HttpExternals = 'HttpExternals'
 }
 
 export function cleanupGlobalTrace(): void
@@ -630,6 +634,11 @@ export interface RawExternalItemValue {
   arrayPayload?: Array<string>
 }
 
+export interface RawExternalsPluginOptions {
+  type: string
+  externals: Array<RawExternalItem>
+}
+
 export interface RawExternalsPresets {
   node: boolean
   web: boolean
@@ -688,6 +697,10 @@ export interface RawHtmlPluginConfig {
   title?: string
   favicon?: string
   meta?: Record<string, Record<string, string>>
+}
+
+export interface RawHttpExternalsPluginOptions {
+  css: boolean
 }
 
 export interface RawIncrementalRebuild {
@@ -820,9 +833,6 @@ export interface RawOptions {
   resolve: RawResolveOptions
   resolveLoader: RawResolveOptions
   module: RawModuleOptions
-  externals?: Array<RawExternalItem>
-  externalsType: string
-  externalsPresets: RawExternalsPresets
   devtool: string
   optimization: RawOptimizationOptions
   stats: RawStatsOptions

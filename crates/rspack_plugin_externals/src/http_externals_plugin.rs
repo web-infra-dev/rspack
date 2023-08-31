@@ -4,7 +4,7 @@ use rspack_core::{
   BoxPlugin, ExternalItem, ExternalItemFnCtx, ExternalItemFnResult, ExternalItemValue, PluginExt,
 };
 
-use crate::ExternalPlugin;
+use crate::ExternalsPlugin;
 
 static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
@@ -13,11 +13,11 @@ static EXTERNAL_HTTP_STD_REQUEST: Lazy<Regex> =
 static EXTERNAL_CSS_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^\.css(\?|$)").expect("Invalid regex"));
 
-pub fn http_url_external_plugin(css: bool) -> BoxPlugin {
-  ExternalPlugin::new("module".to_owned(), vec![http_url_external_item(css)]).boxed()
+pub fn http_externals_plugin(css: bool) -> BoxPlugin {
+  ExternalsPlugin::new("module".to_owned(), vec![http_external_item(css)]).boxed()
 }
 
-fn http_url_external_item(css: bool) -> ExternalItem {
+fn http_external_item(css: bool) -> ExternalItem {
   ExternalItem::Fn(Box::new(move |ctx: ExternalItemFnCtx| {
     Box::pin(async move {
       if ctx.dependency_type == "url" {

@@ -15,7 +15,7 @@ use std::sync::Mutex;
 use napi::bindgen_prelude::*;
 use once_cell::sync::Lazy;
 use rspack_binding_options::BuiltinPlugin;
-use rspack_core::{BoxPlugin, PluginExt};
+use rspack_core::PluginExt;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
 use rspack_napi_shared::NAPI_ENV;
 
@@ -76,10 +76,11 @@ impl Rspack {
     tracing::info!("raw_options: {:#?}", &options);
 
     let disabled_hooks: DisabledHooks = Default::default();
-    let mut plugins: Vec<BoxPlugin> = builtin_plugins
-      .into_iter()
-      .map(|bp| BoxPlugin::try_from(bp).map_err(|e| Error::from_reason(format!("{e}"))))
-      .collect::<Result<_>>()?;
+    let mut plugins = Vec::new();
+    for bp in builtin_plugins {
+      bp.apply(&mut plugins)
+        .map_err(|e| Error::from_reason(format!("{e}")))?;
+    }
     if let Some(js_hooks) = js_hooks {
       plugins.push(JsHooksAdapter::from_js_hooks(env, js_hooks, disabled_hooks.clone())?.boxed());
     }
