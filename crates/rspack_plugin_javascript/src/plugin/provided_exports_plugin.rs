@@ -102,7 +102,6 @@ impl<'a> ProvidedExportsPlugin<'a> {
     }
     match exports {
       ExportsOfExportsSpec::True => {
-        // TODO: unknown exports https://github.com/webpack/webpack/blob/853bfda35a0080605c09e1bdeb0103bcb9367a10/lib/FlagDependencyExportsPlugin.js#L165-L175
         exports_info_id.set_unknown_exports_provided(
           self.mg,
           global_can_mangle.unwrap_or_default(),
