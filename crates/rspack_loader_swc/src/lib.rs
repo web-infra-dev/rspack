@@ -14,9 +14,7 @@ use swc_core::base::config::{
   SourceMapsConfig, TransformConfig,
 };
 use swc_core::base::{try_with_handler, Compiler};
-use swc_core::common::comments::SingleThreadedComments;
 use swc_core::common::{FileName, FilePathMapping, GLOBALS};
-use swc_core::ecma::transforms::base::pass::noop;
 
 pub const SOURCE_MAP_INLINE: &str = "inline";
 
@@ -150,7 +148,7 @@ pub const SWC_LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 impl Loader<LoaderRunnerContext> for SwcLoader {
   async fn run(&self, loader_context: &mut LoaderContext<'_, LoaderRunnerContext>) -> Result<()> {
     let resource_path = loader_context.resource_path.to_path_buf();
-    let content = std::mem::take(&mut loader_context.content).expect("content should available");
+    let content = loader_context.content.to_owned().expect("content should a");
 
     let c: Compiler = Compiler::new(Arc::from(swc_core::common::SourceMap::new(
       FilePathMapping::empty(),
@@ -188,19 +186,9 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
           let fm = c
             .cm
             .new_source_file(FileName::Real(resource_path), content.try_into_string()?);
-          let comments = SingleThreadedComments::default();
-
           let out = match anyhow::Context::context(
-            c.process_js_with_custom_pass(
-              fm,
-              None,
-              handler,
-              &options,
-              comments,
-              |_a| noop(),
-              |_a| noop(),
-            ),
-            "failed to process js file",
+            c.process_js_file(fm, handler, &options),
+            "Failed to process file with SWC Compiler",
           ) {
             Ok(out) => Some(out),
             Err(e) => {
