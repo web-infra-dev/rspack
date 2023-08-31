@@ -92,7 +92,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
     let global_from = exports_spec.from.as_ref();
     let global_priority = &exports_spec.priority;
     let global_terminal_binding = exports_spec.terminal_binding.unwrap_or(false);
-    let _export_dependencies = &exports_spec.dependencies;
+    let export_dependencies = &exports_spec.dependencies;
     if let Some(hide_export) = exports_spec.hide_export {
       for name in hide_export.iter() {
         let export_info = exports_info.export_info_mut(name);
@@ -116,6 +116,19 @@ impl<'a> ProvidedExportsPlugin<'a> {
           },
           dep_id,
         );
+      }
+    }
+
+    if let Some(export_dependencies) = export_dependencies {
+      for export_dep in export_dependencies {
+        match self.dependencies.entry(*export_dep) {
+          Entry::Occupied(mut occ) => {
+            occ.get_mut().insert(self.current_module_id);
+          }
+          Entry::Vacant(vac) => {
+            vac.insert(HashSet::from_iter([self.current_module_id]));
+          }
+        }
       }
     }
   }
