@@ -1,7 +1,8 @@
+use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
 use rspack_core::{
-  DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfo, ExportsOfExportsSpec,
+  DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec,
   ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -33,15 +34,11 @@ impl<'a> ProvidedExportsPlugin<'a> {
         HashMap::default();
       self.process_dependencies_block(module_id, &mut exports_specs_from_dependencies);
       // I use this trick because of rustc borrow rules, it is safe becuase dependency provide plugin is sync, there are no other methods using it at the same time.
-      let mut exports_info = {
-        let exports_info_mut = self.mg.get_exports_info_mut(&module_id);
-        std::mem::take(exports_info_mut)
-      };
+      let exports_info_id = self.mg.get_exports_info(&module_id).id;
       for (dep_id, exports_spec) in exports_specs_from_dependencies.into_iter() {
-        self.process_exports_spec(dep_id, exports_spec, &mut exports_info);
+        self.process_exports_spec(dep_id, exports_spec, exports_info_id);
       }
       // Swap it back
-      _ = std::mem::replace(self.mg.get_exports_info_mut(&module_id), exports_info);
       if self.changed {
         self.notify_dependencies(&mut q);
       }
@@ -83,29 +80,41 @@ impl<'a> ProvidedExportsPlugin<'a> {
   pub fn process_exports_spec(
     &mut self,
     dep_id: DependencyId,
-    exports_spec: ExportsSpec,
-    exports_info: &mut ExportsInfo,
+    export_desc: ExportsSpec,
+    exports_info_id: ExportsInfoId,
   ) {
-    let exports = &exports_spec.exports;
-    let global_can_mangle = &exports_spec.can_mangle;
-    let global_from = exports_spec.from.as_ref();
-    let global_priority = &exports_spec.priority;
-    let global_terminal_binding = exports_spec.terminal_binding.unwrap_or(false);
-    let _export_dependencies = &exports_spec.dependencies;
-    if let Some(hide_export) = exports_spec.hide_export {
+    let exports = &export_desc.exports;
+    let global_can_mangle = &export_desc.can_mangle;
+    let global_from = export_desc.from.as_ref();
+    let global_priority = &export_desc.priority;
+    let global_terminal_binding = export_desc.terminal_binding.unwrap_or(false);
+    let export_dependencies = &export_desc.dependencies;
+    if let Some(hide_export) = export_desc.hide_export {
       for name in hide_export.iter() {
-        let export_info = exports_info.export_info_mut(name);
+        let from_exports_info_id = exports_info_id.export_info_mut(name, self.mg);
+        let exports_info = self.mg.get_exports_info_mut_by_id(&from_exports_info_id);
+        let export_info = exports_info
+          .exports
+          .get_mut(name)
+          .expect("should have exports info");
         export_info.unuset_target(&dep_id);
       }
     }
     match exports {
       ExportsOfExportsSpec::True => {
-        // TODO: unknown exports https://github.com/webpack/webpack/blob/853bfda35a0080605c09e1bdeb0103bcb9367a10/lib/FlagDependencyExportsPlugin.js#L165-L175
+        exports_info_id.set_unknown_exports_provided(
+          self.mg,
+          global_can_mangle.unwrap_or_default(),
+          export_desc.exclude_exports,
+          global_from.map(|_| dep_id),
+          global_from.cloned(),
+          *global_priority,
+        );
       }
       ExportsOfExportsSpec::Null => {}
       ExportsOfExportsSpec::Array(ele) => {
         self.merge_exports(
-          exports_info,
+          exports_info_id,
           ele,
           DefaultExportInfo {
             can_mangle: *global_can_mangle,
@@ -117,11 +126,24 @@ impl<'a> ProvidedExportsPlugin<'a> {
         );
       }
     }
+
+    if let Some(export_dependencies) = export_dependencies {
+      for export_dep in export_dependencies {
+        match self.dependencies.entry(*export_dep) {
+          Entry::Occupied(mut occ) => {
+            occ.get_mut().insert(self.current_module_id);
+          }
+          Entry::Vacant(vac) => {
+            vac.insert(HashSet::from_iter([self.current_module_id]));
+          }
+        }
+      }
+    }
   }
 
   pub fn merge_exports(
     &mut self,
-    exports_info: &mut ExportsInfo,
+    exports_info: ExportsInfoId,
     exports: &Vec<ExportNameOrSpec>,
     global_export_info: DefaultExportInfo,
     dep_id: DependencyId,
@@ -162,7 +184,14 @@ impl<'a> ProvidedExportsPlugin<'a> {
             spec.hidden.unwrap_or(false),
           ),
         };
-      let export_info = exports_info.export_info_mut(&name);
+      let exports_info_id = exports_info.export_info_mut(&name, self.mg);
+      let exports_info = self.mg.get_exports_info_mut_by_id(&exports_info_id);
+      let mut export_info = exports_info
+        .exports
+        .get_mut(&name)
+        .expect("should have export info")
+        .clone();
+
       if let Some(ref mut provided) = export_info.provided && matches!(provided, ExportInfoProvided::False | ExportInfoProvided::Null) {
         *provided = ExportInfoProvided::True;
         self.changed = true;
@@ -178,17 +207,21 @@ impl<'a> ProvidedExportsPlugin<'a> {
         self.changed = true;
       }
 
-      if let Some(_exports) = exports {
-        // TODO: nested import
-        // let nested_exports_info = export_info.create_nested_exports_info();
-        // self.merge_exports(nested_exports_info, exports, global_export_info);
+      if let Some(exports) = exports {
+        let nested_exports_info = export_info.create_nested_exports_info(self.mg);
+        self.merge_exports(
+          nested_exports_info,
+          exports,
+          global_export_info.clone(),
+          dep_id,
+        );
       }
 
       if let Some(from) = from {
         let changed = if hidden {
           export_info.unuset_target(&dep_id)
         } else {
-          let fallback = vec![name];
+          let fallback = vec![name.clone()];
           let export_name = if let Some(from) = from_export {
             Some(from)
           } else {
@@ -200,11 +233,53 @@ impl<'a> ProvidedExportsPlugin<'a> {
       }
 
       // Recalculate target exportsInfo
+      let target = export_info.get_target(self.mg, None);
+
+      let exports_info = self.mg.get_exports_info_mut_by_id(&exports_info_id);
+      let export_info_old = exports_info
+        .exports
+        .get_mut(&name)
+        .expect("should have export info");
+      _ = std::mem::replace(export_info_old, export_info);
+
+      let mut target_exports_info: Option<ExportsInfoId> = None;
+      if let Some(target) = target {
+        let target_module_exports_info = self.mg.get_exports_info(&target.module);
+        target_exports_info = target_module_exports_info
+          .id
+          .get_nested_exports_info(target.exports, self.mg);
+        match self.dependencies.entry(target.module) {
+          Entry::Occupied(mut occ) => {
+            occ.get_mut().insert(self.current_module_id);
+          }
+          Entry::Vacant(vac) => {
+            vac.insert(HashSet::from_iter([self.current_module_id]));
+          }
+        }
+      }
+      let exports_info = self.mg.get_exports_info_mut_by_id(&exports_info_id);
+      let export_info = exports_info
+        .exports
+        .get_mut(&name)
+        .expect("should have export info");
+      if export_info.exports_info_owned {
+        let changed = export_info
+          .exports_info
+          .expect("should have exports_info when exports_info_owned is true")
+          .set_redirect_name_to(self.mg, target_exports_info);
+        if changed {
+          self.changed = true;
+        }
+      } else if export_info.exports_info != target_exports_info {
+        export_info.exports_info = target_exports_info;
+        self.changed = true;
+      }
     }
   }
 }
 
 /// Used for reducing nums of params
+#[derive(Debug, Clone)]
 pub struct DefaultExportInfo<'a> {
   can_mangle: Option<bool>,
   terminal_binding: bool,
