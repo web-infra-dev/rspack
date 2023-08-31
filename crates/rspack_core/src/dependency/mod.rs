@@ -243,6 +243,7 @@ pub struct ExportsSpec {
   pub from: Option<ModuleGraphConnection>,
   pub dependencies: Option<Vec<ModuleIdentifier>>,
   pub hide_export: Option<Vec<JsWord>>,
+  pub exclude_exports: Option<Vec<JsWord>>,
 }
 
 pub enum ExportsReferencedType {

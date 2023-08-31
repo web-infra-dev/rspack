@@ -80,16 +80,16 @@ impl<'a> ProvidedExportsPlugin<'a> {
   pub fn process_exports_spec(
     &mut self,
     dep_id: DependencyId,
-    exports_spec: ExportsSpec,
+    export_desc: ExportsSpec,
     exports_info_id: ExportsInfoId,
   ) {
-    let exports = &exports_spec.exports;
-    let global_can_mangle = &exports_spec.can_mangle;
-    let global_from = exports_spec.from.as_ref();
-    let global_priority = &exports_spec.priority;
-    let global_terminal_binding = exports_spec.terminal_binding.unwrap_or(false);
-    let export_dependencies = &exports_spec.dependencies;
-    if let Some(hide_export) = exports_spec.hide_export {
+    let exports = &export_desc.exports;
+    let global_can_mangle = &export_desc.can_mangle;
+    let global_from = export_desc.from.as_ref();
+    let global_priority = &export_desc.priority;
+    let global_terminal_binding = export_desc.terminal_binding.unwrap_or(false);
+    let export_dependencies = &export_desc.dependencies;
+    if let Some(hide_export) = export_desc.hide_export {
       for name in hide_export.iter() {
         let from_exports_info_id = exports_info_id.export_info_mut(name, self.mg);
         let exports_info = self.mg.get_exports_info_mut_by_id(&from_exports_info_id);
@@ -103,6 +103,14 @@ impl<'a> ProvidedExportsPlugin<'a> {
     match exports {
       ExportsOfExportsSpec::True => {
         // TODO: unknown exports https://github.com/webpack/webpack/blob/853bfda35a0080605c09e1bdeb0103bcb9367a10/lib/FlagDependencyExportsPlugin.js#L165-L175
+        exports_info_id.set_unknown_exports_provided(
+          self.mg,
+          global_can_mangle.unwrap_or_default(),
+          export_desc.exclude_exports,
+          global_from.map(|_| dep_id),
+          global_from.cloned(),
+          *global_priority,
+        );
       }
       ExportsOfExportsSpec::Null => {}
       ExportsOfExportsSpec::Array(ele) => {
