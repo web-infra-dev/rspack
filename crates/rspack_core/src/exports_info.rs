@@ -155,14 +155,14 @@ pub enum UsedName {
   Vec(Vec<JsWord>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub struct ExportInfoTargetValue {
   connection: Option<ModuleGraphConnection>,
   exports: Vec<JsWord>,
   priority: u8,
 }
 
-#[derive(Debug, Hash)]
+#[derive(Debug)]
 #[allow(unused)]
 pub struct ExportInfo {
   name: JsWord,
@@ -178,7 +178,25 @@ pub struct ExportInfo {
   pub id: ExportInfoId,
 }
 
-#[derive(Debug)]
+impl Hash for ExportInfo {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.name.hash(state);
+    self.module_identifier.hash(state);
+    self.usage_state.hash(state);
+    self.used_name.hash(state);
+    for (name, value) in &self.target {
+      name.hash(state);
+      value.hash(state);
+    }
+    self.provided.hash(state);
+    self.can_mangle_provide.hash(state);
+    self.terminal_binding.hash(state);
+    self.target_is_set.hash(state);
+    self.id.hash(state);
+  }
+}
+
+#[derive(Debug, Hash)]
 pub enum ExportInfoProvided {
   True,
   False,

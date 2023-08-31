@@ -6,6 +6,7 @@ use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rkyv::{from_bytes_unchecked, to_bytes, AlignedVec};
+use rspack_core::RuntimeGlobals;
 use rspack_core::{
   rspack_sources::{
     BoxSource, MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
@@ -14,20 +15,23 @@ use rspack_core::{
   BoxDependency, BuildExtraDataType, BuildMetaExportsType, GenerateContext, Module, ModuleType,
   ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
 };
-use rspack_core::{ModuleDependency, RuntimeGlobals};
-use rspack_error::{
-  internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-};
+use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
-use swc_core::{
-  css::{modules::CssClassName, parser::parser::ParserConfig},
-  ecma::atoms::JsWord,
-};
+use swc_core::{css::parser::parser::ParserConfig, ecma::atoms::JsWord};
 
-use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
-use crate::visitors::analyze_dependencies;
-use crate::{dependency::CssComposeDependency, swc_css_compiler::SwcCssCompiler};
+use crate::{
+  dependency::CssComposeDependency,
+  swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig},
+};
+use crate::{
+  plugin::CssConfig,
+  utils::{css_modules_exports_to_string, ModulesTransformConfig},
+};
+use crate::{
+  utils::{css_modules_exports_elements_to_string, css_modules_exports_key_to_string},
+  visitors::analyze_dependencies,
+};
 
 static REGEX_IS_MODULES: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\.module(s)?\.[^.]+$").expect("Invalid regex"));
@@ -123,20 +127,17 @@ impl ParserAndGenerator for CssParserAndGenerator {
       let mut exports: IndexMap<JsWord, _> = result.renamed.into_iter().collect();
       exports.sort_keys();
 
-      self.exports = match exports {
-        Some(map) => Some(IndexMap::from_iter(
-          map
-            .iter()
-            .map(|(key, elements)| {
-              (
-                css_modules_exports_key_to_string(key, &self.config.modules.locals_convention),
-                css_modules_exports_elements_to_string(elements),
-              )
-            })
-            .collect::<Vec<_>>(),
-        )),
-        None => None,
-      };
+      self.exports = Some(IndexMap::from_iter(
+        exports
+          .iter()
+          .map(|(key, elements)| {
+            (
+              css_modules_exports_key_to_string(key, &self.config.modules.locals_convention),
+              css_modules_exports_elements_to_string(elements),
+            )
+          })
+          .collect::<Vec<_>>(),
+      ));
 
       let (code, map) = swc_compiler.codegen(
         &stylesheet,
@@ -169,12 +170,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     let  dependencies = if let Some(locals) = &self.exports && !locals.is_empty() {
       let mut dep_set = FxHashSet::default();
-      let compose_deps = locals.iter().flat_map(|(_, value)| value).filter_map(|name| if let CssClassName::Import { from, .. } = name {
-        if dep_set.contains(from.as_ref()) {
+      let compose_deps = locals.iter().flat_map(|(_, value)| value).filter_map(|(_, from)| if let Some(from) = from {
+        if dep_set.contains(&from) {
           None
         } else {
-          dep_set.insert(from.to_string());
-          Some(Box::new(CssComposeDependency::new(from.to_string(), None)) as BoxDependency)
+          dep_set.insert(from);
+          Some(Box::new(CssComposeDependency::new(from.to_owned(), None)) as BoxDependency)
         }
       } else {
         None
@@ -281,7 +282,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     Ok(result)
   }
   fn store(&self, extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) -> () {
-    let data = (self.meta.to_owned(), self.exports.to_owned());
+    let data = self.exports.to_owned();
     extra_data.insert(
       BuildExtraDataType::CssParserAndGenerator,
       to_bytes::<_, 256>(&data).expect("Failed to store extra data"),
@@ -290,13 +291,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
   fn resume(&mut self, extra_data: &HashMap<BuildExtraDataType, AlignedVec>) -> () {
     if let Some(data) = extra_data.get(&BuildExtraDataType::CssParserAndGenerator) {
       let data = unsafe {
-        from_bytes_unchecked::<(
-          Option<String>,
-          Option<IndexMap<Vec<String>, Vec<(String, Option<String>)>>>,
-        )>(&data)
-        .expect("Failed to resume extra data")
+        from_bytes_unchecked::<Option<IndexMap<Vec<String>, Vec<(String, Option<String>)>>>>(&data)
+          .expect("Failed to resume extra data")
       };
-      (self.meta, self.exports) = data;
+      self.exports = data;
     }
   }
 }

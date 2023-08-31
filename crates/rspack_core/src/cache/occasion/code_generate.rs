@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use rspack_error::Result;
 use rspack_identifier::Identifier;
 
