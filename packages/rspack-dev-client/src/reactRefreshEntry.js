@@ -1,4 +1,10 @@
 const RefreshRuntime = require("react-refresh/runtime");
 
-RefreshRuntime.injectIntoGlobalHook(globalThis);
-globalThis.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+let _globalThis;
+try {
+	_globalThis = globalThis;
+} catch(e) {
+	_globalThis = window;
+}
+RefreshRuntime.injectIntoGlobalHook(_globalThis);
+_globalThis.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
