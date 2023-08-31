@@ -88,7 +88,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         let condition_map =
           compilation
             .chunk_graph
-            .get_chunk_condition_map(&chunk_ukey, &compilation, chunk_has_css);
+            .get_chunk_condition_map(&chunk_ukey, compilation, chunk_has_css);
         source.add(RawSource::from(
           include_str!("runtime/css_loading_with_loading.js")
             .replace("CSS_MATCHER", &render_condition_map(&condition_map)),

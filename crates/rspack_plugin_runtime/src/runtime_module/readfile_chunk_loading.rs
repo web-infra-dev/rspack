@@ -113,7 +113,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
       let condition_map =
         compilation
           .chunk_graph
-          .get_chunk_condition_map(&chunk.ukey, &compilation, chunk_has_js);
+          .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
       source.add(RawSource::from(
         include_str!("runtime/readfile_chunk_loading_with_loading.js")
           .replace("JS_MATCHER", &render_condition_map(&condition_map))

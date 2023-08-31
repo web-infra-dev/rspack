@@ -272,7 +272,7 @@ impl ChunkGraph {
         .chunk_by_ukey
         .get(c)
         .expect("Chunk should exist");
-      map.insert(chunk.expect_id().to_string(), filter(c, &compilation));
+      map.insert(chunk.expect_id().to_string(), filter(c, compilation));
     }
 
     map

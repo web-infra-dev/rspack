@@ -9,7 +9,7 @@ pub fn render_condition_map(map: &HashMap<String, bool>) -> String {
     .filter(|(_, v)| **v)
     .map(|(k, _)| k)
     .collect::<Vec<_>>();
-  if positive_items.len() == 0 {
+  if positive_items.is_empty() {
     return false.to_string();
   }
   let negative_items = map
@@ -17,7 +17,7 @@ pub fn render_condition_map(map: &HashMap<String, bool>) -> String {
     .filter(|(_, v)| !**v)
     .map(|(k, _)| k)
     .collect::<Vec<_>>();
-  if negative_items.len() == 0 {
+  if negative_items.is_empty() {
     return true.to_string();
   }
 

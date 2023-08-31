@@ -49,7 +49,7 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
         .collect::<HashSet<_>>();
       let map = async_modules
         .par_iter()
-        .map(|identifier| {
+        .filter_map(|identifier| {
           let mut chunk_ids = {
             let chunk_group = compilation
               .chunk_graph
@@ -70,6 +70,9 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
               })
               .collect::<Vec<_>>()
           };
+          if chunk_ids.is_empty() {
+            return None;
+          }
           chunk_ids.sort_unstable();
           let module = compilation
             .module_graph
@@ -79,8 +82,7 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
           let module_id = module.id(&compilation.chunk_graph);
           let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
 
-          // TODO if chunk_ids is empty, here should remove the filed
-          (module_id_expr, chunk_ids)
+          Some((module_id_expr, chunk_ids))
         })
         .collect::<HashMap<String, Vec<String>>>();
 

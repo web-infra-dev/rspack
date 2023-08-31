@@ -110,7 +110,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       let condition_map =
         compilation
           .chunk_graph
-          .get_chunk_condition_map(&chunk.ukey, &compilation, chunk_has_js);
+          .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
       // If chunkId not corresponding chunkName will skip load it.
       source.add(RawSource::from(
         include_str!("runtime/import_scripts_chunk_loading.js")

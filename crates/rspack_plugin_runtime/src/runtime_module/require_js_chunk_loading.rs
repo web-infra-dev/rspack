@@ -114,7 +114,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
       let condition_map =
         compilation
           .chunk_graph
-          .get_chunk_condition_map(&chunk.ukey, &compilation, chunk_has_js);
+          .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
       source.add(RawSource::from(
         include_str!("runtime/require_chunk_loading_with_loading.js")
           .replace("JS_MATCHER", &render_condition_map(&condition_map))
