@@ -4,7 +4,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 ```js title=bar_js.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["bar_js"], {
 "./bar.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-'use strict';
+"use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'default': function() { return test; }
@@ -18,7 +18,7 @@ function test() {}
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-'use strict';
+"use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'a': function() { return a; }
@@ -36,7 +36,7 @@ exports.test = 30;
 } // export default function () {}
 },
 "./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-'use strict';
+"use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo */"./foo.js");
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__default = /*#__PURE__*/__webpack_require__.n(_foo__WEBPACK_IMPORTED_MODULE_0_);

@@ -4,7 +4,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 ```js title=dynamic-1_js.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["dynamic-1_js"], {
 "./dynamic-1.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-'use strict';
+"use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./shared */"./shared.js");
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0_);
@@ -22,7 +22,7 @@ console.log('shared');
 ```js title=dynamic-2_js.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["dynamic-2_js"], {
 "./dynamic-2.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-'use strict';
+"use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./shared */"./shared.js");
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0_);
