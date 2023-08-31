@@ -1,7 +1,7 @@
 ---
 source: crates/rspack_testing/src/run_fixture.rs
 ---
-```html title=default.7c1f36e709c00a50.html
+```html title=default.a23ce667a9bd8055.html
 <!DOCTYPE html>
 <html>
 <head>
@@ -13,7 +13,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 </body></html>
 ```
 
-```html title=index.7c1f36e709c00a50.html
+```html title=index.a23ce667a9bd8055.html
 <!DOCTYPE html>
 <html>
 <head>

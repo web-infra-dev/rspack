@@ -13,7 +13,7 @@ exports["default"] = void 0;
 exports["default"] = _default;
 },
 "./antd/index.ts": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
+'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'locales': function() { return locales; }
@@ -26,7 +26,7 @@ const locales = {
 
 },
 "./index.ts": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
+'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'test': function() { return test; }
@@ -37,7 +37,7 @@ _antd_index__WEBPACK_IMPORTED_MODULE_0_.locales.zh_CN;
  function test() {}
 },
 "./locale_zh.ts": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
+'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }

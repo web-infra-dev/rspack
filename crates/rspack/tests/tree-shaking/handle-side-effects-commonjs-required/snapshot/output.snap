@@ -37,7 +37,7 @@ var result = test();
 module.exports = result;
 },
 "../../../../../node_modules/@swc/helpers/esm/_class_call_check.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
+'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   '_class_call_check': function() { return _class_call_check; },
@@ -49,7 +49,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 },
 "../../../../../node_modules/@swc/helpers/esm/_create_class.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
+'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   '_create_class': function() { return _create_class; },

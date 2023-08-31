@@ -4,7 +4,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./src/App.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
+'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
@@ -19,7 +19,7 @@ const Index = ()=>{
 var __WEBPACK_DEFAULT_EXPORT__ = Index;
 },
 "./src/containers/containers.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
+'use strict';
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _platform_container__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./platform-container */"./src/containers/platform-container/index.js");
 __webpack_require__.es(_platform_container__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
@@ -27,7 +27,7 @@ __webpack_require__.es(_platform_container__WEBPACK_IMPORTED_MODULE_0_, __webpac
 
 },
 "./src/containers/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
+'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'containers': function() { return _containers__WEBPACK_IMPORTED_MODULE_0_; }
@@ -37,7 +37,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 },
 "./src/containers/platform-container/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
+'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'usePlatform': function() { return usePlatform; },
@@ -47,7 +47,7 @@ __webpack_require__.d(__webpack_exports__, {
  const PlatformProvider = 1000;
 },
 "./src/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
+'use strict';
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _App__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./App */"./src/App.js");
 
