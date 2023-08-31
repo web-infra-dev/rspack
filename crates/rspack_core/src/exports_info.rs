@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 use std::sync::atomic::AtomicU32;
@@ -28,7 +27,7 @@ impl ExportsInfoId {
 
   /// # Panic
   /// it will panic if you provide a export info that does not exists in the module graph  
-  pub fn set_has_provide_info<'a>(&self, mg: &'a mut ModuleGraph) {
+  pub fn set_has_provide_info(&self, mg: &mut ModuleGraph) {
     let exports_info = mg.get_exports_info_by_id(self);
     let mut cur = exports_info;
     // get redirect chain, because you can't pass a mut ref into a recursive call
@@ -42,7 +41,7 @@ impl ExportsInfoId {
     for (i, id) in chain.into_iter().enumerate() {
       let is_last = i == len - 1;
 
-      let exports_info = mg.get_exports_info_mut_by_id(self);
+      let exports_info = mg.get_exports_info_mut_by_id(&id);
 
       for e in exports_info.exports.values_mut() {
         if e.provided.is_none() {
@@ -63,22 +62,18 @@ impl ExportsInfoId {
     }
   }
 
-  pub fn set_redirect_name_to<'a>(
-    &self,
-    mg: &'a mut ModuleGraph,
-    id: Option<ExportsInfoId>,
-  ) -> bool {
+  pub fn set_redirect_name_to(&self, mg: &mut ModuleGraph, id: Option<ExportsInfoId>) -> bool {
     let exports_info = mg.get_exports_info_mut_by_id(self);
     if exports_info.redirect_to == id {
       return false;
     }
     exports_info.redirect_to = id;
-    return true;
+    true
   }
 
-  pub fn set_unknown_exports_provided<'a>(
+  pub fn set_unknown_exports_provided(
     &self,
-    mg: &'a mut ModuleGraph,
+    mg: &mut ModuleGraph,
     can_mangle: bool,
     exclude_exports: Option<Vec<JsWord>>,
     target_key: Option<DependencyId>,
@@ -89,7 +84,7 @@ impl ExportsInfoId {
 
     if let Some(ref exclude_exports) = exclude_exports {
       for name in exclude_exports {
-        self.export_info_mut(&name, mg);
+        self.export_info_mut(name, mg);
       }
     }
 
@@ -146,7 +141,7 @@ impl ExportsInfoId {
       if let Some(target_key) = target_key {
         exports_info.other_exports_info.set_target(
           &target_key,
-          target_module.clone().unwrap(),
+          target_module.unwrap(),
           None,
           priority,
         );
@@ -157,7 +152,7 @@ impl ExportsInfoId {
         changed = true;
       }
     }
-    return changed;
+    changed
   }
 
   pub fn get_read_only_export_info<'a>(
@@ -177,7 +172,7 @@ impl ExportsInfoId {
 
     let len = chain.len();
     for (i, id) in chain.into_iter().enumerate() {
-      let exports_info = mg.get_exports_info_by_id(self);
+      let exports_info = mg.get_exports_info_by_id(&id);
       let is_last = i == len - 1;
 
       if let Some(info) = exports_info.exports.get(name) {
@@ -190,7 +185,7 @@ impl ExportsInfoId {
     unreachable!()
   }
 
-  pub fn export_info_mut<'a>(&self, name: &JsWord, mg: &'a mut ModuleGraph) -> ExportsInfoId {
+  pub fn export_info_mut(&self, name: &JsWord, mg: &mut ModuleGraph) -> ExportsInfoId {
     let exports_info = mg.get_exports_info_by_id(self);
     let mut cur = exports_info;
     // get redirect chain, because you can't pass a mut ref into a recursive call
@@ -205,9 +200,9 @@ impl ExportsInfoId {
 
     for (i, id) in chain.into_iter().enumerate() {
       let is_last = i == len - 1;
-      let exports_info = mg.get_exports_info_mut_by_id(self);
+      let exports_info = mg.get_exports_info_mut_by_id(&id);
       match exports_info.exports.entry(name.clone()) {
-        Entry::Occupied(o) => return exports_info.id,
+        Entry::Occupied(_) => return exports_info.id,
         Entry::Vacant(vac) => {
           if is_last {
             let new_info = ExportInfo::new(
@@ -225,10 +220,10 @@ impl ExportsInfoId {
     unreachable!()
   }
 
-  pub fn get_nested_exports_info<'a>(
+  pub fn get_nested_exports_info(
     &self,
     name: Option<Vec<JsWord>>,
-    mg: &'a ModuleGraph,
+    mg: &ModuleGraph,
   ) -> Option<ExportsInfoId> {
     if let Some(name) = name  && !name.is_empty() {
       let info = self.get_read_only_export_info(&name[0], mg);
@@ -236,7 +231,7 @@ impl ExportsInfoId {
           return exports_info.get_nested_exports_info(Some(name[1..].to_vec()), mg);
         }
     }
-    return Some(*self);
+    Some(*self)
   }
 }
 
@@ -324,7 +319,7 @@ impl ExportsInfo {
   }
   pub fn set_redirect_name_to(&mut self) {}
 
-  pub fn set_has_provide_info<'a>(&mut self, mg: &'a mut ModuleGraph) {
+  pub fn set_has_provide_info(&mut self, mg: &mut ModuleGraph) {
     for e in self.exports.values_mut() {
       if e.provided.is_none() {
         e.provided = Some(ExportInfoProvided::False);
@@ -534,12 +529,12 @@ impl ExportInfo {
         map.insert(*k, v.clone());
       }
     }
-    return &self.max_target;
+    &self.max_target
   }
 
-  pub fn get_target<'a>(
+  pub fn get_target(
     &mut self,
-    mg: &'a mut ModuleGraph,
+    mg: &mut ModuleGraph,
     resolve_filter: Option<ResolveFilterFnTy>,
   ) -> Option<ResolvedExportInfoTarget> {
     let filter = resolve_filter.unwrap_or(Box::new(|_: &_| true));
@@ -552,17 +547,17 @@ impl ExportInfo {
     }
   }
 
-  pub fn _get_target<'a>(
+  pub fn _get_target(
     &mut self,
-    mg: &'a mut ModuleGraph,
+    mg: &mut ModuleGraph,
     resolve_filter: ResolveFilterFnTy,
     already_visited: &mut HashSet<ExportInfoId>,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
-    fn resolve_target<'a>(
+    fn resolve_target(
       input_target: Option<UnResolvedExportInfoTarget>,
       already_visited: &mut HashSet<ExportInfoId>,
       resolve_filter: ResolveFilterFnTy,
-      mg: &'a mut ModuleGraph,
+      mg: &mut ModuleGraph,
     ) -> Option<ResolvedExportInfoTargetWithCircular> {
       if let Some(input_target) = input_target {
         let mut target = ResolvedExportInfoTarget {
@@ -578,15 +573,12 @@ impl ExportInfo {
         }
         let mut already_visited_owned = false;
         loop {
-          let name = if let Some(export) = target
-            .exports
-            .as_ref()
-            .and_then(|exports| exports.get(0).clone())
-          {
-            export
-          } else {
-            return Some(ResolvedExportInfoTargetWithCircular::Target(target));
-          };
+          let name =
+            if let Some(export) = target.exports.as_ref().and_then(|exports| exports.get(0)) {
+              export
+            } else {
+              return Some(ResolvedExportInfoTargetWithCircular::Target(target));
+            };
 
           // use export_info_mut
           let mut export_info = {
@@ -654,7 +646,7 @@ impl ExportInfo {
         None
       }
     }
-    if self.target.len() == 0 {
+    if self.target.is_empty() {
       return None;
     }
     if already_visited.contains(&self.id) {
@@ -672,11 +664,11 @@ impl ExportInfo {
     let target = resolve_target(values.next(), already_visited, resolve_filter.clone(), mg);
     match target {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => {
-        return Some(ResolvedExportInfoTargetWithCircular::Circular)
+        Some(ResolvedExportInfoTargetWithCircular::Circular)
       }
-      None => return None,
+      None => None,
       Some(ResolvedExportInfoTargetWithCircular::Target(target)) => {
-        while let Some(val) = values.next() {
+        for val in values {
           let t = resolve_target(Some(val), already_visited, resolve_filter.clone(), mg);
           match t {
             Some(ResolvedExportInfoTargetWithCircular::Circular) => {
@@ -693,7 +685,7 @@ impl ExportInfo {
             None => return None,
           }
         }
-        return Some(ResolvedExportInfoTargetWithCircular::Target(target));
+        Some(ResolvedExportInfoTargetWithCircular::Target(target))
       }
     }
   }
@@ -751,13 +743,13 @@ impl ExportInfo {
     false
   }
 
-  pub fn create_nested_exports_info<'a>(&mut self, mg: &'a mut ModuleGraph) -> ExportsInfoId {
-    if (self.exports_info_owned) {
+  pub fn create_nested_exports_info(&mut self, mg: &mut ModuleGraph) -> ExportsInfoId {
+    if self.exports_info_owned {
       return self
         .exports_info
         .expect("should have exports_info when exports_info is true");
     }
-    let mut new_exports_info = ExportsInfo::new();
+    let new_exports_info = ExportsInfo::new();
     let new_exports_info_id = new_exports_info.id;
 
     let old_exports_info = self.exports_info;
@@ -769,7 +761,7 @@ impl ExportInfo {
     }
     mg.exports_info_map
       .insert(new_exports_info_id, new_exports_info);
-    return new_exports_info_id;
+    new_exports_info_id
   }
 }
 

@@ -2,8 +2,8 @@ use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
 use rspack_core::{
-  DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfo, ExportsInfoId,
-  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec,
+  ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
@@ -34,7 +34,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
         HashMap::default();
       self.process_dependencies_block(module_id, &mut exports_specs_from_dependencies);
       // I use this trick because of rustc borrow rules, it is safe becuase dependency provide plugin is sync, there are no other methods using it at the same time.
-      let mut exports_info_id = { self.mg.get_exports_info(&module_id).id };
+      let exports_info_id = self.mg.get_exports_info(&module_id).id;
       for (dep_id, exports_spec) in exports_specs_from_dependencies.into_iter() {
         self.process_exports_spec(dep_id, exports_spec, exports_info_id);
       }
@@ -231,7 +231,10 @@ impl<'a> ProvidedExportsPlugin<'a> {
       let target = export_info.get_target(self.mg, None);
 
       let exports_info = self.mg.get_exports_info_mut_by_id(&exports_info_id);
-      let mut export_info_old = exports_info.exports.get_mut(&name).unwrap();
+      let export_info_old = exports_info
+        .exports
+        .get_mut(&name)
+        .expect("should have export info");
       std::mem::replace(export_info_old, export_info);
 
       let mut target_exports_info: Option<ExportsInfoId> = None;
@@ -250,7 +253,10 @@ impl<'a> ProvidedExportsPlugin<'a> {
         }
       }
       let exports_info = self.mg.get_exports_info_mut_by_id(&exports_info_id);
-      let mut export_info = exports_info.exports.get_mut(&name).unwrap();
+      let export_info = exports_info
+        .exports
+        .get_mut(&name)
+        .expect("should have export info");
       if export_info.exports_info_owned {
         let changed = export_info
           .exports_info
@@ -259,7 +265,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
         if changed {
           self.changed = true;
         }
-      } else if (export_info.exports_info != target_exports_info) {
+      } else if export_info.exports_info != target_exports_info {
         export_info.exports_info = target_exports_info;
         self.changed = true;
       }
