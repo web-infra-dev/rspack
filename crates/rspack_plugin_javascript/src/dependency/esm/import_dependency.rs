@@ -1,7 +1,8 @@
 use rspack_core::{
-  module_namespace_promise, ChunkGroupOptions, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ExportsReferencedType, ModuleDependency,
-  ModuleGraph, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource, ChunkGroupOptionsKindRef,
+  module_namespace_promise, ChunkGroupOptions, ChunkGroupOptionsKindRef, Dependency,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ExportsReferencedType, ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::JsWord;
 
