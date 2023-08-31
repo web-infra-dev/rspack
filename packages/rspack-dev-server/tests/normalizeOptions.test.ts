@@ -133,10 +133,23 @@ async function matchAdditionEntries(
 
 	const server = new RspackDevServer(serverConfig, compiler);
 	await server.start();
-	const entires = Object.entries(compiler.options.entry);
+	const entries = compiler.builtinPlugins
+		.map(p => p.raw())
+		.filter(p => p.kind === "Entry" /* BuiltinPluginKind.Entry */)
+		.map(p => p.options)
+		.reduce<Object>((acc, cur: any) => {
+			const name = cur.options.name;
+			const request = cur.entry;
+			if (acc[name]) {
+				acc[name].import.push(request);
+			} else {
+				acc[name] = { import: [request] };
+			}
+			return acc;
+		}, {});
 	// some hack for snapshot
 	const value = Object.fromEntries(
-		entires.map(([key, item]) => {
+		Object.entries(entries).map(([key, item]) => {
 			const replaced = item.import?.map(entry => {
 				const array = entry
 					.replace(/\\/g, "/")

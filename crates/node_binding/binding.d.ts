@@ -115,15 +115,15 @@ export interface BuiltinPlugin {
 }
 
 export const enum BuiltinPluginKind {
-  Define = 0,
-  Provide = 1,
-  Banner = 2,
-  Progress = 3,
-  Copy = 4,
-  Html = 5,
-  SwcJsMinimizer = 6,
-  SwcCssMinimizer = 7,
-  Entry = 8
+  Define = 'Define',
+  Provide = 'Provide',
+  Banner = 'Banner',
+  Progress = 'Progress',
+  Copy = 'Copy',
+  Html = 'Html',
+  SwcJsMinimizer = 'SwcJsMinimizer',
+  SwcCssMinimizer = 'SwcCssMinimizer',
+  Entry = 'Entry'
 }
 
 export function cleanupGlobalTrace(): void

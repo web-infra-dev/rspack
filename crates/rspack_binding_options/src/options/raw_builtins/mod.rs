@@ -29,7 +29,7 @@ pub use self::{
 };
 use crate::RawEntryPluginOptions;
 
-#[napi]
+#[napi(string_enum)]
 #[derive(Debug)]
 pub enum BuiltinPluginKind {
   Define,
