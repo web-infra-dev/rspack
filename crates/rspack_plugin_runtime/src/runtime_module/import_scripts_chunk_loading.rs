@@ -109,8 +109,10 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       };
       source.add(RawSource::from(
         include_str!("runtime/import_scripts_chunk_loading.js")
-          // TODO
-          .replace("JS_MATCHER", "chunkId")
+          .replace(
+            "JS_MATCHER",
+            &format!("{}(chunkId)", RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
+          )
           .replace("$URL$", &url)
           .replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr),
       ));

@@ -153,7 +153,7 @@ impl Plugin for RuntimePlugin {
             "css",
             SourceType::Css,
             RuntimeGlobals::GET_CHUNK_CSS_FILENAME,
-            true, // runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS),
+            runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS),
           )
           .boxed(),
         ),

@@ -113,8 +113,10 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     if with_loading {
       source.add(RawSource::from(
         include_str!("runtime/require_chunk_loading_with_loading.js")
-          // TODO
-          .replace("JS_MATCHER", "chunkId")
+          .replace(
+            "JS_MATCHER",
+            &format!("{}(chunkId)", RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
+          )
           .replace("$OUTPUT_DIR$", &root_output_dir),
       ));
     }

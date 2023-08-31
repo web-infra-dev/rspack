@@ -352,7 +352,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "main.xxxx.js",
-      "size": 1105,
+      "size": 1110,
       "type": "asset",
     },
   ],
@@ -461,10 +461,10 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "assets": [
         {
           "name": "main.xxxx.js",
-          "size": 1105,
+          "size": 1110,
         },
       ],
-      "assetsSize": 1105,
+      "assetsSize": 1110,
       "chunks": [
         "main",
       ],
@@ -474,7 +474,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "dab84cbef48dbc9f0e6b",
+  "hash": "a00b6c596e1429414486",
   "logging": {},
   "modules": [
     {
@@ -536,10 +536,10 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "assets": [
         {
           "name": "main.xxxx.js",
-          "size": 1105,
+          "size": 1110,
         },
       ],
-      "assetsSize": 1105,
+      "assetsSize": 1110,
       "chunks": [
         "main",
       ],
@@ -568,7 +568,7 @@ chunk {main} main.xxxx.js (main) >{dynamic_js}< [entry]
   entry ./index
 ./dynamic.js [426] {dynamic_js}
   dynamic import ./dynamic [10]
-rspack compiled successfully (dab84cbef48dbc9f0e6b)"
+rspack compiled successfully (a00b6c596e1429414486)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -1039,10 +1039,10 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 1080,
+          "size": 1085,
         },
       ],
-      "assetsSize": 1080,
+      "assetsSize": 1085,
       "chunks": [
         "main",
       ],
@@ -1067,10 +1067,10 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 1080,
+          "size": 1085,
         },
       ],
-      "assetsSize": 1080,
+      "assetsSize": 1085,
       "chunks": [
         "main",
       ],
@@ -1081,7 +1081,7 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for named-chunk-group 2`] = `
-"Entrypoint main 1.05 KiB = bundle.js
+"Entrypoint main 1.06 KiB = bundle.js
 Chunk Group cimanyd 135 bytes = cimanyd.bundle.js"
 `;
 

@@ -5,6 +5,7 @@ it("load dynamic css chunk", function (done) {
 		if (__webpack_require__.f.css) {
 			expect(document.getElementsByTagName("link").length).toBe(1);
 		}
+		debugger;
 		import("./common").then(module => {
 			expect(module.value).toBe("common");
 			// test is only for css loading

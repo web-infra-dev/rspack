@@ -1,11 +1,11 @@
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  ChunkGraph, ChunkUkey, Compilation, ModuleGraph, RuntimeGlobals, RuntimeModule, SourceType,
-  RUNTIME_MODULE_STAGE_ATTACH,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH,
 };
 use rspack_identifier::Identifier;
 use rustc_hash::FxHashSet as HashSet;
 
+use super::utils::chunk_has_css;
 use crate::impl_runtime_module;
 use crate::runtime_module::stringify_chunks;
 #[derive(Debug, Default, Eq)]
@@ -22,16 +22,6 @@ impl CssLoadingRuntimeModule {
       chunk: None,
       runtime_requirements,
     }
-  }
-
-  pub fn chunk_has_css(
-    chunk: &ChunkUkey,
-    chunk_graph: &ChunkGraph,
-    module_graph: &ModuleGraph,
-  ) -> bool {
-    !chunk_graph
-      .get_chunk_modules_by_source_type(chunk, SourceType::Css, module_graph)
-      .is_empty()
   }
 }
 
@@ -64,11 +54,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           .chunk_by_ukey
           .get(chunk_ukey)
           .expect("Chunk not found");
-        if Self::chunk_has_css(
-          chunk_ukey,
-          &compilation.chunk_graph,
-          &compilation.module_graph,
-        ) {
+        if chunk_has_css(chunk_ukey, &compilation) {
           initial_chunk_ids_with_css.insert(chunk.expect_id().to_string());
         } else {
           initial_chunk_ids_without_css.insert(chunk.expect_id().to_string());
@@ -83,6 +69,9 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       // object to store loaded and loading chunks
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
       // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
+
+      // One entry initial chunk maybe is other entry dynamic chunk, so here
+      // only render chunk without css. See packages/rspack/tests/runtimeCases/runtime/split-css-chunk test.
       source.add(RawSource::from(format!(
         "var installedChunks = {};\n",
         &stringify_chunks(&initial_chunk_ids_without_css, 0)
@@ -97,7 +86,10 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       if with_loading {
         source.add(RawSource::from(
-          include_str!("runtime/css_loading_with_loading.js").replace("CSS_MATCHER", "chunkId"),
+          include_str!("runtime/css_loading_with_loading.js").replace(
+            "CSS_MATCHER",
+            &format!("{}(chunkId)", RuntimeGlobals::GET_CHUNK_CSS_FILENAME),
+          ),
         ));
       }
 

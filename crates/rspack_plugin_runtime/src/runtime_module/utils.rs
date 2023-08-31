@@ -84,6 +84,13 @@ pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
     .is_empty()
 }
 
+pub fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
+  !compilation
+    .chunk_graph
+    .get_chunk_modules_by_source_type(chunk, SourceType::Css, &compilation.module_graph)
+    .is_empty()
+}
+
 pub fn get_undo_path(filename: &str, p: String, enforce_relative: bool) -> String {
   let mut depth: i32 = -1;
   let mut append = String::new();
