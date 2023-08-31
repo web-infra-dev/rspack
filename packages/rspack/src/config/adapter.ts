@@ -1,7 +1,5 @@
 import type {
 	RawCacheGroupOptions,
-	RawExternalItem,
-	RawExternalItemValue,
 	RawModuleRule,
 	RawOptions,
 	RawRuleSetCondition,
@@ -29,10 +27,6 @@ import {
 } from "./adapterRuleUse";
 import {
 	CrossOriginLoading,
-	EntryNormalized,
-	ExternalItem,
-	ExternalItemValue,
-	Externals,
 	ExternalsPresets,
 	LibraryOptions,
 	ModuleOptionsNormalized,
@@ -86,12 +80,7 @@ export const getRawOptions = (
 			devtool,
 			context: options.context
 		}),
-		externals: options.externals
-			? getRawExternals(options.externals)
-			: undefined,
-		externalsType:
-			options.externalsType === undefined ? "" : options.externalsType,
-		externalsPresets: getRawExternalsPresets(options.externalsPresets),
+		// externalsPresets: getRawExternalsPresets(options.externalsPresets),
 		devtool,
 		optimization: getRawOptimization(options.optimization),
 		stats: getRawStats(options.stats),
@@ -220,18 +209,18 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 	};
 }
 
-function getRawExternalsPresets(
-	presets: ExternalsPresets
-): RawOptions["externalsPresets"] {
-	return {
-		web: presets.web ?? false,
-		node: presets.node ?? false,
-		electron: presets.electron ?? false,
-		electronMain: presets.electronMain ?? false,
-		electronPreload: presets.electronPreload ?? false,
-		electronRenderer: presets.electronRenderer ?? false
-	};
-}
+// function getRawExternalsPresets(
+// 	presets: ExternalsPresets
+// ): RawOptions["externalsPresets"] {
+// 	return {
+// 		web: presets.web ?? false,
+// 		node: presets.node ?? false,
+// 		electron: presets.electron ?? false,
+// 		electronMain: presets.electronMain ?? false,
+// 		electronPreload: presets.electronPreload ?? false,
+// 		electronRenderer: presets.electronRenderer ?? false
+// 	};
+// }
 
 function getRawLibrary(
 	library: LibraryOptions
@@ -572,70 +561,6 @@ function getRawAssetGeneratorDaraUrl(
 	throw new Error(
 		`unreachable: AssetGeneratorDataUrl type should be one of "options", but got ${dataUrl}`
 	);
-}
-
-function getRawExternals(externals: Externals): RawOptions["externals"] {
-	function getRawExternalItem(item: ExternalItem): RawExternalItem {
-		if (typeof item === "string") {
-			return { type: "string", stringPayload: item };
-		} else if (item instanceof RegExp) {
-			return { type: "regexp", regexpPayload: item.source };
-		} else if (typeof item === "function") {
-			return {
-				type: "function",
-				fnPayload: async ctx => {
-					return await new Promise((resolve, reject) => {
-						const promise = item(ctx, (err, result, type) => {
-							if (err) reject(err);
-							resolve({
-								result: getRawExternalItemValueFormFnResult(result),
-								external_type: type
-							});
-						});
-						if (promise && promise.then) {
-							promise.then(
-								result =>
-									resolve({
-										result: getRawExternalItemValueFormFnResult(result),
-										external_type: undefined
-									}),
-								e => reject(e)
-							);
-						}
-					});
-				}
-			};
-		}
-		return {
-			type: "object",
-			objectPayload: Object.fromEntries(
-				Object.entries(item).map(([k, v]) => [k, getRawExternalItemValue(v)])
-			)
-		};
-	}
-	function getRawExternalItemValueFormFnResult(result?: ExternalItemValue) {
-		return result === undefined ? result : getRawExternalItemValue(result);
-	}
-	function getRawExternalItemValue(
-		value: ExternalItemValue
-	): RawExternalItemValue {
-		if (typeof value === "string") {
-			return { type: "string", stringPayload: value };
-		} else if (typeof value === "boolean") {
-			return { type: "bool", boolPayload: value };
-		} else if (Array.isArray(value)) {
-			return {
-				type: "array",
-				arrayPayload: value
-			};
-		}
-		throw new Error("unreachable");
-	}
-
-	if (Array.isArray(externals)) {
-		return externals.map(i => getRawExternalItem(i));
-	}
-	return [getRawExternalItem(externals)];
 }
 
 function getRawOptimization(

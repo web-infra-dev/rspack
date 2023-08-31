@@ -19,8 +19,11 @@ import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { cleverMerge } from "./util/cleverMerge";
 import assert from "assert";
+import { ExternalsPlugin, HttpExternalsPlugin } from "./builtin-plugin";
 import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
 import EntryOptionPlugin from "./lib/EntryOptionPlugin";
+import ElectronTargetPlugin from "./electron/ElectronTargetPlugin";
+import NodeTargetPlugin from "./node/NodeTargetPlugin";
 
 export class RspackOptionsApply {
 	constructor() {}
@@ -29,13 +32,43 @@ export class RspackOptionsApply {
 			options.output.path,
 			"options.output.path should have value after `applyRspackOptionsDefaults`"
 		);
-		assert(
-			options.context,
-			"options.context should have value after `applyRspackOptionsDefaults`"
-		);
 		compiler.outputPath = options.output.path;
 		compiler.name = options.name;
 		compiler.outputFileSystem = fs;
+
+		if (options.externals) {
+			assert(
+				options.externalsType,
+				"options.externalsType should have value after `applyRspackOptionsDefaults`"
+			);
+			new ExternalsPlugin(options.externalsType, options.externals).apply(
+				compiler
+			);
+		}
+
+		if (options.externalsPresets.node) {
+			new NodeTargetPlugin().apply(compiler);
+		}
+		if (options.externalsPresets.electronMain) {
+			new ElectronTargetPlugin("main").apply(compiler);
+		}
+		if (options.externalsPresets.electronPreload) {
+			new ElectronTargetPlugin("preload").apply(compiler);
+		}
+		if (options.externalsPresets.electronRenderer) {
+			new ElectronTargetPlugin("renderer").apply(compiler);
+		}
+		if (
+			options.externalsPresets.electron &&
+			!options.externalsPresets.electronMain &&
+			!options.externalsPresets.electronPreload &&
+			!options.externalsPresets.electronRenderer
+		) {
+			new ElectronTargetPlugin().apply(compiler);
+		}
+		if (options.externalsPresets.web) {
+			new HttpExternalsPlugin(!!options.experiments.css).apply(compiler);
+		}
 
 		const runtimeChunk = options.optimization
 			.runtimeChunk as OptimizationRuntimeChunkNormalized;
@@ -47,6 +80,10 @@ export class RspackOptionsApply {
 			});
 		}
 		new EntryOptionPlugin().apply(compiler);
+		assert(
+			options.context,
+			"options.context should have value after `applyRspackOptionsDefaults`"
+		);
 		compiler.hooks.entryOption.call(options.context, options.entry);
 
 		const { minimize, minimizer } = options.optimization;

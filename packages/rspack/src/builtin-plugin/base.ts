@@ -11,7 +11,9 @@ export enum BuiltinPluginKind {
 	Html = "Html",
 	SwcJsMinimizer = "SwcJsMinimizer",
 	SwcCssMinimizer = "SwcCssMinimizer",
-	Entry = "Entry"
+	Entry = "Entry",
+	Externals = "Externals",
+	HttpExternals = "HttpExternals"
 }
 
 export abstract class RspackBuiltinPlugin {

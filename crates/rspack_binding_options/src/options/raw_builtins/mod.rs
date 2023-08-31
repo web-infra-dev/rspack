@@ -18,6 +18,7 @@ use rspack_napi_shared::NapiResultExt;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_copy::CopyPlugin;
 use rspack_plugin_entry::EntryPlugin;
+use rspack_plugin_externals::{http_externals_plugin, ExternalsPlugin};
 use rspack_plugin_html::HtmlPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_swc_css_minimizer::SwcCssMinimizerPlugin;
@@ -27,7 +28,7 @@ pub use self::{
   raw_banner::RawBannerConfig, raw_copy::RawCopyConfig, raw_html::RawHtmlPluginConfig,
   raw_progress::RawProgressPluginConfig, raw_swc_js_minimizer::RawMinification,
 };
-use crate::RawEntryPluginOptions;
+use crate::{RawEntryPluginOptions, RawExternalsPluginOptions, RawHttpExternalsPluginOptions};
 
 #[napi(string_enum)]
 #[derive(Debug)]
@@ -41,6 +42,8 @@ pub enum BuiltinPluginKind {
   SwcJsMinimizer,
   SwcCssMinimizer,
   Entry,
+  Externals,
+  HttpExternals,
 }
 
 #[napi(object)]
@@ -84,6 +87,19 @@ impl TryFrom<BuiltinPlugin> for BoxPlugin {
         let entry_request = plugin_options.entry;
         let options = plugin_options.options.into();
         EntryPlugin::new(context, entry_request, options).boxed()
+      }
+      BuiltinPluginKind::Externals => {
+        let plugin_options = downcast_into::<RawExternalsPluginOptions>(value.options)?;
+        let externals = plugin_options
+          .externals
+          .into_iter()
+          .map(|e| e.try_into())
+          .collect::<Result<Vec<_>>>()?;
+        ExternalsPlugin::new(plugin_options.r#type, externals).boxed()
+      }
+      BuiltinPluginKind::HttpExternals => {
+        let plugin_options = downcast_into::<RawHttpExternalsPluginOptions>(value.options)?;
+        http_externals_plugin(plugin_options.css)
       }
     };
     Ok(plugin)
