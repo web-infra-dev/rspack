@@ -76,6 +76,25 @@ impl ExportsInfoId {
     return true;
   }
 
+  pub fn set_unknown_exports_provided<'a>(
+    &self,
+    mg: &'a mut ModuleGraph,
+    can_mangle: bool,
+    exclude_exports: Option<Vec<JsWord>>,
+    target_key: DependencyId,
+    target_module: Option<ModuleGraphConnection>,
+    priority: Option<u8>,
+  ) -> bool {
+    let mut changed = false;
+
+    if let Some(exclude_exports) = exclude_exports {
+      for name in exclude_exports {
+        self.export_info_mut(&name, mg);
+      }
+    }
+    return true;
+  }
+
   pub fn get_read_only_export_info<'a>(
     &self,
     name: &JsWord,
@@ -102,13 +121,6 @@ impl ExportsInfoId {
       if is_last {
         return &exports_info.other_exports_info;
       }
-      // if let Some(info) = self.exports.get(name) {
-      //   info
-      // } else if let Some(redirect_to) = &self.redirect_to {
-      //   redirect_to.get_read_only_export_info(name)
-      // } else {
-      //   &self.other_exports_info
-      // }
     }
     unreachable!()
   }
@@ -239,10 +251,6 @@ impl ExportsInfo {
         info.get_used(runtime)
       }
     }
-  }
-
-  pub fn export_info_mut<'a>(&'a mut self, name: &JsWord) -> &mut ExportInfo {
-    todo!()
   }
 
   pub fn get_ordered_exports(&self) -> impl Iterator<Item = &ExportInfo> {

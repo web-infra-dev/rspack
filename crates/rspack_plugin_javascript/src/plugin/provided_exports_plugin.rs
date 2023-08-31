@@ -34,15 +34,11 @@ impl<'a> ProvidedExportsPlugin<'a> {
         HashMap::default();
       self.process_dependencies_block(module_id, &mut exports_specs_from_dependencies);
       // I use this trick because of rustc borrow rules, it is safe becuase dependency provide plugin is sync, there are no other methods using it at the same time.
-      let mut exports_info = {
-        let exports_info_mut = self.mg.get_exports_info_mut(&module_id);
-        std::mem::take(exports_info_mut)
-      };
+      let mut exports_info_id = { self.mg.get_exports_info(&module_id).id };
       for (dep_id, exports_spec) in exports_specs_from_dependencies.into_iter() {
-        self.process_exports_spec(dep_id, exports_spec, &mut exports_info);
+        self.process_exports_spec(dep_id, exports_spec, exports_info_id);
       }
       // Swap it back
-      _ = std::mem::replace(self.mg.get_exports_info_mut(&module_id), exports_info);
       if self.changed {
         self.notify_dependencies(&mut q);
       }
@@ -85,7 +81,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
     &mut self,
     dep_id: DependencyId,
     exports_spec: ExportsSpec,
-    exports_info: &mut ExportsInfo,
+    exports_info_id: ExportsInfoId,
   ) {
     let exports = &exports_spec.exports;
     let global_can_mangle = &exports_spec.can_mangle;
@@ -95,7 +91,12 @@ impl<'a> ProvidedExportsPlugin<'a> {
     let export_dependencies = &exports_spec.dependencies;
     if let Some(hide_export) = exports_spec.hide_export {
       for name in hide_export.iter() {
-        let export_info = exports_info.export_info_mut(name);
+        let from_exports_info_id = exports_info_id.export_info_mut(name, self.mg);
+        let exports_info = self.mg.get_exports_info_mut_by_id(&from_exports_info_id);
+        let export_info = exports_info
+          .exports
+          .get_mut(name)
+          .expect("should have exports info");
         export_info.unuset_target(&dep_id);
       }
     }
@@ -106,7 +107,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
       ExportsOfExportsSpec::Null => {}
       ExportsOfExportsSpec::Array(ele) => {
         self.merge_exports(
-          exports_info.id,
+          exports_info_id,
           ele,
           DefaultExportInfo {
             can_mangle: *global_can_mangle,
