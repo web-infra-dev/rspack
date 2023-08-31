@@ -6,7 +6,7 @@ use rspack_identifier::Identifier;
 
 use super::utils::{chunk_has_js, get_output_dir};
 use crate::impl_runtime_module;
-use crate::runtime_module::utils::{get_initial_chunk_ids, stringify_chunks};
+use crate::runtime_module::utils::{get_initial_chunk_ids, render_condition_map, stringify_chunks};
 
 #[derive(Debug, Default, Eq)]
 pub struct ImportScriptsChunkLoadingRuntimeModule {
@@ -107,12 +107,14 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
           RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME
         )
       };
+      let condition_map =
+        compilation
+          .chunk_graph
+          .get_chunk_condition_map(&chunk.ukey, &compilation, chunk_has_js);
+      // If chunkId not corresponding chunkName will skip load it.
       source.add(RawSource::from(
         include_str!("runtime/import_scripts_chunk_loading.js")
-          .replace(
-            "JS_MATCHER",
-            &format!("{}(chunkId)", RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
-          )
+          .replace("JS_MATCHER", &render_condition_map(&condition_map))
           .replace("$URL$", &url)
           .replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr),
       ));

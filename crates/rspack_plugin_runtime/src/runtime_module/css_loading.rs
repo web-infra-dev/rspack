@@ -7,7 +7,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use super::utils::chunk_has_css;
 use crate::impl_runtime_module;
-use crate::runtime_module::stringify_chunks;
+use crate::runtime_module::{render_condition_map, stringify_chunks};
 #[derive(Debug, Default, Eq)]
 pub struct CssLoadingRuntimeModule {
   id: Identifier,
@@ -85,11 +85,13 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       ));
 
       if with_loading {
+        let condition_map =
+          compilation
+            .chunk_graph
+            .get_chunk_condition_map(&chunk_ukey, &compilation, chunk_has_css);
         source.add(RawSource::from(
-          include_str!("runtime/css_loading_with_loading.js").replace(
-            "CSS_MATCHER",
-            &format!("{}(chunkId)", RuntimeGlobals::GET_CHUNK_CSS_FILENAME),
-          ),
+          include_str!("runtime/css_loading_with_loading.js")
+            .replace("CSS_MATCHER", &render_condition_map(&condition_map)),
         ));
       }
 
