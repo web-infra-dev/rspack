@@ -238,8 +238,10 @@ export class RspackDevServer extends WebpackDevServer {
 			additionalEntries.push(`${clientPath}?${webSocketURLStr}`);
 		}
 
-		for (const key in compiler.options.entry) {
-			compiler.options.entry[key].import.unshift(...additionalEntries);
+		for (const additionalEntry of additionalEntries) {
+			new compiler.webpack.EntryPlugin(compiler.context, additionalEntry, {
+				name: undefined
+			}).apply(compiler);
 		}
 	}
 

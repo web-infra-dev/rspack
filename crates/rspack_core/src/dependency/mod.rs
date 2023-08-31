@@ -30,8 +30,8 @@ pub use dependency_template::*;
 use dyn_clone::{clone_trait_object, DynClone};
 
 use crate::{
-  ChunkGroupOptions, ConnectionState, Context, ContextMode, ContextOptions, ErrorSpan, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, ReferencedExport, RuntimeSpec,
+  ChunkGroupOptionsKindRef, ConnectionState, Context, ContextMode, ContextOptions, ErrorSpan,
+  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport, RuntimeSpec,
 };
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
@@ -358,7 +358,7 @@ pub trait ModuleDependency: Dependency {
   }
 
   // TODO: wired to place ChunkGroupOptions on dependency, should place on AsyncDependenciesBlock
-  fn group_options(&self) -> Option<&ChunkGroupOptions> {
+  fn group_options(&self) -> Option<ChunkGroupOptionsKindRef> {
     None
   }
 

@@ -17,6 +17,7 @@ use rspack_error::{Error, Result};
 use rspack_napi_shared::NapiResultExt;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_copy::CopyPlugin;
+use rspack_plugin_entry::EntryPlugin;
 use rspack_plugin_html::HtmlPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_swc_css_minimizer::SwcCssMinimizerPlugin;
@@ -26,8 +27,9 @@ pub use self::{
   raw_banner::RawBannerConfig, raw_copy::RawCopyConfig, raw_html::RawHtmlPluginConfig,
   raw_progress::RawProgressPluginConfig, raw_swc_js_minimizer::RawMinification,
 };
+use crate::RawEntryPluginOptions;
 
-#[napi]
+#[napi(string_enum)]
 #[derive(Debug)]
 pub enum BuiltinPluginKind {
   Define,
@@ -38,6 +40,7 @@ pub enum BuiltinPluginKind {
   Html,
   SwcJsMinimizer,
   SwcCssMinimizer,
+  Entry,
 }
 
 #[napi(object)]
@@ -74,6 +77,13 @@ impl TryFrom<BuiltinPlugin> for BoxPlugin {
       .boxed(),
       BuiltinPluginKind::Html => {
         HtmlPlugin::new(downcast_into::<RawHtmlPluginConfig>(value.options)?.into()).boxed()
+      }
+      BuiltinPluginKind::Entry => {
+        let plugin_options = downcast_into::<RawEntryPluginOptions>(value.options)?;
+        let context = plugin_options.context.into();
+        let entry_request = plugin_options.entry;
+        let options = plugin_options.options.into();
+        EntryPlugin::new(context, entry_request, options).boxed()
       }
     };
     Ok(plugin)

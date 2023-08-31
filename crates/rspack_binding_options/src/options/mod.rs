@@ -1,8 +1,6 @@
-use std::collections::HashMap;
-
 use napi_derive::napi;
 use rspack_core::{
-  BoxPlugin, CompilerOptions, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
+  BoxPlugin, CompilerOptions, Context, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
   IncrementalRebuildMakeState, ModuleOptions, ModuleType, OutputOptions, PluginExt,
 };
 use serde::Deserialize;
@@ -54,11 +52,6 @@ pub trait RawOptionsApply {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawOptions {
-  pub entry: HashMap<String, RawEntryDescription>,
-  /// Using this Vector to track the original order of user land entry configuration
-  /// std::collection::HashMap does not guarantee the insertion order, for more details you could refer
-  /// https://doc.rust-lang.org/std/collections/index.html#iterators:~:text=For%20unordered%20collections%20like%20HashMap%2C%20the%20items%20will%20be%20yielded%20in%20whatever%20order%20the%20internal%20representation%20made%20most%20convenient.%20This%20is%20great%20for%20reading%20through%20all%20the%20contents%20of%20the%20collection.
-  pub __entry_order: Vec<String>,
   #[napi(ts_type = "undefined | 'production' | 'development' | 'none'")]
   pub mode: Option<RawMode>,
   #[napi(ts_type = "Array<string>")]
@@ -88,32 +81,8 @@ pub struct RawOptions {
 impl RawOptionsApply for RawOptions {
   type Options = CompilerOptions;
 
-  fn apply(mut self, plugins: &mut Vec<BoxPlugin>) -> Result<Self::Options, rspack_error::Error> {
-    let context = self.context.into();
-    // https://github.com/web-infra-dev/rspack/discussions/3252#discussioncomment-6182939
-    // will solve the order problem by add EntryOptionPlugin on js side, and we can only
-    // care about EntryOptions instead EntryDescription
-    for key in &self.__entry_order {
-      if let Some((name, desc)) = self.entry.remove_entry(key) {
-        for request in desc.import {
-          plugins.push(
-            rspack_plugin_entry::EntryPlugin::new(
-              name.clone(),
-              request,
-              rspack_core::EntryOptions {
-                runtime: desc.runtime.clone(),
-                chunk_loading: desc.chunk_loading.as_deref().map(Into::into),
-                async_chunks: desc.async_chunks,
-                public_path: desc.public_path.clone().map(Into::into),
-                base_uri: desc.base_uri.clone(),
-                filename: desc.filename.clone().map(Into::into),
-              },
-            )
-            .boxed(),
-          );
-        }
-      }
-    }
+  fn apply(self, plugins: &mut Vec<BoxPlugin>) -> Result<Self::Options, rspack_error::Error> {
+    let context: Context = self.context.into();
     let output: OutputOptions = self.output.apply(plugins)?;
     let resolve = self.resolve.try_into()?;
     let resolve_loader = self.resolve_loader.try_into()?;

@@ -3,14 +3,15 @@ import { Compiler } from "..";
 
 // TODO: workaround for https://github.com/napi-rs/napi-rs/pull/1690
 export enum BuiltinPluginKind {
-	Define = 0,
-	Provide = 1,
-	Banner = 2,
-	Progress = 3,
-	Copy = 4,
-	Html = 5,
-	SwcJsMinimizer = 6,
-	SwcCssMinimizer = 7
+	Define = "Define",
+	Provide = "Provide",
+	Banner = "Banner",
+	Progress = "Progress",
+	Copy = "Copy",
+	Html = "Html",
+	SwcJsMinimizer = "SwcJsMinimizer",
+	SwcCssMinimizer = "SwcCssMinimizer",
+	Entry = "Entry"
 }
 
 export abstract class RspackBuiltinPlugin {

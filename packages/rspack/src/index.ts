@@ -29,7 +29,8 @@ export {
 	HtmlPlugin,
 	SwcJsMinimizerPlugin,
 	SwcCssMinimizerPlugin,
-	CopyPlugin
+	CopyPlugin,
+	EntryPlugin
 } from "./builtin-plugin";
 export type {
 	DefinePluginOptions,
@@ -38,7 +39,8 @@ export type {
 	BannerPluginOptions,
 	HtmlPluginOptions,
 	SwcJsMinimizerPluginOptions,
-	CopyPluginOptions
+	CopyPluginOptions,
+	EntryOptions
 } from "./builtin-plugin";
 
 export { Watching };

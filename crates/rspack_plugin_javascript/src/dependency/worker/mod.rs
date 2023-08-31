@@ -1,7 +1,7 @@
 use rspack_core::{
-  ChunkGroupOptions, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ExportsReferencedType, ModuleDependency, ModuleGraph, RuntimeGlobals,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  ChunkGroupOptionsKindRef, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
+  DependencyType, EntryOptions, ErrorSpan, ExportsReferencedType, ModuleDependency, ModuleGraph,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -11,7 +11,7 @@ pub struct WorkerDependency {
   id: DependencyId,
   request: String,
   span: Option<ErrorSpan>,
-  group_options: ChunkGroupOptions,
+  group_options: EntryOptions,
   public_path: String,
 }
 
@@ -22,7 +22,7 @@ impl WorkerDependency {
     request: String,
     public_path: String,
     span: Option<ErrorSpan>,
-    group_options: ChunkGroupOptions,
+    group_options: EntryOptions,
   ) -> Self {
     Self {
       start,
@@ -67,8 +67,8 @@ impl ModuleDependency for WorkerDependency {
     self.request = request;
   }
 
-  fn group_options(&self) -> Option<&ChunkGroupOptions> {
-    Some(&self.group_options)
+  fn group_options(&self) -> Option<ChunkGroupOptionsKindRef> {
+    Some(ChunkGroupOptionsKindRef::Entry(&self.group_options))
   }
 
   fn get_referenced_exports(
