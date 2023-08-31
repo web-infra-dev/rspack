@@ -80,7 +80,6 @@ export const getRawOptions = (
 			devtool,
 			context: options.context
 		}),
-		// externalsPresets: getRawExternalsPresets(options.externalsPresets),
 		devtool,
 		optimization: getRawOptimization(options.optimization),
 		stats: getRawStats(options.stats),
@@ -208,19 +207,6 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		workerPublicPath: output.workerPublicPath!
 	};
 }
-
-// function getRawExternalsPresets(
-// 	presets: ExternalsPresets
-// ): RawOptions["externalsPresets"] {
-// 	return {
-// 		web: presets.web ?? false,
-// 		node: presets.node ?? false,
-// 		electron: presets.electron ?? false,
-// 		electronMain: presets.electronMain ?? false,
-// 		electronPreload: presets.electronPreload ?? false,
-// 		electronRenderer: presets.electronRenderer ?? false
-// 	};
-// }
 
 function getRawLibrary(
 	library: LibraryOptions

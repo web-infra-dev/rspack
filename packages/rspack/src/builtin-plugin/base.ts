@@ -13,6 +13,8 @@ export enum BuiltinPluginKind {
 	SwcCssMinimizer = "SwcCssMinimizer",
 	Entry = "Entry",
 	Externals = "Externals",
+	NodeTarget = "NodeTarget",
+	ElectronTarget = "ElectronTarget",
 	HttpExternals = "HttpExternals"
 }
 
