@@ -1,3 +1,4 @@
+use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
 use rspack_core::{
@@ -181,7 +182,6 @@ impl<'a> ProvidedExportsPlugin<'a> {
       }
 
       if let Some(exports) = exports {
-        // TODO: nested import
         let nested_exports_info = export_info.create_nested_exports_info(self.mg);
         self.merge_exports(
           nested_exports_info,
@@ -213,9 +213,34 @@ impl<'a> ProvidedExportsPlugin<'a> {
       let mut export_info_old = exports_info.exports.get_mut(&name).unwrap();
       std::mem::replace(export_info_old, export_info);
 
-      let mut target_exports_info: Option<&ExportsInfo> = None;
+      let mut target_exports_info: Option<ExportsInfoId> = None;
       if let Some(target) = target {
-        target_exports_info = Some(self.mg.get_exports_info(&target.module));
+        let target_module_exports_info = self.mg.get_exports_info(&target.module);
+        target_exports_info = target_module_exports_info
+          .id
+          .get_nested_exports_info(target.exports, self.mg);
+        match self.dependencies.entry(target.module) {
+          Entry::Occupied(mut occ) => {
+            occ.get_mut().insert(self.current_module_id);
+          }
+          Entry::Vacant(vac) => {
+            vac.insert(HashSet::from_iter([self.current_module_id]));
+          }
+        }
+      }
+      let exports_info = self.mg.get_exports_info_mut_by_id(&exports_info_id);
+      let mut export_info = exports_info.exports.get_mut(&name).unwrap();
+      if export_info.exports_info_owned {
+        let changed = export_info
+          .exports_info
+          .expect("should have exports_info when exports_info_owned is true")
+          .set_redirect_name_to(self.mg, target_exports_info);
+        if changed {
+          self.changed = true;
+        }
+      } else if (export_info.exports_info != target_exports_info) {
+        export_info.exports_info = target_exports_info;
+        self.changed = true;
       }
     }
   }

@@ -63,12 +63,16 @@ impl ExportsInfoId {
     }
   }
 
-  pub fn set_redirect_name_to<'a>(&self, mg: &'a mut ModuleGraph, id: ExportsInfoId) -> bool {
+  pub fn set_redirect_name_to<'a>(
+    &self,
+    mg: &'a mut ModuleGraph,
+    id: Option<ExportsInfoId>,
+  ) -> bool {
     let exports_info = mg.get_exports_info_mut_by_id(self);
-    if exports_info.redirect_to == Some(id) {
+    if exports_info.redirect_to == id {
       return false;
     }
-    exports_info.redirect_to = Some(id);
+    exports_info.redirect_to = id;
     return true;
   }
 
@@ -143,7 +147,22 @@ impl ExportsInfoId {
     }
     unreachable!()
   }
+
+  pub fn get_nested_exports_info<'a>(
+    &self,
+    name: Option<Vec<JsWord>>,
+    mg: &'a ModuleGraph,
+  ) -> Option<ExportsInfoId> {
+    if let Some(name) = name  && !name.is_empty() {
+      let info = self.get_read_only_export_info(&name[0], mg);
+        if let Some(exports_info) = info.exports_info {
+          return exports_info.get_nested_exports_info(Some(name[1..].to_vec()), mg);
+        }
+    }
+    return Some(*self);
+  }
 }
+
 impl Default for ExportsInfoId {
   fn default() -> Self {
     Self::new()
@@ -332,7 +351,7 @@ pub enum ExportInfoProvided {
 
 pub struct ResolvedExportInfoTarget {
   pub module: ModuleIdentifier,
-  exports: Option<Vec<JsWord>>,
+  pub exports: Option<Vec<JsWord>>,
   connection: ModuleGraphConnection,
 }
 
@@ -498,30 +517,32 @@ impl ExportInfo {
 
           // use export_info_mut
           let mut export_info = {
-            let mgm = mg
+            let id = mg
               .module_graph_module_by_identifier(&target.module)
               .expect("should have mgm")
               .exports
               .id;
-            let exports_info = mg.get_exports_info_mut_by_id(&mgm);
-            exports_info.export_info_mut(name).clone()
+            let exports_info_id = id.export_info_mut(name, mg);
+            let exports_info = mg.get_exports_info_mut_by_id(&exports_info_id);
+            exports_info.exports.get_mut(name).unwrap().clone()
           };
           if already_visited.contains(&export_info.id) {
             return Some(ResolvedExportInfoTargetWithCircular::Circular);
           }
           let new_target = export_info._get_target(mg, resolve_filter.clone(), already_visited);
           let export_info_id = export_info.id;
-          // std::mem::replace(
-          //   {
-          //     let exports_info_id = mg.get_exports_info_mut(&target.module).id;
-          //
-          //     mg.get_exports_info_mut_by_id(&exports_info_id)
-          //       .exports
-          //       .get_mut(name)
-          //       .unwrap()
-          //   },
-          //   export_info,
-          // );
+
+          std::mem::replace(
+            {
+              let exports_info_id = mg.get_exports_info_mut(&target.module).id;
+
+              mg.get_exports_info_mut_by_id(&exports_info_id)
+                .exports
+                .get_mut(name)
+                .unwrap()
+            },
+            export_info,
+          );
 
           match new_target {
             Some(ResolvedExportInfoTargetWithCircular::Circular) => {
@@ -670,7 +691,7 @@ impl ExportInfo {
     self.exports_info_owned = true;
     self.exports_info = Some(new_exports_info.id);
     if let Some(exports_info) = old_exports_info {
-      exports_info.set_redirect_name_to(mg, new_exports_info_id);
+      exports_info.set_redirect_name_to(mg, Some(new_exports_info_id));
     }
     mg.exports_info_map
       .insert(new_exports_info_id, new_exports_info);
