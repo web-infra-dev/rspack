@@ -81,15 +81,79 @@ impl ExportsInfoId {
     mg: &'a mut ModuleGraph,
     can_mangle: bool,
     exclude_exports: Option<Vec<JsWord>>,
-    target_key: DependencyId,
+    target_key: Option<DependencyId>,
     target_module: Option<ModuleGraphConnection>,
     priority: Option<u8>,
   ) -> bool {
     let mut changed = false;
 
-    if let Some(exclude_exports) = exclude_exports {
+    if let Some(ref exclude_exports) = exclude_exports {
       for name in exclude_exports {
         self.export_info_mut(&name, mg);
+      }
+    }
+
+    let exports_info = mg.get_exports_info_mut_by_id(self);
+    for export_info in exports_info.exports.values_mut() {
+      if !can_mangle && export_info.can_mangle_provide != Some(false) {
+        export_info.can_mangle_provide = Some(false);
+        changed = true;
+      }
+      if let Some(ref exclude_exports) = exclude_exports {
+        if exclude_exports.contains(&export_info.name) {
+          continue;
+        }
+      }
+      if !matches!(
+        export_info.provided,
+        Some(ExportInfoProvided::True | ExportInfoProvided::Null)
+      ) {
+        export_info.provided = Some(ExportInfoProvided::Null);
+        changed = true;
+      }
+      if let Some(target_key) = target_key {
+        export_info.set_target(
+          &target_key,
+          target_module.clone().unwrap(),
+          Some(&vec![export_info.name.clone()]),
+          priority,
+        );
+      }
+    }
+
+    if let Some(redirect_to) = exports_info.redirect_to {
+      let flag = redirect_to.set_unknown_exports_provided(
+        mg,
+        can_mangle,
+        exclude_exports,
+        target_key,
+        target_module,
+        priority,
+      );
+      if flag {
+        changed = true;
+      }
+    } else {
+      if !matches!(
+        exports_info.other_exports_info.provided,
+        Some(ExportInfoProvided::True | ExportInfoProvided::Null)
+      ) {
+        exports_info.other_exports_info.provided = Some(ExportInfoProvided::Null);
+        changed = true;
+      }
+
+      if let Some(target_key) = target_key {
+        exports_info.other_exports_info.set_target(
+          &target_key,
+          target_module.clone().unwrap(),
+          None,
+          priority,
+        );
+      }
+
+      if !can_mangle && exports_info.other_exports_info.can_mangle_provide != Some(false) {
+        exports_info.other_exports_info.can_mangle_provide = Some(false);
+        changed = true;
       }
     }
     return true;
@@ -633,6 +697,7 @@ impl ExportInfo {
     }
   }
 
+  // TODO: change connection to option
   pub fn set_target(
     &mut self,
     key: &DependencyId,
