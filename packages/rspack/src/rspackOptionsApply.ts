@@ -69,7 +69,10 @@ export class RspackOptionsApply {
 		) {
 			new ElectronTargetPlugin().apply(compiler);
 		}
-		if (options.externalsPresets.web) {
+		if (
+			options.externalsPresets.web ||
+			(options.externalsPresets.node && options.experiments.css)
+		) {
 			new HttpExternalsPlugin(!!options.experiments.css).apply(compiler);
 		}
 
