@@ -1,3 +1,10 @@
+process.on("uncaughtException", (err, origin) => {
+	console.error(err.message, err.stack, process.exitCode);
+});
+process.on("unhandledRejection", (err, origin) => {
+	console.error(err.message, err.stack, process.exitCode);
+});
+
 /** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
 const config = {
 	testEnvironment: "../../scripts/test/patch-node-env.cjs",
@@ -10,6 +17,8 @@ const config = {
 		"<rootDir>/tests/WatchSuspend.test.js"
 	],
 	testTimeout: process.env.CI ? 120000 : 30000,
+	testResultsProcessor: "./testProcessor.js",
+	verbose: true,
 	cache: false,
 	transform: {
 		"^.+\\.tsx?$": [
