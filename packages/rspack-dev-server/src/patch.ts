@@ -7,6 +7,8 @@ function restoreDevServerPatch() {
 	WebpackDevServer.prototype.sendStats = old;
 }
 
+// Patch webpack-dev-server to prevent it from failing to send stats.
+// See https://github.com/web-infra-dev/rspack/pull/4028 for details.
 function applyDevServerPatch() {
 	if (old) return restoreDevServerPatch;
 
