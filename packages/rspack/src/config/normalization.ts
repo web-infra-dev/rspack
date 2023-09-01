@@ -13,7 +13,6 @@ import type {
 	EntryStatic,
 	EntryStaticNormalized,
 	LibraryOptions,
-	OptimizationRuntimeChunk,
 	OptimizationRuntimeChunkNormalized,
 	RspackOptions,
 	RspackOptionsNormalized

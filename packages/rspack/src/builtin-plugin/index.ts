@@ -21,7 +21,7 @@ import {
 	RawBuiltins,
 	RawCssModulesConfig
 } from "@rspack/binding";
-import { termlink, deprecatedWarn } from "../util";
+import { deprecatedWarn } from "../util";
 import { Compiler, RspackOptionsNormalized } from "..";
 import {
 	HtmlPluginOptions,
@@ -35,8 +35,7 @@ import {
 	CopyPlugin,
 	BannerPlugin,
 	SwcJsMinimizerPlugin,
-	SwcCssMinimizerPlugin,
-	RspackBuiltinPlugin
+	SwcCssMinimizerPlugin
 } from ".";
 import { loadConfig } from "browserslist";
 import path from "path";

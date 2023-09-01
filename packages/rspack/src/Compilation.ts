@@ -121,7 +121,7 @@ export class Compilation {
 		this.name = undefined;
 		this.startTime = undefined;
 		this.endTime = undefined;
-		let processAssetsHooks = createFakeProcessAssetsHook(this);
+		const processAssetsHooks = createFakeProcessAssetsHook(this);
 		this.hooks = {
 			processAssets: processAssetsHooks,
 			// TODO: webpack 6 deprecate, keep it just for compatibility
@@ -178,7 +178,7 @@ export class Compilation {
 						return this.__internal__getAssetSource(property);
 					}
 				},
-				set: (target, p, newValue, receiver) => {
+				set: (target, p, newValue) => {
 					if (typeof p === "string") {
 						this.__internal__setAssetSource(p, newValue);
 						return true;
@@ -437,12 +437,12 @@ export class Compilation {
 	}
 
 	get errors() {
-		let inner = this.#inner;
+		const inner = this.#inner;
 		return {
 			push: (...errs: (Error | JsStatsError)[]) => {
 				// compatible for javascript array
 				for (let i = 0; i < errs.length; i++) {
-					let error = errs[i];
+					const error = errs[i];
 					this.#inner.pushDiagnostic(
 						"error",
 						isJsStatsError(error) ? error.title : error.name,
@@ -452,7 +452,7 @@ export class Compilation {
 			},
 			[Symbol.iterator]() {
 				// TODO: this is obviously a bad design, optimize this after finishing angular prototype
-				let errors = inner.getStats().getErrors();
+				const errors = inner.getStats().getErrors();
 				let index = 0;
 				return {
 					next() {
@@ -470,14 +470,14 @@ export class Compilation {
 	}
 
 	get warnings() {
-		let inner = this.#inner;
+		const inner = this.#inner;
 		return {
 			// compatible for javascript array
 			push: (...warns: (Error | JsStatsError)[]) => {
 				// TODO: find a way to make JsStatsError be actual errors
 				warns = this.hooks.processWarnings.call(warns as any);
 				for (let i = 0; i < warns.length; i++) {
-					let warn = warns[i];
+					const warn = warns[i];
 					this.#inner.pushDiagnostic(
 						"warning",
 						isJsStatsError(warn) ? warn.title : warn.name,
@@ -487,7 +487,7 @@ export class Compilation {
 			},
 			[Symbol.iterator]() {
 				// TODO: this is obviously a bad design, optimize this after finishing angular prototype
-				let warnings = inner.getStats().getWarnings();
+				const warnings = inner.getStats().getWarnings();
 				let index = 0;
 				return {
 					next() {
@@ -656,7 +656,7 @@ export class Compilation {
 
 	// FIXME: This is not aligned with Webpack.
 	get chunks() {
-		var stats = this.getStats().toJson({
+		const stats = this.getStats().toJson({
 			all: false,
 			chunks: true,
 			chunkModules: true,
@@ -683,13 +683,13 @@ export class Compilation {
 	 * @internal
 	 */
 	__internal__getAssociatedModules(chunk: JsStatsChunk): any[] | undefined {
-		let modules = this.__internal__getModules();
-		let moduleMap: Map<string, JsModule> = new Map();
-		for (let module of modules) {
+		const modules = this.__internal__getModules();
+		const moduleMap: Map<string, JsModule> = new Map();
+		for (const module of modules) {
 			moduleMap.set(module.moduleIdentifier, module);
 		}
 		return chunk.modules?.flatMap(chunkModule => {
-			let jsModule = this.__internal__findJsModule(
+			const jsModule = this.__internal__findJsModule(
 				chunkModule.issuer ?? chunkModule.identifier,
 				moduleMap
 			);

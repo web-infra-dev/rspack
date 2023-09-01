@@ -4,7 +4,6 @@ import type {
 	RawModuleRuleUse,
 	RawOptions
 } from "@rspack/binding";
-import assert from "assert";
 import { ResolveRequest } from "enhanced-resolve";
 
 import { Compiler } from "../Compiler";
@@ -13,7 +12,6 @@ import Hash from "../util/hash";
 import {
 	Mode,
 	Resolve,
-	RuleSetUse,
 	RuleSetUseItem,
 	RuleSetLoaderWithOptions
 } from "./types";

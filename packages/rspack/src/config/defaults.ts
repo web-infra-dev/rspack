@@ -13,7 +13,6 @@ import fs from "fs";
 import path from "path";
 import { isNil } from "../util";
 import { cleverMerge } from "../util/cleverMerge";
-import { deprecated_resolveBuiltins } from "../builtin-plugin";
 import {
 	getDefaultTarget,
 	getTargetProperties,
@@ -22,8 +21,6 @@ import {
 import type {
 	AvailableTarget,
 	Context,
-	Entry,
-	EntryDescription,
 	EntryDescriptionNormalized,
 	EntryNormalized,
 	ExperimentsNormalized,
@@ -653,7 +650,7 @@ const applyNodeDefaults = (
 
 const applyOptimizationDefaults = (
 	optimization: Optimization,
-	{ production, development }: { production: boolean; development: boolean }
+	{ production }: { production: boolean; development: boolean }
 ) => {
 	D(optimization, "removeAvailableModules", true);
 	D(optimization, "removeEmptyChunks", true);

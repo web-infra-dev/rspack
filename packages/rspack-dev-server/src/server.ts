@@ -445,7 +445,7 @@ export class RspackDevServer extends WebpackDevServer {
 		compilers.forEach(compiler => {
 			if (compiler.options.experiments.lazyCompilation) {
 				middlewares.push({
-					middleware: (req, res, next) => {
+					middleware: (req, res) => {
 						if (req.url.indexOf("/lazy-compilation-web/") > -1) {
 							const path = req.url.replace("/lazy-compilation-web/", "");
 							if (fs.existsSync(path)) {

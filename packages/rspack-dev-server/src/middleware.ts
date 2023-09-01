@@ -32,7 +32,7 @@ export function getRspackMemoryAssets(
 		const filename = path.startsWith(publicPath)
 			? path.slice(publicPath.length)
 			: path.slice(1);
-		let buffer =
+		const buffer =
 			compiler.getAsset(filename) ??
 			(() => {
 				const { index } = rdm.context.options;
