@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::Path, sync::Arc};
 use futures::Future;
 use rkyv::AlignedVec;
 use rspack_error::{Result, TWithDiagnosticArray};
-use rspack_identifier::{Identifiable, Identifier};
+use rspack_identifier::Identifier;
 
 use crate::{
   cache::snapshot::{Snapshot, SnapshotManager},
@@ -12,19 +12,24 @@ use crate::{
   NormalModuleSource,
 };
 
+#[derive(Debug, Clone)]
+pub struct NormalModuleStorageData {
+  source: NormalModuleSource,
+  code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
+  presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
+}
+
+type NormalModuleStorageExtraData = HashMap<BuildExtraDataType, AlignedVec>;
+
 type Storage = dyn storage::Storage<(
   // file system info, None when not cacheable
   Option<Snapshot>,
   // build result
   TWithDiagnosticArray<BuildResult>,
-  // source
-  Option<NormalModuleSource>,
-  // code generation_dependencies
-  Option<Vec<Box<dyn ModuleDependency>>>,
-  // presentational_dependencies
-  Option<Vec<Box<dyn DependencyTemplate>>>,
+  // module data
+  Option<NormalModuleStorageData>,
   // parser and generator data
-  HashMap<BuildExtraDataType, AlignedVec>,
+  Option<NormalModuleStorageExtraData>,
 )>;
 
 #[derive(Debug)]
@@ -68,15 +73,7 @@ impl BuildModuleOccasion {
     if module.as_normal_module().is_some() {
       // normal module
       // TODO cache all module type
-      if let Some((
-        snapshot,
-        data,
-        source,
-        code_generation_dependencies,
-        presentational_dependencies,
-        extra_data,
-      )) = storage.get(&id)
-      {
+      if let Some((snapshot, data, module_data, extra_data)) = storage.get(&id) {
         let valid = if let Some(snapshot) = snapshot {
           self
             .snapshot_manager
@@ -88,12 +85,14 @@ impl BuildModuleOccasion {
         };
         if valid {
           if let Some(module) = module.as_normal_module_mut() {
-            if let Some(module_source) = source {
-              *module.source_mut() = module_source.clone();
+            if let Some(module_data) = module_data {
+              *module.source_mut() = module_data.source;
+              *module.code_generation_dependencies_mut() = module_data.code_generation_dependencies;
+              *module.presentational_dependencies_mut() = module_data.presentational_dependencies;
             }
-            *module.code_generation_dependencies_mut() = code_generation_dependencies;
-            *module.presentational_dependencies_mut() = presentational_dependencies;
-            module.parser_and_generator_mut().resume(&extra_data);
+            if let Some(extra_data) = extra_data {
+              module.parser_and_generator_mut().resume(&extra_data);
+            }
           }
           return Ok((Ok(data), true));
         } else {
@@ -160,14 +159,16 @@ impl BuildModuleOccasion {
           (
             Some(snapshot),
             data.clone(),
-            Some(module.source().clone()),
-            module.code_generation_dependencies().clone(),
-            module.presentational_dependencies().clone(),
-            extra_data,
+            Some(NormalModuleStorageData {
+              source: module.source().clone(),
+              code_generation_dependencies: module.code_generation_dependencies().clone(),
+              presentational_dependencies: module.presentational_dependencies().clone(),
+            }),
+            Some(extra_data),
           ),
         );
       } else if matches!(module.source(), NormalModuleSource::BuiltSucceed(_)) {
-        storage.set(id, (None, data.clone(), None, None, None, HashMap::new()));
+        storage.set(id, (None, data.clone(), None, None));
       }
     }
     Ok((Ok(data), false))
