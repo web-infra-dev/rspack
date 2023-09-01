@@ -116,7 +116,8 @@ function presetToOptions(name?: boolean | string): StatsOptions {
 			};
 		case "verbose":
 			return {
-				all: true
+				all: true,
+				modulesSpace: Infinity
 			};
 		case "errors-only":
 			return {
