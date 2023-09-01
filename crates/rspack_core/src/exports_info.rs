@@ -281,11 +281,12 @@ impl ExportsInfoId {
     }
     let exports_info = mg.get_exports_info_mut_by_id(self);
     _ = std::mem::replace(&mut exports_info.exports, exports);
-    if let Some(redirect_to) = exports_info.redirect_to {
-      redirect_to.set_has_use_info(mg);
-    } else {
-      exports_info.other_exports_info.set_has_use_info(mg);
-    }
+    exports_info._side_effects_only_info.set_has_use_info(mg);
+    // if let Some(redirect_to) = exports_info.redirect_to {
+    //   redirect_to.set_has_use_info(mg);
+    // } else {
+    //   exports_info.other_exports_info.set_has_use_info(mg);
+    // }
   }
 }
 
