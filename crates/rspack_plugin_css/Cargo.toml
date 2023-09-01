@@ -14,7 +14,7 @@ indexmap = { workspace = true }
 once_cell = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
-rkyv = { workspace = true, features = ["indexmap"] }
+rkyv = { workspace = true, features = ["indexmap", "validation"] }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_hash = { path = "../rspack_hash" }

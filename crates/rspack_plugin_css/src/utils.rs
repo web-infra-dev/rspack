@@ -68,7 +68,7 @@ impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
   }
 }
 
-pub fn css_modules_exports_key_to_string(
+pub fn stringify_css_modules_exports_key(
   key: &JsWord,
   locals_convention: &LocalsConvention,
 ) -> Vec<String> {
@@ -94,7 +94,7 @@ pub fn css_modules_exports_key_to_string(
   res
 }
 
-pub fn css_modules_exports_elements_to_string(
+pub fn stringify_css_modules_exports_elements(
   elements: &Vec<CssClassName>,
 ) -> Vec<(String, Option<String>)> {
   elements

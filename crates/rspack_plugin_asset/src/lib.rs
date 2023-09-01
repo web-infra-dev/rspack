@@ -4,7 +4,7 @@ use std::{collections::HashMap, hash::Hash};
 
 use async_trait::async_trait;
 use rayon::prelude::*;
-use rkyv::{from_bytes_unchecked, to_bytes, AlignedVec, Archive, Deserialize, Serialize};
+use rkyv::{from_bytes, to_bytes, AlignedVec, Archive, Deserialize, Serialize};
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
   tree_shaking::{
@@ -57,6 +57,7 @@ const ASSET_INLINE: bool = true;
 const ASSET_RESOURCE: bool = false;
 
 #[derive(Debug, Clone, Archive, Serialize, Deserialize)]
+#[archive(compare(PartialEq), check_bytes)]
 enum CanonicalizedDataUrlOption {
   Source,
   Asset(IsInline),
@@ -430,10 +431,8 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
   fn resume(&mut self, extra_data: &HashMap<BuildExtraDataType, AlignedVec>) -> () {
     if let Some(data) = extra_data.get(&BuildExtraDataType::AssetParserAndGenerator) {
-      self.parsed_asset_config = unsafe {
-        from_bytes_unchecked::<Option<CanonicalizedDataUrlOption>>(&data)
-          .expect("Failed to resume extra data")
-      };
+      self.parsed_asset_config = from_bytes::<Option<CanonicalizedDataUrlOption>>(&data)
+        .expect("Failed to resume extra data");
     }
   }
 }

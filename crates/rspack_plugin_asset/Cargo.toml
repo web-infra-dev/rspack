@@ -14,7 +14,7 @@ rspack_testing = { path = "../rspack_testing" }
 async-trait   = { workspace = true }
 mime_guess    = { workspace = true }
 rayon         = { workspace = true }
-rkyv          = { workspace = true }
+rkyv          = { workspace = true, features = ["validation"] }
 rspack_base64 = { path = "../rspack_base64" }
 rspack_core   = { path = "../rspack_core" }
 rspack_error  = { path = "../rspack_error" }

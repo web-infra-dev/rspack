@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rkyv::{from_bytes_unchecked, to_bytes, AlignedVec};
+use rkyv::{from_bytes, to_bytes, AlignedVec};
 use rspack_core::RuntimeGlobals;
 use rspack_core::{
   rspack_sources::{
@@ -29,7 +29,7 @@ use crate::{
   utils::{css_modules_exports_to_string, ModulesTransformConfig},
 };
 use crate::{
-  utils::{css_modules_exports_elements_to_string, css_modules_exports_key_to_string},
+  utils::{stringify_css_modules_exports_elements, stringify_css_modules_exports_key},
   visitors::analyze_dependencies,
 };
 
@@ -42,10 +42,12 @@ pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
 pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
   &[SourceType::JavaScript];
 
+type CssExportsType = Option<IndexMap<Vec<String>, Vec<(String, Option<String>)>>>;
+
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
   pub config: CssConfig,
-  pub exports: Option<IndexMap<Vec<String>, Vec<(String, Option<String>)>>>,
+  pub exports: CssExportsType,
 }
 
 impl ParserAndGenerator for CssParserAndGenerator {
@@ -132,8 +134,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
           .iter()
           .map(|(key, elements)| {
             (
-              css_modules_exports_key_to_string(key, &self.config.modules.locals_convention),
-              css_modules_exports_elements_to_string(elements),
+              stringify_css_modules_exports_key(key, &self.config.modules.locals_convention),
+              stringify_css_modules_exports_elements(elements),
             )
           })
           .collect::<Vec<_>>(),
@@ -285,15 +287,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let data = self.exports.to_owned();
     extra_data.insert(
       BuildExtraDataType::CssParserAndGenerator,
-      to_bytes::<_, 256>(&data).expect("Failed to store extra data"),
+      to_bytes::<_, 1024>(&data).expect("Failed to store extra data"),
     );
   }
   fn resume(&mut self, extra_data: &HashMap<BuildExtraDataType, AlignedVec>) -> () {
     if let Some(data) = extra_data.get(&BuildExtraDataType::CssParserAndGenerator) {
-      let data = unsafe {
-        from_bytes_unchecked::<Option<IndexMap<Vec<String>, Vec<(String, Option<String>)>>>>(&data)
-          .expect("Failed to resume extra data")
-      };
+      let data = from_bytes::<Option<IndexMap<Vec<String>, Vec<(String, Option<String>)>>>>(&data)
+        .expect("Failed to resume extra data");
       self.exports = data;
     }
   }
