@@ -41,22 +41,32 @@ impl ExportsInfoId {
     for (i, id) in chain.into_iter().enumerate() {
       let is_last = i == len - 1;
 
-      let exports_info = mg.get_exports_info_mut_by_id(&id);
+      let exports_info = mg.get_exports_info_by_id(&id);
 
-      for e in exports_info.exports.values_mut() {
-        if e.provided.is_none() {
-          e.provided = Some(ExportInfoProvided::False);
+      let export_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+      let other_export_info = exports_info.other_exports_info;
+      for id in export_id_list {
+        let export_info = mg
+          .export_info_map
+          .get_mut(&id)
+          .expect("should have export info");
+        if export_info.provided.is_none() {
+          export_info.provided = Some(ExportInfoProvided::False);
         }
-        if e.can_mangle_provide.is_none() {
-          e.can_mangle_provide = Some(true);
+        if export_info.can_mangle_provide.is_none() {
+          export_info.can_mangle_provide = Some(true);
         }
       }
       if is_last {
-        if exports_info.other_exports_info.provided.is_none() {
-          exports_info.other_exports_info.provided = Some(ExportInfoProvided::False);
+        let other_export_info = mg
+          .export_info_map
+          .get_mut(&other_export_info)
+          .expect("should have export info");
+        if other_export_info.provided.is_none() {
+          other_export_info.provided = Some(ExportInfoProvided::False);
         }
-        if exports_info.other_exports_info.can_mangle_provide.is_none() {
-          exports_info.other_exports_info.can_mangle_provide = Some(true);
+        if other_export_info.can_mangle_provide.is_none() {
+          other_export_info.can_mangle_provide = Some(true);
         }
       }
     }
@@ -88,8 +98,16 @@ impl ExportsInfoId {
       }
     }
 
-    let exports_info = mg.get_exports_info_mut_by_id(self);
-    for export_info in exports_info.exports.values_mut() {
+    let exports_info = mg.get_exports_info_by_id(self);
+    let redirect_to = exports_info.redirect_to;
+    let other_exports_info = exports_info.other_exports_info;
+    let exports_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    for export_info_id in exports_id_list {
+      let export_info = mg
+        .export_info_map
+        .get_mut(&export_info_id)
+        .expect("should have export info");
+
       if !can_mangle && export_info.can_mangle_provide != Some(false) {
         export_info.can_mangle_provide = Some(false);
         changed = true;
@@ -117,7 +135,7 @@ impl ExportsInfoId {
       }
     }
 
-    if let Some(redirect_to) = exports_info.redirect_to {
+    if let Some(redirect_to) = redirect_to {
       let flag = redirect_to.set_unknown_exports_provided(
         mg,
         can_mangle,
@@ -130,22 +148,24 @@ impl ExportsInfoId {
         changed = true;
       }
     } else {
+      let other_exports_info = mg
+        .export_info_map
+        .get_mut(&other_exports_info)
+        .expect("should have export info");
       if !matches!(
-        exports_info.other_exports_info.provided,
+        other_exports_info.provided,
         Some(ExportInfoProvided::True | ExportInfoProvided::Null)
       ) {
-        exports_info.other_exports_info.provided = Some(ExportInfoProvided::Null);
+        other_exports_info.provided = Some(ExportInfoProvided::Null);
         changed = true;
       }
 
       if let Some(target_key) = target_key {
-        exports_info
-          .other_exports_info
-          .set_target(&target_key, target_module, None, priority);
+        other_exports_info.set_target(&target_key, target_module, None, priority);
       }
 
-      if !can_mangle && exports_info.other_exports_info.can_mangle_provide != Some(false) {
-        exports_info.other_exports_info.can_mangle_provide = Some(false);
+      if !can_mangle && other_exports_info.can_mangle_provide != Some(false) {
+        other_exports_info.can_mangle_provide = Some(false);
         changed = true;
       }
     }
@@ -173,10 +193,18 @@ impl ExportsInfoId {
       let is_last = i == len - 1;
 
       if let Some(info) = exports_info.exports.get(name) {
+        let info = mg
+          .export_info_map
+          .get(info)
+          .expect("should have export info");
         return info;
       }
       if is_last {
-        return &exports_info.other_exports_info;
+        let info = mg
+          .export_info_map
+          .get(&exports_info.other_exports_info)
+          .expect("should have export info");
+        return info;
       }
     }
     unreachable!()
@@ -197,22 +225,25 @@ impl ExportsInfoId {
 
     for (i, id) in chain.into_iter().enumerate() {
       let is_last = i == len - 1;
-      let exports_info = mg.get_exports_info_mut_by_id(&id);
-      match exports_info.exports.entry(name.clone()) {
-        Entry::Occupied(_) => return exports_info.id,
-        Entry::Vacant(vac) => {
-          if is_last {
-            let new_info = ExportInfo::new(
-              name.clone(),
-              UsageState::Unknown,
-              Some(&exports_info.other_exports_info),
-            );
-            exports_info._exports_are_ordered = false;
-            vac.insert(new_info);
-            return exports_info.id;
-          }
-        }
+      let exports_info = mg.get_exports_info_by_id(&id);
+      let other_exports_info = exports_info.other_exports_info;
+      if exports_info.exports.contains_key(name) {
+        return id;
       }
+      if is_last {
+        let other_export_info = mg
+          .export_info_map
+          .get(&other_exports_info)
+          .expect("should have export_info");
+        let new_info = ExportInfo::new(name.clone(), UsageState::Unknown, Some(other_export_info));
+        let new_info_id = new_info.id;
+        mg.export_info_map.insert(new_info_id, new_info);
+
+        let exports_info = mg.get_exports_info_mut_by_id(&id);
+        exports_info._exports_are_ordered = false;
+        exports_info.exports.insert(name.clone(), new_info_id);
+      }
+      return id;
     }
     unreachable!()
   }
@@ -254,24 +285,20 @@ impl From<u32> for ExportsInfoId {
 
 #[derive(Debug)]
 pub struct ExportsInfo {
-  pub exports: HashMap<JsWord, ExportInfo>,
-  pub other_exports_info: ExportInfo,
-  pub _side_effects_only_info: ExportInfo,
+  pub exports: HashMap<JsWord, ExportInfoId>,
+  pub other_exports_info: ExportInfoId,
+  pub _side_effects_only_info: ExportInfoId,
   pub _exports_are_ordered: bool,
   pub redirect_to: Option<ExportsInfoId>,
   pub id: ExportsInfoId,
 }
 
 impl ExportsInfo {
-  pub fn new() -> Self {
+  pub fn new(other_exports_info: ExportInfoId, _side_effects_only_info: ExportInfoId) -> Self {
     Self {
       exports: HashMap::default(),
-      other_exports_info: ExportInfo::new("null".into(), UsageState::Unknown, None),
-      _side_effects_only_info: ExportInfo::new(
-        "*side effects only*".into(),
-        UsageState::Unknown,
-        None,
-      ),
+      other_exports_info,
+      _side_effects_only_info,
       _exports_are_ordered: false,
       redirect_to: None,
       id: ExportsInfoId::new(),
@@ -295,7 +322,11 @@ impl ExportsInfo {
       }
       UsedName::Vec(value) => {
         if value.is_empty() {
-          return self.other_exports_info.get_used(runtime);
+          let other_export_info = module_graph
+            .export_info_map
+            .get(&self.other_exports_info)
+            .expect("should have export info");
+          return other_export_info.get_used(runtime);
         }
         let info = self.id.get_read_only_export_info(&value[0], module_graph);
         if let Some(exports_info) = info.get_exports_info(module_graph) {
@@ -310,14 +341,18 @@ impl ExportsInfo {
     }
   }
 
-  pub fn get_ordered_exports(&self) -> impl Iterator<Item = &ExportInfo> {
+  pub fn get_ordered_exports(&self) -> impl Iterator<Item = &ExportInfoId> {
     // TODO need order
     self.exports.values()
   }
   pub fn set_redirect_name_to(&mut self) {}
 
   pub fn set_has_provide_info(&mut self, mg: &mut ModuleGraph) {
-    for e in self.exports.values_mut() {
+    for export_info_id in self.exports.values() {
+      let e = mg
+        .export_info_map
+        .get_mut(export_info_id)
+        .expect("should have export info");
       if e.provided.is_none() {
         e.provided = Some(ExportInfoProvided::False);
       }
@@ -328,19 +363,17 @@ impl ExportsInfo {
     if let Some(ref mut redirect_to) = self.redirect_to {
       redirect_to.set_has_provide_info(mg);
     } else {
-      if self.other_exports_info.provided.is_none() {
-        self.other_exports_info.provided = Some(ExportInfoProvided::False);
+      let other_export_info = mg
+        .export_info_map
+        .get_mut(&self.other_exports_info)
+        .expect("should have export info");
+      if other_export_info.provided.is_none() {
+        other_export_info.provided = Some(ExportInfoProvided::False);
       }
-      if self.other_exports_info.can_mangle_provide.is_none() {
-        self.other_exports_info.can_mangle_provide = Some(true);
+      if other_export_info.can_mangle_provide.is_none() {
+        other_export_info.can_mangle_provide = Some(true);
       }
     }
-  }
-}
-
-impl Default for ExportsInfo {
-  fn default() -> Self {
-    Self::new()
   }
 }
 
@@ -581,36 +614,34 @@ impl ExportInfo {
               return Some(ResolvedExportInfoTargetWithCircular::Target(target));
             };
 
-          // use export_info_mut
-          let mut export_info = {
+          let export_info_id = {
             let id = mg
               .module_graph_module_by_identifier(&target.module)
               .expect("should have mgm")
-              .exports
-              .id;
+              .exports;
             let exports_info_id = id.export_info_mut(name, mg);
             let exports_info = mg.get_exports_info_mut_by_id(&exports_info_id);
             exports_info
               .exports
-              .get_mut(name)
+              .get(name)
               .expect("should have export info")
               .clone()
           };
-          if already_visited.contains(&export_info.id) {
+          if already_visited.contains(&export_info_id) {
             return Some(ResolvedExportInfoTargetWithCircular::Circular);
           }
-          let new_target = export_info._get_target(mg, resolve_filter.clone(), already_visited);
+          let mut export_info = mg
+            .export_info_map
+            .get_mut(&export_info_id)
+            .expect("should have export info")
+            .clone();
+
           let export_info_id = export_info.id;
-
-          _ = std::mem::replace(
-            {
-              let exports_info_id = mg.get_exports_info_mut(&target.module).id;
-
-              mg.get_exports_info_mut_by_id(&exports_info_id)
-                .exports
-                .get_mut(name)
-                .expect("should have export info")
-            },
+          let new_target = export_info._get_target(mg, resolve_filter.clone(), already_visited);
+          std::mem::replace(
+            mg.export_info_map
+              .get_mut(&export_info_id)
+              .expect("should have export info"),
             export_info,
           );
 
@@ -752,7 +783,11 @@ impl ExportInfo {
         .exports_info
         .expect("should have exports_info when exports_info is true");
     }
-    let new_exports_info = ExportsInfo::new();
+
+    let other_exports_info = ExportInfo::new("null".into(), UsageState::Unknown, None);
+    let side_effects_only_info =
+      ExportInfo::new("*side effects only*".into(), UsageState::Unknown, None);
+    let new_exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
     let new_exports_info_id = new_exports_info.id;
 
     let old_exports_info = self.exports_info;
@@ -764,6 +799,10 @@ impl ExportInfo {
     }
     mg.exports_info_map
       .insert(new_exports_info_id, new_exports_info);
+    mg.export_info_map
+      .insert(other_exports_info.id, other_exports_info);
+    mg.export_info_map
+      .insert(side_effects_only_info.id, side_effects_only_info);
     new_exports_info_id
   }
 }
@@ -871,7 +910,11 @@ pub fn process_export_info(
       .exports_info_map
       .get(&export_info.exports_info.expect("should have exports info"))
     {
-      for export_info in exports_info.get_ordered_exports() {
+      for export_info_id in exports_info.get_ordered_exports() {
+        let export_info = module_graph
+          .export_info_map
+          .get(export_info_id)
+          .expect("should have export_info");
         process_export_info(
           module_graph,
           runtime,

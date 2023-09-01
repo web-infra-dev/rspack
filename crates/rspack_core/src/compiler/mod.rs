@@ -213,10 +213,11 @@ where
             .module_identifier_to_module_graph_module,
         );
         for mgm in mi_to_mgm.values_mut() {
-          // merge exports info
-          if let Some(exports_map) = exports_info_map.remove(&mgm.module_identifier) {
-            mgm.exports.exports.extend(exports_map.into_iter());
-          }
+          // TODO:  merge exports info
+          // if let Some(exports_map) = exports_info_map.remove(&mgm.module_identifier) {
+          //   let exports_info = self.compilation.module_graph.exports_info_map.get(k)
+          //   e.exports.extend(exports_map.into_iter());
+          // }
         }
         self
           .compilation

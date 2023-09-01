@@ -12,8 +12,8 @@ pub use connection::*;
 
 use crate::{
   to_identifier, BoxDependency, BoxModule, BuildDependency, BuildInfo, BuildMeta,
-  DependencyCondition, DependencyId, ExportsInfo, ExportsInfoId, Module, ModuleGraphModule,
-  ModuleIdentifier, ModuleProfile,
+  DependencyCondition, DependencyId, ExportInfo, ExportInfoId, ExportsInfo, ExportsInfoId, Module,
+  ModuleGraphModule, ModuleIdentifier, ModuleProfile,
 };
 
 // TODO Here request can be used JsWord
@@ -46,6 +46,7 @@ pub struct ModuleGraph {
 
   import_var_map: IdentifierMap<ImportVarMap>,
   pub exports_info_map: HashMap<ExportsInfoId, ExportsInfo>,
+  pub export_info_map: HashMap<ExportInfoId, ExportInfo>,
 }
 
 impl ModuleGraph {
@@ -532,15 +533,19 @@ impl ModuleGraph {
     let mgm = self
       .module_graph_module_by_identifier(module_identifier)
       .expect("should have mgm");
-    &mgm.exports
+    let exports_info = self
+      .exports_info_map
+      .get(&mgm.exports)
+      .expect("should have export info");
+    exports_info
   }
 
-  pub fn get_exports_info_mut(&mut self, module_identifier: &ModuleIdentifier) -> &mut ExportsInfo {
-    let mgm = self
-      .module_graph_module_by_identifier_mut(module_identifier)
-      .expect("should have mgm");
-    &mut mgm.exports
-  }
+  // pub fn get_exports_info_mut(&mut self, module_identifier: &ModuleIdentifier) -> &mut ExportsInfo {
+  //   let mgm = self
+  //     .module_graph_module_by_identifier_mut(module_identifier)
+  //     .expect("should have mgm");
+  //   &mut mgm.exports
+  // }
 
   pub fn get_exports_info_by_id(&self, id: &ExportsInfoId) -> &ExportsInfo {
     let exports_info = self.exports_info_map.get(id).expect("should have mgm");

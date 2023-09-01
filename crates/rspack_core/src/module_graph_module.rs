@@ -1,6 +1,7 @@
 use rspack_error::{internal_error, Result};
 use rustc_hash::FxHashSet as HashSet;
 
+use crate::ExportsInfoId;
 use crate::{
   is_async_dependency, module_graph::ConnectionId, BuildInfo, BuildMeta, BuildMetaDefaultObject,
   BuildMetaExportsType, ChunkGraph, ChunkGroupOptionsKindRef, DependencyId, ExportsArgument,
@@ -27,7 +28,7 @@ pub struct ModuleGraphModule {
   pub factory_meta: Option<FactoryMeta>,
   pub build_info: Option<BuildInfo>,
   pub build_meta: Option<BuildMeta>,
-  pub exports: Box<ExportsInfo>,
+  pub exports: ExportsInfoId,
   pub profile: Option<Box<ModuleProfile>>,
 }
 
@@ -48,7 +49,7 @@ impl ModuleGraphModule {
       factory_meta: None,
       build_info: None,
       build_meta: None,
-      exports: Box::new(ExportsInfo::new()),
+      exports: ExportsInfoId::new(),
       profile: None,
     }
   }
