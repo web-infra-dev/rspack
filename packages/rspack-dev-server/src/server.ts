@@ -16,8 +16,11 @@ import fs from "fs";
 import WebpackDevServer from "webpack-dev-server";
 import type { ResolvedDevServer, DevServer } from "./config";
 import { getRspackMemoryAssets } from "./middleware";
+import { applyDevServerPatch } from "./patch";
 // @ts-expect-error
 import { runtimePathRegexp } from "@rspack/dev-client/runtime-path-regexp";
+
+applyDevServerPatch();
 
 export class RspackDevServer extends WebpackDevServer {
 	/**
