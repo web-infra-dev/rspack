@@ -18,7 +18,7 @@ const config = {
 	],
 	testTimeout: process.env.CI ? 120000 : 30000,
 	testResultsProcessor: "./testProcessor.js",
-	verbose: true,
+	verbose: false,
 	cache: false,
 	transform: {
 		"^.+\\.tsx?$": [
