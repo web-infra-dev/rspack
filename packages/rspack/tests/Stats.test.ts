@@ -202,16 +202,43 @@ describe("Stats", () => {
 		  │
 		2 │     return "This is b";
 		3 │ };
-		4 │ 
+		4 │
 		5 │ // Test CJS top-level return
 		6 │ return;
 		  │ ^^^^^^^ Return statement is not allowed here
-		7 │ 
+		7 │
 
 
 
 		rspack compiled with 1 error (27ec1c09308b67dcfd6f)"
 	`);
+	});
+
+	it("should output the specified number of modules when set stats.modulesSpace", async () => {
+		const stats = await compile({
+			context: __dirname,
+			entry: "./fixtures/abc"
+		});
+
+		expect(
+			stats?.toJson({
+				all: true,
+				timings: false,
+				builtAt: false,
+				version: false
+			}).modules?.length
+		).toBe(4);
+
+		expect(
+			stats?.toJson({
+				all: true,
+				timings: false,
+				builtAt: false,
+				version: false,
+				modulesSpace: 3
+			}).modules?.length
+			// 3 -1 （max - filteredChildrenLineReserved）
+		).toBe(2);
 	});
 
 	it("should have time log when logging verbose", async () => {
