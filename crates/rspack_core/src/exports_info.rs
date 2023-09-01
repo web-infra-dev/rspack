@@ -273,6 +273,20 @@ impl ExportsInfoId {
     }
     Some(*self)
   }
+
+  fn set_has_use_info(&self, mg: &mut ModuleGraph) {
+    let mut exports = mg.get_exports_info_mut_by_id(self).exports.clone();
+    for export_info in exports.values_mut() {
+      export_info.set_has_use_info(mg);
+    }
+    let exports_info = mg.get_exports_info_mut_by_id(self);
+    _ = std::mem::replace(&mut exports_info.exports, exports);
+    if let Some(redirect_to) = exports_info.redirect_to {
+      redirect_to.set_has_use_info(mg);
+    } else {
+      exports_info.other_exports_info.set_has_use_info(mg);
+    }
+  }
 }
 
 impl Default for ExportsInfoId {
@@ -477,6 +491,8 @@ pub struct ExportInfo {
   max_target_is_set: bool,
   pub exports_info: Option<ExportsInfoId>,
   pub exports_info_owned: bool,
+  pub has_use_in_runtime_info: bool,
+  pub can_mangle_use: Option<bool>,
 }
 
 impl ExportsHash for ExportInfo {
@@ -553,7 +569,14 @@ impl Clone for Box<dyn ResolveFilterFn> {
 
 impl ExportInfo {
   // TODO: remove usage_state in the future
-  pub fn new(name: JsWord, usage_state: UsageState, _init_from: Option<&ExportInfo>) -> Self {
+  pub fn new(name: JsWord, usage_state: UsageState, init_from: Option<&ExportInfo>) -> Self {
+    let has_use_in_runtime_info = if let Some(init_from) = init_from {
+      init_from.has_use_in_runtime_info
+    } else {
+      false
+    };
+    let can_mangle_use = init_from.and_then(|init_from| init_from.can_mangle_use);
+
     Self {
       name,
       module_identifier: None,
@@ -570,6 +593,8 @@ impl ExportInfo {
       exports_info: None,
       max_target: HashMap::default(),
       exports_info_owned: false,
+      has_use_in_runtime_info,
+      can_mangle_use,
     }
   }
 
@@ -596,6 +621,18 @@ impl ExportInfo {
         }
         _ => false,
       }
+    }
+  }
+
+  fn set_has_use_info(&mut self, mg: &mut ModuleGraph) {
+    if !self.has_use_in_runtime_info {
+      self.has_use_in_runtime_info = true;
+    }
+    if self.can_mangle_use.is_none() {
+      self.can_mangle_use = Some(true);
+    }
+    if let Some(exports_info) = self.exports_info {
+      exports_info.set_has_use_info(mg);
     }
   }
 
