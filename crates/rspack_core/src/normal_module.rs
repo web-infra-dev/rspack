@@ -241,6 +241,26 @@ impl NormalModule {
   pub fn parser_and_generator_mut(&mut self) -> &mut Box<dyn ParserAndGenerator> {
     &mut self.parser_and_generator
   }
+
+  pub fn code_generation_dependencies(&self) -> &Option<Vec<Box<dyn ModuleDependency>>> {
+    &self.code_generation_dependencies
+  }
+
+  pub fn code_generation_dependencies_mut(
+    &mut self,
+  ) -> &mut Option<Vec<Box<dyn ModuleDependency>>> {
+    &mut self.code_generation_dependencies
+  }
+
+  pub fn presentational_dependencies(&self) -> &Option<Vec<Box<dyn DependencyTemplate>>> {
+    &self.presentational_dependencies
+  }
+
+  pub fn presentational_dependencies_mut(
+    &mut self,
+  ) -> &mut Option<Vec<Box<dyn DependencyTemplate>>> {
+    &mut self.presentational_dependencies
+  }
 }
 
 impl Identifiable for NormalModule {

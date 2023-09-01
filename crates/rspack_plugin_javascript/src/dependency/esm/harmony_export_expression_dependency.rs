@@ -3,7 +3,7 @@ use rspack_core::{DependencyTemplate, TemplateContext, TemplateReplaceSource};
 pub const DEFAULT_EXPORT: &str = "__WEBPACK_DEFAULT_EXPORT__";
 // pub const NAMESPACE_OBJECT_EXPORT: &'static str = "__WEBPACK_NAMESPACE_OBJECT__";
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AnonymousFunctionRangeInfo {
   pub is_async: bool,
   pub is_generator: bool,
@@ -11,7 +11,7 @@ pub struct AnonymousFunctionRangeInfo {
   pub first_parmas_start: Option<u32>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HarmonyExportExpressionDependency {
   pub start: u32,
   pub end: u32,
