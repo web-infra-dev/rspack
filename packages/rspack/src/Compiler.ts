@@ -46,10 +46,6 @@ import {
 	deprecated_resolveBuiltins
 } from "./builtin-plugin";
 
-class NodeTargetPlugin {
-	apply() {}
-}
-
 class NodeTemplatePlugin {
 	apply() {}
 }
@@ -163,11 +159,21 @@ class Compiler {
 			get EntryPlugin() {
 				return require("./builtin-plugin").EntryPlugin;
 			},
+			get ExternalsPlugin() {
+				return require("./builtin-plugin").ExternalsPlugin;
+			},
 			WebpackError: Error,
 			ModuleFilenameHelpers,
 			node: {
-				NodeTargetPlugin,
+				get NodeTargetPlugin() {
+					return require("./builtin-plugin").NodeTargetPlugin;
+				},
 				NodeTemplatePlugin
+			},
+			electron: {
+				get ElectronTargetPlugin() {
+					return require("./builtin-plugin").ElectronTargetPlugin;
+				}
 			},
 			library: {
 				EnableLibraryPlugin
