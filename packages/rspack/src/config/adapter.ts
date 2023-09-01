@@ -14,12 +14,14 @@ import type {
 	RawAssetResourceGeneratorOptions,
 	RawIncrementalRebuild,
 	RawModuleRuleUses,
-	RawFuncUseCtx
+	RawFuncUseCtx,
+	RawRspackFuture
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../Compiler";
 import { normalizeStatsPreset } from "../Stats";
 import { isNil } from "../util";
+import { parseResource } from "../util/identifier";
 import {
 	ComposeJsUseOptions,
 	LoaderContext,
@@ -27,14 +29,10 @@ import {
 } from "./adapterRuleUse";
 import {
 	CrossOriginLoading,
-	ExternalsPresets,
 	LibraryOptions,
-	ModuleOptionsNormalized,
 	Node,
 	Optimization,
-	OutputNormalized,
 	Resolve,
-	RspackOptionsNormalized,
 	RuleSetCondition,
 	RuleSetLogicalConditions,
 	RuleSetRule,
@@ -49,11 +47,18 @@ import {
 	AssetParserOptions,
 	ParserOptionsByModuleType,
 	GeneratorOptionsByModuleType,
+	IncrementalRebuildOptions,
+	OptimizationSplitChunksOptions,
+	RspackFutureOptions
+} from "./zod";
+import {
 	ExperimentsNormalized,
-	IncrementalRebuildOptions
-} from "./types";
-import { SplitChunksConfig } from "./zod/optimization/split-chunks";
-import { parseResource } from "../util/identifier";
+	ModuleOptionsNormalized,
+	OutputNormalized,
+	RspackOptionsNormalized
+} from "./normalization";
+
+export type { LoaderContext };
 
 export const getRawOptions = (
 	options: RspackOptionsNormalized,
@@ -646,7 +651,7 @@ function getRawOptimization(
 }
 
 function toRawSplitChunksOptions(
-	sc?: SplitChunksConfig
+	sc?: OptimizationSplitChunksOptions
 ): RawOptions["optimization"]["splitChunks"] | undefined {
 	if (!sc) {
 		return;
@@ -725,9 +730,16 @@ function getRawExperiments(
 		asyncWebAssembly,
 		newSplitChunks,
 		css,
-		rspackFuture: {
-			newResolver: rspackFuture.newResolver ?? false
-		}
+		rspackFuture: getRawRspackFutureOptions(rspackFuture)
+	};
+}
+
+function getRawRspackFutureOptions(
+	future: RspackFutureOptions
+): RawRspackFuture {
+	assert(!isNil(future.newResolver));
+	return {
+		newResolver: future.newResolver
 	};
 }
 
