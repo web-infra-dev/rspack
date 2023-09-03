@@ -241,7 +241,8 @@ impl ExportsInfoId {
         let exports_info = mg.get_exports_info_mut_by_id(&id);
         exports_info._exports_are_ordered = false;
         exports_info.exports.insert(name.clone(), new_info_id);
-        return id;
+
+      return id;
       }
     }
     unreachable!()

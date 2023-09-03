@@ -568,8 +568,8 @@ mod test {
 
   use crate::{
     BoxDependency, BuildContext, BuildResult, CodeGenerationResult, Compilation, Context,
-    Dependency, DependencyId, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
-    ModuleIdentifier, ModuleType, SourceType,
+    Dependency, DependencyId, ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph,
+    ModuleGraphModule, ModuleIdentifier, ModuleType, SourceType,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s
@@ -659,9 +659,18 @@ mod test {
   impl_noop_trait_dep_type!(Edge);
 
   fn add_module_to_graph(mg: &mut ModuleGraph, m: Box<dyn Module>) {
-    let mgm = ModuleGraphModule::new(m.identifier(), ModuleType::Js);
+    let other_exports_info = ExportInfo::new("null".into(), UsageState::Unknown, None);
+    let side_effects_only_info =
+      ExportInfo::new("*side effects only*".into(), UsageState::Unknown, None);
+    let exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
+    let mgm = ModuleGraphModule::new(m.identifier(), ModuleType::Js, exports_info.id);
     mg.add_module_graph_module(mgm);
     mg.add_module(m);
+    mg.export_info_map
+      .insert(other_exports_info.id, other_exports_info);
+    mg.export_info_map
+      .insert(side_effects_only_info.id, side_effects_only_info);
+    mg.exports_info_map.insert(exports_info.id, exports_info);
   }
 
   fn link_modules_with_dependency(
