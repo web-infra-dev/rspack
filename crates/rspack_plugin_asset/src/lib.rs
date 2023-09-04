@@ -422,16 +422,16 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
     result
   }
-  fn store(&self, extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) -> () {
+  fn store(&self, extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) {
     extra_data.insert(
       BuildExtraDataType::AssetParserAndGenerator,
       to_bytes::<_, 256>(&self.parsed_asset_config).expect("Failed to store extra data"),
     );
   }
 
-  fn resume(&mut self, extra_data: &HashMap<BuildExtraDataType, AlignedVec>) -> () {
+  fn resume(&mut self, extra_data: &HashMap<BuildExtraDataType, AlignedVec>) {
     if let Some(data) = extra_data.get(&BuildExtraDataType::AssetParserAndGenerator) {
-      self.parsed_asset_config = from_bytes::<Option<CanonicalizedDataUrlOption>>(&data)
+      self.parsed_asset_config = from_bytes::<Option<CanonicalizedDataUrlOption>>(data)
         .expect("Failed to resume extra data");
     }
   }

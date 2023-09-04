@@ -283,16 +283,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     Ok(result)
   }
-  fn store(&self, extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) -> () {
+  fn store(&self, extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) {
     let data = self.exports.to_owned();
     extra_data.insert(
       BuildExtraDataType::CssParserAndGenerator,
       to_bytes::<_, 1024>(&data).expect("Failed to store extra data"),
     );
   }
-  fn resume(&mut self, extra_data: &HashMap<BuildExtraDataType, AlignedVec>) -> () {
+  fn resume(&mut self, extra_data: &HashMap<BuildExtraDataType, AlignedVec>) {
     if let Some(data) = extra_data.get(&BuildExtraDataType::CssParserAndGenerator) {
-      let data = from_bytes::<Option<IndexMap<Vec<String>, Vec<(String, Option<String>)>>>>(&data)
+      let data = from_bytes::<Option<IndexMap<Vec<String>, Vec<(String, Option<String>)>>>>(data)
         .expect("Failed to resume extra data");
       self.exports = data;
     }

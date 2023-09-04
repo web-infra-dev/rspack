@@ -95,7 +95,7 @@ pub fn stringify_css_modules_exports_key(
 }
 
 pub fn stringify_css_modules_exports_elements(
-  elements: &Vec<CssClassName>,
+  elements: &[CssClassName],
 ) -> Vec<(String, Option<String>)> {
   elements
     .iter()
@@ -121,7 +121,7 @@ pub fn css_modules_exports_to_string(
     let content = elements
       .iter()
       .map(|(name, from)| {
-        let result = match from {
+        match from {
           None => name.to_owned(),
           Some(from_name) => {
             let from: &rspack_core::ModuleGraphModule = compilation
@@ -149,8 +149,7 @@ pub fn css_modules_exports_to_string(
             let from = serde_json::to_string(from.id(&compilation.chunk_graph)).expect("TODO:");
             format!("{}({from})[{name}]", RuntimeGlobals::REQUIRE)
           }
-        };
-        return result;
+        }
       })
       .collect::<Vec<_>>()
       .join(" + \" \" + ");

@@ -59,7 +59,7 @@ pub trait ParserAndGenerator: Send + Sync + Debug {
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource>;
   /// Store parser&generator data to cache
-  fn store(&self, _extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) -> () {}
+  fn store(&self, _extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) {}
   /// Resume parser&generator data from cache
-  fn resume(&mut self, _extra_data: &HashMap<BuildExtraDataType, AlignedVec>) -> () {}
+  fn resume(&mut self, _extra_data: &HashMap<BuildExtraDataType, AlignedVec>) {}
 }
