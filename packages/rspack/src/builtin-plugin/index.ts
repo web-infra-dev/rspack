@@ -4,6 +4,11 @@ export * from "./DefinePlugin";
 export * from "./ProvidePlugin";
 export * from "./BannerPlugin";
 export * from "./ProgressPlugin";
+export * from "./EntryPlugin";
+export * from "./ExternalsPlugin";
+export * from "./NodeTargetPlugin";
+export * from "./ElectronTargetPlugin";
+export * from "./HttpExternalsPlugin";
 
 export * from "./HtmlPlugin";
 export * from "./CopyPlugin";

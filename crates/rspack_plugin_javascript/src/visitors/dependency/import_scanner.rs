@@ -83,6 +83,8 @@ impl Visit for ImportScanner<'_> {
                 imported.value.clone(),
                 Some(node.span.into()),
                 ChunkGroupOptions::default().name_optional(chunk_name),
+                // TODO scan dynamic import referenced exports
+                None,
               )));
             }
             Expr::Tpl(tpl) if tpl.quasis.len() == 1 => {
@@ -101,6 +103,7 @@ impl Visit for ImportScanner<'_> {
                 request,
                 Some(node.span.into()),
                 ChunkGroupOptions::default().name_optional(chunk_name),
+                None,
               )));
             }
             _ => {

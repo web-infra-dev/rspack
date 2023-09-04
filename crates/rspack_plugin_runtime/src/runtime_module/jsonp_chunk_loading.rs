@@ -4,9 +4,10 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
-use super::utils::chunk_has_js;
 use crate::impl_runtime_module;
-use crate::runtime_module::utils::{get_initial_chunk_ids, stringify_chunks};
+use crate::runtime_module::utils::{
+  chunk_has_js, get_initial_chunk_ids, render_condition_map, stringify_chunks,
+};
 
 #[derive(Debug, Default, Eq)]
 pub struct JsonpChunkLoadingRuntimeModule {
@@ -40,13 +41,6 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
-    // let condition_map = compilation.chunk_graph.get_chunk_condition_map(
-    //   &chunk_ukey,
-    //   &compilation.chunk_by_ukey,
-    //   &compilation.chunk_group_by_ukey,
-    //   &compilation.module_graph,
-    //   chunk_hash_js,
-    // );
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
     let chunk = compilation
       .chunk_by_ukey
@@ -74,10 +68,14 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       .contains(RuntimeGlobals::ON_CHUNKS_LOADED);
 
     if with_loading {
+      let condition_map =
+        compilation
+          .chunk_graph
+          .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
+      // If chunkId not corresponding chunkName will skip load it.
       source.add(RawSource::from(
         include_str!("runtime/jsonp_chunk_loading.js")
-          // TODO
-          .replace("JS_MATCHER", "chunkId"),
+          .replace("JS_MATCHER", &render_condition_map(&condition_map)),
       ));
     }
 

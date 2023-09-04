@@ -15,6 +15,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 
 </body></html>
 ```
+
 ```html title=chunk2.html
 <!DOCTYPE html>
 <html>
@@ -29,6 +30,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 
 </body></html>
 ```
+
 ```html title=chunk3.html
 <!DOCTYPE html>
 <html>

@@ -1,10 +1,8 @@
 use std::path::PathBuf;
 
-use rspack_testing::{fixture, test_fixture_insta};
+use rspack_testing::{fixture, test_fixture_html};
 
 #[fixture("tests/fixtures/*")]
 fn html(fixture_path: PathBuf) {
-  test_fixture_insta(&fixture_path, &|filename: &str| -> bool {
-    filename.contains(".html")
-  });
+  test_fixture_html(&fixture_path);
 }

@@ -100,7 +100,7 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
       if self.is_exports_member_expr_start(expr) {
         self.enable();
       }
-      if self.is_exports_expr(expr) {
+      if self.is_exports_or_module_exports_or_this_expr(expr) {
         self.enable();
         if is_require_call_expr(&assign_expr.right, self.unresolved_ctxt) {
           // exports = require('xx');
@@ -119,7 +119,7 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
     // var a = exports;
     // var a = module.exports;
     // var a = this;
-    if self.is_exports_expr(&assign_expr.right) {
+    if self.is_exports_or_module_exports_or_this_expr(&assign_expr.right) {
       self.bailout();
     }
     assign_expr.visit_children_with(self);
@@ -130,14 +130,14 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
       // Object.defineProperty(exports, "__esModule", { value: true });
       // Object.defineProperty(module.exports, "__esModule", { value: true });
       // Object.defineProperty(this, "__esModule", { value: true });
-      if expr_matcher::is_object_define_property(expr) && let Some(ExprOrSpread { expr, .. }) = call_expr.args.get(0) && let Some(ExprOrSpread { expr: box Expr::Lit(Lit::Str(str)), .. }) = call_expr.args.get(1) && &str.value == "__esModule" && let Some(value) = get_value_of_property_description(&call_expr.args.get(2)) &&  self.is_exports_expr(expr) {
+      if expr_matcher::is_object_define_property(expr) && let Some(ExprOrSpread { expr, .. }) = call_expr.args.get(0) && let Some(ExprOrSpread { expr: box Expr::Lit(Lit::Str(str)), .. }) = call_expr.args.get(1) && &str.value == "__esModule" && let Some(value) = get_value_of_property_description(&call_expr.args.get(2)) &&  self.is_exports_or_module_exports_or_this_expr(expr) {
         self.enable();
         self.check_namespace(value);
       }
       // exports()
       // module.exports()
       // this()
-      if self.is_exports_expr(expr) {
+      if self.is_exports_or_module_exports_or_this_expr(expr) {
         self.bailout();
       }
     }
@@ -158,10 +158,14 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
     }
   }
 
-  fn is_exports_expr(&self, expr: &Expr) -> bool {
+  fn is_exports_or_module_exports_or_this_expr(&self, expr: &Expr) -> bool {
     matches!(expr,  Expr::Ident(ident) if &ident.sym == "exports" && ident.span.ctxt == *self.unresolved_ctxt)
       || expr_matcher::is_module_exports(expr)
       || matches!(expr,  Expr::This(_) if  self.enter_call == 0)
+  }
+
+  fn is_exports_expr(&self, expr: &Expr) -> bool {
+    matches!(expr,  Expr::Ident(ident) if &ident.sym == "exports" && ident.span.ctxt == *self.unresolved_ctxt)
   }
 
   fn check_namespace(&mut self, value_expr: &Expr) {
@@ -186,7 +190,10 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
 
   // `__esModule` is false
   fn enable(&mut self) {
-    if matches!(self.parser_exports_state, Some(false)) || self.parser_exports_state.is_none() {
+    if matches!(self.parser_exports_state, Some(false)) {
+      return;
+    }
+    if self.parser_exports_state.is_none() {
       self.build_meta.exports_type = BuildMetaExportsType::Default;
       self.build_meta.default_object = BuildMetaDefaultObject::Redirect;
     }

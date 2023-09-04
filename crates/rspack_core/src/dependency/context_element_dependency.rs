@@ -1,6 +1,9 @@
+use swc_core::ecma::atoms::JsWord;
+
 use crate::{
   AsDependencyTemplate, Context, ContextMode, ContextOptions, Dependency, DependencyCategory,
-  DependencyId, DependencyType, ModuleDependency,
+  DependencyId, DependencyType, ExportsReferencedType, ModuleDependency, ModuleGraph,
+  ReferencedExport, RuntimeSpec,
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
@@ -13,6 +16,7 @@ pub struct ContextElementDependency {
   pub category: DependencyCategory,
   pub context: Context,
   pub resource_identifier: String,
+  pub referenced_exports: Option<Vec<JsWord>>,
 }
 
 impl Dependency for ContextElementDependency {
@@ -63,6 +67,18 @@ impl ModuleDependency for ContextElementDependency {
 
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
+  }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: &RuntimeSpec,
+  ) -> ExportsReferencedType {
+    if let Some(referenced_exports) = &self.referenced_exports {
+      vec![ReferencedExport::new(referenced_exports.clone(), false)].into()
+    } else {
+      ExportsReferencedType::Object
+    }
   }
 }
 
