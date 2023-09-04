@@ -43,7 +43,7 @@ impl CodeGenerateOccasion {
         true,
       ));
 
-      // currently no need to seperate module hash by runtime
+      // currently no need to separate module hash by runtime
       if let Some(data) = storage.get(&id) {
         return Ok(data);
       }
