@@ -616,6 +616,7 @@ impl Compilation {
                 diagnostics,
                 dependencies,
                 current_profile,
+                exports_info_related,
               } = task_result;
               let module_identifier = factory_result.module.identifier();
 
@@ -638,6 +639,18 @@ impl Compilation {
               self
                 .missing_dependencies
                 .extend(factory_result.missing_dependencies);
+              self.module_graph.exports_info_map.insert(
+                exports_info_related.exports_info.id,
+                exports_info_related.exports_info,
+              );
+              self.module_graph.export_info_map.insert(
+                exports_info_related.side_effects_info.id,
+                exports_info_related.side_effects_info,
+              );
+              self.module_graph.export_info_map.insert(
+                exports_info_related.other_exports_info.id,
+                exports_info_related.other_exports_info,
+              );
 
               add_queue.add_task(AddTask {
                 original_module_identifier,

@@ -212,12 +212,23 @@ where
             .module_graph
             .module_identifier_to_module_graph_module,
         );
+        let mut export_info_map =
+          std::mem::take(&mut self.compilation.module_graph.export_info_map);
         for mgm in mi_to_mgm.values_mut() {
-          // merge exports info
           if let Some(exports_map) = exports_info_map.remove(&mgm.module_identifier) {
-            mgm.exports.exports.extend(exports_map.into_iter());
+            let exports = self
+              .compilation
+              .module_graph
+              .exports_info_map
+              .get_mut(&mgm.exports)
+              .expect("should have exports info");
+            for (name, export_info) in exports_map {
+              exports.exports.insert(name, export_info.id);
+              export_info_map.insert(export_info.id, export_info);
+            }
           }
         }
+        self.compilation.module_graph.export_info_map = export_info_map;
         self
           .compilation
           .module_graph
