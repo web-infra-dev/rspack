@@ -3,11 +3,11 @@
 use rspack_identifier::{IdentifierLinkedMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::ChunkGraph;
 use crate::{
   find_graph_roots, BoxModule, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey,
   Module, ModuleGraph, ModuleGraphModule, ModuleIdentifier, RuntimeGlobals, SourceType,
 };
+use crate::{ChunkGraph, Compilation};
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraphChunk {
@@ -252,20 +252,27 @@ impl ChunkGraph {
     cgc.runtime_modules.iter()
   }
 
-  pub fn get_chunk_condition_map<F: Fn(&ChunkUkey, &ChunkGraph, &ModuleGraph) -> bool>(
+  pub fn get_chunk_condition_map<F: Fn(&ChunkUkey, &Compilation) -> bool>(
     &self,
     chunk_ukey: &ChunkUkey,
-    chunk_by_ukey: &ChunkByUkey,
-    chunk_group_by_ukey: &ChunkGroupByUkey,
-    module_graph: &ModuleGraph,
+    compilation: &Compilation,
     filter: F,
   ) -> HashMap<String, bool> {
     let mut map = HashMap::default();
 
-    let chunk = chunk_by_ukey.get(chunk_ukey).expect("Chunk should exist");
-    for c in chunk.get_all_referenced_chunks(chunk_group_by_ukey).iter() {
-      let chunk = chunk_by_ukey.get(c).expect("Chunk should exist");
-      map.insert(chunk.expect_id().to_string(), filter(c, self, module_graph));
+    let chunk = compilation
+      .chunk_by_ukey
+      .get(chunk_ukey)
+      .expect("Chunk should exist");
+    for c in chunk
+      .get_all_referenced_chunks(&compilation.chunk_group_by_ukey)
+      .iter()
+    {
+      let chunk = compilation
+        .chunk_by_ukey
+        .get(c)
+        .expect("Chunk should exist");
+      map.insert(chunk.expect_id().to_string(), filter(c, compilation));
     }
 
     map

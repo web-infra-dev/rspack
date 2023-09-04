@@ -301,6 +301,9 @@ export class Compilation {
 			.concat(optionsOrFallback(options.loggingDebug, []))
 			.map(normalizeFilter);
 
+		options.modulesSpace =
+			options.modulesSpace || (context.forToString ? 15 : Infinity);
+
 		return options;
 	}
 

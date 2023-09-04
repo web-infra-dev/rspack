@@ -12,8 +12,8 @@ pub use connection::*;
 
 use crate::{
   to_identifier, BoxDependency, BoxModule, BuildDependency, BuildInfo, BuildMeta,
-  DependencyCondition, DependencyId, ExportsInfo, Module, ModuleGraphModule, ModuleIdentifier,
-  ModuleProfile,
+  DependencyCondition, DependencyId, ExportsInfo, ExportsInfoId, Module, ModuleGraphModule,
+  ModuleIdentifier, ModuleProfile,
 };
 
 // TODO Here request can be used JsWord
@@ -45,6 +45,7 @@ pub struct ModuleGraph {
   connection_to_condition: HashMap<ConnectionId, DependencyCondition>,
 
   import_var_map: IdentifierMap<ImportVarMap>,
+  pub exports_info_map: HashMap<ExportsInfoId, ExportsInfo>,
 }
 
 impl ModuleGraph {
@@ -539,6 +540,16 @@ impl ModuleGraph {
       .module_graph_module_by_identifier_mut(module_identifier)
       .expect("should have mgm");
     &mut mgm.exports
+  }
+
+  pub fn get_exports_info_by_id(&self, id: &ExportsInfoId) -> &ExportsInfo {
+    let exports_info = self.exports_info_map.get(id).expect("should have mgm");
+    exports_info
+  }
+
+  pub fn get_exports_info_mut_by_id(&mut self, id: &ExportsInfoId) -> &mut ExportsInfo {
+    let exports_info = self.exports_info_map.get_mut(id).expect("should have mgm");
+    exports_info
   }
 }
 

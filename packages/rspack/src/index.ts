@@ -29,7 +29,9 @@ export {
 	HtmlPlugin,
 	SwcJsMinimizerPlugin,
 	SwcCssMinimizerPlugin,
-	CopyPlugin
+	CopyPlugin,
+	EntryPlugin,
+	ExternalsPlugin
 } from "./builtin-plugin";
 export type {
 	DefinePluginOptions,
@@ -38,7 +40,11 @@ export type {
 	BannerPluginOptions,
 	HtmlPluginOptions,
 	SwcJsMinimizerPluginOptions,
-	CopyPluginOptions
+	CopyPluginOptions,
+	EntryOptions
 } from "./builtin-plugin";
+import { ElectronTargetPlugin, NodeTargetPlugin } from "./builtin-plugin";
+export const node = { NodeTargetPlugin };
+export const electron = { ElectronTargetPlugin };
 
 export { Watching };

@@ -1,8 +1,8 @@
 use rspack_core::{
-  export_from_import, get_dependency_used_by_exports_condition,
+  export_from_import, get_dependency_used_by_exports_condition, get_exports_type,
   tree_shaking::symbol::DEFAULT_JS_WORD, Compilation, ConnectionState, Dependency,
   DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ExportsReferencedType, ModuleDependency, ModuleGraph, ModuleGraphModule,
+  ErrorSpan, ExportsReferencedType, ExportsType, ModuleDependency, ModuleGraph, ModuleGraphModule,
   ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
   UsedByExports,
 };
@@ -19,10 +19,11 @@ pub struct HarmonyImportSpecifierDependency {
   start: u32,
   end: u32,
   ids: Vec<JsWord>,
-  is_call: bool,
+  call: bool,
   direct_import: bool,
   specifier: Specifier,
   used_by_exports: UsedByExports,
+  namespace_object_as_context: bool,
   referenced_properties_in_destructuring: Option<HashSet<JsWord>>,
   resource_identifier: String,
 }
@@ -35,7 +36,7 @@ impl HarmonyImportSpecifierDependency {
     start: u32,
     end: u32,
     ids: Vec<JsWord>,
-    is_call: bool,
+    call: bool,
     direct_import: bool,
     specifier: Specifier,
   ) -> Self {
@@ -47,10 +48,11 @@ impl HarmonyImportSpecifierDependency {
       start,
       end,
       ids,
-      is_call,
+      call,
       direct_import,
       specifier,
       used_by_exports: UsedByExports::default(),
+      namespace_object_as_context: false,
       referenced_properties_in_destructuring: None,
       resource_identifier,
     }
@@ -92,22 +94,21 @@ impl HarmonyImportSpecifierDependency {
     ids: Option<&Vec<JsWord>>,
   ) -> ExportsReferencedType {
     if let Some(referenced_properties) = &self.referenced_properties_in_destructuring {
-      ExportsReferencedType::Value(
-        referenced_properties
-          .iter()
-          .map(|prop| {
-            if let Some(v) = ids {
-              let mut value = v.clone();
-              value.push(prop.clone());
-              ReferencedExport::new(value, false)
-            } else {
-              ReferencedExport::new(vec![prop.clone()], false)
-            }
-          })
-          .collect(),
-      )
+      referenced_properties
+        .iter()
+        .map(|prop| {
+          if let Some(v) = ids {
+            let mut value = v.clone();
+            value.push(prop.clone());
+            ReferencedExport::new(value, false)
+          } else {
+            ReferencedExport::new(vec![prop.clone()], false)
+          }
+        })
+        .collect::<Vec<_>>()
+        .into()
     } else if let Some(v) = ids {
-      ExportsReferencedType::Value(vec![ReferencedExport::new(v.clone(), true)])
+      vec![ReferencedExport::new(v.clone(), true)].into()
     } else {
       ExportsReferencedType::Object
     }
@@ -151,7 +152,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       import_var,
       self.ids.clone(),
       &self.id,
-      self.is_call,
+      self.call,
       !self.direct_import,
     );
     if self.shorthand {
@@ -211,13 +212,41 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
 
   fn get_referenced_exports(
     &self,
-    _module_graph: &ModuleGraph,
+    module_graph: &ModuleGraph,
     _runtime: &RuntimeSpec,
   ) -> ExportsReferencedType {
     if self.ids.is_empty() {
       return self.get_referenced_exports_in_destructuring(None);
     }
-    // TODO
+
+    let mut ids = vec![];
+    let mut namespace_object_as_context = self.namespace_object_as_context;
+    if let Some(id) = self.ids.get(0) && id == "default" {
+      let parent_module = module_graph.parent_module_by_dependency_id(&self.id).expect("should have parent module");
+      let exports_type = get_exports_type(module_graph, &self.id, &parent_module);
+      match exports_type {
+        ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
+          if self.ids.len() == 1 {
+            return self.get_referenced_exports_in_destructuring(None);
+          }
+          ids = self.ids.iter().skip(1).collect::<Vec<_>>();
+          namespace_object_as_context = true;
+        }
+        ExportsType::Dynamic => {
+          return ExportsReferencedType::No;
+        }
+        _ => {}
+      }
+    }
+
+    if self.call && !self.direct_import && (namespace_object_as_context || ids.len() > 1) {
+      if ids.len() == 1 {
+        return ExportsReferencedType::Object;
+      }
+      // remove last one
+      ids.shrink_to(ids.len() - 1);
+    }
+
     self.get_referenced_exports_in_destructuring(Some(&self.ids))
   }
 }

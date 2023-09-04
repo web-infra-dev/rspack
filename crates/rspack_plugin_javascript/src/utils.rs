@@ -25,7 +25,6 @@ fn syntax_by_ext(filename: &Path, enable_decorators: bool) -> Syntax {
       })
     }
     false => Syntax::Es(EsConfig {
-      import_assertions: true,
       jsx: ext == "jsx",
       export_default_from: true,
       decorators_before_export: true,
@@ -44,7 +43,6 @@ pub fn syntax_by_module_type(
 ) -> Syntax {
   match module_type {
     ModuleType::Js | ModuleType::Jsx => Syntax::Es(EsConfig {
-      import_assertions: true,
       jsx: matches!(module_type, ModuleType::Jsx),
       export_default_from: true,
       decorators_before_export: true,

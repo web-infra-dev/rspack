@@ -7,5 +7,6 @@ pub fn hygiene(keep_class_names: bool, top_level_mark: Mark) -> impl Fold {
     keep_class_names,
     safari_10: true,
     top_level_mark,
+    ignore_eval: false,
   })
 }

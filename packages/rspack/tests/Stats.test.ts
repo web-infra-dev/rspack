@@ -214,6 +214,33 @@ describe("Stats", () => {
 	`);
 	});
 
+	it("should output the specified number of modules when set stats.modulesSpace", async () => {
+		const stats = await compile({
+			context: __dirname,
+			entry: "./fixtures/abc"
+		});
+
+		expect(
+			stats?.toJson({
+				all: true,
+				timings: false,
+				builtAt: false,
+				version: false
+			}).modules?.length
+		).toBe(4);
+
+		expect(
+			stats?.toJson({
+				all: true,
+				timings: false,
+				builtAt: false,
+				version: false,
+				modulesSpace: 3
+			}).modules?.length
+			// 2 = 3 - 1 = max - filteredChildrenLineReserved
+		).toBe(2);
+	});
+
 	it("should have time log when logging verbose", async () => {
 		const stats = await compile({
 			context: __dirname,

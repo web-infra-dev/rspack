@@ -613,10 +613,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				options.source!
 			);
 			const groupedModules = factory.create(`${type}.modules`, array, context);
-			const limited = spaceLimited(
-				groupedModules,
-				15 /* options.modulesSpace */
-			);
+			const limited = spaceLimited(groupedModules, options.modulesSpace!);
 			object.modules = limited.children;
 			object.filteredModules = limited.filteredChildren;
 		},

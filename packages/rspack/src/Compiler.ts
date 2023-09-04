@@ -46,33 +46,6 @@ import {
 	deprecated_resolveBuiltins
 } from "./builtin-plugin";
 
-class EntryPlugin {
-	constructor(
-		public context: string,
-		public entry: string,
-		public options: {
-			name?: string;
-			runtime?: string;
-		} = {}
-	) {}
-	apply(compiler: Compiler) {
-		const entry = this.context
-			? path.resolve(this.context, this.entry)
-			: this.entry;
-
-		compiler.options.entry = {
-			[this.options.name || "main"]: {
-				import: [entry],
-				runtime: this.options.runtime
-			}
-		};
-	}
-}
-
-class NodeTargetPlugin {
-	apply() {}
-}
-
 class NodeTemplatePlugin {
 	apply() {}
 }
@@ -159,7 +132,6 @@ class Compiler {
 		this.builtinPlugins = [];
 		// to workaround some plugin access webpack, we may change dev-server to avoid this hack in the future
 		this.webpack = {
-			EntryPlugin, // modernjs/server use this to inject dev-client
 			HotModuleReplacementPlugin, // modernjs/server will auto inject this plugin not set
 			NormalModule,
 			get sources(): typeof import("webpack-sources") {
@@ -184,11 +156,24 @@ class Compiler {
 			get ProvidePlugin() {
 				return require("./builtin-plugin").ProvidePlugin;
 			},
+			get EntryPlugin() {
+				return require("./builtin-plugin").EntryPlugin;
+			},
+			get ExternalsPlugin() {
+				return require("./builtin-plugin").ExternalsPlugin;
+			},
 			WebpackError: Error,
 			ModuleFilenameHelpers,
 			node: {
-				NodeTargetPlugin,
+				get NodeTargetPlugin() {
+					return require("./builtin-plugin").NodeTargetPlugin;
+				},
 				NodeTemplatePlugin
+			},
+			electron: {
+				get ElectronTargetPlugin() {
+					return require("./builtin-plugin").ElectronTargetPlugin;
+				}
 			},
 			library: {
 				EnableLibraryPlugin

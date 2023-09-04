@@ -30,8 +30,8 @@ pub use dependency_template::*;
 use dyn_clone::{clone_trait_object, DynClone};
 
 use crate::{
-  ChunkGroupOptions, ConnectionState, Context, ContextMode, ContextOptions, ErrorSpan, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, ReferencedExport, RuntimeSpec,
+  ChunkGroupOptionsKindRef, ConnectionState, Context, ContextMode, ContextOptions, ErrorSpan,
+  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport, RuntimeSpec,
 };
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
@@ -243,12 +243,38 @@ pub struct ExportsSpec {
   pub from: Option<ModuleGraphConnection>,
   pub dependencies: Option<Vec<ModuleIdentifier>>,
   pub hide_export: Option<Vec<JsWord>>,
+  pub exclude_exports: Option<Vec<JsWord>>,
 }
 
 pub enum ExportsReferencedType {
   No,     // NO_EXPORTS_REFERENCED
   Object, // EXPORTS_OBJECT_REFERENCED
-  Value(Vec<ReferencedExport>),
+  String(Box<Vec<Vec<JsWord>>>),
+  Value(Box<Vec<ReferencedExport>>),
+}
+
+impl From<JsWord> for ExportsReferencedType {
+  fn from(value: JsWord) -> Self {
+    ExportsReferencedType::String(Box::new(vec![vec![value]]))
+  }
+}
+
+impl From<Vec<Vec<JsWord>>> for ExportsReferencedType {
+  fn from(value: Vec<Vec<JsWord>>) -> Self {
+    ExportsReferencedType::String(Box::new(value))
+  }
+}
+
+impl From<Vec<JsWord>> for ExportsReferencedType {
+  fn from(value: Vec<JsWord>) -> Self {
+    ExportsReferencedType::String(Box::new(vec![value]))
+  }
+}
+
+impl From<Vec<ReferencedExport>> for ExportsReferencedType {
+  fn from(value: Vec<ReferencedExport>) -> Self {
+    ExportsReferencedType::Value(Box::new(value))
+  }
 }
 
 pub trait AsModuleDependency {
@@ -333,7 +359,7 @@ pub trait ModuleDependency: Dependency {
   }
 
   // TODO: wired to place ChunkGroupOptions on dependency, should place on AsyncDependenciesBlock
-  fn group_options(&self) -> Option<&ChunkGroupOptions> {
+  fn group_options(&self) -> Option<ChunkGroupOptionsKindRef> {
     None
   }
 

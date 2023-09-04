@@ -43,6 +43,7 @@ impl Dependency for HarmonyExportSpecifierDependency {
       from: None,
       dependencies: None,
       hide_export: None,
+      exclude_exports: None,
     })
   }
 }

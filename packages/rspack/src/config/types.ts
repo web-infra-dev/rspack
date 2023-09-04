@@ -610,6 +610,7 @@ export interface StatsOptions {
 	timings?: boolean;
 	builtAt?: boolean;
 	moduleAssets?: boolean;
+	modulesSpace?: number;
 	nestedModules?: boolean;
 	source?: boolean;
 	logging?: ("none" | "error" | "warn" | "info" | "log" | "verbose") | boolean;

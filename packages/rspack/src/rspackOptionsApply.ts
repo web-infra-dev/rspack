@@ -19,18 +19,78 @@ import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { cleverMerge } from "./util/cleverMerge";
 import assert from "assert";
+import {
+	ExternalsPlugin,
+	HttpExternalsPlugin,
+	NodeTargetPlugin,
+	ElectronTargetPlugin
+} from "./builtin-plugin";
 import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
+import EntryOptionPlugin from "./lib/EntryOptionPlugin";
 
 export class RspackOptionsApply {
 	constructor() {}
 	process(options: RspackOptionsNormalized, compiler: Compiler) {
 		assert(
 			options.output.path,
-			"options.output.path should at least have a default value after `applyRspackOptionsDefaults`"
+			"options.output.path should have value after `applyRspackOptionsDefaults`"
 		);
 		compiler.outputPath = options.output.path;
 		compiler.name = options.name;
 		compiler.outputFileSystem = fs;
+
+		if (options.externals) {
+			assert(
+				options.externalsType,
+				"options.externalsType should have value after `applyRspackOptionsDefaults`"
+			);
+			new ExternalsPlugin(options.externalsType, options.externals).apply(
+				compiler
+			);
+		}
+
+		if (options.externalsPresets.node) {
+			new NodeTargetPlugin().apply(compiler);
+		}
+		if (options.externalsPresets.electronMain) {
+			new ElectronTargetPlugin("main").apply(compiler);
+		}
+		if (options.externalsPresets.electronPreload) {
+			new ElectronTargetPlugin("preload").apply(compiler);
+		}
+		if (options.externalsPresets.electronRenderer) {
+			new ElectronTargetPlugin("renderer").apply(compiler);
+		}
+		if (
+			options.externalsPresets.electron &&
+			!options.externalsPresets.electronMain &&
+			!options.externalsPresets.electronPreload &&
+			!options.externalsPresets.electronRenderer
+		) {
+			new ElectronTargetPlugin().apply(compiler);
+		}
+		if (
+			options.externalsPresets.web ||
+			(options.externalsPresets.node && options.experiments.css)
+		) {
+			new HttpExternalsPlugin(!!options.experiments.css).apply(compiler);
+		}
+
+		const runtimeChunk = options.optimization
+			.runtimeChunk as OptimizationRuntimeChunkNormalized;
+		if (runtimeChunk) {
+			Object.entries(options.entry).forEach(([entryName, value]) => {
+				if (value.runtime === undefined) {
+					value.runtime = runtimeChunk.name({ name: entryName });
+				}
+			});
+		}
+		new EntryOptionPlugin().apply(compiler);
+		assert(
+			options.context,
+			"options.context should have value after `applyRspackOptionsDefaults`"
+		);
+		compiler.hooks.entryOption.call(options.context, options.entry);
 
 		const { minimize, minimizer } = options.optimization;
 		if (minimize && minimizer) {
@@ -42,15 +102,7 @@ export class RspackOptionsApply {
 				}
 			}
 		}
-		const runtimeChunk = options.optimization
-			.runtimeChunk as OptimizationRuntimeChunkNormalized;
-		if (runtimeChunk) {
-			Object.entries(options.entry).forEach(([entryName, value]) => {
-				if (value.runtime === undefined) {
-					value.runtime = runtimeChunk.name({ name: entryName });
-				}
-			});
-		}
+
 		if (options.builtins.devFriendlySplitChunks) {
 			options.optimization.splitChunks = undefined;
 		}
