@@ -36,10 +36,9 @@ impl ResolverFactory {
   }
 
   pub fn new(options: Resolve) -> Self {
-    let resolver = Resolver::new(options.clone());
     Self {
-      resolver,
-      base_options: options,
+      base_options: options.clone(),
+      resolver: Resolver::new(options),
       resolvers: Default::default(),
     }
   }
