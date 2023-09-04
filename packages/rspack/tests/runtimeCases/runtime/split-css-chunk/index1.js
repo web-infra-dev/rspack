@@ -7,3 +7,7 @@ it("should load css chunk", function (done) {
 		done();
 	});
 });
+
+import "./common.css";
+
+// ./common.css is initial chunks and also be async chunks.
