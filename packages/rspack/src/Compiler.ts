@@ -306,7 +306,7 @@ class Compiler {
 
 		const options = this.options;
 		// TODO: remove this in v0.4
-		{
+		if (this.parentCompilation === undefined) {
 			if (options.externals) {
 				assert(
 					options.externalsType,
