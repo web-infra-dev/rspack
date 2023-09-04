@@ -100,6 +100,7 @@ impl RawOptionsApply for RawOptions {
       },
       async_web_assembly: self.experiments.async_web_assembly,
       new_split_chunks: self.experiments.new_split_chunks,
+      rspack_future: self.experiments.rspack_future.into(),
     };
     let optimization = IS_ENABLE_NEW_SPLIT_CHUNKS.set(&experiments.new_split_chunks, || {
       self.optimization.apply(plugins)

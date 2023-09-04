@@ -655,6 +655,7 @@ export interface IncrementalRebuildOptions {
 	make?: boolean;
 	emitAsset?: boolean;
 }
+export interface RspackFutureOptions {}
 // TODO: discuss with webpack, should move to css generator options
 // export interface CssExperimentOptions {
 // 	exportsOnly?: boolean;
@@ -674,6 +675,7 @@ export interface ExperimentsNormalized {
 	newSplitChunks?: boolean;
 	css?: boolean;
 	futureDefaults?: boolean;
+	rspackFuture?: RspackFutureOptions;
 }
 
 ///// Watch /////
