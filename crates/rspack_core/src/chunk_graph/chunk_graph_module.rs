@@ -7,8 +7,9 @@ use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  BoxModule, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey,
-  ModuleIdentifier, OutputOptions, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  BoxModule, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, ExportInfoId,
+  ExportsInfoId, ModuleIdentifier, OutputOptions, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap,
+  RuntimeSpecSet,
 };
 use crate::{ChunkGraph, ModuleGraph};
 
@@ -178,6 +179,54 @@ impl ChunkGraph {
     let mut hasher = RspackHash::new(&hash_options.hash_function);
     let mut connection_hash_cache: HashMap<Identifier, String> = HashMap::new();
 
+    fn update_export_info_hash(
+      hasher: &mut RspackHash,
+      export_info_id: &ExportInfoId,
+      module_graph: &ModuleGraph,
+    ) {
+      if let Some(export_info) = module_graph.export_info_map.get(export_info_id) {
+        export_info.name.dyn_hash(hasher);
+        export_info.module_identifier.dyn_hash(hasher);
+        export_info.usage_state.dyn_hash(hasher);
+        for (name, value) in &export_info.target {
+          name.dyn_hash(hasher);
+          value.dyn_hash(hasher);
+        }
+        for (name, value) in &export_info.max_target {
+          name.dyn_hash(hasher);
+          value.dyn_hash(hasher);
+        }
+        export_info.provided.dyn_hash(hasher);
+        export_info.can_mangle_provide.dyn_hash(hasher);
+        export_info.terminal_binding.dyn_hash(hasher);
+        export_info.target_is_set.dyn_hash(hasher);
+        export_info.max_target_is_set.dyn_hash(hasher);
+        export_info.exports_info_owned.dyn_hash(hasher);
+        if let Some(exports_info_id) = export_info.exports_info {
+          update_exports_info_hash(hasher, &exports_info_id, module_graph);
+        }
+      }
+    }
+
+    fn update_exports_info_hash(
+      hasher: &mut RspackHash,
+      exports_info_id: &ExportsInfoId,
+      module_graph: &ModuleGraph,
+    ) {
+      if let Some(exports_info) = module_graph.exports_info_map.get(exports_info_id) {
+        for (name, export_info_id) in &exports_info.exports {
+          name.dyn_hash(hasher);
+          update_export_info_hash(hasher, export_info_id, module_graph);
+        }
+        update_export_info_hash(hasher, &exports_info.other_exports_info, module_graph);
+        update_export_info_hash(hasher, &exports_info._side_effects_only_info, module_graph);
+        exports_info._exports_are_ordered.dyn_hash(hasher);
+        if let Some(redirect_to) = exports_info.redirect_to {
+          update_exports_info_hash(hasher, &redirect_to, module_graph);
+        }
+      }
+    }
+
     fn process_module_graph_module(
       hash_options: &OutputOptions,
       module: &BoxModule,
@@ -190,9 +239,12 @@ impl ChunkGraph {
       module_graph
         .is_async(&module.identifier())
         .dyn_hash(&mut hasher);
-      module_graph
-        .get_exports_info(&module.identifier())
-        .dyn_hash(&mut hasher);
+
+      update_exports_info_hash(
+        &mut hasher,
+        &module_graph.get_exports_info(&module.identifier()).id,
+        module_graph,
+      );
 
       if let Some(mgm) = module_graph.module_graph_module_by_identifier(&module.identifier()) {
         let export_type = mgm.get_exports_type(strict);

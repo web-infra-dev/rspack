@@ -282,19 +282,6 @@ impl From<u32> for ExportsInfoId {
   }
 }
 
-impl Hash for ExportsInfo {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    for (name, info) in &self.exports {
-      name.hash(state);
-      info.hash(state);
-    }
-    self.other_exports_info.hash(state);
-    self._side_effects_only_info.hash(state);
-    self._exports_are_ordered.hash(state);
-    self.redirect_to.hash(state);
-  }
-}
-
 #[derive(Debug)]
 pub struct ExportsInfo {
   pub exports: HashMap<JsWord, ExportInfoId>,
@@ -434,39 +421,21 @@ impl From<u32> for ExportInfoId {
 #[derive(Debug, Clone, Default)]
 #[allow(unused)]
 pub struct ExportInfo {
-  name: JsWord,
-  module_identifier: Option<ModuleIdentifier>,
+  pub name: JsWord,
+  pub module_identifier: Option<ModuleIdentifier>,
   pub usage_state: UsageState,
-  used_name: Option<String>,
-  target: HashMap<DependencyId, ExportInfoTargetValue>,
-  max_target: HashMap<DependencyId, ExportInfoTargetValue>,
+  pub used_name: Option<String>,
+  pub target: HashMap<DependencyId, ExportInfoTargetValue>,
+  pub max_target: HashMap<DependencyId, ExportInfoTargetValue>,
   pub provided: Option<ExportInfoProvided>,
   pub can_mangle_provide: Option<bool>,
   pub terminal_binding: bool,
   /// This is rspack only variable, it is used to flag if the target has been initialized
-  target_is_set: bool,
+  pub target_is_set: bool,
   pub id: ExportInfoId,
-  max_target_is_set: bool,
+  pub max_target_is_set: bool,
   pub exports_info: Option<ExportsInfoId>,
   pub exports_info_owned: bool,
-}
-
-impl Hash for ExportInfo {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.name.hash(state);
-    self.module_identifier.hash(state);
-    self.usage_state.hash(state);
-    self.used_name.hash(state);
-    for (name, value) in &self.target {
-      name.hash(state);
-      value.hash(state);
-    }
-    self.provided.hash(state);
-    self.can_mangle_provide.hash(state);
-    self.terminal_binding.hash(state);
-    self.target_is_set.hash(state);
-    self.id.hash(state);
-  }
 }
 
 #[derive(Debug, Hash, Clone, Copy)]
