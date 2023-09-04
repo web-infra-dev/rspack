@@ -2858,7 +2858,6 @@ dependencies = [
  "dashmap",
  "derivative",
  "futures-util",
- "napi",
  "rayon",
  "rspack_core",
  "rspack_identifier",

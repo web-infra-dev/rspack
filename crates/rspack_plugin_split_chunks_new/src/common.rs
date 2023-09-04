@@ -47,7 +47,7 @@ pub fn create_regex_chunk_filter_from_str(re: RspackRegex) -> ChunkFilter {
 
 pub type ModuleFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
 
-fn create_default_module_filter() -> ModuleFilter {
+pub fn create_default_module_filter() -> ModuleFilter {
   Arc::new(|_| true)
 }
 

@@ -329,3 +329,9 @@ fn create_module_type_filter(raw: Either<JsRegExp, JsString>) -> ModuleTypeFilte
     }
   }
 }
+
+pub fn create_module_filter(test: Option<Either<JsString, JsRegExp>>) -> ModuleFilter {
+  let filter = test
+    .map(|test| match test {})
+    .unwrap_or_else(rspack_plugin_split_chunks_new::create_default_module_filter);
+}
