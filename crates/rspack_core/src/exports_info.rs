@@ -1,10 +1,11 @@
 use std::collections::VecDeque;
-use std::hash::Hash;
+use std::hash::Hasher;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
 
 use once_cell::sync::Lazy;
+use rspack_util::ext::DynHash;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use serde::Serialize;
@@ -15,10 +16,22 @@ use crate::{
   ModuleIdentifier, RuntimeSpec,
 };
 
+pub trait ExportsHash {
+  fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph);
+}
+
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct ExportsInfoId(u32);
 
 pub static EXPORTS_INFO_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
+
+impl ExportsHash for ExportsInfoId {
+  fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {
+    if let Some(exports_info) = module_graph.exports_info_map.get(self) {
+      exports_info.export_info_hash(hasher, module_graph);
+    }
+  }
+}
 
 impl ExportsInfoId {
   pub fn new() -> Self {
@@ -292,6 +305,26 @@ pub struct ExportsInfo {
   pub id: ExportsInfoId,
 }
 
+impl ExportsHash for ExportsInfo {
+  fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {
+    for (name, export_info_id) in &self.exports {
+      name.dyn_hash(hasher);
+      export_info_id.export_info_hash(hasher, module_graph);
+    }
+    self
+      .other_exports_info
+      .export_info_hash(hasher, module_graph);
+    self
+      ._side_effects_only_info
+      .export_info_hash(hasher, module_graph);
+    self._exports_are_ordered.dyn_hash(hasher);
+
+    if let Some(redirect_to) = self.redirect_to {
+      redirect_to.export_info_hash(hasher, module_graph);
+    }
+  }
+}
+
 impl ExportsInfo {
   pub fn new(other_exports_info: ExportInfoId, _side_effects_only_info: ExportInfoId) -> Self {
     Self {
@@ -393,6 +426,14 @@ pub struct ExportInfoId(u32);
 
 pub static EXPORT_INFO_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
 
+impl ExportsHash for ExportInfoId {
+  fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {
+    if let Some(export_info) = module_graph.export_info_map.get(self) {
+      export_info.export_info_hash(hasher, module_graph);
+    }
+  }
+}
+
 impl ExportInfoId {
   pub fn new() -> Self {
     Self(EXPORT_INFO_ID.fetch_add(1, Relaxed))
@@ -421,21 +462,47 @@ impl From<u32> for ExportInfoId {
 #[derive(Debug, Clone, Default)]
 #[allow(unused)]
 pub struct ExportInfo {
-  pub name: JsWord,
-  pub module_identifier: Option<ModuleIdentifier>,
+  name: JsWord,
+  module_identifier: Option<ModuleIdentifier>,
   pub usage_state: UsageState,
-  pub used_name: Option<String>,
-  pub target: HashMap<DependencyId, ExportInfoTargetValue>,
-  pub max_target: HashMap<DependencyId, ExportInfoTargetValue>,
+  used_name: Option<String>,
+  target: HashMap<DependencyId, ExportInfoTargetValue>,
+  max_target: HashMap<DependencyId, ExportInfoTargetValue>,
   pub provided: Option<ExportInfoProvided>,
   pub can_mangle_provide: Option<bool>,
   pub terminal_binding: bool,
   /// This is rspack only variable, it is used to flag if the target has been initialized
-  pub target_is_set: bool,
+  target_is_set: bool,
   pub id: ExportInfoId,
-  pub max_target_is_set: bool,
+  max_target_is_set: bool,
   pub exports_info: Option<ExportsInfoId>,
   pub exports_info_owned: bool,
+}
+
+impl ExportsHash for ExportInfo {
+  fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {
+    self.name.dyn_hash(hasher);
+    self.module_identifier.dyn_hash(hasher);
+    self.usage_state.dyn_hash(hasher);
+    self.used_name.dyn_hash(hasher);
+    for (name, value) in &self.target {
+      name.dyn_hash(hasher);
+      value.dyn_hash(hasher);
+    }
+    for (name, value) in &self.max_target {
+      name.dyn_hash(hasher);
+      value.dyn_hash(hasher);
+    }
+    self.provided.dyn_hash(hasher);
+    self.can_mangle_provide.dyn_hash(hasher);
+    self.terminal_binding.dyn_hash(hasher);
+    self.target_is_set.dyn_hash(hasher);
+    self.max_target_is_set.dyn_hash(hasher);
+    if let Some(exports_info_id) = self.exports_info {
+      exports_info_id.export_info_hash(hasher, module_graph);
+    }
+    self.exports_info_owned.dyn_hash(hasher);
+  }
 }
 
 #[derive(Debug, Hash, Clone, Copy)]

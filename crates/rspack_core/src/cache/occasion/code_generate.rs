@@ -37,7 +37,6 @@ impl CodeGenerateOccasion {
       // only cache normal module
       // TODO: cache all module type
       let id = Identifier::from(compilation.chunk_graph.get_module_graph_hash(
-        &compilation.options.output,
         module,
         &compilation.module_graph,
         true,
