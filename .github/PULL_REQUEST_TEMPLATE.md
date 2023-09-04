@@ -17,3 +17,11 @@
 ## Test Plan
 
 <!-- Can you please describe how you tested the changes you made to the code? -->
+
+## Needs Documentation
+
+[ ] No
+
+<!-- if the pull request needs documentation, please paste the related link here -->
+
+[ ] Yes, the link of related rspac-website PR \_\_
