@@ -126,7 +126,6 @@ impl ExportsInfoId {
       if let Some(target_key) = target_key {
         export_info.set_target(
           &target_key,
-          // TODO: remove this unwrap, you can't unwrap here
           target_module.clone(),
           Some(&vec![export_info.name.clone()]),
           priority,
