@@ -42,9 +42,15 @@ import Watching from "./Watching";
 import { NormalModule } from "./NormalModule";
 import { normalizeJsModule } from "./util/normalization";
 import {
+	ElectronTargetPlugin,
+	ExternalsPlugin,
+	HttpExternalsPlugin,
+	NodeTargetPlugin,
 	RspackBuiltinPlugin,
 	deprecated_resolveBuiltins
 } from "./builtin-plugin";
+import assert from "assert";
+import EntryOptionPlugin from "./lib/EntryOptionPlugin";
 
 class NodeTemplatePlugin {
 	apply() {}
@@ -298,18 +304,59 @@ class Compiler {
 				});
 		};
 
+		const options = this.options;
+		// TODO: remove this in v0.4
+		{
+			if (options.externals) {
+				assert(
+					options.externalsType,
+					"options.externalsType should have value after `applyRspackOptionsDefaults`"
+				);
+				new ExternalsPlugin(options.externalsType, options.externals).apply(
+					this
+				);
+			}
+
+			if (options.externalsPresets.node) {
+				new NodeTargetPlugin().apply(this);
+			}
+			if (options.externalsPresets.electronMain) {
+				new ElectronTargetPlugin("main").apply(this);
+			}
+			if (options.externalsPresets.electronPreload) {
+				new ElectronTargetPlugin("preload").apply(this);
+			}
+			if (options.externalsPresets.electronRenderer) {
+				new ElectronTargetPlugin("renderer").apply(this);
+			}
+			if (
+				options.externalsPresets.electron &&
+				!options.externalsPresets.electronMain &&
+				!options.externalsPresets.electronPreload &&
+				!options.externalsPresets.electronRenderer
+			) {
+				new ElectronTargetPlugin().apply(this);
+			}
+			if (
+				options.externalsPresets.web ||
+				(options.externalsPresets.node && options.experiments.css)
+			) {
+				new HttpExternalsPlugin(!!options.experiments.css).apply(this);
+			}
+			new EntryOptionPlugin().apply(this);
+		}
 		// TODO: remove this when drop support for builtins options
-		this.options.builtins = deprecated_resolveBuiltins(
-			this.options.builtins,
-			this.options,
+		options.builtins = deprecated_resolveBuiltins(
+			options.builtins,
+			options,
 			this
 		) as any;
-		const options = getRawOptions(this.options, this, processResource);
+		const rawOptions = getRawOptions(options, this, processResource);
 
 		const instanceBinding: typeof binding = require("@rspack/binding");
 
 		this.#_instance = new instanceBinding.Rspack(
-			options,
+			rawOptions,
 			this.builtinPlugins.map(bp => bp.raw()),
 			{
 				beforeCompile: this.#beforeCompile.bind(this),
