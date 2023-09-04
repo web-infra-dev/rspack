@@ -215,7 +215,6 @@ where
         let mut export_info_map =
           std::mem::take(&mut self.compilation.module_graph.export_info_map);
         for mgm in mi_to_mgm.values_mut() {
-          // TODO:  merge exports info
           if let Some(exports_map) = exports_info_map.remove(&mgm.module_identifier) {
             let exports = self
               .compilation
