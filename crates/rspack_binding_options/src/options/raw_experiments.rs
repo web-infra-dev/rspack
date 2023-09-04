@@ -13,6 +13,7 @@ pub struct RawIncrementalRebuild {
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
+#[allow(clippy::empty_structs_with_brackets)]
 pub struct RawRspackFuture {}
 
 #[derive(Deserialize, Debug, Default)]
