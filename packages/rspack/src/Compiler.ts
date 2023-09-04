@@ -343,7 +343,7 @@ class Compiler {
 			) {
 				new HttpExternalsPlugin(!!options.experiments.css).apply(this);
 			}
-			new EntryOptionPlugin().apply(this);
+			EntryOptionPlugin.applyEntryOption(this, this.context, options.entry);
 		}
 		// TODO: remove this when drop support for builtins options
 		options.builtins = deprecated_resolveBuiltins(
