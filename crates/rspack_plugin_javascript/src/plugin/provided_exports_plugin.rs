@@ -93,10 +93,15 @@ impl<'a> ProvidedExportsPlugin<'a> {
       for name in hide_export.iter() {
         let from_exports_info_id = exports_info_id.export_info_mut(name, self.mg);
         let exports_info = self.mg.get_exports_info_mut_by_id(&from_exports_info_id);
-        let export_info = exports_info
+        let export_info_id = *exports_info
           .exports
-          .get_mut(name)
+          .get(name)
           .expect("should have exports info");
+        let export_info = self
+          .mg
+          .export_info_map
+          .get_mut(&export_info_id)
+          .expect("should have export info");
         export_info.unuset_target(&dep_id);
       }
     }
@@ -186,12 +191,17 @@ impl<'a> ProvidedExportsPlugin<'a> {
         };
       let exports_info_id = exports_info.export_info_mut(&name, self.mg);
       let exports_info = self.mg.get_exports_info_mut_by_id(&exports_info_id);
-      let mut export_info = exports_info
+      let export_info_id = *exports_info
         .exports
-        .get_mut(&name)
+        .get(&name)
+        .expect("should have export info");
+
+      let mut export_info = self
+        .mg
+        .export_info_map
+        .get_mut(&export_info_id)
         .expect("should have export info")
         .clone();
-
       if let Some(ref mut provided) = export_info.provided && matches!(provided, ExportInfoProvided::False | ExportInfoProvided::Null) {
         *provided = ExportInfoProvided::True;
         self.changed = true;
@@ -235,10 +245,15 @@ impl<'a> ProvidedExportsPlugin<'a> {
       // Recalculate target exportsInfo
       let target = export_info.get_target(self.mg, None);
 
-      let exports_info = self.mg.get_exports_info_mut_by_id(&exports_info_id);
-      let export_info_old = exports_info
+      let exports_info = self.mg.get_exports_info_by_id(&exports_info_id);
+      let export_info_old_id = *exports_info
         .exports
-        .get_mut(&name)
+        .get(&name)
+        .expect("should have export info");
+      let export_info_old = self
+        .mg
+        .export_info_map
+        .get_mut(&export_info_old_id)
         .expect("should have export info");
       _ = std::mem::replace(export_info_old, export_info);
 
@@ -257,10 +272,15 @@ impl<'a> ProvidedExportsPlugin<'a> {
           }
         }
       }
-      let exports_info = self.mg.get_exports_info_mut_by_id(&exports_info_id);
-      let export_info = exports_info
+      let exports_info = self.mg.get_exports_info_by_id(&exports_info_id);
+      let export_info_id = *exports_info
         .exports
-        .get_mut(&name)
+        .get(&name)
+        .expect("should have export info");
+      let export_info = self
+        .mg
+        .export_info_map
+        .get_mut(&export_info_id)
         .expect("should have export info");
       if export_info.exports_info_owned {
         let changed = export_info

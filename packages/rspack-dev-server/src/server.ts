@@ -16,6 +16,8 @@ import fs from "fs";
 import WebpackDevServer from "webpack-dev-server";
 import type { ResolvedDevServer, DevServer } from "./config";
 import { getRspackMemoryAssets } from "./middleware";
+// @ts-expect-error
+import { runtimePathRegexp } from "@rspack/dev-client/runtime-path-regexp";
 
 export class RspackDevServer extends WebpackDevServer {
 	/**
@@ -348,6 +350,13 @@ export class RspackDevServer extends WebpackDevServer {
 		if (this.options.webSocketServer) {
 			compilers.forEach(compiler => {
 				this.addAdditionalEntries(compiler);
+
+				if (this.options.hot) {
+					compiler.options.module.rules.push({
+						test: runtimePathRegexp,
+						type: "js"
+					});
+				}
 
 				compiler.options.builtins.provide = {
 					...compiler.options.builtins.provide,
