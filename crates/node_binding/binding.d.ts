@@ -606,6 +606,7 @@ export interface RawExperiments {
   asyncWebAssembly: boolean
   newSplitChunks: boolean
   css: boolean
+  rspackFuture: RawRspackFuture
 }
 
 export interface RawExternalItem {
@@ -955,6 +956,10 @@ export interface RawResolveOptions {
   fullySpecified?: boolean
   exportsFields?: Array<string>
   extensionAlias?: Record<string, Array<string>>
+}
+
+export interface RawRspackFuture {
+
 }
 
 export interface RawRuleSetCondition {

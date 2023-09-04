@@ -22,9 +22,13 @@ impl IncrementalRebuildMakeState {
 }
 
 #[derive(Debug, Default)]
+pub struct RspackFuture {}
+
+#[derive(Debug, Default)]
 pub struct Experiments {
   pub lazy_compilation: bool,
   pub incremental_rebuild: IncrementalRebuild,
   pub async_web_assembly: bool,
   pub new_split_chunks: bool,
+  pub rspack_future: RspackFuture,
 }
