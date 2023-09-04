@@ -590,7 +590,7 @@ function toRawSplitChunksOptions(
 
 					const { test, name, ...passThrough } = group;
 					const rawGroup: RawCacheGroupOptions = {
-						test: test?.source,
+						test,
 						name: name === false ? undefined : name,
 						...passThrough
 					};

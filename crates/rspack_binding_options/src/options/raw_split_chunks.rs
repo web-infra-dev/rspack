@@ -123,7 +123,7 @@ pub struct RawCacheGroupOptions {
   // pub reuse_existing_chunk: Option<bool>,
   //   pub r#type: SizeType,
   #[serde(skip_deserializing)]
-  #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
+  #[napi(ts_type = "RegExp | string")]
   #[derivative(Debug = "ignore")]
   pub test: Option<Either<JsString, JsRegExp>>,
   //   pub filename: String,
