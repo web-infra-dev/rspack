@@ -9,6 +9,7 @@ use crate::{
   ModuleProfile, ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve,
   ResolverFactory, SharedPluginDriver, WorkerQueue,
 };
+use crate::{ExportInfo, ExportsInfo, UsageState};
 
 #[derive(Debug)]
 pub enum TaskResult {
@@ -41,6 +42,13 @@ pub struct FactorizeTask {
   pub current_profile: Option<Box<ModuleProfile>>,
 }
 
+/// a struct temporarily used creating ExportsInfo
+#[derive(Debug)]
+pub struct ExportsInfoRelated {
+  pub exports_info: ExportsInfo,
+  pub other_exports_info: ExportInfo,
+  pub side_effects_info: ExportInfo,
+}
 #[derive(Debug)]
 pub struct FactorizeTaskResult {
   pub original_module_identifier: Option<ModuleIdentifier>,
@@ -50,6 +58,7 @@ pub struct FactorizeTaskResult {
   pub diagnostics: Vec<Diagnostic>,
   pub is_entry: bool,
   pub current_profile: Option<Box<ModuleProfile>>,
+  pub exports_info_related: ExportsInfoRelated,
 }
 
 #[async_trait::async_trait]
@@ -108,7 +117,15 @@ impl WorkerTask for FactorizeTask {
       }
     };
 
-    let mgm = ModuleGraphModule::new(result.module.identifier(), *result.module.module_type());
+    let other_exports_info = ExportInfo::new("null".into(), UsageState::Unknown, None);
+    let side_effects_only_info =
+      ExportInfo::new("*side effects only*".into(), UsageState::Unknown, None);
+    let exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
+    let mgm = ModuleGraphModule::new(
+      result.module.identifier(),
+      *result.module.module_type(),
+      exports_info.id,
+    );
 
     if let Some(current_profile) = &self.current_profile {
       current_profile.mark_factory_end();
@@ -122,6 +139,11 @@ impl WorkerTask for FactorizeTask {
       dependencies: self.dependencies,
       diagnostics,
       current_profile: self.current_profile,
+      exports_info_related: ExportsInfoRelated {
+        exports_info,
+        other_exports_info,
+        side_effects_info: side_effects_only_info,
+      },
     })))
   }
 }

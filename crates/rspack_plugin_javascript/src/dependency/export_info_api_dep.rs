@@ -55,8 +55,12 @@ impl ExportInfoApiDependency {
           let mgm = compilation
             .module_graph
             .module_graph_module_by_identifier(&id)?;
-          let info = mgm.exports.exports.get(export_name)?;
-          Some(info.usage_state)
+          let exports_info = compilation
+            .module_graph
+            .get_exports_info_by_id(&mgm.exports);
+          let info_id = exports_info.exports.get(export_name)?;
+          let export_info = compilation.module_graph.export_info_map.get(info_id)?;
+          Some(export_info.usage_state)
         }
         _ => {
           // TODO: support other prop

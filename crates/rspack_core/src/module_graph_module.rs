@@ -1,11 +1,12 @@
 use rspack_error::{internal_error, Result};
 use rustc_hash::FxHashSet as HashSet;
 
+use crate::ExportsInfoId;
 use crate::{
   is_async_dependency, module_graph::ConnectionId, BuildInfo, BuildMeta, BuildMetaDefaultObject,
   BuildMetaExportsType, ChunkGraph, ChunkGroupOptionsKindRef, DependencyId, ExportsArgument,
-  ExportsInfo, ExportsType, FactoryMeta, ModuleArgument, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, ModuleIssuer, ModuleProfile, ModuleSyntax, ModuleType,
+  ExportsType, FactoryMeta, ModuleArgument, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  ModuleIssuer, ModuleProfile, ModuleSyntax, ModuleType,
 };
 
 #[derive(Debug)]
@@ -27,12 +28,16 @@ pub struct ModuleGraphModule {
   pub factory_meta: Option<FactoryMeta>,
   pub build_info: Option<BuildInfo>,
   pub build_meta: Option<BuildMeta>,
-  pub exports: Box<ExportsInfo>,
+  pub exports: ExportsInfoId,
   pub profile: Option<Box<ModuleProfile>>,
 }
 
 impl ModuleGraphModule {
-  pub fn new(module_identifier: ModuleIdentifier, module_type: ModuleType) -> Self {
+  pub fn new(
+    module_identifier: ModuleIdentifier,
+    module_type: ModuleType,
+    exports_info_id: ExportsInfoId,
+  ) -> Self {
     Self {
       outgoing_connections: Default::default(),
       incoming_connections: Default::default(),
@@ -48,7 +53,7 @@ impl ModuleGraphModule {
       factory_meta: None,
       build_info: None,
       build_meta: None,
-      exports: Box::new(ExportsInfo::new()),
+      exports: exports_info_id,
       profile: None,
     }
   }
