@@ -8,10 +8,9 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rspack_core        = { path = "../rspack_core" }
-rspack_identifier  = { path = "../rspack_identifier" }
-rspack_napi_shared = { path = "../rspack_napi_shared" }
-rspack_regex       = { path = "../rspack_regex" }
+rspack_core       = { path = "../rspack_core" }
+rspack_identifier = { path = "../rspack_identifier" }
+rspack_regex      = { path = "../rspack_regex" }
 
 async-scoped = { workspace = true, features = ["use-tokio"] }
 async-trait  = { workspace = true }

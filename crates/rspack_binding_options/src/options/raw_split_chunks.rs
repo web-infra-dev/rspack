@@ -78,7 +78,11 @@ impl From<RawSplitChunksOptions> for SplitChunksOptions {
                 name: v.name,
                 priority: v.priority,
                 reuse_existing_chunk: Some(false),
-                test: v.test.clone().map(|test| {
+                test: v.test.map(|test| {
+                  let test = match test {
+                    Either::A(s) => s.into_string(),
+                    Either::B(_reg) => unimplemented!(),
+                  };
                   let f: TestFn = Arc::new(move |module| {
                     let re = rspack_regex::RspackRegex::new(&test)
                       .unwrap_or_else(|_| panic!("Invalid regex: {}", &test));
@@ -247,7 +251,7 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
               .map(new_split_chunks_plugin::create_chunk_name_getter_by_const_name)
               .unwrap_or_else(|| overall_name_getter.clone()),
             priority: v.priority.unwrap_or(0) as f64,
-            test: new_split_chunks_plugin::create_module_filter(v.test.clone()),
+            test: create_module_filter(v.test),
             chunk_filter: v.chunks.map(create_chunks_filter).unwrap_or_else(|| {
               overall_chunk_filter
                 .clone()
@@ -330,8 +334,18 @@ fn create_module_type_filter(raw: Either<JsRegExp, JsString>) -> ModuleTypeFilte
   }
 }
 
-pub fn create_module_filter(test: Option<Either<JsString, JsRegExp>>) -> ModuleFilter {
-  let filter = test
-    .map(|test| match test {})
-    .unwrap_or_else(rspack_plugin_split_chunks_new::create_default_module_filter);
+pub fn create_module_filter(
+  re: Option<Either<JsString, JsRegExp>>,
+) -> new_split_chunks_plugin::ModuleFilter {
+  re.map(|test| match test {
+    Either::A(data) => {
+      let data = data.into_string();
+      rspack_plugin_split_chunks_new::create_module_filter_from_rspack_str(data)
+    }
+    Either::B(data) => {
+      let re = data.to_rspack_regex();
+      rspack_plugin_split_chunks_new::create_module_filter_from_rspack_regex(re)
+    }
+  })
+  .unwrap_or_else(rspack_plugin_split_chunks_new::create_default_module_filter)
 }
