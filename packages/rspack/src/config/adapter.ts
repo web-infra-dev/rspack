@@ -713,8 +713,10 @@ function getRawRspackFuture(
 	rspackFuture: RspackFutureOptions
 ): RawOptions["experiments"]["rspackFuture"] {
 	return {
+		// REMOVE IN 0.5.0(deprecation starts at 0.3.x)
 		disableTransformByDefault: false,
 		newResolver: false,
+		// REMOVE IN 0.6.0(deprecation starts at 0.4.x)
 		...rspackFuture
 	};
 }
