@@ -585,7 +585,9 @@ impl NormalModuleFactory {
     let (resolved_parser_options, resolved_generator_options) =
       self.calculate_parser_and_generator_options(&resolved_module_rules);
     let factory_meta = FactoryMeta {
-      side_effects: self.calculate_side_effects(&resolved_module_rules, &resource_data),
+      side_effect_free: self
+        .calculate_side_effects(&resolved_module_rules, &resource_data)
+        .map(|side_effects| !side_effects),
     };
 
     let resolved_parser_and_generator = self

@@ -496,8 +496,8 @@ impl Module for NormalModule {
     module_chain: &mut HashSet<ModuleIdentifier>,
   ) -> ConnectionState {
     if let Some(mgm) = module_graph.module_graph_module_by_identifier(&self.identifier()) {
-      if let Some(side_effect) = mgm.factory_meta.as_ref().and_then(|m| m.side_effects) {
-        return ConnectionState::Bool(side_effect);
+      if let Some(side_effect_free) = mgm.factory_meta.as_ref().and_then(|m| m.side_effect_free) {
+        return ConnectionState::Bool(!side_effect_free);
       }
       if let Some(side_effect_free) = mgm.build_meta.as_ref().and_then(|m| m.side_effect_free) && side_effect_free {
         // use module chain instead of is_evaluating_side_effects to mut module graph

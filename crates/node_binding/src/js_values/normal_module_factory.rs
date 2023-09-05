@@ -30,7 +30,7 @@ pub struct AfterResolveData {
 
 #[napi(object)]
 pub struct FactoryMeta {
-  pub side_effects: Option<bool>,
+  pub side_effect_free: Option<bool>,
 }
 
 #[napi(object)]
@@ -98,7 +98,7 @@ impl From<NormalModuleAfterResolveArgs<'_>> for AfterResolveData {
         .map(|item| item.to_string_lossy().to_string())
         .collect::<Vec<_>>(),
       factory_meta: FactoryMeta {
-        side_effects: value.factory_meta.side_effects,
+        side_effect_free: value.factory_meta.side_effect_free,
       },
     }
   }
