@@ -652,7 +652,9 @@ function getRawExperiments(
 		asyncWebAssembly,
 		newSplitChunks,
 		css,
-		rspackFuture
+		rspackFuture: {
+			newResolver: rspackFuture.newResolver ?? false
+		}
 	};
 }
 

@@ -87,8 +87,8 @@ pub enum Resolver {
 }
 
 impl Resolver {
-  pub fn new(options: Resolve) -> Self {
-    if std::env::var("OXC_RESOLVER").is_ok() {
+  pub fn new(new_resolver: bool, options: Resolve) -> Self {
+    if new_resolver {
       Self::new_oxc_resolver(options)
     } else {
       Self::new_nodejs_resolver(options)
