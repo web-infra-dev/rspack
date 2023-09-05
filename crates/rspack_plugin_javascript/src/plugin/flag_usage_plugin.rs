@@ -31,7 +31,7 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
     {
       self
         .exports_info_module_map
-        .insert(mgm.exports.id, mgm.module_identifier);
+        .insert(mgm.exports, mgm.module_identifier);
     }
     let mg = &mut self.compilation.module_graph;
     for exports_info_id in self.exports_info_module_map.keys() {}

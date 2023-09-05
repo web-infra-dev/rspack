@@ -275,18 +275,25 @@ impl ExportsInfoId {
   }
 
   fn set_has_use_info(&self, mg: &mut ModuleGraph) {
-    let mut exports = mg.get_exports_info_mut_by_id(self).exports.clone();
-    for export_info in exports.values_mut() {
+    let exports_info = mg.get_exports_info_by_id(self);
+    let side_effects_only_info_id = exports_info._side_effects_only_info;
+    let redirect_to_id = exports_info.redirect_to;
+    let other_exports_info_id = exports_info.other_exports_info;
+    // this clone aiming to avoid use the mutable ref and immutable ref at the same time.
+    let export_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    for export_info in export_id_list {
       export_info.set_has_use_info(mg);
     }
-    let exports_info = mg.get_exports_info_mut_by_id(self);
-    _ = std::mem::replace(&mut exports_info.exports, exports);
-    exports_info._side_effects_only_info.set_has_use_info(mg);
-    // if let Some(redirect_to) = exports_info.redirect_to {
-    //   redirect_to.set_has_use_info(mg);
-    // } else {
-    //   exports_info.other_exports_info.set_has_use_info(mg);
-    // }
+    side_effects_only_info_id.set_has_use_info(mg);
+    if let Some(redirect) = redirect_to_id {
+      redirect.set_has_use_info(mg);
+    } else {
+      other_exports_info_id.set_has_use_info(mg);
+      let other_exports_info = mg.get_export_info_mut_by_id(&other_exports_info_id);
+      if other_exports_info.can_mangle_use.is_none() {
+        other_exports_info.can_mangle_use = Some(true);
+      }
+    }
   }
 }
 
@@ -452,6 +459,19 @@ impl ExportsHash for ExportInfoId {
 impl ExportInfoId {
   pub fn new() -> Self {
     Self(EXPORT_INFO_ID.fetch_add(1, Relaxed))
+  }
+
+  fn set_has_use_info(&self, mg: &mut ModuleGraph) {
+    let export_info = mg.get_export_info_mut_by_id(self);
+    if !export_info.has_use_in_runtime_info {
+      export_info.has_use_in_runtime_info = true;
+    }
+    if export_info.can_mangle_use.is_none() {
+      export_info.can_mangle_use = Some(true);
+    }
+    if let Some(exports_info) = export_info.exports_info {
+      exports_info.set_has_use_info(mg);
+    }
   }
 }
 impl Default for ExportInfoId {
