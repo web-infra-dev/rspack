@@ -4,7 +4,7 @@ use std::default::Default;
 use std::sync::Arc;
 
 use rspack_core::{rspack_sources::SourceMap, LoaderRunnerContext, Mode};
-use rspack_error::{errors_to_diagnostics, internal_error, Diagnostic, Error, Result};
+use rspack_error::{internal_error, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use serde::Deserialize;
 use swc_config::config_types::{BoolConfig, MergingOption};
@@ -150,12 +150,13 @@ pub const SWC_LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 impl Loader<LoaderRunnerContext> for SwcLoader {
   async fn run(&self, loader_context: &mut LoaderContext<'_, LoaderRunnerContext>) -> Result<()> {
     let resource_path = loader_context.resource_path.to_path_buf();
-    let content = std::mem::take(&mut loader_context.content).expect("content should available");
+    let Some(content) = std::mem::take(&mut loader_context.content) else {
+      return Err(internal_error!("Content should be available"))
+    };
 
     let c: Compiler = Compiler::new(Arc::from(swc_core::common::SourceMap::new(
       FilePathMapping::empty(),
     )));
-    let mut errors: Vec<Error> = Default::default();
     let default_development = matches!(loader_context.context.options.mode, Mode::Development);
     let mut options = self.options.clone();
     if options.config.jsc.transform.as_ref().is_some() {
@@ -174,7 +175,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
     }
 
     if options.config.jsc.experimental.plugins.is_some() {
-      loader_context.diagnostics.push(Diagnostic::warn(
+      loader_context.emit_diagnostic(Diagnostic::warn(
         SWC_LOADER_IDENTIFIER.to_string(),
         "Experimental plugins are not currently supported.".to_string(),
         0,
@@ -183,56 +184,30 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
     }
 
     GLOBALS.set(&Default::default(), || {
-      match try_with_handler(c.cm.clone(), Default::default(), |handler| {
+      try_with_handler(c.cm.clone(), Default::default(), |handler| {
         c.run(|| {
           let fm = c
             .cm
             .new_source_file(FileName::Real(resource_path), content.try_into_string()?);
           let comments = SingleThreadedComments::default();
 
-          let out = match anyhow::Context::context(
-            c.process_js_with_custom_pass(
-              fm,
-              None,
-              handler,
-              &options,
-              comments,
-              |_a| noop(),
-              |_a| noop(),
-            ),
-            "failed to process js file",
-          ) {
-            Ok(out) => Some(out),
-            Err(e) => {
-              errors.push(Error::Anyhow { source: e });
-              None
-            }
-          };
-          if let Some(out) = out {
-            loader_context.content = Some(out.code.into());
-            loader_context.source_map = if let Some(map) = out.map {
-              match SourceMap::from_json(&map).map_err(|e| internal_error!(e.to_string())) {
-                Ok(map) => Some(map),
-                Err(e) => {
-                  errors.push(e);
-                  None
-                }
-              }
-            } else {
-              None
-            };
-          }
+          let out = c.process_js_with_custom_pass(
+            fm,
+            None,
+            handler,
+            &options,
+            comments,
+            |_a| noop(),
+            |_a| noop(),
+          )?;
+          loader_context.content = Some(out.code.into());
+          loader_context.source_map = out.map.map(|m| SourceMap::from_json(&m)).transpose()?;
 
           Ok(())
         })
-      }) {
-        Ok(_) => {}
-        Err(e) => errors.push(Error::Anyhow { source: e }),
-      }
-    });
-    loader_context
-      .diagnostics
-      .append(&mut errors_to_diagnostics(errors));
+      })
+    })?;
+
     Ok(())
   }
 }

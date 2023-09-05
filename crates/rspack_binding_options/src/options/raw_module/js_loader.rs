@@ -298,7 +298,7 @@ impl TryFrom<&rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
       current_loader: cx.current_loader().to_string(),
       is_pitching: true,
       context: External::new(cx.context.clone()),
-      diagnostics: External::new(cx.diagnostics.clone()),
+      diagnostics: External::new(cx.__diagnostics.clone()),
     })
   }
 }
@@ -358,8 +358,7 @@ pub async fn run_builtin_loader(
     ),
     asset_filenames: HashSet::from_iter(loader_context.asset_filenames.into_iter()),
     // Initialize with no diagnostic
-    diagnostics: vec![],
-
+    __diagnostics: vec![],
     __resource_data: &ResourceData::new(Default::default(), Default::default()),
     __loader_items: LoaderItemList(list),
     __loader_index: 0,

@@ -1766,6 +1766,50 @@ exports[`StatsTestCases should print correct stats for parse-error 2`] = `
 rspack compiled with 1 error"
 `;
 
+exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-loader 1`] = `
+{
+  "errors": [
+    {
+      "formatted": "error[internal]: 
+  x Expected '{', got 'error'
+   ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
+ 1 | export error;
+   :        ^^^^^
+   \`----
+
+
+",
+      "message": "
+  x Expected '{', got 'error'
+   ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
+ 1 | export error;
+   :        ^^^^^
+   \`----
+",
+      "title": "",
+    },
+  ],
+  "errorsCount": 1,
+  "logging": {},
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-loader 2`] = `
+"error[internal]: 
+  x Expected '{', got 'error'
+   ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
+ 1 | export error;
+   :        ^^^^^
+   \`----
+
+
+
+
+rspack compiled with 1 error"
+`;
+
 exports[`StatsTestCases should print correct stats for reasons 1`] = `
 {
   "filteredModules": undefined,
