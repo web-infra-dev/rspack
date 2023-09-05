@@ -30,8 +30,8 @@ pub struct RawMinificationConditions {
 pub struct RawMinification {
   pub passes: u32,
   pub drop_console: bool,
-  pub keep_classnames: bool,
-  pub keep_fnames: bool,
+  pub keep_class_names: bool,
+  pub keep_fn_names: bool,
   #[napi(ts_type = r#""all" | "some" | "false""#)]
   pub comments: String,
   pub ascii_only: bool,
@@ -61,8 +61,8 @@ impl TryFrom<RawMinification> for Minification {
     Ok(Self {
       passes: value.passes as usize,
       drop_console: value.drop_console,
-      keep_classnames: value.keep_classnames,
-      keep_fnames: value.keep_fnames,
+      keep_class_names: value.keep_class_names,
+      keep_fn_names: value.keep_fn_names,
       pure_funcs: value.pure_funcs,
       ascii_only: value.ascii_only,
       comments: value.comments,

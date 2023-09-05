@@ -29,8 +29,8 @@ use swc_ecma_minifier::option::{
 pub struct Minification {
   pub passes: usize,
   pub drop_console: bool,
-  pub keep_classnames: bool,
-  pub keep_fnames: bool,
+  pub keep_class_names: bool,
+  pub keep_fn_names: bool,
   pub pure_funcs: Vec<String>,
   pub extract_comments: Option<String>,
   pub ascii_only: bool,
@@ -117,9 +117,11 @@ impl Plugin for SwcJsMinimizerPlugin {
       ..Default::default()
     };
 
+    println!("minify_options: {:?}", minify_options);
+
     let mangle = MangleOptions {
-      keep_class_names: minify_options.keep_classnames,
-      keep_fn_names: minify_options.keep_fnames,
+      keep_class_names: minify_options.keep_class_names,
+      keep_fn_names: minify_options.keep_fn_names,
       ..Default::default()
     };
 
@@ -246,8 +248,8 @@ pub struct JsMinifyOptions {
   pub mangle: BoolOrDataConfig<MangleOptions>,
   pub format: JsMinifyFormatOptions,
   pub ecma: TerserEcmaVersion,
-  pub keep_classnames: bool,
-  pub keep_fnames: bool,
+  pub keep_class_names: bool,
+  pub keep_fn_names: bool,
   pub module: bool,
   pub safari10: bool,
   pub toplevel: bool,

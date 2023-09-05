@@ -1,11 +1,7 @@
 module.exports = {
-	entry: {
-		entry: "./entry.js",
-		main: "./main.js"
-	},
 	builtins: {
 		minifyOptions: {
-			keepClassnames: true
+			keepClassNames: true
 		}
 	},
 	optimization: {
