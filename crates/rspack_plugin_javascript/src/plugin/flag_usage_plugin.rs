@@ -170,6 +170,8 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
         }
       }
     } else {
+      // TODO:
+      // if !force_side_effects && mgm.factory_meta.map(|meta| meta.side_effects)
     }
   }
 }
