@@ -105,9 +105,25 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
           }
         } else {
           let mut current_exports_info_id = mgm_exports_info_id;
+          let len = used_exports.len();
           for (i, used_export) in used_exports.into_iter().enumerate() {
             let export_info_id = current_exports_info_id
               .get_export_info(&used_export, &mut self.compilation.module_graph);
+            let export_info = self
+              .compilation
+              .module_graph
+              .get_export_info_mut_by_id(&export_info_id);
+            if !can_mangle {
+              export_info.can_mangle_use = Some(false);
+            }
+            let last_one = i == len - 1;
+            if !last_one {
+              let nested_info =
+                export_info_id.get_nested_exports_info(&self.compilation.module_graph);
+              if let Some(nested_info) = nested_info {
+                // let flag = export_info_id.set_used_conditionally(self.compilation.module_graph, );
+              }
+            }
           }
         }
       }

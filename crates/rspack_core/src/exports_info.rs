@@ -538,6 +538,11 @@ impl ExportInfoId {
     }
     false
   }
+
+  pub fn get_nested_exports_info(&self, mg: &ModuleGraph) -> Option<ExportsInfoId> {
+    let export_info = mg.get_export_info_by_id(self);
+    export_info.exports_info
+  }
 }
 impl Default for ExportInfoId {
   fn default() -> Self {
