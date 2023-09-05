@@ -274,7 +274,7 @@ impl ExportsInfoId {
     Some(*self)
   }
 
-  fn set_has_use_info(&self, mg: &mut ModuleGraph) {
+  pub fn set_has_use_info(&self, mg: &mut ModuleGraph) {
     let exports_info = mg.get_exports_info_by_id(self);
     let side_effects_only_info_id = exports_info._side_effects_only_info;
     let redirect_to_id = exports_info.redirect_to;
@@ -294,6 +294,32 @@ impl ExportsInfoId {
         other_exports_info.can_mangle_use = Some(true);
       }
     }
+  }
+
+  pub fn set_used_without_info(&self, mg: &mut ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
+    let mut changed = false;
+    let exports_info = mg.get_exports_info_mut_by_id(self);
+    let redirect = exports_info.redirect_to;
+    let other_exports_info_id = exports_info.other_exports_info;
+    // avoid use ref and mut ref at the same time
+    let export_info_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    for export_info_id in export_info_id_list {
+      let flag = export_info_id.set_used_without_info(mg, runtime);
+      changed |= flag;
+    }
+    if let Some(redirect_to) = redirect {
+      let flag = redirect_to.set_used_without_info(mg, runtime);
+      changed |= flag;
+    } else {
+      let flag = other_exports_info_id.set_used(mg, UsageState::NoInfo, None);
+      changed |= flag;
+      let other_export_info = mg.get_export_info_mut_by_id(&other_exports_info_id);
+      if !matches!(other_export_info.can_mangle_use, Some(false)) {
+        other_export_info.can_mangle_use = Some(false);
+        changed = true;
+      }
+    }
+    return changed;
   }
 }
 
@@ -473,6 +499,27 @@ impl ExportInfoId {
       exports_info.set_has_use_info(mg);
     }
   }
+
+  fn set_used_without_info(&self, mg: &mut ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
+    let mut changed = false;
+    let flag = self.set_used(mg, UsageState::NoInfo, runtime);
+    changed |= flag;
+    let export_info = mg.get_export_info_mut_by_id(self);
+    if !matches!(export_info.can_mangle_use, Some(false)) {
+      export_info.can_mangle_use = Some(false);
+      changed = true;
+    }
+    return changed;
+  }
+
+  fn set_used(
+    &self,
+    mg: &mut ModuleGraph,
+    no_info: UsageState,
+    none: Option<&RuntimeSpec>,
+  ) -> bool {
+    todo!()
+  }
 }
 impl Default for ExportInfoId {
   fn default() -> Self {
@@ -642,18 +689,6 @@ impl ExportInfo {
         }
         _ => false,
       }
-    }
-  }
-
-  fn set_has_use_info(&mut self, mg: &mut ModuleGraph) {
-    if !self.has_use_in_runtime_info {
-      self.has_use_in_runtime_info = true;
-    }
-    if self.can_mangle_use.is_none() {
-      self.can_mangle_use = Some(true);
-    }
-    if let Some(exports_info) = self.exports_info {
-      exports_info.set_has_use_info(mg);
     }
   }
 
