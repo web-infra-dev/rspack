@@ -93,8 +93,8 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
         }
         return;
       }
-      for used_exports in used_exports {
-        let (can_mangle, used_exports) = match used_exports {
+      for used_export_info in used_exports {
+        let (can_mangle, used_exports) = match used_export_info {
           WrappedReferencedExport::Array(used_exports) => (true, used_exports),
           WrappedReferencedExport::Export(export) => (export.can_mangle, export.name),
         };
@@ -144,28 +144,28 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
                 current_exports_info_id = nested_info;
                 continue;
               }
-
-              let changed_flag = export_info_id.set_used_conditionally(
-                &mut self.compilation.module_graph,
-                Box::new(|v| v != &UsageState::Used),
-                UsageState::Used,
-                runtime.as_ref(),
-              );
-              if changed_flag {
-                let current_module = if current_exports_info_id == mgm_exports_info_id {
-                  Some(module_id)
-                } else {
-                  self
-                    .exports_info_module_map
-                    .get(&current_exports_info_id)
-                    .cloned()
-                };
-                if let Some(current_module) = current_module {
-                  queue.push_back((current_module, runtime.clone()));
-                }
-              }
-              break;
             }
+
+            let changed_flag = export_info_id.set_used_conditionally(
+              &mut self.compilation.module_graph,
+              Box::new(|v| v != &UsageState::Used),
+              UsageState::Used,
+              runtime.as_ref(),
+            );
+            if changed_flag {
+              let current_module = if current_exports_info_id == mgm_exports_info_id {
+                Some(module_id)
+              } else {
+                self
+                  .exports_info_module_map
+                  .get(&current_exports_info_id)
+                  .cloned()
+              };
+              if let Some(current_module) = current_module {
+                queue.push_back((current_module, runtime.clone()));
+              }
+            }
+            break;
           }
         }
       }
