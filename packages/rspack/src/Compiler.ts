@@ -834,7 +834,7 @@ class Compiler {
 			(loaderContext: any) => {
 				loaderContext._module = {
 					factoryMeta: {
-						sideEffectFree: !resolveData.factoryMeta.sideEffects
+						sideEffectFree: !!resolveData.factoryMeta.sideEffectFree
 					}
 				};
 			}

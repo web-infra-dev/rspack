@@ -127,7 +127,7 @@ pub struct BuildResult {
 
 #[derive(Debug, Default, Clone)]
 pub struct FactoryMeta {
-  pub side_effects: Option<bool>,
+  pub side_effect_free: Option<bool>,
 }
 
 pub type ModuleIdentifier = Identifier;

@@ -133,7 +133,7 @@ export const enum BuiltinPluginKind {
 export function cleanupGlobalTrace(): void
 
 export interface FactoryMeta {
-  sideEffects?: boolean
+  sideEffectFree?: boolean
 }
 
 export interface JsAsset {
@@ -430,6 +430,13 @@ export interface JsStatsModuleReason {
 export interface JsStatsWarning {
   message: string
   formatted: string
+}
+
+export interface NodeFS {
+  writeFile: (...args: any[]) => any
+  removeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
 }
 
 export interface PathData {
@@ -757,9 +764,10 @@ export interface RawModuleOptions {
 
 export interface RawModuleRule {
   /**
-   * A conditional match matching an absolute path + query + fragment
-   * This one is reserved as our escape hatch for those who
-   * relies on some single-thread runtime behaviors.
+   * A conditional match matching an absolute path + query + fragment.
+   * Note:
+   *   This is a custom matching rule not initially designed by webpack.
+   *   Only for single-threaded environment interoperation purpose.
    */
   rspackResource?: RawRuleSetCondition
   /** A condition matcher matching an absolute path. */
@@ -1030,4 +1038,12 @@ export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", 
 
 /** Builtin loader runner */
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
+
+export interface ThreadsafeNodeFS {
+  writeFile: (...args: any[]) => any
+  removeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
+  removeDirAll: (...args: any[]) => any
+}
 
