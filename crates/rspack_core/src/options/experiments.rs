@@ -22,7 +22,6 @@ impl IncrementalRebuildMakeState {
 }
 
 #[derive(Debug, Default)]
-#[allow(clippy::empty_structs_with_brackets)]
 pub struct RspackFuture {
   pub new_resolver: bool,
 }
