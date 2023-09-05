@@ -621,6 +621,7 @@ pub enum ExportInfoProvided {
   Null,
 }
 
+#[derive(Clone)]
 pub struct ResolvedExportInfoTarget {
   pub module: ModuleIdentifier,
   pub exports: Option<Vec<JsWord>>,
@@ -637,23 +638,24 @@ pub enum ResolvedExportInfoTargetWithCircular {
   Circular,
 }
 
-pub type ResolveFilterFnTy = Box<dyn ResolveFilterFn>;
+pub type ResolveFilterFnTy = Box<dyn FilterFn<ResolvedExportInfoTarget>>;
 
-pub trait ResolveFilterFn: Fn(&ResolvedExportInfoTarget) -> bool + Send + Sync {
-  fn clone_boxed(&self) -> Box<dyn ResolveFilterFn>;
+pub trait FilterFn<T>: Fn(&T) -> bool + Send + Sync {
+  fn clone_boxed(&self) -> Box<dyn FilterFn<T>>;
 }
 
 /// Copy from https://github.com/rust-lang/rust/issues/24000#issuecomment-479425396
-impl<T> ResolveFilterFn for T
+impl<T, F> FilterFn<F> for T
 where
-  T: 'static + Fn(&ResolvedExportInfoTarget) -> bool + Send + Sync + Clone,
+  T: 'static + Fn(&F) -> bool + Send + Sync + Clone,
+  F: 'static,
 {
-  fn clone_boxed(&self) -> Box<dyn ResolveFilterFn> {
+  fn clone_boxed(&self) -> Box<dyn FilterFn<F>> {
     Box::new(self.clone())
   }
 }
 
-impl Clone for Box<dyn ResolveFilterFn> {
+impl<T: 'static> Clone for Box<dyn FilterFn<T>> {
   fn clone(&self) -> Self {
     self.clone_boxed()
   }
