@@ -515,10 +515,20 @@ impl ExportInfoId {
   fn set_used(
     &self,
     mg: &mut ModuleGraph,
-    no_info: UsageState,
-    none: Option<&RuntimeSpec>,
+    new_value: UsageState,
+    runtime: Option<&RuntimeSpec>,
   ) -> bool {
-    todo!()
+    if let Some(_) = runtime {
+      // TODO: runtime optimization
+      todo!()
+    } else {
+      let export_info = mg.get_export_info_mut_by_id(self);
+      if export_info.global_used != Some(new_value) {
+        export_info.global_used = Some(new_value);
+        return true;
+      }
+    }
+    false
   }
 }
 impl Default for ExportInfoId {
@@ -561,6 +571,7 @@ pub struct ExportInfo {
   pub exports_info_owned: bool,
   pub has_use_in_runtime_info: bool,
   pub can_mangle_use: Option<bool>,
+  pub global_used: Option<UsageState>,
 }
 
 impl ExportsHash for ExportInfo {
@@ -663,6 +674,7 @@ impl ExportInfo {
       exports_info_owned: false,
       has_use_in_runtime_info,
       can_mangle_use,
+      global_used: None,
     }
   }
 
