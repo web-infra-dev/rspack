@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use rspack_core::tree_shaking::visitor::ModuleIdOrDepId;
 use rspack_core::{
   BuildMetaExportsType, Compilation, Dependency, DependencyId, ExportsInfoId, ExportsType,
-  ModuleGraph, ModuleIdentifier, ReferencedExport, RuntimeSpec,
+  ModuleGraph, ModuleIdentifier, ReferencedExport, RuntimeSpec, WrappedReferencedExport,
 };
 use rustc_hash::FxHashMap as HashMap;
 
@@ -68,7 +68,7 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
   fn process_referenced_module(
     &mut self,
     module_id: ModuleIdentifier,
-    used_exports: Vec<ReferencedExport>,
+    used_exports: Vec<WrappedReferencedExport>,
     runtime: Option<RuntimeSpec>,
     force_side_effects: bool,
     queue: &mut VecDeque<(ModuleIdentifier, Option<RuntimeSpec>)>,
@@ -91,6 +91,25 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
           queue.push_back((module_id, None));
         }
         return;
+      }
+      for used_exports in used_exports {
+        let (can_mangle, used_exports) = match used_exports {
+          WrappedReferencedExport::Array(used_exports) => (true, used_exports),
+          WrappedReferencedExport::Export(export) => (export.can_mangle, export.name),
+        };
+        if used_exports.len() == 0 {
+          let flag = mgm_exports_info_id
+            .set_used_in_unknown_way(&mut self.compilation.module_graph, runtime.as_ref());
+          if flag {
+            queue.push_back((module_id, runtime.clone()));
+          }
+        } else {
+          let mut current_exports_info_id = mgm_exports_info_id;
+          for (i, used_export) in used_exports.into_iter().enumerate() {
+            let export_info_id = current_exports_info_id
+              .get_export_info(&used_export, &mut self.compilation.module_graph);
+          }
+        }
       }
     } else {
     }

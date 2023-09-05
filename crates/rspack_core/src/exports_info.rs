@@ -107,7 +107,7 @@ impl ExportsInfoId {
 
     if let Some(ref exclude_exports) = exclude_exports {
       for name in exclude_exports {
-        self.export_info_mut(name, mg);
+        self.get_export_info(name, mg);
       }
     }
 
@@ -222,7 +222,7 @@ impl ExportsInfoId {
     unreachable!()
   }
 
-  pub fn export_info_mut(&self, name: &JsWord, mg: &mut ModuleGraph) -> ExportsInfoId {
+  pub fn get_export_info(&self, name: &JsWord, mg: &mut ModuleGraph) -> ExportInfoId {
     let exports_info = mg.get_exports_info_by_id(self);
     let mut cur = exports_info;
     // get redirect chain, because you can't pass a mut ref into a recursive call
@@ -239,8 +239,8 @@ impl ExportsInfoId {
       let is_last = i == len - 1;
       let exports_info = mg.get_exports_info_by_id(&id);
       let other_exports_info = exports_info.other_exports_info;
-      if exports_info.exports.contains_key(name) {
-        return id;
+      if let Some(export_info_id) = exports_info.exports.get(name) {
+        return *export_info_id;
       }
       if is_last {
         let other_export_info = mg
@@ -254,7 +254,7 @@ impl ExportsInfoId {
         let exports_info = mg.get_exports_info_mut_by_id(&id);
         exports_info._exports_are_ordered = false;
         exports_info.exports.insert(name.clone(), new_info_id);
-        return id;
+        return new_info_id;
       }
     }
     unreachable!()
@@ -320,6 +320,14 @@ impl ExportsInfoId {
       }
     }
     return changed;
+  }
+
+  pub fn set_used_in_unknown_way(
+    &self,
+    mg: &mut ModuleGraph,
+    runtime: Option<&RuntimeSpec>,
+  ) -> bool {
+    todo!()
   }
 }
 
@@ -790,12 +798,7 @@ impl ExportInfo {
               .module_graph_module_by_identifier(&target.module)
               .expect("should have mgm")
               .exports;
-            let exports_info_id = id.export_info_mut(name, mg);
-            let exports_info = mg.get_exports_info_mut_by_id(&exports_info_id);
-            *exports_info
-              .exports
-              .get(name)
-              .expect("should have export info")
+            id.get_export_info(name, mg)
           };
           if already_visited.contains(&export_info_id) {
             return Some(ResolvedExportInfoTargetWithCircular::Circular);
@@ -1032,22 +1035,31 @@ pub fn get_dependency_used_by_exports_condition(
   }
 }
 
+/// refer https://github.com/IWANABETHATGUY/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/FlagDependencyUsagePlugin.js#L64
+pub enum WrappedReferencedExport {
+  Array(Vec<JsWord>),
+  Export(ReferencedExport),
+}
+
 pub struct ReferencedExport {
-  _name: Vec<JsWord>,
-  _can_mangle: bool,
+  pub name: Vec<JsWord>,
+  pub can_mangle: bool,
 }
 
 impl ReferencedExport {
   pub fn new(_name: Vec<JsWord>, _can_mangle: bool) -> Self {
-    Self { _name, _can_mangle }
+    Self {
+      name: _name,
+      can_mangle: _can_mangle,
+    }
   }
 }
 
 impl Default for ReferencedExport {
   fn default() -> Self {
     Self {
-      _name: vec![],
-      _can_mangle: true,
+      name: vec![],
+      can_mangle: true,
     }
   }
 }
