@@ -539,6 +539,31 @@ impl ExportInfoId {
     false
   }
 
+  pub fn set_used_conditionally(
+    &self,
+    mg: &mut ModuleGraph,
+    condition: UsageFilterFnTy,
+    new_value: UsageState,
+    runtime: Option<&RuntimeSpec>,
+  ) -> bool {
+    if let Some(_) = runtime {
+      // TODO: runtime optimization
+      todo!()
+    } else {
+      let export_info = mg.get_export_info_mut_by_id(self);
+      if let Some(global_used) = export_info.global_used {
+        if global_used != new_value && condition(&global_used) {
+          export_info.global_used = Some(new_value);
+          return true;
+        }
+      } else {
+        export_info.global_used = Some(new_value);
+        return true;
+      }
+    }
+    false
+  }
+
   pub fn get_nested_exports_info(&self, mg: &ModuleGraph) -> Option<ExportsInfoId> {
     let export_info = mg.get_export_info_by_id(self);
     export_info.exports_info
@@ -639,6 +664,7 @@ pub enum ResolvedExportInfoTargetWithCircular {
 }
 
 pub type ResolveFilterFnTy = Box<dyn FilterFn<ResolvedExportInfoTarget>>;
+pub type UsageFilterFnTy = Box<dyn FilterFn<UsageState>>;
 
 pub trait FilterFn<T>: Fn(&T) -> bool + Send + Sync {
   fn clone_boxed(&self) -> Box<dyn FilterFn<T>>;

@@ -3,7 +3,8 @@ use std::collections::VecDeque;
 use rspack_core::tree_shaking::visitor::ModuleIdOrDepId;
 use rspack_core::{
   BuildMetaExportsType, Compilation, Dependency, DependencyId, ExportsInfoId, ExportsType,
-  ModuleGraph, ModuleIdentifier, ReferencedExport, RuntimeSpec, WrappedReferencedExport,
+  ModuleGraph, ModuleIdentifier, ReferencedExport, RuntimeSpec, UsageState,
+  WrappedReferencedExport,
 };
 use rustc_hash::FxHashMap as HashMap;
 
@@ -121,8 +122,49 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
               let nested_info =
                 export_info_id.get_nested_exports_info(&self.compilation.module_graph);
               if let Some(nested_info) = nested_info {
-                // let flag = export_info_id.set_used_conditionally(self.compilation.module_graph, );
+                let changed_flag = export_info_id.set_used_conditionally(
+                  &mut self.compilation.module_graph,
+                  Box::new(|used| used == &UsageState::Unused),
+                  UsageState::OnlyPropertiesUsed,
+                  runtime.as_ref(),
+                );
+                if changed_flag {
+                  let current_module = if current_exports_info_id == mgm_exports_info_id {
+                    Some(module_id)
+                  } else {
+                    self
+                      .exports_info_module_map
+                      .get(&current_exports_info_id)
+                      .cloned()
+                  };
+                  if let Some(current_module) = current_module {
+                    queue.push_back((current_module, runtime.clone()));
+                  }
+                }
+                current_exports_info_id = nested_info;
+                continue;
               }
+
+              let changed_flag = export_info_id.set_used_conditionally(
+                &mut self.compilation.module_graph,
+                Box::new(|v| v != &UsageState::Used),
+                UsageState::Used,
+                runtime.as_ref(),
+              );
+              if changed_flag {
+                let current_module = if current_exports_info_id == mgm_exports_info_id {
+                  Some(module_id)
+                } else {
+                  self
+                    .exports_info_module_map
+                    .get(&current_exports_info_id)
+                    .cloned()
+                };
+                if let Some(current_module) = current_module {
+                  queue.push_back((current_module, runtime.clone()));
+                }
+              }
+              break;
             }
           }
         }
