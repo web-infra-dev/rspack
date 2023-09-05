@@ -400,7 +400,8 @@ const getRawModuleRule = (
 		enforce: rule.enforce
 	};
 
-	// Function calls may contain side-effects.
+	// Function calls may contain side-effects when interoperating with single-threaded environment.
+	// In order to mitigate the issue, Rspack tries to merge these calls together.
 	// See: https://github.com/web-infra-dev/rspack/issues/4003#issuecomment-1689662380
 	if (
 		typeof rule.test === "function" ||

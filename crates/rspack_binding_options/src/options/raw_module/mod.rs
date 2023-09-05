@@ -249,9 +249,10 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawModuleRule {
-  /// A conditional match matching an absolute path + query + fragment
-  /// This one is reserved as our escape hatch for those who
-  /// relies on some single-thread runtime behaviors.
+  /// A conditional match matching an absolute path + query + fragment.
+  /// Note:
+  ///   This is a custom matching rule not initially designed by webpack.
+  ///   Only for single-threaded environment interoperation purpose.
   pub rspack_resource: Option<RawRuleSetCondition>,
   /// A condition matcher matching an absolute path.
   pub test: Option<RawRuleSetCondition>,
