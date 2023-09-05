@@ -350,7 +350,7 @@ export type RuleSetConditions = RuleSetCondition[];
 export interface RuleSetLogicalConditions {
 	and?: RuleSetConditions;
 	or?: RuleSetConditions;
-	not?: RuleSetCondition;
+	not?: RuleSetConditions;
 }
 export type RuleSetUse =
 	| RuleSetUseItem[]

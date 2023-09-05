@@ -279,6 +279,10 @@ pub type FnUse =
 #[derive(Derivative, Default)]
 #[derivative(Debug)]
 pub struct ModuleRule {
+  /// A conditional match matching an absolute path + query + fragment
+  /// This one is reserved as our escape hatch for those who
+  /// relies on some single-thread runtime behaviors.
+  pub rspack_resource: Option<RuleSetCondition>,
   /// A condition matcher matching an absolute path.
   pub test: Option<RuleSetCondition>,
   pub include: Option<RuleSetCondition>,

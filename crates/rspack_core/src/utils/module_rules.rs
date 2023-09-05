@@ -26,6 +26,11 @@ pub async fn module_rule_matcher<'a>(
   dependency: &DependencyCategory,
   matched_rules: &mut Vec<&'a ModuleRule>,
 ) -> Result<bool> {
+  if let Some(test_rule) = &module_rule.rspack_resource
+    && !test_rule.try_match(&resource_data.resource).await? {
+    return Ok(false)
+  }
+
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
   // See: https://webpack.js.org/configuration/module/#ruletest
   if let Some(test_rule) = &module_rule.test

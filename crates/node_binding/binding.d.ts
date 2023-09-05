@@ -761,6 +761,12 @@ export interface RawModuleOptions {
 }
 
 export interface RawModuleRule {
+  /**
+   * A conditional match matching an absolute path + query + fragment
+   * This one is reserved as our escape hatch for those who
+   * relies on some single-thread runtime behaviors.
+   */
+  rspackResource?: RawRuleSetCondition
   /** A condition matcher matching an absolute path. */
   test?: RawRuleSetCondition
   include?: RawRuleSetCondition
