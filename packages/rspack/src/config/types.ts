@@ -655,7 +655,9 @@ export interface IncrementalRebuildOptions {
 	make?: boolean;
 	emitAsset?: boolean;
 }
-export interface RspackFutureOptions {}
+export interface RspackFutureOptions {
+	newResolver?: boolean;
+}
 // TODO: discuss with webpack, should move to css generator options
 // export interface CssExperimentOptions {
 // 	exportsOnly?: boolean;

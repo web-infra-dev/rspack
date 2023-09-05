@@ -16,6 +16,10 @@ export function experiments() {
 		outputModule: z.boolean().optional(),
 		newSplitChunks: z.boolean().optional(),
 		css: z.boolean().optional(),
-		rspackFuture: z.strictObject({}).optional()
+		rspackFuture: z
+			.strictObject({
+				newResolver: z.boolean().optional()
+			})
+			.optional()
 	});
 }

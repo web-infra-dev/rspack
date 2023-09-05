@@ -959,7 +959,7 @@ export interface RawResolveOptions {
 }
 
 export interface RawRspackFuture {
-
+  newResolver: boolean
 }
 
 export interface RawRuleSetCondition {
