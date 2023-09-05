@@ -528,7 +528,7 @@ export interface RawBuiltins {
 
 export interface RawCacheGroupOptions {
   priority?: number
-  test?: string
+  test?: RegExp | string
   idHint?: string
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
@@ -606,6 +606,7 @@ export interface RawExperiments {
   asyncWebAssembly: boolean
   newSplitChunks: boolean
   css: boolean
+  rspackFuture: RawRspackFuture
 }
 
 export interface RawExternalItem {
@@ -961,6 +962,10 @@ export interface RawResolveOptions {
   fullySpecified?: boolean
   exportsFields?: Array<string>
   extensionAlias?: Record<string, Array<string>>
+}
+
+export interface RawRspackFuture {
+
 }
 
 export interface RawRuleSetCondition {

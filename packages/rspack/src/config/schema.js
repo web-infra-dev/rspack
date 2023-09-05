@@ -399,6 +399,13 @@ module.exports = {
 				css: {
 					description: "Enable native css support.",
 					type: "boolean"
+				},
+				rspackFuture: {
+					description:
+						"Enable default behavior in the future version of Rspack",
+					type: "object",
+					additionalProperties: false,
+					properties: {}
 				}
 			}
 		},

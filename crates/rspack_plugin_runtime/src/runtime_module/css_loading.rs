@@ -45,23 +45,36 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         .runtime_requirements
         .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
 
-      let mut initial_chunk_ids_with_css = HashSet::default();
-      let mut initial_chunk_ids_without_css = HashSet::default();
       let initial_chunks = chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey);
 
-      for chunk_ukey in initial_chunks.iter() {
-        let chunk = compilation
-          .chunk_by_ukey
-          .get(chunk_ukey)
-          .expect("Chunk not found");
-        if chunk_has_css(chunk_ukey, compilation) {
-          initial_chunk_ids_with_css.insert(chunk.expect_id().to_string());
-        } else {
-          initial_chunk_ids_without_css.insert(chunk.expect_id().to_string());
-        }
-      }
+      // `initial_chunk_ids_without_css` is render to `installedChunks`
+      // `initial_chunk_ids_with_css` is render to `loadCssChunkData`, it will be add to `installedChunks`
+      // so here direct use `initial_chunk_ids`
+      let initial_chunk_ids = initial_chunks
+        .iter()
+        .map(|chunk_ukey| {
+          let chunk = compilation
+            .chunk_by_ukey
+            .get(chunk_ukey)
+            .expect("Chunk not found");
+          chunk.expect_id().to_string()
+        })
+        .collect::<HashSet<_>>();
+      // let mut initial_chunk_ids_with_css = HashSet::default();
+      // let mut initial_chunk_ids_without_css = HashSet::default();
+      // for chunk_ukey in initial_chunks.iter() {
+      //   let chunk = compilation
+      //     .chunk_by_ukey
+      //     .get(chunk_ukey)
+      //     .expect("Chunk not found");
+      //   if chunk_has_css(chunk_ukey, compilation) {
+      //     initial_chunk_ids_with_css.insert(chunk.expect_id().to_string());
+      //   } else {
+      //     initial_chunk_ids_without_css.insert(chunk.expect_id().to_string());
+      //   }
+      // }
 
-      if !with_hmr && !with_loading && initial_chunk_ids_with_css.is_empty() {
+      if !with_hmr && !with_loading && initial_chunk_ids.is_empty() {
         return RawSource::from("").boxed();
       }
 
@@ -74,7 +87,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       // only render chunk without css. See packages/rspack/tests/runtimeCases/runtime/split-css-chunk test.
       source.add(RawSource::from(format!(
         "var installedChunks = {};\n",
-        &stringify_chunks(&initial_chunk_ids_without_css, 0)
+        &stringify_chunks(&initial_chunk_ids, 0)
       )));
 
       source.add(RawSource::from(

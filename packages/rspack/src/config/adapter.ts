@@ -663,7 +663,7 @@ function toRawSplitChunksOptions(
 
 					const { test, name, ...passThrough } = group;
 					const rawGroup: RawCacheGroupOptions = {
-						test: test?.source,
+						test,
 						name: name === false ? undefined : name,
 						...passThrough
 					};
@@ -707,14 +707,16 @@ function getRawExperiments(
 		incrementalRebuild,
 		asyncWebAssembly,
 		newSplitChunks,
-		css
+		css,
+		rspackFuture
 	} = experiments;
 	assert(
 		!isNil(lazyCompilation) &&
 			!isNil(incrementalRebuild) &&
 			!isNil(asyncWebAssembly) &&
 			!isNil(newSplitChunks) &&
-			!isNil(css)
+			!isNil(css) &&
+			!isNil(rspackFuture)
 	);
 
 	return {
@@ -722,7 +724,8 @@ function getRawExperiments(
 		incrementalRebuild: getRawIncrementalRebuild(incrementalRebuild),
 		asyncWebAssembly,
 		newSplitChunks,
-		css
+		css,
+		rspackFuture
 	};
 }
 

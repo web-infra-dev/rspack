@@ -15,6 +15,7 @@ export function experiments() {
 		lazyCompilation: z.boolean().optional(),
 		outputModule: z.boolean().optional(),
 		newSplitChunks: z.boolean().optional(),
-		css: z.boolean().optional()
+		css: z.boolean().optional(),
+		rspackFuture: z.strictObject({}).optional()
 	});
 }
