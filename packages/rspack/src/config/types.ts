@@ -611,6 +611,7 @@ export interface StatsOptions {
 	builtAt?: boolean;
 	moduleAssets?: boolean;
 	modulesSpace?: number;
+	runtimeModules?: boolean;
 	nestedModules?: boolean;
 	source?: boolean;
 	logging?: ("none" | "error" | "warn" | "info" | "log" | "verbose") | boolean;

@@ -9,7 +9,8 @@ use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  BoxModule, Chunk, ChunkGroupUkey, Compilation, LogType, ModuleIdentifier, ModuleType, SourceType,
+  BoxModule, Chunk, ChunkGroupUkey, Compilation, LogType, ModuleIdentifier, ModuleType,
+  RuntimeModule, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -136,13 +137,24 @@ impl Stats<'_> {
     nested_modules: bool,
     source: bool,
   ) -> Result<Vec<StatsModule>> {
-    let mut modules: Vec<StatsModule> = self
+    let modules: Vec<StatsModule> = self
       .compilation
       .module_graph
       .modules()
       .values()
       .map(|module| self.get_module(module, reasons, module_assets, nested_modules, source))
       .collect::<Result<_>>()?;
+
+    let runtime_modules: Vec<StatsModule> = self
+      .compilation
+      .runtime_modules
+      .values()
+      .map(|module| self.get_runtime_module(module, reasons, module_assets, source))
+      .collect::<Result<_>>()?;
+    let mut modules = modules
+      .into_iter()
+      .chain(runtime_modules.into_iter())
+      .collect::<Vec<_>>();
     Self::sort_modules(&mut modules);
     Ok(modules)
   }
@@ -465,6 +477,53 @@ impl Stats<'_> {
     })
   }
 
+  fn get_runtime_module<'a>(
+    &'a self,
+    module: &'a Box<dyn RuntimeModule>,
+    reasons: bool,
+    module_assets: bool,
+    source: bool,
+  ) -> Result<StatsModule<'a>> {
+    // let runtime_module_identifier =
+    //   ModuleIdentifier::from(format!("{:?}/{}", chunk.runtime, module.identifier()));
+    // let mut chunks: Vec<String> = self
+    //   .compilation
+    //   .chunk_graph
+    //   .get_chunk_graph_module(runtime_module_identifier)
+    //   .chunks
+    //   .iter()
+    //   .map(|k| {
+    //     self
+    //       .compilation
+    //       .chunk_by_ukey
+    //       .get(k)
+    //       .unwrap_or_else(|| panic!("Could not find chunk by ukey: {k:?}"))
+    //       .expect_id()
+    //       .to_string()
+    //   })
+    //   .collect();
+    // chunks.sort_unstable();
+    let identifier = module.identifier();
+
+    return Ok(StatsModule {
+      r#type: "module",
+      module_type: ModuleType::Runtime,
+      identifier,
+      name: module.name().to_string(),
+      id: Some(String::new()),
+      chunks: Vec::new(),
+      size: module.size(&SourceType::JavaScript),
+      issuer: None,
+      issuer_name: None,
+      issuer_id: None,
+      issuer_path: Vec::new(),
+      reasons: reasons.then_some(vec![]),
+      assets: module_assets.then_some(vec![]),
+      modules: None,
+      source: None,
+      profile: None,
+    });
+  }
   fn get_chunk_relations(&self, chunk: &Chunk) -> (Vec<String>, Vec<String>, Vec<String>) {
     let mut parents = HashSet::default();
     let mut children = HashSet::default();
