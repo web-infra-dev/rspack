@@ -1,6 +1,4 @@
-function main() {
-	return "test-keep-fn-names";
-}
+function main() {}
 
 it("should keep fn names", () => {
 	const name = main.name;
