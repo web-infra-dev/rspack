@@ -33,7 +33,7 @@ preset_env_base    = { version = "0.4.5" }
 rayon              = { version = "1.7.0" }
 regex              = { version = "1.9.1" }
 rkyv               = { version = "0.7.42" }
-rspack_sources     = { version = "0.2.6" }
+rspack_sources     = { version = "0.2.7" }
 rustc-hash         = { version = "1.1.0" }
 schemars           = { version = "0.8.12" }
 serde              = { version = "1.0.171" }
