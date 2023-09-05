@@ -1,12 +1,17 @@
 //!  There are methods whose verb is `ChunkGraphModule`
+use std::collections::hash_map::DefaultHasher;
+use std::collections::HashMap;
+use std::hash::Hasher;
 
+use rspack_identifier::Identifier;
+use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::ChunkGraph;
 use crate::{
-  ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, ModuleIdentifier,
-  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  BoxModule, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, ExportsHash,
+  ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
 };
+use crate::{ChunkGraph, ModuleGraph};
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraphModule {
@@ -162,5 +167,89 @@ impl ChunkGraph {
     chunk_group: ChunkGroupUkey,
   ) {
     self.block_to_chunk_group_ukey.insert(block, chunk_group);
+  }
+
+  pub fn get_module_graph_hash(
+    &self,
+    module: &BoxModule,
+    module_graph: &ModuleGraph,
+    with_connections: bool,
+  ) -> String {
+    let mut hasher = DefaultHasher::new();
+    let mut connection_hash_cache: HashMap<Identifier, u64> = HashMap::new();
+
+    fn process_module_graph_module(
+      module: &BoxModule,
+      module_graph: &ModuleGraph,
+      strict: bool,
+    ) -> u64 {
+      let mut hasher = DefaultHasher::new();
+      module.identifier().dyn_hash(&mut hasher);
+      module.source_types().dyn_hash(&mut hasher);
+      module_graph
+        .is_async(&module.identifier())
+        .dyn_hash(&mut hasher);
+
+      module_graph
+        .get_exports_info(&module.identifier())
+        .export_info_hash(&mut hasher, module_graph);
+
+      if let Some(mgm) = module_graph.module_graph_module_by_identifier(&module.identifier()) {
+        let export_type = mgm.get_exports_type(strict);
+        export_type.dyn_hash(&mut hasher);
+      }
+
+      hasher.finish()
+    }
+
+    // hash module build_info
+    module_graph
+      .get_module_hash(&module.identifier())
+      .dyn_hash(&mut hasher);
+    // hash module graph module
+    process_module_graph_module(module, module_graph, false).dyn_hash(&mut hasher);
+
+    let strict: bool = module_graph
+      .module_graph_module_by_identifier(&module.identifier())
+      .unwrap_or_else(|| {
+        panic!(
+          "Module({}) should be added before using",
+          module.identifier()
+        )
+      })
+      .get_strict_harmony_module();
+
+    if with_connections {
+      let mut connections = module_graph
+        .get_outgoing_connections(module)
+        .into_iter()
+        .collect::<Vec<_>>();
+
+      connections.sort_by(|a, b| a.module_identifier.cmp(&b.module_identifier));
+
+      // hash connection module graph modules
+      for connection in connections {
+        if let Some(connection_hash) = connection_hash_cache.get(&connection.module_identifier) {
+          connection_hash.dyn_hash(&mut hasher)
+        } else {
+          let connection_hash = process_module_graph_module(
+            module_graph
+              .module_by_identifier(&connection.module_identifier)
+              .unwrap_or_else(|| {
+                panic!(
+                  "Module({}) should be added before using",
+                  connection.module_identifier
+                )
+              }),
+            module_graph,
+            strict,
+          );
+          connection_hash.dyn_hash(&mut hasher);
+          connection_hash_cache.insert(connection.module_identifier, connection_hash);
+        }
+      }
+    }
+
+    format!("{:016x}", hasher.finish())
   }
 }

@@ -68,77 +68,93 @@ impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
   }
 }
 
+pub fn stringify_css_modules_exports_key(
+  key: &JsWord,
+  locals_convention: &LocalsConvention,
+) -> Vec<String> {
+  let mut res = Vec::new();
+  if locals_convention.as_is() {
+    res.push(
+      serde_json::to_string(&key)
+        .unwrap_or_else(|_| panic!("Failed to stringify css modules exports key")),
+    );
+  }
+  if locals_convention.camel_case() {
+    res.push(
+      serde_json::to_string(&key.to_lower_camel_case())
+        .unwrap_or_else(|_| panic!("Failed to stringify css modules exports key into camel case")),
+    );
+  }
+  if locals_convention.dashes() {
+    res.push(
+      serde_json::to_string(&key.to_kebab_case())
+        .unwrap_or_else(|_| panic!("Failed to stringify css modules exports key into dashes")),
+    );
+  }
+  res
+}
+
+pub fn stringify_css_modules_exports_elements(
+  elements: &[CssClassName],
+) -> Vec<(String, Option<String>)> {
+  elements
+    .iter()
+    .map(|element| match element {
+      CssClassName::Local { name } | CssClassName::Global { name } => {
+        (serde_json::to_string(&name.value).expect("TODO:"), None)
+      }
+      CssClassName::Import { name, from } => (
+        serde_json::to_string(&name.value).expect("TODO:"),
+        Some(from.to_string()),
+      ),
+    })
+    .collect::<Vec<_>>()
+}
+
 pub fn css_modules_exports_to_string(
-  exports: &IndexMap<JsWord, Vec<CssClassName>>,
+  exports: &IndexMap<Vec<String>, Vec<(String, Option<String>)>>,
   module: &dyn rspack_core::Module,
   compilation: &Compilation,
-  locals_convention: &LocalsConvention,
 ) -> Result<String> {
   let mut code = String::from("module.exports = {\n");
   for (key, elements) in exports {
     let content = elements
       .iter()
-      .map(|element| match element {
-        CssClassName::Local { name } | CssClassName::Global { name } => {
-          serde_json::to_string(&name.value).expect("TODO:")
-        }
-        CssClassName::Import { name, from } => {
-          let name = serde_json::to_string(&name.value).expect("TODO:");
-
-          let from = compilation
-            .module_graph
-            .module_graph_module_by_identifier(&module.identifier())
-            .and_then(|mgm| {
-              // workaround
-              mgm.dependencies.iter().find_map(|id| {
-                let dependency = compilation
-                  .module_graph
-                  .dependency_by_id(id)
-                  .and_then(|d| d.as_module_dependency());
-                if let Some(dependency) = dependency {
-                  if dependency.request() == from {
-                    return compilation
-                      .module_graph
-                      .module_graph_module_by_dependency_id(id);
+      .map(|(name, from)| {
+        match from {
+          None => name.to_owned(),
+          Some(from_name) => {
+            let from: &rspack_core::ModuleGraphModule = compilation
+              .module_graph
+              .module_graph_module_by_identifier(&module.identifier())
+              .and_then(|mgm| {
+                // workaround
+                mgm.dependencies.iter().find_map(|id| {
+                  let dependency = compilation
+                    .module_graph
+                    .dependency_by_id(id)
+                    .and_then(|d| d.as_module_dependency());
+                  if let Some(dependency) = dependency {
+                    if dependency.request() == from_name {
+                      return compilation
+                        .module_graph
+                        .module_graph_module_by_dependency_id(id);
+                    }
                   }
-                }
-                None
+                  None
+                })
               })
-            })
-            .expect("should have css from module");
+              .expect("should have css from module");
 
-          let from = serde_json::to_string(from.id(&compilation.chunk_graph)).expect("TODO:");
-          format!("{}({from})[{name}]", RuntimeGlobals::REQUIRE)
+            let from = serde_json::to_string(from.id(&compilation.chunk_graph)).expect("TODO:");
+            format!("{}({from})[{name}]", RuntimeGlobals::REQUIRE)
+          }
         }
       })
       .collect::<Vec<_>>()
       .join(" + \" \" + ");
-    if locals_convention.as_is() {
-      writeln!(
-        code,
-        "  {}: {},",
-        serde_json::to_string(&key).expect("TODO:"),
-        content,
-      )
-      .map_err(|e| internal_error!(e.to_string()))?;
-    }
-    if locals_convention.camel_case() {
-      writeln!(
-        code,
-        "  {}: {},",
-        serde_json::to_string(&key.to_lower_camel_case()).expect("TODO:"),
-        content,
-      )
-      .map_err(|e| internal_error!(e.to_string()))?;
-    }
-    if locals_convention.dashes() {
-      writeln!(
-        code,
-        "  {}: {},",
-        serde_json::to_string(&key.to_kebab_case()).expect("TODO:"),
-        content,
-      )
-      .map_err(|e| internal_error!(e.to_string()))?;
+    for item in key {
+      writeln!(code, "  {}: {},", item, content).map_err(|e| internal_error!(e.to_string()))?;
     }
   }
   code += "};\n";

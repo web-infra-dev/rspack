@@ -168,18 +168,17 @@ pub fn collect_changed_modules(
     .chunk_graph_module_by_module_identifier
     .par_iter()
     .filter_map(|(identifier, cgm)| {
-      let module_hash = compilation.module_graph.get_module_hash(identifier);
       let cid = cgm.id.as_deref();
-      if let Some(module_hash) = module_hash && let Some(cid) = cid {
-          Some((
-              *identifier,
-              (
-                  module_hash.clone(),
-                  cid.to_string(),
-              ),
-          ))
+      if let Some(code_generation_result) = compilation.code_generation_results.module_generation_result_map.get(identifier) && let Some(module_hash) = &code_generation_result.hash && let Some(cid) = cid {
+        Some((
+            *identifier,
+            (
+                module_hash.clone(),
+                cid.to_string(),
+            ),
+        ))
       } else {
-          None
+        None
       }
     })
     .collect::<IdentifierMap<_>>();

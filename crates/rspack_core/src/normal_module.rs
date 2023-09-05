@@ -119,7 +119,7 @@ pub struct NormalModule {
   presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum NormalModuleSource {
   Unbuild,
   BuiltSucceed(BoxSource),
@@ -232,6 +232,34 @@ impl NormalModule {
 
   pub fn contains_inline_loader(&self) -> bool {
     self.contains_inline_loader
+  }
+
+  pub fn parser_and_generator(&self) -> &dyn ParserAndGenerator {
+    &*self.parser_and_generator
+  }
+
+  pub fn parser_and_generator_mut(&mut self) -> &mut Box<dyn ParserAndGenerator> {
+    &mut self.parser_and_generator
+  }
+
+  pub fn code_generation_dependencies(&self) -> &Option<Vec<Box<dyn ModuleDependency>>> {
+    &self.code_generation_dependencies
+  }
+
+  pub fn code_generation_dependencies_mut(
+    &mut self,
+  ) -> &mut Option<Vec<Box<dyn ModuleDependency>>> {
+    &mut self.code_generation_dependencies
+  }
+
+  pub fn presentational_dependencies(&self) -> &Option<Vec<Box<dyn DependencyTemplate>>> {
+    &self.presentational_dependencies
+  }
+
+  pub fn presentational_dependencies_mut(
+    &mut self,
+  ) -> &mut Option<Vec<Box<dyn DependencyTemplate>>> {
+    &mut self.presentational_dependencies
   }
 }
 

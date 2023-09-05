@@ -275,7 +275,10 @@ impl WorkerTask for BuildTask {
     let (build_result, is_cache_valid) = match cache
       .build_module_occasion
       .use_cache(&mut module, |module| async {
-        plugin_driver.build_module(module.as_mut()).await?;
+        plugin_driver
+          .build_module(module.as_mut())
+          .await
+          .unwrap_or_else(|e| panic!("Run build_module hook failed: {}", e));
 
         let result = module
           .build(BuildContext {
@@ -288,9 +291,12 @@ impl WorkerTask for BuildTask {
           })
           .await;
 
-        plugin_driver.succeed_module(&**module).await?;
+        plugin_driver
+          .succeed_module(&**module)
+          .await
+          .unwrap_or_else(|e| panic!("Run succeed_module hook failed: {}", e));
 
-        result
+        result.map(|t| (t, module))
       })
       .await
     {
