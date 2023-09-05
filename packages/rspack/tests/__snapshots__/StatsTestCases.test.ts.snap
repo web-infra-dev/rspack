@@ -74,6 +74,7 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
           ],
           "moduleType": "asset/resource",
           "name": "./raw.png",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/raw.png",
           "reasons": [
             {
               "moduleId": "10",
@@ -108,6 +109,7 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
           "reasons": [
             {
               "type": "entry",
@@ -138,6 +140,7 @@ import rawModule from './raw.png'",
           ],
           "moduleType": "javascript/auto",
           "name": "./stringModule.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/stringModule.js",
           "reasons": [
             {
               "moduleId": "10",
@@ -201,6 +204,7 @@ import rawModule from './raw.png'",
       ],
       "moduleType": "asset/resource",
       "name": "./raw.png",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/raw.png",
       "reasons": [
         {
           "moduleId": "10",
@@ -235,6 +239,7 @@ import rawModule from './raw.png'",
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
       "reasons": [
         {
           "type": "entry",
@@ -265,6 +270,7 @@ import rawModule from './raw.png'",
       ],
       "moduleType": "javascript/auto",
       "name": "./stringModule.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/stringModule.js",
       "reasons": [
         {
           "moduleId": "10",
@@ -391,6 +397,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
           ],
           "moduleType": "javascript/auto",
           "name": "./dynamic.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/filename/dynamic.js",
           "reasons": [
             {
               "moduleId": "10",
@@ -436,6 +443,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
           "reasons": [
             {
               "type": "entry",
@@ -487,6 +495,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
       "reasons": [
         {
           "type": "entry",
@@ -516,6 +525,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       ],
       "moduleType": "javascript/auto",
       "name": "./dynamic.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/filename/dynamic.js",
       "reasons": [
         {
           "moduleId": "10",
@@ -617,6 +627,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/hot+production/index.js",
           "reasons": [
             {
               "type": "entry",
@@ -669,6 +680,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/hot+production/index.js",
       "reasons": [
         {
           "type": "entry",
@@ -785,6 +797,7 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
       "size": 103,
       "type": "module",
     },
@@ -811,6 +824,7 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
       ],
       "moduleType": "javascript/auto",
       "name": "./locals/en.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/en.js",
       "size": 30,
       "type": "module",
     },
@@ -1774,6 +1788,7 @@ exports[`StatsTestCases should print correct stats for reasons 1`] = `
       ],
       "moduleType": "javascript/auto",
       "name": "./a.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/reasons/a.js",
       "reasons": [
         {
           "moduleId": "10",
@@ -1795,6 +1810,7 @@ exports[`StatsTestCases should print correct stats for reasons 1`] = `
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/reasons/index.js",
       "reasons": [
         {
           "type": "entry",
@@ -1861,6 +1877,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
           "reasons": [
             {
               "type": "entry",
@@ -1966,6 +1983,7 @@ console.log(a);
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
       "reasons": [
         {
           "type": "entry",
@@ -2114,6 +2132,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
           "reasons": [
             {
               "type": "entry",
@@ -2213,6 +2232,7 @@ console.log(a);
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
       "reasons": [
         {
           "type": "entry",
@@ -2355,6 +2375,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple/index.js",
           "reasons": [
             {
               "type": "entry",
@@ -2407,6 +2428,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple/index.js",
       "reasons": [
         {
           "type": "entry",
@@ -2508,6 +2530,7 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
           ],
           "moduleType": "javascript/auto",
           "name": "./raw.png",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/raw.png",
           "reasons": [
             {
               "moduleId": "10",
@@ -2531,6 +2554,7 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
           "reasons": [
             {
               "type": "entry",
@@ -2561,6 +2585,7 @@ import rawModule from './raw.png'",
           ],
           "moduleType": "javascript/auto",
           "name": "./stringModule.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/stringModule.js",
           "reasons": [
             {
               "moduleId": "10",
@@ -2624,6 +2649,7 @@ import rawModule from './raw.png'",
       ],
       "moduleType": "javascript/auto",
       "name": "./raw.png",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/raw.png",
       "reasons": [
         {
           "moduleId": "10",
@@ -2647,6 +2673,7 @@ import rawModule from './raw.png'",
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
       "reasons": [
         {
           "type": "entry",
@@ -2677,6 +2704,7 @@ import rawModule from './raw.png'",
       ],
       "moduleType": "javascript/auto",
       "name": "./stringModule.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/stringModule.js",
       "reasons": [
         {
           "moduleId": "10",
@@ -2770,6 +2798,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/stats-hooks/index.js",
           "reasons": [
             {
               "type": "entry",
@@ -2820,6 +2849,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/stats-hooks/index.js",
       "reasons": [
         {
           "type": "entry",
