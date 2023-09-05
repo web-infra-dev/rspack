@@ -747,6 +747,8 @@ export interface RawLibraryOptions {
 export interface RawMinification {
   passes: number
   dropConsole: boolean
+  keepClassnames: boolean
+  keepFnames: boolean
   comments: "all" | "some" | "false"
   asciiOnly: boolean
   pureFuncs: Array<string>

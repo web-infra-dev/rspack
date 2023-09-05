@@ -29,6 +29,8 @@ use swc_ecma_minifier::option::{
 pub struct Minification {
   pub passes: usize,
   pub drop_console: bool,
+  pub keep_classnames: bool,
+  pub keep_fnames: bool,
   pub pure_funcs: Vec<String>,
   pub extract_comments: Option<String>,
   pub ascii_only: bool,
@@ -115,6 +117,12 @@ impl Plugin for SwcJsMinimizerPlugin {
       ..Default::default()
     };
 
+    let mangle = MangleOptions {
+      keep_class_names: minify_options.keep_classnames,
+      keep_fn_names: minify_options.keep_fnames,
+      ..Default::default()
+    };
+
     let comments = match minify_options.comments.as_str() {
       "false" => JsMinifyCommentOption::False,
       "all" => JsMinifyCommentOption::PreserveAllComments,
@@ -146,6 +154,7 @@ impl Plugin for SwcJsMinimizerPlugin {
         let input_source_map = original_source.map(&MapOptions::default());
         let js_minify_options = JsMinifyOptions {
           compress: BoolOrDataConfig::from_obj(compress.clone()),
+          mangle: BoolOrDataConfig::from_obj(mangle.clone()),
           format: format.clone(),
           source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
           inline_sources_content: true, /* Using true so original_source can be None in SourceMapSource */
@@ -153,6 +162,7 @@ impl Plugin for SwcJsMinimizerPlugin {
           module: is_module,
           ..Default::default()
         };
+
         let output = match minify(
           &js_minify_options,
           input,
