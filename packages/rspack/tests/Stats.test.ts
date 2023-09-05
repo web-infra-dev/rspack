@@ -69,6 +69,7 @@ describe("Stats", () => {
 		          "issuerPath": [],
 		          "moduleType": "javascript/auto",
 		          "name": "./fixtures/a.js",
+		          "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
 		          "reasons": [
 		            {
 		              "type": "entry",
@@ -122,6 +123,7 @@ describe("Stats", () => {
 		      "issuerPath": [],
 		      "moduleType": "javascript/auto",
 		      "name": "./fixtures/a.js",
+		      "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
 		      "reasons": [
 		        {
 		          "type": "entry",
@@ -211,6 +213,474 @@ describe("Stats", () => {
 
 
 		rspack compiled with 1 error (27ec1c09308b67dcfd6f)"
+	`);
+	});
+
+	it("should output stats with query", async () => {
+		const stats = await compile({
+			context: __dirname,
+			entry: "./fixtures/abc-query"
+		});
+
+		const statsOptions = {
+			all: true,
+			timings: false,
+			builtAt: false,
+			version: false
+		};
+		expect(stats?.toJson(statsOptions)).toMatchInlineSnapshot(`
+		{
+		  "assets": [
+		    {
+		      "chunkNames": [
+		        "main",
+		      ],
+		      "chunks": [
+		        "main",
+		      ],
+		      "emitted": true,
+		      "info": {
+		        "development": false,
+		        "hotModuleReplacement": false,
+		      },
+		      "name": "main.js",
+		      "size": 478,
+		      "type": "asset",
+		    },
+		  ],
+		  "assetsByChunkName": {
+		    "main": [
+		      "main.js",
+		    ],
+		  },
+		  "chunks": [
+		    {
+		      "auxiliaryFiles": [],
+		      "children": [],
+		      "entry": true,
+		      "files": [
+		        "main.js",
+		      ],
+		      "id": "main",
+		      "initial": true,
+		      "modules": [
+		        {
+		          "assets": [],
+		          "chunks": [
+		            "main",
+		          ],
+		          "id": "876",
+		          "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
+		          "issuer": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
+		          "issuerId": "970",
+		          "issuerName": "./fixtures/c.js?c=3",
+		          "issuerPath": [
+		            {
+		              "id": "661",
+		              "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		              "name": "./fixtures/abc-query.js",
+		            },
+		            {
+		              "id": "970",
+		              "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
+		              "name": "./fixtures/c.js?c=3",
+		            },
+		          ],
+		          "moduleType": "javascript/auto",
+		          "name": "./fixtures/a.js",
+		          "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+		          "reasons": [
+		            {
+		              "moduleId": "970",
+		              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
+		              "moduleName": "./fixtures/c.js?c=3",
+		              "type": "cjs require",
+		              "userRequest": "./a",
+		            },
+		          ],
+		          "size": 55,
+		          "source": "module.exports = function a() {
+			return "This is a";
+		};",
+		          "type": "module",
+		        },
+		        {
+		          "assets": [],
+		          "chunks": [
+		            "main",
+		          ],
+		          "id": "304",
+		          "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js?a=1",
+		          "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		          "issuerId": "661",
+		          "issuerName": "./fixtures/abc-query.js",
+		          "issuerPath": [
+		            {
+		              "id": "661",
+		              "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		              "name": "./fixtures/abc-query.js",
+		            },
+		          ],
+		          "moduleType": "javascript/auto",
+		          "name": "./fixtures/a.js?a=1",
+		          "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+		          "reasons": [
+		            {
+		              "moduleId": "661",
+		              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		              "moduleName": "./fixtures/abc-query.js",
+		              "type": "cjs require",
+		              "userRequest": "./a?a=1",
+		            },
+		          ],
+		          "size": 55,
+		          "source": "module.exports = function a() {
+			return "This is a";
+		};",
+		          "type": "module",
+		        },
+		        {
+		          "assets": [],
+		          "chunks": [
+		            "main",
+		          ],
+		          "id": "53",
+		          "identifier": "<PROJECT_ROOT>/tests/fixtures/b.js?b=2",
+		          "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		          "issuerId": "661",
+		          "issuerName": "./fixtures/abc-query.js",
+		          "issuerPath": [
+		            {
+		              "id": "661",
+		              "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		              "name": "./fixtures/abc-query.js",
+		            },
+		          ],
+		          "moduleType": "javascript/auto",
+		          "name": "./fixtures/b.js?b=2",
+		          "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/b.js",
+		          "reasons": [
+		            {
+		              "moduleId": "661",
+		              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		              "moduleName": "./fixtures/abc-query.js",
+		              "type": "cjs require",
+		              "userRequest": "./b?b=2",
+		            },
+		          ],
+		          "size": 94,
+		          "source": "module.exports = function b() {
+			return "This is b";
+		};
+
+		// Test CJS top-level return
+		return;
+		",
+		          "type": "module",
+		        },
+		        {
+		          "assets": [],
+		          "chunks": [
+		            "main",
+		          ],
+		          "id": "970",
+		          "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
+		          "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		          "issuerId": "661",
+		          "issuerName": "./fixtures/abc-query.js",
+		          "issuerPath": [
+		            {
+		              "id": "661",
+		              "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		              "name": "./fixtures/abc-query.js",
+		            },
+		          ],
+		          "moduleType": "javascript/auto",
+		          "name": "./fixtures/c.js?c=3",
+		          "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/c.js",
+		          "reasons": [
+		            {
+		              "moduleId": "661",
+		              "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		              "moduleName": "./fixtures/abc-query.js",
+		              "type": "cjs require",
+		              "userRequest": "./c?c=3",
+		            },
+		          ],
+		          "size": 72,
+		          "source": "module.exports = function b() {
+			require("./a");
+			return "This is c";
+		};",
+		          "type": "module",
+		        },
+		        {
+		          "assets": [],
+		          "chunks": [
+		            "main",
+		          ],
+		          "id": "661",
+		          "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		          "issuerPath": [],
+		          "moduleType": "javascript/auto",
+		          "name": "./fixtures/abc-query.js",
+		          "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		          "reasons": [
+		            {
+		              "type": "entry",
+		              "userRequest": "./fixtures/abc-query",
+		            },
+		          ],
+		          "size": 96,
+		          "source": "exports.a = require("./a?a=1");
+		exports.b = require("./b?b=2");
+		exports.c = require("./c?c=3");
+		",
+		          "type": "module",
+		        },
+		      ],
+		      "names": [
+		        "main",
+		      ],
+		      "parents": [],
+		      "siblings": [],
+		      "size": 372,
+		      "type": "chunk",
+		    },
+		  ],
+		  "entrypoints": {
+		    "main": {
+		      "assets": [
+		        {
+		          "name": "main.js",
+		          "size": 478,
+		        },
+		      ],
+		      "assetsSize": 478,
+		      "chunks": [
+		        "main",
+		      ],
+		      "name": "main",
+		    },
+		  },
+		  "errors": [
+		    {
+		      "formatted": "error[javascript]: JavaScript parsing error
+		  ┌─ tests/fixtures/b.js:6:1
+		  │
+		2 │     return "This is b";
+		3 │ };
+		4 │ 
+		5 │ // Test CJS top-level return
+		6 │ return;
+		  │ ^^^^^^^ Return statement is not allowed here
+		7 │ 
+
+		",
+		      "message": "Return statement is not allowed here",
+		      "title": "JavaScript parsing error",
+		    },
+		  ],
+		  "errorsCount": 1,
+		  "filteredModules": undefined,
+		  "hash": "bee17f084d89e18f1263",
+		  "logging": {},
+		  "modules": [
+		    {
+		      "assets": [],
+		      "chunks": [
+		        "main",
+		      ],
+		      "id": "876",
+		      "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
+		      "issuer": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
+		      "issuerId": "970",
+		      "issuerName": "./fixtures/c.js?c=3",
+		      "issuerPath": [
+		        {
+		          "id": "661",
+		          "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		          "name": "./fixtures/abc-query.js",
+		        },
+		        {
+		          "id": "970",
+		          "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
+		          "name": "./fixtures/c.js?c=3",
+		        },
+		      ],
+		      "moduleType": "javascript/auto",
+		      "name": "./fixtures/a.js",
+		      "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+		      "reasons": [
+		        {
+		          "moduleId": "970",
+		          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
+		          "moduleName": "./fixtures/c.js?c=3",
+		          "type": "cjs require",
+		          "userRequest": "./a",
+		        },
+		      ],
+		      "size": 55,
+		      "source": "module.exports = function a() {
+			return "This is a";
+		};",
+		      "type": "module",
+		    },
+		    {
+		      "assets": [],
+		      "chunks": [
+		        "main",
+		      ],
+		      "id": "304",
+		      "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js?a=1",
+		      "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		      "issuerId": "661",
+		      "issuerName": "./fixtures/abc-query.js",
+		      "issuerPath": [
+		        {
+		          "id": "661",
+		          "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		          "name": "./fixtures/abc-query.js",
+		        },
+		      ],
+		      "moduleType": "javascript/auto",
+		      "name": "./fixtures/a.js?a=1",
+		      "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
+		      "reasons": [
+		        {
+		          "moduleId": "661",
+		          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		          "moduleName": "./fixtures/abc-query.js",
+		          "type": "cjs require",
+		          "userRequest": "./a?a=1",
+		        },
+		      ],
+		      "size": 55,
+		      "source": "module.exports = function a() {
+			return "This is a";
+		};",
+		      "type": "module",
+		    },
+		    {
+		      "assets": [],
+		      "chunks": [
+		        "main",
+		      ],
+		      "id": "53",
+		      "identifier": "<PROJECT_ROOT>/tests/fixtures/b.js?b=2",
+		      "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		      "issuerId": "661",
+		      "issuerName": "./fixtures/abc-query.js",
+		      "issuerPath": [
+		        {
+		          "id": "661",
+		          "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		          "name": "./fixtures/abc-query.js",
+		        },
+		      ],
+		      "moduleType": "javascript/auto",
+		      "name": "./fixtures/b.js?b=2",
+		      "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/b.js",
+		      "reasons": [
+		        {
+		          "moduleId": "661",
+		          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		          "moduleName": "./fixtures/abc-query.js",
+		          "type": "cjs require",
+		          "userRequest": "./b?b=2",
+		        },
+		      ],
+		      "size": 94,
+		      "source": "module.exports = function b() {
+			return "This is b";
+		};
+
+		// Test CJS top-level return
+		return;
+		",
+		      "type": "module",
+		    },
+		    {
+		      "assets": [],
+		      "chunks": [
+		        "main",
+		      ],
+		      "id": "970",
+		      "identifier": "<PROJECT_ROOT>/tests/fixtures/c.js?c=3",
+		      "issuer": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		      "issuerId": "661",
+		      "issuerName": "./fixtures/abc-query.js",
+		      "issuerPath": [
+		        {
+		          "id": "661",
+		          "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		          "name": "./fixtures/abc-query.js",
+		        },
+		      ],
+		      "moduleType": "javascript/auto",
+		      "name": "./fixtures/c.js?c=3",
+		      "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/c.js",
+		      "reasons": [
+		        {
+		          "moduleId": "661",
+		          "moduleIdentifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		          "moduleName": "./fixtures/abc-query.js",
+		          "type": "cjs require",
+		          "userRequest": "./c?c=3",
+		        },
+		      ],
+		      "size": 72,
+		      "source": "module.exports = function b() {
+			require("./a");
+			return "This is c";
+		};",
+		      "type": "module",
+		    },
+		    {
+		      "assets": [],
+		      "chunks": [
+		        "main",
+		      ],
+		      "id": "661",
+		      "identifier": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		      "issuerPath": [],
+		      "moduleType": "javascript/auto",
+		      "name": "./fixtures/abc-query.js",
+		      "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/abc-query.js",
+		      "reasons": [
+		        {
+		          "type": "entry",
+		          "userRequest": "./fixtures/abc-query",
+		        },
+		      ],
+		      "size": 96,
+		      "source": "exports.a = require("./a?a=1");
+		exports.b = require("./b?b=2");
+		exports.c = require("./c?c=3");
+		",
+		      "type": "module",
+		    },
+		  ],
+		  "namedChunkGroups": {
+		    "main": {
+		      "assets": [
+		        {
+		          "name": "main.js",
+		          "size": 478,
+		        },
+		      ],
+		      "assetsSize": 478,
+		      "chunks": [
+		        "main",
+		      ],
+		      "name": "main",
+		    },
+		  },
+		  "outputPath": "<PROJECT_ROOT>/dist",
+		  "publicPath": "auto",
+		  "warnings": [],
+		  "warningsCount": 0,
+		}
 	`);
 	});
 

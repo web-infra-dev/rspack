@@ -400,6 +400,7 @@ export interface JsStatsModule {
   issuerName?: string
   issuerId?: string
   issuerPath: Array<JsStatsModuleIssuer>
+  nameForCondition?: string
   reasons?: Array<JsStatsModuleReason>
   assets?: Array<string>
   source?: string | Buffer
@@ -429,13 +430,6 @@ export interface JsStatsModuleReason {
 export interface JsStatsWarning {
   message: string
   formatted: string
-}
-
-export interface NodeFS {
-  writeFile: (...args: any[]) => any
-  removeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
 }
 
 export interface PathData {
@@ -1036,12 +1030,4 @@ export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", 
 
 /** Builtin loader runner */
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
-
-export interface ThreadsafeNodeFS {
-  writeFile: (...args: any[]) => any
-  removeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-  removeDirAll: (...args: any[]) => any
-}
 
