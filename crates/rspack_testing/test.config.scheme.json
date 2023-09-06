@@ -346,7 +346,7 @@
           "default": false,
           "type": "boolean"
         },
-        "keepClassnames": {
+        "keepClassNames": {
           "default": false,
           "type": "boolean"
         },
