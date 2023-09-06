@@ -1,23 +1,24 @@
 use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
-use rspack_core::tree_shaking::visitor::ModuleIdOrDepId;
 use rspack_core::{
   is_exports_object_referenced, is_no_exports_referenced, BuildMetaExportsType, Compilation,
-  ConnectionState, Dependency, DependencyId, ExportsInfoId, ExportsType, ExtendedReferencedExport,
-  ModuleGraph, ModuleIdentifier, ReferencedExport, RuntimeSpec, UsageState,
+  ConnectionState, DependencyId, ExportsInfoId, ExtendedReferencedExport, ModuleIdentifier,
+  ReferencedExport, RuntimeSpec, UsageState,
 };
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::utils::join_jsword;
 
+#[allow(unused)]
 pub struct FlagDependencyUsagePlugin<'a> {
   global: bool,
   compilation: &'a mut Compilation,
   exports_info_module_map: HashMap<ExportsInfoId, ModuleIdentifier>,
 }
 
+#[allow(unused)]
 impl<'a> FlagDependencyUsagePlugin<'a> {
   pub fn new(global: bool, compilation: &'a mut Compilation) -> Self {
     Self {
@@ -127,24 +128,28 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
         {
           continue;
         } else {
-          // in this branch old_referenced_exports must be `Some(T)`
-          let old_referenced_exports = old_referenced_exports.expect("should be Some(T) ");
-          let mut exports_map = match old_referenced_exports {
-            ProcessModuleReferencedExports::Map(map) => map,
-            ProcessModuleReferencedExports::ExtendRef(ref_items) => {
-              let mut exports_map = HashMap::default();
-              for item in ref_items.iter() {
-                match item {
-                  ExtendedReferencedExport::Array(arr) => {
-                    exports_map.insert(join_jsword(arr, "\n"), item.clone());
-                  }
-                  ExtendedReferencedExport::Export(export) => {
-                    exports_map.insert(join_jsword(&export.name, "\n"), item.clone());
+          let mut exports_map = if let Some(old_referenced_exports) = old_referenced_exports {
+            match old_referenced_exports {
+              ProcessModuleReferencedExports::Map(map) => map,
+              ProcessModuleReferencedExports::ExtendRef(ref_items) => {
+                let mut exports_map = HashMap::default();
+                for item in ref_items.iter() {
+                  match item {
+                    ExtendedReferencedExport::Array(arr) => {
+                      exports_map.insert(join_jsword(arr, "\n"), item.clone());
+                    }
+                    ExtendedReferencedExport::Export(export) => {
+                      exports_map.insert(join_jsword(&export.name, "\n"), item.clone());
+                    }
                   }
                 }
+                exports_map
               }
-              exports_map
             }
+          } else {
+            // in else branch above old_referenced_exports must be `Some(T)`, use if let Pattern
+            // just avoid rust clippy complain
+            unreachable!()
           };
           for mut item in referenced_exports.into_iter() {
             match item {
@@ -197,7 +202,7 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
   fn process_entry_dependency(
     &mut self,
     dep: DependencyId,
-    runtime: Option<RuntimeSpec>,
+    _runtime: Option<RuntimeSpec>,
     queue: &mut VecDeque<(ModuleIdentifier, Option<RuntimeSpec>)>,
   ) {
     if let Some(module) = self
@@ -242,7 +247,7 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
           ExtendedReferencedExport::Array(used_exports) => (true, used_exports),
           ExtendedReferencedExport::Export(export) => (export.can_mangle, export.name),
         };
-        if used_exports.len() == 0 {
+        if used_exports.is_empty() {
           let flag = mgm_exports_info_id
             .set_used_in_unknown_way(&mut self.compilation.module_graph, runtime.as_ref());
           if flag {

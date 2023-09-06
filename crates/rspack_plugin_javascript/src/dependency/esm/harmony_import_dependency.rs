@@ -6,7 +6,7 @@ use rspack_core::{
   InitFragmentStage, ModuleDependency, ModuleIdentifier, NormalInitFragment, RuntimeGlobals,
   TemplateContext, TemplateReplaceSource,
 };
-use rspack_core::{ExportsReferencedType, ModuleGraph, RuntimeSpec};
+use rspack_core::{ModuleGraph, RuntimeSpec};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
 

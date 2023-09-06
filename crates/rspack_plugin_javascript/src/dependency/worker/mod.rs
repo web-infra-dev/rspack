@@ -1,8 +1,7 @@
 use rspack_core::{
   ChunkGroupOptionsKindRef, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, EntryOptions, ErrorSpan, ExportsReferencedType, ExtendedReferencedExport,
-  ModuleDependency, ModuleGraph, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  DependencyType, EntryOptions, ErrorSpan, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]

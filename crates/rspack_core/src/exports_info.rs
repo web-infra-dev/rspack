@@ -319,13 +319,13 @@ impl ExportsInfoId {
         changed = true;
       }
     }
-    return changed;
+    changed
   }
 
   pub fn set_used_in_unknown_way(
     &self,
-    mg: &mut ModuleGraph,
-    runtime: Option<&RuntimeSpec>,
+    _mg: &mut ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
   ) -> bool {
     todo!()
   }
@@ -532,7 +532,7 @@ impl ExportInfoId {
       export_info.can_mangle_use = Some(false);
       changed = true;
     }
-    return changed;
+    changed
   }
 
   fn set_used(
@@ -541,7 +541,7 @@ impl ExportInfoId {
     new_value: UsageState,
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
-    if let Some(_) = runtime {
+    if runtime.is_some() {
       // TODO: runtime optimization
       todo!()
     } else {
@@ -561,7 +561,7 @@ impl ExportInfoId {
     new_value: UsageState,
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
-    if let Some(_) = runtime {
+    if runtime.is_some() {
       // TODO: runtime optimization
       todo!()
     } else {
@@ -1090,15 +1090,12 @@ pub enum ExtendedReferencedExport {
   Export(ReferencedExport),
 }
 
-pub fn is_no_exports_referenced(exports: &Vec<ExtendedReferencedExport>) -> bool {
+pub fn is_no_exports_referenced(exports: &[ExtendedReferencedExport]) -> bool {
   exports.is_empty()
 }
 
-pub fn is_exports_object_referenced(exports: &Vec<ExtendedReferencedExport>) -> bool {
-  match exports[..] {
-    [ExtendedReferencedExport::Array(ref arr)] if arr.is_empty() => true,
-    _ => false,
-  }
+pub fn is_exports_object_referenced(exports: &[ExtendedReferencedExport]) -> bool {
+  matches!(exports[..], [ExtendedReferencedExport::Array(ref arr)] if arr.is_empty())
 }
 
 pub fn create_no_exports_referenced() -> Vec<ExtendedReferencedExport> {

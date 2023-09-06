@@ -1,6 +1,6 @@
 use rspack_core::{
   AsDependencyTemplate, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  ExportsReferencedType, ExtendedReferencedExport, ModuleDependency, ModuleGraph, RuntimeSpec,
+  ExtendedReferencedExport, ModuleDependency, ModuleGraph, RuntimeSpec,
 };
 use swc_core::ecma::atoms::JsWord;
 

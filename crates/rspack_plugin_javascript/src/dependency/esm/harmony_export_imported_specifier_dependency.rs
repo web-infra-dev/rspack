@@ -1,8 +1,8 @@
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
   get_exports_type, process_export_info, ConnectionState, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfo, ExportsReferencedType,
-  ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, ModuleDependency, ModuleGraph,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfo, ExportsType,
+  ExtendedReferencedExport, HarmonyExportInitFragment, ModuleDependency, ModuleGraph,
   ModuleIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rustc_hash::FxHashSet as HashSet;
@@ -162,7 +162,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
           );
           referenced_exports
             .into_iter()
-            .map(|item| ExtendedReferencedExport::Array(item))
+            .map(ExtendedReferencedExport::Array)
             .collect::<Vec<_>>()
         } else {
           create_exports_object_referenced()
@@ -188,7 +188,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
         }
         referenced_exports
           .into_iter()
-          .map(|item| ExtendedReferencedExport::Array(item))
+          .map(ExtendedReferencedExport::Array)
           .collect::<Vec<_>>()
       }
       ExportModeType::Unset => {

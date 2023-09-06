@@ -2,8 +2,8 @@ use swc_core::ecma::atoms::JsWord;
 
 use crate::{
   AsDependencyTemplate, Context, ContextMode, ContextOptions, Dependency, DependencyCategory,
-  DependencyId, DependencyType, ExportsReferencedType, ExtendedReferencedExport, ModuleDependency,
-  ModuleGraph, ReferencedExport, RuntimeSpec,
+  DependencyId, DependencyType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
+  ReferencedExport, RuntimeSpec,
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]

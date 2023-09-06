@@ -3,9 +3,8 @@ use rspack_core::{
   export_from_import, get_dependency_used_by_exports_condition, get_exports_type,
   tree_shaking::symbol::DEFAULT_JS_WORD, Compilation, ConnectionState, Dependency,
   DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ExportsReferencedType, ExportsType, ModuleDependency, ModuleGraph, ModuleGraphModule,
-  ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsedByExports,
+  ErrorSpan, ExportsType, ModuleDependency, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
+  ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
@@ -101,12 +100,12 @@ impl HarmonyImportSpecifierDependency {
           if let Some(v) = ids {
             let mut value = v.clone();
             value.push(prop.clone());
-            ReferencedExport::new(value, false).into()
+            ReferencedExport::new(value, false)
           } else {
-            ReferencedExport::new(vec![prop.clone()], false).into()
+            ReferencedExport::new(vec![prop.clone()], false)
           }
         })
-        .map(|item| ExtendedReferencedExport::Export(item))
+        .map(ExtendedReferencedExport::Export)
         .collect::<Vec<_>>()
     } else if let Some(v) = ids {
       vec![ReferencedExport::new(v.clone(), true).into()]
