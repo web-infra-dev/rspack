@@ -143,6 +143,22 @@ impl From<(String, rspack_core::LogType)> for JsStatsLogging {
         args: Some(vec![message]),
         trace: None,
       },
+      rspack_core::LogType::Cache { label, hit, total } => Self {
+        name: value.0,
+        r#type: "cache".to_string(),
+        args: Some(vec![format!(
+          "{}: {:.1}% ({}/{})",
+          label,
+          if total == 0 {
+            0 as f32
+          } else {
+            hit as f32 / total as f32 * 100_f32
+          },
+          hit,
+          total,
+        )]),
+        trace: None,
+      },
     }
   }
 }

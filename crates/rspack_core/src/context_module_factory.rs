@@ -102,11 +102,16 @@ impl ContextModuleFactory {
     };
     let plugin_driver = &self.plugin_driver;
 
-    let resource_data = self
+    let (resource_data, from_cache) = match self
       .cache
       .resolve_module_occasion
       .use_cache(resolve_args, |args| resolve(args, plugin_driver))
-      .await;
+      .await
+    {
+      Ok(result) => result,
+      Err(err) => (Err(err), false),
+    };
+
     let module = match resource_data {
       Ok(ResolveResult::Resource(resource)) => Box::new(ContextModule::new(
         ContextModuleOptions {
@@ -154,6 +159,7 @@ impl ContextModuleFactory {
         missing_dependencies,
         context_dependencies,
         factory_meta,
+        from_cache,
       }
       .with_empty_diagnostic(),
     )
