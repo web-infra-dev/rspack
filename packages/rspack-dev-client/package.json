@@ -36,6 +36,6 @@
   "exports": {
     "./react-refresh": "./src/reactRefresh.js",
     "./react-refresh-entry": "./src/reactRefreshEntry.js",
-    "./runtime-path-regexp": "./src/runtimePathRegexp.js"
+    "./runtime-paths": "./src/runtimePaths.js"
   }
 }
