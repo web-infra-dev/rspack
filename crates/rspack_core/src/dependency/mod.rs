@@ -31,7 +31,8 @@ use dyn_clone::{clone_trait_object, DynClone};
 
 use crate::{
   ChunkGroupOptionsKindRef, ConnectionState, Context, ContextMode, ContextOptions, ErrorSpan,
-  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport, RuntimeSpec,
+  ExtendedReferencedExport, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport,
+  RuntimeSpec,
 };
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
@@ -300,7 +301,7 @@ impl<T: ModuleDependency> AsModuleDependency for T {
 pub type DependencyConditionFn = Box<dyn Function>;
 
 pub trait Function:
-  Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState + Send + Sync
+  Fn(&ModuleGraphConnection, Option<&RuntimeSpec>, &ModuleGraph) -> ConnectionState + Send + Sync
 {
   fn clone_boxed(&self) -> Box<dyn Function>;
 }
@@ -309,7 +310,7 @@ pub trait Function:
 impl<T> Function for T
 where
   T: 'static
-    + Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState
+    + Fn(&ModuleGraphConnection, Option<&RuntimeSpec>, &ModuleGraph) -> ConnectionState
     + Send
     + Sync
     + Clone,
@@ -378,9 +379,9 @@ pub trait ModuleDependency: Dependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
-    _runtime: &RuntimeSpec,
-  ) -> ExportsReferencedType {
-    ExportsReferencedType::Object
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    vec![ExtendedReferencedExport::Array(vec![])]
   }
 
   // an identifier to merge equal requests

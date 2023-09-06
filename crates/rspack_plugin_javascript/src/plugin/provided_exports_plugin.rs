@@ -91,16 +91,11 @@ impl<'a> ProvidedExportsPlugin<'a> {
     let export_dependencies = &export_desc.dependencies;
     if let Some(hide_export) = export_desc.hide_export {
       for name in hide_export.iter() {
-        let from_exports_info_id = exports_info_id.export_info_mut(name, self.mg);
-        let exports_info = self.mg.get_exports_info_mut_by_id(&from_exports_info_id);
-        let export_info_id = *exports_info
-          .exports
-          .get(name)
-          .expect("should have exports info");
+        let from_exports_info_id = exports_info_id.get_export_info(name, self.mg);
         let export_info = self
           .mg
           .export_info_map
-          .get_mut(&export_info_id)
+          .get_mut(&from_exports_info_id)
           .expect("should have export info");
         export_info.unuset_target(&dep_id);
       }
@@ -189,12 +184,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
             spec.hidden.unwrap_or(false),
           ),
         };
-      let exports_info_id = exports_info.export_info_mut(&name, self.mg);
-      let exports_info = self.mg.get_exports_info_mut_by_id(&exports_info_id);
-      let export_info_id = *exports_info
-        .exports
-        .get(&name)
-        .expect("should have export info");
+      let export_info_id = exports_info.get_export_info(&name, self.mg);
 
       let mut export_info = self
         .mg
@@ -245,15 +235,10 @@ impl<'a> ProvidedExportsPlugin<'a> {
       // Recalculate target exportsInfo
       let target = export_info.get_target(self.mg, None);
 
-      let exports_info = self.mg.get_exports_info_by_id(&exports_info_id);
-      let export_info_old_id = *exports_info
-        .exports
-        .get(&name)
-        .expect("should have export info");
       let export_info_old = self
         .mg
         .export_info_map
-        .get_mut(&export_info_old_id)
+        .get_mut(&export_info_id)
         .expect("should have export info");
       _ = std::mem::replace(export_info_old, export_info);
 
@@ -272,11 +257,7 @@ impl<'a> ProvidedExportsPlugin<'a> {
           }
         }
       }
-      let exports_info = self.mg.get_exports_info_by_id(&exports_info_id);
-      let export_info_id = *exports_info
-        .exports
-        .get(&name)
-        .expect("should have export info");
+
       let export_info = self
         .mg
         .export_info_map

@@ -1,7 +1,7 @@
 use rspack_core::{
   module_namespace_promise, ChunkGroupOptions, ChunkGroupOptionsKindRef, Dependency,
   DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ExportsReferencedType, ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec,
+  ExtendedReferencedExport, ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec,
   TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::JsWord;
@@ -78,12 +78,12 @@ impl ModuleDependency for ImportDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
-    _runtime: &RuntimeSpec,
-  ) -> ExportsReferencedType {
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
     if let Some(referenced_exports) = &self.referenced_exports {
-      vec![ReferencedExport::new(referenced_exports.clone(), false)].into()
+      vec![ReferencedExport::new(referenced_exports.clone(), false).into()]
     } else {
-      ExportsReferencedType::Object
+      vec![ExtendedReferencedExport::Array(vec![])]
     }
   }
 }
