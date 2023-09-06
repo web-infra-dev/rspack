@@ -350,7 +350,7 @@
           "default": false,
           "type": "boolean"
         },
-        "keepFnames": {
+        "keepFnNames": {
           "default": false,
           "type": "boolean"
         },
