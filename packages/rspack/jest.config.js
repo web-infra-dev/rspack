@@ -5,6 +5,13 @@ process.on("unhandledRejection", (err, origin) => {
 	console.error(err.message, err.stack, process.exitCode);
 });
 
+let old = process.exit;
+process.exit = function (...args) {
+	const err = new Error();
+	console.error(err.message, err.stack, process.exitCode);
+	return old.apply(this, args);
+};
+
 ["log", "warn", "error"].forEach(methodName => {
 	const originalMethod = console[methodName];
 	console[methodName] = (...args) => {
