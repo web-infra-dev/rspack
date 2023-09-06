@@ -3,9 +3,11 @@
 use std::default::Default;
 use std::sync::Arc;
 
+use rspack_core::Builtins;
 use rspack_core::{rspack_sources::SourceMap, LoaderRunnerContext, Mode};
 use rspack_error::{internal_error, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
+use rspack_swc_visitors::{RawEmotionOptions, RawImportOptions, RawReactOptions, RawRelayOptions};
 use serde::Deserialize;
 use swc_config::config_types::{BoolConfig, MergingOption};
 use swc_config::merge::Merge;
@@ -24,9 +26,14 @@ mod transformer;
 
 pub const SOURCE_MAP_INLINE: &str = "inline";
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Default, Deserialize, Debug)]
 #[serde(rename_all = "camelCase", default)]
-pub struct RspackExperiments {}
+pub struct RspackExperiments {
+  relay: Option<RawRelayOptions>,
+  react: Option<RawReactOptions>,
+  import: Option<RawImportOptions>,
+  emotion: Option<RawEmotionOptions>,
+}
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -71,13 +78,14 @@ pub struct SwcLoaderJsOptions {
   #[serde(rename = "$schema")]
   pub schema: Option<String>,
 
+  #[serde(default)]
   pub rspack_experiments: Option<RspackExperiments>,
 }
 
 #[derive(Debug)]
 struct SwcCompilerOptionsWithAdditional {
   options: Options,
-  rspack_experiments: Option<RspackExperiments>,
+  rspack_experiments: RspackExperiments,
 }
 
 impl From<SwcLoaderJsOptions> for SwcCompilerOptionsWithAdditional {
@@ -127,7 +135,7 @@ impl From<SwcLoaderJsOptions> for SwcCompilerOptionsWithAdditional {
         },
         ..Default::default()
       },
-      rspack_experiments,
+      rspack_experiments: rspack_experiments.unwrap_or_default(),
     }
   }
 }
@@ -220,6 +228,17 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
             comments,
             |_| noop(),
             |_| {
+              let Builtins {
+                relay: builtin_relay,
+                react: builtin_react,
+                plugin_import: builtin_import,
+                emotion: builtin_emotion,
+                ..
+              } = &compiler_options.builtins;
+              let rspack_experiments = &self.options_with_additional.rspack_experiments;
+
+              // let relay = rspack_experiments.relay.or(builtin_relay);
+
               transform(
                 &resource_path,
                 compiler_options,

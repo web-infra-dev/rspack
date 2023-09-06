@@ -3091,7 +3091,10 @@ dependencies = [
  "once_cell",
  "regex",
  "rspack_core",
+ "serde",
  "swc_core",
+ "swc_emotion",
+ "swc_plugin_import",
 ]
 
 [[package]]

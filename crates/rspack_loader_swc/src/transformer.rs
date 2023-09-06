@@ -8,7 +8,6 @@ use swc_core::ecma::{
   transforms::base::pass::{noop, Optional},
   visit::Fold,
 };
-use swc_emotion::EmotionOptions;
 
 macro_rules! either {
   ($config:expr, $f:expr) => {
@@ -40,6 +39,9 @@ pub fn transform<'a>(
   //  - Handling decorators, if configured
   //  - Applying `resolver`
   //  - Stripping typescript nodes
+
+  use rspack_swc_visitors::EmotionOptions;
+
   chain!(
     Optional::new(
       rspack_swc_visitors::react(
@@ -65,8 +67,8 @@ pub fn transform<'a>(
       options.builtins.emotion,
       |emotion_options: &EmotionOptions| {
         // SAFETY: Source content hash should always available if emotion is turned on.
-        let content_hash = content_hash.unwrap();
-        swc_emotion::emotion(
+        let content_hash = content_hash.expect("Content hash should be available");
+        rspack_swc_visitors::emotion(
           emotion_options.clone(),
           resource_path,
           content_hash,
@@ -84,15 +86,7 @@ pub fn transform<'a>(
       )
     }),
     either!(options.builtins.plugin_import, |config| {
-      swc_plugin_import::plugin_import(config)
+      rspack_swc_visitors::import(config)
     }),
-    Optional::new(
-      rspack_swc_visitors::define(&options.builtins.define),
-      !options.builtins.define.is_empty()
-    ),
-    Optional::new(
-      rspack_swc_visitors::provide_builtin(&options.builtins.provide, unresolved_mark),
-      !options.builtins.provide.is_empty()
-    ),
   )
 }

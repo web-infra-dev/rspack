@@ -21,6 +21,7 @@ use std::path::{Path, PathBuf};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{RelayConfig, RelayLanguageConfig};
+use serde::Deserialize;
 use swc_core::{
   common::{Mark, DUMMY_SP},
   ecma::{
@@ -162,6 +163,26 @@ impl<'a> Relay<'a> {
 
           None
         }
+      },
+    }
+  }
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct RawRelayOptions {
+  pub artifact_directory: Option<String>,
+  pub language: String,
+}
+
+impl From<RawRelayOptions> for RelayConfig {
+  fn from(raw_config: RawRelayOptions) -> Self {
+    Self {
+      artifact_directory: raw_config.artifact_directory.map(PathBuf::from),
+      language: match raw_config.language.as_str() {
+        "typescript" => RelayLanguageConfig::TypeScript,
+        "flow" => RelayLanguageConfig::Flow,
+        _ => RelayLanguageConfig::JavaScript,
       },
     }
   }

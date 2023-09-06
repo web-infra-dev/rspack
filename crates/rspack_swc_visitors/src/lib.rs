@@ -1,8 +1,12 @@
 mod react;
-pub use react::{fold_react_refresh, react};
+pub use react::{fold_react_refresh, react, RawReactOptions};
 mod define;
-pub use define::define;
+pub use define::{define, Define, RawDefine};
 mod provide;
-pub use provide::provide_builtin;
+pub use provide::{provide_builtin, Provide, RawProvide};
 mod relay;
-pub use relay::relay;
+pub use relay::{relay, RawRelayOptions};
+mod import;
+pub use import::{import, CustomTransform, ImportConfig, RawImportOptions, StyleConfig};
+mod emotion;
+pub use emotion::{emotion, EmotionOptions, RawEmotionOptions};
