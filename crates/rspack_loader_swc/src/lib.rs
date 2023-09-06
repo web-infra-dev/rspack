@@ -22,6 +22,10 @@ pub const SOURCE_MAP_INLINE: &str = "inline";
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
+pub struct RspackExperiments {}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
 pub struct SwcLoaderJsOptions {
   #[serde(default)]
   pub source_maps: Option<SourceMapsConfig>,
@@ -62,16 +66,17 @@ pub struct SwcLoaderJsOptions {
 
   #[serde(rename = "$schema")]
   pub schema: Option<String>,
+
+  pub rspack_experiments: Option<RspackExperiments>,
 }
 
-#[derive(Debug, Default, Deserialize)]
-#[serde(rename_all = "camelCase", default)]
-struct SwcLoaderOptions {
-  pub config: Option<Config>,
-  pub source_maps: Option<SourceMapsConfig>,
+#[derive(Debug)]
+struct SwcCompilerOptionsWithAdditional {
+  options: Options,
+  rspack_experiments: Option<RspackExperiments>,
 }
 
-impl From<SwcLoaderJsOptions> for Options {
+impl From<SwcLoaderJsOptions> for SwcCompilerOptionsWithAdditional {
   fn from(value: SwcLoaderJsOptions) -> Self {
     let SwcLoaderJsOptions {
       source_maps,
@@ -88,6 +93,7 @@ impl From<SwcLoaderJsOptions> for Options {
       error,
       is_module,
       schema,
+      rspack_experiments,
     } = value;
     let mut source_maps: Option<SourceMapsConfig> = source_maps;
     if source_maps.is_none() && source_map.is_some() {
@@ -98,31 +104,34 @@ impl From<SwcLoaderJsOptions> for Options {
         source_maps = Some(SourceMapsConfig::Bool(true))
       }
     }
-    Options {
-      config: Config {
-        env,
-        test,
-        exclude,
-        jsc,
-        module,
-        minify,
-        input_source_map,
-        source_maps,
-        inline_sources_content,
-        emit_source_map_columns,
-        error,
-        is_module,
-        schema,
+    SwcCompilerOptionsWithAdditional {
+      options: Options {
+        config: Config {
+          env,
+          test,
+          exclude,
+          jsc,
+          module,
+          minify,
+          input_source_map,
+          source_maps,
+          inline_sources_content,
+          emit_source_map_columns,
+          error,
+          is_module,
+          schema,
+        },
+        ..Default::default()
       },
-      ..Default::default()
+      rspack_experiments,
     }
   }
 }
 
 #[derive(Debug)]
 pub struct SwcLoader {
-  options: Options,
   identifier: Identifier,
+  options_with_additional: SwcCompilerOptionsWithAdditional,
 }
 
 impl SwcLoader {
@@ -130,16 +139,12 @@ impl SwcLoader {
   /// Panics if `identifier` passed in is not starting with `builtin:swc-loader`.
   pub fn new(options: SwcLoaderJsOptions, identifier: Option<Identifier>) -> Self {
     // TODO: should stringify loader options to identifier
-    Self::validate_identifier(&identifier);
-    Self {
-      options: Options::from(options),
-      identifier: identifier.unwrap_or(SWC_LOADER_IDENTIFIER.into()),
-    }
-  }
-
-  fn validate_identifier(identifier: &Option<Identifier>) {
-    if let Some(i) = identifier {
+    if let Some(i) = &identifier {
       assert!(i.starts_with(SWC_LOADER_IDENTIFIER));
+    }
+    Self {
+      identifier: identifier.unwrap_or(SWC_LOADER_IDENTIFIER.into()),
+      options_with_additional: options.into(),
     }
   }
 }
@@ -158,7 +163,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       FilePathMapping::empty(),
     )));
     let default_development = matches!(loader_context.context.options.mode, Mode::Development);
-    let mut options = self.options.clone();
+    let mut options = self.options_with_additional.options.clone();
     if options.config.jsc.transform.as_ref().is_some() {
       let mut transform = TransformConfig::default();
       transform.react.development = Some(default_development);
@@ -190,6 +195,8 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
             .cm
             .new_source_file(FileName::Real(resource_path), content.try_into_string()?);
           let comments = SingleThreadedComments::default();
+
+          c.parse_js_as_input(fm, None, handler, &options, name, comments, before_pass);
 
           let out = c.process_js_with_custom_pass(
             fm,
