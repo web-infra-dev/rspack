@@ -41,7 +41,7 @@ pub fn run_before_pass(
   module_type: &ModuleType,
   source: &str,
 ) -> Result<()> {
-  let transform_by_default = !options.should_transform_by_default();
+  let transform_by_default = options.should_transform_by_default();
   let es_version = match options.target.es_version {
     rspack_core::TargetEsVersion::Esx(es_version) => Some(es_version),
     _ => None,
