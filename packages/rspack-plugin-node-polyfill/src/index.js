@@ -32,18 +32,12 @@ const PolyfilledBuiltinModules = {
 };
 module.exports = class PolyfillBuiltinsPlugin {
 	apply(compiler) {
-		const provide = {
-			Buffer: [require.resolve("buffer/"), "Buffer"],
-			process: [require.resolve("process/browser")]
-		};
-
-		compiler.options.builtins = {
-			...compiler.options.builtins,
-			provide: {
-				...provide,
-				...compiler.options.builtins?.provide
-			}
-		};
+		compiler.options.plugins.push(
+			new compiler.webpack.ProvidePlugin({
+				Buffer: [require.resolve("buffer/"), "Buffer"],
+				process: [require.resolve("process/browser")]
+			})
+		);
 		compiler.options.resolve.fallback = {
 			...PolyfilledBuiltinModules,
 			...compiler.options.resolve.fallback

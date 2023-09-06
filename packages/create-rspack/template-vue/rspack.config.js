@@ -1,3 +1,4 @@
+const { HtmlPlugin } = require("@rspack/core");
 const { VueLoaderPlugin } = require("vue-loader");
 
 /** @type {import('@rspack/cli').Configuration} */
@@ -6,14 +7,10 @@ const config = {
 	entry: {
 		main: "./src/main.js"
 	},
-	builtins: {
-		html: [
-			{
-				template: "./index.html"
-			}
-		]
-	},
-	plugins: [new VueLoaderPlugin()],
+	plugins: [
+		new VueLoaderPlugin(),
+		new HtmlPlugin({ template: "./index.html" })
+	],
 	module: {
 		rules: [
 			{
