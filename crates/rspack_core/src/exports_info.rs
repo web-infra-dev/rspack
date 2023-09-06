@@ -329,6 +329,21 @@ impl ExportsInfoId {
   ) -> bool {
     todo!()
   }
+
+  pub fn set_used_for_side_effects_only(
+    &self,
+    mg: &mut ModuleGraph,
+    runtime: Option<&RuntimeSpec>,
+  ) -> bool {
+    let exports_info = mg.get_exports_info_by_id(self);
+    let side_effects_only_info_id = exports_info._side_effects_only_info;
+    side_effects_only_info_id.set_used_conditionally(
+      mg,
+      Box::new(|value| value == &UsageState::Unused),
+      UsageState::Used,
+      runtime,
+    )
+  }
 }
 
 impl Default for ExportsInfoId {
