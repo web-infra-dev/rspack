@@ -22,6 +22,6 @@
 
 [ ] No
 
-<!-- if the pull request needs documentation, please paste the related link here -->
+<!-- Does this PR require documentation? -->
 
-[ ] Yes, the link of related rspac-website PR \_\_
+[ ] Yes, the corresponding rspack-website PR is \_\_
