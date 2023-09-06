@@ -21,9 +21,11 @@ export const ExternalsPlugin = create(
 function getRawExternalItem(item: ExternalItem): RawExternalItem {
 	if (typeof item === "string") {
 		return { type: "string", stringPayload: item };
-	} else if (item instanceof RegExp) {
+	}
+	if (item instanceof RegExp) {
 		return { type: "regexp", regexpPayload: item.source };
-	} else if (typeof item === "function") {
+	}
+	if (typeof item === "function") {
 		return {
 			type: "function",
 			fnPayload: async ctx => {
@@ -34,7 +36,7 @@ function getRawExternalItem(item: ExternalItem): RawExternalItem {
 							result: getRawExternalItemValueFormFnResult(result),
 							external_type: type
 						});
-					});
+					}) as Promise<ExternalItemValue>;
 					if (promise && promise.then) {
 						promise.then(
 							result =>

@@ -8,7 +8,7 @@ module.exports = {
 	},
 	optimization: {
 		splitChunks: {
-			hidePathInfo: false,
+			// hidePathInfo: false,
 			minSize: 50,
 			maxSize: 100
 		}

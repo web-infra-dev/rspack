@@ -10,7 +10,8 @@
 import {
 	RspackOptionsNormalized,
 	Compiler,
-	OptimizationRuntimeChunkNormalized
+	OptimizationRuntimeChunkNormalized,
+	RspackPluginFunction
 } from ".";
 import fs from "graceful-fs";
 
@@ -96,7 +97,7 @@ export class RspackOptionsApply {
 		if (minimize && minimizer) {
 			for (const item of minimizer) {
 				if (typeof item === "function") {
-					item.call(compiler, compiler);
+					(item as RspackPluginFunction).call(compiler, compiler);
 				} else if (item !== "...") {
 					item.apply(compiler);
 				}

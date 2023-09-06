@@ -16,7 +16,7 @@ import {
 	RuleSetUse,
 	RuleSetUseItem,
 	RuleSetLoaderWithOptions
-} from "./types";
+} from "./zod";
 import { parsePathQueryFragment } from "../loader-runner";
 import { isNil } from "../util";
 
