@@ -153,13 +153,13 @@ pub fn ecma_parse_error_to_rspack_error(
   Error::TraceableError(traceable_error)
 }
 
-pub fn join_jsword(arr: &[JsWord], seperator: &str) -> String {
+pub fn join_jsword(arr: &[JsWord], separator: &str) -> String {
   let mut ret = String::new();
   if let Some(item) = arr.get(0) {
     ret.push_str(item);
   }
   for item in arr.iter().skip(1) {
-    ret.push_str(seperator);
+    ret.push_str(separator);
     ret.push_str(item);
   }
   ret
