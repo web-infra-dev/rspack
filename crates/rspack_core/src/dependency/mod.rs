@@ -300,7 +300,7 @@ impl<T: ModuleDependency> AsModuleDependency for T {
 pub type DependencyConditionFn = Box<dyn Function>;
 
 pub trait Function:
-  Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState + Send + Sync
+  Fn(&ModuleGraphConnection, Option<&RuntimeSpec>, &ModuleGraph) -> ConnectionState + Send + Sync
 {
   fn clone_boxed(&self) -> Box<dyn Function>;
 }
@@ -309,7 +309,7 @@ pub trait Function:
 impl<T> Function for T
 where
   T: 'static
-    + Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState
+    + Fn(&ModuleGraphConnection, Option<&RuntimeSpec>, &ModuleGraph) -> ConnectionState
     + Send
     + Sync
     + Clone,
@@ -378,7 +378,7 @@ pub trait ModuleDependency: Dependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
-    _runtime: &RuntimeSpec,
+    _runtime: Option<&RuntimeSpec>,
   ) -> ExportsReferencedType {
     ExportsReferencedType::Object
   }

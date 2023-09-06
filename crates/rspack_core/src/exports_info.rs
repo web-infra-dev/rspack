@@ -415,7 +415,7 @@ impl ExportsInfo {
   pub fn get_used(
     &self,
     name: UsedName,
-    runtime: &RuntimeSpec,
+    runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
   ) -> UsageState {
     match &name {
@@ -735,7 +735,7 @@ impl ExportInfo {
   }
 
   // TODO
-  pub fn get_used(&self, _runtime: &RuntimeSpec) -> UsageState {
+  pub fn get_used(&self, _runtime: Option<&RuntimeSpec>) -> UsageState {
     UsageState::Unused
   }
 
@@ -1114,7 +1114,7 @@ impl Default for ReferencedExport {
 
 pub fn process_export_info(
   module_graph: &ModuleGraph,
-  runtime: &RuntimeSpec,
+  runtime: Option<&RuntimeSpec>,
   referenced_export: &mut Vec<Vec<JsWord>>,
   prefix: Vec<JsWord>,
   export_info: Option<&ExportInfo>,

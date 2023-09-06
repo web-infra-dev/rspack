@@ -78,7 +78,7 @@ impl ModuleDependency for ImportDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
-    _runtime: &RuntimeSpec,
+    _runtime: Option<&RuntimeSpec>,
   ) -> ExportsReferencedType {
     if let Some(referenced_exports) = &self.referenced_exports {
       vec![ReferencedExport::new(referenced_exports.clone(), false)].into()

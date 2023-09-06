@@ -82,7 +82,7 @@ impl ModuleDependency for RequireResolveDependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
-    _runtime: &RuntimeSpec,
+    _runtime: Option<&RuntimeSpec>,
   ) -> ExportsReferencedType {
     ExportsReferencedType::No
   }

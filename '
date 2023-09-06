@@ -2,8 +2,8 @@ use std::collections::VecDeque;
 
 use rspack_core::tree_shaking::visitor::ModuleIdOrDepId;
 use rspack_core::{
-  BuildMetaExportsType, Compilation, ConnectionState, Dependency, DependencyId, ExportsInfoId,
-  ExportsType, ModuleGraph, ModuleIdentifier, ReferencedExport, RuntimeSpec, UsageState,
+  BuildMetaExportsType, Compilation, Dependency, DependencyId, ExportsInfoId, ExportsType,
+  ModuleGraph, ModuleIdentifier, ReferencedExport, RuntimeSpec, UsageState,
   WrappedReferencedExport,
 };
 use rspack_identifier::IdentifierMap;
@@ -74,38 +74,14 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
         .module_graph_module_by_identifier(&module_id)
         .expect("should have module graph module");
       let dep_id_list = mgm.dependencies.clone();
-      for dep_id in dep_id_list.into_iter() {
-        let connection = self
-          .compilation
-          .module_graph
-          .connection_by_dependency(&dep_id);
+      for dep in dep_id_list.into_iter() {
+        let connection = self.compilation.module_graph.connection_by_dependency(&dep);
         let connection = if let Some(connection) = connection {
           connection
         } else {
           continue;
         };
-        let active_state =
-          connection.get_active_state(&self.compilation.module_graph, runtime.as_ref());
-        match active_state {
-          ConnectionState::Bool(false) => {
-            continue;
-          }
-          ConnectionState::TransitiveOnly => {
-            self.process_module(connection.module_identifier, runtime.clone(), false, q);
-            continue;
-          }
-          _ => {}
-        }
-        let dep = self
-          .compilation
-          .module_graph
-          .dependency_by_id(&dep_id)
-          .expect("should have dep");
-        if let Some(md) = dep.as_module_dependency() {
-          md.get_referenced_exports(&self.compilation.module_graph, runtime.as_ref());
-        } else {
-          continue;
-        }
+        let active_state = connection.get_active_state(&self.compilation.module_graph, runtime.as_ref());
       }
     }
   }

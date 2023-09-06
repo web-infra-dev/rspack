@@ -213,7 +213,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &ModuleGraph,
-    _runtime: &RuntimeSpec,
+    _runtime: Option<&RuntimeSpec>,
   ) -> ExportsReferencedType {
     if self.ids.is_empty() {
       return self.get_referenced_exports_in_destructuring(None);

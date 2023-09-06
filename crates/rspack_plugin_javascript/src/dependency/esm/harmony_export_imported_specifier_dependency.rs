@@ -129,7 +129,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &ModuleGraph,
-    runtime: &RuntimeSpec,
+    runtime: Option<&RuntimeSpec>,
   ) -> ExportsReferencedType {
     let mode = get_mode(
       self.name.clone(),
