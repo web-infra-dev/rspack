@@ -1,0 +1,25 @@
+[package]
+edition    = "2021"
+license    = "MIT"
+name       = "rspack_swc_visitors"
+repository = "https://github.com/web-infra-dev/rspack"
+version    = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+indexmap    = { workspace = true }
+once_cell   = { workspace = true }
+regex       = { workspace = true }
+rspack_core = { path = "../rspack_core" }
+swc_core    = { workspace = true, features = ["ecma_ast"] }
+
+[dev-dependencies]
+swc_core = { workspace = true, features = [
+  "ecma_ast",
+  "__visit",
+  "__common",
+  "__parser",
+  "__utils",
+  "ecma_preset_env",
+] }

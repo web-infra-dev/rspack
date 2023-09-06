@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
 use rspack_core::ReactOptions;
+use swc_core::common::comments::Comments;
 use swc_core::common::DUMMY_SP;
-use swc_core::common::{comments::SingleThreadedComments, Mark, SourceMap};
+use swc_core::common::{Mark, SourceMap};
 use swc_core::ecma::ast::{BlockStmt, FnDecl, Function, Ident, ModuleItem, Program, Stmt};
 use swc_core::ecma::transforms::react::RefreshOptions;
 use swc_core::ecma::transforms::react::{react as swc_react, Options};
@@ -12,7 +13,7 @@ use swc_core::quote;
 
 pub fn react<'a>(
   top_level_mark: Mark,
-  comments: Option<&'a SingleThreadedComments>,
+  comments: Option<&'a dyn Comments>,
   cm: &Arc<SourceMap>,
   options: &ReactOptions,
   unresolved_mark: Mark,

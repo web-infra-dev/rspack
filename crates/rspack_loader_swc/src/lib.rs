@@ -15,8 +15,12 @@ use swc_core::base::config::{
 };
 use swc_core::base::{try_with_handler, Compiler};
 use swc_core::common::comments::SingleThreadedComments;
-use swc_core::common::{FileName, FilePathMapping, GLOBALS};
+use swc_core::common::{FileName, FilePathMapping, Mark, GLOBALS};
 use swc_core::ecma::transforms::base::pass::noop;
+use transformer::transform;
+use xxhash_rust::xxh32::xxh32;
+
+mod transformer;
 
 pub const SOURCE_MAP_INLINE: &str = "inline";
 
@@ -159,7 +163,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       return Err(internal_error!("Content should be available"))
     };
 
-    let c: Compiler = Compiler::new(Arc::from(swc_core::common::SourceMap::new(
+    let c = Compiler::new(Arc::from(swc_core::common::SourceMap::new(
       FilePathMapping::empty(),
     )));
     let default_development = matches!(loader_context.context.options.mode, Mode::Development);
@@ -191,12 +195,22 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
     GLOBALS.set(&Default::default(), || {
       try_with_handler(c.cm.clone(), Default::default(), |handler| {
         c.run(|| {
+          let top_level_mark = Mark::new();
+          let unresolved_mark = Mark::new();
+          options.top_level_mark = Some(top_level_mark);
+          options.unresolved_mark = Some(unresolved_mark);
+          let source = content.try_into_string()?;
+          let compiler_options = &*loader_context.context.options;
+          let source_content_hash = compiler_options
+            .builtins
+            .emotion
+            .as_ref()
+            .map(|_| xxh32(source.as_bytes(), 0));
+
           let fm = c
             .cm
-            .new_source_file(FileName::Real(resource_path), content.try_into_string()?);
+            .new_source_file(FileName::Real(resource_path.clone()), source);
           let comments = SingleThreadedComments::default();
-
-          c.parse_js_as_input(fm, None, handler, &options, name, comments, before_pass);
 
           let out = c.process_js_with_custom_pass(
             fm,
@@ -204,8 +218,18 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
             handler,
             &options,
             comments,
-            |_a| noop(),
-            |_a| noop(),
+            |_| noop(),
+            |_| {
+              transform(
+                &resource_path,
+                compiler_options,
+                Some(c.comments()),
+                top_level_mark,
+                unresolved_mark,
+                c.cm.clone(),
+                source_content_hash,
+              )
+            },
           )?;
           loader_context.content = Some(out.code.into());
           loader_context.source_map = out.map.map(|m| SourceMap::from_json(&m)).transpose()?;

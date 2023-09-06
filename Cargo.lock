@@ -2617,15 +2617,20 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "either",
  "indexmap 1.9.3",
  "rspack_core",
  "rspack_error",
  "rspack_loader_runner",
+ "rspack_swc_visitors",
  "rspack_testing",
  "serde",
  "serde_json",
  "swc_config",
  "swc_core",
+ "swc_emotion",
+ "swc_plugin_import",
+ "xxhash-rust",
 ]
 
 [[package]]
@@ -2862,6 +2867,7 @@ dependencies = [
  "rspack_hash",
  "rspack_identifier",
  "rspack_regex",
+ "rspack_swc_visitors",
  "rspack_testing",
  "rustc-hash",
  "serde_json",
@@ -3075,6 +3081,17 @@ dependencies = [
  "smallvec",
  "str_indices",
  "substring",
+]
+
+[[package]]
+name = "rspack_swc_visitors"
+version = "0.1.0"
+dependencies = [
+ "indexmap 1.9.3",
+ "once_cell",
+ "regex",
+ "rspack_core",
+ "swc_core",
 ]
 
 [[package]]

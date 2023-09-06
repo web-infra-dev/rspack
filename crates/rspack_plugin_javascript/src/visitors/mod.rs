@@ -11,7 +11,6 @@ mod plugin_import;
 
 use rspack_core::{BuildInfo, ModuleType};
 use swc_core::ecma::transforms::base::Assumptions;
-pub mod relay;
 pub mod swc_visitor;
 use rspack_core::{ast::javascript::Ast, CompilerOptions, ResourceData};
 use rspack_error::Result;
@@ -21,7 +20,6 @@ use swc_core::ecma::transforms::base::pass::{noop, Optional};
 use swc_emotion::EmotionOptions;
 
 use crate::visitors::plugin_import::plugin_import;
-use crate::visitors::relay::relay;
 
 macro_rules! either {
   ($config: expr, $f: expr) => {
@@ -54,7 +52,7 @@ pub fn run_before_pass(
   ast.transform_with_handler(cm.clone(), |_handler, program, context| {
     let top_level_mark = context.top_level_mark;
     let unresolved_mark = context.unresolved_mark;
-    let comments = None;
+    let comments: Option<&dyn Comments> = None;
 
     let mut assumptions = Assumptions::default();
     if syntax.typescript() {
@@ -83,7 +81,7 @@ pub fn run_before_pass(
         syntax.typescript()
       ),
       Optional::new(
-        swc_visitor::react(
+        rspack_swc_visitors::react(
           top_level_mark,
           comments,
           &cm,
@@ -93,7 +91,7 @@ pub fn run_before_pass(
         should_transform_by_react
       ),
       Optional::new(
-        swc_visitor::fold_react_refresh(unresolved_mark),
+        rspack_swc_visitors::fold_react_refresh(unresolved_mark),
         should_transform_by_react
           && options
             .builtins
@@ -115,7 +113,7 @@ pub fn run_before_pass(
         }
       ),
       either!(options.builtins.relay, |relay_option| {
-        relay(
+        rspack_swc_visitors::relay(
           relay_option,
           resource_data.resource_path.as_path(),
           PathBuf::from(AsRef::<Path>::as_ref(&options.context)),
@@ -126,11 +124,11 @@ pub fn run_before_pass(
       // enable if configurable
       // swc_visitor::const_modules(cm, globals),
       Optional::new(
-        swc_visitor::define(&options.builtins.define),
+        rspack_swc_visitors::define(&options.builtins.define),
         !options.builtins.define.is_empty()
       ),
       Optional::new(
-        swc_visitor::provide_builtin(&options.builtins.provide, unresolved_mark),
+        rspack_swc_visitors::provide_builtin(&options.builtins.provide, unresolved_mark),
         !options.builtins.provide.is_empty()
       ),
       Optional::new(

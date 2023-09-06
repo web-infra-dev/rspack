@@ -10,9 +10,11 @@ version    = "0.1.0"
 [dependencies]
 anyhow = { workspace = true }
 async-trait = { workspace = true }
+either = "1"
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_loader_runner = { path = "../rspack_loader_runner" }
+rspack_swc_visitors = { path = "../rspack_swc_visitors" }
 serde = { workspace = true, features = ["derive"] }
 serde_json = "1.0.100"
 swc_config = { workspace = true }
@@ -24,6 +26,9 @@ swc_core = { workspace = true, features = [
   #  "plugin_transform_host_native_filesystem_cache",
   #  "plugin_transform_host_native",
 ] }
+swc_emotion = { workspace = true }
+swc_plugin_import = { path = "../swc_plugin_import" }
+xxhash-rust = { workspace = true, features = ["xxh32"] }
 
 [dev-dependencies]
 indexmap       = { workspace = true }
