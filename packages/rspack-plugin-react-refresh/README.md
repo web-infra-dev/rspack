@@ -3,11 +3,9 @@
   <img alt="Rspack Banner" src="https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/rspack-banner-1610.png">
 </picture>
 
-# // TODO: re-export from @rspack/plugin-react-refresh and deprecate this package
+# @rspack/plugin-react-refresh
 
-# @rspack/dev-client
-
-Development client for rspack.
+React refresh plugin for rspack.
 
 ## Documentation
 
