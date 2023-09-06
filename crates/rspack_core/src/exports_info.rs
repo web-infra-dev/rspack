@@ -1084,6 +1084,7 @@ pub fn get_dependency_used_by_exports_condition(
 }
 
 /// refer https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/FlagDependencyUsagePlugin.js#L64
+#[derive(Clone)]
 pub enum ExtendedReferencedExport {
   Array(Vec<JsWord>),
   Export(ReferencedExport),
@@ -1119,6 +1120,7 @@ impl From<ReferencedExport> for ExtendedReferencedExport {
   }
 }
 
+#[derive(Clone)]
 pub struct ReferencedExport {
   pub name: Vec<JsWord>,
   pub can_mangle: bool,

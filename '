@@ -146,51 +146,18 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
               exports_map
             }
           };
-          for mut item in referenced_exports.into_iter() {
+          for item in referenced_exports {
             match item {
               ExtendedReferencedExport::Array(ref arr) => {
                 let key = join_jsword(arr, "\n");
                 exports_map.entry(key).or_insert(item);
+                                // TODO: check this
               }
-              ExtendedReferencedExport::Export(ref mut export) => {
-                let key = join_jsword(&export.name, "\n");
-                match exports_map.entry(key) {
-                  Entry::Occupied(mut occ) => {
-                    let old_item = occ.get();
-                    match old_item {
-                      ExtendedReferencedExport::Array(_) => {
-                        occ.insert(item);
-                      }
-                      ExtendedReferencedExport::Export(old_item) => {
-                        occ.insert(ExtendedReferencedExport::Export(ReferencedExport {
-                          name: std::mem::take(&mut export.name),
-                          can_mangle: export.can_mangle && old_item.can_mangle,
-                        }));
-                      }
-                    }
-                  }
-                  Entry::Vacant(vac) => {
-                    vac.insert(item);
-                  }
-                }
-              }
+              ExtendedReferencedExport::Export(_) => todo!(),
             }
           }
         }
       }
-    }
-    for (module_id, referenced_exports) in map {
-      let normalized_refs = match referenced_exports {
-        ProcessModuleReferencedExports::Map(map) => map.into_values().collect::<Vec<_>>(),
-        ProcessModuleReferencedExports::ExtendRef(extend_ref) => extend_ref,
-      };
-      self.process_referenced_module(
-        module_id,
-        normalized_refs,
-        runtime.clone(),
-        force_side_effects,
-        q,
-      );
     }
   }
 
