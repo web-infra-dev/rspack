@@ -1,7 +1,7 @@
 use rspack_core::{
   module_id, ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ExportsReferencedType, ModuleDependency, ModuleGraph, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  DependencyType, ErrorSpan, ExportsReferencedType, ExtendedReferencedExport, ModuleDependency,
+  ModuleGraph, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -83,8 +83,8 @@ impl ModuleDependency for RequireResolveDependency {
     &self,
     _module_graph: &ModuleGraph,
     _runtime: Option<&RuntimeSpec>,
-  ) -> ExportsReferencedType {
-    ExportsReferencedType::No
+  ) -> Vec<ExtendedReferencedExport> {
+    vec![]
   }
 }
 

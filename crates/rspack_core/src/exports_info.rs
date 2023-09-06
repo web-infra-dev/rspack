@@ -1083,10 +1083,40 @@ pub fn get_dependency_used_by_exports_condition(
   }
 }
 
-/// refer https://github.com/IWANABETHATGUY/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/FlagDependencyUsagePlugin.js#L64
-pub enum WrappedReferencedExport {
+/// refer https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/FlagDependencyUsagePlugin.js#L64
+pub enum ExtendedReferencedExport {
   Array(Vec<JsWord>),
   Export(ReferencedExport),
+}
+
+pub fn is_no_exports_referenced(exports: &Vec<ExtendedReferencedExport>) -> bool {
+  exports.is_empty()
+}
+
+pub fn is_exports_object_referenced(exports: &Vec<ExtendedReferencedExport>) -> bool {
+  match exports[..] {
+    [ExtendedReferencedExport::Array(ref arr)] if arr.is_empty() => true,
+    _ => false,
+  }
+}
+
+pub fn create_no_exports_referenced() -> Vec<ExtendedReferencedExport> {
+  vec![]
+}
+
+pub fn create_exports_object_referenced() -> Vec<ExtendedReferencedExport> {
+  vec![ExtendedReferencedExport::Array(vec![])]
+}
+
+impl From<Vec<JsWord>> for ExtendedReferencedExport {
+  fn from(value: Vec<JsWord>) -> Self {
+    ExtendedReferencedExport::Array(value)
+  }
+}
+impl From<ReferencedExport> for ExtendedReferencedExport {
+  fn from(value: ReferencedExport) -> Self {
+    ExtendedReferencedExport::Export(value)
+  }
 }
 
 pub struct ReferencedExport {

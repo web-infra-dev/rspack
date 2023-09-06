@@ -3,8 +3,8 @@ use std::collections::VecDeque;
 use rspack_core::tree_shaking::visitor::ModuleIdOrDepId;
 use rspack_core::{
   BuildMetaExportsType, Compilation, ConnectionState, Dependency, DependencyId, ExportsInfoId,
-  ExportsType, ModuleGraph, ModuleIdentifier, ReferencedExport, RuntimeSpec, UsageState,
-  WrappedReferencedExport,
+  ExportsType, ExtendedReferencedExport, ModuleGraph, ModuleIdentifier, ReferencedExport,
+  RuntimeSpec, UsageState,
 };
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashMap as HashMap;
@@ -101,11 +101,11 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
           .module_graph
           .dependency_by_id(&dep_id)
           .expect("should have dep");
-        if let Some(md) = dep.as_module_dependency() {
-          md.get_referenced_exports(&self.compilation.module_graph, runtime.as_ref());
+        let referenced_exports = if let Some(md) = dep.as_module_dependency() {
+          md.get_referenced_exports(&self.compilation.module_graph, runtime.as_ref())
         } else {
           continue;
-        }
+        };
       }
     }
   }
@@ -129,7 +129,7 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
   fn process_referenced_module(
     &mut self,
     module_id: ModuleIdentifier,
-    used_exports: Vec<WrappedReferencedExport>,
+    used_exports: Vec<ExtendedReferencedExport>,
     runtime: Option<RuntimeSpec>,
     force_side_effects: bool,
     queue: &mut VecDeque<(ModuleIdentifier, Option<RuntimeSpec>)>,
@@ -155,8 +155,8 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
       }
       for used_export_info in used_exports {
         let (can_mangle, used_exports) = match used_export_info {
-          WrappedReferencedExport::Array(used_exports) => (true, used_exports),
-          WrappedReferencedExport::Export(export) => (export.can_mangle, export.name),
+          ExtendedReferencedExport::Array(used_exports) => (true, used_exports),
+          ExtendedReferencedExport::Export(export) => (export.can_mangle, export.name),
         };
         if used_exports.len() == 0 {
           let flag = mgm_exports_info_id

@@ -2,8 +2,9 @@ use rspack_core::tree_shaking::symbol::{self, IndirectTopLevelSymbol};
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
   import_statement, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
-  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, InitFragmentStage, ModuleDependency,
-  ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExtendedReferencedExport,
+  InitFragmentStage, ModuleDependency, ModuleIdentifier, NormalInitFragment, RuntimeGlobals,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_core::{ExportsReferencedType, ModuleGraph, RuntimeSpec};
 use rustc_hash::FxHashSet as HashSet;
@@ -235,8 +236,8 @@ impl ModuleDependency for HarmonyImportDependency {
     &self,
     _module_graph: &ModuleGraph,
     _runtime: Option<&RuntimeSpec>,
-  ) -> ExportsReferencedType {
-    ExportsReferencedType::No
+  ) -> Vec<ExtendedReferencedExport> {
+    vec![]
   }
 
   // It's from HarmonyImportSideEffectDependency.

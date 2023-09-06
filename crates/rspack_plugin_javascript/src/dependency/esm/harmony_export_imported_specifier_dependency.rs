@@ -1,7 +1,8 @@
 use rspack_core::{
-  export_from_import, get_exports_type, process_export_info, ConnectionState, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfo,
-  ExportsReferencedType, ExportsType, HarmonyExportInitFragment, ModuleDependency, ModuleGraph,
+  create_exports_object_referenced, create_no_exports_referenced, export_from_import,
+  get_exports_type, process_export_info, ConnectionState, Dependency, DependencyCategory,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfo, ExportsReferencedType,
+  ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, ModuleDependency, ModuleGraph,
   ModuleIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rustc_hash::FxHashSet as HashSet;
@@ -130,7 +131,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
     &self,
     module_graph: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
-  ) -> ExportsReferencedType {
+  ) -> Vec<ExtendedReferencedExport> {
     let mode = get_mode(
       self.name.clone(),
       &self.ids.iter().map(|id| id.0.clone()).collect::<Vec<_>>(),
@@ -141,9 +142,9 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
       ExportModeType::Missing
       | ExportModeType::Unused
       | ExportModeType::EmptyStar
-      | ExportModeType::ReexportUndefined => ExportsReferencedType::No,
+      | ExportModeType::ReexportUndefined => create_no_exports_referenced(),
       ExportModeType::ReexportDynamicDefault | ExportModeType::DynamicReexport => {
-        ExportsReferencedType::Object
+        create_exports_object_referenced()
       }
       ExportModeType::ReexportNamedDefault
       | ExportModeType::ReexportNamespaceObject
@@ -159,9 +160,12 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
             mode.kind == ExportModeType::ReexportFakeNamespaceObject,
             &mut Default::default(),
           );
-          referenced_exports.into()
+          referenced_exports
+            .into_iter()
+            .map(|item| ExtendedReferencedExport::Array(item))
+            .collect::<Vec<_>>()
         } else {
-          ExportsReferencedType::Object
+          create_exports_object_referenced()
         }
       }
       ExportModeType::NormalReexport => {
@@ -182,7 +186,10 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
             );
           }
         }
-        referenced_exports.into()
+        referenced_exports
+          .into_iter()
+          .map(|item| ExtendedReferencedExport::Array(item))
+          .collect::<Vec<_>>()
       }
       ExportModeType::Unset => {
         unreachable!("should not export mode unset");

@@ -1,3 +1,4 @@
+use rspack_core::{create_exports_object_referenced, ExtendedReferencedExport};
 use rspack_core::{
   export_from_import, get_dependency_used_by_exports_condition, get_exports_type,
   tree_shaking::symbol::DEFAULT_JS_WORD, Compilation, ConnectionState, Dependency,
@@ -92,7 +93,7 @@ impl HarmonyImportSpecifierDependency {
   pub fn get_referenced_exports_in_destructuring(
     &self,
     ids: Option<&Vec<JsWord>>,
-  ) -> ExportsReferencedType {
+  ) -> Vec<ExtendedReferencedExport> {
     if let Some(referenced_properties) = &self.referenced_properties_in_destructuring {
       referenced_properties
         .iter()
@@ -100,17 +101,17 @@ impl HarmonyImportSpecifierDependency {
           if let Some(v) = ids {
             let mut value = v.clone();
             value.push(prop.clone());
-            ReferencedExport::new(value, false)
+            ReferencedExport::new(value, false).into()
           } else {
-            ReferencedExport::new(vec![prop.clone()], false)
+            ReferencedExport::new(vec![prop.clone()], false).into()
           }
         })
+        .map(|item| ExtendedReferencedExport::Export(item))
         .collect::<Vec<_>>()
-        .into()
     } else if let Some(v) = ids {
-      vec![ReferencedExport::new(v.clone(), true)].into()
+      vec![ReferencedExport::new(v.clone(), true).into()]
     } else {
-      ExportsReferencedType::Object
+      create_exports_object_referenced()
     }
   }
 }
@@ -214,7 +215,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     &self,
     module_graph: &ModuleGraph,
     _runtime: Option<&RuntimeSpec>,
-  ) -> ExportsReferencedType {
+  ) -> Vec<ExtendedReferencedExport> {
     if self.ids.is_empty() {
       return self.get_referenced_exports_in_destructuring(None);
     }
@@ -233,7 +234,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
           namespace_object_as_context = true;
         }
         ExportsType::Dynamic => {
-          return ExportsReferencedType::No;
+          return vec![]
         }
         _ => {}
       }
@@ -241,7 +242,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
 
     if self.call && !self.direct_import && (namespace_object_as_context || ids.len() > 1) {
       if ids.len() == 1 {
-        return ExportsReferencedType::Object;
+        return create_exports_object_referenced();
       }
       // remove last one
       ids.shrink_to(ids.len() - 1);
