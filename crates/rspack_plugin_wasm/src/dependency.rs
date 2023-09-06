@@ -1,6 +1,6 @@
 use rspack_core::{
   AsDependencyTemplate, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  ExportsReferencedType, ModuleDependency, ModuleGraph, RuntimeSpec,
+  ExportsReferencedType, ExtendedReferencedExport, ModuleDependency, ModuleGraph, RuntimeSpec,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -69,8 +69,8 @@ impl ModuleDependency for WasmImportDependency {
     &self,
     _module_graph: &ModuleGraph,
     _runtime: Option<&RuntimeSpec>,
-  ) -> ExportsReferencedType {
-    self.name.clone().into()
+  ) -> Vec<ExtendedReferencedExport> {
+    vec![ExtendedReferencedExport::Array(vec![self.name.clone()])]
   }
 }
 
