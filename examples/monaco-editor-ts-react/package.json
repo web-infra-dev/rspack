@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "dev": "rspack serve",
-    "build": "rspack build"
+    "build:local": "rspack build"
   },
   "keywords": [],
   "author": "",
