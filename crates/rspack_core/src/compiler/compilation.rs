@@ -442,9 +442,8 @@ impl Compilation {
           .expect("dependency not found");
         let parent_module =
           parent_module_identifier.and_then(|id| self.module_graph.module_by_identifier(&id));
-        if parent_module_identifier.is_some()
-          && parent_module.is_none()
-          && dependency.as_module_dependency().is_none()
+        if (parent_module_identifier.is_some() && parent_module.is_none())
+          || dependency.as_module_dependency().is_none()
         {
           return;
         }
