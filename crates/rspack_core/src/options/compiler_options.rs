@@ -1,7 +1,7 @@
 use crate::{
   Builtins, CacheOptions, Context, DevServerOptions, Devtool, Experiments,
   IncrementalRebuildMakeState, Mode, ModuleOptions, NodeOption, Optimization, OutputOptions,
-  Resolve, SnapshotOptions, StatsOptions, Target,
+  Resolve, SnapshotOptions, StatsOptions, Target, TreeShaking, TreeShakingMode,
 };
 
 #[derive(Debug)]
@@ -37,5 +37,18 @@ impl CompilerOptions {
 
   pub fn is_incremental_rebuild_emit_asset_enabled(&self) -> bool {
     self.experiments.incremental_rebuild.emit_asset
+  }
+
+  pub fn get_tree_shaking_mode(&self) -> TreeShakingMode {
+    if self.experiments.rspack_future.new_treeshaking {
+      TreeShakingMode::New
+    } else if matches!(
+      self.builtins.tree_shaking,
+      TreeShaking::Module | TreeShaking::True
+    ) {
+      TreeShakingMode::Old
+    } else {
+      TreeShakingMode::Disable
+    }
   }
 }
