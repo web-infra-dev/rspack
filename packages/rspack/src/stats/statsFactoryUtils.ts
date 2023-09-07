@@ -7,7 +7,7 @@ import {
 import type { Compilation } from "../Compilation";
 import type { StatsOptions } from "../config";
 
-import type { StatsFactory } from "./StatsFactory";
+import type { StatsFactory, StatsFactoryContext } from "./StatsFactory";
 
 export type KnownStatsChunkGroup = binding.JsStatsChunkGroup;
 
@@ -35,6 +35,9 @@ export type KnownStatsProfile = {
 };
 
 export type StatsModule = KnownStatsModule & Record<string, any>;
+
+export type StatsModuleIssuer = binding.JsStatsModuleIssuer &
+	Record<string, any>;
 
 type StatsError = binding.JsStatsError & Record<string, any>;
 
@@ -111,7 +114,7 @@ type ExtractorsByOption<T, O> = {
 	[x: string]: (
 		object: O,
 		data: T,
-		context: any,
+		context: StatsFactoryContext,
 		options: any,
 		factory: StatsFactory
 	) => void;
@@ -124,7 +127,7 @@ type PreprocessedAsset = StatsAsset & {
 
 export type SimpleExtractors = {
 	compilation: ExtractorsByOption<Compilation, StatsCompilation>;
-	// asset$visible: ExtractorsByOption<PreprocessedAsset, StatsAsset>;
+	asset$visible: ExtractorsByOption<PreprocessedAsset, StatsAsset>;
 	asset: ExtractorsByOption<PreprocessedAsset, StatsAsset>;
 	// chunkGroup: ExtractorsByOption<
 	// 	{
@@ -134,10 +137,16 @@ export type SimpleExtractors = {
 	// 	StatsChunkGroup
 	// >;
 	module: ExtractorsByOption<binding.JsStatsModule, StatsModule>;
-	// module$visible: ExtractorsByOption<Module, StatsModule>;
-	// moduleIssuer: ExtractorsByOption<Module, StatsModuleIssuer>;
+	module$visible: ExtractorsByOption<binding.JsStatsModule, StatsModule>;
+	moduleIssuer: ExtractorsByOption<
+		binding.JsStatsModuleIssuer,
+		StatsModuleIssuer
+	>;
 	profile: ExtractorsByOption<binding.JsStatsModuleProfile, StatsProfile>;
-	// moduleReason: ExtractorsByOption<ModuleGraphConnection, StatsModuleReason>;
+	moduleReason: ExtractorsByOption<
+		binding.JsStatsModuleReason,
+		StatsModuleReason
+	>;
 	chunk: ExtractorsByOption<StatsChunk, KnownStatsChunk>;
 	// chunkOrigin: ExtractorsByOption<OriginRecord, StatsChunkOrigin>;
 	// error: ExtractorsByOption<binding.JsStatsError, StatsError>;
