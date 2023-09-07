@@ -2,24 +2,22 @@ use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
 use rspack_core::{
-  Compilation, DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfoId,
-  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, Plugin,
+  DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec,
+  ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
 };
-use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
 
-pub struct ProvidedExportsProxy<'a> {
+pub struct ProvidedExportsPlugin<'a> {
   mg: &'a mut ModuleGraph,
   changed: bool,
   current_module_id: ModuleIdentifier,
   dependencies: HashMap<ModuleIdentifier, HashSet<ModuleIdentifier>>,
 }
 
-impl<'a> ProvidedExportsProxy<'a> {
+impl<'a> ProvidedExportsPlugin<'a> {
   pub fn new(mg: &'a mut ModuleGraph) -> Self {
     Self {
-      mg,
       changed: false,
       current_module_id: ModuleIdentifier::default(),
       dependencies: HashMap::default(),
@@ -285,22 +283,4 @@ pub struct DefaultExportInfo<'a> {
   terminal_binding: bool,
   from: Option<&'a ModuleGraphConnection>,
   priority: Option<u8>,
-}
-
-#[derive(Debug)]
-struct FlagDependencyExportsPlugin {}
-
-impl FlagDependencyExportsPlugin {
-  fn new() -> Self {
-    Self {}
-  }
-}
-
-#[async_trait::async_trait]
-impl Plugin for FlagDependencyExportsPlugin {
-  async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-    let mut proxy = ProvidedExportsProxy::new(&mut compilation.module_graph);
-    proxy.apply();
-    Ok(())
-  }
 }
