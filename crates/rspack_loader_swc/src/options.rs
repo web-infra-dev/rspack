@@ -34,7 +34,7 @@ impl From<RawRspackExperiments> for RspackExperiments {
       import: value
         .import
         .map(|i| i.into_iter().map(|v| v.into()).collect()),
-      emotion: value.emotion.map(|v| v.into()),
+      emotion: value.emotion,
     }
   }
 }

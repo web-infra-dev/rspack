@@ -28,6 +28,7 @@ macro_rules! either {
   };
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn transform<'a>(
   resource_path: &'a Path,
   rspack_options: &'a CompilerOptions,
