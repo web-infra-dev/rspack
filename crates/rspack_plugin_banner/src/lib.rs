@@ -143,7 +143,7 @@ impl BannerPlugin {
     if let Some(true) = self.config.raw {
       value.to_owned()
     } else {
-      wrap_comment(&value)
+      wrap_comment(value)
     }
   }
 
