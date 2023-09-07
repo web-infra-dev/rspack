@@ -236,18 +236,3 @@ impl Plugin for BannerPlugin {
     Ok(())
   }
 }
-
-#[cfg(test)]
-mod tests {
-  use crate::wrap_comment;
-
-  #[test]
-  fn trailing_whitespace() {
-    dbg!(wrap_comment(
-      "trim trailing whitespace\t \n\ntrailing whitespace "
-    ));
-    dbg!(wrap_comment(
-      "trim trailing whitespace\t \n\nno trailing whitespace"
-    ));
-  }
-}
