@@ -68,7 +68,7 @@ fn default_optimization_chunk_ids() -> String {
   "named".to_string()
 }
 
-fn default_optimization_side_effects() -> String {
+fn default_optimization_false_string_lit() -> String {
   "false".to_string()
 }
 
@@ -121,8 +121,12 @@ pub struct Optimization {
   pub module_ids: String,
   #[serde(default = "default_optimization_chunk_ids")]
   pub chunk_ids: String,
-  #[serde(default = "default_optimization_side_effects")]
+  #[serde(default = "default_optimization_false_string_lit")]
   pub side_effects: String,
+  #[serde(default = "true_by_default")]
+  pub provided_exports: bool,
+  #[serde(default = "default_optimization_false_string_lit")]
+  pub used_exports: String,
 }
 
 #[derive(Debug, JsonSchema, Deserialize)]
@@ -436,6 +440,8 @@ impl TestConfig {
         remove_available_modules: self.optimization.remove_available_modules,
         remove_empty_chunks: self.optimization.remove_empty_chunks,
         side_effects: c::SideEffectOption::from(self.optimization.side_effects.as_str()),
+        provided_exports: self.optimization.provided_exports,
+        used_exports: c::UsedExports::from(self.optimization.used_exports.as_str()),
       },
       profile: false,
     };

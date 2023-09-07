@@ -34,6 +34,7 @@ impl From<RawRspackFuture> for RspackFuture {
   fn from(value: RawRspackFuture) -> Self {
     Self {
       new_resolver: value.new_resolver,
+      new_treeshaking: value.new_treeshaking,
     }
   }
 }

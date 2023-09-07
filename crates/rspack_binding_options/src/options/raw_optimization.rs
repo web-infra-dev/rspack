@@ -1,6 +1,6 @@
 use better_scoped_tls::scoped_tls;
 use napi_derive::napi;
-use rspack_core::{Optimization, PluginExt, SideEffectOption};
+use rspack_core::{Optimization, PluginExt, SideEffectOption, UsedExports};
 use rspack_error::internal_error;
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
@@ -73,6 +73,8 @@ impl RawOptionsApply for RawOptimizationOptions {
       remove_available_modules: self.remove_available_modules,
       remove_empty_chunks: self.remove_empty_chunks,
       side_effects: SideEffectOption::from(self.side_effects.as_str()),
+      provided_exports: self.provided_exports,
+      used_exports: UsedExports::from(self.used_exports.as_str()),
     })
   }
 }
