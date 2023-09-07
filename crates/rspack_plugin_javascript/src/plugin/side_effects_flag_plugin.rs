@@ -1,5 +1,5 @@
-use rspack_core::Plugin;
-use rspack_error::Result;
+// use rspack_core::Plugin;
+// use rspack_error::Result;
 use swc_core::common::{Span, Spanned, SyntaxContext, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::utils::{ExprCtx, ExprExt};

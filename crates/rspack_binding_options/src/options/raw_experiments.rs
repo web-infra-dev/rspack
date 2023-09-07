@@ -15,6 +15,7 @@ pub struct RawIncrementalRebuild {
 #[napi(object)]
 pub struct RawRspackFuture {
   pub new_resolver: bool,
+  pub new_treeshaking: bool,
 }
 
 #[derive(Deserialize, Debug, Default)]

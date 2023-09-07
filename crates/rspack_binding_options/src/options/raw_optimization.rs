@@ -23,6 +23,8 @@ pub struct RawOptimizationOptions {
   pub remove_available_modules: bool,
   pub remove_empty_chunks: bool,
   pub side_effects: String,
+  pub used_exports: String,
+  pub provided_exports: bool,
   pub real_content_hash: bool,
 }
 
