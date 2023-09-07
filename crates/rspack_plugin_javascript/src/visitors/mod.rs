@@ -7,8 +7,6 @@ use swc_core::common::comments::Comments;
 use xxhash_rust::xxh32::xxh32;
 mod clear_mark;
 
-mod plugin_import;
-
 use rspack_core::{BuildInfo, ModuleType};
 use swc_core::ecma::transforms::base::Assumptions;
 pub mod swc_visitor;
@@ -17,9 +15,6 @@ use rspack_error::Result;
 use swc_core::common::chain;
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::transforms::base::pass::{noop, Optional};
-use swc_emotion::EmotionOptions;
-
-use crate::visitors::plugin_import::plugin_import;
 
 macro_rules! either {
   ($config: expr, $f: expr) => {
@@ -102,8 +97,8 @@ pub fn run_before_pass(
       ),
       either!(
         options.builtins.emotion,
-        |emotion_options: &EmotionOptions| {
-          swc_emotion::emotion(
+        |emotion_options: &rspack_swc_visitors::EmotionOptions| {
+          rspack_swc_visitors::emotion(
             emotion_options.clone(),
             &resource_data.resource_path,
             xxh32(source.as_bytes(), 0),
@@ -120,7 +115,9 @@ pub fn run_before_pass(
           unresolved_mark,
         )
       }),
-      plugin_import(options.builtins.plugin_import.as_ref()),
+      either!(options.builtins.plugin_import, |options| {
+        rspack_swc_visitors::import(options)
+      }),
       // enable if configurable
       // swc_visitor::const_modules(cm, globals),
       Optional::new(
