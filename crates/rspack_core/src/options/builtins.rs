@@ -1,14 +1,13 @@
 use std::fmt::Debug;
-use std::{collections::HashMap, fmt::Display, path::PathBuf};
+use std::{fmt::Display, path::PathBuf};
 
 use glob::Pattern as GlobPattern;
 use rspack_error::Result;
-use swc_core::ecma::transforms::react::Runtime;
-use swc_plugin_import::PluginImportConfig;
+use rspack_swc_visitors::{
+  Define, EmotionOptions, ImportOptions, Provide, ReactOptions, RelayOptions,
+};
 
 use crate::{ApplyContext, AssetInfo, CompilerOptions, Plugin, PluginContext};
-
-pub type Define = HashMap<String, String>;
 
 #[derive(Debug)]
 pub struct DefinePlugin {
@@ -36,8 +35,6 @@ impl Plugin for DefinePlugin {
   }
 }
 
-pub type Provide = HashMap<String, Vec<String>>;
-
 #[derive(Debug)]
 pub struct ProvidePlugin {
   options: Provide,
@@ -62,19 +59,6 @@ impl Plugin for ProvidePlugin {
     options.builtins.provide.extend(self.options.clone());
     Ok(())
   }
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct ReactOptions {
-  pub runtime: Option<Runtime>,
-  pub import_source: Option<String>,
-  pub pragma: Option<String>,
-  pub pragma_frag: Option<String>,
-  pub throw_if_namespace: Option<bool>,
-  pub development: Option<bool>,
-  pub use_builtins: Option<bool>,
-  pub use_spread: Option<bool>,
-  pub refresh: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -151,11 +135,11 @@ pub struct Builtins {
   // TODO: remove this when drop support for builtin options (0.6.0)
   pub no_emit_assets: bool,
   // TODO: migrate to builtin:swc-loader
-  pub emotion: Option<swc_emotion::EmotionOptions>,
+  pub emotion: Option<EmotionOptions>,
   // TODO: migrate to builtin:swc-loader
-  pub plugin_import: Option<Vec<PluginImportConfig>>,
+  pub plugin_import: Option<Vec<ImportOptions>>,
   // TODO: migrate to builtin:swc-loader
-  pub relay: Option<RelayConfig>,
+  pub relay: Option<RelayOptions>,
 }
 
 #[derive(Debug, Clone)]
@@ -211,23 +195,4 @@ pub struct PresetEnv {
   pub targets: Vec<String>,
   pub mode: Option<swc_core::ecma::preset_env::Mode>,
   pub core_js: Option<String>,
-}
-
-#[derive(Debug, Default, Clone)]
-pub struct RelayConfig {
-  pub artifact_directory: Option<PathBuf>,
-  pub language: RelayLanguageConfig,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum RelayLanguageConfig {
-  JavaScript,
-  TypeScript,
-  Flow,
-}
-
-impl Default for RelayLanguageConfig {
-  fn default() -> Self {
-    Self::Flow
-  }
 }

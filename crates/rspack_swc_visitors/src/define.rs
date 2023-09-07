@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use swc_core::common::collections::AHashMap;
+use swc_core::ecma::ast::EsVersion;
 use swc_core::ecma::parser::EsConfig;
 use swc_core::ecma::transforms::optimization::inline_globals2;
 use swc_core::ecma::utils::NodeIgnoringSpan;
@@ -24,7 +25,7 @@ pub fn define(opts: &Define) -> impl Fold {
         parse_file_as_expr(
           &fm,
           Syntax::Es(EsConfig::default()),
-          rspack_core::EsVersion::EsNext,
+          EsVersion::EsNext,
           None,
           &mut vec![],
         )
@@ -35,7 +36,7 @@ pub fn define(opts: &Define) -> impl Fold {
         parse_file_as_expr(
           &fm,
           Syntax::Es(EsConfig::default()),
-          rspack_core::EsVersion::EsNext,
+          EsVersion::EsNext,
           None,
           &mut vec![],
         )

@@ -1,6 +1,6 @@
 use serde::Deserialize;
 pub use swc_plugin_import::plugin_import as import;
-pub use swc_plugin_import::{CustomTransform, PluginImportConfig as ImportConfig, StyleConfig};
+pub use swc_plugin_import::{CustomTransform, PluginImportConfig as ImportOptions, StyleConfig};
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -41,7 +41,7 @@ pub struct RawImportOptions {
   pub ignore_style_component: Option<Vec<String>>,
 }
 
-impl From<RawImportOptions> for ImportConfig {
+impl From<RawImportOptions> for ImportOptions {
   fn from(plugin_import: RawImportOptions) -> Self {
     let RawImportOptions {
       library_name,

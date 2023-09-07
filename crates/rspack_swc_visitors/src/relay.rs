@@ -20,7 +20,6 @@ use std::path::{Path, PathBuf};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::{RelayConfig, RelayLanguageConfig};
 use serde::Deserialize;
 use swc_core::{
   common::{Mark, DUMMY_SP},
@@ -36,7 +35,7 @@ struct Relay<'a> {
   unresolved_mark: Mark,
   root_dir: PathBuf,
   file_name: &'a Path,
-  config: &'a RelayConfig,
+  config: &'a RelayOptions,
 }
 
 fn pull_first_operation_name_from_tpl(tpl: &TaggedTpl) -> Option<String> {
@@ -168,14 +167,33 @@ impl<'a> Relay<'a> {
   }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug, Default, Clone)]
+pub struct RelayOptions {
+  pub artifact_directory: Option<PathBuf>,
+  pub language: RelayLanguageConfig,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum RelayLanguageConfig {
+  JavaScript,
+  TypeScript,
+  Flow,
+}
+
+impl Default for RelayLanguageConfig {
+  fn default() -> Self {
+    Self::Flow
+  }
+}
+
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct RawRelayOptions {
   pub artifact_directory: Option<String>,
   pub language: String,
 }
 
-impl From<RawRelayOptions> for RelayConfig {
+impl From<RawRelayOptions> for RelayOptions {
   fn from(raw_config: RawRelayOptions) -> Self {
     Self {
       artifact_directory: raw_config.artifact_directory.map(PathBuf::from),
@@ -189,7 +207,7 @@ impl From<RawRelayOptions> for RelayConfig {
 }
 
 pub fn relay<'a>(
-  config: &'a RelayConfig,
+  config: &'a RelayOptions,
   file_name: &'a Path,
   root_dir: PathBuf,
   unresolved_mark: Mark,

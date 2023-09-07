@@ -3,18 +3,13 @@
 use std::default::Default;
 use std::sync::Arc;
 
-use rspack_core::Builtins;
+use options::{SwcCompilerOptionsWithAdditional, SwcLoaderJsOptions};
 use rspack_core::{rspack_sources::SourceMap, LoaderRunnerContext, Mode};
 use rspack_error::{internal_error, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
-use rspack_swc_visitors::{RawEmotionOptions, RawImportOptions, RawReactOptions, RawRelayOptions};
-use serde::Deserialize;
-use swc_config::config_types::{BoolConfig, MergingOption};
+use swc_config::config_types::MergingOption;
 use swc_config::merge::Merge;
-use swc_core::base::config::{
-  Config, ErrorConfig, FileMatcher, InputSourceMap, IsModule, JscConfig, ModuleConfig, Options,
-  SourceMapsConfig, TransformConfig,
-};
+use swc_core::base::config::{InputSourceMap, TransformConfig};
 use swc_core::base::{try_with_handler, Compiler};
 use swc_core::common::comments::SingleThreadedComments;
 use swc_core::common::{FileName, FilePathMapping, Mark, GLOBALS};
@@ -22,123 +17,8 @@ use swc_core::ecma::transforms::base::pass::noop;
 use transformer::transform;
 use xxhash_rust::xxh32::xxh32;
 
+mod options;
 mod transformer;
-
-pub const SOURCE_MAP_INLINE: &str = "inline";
-
-#[derive(Default, Deserialize, Debug)]
-#[serde(rename_all = "camelCase", default)]
-pub struct RspackExperiments {
-  relay: Option<RawRelayOptions>,
-  react: Option<RawReactOptions>,
-  import: Option<RawImportOptions>,
-  emotion: Option<RawEmotionOptions>,
-}
-
-#[derive(Debug, Default, Deserialize)]
-#[serde(rename_all = "camelCase", default)]
-pub struct SwcLoaderJsOptions {
-  #[serde(default)]
-  pub source_maps: Option<SourceMapsConfig>,
-
-  pub source_map: Option<SourceMapsConfig>,
-  #[serde(default)]
-  pub env: Option<swc_core::ecma::preset_env::Config>,
-
-  #[serde(default)]
-  pub test: Option<FileMatcher>,
-
-  #[serde(default)]
-  pub exclude: Option<FileMatcher>,
-
-  #[serde(default)]
-  pub jsc: JscConfig,
-
-  #[serde(default)]
-  pub module: Option<ModuleConfig>,
-
-  #[serde(default)]
-  pub minify: BoolConfig<false>,
-
-  #[serde(default)]
-  pub input_source_map: Option<InputSourceMap>,
-
-  #[serde(default)]
-  pub inline_sources_content: BoolConfig<true>,
-
-  #[serde(default)]
-  pub emit_source_map_columns: BoolConfig<true>,
-
-  #[serde(default)]
-  pub error: ErrorConfig,
-
-  #[serde(default)]
-  pub is_module: Option<IsModule>,
-
-  #[serde(rename = "$schema")]
-  pub schema: Option<String>,
-
-  #[serde(default)]
-  pub rspack_experiments: Option<RspackExperiments>,
-}
-
-#[derive(Debug)]
-struct SwcCompilerOptionsWithAdditional {
-  options: Options,
-  rspack_experiments: RspackExperiments,
-}
-
-impl From<SwcLoaderJsOptions> for SwcCompilerOptionsWithAdditional {
-  fn from(value: SwcLoaderJsOptions) -> Self {
-    let SwcLoaderJsOptions {
-      source_maps,
-      source_map,
-      env,
-      test,
-      exclude,
-      jsc,
-      module,
-      minify,
-      input_source_map,
-      inline_sources_content,
-      emit_source_map_columns,
-      error,
-      is_module,
-      schema,
-      rspack_experiments,
-    } = value;
-    let mut source_maps: Option<SourceMapsConfig> = source_maps;
-    if source_maps.is_none() && source_map.is_some() {
-      source_maps = source_map
-    }
-    if let Some(SourceMapsConfig::Str(str)) = &source_maps {
-      if str == SOURCE_MAP_INLINE {
-        source_maps = Some(SourceMapsConfig::Bool(true))
-      }
-    }
-    SwcCompilerOptionsWithAdditional {
-      options: Options {
-        config: Config {
-          env,
-          test,
-          exclude,
-          jsc,
-          module,
-          minify,
-          input_source_map,
-          source_maps,
-          inline_sources_content,
-          emit_source_map_columns,
-          error,
-          is_module,
-          schema,
-        },
-        ..Default::default()
-      },
-      rspack_experiments: rspack_experiments.unwrap_or_default(),
-    }
-  }
-}
 
 #[derive(Debug)]
 pub struct SwcLoader {
@@ -175,11 +55,11 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       FilePathMapping::empty(),
     )));
     let default_development = matches!(loader_context.context.options.mode, Mode::Development);
-    let mut options = self.options_with_additional.options.clone();
-    if options.config.jsc.transform.as_ref().is_some() {
+    let mut swc_options = self.options_with_additional.swc_options.clone();
+    if swc_options.config.jsc.transform.as_ref().is_some() {
       let mut transform = TransformConfig::default();
       transform.react.development = Some(default_development);
-      options
+      swc_options
         .config
         .jsc
         .transform
@@ -187,11 +67,11 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
     }
     if let Some(pre_source_map) = std::mem::take(&mut loader_context.source_map) {
       if let Ok(source_map) = pre_source_map.to_json() {
-        options.config.input_source_map = Some(InputSourceMap::Str(source_map))
+        swc_options.config.input_source_map = Some(InputSourceMap::Str(source_map))
       }
     }
 
-    if options.config.jsc.experimental.plugins.is_some() {
+    if swc_options.config.jsc.experimental.plugins.is_some() {
       loader_context.emit_diagnostic(Diagnostic::warn(
         SWC_LOADER_IDENTIFIER.to_string(),
         "Experimental plugins are not currently supported.".to_string(),
@@ -205,11 +85,11 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
         c.run(|| {
           let top_level_mark = Mark::new();
           let unresolved_mark = Mark::new();
-          options.top_level_mark = Some(top_level_mark);
-          options.unresolved_mark = Some(unresolved_mark);
+          swc_options.top_level_mark = Some(top_level_mark);
+          swc_options.unresolved_mark = Some(unresolved_mark);
           let source = content.try_into_string()?;
-          let compiler_options = &*loader_context.context.options;
-          let source_content_hash = compiler_options
+          let rspack_options = &*loader_context.context.options;
+          let source_content_hash = rspack_options
             .builtins
             .emotion
             .as_ref()
@@ -224,29 +104,19 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
             fm,
             None,
             handler,
-            &options,
+            &swc_options,
             comments,
             |_| noop(),
             |_| {
-              let Builtins {
-                relay: builtin_relay,
-                react: builtin_react,
-                plugin_import: builtin_import,
-                emotion: builtin_emotion,
-                ..
-              } = &compiler_options.builtins;
-              let rspack_experiments = &self.options_with_additional.rspack_experiments;
-
-              // let relay = rspack_experiments.relay.or(builtin_relay);
-
               transform(
                 &resource_path,
-                compiler_options,
+                rspack_options,
                 Some(c.comments()),
                 top_level_mark,
                 unresolved_mark,
                 c.cm.clone(),
                 source_content_hash,
+                &self.options_with_additional.rspack_experiments,
               )
             },
           )?;

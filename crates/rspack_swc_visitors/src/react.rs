@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use rspack_core::ReactOptions;
 use serde::Deserialize;
 use swc_core::common::comments::Comments;
 use swc_core::common::DUMMY_SP;
@@ -12,6 +11,19 @@ use swc_core::ecma::transforms::react::{react as swc_react, Options};
 use swc_core::ecma::utils::quote_ident;
 use swc_core::ecma::visit::Fold;
 use swc_core::quote;
+
+#[derive(Debug, Clone, Default)]
+pub struct ReactOptions {
+  pub runtime: Option<Runtime>,
+  pub import_source: Option<String>,
+  pub pragma: Option<String>,
+  pub pragma_frag: Option<String>,
+  pub throw_if_namespace: Option<bool>,
+  pub development: Option<bool>,
+  pub use_builtins: Option<bool>,
+  pub use_spread: Option<bool>,
+  pub refresh: Option<bool>,
+}
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]

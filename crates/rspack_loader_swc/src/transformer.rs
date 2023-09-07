@@ -9,6 +9,8 @@ use swc_core::ecma::{
   visit::Fold,
 };
 
+use crate::options::RspackExperiments;
+
 macro_rules! either {
   ($config:expr, $f:expr) => {
     if let Some(config) = &$config {
@@ -17,76 +19,70 @@ macro_rules! either {
       Either::Right(noop())
     }
   };
+  ($config:expr, $f:expr, $enabled:expr) => {
+    if $enabled {
+      either!($config, $f)
+    } else {
+      Either::Right(noop())
+    }
+  };
 }
 
 /// This should only be running at `custom_after_pass`, or
 /// it will contain `resolve` issues.
-pub fn transform<'a>(
+///
+/// # Guarantee for `custom_after_pass`
+//
+// `swc` invokes `custom_before_pass` after
+//
+//  - Handling decorators, if configured
+//  - Applying `resolver`
+//  - Stripping typescript nodes
+pub(crate) fn transform<'a>(
   resource_path: &'a Path,
-  options: &'a CompilerOptions,
+  rspack_options: &'a CompilerOptions,
   comments: Option<&'a dyn Comments>,
   top_level_mark: Mark,
   unresolved_mark: Mark,
   cm: Arc<SourceMap>,
   content_hash: Option<u32>,
+  rspack_experiments: &'a RspackExperiments,
 ) -> impl Fold + 'a {
-  let should_transform_by_react = true;
-
-  // # Guarantee
-  //
-  // `swc` invokes `custom_before_pass` after
-  //
-  //  - Handling decorators, if configured
-  //  - Applying `resolver`
-  //  - Stripping typescript nodes
-
   use rspack_swc_visitors::EmotionOptions;
 
   chain!(
-    Optional::new(
-      rspack_swc_visitors::react(
-        top_level_mark,
-        comments,
-        &cm,
-        &options.builtins.react,
-        unresolved_mark
-      ),
-      should_transform_by_react
-    ),
+    either!(rspack_experiments.react, |options| {
+      rspack_swc_visitors::react(top_level_mark, comments, &cm, options, unresolved_mark)
+    }),
     Optional::new(
       rspack_swc_visitors::fold_react_refresh(unresolved_mark),
-      should_transform_by_react
-        && options
-          .builtins
-          .react
-          .refresh
-          .and_then(|v| if v { Some(v) } else { None })
-          .is_some()
+      rspack_experiments
+        .react
+        .as_ref()
+        .and_then(|v| v.refresh)
+        .unwrap_or_default()
     ),
-    either!(
-      options.builtins.emotion,
-      |emotion_options: &EmotionOptions| {
-        // SAFETY: Source content hash should always available if emotion is turned on.
-        let content_hash = content_hash.expect("Content hash should be available");
-        rspack_swc_visitors::emotion(
-          emotion_options.clone(),
-          resource_path,
-          content_hash,
-          cm.clone(),
-          comments,
-        )
-      }
-    ),
-    either!(options.builtins.relay, |relay_option| {
-      rspack_swc_visitors::relay(
-        relay_option,
+    either!(rspack_experiments.emotion, |options: &EmotionOptions| {
+      // SAFETY: Source content hash should always available if emotion is turned on.
+      let content_hash = content_hash.expect("Content hash should be available");
+      rspack_swc_visitors::emotion(
+        options.clone(),
         resource_path,
-        PathBuf::from(AsRef::<Path>::as_ref(&options.context)),
+        content_hash,
+        cm.clone(),
+        comments,
+      )
+    }),
+    either!(rspack_experiments.relay, |options| {
+      rspack_swc_visitors::relay(
+        options,
+        resource_path,
+        PathBuf::from(AsRef::<Path>::as_ref(&rspack_options.context)),
         unresolved_mark,
       )
     }),
-    either!(options.builtins.plugin_import, |config| {
-      rspack_swc_visitors::import(config)
+    either!(rspack_experiments.import, |options| {
+      rspack_swc_visitors::import(options)
     }),
   )
 }
