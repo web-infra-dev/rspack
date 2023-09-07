@@ -54,14 +54,14 @@ napi-build          = { version = "=2.0.1" }
 napi-derive         = { version = "=2.12.3" }
 napi-sys            = { version = "=2.2.3" }
 swc_config          = { version = "=0.1.7" }
-swc_core            = { version = "=0.82.9", default-features = false }
-swc_css             = { version = "=0.155.0" }
-swc_ecma_minifier   = { version = "=0.186.7", default-features = false }
-swc_emotion         = { version = "=0.40.0" }
-swc_error_reporters = { version = "=0.16.0" }
-swc_html            = { version = "=0.130.7" }
-swc_html_minifier   = { version = "=0.127.7" }
-swc_node_comments   = { version = "=0.19.0" }
+swc_core            = { version = "=0.83.1", default-features = false }
+swc_css             = { version = "=0.155.2" }
+swc_ecma_minifier   = { version = "=0.187.0", default-features = false }
+swc_emotion         = { version = "=0.42.0" }
+swc_error_reporters = { version = "=0.16.1" }
+swc_html            = { version = "=0.131.0" }
+swc_html_minifier   = { version = "=0.128.0" }
+swc_node_comments   = { version = "=0.19.1" }
 tikv-jemallocator   = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
 
 [profile.dev]
