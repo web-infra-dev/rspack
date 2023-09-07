@@ -1,9 +1,9 @@
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
   get_exports_type, process_export_info, ConnectionState, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfo, ExportsType,
-  ExtendedReferencedExport, HarmonyExportInitFragment, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfoId, ExportInfoProvided,
+  ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState,
 };
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
@@ -11,7 +11,9 @@ use swc_core::ecma::atoms::JsWord;
 use super::create_resource_identifier_for_esm_dependency;
 
 // Create _webpack_require__.d(__webpack_exports__, {}).
-// import { a } from 'a'; export { a }
+// case1: `import { a } from 'a'; export { a }`
+// case2: `export { a } from 'a';`
+// TODO case3: `export * from 'a'`
 #[derive(Debug, Clone)]
 pub struct HarmonyExportImportedSpecifierDependency {
   pub id: DependencyId,
@@ -19,18 +21,352 @@ pub struct HarmonyExportImportedSpecifierDependency {
   pub ids: Vec<(JsWord, Option<JsWord>)>,
   name: Option<JsWord>,
   resource_identifier: String,
+  // Because it is shared by multiply HarmonyExportImportedSpecifierDependency, so put it to `BuildInfo`
+  // pub active_exports: HashSet<JsWord>,
+  // pub all_star_exports: Option<Vec<DependencyId>>,
+  pub other_star_exports: Option<Vec<DependencyId>>, // look like it is unused
 }
 
 impl HarmonyExportImportedSpecifierDependency {
-  pub fn new(request: JsWord, ids: Vec<(JsWord, Option<JsWord>)>) -> Self {
+  pub fn new(request: JsWord, ids: Vec<(JsWord, Option<JsWord>)>, name: Option<JsWord>) -> Self {
     let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
       id: DependencyId::new(),
-      name: None,
+      name,
       request,
       ids,
       resource_identifier,
+      other_star_exports: None,
     }
+  }
+
+  pub fn active_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a HashSet<JsWord> {
+    let build_info = module_graph
+      .module_graph_module_by_dependency_id(&self.id)
+      .expect("should have mgm")
+      .build_info
+      .as_ref()
+      .expect("should have build info");
+    &build_info.harmony_named_exports
+  }
+
+  pub fn all_star_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a Vec<DependencyId> {
+    let build_info = module_graph
+      .module_graph_module_by_dependency_id(&self.id)
+      .expect("should have mgm")
+      .build_info
+      .as_ref()
+      .expect("should have build info");
+    &build_info.all_star_exports
+  }
+
+  // TODO cache get_mode result
+  #[allow(unused)]
+  pub fn get_mode(
+    &self,
+    name: Option<JsWord>,
+    ids: &Vec<JsWord>,
+    module_graph: &ModuleGraph,
+    id: &DependencyId,
+    runtime: Option<&RuntimeSpec>,
+  ) -> ExportMode {
+    let imported_module_identifier = if let Some(imported_module_identifier) =
+      module_graph.module_identifier_by_dependency_id(id)
+    {
+      imported_module_identifier
+    } else {
+      return ExportMode {
+        kind: ExportModeType::Missing,
+        ..Default::default()
+      };
+    };
+
+    let parent_module = module_graph
+      .parent_module_by_dependency_id(id)
+      .expect("should have parent module");
+    let exports_type = get_exports_type(module_graph, id, &parent_module);
+    let exports_info = module_graph.get_exports_info(&parent_module);
+
+    // Special handling for reexporting the default export
+    // from non-namespace modules
+    if let Some(name) = name.as_ref() && !ids.is_empty() && let Some(id) = ids.get(0) && id == "default" {
+      match exports_type {
+        ExportsType::Dynamic => {
+          return ExportMode { kind: ExportModeType::ReexportDynamicDefault, name: Some(name.clone()), ..Default::default() }
+        },
+        ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
+          let export_info = exports_info.id.get_read_only_export_info(name, module_graph).id;
+          return ExportMode { kind: ExportModeType::ReexportNamedDefault, name: Some(name.clone()), partial_namespace_export_info: Some(export_info), ..Default::default() }
+        },
+        _ => {}
+      }
+    }
+
+    // reexporting with a fixed name
+    if let Some(name) = name {
+      let export_info = exports_info
+        .id
+        .get_read_only_export_info(&name, module_graph)
+        .id;
+      if !ids.is_empty() {
+        // export { name as name }
+        match exports_type {
+          ExportsType::DefaultOnly => {
+            return ExportMode {
+              kind: ExportModeType::ReexportUndefined,
+              name: Some(name),
+              ..Default::default()
+            }
+          }
+          _ => {
+            return ExportMode {
+              kind: ExportModeType::NormalReexport,
+              items: Some(vec![NormalReexportItem {
+                name,
+                ids: ids.to_vec(),
+                hidden: false,
+                checked: false,
+                export_info,
+              }]),
+              ..Default::default()
+            }
+          }
+        }
+      } else {
+        // export * as name
+        match exports_type {
+          ExportsType::DefaultOnly => {
+            return ExportMode {
+              kind: ExportModeType::ReexportFakeNamespaceObject,
+              name: Some(name),
+              partial_namespace_export_info: Some(export_info),
+              fake_type: Some(0),
+              ..Default::default()
+            }
+          }
+          ExportsType::DefaultWithNamed => {
+            return ExportMode {
+              kind: ExportModeType::ReexportFakeNamespaceObject,
+              name: Some(name),
+              partial_namespace_export_info: Some(export_info),
+              fake_type: Some(2),
+              ..Default::default()
+            }
+          }
+          _ => {
+            return ExportMode {
+              kind: ExportModeType::ReexportNamespaceObject,
+              name: Some(name),
+              partial_namespace_export_info: Some(export_info),
+              ..Default::default()
+            }
+          }
+        }
+      }
+    }
+
+    let StarReexportsInfo {
+      exports,
+      checked,
+      ignored_exports,
+      hidden,
+    } = self.get_star_reexports(module_graph, runtime, imported_module_identifier);
+
+    if let Some(exports) = exports {
+      if exports.is_empty() {
+        return ExportMode {
+          kind: ExportModeType::EmptyStar,
+          hidden,
+          ..Default::default()
+        };
+      }
+
+      let mut items = exports
+        .into_iter()
+        .map(|export_name| NormalReexportItem {
+          name: export_name.clone(),
+          ids: vec![export_name.clone()],
+          hidden: false,
+          checked: checked.as_ref().map(|c| c.contains(&export_name)).is_some(),
+          export_info: exports_info
+            .id
+            .get_read_only_export_info(&export_name, module_graph)
+            .id,
+        })
+        .collect::<Vec<_>>();
+
+      if let Some(hidden) = &hidden {
+        for export_name in hidden.iter() {
+          items.push(NormalReexportItem {
+            name: export_name.clone(),
+            ids: vec![export_name.clone()],
+            hidden: true,
+            checked: false,
+            export_info: exports_info
+              .id
+              .get_read_only_export_info(export_name, module_graph)
+              .id,
+          });
+        }
+      }
+
+      ExportMode {
+        kind: ExportModeType::NormalReexport,
+        items: Some(items),
+        ..Default::default()
+      }
+    } else {
+      ExportMode {
+        kind: ExportModeType::DynamicReexport,
+        ignored: Some(ignored_exports),
+        hidden,
+        ..Default::default()
+      }
+    }
+  }
+
+  pub fn get_star_reexports(
+    &self,
+    module_graph: &ModuleGraph,
+    runtime: Option<&RuntimeSpec>,
+    imported_module_identifier: &ModuleIdentifier,
+  ) -> StarReexportsInfo {
+    let imported_exports_info = module_graph.get_exports_info(imported_module_identifier);
+    let other_export_info = module_graph
+      .export_info_map
+      .get(&imported_exports_info.other_exports_info)
+      .expect("should have export info");
+    let no_extra_exports = matches!(other_export_info.provided, Some(ExportInfoProvided::False));
+    let no_extra_imports = matches!(other_export_info.get_used(runtime), UsageState::Unused);
+    let ignored_exports: HashSet<JsWord> = {
+      let mut e = self.active_exports(module_graph).clone();
+      e.insert("default".into());
+      e
+    };
+    let mut hidden_exports = self.discover_active_exports_from_other_star_exports(module_graph);
+    if !no_extra_exports && !no_extra_imports {
+      if let Some(hidden_exports) = hidden_exports.as_mut() {
+        for e in ignored_exports.iter() {
+          hidden_exports.remove(e);
+        }
+      }
+      return StarReexportsInfo {
+        ignored_exports,
+        hidden: hidden_exports,
+        ..Default::default()
+      };
+    }
+
+    let mut exports = HashSet::default();
+    let mut checked = HashSet::default();
+    let mut hidden = if hidden_exports.is_some() {
+      Some(HashSet::default())
+    } else {
+      None
+    };
+
+    let parent_module = module_graph
+      .parent_module_by_dependency_id(&self.id)
+      .expect("should have parent module");
+    let exports_info = module_graph.get_exports_info(&parent_module);
+    if no_extra_imports {
+      for export_info_id in exports_info.get_ordered_exports() {
+        let export_info = module_graph
+          .export_info_map
+          .get(export_info_id)
+          .expect("should have export info");
+        if ignored_exports.contains(&export_info.name)
+          || matches!(export_info.get_used(runtime), UsageState::Unused)
+        {
+          continue;
+        }
+        let imported_export_info = imported_exports_info
+          .id
+          .get_read_only_export_info(&export_info.name, module_graph);
+        if matches!(
+          imported_export_info.provided,
+          Some(ExportInfoProvided::False)
+        ) {
+          continue;
+        }
+        if let Some(hidden) = hidden.as_mut() && hidden_exports.as_ref()
+          .map(|hidden_exports| hidden_exports.contains(&export_info.name))
+          .is_some()
+        {
+          hidden.insert(export_info.name.clone());
+          continue;
+        }
+        exports.insert(export_info.name.clone());
+        if matches!(
+          imported_export_info.provided,
+          Some(ExportInfoProvided::True)
+        ) {
+          continue;
+        }
+        checked.insert(export_info.name.clone());
+      }
+    } else if no_extra_exports {
+      for import_export_info_id in imported_exports_info.get_ordered_exports() {
+        let import_export_info = module_graph
+          .export_info_map
+          .get(import_export_info_id)
+          .expect("should have export info");
+        if ignored_exports.contains(&import_export_info.name)
+          || matches!(import_export_info.provided, Some(ExportInfoProvided::False))
+        {
+          continue;
+        }
+        let export_info = exports_info
+          .id
+          .get_read_only_export_info(&import_export_info.name, module_graph);
+        if matches!(export_info.get_used(runtime), UsageState::Unused) {
+          continue;
+        }
+        if let Some(hidden) = hidden.as_mut() && hidden_exports.as_ref()
+          .map(|hidden_exports| hidden_exports.contains(&import_export_info.name))
+          .is_some()
+        {
+          hidden.insert(import_export_info.name.clone());
+          continue;
+        }
+        exports.insert(import_export_info.name.clone());
+        if matches!(import_export_info.provided, Some(ExportInfoProvided::True)) {
+          continue;
+        }
+        checked.insert(import_export_info.name.clone());
+      }
+    }
+
+    StarReexportsInfo {
+      ignored_exports,
+      exports: Some(exports),
+      checked: Some(checked),
+      hidden,
+    }
+  }
+
+  pub fn discover_active_exports_from_other_star_exports(
+    &self,
+    module_graph: &ModuleGraph,
+  ) -> Option<HashSet<JsWord>> {
+    if let Some(other_star_exports) = &self.other_star_exports {
+      if other_star_exports.is_empty() {
+        return None;
+      }
+    }
+
+    let all_star_exports = self.all_star_exports(module_graph);
+    if !all_star_exports.is_empty() {
+      let names = determine_export_assignments(module_graph, all_star_exports.clone(), None);
+      return Some(names);
+    }
+
+    if let Some(other_star_exports) = &self.other_star_exports {
+      let names =
+        determine_export_assignments(module_graph, other_star_exports.clone(), Some(self.id));
+      return Some(names);
+    }
+    None
   }
 }
 
@@ -132,11 +468,12 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
     module_graph: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
-    let mode = get_mode(
+    let mode = self.get_mode(
       self.name.clone(),
       &self.ids.iter().map(|id| id.0.clone()).collect::<Vec<_>>(),
       module_graph,
       &self.id,
+      runtime,
     );
     match mode.kind {
       ExportModeType::Missing
@@ -156,7 +493,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
             runtime,
             &mut referenced_exports,
             vec![],
-            Some(partial_namespace_export_info),
+            Some(*partial_namespace_export_info),
             mode.kind == ExportModeType::ReexportFakeNamespaceObject,
             &mut Default::default(),
           );
@@ -216,108 +553,61 @@ pub enum ExportModeType {
 }
 
 #[derive(Debug)]
-pub struct NormalReexportItem<'a> {
+pub struct NormalReexportItem {
   pub name: JsWord,
   pub ids: Vec<JsWord>,
   pub hidden: bool,
   pub checked: bool,
-  pub export_info: &'a ExportInfo,
+  pub export_info: ExportInfoId,
 }
 
 #[derive(Debug, Default)]
-pub struct ExportMode<'a> {
+pub struct ExportMode {
   pub kind: ExportModeType,
-  pub items: Option<Vec<NormalReexportItem<'a>>>,
+  pub items: Option<Vec<NormalReexportItem>>,
   pub name: Option<JsWord>,
   pub fake_type: Option<u8>,
-  pub partial_namespace_export_info: Option<ExportInfo>,
+  pub partial_namespace_export_info: Option<ExportInfoId>,
+  pub ignored: Option<HashSet<JsWord>>,
+  pub hidden: Option<HashSet<JsWord>>,
 }
 
-// TODO cache get_mode result
-#[allow(unused)]
-pub fn get_mode<'a>(
-  name: Option<JsWord>,
-  ids: &Vec<JsWord>,
-  module_graph: &'a ModuleGraph,
-  id: &DependencyId,
-) -> ExportMode<'a> {
-  let parent_module = module_graph
-    .parent_module_by_dependency_id(id)
-    .expect("should have parent module");
-  let exports_type = get_exports_type(module_graph, id, &parent_module);
-  let exports_info = module_graph.get_exports_info(&parent_module);
-  if let Some(name) = name.as_ref() && !ids.is_empty() && let Some(id) = ids.get(0) && id == "default" {
-    match exports_type {
-      ExportsType::Dynamic => {
-        return ExportMode { kind: ExportModeType::ReexportDynamicDefault, name: Some(name.clone()), ..Default::default() }
-      },
-      ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
-        return ExportMode { kind: ExportModeType::ReexportNamedDefault, name: Some(name.clone()), ..Default::default() }
-      },
-      _ => {}
-    }
+#[derive(Debug, Default)]
+pub struct StarReexportsInfo {
+  exports: Option<HashSet<JsWord>>,
+  checked: Option<HashSet<JsWord>>,
+  ignored_exports: HashSet<JsWord>,
+  hidden: Option<HashSet<JsWord>>,
+}
+
+fn determine_export_assignments(
+  module_graph: &ModuleGraph,
+  mut dependencies: Vec<DependencyId>,
+  additional_dependency: Option<DependencyId>,
+) -> HashSet<JsWord> {
+  if let Some(additional_dependency) = additional_dependency {
+    dependencies.push(additional_dependency);
   }
 
-  if let Some(name) = name {
-    let export_info = exports_info
-      .id
-      .get_read_only_export_info(&name, module_graph);
-    if !ids.is_empty() {
-      match exports_type {
-        ExportsType::DefaultOnly => {
-          return ExportMode {
-            kind: ExportModeType::ReexportUndefined,
-            name: Some(name),
-            ..Default::default()
-          }
-        }
-        _ => {
-          return ExportMode {
-            kind: ExportModeType::NormalReexport,
-            items: Some(vec![NormalReexportItem {
-              name,
-              ids: ids.to_vec(),
-              hidden: false,
-              checked: false,
-              export_info,
-            }]),
-            ..Default::default()
-          }
-        }
-      }
-    } else {
-      match exports_type {
-        ExportsType::DefaultOnly => {
-          return ExportMode {
-            kind: ExportModeType::ReexportFakeNamespaceObject,
-            name: Some(name),
-            fake_type: Some(0),
-            ..Default::default()
-          }
-        }
-        ExportsType::DefaultWithNamed => {
-          return ExportMode {
-            kind: ExportModeType::ReexportFakeNamespaceObject,
-            name: Some(name),
-            fake_type: Some(2),
-            ..Default::default()
-          }
-        }
-        _ => {
-          return ExportMode {
-            kind: ExportModeType::ReexportNamespaceObject,
-            name: Some(name),
-            ..Default::default()
-          }
+  let mut names = HashSet::default();
+
+  for dependency in dependencies.iter() {
+    if let Some(module_identifier) = module_graph.module_identifier_by_dependency_id(dependency) {
+      let exports_info = module_graph.get_exports_info(module_identifier);
+      for export_info_id in exports_info.exports.values() {
+        let export_info = module_graph
+          .export_info_map
+          .get(export_info_id)
+          .expect("should have export info");
+        if matches!(export_info.provided, Some(ExportInfoProvided::True))
+          && &export_info.name != "default"
+          && !names.contains(&export_info.name)
+        {
+          names.insert(export_info.name.clone());
         }
       }
     }
   }
-  // todo star reexporting
 
-  ExportMode {
-    kind: ExportModeType::NormalReexport,
-    items: Some(vec![]),
-    ..Default::default()
-  }
+  names
 }

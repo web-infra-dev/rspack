@@ -607,7 +607,7 @@ impl From<u32> for ExportInfoId {
 #[derive(Debug, Clone, Default)]
 #[allow(unused)]
 pub struct ExportInfo {
-  name: JsWord,
+  pub name: JsWord,
   module_identifier: Option<ModuleIdentifier>,
   pub usage_state: UsageState,
   used_name: Option<String>,
@@ -1146,11 +1146,15 @@ pub fn process_export_info(
   runtime: Option<&RuntimeSpec>,
   referenced_export: &mut Vec<Vec<JsWord>>,
   prefix: Vec<JsWord>,
-  export_info: Option<&ExportInfo>,
+  export_info: Option<ExportInfoId>,
   default_points_to_self: bool,
   already_visited: &mut HashSet<ExportInfoId>,
 ) {
-  if let Some(export_info) = export_info {
+  if let Some(export_info_id) = export_info {
+    let export_info = module_graph
+      .export_info_map
+      .get(&export_info_id)
+      .expect("should have export info");
     let used = export_info.get_used(runtime);
     if used == UsageState::Unused {
       return;
@@ -1185,7 +1189,7 @@ pub fn process_export_info(
             value.push(export_info.name.clone());
             value
           },
-          Some(export_info),
+          Some(export_info.id),
           false,
           already_visited,
         );

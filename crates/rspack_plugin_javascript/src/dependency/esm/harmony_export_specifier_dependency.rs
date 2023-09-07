@@ -9,14 +9,16 @@ use swc_core::ecma::atoms::JsWord;
 #[derive(Debug, Clone)]
 pub struct HarmonyExportSpecifierDependency {
   id: DependencyId,
-  export: (JsWord, JsWord),
+  name: JsWord,
+  value: JsWord, // id
 }
 
 impl HarmonyExportSpecifierDependency {
-  pub fn new(export: (JsWord, JsWord)) -> Self {
+  pub fn new(name: JsWord, value: JsWord) -> Self {
     Self {
       id: DependencyId::new(),
-      export,
+      name,
+      value,
     }
   }
 }
@@ -36,7 +38,7 @@ impl Dependency for HarmonyExportSpecifierDependency {
 
   fn get_exports(&self) -> Option<ExportsSpec> {
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(self.export.0.clone())]),
+      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(self.name.clone())]),
       priority: Some(1),
       can_mangle: None,
       terminal_binding: Some(true),
@@ -68,14 +70,15 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
         .module_graph
         .get_exports_info(&module.identifier())
         .get_used_exports()
-        .contains(&self.export.0)
+        .contains(&self.name)
     } else {
       true
     };
     if used {
-      init_fragments.push(Box::new(HarmonyExportInitFragment::new(
-        self.export.clone(),
-      )));
+      init_fragments.push(Box::new(HarmonyExportInitFragment::new((
+        self.name.clone(),
+        self.value.clone(),
+      ))));
     }
   }
 }

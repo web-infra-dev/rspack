@@ -36,7 +36,6 @@ use self::{
   node_stuff_scanner::NodeStuffScanner, require_context_scanner::RequireContextScanner,
   url_scanner::UrlScanner, worker_scanner::WorkerScanner,
 };
-
 pub type ScanDependenciesResult = (Vec<BoxDependency>, Vec<BoxDependencyTemplate>);
 
 #[allow(clippy::too_many_arguments)]
@@ -112,11 +111,13 @@ pub fn scan_dependencies(
       &mut dependencies,
       &mut presentational_dependencies,
       &mut import_map,
+      build_info,
     ));
     program.visit_with(&mut HarmonyExportDependencyScanner::new(
       &mut dependencies,
       &mut presentational_dependencies,
       &mut import_map,
+      build_info,
     ));
     let mut worker_syntax_scanner = rspack_core::needs_refactor::WorkerSyntaxScanner::new(
       rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,

@@ -1,10 +1,11 @@
-use rspack_core::{create_exports_object_referenced, ExtendedReferencedExport};
 use rspack_core::{
-  export_from_import, get_dependency_used_by_exports_condition, get_exports_type,
+  create_exports_object_referenced, create_no_exports_referenced, export_from_import,
+  get_dependency_used_by_exports_condition, get_exports_type,
   tree_shaking::symbol::DEFAULT_JS_WORD, Compilation, ConnectionState, Dependency,
   DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ExportsType, ModuleDependency, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
-  ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports,
+  ErrorSpan, ExportsType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsedByExports,
 };
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
@@ -39,6 +40,7 @@ impl HarmonyImportSpecifierDependency {
     call: bool,
     direct_import: bool,
     specifier: Specifier,
+    referenced_properties_in_destructuring: Option<HashSet<JsWord>>,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
@@ -53,7 +55,7 @@ impl HarmonyImportSpecifierDependency {
       specifier,
       used_by_exports: UsedByExports::default(),
       namespace_object_as_context: false,
-      referenced_properties_in_destructuring: None,
+      referenced_properties_in_destructuring,
       resource_identifier,
     }
   }
@@ -215,6 +217,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     module_graph: &ModuleGraph,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
+    // namespace import
     if self.ids.is_empty() {
       return self.get_referenced_exports_in_destructuring(None);
     }
@@ -233,7 +236,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
           namespace_object_as_context = true;
         }
         ExportsType::Dynamic => {
-          return vec![]
+          return create_no_exports_referenced();
         }
         _ => {}
       }

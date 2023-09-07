@@ -1,13 +1,35 @@
+use rustc_hash::FxHashSet as HashSet;
 use swc_core::{
-  common::{pass::AstNodePath, SyntaxContext},
+  common::SyntaxContext,
   ecma::{
-    ast::{CallExpr, Expr, MemberExpr},
-    visit::{AstParentKind, AstParentNodeRef},
+    ast::{CallExpr, Expr, MemberExpr, ObjectPat, ObjectPatProp, PropName},
+    atoms::JsWord,
   },
 };
 
-pub fn as_parent_path(ast_path: &AstNodePath<AstParentNodeRef<'_>>) -> Vec<AstParentKind> {
-  ast_path.iter().map(|n| n.kind()).collect()
+pub fn collect_destructuring_assignment_properties(
+  object_pat: &ObjectPat,
+) -> Option<HashSet<JsWord>> {
+  let mut properties = HashSet::default();
+
+  for property in &object_pat.props {
+    match property {
+      ObjectPatProp::Assign(assign) => {
+        properties.insert(assign.key.sym.clone());
+      }
+      ObjectPatProp::KeyValue(key_value) => {
+        if let PropName::Ident(ident) = &key_value.key {
+          properties.insert(ident.sym.clone());
+        }
+      }
+      ObjectPatProp::Rest(_) => {}
+    }
+  }
+
+  if properties.is_empty() {
+    return None;
+  }
+  Some(properties)
 }
 
 pub(crate) mod expr_matcher {
