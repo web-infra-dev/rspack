@@ -3,11 +3,10 @@ use rspack_swc_visitors::{
   RawRelayOptions, ReactOptions, RelayOptions,
 };
 use serde::Deserialize;
-use swc_config::config_types::{BoolConfig, MergingOption};
-use swc_config::merge::Merge;
+use swc_config::config_types::BoolConfig;
 use swc_core::base::config::{
   Config, ErrorConfig, FileMatcher, InputSourceMap, IsModule, JscConfig, ModuleConfig, Options,
-  SourceMapsConfig, TransformConfig,
+  SourceMapsConfig,
 };
 
 #[derive(Default, Deserialize, Debug)]

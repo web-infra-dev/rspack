@@ -797,9 +797,7 @@ export interface RawModuleRule {
 }
 
 /**
- * `loader` is for js side loader, `builtin_loader` is for rust side loader,
- * which is mapped to real rust side loader by [get_builtin_loader].
- *
+ * `loader` is for both JS and Rust loaders.
  * `options` is
  *   - a `None` on rust side and handled by js side `getOptions` when
  * using with `loader`.

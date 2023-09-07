@@ -3,9 +3,8 @@ use std::{fmt::Display, path::PathBuf};
 
 use glob::Pattern as GlobPattern;
 use rspack_error::Result;
-use rspack_swc_visitors::{
-  Define, EmotionOptions, ImportOptions, Provide, ReactOptions, RelayOptions,
-};
+pub use rspack_swc_visitors::{Define, Provide};
+use rspack_swc_visitors::{EmotionOptions, ImportOptions, ReactOptions, RelayOptions};
 
 use crate::{ApplyContext, AssetInfo, CompilerOptions, Plugin, PluginContext};
 

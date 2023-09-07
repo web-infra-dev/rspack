@@ -3,22 +3,25 @@
 use std::default::Default;
 use std::sync::Arc;
 
-use options::{SwcCompilerOptionsWithAdditional, SwcLoaderJsOptions};
 use rspack_core::{rspack_sources::SourceMap, LoaderRunnerContext, Mode};
 use rspack_error::{internal_error, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
-use swc_config::config_types::MergingOption;
-use swc_config::merge::Merge;
-use swc_core::base::config::{InputSourceMap, TransformConfig};
-use swc_core::base::{try_with_handler, Compiler};
-use swc_core::common::comments::SingleThreadedComments;
-use swc_core::common::{FileName, FilePathMapping, Mark, GLOBALS};
+use swc_config::{config_types::MergingOption, merge::Merge};
+use swc_core::base::{
+  config::{InputSourceMap, TransformConfig},
+  try_with_handler, Compiler,
+};
+use swc_core::common::{
+  comments::SingleThreadedComments, FileName, FilePathMapping, Mark, GLOBALS,
+};
 use swc_core::ecma::transforms::base::pass::noop;
-use transformer::transform;
 use xxhash_rust::xxh32::xxh32;
 
 mod options;
 mod transformer;
+
+use options::SwcCompilerOptionsWithAdditional;
+pub use options::SwcLoaderJsOptions;
 
 #[derive(Debug)]
 pub struct SwcLoader {
@@ -27,17 +30,19 @@ pub struct SwcLoader {
 }
 
 impl SwcLoader {
-  /// Panics:
-  /// Panics if `identifier` passed in is not starting with `builtin:swc-loader`.
-  pub fn new(options: SwcLoaderJsOptions, identifier: Option<Identifier>) -> Self {
-    // TODO: should stringify loader options to identifier
-    if let Some(i) = &identifier {
-      assert!(i.starts_with(SWC_LOADER_IDENTIFIER));
-    }
+  pub fn new(options: SwcLoaderJsOptions) -> Self {
     Self {
-      identifier: identifier.unwrap_or(SWC_LOADER_IDENTIFIER.into()),
+      identifier: SWC_LOADER_IDENTIFIER.into(),
       options_with_additional: options.into(),
     }
+  }
+
+  /// Panics:
+  /// Panics if `identifier` passed in is not starting with `builtin:swc-loader`.
+  pub fn with_identifier(mut self, identifier: Identifier) -> Self {
+    assert!(identifier.starts_with(SWC_LOADER_IDENTIFIER));
+    self.identifier = identifier;
+    self
   }
 }
 
@@ -108,7 +113,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
             comments,
             |_| noop(),
             |_| {
-              transform(
+              transformer::transform(
                 &resource_path,
                 rspack_options,
                 Some(c.comments()),
