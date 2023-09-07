@@ -11,7 +11,10 @@ module.exports = {
 			}
 		]
 	},
-	entry: ["@rspack/dev-client/react-refresh-entry", "./src/index.jsx"],
+	entry: [
+		"@rspack/plugin-react-refresh/react-refresh-entry",
+		"./src/index.jsx"
+	],
 	devServer: {
 		hot: true
 	},

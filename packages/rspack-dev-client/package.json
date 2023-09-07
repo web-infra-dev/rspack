@@ -18,12 +18,11 @@
     "url": "https://github.com/web-infra-dev/rspack",
     "directory": "packages/rspack-dev-client"
   },
-  "devDependencies": {
-    "react-refresh": "0.14.0",
-    "webpack": "5.76.0"
-  },
   "dependencies": {
-    "@pmmmwh/react-refresh-webpack-plugin": "0.5.10"
+    "@rspack/plugin-react-refresh": "workspace:*"
+  },
+  "devDependencies": {
+    "react-refresh": "0.14.0"
   },
   "peerDependencies": {
     "react-refresh": ">=0.10.0 <1.0.0"
@@ -35,7 +34,6 @@
   },
   "exports": {
     "./react-refresh": "./src/reactRefresh.js",
-    "./react-refresh-entry": "./src/reactRefreshEntry.js",
-    "./runtime-paths": "./src/runtimePaths.js"
+    "./react-refresh-entry": "./src/reactRefreshEntry.js"
   }
 }
