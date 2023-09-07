@@ -352,7 +352,6 @@ export class RspackDevServer extends WebpackDevServer {
 				this.addAdditionalEntries(compiler);
 
 				if (this.options.hot) {
-					console.log(runtimePaths);
 					compiler.options.module.rules.push({
 						include: runtimePaths,
 						type: "js"
