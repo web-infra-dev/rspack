@@ -1,7 +1,7 @@
 use crate::{
   Builtins, CacheOptions, Context, DevServerOptions, Devtool, Experiments,
   IncrementalRebuildMakeState, Mode, ModuleOptions, NodeOption, Optimization, OutputOptions,
-  Resolve, SnapshotOptions, StatsOptions, Target, TreeShaking,
+  Resolve, SnapshotOptions, StatsOptions, Target,
 };
 
 #[derive(Debug)]
