@@ -9,7 +9,7 @@ use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
 
-pub struct ProvidedExportsProxy<'a> {
+struct ProvidedExportsProxy<'a> {
   mg: &'a mut ModuleGraph,
   changed: bool,
   current_module_id: ModuleIdentifier,
@@ -288,10 +288,10 @@ pub struct DefaultExportInfo<'a> {
 }
 
 #[derive(Debug)]
-struct FlagDependencyExportsPlugin {}
+pub struct FlagDependencyExportsPlugin {}
 
 impl FlagDependencyExportsPlugin {
-  fn new() -> Self {
+  pub fn new() -> Self {
     Self {}
   }
 }

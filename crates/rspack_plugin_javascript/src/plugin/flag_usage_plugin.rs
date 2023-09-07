@@ -3,23 +3,24 @@ use std::collections::VecDeque;
 
 use rspack_core::{
   is_exports_object_referenced, is_no_exports_referenced, BuildMetaExportsType, Compilation,
-  ConnectionState, DependencyId, ExportsInfoId, ExtendedReferencedExport, ModuleIdentifier,
+  ConnectionState, DependencyId, ExportsInfoId, ExtendedReferencedExport, ModuleIdentifier, Plugin,
   ReferencedExport, RuntimeSpec, UsageState,
 };
+use rspack_error::Result;
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::utils::join_jsword;
 
 #[allow(unused)]
-pub struct FlagDependencyUsagePlugin<'a> {
+pub struct FlagDependencyUsagePluginProxy<'a> {
   global: bool,
   compilation: &'a mut Compilation,
   exports_info_module_map: HashMap<ExportsInfoId, ModuleIdentifier>,
 }
 
 #[allow(unused)]
-impl<'a> FlagDependencyUsagePlugin<'a> {
+impl<'a> FlagDependencyUsagePluginProxy<'a> {
   pub fn new(global: bool, compilation: &'a mut Compilation) -> Self {
     Self {
       global,
@@ -333,5 +334,24 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
         queue.push_back((module_id, runtime));
       }
     }
+  }
+}
+
+#[derive(Debug)]
+pub struct FlagDependencyUsagePlugin {}
+
+impl FlagDependencyUsagePlugin {
+  pub fn new() -> Self {
+    Self {}
+  }
+}
+
+#[async_trait::async_trait]
+impl Plugin for FlagDependencyUsagePlugin {
+  async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+    // TODO: `global` is always `true`, until we finished runtime optimization.
+    let mut proxy = FlagDependencyUsagePluginProxy::new(true, compilation);
+    proxy.apply();
+    Ok(())
   }
 }
