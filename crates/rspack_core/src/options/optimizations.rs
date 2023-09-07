@@ -99,10 +99,3 @@ pub struct Optimization {
   pub provided_exports: bool,
   pub used_exports: UsedExports,
 }
-
-#[derive(Debug)]
-pub enum TreeShakingMode {
-  Disable,
-  New, // webpack based
-  Old,
-}

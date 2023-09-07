@@ -39,16 +39,7 @@ impl CompilerOptions {
     self.experiments.incremental_rebuild.emit_asset
   }
 
-  pub fn get_tree_shaking_mode(&self) -> TreeShakingMode {
-    if self.experiments.rspack_future.new_treeshaking {
-      TreeShakingMode::New
-    } else if matches!(
-      self.builtins.tree_shaking,
-      TreeShaking::Module | TreeShaking::True
-    ) {
-      TreeShakingMode::Old
-    } else {
-      TreeShakingMode::Disable
-    }
+  pub fn is_new_tree_shaking(&self) -> bool {
+    self.experiments.rspack_future.new_treeshaking
   }
 }
