@@ -416,7 +416,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 						LogType.profileEnd,
 						LogType.time,
 						LogType.status,
-						LogType.clear
+						LogType.clear,
+						LogType.cache
 					]);
 					collapsedGroups = true;
 				} else if (logging === "log" || logging === true) {

@@ -29,7 +29,7 @@ impl ResolveModuleOccasion {
     &self,
     args: ResolveArgs<'a>,
     generator: G,
-  ) -> Result<ResolveResult, ResolveError>
+  ) -> Result<(Result<ResolveResult, ResolveError>, bool), ResolveError>
   where
     G: Fn(ResolveArgs<'a>) -> F,
     F: Future<Output = Result<ResolveResult, ResolveError>>,
@@ -37,7 +37,7 @@ impl ResolveModuleOccasion {
     let storage = match &self.storage {
       Some(s) => s,
       // no cache return directly
-      None => return generator(args).await,
+      None => return Ok((generator(args).await, false)),
     };
 
     let id = ModuleIdentifier::from(format!(
@@ -60,7 +60,7 @@ impl ResolveModuleOccasion {
           .unwrap_or(false);
 
         if valid {
-          return Ok(data);
+          return Ok((Ok(data), true));
         }
       };
     }
@@ -78,6 +78,6 @@ impl ResolveModuleOccasion {
       .await
       .map_err(|err| ResolveError(err.to_string(), err))?;
     storage.set(id, (snapshot, data.clone()));
-    Ok(data)
+    Ok((Ok(data), false))
   }
 }

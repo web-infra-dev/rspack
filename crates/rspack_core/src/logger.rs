@@ -53,6 +53,11 @@ pub enum LogType {
   Status {
     message: String,
   },
+  Cache {
+    label: &'static str,
+    hit: u32,
+    total: u32,
+  },
 }
 
 impl LogType {
@@ -72,6 +77,7 @@ impl LogType {
       LogType::Time { .. } => 1 << 11,
       LogType::Clear => 1 << 12,
       LogType::Status { .. } => 1 << 13,
+      LogType::Cache { .. } => 1 << 14,
     }
   }
 }
@@ -208,6 +214,24 @@ pub trait Logger {
       subsec_nanos,
     })
   }
+
+  fn cache(&self, label: &'static str) -> CacheCount {
+    CacheCount {
+      label,
+      total: 0,
+      hit: 0,
+    }
+  }
+
+  fn cache_end(&self, count: CacheCount) {
+    if count.total != 0 {
+      self.raw(LogType::Cache {
+        label: count.label,
+        hit: count.hit,
+        total: count.total,
+      })
+    }
+  }
 }
 
 pub struct StartTime {
@@ -243,6 +267,23 @@ impl StartTimeAggregate {
         self.label, start.label
       );
     }
+  }
+}
+
+pub struct CacheCount {
+  label: &'static str,
+  hit: u32,
+  total: u32,
+}
+
+impl CacheCount {
+  pub fn hit(&mut self) {
+    self.total += 1;
+    self.hit += 1;
+  }
+
+  pub fn miss(&mut self) {
+    self.total += 1;
   }
 }
 

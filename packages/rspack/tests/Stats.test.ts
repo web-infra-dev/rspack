@@ -1,5 +1,6 @@
 import * as util from "util";
-import { rspack, RspackOptions } from "../src";
+import path from "path";
+import { rspack, RspackOptions, Stats } from "../src";
 import serializer from "jest-serializer-path";
 
 expect.addSnapshotSerializer(serializer);
@@ -628,6 +629,11 @@ describe("Stats", () => {
 				.replace(/\d+ ms/g, "X ms")
 		).toMatchInlineSnapshot(`
 		"LOG from rspack.Compilation
+		<t> make hook: X ms
+		<t> module add task: X ms
+		<t> module process dependencies task: X ms
+		<t> module factorize task: X ms
+		<t> module build task: X ms
 		<t> finish modules: X ms
 		<t> optimize dependencies: X ms
 		<t> create chunks: X ms
@@ -647,11 +653,6 @@ describe("Stats", () => {
 		<t> process assets: X ms
 
 		LOG from rspack.Compiler
-		<t> make hook: X ms
-		<t> module add task: X ms
-		<t> module process dependencies task: X ms
-		<t> module factorize task: X ms
-		<t> module build task: X ms
 		<t> make: X ms
 		<t> finish make hook: X ms
 		<t> finish compilation: X ms
@@ -708,5 +709,119 @@ describe("Stats", () => {
 		./fixtures/abc.js [222] {main}
 		  X ms (resolving: X ms, integration: X ms, building: X ms)"
 	`);
+	});
+
+	it("should have cache hits log when logging verbose and cache is enabled", async () => {
+		const compiler = rspack({
+			context: __dirname,
+			entry: "./fixtures/abc",
+			cache: true,
+			experiments: {
+				incrementalRebuild: false
+			}
+		});
+		await new Promise<void>((resolve, reject) => {
+			compiler.build(err => {
+				if (err) {
+					return reject(err);
+				}
+				resolve();
+			});
+		});
+		const stats = await new Promise<string>((resolve, reject) => {
+			compiler.rebuild(
+				new Set([path.join(__dirname, "./fixtures/a")]),
+				new Set(),
+				err => {
+					if (err) {
+						return reject(err);
+					}
+					const stats = new Stats(compiler.compilation).toString({
+						all: false,
+						logging: "verbose"
+					});
+					resolve(stats);
+				}
+			);
+		});
+		expect(stats).toContain("module build cache: 100.0% (4/4)");
+		expect(stats).toContain("module factorize cache: 100.0% (5/5)");
+		expect(stats).toContain("module code generation cache: 100.0% (4/4)");
+	});
+
+	it("should not have any cache hits log when cache is disabled", async () => {
+		const compiler = rspack({
+			context: __dirname,
+			entry: "./fixtures/abc",
+			cache: false,
+			experiments: {
+				incrementalRebuild: false
+			}
+		});
+		await new Promise<void>((resolve, reject) => {
+			compiler.build(err => {
+				if (err) {
+					return reject(err);
+				}
+				resolve();
+			});
+		});
+		const stats = await new Promise<string>((resolve, reject) => {
+			compiler.rebuild(
+				new Set([path.join(__dirname, "./fixtures/a")]),
+				new Set(),
+				err => {
+					if (err) {
+						return reject(err);
+					}
+					const stats = new Stats(compiler.compilation).toString({
+						all: false,
+						logging: "verbose"
+					});
+					resolve(stats);
+				}
+			);
+		});
+		expect(stats).not.toContain("module build cache");
+		expect(stats).not.toContain("module factorize cache");
+		expect(stats).not.toContain("module code generation cache");
+	});
+
+	it("should have any cache hits log of modules in incremental rebuild mode", async () => {
+		const compiler = rspack({
+			context: __dirname,
+			entry: "./fixtures/abc",
+			cache: true,
+			experiments: {
+				incrementalRebuild: true
+			}
+		});
+		await new Promise<void>((resolve, reject) => {
+			compiler.build(err => {
+				if (err) {
+					return reject(err);
+				}
+				resolve();
+			});
+		});
+		const stats = await new Promise<string>((resolve, reject) => {
+			compiler.rebuild(
+				new Set([path.join(__dirname, "./fixtures/a")]),
+				new Set(),
+				err => {
+					if (err) {
+						return reject(err);
+					}
+					const stats = new Stats(compiler.compilation).toString({
+						all: false,
+						logging: "verbose"
+					});
+					resolve(stats);
+				}
+			);
+		});
+		expect(stats).toContain("module build cache: 100.0% (1/1)");
+		expect(stats).toContain("module factorize cache: 100.0% (1/1)");
+		expect(stats).toContain("module code generation cache: 100.0% (4/4)");
 	});
 });
