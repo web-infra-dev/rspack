@@ -1,5 +1,9 @@
+mod chunk {
+  // TODO: should we merge rspack_binding_options and node_binding?
+  pub use rspack_binding_options::chunk::*;
+}
+
 mod asset;
-mod chunk;
 mod chunk_group;
 mod compilation;
 mod hooks;

@@ -10,7 +10,6 @@ export * from "./MultiStats";
 export * from "./ChunkGroup";
 export * from "./NormalModuleFactory";
 export { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
-export { BannerPlugin } from "./lib/BannerPlugin";
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
 export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
 export {
@@ -23,6 +22,7 @@ export type OptimizationSplitChunksOptions = NonNullable<
 	Configuration["optimization"]
 >["splitChunks"];
 export {
+	BannerPlugin,
 	DefinePlugin,
 	ProvidePlugin,
 	ProgressPlugin,
@@ -34,10 +34,10 @@ export {
 	ExternalsPlugin
 } from "./builtin-plugin";
 export type {
+	BannerPluginArgument,
 	DefinePluginOptions,
 	ProvidePluginOptions,
-	ProgressPluginOptions,
-	BannerPluginOptions,
+	ProgressPluginArgument,
 	HtmlPluginOptions,
 	SwcJsMinimizerPluginOptions,
 	CopyPluginOptions,
