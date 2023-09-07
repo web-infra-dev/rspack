@@ -94,8 +94,9 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
           swc_options.unresolved_mark = Some(unresolved_mark);
           let source = content.try_into_string()?;
           let rspack_options = &*loader_context.context.options;
-          let source_content_hash = rspack_options
-            .builtins
+          let source_content_hash = self
+            .options_with_additional
+            .rspack_experiments
             .emotion
             .as_ref()
             .map(|_| xxh32(source.as_bytes(), 0));
@@ -111,7 +112,6 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
             handler,
             &swc_options,
             comments,
-            |_| noop(),
             |_| {
               transformer::transform(
                 &resource_path,
@@ -124,6 +124,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
                 &self.options_with_additional.rspack_experiments,
               )
             },
+            |_| noop(),
           )?;
           loader_context.content = Some(out.code.into());
           loader_context.source_map = out.map.map(|m| SourceMap::from_json(&m)).transpose()?;

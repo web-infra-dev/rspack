@@ -43,6 +43,7 @@ export type {
 	CopyPluginOptions,
 	EntryOptions
 } from "./builtin-plugin";
+export { createSwcLoaderExperiments } from "./builtin-loader";
 import { ElectronTargetPlugin, NodeTargetPlugin } from "./builtin-plugin";
 export const node = { NodeTargetPlugin };
 export const electron = { ElectronTargetPlugin };

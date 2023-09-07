@@ -28,16 +28,6 @@ macro_rules! either {
   };
 }
 
-/// This should only be running at `custom_after_pass`, or
-/// it will contain `resolve` issues.
-///
-/// # Guarantee for `custom_after_pass`
-//
-// `swc` invokes `custom_before_pass` after
-//
-//  - Handling decorators, if configured
-//  - Applying `resolver`
-//  - Stripping typescript nodes
 pub(crate) fn transform<'a>(
   resource_path: &'a Path,
   rspack_options: &'a CompilerOptions,
