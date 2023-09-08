@@ -17,8 +17,8 @@
     "webpack-bundle-analyzer": "4.6.1"
   },
   "scripts": {
-    "build": "rspack build",
-    "dev": "rspack serve",
+    "build": "node --trace-exit --trace-uncaught --trace-warnings node_modules/.bin/rspack build",
+    "dev": "node --trace-exit --trace-uncaught --trace-warnings node_modules/.bin/rspack serve",
     "analyze": "cross-env NODE_ENV=production rspack build --analyze",
     "validate": "svelte-check"
   }

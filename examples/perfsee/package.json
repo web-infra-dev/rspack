@@ -5,7 +5,7 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "dev": "rspack serve",
+    "dev": "node --trace-exit --trace-uncaught --trace-warnings node_modules/.bin/rspack serve",
     "build": "cross-env PERFSEE_NO_UPLOAD=true rspack build",
     "analyze": "PERFSEE_AUDIT=true rspack build"
   },

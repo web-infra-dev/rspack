@@ -4,8 +4,8 @@
   "description": "Arco Design Pro",
   "private": true,
   "scripts": {
-    "dev": "rspack serve",
-    "build": "rspack build",
+    "dev": "node --trace-exit --trace-uncaught --trace-warnings node_modules/.bin/rspack serve",
+    "build": "node --trace-exit --trace-uncaught --trace-warnings node_modules/.bin/rspack build",
     "analyze": "pnpm run build --analyze",
     "preview": "cd dist && serve -s",
     "bundle-stats": "rspack build --json ./rspack-stats.json"

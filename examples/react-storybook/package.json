@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "rspack build",
+    "build": "node --trace-exit --trace-uncaught --trace-warnings node_modules/.bin/rspack build",
     "build-storybook": "storybook build",
-    "dev": "rspack serve",
+    "dev": "node --trace-exit --trace-uncaught --trace-warnings node_modules/.bin/rspack serve",
     "storybook": "storybook dev -p 6006"
   },
   "dependencies": {
