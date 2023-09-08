@@ -209,10 +209,10 @@ export const describeCases = config => {
 							return;
 						};
 						it(`${testName} should compile`, _done => {
-							console.info("running:", testName);
-							console.time(testName);
+							// console.info("running:", testName);
+							// console.time(testName);
 							const done = (...args: any[]) => {
-								console.timeEnd(testName);
+								// console.timeEnd(testName);
 								return _done(...args);
 							};
 							rimraf.sync(outputDirectory);
