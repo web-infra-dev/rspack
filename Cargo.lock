@@ -2695,12 +2695,13 @@ version = "0.1.0"
 dependencies = [
  "async-recursion",
  "async-trait",
+ "futures",
+ "once_cell",
+ "regex",
  "rspack_core",
  "rspack_error",
  "rspack_regex",
- "rspack_testing",
  "rspack_util",
- "testing_macros",
 ]
 
 [[package]]
