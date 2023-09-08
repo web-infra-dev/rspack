@@ -117,7 +117,6 @@ impl Plugin for SwcJsMinimizerPlugin {
       ..Default::default()
     };
 
-    println!("minify_options: {:?}", minify_options);
 
     let mangle = MangleOptions {
       keep_class_names: minify_options.keep_class_names,
