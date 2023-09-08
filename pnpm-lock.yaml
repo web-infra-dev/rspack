@@ -877,6 +877,7 @@ importers:
     specifiers:
       '@playwright/test': 1.35.0
       '@rspack/core': workspace:*
+      '@rspack/dev-client': workspace:*
       '@rspack/dev-server': workspace:*
       '@rspack/plugin-react-refresh': workspace:*
       '@types/fs-extra': 11.0.1
@@ -892,6 +893,7 @@ importers:
     devDependencies:
       '@playwright/test': 1.35.0
       '@rspack/core': link:../rspack
+      '@rspack/dev-client': link:../rspack-dev-client
       '@rspack/dev-server': link:../rspack-dev-server
       '@rspack/plugin-react-refresh': link:../rspack-plugin-react-refresh
       '@types/fs-extra': 11.0.1
