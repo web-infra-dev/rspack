@@ -1,25 +1,30 @@
 {
-  "name": "@rspack/dev-client",
-  "version": "0.3.2",
+  "name": "@rspack/plugin-react-refresh",
+  "version": "0.3.1",
   "license": "MIT",
-  "description": "Development client for rspack",
+  "description": "React refresh plugin for rspack",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./react-refresh": "./client/reactRefresh.js",
+    "./react-refresh-entry": "./client/reactRefreshEntry.js"
+  },
   "scripts": {
-    "build": "echo success",
-    "dev": "echo success",
     "test": "echo success"
   },
   "files": [
     "src"
   ],
+  "access": "public",
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
     "type": "git",
     "url": "https://github.com/web-infra-dev/rspack",
-    "directory": "packages/rspack-dev-client"
+    "directory": "packages/rspack-plugin-react-refresh"
   },
   "dependencies": {
-    "@rspack/plugin-react-refresh": "workspace:*"
+    "@pmmmwh/react-refresh-webpack-plugin": "0.5.10"
   },
   "devDependencies": {
     "react-refresh": "0.14.0"
@@ -31,9 +36,5 @@
     "react-refresh": {
       "optional": true
     }
-  },
-  "exports": {
-    "./react-refresh": "./src/reactRefresh.js",
-    "./react-refresh-entry": "./src/reactRefreshEntry.js"
   }
 }

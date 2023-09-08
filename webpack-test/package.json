@@ -55,7 +55,6 @@
   },
   "dependencies": {
     "@rspack/binding": "workspace:*",
-    "@rspack/dev-client": "workspace:*",
     "@swc/helpers": "0.5.1",
     "browserslist": "^4.21.3",
     "enhanced-resolve": "5.12.0",
