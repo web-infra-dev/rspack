@@ -1,5 +1,6 @@
 ---
 source: crates/rspack_testing/src/run_fixture.rs
+assertion_line: 101
 ---
 ```css title=async_css.css
 .async {
@@ -23,4 +24,47 @@ body {
 }
 
 
+```
+
+```js title=async_css.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["async_css"], {
+"./async.css": function (module, exports, __webpack_require__) {
+},
+
+}]);
+```
+
+```js title=async_js.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["async_js"], {
+"./async.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _in_async_css__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./in-async.css */"./in-async.css");
+
+},
+"./in-async.css": function (module, exports, __webpack_require__) {
+},
+
+}]);
+```
+
+```js title=main.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _main_css__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./main.css */"./main.css");
+
+/* eslint-disable-next-line no-unused-expressions */ __webpack_require__.el(/* ./async */"./async.js").then(__webpack_require__.bind(__webpack_require__, /* ./async */"./async.js"));
+/* eslint-disable-next-line no-unused-expressions */ __webpack_require__.el(/* ./async.css */"./async.css").then(__webpack_require__.t.bind(__webpack_require__, /* ./async.css */"./async.css", 17));
+},
+"./main.css": function (module, exports, __webpack_require__) {
+},
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
 ```
