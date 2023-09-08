@@ -56,12 +56,6 @@ exports[`Stats should have ids when ids is true 1`] = `
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
-      "profile": {
-        "building": 0,
-        "integration": 0,
-        "resolving": 0,
-        "total": 0,
-      },
       "size": 55,
       "type": "module",
     },

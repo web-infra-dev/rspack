@@ -333,8 +333,7 @@ describe("Stats", () => {
 	it("should have ids when ids is true", async () => {
 		const stats = await compile({
 			context: __dirname,
-			entry: "./fixtures/a",
-			profile: true
+			entry: "./fixtures/a"
 		});
 		const options = {
 			all: false,
@@ -347,8 +346,7 @@ describe("Stats", () => {
 		expect(stats?.toString(options).replace(/\\/g, "/")).toMatchInlineSnapshot(`
 		"asset main.js 215 bytes {main} [emitted] (name: main)
 		chunk {main} main.js (main) [entry]
-		./fixtures/a.js [876] {main}
-		  0 ms (resolving: 0 ms, integration: 0 ms, building: 0 ms)"
+		./fixtures/a.js [876] {main}"
 	`);
 	});
 });
