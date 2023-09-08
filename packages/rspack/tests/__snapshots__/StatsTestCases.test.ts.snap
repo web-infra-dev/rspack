@@ -2849,7 +2849,7 @@ Entrypoint main 631 bytes = bundle.js
 ./raw.png
 ./index.js
 ./stringModule.js
-rspack compiled successfully (a563cef06d977112d3e1)"
+rspack compiled successfully (ef78d0d53e6750a65525)"
 `;
 
 exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
@@ -3000,7 +3000,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 2`] = `
 asset bundle.js 589 bytes [emitted111] (name: main) [testA: aaaaaa]
 Entrypoint main 589 bytes = bundle.js
 ./index.js
-rspack compiled successfully (44e8a78970b06279cd26)"
+rspack compiled successfully (7a27fed57156f35cc7b2)"
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 1`] = `
