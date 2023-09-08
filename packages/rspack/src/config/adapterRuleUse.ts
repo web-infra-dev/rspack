@@ -4,7 +4,6 @@ import type {
 	RawModuleRuleUse,
 	RawOptions
 } from "@rspack/binding";
-import assert from "assert";
 import { ResolveRequest } from "enhanced-resolve";
 
 import { Compiler } from "../Compiler";
@@ -19,12 +18,19 @@ import {
 } from "./zod";
 import { parsePathQueryFragment } from "../loader-runner";
 import { isNil } from "../util";
+import {
+	resolveEmotion,
+	resolvePluginImport,
+	resolveReact,
+	resolveRelay
+} from "../builtin-loader";
 
 const BUILTIN_LOADER_PREFIX = "builtin:";
 
 export interface ComposeJsUseOptions {
 	devtool: RawOptions["devtool"];
 	context: RawOptions["context"];
+	mode: RawOptions["mode"];
 	compiler: Compiler;
 }
 
@@ -220,6 +226,59 @@ export function createRawModuleRuleUses(
 	return createRawModuleRuleUsesImpl(allUses, path, options);
 }
 
+type GetLoaderOptions = (
+	o: RuleSetLoaderWithOptions["options"],
+	options: ComposeJsUseOptions
+) => RuleSetLoaderWithOptions["options"];
+
+const getSassLoaderOptions: GetLoaderOptions = o => {
+	(o ??= {} as any).__exePath = require.resolve(
+		`sass-embedded-${process.platform}-${
+			process.arch
+		}/dart-sass-embedded/dart-sass-embedded${
+			process.platform === "win32" ? ".bat" : ""
+		}`
+	);
+	return o;
+};
+
+const getSwcLoaderOptions: GetLoaderOptions = (o, options) => {
+	if (o && typeof o === "object" && o.rspackExperiments) {
+		let expr = o.rspackExperiments;
+		const contextPath = options.context!;
+		const production = options.mode === "production" || !options.mode;
+		if (expr.emotion) {
+			expr.emotion = resolveEmotion(expr.emotion, production);
+		}
+		if (expr.relay) {
+			expr.relay = resolveRelay(expr.relay, contextPath);
+		}
+		if (expr.import || expr.pluginImport) {
+			expr.import = resolvePluginImport(expr.import || expr.pluginImport);
+		}
+		if (expr.react) {
+			expr.react = resolveReact(expr.react);
+		}
+	}
+	return o;
+};
+
+function getBuiltinLoaderOptions(
+	identifier: string,
+	o: RuleSetLoaderWithOptions["options"],
+	options: ComposeJsUseOptions
+): RuleSetLoaderWithOptions["options"] {
+	if (identifier.startsWith(`${BUILTIN_LOADER_PREFIX}sass-loader`)) {
+		return getSassLoaderOptions(o, options);
+	}
+
+	if (identifier.startsWith(`${BUILTIN_LOADER_PREFIX}swc-loader`)) {
+		return getSwcLoaderOptions(o, options);
+	}
+
+	return o;
+}
+
 function createRawModuleRuleUsesImpl(
 	uses: RuleSetLoaderWithOptions[],
 	path: string,
@@ -232,16 +291,7 @@ function createRawModuleRuleUsesImpl(
 	return uses.map((use, index) => {
 		let o;
 		if (use.loader.startsWith(BUILTIN_LOADER_PREFIX)) {
-			o = use.options;
-			if (use.loader === `${BUILTIN_LOADER_PREFIX}sass-loader`) {
-				(o ??= {} as any).__exePath = require.resolve(
-					`sass-embedded-${process.platform}-${
-						process.arch
-					}/dart-sass-embedded/dart-sass-embedded${
-						process.platform === "win32" ? ".bat" : ""
-					}`
-				);
-			}
+			o = getBuiltinLoaderOptions(use.loader, use.options, options);
 			o = isNil(o) ? undefined : typeof o === "string" ? o : JSON.stringify(o);
 		}
 

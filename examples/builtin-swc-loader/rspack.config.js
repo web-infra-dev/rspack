@@ -1,4 +1,3 @@
-const path = require("path");
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
 	entry: {

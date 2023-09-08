@@ -1,5 +1,6 @@
+use std::collections::HashMap;
+
 use indexmap::IndexSet;
-use rspack_core::Provide;
 use swc_core::common::util::take::Take;
 use swc_core::common::Span;
 use swc_core::common::{Mark, DUMMY_SP};
@@ -8,6 +9,9 @@ use swc_core::ecma::ast::{
   MemberProp, ModuleItem, PropOrSpread, Stmt, Str, VarDecl, VarDeclarator,
 };
 use swc_core::ecma::visit::{as_folder, Fold, VisitMut, VisitMutWith};
+
+pub type Provide = HashMap<String, Vec<String>>;
+pub type RawProvide = Provide;
 
 pub fn provide_builtin(opts: &Provide, unresolved_mark: Mark) -> impl Fold + '_ {
   as_folder(ProvideBuiltin::new(opts, unresolved_mark))

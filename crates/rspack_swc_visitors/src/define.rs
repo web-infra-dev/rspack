@@ -1,7 +1,8 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
-use rspack_core::Define;
 use swc_core::common::collections::AHashMap;
+use swc_core::ecma::ast::EsVersion;
 use swc_core::ecma::parser::EsConfig;
 use swc_core::ecma::transforms::optimization::inline_globals2;
 use swc_core::ecma::utils::NodeIgnoringSpan;
@@ -10,6 +11,9 @@ use swc_core::{
   common::FileName,
   ecma::parser::{parse_file_as_expr, Syntax},
 };
+
+pub type Define = HashMap<String, String>;
+pub type RawDefine = Define;
 
 pub fn define(opts: &Define) -> impl Fold {
   let cm: Arc<swc_core::common::SourceMap> = Default::default();
@@ -21,7 +25,7 @@ pub fn define(opts: &Define) -> impl Fold {
         parse_file_as_expr(
           &fm,
           Syntax::Es(EsConfig::default()),
-          rspack_core::EsVersion::EsNext,
+          EsVersion::EsNext,
           None,
           &mut vec![],
         )
@@ -32,7 +36,7 @@ pub fn define(opts: &Define) -> impl Fold {
         parse_file_as_expr(
           &fm,
           Syntax::Es(EsConfig::default()),
-          rspack_core::EsVersion::EsNext,
+          EsVersion::EsNext,
           None,
           &mut vec![],
         )
