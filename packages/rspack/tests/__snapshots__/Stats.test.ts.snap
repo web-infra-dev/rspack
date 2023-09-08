@@ -156,7 +156,7 @@ exports[`Stats should have stats 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "b32fac08a5e8721cacff",
+  "hash": "31124a919605602fc9ae",
   "logging": {},
   "modules": [
     {
@@ -416,7 +416,7 @@ exports.c = require("./c?c=3");
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "5eccb83e369e53af1313",
+  "hash": "089a36c7767bb55f0574",
   "logging": {},
   "modules": [
     {
