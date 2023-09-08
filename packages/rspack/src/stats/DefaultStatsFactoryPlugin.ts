@@ -385,7 +385,11 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 			if (!context.cachedGetWarnings) {
 				context.cachedGetWarnings = _compilation => {
-					return context._inner.getWarnings();
+					const warnings = context._inner.getWarnings();
+
+					return compilation.hooks.processWarnings.call(
+						warnings as any
+					) as unknown as typeof warnings;
 				};
 			}
 			if (compilation.name) {
