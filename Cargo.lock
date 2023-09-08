@@ -2441,7 +2441,6 @@ dependencies = [
  "derivative",
  "dyn-clone",
  "futures",
- "glob",
  "glob-match",
  "hashlink",
  "indexmap 1.9.3",

@@ -2,22 +2,22 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use napi_derive::napi;
-use rspack_plugin_html::config::HtmlPluginConfig;
-use rspack_plugin_html::config::HtmlPluginConfigInject;
-use rspack_plugin_html::config::HtmlPluginConfigScriptLoading;
+use rspack_plugin_html::config::HtmlInject;
+use rspack_plugin_html::config::HtmlRspackPluginOptions;
+use rspack_plugin_html::config::HtmlScriptLoading;
 use rspack_plugin_html::sri::HtmlSriHashFunction;
 use serde::Deserialize;
 use serde::Serialize;
 
-pub type RawHtmlPluginConfigScriptLoading = String;
-pub type RawHtmlPluginConfigInject = String;
+pub type RawHtmlScriptLoading = String;
+pub type RawHtmlInject = String;
 pub type RawHtmlSriHashFunction = String;
 pub type RawHtmlFilename = String;
 
 #[derive(Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-pub struct RawHtmlPluginConfig {
+pub struct RawHtmlRspackPluginOptions {
   /// emitted file name in output path
   #[napi(ts_type = "string")]
   pub filename: Option<RawHtmlFilename>,
@@ -27,12 +27,12 @@ pub struct RawHtmlPluginConfig {
   pub template_parameters: Option<HashMap<String, String>>,
   /// `head`, `body` or None
   #[napi(ts_type = "\"head\" | \"body\"")]
-  pub inject: Option<RawHtmlPluginConfigInject>,
+  pub inject: Option<RawHtmlInject>,
   /// path or `auto`
   pub public_path: Option<String>,
   /// `blocking`, `defer`, or `module`
   #[napi(ts_type = "\"blocking\" | \"defer\" | \"module\"")]
-  pub script_loading: Option<RawHtmlPluginConfigScriptLoading>,
+  pub script_loading: Option<RawHtmlScriptLoading>,
 
   /// entry_chunk_name (only entry chunks are supported)
   pub chunks: Option<Vec<String>>,
@@ -45,13 +45,14 @@ pub struct RawHtmlPluginConfig {
   pub meta: Option<HashMap<String, HashMap<String, String>>>,
 }
 
-impl From<RawHtmlPluginConfig> for HtmlPluginConfig {
-  fn from(value: RawHtmlPluginConfig) -> Self {
-    let inject = value.inject.as_ref().map(|s| {
-      HtmlPluginConfigInject::from_str(s).unwrap_or_else(|_| panic!("Invalid inject value: {s}"))
-    });
+impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
+  fn from(value: RawHtmlRspackPluginOptions) -> Self {
+    let inject = value
+      .inject
+      .as_ref()
+      .map(|s| HtmlInject::from_str(s).unwrap_or_else(|_| panic!("Invalid inject value: {s}")));
 
-    let script_loading = HtmlPluginConfigScriptLoading::from_str(
+    let script_loading = HtmlScriptLoading::from_str(
       &value
         .script_loading
         .unwrap_or_else(|| String::from("defer")),
@@ -62,7 +63,7 @@ impl From<RawHtmlPluginConfig> for HtmlPluginConfig {
       HtmlSriHashFunction::from_str(s).unwrap_or_else(|_| panic!("Invalid sri value: {s}"))
     });
 
-    HtmlPluginConfig {
+    HtmlRspackPluginOptions {
       filename: value.filename.unwrap_or_else(|| String::from("index.html")),
       template: value.template,
       template_content: value.template_content,

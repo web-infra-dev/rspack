@@ -1,6 +1,6 @@
-import { BuiltinPluginKind, create } from "./base";
+import { BuiltinPluginName, create } from "./base";
 
 export const NodeTargetPlugin = create(
-	BuiltinPluginKind.NodeTarget,
+	BuiltinPluginName.NodeTargetPlugin,
 	() => undefined
 );

@@ -9,7 +9,7 @@ use rspack_napi_shared::{
   NapiResultExt, NAPI_ENV,
 };
 use rspack_plugin_banner::{
-  BannerCondition, BannerConditions, BannerConfig, BannerContent, BannerContentFnCtx,
+  BannerContent, BannerContentFnCtx, BannerPluginOptions, BannerRule, BannerRules,
 };
 use serde::Deserialize;
 
@@ -18,7 +18,7 @@ use crate::chunk::JsChunk;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-pub struct RawBannerCondition {
+pub struct RawBannerRule {
   #[napi(ts_type = r#""string" | "regexp""#)]
   pub r#type: String,
   pub string_matcher: Option<String>,
@@ -28,12 +28,12 @@ pub struct RawBannerCondition {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-pub struct RawBannerConditions {
+pub struct RawBannerRules {
   #[napi(ts_type = r#""string" | "regexp" | "array""#)]
   pub r#type: String,
   pub string_matcher: Option<String>,
   pub regexp_matcher: Option<String>,
-  pub array_matcher: Option<Vec<RawBannerCondition>>,
+  pub array_matcher: Option<Vec<RawBannerRule>>,
 }
 
 #[napi(object)]
@@ -109,20 +109,20 @@ impl TryFrom<RawBannerContent> for BannerContent {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-pub struct RawBannerConfig {
+pub struct RawBannerPluginOptions {
   pub banner: RawBannerContent,
   pub entry_only: Option<bool>,
   pub footer: Option<bool>,
   pub raw: Option<bool>,
-  pub test: Option<RawBannerConditions>,
-  pub include: Option<RawBannerConditions>,
-  pub exclude: Option<RawBannerConditions>,
+  pub test: Option<RawBannerRules>,
+  pub include: Option<RawBannerRules>,
+  pub exclude: Option<RawBannerRules>,
 }
 
-impl TryFrom<RawBannerCondition> for BannerCondition {
+impl TryFrom<RawBannerRule> for BannerRule {
   type Error = rspack_error::Error;
 
-  fn try_from(x: RawBannerCondition) -> rspack_error::Result<Self> {
+  fn try_from(x: RawBannerRule) -> rspack_error::Result<Self> {
     let result = match x.r#type.as_str() {
       "string" => Self::String(x.string_matcher.ok_or_else(|| {
         internal_error!("should have a string_matcher when BannerConditions.type is \"string\"")
@@ -144,11 +144,11 @@ impl TryFrom<RawBannerCondition> for BannerCondition {
   }
 }
 
-impl TryFrom<RawBannerConditions> for BannerConditions {
+impl TryFrom<RawBannerRules> for BannerRules {
   type Error = rspack_error::Error;
 
-  fn try_from(x: RawBannerConditions) -> rspack_error::Result<Self> {
-    let result: BannerConditions = match x.r#type.as_str() {
+  fn try_from(x: RawBannerRules) -> rspack_error::Result<Self> {
+    let result: BannerRules = match x.r#type.as_str() {
       "string" => Self::String(x.string_matcher.ok_or_else(|| {
         internal_error!("should have a string_matcher when BannerConditions.type is \"string\"")
       })?),
@@ -180,14 +180,14 @@ impl TryFrom<RawBannerConditions> for BannerConditions {
   }
 }
 
-impl TryFrom<RawBannerConfig> for BannerConfig {
+impl TryFrom<RawBannerPluginOptions> for BannerPluginOptions {
   type Error = rspack_error::Error;
 
-  fn try_from(value: RawBannerConfig) -> std::result::Result<Self, Self::Error> {
+  fn try_from(value: RawBannerPluginOptions) -> std::result::Result<Self, Self::Error> {
     fn try_condition(
-      raw_condition: Option<RawBannerConditions>,
-    ) -> Result<Option<BannerConditions>, rspack_error::Error> {
-      let condition: Option<BannerConditions> = if let Some(test) = raw_condition {
+      raw_condition: Option<RawBannerRules>,
+    ) -> Result<Option<BannerRules>, rspack_error::Error> {
+      let condition: Option<BannerRules> = if let Some(test) = raw_condition {
         Some(test.try_into()?)
       } else {
         None
@@ -196,7 +196,7 @@ impl TryFrom<RawBannerConfig> for BannerConfig {
       Ok(condition)
     }
 
-    Ok(BannerConfig {
+    Ok(BannerPluginOptions {
       banner: value.banner.try_into()?,
       entry_only: value.entry_only,
       footer: value.footer,
