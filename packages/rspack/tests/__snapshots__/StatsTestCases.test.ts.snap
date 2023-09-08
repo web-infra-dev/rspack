@@ -106,12 +106,18 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
           "reasons": [
             {
+              "moduleId": undefined,
+              "moduleIdentifier": undefined,
+              "moduleName": undefined,
               "type": "entry",
               "userRequest": "./index",
             },
@@ -236,12 +242,18 @@ import rawModule from './raw.png'",
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
       "reasons": [
         {
+          "moduleId": undefined,
+          "moduleIdentifier": undefined,
+          "moduleName": undefined,
           "type": "entry",
           "userRequest": "./index",
         },
@@ -440,12 +452,18 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
           "reasons": [
             {
+              "moduleId": undefined,
+              "moduleIdentifier": undefined,
+              "moduleName": undefined,
               "type": "entry",
               "userRequest": "./index",
             },
@@ -492,12 +510,18 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
       "reasons": [
         {
+          "moduleId": undefined,
+          "moduleIdentifier": undefined,
+          "moduleName": undefined,
           "type": "entry",
           "userRequest": "./index",
         },
@@ -624,12 +648,18 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/hot+production/index.js",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/hot+production/index.js",
           "reasons": [
             {
+              "moduleId": undefined,
+              "moduleIdentifier": undefined,
+              "moduleName": undefined,
               "type": "entry",
               "userRequest": "./index.js",
             },
@@ -677,12 +707,18 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/hot+production/index.js",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/hot+production/index.js",
       "reasons": [
         {
+          "moduleId": undefined,
+          "moduleIdentifier": undefined,
+          "moduleName": undefined,
           "type": "entry",
           "userRequest": "./index.js",
         },
@@ -789,11 +825,9 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
   "filteredModules": undefined,
   "modules": [
     {
-      "chunks": [
-        "main",
-      ],
-      "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
+      "issuer": undefined,
+      "issuerName": undefined,
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
@@ -802,22 +836,15 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
       "type": "module",
     },
     {
-      "chunks": [
-        "main",
-      ],
-      "id": "208",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/en.js",
       "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }) }, reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset }",
-      "issuerId": "247",
       "issuerName": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }) }, reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset }",
       "issuerPath": [
         {
-          "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
           "name": "./index.js",
         },
         {
-          "id": "247",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }) }, reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset }",
           "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }) }, reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset }",
         },
@@ -829,70 +856,54 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
       "type": "module",
     },
     {
-      "chunks": [
-        "main",
-      ],
-      "id": "136",
       "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh.js",
       "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }) }, reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset }",
-      "issuerId": "247",
       "issuerName": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }) }, reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset }",
       "issuerPath": [
         {
-          "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
           "name": "./index.js",
         },
         {
-          "id": "247",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }) }, reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset }",
           "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }) }, reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset }",
         },
       ],
       "moduleType": "javascript/auto",
       "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh.js (missing)",
+      "nameForCondition": undefined,
       "size": 160,
       "type": "module",
     },
     {
-      "chunks": [
-        "main",
-      ],
-      "id": "239",
       "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/ignore-plugin/./globalIndex.js",
       "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
-      "issuerId": "10",
       "issuerName": "./index.js",
       "issuerPath": [
         {
-          "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
           "name": "./index.js",
         },
       ],
       "moduleType": "javascript/auto",
       "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/./globalIndex.js (missing)",
+      "nameForCondition": undefined,
       "size": 160,
       "type": "module",
     },
     {
-      "chunks": [
-        "main",
-      ],
-      "id": "247",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }) }, reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset }",
       "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
-      "issuerId": "10",
       "issuerName": "./index.js",
       "issuerPath": [
         {
-          "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
           "name": "./index.js",
         },
       ],
       "moduleType": "javascript/auto",
       "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }) }, reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset }",
+      "nameForCondition": undefined,
       "size": 160,
       "type": "module",
     },
@@ -901,11 +912,11 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for ignore-plugin 2`] = `
-"./index.js [10] {main}
-./locals/en.js [208] {main}
-<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh.js (missing) [136] {main}
-<PROJECT_ROOT>/tests/statsCases/ignore-plugin/./globalIndex.js (missing) [239] {main}
-<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }) }, reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset } [247] {main}"
+"./index.js
+./locals/en.js
+<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh.js (missing)
+<PROJECT_ROOT>/tests/statsCases/ignore-plugin/./globalIndex.js (missing)
+<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }) }, reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset }"
 `;
 
 exports[`StatsTestCases should print correct stats for ignore-warning 1`] = `
@@ -1156,7 +1167,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "files": [
         "e1.js",
       ],
-      "id": "e1",
       "initial": true,
       "names": [
         "e1",
@@ -1170,7 +1180,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "files": [
         "e1~runtime.js",
       ],
-      "id": "e1~runtime",
       "initial": true,
       "names": [
         "e1~runtime",
@@ -1184,7 +1193,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "files": [
         "e2.js",
       ],
-      "id": "e2",
       "initial": true,
       "names": [
         "e2",
@@ -1198,7 +1206,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "files": [
         "e2~runtime.js",
       ],
-      "id": "e2~runtime",
       "initial": true,
       "names": [
         "e2~runtime",
@@ -1290,10 +1297,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk 2`] = `
 "Entrypoint e1 2.8 KiB = e1~runtime.js 2.4 KiB e1.js 412 bytes
 Entrypoint e2 2.8 KiB = e2~runtime.js 2.4 KiB e2.js 412 bytes
-chunk {e1} e1.js (e1) [entry]
-chunk {e1~runtime} e1~runtime.js (e1~runtime) [initial]
-chunk {e2} e2.js (e2) [entry]
-chunk {e2~runtime} e2~runtime.js (e2~runtime) [initial]"
+chunk e1.js (e1) [entry]
+chunk e1~runtime.js (e1~runtime) [initial]
+chunk e2.js (e2) [entry]
+chunk e2~runtime.js (e2~runtime) [initial]"
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-multiple 1`] = `
@@ -1305,7 +1312,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "files": [
         "e1.js",
       ],
-      "id": "e1",
       "initial": true,
       "names": [
         "e1",
@@ -1319,7 +1325,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "files": [
         "e2.js",
       ],
-      "id": "e2",
       "initial": true,
       "names": [
         "e2",
@@ -1333,7 +1338,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "files": [
         "runtime~e1.js",
       ],
-      "id": "runtime~e1",
       "initial": true,
       "names": [
         "runtime~e1",
@@ -1347,7 +1351,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "files": [
         "runtime~e2.js",
       ],
-      "id": "runtime~e2",
       "initial": true,
       "names": [
         "runtime~e2",
@@ -1439,10 +1442,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-multiple 2`] = `
 "Entrypoint e1 2.8 KiB = runtime~e1.js 2.4 KiB e1.js 406 bytes
 Entrypoint e2 2.8 KiB = runtime~e2.js 2.4 KiB e2.js 406 bytes
-chunk {e1} e1.js (e1) [entry]
-chunk {e2} e2.js (e2) [entry]
-chunk {runtime~e1} runtime~e1.js (runtime~e1) [initial]
-chunk {runtime~e2} runtime~e2.js (runtime~e2) [initial]"
+chunk e1.js (e1) [entry]
+chunk e2.js (e2) [entry]
+chunk runtime~e1.js (runtime~e1) [initial]
+chunk runtime~e2.js (runtime~e2) [initial]"
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-single 1`] = `
@@ -1454,7 +1457,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "files": [
         "e1.js",
       ],
-      "id": "e1",
       "initial": true,
       "names": [
         "e1",
@@ -1468,7 +1470,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "files": [
         "e2.js",
       ],
-      "id": "e2",
       "initial": true,
       "names": [
         "e2",
@@ -1482,7 +1483,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "files": [
         "runtime.js",
       ],
-      "id": "runtime",
       "initial": true,
       "names": [
         "runtime",
@@ -1574,9 +1574,9 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-single 2`] = `
 "Entrypoint e1 2.8 KiB = runtime.js 2.4 KiB e1.js 409 bytes
 Entrypoint e2 2.8 KiB = runtime.js 2.4 KiB e2.js 409 bytes
-chunk {e1} e1.js (e1) [entry]
-chunk {e2} e2.js (e2) [entry]
-chunk {runtime} runtime.js (runtime) [initial]"
+chunk e1.js (e1) [entry]
+chunk e2.js (e2) [entry]
+chunk runtime.js (runtime) [initial]"
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-true 1`] = `
@@ -1588,7 +1588,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "files": [
         "e1.js",
       ],
-      "id": "e1",
       "initial": true,
       "names": [
         "e1",
@@ -1602,7 +1601,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "files": [
         "e2.js",
       ],
-      "id": "e2",
       "initial": true,
       "names": [
         "e2",
@@ -1616,7 +1614,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "files": [
         "runtime~e1.js",
       ],
-      "id": "runtime~e1",
       "initial": true,
       "names": [
         "runtime~e1",
@@ -1630,7 +1627,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "files": [
         "runtime~e2.js",
       ],
-      "id": "runtime~e2",
       "initial": true,
       "names": [
         "runtime~e2",
@@ -1722,10 +1718,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-true 2`] = `
 "Entrypoint e1 2.8 KiB = runtime~e1.js 2.4 KiB e1.js 406 bytes
 Entrypoint e2 2.8 KiB = runtime~e2.js 2.4 KiB e2.js 406 bytes
-chunk {e1} e1.js (e1) [entry]
-chunk {e2} e2.js (e2) [entry]
-chunk {runtime~e1} runtime~e1.js (runtime~e1) [initial]
-chunk {runtime~e2} runtime~e2.js (runtime~e2) [initial]"
+chunk e1.js (e1) [entry]
+chunk e2.js (e2) [entry]
+chunk runtime~e1.js (runtime~e1) [initial]
+chunk runtime~e2.js (runtime~e2) [initial]"
 `;
 
 exports[`StatsTestCases should print correct stats for parse-error 1`] = `
@@ -1827,17 +1823,11 @@ exports[`StatsTestCases should print correct stats for reasons 1`] = `
   "filteredModules": undefined,
   "modules": [
     {
-      "chunks": [
-        "main",
-      ],
-      "id": "847",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/reasons/a.js",
       "issuer": "<PROJECT_ROOT>/tests/statsCases/reasons/index.js",
-      "issuerId": "10",
       "issuerName": "./index.js",
       "issuerPath": [
         {
-          "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/reasons/index.js",
           "name": "./index.js",
         },
@@ -1847,7 +1837,6 @@ exports[`StatsTestCases should print correct stats for reasons 1`] = `
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/reasons/a.js",
       "reasons": [
         {
-          "moduleId": "10",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/reasons/index.js",
           "moduleName": "./index.js",
           "type": "cjs require",
@@ -1858,17 +1847,17 @@ exports[`StatsTestCases should print correct stats for reasons 1`] = `
       "type": "module",
     },
     {
-      "chunks": [
-        "main",
-      ],
-      "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/reasons/index.js",
+      "issuer": undefined,
+      "issuerName": undefined,
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/reasons/index.js",
       "reasons": [
         {
+          "moduleIdentifier": undefined,
+          "moduleName": undefined,
           "type": "entry",
           "userRequest": "./index",
         },
@@ -1881,9 +1870,9 @@ exports[`StatsTestCases should print correct stats for reasons 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for reasons 2`] = `
-"./a.js [847] {main}
-  cjs require ./a [10]
-./index.js [10] {main}
+"./a.js
+  cjs require ./a
+./index.js
   entry ./index"
 `;
 
@@ -1930,12 +1919,18 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
           "reasons": [
             {
+              "moduleId": undefined,
+              "moduleIdentifier": undefined,
+              "moduleName": undefined,
               "type": "entry",
               "userRequest": "./index",
             },
@@ -1965,6 +1960,7 @@ console.log(a);
           ],
           "moduleType": "javascript/auto",
           "name": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing)",
+          "nameForCondition": undefined,
           "reasons": [
             {
               "moduleId": "10",
@@ -1982,6 +1978,7 @@ console.log(a);
             },
           ],
           "size": 160,
+          "source": undefined,
           "type": "module",
         },
       ],
@@ -2036,12 +2033,18 @@ console.log(a);
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
       "reasons": [
         {
+          "moduleId": undefined,
+          "moduleIdentifier": undefined,
+          "moduleName": undefined,
           "type": "entry",
           "userRequest": "./index",
         },
@@ -2071,6 +2074,7 @@ console.log(a);
       ],
       "moduleType": "javascript/auto",
       "name": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing)",
+      "nameForCondition": undefined,
       "reasons": [
         {
           "moduleId": "10",
@@ -2088,6 +2092,7 @@ console.log(a);
         },
       ],
       "size": 160,
+      "source": undefined,
       "type": "module",
     },
   ],
@@ -2185,12 +2190,18 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
           "reasons": [
             {
+              "moduleId": undefined,
+              "moduleIdentifier": undefined,
+              "moduleName": undefined,
               "type": "entry",
               "userRequest": "./index",
             },
@@ -2220,6 +2231,7 @@ console.log(a);
           ],
           "moduleType": "javascript/auto",
           "name": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing)",
+          "nameForCondition": undefined,
           "reasons": [
             {
               "moduleId": "10",
@@ -2237,6 +2249,7 @@ console.log(a);
             },
           ],
           "size": 160,
+          "source": undefined,
           "type": "module",
         },
       ],
@@ -2285,12 +2298,18 @@ console.log(a);
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
       "reasons": [
         {
+          "moduleId": undefined,
+          "moduleIdentifier": undefined,
+          "moduleName": undefined,
           "type": "entry",
           "userRequest": "./index",
         },
@@ -2320,6 +2339,7 @@ console.log(a);
       ],
       "moduleType": "javascript/auto",
       "name": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing)",
+      "nameForCondition": undefined,
       "reasons": [
         {
           "moduleId": "10",
@@ -2337,6 +2357,7 @@ console.log(a);
         },
       ],
       "size": 160,
+      "source": undefined,
       "type": "module",
     },
   ],
@@ -2428,12 +2449,18 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/simple/index.js",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple/index.js",
           "reasons": [
             {
+              "moduleId": undefined,
+              "moduleIdentifier": undefined,
+              "moduleName": undefined,
               "type": "entry",
               "userRequest": "./index",
             },
@@ -2481,12 +2508,18 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/simple/index.js",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple/index.js",
       "reasons": [
         {
+          "moduleId": undefined,
+          "moduleIdentifier": undefined,
+          "moduleName": undefined,
           "type": "entry",
           "userRequest": "./index",
         },
@@ -2607,12 +2640,18 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
           "reasons": [
             {
+              "moduleId": undefined,
+              "moduleIdentifier": undefined,
+              "moduleName": undefined,
               "type": "entry",
               "userRequest": "./index",
             },
@@ -2726,12 +2765,18 @@ import rawModule from './raw.png'",
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
       "reasons": [
         {
+          "moduleId": undefined,
+          "moduleIdentifier": undefined,
+          "moduleName": undefined,
           "type": "entry",
           "userRequest": "./index",
         },
@@ -2799,11 +2844,11 @@ import rawModule from './raw.png'",
 
 exports[`StatsTestCases should print correct stats for simple-module-source 2`] = `
 "PublicPath: (none)
-asset bundle.js 631 bytes {main} [emitted] (name: main)
+asset bundle.js 631 bytes [emitted] (name: main)
 Entrypoint main 631 bytes = bundle.js
-./raw.png [98] {main}
-./index.js [10] {main}
-./stringModule.js [363] {main}
+./raw.png
+./index.js
+./stringModule.js
 rspack compiled successfully (a563cef06d977112d3e1)"
 `;
 
@@ -2851,12 +2896,18 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
           ],
           "id": "10",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/stats-hooks/index.js",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/stats-hooks/index.js",
           "reasons": [
             {
+              "moduleId": undefined,
+              "moduleIdentifier": undefined,
+              "moduleName": undefined,
               "type": "entry",
               "userRequest": "./index",
             },
@@ -2902,12 +2953,18 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/stats-hooks/index.js",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/stats-hooks/index.js",
       "reasons": [
         {
+          "moduleId": undefined,
+          "moduleIdentifier": undefined,
+          "moduleName": undefined,
           "type": "entry",
           "userRequest": "./index",
         },
@@ -2940,9 +2997,9 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
 
 exports[`StatsTestCases should print correct stats for stats-hooks 2`] = `
 "PublicPath: (none)
-asset bundle.js 589 bytes {main} [emitted111] (name: main) [testA: aaaaaa]
+asset bundle.js 589 bytes [emitted111] (name: main) [testA: aaaaaa]
 Entrypoint main 589 bytes = bundle.js
-./index.js [10] {main}
+./index.js
 rspack compiled successfully (44e8a78970b06279cd26)"
 `;
 

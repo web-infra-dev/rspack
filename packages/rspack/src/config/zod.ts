@@ -826,6 +826,7 @@ const statsOptions = z.strictObject({
 	outputPath: z.boolean().optional(),
 	chunkModules: z.boolean().optional(),
 	chunkRelations: z.boolean().optional(),
+	ids: z.boolean().optional(),
 	timings: z.boolean().optional(),
 	builtAt: z.boolean().optional(),
 	moduleAssets: z.boolean().optional(),
