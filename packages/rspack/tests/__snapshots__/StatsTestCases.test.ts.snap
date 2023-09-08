@@ -1779,19 +1779,19 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
   "errors": [
     {
       "formatted": "error[internal]: 
-  [31mx[0m Expected '{', got 'error'
-   ,-[[36;1;4m<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts[0m:1:1]
- [2m1[0m | export error;
-   : [31;1m       ^^^^^[0m
+  x Expected '{', got 'error'
+   ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
+ 1 | export error;
+   :        ^^^^^
    \`----
 
 
 ",
       "message": "
-  [31mx[0m Expected '{', got 'error'
-   ,-[[36;1;4m<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts[0m:1:1]
- [2m1[0m | export error;
-   : [31;1m       ^^^^^[0m
+  x Expected '{', got 'error'
+   ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
+ 1 | export error;
+   :        ^^^^^
    \`----
 ",
       "title": "",
@@ -1806,10 +1806,10 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
 
 exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-loader 2`] = `
 "error[internal]: 
-  [31mx[0m Expected '{', got 'error'
-   ,-[[36;1;4m<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts[0m:1:1]
- [2m1[0m | export error;
-   : [31;1m       ^^^^^[0m
+  x Expected '{', got 'error'
+   ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
+ 1 | export error;
+   :        ^^^^^
    \`----
 
 

@@ -71,11 +71,11 @@ describe("Stats", () => {
 		  │
 		2 │     return "This is b";
 		3 │ };
-		4 │
+		4 │ 
 		5 │ // Test CJS top-level return
 		6 │ return;
 		  │ ^^^^^^^ Return statement is not allowed here
-		7 │
+		7 │ 
 
 
 
