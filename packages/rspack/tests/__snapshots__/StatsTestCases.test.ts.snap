@@ -188,7 +188,7 @@ import rawModule from './raw.png'",
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "31df38a93780ad25981d",
+  "hash": "94f12aa69d3989830e25",
   "logging": {},
   "modules": [
     {
@@ -337,7 +337,7 @@ chunk {main} bundle.js (main) [entry]
   entry ./index
 ./stringModule.js [363] {main}
   esm import ./stringModule [10]
-rspack compiled successfully (31df38a93780ad25981d)"
+rspack compiled successfully (94f12aa69d3989830e25)"
 `;
 
 exports[`StatsTestCases should print correct stats for filename 1`] = `
@@ -500,7 +500,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "7cdaa6ba61cec2cb7288",
+  "hash": "b1dbe683f73e6b1f7f2c",
   "logging": {},
   "modules": [
     {
@@ -602,7 +602,7 @@ chunk {main} main.xxxx.js (main) >{dynamic_js}< [entry]
   entry ./index
 ./dynamic.js [426] {dynamic_js}
   dynamic import ./dynamic [10]
-rspack compiled successfully (7cdaa6ba61cec2cb7288)"
+rspack compiled successfully (b1dbe683f73e6b1f7f2c)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -697,7 +697,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "d71f062b534cbc5af842",
+  "hash": "86548123ac24bd06a6bf",
   "logging": {},
   "modules": [
     {
@@ -760,7 +760,7 @@ chunk {main} bundle.js (main) [entry]
     entry ./index.js
 ./index.js [10] {main}
   entry ./index.js
-rspack compiled successfully (d71f062b534cbc5af842)"
+rspack compiled successfully (86548123ac24bd06a6bf)"
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 1`] = `
@@ -1779,19 +1779,19 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
   "errors": [
     {
       "formatted": "error[internal]: 
-  x Expected '{', got 'error'
-   ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
- 1 | export error;
-   :        ^^^^^
+  [31mx[0m Expected '{', got 'error'
+   ,-[[36;1;4m<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts[0m:1:1]
+ [2m1[0m | export error;
+   : [31;1m       ^^^^^[0m
    \`----
 
 
 ",
       "message": "
-  x Expected '{', got 'error'
-   ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
- 1 | export error;
-   :        ^^^^^
+  [31mx[0m Expected '{', got 'error'
+   ,-[[36;1;4m<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts[0m:1:1]
+ [2m1[0m | export error;
+   : [31;1m       ^^^^^[0m
    \`----
 ",
       "title": "",
@@ -1806,10 +1806,10 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
 
 exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-loader 2`] = `
 "error[internal]: 
-  x Expected '{', got 'error'
-   ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
- 1 | export error;
-   :        ^^^^^
+  [31mx[0m Expected '{', got 'error'
+   ,-[[36;1;4m<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts[0m:1:1]
+ [2m1[0m | export error;
+   : [31;1m       ^^^^^[0m
    \`----
 
 
@@ -2023,7 +2023,7 @@ console.log(a);
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "7d2d2ee1a9384ad715fa",
+  "hash": "6ca407f06f94c982125d",
   "logging": {},
   "modules": [
     {
@@ -2144,7 +2144,7 @@ error[internal]: Resolve error
 
 
 
-rspack compiled with 1 error (7d2d2ee1a9384ad715fa)"
+rspack compiled with 1 error (6ca407f06f94c982125d)"
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 1`] = `
@@ -2288,7 +2288,7 @@ console.log(a);
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "d4ff2f3bc5aba8d564b3",
+  "hash": "a9093cd411993b4b9c01",
   "logging": {},
   "modules": [
     {
@@ -2403,7 +2403,7 @@ error[internal]: Export should be relative path and start with "./", but got ../
 
 
 
-rspack compiled with 1 error (d4ff2f3bc5aba8d564b3)"
+rspack compiled with 1 error (a9093cd411993b4b9c01)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple 1`] = `
@@ -2498,7 +2498,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "44e8a78970b06279cd26",
+  "hash": "7a27fed57156f35cc7b2",
   "logging": {},
   "modules": [
     {
@@ -2561,7 +2561,7 @@ chunk {main} bundle.js (main) [entry]
     entry ./index
 ./index.js [10] {main}
   entry ./index
-rspack compiled successfully (44e8a78970b06279cd26)"
+rspack compiled successfully (7a27fed57156f35cc7b2)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple-module-source 1`] = `
@@ -2722,7 +2722,7 @@ import rawModule from './raw.png'",
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "a563cef06d977112d3e1",
+  "hash": "ef78d0d53e6750a65525",
   "logging": {},
   "modules": [
     {
@@ -2943,7 +2943,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "44e8a78970b06279cd26",
+  "hash": "7a27fed57156f35cc7b2",
   "logging": {},
   "modules": [
     {
