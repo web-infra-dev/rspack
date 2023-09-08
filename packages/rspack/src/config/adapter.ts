@@ -74,8 +74,9 @@ export const getRawOptions = (
 		"context, devtool, cache should not be nil after defaults"
 	);
 	const devtool = options.devtool === false ? "" : options.devtool;
+	const mode = options.mode;
 	return {
-		mode: options.mode,
+		mode,
 		target: getRawTarget(options.target),
 		context: options.context,
 		output: getRawOutput(options.output),
@@ -84,6 +85,7 @@ export const getRawOptions = (
 		module: getRawModule(options.module, {
 			compiler,
 			devtool,
+			mode,
 			context: options.context
 		}),
 		devtool,

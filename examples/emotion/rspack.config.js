@@ -1,9 +1,3 @@
-const { createSwcLoaderExperiments } = require("@rspack/cli");
-
-const rspackExperiments = createSwcLoaderExperiments()
-	.useEmotion(true, process.env.NODE_ENV === "production")
-	.useReact();
-
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
 	entry: {
@@ -28,7 +22,10 @@ const config = {
 							jsx: true
 						}
 					},
-					rspackExperiments
+					rspackExperiments: {
+						emotion: true,
+						react: {}
+					}
 				},
 				type: "javascript/auto"
 			}

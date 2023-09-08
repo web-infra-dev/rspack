@@ -1,5 +1,4 @@
 const { resolve } = require("path");
-const { createSwcLoaderExperiments } = require("@rspack/core");
 
 module.exports = {
 	resolve: {
@@ -16,7 +15,9 @@ module.exports = {
 				test: /\.jsx?$/,
 				loader: "builtin:swc-loader",
 				options: {
-					rspackExperiments: createSwcLoaderExperiments().useRelay(__dirname)
+					rspackExperiments: {
+						relay: true
+					}
 				}
 			}
 		]

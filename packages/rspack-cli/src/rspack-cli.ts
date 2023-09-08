@@ -24,7 +24,6 @@ import { normalizeEnv } from "./utils/options";
 import { loadRspackConfig } from "./utils/loadConfig";
 import findConfig from "./utils/findConfig";
 import type { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
-export { createSwcLoaderExperiments } from "@rspack/core";
 import path from "path";
 
 type Command = "serve" | "build";

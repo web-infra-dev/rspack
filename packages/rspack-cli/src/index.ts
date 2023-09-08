@@ -1,7 +1,2 @@
 export * from "./types";
-export {
-	RspackCLI,
-	defineConfig,
-	definePlugin,
-	createSwcLoaderExperiments
-} from "./rspack-cli";
+export { RspackCLI, defineConfig, definePlugin } from "./rspack-cli";
