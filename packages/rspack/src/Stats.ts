@@ -41,9 +41,8 @@ export class Stats {
 		const statsFactory = this.compilation.createStatsFactory(options);
 
 		// FIXME: This is a really ugly workaround for avoid panic for accessing previous compilation.
-		// webpack-dev-server and Modern.js dev server will detect whether the returned stats is available.
+		// Modern.js dev server will detect whether the returned stats is available.
 		// So this does not do harm to these frameworks.
-		// webpack-dev-server: https://github.com/webpack/webpack-dev-server/blob/540c43852ea33f9cb18820e1cef05d5ddb86cc3e/lib/Server.js#L3222
 		// Modern.js: https://github.com/web-infra-dev/modern.js/blob/63f916f882f7d16096949e264e119218c0ab8d7d/packages/server/server/src/dev-tools/dev-middleware/socketServer.ts#L172
 		let stats: StatsCompilation | null = null;
 		try {
@@ -69,9 +68,8 @@ export class Stats {
 		const statsPrinter = this.compilation.createStatsPrinter(options);
 
 		// FIXME: This is a really ugly workaround for avoid panic for accessing previous compilation.
-		// webpack-dev-server and Modern.js dev server will detect whether the returned stats is available.
+		// Modern.js dev server will detect whether the returned stats is available.
 		// So this does not do harm to these frameworks.
-		// webpack-dev-server: https://github.com/webpack/webpack-dev-server/blob/540c43852ea33f9cb18820e1cef05d5ddb86cc3e/lib/Server.js#L3222
 		// Modern.js: https://github.com/web-infra-dev/modern.js/blob/63f916f882f7d16096949e264e119218c0ab8d7d/packages/server/server/src/dev-tools/dev-middleware/socketServer.ts#L172
 		let stats: StatsCompilation | null = null;
 		try {

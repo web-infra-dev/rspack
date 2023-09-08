@@ -35,15 +35,15 @@ use crate::{
   is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxDependency,
-  BoxModule, BuildQueue, BuildTask, BuildTaskResult, Chunk, ChunkByUkey, ChunkContentHash,
-  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue,
-  CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, Entry, EntryData,
-  EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger,
-  Module, ModuleGraph, ModuleIdentifier, ModuleProfile, ModuleType, PathData, ProcessAssetsArgs,
-  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
-  Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver,
-  SourceType, Stats, TaskResult, WorkerTask,
+  BoxModule, BuildQueue, BuildTask, BuildTaskResult, CacheCount, CacheOptions, Chunk, ChunkByUkey,
+  ChunkContentHash, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey,
+  CleanQueue, CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults,
+  CompilationLogger, CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, Entry,
+  EntryData, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult,
+  Filename, Logger, Module, ModuleGraph, ModuleIdentifier, ModuleProfile, ModuleType, PathData,
+  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
+  RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec,
+  SharedPluginDriver, SourceType, Stats, TaskResult, WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
@@ -343,7 +343,7 @@ impl Compilation {
 
   #[instrument(name = "compilation:make", skip_all)]
   pub async fn make(&mut self, mut param: MakeParam) -> Result<()> {
-    let logger = self.get_logger("rspack.Compiler");
+    let logger = self.get_logger("rspack.Compilation");
     let start = logger.time("make hook");
     if let Some(e) = self
       .plugin_driver
@@ -387,7 +387,7 @@ impl Compilation {
   }
 
   async fn update_module_graph(&mut self, params: Vec<MakeParam>) -> Result<()> {
-    let logger = self.get_logger("rspack.Compiler");
+    let logger = self.get_logger("rspack.Compilation");
     let deps_builder = RebuildDepsBuilder::new(params, &self.module_graph);
     let mut origin_module_deps = HashMap::default();
 
@@ -442,9 +442,8 @@ impl Compilation {
           .expect("dependency not found");
         let parent_module =
           parent_module_identifier.and_then(|id| self.module_graph.module_by_identifier(&id));
-        if parent_module_identifier.is_some()
-          && parent_module.is_none()
-          && dependency.as_module_dependency().is_none()
+        if (parent_module_identifier.is_some() && parent_module.is_none())
+          || dependency.as_module_dependency().is_none()
         {
           return;
         }
@@ -469,6 +468,15 @@ impl Compilation {
     let mut process_deps_time = logger.time_aggregate("module process dependencies task");
     let mut factorize_time = logger.time_aggregate("module factorize task");
     let mut build_time = logger.time_aggregate("module build task");
+
+    let mut build_cache_counter = None;
+    let mut factorize_cache_counter = None;
+
+    if !(matches!(self.options.cache, CacheOptions::Disabled)) {
+      build_cache_counter = Some(logger.cache("module build cache"));
+      factorize_cache_counter = Some(logger.cache("module factorize cache"));
+    }
+
     tokio::task::block_in_place(|| loop {
       let start = factorize_time.start();
       while let Some(task) = factorize_queue.get_task() {
@@ -617,7 +625,17 @@ impl Compilation {
                 dependencies,
                 current_profile,
                 exports_info_related,
+                from_cache,
               } = task_result;
+
+              if let Some(counter) = &mut factorize_cache_counter {
+                if from_cache {
+                  counter.hit();
+                } else {
+                  counter.miss();
+                }
+              }
+
               let module_identifier = factory_result.module.identifier();
 
               tracing::trace!("Module created: {}", &module_identifier);
@@ -686,7 +704,17 @@ impl Compilation {
                 build_result,
                 diagnostics,
                 current_profile,
+                from_cache,
               } = task_result;
+
+              if let Some(counter) = &mut build_cache_counter {
+                if from_cache {
+                  counter.hit();
+                } else {
+                  counter.miss();
+                }
+              }
+
               if self.options.builtins.tree_shaking.enable() {
                 self
                   .optimize_analyze_result_map
@@ -777,6 +805,13 @@ impl Compilation {
     logger.time_aggregate_end(process_deps_time);
     logger.time_aggregate_end(factorize_time);
     logger.time_aggregate_end(build_time);
+
+    if let Some(counter) = build_cache_counter {
+      logger.cache_end(counter);
+    }
+    if let Some(counter) = factorize_cache_counter {
+      logger.cache_end(counter);
+    }
 
     // TODO @jerrykingxyz make update_module_graph a pure function
     self
@@ -913,8 +948,15 @@ impl Compilation {
 
   #[instrument(name = "compilation:code_generation", skip(self))]
   async fn code_generation(&mut self) -> Result<()> {
+    let logger = self.get_logger("rspack.Compilation");
+    let mut codegen_cache_counter = match self.options.cache {
+      CacheOptions::Disabled => None,
+      _ => Some(logger.cache("module code generation cache")),
+    };
+
     fn run_iteration(
       compilation: &mut Compilation,
+      codegen_cache_counter: &mut Option<CacheCount>,
       filter_op: impl Fn(&(&ModuleIdentifier, &Box<dyn Module>)) -> bool + Sync + Send,
     ) -> Result<()> {
       let results = compilation
@@ -935,39 +977,52 @@ impl Compilation {
             .use_cache(module, compilation, |module| {
               module.code_generation(compilation)
             })
-            .map(|result| (*module_identifier, result))
+            .map(|(result, from_cache)| (*module_identifier, result, from_cache))
         })
-        .collect::<Result<Vec<(ModuleIdentifier, CodeGenerationResult)>>>()?;
+        .collect::<Result<Vec<(ModuleIdentifier, CodeGenerationResult, bool)>>>()?;
 
-      results.into_iter().for_each(|(module_identifier, result)| {
-        compilation.code_generated_modules.insert(module_identifier);
+      results
+        .into_iter()
+        .for_each(|(module_identifier, result, from_cache)| {
+          if let Some(counter) = codegen_cache_counter {
+            if from_cache {
+              counter.hit();
+            } else {
+              counter.miss();
+            }
+          }
+          compilation.code_generated_modules.insert(module_identifier);
 
-        let runtimes = compilation
-          .chunk_graph
-          .get_module_runtimes(module_identifier, &compilation.chunk_by_ukey);
+          let runtimes = compilation
+            .chunk_graph
+            .get_module_runtimes(module_identifier, &compilation.chunk_by_ukey);
 
-        compilation
-          .code_generation_results
-          .module_generation_result_map
-          .insert(module_identifier, result);
-        for runtime in runtimes.values() {
-          compilation.code_generation_results.add(
-            module_identifier,
-            runtime.clone(),
-            module_identifier,
-          );
-        }
-      });
+          compilation
+            .code_generation_results
+            .module_generation_result_map
+            .insert(module_identifier, result);
+          for runtime in runtimes.values() {
+            compilation.code_generation_results.add(
+              module_identifier,
+              runtime.clone(),
+              module_identifier,
+            );
+          }
+        });
       Ok(())
     }
 
-    run_iteration(self, |(_, module)| {
+    run_iteration(self, &mut codegen_cache_counter, |(_, module)| {
       module.get_code_generation_dependencies().is_none()
     })?;
 
-    run_iteration(self, |(_, module)| {
+    run_iteration(self, &mut codegen_cache_counter, |(_, module)| {
       module.get_code_generation_dependencies().is_some()
     })?;
+
+    if let Some(counter) = codegen_cache_counter {
+      logger.cache_end(counter);
+    }
 
     Ok(())
   }

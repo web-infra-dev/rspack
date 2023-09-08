@@ -1,10 +1,11 @@
 use rspack_core::{
-  export_from_import, get_dependency_used_by_exports_condition, get_exports_type,
+  create_exports_object_referenced, create_no_exports_referenced, export_from_import,
+  get_dependency_used_by_exports_condition, get_exports_type,
   tree_shaking::symbol::DEFAULT_JS_WORD, Compilation, ConnectionState, Dependency,
   DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ExportsReferencedType, ExportsType, ModuleDependency, ModuleGraph, ModuleGraphModule,
-  ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsedByExports,
+  ErrorSpan, ExportsType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsedByExports,
 };
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
@@ -39,6 +40,7 @@ impl HarmonyImportSpecifierDependency {
     call: bool,
     direct_import: bool,
     specifier: Specifier,
+    referenced_properties_in_destructuring: Option<HashSet<JsWord>>,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
@@ -53,7 +55,7 @@ impl HarmonyImportSpecifierDependency {
       specifier,
       used_by_exports: UsedByExports::default(),
       namespace_object_as_context: false,
-      referenced_properties_in_destructuring: None,
+      referenced_properties_in_destructuring,
       resource_identifier,
     }
   }
@@ -92,7 +94,7 @@ impl HarmonyImportSpecifierDependency {
   pub fn get_referenced_exports_in_destructuring(
     &self,
     ids: Option<&Vec<JsWord>>,
-  ) -> ExportsReferencedType {
+  ) -> Vec<ExtendedReferencedExport> {
     if let Some(referenced_properties) = &self.referenced_properties_in_destructuring {
       referenced_properties
         .iter()
@@ -105,12 +107,12 @@ impl HarmonyImportSpecifierDependency {
             ReferencedExport::new(vec![prop.clone()], false)
           }
         })
+        .map(ExtendedReferencedExport::Export)
         .collect::<Vec<_>>()
-        .into()
     } else if let Some(v) = ids {
-      vec![ReferencedExport::new(v.clone(), true)].into()
+      vec![ReferencedExport::new(v.clone(), true).into()]
     } else {
-      ExportsReferencedType::Object
+      create_exports_object_referenced()
     }
   }
 }
@@ -213,8 +215,9 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
   fn get_referenced_exports(
     &self,
     module_graph: &ModuleGraph,
-    _runtime: &RuntimeSpec,
-  ) -> ExportsReferencedType {
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    // namespace import
     if self.ids.is_empty() {
       return self.get_referenced_exports_in_destructuring(None);
     }
@@ -233,7 +236,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
           namespace_object_as_context = true;
         }
         ExportsType::Dynamic => {
-          return ExportsReferencedType::No;
+          return create_no_exports_referenced();
         }
         _ => {}
       }
@@ -241,7 +244,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
 
     if self.call && !self.direct_import && (namespace_object_as_context || ids.len() > 1) {
       if ids.len() == 1 {
-        return ExportsReferencedType::Object;
+        return create_exports_object_referenced();
       }
       // remove last one
       ids.shrink_to(ids.len() - 1);

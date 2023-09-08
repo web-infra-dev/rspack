@@ -20,8 +20,7 @@
 
 ## Require Documentation?
 
-[ ] No
-
 <!-- Does this PR require documentation? -->
 
-[ ] Yes, the corresponding rspack-website PR is \_\_
+- [ ] No
+- [ ] Yes, the corresponding rspack-website PR is \_\_

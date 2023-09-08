@@ -21,14 +21,14 @@ impl CodeGenerateOccasion {
     module: &'a BoxModule,
     compilation: &Compilation,
     generator: G,
-  ) -> Result<CodeGenerationResult>
+  ) -> Result<(CodeGenerationResult, bool)>
   where
     G: Fn(&'a BoxModule) -> Result<CodeGenerationResult>,
   {
     let storage = match &self.storage {
       Some(s) => s,
       // no cache return directly
-      None => return generator(module),
+      None => return Ok((generator(module)?, false)),
     };
 
     let mut cache_id = None;
@@ -44,7 +44,7 @@ impl CodeGenerateOccasion {
 
       // currently no need to separate module hash by runtime
       if let Some(data) = storage.get(&id) {
-        return Ok(data);
+        return Ok((data, true));
       }
 
       if matches!(normal_module.source(), NormalModuleSource::Unbuild) {
@@ -59,6 +59,6 @@ impl CodeGenerateOccasion {
     if let Some(id) = cache_id {
       storage.set(id, data.clone());
     }
-    Ok(data)
+    Ok((data, false))
   }
 }

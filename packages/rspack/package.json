@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "A Fast Rust-based Web Bundler",
@@ -54,7 +54,6 @@
   },
   "dependencies": {
     "@rspack/binding": "workspace:*",
-    "@rspack/dev-client": "workspace:*",
     "@swc/helpers": "0.5.1",
     "browserslist": "^4.21.3",
     "compare-versions": "6.0.0-rc.1",

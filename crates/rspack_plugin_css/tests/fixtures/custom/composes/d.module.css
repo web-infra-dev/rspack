@@ -1,0 +1,7 @@
+.d-1 {
+    color: green;
+}
+
+.d {
+    composes: d-1;
+}

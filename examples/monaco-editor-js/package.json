@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "node --trace-exit --trace-uncaught --trace-warnings node_modules/.bin/rspack serve",
-    "build": "node --trace-exit --trace-uncaught --trace-warnings node_modules/.bin/rspack build"
+    "build:local": "node --trace-exit --trace-uncaught --trace-warnings node_modules/.bin/rspack build"
   },
   "license": "MIT",
   "dependencies": {

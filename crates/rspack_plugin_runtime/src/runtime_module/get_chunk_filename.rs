@@ -6,7 +6,7 @@ use rspack_core::{
 use rspack_identifier::Identifier;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::utils::{chunk_has_css, chunk_has_js};
+use super::utils::chunk_has_css;
 use crate::impl_runtime_module;
 
 #[derive(Debug, Eq)]
@@ -79,17 +79,13 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           for chunk_ukey in chunks.iter() {
             if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) {
               let filename_template = match self.source_type {
-                SourceType::JavaScript => {
-                  if chunk_has_js(chunk_ukey, compilation) {
-                    Some(get_js_chunk_filename_template(
-                      chunk,
-                      &compilation.options.output,
-                      &compilation.chunk_group_by_ukey,
-                    ))
-                  } else {
-                    None
-                  }
-                }
+                // TODO webpack different
+                // css chunk will generate a js chunk, so here add it.
+                SourceType::JavaScript => Some(get_js_chunk_filename_template(
+                  chunk,
+                  &compilation.options.output,
+                  &compilation.chunk_group_by_ukey,
+                )),
                 SourceType::Css => {
                   if chunk_has_css(chunk_ukey, compilation) {
                     Some(get_css_chunk_filename_template(

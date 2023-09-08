@@ -188,6 +188,7 @@ export interface JsAssetInfoRelated {
 }
 
 export interface JsChunk {
+  name?: string
   files: Array<string>
 }
 
@@ -505,13 +506,25 @@ export interface RawBannerConditions {
 }
 
 export interface RawBannerConfig {
-  banner: string
+  banner: RawBannerContent
   entryOnly?: boolean
   footer?: boolean
   raw?: boolean
   test?: RawBannerConditions
   include?: RawBannerConditions
   exclude?: RawBannerConditions
+}
+
+export interface RawBannerContent {
+  type: "string" | "function"
+  stringPayload?: string
+  fnPayload?: (...args: any[]) => any
+}
+
+export interface RawBannerContentFnCtx {
+  hash: string
+  chunk: JsChunk
+  filename: string
 }
 
 export interface RawBuiltins {
@@ -797,9 +810,7 @@ export interface RawModuleRule {
 }
 
 /**
- * `loader` is for js side loader, `builtin_loader` is for rust side loader,
- * which is mapped to real rust side loader by [get_builtin_loader].
- *
+ * `loader` is for both JS and Rust loaders.
  * `options` is
  *   - a `None` on rust side and handled by js side `getOptions` when
  * using with `loader`.

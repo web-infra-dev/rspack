@@ -609,6 +609,8 @@ const SIMPLE_PRINTERS: Record<
 		mapLines(message, x => `</p> ${magenta(x)}`),
 	"loggingEntry(time).loggingEntry.message": (message, { magenta }) =>
 		mapLines(message, x => `<t> ${magenta(x)}`),
+	"loggingEntry(cache).loggingEntry.message": (message, { magenta }) =>
+		mapLines(message, x => `<c> ${magenta(x)}`),
 	"loggingEntry(group).loggingEntry.message": (message, { cyan }) =>
 		mapLines(message, x => `<-> ${cyan(x)}`),
 	"loggingEntry(groupCollapsed).loggingEntry.message": (message, { cyan }) =>
