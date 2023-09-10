@@ -18,6 +18,6 @@ module.exports = {
 		timings: false,
 		builtAt: false,
 		version: false,
-		runtime: false
+		runtimeModules: false
 	}
 }

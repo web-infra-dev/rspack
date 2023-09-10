@@ -507,6 +507,7 @@ impl Stats<'_> {
       r#type: "module",
       module_type: ModuleType::Runtime,
       identifier,
+      name_for_condition: module.name_for_condition().map(|n| n.to_string()),
       name: module.name().to_string(),
       id: Some(String::new()),
       chunks,

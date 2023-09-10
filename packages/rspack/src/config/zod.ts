@@ -838,7 +838,8 @@ const statsOptions = z.strictObject({
 		.or(z.boolean())
 		.optional(),
 	loggingDebug: z.boolean().or(filterTypes).optional(),
-	loggingTrace: z.boolean().optional()
+	loggingTrace: z.boolean().optional(),
+	runtimeModules: z.boolean().optional()
 });
 export type StatsOptions = z.infer<typeof statsOptions>;
 
