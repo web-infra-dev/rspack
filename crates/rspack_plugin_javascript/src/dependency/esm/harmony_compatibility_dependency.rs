@@ -5,7 +5,7 @@ use rspack_core::{
 
 // Mark module `__esModule`.
 // Add `__webpack_require__.r(__webpack_exports__);`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HarmonyCompatibilityDependency;
 
 impl DependencyTemplate for HarmonyCompatibilityDependency {

@@ -1,6 +1,6 @@
 use crate::{DependencyTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ConstDependency {
   pub start: u32,
   pub end: u32,

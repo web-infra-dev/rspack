@@ -1,6 +1,7 @@
 use either::Either;
 use rspack_core::PresetEnv;
-use swc_core::common::{chain, comments::SingleThreadedComments, pass::Optional, Mark};
+use swc_core::common::comments::Comments;
+use swc_core::common::{chain, pass::Optional, Mark};
 use swc_core::ecma::ast::EsVersion;
 use swc_core::ecma::preset_env as swc_ecma_preset_env;
 use swc_core::ecma::transforms::base::{feature::FeatureFlag, pass::noop, Assumptions};
@@ -11,7 +12,7 @@ fn compat_by_preset_env(
   preset_env_config: Option<PresetEnv>,
   unresolved_mark: Mark,
   assumptions: Assumptions,
-  comments: Option<&SingleThreadedComments>,
+  comments: Option<&dyn Comments>,
 ) -> impl Fold + '_ {
   if let Some(PresetEnv { mode, targets, core_js }) = preset_env_config && !targets.is_empty() {
     let core_js = if let Some(core_js) = &core_js && let Ok(core_js) = core_js.parse() {
@@ -47,7 +48,7 @@ fn compat_by_es_version(
   es_version: Option<EsVersion>,
   unresolved_mark: Mark,
   assumptions: Assumptions,
-  comments: Option<&SingleThreadedComments>,
+  comments: Option<&dyn Comments>,
   is_typescript: bool,
 ) -> impl Fold + '_ {
   if let Some(es_version) = es_version {
@@ -153,7 +154,7 @@ pub fn compat(
   assumptions: Assumptions,
   _top_level_mark: Mark,
   unresolved_mark: Mark,
-  comments: Option<&SingleThreadedComments>,
+  comments: Option<&dyn Comments>,
   is_typescript: bool,
 ) -> impl Fold + '_ {
   chain!(

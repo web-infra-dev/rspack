@@ -1,6 +1,6 @@
 {
   "name": "@rspack/dev-server",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "license": "MIT",
   "description": "Development server for rspack",
   "main": "./dist/index.js",
@@ -36,8 +36,8 @@
     "puppeteer": "19.4.0"
   },
   "dependencies": {
-    "@rspack/dev-client": "workspace:*",
     "@rspack/dev-server": "workspace:*",
+    "@rspack/plugin-react-refresh": "workspace:*",
     "chokidar": "3.5.3",
     "connect-history-api-fallback": "2.0.0",
     "express": "4.18.1",

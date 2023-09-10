@@ -10,6 +10,8 @@ type MinifyConditions = MinifyCondition | MinifyCondition[];
 export type SwcJsMinimizerPluginOptions = {
 	passes?: number;
 	dropConsole?: boolean;
+	keepClassNames?: boolean;
+	keepFnNames?: boolean;
 	pureFuncs?: Array<string>;
 	extractComments?: boolean | RegExp;
 	comments?: false | "all" | "some";
@@ -58,6 +60,8 @@ export const SwcJsMinimizerPlugin = create(
 		return {
 			passes: options?.passes ?? 1,
 			dropConsole: options?.dropConsole ?? false,
+			keepClassNames: options?.keepClassNames ?? false,
+			keepFnNames: options?.keepFnNames ?? false,
 			pureFuncs: options?.pureFuncs ?? [],
 			comments: options?.comments ? options.comments : "false",
 			asciiOnly: options?.asciiOnly ?? false,

@@ -11,7 +11,7 @@ pub type Externals = Vec<ExternalItem>;
 pub enum ExternalItemValue {
   String(String),
   Bool(bool),
-  Array(Vec<String>), // TODO: string[] | Record<string, string|string[]>
+  Array(Vec<String>), // TODO: Record<string, string|string[]>
 }
 
 pub type ExternalItemObject = HashMap<String, ExternalItemValue>;

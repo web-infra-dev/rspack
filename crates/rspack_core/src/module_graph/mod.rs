@@ -548,12 +548,34 @@ impl ModuleGraph {
   // }
 
   pub fn get_exports_info_by_id(&self, id: &ExportsInfoId) -> &ExportsInfo {
-    let exports_info = self.exports_info_map.get(id).expect("should have mgm");
+    let exports_info = self
+      .exports_info_map
+      .get(id)
+      .expect("should have exports_info");
     exports_info
   }
 
   pub fn get_exports_info_mut_by_id(&mut self, id: &ExportsInfoId) -> &mut ExportsInfo {
-    let exports_info = self.exports_info_map.get_mut(id).expect("should have mgm");
+    let exports_info = self
+      .exports_info_map
+      .get_mut(id)
+      .expect("should have exports_info");
+    exports_info
+  }
+
+  pub fn get_export_info_by_id(&self, id: &ExportInfoId) -> &ExportInfo {
+    let export_info = self
+      .export_info_map
+      .get(id)
+      .expect("should have export info");
+    export_info
+  }
+
+  pub fn get_export_info_mut_by_id(&mut self, id: &ExportInfoId) -> &mut ExportInfo {
+    let exports_info = self
+      .export_info_map
+      .get_mut(id)
+      .expect("should have export info");
     exports_info
   }
 }

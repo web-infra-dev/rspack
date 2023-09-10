@@ -13,8 +13,9 @@ pub struct RawIncrementalRebuild {
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-#[allow(clippy::empty_structs_with_brackets)]
-pub struct RawRspackFuture {}
+pub struct RawRspackFuture {
+  pub new_resolver: bool,
+}
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
@@ -29,7 +30,9 @@ pub struct RawExperiments {
 }
 
 impl From<RawRspackFuture> for RspackFuture {
-  fn from(_value: RawRspackFuture) -> Self {
-    Self {}
+  fn from(value: RawRspackFuture) -> Self {
+    Self {
+      new_resolver: value.new_resolver,
+    }
   }
 }

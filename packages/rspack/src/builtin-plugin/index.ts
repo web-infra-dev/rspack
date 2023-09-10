@@ -20,9 +20,6 @@ import {
 	RawDecoratorOptions,
 	RawPresetEnv,
 	RawProgressPluginConfig,
-	RawReactOptions,
-	RawRelayConfig,
-	RawPluginImportConfig,
 	RawBuiltins,
 	RawCssModulesConfig
 } from "@rspack/binding";
@@ -44,7 +41,16 @@ import {
 	RspackBuiltinPlugin
 } from ".";
 import { loadConfig } from "browserslist";
-import path from "path";
+import {
+	EmotionOptions,
+	PluginImportOptions,
+	ReactOptions,
+	RelayOptions,
+	resolveEmotion,
+	resolvePluginImport,
+	resolveReact,
+	resolveRelay
+} from "../builtin-loader/swc";
 
 type BuiltinsCssConfig = {
 	modules?: Partial<RawCssModulesConfig>;
@@ -77,8 +83,6 @@ type PluginImportConfig = {
 	ignoreEsComponent?: Array<string>;
 	ignoreStyleComponent?: Array<string>;
 };
-
-type RelayConfig = boolean | RawRelayConfig;
 
 function resolveTreeShaking(
 	treeShaking: Builtins["treeShaking"],
@@ -125,132 +129,24 @@ function resolveDecorator(
 	);
 }
 
-function resolveEmotion(
-	emotion: Builtins["emotion"],
-	isProduction: boolean
-): string | undefined {
-	if (!emotion) {
-		return undefined;
-	}
-
-	if (emotion === true) {
-		emotion = {};
-	}
-
-	const autoLabel = emotion?.autoLabel ?? "dev-only";
-
-	const emotionConfig: Builtins["emotion"] = {
-		enabled: true,
-		// @ts-expect-error autoLabel is string for JavaScript interface, however is boolean for Rust interface
-		autoLabel:
-			autoLabel === "dev-only" ? !isProduction : autoLabel === "always",
-		importMap: emotion?.importMap,
-		labelFormat: emotion?.labelFormat ?? "[local]",
-		sourcemap: isProduction ? false : emotion?.sourceMap ?? true
-	};
-
-	return JSON.stringify(emotionConfig);
-}
-
-function resolvePluginImport(
-	pluginImport?: PluginImportConfig[]
-): RawPluginImportConfig[] | undefined {
-	if (!pluginImport) {
-		return undefined;
-	}
-
-	return pluginImport.map(config => {
-		const rawConfig: RawPluginImportConfig = {
-			...config,
-			style: {} // As babel-plugin-import style config is very flexible, we convert it to a more specific structure
-		};
-
-		if (typeof config.style === "boolean") {
-			rawConfig.style!.bool = config.style;
-		} else if (typeof config.style === "string") {
-			const isTpl = config.style.includes("{{");
-			rawConfig.style![isTpl ? "custom" : "css"] = config.style;
-		}
-
-		// This option will overrides the behavior of style
-		if (config.styleLibraryDirectory) {
-			rawConfig.style = { styleLibraryDirectory: config.styleLibraryDirectory };
-		}
-
-		return rawConfig;
-	});
-}
-
-function resolveRelay(
-	relay: RelayConfig,
-	rootDir: string
-): RawRelayConfig | undefined {
-	if (!relay) {
-		return undefined;
-	}
-
-	// Search relay config based on
-	if (relay === true) {
-		return (
-			getRelayConfigFromProject(rootDir) || {
-				language: "javascript"
-			}
-		);
-	} else {
-		return relay;
-	}
-}
-
-function getRelayConfigFromProject(
-	rootDir: string
-): RawRelayConfig | undefined {
-	for (const configName of [
-		"relay.config.json",
-		"relay.config.js",
-		"package.json"
-	]) {
-		const configPath = path.join(rootDir, configName);
-		try {
-			let config = require(configPath) as
-				| Partial<RawRelayConfig>
-				| { relay?: Partial<RawRelayConfig> }
-				| undefined;
-
-			let finalConfig: Partial<RawRelayConfig> | undefined;
-			if (configName === "package.json") {
-				finalConfig = (config as { relay?: Partial<RawRelayConfig> })?.relay;
-			} else {
-				finalConfig = config as Partial<RawRelayConfig> | undefined;
-			}
-
-			if (finalConfig) {
-				return {
-					language: finalConfig.language!,
-					artifactDirectory: finalConfig.artifactDirectory
-				};
-			}
-		} catch (_) {}
-	}
-}
-
 export interface Builtins {
 	css?: BuiltinsCssConfig;
 	treeShaking?: boolean | "module";
 	progress?: boolean | RawProgressPluginConfig;
-	react?: RawReactOptions;
 	noEmitAssets?: boolean;
 	define?: Record<string, string | boolean | undefined>;
 	provide?: Record<string, string | string[]>;
 	html?: Array<HtmlPluginOptions>;
 	decorator?: boolean | Partial<RawDecoratorOptions>;
 	minifyOptions?: SwcJsMinimizerPluginOptions;
-	emotion?: boolean | EmotionConfig;
 	presetEnv?: Partial<RawPresetEnv>;
 	devFriendlySplitChunks?: boolean;
 	copy?: CopyPluginOptions;
 	banner?: BannerPluginOptions | BannerPluginOptions[];
-	pluginImport?: PluginImportConfig[];
-	relay?: boolean | RawRelayConfig;
+	react?: ReactOptions;
+	pluginImport?: PluginImportOptions;
+	emotion?: EmotionOptions;
+	relay?: RelayOptions;
 }
 
 export function deprecated_resolveBuiltins(
@@ -377,15 +273,15 @@ export function deprecated_resolveBuiltins(
 			  }
 			: undefined,
 		treeShaking: resolveTreeShaking(builtins.treeShaking, production),
-		react: builtins.react ?? {},
 		noEmitAssets: noEmitAssets,
 		presetEnv: resolvePresetEnv(builtins.presetEnv, contextPath),
 		decorator: resolveDecorator(builtins.decorator),
-		emotion: resolveEmotion(builtins.emotion, production),
 		devFriendlySplitChunks: builtins.devFriendlySplitChunks ?? false,
+		react: resolveReact(builtins.react),
 		pluginImport: resolvePluginImport(builtins.pluginImport),
-		relay: builtins.relay
-			? resolveRelay(builtins.relay, contextPath)
-			: undefined
+		emotion: builtins.emotion
+			? JSON.stringify(resolveEmotion(builtins.emotion, production))
+			: undefined,
+		relay: resolveRelay(builtins.relay, contextPath)
 	};
 }

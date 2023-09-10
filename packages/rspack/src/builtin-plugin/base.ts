@@ -1,5 +1,5 @@
 import * as binding from "@rspack/binding";
-import { Compiler } from "..";
+import { Compiler, RspackPluginInstance } from "..";
 
 // TODO: workaround for https://github.com/napi-rs/napi-rs/pull/1690
 export enum BuiltinPluginKind {
@@ -18,7 +18,7 @@ export enum BuiltinPluginKind {
 	HttpExternals = "HttpExternals"
 }
 
-export abstract class RspackBuiltinPlugin {
+export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
 	abstract raw(): binding.BuiltinPlugin;
 	apply(compiler: Compiler) {
 		compiler.__internal__registerBuiltinPlugin(this);

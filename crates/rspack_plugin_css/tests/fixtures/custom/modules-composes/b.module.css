@@ -1,0 +1,6 @@
+.b-1 {
+    color: red;
+}
+.b {
+    composes: b-1;
+}

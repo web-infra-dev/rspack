@@ -14,12 +14,14 @@ import type {
 	RawAssetResourceGeneratorOptions,
 	RawIncrementalRebuild,
 	RawModuleRuleUses,
-	RawFuncUseCtx
+	RawFuncUseCtx,
+	RawRspackFuture
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../Compiler";
 import { normalizeStatsPreset } from "../Stats";
 import { isNil } from "../util";
+import { parseResource } from "../util/identifier";
 import {
 	ComposeJsUseOptions,
 	LoaderContext,
@@ -27,14 +29,10 @@ import {
 } from "./adapterRuleUse";
 import {
 	CrossOriginLoading,
-	ExternalsPresets,
 	LibraryOptions,
-	ModuleOptionsNormalized,
 	Node,
 	Optimization,
-	OutputNormalized,
 	Resolve,
-	RspackOptionsNormalized,
 	RuleSetCondition,
 	RuleSetLogicalConditions,
 	RuleSetRule,
@@ -49,10 +47,18 @@ import {
 	AssetParserOptions,
 	ParserOptionsByModuleType,
 	GeneratorOptionsByModuleType,
+	IncrementalRebuildOptions,
+	OptimizationSplitChunksOptions,
+	RspackFutureOptions
+} from "./zod";
+import {
 	ExperimentsNormalized,
-	IncrementalRebuildOptions
-} from "./types";
-import { SplitChunksConfig } from "./zod/optimization/split-chunks";
+	ModuleOptionsNormalized,
+	OutputNormalized,
+	RspackOptionsNormalized
+} from "./normalization";
+
+export type { LoaderContext };
 
 export const getRawOptions = (
 	options: RspackOptionsNormalized,
@@ -68,8 +74,9 @@ export const getRawOptions = (
 		"context, devtool, cache should not be nil after defaults"
 	);
 	const devtool = options.devtool === false ? "" : options.devtool;
+	const mode = options.mode;
 	return {
-		mode: options.mode,
+		mode,
 		target: getRawTarget(options.target),
 		context: options.context,
 		output: getRawOutput(options.output),
@@ -78,6 +85,7 @@ export const getRawOptions = (
 		module: getRawModule(options.module, {
 			compiler,
 			devtool,
+			mode,
 			context: options.context
 		}),
 		devtool,
@@ -277,6 +285,40 @@ function getRawModule(
 	};
 }
 
+function tryMatch(payload: string, condition: RuleSetCondition): boolean {
+	if (typeof condition === "string") {
+		return payload.startsWith(condition);
+	}
+
+	if (condition instanceof RegExp) {
+		return condition.test(payload);
+	}
+
+	if (typeof condition === "function") {
+		return condition(payload);
+	}
+
+	if (Array.isArray(condition)) {
+		return condition.some(c => tryMatch(payload, c));
+	}
+
+	if (condition && typeof condition === "object") {
+		if (condition.and) {
+			return condition.and.every(c => tryMatch(payload, c));
+		}
+
+		if (condition.or) {
+			return condition.or.some(c => tryMatch(payload, c));
+		}
+
+		if (condition.not) {
+			return condition.not.every(c => !tryMatch(payload, c));
+		}
+	}
+
+	return false;
+}
+
 const getRawModuleRule = (
 	rule: RuleSetRule,
 	path: string,
@@ -307,7 +349,7 @@ const getRawModuleRule = (
 		};
 	}
 
-	return {
+	let rawModuleRule: RawModuleRule = {
 		test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
 		include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
 		exclude: rule.exclude ? getRawRuleSetCondition(rule.exclude) : undefined,
@@ -364,6 +406,44 @@ const getRawModuleRule = (
 			: undefined,
 		enforce: rule.enforce
 	};
+
+	// Function calls may contain side-effects when interoperating with single-threaded environment.
+	// In order to mitigate the issue, Rspack tries to merge these calls together.
+	// See: https://github.com/web-infra-dev/rspack/issues/4003#issuecomment-1689662380
+	if (
+		typeof rule.test === "function" ||
+		typeof rule.resource === "function" ||
+		typeof rule.resourceQuery === "function" ||
+		typeof rule.resourceFragment === "function"
+	) {
+		delete rawModuleRule.test;
+		delete rawModuleRule.resource;
+		delete rawModuleRule.resourceQuery;
+		delete rawModuleRule.resourceFragment;
+
+		rawModuleRule.rspackResource = getRawRuleSetCondition(function (
+			resourceQueryFragment
+		) {
+			const { path, query, fragment } = parseResource(resourceQueryFragment);
+
+			if (rule.test && !tryMatch(path, rule.test)) {
+				return false;
+			} else if (rule.resource && !tryMatch(path, rule.resource)) {
+				return false;
+			}
+
+			if (rule.resourceQuery && !tryMatch(query, rule.resourceQuery)) {
+				return false;
+			}
+
+			if (rule.resourceFragment && !tryMatch(fragment, rule.resourceFragment)) {
+				return false;
+			}
+
+			return true;
+		});
+	}
+	return rawModuleRule;
 };
 
 function getRawRuleSetCondition(
@@ -573,7 +653,7 @@ function getRawOptimization(
 }
 
 function toRawSplitChunksOptions(
-	sc?: SplitChunksConfig
+	sc?: OptimizationSplitChunksOptions
 ): RawOptions["optimization"]["splitChunks"] | undefined {
 	if (!sc) {
 		return;
@@ -652,7 +732,16 @@ function getRawExperiments(
 		asyncWebAssembly,
 		newSplitChunks,
 		css,
-		rspackFuture
+		rspackFuture: getRawRspackFutureOptions(rspackFuture)
+	};
+}
+
+function getRawRspackFutureOptions(
+	future: RspackFutureOptions
+): RawRspackFuture {
+	assert(!isNil(future.newResolver));
+	return {
+		newResolver: future.newResolver
 	};
 }
 

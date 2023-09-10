@@ -1,7 +1,6 @@
 import type { JsAssetInfo, JsStatsError } from "@rspack/binding";
 import { AssetInfo } from "../Compilation";
 import terminalLink from "terminal-link";
-import * as util from "util";
 
 export function mapValues(
 	record: Record<string, string>,

@@ -346,6 +346,14 @@
           "default": false,
           "type": "boolean"
         },
+        "keepClassNames": {
+          "default": false,
+          "type": "boolean"
+        },
+        "keepFnNames": {
+          "default": false,
+          "type": "boolean"
+        },
         "extractComments": {
           "default": null,
           "type": [

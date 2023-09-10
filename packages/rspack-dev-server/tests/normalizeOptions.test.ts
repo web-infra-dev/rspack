@@ -96,13 +96,7 @@ async function match(config: RspackOptions) {
 	const compiler = createCompiler({
 		...config,
 		entry: ENTRY,
-		stats: "none",
-		infrastructureLogging: {
-			level: "info",
-			stream: {
-				write: () => {}
-			}
-		}
+		stats: "none"
 	});
 	const server = new RspackDevServer(
 		compiler.options.devServer ?? {},
@@ -123,12 +117,7 @@ async function matchAdditionEntries(
 	const compiler = createCompiler({
 		...config,
 		stats: "none",
-		entry: ENTRY,
-		infrastructureLogging: {
-			stream: {
-				write: () => {}
-			}
-		}
+		entry: ENTRY
 	});
 
 	const server = new RspackDevServer(serverConfig, compiler);

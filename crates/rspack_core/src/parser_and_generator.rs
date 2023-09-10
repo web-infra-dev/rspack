@@ -1,13 +1,15 @@
-use std::fmt::Debug;
+use std::{collections::HashMap, fmt::Debug};
 
+use rkyv::AlignedVec;
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
 
 use crate::{
-  tree_shaking::visitor::OptimizeAnalyzeResult, BoxDependency, BuildInfo, BuildMeta,
-  CodeGenerationData, Compilation, CompilerOptions, DependencyTemplate, GeneratorOptions, Module,
-  ModuleDependency, ModuleIdentifier, ModuleType, ParserOptions, RuntimeGlobals, SourceType,
+  tree_shaking::visitor::OptimizeAnalyzeResult, BoxDependency, BuildExtraDataType, BuildInfo,
+  BuildMeta, CodeGenerationData, Compilation, CompilerOptions, DependencyTemplate,
+  GeneratorOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType, ParserOptions,
+  RuntimeGlobals, SourceType,
 };
 
 #[derive(Debug)]
@@ -56,4 +58,8 @@ pub trait ParserAndGenerator: Send + Sync + Debug {
     module: &dyn Module,
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource>;
+  /// Store parser&generator data to cache
+  fn store(&self, _extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) {}
+  /// Resume parser&generator data from cache
+  fn resume(&mut self, _extra_data: &HashMap<BuildExtraDataType, AlignedVec>) {}
 }

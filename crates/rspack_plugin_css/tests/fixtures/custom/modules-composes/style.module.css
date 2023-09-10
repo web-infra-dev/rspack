@@ -1,0 +1,19 @@
+.chain2 {
+  composes: e from global;
+  composes: f from "./f.module.css";
+  background: blue;
+}
+
+.chain1 {
+  composes: chain2;
+  composes: c from global;
+  composes: d from "./d.module.css";
+  background: green;
+}
+
+.root-class {
+  composes: chain1;
+  composes: a from global;
+  composes: b from "./b.module.css";
+  background: red;
+}

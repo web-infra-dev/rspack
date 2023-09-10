@@ -4,7 +4,7 @@ use rspack_core::{ErrorSpan, ModuleType};
 use rspack_error::{DiagnosticKind, Error};
 use swc_core::common::{SourceFile, Span, Spanned, SyntaxContext, DUMMY_SP};
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit, Str};
-use swc_core::ecma::atoms::js_word;
+use swc_core::ecma::atoms::{js_word, JsWord};
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::parser::{EsConfig, TsConfig};
 
@@ -151,4 +151,16 @@ pub fn ecma_parse_error_to_rspack_error(
   )
   .with_kind(diagnostic_kind);
   Error::TraceableError(traceable_error)
+}
+
+pub fn join_jsword(arr: &[JsWord], separator: &str) -> String {
+  let mut ret = String::new();
+  if let Some(item) = arr.get(0) {
+    ret.push_str(item);
+  }
+  for item in arr.iter().skip(1) {
+    ret.push_str(separator);
+    ret.push_str(item);
+  }
+  ret
 }

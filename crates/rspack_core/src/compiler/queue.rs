@@ -59,6 +59,7 @@ pub struct FactorizeTaskResult {
   pub is_entry: bool,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub exports_info_related: ExportsInfoRelated,
+  pub from_cache: bool,
 }
 
 #[async_trait::async_trait]
@@ -134,6 +135,7 @@ impl WorkerTask for FactorizeTask {
     Ok(TaskResult::Factorize(Box::new(FactorizeTaskResult {
       is_entry: self.is_entry,
       original_module_identifier: self.original_module_identifier,
+      from_cache: result.from_cache,
       factory_result: result,
       module_graph_module: Box::new(mgm),
       dependencies: self.dependencies,
@@ -257,6 +259,7 @@ pub struct BuildTaskResult {
   pub build_result: Box<BuildResult>,
   pub diagnostics: Vec<Diagnostic>,
   pub current_profile: Option<Box<ModuleProfile>>,
+  pub from_cache: bool,
 }
 
 #[async_trait::async_trait]
@@ -275,7 +278,10 @@ impl WorkerTask for BuildTask {
     let (build_result, is_cache_valid) = match cache
       .build_module_occasion
       .use_cache(&mut module, |module| async {
-        plugin_driver.build_module(module.as_mut()).await?;
+        plugin_driver
+          .build_module(module.as_mut())
+          .await
+          .unwrap_or_else(|e| panic!("Run build_module hook failed: {}", e));
 
         let result = module
           .build(BuildContext {
@@ -288,9 +294,12 @@ impl WorkerTask for BuildTask {
           })
           .await;
 
-        plugin_driver.succeed_module(&**module).await?;
+        plugin_driver
+          .succeed_module(&**module)
+          .await
+          .unwrap_or_else(|e| panic!("Run succeed_module hook failed: {}", e));
 
-        result
+        result.map(|t| (t, module))
       })
       .await
     {
@@ -314,6 +323,7 @@ impl WorkerTask for BuildTask {
         build_result: Box::new(build_result),
         diagnostics,
         current_profile: self.current_profile,
+        from_cache: is_cache_valid,
       }))
     })
   }

@@ -385,7 +385,11 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 			if (!context.cachedGetWarnings) {
 				context.cachedGetWarnings = _compilation => {
-					return context._inner.getWarnings();
+					const warnings = context._inner.getWarnings();
+
+					return compilation.hooks.processWarnings.call(
+						warnings as any
+					) as unknown as typeof warnings;
 				};
 			}
 			if (compilation.name) {
@@ -416,7 +420,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 						LogType.profileEnd,
 						LogType.time,
 						LogType.status,
-						LogType.clear
+						LogType.clear,
+						LogType.cache
 					]);
 					collapsedGroups = true;
 				} else if (logging === "log" || logging === true) {
@@ -708,12 +713,23 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	},
 	asset: {
 		_: (object, asset, context: KnownStatsFactoryContext, options, factory) => {
-			Object.assign(object, asset);
+			object.type = asset.type;
+			object.name = asset.name;
+			object.size = asset.size;
+			object.emitted = asset.emitted;
+			object.info = asset.info;
+			Object.assign(
+				object,
+				factory.create(`${context.type}$visible`, asset, context)
+			);
 		}
 	},
-	chunk: {
-		_: (object, chunk) => {
-			Object.assign(object, chunk);
+	asset$visible: {
+		_: (object, asset) => {
+			object.chunkNames = asset.chunkNames;
+		},
+		ids: (object, asset) => {
+			object.chunks = asset.chunks;
 		}
 	},
 	module: {
@@ -725,11 +741,48 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			factory
 		) => {
 			const { type } = context;
-			Object.assign(object, module);
+			object.type = module.type;
+			object.moduleType = module.moduleType;
+			object.size = module.size;
+			Object.assign(object, factory.create(`${type}$visible`, module, context));
+		}
+	},
+	module$visible: {
+		_: (object, module, context, options, factory) => {
+			const { type } = context;
+			object.identifier = module.identifier;
+			object.name = module.name;
+			object.nameForCondition = module.nameForCondition;
+			object.issuer = module.issuer;
+			object.issuerName = module.issuerName;
+			object.issuerPath = factory.create(
+				`${type.slice(0, -8)}.issuerPath`,
+				module.issuerPath,
+				context
+			);
 			const profile = module.profile;
 			if (profile) {
 				object.profile = factory.create(`${type}.profile`, profile, context);
 			}
+		},
+		ids: (object, module) => {
+			object.id = module.id;
+			object.issuerId = module.issuerId;
+			object.chunks = module.chunks;
+		},
+		moduleAssets: (object, module) => {
+			object.assets = module.assets;
+		},
+		reasons: (object, module, context, options, factory) => {
+			const { type } = context;
+			object.reasons = factory.create(
+				`${type.slice(0, -8)}.reasons`,
+				module.reasons,
+				context
+			);
+		},
+		source: (object, module) => {
+			object.source = module.source;
 		}
 	},
 	profile: {
@@ -744,6 +797,53 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 				building
 			};
 			Object.assign(object, statsProfile);
+		}
+	},
+	moduleIssuer: {
+		_: (object, module, context, options, factory) => {
+			object.identifier = module.identifier;
+			object.name = module.name;
+		},
+		ids: (object, module) => {
+			object.id = module.id;
+		}
+	},
+	moduleReason: {
+		_: (object, reason) => {
+			object.moduleIdentifier = reason.moduleIdentifier;
+			object.moduleName = reason.moduleName;
+			object.type = reason.type;
+			object.userRequest = reason.userRequest;
+		},
+		ids: (object, reason) => {
+			object.moduleId = reason.moduleId;
+		}
+	},
+	chunk: {
+		_: (object, chunk) => {
+			object.type = chunk.type;
+			object.initial = chunk.initial;
+			object.entry = chunk.entry;
+			object.size = chunk.size;
+			object.names = chunk.names;
+			object.files = chunk.files;
+			object.auxiliaryFiles = chunk.auxiliaryFiles;
+		},
+		ids: (object, chunk) => {
+			object.id = chunk.id;
+		},
+		chunkRelations: (object, chunk) => {
+			object.siblings = chunk.siblings;
+			object.parents = chunk.parents;
+			object.children = chunk.children;
+		},
+		chunkModules: (object, chunk, context, options, factory) => {
+			const { type } = context;
+			object.modules = factory.create(
+				`${type}.modules`,
+				chunk.modules,
+				context
+			);
 		}
 	}
 };

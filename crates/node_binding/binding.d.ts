@@ -133,7 +133,7 @@ export const enum BuiltinPluginKind {
 export function cleanupGlobalTrace(): void
 
 export interface FactoryMeta {
-  sideEffects?: boolean
+  sideEffectFree?: boolean
 }
 
 export interface JsAsset {
@@ -188,6 +188,7 @@ export interface JsAssetInfoRelated {
 }
 
 export interface JsChunk {
+  name?: string
   files: Array<string>
 }
 
@@ -400,6 +401,7 @@ export interface JsStatsModule {
   issuerName?: string
   issuerId?: string
   issuerPath: Array<JsStatsModuleIssuer>
+  nameForCondition?: string
   reasons?: Array<JsStatsModuleReason>
   assets?: Array<string>
   source?: string | Buffer
@@ -504,13 +506,25 @@ export interface RawBannerConditions {
 }
 
 export interface RawBannerConfig {
-  banner: string
+  banner: RawBannerContent
   entryOnly?: boolean
   footer?: boolean
   raw?: boolean
   test?: RawBannerConditions
   include?: RawBannerConditions
   exclude?: RawBannerConditions
+}
+
+export interface RawBannerContent {
+  type: "string" | "function"
+  stringPayload?: string
+  fnPayload?: (...args: any[]) => any
+}
+
+export interface RawBannerContentFnCtx {
+  hash: string
+  chunk: JsChunk
+  filename: string
 }
 
 export interface RawBuiltins {
@@ -733,6 +747,8 @@ export interface RawLibraryOptions {
 export interface RawMinification {
   passes: number
   dropConsole: boolean
+  keepClassNames: boolean
+  keepFnNames: boolean
   comments: "all" | "some" | "false"
   asciiOnly: boolean
   pureFuncs: Array<string>
@@ -762,6 +778,13 @@ export interface RawModuleOptions {
 }
 
 export interface RawModuleRule {
+  /**
+   * A conditional match matching an absolute path + query + fragment.
+   * Note:
+   *   This is a custom matching rule not initially designed by webpack.
+   *   Only for single-threaded environment interoperation purpose.
+   */
+  rspackResource?: RawRuleSetCondition
   /** A condition matcher matching an absolute path. */
   test?: RawRuleSetCondition
   include?: RawRuleSetCondition
@@ -789,9 +812,7 @@ export interface RawModuleRule {
 }
 
 /**
- * `loader` is for js side loader, `builtin_loader` is for rust side loader,
- * which is mapped to real rust side loader by [get_builtin_loader].
- *
+ * `loader` is for both JS and Rust loaders.
  * `options` is
  *   - a `None` on rust side and handled by js side `getOptions` when
  * using with `loader`.
@@ -959,7 +980,7 @@ export interface RawResolveOptions {
 }
 
 export interface RawRspackFuture {
-
+  newResolver: boolean
 }
 
 export interface RawRuleSetCondition {

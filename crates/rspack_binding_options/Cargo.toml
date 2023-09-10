@@ -41,6 +41,7 @@ rspack_plugin_swc_js_minimizer          = { path = "../rspack_plugin_swc_js_mini
 rspack_plugin_wasm                      = { path = "../rspack_plugin_wasm" }
 rspack_plugin_worker                    = { path = "../rspack_plugin_worker" }
 rspack_regex                            = { path = "../rspack_regex" }
+rspack_swc_visitors                     = { path = "../rspack_swc_visitors" }
 
 anyhow            = { workspace = true, features = ["backtrace"] }
 async-trait       = { workspace = true }
@@ -53,6 +54,5 @@ rustc-hash        = { workspace = true }
 serde             = { workspace = true, features = ["derive"] }
 serde_json        = { workspace = true }
 swc_core          = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
-swc_plugin_import = { path = "../swc_plugin_import" }
 tokio             = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
 tracing           = { workspace = true }

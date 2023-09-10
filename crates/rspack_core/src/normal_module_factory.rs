@@ -183,16 +183,19 @@ impl NormalModuleFactory {
     let mut no_pre_post_auto_loaders = false;
 
     // with scheme, windows absolute path is considered scheme by `url`
-    let resource_data = if scheme != Scheme::None
+    let (resource_data, from_cache) = if scheme != Scheme::None
       && !Path::is_absolute(Path::new(request_without_match_resource))
     {
       // resource with scheme
-      plugin_driver
-        .normal_module_factory_resolve_for_scheme(ResourceData::new(
-          request_without_match_resource.to_string(),
-          "".into(),
-        ))
-        .await?
+      (
+        plugin_driver
+          .normal_module_factory_resolve_for_scheme(ResourceData::new(
+            request_without_match_resource.to_string(),
+            "".into(),
+          ))
+          .await?,
+        false,
+      )
     }
     // TODO: resource within scheme, call resolveInScheme hook
     else {
@@ -313,18 +316,25 @@ impl NormalModuleFactory {
       };
 
       // default resolve
-      let resource_data = self
+      let (resource_data, from_cache) = match self
         .cache
         .resolve_module_occasion
         .use_cache(resolve_args, |args| resolve(args, plugin_driver))
-        .await;
+        .await
+      {
+        Ok(result) => result,
+        Err(err) => (Err(err), false),
+      };
       match resource_data {
         Ok(ResolveResult::Resource(resource)) => {
           let uri = resource.full_path().display().to_string();
-          ResourceData::new(uri, resource.path)
-            .query_optional(resource.query)
-            .fragment_optional(resource.fragment)
-            .description_optional(resource.description_data)
+          (
+            ResourceData::new(uri, resource.path)
+              .query_optional(resource.query)
+              .fragment_optional(resource.fragment)
+              .description_optional(resource.description_data),
+            from_cache,
+          )
         }
         Ok(ResolveResult::Ignored) => {
           let ident = format!("{}/{}", &data.context, request_without_match_resource);
@@ -340,7 +350,9 @@ impl NormalModuleFactory {
           self.context.module_type = Some(*raw_module.module_type());
 
           return Ok(Some(
-            ModuleFactoryResult::new(raw_module).with_empty_diagnostic(),
+            ModuleFactoryResult::new(raw_module)
+              .from_cache(from_cache)
+              .with_empty_diagnostic(),
           ));
         }
         Err(ResolveError(runtime_error, internal_error)) => {
@@ -350,6 +362,7 @@ impl NormalModuleFactory {
           let mut missing_dependencies = Default::default();
           let diagnostics: Vec<Diagnostic> = internal_error.into();
           let mut diagnostic = diagnostics[0].clone();
+          let mut from_cache_result = from_cache;
           if !data
             .resolve_options
             .as_ref()
@@ -373,11 +386,16 @@ impl NormalModuleFactory {
               missing_dependencies: &mut missing_dependencies,
               file_dependencies: &mut file_dependencies,
             };
-            let resource_data = self
+            let (resource_data, from_cache) = match self
               .cache
               .resolve_module_occasion
               .use_cache(new_args, |args| resolve(args, plugin_driver))
-              .await;
+              .await
+            {
+              Ok(result) => result,
+              Err(err) => (Err(err), false),
+            };
+            from_cache_result = from_cache;
             if let Ok(ResolveResult::Resource(resource)) = resource_data {
               // TODO: Here windows resolver will return normalized path.
               // eg. D:\a\rspack\rspack\packages\rspack\tests\fixtures\errors\resolve-fail-esm\answer.js
@@ -402,7 +420,9 @@ impl NormalModuleFactory {
           .boxed();
           self.context.module_type = Some(*missing_module.module_type());
           return Ok(Some(
-            ModuleFactoryResult::new(missing_module).with_diagnostic(vec![diagnostic]),
+            ModuleFactoryResult::new(missing_module)
+              .from_cache(from_cache_result)
+              .with_diagnostic(vec![diagnostic]),
           ));
         }
       }
@@ -585,7 +605,9 @@ impl NormalModuleFactory {
     let (resolved_parser_options, resolved_generator_options) =
       self.calculate_parser_and_generator_options(&resolved_module_rules);
     let factory_meta = FactoryMeta {
-      side_effects: self.calculate_side_effects(&resolved_module_rules, &resource_data),
+      side_effect_free: self
+        .calculate_side_effects(&resolved_module_rules, &resource_data)
+        .map(|side_effects| !side_effects),
     };
 
     let resolved_parser_and_generator = self
@@ -636,6 +658,7 @@ impl NormalModuleFactory {
         .file_dependencies(file_dependencies)
         .missing_dependencies(missing_dependencies)
         .factory_meta(factory_meta)
+        .from_cache(from_cache)
         .with_empty_diagnostic(),
     ))
   }

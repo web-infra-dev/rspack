@@ -83,7 +83,7 @@ impl ModuleGraphConnection {
     self.active = value;
   }
 
-  pub fn is_active(&self, module_graph: &ModuleGraph, runtime: &RuntimeSpec) -> bool {
+  pub fn is_active(&self, module_graph: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
     if !self.conditional {
       return self.active;
     }
@@ -92,7 +92,11 @@ impl ModuleGraphConnection {
       .is_not_false()
   }
 
-  pub fn is_target_active(&self, module_graph: &ModuleGraph, runtime: &RuntimeSpec) -> bool {
+  pub fn is_target_active(
+    &self,
+    module_graph: &ModuleGraph,
+    runtime: Option<&RuntimeSpec>,
+  ) -> bool {
     if !self.conditional {
       return self.active;
     }
@@ -102,7 +106,7 @@ impl ModuleGraphConnection {
   pub fn get_active_state(
     &self,
     module_graph: &ModuleGraph,
-    runtime: &RuntimeSpec,
+    runtime: Option<&RuntimeSpec>,
   ) -> ConnectionState {
     if !self.conditional {
       return ConnectionState::Bool(self.active);
@@ -117,7 +121,7 @@ impl ModuleGraphConnection {
   pub fn get_condition_state(
     &self,
     module_graph: &ModuleGraph,
-    runtime: &RuntimeSpec,
+    runtime: Option<&RuntimeSpec>,
   ) -> ConnectionState {
     match self.condition.as_ref().expect("should have condition") {
       DependencyCondition::False => ConnectionState::Bool(false),
