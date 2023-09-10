@@ -1447,6 +1447,12 @@ impl Compilation {
       .chunk_by_ukey
       .get(chunk_ukey)
       .expect("chunk not found by ukey");
+
+    let identifier = module.identifier();
+    self.chunk_graph.add_module(identifier);
+    let cgm = self.chunk_graph.get_chunk_graph_module_mut(identifier);
+    cgm.chunks.insert(*chunk_ukey);
+
     let runtime_module_identifier =
       ModuleIdentifier::from(format!("{:?}/{}", chunk.runtime, module.identifier()));
     module.attach(*chunk_ukey);

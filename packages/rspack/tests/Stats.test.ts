@@ -334,4 +334,195 @@ describe("Stats", () => {
 		  X ms (resolving: X ms, integration: X ms, building: X ms)"
 	`);
 	});
+	it("should have module runtime modules when runtimeModules is true", async () => {
+		const stats = await compile({
+			context: __dirname,
+			entry: "./fixtures/chunk-b"
+		});
+		expect(stats?.toJson({ all: false, modules: true, runtimeModules: true }))
+			.toMatchInlineSnapshot(`
+{
+  "filteredModules": undefined,
+  "modules": [
+    {
+      "chunks": [
+        "chunkB",
+      ],
+      "id": "211",
+      "identifier": "<PROJECT_ROOT>/tests/fixtures/b.js",
+      "issuer": "<PROJECT_ROOT>/tests/fixtures/chunk-b.js",
+      "issuerId": "346",
+      "issuerName": "./fixtures/chunk-b.js",
+      "issuerPath": [
+        {
+          "id": "346",
+          "identifier": "<PROJECT_ROOT>/tests/fixtures/chunk-b.js",
+          "name": "./fixtures/chunk-b.js",
+        },
+      ],
+      "moduleType": "javascript/auto",
+      "name": "./fixtures/b.js",
+      "size": 94,
+      "type": "module",
+    },
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "346",
+      "identifier": "<PROJECT_ROOT>/tests/fixtures/chunk-b.js",
+      "issuerPath": [],
+      "moduleType": "javascript/auto",
+      "name": "./fixtures/chunk-b.js",
+      "size": 85,
+      "type": "module",
+    },
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "",
+      "identifier": "webpack/runtime/css_loading",
+      "issuerPath": [],
+      "moduleType": "runtime",
+      "name": "webpack/runtime/css_loading",
+      "size": 160,
+      "type": "module",
+    },
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "",
+      "identifier": "webpack/runtime/load_script",
+      "issuerPath": [],
+      "moduleType": "runtime",
+      "name": "webpack/runtime/load_script",
+      "size": 160,
+      "type": "module",
+    },
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "",
+      "identifier": "webpack/runtime/public_path",
+      "issuerPath": [],
+      "moduleType": "runtime",
+      "name": "webpack/runtime/public_path",
+      "size": 160,
+      "type": "module",
+    },
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "",
+      "identifier": "webpack/runtime/ensure_chunk",
+      "issuerPath": [],
+      "moduleType": "runtime",
+      "name": "webpack/runtime/ensure_chunk",
+      "size": 160,
+      "type": "module",
+    },
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "",
+      "identifier": "webpack/runtime/has_own_property",
+      "issuerPath": [],
+      "moduleType": "runtime",
+      "name": "webpack/runtime/has_own_property",
+      "size": 160,
+      "type": "module",
+    },
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "",
+      "identifier": "webpack/runtime/jsonp_chunk_loading",
+      "issuerPath": [],
+      "moduleType": "runtime",
+      "name": "webpack/runtime/jsonp_chunk_loading",
+      "size": 160,
+      "type": "module",
+    },
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "",
+      "identifier": "webpack/runtime/make_namespace_object",
+      "issuerPath": [],
+      "moduleType": "runtime",
+      "name": "webpack/runtime/make_namespace_object",
+      "size": 160,
+      "type": "module",
+    },
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "",
+      "identifier": "webpack/runtime/load_chunk_with_module",
+      "issuerPath": [],
+      "moduleType": "runtime",
+      "name": "webpack/runtime/load_chunk_with_module",
+      "size": 160,
+      "type": "module",
+    },
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "",
+      "identifier": "webpack/runtime/define_property_getters",
+      "issuerPath": [],
+      "moduleType": "runtime",
+      "name": "webpack/runtime/define_property_getters",
+      "size": 160,
+      "type": "module",
+    },
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "",
+      "identifier": "webpack/runtime/create_fake_namespace_object",
+      "issuerPath": [],
+      "moduleType": "runtime",
+      "name": "webpack/runtime/create_fake_namespace_object",
+      "size": 160,
+      "type": "module",
+    },
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "",
+      "identifier": "webpack/runtime/get_chunk_filename/__webpack_require__.k",
+      "issuerPath": [],
+      "moduleType": "runtime",
+      "name": "webpack/runtime/get_chunk_filename/__webpack_require__.k",
+      "size": 160,
+      "type": "module",
+    },
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "",
+      "identifier": "webpack/runtime/get_chunk_filename/__webpack_require__.u",
+      "issuerPath": [],
+      "moduleType": "runtime",
+      "name": "webpack/runtime/get_chunk_filename/__webpack_require__.u",
+      "size": 160,
+      "type": "module",
+    },
+  ],
+}
+`);
+	});
 });

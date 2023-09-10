@@ -149,7 +149,7 @@ impl Stats<'_> {
       .compilation
       .runtime_modules
       .values()
-      .map(|module| self.get_runtime_module(module, reasons, module_assets, source))
+      .map(|module| self.get_runtime_module(module, reasons, module_assets))
       .collect::<Result<_>>()?;
     let mut modules = modules
       .into_iter()
@@ -482,28 +482,25 @@ impl Stats<'_> {
     module: &'a Box<dyn RuntimeModule>,
     reasons: bool,
     module_assets: bool,
-    source: bool,
   ) -> Result<StatsModule<'a>> {
-    // let runtime_module_identifier =
-    //   ModuleIdentifier::from(format!("{:?}/{}", chunk.runtime, module.identifier()));
-    // let mut chunks: Vec<String> = self
-    //   .compilation
-    //   .chunk_graph
-    //   .get_chunk_graph_module(runtime_module_identifier)
-    //   .chunks
-    //   .iter()
-    //   .map(|k| {
-    //     self
-    //       .compilation
-    //       .chunk_by_ukey
-    //       .get(k)
-    //       .unwrap_or_else(|| panic!("Could not find chunk by ukey: {k:?}"))
-    //       .expect_id()
-    //       .to_string()
-    //   })
-    //   .collect();
-    // chunks.sort_unstable();
     let identifier = module.identifier();
+    let mut chunks: Vec<String> = self
+      .compilation
+      .chunk_graph
+      .get_chunk_graph_module(identifier)
+      .chunks
+      .iter()
+      .map(|k| {
+        self
+          .compilation
+          .chunk_by_ukey
+          .get(k)
+          .unwrap_or_else(|| panic!("Could not find chunk by ukey: {k:?}"))
+          .expect_id()
+          .to_string()
+      })
+      .collect();
+    chunks.sort_unstable();
 
     return Ok(StatsModule {
       r#type: "module",
@@ -511,7 +508,7 @@ impl Stats<'_> {
       identifier,
       name: module.name().to_string(),
       id: Some(String::new()),
-      chunks: Vec::new(),
+      chunks,
       size: module.size(&SourceType::JavaScript),
       issuer: None,
       issuer_name: None,

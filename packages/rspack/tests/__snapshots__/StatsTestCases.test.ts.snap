@@ -183,6 +183,13 @@ import rawModule from './raw.png'",
   "logging": {},
   "modules": [
     {
+      "filteredChildren": 2,
+      "moduleType": "runtime",
+      "size": 320,
+      "sizes": {},
+      "type": "runtime modules",
+    },
+    {
       "assets": [],
       "chunks": [
         "main",
@@ -313,6 +320,7 @@ chunk {main} bundle.js (main) [entry]
     entry ./index
   ./stringModule.js [363] {main}
     esm import ./stringModule [10]
+runtime modules 2 modules
 ./raw.png [692] {main}
   esm import ./raw.png [10]
 ./index.js [10] {main}
@@ -478,6 +486,13 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   "logging": {},
   "modules": [
     {
+      "filteredChildren": 7,
+      "moduleType": "runtime",
+      "size": 1120,
+      "sizes": {},
+      "type": "runtime modules",
+    },
+    {
       "assets": [],
       "chunks": [
         "main",
@@ -564,6 +579,7 @@ chunk {dynamic_js} dynamic_js.xxxx.js <{main}>
 chunk {main} main.xxxx.js (main) >{dynamic_js}< [entry]
   ./index.js [10] {main}
     entry ./index
+runtime modules 7 modules
 ./index.js [10] {main}
   entry ./index
 ./dynamic.js [426] {dynamic_js}
@@ -660,6 +676,13 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   "logging": {},
   "modules": [
     {
+      "filteredChildren": 6,
+      "moduleType": "runtime",
+      "size": 960,
+      "sizes": {},
+      "type": "runtime modules",
+    },
+    {
       "assets": [],
       "chunks": [
         "main",
@@ -710,6 +733,7 @@ Entrypoint main 8.89 KiB = bundle.js
 chunk {main} bundle.js (main) [entry]
   ./index.js [10] {main}
     entry ./index.js
+runtime modules 6 modules
 ./index.js [10] {main}
   entry ./index.js
 rspack compiled successfully (d71f062b534cbc5af842)"
@@ -776,6 +800,13 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
 {
   "filteredModules": undefined,
   "modules": [
+    {
+      "filteredChildren": 1,
+      "moduleType": "runtime",
+      "size": 160,
+      "sizes": {},
+      "type": "runtime modules",
+    },
     {
       "chunks": [
         "main",
@@ -887,7 +918,8 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for ignore-plugin 2`] = `
-"./index.js [10] {main}
+"runtime modules 1 module
+./index.js [10] {main}
 ./locals/en.js [208] {main}
 <PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh.js (missing) [136] {main}
 <PROJECT_ROOT>/tests/statsCases/ignore-plugin/./globalIndex.js (missing) [239] {main}
@@ -1957,6 +1989,13 @@ console.log(a);
   "logging": {},
   "modules": [
     {
+      "filteredChildren": 4,
+      "moduleType": "runtime",
+      "size": 640,
+      "sizes": {},
+      "type": "runtime modules",
+    },
+    {
       "assets": [],
       "chunks": [
         "main",
@@ -2049,6 +2088,7 @@ chunk {main} bundle.js (main) [entry]
   <PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing) [280] {main}
     esm import cycle-alias/a [10]
     esm import specifier cycle-alias/a [10]
+runtime modules 4 modules
 ./index.js [10] {main}
   entry ./index
 <PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing) [280] {main}
@@ -2204,6 +2244,13 @@ console.log(a);
   "logging": {},
   "modules": [
     {
+      "filteredChildren": 4,
+      "moduleType": "runtime",
+      "size": 640,
+      "sizes": {},
+      "type": "runtime modules",
+    },
+    {
       "assets": [],
       "chunks": [
         "main",
@@ -2296,6 +2343,7 @@ chunk {main} bundle.js (main) [entry]
   <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing) [788] {main}
     esm import pkg-a [10]
     esm import specifier pkg-a [10]
+runtime modules 4 modules
 ./index.js [10] {main}
   entry ./index
 <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing) [788] {main}
@@ -2398,6 +2446,13 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   "logging": {},
   "modules": [
     {
+      "filteredChildren": 3,
+      "moduleType": "runtime",
+      "size": 480,
+      "sizes": {},
+      "type": "runtime modules",
+    },
+    {
       "assets": [],
       "chunks": [
         "main",
@@ -2448,6 +2503,7 @@ Entrypoint main 589 bytes = bundle.js
 chunk {main} bundle.js (main) [entry]
   ./index.js [10] {main}
     entry ./index
+runtime modules 3 modules
 ./index.js [10] {main}
   entry ./index
 rspack compiled successfully (44e8a78970b06279cd26)"
@@ -2606,6 +2662,13 @@ import rawModule from './raw.png'",
   "logging": {},
   "modules": [
     {
+      "filteredChildren": 4,
+      "moduleType": "runtime",
+      "size": 640,
+      "sizes": {},
+      "type": "runtime modules",
+    },
+    {
       "assets": [],
       "chunks": [
         "main",
@@ -2717,6 +2780,7 @@ exports[`StatsTestCases should print correct stats for simple-module-source 2`] 
 "PublicPath: (none)
 asset bundle.js 631 bytes {main} [emitted] (name: main)
 Entrypoint main 631 bytes = bundle.js
+runtime modules 4 modules
 ./raw.png [98] {main}
 ./index.js [10] {main}
 ./stringModule.js [363] {main}
@@ -2811,6 +2875,13 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
   "logging": {},
   "modules": [
     {
+      "filteredChildren": 3,
+      "moduleType": "runtime",
+      "size": 480,
+      "sizes": {},
+      "type": "runtime modules",
+    },
+    {
       "assets": [],
       "chunks": [
         "main",
@@ -2856,6 +2927,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 2`] = `
 "PublicPath: (none)
 asset bundle.js 589 bytes {main} [emitted111] (name: main) [testA: aaaaaa]
 Entrypoint main 589 bytes = bundle.js
+runtime modules 3 modules
 ./index.js [10] {main}
 rspack compiled successfully (44e8a78970b06279cd26)"
 `;

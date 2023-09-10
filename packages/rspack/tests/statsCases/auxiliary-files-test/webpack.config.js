@@ -17,6 +17,7 @@ module.exports = {
 		all: true,
 		timings: false,
 		builtAt: false,
-		version: false
+		version: false,
+		runtime: false
 	}
 }
