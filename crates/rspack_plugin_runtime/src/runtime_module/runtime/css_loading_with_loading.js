@@ -60,7 +60,9 @@ var loadCssChunkCallback = function (parentChunkLoadingFunction, data) {
 	var chunkIds = data[0];
 	if (parentChunkLoadingFunction) parentChunkLoadingFunction(data);
 	for (var i = 0; i < chunkIds.length; i++) {
-		installedChunks[chunkIds[i]] = 0;
+		if (installedChunks[chunkIds[i]] === undefined) {
+			installedChunks[chunkIds[i]] = 0;
+		}
 	}
 };
 var chunkLoadingGlobal = $CHUNK_LOADING_GLOBAL_EXPR$ = $CHUNK_LOADING_GLOBAL_EXPR$ || [];
