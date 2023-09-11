@@ -2,6 +2,7 @@ import { test, expect } from "@/fixtures";
 
 test("render should work", async ({ page }) => {
 	expect(await page.textContent(".header")).toBe("Hello World");
+	expect(await page.textContent("#lazy-component")).toBe("Lazy Component");
 });
 
 test("hmr should work", async ({ page, fileAction, rspack }) => {
