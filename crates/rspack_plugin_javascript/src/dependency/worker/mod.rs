@@ -94,7 +94,7 @@ impl DependencyTemplate for WorkerDependency {
     let chunk_id = compilation
       .module_graph
       .module_identifier_by_dependency_id(&self.id)
-      .map(|module| {
+      .and_then(|module| {
         compilation
           .chunk_graph
           .get_block_chunk_group(module, &compilation.chunk_group_by_ukey)
