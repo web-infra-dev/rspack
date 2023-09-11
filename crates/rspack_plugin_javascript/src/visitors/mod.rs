@@ -33,9 +33,9 @@ macro_rules! either {
 /// - `relay`: a port of `babel-plugin-relay`
 /// - `import`: a port of `babel-plugin-import`
 /// - `emotion`: a port of `babel-plugin-emotion`
-#[deprecated(
-  note = "Builtin transform is deprecated and will be removed in JS version 0.5.0, see: https://github.com/web-infra-dev/rspack/pull/4133"
-)]
+// #[deprecated(
+//   note = "Builtin transform is deprecated and will be removed in JS version 0.5.0, see: https://github.com/web-infra-dev/rspack/pull/4133"
+// )]
 #[allow(clippy::too_many_arguments)]
 fn builtins_additional_feature_transforms<'b>(
   resource_data: &'b ResourceData,
@@ -135,9 +135,9 @@ fn builtins_webpack_plugin_define_optimizer(unresolved_mark: Mark) -> impl Fold 
 }
 
 #[allow(clippy::too_many_arguments)]
-#[deprecated(
-  note = "Compat transform is deprecated and will be removed in JS version 0.5.0, see: https://github.com/web-infra-dev/rspack/discussions/4070"
-)]
+// #[deprecated(
+//   note = "Compat transform is deprecated and will be removed in JS version 0.5.0, see: https://github.com/web-infra-dev/rspack/discussions/4070"
+// )]
 fn compat_transform<'b>(
   resource_data: &'b ResourceData,
   options: &'b CompilerOptions,
