@@ -19,7 +19,7 @@ use {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-pub struct RawHttpExternalsPluginOptions {
+pub struct RawHttpExternalsRspackPluginOptions {
   pub css: bool,
 }
 

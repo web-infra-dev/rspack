@@ -8,10 +8,10 @@ export * from "./EntryPlugin";
 export * from "./ExternalsPlugin";
 export * from "./NodeTargetPlugin";
 export * from "./ElectronTargetPlugin";
-export * from "./HttpExternalsPlugin";
+export * from "./HttpExternalsRspackPlugin";
 
-export * from "./HtmlPlugin";
-export * from "./CopyPlugin";
+export * from "./HtmlRspackPlugin";
+export * from "./CopyRspackPlugin";
 export * from "./SwcJsMinimizerPlugin";
 export * from "./SwcCssMinimizerPlugin";
 
@@ -19,26 +19,28 @@ export * from "./SwcCssMinimizerPlugin";
 import {
 	RawDecoratorOptions,
 	RawPresetEnv,
-	RawProgressPluginConfig,
+	RawProgressPluginOptions,
 	RawBuiltins,
 	RawCssModulesConfig
 } from "@rspack/binding";
 import { termlink, deprecatedWarn } from "../util";
-import { Compiler, RspackOptionsNormalized } from "..";
 import {
-	HtmlPluginOptions,
-	SwcJsMinimizerPluginOptions,
-	CopyPluginOptions,
+	Compiler,
+	CopyRspackPlugin,
+	CopyRspackPluginOptions,
+	HtmlRspackPlugin,
+	HtmlRspackPluginOptions,
+	RspackOptionsNormalized,
+	SwcCssMinimizerRspackPlugin,
+	SwcJsMinimizerRspackPlugin,
+	SwcJsMinimizerRspackPluginOptions
+} from "..";
+import {
 	BannerPluginOptions,
 	DefinePlugin,
 	ProvidePlugin,
 	ProgressPlugin,
-	HtmlPlugin,
-	CopyPlugin,
-	BannerPlugin,
-	SwcJsMinimizerPlugin,
-	SwcCssMinimizerPlugin,
-	RspackBuiltinPlugin
+	BannerPlugin
 } from ".";
 import { loadConfig } from "browserslist";
 import {
@@ -132,16 +134,16 @@ function resolveDecorator(
 export interface Builtins {
 	css?: BuiltinsCssConfig;
 	treeShaking?: boolean | "module";
-	progress?: boolean | RawProgressPluginConfig;
+	progress?: boolean | RawProgressPluginOptions;
 	noEmitAssets?: boolean;
 	define?: Record<string, string | boolean | undefined>;
 	provide?: Record<string, string | string[]>;
-	html?: Array<HtmlPluginOptions>;
+	html?: Array<HtmlRspackPluginOptions>;
 	decorator?: boolean | Partial<RawDecoratorOptions>;
-	minifyOptions?: SwcJsMinimizerPluginOptions;
+	minifyOptions?: SwcJsMinimizerRspackPluginOptions;
 	presetEnv?: Partial<RawPresetEnv>;
 	devFriendlySplitChunks?: boolean;
-	copy?: CopyPluginOptions;
+	copy?: CopyRspackPluginOptions;
 	banner?: BannerPluginOptions | BannerPluginOptions[];
 	react?: ReactOptions;
 	pluginImport?: PluginImportOptions;
@@ -219,7 +221,7 @@ export function deprecated_resolveBuiltins(
 			enableDeprecatedWarning
 		);
 		for (const html of builtins.html) {
-			new HtmlPlugin(html).apply(compiler);
+			new HtmlRspackPlugin(html).apply(compiler);
 		}
 	}
 	if (builtins.copy) {
@@ -229,7 +231,7 @@ export function deprecated_resolveBuiltins(
 			)}' has been deprecated, please migrate to rspack.CopyPlugin`,
 			enableDeprecatedWarning
 		);
-		new CopyPlugin(builtins.copy).apply(compiler);
+		new CopyRspackPlugin(builtins.copy).apply(compiler);
 	}
 	if (builtins.minifyOptions) {
 		deprecatedWarn(
@@ -243,8 +245,8 @@ export function deprecated_resolveBuiltins(
 		!options.optimization.minimize ||
 		options.optimization.minimizer!.some(item => item !== "...");
 	if (!disableMinify) {
-		new SwcJsMinimizerPlugin(builtins.minifyOptions).apply(compiler);
-		new SwcCssMinimizerPlugin().apply(compiler);
+		new SwcJsMinimizerRspackPlugin(builtins.minifyOptions).apply(compiler);
+		new SwcCssMinimizerRspackPlugin().apply(compiler);
 	}
 
 	let noEmitAssets = false;

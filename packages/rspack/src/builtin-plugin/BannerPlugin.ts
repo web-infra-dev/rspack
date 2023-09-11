@@ -1,12 +1,12 @@
 import { z } from "zod";
 import {
 	JsChunk,
-	RawBannerCondition,
-	RawBannerConditions,
-	RawBannerConfig,
-	RawBannerContent
+	RawBannerContent,
+	RawBannerPluginOptions,
+	RawBannerRule,
+	RawBannerRules
 } from "@rspack/binding";
-import { BuiltinPluginKind, create } from "./base";
+import { BuiltinPluginName, create } from "./base";
 
 const rule = z.string().or(z.instanceof(RegExp));
 export type Rule = z.infer<typeof rule>;
@@ -43,7 +43,7 @@ export type BannerPluginOptions = z.infer<typeof bannerPluginOptions>;
 const bannerPluginArgument = bannerContent.or(bannerPluginOptions);
 export type BannerPluginArgument = z.infer<typeof bannerPluginArgument>;
 
-function getRawBannerRule(condition: Rule): RawBannerCondition {
+function getRawBannerRule(condition: Rule): RawBannerRule {
 	if (typeof condition === "string") {
 		return {
 			type: "string",
@@ -59,7 +59,7 @@ function getRawBannerRule(condition: Rule): RawBannerCondition {
 	throw new Error("unreachable: condition should be one of string, RegExp");
 }
 
-function getRawBannerRules(condition?: Rules): RawBannerConditions | undefined {
+function getRawBannerRules(condition?: Rules): RawBannerRules | undefined {
 	if (!condition) return undefined;
 
 	if (Array.isArray(condition)) {
@@ -89,8 +89,8 @@ function getRawBannerContent(content: BannerContent): RawBannerContent {
 }
 
 export const BannerPlugin = create(
-	BuiltinPluginKind.Banner,
-	(args: BannerPluginArgument): RawBannerConfig => {
+	BuiltinPluginName.BannerPlugin,
+	(args: BannerPluginArgument): RawBannerPluginOptions => {
 		if (typeof args === "string") {
 			return {
 				banner: getRawBannerContent(args)
