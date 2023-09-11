@@ -277,11 +277,5 @@ impl ClassKey for ClassMember {
   }
 }
 
-#[derive(Debug)]
-pub struct SideEffectsFlagPlugin {}
-
-impl SideEffectsFlagPlugin {
-  pub fn new() -> Self {
-    Self {}
-  }
-}
+#[derive(Debug, Default)]
+pub struct SideEffectsFlagPlugin;

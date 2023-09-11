@@ -287,14 +287,8 @@ pub struct DefaultExportInfo<'a> {
   priority: Option<u8>,
 }
 
-#[derive(Debug)]
-pub struct FlagDependencyExportsPlugin {}
-
-impl FlagDependencyExportsPlugin {
-  pub fn new() -> Self {
-    Self {}
-  }
-}
+#[derive(Debug, Default)]
+pub struct FlagDependencyExportsPlugin;
 
 #[async_trait::async_trait]
 impl Plugin for FlagDependencyExportsPlugin {

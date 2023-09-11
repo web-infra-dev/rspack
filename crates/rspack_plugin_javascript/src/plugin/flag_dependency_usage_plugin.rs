@@ -337,14 +337,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
   }
 }
 
-#[derive(Debug)]
-pub struct FlagDependencyUsagePlugin {}
-
-impl FlagDependencyUsagePlugin {
-  pub fn new() -> Self {
-    Self {}
-  }
-}
+#[derive(Debug, Default)]
+pub struct FlagDependencyUsagePlugin;
 
 #[async_trait::async_trait]
 impl Plugin for FlagDependencyUsagePlugin {

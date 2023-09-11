@@ -160,10 +160,10 @@ impl RawOptionsApply for RawOptions {
     plugins.push(rspack_ids::NamedChunkIdsPlugin::new(None, None).boxed());
     if experiments.rspack_future.new_treeshaking {
       if optimization.provided_exports {
-        plugins.push(FlagDependencyExportsPlugin::new().boxed());
+        plugins.push(FlagDependencyExportsPlugin::default().boxed());
       }
       if optimization.used_exports.is_enable() {
-        plugins.push(FlagDependencyUsagePlugin::new().boxed());
+        plugins.push(FlagDependencyUsagePlugin::default().boxed());
       }
     }
 
