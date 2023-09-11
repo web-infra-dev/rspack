@@ -960,7 +960,15 @@ const experiments = z.strictObject({
 	incrementalRebuild: z.boolean().or(incrementalRebuildOptions).optional(),
 	asyncWebAssembly: z.boolean().optional(),
 	outputModule: z.boolean().optional(),
-	newSplitChunks: z.boolean().optional(),
+	newSplitChunks: z
+		.boolean()
+		.optional()
+		.refine(_ => {
+			console.warn(
+				"`experiments.newSplitChunks` will be removed at 0.4.0. See details at https://github.com/web-infra-dev/rspack/discussions/4168"
+			);
+			return true;
+		}),
 	css: z.boolean().optional(),
 	futureDefaults: z.boolean().optional(),
 	rspackFuture: rspackFutureOptions.optional()
