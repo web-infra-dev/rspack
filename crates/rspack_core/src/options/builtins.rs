@@ -1,12 +1,10 @@
 use std::fmt::Debug;
-use std::{fmt::Display, path::PathBuf};
 
-use glob::Pattern as GlobPattern;
 use rspack_error::Result;
 pub use rspack_swc_visitors::{Define, Provide};
 use rspack_swc_visitors::{EmotionOptions, ImportOptions, ReactOptions, RelayOptions};
 
-use crate::{ApplyContext, AssetInfo, CompilerOptions, Plugin, PluginContext};
+use crate::{ApplyContext, CompilerOptions, Plugin, PluginContext};
 
 #[derive(Debug)]
 pub struct DefinePlugin {
@@ -141,54 +139,6 @@ pub struct Builtins {
   pub relay: Option<RelayOptions>,
 }
 
-#[derive(Debug, Clone)]
-pub struct CopyPluginConfig {
-  pub patterns: Vec<Pattern>,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum FromType {
-  Dir,
-  File,
-  Glob,
-}
-
-#[derive(Debug, Clone)]
-pub enum ToType {
-  Dir,
-  File,
-  Template,
-}
-
-impl Display for ToType {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.write_str(match self {
-      ToType::Dir => "dir",
-      ToType::File => "file",
-      ToType::Template => "template",
-    })
-  }
-}
-
-#[derive(Debug, Clone)]
-pub struct Pattern {
-  pub from: String,
-  pub to: Option<String>,
-  pub context: Option<PathBuf>,
-  pub to_type: Option<ToType>,
-  pub no_error_on_missing: bool,
-  pub info: Option<AssetInfo>,
-  pub force: bool,
-  pub priority: i32,
-  pub glob_options: GlobOptions,
-}
-
-#[derive(Debug, Clone)]
-pub struct GlobOptions {
-  pub case_sensitive_match: Option<bool>,
-  pub dot: Option<bool>,
-  pub ignore: Option<Vec<GlobPattern>>,
-}
 #[derive(Debug, Clone, Default)]
 pub struct PresetEnv {
   pub targets: Vec<String>,

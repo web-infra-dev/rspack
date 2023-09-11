@@ -44,7 +44,7 @@ import { normalizeJsModule } from "./util/normalization";
 import {
 	ElectronTargetPlugin,
 	ExternalsPlugin,
-	HttpExternalsPlugin,
+	HttpExternalsRspackPlugin,
 	NodeTargetPlugin,
 	RspackBuiltinPlugin,
 	deprecated_resolveBuiltins
@@ -341,7 +341,7 @@ class Compiler {
 				options.externalsPresets.web ||
 				(options.externalsPresets.node && options.experiments.css)
 			) {
-				new HttpExternalsPlugin(!!options.experiments.css).apply(this);
+				new HttpExternalsRspackPlugin(!!options.experiments.css).apply(this);
 			}
 			EntryOptionPlugin.applyEntryOption(this, this.context, options.entry);
 		}

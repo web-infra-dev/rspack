@@ -26,10 +26,10 @@ export {
 	DefinePlugin,
 	ProvidePlugin,
 	ProgressPlugin,
-	HtmlPlugin,
-	SwcJsMinimizerPlugin,
-	SwcCssMinimizerPlugin,
-	CopyPlugin,
+	HtmlRspackPlugin,
+	SwcJsMinimizerRspackPlugin,
+	SwcCssMinimizerRspackPlugin,
+	CopyRspackPlugin,
 	EntryPlugin,
 	ExternalsPlugin
 } from "./builtin-plugin";
@@ -38,9 +38,9 @@ export type {
 	DefinePluginOptions,
 	ProvidePluginOptions,
 	ProgressPluginArgument,
-	HtmlPluginOptions,
-	SwcJsMinimizerPluginOptions,
-	CopyPluginOptions,
+	HtmlRspackPluginOptions,
+	SwcJsMinimizerRspackPluginOptions,
+	CopyRspackPluginOptions,
 	EntryOptions
 } from "./builtin-plugin";
 import { ElectronTargetPlugin, NodeTargetPlugin } from "./builtin-plugin";

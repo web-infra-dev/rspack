@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { RawHtmlPluginConfig } from "@rspack/binding";
-import { BuiltinPluginKind, create } from "./base";
+import { RawHtmlRspackPluginOptions } from "@rspack/binding";
+import { BuiltinPluginName, create } from "./base";
 import { validate } from "../util/validate";
 
-const htmlPluginOptions = z.strictObject({
+const htmlRspackPluginOptions = z.strictObject({
 	filename: z.string().optional(),
 	template: z.string().optional(),
 	templateContent: z.string().optional(),
@@ -19,11 +19,11 @@ const htmlPluginOptions = z.strictObject({
 	favicon: z.string().optional(),
 	meta: z.record(z.string().or(z.record(z.string()))).optional()
 });
-export type HtmlPluginOptions = z.infer<typeof htmlPluginOptions>;
-export const HtmlPlugin = create(
-	BuiltinPluginKind.Html,
-	(c: HtmlPluginOptions): RawHtmlPluginConfig => {
-		validate(c, htmlPluginOptions);
+export type HtmlRspackPluginOptions = z.infer<typeof htmlRspackPluginOptions>;
+export const HtmlRspackPlugin = create(
+	BuiltinPluginName.HtmlRspackPlugin,
+	(c: HtmlRspackPluginOptions): RawHtmlRspackPluginOptions => {
+		validate(c, htmlRspackPluginOptions);
 		const meta: Record<string, Record<string, string>> = {};
 		for (const key in c.meta) {
 			const value = c.meta[key];

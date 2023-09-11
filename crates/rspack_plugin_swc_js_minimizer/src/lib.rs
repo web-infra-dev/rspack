@@ -26,7 +26,7 @@ use swc_ecma_minifier::option::{
 };
 
 #[derive(Debug, Clone, Default, Hash)]
-pub struct Minification {
+pub struct SwcJsMinimizerRspackPluginOptions {
   pub passes: usize,
   pub drop_console: bool,
   pub keep_class_names: bool,
@@ -35,18 +35,18 @@ pub struct Minification {
   pub extract_comments: Option<String>,
   pub ascii_only: bool,
   pub comments: String,
-  pub test: Option<MinificationConditions>,
-  pub include: Option<MinificationConditions>,
-  pub exclude: Option<MinificationConditions>,
+  pub test: Option<SwcJsMinimizerRules>,
+  pub include: Option<SwcJsMinimizerRules>,
+  pub exclude: Option<SwcJsMinimizerRules>,
 }
 
 #[derive(Debug, Clone, Hash)]
-pub enum MinificationCondition {
+pub enum SwcJsMinimizerRule {
   String(String),
   Regexp(RspackRegex),
 }
 
-impl MinificationCondition {
+impl SwcJsMinimizerRule {
   #[async_recursion]
   pub async fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
     match self {
@@ -57,13 +57,13 @@ impl MinificationCondition {
 }
 
 #[derive(Debug, Clone, Hash)]
-pub enum MinificationConditions {
+pub enum SwcJsMinimizerRules {
   String(String),
   Regexp(rspack_regex::RspackRegex),
-  Array(Vec<MinificationCondition>),
+  Array(Vec<SwcJsMinimizerRule>),
 }
 
-impl MinificationConditions {
+impl SwcJsMinimizerRules {
   #[async_recursion]
   pub async fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
     match self {
@@ -75,20 +75,20 @@ impl MinificationConditions {
 }
 
 #[derive(Debug)]
-pub struct SwcJsMinimizerPlugin {
-  options: Minification,
+pub struct SwcJsMinimizerRspackPlugin {
+  options: SwcJsMinimizerRspackPluginOptions,
 }
 
-impl SwcJsMinimizerPlugin {
-  pub fn new(options: Minification) -> Self {
+impl SwcJsMinimizerRspackPlugin {
+  pub fn new(options: SwcJsMinimizerRspackPluginOptions) -> Self {
     Self { options }
   }
 }
 
 #[async_trait]
-impl Plugin for SwcJsMinimizerPlugin {
+impl Plugin for SwcJsMinimizerRspackPlugin {
   fn name(&self) -> &'static str {
-    "rspack.SwcJsMinimizerPlugin"
+    "rspack.SwcJsMinimizerRspackPlugin"
   }
 
   async fn process_assets_stage_optimize_size(

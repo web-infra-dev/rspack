@@ -6,7 +6,7 @@ use std::{
 };
 
 use rspack_core::{BoxPlugin, CompilerOptions, ModuleType, PluginExt};
-use rspack_plugin_html::config::HtmlPluginConfig;
+use rspack_plugin_html::config::HtmlRspackPluginOptions;
 use rspack_regex::RspackRegex;
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -168,7 +168,7 @@ pub struct Builtins {
   #[serde(default)]
   pub provide: HashMap<String, Vec<String>>,
   #[serde(default)]
-  pub html: Vec<HtmlPluginConfig>,
+  pub html: Vec<HtmlRspackPluginOptions>,
   #[serde(default)]
   pub minify_options: Option<Minification>,
   #[serde(default = "default_tree_shaking")]
@@ -465,7 +465,7 @@ impl TestConfig {
         .push(rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin::new().boxed());
     }
     for html in self.builtins.html {
-      plugins.push(rspack_plugin_html::HtmlPlugin::new(html).boxed());
+      plugins.push(rspack_plugin_html::HtmlRspackPlugin::new(html).boxed());
     }
     plugins.push(
       rspack_plugin_css::CssPlugin::new(rspack_plugin_css::plugin::CssConfig {
@@ -549,7 +549,7 @@ impl TestConfig {
       plugins.push(rspack_plugin_wasm::FetchCompileAsyncWasmPlugin {}.boxed());
       plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
     }
-    plugins.push(rspack_plugin_externals::http_externals_plugin(true));
+    plugins.push(rspack_plugin_externals::http_externals_rspack_plugin(true));
 
     // Support resolving builtin loaders on the Native side
     plugins.push(crate::loader::BuiltinLoaderResolver.boxed());

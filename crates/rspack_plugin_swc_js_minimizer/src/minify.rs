@@ -41,10 +41,10 @@ use swc_ecma_minifier::{
   option::{MinifyOptions, TopLevelOptions},
 };
 
-use crate::{JsMinifyCommentOption, JsMinifyOptions, Minification};
+use crate::{JsMinifyCommentOption, JsMinifyOptions, SwcJsMinimizerRspackPluginOptions};
 
 #[async_recursion]
-pub async fn match_object(obj: &Minification, str: &str) -> Result<bool> {
+pub async fn match_object(obj: &SwcJsMinimizerRspackPluginOptions, str: &str) -> Result<bool> {
   if let Some(condition) = &obj.test {
     if !condition.try_match(str).await? {
       return Ok(false);

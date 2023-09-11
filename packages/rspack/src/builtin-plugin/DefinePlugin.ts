@@ -1,8 +1,8 @@
-import { BuiltinPluginKind, create } from "./base";
+import { BuiltinPluginName, create } from "./base";
 
 export type DefinePluginOptions = Record<string, string | boolean | undefined>;
 export const DefinePlugin = create(
-	BuiltinPluginKind.Define,
+	BuiltinPluginName.DefinePlugin,
 	(define: DefinePluginOptions): Record<string, string> => {
 		const entries = Object.entries(define).map(([key, value]) => {
 			if (typeof value !== "string") {

@@ -1,6 +1,6 @@
-import { BuiltinPluginKind, create } from "./base";
+import { BuiltinPluginName, create } from "./base";
 
-export const SwcCssMinimizerPlugin = create(
-	BuiltinPluginKind.SwcCssMinimizer,
+export const SwcCssMinimizerRspackPlugin = create(
+	BuiltinPluginName.SwcCssMinimizerRspackPlugin,
 	(options?: any /* TODO: extend more options */) => undefined
 );

@@ -13,7 +13,7 @@ static EXTERNAL_HTTP_STD_REQUEST: Lazy<Regex> =
 static EXTERNAL_CSS_REQUEST: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^\.css(\?|$)").expect("Invalid regex"));
 
-pub fn http_externals_plugin(css: bool) -> BoxPlugin {
+pub fn http_externals_rspack_plugin(css: bool) -> BoxPlugin {
   ExternalsPlugin::new("module".to_owned(), vec![http_external_item(css)]).boxed()
 }
 

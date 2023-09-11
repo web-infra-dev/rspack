@@ -1,5 +1,6 @@
 #![feature(let_chains)]
 use std::{
+  fmt::Display,
   fs,
   hash::Hash,
   path::{Path, PathBuf, MAIN_SEPARATOR},
@@ -8,15 +9,64 @@ use std::{
 
 use async_trait::async_trait;
 use dashmap::DashSet;
-use glob::MatchOptions;
+use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
 use rspack_core::{
   rspack_sources::RawSource, AssetInfo, Compilation, CompilationAsset, CompilationLogger, Filename,
-  FromType, Logger, PathData, Pattern, Plugin, ToType,
+  Logger, PathData, Plugin,
 };
 use rspack_error::Diagnostic;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use sugar_path::{AsPath, SugarPath};
+
+#[derive(Debug, Clone)]
+pub struct CopyRspackPluginOptions {
+  pub patterns: Vec<CopyPattern>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum FromType {
+  Dir,
+  File,
+  Glob,
+}
+
+#[derive(Debug, Clone)]
+pub enum ToType {
+  Dir,
+  File,
+  Template,
+}
+
+impl Display for ToType {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.write_str(match self {
+      ToType::Dir => "dir",
+      ToType::File => "file",
+      ToType::Template => "template",
+    })
+  }
+}
+
+#[derive(Debug, Clone)]
+pub struct CopyPattern {
+  pub from: String,
+  pub to: Option<String>,
+  pub context: Option<PathBuf>,
+  pub to_type: Option<ToType>,
+  pub no_error_on_missing: bool,
+  pub info: Option<AssetInfo>,
+  pub force: bool,
+  pub priority: i32,
+  pub glob_options: CopyGlobOptions,
+}
+
+#[derive(Debug, Clone)]
+pub struct CopyGlobOptions {
+  pub case_sensitive_match: Option<bool>,
+  pub dot: Option<bool>,
+  pub ignore: Option<Vec<GlobPattern>>,
+}
 
 #[derive(Debug, Clone)]
 pub struct RunPatternResult {
@@ -30,8 +80,8 @@ pub struct RunPatternResult {
 }
 
 #[derive(Debug)]
-pub struct CopyPlugin {
-  pub patterns: Vec<Pattern>,
+pub struct CopyRspackPlugin {
+  pub patterns: Vec<CopyPattern>,
 }
 
 lazy_static::lazy_static! {
@@ -39,8 +89,8 @@ lazy_static::lazy_static! {
   static ref TEMPLATE_RE: Regex = Regex::new(r"\[\\*([\w:]+)\\*\]").expect("This never fail");
 }
 
-impl CopyPlugin {
-  pub fn new(patterns: Vec<Pattern>) -> Self {
+impl CopyRspackPlugin {
+  pub fn new(patterns: Vec<CopyPattern>) -> Self {
     Self { patterns }
   }
 
@@ -65,7 +115,7 @@ impl CopyPlugin {
   #[allow(clippy::too_many_arguments)]
   async fn analyze_every_entry(
     entry: PathBuf,
-    pattern: &Pattern,
+    pattern: &CopyPattern,
     context: &Path,
     output_path: &Path,
     from_type: FromType,
@@ -216,7 +266,7 @@ impl CopyPlugin {
 
   fn run_patter(
     compilation: &Compilation,
-    pattern: &Pattern,
+    pattern: &CopyPattern,
     _index: usize,
     file_dependencies: &DashSet<PathBuf>,
     context_dependencies: &DashSet<PathBuf>,
@@ -432,9 +482,9 @@ impl CopyPlugin {
 }
 
 #[async_trait]
-impl Plugin for CopyPlugin {
+impl Plugin for CopyRspackPlugin {
   fn name(&self) -> &'static str {
-    "rspack.CopyPlugin"
+    "rspack.CopyRspackPlugin"
   }
 
   async fn process_assets_stage_additional(

@@ -18,20 +18,20 @@ use serde::Deserialize;
 use swc_html::visit::VisitMutWith;
 
 use crate::{
-  config::{HtmlPluginConfig, HtmlPluginConfigInject},
+  config::{HtmlInject, HtmlRspackPluginOptions},
   parser::HtmlCompiler,
   sri::{add_sri, create_digest_from_asset},
   visitors::asset::{AssetWriter, HTMLPluginTag},
 };
 
 #[derive(Deserialize, Debug, Default)]
-pub struct HtmlPlugin {
-  config: HtmlPluginConfig,
+pub struct HtmlRspackPlugin {
+  config: HtmlRspackPluginOptions,
 }
 
-impl HtmlPlugin {
-  pub fn new(config: HtmlPluginConfig) -> HtmlPlugin {
-    HtmlPlugin { config }
+impl HtmlRspackPlugin {
+  pub fn new(config: HtmlRspackPluginOptions) -> HtmlRspackPlugin {
+    HtmlRspackPlugin { config }
   }
 }
 fn default_template() -> &'static str {
@@ -47,9 +47,9 @@ fn default_template() -> &'static str {
 }
 
 #[async_trait]
-impl Plugin for HtmlPlugin {
+impl Plugin for HtmlRspackPlugin {
   fn name(&self) -> &'static str {
-    "html"
+    "rspack.HtmlRspackPlugin"
   }
 
   async fn process_assets_stage_optimize_inline(
@@ -145,7 +145,7 @@ impl Plugin for HtmlPlugin {
             Some(if let Some(inject) = &config.inject {
               *inject
             } else {
-              HtmlPluginConfigInject::Head
+              HtmlInject::Head
             }),
           ));
         } else if extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("mjs") {
@@ -154,7 +154,7 @@ impl Plugin for HtmlPlugin {
             Some(if let Some(inject) = &config.inject {
               *inject
             } else {
-              HtmlPluginConfigInject::Head
+              HtmlInject::Head
             }),
             &config.script_loading,
           ))

@@ -110,24 +110,24 @@ export interface BeforeResolveData {
 }
 
 export interface BuiltinPlugin {
-  kind: BuiltinPluginKind
+  name: BuiltinPluginName
   options: unknown
 }
 
-export const enum BuiltinPluginKind {
-  Define = 'Define',
-  Provide = 'Provide',
-  Banner = 'Banner',
-  Progress = 'Progress',
-  Copy = 'Copy',
-  Html = 'Html',
-  SwcJsMinimizer = 'SwcJsMinimizer',
-  SwcCssMinimizer = 'SwcCssMinimizer',
-  Entry = 'Entry',
-  Externals = 'Externals',
-  NodeTarget = 'NodeTarget',
-  ElectronTarget = 'ElectronTarget',
-  HttpExternals = 'HttpExternals'
+export const enum BuiltinPluginName {
+  DefinePlugin = 'DefinePlugin',
+  ProvidePlugin = 'ProvidePlugin',
+  BannerPlugin = 'BannerPlugin',
+  ProgressPlugin = 'ProgressPlugin',
+  EntryPlugin = 'EntryPlugin',
+  ExternalsPlugin = 'ExternalsPlugin',
+  NodeTargetPlugin = 'NodeTargetPlugin',
+  ElectronTargetPlugin = 'ElectronTargetPlugin',
+  HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
+  CopyRspackPlugin = 'CopyRspackPlugin',
+  HtmlRspackPlugin = 'HtmlRspackPlugin',
+  SwcJsMinimizerRspackPlugin = 'SwcJsMinimizerRspackPlugin',
+  SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin'
 }
 
 export function cleanupGlobalTrace(): void
@@ -492,29 +492,6 @@ export interface RawAssetResourceGeneratorOptions {
   publicPath?: string
 }
 
-export interface RawBannerCondition {
-  type: "string" | "regexp"
-  stringMatcher?: string
-  regexpMatcher?: string
-}
-
-export interface RawBannerConditions {
-  type: "string" | "regexp" | "array"
-  stringMatcher?: string
-  regexpMatcher?: string
-  arrayMatcher?: Array<RawBannerCondition>
-}
-
-export interface RawBannerConfig {
-  banner: RawBannerContent
-  entryOnly?: boolean
-  footer?: boolean
-  raw?: boolean
-  test?: RawBannerConditions
-  include?: RawBannerConditions
-  exclude?: RawBannerConditions
-}
-
 export interface RawBannerContent {
   type: "string" | "function"
   stringPayload?: string
@@ -525,6 +502,29 @@ export interface RawBannerContentFnCtx {
   hash: string
   chunk: JsChunk
   filename: string
+}
+
+export interface RawBannerPluginOptions {
+  banner: RawBannerContent
+  entryOnly?: boolean
+  footer?: boolean
+  raw?: boolean
+  test?: RawBannerRules
+  include?: RawBannerRules
+  exclude?: RawBannerRules
+}
+
+export interface RawBannerRule {
+  type: "string" | "regexp"
+  stringMatcher?: string
+  regexpMatcher?: string
+}
+
+export interface RawBannerRules {
+  type: "string" | "regexp" | "array"
+  stringMatcher?: string
+  regexpMatcher?: string
+  arrayMatcher?: Array<RawBannerRule>
 }
 
 export interface RawBuiltins {
@@ -569,8 +569,25 @@ export interface RawCacheOptions {
   version: string
 }
 
-export interface RawCopyConfig {
-  patterns: Array<RawPattern>
+export interface RawCopyGlobOptions {
+  caseSensitiveMatch?: boolean
+  dot?: boolean
+  ignore?: Array<string>
+}
+
+export interface RawCopyPattern {
+  from: string
+  to?: string
+  context?: string
+  toType?: string
+  noErrorOnMissing: boolean
+  force: boolean
+  priority: number
+  globOptions: RawCopyGlobOptions
+}
+
+export interface RawCopyRspackPluginOptions {
+  patterns: Array<RawCopyPattern>
 }
 
 export interface RawCrossOriginLoading {
@@ -685,13 +702,7 @@ export interface RawGeneratorOptions {
   assetResource?: RawAssetResourceGeneratorOptions
 }
 
-export interface RawGlobOptions {
-  caseSensitiveMatch?: boolean
-  dot?: boolean
-  ignore?: Array<string>
-}
-
-export interface RawHtmlPluginConfig {
+export interface RawHtmlRspackPluginOptions {
   /** emitted file name in output path */
   filename?: string
   /** template html file */
@@ -714,7 +725,7 @@ export interface RawHtmlPluginConfig {
   meta?: Record<string, Record<string, string>>
 }
 
-export interface RawHttpExternalsPluginOptions {
+export interface RawHttpExternalsRspackPluginOptions {
   css: boolean
 }
 
@@ -742,33 +753,6 @@ export interface RawLibraryOptions {
   libraryType: string
   umdNamedDefine?: boolean
   auxiliaryComment?: RawLibraryAuxiliaryComment
-}
-
-export interface RawMinification {
-  passes: number
-  dropConsole: boolean
-  keepClassNames: boolean
-  keepFnNames: boolean
-  comments: "all" | "some" | "false"
-  asciiOnly: boolean
-  pureFuncs: Array<string>
-  extractComments?: string
-  test?: RawMinificationConditions
-  include?: RawMinificationConditions
-  exclude?: RawMinificationConditions
-}
-
-export interface RawMinificationCondition {
-  type: "string" | "regexp"
-  stringMatcher?: string
-  regexpMatcher?: string
-}
-
-export interface RawMinificationConditions {
-  type: "string" | "regexp" | "array"
-  stringMatcher?: string
-  regexpMatcher?: string
-  arrayMatcher?: Array<RawMinificationCondition>
 }
 
 export interface RawModuleOptions {
@@ -911,17 +895,6 @@ export interface RawParserOptions {
   asset?: RawAssetParserOptions
 }
 
-export interface RawPattern {
-  from: string
-  to?: string
-  context?: string
-  toType?: string
-  noErrorOnMissing: boolean
-  force: boolean
-  priority: number
-  globOptions: RawGlobOptions
-}
-
 export interface RawPluginImportConfig {
   libraryName: string
   libraryDirectory?: string
@@ -940,7 +913,7 @@ export interface RawPresetEnv {
   coreJs?: string
 }
 
-export interface RawProgressPluginConfig {
+export interface RawProgressPluginOptions {
   prefix?: string
 }
 
@@ -1034,6 +1007,33 @@ export interface RawStyleConfig {
   custom?: string
   css?: string
   bool?: boolean
+}
+
+export interface RawSwcJsMinimizerRspackPluginOptions {
+  passes: number
+  dropConsole: boolean
+  keepClassNames: boolean
+  keepFnNames: boolean
+  comments: "all" | "some" | "false"
+  asciiOnly: boolean
+  pureFuncs: Array<string>
+  extractComments?: string
+  test?: RawSwcJsMinimizerRules
+  include?: RawSwcJsMinimizerRules
+  exclude?: RawSwcJsMinimizerRules
+}
+
+export interface RawSwcJsMinimizerRule {
+  type: "string" | "regexp"
+  stringMatcher?: string
+  regexpMatcher?: string
+}
+
+export interface RawSwcJsMinimizerRules {
+  type: "string" | "regexp" | "array"
+  stringMatcher?: string
+  regexpMatcher?: string
+  arrayMatcher?: Array<RawSwcJsMinimizerRule>
 }
 
 export interface RawTrustedTypes {

@@ -20,14 +20,7 @@ import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { cleverMerge } from "./util/cleverMerge";
 import assert from "assert";
-import {
-	ExternalsPlugin,
-	HttpExternalsPlugin,
-	NodeTargetPlugin,
-	ElectronTargetPlugin
-} from "./builtin-plugin";
 import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
-import EntryOptionPlugin from "./lib/EntryOptionPlugin";
 
 export class RspackOptionsApply {
 	constructor() {}
