@@ -13,6 +13,7 @@
     "test": "echo success"
   },
   "files": [
+    "client",
     "src"
   ],
   "publishConfig": {
