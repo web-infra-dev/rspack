@@ -1,4 +1,4 @@
-const { HtmlPlugin } = require("@rspack/core");
+const { HtmlRspackPlugin } = require("@rspack/cli");
 
 /**
  * @type {import('@rspack/cli').Configuration}
@@ -16,5 +16,5 @@ module.exports = {
 			}
 		]
 	},
-	plugins: [new HtmlPlugin({ template: "./index.html" })]
+	plugins: [new HtmlRspackPlugin({ template: "./index.html" })]
 };
