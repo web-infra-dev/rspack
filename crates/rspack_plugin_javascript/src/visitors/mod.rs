@@ -1,9 +1,11 @@
 mod dependency;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 pub use dependency::*;
 use either::Either;
 use swc_core::common::comments::Comments;
+use swc_core::ecma::visit::Fold;
 use xxhash_rust::xxh32::xxh32;
 mod clear_mark;
 
@@ -12,7 +14,7 @@ use swc_core::ecma::transforms::base::Assumptions;
 pub mod swc_visitor;
 use rspack_core::{ast::javascript::Ast, CompilerOptions, ResourceData};
 use rspack_error::Result;
-use swc_core::common::chain;
+use swc_core::common::{chain, Mark, SourceMap};
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::transforms::base::pass::{noop, Optional};
 
@@ -24,10 +26,111 @@ macro_rules! either {
       Either::Right(noop())
     }
   };
+}
 
-  ($config:expr, $f:expr, $optional:expr) => {
-    Optional::new(either!($config, $f), $optional)
+#[allow(clippy::too_many_arguments)]
+fn chain_builtins_transform<'b>(
+  resource_data: &'b ResourceData,
+  options: &'b CompilerOptions,
+  module_type: &'b ModuleType,
+  source: &'b str,
+  top_level_mark: Mark,
+  unresolved_mark: Mark,
+  cm: Arc<SourceMap>,
+) -> impl Fold + 'b {
+  let comments = None;
+  // TODO: should use react-loader to get exclude/include
+  let should_transform_by_react = module_type.is_jsx_like();
+
+  chain!(
+    Optional::new(
+      rspack_swc_visitors::react(
+        top_level_mark,
+        comments,
+        &cm,
+        &options.builtins.react,
+        unresolved_mark
+      ),
+      should_transform_by_react
+    ),
+    Optional::new(
+      rspack_swc_visitors::fold_react_refresh(unresolved_mark),
+      should_transform_by_react && options.builtins.react.refresh.unwrap_or_default()
+    ),
+    either!(
+      options.builtins.emotion,
+      |emotion_options: &rspack_swc_visitors::EmotionOptions| {
+        rspack_swc_visitors::emotion(
+          emotion_options.clone(),
+          &resource_data.resource_path,
+          xxh32(source.as_bytes(), 0),
+          cm.clone(),
+          comments,
+        )
+      }
+    ),
+    either!(options.builtins.relay, |relay_option| {
+      rspack_swc_visitors::relay(
+        relay_option,
+        &resource_data.resource_path,
+        PathBuf::from(AsRef::<Path>::as_ref(&options.context)),
+        unresolved_mark,
+      )
+    }),
+    either!(options.builtins.plugin_import, |config| {
+      swc_plugin_import::plugin_import(config)
+    })
+  )
+}
+
+fn chain_builtins_webpack_plugin<'b>(
+  options: &'b CompilerOptions,
+  unresolved_mark: Mark,
+) -> impl Fold + 'b {
+  chain!(
+    Optional::new(
+      rspack_swc_visitors::define(&options.builtins.define),
+      !options.builtins.define.is_empty()
+    ),
+    Optional::new(
+      rspack_swc_visitors::provide_builtin(&options.builtins.provide, unresolved_mark),
+      !options.builtins.provide.is_empty()
+    )
+  )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn chain_compat_transform<'b>(
+  resource_data: &'b ResourceData,
+  options: &'b CompilerOptions,
+  top_level_mark: Mark,
+  unresolved_mark: Mark,
+  assumptions: Assumptions,
+  syntax: Syntax,
+) -> impl Fold + 'b {
+  let transform_by_default = options.should_transform_by_default();
+  let es_version = match options.target.es_version {
+    rspack_core::TargetEsVersion::Esx(es_version) => Some(es_version),
+    _ => None,
   };
+
+  let resource_path = resource_data.resource_path.to_string_lossy();
+
+  Optional::new(
+    swc_visitor::compat(
+      options.builtins.preset_env.clone(),
+      es_version,
+      assumptions,
+      top_level_mark,
+      unresolved_mark,
+      None,
+      syntax.typescript(),
+    ),
+    transform_by_default
+      && !resource_path.contains("@swc/helpers")
+      && !resource_path.contains("tslib")
+      && !resource_path.contains("core-js"),
+  )
 }
 
 /// return (ast, top_level_mark, unresolved_mark, globals)
@@ -42,13 +145,8 @@ pub fn run_before_pass(
   source: &str,
 ) -> Result<()> {
   let transform_by_default = options.should_transform_by_default();
-  let es_version = match options.target.es_version {
-    rspack_core::TargetEsVersion::Esx(es_version) => Some(es_version),
-    _ => None,
-  };
+
   let cm = ast.get_context().source_map.clone();
-  // TODO: should use react-loader to get exclude/include
-  let should_transform_by_react = transform_by_default && module_type.is_jsx_like();
   ast.transform_with_handler(cm.clone(), |_handler, program, context| {
     let top_level_mark = context.top_level_mark;
     let unresolved_mark = context.unresolved_mark;
@@ -60,104 +158,38 @@ pub fn run_before_pass(
       assumptions.set_public_class_fields = true;
     }
 
-    let resource_path = resource_data.resource_path.to_string_lossy();
-
     let mut pass = chain!(
       swc_visitor::resolver(unresolved_mark, top_level_mark, syntax.typescript()),
-      //      swc_visitor::lint(
-      //        &ast,
-      //        top_level_mark,
-      //        unresolved_mark,
-      //        EsVersion::Es2022,
-      //        &cm
-      //      ),
       Optional::new(
         swc_visitor::decorator(assumptions, &options.builtins.decorator),
-        transform_by_default && syntax.decorators()
+        syntax.decorators()
       ),
-      //    swc_visitor::import_assertions(),
       Optional::new(
         swc_visitor::typescript(assumptions, top_level_mark, comments, &cm),
-        transform_by_default && syntax.typescript()
+        syntax.typescript()
       ),
-      Optional::new(
-        rspack_swc_visitors::react(
-          top_level_mark,
-          comments,
-          &cm,
-          &options.builtins.react,
-          unresolved_mark
-        ),
-        should_transform_by_react
+      chain_builtins_transform(
+        resource_data,
+        options,
+        module_type,
+        source,
+        top_level_mark,
+        unresolved_mark,
+        cm
       ),
-      Optional::new(
-        swc_visitor::fold_react_refresh(unresolved_mark),
-        should_transform_by_react && options.builtins.react.refresh.unwrap_or_default()
-      ),
-      either!(
-        options.builtins.emotion,
-        |emotion_options: &rspack_swc_visitors::EmotionOptions| {
-          rspack_swc_visitors::emotion(
-            emotion_options.clone(),
-            &resource_data.resource_path,
-            xxh32(source.as_bytes(), 0),
-            cm.clone(),
-            comments,
-          )
-        },
-        transform_by_default
-      ),
-      either!(
-        options.builtins.relay,
-        |relay_option| {
-          relay(
-            relay_option,
-            &resource_data.resource_path,
-            PathBuf::from(AsRef::<Path>::as_ref(&options.context)),
-            unresolved_mark,
-          )
-        },
-        transform_by_default
-      ),
-      either!(
-        options.builtins.plugin_import,
-        |config| { swc_plugin_import::plugin_import(config) },
-        transform_by_default
-      ),
-      // enable if configurable
-      // swc_visitor::const_modules(cm, globals),
-      Optional::new(
-        rspack_swc_visitors::define(&options.builtins.define),
-        !options.builtins.define.is_empty()
-      ),
-      Optional::new(
-        rspack_swc_visitors::provide_builtin(&options.builtins.provide, unresolved_mark),
-        !options.builtins.provide.is_empty()
-      ),
+      chain_builtins_webpack_plugin(options, unresolved_mark),
       Optional::new(
         swc_visitor::export_default_from(),
         syntax.export_default_from()
       ),
-      // enable if necessary
-      // swc_visitor::simplifier(unresolved_mark, Default::default()),
-      // enable if configurable
-      // swc_visitor::json_parse(min_cost),
       swc_visitor::paren_remover(comments.map(|v| v as &dyn Comments)),
-      // es_version
-      Optional::new(
-        swc_visitor::compat(
-          options.builtins.preset_env.clone(),
-          es_version,
-          assumptions,
-          top_level_mark,
-          unresolved_mark,
-          comments,
-          syntax.typescript()
-        ),
-        transform_by_default
-          && !resource_path.contains("@swc/helpers")
-          && !resource_path.contains("tslib")
-          && !resource_path.contains("core-js")
+      chain_compat_transform(
+        resource_data,
+        options,
+        top_level_mark,
+        unresolved_mark,
+        assumptions,
+        syntax
       ),
       Optional::new(swc_visitor::reserved_words(), transform_by_default),
       Optional::new(
