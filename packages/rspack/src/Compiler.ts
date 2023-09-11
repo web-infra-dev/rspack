@@ -42,19 +42,10 @@ import Watching from "./Watching";
 import { NormalModule } from "./NormalModule";
 import { normalizeJsModule } from "./util/normalization";
 import {
-	ElectronTargetPlugin,
-	ExternalsPlugin,
-	HttpExternalsRspackPlugin,
-	NodeTargetPlugin,
 	RspackBuiltinPlugin,
 	deprecated_resolveBuiltins
 } from "./builtin-plugin";
-import assert from "assert";
-import EntryOptionPlugin from "./lib/EntryOptionPlugin";
-
-class NodeTemplatePlugin {
-	apply() {}
-}
+import { optionsApply_compat } from "./rspackOptionsApply";
 
 class EnableLibraryPlugin {
 	constructor(private libraryType: string) {}
@@ -174,7 +165,9 @@ class Compiler {
 				get NodeTargetPlugin() {
 					return require("./builtin-plugin").NodeTargetPlugin;
 				},
-				NodeTemplatePlugin
+				get NodeTemplatePlugin() {
+					return require("./node/NodeTemplatePlugin").default;
+				}
 			},
 			electron: {
 				get ElectronTargetPlugin() {
@@ -306,45 +299,7 @@ class Compiler {
 
 		const options = this.options;
 		// TODO: remove this in v0.4
-		if (this.parentCompilation === undefined) {
-			if (options.externals) {
-				assert(
-					options.externalsType,
-					"options.externalsType should have value after `applyRspackOptionsDefaults`"
-				);
-				new ExternalsPlugin(options.externalsType, options.externals).apply(
-					this
-				);
-			}
-
-			if (options.externalsPresets.node) {
-				new NodeTargetPlugin().apply(this);
-			}
-			if (options.externalsPresets.electronMain) {
-				new ElectronTargetPlugin("main").apply(this);
-			}
-			if (options.externalsPresets.electronPreload) {
-				new ElectronTargetPlugin("preload").apply(this);
-			}
-			if (options.externalsPresets.electronRenderer) {
-				new ElectronTargetPlugin("renderer").apply(this);
-			}
-			if (
-				options.externalsPresets.electron &&
-				!options.externalsPresets.electronMain &&
-				!options.externalsPresets.electronPreload &&
-				!options.externalsPresets.electronRenderer
-			) {
-				new ElectronTargetPlugin().apply(this);
-			}
-			if (
-				options.externalsPresets.web ||
-				(options.externalsPresets.node && options.experiments.css)
-			) {
-				new HttpExternalsRspackPlugin(!!options.experiments.css).apply(this);
-			}
-			EntryOptionPlugin.applyEntryOption(this, this.context, options.entry);
-		}
+		optionsApply_compat(this, options);
 		// TODO: remove this when drop support for builtins options
 		options.builtins = deprecated_resolveBuiltins(
 			options.builtins,

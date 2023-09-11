@@ -180,7 +180,6 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		clean: output.clean!,
 		assetModuleFilename: output.assetModuleFilename!,
 		filename: output.filename!,
-		chunkFormat: output.chunkFormat === false ? "false" : output.chunkFormat!,
 		chunkFilename: output.chunkFilename!,
 		chunkLoading: chunkLoading === false ? "false" : chunkLoading,
 		crossOriginLoading: getRawCrossOriginLoading(output.crossOriginLoading!),

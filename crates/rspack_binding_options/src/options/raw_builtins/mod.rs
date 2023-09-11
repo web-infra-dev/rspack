@@ -21,6 +21,10 @@ use rspack_plugin_externals::{
 };
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_progress::ProgressPlugin;
+use rspack_plugin_runtime::{
+  enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, CommonJsChunkFormatPlugin,
+  ModuleChunkFormatPlugin,
+};
 use rspack_plugin_swc_css_minimizer::SwcCssMinimizerRspackPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 
@@ -46,6 +50,10 @@ pub enum BuiltinPluginName {
   ExternalsPlugin,
   NodeTargetPlugin,
   ElectronTargetPlugin,
+  EnableChunkLoadingPlugin,
+  CommonJsChunkFormatPlugin,
+  ArrayPushCallbackChunkFormatPlugin,
+  ModuleChunkFormatPlugin,
 
   // rspack specific plugins
   HttpExternalsRspackPlugin,
@@ -69,6 +77,7 @@ impl RawOptionsApply for BuiltinPlugin {
     plugins: &mut Vec<BoxPlugin>,
   ) -> std::result::Result<Self::Options, rspack_error::Error> {
     match self.name {
+      // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
         let plugin = DefinePlugin::new(downcast_into::<Define>(self.options)?).boxed();
         plugins.push(plugin);
@@ -110,8 +119,23 @@ impl RawOptionsApply for BuiltinPlugin {
       BuiltinPluginName::NodeTargetPlugin => plugins.push(node_target_plugin()),
       BuiltinPluginName::ElectronTargetPlugin => {
         let context = downcast_into::<String>(self.options)?;
-        electron_target_plugin(context.into(), plugins)
+        electron_target_plugin(context.into(), plugins);
       }
+      BuiltinPluginName::EnableChunkLoadingPlugin => {
+        let chunk_loading_type = downcast_into::<String>(self.options)?;
+        enable_chunk_loading_plugin(chunk_loading_type.as_str().into(), plugins);
+      }
+      BuiltinPluginName::CommonJsChunkFormatPlugin => {
+        plugins.push(CommonJsChunkFormatPlugin.boxed());
+      }
+      BuiltinPluginName::ArrayPushCallbackChunkFormatPlugin => {
+        plugins.push(ArrayPushCallbackChunkFormatPlugin.boxed());
+      }
+      BuiltinPluginName::ModuleChunkFormatPlugin => {
+        plugins.push(ModuleChunkFormatPlugin.boxed());
+      }
+
+      // rspack specific plugins
       BuiltinPluginName::HttpExternalsRspackPlugin => {
         let plugin_options = downcast_into::<RawHttpExternalsRspackPluginOptions>(self.options)?;
         let plugin = http_externals_rspack_plugin(plugin_options.css);

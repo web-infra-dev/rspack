@@ -3,7 +3,6 @@ use rspack_core::{
   to_identifier, BoxPlugin, CrossOriginLoading, LibraryAuxiliaryComment, LibraryName,
   LibraryOptions, OutputOptions, PluginExt, TrustedTypes,
 };
-use rspack_error::internal_error;
 use serde::Deserialize;
 
 use crate::RawOptionsApply;
@@ -138,7 +137,6 @@ pub struct RawOutputOptions {
   pub import_function_name: String,
   pub iife: bool,
   pub module: bool,
-  pub chunk_format: String,
   pub chunk_loading: String,
   pub enabled_chunk_loading_types: Option<Vec<String>>,
   pub trusted_types: Option<RawTrustedTypes>,
@@ -156,15 +154,6 @@ pub struct RawOutputOptions {
 impl RawOptionsApply for RawOutputOptions {
   type Options = OutputOptions;
   fn apply(self, plugins: &mut Vec<BoxPlugin>) -> Result<OutputOptions, rspack_error::Error> {
-    self.apply_chunk_format_plugin(plugins)?;
-    if let Some(chunk_loading_types) = self.enabled_chunk_loading_types.as_ref() {
-      for chunk_loading_type in chunk_loading_types {
-        rspack_plugin_runtime::enable_chunk_loading_plugin(
-          chunk_loading_type.as_str().into(),
-          plugins,
-        );
-      }
-    }
     self.apply_library_plugin(plugins);
     for wasm_loading_type in self.enabled_wasm_loading_types {
       plugins.push(rspack_plugin_wasm::enable_wasm_loading_plugin(
@@ -211,29 +200,6 @@ impl RawOptionsApply for RawOutputOptions {
 }
 
 impl RawOutputOptions {
-  fn apply_chunk_format_plugin(
-    &self,
-    plugins: &mut Vec<BoxPlugin>,
-  ) -> Result<(), rspack_error::Error> {
-    match self.chunk_format.as_str() {
-      "array-push" => {
-        plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {}.boxed());
-      }
-      "commonjs" => plugins.push(rspack_plugin_runtime::CommonJsChunkFormatPlugin {}.boxed()),
-      "module" => {
-        plugins.push(rspack_plugin_runtime::ModuleChunkFormatPlugin {}.boxed());
-      }
-      "false" => {}
-      _ => {
-        return Err(internal_error!(
-          "Unsupported chunk format '{}'",
-          self.chunk_format
-        ))
-      }
-    }
-    Ok(())
-  }
-
   fn apply_library_plugin(&self, plugins: &mut Vec<BoxPlugin>) {
     if let Some(enabled_library_types) = &self.enabled_library_types {
       for library in enabled_library_types {

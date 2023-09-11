@@ -31,7 +31,8 @@ export {
 	SwcCssMinimizerRspackPlugin,
 	CopyRspackPlugin,
 	EntryPlugin,
-	ExternalsPlugin
+	ExternalsPlugin,
+	EnableChunkLoadingPlugin
 } from "./builtin-plugin";
 export type {
 	BannerPluginArgument,
@@ -44,7 +45,8 @@ export type {
 	EntryOptions
 } from "./builtin-plugin";
 import { ElectronTargetPlugin, NodeTargetPlugin } from "./builtin-plugin";
-export const node = { NodeTargetPlugin };
+import NodeTemplatePlugin from "./node/NodeTemplatePlugin";
+export const node = { NodeTargetPlugin, NodeTemplatePlugin };
 export const electron = { ElectronTargetPlugin };
 
 export { Watching };
