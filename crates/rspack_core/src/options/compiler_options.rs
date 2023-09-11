@@ -43,6 +43,9 @@ impl CompilerOptions {
     self.experiments.rspack_future.new_treeshaking
   }
 
+  /// This controls whether we're using the old Rspack behavior to transform a module.
+  /// - `true`: use the old strategy, and transform the non web standard modules into a standardized one.
+  /// - `false`: use the new strategy, only web-standard modules are supported.
   pub fn should_transform_by_default(&self) -> bool {
     !self.experiments.rspack_future.disable_transform_by_default
   }

@@ -50,6 +50,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       &resource_data.resource_path,
       module_type,
       compiler_options.builtins.decorator.is_some(),
+      compiler_options.should_transform_by_default(),
     );
     let source = source.source();
     let mut ast = match crate::ast::parse(

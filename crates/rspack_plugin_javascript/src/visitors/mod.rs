@@ -37,7 +37,7 @@ macro_rules! either {
   note = "Builtin transform is deprecated and will be removed in JS version 0.5.0, see: https://github.com/web-infra-dev/rspack/pull/4133"
 )]
 #[allow(clippy::too_many_arguments)]
-fn builtins_transform<'b>(
+fn builtins_additional_feature_transforms<'b>(
   resource_data: &'b ResourceData,
   options: &'b CompilerOptions,
   module_type: &'b ModuleType,
@@ -172,7 +172,6 @@ fn compat_transform<'b>(
         && !resource_path.contains("tslib")
         && !resource_path.contains("core-js"),
     ),
-    swc_visitor::inject_helpers(unresolved_mark),
     swc_visitor::reserved_words(),
   )
 }
@@ -206,28 +205,21 @@ pub fn run_before_pass(
         // Decorator transformation varies from `ModuleType`,
         // - TypeScript-like: decorators will be transformed by default, with legacy settings and will emit meta data.
         //      Since this is a default behavior with tsc.
-        // - JavaScript-like: decorators will not be transformed, the syntax will be kept as-is.
-        // Difference between Rspack and Webpack:
-        //   Webpack's parser does not support an input with decorator. The parser will complain.
-        //   Still, the overall principle of JavaScript-like syntax is to keep the minimal amount of the transformation.
-        //   (i.e transform only when it is necessary)
+        // - JavaScript-like: decorators will not be transformed(if `disableTransformByDefault` is on), and the parse will fail.
         (options.should_transform_by_default() || syntax.typescript()) && syntax.decorators()
       ),
       Optional::new(
         swc_visitor::typescript(assumptions, top_level_mark, comments, &cm),
         syntax.typescript()
       ),
-      Optional::new(
-        builtins_transform(
-          resource_data,
-          options,
-          module_type,
-          source,
-          top_level_mark,
-          unresolved_mark,
-          cm
-        ),
-        options.should_transform_by_default()
+      builtins_additional_feature_transforms(
+        resource_data,
+        options,
+        module_type,
+        source,
+        top_level_mark,
+        unresolved_mark,
+        cm
       ),
       Optional::new(
         compat_transform(
@@ -241,6 +233,9 @@ pub fn run_before_pass(
         options.should_transform_by_default()
       ),
       builtins_webpack_plugin(options, unresolved_mark),
+      // This will be deprecated in the future when TypeScript support and transform by default is dropped.
+      // These features are coupled with this.
+      swc_visitor::inject_helpers(unresolved_mark),
       swc_visitor::hygiene(false, top_level_mark),
       swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
     );
