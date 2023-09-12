@@ -11,14 +11,6 @@ const config = {
 				template: "./index.html"
 			}
 		]
-	},
-	optimization: {
-		usedExports: true
-	},
-	experiments: {
-		rspackFuture: {
-			newTreeshaking: true
-		}
 	}
 };
 module.exports = config;
