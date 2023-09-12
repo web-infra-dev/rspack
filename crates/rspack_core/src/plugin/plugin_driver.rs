@@ -294,16 +294,14 @@ impl PluginDriver {
     Ok(())
   }
 
-  pub fn render_module_content(
-    &self,
-    args: RenderModuleContentArgs,
-  ) -> PluginRenderModuleContentOutput {
+  pub fn render_module_content<'a>(
+    &'a self,
+    mut args: RenderModuleContentArgs<'a>,
+  ) -> PluginRenderModuleContentOutput<'a> {
     for plugin in &self.plugins {
-      if let Some(source) = plugin.render_module_content(PluginContext::new(), &args)? {
-        return Ok(Some(source));
-      }
+      args = plugin.render_module_content(PluginContext::new(), args)?;
     }
-    Ok(None)
+    Ok(args)
   }
 
   pub async fn factorize(

@@ -35,17 +35,14 @@ pub fn render_chunk_modules(
         .get(&mgm.module_identifier, Some(&chunk.runtime))
         .expect("should have code generation result");
       if let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) {
-        let module_source = if let Some(source) = plugin_driver
+        let render_module_result = plugin_driver
           .render_module_content(RenderModuleContentArgs {
             compilation,
-            module_source: origin_source,
+            module_graph_module: mgm,
+            module_source: origin_source.clone(),
+            chunk_init_fragments: ChunkInitFragments::default(),
           })
-          .expect("render_module_content failed")
-        {
-          source
-        } else {
-          origin_source.clone()
-        };
+          .expect("render_module_content failed");
 
         let runtime_requirements = compilation
           .chunk_graph
@@ -54,12 +51,13 @@ pub fn render_chunk_modules(
         Some((
           mgm.module_identifier,
           render_module(
-            module_source,
+            render_module_result.module_source,
             mgm,
             runtime_requirements,
             mgm.id(&compilation.chunk_graph),
           ),
           &code_gen_result.chunk_init_fragments,
+          render_module_result.chunk_init_fragments,
         ))
       } else {
         None
@@ -67,21 +65,20 @@ pub fn render_chunk_modules(
     })
     .collect::<Vec<_>>();
 
-  module_code_array.sort_unstable_by_key(|(module_identifier, _, _)| *module_identifier);
+  module_code_array.sort_unstable_by_key(|(module_identifier, _, _, _)| *module_identifier);
 
   let chunk_init_fragments = module_code_array.iter().fold(
     ChunkInitFragments::default(),
-    |mut chunk_init_fragments, (_, _, fragments)| {
-      for (k, v) in fragments.iter() {
-        chunk_init_fragments.insert(k.to_string(), v.clone());
-      }
+    |mut chunk_init_fragments, (_, _, fragments, additional_fragments)| {
+      chunk_init_fragments.extend((*fragments).clone());
+      chunk_init_fragments.extend(additional_fragments.clone());
       chunk_init_fragments
     },
   );
 
   let module_sources: Vec<_> = module_code_array
     .into_iter()
-    .map(|(_, source, _)| source)
+    .map(|(_, source, _, _)| source)
     .collect::<Result<_>>()?;
   let module_sources = module_sources
     .into_par_iter()

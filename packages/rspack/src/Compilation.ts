@@ -120,6 +120,7 @@ export class Compilation {
 	contextModuleFactory?: ContextModuleFactory;
 	fileSystemInfo = {
 		createSnapshot() {
+			// fake implement to support html-webpack-plugin
 			return null;
 		}
 	};

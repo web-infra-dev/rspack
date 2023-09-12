@@ -58,6 +58,8 @@ pub fn scan_dependencies(
     &unresolved_ctxt,
     resource_data,
     &mut presentational_dependencies,
+    compiler_options.output.module,
+    build_info,
   ));
 
   program.visit_with(&mut CompatibilityScanner::new(

@@ -1,3 +1,4 @@
+pub mod api_plugin;
 pub mod flag_usage_plugin;
 pub mod impl_plugin_for_js_plugin;
 pub mod infer_async_modules_plugin;

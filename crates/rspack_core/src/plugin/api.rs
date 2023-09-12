@@ -35,7 +35,7 @@ pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
 pub type PluginProcessAssetsOutput = Result<()>;
 pub type PluginOptimizeChunksOutput = Result<()>;
 pub type PluginAdditionalChunkRuntimeRequirementsOutput = Result<()>;
-pub type PluginRenderModuleContentOutput = Result<Option<BoxSource>>;
+pub type PluginRenderModuleContentOutput<'a> = Result<RenderModuleContentArgs<'a>>;
 pub type PluginRenderStartupHookOutput = Result<Option<BoxSource>>;
 pub type PluginRenderHookOutput = Result<Option<BoxSource>>;
 pub type PluginJsChunkHashHookOutput = Result<()>;
@@ -189,12 +189,12 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   // JavascriptModulesPlugin hook
-  fn render_module_content(
-    &self,
+  fn render_module_content<'a>(
+    &'a self,
     _ctx: PluginContext,
-    _args: &RenderModuleContentArgs,
-  ) -> PluginRenderModuleContentOutput {
-    Ok(None)
+    args: RenderModuleContentArgs<'a>,
+  ) -> PluginRenderModuleContentOutput<'a> {
+    Ok(args)
   }
 
   // JavascriptModulesPlugin hook
