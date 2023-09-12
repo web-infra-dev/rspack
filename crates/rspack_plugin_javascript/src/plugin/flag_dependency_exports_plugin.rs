@@ -2,20 +2,22 @@ use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
 use rspack_core::{
-  DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec,
-  ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  BuildMetaExportsType, Compilation, DependencyId, ExportInfoProvided, ExportNameOrSpec,
+  ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier, Plugin,
 };
+use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
 
-pub struct ProvidedExportsPlugin<'a> {
+struct FlagDependencyExportsProxy<'a> {
   mg: &'a mut ModuleGraph,
   changed: bool,
   current_module_id: ModuleIdentifier,
   dependencies: HashMap<ModuleIdentifier, HashSet<ModuleIdentifier>>,
 }
 
-impl<'a> ProvidedExportsPlugin<'a> {
+impl<'a> FlagDependencyExportsProxy<'a> {
   pub fn new(mg: &'a mut ModuleGraph) -> Self {
     Self {
       mg,
@@ -27,18 +29,43 @@ impl<'a> ProvidedExportsPlugin<'a> {
 
   pub fn apply(&mut self) {
     let mut q = VecDeque::new();
+
+    // take the ownership of module_identifier_to_module_graph_module to avoid borrow ref and
+    // mut ref of `ModuleGraph` at the same time
+    let module_graph_modules =
+      std::mem::take(&mut self.mg.module_identifier_to_module_graph_module);
+    for mgm in module_graph_modules.values() {
+      let exports_id = mgm.exports;
+      let is_module_without_exports = if let Some(ref build_meta) = mgm.build_meta {
+        build_meta.exports_type == BuildMetaExportsType::Unset
+      } else {
+        true
+      } && {
+        let exports_info = self.mg.get_exports_info_by_id(&exports_id);
+        let other_exports_info_id = exports_info.other_exports_info;
+        let other_exports_info = self.mg.get_export_info_by_id(&other_exports_info_id);
+        other_exports_info.provided.is_some()
+      };
+
+      // TODO: mem cache
+      exports_id.set_has_provide_info(self.mg);
+      q.push_back(mgm.module_identifier);
+      if is_module_without_exports {
+        exports_id.set_unknown_exports_provided(self.mg, false, None, None, None, None);
+      }
+    }
+    self.mg.module_identifier_to_module_graph_module = module_graph_modules;
+
     while let Some(module_id) = q.pop_back() {
       self.changed = false;
       self.current_module_id = module_id;
       let mut exports_specs_from_dependencies: HashMap<DependencyId, ExportsSpec> =
         HashMap::default();
       self.process_dependencies_block(module_id, &mut exports_specs_from_dependencies);
-      // I use this trick because of rustc borrow rules, it is safe becuase dependency provide plugin is sync, there are no other methods using it at the same time.
       let exports_info_id = self.mg.get_exports_info(&module_id).id;
       for (dep_id, exports_spec) in exports_specs_from_dependencies.into_iter() {
         self.process_exports_spec(dep_id, exports_spec, exports_info_id);
       }
-      // Swap it back
       if self.changed {
         self.notify_dependencies(&mut q);
       }
@@ -286,4 +313,16 @@ pub struct DefaultExportInfo<'a> {
   terminal_binding: bool,
   from: Option<&'a ModuleGraphConnection>,
   priority: Option<u8>,
+}
+
+#[derive(Debug, Default)]
+pub struct FlagDependencyExportsPlugin;
+
+#[async_trait::async_trait]
+impl Plugin for FlagDependencyExportsPlugin {
+  async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+    let mut proxy = FlagDependencyExportsProxy::new(&mut compilation.module_graph);
+    proxy.apply();
+    Ok(())
+  }
 }

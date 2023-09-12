@@ -917,7 +917,9 @@ const optimization = z.strictObject({
 	removeAvailableModules: z.boolean().optional(),
 	removeEmptyChunks: z.boolean().optional(),
 	realContentHash: z.boolean().optional(),
-	sideEffects: z.enum(["flag"]).or(z.boolean()).optional()
+	sideEffects: z.enum(["flag"]).or(z.boolean()).optional(),
+	providedExports: z.boolean().optional(),
+	usedExports: z.enum(["global"]).or(z.boolean()).optional()
 });
 export type Optimization = z.infer<typeof optimization>;
 //#endregion
@@ -932,7 +934,8 @@ export type IncrementalRebuildOptions = z.infer<
 >;
 
 const rspackFutureOptions = z.strictObject({
-	newResolver: z.boolean().optional()
+	newResolver: z.boolean().optional(),
+	newTreeshaking: z.boolean().optional()
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 

@@ -359,6 +359,7 @@ impl Compilation {
       MakeParam::ForceBuildModules(std::mem::take(&mut self.make_failed_module));
     let make_failed_dependencies =
       MakeParam::ForceBuildDeps(std::mem::take(&mut self.make_failed_dependencies));
+
     self
       .update_module_graph(vec![param, make_failed_module, make_failed_dependencies])
       .await
@@ -1144,12 +1145,19 @@ impl Compilation {
     let start = logger.time("finish modules");
     plugin_driver.finish_modules(self).await?;
     logger.time_end(start);
+
     Ok(())
   }
 
   #[instrument(name = "compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
+
+    let start = logger.time("optimize dependencies");
+    // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
+    while plugin_driver.optimize_dependencies(self).await?.is_some() {}
+    logger.time_end(start);
+
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;

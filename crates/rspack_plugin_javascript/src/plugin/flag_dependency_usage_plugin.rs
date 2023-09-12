@@ -3,23 +3,24 @@ use std::collections::VecDeque;
 
 use rspack_core::{
   is_exports_object_referenced, is_no_exports_referenced, BuildMetaExportsType, Compilation,
-  ConnectionState, DependencyId, ExportsInfoId, ExtendedReferencedExport, ModuleIdentifier,
+  ConnectionState, DependencyId, ExportsInfoId, ExtendedReferencedExport, ModuleIdentifier, Plugin,
   ReferencedExport, RuntimeSpec, UsageState,
 };
+use rspack_error::Result;
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::utils::join_jsword;
 
 #[allow(unused)]
-pub struct FlagDependencyUsagePlugin<'a> {
+pub struct FlagDependencyUsagePluginProxy<'a> {
   global: bool,
   compilation: &'a mut Compilation,
   exports_info_module_map: HashMap<ExportsInfoId, ModuleIdentifier>,
 }
 
 #[allow(unused)]
-impl<'a> FlagDependencyUsagePlugin<'a> {
+impl<'a> FlagDependencyUsagePluginProxy<'a> {
   pub fn new(global: bool, compilation: &'a mut Compilation) -> Self {
     Self {
       global,
@@ -53,7 +54,7 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
       }
     }
     // TODO: compilation.globalEntry.dependencies, we don't have now https://github.com/webpack/webpack/blob/3f71468514ae2f179ff34c837ce82fcc8f97e24c/lib/FlagDependencyUsagePlugin.js#L328-L330
-    _ = std::mem::replace(&mut self.compilation.entries, entries);
+    self.compilation.entries = entries;
 
     while let Some((module_id, runtime)) = q.pop_front() {
       self.process_module(module_id, runtime, false, &mut q);
@@ -333,5 +334,19 @@ impl<'a> FlagDependencyUsagePlugin<'a> {
         queue.push_back((module_id, runtime));
       }
     }
+  }
+}
+
+#[derive(Debug, Default)]
+pub struct FlagDependencyUsagePlugin;
+
+#[async_trait::async_trait]
+impl Plugin for FlagDependencyUsagePlugin {
+  async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
+    // TODO: `global` is always `true`, until we finished runtime optimization.
+    let mut proxy = FlagDependencyUsagePluginProxy::new(true, compilation);
+    proxy.apply();
+    println!("optimize_dependencies");
+    Ok(None)
   }
 }

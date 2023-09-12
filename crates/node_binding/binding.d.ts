@@ -828,6 +828,8 @@ export interface RawOptimizationOptions {
   removeAvailableModules: boolean
   removeEmptyChunks: boolean
   sideEffects: string
+  usedExports: string
+  providedExports: boolean
   realContentHash: boolean
 }
 
@@ -953,6 +955,7 @@ export interface RawResolveOptions {
 
 export interface RawRspackFuture {
   newResolver: boolean
+  newTreeshaking: boolean
 }
 
 export interface RawRuleSetCondition {

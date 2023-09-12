@@ -370,6 +370,10 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn optimize_dependencies(&self, _compilation: &mut Compilation) -> Result<Option<()>> {
+    Ok(None)
+  }
+
   async fn optimize_tree(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
