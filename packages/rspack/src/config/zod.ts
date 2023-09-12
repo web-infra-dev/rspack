@@ -337,20 +337,22 @@ export type Resolve = z.infer<typeof resolve>;
 //#endregion
 
 //#region Module
-export type RuleSetCondition =
-	| RegExp
-	| string
-	| RuleSetConditions
-	| RuleSetLogicalConditions
-	| ((value: string) => boolean);
-const ruleSetCondition: z.ZodType<RuleSetCondition> = z
+const baseRuleSetCondition = z
 	.instanceof(RegExp)
 	.or(z.string())
-	.or(z.lazy(() => ruleSetConditions))
-	.or(z.lazy(() => ruleSetLogicalConditions))
 	.or(z.function().args(z.string()).returns(z.boolean()));
 
+export type RuleSetCondition =
+	| z.infer<typeof baseRuleSetCondition>
+	| RuleSetConditions
+	| RuleSetLogicalConditions;
+
+const ruleSetCondition: z.ZodType<RuleSetCondition> = baseRuleSetCondition
+	.or(z.lazy(() => ruleSetConditions))
+	.or(z.lazy(() => ruleSetLogicalConditions));
+
 export type RuleSetConditions = RuleSetCondition[];
+
 const ruleSetConditions: z.ZodType<RuleSetConditions> = z.lazy(() =>
 	z.array(ruleSetCondition)
 );
@@ -360,6 +362,7 @@ export type RuleSetLogicalConditions = {
 	or?: RuleSetConditions;
 	not?: RuleSetConditions;
 };
+
 const ruleSetLogicalConditions: z.ZodType<RuleSetLogicalConditions> =
 	z.strictObject({
 		and: ruleSetConditions.optional(),
@@ -390,37 +393,7 @@ const ruleSetUse = ruleSetUseItem
 	);
 export type RuleSetUse = z.infer<typeof ruleSetUse>;
 
-export type RuleSetRule = {
-	test?: RuleSetCondition;
-	exclude?: RuleSetCondition;
-	include?: RuleSetCondition;
-	issuer?: RuleSetCondition;
-	dependency?: RuleSetCondition;
-	resource?: RuleSetCondition;
-	resourceFragment?: RuleSetCondition;
-	resourceQuery?: RuleSetCondition;
-	scheme?: RuleSetCondition;
-	mimetype?: RuleSetCondition;
-	descriptionData?: {
-		[k: string]: RuleSetCondition;
-	};
-	oneOf?: RuleSetRule[];
-	rules?: RuleSetRule[];
-	type?: string;
-	loader?: RuleSetLoader;
-	options?: RuleSetLoaderOptions;
-	use?: RuleSetUse;
-	parser?: {
-		[k: string]: any;
-	};
-	generator?: {
-		[k: string]: any;
-	};
-	resolve?: ResolveOptions;
-	sideEffects?: boolean;
-	enforce?: "pre" | "post";
-};
-const ruleSetRule: z.ZodType<RuleSetRule> = z.strictObject({
+const baseRuleSetRule = z.strictObject({
 	test: ruleSetCondition.optional(),
 	exclude: ruleSetCondition.optional(),
 	include: ruleSetCondition.optional(),
@@ -432,8 +405,6 @@ const ruleSetRule: z.ZodType<RuleSetRule> = z.strictObject({
 	scheme: ruleSetCondition.optional(),
 	mimetype: ruleSetCondition.optional(),
 	descriptionData: z.record(ruleSetCondition).optional(),
-	oneOf: z.lazy(() => ruleSetRule.array()).optional(),
-	rules: z.lazy(() => ruleSetRule.array()).optional(),
 	type: z.string().optional(),
 	loader: ruleSetLoader.optional(),
 	options: ruleSetLoaderOptions.optional(),
@@ -443,6 +414,16 @@ const ruleSetRule: z.ZodType<RuleSetRule> = z.strictObject({
 	resolve: resolveOptions.optional(),
 	sideEffects: z.boolean().optional(),
 	enforce: z.literal("pre").or(z.literal("post")).optional()
+});
+
+export type RuleSetRule = z.infer<typeof baseRuleSetRule> & {
+	oneOf?: RuleSetRule[];
+	rules?: RuleSetRule[];
+};
+
+const ruleSetRule: z.ZodType<RuleSetRule> = baseRuleSetRule.extend({
+	oneOf: z.lazy(() => ruleSetRule.array()).optional(),
+	rules: z.lazy(() => ruleSetRule.array()).optional()
 });
 
 const ruleSetRules = z.array(z.literal("...").or(ruleSetRule));
