@@ -945,7 +945,7 @@ const experiments = z.strictObject({
 		.boolean()
 		.optional()
 		.refine(val => {
-			if (val === false) {
+			if (val === false || val === true) {
 				console.warn(
 					"`experiments.newSplitChunks` will be removed at 0.4.0. See details at https://github.com/web-infra-dev/rspack/discussions/4168"
 				);
