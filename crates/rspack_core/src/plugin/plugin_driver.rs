@@ -502,11 +502,8 @@ impl PluginDriver {
   #[instrument(name = "plugin:optimize_dependencies", skip_all)]
   pub async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
     for plugin in &self.plugins {
-      match plugin.optimize_dependencies(compilation).await? {
-        Some(t) => {
-          return Ok(Some(()));
-        }
-        None => {}
+      if let Some(t) = plugin.optimize_dependencies(compilation).await? {
+        return Ok(Some(t));
       };
     }
     Ok(None)

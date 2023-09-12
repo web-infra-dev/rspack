@@ -3,8 +3,8 @@ use std::collections::VecDeque;
 
 use rspack_core::{
   BuildMetaExportsType, Compilation, DependencyId, ExportInfoProvided, ExportNameOrSpec,
-  ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ExportsType, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, Plugin,
+  ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier, Plugin,
 };
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
