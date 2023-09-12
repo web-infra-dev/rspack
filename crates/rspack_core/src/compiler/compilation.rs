@@ -32,7 +32,7 @@ use super::{
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
-  is_source_equal,
+  exports_info, is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxDependency,
   BoxModule, BuildQueue, BuildTask, BuildTaskResult, CacheCount, CacheOptions, Chunk, ChunkByUkey,
@@ -359,9 +359,12 @@ impl Compilation {
       MakeParam::ForceBuildModules(std::mem::take(&mut self.make_failed_module));
     let make_failed_dependencies =
       MakeParam::ForceBuildDeps(std::mem::take(&mut self.make_failed_dependencies));
-    self
+
+    let res = self
       .update_module_graph(vec![param, make_failed_module, make_failed_dependencies])
-      .await
+      .await;
+
+    res
   }
 
   pub async fn rebuild_module(
@@ -1144,6 +1147,16 @@ impl Compilation {
     let start = logger.time("finish modules");
     plugin_driver.finish_modules(self).await?;
     logger.time_end(start);
+
+    for mgm in self.module_graph.module_graph_modules().values() {
+      let exports_info_id = mgm.exports;
+      let exports_info = self.module_graph.get_exports_info_by_id(&exports_info_id);
+      dbg!(&exports_info);
+      // for id in exports_info.exports.values() {
+      //   let export_info = self.module_graph.get_export_info_by_id(id);
+      //   dbg!(&export_info);
+      // }
+    }
     Ok(())
   }
 

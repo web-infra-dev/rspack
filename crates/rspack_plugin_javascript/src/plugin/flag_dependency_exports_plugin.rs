@@ -2,8 +2,9 @@ use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
 use rspack_core::{
-  Compilation, DependencyId, ExportInfoProvided, ExportNameOrSpec, ExportsInfoId,
-  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, Plugin,
+  BuildMetaExportsType, Compilation, DependencyId, ExportInfoProvided, ExportNameOrSpec,
+  ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ExportsType, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, Plugin,
 };
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -28,6 +29,33 @@ impl<'a> FlagDependencyExportsProxy<'a> {
 
   pub fn apply(&mut self) {
     let mut q = VecDeque::new();
+
+    // take the ownership of module_identifier_to_module_graph_module to avoid borrow ref and
+    // mut ref of `ModuleGraph` at the same time
+    let module_graph_modules =
+      std::mem::take(&mut self.mg.module_identifier_to_module_graph_module);
+    for mgm in module_graph_modules.values() {
+      let exports_id = mgm.exports;
+      let is_module_without_exports = if let Some(ref build_meta) = mgm.build_meta {
+        build_meta.exports_type == BuildMetaExportsType::Unset
+      } else {
+        true
+      } && {
+        let exports_info = self.mg.get_exports_info_by_id(&exports_id);
+        let other_exports_info_id = exports_info.other_exports_info;
+        let other_exports_info = self.mg.get_export_info_by_id(&other_exports_info_id);
+        other_exports_info.provided.is_some()
+      };
+
+      // TODO: mem cache
+      exports_id.set_has_provide_info(self.mg);
+      q.push_back(mgm.module_identifier);
+      if is_module_without_exports {
+        exports_id.set_unknown_exports_provided(self.mg, false, None, None, None, None);
+      }
+    }
+    self.mg.module_identifier_to_module_graph_module = module_graph_modules;
+
     while let Some(module_id) = q.pop_back() {
       self.changed = false;
       self.current_module_id = module_id;

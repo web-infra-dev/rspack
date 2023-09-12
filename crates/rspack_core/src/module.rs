@@ -49,7 +49,7 @@ pub struct BuildInfo {
   pub need_create_require: bool,
 }
 
-#[derive(Debug, Default, Clone, Hash)]
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub enum BuildMetaExportsType {
   #[default]
   Unset,
