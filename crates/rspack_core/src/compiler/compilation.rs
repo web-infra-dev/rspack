@@ -1148,15 +1148,6 @@ impl Compilation {
     plugin_driver.finish_modules(self).await?;
     logger.time_end(start);
 
-    for mgm in self.module_graph.module_graph_modules().values() {
-      let exports_info_id = mgm.exports;
-      let exports_info = self.module_graph.get_exports_info_by_id(&exports_info_id);
-      dbg!(&exports_info);
-      for id in exports_info.exports.values() {
-        let export_info = self.module_graph.get_export_info_by_id(id);
-        dbg!(&export_info);
-      }
-    }
     Ok(())
   }
 
@@ -1173,6 +1164,16 @@ impl Compilation {
       };
     }
     logger.time_end(start);
+
+    for mgm in self.module_graph.module_graph_modules().values() {
+      let exports_info_id = mgm.exports;
+      let exports_info = self.module_graph.get_exports_info_by_id(&exports_info_id);
+      // dbg!(&exports_info);
+      for id in exports_info.exports.values() {
+        let export_info = self.module_graph.get_export_info_by_id(id);
+        dbg!(&export_info);
+      }
+    }
 
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {

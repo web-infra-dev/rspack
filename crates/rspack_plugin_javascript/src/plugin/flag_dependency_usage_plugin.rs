@@ -54,7 +54,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       }
     }
     // TODO: compilation.globalEntry.dependencies, we don't have now https://github.com/webpack/webpack/blob/3f71468514ae2f179ff34c837ce82fcc8f97e24c/lib/FlagDependencyUsagePlugin.js#L328-L330
-    _ = std::mem::replace(&mut self.compilation.entries, entries);
+    self.compilation.entries = entries;
 
     while let Some((module_id, runtime)) = q.pop_front() {
       self.process_module(module_id, runtime, false, &mut q);
@@ -346,6 +346,7 @@ impl Plugin for FlagDependencyUsagePlugin {
     // TODO: `global` is always `true`, until we finished runtime optimization.
     let mut proxy = FlagDependencyUsagePluginProxy::new(true, compilation);
     proxy.apply();
+    println!("optimize_dependencies");
     Ok(None)
   }
 }

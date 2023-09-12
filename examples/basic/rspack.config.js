@@ -13,6 +13,7 @@ const config = {
 		]
 	},
 	optimization: {
+		usedExports: true
 	},
 	experiments: {
 		rspackFuture: {
