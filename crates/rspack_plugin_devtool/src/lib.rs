@@ -68,23 +68,25 @@ impl Plugin for DevtoolPlugin {
     "rspack.DevtoolPlugin"
   }
 
-  fn render_module_content(
-    &self,
+  fn render_module_content<'a>(
+    &'a self,
     _ctx: PluginContext,
-    args: &RenderModuleContentArgs,
-  ) -> PluginRenderModuleContentOutput {
+    mut args: RenderModuleContentArgs<'a>,
+  ) -> PluginRenderModuleContentOutput<'a> {
     let devtool = &args.compilation.options.devtool;
     let origin_source = args.module_source.clone();
     if devtool.eval() && devtool.source_map() {
       if let Some(cached) = MODULE_RENDER_CACHE.get(&origin_source) {
-        return Ok(Some(cached.value().clone()));
+        args.module_source = cached.value().clone();
+        return Ok(args);
       } else if let Some(map) = origin_source.map(&MapOptions::new(devtool.cheap())) {
         let source = wrap_eval_source_map(&origin_source.source(), map, args.compilation)?;
         MODULE_RENDER_CACHE.insert(origin_source, source.clone());
-        return Ok(Some(source));
+        args.module_source = source;
+        return Ok(args);
       }
     }
-    Ok(Some(origin_source))
+    Ok(args)
   }
 
   fn js_chunk_hash(

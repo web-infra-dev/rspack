@@ -1161,6 +1161,7 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("optimize");
+    plugin_driver.optimize_tree(self).await?;
     plugin_driver.optimize_chunk_modules(self).await?;
     logger.time_end(start);
 

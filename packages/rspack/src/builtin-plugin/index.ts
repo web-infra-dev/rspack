@@ -9,6 +9,12 @@ export * from "./ExternalsPlugin";
 export * from "./NodeTargetPlugin";
 export * from "./ElectronTargetPlugin";
 export * from "./HttpExternalsRspackPlugin";
+export * from "./EnableChunkLoadingPlugin";
+export * from "./EnableLibraryPlugin";
+export * from "./EnableWasmLoadingPlugin";
+export * from "./ArrayPushCallbackChunkFormatPlugin";
+export * from "./CommonJsChunkFormatPlugin";
+export * from "./ModuleChunkFormatPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";

@@ -16,12 +16,14 @@ export const EntryPlugin = create(
 	(
 		context: string,
 		entry: string,
-		options: EntryOptions
+		options: EntryOptions | string = ""
 	): RawEntryPluginOptions => {
+		let entryOptions =
+			typeof options === "string" ? { name: options } : options;
 		return {
 			context,
 			entry,
-			options: getRawEntryOptions(options)
+			options: getRawEntryOptions(entryOptions)
 		};
 	}
 );

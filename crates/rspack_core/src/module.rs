@@ -46,6 +46,7 @@ pub struct BuildInfo {
   pub asset_filenames: HashSet<String>,
   pub harmony_named_exports: HashSet<JsWord>,
   pub all_star_exports: Vec<DependencyId>,
+  pub need_create_require: bool,
 }
 
 #[derive(Debug, Default, Clone, Hash)]
