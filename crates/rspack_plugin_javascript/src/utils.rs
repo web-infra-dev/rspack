@@ -46,33 +46,40 @@ pub fn syntax_by_module_type(
   enable_decorators: bool,
   should_transform_by_default: bool,
 ) -> Syntax {
-  match module_type {
-    ModuleType::Js | ModuleType::Jsx => Syntax::Es(EsConfig {
-      jsx: matches!(module_type, ModuleType::Jsx),
-      export_default_from: true,
-      decorators_before_export: true,
-      // If `disableTransformByDefault` is on, then we treat everything passed in as a web standard stuff,
-      // which means everything that is not a web standard would results in a parsing error.
-      // So as the decorator.
-      decorators: should_transform_by_default && enable_decorators,
-      fn_bind: true,
-      allow_super_outside_method: true,
-      ..Default::default()
-    }),
-    ModuleType::Ts | ModuleType::Tsx => {
-      let filename = filename.to_string_lossy();
-      Syntax::Typescript(TsConfig {
-        // `disableTransformByDefault` will not affect TypeScript-like modules,
-        // as we are following standard of TypeScript compiler.
-        // This is not a web standard by all means.
-        decorators: enable_decorators,
-        tsx: matches!(module_type, ModuleType::Tsx),
-        dts: filename.ends_with(".d.ts") || filename.ends_with(".d.tsx"),
-        ..Default::default()
-      })
-    }
-    _ => syntax_by_ext(filename, enable_decorators, should_transform_by_default),
+  let js_syntax = Syntax::Es(EsConfig {
+    jsx: matches!(module_type, ModuleType::Jsx),
+    export_default_from: true,
+    decorators_before_export: true,
+    // If `disableTransformByDefault` is on, then we treat everything passed in as a web standard stuff,
+    // which means everything that is not a web standard would results in a parsing error.
+    // So as the decorator.
+    decorators: should_transform_by_default && enable_decorators,
+    fn_bind: true,
+    allow_super_outside_method: true,
+    ..Default::default()
+  });
+
+  // Legacy behavior: `ts`, `tsx`, etc.
+  if should_transform_by_default {
+    return match module_type {
+      ModuleType::Js | ModuleType::Jsx => js_syntax,
+      ModuleType::Ts | ModuleType::Tsx => {
+        let filename = filename.to_string_lossy();
+        Syntax::Typescript(TsConfig {
+          // `disableTransformByDefault` will not affect TypeScript-like modules,
+          // as we are following standard of TypeScript compiler.
+          // This is not a web standard by all means.
+          decorators: enable_decorators,
+          tsx: matches!(module_type, ModuleType::Tsx),
+          dts: filename.ends_with(".d.ts") || filename.ends_with(".d.tsx"),
+          ..Default::default()
+        })
+      }
+      _ => syntax_by_ext(filename, enable_decorators, should_transform_by_default),
+    };
   }
+
+  js_syntax
 }
 
 pub fn set_require_literal_args(e: &mut CallExpr, arg_value: &str) {
