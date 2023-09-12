@@ -12,6 +12,8 @@ export enum BuiltinPluginName {
 	NodeTargetPlugin = "NodeTargetPlugin",
 	ElectronTargetPlugin = "ElectronTargetPlugin",
 	EnableChunkLoadingPlugin = "EnableChunkLoadingPlugin",
+	EnableLibraryPlugin = "EnableLibraryPlugin",
+	EnableWasmLoadingPlugin = "EnableWasmLoadingPlugin",
 	CommonJsChunkFormatPlugin = "CommonJsChunkFormatPlugin",
 	ArrayPushCallbackChunkFormatPlugin = "ArrayPushCallbackChunkFormatPlugin",
 	ModuleChunkFormatPlugin = "ModuleChunkFormatPlugin",

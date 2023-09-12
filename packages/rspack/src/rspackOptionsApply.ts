@@ -27,6 +27,8 @@ import {
 	CommonJsChunkFormatPlugin,
 	ElectronTargetPlugin,
 	EnableChunkLoadingPlugin,
+	EnableLibraryPlugin,
+	EnableWasmLoadingPlugin,
 	ExternalsPlugin,
 	HttpExternalsRspackPlugin,
 	ModuleChunkFormatPlugin,
@@ -102,6 +104,24 @@ export function optionsApply_compat(
 		) {
 			for (const type of options.output.enabledChunkLoadingTypes) {
 				new EnableChunkLoadingPlugin(type).apply(compiler);
+			}
+		}
+
+		if (
+			options.output.enabledWasmLoadingTypes &&
+			options.output.enabledWasmLoadingTypes.length > 0
+		) {
+			for (const type of options.output.enabledWasmLoadingTypes) {
+				new EnableWasmLoadingPlugin(type).apply(compiler);
+			}
+		}
+
+		if (
+			options.output.enabledLibraryTypes &&
+			options.output.enabledLibraryTypes.length > 0
+		) {
+			for (const type of options.output.enabledLibraryTypes) {
+				new EnableLibraryPlugin(type).apply(compiler);
 			}
 		}
 

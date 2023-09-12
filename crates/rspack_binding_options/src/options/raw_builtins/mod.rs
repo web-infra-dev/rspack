@@ -20,6 +20,7 @@ use rspack_plugin_externals::{
   electron_target_plugin, http_externals_rspack_plugin, node_target_plugin, ExternalsPlugin,
 };
 use rspack_plugin_html::HtmlRspackPlugin;
+use rspack_plugin_library::enable_library_plugin;
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_runtime::{
   enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, CommonJsChunkFormatPlugin,
@@ -27,6 +28,7 @@ use rspack_plugin_runtime::{
 };
 use rspack_plugin_swc_css_minimizer::SwcCssMinimizerRspackPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
+use rspack_plugin_wasm::enable_wasm_loading_plugin;
 
 pub use self::{
   raw_banner::RawBannerPluginOptions, raw_copy::RawCopyRspackPluginOptions,
@@ -51,6 +53,8 @@ pub enum BuiltinPluginName {
   NodeTargetPlugin,
   ElectronTargetPlugin,
   EnableChunkLoadingPlugin,
+  EnableLibraryPlugin,
+  EnableWasmLoadingPlugin,
   CommonJsChunkFormatPlugin,
   ArrayPushCallbackChunkFormatPlugin,
   ModuleChunkFormatPlugin,
@@ -124,6 +128,16 @@ impl RawOptionsApply for BuiltinPlugin {
       BuiltinPluginName::EnableChunkLoadingPlugin => {
         let chunk_loading_type = downcast_into::<String>(self.options)?;
         enable_chunk_loading_plugin(chunk_loading_type.as_str().into(), plugins);
+      }
+      BuiltinPluginName::EnableLibraryPlugin => {
+        let library_type = downcast_into::<String>(self.options)?;
+        enable_library_plugin(library_type, plugins);
+      }
+      BuiltinPluginName::EnableWasmLoadingPlugin => {
+        let wasm_loading_type = downcast_into::<String>(self.options)?;
+        plugins.push(enable_wasm_loading_plugin(
+          wasm_loading_type.as_str().into(),
+        ));
       }
       BuiltinPluginName::CommonJsChunkFormatPlugin => {
         plugins.push(CommonJsChunkFormatPlugin.boxed());

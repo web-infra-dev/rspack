@@ -116,6 +116,11 @@ export class Compilation {
 	normalModuleFactory?: NormalModuleFactory;
 	children: Compilation[] = [];
 	contextModuleFactory?: ContextModuleFactory;
+	fileSystemInfo = {
+		createSnapshot() {
+			return null;
+		}
+	};
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.name = undefined;

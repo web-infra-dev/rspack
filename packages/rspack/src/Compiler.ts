@@ -47,12 +47,6 @@ import {
 } from "./builtin-plugin";
 import { optionsApply_compat } from "./rspackOptionsApply";
 
-class EnableLibraryPlugin {
-	constructor(private libraryType: string) {}
-	apply(compiler: Compiler) {
-		compiler.options.output.enabledLibraryTypes = [this.libraryType];
-	}
-}
 class HotModuleReplacementPlugin {
 	apply() {}
 }
@@ -159,6 +153,12 @@ class Compiler {
 			get ExternalsPlugin() {
 				return require("./builtin-plugin").ExternalsPlugin;
 			},
+			get LoaderOptionsPlugin() {
+				return require("./lib/LoaderOptionsPlugin").LoaderOptionsPlugin;
+			},
+			get LoaderTargetPlugin() {
+				return require("./lib/LoaderTargetPlugin").LoaderTargetPlugin;
+			},
 			WebpackError: Error,
 			ModuleFilenameHelpers,
 			node: {
@@ -174,8 +174,15 @@ class Compiler {
 					return require("./builtin-plugin").ElectronTargetPlugin;
 				}
 			},
+			wasm: {
+				get EnableWasmLoadingPlugin() {
+					return require("./builtin-plugin").EnableWasmLoadingPlugin;
+				}
+			},
 			library: {
-				EnableLibraryPlugin
+				get EnableLibraryPlugin() {
+					return require("./builtin-plugin").EnableLibraryPlugin;
+				}
 			},
 			util: {
 				get createHash() {
