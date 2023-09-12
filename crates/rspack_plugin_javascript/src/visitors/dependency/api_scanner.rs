@@ -18,6 +18,7 @@ pub const WEBPACK_MODULES: &str = "__webpack_modules__";
 pub const WEBPACK_MODULE: &str = "__webpack_module__";
 pub const WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
 pub const WEBPACK_CHUNK_LOAD: &str = "__webpack_chunk_load__";
+pub const WEBPACK_BASE_URI: &str = "__webpack_base_uri__";
 
 pub struct ApiScanner<'a> {
   pub unresolved_ctxt: &'a SyntaxContext,
@@ -139,6 +140,16 @@ impl Visit for ApiScanner<'_> {
             ident.span.real_lo(),
             ident.span.real_hi(),
             None,
+          )));
+      }
+      WEBPACK_BASE_URI => {
+        self
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            RuntimeGlobals::BASE_URI.name().into(),
+            Some(RuntimeGlobals::BASE_URI),
           )));
       }
       _ => {}
