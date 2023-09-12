@@ -132,36 +132,28 @@ impl Plugin for HtmlRspackPlugin {
       .collect::<Vec<_>>();
 
     let mut tags = vec![];
-    for (asset_name, asset) in included_assets {
-      if let Some(extension) = Path::new(&asset_name).extension() {
-        let asset_uri = format!(
-          "{}{asset_name}",
-          config.get_public_path(compilation, &self.config.filename),
-        );
-        let mut tag: Option<HTMLPluginTag> = None;
-        if extension.eq_ignore_ascii_case("css") {
-          tag = Some(HTMLPluginTag::create_style(
-            &asset_uri,
-            Some(if let Some(inject) = &config.inject {
-              *inject
-            } else {
-              HtmlInject::Head
-            }),
-          ));
-        } else if extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("mjs") {
-          tag = Some(HTMLPluginTag::create_script(
-            &asset_uri,
-            Some(if let Some(inject) = &config.inject {
-              *inject
-            } else {
-              HtmlInject::Head
-            }),
-            &config.script_loading,
-          ))
-        }
+    // if inject is 'false', don't do anything
+    if !matches!(config.inject, HtmlInject::False) {
+      for (asset_name, asset) in included_assets {
+        if let Some(extension) = Path::new(&asset_name).extension() {
+          let asset_uri = format!(
+            "{}{asset_name}",
+            config.get_public_path(compilation, &self.config.filename),
+          );
+          let mut tag: Option<HTMLPluginTag> = None;
+          if extension.eq_ignore_ascii_case("css") {
+            tag = Some(HTMLPluginTag::create_style(&asset_uri, config.inject));
+          } else if extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("mjs") {
+            tag = Some(HTMLPluginTag::create_script(
+              &asset_uri,
+              config.inject,
+              &config.script_loading,
+            ))
+          }
 
-        if let Some(tag) = tag {
-          tags.push((tag, asset));
+          if let Some(tag) = tag {
+            tags.push((tag, asset));
+          }
         }
       }
     }

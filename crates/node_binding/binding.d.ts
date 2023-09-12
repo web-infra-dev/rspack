@@ -710,7 +710,7 @@ export interface RawHtmlRspackPluginOptions {
   templateContent?: string
   templateParameters?: Record<string, string>
   /** `head`, `body` or None */
-  inject?: "head" | "body"
+  inject?: "head" | "body" | "true" | "false"
   /** path or `auto` */
   publicPath?: string
   /** `blocking`, `defer`, or `module` */

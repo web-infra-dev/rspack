@@ -8,7 +8,7 @@ const htmlRspackPluginOptions = z.strictObject({
 	template: z.string().optional(),
 	templateContent: z.string().optional(),
 	templateParameters: z.record(z.string()).optional(),
-	inject: z.enum(["head", "body"]).optional(),
+	inject: z.enum(["head", "body"]).or(z.boolean()).optional(),
 	publicPath: z.string().optional(),
 	scriptLoading: z.enum(["blocking", "defer", "module"]).optional(),
 	chunks: z.string().array().optional(),
@@ -34,9 +34,14 @@ export const HtmlRspackPlugin = create(
 				};
 			}
 		}
+		let inject =
+			c.inject === undefined
+				? (String("true") as RawHtmlRspackPluginOptions["inject"])
+				: (String(c.inject) as RawHtmlRspackPluginOptions["inject"]);
 		return {
 			...c,
-			meta
+			meta,
+			inject
 		};
 	}
 );

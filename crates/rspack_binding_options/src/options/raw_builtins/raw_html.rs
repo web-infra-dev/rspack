@@ -26,8 +26,8 @@ pub struct RawHtmlRspackPluginOptions {
   pub template_content: Option<String>,
   pub template_parameters: Option<HashMap<String, String>>,
   /// `head`, `body` or None
-  #[napi(ts_type = "\"head\" | \"body\"")]
-  pub inject: Option<RawHtmlInject>,
+  #[napi(ts_type = "\"head\" | \"body\" | \"true\" | \"false\"")]
+  pub inject: RawHtmlInject,
   /// path or `auto`
   pub public_path: Option<String>,
   /// `blocking`, `defer`, or `module`
@@ -47,10 +47,7 @@ pub struct RawHtmlRspackPluginOptions {
 
 impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
   fn from(value: RawHtmlRspackPluginOptions) -> Self {
-    let inject = value
-      .inject
-      .as_ref()
-      .map(|s| HtmlInject::from_str(s).unwrap_or_else(|_| panic!("Invalid inject value: {s}")));
+    let mut inject = HtmlInject::from_str(&value.inject).unwrap_or(HtmlInject::Head);
 
     let script_loading = HtmlScriptLoading::from_str(
       &value
@@ -58,6 +55,15 @@ impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
         .unwrap_or_else(|| String::from("defer")),
     )
     .expect("value.script_loading has unwrap_or_else so this will never happen");
+
+    // Passing `true` will add it to the head/body depending on the `scriptLoading` option. Reference: https://github.com/jantimon/html-webpack-plugin
+    if matches!(inject, HtmlInject::True) {
+      if matches!(script_loading, HtmlScriptLoading::Blocking) {
+        inject = HtmlInject::Body
+      } else {
+        inject = HtmlInject::Head
+      }
+    }
 
     let sri = value.sri.as_ref().map(|s| {
       HtmlSriHashFunction::from_str(s).unwrap_or_else(|_| panic!("Invalid sri value: {s}"))

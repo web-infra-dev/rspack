@@ -17,15 +17,15 @@ pub struct HTMLPluginTag {
   pub tag_name: String,
   pub attributes: Vec<HtmlPluginAttribute>,
   pub void_tag: bool,
-  // `head` or `body`
+  // `head` or `body` or `true` or `false`
   pub append_to: HtmlInject,
 }
 
 impl HTMLPluginTag {
-  pub fn create_style(href: &str, append_to: Option<HtmlInject>) -> HTMLPluginTag {
+  pub fn create_style(href: &str, append_to: HtmlInject) -> HTMLPluginTag {
     HTMLPluginTag {
       tag_name: "link".to_string(),
-      append_to: append_to.unwrap_or(HtmlInject::Head),
+      append_to,
       attributes: vec![
         HtmlPluginAttribute {
           attr_name: "href".to_string(),
@@ -42,7 +42,7 @@ impl HTMLPluginTag {
 
   pub fn create_script(
     src: &str,
-    append_to: Option<HtmlInject>,
+    append_to: HtmlInject,
     script_loading: &HtmlScriptLoading,
   ) -> HTMLPluginTag {
     let mut attributes = vec![HtmlPluginAttribute {
@@ -67,7 +67,7 @@ impl HTMLPluginTag {
 
     HTMLPluginTag {
       tag_name: "script".to_string(),
-      append_to: append_to.unwrap_or(HtmlInject::Body),
+      append_to,
       attributes,
       void_tag: false,
     }
@@ -107,6 +107,7 @@ impl<'a, 'c> AssetWriter<'a, 'c> {
         HtmlInject::Body => {
           body_tags.push(ele);
         }
+        _ => (),
       }
     }
     AssetWriter {
