@@ -1,29 +1,29 @@
 module.exports = {
 	entry: {
-		main: './index1.js',
-		main2: './index2.js',
-		main3: './index3.js'
+		main: "./index1.js",
+		main2: "./index2.js",
+		main3: "./index3.js"
 	},
 	output: {
-		chunkFilename: '[id].[contenthash].js'
+		chunkFilename: "[id].[contenthash].js"
 	},
 	optimization: {
 		splitChunks: {
 			cacheGroups: {
 				common: {
-					chunks: 'all',
+					chunks: "all",
 					test: /common/,
 					enforce: true,
-					name: 'common'
+					name: "common"
 				},
 				share: {
-					chunks: 'all',
+					chunks: "all",
 					test: /share/,
 					enforce: true,
-					name: 'share'
+					name: "share"
 				}
 			}
 		},
-		runtimeChunk: 'single'
+		runtimeChunk: "single"
 	}
-}
+};

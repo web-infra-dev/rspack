@@ -370,6 +370,10 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn optimize_tree(&self, _compilation: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
+
   async fn optimize_chunk_modules(&self, _args: OptimizeChunksArgs<'_>) -> Result<()> {
     Ok(())
   }

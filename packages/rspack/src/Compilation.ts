@@ -49,7 +49,8 @@ import { concatErrorMsgAndStack, isJsStatsError, toJsAssetInfo } from "./util";
 import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import {
 	createFakeCompilationDependencies,
-	createFakeProcessAssetsHook
+	createFakeProcessAssetsHook,
+	createProcessAssetsHook
 } from "./util/fake";
 import { NormalizedJsModule, normalizeJsModule } from "./util/normalization";
 import MergeCaller from "./util/MergeCaller";
@@ -85,11 +86,12 @@ export class Compilation {
 	hooks: {
 		processAssets: ReturnType<typeof createFakeProcessAssetsHook>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
-		additionalAssets: tapable.AsyncSeriesHook<
-			Assets,
-			tapable.UnsetAdditionalOptions
-		>;
+		additionalAssets: any;
 		optimizeModules: tapable.SyncBailHook<Iterable<JsModule>, undefined>;
+		optimizeTree: tapable.AsyncSeriesBailHook<
+			[Iterable<JsChunk>, Iterable<JsModule>],
+			undefined
+		>;
 		optimizeChunkModules: tapable.AsyncSeriesBailHook<
 			[Iterable<JsChunk>, Iterable<JsModule>],
 			undefined
@@ -131,9 +133,15 @@ export class Compilation {
 			processAssets: processAssetsHooks,
 			// TODO: webpack 6 deprecate, keep it just for compatibility
 			/** @deprecated */
-			additionalAssets: processAssetsHooks.stageAdditional,
+			additionalAssets: createProcessAssetsHook(
+				processAssetsHooks,
+				"additionalAssets",
+				Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+				() => []
+			),
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
 			optimizeModules: new tapable.SyncBailHook(["modules"]),
+			optimizeTree: new tapable.AsyncSeriesBailHook(["chunks", "modules"]),
 			optimizeChunkModules: new tapable.AsyncSeriesBailHook([
 				"chunks",
 				"modules"
