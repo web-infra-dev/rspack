@@ -449,15 +449,25 @@ export class Compilation {
 	get errors() {
 		let inner = this.#inner;
 		return {
-			push: (...errs: (Error | JsStatsError)[]) => {
+			push: (...errs: (Error | JsStatsError | string)[]) => {
 				// compatible for javascript array
 				for (let i = 0; i < errs.length; i++) {
 					let error = errs[i];
-					this.#inner.pushDiagnostic(
-						"error",
-						isJsStatsError(error) ? error.title : error.name,
-						concatErrorMsgAndStack(error)
-					);
+					if (isJsStatsError(error)) {
+						this.#inner.pushDiagnostic(
+							"error",
+							error.title,
+							concatErrorMsgAndStack(error)
+						);
+					} else if (typeof error === "string") {
+						this.#inner.pushDiagnostic("error", "Error", error);
+					} else {
+						this.#inner.pushDiagnostic(
+							"error",
+							error.name,
+							concatErrorMsgAndStack(error)
+						);
+					}
 				}
 			},
 			[Symbol.iterator]() {
