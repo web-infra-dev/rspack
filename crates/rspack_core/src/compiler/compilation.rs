@@ -1152,10 +1152,10 @@ impl Compilation {
       let exports_info_id = mgm.exports;
       let exports_info = self.module_graph.get_exports_info_by_id(&exports_info_id);
       dbg!(&exports_info);
-      // for id in exports_info.exports.values() {
-      //   let export_info = self.module_graph.get_export_info_by_id(id);
-      //   dbg!(&export_info);
-      // }
+      for id in exports_info.exports.values() {
+        let export_info = self.module_graph.get_export_info_by_id(id);
+        dbg!(&export_info);
+      }
     }
     Ok(())
   }
@@ -1163,6 +1163,17 @@ impl Compilation {
   #[instrument(name = "compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
+
+    let start = logger.time("optimize dependencies");
+    // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
+    loop {
+      match plugin_driver.optimize_dependencies(self).await? {
+        Some(_) => {}
+        None => break,
+      };
+    }
+    logger.time_end(start);
+
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;

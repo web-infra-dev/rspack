@@ -342,10 +342,10 @@ pub struct FlagDependencyUsagePlugin;
 
 #[async_trait::async_trait]
 impl Plugin for FlagDependencyUsagePlugin {
-  async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+  async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
     // TODO: `global` is always `true`, until we finished runtime optimization.
     let mut proxy = FlagDependencyUsagePluginProxy::new(true, compilation);
     proxy.apply();
-    Ok(())
+    Ok(None)
   }
 }

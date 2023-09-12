@@ -499,6 +499,19 @@ impl PluginDriver {
     Ok(())
   }
 
+  #[instrument(name = "plugin:optimize_dependencies", skip_all)]
+  pub async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
+    for plugin in &self.plugins {
+      match plugin.optimize_dependencies(compilation).await? {
+        Some(t) => {
+          return Ok(Some(()));
+        }
+        None => {}
+      };
+    }
+    Ok(None)
+  }
+
   #[instrument(name = "plugin:optimize_tree", skip_all)]
   pub async fn optimize_tree(&self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &self.plugins {
