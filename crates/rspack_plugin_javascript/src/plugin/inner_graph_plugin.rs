@@ -294,7 +294,6 @@ impl<'a> InnerGraphPlugin<'a> {
       let mut processed: HashMap<JsWord, HashSet<JsWord>> = HashMap::default();
       while !non_terminal.is_empty() {
         for key in non_terminal {
-          let mut new_set = HashSet::default();
           let mut entry = processed.entry(key.clone()).or_default();
           if let Some(InnerGraphMapValue::Set(value)) = state.inner_graph.get(key) {
             for item in value.iter() {
@@ -312,7 +311,7 @@ impl<'a> InnerGraphPlugin<'a> {
                       if entry.contains(i) {
                         continue;
                       }
-                      new_set.insert(i);
+                      new_set.insert(i.clone());
                     }
                     if new_set.is_empty() {
                       state
