@@ -29,7 +29,7 @@ impl FromStr for HtmlInject {
       Ok(HtmlInject::False)
     } else {
       Err(anyhow::Error::msg(
-        "inject in html config only support 'head' or 'body' or 'true' or 'false'",
+        "inject in html config only support 'head', 'body', or 'false'",
       ))
     }
   }
