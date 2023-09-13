@@ -34,13 +34,20 @@ export const HtmlRspackPlugin = create(
 				};
 			}
 		}
-		let inject =
-			c.inject === undefined
-				? (String("true") as RawHtmlRspackPluginOptions["inject"])
-				: (String(c.inject) as RawHtmlRspackPluginOptions["inject"]);
+		const scriptLoading = c.scriptLoading ?? "defer";
+		const configInject = c.inject ?? true;
+		const inject =
+			configInject === true
+				? scriptLoading === "blocking"
+					? "body"
+					: "head"
+				: configInject === false
+				? "false"
+				: configInject;
 		return {
 			...c,
 			meta,
+			scriptLoading,
 			inject
 		};
 	}

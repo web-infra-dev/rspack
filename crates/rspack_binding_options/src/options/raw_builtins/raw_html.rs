@@ -25,14 +25,14 @@ pub struct RawHtmlRspackPluginOptions {
   pub template: Option<String>,
   pub template_content: Option<String>,
   pub template_parameters: Option<HashMap<String, String>>,
-  /// `head`, `body` or None
-  #[napi(ts_type = "\"head\" | \"body\" | \"true\" | \"false\"")]
+  /// "head", "body" or "false"
+  #[napi(ts_type = "\"head\" | \"body\" | \"false\"")]
   pub inject: RawHtmlInject,
   /// path or `auto`
   pub public_path: Option<String>,
   /// `blocking`, `defer`, or `module`
   #[napi(ts_type = "\"blocking\" | \"defer\" | \"module\"")]
-  pub script_loading: Option<RawHtmlScriptLoading>,
+  pub script_loading: RawHtmlScriptLoading,
 
   /// entry_chunk_name (only entry chunks are supported)
   pub chunks: Option<Vec<String>>,
@@ -47,23 +47,10 @@ pub struct RawHtmlRspackPluginOptions {
 
 impl From<RawHtmlRspackPluginOptions> for HtmlRspackPluginOptions {
   fn from(value: RawHtmlRspackPluginOptions) -> Self {
-    let mut inject = HtmlInject::from_str(&value.inject).unwrap_or(HtmlInject::Head);
+    let inject = HtmlInject::from_str(&value.inject).expect("Invalid inject value");
 
-    let script_loading = HtmlScriptLoading::from_str(
-      &value
-        .script_loading
-        .unwrap_or_else(|| String::from("defer")),
-    )
-    .expect("value.script_loading has unwrap_or_else so this will never happen");
-
-    // Passing `true` will add it to the head/body depending on the `scriptLoading` option. Reference: https://github.com/jantimon/html-webpack-plugin
-    if matches!(inject, HtmlInject::True) {
-      if matches!(script_loading, HtmlScriptLoading::Blocking) {
-        inject = HtmlInject::Body
-      } else {
-        inject = HtmlInject::Head
-      }
-    }
+    let script_loading =
+      HtmlScriptLoading::from_str(&value.script_loading).expect("Invalid script_loading value");
 
     let sri = value.sri.as_ref().map(|s| {
       HtmlSriHashFunction::from_str(s).unwrap_or_else(|_| panic!("Invalid sri value: {s}"))

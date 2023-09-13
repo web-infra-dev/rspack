@@ -14,7 +14,6 @@ use crate::sri::HtmlSriHashFunction;
 pub enum HtmlInject {
   Head,
   Body,
-  True,
   False,
 }
 
@@ -26,8 +25,6 @@ impl FromStr for HtmlInject {
       Ok(HtmlInject::Head)
     } else if s.eq("body") {
       Ok(HtmlInject::Body)
-    } else if s.eq("true") {
-      Ok(HtmlInject::True)
     } else if s.eq("false") {
       Ok(HtmlInject::False)
     } else {
