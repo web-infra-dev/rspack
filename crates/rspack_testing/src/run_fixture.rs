@@ -26,48 +26,87 @@ pub fn apply_from_fixture(fixture_path: &Path) -> (CompilerOptions, Vec<BoxPlugi
 }
 #[tokio::main]
 pub async fn test_fixture_html(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
-  test_fixture_share(fixture_path, &|s| s.ends_with(".html")).await
+  test_fixture_share(
+    fixture_path,
+    &|s| s.ends_with(".html"),
+    Box::new(|_, _| {}),
+    None,
+  )
+  .await
 }
 #[tokio::main]
 pub async fn test_fixture_js(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
-  test_fixture_share(fixture_path, &|s| {
-    s.ends_with(".js") && !s.contains("runtime.js")
-  })
+  test_fixture_share(
+    fixture_path,
+    &|s| s.ends_with(".js") && !s.contains("runtime.js"),
+    Box::new(|_, _| {}),
+    None,
+  )
   .await
 }
 #[tokio::main]
 pub async fn test_fixture_css(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
-  test_fixture_share(fixture_path, &|s| s.ends_with(".css")).await
+  test_fixture_share(
+    fixture_path,
+    &|s| s.ends_with(".css"),
+    Box::new(|_, _| {}),
+    None,
+  )
+  .await
 }
 #[tokio::main]
 pub async fn test_fixture_css_modules(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
-  test_fixture_share(fixture_path, &|s| {
-    s.ends_with(".css") || (s.ends_with(".js") && !s.contains("runtime.js"))
-  })
+  test_fixture_share(
+    fixture_path,
+    &|s| s.ends_with(".css") || (s.ends_with(".js") && !s.contains("runtime.js")),
+    Box::new(|_, _| {}),
+    None,
+  )
   .await
 }
 #[tokio::main]
 pub async fn test_fixture_insta(
   fixture_path: &Path,
   stats_filter: &dyn Fn(&str) -> bool,
+  mut_settings: Box<dyn FnMut(&mut Settings, &mut CompilerOptions)>,
 ) -> Compiler<AsyncNativeFileSystem> {
-  test_fixture_share(fixture_path, stats_filter).await
+  test_fixture_share(fixture_path, stats_filter, mut_settings, None).await
 }
+
 #[tokio::main]
-pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
-  test_fixture_share(fixture_path, &|s| {
-    s.ends_with(".js") && !s.contains("runtime.js")
-  })
+pub async fn test_fixture(
+  fixture_path: &Path,
+  mut_settings: Box<dyn FnMut(&mut Settings, &mut CompilerOptions)>,
+  snapshot_name: Option<String>,
+) -> Compiler<AsyncNativeFileSystem> {
+  test_fixture_share(
+    fixture_path,
+    &|s| s.ends_with(".js") && !s.contains("runtime.js"),
+    mut_settings,
+    snapshot_name,
+  )
   .await
 }
 
+/// You can mutate the `Settings` of insta and  `CompilerOptions` of rspack via `mut_settings` mut closure
 pub async fn test_fixture_share(
   fixture_path: &Path,
   stats_filter: &dyn Fn(&str) -> bool,
+  mut mut_settings: Box<dyn FnMut(&mut Settings, &mut CompilerOptions)>,
+  snapshot_name: Option<String>,
 ) -> Compiler<AsyncNativeFileSystem> {
   enable_tracing_by_env(&std::env::var("TRACE").ok().unwrap_or_default(), "stdout");
 
-  let (options, plugins) = apply_from_fixture(fixture_path);
+  let snapshot_name = snapshot_name.unwrap_or("output".to_string());
+
+  let mut settings = Settings::clone_current();
+  settings.set_snapshot_path(Path::new(fixture_path).join("snapshot"));
+  settings.set_omit_expression(true);
+  settings.set_prepend_module_to_snapshot(false);
+
+  let (mut options, plugins) = apply_from_fixture(fixture_path);
+
+  mut_settings(&mut settings, &mut options);
   // clean output
   if options.output.path.exists() {
     std::fs::remove_dir_all(&options.output.path).expect("should remove output");
@@ -80,10 +119,6 @@ pub async fn test_fixture_share(
     .unwrap_or_else(|e| panic!("failed to compile in fixture {fixture_path:?}, {e:#?}"));
   let assets = compiler.compilation.assets();
 
-  let mut settings = Settings::clone_current();
-  settings.set_snapshot_path(Path::new(fixture_path).join("snapshot"));
-  settings.set_omit_expression(true);
-  settings.set_prepend_module_to_snapshot(false);
   let content = assets
     .iter()
     .filter_map(|(filename, asset)| {
@@ -105,7 +140,7 @@ pub async fn test_fixture_share(
     .sorted()
     .join("\n\n");
   settings.bind(|| {
-    assert_snapshot!("output", content);
+    assert_snapshot!(snapshot_name.as_str(), content);
   });
   let stats = compiler.compilation.get_stats();
   let warnings = stats.get_warnings();
