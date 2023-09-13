@@ -1,0 +1,22 @@
+[2m20  [0m[2m20  [0m |[1m[2m [0m[2m"./foo.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+[0m[2m21  [0m[2m21  [0m |[1m[2m [0m[2m'use strict';
+[0m[2m22  [0m[2m22  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m    [0m[2m23  [0m |[32m[1m+[0m[32m__webpack_require__.d(__webpack_exports__, {
+[0m[2m    [0m[2m24  [0m |[32m[1m+[0m[32m  'a': function() { return a; },
+[0m[2m    [0m[2m25  [0m |[32m[1m+[0m[32m  'b': function() { return b; }
+[0m[2m    [0m[2m26  [0m |[32m[1m+[0m[32m});
+[0m[2m23  [0m[2m27  [0m |[1m[2m [0m[2m/* harmony import */var _bar_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./bar.js */"./bar.js");
+[0m[2m24  [0m[2m28  [0m |[1m[2m [0m[2m__webpack_require__.es(_bar_js__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
+[0m[2m25  [0m[2m29  [0m |[1m[2m [0m[2m/* harmony import */var _result_js__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./result.js */"./result.js");
+[0m--------------------------------------------------------------------------------
+[2m39  [0m[2m43  [0m |[1m[2m [0m[2m"./result.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+[0m[2m40  [0m[2m44  [0m |[1m[2m [0m[2m'use strict';
+[0m[2m41  [0m[2m45  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m    [0m[2m46  [0m |[32m[1m+[0m[32m__webpack_require__.d(__webpack_exports__, {
+[0m[2m    [0m[2m47  [0m |[32m[1m+[0m[32m  'c': function() { return c; },
+[0m[2m    [0m[2m48  [0m |[32m[1m+[0m[32m  'b': function() { return b; }
+[0m[2m    [0m[2m49  [0m |[32m[1m+[0m[32m});
+[0m[2m42  [0m[2m50  [0m |[1m[2m [0m[2m/* harmony import */var _foo_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo.js */"./foo.js");
+[0m[2m43  [0m[2m51  [0m |[1m[2m [0m[2m__webpack_require__.es(_foo_js__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
+[0m[2m44  [0m[2m52  [0m |[1m[2m [0m[2m/* harmony import */var _bar_js__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./bar.js */"./bar.js");
+[0m

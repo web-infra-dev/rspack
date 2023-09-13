@@ -1,0 +1,28 @@
+[2m7   [0m[2m7   [0m |[1m[2m [0m[2m'use strict';
+[0m[2m8   [0m[2m8   [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m9   [0m[2m9   [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
+[0m[2m    [0m[2m10  [0m |[32m[1m+[0m[32m  'Test': function() { return Test; },
+[0m[2m    [0m[2m11  [0m |[32m[1m+[0m[32m  'default': function() { return Result; },
+[0m[2m10  [0m[2m12  [0m |[1m[2m [0m[2m  'a': function() { return a; }
+[0m[2m11  [0m[2m13  [0m |[1m[2m [0m[2m});
+[0m[2m12  [0m[2m14  [0m |[1m[2m [0m[2m/* harmony import */var _b_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./b.js */"./b.js");
+[0m--------------------------------------------------------------------------------
+[2m19  [0m[2m21  [0m |[1m[2m [0m[2m}
+[0m[2m20  [0m[2m22  [0m |[1m[2m [0m[2mclass Result {
+[0m[2m21  [0m[2m23  [0m |[1m[2m [0m[2m    static test() {
+[0m[2m22  [0m[2m    [0m |[31m[1m-[0m[31m        /* "./b.js" unused */null;
+[0m[2m    [0m[2m24  [0m |[32m[1m+[0m[32m        _b_js__WEBPACK_IMPORTED_MODULE_0_.cc;
+[0m[2m23  [0m[2m25  [0m |[1m[2m [0m[2m    }
+[0m[2m24  [0m[2m26  [0m |[1m[2m [0m[2m}
+[0m[2m25  [0m[2m27  [0m |[1m[2m [0m[2m const a = 3;
+[0m--------------------------------------------------------------------------------
+[2m28  [0m[2m30  [0m |[1m[2m [0m[2m'use strict';
+[0m[2m29  [0m[2m31  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m30  [0m[2m32  [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
+[0m[2m31  [0m[2m    [0m |[31m[1m-[0m[31m  'bb': function() { return bb; [0m[31m}
+[0m[2m    [0m[2m33  [0m |[32m[1m+[0m[32m  'bb': function() { return bb; [0m[32m[40m[4m},[0m[32m
+[0m[2m    [0m[2m34  [0m |[32m[1m+[0m[32m[40m[4m  'cc': function() { return cc; [0m[32m}
+[0m[2m32  [0m[2m35  [0m |[1m[2m [0m[2m});
+[0m[2m33  [0m[2m36  [0m |[1m[2m [0m[2m const bb = 2;
+[0m[2m34  [0m[2m37  [0m |[1m[2m [0m[2m const cc = 3;
+[0m

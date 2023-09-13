@@ -1,0 +1,27 @@
+[2m7   [0m[2m7   [0m |[1m[2m [0m[2m'use strict';
+[0m[2m8   [0m[2m8   [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m9   [0m[2m9   [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
+[0m[2m    [0m[2m10  [0m |[32m[1m+[0m[32m  'Lib': function() { return Lib; },
+[0m[2m10  [0m[2m11  [0m |[1m[2m [0m[2m  'v': function() { return v; }
+[0m[2m11  [0m[2m12  [0m |[1m[2m [0m[2m});
+[0m[2m12  [0m[2m13  [0m |[1m[2m [0m[2m/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
+[0m[2m13  [0m[2m14  [0m |[1m[2m [0m[2m
+[0m[2m14  [0m[2m    [0m |[31m[1m-[0m[31m class Lib extends [0m[31m[40m[4m/* "./lib" unused */null[0m[31m {
+[0m[2m    [0m[2m15  [0m |[32m[1m+[0m[32m class Lib extends [0m[32m[40m[4m_lib__WEBPACK_IMPORTED_MODULE_0_.Lib[0m[32m {
+[0m[2m15  [0m[2m16  [0m |[1m[2m [0m[2m}
+[0m[2m16  [0m[2m17  [0m |[1m[2m [0m[2mfunction foo() {
+[0m[2m17  [0m[2m18  [0m |[1m[2m [0m[2m    return {
+[0m[2m18  [0m[2m    [0m |[31m[1m-[0m[31m        OriginLib: [0m[31m[40m[4m/* "./lib" unused */null[0m[31m
+[0m[2m    [0m[2m19  [0m |[32m[1m+[0m[32m        OriginLib: [0m[32m[40m[4m_lib__WEBPACK_IMPORTED_MODULE_0_.Lib[0m[32m
+[0m[2m19  [0m[2m20  [0m |[1m[2m [0m[2m    };
+[0m[2m20  [0m[2m21  [0m |[1m[2m [0m[2m}
+[0m[2m21  [0m[2m22  [0m |[1m[2m [0m[2m const v = _lib__WEBPACK_IMPORTED_MODULE_0_.value;
+[0m--------------------------------------------------------------------------------
+[2m31  [0m[2m32  [0m |[1m[2m [0m[2m'use strict';
+[0m[2m32  [0m[2m33  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m33  [0m[2m34  [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
+[0m[2m    [0m[2m35  [0m |[32m[1m+[0m[32m  'Lib': function() { return Lib; },
+[0m[2m34  [0m[2m36  [0m |[1m[2m [0m[2m  'value': function() { return value; }
+[0m[2m35  [0m[2m37  [0m |[1m[2m [0m[2m});
+[0m[2m36  [0m[2m38  [0m |[1m[2m [0m[2m class Lib {
+[0m

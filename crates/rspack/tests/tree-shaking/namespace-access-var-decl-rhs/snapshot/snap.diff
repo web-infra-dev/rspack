@@ -1,0 +1,11 @@
+[2m53  [0m[2m53  [0m |[1m[2m [0m[2m'use strict';
+[0m[2m54  [0m[2m54  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m55  [0m[2m55  [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
+[0m[2m56  [0m[2m    [0m |[31m[1m-[0m[31m  [0m[31m'getDocPermissionTextSendMe': function() { return getDocPermissionTextSendMe; [0m[31m}
+[0m[2m    [0m[2m56  [0m |[32m[1m+[0m[32m  [0m[32m[40m[4m'code2CreateChatDocPermission': function() { return code2CreateChatDocPermission; },[0m[32m
+[0m[2m    [0m[2m57  [0m |[32m[1m+[0m[32m[40m[4m  [0m[32m'getDocPermissionTextSendMe': function() { return getDocPermissionTextSendMe; [0m[32m[40m[4m},[0m[32m
+[0m[2m    [0m[2m58  [0m |[32m[1m+[0m[32m[40m[4m  'Doc': function() { return Doc; [0m[32m}
+[0m[2m57  [0m[2m59  [0m |[1m[2m [0m[2m});
+[0m[2m58  [0m[2m60  [0m |[1m[2m [0m[2m/* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./enum.js */"./enum.js");
+[0m[2m59  [0m[2m61  [0m |[1m[2m [0m[2m
+[0m

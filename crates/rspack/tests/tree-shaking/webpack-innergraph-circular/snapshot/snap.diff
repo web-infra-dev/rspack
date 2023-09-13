@@ -1,0 +1,35 @@
+[2m36  [0m[2m36  [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
+[0m[2m37  [0m[2m37  [0m |[1m[2m [0m[2m  'A': function() { return A; },
+[0m[2m38  [0m[2m38  [0m |[1m[2m [0m[2m  'B': function() { return B; },
+[0m[2m    [0m[2m39  [0m |[32m[1m+[0m[32m  'C': function() { return C; },
+[0m[2m39  [0m[2m40  [0m |[1m[2m [0m[2m  'exportAUsed': function() { return exportAUsed; },
+[0m[2m40  [0m[2m41  [0m |[1m[2m [0m[2m  'exportBUsed': function() { return exportBUsed; },
+[0m[2m41  [0m[2m42  [0m |[1m[2m [0m[2m  'exportCUsed': function() { return exportCUsed; }
+[0m--------------------------------------------------------------------------------
+[2m49  [0m[2m50  [0m |[1m[2m [0m[2m function C(s) {
+[0m[2m50  [0m[2m51  [0m |[1m[2m [0m[2m    return s + "C";
+[0m[2m51  [0m[2m52  [0m |[1m[2m [0m[2m}
+[0m[2m52  [0m[2m    [0m |[31m[1m-[0m[31m const exportAUsed = [0m[31m[40m[4mtrue;[0m[31m
+[0m[2m53  [0m[2m    [0m |[31m[1m-[0m[31m const exportBUsed = [0m[31m[40m[4mtrue;[0m[31m
+[0m[2m    [0m[2m53  [0m |[32m[1m+[0m[32m const exportAUsed = [0m[32m[40m[4mfalse;[0m[32m
+[0m[2m    [0m[2m54  [0m |[32m[1m+[0m[32m const exportBUsed = [0m[32m[40m[4mfalse;[0m[32m
+[0m[2m54  [0m[2m55  [0m |[1m[2m [0m[2m const exportCUsed = false;
+[0m[2m55  [0m[2m56  [0m |[1m[2m [0m[2m},
+[0m[2m56  [0m[2m57  [0m |[1m[2m [0m[2m"./module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+[0m[2m57  [0m[2m58  [0m |[1m[2m [0m[2m'use strict';
+[0m[2m58  [0m[2m59  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m59  [0m[2m60  [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
+[0m[2m    [0m[2m61  [0m |[32m[1m+[0m[32m  'x': function() { return x; },
+[0m[2m60  [0m[2m62  [0m |[1m[2m [0m[2m  'y': function() { return y; }
+[0m[2m61  [0m[2m63  [0m |[1m[2m [0m[2m});
+[0m[2m62  [0m[2m64  [0m |[1m[2m [0m[2m/* harmony import */var _inner__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./inner */"./inner.js");
+[0m--------------------------------------------------------------------------------
+[2m84  [0m[2m86  [0m |[1m[2m [0m[2m}
+[0m[2m85  [0m[2m87  [0m |[1m[2m [0m[2mfunction withC(v) {
+[0m[2m86  [0m[2m88  [0m |[1m[2m [0m[2m    const value = x(v);
+[0m[2m87  [0m[2m    [0m |[31m[1m-[0m[31m    return [0m[31m[40m[4m/*[0m[31m [0m[31m[40m[4m"./inner" unused */null(value);[0m[31m
+[0m[2m    [0m[2m89  [0m |[32m[1m+[0m[32m    return [0m[32m[40m[4m(0,[0m[32m [0m[32m[40m[4m_inner__WEBPACK_IMPORTED_MODULE_0_.C)(value);[0m[32m
+[0m[2m88  [0m[2m90  [0m |[1m[2m [0m[2m}
+[0m[2m89  [0m[2m91  [0m |[1m[2m [0m[2m
+[0m[2m90  [0m[2m92  [0m |[1m[2m [0m[2m},
+[0m

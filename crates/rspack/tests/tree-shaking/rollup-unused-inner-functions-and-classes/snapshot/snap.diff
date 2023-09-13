@@ -1,0 +1,11 @@
+[2m26  [0m[2m26  [0m |[1m[2m [0m[2m'use strict';
+[0m[2m27  [0m[2m27  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m28  [0m[2m28  [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
+[0m[2m    [0m[2m29  [0m |[32m[1m+[0m[32m  'foo': function() { return foo; },
+[0m[2m29  [0m[2m30  [0m |[1m[2m [0m[2m  'bar': function() { return bar; },
+[0m[2m    [0m[2m31  [0m |[32m[1m+[0m[32m  'bog': function() { return bog; },
+[0m[2m    [0m[2m32  [0m |[32m[1m+[0m[32m  'boo': function() { return boo; },
+[0m[2m30  [0m[2m33  [0m |[1m[2m [0m[2m  'baz': function() { return Baz; }
+[0m[2m31  [0m[2m34  [0m |[1m[2m [0m[2m});
+[0m[2m32  [0m[2m35  [0m |[1m[2m [0m[2m function foo() {
+[0m

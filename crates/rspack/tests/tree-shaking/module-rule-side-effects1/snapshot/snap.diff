@@ -1,0 +1,28 @@
+[2m11  [0m[2m11  [0m |[1m[2m [0m[2m});
+[0m[2m12  [0m[2m12  [0m |[1m[2m [0m[2m const a = 3;
+[0m[2m13  [0m[2m13  [0m |[1m[2m [0m[2m},
+[0m[2m    [0m[2m14  [0m |[32m[1m+[0m[32m"./b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+[0m[2m    [0m[2m15  [0m |[32m[1m+[0m[32m'use strict';
+[0m[2m    [0m[2m16  [0m |[32m[1m+[0m[32m__webpack_require__.r(__webpack_exports__);
+[0m[2m    [0m[2m17  [0m |[32m[1m+[0m[32m__webpack_require__.d(__webpack_exports__, {
+[0m[2m    [0m[2m18  [0m |[32m[1m+[0m[32m  'b': function() { return b; }
+[0m[2m    [0m[2m19  [0m |[32m[1m+[0m[32m});
+[0m[2m    [0m[2m20  [0m |[32m[1m+[0m[32m const b = 30;
+[0m[2m    [0m[2m21  [0m |[32m[1m+[0m[32m},
+[0m[2m14  [0m[2m22  [0m |[1m[2m [0m[2m"./c.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+[0m[2m15  [0m[2m23  [0m |[1m[2m [0m[2m'use strict';
+[0m[2m16  [0m[2m24  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m    [0m[2m25  [0m |[32m[1m+[0m[32m__webpack_require__.d(__webpack_exports__, {
+[0m[2m    [0m[2m26  [0m |[32m[1m+[0m[32m  'c': function() { return c; }
+[0m[2m    [0m[2m27  [0m |[32m[1m+[0m[32m});
+[0m[2m17  [0m[2m28  [0m |[1m[2m [0m[2m const c = 300;
+[0m[2m18  [0m[2m29  [0m |[1m[2m [0m[2m},
+[0m[2m19  [0m[2m30  [0m |[1m[2m [0m[2m"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+[0m[2m20  [0m[2m31  [0m |[1m[2m [0m[2m'use strict';
+[0m[2m21  [0m[2m32  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m22  [0m[2m33  [0m |[1m[2m [0m[2m/* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a.js */"./a.js");
+[0m[2m    [0m[2m34  [0m |[32m[1m+[0m[32m/* harmony import */var _b_js__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./b.js */"./b.js");
+[0m[2m23  [0m[2m35  [0m |[1m[2m [0m[2m/* harmony import */var _c_js__WEBPACK_IMPORTED_MODULE_2_ = __webpack_require__(/* ./c.js */"./c.js");
+[0m[2m24  [0m[2m36  [0m |[1m[2m [0m[2m
+[0m[2m25  [0m[2m37  [0m |[1m[2m [0m[2m
+[0m

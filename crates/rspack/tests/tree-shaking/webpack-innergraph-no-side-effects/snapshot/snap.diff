@@ -1,0 +1,29 @@
+[2m24  [0m[2m24  [0m |[1m[2m [0m[2m'use strict';
+[0m[2m25  [0m[2m25  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m26  [0m[2m26  [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
+[0m[2m27  [0m[2m    [0m |[31m[1m-[0m[31m  'a': function() { return a; [0m[31m}
+[0m[2m    [0m[2m27  [0m |[32m[1m+[0m[32m  'a': function() { return a; [0m[32m[40m[4m},[0m[32m
+[0m[2m    [0m[2m28  [0m |[32m[1m+[0m[32m[40m[4m  'b': function() { return b; [0m[32m}
+[0m[2m28  [0m[2m29  [0m |[1m[2m [0m[2m});
+[0m[2m    [0m[2m30  [0m |[32m[1m+[0m[32m/* harmony import */var _unusedModule__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./unusedModule */"./package/unusedModule.js");
+[0m[2m29  [0m[2m31  [0m |[1m[2m [0m[2m
+[0m[2m30  [0m[2m32  [0m |[1m[2m [0m[2m function a() {
+[0m[2m31  [0m[2m33  [0m |[1m[2m [0m[2m    return 42;
+[0m[2m32  [0m[2m34  [0m |[1m[2m [0m[2m}
+[0m[2m33  [0m[2m35  [0m |[1m[2m [0m[2m function b() {
+[0m[2m34  [0m[2m    [0m |[31m[1m-[0m[31m    return [0m[31m[40m[4m/* "./unusedModule" unused */null;[0m[31m
+[0m[2m    [0m[2m36  [0m |[32m[1m+[0m[32m    return [0m[32m[40m[4m_unusedModule__WEBPACK_IMPORTED_MODULE_0_["default"];[0m[32m
+[0m[2m35  [0m[2m37  [0m |[1m[2m [0m[2m}
+[0m[2m36  [0m[2m38  [0m |[1m[2m [0m[2m},
+[0m[2m    [0m[2m39  [0m |[32m[1m+[0m[32m"./package/unusedModule.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+[0m[2m    [0m[2m40  [0m |[32m[1m+[0m[32m'use strict';
+[0m[2m    [0m[2m41  [0m |[32m[1m+[0m[32m__webpack_require__.r(__webpack_exports__);
+[0m[2m    [0m[2m42  [0m |[32m[1m+[0m[32m__webpack_require__.d(__webpack_exports__, {
+[0m[2m    [0m[2m43  [0m |[32m[1m+[0m[32m  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+[0m[2m    [0m[2m44  [0m |[32m[1m+[0m[32m});
+[0m[2m    [0m[2m45  [0m |[32m[1m+[0m[32mvar __WEBPACK_DEFAULT_EXPORT__ = 42;
+[0m[2m    [0m[2m46  [0m |[32m[1m+[0m[32m},
+[0m[2m37  [0m[2m47  [0m |[1m[2m [0m[2m
+[0m[2m38  [0m[2m48  [0m |[1m[2m [0m[2m},function(__webpack_require__) {
+[0m[2m39  [0m[2m49  [0m |[1m[2m [0m[2mvar __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+[0m

@@ -1,0 +1,20 @@
+[2m16  [0m[2m16  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m17  [0m[2m17  [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
+[0m[2m18  [0m[2m18  [0m |[1m[2m [0m[2m  'xxx': function() { return _test_js__WEBPACK_IMPORTED_MODULE_0_; },
+[0m[2m19  [0m[2m    [0m |[31m[1m-[0m[31m  'square': function() { return square; [0m[31m}
+[0m[2m    [0m[2m19  [0m |[32m[1m+[0m[32m  'square': function() { return square; [0m[32m[40m[4m},[0m[32m
+[0m[2m    [0m[2m20  [0m |[32m[1m+[0m[32m[40m[4m  'cube': function() { return cube; [0m[32m}
+[0m[2m20  [0m[2m21  [0m |[1m[2m [0m[2m});
+[0m[2m21  [0m[2m22  [0m |[1m[2m [0m[2m/* harmony import */var _test_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./test.js */"./test.js");
+[0m[2m22  [0m[2m23  [0m |[1m[2m [0m[2m// maths.js
+[0m--------------------------------------------------------------------------------
+[2m37  [0m[2m38  [0m |[1m[2m [0m[2m'use strict';
+[0m[2m38  [0m[2m39  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m39  [0m[2m40  [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
+[0m[2m40  [0m[2m    [0m |[31m[1m-[0m[31m  'test': function() { return test; [0m[31m}
+[0m[2m    [0m[2m41  [0m |[32m[1m+[0m[32m  'test': function() { return test; [0m[32m[40m[4m},[0m[32m
+[0m[2m    [0m[2m42  [0m |[32m[1m+[0m[32m[40m[4m  'ccc': function() { return ccc; [0m[32m}
+[0m[2m41  [0m[2m43  [0m |[1m[2m [0m[2m});
+[0m[2m42  [0m[2m44  [0m |[1m[2m [0m[2m function test() {}
+[0m[2m43  [0m[2m45  [0m |[1m[2m [0m[2m function ccc() {}
+[0m

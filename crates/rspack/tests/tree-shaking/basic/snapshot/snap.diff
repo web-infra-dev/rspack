@@ -1,0 +1,30 @@
+[2m14  [0m[2m14  [0m |[1m[2m [0m[2m"./app.js": function (module, __webpack_exports__, __webpack_require__) {
+[0m[2m15  [0m[2m15  [0m |[1m[2m [0m[2m'use strict';
+[0m[2m16  [0m[2m16  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m    [0m[2m17  [0m |[32m[1m+[0m[32m__webpack_require__.d(__webpack_exports__, {
+[0m[2m    [0m[2m18  [0m |[32m[1m+[0m[32m  'render': function() { return render; }
+[0m[2m    [0m[2m19  [0m |[32m[1m+[0m[32m});
+[0m[2m17  [0m[2m20  [0m |[1m[2m [0m[2m/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
+[0m[2m18  [0m[2m21  [0m |[1m[2m [0m[2m
+[0m[2m19  [0m[2m22  [0m |[1m[2m [0m[2msetTimeout(()=>{
+[0m--------------------------------------------------------------------------------
+[2m22  [0m[2m25  [0m |[1m[2m [0m[2m function render() {
+[0m[2m23  [0m[2m26  [0m |[1m[2m [0m[2m    function test() {
+[0m[2m24  [0m[2m27  [0m |[1m[2m [0m[2m        const container = document.getElementById("root");
+[0m[2m25  [0m[2m    [0m |[31m[1m-[0m[31m        container.innerHTML = [0m[31m[40m[4m`adddd333:${/* "./lib" unused */null}:${_lib__WEBPACK_IMPORTED_MODULE_0_.myanswer}`;[0m[31m
+[0m[2m    [0m[2m28  [0m |[32m[1m+[0m[32m        container.innerHTML = [0m[32m[40m[4m`adddd333:${_lib__WEBPACK_IMPORTED_MODULE_0_.secret}:${_lib__WEBPACK_IMPORTED_MODULE_0_.myanswer}`;[0m[32m
+[0m[2m26  [0m[2m29  [0m |[1m[2m [0m[2m    }
+[0m[2m27  [0m[2m30  [0m |[1m[2m [0m[2m}
+[0m[2m28  [0m[2m31  [0m |[1m[2m [0m[2mif (module.hot?.accept) module.hot.accept((module1)=>{
+[0m--------------------------------------------------------------------------------
+[2m39  [0m[2m42  [0m |[1m[2m [0m[2m'use strict';
+[0m[2m40  [0m[2m43  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m41  [0m[2m44  [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
+[0m[2m42  [0m[2m    [0m |[31m[1m-[0m[31m  [0m[31m'myanswer': function() { return myanswer; [0m[31m}
+[0m[2m    [0m[2m45  [0m |[32m[1m+[0m[32m  [0m[32m[40m[4m'secret': function() { return secret; },[0m[32m
+[0m[2m    [0m[2m46  [0m |[32m[1m+[0m[32m[40m[4m  [0m[32m'myanswer': function() { return myanswer; [0m[32m[40m[4m},[0m[32m
+[0m[2m    [0m[2m47  [0m |[32m[1m+[0m[32m[40m[4m  'result': function() { return result; [0m[32m}
+[0m[2m43  [0m[2m48  [0m |[1m[2m [0m[2m});
+[0m[2m44  [0m[2m49  [0m |[1m[2m [0m[2m/* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./answer */"./answer.js");
+[0m[2m45  [0m[2m50  [0m |[1m[2m [0m[2m
+[0m

@@ -1,0 +1,11 @@
+[2m25  [0m[2m25  [0m |[1m[2m [0m[2m'use strict';
+[0m[2m26  [0m[2m26  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m27  [0m[2m27  [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
+[0m[2m28  [0m[2m    [0m |[31m[1m-[0m[31m  [0m[31m'result': function() { return result; [0m[31m}
+[0m[2m    [0m[2m28  [0m |[32m[1m+[0m[32m  [0m[32m[40m[4m'secret': function() { return secret; },[0m[32m
+[0m[2m    [0m[2m29  [0m |[32m[1m+[0m[32m[40m[4m  [0m[32m'result': function() { return result; [0m[32m[40m[4m},[0m[32m
+[0m[2m    [0m[2m30  [0m |[32m[1m+[0m[32m[40m[4m  'something': function() { return something; [0m[32m}
+[0m[2m29  [0m[2m31  [0m |[1m[2m [0m[2m});
+[0m[2m30  [0m[2m32  [0m |[1m[2m [0m[2m const secret = "888";
+[0m[2m31  [0m[2m33  [0m |[1m[2m [0m[2m const result = 20000;
+[0m

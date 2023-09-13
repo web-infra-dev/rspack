@@ -1,0 +1,20 @@
+[2m7   [0m[2m7   [0m |[1m[2m [0m[2m'use strict';
+[0m[2m8   [0m[2m8   [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m9   [0m[2m9   [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
+[0m[2m10  [0m[2m    [0m |[31m[1m-[0m[31m  'bar': function() { return _foo__WEBPACK_IMPORTED_MODULE_0_; [0m[31m}
+[0m[2m    [0m[2m10  [0m |[32m[1m+[0m[32m  'bar': function() { return _foo__WEBPACK_IMPORTED_MODULE_0_; [0m[32m[40m[4m},[0m[32m
+[0m[2m    [0m[2m11  [0m |[32m[1m+[0m[32m[40m[4m  'b': function() { return b; [0m[32m}
+[0m[2m11  [0m[2m12  [0m |[1m[2m [0m[2m});
+[0m[2m12  [0m[2m13  [0m |[1m[2m [0m[2m/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo */"./foo.js");
+[0m[2m13  [0m[2m14  [0m |[1m[2m [0m[2m/* harmony import */var _result__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./result */"./result.js");
+[0m--------------------------------------------------------------------------------
+[2m20  [0m[2m21  [0m |[1m[2m [0m[2m'use strict';
+[0m[2m21  [0m[2m22  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m22  [0m[2m23  [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
+[0m[2m23  [0m[2m    [0m |[31m[1m-[0m[31m  'a': function() { return a; [0m[31m}
+[0m[2m    [0m[2m24  [0m |[32m[1m+[0m[32m  'a': function() { return a; [0m[32m[40m[4m},[0m[32m
+[0m[2m    [0m[2m25  [0m |[32m[1m+[0m[32m[40m[4m  'foo': function() { return foo; [0m[32m}
+[0m[2m24  [0m[2m26  [0m |[1m[2m [0m[2m});
+[0m[2m25  [0m[2m27  [0m |[1m[2m [0m[2m/* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./bar */"./bar.js");
+[0m[2m26  [0m[2m28  [0m |[1m[2m [0m[2m__webpack_require__.es(_bar__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
+[0m

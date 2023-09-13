@@ -1,0 +1,21 @@
+[2m6   [0m[2m6   [0m |[1m[2m [0m[2m"./a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+[0m[2m7   [0m[2m7   [0m |[1m[2m [0m[2m'use strict';
+[0m[2m8   [0m[2m8   [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m    [0m[2m9   [0m |[32m[1m+[0m[32m__webpack_require__.d(__webpack_exports__, {
+[0m[2m    [0m[2m10  [0m |[32m[1m+[0m[32m  'a': function() { return a; },
+[0m[2m    [0m[2m11  [0m |[32m[1m+[0m[32m  'c': function() { return _b_js__WEBPACK_IMPORTED_MODULE_0_.c; }
+[0m[2m    [0m[2m12  [0m |[32m[1m+[0m[32m});
+[0m[2m9   [0m[2m13  [0m |[1m[2m [0m[2m/* harmony import */var _b_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./b.js */"./b.js");
+[0m[2m10  [0m[2m14  [0m |[1m[2m [0m[2m/* harmony import */var _c_js__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./c.js */"./c.js");
+[0m[2m11  [0m[2m15  [0m |[1m[2m [0m[2m__webpack_require__.es(_c_js__WEBPACK_IMPORTED_MODULE_1_, __webpack_exports__);
+[0m--------------------------------------------------------------------------------
+[2m19  [0m[2m23  [0m |[1m[2m [0m[2m'use strict';
+[0m[2m20  [0m[2m24  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m21  [0m[2m25  [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
+[0m[2m22  [0m[2m    [0m |[31m[1m-[0m[31m  'd': function() { return d; [0m[31m}
+[0m[2m    [0m[2m26  [0m |[32m[1m+[0m[32m  'd': function() { return d; [0m[32m[40m[4m},[0m[32m
+[0m[2m    [0m[2m27  [0m |[32m[1m+[0m[32m[40m[4m  'c': function() { return c; [0m[32m}
+[0m[2m23  [0m[2m28  [0m |[1m[2m [0m[2m});
+[0m[2m24  [0m[2m29  [0m |[1m[2m [0m[2m const d = 3;
+[0m[2m25  [0m[2m30  [0m |[1m[2m [0m[2m const c = 100;
+[0m

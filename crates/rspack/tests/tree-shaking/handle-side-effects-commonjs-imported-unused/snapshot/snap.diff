@@ -1,0 +1,76 @@
+[2m6   [0m[2m6   [0m |[1m[2m [0m[2m"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+[0m[2m7   [0m[2m7   [0m |[1m[2m [0m[2m'use strict';
+[0m[2m8   [0m[2m8   [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
+[0m[2m    [0m[2m9   [0m |[32m[1m+[0m[32m/* harmony import */var _source__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./source */"./source/index.js");
+[0m[2m    [0m[2m10  [0m |[32m[1m+[0m[32m/* harmony import */var _source__WEBPACK_IMPORTED_MODULE_0__default = /*#__PURE__*/__webpack_require__.n(_source__WEBPACK_IMPORTED_MODULE_0_);
+[0m[2m9   [0m[2m11  [0m |[1m[2m [0m[2m
+[0m[2m10  [0m[2m12  [0m |[1m[2m [0m[2mconsole.log('something');
+[0m[2m11  [0m[2m13  [0m |[1m[2m [0m[2m},
+[0m[2m    [0m[2m14  [0m |[32m[1m+[0m[32m"./source/index.js": function (module, exports, __webpack_require__) {
+[0m[2m    [0m[2m15  [0m |[32m[1m+[0m[32mvar _class_call_check = __webpack_require__(/* @swc/helpers/_/_class_call_check */"../../../../../node_modules/@swc/helpers/esm/_class_call_check.js");
+[0m[2m    [0m[2m16  [0m |[32m[1m+[0m[32mvar _create_class = __webpack_require__(/* @swc/helpers/_/_create_class */"../../../../../node_modules/@swc/helpers/esm/_create_class.js");
+[0m[2m    [0m[2m17  [0m |[32m[1m+[0m[32mvar test = function test() {
+[0m[2m    [0m[2m18  [0m |[32m[1m+[0m[32m    var res = new Response();
+[0m[2m    [0m[2m19  [0m |[32m[1m+[0m[32m    return res;
+[0m[2m    [0m[2m20  [0m |[32m[1m+[0m[32m};
+[0m[2m    [0m[2m21  [0m |[32m[1m+[0m[32mvar Response = function() {
+[0m[2m    [0m[2m22  [0m |[32m[1m+[0m[32m    "use strict";
+[0m[2m    [0m[2m23  [0m |[32m[1m+[0m[32m    function Response(mode) {
+[0m[2m    [0m[2m24  [0m |[32m[1m+[0m[32m        _class_call_check._(this, Response);
+[0m[2m    [0m[2m25  [0m |[32m[1m+[0m[32m        // eslint-disable-next-line no-undefined
+[0m[2m    [0m[2m26  [0m |[32m[1m+[0m[32m        if (mode.data === undefined) mode.data = {};
+[0m[2m    [0m[2m27  [0m |[32m[1m+[0m[32m        this.data = mode.data;
+[0m[2m    [0m[2m28  [0m |[32m[1m+[0m[32m        this.isMatchIgnored = false;
+[0m[2m    [0m[2m29  [0m |[32m[1m+[0m[32m    }
+[0m[2m    [0m[2m30  [0m |[32m[1m+[0m[32m    _create_class._(Response, [
+[0m[2m    [0m[2m31  [0m |[32m[1m+[0m[32m        {
+[0m[2m    [0m[2m32  [0m |[32m[1m+[0m[32m            key: "ignoreMatch",
+[0m[2m    [0m[2m33  [0m |[32m[1m+[0m[32m            value: function ignoreMatch() {
+[0m[2m    [0m[2m34  [0m |[32m[1m+[0m[32m                this.isMatchIgnored = true;
+[0m[2m    [0m[2m35  [0m |[32m[1m+[0m[32m            }
+[0m[2m    [0m[2m36  [0m |[32m[1m+[0m[32m        }
+[0m[2m    [0m[2m37  [0m |[32m[1m+[0m[32m    ]);
+[0m[2m    [0m[2m38  [0m |[32m[1m+[0m[32m    return Response;
+[0m[2m    [0m[2m39  [0m |[32m[1m+[0m[32m}();
+[0m[2m    [0m[2m40  [0m |[32m[1m+[0m[32mvar result = test();
+[0m[2m    [0m[2m41  [0m |[32m[1m+[0m[32mmodule.exports = result;
+[0m[2m    [0m[2m42  [0m |[32m[1m+[0m[32m},
+[0m[2m    [0m[2m43  [0m |[32m[1m+[0m[32m"../../../../../node_modules/@swc/helpers/esm/_class_call_check.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+[0m[2m    [0m[2m44  [0m |[32m[1m+[0m[32m'use strict';
+[0m[2m    [0m[2m45  [0m |[32m[1m+[0m[32m__webpack_require__.r(__webpack_exports__);
+[0m[2m    [0m[2m46  [0m |[32m[1m+[0m[32m__webpack_require__.d(__webpack_exports__, {
+[0m[2m    [0m[2m47  [0m |[32m[1m+[0m[32m  '_class_call_check': function() { return _class_call_check; },
+[0m[2m    [0m[2m48  [0m |[32m[1m+[0m[32m  '_': function() { return _class_call_check; }
+[0m[2m    [0m[2m49  [0m |[32m[1m+[0m[32m});
+[0m[2m    [0m[2m50  [0m |[32m[1m+[0m[32m function _class_call_check(instance, Constructor) {
+[0m[2m    [0m[2m51  [0m |[32m[1m+[0m[32m    if (!(instance instanceof Constructor)) throw new TypeError("Cannot call a class as a function");
+[0m[2m    [0m[2m52  [0m |[32m[1m+[0m[32m}
+[0m[2m    [0m[2m53  [0m |[32m[1m+[0m[32m
+[0m[2m    [0m[2m54  [0m |[32m[1m+[0m[32m},
+[0m[2m    [0m[2m55  [0m |[32m[1m+[0m[32m"../../../../../node_modules/@swc/helpers/esm/_create_class.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+[0m[2m    [0m[2m56  [0m |[32m[1m+[0m[32m'use strict';
+[0m[2m    [0m[2m57  [0m |[32m[1m+[0m[32m__webpack_require__.r(__webpack_exports__);
+[0m[2m    [0m[2m58  [0m |[32m[1m+[0m[32m__webpack_require__.d(__webpack_exports__, {
+[0m[2m    [0m[2m59  [0m |[32m[1m+[0m[32m  '_create_class': function() { return _create_class; },
+[0m[2m    [0m[2m60  [0m |[32m[1m+[0m[32m  '_': function() { return _create_class; }
+[0m[2m    [0m[2m61  [0m |[32m[1m+[0m[32m});
+[0m[2m    [0m[2m62  [0m |[32m[1m+[0m[32mfunction _defineProperties(target, props) {
+[0m[2m    [0m[2m63  [0m |[32m[1m+[0m[32m    for(var i = 0; i < props.length; i++){
+[0m[2m    [0m[2m64  [0m |[32m[1m+[0m[32m        var descriptor = props[i];
+[0m[2m    [0m[2m65  [0m |[32m[1m+[0m[32m        descriptor.enumerable = descriptor.enumerable || false;
+[0m[2m    [0m[2m66  [0m |[32m[1m+[0m[32m        descriptor.configurable = true;
+[0m[2m    [0m[2m67  [0m |[32m[1m+[0m[32m        if ("value" in descriptor) descriptor.writable = true;
+[0m[2m    [0m[2m68  [0m |[32m[1m+[0m[32m        Object.defineProperty(target, descriptor.key, descriptor);
+[0m[2m    [0m[2m69  [0m |[32m[1m+[0m[32m    }
+[0m[2m    [0m[2m70  [0m |[32m[1m+[0m[32m}
+[0m[2m    [0m[2m71  [0m |[32m[1m+[0m[32m function _create_class(Constructor, protoProps, staticProps) {
+[0m[2m    [0m[2m72  [0m |[32m[1m+[0m[32m    if (protoProps) _defineProperties(Constructor.prototype, protoProps);
+[0m[2m    [0m[2m73  [0m |[32m[1m+[0m[32m    if (staticProps) _defineProperties(Constructor, staticProps);
+[0m[2m    [0m[2m74  [0m |[32m[1m+[0m[32m    return Constructor;
+[0m[2m    [0m[2m75  [0m |[32m[1m+[0m[32m}
+[0m[2m    [0m[2m76  [0m |[32m[1m+[0m[32m
+[0m[2m    [0m[2m77  [0m |[32m[1m+[0m[32m},
+[0m[2m12  [0m[2m78  [0m |[1m[2m [0m[2m
+[0m[2m13  [0m[2m79  [0m |[1m[2m [0m[2m},function(__webpack_require__) {
+[0m[2m14  [0m[2m80  [0m |[1m[2m [0m[2mvar __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+[0m
