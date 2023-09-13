@@ -1,42 +1,44 @@
-[2m7   [0m[2m7   [0m |[1m[2m [0m[2m'use strict';
-[0m[2m8   [0m[2m8   [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
-[0m[2m9   [0m[2m9   [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
-[0m[2m10  [0m[2m    [0m |[31m[1m-[0m[31m  'a': function() { return a; [0m[31m}
-[0m[2m    [0m[2m10  [0m |[32m[1m+[0m[32m  'a': function() { return a; [0m[32m[40m[4m},[0m[32m
-[0m[2m    [0m[2m11  [0m |[32m[1m+[0m[32m[40m[4m  'dddd': function() { return dddd; [0m[32m}
-[0m[2m11  [0m[2m12  [0m |[1m[2m [0m[2m});
-[0m[2m12  [0m[2m13  [0m |[1m[2m [0m[2m function a() {}
-[0m[2m13  [0m[2m14  [0m |[1m[2m [0m[2m function dddd() {}
-[0m[2m14  [0m[2m15  [0m |[1m[2m [0m[2m},
-[0m[2m    [0m[2m16  [0m |[32m[1m+[0m[32m"./package/autogen/b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-[0m[2m    [0m[2m17  [0m |[32m[1m+[0m[32m'use strict';
-[0m[2m    [0m[2m18  [0m |[32m[1m+[0m[32m__webpack_require__.r(__webpack_exports__);
-[0m[2m    [0m[2m19  [0m |[32m[1m+[0m[32m__webpack_require__.d(__webpack_exports__, {
-[0m[2m    [0m[2m20  [0m |[32m[1m+[0m[32m  'b': function() { return b; }
-[0m[2m    [0m[2m21  [0m |[32m[1m+[0m[32m});
-[0m[2m    [0m[2m22  [0m |[32m[1m+[0m[32m function b() {}
-[0m[2m    [0m[2m23  [0m |[32m[1m+[0m[32m},
-[0m[2m    [0m[2m24  [0m |[32m[1m+[0m[32m"./package/autogen/c.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-[0m[2m    [0m[2m25  [0m |[32m[1m+[0m[32m'use strict';
-[0m[2m    [0m[2m26  [0m |[32m[1m+[0m[32m__webpack_require__.r(__webpack_exports__);
-[0m[2m    [0m[2m27  [0m |[32m[1m+[0m[32m__webpack_require__.d(__webpack_exports__, {
-[0m[2m    [0m[2m28  [0m |[32m[1m+[0m[32m  'c': function() { return c; }
-[0m[2m    [0m[2m29  [0m |[32m[1m+[0m[32m});
-[0m[2m    [0m[2m30  [0m |[32m[1m+[0m[32m function c() {}
-[0m[2m    [0m[2m31  [0m |[32m[1m+[0m[32m},
-[0m[2m15  [0m[2m32  [0m |[1m[2m [0m[2m"./package/autogen/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-[0m[2m16  [0m[2m33  [0m |[1m[2m [0m[2m'use strict';
-[0m[2m17  [0m[2m34  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
-[0m[2m18  [0m[2m35  [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
-[0m[2m19  [0m[2m    [0m |[31m[1m-[0m[31m  'a': function() { return _a__WEBPACK_IMPORTED_MODULE_0_; [0m[31m}
-[0m[2m    [0m[2m36  [0m |[32m[1m+[0m[32m  'a': function() { return _a__WEBPACK_IMPORTED_MODULE_0_; [0m[32m[40m[4m},[0m[32m
-[0m[2m    [0m[2m37  [0m |[32m[1m+[0m[32m[40m[4m  'b': function() { return _b__WEBPACK_IMPORTED_MODULE_1_; },[0m[32m
-[0m[2m    [0m[2m38  [0m |[32m[1m+[0m[32m[40m[4m  'c': function() { return _c__WEBPACK_IMPORTED_MODULE_2_; [0m[32m}
-[0m[2m20  [0m[2m39  [0m |[1m[2m [0m[2m});
-[0m[2m21  [0m[2m40  [0m |[1m[2m [0m[2m/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a */"./package/autogen/a.js");
-[0m[2m    [0m[2m41  [0m |[32m[1m+[0m[32m/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./b */"./package/autogen/b.js");
-[0m[2m    [0m[2m42  [0m |[32m[1m+[0m[32m/* harmony import */var _c__WEBPACK_IMPORTED_MODULE_2_ = __webpack_require__(/* ./c */"./package/autogen/c.js");
-[0m[2m22  [0m[2m43  [0m |[1m[2m [0m[2m
-[0m[2m23  [0m[2m44  [0m |[1m[2m [0m[2m
-[0m[2m24  [0m[2m45  [0m |[1m[2m [0m[2m
-[0m
+--- expected
++++ actual
+@@ -7,18 +7,39 @@
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  'a': function() { return a; }
++  'a': function() { return a; },
++  'dddd': function() { return dddd; }
+ });
+  function a() {}
+  function dddd() {}
+ },
++"./package/autogen/b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
++'use strict';
++__webpack_require__.r(__webpack_exports__);
++__webpack_require__.d(__webpack_exports__, {
++  'b': function() { return b; }
++});
++ function b() {}
++},
++"./package/autogen/c.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
++'use strict';
++__webpack_require__.r(__webpack_exports__);
++__webpack_require__.d(__webpack_exports__, {
++  'c': function() { return c; }
++});
++ function c() {}
++},
+ "./package/autogen/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  'a': function() { return _a__WEBPACK_IMPORTED_MODULE_0_; }
++  'a': function() { return _a__WEBPACK_IMPORTED_MODULE_0_; },
++  'b': function() { return _b__WEBPACK_IMPORTED_MODULE_1_; },
++  'c': function() { return _c__WEBPACK_IMPORTED_MODULE_2_; }
+ });
+ /* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a */"./package/autogen/a.js");
++/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./b */"./package/autogen/b.js");
++/* harmony import */var _c__WEBPACK_IMPORTED_MODULE_2_ = __webpack_require__(/* ./c */"./package/autogen/c.js");
+ 
+ 
+ 

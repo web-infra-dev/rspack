@@ -19,6 +19,7 @@ rspack_binding_options = { path = "../rspack_binding_options" }
 rspack_testing         = { path = "../rspack_testing" }
 rspack_tracing         = { path = "../rspack_tracing" }
 
+
 cargo-rst      = { path = "../cargo-rst" }
 criterion      = { version = "0.3.6", features = ["async_tokio", "async_futures"] }
 insta          = { workspace = true }

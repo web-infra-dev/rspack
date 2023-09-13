@@ -1,10 +1,12 @@
-[2m6   [0m[2m6   [0m |[1m[2m [0m[2m"./bar.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-[0m[2m7   [0m[2m7   [0m |[1m[2m [0m[2m'use strict';
-[0m[2m8   [0m[2m8   [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
-[0m[2m    [0m[2m9   [0m |[32m[1m+[0m[32m__webpack_require__.d(__webpack_exports__, {
-[0m[2m    [0m[2m10  [0m |[32m[1m+[0m[32m  'a': function() { return a; }
-[0m[2m    [0m[2m11  [0m |[32m[1m+[0m[32m});
-[0m[2m9   [0m[2m12  [0m |[1m[2m [0m[2m const a = 'bar';
-[0m[2m10  [0m[2m13  [0m |[1m[2m [0m[2m},
-[0m[2m11  [0m[2m14  [0m |[1m[2m [0m[2m"./baz.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-[0m
+--- expected
++++ actual
+@@ -6,6 +6,9 @@
+ "./bar.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
++__webpack_require__.d(__webpack_exports__, {
++  'a': function() { return a; }
++});
+  const a = 'bar';
+ },
+ "./baz.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {

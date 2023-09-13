@@ -57,3 +57,9 @@ pub fn diff_and_print(expected: &str, actual: &str) -> String {
   let diff = TextDiff::from_lines(expected, actual);
   pretty_diff_printer(&diff)
 }
+
+pub fn git_diff(expected: &str, actual: &str) -> String {
+  let mut diff = TextDiff::from_lines(expected, actual);
+  let res = diff.unified_diff().header("expected", "actual").to_string();
+  res
+}

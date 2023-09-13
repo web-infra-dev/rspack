@@ -1,10 +1,12 @@
-[2m19  [0m[2m19  [0m |[1m[2m [0m[2m"./foo.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-[0m[2m20  [0m[2m20  [0m |[1m[2m [0m[2m'use strict';
-[0m[2m21  [0m[2m21  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
-[0m[2m    [0m[2m22  [0m |[32m[1m+[0m[32m__webpack_require__.d(__webpack_exports__, {
-[0m[2m    [0m[2m23  [0m |[32m[1m+[0m[32m  'batch': function() { return batch; }
-[0m[2m    [0m[2m24  [0m |[32m[1m+[0m[32m});
-[0m[2m22  [0m[2m25  [0m |[1m[2m [0m[2m/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./app */"./app.js");
-[0m[2m23  [0m[2m26  [0m |[1m[2m [0m[2m__webpack_require__.es(_app__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
-[0m[2m24  [0m[2m27  [0m |[1m[2m [0m[2m
-[0m
+--- expected
++++ actual
+@@ -19,6 +19,9 @@
+ "./foo.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
++__webpack_require__.d(__webpack_exports__, {
++  'batch': function() { return batch; }
++});
+ /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./app */"./app.js");
+ __webpack_require__.es(_app__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
+ 

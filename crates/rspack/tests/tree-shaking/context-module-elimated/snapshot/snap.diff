@@ -1,68 +1,70 @@
-[2m3   [0m[2m3   [0m |[1m[2m [0m[2m---
-[0m[2m4   [0m[2m4   [0m |[1m[2m [0m[2m```js title=main.js
-[0m[2m5   [0m[2m5   [0m |[1m[2m [0m[2m(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-[0m[2m    [0m[2m6   [0m |[32m[1m+[0m[32m"./child/child/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-[0m[2m    [0m[2m7   [0m |[32m[1m+[0m[32m'use strict';
-[0m[2m    [0m[2m8   [0m |[32m[1m+[0m[32m__webpack_require__.r(__webpack_exports__);
-[0m[2m    [0m[2m9   [0m |[32m[1m+[0m[32m__webpack_require__.d(__webpack_exports__, {
-[0m[2m    [0m[2m10  [0m |[32m[1m+[0m[32m  'value': function() { return value; }
-[0m[2m    [0m[2m11  [0m |[32m[1m+[0m[32m});
-[0m[2m    [0m[2m12  [0m |[32m[1m+[0m[32m const value = "dynamic";
-[0m[2m    [0m[2m13  [0m |[32m[1m+[0m[32m},
-[0m[2m    [0m[2m14  [0m |[32m[1m+[0m[32m"./child/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-[0m[2m    [0m[2m15  [0m |[32m[1m+[0m[32m'use strict';
-[0m[2m    [0m[2m16  [0m |[32m[1m+[0m[32m__webpack_require__.r(__webpack_exports__);
-[0m[2m    [0m[2m17  [0m |[32m[1m+[0m[32m__webpack_require__.d(__webpack_exports__, {
-[0m[2m    [0m[2m18  [0m |[32m[1m+[0m[32m  'value': function() { return value; }
-[0m[2m    [0m[2m19  [0m |[32m[1m+[0m[32m});
-[0m[2m    [0m[2m20  [0m |[32m[1m+[0m[32m const value = "dynamic";
-[0m[2m    [0m[2m21  [0m |[32m[1m+[0m[32m},
-[0m[2m    [0m[2m22  [0m |[32m[1m+[0m[32m"./child Sync  recursive ^\\.\\/.*\\.js$": function (module, exports, __webpack_require__) {
-[0m[2m    [0m[2m23  [0m |[32m[1m+[0m[32mvar map = {"./child/index.js": "./child/child/index.js","./index.js": "./child/index.js",};
-[0m[2m    [0m[2m24  [0m |[32m[1m+[0m[32mfunction webpackContext(req) {
-[0m[2m    [0m[2m25  [0m |[32m[1m+[0m[32mvar id = webpackContextResolve(req);
-[0m[2m    [0m[2m26  [0m |[32m[1m+[0m[32m
-[0m[2m    [0m[2m27  [0m |[32m[1m+[0m[32mreturn __webpack_require__(id);
-[0m[2m    [0m[2m28  [0m |[32m[1m+[0m[32m
-[0m[2m    [0m[2m29  [0m |[32m[1m+[0m[32m}
-[0m[2m    [0m[2m30  [0m |[32m[1m+[0m[32mfunction webpackContextResolve(req) {
-[0m[2m    [0m[2m31  [0m |[32m[1m+[0m[32m
-[0m[2m    [0m[2m32  [0m |[32m[1m+[0m[32m      if(!__webpack_require__.o(map, req)) {
-[0m[2m    [0m[2m33  [0m |[32m[1m+[0m[32m        var e = new Error("Cannot find module '" + req + "'");
-[0m[2m    [0m[2m34  [0m |[32m[1m+[0m[32m        e.code = 'MODULE_NOT_FOUND';
-[0m[2m    [0m[2m35  [0m |[32m[1m+[0m[32m        throw e;
-[0m[2m    [0m[2m36  [0m |[32m[1m+[0m[32m      }
-[0m[2m    [0m[2m37  [0m |[32m[1m+[0m[32m      return map[req];
-[0m[2m    [0m[2m38  [0m |[32m[1m+[0m[32m    
-[0m[2m    [0m[2m39  [0m |[32m[1m+[0m[32m}
-[0m[2m    [0m[2m40  [0m |[32m[1m+[0m[32mwebpackContext.id = '"./child Sync  recursive ^\\.\\/.*\\.js$"';
-[0m[2m    [0m[2m41  [0m |[32m[1m+[0m[32m
-[0m[2m    [0m[2m42  [0m |[32m[1m+[0m[32m      webpackContext.keys = function webpackContextKeys() {
-[0m[2m    [0m[2m43  [0m |[32m[1m+[0m[32m        return Object.keys(map);
-[0m[2m    [0m[2m44  [0m |[32m[1m+[0m[32m      };
-[0m[2m    [0m[2m45  [0m |[32m[1m+[0m[32m      webpackContext.resolve = webpackContextResolve;
-[0m[2m    [0m[2m46  [0m |[32m[1m+[0m[32m      module.exports = webpackContext;
-[0m[2m    [0m[2m47  [0m |[32m[1m+[0m[32m      },
-[0m[2m6   [0m[2m48  [0m |[1m[2m [0m[2m"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-[0m[2m7   [0m[2m49  [0m |[1m[2m [0m[2m'use strict';
-[0m[2m8   [0m[2m50  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
-[0m[2m    [0m[2m51  [0m |[32m[1m+[0m[32m/* harmony import */var _lib_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib.js */"./lib.js");
-[0m[2m9   [0m[2m52  [0m |[1m[2m [0m[2m
-[0m[2m10  [0m[2m53  [0m |[1m[2m [0m[2mfunction test() {
-[0m[2m11  [0m[2m    [0m |[31m[1m-[0m[31m    /* "./lib.js" unused */null;
-[0m[2m    [0m[2m54  [0m |[32m[1m+[0m[32m    _lib_js__WEBPACK_IMPORTED_MODULE_0_.a;
-[0m[2m12  [0m[2m55  [0m |[1m[2m [0m[2m}
-[0m[2m13  [0m[2m56  [0m |[1m[2m [0m[2m},
-[0m[2m    [0m[2m57  [0m |[32m[1m+[0m[32m"./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-[0m[2m    [0m[2m58  [0m |[32m[1m+[0m[32m'use strict';
-[0m[2m    [0m[2m59  [0m |[32m[1m+[0m[32m__webpack_require__.r(__webpack_exports__);
-[0m[2m    [0m[2m60  [0m |[32m[1m+[0m[32m__webpack_require__.d(__webpack_exports__, {
-[0m[2m    [0m[2m61  [0m |[32m[1m+[0m[32m  'a': function() { return a; }
-[0m[2m    [0m[2m62  [0m |[32m[1m+[0m[32m});
-[0m[2m    [0m[2m63  [0m |[32m[1m+[0m[32m const a = "";
-[0m[2m    [0m[2m64  [0m |[32m[1m+[0m[32m__webpack_require__(/* ./child */"./child Sync  recursive ^\\.\\/.*\\.js$")((`./child/${a}.js`).replace('./child/', './'));
-[0m[2m    [0m[2m65  [0m |[32m[1m+[0m[32m},
-[0m[2m14  [0m[2m66  [0m |[1m[2m [0m[2m
-[0m[2m15  [0m[2m67  [0m |[1m[2m [0m[2m},function(__webpack_require__) {
-[0m[2m16  [0m[2m68  [0m |[1m[2m [0m[2mvar __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
-[0m
+--- expected
++++ actual
+@@ -3,14 +3,66 @@
+ ---
+ ```js title=main.js
+ (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
++"./child/child/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
++'use strict';
++__webpack_require__.r(__webpack_exports__);
++__webpack_require__.d(__webpack_exports__, {
++  'value': function() { return value; }
++});
++ const value = "dynamic";
++},
++"./child/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
++'use strict';
++__webpack_require__.r(__webpack_exports__);
++__webpack_require__.d(__webpack_exports__, {
++  'value': function() { return value; }
++});
++ const value = "dynamic";
++},
++"./child Sync  recursive ^\\.\\/.*\\.js$": function (module, exports, __webpack_require__) {
++var map = {"./child/index.js": "./child/child/index.js","./index.js": "./child/index.js",};
++function webpackContext(req) {
++var id = webpackContextResolve(req);
++
++return __webpack_require__(id);
++
++}
++function webpackContextResolve(req) {
++
++      if(!__webpack_require__.o(map, req)) {
++        var e = new Error("Cannot find module '" + req + "'");
++        e.code = 'MODULE_NOT_FOUND';
++        throw e;
++      }
++      return map[req];
++    
++}
++webpackContext.id = '"./child Sync  recursive ^\\.\\/.*\\.js$"';
++
++      webpackContext.keys = function webpackContextKeys() {
++        return Object.keys(map);
++      };
++      webpackContext.resolve = webpackContextResolve;
++      module.exports = webpackContext;
++      },
+ "./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
++/* harmony import */var _lib_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib.js */"./lib.js");
+ 
+ function test() {
+-    /* "./lib.js" unused */null;
++    _lib_js__WEBPACK_IMPORTED_MODULE_0_.a;
+ }
+ },
++"./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
++'use strict';
++__webpack_require__.r(__webpack_exports__);
++__webpack_require__.d(__webpack_exports__, {
++  'a': function() { return a; }
++});
++ const a = "";
++__webpack_require__(/* ./child */"./child Sync  recursive ^\\.\\/.*\\.js$")((`./child/${a}.js`).replace('./child/', './'));
++},
+ 
+ },function(__webpack_require__) {
+ var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

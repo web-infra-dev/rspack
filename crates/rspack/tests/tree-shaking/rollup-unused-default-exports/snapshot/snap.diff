@@ -1,10 +1,12 @@
-[2m7   [0m[2m7   [0m |[1m[2m [0m[2m'use strict';
-[0m[2m8   [0m[2m8   [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
-[0m[2m9   [0m[2m9   [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
-[0m[2m10  [0m[2m    [0m |[31m[1m-[0m[31m  'foo': function() { return foo; [0m[31m}
-[0m[2m    [0m[2m10  [0m |[32m[1m+[0m[32m  'foo': function() { return foo; [0m[32m[40m[4m},[0m[32m
-[0m[2m    [0m[2m11  [0m |[32m[1m+[0m[32m[40m[4m  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; [0m[32m}
-[0m[2m11  [0m[2m12  [0m |[1m[2m [0m[2m});
-[0m[2m12  [0m[2m13  [0m |[1m[2m [0m[2m var foo = {
-[0m[2m13  [0m[2m14  [0m |[1m[2m [0m[2m    value: 1
-[0m
+--- expected
++++ actual
+@@ -7,7 +7,8 @@
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  'foo': function() { return foo; }
++  'foo': function() { return foo; },
++  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+ });
+  var foo = {
+     value: 1

@@ -1,46 +1,48 @@
-[2m3   [0m[2m3   [0m |[1m[2m [0m[2m---
-[0m[2m4   [0m[2m4   [0m |[1m[2m [0m[2m```js title=main.js
-[0m[2m5   [0m[2m5   [0m |[1m[2m [0m[2m(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-[0m[2m    [0m[2m6   [0m |[32m[1m+[0m[32m"./Layout.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-[0m[2m    [0m[2m7   [0m |[32m[1m+[0m[32m'use strict';
-[0m[2m    [0m[2m8   [0m |[32m[1m+[0m[32m__webpack_require__.r(__webpack_exports__);
-[0m[2m    [0m[2m9   [0m |[32m[1m+[0m[32m__webpack_require__.d(__webpack_exports__, {
-[0m[2m    [0m[2m10  [0m |[32m[1m+[0m[32m  'default': function() { return Layout; }
-[0m[2m    [0m[2m11  [0m |[32m[1m+[0m[32m});
-[0m[2m    [0m[2m12  [0m |[32m[1m+[0m[32mfunction Layout() {}
-[0m[2m    [0m[2m13  [0m |[32m[1m+[0m[32m},
-[0m[2m6   [0m[2m14  [0m |[1m[2m [0m[2m"./Something.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-[0m[2m7   [0m[2m15  [0m |[1m[2m [0m[2m'use strict';
-[0m[2m8   [0m[2m16  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
-[0m--------------------------------------------------------------------------------
-[2m16  [0m[2m24  [0m |[1m[2m [0m[2m'use strict';
-[0m[2m17  [0m[2m25  [0m |[1m[2m [0m[2m__webpack_require__.r(__webpack_exports__);
-[0m[2m18  [0m[2m26  [0m |[1m[2m [0m[2m__webpack_require__.d(__webpack_exports__, {
-[0m[2m    [0m[2m27  [0m |[32m[1m+[0m[32m  'Layout': function() { return _layout_export__WEBPACK_IMPORTED_MODULE_0_["default"]; },
-[0m[2m19  [0m[2m28  [0m |[1m[2m [0m[2m  'Sider': function() { return _Something__WEBPACK_IMPORTED_MODULE_1_["default"]; }
-[0m[2m20  [0m[2m29  [0m |[1m[2m [0m[2m});
-[0m[2m    [0m[2m30  [0m |[32m[1m+[0m[32m/* harmony import */var _layout_export__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./layout_export */"./layout_export.js");
-[0m[2m21  [0m[2m31  [0m |[1m[2m [0m[2m/* harmony import */var _Something__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./Something */"./Something.js");
-[0m[2m22  [0m[2m32  [0m |[1m[2m [0m[2m
-[0m[2m23  [0m[2m33  [0m |[1m[2m [0m[2m
-[0m--------------------------------------------------------------------------------
-[2m30  [0m[2m40  [0m |[1m[2m [0m[2m
-[0m[2m31  [0m[2m41  [0m |[1m[2m [0m[2m(0, _export__WEBPACK_IMPORTED_MODULE_0_.Sider)();
-[0m[2m32  [0m[2m42  [0m |[1m[2m [0m[2m},
-[0m[2m    [0m[2m43  [0m |[32m[1m+[0m[32m"./layout_export.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-[0m[2m    [0m[2m44  [0m |[32m[1m+[0m[32m'use strict';
-[0m[2m    [0m[2m45  [0m |[32m[1m+[0m[32m__webpack_require__.r(__webpack_exports__);
-[0m[2m    [0m[2m46  [0m |[32m[1m+[0m[32m__webpack_require__.d(__webpack_exports__, {
-[0m[2m    [0m[2m47  [0m |[32m[1m+[0m[32m  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
-[0m[2m    [0m[2m48  [0m |[32m[1m+[0m[32m});
-[0m[2m    [0m[2m49  [0m |[32m[1m+[0m[32m/* harmony import */var _Layout_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./Layout.js */"./Layout.js");
-[0m[2m    [0m[2m50  [0m |[32m[1m+[0m[32m/* harmony import */var _Something_js__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./Something.js */"./Something.js");
-[0m[2m    [0m[2m51  [0m |[32m[1m+[0m[32m
-[0m[2m    [0m[2m52  [0m |[32m[1m+[0m[32m
-[0m[2m    [0m[2m53  [0m |[32m[1m+[0m[32m_Layout_js__WEBPACK_IMPORTED_MODULE_0_["default"].sider = _Something_js__WEBPACK_IMPORTED_MODULE_1_["default"];
-[0m[2m    [0m[2m54  [0m |[32m[1m+[0m[32mvar __WEBPACK_DEFAULT_EXPORT__ = _Layout_js__WEBPACK_IMPORTED_MODULE_0_["default"];
-[0m[2m    [0m[2m55  [0m |[32m[1m+[0m[32m},
-[0m[2m33  [0m[2m56  [0m |[1m[2m [0m[2m
-[0m[2m34  [0m[2m57  [0m |[1m[2m [0m[2m},function(__webpack_require__) {
-[0m[2m35  [0m[2m58  [0m |[1m[2m [0m[2mvar __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
-[0m
+--- expected
++++ actual
+@@ -3,6 +3,14 @@
+ ---
+ ```js title=main.js
+ (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
++"./Layout.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
++'use strict';
++__webpack_require__.r(__webpack_exports__);
++__webpack_require__.d(__webpack_exports__, {
++  'default': function() { return Layout; }
++});
++function Layout() {}
++},
+ "./Something.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+@@ -16,8 +24,10 @@
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
++  'Layout': function() { return _layout_export__WEBPACK_IMPORTED_MODULE_0_["default"]; },
+   'Sider': function() { return _Something__WEBPACK_IMPORTED_MODULE_1_["default"]; }
+ });
++/* harmony import */var _layout_export__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./layout_export */"./layout_export.js");
+ /* harmony import */var _Something__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./Something */"./Something.js");
+ 
+ 
+@@ -30,6 +40,19 @@
+ 
+ (0, _export__WEBPACK_IMPORTED_MODULE_0_.Sider)();
+ },
++"./layout_export.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
++'use strict';
++__webpack_require__.r(__webpack_exports__);
++__webpack_require__.d(__webpack_exports__, {
++  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
++});
++/* harmony import */var _Layout_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./Layout.js */"./Layout.js");
++/* harmony import */var _Something_js__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./Something.js */"./Something.js");
++
++
++_Layout_js__WEBPACK_IMPORTED_MODULE_0_["default"].sider = _Something_js__WEBPACK_IMPORTED_MODULE_1_["default"];
++var __WEBPACK_DEFAULT_EXPORT__ = _Layout_js__WEBPACK_IMPORTED_MODULE_0_["default"];
++},
+ 
+ },function(__webpack_require__) {
+ var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

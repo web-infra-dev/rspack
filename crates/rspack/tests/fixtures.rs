@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use cargo_rst::diff_and_print;
+use cargo_rst::git_diff;
 use insta::Settings;
 use rspack_core::{CompilerOptions, TreeShaking, UsedExportsOption};
 use rspack_testing::test_fixture;
@@ -44,6 +44,6 @@ fn tree_shaking(fixture_path: PathBuf) {
   let new_treeshaking_snapshot_path = fixture_path.join("snapshot/new_treeshaking.snap");
   let new_treeshaking_snapshot =
     std::fs::read_to_string(&new_treeshaking_snapshot_path).expect("should have snapshot");
-  let diff = diff_and_print(&old_snapshot, &new_treeshaking_snapshot);
+  let diff = git_diff(&old_snapshot, &new_treeshaking_snapshot);
   std::fs::write(fixture_path.join("snapshot/snap.diff"), diff).expect("should write successfully");
 }
