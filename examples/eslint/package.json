@@ -5,9 +5,9 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "dev": "node --trace-exit --trace-uncaught --trace-warnings node_modules/.bin/rspack serve -c",
+    "dev": "node --trace-exit --trace-uncaught --trace-warnings node_modules/@rspack/cli/bin/rspack serve -c",
     "dev:loader": "rspack serve -c rspack.config.loader.js",
-    "build": "node --trace-exit --trace-uncaught --trace-warnings node_modules/.bin/rspack build"
+    "build": "node --trace-exit --trace-uncaught --trace-warnings node_modules/@rspack/cli/bin/rspack build"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",

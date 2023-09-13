@@ -5,8 +5,8 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "dev": "node --trace-exit --trace-uncaught --trace-warnings node_modules/.bin/rspack serve",
-    "build": "node --trace-exit --trace-uncaught --trace-warnings node_modules/.bin/rspack build"
+    "dev": "node --trace-exit --trace-uncaught --trace-warnings node_modules/@rspack/cli/bin/rspack serve",
+    "build": "node --trace-exit --trace-uncaught --trace-warnings node_modules/@rspack/cli/bin/rspack build"
   },
   "keywords": [],
   "author": "",
