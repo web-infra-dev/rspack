@@ -112,8 +112,9 @@ describe("snapshots", () => {
 		+     "minimize": true,
 		@@ ... @@
 		-     "moduleIds": "named",
-		-     "realContentHash": false,
 		+     "moduleIds": "deterministic",
+		@@ ... @@
+		-     "realContentHash": false,
 		+     "realContentHash": true,
 		@@ ... @@
 		-     "sideEffects": "flag",
@@ -126,6 +127,9 @@ describe("snapshots", () => {
 		@@ ... @@
 		-       "minSize": 10000,
 		+       "minSize": 20000,
+		@@ ... @@
+		-     "usedExports": false,
+		+     "usedExports": true,
 		@@ ... @@
 		-       "hash": false,
 		+       "hash": true,
@@ -147,8 +151,9 @@ describe("snapshots", () => {
 		+     "minimize": true,
 		@@ ... @@
 		-     "moduleIds": "named",
-		-     "realContentHash": false,
 		+     "moduleIds": "deterministic",
+		@@ ... @@
+		-     "realContentHash": false,
 		+     "realContentHash": true,
 		@@ ... @@
 		-     "sideEffects": "flag",
@@ -161,6 +166,9 @@ describe("snapshots", () => {
 		@@ ... @@
 		-       "minSize": 10000,
 		+       "minSize": 20000,
+		@@ ... @@
+		-     "usedExports": false,
+		+     "usedExports": true,
 		@@ ... @@
 		-       "hash": false,
 		+       "hash": true,

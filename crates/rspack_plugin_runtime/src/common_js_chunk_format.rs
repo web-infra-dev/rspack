@@ -21,7 +21,7 @@ pub struct CommonJsChunkFormatPlugin;
 #[async_trait]
 impl Plugin for CommonJsChunkFormatPlugin {
   fn name(&self) -> &'static str {
-    "CommonJsChunkFormatPlugin"
+    "rspack.CommonJsChunkFormatPlugin"
   }
 
   fn additional_chunk_runtime_requirements(

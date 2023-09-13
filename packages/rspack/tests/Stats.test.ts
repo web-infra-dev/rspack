@@ -144,6 +144,7 @@ describe("Stats", () => {
 		<t> module build task: X ms
 		<t> finish modules: X ms
 		<t> optimize dependencies: X ms
+		<t> optimize dependencies: X ms
 		<t> create chunks: X ms
 		<t> optimize: X ms
 		<t> module ids: X ms

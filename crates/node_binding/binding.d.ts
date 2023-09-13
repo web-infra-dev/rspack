@@ -123,6 +123,12 @@ export const enum BuiltinPluginName {
   ExternalsPlugin = 'ExternalsPlugin',
   NodeTargetPlugin = 'NodeTargetPlugin',
   ElectronTargetPlugin = 'ElectronTargetPlugin',
+  EnableChunkLoadingPlugin = 'EnableChunkLoadingPlugin',
+  EnableLibraryPlugin = 'EnableLibraryPlugin',
+  EnableWasmLoadingPlugin = 'EnableWasmLoadingPlugin',
+  CommonJsChunkFormatPlugin = 'CommonJsChunkFormatPlugin',
+  ArrayPushCallbackChunkFormatPlugin = 'ArrayPushCallbackChunkFormatPlugin',
+  ModuleChunkFormatPlugin = 'ModuleChunkFormatPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -234,6 +240,7 @@ export interface JsHooks {
   afterEmit: (...args: any[]) => any
   make: (...args: any[]) => any
   optimizeModules: (...args: any[]) => any
+  optimizeTree: (...args: any[]) => any
   optimizeChunkModule: (...args: any[]) => any
   beforeCompile: (...args: any[]) => any
   afterCompile: (...args: any[]) => any
@@ -431,13 +438,6 @@ export interface JsStatsModuleReason {
 export interface JsStatsWarning {
   message: string
   formatted: string
-}
-
-export interface NodeFS {
-  writeFile: (...args: any[]) => any
-  removeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
 }
 
 export interface PathData {
@@ -828,6 +828,8 @@ export interface RawOptimizationOptions {
   removeAvailableModules: boolean
   removeEmptyChunks: boolean
   sideEffects: string
+  usedExports: string
+  providedExports: boolean
   realContentHash: boolean
 }
 
@@ -875,7 +877,6 @@ export interface RawOutputOptions {
   importFunctionName: string
   iife: boolean
   module: boolean
-  chunkFormat: string
   chunkLoading: string
   enabledChunkLoadingTypes?: Array<string>
   trustedTypes?: RawTrustedTypes
@@ -954,6 +955,7 @@ export interface RawResolveOptions {
 
 export interface RawRspackFuture {
   newResolver: boolean
+  newTreeshaking: boolean
 }
 
 export interface RawRuleSetCondition {
@@ -1051,12 +1053,4 @@ export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", 
 
 /** Builtin loader runner */
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
-
-export interface ThreadsafeNodeFS {
-  writeFile: (...args: any[]) => any
-  removeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-  removeDirAll: (...args: any[]) => any
-}
 
