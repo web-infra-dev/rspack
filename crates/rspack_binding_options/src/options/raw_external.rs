@@ -21,6 +21,7 @@ use {
 #[napi(object)]
 pub struct RawHttpExternalsRspackPluginOptions {
   pub css: bool,
+  pub web_async: bool,
 }
 
 #[derive(Deserialize)]
