@@ -11,6 +11,8 @@ use rspack_tracing::enable_tracing_by_env;
 
 use crate::{eval_raw::evaluate_to_json, test_config::TestConfig};
 
+pub type MutTestOptionsFn = dyn FnMut(&mut Settings, &mut CompilerOptions);
+
 pub fn apply_from_fixture(fixture_path: &Path) -> (CompilerOptions, Vec<BoxPlugin>) {
   let js_config = fixture_path.join("test.config.js");
   if js_config.exists() {
@@ -68,7 +70,7 @@ pub async fn test_fixture_css_modules(fixture_path: &Path) -> Compiler<AsyncNati
 pub async fn test_fixture_insta(
   fixture_path: &Path,
   stats_filter: &dyn Fn(&str) -> bool,
-  mut_settings: Box<dyn FnMut(&mut Settings, &mut CompilerOptions)>,
+  mut_settings: Box<MutTestOptionsFn>,
 ) -> Compiler<AsyncNativeFileSystem> {
   test_fixture_share(fixture_path, stats_filter, mut_settings, None).await
 }
@@ -76,7 +78,7 @@ pub async fn test_fixture_insta(
 #[tokio::main]
 pub async fn test_fixture(
   fixture_path: &Path,
-  mut_settings: Box<dyn FnMut(&mut Settings, &mut CompilerOptions)>,
+  mut_settings: Box<MutTestOptionsFn>,
   snapshot_name: Option<String>,
 ) -> Compiler<AsyncNativeFileSystem> {
   test_fixture_share(
@@ -92,7 +94,7 @@ pub async fn test_fixture(
 pub async fn test_fixture_share(
   fixture_path: &Path,
   stats_filter: &dyn Fn(&str) -> bool,
-  mut mut_settings: Box<dyn FnMut(&mut Settings, &mut CompilerOptions)>,
+  mut mut_settings: Box<MutTestOptionsFn>,
   snapshot_name: Option<String>,
 ) -> Compiler<AsyncNativeFileSystem> {
   enable_tracing_by_env(&std::env::var("TRACE").ok().unwrap_or_default(), "stdout");

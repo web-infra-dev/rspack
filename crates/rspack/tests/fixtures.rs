@@ -28,7 +28,7 @@ fn tree_shaking(fixture_path: PathBuf) {
   // second test is webpack based tree shaking
   test_fixture(
     &fixture_path,
-    Box::new(|settings: &mut Settings, options: &mut CompilerOptions| {
+    Box::new(|_: &mut Settings, options: &mut CompilerOptions| {
       options.experiments.rspack_future.new_treeshaking = true;
       options.optimization.provided_exports = true;
       options.optimization.used_exports = UsedExportsOption::True;
@@ -40,10 +40,10 @@ fn tree_shaking(fixture_path: PathBuf) {
   // then we generate a diff file, the less diff generated the more we are closed to our
   // target
   let old_snapshot_path = fixture_path.join("snapshot/output.snap");
-  let old_snapshot = std::fs::read_to_string(&old_snapshot_path).expect("should have snapshot");
+  let old_snapshot = std::fs::read_to_string(old_snapshot_path).expect("should have snapshot");
   let new_treeshaking_snapshot_path = fixture_path.join("snapshot/new_treeshaking.snap");
   let new_treeshaking_snapshot =
-    std::fs::read_to_string(&new_treeshaking_snapshot_path).expect("should have snapshot");
+    std::fs::read_to_string(new_treeshaking_snapshot_path).expect("should have snapshot");
   let diff = git_diff(&old_snapshot, &new_treeshaking_snapshot);
   std::fs::write(fixture_path.join("snapshot/snap.diff"), diff).expect("should write successfully");
 }

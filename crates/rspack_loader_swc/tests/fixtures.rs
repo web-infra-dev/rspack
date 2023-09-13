@@ -115,5 +115,5 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
 
 #[fixture("tests/fixtures/*")]
 fn swc(fixture_path: PathBuf) {
-  test_fixture(&fixture_path);
+  test_fixture(&fixture_path, Box::new(|_, _| {}), None);
 }

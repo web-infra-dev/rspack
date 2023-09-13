@@ -13,5 +13,5 @@ fn main() {
     let cwd = env::current_dir().expect("current_dir");
     cwd.join(fixture).canonicalize().expect("canonicalize")
   };
-  test_fixture(&fixture);
+  test_fixture(&fixture, Box::new(|_, _| {}), None);
 }
