@@ -20,7 +20,7 @@ import type {
 import assert from "assert";
 import { Compiler } from "../Compiler";
 import { normalizeStatsPreset } from "../Stats";
-import { isNil } from "../util";
+import { deprecatedWarn, isNil } from "../util";
 import { parseResource } from "../util/identifier";
 import {
 	ComposeJsUseOptions,
@@ -75,6 +75,7 @@ export const getRawOptions = (
 	);
 	const devtool = options.devtool === false ? "" : options.devtool;
 	const mode = options.mode;
+	const experiments = getRawExperiments(options.experiments);
 	return {
 		mode,
 		target: getRawTarget(options.target),
@@ -86,7 +87,8 @@ export const getRawOptions = (
 			compiler,
 			devtool,
 			mode,
-			context: options.context
+			context: options.context,
+			experiments
 		}),
 		devtool,
 		optimization: getRawOptimization(options.optimization),
@@ -107,7 +109,7 @@ export const getRawOptions = (
 			name: "",
 			version: ""
 		},
-		experiments: getRawExperiments(options.experiments),
+		experiments,
 		node: getRawNode(options.node),
 		profile: options.profile!,
 		// TODO: remove this
@@ -318,6 +320,15 @@ function tryMatch(payload: string, condition: RuleSetCondition): boolean {
 	return false;
 }
 
+const deprecatedRuleType = (type?: string) => {
+	type ??= "javascript/auto";
+	if (/ts|typescript|tsx|typescriptx|jsx|javascriptx/.test(type)) {
+		deprecatedWarn(
+			`'Rule.type: ${type}' has been deprecated, please migrate to builtin:swc-loader with type 'javascript/auto'`
+		);
+	}
+};
+
 const getRawModuleRule = (
 	rule: RuleSetRule,
 	path: string,
@@ -441,6 +452,9 @@ const getRawModuleRule = (
 
 			return true;
 		});
+	}
+	if (options.experiments.rspackFuture.disableTransformByDefault) {
+		deprecatedRuleType(rule.type);
 	}
 	return rawModuleRule;
 };
