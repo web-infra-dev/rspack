@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use insta::Settings;
-use rspack_core::CompilerOptions;
+use rspack_core::{CompilerOptions, UsedExportsOption};
 use rspack_testing::test_fixture;
 use testing_macros::fixture;
 
@@ -27,7 +27,11 @@ fn tree_shaking(fixture_path: PathBuf) {
   // second test is webpack based tree shaking
   test_fixture(
     &fixture_path,
-    Box::new(|settings: &mut Settings, options: &mut CompilerOptions| {}),
+    Box::new(|settings: &mut Settings, options: &mut CompilerOptions| {
+      options.experiments.rspack_future.new_treeshaking = true;
+      options.optimization.provided_exports = true;
+      options.optimization.used_exports = UsedExportsOption::True;
+    }),
     Some("new_treeshaking".to_string()),
   );
   // then we generate a diff file, the less diff generated it means the more we are closed to our
