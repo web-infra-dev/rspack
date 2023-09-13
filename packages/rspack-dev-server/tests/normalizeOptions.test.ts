@@ -123,9 +123,8 @@ async function matchAdditionEntries(
 	const server = new RspackDevServer(serverConfig, compiler);
 	await server.start();
 	const entries = compiler.builtinPlugins
-		.map(p => p.raw())
-		.filter(p => p.kind === "Entry" /* BuiltinPluginKind.Entry */)
-		.map(p => p.options)
+		.filter(p => p.name === "EntryPlugin")
+		.map(p => p.raw().options)
 		.reduce<Object>((acc, cur: any) => {
 			const name = cur.options.name;
 			const request = cur.entry;

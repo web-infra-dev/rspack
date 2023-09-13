@@ -1,6 +1,5 @@
 ---
 source: crates/rspack_testing/src/run_fixture.rs
-assertion_line: 101
 ---
 ```css title=async-one.css
 body {
@@ -36,65 +35,4 @@ body {
 }
 
 
-```
-
-```js title=async-one.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["async-one"], {
-"./async-one.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-'use strict';
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */var _c_css__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./c.css */"./c.css");
-/* harmony import */var _d_css__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./d.css */"./d.css");
-
-
-},
-"./c.css": function (module, exports, __webpack_require__) {
-},
-"./d.css": function (module, exports, __webpack_require__) {
-},
-
-}]);
-```
-
-```js title=async-two.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["async-two"], {
-"./async-two.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-'use strict';
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */var _e_css__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./e.css */"./e.css");
-/* harmony import */var _f_css__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./f.css */"./f.css");
-
-
-},
-"./e.css": function (module, exports, __webpack_require__) {
-},
-"./f.css": function (module, exports, __webpack_require__) {
-},
-
-}]);
-```
-
-```js title=main.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-'use strict';
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */var _a_css__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a.css */"./a.css");
-/* harmony import */var _b_css__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./b.css */"./b.css");
-
-
-/* eslint-disable-next-line no-unused-expressions */ __webpack_require__.el(/* ./async-one */"./async-one.js").then(__webpack_require__.bind(__webpack_require__, /* ./async-one */"./async-one.js"));
-/* eslint-disable-next-line no-unused-expressions */ __webpack_require__.el(/* ./async-two */"./async-two.js").then(__webpack_require__.bind(__webpack_require__, /* ./async-two */"./async-two.js"));
-},
-"./a.css": function (module, exports, __webpack_require__) {
-},
-"./b.css": function (module, exports, __webpack_require__) {
-},
-
-},function(__webpack_require__) {
-var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
-var __webpack_exports__ = (__webpack_exec__("./index.js"));
-
-}
-]);
 ```

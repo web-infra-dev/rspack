@@ -18,20 +18,20 @@ use serde::Deserialize;
 use swc_html::visit::VisitMutWith;
 
 use crate::{
-  config::{HtmlPluginConfig, HtmlPluginConfigInject},
+  config::{HtmlInject, HtmlRspackPluginOptions},
   parser::HtmlCompiler,
   sri::{add_sri, create_digest_from_asset},
   visitors::asset::{AssetWriter, HTMLPluginTag},
 };
 
 #[derive(Deserialize, Debug, Default)]
-pub struct HtmlPlugin {
-  config: HtmlPluginConfig,
+pub struct HtmlRspackPlugin {
+  config: HtmlRspackPluginOptions,
 }
 
-impl HtmlPlugin {
-  pub fn new(config: HtmlPluginConfig) -> HtmlPlugin {
-    HtmlPlugin { config }
+impl HtmlRspackPlugin {
+  pub fn new(config: HtmlRspackPluginOptions) -> HtmlRspackPlugin {
+    HtmlRspackPlugin { config }
   }
 }
 fn default_template() -> &'static str {
@@ -47,9 +47,9 @@ fn default_template() -> &'static str {
 }
 
 #[async_trait]
-impl Plugin for HtmlPlugin {
+impl Plugin for HtmlRspackPlugin {
   fn name(&self) -> &'static str {
-    "html"
+    "rspack.HtmlRspackPlugin"
   }
 
   async fn process_assets_stage_optimize_inline(
@@ -132,36 +132,28 @@ impl Plugin for HtmlPlugin {
       .collect::<Vec<_>>();
 
     let mut tags = vec![];
-    for (asset_name, asset) in included_assets {
-      if let Some(extension) = Path::new(&asset_name).extension() {
-        let asset_uri = format!(
-          "{}{asset_name}",
-          config.get_public_path(compilation, &self.config.filename),
-        );
-        let mut tag: Option<HTMLPluginTag> = None;
-        if extension.eq_ignore_ascii_case("css") {
-          tag = Some(HTMLPluginTag::create_style(
-            &asset_uri,
-            Some(if let Some(inject) = &config.inject {
-              *inject
-            } else {
-              HtmlPluginConfigInject::Head
-            }),
-          ));
-        } else if extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("mjs") {
-          tag = Some(HTMLPluginTag::create_script(
-            &asset_uri,
-            Some(if let Some(inject) = &config.inject {
-              *inject
-            } else {
-              HtmlPluginConfigInject::Head
-            }),
-            &config.script_loading,
-          ))
-        }
+    // if inject is 'false', don't do anything
+    if !matches!(config.inject, HtmlInject::False) {
+      for (asset_name, asset) in included_assets {
+        if let Some(extension) = Path::new(&asset_name).extension() {
+          let asset_uri = format!(
+            "{}{asset_name}",
+            config.get_public_path(compilation, &self.config.filename),
+          );
+          let mut tag: Option<HTMLPluginTag> = None;
+          if extension.eq_ignore_ascii_case("css") {
+            tag = Some(HTMLPluginTag::create_style(&asset_uri, config.inject));
+          } else if extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("mjs") {
+            tag = Some(HTMLPluginTag::create_script(
+              &asset_uri,
+              config.inject,
+              &config.script_loading,
+            ))
+          }
 
-        if let Some(tag) = tag {
-          tags.push((tag, asset));
+          if let Some(tag) = tag {
+            tags.push((tag, asset));
+          }
         }
       }
     }

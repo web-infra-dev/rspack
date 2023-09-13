@@ -37,6 +37,10 @@ pub async fn test_fixture_js(fixture_path: &Path) -> Compiler<AsyncNativeFileSys
 }
 #[tokio::main]
 pub async fn test_fixture_css(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
+  test_fixture_share(fixture_path, &|s| s.ends_with(".css")).await
+}
+#[tokio::main]
+pub async fn test_fixture_css_modules(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
   test_fixture_share(fixture_path, &|s| {
     s.ends_with(".css") || (s.ends_with(".js") && !s.contains("runtime.js"))
   })

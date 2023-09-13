@@ -1,6 +1,5 @@
 ---
 source: crates/rspack_testing/src/run_fixture.rs
-assertion_line: 101
 ---
 ```css title=main.css
 body {
@@ -8,20 +7,4 @@ body {
 }
 
 
-```
-
-```js title=main.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (__unused_webpack_module, exports, __webpack_require__) {
-__webpack_require__(/* ./style.css */"./style.css");
-},
-"./style.css": function (module, exports, __webpack_require__) {
-},
-
-},function(__webpack_require__) {
-var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
-var __webpack_exports__ = (__webpack_exec__("./index.js"));
-
-}
-]);
 ```

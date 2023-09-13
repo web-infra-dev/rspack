@@ -1,6 +1,6 @@
-import { BuiltinPluginKind, create } from "./base";
+import { BuiltinPluginName, create } from "./base";
 
 export const ElectronTargetPlugin = create(
-	BuiltinPluginKind.ElectronTarget,
+	BuiltinPluginName.ElectronTargetPlugin,
 	(context?: string) => context ?? "none"
 );

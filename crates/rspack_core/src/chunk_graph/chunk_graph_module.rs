@@ -151,14 +151,11 @@ impl ChunkGraph {
     &self,
     block: &ModuleIdentifier,
     chunk_group_by_ukey: &'a ChunkGroupByUkey,
-  ) -> &'a ChunkGroup {
-    let ukey = self
+  ) -> Option<&'a ChunkGroup> {
+    self
       .block_to_chunk_group_ukey
       .get(block)
-      .unwrap_or_else(|| panic!("Block({block:?}) doesn't have corresponding ChunkGroup"));
-    chunk_group_by_ukey
-      .get(ukey)
-      .unwrap_or_else(|| panic!("ChunkGroup({ukey:?}) doesn't exist"))
+      .and_then(|ukey| chunk_group_by_ukey.get(ukey))
   }
 
   pub fn connect_block_and_chunk_group(

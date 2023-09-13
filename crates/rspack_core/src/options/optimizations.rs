@@ -44,9 +44,59 @@ impl SideEffectOption {
   }
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+pub enum UsedExports {
+  #[default]
+  False,
+  True,
+  Global,
+}
+
+impl From<&str> for UsedExports {
+  fn from(value: &str) -> Self {
+    match value {
+      "true" => Self::True,
+      "global" => Self::Global,
+      _ => Self::False,
+    }
+  }
+}
+
+impl UsedExports {
+  pub fn is_enable(&self) -> bool {
+    matches!(self, Self::Global | Self::True)
+  }
+
+  /// Returns `true` if the used exports is [`False`].
+  ///
+  /// [`False`]: UsedExports::False
+  #[must_use]
+  pub fn is_false(&self) -> bool {
+    matches!(self, Self::False)
+  }
+
+  /// Returns `true` if the used exports is [`True`].
+  ///
+  /// [`True`]: UsedExports::True
+  #[must_use]
+  pub fn is_true(&self) -> bool {
+    matches!(self, Self::True)
+  }
+
+  /// Returns `true` if the used exports is [`Global`].
+  ///
+  /// [`Global`]: UsedExports::Global
+  #[must_use]
+  pub fn is_global(&self) -> bool {
+    matches!(self, Self::Global)
+  }
+}
+
 #[derive(Debug)]
 pub struct Optimization {
   pub remove_available_modules: bool,
   pub remove_empty_chunks: bool,
   pub side_effects: SideEffectOption,
+  pub provided_exports: bool,
+  pub used_exports: UsedExports,
 }

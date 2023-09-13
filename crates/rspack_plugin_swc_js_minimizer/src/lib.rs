@@ -26,25 +26,27 @@ use swc_ecma_minifier::option::{
 };
 
 #[derive(Debug, Clone, Default, Hash)]
-pub struct Minification {
+pub struct SwcJsMinimizerRspackPluginOptions {
   pub passes: usize,
   pub drop_console: bool,
+  pub keep_class_names: bool,
+  pub keep_fn_names: bool,
   pub pure_funcs: Vec<String>,
   pub extract_comments: Option<String>,
   pub ascii_only: bool,
   pub comments: String,
-  pub test: Option<MinificationConditions>,
-  pub include: Option<MinificationConditions>,
-  pub exclude: Option<MinificationConditions>,
+  pub test: Option<SwcJsMinimizerRules>,
+  pub include: Option<SwcJsMinimizerRules>,
+  pub exclude: Option<SwcJsMinimizerRules>,
 }
 
 #[derive(Debug, Clone, Hash)]
-pub enum MinificationCondition {
+pub enum SwcJsMinimizerRule {
   String(String),
   Regexp(RspackRegex),
 }
 
-impl MinificationCondition {
+impl SwcJsMinimizerRule {
   #[async_recursion]
   pub async fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
     match self {
@@ -55,13 +57,13 @@ impl MinificationCondition {
 }
 
 #[derive(Debug, Clone, Hash)]
-pub enum MinificationConditions {
+pub enum SwcJsMinimizerRules {
   String(String),
   Regexp(rspack_regex::RspackRegex),
-  Array(Vec<MinificationCondition>),
+  Array(Vec<SwcJsMinimizerRule>),
 }
 
-impl MinificationConditions {
+impl SwcJsMinimizerRules {
   #[async_recursion]
   pub async fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
     match self {
@@ -73,20 +75,20 @@ impl MinificationConditions {
 }
 
 #[derive(Debug)]
-pub struct SwcJsMinimizerPlugin {
-  options: Minification,
+pub struct SwcJsMinimizerRspackPlugin {
+  options: SwcJsMinimizerRspackPluginOptions,
 }
 
-impl SwcJsMinimizerPlugin {
-  pub fn new(options: Minification) -> Self {
+impl SwcJsMinimizerRspackPlugin {
+  pub fn new(options: SwcJsMinimizerRspackPluginOptions) -> Self {
     Self { options }
   }
 }
 
 #[async_trait]
-impl Plugin for SwcJsMinimizerPlugin {
+impl Plugin for SwcJsMinimizerRspackPlugin {
   fn name(&self) -> &'static str {
-    "rspack.SwcJsMinimizerPlugin"
+    "rspack.SwcJsMinimizerRspackPlugin"
   }
 
   async fn process_assets_stage_optimize_size(
@@ -112,6 +114,12 @@ impl Plugin for SwcJsMinimizerPlugin {
       passes: minify_options.passes,
       drop_console: minify_options.drop_console,
       pure_funcs: minify_options.pure_funcs.clone(),
+      ..Default::default()
+    };
+
+    let mangle = MangleOptions {
+      keep_class_names: minify_options.keep_class_names,
+      keep_fn_names: minify_options.keep_fn_names,
       ..Default::default()
     };
 
@@ -146,6 +154,7 @@ impl Plugin for SwcJsMinimizerPlugin {
         let input_source_map = original_source.map(&MapOptions::default());
         let js_minify_options = JsMinifyOptions {
           compress: BoolOrDataConfig::from_obj(compress.clone()),
+          mangle: BoolOrDataConfig::from_obj(mangle.clone()),
           format: format.clone(),
           source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
           inline_sources_content: true, /* Using true so original_source can be None in SourceMapSource */
@@ -153,6 +162,7 @@ impl Plugin for SwcJsMinimizerPlugin {
           module: is_module,
           ..Default::default()
         };
+
         let output = match minify(
           &js_minify_options,
           input,
@@ -236,8 +246,8 @@ pub struct JsMinifyOptions {
   pub mangle: BoolOrDataConfig<MangleOptions>,
   pub format: JsMinifyFormatOptions,
   pub ecma: TerserEcmaVersion,
-  pub keep_classnames: bool,
-  pub keep_fnames: bool,
+  pub keep_class_names: bool,
+  pub keep_fn_names: bool,
   pub module: bool,
   pub safari10: bool,
   pub toplevel: bool,

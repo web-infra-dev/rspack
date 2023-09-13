@@ -180,7 +180,6 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		clean: output.clean!,
 		assetModuleFilename: output.assetModuleFilename!,
 		filename: output.filename!,
-		chunkFormat: output.chunkFormat === false ? "false" : output.chunkFormat!,
 		chunkFilename: output.chunkFilename!,
 		chunkLoading: chunkLoading === false ? "false" : chunkLoading,
 		crossOriginLoading: getRawCrossOriginLoading(output.crossOriginLoading!),
@@ -638,8 +637,10 @@ function getRawOptimization(
 			!isNil(optimization.removeAvailableModules) &&
 			!isNil(optimization.removeEmptyChunks) &&
 			!isNil(optimization.sideEffects) &&
-			!isNil(optimization.realContentHash),
-		"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash should not be nil after defaults"
+			!isNil(optimization.realContentHash) &&
+			!isNil(optimization.providedExports) &&
+			!isNil(optimization.usedExports),
+		"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash, optimization.providedExports, optimization.usedExports should not be nil after defaults"
 	);
 	return {
 		chunkIds: optimization.chunkIds,
@@ -648,7 +649,9 @@ function getRawOptimization(
 		removeAvailableModules: optimization.removeAvailableModules,
 		removeEmptyChunks: optimization.removeEmptyChunks,
 		sideEffects: String(optimization.sideEffects),
-		realContentHash: optimization.realContentHash
+		realContentHash: optimization.realContentHash,
+		usedExports: String(optimization.usedExports),
+		providedExports: optimization.providedExports
 	};
 }
 
@@ -740,8 +743,10 @@ function getRawRspackFutureOptions(
 	future: RspackFutureOptions
 ): RawRspackFuture {
 	assert(!isNil(future.newResolver));
+	assert(!isNil(future.newTreeshaking));
 	return {
-		newResolver: future.newResolver
+		newResolver: future.newResolver,
+		newTreeshaking: future.newTreeshaking
 	};
 }
 

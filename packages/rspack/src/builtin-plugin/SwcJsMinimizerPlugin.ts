@@ -1,15 +1,17 @@
 import {
-	RawMinification,
-	RawMinificationCondition,
-	RawMinificationConditions
+	RawSwcJsMinimizerRspackPluginOptions,
+	RawSwcJsMinimizerRule,
+	RawSwcJsMinimizerRules
 } from "@rspack/binding";
-import { BuiltinPluginKind, create } from "./base";
+import { BuiltinPluginName, create } from "./base";
 
 type MinifyCondition = string | RegExp;
 type MinifyConditions = MinifyCondition | MinifyCondition[];
-export type SwcJsMinimizerPluginOptions = {
+export type SwcJsMinimizerRspackPluginOptions = {
 	passes?: number;
 	dropConsole?: boolean;
+	keepClassNames?: boolean;
+	keepFnNames?: boolean;
 	pureFuncs?: Array<string>;
 	extractComments?: boolean | RegExp;
 	comments?: false | "all" | "some";
@@ -19,9 +21,9 @@ export type SwcJsMinimizerPluginOptions = {
 	include?: MinifyConditions;
 };
 
-function getMinifyCondition(
+function getRawSwcJsMinimizerRule(
 	condition: MinifyCondition
-): RawMinificationCondition {
+): RawSwcJsMinimizerRule {
 	if (typeof condition === "string") {
 		return {
 			type: "string",
@@ -37,36 +39,40 @@ function getMinifyCondition(
 	throw new Error("unreachable: condition should be one of string, RegExp");
 }
 
-function getMinifyConditions(
+function getRawSwcJsMinimizerRules(
 	condition?: MinifyConditions
-): RawMinificationConditions | undefined {
+): RawSwcJsMinimizerRules | undefined {
 	if (!condition) return undefined;
 
 	if (Array.isArray(condition)) {
 		return {
 			type: "array",
-			arrayMatcher: condition.map(i => getMinifyCondition(i))
+			arrayMatcher: condition.map(i => getRawSwcJsMinimizerRule(i))
 		};
 	}
 
-	return getMinifyCondition(condition);
+	return getRawSwcJsMinimizerRule(condition);
 }
 
-export const SwcJsMinimizerPlugin = create(
-	BuiltinPluginKind.SwcJsMinimizer,
-	(options?: SwcJsMinimizerPluginOptions): RawMinification => {
+export const SwcJsMinimizerRspackPlugin = create(
+	BuiltinPluginName.SwcJsMinimizerRspackPlugin,
+	(
+		options?: SwcJsMinimizerRspackPluginOptions
+	): RawSwcJsMinimizerRspackPluginOptions => {
 		return {
 			passes: options?.passes ?? 1,
 			dropConsole: options?.dropConsole ?? false,
+			keepClassNames: options?.keepClassNames ?? false,
+			keepFnNames: options?.keepFnNames ?? false,
 			pureFuncs: options?.pureFuncs ?? [],
 			comments: options?.comments ? options.comments : "false",
 			asciiOnly: options?.asciiOnly ?? false,
 			extractComments: options?.extractComments
 				? String(options.extractComments)
 				: undefined,
-			test: getMinifyConditions(options?.test),
-			include: getMinifyConditions(options?.include),
-			exclude: getMinifyConditions(options?.exclude)
+			test: getRawSwcJsMinimizerRules(options?.test),
+			include: getRawSwcJsMinimizerRules(options?.include),
+			exclude: getRawSwcJsMinimizerRules(options?.exclude)
 		};
 	}
 );

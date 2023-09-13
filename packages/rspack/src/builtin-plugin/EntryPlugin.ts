@@ -1,5 +1,5 @@
 import { RawEntryOptions, RawEntryPluginOptions } from "@rspack/binding";
-import { BuiltinPluginKind, create } from "./base";
+import { BuiltinPluginName, create } from "./base";
 import { ChunkLoading, EntryRuntime, Filename, PublicPath } from "..";
 
 export type EntryOptions = {
@@ -12,16 +12,18 @@ export type EntryOptions = {
 	filename?: Filename;
 };
 export const EntryPlugin = create(
-	BuiltinPluginKind.Entry,
+	BuiltinPluginName.EntryPlugin,
 	(
 		context: string,
 		entry: string,
-		options: EntryOptions
+		options: EntryOptions | string = ""
 	): RawEntryPluginOptions => {
+		let entryOptions =
+			typeof options === "string" ? { name: options } : options;
 		return {
 			context,
 			entry,
-			options: getRawEntryOptions(options)
+			options: getRawEntryOptions(entryOptions)
 		};
 	}
 );

@@ -1,7 +1,7 @@
 const BundleAnalyzerPlugin =
 	require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
 const CopyPlugin = require("copy-webpack-plugin");
-const HtmlPlugin = require("@rspack/plugin-html").default;
+const HtmlPlugin = require("html-webpack-plugin")
 const { StatsWriterPlugin } = require("webpack-stats-plugin");
 const minifyPlugin = require("@rspack/plugin-minify");
 const manifestPlugin = require("rspack-manifest-plugin").WebpackManifestPlugin;

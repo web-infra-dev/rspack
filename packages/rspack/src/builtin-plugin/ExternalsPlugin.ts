@@ -3,11 +3,11 @@ import {
 	RawExternalItemValue,
 	RawExternalsPluginOptions
 } from "@rspack/binding";
-import { BuiltinPluginKind, create } from "./base";
+import { BuiltinPluginName, create } from "./base";
 import { ExternalItem, ExternalItemValue, Externals } from "..";
 
 export const ExternalsPlugin = create(
-	BuiltinPluginKind.Externals,
+	BuiltinPluginName.ExternalsPlugin,
 	(type: string, externals: Externals): RawExternalsPluginOptions => {
 		return {
 			type,

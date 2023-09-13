@@ -12,6 +12,7 @@ export * from "./NormalModuleFactory";
 export { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
 export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
+export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
 export {
 	registerGlobalTrace as experimental_registerGlobalTrace,
 	cleanupGlobalTrace as experimental_cleanupGlobalTrace
@@ -26,25 +27,36 @@ export {
 	DefinePlugin,
 	ProvidePlugin,
 	ProgressPlugin,
-	HtmlPlugin,
-	SwcJsMinimizerPlugin,
-	SwcCssMinimizerPlugin,
-	CopyPlugin,
+	HtmlRspackPlugin,
+	SwcJsMinimizerRspackPlugin,
+	SwcCssMinimizerRspackPlugin,
+	CopyRspackPlugin,
 	EntryPlugin,
-	ExternalsPlugin
+	ExternalsPlugin,
+	EnableChunkLoadingPlugin
 } from "./builtin-plugin";
 export type {
 	BannerPluginArgument,
 	DefinePluginOptions,
 	ProvidePluginOptions,
 	ProgressPluginArgument,
-	HtmlPluginOptions,
-	SwcJsMinimizerPluginOptions,
-	CopyPluginOptions,
+	HtmlRspackPluginOptions,
+	SwcJsMinimizerRspackPluginOptions,
+	CopyRspackPluginOptions,
 	EntryOptions
 } from "./builtin-plugin";
-import { ElectronTargetPlugin, NodeTargetPlugin } from "./builtin-plugin";
-export const node = { NodeTargetPlugin };
+
+import NodeTemplatePlugin from "./node/NodeTemplatePlugin";
+import { NodeTargetPlugin } from "./builtin-plugin";
+export const node = { NodeTargetPlugin, NodeTemplatePlugin };
+
+import { ElectronTargetPlugin } from "./builtin-plugin";
 export const electron = { ElectronTargetPlugin };
+
+import { EnableLibraryPlugin } from "./builtin-plugin";
+export const library = { EnableLibraryPlugin };
+
+import { EnableWasmLoadingPlugin } from "./builtin-plugin";
+export const wasm = { EnableWasmLoadingPlugin };
 
 export { Watching };

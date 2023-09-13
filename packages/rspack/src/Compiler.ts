@@ -42,26 +42,11 @@ import Watching from "./Watching";
 import { NormalModule } from "./NormalModule";
 import { normalizeJsModule } from "./util/normalization";
 import {
-	ElectronTargetPlugin,
-	ExternalsPlugin,
-	HttpExternalsPlugin,
-	NodeTargetPlugin,
 	RspackBuiltinPlugin,
 	deprecated_resolveBuiltins
 } from "./builtin-plugin";
-import assert from "assert";
-import EntryOptionPlugin from "./lib/EntryOptionPlugin";
+import { optionsApply_compat } from "./rspackOptionsApply";
 
-class NodeTemplatePlugin {
-	apply() {}
-}
-
-class EnableLibraryPlugin {
-	constructor(private libraryType: string) {}
-	apply(compiler: Compiler) {
-		compiler.options.output.enabledLibraryTypes = [this.libraryType];
-	}
-}
 class HotModuleReplacementPlugin {
 	apply() {}
 }
@@ -168,21 +153,36 @@ class Compiler {
 			get ExternalsPlugin() {
 				return require("./builtin-plugin").ExternalsPlugin;
 			},
+			get LoaderOptionsPlugin() {
+				return require("./lib/LoaderOptionsPlugin").LoaderOptionsPlugin;
+			},
+			get LoaderTargetPlugin() {
+				return require("./lib/LoaderTargetPlugin").LoaderTargetPlugin;
+			},
 			WebpackError: Error,
 			ModuleFilenameHelpers,
 			node: {
 				get NodeTargetPlugin() {
 					return require("./builtin-plugin").NodeTargetPlugin;
 				},
-				NodeTemplatePlugin
+				get NodeTemplatePlugin() {
+					return require("./node/NodeTemplatePlugin").default;
+				}
 			},
 			electron: {
 				get ElectronTargetPlugin() {
 					return require("./builtin-plugin").ElectronTargetPlugin;
 				}
 			},
+			wasm: {
+				get EnableWasmLoadingPlugin() {
+					return require("./builtin-plugin").EnableWasmLoadingPlugin;
+				}
+			},
 			library: {
-				EnableLibraryPlugin
+				get EnableLibraryPlugin() {
+					return require("./builtin-plugin").EnableLibraryPlugin;
+				}
 			},
 			util: {
 				get createHash() {
@@ -306,45 +306,7 @@ class Compiler {
 
 		const options = this.options;
 		// TODO: remove this in v0.4
-		if (this.parentCompilation === undefined) {
-			if (options.externals) {
-				assert(
-					options.externalsType,
-					"options.externalsType should have value after `applyRspackOptionsDefaults`"
-				);
-				new ExternalsPlugin(options.externalsType, options.externals).apply(
-					this
-				);
-			}
-
-			if (options.externalsPresets.node) {
-				new NodeTargetPlugin().apply(this);
-			}
-			if (options.externalsPresets.electronMain) {
-				new ElectronTargetPlugin("main").apply(this);
-			}
-			if (options.externalsPresets.electronPreload) {
-				new ElectronTargetPlugin("preload").apply(this);
-			}
-			if (options.externalsPresets.electronRenderer) {
-				new ElectronTargetPlugin("renderer").apply(this);
-			}
-			if (
-				options.externalsPresets.electron &&
-				!options.externalsPresets.electronMain &&
-				!options.externalsPresets.electronPreload &&
-				!options.externalsPresets.electronRenderer
-			) {
-				new ElectronTargetPlugin().apply(this);
-			}
-			if (
-				options.externalsPresets.web ||
-				(options.externalsPresets.node && options.experiments.css)
-			) {
-				new HttpExternalsPlugin(!!options.experiments.css).apply(this);
-			}
-			EntryOptionPlugin.applyEntryOption(this, this.context, options.entry);
-		}
+		optionsApply_compat(this, options);
 		// TODO: remove this when drop support for builtins options
 		options.builtins = deprecated_resolveBuiltins(
 			options.builtins,
@@ -440,6 +402,7 @@ class Compiler {
 				// No matter how it will be implemented, it will be copied to the child compiler.
 				compilation: this.#compilation.bind(this),
 				optimizeModules: this.#optimizeModules.bind(this),
+				optimizeTree: this.#optimizeTree.bind(this),
 				optimizeChunkModule: this.#optimizeChunkModules.bind(this),
 				finishModules: this.#finishModules.bind(this),
 				normalModuleFactoryResolveForScheme:
@@ -748,6 +711,7 @@ class Compiler {
 				),
 			compilation: this.hooks.compilation,
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
+			optimizeTree: this.compilation.hooks.optimizeTree,
 			finishModules: this.compilation.hooks.finishModules,
 			optimizeModules: this.compilation.hooks.optimizeModules,
 			chunkAsset: this.compilation.hooks.chunkAsset,
@@ -873,6 +837,15 @@ class Compiler {
 		);
 		this.#updateDisabledHooks();
 	}
+
+	async #optimizeTree() {
+		await this.compilation.hooks.optimizeTree.promise(
+			this.compilation.__internal__getChunks(),
+			this.compilation.modules
+		);
+		this.#updateDisabledHooks();
+	}
+
 	async #optimizeModules() {
 		await this.compilation.hooks.optimizeModules.promise(
 			this.compilation.modules
