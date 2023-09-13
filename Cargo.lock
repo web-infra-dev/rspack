@@ -2322,6 +2322,7 @@ dependencies = [
 name = "rspack"
 version = "0.1.0"
 dependencies = [
+ "cargo-rst",
  "criterion",
  "insta",
  "mimalloc-rust",

@@ -1,0 +1,13 @@
+--- expected
++++ actual
+@@ -53,7 +53,9 @@
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  'getDocPermissionTextSendMe': function() { return getDocPermissionTextSendMe; }
++  'code2CreateChatDocPermission': function() { return code2CreateChatDocPermission; },
++  'getDocPermissionTextSendMe': function() { return getDocPermissionTextSendMe; },
++  'Doc': function() { return Doc; }
+ });
+ /* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./enum.js */"./enum.js");
+ 

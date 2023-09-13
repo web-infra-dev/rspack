@@ -1,0 +1,29 @@
+--- expected
++++ actual
+@@ -7,15 +7,16 @@
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
++  'Lib': function() { return Lib; },
+   'v': function() { return v; }
+ });
+ /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
+ 
+- class Lib extends /* "./lib" unused */null {
++ class Lib extends _lib__WEBPACK_IMPORTED_MODULE_0_.Lib {
+ }
+ function foo() {
+     return {
+-        OriginLib: /* "./lib" unused */null
++        OriginLib: _lib__WEBPACK_IMPORTED_MODULE_0_.Lib
+     };
+ }
+  const v = _lib__WEBPACK_IMPORTED_MODULE_0_.value;
+@@ -31,6 +32,7 @@
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
++  'Lib': function() { return Lib; },
+   'value': function() { return value; }
+ });
+  class Lib {

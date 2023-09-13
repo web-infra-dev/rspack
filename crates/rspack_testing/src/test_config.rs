@@ -441,7 +441,7 @@ impl TestConfig {
         remove_empty_chunks: self.optimization.remove_empty_chunks,
         side_effects: c::SideEffectOption::from(self.optimization.side_effects.as_str()),
         provided_exports: self.optimization.provided_exports,
-        used_exports: c::UsedExports::from(self.optimization.used_exports.as_str()),
+        used_exports: c::UsedExportsOption::from(self.optimization.used_exports.as_str()),
       },
       profile: false,
     };

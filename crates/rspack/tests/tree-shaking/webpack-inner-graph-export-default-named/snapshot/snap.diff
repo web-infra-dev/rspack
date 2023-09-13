@@ -1,0 +1,95 @@
+--- expected
++++ actual
+@@ -18,15 +18,21 @@
+ "./b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
++__webpack_require__.d(__webpack_exports__, {
++  'default': function() { return abc; }
++});
+ /* harmony import */var _dep_b__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dep?b */"./dep.js?b");
+ 
+ function abc() {
+-    return /* "./dep?b" unused */null;
++    return _dep_b__WEBPACK_IMPORTED_MODULE_0_.x;
+ }
+ },
+ "./c.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
++__webpack_require__.d(__webpack_exports__, {
++  'default': function() { return abc; }
++});
+ /* harmony import */var _dep_c__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dep?c */"./dep.js?c");
+ 
+ function abc() {
+@@ -56,12 +62,13 @@
+   'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+ });
+  const x = "x";
+-var __WEBPACK_DEFAULT_EXPORT__ = true;
++var __WEBPACK_DEFAULT_EXPORT__ = false;
+ },
+ "./dep.js?b": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
++  'x': function() { return x; },
+   'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+ });
+  const x = "x";
+@@ -75,7 +82,7 @@
+   'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+ });
+  const x = "x";
+-var __WEBPACK_DEFAULT_EXPORT__ = true;
++var __WEBPACK_DEFAULT_EXPORT__ = false;
+ },
+ "./dep.js?d": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+@@ -85,12 +92,13 @@
+   'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+ });
+  const x = "x";
+-var __WEBPACK_DEFAULT_EXPORT__ = true;
++var __WEBPACK_DEFAULT_EXPORT__ = false;
+ },
+ "./dep.js?e": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
++  'x': function() { return x; },
+   'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+ });
+  const x = "x";
+@@ -104,22 +112,28 @@
+   'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+ });
+  const x = "x";
+-var __WEBPACK_DEFAULT_EXPORT__ = true;
++var __WEBPACK_DEFAULT_EXPORT__ = false;
+ },
+ "./e.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
++__webpack_require__.d(__webpack_exports__, {
++  'default': function() { return def; }
++});
+ /* harmony import */var _dep_e__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dep?e */"./dep.js?e");
+ 
+ class def {
+     method() {
+-        return /* "./dep?e" unused */null;
++        return _dep_e__WEBPACK_IMPORTED_MODULE_0_.x;
+     }
+ }
+ },
+ "./f.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
++__webpack_require__.d(__webpack_exports__, {
++  'default': function() { return def; }
++});
+ /* harmony import */var _dep_f__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dep?f */"./dep.js?f");
+ 
+ class def {

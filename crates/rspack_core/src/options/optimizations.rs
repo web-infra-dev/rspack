@@ -45,14 +45,14 @@ impl SideEffectOption {
 }
 
 #[derive(Debug, Clone, Copy, Default)]
-pub enum UsedExports {
+pub enum UsedExportsOption {
   #[default]
   False,
   True,
   Global,
 }
 
-impl From<&str> for UsedExports {
+impl From<&str> for UsedExportsOption {
   fn from(value: &str) -> Self {
     match value {
       "true" => Self::True,
@@ -62,7 +62,7 @@ impl From<&str> for UsedExports {
   }
 }
 
-impl UsedExports {
+impl UsedExportsOption {
   pub fn is_enable(&self) -> bool {
     matches!(self, Self::Global | Self::True)
   }
@@ -98,5 +98,5 @@ pub struct Optimization {
   pub remove_empty_chunks: bool,
   pub side_effects: SideEffectOption,
   pub provided_exports: bool,
-  pub used_exports: UsedExports,
+  pub used_exports: UsedExportsOption,
 }
