@@ -73,7 +73,7 @@ pub struct HtmlRspackPluginOptions {
   pub template: Option<String>,
   pub template_content: Option<String>,
   pub template_parameters: Option<HashMap<String, String>>,
-  /// `head`, `body`, `true`, `false`
+  /// `head`, `body`, `false`
   #[serde(default = "default_inject")]
   pub inject: HtmlInject,
   /// path or `auto`

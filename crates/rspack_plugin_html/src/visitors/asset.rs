@@ -17,7 +17,7 @@ pub struct HTMLPluginTag {
   pub tag_name: String,
   pub attributes: Vec<HtmlPluginAttribute>,
   pub void_tag: bool,
-  // `head` or `body` or `true` or `false`
+  // `head`, `body`, `false`
   pub append_to: HtmlInject,
 }
 
