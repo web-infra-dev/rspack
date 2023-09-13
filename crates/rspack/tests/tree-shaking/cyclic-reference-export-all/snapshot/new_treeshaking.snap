@@ -23,6 +23,8 @@ var __WEBPACK_DEFAULT_EXPORT__ = Index;
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _platform_container__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./platform-container */"./src/containers/platform-container/index.js");
 __webpack_require__.es(_platform_container__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
+/* harmony import */var _page_container__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./page-container */"./src/containers/page-container/index.js");
+__webpack_require__.es(_page_container__WEBPACK_IMPORTED_MODULE_1_, __webpack_exports__);
 
 
 },
@@ -35,6 +37,13 @@ __webpack_require__.d(__webpack_exports__, {
 /* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./containers */"./src/containers/containers.js");
 
 
+},
+"./src/containers/page-container/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ../containers */"./src/containers/containers.js");
+
+_containers__WEBPACK_IMPORTED_MODULE_0_.usePlatform;
 },
 "./src/containers/platform-container/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';

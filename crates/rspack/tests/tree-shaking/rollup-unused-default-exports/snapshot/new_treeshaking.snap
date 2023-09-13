@@ -7,7 +7,8 @@ source: crates/rspack_testing/src/run_fixture.rs
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'foo': function() { return foo; }
+  'foo': function() { return foo; },
+  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
  var foo = {
     value: 1

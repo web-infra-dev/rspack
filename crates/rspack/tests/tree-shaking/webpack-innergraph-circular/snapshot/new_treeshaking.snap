@@ -36,6 +36,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'A': function() { return A; },
   'B': function() { return B; },
+  'C': function() { return C; },
   'exportAUsed': function() { return exportAUsed; },
   'exportBUsed': function() { return exportBUsed; },
   'exportCUsed': function() { return exportCUsed; }
@@ -49,14 +50,15 @@ __webpack_require__.d(__webpack_exports__, {
  function C(s) {
     return s + "C";
 }
- const exportAUsed = true;
- const exportBUsed = true;
+ const exportAUsed = false;
+ const exportBUsed = false;
  const exportCUsed = false;
 },
 "./module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
+  'x': function() { return x; },
   'y': function() { return y; }
 });
 /* harmony import */var _inner__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./inner */"./inner.js");
@@ -84,7 +86,7 @@ function withB(v) {
 }
 function withC(v) {
     const value = x(v);
-    return /* "./inner" unused */null(value);
+    return (0, _inner__WEBPACK_IMPORTED_MODULE_0_.C)(value);
 }
 
 },

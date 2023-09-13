@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use insta::Settings;
-use rspack_core::{CompilerOptions, UsedExportsOption};
+use rspack_core::{CompilerOptions, TreeShaking, UsedExportsOption};
 use rspack_testing::test_fixture;
 use testing_macros::fixture;
 
@@ -31,6 +31,7 @@ fn tree_shaking(fixture_path: PathBuf) {
       options.experiments.rspack_future.new_treeshaking = true;
       options.optimization.provided_exports = true;
       options.optimization.used_exports = UsedExportsOption::True;
+      options.builtins.tree_shaking = TreeShaking::False;
     }),
     Some("new_treeshaking".to_string()),
   );
