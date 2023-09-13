@@ -555,7 +555,9 @@ impl TestConfig {
       plugins.push(rspack_plugin_wasm::FetchCompileAsyncWasmPlugin {}.boxed());
       plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
     }
-    plugins.push(rspack_plugin_externals::http_externals_rspack_plugin(true));
+    plugins.push(rspack_plugin_externals::http_externals_rspack_plugin(
+      true, false,
+    ));
 
     // Support resolving builtin loaders on the Native side
     plugins.push(crate::loader::BuiltinLoaderResolver.boxed());

@@ -681,6 +681,7 @@ export type Externals = z.infer<typeof externals>;
 const externalsPresets = z.strictObject({
 	node: z.boolean().optional(),
 	web: z.boolean().optional(),
+	webAsync: z.boolean().optional(),
 	electron: z.boolean().optional(),
 	electronMain: z.boolean().optional(),
 	electronPreload: z.boolean().optional(),

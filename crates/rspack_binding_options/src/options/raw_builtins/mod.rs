@@ -152,7 +152,7 @@ impl RawOptionsApply for BuiltinPlugin {
       // rspack specific plugins
       BuiltinPluginName::HttpExternalsRspackPlugin => {
         let plugin_options = downcast_into::<RawHttpExternalsRspackPluginOptions>(self.options)?;
-        let plugin = http_externals_rspack_plugin(plugin_options.css);
+        let plugin = http_externals_rspack_plugin(plugin_options.css, plugin_options.web_async);
         plugins.push(plugin);
       }
       BuiltinPluginName::SwcJsMinimizerRspackPlugin => {

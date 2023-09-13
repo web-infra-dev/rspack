@@ -3,9 +3,10 @@ import { BuiltinPluginName, create } from "./base";
 
 export const HttpExternalsRspackPlugin = create(
 	BuiltinPluginName.HttpExternalsRspackPlugin,
-	(css: boolean): RawHttpExternalsRspackPluginOptions => {
+	(css: boolean, webAsync: boolean): RawHttpExternalsRspackPluginOptions => {
 		return {
-			css
+			css,
+			webAsync
 		};
 	}
 );

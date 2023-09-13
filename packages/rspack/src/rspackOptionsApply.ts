@@ -72,9 +72,13 @@ export function optionsApply_compat(
 		}
 		if (
 			options.externalsPresets.web ||
+			options.externalsPresets.webAsync ||
 			(options.externalsPresets.node && options.experiments.css)
 		) {
-			new HttpExternalsRspackPlugin(!!options.experiments.css).apply(compiler);
+			new HttpExternalsRspackPlugin(
+				!!options.experiments.css,
+				!!options.externalsPresets.webAsync
+			).apply(compiler);
 		}
 
 		if (typeof options.output.chunkFormat === "string") {
