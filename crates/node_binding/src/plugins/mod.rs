@@ -539,7 +539,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
     &self,
     _compilation: &mut rspack_core::Compilation,
   ) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::OptimizaTree) {
+    if self.is_hook_disabled(&Hook::OptimizeTree) {
       return Ok(());
     }
     self
