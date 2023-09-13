@@ -14,6 +14,7 @@ use crate::sri::HtmlSriHashFunction;
 pub enum HtmlInject {
   Head,
   Body,
+  False,
 }
 
 impl FromStr for HtmlInject {
@@ -24,9 +25,11 @@ impl FromStr for HtmlInject {
       Ok(HtmlInject::Head)
     } else if s.eq("body") {
       Ok(HtmlInject::Body)
+    } else if s.eq("false") {
+      Ok(HtmlInject::False)
     } else {
       Err(anyhow::Error::msg(
-        "inject in html config only support 'head' or 'body'",
+        "inject in html config only support 'head', 'body', or 'false'",
       ))
     }
   }
@@ -70,8 +73,9 @@ pub struct HtmlRspackPluginOptions {
   pub template: Option<String>,
   pub template_content: Option<String>,
   pub template_parameters: Option<HashMap<String, String>>,
-  /// `head`, `body` or None
-  pub inject: Option<HtmlInject>,
+  /// `head`, `body`, `false`
+  #[serde(default = "default_inject")]
+  pub inject: HtmlInject,
   /// path or `auto`
   pub public_path: Option<String>,
   /// `blocking`, `defer`, or `module`
@@ -100,6 +104,10 @@ fn default_script_loading() -> HtmlScriptLoading {
   HtmlScriptLoading::Defer
 }
 
+fn default_inject() -> HtmlInject {
+  HtmlInject::Head
+}
+
 impl Default for HtmlRspackPluginOptions {
   fn default() -> HtmlRspackPluginOptions {
     HtmlRspackPluginOptions {
@@ -107,7 +115,7 @@ impl Default for HtmlRspackPluginOptions {
       template: None,
       template_content: None,
       template_parameters: None,
-      inject: None,
+      inject: default_inject(),
       public_path: None,
       script_loading: default_script_loading(),
       chunks: None,

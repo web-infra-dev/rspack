@@ -716,12 +716,12 @@ export interface RawHtmlRspackPluginOptions {
   template?: string
   templateContent?: string
   templateParameters?: Record<string, string>
-  /** `head`, `body` or None */
-  inject?: "head" | "body"
+  /** "head", "body" or "false" */
+  inject: "head" | "body" | "false"
   /** path or `auto` */
   publicPath?: string
   /** `blocking`, `defer`, or `module` */
-  scriptLoading?: "blocking" | "defer" | "module"
+  scriptLoading: "blocking" | "defer" | "module"
   /** entry_chunk_name (only entry chunks are supported) */
   chunks?: Array<string>
   excludedChunks?: Array<string>
