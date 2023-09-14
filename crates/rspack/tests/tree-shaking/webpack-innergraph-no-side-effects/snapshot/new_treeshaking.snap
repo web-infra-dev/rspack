@@ -11,10 +11,6 @@ it("should be able to load package without side effects where modules are unused
 "./module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; },
-  'test': function() { return test; }
-});
 /* harmony import */var _package__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./package */"./package/index.js");
 
 var __WEBPACK_DEFAULT_EXPORT__ = _package__WEBPACK_IMPORTED_MODULE_0_.a;
@@ -23,10 +19,6 @@ var __WEBPACK_DEFAULT_EXPORT__ = _package__WEBPACK_IMPORTED_MODULE_0_.a;
 "./package/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'a': function() { return a; },
-  'b': function() { return b; }
-});
 /* harmony import */var _unusedModule__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./unusedModule */"./package/unusedModule.js");
 
  function a() {
@@ -39,9 +31,6 @@ __webpack_require__.d(__webpack_exports__, {
 "./package/unusedModule.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
-});
 var __WEBPACK_DEFAULT_EXPORT__ = 42;
 },
 

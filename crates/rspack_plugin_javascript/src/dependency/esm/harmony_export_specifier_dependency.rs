@@ -81,6 +81,7 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
         None,
         UsedName::Str(self.name.clone()),
       );
+      dbg!(&used_name);
       used_name
         .map(|item| match item {
           UsedName::Str(name) => name == self.name,

@@ -1,21 +1,18 @@
 --- expected
 +++ actual
-@@ -3,6 +3,14 @@
+@@ -3,6 +3,11 @@
  ---
  ```js title=main.js
  (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 +"./Layout.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 +'use strict';
 +__webpack_require__.r(__webpack_exports__);
-+__webpack_require__.d(__webpack_exports__, {
-+  'default': function() { return Layout; }
-+});
 +function Layout() {}
 +},
  "./Something.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  'use strict';
  __webpack_require__.r(__webpack_exports__);
-@@ -17,6 +25,7 @@
+@@ -17,6 +22,7 @@
  __webpack_require__.d(__webpack_exports__, {
    'default': function() { return a; }
  });

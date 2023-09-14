@@ -18,9 +18,6 @@ function abc() {
 "./b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'default': function() { return abc; }
-});
 /* harmony import */var _dep_b__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dep?b */"./dep.js?b");
 
 function abc() {
@@ -30,9 +27,6 @@ function abc() {
 "./c.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'default': function() { return abc; }
-});
 /* harmony import */var _dep_c__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dep?c */"./dep.js?c");
 
 function abc() {
@@ -117,9 +111,6 @@ var __WEBPACK_DEFAULT_EXPORT__ = false;
 "./e.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'default': function() { return def; }
-});
 /* harmony import */var _dep_e__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dep?e */"./dep.js?e");
 
 class def {
@@ -131,9 +122,6 @@ class def {
 "./f.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'default': function() { return def; }
-});
 /* harmony import */var _dep_f__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dep?f */"./dep.js?f");
 
 class def {

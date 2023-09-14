@@ -1,13 +1,22 @@
 --- expected
 +++ actual
-@@ -53,7 +53,9 @@
+@@ -6,9 +6,6 @@
+ "./a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  'use strict';
  __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
--  'getDocPermissionTextSendMe': function() { return getDocPermissionTextSendMe; }
-+  'code2CreateChatDocPermission': function() { return code2CreateChatDocPermission; },
-+  'getDocPermissionTextSendMe': function() { return getDocPermissionTextSendMe; },
-+  'Doc': function() { return Doc; }
- });
- /* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./enum.js */"./enum.js");
- 
+-__webpack_require__.d(__webpack_exports__, {
+-  'a': function() { return a; }
+-});
+  const a = {
+     a: ''
+ };
+@@ -16,9 +13,6 @@
+ "./b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+-__webpack_require__.d(__webpack_exports__, {
+-  'b': function() { return b; }
+-});
+  const b = {
+     b: ""
+ };

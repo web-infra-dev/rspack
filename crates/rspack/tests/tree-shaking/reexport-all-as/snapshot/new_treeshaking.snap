@@ -6,27 +6,17 @@ source: crates/rspack_testing/src/run_fixture.rs
 "./package/autogen/a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'a': function() { return a; },
-  'dddd': function() { return dddd; }
-});
  function a() {}
  function dddd() {}
 },
 "./package/autogen/b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'b': function() { return b; }
-});
  function b() {}
 },
 "./package/autogen/c.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'c': function() { return c; }
-});
  function c() {}
 },
 "./package/autogen/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {

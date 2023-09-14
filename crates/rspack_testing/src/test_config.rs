@@ -470,6 +470,7 @@ impl TestConfig {
       plugins
         .push(rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin::new().boxed());
     }
+
     for html in self.builtins.html {
       plugins.push(rspack_plugin_html::HtmlRspackPlugin::new(html).boxed());
     }

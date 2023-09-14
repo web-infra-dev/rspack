@@ -346,7 +346,6 @@ impl Plugin for FlagDependencyUsagePlugin {
     // TODO: `global` is always `true`, until we finished runtime optimization.
     let mut proxy = FlagDependencyUsagePluginProxy::new(true, compilation);
     proxy.apply();
-    println!("optimize_dependencies");
     Ok(None)
   }
 }

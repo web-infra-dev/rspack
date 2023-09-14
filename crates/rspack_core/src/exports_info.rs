@@ -331,7 +331,8 @@ impl ExportsInfoId {
     _mg: &mut ModuleGraph,
     _runtime: Option<&RuntimeSpec>,
   ) -> bool {
-    todo!()
+    // TODO:
+    false
   }
 
   pub fn set_used_for_side_effects_only(
@@ -647,6 +648,7 @@ pub struct ExportInfo {
   pub has_use_in_runtime_info: bool,
   pub can_mangle_use: Option<bool>,
   pub global_used: Option<UsageState>,
+  pub used_in_runtime: Option<HashMap<String, UsageState>>,
 }
 
 impl ExportsHash for ExportInfo {
@@ -737,12 +739,14 @@ impl ExportInfo {
       false
     };
     let can_mangle_use = init_from.and_then(|init_from| init_from.can_mangle_use);
+    let used_in_runtime = init_from.and_then(|init_from| init_from.used_in_runtime.clone());
 
     Self {
       name,
       module_identifier: None,
       usage_state,
       used_name: None,
+      used_in_runtime,
       // TODO: init this
       target: HashMap::default(),
       provided: None,
@@ -778,6 +782,9 @@ impl ExportInfo {
           return None;
         }
       } else {
+        if self.used_in_runtime.is_none() {
+          return None;
+        }
         // TODO: runtime optimization
       }
     }
@@ -1093,6 +1100,14 @@ pub enum UsageState {
   Used,
 }
 
+#[derive(Debug, PartialEq, Copy, Clone, Hash)]
+pub enum RuntimeUsageStateType {
+  OnlyPropertiesUsed,
+  NoInfo,
+  Unknown,
+  Used,
+}
+
 #[derive(Debug, Clone, Default)]
 pub enum UsedByExports {
   Set(HashSet<JsWord>),
@@ -1270,7 +1285,7 @@ pub fn debug_exports_info(module_graph: &ModuleGraph) {
     dbg!(&mgm.module_identifier);
     let exports_info_id = mgm.exports;
     let exports_info = module_graph.get_exports_info_by_id(&exports_info_id);
-    // dbg!(&exports_info);
+    dbg!(&exports_info);
     for id in exports_info.exports.values() {
       let export_info = module_graph.get_export_info_by_id(id);
       dbg!(&export_info);
