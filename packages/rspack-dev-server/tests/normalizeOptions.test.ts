@@ -46,6 +46,20 @@ describe("normalize options snapshot", () => {
 		);
 	});
 
+	it("shouldn't have reactRefreshEntry.js when react.refresh is false", async () => {
+		await matchAdditionEntries(
+			{},
+			{
+				entry: ["something"],
+				builtins: {
+					react: {
+						refresh: false
+					}
+				}
+			}
+		);
+	});
+
 	it("react.development and react.refresh should be true by default when hot enabled", async () => {
 		const compiler = createCompiler({
 			entry: ENTRY,
