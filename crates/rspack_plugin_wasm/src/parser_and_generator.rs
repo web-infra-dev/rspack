@@ -1,7 +1,7 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
-use dashmap::DashMap;
+use indexmap::IndexMap;
 use rspack_core::rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
@@ -142,8 +142,8 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
         runtime_requirements.insert(RuntimeGlobals::INSTANTIATE_WASM);
 
-        let dep_modules = DashMap::<ModuleIdentifier, (String, &str)>::new();
-        let wasm_deps_by_request = DashMap::<&str, Vec<(Identifier, String)>>::new();
+        let mut dep_modules = IndexMap::<ModuleIdentifier, (String, &str)>::new();
+        let mut wasm_deps_by_request = IndexMap::<&str, Vec<(Identifier, String)>>::new();
         let mut promises: Vec<String> = vec![];
 
         let module_graph = &compilation.module_graph;
@@ -183,8 +183,8 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                 let dep_name = serde_json::to_string(dep.name()).expect("should be ok.");
                 let request = dep.request();
                 let val = (mgm.module_identifier, dep_name);
-                if let Some(deps) = &mut wasm_deps_by_request.get_mut(&request) {
-                  deps.value_mut().push(val);
+                if let Some(deps) = wasm_deps_by_request.get_mut(&request) {
+                  deps.push(val);
                 } else {
                   wasm_deps_by_request.insert(request, vec![val]);
                 }
@@ -194,7 +194,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
         let imports_code = dep_modules
           .iter()
-          .map(|val| render_import_stmt(&val.value().0, val.value().1))
+          .map(|(_, val)| render_import_stmt(&val.0, val.1))
           .collect::<Vec<_>>()
           .join("");
 
@@ -205,7 +205,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               .into_iter()
               .map(|(id, name)| {
                 let import_var = dep_modules.get(&id).expect("should be ok");
-                let import_var = &import_var.value().0;
+                let import_var = &import_var.0;
                 format!("{name}: {import_var}[{name}]")
               })
               .collect::<Vec<_>>()

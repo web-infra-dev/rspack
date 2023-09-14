@@ -13,7 +13,7 @@ import {
 	applyRspackOptionsBaseDefaults,
 	applyRspackOptionsDefaults,
 	RspackPluginFunction,
-	validateConfig
+	rspackOptions
 } from "./config";
 import { Compiler } from "./Compiler";
 import { Stats } from "./Stats";
@@ -30,7 +30,7 @@ import { Callback } from "tapable";
 import MultiStats from "./MultiStats";
 import assert from "assert";
 import { asArray, isNil } from "./util";
-import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
+import { validate } from "./util/validate";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 	const compilers = options.map(createCompiler);
@@ -75,11 +75,6 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 			}
 		}
 	}
-
-	if (options.ignoreWarnings !== undefined) {
-		new IgnoreWarningsPlugin(options.ignoreWarnings).apply(compiler);
-	}
-
 	applyRspackOptionsDefaults(compiler.options);
 	logger.debug(
 		"NormalizedOptions:",
@@ -88,7 +83,6 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 	compiler.hooks.environment.call();
 	compiler.hooks.afterEnvironment.call();
 	new RspackOptionsApply().process(compiler.options, compiler);
-	compiler.hooks.entryOption.call(options.context, options.entry);
 	compiler.hooks.initialize.call();
 	return compiler;
 }
@@ -119,7 +113,7 @@ function rspack(
 	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>
 ) {
 	asArray(options).every(opts => {
-		validateConfig(opts);
+		validate(opts, rspackOptions);
 	});
 	const create = () => {
 		if (isMultiRspackOptions(options)) {

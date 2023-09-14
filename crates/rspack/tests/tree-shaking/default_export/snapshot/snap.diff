@@ -1,0 +1,12 @@
+--- expected
++++ actual
+@@ -40,7 +40,8 @@
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+   'secret': function() { return secret; },
+-  'myanswer': function() { return myanswer; }
++  'myanswer': function() { return myanswer; },
++  'result': function() { return result; }
+ });
+ /* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./answer */"./answer.js");
+ 

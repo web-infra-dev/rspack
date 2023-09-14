@@ -14,7 +14,6 @@ pub struct CompilerOptions {
   pub mode: Mode,
   pub resolve: Resolve,
   pub resolve_loader: Resolve,
-  pub builtins: Builtins,
   pub module: ModuleOptions,
   pub devtool: Devtool,
   pub stats: StatsOptions,
@@ -24,6 +23,7 @@ pub struct CompilerOptions {
   pub node: Option<NodeOption>,
   pub optimization: Optimization,
   pub profile: bool,
+  pub builtins: Builtins,
 }
 
 impl CompilerOptions {
@@ -37,5 +37,9 @@ impl CompilerOptions {
 
   pub fn is_incremental_rebuild_emit_asset_enabled(&self) -> bool {
     self.experiments.incremental_rebuild.emit_asset
+  }
+
+  pub fn is_new_tree_shaking(&self) -> bool {
+    self.experiments.rspack_future.new_treeshaking
   }
 }

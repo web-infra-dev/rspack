@@ -100,7 +100,6 @@ impl Default for LocalsConvention {
 
 #[derive(Debug, Clone)]
 pub struct CssConfig {
-  pub targets: Vec<String>,
   pub modules: ModulesConfig,
 }
 

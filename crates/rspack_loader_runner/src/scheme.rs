@@ -27,6 +27,8 @@ impl From<&str> for Scheme {
   fn from(value: &str) -> Self {
     match value {
       "" => Self::None,
+      // To avoid conflict with builtin loader protocol
+      "builtin" => Self::None,
       "data" => Self::Data,
       "file" => Self::File,
       "http" => Self::Http,

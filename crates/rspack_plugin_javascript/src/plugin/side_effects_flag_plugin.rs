@@ -1,12 +1,13 @@
+// use rspack_core::Plugin;
+// use rspack_error::Result;
 use swc_core::common::{Span, Spanned, SyntaxContext, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 #[derive(Debug)]
-pub struct SideEffectsFlagPlugin {
+pub struct SideEffectsFlagPluginVisitor {
   unresolved_ctxt: SyntaxContext,
-  // module_identifier: ModuleIdentifier,
   side_effects_span: Option<Span>,
   is_top_level: bool,
 }
@@ -22,7 +23,7 @@ impl SyntaxContextInfo {
   }
 }
 
-impl SideEffectsFlagPlugin {
+impl SideEffectsFlagPluginVisitor {
   pub fn new(mark_info: SyntaxContextInfo) -> Self {
     Self {
       unresolved_ctxt: mark_info.unresolved_ctxt,
@@ -32,7 +33,7 @@ impl SideEffectsFlagPlugin {
   }
 }
 
-impl Visit for SideEffectsFlagPlugin {
+impl Visit for SideEffectsFlagPluginVisitor {
   noop_visit_type!();
   fn visit_program(&mut self, node: &Program) {
     assert!(GLOBALS.is_set());
@@ -94,7 +95,7 @@ impl Visit for SideEffectsFlagPlugin {
   }
 }
 
-impl SideEffectsFlagPlugin {
+impl SideEffectsFlagPluginVisitor {
   /// If we find a stmt that has side effects, we will skip the rest of the stmts.
   /// And mark the module as having side effects.
   fn analyze_stmt_side_effects(&mut self, ele: &Stmt) {
@@ -275,3 +276,6 @@ impl ClassKey for ClassMember {
     }
   }
 }
+
+#[derive(Debug, Default)]
+pub struct SideEffectsFlagPlugin;

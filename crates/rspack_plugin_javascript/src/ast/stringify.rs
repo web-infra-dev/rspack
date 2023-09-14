@@ -77,12 +77,10 @@ pub fn print(
       }
 
       let mut emitter = Emitter {
-        cfg: codegen::Config {
-          minify,
-          target,
-          ascii_only,
-          ..Default::default()
-        },
+        cfg: codegen::Config::default()
+          .with_minify(minify)
+          .with_target(target)
+          .with_ascii_only(ascii_only),
         comments,
         cm: source_map.clone(),
         wr,

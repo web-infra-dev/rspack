@@ -3,7 +3,6 @@ use std::{
   sync::{Arc, Mutex},
 };
 
-use rayon::prelude::*;
 use rspack_error::{Diagnostic, Result};
 use rspack_loader_runner::ResourceData;
 use rustc_hash::FxHashMap as HashMap;
@@ -50,16 +49,19 @@ impl std::fmt::Debug for PluginDriver {
 
 impl PluginDriver {
   pub fn new(
-    options: Arc<CompilerOptions>,
-    mut plugins: Vec<Box<dyn Plugin>>,
+    mut options: CompilerOptions,
+    plugins: Vec<Box<dyn Plugin>>,
     resolver_factory: Arc<ResolverFactory>,
-  ) -> Self {
+  ) -> (Arc<Self>, Arc<CompilerOptions>) {
     let registered_parser_and_generator_builder = plugins
-      .par_iter_mut()
+      .iter()
       .map(|plugin| {
         let mut apply_context = ApplyContext::default();
         plugin
-          .apply(PluginContext::with_context(&mut apply_context))
+          .apply(
+            PluginContext::with_context(&mut apply_context),
+            &mut options,
+          )
           .expect("TODO:");
         apply_context
       })
@@ -71,14 +73,19 @@ impl PluginDriver {
       })
       .collect::<HashMap<ModuleType, BoxedParserAndGeneratorBuilder>>();
 
-    Self {
+    let options = Arc::new(options);
+
+    (
+      Arc::new(Self {
+        options: options.clone(),
+        plugins,
+        resolver_factory,
+        // registered_parser,
+        registered_parser_and_generator_builder,
+        diagnostics: Arc::new(Mutex::new(vec![])),
+      }),
       options,
-      plugins,
-      resolver_factory,
-      // registered_parser,
-      registered_parser_and_generator_builder,
-      diagnostics: Arc::new(Mutex::new(vec![])),
-    }
+    )
   }
 
   pub fn take_diagnostic(&self) -> Vec<Diagnostic> {
@@ -287,16 +294,14 @@ impl PluginDriver {
     Ok(())
   }
 
-  pub fn render_module_content(
-    &self,
-    args: RenderModuleContentArgs,
-  ) -> PluginRenderModuleContentOutput {
+  pub fn render_module_content<'a>(
+    &'a self,
+    mut args: RenderModuleContentArgs<'a>,
+  ) -> PluginRenderModuleContentOutput<'a> {
     for plugin in &self.plugins {
-      if let Some(source) = plugin.render_module_content(PluginContext::new(), &args)? {
-        return Ok(Some(source));
-      }
+      args = plugin.render_module_content(PluginContext::new(), args)?;
     }
-    Ok(None)
+    Ok(args)
   }
 
   pub async fn factorize(
@@ -490,6 +495,24 @@ impl PluginDriver {
   pub async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &self.plugins {
       plugin.optimize_modules(compilation).await?;
+    }
+    Ok(())
+  }
+
+  #[instrument(name = "plugin:optimize_dependencies", skip_all)]
+  pub async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
+    for plugin in &self.plugins {
+      if let Some(t) = plugin.optimize_dependencies(compilation).await? {
+        return Ok(Some(t));
+      };
+    }
+    Ok(None)
+  }
+
+  #[instrument(name = "plugin:optimize_tree", skip_all)]
+  pub async fn optimize_tree(&self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin.optimize_tree(compilation).await?;
     }
     Ok(())
   }

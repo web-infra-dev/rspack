@@ -1,18 +1,19 @@
 #![feature(let_chains)]
 
-use std::hash::Hash;
+use std::{collections::HashMap, hash::Hash};
 
 use async_trait::async_trait;
 use rayon::prelude::*;
+use rkyv::{from_bytes, to_bytes, AlignedVec, Archive, Deserialize, Serialize};
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
   tree_shaking::{
     analyzer::OptimizeAnalyzer, asset_module::AssetModule, visitor::OptimizeAnalyzeResult,
   },
-  AssetGeneratorDataUrl, AssetParserDataUrl, AssetParserOptions, BuildMetaDefaultObject,
-  BuildMetaExportsType, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
-  CodeGenerationDataUrl, Compilation, CompilerOptions, GenerateContext, Module, NormalModule,
-  ParseContext, ParserAndGenerator, PathData, Plugin, PluginContext,
+  AssetGeneratorDataUrl, AssetParserDataUrl, AssetParserOptions, BuildExtraDataType,
+  BuildMetaDefaultObject, BuildMetaExportsType, CodeGenerationDataAssetInfo,
+  CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CompilerOptions, GenerateContext,
+  Module, NormalModule, ParseContext, ParserAndGenerator, PathData, Plugin, PluginContext,
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, ResourceData,
   RuntimeGlobals, SourceType,
 };
@@ -55,7 +56,8 @@ type IsInline = bool;
 const ASSET_INLINE: bool = true;
 const ASSET_RESOURCE: bool = false;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Archive, Serialize, Deserialize)]
+#[archive(compare(PartialEq), check_bytes)]
 enum CanonicalizedDataUrlOption {
   Source,
   Asset(IsInline),
@@ -421,6 +423,19 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
     result
   }
+  fn store(&self, extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) {
+    extra_data.insert(
+      BuildExtraDataType::AssetParserAndGenerator,
+      to_bytes::<_, 256>(&self.parsed_asset_config).expect("Failed to store extra data"),
+    );
+  }
+
+  fn resume(&mut self, extra_data: &HashMap<BuildExtraDataType, AlignedVec>) {
+    if let Some(data) = extra_data.get(&BuildExtraDataType::AssetParserAndGenerator) {
+      self.parsed_asset_config = from_bytes::<Option<CanonicalizedDataUrlOption>>(data)
+        .expect("Failed to resume extra data");
+    }
+  }
 }
 
 #[async_trait]
@@ -429,7 +444,11 @@ impl Plugin for AssetPlugin {
     "asset"
   }
 
-  fn apply(&self, ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
+  fn apply(
+    &self,
+    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
     let data_url_condition = self
       .config
       .parse_options

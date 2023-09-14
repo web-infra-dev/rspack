@@ -1,6 +1,6 @@
 {
   "name": "@rspack/dev-client",
-  "version": "0.3.0",
+  "version": "0.3.4",
   "license": "MIT",
   "description": "Development client for rspack",
   "scripts": {
@@ -18,12 +18,11 @@
     "url": "https://github.com/web-infra-dev/rspack",
     "directory": "packages/rspack-dev-client"
   },
-  "devDependencies": {
-    "react-refresh": "0.14.0",
-    "webpack": "5.76.0"
-  },
   "dependencies": {
-    "@pmmmwh/react-refresh-webpack-plugin": "0.5.10"
+    "@rspack/plugin-react-refresh": "workspace:*"
+  },
+  "devDependencies": {
+    "react-refresh": "0.14.0"
   },
   "peerDependencies": {
     "react-refresh": ">=0.10.0 <1.0.0"

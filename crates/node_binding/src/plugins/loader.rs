@@ -22,23 +22,20 @@ impl Debug for JsLoaderResolver {
 impl Plugin for JsLoaderResolver {
   async fn before_loaders(&self, module: &mut NormalModule) -> Result<()> {
     let contains_inline = module.contains_inline_loader();
-    let old_loaders = module.loaders_mut_vec();
-    if old_loaders.is_empty() || old_loaders.len() == 1 {
-      return Ok(());
-    }
+    let contains_js_loader = module
+      .loaders()
+      .iter()
+      .any(|l| !l.identifier().starts_with(BUILTIN_LOADER_PREFIX));
 
     // If there's any JS loader, then we switch to the JS loader runner.
     // Else, we run loader on the Rust side using the Rust loader runner.
     // Note: If the loaders list contains inline loaders,
-    // fallback to JS loader runner for passing builtin options(reuse Compiler.ruleSet).
-    if contains_inline
-      || old_loaders
-        .iter()
-        .any(|l| !l.identifier().starts_with(BUILTIN_LOADER_PREFIX))
-    {
+    // fallback to JS loader runner for passing builtin options(reuse `Compiler.ruleSet`).
+    if contains_inline || contains_js_loader {
       *module.loaders_mut_vec() = vec![Arc::new(JsLoaderAdapter {
         runner: self.js_loader_runner.clone(),
-        identifier: old_loaders
+        identifier: module
+          .loaders()
           .iter()
           .map(|l| l.identifier().as_str())
           .collect::<Vec<_>>()

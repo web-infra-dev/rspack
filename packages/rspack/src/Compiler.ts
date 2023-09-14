@@ -41,44 +41,12 @@ import { checkVersion } from "./util/bindingVersionCheck";
 import Watching from "./Watching";
 import { NormalModule } from "./NormalModule";
 import { normalizeJsModule } from "./util/normalization";
+import {
+	RspackBuiltinPlugin,
+	deprecated_resolveBuiltins
+} from "./builtin-plugin";
+import { optionsApply_compat } from "./rspackOptionsApply";
 
-class EntryPlugin {
-	constructor(
-		public context: string,
-		public entry: string,
-		public options: {
-			name?: string;
-			runtime?: string;
-		} = {}
-	) {}
-	apply(compiler: Compiler) {
-		const entry = this.context
-			? path.resolve(this.context, this.entry)
-			: this.entry;
-
-		compiler.options.entry = {
-			[this.options.name || "main"]: {
-				import: [entry],
-				runtime: this.options.runtime
-			}
-		};
-	}
-}
-
-class NodeTargetPlugin {
-	apply() {}
-}
-
-class NodeTemplatePlugin {
-	apply() {}
-}
-
-class EnableLibraryPlugin {
-	constructor(private libraryType: string) {}
-	apply(compiler: Compiler) {
-		compiler.options.output.enabledLibraryTypes = [this.libraryType];
-	}
-}
 class HotModuleReplacementPlugin {
 	apply() {}
 }
@@ -89,6 +57,7 @@ class Compiler {
 	webpack: any;
 	// @ts-expect-error
 	compilation: Compilation;
+	builtinPlugins: RspackBuiltinPlugin[];
 	root: Compiler;
 	running: boolean;
 	idle: boolean;
@@ -151,9 +120,9 @@ class Compiler {
 		this.options = options;
 		this.cache = new Cache();
 		this.compilerPath = "";
+		this.builtinPlugins = [];
 		// to workaround some plugin access webpack, we may change dev-server to avoid this hack in the future
 		this.webpack = {
-			EntryPlugin, // modernjs/server use this to inject dev-client
 			HotModuleReplacementPlugin, // modernjs/server will auto inject this plugin not set
 			NormalModule,
 			get sources(): typeof import("webpack-sources") {
@@ -166,14 +135,54 @@ class Compiler {
 			get rspackVersion() {
 				return require("../package.json").version;
 			},
+			get BannerPlugin() {
+				return require("./builtin-plugin").BannerPlugin;
+			},
+			get DefinePlugin() {
+				return require("./builtin-plugin").DefinePlugin;
+			},
+			get ProgressPlugin() {
+				return require("./builtin-plugin").ProgressPlugin;
+			},
+			get ProvidePlugin() {
+				return require("./builtin-plugin").ProvidePlugin;
+			},
+			get EntryPlugin() {
+				return require("./builtin-plugin").EntryPlugin;
+			},
+			get ExternalsPlugin() {
+				return require("./builtin-plugin").ExternalsPlugin;
+			},
+			get LoaderOptionsPlugin() {
+				return require("./lib/LoaderOptionsPlugin").LoaderOptionsPlugin;
+			},
+			get LoaderTargetPlugin() {
+				return require("./lib/LoaderTargetPlugin").LoaderTargetPlugin;
+			},
 			WebpackError: Error,
 			ModuleFilenameHelpers,
 			node: {
-				NodeTargetPlugin,
-				NodeTemplatePlugin
+				get NodeTargetPlugin() {
+					return require("./builtin-plugin").NodeTargetPlugin;
+				},
+				get NodeTemplatePlugin() {
+					return require("./node/NodeTemplatePlugin").default;
+				}
+			},
+			electron: {
+				get ElectronTargetPlugin() {
+					return require("./builtin-plugin").ElectronTargetPlugin;
+				}
+			},
+			wasm: {
+				get EnableWasmLoadingPlugin() {
+					return require("./builtin-plugin").EnableWasmLoadingPlugin;
+				}
 			},
 			library: {
-				EnableLibraryPlugin
+				get EnableLibraryPlugin() {
+					return require("./builtin-plugin").EnableLibraryPlugin;
+				}
 			},
 			util: {
 				get createHash() {
@@ -267,6 +276,15 @@ class Compiler {
 	#getInstance(
 		callback: (error: Error | null, instance?: binding.Rspack) => void
 	): void {
+		const error = checkVersion();
+		if (error) {
+			return callback(error);
+		}
+
+		if (this.#_instance) {
+			return callback(null, this.#_instance);
+		}
+
 		const processResource = (
 			loaderContext: LoaderContext,
 			resourcePath: string,
@@ -285,118 +303,121 @@ class Compiler {
 					return callback(null, result);
 				});
 		};
-		const options = getRawOptions(this.options, this, processResource);
 
-		let error = checkVersion();
-		if (error) {
-			return callback(error);
-		}
+		const options = this.options;
+		// TODO: remove this in v0.4
+		optionsApply_compat(this, options);
+		// TODO: remove this when drop support for builtins options
+		options.builtins = deprecated_resolveBuiltins(
+			options.builtins,
+			options,
+			this
+		) as any;
+		const rawOptions = getRawOptions(options, this, processResource);
 
 		const instanceBinding: typeof binding = require("@rspack/binding");
 
-		this.#_instance =
-			this.#_instance ??
-			new instanceBinding.Rspack(
-				options,
-				{
-					beforeCompile: this.#beforeCompile.bind(this),
-					afterCompile: this.#afterCompile.bind(this),
-					finishMake: this.#finishMake.bind(this),
-					make: this.#make.bind(this),
-					emit: this.#emit.bind(this),
-					assetEmitted: this.#assetEmitted.bind(this),
-					afterEmit: this.#afterEmit.bind(this),
-					processAssetsStageAdditional: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
-					),
-					processAssetsStagePreProcess: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS
-					),
-					processAssetsStageDerived: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_DERIVED
-					),
-					processAssetsStageAdditions: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_ADDITIONS
-					),
-					processAssetsStageNone: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_NONE
-					),
-					processAssetsStageOptimize: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE
-					),
-					processAssetsStageOptimizeCount: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT
-					),
-					processAssetsStageOptimizeCompatibility: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY
-					),
-					processAssetsStageOptimizeSize: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE
-					),
-					processAssetsStageDevTooling: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING
-					),
-					processAssetsStageOptimizeInline: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
-					),
-					processAssetsStageSummarize: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
-					),
-					processAssetsStageOptimizeHash: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
-					),
-					processAssetsStageOptimizeTransfer: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER
-					),
-					processAssetsStageAnalyse: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_ANALYSE
-					),
-					processAssetsStageReport: this.#processAssets.bind(
-						this,
-						Compilation.PROCESS_ASSETS_STAGE_REPORT
-					),
-					// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
-					// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
-					// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
-					// So it is safe to create a new compilation here.
-					thisCompilation: this.#newCompilation.bind(this),
-					// The hook `Compilation` should be called whenever it's a call from the child compiler or normal compiler and
-					// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
-					// No matter how it will be implemented, it will be copied to the child compiler.
-					compilation: this.#compilation.bind(this),
-					optimizeModules: this.#optimizeModules.bind(this),
-					optimizeChunkModule: this.#optimizeChunkModules.bind(this),
-					finishModules: this.#finishModules.bind(this),
-					normalModuleFactoryResolveForScheme:
-						this.#normalModuleFactoryResolveForScheme.bind(this),
-					chunkAsset: this.#chunkAsset.bind(this),
-					beforeResolve: this.#beforeResolve.bind(this),
-					afterResolve: this.#afterResolve.bind(this),
-					contextModuleBeforeResolve:
-						this.#contextModuleBeforeResolve.bind(this),
-					succeedModule: this.#succeedModule.bind(this),
-					stillValidModule: this.#stillValidModule.bind(this),
-					buildModule: this.#buildModule.bind(this)
-				},
-				createThreadsafeNodeFSFromRaw(this.outputFileSystem),
-				(loaderContext: binding.JsLoaderContext) =>
-					runLoader(loaderContext, this)
-			);
+		this.#_instance = new instanceBinding.Rspack(
+			rawOptions,
+			this.builtinPlugins.map(bp => bp.raw()),
+			{
+				beforeCompile: this.#beforeCompile.bind(this),
+				afterCompile: this.#afterCompile.bind(this),
+				finishMake: this.#finishMake.bind(this),
+				make: this.#make.bind(this),
+				emit: this.#emit.bind(this),
+				assetEmitted: this.#assetEmitted.bind(this),
+				afterEmit: this.#afterEmit.bind(this),
+				processAssetsStageAdditional: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+				),
+				processAssetsStagePreProcess: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS
+				),
+				processAssetsStageDerived: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_DERIVED
+				),
+				processAssetsStageAdditions: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_ADDITIONS
+				),
+				processAssetsStageNone: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_NONE
+				),
+				processAssetsStageOptimize: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE
+				),
+				processAssetsStageOptimizeCount: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT
+				),
+				processAssetsStageOptimizeCompatibility: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY
+				),
+				processAssetsStageOptimizeSize: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE
+				),
+				processAssetsStageDevTooling: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING
+				),
+				processAssetsStageOptimizeInline: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
+				),
+				processAssetsStageSummarize: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
+				),
+				processAssetsStageOptimizeHash: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
+				),
+				processAssetsStageOptimizeTransfer: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER
+				),
+				processAssetsStageAnalyse: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_ANALYSE
+				),
+				processAssetsStageReport: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_REPORT
+				),
+				// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
+				// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
+				// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
+				// So it is safe to create a new compilation here.
+				thisCompilation: this.#newCompilation.bind(this),
+				// The hook `Compilation` should be called whenever it's a call from the child compiler or normal compiler and
+				// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
+				// No matter how it will be implemented, it will be copied to the child compiler.
+				compilation: this.#compilation.bind(this),
+				optimizeModules: this.#optimizeModules.bind(this),
+				optimizeTree: this.#optimizeTree.bind(this),
+				optimizeChunkModule: this.#optimizeChunkModules.bind(this),
+				finishModules: this.#finishModules.bind(this),
+				normalModuleFactoryResolveForScheme:
+					this.#normalModuleFactoryResolveForScheme.bind(this),
+				chunkAsset: this.#chunkAsset.bind(this),
+				beforeResolve: this.#beforeResolve.bind(this),
+				afterResolve: this.#afterResolve.bind(this),
+				contextModuleBeforeResolve: this.#contextModuleBeforeResolve.bind(this),
+				succeedModule: this.#succeedModule.bind(this),
+				stillValidModule: this.#stillValidModule.bind(this),
+				buildModule: this.#buildModule.bind(this)
+			},
+			createThreadsafeNodeFSFromRaw(this.outputFileSystem),
+			(loaderContext: binding.JsLoaderContext) => runLoader(loaderContext, this)
+		);
 
 		callback(null, this.#_instance);
 	}
@@ -690,6 +711,7 @@ class Compiler {
 				),
 			compilation: this.hooks.compilation,
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
+			optimizeTree: this.compilation.hooks.optimizeTree,
 			finishModules: this.compilation.hooks.finishModules,
 			optimizeModules: this.compilation.hooks.optimizeModules,
 			chunkAsset: this.compilation.hooks.chunkAsset,
@@ -776,7 +798,7 @@ class Compiler {
 			(loaderContext: any) => {
 				loaderContext._module = {
 					factoryMeta: {
-						sideEffectFree: !resolveData.factoryMeta.sideEffects
+						sideEffectFree: !!resolveData.factoryMeta.sideEffectFree
 					}
 				};
 			}
@@ -815,6 +837,15 @@ class Compiler {
 		);
 		this.#updateDisabledHooks();
 	}
+
+	async #optimizeTree() {
+		await this.compilation.hooks.optimizeTree.promise(
+			this.compilation.__internal__getChunks(),
+			this.compilation.modules
+		);
+		this.#updateDisabledHooks();
+	}
+
 	async #optimizeModules() {
 		await this.compilation.hooks.optimizeModules.promise(
 			this.compilation.modules
@@ -1051,6 +1082,10 @@ class Compiler {
 			return null;
 		}
 		return source.buffer();
+	}
+
+	__internal__registerBuiltinPlugin(plugin: RspackBuiltinPlugin) {
+		this.builtinPlugins.push(plugin);
 	}
 }
 

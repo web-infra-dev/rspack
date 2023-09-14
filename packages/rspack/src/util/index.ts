@@ -1,5 +1,6 @@
 import type { JsAssetInfo, JsStatsError } from "@rspack/binding";
 import { AssetInfo } from "../Compilation";
+import terminalLink from "terminal-link";
 
 export function mapValues(
 	record: Record<string, string>,
@@ -106,3 +107,12 @@ export function toJsAssetInfo(info?: AssetInfo): JsAssetInfo {
 		...info
 	};
 }
+
+const yellow = (content: string) =>
+	`\u001b[1m\u001b[33m${content}\u001b[39m\u001b[22m`;
+export const deprecatedWarn = (content: string, enable = true) => {
+	if (enable) {
+		console.warn(yellow(content));
+	}
+};
+export const termlink = terminalLink;

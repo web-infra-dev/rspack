@@ -27,7 +27,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     json!(null),
   )]);
   let (result, _) = run_loaders(
-    &[Arc::new(SwcLoader::new(options, None)) as Arc<dyn Loader<LoaderRunnerContext>>],
+    &[Arc::new(SwcLoader::new(options)) as Arc<dyn Loader<LoaderRunnerContext>>],
     &ResourceData::new(actual_path.to_string_lossy().to_string(), actual_path),
     &[],
     CompilerContext {
@@ -87,6 +87,8 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           remove_available_modules: false,
           remove_empty_chunks: true,
           side_effects: SideEffectOption::False,
+          provided_exports: Default::default(),
+          used_exports: Default::default(),
         },
         profile: false,
       }),
@@ -113,5 +115,5 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
 
 #[fixture("tests/fixtures/*")]
 fn swc(fixture_path: PathBuf) {
-  test_fixture(&fixture_path);
+  test_fixture(&fixture_path, Box::new(|_, _| {}), None);
 }

@@ -3,8 +3,8 @@ use regex::Regex;
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  Compilation, DependencyId, ExportsType, FakeNamespaceObjectMode, InitFragment, InitFragmentStage,
-  ModuleGraph, ModuleIdentifier, RuntimeGlobals, TemplateContext,
+  Compilation, DependencyId, ExportsType, FakeNamespaceObjectMode, InitFragmentStage, ModuleGraph,
+  ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext,
 };
 
 pub fn export_from_import(
@@ -47,13 +47,13 @@ pub fn export_from_import(
         }
       } else if matches!(exports_type, ExportsType::DefaultOnly | ExportsType::DefaultWithNamed) {
         runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
-        init_fragments.push(InitFragment::new(
+        init_fragments.push(Box::new(NormalInitFragment::new(
           format!(
             "var {import_var}_namespace_cache;\n",
           ),
           InitFragmentStage::StageHarmonyExports,
           None,
-        ));
+        )));
         return format!("/*#__PURE__*/ ({import_var}_namespace_cache || ({import_var}_namespace_cache = {}({import_var}{})))", RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT, if matches!(exports_type, ExportsType::DefaultOnly) { "" } else { ", 2" });
       }
   }

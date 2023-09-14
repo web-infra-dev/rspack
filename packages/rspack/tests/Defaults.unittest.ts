@@ -105,25 +105,6 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-         "localIdentName": "[path][name][ext]__[local]",
-		+         "localIdentName": "[hash]",
-		@@ ... @@
-		-     "minifyOptions": undefined,
-		+     "minifyOptions": Object {
-		+       "asciiOnly": false,
-		+       "comments": "false",
-		+       "dropConsole": false,
-		+       "exclude": undefined,
-		+       "extractComments": undefined,
-		+       "include": undefined,
-		+       "passes": 1,
-		+       "pureFuncs": Array [],
-		+       "test": undefined,
-		+     },
-		@@ ... @@
-		-     "treeShaking": "false",
-		+     "treeShaking": "true",
-		@@ ... @@
 		-   "mode": "none",
 		+   "mode": undefined,
 		@@ ... @@
@@ -131,8 +112,9 @@ describe("snapshots", () => {
 		+     "minimize": true,
 		@@ ... @@
 		-     "moduleIds": "named",
-		-     "realContentHash": false,
 		+     "moduleIds": "deterministic",
+		@@ ... @@
+		-     "realContentHash": false,
 		+     "realContentHash": true,
 		@@ ... @@
 		-     "sideEffects": "flag",
@@ -145,6 +127,9 @@ describe("snapshots", () => {
 		@@ ... @@
 		-       "minSize": 10000,
 		+       "minSize": 20000,
+		@@ ... @@
+		-     "usedExports": false,
+		+     "usedExports": true,
 		@@ ... @@
 		-       "hash": false,
 		+       "hash": true,
@@ -159,25 +144,6 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-         "localIdentName": "[path][name][ext]__[local]",
-		+         "localIdentName": "[hash]",
-		@@ ... @@
-		-     "minifyOptions": undefined,
-		+     "minifyOptions": Object {
-		+       "asciiOnly": false,
-		+       "comments": "false",
-		+       "dropConsole": false,
-		+       "exclude": undefined,
-		+       "extractComments": undefined,
-		+       "include": undefined,
-		+       "passes": 1,
-		+       "pureFuncs": Array [],
-		+       "test": undefined,
-		+     },
-		@@ ... @@
-		-     "treeShaking": "false",
-		+     "treeShaking": "true",
-		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "production",
 		@@ ... @@
@@ -185,8 +151,9 @@ describe("snapshots", () => {
 		+     "minimize": true,
 		@@ ... @@
 		-     "moduleIds": "named",
-		-     "realContentHash": false,
 		+     "moduleIds": "deterministic",
+		@@ ... @@
+		-     "realContentHash": false,
 		+     "realContentHash": true,
 		@@ ... @@
 		-     "sideEffects": "flag",
@@ -199,6 +166,9 @@ describe("snapshots", () => {
 		@@ ... @@
 		-       "minSize": 10000,
 		+       "minSize": 20000,
+		@@ ... @@
+		-     "usedExports": false,
+		+     "usedExports": true,
 		@@ ... @@
 		-       "hash": false,
 		+       "hash": true,
@@ -1131,15 +1101,6 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-     "css": Object {
-			-       "modules": Object {
-			-         "exportsOnly": false,
-			-         "localIdentName": "[path][name][ext]__[local]",
-			-         "localsConvention": "asIs",
-			-       },
-			-     },
-			+     "css": undefined,
-			@@ ... @@
 			-     "css": true,
 			+     "css": false,
 			+     "futureDefaults": true,
@@ -1150,10 +1111,9 @@ describe("snapshots", () => {
 			-           Object {
 			-             "resolve": Object {
 			-               "fullySpecified": true,
-			@@ ... @@
+			-             },
 			-             "test": /\\.module\\.css$/i,
 			-             "type": "css/module",
-			-           },
 			@@ ... @@
 			-             "resolve": Object {
 			-               "fullySpecified": true,

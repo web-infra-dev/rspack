@@ -4,7 +4,7 @@ use std::hash::Hash;
 use async_trait::async_trait;
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
-  ApplyContext, Compilation, DependencyType, Module, ModuleArgs, ModuleType, Plugin, PluginContext,
+  Compilation, DependencyType, Module, ModuleArgs, ModuleType, Plugin, PluginContext,
   PluginModuleHookOutput, RuntimeGlobals, SourceType,
 };
 use rspack_core::{CodeGenerationResult, Context, ModuleIdentifier};
@@ -88,10 +88,6 @@ pub struct LazyCompilationPlugin;
 impl Plugin for LazyCompilationPlugin {
   fn name(&self) -> &'static str {
     "LazyCompilationPlugin"
-  }
-
-  fn apply(&self, _ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
-    Ok(())
   }
 
   async fn module(&self, _ctx: PluginContext, args: &ModuleArgs) -> PluginModuleHookOutput {

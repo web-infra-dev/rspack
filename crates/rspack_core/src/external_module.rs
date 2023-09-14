@@ -10,7 +10,8 @@ use crate::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
   to_identifier, BuildContext, BuildInfo, BuildMetaExportsType, BuildResult, ChunkInitFragments,
   ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult, Compilation, Context, ExternalType,
-  InitFragment, InitFragmentStage, LibIdentOptions, Module, ModuleType, RuntimeGlobals, SourceType,
+  InitFragmentStage, LibIdentOptions, Module, ModuleType, NormalInitFragment, RuntimeGlobals,
+  SourceType,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -129,7 +130,7 @@ impl ExternalModule {
         if compilation.options.output.module {
           chunk_init_fragments
             .entry("external module node-commonjs".to_string())
-            .or_insert(InitFragment::new(
+            .or_insert(NormalInitFragment::new(
               "import { createRequire as __WEBPACK_EXTERNAL_createRequire } from 'module';\n"
                 .to_string(),
               InitFragmentStage::StageHarmonyImports,
@@ -171,7 +172,7 @@ impl ExternalModule {
           let identifier = to_identifier(id);
           chunk_init_fragments
             .entry(format!("external module import {identifier}"))
-            .or_insert(InitFragment::new(
+            .or_insert(NormalInitFragment::new(
               format!(
                 "import * as __WEBPACK_EXTERNAL_MODULE_{identifier}__ from '{}';\n",
                 self.request.as_str()

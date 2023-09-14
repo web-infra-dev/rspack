@@ -16,6 +16,7 @@ pub use runtime_requirements_dependency::RuntimeRequirementsDependency;
 mod context_element_dependency;
 mod dependency_macro;
 pub use context_element_dependency::*;
+use swc_core::ecma::atoms::JsWord;
 mod const_dependency;
 use std::{
   any::Any,
@@ -29,8 +30,9 @@ pub use dependency_template::*;
 use dyn_clone::{clone_trait_object, DynClone};
 
 use crate::{
-  ChunkGroupOptions, ConnectionState, Context, ContextMode, ContextOptions, ErrorSpan, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, ReferencedExport, RuntimeSpec,
+  ChunkGroupOptionsKindRef, ConnectionState, Context, ContextMode, ContextOptions, ErrorSpan,
+  ExtendedReferencedExport, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport,
+  RuntimeSpec,
 };
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
@@ -192,34 +194,88 @@ pub trait Dependency:
 
 #[derive(Debug, Default)]
 pub struct ExportSpec {
-  _name: String,
-  _can_mangle: bool,
-  _terminal_binding: bool,
-  _priority: u8,
-  _hidden: bool,
+  pub name: JsWord,
+  pub export: Option<Vec<JsWord>>,
+  pub exports: Option<Vec<ExportNameOrSpec>>,
+  pub can_mangle: Option<bool>,
+  pub terminal_binding: Option<bool>,
+  pub priority: Option<u8>,
+  pub hidden: Option<bool>,
+  pub from: Option<ModuleGraphConnection>,
+  pub from_export: Option<ModuleGraphConnection>,
 }
 
 impl ExportSpec {
-  pub fn new(_name: String) -> Self {
+  pub fn new(name: String) -> Self {
     Self {
-      _name,
+      name: JsWord::from(name),
       ..Default::default()
     }
   }
 }
 
+#[derive(Debug)]
+pub enum ExportNameOrSpec {
+  String(JsWord),
+  ExportSpec(ExportSpec),
+}
+
+impl Default for ExportNameOrSpec {
+  fn default() -> Self {
+    Self::String(JsWord::default())
+  }
+}
+
 #[derive(Debug, Default)]
+pub enum ExportsOfExportsSpec {
+  True,
+  #[default]
+  Null,
+  Array(Vec<ExportNameOrSpec>),
+}
+
+#[derive(Debug, Default)]
+#[allow(unused)]
 pub struct ExportsSpec {
-  _exports: ExportSpec,
-  _priority: u8,
-  _can_mangle: bool,
-  _terminal_binding: bool,
+  pub exports: ExportsOfExportsSpec,
+  pub priority: Option<u8>,
+  pub can_mangle: Option<bool>,
+  pub terminal_binding: Option<bool>,
+  pub from: Option<ModuleGraphConnection>,
+  pub dependencies: Option<Vec<ModuleIdentifier>>,
+  pub hide_export: Option<Vec<JsWord>>,
+  pub exclude_exports: Option<Vec<JsWord>>,
 }
 
 pub enum ExportsReferencedType {
   No,     // NO_EXPORTS_REFERENCED
   Object, // EXPORTS_OBJECT_REFERENCED
-  Value(Vec<ReferencedExport>),
+  String(Box<Vec<Vec<JsWord>>>),
+  Value(Box<Vec<ReferencedExport>>),
+}
+
+impl From<JsWord> for ExportsReferencedType {
+  fn from(value: JsWord) -> Self {
+    ExportsReferencedType::String(Box::new(vec![vec![value]]))
+  }
+}
+
+impl From<Vec<Vec<JsWord>>> for ExportsReferencedType {
+  fn from(value: Vec<Vec<JsWord>>) -> Self {
+    ExportsReferencedType::String(Box::new(value))
+  }
+}
+
+impl From<Vec<JsWord>> for ExportsReferencedType {
+  fn from(value: Vec<JsWord>) -> Self {
+    ExportsReferencedType::String(Box::new(vec![value]))
+  }
+}
+
+impl From<Vec<ReferencedExport>> for ExportsReferencedType {
+  fn from(value: Vec<ReferencedExport>) -> Self {
+    ExportsReferencedType::Value(Box::new(value))
+  }
 }
 
 pub trait AsModuleDependency {
@@ -245,7 +301,7 @@ impl<T: ModuleDependency> AsModuleDependency for T {
 pub type DependencyConditionFn = Box<dyn Function>;
 
 pub trait Function:
-  Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState + Send + Sync
+  Fn(&ModuleGraphConnection, Option<&RuntimeSpec>, &ModuleGraph) -> ConnectionState + Send + Sync
 {
   fn clone_boxed(&self) -> Box<dyn Function>;
 }
@@ -254,7 +310,7 @@ pub trait Function:
 impl<T> Function for T
 where
   T: 'static
-    + Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState
+    + Fn(&ModuleGraphConnection, Option<&RuntimeSpec>, &ModuleGraph) -> ConnectionState
     + Send
     + Sync
     + Clone,
@@ -304,7 +360,7 @@ pub trait ModuleDependency: Dependency {
   }
 
   // TODO: wired to place ChunkGroupOptions on dependency, should place on AsyncDependenciesBlock
-  fn group_options(&self) -> Option<&ChunkGroupOptions> {
+  fn group_options(&self) -> Option<ChunkGroupOptionsKindRef> {
     None
   }
 
@@ -323,9 +379,9 @@ pub trait ModuleDependency: Dependency {
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
-    _runtime: &RuntimeSpec,
-  ) -> ExportsReferencedType {
-    ExportsReferencedType::Object
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    vec![ExtendedReferencedExport::Array(vec![])]
   }
 
   // an identifier to merge equal requests

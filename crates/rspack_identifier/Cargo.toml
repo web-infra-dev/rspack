@@ -1,5 +1,6 @@
 [package]
 edition = "2021"
+license = "MIT"
 name    = "rspack_identifier"
 version = "0.1.0"
 

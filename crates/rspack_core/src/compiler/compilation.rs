@@ -25,22 +25,25 @@ use swc_core::ecma::ast::ModuleItem;
 use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
 
-use super::make::{MakeParam, RebuildDepsBuilder};
+use super::{
+  hmr::CompilationRecords,
+  make::{MakeParam, RebuildDepsBuilder},
+};
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
   is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxDependency,
-  BoxModule, BuildQueue, BuildTask, BuildTaskResult, Chunk, ChunkByUkey, ChunkContentHash,
-  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue,
-  CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, Entry, EntryData,
-  EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger,
-  Module, ModuleGraph, ModuleIdentifier, ModuleProfile, ModuleType, PathData, ProcessAssetsArgs,
-  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
-  Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver,
-  SourceType, Stats, TaskResult, WorkerTask,
+  BoxModule, BuildQueue, BuildTask, BuildTaskResult, CacheCount, CacheOptions, Chunk, ChunkByUkey,
+  ChunkContentHash, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey,
+  CleanQueue, CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults,
+  CompilationLogger, CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, Entry,
+  EntryData, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult,
+  Filename, Logger, Module, ModuleGraph, ModuleIdentifier, ModuleProfile, ModuleType, PathData,
+  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
+  RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec,
+  SharedPluginDriver, SourceType, Stats, TaskResult, WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
@@ -57,8 +60,10 @@ pub struct Compilation {
   // The status is different, should generate different hash for `.hot-update.js`
   // So use compilation hash update `hot_index` to fix it.
   pub hot_index: u32,
+  pub records: Option<CompilationRecords>,
   pub options: Arc<CompilerOptions>,
   pub entries: Entry,
+  pub global_entry: EntryData,
   pub module_graph: ModuleGraph,
   pub make_failed_dependencies: HashSet<BuildDependency>,
   pub make_failed_module: HashSet<ModuleIdentifier>,
@@ -112,10 +117,12 @@ impl Compilation {
     plugin_driver: SharedPluginDriver,
     resolver_factory: Arc<ResolverFactory>,
     loader_resolver_factory: Arc<ResolverFactory>,
+    records: Option<CompilationRecords>,
     cache: Arc<Cache>,
   ) -> Self {
     Self {
       hot_index: 0,
+      records,
       options,
       module_graph,
       make_failed_dependencies: HashSet::default(),
@@ -126,6 +133,7 @@ impl Compilation {
       chunk_by_ukey: Default::default(),
       chunk_group_by_ukey: Default::default(),
       entries: Default::default(),
+      global_entry: Default::default(),
       chunk_graph: Default::default(),
       entrypoints: Default::default(),
       async_entrypoints: Default::default(),
@@ -162,15 +170,19 @@ impl Compilation {
     }
   }
 
-  pub fn add_entry(&mut self, entry: DependencyId, name: String, options: EntryOptions) {
-    if let Some(data) = self.entries.get_mut(&name) {
-      data.dependencies.push(entry);
+  pub fn add_entry(&mut self, entry: DependencyId, options: EntryOptions) {
+    if let Some(name) = options.name.clone() {
+      if let Some(data) = self.entries.get_mut(&name) {
+        data.dependencies.push(entry);
+      } else {
+        let data = EntryData {
+          dependencies: vec![entry],
+          options,
+        };
+        self.entries.insert(name, data);
+      }
     } else {
-      let data = EntryData {
-        dependencies: vec![entry],
-        options,
-      };
-      self.entries.insert(name.to_owned(), data);
+      self.global_entry.dependencies.push(entry);
     }
   }
 
@@ -331,7 +343,7 @@ impl Compilation {
 
   #[instrument(name = "compilation:make", skip_all)]
   pub async fn make(&mut self, mut param: MakeParam) -> Result<()> {
-    let logger = self.get_logger("rspack.Compiler");
+    let logger = self.get_logger("rspack.Compilation");
     let start = logger.time("make hook");
     if let Some(e) = self
       .plugin_driver
@@ -347,6 +359,7 @@ impl Compilation {
       MakeParam::ForceBuildModules(std::mem::take(&mut self.make_failed_module));
     let make_failed_dependencies =
       MakeParam::ForceBuildDeps(std::mem::take(&mut self.make_failed_dependencies));
+
     self
       .update_module_graph(vec![param, make_failed_module, make_failed_dependencies])
       .await
@@ -375,7 +388,7 @@ impl Compilation {
   }
 
   async fn update_module_graph(&mut self, params: Vec<MakeParam>) -> Result<()> {
-    let logger = self.get_logger("rspack.Compiler");
+    let logger = self.get_logger("rspack.Compilation");
     let deps_builder = RebuildDepsBuilder::new(params, &self.module_graph);
     let mut origin_module_deps = HashMap::default();
 
@@ -430,9 +443,8 @@ impl Compilation {
           .expect("dependency not found");
         let parent_module =
           parent_module_identifier.and_then(|id| self.module_graph.module_by_identifier(&id));
-        if parent_module_identifier.is_some()
-          && parent_module.is_none()
-          && dependency.as_module_dependency().is_none()
+        if (parent_module_identifier.is_some() && parent_module.is_none())
+          || dependency.as_module_dependency().is_none()
         {
           return;
         }
@@ -457,6 +469,15 @@ impl Compilation {
     let mut process_deps_time = logger.time_aggregate("module process dependencies task");
     let mut factorize_time = logger.time_aggregate("module factorize task");
     let mut build_time = logger.time_aggregate("module build task");
+
+    let mut build_cache_counter = None;
+    let mut factorize_cache_counter = None;
+
+    if !(matches!(self.options.cache, CacheOptions::Disabled)) {
+      build_cache_counter = Some(logger.cache("module build cache"));
+      factorize_cache_counter = Some(logger.cache("module factorize cache"));
+    }
+
     tokio::task::block_in_place(|| loop {
       let start = factorize_time.start();
       while let Some(task) = factorize_queue.get_task() {
@@ -532,12 +553,6 @@ impl Compilation {
       while let Some(task) = process_dependencies_queue.get_task() {
         active_task_count += 1;
 
-        let original_module_identifier = &task.original_module_identifier;
-        let module = self
-          .module_graph
-          .module_by_identifier(original_module_identifier)
-          .expect("Module expected");
-
         let mut sorted_dependencies = HashMap::default();
 
         task.dependencies.into_iter().for_each(|dependency| {
@@ -560,8 +575,16 @@ impl Compilation {
               .entry(resource_identifier)
               .or_insert(vec![])
               .push(dependency);
+          } else {
+            self.module_graph.add_dependency(dependency);
           }
         });
+
+        let original_module_identifier = &task.original_module_identifier;
+        let module = self
+          .module_graph
+          .module_by_identifier(original_module_identifier)
+          .expect("Module expected");
 
         for dependencies in sorted_dependencies.into_values() {
           self.handle_module_creation(
@@ -602,7 +625,18 @@ impl Compilation {
                 diagnostics,
                 dependencies,
                 current_profile,
+                exports_info_related,
+                from_cache,
               } = task_result;
+
+              if let Some(counter) = &mut factorize_cache_counter {
+                if from_cache {
+                  counter.hit();
+                } else {
+                  counter.miss();
+                }
+              }
+
               let module_identifier = factory_result.module.identifier();
 
               tracing::trace!("Module created: {}", &module_identifier);
@@ -624,6 +658,18 @@ impl Compilation {
               self
                 .missing_dependencies
                 .extend(factory_result.missing_dependencies);
+              self.module_graph.exports_info_map.insert(
+                exports_info_related.exports_info.id,
+                exports_info_related.exports_info,
+              );
+              self.module_graph.export_info_map.insert(
+                exports_info_related.side_effects_info.id,
+                exports_info_related.side_effects_info,
+              );
+              self.module_graph.export_info_map.insert(
+                exports_info_related.other_exports_info.id,
+                exports_info_related.other_exports_info,
+              );
 
               add_queue.add_task(AddTask {
                 original_module_identifier,
@@ -659,7 +705,17 @@ impl Compilation {
                 build_result,
                 diagnostics,
                 current_profile,
+                from_cache,
               } = task_result;
+
+              if let Some(counter) = &mut build_cache_counter {
+                if from_cache {
+                  counter.hit();
+                } else {
+                  counter.miss();
+                }
+              }
+
               if self.options.builtins.tree_shaking.enable() {
                 self
                   .optimize_analyze_result_map
@@ -750,6 +806,13 @@ impl Compilation {
     logger.time_aggregate_end(process_deps_time);
     logger.time_aggregate_end(factorize_time);
     logger.time_aggregate_end(build_time);
+
+    if let Some(counter) = build_cache_counter {
+      logger.cache_end(counter);
+    }
+    if let Some(counter) = factorize_cache_counter {
+      logger.cache_end(counter);
+    }
 
     // TODO @jerrykingxyz make update_module_graph a pure function
     self
@@ -886,8 +949,15 @@ impl Compilation {
 
   #[instrument(name = "compilation:code_generation", skip(self))]
   async fn code_generation(&mut self) -> Result<()> {
+    let logger = self.get_logger("rspack.Compilation");
+    let mut codegen_cache_counter = match self.options.cache {
+      CacheOptions::Disabled => None,
+      _ => Some(logger.cache("module code generation cache")),
+    };
+
     fn run_iteration(
       compilation: &mut Compilation,
+      codegen_cache_counter: &mut Option<CacheCount>,
       filter_op: impl Fn(&(&ModuleIdentifier, &Box<dyn Module>)) -> bool + Sync + Send,
     ) -> Result<()> {
       let results = compilation
@@ -905,40 +975,55 @@ impl Compilation {
           compilation
             .cache
             .code_generate_occasion
-            .use_cache(module, |module| module.code_generation(compilation))
-            .map(|result| (*module_identifier, result))
+            .use_cache(module, compilation, |module| {
+              module.code_generation(compilation)
+            })
+            .map(|(result, from_cache)| (*module_identifier, result, from_cache))
         })
-        .collect::<Result<Vec<(ModuleIdentifier, CodeGenerationResult)>>>()?;
+        .collect::<Result<Vec<(ModuleIdentifier, CodeGenerationResult, bool)>>>()?;
 
-      results.into_iter().for_each(|(module_identifier, result)| {
-        compilation.code_generated_modules.insert(module_identifier);
+      results
+        .into_iter()
+        .for_each(|(module_identifier, result, from_cache)| {
+          if let Some(counter) = codegen_cache_counter {
+            if from_cache {
+              counter.hit();
+            } else {
+              counter.miss();
+            }
+          }
+          compilation.code_generated_modules.insert(module_identifier);
 
-        let runtimes = compilation
-          .chunk_graph
-          .get_module_runtimes(module_identifier, &compilation.chunk_by_ukey);
+          let runtimes = compilation
+            .chunk_graph
+            .get_module_runtimes(module_identifier, &compilation.chunk_by_ukey);
 
-        compilation
-          .code_generation_results
-          .module_generation_result_map
-          .insert(module_identifier, result);
-        for runtime in runtimes.values() {
-          compilation.code_generation_results.add(
-            module_identifier,
-            runtime.clone(),
-            module_identifier,
-          );
-        }
-      });
+          compilation
+            .code_generation_results
+            .module_generation_result_map
+            .insert(module_identifier, result);
+          for runtime in runtimes.values() {
+            compilation.code_generation_results.add(
+              module_identifier,
+              runtime.clone(),
+              module_identifier,
+            );
+          }
+        });
       Ok(())
     }
 
-    run_iteration(self, |(_, module)| {
+    run_iteration(self, &mut codegen_cache_counter, |(_, module)| {
       module.get_code_generation_dependencies().is_none()
     })?;
 
-    run_iteration(self, |(_, module)| {
+    run_iteration(self, &mut codegen_cache_counter, |(_, module)| {
       module.get_code_generation_dependencies().is_some()
     })?;
+
+    if let Some(counter) = codegen_cache_counter {
+      logger.cache_end(counter);
+    }
 
     Ok(())
   }
@@ -1060,12 +1145,19 @@ impl Compilation {
     let start = logger.time("finish modules");
     plugin_driver.finish_modules(self).await?;
     logger.time_end(start);
+
     Ok(())
   }
 
   #[instrument(name = "compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
+
+    let start = logger.time("optimize dependencies");
+    // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
+    while plugin_driver.optimize_dependencies(self).await?.is_some() {}
+    logger.time_end(start);
+
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;
@@ -1077,6 +1169,7 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("optimize");
+    plugin_driver.optimize_tree(self).await?;
     plugin_driver.optimize_chunk_modules(self).await?;
     logger.time_end(start);
 

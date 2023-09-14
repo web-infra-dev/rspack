@@ -1,11 +1,11 @@
 use rspack_core::{
-  DependencyTemplate, InitFragment, InitFragmentStage, RuntimeGlobals, TemplateContext,
+  DependencyTemplate, InitFragmentStage, NormalInitFragment, RuntimeGlobals, TemplateContext,
   TemplateReplaceSource,
 };
 
 // Mark module `__esModule`.
 // Add `__webpack_require__.r(__webpack_exports__);`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HarmonyCompatibilityDependency;
 
 impl DependencyTemplate for HarmonyCompatibilityDependency {
@@ -24,7 +24,7 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
     // TODO __esModule is used
     runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-    init_fragments.push(InitFragment::new(
+    init_fragments.push(Box::new(NormalInitFragment::new(
       format!(
         "'use strict';\n{}({});\n", // todo remove strict
         RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
@@ -36,12 +36,12 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
       ),
       InitFragmentStage::StageHarmonyExportsCompatibility,
       None,
-    ));
+    )));
 
     if compilation.module_graph.is_async(&module.identifier()) {
       runtime_requirements.insert(RuntimeGlobals::MODULE);
       runtime_requirements.insert(RuntimeGlobals::ASYNC_MODULE);
-      init_fragments.push(InitFragment::new(
+      init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
           "{}({}, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) {{ try {{\n",
           RuntimeGlobals::ASYNC_MODULE,
@@ -52,8 +52,8 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
             .get_module_argument()
         ),
         InitFragmentStage::StageAsyncBoundary,
-        Some("\n__webpack_async_result__();\n} catch(e) { __webpack_async_result__(e); } });".to_string()),
-      ));
+        Some("\n__webpack_async_result__();\n} catch(e) { __webpack_async_result__(e); } });".to_string().into()),
+      )));
     }
   }
 }

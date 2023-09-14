@@ -143,6 +143,22 @@ impl From<(String, rspack_core::LogType)> for JsStatsLogging {
         args: Some(vec![message]),
         trace: None,
       },
+      rspack_core::LogType::Cache { label, hit, total } => Self {
+        name: value.0,
+        r#type: "cache".to_string(),
+        args: Some(vec![format!(
+          "{}: {:.1}% ({}/{})",
+          label,
+          if total == 0 {
+            0 as f32
+          } else {
+            hit as f32 / total as f32 * 100_f32
+          },
+          hit,
+          total,
+        )]),
+        trace: None,
+      },
     }
   }
 }
@@ -203,6 +219,7 @@ pub struct JsStatsModule {
   pub issuer_name: Option<String>,
   pub issuer_id: Option<String>,
   pub issuer_path: Vec<JsStatsModuleIssuer>,
+  pub name_for_condition: Option<String>,
   pub reasons: Option<Vec<JsStatsModuleReason>>,
   pub assets: Option<Vec<String>>,
   pub source: Option<Either<String, Buffer>>,
@@ -238,6 +255,7 @@ impl TryFrom<rspack_core::StatsModule<'_>> for JsStatsModule {
       issuer: stats.issuer,
       issuer_name: stats.issuer_name,
       issuer_id: stats.issuer_id,
+      name_for_condition: stats.name_for_condition,
       issuer_path: stats.issuer_path.into_iter().map(Into::into).collect(),
       reasons: stats
         .reasons

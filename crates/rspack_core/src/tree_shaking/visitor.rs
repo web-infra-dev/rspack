@@ -1335,10 +1335,10 @@ impl<'a> ModuleRefAnalyze<'a> {
     // sideEffects in module.rule has higher priority,
     // we could early return if we match a rule.
     if let Some(FactoryMeta {
-      side_effects: Some(side_effects),
+      side_effect_free: Some(side_effect_free),
     }) = factory_meta
     {
-      return Some(SideEffectType::Configuration(*side_effects));
+      return Some(SideEffectType::Configuration(!*side_effect_free));
     }
     None
   }

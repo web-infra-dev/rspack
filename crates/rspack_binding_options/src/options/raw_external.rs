@@ -19,6 +19,22 @@ use {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
+pub struct RawHttpExternalsRspackPluginOptions {
+  pub css: bool,
+  pub web_async: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawExternalsPluginOptions {
+  pub r#type: String,
+  pub externals: Vec<RawExternalItem>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
 pub struct RawExternalItem {
   #[napi(ts_type = r#""string" | "regexp" | "object" | "function""#)]
   pub r#type: String,
@@ -113,10 +129,10 @@ impl From<ExternalItemFnCtx> for RawExternalItemFnCtx {
 }
 
 impl TryFrom<RawExternalItem> for ExternalItem {
-  type Error = anyhow::Error;
+  type Error = rspack_error::Error;
 
   #[allow(clippy::unwrap_in_result)]
-  fn try_from(value: RawExternalItem) -> anyhow::Result<Self> {
+  fn try_from(value: RawExternalItem) -> rspack_error::Result<Self> {
     match value.r#type.as_str() {
       "string" => Ok(Self::from(value.string_payload.expect(
         "should have a string_payload when RawExternalItem.type is \"string\"",

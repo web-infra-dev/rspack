@@ -4,7 +4,7 @@ name: Need Documentation
 
 on:
   pull_request:
-    types: [closed, labeled]
+    types: [labeled]
 
 jobs:
   check_label:
@@ -15,7 +15,7 @@ jobs:
   doc:
     name: Need Documentation
     runs-on: ubuntu-latest
-    if: ${{ (github.event.pull_request.merged == true || github.event.label.name == 'need documentation') && contains(github.event.pull_request.labels.*.name, 'need documentation') }}
+    if: ${{ (github.event.label.name == 'need documentation') && contains(github.event.pull_request.labels.*.name, 'need documentation') }}
     steps:
       - uses: actions/github-script@v6
         with:

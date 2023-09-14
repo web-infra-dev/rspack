@@ -3,7 +3,7 @@ use rspack_core::{DependencyTemplate, TemplateContext, TemplateReplaceSource};
 // Remove `export` label.
 // Before: `export const a = 1`
 // After: `const a = 1`
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HarmonyExportHeaderDependency {
   pub position: u32,
 }

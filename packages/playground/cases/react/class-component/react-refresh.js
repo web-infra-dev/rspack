@@ -1,4 +1,4 @@
-const reactRefresh = require("@rspack/dev-client/react-refresh");
+const reactRefresh = require("@rspack/plugin-react-refresh/react-refresh");
 
 function shouldLooksLikeAModuleId(id) {
 	console.log(id);

@@ -2,15 +2,14 @@ mod compilation;
 mod hmr;
 mod make;
 mod queue;
-mod resolver;
 
 use std::collections::hash_map::Entry;
 use std::{path::Path, sync::Arc};
 
 pub use compilation::*;
+pub use hmr::{collect_changed_modules, CompilationRecords};
 pub use make::MakeParam;
 pub use queue::*;
-pub use resolver::*;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
@@ -23,7 +22,7 @@ use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD}
 use crate::tree_shaking::visitor::SymbolRef;
 use crate::{
   cache::Cache, fast_set, AssetEmittedArgs, CompilerOptions, Logger, Plugin, PluginDriver,
-  SharedPluginDriver,
+  ResolverFactory, SharedPluginDriver,
 };
 use crate::{ExportInfo, UsageState};
 
@@ -54,15 +53,13 @@ where
     plugins: Vec<Box<dyn Plugin>>,
     output_filesystem: T,
   ) -> Self {
-    let options = Arc::new(options);
-
-    let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
-    let loader_resolver_factory = Arc::new(ResolverFactory::new(options.resolve_loader.clone()));
-    let plugin_driver = Arc::new(PluginDriver::new(
-      options.clone(),
-      plugins,
-      resolver_factory.clone(),
+    let new_resolver = options.experiments.rspack_future.new_resolver;
+    let resolver_factory = Arc::new(ResolverFactory::new(new_resolver, options.resolve.clone()));
+    let loader_resolver_factory = Arc::new(ResolverFactory::new(
+      new_resolver,
+      options.resolve_loader.clone(),
     ));
+    let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
     let cache = Arc::new(Cache::new(options.clone()));
 
     Self {
@@ -73,6 +70,7 @@ where
         plugin_driver.clone(),
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
+        None,
         cache.clone(),
       ),
       output_filesystem,
@@ -94,7 +92,7 @@ where
     self.cache.end_idle();
     // TODO: clear the outdate cache entries in resolver,
     // TODO: maybe it's better to use external entries.
-    self.plugin_driver.resolver_factory.clear_entries();
+    self.plugin_driver.resolver_factory.clear_cache();
 
     fast_set(
       &mut self.compilation,
@@ -104,6 +102,7 @@ where
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
+        None,
         self.cache.clone(),
       ),
     );
@@ -198,12 +197,12 @@ where
         };
         match exports_info_map.entry(importer) {
           Entry::Occupied(mut occ) => {
-            let export_info = ExportInfo::new(name.clone(), UsageState::Used);
+            let export_info = ExportInfo::new(name.clone(), UsageState::Used, None);
             occ.get_mut().insert(name.clone(), export_info);
           }
           Entry::Vacant(vac) => {
             let mut map = HashMap::default();
-            let export_info = ExportInfo::new(name.clone(), UsageState::Used);
+            let export_info = ExportInfo::new(name.clone(), UsageState::Used, None);
             map.insert(name.clone(), export_info);
             vac.insert(map);
           }
@@ -217,12 +216,23 @@ where
             .module_graph
             .module_identifier_to_module_graph_module,
         );
+        let mut export_info_map =
+          std::mem::take(&mut self.compilation.module_graph.export_info_map);
         for mgm in mi_to_mgm.values_mut() {
-          // merge exports info
           if let Some(exports_map) = exports_info_map.remove(&mgm.module_identifier) {
-            mgm.exports.exports.extend(exports_map.into_iter());
+            let exports = self
+              .compilation
+              .module_graph
+              .exports_info_map
+              .get_mut(&mgm.exports)
+              .expect("should have exports info");
+            for (name, export_info) in exports_map {
+              exports.exports.insert(name, export_info.id);
+              export_info_map.insert(export_info.id, export_info);
+            }
           }
         }
+        self.compilation.module_graph.export_info_map = export_info_map;
         self
           .compilation
           .module_graph

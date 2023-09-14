@@ -119,7 +119,7 @@ pub struct NormalModule {
   presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum NormalModuleSource {
   Unbuild,
   BuiltSucceed(BoxSource),
@@ -222,12 +222,44 @@ impl NormalModule {
     &mut self.source
   }
 
+  pub fn loaders(&self) -> &[BoxLoader] {
+    &self.loaders
+  }
+
   pub fn loaders_mut_vec(&mut self) -> &mut Vec<BoxLoader> {
     &mut self.loaders
   }
 
   pub fn contains_inline_loader(&self) -> bool {
     self.contains_inline_loader
+  }
+
+  pub fn parser_and_generator(&self) -> &dyn ParserAndGenerator {
+    &*self.parser_and_generator
+  }
+
+  pub fn parser_and_generator_mut(&mut self) -> &mut Box<dyn ParserAndGenerator> {
+    &mut self.parser_and_generator
+  }
+
+  pub fn code_generation_dependencies(&self) -> &Option<Vec<Box<dyn ModuleDependency>>> {
+    &self.code_generation_dependencies
+  }
+
+  pub fn code_generation_dependencies_mut(
+    &mut self,
+  ) -> &mut Option<Vec<Box<dyn ModuleDependency>>> {
+    &mut self.code_generation_dependencies
+  }
+
+  pub fn presentational_dependencies(&self) -> &Option<Vec<Box<dyn DependencyTemplate>>> {
+    &self.presentational_dependencies
+  }
+
+  pub fn presentational_dependencies_mut(
+    &mut self,
+  ) -> &mut Option<Vec<Box<dyn DependencyTemplate>>> {
+    &mut self.presentational_dependencies
   }
 }
 
@@ -464,8 +496,8 @@ impl Module for NormalModule {
     module_chain: &mut HashSet<ModuleIdentifier>,
   ) -> ConnectionState {
     if let Some(mgm) = module_graph.module_graph_module_by_identifier(&self.identifier()) {
-      if let Some(side_effect) = mgm.factory_meta.as_ref().and_then(|m| m.side_effects) {
-        return ConnectionState::Bool(side_effect);
+      if let Some(side_effect_free) = mgm.factory_meta.as_ref().and_then(|m| m.side_effect_free) {
+        return ConnectionState::Bool(!side_effect_free);
       }
       if let Some(side_effect_free) = mgm.build_meta.as_ref().and_then(|m| m.side_effect_free) && side_effect_free {
         // use module chain instead of is_evaluating_side_effects to mut module graph

@@ -8,8 +8,6 @@ pub use common_js_chunk_format::CommonJsChunkFormatPlugin;
 mod runtime_plugin;
 use rspack_core::{BoxPlugin, ChunkLoading, ChunkLoadingType, PluginExt};
 pub use runtime_plugin::RuntimePlugin;
-mod hot_module_replacement;
-pub use hot_module_replacement::HotModuleReplacementPlugin;
 mod css_modules;
 pub use css_modules::CssModulesPlugin;
 mod array_push_callback_chunk_format;

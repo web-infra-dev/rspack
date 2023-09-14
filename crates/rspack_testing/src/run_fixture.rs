@@ -2,12 +2,16 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use cargo_rst::{helper::make_relative_from, rst::RstBuilder};
+use insta::{assert_snapshot, Settings};
+use itertools::Itertools;
 use rspack_binding_options::{RawOptions, RawOptionsApply};
 use rspack_core::{BoxPlugin, Compiler, CompilerOptions};
 use rspack_fs::AsyncNativeFileSystem;
 use rspack_tracing::enable_tracing_by_env;
 
 use crate::{eval_raw::evaluate_to_json, test_config::TestConfig};
+
+pub type MutTestOptionsFn = dyn FnMut(&mut Settings, &mut CompilerOptions);
 
 pub fn apply_from_fixture(fixture_path: &Path) -> (CompilerOptions, Vec<BoxPlugin>) {
   let js_config = fixture_path.join("test.config.js");
@@ -22,28 +26,125 @@ pub fn apply_from_fixture(fixture_path: &Path) -> (CompilerOptions, Vec<BoxPlugi
   let test_config = TestConfig::from_config_path(&json_config);
   test_config.apply(fixture_path.to_path_buf())
 }
+#[tokio::main]
+pub async fn test_fixture_html(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
+  test_fixture_share(
+    fixture_path,
+    &|s| s.ends_with(".html"),
+    Box::new(|_, _| {}),
+    None,
+  )
+  .await
+}
+#[tokio::main]
+pub async fn test_fixture_js(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
+  test_fixture_share(
+    fixture_path,
+    &|s| s.ends_with(".js") && !s.contains("runtime.js"),
+    Box::new(|_, _| {}),
+    None,
+  )
+  .await
+}
+#[tokio::main]
+pub async fn test_fixture_css(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
+  test_fixture_share(
+    fixture_path,
+    &|s| s.ends_with(".css"),
+    Box::new(|_, _| {}),
+    None,
+  )
+  .await
+}
+#[tokio::main]
+pub async fn test_fixture_css_modules(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
+  test_fixture_share(
+    fixture_path,
+    &|s| s.ends_with(".css") || (s.ends_with(".js") && !s.contains("runtime.js")),
+    Box::new(|_, _| {}),
+    None,
+  )
+  .await
+}
+#[tokio::main]
+pub async fn test_fixture_insta(
+  fixture_path: &Path,
+  stats_filter: &dyn Fn(&str) -> bool,
+  mut_settings: Box<MutTestOptionsFn>,
+) -> Compiler<AsyncNativeFileSystem> {
+  test_fixture_share(fixture_path, stats_filter, mut_settings, None).await
+}
 
 #[tokio::main]
-pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
+pub async fn test_fixture(
+  fixture_path: &Path,
+  mut_settings: Box<MutTestOptionsFn>,
+  snapshot_name: Option<String>,
+) -> Compiler<AsyncNativeFileSystem> {
+  test_fixture_share(
+    fixture_path,
+    &|s| s.ends_with(".js") && !s.contains("runtime.js"),
+    mut_settings,
+    snapshot_name,
+  )
+  .await
+}
+
+/// You can mutate the `Settings` of insta and  `CompilerOptions` of rspack via `mut_settings` mut closure
+pub async fn test_fixture_share(
+  fixture_path: &Path,
+  stats_filter: &dyn Fn(&str) -> bool,
+  mut mut_settings: Box<MutTestOptionsFn>,
+  snapshot_name: Option<String>,
+) -> Compiler<AsyncNativeFileSystem> {
   enable_tracing_by_env(&std::env::var("TRACE").ok().unwrap_or_default(), "stdout");
 
-  let (options, plugins) = apply_from_fixture(fixture_path);
+  let snapshot_name = snapshot_name.unwrap_or("output".to_string());
+
+  let mut settings = Settings::clone_current();
+  settings.set_snapshot_path(Path::new(fixture_path).join("snapshot"));
+  settings.set_omit_expression(true);
+  settings.set_prepend_module_to_snapshot(false);
+
+  let (mut options, plugins) = apply_from_fixture(fixture_path);
+
+  mut_settings(&mut settings, &mut options);
   // clean output
   if options.output.path.exists() {
     std::fs::remove_dir_all(&options.output.path).expect("should remove output");
   }
   let mut compiler = Compiler::new(options, plugins, AsyncNativeFileSystem);
+
   compiler
     .build()
     .await
     .unwrap_or_else(|e| panic!("failed to compile in fixture {fixture_path:?}, {e:#?}"));
+  let assets = compiler.compilation.assets();
+
+  let content = assets
+    .iter()
+    .filter_map(|(filename, asset)| {
+      if stats_filter(filename) {
+        println!("{:?}", settings.description());
+        let content = asset
+          .get_source()
+          .map(|x| x.source().to_string())
+          .unwrap_or(String::from("this is an empty asset"));
+        let tag = Path::new(filename)
+          .extension()
+          .map(|x| x.to_string_lossy())
+          .unwrap_or(std::borrow::Cow::Borrowed("txt"));
+        Some(format!("```{tag} title={filename}\n{content}\n```"))
+      } else {
+        None
+      }
+    })
+    .sorted()
+    .join("\n\n");
+  settings.bind(|| {
+    assert_snapshot!(snapshot_name.as_str(), content);
+  });
   let stats = compiler.compilation.get_stats();
-  let output_name = make_relative_from(&compiler.options.output.path, fixture_path);
-  let rst = RstBuilder::default()
-    .fixture(PathBuf::from(fixture_path))
-    .actual(output_name)
-    .build()
-    .expect("TODO:");
   let warnings = stats.get_warnings();
   let errors = stats.get_errors();
   if !warnings.is_empty() && errors.is_empty() {
@@ -64,8 +165,6 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem
         .expect("failed to emit diagnostics to string")
     );
   }
-  rst.assert();
-
   compiler
 }
 

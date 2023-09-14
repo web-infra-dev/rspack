@@ -1,13 +1,11 @@
-use std::{
-  fmt::{self, Debug},
-  future::Future,
-};
+use std::fmt::{self, Debug};
 
 use async_recursion::async_recursion;
 use derivative::Derivative;
 use futures::future::BoxFuture;
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
+use rspack_util::{try_all, try_any};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{Filename, ModuleType, PublicPath, Resolve};
@@ -260,33 +258,6 @@ impl RuleSetLogicalConditions {
   }
 }
 
-pub async fn try_any<T, Fut, F>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool>
-where
-  Fut: Future<Output = Result<bool>>,
-  F: Fn(T) -> Fut,
-{
-  let it = it.into_iter();
-  for i in it {
-    if f(i).await? {
-      return Ok(true);
-    }
-  }
-  Ok(false)
-}
-
-async fn try_all<T, Fut, F>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool>
-where
-  Fut: Future<Output = Result<bool>>,
-  F: Fn(T) -> Fut,
-{
-  let it = it.into_iter();
-  for i in it {
-    if !(f(i).await?) {
-      return Ok(false);
-    }
-  }
-  Ok(true)
-}
 pub struct FuncUseCtx {
   pub resource: Option<String>,
   pub real_resource: Option<String>,
@@ -308,6 +279,11 @@ pub type FnUse =
 #[derive(Derivative, Default)]
 #[derivative(Debug)]
 pub struct ModuleRule {
+  /// A conditional match matching an absolute path + query + fragment.
+  /// Note:
+  ///   This is a custom matching rule not initially designed by webpack.
+  ///   Only for single-threaded environment interoperation purpose.
+  pub rspack_resource: Option<RuleSetCondition>,
   /// A condition matcher matching an absolute path.
   pub test: Option<RuleSetCondition>,
   pub include: Option<RuleSetCondition>,

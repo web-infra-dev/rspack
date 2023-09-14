@@ -167,13 +167,22 @@ pub struct LoaderContext<'c, C> {
 
   pub asset_filenames: HashSet<String>,
 
+  // Only used for cross-crate accessing.
+  // This field should not be accessed in builtin loaders.
   pub __loader_index: usize,
+  // Only used for cross-crate accessing.
+  // This field should not be accessed in builtin loaders.
   pub __loader_items: LoaderItemList<'c, C>,
+  // Only used for cross-crate accessing.
+  // This field should not be accessed in builtin loaders.
   #[derivative(Debug = "ignore")]
   pub __plugins: &'c [Box<dyn LoaderRunnerPlugin>],
+  // Only used for cross-crate accessing.
+  // This field should not be accessed in builtin loaders.
   pub __resource_data: &'c ResourceData,
-
-  pub diagnostics: Vec<Diagnostic>,
+  // Only used for cross-crate accessing.
+  // This field should not be accessed in builtin loaders.
+  pub __diagnostics: Vec<Diagnostic>,
 }
 
 impl<'c, C> LoaderContext<'c, C> {
@@ -203,6 +212,11 @@ impl<'c, C> LoaderContext<'c, C> {
   pub fn loader_index(&self) -> usize {
     self.__loader_index
   }
+
+  /// Emit a diagnostic, it can be a `warning` or `error`.
+  pub fn emit_diagnostic(&mut self, diagnostic: Diagnostic) {
+    self.__diagnostics.push(diagnostic)
+  }
 }
 
 async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) -> Result<()> {
@@ -216,7 +230,16 @@ async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) ->
   }
 
   if loader_context.content.is_none() {
-    let result = tokio::fs::read(&loader_context.__resource_data.resource_path).await?;
+    let result = tokio::fs::read(&loader_context.__resource_data.resource_path)
+      .await
+      .map_err(|e| {
+        let r = loader_context
+          .__resource_data
+          .resource_path
+          .to_string_lossy()
+          .to_string();
+        internal_error!("{e}, failed to read {r}")
+      })?;
     loader_context.content = Some(Content::from(result));
   }
 
@@ -267,7 +290,7 @@ async fn create_loader_context<'c, C: 'c>(
     __loader_items: LoaderItemList(__loader_items),
     __plugins: plugins,
     __resource_data: resource_data,
-    diagnostics: vec![],
+    __diagnostics: vec![],
   };
 
   Ok(loader_context)
@@ -368,7 +391,7 @@ impl<C> TryFrom<LoaderContext<'_, C>> for TWithDiagnosticArray<LoaderResult> {
         source_map: loader_context.source_map,
         additional_data: loader_context.additional_data,
       }
-      .with_diagnostic(loader_context.diagnostics),
+      .with_diagnostic(loader_context.__diagnostics),
     )
   }
 }

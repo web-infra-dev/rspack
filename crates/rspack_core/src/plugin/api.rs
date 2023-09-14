@@ -35,7 +35,7 @@ pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
 pub type PluginProcessAssetsOutput = Result<()>;
 pub type PluginOptimizeChunksOutput = Result<()>;
 pub type PluginAdditionalChunkRuntimeRequirementsOutput = Result<()>;
-pub type PluginRenderModuleContentOutput = Result<Option<BoxSource>>;
+pub type PluginRenderModuleContentOutput<'a> = Result<RenderModuleContentArgs<'a>>;
 pub type PluginRenderStartupHookOutput = Result<Option<BoxSource>>;
 pub type PluginRenderHookOutput = Result<Option<BoxSource>>;
 pub type PluginJsChunkHashHookOutput = Result<()>;
@@ -46,7 +46,11 @@ pub trait Plugin: Debug + Send + Sync {
     "unknown"
   }
 
-  fn apply(&self, _ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
+  fn apply(
+    &self,
+    _ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
     Ok(())
   }
 
@@ -185,12 +189,12 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   // JavascriptModulesPlugin hook
-  fn render_module_content(
-    &self,
+  fn render_module_content<'a>(
+    &'a self,
     _ctx: PluginContext,
-    _args: &RenderModuleContentArgs,
-  ) -> PluginRenderModuleContentOutput {
-    Ok(None)
+    args: RenderModuleContentArgs<'a>,
+  ) -> PluginRenderModuleContentOutput<'a> {
+    Ok(args)
   }
 
   // JavascriptModulesPlugin hook
@@ -366,6 +370,14 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn optimize_dependencies(&self, _compilation: &mut Compilation) -> Result<Option<()>> {
+    Ok(None)
+  }
+
+  async fn optimize_tree(&self, _compilation: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
+
   async fn optimize_chunk_modules(&self, _args: OptimizeChunksArgs<'_>) -> Result<()> {
     Ok(())
   }
@@ -458,9 +470,9 @@ impl<T: Plugin + 'static> PluginExt for T {
 
 #[derive(Debug, Clone)]
 pub struct RenderManifestEntry {
-  pub(crate) source: BoxSource,
+  pub source: BoxSource,
   filename: String,
-  pub(crate) info: AssetInfo,
+  pub info: AssetInfo,
   // pub identifier: String,
   // hash?: string;
   pub(crate) auxiliary: bool,

@@ -105,8 +105,8 @@ function createLoaderObject(loader: any, compiler: Compiler): LoaderObject {
 					if (ident === "[[missing ident]]") {
 						throw new Error(
 							"No ident is provided by referenced loader. " +
-							"When using a function for Rule.use in config you need to " +
-							"provide an 'ident' property for referenced loader options."
+								"When using a function for Rule.use in config you need to " +
+								"provide an 'ident' property for referenced loader options."
 						);
 					}
 					obj.options = compiler.ruleSet.references.get(ident);
@@ -122,8 +122,8 @@ function createLoaderObject(loader: any, compiler: Compiler): LoaderObject {
 				if (!value.loader)
 					throw new Error(
 						"request should be a string or object with loader and options (" +
-						JSON.stringify(value) +
-						")"
+							JSON.stringify(value) +
+							")"
 					);
 				obj.path = value.loader;
 				obj.fragment = value.fragment || "";

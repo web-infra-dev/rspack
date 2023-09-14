@@ -1,7 +1,7 @@
 use rspack_core::{
   AsModuleDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ExportsSpec, InitFragment, InitFragmentStage, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource,
+  DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, HarmonyExportInitFragment,
+  TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -9,14 +9,16 @@ use swc_core::ecma::atoms::JsWord;
 #[derive(Debug, Clone)]
 pub struct HarmonyExportSpecifierDependency {
   id: DependencyId,
-  exports: Vec<(JsWord, JsWord)>,
+  name: JsWord,
+  value: JsWord, // id
 }
 
 impl HarmonyExportSpecifierDependency {
-  pub fn new(exports: Vec<(JsWord, JsWord)>) -> Self {
+  pub fn new(name: JsWord, value: JsWord) -> Self {
     Self {
       id: DependencyId::new(),
-      exports,
+      name,
+      value,
     }
   }
 }
@@ -35,7 +37,16 @@ impl Dependency for HarmonyExportSpecifierDependency {
   }
 
   fn get_exports(&self) -> Option<ExportsSpec> {
-    None
+    Some(ExportsSpec {
+      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(self.name.clone())]),
+      priority: Some(1),
+      can_mangle: None,
+      terminal_binding: Some(true),
+      from: None,
+      dependencies: None,
+      hide_export: None,
+      exclude_exports: None,
+    })
   }
 }
 
@@ -48,67 +59,26 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
     code_generatable_context: &mut TemplateContext,
   ) {
     let TemplateContext {
-      runtime_requirements,
       init_fragments,
       compilation,
       module,
       ..
     } = code_generatable_context;
-    let exports_argument = compilation
-      .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
-      .expect("should have mgm")
-      .get_exports_argument();
-    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
 
-    if !self.exports.is_empty() {
-      let used_exports = if compilation.options.builtins.tree_shaking.is_true() {
-        Some(
-          compilation
-            .module_graph
-            .get_exports_info(&module.identifier())
-            .get_used_exports(),
-        )
-      } else {
-        None
-      };
-      let exports = self
-        .exports
-        .clone()
-        .into_iter()
-        .filter(|s| {
-          if let Some(export_map) = &used_exports {
-            return export_map.contains(&s.0);
-          }
-          true
-        })
-        .collect::<Vec<_>>();
-      if !exports.is_empty() {
-        runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-        init_fragments.push(InitFragment::new(
-          format!(
-            "{}({exports_argument}, {});\n",
-            RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-            format_exports(&exports)
-          ),
-          InitFragmentStage::StageHarmonyExports,
-          None,
-        ));
-      } else {
-        // dbg!(&used_exports);
-        // dbg!(&self.exports);
-      }
+    let used = if compilation.options.builtins.tree_shaking.is_true() {
+      compilation
+        .module_graph
+        .get_exports_info(&module.identifier())
+        .get_used_exports()
+        .contains(&self.name)
+    } else {
+      true
+    };
+    if used {
+      init_fragments.push(Box::new(HarmonyExportInitFragment::new((
+        self.name.clone(),
+        self.value.clone(),
+      ))));
     }
   }
-}
-
-pub fn format_exports(exports: &[(JsWord, JsWord)]) -> String {
-  format!(
-    "{{\n  {}\n}}",
-    exports
-      .iter()
-      .map(|s| format!("'{}': function() {{ return {}; }}", s.0, s.1))
-      .collect::<Vec<_>>()
-      .join(",\n  ")
-  )
 }

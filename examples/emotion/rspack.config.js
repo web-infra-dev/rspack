@@ -8,12 +8,28 @@ const config = {
 			{
 				template: "./index.html"
 			}
-		],
-		emotion: true,
-		react: {
-			importSource: "@emotion/react",
-			runtime: "automatic"
-		}
+		]
+	},
+	module: {
+		rules: [
+			{
+				test: /\.jsx$/,
+				loader: "builtin:swc-loader",
+				options: {
+					jsc: {
+						parser: {
+							syntax: "ecmascript",
+							jsx: true
+						}
+					},
+					rspackExperiments: {
+						emotion: true,
+						react: {}
+					}
+				},
+				type: "javascript/auto"
+			}
+		]
 	}
 };
 module.exports = config;
