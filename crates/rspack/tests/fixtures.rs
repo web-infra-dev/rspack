@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use cargo_rst::git_diff;
-use insta::Settings;
-use rspack_core::{CompilerOptions, TreeShaking, UsedExportsOption};
+use rspack_core::{BoxPlugin, CompilerOptions, TreeShaking, UsedExportsOption};
+use rspack_plugin_javascript::{FlagDependencyExportsPlugin, FlagDependencyUsagePlugin};
 use rspack_testing::test_fixture;
 use testing_macros::fixture;
 
@@ -28,12 +28,17 @@ fn tree_shaking(fixture_path: PathBuf) {
   // second test is webpack based tree shaking
   test_fixture(
     &fixture_path,
-    Box::new(|_: &mut Settings, options: &mut CompilerOptions| {
-      options.experiments.rspack_future.new_treeshaking = true;
-      options.optimization.provided_exports = true;
-      options.optimization.used_exports = UsedExportsOption::True;
-      options.builtins.tree_shaking = TreeShaking::False;
-    }),
+    Box::new(
+      |plugins: &mut Vec<BoxPlugin>, options: &mut CompilerOptions| {
+        options.experiments.rspack_future.new_treeshaking = true;
+        options.optimization.provided_exports = true;
+        options.optimization.used_exports = UsedExportsOption::True;
+        options.builtins.tree_shaking = TreeShaking::False;
+
+        plugins.push(Box::<FlagDependencyExportsPlugin>::default());
+        plugins.push(Box::<FlagDependencyUsagePlugin>::default());
+      },
+    ),
     Some("new_treeshaking".to_string()),
   );
 
