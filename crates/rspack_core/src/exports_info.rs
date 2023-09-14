@@ -499,6 +499,7 @@ impl ExportsInfo {
   }
 }
 
+#[derive(Debug)]
 pub enum UsedName {
   Str(JsWord),
   Vec(Vec<JsWord>),
@@ -1268,7 +1269,7 @@ pub fn debug_exports_info(module_graph: &ModuleGraph) {
     dbg!(&mgm.module_identifier);
     let exports_info_id = mgm.exports;
     let exports_info = module_graph.get_exports_info_by_id(&exports_info_id);
-    dbg!(&exports_info);
+    // dbg!(&exports_info);
     for id in exports_info.exports.values() {
       let export_info = module_graph.get_export_info_by_id(id);
       dbg!(&export_info);
