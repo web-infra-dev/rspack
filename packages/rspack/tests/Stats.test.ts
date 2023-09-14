@@ -365,48 +365,48 @@ it("should include asset.info.sourceFilename", async () => {
 		}
 	});
 	expect(stats?.toJson({ assets: true, all: false })).toMatchInlineSnapshot(`
-{
-  "assets": [
-    {
-      "chunkNames": [
-        "main",
-      ],
-      "chunks": [
-        "main",
-      ],
-      "emitted": true,
-      "info": {
-        "development": false,
-        "hotModuleReplacement": false,
-        "sourceFilename": "fixtures/empty.png",
-      },
-      "name": "487c3f5e2b0d6a79324e.png",
-      "size": 0,
-      "type": "asset",
-    },
-    {
-      "chunkNames": [
-        "main",
-      ],
-      "chunks": [
-        "main",
-      ],
-      "emitted": true,
-      "info": {
-        "development": false,
-        "hotModuleReplacement": false,
-      },
-      "name": "main.js",
-      "size": 751,
-      "type": "asset",
-    },
-  ],
-  "assetsByChunkName": {
-    "main": [
-      "487c3f5e2b0d6a79324e.png",
-      "main.js",
-    ],
-  },
-}
-`);
+		{
+		"assets": [
+			{
+			"chunkNames": [
+				"main",
+			],
+			"chunks": [
+				"main",
+			],
+			"emitted": true,
+			"info": {
+				"development": false,
+				"hotModuleReplacement": false,
+				"sourceFilename": "fixtures/empty.png",
+			},
+			"name": "487c3f5e2b0d6a79324e.png",
+			"size": 0,
+			"type": "asset",
+			},
+			{
+			"chunkNames": [
+				"main",
+			],
+			"chunks": [
+				"main",
+			],
+			"emitted": true,
+			"info": {
+				"development": false,
+				"hotModuleReplacement": false,
+			},
+			"name": "main.js",
+			"size": 751,
+			"type": "asset",
+			},
+		],
+		"assetsByChunkName": {
+			"main": [
+			"487c3f5e2b0d6a79324e.png",
+			"main.js",
+			],
+		},
+		}
+		`);
 });
