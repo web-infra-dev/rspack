@@ -1159,7 +1159,9 @@ impl Compilation {
     logger.time_end(start);
 
     // TODO: remove
-    debug_exports_info(&self.module_graph);
+    if self.options.is_new_tree_shaking() {
+      debug_exports_info(&self.module_graph);
+    }
 
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {

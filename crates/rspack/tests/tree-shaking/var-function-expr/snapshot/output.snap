@@ -13,12 +13,13 @@ __webpack_require__.d(__webpack_exports__, {
 
  var app = function() {
     _lib__WEBPACK_IMPORTED_MODULE_0_.result;
-};
- var app2 = ()=>{
-    /* "./lib" unused */null;
-};
- var app4 = (0, _lib__WEBPACK_IMPORTED_MODULE_0_.something)('app4'), app5 = 10000;
- var app3 = (0, _lib__WEBPACK_IMPORTED_MODULE_0_.something)('app3');
+    _lib__WEBPACK_IMPORTED_MODULE_0_.secret;
+}; // export var app2 = () => {
+ //   secret
+ // };
+ // export var app4 = something('app4'), app5 = 10000;
+ //
+ // export var app3 = something('app3');
 },
 "./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
@@ -31,8 +32,8 @@ __webpack_require__.r(__webpack_exports__);
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'result': function() { return result; },
-  'something': function() { return something; }
+  'secret': function() { return secret; },
+  'result': function() { return result; }
 });
  const secret = "888";
  const result = 20000;

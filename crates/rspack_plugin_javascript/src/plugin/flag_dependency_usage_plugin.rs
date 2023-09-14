@@ -68,11 +68,13 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     force_side_effects: bool,
     q: &mut VecDeque<(ModuleIdentifier, Option<RuntimeSpec>)>,
   ) {
+    #[derive(Debug)]
     enum ProcessModuleReferencedExports {
       Map(HashMap<String, ExtendedReferencedExport>),
       ExtendRef(Vec<ExtendedReferencedExport>),
     }
 
+    dbg!(&root_module_id);
     let mut map: IdentifierMap<ProcessModuleReferencedExports> = IdentifierMap::default();
     let mut queue = VecDeque::new();
     queue.push_back(root_module_id);
@@ -117,6 +119,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         } else {
           continue;
         };
+
         if old_referenced_exports.is_none()
           || matches!(old_referenced_exports.as_ref().expect("should be some"), ProcessModuleReferencedExports::ExtendRef(v) if is_no_exports_referenced(v))
           || is_exports_object_referenced(&referenced_exports)
@@ -129,6 +132,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         {
           continue;
         } else {
+          dbg!(&old_referenced_exports);
+          dbg!(&referenced_exports);
+
           let mut exports_map = if let Some(old_referenced_exports) = old_referenced_exports {
             match old_referenced_exports {
               ProcessModuleReferencedExports::Map(map) => map,
@@ -152,6 +158,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             // just avoid rust clippy complain
             unreachable!()
           };
+          // FIXME: fix this issue
           for mut item in referenced_exports.into_iter() {
             match item {
               ExtendedReferencedExport::Array(ref arr) => {
@@ -185,6 +192,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         }
       }
     }
+    dbg!(&map);
     for (module_id, referenced_exports) in map {
       let normalized_refs = match referenced_exports {
         ProcessModuleReferencedExports::Map(map) => map.into_values().collect::<Vec<_>>(),
