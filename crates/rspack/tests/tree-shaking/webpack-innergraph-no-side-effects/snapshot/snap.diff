@@ -1,23 +1,9 @@
 --- expected
 +++ actual
-@@ -11,10 +11,6 @@
- "./module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
- 'use strict';
- __webpack_require__.r(__webpack_exports__);
--__webpack_require__.d(__webpack_exports__, {
--  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; },
--  'test': function() { return test; }
--});
- /* harmony import */var _package__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./package */"./package/index.js");
- 
- var __WEBPACK_DEFAULT_EXPORT__ = _package__WEBPACK_IMPORTED_MODULE_0_.a;
-@@ -23,17 +19,20 @@
- "./package/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
- 'use strict';
- __webpack_require__.r(__webpack_exports__);
--__webpack_require__.d(__webpack_exports__, {
--  'a': function() { return a; }
--});
+@@ -26,14 +26,23 @@
+ __webpack_require__.d(__webpack_exports__, {
+   'a': function() { return a; }
+ });
 +/* harmony import */var _unusedModule__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./unusedModule */"./package/unusedModule.js");
  
   function a() {
@@ -31,6 +17,9 @@
 +"./package/unusedModule.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 +'use strict';
 +__webpack_require__.r(__webpack_exports__);
++__webpack_require__.d(__webpack_exports__, {
++  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
++});
 +var __WEBPACK_DEFAULT_EXPORT__ = 42;
 +},
  

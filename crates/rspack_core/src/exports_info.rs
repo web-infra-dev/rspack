@@ -328,11 +328,39 @@ impl ExportsInfoId {
 
   pub fn set_used_in_unknown_way(
     &self,
-    _mg: &mut ModuleGraph,
-    _runtime: Option<&RuntimeSpec>,
+    mg: &mut ModuleGraph,
+    runtime: Option<&RuntimeSpec>,
   ) -> bool {
-    // TODO:
-    false
+    let mut changed = false;
+    let exports_info = mg.get_exports_info_by_id(self);
+    let export_info_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    let redirect_to_id = exports_info.redirect_to;
+    let other_exports_info_id = exports_info.other_exports_info;
+    for export_info_id in export_info_id_list {
+      if export_info_id.set_used_in_unknown_way(mg, runtime) {
+        changed = true;
+      }
+    }
+    if let Some(redirect_to) = redirect_to_id {
+      if redirect_to.set_used_in_unknown_way(mg, runtime) {
+        changed = true;
+      }
+    } else {
+      if other_exports_info_id.set_used_conditionally(
+        mg,
+        Box::new(|value| value < &UsageState::Unknown),
+        UsageState::Unknown,
+        runtime,
+      ) {
+        changed = true;
+      }
+      let other_exports_info = mg.get_export_info_mut_by_id(&other_exports_info_id);
+      if other_exports_info.can_mangle_use != Some(false) {
+        other_exports_info.can_mangle_use = Some(false);
+        changed = true;
+      }
+    }
+    changed
   }
 
   pub fn set_used_for_side_effects_only(
@@ -604,6 +632,25 @@ impl ExportInfoId {
   pub fn get_nested_exports_info(&self, mg: &ModuleGraph) -> Option<ExportsInfoId> {
     let export_info = mg.get_export_info_by_id(self);
     export_info.exports_info
+  }
+
+  fn set_used_in_unknown_way(&self, mg: &mut ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
+    let mut changed = false;
+
+    if self.set_used_conditionally(
+      mg,
+      Box::new(|value| value < &UsageState::Unknown),
+      UsageState::Unknown,
+      runtime,
+    ) {
+      changed = true;
+    }
+    let mut export_info = mg.get_export_info_mut_by_id(self);
+    if export_info.can_mangle_use != Some(false) {
+      export_info.can_mangle_use = Some(false);
+      changed = true;
+    }
+    changed
   }
 }
 impl Default for ExportInfoId {
@@ -1090,14 +1137,14 @@ impl ExportInfo {
   }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone, Default, Hash)]
+#[derive(Debug, PartialEq, Copy, Clone, Default, Hash, PartialOrd)]
 pub enum UsageState {
-  Unused,
-  OnlyPropertiesUsed,
-  NoInfo,
+  Unused = 0,
+  OnlyPropertiesUsed = 1,
+  NoInfo = 2,
   #[default]
-  Unknown,
-  Used,
+  Unknown = 3,
+  Used = 4,
 }
 
 #[derive(Debug, PartialEq, Copy, Clone, Hash)]
