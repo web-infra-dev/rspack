@@ -78,14 +78,14 @@ impl ProgressPlugin {
     *self.last_update_time.write().expect("TODO:") = Instant::now();
   }
   pub fn handler(&self, percent: f32, msg: String, state_items: Vec<String>) {
-    if self.options.profile == true {
+    if self.options.profile {
       self.default_handler(percent, msg, state_items);
     } else {
       self.progress_bar_handler(percent, msg, state_items);
     }
   }
   fn default_handler(&self, _: f32, msg: String, state_items: Vec<String>) {
-    let full_state = [vec![msg.clone()], state_items].concat();
+    let full_state = [vec![msg], state_items].concat();
     let now = Instant::now();
     {
       let mut last_state_info = self.last_state_info.write().expect("TODO:");
@@ -149,7 +149,7 @@ impl Plugin for ProgressPlugin {
     _compilation: &mut Compilation,
     _param: &mut MakeParam,
   ) -> PluginMakeHookOutput {
-    if self.options.profile == false {
+    if !self.options.profile {
       self.progress_bar.reset();
       self.progress_bar.set_prefix(self.options.prefix.clone());
     }
@@ -171,6 +171,7 @@ impl Plugin for ProgressPlugin {
     self.update_throttled();
     Ok(())
   }
+
   async fn optimize_chunks(
     &self,
     _ctx: PluginContext,
