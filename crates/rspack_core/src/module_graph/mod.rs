@@ -681,9 +681,12 @@ mod test {
   impl_noop_trait_dep_type!(Edge);
 
   fn add_module_to_graph(mg: &mut ModuleGraph, m: Box<dyn Module>) {
-    let other_exports_info = ExportInfo::new("null".into(), UsageState::Unknown, None);
-    let side_effects_only_info =
-      ExportInfo::new("*side effects only*".into(), UsageState::Unknown, None);
+    let other_exports_info = ExportInfo::new(None, UsageState::Unknown, None);
+    let side_effects_only_info = ExportInfo::new(
+      Some("*side effects only*".into()),
+      UsageState::Unknown,
+      None,
+    );
     let exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
     let mgm = ModuleGraphModule::new(m.identifier(), ModuleType::Js, exports_info.id);
     mg.add_module_graph_module(mgm);

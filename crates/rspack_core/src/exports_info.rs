@@ -645,7 +645,7 @@ impl ExportInfoId {
     ) {
       changed = true;
     }
-    let mut export_info = mg.get_export_info_mut_by_id(self);
+    let export_info = mg.get_export_info_mut_by_id(self);
     if export_info.can_mangle_use != Some(false) {
       export_info.can_mangle_use = Some(false);
       changed = true;
@@ -821,7 +821,7 @@ impl ExportInfo {
   pub fn get_used_name(
     &self,
     fallback_name: &JsWord,
-    runtime: Option<&RuntimeSpec>,
+    _runtime: Option<&RuntimeSpec>,
   ) -> Option<JsWord> {
     if self.has_use_in_runtime_info {
       if let Some(usage) = self.global_used {
@@ -829,9 +829,7 @@ impl ExportInfo {
           return None;
         }
       } else {
-        if self.used_in_runtime.is_none() {
-          return None;
-        }
+        self.used_in_runtime.as_ref()?;
         // TODO: runtime optimization
       }
     }

@@ -113,10 +113,10 @@ pub async fn test_fixture_share(
 
   if options.experiments.rspack_future.new_treeshaking {
     if options.optimization.provided_exports {
-      plugins.push(Box::new(FlagDependencyExportsPlugin::default()));
+      plugins.push(Box::<FlagDependencyExportsPlugin>::default());
     }
     if options.optimization.used_exports.is_enable() {
-      plugins.push(Box::new(FlagDependencyUsagePlugin::default()));
+      plugins.push(Box::<FlagDependencyUsagePlugin>::default());
     }
   }
   // clean output
