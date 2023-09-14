@@ -1,7 +1,7 @@
 use rspack_core::{
   AsModuleDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
   DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, HarmonyExportInitFragment,
-  TemplateContext, TemplateReplaceSource,
+  TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -76,8 +76,17 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
         .module_graph
         .get_exports_info(&module.identifier())
         .id;
-      // exports_info_id.get_used_name(mg, None, self.name);
-      todo!()
+      let used_name = exports_info_id.get_used_name(
+        &compilation.module_graph,
+        None,
+        UsedName::Str(self.name.clone()),
+      );
+      used_name
+        .map(|item| match item {
+          UsedName::Str(name) => name == self.name,
+          UsedName::Vec(vec) => vec.contains(&self.name),
+        })
+        .unwrap_or_default()
     } else {
       true
     };

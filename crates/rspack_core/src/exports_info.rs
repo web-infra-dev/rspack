@@ -351,7 +351,7 @@ impl ExportsInfoId {
 
   pub fn get_used_name(
     &self,
-    mg: &mut ModuleGraph,
+    mg: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
     name: UsedName,
   ) -> Option<UsedName> {
