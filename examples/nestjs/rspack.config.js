@@ -11,6 +11,11 @@ const config = {
 		minimize: false
 	},
 	externalsType: "commonjs",
+	builtins: {
+		react: {
+			refresh: false,
+		}
+	},
 	plugins: [
 		!process.env.BUILD &&
 			new RunScriptWebpackPlugin({
