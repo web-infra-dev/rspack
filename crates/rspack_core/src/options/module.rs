@@ -1,16 +1,14 @@
-use std::{
-  fmt::{self, Debug},
-  future::Future,
-};
+use std::fmt::{self, Debug};
 
 use async_recursion::async_recursion;
 use derivative::Derivative;
 use futures::future::BoxFuture;
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
+use rspack_util::{try_all, try_any};
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{BoxLoader, Filename, ModuleType, PublicPath, Resolve};
+use crate::{Filename, ModuleType, PublicPath, Resolve};
 
 #[derive(Debug)]
 pub struct ParserOptionsByModuleType(HashMap<ModuleType, ParserOptions>);
@@ -260,46 +258,32 @@ impl RuleSetLogicalConditions {
   }
 }
 
-pub async fn try_any<T, Fut, F>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool>
-where
-  Fut: Future<Output = Result<bool>>,
-  F: Fn(T) -> Fut,
-{
-  let it = it.into_iter();
-  for i in it {
-    if f(i).await? {
-      return Ok(true);
-    }
-  }
-  Ok(false)
-}
-
-async fn try_all<T, Fut, F>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool>
-where
-  Fut: Future<Output = Result<bool>>,
-  F: Fn(T) -> Fut,
-{
-  let it = it.into_iter();
-  for i in it {
-    if !(f(i).await?) {
-      return Ok(false);
-    }
-  }
-  Ok(true)
-}
 pub struct FuncUseCtx {
   pub resource: Option<String>,
   pub real_resource: Option<String>,
   pub resource_query: Option<String>,
-  pub issuer: Option<String>,
+  pub issuer: Option<Box<str>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ModuleRuleUseLoader {
+  /// Loader identifier with query and fragments
+  pub loader: String,
+  /// Loader options
+  pub options: Option<String>,
 }
 
 pub type FnUse =
-  Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<BoxLoader>>> + Sync + Send>;
+  Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<ModuleRuleUseLoader>>> + Sync + Send>;
 
 #[derive(Derivative, Default)]
 #[derivative(Debug)]
 pub struct ModuleRule {
+  /// A conditional match matching an absolute path + query + fragment.
+  /// Note:
+  ///   This is a custom matching rule not initially designed by webpack.
+  ///   Only for single-threaded environment interoperation purpose.
+  pub rspack_resource: Option<RuleSetCondition>,
   /// A condition matcher matching an absolute path.
   pub test: Option<RuleSetCondition>,
   pub include: Option<RuleSetCondition>,
@@ -328,7 +312,7 @@ pub struct ModuleRule {
 }
 
 pub enum ModuleRuleUse {
-  Array(Vec<BoxLoader>),
+  Array(Vec<ModuleRuleUseLoader>),
   Func(FnUse),
 }
 
@@ -348,7 +332,7 @@ fn fmt_use(
       "{}",
       array_use
         .iter()
-        .map(|l| l.identifier().to_string())
+        .map(|l| &*l.loader)
         .collect::<Vec<_>>()
         .join("!")
     ),

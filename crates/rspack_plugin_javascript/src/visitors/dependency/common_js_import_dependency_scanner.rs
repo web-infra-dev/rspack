@@ -1,6 +1,6 @@
 use rspack_core::{
-  ConstDependency, ContextMode, ContextOptions, DependencyCategory, DependencyTemplate,
-  ModuleDependency, RuntimeGlobals, SpanExt,
+  BoxDependency, ConstDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
+  DependencyCategory, DependencyTemplate, RuntimeGlobals, SpanExt,
 };
 use rspack_regex::RspackRegex;
 use swc_core::{
@@ -20,7 +20,7 @@ use crate::dependency::{
 };
 
 pub struct CommonJsImportDependencyScanner<'a> {
-  dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+  dependencies: &'a mut Vec<BoxDependency>,
   presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   unresolved_ctxt: &'a SyntaxContext,
   in_try: bool,
@@ -29,7 +29,7 @@ pub struct CommonJsImportDependencyScanner<'a> {
 
 impl<'a> CommonJsImportDependencyScanner<'a> {
   pub fn new(
-    dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+    dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: &'a SyntaxContext,
   ) -> Self {
@@ -132,6 +132,7 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
                       exclude: None,
                       category: DependencyCategory::CommonJS,
                       request: context,
+                      namespace_object: ContextNameSpaceObject::Unset
                     },
                     Some(call_expr.span.into()),
                   )));

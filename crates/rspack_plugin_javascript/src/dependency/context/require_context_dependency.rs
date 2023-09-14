@@ -1,7 +1,7 @@
 use rspack_core::{
-  module_id_expr, ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource,
+  create_resource_identifier_for_context_dependency, module_id_expr, ContextOptions, Dependency,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -11,21 +11,28 @@ pub struct RequireContextDependency {
   pub id: DependencyId,
   pub options: ContextOptions,
   span: Option<ErrorSpan>,
+  resource_identifier: String,
 }
 
 impl RequireContextDependency {
   pub fn new(start: u32, end: u32, options: ContextOptions, span: Option<ErrorSpan>) -> Self {
+    let resource_identifier = create_resource_identifier_for_context_dependency(&options);
     Self {
       start,
       end,
       options,
       span,
       id: DependencyId::new(),
+      resource_identifier,
     }
   }
 }
 
 impl Dependency for RequireContextDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CommonJS
   }
@@ -36,10 +43,6 @@ impl Dependency for RequireContextDependency {
 }
 
 impl ModuleDependency for RequireContextDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.options.request
   }
@@ -56,12 +59,12 @@ impl ModuleDependency for RequireContextDependency {
     Some(&self.options)
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
-  }
-
   fn set_request(&mut self, request: String) {
     self.options.request = request;
+  }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
   }
 }
 

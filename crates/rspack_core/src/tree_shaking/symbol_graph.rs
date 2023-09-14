@@ -2,9 +2,9 @@ use petgraph::{
   stable_graph::{NodeIndex, StableDiGraph},
   visit::EdgeRef,
 };
-use rspack_symbol::{IndirectTopLevelSymbol, StarSymbol, Symbol};
 use rustc_hash::FxHashMap;
 
+use super::symbol::{IndirectTopLevelSymbol, StarSymbol, Symbol};
 use super::{utils::ConvertModulePath, visitor::SymbolRef};
 use crate::ModuleGraph;
 
@@ -142,14 +142,25 @@ pub fn simplify_symbol_ref(symbol_ref: &SymbolRef) -> SymbolRef {
       star.binding().clone(),
       star.module_ident(),
       star.ty(),
+      star.dep_id,
     )),
-    SymbolRef::Url { importer, src } => SymbolRef::Url {
+    SymbolRef::Url {
+      importer,
+      src,
+      dep_id,
+    } => SymbolRef::Url {
       importer: importer.as_str().into(),
       src: src.as_str().into(),
+      dep_id: *dep_id,
     },
-    SymbolRef::Worker { importer, src } => SymbolRef::Worker {
+    SymbolRef::Worker {
+      importer,
+      src,
+      dep_id,
+    } => SymbolRef::Worker {
       importer: importer.as_str().into(),
       src: src.as_str().into(),
+      dep_id: *dep_id,
     },
     SymbolRef::Usage(binding, member_chain, src) => {
       SymbolRef::Usage(binding.clone(), member_chain.clone(), src.as_str().into())

@@ -114,7 +114,7 @@ struct RspackImporter {
 impl RspackImporter {
   pub fn new(include_paths: Vec<PathBuf>, factory: Arc<ResolverFactory>) -> Self {
     let sass_module_resolve = factory.get(ResolveOptionsWithDependencyType {
-      resolve_options: Some(Resolve {
+      resolve_options: Some(Box::new(Resolve {
         extensions: Some(vec![
           ".sass".to_owned(),
           ".scss".to_owned(),
@@ -126,13 +126,13 @@ impl RspackImporter {
         main_fields: Some(Vec::new()),
         // TODO: add restrictions field when resolver supports it.
         ..Default::default()
-      }),
+      })),
       resolve_to_context: false,
       dependency_type: DependencyType::Unknown,
       dependency_category: DependencyCategory::Unknown,
     });
     let sass_import_resolve = factory.get(ResolveOptionsWithDependencyType {
-      resolve_options: Some(Resolve {
+      resolve_options: Some(Box::new(Resolve {
         extensions: Some(vec![
           ".sass".to_owned(),
           ".scss".to_owned(),
@@ -148,13 +148,13 @@ impl RspackImporter {
         ]),
         main_fields: Some(Vec::new()),
         ..Default::default()
-      }),
+      })),
       resolve_to_context: false,
       dependency_type: DependencyType::Unknown,
       dependency_category: DependencyCategory::Unknown,
     });
     let rspack_module_resolve = factory.get(ResolveOptionsWithDependencyType {
-      resolve_options: Some(Resolve {
+      resolve_options: Some(Box::new(Resolve {
         // TODO: add dependencyType.
         condition_names: Some(vec!["sass".to_owned(), "style".to_owned()]),
         main_fields: Some(vec![
@@ -175,13 +175,13 @@ impl RspackImporter {
         ]),
         prefer_relative: Some(true),
         ..Default::default()
-      }),
+      })),
       resolve_to_context: false,
       dependency_type: DependencyType::Unknown,
       dependency_category: DependencyCategory::Unknown,
     });
     let rspack_import_resolve = factory.get(ResolveOptionsWithDependencyType {
-      resolve_options: Some(Resolve {
+      resolve_options: Some(Box::new(Resolve {
         condition_names: Some(vec!["sass".to_owned(), "style".to_owned()]),
         main_fields: Some(vec![
           "sass".to_owned(),
@@ -203,7 +203,7 @@ impl RspackImporter {
         ]),
         prefer_relative: Some(true),
         ..Default::default()
-      }),
+      })),
       resolve_to_context: false,
       dependency_type: DependencyType::Unknown,
       dependency_category: DependencyCategory::Unknown,
@@ -370,6 +370,8 @@ pub struct SassLoader {
   options: SassLoaderOptions,
 }
 
+pub const SASS_LOADER_IDENTIFIER: &str = "builtin:sass-loader";
+
 impl SassLoader {
   pub fn new(options: SassLoaderOptions) -> Self {
     Self { options }
@@ -504,9 +506,9 @@ impl Loader<LoaderRunnerContext> for SassLoader {
 
     loader_context.content = Some(result.css.into());
     loader_context.source_map = source_map;
-    loader_context
-      .diagnostic
-      .append(&mut rx.into_iter().flatten().collect_vec());
+    rx.into_iter().flatten().for_each(|d| {
+      loader_context.emit_diagnostic(d);
+    });
     Ok(())
   }
 }

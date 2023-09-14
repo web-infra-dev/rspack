@@ -1,8 +1,8 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  ChunkGroupOptions, ConstDependency, DependencyTemplate, EntryOptions, ModuleDependency,
-  ModuleIdentifier, OutputOptions, SpanExt,
+  BoxDependency, BoxDependencyTemplate, ConstDependency, EntryOptions, ModuleIdentifier,
+  OutputOptions, SpanExt,
 };
 use rspack_hash::RspackHash;
 use swc_core::common::Spanned;
@@ -16,8 +16,8 @@ use crate::dependency::WorkerDependency;
 
 // TODO: should created by WorkerPlugin
 pub struct WorkerScanner<'a> {
-  pub presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
-  pub dependencies: Vec<Box<dyn ModuleDependency>>,
+  pub presentational_dependencies: Vec<BoxDependencyTemplate>,
+  pub dependencies: Vec<BoxDependency>,
   index: usize,
   module_identifier: &'a ModuleIdentifier,
   output_options: &'a OutputOptions,
@@ -64,16 +64,14 @@ impl<'a> WorkerScanner<'a> {
       parsed_path.value,
       self.output_options.worker_public_path.clone(),
       Some(new_expr.span.into()),
-      ChunkGroupOptions {
+      EntryOptions {
         name,
-        entry_options: Some(EntryOptions {
-          runtime: Some(runtime),
-          chunk_loading: Some(self.output_options.worker_chunk_loading.clone()),
-          async_chunks: None,
-          public_path: None,
-          base_uri: None,
-          filename: None,
-        }),
+        runtime: Some(runtime),
+        chunk_loading: Some(self.output_options.worker_chunk_loading.clone()),
+        async_chunks: None,
+        public_path: None,
+        base_uri: None,
+        filename: None,
       },
     )));
     if let Some(range) = range {

@@ -48,9 +48,7 @@ macro_rules! impl_runtime_module {
         let mut result = rspack_core::CodeGenerationResult::default();
         result.add(
           rspack_core::SourceType::JavaScript,
-          rspack_core::GenerationResult::from(rspack_core::AstOrSource::from(
-            self.generate(compilation),
-          )),
+          self.generate(compilation),
         );
         result.set_hash(
           &compilation.options.output.hash_function,

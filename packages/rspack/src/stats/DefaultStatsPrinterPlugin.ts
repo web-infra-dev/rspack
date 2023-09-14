@@ -8,10 +8,10 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import type { Compiler } from "../compiler";
+import type { Compiler } from "../Compiler";
 import type { StatsPrinter, StatsPrinterContext } from "./StatsPrinter";
 import { formatSize } from "../util/SizeFormatHelpers";
-import { StatsChunkGroup, StatsCompilation } from "./DefaultStatsFactoryPlugin";
+import { StatsChunkGroup, StatsCompilation } from "./statsFactoryUtils";
 
 const DATA_URI_CONTENT_LENGTH = 16;
 
@@ -215,14 +215,17 @@ const SIMPLE_PRINTERS: Record<
 					"assets"
 			  )}`
 			: undefined,
-	// "compilation.logging": (logging, context, printer) =>
-	// 	Array.isArray(logging)
-	// 		? undefined
-	// 		: printer.print(
-	// 				context.type,
-	// 				Object.entries(logging).map(([name, value]) => ({ ...value, name })),
-	// 				context
-	// 		  ),
+	"compilation.logging": (logging, context, printer) =>
+		Array.isArray(logging)
+			? undefined
+			: printer.print(
+					context.type,
+					Object.entries(logging).map(([name, value]) => ({
+						...(value as any),
+						name
+					})),
+					context
+			  ),
 	"compilation.warningsInChildren!": (_, { yellow, compilation }) => {
 		if (
 			!compilation.children &&
@@ -606,6 +609,8 @@ const SIMPLE_PRINTERS: Record<
 		mapLines(message, x => `</p> ${magenta(x)}`),
 	"loggingEntry(time).loggingEntry.message": (message, { magenta }) =>
 		mapLines(message, x => `<t> ${magenta(x)}`),
+	"loggingEntry(cache).loggingEntry.message": (message, { magenta }) =>
+		mapLines(message, x => `<c> ${magenta(x)}`),
 	"loggingEntry(group).loggingEntry.message": (message, { cyan }) =>
 		mapLines(message, x => `<-> ${cyan(x)}`),
 	"loggingEntry(groupCollapsed).loggingEntry.message": (message, { cyan }) =>

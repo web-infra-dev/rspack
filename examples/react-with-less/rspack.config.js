@@ -7,7 +7,11 @@ const config = {
 		main: ["./src/index.jsx"]
 	},
 	builtins: {
-		html: [{}],
+		html: [
+			{
+				template: "./index.html"
+			}
+		],
 		define: {
 			"process.env.NODE_ENV": "'development'"
 		}

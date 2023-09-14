@@ -25,6 +25,14 @@ impl Plugin for SystemLibraryPlugin {
     _ctx: PluginContext,
     args: &mut AdditionalChunkRuntimeRequirementsArgs,
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    if args
+      .compilation
+      .chunk_graph
+      .get_number_of_entry_modules(args.chunk)
+      == 0
+    {
+      return Ok(());
+    }
     args
       .runtime_requirements
       .insert(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME);
@@ -33,6 +41,13 @@ impl Plugin for SystemLibraryPlugin {
 
   fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
     let compilation = &args.compilation;
+    if compilation
+      .chunk_graph
+      .get_number_of_entry_modules(args.chunk)
+      == 0
+    {
+      return Ok(None);
+    }
     // system-named-assets-path is not supported
     let name = normalize_name(&compilation.options.output.library)?
       .map(|name| format!("\"{name}\","))
@@ -103,6 +118,14 @@ impl Plugin for SystemLibraryPlugin {
     _ctx: PluginContext,
     args: &mut JsChunkHashArgs,
   ) -> PluginJsChunkHashHookOutput {
+    if args
+      .compilation
+      .chunk_graph
+      .get_number_of_entry_modules(args.chunk_ukey)
+      == 0
+    {
+      return Ok(());
+    }
     self.name().hash(&mut args.hasher);
     args
       .compilation

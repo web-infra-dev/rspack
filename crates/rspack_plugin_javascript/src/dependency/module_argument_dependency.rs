@@ -1,6 +1,6 @@
 use rspack_core::{DependencyTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ModuleArgumentDependency {
   pub start: u32,
   pub end: u32,
@@ -42,7 +42,7 @@ impl DependencyTemplate for ModuleArgumentDependency {
         None,
       );
     } else {
-      source.replace(self.start, self.end, module_argument, None);
+      source.replace(self.start, self.end, &format!("{module_argument}"), None);
     }
   }
 }

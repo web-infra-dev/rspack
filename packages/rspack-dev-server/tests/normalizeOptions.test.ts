@@ -96,13 +96,7 @@ async function match(config: RspackOptions) {
 	const compiler = createCompiler({
 		...config,
 		entry: ENTRY,
-		stats: "none",
-		infrastructureLogging: {
-			level: "info",
-			stream: {
-				write: () => {}
-			}
-		}
+		stats: "none"
 	});
 	const server = new RspackDevServer(
 		compiler.options.devServer ?? {},
@@ -123,20 +117,27 @@ async function matchAdditionEntries(
 	const compiler = createCompiler({
 		...config,
 		stats: "none",
-		entry: ENTRY,
-		infrastructureLogging: {
-			stream: {
-				write: () => {}
-			}
-		}
+		entry: ENTRY
 	});
 
 	const server = new RspackDevServer(serverConfig, compiler);
 	await server.start();
-	const entires = Object.entries(compiler.options.entry);
+	const entries = compiler.builtinPlugins
+		.filter(p => p.name === "EntryPlugin")
+		.map(p => p.raw().options)
+		.reduce<Object>((acc, cur: any) => {
+			const name = cur.options.name;
+			const request = cur.entry;
+			if (acc[name]) {
+				acc[name].import.push(request);
+			} else {
+				acc[name] = { import: [request] };
+			}
+			return acc;
+		}, {});
 	// some hack for snapshot
 	const value = Object.fromEntries(
-		entires.map(([key, item]) => {
+		Object.entries(entries).map(([key, item]) => {
 			const replaced = item.import?.map(entry => {
 				const array = entry
 					.replace(/\\/g, "/")

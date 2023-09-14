@@ -1,1 +1,3 @@
-export const value = "common";
+import "./common.css";
+
+export const value = 1;

@@ -207,7 +207,7 @@ assert.deepStrictEqual(USELESS, {
 });
 assert.deepStrictEqual({}.DO_NOT_CONVERTED5, undefined);
 assert.deepStrictEqual({}.DO_NOT_CONVERTED6, undefined);
-assert.deepStrictEqual(_lib__WEBPACK_IMPORTED_MODULE_0_["DO_NOT_CONVERTED7"], 402);
+assert.deepStrictEqual(_lib__WEBPACK_IMPORTED_MODULE_0_.DO_NOT_CONVERTED7, 402);
 assert.deepStrictEqual(_lib__WEBPACK_IMPORTED_MODULE_0_["default"], 401);
 assert.deepStrictEqual(DO_NOT_CONVERTED9, 403);
 assert.deepStrictEqual(lib.DO_NOT_CONVERTED9, 403);

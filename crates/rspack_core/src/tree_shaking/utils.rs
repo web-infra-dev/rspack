@@ -1,8 +1,8 @@
-use rspack_symbol::{IndirectTopLevelSymbol, StarSymbol, Symbol};
-use swc_core::common::Mark;
+use swc_core::common::SyntaxContext;
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit};
 use swc_core::ecma::atoms::{js_word, JsWord};
 
+use super::symbol::{IndirectTopLevelSymbol, StarSymbol, Symbol};
 use super::visitor::SymbolRef;
 use crate::{ModuleGraph, ModuleIdentifier};
 
@@ -17,7 +17,7 @@ pub fn get_first_string_lit_arg(e: &CallExpr) -> Option<JsWord> {
   })
 }
 
-pub fn get_require_literal(e: &CallExpr, unresolved_mark: Mark) -> Option<JsWord> {
+pub fn get_require_literal(e: &CallExpr, unresolved_ctxt: SyntaxContext) -> Option<JsWord> {
   if e.args.len() == 1 {
     if match &e.callee {
       ident @ Callee::Expr(box Expr::Ident(Ident {
@@ -28,7 +28,7 @@ pub fn get_require_literal(e: &CallExpr, unresolved_mark: Mark) -> Option<JsWord
         ident
           .as_expr()
           .and_then(|expr| expr.as_ident())
-          .map(|ident| ident.span.ctxt.outer() == unresolved_mark)
+          .map(|ident| ident.span.ctxt == unresolved_ctxt)
           .unwrap_or(false)
       }
       _ => false,
@@ -74,13 +74,23 @@ impl ConvertModulePath for SymbolRef {
       SymbolRef::Star(star) => {
         SymbolRef::Star(star.convert_module_identifier_to_module_path(module_graph))
       }
-      SymbolRef::Url { importer, src } => SymbolRef::Url {
+      SymbolRef::Url {
+        importer,
+        src,
+        dep_id,
+      } => SymbolRef::Url {
         importer: importer.convert_module_identifier_to_module_path(module_graph),
         src: src.convert_module_identifier_to_module_path(module_graph),
+        dep_id,
       },
-      SymbolRef::Worker { importer, src } => SymbolRef::Worker {
+      SymbolRef::Worker {
+        importer,
+        src,
+        dep_id,
+      } => SymbolRef::Worker {
         importer: importer.convert_module_identifier_to_module_path(module_graph),
         src: src.convert_module_identifier_to_module_path(module_graph),
+        dep_id,
       },
       SymbolRef::Usage(binding, member_chain, src) => SymbolRef::Usage(
         binding,

@@ -2,9 +2,7 @@ import * as fs from "fs";
 import type { RspackCLI } from "../rspack-cli";
 import { RspackCommand } from "../types";
 import { commonOptions } from "../utils/options";
-import { Stats } from "@rspack/core/src/stats";
-import { Compiler, MultiCompiler } from "@rspack/core";
-import MultiStats from "@rspack/core/src/multiStats";
+import { MultiStats, Stats } from "@rspack/core";
 
 export class BuildCommand implements RspackCommand {
 	async apply(cli: RspackCLI): Promise<void> {
@@ -96,6 +94,7 @@ export class BuildCommand implements RspackCommand {
 					errorHandler
 				);
 
+				if (!compiler) return;
 				if (cli.isWatch(compiler)) {
 					return;
 				} else {

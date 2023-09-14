@@ -10,7 +10,7 @@ use rspack_core::{
   SideEffectOption,
 };
 use rspack_loader_sass::{SassLoader, SassLoaderOptions};
-use rspack_testing::{fixture, test_fixture};
+use rspack_testing::{fixture, test_fixture_css};
 use sass_embedded::Url;
 
 // UPDATE_SASS_LOADER_TEST=1 cargo test --package rspack_loader_sass test_fn_name -- --exact --nocapture
@@ -75,6 +75,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
         },
         target: rspack_core::Target::new(&vec![String::from("web")]).expect("TODO:"),
         resolve: rspack_core::Resolve::default(),
+        resolve_loader: rspack_core::Resolve::default(),
         builtins: Default::default(),
         module: Default::default(),
         stats: Default::default(),
@@ -86,7 +87,10 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           remove_available_modules: false,
           remove_empty_chunks: true,
           side_effects: SideEffectOption::False,
+          provided_exports: Default::default(),
+          used_exports: Default::default(),
         },
+        profile: false,
       }),
       resolver_factory: Default::default(),
     },
@@ -111,5 +115,5 @@ async fn rspack_importer() {
 
 #[fixture("tests/fixtures/*")]
 fn sass(fixture_path: PathBuf) {
-  test_fixture(&fixture_path);
+  test_fixture_css(&fixture_path);
 }

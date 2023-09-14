@@ -1,4 +1,6 @@
-use rspack_core::{ContextMode, ContextOptions, DependencyCategory, ModuleDependency, SpanExt};
+use rspack_core::{
+  BoxDependency, ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt,
+};
 use rspack_regex::RspackRegex;
 use swc_core::ecma::{
   ast::{CallExpr, Lit},
@@ -9,11 +11,11 @@ use super::is_require_context_call;
 use crate::dependency::RequireContextDependency;
 
 pub struct RequireContextScanner<'a> {
-  pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+  pub dependencies: &'a mut Vec<BoxDependency>,
 }
 
 impl<'a> RequireContextScanner<'a> {
-  pub fn new(dependencies: &'a mut Vec<Box<dyn ModuleDependency>>) -> Self {
+  pub fn new(dependencies: &'a mut Vec<BoxDependency>) -> Self {
     Self { dependencies }
   }
 }
@@ -71,6 +73,7 @@ impl Visit for RequireContextScanner<'_> {
               exclude: None,
               category: DependencyCategory::CommonJS,
               request: str.value.to_string(),
+              namespace_object: ContextNameSpaceObject::Unset,
             },
             Some(node.span.into()),
           )));

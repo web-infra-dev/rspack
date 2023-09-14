@@ -1,6 +1,9 @@
+use swc_core::ecma::atoms::JsWord;
+
 use crate::{
-  Context, ContextMode, ContextOptions, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ModuleDependency,
+  AsDependencyTemplate, Context, ContextMode, ContextOptions, Dependency, DependencyCategory,
+  DependencyId, DependencyType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
+  ReferencedExport, RuntimeSpec,
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
@@ -12,9 +15,15 @@ pub struct ContextElementDependency {
   pub user_request: String,
   pub category: DependencyCategory,
   pub context: Context,
+  pub resource_identifier: String,
+  pub referenced_exports: Option<Vec<JsWord>>,
 }
 
 impl Dependency for ContextElementDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &self.category
   }
@@ -29,10 +38,6 @@ impl Dependency for ContextElementDependency {
 }
 
 impl ModuleDependency for ContextElementDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -59,4 +64,22 @@ impl ModuleDependency for ContextElementDependency {
   fn set_request(&mut self, request: String) {
     self.request = request;
   }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
+  }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    if let Some(referenced_exports) = &self.referenced_exports {
+      vec![ReferencedExport::new(referenced_exports.clone(), false).into()]
+    } else {
+      vec![ExtendedReferencedExport::Array(vec![])]
+    }
+  }
 }
+
+impl AsDependencyTemplate for ContextElementDependency {}

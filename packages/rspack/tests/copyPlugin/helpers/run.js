@@ -63,12 +63,16 @@ function run(opts) {
 			});
 		}
 
-		const compiler = opts.compiler || getCompiler();
-		compiler.options.builtins ??= {};
-		compiler.options.builtins.copy = resolveCopy({
-			patterns: opts.patterns,
-			options: opts.options
-		});
+		const compiler =
+			opts.compiler ||
+			getCompiler({
+				builtins: {
+					copy: resolveCopy({
+						patterns: opts.patterns,
+						options: opts.options
+					})
+				}
+			});
 
 		// Execute the functions in series
 		return compile(compiler)
@@ -149,36 +153,36 @@ function runForce(opts) {
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-function runChange(opts) {
-	return new Promise(async resolve => {
-		const compiler = getCompiler();
+async function runChange(opts) {
+	const compiler = getCompiler();
 
-		compiler.options.builtins ??= {};
-		compiler.options.builtins.copy = resolveCopy({
-			patterns: opts.patterns,
-			options: opts.options
-		});
+	compiler.options.builtins ??= {};
+	compiler.options.builtins.copy = resolveCopy({
+		patterns: opts.patterns,
+		options: opts.options
+	});
 
-		// Create two test files
-		fs.writeFileSync(opts.newFileLoc1, "file1contents");
-		fs.writeFileSync(opts.newFileLoc2, "file2contents");
+	// Create two test files
+	fs.writeFileSync(opts.newFileLoc1, "file1contents");
+	fs.writeFileSync(opts.newFileLoc2, "file2contents");
 
-		const arrayOfStats = [];
+	const arrayOfStats = [];
 
-		const watching = compiler.watch({}, (error, stats) => {
-			if (error || stats.hasErrors()) {
-				throw error;
-			}
+	const watching = compiler.watch({}, (error, stats) => {
+		if (error || stats.hasErrors()) {
+			throw error;
+		}
 
-			arrayOfStats.push(stats);
-		});
+		arrayOfStats.push(stats);
+	});
 
-		await delay(500);
+	await delay(500);
 
-		fs.appendFileSync(opts.newFileLoc1, "extra");
+	fs.appendFileSync(opts.newFileLoc1, "extra");
 
-		await delay(500);
+	await delay(500);
 
+	return new Promise(resolve => {
 		watching.close(() => {
 			const assetsBefore = readAssets(compiler, arrayOfStats[0]);
 			const assetsAfter = readAssets(compiler, arrayOfStats.pop());

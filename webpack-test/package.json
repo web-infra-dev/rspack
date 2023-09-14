@@ -17,7 +17,6 @@
     "@rspack/core": "workspace:*",
     "@rspack/plugin-minify": "workspace:^",
     "@rspack/plugin-node-polyfill": "workspace:^",
-    "@rspack/postcss-loader": "workspace:^",
     "@types/node": "^18.6.3",
     "@types/rimraf": "3.0.2",
     "@types/sinon": "10.0.13",
@@ -56,7 +55,6 @@
   },
   "dependencies": {
     "@rspack/binding": "workspace:*",
-    "@rspack/dev-client": "workspace:*",
     "@swc/helpers": "0.5.1",
     "browserslist": "^4.21.3",
     "enhanced-resolve": "5.12.0",

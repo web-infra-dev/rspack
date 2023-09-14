@@ -11,7 +11,7 @@ use rayon::prelude::*;
 use regex::{Captures, Regex};
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  AssetInfo, Plugin, PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs,
+  AssetInfo, Logger, Plugin, PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
 use rspack_hash::RspackHash;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -26,6 +26,10 @@ pub struct RealContentHashPlugin;
 
 #[async_trait::async_trait]
 impl Plugin for RealContentHashPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.RealContentHashPlugin"
+  }
+
   async fn process_assets_stage_optimize_hash(
     &self,
     ctx: PluginContext,
@@ -42,6 +46,8 @@ impl RealContentHashPlugin {
     args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
     let compilation = args.compilation;
+    let logger = compilation.get_logger(self.name());
+    let start = logger.time("hash to asset names");
     let mut hash_to_asset_names: HashMap<&str, Vec<&str>> = HashMap::default();
     for (name, asset) in compilation
       .assets()
@@ -56,9 +62,11 @@ impl RealContentHashPlugin {
           .or_insert(vec![name]);
       }
     }
+    logger.time_end(start);
     if hash_to_asset_names.is_empty() {
       return Ok(());
     }
+    let start = logger.time("create hash regexp");
     let mut hash_list = hash_to_asset_names
       .keys()
       // xx\xx{xx?xx.xx -> xx\\xx\{xx\?xx\.xx escape for Regex::new
@@ -69,7 +77,9 @@ impl RealContentHashPlugin {
     //      4afcbe|4afc match xxx.4afcbe-4afc.js -> xxx.[4afcbe]-[4afc].js
     hash_list.par_sort_by(|a, b| b.len().cmp(&a.len()));
     let hash_regexp = Regex::new(&hash_list.join("|")).expect("Invalid regex");
+    logger.time_end(start);
 
+    let start = logger.time("create ordered hashes");
     let assets_data: HashMap<&str, AssetData> = compilation
       .assets()
       .par_iter()
@@ -84,7 +94,9 @@ impl RealContentHashPlugin {
       .collect();
 
     let ordered_hashes = OrderedHashesBuilder::new(&hash_to_asset_names, &assets_data).build();
+    logger.time_end(start);
 
+    let start = logger.time("old hash to new hash");
     let mut hash_to_new_hash = HashMap::default();
 
     for old_hash in &ordered_hashes {
@@ -112,7 +124,9 @@ impl RealContentHashPlugin {
         hash_to_new_hash.insert(old_hash, new_hash);
       }
     }
+    logger.time_end(start);
 
+    let start = logger.time("collect hash updates");
     let updates: Vec<_> = assets_data
       .into_par_iter()
       .filter_map(|(name, data)| {
@@ -132,7 +146,9 @@ impl RealContentHashPlugin {
         Some((name.to_owned(), new_source.clone(), new_name))
       })
       .collect();
+    logger.time_end(start);
 
+    let start = logger.time("update assets");
     for (name, new_source, new_name) in updates {
       compilation.update_asset(&name, |_, old_info| {
         let new_hashes: HashSet<_> = old_info
@@ -151,6 +167,7 @@ impl RealContentHashPlugin {
         compilation.rename_asset(&name, new_name);
       }
     }
+    logger.time_end(start);
 
     Ok(())
   }

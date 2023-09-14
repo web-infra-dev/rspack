@@ -32,13 +32,73 @@ export const createFakeProcessAssetsHook = (compilation: Compilation) => {
 		) => createFakeTap(options, fn, "tapPromise"),
 		stageAdditional: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stagePreProcess: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageDerived: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stageAdditions: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stageNone: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageOptimize: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageOptimizeCount: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageOptimizeCompatibility: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageOptimizeSize: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageDevTooling: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stageOptimizeInline: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stageSummarize: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stageOptimizeHash: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageOptimizeTransfer: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageAnalyse: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stageReport: new tapable.AsyncSeriesHook<Assets>(["assets"])
 	};
+};
+
+export type FakeHook<T> = T & { _fakeHook: true };
+
+export const createFakeHook = <T extends object>(fakeHook: T): FakeHook<T> => {
+	return Object.freeze(Object.assign(fakeHook, { _fakeHook: true as const }));
+};
+
+export const createProcessAssetsHook = <T>(
+	processAssetsHooks: ReturnType<typeof createFakeProcessAssetsHook>,
+	name: string,
+	stage: number,
+	getArgs: () => tapable.AsArray<T>
+): FakeHook<
+	Pick<tapable.AsyncSeriesHook<T>, "tap" | "tapAsync" | "tapPromise" | "name">
+> => {
+	const errorMessage = (
+		reason: string
+	) => `Can't automatically convert plugin using Compilation.hooks.${name} to Compilation.hooks.processAssets because ${reason}.
+BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a single Compilation.hooks.processAssets hook.`;
+	const getOptions = (
+		options: string | (tapable.TapOptions & { name: string })
+	) => {
+		if (typeof options === "string") options = { name: options };
+		if (options.stage) {
+			throw new Error(errorMessage("it's using the 'stage' option"));
+		}
+		return { ...options, stage: stage };
+	};
+	const tap: tapable.AsyncSeriesHook<T>["tap"] = (options, fn) => {
+		processAssetsHooks.tap(getOptions(options), () => fn(...getArgs()));
+	};
+	const tapAsync: tapable.AsyncSeriesHook<T>["tapAsync"] = (options, fn) => {
+		processAssetsHooks.tapAsync(getOptions(options), (assets, callback) =>
+			(fn as any)(...getArgs(), callback)
+		);
+	};
+	const tapPromise: tapable.AsyncSeriesHook<T>["tapPromise"] = (
+		options,
+		fn
+	) => {
+		processAssetsHooks.tapPromise(getOptions(options), () => fn(...getArgs()));
+	};
+	return createFakeHook({
+		name,
+		intercept() {
+			throw new Error(errorMessage("it's using 'intercept'"));
+		},
+		tap,
+		tapAsync,
+		tapPromise
+	});
 };
 
 export function createFakeCompilationDependencies(

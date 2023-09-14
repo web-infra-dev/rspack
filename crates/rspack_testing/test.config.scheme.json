@@ -346,6 +346,14 @@
           "default": false,
           "type": "boolean"
         },
+        "keepClassNames": {
+          "default": false,
+          "type": "boolean"
+        },
+        "keepFnNames": {
+          "default": false,
+          "type": "boolean"
+        },
         "extractComments": {
           "default": null,
           "type": [
@@ -407,10 +415,10 @@
     "ModuleRuleUse": {
       "type": "object",
       "required": [
-        "builtinLoader"
+        "loader"
       ],
       "properties": {
-        "builtinLoader": {
+        "loader": {
           "type": "string"
         },
         "options": {

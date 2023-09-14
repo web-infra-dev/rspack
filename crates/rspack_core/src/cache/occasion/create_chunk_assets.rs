@@ -2,7 +2,7 @@ use futures::Future;
 use rspack_error::Result;
 use rspack_identifier::Identifier;
 
-use crate::{cache::storage, Chunk, Compilation, NormalModuleAstOrSource, RenderManifestEntry};
+use crate::{cache::storage, Chunk, Compilation, NormalModuleSource, RenderManifestEntry};
 
 type Storage = dyn storage::Storage<Vec<RenderManifestEntry>>;
 
@@ -43,7 +43,7 @@ impl CreateChunkAssetsOccasion {
           .module_graph
           .module_by_identifier(module_id)
           .and_then(|m| m.as_normal_module())
-          .map(|m| matches!(m.ast_or_source(), NormalModuleAstOrSource::Unbuild)),
+          .map(|m| matches!(m.source(), NormalModuleSource::Unbuild)),
         Some(true)
       )
     });

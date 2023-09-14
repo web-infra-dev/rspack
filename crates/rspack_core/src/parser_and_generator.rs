@@ -1,13 +1,15 @@
-use std::fmt::Debug;
+use std::{collections::HashMap, fmt::Debug};
 
+use rkyv::AlignedVec;
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
 
 use crate::{
-  AstOrSource, BuildInfo, BuildMeta, CodeGenerationData, Compilation, CompilerOptions,
-  DependencyTemplate, GenerationResult, GeneratorOptions, Module, ModuleDependency,
-  ModuleIdentifier, ModuleType, ParserOptions, RuntimeGlobals, SourceType,
+  tree_shaking::visitor::OptimizeAnalyzeResult, BoxDependency, BuildExtraDataType, BuildInfo,
+  BuildMeta, CodeGenerationData, Compilation, CompilerOptions, DependencyTemplate,
+  GeneratorOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType, ParserOptions,
+  RuntimeGlobals, SourceType,
 };
 
 #[derive(Debug)]
@@ -27,9 +29,10 @@ pub struct ParseContext<'a> {
 
 #[derive(Debug)]
 pub struct ParseResult {
-  pub dependencies: Vec<Box<dyn ModuleDependency>>,
+  pub dependencies: Vec<BoxDependency>,
   pub presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
-  pub ast_or_source: AstOrSource,
+  pub source: BoxSource,
+  pub analyze_result: OptimizeAnalyzeResult,
 }
 
 #[derive(Debug)]
@@ -51,8 +54,12 @@ pub trait ParserAndGenerator: Send + Sync + Debug {
   /// Generate source or AST based on the built source or AST
   fn generate(
     &self,
-    ast_or_source: &AstOrSource,
+    source: &BoxSource,
     module: &dyn Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<GenerationResult>;
+  ) -> Result<BoxSource>;
+  /// Store parser&generator data to cache
+  fn store(&self, _extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) {}
+  /// Resume parser&generator data from cache
+  fn resume(&mut self, _extra_data: &HashMap<BuildExtraDataType, AlignedVec>) {}
 }

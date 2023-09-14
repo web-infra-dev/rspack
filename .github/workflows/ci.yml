@@ -2,6 +2,7 @@ name: CI
 
 on:
   merge_group:
+    types: [checks_requested]
   workflow_dispatch:
     inputs:
       debug_enabled:
@@ -33,14 +34,14 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
-      profile: 'debug'
+      profile: "debug"
 
-  test-windows:
-    name: Test Windows
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      target: x86_64-pc-windows-msvc
-      profile: 'debug'
+  # test-windows:
+  #   name: Test Windows
+  #   uses: ./.github/workflows/reusable-build.yml
+  #   with:
+  #     target: x86_64-pc-windows-msvc
+  #     profile: "debug"
 
   test-mac:
     name: Test Mac
@@ -48,8 +49,21 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-apple-darwin
-      profile: 'debug'
+      profile: "debug"
+  cargo-deny:
+    name: Check license of dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install cargo-deny
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-deny
+          version: "0.11.3"
 
+      - name: Check licenses
+        run: |
+          cargo deny check license
   spell:
     name: Spell check
     runs-on: ubuntu-latest
@@ -59,6 +73,27 @@ jobs:
       - uses: crate-ci/typos@master
         with:
           files: .
+
+  oxlint:
+    name: Lint JS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            src:
+              - '**/*.{ts,js,mjs}'
+
+      - name: Pnpm Cache
+        if: steps.changes.outputs.src == 'true'
+        uses: ./.github/actions/pnpm-cache
+
+      - name: oxlint
+        if: steps.changes.outputs.src == 'true'
+        run: pnpm run lint:js
 
   rust_changes:
     name: Rust Changes

@@ -433,7 +433,7 @@ impl<'a> VisitMut for ImportPlugin<'a> {
           raw: None,
         }),
         type_only: false,
-        asserts: None,
+        with: Default::default(),
       }));
       body.insert(0, dec);
     }
@@ -448,7 +448,7 @@ impl<'a> VisitMut for ImportPlugin<'a> {
           raw: None,
         }),
         type_only: false,
-        asserts: None,
+        with: Default::default(),
       }));
       body.insert(0, dec);
     }

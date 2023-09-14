@@ -6,26 +6,16 @@
 "use strict";
 
 const ModuleFilenameHelpers = require("./ModuleFilenameHelpers");
-const { NormalModule } = require("../normalModule");
-const createSchemaValidation = require("./util/create-schema-validation");
+const { NormalModule } = require("../NormalModule");
 
 /** @typedef {import("../declarations/plugins/LoaderOptionsPlugin").LoaderOptionsPluginOptions} LoaderOptionsPluginOptions */
 /** @typedef {import("./Compiler")} Compiler */
 
-const validate = createSchemaValidation(
-	require("../schemas/plugins/LoaderOptionsPlugin.check.js"),
-	() => require("../schemas/plugins/LoaderOptionsPlugin.json"),
-	{
-		name: "Loader Options Plugin",
-		baseDataPath: "options"
-	}
-);
 class LoaderOptionsPlugin {
 	/**
 	 * @param {LoaderOptionsPluginOptions} options options object
 	 */
 	constructor(options = {}) {
-		validate(options);
 		if (typeof options !== "object") options = {};
 		if (!options.test) {
 			options.test = {

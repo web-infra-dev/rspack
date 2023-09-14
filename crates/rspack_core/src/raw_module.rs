@@ -7,8 +7,8 @@ use rspack_identifier::Identifiable;
 use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 
 use crate::{
-  AstOrSource, BuildContext, BuildInfo, BuildResult, CodeGenerationResult, Context, Module,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, SourceType,
+  BuildContext, BuildInfo, BuildResult, CodeGenerationResult, Context, Module, ModuleIdentifier,
+  ModuleType, RuntimeGlobals, SourceType,
 };
 
 #[derive(Debug)]
@@ -88,9 +88,8 @@ impl Module for RawModule {
 
   fn code_generation(&self, compilation: &crate::Compilation) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
-    let ast_or_source: AstOrSource = self.source.clone().into();
     cgr.runtime_requirements.insert(self.runtime_requirements);
-    cgr.add(SourceType::JavaScript, ast_or_source);
+    cgr.add(SourceType::JavaScript, self.source.clone());
     cgr.set_hash(
       &compilation.options.output.hash_function,
       &compilation.options.output.hash_digest,

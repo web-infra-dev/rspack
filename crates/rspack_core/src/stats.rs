@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use rspack_error::{
   emitter::{
     DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
@@ -8,7 +9,7 @@ use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  BoxModule, Chunk, ChunkGroupUkey, Compilation, ModuleIdentifier, ModuleType, SourceType,
+  BoxModule, Chunk, ChunkGroupUkey, Compilation, LogType, ModuleIdentifier, ModuleType, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -40,6 +41,11 @@ impl Stats<'_> {
     let mut compilation_file_to_chunks: HashMap<&String, Vec<&Chunk>> = HashMap::default();
     for chunk in self.compilation.chunk_by_ukey.values() {
       for file in &chunk.files {
+        let chunks = compilation_file_to_chunks.entry(file).or_default();
+        chunks.push(chunk);
+      }
+
+      for file in &chunk.auxiliary_files {
         let chunks = compilation_file_to_chunks.entry(file).or_default();
         chunks.push(chunk);
       }
@@ -157,6 +163,10 @@ impl Stats<'_> {
       .map(|c| -> Result<_> {
         let mut files = Vec::from_iter(c.files.iter().cloned());
         files.sort_unstable();
+
+        let mut auxiliary_files = Vec::from_iter(c.auxiliary_files.iter().cloned());
+        auxiliary_files.sort_unstable();
+
         let chunk_modules = if chunk_modules {
           let chunk_modules = self
             .compilation
@@ -181,6 +191,7 @@ impl Stats<'_> {
         Ok(StatsChunk {
           r#type: "chunk",
           files,
+          auxiliary_files,
           id: c.expect_id().to_string(),
           names: c.name.clone().map(|n| vec![n]).unwrap_or_default(),
           entry: c.has_entry_module(&self.compilation.chunk_graph),
@@ -291,6 +302,20 @@ impl Stats<'_> {
       .collect()
   }
 
+  pub fn get_logging(&self) -> Vec<(String, LogType)> {
+    self
+      .compilation
+      .get_logging()
+      .iter()
+      .map(|item| {
+        let (name, logs) = item.pair();
+        (name.to_owned(), logs.to_owned())
+      })
+      .sorted_by(|a, b| a.0.cmp(&b.0))
+      .flat_map(|item| item.1.into_iter().map(move |log| (item.0.clone(), log)))
+      .collect()
+  }
+
   pub fn get_hash(&self) -> Option<&str> {
     self.compilation.get_hash()
   }
@@ -351,7 +376,8 @@ impl Stats<'_> {
             let dependency = self
               .compilation
               .module_graph
-              .dependency_by_id(&connection.dependency_id);
+              .dependency_by_id(&connection.dependency_id)
+              .and_then(|d| d.as_module_dependency());
 
             let r#type = dependency.map(|d| d.dependency_type().to_string());
 
@@ -365,7 +391,7 @@ impl Stats<'_> {
             }
           })
           .collect();
-        reasons.sort_unstable_by(|a, b| a.module_identifier.cmp(&b.module_identifier));
+        reasons.sort_unstable();
         Ok(reasons)
       })
       .transpose()?;
@@ -400,11 +426,24 @@ impl Stats<'_> {
 
     // TODO: a placeholder for concatenation modules
     let modules = nested_modules.then(Vec::new);
+    let profile = if let Some(p) = mgm.get_profile()
+    && let Some(factory) = p.factory.duration()
+    && let Some(integration) = p.integration.duration()
+    && let Some(building) = p.building.duration() {
+      Some(StatsModuleProfile {
+        factory: StatsMillisecond::new(factory.as_secs(), factory.subsec_millis()),
+        integration: StatsMillisecond::new(integration.as_secs(), integration.subsec_millis()),
+        building: StatsMillisecond::new(building.as_secs(), building.subsec_millis()),
+      })
+    } else {
+      None
+    };
 
     Ok(StatsModule {
       r#type: "module",
       module_type: *module.module_type(),
       identifier,
+      name_for_condition: module.name_for_condition().map(|n| n.to_string()),
       name: module
         .readable_identifier(&self.compilation.options.context)
         .into(),
@@ -423,6 +462,7 @@ impl Stats<'_> {
       assets,
       modules,
       source: source.then(|| module.original_source()).flatten(),
+      profile,
     })
   }
 
@@ -523,6 +563,7 @@ pub struct StatsModule<'a> {
   pub module_type: ModuleType,
   pub identifier: ModuleIdentifier,
   pub name: String,
+  pub name_for_condition: Option<String>,
   pub id: Option<String>,
   pub chunks: Vec<String>,
   pub size: f64,
@@ -534,12 +575,21 @@ pub struct StatsModule<'a> {
   pub assets: Option<Vec<String>>,
   pub modules: Option<Vec<StatsModule<'a>>>,
   pub source: Option<&'a dyn Source>,
+  pub profile: Option<StatsModuleProfile>,
+}
+
+#[derive(Debug)]
+pub struct StatsModuleProfile {
+  pub factory: StatsMillisecond,
+  pub integration: StatsMillisecond,
+  pub building: StatsMillisecond,
 }
 
 #[derive(Debug)]
 pub struct StatsChunk<'a> {
   pub r#type: &'static str,
   pub files: Vec<String>,
+  pub auxiliary_files: Vec<String>,
   pub id: String,
   pub entry: bool,
   pub initial: bool,
@@ -572,11 +622,26 @@ pub struct StatsModuleIssuer {
   pub id: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct StatsModuleReason {
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
   pub r#type: Option<String>,
   pub user_request: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct StatsMillisecond {
+  pub secs: u64,
+  pub subsec_millis: u32,
+}
+
+impl StatsMillisecond {
+  pub fn new(secs: u64, subsec_millis: u32) -> Self {
+    Self {
+      secs,
+      subsec_millis,
+    }
+  }
 }

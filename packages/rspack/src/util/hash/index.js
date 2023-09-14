@@ -19,7 +19,7 @@ class Hash {
 	 * @returns {this} updated hash
 	 */
 	update(data, inputEncoding) {
-		const AbstractMethodError = require("../AbstractMethodError");
+		const AbstractMethodError = require("../../lib/AbstractMethodError");
 		throw new AbstractMethodError();
 	}
 
@@ -31,7 +31,7 @@ class Hash {
 	 * @returns {string|Buffer} digest
 	 */
 	digest(encoding) {
-		const AbstractMethodError = require("../AbstractMethodError");
+		const AbstractMethodError = require("../../lib/AbstractMethodError");
 		throw new AbstractMethodError();
 	}
 }

@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
 use hashlink::LinkedHashMap;
 
@@ -55,70 +55,7 @@ pub struct Resolve {
 }
 
 impl Resolve {
-  pub fn to_inner_options(
-    self,
-    cache: Arc<nodejs_resolver::Cache>,
-    resolve_to_context: bool,
-    dependency_type: DependencyCategory,
-  ) -> nodejs_resolver::Options {
-    let options = self.merge_by_dependency(dependency_type);
-    let tsconfig = options.tsconfig;
-    let enforce_extension = nodejs_resolver::EnforceExtension::Auto;
-    let external_cache = Some(cache);
-    let description_file = String::from("package.json");
-    let extensions = options.extensions.unwrap_or_else(|| {
-      vec![".tsx", ".ts", ".jsx", ".js", ".mjs", ".json"]
-        .into_iter()
-        .map(|s| s.to_string())
-        .collect()
-    });
-    let alias = options.alias.unwrap_or_default();
-    let prefer_relative = options.prefer_relative.unwrap_or(false);
-    let symlinks = options.symlinks.unwrap_or(true);
-    let main_files = options
-      .main_files
-      .unwrap_or_else(|| vec![String::from("index")]);
-    let main_fields = options
-      .main_fields
-      .unwrap_or_else(|| vec![String::from("module"), String::from("main")]);
-    let browser_field = options.browser_field.unwrap_or(true);
-    let condition_names = std::collections::HashSet::from_iter(
-      options
-        .condition_names
-        .unwrap_or_else(|| vec!["module".to_string(), "import".to_string()]),
-    );
-    let modules = options
-      .modules
-      .unwrap_or_else(|| vec!["node_modules".to_string()]);
-    let fallback = options.fallback.unwrap_or_default();
-    let fully_specified = options.fully_specified.unwrap_or_default();
-    let exports_field = options
-      .exports_field
-      .unwrap_or_else(|| vec![vec!["exports".to_string()]]);
-    let extension_alias = options.extension_alias.unwrap_or_default();
-    nodejs_resolver::Options {
-      fallback,
-      modules,
-      extensions,
-      enforce_extension,
-      alias,
-      prefer_relative,
-      external_cache,
-      symlinks,
-      description_file,
-      main_files,
-      main_fields,
-      browser_field,
-      condition_names,
-      tsconfig,
-      resolve_to_context,
-      fully_specified,
-      exports_field,
-      extension_alias,
-    }
-  }
-
-  fn merge_by_dependency(mut self, dependency_type: DependencyCategory) -> Self {
+  pub fn merge_by_dependency(mut self, dependency_type: DependencyCategory) -> Self {
     let by_dependency = self
       .by_dependency
       .as_ref()

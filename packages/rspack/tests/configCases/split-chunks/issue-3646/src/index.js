@@ -4,6 +4,8 @@ import "./shared";
 export default "index.js";
 
 it("issue-3646", () => {
-	expect(fs.existsSync(path.resolve(__dirname, "./vendors.js"))).toBe(true);
-	expect(fs.existsSync(path.resolve(__dirname, "./default.js"))).toBe(false);
+	expect(fs.existsSync(path.resolve(__dirname, "./another.js"))).toBe(true);
+	expect(
+		fs.readdirSync(path.resolve(__dirname)).some(p => p.includes("lodash"))
+	).toBe(true);
 });

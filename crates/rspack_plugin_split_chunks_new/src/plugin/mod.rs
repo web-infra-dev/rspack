@@ -6,7 +6,7 @@ mod module_group;
 
 use std::{borrow::Cow, fmt::Debug};
 
-use rspack_core::{ChunkUkey, Compilation, Plugin};
+use rspack_core::{ChunkUkey, Compilation, Logger, Plugin};
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -36,11 +36,17 @@ impl SplitChunksPlugin {
   }
 
   async fn inner_impl(&self, compilation: &mut Compilation) {
+    let logger = compilation.get_logger(self.name());
+    let start = logger.time("prepare module group map");
     let mut module_group_map = self.prepare_module_group_map(compilation).await;
     tracing::trace!("prepared module_group_map {:#?}", module_group_map);
+    logger.time_end(start);
 
+    let start = logger.time("ensure min size fit");
     self.ensure_min_size_fit(compilation, &mut module_group_map);
+    logger.time_end(start);
 
+    let start = logger.time("process module group map");
     let mut max_size_setting_map: FxHashMap<ChunkUkey, MaxSizeSetting> = Default::default();
 
     while !module_group_map.is_empty() {
@@ -128,8 +134,11 @@ impl SplitChunksPlugin {
       );
       })
     }
+    logger.time_end(start);
 
+    let start = logger.time("ensure max size fit");
     self.ensure_max_size_fit(compilation, max_size_setting_map);
+    logger.time_end(start);
   }
 }
 
@@ -141,6 +150,10 @@ impl Debug for SplitChunksPlugin {
 
 #[async_trait::async_trait]
 impl Plugin for SplitChunksPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.SplitChunksPlugin"
+  }
+
   #[tracing::instrument(name = "SplitChunksPlugin::optimize_chunks", skip_all)]
   async fn optimize_chunks(
     &self,

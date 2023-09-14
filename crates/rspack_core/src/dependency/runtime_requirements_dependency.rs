@@ -1,13 +1,9 @@
-use crate::{
-  Dependency, DependencyTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
-};
+use crate::{DependencyTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource};
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub struct RuntimeRequirementsDependency {
   pub runtime_requirements: RuntimeGlobals,
 }
-
-impl Dependency for RuntimeRequirementsDependency {}
 
 impl DependencyTemplate for RuntimeRequirementsDependency {
   fn apply(

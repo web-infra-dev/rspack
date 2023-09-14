@@ -12,7 +12,7 @@ use rspack_core::{
 use rspack_error::Result;
 
 #[derive(Debug, Clone, Default)]
-pub struct ProgressPluginConfig {
+pub struct ProgressPluginOptions {
   // the prefix name of progress bar
   pub prefix: String,
   pub profile: bool,
@@ -20,7 +20,7 @@ pub struct ProgressPluginConfig {
 
 #[derive(Debug)]
 pub struct ProgressPlugin {
-  pub options: ProgressPluginConfig,
+  pub options: ProgressPluginOptions,
   pub progress_bar: ProgressBar,
   pub modules_count: AtomicU32,
   pub modules_done: AtomicU32,
@@ -36,7 +36,7 @@ pub struct ProgressPluginStateInfo {
 }
 
 impl ProgressPlugin {
-  pub fn new(options: ProgressPluginConfig) -> Self {
+  pub fn new(options: ProgressPluginOptions) -> Self {
     let progress_bar = ProgressBar::with_draw_target(Some(100), ProgressDrawTarget::stdout());
     progress_bar.set_style(
       ProgressStyle::with_template("{prefix} {bar:40.cyan/blue} {percent}% {wide_msg}")

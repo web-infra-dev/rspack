@@ -33,6 +33,14 @@ impl Plugin for UmdLibraryPlugin {
     _ctx: PluginContext,
     args: &mut AdditionalChunkRuntimeRequirementsArgs,
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    if args
+      .compilation
+      .chunk_graph
+      .get_number_of_entry_modules(args.chunk)
+      == 0
+    {
+      return Ok(());
+    }
     args
       .runtime_requirements
       .insert(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME);
@@ -41,6 +49,13 @@ impl Plugin for UmdLibraryPlugin {
 
   fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
     let compilation = &args.compilation;
+    if compilation
+      .chunk_graph
+      .get_number_of_entry_modules(args.chunk)
+      == 0
+    {
+      return Ok(None);
+    }
     let chunk = args.chunk();
     let modules = compilation
       .chunk_graph
@@ -51,6 +66,10 @@ impl Plugin for UmdLibraryPlugin {
           .module_graph
           .module_by_identifier(identifier)
           .and_then(|module| module.as_external_module())
+          .and_then(|m| {
+            let ty = m.get_external_type();
+            (ty == "umd" || ty == "umd2").then_some(m)
+          })
       })
       .collect::<Vec<&ExternalModule>>();
     // TODO check if external module is optional
@@ -83,7 +102,8 @@ impl Plugin for UmdLibraryPlugin {
 
     let define = if let (Some(amd), Some(_)) = &(amd, umd_named_define) {
       format!(
-        "define({amd}, {}, {amd_factory});\n",
+        "define({}, {}, {amd_factory});\n",
+        library_name(&[amd.to_string()], chunk, compilation),
         external_dep_array(&required_externals)
       )
     } else {
@@ -182,6 +202,14 @@ impl Plugin for UmdLibraryPlugin {
     _ctx: PluginContext,
     args: &mut JsChunkHashArgs,
   ) -> PluginJsChunkHashHookOutput {
+    if args
+      .compilation
+      .chunk_graph
+      .get_number_of_entry_modules(args.chunk_ukey)
+      == 0
+    {
+      return Ok(());
+    }
     self.name().hash(&mut args.hasher);
     args
       .compilation

@@ -1,11 +1,12 @@
 use rspack_error::{internal_error, Result};
 use rustc_hash::FxHashSet as HashSet;
 
+use crate::ExportsInfoId;
 use crate::{
   is_async_dependency, module_graph::ConnectionId, BuildInfo, BuildMeta, BuildMetaDefaultObject,
-  BuildMetaExportsType, ChunkGraph, ChunkGroupOptions, DependencyId, ExportsType, FactoryMeta,
-  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleIssuer,
-  ModuleSyntax, ModuleType,
+  BuildMetaExportsType, ChunkGraph, ChunkGroupOptionsKindRef, DependencyId, ExportsArgument,
+  ExportsType, FactoryMeta, ModuleArgument, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  ModuleIssuer, ModuleProfile, ModuleSyntax, ModuleType,
 };
 
 #[derive(Debug)]
@@ -20,17 +21,23 @@ pub struct ModuleGraphModule {
   pub module_identifier: ModuleIdentifier,
   // TODO remove this since its included in module
   pub module_type: ModuleType,
-  pub dependencies: Vec<DependencyId>,
-  pub(crate) pre_order_index: Option<usize>,
-  pub post_order_index: Option<usize>,
+  pub dependencies: Box<Vec<DependencyId>>,
+  pub(crate) pre_order_index: Option<u32>,
+  pub post_order_index: Option<u32>,
   pub module_syntax: ModuleSyntax,
   pub factory_meta: Option<FactoryMeta>,
   pub build_info: Option<BuildInfo>,
   pub build_meta: Option<BuildMeta>,
+  pub exports: ExportsInfoId,
+  pub profile: Option<Box<ModuleProfile>>,
 }
 
 impl ModuleGraphModule {
-  pub fn new(module_identifier: ModuleIdentifier, module_type: ModuleType) -> Self {
+  pub fn new(
+    module_identifier: ModuleIdentifier,
+    module_type: ModuleType,
+    exports_info_id: ExportsInfoId,
+  ) -> Self {
     Self {
       outgoing_connections: Default::default(),
       incoming_connections: Default::default(),
@@ -46,6 +53,8 @@ impl ModuleGraphModule {
       factory_meta: None,
       build_info: None,
       build_meta: None,
+      exports: exports_info_id,
+      profile: None,
     }
   }
 
@@ -118,8 +127,14 @@ impl ModuleGraphModule {
       .dependencies
       .iter()
       .filter(|id| {
-        let dep = module_graph.dependency_by_id(id).expect("should have id");
-        !is_async_dependency(dep) && !dep.weak()
+        if let Some(dep) = module_graph
+          .dependency_by_id(id)
+          .expect("should have id")
+          .as_module_dependency()
+        {
+          return !is_async_dependency(dep) && !dep.weak();
+        }
+        false
       })
       .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
       .collect()
@@ -128,21 +143,27 @@ impl ModuleGraphModule {
   pub fn dynamic_depended_modules<'a>(
     &self,
     module_graph: &'a ModuleGraph,
-  ) -> Vec<(&'a ModuleIdentifier, Option<&'a ChunkGroupOptions>)> {
+  ) -> Vec<(&'a ModuleIdentifier, Option<ChunkGroupOptionsKindRef<'a>>)> {
     self
       .dependencies
       .iter()
       .filter_map(|id| {
-        let dep = module_graph.dependency_by_id(id).expect("should have id");
-        if !is_async_dependency(dep) {
-          return None;
-        }
-        let module = module_graph
-          .module_identifier_by_dependency_id(id)
-          .expect("should have a module here");
+        if let Some(dep) = module_graph
+          .dependency_by_id(id)
+          .expect("should have id")
+          .as_module_dependency()
+        {
+          if !is_async_dependency(dep) {
+            return None;
+          }
+          let module = module_graph
+            .module_identifier_by_dependency_id(id)
+            .expect("should have a module here");
 
-        let chunk_name = dep.group_options();
-        Some((module, chunk_name))
+          let chunk_name = dep.group_options();
+          return Some((module, chunk_name));
+        }
+        None
       })
       .collect()
   }
@@ -156,6 +177,14 @@ impl ModuleGraphModule {
       .iter()
       .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
       .collect()
+  }
+
+  pub fn set_profile(&mut self, profile: Box<ModuleProfile>) {
+    self.profile = Some(profile);
+  }
+
+  pub fn get_profile(&self) -> Option<&ModuleProfile> {
+    self.profile.as_deref()
   }
 
   pub fn set_issuer_if_unset(&mut self, issuer: Option<ModuleIdentifier>) {
@@ -172,20 +201,20 @@ impl ModuleGraphModule {
     &self.issuer
   }
 
-  pub fn get_exports_argument(&self) -> &str {
+  pub fn get_exports_argument(&self) -> ExportsArgument {
     self
       .build_meta
       .as_ref()
       .map(|m| m.exports_argument)
-      .unwrap_or("exports")
+      .unwrap_or_default()
   }
 
-  pub fn get_module_argument(&self) -> &str {
+  pub fn get_module_argument(&self) -> ModuleArgument {
     self
       .build_meta
       .as_ref()
       .map(|m| m.module_argument)
-      .unwrap_or("module")
+      .unwrap_or_default()
   }
 
   pub fn get_exports_type(&self, strict: bool) -> ExportsType {

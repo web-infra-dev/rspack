@@ -1,23 +1,23 @@
 #![feature(let_chains)]
 
 use rspack_core::{
-  Compilation, EntryDependency, EntryOptions, MakeParam, ModuleDependency, Plugin, PluginContext,
-  PluginMakeHookOutput,
+  BoxDependency, Compilation, Context, EntryDependency, EntryOptions, MakeParam, Plugin,
+  PluginContext, PluginMakeHookOutput,
 };
 
 #[derive(Debug)]
 pub struct EntryPlugin {
-  name: String,
   options: EntryOptions,
   entry_request: String,
+  context: Context,
 }
 
 impl EntryPlugin {
-  pub fn new(name: String, entry_request: String, options: EntryOptions) -> Self {
+  pub fn new(context: Context, entry_request: String, options: EntryOptions) -> Self {
     Self {
-      name,
       options,
       entry_request,
+      context,
     }
   }
 }
@@ -33,9 +33,12 @@ impl Plugin for EntryPlugin {
     if let Some(state) = compilation.options.get_incremental_rebuild_make_state() && !state.is_first() {
       return Ok(());
     }
-    let dependency = Box::new(EntryDependency::new(self.entry_request.clone()));
+    let dependency: BoxDependency = Box::new(EntryDependency::new(
+      self.entry_request.clone(),
+      self.context.clone(),
+    ));
     let dependency_id = dependency.id();
-    compilation.add_entry(*dependency_id, self.name.clone(), self.options.clone());
+    compilation.add_entry(*dependency_id, self.options.clone());
     param.add_force_build_dependency(*dependency_id, None);
     compilation.module_graph.add_dependency(dependency);
     Ok(())
