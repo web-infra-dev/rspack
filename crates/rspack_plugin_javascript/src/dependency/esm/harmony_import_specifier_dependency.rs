@@ -81,12 +81,12 @@ impl HarmonyImportSpecifierDependency {
       Specifier::Default(_) => compilation
         .module_graph
         .get_exports_info(&reference_mgm.module_identifier)
-        .get_used_exports()
+        .old_get_used_exports()
         .contains(&DEFAULT_JS_WORD),
       Specifier::Named(local, imported) => compilation
         .module_graph
         .get_exports_info(&reference_mgm.module_identifier)
-        .get_used_exports()
+        .old_get_used_exports()
         .contains(imported.as_ref().unwrap_or(local)),
     }
   }

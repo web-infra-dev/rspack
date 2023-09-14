@@ -69,8 +69,15 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
       compilation
         .module_graph
         .get_exports_info(&module.identifier())
-        .get_used_exports()
+        .old_get_used_exports()
         .contains(&self.name)
+    } else if compilation.options.is_new_tree_shaking() {
+      let exports_info_id = compilation
+        .module_graph
+        .get_exports_info(&module.identifier())
+        .id;
+      // exports_info_id.get_used_name(mg, None, self.name);
+      todo!()
     } else {
       true
     };

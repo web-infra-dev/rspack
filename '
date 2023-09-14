@@ -294,10 +294,10 @@ impl HarmonyExportImportedSpecifierDependency {
           .map(|hidden_exports| hidden_exports.contains(&export_name))
           .is_some()
         {
-          hidden.insert(export_name.clone());
+          hidden.insert(export_name);
           continue;
         }
-        exports.insert(export_name.clone());
+        exports.insert(export_name);
         if matches!(
           imported_export_info.provided,
           Some(ExportInfoProvided::True)
@@ -312,7 +312,7 @@ impl HarmonyExportImportedSpecifierDependency {
           .export_info_map
           .get(import_export_info_id)
           .expect("should have export info");
-        let import_export_info_name = import_export_info.name.clone().unwrap_or_default();
+        let import_export_info_name = import_export_info.name.unwrap_or_default();
         if ignored_exports.contains(&import_export_info_name)
           || matches!(import_export_info.provided, Some(ExportInfoProvided::False))
         {

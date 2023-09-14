@@ -126,7 +126,7 @@ impl ExportsInfoId {
         changed = true;
       }
       if let Some(ref exclude_exports) = exclude_exports {
-        if exclude_exports.contains(&export_info.name) {
+        if let Some(ref export_name) = export_info.name && exclude_exports.contains(export_name) {
           continue;
         }
       }
@@ -141,7 +141,7 @@ impl ExportsInfoId {
         export_info.set_target(
           &target_key,
           target_module.clone(),
-          Some(&vec![export_info.name.clone()]),
+          export_info.name.clone().map(|name| vec![name]).as_ref(),
           priority,
         );
       }
@@ -247,7 +247,11 @@ impl ExportsInfoId {
           .export_info_map
           .get(&other_exports_info)
           .expect("should have export_info");
-        let new_info = ExportInfo::new(name.clone(), UsageState::Unknown, Some(other_export_info));
+        let new_info = ExportInfo::new(
+          Some(name.clone()),
+          UsageState::Unknown,
+          Some(other_export_info),
+        );
         let new_info_id = new_info.id;
         mg.export_info_map.insert(new_info_id, new_info);
 
@@ -344,6 +348,21 @@ impl ExportsInfoId {
       runtime,
     )
   }
+
+  pub fn get_used_name(
+    &self,
+    mg: &mut ModuleGraph,
+    runtime: Option<&RuntimeSpec>,
+    name: UsedName,
+  ) -> Option<UsedName> {
+    match name {
+      UsedName::Str(name) => {
+        let info = self.get_read_only_export_info(&name, mg);
+        info.get_used_name(&name, runtime).map(UsedName::Str)
+      }
+      UsedName::Vec(_) => todo!(),
+    }
+  }
 }
 
 impl Default for ExportsInfoId {
@@ -408,7 +427,7 @@ impl ExportsInfo {
     }
   }
 
-  pub fn get_used_exports(&self) -> HashSet<&JsWord> {
+  pub fn old_get_used_exports(&self) -> HashSet<&JsWord> {
     self.exports.keys().collect::<HashSet<_>>()
   }
 
@@ -607,10 +626,11 @@ impl From<u32> for ExportInfoId {
 #[derive(Debug, Clone, Default)]
 #[allow(unused)]
 pub struct ExportInfo {
-  pub name: JsWord,
+  pub name: Option<JsWord>,
   module_identifier: Option<ModuleIdentifier>,
   pub usage_state: UsageState,
-  used_name: Option<String>,
+  /// this is mangled name,https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ExportsInfo.js#L1181-L1188
+  used_name: Option<JsWord>,
   target: HashMap<DependencyId, ExportInfoTargetValue>,
   max_target: HashMap<DependencyId, ExportInfoTargetValue>,
   pub provided: Option<ExportInfoProvided>,
@@ -704,7 +724,11 @@ impl<T: 'static> Clone for Box<dyn FilterFn<T>> {
 
 impl ExportInfo {
   // TODO: remove usage_state in the future
-  pub fn new(name: JsWord, usage_state: UsageState, init_from: Option<&ExportInfo>) -> Self {
+  pub fn new(
+    name: Option<JsWord>,
+    usage_state: UsageState,
+    init_from: Option<&ExportInfo>,
+  ) -> Self {
     let has_use_in_runtime_info = if let Some(init_from) = init_from {
       init_from.has_use_in_runtime_info
     } else {
@@ -737,6 +761,32 @@ impl ExportInfo {
   // TODO
   pub fn get_used(&self, _runtime: Option<&RuntimeSpec>) -> UsageState {
     UsageState::Unused
+  }
+
+  /// Webpack returns `false | string`, we use `Option<JsWord>` to avoid declare a redundant enum
+  /// type
+  pub fn get_used_name(
+    &self,
+    fallback_name: &JsWord,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Option<JsWord> {
+    if self.has_use_in_runtime_info {
+      if let Some(usage) = self.global_used {
+        if matches!(usage, UsageState::Unused) {
+          return None;
+        }
+      } else {
+        // TODO: runtime optimization
+      }
+    }
+    if let Some(used_name) = self.used_name.as_ref() {
+      return Some(used_name.clone());
+    }
+    if let Some(name) = self.name.as_ref() {
+      Some(name.clone())
+    } else {
+      Some(fallback_name.clone())
+    }
   }
 
   pub fn get_exports_info<'a>(&self, module_graph: &'a ModuleGraph) -> Option<&'a ExportsInfo> {
@@ -1005,9 +1055,12 @@ impl ExportInfo {
         .expect("should have exports_info when exports_info is true");
     }
 
-    let other_exports_info = ExportInfo::new("null".into(), UsageState::Unknown, None);
-    let side_effects_only_info =
-      ExportInfo::new("*side effects only*".into(), UsageState::Unknown, None);
+    let other_exports_info = ExportInfo::new(None, UsageState::Unknown, None);
+    let side_effects_only_info = ExportInfo::new(
+      Some("*side effects only*".into()),
+      UsageState::Unknown,
+      None,
+    );
     let new_exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
     let new_exports_info_id = new_exports_info.id;
 
@@ -1182,11 +1235,19 @@ pub fn process_export_info(
           module_graph,
           runtime,
           referenced_export,
-          if default_points_to_self && &export_info.name == "default" {
+          if default_points_to_self
+            && export_info
+              .name
+              .as_ref()
+              .map(|name| name == "default")
+              .unwrap_or_default()
+          {
             prefix.clone()
           } else {
             let mut value = prefix.clone();
-            value.push(export_info.name.clone());
+            if let Some(name) = export_info.name.as_ref() {
+              value.push(name.clone());
+            }
             value
           },
           Some(export_info.id),
