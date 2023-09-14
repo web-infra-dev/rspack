@@ -1,3 +1,4 @@
+use std::ops::Not;
 use std::path::PathBuf;
 
 use cargo_rst::git_diff;
@@ -50,5 +51,11 @@ fn tree_shaking(fixture_path: PathBuf) {
   let new_treeshaking_snapshot =
     std::fs::read_to_string(new_treeshaking_snapshot_path).expect("should have snapshot");
   let diff = git_diff(&old_snapshot, &new_treeshaking_snapshot);
-  std::fs::write(fixture_path.join("snapshot/snap.diff"), diff).expect("should write successfully");
+  let diff_path = fixture_path.join("snapshot/snap.diff");
+  if diff_path.exists() {
+    std::fs::remove_file(diff_path.clone());
+  }
+  if !diff.is_empty() {
+    std::fs::write(diff_path, diff).expect("should write successfully");
+  }
 }
