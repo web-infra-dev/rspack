@@ -427,6 +427,7 @@ impl ExportsInfo {
     }
   }
 
+  /// only used for old version tree shaking
   pub fn old_get_used_exports(&self) -> HashSet<&JsWord> {
     self.exports.keys().collect::<HashSet<_>>()
   }
