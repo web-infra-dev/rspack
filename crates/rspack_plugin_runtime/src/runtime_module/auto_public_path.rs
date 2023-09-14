@@ -1,7 +1,8 @@
 use rspack_core::{
   get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule, SourceType,
+  ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage, SourceType,
 };
 use rspack_identifier::Identifier;
 
@@ -30,6 +31,10 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
 
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
+  }
+
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {

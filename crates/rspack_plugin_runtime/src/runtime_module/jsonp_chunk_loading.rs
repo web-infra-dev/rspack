@@ -1,6 +1,6 @@
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH,
+  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
 
@@ -136,8 +136,8 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     self.chunk = Some(chunk);
   }
 
-  fn stage(&self) -> u8 {
-    RUNTIME_MODULE_STAGE_ATTACH
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
   }
 }
 
