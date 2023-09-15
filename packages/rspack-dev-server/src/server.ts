@@ -155,10 +155,7 @@ export class RspackDevServer extends WebpackDevServer {
 					);
 				}
 				compiler.options.devServer ??= {};
-				compiler.options.devServer.hot ??= true;
-				if (compiler.options.devServer.hot) {
-					new compiler.webpack.HotModuleReplacementPlugin().apply(compiler);
-				}
+				compiler.options.devServer.hot = true;
 				compiler.options.builtins.react ??= {};
 				compiler.options.builtins.react.refresh ??= true;
 				compiler.options.builtins.react.development ??= true;
