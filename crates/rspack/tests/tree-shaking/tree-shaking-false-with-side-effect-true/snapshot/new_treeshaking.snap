@@ -10,7 +10,6 @@ __webpack_require__.d(__webpack_exports__, {
   'b': function() { return b; }
 });
  const b = 3;
- const c = 3;
 },
 "./a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
