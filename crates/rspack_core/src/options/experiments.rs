@@ -25,6 +25,7 @@ impl IncrementalRebuildMakeState {
 pub struct RspackFuture {
   pub new_resolver: bool,
   pub new_treeshaking: bool,
+  pub disable_transform_by_default: bool,
 }
 
 #[derive(Debug, Default)]
