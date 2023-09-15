@@ -423,6 +423,10 @@ fn map_oxc_resolver_error(
         },
       )
     }
+    oxc_resolver::ResolveError::TsconfigNotFound(path) => ResolveError(
+      format!("{} is not a tsconfig", path.display()),
+      internal_error!("{} is not a tsconfig", path.display()),
+    ),
     _ => {
       let is_recursion = matches!(error, oxc_resolver::ResolveError::Recursion);
       map_resolver_error(is_recursion, args, plugin_driver)

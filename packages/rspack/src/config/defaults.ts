@@ -82,6 +82,8 @@ export const applyRspackOptionsDefaults = (
 	applyModuleDefaults(options.module, {
 		// syncWebAssembly: options.experiments.syncWebAssembly,
 		asyncWebAssembly: options.experiments.asyncWebAssembly!,
+		disableTransformByDefault:
+			options.experiments.rspackFuture!.disableTransformByDefault!,
 		css: options.experiments.css!
 	});
 
@@ -175,6 +177,7 @@ const applyExperimentsDefaults = (
 	if (typeof experiments.rspackFuture === "object") {
 		D(experiments.rspackFuture, "newResolver", false);
 		D(experiments.rspackFuture, "newTreeshaking", false);
+		D(experiments.rspackFuture, "disableTransformByDefault", false);
 	}
 };
 
@@ -196,7 +199,15 @@ const applySnapshotDefaults = (
 
 const applyModuleDefaults = (
 	module: ModuleOptions,
-	{ asyncWebAssembly, css }: { asyncWebAssembly: boolean; css: boolean }
+	{
+		asyncWebAssembly,
+		css,
+		disableTransformByDefault
+	}: {
+		asyncWebAssembly: boolean;
+		css: boolean;
+		disableTransformByDefault: boolean;
+	}
 ) => {
 	F(module.parser!, "asset", () => ({}));
 	F(module.parser!.asset!, "dataUrlCondition", () => ({}));
@@ -258,20 +269,26 @@ const applyModuleDefaults = (
 					or: ["text/javascript", "application/javascript"]
 				},
 				...esm
-			},
-			{
-				test: /\.jsx$/i,
-				type: "jsx"
-			},
-			{
-				test: /\.ts$/i,
-				type: "ts"
-			},
-			{
-				test: /\.tsx$/i,
-				type: "tsx"
 			}
 		];
+
+		// TODO: remove in 0.5.0
+		if (!disableTransformByDefault) {
+			rules.push(
+				{
+					test: /\.jsx$/i,
+					type: "jsx"
+				},
+				{
+					test: /\.ts$/i,
+					type: "ts"
+				},
+				{
+					test: /\.tsx$/i,
+					type: "tsx"
+				}
+			);
+		}
 
 		if (asyncWebAssembly) {
 			const wasm = {

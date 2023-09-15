@@ -159,7 +159,9 @@ export class RspackDevServer extends WebpackDevServer {
 				compiler.options.builtins.react ??= {};
 				compiler.options.builtins.react.refresh ??= true;
 				compiler.options.builtins.react.development ??= true;
-				new ReactRefreshPlugin().apply(compiler);
+				if (compiler.options.builtins.react.refresh) {
+					new ReactRefreshPlugin().apply(compiler);
+				}
 			} else if (compiler.options.builtins.react.refresh) {
 				if (mode === "production") {
 					this.logger.warn(

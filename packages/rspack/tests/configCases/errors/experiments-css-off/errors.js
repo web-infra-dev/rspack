@@ -1,1 +1,1 @@
-module.exports = [[/Parser and generator builder for module type Css is not registered/]];
+module.exports = [[/Unexpected `ModuleType` found: css/]];

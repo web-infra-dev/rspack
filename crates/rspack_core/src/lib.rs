@@ -217,10 +217,12 @@ impl TryFrom<&str> for ModuleType {
       "js/dynamic" | "javascript/dynamic" => Ok(Self::JsDynamic),
       "js/esm" | "javascript/esm" => Ok(Self::JsEsm),
 
+      // TODO: remove in 0.5.0
       "jsx" | "javascriptx" | "jsx/auto" | "javascriptx/auto" => Ok(Self::Jsx),
       "jsx/dynamic" | "javascriptx/dynamic" => Ok(Self::JsxDynamic),
       "jsx/esm" | "javascriptx/esm" => Ok(Self::JsxEsm),
 
+      // TODO: remove in 0.5.0
       "ts" | "typescript" => Ok(Self::Ts),
       "tsx" | "typescriptx" => Ok(Self::Tsx),
 
