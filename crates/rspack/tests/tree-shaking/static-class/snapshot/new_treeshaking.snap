@@ -28,6 +28,7 @@ class Result {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
+  'bb': function() { return bb; },
   'cc': function() { return cc; }
 });
  const bb = 2;

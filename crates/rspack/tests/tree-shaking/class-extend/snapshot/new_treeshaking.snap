@@ -31,6 +31,7 @@ _app__WEBPACK_IMPORTED_MODULE_0_.v;
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
+  'Lib': function() { return Lib; },
   'value': function() { return value; }
 });
  class Lib {

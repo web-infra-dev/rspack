@@ -189,9 +189,14 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               }
             }
           }
+          map.insert(
+            connection.module_identifier,
+            ProcessModuleReferencedExports::Map(exports_map),
+          );
         }
       }
     }
+
     dbg!(&map);
     for (module_id, referenced_exports) in map {
       let normalized_refs = match referenced_exports {
