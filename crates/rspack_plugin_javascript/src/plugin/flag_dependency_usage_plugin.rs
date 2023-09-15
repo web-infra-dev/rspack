@@ -74,7 +74,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       ExtendRef(Vec<ExtendedReferencedExport>),
     }
 
-    dbg!(&root_module_id);
     let mut map: IdentifierMap<ProcessModuleReferencedExports> = IdentifierMap::default();
     let mut queue = VecDeque::new();
     queue.push_back(root_module_id);
@@ -132,9 +131,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         {
           continue;
         } else {
-          dbg!(&old_referenced_exports);
-          dbg!(&referenced_exports);
-
           let mut exports_map = if let Some(old_referenced_exports) = old_referenced_exports {
             match old_referenced_exports {
               ProcessModuleReferencedExports::Map(map) => map,
@@ -197,7 +193,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       }
     }
 
-    dbg!(&map);
     for (module_id, referenced_exports) in map {
       let normalized_refs = match referenced_exports {
         ProcessModuleReferencedExports::Map(map) => map.into_values().collect::<Vec<_>>(),
