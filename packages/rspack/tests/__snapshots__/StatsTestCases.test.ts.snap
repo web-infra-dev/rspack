@@ -621,7 +621,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 9105,
+      "size": 263,
       "type": "asset",
     },
   ],
@@ -684,10 +684,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 9105,
+          "size": 263,
         },
       ],
-      "assetsSize": 9105,
+      "assetsSize": 263,
       "chunks": [
         "main",
       ],
@@ -697,7 +697,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "8b17e56c72949ef15048",
+  "hash": "21aefdba356ad056ea65",
   "logging": {},
   "modules": [
     {
@@ -734,10 +734,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 9105,
+          "size": 263,
         },
       ],
-      "assetsSize": 9105,
+      "assetsSize": 263,
       "chunks": [
         "main",
       ],
@@ -753,14 +753,14 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 
 exports[`StatsTestCases should print correct stats for hot+production 2`] = `
 "PublicPath: (none)
-asset bundle.js 8.89 KiB {main} [emitted] (name: main)
-Entrypoint main 8.89 KiB = bundle.js
+asset bundle.js 263 bytes {main} [emitted] (name: main)
+Entrypoint main 263 bytes = bundle.js
 chunk {main} bundle.js (main) [entry]
   ./index.js [10] {main}
     entry ./index.js
 ./index.js [10] {main}
   entry ./index.js
-rspack compiled successfully (8b17e56c72949ef15048)"
+rspack compiled successfully (21aefdba356ad056ea65)"
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 1`] = `

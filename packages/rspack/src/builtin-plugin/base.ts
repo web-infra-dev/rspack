@@ -17,6 +17,7 @@ export enum BuiltinPluginName {
 	CommonJsChunkFormatPlugin = "CommonJsChunkFormatPlugin",
 	ArrayPushCallbackChunkFormatPlugin = "ArrayPushCallbackChunkFormatPlugin",
 	ModuleChunkFormatPlugin = "ModuleChunkFormatPlugin",
+	HotModuleReplacementPlugin = "HotModuleReplacementPlugin",
 	HttpExternalsRspackPlugin = "HttpExternalsRspackPlugin",
 	CopyRspackPlugin = "CopyRspackPlugin",
 	HtmlRspackPlugin = "HtmlRspackPlugin",

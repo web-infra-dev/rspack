@@ -15,6 +15,7 @@ export * from "./EnableWasmLoadingPlugin";
 export * from "./ArrayPushCallbackChunkFormatPlugin";
 export * from "./CommonJsChunkFormatPlugin";
 export * from "./ModuleChunkFormatPlugin";
+export * from "./HotModuleReplacementPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";
