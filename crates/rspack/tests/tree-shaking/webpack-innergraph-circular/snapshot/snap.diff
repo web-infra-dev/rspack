@@ -1,18 +1,14 @@
 --- expected
 +++ actual
-@@ -34,10 +34,7 @@
- 'use strict';
- __webpack_require__.r(__webpack_exports__);
+@@ -36,6 +36,7 @@
  __webpack_require__.d(__webpack_exports__, {
--  'A': function() { return A; },
--  'B': function() { return B; },
--  'exportAUsed': function() { return exportAUsed; },
--  'exportBUsed': function() { return exportBUsed; },
+   'A': function() { return A; },
+   'B': function() { return B; },
 +  'C': function() { return C; },
+   'exportAUsed': function() { return exportAUsed; },
+   'exportBUsed': function() { return exportBUsed; },
    'exportCUsed': function() { return exportCUsed; }
- });
-  function A(s) {
-@@ -49,8 +46,8 @@
+@@ -49,8 +50,8 @@
   function C(s) {
      return s + "C";
  }
@@ -23,7 +19,7 @@
   const exportCUsed = false;
  },
  "./module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-@@ -84,7 +81,7 @@
+@@ -84,7 +85,7 @@
  }
  function withC(v) {
      const value = x(v);

@@ -35,14 +35,13 @@
  /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./tracker */"../node_modules/pmodule/tracker.js");
  var z = "z";
  
-@@ -36,9 +43,11 @@
+@@ -36,9 +43,12 @@
  __webpack_require__.r(__webpack_exports__);
  __webpack_require__.d(__webpack_exports__, {
    'x': function() { return _b__WEBPACK_IMPORTED_MODULE_1_.x; },
--  'z': function() { return _b__WEBPACK_IMPORTED_MODULE_1_.z; },
--  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
 +  'y': function() { return _b__WEBPACK_IMPORTED_MODULE_1_.y; },
-+  'z': function() { return _b__WEBPACK_IMPORTED_MODULE_1_.z; }
+   'z': function() { return _b__WEBPACK_IMPORTED_MODULE_1_.z; },
+   'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
  });
 +/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a */"../node_modules/pmodule/a.js");
 +__webpack_require__.es(_a__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);

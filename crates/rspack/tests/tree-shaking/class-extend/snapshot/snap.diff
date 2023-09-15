@@ -14,3 +14,11 @@
      };
  }
   const v = _lib__WEBPACK_IMPORTED_MODULE_0_.value;
+@@ -31,6 +31,7 @@
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
++  'Lib': function() { return Lib; },
+   'value': function() { return value; }
+ });
+  class Lib {
