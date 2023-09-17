@@ -42,11 +42,11 @@ pub struct ModuleGraph {
 
   /// Module graph connections table index for `ConnectionId`
   connections_map: HashMap<ModuleGraphConnection, ConnectionId>,
-  connection_to_condition: HashMap<ConnectionId, DependencyCondition>,
 
   import_var_map: IdentifierMap<ImportVarMap>,
   pub exports_info_map: HashMap<ExportsInfoId, ExportsInfo>,
   pub export_info_map: HashMap<ExportInfoId, ExportInfo>,
+  connection_to_condition: HashMap<ModuleGraphConnection, DependencyCondition>,
 }
 
 impl ModuleGraph {
@@ -82,13 +82,6 @@ impl ModuleGraph {
     self.dependencies.insert(*dependency.id(), dependency);
   }
 
-  pub fn get_condition_by_connection_id(
-    &self,
-    connection_id: &ConnectionId,
-  ) -> Option<&DependencyCondition> {
-    self.connection_to_condition.get(connection_id)
-  }
-
   pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxDependency> {
     self.dependencies.get(dependency_id)
   }
@@ -122,7 +115,7 @@ impl ModuleGraph {
     dependency: BoxDependency,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
-    let module_dependency = dependency.as_module_dependency().is_some();
+    let is_module_dependency = dependency.as_module_dependency().is_some();
     let dependency_id = *dependency.id();
     let condition = dependency
       .as_module_dependency()
@@ -131,28 +124,36 @@ impl ModuleGraph {
     self
       .dependency_id_to_module_identifier
       .insert(dependency_id, module_identifier);
-    if !module_dependency {
+    if !is_module_dependency {
       return Ok(());
     }
 
+    let active = !matches!(condition, Some(DependencyCondition::False));
+    let conditional = condition.is_some();
     // TODO: just a placeholder here, finish this when we have basic `getCondition` logic
     let new_connection = ModuleGraphConnection::new(
       original_module_identifier,
       dependency_id,
       module_identifier,
-      None,
+      active,
+      conditional,
     );
 
     let connection_id = if let Some(connection_id) = self.connections_map.get(&new_connection) {
       *connection_id
     } else {
       let new_connection_id = ConnectionId::from(self.connections.len());
-      self.connections.push(Some(new_connection.clone()));
+      self.connections.push(Some(new_connection));
       self
         .connections_map
         .insert(new_connection, new_connection_id);
       new_connection_id
     };
+    if let Some(condition) = condition {
+      self
+        .connection_to_condition
+        .insert(new_connection, condition);
+    }
 
     self
       .dependency_id_to_connection_id

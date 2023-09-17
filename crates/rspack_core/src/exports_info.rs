@@ -1018,7 +1018,7 @@ impl ExportInfo {
       .get_max_target()
       .values()
       .map(|item| UnResolvedExportInfoTarget {
-        connection: item.connection.clone(),
+        connection: item.connection,
         exports: item.exports.clone(),
       })
       .clone();

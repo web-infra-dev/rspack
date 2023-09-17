@@ -19,7 +19,7 @@ impl From<usize> for ConnectionId {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct ModuleGraphConnection {
   /// The referencing module identifier
   pub original_module_identifier: Option<ModuleIdentifier>,
@@ -31,7 +31,6 @@ pub struct ModuleGraphConnection {
   pub dependency_id: DependencyId,
   active: bool,
   conditional: bool,
-  condition: Option<DependencyCondition>,
 }
 
 /// implementing hash by hand because condition maybe a function, which can't be hash
@@ -65,17 +64,15 @@ impl ModuleGraphConnection {
     original_module_identifier: Option<ModuleIdentifier>,
     dependency_id: DependencyId,
     module_identifier: ModuleIdentifier,
-    condition: Option<DependencyCondition>,
+    active: bool,
+    conditional: bool,
   ) -> Self {
-    let active = !matches!(condition, Some(DependencyCondition::False));
-    let conditional = condition.is_some();
     Self {
       original_module_identifier,
       module_identifier,
       dependency_id,
       active,
       conditional,
-      condition,
     }
   }
 
@@ -123,7 +120,11 @@ impl ModuleGraphConnection {
     module_graph: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
   ) -> ConnectionState {
-    match self.condition.as_ref().expect("should have condition") {
+    match module_graph
+      .connection_to_condition
+      .get(&self)
+      .expect("should have condition")
+    {
       DependencyCondition::False => ConnectionState::Bool(false),
       DependencyCondition::Fn(f) => f(self, runtime, module_graph),
     }
