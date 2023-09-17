@@ -200,8 +200,8 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     Some(&self.resource_identifier)
   }
 
-  fn get_condition(&self, module_graph: &ModuleGraph) -> Option<DependencyCondition> {
-    get_dependency_used_by_exports_condition(&self.id, &self.used_by_exports, module_graph)
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    get_dependency_used_by_exports_condition(self.id, &self.used_by_exports)
   }
 
   fn get_module_evaluation_side_effects_state(

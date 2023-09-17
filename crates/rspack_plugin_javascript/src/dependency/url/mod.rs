@@ -60,8 +60,8 @@ impl ModuleDependency for URLDependency {
     self.request = request.into();
   }
 
-  fn get_condition(&self, module_graph: &ModuleGraph) -> Option<DependencyCondition> {
-    get_dependency_used_by_exports_condition(&self.id, &self.used_by_exports, module_graph)
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    get_dependency_used_by_exports_condition(self.id, &self.used_by_exports)
   }
 }
 

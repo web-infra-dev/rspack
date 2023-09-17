@@ -241,7 +241,7 @@ impl ModuleDependency for HarmonyImportDependency {
   }
 
   // It's from HarmonyImportSideEffectDependency.
-  fn get_condition(&self, _module_graph: &ModuleGraph) -> Option<DependencyCondition> {
+  fn get_condition(&self) -> Option<DependencyCondition> {
     let id = self.id;
     Some(DependencyCondition::Fn(Box::new(
       move |_, _, module_graph| {

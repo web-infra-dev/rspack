@@ -1,9 +1,10 @@
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
   get_exports_type, process_export_info, ConnectionState, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfoId, ExportInfoProvided,
-  ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState,
+  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfoId,
+  ExportInfoProvided, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsageState,
 };
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
@@ -75,10 +76,7 @@ impl HarmonyExportImportedSpecifierDependency {
     {
       imported_module_identifier
     } else {
-      return ExportMode {
-        kind: ExportModeType::Missing,
-        ..Default::default()
-      };
+      return ExportMode::new(ExportModeType::Missing);
     };
 
     let parent_module = module_graph
@@ -92,11 +90,16 @@ impl HarmonyExportImportedSpecifierDependency {
     if let Some(name) = name.as_ref() && !ids.is_empty() && let Some(id) = ids.get(0) && id == "default" {
       match exports_type {
         ExportsType::Dynamic => {
-          return ExportMode { kind: ExportModeType::ReexportDynamicDefault, name: Some(name.clone()), ..Default::default() }
+          let mut export_mode = ExportMode::new(ExportModeType::ReexportDynamicDefault, );
+          export_mode.name = Some(name.clone());
+          return export_mode;
         },
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
           let export_info = exports_info.id.get_read_only_export_info(name, module_graph).id;
-          return ExportMode { kind: ExportModeType::ReexportNamedDefault, name: Some(name.clone()), partial_namespace_export_info: Some(export_info), ..Default::default() }
+          let mut export_mode = ExportMode::new( ExportModeType::ReexportNamedDefault);
+          export_mode.name = Some(name.clone());
+          export_mode.partial_namespace_export_info = Some(export_info);
+          return export_mode;
         },
         _ => {}
       }
@@ -112,54 +115,44 @@ impl HarmonyExportImportedSpecifierDependency {
         // export { name as name }
         match exports_type {
           ExportsType::DefaultOnly => {
-            return ExportMode {
-              kind: ExportModeType::ReexportUndefined,
-              name: Some(name),
-              ..Default::default()
-            }
+            let mut export_mode = ExportMode::new(ExportModeType::ReexportUndefined);
+            export_mode.name = Some(name);
+            return export_mode;
           }
           _ => {
-            return ExportMode {
-              kind: ExportModeType::NormalReexport,
-              items: Some(vec![NormalReexportItem {
-                name,
-                ids: ids.to_vec(),
-                hidden: false,
-                checked: false,
-                export_info,
-              }]),
-              ..Default::default()
-            }
+            let mut export_mode = ExportMode::new(ExportModeType::NormalReexport);
+            export_mode.items = Some(vec![NormalReexportItem {
+              name,
+              ids: ids.to_vec(),
+              hidden: false,
+              checked: false,
+              export_info,
+            }]);
+            return export_mode;
           }
         }
       } else {
         // export * as name
         match exports_type {
           ExportsType::DefaultOnly => {
-            return ExportMode {
-              kind: ExportModeType::ReexportFakeNamespaceObject,
-              name: Some(name),
-              partial_namespace_export_info: Some(export_info),
-              fake_type: Some(0),
-              ..Default::default()
-            }
+            let mut export_mode = ExportMode::new(ExportModeType::ReexportFakeNamespaceObject);
+            export_mode.name = Some(name);
+            export_mode.partial_namespace_export_info = Some(export_info);
+            export_mode.fake_type = 0;
+            return export_mode;
           }
           ExportsType::DefaultWithNamed => {
-            return ExportMode {
-              kind: ExportModeType::ReexportFakeNamespaceObject,
-              name: Some(name),
-              partial_namespace_export_info: Some(export_info),
-              fake_type: Some(2),
-              ..Default::default()
-            }
+            let mut export_mode = ExportMode::new(ExportModeType::ReexportFakeNamespaceObject);
+            export_mode.name = Some(name);
+            export_mode.partial_namespace_export_info = Some(export_info);
+            export_mode.fake_type = 2;
+            return export_mode;
           }
           _ => {
-            return ExportMode {
-              kind: ExportModeType::ReexportNamespaceObject,
-              name: Some(name),
-              partial_namespace_export_info: Some(export_info),
-              ..Default::default()
-            }
+            let mut export_mode = ExportMode::new(ExportModeType::ReexportNamespaceObject);
+            export_mode.name = Some(name);
+            export_mode.partial_namespace_export_info = Some(export_info);
+            return export_mode;
           }
         }
       }
@@ -174,11 +167,9 @@ impl HarmonyExportImportedSpecifierDependency {
 
     if let Some(exports) = exports {
       if exports.is_empty() {
-        return ExportMode {
-          kind: ExportModeType::EmptyStar,
-          hidden,
-          ..Default::default()
-        };
+        let mut export_mode = ExportMode::new(ExportModeType::EmptyStar);
+        export_mode.hidden = hidden;
+        return export_mode;
       }
 
       let mut items = exports
@@ -209,19 +200,14 @@ impl HarmonyExportImportedSpecifierDependency {
           });
         }
       }
-
-      ExportMode {
-        kind: ExportModeType::NormalReexport,
-        items: Some(items),
-        ..Default::default()
-      }
+      let mut export_mode = ExportMode::new(ExportModeType::NormalReexport);
+      export_mode.items = Some(items);
+      return export_mode;
     } else {
-      ExportMode {
-        kind: ExportModeType::DynamicReexport,
-        ignored: Some(ignored_exports),
-        hidden,
-        ..Default::default()
-      }
+      let mut export_mode = ExportMode::new(ExportModeType::DynamicReexport);
+      export_mode.ignored = Some(ignored_exports);
+      export_mode.hidden = hidden;
+      return export_mode;
     }
   }
 
@@ -457,6 +443,35 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
     Some(&self.resource_identifier)
   }
 
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    let id = self.id;
+    Some(DependencyCondition::Fn(Box::new(
+      move |_mc, runtime, module_graph: &ModuleGraph| {
+        let dep = module_graph
+          .dependency_by_id(&id)
+          .expect("should have dependency");
+        let down_casted_dep = dep
+          .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
+          .expect("should be HarmonyExportImportedSpecifierDependency");
+        let mode = down_casted_dep.get_mode(
+          down_casted_dep.name.clone(),
+          &down_casted_dep
+            .ids
+            .iter()
+            .map(|id| id.0.clone())
+            .collect::<Vec<_>>(),
+          module_graph,
+          &down_casted_dep.id,
+          runtime,
+        );
+        ConnectionState::Bool(!matches!(
+          mode.ty,
+          ExportModeType::Unused | ExportModeType::EmptyStar
+        ))
+      },
+    )))
+  }
+
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
@@ -477,7 +492,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
       &self.id,
       runtime,
     );
-    match mode.kind {
+    match mode.ty {
       ExportModeType::Missing
       | ExportModeType::Unused
       | ExportModeType::EmptyStar
@@ -496,7 +511,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
             &mut referenced_exports,
             vec![],
             Some(*partial_namespace_export_info),
-            mode.kind == ExportModeType::ReexportFakeNamespaceObject,
+            mode.ty == ExportModeType::ReexportFakeNamespaceObject,
             &mut Default::default(),
           );
           referenced_exports
@@ -530,18 +545,13 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
           .map(ExtendedReferencedExport::Array)
           .collect::<Vec<_>>()
       }
-      ExportModeType::Unset => {
-        unreachable!("should not export mode unset");
-      }
     }
   }
 }
 
 #[allow(unused)]
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ExportModeType {
-  #[default]
-  Unset,
   Missing,
   Unused,
   EmptyStar,
@@ -563,15 +573,30 @@ pub struct NormalReexportItem {
   pub export_info: ExportInfoId,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ExportMode {
-  pub kind: ExportModeType,
+  /// corresponding to `type` field in webpack's `EpxortMode`
+  pub ty: ExportModeType,
   pub items: Option<Vec<NormalReexportItem>>,
   pub name: Option<JsWord>,
-  pub fake_type: Option<u8>,
+  pub fake_type: u8,
   pub partial_namespace_export_info: Option<ExportInfoId>,
   pub ignored: Option<HashSet<JsWord>>,
   pub hidden: Option<HashSet<JsWord>>,
+}
+
+impl ExportMode {
+  pub fn new(ty: ExportModeType) -> Self {
+    Self {
+      ty,
+      items: None,
+      name: None,
+      fake_type: 0,
+      partial_namespace_export_info: None,
+      ignored: None,
+      hidden: None,
+    }
+  }
 }
 
 #[derive(Debug, Default)]
