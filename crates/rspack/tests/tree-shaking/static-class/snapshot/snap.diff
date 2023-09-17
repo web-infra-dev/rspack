@@ -1,15 +1,6 @@
 --- expected
 +++ actual
-@@ -7,6 +7,8 @@
- 'use strict';
- __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
-+  'Test': function() { return Test; },
-+  'default': function() { return Result; },
-   'a': function() { return a; }
- });
- /* harmony import */var _b_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./b.js */"./b.js");
-@@ -19,7 +21,7 @@
+@@ -19,7 +19,7 @@
  }
  class Result {
      static test() {
@@ -18,7 +9,7 @@
      }
  }
   const a = 3;
-@@ -28,7 +30,8 @@
+@@ -28,7 +28,8 @@
  'use strict';
  __webpack_require__.r(__webpack_exports__);
  __webpack_require__.d(__webpack_exports__, {

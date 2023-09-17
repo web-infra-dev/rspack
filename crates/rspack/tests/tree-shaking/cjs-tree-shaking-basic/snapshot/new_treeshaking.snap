@@ -6,17 +6,11 @@ source: crates/rspack_testing/src/run_fixture.rs
 "./a/aaa.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'aaa': function() { return aaa; }
-});
  function aaa() {}
 },
 "./a/bbb.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'bbb': function() { return bbb; }
-});
  function bbb() {}
 },
 "./a/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
@@ -59,9 +53,6 @@ __webpack_require__(/* ./answer */"./answer.js");
 "./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'myanswer': function() { return myanswer; }
-});
  const myanswer = 'anyser';
 },
 

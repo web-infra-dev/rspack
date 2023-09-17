@@ -1,32 +1,30 @@
 --- expected
 +++ actual
-@@ -11,6 +11,25 @@
- });
+@@ -6,11 +6,20 @@
+ "./a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+-__webpack_require__.d(__webpack_exports__, {
+-  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+-});
  var __WEBPACK_DEFAULT_EXPORT__ = 300;
  },
 +"./app.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 +'use strict';
 +__webpack_require__.r(__webpack_exports__);
-+__webpack_require__.d(__webpack_exports__, {
-+  'app': function() { return app; },
-+  'test': function() { return test; }
-+});
 + function app() {}
 + function test() {}
 +},
 +"./b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 +'use strict';
 +__webpack_require__.r(__webpack_exports__);
-+__webpack_require__.d(__webpack_exports__, {
-+  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
-+});
 +__webpack_require__(/* ./app.js */"./app.js");
 +var __WEBPACK_DEFAULT_EXPORT__ = 200;
 +},
  "./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  'use strict';
  __webpack_require__.r(__webpack_exports__);
-@@ -22,9 +41,11 @@
+@@ -22,9 +31,11 @@
  'use strict';
  __webpack_require__.r(__webpack_exports__);
  __webpack_require__.d(__webpack_exports__, {

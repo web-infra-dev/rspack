@@ -41,7 +41,6 @@ __webpack_require__.d(__webpack_exports__, {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; },
   'exportDefaultUsed': function() { return exportDefaultUsed; }
 });
 /* harmony import */var _script1__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./script1 */"./package1/script1.js");
@@ -66,7 +65,6 @@ var __WEBPACK_DEFAULT_EXPORT__ = 1;
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; },
   'exportDefaultUsed': function() { return exportDefaultUsed; }
 });
 /* harmony import */var _script3__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./script3 */"./package1/script3.js");

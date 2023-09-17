@@ -8,11 +8,13 @@
    'q': function() { return _lib__WEBPACK_IMPORTED_MODULE_0_.question; }
  });
  /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
-@@ -24,6 +25,7 @@
+@@ -23,9 +24,6 @@
+ "./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  'use strict';
  __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
-+  'answer': function() { return answer; },
-   'question': function() { return question; }
- });
+-__webpack_require__.d(__webpack_exports__, {
+-  'question': function() { return question; }
+-});
   const answer = "1";
+  const question = "2";
+ },

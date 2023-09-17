@@ -6,9 +6,6 @@ source: crates/rspack_testing/src/run_fixture.rs
 "./a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'a': function() { return a; }
-});
  const a = {
     a: ''
 };
@@ -16,9 +13,6 @@ __webpack_require__.d(__webpack_exports__, {
 "./b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'b': function() { return b; }
-});
  const b = {
     b: ""
 };
@@ -53,9 +47,7 @@ console.log(_lib__WEBPACK_IMPORTED_MODULE_0_.getDocPermissionTextSendMe);
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'code2CreateChatDocPermission': function() { return code2CreateChatDocPermission; },
-  'getDocPermissionTextSendMe': function() { return getDocPermissionTextSendMe; },
-  'Doc': function() { return Doc; }
+  'getDocPermissionTextSendMe': function() { return getDocPermissionTextSendMe; }
 });
 /* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./enum.js */"./enum.js");
 

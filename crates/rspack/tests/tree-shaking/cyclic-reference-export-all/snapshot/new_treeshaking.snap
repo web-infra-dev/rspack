@@ -48,10 +48,6 @@ _containers__WEBPACK_IMPORTED_MODULE_0_.usePlatform;
 "./src/containers/platform-container/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'usePlatform': function() { return usePlatform; },
-  'PlatformProvider': function() { return PlatformProvider; }
-});
  const usePlatform = 3;
  const PlatformProvider = 1000;
 },

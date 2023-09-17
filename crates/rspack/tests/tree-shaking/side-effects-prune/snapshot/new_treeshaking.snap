@@ -6,9 +6,6 @@ source: crates/rspack_testing/src/run_fixture.rs
 "../node_modules/side-effects-module/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'test': function() { return test; }
-});
  function test() {
     console.log('something');
 }
@@ -35,11 +32,6 @@ __webpack_require__.r(__webpack_exports__);
 "./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'secret': function() { return secret; },
-  'result': function() { return result; },
-  'something': function() { return something; }
-});
  const secret = "888";
  const result = 20000;
  const something = function() {};
@@ -47,9 +39,6 @@ __webpack_require__.d(__webpack_exports__, {
 "./src/a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'a': function() { return a; }
-});
 /* harmony import */var _d_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./d.js */"./src/d.js");
 
  const a = ()=>{
@@ -62,8 +51,7 @@ __webpack_require__.d(__webpack_exports__, {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'test': function() { return _c_js__WEBPACK_IMPORTED_MODULE_0_.test; },
-  'b': function() { return b; }
+  'test': function() { return _c_js__WEBPACK_IMPORTED_MODULE_0_.test; }
 });
 /* harmony import */var _c_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./c.js */"./src/c.js");
 

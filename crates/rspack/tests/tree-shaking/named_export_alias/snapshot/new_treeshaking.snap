@@ -6,9 +6,6 @@ source: crates/rspack_testing/src/run_fixture.rs
 "./Layout.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'default': function() { return Layout; }
-});
 function Layout() {}
 },
 "./Something.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {

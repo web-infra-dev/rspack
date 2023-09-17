@@ -11,7 +11,7 @@ use rspack_tracing::enable_tracing_by_env;
 
 use crate::{eval_raw::evaluate_to_json, test_config::TestConfig};
 
-pub type MutTestOptionsFn = dyn FnMut(&mut Settings, &mut CompilerOptions);
+pub type MutTestOptionsFn = dyn FnMut(&mut Vec<BoxPlugin>, &mut CompilerOptions);
 
 pub fn apply_from_fixture(fixture_path: &Path) -> (CompilerOptions, Vec<BoxPlugin>) {
   let js_config = fixture_path.join("test.config.js");
@@ -106,9 +106,10 @@ pub async fn test_fixture_share(
   settings.set_omit_expression(true);
   settings.set_prepend_module_to_snapshot(false);
 
-  let (mut options, plugins) = apply_from_fixture(fixture_path);
+  let (mut options, mut plugins) = apply_from_fixture(fixture_path);
 
-  mut_settings(&mut settings, &mut options);
+  mut_settings(&mut plugins, &mut options);
+
   // clean output
   if options.output.path.exists() {
     std::fs::remove_dir_all(&options.output.path).expect("should remove output");
