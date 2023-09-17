@@ -85,6 +85,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         .module_graph_module_by_identifier(&module_id)
         .expect("should have module graph module");
       let dep_id_list = mgm.dependencies.clone();
+      dbg!(&module_id);
       for dep_id in dep_id_list.into_iter() {
         let connection = self
           .compilation
@@ -119,6 +120,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           continue;
         };
 
+        dbg!(&referenced_exports, &old_referenced_exports);
         if old_referenced_exports.is_none()
           || matches!(old_referenced_exports.as_ref().expect("should be some"), ProcessModuleReferencedExports::ExtendRef(v) if is_no_exports_referenced(v))
           || is_exports_object_referenced(&referenced_exports)
@@ -129,6 +131,10 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           );
         } else if old_referenced_exports.is_some() && is_no_exports_referenced(&referenced_exports)
         {
+          map.insert(
+            connection.module_identifier,
+            old_referenced_exports.expect("should be Some"),
+          );
           continue;
         } else {
           let mut exports_map = if let Some(old_referenced_exports) = old_referenced_exports {
@@ -154,6 +160,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             // just avoid rust clippy complain
             unreachable!()
           };
+
           // FIXME: fix this issue
           for mut item in referenced_exports.into_iter() {
             match item {
@@ -185,6 +192,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               }
             }
           }
+          dbg!(&exports_map);
           map.insert(
             connection.module_identifier,
             ProcessModuleReferencedExports::Map(exports_map),
@@ -311,6 +319,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               runtime.as_ref(),
             );
             if changed_flag {
+              // dbg!(&current_exports_info_id);
               let current_module = if current_exports_info_id == mgm_exports_info_id {
                 Some(module_id)
               } else {
@@ -336,9 +345,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       {
         return;
       }
-      let flag = mgm_exports_info_id
+      let changed_flag = mgm_exports_info_id
         .set_used_for_side_effects_only(&mut self.compilation.module_graph, runtime.as_ref());
-      if flag {
+      if changed_flag {
         queue.push_back((module_id, runtime));
       }
     }
