@@ -260,13 +260,13 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
   fn visit_export_all(&mut self, export_all: &ExportAll) {
     let key = (export_all.src.value.clone(), DependencyType::EsmExport);
 
-    // self
-    //   .dependencies
-    //   .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
-    //     key.0.clone(),
-    //     vec![],
-    //     None,
-    //   )));
+    self
+      .dependencies
+      .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
+        key.0.clone(),
+        vec![],
+        None,
+      )));
     if let Some(importer_info) = self.imports.get_mut(&key) {
       importer_info.exports_all = true;
     } else {
