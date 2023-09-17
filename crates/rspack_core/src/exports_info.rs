@@ -1170,7 +1170,7 @@ pub fn get_dependency_used_by_exports_condition(
     UsedByExports::Set(used_by_exports) => {
       let used_by_exports = Arc::new(used_by_exports.clone());
       Some(DependencyCondition::Fn(Box::new(
-        move |_, runtime, module_graph| {
+        move |_, runtime, module_graph: &ModuleGraph| {
           let module_identifier = module_graph
             .parent_module_by_dependency_id(&dependency_id)
             .expect("should have parent module");

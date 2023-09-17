@@ -124,6 +124,9 @@ impl ModuleGraph {
   ) -> Result<()> {
     let module_dependency = dependency.as_module_dependency().is_some();
     let dependency_id = *dependency.id();
+    let condition = dependency
+      .as_module_dependency()
+      .and_then(|dep| dep.get_condition());
     self.add_dependency(dependency);
     self
       .dependency_id_to_module_identifier
@@ -133,12 +136,11 @@ impl ModuleGraph {
     }
 
     // TODO: just a placeholder here, finish this when we have basic `getCondition` logic
-    let condition: Option<DependencyCondition> = None;
     let new_connection = ModuleGraphConnection::new(
       original_module_identifier,
       dependency_id,
       module_identifier,
-      condition,
+      None,
     );
 
     let connection_id = if let Some(connection_id) = self.connections_map.get(&new_connection) {
