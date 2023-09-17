@@ -164,7 +164,7 @@ impl HarmonyExportImportedSpecifierDependency {
       ignored_exports,
       hidden,
     } = self.get_star_reexports(module_graph, runtime, imported_module_identifier);
-
+    dbg!(&exports);
     if let Some(exports) = exports {
       if exports.is_empty() {
         let mut export_mode = ExportMode::new(ExportModeType::EmptyStar);
@@ -218,6 +218,7 @@ impl HarmonyExportImportedSpecifierDependency {
     imported_module_identifier: &ModuleIdentifier,
   ) -> StarReexportsInfo {
     let imported_exports_info = module_graph.get_exports_info(imported_module_identifier);
+    dbg!(&imported_exports_info);
     let other_export_info = module_graph
       .export_info_map
       .get(&imported_exports_info.other_exports_info)
@@ -255,6 +256,7 @@ impl HarmonyExportImportedSpecifierDependency {
       .parent_module_by_dependency_id(&self.id)
       .expect("should have parent module");
     let exports_info = module_graph.get_exports_info(&parent_module);
+
     if no_extra_imports {
       for export_info_id in exports_info.get_ordered_exports() {
         let export_info = module_graph
@@ -262,11 +264,19 @@ impl HarmonyExportImportedSpecifierDependency {
           .get(export_info_id)
           .expect("should have export info");
         let export_name = export_info.name.clone().unwrap_or_default();
+        // dbg!(
+        //   &export_info.get_used(runtime),
+        //   &ignored_exports,
+        //   &export_name
+        // );
         if ignored_exports.contains(&export_name)
           || matches!(export_info.get_used(runtime), UsageState::Unused)
         {
+          println!("ignored by ignore exprots");
           continue;
         }
+
+        dbg!(&export_info);
         let imported_export_info = imported_exports_info
           .id
           .get_read_only_export_info(&export_name, module_graph);
@@ -464,6 +474,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
           &down_casted_dep.id,
           runtime,
         );
+        dbg!(&mode);
         ConnectionState::Bool(!matches!(
           mode.ty,
           ExportModeType::Unused | ExportModeType::EmptyStar

@@ -811,9 +811,19 @@ impl ExportInfo {
     }
   }
 
-  // TODO
   pub fn get_used(&self, _runtime: Option<&RuntimeSpec>) -> UsageState {
-    UsageState::Unused
+    if !self.has_use_in_runtime_info {
+      return UsageState::NoInfo;
+    }
+    if let Some(global_used) = self.global_used {
+      return global_used;
+    }
+    if self.used_in_runtime.is_none() {
+      return UsageState::Unused;
+    } else {
+      // TODO: runtime opt
+      todo!()
+    }
   }
 
   /// Webpack returns `false | string`, we use `Option<JsWord>` to avoid declare a redundant enum
