@@ -202,12 +202,12 @@ impl HarmonyExportImportedSpecifierDependency {
       }
       let mut export_mode = ExportMode::new(ExportModeType::NormalReexport);
       export_mode.items = Some(items);
-      return export_mode;
+      export_mode
     } else {
       let mut export_mode = ExportMode::new(ExportModeType::DynamicReexport);
       export_mode.ignored = Some(ignored_exports);
       export_mode.hidden = hidden;
-      return export_mode;
+      export_mode
     }
   }
 

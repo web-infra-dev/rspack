@@ -1,8 +1,7 @@
 use rspack_core::{
   get_dependency_used_by_exports_condition, module_id, Dependency, DependencyCategory,
   DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ModuleDependency, ModuleGraph, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
-  UsedByExports,
+  ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use swc_core::ecma::atoms::JsWord;
 

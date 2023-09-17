@@ -122,7 +122,7 @@ impl ModuleGraphConnection {
   ) -> ConnectionState {
     match module_graph
       .connection_to_condition
-      .get(&self)
+      .get(self)
       .expect("should have condition")
     {
       DependencyCondition::False => ConnectionState::Bool(false),

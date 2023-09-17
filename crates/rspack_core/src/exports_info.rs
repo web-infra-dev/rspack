@@ -140,7 +140,7 @@ impl ExportsInfoId {
       if let Some(target_key) = target_key {
         export_info.set_target(
           &target_key,
-          target_module.clone(),
+          target_module,
           export_info.name.clone().map(|name| vec![name]).as_ref(),
           priority,
         );

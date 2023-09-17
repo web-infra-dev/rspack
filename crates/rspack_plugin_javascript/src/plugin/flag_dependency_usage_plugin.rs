@@ -68,7 +68,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     force_side_effects: bool,
     q: &mut VecDeque<(ModuleIdentifier, Option<RuntimeSpec>)>,
   ) {
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     enum ProcessModuleReferencedExports {
       Map(HashMap<String, ExtendedReferencedExport>),
       ExtendRef(Vec<ExtendedReferencedExport>),
@@ -85,7 +85,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         .module_graph_module_by_identifier(&module_id)
         .expect("should have module graph module");
       let dep_id_list = mgm.dependencies.clone();
-      dbg!(&module_id);
+      // dbg!(&module_id);
       for dep_id in dep_id_list.into_iter() {
         let connection = self
           .compilation
@@ -120,11 +120,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           continue;
         };
 
-        dbg!(
-          &connection,
-          dep.as_module_dependency().unwrap().dependency_type()
-        );
-        dbg!(&referenced_exports, &old_referenced_exports);
+        // dbg!(
+        //   &connection,
+        //   dep.as_module_dependency().unwrap().dependency_type()
+        // );
+        // dbg!(&referenced_exports, &old_referenced_exports);
         if old_referenced_exports.is_none()
           || matches!(old_referenced_exports.as_ref().expect("should be some"), ProcessModuleReferencedExports::ExtendRef(v) if is_no_exports_referenced(v))
           || is_exports_object_referenced(&referenced_exports)
@@ -133,39 +133,30 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             connection.module_identifier,
             ProcessModuleReferencedExports::ExtendRef(referenced_exports),
           );
-        } else if old_referenced_exports.is_some() && is_no_exports_referenced(&referenced_exports)
-        {
-          map.insert(
-            connection.module_identifier,
-            old_referenced_exports.expect("should be Some"),
-          );
-          continue;
-        } else {
-          let mut exports_map = if let Some(old_referenced_exports) = old_referenced_exports {
-            match old_referenced_exports {
-              ProcessModuleReferencedExports::Map(map) => map,
-              ProcessModuleReferencedExports::ExtendRef(ref_items) => {
-                let mut exports_map = HashMap::default();
-                for item in ref_items.iter() {
-                  match item {
-                    ExtendedReferencedExport::Array(arr) => {
-                      exports_map.insert(join_jsword(arr, "\n"), item.clone());
-                    }
-                    ExtendedReferencedExport::Export(export) => {
-                      exports_map.insert(join_jsword(&export.name, "\n"), item.clone());
-                    }
+        } else if let Some(old_referenced_exports) = old_referenced_exports {
+          if is_no_exports_referenced(&referenced_exports) {
+            map.insert(connection.module_identifier, old_referenced_exports.clone());
+            continue;
+          }
+
+          let mut exports_map = match old_referenced_exports {
+            ProcessModuleReferencedExports::Map(map) => map,
+            ProcessModuleReferencedExports::ExtendRef(ref_items) => {
+              let mut exports_map = HashMap::default();
+              for item in ref_items.iter() {
+                match item {
+                  ExtendedReferencedExport::Array(arr) => {
+                    exports_map.insert(join_jsword(arr, "\n"), item.clone());
+                  }
+                  ExtendedReferencedExport::Export(export) => {
+                    exports_map.insert(join_jsword(&export.name, "\n"), item.clone());
                   }
                 }
-                exports_map
               }
+              exports_map
             }
-          } else {
-            // in else branch above old_referenced_exports must be `Some(T)`, use if let Pattern
-            // just avoid rust clippy complain
-            unreachable!()
           };
 
-          // FIXME: fix this issue
           for mut item in referenced_exports.into_iter() {
             match item {
               ExtendedReferencedExport::Array(ref arr) => {
@@ -196,11 +187,12 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               }
             }
           }
-          dbg!(&exports_map);
+          // dbg!(&exports_map);
           map.insert(
             connection.module_identifier,
             ProcessModuleReferencedExports::Map(exports_map),
           );
+        } else {
         }
       }
     }
