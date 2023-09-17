@@ -120,6 +120,10 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           continue;
         };
 
+        dbg!(
+          &connection,
+          dep.as_module_dependency().unwrap().dependency_type()
+        );
         dbg!(&referenced_exports, &old_referenced_exports);
         if old_referenced_exports.is_none()
           || matches!(old_referenced_exports.as_ref().expect("should be some"), ProcessModuleReferencedExports::ExtendRef(v) if is_no_exports_referenced(v))
