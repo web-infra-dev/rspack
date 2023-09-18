@@ -1,4 +1,4 @@
-import { JsModule } from "@rspack/binding";
+import type { JsModule } from "@rspack/binding";
 
 export interface NormalizedJsModule extends JsModule {
 	identifier: () => string;

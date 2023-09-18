@@ -1,12 +1,10 @@
-use std::borrow::Cow;
-
 use crate::{DependencyTemplate, RuntimeGlobals, TemplateContext, TemplateReplaceSource};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ConstDependency {
   pub start: u32,
   pub end: u32,
-  pub content: Cow<'static, str>,
+  pub content: Box<str>,
   pub runtime_requirements: Option<RuntimeGlobals>,
 }
 
@@ -14,7 +12,7 @@ impl ConstDependency {
   pub fn new(
     start: u32,
     end: u32,
-    content: Cow<'static, str>,
+    content: Box<str>,
     runtime_requirements: Option<RuntimeGlobals>,
   ) -> Self {
     Self {

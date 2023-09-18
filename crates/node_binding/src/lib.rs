@@ -1,4 +1,5 @@
 #![recursion_limit = "256"]
+#![feature(let_chains)]
 #![feature(try_blocks)]
 #[macro_use]
 extern crate napi_derive;
@@ -9,23 +10,29 @@ extern crate rspack_binding_macros;
 use std::collections::HashSet;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Mutex;
 
-use dashmap::DashMap;
 use napi::bindgen_prelude::*;
 use once_cell::sync::Lazy;
+use rspack_binding_options::BuiltinPlugin;
 use rspack_core::PluginExt;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
 use rspack_napi_shared::NAPI_ENV;
 
 mod hook;
 mod js_values;
+mod loader;
 mod plugins;
 mod utils;
 
 use hook::*;
 use js_values::*;
+// Napi macro registered this successfully
+#[allow(unused)]
+use loader::*;
 use plugins::*;
 use rspack_binding_options::*;
+use rspack_tracing::chrome::FlushGuard;
 use utils::*;
 
 #[cfg(not(target_os = "linux"))]
@@ -40,91 +47,11 @@ static GLOBAL: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
 #[global_allocator]
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
-// **Note** that Node's main thread and the worker thread share the same binding context. Using `Mutex<HashMap>` would cause deadlocks if multiple compilers exist.
-struct SingleThreadedHashMap<K, V>(DashMap<K, V>);
-
-impl<K, V> SingleThreadedHashMap<K, V>
-where
-  K: Eq + std::hash::Hash + std::fmt::Display,
-{
-  /// Acquire a mutable reference to the inner hashmap.
-  ///
-  /// Safety: Mutable reference can almost let you do anything you want, this is intended to be used from the thread where the map was created.
-  #[allow(unused)]
-  unsafe fn borrow_mut<F, R>(&self, key: &K, f: F) -> Result<R>
-  where
-    F: FnOnce(&mut V) -> Result<R>,
-  {
-    let mut inner = self.0.get_mut(key).ok_or_else(|| {
-      napi::Error::from_reason(format!(
-        "Failed to find key {key} for single-threaded hashmap",
-      ))
-    })?;
-
-    f(&mut inner)
-  }
-
-  /// Acquire a shared reference to the inner hashmap.
-  ///
-  /// Safety: It's not thread-safe if a value is not safe to modify cross thread boundary, so this is intended to be used from the thread where the map was created.
-  #[allow(unused)]
-  unsafe fn borrow<F, R>(&self, key: &K, f: F) -> Result<R>
-  where
-    F: FnOnce(&V) -> Result<R>,
-  {
-    let inner = self.0.get(key).ok_or_else(|| {
-      napi::Error::from_reason(format!(
-        "Failed to find key {key} for single-threaded hashmap",
-      ))
-    })?;
-
-    f(&*inner)
-  }
-
-  /// Insert a value into the map.
-  ///
-  /// Safety: It's not thread-safe if a value has thread affinity, so this is intended to be used from the thread where the map was created.
-  #[allow(unused)]
-  unsafe fn insert_if_vacant(&self, key: K, value: V) -> Result<()> {
-    if let dashmap::mapref::entry::Entry::Vacant(vacant) = self.0.entry(key) {
-      vacant.insert(value);
-      Ok(())
-    } else {
-      Err(napi::Error::from_reason(
-        "Failed to insert on single-threaded hashmap as it's not vacant",
-      ))
-    }
-  }
-
-  /// Remove a value from the map.
-  ///
-  /// See: [DashMap::remove] for more details. https://docs.rs/dashmap/latest/dashmap/struct.DashMap.html#method.remove
-  ///
-  /// Safety: It's not thread-safe if a value has thread affinity, so this is intended to be used from the thread where the map was created.
-  #[allow(unused)]
-  unsafe fn remove(&self, key: &K) -> Option<V> {
-    self.0.remove(key).map(|(_, v)| v)
-  }
-}
-
-impl<K, V> Default for SingleThreadedHashMap<K, V>
-where
-  K: Eq + std::hash::Hash,
-{
-  fn default() -> Self {
-    Self(Default::default())
-  }
-}
-
-// Safety: Methods are already marked as unsafe.
-unsafe impl<K, V> Send for SingleThreadedHashMap<K, V> {}
-unsafe impl<K, V> Sync for SingleThreadedHashMap<K, V> {}
-
 static COMPILERS: Lazy<
   SingleThreadedHashMap<CompilerId, Pin<Box<rspack_core::Compiler<AsyncNodeWritableFileSystem>>>>,
 > = Lazy::new(Default::default);
 
-static COMPILER_ID: AtomicU32 = AtomicU32::new(1);
+static NEXT_COMPILER_ID: AtomicU32 = AtomicU32::new(0);
 
 type CompilerId = u32;
 
@@ -140,31 +67,29 @@ impl Rspack {
   pub fn new(
     env: Env,
     options: RawOptions,
+    builtin_plugins: Vec<BuiltinPlugin>,
     js_hooks: Option<JsHooks>,
     output_filesystem: ThreadsafeNodeFS,
     js_loader_runner: JsFunction,
   ) -> Result<Self> {
-    init_custom_trace_subscriber(env)?;
-    // rspack_tracing::enable_tracing_by_env();
     Self::prepare_environment(&env);
     tracing::info!("raw_options: {:#?}", &options);
 
     let disabled_hooks: DisabledHooks = Default::default();
     let mut plugins = Vec::new();
+    for bp in builtin_plugins {
+      bp.apply(&mut plugins)
+        .map_err(|e| Error::from_reason(format!("{e}")))?;
+    }
     if let Some(js_hooks) = js_hooks {
       plugins.push(JsHooksAdapter::from_js_hooks(env, js_hooks, disabled_hooks.clone())?.boxed());
     }
 
     let js_loader_runner: JsLoaderRunner = JsLoaderRunner::try_from(js_loader_runner)?;
-    plugins.push(
-      JsLoaderResolver {
-        js_loader_runner: js_loader_runner.clone(),
-      }
-      .boxed(),
-    );
+    plugins.push(JsLoaderResolver { js_loader_runner }.boxed());
 
     let compiler_options = options
-      .apply(&mut plugins, &js_loader_runner)
+      .apply(&mut plugins)
       .map_err(|e| Error::from_reason(format!("{e}")))?;
 
     tracing::info!("normalized_options: {:#?}", &compiler_options);
@@ -176,7 +101,7 @@ impl Rspack {
         .map_err(|e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)))?,
     );
 
-    let id = COMPILER_ID.fetch_add(1, Ordering::SeqCst);
+    let id = NEXT_COMPILER_ID.fetch_add(1, Ordering::SeqCst);
     unsafe { COMPILERS.insert_if_vacant(id, Box::pin(rspack)) }?;
 
     Ok(Self { id, disabled_hooks })
@@ -306,5 +231,58 @@ impl ObjectFinalize for Rspack {
 impl Rspack {
   fn prepare_environment(env: &Env) {
     NAPI_ENV.with(|napi_env| *napi_env.borrow_mut() = Some(env.raw()));
+  }
+}
+
+#[derive(Default)]
+enum TraceState {
+  On(Option<FlushGuard>),
+  #[default]
+  Off,
+}
+
+static GLOBAL_TRACE_STATE: Lazy<Mutex<TraceState>> =
+  Lazy::new(|| Mutex::new(TraceState::default()));
+
+/**
+ * Some code is modified based on
+ * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58
+ * Apache-2.0 licensed
+ * Author Donny/강동윤
+ * Copyright (c)
+ */
+#[napi(catch_unwind)]
+pub fn register_global_trace(
+  filter: String,
+  #[napi(ts_arg_type = "\"chrome\" | \"logger\"")] layer: String,
+  output: String,
+) {
+  let mut state = GLOBAL_TRACE_STATE
+    .lock()
+    .expect("Failed to lock GLOBAL_TRACE_STATE");
+  if matches!(&*state, TraceState::Off) {
+    let guard = match layer.as_str() {
+      "chrome" => rspack_tracing::enable_tracing_by_env_with_chrome_layer(&filter, &output),
+      "logger" => {
+        rspack_tracing::enable_tracing_by_env(&filter, &output);
+        None
+      }
+      _ => panic!("not supported layer type:{layer}"),
+    };
+    let new_state = TraceState::On(guard);
+    *state = new_state;
+  }
+}
+
+#[napi(catch_unwind)]
+pub fn cleanup_global_trace() {
+  let mut state = GLOBAL_TRACE_STATE
+    .lock()
+    .expect("Failed to lock GLOBAL_TRACE_STATE");
+  if let TraceState::On(guard) = &mut *state && let Some(g) = guard.take() {
+    g.flush();
+    drop(g);
+    let new_state = TraceState::Off;
+    *state = new_state;
   }
 }

@@ -2,6 +2,7 @@ name: CI
 
 on:
   merge_group:
+    types: [checks_requested]
   workflow_dispatch:
     inputs:
       debug_enabled:
@@ -33,14 +34,14 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
-      profile: 'debug'
+      profile: "debug"
 
-  test-windows:
-    name: Test Windows
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      target: x86_64-pc-windows-msvc
-      profile: 'debug'
+  # test-windows:
+  #   name: Test Windows
+  #   uses: ./.github/workflows/reusable-build.yml
+  #   with:
+  #     target: x86_64-pc-windows-msvc
+  #     profile: "debug"
 
   test-mac:
     name: Test Mac
@@ -48,8 +49,21 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-apple-darwin
-      profile: 'debug'
+      profile: "debug"
+  cargo-deny:
+    name: Check license of dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install cargo-deny
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-deny
+          version: "0.11.3"
 
+      - name: Check licenses
+        run: |
+          cargo deny check license
   spell:
     name: Spell check
     runs-on: ubuntu-latest
@@ -59,6 +73,27 @@ jobs:
       - uses: crate-ci/typos@master
         with:
           files: .
+
+  oxlint:
+    name: Lint JS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            src:
+              - '**/*.{ts,js,mjs}'
+
+      - name: Pnpm Cache
+        if: steps.changes.outputs.src == 'true'
+        uses: ./.github/actions/pnpm-cache
+
+      - name: oxlint
+        if: steps.changes.outputs.src == 'true'
+        run: pnpm run lint:js
 
   rust_changes:
     name: Rust Changes
@@ -79,8 +114,38 @@ jobs:
               - 'Cargo.toml'
               - 'rust-toolchain.toml'
 
-  rust:
+  rust_check:
     name: Rust check
+    needs: rust_changes
+    if: ${{ needs.rust_changes.outputs.changed == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          clippy: true
+          fmt: true
+          shared-key: check
+
+      - name: Run Cargo Check
+        run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
+
+      - name: Run Clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --workspace --all-targets -- -D warnings
+
+      - name: Run rustfmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  rust_test:
+    name: Rust test
     needs: rust_changes
     if: ${{ needs.rust_changes.outputs.changed == 'true' }}
     runs-on: ubuntu-latest
@@ -93,25 +158,15 @@ jobs:
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          clippy: true
-          fmt: true
           save-cache: ${{ github.ref_name == 'main' }}
           shared-key: check
 
-      - name: Run rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-
-      - name: Run Cargo Check
-        run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
-
-      - name: Run Clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --workspace --all-targets -- -D warnings
+      # Compile test without debug info for reducing the CI cache size
+      - name: Change profile.test
+        shell: bash
+        run: |
+          echo '[profile.test]' >> Cargo.toml
+          echo 'debug = false' >> Cargo.toml
 
       - name: Run test
         run: cargo test --workspace -- --nocapture

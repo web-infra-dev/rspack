@@ -30,9 +30,35 @@ pub enum Named {
 }
 
 #[derive(Debug)]
+pub enum Prefix {
+  Global,
+  Array(Vec<String>),
+}
+
+impl Prefix {
+  pub fn value(&self, compilation: &Compilation) -> Vec<String> {
+    match self {
+      Prefix::Global => vec![compilation.options.output.global_object.clone()],
+      Prefix::Array(v) => v.clone(),
+    }
+  }
+
+  pub fn len(&self) -> usize {
+    match self {
+      Prefix::Global => 1,
+      Prefix::Array(v) => v.len(),
+    }
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.len() == 0
+  }
+}
+
+#[derive(Debug)]
 pub struct AssignLibraryPluginOptions {
   pub library_type: String,
-  pub prefix: Vec<String>,
+  pub prefix: Prefix,
   pub declare: bool,
   pub unnamed: Unnamed,
   pub named: Option<Named>,
@@ -52,7 +78,7 @@ impl AssignLibraryPlugin {
     if let Some(library) = &compilation.options.output.library {
       if let Some(name) = &library.name {
         if let Some(root) = &name.root {
-          let mut prefix = self.options.prefix.clone();
+          let mut prefix = self.options.prefix.value(compilation);
           prefix.extend(
             root
               .iter()
@@ -73,7 +99,7 @@ impl AssignLibraryPlugin {
         }
       }
     }
-    self.options.prefix.clone()
+    self.options.prefix.value(compilation)
   }
 }
 
@@ -83,6 +109,14 @@ impl Plugin for AssignLibraryPlugin {
   }
 
   fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
+    if args
+      .compilation
+      .chunk_graph
+      .get_number_of_entry_modules(args.chunk)
+      == 0
+    {
+      return Ok(None);
+    }
     if self.options.declare {
       let base = &self.get_resolved_full_name(args.compilation, args.chunk())[0];
       if !is_name_valid(base) {
@@ -104,6 +138,14 @@ impl Plugin for AssignLibraryPlugin {
     _ctx: PluginContext,
     args: &RenderStartupArgs,
   ) -> PluginRenderStartupHookOutput {
+    if args
+      .compilation
+      .chunk_graph
+      .get_number_of_entry_modules(args.chunk)
+      == 0
+    {
+      return Ok(None);
+    }
     let mut source = ConcatSource::default();
     source.add(args.source.clone());
     // TODO: respect entryOptions.library
@@ -169,6 +211,14 @@ impl Plugin for AssignLibraryPlugin {
     _ctx: PluginContext,
     args: &mut JsChunkHashArgs,
   ) -> PluginJsChunkHashHookOutput {
+    if args
+      .compilation
+      .chunk_graph
+      .get_number_of_entry_modules(args.chunk_ukey)
+      == 0
+    {
+      return Ok(());
+    }
     self.name().hash(&mut args.hasher);
     args
       .compilation

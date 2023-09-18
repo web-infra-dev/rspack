@@ -1,0 +1,54 @@
+--- expected
++++ actual
+@@ -46,13 +46,16 @@
+ /* harmony import */var _script1__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./script1 */"./package1/script1.js");
+ __webpack_require__.es(_script1__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
+ 
+-var __WEBPACK_DEFAULT_EXPORT__ = /* "./script1" unused */null;
++var __WEBPACK_DEFAULT_EXPORT__ = _script1__WEBPACK_IMPORTED_MODULE_0_["default"];
+ 
+  const exportDefaultUsed = false;
+ },
+ "./package1/script1.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
++__webpack_require__.d(__webpack_exports__, {
++  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
++});
+ /* harmony import */var _script2__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./script2 */"./package1/script2.js");
+ __webpack_require__.es(_script2__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
+ 
+@@ -64,13 +67,23 @@
+ __webpack_require__.d(__webpack_exports__, {
+   'exportDefaultUsed': function() { return exportDefaultUsed; }
+ });
++/* harmony import */var _script3__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./script3 */"./package1/script3.js");
++__webpack_require__.es(_script3__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
+ 
+ function __WEBPACK_DEFAULT_EXPORT__(){
+-    return /* "./script3" unused */null;
++    return _script3__WEBPACK_IMPORTED_MODULE_0_["default"];
+ }
+ 
+  const exportDefaultUsed = false;
+ },
++"./package1/script3.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
++'use strict';
++__webpack_require__.r(__webpack_exports__);
++__webpack_require__.d(__webpack_exports__, {
++  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
++});
++var __WEBPACK_DEFAULT_EXPORT__ = 1;
++},
+ "./package2/script.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+@@ -83,7 +96,7 @@
+ 
+ var __WEBPACK_DEFAULT_EXPORT__ = _script1__WEBPACK_IMPORTED_MODULE_0_["default"];
+ 
+- const exportDefaultUsed = true;
++ const exportDefaultUsed = false;
+ },
+ "./package2/script1.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';

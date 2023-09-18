@@ -21,8 +21,9 @@ export default async function checkSourceMap(out, outCodeMap, toSearch) {
 	}
 	const map = await new sourceMap.SourceMapConsumer(outCodeMap);
 	for (const id in toSearch) {
-		const outIndex = out.indexOf(`"${id}"`);
-		if (outIndex < 0) throw new Error(`Failed to find "${id}" in output`);
+		const outIndex = out.indexOf(id);
+		if (outIndex < 0)
+			throw new Error(`Failed to find "${id}" in output ${out}`);
 		const outLines = out.slice(0, outIndex).split("\n");
 		const outLine = outLines.length;
 		const outLastLine = outLines[outLines.length - 1];
@@ -39,9 +40,10 @@ export default async function checkSourceMap(out, outCodeMap, toSearch) {
 		);
 
 		const inCode = map.sourceContentFor(source);
-		let inIndex = inCode.indexOf(`"${id}"`);
+		let inIndex = inCode.indexOf(id);
 		if (inIndex < 0) inIndex = inCode.indexOf(`'${id}'`);
-		if (inIndex < 0) throw new Error(`Failed to find "${id}" in input`);
+		if (inIndex < 0)
+			throw new Error(`Failed to find "${id}" in input ${inCode}`);
 		const inLines = inCode.slice(0, inIndex).split("\n");
 		const inLine = inLines.length;
 		const inLastLine = inLines[inLines.length - 1];

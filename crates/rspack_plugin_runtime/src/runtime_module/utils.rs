@@ -1,28 +1,36 @@
 use rspack_core::{
   get_js_chunk_filename_template, Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, SourceType,
 };
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-// pub fn condition_map_to_string(map: &HashMap<String, bool>, _value: String) -> String {
-//   let positive_items = map
-//     .iter()
-//     .filter(|(_, v)| **v)
-//     .map(|(k, _)| k)
-//     .collect::<Vec<_>>();
-//   if positive_items.len() == 0 {
-//     return "false".to_string();
-//   }
-//   let negative_items = map
-//     .iter()
-//     .filter(|(_, v)| !**v)
-//     .map(|(k, _)| k)
-//     .collect::<Vec<_>>();
-//   if negative_items.len() == 0 {
-//     return "true".to_string();
-//   }
-//   // TODO
-//   return "true".to_string();
-// }
+pub fn render_condition_map(map: &HashMap<String, bool>) -> String {
+  let mut positive_items = map
+    .iter()
+    .filter(|(_, v)| **v)
+    .map(|(k, _)| k)
+    .collect::<Vec<_>>();
+  if positive_items.is_empty() {
+    return false.to_string();
+  }
+  let negative_items = map
+    .iter()
+    .filter(|(_, v)| !**v)
+    .map(|(k, _)| k)
+    .collect::<Vec<_>>();
+  if negative_items.is_empty() {
+    return true.to_string();
+  }
+
+  positive_items.sort_unstable();
+  format!(
+    "[{}].indexOf(chunkId) > - 1",
+    positive_items
+      .iter()
+      .map(|s| format!("'{s}'"))
+      .collect::<Vec<_>>()
+      .join(",")
+  )
+}
 
 pub fn get_initial_chunk_ids(
   chunk: Option<ChunkUkey>,
@@ -81,6 +89,13 @@ pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
       SourceType::JavaScript,
       &compilation.module_graph,
     )
+    .is_empty()
+}
+
+pub fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
+  !compilation
+    .chunk_graph
+    .get_chunk_modules_by_source_type(chunk, SourceType::Css, &compilation.module_graph)
     .is_empty()
 }
 

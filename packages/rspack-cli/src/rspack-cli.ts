@@ -23,8 +23,7 @@ import {
 import { normalizeEnv } from "./utils/options";
 import { loadRspackConfig } from "./utils/loadConfig";
 import findConfig from "./utils/findConfig";
-import { Mode } from "@rspack/core/src/config";
-import { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
+import type { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
 import path from "path";
 
 type Command = "serve" | "build";
@@ -41,7 +40,7 @@ export class RspackCLI {
 		options: RspackBuildCLIOptions,
 		rspackCommand: Command,
 		callback?: (e: Error, res?: Stats | MultiStats) => void
-	): Promise<Compiler | MultiCompiler> {
+	) {
 		process.env.RSPACK_CONFIG_VALIDATE = "loose";
 		let nodeEnv = process?.env?.NODE_ENV;
 		let rspackCommandDefaultEnv =
@@ -58,8 +57,7 @@ export class RspackCLI {
 			? (config as MultiRspackOptions).some(i => i.watch)
 			: (config as RspackOptions).watch;
 
-		const compiler = rspack(config, isWatch ? callback : undefined);
-		return compiler;
+		return rspack(config, isWatch ? callback : undefined);
 	}
 	createColors(useColor?: boolean): RspackCLIColors {
 		const { createColors, isColorSupported } = require("colorette");
@@ -89,6 +87,7 @@ export class RspackCLI {
 		};
 	}
 	async run(argv: string[]) {
+		// @ts-expect-error
 		if (semver.lt(semver.clean(process.version), "14.0.0")) {
 			this.getLogger().warn(
 				`Minimum recommended Node.js version is 14.0.0, current version is ${process.version}`
@@ -147,6 +146,10 @@ export class RspackCLI {
 					}
 				});
 			}
+			if (process.env.RSPACK_PROFILE) {
+				const { applyProfile } = await import("./utils/profile.js");
+				await applyProfile(process.env.RSPACK_PROFILE, item);
+			}
 			// cli --watch overrides the watch config
 			if (options.watch) {
 				item.watch = options.watch;
@@ -157,7 +160,7 @@ export class RspackCLI {
 			}
 			// user parameters always has highest priority than default mode and config mode
 			if (options.mode) {
-				item.mode = options.mode as Mode;
+				item.mode = options.mode as RspackOptions["mode"];
 			}
 
 			// false is also a valid value for sourcemap, so don't override it
@@ -260,6 +263,7 @@ export class RspackCLI {
 		}
 
 		if (typeof loadedConfig === "function") {
+			// @ts-expect-error
 			loadedConfig = loadedConfig(options.argv?.env, options.argv);
 			// if return promise we should await its result
 			if (
@@ -268,6 +272,7 @@ export class RspackCLI {
 				loadedConfig = await loadedConfig;
 			}
 		}
+		// @ts-expect-error
 		return loadedConfig;
 	}
 

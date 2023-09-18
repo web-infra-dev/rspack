@@ -6,16 +6,15 @@ use rayon::prelude::*;
 use rspack_core::rspack_sources::ReplaceSource;
 use rspack_core::{
   get_css_chunk_filename_template,
-  rspack_sources::{ConcatSource, MapOptions, RawSource, Source, SourceExt},
+  rspack_sources::{ConcatSource, RawSource, Source, SourceExt},
   Chunk, ChunkKind, Module, ModuleType, ParserAndGenerator, PathData, Plugin, RenderManifestEntry,
   SourceType,
 };
-use rspack_core::{Compilation, LibIdentOptions};
+use rspack_core::{Compilation, CompilerOptions, LibIdentOptions};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 
 use crate::parser_and_generator::CssParserAndGenerator;
-use crate::swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig};
 use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX;
 use crate::CssPlugin;
 
@@ -37,13 +36,11 @@ impl CssPlugin {
           .code_generation_results
           .get(module_id, Some(&chunk.runtime))?;
 
-        let module_source = code_gen_result
-          .get(&SourceType::Css)
-          .map(|result| result.ast_or_source.clone().try_into_source())
-          .transpose();
-
-        module_source
-          .map(|source| source.map(|source| (CssModuleDebugInfo { module: *module }, source)))
+        Ok(
+          code_gen_result
+            .get(&SourceType::Css)
+            .map(|source| (CssModuleDebugInfo { module: *module }, source)),
+        )
       })
       .collect::<Result<Vec<_>>>()?;
 
@@ -58,7 +55,7 @@ impl CssPlugin {
         |mut acc, (debug_info, cur_source)| {
           let (start, end) = Self::render_module_debug_info(compilation, &debug_info);
           acc.add(start);
-          acc.add(cur_source);
+          acc.add(cur_source.clone());
           acc.add(RawSource::from("\n"));
           acc.add(end);
           acc
@@ -114,12 +111,15 @@ impl Plugin for CssPlugin {
     "css"
   }
 
-  fn apply(&self, ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
+  fn apply(
+    &self,
+    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
     let config = self.config.clone();
     let builder = move || {
       Box::new(CssParserAndGenerator {
         config: config.clone(),
-        meta: None,
         exports: None,
       }) as Box<dyn ParserAndGenerator>
     };
@@ -245,50 +245,8 @@ impl Plugin for CssPlugin {
       source.boxed(),
       output_path,
       asset_info,
+      false,
+      false,
     )])
-  }
-
-  async fn process_assets_stage_optimize_size(
-    &self,
-    _ctx: rspack_core::PluginContext,
-    args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsOutput {
-    let compilation = args.compilation;
-    let minify_options = &compilation.options.builtins.minify_options;
-    if minify_options.is_none() {
-      return Ok(());
-    }
-
-    let gen_source_map_config = SwcCssSourceMapGenConfig {
-      enable: compilation.options.devtool.source_map(),
-      inline_sources_content: !compilation.options.devtool.no_sources(),
-      emit_columns: !compilation.options.devtool.cheap(),
-    };
-
-    compilation
-      .assets_mut()
-      .par_iter_mut()
-      .filter(|(filename, _)| filename.ends_with(".css"))
-      .try_for_each(|(filename, original)| -> Result<()> {
-        if original.get_info().minimized {
-          return Ok(());
-        }
-
-        if let Some(original_source) = original.get_source() {
-          let input = original_source.source().to_string();
-          let input_source_map = original_source.map(&MapOptions::default());
-          let minimized_source = SwcCssCompiler::default().minify(
-            filename,
-            input,
-            input_source_map,
-            gen_source_map_config.clone(),
-          )?;
-          original.set_source(Some(minimized_source));
-        }
-        original.get_info_mut().minimized = true;
-        Ok(())
-      })?;
-
-    Ok(())
   }
 }

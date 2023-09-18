@@ -6,6 +6,7 @@ use rspack_core::{
 use rspack_identifier::Identifier;
 use rustc_hash::FxHashMap as HashMap;
 
+use super::utils::chunk_has_css;
 use crate::impl_runtime_module;
 
 #[derive(Debug, Eq)]
@@ -17,7 +18,8 @@ pub struct GetChunkFilenameRuntimeModule {
   global: RuntimeGlobals,
   all_chunks: bool,
 }
-
+// It's render is different with webpack, rspack will only render chunk map<chunkId, chunkName>
+// and search it.
 impl GetChunkFilenameRuntimeModule {
   pub fn new(
     content_type: &'static str,
@@ -77,31 +79,41 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           for chunk_ukey in chunks.iter() {
             if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) {
               let filename_template = match self.source_type {
-                SourceType::JavaScript => get_js_chunk_filename_template(
+                // TODO webpack different
+                // css chunk will generate a js chunk, so here add it.
+                SourceType::JavaScript => Some(get_js_chunk_filename_template(
                   chunk,
                   &compilation.options.output,
                   &compilation.chunk_group_by_ukey,
-                ),
-                SourceType::Css => get_css_chunk_filename_template(
-                  chunk,
-                  &compilation.options.output,
-                  &compilation.chunk_group_by_ukey,
-                ),
+                )),
+                SourceType::Css => {
+                  if chunk_has_css(chunk_ukey, compilation) {
+                    Some(get_css_chunk_filename_template(
+                      chunk,
+                      &compilation.options.output,
+                      &compilation.chunk_group_by_ukey,
+                    ))
+                  } else {
+                    None
+                  }
+                }
                 _ => unreachable!(),
               };
-              let filename = compilation.get_path(
-                filename_template,
-                PathData::default()
-                  .chunk(chunk)
-                  .content_hash_optional(
-                    chunk
-                      .content_hash
-                      .get(&self.source_type)
-                      .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-                  )
-                  .hash_optional(compilation.get_hash()),
-              );
-              chunks_map.insert(chunk.expect_id().to_string(), format!("\"{filename}\""));
+              if let Some(filename_template) = filename_template {
+                let filename = compilation.get_path(
+                  filename_template,
+                  PathData::default()
+                    .chunk(chunk)
+                    .content_hash_optional(
+                      chunk
+                        .content_hash
+                        .get(&self.source_type)
+                        .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
+                    )
+                    .hash_optional(compilation.get_hash()),
+                );
+                chunks_map.insert(chunk.expect_id().to_string(), format!("\"{filename}\""));
+              }
             }
           }
           match chunks_map.is_empty() {

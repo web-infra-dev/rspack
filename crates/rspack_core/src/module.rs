@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::hash::Hash;
 use std::path::PathBuf;
 use std::{any::Any, borrow::Cow, fmt::Debug};
@@ -9,17 +10,27 @@ use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
 use rspack_util::ext::{AsAny, DynEq, DynHash};
 use rustc_hash::FxHashSet as HashSet;
+use swc_core::ecma::atoms::JsWord;
 
+use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
-  ChunkUkey, CodeGenerationResult, Compilation, CompilerContext, CompilerOptions, Context,
-  ContextModule, DependencyTemplate, ExternalModule, ModuleDependency, ModuleType, NormalModule,
-  RawModule, Resolve, SharedPluginDriver, SourceType,
+  BoxDependency, ChunkUkey, CodeGenerationResult, Compilation, CompilerContext, CompilerOptions,
+  ConnectionState, Context, ContextModule, DependencyId, DependencyTemplate, ExternalModule,
+  ModuleDependency, ModuleGraph, ModuleType, NormalModule, RawModule, Resolve, SharedPluginDriver,
+  SourceType,
 };
 
 pub struct BuildContext<'a> {
   pub compiler_context: CompilerContext,
   pub plugin_driver: SharedPluginDriver,
   pub compiler_options: &'a CompilerOptions,
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum BuildExtraDataType {
+  CssParserAndGenerator,
+  AssetParserAndGenerator,
+  JavaScriptParserAndGenerator,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -33,9 +44,12 @@ pub struct BuildInfo {
   pub missing_dependencies: HashSet<PathBuf>,
   pub build_dependencies: HashSet<PathBuf>,
   pub asset_filenames: HashSet<String>,
+  pub harmony_named_exports: HashSet<JsWord>,
+  pub all_star_exports: Vec<DependencyId>,
+  pub need_create_require: bool,
 }
 
-#[derive(Debug, Default, Clone, Hash)]
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub enum BuildMetaExportsType {
   #[default]
   Unset,
@@ -45,7 +59,7 @@ pub enum BuildMetaExportsType {
   Dynamic,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum ExportsType {
   DefaultOnly,
   Namespace,
@@ -61,7 +75,39 @@ pub enum BuildMetaDefaultObject {
   RedirectWarn,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Default, Clone, Copy, Hash)]
+pub enum ModuleArgument {
+  #[default]
+  Module,
+  WebpackModule,
+}
+
+impl Display for ModuleArgument {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      ModuleArgument::Module => write!(f, "module"),
+      ModuleArgument::WebpackModule => write!(f, "__webpack_module__"),
+    }
+  }
+}
+
+#[derive(Debug, Default, Clone, Copy, Hash)]
+pub enum ExportsArgument {
+  #[default]
+  Exports,
+  WebpackExports,
+}
+
+impl Display for ExportsArgument {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      ExportsArgument::Exports => write!(f, "exports"),
+      ExportsArgument::WebpackExports => write!(f, "__webpack_exports__"),
+    }
+  }
+}
+
+#[derive(Debug, Default, Clone, Hash)]
 pub struct BuildMeta {
   pub strict: bool,
   pub strict_harmony_module: bool,
@@ -69,23 +115,9 @@ pub struct BuildMeta {
   pub esm: bool,
   pub exports_type: BuildMetaExportsType,
   pub default_object: BuildMetaDefaultObject,
-  pub module_argument: &'static str,
-  pub exports_argument: &'static str,
-}
-
-impl Default for BuildMeta {
-  fn default() -> Self {
-    Self {
-      strict: Default::default(),
-      strict_harmony_module: Default::default(),
-      is_async: Default::default(),
-      esm: Default::default(),
-      exports_type: Default::default(),
-      default_object: Default::default(),
-      module_argument: "module",
-      exports_argument: "exports",
-    }
-  }
+  pub module_argument: ModuleArgument,
+  pub exports_argument: ExportsArgument,
+  pub side_effect_free: Option<bool>,
 }
 
 // webpack build info
@@ -94,12 +126,13 @@ pub struct BuildResult {
   /// Whether the result is cacheable, i.e shared between builds.
   pub build_meta: BuildMeta,
   pub build_info: BuildInfo,
-  pub dependencies: Vec<Box<dyn ModuleDependency>>,
+  pub analyze_result: OptimizeAnalyzeResult,
+  pub dependencies: Vec<BoxDependency>,
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct FactoryMeta {
-  pub side_effects: Option<bool>,
+  pub side_effect_free: Option<bool>,
 }
 
 pub type ModuleIdentifier = Identifier;
@@ -141,6 +174,7 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
         build_info,
         build_meta: Default::default(),
         dependencies: Vec::new(),
+        analyze_result: Default::default(),
       }
       .with_empty_diagnostic(),
     )
@@ -155,7 +189,7 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult>;
 
   /// Name matched against bundle-splitting conditions.
-  fn name_for_condition(&self) -> Option<Cow<str>> {
+  fn name_for_condition(&self) -> Option<Box<str>> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/Module.js#L852
     None
   }
@@ -185,11 +219,11 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   /// Resolve options matched by module rules.
   /// e.g `javascript/esm` may have special resolving options like `fullySpecified`.
   /// `css` and `css/module` may have special resolving options like `preferRelative`.
-  fn get_resolve_options(&self) -> Option<&Resolve> {
+  fn get_resolve_options(&self) -> Option<Box<Resolve>> {
     None
   }
 
-  fn get_context(&self) -> Option<&Context> {
+  fn get_context(&self) -> Option<Box<Context>> {
     None
   }
 
@@ -199,6 +233,14 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
 
   fn chunk_condition(&self, _chunk_key: &ChunkUkey, _compilation: &Compilation) -> bool {
     true
+  }
+
+  fn get_side_effects_connection_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    ConnectionState::Bool(true)
   }
 }
 

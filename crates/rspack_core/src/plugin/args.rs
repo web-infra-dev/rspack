@@ -9,9 +9,9 @@ use rustc_hash::FxHashSet as HashSet;
 use crate::ast::css::Ast as CssAst;
 use crate::ast::javascript::Ast as JsAst;
 use crate::{
-  Chunk, ChunkUkey, Compilation, Context, DependencyCategory, DependencyType, ErrorSpan,
-  FactoryMeta, ModuleDependency, ModuleIdentifier, Resolve, RuntimeGlobals, SharedPluginDriver,
-  Stats,
+  Chunk, ChunkInitFragments, ChunkUkey, Compilation, Context, DependencyCategory, DependencyType,
+  ErrorSpan, FactoryMeta, ModuleDependency, ModuleGraphModule, ModuleIdentifier, Resolve,
+  RuntimeGlobals, SharedPluginDriver, Stats,
 };
 // #[derive(Debug)]
 // pub struct ParseModuleArgs<'a> {
@@ -122,7 +122,7 @@ pub struct ResolveArgs<'a> {
   pub dependency_type: &'a DependencyType,
   pub dependency_category: &'a DependencyCategory,
   pub span: Option<ErrorSpan>,
-  pub resolve_options: Option<Resolve>,
+  pub resolve_options: Option<Box<Resolve>>,
   pub resolve_to_context: bool,
   pub optional: bool,
   pub file_dependencies: &'a mut HashSet<PathBuf>,
@@ -235,8 +235,10 @@ impl<'me> RenderChunkArgs<'me> {
 
 #[derive(Debug)]
 pub struct RenderModuleContentArgs<'a> {
-  pub module_source: &'a BoxSource,
+  pub module_source: BoxSource,
+  pub chunk_init_fragments: ChunkInitFragments,
   pub compilation: &'a Compilation,
+  pub module_graph_module: &'a ModuleGraphModule,
 }
 
 #[derive(Debug)]

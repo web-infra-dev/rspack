@@ -14,6 +14,10 @@ const getBrowserslistTargetHandler = memoize(() =>
 	require("./browserslistTargetHandler")
 );
 
+/**
+ * @param {string} context the context directory
+ * @returns {import("..").Target} target properties
+ */
 const getDefaultTarget = context => {
 	// TODO: align with webpack
 	// const browsers = getBrowserslistTargetHandler().load(null, context);

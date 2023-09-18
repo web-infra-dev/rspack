@@ -1,11 +1,13 @@
 mod entry;
 mod span;
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 
 pub use entry::*;
 use once_cell::sync::Lazy;
 use rspack_util::ext::AsAny;
+use rustc_hash::FxHashSet as HashSet;
+use serde::Serialize;
 pub use span::SpanExt;
 mod runtime_template;
 pub use runtime_template::*;
@@ -14,10 +16,10 @@ pub use runtime_requirements_dependency::RuntimeRequirementsDependency;
 mod context_element_dependency;
 mod dependency_macro;
 pub use context_element_dependency::*;
+use swc_core::ecma::atoms::JsWord;
 mod const_dependency;
 use std::{
   any::Any,
-  borrow::Cow,
   fmt::{Debug, Display},
   hash::Hash,
 };
@@ -27,7 +29,11 @@ mod dependency_template;
 pub use dependency_template::*;
 use dyn_clone::{clone_trait_object, DynClone};
 
-use crate::{ChunkGroupOptions, Context, ContextMode, ContextOptions, ErrorSpan};
+use crate::{
+  ChunkGroupOptionsKindRef, ConnectionState, Context, ContextMode, ContextOptions, ErrorSpan,
+  ExtendedReferencedExport, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport,
+  RuntimeSpec,
+};
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`
@@ -35,11 +41,15 @@ use crate::{ChunkGroupOptions, Context, ContextMode, ContextOptions, ErrorSpan};
 pub enum DependencyType {
   #[default]
   Unknown,
+  ExportInfoApi,
   Entry,
   // Harmony import
   EsmImport,
+  EsmImportSpecifier,
   // Harmony export
   EsmExport,
+  EsmExportImportedSpecifier,
+  EsmExportSpecifier,
   // import()
   DynamicImport,
   // cjs require
@@ -78,8 +88,8 @@ pub enum DependencyType {
   WasmExportImported,
   /// static exports
   StaticExports,
-  Custom(Cow<'static, str>),
   Provided,
+  Custom(Box<str>), // TODO it will increase large layout size
 }
 
 impl Display for DependencyType {
@@ -89,6 +99,9 @@ impl Display for DependencyType {
       DependencyType::Entry => write!(f, "entry"),
       DependencyType::EsmImport => write!(f, "esm import"),
       DependencyType::EsmExport => write!(f, "esm export"),
+      DependencyType::EsmExportSpecifier => write!(f, "esm export specifier"),
+      DependencyType::EsmExportImportedSpecifier => write!(f, "esm export import specifier"),
+      DependencyType::EsmImportSpecifier => write!(f, "esm import specifier"),
       DependencyType::DynamicImport => write!(f, "dynamic import"),
       DependencyType::CjsRequire => write!(f, "cjs require"),
       DependencyType::NewUrl => write!(f, "new URL()"),
@@ -108,8 +121,9 @@ impl Display for DependencyType {
       DependencyType::WasmImport => write!(f, "wasm import"),
       DependencyType::WasmExportImported => write!(f, "wasm export imported"),
       DependencyType::StaticExports => write!(f, "static exports"),
-      DependencyType::Custom(ty) => write!(f, "custom {ty}"),
       DependencyType::Provided => write!(f, "provided"),
+      DependencyType::Custom(ty) => write!(f, "custom {ty}"),
+      DependencyType::ExportInfoApi => write!(f, "export info api"),
     }
   }
 }
@@ -158,7 +172,11 @@ impl Display for DependencyCategory {
   }
 }
 
-pub trait Dependency: AsAny + DynClone + Send + Sync + Debug {
+pub trait Dependency:
+  AsDependencyTemplate + AsModuleDependency + AsAny + DynClone + Send + Sync + Debug
+{
+  fn id(&self) -> &DependencyId;
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Unknown
   }
@@ -170,20 +188,104 @@ pub trait Dependency: AsAny + DynClone + Send + Sync + Debug {
   fn get_context(&self) -> Option<&Context> {
     None
   }
+
+  fn get_exports(&self) -> Option<ExportsSpec> {
+    None
+  }
 }
 
-impl Dependency for Box<dyn Dependency> {
-  fn category(&self) -> &DependencyCategory {
-    (**self).category()
-  }
+#[derive(Debug, Default)]
+pub struct ExportSpec {
+  pub name: JsWord,
+  pub export: Option<Vec<JsWord>>,
+  pub exports: Option<Vec<ExportNameOrSpec>>,
+  pub can_mangle: Option<bool>,
+  pub terminal_binding: Option<bool>,
+  pub priority: Option<u8>,
+  pub hidden: Option<bool>,
+  pub from: Option<ModuleGraphConnection>,
+  pub from_export: Option<ModuleGraphConnection>,
+}
 
-  fn dependency_type(&self) -> &DependencyType {
-    (**self).dependency_type()
+impl ExportSpec {
+  pub fn new(name: String) -> Self {
+    Self {
+      name: JsWord::from(name),
+      ..Default::default()
+    }
+  }
+}
+
+#[derive(Debug)]
+pub enum ExportNameOrSpec {
+  String(JsWord),
+  ExportSpec(ExportSpec),
+}
+
+impl Default for ExportNameOrSpec {
+  fn default() -> Self {
+    Self::String(JsWord::default())
+  }
+}
+
+#[derive(Debug, Default)]
+pub enum ExportsOfExportsSpec {
+  True,
+  #[default]
+  Null,
+  Array(Vec<ExportNameOrSpec>),
+}
+
+#[derive(Debug, Default)]
+#[allow(unused)]
+pub struct ExportsSpec {
+  pub exports: ExportsOfExportsSpec,
+  pub priority: Option<u8>,
+  pub can_mangle: Option<bool>,
+  pub terminal_binding: Option<bool>,
+  pub from: Option<ModuleGraphConnection>,
+  pub dependencies: Option<Vec<ModuleIdentifier>>,
+  pub hide_export: Option<Vec<JsWord>>,
+  pub exclude_exports: Option<Vec<JsWord>>,
+}
+
+pub enum ExportsReferencedType {
+  No,     // NO_EXPORTS_REFERENCED
+  Object, // EXPORTS_OBJECT_REFERENCED
+  String(Box<Vec<Vec<JsWord>>>),
+  Value(Box<Vec<ReferencedExport>>),
+}
+
+impl From<JsWord> for ExportsReferencedType {
+  fn from(value: JsWord) -> Self {
+    ExportsReferencedType::String(Box::new(vec![vec![value]]))
+  }
+}
+
+impl From<Vec<Vec<JsWord>>> for ExportsReferencedType {
+  fn from(value: Vec<Vec<JsWord>>) -> Self {
+    ExportsReferencedType::String(Box::new(value))
+  }
+}
+
+impl From<Vec<JsWord>> for ExportsReferencedType {
+  fn from(value: Vec<JsWord>) -> Self {
+    ExportsReferencedType::String(Box::new(vec![value]))
+  }
+}
+
+impl From<Vec<ReferencedExport>> for ExportsReferencedType {
+  fn from(value: Vec<ReferencedExport>) -> Self {
+    ExportsReferencedType::Value(Box::new(value))
   }
 }
 
 pub trait AsModuleDependency {
   fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
+    None
+  }
+
+  fn as_module_dependency_mut(&mut self) -> Option<&mut dyn ModuleDependency> {
     None
   }
 }
@@ -192,10 +294,57 @@ impl<T: ModuleDependency> AsModuleDependency for T {
   fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
     Some(self)
   }
+
+  fn as_module_dependency_mut(&mut self) -> Option<&mut dyn ModuleDependency> {
+    Some(self)
+  }
+}
+
+pub type DependencyConditionFn = Box<dyn Function>;
+
+pub trait Function:
+  Fn(&ModuleGraphConnection, Option<&RuntimeSpec>, &ModuleGraph) -> ConnectionState + Send + Sync
+{
+  fn clone_boxed(&self) -> Box<dyn Function>;
+}
+
+/// Copy from https://github.com/rust-lang/rust/issues/24000#issuecomment-479425396
+impl<T> Function for T
+where
+  T: 'static
+    + Fn(&ModuleGraphConnection, Option<&RuntimeSpec>, &ModuleGraph) -> ConnectionState
+    + Send
+    + Sync
+    + Clone,
+{
+  fn clone_boxed(&self) -> Box<dyn Function> {
+    Box::new(self.clone())
+  }
+}
+
+impl Clone for Box<dyn Function> {
+  fn clone(&self) -> Self {
+    self.clone_boxed()
+  }
+}
+
+#[derive(Clone)]
+pub enum DependencyCondition {
+  False,
+  Fn(DependencyConditionFn),
+}
+
+impl Debug for DependencyCondition {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      // Self::Nil => write!(f, "Nil"),
+      Self::False => write!(f, "False"),
+      Self::Fn(_) => write!(f, "Fn"),
+    }
+  }
 }
 
 pub trait ModuleDependency: Dependency {
-  fn id(&self) -> &DependencyId;
   fn request(&self) -> &str;
   fn user_request(&self) -> &str;
   fn span(&self) -> Option<&ErrorSpan>;
@@ -212,69 +361,34 @@ pub trait ModuleDependency: Dependency {
     false
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    None
-  }
-
   // TODO: wired to place ChunkGroupOptions on dependency, should place on AsyncDependenciesBlock
-  fn group_options(&self) -> Option<&ChunkGroupOptions> {
+  fn group_options(&self) -> Option<ChunkGroupOptionsKindRef> {
     None
   }
-}
 
-impl ModuleDependency for Box<dyn ModuleDependency> {
-  fn id(&self) -> &DependencyId {
-    (**self).id()
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    None
   }
 
-  fn request(&self) -> &str {
-    (**self).request()
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    ConnectionState::Bool(true)
   }
 
-  fn user_request(&self) -> &str {
-    (**self).user_request()
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    vec![ExtendedReferencedExport::Array(vec![])]
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    (**self).span()
-  }
-
-  fn weak(&self) -> bool {
-    (**self).weak()
-  }
-
-  fn options(&self) -> Option<&ContextOptions> {
-    (**self).options()
-  }
-
-  fn get_optional(&self) -> bool {
-    (**self).get_optional()
-  }
-
-  fn group_options(&self) -> Option<&ChunkGroupOptions> {
-    (**self).group_options()
-  }
-
-  fn set_request(&mut self, request: String) {
-    (**self).set_request(request);
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    (**self).as_code_generatable_dependency()
-  }
-}
-
-impl Dependency for Box<dyn ModuleDependency> {
-  fn category(&self) -> &DependencyCategory {
-    (**self).category()
-  }
-
-  fn dependency_type(&self) -> &DependencyType {
-    (**self).dependency_type()
-  }
-
-  fn get_context(&self) -> Option<&Context> {
-    (**self).get_context()
+  // an identifier to merge equal requests
+  fn resource_identifier(&self) -> Option<&str> {
+    None
   }
 }
 
@@ -294,7 +408,7 @@ clone_trait_object!(ModuleDependency);
 pub type BoxModuleDependency = Box<dyn ModuleDependency>;
 pub type BoxDependency = Box<dyn Dependency>;
 
-pub fn is_async_dependency(dep: &BoxModuleDependency) -> bool {
+pub fn is_async_dependency(dep: &dyn ModuleDependency) -> bool {
   if matches!(dep.dependency_type(), DependencyType::DynamicImport) {
     return true;
   }
@@ -309,10 +423,10 @@ pub fn is_async_dependency(dep: &BoxModuleDependency) -> bool {
   false
 }
 
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
-pub struct DependencyId(usize);
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
+pub struct DependencyId(u32);
 
-pub static DEPENDENCY_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
+pub static DEPENDENCY_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
 
 impl DependencyId {
   pub fn new() -> Self {
@@ -326,15 +440,15 @@ impl Default for DependencyId {
 }
 
 impl std::ops::Deref for DependencyId {
-  type Target = usize;
+  type Target = u32;
 
   fn deref(&self) -> &Self::Target {
     &self.0
   }
 }
 
-impl From<usize> for DependencyId {
-  fn from(id: usize) -> Self {
+impl From<u32> for DependencyId {
+  fn from(id: u32) -> Self {
     Self(id)
   }
 }

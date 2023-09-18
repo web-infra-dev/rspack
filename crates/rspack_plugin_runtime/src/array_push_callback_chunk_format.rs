@@ -8,7 +8,6 @@ use rspack_core::{
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRenderChunkHookOutput, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
-use rspack_error::Result;
 use rspack_plugin_javascript::runtime::{render_chunk_runtime_modules, render_runtime_modules};
 
 use super::{generate_entry_startup, update_hash_for_entry_startup};
@@ -20,10 +19,6 @@ pub struct ArrayPushCallbackChunkFormatPlugin;
 impl Plugin for ArrayPushCallbackChunkFormatPlugin {
   fn name(&self) -> &'static str {
     "ArrayPushCallbackChunkFormatPlugin"
-  }
-
-  fn apply(&self, _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
-    Ok(())
   }
 
   fn additional_chunk_runtime_requirements(

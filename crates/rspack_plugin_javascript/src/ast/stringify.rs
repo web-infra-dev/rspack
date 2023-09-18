@@ -32,7 +32,7 @@ pub fn stringify(
       EsVersion::Es2022,
       SourceMapConfig {
         enable: devtool.source_map(),
-        inline_sources_content: !devtool.no_sources(),
+        inline_sources_content: true,
         emit_columns: !devtool.cheap(),
         names: Default::default(),
       },
@@ -77,12 +77,10 @@ pub fn print(
       }
 
       let mut emitter = Emitter {
-        cfg: codegen::Config {
-          minify,
-          target,
-          ascii_only,
-          ..Default::default()
-        },
+        cfg: codegen::Config::default()
+          .with_minify(minify)
+          .with_target(target)
+          .with_ascii_only(ascii_only),
         comments,
         cm: source_map.clone(),
         wr,

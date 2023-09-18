@@ -6,7 +6,7 @@
 					"type": "regexp",
 					"matcher": "\\.s[ac]ss$"
 				},
-				"use": [{ "builtinLoader": "builtin:sass-loader" }],
+				"use": [{ "loader": "builtin:sass-loader" }],
 				"type": "css"
 			}
 		]

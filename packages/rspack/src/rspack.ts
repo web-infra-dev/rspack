@@ -13,10 +13,10 @@ import {
 	applyRspackOptionsBaseDefaults,
 	applyRspackOptionsDefaults,
 	RspackPluginFunction,
-	validateConfig
+	rspackOptions
 } from "./config";
-import { Compiler } from "./compiler";
-import { Stats } from "./stats";
+import { Compiler } from "./Compiler";
+import { Stats } from "./Stats";
 import util from "util";
 
 import { RspackOptionsApply } from "./rspackOptionsApply";
@@ -25,12 +25,12 @@ import {
 	MultiCompiler,
 	MultiCompilerOptions,
 	MultiRspackOptions
-} from "./multiCompiler";
+} from "./MultiCompiler";
 import { Callback } from "tapable";
-import MultiStats from "./multiStats";
+import MultiStats from "./MultiStats";
 import assert from "assert";
 import { asArray, isNil } from "./util";
-import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
+import { validate } from "./util/validate";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 	const compilers = options.map(createCompiler);
@@ -75,11 +75,6 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 			}
 		}
 	}
-
-	if (options.ignoreWarnings !== undefined) {
-		new IgnoreWarningsPlugin(options.ignoreWarnings).apply(compiler);
-	}
-
 	applyRspackOptionsDefaults(compiler.options);
 	logger.debug(
 		"NormalizedOptions:",
@@ -88,7 +83,6 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 	compiler.hooks.environment.call();
 	compiler.hooks.afterEnvironment.call();
 	new RspackOptionsApply().process(compiler.options, compiler);
-	compiler.hooks.entryOption.call(options.context, options.entry);
 	compiler.hooks.initialize.call();
 	return compiler;
 }
@@ -97,24 +91,29 @@ function isMultiRspackOptions(o: unknown): o is MultiRspackOptions {
 	return Array.isArray(o);
 }
 
+function rspack(options: MultiRspackOptions): MultiCompiler;
+function rspack(options: RspackOptions): Compiler;
+function rspack(
+	options: MultiRspackOptions | RspackOptions
+): MultiCompiler | Compiler;
 function rspack(
 	options: MultiRspackOptions,
 	callback?: Callback<Error, MultiStats>
-): MultiCompiler;
+): null | MultiCompiler;
 function rspack(
 	options: RspackOptions,
 	callback?: Callback<Error, Stats>
-): Compiler;
+): null | Compiler;
 function rspack(
 	options: MultiRspackOptions | RspackOptions,
 	callback?: Callback<Error, MultiStats | Stats>
-): MultiCompiler | Compiler;
+): null | MultiCompiler | Compiler;
 function rspack(
 	options: MultiRspackOptions | RspackOptions,
 	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>
 ) {
 	asArray(options).every(opts => {
-		validateConfig(opts);
+		validate(opts, rspackOptions);
 	});
 	const create = () => {
 		if (isMultiRspackOptions(options)) {
@@ -157,5 +156,5 @@ function rspack(
 }
 
 // deliberately alias rspack as webpack
-export { rspack, createCompiler, createMultiCompiler };
+export { rspack, createCompiler, createMultiCompiler, Stats, MultiStats };
 export default rspack;

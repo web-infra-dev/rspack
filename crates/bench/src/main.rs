@@ -50,7 +50,7 @@ async fn main() {
   let path_list = vec![
     // "examples/cjs-tree-shaking-basic",
     // "examples/basic",
-    "smoke-example/basic",
+    "examples/basic",
     // "examples/export-star-chain",
     // "examples/bbb",
     /* "examples/named-export-decl-with-src-eval",
@@ -98,7 +98,7 @@ async fn run(relative_path: &str, #[cfg(feature = "tracing")] layer: Layer) {
   compiler
     .build()
     .await
-    .unwrap_or_else(|e| panic!("{e:?}, failed to compile in fixtrue {bundle_dir:?}"));
+    .unwrap_or_else(|e| panic!("{e:?}, failed to compile in fixture {bundle_dir:?}"));
   println!("{:?}", start.elapsed());
   #[cfg(feature = "hmr")]
   {

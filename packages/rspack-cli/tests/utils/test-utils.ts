@@ -43,7 +43,7 @@ const processKill = process => {
  * @param {Object<string, any>} options Options for tests
  * @returns {Promise}
  */
-const createProcess = (cwd, args, options) => {
+const createProcess = (cwd, args, options, env) => {
 	const { nodeOptions = [] } = options;
 	const processExecutor = nodeOptions.length ? execaNode : execa;
 	return processExecutor(RSPACK_PATH, args, {
@@ -51,7 +51,7 @@ const createProcess = (cwd, args, options) => {
 		reject: false,
 		stdio: ENABLE_LOG_COMPILATION ? "inherit" : "pipe",
 		maxBuffer: Infinity,
-		env: { RSPACK_CLI_HELP_WIDTH: 1024 },
+		env: { RSPACK_CLI_HELP_WIDTH: 1024, ...env },
 		...options
 	});
 };
@@ -64,8 +64,8 @@ const createProcess = (cwd, args, options) => {
  * @param {Object<string, any>} options Options for tests
  * @returns {Promise}
  */
-const run = async (cwd, args: string[] = [], options = {}) => {
-	return createProcess(cwd, args, options);
+const run = async (cwd, args: string[] = [], options = {}, env = {}) => {
+	return createProcess(cwd, args, options, env);
 };
 
 /**
@@ -76,8 +76,8 @@ const run = async (cwd, args: string[] = [], options = {}) => {
  * @param {Object<string, any>} options Options for tests
  * @returns {Promise}
  */
-const runAndGetProcess = (cwd, args = [], options = {}) => {
-	return createProcess(cwd, args, options);
+const runAndGetProcess = (cwd, args = [], options = {}, env = {}) => {
+	return createProcess(cwd, args, options, env);
 };
 
 /**
@@ -91,10 +91,11 @@ const runAndGetProcess = (cwd, args = [], options = {}) => {
 const runWatch = (
 	cwd,
 	args: string[] = [],
-	options: Record<string, any> = {}
+	options: Record<string, any> = {},
+	env: Record<string, any> = {}
 ): any => {
 	return new Promise((resolve, reject) => {
-		const process = createProcess(cwd, args, options);
+		const process = createProcess(cwd, args, options, env);
 		const outputKillStr = options.killString || /rspack \d+\.\d+\.\d/;
 
 		process.stdout.pipe(

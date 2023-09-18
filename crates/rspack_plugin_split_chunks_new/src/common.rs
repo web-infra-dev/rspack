@@ -45,7 +45,7 @@ pub fn create_regex_chunk_filter_from_str(re: RspackRegex) -> ChunkFilter {
 
 pub type ModuleFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
 
-fn create_default_module_filter() -> ModuleFilter {
+pub fn create_default_module_filter() -> ModuleFilter {
   Arc::new(|_| true)
 }
 
@@ -57,13 +57,12 @@ pub fn create_module_filter_from_rspack_regex(re: rspack_regex::RspackRegex) -> 
   })
 }
 
-pub fn create_module_filter(re: Option<String>) -> ModuleFilter {
-  re.map(|test| {
-    let re =
-      rspack_regex::RspackRegex::new(&test).unwrap_or_else(|_| panic!("Invalid regex: {}", &test));
-    create_module_filter_from_rspack_regex(re)
+pub fn create_module_filter_from_rspack_str(st: String) -> ModuleFilter {
+  Arc::new(move |module| {
+    module
+      .name_for_condition()
+      .map_or(false, |name| name.starts_with(&st))
   })
-  .unwrap_or_else(create_default_module_filter)
 }
 
 #[derive(Debug, Default, Clone)]

@@ -3,7 +3,6 @@ use rspack_core::{
   AdditionalChunkRuntimeRequirementsArgs, ChunkLoading, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeGlobals, RuntimeModuleExt,
 };
-use rspack_error::Result;
 
 use crate::runtime_module::{
   is_enabled_for_chunk, StartupChunkDependenciesRuntimeModule, StartupEntrypointRuntimeModule,
@@ -28,10 +27,6 @@ impl StartupChunkDependenciesPlugin {
 impl Plugin for StartupChunkDependenciesPlugin {
   fn name(&self) -> &'static str {
     "StartupChunkDependenciesPlugin"
-  }
-
-  fn apply(&self, _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
-    Ok(())
   }
 
   fn additional_tree_runtime_requirements(

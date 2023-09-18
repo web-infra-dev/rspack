@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use rspack_core::{OptimizeChunksArgs, Plugin, PluginContext, PluginOptimizeChunksOutput};
+use rspack_core::{Logger, OptimizeChunksArgs, Plugin, PluginContext, PluginOptimizeChunksOutput};
 use rspack_error::Error;
 
 #[derive(Debug)]
@@ -8,12 +8,18 @@ pub struct EnsureChunkConditionsPlugin;
 
 #[async_trait::async_trait]
 impl Plugin for EnsureChunkConditionsPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.EnsureChunkConditionsPlugin"
+  }
+
   async fn optimize_chunks(
     &self,
     _ctx: PluginContext,
     args: OptimizeChunksArgs<'_>,
   ) -> PluginOptimizeChunksOutput {
     let compilation = args.compilation;
+    let logger = compilation.get_logger(self.name());
+    let start = logger.time("ensure chunk conditions");
 
     let mut source_module_chunks = HashMap::new();
     compilation
@@ -89,6 +95,7 @@ impl Plugin for EnsureChunkConditionsPlugin {
           .connect_chunk_and_module(chunk.to_owned(), module_id.to_owned());
       }
     }
+    logger.time_end(start);
 
     Ok(())
   }

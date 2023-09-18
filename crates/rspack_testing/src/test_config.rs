@@ -3,12 +3,10 @@ use std::{
   convert::TryFrom,
   path::{Path, PathBuf},
   str::FromStr,
-  sync::Arc,
 };
 
-use rspack_core::{BoxLoader, BoxPlugin, CompilerOptions, ModuleType, PluginExt};
-use rspack_plugin_css::pxtorem::options::PxToRemOptions;
-use rspack_plugin_html::config::HtmlPluginConfig;
+use rspack_core::{BoxPlugin, CompilerOptions, ModuleType, PluginExt};
+use rspack_plugin_html::config::HtmlRspackPluginOptions;
 use rspack_regex::RspackRegex;
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -66,7 +64,11 @@ fn default_optimization_module_ids() -> String {
   "named".to_string()
 }
 
-fn default_optimization_side_effects() -> String {
+fn default_optimization_chunk_ids() -> String {
+  "named".to_string()
+}
+
+fn default_optimization_false_string_lit() -> String {
   "false".to_string()
 }
 
@@ -117,8 +119,14 @@ pub struct Optimization {
   pub remove_empty_chunks: bool,
   #[serde(default = "default_optimization_module_ids")]
   pub module_ids: String,
-  #[serde(default = "default_optimization_side_effects")]
+  #[serde(default = "default_optimization_chunk_ids")]
+  pub chunk_ids: String,
+  #[serde(default = "default_optimization_false_string_lit")]
   pub side_effects: String,
+  #[serde(default = "true_by_default")]
+  pub provided_exports: bool,
+  #[serde(default = "default_optimization_false_string_lit")]
+  pub used_exports: String,
 }
 
 #[derive(Debug, JsonSchema, Deserialize)]
@@ -164,9 +172,7 @@ pub struct Builtins {
   #[serde(default)]
   pub provide: HashMap<String, Vec<String>>,
   #[serde(default)]
-  pub postcss: Postcss,
-  #[serde(default)]
-  pub html: Vec<HtmlPluginConfig>,
+  pub html: Vec<HtmlRspackPluginOptions>,
   #[serde(default)]
   pub minify_options: Option<Minification>,
   #[serde(default = "default_tree_shaking")]
@@ -202,39 +208,6 @@ impl Default for ModulesConfig {
       locals_convention: "asIs".to_string(),
       local_ident_name: "[path][name][ext]__[local]".to_string(),
       exports_only: false,
-    }
-  }
-}
-
-#[derive(Debug, JsonSchema, Deserialize, Default)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct Postcss {
-  #[serde(default)]
-  pub pxtorem: Option<PxToRem>,
-}
-
-#[derive(Debug, JsonSchema, Deserialize, Default)]
-#[serde(rename_all = "camelCase", deny_unknown_fields, default)]
-pub struct PxToRem {
-  pub root_value: Option<u32>,
-  pub unit_precision: Option<u32>,
-  pub selector_black_list: Option<Vec<String>>,
-  pub prop_list: Option<Vec<String>>,
-  pub replace: Option<bool>,
-  pub media_query: Option<bool>,
-  pub min_pixel_value: Option<f64>,
-}
-
-impl From<PxToRem> for PxToRemOptions {
-  fn from(value: PxToRem) -> Self {
-    Self {
-      root_value: value.root_value,
-      unit_precision: value.unit_precision,
-      selector_black_list: value.selector_black_list,
-      prop_list: value.prop_list,
-      replace: value.replace,
-      media_query: value.media_query,
-      min_pixel_value: value.min_pixel_value,
     }
   }
 }
@@ -296,7 +269,7 @@ pub enum ModuleRuleTest {
 #[derive(Debug, JsonSchema, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub struct ModuleRuleUse {
-  builtin_loader: String,
+  loader: String,
   options: Option<String>,
 }
 
@@ -317,6 +290,15 @@ impl From<PresetEnv> for rspack_core::PresetEnv {
       }),
       targets: preset_env.targets,
       core_js: preset_env.core_js,
+    }
+  }
+}
+
+impl From<ModuleRuleUse> for rspack_core::ModuleRuleUseLoader {
+  fn from(value: ModuleRuleUse) -> Self {
+    Self {
+      loader: value.loader,
+      options: value.options,
     }
   }
 }
@@ -356,29 +338,7 @@ impl TestConfig {
           }
         }),
         r#use: c::ModuleRuleUse::Array(
-          rule
-            .r#use
-            .into_iter()
-            .map(|i| match i.builtin_loader.as_str() {
-              "builtin:sass-loader" => Arc::new(rspack_loader_sass::SassLoader::new(
-                i.options
-                  .map(|options| {
-                    serde_json::from_str::<rspack_loader_sass::SassLoaderOptions>(&options)
-                      .expect("should give a right loader options")
-                  })
-                  .unwrap_or_default(),
-              )) as BoxLoader,
-              "builtin:swc-loader" => Arc::new(rspack_loader_swc::SwcLoader::new(
-                i.options
-                  .map(|options| {
-                    serde_json::from_str::<rspack_loader_swc::SwcLoaderJsOptions>(&options)
-                      .expect("should give a right loader options")
-                  })
-                  .unwrap_or_default(),
-              )) as BoxLoader,
-              _ => panic!("should give a right loader"),
-            })
-            .collect::<Vec<BoxLoader>>(),
+          rule.r#use.into_iter().map(|i| i.into()).collect::<Vec<_>>(),
         ),
         side_effects: rule.side_effect,
         r#type: rule
@@ -388,17 +348,12 @@ impl TestConfig {
       }
     }));
 
-    let targets = self
-      .builtins
-      .preset_env
-      .as_ref()
-      .map(|preset_env| preset_env.targets.clone())
-      .unwrap_or_default();
-
     assert!(context.is_absolute());
 
+    let root = c::Context::new(context.to_string_lossy().to_string());
+
     let options = CompilerOptions {
-      context: c::Context::new(context.to_string_lossy().to_string()),
+      context: root.clone(),
       output: c::OutputOptions {
         clean: self.output.clean,
         filename: c::Filename::from_str(&self.output.filename).expect("Should exist"),
@@ -458,23 +413,12 @@ impl TestConfig {
         ),
         ..Default::default()
       },
+      resolve_loader: c::Resolve::default(),
       builtins: c::Builtins {
         define: self.builtins.define,
         provide: self.builtins.provide,
         tree_shaking: self.builtins.tree_shaking.into(),
-        minify_options: self.builtins.minify_options.map(|op| c::Minification {
-          passes: op.passes,
-          drop_console: op.drop_console,
-          pure_funcs: op.pure_funcs,
-          extract_comments: op.extract_comments,
-          include: None,
-          exclude: None,
-          test: None,
-        }),
         preset_env: self.builtins.preset_env.map(Into::into),
-        code_generation: self.builtins.code_generation.map(|op| c::CodeGeneration {
-          keep_comments: op.keep_comments,
-        }),
         ..Default::default()
       },
       module: c::ModuleOptions {
@@ -496,16 +440,20 @@ impl TestConfig {
         remove_available_modules: self.optimization.remove_available_modules,
         remove_empty_chunks: self.optimization.remove_empty_chunks,
         side_effects: c::SideEffectOption::from(self.optimization.side_effects.as_str()),
+        provided_exports: self.optimization.provided_exports,
+        used_exports: c::UsedExportsOption::from(self.optimization.used_exports.as_str()),
       },
+      profile: false,
     };
     let mut plugins = Vec::new();
     for (name, desc) in &self.entry {
       for request in &desc.import {
         plugins.push(
           rspack_plugin_entry::EntryPlugin::new(
-            name.clone(),
+            root.clone(),
             request.to_owned(),
             rspack_core::EntryOptions {
+              name: Some(name.clone()),
               runtime: Some("runtime".to_string()),
               chunk_loading: None,
               async_chunks: Some(true),
@@ -522,15 +470,12 @@ impl TestConfig {
       plugins
         .push(rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin::new().boxed());
     }
+
     for html in self.builtins.html {
-      plugins.push(rspack_plugin_html::HtmlPlugin::new(html).boxed());
+      plugins.push(rspack_plugin_html::HtmlRspackPlugin::new(html).boxed());
     }
     plugins.push(
       rspack_plugin_css::CssPlugin::new(rspack_plugin_css::plugin::CssConfig {
-        targets,
-        postcss: rspack_plugin_css::plugin::PostcssConfig {
-          pxtorem: self.builtins.postcss.pxtorem.map(|i| i.into()),
-        },
         modules: rspack_plugin_css::plugin::ModulesConfig {
           locals_convention: rspack_plugin_css::plugin::LocalsConvention::from_str(
             &self.builtins.css.modules.locals_convention,
@@ -570,28 +515,37 @@ impl TestConfig {
     plugins.push(rspack_plugin_runtime::JsonpChunkLoadingPlugin {}.boxed());
     plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
     if options.dev_server.hot {
-      plugins.push(rspack_plugin_runtime::HotModuleReplacementPlugin {}.boxed());
+      plugins.push(rspack_plugin_hmr::HotModuleReplacementPlugin.boxed());
     }
     if options.experiments.lazy_compilation {
       plugins.push(rspack_plugin_runtime::LazyCompilationPlugin {}.boxed());
     }
     // plugins.push(rspack_plugin_externals::ExternalPlugin::default().boxed());
     plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
-    plugins.push(
-      rspack_plugin_devtool::DevtoolPlugin::new(rspack_plugin_devtool::DevtoolPluginOptions {
-        inline: options.devtool.inline(),
-        append: !options.devtool.hidden(),
-        namespace: options.output.unique_name.clone(),
-        columns: !options.devtool.cheap(),
-        no_sources: options.devtool.no_sources(),
-        public_path: None,
-      })
-      .boxed(),
-    );
+
+    if options.devtool.source_map() {
+      plugins.push(
+        rspack_plugin_devtool::DevtoolPlugin::new(rspack_plugin_devtool::DevtoolPluginOptions {
+          inline: options.devtool.inline(),
+          append: !options.devtool.hidden(),
+          namespace: options.output.unique_name.clone(),
+          columns: !options.devtool.cheap(),
+          no_sources: options.devtool.no_sources(),
+          public_path: None,
+        })
+        .boxed(),
+      );
+    }
+
     if self.optimization.module_ids == "named" {
       plugins.push(rspack_ids::NamedModuleIdsPlugin::default().boxed());
     } else {
       plugins.push(rspack_ids::DeterministicModuleIdsPlugin::default().boxed());
+    }
+    if self.optimization.chunk_ids == "named" {
+      plugins.push(rspack_ids::NamedChunkIdsPlugin::new(None, None).boxed());
+    } else {
+      plugins.push(rspack_ids::DeterministicChunkIdsPlugin::default().boxed());
     }
     plugins.push(rspack_ids::StableNamedChunkIdsPlugin::new(None, None).boxed());
     // Notice the plugin need to be placed after SplitChunksPlugin
@@ -602,7 +556,12 @@ impl TestConfig {
       plugins.push(rspack_plugin_wasm::FetchCompileAsyncWasmPlugin {}.boxed());
       plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
     }
-    plugins.push(rspack_plugin_externals::http_url_external_plugin(true));
+    plugins.push(rspack_plugin_externals::http_externals_rspack_plugin(
+      true, false,
+    ));
+
+    // Support resolving builtin loaders on the Native side
+    plugins.push(crate::loader::BuiltinLoaderResolver.boxed());
 
     (options, plugins)
   }

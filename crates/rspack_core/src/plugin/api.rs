@@ -35,7 +35,7 @@ pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
 pub type PluginProcessAssetsOutput = Result<()>;
 pub type PluginOptimizeChunksOutput = Result<()>;
 pub type PluginAdditionalChunkRuntimeRequirementsOutput = Result<()>;
-pub type PluginRenderModuleContentOutput = Result<Option<BoxSource>>;
+pub type PluginRenderModuleContentOutput<'a> = Result<RenderModuleContentArgs<'a>>;
 pub type PluginRenderStartupHookOutput = Result<Option<BoxSource>>;
 pub type PluginRenderHookOutput = Result<Option<BoxSource>>;
 pub type PluginJsChunkHashHookOutput = Result<()>;
@@ -46,7 +46,11 @@ pub trait Plugin: Debug + Send + Sync {
     "unknown"
   }
 
-  fn apply(&self, _ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
+  fn apply(
+    &self,
+    _ctx: PluginContext<&mut ApplyContext>,
+    _options: &mut CompilerOptions,
+  ) -> Result<()> {
     Ok(())
   }
 
@@ -185,12 +189,12 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   // JavascriptModulesPlugin hook
-  fn render_module_content(
-    &self,
+  fn render_module_content<'a>(
+    &'a self,
     _ctx: PluginContext,
-    _args: &RenderModuleContentArgs,
-  ) -> PluginRenderModuleContentOutput {
-    Ok(None)
+    args: RenderModuleContentArgs<'a>,
+  ) -> PluginRenderModuleContentOutput<'a> {
+    Ok(args)
   }
 
   // JavascriptModulesPlugin hook
@@ -234,14 +238,6 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn process_assets_stage_additions(
-    &self,
-    _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    Ok(())
-  }
-
   async fn process_assets_stage_pre_process(
     &self,
     _ctx: PluginContext,
@@ -250,7 +246,47 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn process_assets_stage_derived(
+    &self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  async fn process_assets_stage_additions(
+    &self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
   async fn process_assets_stage_none(
+    &self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  async fn process_assets_stage_optimize(
+    &self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  async fn process_assets_stage_optimize_count(
+    &self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  async fn process_assets_stage_optimize_compatibility(
     &self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,
@@ -298,6 +334,22 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn process_assets_stage_optimize_transfer(
+    &self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  async fn process_assets_stage_analyse(
+    &self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
   async fn process_assets_stage_report(
     &self,
     _ctx: PluginContext,
@@ -315,6 +367,14 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
+
+  async fn optimize_dependencies(&self, _compilation: &mut Compilation) -> Result<Option<()>> {
+    Ok(None)
+  }
+
+  async fn optimize_tree(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
 
@@ -347,6 +407,7 @@ pub trait Plugin: Debug + Send + Sync {
     _context: &Path,
     _resolver: &Resolver,
     _loader_request: &str,
+    _loader_options: Option<&str>,
   ) -> Result<Option<BoxLoader>> {
     Ok(None)
   }
@@ -409,20 +470,29 @@ impl<T: Plugin + 'static> PluginExt for T {
 
 #[derive(Debug, Clone)]
 pub struct RenderManifestEntry {
-  pub(crate) source: BoxSource,
+  pub source: BoxSource,
   filename: String,
-  pub(crate) info: AssetInfo,
+  pub info: AssetInfo,
   // pub identifier: String,
   // hash?: string;
-  // auxiliary?: boolean;
+  pub(crate) auxiliary: bool,
+  has_filename: bool, /* webpack only asset has filename, js/css/wasm has filename template */
 }
 
 impl RenderManifestEntry {
-  pub fn new(source: BoxSource, filename: String, info: AssetInfo) -> Self {
+  pub fn new(
+    source: BoxSource,
+    filename: String,
+    info: AssetInfo,
+    auxiliary: bool,
+    has_filename: bool,
+  ) -> Self {
     Self {
       source,
       filename,
       info,
+      auxiliary,
+      has_filename,
     }
   }
 
@@ -432,6 +502,10 @@ impl RenderManifestEntry {
 
   pub fn filename(&self) -> &str {
     &self.filename
+  }
+
+  pub fn has_filename(&self) -> bool {
+    self.has_filename
   }
 }
 

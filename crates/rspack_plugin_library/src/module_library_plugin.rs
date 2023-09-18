@@ -25,6 +25,14 @@ impl Plugin for ModuleLibraryPlugin {
     _ctx: PluginContext,
     args: &RenderStartupArgs,
   ) -> PluginRenderStartupHookOutput {
+    if args
+      .compilation
+      .chunk_graph
+      .get_number_of_entry_modules(args.chunk)
+      == 0
+    {
+      return Ok(None);
+    }
     let mut source = ConcatSource::default();
     source.add(args.source.clone());
     let mut exports = vec![];
@@ -57,6 +65,14 @@ impl Plugin for ModuleLibraryPlugin {
     _ctx: PluginContext,
     args: &mut JsChunkHashArgs,
   ) -> PluginJsChunkHashHookOutput {
+    if args
+      .compilation
+      .chunk_graph
+      .get_number_of_entry_modules(args.chunk_ukey)
+      == 0
+    {
+      return Ok(());
+    }
     self.name().hash(&mut args.hasher);
     args
       .compilation

@@ -1,7 +1,7 @@
 use rspack_core::{
-  ConstDependency, DependencyTemplate, ModuleDependency, ModuleIdentifier, SpanExt,
+  tree_shaking::symbol::DEFAULT_JS_WORD, BoxDependency, BoxDependencyTemplate, BuildInfo,
+  ConstDependency, SpanExt,
 };
-use rspack_symbol::DEFAULT_JS_WORD;
 use swc_core::{
   common::Spanned,
   ecma::{
@@ -9,7 +9,6 @@ use swc_core::{
       ClassDecl, Decl, DefaultDecl, ExportDecl, ExportDefaultDecl, ExportDefaultExpr,
       ExportSpecifier, FnDecl, Ident, ModuleExportName, NamedExport, Program,
     },
-    atoms::JsWord,
     utils::find_pat_ids,
     visit::{noop_visit_type, Visit, VisitWith},
   },
@@ -17,32 +16,29 @@ use swc_core::{
 
 use super::harmony_import_dependency_scanner::ImportMap;
 use crate::dependency::{
-  AnonymousFunctionRangeInfo, HarmonyExportHeaderDependency,
-  HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency,
-  HarmonyExpressionHeaderDependency, DEFAULT_EXPORT,
+  AnonymousFunctionRangeInfo, HarmonyExportExpressionDependency, HarmonyExportHeaderDependency,
+  HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency, DEFAULT_EXPORT,
 };
 
 pub struct HarmonyExportDependencyScanner<'a> {
-  pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-  pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
+  pub dependencies: &'a mut Vec<BoxDependency>,
+  pub presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
   pub import_map: &'a mut ImportMap,
-  pub exports: Vec<(JsWord, JsWord)>,
-  module_identifier: ModuleIdentifier,
+  pub build_info: &'a mut BuildInfo,
 }
 
 impl<'a> HarmonyExportDependencyScanner<'a> {
   pub fn new(
-    dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-    presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
+    dependencies: &'a mut Vec<BoxDependency>,
+    presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
     import_map: &'a mut ImportMap,
-    module_identifier: ModuleIdentifier,
+    build_info: &'a mut BuildInfo,
   ) -> Self {
     Self {
       dependencies,
       presentational_dependencies,
       import_map,
-      exports: Default::default(),
-      module_identifier,
+      build_info,
     }
   }
 }
@@ -52,26 +48,34 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
   fn visit_program(&mut self, program: &'_ Program) {
     program.visit_children_with(self);
-    if !self.exports.is_empty() {
-      self
-        .presentational_dependencies
-        .push(Box::new(HarmonyExportSpecifierDependency::new(
-          std::mem::take(&mut self.exports),
-        )));
-    }
   }
 
   fn visit_export_decl(&mut self, export_decl: &'_ ExportDecl) {
     match &export_decl.decl {
       Decl::Class(ClassDecl { ident, .. }) | Decl::Fn(FnDecl { ident, .. }) => {
-        self.exports.push((ident.sym.clone(), ident.sym.clone()));
+        self
+          .dependencies
+          .push(Box::new(HarmonyExportSpecifierDependency::new(
+            ident.sym.clone(),
+            ident.sym.clone(),
+          )));
+        self
+          .build_info
+          .harmony_named_exports
+          .insert(ident.sym.clone());
       }
       Decl::Var(v) => {
-        self.exports.extend(
-          find_pat_ids::<_, Ident>(&v.decls)
-            .into_iter()
-            .map(|ident| (ident.sym.clone(), ident.sym)),
-        );
+        find_pat_ids::<_, Ident>(&v.decls)
+          .into_iter()
+          .for_each(|ident| {
+            self
+              .dependencies
+              .push(Box::new(HarmonyExportSpecifierDependency::new(
+                ident.sym.clone(),
+                ident.sym.clone(),
+              )));
+            self.build_info.harmony_named_exports.insert(ident.sym);
+          });
       }
       _ => {}
     }
@@ -96,15 +100,21 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                 _ => unreachable!(),
               };
               if let Some(reference) = self.import_map.get(&orig.to_id()) {
-                self.presentational_dependencies.push(Box::new(
-                  HarmonyExportImportedSpecifierDependency::new(
+                self
+                  .dependencies
+                  .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
                     reference.request.clone(),
-                    vec![(export, reference.names.clone())],
-                    self.module_identifier,
-                  ),
-                ));
+                    vec![(export.clone(), reference.names.clone())],
+                    Some(export),
+                  )));
               } else {
-                self.exports.push((export, orig.sym.clone()));
+                self
+                  .dependencies
+                  .push(Box::new(HarmonyExportSpecifierDependency::new(
+                    export.clone(),
+                    orig.sym.clone(),
+                  )));
+                self.build_info.harmony_named_exports.insert(export);
               }
             }
           }
@@ -122,13 +132,17 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
   }
 
   fn visit_export_default_expr(&mut self, export_default_expr: &'_ ExportDefaultExpr) {
+    // TODO this should be at `HarmonyExportExpressionDependency`
     self
-      .exports
-      .push((DEFAULT_JS_WORD.clone(), DEFAULT_EXPORT.into()));
+      .dependencies
+      .push(Box::new(HarmonyExportSpecifierDependency::new(
+        DEFAULT_JS_WORD.clone(),
+        DEFAULT_EXPORT.into(),
+      )));
 
     self
       .presentational_dependencies
-      .push(Box::new(HarmonyExpressionHeaderDependency::new(
+      .push(Box::new(HarmonyExportExpressionDependency::new(
         export_default_expr.span().real_lo(),
         export_default_expr.expr.span().real_lo(),
         false,
@@ -143,17 +157,20 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
       _ => unreachable!(),
     };
 
-    self.exports.push((
-      DEFAULT_JS_WORD.clone(),
-      match &ident {
-        Some(ident) => ident.sym.clone(),
-        None => DEFAULT_EXPORT.into(),
-      },
-    ));
+    // TODO this should be at `HarmonyExportExpressionDependency`
+    self
+      .dependencies
+      .push(Box::new(HarmonyExportSpecifierDependency::new(
+        DEFAULT_JS_WORD.clone(),
+        match &ident {
+          Some(ident) => ident.sym.clone(),
+          None => DEFAULT_EXPORT.into(),
+        },
+      )));
 
     self
       .presentational_dependencies
-      .push(Box::new(HarmonyExpressionHeaderDependency::new(
+      .push(Box::new(HarmonyExportExpressionDependency::new(
         export_default_decl.span().real_lo(),
         export_default_decl.decl.span().real_lo(),
         ident.is_some(),

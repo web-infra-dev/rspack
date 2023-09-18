@@ -1,8 +1,14 @@
+pub mod api_plugin;
+mod flag_dependency_exports_plugin;
+mod flag_dependency_usage_plugin;
 pub mod impl_plugin_for_js_plugin;
 pub mod infer_async_modules_plugin;
+mod side_effects_flag_plugin;
 
 use std::hash::Hash;
 
+pub use flag_dependency_exports_plugin::*;
+pub use flag_dependency_usage_plugin::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
   ChunkUkey, Compilation, JsChunkHashArgs, PluginJsChunkHashHookOutput, RenderArgs,
@@ -10,9 +16,11 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
+pub use side_effects_flag_plugin::*;
 
 use crate::runtime::{
-  render_chunk_init_fragments, render_chunk_modules, render_runtime_modules, stringify_array,
+  render_chunk_init_fragments, render_chunk_modules, render_iife, render_runtime_modules,
+  stringify_array,
 };
 
 #[derive(Debug)]
@@ -309,7 +317,7 @@ impl JsPlugin {
       }
     }
     let mut final_source = if compilation.options.output.iife {
-      self.render_iife(sources.boxed())
+      render_iife(sources.boxed())
     } else {
       sources.boxed()
     };
@@ -329,8 +337,9 @@ impl JsPlugin {
     &self,
     args: &rspack_core::RenderManifestArgs<'_>,
   ) -> Result<BoxSource> {
+    let compilation = args.compilation;
     let (module_source, chunk_init_fragments) =
-      render_chunk_modules(args.compilation, &args.chunk_ukey)?;
+      render_chunk_modules(compilation, &args.chunk_ukey)?;
     let source = args
       .compilation
       .plugin_driver
@@ -342,7 +351,15 @@ impl JsPlugin {
       })
       .await?
       .expect("should run render_chunk hook");
-    Ok(render_chunk_init_fragments(source, chunk_init_fragments))
+    let final_source = render_chunk_init_fragments(source, chunk_init_fragments);
+    if let Some(source) = compilation.plugin_driver.render(RenderArgs {
+      compilation,
+      chunk: &args.chunk_ukey,
+      source: &final_source,
+    })? {
+      return Ok(source);
+    }
+    Ok(final_source)
   }
 
   #[inline]
@@ -373,14 +390,6 @@ impl JsPlugin {
     let (header, startup) = self.render_bootstrap(chunk_ukey, compilation);
     header.hash(hasher);
     startup.hash(hasher);
-  }
-
-  pub fn render_iife(&self, content: BoxSource) -> BoxSource {
-    let mut sources = ConcatSource::default();
-    sources.add(RawSource::from("(function() {\n"));
-    sources.add(content);
-    sources.add(RawSource::from("\n})()\n"));
-    sources.boxed()
   }
 }
 

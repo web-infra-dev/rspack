@@ -22,15 +22,15 @@ it("verify es6 (esmodule) bundle source map", async () => {
 	expect(
 		await checkMap(out, source, {
 			// *${id}* as the search key to aviod conflict with `Object.defineProperty(exports, ${id}, ...)`
-			["*a0*"]: "a.js",
-			["*a1*"]: "a.js",
-			["*a2*"]: "a.js",
-			["*b0*"]: "b-dir/b.js",
-			["*b1*"]: "b-dir/b.js",
-			["*b2*"]: "b-dir/b.js",
-			["*c0*"]: "b-dir/c-dir/c.js",
-			["*c1*"]: "b-dir/c-dir/c.js",
-			["*c2*"]: "b-dir/c-dir/c.js"
+			['"*a0*"']: "a.js",
+			['"*a1*"']: "a.js",
+			['"*a2*"']: "a.js",
+			['"*b0*"']: "b-dir/b.js",
+			['"*b1*"']: "b-dir/b.js",
+			['"*b2*"']: "b-dir/b.js",
+			['"*c0*"']: "b-dir/c-dir/c.js",
+			['"*c1*"']: "b-dir/c-dir/c.js",
+			['"*c2*"']: "b-dir/c-dir/c.js"
 		})
 	).toBe(true);
 });

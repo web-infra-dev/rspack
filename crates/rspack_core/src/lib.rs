@@ -4,10 +4,15 @@
 #![feature(anonymous_lifetime_in_impl_trait)]
 
 use std::{fmt, sync::Arc};
-
+mod fake_namespace_object;
+pub use fake_namespace_object::*;
+mod module_profile;
+pub use module_profile::*;
 use rspack_database::Database;
 pub mod external_module;
 pub use external_module::*;
+mod logger;
+pub use logger::*;
 pub mod ast;
 pub mod cache;
 mod missing_module;
@@ -15,6 +20,8 @@ pub use missing_module::*;
 mod normal_module;
 mod raw_module;
 pub use raw_module::*;
+mod exports_info;
+pub use exports_info::*;
 pub mod module;
 pub mod parser_and_generator;
 pub use module::*;
@@ -69,9 +76,11 @@ mod ukey;
 pub use ukey::*;
 mod module_graph_module;
 pub use module_graph_module::*;
+pub mod resolver;
+pub use resolver::*;
 pub mod tree_shaking;
 
-pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme};
+pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme, BUILTIN_LOADER_PREFIX};
 pub use rspack_sources;
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -156,6 +165,11 @@ impl ModuleType {
     )
   }
 
+  /// Webpack arbitrary determines the binary type from [NormalModule.binary](https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/NormalModule.js#L302)
+  pub fn is_binary(&self) -> bool {
+    self.is_asset_like() || self.is_wasm_like()
+  }
+
   pub fn as_str(&self) -> &str {
     match self {
       ModuleType::Js => "javascript/auto",
@@ -203,10 +217,12 @@ impl TryFrom<&str> for ModuleType {
       "js/dynamic" | "javascript/dynamic" => Ok(Self::JsDynamic),
       "js/esm" | "javascript/esm" => Ok(Self::JsEsm),
 
+      // TODO: remove in 0.5.0
       "jsx" | "javascriptx" | "jsx/auto" | "javascriptx/auto" => Ok(Self::Jsx),
       "jsx/dynamic" | "javascriptx/dynamic" => Ok(Self::JsxDynamic),
       "jsx/esm" | "javascriptx/esm" => Ok(Self::JsxEsm),
 
+      // TODO: remove in 0.5.0
       "ts" | "typescript" => Ok(Self::Ts),
       "tsx" | "typescriptx" => Ok(Self::Tsx),
 

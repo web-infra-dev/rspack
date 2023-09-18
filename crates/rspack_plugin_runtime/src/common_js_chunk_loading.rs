@@ -4,7 +4,6 @@ use rspack_core::{
   PluginContext, RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_core::{ChunkLoading, ChunkLoadingType};
-use rspack_error::Result;
 
 use crate::runtime_module::RequireChunkLoadingRuntimeModule;
 use crate::runtime_module::{is_enabled_for_chunk, ReadFileChunkLoadingRuntimeModule};
@@ -26,10 +25,6 @@ impl CommonJsChunkLoadingPlugin {
 impl Plugin for CommonJsChunkLoadingPlugin {
   fn name(&self) -> &'static str {
     "CommonJsChunkLoadingPlugin"
-  }
-
-  fn apply(&self, _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
-    Ok(())
   }
 
   fn runtime_requirements_in_tree(

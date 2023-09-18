@@ -1,7 +1,8 @@
 use rspack_core::{
-  module_namespace_promise, ChunkGroupOptions, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, TemplateContext,
-  TemplateReplaceSource,
+  module_namespace_promise, ChunkGroupOptions, ChunkGroupOptionsKindRef, Dependency,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ExtendedReferencedExport, ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -12,6 +13,7 @@ pub struct ImportDependency {
   id: DependencyId,
   request: JsWord,
   span: Option<ErrorSpan>,
+  referenced_exports: Option<Vec<JsWord>>,
   /// This is used to implement `webpackChunkName`, `webpackPrefetch` etc.
   /// for example: `import(/* webpackChunkName: "my-chunk-name", webpackPrefetch: true */ './module')`
   pub group_options: ChunkGroupOptions,
@@ -24,6 +26,7 @@ impl ImportDependency {
     request: JsWord,
     span: Option<ErrorSpan>,
     group_options: ChunkGroupOptions,
+    referenced_exports: Option<Vec<JsWord>>,
   ) -> Self {
     Self {
       start,
@@ -31,12 +34,17 @@ impl ImportDependency {
       request,
       span,
       id: DependencyId::new(),
+      referenced_exports,
       group_options,
     }
   }
 }
 
 impl Dependency for ImportDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -47,10 +55,6 @@ impl Dependency for ImportDependency {
 }
 
 impl ModuleDependency for ImportDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -63,16 +67,24 @@ impl ModuleDependency for ImportDependency {
     self.span.as_ref()
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
-  }
-
-  fn group_options(&self) -> Option<&ChunkGroupOptions> {
-    Some(&self.group_options)
+  fn group_options(&self) -> Option<ChunkGroupOptionsKindRef> {
+    Some(ChunkGroupOptionsKindRef::Normal(&self.group_options))
   }
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
+  }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    if let Some(referenced_exports) = &self.referenced_exports {
+      vec![ReferencedExport::new(referenced_exports.clone(), false).into()]
+    } else {
+      vec![ExtendedReferencedExport::Array(vec![])]
+    }
   }
 }
 

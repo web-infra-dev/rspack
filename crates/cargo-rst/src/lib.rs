@@ -6,6 +6,7 @@ pub mod rst;
 mod terminal_inline;
 mod update;
 pub use rst::test;
+pub use terminal_inline::*;
 pub use update::update;
 
 // #[derive(FromArgs)]

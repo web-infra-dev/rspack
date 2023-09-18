@@ -1,8 +1,10 @@
+use once_cell::sync::Lazy;
+use regex::Regex;
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  Compilation, DependencyId, ExportsType, InitFragment, InitFragmentStage, ModuleGraph,
-  ModuleIdentifier, RuntimeGlobals, TemplateContext,
+  Compilation, DependencyId, ExportsType, FakeNamespaceObjectMode, InitFragmentStage, ModuleGraph,
+  ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext,
 };
 
 pub fn export_from_import(
@@ -12,6 +14,7 @@ pub fn export_from_import(
   mut export_name: Vec<JsWord>,
   id: &DependencyId,
   is_call: bool,
+  call_context: bool,
 ) -> String {
   let TemplateContext {
     runtime_requirements,
@@ -44,13 +47,13 @@ pub fn export_from_import(
         }
       } else if matches!(exports_type, ExportsType::DefaultOnly | ExportsType::DefaultWithNamed) {
         runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
-        init_fragments.push(InitFragment::new(
+        init_fragments.push(Box::new(NormalInitFragment::new(
           format!(
             "var {import_var}_namespace_cache;\n",
           ),
-          InitFragmentStage::STAGE_HARMONY_EXPORTS,
+          InitFragmentStage::StageHarmonyExports,
           None,
-        ));
+        )));
         return format!("/*#__PURE__*/ ({import_var}_namespace_cache || ({import_var}_namespace_cache = {}({import_var}{})))", RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT, if matches!(exports_type, ExportsType::DefaultOnly) { "" } else { ", 2" });
       }
   }
@@ -58,7 +61,7 @@ pub fn export_from_import(
   if !export_name.is_empty() {
     // TODO check used
     let access = format!("{import_var}{}", property_access(&export_name, 0));
-    if is_call {
+    if is_call && !call_context {
       return format!("(0, {access})");
     }
     access
@@ -85,11 +88,78 @@ pub fn get_exports_type(
     .get_exports_type(strict)
 }
 
+pub fn get_exports_type_with_strict(
+  module_graph: &ModuleGraph,
+  id: &DependencyId,
+  strict: bool,
+) -> ExportsType {
+  let module = module_graph
+    .module_identifier_by_dependency_id(id)
+    .expect("should have module");
+  module_graph
+    .module_graph_module_by_identifier(module)
+    .expect("should have mgm")
+    .get_exports_type(strict)
+}
+
+static SAFE_IDENTIFIER_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^[_a-zA-Z$][_a-zA-Z$0-9]*$").expect("should init regex"));
+const RESERVED_IDENTIFIER: [&str; 37] = [
+  "break",
+  "case",
+  "catch",
+  "class",
+  "const",
+  "continue",
+  "debugger",
+  "default",
+  "delete",
+  "do",
+  "else",
+  "enum",
+  "export",
+  "extends",
+  "false",
+  "finally",
+  "for",
+  "function",
+  "if",
+  "import",
+  "in",
+  "instanceof",
+  "new",
+  "null",
+  "package",
+  "return",
+  "super",
+  "switch",
+  "this",
+  "throw",
+  "true",
+  "try",
+  "typeof",
+  "var",
+  "void",
+  "while",
+  "with",
+];
+
 fn property_access(o: &Vec<JsWord>, mut start: usize) -> String {
   let mut str = String::default();
   while start < o.len() {
     let property = &o[start];
-    str.push_str(format!(r#"["{property}"]"#).as_str());
+    if SAFE_IDENTIFIER_REGEX.is_match(property) && !RESERVED_IDENTIFIER.contains(&property.as_ref())
+    {
+      str.push_str(format!(".{property}").as_str());
+    } else {
+      str.push_str(
+        format!(
+          "[{}]",
+          serde_json::to_string(property).expect("should render property")
+        )
+        .as_str(),
+      );
+    }
     start += 1;
   }
   str
@@ -189,7 +259,7 @@ pub fn module_namespace_promise(
   } else {
     None
   };
-  let mut fake_type = 16;
+  let mut fake_type = FakeNamespaceObjectMode::PROMISE_LIKE;
   let mut appending;
   match exports_type {
     ExportsType::Namespace => {
@@ -206,10 +276,10 @@ pub fn module_namespace_promise(
     }
     _ => {
       if matches!(exports_type, ExportsType::Dynamic) {
-        fake_type |= 4;
+        fake_type |= FakeNamespaceObjectMode::RETURN_VALUE;
       }
       if matches!(exports_type, ExportsType::DefaultWithNamed) {
-        fake_type |= 2;
+        fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
       }
       runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
       if compilation.module_graph.is_async(&module.identifier()) {
@@ -231,7 +301,7 @@ pub fn module_namespace_promise(
           .as_str(),
         );
       } else {
-        fake_type |= 1;
+        fake_type |= FakeNamespaceObjectMode::MODULE_ID;
         if let Some(header) = header {
           let expr = format!(
             "{}({module_id_expr}, {fake_type}))",

@@ -3,7 +3,6 @@ import * as core from "@actions/core";
 import * as path from "path";
 import { fileURLToPath } from "url";
 
-
 const __filename = path.resolve(fileURLToPath(import.meta.url));
 const __dirname = path.dirname(__filename);
 
@@ -18,7 +17,7 @@ export async function publish_handler(mode, options) {
 
 		fs.writeFileSync(
 			npmrcPath,
-			`//registry.npmjs.org/:_authToken=${process.env.NPM_TOKEN}`,
+			`//registry.npmjs.org/:_authToken=${process.env.NPM_TOKEN}`
 		);
 	}
 	await $`pnpm publish -r ${options.dryRun ? "--dry-run" : ""} --tag ${
@@ -39,7 +38,7 @@ export async function publish_handler(mode, options) {
 		await $`git config --global user.email "github-actions[bot]@users.noreply.github.com"`;
 		console.info("git commit all...");
 		await $`git status`;
-		await $`git tag ${version} -m ${version} `;
+		await $`git tag v${version} -m v${version} `;
 		await $`git push origin --follow-tags`;
 	}
 }

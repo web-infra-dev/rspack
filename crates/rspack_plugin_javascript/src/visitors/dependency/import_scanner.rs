@@ -1,6 +1,7 @@
 use once_cell::sync::Lazy;
 use rspack_core::{
-  ChunkGroupOptions, ContextMode, ContextOptions, DependencyCategory, ModuleDependency, SpanExt,
+  BoxDependency, BuildMeta, ChunkGroupOptions, ContextMode, ContextNameSpaceObject, ContextOptions,
+  DependencyCategory, SpanExt,
 };
 use rspack_regex::RspackRegex;
 use swc_core::{
@@ -16,18 +17,21 @@ use super::context_helper::scanner_context_module;
 use crate::dependency::{ImportContextDependency, ImportDependency};
 
 pub struct ImportScanner<'a> {
-  pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+  pub dependencies: &'a mut Vec<BoxDependency>,
   pub comments: Option<&'a dyn Comments>,
+  pub build_meta: &'a BuildMeta,
 }
 
 impl<'a> ImportScanner<'a> {
   pub fn new(
-    dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+    dependencies: &'a mut Vec<BoxDependency>,
     comments: Option<&'a dyn Comments>,
+    build_meta: &'a BuildMeta,
   ) -> Self {
     Self {
       dependencies,
       comments,
+      build_meta,
     }
   }
 
@@ -79,6 +83,8 @@ impl Visit for ImportScanner<'_> {
                 imported.value.clone(),
                 Some(node.span.into()),
                 ChunkGroupOptions::default().name_optional(chunk_name),
+                // TODO scan dynamic import referenced exports
+                None,
               )));
             }
             Expr::Tpl(tpl) if tpl.quasis.len() == 1 => {
@@ -97,6 +103,7 @@ impl Visit for ImportScanner<'_> {
                 request,
                 Some(node.span.into()),
                 ChunkGroupOptions::default().name_optional(chunk_name),
+                None,
               )));
             }
             _ => {
@@ -116,6 +123,11 @@ impl Visit for ImportScanner<'_> {
                       exclude: None,
                       category: DependencyCategory::Esm,
                       request: context,
+                      namespace_object: if self.build_meta.strict_harmony_module {
+                        ContextNameSpaceObject::Strict
+                      } else {
+                        ContextNameSpaceObject::Bool(true)
+                      },
                     },
                     Some(node.span.into()),
                   )));

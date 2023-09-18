@@ -76,7 +76,7 @@
         "html": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/HtmlPluginConfig"
+            "$ref": "#/definitions/HtmlRspackPluginOptions"
           }
         },
         "minifyOptions": {
@@ -88,9 +88,6 @@
               "type": "null"
             }
           ]
-        },
-        "postcss": {
-          "$ref": "#/definitions/Postcss"
         },
         "presetEnv": {
           "anyOf": [
@@ -113,8 +110,8 @@
           }
         },
         "treeShaking": {
-          "default": false,
-          "type": "boolean"
+          "default": "false",
+          "type": "string"
         }
       },
       "additionalProperties": false
@@ -172,7 +169,15 @@
       },
       "additionalProperties": false
     },
-    "HtmlPluginConfig": {
+    "HtmlInject": {
+      "type": "string",
+      "enum": [
+        "head",
+        "body",
+        "false"
+      ]
+    },
+    "HtmlRspackPluginOptions": {
       "type": "object",
       "properties": {
         "chunks": {
@@ -206,13 +211,10 @@
           "type": "string"
         },
         "inject": {
-          "description": "`head`, `body` or None",
-          "anyOf": [
+          "description": "`head`, `body`, `false`",
+          "allOf": [
             {
-              "$ref": "#/definitions/HtmlPluginConfigInject"
-            },
-            {
-              "type": "null"
+              "$ref": "#/definitions/HtmlInject"
             }
           ]
         },
@@ -243,7 +245,7 @@
           "description": "`blocking`, `defer`, or `module`",
           "allOf": [
             {
-              "$ref": "#/definitions/HtmlPluginConfigScriptLoading"
+              "$ref": "#/definitions/HtmlScriptLoading"
             }
           ]
         },
@@ -289,14 +291,7 @@
       },
       "additionalProperties": false
     },
-    "HtmlPluginConfigInject": {
-      "type": "string",
-      "enum": [
-        "head",
-        "body"
-      ]
-    },
-    "HtmlPluginConfigScriptLoading": {
+    "HtmlScriptLoading": {
       "type": "string",
       "enum": [
         "blocking",
@@ -407,10 +402,10 @@
     "ModuleRuleUse": {
       "type": "object",
       "required": [
-        "builtinLoader"
+        "loader"
       ],
       "properties": {
-        "builtinLoader": {
+        "loader": {
           "type": "string"
         },
         "options": {
@@ -443,15 +438,31 @@
     "Optimization": {
       "type": "object",
       "properties": {
+        "chunkIds": {
+          "default": "named",
+          "type": "string"
+        },
         "moduleIds": {
           "default": "named",
           "type": "string"
+        },
+        "providedExports": {
+          "default": true,
+          "type": "boolean"
         },
         "removeAvailableModules": {
           "default": true,
           "type": "boolean"
         },
+        "removeEmptyChunks": {
+          "default": true,
+          "type": "boolean"
+        },
         "sideEffects": {
+          "default": "false",
+          "type": "string"
+        },
+        "usedExports": {
           "default": "false",
           "type": "string"
         }
@@ -462,7 +473,7 @@
       "type": "object",
       "properties": {
         "chunkFilename": {
-          "default": "[name][ext]",
+          "default": "[name].js",
           "type": "string"
         },
         "clean": {
@@ -470,15 +481,15 @@
           "type": "boolean"
         },
         "cssChunkFilename": {
-          "default": "[name][ext]",
+          "default": "[name].css",
           "type": "string"
         },
         "cssFilename": {
-          "default": "[name][ext]",
+          "default": "[name].css",
           "type": "string"
         },
         "filename": {
-          "default": "[name][ext]",
+          "default": "[name].js",
           "type": "string"
         },
         "library": {
@@ -496,24 +507,8 @@
           "type": "string"
         },
         "sourceMapFilename": {
-          "default": "[name][ext]",
+          "default": "[file].map",
           "type": "string"
-        }
-      },
-      "additionalProperties": false
-    },
-    "Postcss": {
-      "type": "object",
-      "properties": {
-        "pxtorem": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/PxToRem"
-            },
-            {
-              "type": "null"
-            }
-          ]
         }
       },
       "additionalProperties": false
@@ -541,72 +536,6 @@
           "items": {
             "type": "string"
           }
-        }
-      },
-      "additionalProperties": false
-    },
-    "PxToRem": {
-      "type": "object",
-      "properties": {
-        "mediaQuery": {
-          "default": null,
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "minPixelValue": {
-          "default": null,
-          "type": [
-            "number",
-            "null"
-          ],
-          "format": "double"
-        },
-        "propList": {
-          "default": null,
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "string"
-          }
-        },
-        "replace": {
-          "default": null,
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "rootValue": {
-          "default": null,
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "uint32",
-          "minimum": 0.0
-        },
-        "selectorBlackList": {
-          "default": null,
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "string"
-          }
-        },
-        "unitPrecision": {
-          "default": null,
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "uint32",
-          "minimum": 0.0
         }
       },
       "additionalProperties": false

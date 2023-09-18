@@ -3,6 +3,7 @@ import { RspackDevServer } from "@rspack/dev-server";
 import { RspackCommand } from "../types";
 import { commonOptions } from "../utils/options";
 import { Compiler, DevServer } from "@rspack/core";
+
 export class ServeCommand implements RspackCommand {
 	async apply(cli: RspackCLI): Promise<void> {
 		cli.program.command(
@@ -17,6 +18,7 @@ export class ServeCommand implements RspackCommand {
 					}
 				};
 				const compiler = await cli.createCompiler(rspackOptions, "serve");
+				if (!compiler) return;
 				const compilers = cli.isMultipleCompiler(compiler)
 					? compiler.compilers
 					: [compiler];

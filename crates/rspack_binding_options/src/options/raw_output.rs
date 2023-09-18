@@ -1,12 +1,10 @@
 use napi_derive::napi;
 use rspack_core::{
   to_identifier, BoxPlugin, CrossOriginLoading, LibraryAuxiliaryComment, LibraryName,
-  LibraryOptions, OutputOptions, PluginExt, TrustedTypes,
+  LibraryOptions, OutputOptions, TrustedTypes,
 };
-use rspack_error::internal_error;
 use serde::Deserialize;
 
-use crate::JsLoaderRunner;
 use crate::RawOptionsApply;
 
 #[derive(Debug, Deserialize)]
@@ -139,7 +137,6 @@ pub struct RawOutputOptions {
   pub import_function_name: String,
   pub iife: bool,
   pub module: bool,
-  pub chunk_format: String,
   pub chunk_loading: String,
   pub enabled_chunk_loading_types: Option<Vec<String>>,
   pub trusted_types: Option<RawTrustedTypes>,
@@ -156,27 +153,7 @@ pub struct RawOutputOptions {
 
 impl RawOptionsApply for RawOutputOptions {
   type Options = OutputOptions;
-  fn apply(
-    self,
-    plugins: &mut Vec<BoxPlugin>,
-    _: &JsLoaderRunner,
-  ) -> Result<OutputOptions, rspack_error::Error> {
-    self.apply_chunk_format_plugin(plugins)?;
-    if let Some(chunk_loading_types) = self.enabled_chunk_loading_types.as_ref() {
-      for chunk_loading_type in chunk_loading_types {
-        rspack_plugin_runtime::enable_chunk_loading_plugin(
-          chunk_loading_type.as_str().into(),
-          plugins,
-        );
-      }
-    }
-    self.apply_library_plugin(plugins);
-    for wasm_loading_type in self.enabled_wasm_loading_types {
-      plugins.push(rspack_plugin_wasm::enable_wasm_loading_plugin(
-        wasm_loading_type.as_str().into(),
-      ));
-    }
-
+  fn apply(self, _: &mut Vec<BoxPlugin>) -> Result<OutputOptions, rspack_error::Error> {
     Ok(OutputOptions {
       path: self.path.into(),
       clean: self.clean,
@@ -212,167 +189,5 @@ impl RawOptionsApply for RawOutputOptions {
       worker_wasm_loading: self.worker_wasm_loading.as_str().into(),
       worker_public_path: self.worker_public_path,
     })
-  }
-}
-
-impl RawOutputOptions {
-  fn apply_chunk_format_plugin(
-    &self,
-    plugins: &mut Vec<BoxPlugin>,
-  ) -> Result<(), rspack_error::Error> {
-    match self.chunk_format.as_str() {
-      "array-push" => {
-        plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {}.boxed());
-      }
-      "commonjs" => plugins.push(rspack_plugin_runtime::CommonJsChunkFormatPlugin {}.boxed()),
-      "module" => {
-        plugins.push(rspack_plugin_runtime::ModuleChunkFormatPlugin {}.boxed());
-      }
-      "false" => {}
-      _ => {
-        return Err(internal_error!(
-          "Unsupported chunk format '{}'",
-          self.chunk_format
-        ))
-      }
-    }
-    Ok(())
-  }
-
-  fn apply_library_plugin(&self, plugins: &mut Vec<BoxPlugin>) {
-    if let Some(enabled_library_types) = &self.enabled_library_types {
-      for library in enabled_library_types {
-        match library.as_str() {
-          "var" => {
-            plugins.push(
-              rspack_plugin_library::AssignLibraryPlugin::new(
-                rspack_plugin_library::AssignLibraryPluginOptions {
-                  library_type: library.clone(),
-                  prefix: vec![],
-                  declare: true,
-                  unnamed: rspack_plugin_library::Unnamed::Error,
-                  named: None,
-                },
-              )
-              .boxed(),
-            );
-          }
-          "assign-properties" => {
-            plugins.push(
-              rspack_plugin_library::AssignLibraryPlugin::new(
-                rspack_plugin_library::AssignLibraryPluginOptions {
-                  library_type: library.clone(),
-                  prefix: vec![],
-                  declare: false,
-                  unnamed: rspack_plugin_library::Unnamed::Error,
-                  named: Some(rspack_plugin_library::Named::Copy),
-                },
-              )
-              .boxed(),
-            );
-          }
-          "assign" => {
-            plugins.push(
-              rspack_plugin_library::AssignLibraryPlugin::new(
-                rspack_plugin_library::AssignLibraryPluginOptions {
-                  library_type: library.clone(),
-                  prefix: vec![],
-                  declare: false,
-                  unnamed: rspack_plugin_library::Unnamed::Error,
-                  named: None,
-                },
-              )
-              .boxed(),
-            );
-          }
-          "this" | "window" | "self" => {
-            plugins.push(
-              rspack_plugin_library::AssignLibraryPlugin::new(
-                rspack_plugin_library::AssignLibraryPluginOptions {
-                  library_type: library.clone(),
-                  prefix: vec![library.to_string()],
-                  declare: false,
-                  unnamed: rspack_plugin_library::Unnamed::Copy,
-                  named: None,
-                },
-              )
-              .boxed(),
-            );
-          }
-          "global" => {
-            plugins.push(
-              rspack_plugin_library::AssignLibraryPlugin::new(
-                rspack_plugin_library::AssignLibraryPluginOptions {
-                  library_type: library.clone(),
-                  prefix: vec![self.global_object.clone()],
-                  declare: false,
-                  unnamed: rspack_plugin_library::Unnamed::Copy,
-                  named: None,
-                },
-              )
-              .boxed(),
-            );
-          }
-          "commonjs" => {
-            plugins.push(
-              rspack_plugin_library::AssignLibraryPlugin::new(
-                rspack_plugin_library::AssignLibraryPluginOptions {
-                  library_type: library.clone(),
-                  prefix: vec!["exports".to_string()],
-                  declare: false,
-                  unnamed: rspack_plugin_library::Unnamed::Copy,
-                  named: None,
-                },
-              )
-              .boxed(),
-            );
-          }
-          "commonjs-static" => {
-            plugins.push(
-              rspack_plugin_library::AssignLibraryPlugin::new(
-                rspack_plugin_library::AssignLibraryPluginOptions {
-                  library_type: library.clone(),
-                  prefix: vec!["exports".to_string()],
-                  declare: false,
-                  unnamed: rspack_plugin_library::Unnamed::Static,
-                  named: None,
-                },
-              )
-              .boxed(),
-            );
-          }
-          "commonjs2" | "commonjs-module" => {
-            plugins.push(
-              rspack_plugin_library::AssignLibraryPlugin::new(
-                rspack_plugin_library::AssignLibraryPluginOptions {
-                  library_type: library.clone(),
-                  prefix: vec!["module".to_string(), "exports".to_string()],
-                  declare: false,
-                  unnamed: rspack_plugin_library::Unnamed::Assign,
-                  named: None,
-                },
-              )
-              .boxed(),
-            );
-          }
-          "umd" | "umd2" => {
-            plugins.push(rspack_plugin_library::ExportPropertyLibraryPlugin::default().boxed());
-            plugins.push(rspack_plugin_library::UmdLibraryPlugin::new("umd2".eq(library)).boxed());
-          }
-          "amd" | "amd-require" => {
-            plugins.push(rspack_plugin_library::ExportPropertyLibraryPlugin::default().boxed());
-            plugins.push(
-              rspack_plugin_library::AmdLibraryPlugin::new("amd-require".eq(library)).boxed(),
-            );
-          }
-          "module" => {
-            plugins.push(rspack_plugin_library::ExportPropertyLibraryPlugin::default().boxed());
-            plugins.push(rspack_plugin_library::ModuleLibraryPlugin::default().boxed());
-          }
-          "system" => plugins.push(rspack_plugin_library::SystemLibraryPlugin::default().boxed()),
-          _ => {}
-        }
-      }
-    }
   }
 }

@@ -1,8 +1,7 @@
+use std::fmt::Display;
+
 use itertools::Itertools;
 use rustc_hash::FxHashMap as HashMap;
-
-mod hooks;
-pub use hooks::*;
 
 mod identifier;
 pub use identifier::*;
@@ -27,6 +26,9 @@ pub use queue::*;
 
 mod find_graph_roots;
 pub use find_graph_roots::*;
+
+mod visitor;
+pub use visitor::*;
 
 pub fn parse_to_url(url: &str) -> url::Url {
   if !url.contains(':') {
@@ -74,7 +76,7 @@ pub fn join_string_component(mut components: Vec<String>) -> String {
   }
 }
 
-pub fn stringify_map(map: &HashMap<String, String>) -> String {
+pub fn stringify_map<T: Display>(map: &HashMap<String, T>) -> String {
   format!(
     r#"{{{}}}"#,
     map.keys().sorted().fold(String::new(), |prev, cur| {

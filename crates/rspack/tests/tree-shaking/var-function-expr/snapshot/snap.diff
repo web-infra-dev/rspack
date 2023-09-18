@@ -1,0 +1,19 @@
+--- expected
++++ actual
+@@ -15,7 +15,7 @@
+     _lib__WEBPACK_IMPORTED_MODULE_0_.result;
+ };
+  var app2 = ()=>{
+-    /* "./lib" unused */null;
++    _lib__WEBPACK_IMPORTED_MODULE_0_.secret;
+ };
+  var app4 = (0, _lib__WEBPACK_IMPORTED_MODULE_0_.something)('app4'), app5 = 10000;
+  var app3 = (0, _lib__WEBPACK_IMPORTED_MODULE_0_.something)('app3');
+@@ -31,6 +31,7 @@
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
++  'secret': function() { return secret; },
+   'result': function() { return result; },
+   'something': function() { return something; }
+ });

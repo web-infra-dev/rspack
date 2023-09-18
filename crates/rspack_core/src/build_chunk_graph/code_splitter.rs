@@ -7,14 +7,14 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
 use crate::{
-  ChunkGroup, ChunkGroupInfo, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading,
-  ChunkUkey, Compilation, ModuleIdentifier, RuntimeSpec,
+  ChunkGroup, ChunkGroupInfo, ChunkGroupKind, ChunkGroupOptions, ChunkGroupOptionsKindRef,
+  ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, Logger, ModuleIdentifier, RuntimeSpec,
 };
 
 pub(super) struct CodeSplitter<'me> {
   pub(super) compilation: &'me mut Compilation,
-  next_free_module_pre_order_index: usize,
-  next_free_module_post_order_index: usize,
+  next_free_module_pre_order_index: u32,
+  next_free_module_post_order_index: u32,
   queue: Vec<QueueItem>,
   queue_delayed: Vec<QueueItem>,
   split_point_modules: IdentifierSet,
@@ -47,7 +47,11 @@ impl<'me> CodeSplitter<'me> {
 
     for (name, entry_data) in &compilation.entries {
       let options = &entry_data.options;
-      let dependencies = &entry_data.dependencies;
+      let dependencies = [
+        compilation.global_entry.dependencies.clone(),
+        entry_data.dependencies.clone(),
+      ]
+      .concat();
       let module_identifiers = dependencies
         .iter()
         .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
@@ -69,13 +73,10 @@ impl<'me> CodeSplitter<'me> {
       compilation.chunk_graph.add_chunk(chunk.ukey);
 
       let mut entrypoint = ChunkGroup::new(
-        ChunkGroupKind::new_entrypoint(true),
+        ChunkGroupKind::new_entrypoint(true, options.clone()),
         HashSet::from_iter([Arc::from(
           options.runtime.clone().unwrap_or_else(|| name.to_string()),
         )]),
-        ChunkGroupOptions::default()
-          .name(name)
-          .entry_options(options.clone()),
         ChunkGroupInfo {
           chunk_loading: !matches!(
             options
@@ -169,7 +170,10 @@ impl<'me> CodeSplitter<'me> {
 
   #[tracing::instrument(skip_all)]
   pub fn split(mut self) -> Result<()> {
+    let logger = self.compilation.get_logger("rspack.buildChunkGraph");
+    let start = logger.time("prepare entrypoints");
     let input_entrypoints_and_modules = self.prepare_input_entrypoints_and_modules()?;
+    logger.time_end(start);
 
     for (chunk_group, modules) in input_entrypoints_and_modules {
       let chunk_group = self
@@ -197,15 +201,16 @@ impl<'me> CodeSplitter<'me> {
     }
     self.queue.reverse();
 
-    tracing::trace!("--- process_queue start ---");
+    let start = logger.time("process queue");
     while !self.queue.is_empty() || !self.queue_delayed.is_empty() {
       self.process_queue();
       if self.queue.is_empty() {
         self.queue = std::mem::take(&mut self.queue_delayed);
       }
     }
-    tracing::trace!("--- process_queue end ---");
+    logger.time_end(start);
 
+    let start = logger.time("extend chunkGroup runtime");
     for chunk_group in self.compilation.chunk_group_by_ukey.values() {
       for chunk_ukey in chunk_group.chunks.iter() {
         self
@@ -217,7 +222,9 @@ impl<'me> CodeSplitter<'me> {
           });
       }
     }
+    logger.time_end(start);
 
+    let start = logger.time("remove parent modules");
     if self
       .compilation
       .options
@@ -226,6 +233,7 @@ impl<'me> CodeSplitter<'me> {
     {
       self.remove_parent_modules();
     }
+    logger.time_end(start);
 
     // make sure all module (weak dependency particularly) has a mgm
     for module_identifier in self.compilation.module_graph.modules().keys() {
@@ -421,7 +429,7 @@ impl<'me> CodeSplitter<'me> {
         self.split_point_modules.insert(*module_identifier);
       }
 
-      let chunk = if let Some(chunk_name) = group_options.and_then(|x| x.name.as_deref()) {
+      let chunk = if let Some(chunk_name) = group_options.as_ref().and_then(|x| x.name()) {
         Compilation::add_named_chunk(
           chunk_name.to_string(),
           &mut self.compilation.chunk_by_ukey,
@@ -441,7 +449,7 @@ impl<'me> CodeSplitter<'me> {
         .split_point_module_identifier_to_chunk_ukey
         .insert(*module_identifier, chunk.ukey);
 
-      let mut chunk_group = if let Some(group_options) = group_options && let Some(entry_options) = &group_options.entry_options {
+      let mut chunk_group = if let Some(kind) = group_options.as_ref() && let &ChunkGroupOptionsKindRef::Entry(entry_options) = kind {
         if let Some(filename) = &entry_options.filename {
           chunk.filename_template = Some(filename.clone());
         }
@@ -450,9 +458,8 @@ impl<'me> CodeSplitter<'me> {
           .remove_parent_modules_context
           .add_root_chunk(chunk.ukey);
         let mut entrypoint = ChunkGroup::new(
-          ChunkGroupKind::new_entrypoint(false),
+          ChunkGroupKind::new_entrypoint(false, entry_options.clone()),
           RuntimeSpec::from_iter([entry_options.runtime.as_deref().expect("should have runtime for AsyncEntrypoint").into()]),
-          group_options.to_owned(),
           ChunkGroupInfo {
             chunk_loading: entry_options.chunk_loading.as_ref().map(|x| !matches!(x, ChunkLoading::Disable)).unwrap_or(item_chunk_group.info.chunk_loading),
             async_chunks: entry_options.async_chunks.unwrap_or(item_chunk_group.info.async_chunks),
@@ -473,9 +480,8 @@ impl<'me> CodeSplitter<'me> {
           .chunk_reasons
           .push(format!("DynamicImport({module_identifier})"));
         ChunkGroup::new(
-          ChunkGroupKind::Normal,
+          ChunkGroupKind::Normal { options: ChunkGroupOptions::default().name_optional(group_options.as_ref().and_then(|x| x.name())) },
           item_chunk_group.runtime.clone(),
-          ChunkGroupOptions::default().name_optional(group_options.and_then(|x| x.name.as_deref())),
           ChunkGroupInfo {
             chunk_loading: item_chunk_group.info.chunk_loading,
             async_chunks: item_chunk_group.info.async_chunks,
@@ -483,7 +489,7 @@ impl<'me> CodeSplitter<'me> {
         )
       };
 
-      if let Some(name) = &chunk_group.options.name {
+      if let Some(name) = chunk_group.kind.name() {
         self
           .compilation
           .named_chunk_groups

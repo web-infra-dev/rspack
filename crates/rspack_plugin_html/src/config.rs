@@ -11,22 +11,25 @@ use crate::sri::HtmlSriHashFunction;
 #[cfg_attr(feature = "testing", derive(JsonSchema))]
 #[derive(Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
-pub enum HtmlPluginConfigInject {
+pub enum HtmlInject {
   Head,
   Body,
+  False,
 }
 
-impl FromStr for HtmlPluginConfigInject {
+impl FromStr for HtmlInject {
   type Err = anyhow::Error;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     if s.eq("head") {
-      Ok(HtmlPluginConfigInject::Head)
+      Ok(HtmlInject::Head)
     } else if s.eq("body") {
-      Ok(HtmlPluginConfigInject::Body)
+      Ok(HtmlInject::Body)
+    } else if s.eq("false") {
+      Ok(HtmlInject::False)
     } else {
       Err(anyhow::Error::msg(
-        "inject in html config only support 'head' or 'body'",
+        "inject in html config only support 'head', 'body', or 'false'",
       ))
     }
   }
@@ -35,22 +38,22 @@ impl FromStr for HtmlPluginConfigInject {
 #[cfg_attr(feature = "testing", derive(JsonSchema))]
 #[derive(Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
-pub enum HtmlPluginConfigScriptLoading {
+pub enum HtmlScriptLoading {
   Blocking,
   Defer,
   Module,
 }
 
-impl FromStr for HtmlPluginConfigScriptLoading {
+impl FromStr for HtmlScriptLoading {
   type Err = anyhow::Error;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     if s.eq("blocking") {
-      Ok(HtmlPluginConfigScriptLoading::Blocking)
+      Ok(HtmlScriptLoading::Blocking)
     } else if s.eq("defer") {
-      Ok(HtmlPluginConfigScriptLoading::Defer)
+      Ok(HtmlScriptLoading::Defer)
     } else if s.eq("module") {
-      Ok(HtmlPluginConfigScriptLoading::Module)
+      Ok(HtmlScriptLoading::Module)
     } else {
       Err(anyhow::Error::msg(
         "scriptLoading in html config only support 'blocking', 'defer' or 'module'",
@@ -62,7 +65,7 @@ impl FromStr for HtmlPluginConfigScriptLoading {
 #[cfg_attr(feature = "testing", derive(JsonSchema))]
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct HtmlPluginConfig {
+pub struct HtmlRspackPluginOptions {
   /// emitted file name in output path
   #[serde(default = "default_filename")]
   pub filename: String,
@@ -70,13 +73,14 @@ pub struct HtmlPluginConfig {
   pub template: Option<String>,
   pub template_content: Option<String>,
   pub template_parameters: Option<HashMap<String, String>>,
-  /// `head`, `body` or None
-  pub inject: Option<HtmlPluginConfigInject>,
+  /// `head`, `body`, `false`
+  #[serde(default = "default_inject")]
+  pub inject: HtmlInject,
   /// path or `auto`
   pub public_path: Option<String>,
   /// `blocking`, `defer`, or `module`
   #[serde(default = "default_script_loading")]
-  pub script_loading: HtmlPluginConfigScriptLoading,
+  pub script_loading: HtmlScriptLoading,
 
   /// entry_chunk_name (only entry chunks are supported)
   pub chunks: Option<Vec<String>>,
@@ -96,18 +100,22 @@ fn default_filename() -> String {
   String::from("index.html")
 }
 
-fn default_script_loading() -> HtmlPluginConfigScriptLoading {
-  HtmlPluginConfigScriptLoading::Defer
+fn default_script_loading() -> HtmlScriptLoading {
+  HtmlScriptLoading::Defer
 }
 
-impl Default for HtmlPluginConfig {
-  fn default() -> HtmlPluginConfig {
-    HtmlPluginConfig {
+fn default_inject() -> HtmlInject {
+  HtmlInject::Head
+}
+
+impl Default for HtmlRspackPluginOptions {
+  fn default() -> HtmlRspackPluginOptions {
+    HtmlRspackPluginOptions {
       filename: default_filename(),
       template: None,
       template_content: None,
       template_parameters: None,
-      inject: None,
+      inject: default_inject(),
       public_path: None,
       script_loading: default_script_loading(),
       chunks: None,
@@ -121,7 +129,7 @@ impl Default for HtmlPluginConfig {
   }
 }
 
-impl HtmlPluginConfig {
+impl HtmlRspackPluginOptions {
   pub fn get_public_path(&self, compilation: &Compilation, filename: &str) -> String {
     match &self.public_path {
       Some(p) => PublicPath::ensure_ends_with_slash(p.clone()),
