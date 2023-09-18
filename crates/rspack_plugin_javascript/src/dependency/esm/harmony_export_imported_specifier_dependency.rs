@@ -272,7 +272,6 @@ impl HarmonyExportImportedSpecifierDependency {
         if ignored_exports.contains(&export_name)
           || matches!(export_info.get_used(runtime), UsageState::Unused)
         {
-          println!("ignored by ignore exprots");
           continue;
         }
 
