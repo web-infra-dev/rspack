@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 use std::hash::Hasher;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
@@ -191,7 +190,7 @@ impl ExportsInfoId {
     let other_exports_info_id = exports_info.other_exports_info;
     let export_info_id = exports_info.exports.get(name);
     if let Some(export_info_id) = export_info_id {
-      return export_info_id.clone();
+      return *export_info_id;
     }
     if let Some(redirect_id) = redirect_id {
       return redirect_id.get_export_info(name, mg);
@@ -209,7 +208,7 @@ impl ExportsInfoId {
     let exports_info = mg.get_exports_info_mut_by_id(self);
     exports_info._exports_are_ordered = false;
     exports_info.exports.insert(name.clone(), new_info_id);
-    return new_info_id;
+    new_info_id
   }
 
   pub fn get_nested_exports_info(
