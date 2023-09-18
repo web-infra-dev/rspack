@@ -30,9 +30,9 @@ pub use dependency_template::*;
 use dyn_clone::{clone_trait_object, DynClone};
 
 use crate::{
-  ChunkGroupOptionsKindRef, ConnectionState, Context, ContextMode, ContextOptions, ErrorSpan,
-  ExtendedReferencedExport, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport,
-  RuntimeSpec,
+  create_exports_object_referenced, ChunkGroupOptionsKindRef, ConnectionState, Context,
+  ContextMode, ContextOptions, ErrorSpan, ExtendedReferencedExport, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, ReferencedExport, RuntimeSpec,
 };
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
@@ -383,7 +383,7 @@ pub trait ModuleDependency: Dependency {
     _module_graph: &ModuleGraph,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
-    vec![ExtendedReferencedExport::Array(vec![])]
+    create_exports_object_referenced()
   }
 
   // an identifier to merge equal requests

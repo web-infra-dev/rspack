@@ -1,4 +1,4 @@
-use rspack_core::{ModuleDependency, Provide, SpanExt};
+use rspack_core::{Dependency, Provide, SpanExt};
 use swc_core::{
   common::SyntaxContext,
   ecma::{
@@ -13,14 +13,14 @@ use crate::dependency::ProvideDependency;
 pub struct ProvideScanner<'a> {
   opts: &'a Provide,
   unresolved_ctxt: &'a SyntaxContext,
-  dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+  dependencies: &'a mut Vec<Box<dyn Dependency>>,
 }
 
 impl<'a> ProvideScanner<'a> {
   pub fn new(
     opts: &'a Provide,
     unresolved_ctxt: &'a SyntaxContext,
-    dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+    dependencies: &'a mut Vec<Box<dyn Dependency>>,
   ) -> Self {
     Self {
       opts,
@@ -78,15 +78,15 @@ impl Visit for ProvideScanner<'_> {
 
   fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
     if let Some(identifier_name) = self.get_nested_identifier_name(member_expr) && let Some((request, ids)) = self.get_resolved_request(&identifier_name) {
-        self.dependencies.push(Box::new(ProvideDependency::new(
-            member_expr.span.real_lo(),
-            member_expr.span.real_hi(),
-            ids,
-            request,
-            identifier_name.replace(".", "_dot_").into()
-          )));
+      self.dependencies.push(Box::new(ProvideDependency::new(
+        member_expr.span.real_lo(),
+        member_expr.span.real_hi(),
+        ids,
+        request,
+        identifier_name.replace(".", "_dot_").into()
+      )));
     } else {
-        member_expr.visit_children_with(self);
+      member_expr.visit_children_with(self);
     }
   }
 }

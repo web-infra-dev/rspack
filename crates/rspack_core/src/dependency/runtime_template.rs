@@ -266,7 +266,7 @@ pub fn module_namespace_promise(
       if let Some(header) = header {
         appending = format!(
           ".then(function() {{ {header}\nreturn {}}})",
-          module_raw(compilation, runtime_requirements, id, request, weak)
+          module_raw(compilation, id, request, weak, runtime_requirements)
         )
       } else {
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
@@ -286,7 +286,7 @@ pub fn module_namespace_promise(
         if let Some(header) = header {
           appending = format!(
             ".then(function() {{\n {header}\nreturn {}\n}})",
-            module_raw(compilation, runtime_requirements, id, request, weak)
+            module_raw(compilation, id, request, weak, runtime_requirements)
           )
         } else {
           runtime_requirements.insert(RuntimeGlobals::REQUIRE);
@@ -333,15 +333,25 @@ pub fn block_promise(module_id_str: &str, runtime_requirements: &mut RuntimeGlob
   )
 }
 
-pub fn module_raw(
+pub fn module_exports(
   compilation: &Compilation,
-  runtime_requirements: &mut RuntimeGlobals,
   id: &DependencyId,
   request: &str,
   weak: bool,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> String {
+  module_raw(compilation, id, request, weak, runtime_requirements)
+}
+
+pub fn module_raw(
+  compilation: &Compilation,
+  id: &DependencyId,
+  request: &str,
+  weak: bool,
+  runtime_requirements: &mut RuntimeGlobals,
 ) -> String {
   if let Some(module_identifier) = compilation.module_graph.module_identifier_by_dependency_id(id)
-        && let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier)
+  && let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier)
   {
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
      format!(

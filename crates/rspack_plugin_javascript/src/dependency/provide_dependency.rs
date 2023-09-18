@@ -1,7 +1,8 @@
 use rspack_core::{
-  module_raw, property_access, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, InitFragment, InitFragmentStage, ModuleDependency, TemplateContext,
-  TemplateReplaceSource,
+  create_exports_object_referenced, module_exports, module_raw, property_access, Dependency,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ExtendedReferencedExport, InitFragment, InitFragmentStage, ModuleDependency, NormalInitFragment,
+  TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -29,6 +30,10 @@ impl ProvideDependency {
 }
 
 impl Dependency for ProvideDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -39,10 +44,6 @@ impl Dependency for ProvideDependency {
 }
 
 impl ModuleDependency for ProvideDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -55,8 +56,21 @@ impl ModuleDependency for ProvideDependency {
     None
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &rspack_core::ModuleGraph,
+    _runtime: Option<&rspack_core::RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    if self.ids.is_empty() {
+      return create_exports_object_referenced();
+    }
+    vec![ExtendedReferencedExport::Array(
+      self
+        .ids
+        .iter()
+        .map(|id| JsWord::from(id.as_str()))
+        .collect::<Vec<JsWord>>(),
+    )]
   }
 
   fn set_request(&mut self, request: String) {
@@ -73,22 +87,22 @@ impl DependencyTemplate for ProvideDependency {
       ..
     } = template_context;
 
-    init_fragments.push(InitFragment::new(
+    init_fragments.push(Box::new(NormalInitFragment::new(
       format!(
         "/* provided dependency */ var {} = {}{};\n",
         self.identifier,
-        module_raw(
+        module_exports(
           compilation,
-          runtime_requirements,
           &self.id,
           &self.request,
-          false
+          false,
+          runtime_requirements,
         ),
         property_access(&self.ids, 0)
       ),
-      InitFragmentStage::STAGE_PROVIDES,
+      InitFragmentStage::StageProvides,
       None,
-    ));
+    )));
 
     source.replace(self.start, self.end, &self.identifier, None);
   }

@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use rspack_error::Result;
-pub use rspack_swc_visitors::{Define, Provide};
+pub use rspack_swc_visitors::Define;
 use rspack_swc_visitors::{EmotionOptions, ImportOptions, ReactOptions, RelayOptions};
 
 use crate::{ApplyContext, CompilerOptions, Plugin, PluginContext};
@@ -31,6 +31,9 @@ impl Plugin for DefinePlugin {
     Ok(())
   }
 }
+
+pub type Provide = std::collections::HashMap<String, Vec<String>>;
+pub type RawProvide = Provide;
 
 #[derive(Debug)]
 pub struct ProvidePlugin {
@@ -119,7 +122,7 @@ impl From<String> for TreeShaking {
 pub struct Builtins {
   // TODO: refactor to string-replacement based
   pub define: Define,
-  // TODO: refactor to string-replacement based
+  // TODO: refactor to string-replacement based, and need change ProvideScanner to parser hook
   pub provide: Provide,
   // TODO: migrate to builtin:swc-loader
   pub preset_env: Option<PresetEnv>,

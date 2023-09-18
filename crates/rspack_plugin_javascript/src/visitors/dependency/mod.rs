@@ -82,6 +82,11 @@ pub fn scan_dependencies(
   }
 
   if module_type.is_js_auto() || module_type.is_js_dynamic() {
+    program.visit_with(&mut CommonJsImportDependencyScanner::new(
+      &mut dependencies,
+      &mut presentational_dependencies,
+      &unresolved_ctxt,
+    ));
     program.visit_with(&mut CommonJsScanner::new(
       &mut presentational_dependencies,
       &unresolved_ctxt,
