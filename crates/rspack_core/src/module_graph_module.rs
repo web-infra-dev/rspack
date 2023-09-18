@@ -124,8 +124,16 @@ impl ModuleGraphModule {
 
   pub fn depended_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a ModuleIdentifier> {
     self
-      .dependencies
-      .iter()
+      .outgoing_connections_unordered(module_graph)
+      .unwrap()
+      .filter_map(|con: &ModuleGraphConnection| {
+        // TODO: runtime opt
+        let active_state = con.get_active_state(module_graph, None);
+        match active_state {
+          crate::ConnectionState::Bool(false) => None,
+          _ => Some(con.dependency_id),
+        }
+      })
       .filter(|id| {
         if let Some(dep) = module_graph
           .dependency_by_id(id)
@@ -136,8 +144,23 @@ impl ModuleGraphModule {
         }
         false
       })
-      .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
+      .filter_map(|id| module_graph.module_identifier_by_dependency_id(&id))
       .collect()
+    // self
+    //   .dependencies
+    //   .iter()
+    //   .filter(|id| {
+    //     if let Some(dep) = module_graph
+    //       .dependency_by_id(id)
+    //       .expect("should have id")
+    //       .as_module_dependency()
+    //     {
+    //       return !is_async_dependency(dep) && !dep.weak();
+    //     }
+    //     false
+    //   })
+    //   .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
+    //   .collect()
   }
 
   pub fn dynamic_depended_modules<'a>(

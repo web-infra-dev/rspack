@@ -1,7 +1,7 @@
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{ChunkGroupUkey, ChunkUkey};
+use crate::{ChunkGroupUkey, ChunkUkey, CompilerOptions};
 
 pub mod chunk_graph_chunk;
 pub mod chunk_graph_module;
