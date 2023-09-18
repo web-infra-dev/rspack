@@ -1,6 +1,6 @@
 use rspack_core::rspack_sources::{
-  BoxSource, MapOptions, OriginalSource, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
-  SourceMapSource, SourceMapSourceOptions,
+  BoxSource, CachedSource, MapOptions, OriginalSource, RawSource, ReplaceSource, Source, SourceExt,
+  SourceMap, SourceMapSource, SourceMapSourceOptions,
 };
 use rspack_core::tree_shaking::analyzer::OptimizeAnalyzer;
 use rspack_core::tree_shaking::js_module::JsModule;
@@ -166,6 +166,12 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       }
       RawSource::from(content).boxed()
     }
+
+    let source = CachedSource::new(source).boxed();
+    // source-map calculation is time-consuming,
+    // eagerly calculate source-map here multi-threadedly for future use.
+    // `MapOptions::default()` is more commonly used.
+    let _ = source.map(&Default::default());
 
     Ok(
       ParseResult {
