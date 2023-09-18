@@ -1,6 +1,6 @@
 use rspack_core::rspack_sources::{
-  BoxSource, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
-  WithoutOriginalOptions,
+  BoxSource, MapOptions, OriginalSource, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
+  SourceMapSource, SourceMapSourceOptions,
 };
 use rspack_core::tree_shaking::analyzer::OptimizeAnalyzer;
 use rspack_core::tree_shaking::js_module::JsModule;
@@ -52,6 +52,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       compiler_options.builtins.decorator.is_some(),
       compiler_options.should_transform_by_default(),
     );
+    let use_source_map = compiler_options.devtool.enabled();
+    let use_simple_source_map = compiler_options.devtool.source_map();
+    let original_map = source.map(&MapOptions::new(!compiler_options.devtool.cheap()));
     let source = source.source();
     let mut ast = match crate::ast::parse(
       source.to_string(),
@@ -63,7 +66,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Err(e) => {
         return Ok(
           ParseResult {
-            source: RawSource::from(source.to_string()).boxed(),
+            source: create_source(
+              source.to_string(),
+              resource_data.resource_path.to_string_lossy().to_string(),
+              use_simple_source_map,
+            ),
             dependencies: vec![],
             presentational_dependencies: vec![],
             analyze_result: Default::default(),
@@ -87,7 +94,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       crate::ast::stringify(&ast, &compiler_options.devtool, Some(true))?;
 
     ast = match crate::ast::parse(
-      output.code.clone(), // TODO avoid code clone
+      output.code.clone(),
       syntax,
       &resource_data.resource_path.to_string_lossy(),
       module_type,
@@ -96,7 +103,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Err(e) => {
         return Ok(
           ParseResult {
-            source: RawSource::from(output.code.clone()).boxed(),
+            source: create_source(
+              source.to_string(),
+              resource_data.resource_path.to_string_lossy().to_string(),
+              use_simple_source_map,
+            ),
             dependencies: vec![],
             presentational_dependencies: vec![],
             analyze_result: Default::default(),
@@ -134,15 +145,27 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     };
 
     let source = if let Some(map) = output.map {
-      SourceMapSource::new(WithoutOriginalOptions {
+      SourceMapSource::new(SourceMapSourceOptions {
         value: output.code,
         name: resource_data.resource_path.to_string_lossy().to_string(),
         source_map: SourceMap::from_json(&map).map_err(|e| internal_error!(e.to_string()))?,
+        inner_source_map: use_source_map.then_some(original_map).flatten(),
+        remove_original_source: true,
+        ..Default::default()
       })
       .boxed()
+    } else if use_simple_source_map {
+      OriginalSource::new(output.code, resource_data.resource_path.to_string_lossy()).boxed()
     } else {
       RawSource::from(output.code).boxed()
     };
+
+    fn create_source(content: String, resource_path: String, devtool: bool) -> BoxSource {
+      if devtool {
+        return OriginalSource::new(content, resource_path).boxed();
+      }
+      RawSource::from(content).boxed()
+    }
 
     Ok(
       ParseResult {
