@@ -187,44 +187,29 @@ impl ExportsInfoId {
 
   pub fn get_export_info(&self, name: &JsWord, mg: &mut ModuleGraph) -> ExportInfoId {
     let exports_info = mg.get_exports_info_by_id(self);
-    let mut cur = exports_info;
-    // get redirect chain, because you can't pass a mut ref into a recursive call
-    let mut chain = VecDeque::new();
-    chain.push_back(cur.id);
-    while let Some(id) = cur.redirect_to {
-      chain.push_back(id);
-      cur = mg.get_exports_info_by_id(&id);
+    let redirect_id = exports_info.redirect_to;
+    let other_exports_info_id = exports_info.other_exports_info;
+    let export_info_id = exports_info.exports.get(name);
+    if let Some(export_info_id) = export_info_id {
+      return export_info_id.clone();
+    }
+    if let Some(redirect_id) = redirect_id {
+      return redirect_id.get_export_info(name, mg);
     }
 
-    let len = chain.len();
+    let other_export_info = mg.get_export_info_by_id(&other_exports_info_id);
+    let new_info = ExportInfo::new(
+      Some(name.clone()),
+      UsageState::Unknown,
+      Some(other_export_info),
+    );
+    let new_info_id = new_info.id;
+    mg.export_info_map.insert(new_info_id, new_info);
 
-    for (i, id) in chain.into_iter().enumerate() {
-      let is_last = i == len - 1;
-      let exports_info = mg.get_exports_info_by_id(&id);
-      let other_exports_info = exports_info.other_exports_info;
-      if let Some(export_info_id) = exports_info.exports.get(name) {
-        return *export_info_id;
-      }
-      if is_last {
-        let other_export_info = mg
-          .export_info_map
-          .get(&other_exports_info)
-          .expect("should have export_info");
-        let new_info = ExportInfo::new(
-          Some(name.clone()),
-          UsageState::Unknown,
-          Some(other_export_info),
-        );
-        let new_info_id = new_info.id;
-        mg.export_info_map.insert(new_info_id, new_info);
-
-        let exports_info = mg.get_exports_info_mut_by_id(&id);
-        exports_info._exports_are_ordered = false;
-        exports_info.exports.insert(name.clone(), new_info_id);
-        return new_info_id;
-      }
-    }
-    unreachable!()
+    let exports_info = mg.get_exports_info_mut_by_id(self);
+    exports_info._exports_are_ordered = false;
+    exports_info.exports.insert(name.clone(), new_info_id);
+    return new_info_id;
   }
 
   pub fn get_nested_exports_info(
