@@ -52,10 +52,10 @@ impl HarmonyExportImportedSpecifierDependency {
     &build_info.harmony_named_exports
   }
 
+  /// FIXME: this should use parent module id
   pub fn all_star_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a Vec<DependencyId> {
     let build_info = module_graph
-      .parent_module_by_dependency_id(&self.id)
-      .and_then(|ident| module_graph.module_graph_module_by_identifier(&ident))
+      .module_graph_module_by_dependency_id(&self.id)
       .expect("should have mgm")
       .build_info
       .as_ref()
