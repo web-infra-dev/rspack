@@ -43,7 +43,8 @@ impl HarmonyExportImportedSpecifierDependency {
 
   pub fn active_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a HashSet<JsWord> {
     let build_info = module_graph
-      .module_graph_module_by_dependency_id(&self.id)
+      .parent_module_by_dependency_id(&self.id)
+      .and_then(|ident| module_graph.module_graph_module_by_identifier(&ident))
       .expect("should have mgm")
       .build_info
       .as_ref()
@@ -51,6 +52,7 @@ impl HarmonyExportImportedSpecifierDependency {
     &build_info.harmony_named_exports
   }
 
+  /// FIXME: this should use parent module id
   pub fn all_star_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a Vec<DependencyId> {
     let build_info = module_graph
       .module_graph_module_by_dependency_id(&self.id)
@@ -164,7 +166,6 @@ impl HarmonyExportImportedSpecifierDependency {
       ignored_exports,
       hidden,
     } = self.get_star_reexports(module_graph, runtime, imported_module_identifier);
-
     if let Some(exports) = exports {
       if exports.is_empty() {
         let mut export_mode = ExportMode::new(ExportModeType::EmptyStar);
@@ -255,6 +256,7 @@ impl HarmonyExportImportedSpecifierDependency {
       .parent_module_by_dependency_id(&self.id)
       .expect("should have parent module");
     let exports_info = module_graph.get_exports_info(&parent_module);
+
     if no_extra_imports {
       for export_info_id in exports_info.get_ordered_exports() {
         let export_info = module_graph
@@ -262,11 +264,17 @@ impl HarmonyExportImportedSpecifierDependency {
           .get(export_info_id)
           .expect("should have export info");
         let export_name = export_info.name.clone().unwrap_or_default();
+        // dbg!(
+        //   &export_info.get_used(runtime),
+        //   &ignored_exports,
+        //   &export_name
+        // );
         if ignored_exports.contains(&export_name)
           || matches!(export_info.get_used(runtime), UsageState::Unused)
         {
           continue;
         }
+
         let imported_export_info = imported_exports_info
           .id
           .get_read_only_export_info(&export_name, module_graph);

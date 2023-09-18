@@ -9,7 +9,7 @@
  
  
  },
-@@ -36,13 +38,16 @@
+@@ -36,12 +38,18 @@
  
  
  },
@@ -23,10 +23,10 @@
  "./src/containers/platform-container/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  'use strict';
  __webpack_require__.r(__webpack_exports__);
--__webpack_require__.d(__webpack_exports__, {
+ __webpack_require__.d(__webpack_exports__, {
 -  'usePlatform': function() { return usePlatform; },
 -  'PlatformProvider': function() { return PlatformProvider; }
--});
++  'usePlatform': function() { return usePlatform; }
+ });
   const usePlatform = 3;
   const PlatformProvider = 1000;
- },
