@@ -819,9 +819,9 @@ impl ExportInfo {
       return global_used;
     }
     if self.used_in_runtime.is_none() {
-      return UsageState::Unused;
+      UsageState::Unused
     } else {
-      // TODO: runtime opt
+      // TODO: runtime optimization
       todo!()
     }
   }

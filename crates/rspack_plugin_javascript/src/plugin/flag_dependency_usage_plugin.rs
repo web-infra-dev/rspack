@@ -85,7 +85,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         .module_graph_module_by_identifier(&module_id)
         .expect("should have module graph module");
       let dep_id_list = mgm.dependencies.clone();
-      dbg!(&module_id,);
       for dep_id in dep_id_list.into_iter() {
         let connection = self
           .compilation
@@ -100,7 +99,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         let active_state =
           connection.get_active_state(&self.compilation.module_graph, runtime.as_ref());
 
-        dbg!(&connection, &active_state);
         match active_state {
           ConnectionState::Bool(false) => {
             continue;
@@ -123,7 +121,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           continue;
         };
 
-        dbg!(&referenced_exports, &old_referenced_exports);
         if old_referenced_exports.is_none()
           || matches!(old_referenced_exports.as_ref().expect("should be some"), ProcessModuleReferencedExports::ExtendRef(v) if is_no_exports_referenced(v))
           || is_exports_object_referenced(&referenced_exports)

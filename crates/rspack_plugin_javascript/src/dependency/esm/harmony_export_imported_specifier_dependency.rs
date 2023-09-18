@@ -42,10 +42,9 @@ impl HarmonyExportImportedSpecifierDependency {
   }
 
   pub fn active_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a HashSet<JsWord> {
-    dbg!(&module_graph.module_graph_module_by_dependency_id(&self.id));
     let build_info = module_graph
       .parent_module_by_dependency_id(&self.id)
-      .and_then(|item| module_graph.module_graph_module_by_identifier(&item))
+      .and_then(|ident| module_graph.module_graph_module_by_identifier(&ident))
       .expect("should have mgm")
       .build_info
       .as_ref()
@@ -55,7 +54,8 @@ impl HarmonyExportImportedSpecifierDependency {
 
   pub fn all_star_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a Vec<DependencyId> {
     let build_info = module_graph
-      .module_graph_module_by_dependency_id(&self.id)
+      .parent_module_by_dependency_id(&self.id)
+      .and_then(|ident| module_graph.module_graph_module_by_identifier(&ident))
       .expect("should have mgm")
       .build_info
       .as_ref()
@@ -166,7 +166,6 @@ impl HarmonyExportImportedSpecifierDependency {
       ignored_exports,
       hidden,
     } = self.get_star_reexports(module_graph, runtime, imported_module_identifier);
-    dbg!(&exports);
     if let Some(exports) = exports {
       if exports.is_empty() {
         let mut export_mode = ExportMode::new(ExportModeType::EmptyStar);
@@ -277,7 +276,6 @@ impl HarmonyExportImportedSpecifierDependency {
           continue;
         }
 
-        dbg!(&export_info);
         let imported_export_info = imported_exports_info
           .id
           .get_read_only_export_info(&export_name, module_graph);
@@ -475,7 +473,6 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
           &down_casted_dep.id,
           runtime,
         );
-        dbg!(&mode);
         ConnectionState::Bool(!matches!(
           mode.ty,
           ExportModeType::Unused | ExportModeType::EmptyStar
