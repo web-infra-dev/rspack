@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 use std::hash::Hasher;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
@@ -42,45 +41,27 @@ impl ExportsInfoId {
   /// it will panic if you provide a export info that does not exists in the module graph  
   pub fn set_has_provide_info(&self, mg: &mut ModuleGraph) {
     let exports_info = mg.get_exports_info_by_id(self);
-    let mut cur = exports_info;
-    // get redirect chain, because you can't pass a mut ref into a recursive call
-    let mut chain = VecDeque::new();
-    chain.push_back(cur.id);
-    while let Some(id) = cur.redirect_to {
-      chain.push_back(id);
-      cur = mg.get_exports_info_by_id(&id);
-    }
-    let len = chain.len();
-    for (i, id) in chain.into_iter().enumerate() {
-      let is_last = i == len - 1;
-
-      let exports_info = mg.get_exports_info_by_id(&id);
-
-      let export_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
-      let other_export_info = exports_info.other_exports_info;
-      for id in export_id_list {
-        let export_info = mg
-          .export_info_map
-          .get_mut(&id)
-          .expect("should have export info");
-        if export_info.provided.is_none() {
-          export_info.provided = Some(ExportInfoProvided::False);
-        }
-        if export_info.can_mangle_provide.is_none() {
-          export_info.can_mangle_provide = Some(true);
-        }
+    let redirect_id = exports_info.redirect_to;
+    let other_exports_info_id = exports_info.other_exports_info;
+    let export_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    for export_info_id in export_id_list {
+      let export_info = mg.get_export_info_mut_by_id(&export_info_id);
+      if export_info.provided.is_none() {
+        export_info.provided = Some(ExportInfoProvided::False);
       }
-      if is_last {
-        let other_export_info = mg
-          .export_info_map
-          .get_mut(&other_export_info)
-          .expect("should have export info");
-        if other_export_info.provided.is_none() {
-          other_export_info.provided = Some(ExportInfoProvided::False);
-        }
-        if other_export_info.can_mangle_provide.is_none() {
-          other_export_info.can_mangle_provide = Some(true);
-        }
+      if export_info.can_mangle_provide.is_none() {
+        export_info.can_mangle_provide = Some(true);
+      }
+    }
+    if let Some(redirect) = redirect_id {
+      redirect.set_has_provide_info(mg);
+    } else {
+      let other_exports_info = mg.get_export_info_mut_by_id(&other_exports_info_id);
+      if other_exports_info.provided.is_none() {
+        other_exports_info.provided = Some(ExportInfoProvided::False);
+      }
+      if other_exports_info.can_mangle_provide.is_none() {
+        other_exports_info.can_mangle_provide = Some(true);
       }
     }
   }
@@ -190,78 +171,44 @@ impl ExportsInfoId {
     mg: &'a ModuleGraph,
   ) -> &'a ExportInfo {
     let exports_info = mg.get_exports_info_by_id(self);
-    let mut cur = exports_info;
-    // get redirect chain, because you can't pass a mut ref into a recursive call
-    let mut chain = VecDeque::new();
-    chain.push_back(cur.id);
-    while let Some(id) = cur.redirect_to {
-      chain.push_back(id);
-      cur = mg.get_exports_info_by_id(&id);
+    let redirect_id = exports_info.redirect_to;
+    let other_exports_info_id = exports_info.other_exports_info;
+    let export_info_id = exports_info.exports.get(name);
+    if let Some(export_info_id) = export_info_id {
+      let export_info = mg.get_export_info_by_id(export_info_id);
+      return export_info;
     }
-
-    let len = chain.len();
-    for (i, id) in chain.into_iter().enumerate() {
-      let exports_info = mg.get_exports_info_by_id(&id);
-      let is_last = i == len - 1;
-
-      if let Some(info) = exports_info.exports.get(name) {
-        let info = mg
-          .export_info_map
-          .get(info)
-          .expect("should have export info");
-        return info;
-      }
-      if is_last {
-        let info = mg
-          .export_info_map
-          .get(&exports_info.other_exports_info)
-          .expect("should have export info");
-        return info;
-      }
+    if let Some(redirect_id) = redirect_id {
+      return redirect_id.get_read_only_export_info(name, mg);
     }
-    unreachable!()
+    mg.get_export_info_by_id(&other_exports_info_id)
   }
 
   pub fn get_export_info(&self, name: &JsWord, mg: &mut ModuleGraph) -> ExportInfoId {
     let exports_info = mg.get_exports_info_by_id(self);
-    let mut cur = exports_info;
-    // get redirect chain, because you can't pass a mut ref into a recursive call
-    let mut chain = VecDeque::new();
-    chain.push_back(cur.id);
-    while let Some(id) = cur.redirect_to {
-      chain.push_back(id);
-      cur = mg.get_exports_info_by_id(&id);
+    let redirect_id = exports_info.redirect_to;
+    let other_exports_info_id = exports_info.other_exports_info;
+    let export_info_id = exports_info.exports.get(name);
+    if let Some(export_info_id) = export_info_id {
+      return *export_info_id;
+    }
+    if let Some(redirect_id) = redirect_id {
+      return redirect_id.get_export_info(name, mg);
     }
 
-    let len = chain.len();
+    let other_export_info = mg.get_export_info_by_id(&other_exports_info_id);
+    let new_info = ExportInfo::new(
+      Some(name.clone()),
+      UsageState::Unknown,
+      Some(other_export_info),
+    );
+    let new_info_id = new_info.id;
+    mg.export_info_map.insert(new_info_id, new_info);
 
-    for (i, id) in chain.into_iter().enumerate() {
-      let is_last = i == len - 1;
-      let exports_info = mg.get_exports_info_by_id(&id);
-      let other_exports_info = exports_info.other_exports_info;
-      if let Some(export_info_id) = exports_info.exports.get(name) {
-        return *export_info_id;
-      }
-      if is_last {
-        let other_export_info = mg
-          .export_info_map
-          .get(&other_exports_info)
-          .expect("should have export_info");
-        let new_info = ExportInfo::new(
-          Some(name.clone()),
-          UsageState::Unknown,
-          Some(other_export_info),
-        );
-        let new_info_id = new_info.id;
-        mg.export_info_map.insert(new_info_id, new_info);
-
-        let exports_info = mg.get_exports_info_mut_by_id(&id);
-        exports_info._exports_are_ordered = false;
-        exports_info.exports.insert(name.clone(), new_info_id);
-        return new_info_id;
-      }
-    }
-    unreachable!()
+    let exports_info = mg.get_exports_info_mut_by_id(self);
+    exports_info._exports_are_ordered = false;
+    exports_info.exports.insert(name.clone(), new_info_id);
+    new_info_id
   }
 
   pub fn get_nested_exports_info(
@@ -1051,7 +998,6 @@ impl ExportInfo {
     }
   }
 
-  // TODO: change connection to option
   pub fn set_target(
     &mut self,
     key: &DependencyId,
