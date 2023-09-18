@@ -511,12 +511,14 @@ impl Module for NormalModule {
             let state = dependency.get_module_evaluation_side_effects_state(module_graph, module_chain);
             if matches!(state, ConnectionState::Bool(true)) {
               // TODO add optimization bailout
+              module_chain.remove(&self.identifier());
               return ConnectionState::Bool(true);
-            } else if matches!(state, ConnectionState::CircularConnection) {
+            } else if !matches!(state, ConnectionState::CircularConnection) {
               current = add_connection_states(current, state);
             }
           }
         }
+        module_chain.remove(&self.identifier());
         return current;
       }
     }

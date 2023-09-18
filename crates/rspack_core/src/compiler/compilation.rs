@@ -1159,6 +1159,14 @@ impl Compilation {
     logger.time_end(start);
 
     if self.options.is_new_tree_shaking() {
+      for module in self.module_graph.module_graph_modules().values() {
+        dbg!(&module.module_identifier);
+        dbg!(&module
+          .factory_meta
+          .as_ref()
+          .map(|item| item.side_effect_free));
+        dbg!(&module.build_meta.as_ref().map(|item| item.side_effect_free));
+      }
       // self
       //   .module_graph
       //   .module_graph_modules()

@@ -212,6 +212,10 @@ impl Dependency for HarmonyImportDependency {
 }
 
 impl ModuleDependency for HarmonyImportDependency {
+  fn is_export_all(&self) -> bool {
+    self.export_all
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -242,20 +246,19 @@ impl ModuleDependency for HarmonyImportDependency {
 
   // TODO: It's from HarmonyImportSideEffectDependency.
   fn get_condition(&self) -> Option<DependencyCondition> {
-    None
-    // let id = self.id;
-    // Some(DependencyCondition::Fn(Box::new(
-    //   move |_, _, module_graph| {
-    //     if let Some(module) = module_graph
-    //       .parent_module_by_dependency_id(&id)
-    //       .and_then(|module_identifier| module_graph.module_by_identifier(&module_identifier))
-    //     {
-    //       module.get_side_effects_connection_state(module_graph, &mut HashSet::default())
-    //     } else {
-    //       ConnectionState::Bool(true)
-    //     }
-    //   },
-    // )))
+    let id = self.id;
+    Some(DependencyCondition::Fn(Box::new(
+      move |_, _, module_graph: &ModuleGraph| {
+        if let Some(module) = module_graph
+          .parent_module_by_dependency_id(&id)
+          .and_then(|module_identifier| module_graph.module_by_identifier(&module_identifier))
+        {
+          module.get_side_effects_connection_state(module_graph, &mut HashSet::default())
+        } else {
+          ConnectionState::Bool(true)
+        }
+      },
+    )))
   }
 
   // It's from HarmonyImportSideEffectDependency.

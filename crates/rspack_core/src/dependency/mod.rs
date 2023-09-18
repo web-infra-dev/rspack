@@ -388,6 +388,10 @@ pub trait ModuleDependency: Dependency {
   fn resource_identifier(&self) -> Option<&str> {
     None
   }
+
+  fn is_export_all(&self) -> bool {
+    false
+  }
 }
 
 impl dyn Dependency + '_ {
