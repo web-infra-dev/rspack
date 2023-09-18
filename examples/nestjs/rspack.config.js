@@ -11,11 +11,6 @@ const config = {
 		minimize: false
 	},
 	externalsType: "commonjs",
-	builtins: {
-		react: {
-			refresh: false,
-		}
-	},
 	plugins: [
 		!process.env.BUILD &&
 			new RunScriptWebpackPlugin({
@@ -64,6 +59,11 @@ const config = {
 			}
 			callback();
 		}
-	]
+	],
+	experiments: {
+		rspackFuture: {
+			disableReactRefreshByDefault: true
+		}
+	}
 };
 module.exports = config;

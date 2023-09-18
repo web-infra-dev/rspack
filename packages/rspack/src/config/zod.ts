@@ -937,7 +937,8 @@ export type IncrementalRebuildOptions = z.infer<
 const rspackFutureOptions = z.strictObject({
 	newResolver: z.boolean().optional(),
 	newTreeshaking: z.boolean().optional(),
-	disableTransformByDefault: z.boolean().optional()
+	disableTransformByDefault: z.boolean().optional(),
+	disableReactRefreshByDefault: z.boolean().optional()
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 
