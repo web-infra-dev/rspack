@@ -42,8 +42,10 @@ impl HarmonyExportImportedSpecifierDependency {
   }
 
   pub fn active_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a HashSet<JsWord> {
+    dbg!(&module_graph.module_graph_module_by_dependency_id(&self.id));
     let build_info = module_graph
-      .module_graph_module_by_dependency_id(&self.id)
+      .parent_module_by_dependency_id(&self.id)
+      .and_then(|item| module_graph.module_graph_module_by_identifier(&item))
       .expect("should have mgm")
       .build_info
       .as_ref()
@@ -218,7 +220,6 @@ impl HarmonyExportImportedSpecifierDependency {
     imported_module_identifier: &ModuleIdentifier,
   ) -> StarReexportsInfo {
     let imported_exports_info = module_graph.get_exports_info(imported_module_identifier);
-    dbg!(&imported_exports_info);
     let other_export_info = module_graph
       .export_info_map
       .get(&imported_exports_info.other_exports_info)

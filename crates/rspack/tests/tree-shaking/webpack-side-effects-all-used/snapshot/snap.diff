@@ -1,16 +1,6 @@
 --- expected
 +++ actual
-@@ -6,9 +6,6 @@
- "../node_modules/pmodule/a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
- 'use strict';
- __webpack_require__.r(__webpack_exports__);
--__webpack_require__.d(__webpack_exports__, {
--  'a': function() { return a; }
--});
- /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./tracker */"../node_modules/pmodule/tracker.js");
- var a = "a";
- var b = "b";
-@@ -50,6 +47,7 @@
+@@ -50,6 +50,7 @@
  __webpack_require__.r(__webpack_exports__);
  __webpack_require__.d(__webpack_exports__, {
    'x': function() { return _b__WEBPACK_IMPORTED_MODULE_1_.x; },
