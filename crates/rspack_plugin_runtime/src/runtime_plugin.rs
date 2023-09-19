@@ -4,11 +4,11 @@ use async_trait::async_trait;
 use rspack_core::{
   AdditionalChunkRuntimeRequirementsArgs, ChunkLoading, JsChunkHashArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
-  RuntimeGlobals, RuntimeModuleExt, SourceType,
+  PublicPath, RuntimeGlobals, RuntimeModuleExt, SourceType,
 };
 
 use crate::runtime_module::{
-  is_enabled_for_chunk, AsyncRuntimeModule, BaseUriRuntimeModule,
+  is_enabled_for_chunk, AsyncRuntimeModule, AutoPublicPathRuntimeModule, BaseUriRuntimeModule,
   CompatGetDefaultExportRuntimeModule, CreateFakeNamespaceObjectRuntimeModule,
   CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule, EnsureChunkRuntimeModule,
   GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
@@ -53,6 +53,7 @@ impl Plugin for RuntimePlugin {
     Ok(())
   }
 
+  #[allow(clippy::unwrap_in_result)]
   fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
@@ -121,6 +122,23 @@ impl Plugin for RuntimePlugin {
       runtime_requirements.insert(RuntimeGlobals::REQUIRE_SCOPE);
     }
 
+    let public_path = {
+      let chunk = compilation
+        .chunk_by_ukey
+        .get(chunk)
+        .expect("should have chunk");
+      chunk
+        .get_entry_options(&compilation.chunk_group_by_ukey)
+        .and_then(|options| options.public_path.clone())
+        .unwrap_or(compilation.options.output.public_path.clone())
+    };
+    // TODO check output.scriptType
+    if matches!(public_path, PublicPath::Auto)
+      && runtime_requirements.contains(RuntimeGlobals::PUBLIC_PATH)
+    {
+      runtime_requirements.insert(RuntimeGlobals::GLOBAL);
+    }
+
     for runtime_requirement in runtime_requirements.iter() {
       match runtime_requirement {
         RuntimeGlobals::ASYNC_MODULE => {
@@ -135,7 +153,16 @@ impl Plugin for RuntimePlugin {
           compilation.add_runtime_module(chunk, EnsureChunkRuntimeModule::new(true).boxed());
         }
         RuntimeGlobals::PUBLIC_PATH => {
-          compilation.add_runtime_module(chunk, PublicPathRuntimeModule::default().boxed())
+          match &public_path {
+            // TODO string publicPath support [hash] placeholder
+            PublicPath::String(str) => compilation.add_runtime_module(
+              chunk,
+              PublicPathRuntimeModule::new(str.as_str().into()).boxed(),
+            ),
+            PublicPath::Auto => {
+              compilation.add_runtime_module(chunk, AutoPublicPathRuntimeModule::default().boxed())
+            }
+          }
         }
         RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME => compilation.add_runtime_module(
           chunk,

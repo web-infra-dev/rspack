@@ -8,6 +8,9 @@
     "build": "node --trace-exit --trace-uncaught --trace-warnings node_modules/@rspack/cli/bin/rspack build",
     "dev": "node --trace-exit --trace-uncaught --trace-warnings node_modules/@rspack/cli/bin/rspack serve"
   },
+  "devDependencies": {
+    "@rspack/cli": "workspace:*"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC"

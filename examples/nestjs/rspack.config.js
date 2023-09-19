@@ -59,6 +59,11 @@ const config = {
 			}
 			callback();
 		}
-	]
+	],
+	experiments: {
+		rspackFuture: {
+			disableReactRefreshByDefault: true
+		}
+	}
 };
 module.exports = config;

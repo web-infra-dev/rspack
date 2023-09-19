@@ -29,8 +29,11 @@ impl ProgressPlugin {
   pub fn new(options: ProgressPluginOptions) -> Self {
     let progress_bar = ProgressBar::with_draw_target(Some(100), ProgressDrawTarget::stdout());
     progress_bar.set_style(
-      ProgressStyle::with_template("{prefix} {bar:40.cyan/blue} {percent}% {wide_msg}")
-        .expect("TODO:"),
+      ProgressStyle::with_template(
+        "● {prefix:.bold} {bar:25.green/white.dim} ({percent}%) {wide_msg:.dim}",
+      )
+      .expect("TODO:")
+      .progress_chars("━━"),
     );
     Self {
       options,
@@ -84,14 +87,21 @@ impl Plugin for ProgressPlugin {
   async fn succeed_module(&self, _module: &dyn Module) -> Result<()> {
     let previous_modules_done = self.modules_done.fetch_add(1, SeqCst);
     let modules_done = previous_modules_done + 1;
+
+    // Assume a minimum of 200 modules to avoid progress growing too quickly
+    let min_total_module: u32 = 200;
+
     let percent = (modules_done as f32)
       / (cmp::max(
-        self.last_modules_count.read().expect("TODO:").unwrap_or(1),
-        self.modules_count.load(SeqCst),
+        cmp::max(
+          self.last_modules_count.read().expect("TODO:").unwrap_or(1),
+          self.modules_count.load(SeqCst),
+        ),
+        min_total_module,
       ) as f32);
     self
       .progress_bar
-      .set_position((10.0 + 55.0 * percent) as u64);
+      .set_position((10.0 + 65.0 * percent) as u64);
     Ok(())
   }
 

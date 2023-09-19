@@ -154,12 +154,22 @@ export class RspackDevServer extends WebpackDevServer {
 							"Make sure to disable HMR for production by setting `devServer.hot` to `false` in the configuration."
 					);
 				}
+				// enable hot by default
 				compiler.options.devServer ??= {};
 				compiler.options.devServer.hot = true;
+				// enable react.development by default
 				compiler.options.builtins.react ??= {};
-				compiler.options.builtins.react.refresh ??= true;
 				compiler.options.builtins.react.development ??= true;
-				new ReactRefreshPlugin().apply(compiler);
+				// enable react.refresh is rspackFuture.disableReactRefreshByDefault is enabled
+				if (
+					!compiler.options.experiments.rspackFuture
+						.disableReactRefreshByDefault
+				) {
+					compiler.options.builtins.react.refresh ??= true;
+				}
+				if (compiler.options.builtins.react.refresh) {
+					new ReactRefreshPlugin().apply(compiler);
+				}
 			} else if (compiler.options.builtins.react.refresh) {
 				if (mode === "production") {
 					this.logger.warn(

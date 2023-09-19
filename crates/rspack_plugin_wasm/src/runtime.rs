@@ -1,5 +1,5 @@
 use rspack_core::rspack_sources::{BoxSource, RawSource, SourceExt};
-use rspack_core::{Compilation, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH};
+use rspack_core::{Compilation, RuntimeModule, RuntimeModuleStage};
 use rspack_identifier::Identifier;
 use rspack_plugin_runtime::impl_runtime_module;
 
@@ -33,8 +33,8 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
     .boxed()
   }
 
-  fn stage(&self) -> u8 {
-    RUNTIME_MODULE_STAGE_ATTACH
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
   }
 }
 

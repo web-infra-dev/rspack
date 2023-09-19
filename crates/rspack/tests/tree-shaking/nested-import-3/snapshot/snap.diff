@@ -1,0 +1,12 @@
+--- expected
++++ actual
+@@ -6,9 +6,6 @@
+ "./answer.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+-__webpack_require__.d(__webpack_exports__, {
+-  'a': function() { return a; }
+-});
+  const a = 103330;
+  const b = 103330;
+ },

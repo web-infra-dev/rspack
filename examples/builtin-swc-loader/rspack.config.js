@@ -43,6 +43,11 @@ const config = {
 				template: "./index.html"
 			}
 		]
+	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: true
+		}
 	}
 };
 module.exports = config;

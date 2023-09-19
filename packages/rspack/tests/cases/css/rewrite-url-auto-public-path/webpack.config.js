@@ -35,7 +35,7 @@ module.exports = {
 								"main.js",
 								new ConcatSource(
 									new RawSource(
-										`self = { document: { currentScript: { src: "/" } } };\n`
+										`globalThis = { document: { currentScript: { src: "/" } } };\n`
 									),
 									assets["main.js"]
 								)

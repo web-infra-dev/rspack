@@ -240,21 +240,22 @@ impl ModuleDependency for HarmonyImportDependency {
     vec![]
   }
 
-  // It's from HarmonyImportSideEffectDependency.
-  fn get_condition(&self, _module_graph: &ModuleGraph) -> Option<DependencyCondition> {
-    let id = self.id;
-    Some(DependencyCondition::Fn(Box::new(
-      move |_, _, module_graph| {
-        if let Some(module) = module_graph
-          .parent_module_by_dependency_id(&id)
-          .and_then(|module_identifier| module_graph.module_by_identifier(&module_identifier))
-        {
-          module.get_side_effects_connection_state(module_graph, &mut HashSet::default())
-        } else {
-          ConnectionState::Bool(true)
-        }
-      },
-    )))
+  // TODO: It's from HarmonyImportSideEffectDependency.
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    None
+    // let id = self.id;
+    // Some(DependencyCondition::Fn(Box::new(
+    //   move |_, _, module_graph| {
+    //     if let Some(module) = module_graph
+    //       .parent_module_by_dependency_id(&id)
+    //       .and_then(|module_identifier| module_graph.module_by_identifier(&module_identifier))
+    //     {
+    //       module.get_side_effects_connection_state(module_graph, &mut HashSet::default())
+    //     } else {
+    //       ConnectionState::Bool(true)
+    //     }
+    //   },
+    // )))
   }
 
   // It's from HarmonyImportSideEffectDependency.

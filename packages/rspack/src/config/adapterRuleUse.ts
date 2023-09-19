@@ -31,6 +31,7 @@ export interface ComposeJsUseOptions {
 	devtool: RawOptions["devtool"];
 	context: RawOptions["context"];
 	mode: RawOptions["mode"];
+	experiments: RawOptions["experiments"];
 	compiler: Compiler;
 }
 

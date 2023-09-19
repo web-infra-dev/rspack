@@ -81,12 +81,12 @@ impl HarmonyImportSpecifierDependency {
       Specifier::Default(_) => compilation
         .module_graph
         .get_exports_info(&reference_mgm.module_identifier)
-        .get_used_exports()
+        .old_get_used_exports()
         .contains(&DEFAULT_JS_WORD),
       Specifier::Named(local, imported) => compilation
         .module_graph
         .get_exports_info(&reference_mgm.module_identifier)
-        .get_used_exports()
+        .old_get_used_exports()
         .contains(imported.as_ref().unwrap_or(local)),
     }
   }
@@ -200,8 +200,8 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     Some(&self.resource_identifier)
   }
 
-  fn get_condition(&self, module_graph: &ModuleGraph) -> Option<DependencyCondition> {
-    get_dependency_used_by_exports_condition(&self.id, &self.used_by_exports, module_graph)
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    get_dependency_used_by_exports_condition(self.id, &self.used_by_exports)
   }
 
   fn get_module_evaluation_side_effects_state(

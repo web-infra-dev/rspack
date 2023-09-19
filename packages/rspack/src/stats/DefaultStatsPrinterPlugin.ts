@@ -105,7 +105,7 @@ const SIMPLE_PRINTERS: Record<
 		const builtAtMessage =
 			root && builtAt ? `${formatDateTime(builtAt)}: ` : "";
 		const versionMessage =
-			root && rspackVersion ? `rspack ${rspackVersion}` : "";
+			root && rspackVersion ? `Rspack ${rspackVersion}` : "";
 		const nameMessage =
 			root && name
 				? bold(name)
@@ -117,7 +117,7 @@ const SIMPLE_PRINTERS: Record<
 		const subjectMessage =
 			nameMessage && versionMessage
 				? `${nameMessage} (${versionMessage})`
-				: versionMessage || nameMessage || "rspack";
+				: versionMessage || nameMessage || "Rspack";
 		let statusMessage;
 		if (errorsMessage && warningsMessage) {
 			statusMessage = `compiled with ${errorsMessage} and ${warningsMessage}`;
