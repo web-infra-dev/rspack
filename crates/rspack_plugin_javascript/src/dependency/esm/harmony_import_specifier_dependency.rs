@@ -172,11 +172,13 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       .get_import_var(&code_generatable_context.module.identifier(), &self.request);
 
     // TODO: scope hoist
-    harmony_import_dependency_apply(
-      self,
-      code_generatable_context,
-      &vec![self.specifier.clone()],
-    );
+    if compilation.options.is_new_tree_shaking() {
+      harmony_import_dependency_apply(
+        self,
+        code_generatable_context,
+        &vec![self.specifier.clone()],
+      );
+    }
     let export_expr = export_from_import(
       code_generatable_context,
       true,
