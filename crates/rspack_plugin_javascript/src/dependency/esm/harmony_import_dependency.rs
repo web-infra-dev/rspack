@@ -61,6 +61,14 @@ impl DependencyTemplate for HarmonyImportDependency {
     let compilation = &code_generatable_context.compilation;
     let module = &code_generatable_context.module;
 
+    let connection = compilation.module_graph.connection_by_dependency(&self.id);
+    if let Some(con) = connection {
+      // TODO: runtime opt
+      let active = con.is_target_active(&compilation.module_graph, None);
+      if !active {
+        return;
+      }
+    }
     let ref_mgm = compilation
       .module_graph
       .module_graph_module_by_dependency_id(&self.id)
@@ -174,14 +182,14 @@ impl DependencyTemplate for HarmonyImportDependency {
       )));
     }
     if self.export_all {
-      let connection = compilation.module_graph.connection_by_dependency(&self.id);
-      if let Some(con) = connection {
-        // TODO: runtime opt
-        let active = con.is_target_active(&compilation.module_graph, None);
-        if !active {
-          return;
-        }
-      }
+      // let connection = compilation.module_graph.connection_by_dependency(&self.id);
+      // if let Some(con) = connection {
+      //   // TODO: runtime opt
+      //   let active = con.is_target_active(&compilation.module_graph, None);
+      //   if !active {
+      //     return;
+      //   }
+      // }
       runtime_requirements.insert(RuntimeGlobals::EXPORT_STAR);
       let exports_argument = compilation
         .module_graph
