@@ -3020,6 +3020,7 @@ version = "0.1.0"
 dependencies = [
  "async-recursion",
  "async-trait",
+ "rayon",
  "regex",
  "rspack_core",
  "rspack_error",
