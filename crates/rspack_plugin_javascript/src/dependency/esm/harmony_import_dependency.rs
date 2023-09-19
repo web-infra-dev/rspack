@@ -61,22 +61,24 @@ impl DependencyTemplate for HarmonyImportDependency {
     let compilation = &code_generatable_context.compilation;
     let module = &code_generatable_context.module;
 
-    let connection = compilation.module_graph.connection_by_dependency(&self.id);
-    if let Some(con) = connection {
-      // TODO: runtime opt
-      let active = con.is_target_active(&compilation.module_graph, None);
-      if !active {
-        return;
-      }
-    }
     let ref_mgm = compilation
       .module_graph
       .module_graph_module_by_dependency_id(&self.id)
       .expect("should have ref module");
-    if !compilation
-      .include_module_ids
-      .contains(&ref_mgm.module_identifier)
-    {
+    let is_target_active = if compilation.options.is_new_tree_shaking() {
+      let connection = compilation.module_graph.connection_by_dependency(&self.id);
+      if let Some(con) = connection {
+        // TODO: runtime opt
+        con.is_target_active(&compilation.module_graph, None)
+      } else {
+        true
+      }
+    } else {
+      compilation
+        .include_module_ids
+        .contains(&ref_mgm.module_identifier)
+    };
+    if !is_target_active {
       return;
     }
 
