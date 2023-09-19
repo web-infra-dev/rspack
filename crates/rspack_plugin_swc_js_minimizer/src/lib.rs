@@ -1,6 +1,10 @@
 mod minify;
 
-use std::{collections::HashMap, hash::Hash, sync::Mutex};
+use std::{
+  collections::HashMap,
+  hash::Hash,
+  sync::{mpsc, Mutex},
+};
 
 use async_trait::async_trait;
 use minify::{match_object, minify};
@@ -12,7 +16,7 @@ use rspack_core::{
   AssetInfo, CompilationAsset, JsChunkHashArgs, Plugin, PluginContext, PluginJsChunkHashHookOutput,
   PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
-use rspack_error::{internal_error, Result};
+use rspack_error::{internal_error, Diagnostic, Result};
 use rspack_regex::RspackRegex;
 use rspack_util::try_any_sync;
 use swc_config::config_types::BoolOrDataConfig;
@@ -99,6 +103,7 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
       .as_ref()
       .is_some_and(|library| library.library_type == "module");
 
+    let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
     // collect all extracted comments info
     let all_extracted_comments = Mutex::new(HashMap::new());
     let extract_comments_option = &minify_options.extract_comments.clone();
@@ -129,24 +134,24 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
       ..Default::default()
     };
 
-    let result = compilation
-    .assets_mut()
-    .par_iter_mut()
-    .filter(|(filename, original)| {
-      if !(filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")) {
-        return false
-      }
+    compilation
+      .assets_mut()
+      .par_iter_mut()
+      .filter(|(filename, original)| {
+        if !(filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")) {
+          return false
+        }
 
-      let is_matched = match_object(minify_options, filename)
-        .unwrap_or(false);
+        let is_matched = match_object(minify_options, filename)
+          .unwrap_or(false);
 
-      if !is_matched || original.get_info().minimized {
-        return false
-      }
+        if !is_matched || original.get_info().minimized {
+          return false
+        }
 
-      true
-    })
-    .try_for_each(|(filename, original)| -> Result<()>  {
+        true
+      })
+      .try_for_each_with(tx,|tx,(filename, original)| -> Result<()>  {
         if let Some(original_source) = original.get_source() {
           let input = original_source.source().to_string();
           let input_source_map = original_source.map(&MapOptions::default());
@@ -169,7 +174,9 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
           ) {
             Ok(r) => r,
             Err(e) => {
-              return Err(e)
+              tx.send(e.into())
+                .map_err(|e| internal_error!(e.to_string()))?;
+              return Ok(())
             }
           };
           let source = if let Some(map) = &output.map {
@@ -190,12 +197,9 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
         }
 
         Ok(())
-    });
+    })?;
 
-    match result {
-      Ok(_) => {}
-      Err(e) => compilation.push_batch_diagnostic(e.into()),
-    };
+    compilation.push_batch_diagnostic(rx.into_iter().flatten().collect::<Vec<_>>());
 
     // write all extracted comments to assets
     all_extracted_comments
