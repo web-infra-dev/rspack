@@ -133,8 +133,9 @@ impl ModuleGraphModule {
         dbg!(&con, &active_state,);
         dbg!(&module_graph
           .dependency_by_id(&con.dependency_id)
-          .and_then(|dep| dep.as_module_dependency()))
-        .map(|item| item.dependency_type());
+          .and_then(|dep| dep
+            .as_module_dependency()
+            .map(|item| item.dependency_debug_name())));
         match active_state {
           crate::ConnectionState::Bool(false) => None,
           _ => Some(con.dependency_id),

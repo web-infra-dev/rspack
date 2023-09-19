@@ -174,6 +174,14 @@ impl DependencyTemplate for HarmonyImportDependency {
       )));
     }
     if self.export_all {
+      let connection = compilation.module_graph.connection_by_dependency(&self.id);
+      if let Some(con) = connection {
+        // TODO: runtime opt
+        let active = con.is_target_active(&compilation.module_graph, None);
+        if !active {
+          return;
+        }
+      }
       runtime_requirements.insert(RuntimeGlobals::EXPORT_STAR);
       let exports_argument = compilation
         .module_graph
@@ -246,13 +254,10 @@ impl ModuleDependency for HarmonyImportDependency {
 
   // TODO: It's from HarmonyImportSideEffectDependency.
   fn get_condition(&self) -> Option<DependencyCondition> {
-    let id = self.id;
     Some(DependencyCondition::Fn(Box::new(
-      move |_, _, module_graph: &ModuleGraph| {
-        if let Some(module) = module_graph
-          .parent_module_by_dependency_id(&id)
-          .and_then(|module_identifier| module_graph.module_by_identifier(&module_identifier))
-        {
+      move |con, _, module_graph: &ModuleGraph| {
+        let id = con.module_identifier;
+        if let Some(module) = module_graph.module_by_identifier(&id) {
           module.get_side_effects_connection_state(module_graph, &mut HashSet::default())
         } else {
           ConnectionState::Bool(true)
@@ -268,12 +273,16 @@ impl ModuleDependency for HarmonyImportDependency {
     module_chain: &mut HashSet<ModuleIdentifier>,
   ) -> ConnectionState {
     if let Some(module) = module_graph
-      .parent_module_by_dependency_id(&self.id)
+      .module_identifier_by_dependency_id(&self.id)
       .and_then(|module_identifier| module_graph.module_by_identifier(&module_identifier))
     {
       module.get_side_effects_connection_state(module_graph, module_chain)
     } else {
       ConnectionState::Bool(true)
     }
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "HarmonyImportDependency"
   }
 }

@@ -62,6 +62,10 @@ impl ModuleDependency for URLDependency {
   fn get_condition(&self) -> Option<DependencyCondition> {
     get_dependency_used_by_exports_condition(self.id, &self.used_by_exports)
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "URLDependency"
+  }
 }
 
 impl DependencyTemplate for URLDependency {

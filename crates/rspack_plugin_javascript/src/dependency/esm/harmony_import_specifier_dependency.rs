@@ -252,4 +252,8 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
 
     self.get_referenced_exports_in_destructuring(Some(&self.ids))
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "HarmonyImportSpecifierDependency"
+  }
 }

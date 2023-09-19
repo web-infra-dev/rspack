@@ -343,6 +343,8 @@ impl Debug for DependencyCondition {
 }
 
 pub trait ModuleDependency: Dependency {
+  /// name of the original struct or enum
+  fn dependency_debug_name(&self) -> &'static str;
   fn request(&self) -> &str;
   fn user_request(&self) -> &str;
   fn span(&self) -> Option<&ErrorSpan>;

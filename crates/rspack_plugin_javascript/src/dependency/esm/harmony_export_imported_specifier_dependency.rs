@@ -555,6 +555,10 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
       }
     }
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "HarmonyExportImportedSpecifierDependency"
+  }
 }
 
 #[allow(unused)]
