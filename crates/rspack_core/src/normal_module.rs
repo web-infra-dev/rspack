@@ -507,7 +507,7 @@ impl Module for NormalModule {
         module_chain.insert(self.identifier());
         let mut current = ConnectionState::Bool(false);
         for dependency_id in mgm.dependencies.iter() {
-          if let Some(dependency) = module_graph.dependency_by_id(dependency_id).expect("should have dependency").as_module_dependency() {
+          if let Some(dependency) = module_graph.dependency_by_id(dependency_id) {
             let state = dependency.get_module_evaluation_side_effects_state(module_graph, module_chain);
             if matches!(state, ConnectionState::Bool(true)) {
               // TODO add optimization bailout

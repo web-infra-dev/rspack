@@ -190,6 +190,14 @@ pub trait Dependency:
   fn get_exports(&self) -> Option<ExportsSpec> {
     None
   }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    ConnectionState::Bool(true)
+  }
 }
 
 #[derive(Debug, Default)]
@@ -368,14 +376,6 @@ pub trait ModuleDependency: Dependency {
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     None
-  }
-
-  fn get_module_evaluation_side_effects_state(
-    &self,
-    _module_graph: &ModuleGraph,
-    _module_chain: &mut HashSet<ModuleIdentifier>,
-  ) -> ConnectionState {
-    ConnectionState::Bool(true)
   }
 
   fn get_referenced_exports(

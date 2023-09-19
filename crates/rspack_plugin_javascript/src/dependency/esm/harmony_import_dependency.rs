@@ -227,6 +227,21 @@ impl Dependency for HarmonyImportDependency {
   fn dependency_type(&self) -> &DependencyType {
     &self.dependency_type
   }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    module_graph: &ModuleGraph,
+    module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    if let Some(module) = module_graph
+      .module_identifier_by_dependency_id(&self.id)
+      .and_then(|module_identifier| module_graph.module_by_identifier(&module_identifier))
+    {
+      module.get_side_effects_connection_state(module_graph, module_chain)
+    } else {
+      ConnectionState::Bool(true)
+    }
+  }
 }
 
 impl ModuleDependency for HarmonyImportDependency {
@@ -277,20 +292,6 @@ impl ModuleDependency for HarmonyImportDependency {
   }
 
   // It's from HarmonyImportSideEffectDependency.
-  fn get_module_evaluation_side_effects_state(
-    &self,
-    module_graph: &ModuleGraph,
-    module_chain: &mut HashSet<ModuleIdentifier>,
-  ) -> ConnectionState {
-    if let Some(module) = module_graph
-      .module_identifier_by_dependency_id(&self.id)
-      .and_then(|module_identifier| module_graph.module_by_identifier(&module_identifier))
-    {
-      module.get_side_effects_connection_state(module_graph, module_chain)
-    } else {
-      ConnectionState::Bool(true)
-    }
-  }
 
   fn dependency_debug_name(&self) -> &'static str {
     "HarmonyImportDependency"

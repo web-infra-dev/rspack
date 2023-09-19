@@ -177,6 +177,14 @@ impl Dependency for HarmonyImportSpecifierDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::EsmImportSpecifier
   }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    ConnectionState::Bool(false)
+  }
 }
 
 impl ModuleDependency for HarmonyImportSpecifierDependency {
@@ -202,14 +210,6 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     get_dependency_used_by_exports_condition(self.id, &self.used_by_exports)
-  }
-
-  fn get_module_evaluation_side_effects_state(
-    &self,
-    _module_graph: &ModuleGraph,
-    _module_chain: &mut HashSet<ModuleIdentifier>,
-  ) -> ConnectionState {
-    ConnectionState::Bool(false)
   }
 
   fn get_referenced_exports(

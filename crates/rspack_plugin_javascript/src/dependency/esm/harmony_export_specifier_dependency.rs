@@ -1,7 +1,7 @@
 use rspack_core::{
   AsModuleDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
   DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, HarmonyExportInitFragment,
-  TemplateContext, TemplateReplaceSource, UsedName,
+  ModuleDependency, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -47,6 +47,14 @@ impl Dependency for HarmonyExportSpecifierDependency {
       hide_export: None,
       exclude_exports: None,
     })
+  }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &rspack_core::ModuleGraph,
+    _module_chain: &mut rustc_hash::FxHashSet<rspack_core::ModuleIdentifier>,
+  ) -> rspack_core::ConnectionState {
+    rspack_core::ConnectionState::Bool(false)
   }
 }
 
