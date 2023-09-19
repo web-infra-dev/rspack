@@ -1,6 +1,6 @@
 use rspack_core::{
-  Dependency, DependencyId, DependencyTemplate, ModuleDependency, TemplateContext,
-  TemplateReplaceSource,
+  AsModuleDependency, Dependency, DependencyId, DependencyTemplate, ModuleDependency,
+  TemplateContext, TemplateReplaceSource,
 };
 
 pub const DEFAULT_EXPORT: &str = "__WEBPACK_DEFAULT_EXPORT__";
@@ -40,28 +40,6 @@ impl HarmonyExportExpressionDependency {
   }
 }
 
-impl ModuleDependency for HarmonyExportExpressionDependency {
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyExportExpressionDependency"
-  }
-
-  fn request(&self) -> &str {
-    ""
-  }
-
-  fn user_request(&self) -> &str {
-    todo!()
-  }
-
-  fn span(&self) -> Option<&rspack_core::ErrorSpan> {
-    todo!()
-  }
-
-  fn set_request(&mut self, request: String) {
-    todo!()
-  }
-}
-
 impl Dependency for HarmonyExportExpressionDependency {
   fn id(&self) -> &rspack_core::DependencyId {
     &self.id
@@ -73,6 +51,16 @@ impl Dependency for HarmonyExportExpressionDependency {
     _module_chain: &mut rustc_hash::FxHashSet<rspack_core::ModuleIdentifier>,
   ) -> rspack_core::ConnectionState {
     rspack_core::ConnectionState::Bool(false)
+  }
+}
+
+impl AsModuleDependency for HarmonyExportExpressionDependency {
+  fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
+    None
+  }
+
+  fn as_module_dependency_mut(&mut self) -> Option<&mut dyn ModuleDependency> {
+    None
   }
 }
 
