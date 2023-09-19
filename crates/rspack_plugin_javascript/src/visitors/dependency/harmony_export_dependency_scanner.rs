@@ -106,6 +106,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                     reference.request.clone(),
                     vec![(export.clone(), reference.names.clone())],
                     Some(export),
+                    false,
                   )));
               } else {
                 self

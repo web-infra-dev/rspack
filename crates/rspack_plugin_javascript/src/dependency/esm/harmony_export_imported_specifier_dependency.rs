@@ -9,7 +9,7 @@ use rspack_core::{
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
 
-use super::create_resource_identifier_for_esm_dependency;
+use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};
 
 // Create _webpack_require__.d(__webpack_exports__, {}).
 // case1: `import { a } from 'a'; export { a }`
@@ -26,10 +26,16 @@ pub struct HarmonyExportImportedSpecifierDependency {
   // pub active_exports: HashSet<JsWord>,
   // pub all_star_exports: Option<Vec<DependencyId>>,
   pub other_star_exports: Option<Vec<DependencyId>>, // look like it is unused
+  pub export_all: bool,
 }
 
 impl HarmonyExportImportedSpecifierDependency {
-  pub fn new(request: JsWord, ids: Vec<(JsWord, Option<JsWord>)>, name: Option<JsWord>) -> Self {
+  pub fn new(
+    request: JsWord,
+    ids: Vec<(JsWord, Option<JsWord>)>,
+    name: Option<JsWord>,
+    export_all: bool,
+  ) -> Self {
     let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
       id: DependencyId::new(),
@@ -38,6 +44,7 @@ impl HarmonyExportImportedSpecifierDependency {
       ids,
       resource_identifier,
       other_star_exports: None,
+      export_all,
     }
   }
 
@@ -378,6 +385,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
     let import_var = compilation
       .module_graph
       .get_import_var(&module.identifier(), &self.request);
+    let is_new_tree_shaking = compilation.options.is_new_tree_shaking();
 
     let used_exports = if compilation.options.builtins.tree_shaking.is_true() {
       Some(
@@ -389,6 +397,21 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
     } else {
       None
     };
+
+    dbg!(&is_new_tree_shaking);
+    if is_new_tree_shaking {
+      // TODO: runtime opt
+      let mode = self.get_mode(
+        self.name.clone(),
+        &self.ids.iter().map(|id| id.0.clone()).collect::<Vec<_>>(),
+        &compilation.module_graph,
+        &self.id,
+        None,
+      );
+      if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
+        harmony_import_dependency_apply(self, code_generatable_context, &vec![]);
+      }
+    }
 
     let mut exports = vec![];
     for id in &self.ids {
@@ -457,6 +480,14 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
 
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
+  }
+
+  fn is_export_all(&self) -> Option<bool> {
+    if self.export_all {
+      Some(true)
+    } else {
+      None
+    }
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {

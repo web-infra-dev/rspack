@@ -106,6 +106,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
                   request.clone(),
                   vec![(n.clone(), None)],
                   Some(n.clone()),
+                  false,
                 )));
               self.build_info.harmony_named_exports.insert(n.clone());
             }
@@ -120,6 +121,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
                   request.clone(),
                   vec![(name.clone(), Some(orig.clone()))],
                   Some(name.clone()),
+                  false,
                 )));
               self.build_info.harmony_named_exports.insert(name);
             }
@@ -140,6 +142,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
             request.clone(),
             vec![],
             None,
+            true,
           )));
       }
       self.dependencies.push(Box::new(dependency));

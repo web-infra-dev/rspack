@@ -10,11 +10,3 @@
   const a = 103330;
   const b = 103330;
  },
-@@ -25,7 +22,6 @@
- __webpack_require__.d(__webpack_exports__, {
-   'Lib': function() { return _answer__WEBPACK_IMPORTED_MODULE_0_; }
- });
--/* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./answer */"./answer.js");
- 
- 
- },

@@ -9,11 +9,8 @@
  
  
  },
-@@ -32,19 +30,8 @@
- __webpack_require__.d(__webpack_exports__, {
-   'containers': function() { return _containers__WEBPACK_IMPORTED_MODULE_0_; }
- });
--/* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./containers */"./src/containers/containers.js");
+@@ -35,16 +33,6 @@
+ /* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./containers */"./src/containers/containers.js");
  
  
 -},

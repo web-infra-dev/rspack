@@ -9,6 +9,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'formatNumber': function() { return _plugin_formatNumber__WEBPACK_IMPORTED_MODULE_0_["default"]; }
 });
+/* harmony import */var _plugin_formatNumber__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./plugin/formatNumber */"./src/plugin/formatNumber.js");
 
 
 },

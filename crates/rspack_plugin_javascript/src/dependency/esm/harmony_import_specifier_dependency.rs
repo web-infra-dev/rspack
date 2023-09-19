@@ -141,7 +141,9 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       let connection = compilation.module_graph.connection_by_dependency(&self.id);
       if let Some(con) = connection {
         // TODO: runtime opt
-        con.is_target_active(&compilation.module_graph, None)
+        let ret = con.is_target_active(&compilation.module_graph, None);
+
+        ret
       } else {
         true
       }
