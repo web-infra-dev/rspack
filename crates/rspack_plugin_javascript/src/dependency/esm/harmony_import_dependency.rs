@@ -83,7 +83,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   if !is_target_active {
     return;
   }
-  if !module_dependency.is_export_all() {
+  if module_dependency.is_export_all() == Some(false) {
     let specifiers = specifiers
       .iter()
       .filter(|specifier| {
@@ -191,7 +191,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
     )));
   }
 
-  if module_dependency.is_export_all() {
+  if module_dependency.is_export_all() == Some(true) {
     runtime_requirements.insert(RuntimeGlobals::EXPORT_STAR);
     let exports_argument = compilation
       .module_graph
@@ -244,8 +244,8 @@ impl Dependency for HarmonyImportDependency {
 }
 
 impl ModuleDependency for HarmonyImportDependency {
-  fn is_export_all(&self) -> bool {
-    self.export_all
+  fn is_export_all(&self) -> Option<bool> {
+    Some(self.export_all)
   }
 
   fn request(&self) -> &str {

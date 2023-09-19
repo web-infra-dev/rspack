@@ -147,7 +147,7 @@ impl ModuleGraphModule {
           .expect("should have id")
           .as_module_dependency()
         {
-          return !is_async_dependency(dep) && !dep.weak() && !dep.is_export_all();
+          return !is_async_dependency(dep) && !dep.weak();
         }
         false
       })

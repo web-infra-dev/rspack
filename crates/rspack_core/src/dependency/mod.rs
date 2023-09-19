@@ -391,8 +391,8 @@ pub trait ModuleDependency: Dependency {
     None
   }
 
-  fn is_export_all(&self) -> bool {
-    false
+  fn is_export_all(&self) -> Option<bool> {
+    None
   }
 }
 
