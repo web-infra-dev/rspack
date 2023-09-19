@@ -1,0 +1,22 @@
+--- expected
++++ actual
+@@ -3,18 +3,13 @@
+ ---
+ ```js title=main.js
+ (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+-"./bar.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+-'use strict';
+-__webpack_require__.r(__webpack_exports__);
+- const a = 'bar';
+-},
+ "./foo.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+   'a': function() { return a; }
+ });
+-/* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./bar */"./bar.js");
++/* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(Object(function webpackMissingModule() { var e = new Error('Cannot find module './bar''); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
+ __webpack_require__.es(_bar__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
+  const a = 'foo';
+ 

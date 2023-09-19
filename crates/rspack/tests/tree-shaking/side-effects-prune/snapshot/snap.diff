@@ -1,70 +1,11 @@
 --- expected
 +++ actual
-@@ -3,11 +3,20 @@
- ---
- ```js title=main.js
- (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-+"../node_modules/side-effects-module/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-+'use strict';
-+__webpack_require__.r(__webpack_exports__);
-+ function test() {
-+    console.log('something');
-+}
-+},
+@@ -6,8 +6,6 @@
  "./app.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  'use strict';
  __webpack_require__.r(__webpack_exports__);
- /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
- __webpack_require__.es(_lib__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
-+/* harmony import */var _src_a__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./src/a */"./src/a.js");
-+__webpack_require__.es(_src_a__WEBPACK_IMPORTED_MODULE_1_, __webpack_exports__);
+-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
+-__webpack_require__.es(_lib__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
  
   // export {
   //   result as test
-@@ -30,6 +39,46 @@
-  const result = 20000;
-  const something = function() {};
- },
-+"./src/a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-+'use strict';
-+__webpack_require__.r(__webpack_exports__);
-+/* harmony import */var _d_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./d.js */"./src/d.js");
-+
-+ const a = ()=>{
-+    (0, _d_js__WEBPACK_IMPORTED_MODULE_0_.test)();
-+    _d_js__WEBPACK_IMPORTED_MODULE_0_.b;
-+    console.log("");
-+};
-+},
-+"./src/b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-+'use strict';
-+__webpack_require__.r(__webpack_exports__);
-+__webpack_require__.d(__webpack_exports__, {
-+  'test': function() { return _c_js__WEBPACK_IMPORTED_MODULE_0_.test; }
-+});
-+/* harmony import */var _c_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./c.js */"./src/c.js");
-+
-+ const b = 3;
-+},
-+"./src/c.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-+'use strict';
-+__webpack_require__.r(__webpack_exports__);
-+__webpack_require__.d(__webpack_exports__, {
-+  'test': function() { return side_effects_module__WEBPACK_IMPORTED_MODULE_0_.test; }
-+});
-+/* harmony import */var side_effects_module__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* side-effects-module */"../node_modules/side-effects-module/index.js");
-+
-+},
-+"./src/d.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-+'use strict';
-+__webpack_require__.r(__webpack_exports__);
-+__webpack_require__.d(__webpack_exports__, {
-+  'test': function() { return _b_js__WEBPACK_IMPORTED_MODULE_0_.test; },
-+  'b': function() { return _b_js__WEBPACK_IMPORTED_MODULE_0_.b; }
-+});
-+/* harmony import */var _b_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./b.js */"./src/b.js");
-+
-+},
- 
- },function(__webpack_require__) {
- var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
