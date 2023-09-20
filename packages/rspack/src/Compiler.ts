@@ -203,6 +203,19 @@ class Compiler {
 				// get LazySet() {
 				// 	return require("./util/LazySet");
 				// }
+			},
+			// XxxRspackPlugin, Rspack-only plugins
+			get HtmlRspackPlugin() {
+				return require("./builtin-plugin").HtmlRspackPlugin;
+			},
+			get SwcJsMinimizerRspackPlugin() {
+				return require("./builtin-plugin").SwcJsMinimizerRspackPlugin;
+			},
+			get SwcCssMinimizerRspackPlugin() {
+				return require("./builtin-plugin").SwcCssMinimizerRspackPlugin;
+			},
+			get CopyRspackPlugin() {
+				return require("./builtin-plugin").CopyRspackPlugin;
 			}
 		};
 		this.root = this;
