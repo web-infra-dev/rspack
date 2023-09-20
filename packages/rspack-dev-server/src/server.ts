@@ -157,13 +157,13 @@ export class RspackDevServer extends WebpackDevServer {
 				// enable hot by default
 				compiler.options.devServer ??= {};
 				compiler.options.devServer.hot = true;
-				// enable react.development by default
-				compiler.options.builtins.react ??= {};
-				compiler.options.builtins.react.development ??= true;
 				if (
 					!compiler.options.experiments.rspackFuture.disableTransformByDefault
 				) {
-					// enable react.refresh by default if rspackFuture.disableTransformByDefault is not enabled
+					compiler.options.builtins.react ??= {};
+					// enable react.development by default
+					compiler.options.builtins.react.development ??= true;
+					// enable react.refresh by default
 					compiler.options.builtins.react.refresh ??= true;
 					if (compiler.options.builtins.react.refresh) {
 						new ReactRefreshPlugin().apply(compiler);
