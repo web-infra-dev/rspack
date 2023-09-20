@@ -20,6 +20,8 @@ pub struct HarmonyExportImportedSpecifierDependency {
   pub id: DependencyId,
   pub request: JsWord,
   pub ids: Vec<(JsWord, Option<JsWord>)>,
+  /// used for get_mode
+  pub mode_ids: Vec<(JsWord, Option<JsWord>)>,
   name: Option<JsWord>,
   resource_identifier: String,
   // Because it is shared by multiply HarmonyExportImportedSpecifierDependency, so put it to `BuildInfo`
@@ -33,12 +35,14 @@ impl HarmonyExportImportedSpecifierDependency {
   pub fn new(
     request: JsWord,
     ids: Vec<(JsWord, Option<JsWord>)>,
+    mode_ids: Vec<(JsWord, Option<JsWord>)>,
     name: Option<JsWord>,
     export_all: bool,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
       id: DependencyId::new(),
+      mode_ids,
       name,
       request,
       ids,
@@ -403,7 +407,11 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       // TODO: runtime opt
       let mode = self.get_mode(
         self.name.clone(),
-        &self.ids.iter().map(|id| id.0.clone()).collect::<Vec<_>>(),
+        &self
+          .mode_ids
+          .iter()
+          .map(|id| id.0.clone())
+          .collect::<Vec<_>>(),
         &compilation.module_graph,
         &self.id,
         None,
@@ -503,7 +511,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
         let mode = down_casted_dep.get_mode(
           down_casted_dep.name.clone(),
           &down_casted_dep
-            .ids
+            .mode_ids
             .iter()
             .map(|id| id.0.clone())
             .collect::<Vec<_>>(),
@@ -526,7 +534,11 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
   ) -> Vec<ExtendedReferencedExport> {
     let mode = self.get_mode(
       self.name.clone(),
-      &self.ids.iter().map(|id| id.0.clone()).collect::<Vec<_>>(),
+      &self
+        .mode_ids
+        .iter()
+        .map(|id| id.0.clone())
+        .collect::<Vec<_>>(),
       module_graph,
       &self.id,
       runtime,

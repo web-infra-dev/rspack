@@ -101,19 +101,19 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                 _ => unreachable!(),
               };
               if let Some(reference) = self.import_map.get(&orig.to_id()) {
-                let ids = match reference.specifier {
+                let ids = vec![(export.clone(), reference.names.clone())];
+                let mode_ids = match reference.specifier {
                   Specifier::Namespace(_) => {
                     vec![]
                   }
-                  _ => {
-                    vec![(export.clone(), reference.names.clone())]
-                  }
+                  _ => ids.clone(),
                 };
                 self
                   .dependencies
                   .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
                     reference.request.clone(),
                     ids,
+                    mode_ids,
                     Some(export),
                     false,
                   )));
