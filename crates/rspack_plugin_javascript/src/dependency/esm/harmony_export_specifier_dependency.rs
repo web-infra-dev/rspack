@@ -1,7 +1,7 @@
 use rspack_core::{
   AsModuleDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
   DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, HarmonyExportInitFragment,
-  ModuleDependency, TemplateContext, TemplateReplaceSource, UsedName,
+  TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::JsWord;
 

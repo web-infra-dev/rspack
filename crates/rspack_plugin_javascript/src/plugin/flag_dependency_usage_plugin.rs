@@ -121,14 +121,14 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         } else {
           continue;
         };
-        dbg!(
-          &connection,
-          dep
-            .as_module_dependency()
-            .map(|item| item.dependency_debug_name()),
-          &referenced_exports,
-          &old_referenced_exports
-        );
+        // dbg!(
+        //   &connection,
+        //   dep
+        //     .as_module_dependency()
+        //     .map(|item| item.dependency_debug_name()),
+        //   &referenced_exports,
+        //   &old_referenced_exports
+        // );
 
         if old_referenced_exports.is_none()
           || matches!(old_referenced_exports.as_ref().expect("should be some"), ProcessModuleReferencedExports::ExtendRef(v) if is_no_exports_referenced(v))
@@ -203,7 +203,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
 
     for (module_id, referenced_exports) in map {
-      dbg!(&module_id, &referenced_exports);
+      // dbg!(&module_id, &referenced_exports);
       let normalized_refs = match referenced_exports {
         ProcessModuleReferencedExports::Map(map) => map.into_values().collect::<Vec<_>>(),
         ProcessModuleReferencedExports::ExtendRef(extend_ref) => extend_ref,

@@ -402,7 +402,6 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       None
     };
 
-    dbg!(&is_new_tree_shaking);
     if is_new_tree_shaking {
       // TODO: runtime opt
       let mode = self.get_mode(
@@ -417,7 +416,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         None,
       );
       if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
-        harmony_import_dependency_apply(self, code_generatable_context, &vec![]);
+        harmony_import_dependency_apply(self, code_generatable_context, &[]);
       }
     }
 
@@ -543,7 +542,6 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
       &self.id,
       runtime,
     );
-    dbg!(&mode, &self.ids);
     match mode.ty {
       ExportModeType::Missing
       | ExportModeType::Unused

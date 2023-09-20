@@ -1,5 +1,3 @@
-use std::ops::ControlFlow;
-
 use rspack_core::tree_shaking::symbol::{self, IndirectTopLevelSymbol};
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
@@ -57,7 +55,7 @@ impl HarmonyImportDependency {
 pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   module_dependency: &T,
   code_generatable_context: &mut TemplateContext,
-  specifiers: &Vec<Specifier>,
+  specifiers: &[Specifier],
 ) {
   let compilation = &code_generatable_context.compilation;
   let module = &code_generatable_context.module;
@@ -71,7 +69,6 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
       .connection_by_dependency(module_dependency.id());
     if let Some(con) = connection {
       // TODO: runtime opt
-      let ret = con.is_target_active(&compilation.module_graph, None);
       // dbg!(
       //   &con,
       //   &ret,
@@ -81,7 +78,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
       //     .and_then(|item| item.as_module_dependency())
       //     .map(|item| item.dependency_debug_name())
       // );
-      ret
+      con.is_target_active(&compilation.module_graph, None)
     } else {
       true
     }
@@ -244,7 +241,7 @@ impl Dependency for HarmonyImportDependency {
   ) -> ConnectionState {
     if let Some(module) = module_graph
       .module_identifier_by_dependency_id(&self.id)
-      .and_then(|module_identifier| module_graph.module_by_identifier(&module_identifier))
+      .and_then(|module_identifier| module_graph.module_by_identifier(module_identifier))
     {
       module.get_side_effects_connection_state(module_graph, module_chain)
     } else {

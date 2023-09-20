@@ -133,28 +133,19 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       .expect("should have ref module");
 
     let compilation = &code_generatable_context.compilation;
-    let ref_mgm = compilation
-      .module_graph
-      .module_graph_module_by_dependency_id(&self.id)
-      .expect("should have ref module");
-    let is_target_active = if compilation.options.is_new_tree_shaking() {
+    if compilation.options.is_new_tree_shaking() {
       let connection = compilation.module_graph.connection_by_dependency(&self.id);
-      if let Some(con) = connection {
+      let is_target_active = if let Some(con) = connection {
         // TODO: runtime opt
-        let ret = con.is_target_active(&compilation.module_graph, None);
-
-        ret
+        con.is_target_active(&compilation.module_graph, None)
       } else {
         true
+      };
+
+      if !is_target_active {
+        return;
       }
-    } else {
-      compilation
-        .include_module_ids
-        .contains(&ref_mgm.module_identifier)
     };
-    if !is_target_active {
-      return;
-    }
     let used = self.check_used(reference_mgm, compilation);
 
     if !used {
@@ -175,11 +166,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
 
     // TODO: scope hoist
     if compilation.options.is_new_tree_shaking() {
-      harmony_import_dependency_apply(
-        self,
-        code_generatable_context,
-        &vec![self.specifier.clone()],
-      );
+      harmony_import_dependency_apply(self, code_generatable_context, &[self.specifier.clone()]);
     }
     let export_expr = export_from_import(
       code_generatable_context,
@@ -251,7 +238,6 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     // namespace import
-    dbg!(&self.ids);
     if self.ids.is_empty() {
       return self.get_referenced_exports_in_destructuring(None);
     }

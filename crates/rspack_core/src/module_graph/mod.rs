@@ -7,6 +7,7 @@ use rspack_hash::RspackHashDigest;
 use rspack_identifier::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
+use crate::IS_NEW_TREESHAKING;
 mod connection;
 pub use connection::*;
 
@@ -117,9 +118,13 @@ impl ModuleGraph {
   ) -> Result<()> {
     let is_module_dependency = dependency.as_module_dependency().is_some();
     let dependency_id = *dependency.id();
-    let condition = dependency
-      .as_module_dependency()
-      .and_then(|dep| dep.get_condition());
+    let condition = if *IS_NEW_TREESHAKING {
+      dependency
+        .as_module_dependency()
+        .and_then(|dep| dep.get_condition())
+    } else {
+      None
+    };
     self.add_dependency(dependency);
     self
       .dependency_id_to_module_identifier
@@ -660,6 +665,10 @@ mod test {
       }
 
       impl ModuleDependency for $ident {
+        fn dependency_debug_name(&self) -> &'static str {
+          stringify!($ident)
+        }
+
         fn request(&self) -> &str {
           &*self.1
         }
