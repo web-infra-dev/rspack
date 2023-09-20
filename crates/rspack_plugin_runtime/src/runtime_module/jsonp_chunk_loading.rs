@@ -85,7 +85,12 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     {
       source.add(RawSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_hmr.js")
-          .replace("$globalObject$", &compilation.options.output.global_object),
+          .replace("$globalObject$", &compilation.options.output.global_object)
+          .replace(
+            "$hotUpdateGloabl$",
+            &serde_json::to_string(&compilation.options.output.hot_update_global)
+              .expect("failed to serde_json::to_string(hot_update_gloabl)"),
+          ),
       ));
       source.add(RawSource::from(
         include_str!("runtime/javascript_hot_module_replacement.js").replace("$key$", "jsonp"),

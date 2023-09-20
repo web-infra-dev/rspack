@@ -1,0 +1,8 @@
+const fs = require("fs");
+const path = require("path");
+
+it("generated code should use hotUpdateGlobal", async () => {
+	const a = await fs.promises.readFile(path.resolve(__dirname, "a.js"));
+	const b = await fs.promises.readFile(path.resolve(__dirname, "b.js"));
+	console.log(a, b);
+});

@@ -877,6 +877,7 @@ export interface RawOutputOptions {
   cssChunkFilename: string
   hotUpdateMainFilename: string
   hotUpdateChunkFilename: string
+  hotUpdateGlobal: string
   uniqueName: string
   chunkLoadingGlobal: string
   library?: RawLibraryOptions

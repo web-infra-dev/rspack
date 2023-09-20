@@ -189,6 +189,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		cssChunkFilename: output.cssChunkFilename!,
 		hotUpdateChunkFilename: output.hotUpdateChunkFilename!,
 		hotUpdateMainFilename: output.hotUpdateMainFilename!,
+		hotUpdateGlobal: output.hotUpdateGlobal!,
 		uniqueName: output.uniqueName!,
 		chunkLoadingGlobal: output.chunkLoadingGlobal!,
 		enabledLibraryTypes: output.enabledLibraryTypes,

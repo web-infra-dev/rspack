@@ -125,6 +125,9 @@ export type HotUpdateChunkFilename = z.infer<typeof hotUpdateChunkFilename>;
 const hotUpdateMainFilename = filenameTemplate;
 export type HotUpdateMainFilename = z.infer<typeof hotUpdateMainFilename>;
 
+const hotUpdateGlobal = z.string();
+export type HotUpdateGlobal = z.infer<typeof hotUpdateGlobal>;
+
 const uniqueName = z.string();
 export type UniqueName = z.infer<typeof uniqueName>;
 
@@ -262,6 +265,7 @@ const output = z.strictObject({
 	cssChunkFilename: cssChunkFilename.optional(),
 	hotUpdateMainFilename: hotUpdateMainFilename.optional(),
 	hotUpdateChunkFilename: hotUpdateChunkFilename.optional(),
+	hotUpdateGlobal: hotUpdateGlobal.optional(),
 	assetModuleFilename: assetModuleFilename.optional(),
 	uniqueName: uniqueName.optional(),
 	chunkLoadingGlobal: chunkLoadingGlobal.optional(),
