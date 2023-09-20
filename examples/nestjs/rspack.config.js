@@ -62,7 +62,7 @@ const config = {
 	],
 	experiments: {
 		rspackFuture: {
-			disableReactRefreshByDefault: true
+			disableTransformByDefault: true
 		}
 	}
 };

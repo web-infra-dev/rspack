@@ -138,7 +138,12 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       source.add(RawSource::from(
         include_str!("runtime/import_scripts_chunk_loading_with_hmr.js")
           .replace("$URL$", &url)
-          .replace("$globalObject$", &compilation.options.output.global_object),
+          .replace("$globalObject$", &compilation.options.output.global_object)
+          .replace(
+            "$hotUpdateGlobal$",
+            &serde_json::to_string(&compilation.options.output.hot_update_global)
+              .expect("failed to serde_json::to_string(hot_update_gloabl)"),
+          ),
       ));
       source.add(RawSource::from(
         include_str!("runtime/javascript_hot_module_replacement.js")
