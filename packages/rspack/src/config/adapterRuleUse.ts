@@ -271,7 +271,7 @@ function getBuiltinLoaderOptions(
 ): RuleSetLoaderWithOptions["options"] {
 	if (identifier.startsWith(`${BUILTIN_LOADER_PREFIX}sass-loader`)) {
 		deprecatedWarn(
-			`'builtin:sass-loader' have been deprecated, please migrate to ${termlink(
+			`'builtin:sass-loader' has been deprecated, please migrate to ${termlink(
 				"sass-loader",
 				"https://github.com/webpack-contrib/sass-loader"
 			)}`
