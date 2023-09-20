@@ -1,3 +1,3 @@
-import * as app from './lib';
+import * as _app from './lib';
 
-export {app}
+export { _app as app }
