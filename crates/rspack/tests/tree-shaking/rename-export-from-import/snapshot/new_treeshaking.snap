@@ -24,10 +24,6 @@ _app__WEBPACK_IMPORTED_MODULE_0_.q;
 "./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'answer': function() { return answer; },
-  'question': function() { return question; }
-});
  const answer = "1";
  const question = "2";
 },

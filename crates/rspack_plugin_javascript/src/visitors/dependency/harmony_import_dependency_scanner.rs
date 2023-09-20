@@ -134,6 +134,13 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
       );
       if importer_info.exports_all {
         self.build_info.all_star_exports.push(dependency.id);
+        self
+          .dependencies
+          .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
+            request.clone(),
+            vec![],
+            None,
+          )));
       }
       self.dependencies.push(Box::new(dependency));
     }
@@ -259,6 +266,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
 
   fn visit_export_all(&mut self, export_all: &ExportAll) {
     let key = (export_all.src.value.clone(), DependencyType::EsmExport);
+
     if let Some(importer_info) = self.imports.get_mut(&key) {
       importer_info.exports_all = true;
     } else {
@@ -266,6 +274,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
         .imports
         .insert(key, ImporterInfo::new(export_all.span, vec![], true));
     }
+
     self
       .presentational_dependencies
       .push(Box::new(ConstDependency::new(

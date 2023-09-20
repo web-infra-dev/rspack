@@ -60,6 +60,52 @@ describe("normalize options snapshot", () => {
 		);
 	});
 
+	it("shouldn't have reactRefreshEntry.js by default when rspackFuture.disableReactRefreshByDefault is enabled", async () => {
+		await matchAdditionEntries(
+			{},
+			{
+				entry: ["something"],
+				experiments: {
+					rspackFuture: {
+						disableReactRefreshByDefault: true
+					}
+				}
+			}
+		);
+		await matchAdditionEntries(
+			{},
+			{
+				entry: ["something"],
+				builtins: {
+					react: {
+						refresh: false
+					}
+				},
+				experiments: {
+					rspackFuture: {
+						disableReactRefreshByDefault: true
+					}
+				}
+			}
+		);
+		await matchAdditionEntries(
+			{},
+			{
+				entry: ["something"],
+				builtins: {
+					react: {
+						refresh: true
+					}
+				},
+				experiments: {
+					rspackFuture: {
+						disableReactRefreshByDefault: true
+					}
+				}
+			}
+		);
+	});
+
 	it("react.development and react.refresh should be true by default when hot enabled", async () => {
 		const compiler = createCompiler({
 			entry: ENTRY,

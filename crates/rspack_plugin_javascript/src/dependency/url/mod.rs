@@ -1,8 +1,7 @@
 use rspack_core::{
   get_dependency_used_by_exports_condition, module_id, Dependency, DependencyCategory,
   DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ModuleDependency, ModuleGraph, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
-  UsedByExports,
+  ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -60,8 +59,8 @@ impl ModuleDependency for URLDependency {
     self.request = request.into();
   }
 
-  fn get_condition(&self, module_graph: &ModuleGraph) -> Option<DependencyCondition> {
-    get_dependency_used_by_exports_condition(&self.id, &self.used_by_exports, module_graph)
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    get_dependency_used_by_exports_condition(self.id, &self.used_by_exports)
   }
 }
 

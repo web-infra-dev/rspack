@@ -1,15 +1,12 @@
 --- expected
 +++ actual
-@@ -3,11 +3,23 @@
+@@ -3,11 +3,20 @@
  ---
  ```js title=main.js
  (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 +"../node_modules/side-effects-module/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 +'use strict';
 +__webpack_require__.r(__webpack_exports__);
-+__webpack_require__.d(__webpack_exports__, {
-+  'test': function() { return test; }
-+});
 + function test() {
 +    console.log('something');
 +}
@@ -24,24 +21,13 @@
  
   // export {
   //   result as test
-@@ -24,12 +36,58 @@
- 'use strict';
- __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
-+  'secret': function() { return secret; },
-+  'result': function() { return result; },
-   'something': function() { return something; }
- });
-  const secret = "888";
+@@ -30,6 +39,46 @@
   const result = 20000;
   const something = function() {};
  },
 +"./src/a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 +'use strict';
 +__webpack_require__.r(__webpack_exports__);
-+__webpack_require__.d(__webpack_exports__, {
-+  'a': function() { return a; }
-+});
 +/* harmony import */var _d_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./d.js */"./src/d.js");
 +
 + const a = ()=>{
@@ -54,8 +40,7 @@
 +'use strict';
 +__webpack_require__.r(__webpack_exports__);
 +__webpack_require__.d(__webpack_exports__, {
-+  'test': function() { return _c_js__WEBPACK_IMPORTED_MODULE_0_.test; },
-+  'b': function() { return b; }
++  'test': function() { return _c_js__WEBPACK_IMPORTED_MODULE_0_.test; }
 +});
 +/* harmony import */var _c_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./c.js */"./src/c.js");
 +

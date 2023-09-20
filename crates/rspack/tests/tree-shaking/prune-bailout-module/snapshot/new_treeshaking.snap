@@ -6,27 +6,17 @@ source: crates/rspack_testing/src/run_fixture.rs
 "./a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
-});
 var __WEBPACK_DEFAULT_EXPORT__ = 300;
 },
 "./app.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'app': function() { return app; },
-  'test': function() { return test; }
-});
  function app() {}
  function test() {}
 },
 "./b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
-});
 __webpack_require__(/* ./app.js */"./app.js");
 var __WEBPACK_DEFAULT_EXPORT__ = 200;
 },

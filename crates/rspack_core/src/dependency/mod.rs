@@ -364,7 +364,7 @@ pub trait ModuleDependency: Dependency {
     None
   }
 
-  fn get_condition(&self, _module_graph: &ModuleGraph) -> Option<DependencyCondition> {
+  fn get_condition(&self) -> Option<DependencyCondition> {
     None
   }
 

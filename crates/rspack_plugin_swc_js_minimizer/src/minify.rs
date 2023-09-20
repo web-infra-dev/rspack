@@ -3,7 +3,6 @@ use std::{
   sync::{mpsc, Arc, Mutex},
 };
 
-use async_recursion::async_recursion;
 use regex::Regex;
 use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
@@ -43,20 +42,19 @@ use swc_ecma_minifier::{
 
 use crate::{JsMinifyCommentOption, JsMinifyOptions, SwcJsMinimizerRspackPluginOptions};
 
-#[async_recursion]
-pub async fn match_object(obj: &SwcJsMinimizerRspackPluginOptions, str: &str) -> Result<bool> {
+pub fn match_object(obj: &SwcJsMinimizerRspackPluginOptions, str: &str) -> Result<bool> {
   if let Some(condition) = &obj.test {
-    if !condition.try_match(str).await? {
+    if !condition.try_match(str)? {
       return Ok(false);
     }
   }
   if let Some(condition) = &obj.include {
-    if !condition.try_match(str).await? {
+    if !condition.try_match(str)? {
       return Ok(false);
     }
   }
   if let Some(condition) = &obj.exclude {
-    if condition.try_match(str).await? {
+    if condition.try_match(str)? {
       return Ok(false);
     }
   }

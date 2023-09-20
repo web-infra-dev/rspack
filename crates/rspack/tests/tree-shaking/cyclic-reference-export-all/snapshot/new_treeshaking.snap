@@ -49,8 +49,7 @@ _containers__WEBPACK_IMPORTED_MODULE_0_.usePlatform;
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'usePlatform': function() { return usePlatform; },
-  'PlatformProvider': function() { return PlatformProvider; }
+  'usePlatform': function() { return usePlatform; }
 });
  const usePlatform = 3;
  const PlatformProvider = 1000;

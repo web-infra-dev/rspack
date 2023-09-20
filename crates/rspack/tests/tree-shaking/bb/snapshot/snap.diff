@@ -1,23 +1,12 @@
 --- expected
 +++ actual
-@@ -6,6 +6,10 @@
+@@ -6,6 +6,9 @@
  "./a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  'use strict';
  __webpack_require__.r(__webpack_exports__);
 +__webpack_require__.d(__webpack_exports__, {
-+  'a': function() { return a; },
 +  'c': function() { return _b_js__WEBPACK_IMPORTED_MODULE_0_.c; }
 +});
  /* harmony import */var _b_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./b.js */"./b.js");
  /* harmony import */var _c_js__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./c.js */"./c.js");
  __webpack_require__.es(_c_js__WEBPACK_IMPORTED_MODULE_1_, __webpack_exports__);
-@@ -19,7 +23,8 @@
- 'use strict';
- __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
--  'd': function() { return d; }
-+  'd': function() { return d; },
-+  'c': function() { return c; }
- });
-  const d = 3;
-  const c = 100;

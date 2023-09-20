@@ -8,14 +8,3 @@
  /* harmony import */var _src_a__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./src/a */"./src/a.js");
  
  
-@@ -25,7 +26,9 @@
- 'use strict';
- __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
--  'result': function() { return result; }
-+  'secret': function() { return secret; },
-+  'result': function() { return result; },
-+  'something': function() { return something; }
- });
-  const secret = "888";
-  const result = 20000;

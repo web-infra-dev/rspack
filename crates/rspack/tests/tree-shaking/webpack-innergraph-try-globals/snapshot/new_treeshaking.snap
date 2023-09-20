@@ -20,9 +20,6 @@ it("should not threat globals as pure", ()=>{
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'x': function() { return x; },
-  'y': function() { return y; },
-  'c': function() { return c; },
   'ok': function() { return ok; },
   'ok2': function() { return ok2; }
 });
