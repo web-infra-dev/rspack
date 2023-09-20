@@ -20,11 +20,16 @@ const config = {
 						parser: {
 							syntax: "ecmascript",
 							jsx: true
+						},
+						transform: {
+							react: {
+								importSource: "@emotion/react",
+								runtime: "automatic"
+							}
 						}
 					},
 					rspackExperiments: {
-						emotion: true,
-						react: {}
+						emotion: true
 					}
 				},
 				type: "javascript/auto"
