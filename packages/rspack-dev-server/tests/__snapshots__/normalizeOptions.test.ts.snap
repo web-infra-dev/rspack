@@ -140,43 +140,6 @@ exports[`normalize options snapshot react-refresh client added when react/refres
 }
 `;
 
-exports[`normalize options snapshot shouldn't have reactRefreshEntry.js by default when rspackFuture.disableReactRefreshByDefault is enabled 1`] = `
-{
-  "main": [
-    "<prefix>/./placeholder.js",
-  ],
-  "undefined": [
-    "<prefix>/webpack-dev-server/client/index.js?protocol=ws%3A&hostname=0.0.0.0&&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
-    "<prefix>/webpack/hot/dev-server.js",
-  ],
-}
-`;
-
-exports[`normalize options snapshot shouldn't have reactRefreshEntry.js by default when rspackFuture.disableReactRefreshByDefault is enabled 2`] = `
-{
-  "main": [
-    "<prefix>/./placeholder.js",
-  ],
-  "undefined": [
-    "<prefix>/webpack-dev-server/client/index.js?protocol=ws%3A&hostname=0.0.0.0&&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
-    "<prefix>/webpack/hot/dev-server.js",
-  ],
-}
-`;
-
-exports[`normalize options snapshot shouldn't have reactRefreshEntry.js by default when rspackFuture.disableReactRefreshByDefault is enabled 3`] = `
-{
-  "main": [
-    "<prefix>/./placeholder.js",
-  ],
-  "undefined": [
-    "<prefix>/rspack-plugin-react-refresh/client/reactRefreshEntry.js",
-    "<prefix>/webpack-dev-server/client/index.js?protocol=ws%3A&hostname=0.0.0.0&&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
-    "<prefix>/webpack/hot/dev-server.js",
-  ],
-}
-`;
-
 exports[`normalize options snapshot shouldn't have reactRefreshEntry.js when react.refresh is false 1`] = `
 {
   "main": [
