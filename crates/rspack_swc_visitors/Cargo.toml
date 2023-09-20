@@ -12,6 +12,7 @@ indexmap          = { workspace = true }
 once_cell         = { workspace = true }
 regex             = { workspace = true }
 serde             = { workspace = true, features = ["derive"] }
+styled_components = { workspace = true }
 swc_core          = { workspace = true, features = ["ecma_ast"] }
 swc_emotion       = { workspace = true }
 swc_plugin_import = { path = "../swc_plugin_import" }

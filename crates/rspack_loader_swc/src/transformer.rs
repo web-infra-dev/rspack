@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use either::Either;
 use rspack_core::CompilerOptions;
+use rspack_swc_visitors::{styled_components, StyledComponentsOptions};
+use swc_core::common::FileName;
 use swc_core::common::{chain, comments::Comments, Mark, SourceMap};
 use swc_core::ecma::{transforms::base::pass::noop, visit::Fold};
 
@@ -50,6 +52,17 @@ pub(crate) fn transform<'a>(
         comments,
       )
     }),
+    either!(
+      rspack_experiments.styled_components,
+      |options: &StyledComponentsOptions| {
+        let content_hash = content_hash.expect("Content hash should be available");
+        styled_components(
+          FileName::Real(resource_path.into()),
+          content_hash.into(),
+          options.clone(),
+        )
+      }
+    ),
     either!(rspack_experiments.relay, |options| {
       rspack_swc_visitors::relay(
         options,

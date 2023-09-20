@@ -15,3 +15,8 @@ pub use import::{import, CustomTransform, ImportOptions, RawImportOptions, Style
 
 mod emotion;
 pub use emotion::{emotion, EmotionOptions, RawEmotionOptions};
+
+mod styled_components;
+pub use crate::styled_components::{
+  styled_components, RawStyledComponentsOptions, StyledComponentsOptions,
+};
