@@ -142,7 +142,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
           .replace(
             "$hotUpdateGlobal$",
             &serde_json::to_string(&compilation.options.output.hot_update_global)
-              .expect("failed to serde_json::to_string(hot_update_gloabl)"),
+              .expect("failed to serde_json::to_string(hot_update_global)"),
           ),
       ));
       source.add(RawSource::from(
