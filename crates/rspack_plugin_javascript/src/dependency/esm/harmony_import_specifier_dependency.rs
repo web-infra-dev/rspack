@@ -251,6 +251,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     // namespace import
+    dbg!(&self.ids);
     if self.ids.is_empty() {
       return self.get_referenced_exports_in_destructuring(None);
     }

@@ -531,6 +531,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
       &self.id,
       runtime,
     );
+    dbg!(&mode, &self.ids);
     match mode.ty {
       ExportModeType::Missing
       | ExportModeType::Unused

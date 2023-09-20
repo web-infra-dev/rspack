@@ -115,11 +115,20 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           .module_graph
           .dependency_by_id(&dep_id)
           .expect("should have dep");
+
         let referenced_exports = if let Some(md) = dep.as_module_dependency() {
           md.get_referenced_exports(&self.compilation.module_graph, runtime.as_ref())
         } else {
           continue;
         };
+        dbg!(
+          &connection,
+          dep
+            .as_module_dependency()
+            .map(|item| item.dependency_debug_name()),
+          &referenced_exports,
+          &old_referenced_exports
+        );
 
         if old_referenced_exports.is_none()
           || matches!(old_referenced_exports.as_ref().expect("should be some"), ProcessModuleReferencedExports::ExtendRef(v) if is_no_exports_referenced(v))
@@ -194,6 +203,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
 
     for (module_id, referenced_exports) in map {
+      dbg!(&module_id, &referenced_exports);
       let normalized_refs = match referenced_exports {
         ProcessModuleReferencedExports::Map(map) => map.into_values().collect::<Vec<_>>(),
         ProcessModuleReferencedExports::ExtendRef(extend_ref) => extend_ref,
@@ -311,7 +321,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               runtime.as_ref(),
             );
             if changed_flag {
-              // dbg!(&current_exports_info_id);
               let current_module = if current_exports_info_id == mgm_exports_info_id {
                 Some(module_id)
               } else {

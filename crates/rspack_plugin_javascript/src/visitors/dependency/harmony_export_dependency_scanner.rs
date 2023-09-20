@@ -17,7 +17,8 @@ use swc_core::{
 use super::harmony_import_dependency_scanner::ImportMap;
 use crate::dependency::{
   AnonymousFunctionRangeInfo, HarmonyExportExpressionDependency, HarmonyExportHeaderDependency,
-  HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency, DEFAULT_EXPORT,
+  HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency, Specifier,
+  DEFAULT_EXPORT,
 };
 
 pub struct HarmonyExportDependencyScanner<'a> {
@@ -100,11 +101,19 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                 _ => unreachable!(),
               };
               if let Some(reference) = self.import_map.get(&orig.to_id()) {
+                let ids = match reference.specifier {
+                  Specifier::Namespace(_) => {
+                    vec![]
+                  }
+                  _ => {
+                    vec![(export.clone(), reference.names.clone())]
+                  }
+                };
                 self
                   .dependencies
                   .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
                     reference.request.clone(),
-                    vec![(export.clone(), reference.names.clone())],
+                    ids,
                     Some(export),
                     false,
                   )));

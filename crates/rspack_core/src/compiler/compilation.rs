@@ -32,7 +32,7 @@ use super::{
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
-  is_source_equal,
+  debug_exports_info, is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxDependency,
   BoxModule, BuildQueue, BuildTask, BuildTaskResult, CacheCount, CacheOptions, Chunk, ChunkByUkey,
@@ -1159,13 +1159,13 @@ impl Compilation {
     logger.time_end(start);
 
     if self.options.is_new_tree_shaking() {
-      for module in self.module_graph.module_graph_modules().values() {}
+      // for module in self.module_graph.module_graph_modules().values() {}
       // self
       //   .module_graph
       //   .module_graph_modules()
       //   .values()
       //   .foreach(|item| {});
-      // debug_exports_info(&self.module_graph);
+      debug_exports_info(&self.module_graph);
     }
 
     let start = logger.time("create chunks");

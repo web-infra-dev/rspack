@@ -41,6 +41,7 @@ impl ImporterReferenceInfo {
 
 pub type ImportMap = HashMap<Id, ImporterReferenceInfo>;
 
+#[derive(Debug)]
 pub struct ImporterInfo {
   pub span: Span,
   pub specifiers: Vec<Specifier>,

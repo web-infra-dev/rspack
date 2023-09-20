@@ -72,8 +72,15 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
     if let Some(con) = connection {
       // TODO: runtime opt
       let ret = con.is_target_active(&compilation.module_graph, None);
-
-      dbg!(&con, &ret);
+      // dbg!(
+      //   &con,
+      //   &ret,
+      //   &compilation
+      //     .module_graph
+      //     .dependency_by_id(&con.dependency_id)
+      //     .and_then(|item| item.as_module_dependency())
+      //     .map(|item| item.dependency_debug_name())
+      // );
       ret
     } else {
       true
