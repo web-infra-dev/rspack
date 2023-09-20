@@ -178,7 +178,6 @@ const applyExperimentsDefaults = (
 		D(experiments.rspackFuture, "newResolver", false);
 		D(experiments.rspackFuture, "newTreeshaking", false);
 		D(experiments.rspackFuture, "disableTransformByDefault", false);
-		D(experiments.rspackFuture, "disableReactRefreshByDefault", false);
 	}
 };
 
