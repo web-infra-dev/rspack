@@ -5,11 +5,12 @@ module.exports = {
 				test: /\.js$/,
 				loader: "builtin:swc-loader",
 				options: {
-					rspackExperiments: {
-						react: {
-							refresh: false
-						}
-					}
+					// TODO: add back this until `@rspack/plugin-react-refresh` is finished
+					// rspackExperiments: {
+					// 	react: {
+					// 		refresh: false
+					// 	}
+					// }
 				}
 			}
 		]

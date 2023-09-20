@@ -5,9 +5,11 @@ module.exports = {
 				test: /\.js$/,
 				loader: "builtin:swc-loader",
 				options: {
-					rspackExperiments: {
-						react: {
-							runtime: "classic"
+					jsc: {
+						transform: {
+							react: {
+								runtime: "classic"
+							}
 						}
 					}
 				}

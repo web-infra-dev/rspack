@@ -4,10 +4,7 @@ use std::sync::Arc;
 use either::Either;
 use rspack_core::CompilerOptions;
 use swc_core::common::{chain, comments::Comments, Mark, SourceMap};
-use swc_core::ecma::{
-  transforms::base::pass::{noop, Optional},
-  visit::Fold,
-};
+use swc_core::ecma::{transforms::base::pass::noop, visit::Fold};
 
 use crate::options::RspackExperiments;
 
@@ -33,7 +30,7 @@ pub(crate) fn transform<'a>(
   resource_path: &'a Path,
   rspack_options: &'a CompilerOptions,
   comments: Option<&'a dyn Comments>,
-  top_level_mark: Mark,
+  _top_level_mark: Mark,
   unresolved_mark: Mark,
   cm: Arc<SourceMap>,
   content_hash: Option<u32>,
@@ -42,17 +39,6 @@ pub(crate) fn transform<'a>(
   use rspack_swc_visitors::EmotionOptions;
 
   chain!(
-    either!(rspack_experiments.react, |options| {
-      rspack_swc_visitors::react(top_level_mark, comments, &cm, options, unresolved_mark)
-    }),
-    Optional::new(
-      rspack_swc_visitors::fold_react_refresh(unresolved_mark),
-      rspack_experiments
-        .react
-        .as_ref()
-        .and_then(|v| v.refresh)
-        .unwrap_or_default()
-    ),
     either!(rspack_experiments.emotion, |options: &EmotionOptions| {
       // SAFETY: Source content hash should always available if emotion is turned on.
       let content_hash = content_hash.expect("Content hash should be available");
