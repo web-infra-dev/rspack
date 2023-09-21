@@ -169,4 +169,4 @@ jobs:
           echo 'debug = false' >> Cargo.toml
 
       - name: Run test
-        run: cargo test --workspace -- --nocapture
+        run: IS_NEW_TREESHAKING=1 cargo test --workspace -- --nocapture

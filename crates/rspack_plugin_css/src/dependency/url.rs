@@ -86,6 +86,10 @@ impl ModuleDependency for CssUrlDependency {
   fn set_request(&mut self, request: String) {
     self.request = request;
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "CssUrlDependency"
+  }
 }
 
 impl DependencyTemplate for CssUrlDependency {

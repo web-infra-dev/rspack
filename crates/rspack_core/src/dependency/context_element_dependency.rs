@@ -80,6 +80,10 @@ impl ModuleDependency for ContextElementDependency {
       vec![ExtendedReferencedExport::Array(vec![])]
     }
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "ContextElementDependency"
+  }
 }
 
 impl AsDependencyTemplate for ContextElementDependency {}

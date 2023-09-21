@@ -50,6 +50,10 @@ impl ModuleDependency for CssComposeDependency {
   fn set_request(&mut self, request: String) {
     self.request = request;
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "CssComposeDependency"
+  }
 }
 
 impl AsDependencyTemplate for CssComposeDependency {}

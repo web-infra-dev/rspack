@@ -39,6 +39,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _Layout_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./Layout.js */"./Layout.js");
 /* harmony import */var _Something_js__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./Something.js */"./Something.js");
+/* harmony import */var _Layout_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./Layout.js */"./Layout.js");
 
 
 _Layout_js__WEBPACK_IMPORTED_MODULE_0_["default"].sider = _Something_js__WEBPACK_IMPORTED_MODULE_1_["default"];

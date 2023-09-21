@@ -1,4 +1,7 @@
-use rspack_core::{DependencyTemplate, TemplateContext, TemplateReplaceSource};
+use rspack_core::{
+  AsModuleDependency, Dependency, DependencyId, DependencyTemplate, ModuleDependency,
+  TemplateContext, TemplateReplaceSource,
+};
 
 pub const DEFAULT_EXPORT: &str = "__WEBPACK_DEFAULT_EXPORT__";
 // pub const NAMESPACE_OBJECT_EXPORT: &'static str = "__WEBPACK_NAMESPACE_OBJECT__";
@@ -17,6 +20,7 @@ pub struct HarmonyExportExpressionDependency {
   pub end: u32,
   pub declaration: bool,
   pub function: Option<AnonymousFunctionRangeInfo>,
+  pub id: DependencyId,
 }
 
 impl HarmonyExportExpressionDependency {
@@ -31,7 +35,32 @@ impl HarmonyExportExpressionDependency {
       end,
       declaration,
       function,
+      id: DependencyId::default(),
     }
+  }
+}
+
+impl Dependency for HarmonyExportExpressionDependency {
+  fn id(&self) -> &rspack_core::DependencyId {
+    &self.id
+  }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &rspack_core::ModuleGraph,
+    _module_chain: &mut rustc_hash::FxHashSet<rspack_core::ModuleIdentifier>,
+  ) -> rspack_core::ConnectionState {
+    rspack_core::ConnectionState::Bool(false)
+  }
+}
+
+impl AsModuleDependency for HarmonyExportExpressionDependency {
+  fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
+    None
+  }
+
+  fn as_module_dependency_mut(&mut self) -> Option<&mut dyn ModuleDependency> {
+    None
   }
 }
 

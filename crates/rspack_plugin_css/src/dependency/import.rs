@@ -54,6 +54,10 @@ impl ModuleDependency for CssImportDependency {
   fn set_request(&mut self, request: String) {
     self.request = request;
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "CssImportDependency"
+  }
 }
 
 impl DependencyTemplate for CssImportDependency {
