@@ -406,7 +406,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       let res = self
         .ids
         .iter()
-        .filter_map(|(local, imported)| {
+        .filter_map(|(local, _)| {
           // TODO: runtime opt
           exports_info_id.get_used_name(
             &compilation.module_graph,
