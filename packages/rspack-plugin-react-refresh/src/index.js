@@ -27,9 +27,10 @@ module.exports = class ReactRefreshRspackPlugin {
 			$ReactRefreshRuntime$: reactRefreshPath
 		}).apply(compiler);
 
-		compiler.options.module.rules.push({
-			include: runtimePaths,
-			type: "js"
+		compiler.options.module.rules.unshift({
+			exclude: [/node_modules/i, ...runtimePaths],
+			include: /\.([cm]js|[jt]sx?|flow)$/i,
+			use: "builtin:react-refresh-loader"
 		});
 	}
 };

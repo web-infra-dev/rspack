@@ -18,22 +18,13 @@ const config = {
 			{
 				test: /\.tsx$/,
 				use: {
-					loader: "builtin:swc-loader",
+					loader: "babel-loader",
 					options: {
-						sourceMap: true,
-						jsc: {
-							parser: {
-								syntax: "typescript",
-								tsx: true
-							},
-							transform: {
-								react: {
-									runtime: "automatic",
-									development: !isProduction,
-									refresh: !isProduction,
-								}
-							}
-						}
+						presets: [
+							["@babel/preset-react", { runtime: "automatic" }],
+							'@babel/preset-typescript',
+						],
+						plugins: [!isProduction && require.resolve('react-refresh/babel')].filter(Boolean)
 					}
 				}
 			}
