@@ -47,7 +47,7 @@ pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
   }
   if builtin.starts_with(REACT_REFRESH_LOADER_IDENTIFIER) {
     return Arc::new(
-      rspack_loader_react_refresh::ReactRefreshLoader::new().with_identifier(builtin.into()),
+      rspack_loader_react_refresh::ReactRefreshLoader::default().with_identifier(builtin.into()),
     );
   }
 
