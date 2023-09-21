@@ -15,21 +15,10 @@ module.exports = {
 			{
 				test: /\.jsx$/,
 				use: {
-					loader: "builtin:swc-loader",
+					loader: "babel-loader",
 					options: {
-						jsc: {
-							parser: {
-								syntax: "ecmascript",
-								jsx: true
-							},
-							transform: {
-								react: {
-									runtime: "automatic",
-									development: true,
-									refresh: true
-								}
-							}
-						}
+						presets: [["@babel/preset-react", { runtime: "automatic" }]],
+						plugins: [require.resolve("react-refresh/babel")]
 					}
 				}
 			}
