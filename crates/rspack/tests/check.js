@@ -20,7 +20,7 @@ const filteredList = dirList.filter((dir) => {
 console.log(`total: ${filteredList.length}`)
 
 const falsePositiveList = [
-	'cjs-export-computed-property', // This one is false positive because webpack will not counted a esm export as unsed in an entry module, the previous implementation follows the esbuild behavior
+	'cjs-export-computed-property', // This one is false positive because webpack will not counted a esm export as unsed in an entry module, the previous implementation follows the esbuild behavior , see https://gist.github.com/IWANABETHATGUY/b41d0f80a558580010276a44b310a473
 ]
 const failedList = filteredList.filter(item => {
 	if (falsePositiveList.includes(item)) {
