@@ -15,6 +15,7 @@ use rspack_core::{
   ModuleRuleUseLoader, ModuleType, ParserOptions, ParserOptionsByModuleType,
 };
 use rspack_error::internal_error;
+use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_sass::SASS_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
 use serde::Deserialize;
@@ -42,6 +43,11 @@ pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
         }),
       )
       .with_identifier(builtin.into()),
+    );
+  }
+  if builtin.starts_with(REACT_REFRESH_LOADER_IDENTIFIER) {
+    return Arc::new(
+      rspack_loader_react_refresh::ReactRefreshLoader::new().with_identifier(builtin.into()),
     );
   }
 

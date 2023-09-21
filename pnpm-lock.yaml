@@ -563,13 +563,18 @@ importers:
   examples/react-refresh:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
+      '@rspack/plugin-react-refresh': workspace:*
       react: 18.0.0
       react-dom: 18.0.0
       react-refresh: 0.13.0
     dependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
       react: 18.0.0
       react-dom: 18.0.0_react@18.0.0
+    devDependencies:
+      '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
+      '@rspack/plugin-react-refresh': link:../../packages/rspack-plugin-react-refresh
       react-refresh: 0.13.0
 
   examples/react-storybook:
@@ -23468,7 +23473,6 @@ packages:
   /react-refresh/0.13.0:
     resolution: {integrity: sha512-XP8A9BT0CpRBD+NYLLeIhld/RqG9+gktUjW1FkE+Vm7OCinbG1SshcK5tb9ls4kzvjZr9mOQc7HYgBngEyPAXg==}
     engines: {node: '>=0.10.0'}
-    dev: false
 
   /react-refresh/0.14.0:
     resolution: {integrity: sha512-wViHqhAd8OHeLS/IRMJjTSDHF3U9eWi62F/MledQGPdJGDhodXJ9PBLNGr6WWL7qlH12Mt3TyTpbS+hGXMjCzQ==}
