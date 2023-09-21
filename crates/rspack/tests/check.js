@@ -19,7 +19,13 @@ const filteredList = dirList.filter((dir) => {
 
 console.log(`total: ${filteredList.length}`)
 
+const falsePositiveList = [
+	'cjs-export-computed-property', // This one is false positive because webpack will not counted a esm export as unsed in an entry module, the previous implementation follows the esbuild behavior
+]
 const failedList = filteredList.filter(item => {
+	if (falsePositiveList.includes(item)) {
+		return false;
+	}
 	const abPath = path.join(currentDir, item, "snapshot", "snap.diff")
 	return fs.existsSync(abPath)
 })
