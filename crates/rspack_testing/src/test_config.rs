@@ -366,6 +366,7 @@ impl TestConfig {
           .expect("Should exist"),
         hot_update_main_filename: c::Filename::from_str("[runtime].[fullhash].hot-update.json")
           .expect("Should exist"),
+        hot_update_global: "rspack_testing".to_string(),
         asset_module_filename: c::Filename::from_str("[hash][ext][query]").expect("Should exist"),
         wasm_loading: c::WasmLoading::Enable(c::WasmLoadingType::from("fetch")),
         webassembly_module_filename: c::Filename::from_str("[hash].module.wasm")
