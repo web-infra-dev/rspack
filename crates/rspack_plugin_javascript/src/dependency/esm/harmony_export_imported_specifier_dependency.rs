@@ -4,7 +4,7 @@ use rspack_core::{
   DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExportInfoId,
   ExportInfoProvided, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment,
   ModuleDependency, ModuleGraph, ModuleIdentifier, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsageState,
+  TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
@@ -398,6 +398,28 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
           .get_exports_info(&module.identifier())
           .old_get_used_exports(),
       )
+    } else if is_new_tree_shaking {
+      let exports_info_id = compilation
+        .module_graph
+        .get_exports_info(&module.identifier())
+        .id;
+      let res = self
+        .ids
+        .iter()
+        .filter_map(|(local, imported)| {
+          // TODO: runtime opt
+          exports_info_id.get_used_name(
+            &compilation.module_graph,
+            None,
+            UsedName::Str(local.clone()),
+          )
+        })
+        .map(|item| match item {
+          UsedName::Str(name) => name,
+          UsedName::Vec(_) => todo!(),
+        })
+        .collect::<HashSet<_>>();
+      Some(res)
     } else {
       None
     };

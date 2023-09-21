@@ -32,4 +32,4 @@ const failedList = filteredList.filter(item => {
 
 console.log(`failed: ${failedList.length}`)
 console.log(`passed: ${filteredList.length - failedList.length}`)
-console.log(failedList)
+console.log('failed list:\n', failedList)
