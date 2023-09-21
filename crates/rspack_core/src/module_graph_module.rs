@@ -123,7 +123,7 @@ impl ModuleGraphModule {
   // }
 
   pub fn depended_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a ModuleIdentifier> {
-    if *IS_NEW_TREESHAKING {
+    if IS_NEW_TREESHAKING.load(std::sync::atomic::Ordering::Relaxed) {
       self
         .outgoing_connections_unordered(module_graph)
         .expect("should have outgoing connections")

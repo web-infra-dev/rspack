@@ -3,12 +3,14 @@
 #![feature(box_patterns)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 
+use std::sync::atomic::AtomicBool;
 use std::{fmt, sync::Arc};
 mod fake_namespace_object;
 pub use fake_namespace_object::*;
 mod module_profile;
 pub use module_profile::*;
 use once_cell::sync::Lazy;
+use rkyv::with::Atomic;
 use rspack_database::Database;
 pub mod external_module;
 pub use external_module::*;
@@ -253,7 +255,4 @@ pub type ChunkByUkey = Database<Chunk>;
 pub type ChunkGroupByUkey = Database<ChunkGroup>;
 pub(crate) type SharedPluginDriver = Arc<PluginDriver>;
 
-pub static IS_NEW_TREESHAKING: Lazy<bool> = Lazy::new(|| -> bool {
-  // std::env::set_var(key, value);
-  std::env::var("IS_NEW_TREESHAKING").is_ok()
-});
+pub static IS_NEW_TREESHAKING: AtomicBool = AtomicBool::new(false);

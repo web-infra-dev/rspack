@@ -118,7 +118,7 @@ impl ModuleGraph {
   ) -> Result<()> {
     let is_module_dependency = dependency.as_module_dependency().is_some();
     let dependency_id = *dependency.id();
-    let condition = if *IS_NEW_TREESHAKING {
+    let condition = if IS_NEW_TREESHAKING.load(std::sync::atomic::Ordering::Relaxed) {
       dependency
         .as_module_dependency()
         .and_then(|dep| dep.get_condition())

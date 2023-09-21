@@ -1,7 +1,8 @@
 use std::path::PathBuf;
+use std::sync::atomic::Ordering;
 
 use cargo_rst::git_diff;
-use rspack_core::{BoxPlugin, CompilerOptions, TreeShaking, UsedExportsOption};
+use rspack_core::{BoxPlugin, CompilerOptions, TreeShaking, UsedExportsOption, IS_NEW_TREESHAKING};
 use rspack_plugin_javascript::{FlagDependencyExportsPlugin, FlagDependencyUsagePlugin};
 use rspack_testing::test_fixture;
 use testing_macros::fixture;
@@ -27,6 +28,7 @@ fn tree_shaking(fixture_path: PathBuf) {
   // First test is old version tree shaking snapshot test
   test_fixture(&fixture_path, Box::new(|_, _| {}), None);
   // second test is webpack based tree shaking
+  IS_NEW_TREESHAKING.store(true, Ordering::SeqCst);
   test_fixture(
     &fixture_path,
     Box::new(
