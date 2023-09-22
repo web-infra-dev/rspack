@@ -1,6 +1,11 @@
 const path = require("path");
+const { validate: validateOptions } = require("schema-utils");
+
 const reactRefreshPath = require.resolve("../client/reactRefresh.js");
 const reactRefreshEntryPath = require.resolve("../client/reactRefreshEntry.js");
+const schema = require("./options.json");
+const { normalizeOptions } = require("./options");
+
 const refreshUtilsPath = require.resolve(
 	"@pmmmwh/react-refresh-webpack-plugin/lib/runtime/RefreshUtils",
 	{
@@ -15,10 +20,30 @@ const refreshRuntimeDirPath = path.dirname(
 const runtimePaths = [
 	reactRefreshPath,
 	refreshUtilsPath,
+	reactRefreshEntryPath,
 	refreshRuntimeDirPath
 ];
 
+/**
+ * @typedef {Object} Options
+ * @property {(string | RegExp | (string | RegExp)[] | null)=} include included resourcePath for loader
+ * @property {(string | RegExp | (string | RegExp)[] | null)=} exclude excluded resourcePath for loader
+ */
+
 module.exports = class ReactRefreshRspackPlugin {
+	/**
+	 * @param {Options} options
+	 */
+	constructor(options = {}) {
+		validateOptions(schema, options, {
+			name: "React Refresh Rspack Plugin",
+			baseDataPath: "options"
+		});
+		/**
+		 * @type {Options}
+		 */
+		this.options = normalizeOptions(options);
+	}
 	apply(compiler) {
 		new compiler.webpack.EntryPlugin(compiler.context, reactRefreshEntryPath, {
 			name: undefined
@@ -28,8 +53,10 @@ module.exports = class ReactRefreshRspackPlugin {
 		}).apply(compiler);
 
 		compiler.options.module.rules.unshift({
-			exclude: [/node_modules/i, ...runtimePaths],
-			include: /\.([cm]js|[jt]sx?|flow)$/i,
+			include: this.options.include,
+			exclude: {
+				or: [this.options.exclude, [...runtimePaths]].filter(Boolean)
+			},
 			use: "builtin:react-refresh-loader"
 		});
 	}
