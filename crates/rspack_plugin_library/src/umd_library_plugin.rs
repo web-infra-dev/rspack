@@ -2,13 +2,14 @@ use std::hash::Hash;
 
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, Chunk, Compilation, ExternalModule, Filename,
-  JsChunkHashArgs, LibraryAuxiliaryComment, PathData, Plugin,
+  AdditionalChunkRuntimeRequirementsArgs, Chunk, Compilation, ExternalModule, ExternalRequest,
+  Filename, JsChunkHashArgs, LibraryAuxiliaryComment, PathData, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
 };
+use rspack_error::{internal_error, Result};
 
-use super::utils::{external_arguments, external_dep_array};
+use super::utils::{external_arguments, externals_dep_array};
 
 #[derive(Debug)]
 pub struct UmdLibraryPlugin {
@@ -104,12 +105,12 @@ impl Plugin for UmdLibraryPlugin {
       format!(
         "define({}, {}, {amd_factory});\n",
         library_name(&[amd.to_string()], chunk, compilation),
-        external_dep_array(&required_externals)
+        externals_dep_array(&required_externals)?
       )
     } else {
       format!(
         "define({}, {amd_factory});\n",
-        external_dep_array(&required_externals)
+        externals_dep_array(&required_externals)?
       )
     };
 
@@ -125,7 +126,7 @@ impl Plugin for UmdLibraryPlugin {
             .clone()
             .map(|root| library_name(&root, chunk, compilation)))
           .unwrap_or_default(),
-        externals_require_array("commonjs", &externals),
+        externals_require_array("commonjs", &externals)?,
       );
       let root_code = format!(
         "{}
@@ -142,7 +143,7 @@ impl Plugin for UmdLibraryPlugin {
           chunk,
           compilation,
         ),
-        external_root_array(&externals)
+        external_root_array(&externals)?
       );
       format!(
         "}} else if(typeof exports === 'object'){{\n
@@ -157,8 +158,8 @@ impl Plugin for UmdLibraryPlugin {
       } else {
         format!(
           "var a = typeof exports === 'object' ? factory({}) : factory({});\n",
-          externals_require_array("commonjs", &externals),
-          external_root_array(&externals)
+          externals_require_array("commonjs", &externals)?,
+          external_root_array(&externals)?
         )
       };
       format!(
@@ -179,7 +180,7 @@ impl Plugin for UmdLibraryPlugin {
             module.exports = factory({});
         }}"#,
       get_auxiliary_comment("commonjs2", auxiliary_comment),
-      externals_require_array("commonjs2", &externals)
+      externals_require_array("commonjs2", &externals)?
     )));
     source.add(RawSource::from(format!(
       "else if(typeof define === 'function' && define.amd) {{
@@ -239,36 +240,65 @@ fn replace_keys(v: String, chunk: &Chunk, compilation: &Compilation) -> String {
   )
 }
 
-fn externals_require_array(_t: &str, externals: &[&ExternalModule]) -> String {
-  externals
-    .iter()
-    .map(|m| {
-      let request = &m.request;
-      // TODO: check if external module is optional
-      format!("require('{}')", request.as_str())
-    })
-    .collect::<Vec<_>>()
-    .join(", ")
+fn externals_require_array(typ: &str, externals: &[&ExternalModule]) -> Result<String> {
+  Ok(
+    externals
+      .iter()
+      .map(|m| {
+        let request = match &m.request {
+          ExternalRequest::Single(r) => r,
+          ExternalRequest::Map(map) => map
+            .get(typ)
+            .map(|r| r)
+            .ok_or_else(|| internal_error!("Missing external configuration for type: {typ}"))?,
+        };
+        // TODO: check if external module is optional
+        let primary =
+          serde_json::to_string(request.primary()).map_err(|e| internal_error!(e.to_string()))?;
+        let expr = if let Some(rest) = request.rest() {
+          format!("require({}){}", primary, &accessor_to_object_access(rest))
+        } else {
+          format!("require({})", primary)
+        };
+        Ok(expr)
+      })
+      .collect::<Result<Vec<_>>>()?
+      .join(", "),
+  )
 }
 
-fn external_root_array(modules: &[&ExternalModule]) -> String {
-  modules
-    .iter()
-    .map(|m| {
-      let request = &m.request;
+fn external_root_array(modules: &[&ExternalModule]) -> Result<String> {
+  Ok(
+    modules
+      .iter()
+      .map(|m| {
+        let typ = "root";
+        let request = match &m.request {
+          ExternalRequest::Single(r) => r.primary(),
+          ExternalRequest::Map(map) => map
+            .get(typ)
+            .map(|r| r.primary())
+            .ok_or_else(|| internal_error!("Missing external configuration for type: {typ}"))?,
+        };
+        Ok(format!(
+          "root{}",
+          accessor_to_object_access(&[request.to_owned()])
+        ))
+      })
+      .collect::<Result<Vec<_>>>()?
+      .join(", "),
+  )
+}
+
+fn accessor_to_object_access<S: AsRef<str>>(accessor: impl IntoIterator<Item = S>) -> String {
+  accessor
+    .into_iter()
+    .map(|s| {
       format!(
-        "root{}",
-        accessor_to_object_access(&[request.as_str().to_owned()])
+        "[{}]",
+        serde_json::to_string(s.as_ref()).expect("failed to serde_json::to_string")
       )
     })
-    .collect::<Vec<_>>()
-    .join(", ")
-}
-
-fn accessor_to_object_access(accessor: &[String]) -> String {
-  accessor
-    .iter()
-    .map(|s| format!("['{s}']"))
     .collect::<Vec<_>>()
     .join("")
 }

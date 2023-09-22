@@ -2,6 +2,7 @@ use std::hash::Hash;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
+use rspack_core::property_access;
 use rspack_core::tree_shaking::webpack_ext::ExportInfoExt;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
@@ -10,8 +11,6 @@ use rspack_core::{
   PluginRenderStartupHookOutput, RenderArgs, RenderStartupArgs, SourceType,
 };
 use rspack_error::internal_error;
-
-use crate::utils::property_access;
 
 const COMMON_LIBRARY_NAME_MESSAGE: &str = "Common configuration options that specific library names are 'output.library[.name]', 'entry.xyz.library[.name]', 'ModuleFederationPlugin.name' and 'ModuleFederationPlugin.library[.name]'.";
 
@@ -169,7 +168,7 @@ impl Plugin for AssignLibraryPlugin {
         .get(&args.module)
       {
         for info in analyze_results.ordered_exports() {
-          let name_access = property_access(&vec![info.name.to_string()]);
+          let name_access = property_access(&vec![info.name], 0);
           source.add(RawSource::from(format!(
             "{export_target}{name_access} = __webpack_exports__{export_access}{name_access};\n",
           )));
@@ -234,7 +233,7 @@ impl Plugin for AssignLibraryPlugin {
 fn property_library(library: &Option<LibraryOptions>) -> String {
   if let Some(library) = library {
     if let Some(export) = &library.export {
-      return property_access(export);
+      return property_access(export, 0);
     }
   }
   String::default()
@@ -256,7 +255,7 @@ fn access_with_init(accessor: &Vec<String>, existing_length: usize, init_last: b
   if existing_length > i {
     props_so_far = accessor[1..existing_length].to_vec();
     i = existing_length;
-    current.push_str(property_access(&props_so_far).as_str());
+    current.push_str(property_access(&props_so_far, 0).as_str());
   }
 
   let init_until = if init_last {
@@ -269,8 +268,8 @@ fn access_with_init(accessor: &Vec<String>, existing_length: usize, init_last: b
     props_so_far.push(accessor[i].clone());
     current = format!(
       "({current}{} = {base}{} || {{}})",
-      property_access(&vec![accessor[i].clone()]),
-      property_access(&props_so_far)
+      property_access(&vec![&accessor[i]], 0),
+      property_access(&props_so_far, 0)
     );
     i += 1;
   }
@@ -278,7 +277,7 @@ fn access_with_init(accessor: &Vec<String>, existing_length: usize, init_last: b
   if i < accessor.len() {
     current = format!(
       "{current}{}",
-      property_access(&vec![accessor[accessor.len() - 1].clone()]),
+      property_access(&vec![&accessor[accessor.len() - 1]], 0),
     );
   }
 

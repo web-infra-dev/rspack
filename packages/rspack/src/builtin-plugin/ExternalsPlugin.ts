@@ -75,6 +75,13 @@ function getRawExternalItemValue(
 			type: "array",
 			arrayPayload: value
 		};
+	} else if (typeof value === "object" && value !== null) {
+		return {
+			type: "object",
+			objectPayload: Object.fromEntries(
+				Object.entries(value).map(([k, v]) => [k, Array.isArray(v) ? v : [v]])
+			)
+		};
 	}
 	throw new Error("unreachable");
 }

@@ -635,7 +635,11 @@ export type ExternalsType = z.infer<typeof externalsType>;
 //#endregion
 
 //#region Externals
-const externalItemValue = z.string().or(z.boolean()).or(z.string().array());
+const externalItemValue = z
+	.string()
+	.or(z.boolean())
+	.or(z.string().array().min(1))
+	.or(z.record(z.string().or(z.string().array())));
 export type ExternalItemValue = z.infer<typeof externalItemValue>;
 
 const externalItemObjectUnknown = z.record(externalItemValue);
