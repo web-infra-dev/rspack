@@ -257,15 +257,16 @@ impl<'a> InnerGraphPlugin<'a> {
     self.on_usage(
       symbol,
       Box::new(|used_by_exports| {
-        if matches!(used_by_exports, UsedByExports::Nil)
-          || matches!(used_by_exports, UsedByExports::Bool(true))
-        {
+        if matches!(
+          used_by_exports,
+          UsedByExports::Nil | UsedByExports::Bool(true)
+        ) {
           return;
         } else {
           // TODO usedByExports
-          self
-            .presentational_dependencies
-            .push(Box::new(PureExpressionDependency::new(start, end)));
+          // self
+          //   .presentational_dependencies
+          //   .push(Box::new(PureExpressionDependency::new(start, end)));
         }
       }),
     )
@@ -318,6 +319,7 @@ impl<'a> InnerGraphPlugin<'a> {
     let mut non_terminal = HashSet::from_iter(state.inner_graph.keys().cloned());
     let mut processed: HashMap<JsWord, HashSet<JsWord>> = HashMap::default();
     while !non_terminal.is_empty() {
+      let mut keys_to_remove = vec![];
       for key in non_terminal.iter() {
         let mut new_set = HashSet::default();
         // Using enum to manipulate original is pretty hard, so I use an extra variable to
@@ -376,7 +378,6 @@ impl<'a> InnerGraphPlugin<'a> {
         }
 
         if is_terminal {
-          non_terminal.remove(&key);
           // webpack use null, using enum make code is hard to write, also there is no
           // way to export a empty string, so use `""` to represent `null` should be safe
           // https://github.com/IWANABETHATGUY/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/optimize/InnerGraph.js#L177
@@ -385,6 +386,9 @@ impl<'a> InnerGraphPlugin<'a> {
             // TODO:
           }
         }
+      }
+      for k in keys_to_remove {
+        non_terminal.remove(&k);
       }
     }
     // TODO: invoke callback
