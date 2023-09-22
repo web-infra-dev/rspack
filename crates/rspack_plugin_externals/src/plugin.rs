@@ -40,7 +40,7 @@ impl ExternalsPlugin {
     let (external_module_config, external_module_type) = match config {
       ExternalItemValue::String(config) => {
         let (external_type, config) =
-          if let Some((external_type, new_config)) = parse_external_type_from_str(&config) {
+          if let Some((external_type, new_config)) = parse_external_type_from_str(config) {
             (external_type, new_config)
           } else {
             (self.r#type.clone(), config.to_owned())
@@ -51,8 +51,8 @@ impl ExternalsPlugin {
         )
       }
       ExternalItemValue::Array(arr) => {
-        let mut iter = arr.into_iter().peekable();
-        let primary = iter.next().expect("should have at least one value");
+        let mut iter = arr.iter().peekable();
+        let primary = iter.next()?;
         let (external_type, primary) =
           if let Some((external_type, new_primary)) = parse_external_type_from_str(primary) {
             (external_type, new_primary)
@@ -81,9 +81,9 @@ impl ExternalsPlugin {
       ExternalItemValue::Object(map) => (
         ExternalRequest::Map(
           map
-            .into_iter()
+            .iter()
             .map(|(k, v)| {
-              let mut iter = v.into_iter().peekable();
+              let mut iter = v.iter().peekable();
               let primary = iter.next().expect("should have at least one value");
               let rest = iter.peek().is_some().then(|| iter.cloned().collect());
               (

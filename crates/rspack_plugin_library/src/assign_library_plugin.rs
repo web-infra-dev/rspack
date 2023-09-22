@@ -277,7 +277,7 @@ fn access_with_init(accessor: &Vec<String>, existing_length: usize, init_last: b
   if i < accessor.len() {
     current = format!(
       "{current}{}",
-      property_access(&vec![&accessor[accessor.len() - 1]], 0),
+      property_access([&accessor[accessor.len() - 1]], 0),
     );
   }
 

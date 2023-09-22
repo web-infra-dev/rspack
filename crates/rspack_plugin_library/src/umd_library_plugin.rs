@@ -249,7 +249,6 @@ fn externals_require_array(typ: &str, externals: &[&ExternalModule]) -> Result<S
           ExternalRequest::Single(r) => r,
           ExternalRequest::Map(map) => map
             .get(typ)
-            .map(|r| r)
             .ok_or_else(|| internal_error!("Missing external configuration for type: {typ}"))?,
         };
         // TODO: check if external module is optional
@@ -280,10 +279,7 @@ fn external_root_array(modules: &[&ExternalModule]) -> Result<String> {
             .map(|r| r.primary())
             .ok_or_else(|| internal_error!("Missing external configuration for type: {typ}"))?,
         };
-        Ok(format!(
-          "root{}",
-          accessor_to_object_access(&[request.to_owned()])
-        ))
+        Ok(format!("root{}", accessor_to_object_access([request])))
       })
       .collect::<Result<Vec<_>>>()?
       .join(", "),
