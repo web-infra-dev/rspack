@@ -19,9 +19,24 @@ use crate::{
   plugin::side_effects_flag_plugin::{is_pure_class, is_pure_expression},
 };
 
+#[derive(Hash, PartialEq, Eq, Clone)]
+pub enum InnerGraphMapSetValue {
+  TopLevel(JsWord),
+  Str(JsWord),
+}
+
+impl InnerGraphMapSetValue {
+  fn to_jsword(&self) -> &JsWord {
+    match self {
+      InnerGraphMapSetValue::TopLevel(v) => v,
+      InnerGraphMapSetValue::Str(v) => v,
+    }
+  }
+}
+
 #[derive(Default)]
 pub enum InnerGraphMapValue {
-  Set(HashSet<JsWord>),
+  Set(HashSet<InnerGraphMapSetValue>),
   True,
   #[default]
   Nil,
@@ -29,6 +44,7 @@ pub enum InnerGraphMapValue {
 
 #[derive(PartialEq, Eq)]
 pub enum InnerGraphMapUsage {
+  TopLevel(JsWord),
   Value(JsWord),
   True,
 }
@@ -192,27 +208,28 @@ impl<'a> InnerGraphPlugin<'a> {
   }
 
   pub fn add_usage(&mut self, symbol: JsWord, usage: InnerGraphMapUsage) {
-    match usage {
-      InnerGraphMapUsage::True => {
-        self
-          .state
-          .inner_graph
-          .insert(symbol, InnerGraphMapValue::True);
-      }
-      InnerGraphMapUsage::Value(value) => {
-        let info = self.state.inner_graph.get_mut(&symbol);
-        if let Some(info) = info {
-          if let InnerGraphMapValue::Set(set) = info {
-            set.insert(value);
-          }
-        } else {
-          self.state.inner_graph.insert(
-            symbol,
-            InnerGraphMapValue::Set(HashSet::from_iter(vec![value])),
-          );
-        }
-      }
-    }
+    // match usage {
+    //   InnerGraphMapUsage::True => {
+    //     self
+    //       .state
+    //       .inner_graph
+    //       .insert(symbol, InnerGraphMapValue::True);
+    //   }
+    //   InnerGraphMapUsage::Value(value) => {
+    //     let info = self.state.inner_graph.get_mut(&symbol);
+    //     if let Some(info) = info {
+    //       if let InnerGraphMapValue::Set(set) = info {
+    //         set.insert(value);
+    //       }
+    //     } else {
+    //       self.state.inner_graph.insert(
+    //         symbol,
+    //         InnerGraphMapValue::Set(HashSet::from_iter(vec![value])),
+    //       );
+    //     }
+    //   }
+    // }
+    todo!()
   }
 
   pub fn add_variable_usage(&mut self, name: JsWord, usage: JsWord) {
@@ -298,43 +315,78 @@ impl<'a> InnerGraphPlugin<'a> {
       return;
     }
     let state = &mut self.state;
-    let non_terminal = HashSet::from_iter(state.inner_graph.keys().cloned());
+    let mut non_terminal = HashSet::from_iter(state.inner_graph.keys().cloned());
     let mut processed: HashMap<JsWord, HashSet<JsWord>> = HashMap::default();
     while !non_terminal.is_empty() {
-      for key in non_terminal {
-        let mut entry = processed.entry(key.clone()).or_default();
-        if let Some(InnerGraphMapValue::Set(value)) = state.inner_graph.get(&key) {
-          for item in value.iter() {
-            entry.insert(item.clone());
+      for key in non_terminal.iter() {
+        let mut new_set = HashSet::default();
+        // Using enum to manipulate original is pretty hard, so I use an extra variable to
+        //mark if the new set has changed to an set
+        let mut new_set_is_true = false;
+        let mut is_terminal = true;
+        let mut already_processed = processed.entry(key.clone()).or_default();
+        if let Some(InnerGraphMapValue::Set(names)) = state.inner_graph.get(&key) {
+          for name in names.iter() {
+            already_processed.insert(name.to_jsword().clone());
           }
-          for item in value {
-            if let Some(item_value) = state.inner_graph.get(item) {
-              let inserted_value = match item_value {
-                InnerGraphMapValue::Set(set) => {
-                  let mut new_set = HashSet::default();
-                  for name in set {
-                    if name == &key {
-                      continue;
-                    }
-                    if entry.contains(&name) {
-                      continue;
-                    }
-                    new_set.insert(name.clone());
+          for name in names {
+            match name {
+              InnerGraphMapSetValue::Str(v) => {
+                new_set.insert(InnerGraphMapSetValue::Str(v.clone()));
+              }
+              InnerGraphMapSetValue::TopLevel(v) => {
+                let item_value = state.inner_graph.get(v);
+                match item_value {
+                  Some(InnerGraphMapValue::True) => {
+                    new_set_is_true = true;
+                    break;
                   }
-                  if new_set.is_empty() {
-                    InnerGraphMapValue::Nil
-                  } else {
-                    InnerGraphMapValue::Set(new_set)
+                  Some(InnerGraphMapValue::Set(item_value)) => {
+                    for i in item_value {
+                      if i.to_jsword() == key {
+                        continue;
+                      }
+                      if already_processed.contains(i.to_jsword()) {
+                        continue;
+                      }
+                      new_set.insert(i.clone());
+                      if matches!(i, InnerGraphMapSetValue::TopLevel(_)) {
+                        is_terminal = false;
+                      }
+                    }
                   }
+                  _ => {}
                 }
-                InnerGraphMapValue::True => InnerGraphMapValue::True,
-                InnerGraphMapValue::Nil => {}
-              };
+              }
             }
           }
+          if new_set_is_true {
+            state
+              .inner_graph
+              .insert(key.clone(), InnerGraphMapValue::True);
+          } else if new_set.is_empty() {
+            state
+              .inner_graph
+              .insert(key.clone(), InnerGraphMapValue::Nil);
+          } else {
+            state
+              .inner_graph
+              .insert(key.clone(), InnerGraphMapValue::Set(new_set));
+          }
         }
-        // processed.entry(key).and_modify(f).
+
+        if is_terminal {
+          non_terminal.remove(&key);
+          // webpack use null, using enum make code is hard to write, also there is no
+          // way to export a empty string, so use `""` to represent `null` should be safe
+          // https://github.com/IWANABETHATGUY/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/optimize/InnerGraph.js#L177
+          if key == "" {
+
+            // TODO:
+          }
+        }
       }
     }
+    // TODO: invoke callback
   }
 }
