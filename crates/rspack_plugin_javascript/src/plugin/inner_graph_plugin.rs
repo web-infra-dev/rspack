@@ -49,7 +49,7 @@ pub enum InnerGraphMapUsage {
   True,
 }
 
-pub type UsageCallback = Box<dyn Fn(UsedByExports)>;
+pub type UsageCallback = Box<dyn Fn(Option<UsedByExports>)>;
 
 #[derive(Default)]
 pub struct InnerGraphState {
@@ -246,10 +246,10 @@ impl<'a> InnerGraphPlugin<'a> {
           .or_insert(vec![])
           .push(on_usage_callback);
       } else {
-        on_usage_callback(UsedByExports::Bool(true));
+        on_usage_callback(Some(UsedByExports::Bool(true)));
       }
     } else {
-      on_usage_callback(UsedByExports::Nil);
+      on_usage_callback(None);
     }
   }
 
@@ -257,10 +257,7 @@ impl<'a> InnerGraphPlugin<'a> {
     self.on_usage(
       symbol,
       Box::new(|used_by_exports| {
-        if matches!(
-          used_by_exports,
-          UsedByExports::Nil | UsedByExports::Bool(true)
-        ) {
+        if matches!(used_by_exports, None | Some(UsedByExports::Bool(true))) {
           return;
         } else {
           // TODO usedByExports
