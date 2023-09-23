@@ -1,4 +1,4 @@
-use rspack_core::{DependencyTemplate, SpanExt, UsedByExports};
+use rspack_core::{Dependency, DependencyTemplate, SpanExt, UsedByExports};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
   common::{Spanned, SyntaxContext},
@@ -49,7 +49,7 @@ pub enum InnerGraphMapUsage {
   True,
 }
 
-pub type UsageCallback = Box<dyn Fn(Option<UsedByExports>)>;
+pub type UsageCallback = Box<dyn Fn(&mut Vec<Box<dyn Dependency>>, Option<UsedByExports>)>;
 
 #[derive(Default)]
 pub struct InnerGraphState {
@@ -60,7 +60,7 @@ pub struct InnerGraphState {
 }
 
 pub struct InnerGraphPlugin<'a> {
-  presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
+  dependencies: &'a mut Vec<Box<dyn Dependency>>,
   unresolved_ctxt: SyntaxContext,
   top_level_ctxt: SyntaxContext,
   state: InnerGraphState,
@@ -117,17 +117,30 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if !self.is_enabled() {
       return;
     }
-    if let Pat::Ident(ident) = &n.name &&  let Some(box expr) = &n.init && is_pure_expression(expr, self.unresolved_ctxt){
+
+    if let Pat::Ident(ident) = &n.name &&  let Some(box init) = &n.init && is_pure_expression(init, self.unresolved_ctxt){
       let symbol = ident.id.sym.clone();
-      match expr {
+      match init {
         Expr::Fn(_) | Expr::Arrow(_) | Expr::Lit(_) => {},
         Expr::Class(class) => {
           self.visit_class(symbol, &class.class);
         }
         _ => {
-          if is_pure_expression(expr, self.unresolved_ctxt) {
-            expr.visit_children_with(self);
-            self.on_usage_by_span(Some(symbol), expr.span().real_lo(), expr.span().real_hi());
+          if is_pure_expression(init, self.unresolved_ctxt) {
+            init.visit_children_with(self);
+            let start = init.span().real_lo();
+            let end = init.span().real_hi();
+            self.on_usage(Box::new(move |deps, used_by_exports| {
+              match used_by_exports {
+                Some(UsedByExports::Bool(true)) => return,
+                None => return,
+                _ => {
+                  let mut dep = PureExpressionDependency::new(start, end);
+                  dep.used_by_exports = used_by_exports;
+                  deps.push(Box::new(dep));
+                }
+              }
+            }));
           }
         }
       }
@@ -164,7 +177,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       _ => {
         if is_pure_expression(&*node.expr, self.unresolved_ctxt) {
           node.expr.visit_children_with(self);
-          self.on_usage_by_span(Some(symbol), node.span.real_lo(), node.span.real_hi());
+          // self.on_usage_by_span(Some(symbol), node.span.real_lo(), node.span.real_hi());
         }
       }
     }
@@ -187,12 +200,12 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
 
 impl<'a> InnerGraphPlugin<'a> {
   pub fn new(
-    presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
+    dependencies: &'a mut Vec<Box<dyn Dependency>>,
     unresolved_ctxt: SyntaxContext,
     top_level_ctxt: SyntaxContext,
   ) -> Self {
     Self {
-      presentational_dependencies,
+      dependencies,
       unresolved_ctxt,
       top_level_ctxt,
       state: InnerGraphState::default(),
@@ -236,53 +249,53 @@ impl<'a> InnerGraphPlugin<'a> {
     self.add_usage(name, InnerGraphMapUsage::Value(usage));
   }
 
-  pub fn on_usage(&mut self, symbol: Option<JsWord>, on_usage_callback: UsageCallback) {
-    if self.is_enabled() {
-      if let Some(symbol) = symbol {
-        self
-          .state
-          .usage_callback_map
-          .entry(symbol)
-          .or_insert(vec![])
-          .push(on_usage_callback);
-      } else {
-        on_usage_callback(Some(UsedByExports::Bool(true)));
-      }
-    } else {
-      on_usage_callback(None);
-    }
+  pub fn on_usage(&mut self, on_usage_callback: UsageCallback) {
+    // if self.is_enabled() {
+    //   if let Some(symbol) = symbol {
+    //     self
+    //       .state
+    //       .usage_callback_map
+    //       .entry(symbol)
+    //       .or_insert(vec![])
+    //       .push(on_usage_callback);
+    //   } else {
+    //     on_usage_callback(Some(UsedByExports::Bool(true)));
+    //   }
+    // } else {
+    //   on_usage_callback(None);
+    // }
   }
 
-  pub fn on_usage_by_span(&mut self, symbol: Option<JsWord>, start: u32, end: u32) {
-    self.on_usage(
-      symbol,
-      Box::new(|used_by_exports| {
-        if matches!(used_by_exports, None | Some(UsedByExports::Bool(true))) {
-          return;
-        } else {
-          // TODO usedByExports
-          // self
-          //   .presentational_dependencies
-          //   .push(Box::new(PureExpressionDependency::new(start, end)));
-        }
-      }),
-    )
-  }
+  // pub fn on_usage_by_span(&mut self, symbol: Option<JsWord>, start: u32, end: u32) {
+  //   self.on_usage(
+  //     symbol,
+  //     Box::new(|used_by_exports| {
+  //       if matches!(used_by_exports, None | Some(UsedByExports::Bool(true))) {
+  //         return;
+  //       } else {
+  //         // TODO usedByExports
+  //         // self
+  //         //   .presentational_dependencies
+  //         //   .push(Box::new(PureExpressionDependency::new(start, end)));
+  //       }
+  //     }),
+  //   )
+  // }
 
   pub fn visit_class(&mut self, symbol: JsWord, class: &Class) {
     self.set_top_level_symbol(Some(symbol.clone()));
     for stmt in class.body.iter() {
       match stmt {
-        ClassMember::ClassProp(p)  => {
+        ClassMember::ClassProp(p) => {
           if let Some(box expr) = &p.value &&  is_pure_expression(expr, self.unresolved_ctxt) && p.is_static  {
             expr.visit_children_with(self);
-            self.on_usage_by_span(Some(symbol.clone()), expr.span().real_lo(), expr.span().real_hi());
+            // self.on_usage_by_span(Some(symbol.clone()), expr.span().real_lo(), expr.span().real_hi());
           }
         }
         ClassMember::PrivateProp(p) => {
           if let Some(box expr) = &p.value &&  is_pure_expression(expr, self.unresolved_ctxt) && p.is_static  {
             expr.visit_children_with(self);
-            self.on_usage_by_span(Some(symbol.clone()), expr.span().real_lo(), expr.span().real_hi());
+            // self.on_usage_by_span(Some(symbol.clone()), expr.span().real_lo(), expr.span().real_hi());
           }
         }
         _ => {}
@@ -291,7 +304,7 @@ impl<'a> InnerGraphPlugin<'a> {
     // `onUsageSuper`
     if let Some(box Expr::Ident(ident)) = &class.super_class && is_pure_class(class, self.unresolved_ctxt) {
       ident.visit_children_with(self);
-      self.on_usage_by_span(Some(symbol), class.span.real_lo(), class.span.real_hi());
+      // self.on_usage_by_span(Some(symbol), class.span.real_lo(), class.span.real_hi());
     }
     self.set_top_level_symbol(None);
   }
