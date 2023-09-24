@@ -1,3 +1,5 @@
+use std::collections::hash_map::Entry;
+
 use rspack_core::{Dependency, DependencyTemplate, SpanExt, UsedByExports};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
@@ -23,6 +25,17 @@ use crate::{
 pub enum InnerGraphMapSetValue {
   TopLevel(JsWord),
   Str(JsWord),
+}
+
+/// You need to make sure that InnerGraphMapUsage is not a  [InnerGraphMapUsage::True] variant
+impl From<InnerGraphMapUsage> for InnerGraphMapSetValue {
+  fn from(value: InnerGraphMapUsage) -> Self {
+    match value {
+      InnerGraphMapUsage::TopLevel(str) => Self::TopLevel(str),
+      InnerGraphMapUsage::Value(str) => Self::Str(str),
+      InnerGraphMapUsage::True => unreachable!(""),
+    }
+  }
 }
 
 impl InnerGraphMapSetValue {
@@ -220,28 +233,40 @@ impl<'a> InnerGraphPlugin<'a> {
   }
 
   pub fn add_usage(&mut self, symbol: JsWord, usage: InnerGraphMapUsage) {
-    // match usage {
-    //   InnerGraphMapUsage::True => {
-    //     self
-    //       .state
-    //       .inner_graph
-    //       .insert(symbol, InnerGraphMapValue::True);
-    //   }
-    //   InnerGraphMapUsage::Value(value) => {
-    //     let info = self.state.inner_graph.get_mut(&symbol);
-    //     if let Some(info) = info {
-    //       if let InnerGraphMapValue::Set(set) = info {
-    //         set.insert(value);
-    //       }
-    //     } else {
-    //       self.state.inner_graph.insert(
-    //         symbol,
-    //         InnerGraphMapValue::Set(HashSet::from_iter(vec![value])),
-    //       );
-    //     }
-    //   }
-    // }
-    todo!()
+    if !self.is_enabled() {
+      return;
+    }
+    match usage {
+      InnerGraphMapUsage::True => {
+        self
+          .state
+          .inner_graph
+          .insert(symbol, InnerGraphMapValue::True);
+      }
+      InnerGraphMapUsage::Value(ref str) | InnerGraphMapUsage::TopLevel(ref str) => {
+        // SAFETY: we can make sure that the usage is not a `InnerGraphMapSetValue::True` variant.
+        let set_value: InnerGraphMapSetValue = usage.into();
+        match self.state.inner_graph.entry(symbol) {
+          Entry::Occupied(mut occ) => {
+            let val = occ.get_mut();
+            match val {
+              InnerGraphMapValue::Set(set) => {
+                set.insert(set_value);
+              }
+              InnerGraphMapValue::True => {
+                // do nothing, https://github.com/webpack/webpack/blob/e381884115df2e7b8acd651d3bc2ee6fc35b188e/lib/optimize/InnerGraph.js#L92-L94
+              }
+              InnerGraphMapValue::Nil => {
+                *val = InnerGraphMapValue::Set(HashSet::from_iter([set_value]));
+              }
+            }
+          }
+          Entry::Vacant(vac) => {
+            vac.insert(InnerGraphMapValue::Set(HashSet::from_iter([set_value])));
+          }
+        }
+      }
+    }
   }
 
   pub fn add_variable_usage(&mut self, name: JsWord, usage: JsWord) {
