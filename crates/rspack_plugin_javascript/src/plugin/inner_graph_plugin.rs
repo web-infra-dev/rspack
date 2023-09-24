@@ -132,8 +132,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
             let end = init.span().real_hi();
             self.on_usage(Box::new(move |deps, used_by_exports| {
               match used_by_exports {
-                Some(UsedByExports::Bool(true)) => return,
-                None => return,
+                Some(UsedByExports::Bool(true)) | None=> return,
                 _ => {
                   let mut dep = PureExpressionDependency::new(start, end);
                   dep.used_by_exports = used_by_exports;
