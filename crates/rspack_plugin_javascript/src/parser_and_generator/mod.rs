@@ -13,6 +13,7 @@ use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagno
 use swc_core::common::SyntaxContext;
 
 use crate::utils::syntax_by_module_type;
+use crate::visitors::ScanDependenciesResult;
 use crate::visitors::{run_before_pass, scan_dependencies, swc_visitor::resolver};
 use crate::{SideEffectsFlagPluginVisitor, SyntaxContextInfo};
 #[derive(Debug)]
@@ -127,7 +128,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ));
     });
 
-    let (dependencies, presentational_dependencies) = ast.visit(|program, context| {
+    let ScanDependenciesResult {
+      dependencies,
+      presentational_dependencies,
+      rewrite_usage_span,
+    } = ast.visit(|program, context| {
       scan_dependencies(
         program,
         context.unresolved_mark,

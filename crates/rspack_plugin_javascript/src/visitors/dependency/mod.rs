@@ -20,6 +20,8 @@ use rspack_core::{
   ast::javascript::Program, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, ModuleIdentifier, ModuleType, ResourceData,
 };
+use rustc_hash::FxHashSet as HashSet;
+use swc_core::common::Span;
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
 pub use util::*;
 
@@ -36,7 +38,12 @@ use self::{
   node_stuff_scanner::NodeStuffScanner, require_context_scanner::RequireContextScanner,
   url_scanner::UrlScanner, worker_scanner::WorkerScanner,
 };
-pub type ScanDependenciesResult = (Vec<BoxDependency>, Vec<BoxDependencyTemplate>);
+
+pub struct ScanDependenciesResult {
+  pub dependencies: Vec<BoxDependency>,
+  pub presentational_dependencies: Vec<BoxDependencyTemplate>,
+  pub rewrite_usage_span: HashSet<Span>,
+}
 
 #[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies(
@@ -54,6 +61,8 @@ pub fn scan_dependencies(
   let unresolved_ctxt = SyntaxContext::empty().apply_mark(unresolved_mark);
   let comments = program.comments.clone();
   let mut parser_exports_state = None;
+
+  let mut rewrite_usage_span = HashSet::default();
   program.visit_with(&mut ApiScanner::new(
     &unresolved_ctxt,
     resource_data,
@@ -114,6 +123,7 @@ pub fn scan_dependencies(
       &mut presentational_dependencies,
       &mut import_map,
       build_info,
+      &mut rewrite_usage_span,
     ));
     program.visit_with(&mut HarmonyExportDependencyScanner::new(
       &mut dependencies,
@@ -156,5 +166,9 @@ pub fn scan_dependencies(
     ));
   }
 
-  (dependencies, presentational_dependencies)
+  ScanDependenciesResult {
+    dependencies,
+    presentational_dependencies,
+    rewrite_usage_span,
+  }
 }

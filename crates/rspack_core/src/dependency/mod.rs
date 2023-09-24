@@ -32,7 +32,7 @@ use dyn_clone::{clone_trait_object, DynClone};
 use crate::{
   ChunkGroupOptionsKindRef, ConnectionState, Context, ContextMode, ContextOptions, ErrorSpan,
   ExtendedReferencedExport, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport,
-  RuntimeSpec,
+  RuntimeSpec, UsedByExports,
 };
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
@@ -190,6 +190,8 @@ pub trait Dependency:
   fn get_exports(&self) -> Option<ExportsSpec> {
     None
   }
+
+  fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {}
 
   fn get_module_evaluation_side_effects_state(
     &self,

@@ -197,7 +197,9 @@ impl Dependency for HarmonyImportSpecifierDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
-
+  fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
+    self.used_by_exports = used_by_exports;
+  }
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
