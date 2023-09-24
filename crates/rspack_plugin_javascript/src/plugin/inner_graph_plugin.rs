@@ -249,37 +249,21 @@ impl<'a> InnerGraphPlugin<'a> {
   }
 
   pub fn on_usage(&mut self, on_usage_callback: UsageCallback) {
-    // if self.is_enabled() {
-    //   if let Some(symbol) = symbol {
-    //     self
-    //       .state
-    //       .usage_callback_map
-    //       .entry(symbol)
-    //       .or_insert(vec![])
-    //       .push(on_usage_callback);
-    //   } else {
-    //     on_usage_callback(Some(UsedByExports::Bool(true)));
-    //   }
-    // } else {
-    //   on_usage_callback(None);
-    // }
+    if self.is_enabled() {
+      if let Some(symbol) = self.get_top_level_symbol() {
+        self
+          .state
+          .usage_callback_map
+          .entry(symbol)
+          .or_insert(vec![])
+          .push(on_usage_callback);
+      } else {
+        on_usage_callback(self.dependencies, Some(UsedByExports::Bool(true)));
+      }
+    } else {
+      on_usage_callback(self.dependencies, None);
+    }
   }
-
-  // pub fn on_usage_by_span(&mut self, symbol: Option<JsWord>, start: u32, end: u32) {
-  //   self.on_usage(
-  //     symbol,
-  //     Box::new(|used_by_exports| {
-  //       if matches!(used_by_exports, None | Some(UsedByExports::Bool(true))) {
-  //         return;
-  //       } else {
-  //         // TODO usedByExports
-  //         // self
-  //         //   .presentational_dependencies
-  //         //   .push(Box::new(PureExpressionDependency::new(start, end)));
-  //       }
-  //     }),
-  //   )
-  // }
 
   pub fn visit_class(&mut self, symbol: JsWord, class: &Class) {
     self.set_top_level_symbol(Some(symbol.clone()));
