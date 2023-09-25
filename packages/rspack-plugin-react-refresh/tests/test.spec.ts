@@ -94,7 +94,7 @@ describe("react-refresh-rspack-plugin", () => {
 			path.join(__dirname, "fixtures/custom"),
 			{
 				exclude: null,
-				include: [/node_modules\/foo/]
+				include: path.join(__dirname, "fixtures/node_modules/foo")
 			},
 			(_, __, { reactRefresh, fixture, runtime, vendor }) => {
 				expect(vendor).toContain("$RefreshReg$");
@@ -107,7 +107,7 @@ describe("react-refresh-rspack-plugin", () => {
 		compileWithReactRefresh(
 			path.join(__dirname, "fixtures/custom"),
 			{
-				exclude: /custom\/index.js/
+				exclude: path.join(__dirname, "fixtures/custom/index.js")
 			},
 			(_, __, { reactRefresh, fixture, runtime, vendor }) => {
 				expect(fixture).not.toContain("$RefreshReg$");
