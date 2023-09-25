@@ -166,7 +166,21 @@ export class RspackDevServer extends WebpackDevServer {
 					// enable react.refresh by default
 					compiler.options.builtins.react.refresh ??= true;
 					if (compiler.options.builtins.react.refresh) {
-						new ReactRefreshPlugin().apply(compiler);
+						const runtimePaths = ReactRefreshPlugin.deprecated_runtimePaths;
+						new compiler.webpack.EntryPlugin(
+							compiler.context,
+							runtimePaths[0],
+							{
+								name: undefined
+							}
+						).apply(compiler);
+						new compiler.webpack.ProvidePlugin({
+							$ReactRefreshRuntime$: runtimePaths[1]
+						}).apply(compiler);
+						compiler.options.module.rules.unshift({
+							include: runtimePaths,
+							type: "js"
+						});
 					}
 				}
 			} else if (compiler.options.builtins.react.refresh) {

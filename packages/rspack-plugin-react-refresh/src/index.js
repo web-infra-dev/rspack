@@ -18,9 +18,9 @@ const refreshRuntimeDirPath = path.dirname(
 	})
 );
 const runtimePaths = [
+	reactRefreshEntryPath,
 	reactRefreshPath,
 	refreshUtilsPath,
-	reactRefreshEntryPath,
 	refreshRuntimeDirPath
 ];
 
@@ -61,3 +61,5 @@ module.exports = class ReactRefreshRspackPlugin {
 		});
 	}
 };
+
+module.exports.deprecated_runtimePaths = runtimePaths;
