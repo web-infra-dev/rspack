@@ -8,7 +8,8 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { KnownCreateStatsOptionsContext } from ".";
+import { KnownCreateStatsOptionsContext } from "./Compilation";
+import { SnapshotOptions } from "./config";
 import { StatsCompilation } from "./stats/statsFactoryUtils";
 import { Stats } from "./Stats";
 import { indent } from "./util";

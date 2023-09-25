@@ -9,7 +9,7 @@
  */
 
 import { MultiCompiler } from "./MultiCompiler";
-import Watching from "./Watching";
+import { Watching } from "./Watching";
 import asyncLib from "neo-async";
 import { Callback } from "tapable";
 

@@ -969,5 +969,3 @@ export class Compilation {
 		}
 	}
 }
-
-export type { JsAssetInfo };

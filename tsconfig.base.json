@@ -11,6 +11,7 @@
     "declarationMap": true,
     "composite": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "resolveJsonModule": true
   }
 }
