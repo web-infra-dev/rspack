@@ -1,4 +1,5 @@
 #![feature(let_chains)]
+#![feature(if_let_guard)]
 #![feature(iter_intersperse)]
 #![feature(box_patterns)]
 #![feature(anonymous_lifetime_in_impl_trait)]

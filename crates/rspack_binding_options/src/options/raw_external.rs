@@ -62,11 +62,12 @@ impl Debug for RawExternalItem {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawExternalItemValue {
-  #[napi(ts_type = r#""string" | "bool" | "array""#)]
+  #[napi(ts_type = r#""string" | "bool" | "array" | "object""#)]
   pub r#type: String,
   pub string_payload: Option<String>,
   pub bool_payload: Option<bool>,
   pub array_payload: Option<Vec<String>>,
+  pub object_payload: Option<HashMap<String, Vec<String>>>,
 }
 
 impl From<RawExternalItemValue> for ExternalItemValue {
@@ -86,6 +87,13 @@ impl From<RawExternalItemValue> for ExternalItemValue {
         value
           .array_payload
           .expect("should have a array_payload when RawExternalItemValue.type is \"array\""),
+      ),
+      "object" => Self::Object(
+        value
+          .object_payload
+          .expect("should have a object_payload when RawExternalItemValue.type is \"object\"")
+          .into_iter()
+          .collect(),
       ),
       _ => unreachable!(),
     }

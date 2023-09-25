@@ -668,10 +668,11 @@ export interface RawExternalItemFnResult {
 }
 
 export interface RawExternalItemValue {
-  type: "string" | "bool" | "array"
+  type: "string" | "bool" | "array" | "object"
   stringPayload?: string
   boolPayload?: boolean
   arrayPayload?: Array<string>
+  objectPayload?: Record<string, Array<string>>
 }
 
 export interface RawExternalsPluginOptions {

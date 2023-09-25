@@ -1,14 +1,13 @@
 use std::hash::Hash;
 
 use rspack_core::{
+  property_access,
   rspack_sources::{ConcatSource, RawSource, SourceExt},
   to_identifier,
   tree_shaking::webpack_ext::ExportInfoExt,
   JsChunkHashArgs, Plugin, PluginContext, PluginJsChunkHashHookOutput,
   PluginRenderStartupHookOutput, RenderStartupArgs,
 };
-
-use crate::utils::property_access;
 
 #[derive(Debug, Default)]
 pub struct ModuleLibraryPlugin;
@@ -46,7 +45,7 @@ impl Plugin for ModuleLibraryPlugin {
         let var_name = format!("__webpack_exports__{}", name);
         source.add(RawSource::from(format!(
           "var {var_name} = __webpack_exports__{};\n",
-          property_access(&vec![info.name.to_string()])
+          property_access(&vec![&info.name], 0)
         )));
         exports.push(format!("{var_name} as {}", info.name));
       }
