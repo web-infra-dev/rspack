@@ -294,7 +294,7 @@ export function deprecated_resolveBuiltins(
 				deprecatedWarn(
 					`'builtins.${key} = ${JSON.stringify(
 						builtins[key]
-					)}' only works for transformByDefault, please migrate to ${termlink(
+					)}' only works for 'rspack.disableTransformByDefault = false', please migrate to ${termlink(
 						"builtin:swc-loader options",
 						"https://www.rspack.dev/guide/loader.html#builtinswc-loader"
 					)}`,
