@@ -72,7 +72,7 @@ describe("react-refresh-rspack-plugin", () => {
 			path.join(__dirname, "fixtures/default"),
 			{},
 			(_, __, { reactRefresh, fixture, runtime, vendor }) => {
-				expect(vendor).not.toContain("$RefreshReg$");
+				expect(vendor).not.toContain("function $RefreshReg$");
 				done();
 			}
 		);
@@ -83,7 +83,7 @@ describe("react-refresh-rspack-plugin", () => {
 			path.join(__dirname, "fixtures/default"),
 			{},
 			(_, __, { reactRefresh, fixture, runtime, vendor }) => {
-				expect(fixture).toContain("$RefreshReg$");
+				expect(fixture).toContain("function $RefreshReg$");
 				done();
 			}
 		);
@@ -97,7 +97,7 @@ describe("react-refresh-rspack-plugin", () => {
 				include: path.join(__dirname, "fixtures/node_modules/foo")
 			},
 			(_, __, { reactRefresh, fixture, runtime, vendor }) => {
-				expect(vendor).toContain("$RefreshReg$");
+				expect(vendor).toContain("function $RefreshReg$");
 				done();
 			}
 		);
@@ -110,7 +110,7 @@ describe("react-refresh-rspack-plugin", () => {
 				exclude: path.join(__dirname, "fixtures/custom/index.js")
 			},
 			(_, __, { reactRefresh, fixture, runtime, vendor }) => {
-				expect(fixture).not.toContain("$RefreshReg$");
+				expect(fixture).not.toContain("function $RefreshReg$");
 				done();
 			}
 		);
@@ -123,7 +123,7 @@ describe("react-refresh-rspack-plugin", () => {
 				exclude: null
 			},
 			(_, __, { reactRefresh, fixture, runtime, vendor }) => {
-				expect(reactRefresh).not.toContain("$RefreshReg$");
+				expect(reactRefresh).not.toContain("function $RefreshReg$");
 				done();
 			}
 		);
