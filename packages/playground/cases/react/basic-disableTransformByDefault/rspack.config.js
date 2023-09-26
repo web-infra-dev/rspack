@@ -35,6 +35,7 @@ module.exports = {
 			}
 		]
 	},
+	devtool: false,
 	plugins: [
 		new rspack.HtmlRspackPlugin({ template: "./src/index.html" }),
 		new ReactRefreshPlugin()

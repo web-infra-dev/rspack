@@ -102,6 +102,9 @@ pub fn fold_react_refresh(unresolved_mark: Mark) -> impl Fold {
 
 // $ReactRefreshRuntime$ is injected by provide
 //
+// function $RefreshSig$() {
+//   return $ReactRefreshRuntime$.createSignatureFunctionForTransform();
+// }
 // function $RefreshReg$(type, id) {
 //   $ReactRefreshRuntime$.register(type, __webpack_module__.id + "_" + id);
 // }
@@ -118,6 +121,27 @@ fn create_react_refresh_runtime_stmts(unresolved_mark: Mark) -> Vec<Stmt> {
   }
 
   vec![
+    FnDecl {
+      ident: quote_ident!("$RefreshSig$"),
+      declare: false,
+      function: Box::new(Function {
+        params: Vec::new(),
+        decorators: Vec::new(),
+        span: DUMMY_SP,
+        body: Some(BlockStmt {
+          span: DUMMY_SP,
+          stmts: vec![quote!(
+            "return $runtime.createSignatureFunctionForTransform();" as Stmt,
+            runtime = create_react_refresh_runtime_ident(unresolved_mark)
+          )],
+        }),
+        is_generator: false,
+        is_async: false,
+        type_params: None,
+        return_type: None,
+      }),
+    }
+    .into(),
     FnDecl {
       ident: quote_ident!("$RefreshReg$"),
       declare: false,

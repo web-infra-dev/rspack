@@ -32,6 +32,9 @@ impl Loader<LoaderRunnerContext> for ReactRefreshLoader {
     };
     let mut source = content.try_into_string()?;
     source += r#"
+function $RefreshSig$() {
+  return $ReactRefreshRuntime$.createSignatureFunctionForTransform();
+}
 function $RefreshReg$(type, id) {
   $ReactRefreshRuntime$.register(type, __webpack_module__.id + "_" + id);
 }
