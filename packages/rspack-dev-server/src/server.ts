@@ -183,7 +183,7 @@ export class RspackDevServer extends WebpackDevServer {
 						});
 					}
 				}
-			} else if (compiler.options.builtins.react.refresh) {
+			} else if (compiler.options.builtins.react?.refresh) {
 				if (mode === "production") {
 					this.logger.warn(
 						"React Refresh runtime should not be included in the production bundle.\n" +
