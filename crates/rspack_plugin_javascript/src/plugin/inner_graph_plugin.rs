@@ -19,6 +19,7 @@ use swc_core::{
 use crate::{
   dependency::PureExpressionDependency,
   plugin::side_effects_flag_plugin::{is_pure_class, is_pure_expression},
+  ClassKey,
 };
 
 #[derive(Hash, PartialEq, Eq, Clone)]
@@ -77,6 +78,7 @@ pub struct InnerGraphPlugin<'a> {
   unresolved_ctxt: SyntaxContext,
   top_level_ctxt: SyntaxContext,
   state: InnerGraphState,
+  top_level: bool,
 }
 
 impl<'a> Visit for InnerGraphPlugin<'a> {
@@ -89,13 +91,37 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     }
   }
 
-  fn visit_class_member(&mut self, node: &ClassMember) {}
+  fn visit_class_member(&mut self, node: &ClassMember) {
+    if let Some(key) = node.class_key() && key.is_computed() {
+      key.visit_with(self);
+    }
 
-  fn visit_fn_decl(&mut self, node: &FnDecl) {}
+    let top_level = self.top_level;
+    self.top_level = false;
+    node.visit_children_with(self);
+    self.top_level = top_level;
+  }
 
-  fn visit_fn_expr(&mut self, node: &FnExpr) {}
+  fn visit_fn_decl(&mut self, node: &FnDecl) {
+    let top_level = self.top_level;
+    self.top_level = false;
+    node.visit_children_with(self);
+    self.top_level = top_level;
+  }
 
-  fn visit_arrow_expr(&mut self, node: &ArrowExpr) {}
+  fn visit_fn_expr(&mut self, node: &FnExpr) {
+    let top_level = self.top_level;
+    self.top_level = false;
+    node.visit_children_with(self);
+    self.top_level = top_level;
+  }
+
+  fn visit_arrow_expr(&mut self, node: &ArrowExpr) {
+    let top_level = self.top_level;
+    self.top_level = false;
+    node.visit_children_with(self);
+    self.top_level = top_level;
+  }
 
   fn visit_class_expr(&mut self, node: &ClassExpr) {
     if !self.is_enabled() {
@@ -221,6 +247,7 @@ impl<'a> InnerGraphPlugin<'a> {
       unresolved_ctxt,
       top_level_ctxt,
       state: InnerGraphState::default(),
+      top_level: true,
     }
   }
 
