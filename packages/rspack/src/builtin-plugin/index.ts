@@ -279,6 +279,31 @@ export function deprecated_resolveBuiltins(
 		noEmitAssets = true;
 	}
 
+	if (options.experiments.rspackFuture?.disableTransformByDefault) {
+		(
+			[
+				"react",
+				"pluginImport",
+				"decorator",
+				"presetEnv",
+				"emotion",
+				"relay"
+			] as const
+		).forEach(key => {
+			if (builtins[key]) {
+				deprecatedWarn(
+					`'builtins.${key} = ${JSON.stringify(
+						builtins[key]
+					)}' has been deprecated, please migrate to ${termlink(
+						"builtin:swc-loader options",
+						"https://www.rspack.dev/guide/loader.html#builtinswc-loader"
+					)}`,
+					true
+				);
+			}
+		});
+	}
+
 	return {
 		// TODO: discuss with webpack, this should move to css generator options
 		css: options.experiments.css
