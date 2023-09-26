@@ -40,8 +40,10 @@ if (process.env.NODE_ENV !== "production") {
 		// Only inject the runtime if it hasn't been injected
 		if (!safeThis[$RefreshInjected$]) {
 			RefreshRuntime.injectIntoGlobalHook(safeThis);
-			safeThis.$RefreshSig$ =
-				RefreshRuntime.createSignatureFunctionForTransform;
+
+			// Empty implementation to avoid "ReferenceError: variable is not defined" in module which didn't pass builtin:react-refresh-loader
+			safeThis.$RefreshSig$ = () => type => type;
+			safeThis.$RefreshReg$ = () => {};
 
 			// Mark the runtime as injected to prevent double-injection
 			safeThis[$RefreshInjected$] = true;
