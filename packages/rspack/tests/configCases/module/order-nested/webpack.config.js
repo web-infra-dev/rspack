@@ -7,20 +7,18 @@ module.exports = {
 		rules: [
 			{
 				test: /lib.js/,
-				use: ["./loader2.js"]
-			},
-			{
-				test: /lib.js/,
+				rules: [
+					{
+						use: ["./loader2.js"]
+					}
+				],
 				oneOf: [
 					{
-						resourceQuery: "/(__inline=false|url)/",
+						resourceQuery: /random-string/,
 						use: ["./loader1.js"]
 					},
 					{
 						use: ["./loader.js"]
-					},
-					{
-						use: ["./loader1.js"]
 					}
 				]
 			}
