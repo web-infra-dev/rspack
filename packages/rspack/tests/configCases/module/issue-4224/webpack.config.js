@@ -2,29 +2,33 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: /\.s[ac]ss$/i,
 				oneOf: [
 					{
-						test: /\.module\.\w+$/i,
-						exclude: [/index\.scss$/],
-						use: [{ loader: "sass-loader" }],
-						type: "css/module"
+						test: /\.s[ac]ss$/i,
+						oneOf: [
+							{
+								test: /\.module\.\w+$/i,
+								exclude: [/index\.scss$/],
+								use: [{ loader: "sass-loader" }],
+								type: "css/module"
+							},
+							{
+								exclude: [/index\.scss$/],
+								use: [{ loader: "sass-loader" }],
+								type: "css"
+							}
+						]
 					},
 					{
-						exclude: [/index\.scss$/],
-						use: [{ loader: "sass-loader" }],
-						type: "css"
+						exclude: [
+							/\.(js|mjs|cjs|jsx)$/,
+							/\.(ts|mts|cts|tsx)$/,
+							/\.html$/,
+							/\.json$/
+						],
+						type: "asset/resource"
 					}
 				]
-			},
-			{
-				exclude: [
-					/\.(js|mjs|cjs|jsx)$/,
-					/\.(ts|mts|cts|tsx)$/,
-					/\.html$/,
-					/\.json$/
-				],
-				type: "asset/resource"
 			}
 		]
 	}
