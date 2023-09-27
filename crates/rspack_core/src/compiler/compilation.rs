@@ -986,7 +986,9 @@ impl Compilation {
             .map(|(result, from_cache)| {
               let res = result
                 .into_iter()
-                .map(|result| (*module_identifier, result.0, result.1, from_cache))
+                .map(|(codegen_result, runtime)| {
+                  (*module_identifier, codegen_result, runtime, from_cache)
+                })
                 .collect::<Vec<_>>();
               res
             });
