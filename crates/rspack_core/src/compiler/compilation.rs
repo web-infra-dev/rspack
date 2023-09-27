@@ -965,19 +965,23 @@ impl Compilation {
         .modules()
         .par_iter()
         .filter(filter_op)
-        .filter(|(module_identifier, _)| {
+        .filter_map(|(module_identifier, module)| {
           let runtimes = compilation
             .chunk_graph
-            .get_module_runtimes(**module_identifier, &compilation.chunk_by_ukey);
-          !runtimes.is_empty()
-        })
-        .map(|(module_identifier, module)| {
+            .get_module_runtimes(*module_identifier, &compilation.chunk_by_ukey);
+          if runtimes.is_empty() {
+            return None;
+          }
+
           let res = compilation
             .cache
             .code_generate_occasion
             .use_cache(module, compilation, |module| {
-              // TODO: use runtime
-              module.code_generation(compilation).map(|item| vec![item])
+              let mut codegen_list = vec![];
+              for runtime in runtimes.values() {
+                codegen_list.push(module.code_generation(compilation)?);
+              }
+              Ok(codegen_list)
             })
             .map(|(result, from_cache)| {
               let res = result
@@ -986,42 +990,41 @@ impl Compilation {
                 .collect::<Vec<_>>();
               res
             });
-          res
+          Some(res)
         })
         .collect::<Result<Vec<Vec<(ModuleIdentifier, CodeGenerationResult, bool)>>>>()?
         .into_iter()
         .flatten()
         .collect::<Vec<_>>();
-      return Ok(());
-      // results
-      //   .into_iter()
-      //   .for_each(|(module_identifier, result, from_cache)| {
-      //     if let Some(counter) = codegen_cache_counter {
-      //       if from_cache {
-      //         counter.hit();
-      //       } else {
-      //         counter.miss();
-      //       }
-      //     }
-      //     compilation.code_generated_modules.insert(module_identifier);
-      //
-      //     let runtimes = compilation
-      //       .chunk_graph
-      //       .get_module_runtimes(module_identifier, &compilation.chunk_by_ukey);
-      //
-      //     compilation
-      //       .code_generation_results
-      //       .module_generation_result_map
-      //       .insert(module_identifier, result);
-      //     for runtime in runtimes.values() {
-      //       compilation.code_generation_results.add(
-      //         module_identifier,
-      //         runtime.clone(),
-      //         module_identifier,
-      //       );
-      //     }
-      //   });
-      // Ok(())
+      results
+        .into_iter()
+        .for_each(|(module_identifier, result, from_cache)| {
+          if let Some(counter) = codegen_cache_counter {
+            if from_cache {
+              counter.hit();
+            } else {
+              counter.miss();
+            }
+          }
+          compilation.code_generated_modules.insert(module_identifier);
+
+          let runtimes = compilation
+            .chunk_graph
+            .get_module_runtimes(module_identifier, &compilation.chunk_by_ukey);
+
+          compilation
+            .code_generation_results
+            .module_generation_result_map
+            .insert(module_identifier, result);
+          for runtime in runtimes.values() {
+            compilation.code_generation_results.add(
+              module_identifier,
+              runtime.clone(),
+              module_identifier,
+            );
+          }
+        });
+      Ok(())
     }
 
     run_iteration(self, &mut codegen_cache_counter, |(_, module)| {
