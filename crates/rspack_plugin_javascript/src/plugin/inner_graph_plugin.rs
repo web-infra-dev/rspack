@@ -336,7 +336,6 @@ impl<'a> InnerGraphPlugin<'a> {
 
   pub fn visit_class(&mut self, symbol: JsWord, class: &Class) {
     self.set_top_level_symbol(Some(symbol.clone()));
-    class.visit_children_with(node);
     // `onUsageSuper`
     if let Some(box Expr::Ident(ident)) = &class.super_class && is_pure_class(class, self.unresolved_ctxt) {
       ident.visit_children_with(self);
