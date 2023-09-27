@@ -1,25 +1,22 @@
 module.exports = {
+	entry: "./index.js",
+	mode: "development",
 	module: {
 		rules: [
 			{
-				test: /\.ts$/,
 				use: [
-					"./pitching-loader",
 					{
 						loader: "builtin:swc-loader",
 						options: {
-							// Enable source map
-							sourceMap: true,
 							jsc: {
 								parser: {
-									syntax: "typescript",
-									jsx: false
+									syntax: "typescript"
 								}
 							}
-						}
+						},
+						ident: "builtin-swc-loader"
 					}
-				],
-				type: "javascript/auto"
+				]
 			}
 		]
 	},

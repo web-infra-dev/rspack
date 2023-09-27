@@ -5,7 +5,7 @@ mod define;
 pub use define::{define, Define, RawDefine};
 
 mod provide;
-pub use provide::{provide_builtin, Provide, RawProvide};
+pub use provide::{provide, Provide, RawProvide};
 
 mod relay;
 pub use relay::{relay, RawRelayOptions, RelayLanguageConfig, RelayOptions};

@@ -6,12 +6,13 @@ use rspack_core::tree_shaking::analyzer::OptimizeAnalyzer;
 use rspack_core::tree_shaking::js_module::JsModule;
 use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
 use rspack_core::{
-  render_init_fragments, GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator,
-  SourceType, TemplateContext,
+  render_init_fragments, GenerateContext, Module, ModuleAst, ParseContext, ParseResult,
+  ParserAndGenerator, SourceType, TemplateContext,
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::common::SyntaxContext;
 
+use crate::ast::CodegenOptions;
 use crate::inner_graph_plugin::InnerGraphPlugin;
 use crate::utils::syntax_by_module_type;
 use crate::visitors::ScanDependenciesResult;
@@ -47,6 +48,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       build_info,
       build_meta,
       module_identifier,
+      mut additional_data,
       ..
     } = parse_context;
 
@@ -79,15 +81,20 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       }};
     }
 
-    let mut ast = match crate::ast::parse(
-      source.to_string(),
-      syntax,
-      &resource_data.resource_path.to_string_lossy(),
-      module_type,
-    ) {
-      Ok(ast) => ast,
-      Err(e) => bail!(e),
-    };
+    let mut ast =
+      if let Some(ModuleAst::JavaScript(loader_ast)) = additional_data.remove::<ModuleAst>() {
+        loader_ast
+      } else {
+        match crate::ast::parse(
+          source.to_string(),
+          syntax,
+          &resource_data.resource_path.to_string_lossy(),
+          module_type,
+        ) {
+          Ok(ast) => ast,
+          Err(e) => bail!(e),
+        }
+      };
 
     run_before_pass(
       resource_data,
@@ -99,8 +106,12 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       &source,
     )?;
 
-    let output: crate::TransformOutput =
-      crate::ast::stringify(&ast, &compiler_options.devtool, Some(true))?;
+    let output: crate::TransformOutput = crate::ast::stringify(
+      &ast,
+      additional_data
+        .remove::<CodegenOptions>()
+        .unwrap_or_else(|| CodegenOptions::new(&compiler_options.devtool, Some(true))),
+    )?;
 
     ast = match crate::ast::parse(
       output.code.clone(),

@@ -276,15 +276,28 @@ export interface JsLoaderContext {
   currentLoader: string
   isPitching: boolean
   /**
+   * Loader index from JS.
+   * If loaders are dispatched by JS loader runner,
+   * then, this field is correspondence with loader index in JS side.
+   * It is useful when loader dispatched on JS side has an builtin loader, for example: builtin:swc-loader,
+   * Then this field will be used as an hack to test whether it should return an AST or string.
+   */
+  loaderIndexFromJs?: number
+  /**
+   * Internal additional data, contains more than `String`
+   * @internal
+   */
+  additionalDataExternal: ExternalObject<AdditionalData>
+  /**
    * Internal loader context
    * @internal
    */
-  context: ExternalObject<LoaderRunnerContext>
+  contextExternal: ExternalObject<LoaderRunnerContext>
   /**
    * Internal loader diagnostic
    * @internal
    */
-  diagnostics: ExternalObject<Array<Diagnostic>>
+  diagnosticsExternal: ExternalObject<Array<Diagnostic>>
 }
 
 export interface JsLoaderResult {
@@ -296,6 +309,7 @@ export interface JsLoaderResult {
   buildDependencies: Array<string>
   sourceMap?: Buffer
   additionalData?: Buffer
+  additionalDataExternal: ExternalObject<AdditionalData>
   cacheable: boolean
   /** Used to instruct how rust loaders should execute */
   isPitching: boolean

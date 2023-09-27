@@ -17,6 +17,8 @@ use crate::{runner::LoaderContext, BUILTIN_LOADER_PREFIX};
 
 #[derive(Debug)]
 struct LoaderItemDataInner {
+  /// Loader identifier
+  identifier: Box<str>,
   /// An absolute path or a virtual path for represent the loader.
   /// The absolute path is used to represent a loader stayed on the JS side.
   /// `$` split chain may be used to represent a composed loader chain from the JS side.
@@ -38,6 +40,12 @@ enum LoaderItemData {
   Normal(LoaderItemDataInner),
 }
 
+impl LoaderItemData {
+  fn is_composed(&self) -> bool {
+    matches!(self, LoaderItemData::Composed(_))
+  }
+}
+
 pub struct LoaderItem<C> {
   pub(crate) loader: Arc<dyn Loader<C>>,
   data: LoaderItemData,
@@ -56,7 +64,20 @@ impl<C> Debug for LoaderItem<C> {
 
 impl<C> LoaderItem<C> {
   pub fn is_composed(&self) -> bool {
-    matches!(self.data, LoaderItemData::Composed(_))
+    self.data.is_composed()
+  }
+
+  pub fn composed_index_by_identifier(&self, ident: &str) -> Option<u32> {
+    if let LoaderItemData::Composed(c) = &self.data {
+      c.iter().enumerate().find_map(|(idx, inner)| {
+        if &*inner.identifier == ident {
+          return Some(idx as u32);
+        }
+        None
+      })
+    } else {
+      None
+    }
   }
 
   pub(crate) fn pitch_executed(&self) -> bool {
@@ -229,7 +250,7 @@ impl<C> Identifiable for LoaderItem<C> {
 }
 
 #[async_trait]
-pub trait Loader<C>: Identifiable + Send + Sync {
+pub trait Loader<C = ()>: Identifiable + Send + Sync {
   async fn run(&self, _loader_context: &mut LoaderContext<'_, C>) -> Result<()> {
     // noop
     Ok(())
@@ -280,6 +301,7 @@ fn convert_to_loader_item_inner(ident: &str) -> LoaderItemDataInner {
     .expect("Group expected");
 
   LoaderItemDataInner {
+    identifier: ident.into(),
     path: to_segment_owned(groups.get(1))
       .expect("Path expected")
       .into(),

@@ -83,6 +83,10 @@ impl Program {
   pub fn get_inner_program(&self) -> &SwcProgram {
     &self.program
   }
+
+  pub fn into_inner_program(self) -> SwcProgram {
+    self.program
+  }
 }
 
 /// Swc transform context
@@ -149,8 +153,17 @@ impl Ast {
     }
   }
 
+  pub fn with_context(mut self, context: Context) -> Self {
+    self.context = Arc::new(context);
+    self
+  }
+
   pub fn get_context(&self) -> &Context {
     &self.context
+  }
+
+  pub fn into_program(self) -> Program {
+    self.program
   }
 
   pub fn transform<F, R>(&mut self, f: F) -> R

@@ -31,6 +31,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     .fragment_optional(url.fragment().map(|f| f.to_owned())),
     &[],
     CompilerContext {
+      ast: None,
       options: std::sync::Arc::new(CompilerOptions {
         context: rspack_core::Context::default(),
         dev_server: rspack_core::DevServerOptions::default(),

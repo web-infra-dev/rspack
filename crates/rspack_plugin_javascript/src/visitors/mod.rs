@@ -105,7 +105,7 @@ fn builtins_webpack_plugin(options: &CompilerOptions, unresolved_mark: Mark) -> 
       !options.builtins.define.is_empty()
     ),
     Optional::new(
-      rspack_swc_visitors::provide_builtin(&options.builtins.provide, unresolved_mark),
+      rspack_swc_visitors::provide(&options.builtins.provide, unresolved_mark),
       !options.builtins.provide.is_empty()
     )
   )
@@ -210,16 +210,19 @@ pub fn run_before_pass(
       ),
       Optional::new(
         swc_visitor::typescript(top_level_mark, comments, &cm),
-        syntax.typescript()
+        options.should_transform_by_default() && syntax.typescript()
       ),
-      builtins_additional_feature_transforms(
-        resource_data,
-        options,
-        module_type,
-        source,
-        top_level_mark,
-        unresolved_mark,
-        cm
+      Optional::new(
+        builtins_additional_feature_transforms(
+          resource_data,
+          options,
+          module_type,
+          source,
+          top_level_mark,
+          unresolved_mark,
+          cm
+        ),
+        options.should_transform_by_default()
       ),
       Optional::new(
         compat_transform(
