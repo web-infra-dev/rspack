@@ -3,7 +3,7 @@ use rspack_identifier::Identifier;
 
 use crate::{cache::storage, BoxModule, CodeGenerationResult, Compilation, NormalModuleSource};
 
-type Storage = dyn storage::Storage<CodeGenerationResult>;
+type Storage = dyn storage::Storage<Vec<CodeGenerationResult>>;
 
 #[derive(Debug)]
 pub struct CodeGenerateOccasion {
@@ -21,9 +21,9 @@ impl CodeGenerateOccasion {
     module: &'a BoxModule,
     compilation: &Compilation,
     generator: G,
-  ) -> Result<(CodeGenerationResult, bool)>
+  ) -> Result<(Vec<CodeGenerationResult>, bool)>
   where
-    G: Fn(&'a BoxModule) -> Result<CodeGenerationResult>,
+    G: Fn(&'a BoxModule) -> Result<Vec<CodeGenerationResult>>,
   {
     let storage = match &self.storage {
       Some(s) => s,
