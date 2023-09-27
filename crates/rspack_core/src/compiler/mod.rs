@@ -136,6 +136,9 @@ where
     self.compilation.make(params).await?;
     logger.time_end(start);
 
+    // TODO: empty PR to publish canary
+    std::hint::black_box(());
+
     let start = logger.time("finish make hook");
     self
       .plugin_driver
