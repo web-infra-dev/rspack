@@ -7,10 +7,11 @@ use swc_core::{
   ecma::{
     ast::{
       ArrowExpr, CallExpr, Callee, Class, ClassDecl, ClassExpr, ClassMember, Decl, DefaultDecl,
-      ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr, FnDecl, FnExpr, Ident, Pat,
-      VarDeclarator,
+      ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr, FnDecl, FnExpr, Ident, Pat, Program,
+      Stmt, VarDeclarator,
     },
     atoms::JsWord,
+    transforms::compat::bugfixes::safari_id_destructuring_collision_in_function_expression,
     utils::find_pat_ids,
     visit::{noop_visit_type, Visit, VisitWith},
   },
@@ -78,11 +79,17 @@ pub struct InnerGraphPlugin<'a> {
   unresolved_ctxt: SyntaxContext,
   top_level_ctxt: SyntaxContext,
   state: InnerGraphState,
-  top_level: bool,
+  scope_level: usize,
 }
 
 impl<'a> Visit for InnerGraphPlugin<'a> {
   noop_visit_type!();
+  fn visit_program(&mut self, program: &Program) {
+    if !self.is_enabled() {
+      return;
+    }
+    program.visit_children_with(self);
+  }
 
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
     // https://github.com/webpack/webpack/blob/main/lib/JavascriptMetaInfoPlugin.js#L46
@@ -96,47 +103,53 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       key.visit_with(self);
     }
 
-    let top_level = self.top_level;
-    self.top_level = false;
+    let increase_level = match node {
+      ClassMember::Constructor(_) => 1,
+      ClassMember::Method(_) => 1,
+      ClassMember::PrivateMethod(_) => 1,
+      ClassMember::ClassProp(_) => 0,
+      ClassMember::PrivateProp(_) => 0,
+      ClassMember::TsIndexSignature(_) => unreachable!(),
+      ClassMember::Empty(_) => 0,
+      ClassMember::StaticBlock(_) => 1,
+      ClassMember::AutoAccessor(_) => 0,
+    };
+    let scope_level = self.scope_level;
+    self.scope_level += increase_level;
     node.visit_children_with(self);
-    self.top_level = top_level;
+    self.scope_level = scope_level;
   }
 
   fn visit_fn_decl(&mut self, node: &FnDecl) {
-    let top_level = self.top_level;
-    self.top_level = false;
+    let scope_level = self.scope_level;
+    self.scope_level += 1;
     node.visit_children_with(self);
-    self.top_level = top_level;
+    self.scope_level = scope_level;
   }
 
   fn visit_fn_expr(&mut self, node: &FnExpr) {
-    let top_level = self.top_level;
-    self.top_level = false;
+    let scope_level = self.scope_level;
+    self.scope_level += 1;
     node.visit_children_with(self);
-    self.top_level = top_level;
+    self.scope_level = scope_level;
   }
 
   fn visit_arrow_expr(&mut self, node: &ArrowExpr) {
-    let top_level = self.top_level;
-    self.top_level = false;
+    let scope_level = self.scope_level;
+    self.scope_level += 1;
     node.visit_children_with(self);
-    self.top_level = top_level;
-  }
-
-  fn visit_class_expr(&mut self, node: &ClassExpr) {
-    if !self.is_enabled() {
-      return;
-    }
-    if let Some(ident) = &node.ident {
-      self.visit_class(ident.sym.clone(), &node.class);
-    }
+    self.scope_level = scope_level;
   }
 
   fn visit_class_decl(&mut self, node: &ClassDecl) {
     if !self.is_enabled() {
       return;
     }
+
+    let scope_level = self.scope_level;
+    self.scope_level += 1;
     self.visit_class(node.ident.sym.clone(), &node.class);
+    self.scope_level = scope_level;
   }
 
   fn visit_ident(&mut self, ident: &Ident) {
@@ -157,7 +170,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       return;
     }
 
-    if let Pat::Ident(ident) = &n.name &&  let Some(box init) = &n.init && is_pure_expression(init, self.unresolved_ctxt){
+    if let Pat::Ident(ident) = &n.name && let Some(box init) = &n.init && is_pure_expression(init, self.unresolved_ctxt) {
       let symbol = ident.id.sym.clone();
       match init {
         Expr::Fn(_) | Expr::Arrow(_) | Expr::Lit(_) => {},
@@ -247,8 +260,12 @@ impl<'a> InnerGraphPlugin<'a> {
       unresolved_ctxt,
       top_level_ctxt,
       state: InnerGraphState::default(),
-      top_level: true,
+      scope_level: 0,
     }
+  }
+
+  fn is_toplevel(&self) -> bool {
+    self.scope_level == 0
   }
 
   pub fn bailout(&mut self) {
@@ -319,23 +336,7 @@ impl<'a> InnerGraphPlugin<'a> {
 
   pub fn visit_class(&mut self, symbol: JsWord, class: &Class) {
     self.set_top_level_symbol(Some(symbol.clone()));
-    for stmt in class.body.iter() {
-      match stmt {
-        ClassMember::ClassProp(p) => {
-          if let Some(box expr) = &p.value &&  is_pure_expression(expr, self.unresolved_ctxt) && p.is_static  {
-            expr.visit_children_with(self);
-            // self.on_usage_by_span(Some(symbol.clone()), expr.span().real_lo(), expr.span().real_hi());
-          }
-        }
-        ClassMember::PrivateProp(p) => {
-          if let Some(box expr) = &p.value &&  is_pure_expression(expr, self.unresolved_ctxt) && p.is_static  {
-            expr.visit_children_with(self);
-            // self.on_usage_by_span(Some(symbol.clone()), expr.span().real_lo(), expr.span().real_hi());
-          }
-        }
-        _ => {}
-      }
-    }
+    class.visit_children_with(node);
     // `onUsageSuper`
     if let Some(box Expr::Ident(ident)) = &class.super_class && is_pure_class(class, self.unresolved_ctxt) {
       ident.visit_children_with(self);
