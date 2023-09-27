@@ -85,6 +85,15 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       ));
     }
 
+    if swc_options.config.jsc.target.is_some() && swc_options.config.env.is_some() {
+      loader_context.emit_diagnostic(Diagnostic::warn(
+        SWC_LOADER_IDENTIFIER.to_string(),
+        "`env` and `jsc.target` cannot be used together".to_string(),
+        0,
+        0,
+      ));
+    }
+
     GLOBALS.set(&Default::default(), || {
       try_with_handler(c.cm.clone(), Default::default(), |handler| {
         c.run(|| {
