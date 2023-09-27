@@ -976,29 +976,29 @@ impl Compilation {
           let res = compilation
             .cache
             .code_generate_occasion
-            .use_cache(module, compilation, |module| {
+            .use_cache(module, runtimes, compilation, |module, runtimes| {
               let mut codegen_list = vec![];
-              for runtime in runtimes.values() {
-                codegen_list.push(module.code_generation(compilation)?);
+              for runtime in runtimes.into_values() {
+                codegen_list.push((module.code_generation(compilation)?, runtime));
               }
               Ok(codegen_list)
             })
             .map(|(result, from_cache)| {
               let res = result
                 .into_iter()
-                .map(|result| (*module_identifier, result, from_cache))
+                .map(|result| (*module_identifier, result.0, result.1, from_cache))
                 .collect::<Vec<_>>();
               res
             });
           Some(res)
         })
-        .collect::<Result<Vec<Vec<(ModuleIdentifier, CodeGenerationResult, bool)>>>>()?
+        .collect::<Result<Vec<Vec<(ModuleIdentifier, CodeGenerationResult, RuntimeSpec, bool)>>>>()?
         .into_iter()
         .flatten()
         .collect::<Vec<_>>();
       results
         .into_iter()
-        .for_each(|(module_identifier, result, from_cache)| {
+        .for_each(|(module_identifier, result, runtime, from_cache)| {
           if let Some(counter) = codegen_cache_counter {
             if from_cache {
               counter.hit();

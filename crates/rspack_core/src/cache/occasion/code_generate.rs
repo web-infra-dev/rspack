@@ -2,8 +2,9 @@ use rspack_error::Result;
 use rspack_identifier::Identifier;
 
 use crate::{cache::storage, BoxModule, CodeGenerationResult, Compilation, NormalModuleSource};
+use crate::{RuntimeSpec, RuntimeSpecSet};
 
-type Storage = dyn storage::Storage<Vec<CodeGenerationResult>>;
+type Storage = dyn storage::Storage<Vec<(CodeGenerationResult, RuntimeSpec)>>;
 
 #[derive(Debug)]
 pub struct CodeGenerateOccasion {
@@ -19,16 +20,17 @@ impl CodeGenerateOccasion {
   pub fn use_cache<'a, G>(
     &self,
     module: &'a BoxModule,
+    runtimes: RuntimeSpecSet,
     compilation: &Compilation,
     generator: G,
-  ) -> Result<(Vec<CodeGenerationResult>, bool)>
+  ) -> Result<(Vec<(CodeGenerationResult, RuntimeSpec)>, bool)>
   where
-    G: Fn(&'a BoxModule) -> Result<Vec<CodeGenerationResult>>,
+    G: Fn(&'a BoxModule, RuntimeSpecSet) -> Result<Vec<(CodeGenerationResult, RuntimeSpec)>>,
   {
     let storage = match &self.storage {
       Some(s) => s,
       // no cache return directly
-      None => return Ok((generator(module)?, false)),
+      None => return Ok((generator(module, runtimes)?, false)),
     };
 
     let mut cache_id = None;
@@ -55,7 +57,7 @@ impl CodeGenerateOccasion {
     }
 
     // run generator and save to cache
-    let data = generator(module)?;
+    let data = generator(module, runtimes)?;
     if let Some(id) = cache_id {
       storage.set(id, data.clone());
     }

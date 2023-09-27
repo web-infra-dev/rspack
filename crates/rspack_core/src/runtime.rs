@@ -152,6 +152,10 @@ impl RuntimeSpecSet {
     self.map.values().collect()
   }
 
+  pub fn into_values(self) -> Vec<RuntimeSpec> {
+    self.map.into_values().collect()
+  }
+
   pub fn len(&self) -> usize {
     self.map.len()
   }
