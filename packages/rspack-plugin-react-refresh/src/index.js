@@ -44,6 +44,10 @@ module.exports = class ReactRefreshRspackPlugin {
 		 */
 		this.options = normalizeOptions(options);
 	}
+
+	/**
+	 * @param {import("@rspack/core").Compiler} compiler
+	 */
 	apply(compiler) {
 		new compiler.webpack.EntryPlugin(compiler.context, reactRefreshEntryPath, {
 			name: undefined
@@ -59,6 +63,12 @@ module.exports = class ReactRefreshRspackPlugin {
 			},
 			use: "builtin:react-refresh-loader"
 		});
+
+		const refreshPath = path.dirname(require.resolve("react-refresh"));
+		compiler.options.resolve.alias = {
+			"react-refresh": refreshPath,
+			...compiler.options.resolve.alias
+		};
 	}
 };
 
