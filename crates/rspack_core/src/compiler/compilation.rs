@@ -960,6 +960,10 @@ impl Compilation {
       codegen_cache_counter: &mut Option<CacheCount>,
       filter_op: impl Fn(&(&ModuleIdentifier, &Box<dyn Module>)) -> bool + Sync + Send,
     ) -> Result<()> {
+      // If the runtime optimization is not opt out, a module codegen should be executed for each runtime.
+      // Else, share same codegen result for all runtimes.
+      let used_exports_optimization = compilation.options.is_new_tree_shaking()
+        && compilation.options.optimization.used_exports.is_true();
       let results = compilation
         .module_graph
         .modules()
@@ -977,8 +981,15 @@ impl Compilation {
             .cache
             .code_generate_occasion
             .use_cache(module, runtimes, compilation, |module, runtimes| {
+              let take_length = if used_exports_optimization {
+                runtimes.len()
+              } else {
+                // Only codegen once
+                1
+              };
               let mut codegen_list = vec![];
-              for runtime in runtimes.into_values() {
+              for runtime in runtimes.into_values().take(take_length) {
+                // TODO: pass the runtime param into module codegen
                 codegen_list.push((module.code_generation(compilation)?, runtime));
               }
               Ok(codegen_list)
@@ -1013,17 +1024,23 @@ impl Compilation {
           let runtimes = compilation
             .chunk_graph
             .get_module_runtimes(module_identifier, &compilation.chunk_by_ukey);
-
+          let result_id = result.id;
           compilation
             .code_generation_results
             .module_generation_result_map
-            .insert(module_identifier, result);
-          for runtime in runtimes.values() {
-            compilation.code_generation_results.add(
-              module_identifier,
-              runtime.clone(),
-              module_identifier,
-            );
+            .insert(result.id, result);
+          if used_exports_optimization {
+            compilation
+              .code_generation_results
+              .add(module_identifier, runtime, result_id);
+          } else {
+            // share codegen result for all related runtime when used_exports_optimization is not
+            // enabled
+            for runtime in runtimes.into_values() {
+              compilation
+                .code_generation_results
+                .add(module_identifier, runtime, result_id);
+            }
           }
         });
       Ok(())

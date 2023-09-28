@@ -1,13 +1,16 @@
 use std::collections::hash_map::Entry;
 use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
+use std::sync::atomic::AtomicU32;
 
 use anymap::CloneAny;
+use once_cell::sync::Lazy;
 use rspack_error::{internal_error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_identifier::IdentifierMap;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
+use serde::Serialize;
 
 use crate::{
   AssetInfo, ChunkInitFragments, ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap,
@@ -86,6 +89,7 @@ pub struct CodeGenerationResult {
   pub chunk_init_fragments: ChunkInitFragments,
   pub runtime_requirements: RuntimeGlobals,
   pub hash: Option<RspackHashDigest>,
+  pub id: CodeGenResultId,
 }
 
 impl CodeGenerationResult {
@@ -133,14 +137,44 @@ impl CodeGenerationResult {
   }
 }
 
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
+pub struct CodeGenResultId(u32);
+
+impl Default for CodeGenResultId {
+  fn default() -> Self {
+    Self(CODE_GEN_RESULT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+  }
+}
+
+pub static CODE_GEN_RESULT_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
+
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
+pub struct CodeGenResultId(u32);
+
+impl Default for CodeGenResultId {
+  fn default() -> Self {
+    Self(CODE_GEN_RESULT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+  }
+}
+
+pub static CODE_GEN_RESULT_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
+
 #[derive(Debug, Default)]
 pub struct CodeGenerationResults {
   // TODO: This should be a map of ModuleIdentifier to CodeGenerationResult
-  pub module_generation_result_map: IdentifierMap<CodeGenerationResult>,
-  map: IdentifierMap<RuntimeSpecMap<ModuleIdentifier>>,
+  pub module_generation_result_map: HashMap<CodeGenResultId, CodeGenerationResult>,
+  map: IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
 }
 
 impl CodeGenerationResults {
+  pub fn get_one(&self, module_identifier: &ModuleIdentifier) -> Option<&CodeGenerationResult> {
+    self.map.get(module_identifier).and_then(|spec| {
+      spec
+        .single_value
+        .and_then(|id| self.module_generation_result_map.get(&id))
+    })
+  }
+
   pub fn get(
     &self,
     module_identifier: &ModuleIdentifier,
@@ -195,7 +229,7 @@ impl CodeGenerationResults {
     &mut self,
     module_identifier: ModuleIdentifier,
     runtime: RuntimeSpec,
-    result: ModuleIdentifier,
+    result: CodeGenResultId,
   ) {
     match self.map.entry(module_identifier) {
       Entry::Occupied(mut record) => {
