@@ -1246,10 +1246,10 @@ const AVAILABLE_FORMATS: Pick_FORMAT<
 		} else {
 			let timeStr = time.toString();
 			if (time > 1000) {
-				timeStr = `${(time / 1000).toFixed(2)}s`;
+				timeStr = `${(time / 1000).toFixed(2)}`;
 				unit = ' s';
 			}
-			return `${boldQuantity ? bold(timeStr) : time}${unit}`;
+			return `${boldQuantity ? bold(timeStr) : timeStr}${unit}`;
 		}
 	},
 	formatError: (msg, { green, yellow, red }) => {
