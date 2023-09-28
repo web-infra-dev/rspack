@@ -990,18 +990,20 @@ impl Compilation {
               let mut codegen_list = vec![];
               for runtime in runtimes.into_values().take(take_length) {
                 // TODO: pass the runtime param into module codegen
-                codegen_list.push((module.code_generation(compilation)?, runtime));
+                codegen_list.push((
+                  module.code_generation(compilation, Some(&runtime))?,
+                  runtime,
+                ));
               }
               Ok(codegen_list)
             })
             .map(|(result, from_cache)| {
-              let res = result
+              result
                 .into_iter()
                 .map(|(codegen_result, runtime)| {
                   (*module_identifier, codegen_result, runtime, from_cache)
                 })
-                .collect::<Vec<_>>();
-              res
+                .collect::<Vec<_>>()
             });
           Some(res)
         })

@@ -161,7 +161,6 @@ pub static CODE_GEN_RESULT_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0))
 
 #[derive(Debug, Default)]
 pub struct CodeGenerationResults {
-  // TODO: This should be a map of ModuleIdentifier to CodeGenerationResult
   pub module_generation_result_map: HashMap<CodeGenResultId, CodeGenerationResult>,
   map: IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
 }

@@ -33,7 +33,7 @@ impl CssUrlDependency {
     identifier: &ModuleIdentifier,
     compilation: &Compilation,
   ) -> Option<String> {
-    // TODO: how to do this if module related to multi runtime codegen
+    // TODO: how to handle if module related to multi runtime codegen
     let code_gen_result = compilation.code_generation_results.get_one(identifier);
     if let Some(code_gen_result) = code_gen_result {
       if let Some(url) = code_gen_result.data.get::<CodeGenerationDataUrl>() {
