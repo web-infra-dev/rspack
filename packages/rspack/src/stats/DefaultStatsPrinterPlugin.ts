@@ -1230,7 +1230,7 @@ const AVAILABLE_FORMATS: Pick_FORMAT<
 		{ timeReference, bold, green, yellow, red },
 		boldQuantity
 	) => {
-		const unit = " ms";
+		let unit = " ms";
 		if (timeReference && time !== timeReference) {
 			const times = [
 				timeReference / 2,
@@ -1244,7 +1244,12 @@ const AVAILABLE_FORMATS: Pick_FORMAT<
 			else if (time < times[0]) return yellow(`${time}${unit}`);
 			else return red(`${time}${unit}`);
 		} else {
-			return `${boldQuantity ? bold(time.toString()) : time}${unit}`;
+			let timeStr = time.toString();
+			if (time > 1000) {
+				timeStr = `${(time / 1000).toFixed(2)}s`;
+				unit = ' s';
+			}
+			return `${boldQuantity ? bold(timeStr) : time}${unit}`;
 		}
 	},
 	formatError: (msg, { green, yellow, red }) => {
