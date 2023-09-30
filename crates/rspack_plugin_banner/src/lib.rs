@@ -151,11 +151,12 @@ impl BannerPlugin {
     let old_source = old.to_owned();
 
     if let Some(footer) = footer && footer {
-      ConcatSource::new([
+     let a =  ConcatSource::new([
         old_source,
         RawSource::from("\n").boxed(),
         RawSource::from(comment).boxed(),
-      ]).boxed()
+      ]).boxed();
+      a
     } else {
       ConcatSource::new([
         RawSource::from(comment).boxed(),

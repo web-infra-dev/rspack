@@ -172,6 +172,8 @@ impl RawOptionsApply for RawOptions {
 
     plugins.push(rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin.boxed());
 
+    plugins.push(rspack_plugin_footer::FooterPlugin::default().boxed());
+
     Ok(Self::Options {
       context,
       mode,
