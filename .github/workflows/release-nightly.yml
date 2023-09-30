@@ -115,7 +115,8 @@ jobs:
                     "https://raw.githubusercontent.com/web-infra-dev/rspack-website/main/docs/public/logo.png",
                   embeds: [
                     {
-                      title: "nightly release failed"
+                      title: "nightly release failed",
+                      description: "See job:\n* ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
                     }
                   ]
                 })
