@@ -66,6 +66,7 @@ var loadCssChunkCallback = function (parentChunkLoadingFunction, data) {
 	}
 };
 var chunkLoadingGlobal = $CHUNK_LOADING_GLOBAL_EXPR$ = $CHUNK_LOADING_GLOBAL_EXPR$ || [];
+chunkLoadingGlobal.forEach(loadCssChunkCallback.bind(null, 0));
 chunkLoadingGlobal.push = loadCssChunkCallback.bind(
 	null,
 	chunkLoadingGlobal.push.bind(chunkLoadingGlobal)
