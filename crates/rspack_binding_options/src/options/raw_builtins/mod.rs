@@ -1,5 +1,6 @@
 mod raw_banner;
 mod raw_copy;
+mod raw_footer;
 mod raw_html;
 mod raw_progress;
 mod raw_swc_js_minimizer;
@@ -19,6 +20,7 @@ use rspack_plugin_entry::EntryPlugin;
 use rspack_plugin_externals::{
   electron_target_plugin, http_externals_rspack_plugin, node_target_plugin, ExternalsPlugin,
 };
+use rspack_plugin_footer::FooterPlugin;
 use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_library::enable_library_plugin;
@@ -33,7 +35,8 @@ use rspack_plugin_wasm::enable_wasm_loading_plugin;
 
 pub use self::{
   raw_banner::RawBannerPluginOptions, raw_copy::RawCopyRspackPluginOptions,
-  raw_html::RawHtmlRspackPluginOptions, raw_progress::RawProgressPluginOptions,
+  raw_footer::RawFooterPluginOptions, raw_html::RawHtmlRspackPluginOptions,
+  raw_progress::RawProgressPluginOptions,
   raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
 };
 use crate::{
@@ -67,6 +70,7 @@ pub enum BuiltinPluginName {
   HtmlRspackPlugin,
   SwcJsMinimizerRspackPlugin,
   SwcCssMinimizerRspackPlugin,
+  FooterRspackPlugin,
 }
 
 #[napi(object)]
@@ -182,6 +186,11 @@ impl RawOptionsApply for BuiltinPlugin {
         let plugin =
           HtmlRspackPlugin::new(downcast_into::<RawHtmlRspackPluginOptions>(self.options)?.into())
             .boxed();
+        plugins.push(plugin);
+      }
+      BuiltinPluginName::FooterRspackPlugin => {
+        let plugin =
+          FooterPlugin::new(downcast_into::<RawFooterPluginOptions>(self.options)?.into()).boxed();
         plugins.push(plugin);
       }
     }

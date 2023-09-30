@@ -134,7 +134,8 @@ export const enum BuiltinPluginName {
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
   SwcJsMinimizerRspackPlugin = 'SwcJsMinimizerRspackPlugin',
-  SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin'
+  SwcCssMinimizerRspackPlugin = 'SwcCssMinimizerRspackPlugin',
+  FooterRspackPlugin = 'FooterRspackPlugin'
 }
 
 export function cleanupGlobalTrace(): void
@@ -695,6 +696,10 @@ export interface RawFallbackCacheGroupOptions {
   maxSize?: number
   maxAsyncSize?: number
   maxInitialSize?: number
+}
+
+export interface RawFooterPluginOptions {
+  footer: string
 }
 
 export interface RawFuncUseCtx {

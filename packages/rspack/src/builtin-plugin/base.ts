@@ -22,7 +22,8 @@ export enum BuiltinPluginName {
 	CopyRspackPlugin = "CopyRspackPlugin",
 	HtmlRspackPlugin = "HtmlRspackPlugin",
 	SwcJsMinimizerRspackPlugin = "SwcJsMinimizerRspackPlugin",
-	SwcCssMinimizerRspackPlugin = "SwcCssMinimizerRspackPlugin"
+	SwcCssMinimizerRspackPlugin = "SwcCssMinimizerRspackPlugin",
+	FooterRspackPlugin = "FooterRspackPlugin"
 }
 
 export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
