@@ -3,6 +3,7 @@ use rspack_core::{
   BoxPlugin, CompilerOptions, Context, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
   IncrementalRebuildMakeState, ModuleOptions, ModuleType, OutputOptions, PluginExt,
 };
+use rspack_plugin_footer::FooterPluginOptions;
 use rspack_plugin_javascript::{FlagDependencyExportsPlugin, FlagDependencyUsagePlugin};
 use serde::Deserialize;
 
@@ -172,7 +173,12 @@ impl RawOptionsApply for RawOptions {
 
     plugins.push(rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin.boxed());
 
-    plugins.push(rspack_plugin_footer::FooterPlugin::default().boxed());
+    plugins.push(
+      rspack_plugin_footer::FooterPlugin::new(FooterPluginOptions {
+        footer: "/* footer */".to_string(),
+      })
+      .boxed(),
+    );
 
     Ok(Self::Options {
       context,

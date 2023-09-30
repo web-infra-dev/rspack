@@ -4,12 +4,17 @@ use rspack_core::{
   Plugin,
 };
 
-#[derive(Debug, Default)]
-pub struct FooterPlugin {}
-
+#[derive(Debug)]
+pub struct FooterPlugin {
+  pub options: FooterPluginOptions,
+}
+#[derive(Debug)]
+pub struct FooterPluginOptions {
+  pub footer: String,
+}
 impl FooterPlugin {
-  pub fn new() -> Self {
-    Self {}
+  pub fn new(options: FooterPluginOptions) -> Self {
+    Self { options }
   }
 }
 #[async_trait]
@@ -32,7 +37,7 @@ impl Plugin for FooterPlugin {
     for file in updates {
       let _res = compilation.update_asset(file.as_str(), |old, info| {
         let new: BoxSource =
-          ConcatSource::new([old, RawSource::from("/* footer */").boxed()]).boxed();
+          ConcatSource::new([old, RawSource::from(self.options.footer.clone()).boxed()]).boxed();
         Ok((new, info))
       });
     }
