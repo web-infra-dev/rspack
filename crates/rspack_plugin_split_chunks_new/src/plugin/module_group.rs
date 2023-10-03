@@ -1,8 +1,12 @@
+use std::borrow::Cow;
+use std::ptr::NonNull;
+
 use async_scoped::TokioScope;
 use dashmap::DashMap;
 use rayon::prelude::*;
-use rspack_core::{Chunk, ChunkUkey, Compilation, Module};
-use rustc_hash::FxHashSet;
+use rspack_core::{Chunk, ChunkByUkey, ChunkUkey, Compilation, Module};
+use rspack_util::bitmap::BitMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::ModuleGroupMap;
 use crate::SplitChunksPlugin;
@@ -36,6 +40,19 @@ impl SplitChunksPlugin {
     (best_entry_key, best_module_group)
   }
 
+  async fn create_chunk_index_map(&self, chunk_db: &ChunkByUkey) -> FxHashMap<ChunkUkey, BitMap> {
+    let mut chunk_index_map: FxHashMap<ChunkUkey, BitMap> = Default::default();
+
+    let mut idx: BitMap = 1.into();
+
+    for key in chunk_db.keys() {
+      chunk_index_map.insert(*key, idx.clone());
+      idx = idx.shift_left();
+    }
+
+    chunk_index_map
+  }
+
   #[tracing::instrument(skip_all)]
   pub(crate) async fn prepare_module_group_map(
     &self,
@@ -54,6 +71,8 @@ impl SplitChunksPlugin {
     }
 
     let module_group_map: DashMap<String, ModuleGroup> = DashMap::default();
+
+    let chunk_idx_map = self.create_chunk_index_map(chunk_db);
 
     async_scoped::Scope::scope_and_block(|scope: &mut TokioScope<'_, _>| {
       for module in compilation.module_graph.modules().values() {
@@ -241,3 +260,5 @@ impl SplitChunksPlugin {
     });
   }
 }
+
+fn get_key(chunks: &[ChunkUkey], chunk_idx_map: FxHashMap<ChunkUkey, BitMap>) -> BitMap {}

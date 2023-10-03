@@ -1,6 +1,7 @@
 #![feature(int_roundings)]
 
 use std::future::Future;
+pub mod bitmap;
 pub mod comparators;
 pub mod ext;
 pub mod identifier;
