@@ -1,6 +1,6 @@
 // If you have any idea on improving performance, please make a PR
 
-use std::{borrow::Cow, vec};
+use std::{borrow::Cow, hash::Hash, vec};
 
 // The reason why not using bitmaps crate is that it now supports max to 1024 bit size.
 #[derive(Debug, Clone)]
@@ -38,9 +38,98 @@ impl From<u128> for BitMap {
   }
 }
 
-impl std::ops::BitOr for BitMap {
+impl From<Vec<u128>> for BitMap {
+  fn from(value: Vec<u128>) -> Self {
+    Self::large(value)
+  }
+}
+
+impl AsRef<BitMap> for BitMap {
+  fn as_ref(&self) -> &BitMap {
+    self
+  }
+}
+
+impl std::cmp::PartialEq for BitMap {
+  fn eq(&self, other: &Self) -> bool {
+    match (self, other) {
+      (Self::Small(l0), Self::Small(r0)) => l0 == r0,
+      (Self::Large(l0), Self::Large(r0)) => l0 == r0,
+      _ => {
+        // 0001 equals to [0001, 0000, 0000],
+        let self_vec = match self {
+          BitMap::Small(small) => Cow::Owned(vec![*small]),
+          BitMap::Large(large) => Cow::Borrowed(large),
+        };
+
+        let other_vec = match other {
+          BitMap::Small(small) => Cow::Owned(vec![*small]),
+          BitMap::Large(large) => Cow::Borrowed(large),
+        };
+
+        let mut self_idx = 0;
+        let mut other_idx = 0;
+
+        while self_idx < self_vec.len() && other_idx < other_vec.len() {
+          let self_val = self_vec[self_idx];
+          let other_val = other_vec[other_idx];
+          if self_val != other_val {
+            return false;
+          }
+
+          self_idx += 1;
+          other_idx += 1;
+        }
+
+        while self_idx < self_vec.len() {
+          if self_vec[self_idx] != 0 {
+            return false;
+          }
+          self_idx += 1;
+        }
+
+        while other_idx < other_vec.len() {
+          if other_vec[other_idx] != 0 {
+            return false;
+          }
+          other_idx += 1;
+        }
+
+        true
+      }
+    }
+  }
+}
+
+impl std::cmp::Eq for BitMap {}
+
+impl Hash for BitMap {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    let data = match self {
+      BitMap::Small(small) => Cow::Owned(vec![*small]),
+      BitMap::Large(large) => Cow::Borrowed(large),
+    };
+
+    debug_assert!(data.len() > 0);
+
+    // remove useless zero
+    // [001, 000] should has the same hash with [001], because 000_001 equals to 001
+    let mut idx = data.len();
+    while idx > 0 {
+      if data[idx - 1] != 0 {
+        break;
+      }
+      idx -= 1;
+    }
+
+    data[0..idx].hash(state)
+  }
+}
+
+impl<T: AsRef<BitMap>> std::ops::BitOr<T> for BitMap {
   type Output = BitMap;
-  fn bitor(self, rhs: Self) -> BitMap {
+  fn bitor(self, rhs: T) -> Self::Output {
+    let rhs: &BitMap = rhs.as_ref();
     match (&self, &rhs) {
       (BitMap::Small(v), BitMap::Small(rhs)) => BitMap::Small(v | rhs),
       _ => {
@@ -80,11 +169,25 @@ impl std::ops::BitOr for BitMap {
   }
 }
 
-impl std::ops::BitOrAssign for BitMap {
-  fn bitor_assign(&mut self, rhs: Self) {
+impl<T: AsRef<BitMap>> std::ops::BitOrAssign<T> for BitMap {
+  fn bitor_assign(&mut self, rhs: T) {
+    let rhs = rhs.as_ref();
     let orig = std::mem::take(self);
-    let new_bitmap = orig | rhs;
+    let new_bitmap: BitMap = orig | rhs;
     *self = new_bitmap;
+  }
+}
+
+impl ToString for BitMap {
+  fn to_string(&self) -> String {
+    match self {
+      BitMap::Small(small) => small.to_string(),
+      BitMap::Large(large) => large
+        .iter()
+        .map(|n| n.to_string())
+        .collect::<Vec<String>>()
+        .join(""),
+    }
   }
 }
 
@@ -273,4 +376,48 @@ fn test_bitor() {
   let v2: BitMap = BitMap::large(vec![0, 1]);
   v1 |= v2;
   assert_eq!((v1).expect_large(), vec![1, 1]);
+}
+
+#[test]
+fn reflexivity() {
+  let v1: BitMap = 1.into();
+  let v2: BitMap = vec![1].into();
+  let v3: BitMap = vec![1, 0].into();
+
+  let v4: BitMap = vec![0, 0].into();
+
+  assert_eq!(v1, v1);
+  assert_eq!(v2, v2);
+  assert_eq!(v3, v3);
+  assert_eq!(v1, v2);
+  assert_eq!(v1, v3);
+
+  assert_ne!(v1, v4);
+  assert_ne!(v2, v4);
+  assert_ne!(v3, v4);
+}
+
+#[test]
+fn hash() {
+  use std::collections::HashSet;
+
+  let v1: BitMap = 1.into();
+  let v2: BitMap = vec![1].into();
+  let v3: BitMap = vec![1, 0].into();
+
+  let mut container = HashSet::<BitMap>::default();
+  container.insert(v1);
+  container.insert(v2);
+  container.insert(v3);
+  assert_eq!(container.len(), 1);
+
+  let v1: BitMap = 1.into();
+  let v2: BitMap = vec![1].into();
+  let v3: BitMap = vec![1, 0].into();
+  assert!(container.contains(&v1));
+  assert!(container.contains(&v2));
+  assert!(container.contains(&v3));
+
+  container.insert(2.into());
+  assert_eq!(container.len(), 2);
 }
