@@ -206,19 +206,19 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
   }
 
   fn visit_export_decl(&mut self, export_decl: &ExportDecl) {
-    match &export_decl.decl {
-      Decl::Class(ClassDecl { ident, .. }) | Decl::Fn(FnDecl { ident, .. }) => {
-        // self.add_variable_usage(ident.sym.clone(), ident.sym.clone());
-      }
-      Decl::Var(v) => {
-        find_pat_ids::<_, Ident>(&v.decls)
-          .into_iter()
-          .for_each(|ident| {
-            // self.add_variable_usage(ident.sym.clone(), ident.sym.clone());
-          });
-      }
-      _ => {}
-    }
+    // match &export_decl.decl {
+    //   Decl::Class(ClassDecl { ident, .. }) | Decl::Fn(FnDecl { ident, .. }) => {
+    //     // self.add_variable_usage(ident.sym.clone(), ident.sym.clone());
+    //   }
+    //   Decl::Var(v) => {
+    //     find_pat_ids::<_, Ident>(&v.decls)
+    //       .into_iter()
+    //       .for_each(|ident| {
+    //         // self.add_variable_usage(ident.sym.clone(), ident.sym.clone());
+    //       });
+    //   }
+    //   _ => {}
+    // }
     export_decl.visit_children_with(self);
   }
   fn visit_export_default_expr(&mut self, node: &ExportDefaultExpr) {
