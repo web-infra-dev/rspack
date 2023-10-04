@@ -1,11 +1,11 @@
 name: GitHub Issue Sync
-
-workflow_dispatch:
-  inputs:
-    excludeClosed:
-      description: "Exclude closed issues in the sync."
-      type: boolean
-      default: true
+on:
+  workflow_dispatch:
+    inputs:
+      excludeClosed:
+        description: "Exclude closed issues in the sync."
+        type: boolean
+        default: true
 
 jobs:
   sync:
