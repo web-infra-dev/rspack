@@ -42,3 +42,8 @@ rustflags = ["-C", "link-args=-Wl,--warn-unresolved-symbols"]
 # To be able to run unit tests on Windows, support compilation to 'x86_64-pc-windows-msvc'.
 [target.'cfg(target_os = "windows")']
 rustflags = ["-C", "link-args=/FORCE"]
+
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+[target.i686-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
