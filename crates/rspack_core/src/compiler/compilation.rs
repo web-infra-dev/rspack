@@ -1159,6 +1159,12 @@ impl Compilation {
     logger.time_end(start);
 
     // if self.options.is_new_tree_shaking() {
+    //   // for module in self.module_graph.module_graph_modules().values() {}
+    //   // self
+    //   //   .module_graph
+    //   //   .module_graph_modules()
+    //   //   .values()
+    //   //   .foreach(|item| {});
     //   debug_exports_info(&self.module_graph);
     // }
 

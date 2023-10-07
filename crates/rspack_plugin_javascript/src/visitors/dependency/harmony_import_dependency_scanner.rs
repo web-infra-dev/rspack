@@ -41,6 +41,7 @@ impl ImporterReferenceInfo {
 
 pub type ImportMap = HashMap<Id, ImporterReferenceInfo>;
 
+#[derive(Debug)]
 pub struct ImporterInfo {
   pub span: Span,
   pub specifiers: Vec<Specifier>,
@@ -100,12 +101,15 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           .iter()
           .for_each(|specifier| match specifier {
             Specifier::Namespace(n) => {
+              let ids = vec![(n.clone(), None)];
               self
                 .dependencies
                 .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
                   request.clone(),
-                  vec![(n.clone(), None)],
+                  ids.clone(),
+                  ids,
                   Some(n.clone()),
+                  false,
                 )));
               self.build_info.harmony_named_exports.insert(n.clone());
             }
@@ -114,12 +118,15 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
             }
             Specifier::Named(orig, exported) => {
               let name = exported.clone().unwrap_or(orig.clone());
+              let ids = vec![(name.clone(), Some(orig.clone()))];
               self
                 .dependencies
                 .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
                   request.clone(),
-                  vec![(name.clone(), Some(orig.clone()))],
+                  ids.clone(),
+                  ids,
                   Some(name.clone()),
+                  false,
                 )));
               self.build_info.harmony_named_exports.insert(name);
             }
@@ -139,7 +146,9 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
             request.clone(),
             vec![],
+            vec![],
             None,
+            true,
           )));
       }
       self.dependencies.push(Box::new(dependency));

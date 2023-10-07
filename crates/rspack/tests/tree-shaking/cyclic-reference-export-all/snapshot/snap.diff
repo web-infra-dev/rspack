@@ -1,32 +1,28 @@
 --- expected
 +++ actual
-@@ -23,6 +23,8 @@
- __webpack_require__.r(__webpack_exports__);
- /* harmony import */var _platform_container__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./platform-container */"./src/containers/platform-container/index.js");
- __webpack_require__.es(_platform_container__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
-+/* harmony import */var _page_container__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./page-container */"./src/containers/page-container/index.js");
-+__webpack_require__.es(_page_container__WEBPACK_IMPORTED_MODULE_1_, __webpack_exports__);
- 
- 
- },
-@@ -36,12 +38,18 @@
- 
- 
- },
-+"./src/containers/page-container/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-+'use strict';
-+__webpack_require__.r(__webpack_exports__);
-+/* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ../containers */"./src/containers/containers.js");
-+
-+_containers__WEBPACK_IMPORTED_MODULE_0_.usePlatform;
-+},
- "./src/containers/platform-container/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+@@ -21,8 +21,6 @@
+ "./src/containers/containers.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  'use strict';
  __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
+-/* harmony import */var _platform_container__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./platform-container */"./src/containers/platform-container/index.js");
+-__webpack_require__.es(_platform_container__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
+ 
+ 
+ },
+@@ -35,16 +33,6 @@
+ /* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./containers */"./src/containers/containers.js");
+ 
+ 
+-},
+-"./src/containers/platform-container/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+-'use strict';
+-__webpack_require__.r(__webpack_exports__);
+-__webpack_require__.d(__webpack_exports__, {
 -  'usePlatform': function() { return usePlatform; },
 -  'PlatformProvider': function() { return PlatformProvider; }
-+  'usePlatform': function() { return usePlatform; }
- });
-  const usePlatform = 3;
-  const PlatformProvider = 1000;
+-});
+- const usePlatform = 3;
+- const PlatformProvider = 1000;
+ },
+ "./src/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';

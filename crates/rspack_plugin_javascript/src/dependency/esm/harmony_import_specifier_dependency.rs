@@ -10,7 +10,9 @@ use rspack_core::{
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
 
-use super::{create_resource_identifier_for_esm_dependency, Specifier};
+use super::{
+  create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply, Specifier,
+};
 
 #[derive(Debug, Clone)]
 pub struct HarmonyImportSpecifierDependency {
@@ -130,6 +132,20 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       .module_graph_module_by_dependency_id(&self.id)
       .expect("should have ref module");
 
+    let compilation = &code_generatable_context.compilation;
+    if compilation.options.is_new_tree_shaking() {
+      let connection = compilation.module_graph.connection_by_dependency(&self.id);
+      let is_target_active = if let Some(con) = connection {
+        // TODO: runtime opt
+        con.is_target_active(&compilation.module_graph, None)
+      } else {
+        true
+      };
+
+      if !is_target_active {
+        return;
+      }
+    };
     let used = self.check_used(reference_mgm, compilation);
 
     if !used {
@@ -148,6 +164,10 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       .module_graph
       .get_import_var(&code_generatable_context.module.identifier(), &self.request);
 
+    // TODO: scope hoist
+    if compilation.options.is_new_tree_shaking() {
+      harmony_import_dependency_apply(self, code_generatable_context, &[self.specifier.clone()]);
+    }
     let export_expr = export_from_import(
       code_generatable_context,
       true,
@@ -177,6 +197,14 @@ impl Dependency for HarmonyImportSpecifierDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::EsmImportSpecifier
   }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    ConnectionState::Bool(false)
+  }
 }
 
 impl ModuleDependency for HarmonyImportSpecifierDependency {
@@ -202,14 +230,6 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     get_dependency_used_by_exports_condition(self.id, &self.used_by_exports)
-  }
-
-  fn get_module_evaluation_side_effects_state(
-    &self,
-    _module_graph: &ModuleGraph,
-    _module_chain: &mut HashSet<ModuleIdentifier>,
-  ) -> ConnectionState {
-    ConnectionState::Bool(false)
   }
 
   fn get_referenced_exports(
@@ -251,5 +271,9 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     }
 
     self.get_referenced_exports_in_destructuring(Some(&self.ids))
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "HarmonyImportSpecifierDependency"
   }
 }

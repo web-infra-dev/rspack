@@ -55,6 +55,10 @@ impl ModuleDependency for ImportMetaHotAcceptDependency {
   fn set_request(&mut self, request: String) {
     self.request = request.into();
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "ImportMetaHotAcceptDependency"
+  }
 }
 
 impl DependencyTemplate for ImportMetaHotAcceptDependency {

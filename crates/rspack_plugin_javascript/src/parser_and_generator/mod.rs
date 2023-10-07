@@ -10,9 +10,11 @@ use rspack_core::{
   ParserAndGenerator, SourceType, TemplateContext,
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use swc_core::common::SyntaxContext;
 
 use crate::utils::syntax_by_module_type;
 use crate::visitors::{run_before_pass, scan_dependencies, swc_visitor::resolver};
+use crate::{SideEffectsFlagPluginVisitor, SyntaxContextInfo};
 #[derive(Debug)]
 pub struct JavaScriptParserAndGenerator;
 
@@ -143,6 +145,18 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     } else {
       OptimizeAnalyzeResult::default()
     };
+
+    if compiler_options.is_new_tree_shaking()
+      && compiler_options.optimization.side_effects.is_true()
+    {
+      ast.transform(|program, context| {
+        let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
+        let mut visitor =
+          SideEffectsFlagPluginVisitor::new(SyntaxContextInfo::new(unresolved_ctxt));
+        program.visit_with(&mut visitor);
+        build_meta.side_effect_free = Some(visitor.side_effects_span.is_none());
+      });
+    }
 
     let source = if let Some(map) = output.map {
       SourceMapSource::new(SourceMapSourceOptions {

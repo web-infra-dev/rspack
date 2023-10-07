@@ -72,6 +72,10 @@ impl ModuleDependency for WasmImportDependency {
   ) -> Vec<ExtendedReferencedExport> {
     vec![ExtendedReferencedExport::Array(vec![self.name.clone()])]
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "WasmImportDependency"
+  }
 }
 
 impl AsDependencyTemplate for WasmImportDependency {}

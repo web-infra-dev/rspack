@@ -1,0 +1,13 @@
+--- expected
++++ actual
+@@ -33,9 +33,9 @@
+ __webpack_require__.d(__webpack_exports__, {
+   'cccc': function() { return _c__WEBPACK_IMPORTED_MODULE_2_.cccc; }
+ });
++/* harmony import */var _c__WEBPACK_IMPORTED_MODULE_2_ = __webpack_require__(/* ./c */"./c.js");
+ /* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./Layout */"./Layout.js");
+ /* harmony import */var _Something__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./Something */"./Something.js");
+-/* harmony import */var _c__WEBPACK_IMPORTED_MODULE_2_ = __webpack_require__(/* ./c */"./c.js");
+ 
+ 
+ var L = _Layout__WEBPACK_IMPORTED_MODULE_0_["default"];

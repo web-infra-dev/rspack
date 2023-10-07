@@ -438,6 +438,7 @@ const applyOutputDefaults = (
 		`[id].[fullhash].hot-update.${output.module ? "mjs" : "js"}`
 	);
 	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
+	F(output, "hotUpdateGlobal", () => "webpackHotUpdate" + output.uniqueName);
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	F(output, "path", () => path.join(process.cwd(), "dist"));

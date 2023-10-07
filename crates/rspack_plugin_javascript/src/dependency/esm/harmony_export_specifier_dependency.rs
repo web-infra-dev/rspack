@@ -48,6 +48,14 @@ impl Dependency for HarmonyExportSpecifierDependency {
       exclude_exports: None,
     })
   }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &rspack_core::ModuleGraph,
+    _module_chain: &mut rustc_hash::FxHashSet<rspack_core::ModuleIdentifier>,
+  ) -> rspack_core::ConnectionState {
+    rspack_core::ConnectionState::Bool(false)
+  }
 }
 
 impl AsModuleDependency for HarmonyExportSpecifierDependency {}

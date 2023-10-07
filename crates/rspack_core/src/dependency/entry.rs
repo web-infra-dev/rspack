@@ -54,6 +54,10 @@ impl ModuleDependency for EntryDependency {
   fn set_request(&mut self, request: String) {
     self.request = request;
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "EntryDependency"
+  }
 }
 
 impl AsDependencyTemplate for EntryDependency {}

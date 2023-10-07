@@ -190,6 +190,14 @@ pub trait Dependency:
   fn get_exports(&self) -> Option<ExportsSpec> {
     None
   }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    ConnectionState::Bool(true)
+  }
 }
 
 #[derive(Debug, Default)]
@@ -343,6 +351,8 @@ impl Debug for DependencyCondition {
 }
 
 pub trait ModuleDependency: Dependency {
+  /// name of the original struct or enum
+  fn dependency_debug_name(&self) -> &'static str;
   fn request(&self) -> &str;
   fn user_request(&self) -> &str;
   fn span(&self) -> Option<&ErrorSpan>;
@@ -368,14 +378,6 @@ pub trait ModuleDependency: Dependency {
     None
   }
 
-  fn get_module_evaluation_side_effects_state(
-    &self,
-    _module_graph: &ModuleGraph,
-    _module_chain: &mut HashSet<ModuleIdentifier>,
-  ) -> ConnectionState {
-    ConnectionState::Bool(true)
-  }
-
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
@@ -386,6 +388,10 @@ pub trait ModuleDependency: Dependency {
 
   // an identifier to merge equal requests
   fn resource_identifier(&self) -> Option<&str> {
+    None
+  }
+
+  fn is_export_all(&self) -> Option<bool> {
     None
   }
 }

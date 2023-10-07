@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-react-refresh",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "license": "MIT",
   "description": "React refresh plugin for rspack",
   "main": "src/index.js",
@@ -10,7 +10,7 @@
     "./react-refresh-entry": "./client/reactRefreshEntry.js"
   },
   "scripts": {
-    "test": "echo success"
+    "test": "jest --runInBand"
   },
   "files": [
     "client",
@@ -27,9 +27,12 @@
     "directory": "packages/rspack-plugin-react-refresh"
   },
   "dependencies": {
-    "@pmmmwh/react-refresh-webpack-plugin": "0.5.10"
+    "@pmmmwh/react-refresh-webpack-plugin": "0.5.10",
+    "schema-utils": "^4.0.0"
   },
   "devDependencies": {
+    "@rspack/core": "workspace:*",
+    "@rspack/plugin-react-refresh": "workspace:*",
     "react-refresh": "0.14.0"
   },
   "peerDependencies": {
@@ -39,5 +42,12 @@
     "react-refresh": {
       "optional": true
     }
+  },
+  "jest": {
+    "watchPathIgnorePatterns": [
+      "<rootDir>/dist",
+      "<rootDir>/tests/dist"
+    ],
+    "testEnvironment": "../../scripts/test/patch-node-env.cjs"
   }
 }

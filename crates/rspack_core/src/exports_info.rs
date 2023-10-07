@@ -404,8 +404,8 @@ impl ExportsInfo {
   }
 
   /// only used for old version tree shaking
-  pub fn old_get_used_exports(&self) -> HashSet<&JsWord> {
-    self.exports.keys().collect::<HashSet<_>>()
+  pub fn old_get_used_exports(&self) -> HashSet<JsWord> {
+    self.exports.keys().cloned().collect::<HashSet<_>>()
   }
 
   pub fn get_used(

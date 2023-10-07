@@ -1,8 +1,10 @@
 #![feature(let_chains)]
+#![feature(if_let_guard)]
 #![feature(iter_intersperse)]
 #![feature(box_patterns)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 
+use std::sync::atomic::AtomicBool;
 use std::{fmt, sync::Arc};
 mod fake_namespace_object;
 pub use fake_namespace_object::*;
@@ -251,3 +253,5 @@ impl TryFrom<&str> for ModuleType {
 pub type ChunkByUkey = Database<Chunk>;
 pub type ChunkGroupByUkey = Database<ChunkGroup>;
 pub(crate) type SharedPluginDriver = Arc<PluginDriver>;
+
+pub static IS_NEW_TREESHAKING: AtomicBool = AtomicBool::new(false);
