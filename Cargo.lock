@@ -2633,6 +2633,7 @@ dependencies = [
  "async-trait",
  "either",
  "indexmap 1.9.3",
+ "once_cell",
  "rspack_core",
  "rspack_error",
  "rspack_loader_runner",
