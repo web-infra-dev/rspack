@@ -93,7 +93,7 @@ impl SplitChunksPlugin {
       for (count, array_of_set) in &chunk_sets_by_count {
         if *count < chunks_set.len() {
           for set in array_of_set {
-            if is_sub_set(chunks_set, set) {
+            if set.is_subset(chunks_set) {
               result.push(set.clone());
             }
           }
@@ -357,21 +357,4 @@ impl SplitChunksPlugin {
 
     (chunk_sets_in_graph, single_chunk_sets, chunk_sets_by_count)
   }
-}
-
-fn is_sub_set<T: std::hash::Hash + std::cmp::Eq>(
-  big_set: &FxHashSet<T>,
-  small_set: &FxHashSet<T>,
-) -> bool {
-  if big_set.len() < small_set.len() {
-    return false;
-  }
-
-  for item in small_set.iter() {
-    if !big_set.contains(item) {
-      return false;
-    }
-  }
-
-  true
 }
