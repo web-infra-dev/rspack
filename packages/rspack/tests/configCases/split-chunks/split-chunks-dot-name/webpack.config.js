@@ -8,7 +8,6 @@ module.exports = {
 	optimization: {
 		splitChunks: {
 			minSize: 1,
-			chunks: "all",
 			name: "overall-foo",
 			cacheGroups: {
 				foo: {

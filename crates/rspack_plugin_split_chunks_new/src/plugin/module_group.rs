@@ -40,7 +40,7 @@ impl SplitChunksPlugin {
   fn create_chunk_index_map(&self, chunk_db: &ChunkByUkey) -> FxHashMap<ChunkUkey, ChunksKey> {
     let mut chunk_index_map: FxHashMap<ChunkUkey, ChunksKey> = Default::default();
 
-    let mut idx = ChunksKey::default();
+    let mut idx: ChunksKey = 1usize.into();
 
     for key in chunk_db.keys() {
       chunk_index_map.insert(*key, idx.clone());
@@ -159,7 +159,7 @@ impl SplitChunksPlugin {
                   selected_chunks.len(),
                   cache_group.min_chunks,
                 );
-                return;
+                continue;
               }
               let selected_chunks_key = Self::get_key(selected_chunks.iter().map(|chunk| &chunk.ukey), chunk_idx_map);
 
@@ -310,7 +310,7 @@ impl SplitChunksPlugin {
     chunks: I,
     chunk_idx_map: &FxHashMap<ChunkUkey, ChunksKey>,
   ) -> ChunksKey {
-    let mut result = ChunksKey::default();
+    let mut result: ChunksKey = 1usize.into();
     for chunk in chunks {
       let idx = chunk_idx_map
         .get(chunk)

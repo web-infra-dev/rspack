@@ -5,7 +5,6 @@ const stats = {
 	assets: false,
 	chunks: true,
 	chunkRelations: true,
-	chunkOrigins: true,
 	entrypoints: true,
 	modules: false
 };
