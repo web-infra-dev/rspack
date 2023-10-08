@@ -128,15 +128,12 @@ impl CodeGenerationResult {
       source_type.hash(&mut hasher);
       source.hash(&mut hasher);
     }
-    for (k, v) in &self.chunk_init_fragments {
-      k.hash(&mut hasher);
-      v.hash(&mut hasher);
-    }
+    self.chunk_init_fragments.hash(&mut hasher);
     self.hash = Some(hasher.digest(hash_digest));
   }
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug, Default)]
 pub struct CodeGenerationResults {
   // TODO: This should be a map of ModuleIdentifier to CodeGenerationResult
   pub module_generation_result_map: IdentifierMap<CodeGenerationResult>,

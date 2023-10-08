@@ -91,7 +91,7 @@ impl Display for ModuleArgument {
   }
 }
 
-#[derive(Debug, Default, Clone, Copy, Hash)]
+#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum ExportsArgument {
   #[default]
   Exports,

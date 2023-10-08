@@ -112,6 +112,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                   .dependencies
                   .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
                     reference.request.clone(),
+                    reference.source_order,
                     ids,
                     mode_ids,
                     Some(export),

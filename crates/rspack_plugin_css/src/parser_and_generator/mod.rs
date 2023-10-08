@@ -6,8 +6,8 @@ use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rkyv::{from_bytes, to_bytes, AlignedVec};
-use rspack_core::RuntimeGlobals;
 use rspack_core::{
+  render_init_fragments,
   rspack_sources::{
     BoxSource, MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
     SourceMapSourceOptions,
@@ -15,6 +15,7 @@ use rspack_core::{
   BoxDependency, BuildExtraDataType, BuildMetaExportsType, GenerateContext, Module, ModuleType,
   ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
 };
+use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
@@ -231,11 +232,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
       SourceType::Css => {
         let mut source = ReplaceSource::new(source.clone());
         let compilation = generate_context.compilation;
+        let mut init_fragments = ModuleInitFragments::default();
         let mut context = TemplateContext {
           compilation,
           module,
           runtime_requirements: generate_context.runtime_requirements,
-          init_fragments: &mut vec![],
+          init_fragments: &mut init_fragments,
         };
 
         let mgm = compilation

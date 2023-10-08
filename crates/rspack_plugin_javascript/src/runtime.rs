@@ -96,7 +96,6 @@ pub fn render_chunk_modules(
   Ok((sources.boxed(), chunk_init_fragments))
 }
 
-/* remove `strict` parameter for now, let SWC manage `use strict` annotation directly */
 fn render_module(
   source: BoxSource,
   mgm: &ModuleGraphModule,
@@ -121,9 +120,9 @@ fn render_module(
       RuntimeGlobals::REQUIRE
     )),
   ]);
-  // if strict {
-  //   sources.add(RawSource::from("\"use strict\";\n"));
-  // }
+  if let Some(build_info) = &mgm.build_info && build_info.strict {
+    sources.add(RawSource::from("'use strict';\n"));
+  }
   sources.add(source);
   sources.add(RawSource::from("},\n"));
 
@@ -187,14 +186,6 @@ pub fn render_runtime_modules(
     }
   });
   Ok(sources.boxed())
-}
-
-pub fn render_chunk_init_fragments(
-  source: BoxSource,
-  chunk_init_fragments: ChunkInitFragments,
-) -> BoxSource {
-  let mut fragments = chunk_init_fragments.into_values().collect::<Vec<_>>();
-  render_init_fragments(source, &mut fragments.iter_mut().collect::<Vec<_>>())
 }
 
 pub fn stringify_chunks_to_array(chunks: &HashSet<String>) -> String {

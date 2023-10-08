@@ -6,8 +6,8 @@ use rspack_core::tree_shaking::analyzer::OptimizeAnalyzer;
 use rspack_core::tree_shaking::js_module::JsModule;
 use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
 use rspack_core::{
-  render_box_init_fragments, GenerateContext, Module, ParseContext, ParseResult,
-  ParserAndGenerator, SourceType, TemplateContext,
+  render_init_fragments, GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator,
+  SourceType, TemplateContext,
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::common::SyntaxContext;
@@ -235,11 +235,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .for_each(|dependency| dependency.apply(&mut source, &mut context));
       };
 
-      Ok(render_box_init_fragments(
-        init_fragments,
+      Ok(render_init_fragments(
         source.boxed(),
-        mgm.get_exports_argument(),
-        generate_context.runtime_requirements,
+        init_fragments,
+        generate_context,
       ))
     } else {
       Err(internal_error!(

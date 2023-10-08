@@ -8,8 +8,8 @@ use rspack_sources::BoxSource;
 use crate::{
   tree_shaking::visitor::OptimizeAnalyzeResult, BoxDependency, BuildExtraDataType, BuildInfo,
   BuildMeta, CodeGenerationData, Compilation, CompilerOptions, DependencyTemplate,
-  GeneratorOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType, ParserOptions,
-  RuntimeGlobals, SourceType,
+  GeneratorOptions, InitFragmentRenderContext, Module, ModuleDependency, ModuleIdentifier,
+  ModuleType, ParserOptions, RuntimeGlobals, SourceType,
 };
 
 #[derive(Debug)]
