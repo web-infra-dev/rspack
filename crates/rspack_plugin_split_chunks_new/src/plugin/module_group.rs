@@ -1,9 +1,8 @@
 use async_scoped::TokioScope;
 use dashmap::DashMap;
+use num_bigint::BigUint as ChunksKey;
 use rayon::prelude::*;
 use rspack_core::{Chunk, ChunkByUkey, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph};
-use rspack_util::bitmap::BitMap as ChunksKey;
-use rspack_util::issue_expect::IssueExpect;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::ModuleGroupMap;
@@ -32,18 +31,20 @@ impl SplitChunksPlugin {
       }
     }
 
-    let best_module_group = module_group_map.remove(&best_entry_key).issue_expect();
+    let best_module_group = module_group_map
+      .remove(&best_entry_key)
+      .expect("This should never happen, please file an issue");
     (best_entry_key, best_module_group)
   }
 
   fn create_chunk_index_map(&self, chunk_db: &ChunkByUkey) -> FxHashMap<ChunkUkey, ChunksKey> {
     let mut chunk_index_map: FxHashMap<ChunkUkey, ChunksKey> = Default::default();
 
-    let mut idx: ChunksKey = 1.into();
+    let mut idx = ChunksKey::default();
 
     for key in chunk_db.keys() {
       chunk_index_map.insert(*key, idx.clone());
-      idx = idx.shift_left();
+      idx <<= 1;
     }
 
     chunk_index_map
@@ -74,12 +75,11 @@ impl SplitChunksPlugin {
     // chunk_sets_in_graph: key: module, value: multiple chunks contains the module
     // single_chunk_sets: chunkset of module that belongs to only one chunk
     // chunk_sets_by_count: use chunkset len as key
-    let (chunk_sets_in_graph, single_chunk_sets, chunk_sets_by_count) =
-      Self::prepare_combination_maps(
-        &compilation.module_graph,
-        &compilation.chunk_graph,
-        &chunk_idx_map,
-      );
+    let (chunk_sets_in_graph, chunk_sets_by_count) = Self::prepare_combination_maps(
+      &compilation.module_graph,
+      &compilation.chunk_graph,
+      &chunk_idx_map,
+    );
 
     let combinations_cache = DashMap::<ChunksKey, Vec<FxHashSet<ChunkUkey>>>::default();
 
@@ -87,7 +87,9 @@ impl SplitChunksPlugin {
       if let Some(combs) = combinations_cache.get(&chunks_key) {
         return combs.clone();
       }
-      let chunks_set = chunk_sets_in_graph.get(&chunks_key).issue_expect();
+      let chunks_set = chunk_sets_in_graph
+        .get(&chunks_key)
+        .expect("This should never happen, please file an issue");
       let mut result = vec![chunks_set.clone()];
 
       for (count, array_of_set) in &chunk_sets_by_count {
@@ -100,16 +102,11 @@ impl SplitChunksPlugin {
         }
       }
 
-      for chunk in &single_chunk_sets {
-        if chunks_set.contains(chunk) {
-          let mut set = FxHashSet::default();
-          set.insert(*chunk);
-          result.push(set);
-        }
-      }
-
       combinations_cache.insert(chunks_key.clone(), result);
-      combinations_cache.get(&chunks_key).issue_expect().clone()
+      combinations_cache
+        .get(&chunks_key)
+        .expect("This should never happen, please file an issue")
+        .clone()
     };
 
     let chunk_idx_map = &chunk_idx_map;
@@ -148,7 +145,7 @@ impl SplitChunksPlugin {
             for chunk_combination in combs {
               let selected_chunks = chunk_combination
                 .iter()
-                .map(|c| chunk_db.get(c).issue_expect())
+                .map(|c| chunk_db.get(c).expect("This should never happen, please file an issue"))
                 // Filter by `splitChunks.cacheGroups.{cacheGroup}.chunks`
                 .filter(|c| (cache_group.chunk_filter)(c, chunk_group_db))
                 .collect::<Box<[_]>>();
@@ -315,7 +312,9 @@ impl SplitChunksPlugin {
   ) -> ChunksKey {
     let mut result = ChunksKey::default();
     for chunk in chunks {
-      let idx = chunk_idx_map.get(chunk).issue_expect();
+      let idx = chunk_idx_map
+        .get(chunk)
+        .expect("This should never happen, please file an issue");
       result |= idx;
     }
     result
@@ -328,21 +327,15 @@ impl SplitChunksPlugin {
     chunk_idx_map: &FxHashMap<ChunkUkey, ChunksKey>,
   ) -> (
     FxHashMap<ChunksKey, FxHashSet<ChunkUkey>>,
-    FxHashSet<ChunkUkey>,
     FxHashMap<usize, Vec<FxHashSet<ChunkUkey>>>,
   ) {
     let mut chunk_sets_in_graph = FxHashMap::default();
-    let mut single_chunk_sets = FxHashSet::default();
 
     for module in module_graph.modules().keys() {
       let chunks = chunk_graph.get_module_chunks(*module);
       let chunk_key = Self::get_key(chunks.iter(), chunk_idx_map);
 
-      if chunks.len() == 1 {
-        single_chunk_sets.insert(*chunks.iter().next().issue_expect());
-      } else {
-        chunk_sets_in_graph.insert(chunk_key, chunks.clone());
-      }
+      chunk_sets_in_graph.insert(chunk_key, chunks.clone());
     }
 
     let mut chunk_sets_by_count = FxHashMap::<usize, Vec<FxHashSet<ChunkUkey>>>::default();
@@ -355,6 +348,6 @@ impl SplitChunksPlugin {
         .or_insert(Vec::new());
     }
 
-    (chunk_sets_in_graph, single_chunk_sets, chunk_sets_by_count)
+    (chunk_sets_in_graph, chunk_sets_by_count)
   }
 }
