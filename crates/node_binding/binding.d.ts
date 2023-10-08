@@ -15,6 +15,7 @@ export class JsCompilation {
   getAssetSource(name: string): JsCompatSource | null
   getModules(): Array<JsModule>
   getChunks(): Array<JsChunk>
+  getNamedChunk(name: string): JsChunk | null
   /**
    * Only available for those none Js and Css source,
    * return true if set module source successfully, false if failed.
