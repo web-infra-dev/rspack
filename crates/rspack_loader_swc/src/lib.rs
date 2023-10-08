@@ -15,7 +15,6 @@ use swc_core::common::{
   comments::SingleThreadedComments, FileName, FilePathMapping, Mark, GLOBALS,
 };
 use swc_core::ecma::transforms::base::pass::noop;
-use xxhash_rust::xxh32::xxh32;
 
 mod options;
 mod transformer;
@@ -101,18 +100,12 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
           let unresolved_mark = Mark::new();
           swc_options.top_level_mark = Some(top_level_mark);
           swc_options.unresolved_mark = Some(unresolved_mark);
-          let source = content.try_into_string()?;
+          let content = content.try_into_string()?;
           let rspack_options = &*loader_context.context.options;
-          let source_content_hash = self
-            .options_with_additional
-            .rspack_experiments
-            .emotion
-            .as_ref()
-            .map(|_| xxh32(source.as_bytes(), 0));
 
           let fm = c
             .cm
-            .new_source_file(FileName::Real(resource_path.clone()), source);
+            .new_source_file(FileName::Real(resource_path.clone()), content.clone());
           let comments = SingleThreadedComments::default();
 
           let out = c.process_js_with_custom_pass(
@@ -129,7 +122,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
                 top_level_mark,
                 unresolved_mark,
                 c.cm.clone(),
-                source_content_hash,
+                content,
                 &self.options_with_additional.rspack_experiments,
               )
             },
