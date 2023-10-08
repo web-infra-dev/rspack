@@ -27,7 +27,7 @@ on:
         required: true
         type: string
       profile: # Rust profile, "debug" or "release"
-        default: 'release'
+        default: "release"
         required: false
         type: string
       test: # Run tests?
@@ -75,7 +75,11 @@ jobs:
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-
+      - name: free-disk-cache
+        if: ${{ contains(inputs.target, 'linux') }}
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
         with:
@@ -166,7 +170,6 @@ jobs:
           SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
           export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
-
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
