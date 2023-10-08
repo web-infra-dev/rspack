@@ -11,9 +11,8 @@ pub use flag_dependency_exports_plugin::*;
 pub use flag_dependency_usage_plugin::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  render_init_fragments, ChunkRenderContext, ChunkUkey, Compilation, InitFragmentRenderContext,
-  JsChunkHashArgs, PluginJsChunkHashHookOutput, RenderArgs, RenderChunkArgs, RenderManifestArgs,
-  RenderStartupArgs, RuntimeGlobals,
+  render_init_fragments, ChunkRenderContext, ChunkUkey, Compilation, JsChunkHashArgs,
+  PluginJsChunkHashHookOutput, RenderArgs, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;

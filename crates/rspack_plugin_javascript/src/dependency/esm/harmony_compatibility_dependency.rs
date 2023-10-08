@@ -56,7 +56,7 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
         InitFragmentStage::StageAsyncBoundary,
         0,
         InitFragmentKey::uniqie(),
-        Some("\n__webpack_async_result__();\n} catch(e) { __webpack_async_result__(e); } });".to_string().into()),
+        Some("\n__webpack_async_result__();\n} catch(e) { __webpack_async_result__(e); } });".to_string()),
       )));
     }
   }

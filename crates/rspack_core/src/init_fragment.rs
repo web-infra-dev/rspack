@@ -200,7 +200,7 @@ impl InitFragmentRenderContext for GenerateContext<'_> {
   }
 }
 
-pub struct ChunkRenderContext {}
+pub struct ChunkRenderContext;
 
 impl InitFragmentRenderContext for ChunkRenderContext {
   fn add_runtime_requirements(&mut self, _requirement: RuntimeGlobals) {

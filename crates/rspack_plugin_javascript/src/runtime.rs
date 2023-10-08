@@ -1,8 +1,8 @@
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  render_init_fragments, ChunkInitFragments, ChunkUkey, Compilation, ModuleGraphModule,
-  RenderModuleContentArgs, RuntimeGlobals, SourceType,
+  ChunkInitFragments, ChunkUkey, Compilation, ModuleGraphModule, RenderModuleContentArgs,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::{internal_error, Result};
 use rustc_hash::FxHashSet as HashSet;
