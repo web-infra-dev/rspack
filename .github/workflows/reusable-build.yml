@@ -80,6 +80,14 @@ jobs:
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
+          # just remove android sdk seems enough for use, save us some time
+          android: true
+          dotnet: false
+          haskell: false
+          large-packages: false
+          docker-images: false
+          swap-storage: false
+
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
         with:
