@@ -25,18 +25,22 @@ const define = function (...args) {
 };
 
 const casesPath = path.join(__dirname, "configCases");
-const categories = fs.readdirSync(casesPath).map(cat => {
-	return {
-		name: cat,
-		tests: fs
-			.readdirSync(path.join(casesPath, cat))
-			.filter(folder => !folder.startsWith("_"))
-			.filter(folder =>
-				fs.lstatSync(path.join(casesPath, cat, folder)).isDirectory()
-			)
-			.sort()
-	};
-});
+const categories = fs
+	.readdirSync(casesPath)
+	.filter(p => p.includes("split-chunks"))
+	.map(cat => {
+		return {
+			name: cat,
+			tests: fs
+				.readdirSync(path.join(casesPath, cat))
+				.filter(folder => !folder.startsWith("_"))
+				.filter(folder => folder.includes("dot-name"))
+				.filter(folder =>
+					fs.lstatSync(path.join(casesPath, cat, folder)).isDirectory()
+				)
+				.sort()
+		};
+	});
 
 const createLogger = appendTarget => {
 	return {

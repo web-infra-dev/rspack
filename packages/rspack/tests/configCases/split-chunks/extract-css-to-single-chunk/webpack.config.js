@@ -5,9 +5,6 @@ module.exports = {
 			import: ["./index"]
 		}
 	},
-	experiments: {
-		newSplitChunks: true
-	},
 	target: "node",
 	output: {
 		filename: "[name].js"

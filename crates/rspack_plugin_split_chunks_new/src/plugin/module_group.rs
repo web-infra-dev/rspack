@@ -345,7 +345,7 @@ impl SplitChunksPlugin {
       chunk_sets_by_count
         .entry(count)
         .and_modify(|set| set.push(chunks.clone()))
-        .or_insert(Vec::new());
+        .or_insert(vec![chunks.clone()]);
     }
 
     (chunk_sets_in_graph, chunk_sets_by_count)

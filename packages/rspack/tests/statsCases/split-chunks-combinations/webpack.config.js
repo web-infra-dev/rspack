@@ -21,7 +21,6 @@ module.exports = {
 	optimization: {
 		splitChunks: {
 			minSize: 100,
-			minRemainingSize: 0
 		}
 	},
 	stats
