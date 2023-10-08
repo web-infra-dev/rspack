@@ -190,7 +190,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
       content.1,
       InitFragmentStage::StageAsyncHarmonyImports,
       source_order,
-      InitFragmentKey::HarmonyImport(format!("{} compat", key.to_string())),
+      InitFragmentKey::HarmonyImport(format!("{} compat", key)),
       None,
     )));
   } else {
