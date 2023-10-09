@@ -71,11 +71,11 @@ describe("Stats", () => {
 		  │
 		2 │     return "This is b";
 		3 │ };
-		4 │ 
+		4 │
 		5 │ // Test CJS top-level return
 		6 │ return;
 		  │ ^^^^^^^ Return statement is not allowed here
-		7 │ 
+		7 │
 
 
 
@@ -348,6 +348,36 @@ describe("Stats", () => {
 		"asset main.js 215 bytes {main} [emitted] (name: main)
 		chunk {main} main.js (main) [entry]
 		./fixtures/a.js [876] {main}"
+	`);
+	});
+
+	it("should not include modules that are not in original chunk", async () => {
+		const stats = await compile({
+			context: __dirname,
+			entry: "./fixtures/split-chunks-combinations/index.js",
+			optimization: {
+				splitChunks: {
+					minSize: 100
+				}
+			}
+		});
+		const options = {
+			assets: false,
+			modules: false,
+			chunks: false,
+			chunkGroups: true
+		};
+		expect(stats?.toString(options).replace(/\\/g, "/")).toMatchInlineSnapshot(`
+		"PublicPath: auto
+		Entrypoint main 3.88 KiB = main.js
+		Chunk Group async-a 578 bytes = ~fixtures_split-chunks-combinations_x_js~fixtures_split-chunks-combinations_y_js.js 349 bytes async-a.js 229 bytes
+		Chunk Group async-b 578 bytes = ~fixtures_split-chunks-combinations_x_js~fixtures_split-chunks-combinations_y_js.js 349 bytes async-b.js 229 bytes
+		Chunk Group async-c 293 bytes = async-c.js
+		Chunk Group async-d 293 bytes = async-d.js
+		Chunk Group async-e 293 bytes = async-e.js
+		Chunk Group async-f 293 bytes = async-f.js
+		Chunk Group async-g 293 bytes = async-g.js
+		Rspack 0.3.5 compiled successfully in 15 ms (92b2f809f7a5b5f88d2f)"
 	`);
 	});
 });
