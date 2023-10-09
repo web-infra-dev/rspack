@@ -32,6 +32,11 @@ export const HtmlRspackPlugin = create(
 					name: key,
 					content: value
 				};
+			} else {
+				meta[key] = {
+					name: key,
+					...value
+				};
 			}
 		}
 		const scriptLoading = c.scriptLoading ?? "defer";
