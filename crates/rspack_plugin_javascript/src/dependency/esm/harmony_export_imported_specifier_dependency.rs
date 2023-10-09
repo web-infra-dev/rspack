@@ -18,6 +18,7 @@ use super::{create_resource_identifier_for_esm_dependency, harmony_import_depend
 #[derive(Debug, Clone)]
 pub struct HarmonyExportImportedSpecifierDependency {
   pub id: DependencyId,
+  pub source_order: i32,
   pub request: JsWord,
   pub ids: Vec<(JsWord, Option<JsWord>)>,
   /// used for get_mode
@@ -34,6 +35,7 @@ pub struct HarmonyExportImportedSpecifierDependency {
 impl HarmonyExportImportedSpecifierDependency {
   pub fn new(
     request: JsWord,
+    source_order: i32,
     ids: Vec<(JsWord, Option<JsWord>)>,
     mode_ids: Vec<(JsWord, Option<JsWord>)>,
     name: Option<JsWord>,
@@ -42,6 +44,7 @@ impl HarmonyExportImportedSpecifierDependency {
     let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
       id: DependencyId::new(),
+      source_order,
       mode_ids,
       name,
       request,
@@ -386,6 +389,11 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
     let compilation = &code_generatable_context.compilation;
     let module = &code_generatable_context.module;
 
+    let mgm = compilation
+      .module_graph
+      .module_graph_module_by_identifier(&module.identifier())
+      .expect("should have module graph module");
+
     let import_var = compilation
       .module_graph
       .get_import_var(&module.identifier(), &self.request);
@@ -438,7 +446,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         None,
       );
       if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
-        harmony_import_dependency_apply(self, code_generatable_context, &[]);
+        harmony_import_dependency_apply(self, self.source_order, code_generatable_context, &[]);
       }
     }
 
@@ -460,10 +468,13 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       }
     }
 
-    for export in exports {
+    if !exports.is_empty() {
       code_generatable_context
         .init_fragments
-        .push(Box::new(HarmonyExportInitFragment::new(export)));
+        .push(Box::new(HarmonyExportInitFragment::new(
+          mgm.get_exports_argument(),
+          exports,
+        )));
     }
   }
 }

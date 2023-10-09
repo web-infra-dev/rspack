@@ -2,8 +2,8 @@ use swc_core::ecma::atoms::JsWord;
 
 use crate::{
   property_access, Compilation, DependencyId, ExportsType, FakeNamespaceObjectMode,
-  InitFragmentStage, ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeGlobals,
-  TemplateContext,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier,
+  NormalInitFragment, RuntimeGlobals, TemplateContext,
 };
 
 pub fn export_from_import(
@@ -46,13 +46,15 @@ pub fn export_from_import(
         }
       } else if matches!(exports_type, ExportsType::DefaultOnly | ExportsType::DefaultWithNamed) {
         runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
-        init_fragments.push(Box::new(NormalInitFragment::new(
+        init_fragments.push(NormalInitFragment::new(
           format!(
             "var {import_var}_namespace_cache;\n",
           ),
           InitFragmentStage::StageHarmonyExports,
+          -1,
+          InitFragmentKey::uniqie(),
           None,
-        )));
+        ).boxed());
         return format!("/*#__PURE__*/ ({import_var}_namespace_cache || ({import_var}_namespace_cache = {}({import_var}{})))", RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT, if matches!(exports_type, ExportsType::DefaultOnly) { "" } else { ", 2" });
       }
   }

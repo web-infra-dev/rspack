@@ -18,6 +18,7 @@ use super::{
 pub struct HarmonyImportSpecifierDependency {
   id: DependencyId,
   request: JsWord,
+  source_order: i32,
   shorthand: bool,
   start: u32,
   end: u32,
@@ -35,6 +36,7 @@ impl HarmonyImportSpecifierDependency {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     request: JsWord,
+    source_order: i32,
     shorthand: bool,
     start: u32,
     end: u32,
@@ -48,6 +50,7 @@ impl HarmonyImportSpecifierDependency {
     Self {
       id: DependencyId::new(),
       request,
+      source_order,
       shorthand,
       start,
       end,
@@ -166,7 +169,12 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
 
     // TODO: scope hoist
     if compilation.options.is_new_tree_shaking() {
-      harmony_import_dependency_apply(self, code_generatable_context, &[self.specifier.clone()]);
+      harmony_import_dependency_apply(
+        self,
+        self.source_order,
+        code_generatable_context,
+        &[self.specifier.clone()],
+      );
     }
     let export_expr = export_from_import(
       code_generatable_context,
