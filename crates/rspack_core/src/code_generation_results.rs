@@ -148,17 +148,6 @@ impl Default for CodeGenResultId {
 
 pub static CODE_GEN_RESULT_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
 
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
-pub struct CodeGenResultId(u32);
-
-impl Default for CodeGenResultId {
-  fn default() -> Self {
-    Self(CODE_GEN_RESULT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
-  }
-}
-
-pub static CODE_GEN_RESULT_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
-
 #[derive(Debug, Default)]
 pub struct CodeGenerationResults {
   pub module_generation_result_map: HashMap<CodeGenResultId, CodeGenerationResult>,
