@@ -997,53 +997,54 @@ impl Compilation {
               }
               Ok(codegen_list)
             })
-            .map(|(result, from_cache)| {
-              result
-                .into_iter()
-                .map(|(codegen_result, runtime)| {
-                  (*module_identifier, codegen_result, runtime, from_cache)
-                })
-                .collect::<Vec<_>>()
-            });
+            .map(|(result, from_cache)| (*module_identifier, result, from_cache));
           Some(res)
         })
-        .collect::<Result<Vec<Vec<(ModuleIdentifier, CodeGenerationResult, RuntimeSpec, bool)>>>>()?
-        .into_iter()
-        .flatten()
-        .collect::<Vec<_>>();
+        .collect::<Result<
+          Vec<(
+            ModuleIdentifier,
+            Vec<(CodeGenerationResult, RuntimeSpec)>,
+            bool,
+          )>,
+        >>()?;
       results
         .into_iter()
-        .for_each(|(module_identifier, result, runtime, from_cache)| {
-          if let Some(counter) = codegen_cache_counter {
-            if from_cache {
-              counter.hit();
-            } else {
-              counter.miss();
+        .for_each(|(module_identifier, item, from_cache)| {
+          // if !from_cache {
+          //   compilation
+          //     .code_generation_results
+          //     .clear_entry(&module_identifier);
+          // }
+          item.into_iter().for_each(|(result, runtime)| {
+            if let Some(counter) = codegen_cache_counter {
+              if from_cache {
+                counter.hit();
+              } else {
+                counter.miss();
+              }
             }
-          }
-          compilation.code_generated_modules.insert(module_identifier);
+            compilation.code_generated_modules.insert(module_identifier);
 
-          let runtimes = compilation
-            .chunk_graph
-            .get_module_runtimes(module_identifier, &compilation.chunk_by_ukey);
-          let result_id = result.id;
-          compilation
-            .code_generation_results
-            .module_generation_result_map
-            .insert(result.id, result);
-          if used_exports_optimization {
+            let runtimes = compilation
+              .chunk_graph
+              .get_module_runtimes(module_identifier, &compilation.chunk_by_ukey);
+            let result_id = result.id;
             compilation
               .code_generation_results
-              .add(module_identifier, runtime, result_id);
-          } else {
-            // share codegen result for all related runtime when used_exports_optimization is not
-            // enabled
-            for runtime in runtimes.into_values() {
+              .module_generation_result_map
+              .insert(result.id, result);
+            if used_exports_optimization {
               compilation
                 .code_generation_results
                 .add(module_identifier, runtime, result_id);
+            } else {
+              for runtime in runtimes.into_values() {
+                compilation
+                  .code_generation_results
+                  .add(module_identifier, runtime, result_id);
+              }
             }
-          }
+          })
         });
       Ok(())
     }

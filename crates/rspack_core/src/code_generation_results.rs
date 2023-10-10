@@ -13,8 +13,8 @@ use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::{
-  AssetInfo, ChunkInitFragments, ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap,
-  SourceType,
+  AssetInfo, ChunkInitFragments, ModuleIdentifier, RuntimeGlobals, RuntimeMode, RuntimeSpec,
+  RuntimeSpecMap, SourceType,
 };
 
 #[derive(Clone, Debug)]
@@ -156,11 +156,27 @@ pub struct CodeGenerationResults {
 
 impl CodeGenerationResults {
   pub fn get_one(&self, module_identifier: &ModuleIdentifier) -> Option<&CodeGenerationResult> {
-    self.map.get(module_identifier).and_then(|spec| {
-      spec
-        .single_value
-        .and_then(|id| self.module_generation_result_map.get(&id))
-    })
+    self
+      .map
+      .get(module_identifier)
+      .and_then(|spec| match spec.mode {
+        RuntimeMode::Empty => None,
+        RuntimeMode::SingleEntry => spec
+          .single_value
+          .and_then(|result_id| self.module_generation_result_map.get(&result_id)),
+        RuntimeMode::Map => spec
+          .map
+          .values()
+          .next()
+          .and_then(|result_id| self.module_generation_result_map.get(result_id)),
+      })
+  }
+
+  pub fn clear_entry(
+    &mut self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<(ModuleIdentifier, RuntimeSpecMap<CodeGenResultId>)> {
+    self.map.remove_entry(module_identifier)
   }
 
   pub fn get(

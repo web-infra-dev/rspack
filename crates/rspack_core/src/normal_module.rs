@@ -195,6 +195,10 @@ impl NormalModule {
     }
   }
 
+  pub fn id(&self) -> ModuleIdentifier {
+    self.id
+  }
+
   pub fn match_resource(&self) -> Option<&ResourceData> {
     self.match_resource.as_ref()
   }
