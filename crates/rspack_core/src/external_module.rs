@@ -14,7 +14,7 @@ use crate::{
   to_identifier, BuildContext, BuildInfo, BuildMetaExportsType, BuildResult, ChunkInitFragments,
   ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult, Compilation, Context, ExternalType,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleType,
-  NormalInitFragment, RuntimeGlobals, SourceType,
+  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -316,7 +316,11 @@ impl Module for ExternalModule {
     Ok(build_result.with_empty_diagnostic())
   }
 
-  fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
+  fn code_generation(
+    &self,
+    compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     let (request, external_type) = self.get_request_and_external_type();
     match self.external_type.as_str() {

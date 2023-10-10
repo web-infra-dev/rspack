@@ -236,6 +236,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           compilation,
           module,
           runtime_requirements: generate_context.runtime_requirements,
+          runtime: generate_context.runtime,
           init_fragments: &mut init_fragments,
         };
 

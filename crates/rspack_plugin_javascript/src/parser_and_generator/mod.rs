@@ -211,6 +211,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         module,
         runtime_requirements: generate_context.runtime_requirements,
         init_fragments: &mut init_fragments,
+        runtime: generate_context.runtime,
       };
 
       let mgm = compilation

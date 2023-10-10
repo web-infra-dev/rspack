@@ -16,8 +16,8 @@ use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   BoxDependency, ChunkUkey, CodeGenerationResult, Compilation, CompilerContext, CompilerOptions,
   ConnectionState, Context, ContextModule, DependencyId, DependencyTemplate, ExternalModule,
-  ModuleDependency, ModuleGraph, ModuleType, NormalModule, RawModule, Resolve, SharedPluginDriver,
-  SourceType,
+  ModuleDependency, ModuleGraph, ModuleType, NormalModule, RawModule, Resolve, RuntimeSpec,
+  SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext<'a> {
@@ -186,7 +186,11 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   ///
   /// Code generation will often iterate through every `source_types` given by the module
   /// to provide multiple code generation results for different `source_type`s.
-  fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult>;
+  fn code_generation(
+    &self,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Result<CodeGenerationResult>;
 
   /// Name matched against bundle-splitting conditions.
   fn name_for_condition(&self) -> Option<Box<str>> {
@@ -339,7 +343,7 @@ mod test {
   use super::Module;
   use crate::{
     BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, ModuleExt, ModuleType,
-    SourceType,
+    RuntimeSpec, SourceType,
   };
 
   #[derive(Debug, Eq)]
@@ -409,7 +413,11 @@ mod test {
           unreachable!()
         }
 
-        fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult> {
+        fn code_generation(
+          &self,
+          _compilation: &Compilation,
+          _runtime: Option<&RuntimeSpec>,
+        ) -> Result<CodeGenerationResult> {
           unreachable!()
         }
       }

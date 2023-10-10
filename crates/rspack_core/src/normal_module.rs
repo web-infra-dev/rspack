@@ -30,7 +30,8 @@ use crate::{
   BuildMeta, BuildResult, CodeGenerationResult, Compilation, CompilerOptions, ConnectionState,
   Context, DependencyTemplate, GenerateContext, GeneratorOptions, LibIdentOptions,
   LoaderRunnerPluginProcessResource, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, SourceType,
+  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RuntimeSpec,
+  SourceType,
 };
 
 bitflags! {
@@ -192,6 +193,10 @@ impl NormalModule {
       code_generation_dependencies: None,
       presentational_dependencies: None,
     }
+  }
+
+  pub fn id(&self) -> ModuleIdentifier {
+    self.id
   }
 
   pub fn match_resource(&self) -> Option<&ResourceData> {
@@ -401,7 +406,11 @@ impl Module for NormalModule {
     )
   }
 
-  fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
+  fn code_generation(
+    &self,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<CodeGenerationResult> {
     if let NormalModuleSource::BuiltSucceed(source) = &self.source {
       let mut code_generation_result = CodeGenerationResult::default();
       for source_type in self.source_types() {
@@ -414,6 +423,7 @@ impl Module for NormalModule {
             runtime_requirements: &mut code_generation_result.runtime_requirements,
             data: &mut code_generation_result.data,
             requested_source_type: *source_type,
+            runtime,
           },
         )?;
         code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
