@@ -989,7 +989,6 @@ impl Compilation {
               };
               let mut codegen_list = vec![];
               for runtime in runtimes.into_values().take(take_length) {
-                // TODO: pass the runtime param into module codegen
                 codegen_list.push((
                   module.code_generation(compilation, Some(&runtime))?,
                   runtime,
@@ -1010,11 +1009,6 @@ impl Compilation {
       results
         .into_iter()
         .for_each(|(module_identifier, item, from_cache)| {
-          // if !from_cache {
-          //   compilation
-          //     .code_generation_results
-          //     .clear_entry(&module_identifier);
-          // }
           item.into_iter().for_each(|(result, runtime)| {
             if let Some(counter) = codegen_cache_counter {
               if from_cache {
