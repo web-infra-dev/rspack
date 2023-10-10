@@ -309,6 +309,13 @@ const resolveAlias = z.record(
 );
 export type ResolveAlias = z.infer<typeof resolveAlias>;
 
+const resolveTsconfig = z.strictObject({
+	configFile: z.string(),
+	references: z.array(z.string()).or(z.literal("auto")).optional()
+});
+
+export type ResolveTsconfig = z.infer<typeof resolveTsconfig>;
+
 const baseResolveOptions = z.strictObject({
 	alias: resolveAlias.optional(),
 	/**
@@ -324,6 +331,7 @@ const baseResolveOptions = z.strictObject({
 	modules: z.array(z.string()).optional(),
 	preferRelative: z.boolean().optional(),
 	tsConfigPath: z.string().optional(),
+	tsConfig: resolveTsconfig.optional(),
 	fullySpecified: z.boolean().optional(),
 	exportsFields: z.array(z.string()).optional(),
 	extensionAlias: z.record(z.string().or(z.array(z.string()))).optional()

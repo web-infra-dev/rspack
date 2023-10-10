@@ -150,6 +150,8 @@ function getRawResolveByDependency(
 }
 
 function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
+	let references = resolve.tsConfig?.references;
+	let tsconfigConfigFile = resolve.tsConfigPath ?? resolve.tsConfig?.configFile;
 	return {
 		...resolve,
 		alias: getRawAlias(resolve.alias),
@@ -158,6 +160,14 @@ function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 			string,
 			Array<string>
 		>,
+		tsconfig: tsconfigConfigFile
+			? {
+					configFile: tsconfigConfigFile,
+					referencesType:
+						references == "auto" ? "auto" : references ? "manual" : "disabled",
+					references: references == "auto" ? undefined : references
+			  }
+			: undefined,
 		byDependency: getRawResolveByDependency(resolve.byDependency)
 	};
 }
