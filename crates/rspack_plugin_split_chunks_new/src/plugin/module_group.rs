@@ -42,7 +42,10 @@ impl SplitChunksPlugin {
 
     let mut idx: ChunksKey = 1usize.into();
 
-    for key in chunk_db.keys() {
+    let mut chunks: Vec<_> = chunk_db.keys().collect();
+    chunks.sort_unstable();
+
+    for key in chunks {
       chunk_index_map.insert(*key, idx.clone());
       idx <<= 1;
     }
@@ -117,7 +120,7 @@ impl SplitChunksPlugin {
 
         let belong_to_chunks = compilation
           .chunk_graph
-          .get_module_chunks((*module).identifier());
+          .get_module_chunks(module.identifier());
 
         let chunks_key = Self::get_key(belong_to_chunks.iter(), chunk_idx_map);
         let module_group_map = &module_group_map;
@@ -310,8 +313,11 @@ impl SplitChunksPlugin {
     chunks: I,
     chunk_idx_map: &FxHashMap<ChunkUkey, ChunksKey>,
   ) -> ChunksKey {
+    let mut sorted = chunks.collect::<Vec<_>>();
+    sorted.sort_unstable();
+
     let mut result: ChunksKey = 1usize.into();
-    for chunk in chunks {
+    for chunk in sorted {
       let idx = chunk_idx_map
         .get(chunk)
         .expect("This should never happen, please file an issue");
