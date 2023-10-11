@@ -47,10 +47,6 @@ impl ModuleDependency for EntryDependency {
     &self.request
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    None
-  }
-
   fn set_request(&mut self, request: String) {
     self.request = request;
   }

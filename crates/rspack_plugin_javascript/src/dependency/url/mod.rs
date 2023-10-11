@@ -40,6 +40,10 @@ impl Dependency for URLDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::NewUrl
   }
+
+  fn span(&self) -> Option<&ErrorSpan> {
+    self.span.as_ref()
+  }
 }
 
 impl ModuleDependency for URLDependency {
@@ -49,10 +53,6 @@ impl ModuleDependency for URLDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
   }
 
   fn set_request(&mut self, request: String) {

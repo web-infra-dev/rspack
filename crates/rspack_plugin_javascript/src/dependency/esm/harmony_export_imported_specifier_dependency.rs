@@ -510,10 +510,6 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
     &self.request
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    None
-  }
-
   fn set_request(&mut self, request: String) {
     self.request = request.into();
   }

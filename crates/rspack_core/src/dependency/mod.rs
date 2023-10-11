@@ -16,7 +16,7 @@ pub use runtime_requirements_dependency::RuntimeRequirementsDependency;
 mod context_element_dependency;
 mod dependency_macro;
 pub use context_element_dependency::*;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::{common::Span, ecma::atoms::JsWord};
 mod const_dependency;
 use std::{
   any::Any,
@@ -200,6 +200,19 @@ pub trait Dependency:
   ) -> ConnectionState {
     ConnectionState::Bool(true)
   }
+
+  fn span(&self) -> Option<&ErrorSpan> {
+    None
+  }
+
+  fn is_span_equal(&self, other: &Span) -> bool {
+    if let Some(err_span) = self.span() {
+      let other = ErrorSpan::from(*other);
+      other == *err_span
+    } else {
+      false
+    }
+  }
 }
 
 #[derive(Debug, Default)]
@@ -357,7 +370,6 @@ pub trait ModuleDependency: Dependency {
   fn dependency_debug_name(&self) -> &'static str;
   fn request(&self) -> &str;
   fn user_request(&self) -> &str;
-  fn span(&self) -> Option<&ErrorSpan>;
   fn weak(&self) -> bool {
     false
   }

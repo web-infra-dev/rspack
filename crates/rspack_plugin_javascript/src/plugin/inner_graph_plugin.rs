@@ -3,12 +3,12 @@ use std::collections::hash_map::Entry;
 use rspack_core::{Dependency, DependencyTemplate, SpanExt, UsedByExports};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
-  common::{Spanned, SyntaxContext},
+  common::{Span, Spanned, SyntaxContext},
   ecma::{
     ast::{
       ArrowExpr, CallExpr, Callee, Class, ClassDecl, ClassExpr, ClassMember, Decl, DefaultDecl,
       ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr, FnDecl, FnExpr, Ident, Pat, Program,
-      Stmt, VarDeclarator,
+      Prop, Stmt, VarDeclarator,
     },
     atoms::JsWord,
     transforms::compat::bugfixes::safari_id_destructuring_collision_in_function_expression,
@@ -80,6 +80,7 @@ pub struct InnerGraphPlugin<'a> {
   top_level_ctxt: SyntaxContext,
   state: InnerGraphState,
   scope_level: usize,
+  rewrite_usage_span: &'a mut HashSet<Span>,
 }
 
 impl<'a> Visit for InnerGraphPlugin<'a> {
@@ -210,6 +211,17 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     self.clear_symbol_if_is_top_level();
   }
 
+  fn visit_prop(&mut self, n: &Prop) {
+    match n {
+      Prop::Shorthand(shorthand) => {
+        if self.rewrite_usage_span.contains(&shorthand.span) {
+          // TODO:
+          self.on_usage(Box::new(|deps, used_by_exports| {}));
+        }
+      }
+      _ => n.visit_children_with(self),
+    }
+  }
   fn visit_export_decl(&mut self, export_decl: &ExportDecl) {
     // match &export_decl.decl {
     //   Decl::Class(ClassDecl { ident, .. }) | Decl::Fn(FnDecl { ident, .. }) => {
@@ -299,6 +311,7 @@ impl<'a> InnerGraphPlugin<'a> {
     dependencies: &'a mut Vec<Box<dyn Dependency>>,
     unresolved_ctxt: SyntaxContext,
     top_level_ctxt: SyntaxContext,
+    rewrite_usage_span: &'a mut HashSet<Span>,
   ) -> Self {
     Self {
       dependencies,
@@ -306,6 +319,7 @@ impl<'a> InnerGraphPlugin<'a> {
       top_level_ctxt,
       state: InnerGraphState::default(),
       scope_level: 0,
+      rewrite_usage_span,
     }
   }
 
@@ -514,7 +528,6 @@ impl<'a> InnerGraphPlugin<'a> {
         non_terminal.remove(&k);
       }
     }
-    // TODO: invoke callback
 
     for (symbol, cbs) in state.usage_callback_map.iter() {
       let usage = state.inner_graph.get(symbol);
