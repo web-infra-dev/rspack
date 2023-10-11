@@ -7,8 +7,8 @@ use swc_core::{
   ecma::{
     ast::{
       ArrowExpr, CallExpr, Callee, Class, ClassDecl, ClassExpr, ClassMember, Decl, DefaultDecl,
-      ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr, FnDecl, FnExpr, Ident, Pat, Program,
-      Prop, Stmt, VarDeclarator,
+      ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr, FnDecl, FnExpr, Ident, MemberExpr,
+      Pat, Program, Prop, Stmt, VarDeclarator,
     },
     atoms::JsWord,
     transforms::compat::bugfixes::safari_id_destructuring_collision_in_function_expression,
@@ -104,6 +104,18 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     }
   }
 
+  fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
+    if self.rewrite_usage_span.contains(&member_expr.span) {
+      let span = member_expr.span;
+      self.on_usage(Box::new(move |deps, used_by_exports| {
+        let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
+        if let Some(dep) = target_dep {
+          dep.set_used_by_exports(used_by_exports);
+        }
+      }));
+    }
+  }
+
   fn visit_class_member(&mut self, node: &ClassMember) {
     if let Some(key) = node.class_key() && key.is_computed() {
       key.visit_with(self);
@@ -162,6 +174,15 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
   }
 
   fn visit_ident(&mut self, ident: &Ident) {
+    if self.rewrite_usage_span.contains(&ident.span) {
+      let span = ident.span;
+      self.on_usage(Box::new(move |deps, used_by_exports| {
+        let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
+        if let Some(dep) = target_dep {
+          dep.set_used_by_exports(used_by_exports);
+        }
+      }));
+    }
     if ident.span.ctxt == self.top_level_ctxt {
       let usage = if let Some(symbol) = self.get_top_level_symbol() {
         InnerGraphMapUsage::Value(symbol)
@@ -215,8 +236,13 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     match n {
       Prop::Shorthand(shorthand) => {
         if self.rewrite_usage_span.contains(&shorthand.span) {
-          // TODO:
-          self.on_usage(Box::new(|deps, used_by_exports| {}));
+          let span = shorthand.span;
+          self.on_usage(Box::new(move |deps, used_by_exports| {
+            let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
+            if let Some(dep) = target_dep {
+              dep.set_used_by_exports(used_by_exports);
+            }
+          }));
         }
       }
       _ => n.visit_children_with(self),

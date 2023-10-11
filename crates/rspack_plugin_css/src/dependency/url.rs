@@ -66,6 +66,10 @@ impl Dependency for CssUrlDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::CssUrl
   }
+
+  fn span(&self) -> Option<&ErrorSpan> {
+    self.span.as_ref()
+  }
 }
 
 impl ModuleDependency for CssUrlDependency {
@@ -75,10 +79,6 @@ impl ModuleDependency for CssUrlDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
   }
 
   fn set_request(&mut self, request: String) {
