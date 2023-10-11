@@ -49,7 +49,7 @@ impl InnerGraphMapSetValue {
   }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, PartialEq, Eq)]
 pub enum InnerGraphMapValue {
   Set(HashSet<InnerGraphMapSetValue>),
   True,
@@ -94,7 +94,12 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
     // https://github.com/webpack/webpack/blob/main/lib/JavascriptMetaInfoPlugin.js#L46
     if let Callee::Expr(box Expr::Ident(ident)) = &call_expr.callee && &ident.sym == "eval" {
-      self.bailout();
+      if let Some(current_symbol) = self.get_top_level_symbol() {
+        // We use `""` to represent `null
+        self.add_usage("".into(), InnerGraphMapUsage::TopLevel(current_symbol));
+      } else {
+        self.bailout();
+      }
     }
   }
 
@@ -329,24 +334,24 @@ impl<'a> InnerGraphPlugin<'a> {
       }
       InnerGraphMapUsage::Value(ref str) | InnerGraphMapUsage::TopLevel(ref str) => {
         // SAFETY: we can make sure that the usage is not a `InnerGraphMapSetValue::True` variant.
-        let usage_value: InnerGraphMapSetValue = usage.into();
+        let set_value: InnerGraphMapSetValue = usage.into();
         match self.state.inner_graph.entry(symbol) {
           Entry::Occupied(mut occ) => {
             let val = occ.get_mut();
             match val {
               InnerGraphMapValue::Set(set) => {
-                set.insert(usage_value);
+                set.insert(set_value);
               }
               InnerGraphMapValue::True => {
                 // do nothing, https://github.com/webpack/webpack/blob/e381884115df2e7b8acd651d3bc2ee6fc35b188e/lib/optimize/InnerGraph.js#L92-L94
               }
               InnerGraphMapValue::Nil => {
-                *val = InnerGraphMapValue::Set(HashSet::from_iter([usage_value]));
+                *val = InnerGraphMapValue::Set(HashSet::from_iter([set_value]));
               }
             }
           }
           Entry::Vacant(vac) => {
-            vac.insert(InnerGraphMapValue::Set(HashSet::from_iter([usage_value])));
+            vac.insert(InnerGraphMapValue::Set(HashSet::from_iter([set_value])));
           }
         }
       }
@@ -475,19 +480,60 @@ impl<'a> InnerGraphPlugin<'a> {
         }
 
         if is_terminal {
-          // webpack use null, using enum make code is hard to write, also there is no
-          // way to export a empty string, so use `""` to represent `null` should be safe
-          // https://github.com/IWANABETHATGUY/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/optimize/InnerGraph.js#L177
+          keys_to_remove.push(key.clone());
+          // We use `""` to represent global_key
           if key == "" {
-
-            // TODO:
+            let global_value = state.inner_graph.get(&JsWord::from("")).cloned();
+            if let Some(global_value) = global_value {
+              for (key, value) in state.inner_graph.iter_mut() {
+                if key != "" && value != &InnerGraphMapValue::True {
+                  if global_value == InnerGraphMapValue::True {
+                    *value = InnerGraphMapValue::True;
+                  } else {
+                    let mut new_set = match value {
+                      InnerGraphMapValue::Set(set) => std::mem::take(set),
+                      InnerGraphMapValue::True => unreachable!(),
+                      InnerGraphMapValue::Nil => HashSet::default(),
+                    };
+                    let extend_value = match global_value.clone() {
+                      InnerGraphMapValue::Set(set) => set,
+                      InnerGraphMapValue::True => unreachable!(),
+                      InnerGraphMapValue::Nil => HashSet::default(),
+                    };
+                    new_set.extend(extend_value);
+                    *value = InnerGraphMapValue::Set(new_set);
+                  }
+                }
+              }
+            }
           }
         }
       }
+      // Work around for rustc borrow rules
       for k in keys_to_remove {
         non_terminal.remove(&k);
       }
     }
     // TODO: invoke callback
+
+    for (symbol, cbs) in state.usage_callback_map.iter() {
+      let usage = state.inner_graph.get(symbol);
+      for cb in cbs {
+        let used_by_exports = if let Some(usage) = usage {
+          match usage {
+            InnerGraphMapValue::Set(set) => {
+              let finalized_set =
+                HashSet::from_iter(set.iter().map(|item| item.to_jsword().clone()));
+              UsedByExports::Set(finalized_set)
+            }
+            InnerGraphMapValue::True => UsedByExports::Bool(true),
+            InnerGraphMapValue::Nil => UsedByExports::Bool(false),
+          }
+        } else {
+          UsedByExports::Bool(false)
+        };
+        cb(self.dependencies, None);
+      }
+    }
   }
 }
