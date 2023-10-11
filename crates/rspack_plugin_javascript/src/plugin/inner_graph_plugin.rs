@@ -329,24 +329,24 @@ impl<'a> InnerGraphPlugin<'a> {
       }
       InnerGraphMapUsage::Value(ref str) | InnerGraphMapUsage::TopLevel(ref str) => {
         // SAFETY: we can make sure that the usage is not a `InnerGraphMapSetValue::True` variant.
-        let set_value: InnerGraphMapSetValue = usage.into();
+        let usage_value: InnerGraphMapSetValue = usage.into();
         match self.state.inner_graph.entry(symbol) {
           Entry::Occupied(mut occ) => {
             let val = occ.get_mut();
             match val {
               InnerGraphMapValue::Set(set) => {
-                set.insert(set_value);
+                set.insert(usage_value);
               }
               InnerGraphMapValue::True => {
                 // do nothing, https://github.com/webpack/webpack/blob/e381884115df2e7b8acd651d3bc2ee6fc35b188e/lib/optimize/InnerGraph.js#L92-L94
               }
               InnerGraphMapValue::Nil => {
-                *val = InnerGraphMapValue::Set(HashSet::from_iter([set_value]));
+                *val = InnerGraphMapValue::Set(HashSet::from_iter([usage_value]));
               }
             }
           }
           Entry::Vacant(vac) => {
-            vac.insert(InnerGraphMapValue::Set(HashSet::from_iter([set_value])));
+            vac.insert(InnerGraphMapValue::Set(HashSet::from_iter([usage_value])));
           }
         }
       }
