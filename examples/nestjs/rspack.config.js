@@ -22,11 +22,15 @@ const config = {
 						jsc: {
 							parser: {
 								syntax: "typescript",
-								decorators: true,
+								decorators: true
 							},
+							transform: {
+								legacyDecorator: true,
+								decoratorMetadata: true
+							}
 						}
 					}
-				},
+				}
 			}
 		]
 	},
@@ -82,6 +86,6 @@ const config = {
 			}
 			callback();
 		}
-	],
+	]
 };
 module.exports = config;
