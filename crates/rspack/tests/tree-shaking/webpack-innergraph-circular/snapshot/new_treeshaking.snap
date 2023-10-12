@@ -35,8 +35,6 @@ it("export should be unused when only unused functions use it", ()=>{
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'A': function() { return A; },
-  'B': function() { return B; },
-  'C': function() { return C; },
   'exportAUsed': function() { return exportAUsed; },
   'exportBUsed': function() { return exportBUsed; },
   'exportCUsed': function() { return exportCUsed; }
@@ -81,11 +79,11 @@ function withA(v) {
 }
 function withB(v) {
     const value = x(v);
-    return (0, _inner__WEBPACK_IMPORTED_MODULE_0_.B)(value);
+    return B(value);
 }
 function withC(v) {
     const value = x(v);
-    return (0, _inner__WEBPACK_IMPORTED_MODULE_0_.C)(value);
+    return C(value);
 }
 
 },
