@@ -10,7 +10,7 @@
  function foo() {
      return {
 -        OriginLib: /* "./lib" unused */null
-+        OriginLib: _lib__WEBPACK_IMPORTED_MODULE_0_.Lib
++        OriginLib
      };
  }
   const v = _lib__WEBPACK_IMPORTED_MODULE_0_.value;
