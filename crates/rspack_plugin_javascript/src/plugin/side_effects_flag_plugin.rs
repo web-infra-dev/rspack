@@ -277,6 +277,3 @@ impl ClassKey for ClassMember {
     }
   }
 }
-
-#[derive(Debug, Default)]
-pub struct SideEffectsFlagPlugin;

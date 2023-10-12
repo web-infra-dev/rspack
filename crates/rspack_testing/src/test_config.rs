@@ -125,6 +125,8 @@ pub struct Optimization {
   pub side_effects: String,
   #[serde(default = "true_by_default")]
   pub provided_exports: bool,
+  #[serde(default = "true_by_default")]
+  pub inner_graph: bool,
   #[serde(default = "default_optimization_false_string_lit")]
   pub used_exports: String,
 }
@@ -442,6 +444,7 @@ impl TestConfig {
         remove_empty_chunks: self.optimization.remove_empty_chunks,
         side_effects: c::SideEffectOption::from(self.optimization.side_effects.as_str()),
         provided_exports: self.optimization.provided_exports,
+        inner_graph: self.optimization.inner_graph,
         used_exports: c::UsedExportsOption::from(self.optimization.used_exports.as_str()),
       },
       profile: false,

@@ -12,6 +12,7 @@ use rspack_core::{
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::common::SyntaxContext;
 
+use crate::inner_graph_plugin::InnerGraphPlugin;
 use crate::utils::syntax_by_module_type;
 use crate::visitors::ScanDependenciesResult;
 use crate::visitors::{run_before_pass, scan_dependencies, swc_visitor::resolver};
@@ -129,9 +130,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     });
 
     let ScanDependenciesResult {
-      dependencies,
+      mut dependencies,
       presentational_dependencies,
-      rewrite_usage_span,
+      mut rewrite_usage_span,
     } = ast.visit(|program, context| {
       scan_dependencies(
         program,
@@ -163,6 +164,24 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       });
     }
 
+    let inner_graph =
+      if compiler_options.is_new_tree_shaking() && compiler_options.optimization.inner_graph {
+        ast.transform(|program, context| {
+          let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
+          let top_level_ctxt = SyntaxContext::empty().apply_mark(context.top_level_mark);
+          let mut visitor = InnerGraphPlugin::new(
+            &mut dependencies,
+            unresolved_ctxt,
+            top_level_ctxt,
+            &mut rewrite_usage_span,
+          );
+          program.visit_with(&mut visitor);
+          Some(visitor)
+        })
+      } else {
+        None
+      };
+
     let source = if let Some(map) = output.map {
       SourceMapSource::new(SourceMapSourceOptions {
         value: output.code,
@@ -184,6 +203,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         return OriginalSource::new(content, resource_path).boxed();
       }
       RawSource::from(content).boxed()
+    }
+    if let Some(mut inner_graph) = inner_graph {
+      inner_graph.infer_dependency_usage();
     }
 
     Ok(
