@@ -94,6 +94,18 @@ pub enum SourceType {
   Unknown,
 }
 
+impl ToString for SourceType {
+  fn to_string(&self) -> String {
+    match self {
+      SourceType::JavaScript => "javascript".into(),
+      SourceType::Css => "css".into(),
+      SourceType::Wasm => "wasm".into(),
+      SourceType::Asset => "asset".into(),
+      SourceType::Unknown => "unknown".into(),
+    }
+  }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ModuleType {
   Json,

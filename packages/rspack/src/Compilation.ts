@@ -685,23 +685,7 @@ export class Compilation {
 
 	// FIXME: This is not aligned with Webpack.
 	get chunks() {
-		const stats = this.getStats().toJson({
-			all: false,
-			chunks: true,
-			chunkModules: true,
-			reasons: true
-		});
-		const chunks = stats.chunks?.map(chunk => {
-			return {
-				...chunk,
-				name: chunk.names.length > 0 ? chunk.names[0] : "",
-				modules: this.__internal__getAssociatedModules(chunk),
-				isOnlyInitial: function () {
-					return this.initial;
-				}
-			};
-		});
-		return chunks;
+		return this.__internal__getChunks();
 	}
 
 	/**

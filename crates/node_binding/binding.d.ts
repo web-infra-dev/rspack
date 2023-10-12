@@ -56,7 +56,7 @@ export class JsStats {
   getErrors(): Array<JsStatsError>
   getWarnings(): Array<JsStatsWarning>
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
-  getHash(): string
+  getHash(): string | null
 }
 
 export class Rspack {
@@ -199,7 +199,17 @@ export interface JsAssetInfoRelated {
 
 export interface JsChunk {
   name?: string
+  id?: string
+  ids: Array<string>
   files: Array<string>
+  idNameHints: Array<string>
+  filenameTemplate?: string
+  cssFilenameTemplate?: string
+  runtime: Array<string>
+  hash?: string
+  contentHash: Record<string, string>
+  renderedHash?: string
+  chunkReasons: Array<string>
 }
 
 export interface JsChunkAssetArgs {
@@ -333,7 +343,7 @@ export interface JsStatsAsset {
   type: string
   name: string
   size: number
-  chunks: Array<string>
+  chunks: Array<string | undefined | null>
   chunkNames: Array<string>
   info: JsStatsAssetInfo
   emitted: boolean
@@ -353,7 +363,7 @@ export interface JsStatsChunk {
   type: string
   files: Array<string>
   auxiliaryFiles: Array<string>
-  id: string
+  id?: string
   entry: boolean
   initial: boolean
   names: Array<string>
@@ -367,7 +377,7 @@ export interface JsStatsChunk {
 export interface JsStatsChunkGroup {
   name: string
   assets: Array<JsStatsChunkGroupAsset>
-  chunks: Array<string>
+  chunks: Array<string | undefined | null>
   assetsSize: number
 }
 
@@ -405,7 +415,7 @@ export interface JsStatsModule {
   identifier: string
   name: string
   id?: string
-  chunks: Array<string>
+  chunks: Array<string | undefined | null>
   size: number
   issuer?: string
   issuerName?: string
