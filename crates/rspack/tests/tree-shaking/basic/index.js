@@ -1,1 +1,1 @@
-import * as test from "./res";
+import * as test from "./app";

@@ -7,10 +7,13 @@ setTimeout(() => {
 export function render() {
 	function test() {
 		const container = document.getElementById("root");
-		container.innerHTML = `adddd333:${secret}:${myanswer}${fun}`;
+		container.innerHTML = `adddd333:${secret}:${myanswer}${res}`;
 	}
 }
 
+function res() {
+	fun()
+}
 function fun() {
 
 }

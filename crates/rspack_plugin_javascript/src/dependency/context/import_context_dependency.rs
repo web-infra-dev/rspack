@@ -49,8 +49,8 @@ impl Dependency for ImportContextDependency {
     &DependencyType::ImportContext
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
   }
 }
 

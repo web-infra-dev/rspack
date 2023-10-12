@@ -37,8 +37,8 @@ impl Dependency for CssImportDependency {
     &DependencyType::CssImport
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
   }
 }
 

@@ -7,7 +7,7 @@ mod context_helper;
 mod export_info_api_scanner;
 mod harmony_detection_scanner;
 mod harmony_export_dependency_scanner;
-mod harmony_import_dependency_scanner;
+pub mod harmony_import_dependency_scanner;
 mod hot_module_replacement_scanner;
 mod import_meta_scanner;
 mod import_scanner;
@@ -25,6 +25,7 @@ use swc_core::common::Span;
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
 pub use util::*;
 
+use self::harmony_import_dependency_scanner::ImportMap;
 use self::{
   api_scanner::ApiScanner, common_js_export_scanner::CommonJsExportDependencyScanner,
   common_js_import_dependency_scanner::CommonJsImportDependencyScanner,
@@ -43,6 +44,7 @@ pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
   pub presentational_dependencies: Vec<BoxDependencyTemplate>,
   pub rewrite_usage_span: HashSet<Span>,
+  pub import_map: ImportMap,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -110,6 +112,8 @@ pub fn scan_dependencies(
     }
   }
 
+  let mut import_map = Default::default();
+
   if module_type.is_js_auto() || module_type.is_js_esm() {
     program.visit_with(&mut HarmonyDetectionScanner::new(
       build_info,
@@ -117,7 +121,6 @@ pub fn scan_dependencies(
       module_type,
       &mut presentational_dependencies,
     ));
-    let mut import_map = Default::default();
     program.visit_with(&mut HarmonyImportDependencyScanner::new(
       &mut dependencies,
       &mut presentational_dependencies,
@@ -170,5 +173,6 @@ pub fn scan_dependencies(
     dependencies,
     presentational_dependencies,
     rewrite_usage_span,
+    import_map,
   }
 }

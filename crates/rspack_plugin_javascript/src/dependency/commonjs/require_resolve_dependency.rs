@@ -49,8 +49,8 @@ impl Dependency for RequireResolveDependency {
     &DependencyType::RequireResolve
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    Some(&self.span)
+  fn span(&self) -> Option<ErrorSpan> {
+    Some(self.span)
   }
 }
 

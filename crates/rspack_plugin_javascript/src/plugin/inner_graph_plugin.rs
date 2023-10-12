@@ -18,6 +18,7 @@ use swc_core::{
 use crate::{
   dependency::PureExpressionDependency,
   plugin::side_effects_flag_plugin::{is_pure_class, is_pure_expression},
+  visitors::harmony_import_dependency_scanner::ImportMap,
   ClassKey,
 };
 
@@ -79,6 +80,7 @@ pub struct InnerGraphPlugin<'a> {
   state: InnerGraphState,
   scope_level: usize,
   rewrite_usage_span: &'a mut HashSet<Span>,
+  import_map: &'a ImportMap,
 }
 
 impl<'a> Visit for InnerGraphPlugin<'a> {
@@ -98,8 +100,10 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         self.add_usage("".into(), InnerGraphMapUsage::TopLevel(current_symbol));
       } else {
         self.bailout();
+        return;
       }
     }
+    call_expr.visit_children_with(self);
   }
 
   fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
@@ -140,7 +144,9 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     self.set_symbol_if_is_top_level(node.ident.sym.clone());
     let scope_level = self.scope_level;
     self.scope_level += 1;
+    println!("enter fun{}", node.ident.sym);
     node.function.visit_children_with(self);
+    println!("leave fun{}", node.ident.sym);
     self.scope_level = scope_level;
     self.clear_symbol_if_is_top_level();
   }
@@ -174,13 +180,20 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
   fn visit_ident(&mut self, ident: &Ident) {
     if self.rewrite_usage_span.contains(&ident.span) {
       let span = ident.span;
+      let sym = ident.sym.clone();
       self.on_usage(Box::new(move |deps, used_by_exports| {
+        dbg!(&deps.iter().map(|item| item.span()).collect::<Vec<_>>());
         let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
+        println!("{:?}, {:?}, {:?}", sym, used_by_exports, span);
         if let Some(dep) = target_dep {
           dep.set_used_by_exports(used_by_exports);
         }
       }));
     }
+    // imported binding isn't considered as a top level symbol.
+    if self.import_map.contains_key(&ident.to_id()) {
+      return;
+    };
     if ident.span.ctxt == self.top_level_ctxt {
       let usage = if let Some(symbol) = self.get_top_level_symbol() {
         InnerGraphMapUsage::Value(symbol)
@@ -337,6 +350,7 @@ impl<'a> InnerGraphPlugin<'a> {
     unresolved_ctxt: SyntaxContext,
     top_level_ctxt: SyntaxContext,
     rewrite_usage_span: &'a mut HashSet<Span>,
+    import_map: &'a ImportMap,
   ) -> Self {
     Self {
       dependencies,
@@ -345,6 +359,7 @@ impl<'a> InnerGraphPlugin<'a> {
       state: InnerGraphState::default(),
       scope_level: 0,
       rewrite_usage_span,
+      import_map,
     }
   }
 
@@ -371,7 +386,6 @@ impl<'a> InnerGraphPlugin<'a> {
     if !self.is_enabled() {
       return;
     }
-    dbg!(&symbol, &usage);
     match usage {
       InnerGraphMapUsage::True => {
         self
@@ -469,7 +483,6 @@ impl<'a> InnerGraphPlugin<'a> {
     let mut non_terminal = HashSet::from_iter(state.inner_graph.keys().cloned());
     let mut processed: HashMap<JsWord, HashSet<JsWord>> = HashMap::default();
 
-    dbg!(&state.inner_graph);
     while !non_terminal.is_empty() {
       let mut keys_to_remove = vec![];
       for key in non_terminal.iter() {
@@ -565,7 +578,16 @@ impl<'a> InnerGraphPlugin<'a> {
       }
     }
 
+    dbg!(&state.inner_graph);
+
+    // dbg!(&state
+    //   .usage_callback_map
+    //   .iter()
+    //   .map(|(k, v)| { (k.clone(), v.len()) })
+    //   .collect::<Vec<_>>());
+
     for (symbol, cbs) in state.usage_callback_map.iter() {
+      dbg!(&symbol, cbs.len());
       let usage = state.inner_graph.get(symbol);
       for cb in cbs {
         let used_by_exports = if let Some(usage) = usage {

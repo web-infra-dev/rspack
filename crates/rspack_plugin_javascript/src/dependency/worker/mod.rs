@@ -49,8 +49,8 @@ impl Dependency for WorkerDependency {
     &DependencyType::NewWorker
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
   }
 }
 

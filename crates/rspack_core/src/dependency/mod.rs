@@ -201,14 +201,14 @@ pub trait Dependency:
     ConnectionState::Bool(true)
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
+  fn span(&self) -> Option<ErrorSpan> {
     None
   }
 
   fn is_span_equal(&self, other: &Span) -> bool {
     if let Some(err_span) = self.span() {
       let other = ErrorSpan::from(*other);
-      other == *err_span
+      other == err_span
     } else {
       false
     }

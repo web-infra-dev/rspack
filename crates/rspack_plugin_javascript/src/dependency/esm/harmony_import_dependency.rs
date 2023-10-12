@@ -233,8 +233,8 @@ impl Dependency for HarmonyImportSideEffectDependency {
     &self.id
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
   }
 
   fn category(&self) -> &DependencyCategory {

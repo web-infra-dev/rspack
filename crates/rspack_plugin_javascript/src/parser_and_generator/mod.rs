@@ -133,6 +133,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       mut dependencies,
       presentational_dependencies,
       mut rewrite_usage_span,
+      import_map,
     } = ast.visit(|program, context| {
       scan_dependencies(
         program,
@@ -174,6 +175,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             unresolved_ctxt,
             top_level_ctxt,
             &mut rewrite_usage_span,
+            &import_map,
           );
           plugin.enable();
           program.visit_with(&mut plugin);

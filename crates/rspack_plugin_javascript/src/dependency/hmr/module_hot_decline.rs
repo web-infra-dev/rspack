@@ -38,8 +38,8 @@ impl Dependency for ModuleHotDeclineDependency {
     &DependencyType::ModuleHotDecline
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
   }
 }
 
