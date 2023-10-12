@@ -3,9 +3,9 @@ use rspack_core::{
   get_dependency_used_by_exports_condition, get_exports_type,
   tree_shaking::symbol::DEFAULT_JS_WORD, Compilation, ConnectionState, Dependency,
   DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ExportsType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
-  ModuleGraphModule, ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedByExports,
+  ExportsType, ExtendedReferencedExport, ModuleDependency, ModuleGraph, ModuleGraphModule,
+  ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsedByExports,
 };
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;

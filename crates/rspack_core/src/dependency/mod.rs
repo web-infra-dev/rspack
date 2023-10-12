@@ -191,7 +191,7 @@ pub trait Dependency:
     None
   }
 
-  fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {}
+  fn set_used_by_exports(&mut self, _used_by_exports: Option<UsedByExports>) {}
 
   fn get_module_evaluation_side_effects_state(
     &self,

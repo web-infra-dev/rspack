@@ -1,18 +1,16 @@
 use std::collections::hash_map::Entry;
 
-use rspack_core::{Dependency, DependencyTemplate, SpanExt, UsedByExports};
+use rspack_core::{Dependency, SpanExt, UsedByExports};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
   common::{Span, Spanned, SyntaxContext},
   ecma::{
     ast::{
-      ArrowExpr, CallExpr, Callee, Class, ClassDecl, ClassExpr, ClassMember, Decl, DefaultDecl,
-      ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr, FnDecl, FnExpr, Ident, MemberExpr,
-      Pat, Program, Prop, Stmt, VarDeclarator,
+      ArrowExpr, CallExpr, Callee, Class, ClassDecl, ClassMember, DefaultDecl, ExportDecl,
+      ExportDefaultDecl, ExportDefaultExpr, Expr, FnDecl, FnExpr, Ident, MemberExpr, Pat, Program,
+      Prop, VarDeclarator,
     },
     atoms::JsWord,
-    transforms::compat::bugfixes::safari_id_destructuring_collision_in_function_expression,
-    utils::find_pat_ids,
     visit::{noop_visit_type, Visit, VisitWith},
   },
 };
@@ -210,12 +208,12 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
             }
             _ => {
               init.visit_children_with(self);
-              if let Some(top_level_symbol) =self.get_top_level_symbol() && is_pure_expression(init, self.unresolved_ctxt) {
+              if self.has_toplevel_symbol() && is_pure_expression(init, self.unresolved_ctxt) {
                 let start = init.span().real_lo();
                 let end = init.span().real_hi();
                 self.on_usage(Box::new(move |deps, used_by_exports| {
                   match used_by_exports {
-                    Some(UsedByExports::Bool(true)) | None=> return,
+                    Some(UsedByExports::Bool(true)) | None=> {},
                     _ => {
                       let mut dep = PureExpressionDependency::new(start, end);
                       dep.used_by_exports = used_by_exports;
@@ -296,12 +294,12 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       }
       _ => {
         node.expr.visit_children_with(self);
-        if is_pure_expression(&*node.expr, self.unresolved_ctxt) {
+        if is_pure_expression(&node.expr, self.unresolved_ctxt) {
           let start = node.expr.span().real_lo();
           let end = node.expr.span().real_hi();
           self.on_usage(Box::new(
             move |deps, used_by_exports| match used_by_exports {
-              Some(UsedByExports::Bool(true)) | None => return,
+              Some(UsedByExports::Bool(true)) | None => {}
               _ => {
                 let mut dep = PureExpressionDependency::new(start, end);
                 dep.used_by_exports = used_by_exports;
@@ -318,7 +316,8 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if !self.is_enabled() {
       return;
     }
-    let symbol: JsWord = "*default*".into();
+    // TODO:
+    // let symbol: JsWord = "*default*".into();
     match &node.decl {
       DefaultDecl::Class(class) => {
         // self.visit_class(symbol, &class.class);
@@ -353,6 +352,9 @@ impl<'a> InnerGraphPlugin<'a> {
     self.scope_level == 0
   }
 
+  fn has_toplevel_symbol(&self) -> bool {
+    self.state.current_top_level_symbol.is_some()
+  }
   pub fn bailout(&mut self) {
     self.state.enable = false;
   }
@@ -372,7 +374,7 @@ impl<'a> InnerGraphPlugin<'a> {
           .inner_graph
           .insert(symbol, InnerGraphMapValue::True);
       }
-      InnerGraphMapUsage::Value(ref str) | InnerGraphMapUsage::TopLevel(ref str) => {
+      InnerGraphMapUsage::Value(_) | InnerGraphMapUsage::TopLevel(_) => {
         // SAFETY: we can make sure that the usage is not a `InnerGraphMapSetValue::True` variant.
         let set_value: InnerGraphMapSetValue = usage.into();
         match self.state.inner_graph.entry(symbol) {
@@ -419,8 +421,8 @@ impl<'a> InnerGraphPlugin<'a> {
     }
   }
 
-  pub fn visit_class(&mut self, symbol: JsWord, class: &Class) {
-    self.set_top_level_symbol(Some(symbol.clone()));
+  pub fn visit_class_custom(&mut self, symbol: JsWord, class: &Class) {
+    self.set_top_level_symbol(Some(symbol));
     // `onUsageSuper`
     if let Some(box Expr::Ident(ident)) = &class.super_class && is_pure_class(class, self.unresolved_ctxt) {
       ident.visit_children_with(self);
@@ -468,8 +470,8 @@ impl<'a> InnerGraphPlugin<'a> {
         //mark if the new set has changed to an set
         let mut new_set_is_true = false;
         let mut is_terminal = true;
-        let mut already_processed = processed.entry(key.clone()).or_default();
-        if let Some(InnerGraphMapValue::Set(names)) = state.inner_graph.get(&key) {
+        let already_processed = processed.entry(key.clone()).or_default();
+        if let Some(InnerGraphMapValue::Set(names)) = state.inner_graph.get(key) {
           for name in names.iter() {
             already_processed.insert(name.to_jsword().clone());
           }
@@ -571,7 +573,7 @@ impl<'a> InnerGraphPlugin<'a> {
         } else {
           UsedByExports::Bool(false)
         };
-        cb(self.dependencies, None);
+        cb(self.dependencies, Some(used_by_exports));
       }
     }
   }
