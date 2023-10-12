@@ -169,14 +169,15 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         ast.transform(|program, context| {
           let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
           let top_level_ctxt = SyntaxContext::empty().apply_mark(context.top_level_mark);
-          let mut visitor = InnerGraphPlugin::new(
+          let mut plugin = InnerGraphPlugin::new(
             &mut dependencies,
             unresolved_ctxt,
             top_level_ctxt,
             &mut rewrite_usage_span,
           );
-          program.visit_with(&mut visitor);
-          Some(visitor)
+          plugin.enable();
+          program.visit_with(&mut plugin);
+          Some(plugin)
         })
       } else {
         None
@@ -205,6 +206,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       RawSource::from(content).boxed()
     }
     if let Some(mut inner_graph) = inner_graph {
+      dbg!(module_identifier);
       inner_graph.infer_dependency_usage();
     }
 

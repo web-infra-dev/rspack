@@ -21,7 +21,7 @@ use crate::{
   ClassKey,
 };
 
-#[derive(Hash, PartialEq, Eq, Clone)]
+#[derive(Hash, PartialEq, Eq, Clone, Debug)]
 pub enum InnerGraphMapSetValue {
   TopLevel(JsWord),
   Str(JsWord),
@@ -47,7 +47,7 @@ impl InnerGraphMapSetValue {
   }
 }
 
-#[derive(Default, Clone, PartialEq, Eq)]
+#[derive(Default, Clone, PartialEq, Eq, Debug)]
 pub enum InnerGraphMapValue {
   Set(HashSet<InnerGraphMapSetValue>),
   True,
@@ -55,7 +55,7 @@ pub enum InnerGraphMapValue {
   Nil,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum InnerGraphMapUsage {
   TopLevel(JsWord),
   Value(JsWord),
@@ -140,7 +140,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     self.set_symbol_if_is_top_level(node.ident.sym.clone());
     let scope_level = self.scope_level;
     self.scope_level += 1;
-    node.visit_children_with(self);
+    node.function.visit_children_with(self);
     self.scope_level = scope_level;
     self.clear_symbol_if_is_top_level();
   }
@@ -204,7 +204,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
             Expr::Fn(_) | Expr::Arrow(_) | Expr::Lit(_) => {},
             Expr::Class(class) => {
                 // TODO: consider class 
-              class.visit_children_with(self);
+              class.class.visit_children_with(self);
             }
             _ => {
               init.visit_children_with(self);
@@ -348,6 +348,10 @@ impl<'a> InnerGraphPlugin<'a> {
     }
   }
 
+  pub fn enable(&mut self) {
+    self.state.enable = true;
+  }
+
   fn is_toplevel(&self) -> bool {
     self.scope_level == 0
   }
@@ -367,6 +371,7 @@ impl<'a> InnerGraphPlugin<'a> {
     if !self.is_enabled() {
       return;
     }
+    dbg!(&symbol, &usage);
     match usage {
       InnerGraphMapUsage::True => {
         self
@@ -456,12 +461,15 @@ impl<'a> InnerGraphPlugin<'a> {
   }
 
   pub fn infer_dependency_usage(&mut self) {
+    // fun will reference it self
     if !self.is_enabled() {
       return;
     }
     let state = &mut self.state;
     let mut non_terminal = HashSet::from_iter(state.inner_graph.keys().cloned());
     let mut processed: HashMap<JsWord, HashSet<JsWord>> = HashMap::default();
+
+    dbg!(&state.inner_graph);
     while !non_terminal.is_empty() {
       let mut keys_to_remove = vec![];
       for key in non_terminal.iter() {
