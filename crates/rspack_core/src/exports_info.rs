@@ -1120,7 +1120,6 @@ pub fn get_dependency_used_by_exports_condition(
   dependency_id: DependencyId,
   used_by_exports: Option<&UsedByExports>,
 ) -> Option<DependencyCondition> {
-  dbg!(&used_by_exports);
   match used_by_exports {
     Some(UsedByExports::Set(used_by_exports)) => {
       let used_by_exports = Arc::new(used_by_exports.clone());

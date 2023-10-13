@@ -182,9 +182,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       let span = ident.span;
       let sym = ident.sym.clone();
       self.on_usage(Box::new(move |deps, used_by_exports| {
-        dbg!(&deps.iter().map(|item| item.span()).collect::<Vec<_>>());
         let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
-        println!("{:?}, {:?}, {:?}", sym, used_by_exports, span);
         if let Some(dep) = target_dep {
           dep.set_used_by_exports(used_by_exports);
         }
@@ -212,31 +210,31 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if let Pat::Ident(ident) = &n.name {
       if let Some(box init) = &n.init && is_pure_expression(init, self.unresolved_ctxt) {
         let symbol = ident.id.sym.clone();
-          self.set_symbol_if_is_top_level(symbol);
-          match init {
-            Expr::Fn(_) | Expr::Arrow(_) | Expr::Lit(_) => {},
-            Expr::Class(class) => {
-                // TODO: consider class 
-              class.class.visit_children_with(self);
-            }
-            _ => {
-              init.visit_children_with(self);
-              if self.has_toplevel_symbol() && is_pure_expression(init, self.unresolved_ctxt) {
-                let start = init.span().real_lo();
-                let end = init.span().real_hi();
-                self.on_usage(Box::new(move |deps, used_by_exports| {
-                  match used_by_exports {
-                    Some(UsedByExports::Bool(true)) | None=> {},
-                    _ => {
-                      let mut dep = PureExpressionDependency::new(start, end);
-                      dep.used_by_exports = used_by_exports;
-                      deps.push(Box::new(dep));
-                    }
+        self.set_symbol_if_is_top_level(symbol);
+        match init {
+          Expr::Fn(_) | Expr::Arrow(_) | Expr::Lit(_) => {},
+          Expr::Class(class) => {
+              // TODO: consider class 
+            class.class.visit_children_with(self);
+          }
+          _ => {
+            init.visit_children_with(self);
+            if self.has_toplevel_symbol() && is_pure_expression(init, self.unresolved_ctxt) {
+              let start = init.span().real_lo();
+              let end = init.span().real_hi();
+              self.on_usage(Box::new(move |deps, used_by_exports| {
+                match used_by_exports {
+                  Some(UsedByExports::Bool(true)) | None=> {},
+                  _ => {
+                    let mut dep = PureExpressionDependency::new(start, end);
+                    dep.used_by_exports = used_by_exports;
+                    deps.push(Box::new(dep));
                   }
-                }));
-              }
+                }
+              }));
             }
           }
+         }
       }
     }
     n.visit_children_with(self);
