@@ -141,7 +141,7 @@ function resolveDecorator(
 export interface Builtins {
 	css?: BuiltinsCssConfig;
 	treeShaking?: boolean | "module";
-	progress?: boolean | RawProgressPluginOptions;
+	progress?: boolean | Partial<RawProgressPluginOptions>;
 	noEmitAssets?: boolean;
 	define?: Record<string, string | boolean | undefined>;
 	provide?: Record<string, string | string[]>;
