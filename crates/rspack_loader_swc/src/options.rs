@@ -1,5 +1,6 @@
 use rspack_swc_visitors::{
-  EmotionOptions, ImportOptions, RawEmotionOptions, RawImportOptions, RawRelayOptions, RelayOptions,
+  EmotionOptions, ImportOptions, RawEmotionOptions, RawImportOptions, RawRelayOptions,
+  RawStyledComponentsOptions, RelayOptions, StyledComponentsOptions,
 };
 use serde::Deserialize;
 use swc_config::config_types::BoolConfig;
@@ -12,6 +13,7 @@ use swc_core::base::config::{
 #[serde(rename_all = "camelCase", default)]
 pub struct RawRspackExperiments {
   pub relay: Option<RawRelayOptions>,
+  pub styled_components: Option<RawStyledComponentsOptions>,
   pub import: Option<Vec<RawImportOptions>>,
   pub emotion: Option<RawEmotionOptions>,
 }
@@ -19,6 +21,7 @@ pub struct RawRspackExperiments {
 #[derive(Default, Debug)]
 pub(crate) struct RspackExperiments {
   pub(crate) relay: Option<RelayOptions>,
+  pub(crate) styled_components: Option<StyledComponentsOptions>,
   pub(crate) import: Option<Vec<ImportOptions>>,
   pub(crate) emotion: Option<EmotionOptions>,
 }
@@ -27,6 +30,7 @@ impl From<RawRspackExperiments> for RspackExperiments {
   fn from(value: RawRspackExperiments) -> Self {
     Self {
       relay: value.relay.map(|v| v.into()),
+      styled_components: value.styled_components.map(|v| v.into()),
       import: value
         .import
         .map(|i| i.into_iter().map(|v| v.into()).collect()),

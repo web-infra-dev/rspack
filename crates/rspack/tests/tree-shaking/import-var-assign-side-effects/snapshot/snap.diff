@@ -26,7 +26,7 @@
  /* harmony import */var _Something__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./Something */"./Something.js");
  
  
-@@ -30,6 +33,17 @@
+@@ -30,6 +33,16 @@
  
  (0, _export__WEBPACK_IMPORTED_MODULE_0_.Sider)();
  },
@@ -35,7 +35,6 @@
 +__webpack_require__.r(__webpack_exports__);
 +/* harmony import */var _Layout_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./Layout.js */"./Layout.js");
 +/* harmony import */var _Something_js__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./Something.js */"./Something.js");
-+/* harmony import */var _Layout_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./Layout.js */"./Layout.js");
 +
 +
 +_Layout_js__WEBPACK_IMPORTED_MODULE_0_["default"].sider = _Something_js__WEBPACK_IMPORTED_MODULE_1_["default"];

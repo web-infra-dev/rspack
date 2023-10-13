@@ -5,8 +5,8 @@ source: crates/rspack_testing/src/run_fixture.rs
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(__webpack_exports__);
 var _lib__WEBPACK_IMPORTED_MODULE_0__namespace_cache;
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
 
 /*#__PURE__*/ (_lib__WEBPACK_IMPORTED_MODULE_0__namespace_cache || (_lib__WEBPACK_IMPORTED_MODULE_0__namespace_cache = __webpack_require__.t(_lib__WEBPACK_IMPORTED_MODULE_0_, 2)));

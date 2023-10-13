@@ -44,6 +44,7 @@ macro_rules! impl_runtime_module {
       fn code_generation(
         &self,
         compilation: &rspack_core::Compilation,
+        _runtime: Option<&rspack_core::RuntimeSpec>,
       ) -> rspack_error::Result<rspack_core::CodeGenerationResult> {
         let mut result = rspack_core::CodeGenerationResult::default();
         result.add(

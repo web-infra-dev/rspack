@@ -20,7 +20,6 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _inner__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./inner */"./inner.js");
 /* harmony import */var _module__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./module */"./module.js");
-/* harmony import */var _inner__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./inner */"./inner.js");
 
 
 it("export should be unused when only unused functions use it", ()=>{

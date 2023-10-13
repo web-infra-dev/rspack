@@ -13,8 +13,8 @@ use crate::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
   to_identifier, BuildContext, BuildInfo, BuildMetaExportsType, BuildResult, ChunkInitFragments,
   ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult, Compilation, Context, ExternalType,
-  InitFragmentStage, LibIdentOptions, Module, ModuleType, NormalInitFragment, RuntimeGlobals,
-  SourceType,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleType,
+  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -156,13 +156,14 @@ impl ExternalModule {
       "node-commonjs" if let Some(request) = request => {
         if compilation.options.output.module {
           chunk_init_fragments
-            .entry("external module node-commonjs".to_string())
-            .or_insert(NormalInitFragment::new(
-              "import { createRequire as __WEBPACK_EXTERNAL_createRequire } from 'module';\n"
-                .to_string(),
-              InitFragmentStage::StageHarmonyImports,
-              None,
-            ));
+          .push(NormalInitFragment::new(
+            "import { createRequire as __WEBPACK_EXTERNAL_createRequire } from 'module';\n"
+              .to_string(),
+            InitFragmentStage::StageHarmonyImports,
+            0,
+            InitFragmentKey::ExternalModule("node-commonjs".to_string()),
+            None,
+          ).boxed());
           format!(
             "__WEBPACK_EXTERNAL_createRequire(import.meta.url)('{}')",
             request.primary()
@@ -198,15 +199,16 @@ impl ExternalModule {
             .unwrap_or_default();
           let identifier = to_identifier(id);
           chunk_init_fragments
-            .entry(format!("external module import {identifier}"))
-            .or_insert(NormalInitFragment::new(
+            .push(NormalInitFragment::new(
               format!(
                 "import * as __WEBPACK_EXTERNAL_MODULE_{identifier}__ from '{}';\n",
                 request.primary()
               ),
               InitFragmentStage::StageHarmonyImports,
+              0,
+              InitFragmentKey::ExternalModule(identifier.clone()),
               None,
-            ));
+            ).boxed());
           runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
           format!(
             r#"var x = y => {{ var x = {{}}; {}(x, y); return x; }}
@@ -314,7 +316,11 @@ impl Module for ExternalModule {
     Ok(build_result.with_empty_diagnostic())
   }
 
-  fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
+  fn code_generation(
+    &self,
+    compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     let (request, external_type) = self.get_request_and_external_type();
     match self.external_type.as_str() {

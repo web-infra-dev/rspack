@@ -1,10 +1,10 @@
 use rspack_core::tree_shaking::symbol::{self, IndirectTopLevelSymbol};
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
-  import_statement, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
-  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ExtendedReferencedExport,
-  InitFragmentStage, ModuleDependency, ModuleIdentifier, NormalInitFragment, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource,
+  import_statement, AwaitDependenciesInitFragment, ConnectionState, Dependency, DependencyCategory,
+  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ExtendedReferencedExport, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
+  ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rspack_core::{ModuleGraph, RuntimeSpec};
 use rustc_hash::FxHashSet as HashSet;
@@ -21,8 +21,9 @@ pub enum Specifier {
 
 // HarmonyImportDependency is merged HarmonyImportSideEffectDependency.
 #[derive(Debug, Clone)]
-pub struct HarmonyImportDependency {
+pub struct HarmonyImportSideEffectDependency {
   pub request: JsWord,
+  pub source_order: i32,
   pub id: DependencyId,
   pub span: Option<ErrorSpan>,
   pub specifiers: Vec<Specifier>,
@@ -31,9 +32,10 @@ pub struct HarmonyImportDependency {
   resource_identifier: String,
 }
 
-impl HarmonyImportDependency {
+impl HarmonyImportSideEffectDependency {
   pub fn new(
     request: JsWord,
+    source_order: i32,
     span: Option<ErrorSpan>,
     specifiers: Vec<Specifier>,
     dependency_type: DependencyType,
@@ -42,6 +44,7 @@ impl HarmonyImportDependency {
     let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
       id: DependencyId::new(),
+      source_order,
       request,
       span,
       specifiers,
@@ -54,6 +57,7 @@ impl HarmonyImportDependency {
 
 pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   module_dependency: &T,
+  source_order: i32,
   code_generatable_context: &mut TemplateContext,
   specifiers: &[Specifier],
 ) {
@@ -172,28 +176,29 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   let import_var = compilation
     .module_graph
     .get_import_var(&module.identifier(), module_dependency.request());
+  let key = module_dependency.request();
   if compilation.module_graph.is_async(ref_module) {
     init_fragments.push(Box::new(NormalInitFragment::new(
       content.0,
       InitFragmentStage::StageHarmonyImports,
+      source_order,
+      InitFragmentKey::HarmonyImport(key.to_string()),
       None,
     )));
-    init_fragments.push(Box::new(NormalInitFragment::new(
-        format!(
-          "var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{import_var}]);\n([{import_var}] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__);"
-        ),
-        InitFragmentStage::StageHarmonyImports,
-        None,
-      )));
+    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var.to_string()).boxed());
     init_fragments.push(Box::new(NormalInitFragment::new(
       content.1,
       InitFragmentStage::StageAsyncHarmonyImports,
+      source_order,
+      InitFragmentKey::HarmonyImport(format!("{} compat", key)),
       None,
     )));
   } else {
     init_fragments.push(Box::new(NormalInitFragment::new(
       format!("{}{}", content.0, content.1),
       InitFragmentStage::StageHarmonyImports,
+      source_order,
+      InitFragmentKey::HarmonyImport(key.to_string()),
       None,
     )));
   }
@@ -216,12 +221,14 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
       } else {
         InitFragmentStage::StageHarmonyImports
       },
+      source_order,
+      InitFragmentKey::HarmonyExportStar(key.to_string()),
       None,
     )));
   }
 }
 
-impl Dependency for HarmonyImportDependency {
+impl Dependency for HarmonyImportSideEffectDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -250,7 +257,7 @@ impl Dependency for HarmonyImportDependency {
   }
 }
 
-impl ModuleDependency for HarmonyImportDependency {
+impl ModuleDependency for HarmonyImportSideEffectDependency {
   fn is_export_all(&self) -> Option<bool> {
     Some(self.export_all)
   }
@@ -304,12 +311,17 @@ impl ModuleDependency for HarmonyImportDependency {
   }
 }
 
-impl DependencyTemplate for HarmonyImportDependency {
+impl DependencyTemplate for HarmonyImportSideEffectDependency {
   fn apply(
     &self,
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    harmony_import_dependency_apply(self, code_generatable_context, &self.specifiers);
+    harmony_import_dependency_apply(
+      self,
+      self.source_order,
+      code_generatable_context,
+      &self.specifiers,
+    );
   }
 }

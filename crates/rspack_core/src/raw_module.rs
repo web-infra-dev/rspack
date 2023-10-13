@@ -8,7 +8,7 @@ use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 
 use crate::{
   BuildContext, BuildInfo, BuildResult, CodeGenerationResult, Context, Module, ModuleIdentifier,
-  ModuleType, RuntimeGlobals, SourceType,
+  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -86,7 +86,11 @@ impl Module for RawModule {
     )
   }
 
-  fn code_generation(&self, compilation: &crate::Compilation) -> Result<CodeGenerationResult> {
+  fn code_generation(
+    &self,
+    compilation: &crate::Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     cgr.runtime_requirements.insert(self.runtime_requirements);
     cgr.add(SourceType::JavaScript, self.source.clone());

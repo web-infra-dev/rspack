@@ -27,7 +27,7 @@ on:
         required: true
         type: string
       profile: # Rust profile, "debug" or "release"
-        default: 'release'
+        default: "release"
         required: false
         type: string
       test: # Run tests?
@@ -75,6 +75,18 @@ jobs:
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+      - name: free-disk-cache
+        if: ${{ contains(inputs.target, 'linux') }}
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          # just remove android sdk seems enough for use, save us some time
+          android: true
+          dotnet: false
+          haskell: false
+          large-packages: false
+          docker-images: false
+          swap-storage: false
 
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
@@ -166,7 +178,6 @@ jobs:
           SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
           export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
-
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:

@@ -1,6 +1,5 @@
 ---
 source: crates/rspack_testing/src/run_fixture.rs
-assertion_line: 101
 ---
 ```css title=main.css
 ._style-module__foo---___6655ebe837449348-_66 {
@@ -19,6 +18,7 @@ __webpack_require__.r(__webpack_exports__);
 console.log(_style_module_css__WEBPACK_IMPORTED_MODULE_0_);
 },
 "./style.module.css": function (module, exports, __webpack_require__) {
+'use strict';
 module.exports = {
   "foo": "_style-module__foo---___6655ebe837449348-_66",
 };

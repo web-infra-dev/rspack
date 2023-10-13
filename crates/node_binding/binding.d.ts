@@ -15,6 +15,7 @@ export class JsCompilation {
   getAssetSource(name: string): JsCompatSource | null
   getModules(): Array<JsModule>
   getChunks(): Array<JsChunk>
+  getNamedChunk(name: string): JsChunk | null
   /**
    * Only available for those none Js and Css source,
    * return true if set module source successfully, false if failed.
@@ -956,12 +957,18 @@ export interface RawResolveOptions {
   alias?: Record<string, Array<string | false>>
   fallback?: Record<string, Array<string | false>>
   symlinks?: boolean
-  tsConfigPath?: string
+  tsconfig?: RawResolveTsconfigOptions
   modules?: Array<string>
   byDependency?: Record<string, RawResolveOptions>
   fullySpecified?: boolean
   exportsFields?: Array<string>
   extensionAlias?: Record<string, Array<string>>
+}
+
+export interface RawResolveTsconfigOptions {
+  configFile: string
+  referencesType: "auto" | "manual" | "disabled"
+  references?: Array<string>
 }
 
 export interface RawRspackFuture {

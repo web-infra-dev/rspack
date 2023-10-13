@@ -599,7 +599,7 @@ mod test {
   use crate::{
     BoxDependency, BuildContext, BuildResult, CodeGenerationResult, Compilation, Context,
     Dependency, DependencyId, ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph,
-    ModuleGraphModule, ModuleIdentifier, ModuleType, SourceType, UsageState,
+    ModuleGraphModule, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s
@@ -643,7 +643,11 @@ mod test {
           unreachable!()
         }
 
-        fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult> {
+        fn code_generation(
+          &self,
+          _compilation: &Compilation,
+          _runtime: Option<&RuntimeSpec>,
+        ) -> Result<CodeGenerationResult> {
           unreachable!()
         }
       }

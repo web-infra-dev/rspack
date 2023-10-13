@@ -164,9 +164,9 @@ fn create_chunks_filter(raw: Chunks) -> rspack_plugin_split_chunks_new::ChunkFil
     Either::A(reg) => {
       rspack_plugin_split_chunks_new::create_regex_chunk_filter_from_str(reg.to_rspack_regex())
     }
-    Either::B(str) => {
-      let str = str.into_string();
-      rspack_plugin_split_chunks_new::create_chunk_filter_from_str(&str)
+    Either::B(js_str) => {
+      let js_str = js_str.into_string();
+      rspack_plugin_split_chunks_new::create_chunk_filter_from_str(&js_str)
     }
   }
 }

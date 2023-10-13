@@ -11,6 +11,7 @@ version    = "0.1.0"
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 either = "1"
+once_cell = { workspace = true }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_loader_runner = { path = "../rspack_loader_runner" }

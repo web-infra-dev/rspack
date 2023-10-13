@@ -22,6 +22,7 @@ _a_js__WEBPACK_IMPORTED_MODULE_0_.a;
 _a_svg__WEBPACK_IMPORTED_MODULE_1_;
 },
 "./a.svg": function (module, exports, __webpack_require__) {
+'use strict';
 module.exports = "data:image/svg+xml;base64,";},
 
 },function(__webpack_require__) {

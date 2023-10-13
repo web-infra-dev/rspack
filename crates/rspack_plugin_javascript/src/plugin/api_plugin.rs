@@ -1,6 +1,6 @@
 use rspack_core::{
-  InitFragmentStage, NormalInitFragment, Plugin, PluginContext, PluginRenderModuleContentOutput,
-  RenderModuleContentArgs,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, NormalInitFragment, Plugin, PluginContext,
+  PluginRenderModuleContentOutput, RenderModuleContentArgs,
 };
 
 #[derive(Debug)]
@@ -14,13 +14,14 @@ impl Plugin for APIPlugin {
   ) -> PluginRenderModuleContentOutput<'a> {
     if let Some(build_info) = &args.module_graph_module.build_info && build_info.need_create_require {
       args.chunk_init_fragments
-        .entry("external module node-commonjs".to_string())
-        .or_insert(NormalInitFragment::new(
+        .push(NormalInitFragment::new(
           "import { createRequire as __WEBPACK_EXTERNAL_createRequire } from 'module';\n"
             .to_string(),
           InitFragmentStage::StageHarmonyImports,
+          0,
+          InitFragmentKey::ExternalModule("node-commonjs".to_string()),
           None,
-        ));
+        ).boxed());
     }
     Ok(args)
   }
