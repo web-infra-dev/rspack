@@ -78,6 +78,10 @@ impl ModuleDependency for WorkerDependency {
   ) -> Vec<ExtendedReferencedExport> {
     vec![]
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "WorkerDependency"
+  }
 }
 
 impl DependencyTemplate for WorkerDependency {

@@ -105,7 +105,7 @@ const SIMPLE_PRINTERS: Record<
 		const builtAtMessage =
 			root && builtAt ? `${formatDateTime(builtAt)}: ` : "";
 		const versionMessage =
-			root && rspackVersion ? `rspack ${rspackVersion}` : "";
+			root && rspackVersion ? `Rspack ${rspackVersion}` : "";
 		const nameMessage =
 			root && name
 				? bold(name)
@@ -117,7 +117,7 @@ const SIMPLE_PRINTERS: Record<
 		const subjectMessage =
 			nameMessage && versionMessage
 				? `${nameMessage} (${versionMessage})`
-				: versionMessage || nameMessage || "rspack";
+				: versionMessage || nameMessage || "Rspack";
 		let statusMessage;
 		if (errorsMessage && warningsMessage) {
 			statusMessage = `compiled with ${errorsMessage} and ${warningsMessage}`;
@@ -1230,7 +1230,7 @@ const AVAILABLE_FORMATS: Pick_FORMAT<
 		{ timeReference, bold, green, yellow, red },
 		boldQuantity
 	) => {
-		const unit = " ms";
+		let unit = " ms";
 		if (timeReference && time !== timeReference) {
 			const times = [
 				timeReference / 2,
@@ -1244,7 +1244,12 @@ const AVAILABLE_FORMATS: Pick_FORMAT<
 			else if (time < times[0]) return yellow(`${time}${unit}`);
 			else return red(`${time}${unit}`);
 		} else {
-			return `${boldQuantity ? bold(time.toString()) : time}${unit}`;
+			let timeStr = time.toString();
+			if (time > 1000) {
+				timeStr = `${(time / 1000).toFixed(2)}`;
+				unit = " s";
+			}
+			return `${boldQuantity ? bold(timeStr) : timeStr}${unit}`;
 		}
 	},
 	formatError: (msg, { green, yellow, red }) => {

@@ -4,7 +4,12 @@ import vm from "vm";
 import rimraf from "rimraf";
 import checkArrayExpectation from "./checkArrayExpectation";
 import createLazyTestEnv from "./helpers/createLazyTestEnv";
-import { Compiler, rspack, Stats } from "@rspack/core";
+import {
+	Compiler,
+	rspack,
+	Stats,
+	HotModuleReplacementPlugin
+} from "@rspack/core";
 
 export function describeCases(config: {
 	name: string;
@@ -460,5 +465,8 @@ function getOptions(
 		...options.devServer,
 		hot
 	};
+	if (hot) {
+		options.plugins.push(new HotModuleReplacementPlugin());
+	}
 	return options;
 }

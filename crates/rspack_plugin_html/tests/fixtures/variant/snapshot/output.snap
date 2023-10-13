@@ -7,7 +7,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 <head>
   <meta charset="UTF-8" />
   <title>Rspack App</title>
-<script src="/runtime.js" crossorigin="anonymous" integrity="sha512-iz+xdXwLYGEt0P1aFzB0YpFoBxqrLubbJC8nCmMUE9H8PleLLvJqOFdoYeghr+aCSNy2eFXJp3QrxoPre7Z41Q=="></script><script src="/index.js" crossorigin="anonymous" integrity="sha512-6vlpK5HIE3OkplUqEnwMWablOYYpRSCdR0gJqYvaTA/da2ou9PO7X2mVy2QJCTYdu6mCY066E7CIbZktxgZkWQ=="></script><link href="/index.css" rel="stylesheet" crossorigin="anonymous" integrity="sha512-vjhejkvTX8D8jzzC5Lc9ToCtcEDb0/NqtYmEHOid+ycq64hvW+JTG7Dw/ACFP6rApgiYwVMbEt6Zfb8j4EoZTA==" /></head>
+<script src="/runtime.js" crossorigin="anonymous" integrity="sha512-iz+xdXwLYGEt0P1aFzB0YpFoBxqrLubbJC8nCmMUE9H8PleLLvJqOFdoYeghr+aCSNy2eFXJp3QrxoPre7Z41Q=="></script><script src="/index.js" crossorigin="anonymous" integrity="sha512-HZavaagThd+PomyIiFV/5AT7NivXpdLkfKhFwU02oxQhL57YJO06EoF6/NEomSiBqyOzx7EWyV51QOOJ/xQQyA=="></script><link href="/index.css" rel="stylesheet" crossorigin="anonymous" integrity="sha512-vjhejkvTX8D8jzzC5Lc9ToCtcEDb0/NqtYmEHOid+ycq64hvW+JTG7Dw/ACFP6rApgiYwVMbEt6Zfb8j4EoZTA==" /></head>
 
 <body>
 

@@ -22,10 +22,33 @@ impl Plugin for JsPlugin {
   fn apply(
     &self,
     ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &mut CompilerOptions,
+    options: &mut CompilerOptions,
   ) -> Result<()> {
     let create_parser_and_generator =
       move || Box::new(JavaScriptParserAndGenerator::new()) as Box<dyn ParserAndGenerator>;
+
+    if options.should_transform_by_default() {
+      ctx.context.register_parser_and_generator_builder(
+        ModuleType::Ts,
+        Box::new(create_parser_and_generator),
+      );
+      ctx.context.register_parser_and_generator_builder(
+        ModuleType::Tsx,
+        Box::new(create_parser_and_generator),
+      );
+      ctx.context.register_parser_and_generator_builder(
+        ModuleType::Jsx,
+        Box::new(create_parser_and_generator),
+      );
+      ctx.context.register_parser_and_generator_builder(
+        ModuleType::JsxEsm,
+        Box::new(create_parser_and_generator),
+      );
+      ctx.context.register_parser_and_generator_builder(
+        ModuleType::JsxDynamic,
+        Box::new(create_parser_and_generator),
+      );
+    }
 
     ctx
       .context
@@ -36,25 +59,6 @@ impl Plugin for JsPlugin {
     );
     ctx.context.register_parser_and_generator_builder(
       ModuleType::JsDynamic,
-      Box::new(create_parser_and_generator),
-    );
-    ctx
-      .context
-      .register_parser_and_generator_builder(ModuleType::Ts, Box::new(create_parser_and_generator));
-    ctx.context.register_parser_and_generator_builder(
-      ModuleType::Tsx,
-      Box::new(create_parser_and_generator),
-    );
-    ctx.context.register_parser_and_generator_builder(
-      ModuleType::Jsx,
-      Box::new(create_parser_and_generator),
-    );
-    ctx.context.register_parser_and_generator_builder(
-      ModuleType::JsxEsm,
-      Box::new(create_parser_and_generator),
-    );
-    ctx.context.register_parser_and_generator_builder(
-      ModuleType::JsxDynamic,
       Box::new(create_parser_and_generator),
     );
 

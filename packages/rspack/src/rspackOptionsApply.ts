@@ -135,6 +135,10 @@ export function optionsApply_compat(
 			compiler.context,
 			options.entry
 		);
+
+		if (options.devServer?.hot) {
+			new compiler.webpack.HotModuleReplacementPlugin().apply(compiler);
+		}
 	}
 }
 

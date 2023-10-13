@@ -34,6 +34,7 @@ pub struct OutputOptions {
   pub css_chunk_filename: Filename,
   pub hot_update_main_filename: Filename,
   pub hot_update_chunk_filename: Filename,
+  pub hot_update_global: String,
   pub library: Option<LibraryOptions>,
   pub enabled_library_types: Option<Vec<String>>,
   pub strict_module_error_handling: bool,

@@ -960,55 +960,85 @@ impl Compilation {
       codegen_cache_counter: &mut Option<CacheCount>,
       filter_op: impl Fn(&(&ModuleIdentifier, &Box<dyn Module>)) -> bool + Sync + Send,
     ) -> Result<()> {
+      // If the runtime optimization is not opt out, a module codegen should be executed for each runtime.
+      // Else, share same codegen result for all runtimes.
+      let used_exports_optimization = compilation.options.is_new_tree_shaking()
+        && compilation.options.optimization.used_exports.is_true();
       let results = compilation
         .module_graph
         .modules()
         .par_iter()
         .filter(filter_op)
-        .filter(|(module_identifier, _)| {
+        .filter_map(|(module_identifier, module)| {
           let runtimes = compilation
             .chunk_graph
-            .get_module_runtimes(**module_identifier, &compilation.chunk_by_ukey);
-          !runtimes.is_empty()
-        })
-        .map(|(module_identifier, module)| {
-          compilation
+            .get_module_runtimes(*module_identifier, &compilation.chunk_by_ukey);
+          if runtimes.is_empty() {
+            return None;
+          }
+
+          let res = compilation
             .cache
             .code_generate_occasion
-            .use_cache(module, compilation, |module| {
-              module.code_generation(compilation)
+            .use_cache(module, runtimes, compilation, |module, runtimes| {
+              let take_length = if used_exports_optimization {
+                runtimes.len()
+              } else {
+                // Only codegen once
+                1
+              };
+              let mut codegen_list = vec![];
+              for runtime in runtimes.into_values().take(take_length) {
+                codegen_list.push((
+                  module.code_generation(compilation, Some(&runtime))?,
+                  runtime,
+                ));
+              }
+              Ok(codegen_list)
             })
-            .map(|(result, from_cache)| (*module_identifier, result, from_cache))
+            .map(|(result, from_cache)| (*module_identifier, result, from_cache));
+          Some(res)
         })
-        .collect::<Result<Vec<(ModuleIdentifier, CodeGenerationResult, bool)>>>()?;
-
+        .collect::<Result<
+          Vec<(
+            ModuleIdentifier,
+            Vec<(CodeGenerationResult, RuntimeSpec)>,
+            bool,
+          )>,
+        >>()?;
       results
         .into_iter()
-        .for_each(|(module_identifier, result, from_cache)| {
-          if let Some(counter) = codegen_cache_counter {
-            if from_cache {
-              counter.hit();
-            } else {
-              counter.miss();
+        .for_each(|(module_identifier, item, from_cache)| {
+          item.into_iter().for_each(|(result, runtime)| {
+            if let Some(counter) = codegen_cache_counter {
+              if from_cache {
+                counter.hit();
+              } else {
+                counter.miss();
+              }
             }
-          }
-          compilation.code_generated_modules.insert(module_identifier);
+            compilation.code_generated_modules.insert(module_identifier);
 
-          let runtimes = compilation
-            .chunk_graph
-            .get_module_runtimes(module_identifier, &compilation.chunk_by_ukey);
-
-          compilation
-            .code_generation_results
-            .module_generation_result_map
-            .insert(module_identifier, result);
-          for runtime in runtimes.values() {
-            compilation.code_generation_results.add(
-              module_identifier,
-              runtime.clone(),
-              module_identifier,
-            );
-          }
+            let runtimes = compilation
+              .chunk_graph
+              .get_module_runtimes(module_identifier, &compilation.chunk_by_ukey);
+            let result_id = result.id;
+            compilation
+              .code_generation_results
+              .module_generation_result_map
+              .insert(result.id, result);
+            if used_exports_optimization {
+              compilation
+                .code_generation_results
+                .add(module_identifier, runtime, result_id);
+            } else {
+              for runtime in runtimes.into_values() {
+                compilation
+                  .code_generation_results
+                  .add(module_identifier, runtime, result_id);
+              }
+            }
+          })
         });
       Ok(())
     }
@@ -1157,6 +1187,16 @@ impl Compilation {
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
     while plugin_driver.optimize_dependencies(self).await?.is_some() {}
     logger.time_end(start);
+
+    // if self.options.is_new_tree_shaking() {
+    //   // for module in self.module_graph.module_graph_modules().values() {}
+    //   // self
+    //   //   .module_graph
+    //   //   .module_graph_modules()
+    //   //   .values()
+    //   //   .foreach(|item| {});
+    //   debug_exports_info(&self.module_graph);
+    // }
 
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {

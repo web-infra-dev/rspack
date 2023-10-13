@@ -1,4 +1,5 @@
 mod async_module;
+mod auto_public_path;
 mod base_uri;
 mod compat_get_default_export;
 mod create_fake_namespace_object;
@@ -32,6 +33,7 @@ mod startup_chunk_dependencies;
 mod startup_entry_point;
 mod utils;
 pub use async_module::AsyncRuntimeModule;
+pub use auto_public_path::AutoPublicPathRuntimeModule;
 pub use base_uri::BaseUriRuntimeModule;
 pub use compat_get_default_export::CompatGetDefaultExportRuntimeModule;
 pub use create_fake_namespace_object::CreateFakeNamespaceObjectRuntimeModule;

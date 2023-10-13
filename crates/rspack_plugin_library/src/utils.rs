@@ -1,30 +1,20 @@
-use rspack_core::{to_identifier, Compilation, ExternalModule, LibraryName, LibraryOptions};
-use rspack_error::Result;
+use rspack_core::{
+  to_identifier, Compilation, ExternalModule, ExternalRequest, LibraryName, LibraryOptions,
+};
+use rspack_error::{internal_error, Result};
 use rspack_identifier::Identifiable;
 
-pub fn external_dep_array(modules: &[&ExternalModule]) -> String {
-  let value = modules
-    .iter()
-    .map(|m| serde_json::to_string(&m.request.as_str()).expect("invalid json to_string"))
-    .collect::<Vec<_>>()
-    .join(", ");
-  format!("[{value}]")
-}
-
-pub fn external_system_dep_array(modules: &[&ExternalModule]) -> String {
+pub fn externals_dep_array(modules: &[&ExternalModule]) -> Result<String> {
   let value = modules
     .iter()
     .map(|m| {
-      m.request
-        .0
-        .iter()
-        .map(|r| format!("\"{r}\""))
-        .collect::<Vec<_>>()
-        .join(",")
+      Ok(match &m.request {
+        ExternalRequest::Single(s) => Some(s.primary()),
+        ExternalRequest::Map(map) => map.get("amd").map(|r| r.primary()),
+      })
     })
-    .collect::<Vec<_>>()
-    .join(", ");
-  format!("[{value}]")
+    .collect::<Result<Vec<_>>>()?;
+  serde_json::to_string(&value).map_err(|e| internal_error!(e.to_string()))
 }
 
 fn inner_external_arguments(modules: &[&ExternalModule], compilation: &Compilation) -> Vec<String> {
@@ -70,12 +60,4 @@ pub fn normalize_name(o: &Option<LibraryOptions>) -> Result<Option<String>> {
     }
   }
   Ok(None)
-}
-
-pub fn property_access(o: &Vec<String>) -> String {
-  let mut str = String::default();
-  for property in o {
-    str.push_str(format!(r#"["{property}"]"#).as_str());
-  }
-  str
 }

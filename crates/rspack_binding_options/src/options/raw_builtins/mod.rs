@@ -19,6 +19,7 @@ use rspack_plugin_entry::EntryPlugin;
 use rspack_plugin_externals::{
   electron_target_plugin, http_externals_rspack_plugin, node_target_plugin, ExternalsPlugin,
 };
+use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_library::enable_library_plugin;
 use rspack_plugin_progress::ProgressPlugin;
@@ -58,6 +59,7 @@ pub enum BuiltinPluginName {
   CommonJsChunkFormatPlugin,
   ArrayPushCallbackChunkFormatPlugin,
   ModuleChunkFormatPlugin,
+  HotModuleReplacementPlugin,
 
   // rspack specific plugins
   HttpExternalsRspackPlugin,
@@ -147,6 +149,9 @@ impl RawOptionsApply for BuiltinPlugin {
       }
       BuiltinPluginName::ModuleChunkFormatPlugin => {
         plugins.push(ModuleChunkFormatPlugin.boxed());
+      }
+      BuiltinPluginName::HotModuleReplacementPlugin => {
+        plugins.push(HotModuleReplacementPlugin.boxed());
       }
 
       // rspack specific plugins

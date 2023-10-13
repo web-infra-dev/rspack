@@ -86,6 +86,10 @@ impl ModuleDependency for RequireResolveDependency {
   ) -> Vec<ExtendedReferencedExport> {
     vec![]
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "RequireResolveDependency"
+  }
 }
 
 impl DependencyTemplate for RequireResolveDependency {

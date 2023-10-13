@@ -157,6 +157,15 @@ impl JsCompilation {
   }
 
   #[napi]
+  pub fn get_named_chunk(&self, name: String) -> Option<JsChunk> {
+    self
+      .inner
+      .named_chunks
+      .get(&name)
+      .and_then(|c| self.inner.chunk_by_ukey.get(c).map(JsChunk::from))
+  }
+
+  #[napi]
   /// Only available for those none Js and Css source,
   /// return true if set module source successfully, false if failed.
   pub fn set_none_ast_module_source(

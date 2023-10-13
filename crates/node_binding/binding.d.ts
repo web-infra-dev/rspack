@@ -15,6 +15,7 @@ export class JsCompilation {
   getAssetSource(name: string): JsCompatSource | null
   getModules(): Array<JsModule>
   getChunks(): Array<JsChunk>
+  getNamedChunk(name: string): JsChunk | null
   /**
    * Only available for those none Js and Css source,
    * return true if set module source successfully, false if failed.
@@ -129,6 +130,7 @@ export const enum BuiltinPluginName {
   CommonJsChunkFormatPlugin = 'CommonJsChunkFormatPlugin',
   ArrayPushCallbackChunkFormatPlugin = 'ArrayPushCallbackChunkFormatPlugin',
   ModuleChunkFormatPlugin = 'ModuleChunkFormatPlugin',
+  HotModuleReplacementPlugin = 'HotModuleReplacementPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -667,10 +669,11 @@ export interface RawExternalItemFnResult {
 }
 
 export interface RawExternalItemValue {
-  type: "string" | "bool" | "array"
+  type: "string" | "bool" | "array" | "object"
   stringPayload?: string
   boolPayload?: boolean
   arrayPayload?: Array<string>
+  objectPayload?: Record<string, Array<string>>
 }
 
 export interface RawExternalsPluginOptions {
@@ -876,6 +879,7 @@ export interface RawOutputOptions {
   cssChunkFilename: string
   hotUpdateMainFilename: string
   hotUpdateChunkFilename: string
+  hotUpdateGlobal: string
   uniqueName: string
   chunkLoadingGlobal: string
   library?: RawLibraryOptions
@@ -954,7 +958,7 @@ export interface RawResolveOptions {
   alias?: Record<string, Array<string | false>>
   fallback?: Record<string, Array<string | false>>
   symlinks?: boolean
-  tsConfigPath?: string
+  tsconfig?: RawResolveTsconfigOptions
   modules?: Array<string>
   byDependency?: Record<string, RawResolveOptions>
   fullySpecified?: boolean
@@ -962,9 +966,16 @@ export interface RawResolveOptions {
   extensionAlias?: Record<string, Array<string>>
 }
 
+export interface RawResolveTsconfigOptions {
+  configFile: string
+  referencesType: "auto" | "manual" | "disabled"
+  references?: Array<string>
+}
+
 export interface RawRspackFuture {
   newResolver: boolean
   newTreeshaking: boolean
+  disableTransformByDefault: boolean
 }
 
 export interface RawRuleSetCondition {

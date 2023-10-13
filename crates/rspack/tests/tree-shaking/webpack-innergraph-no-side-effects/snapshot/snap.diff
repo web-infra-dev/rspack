@@ -1,12 +1,8 @@
 --- expected
 +++ actual
-@@ -24,16 +24,26 @@
- 'use strict';
- __webpack_require__.r(__webpack_exports__);
+@@ -26,14 +26,23 @@
  __webpack_require__.d(__webpack_exports__, {
--  'a': function() { return a; }
-+  'a': function() { return a; },
-+  'b': function() { return b; }
+   'a': function() { return a; }
  });
 +/* harmony import */var _unusedModule__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./unusedModule */"./package/unusedModule.js");
  

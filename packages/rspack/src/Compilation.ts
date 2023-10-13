@@ -705,6 +705,21 @@ export class Compilation {
 	}
 
 	/**
+	 * Get the named chunks.
+	 *
+	 * Note: This is a proxy for webpack internal API, only method `get` is supported now.
+	 */
+	get namedChunks(): Map<string, Readonly<JsChunk>> {
+		return {
+			get: (property: unknown) => {
+				if (typeof property === "string") {
+					return this.#inner.getNamedChunk(property) ?? undefined;
+				}
+			}
+		} as Map<string, Readonly<JsChunk>>;
+	}
+
+	/**
 	 * Get the associated `modules` of an given chunk.
 	 *
 	 * Note: This is not a webpack public API, maybe removed in future.

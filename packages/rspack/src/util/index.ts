@@ -107,10 +107,19 @@ export function toJsAssetInfo(info?: AssetInfo): JsAssetInfo {
 		...info
 	};
 }
-
+const getDeprecationStatus = () => {
+	const defaultEnableDeprecatedWarning = false;
+	return (
+		(process.env.RSPACK_BUILTINS_DEPRECATED ??
+			`${defaultEnableDeprecatedWarning}`) !== "false"
+	);
+};
 const yellow = (content: string) =>
 	`\u001b[1m\u001b[33m${content}\u001b[39m\u001b[22m`;
-export const deprecatedWarn = (content: string, enable = true) => {
+export const deprecatedWarn = (
+	content: string,
+	enable = getDeprecationStatus()
+) => {
 	if (enable) {
 		console.warn(yellow(content));
 	}

@@ -2,10 +2,37 @@ const { RunScriptWebpackPlugin } = require("run-script-webpack-plugin");
 
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: true
+		}
+	},
 	context: __dirname,
 	target: "node",
 	entry: {
 		main: ["webpack/hot/poll?100", "./src/main.ts"]
+	},
+	module: {
+		rules: [
+			{
+				test: /\.ts$/,
+				use: {
+					loader: "builtin:swc-loader",
+					options: {
+						jsc: {
+							parser: {
+								syntax: "typescript",
+								decorators: true
+							},
+							transform: {
+								legacyDecorator: true,
+								decoratorMetadata: true
+							}
+						}
+					}
+				}
+			}
+		]
 	},
 	optimization: {
 		minimize: false

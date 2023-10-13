@@ -86,6 +86,10 @@ impl ModuleDependency for ImportDependency {
       vec![ExtendedReferencedExport::Array(vec![])]
     }
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "ImportDependency"
+  }
 }
 
 impl DependencyTemplate for ImportDependency {

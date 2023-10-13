@@ -125,6 +125,9 @@ export type HotUpdateChunkFilename = z.infer<typeof hotUpdateChunkFilename>;
 const hotUpdateMainFilename = filenameTemplate;
 export type HotUpdateMainFilename = z.infer<typeof hotUpdateMainFilename>;
 
+const hotUpdateGlobal = z.string();
+export type HotUpdateGlobal = z.infer<typeof hotUpdateGlobal>;
+
 const uniqueName = z.string();
 export type UniqueName = z.infer<typeof uniqueName>;
 
@@ -262,6 +265,7 @@ const output = z.strictObject({
 	cssChunkFilename: cssChunkFilename.optional(),
 	hotUpdateMainFilename: hotUpdateMainFilename.optional(),
 	hotUpdateChunkFilename: hotUpdateChunkFilename.optional(),
+	hotUpdateGlobal: hotUpdateGlobal.optional(),
 	assetModuleFilename: assetModuleFilename.optional(),
 	uniqueName: uniqueName.optional(),
 	chunkLoadingGlobal: chunkLoadingGlobal.optional(),
@@ -305,6 +309,13 @@ const resolveAlias = z.record(
 );
 export type ResolveAlias = z.infer<typeof resolveAlias>;
 
+const resolveTsconfig = z.strictObject({
+	configFile: z.string(),
+	references: z.array(z.string()).or(z.literal("auto")).optional()
+});
+
+export type ResolveTsconfig = z.infer<typeof resolveTsconfig>;
+
 const baseResolveOptions = z.strictObject({
 	alias: resolveAlias.optional(),
 	/**
@@ -320,6 +331,7 @@ const baseResolveOptions = z.strictObject({
 	modules: z.array(z.string()).optional(),
 	preferRelative: z.boolean().optional(),
 	tsConfigPath: z.string().optional(),
+	tsConfig: resolveTsconfig.optional(),
 	fullySpecified: z.boolean().optional(),
 	exportsFields: z.array(z.string()).optional(),
 	extensionAlias: z.record(z.string().or(z.array(z.string()))).optional()
@@ -631,7 +643,11 @@ export type ExternalsType = z.infer<typeof externalsType>;
 //#endregion
 
 //#region Externals
-const externalItemValue = z.string().or(z.boolean()).or(z.string().array());
+const externalItemValue = z
+	.string()
+	.or(z.boolean())
+	.or(z.string().array().min(1))
+	.or(z.record(z.string().or(z.string().array())));
 export type ExternalItemValue = z.infer<typeof externalItemValue>;
 
 const externalItemObjectUnknown = z.record(externalItemValue);
@@ -936,7 +952,8 @@ export type IncrementalRebuildOptions = z.infer<
 
 const rspackFutureOptions = z.strictObject({
 	newResolver: z.boolean().optional(),
-	newTreeshaking: z.boolean().optional()
+	newTreeshaking: z.boolean().optional(),
+	disableTransformByDefault: z.boolean().optional()
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 

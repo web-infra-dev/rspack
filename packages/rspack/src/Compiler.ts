@@ -47,10 +47,6 @@ import {
 } from "./builtin-plugin";
 import { optionsApply_compat } from "./rspackOptionsApply";
 
-class HotModuleReplacementPlugin {
-	apply() {}
-}
-
 class Compiler {
 	#_instance?: binding.Rspack;
 
@@ -123,7 +119,6 @@ class Compiler {
 		this.builtinPlugins = [];
 		// to workaround some plugin access webpack, we may change dev-server to avoid this hack in the future
 		this.webpack = {
-			HotModuleReplacementPlugin, // modernjs/server will auto inject this plugin not set
 			NormalModule,
 			get sources(): typeof import("webpack-sources") {
 				return require("webpack-sources");
@@ -153,6 +148,9 @@ class Compiler {
 			get ExternalsPlugin() {
 				return require("./builtin-plugin").ExternalsPlugin;
 			},
+			get HotModuleReplacementPlugin() {
+				return require("./builtin-plugin").HotModuleReplacementPlugin;
+			},
 			get LoaderOptionsPlugin() {
 				return require("./lib/LoaderOptionsPlugin").LoaderOptionsPlugin;
 			},
@@ -161,6 +159,11 @@ class Compiler {
 			},
 			WebpackError: Error,
 			ModuleFilenameHelpers,
+			javascript: {
+				get EnableChunkLoadingPlugin() {
+					return require("./builtin-plugin").EnableChunkLoadingPlugin;
+				}
+			},
 			node: {
 				get NodeTargetPlugin() {
 					return require("./builtin-plugin").NodeTargetPlugin;
@@ -203,6 +206,19 @@ class Compiler {
 				// get LazySet() {
 				// 	return require("./util/LazySet");
 				// }
+			},
+			// XxxRspackPlugin, Rspack-only plugins
+			get HtmlRspackPlugin() {
+				return require("./builtin-plugin").HtmlRspackPlugin;
+			},
+			get SwcJsMinimizerRspackPlugin() {
+				return require("./builtin-plugin").SwcJsMinimizerRspackPlugin;
+			},
+			get SwcCssMinimizerRspackPlugin() {
+				return require("./builtin-plugin").SwcCssMinimizerRspackPlugin;
+			},
+			get CopyRspackPlugin() {
+				return require("./builtin-plugin").CopyRspackPlugin;
 			}
 		};
 		this.root = this;

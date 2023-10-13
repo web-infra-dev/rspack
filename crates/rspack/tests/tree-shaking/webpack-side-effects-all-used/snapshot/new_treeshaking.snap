@@ -7,9 +7,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'a': function() { return a; },
-  'b': function() { return b; },
-  'c': function() { return c; }
+  'a': function() { return a; }
 });
 /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./tracker */"../node_modules/pmodule/tracker.js");
 var a = "a";
@@ -24,8 +22,7 @@ var c = "c";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'z': function() { return _c__WEBPACK_IMPORTED_MODULE_0_.z; },
-  'x': function() { return x; },
-  'y': function() { return y; }
+  'x': function() { return x; }
 });
 /* harmony import */var _c__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./c */"../node_modules/pmodule/c.js");
 /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./tracker */"../node_modules/pmodule/tracker.js");
@@ -53,7 +50,6 @@ var z = "z";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'x': function() { return _b__WEBPACK_IMPORTED_MODULE_1_.x; },
-  'y': function() { return _b__WEBPACK_IMPORTED_MODULE_1_.y; },
   'z': function() { return _b__WEBPACK_IMPORTED_MODULE_1_.z; },
   'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
@@ -72,8 +68,7 @@ var __WEBPACK_DEFAULT_EXPORT__ = "def";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'track': function() { return track; },
-  'log': function() { return log; },
-  'reset': function() { return reset; }
+  'log': function() { return log; }
 });
  function track(file) {
     log.push(file);
