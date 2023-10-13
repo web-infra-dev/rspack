@@ -257,6 +257,11 @@ impl NormalModuleFactory {
         let mut request = request_without_match_resource.chars();
         let first_char = request.next();
         let second_char = request.next();
+
+        if first_char.is_none() {
+          Err(internal_error!("Empty dependency (no request)"))?
+        }
+
         // See: https://webpack.js.org/concepts/loaders/#inline
         no_pre_auto_loaders = matches!(first_char, Some('-')) && matches!(second_char, Some('!'));
         no_auto_loaders = no_pre_auto_loaders || matches!(first_char, Some('!'));
@@ -274,10 +279,7 @@ impl NormalModuleFactory {
             }
           }) {
             Some((pos, _)) => &request_without_match_resource[pos..],
-            None => {
-              let dependency = &data.dependency;
-              unreachable!("Invalid dependency: {dependency:?}")
-            }
+            None => &request_without_match_resource,
           };
           s.split('!')
             .filter(|item| !item.is_empty())
