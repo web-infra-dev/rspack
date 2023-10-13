@@ -21,6 +21,11 @@ console.log(`total: ${filteredList.length}`);
 const falsePositiveMap = {
 	"cjs-export-computed-property":
 		"This one is false positive because webpack will not counted a esm export as unsed in an entry module, the previous implementation follows the esbuild behavior , see https://gist.github.com/IWANABETHATGUY/b41d0f80a558580010276a44b310a473",
+	basic: "align webpack unused binding behavior",
+	"context-module-elimated": "align webpack unused binding behavior",
+	"rollup-unused-called-import": "align webpack unused binding behavior",
+	"var-function-expr": "align webpack unused binding behavior",
+	"webpack-innergraph-no-side-effects": "align webpack unused binding behavior",
 };
 
 const normalizedList = filteredList.map((item) => {
@@ -37,10 +42,20 @@ let successedCount = normalizedList.filter((item) => {
 	return item.passed || !!item.reason;
 }).length;
 
-let failedCaseWithReason = normalizedList.filter(item => !item.passed).map(item => {
-	return `${item.name}${item.reason ? `:${item.reason}` : ""}`
-})
+let fasePositiveCases = normalizedList
+	.filter((item) => {
+		return !!item.reason;
+	})
+	.map((item) => {
+		return `${item.name}: ${item.reason}`;
+	});
+let failedCases = normalizedList
+	.filter((item) => !item.passed && !item.reason)
+	.map((item) => {
+		return item.name;
+	});
 
 console.log(`failed: ${filteredList.length - successedCount}`);
 console.log(`passed: ${successedCount}`);
-console.log("failed list:\n", failedCaseWithReason);
+console.log(`fasePositiveCases: ${fasePositiveCases.length}\n`, fasePositiveCases);
+console.log(`failedCases: ${failedCases.length}\n`, failedCases);
