@@ -106,7 +106,7 @@ impl ProgressPlugin {
           )
         } else {
           if i + 1 > full_state.len() || last_state_info[i].value != full_state[i] {
-            let diff = now - last_state_info[i].time;
+            let diff = (now - last_state_info[i].time).as_millis();
             let report_state = if i > 0 {
               last_state_info[i - 1].value.clone()
                 + " > "
@@ -114,10 +114,18 @@ impl ProgressPlugin {
             } else {
               last_state_info[i].value.clone()
             };
+
+            let mut color = "\x1b[32m";
+            if diff > 10000 {
+              color = "\x1b[31m"
+            } else if diff > 1000 {
+              color = "\x1b[33m"
+            }
             println!(
-              "{} {} ms {}",
+              "{}{} {} ms {}\x1B[0m",
+              color,
               " | ".repeat(i),
-              diff.as_millis(),
+              diff,
               report_state
             );
             if i + 1 > full_state.len() {
