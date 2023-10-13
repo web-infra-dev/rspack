@@ -180,7 +180,6 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
   fn visit_ident(&mut self, ident: &Ident) {
     if self.rewrite_usage_span.contains(&ident.span) {
       let span = ident.span;
-      let sym = ident.sym.clone();
       self.on_usage(Box::new(move |deps, used_by_exports| {
         let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
         if let Some(dep) = target_dep {
@@ -576,16 +575,7 @@ impl<'a> InnerGraphPlugin<'a> {
       }
     }
 
-    dbg!(&state.inner_graph);
-
-    // dbg!(&state
-    //   .usage_callback_map
-    //   .iter()
-    //   .map(|(k, v)| { (k.clone(), v.len()) })
-    //   .collect::<Vec<_>>());
-
     for (symbol, cbs) in state.usage_callback_map.iter() {
-      dbg!(&symbol, cbs.len());
       let usage = state.inner_graph.get(symbol);
       for cb in cbs {
         let used_by_exports = if let Some(usage) = usage {
