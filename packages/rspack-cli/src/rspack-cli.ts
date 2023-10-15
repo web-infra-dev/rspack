@@ -94,6 +94,7 @@ export class RspackCLI {
 			);
 		}
 
+		this.program.showHelpOnFail(false);
 		this.program.usage("[options]");
 		this.program.scriptName("rspack");
 		this.program.strictCommands(true).strict(true);
