@@ -10,7 +10,8 @@
 import {
 	RspackOptionsNormalized,
 	Compiler,
-	OptimizationRuntimeChunkNormalized
+	OptimizationRuntimeChunkNormalized,
+	RspackPluginFunction
 } from ".";
 import fs from "graceful-fs";
 
@@ -20,28 +21,138 @@ import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { cleverMerge } from "./util/cleverMerge";
 import assert from "assert";
 import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
+import EntryOptionPlugin from "./lib/EntryOptionPlugin";
+import {
+	ArrayPushCallbackChunkFormatPlugin,
+	CommonJsChunkFormatPlugin,
+	ElectronTargetPlugin,
+	EnableChunkLoadingPlugin,
+	EnableLibraryPlugin,
+	EnableWasmLoadingPlugin,
+	ExternalsPlugin,
+	HttpExternalsRspackPlugin,
+	ModuleChunkFormatPlugin,
+	NodeTargetPlugin
+} from "./builtin-plugin";
+
+export function optionsApply_compat(
+	compiler: Compiler,
+	options: RspackOptionsNormalized
+) {
+	if (compiler.parentCompilation === undefined) {
+		if (options.externals) {
+			assert(
+				options.externalsType,
+				"options.externalsType should have value after `applyRspackOptionsDefaults`"
+			);
+			new ExternalsPlugin(options.externalsType, options.externals).apply(
+				compiler
+			);
+		}
+
+		if (options.externalsPresets.node) {
+			new NodeTargetPlugin().apply(compiler);
+		}
+		if (options.externalsPresets.electronMain) {
+			new ElectronTargetPlugin("main").apply(compiler);
+		}
+		if (options.externalsPresets.electronPreload) {
+			new ElectronTargetPlugin("preload").apply(compiler);
+		}
+		if (options.externalsPresets.electronRenderer) {
+			new ElectronTargetPlugin("renderer").apply(compiler);
+		}
+		if (
+			options.externalsPresets.electron &&
+			!options.externalsPresets.electronMain &&
+			!options.externalsPresets.electronPreload &&
+			!options.externalsPresets.electronRenderer
+		) {
+			new ElectronTargetPlugin().apply(compiler);
+		}
+		if (
+			options.externalsPresets.web ||
+			options.externalsPresets.webAsync ||
+			(options.externalsPresets.node && options.experiments.css)
+		) {
+			new HttpExternalsRspackPlugin(
+				!!options.experiments.css,
+				!!options.externalsPresets.webAsync
+			).apply(compiler);
+		}
+
+		if (typeof options.output.chunkFormat === "string") {
+			switch (options.output.chunkFormat) {
+				case "array-push": {
+					new ArrayPushCallbackChunkFormatPlugin().apply(compiler);
+					break;
+				}
+				case "commonjs": {
+					new CommonJsChunkFormatPlugin().apply(compiler);
+					break;
+				}
+				case "module": {
+					new ModuleChunkFormatPlugin().apply(compiler);
+					break;
+				}
+				default:
+					throw new Error(
+						"Unsupported chunk format '" + options.output.chunkFormat + "'."
+					);
+			}
+		}
+
+		if (
+			options.output.enabledChunkLoadingTypes &&
+			options.output.enabledChunkLoadingTypes.length > 0
+		) {
+			for (const type of options.output.enabledChunkLoadingTypes) {
+				new EnableChunkLoadingPlugin(type).apply(compiler);
+			}
+		}
+
+		if (
+			options.output.enabledWasmLoadingTypes &&
+			options.output.enabledWasmLoadingTypes.length > 0
+		) {
+			for (const type of options.output.enabledWasmLoadingTypes) {
+				new EnableWasmLoadingPlugin(type).apply(compiler);
+			}
+		}
+
+		if (
+			options.output.enabledLibraryTypes &&
+			options.output.enabledLibraryTypes.length > 0
+		) {
+			for (const type of options.output.enabledLibraryTypes) {
+				new EnableLibraryPlugin(type).apply(compiler);
+			}
+		}
+
+		// TODO: change to new EntryOptionPlugin().apply(compiler);
+		EntryOptionPlugin.applyEntryOption(
+			compiler,
+			compiler.context,
+			options.entry
+		);
+
+		if (options.devServer?.hot) {
+			new compiler.webpack.HotModuleReplacementPlugin().apply(compiler);
+		}
+	}
+}
 
 export class RspackOptionsApply {
 	constructor() {}
 	process(options: RspackOptionsNormalized, compiler: Compiler) {
 		assert(
 			options.output.path,
-			"options.output.path should at least have a default value after `applyRspackOptionsDefaults`"
+			"options.output.path should have value after `applyRspackOptionsDefaults`"
 		);
 		compiler.outputPath = options.output.path;
 		compiler.name = options.name;
 		compiler.outputFileSystem = fs;
 
-		const { minimize, minimizer } = options.optimization;
-		if (minimize && minimizer) {
-			for (const item of minimizer) {
-				if (typeof item === "function") {
-					item.call(compiler, compiler);
-				} else if (item !== "...") {
-					item.apply(compiler);
-				}
-			}
-		}
 		const runtimeChunk = options.optimization
 			.runtimeChunk as OptimizationRuntimeChunkNormalized;
 		if (runtimeChunk) {
@@ -51,6 +162,24 @@ export class RspackOptionsApply {
 				}
 			});
 		}
+		// new EntryOptionPlugin().apply(compiler);
+		assert(
+			options.context,
+			"options.context should have value after `applyRspackOptionsDefaults`"
+		);
+		compiler.hooks.entryOption.call(options.context, options.entry);
+
+		const { minimize, minimizer } = options.optimization;
+		if (minimize && minimizer) {
+			for (const item of minimizer) {
+				if (typeof item === "function") {
+					(item as RspackPluginFunction).call(compiler, compiler);
+				} else if (item !== "...") {
+					item.apply(compiler);
+				}
+			}
+		}
+
 		if (options.builtins.devFriendlySplitChunks) {
 			options.optimization.splitChunks = undefined;
 		}

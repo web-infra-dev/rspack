@@ -4,9 +4,21 @@ export * from "./DefinePlugin";
 export * from "./ProvidePlugin";
 export * from "./BannerPlugin";
 export * from "./ProgressPlugin";
+export * from "./EntryPlugin";
+export * from "./ExternalsPlugin";
+export * from "./NodeTargetPlugin";
+export * from "./ElectronTargetPlugin";
+export * from "./HttpExternalsRspackPlugin";
+export * from "./EnableChunkLoadingPlugin";
+export * from "./EnableLibraryPlugin";
+export * from "./EnableWasmLoadingPlugin";
+export * from "./ArrayPushCallbackChunkFormatPlugin";
+export * from "./CommonJsChunkFormatPlugin";
+export * from "./ModuleChunkFormatPlugin";
+export * from "./HotModuleReplacementPlugin";
 
-export * from "./HtmlPlugin";
-export * from "./CopyPlugin";
+export * from "./HtmlRspackPlugin";
+export * from "./CopyRspackPlugin";
 export * from "./SwcJsMinimizerPlugin";
 export * from "./SwcCssMinimizerPlugin";
 
@@ -14,31 +26,40 @@ export * from "./SwcCssMinimizerPlugin";
 import {
 	RawDecoratorOptions,
 	RawPresetEnv,
-	RawProgressPluginConfig,
-	RawReactOptions,
-	RawRelayConfig,
-	RawPluginImportConfig,
+	RawProgressPluginOptions,
 	RawBuiltins,
 	RawCssModulesConfig
 } from "@rspack/binding";
-import { deprecatedWarn } from "../util";
-import { Compiler, RspackOptionsNormalized } from "..";
+import { termlink, deprecatedWarn } from "../util";
 import {
-	HtmlPluginOptions,
-	SwcJsMinimizerPluginOptions,
-	CopyPluginOptions,
+	Compiler,
+	CopyRspackPlugin,
+	CopyRspackPluginOptions,
+	HtmlRspackPlugin,
+	HtmlRspackPluginOptions,
+	RspackOptionsNormalized,
+	SwcCssMinimizerRspackPlugin,
+	SwcJsMinimizerRspackPlugin,
+	SwcJsMinimizerRspackPluginOptions
+} from "..";
+import {
 	BannerPluginOptions,
 	DefinePlugin,
 	ProvidePlugin,
 	ProgressPlugin,
-	HtmlPlugin,
-	CopyPlugin,
-	BannerPlugin,
-	SwcJsMinimizerPlugin,
-	SwcCssMinimizerPlugin
+	BannerPlugin
 } from ".";
 import { loadConfig } from "browserslist";
-import path from "path";
+import {
+	EmotionOptions,
+	PluginImportOptions,
+	ReactOptions,
+	RelayOptions,
+	resolveEmotion,
+	resolvePluginImport,
+	resolveReact,
+	resolveRelay
+} from "../builtin-loader/swc";
 
 type BuiltinsCssConfig = {
 	modules?: Partial<RawCssModulesConfig>;
@@ -71,8 +92,6 @@ type PluginImportConfig = {
 	ignoreEsComponent?: Array<string>;
 	ignoreStyleComponent?: Array<string>;
 };
-
-type RelayConfig = boolean | RawRelayConfig;
 
 function resolveTreeShaking(
 	treeShaking: Builtins["treeShaking"],
@@ -119,132 +138,24 @@ function resolveDecorator(
 	);
 }
 
-function resolveEmotion(
-	emotion: Builtins["emotion"],
-	isProduction: boolean
-): string | undefined {
-	if (!emotion) {
-		return undefined;
-	}
-
-	if (emotion === true) {
-		emotion = {};
-	}
-
-	const autoLabel = emotion?.autoLabel ?? "dev-only";
-
-	const emotionConfig: Builtins["emotion"] = {
-		enabled: true,
-		// @ts-expect-error autoLabel is string for JavaScript interface, however is boolean for Rust interface
-		autoLabel:
-			autoLabel === "dev-only" ? !isProduction : autoLabel === "always",
-		importMap: emotion?.importMap,
-		labelFormat: emotion?.labelFormat ?? "[local]",
-		sourcemap: isProduction ? false : emotion?.sourceMap ?? true
-	};
-
-	return JSON.stringify(emotionConfig);
-}
-
-function resolvePluginImport(
-	pluginImport?: PluginImportConfig[]
-): RawPluginImportConfig[] | undefined {
-	if (!pluginImport) {
-		return undefined;
-	}
-
-	return pluginImport.map(config => {
-		const rawConfig: RawPluginImportConfig = {
-			...config,
-			style: {} // As babel-plugin-import style config is very flexible, we convert it to a more specific structure
-		};
-
-		if (typeof config.style === "boolean") {
-			rawConfig.style!.bool = config.style;
-		} else if (typeof config.style === "string") {
-			const isTpl = config.style.includes("{{");
-			rawConfig.style![isTpl ? "custom" : "css"] = config.style;
-		}
-
-		// This option will overrides the behavior of style
-		if (config.styleLibraryDirectory) {
-			rawConfig.style = { styleLibraryDirectory: config.styleLibraryDirectory };
-		}
-
-		return rawConfig;
-	});
-}
-
-function resolveRelay(
-	relay: RelayConfig,
-	rootDir: string
-): RawRelayConfig | undefined {
-	if (!relay) {
-		return undefined;
-	}
-
-	// Search relay config based on
-	if (relay === true) {
-		return (
-			getRelayConfigFromProject(rootDir) || {
-				language: "javascript"
-			}
-		);
-	} else {
-		return relay;
-	}
-}
-
-function getRelayConfigFromProject(
-	rootDir: string
-): RawRelayConfig | undefined {
-	for (const configName of [
-		"relay.config.json",
-		"relay.config.js",
-		"package.json"
-	]) {
-		const configPath = path.join(rootDir, configName);
-		try {
-			let config = require(configPath) as
-				| Partial<RawRelayConfig>
-				| { relay?: Partial<RawRelayConfig> }
-				| undefined;
-
-			let finalConfig: Partial<RawRelayConfig> | undefined;
-			if (configName === "package.json") {
-				finalConfig = (config as { relay?: Partial<RawRelayConfig> })?.relay;
-			} else {
-				finalConfig = config as Partial<RawRelayConfig> | undefined;
-			}
-
-			if (finalConfig) {
-				return {
-					language: finalConfig.language!,
-					artifactDirectory: finalConfig.artifactDirectory
-				};
-			}
-		} catch (_) {}
-	}
-}
-
 export interface Builtins {
 	css?: BuiltinsCssConfig;
 	treeShaking?: boolean | "module";
-	progress?: boolean | RawProgressPluginConfig;
-	react?: RawReactOptions;
+	progress?: boolean | RawProgressPluginOptions;
 	noEmitAssets?: boolean;
 	define?: Record<string, string | boolean | undefined>;
 	provide?: Record<string, string | string[]>;
-	html?: Array<HtmlPluginOptions>;
+	html?: Array<HtmlRspackPluginOptions>;
 	decorator?: boolean | Partial<RawDecoratorOptions>;
-	minifyOptions?: SwcJsMinimizerPluginOptions;
-	emotion?: boolean | EmotionConfig;
+	minifyOptions?: SwcJsMinimizerRspackPluginOptions;
 	presetEnv?: Partial<RawPresetEnv>;
 	devFriendlySplitChunks?: boolean;
-	copy?: CopyPluginOptions;
+	copy?: CopyRspackPluginOptions;
 	banner?: BannerPluginOptions | BannerPluginOptions[];
-	pluginImport?: PluginImportConfig[];
-	relay?: boolean | RawRelayConfig;
+	react?: ReactOptions;
+	pluginImport?: PluginImportOptions;
+	emotion?: EmotionOptions;
+	relay?: RelayOptions;
 }
 
 export function deprecated_resolveBuiltins(
@@ -252,10 +163,6 @@ export function deprecated_resolveBuiltins(
 	options: RspackOptionsNormalized,
 	compiler: Compiler
 ): RawBuiltins {
-	const defaultEnableDeprecatedWarning = false;
-	const enableDeprecatedWarning =
-		(process.env.RSPACK_BUILTINS_DEPRECATED ??
-			`${defaultEnableDeprecatedWarning}`) !== "false";
 	// deprecatedWarn(
 	// 	`'configuration.builtins' has been deprecated, and will be drop support in 0.6.0, please follow ${termlink(
 	// 		"the migration guide",
@@ -269,8 +176,10 @@ export function deprecated_resolveBuiltins(
 		deprecatedWarn(
 			`'builtins.define = ${JSON.stringify(
 				builtins.define
-			)}' has been deprecated, please migrate to rspack.DefinePlugin`,
-			enableDeprecatedWarning
+			)}' has been deprecated, please migrate to ${termlink(
+				"rspack.DefinePlugin",
+				"https://www.rspack.dev/config/plugins.html#defineplugin"
+			)}`
 		);
 		new DefinePlugin(builtins.define).apply(compiler);
 	}
@@ -278,8 +187,10 @@ export function deprecated_resolveBuiltins(
 		deprecatedWarn(
 			`'builtins.provide = ${JSON.stringify(
 				builtins.provide
-			)}' has been deprecated, please migrate to rspack.ProvidePlugin`,
-			enableDeprecatedWarning
+			)}' has been deprecated, please migrate to ${termlink(
+				"rspack.ProvidePlugin",
+				"https://www.rspack.dev/config/plugins.html#provideplugin"
+			)}`
 		);
 		new ProvidePlugin(builtins.provide).apply(compiler);
 	}
@@ -287,8 +198,10 @@ export function deprecated_resolveBuiltins(
 		deprecatedWarn(
 			`'builtins.progress = ${JSON.stringify(
 				builtins.progress
-			)}' has been deprecated, please migrate to rspack.ProgressPlugin`,
-			enableDeprecatedWarning
+			)}' has been deprecated, please migrate to ${termlink(
+				"rspack.ProgressPlugin",
+				"https://www.rspack.dev/config/plugins.html#progressplugin"
+			)}`
 		);
 		const progress = builtins.progress === true ? {} : builtins.progress;
 		new ProgressPlugin(progress).apply(compiler);
@@ -297,8 +210,10 @@ export function deprecated_resolveBuiltins(
 		deprecatedWarn(
 			`'builtins.banner = ${JSON.stringify(
 				builtins.banner
-			)}' has been deprecated, please migrate to rspack.BannerPlugin`,
-			enableDeprecatedWarning
+			)}' has been deprecated, please migrate to ${termlink(
+				"rspack.BannerPlugin",
+				"https://www.rspack.dev/config/plugins.html#bannerplugin"
+			)}`
 		);
 		if (Array.isArray(builtins.banner)) {
 			for (const banner of builtins.banner) {
@@ -313,36 +228,45 @@ export function deprecated_resolveBuiltins(
 		deprecatedWarn(
 			`'builtins.html = ${JSON.stringify(
 				builtins.html
-			)}' has been deprecated, please migrate to rspack.HtmlPlugin`,
-			enableDeprecatedWarning
+			)}' has been deprecated, please migrate to ${termlink(
+				"rspack.HtmlRspackPlugin",
+				"https://www.rspack.dev/config/plugins.html#htmlrspackplugin"
+			)}`
 		);
 		for (const html of builtins.html) {
-			new HtmlPlugin(html).apply(compiler);
+			new HtmlRspackPlugin(html).apply(compiler);
 		}
 	}
 	if (builtins.copy) {
 		deprecatedWarn(
 			`'builtins.copy = ${JSON.stringify(
 				builtins.copy
-			)}' has been deprecated, please migrate to rspack.CopyPlugin`,
-			enableDeprecatedWarning
+			)}' has been deprecated, please migrate to ${termlink(
+				"rspack.CopyRspackPlugin",
+				"https://www.rspack.dev/config/plugins.html#copyrspackplugin"
+			)}`
 		);
-		new CopyPlugin(builtins.copy).apply(compiler);
+		new CopyRspackPlugin(builtins.copy).apply(compiler);
 	}
 	if (builtins.minifyOptions) {
 		deprecatedWarn(
 			`'builtins.minifyOptions = ${JSON.stringify(
 				builtins.minifyOptions
-			)}' has been deprecated, please migrate to rspack.SwcJsMinimizerPlugin and rspack.SwcCssMinimizerPlugin`,
-			enableDeprecatedWarning
+			)}' has been deprecated, please migrate to ${termlink(
+				"rspack.SwcJsMinimizerRspackPlugin",
+				"https://www.rspack.dev/config/plugins.html#SwcJsMinimizerRspackPlugin"
+			)} and ${termlink(
+				"rspack.SwcCssMinimizerRspackPlugin",
+				"https://www.rspack.dev/config/plugins.html#SwcCssMinimizerRspackPlugin"
+			)}`
 		);
 	}
 	const disableMinify =
 		!options.optimization.minimize ||
 		options.optimization.minimizer!.some(item => item !== "...");
 	if (!disableMinify) {
-		new SwcJsMinimizerPlugin(builtins.minifyOptions).apply(compiler);
-		new SwcCssMinimizerPlugin().apply(compiler);
+		new SwcJsMinimizerRspackPlugin(builtins.minifyOptions).apply(compiler);
+		new SwcCssMinimizerRspackPlugin().apply(compiler);
 	}
 
 	let noEmitAssets = false;
@@ -350,10 +274,34 @@ export function deprecated_resolveBuiltins(
 		deprecatedWarn(
 			`'builtins.noEmitAssets = ${JSON.stringify(
 				builtins.noEmitAssets
-			)}' has been deprecated, this is only a temporary workaround for memory output FS, since Rspack have already supported memory output FS, so you can safely remove this`,
-			enableDeprecatedWarning
+			)}' has been deprecated, this is only a temporary workaround for memory output FS, since Rspack have already supported memory output FS, so you can safely remove this`
 		);
 		noEmitAssets = true;
+	}
+
+	if (options.experiments.rspackFuture?.disableTransformByDefault) {
+		(
+			[
+				"react",
+				"pluginImport",
+				"decorator",
+				"presetEnv",
+				"emotion",
+				"relay"
+			] as const
+		).forEach(key => {
+			if (builtins[key]) {
+				deprecatedWarn(
+					`'builtins.${key} = ${JSON.stringify(
+						builtins[key]
+					)}' only works for 'experiments.rspackFuture.disableTransformByDefault = false', please migrate to ${termlink(
+						"builtin:swc-loader options",
+						"https://www.rspack.dev/guide/loader.html#builtinswc-loader"
+					)}`,
+					true
+				);
+			}
+		});
 	}
 
 	return {
@@ -371,15 +319,15 @@ export function deprecated_resolveBuiltins(
 			  }
 			: undefined,
 		treeShaking: resolveTreeShaking(builtins.treeShaking, production),
-		react: builtins.react ?? {},
 		noEmitAssets: noEmitAssets,
 		presetEnv: resolvePresetEnv(builtins.presetEnv, contextPath),
 		decorator: resolveDecorator(builtins.decorator),
-		emotion: resolveEmotion(builtins.emotion, production),
 		devFriendlySplitChunks: builtins.devFriendlySplitChunks ?? false,
+		react: resolveReact(builtins.react),
 		pluginImport: resolvePluginImport(builtins.pluginImport),
-		relay: builtins.relay
-			? resolveRelay(builtins.relay, contextPath)
-			: undefined
+		emotion: builtins.emotion
+			? JSON.stringify(resolveEmotion(builtins.emotion, production))
+			: undefined,
+		relay: resolveRelay(builtins.relay, contextPath)
 	};
 }

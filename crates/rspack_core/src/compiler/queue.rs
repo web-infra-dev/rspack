@@ -9,6 +9,7 @@ use crate::{
   ModuleProfile, ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve,
   ResolverFactory, SharedPluginDriver, WorkerQueue,
 };
+use crate::{ExportInfo, ExportsInfo, UsageState};
 
 #[derive(Debug)]
 pub enum TaskResult {
@@ -41,6 +42,13 @@ pub struct FactorizeTask {
   pub current_profile: Option<Box<ModuleProfile>>,
 }
 
+/// a struct temporarily used creating ExportsInfo
+#[derive(Debug)]
+pub struct ExportsInfoRelated {
+  pub exports_info: ExportsInfo,
+  pub other_exports_info: ExportInfo,
+  pub side_effects_info: ExportInfo,
+}
 #[derive(Debug)]
 pub struct FactorizeTaskResult {
   pub original_module_identifier: Option<ModuleIdentifier>,
@@ -50,6 +58,8 @@ pub struct FactorizeTaskResult {
   pub diagnostics: Vec<Diagnostic>,
   pub is_entry: bool,
   pub current_profile: Option<Box<ModuleProfile>>,
+  pub exports_info_related: ExportsInfoRelated,
+  pub from_cache: bool,
 }
 
 #[async_trait::async_trait]
@@ -108,7 +118,18 @@ impl WorkerTask for FactorizeTask {
       }
     };
 
-    let mgm = ModuleGraphModule::new(result.module.identifier(), *result.module.module_type());
+    let other_exports_info = ExportInfo::new(None, UsageState::Unknown, None);
+    let side_effects_only_info = ExportInfo::new(
+      Some("*side effects only*".into()),
+      UsageState::Unknown,
+      None,
+    );
+    let exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
+    let mgm = ModuleGraphModule::new(
+      result.module.identifier(),
+      *result.module.module_type(),
+      exports_info.id,
+    );
 
     if let Some(current_profile) = &self.current_profile {
       current_profile.mark_factory_end();
@@ -117,11 +138,17 @@ impl WorkerTask for FactorizeTask {
     Ok(TaskResult::Factorize(Box::new(FactorizeTaskResult {
       is_entry: self.is_entry,
       original_module_identifier: self.original_module_identifier,
+      from_cache: result.from_cache,
       factory_result: result,
       module_graph_module: Box::new(mgm),
       dependencies: self.dependencies,
       diagnostics,
       current_profile: self.current_profile,
+      exports_info_related: ExportsInfoRelated {
+        exports_info,
+        other_exports_info,
+        side_effects_info: side_effects_only_info,
+      },
     })))
   }
 }
@@ -235,6 +262,7 @@ pub struct BuildTaskResult {
   pub build_result: Box<BuildResult>,
   pub diagnostics: Vec<Diagnostic>,
   pub current_profile: Option<Box<ModuleProfile>>,
+  pub from_cache: bool,
 }
 
 #[async_trait::async_trait]
@@ -253,7 +281,10 @@ impl WorkerTask for BuildTask {
     let (build_result, is_cache_valid) = match cache
       .build_module_occasion
       .use_cache(&mut module, |module| async {
-        plugin_driver.build_module(module.as_mut()).await?;
+        plugin_driver
+          .build_module(module.as_mut())
+          .await
+          .unwrap_or_else(|e| panic!("Run build_module hook failed: {}", e));
 
         let result = module
           .build(BuildContext {
@@ -266,9 +297,12 @@ impl WorkerTask for BuildTask {
           })
           .await;
 
-        plugin_driver.succeed_module(&**module).await?;
+        plugin_driver
+          .succeed_module(&**module)
+          .await
+          .unwrap_or_else(|e| panic!("Run succeed_module hook failed: {}", e));
 
-        result
+        result.map(|t| (t, module))
       })
       .await
     {
@@ -292,6 +326,7 @@ impl WorkerTask for BuildTask {
         build_result: Box::new(build_result),
         diagnostics,
         current_profile: self.current_profile,
+        from_cache: is_cache_valid,
       }))
     })
   }

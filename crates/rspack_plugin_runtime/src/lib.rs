@@ -43,7 +43,7 @@ pub fn enable_chunk_loading_plugin(loading_type: ChunkLoadingType, plugins: &mut
       plugins.push(
         StartupChunkDependenciesPlugin::new(
           ChunkLoading::Enable(ChunkLoadingType::AsyncNode),
-          false,
+          true,
         )
         .boxed(),
       );

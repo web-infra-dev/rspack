@@ -23,7 +23,7 @@ import {
 import { normalizeEnv } from "./utils/options";
 import { loadRspackConfig } from "./utils/loadConfig";
 import findConfig from "./utils/findConfig";
-import { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
+import type { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
 import path from "path";
 
 type Command = "serve" | "build";
@@ -94,6 +94,7 @@ export class RspackCLI {
 			);
 		}
 
+		this.program.showHelpOnFail(false);
 		this.program.usage("[options]");
 		this.program.scriptName("rspack");
 		this.program.strictCommands(true).strict(true);

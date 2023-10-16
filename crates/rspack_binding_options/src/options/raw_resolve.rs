@@ -1,12 +1,25 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 use napi_derive::napi;
-use rspack_core::{Alias, AliasMap, ByDependency, DependencyCategory, Resolve};
+use rspack_core::{
+  Alias, AliasMap, ByDependency, DependencyCategory, Resolve, TsconfigOptions, TsconfigReferences,
+};
 use serde::Deserialize;
 
 pub type AliasValue = serde_json::Value;
 
 type RawAliasOption = HashMap<String, Vec<AliasValue>>;
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawResolveTsconfigOptions {
+  pub config_file: String,
+  #[napi(ts_type = r#""auto" | "manual" | "disabled""#)]
+  pub references_type: String,
+  pub references: Option<Vec<String>>,
+}
+
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
@@ -24,7 +37,7 @@ pub struct RawResolveOptions {
   #[napi(ts_type = "Record<string, Array<string | false>>")]
   pub fallback: Option<RawAliasOption>,
   pub symlinks: Option<bool>,
-  pub ts_config_path: Option<String>,
+  pub tsconfig: Option<RawResolveTsconfigOptions>,
   pub modules: Option<Vec<String>>,
   pub by_dependency: Option<HashMap<String, RawResolveOptions>>,
   pub fully_specified: Option<bool>,
@@ -82,7 +95,10 @@ impl TryFrom<RawResolveOptions> for Resolve {
     let alias = normalize_alias(value.alias)?;
     let fallback = normalize_alias(value.fallback)?;
     let modules = value.modules;
-    let tsconfig = value.ts_config_path.map(std::path::PathBuf::from);
+    let tsconfig = match value.tsconfig {
+      Some(config) => Some(TsconfigOptions::try_from(config)?),
+      None => None,
+    };
     let by_dependency = value
       .by_dependency
       .map(|i| {
@@ -114,6 +130,25 @@ impl TryFrom<RawResolveOptions> for Resolve {
       fully_specified,
       exports_field,
       extension_alias,
+    })
+  }
+}
+
+impl TryFrom<RawResolveTsconfigOptions> for TsconfigOptions {
+  type Error = rspack_error::Error;
+  fn try_from(value: RawResolveTsconfigOptions) -> Result<Self, Self::Error> {
+    let references = match value.references_type.as_str() {
+      "manual" => TsconfigReferences::Paths(value.references.unwrap_or_default().into_iter().map(PathBuf::from).collect()),
+      "auto" => TsconfigReferences::Auto,
+      "disabled" => TsconfigReferences::Disabled,
+      _ => panic!(
+          "Failed to resolve the references type {}. Expected type is `auto`, `manual` or `disabled`.",
+          value.references_type
+      )
+  };
+    Ok(TsconfigOptions {
+      config_file: PathBuf::from(value.config_file),
+      references,
     })
   }
 }

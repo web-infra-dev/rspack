@@ -38,4 +38,16 @@ impl CompilerOptions {
   pub fn is_incremental_rebuild_emit_asset_enabled(&self) -> bool {
     self.experiments.incremental_rebuild.emit_asset
   }
+
+  pub fn is_new_tree_shaking(&self) -> bool {
+    self.experiments.rspack_future.new_treeshaking
+  }
+
+  /// This controls whether we're using the old Rspack behavior to transform a module.
+  /// - `true`: use the old strategy, and transform the non web standard modules into a standardized one.
+  ///           `Rule.type` that are not supported by webpack is not usable.
+  /// - `false`: use the new strategy, only web-standard modules are supported.
+  pub fn should_transform_by_default(&self) -> bool {
+    !self.experiments.rspack_future.disable_transform_by_default
+  }
 }

@@ -30,7 +30,8 @@ use crate::{
   BuildMeta, BuildResult, CodeGenerationResult, Compilation, CompilerOptions, ConnectionState,
   Context, DependencyTemplate, GenerateContext, GeneratorOptions, LibIdentOptions,
   LoaderRunnerPluginProcessResource, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, SourceType,
+  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RuntimeSpec,
+  SourceType,
 };
 
 bitflags! {
@@ -119,7 +120,7 @@ pub struct NormalModule {
   presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum NormalModuleSource {
   Unbuild,
   BuiltSucceed(BoxSource),
@@ -194,6 +195,10 @@ impl NormalModule {
     }
   }
 
+  pub fn id(&self) -> ModuleIdentifier {
+    self.id
+  }
+
   pub fn match_resource(&self) -> Option<&ResourceData> {
     self.match_resource.as_ref()
   }
@@ -232,6 +237,34 @@ impl NormalModule {
 
   pub fn contains_inline_loader(&self) -> bool {
     self.contains_inline_loader
+  }
+
+  pub fn parser_and_generator(&self) -> &dyn ParserAndGenerator {
+    &*self.parser_and_generator
+  }
+
+  pub fn parser_and_generator_mut(&mut self) -> &mut Box<dyn ParserAndGenerator> {
+    &mut self.parser_and_generator
+  }
+
+  pub fn code_generation_dependencies(&self) -> &Option<Vec<Box<dyn ModuleDependency>>> {
+    &self.code_generation_dependencies
+  }
+
+  pub fn code_generation_dependencies_mut(
+    &mut self,
+  ) -> &mut Option<Vec<Box<dyn ModuleDependency>>> {
+    &mut self.code_generation_dependencies
+  }
+
+  pub fn presentational_dependencies(&self) -> &Option<Vec<Box<dyn DependencyTemplate>>> {
+    &self.presentational_dependencies
+  }
+
+  pub fn presentational_dependencies_mut(
+    &mut self,
+  ) -> &mut Option<Vec<Box<dyn DependencyTemplate>>> {
+    &mut self.presentational_dependencies
   }
 }
 
@@ -373,7 +406,11 @@ impl Module for NormalModule {
     )
   }
 
-  fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
+  fn code_generation(
+    &self,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<CodeGenerationResult> {
     if let NormalModuleSource::BuiltSucceed(source) = &self.source {
       let mut code_generation_result = CodeGenerationResult::default();
       for source_type in self.source_types() {
@@ -386,6 +423,7 @@ impl Module for NormalModule {
             runtime_requirements: &mut code_generation_result.runtime_requirements,
             data: &mut code_generation_result.data,
             requested_source_type: *source_type,
+            runtime,
           },
         )?;
         code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
@@ -468,8 +506,8 @@ impl Module for NormalModule {
     module_chain: &mut HashSet<ModuleIdentifier>,
   ) -> ConnectionState {
     if let Some(mgm) = module_graph.module_graph_module_by_identifier(&self.identifier()) {
-      if let Some(side_effect) = mgm.factory_meta.as_ref().and_then(|m| m.side_effects) {
-        return ConnectionState::Bool(side_effect);
+      if let Some(side_effect_free) = mgm.factory_meta.as_ref().and_then(|m| m.side_effect_free) {
+        return ConnectionState::Bool(!side_effect_free);
       }
       if let Some(side_effect_free) = mgm.build_meta.as_ref().and_then(|m| m.side_effect_free) && side_effect_free {
         // use module chain instead of is_evaluating_side_effects to mut module graph
@@ -479,16 +517,18 @@ impl Module for NormalModule {
         module_chain.insert(self.identifier());
         let mut current = ConnectionState::Bool(false);
         for dependency_id in mgm.dependencies.iter() {
-          if let Some(dependency) = module_graph.dependency_by_id(dependency_id).expect("should have dependency").as_module_dependency() {
+          if let Some(dependency) = module_graph.dependency_by_id(dependency_id) {
             let state = dependency.get_module_evaluation_side_effects_state(module_graph, module_chain);
             if matches!(state, ConnectionState::Bool(true)) {
               // TODO add optimization bailout
+              module_chain.remove(&self.identifier());
               return ConnectionState::Bool(true);
-            } else if matches!(state, ConnectionState::CircularConnection) {
+            } else if !matches!(state, ConnectionState::CircularConnection) {
               current = add_connection_states(current, state);
             }
           }
         }
+        module_chain.remove(&self.identifier());
         return current;
       }
     }

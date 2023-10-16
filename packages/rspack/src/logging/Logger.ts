@@ -27,7 +27,8 @@ export const LogType = Object.freeze({
 	time: /** @type {"time"} */ "time", // name, time as [seconds, nanoseconds]
 
 	clear: /** @type {"clear"} */ "clear", // no arguments
-	status: /** @type {"status"} */ "status" // message, arguments
+	status: /** @type {"status"} */ "status", // message, arguments
+	cache: /** @type {"cache"} */ "cache" // [hit, total]
 });
 
 export function getLogTypeBitFlag(type: LogTypeEnum) {

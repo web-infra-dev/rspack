@@ -706,7 +706,6 @@ function iteratePitchingLoaders(
 		}
 		const fn = currentLoaderObject.pitch;
 		currentLoaderObject.pitchExecuted = true;
-
 		if (!fn) return iteratePitchingLoaders(loaderContext, args, callback);
 
 		runSyncOrAsync(

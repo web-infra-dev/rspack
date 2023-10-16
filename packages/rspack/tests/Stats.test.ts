@@ -1,5 +1,6 @@
 import * as util from "util";
-import { rspack, RspackOptions } from "../src";
+import path from "path";
+import { rspack, RspackOptions, Stats } from "../src";
 import serializer from "jest-serializer-path";
 
 expect.addSnapshotSerializer(serializer);
@@ -23,139 +24,7 @@ describe("Stats", () => {
 			version: false
 		};
 		expect(typeof stats?.hash).toBe("string");
-		expect(stats?.toJson(statsOptions)).toMatchInlineSnapshot(`
-		{
-		  "assets": [
-		    {
-		      "chunkNames": [
-		        "main",
-		      ],
-		      "chunks": [
-		        "main",
-		      ],
-		      "emitted": true,
-		      "info": {
-		        "development": false,
-		        "hotModuleReplacement": false,
-		      },
-		      "name": "main.js",
-		      "size": 215,
-		      "type": "asset",
-		    },
-		  ],
-		  "assetsByChunkName": {
-		    "main": [
-		      "main.js",
-		    ],
-		  },
-		  "chunks": [
-		    {
-		      "auxiliaryFiles": [],
-		      "children": [],
-		      "entry": true,
-		      "files": [
-		        "main.js",
-		      ],
-		      "id": "main",
-		      "initial": true,
-		      "modules": [
-		        {
-		          "assets": [],
-		          "chunks": [
-		            "main",
-		          ],
-		          "id": "876",
-		          "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
-		          "issuerPath": [],
-		          "moduleType": "javascript/auto",
-		          "name": "./fixtures/a.js",
-		          "reasons": [
-		            {
-		              "type": "entry",
-		              "userRequest": "./fixtures/a",
-		            },
-		          ],
-		          "size": 55,
-		          "source": "module.exports = function a() {
-			return "This is a";
-		};",
-		          "type": "module",
-		        },
-		      ],
-		      "names": [
-		        "main",
-		      ],
-		      "parents": [],
-		      "siblings": [],
-		      "size": 55,
-		      "type": "chunk",
-		    },
-		  ],
-		  "entrypoints": {
-		    "main": {
-		      "assets": [
-		        {
-		          "name": "main.js",
-		          "size": 215,
-		        },
-		      ],
-		      "assetsSize": 215,
-		      "chunks": [
-		        "main",
-		      ],
-		      "name": "main",
-		    },
-		  },
-		  "errors": [],
-		  "errorsCount": 0,
-		  "filteredModules": undefined,
-		  "hash": "b32fac08a5e8721cacff",
-		  "logging": {},
-		  "modules": [
-		    {
-		      "assets": [],
-		      "chunks": [
-		        "main",
-		      ],
-		      "id": "876",
-		      "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
-		      "issuerPath": [],
-		      "moduleType": "javascript/auto",
-		      "name": "./fixtures/a.js",
-		      "reasons": [
-		        {
-		          "type": "entry",
-		          "userRequest": "./fixtures/a",
-		        },
-		      ],
-		      "size": 55,
-		      "source": "module.exports = function a() {
-			return "This is a";
-		};",
-		      "type": "module",
-		    },
-		  ],
-		  "namedChunkGroups": {
-		    "main": {
-		      "assets": [
-		        {
-		          "name": "main.js",
-		          "size": 215,
-		        },
-		      ],
-		      "assetsSize": 215,
-		      "chunks": [
-		        "main",
-		      ],
-		      "name": "main",
-		    },
-		  },
-		  "outputPath": "<PROJECT_ROOT>/dist",
-		  "publicPath": "auto",
-		  "warnings": [],
-		  "warningsCount": 0,
-		}
-	`);
+		expect(stats?.toJson(statsOptions)).toMatchSnapshot();
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
 		"PublicPath: auto
 		asset main.js 215 bytes {main} [emitted] (name: main)
@@ -165,7 +34,7 @@ describe("Stats", () => {
 		    entry ./fixtures/a
 		./fixtures/a.js [876] {main}
 		  entry ./fixtures/a
-		rspack compiled successfully (b32fac08a5e8721cacff)"
+		Rspack compiled successfully (9608c01366e871cd4b26)"
 	`);
 	});
 
@@ -190,12 +59,12 @@ describe("Stats", () => {
 			stats?.toString({ timings: false, version: false }).replace(/\\/g, "/")
 		).toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 419 bytes {main} [emitted] (name: main)
+		asset main.js 419 bytes [emitted] (name: main)
 		Entrypoint main 419 bytes = main.js
-		./fixtures/a.js [876] {main}
-		./fixtures/b.js [211] {main}
-		./fixtures/c.js [537] {main}
-		./fixtures/abc.js [222] {main}
+		./fixtures/a.js
+		./fixtures/b.js
+		./fixtures/c.js
+		./fixtures/abc.js
 
 		error[javascript]: JavaScript parsing error
 		  ┌─ tests/fixtures/b.js:6:1
@@ -210,8 +79,50 @@ describe("Stats", () => {
 
 
 
-		rspack compiled with 1 error (27ec1c09308b67dcfd6f)"
+		Rspack compiled with 1 error (40d126348f49dbce14a2)"
 	`);
+	});
+
+	it("should output stats with query", async () => {
+		const stats = await compile({
+			context: __dirname,
+			entry: "./fixtures/abc-query"
+		});
+
+		const statsOptions = {
+			all: true,
+			timings: false,
+			builtAt: false,
+			version: false
+		};
+		expect(stats?.toJson(statsOptions)).toMatchSnapshot();
+	});
+
+	it("should output the specified number of modules when set stats.modulesSpace", async () => {
+		const stats = await compile({
+			context: __dirname,
+			entry: "./fixtures/abc"
+		});
+
+		expect(
+			stats?.toJson({
+				all: true,
+				timings: false,
+				builtAt: false,
+				version: false
+			}).modules?.length
+		).toBe(4);
+
+		expect(
+			stats?.toJson({
+				all: true,
+				timings: false,
+				builtAt: false,
+				version: false,
+				modulesSpace: 3
+			}).modules?.length
+			// 2 = 3 - 1 = max - filteredChildrenLineReserved
+		).toBe(2);
 	});
 
 	it("should have time log when logging verbose", async () => {
@@ -226,7 +137,13 @@ describe("Stats", () => {
 				.replace(/\d+ ms/g, "X ms")
 		).toMatchInlineSnapshot(`
 		"LOG from rspack.Compilation
+		<t> make hook: X ms
+		<t> module add task: X ms
+		<t> module process dependencies task: X ms
+		<t> module factorize task: X ms
+		<t> module build task: X ms
 		<t> finish modules: X ms
+		<t> optimize dependencies: X ms
 		<t> optimize dependencies: X ms
 		<t> create chunks: X ms
 		<t> optimize: X ms
@@ -245,11 +162,6 @@ describe("Stats", () => {
 		<t> process assets: X ms
 
 		LOG from rspack.Compiler
-		<t> make hook: X ms
-		<t> module add task: X ms
-		<t> module process dependencies task: X ms
-		<t> module factorize task: X ms
-		<t> module build task: X ms
 		<t> make: X ms
 		<t> finish make hook: X ms
 		<t> finish compilation: X ms
@@ -294,17 +206,148 @@ describe("Stats", () => {
 				.replace(/\\/g, "/")
 				.replace(/\d+ ms/g, "X ms")
 		).toMatchInlineSnapshot(`
-		"./fixtures/a.js [876] {main}
-		  [222] ->
+		"./fixtures/a.js
 		  X ms (resolving: X ms, integration: X ms, building: X ms)
-		./fixtures/b.js [211] {main}
-		  [222] ->
+		./fixtures/b.js
 		  X ms (resolving: X ms, integration: X ms, building: X ms)
-		./fixtures/c.js [537] {main}
-		  [222] ->
+		./fixtures/c.js
 		  X ms (resolving: X ms, integration: X ms, building: X ms)
-		./fixtures/abc.js [222] {main}
+		./fixtures/abc.js
 		  X ms (resolving: X ms, integration: X ms, building: X ms)"
+	`);
+	});
+
+	it("should have cache hits log when logging verbose and cache is enabled", async () => {
+		const compiler = rspack({
+			context: __dirname,
+			entry: "./fixtures/abc",
+			cache: true,
+			experiments: {
+				incrementalRebuild: false
+			}
+		});
+		await new Promise<void>((resolve, reject) => {
+			compiler.build(err => {
+				if (err) {
+					return reject(err);
+				}
+				resolve();
+			});
+		});
+		const stats = await new Promise<string>((resolve, reject) => {
+			compiler.rebuild(
+				new Set([path.join(__dirname, "./fixtures/a")]),
+				new Set(),
+				err => {
+					if (err) {
+						return reject(err);
+					}
+					const stats = new Stats(compiler.compilation).toString({
+						all: false,
+						logging: "verbose"
+					});
+					resolve(stats);
+				}
+			);
+		});
+		expect(stats).toContain("module build cache: 100.0% (4/4)");
+		expect(stats).toContain("module factorize cache: 100.0% (5/5)");
+		expect(stats).toContain("module code generation cache: 100.0% (4/4)");
+	});
+
+	it("should not have any cache hits log when cache is disabled", async () => {
+		const compiler = rspack({
+			context: __dirname,
+			entry: "./fixtures/abc",
+			cache: false,
+			experiments: {
+				incrementalRebuild: false
+			}
+		});
+		await new Promise<void>((resolve, reject) => {
+			compiler.build(err => {
+				if (err) {
+					return reject(err);
+				}
+				resolve();
+			});
+		});
+		const stats = await new Promise<string>((resolve, reject) => {
+			compiler.rebuild(
+				new Set([path.join(__dirname, "./fixtures/a")]),
+				new Set(),
+				err => {
+					if (err) {
+						return reject(err);
+					}
+					const stats = new Stats(compiler.compilation).toString({
+						all: false,
+						logging: "verbose"
+					});
+					resolve(stats);
+				}
+			);
+		});
+		expect(stats).not.toContain("module build cache");
+		expect(stats).not.toContain("module factorize cache");
+		expect(stats).not.toContain("module code generation cache");
+	});
+
+	it("should have any cache hits log of modules in incremental rebuild mode", async () => {
+		const compiler = rspack({
+			context: __dirname,
+			entry: "./fixtures/abc",
+			cache: true,
+			experiments: {
+				incrementalRebuild: true
+			}
+		});
+		await new Promise<void>((resolve, reject) => {
+			compiler.build(err => {
+				if (err) {
+					return reject(err);
+				}
+				resolve();
+			});
+		});
+		const stats = await new Promise<string>((resolve, reject) => {
+			compiler.rebuild(
+				new Set([path.join(__dirname, "./fixtures/a")]),
+				new Set(),
+				err => {
+					if (err) {
+						return reject(err);
+					}
+					const stats = new Stats(compiler.compilation).toString({
+						all: false,
+						logging: "verbose"
+					});
+					resolve(stats);
+				}
+			);
+		});
+		expect(stats).toContain("module build cache: 100.0% (1/1)");
+		expect(stats).toContain("module factorize cache: 100.0% (1/1)");
+		expect(stats).toContain("module code generation cache: 100.0% (4/4)");
+	});
+
+	it("should have ids when ids is true", async () => {
+		const stats = await compile({
+			context: __dirname,
+			entry: "./fixtures/a"
+		});
+		const options = {
+			all: false,
+			assets: true,
+			modules: true,
+			chunks: true,
+			ids: true
+		};
+		expect(stats?.toJson(options)).toMatchSnapshot();
+		expect(stats?.toString(options).replace(/\\/g, "/")).toMatchInlineSnapshot(`
+		"asset main.js 215 bytes {main} [emitted] (name: main)
+		chunk {main} main.js (main) [entry]
+		./fixtures/a.js [876] {main}"
 	`);
 	});
 });

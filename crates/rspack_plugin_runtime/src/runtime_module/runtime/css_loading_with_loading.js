@@ -53,3 +53,21 @@ __webpack_require__.f.css = function (chunkId, promises) {
 		}
 	}
 };
+// TODO: diffrent with webpack
+// webpack using `loadCssChunkData` and detect css variables to add install chunk.
+// Because rspack the css chunk is always generate one js chunk, so here use js chunk to add install chunk.
+var loadCssChunkCallback = function (parentChunkLoadingFunction, data) {
+	var chunkIds = data[0];
+	if (parentChunkLoadingFunction) parentChunkLoadingFunction(data);
+	for (var i = 0; i < chunkIds.length; i++) {
+		if (installedChunks[chunkIds[i]] === undefined) {
+			installedChunks[chunkIds[i]] = 0;
+		}
+	}
+};
+var chunkLoadingGlobal = $CHUNK_LOADING_GLOBAL_EXPR$ = $CHUNK_LOADING_GLOBAL_EXPR$ || [];
+chunkLoadingGlobal.forEach(loadCssChunkCallback.bind(null, 0));
+chunkLoadingGlobal.push = loadCssChunkCallback.bind(
+	null,
+	chunkLoadingGlobal.push.bind(chunkLoadingGlobal)
+);

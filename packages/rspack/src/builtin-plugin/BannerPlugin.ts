@@ -1,25 +1,49 @@
+import { z } from "zod";
 import {
-	RawBannerCondition,
-	RawBannerConditions,
-	RawBannerConfig
+	JsChunk,
+	RawBannerContent,
+	RawBannerPluginOptions,
+	RawBannerRule,
+	RawBannerRules
 } from "@rspack/binding";
-import { BuiltinPluginKind, create } from "./base";
+import { BuiltinPluginName, create } from "./base";
 
-type BannerCondition = string | RegExp;
-type BannerConditions = BannerCondition | BannerCondition[];
-export type BannerPluginOptions =
-	| string
-	| {
-			banner: string;
-			entryOnly?: boolean;
-			footer?: boolean;
-			raw?: boolean;
-			test?: BannerConditions;
-			exclude?: BannerConditions;
-			include?: BannerConditions;
-	  };
+const rule = z.string().or(z.instanceof(RegExp));
+export type Rule = z.infer<typeof rule>;
 
-function getBannerCondition(condition: BannerCondition): RawBannerCondition {
+const rules = rule.or(rule.array());
+export type Rules = z.infer<typeof rules>;
+
+const bannerFunction = z
+	.function()
+	.args(
+		z.object({
+			hash: z.string(),
+			chunk: z.custom<JsChunk>(),
+			filename: z.string()
+		})
+	)
+	.returns(z.string());
+export type BannerFunction = z.infer<typeof bannerFunction>;
+
+const bannerContent = z.string().or(bannerFunction);
+export type BannerContent = z.infer<typeof bannerContent>;
+
+const bannerPluginOptions = z.strictObject({
+	banner: bannerContent,
+	entryOnly: z.boolean().optional(),
+	exclude: rules.optional(),
+	include: rules.optional(),
+	raw: z.boolean().optional(),
+	footer: z.boolean().optional(),
+	test: rules.optional()
+});
+export type BannerPluginOptions = z.infer<typeof bannerPluginOptions>;
+
+const bannerPluginArgument = bannerContent.or(bannerPluginOptions);
+export type BannerPluginArgument = z.infer<typeof bannerPluginArgument>;
+
+function getRawBannerRule(condition: Rule): RawBannerRule {
 	if (typeof condition === "string") {
 		return {
 			type: "string",
@@ -35,35 +59,57 @@ function getBannerCondition(condition: BannerCondition): RawBannerCondition {
 	throw new Error("unreachable: condition should be one of string, RegExp");
 }
 
-function getBannerConditions(
-	condition?: BannerConditions
-): RawBannerConditions | undefined {
+function getRawBannerRules(condition?: Rules): RawBannerRules | undefined {
 	if (!condition) return undefined;
 
 	if (Array.isArray(condition)) {
 		return {
 			type: "array",
-			arrayMatcher: condition.map(i => getBannerCondition(i))
+			arrayMatcher: condition.map(i => getRawBannerRule(i))
 		};
 	}
 
-	return getBannerCondition(condition);
+	return getRawBannerRule(condition);
+}
+
+function getRawBannerContent(content: BannerContent): RawBannerContent {
+	if (typeof content === "string") {
+		return {
+			type: "string",
+			stringPayload: content
+		};
+	}
+	if (typeof content === "function") {
+		return {
+			type: "function",
+			fnPayload: content
+		};
+	}
+	throw new Error("BannerContent should be a string or function");
 }
 
 export const BannerPlugin = create(
-	BuiltinPluginKind.Banner,
-	(bannerConfig: BannerPluginOptions): RawBannerConfig => {
-		if (typeof bannerConfig === "string") {
+	BuiltinPluginName.BannerPlugin,
+	(args: BannerPluginArgument): RawBannerPluginOptions => {
+		if (typeof args === "string") {
 			return {
-				banner: bannerConfig
+				banner: getRawBannerContent(args)
+			};
+		}
+		if (typeof args === "function") {
+			return {
+				banner: getRawBannerContent(args)
 			};
 		}
 
 		return {
-			...bannerConfig,
-			test: getBannerConditions(bannerConfig.test),
-			include: getBannerConditions(bannerConfig.include),
-			exclude: getBannerConditions(bannerConfig.exclude)
+			banner: getRawBannerContent(args.banner),
+			entryOnly: args.entryOnly,
+			footer: args.footer,
+			raw: args.raw,
+			test: getRawBannerRules(args.test),
+			include: getRawBannerRules(args.include),
+			exclude: getRawBannerRules(args.exclude)
 		};
 	}
 );

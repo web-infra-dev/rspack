@@ -1,30 +1,37 @@
 #![allow(clippy::comparison_chain)]
 
+use std::collections::HashMap;
+
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::RuntimeGlobals;
+use rkyv::{from_bytes, to_bytes, AlignedVec};
 use rspack_core::{
   rspack_sources::{
     BoxSource, MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
     SourceMapSourceOptions,
   },
-  BoxDependency, BuildMetaExportsType, GenerateContext, Module, ModuleType, ParseContext,
-  ParseResult, ParserAndGenerator, SourceType, TemplateContext,
+  BoxDependency, BuildExtraDataType, BuildMetaExportsType, GenerateContext, Module, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
 };
+use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
-use swc_core::{
-  css::{modules::CssClassName, parser::parser::ParserConfig},
-  ecma::atoms::JsWord,
-};
+use swc_core::{css::parser::parser::ParserConfig, ecma::atoms::JsWord};
 
-use crate::plugin::CssConfig;
-use crate::swc_css_compiler::SwcCssSourceMapGenConfig;
-use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
-use crate::visitors::analyze_dependencies;
-use crate::{dependency::CssComposeDependency, swc_css_compiler::SwcCssCompiler};
+use crate::{
+  dependency::CssComposeDependency,
+  swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig},
+};
+use crate::{
+  plugin::CssConfig,
+  utils::{css_modules_exports_to_string, ModulesTransformConfig},
+};
+use crate::{
+  utils::{stringify_css_modules_exports_elements, stringify_css_modules_exports_key},
+  visitors::analyze_dependencies,
+};
 
 static REGEX_IS_MODULES: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\.module(s)?\.[^.]+$").expect("Invalid regex"));
@@ -35,10 +42,12 @@ pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
 pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
   &[SourceType::JavaScript];
 
+type CssExportsType = Option<IndexMap<Vec<String>, Vec<(String, Option<String>)>>>;
+
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
   pub config: CssConfig,
-  pub exports: Option<IndexMap<JsWord, Vec<CssClassName>>>,
+  pub exports: CssExportsType,
 }
 
 impl ParserAndGenerator for CssParserAndGenerator {
@@ -120,7 +129,17 @@ impl ParserAndGenerator for CssParserAndGenerator {
       let mut exports: IndexMap<JsWord, _> = result.renamed.into_iter().collect();
       exports.sort_keys();
 
-      self.exports = Some(exports);
+      self.exports = Some(IndexMap::from_iter(
+        exports
+          .iter()
+          .map(|(key, elements)| {
+            (
+              stringify_css_modules_exports_key(key, &self.config.modules.locals_convention),
+              stringify_css_modules_exports_elements(elements),
+            )
+          })
+          .collect::<Vec<_>>(),
+      ));
 
       let (code, map) = swc_compiler.codegen(
         &stylesheet,
@@ -153,12 +172,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     let  dependencies = if let Some(locals) = &self.exports && !locals.is_empty() {
       let mut dep_set = FxHashSet::default();
-      let compose_deps = locals.iter().flat_map(|(_, value)| value).filter_map(|name| if let CssClassName::Import { from, .. } = name {
-        if dep_set.contains(from.as_ref()) {
+      let compose_deps = locals.iter().flat_map(|(_, value)| value).filter_map(|(_, from)| if let Some(from) = from {
+        if dep_set.contains(&from) {
           None
         } else {
-          dep_set.insert(from.to_string());
-          Some(Box::new(CssComposeDependency::new(from.to_string(), None)) as BoxDependency)
+          dep_set.insert(from);
+          Some(Box::new(CssComposeDependency::new(from.to_owned(), None)) as BoxDependency)
         }
       } else {
         None
@@ -212,11 +231,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
       SourceType::Css => {
         let mut source = ReplaceSource::new(source.clone());
         let compilation = generate_context.compilation;
+        let mut init_fragments = ModuleInitFragments::default();
         let mut context = TemplateContext {
           compilation,
           module,
           runtime_requirements: generate_context.runtime_requirements,
-          init_fragments: &mut vec![],
+          runtime: generate_context.runtime,
+          init_fragments: &mut init_fragments,
         };
 
         let mgm = compilation
@@ -245,12 +266,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       }
       SourceType::JavaScript => {
         let locals = if let Some(exports) = &self.exports {
-          css_modules_exports_to_string(
-            exports,
-            module,
-            generate_context.compilation,
-            &self.config.modules.locals_convention,
-          )?
+          css_modules_exports_to_string(exports, module, generate_context.compilation)?
         } else if generate_context.compilation.options.dev_server.hot {
           "module.hot.accept();".to_string()
         } else {
@@ -268,5 +284,19 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }?;
 
     Ok(result)
+  }
+  fn store(&self, extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) {
+    let data = self.exports.to_owned();
+    extra_data.insert(
+      BuildExtraDataType::CssParserAndGenerator,
+      to_bytes::<_, 1024>(&data).expect("Failed to store extra data"),
+    );
+  }
+  fn resume(&mut self, extra_data: &HashMap<BuildExtraDataType, AlignedVec>) {
+    if let Some(data) = extra_data.get(&BuildExtraDataType::CssParserAndGenerator) {
+      let data = from_bytes::<Option<IndexMap<Vec<String>, Vec<(String, Option<String>)>>>>(data)
+        .expect("Failed to resume extra data");
+      self.exports = data;
+    }
   }
 }

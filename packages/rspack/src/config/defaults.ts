@@ -19,30 +19,32 @@ import {
 	getTargetsProperties
 } from "./target";
 import type {
-	AvailableTarget,
+	Target,
 	Context,
-	EntryDescriptionNormalized,
-	EntryNormalized,
-	ExperimentsNormalized,
 	ExternalsPresets,
 	InfrastructureLogging,
 	Mode,
 	ModuleOptions,
 	Node,
 	Optimization,
-	OutputNormalized,
 	ResolveOptions,
-	RspackOptionsNormalized,
 	RuleSetRules,
 	SnapshotOptions
-} from "./types";
+} from "./zod";
+import {
+	EntryDescriptionNormalized,
+	EntryNormalized,
+	ExperimentsNormalized,
+	OutputNormalized,
+	RspackOptionsNormalized
+} from "./normalization";
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized
 ) => {
 	F(options, "context", () => process.cwd());
 	F(options, "target", () => {
-		return getDefaultTarget(options.context!) as AvailableTarget;
+		return getDefaultTarget(options.context!);
 	});
 
 	const { mode, target } = options;
@@ -80,6 +82,8 @@ export const applyRspackOptionsDefaults = (
 	applyModuleDefaults(options.module, {
 		// syncWebAssembly: options.experiments.syncWebAssembly,
 		asyncWebAssembly: options.experiments.asyncWebAssembly!,
+		disableTransformByDefault:
+			options.experiments.rspackFuture!.disableTransformByDefault!,
 		css: options.experiments.css!
 	});
 
@@ -150,17 +154,16 @@ const applyExperimentsDefaults = (
 	experiments: ExperimentsNormalized,
 	{ cache }: { cache: boolean }
 ) => {
-	D(experiments, "incrementalRebuild", {});
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", false);
 	D(experiments, "newSplitChunks", true);
 	D(experiments, "css", true); // we not align with webpack about the default value for better DX
 
+	D(experiments, "incrementalRebuild", {});
 	if (typeof experiments.incrementalRebuild === "object") {
 		D(experiments.incrementalRebuild, "make", true);
 		D(experiments.incrementalRebuild, "emitAsset", true);
 	}
-
 	if (
 		cache === false &&
 		experiments.incrementalRebuild &&
@@ -168,6 +171,13 @@ const applyExperimentsDefaults = (
 	) {
 		experiments.incrementalRebuild.make = false;
 		// TODO: use logger to warn user enable cache for incrementalRebuild.make
+	}
+
+	D(experiments, "rspackFuture", {});
+	if (typeof experiments.rspackFuture === "object") {
+		D(experiments.rspackFuture, "newResolver", false);
+		D(experiments.rspackFuture, "newTreeshaking", false);
+		D(experiments.rspackFuture, "disableTransformByDefault", false);
 	}
 };
 
@@ -189,7 +199,15 @@ const applySnapshotDefaults = (
 
 const applyModuleDefaults = (
 	module: ModuleOptions,
-	{ asyncWebAssembly, css }: { asyncWebAssembly: boolean; css: boolean }
+	{
+		asyncWebAssembly,
+		css,
+		disableTransformByDefault
+	}: {
+		asyncWebAssembly: boolean;
+		css: boolean;
+		disableTransformByDefault: boolean;
+	}
 ) => {
 	F(module.parser!, "asset", () => ({}));
 	F(module.parser!.asset!, "dataUrlCondition", () => ({}));
@@ -251,20 +269,26 @@ const applyModuleDefaults = (
 					or: ["text/javascript", "application/javascript"]
 				},
 				...esm
-			},
-			{
-				test: /\.jsx$/i,
-				type: "jsx"
-			},
-			{
-				test: /\.ts$/i,
-				type: "ts"
-			},
-			{
-				test: /\.tsx$/i,
-				type: "tsx"
 			}
 		];
+
+		// TODO: remove in 0.5.0
+		if (!disableTransformByDefault) {
+			rules.push(
+				{
+					test: /\.jsx$/i,
+					type: "jsx"
+				},
+				{
+					test: /\.ts$/i,
+					type: "ts"
+				},
+				{
+					test: /\.tsx$/i,
+					type: "tsx"
+				}
+			);
+		}
 
 		if (asyncWebAssembly) {
 			const wasm = {
@@ -414,6 +438,7 @@ const applyOutputDefaults = (
 		`[id].[fullhash].hot-update.${output.module ? "mjs" : "js"}`
 	);
 	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
+	F(output, "hotUpdateGlobal", () => "webpackHotUpdate" + output.uniqueName);
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	F(output, "path", () => path.join(process.cwd(), "dist"));
@@ -650,7 +675,7 @@ const applyNodeDefaults = (
 
 const applyOptimizationDefaults = (
 	optimization: Optimization,
-	{ production }: { production: boolean; development: boolean }
+	{ production, development }: { production: boolean; development: boolean }
 ) => {
 	D(optimization, "removeAvailableModules", true);
 	D(optimization, "removeEmptyChunks", true);
@@ -660,6 +685,8 @@ const applyOptimizationDefaults = (
 	});
 	F(optimization, "chunkIds", (): "named" | "deterministic" => "named");
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
+	D(optimization, "providedExports", true);
+	D(optimization, "usedExports", production);
 	D(optimization, "runtimeChunk", false);
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);

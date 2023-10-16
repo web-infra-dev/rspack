@@ -30,8 +30,9 @@ pub use dependency_template::*;
 use dyn_clone::{clone_trait_object, DynClone};
 
 use crate::{
-  ChunkGroupOptions, ConnectionState, Context, ContextMode, ContextOptions, ErrorSpan, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, ReferencedExport, RuntimeSpec,
+  ChunkGroupOptionsKindRef, ConnectionState, Context, ContextMode, ContextOptions, ErrorSpan,
+  ExtendedReferencedExport, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport,
+  RuntimeSpec,
 };
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
@@ -189,6 +190,14 @@ pub trait Dependency:
   fn get_exports(&self) -> Option<ExportsSpec> {
     None
   }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    ConnectionState::Bool(true)
+  }
 }
 
 #[derive(Debug, Default)]
@@ -243,6 +252,7 @@ pub struct ExportsSpec {
   pub from: Option<ModuleGraphConnection>,
   pub dependencies: Option<Vec<ModuleIdentifier>>,
   pub hide_export: Option<Vec<JsWord>>,
+  pub exclude_exports: Option<Vec<JsWord>>,
 }
 
 pub enum ExportsReferencedType {
@@ -299,7 +309,7 @@ impl<T: ModuleDependency> AsModuleDependency for T {
 pub type DependencyConditionFn = Box<dyn Function>;
 
 pub trait Function:
-  Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState + Send + Sync
+  Fn(&ModuleGraphConnection, Option<&RuntimeSpec>, &ModuleGraph) -> ConnectionState + Send + Sync
 {
   fn clone_boxed(&self) -> Box<dyn Function>;
 }
@@ -308,7 +318,7 @@ pub trait Function:
 impl<T> Function for T
 where
   T: 'static
-    + Fn(&ModuleGraphConnection, &RuntimeSpec, &ModuleGraph) -> ConnectionState
+    + Fn(&ModuleGraphConnection, Option<&RuntimeSpec>, &ModuleGraph) -> ConnectionState
     + Send
     + Sync
     + Clone,
@@ -341,6 +351,8 @@ impl Debug for DependencyCondition {
 }
 
 pub trait ModuleDependency: Dependency {
+  /// name of the original struct or enum
+  fn dependency_debug_name(&self) -> &'static str;
   fn request(&self) -> &str;
   fn user_request(&self) -> &str;
   fn span(&self) -> Option<&ErrorSpan>;
@@ -358,32 +370,28 @@ pub trait ModuleDependency: Dependency {
   }
 
   // TODO: wired to place ChunkGroupOptions on dependency, should place on AsyncDependenciesBlock
-  fn group_options(&self) -> Option<&ChunkGroupOptions> {
+  fn group_options(&self) -> Option<ChunkGroupOptionsKindRef> {
     None
   }
 
-  fn get_condition(&self, _module_graph: &ModuleGraph) -> Option<DependencyCondition> {
+  fn get_condition(&self) -> Option<DependencyCondition> {
     None
-  }
-
-  fn get_module_evaluation_side_effects_state(
-    &self,
-    _module_graph: &ModuleGraph,
-    _module_chain: &mut HashSet<ModuleIdentifier>,
-  ) -> ConnectionState {
-    ConnectionState::Bool(true)
   }
 
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,
-    _runtime: &RuntimeSpec,
-  ) -> ExportsReferencedType {
-    ExportsReferencedType::Object
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    vec![ExtendedReferencedExport::Array(vec![])]
   }
 
   // an identifier to merge equal requests
   fn resource_identifier(&self) -> Option<&str> {
+    None
+  }
+
+  fn is_export_all(&self) -> Option<bool> {
     None
   }
 }

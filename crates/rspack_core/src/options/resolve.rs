@@ -34,7 +34,7 @@ pub struct Resolve {
   /// fields are written.
   pub condition_names: Option<Vec<String>>,
   /// the path of tsconfig.
-  pub tsconfig: Option<PathBuf>,
+  pub tsconfig: Option<TsconfigOptions>,
   /// A list of directories to resolve modules from, can be absolute path or folder name.
   /// Default is `["node_modules"]`
   pub modules: Option<Vec<String>>,
@@ -52,6 +52,49 @@ pub struct Resolve {
   /// Default is `[]`
   pub extension_alias: Option<Vec<(String, Vec<String>)>>,
   pub by_dependency: Option<ByDependency>,
+}
+
+/// Tsconfig Options
+///
+/// Derived from [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin#options)
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct TsconfigOptions {
+  /// Allows you to specify where to find the TypeScript configuration file.
+  /// You may provide
+  /// * a relative path to the configuration file. It will be resolved relative to cwd.
+  /// * an absolute path to the configuration file.
+  pub config_file: PathBuf,
+
+  /// Support for Typescript Project References.
+  pub references: TsconfigReferences,
+}
+
+impl From<TsconfigOptions> for oxc_resolver::TsconfigOptions {
+  fn from(val: TsconfigOptions) -> Self {
+    oxc_resolver::TsconfigOptions {
+      config_file: val.config_file,
+      references: val.references.into(),
+    }
+  }
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum TsconfigReferences {
+  Disabled,
+  /// Use the `references` field from tsconfig read from `config_file`.
+  Auto,
+  /// Manually provided relative or absolute path.
+  Paths(Vec<PathBuf>),
+}
+
+impl From<TsconfigReferences> for oxc_resolver::TsconfigReferences {
+  fn from(val: TsconfigReferences) -> Self {
+    match val {
+      TsconfigReferences::Disabled => oxc_resolver::TsconfigReferences::Disabled,
+      TsconfigReferences::Auto => oxc_resolver::TsconfigReferences::Auto,
+      TsconfigReferences::Paths(paths) => oxc_resolver::TsconfigReferences::Paths(paths),
+    }
+  }
 }
 
 impl Resolve {

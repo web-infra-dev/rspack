@@ -1,8 +1,10 @@
 #![feature(let_chains)]
+#![feature(if_let_guard)]
 #![feature(iter_intersperse)]
 #![feature(box_patterns)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 
+use std::sync::atomic::AtomicBool;
 use std::{fmt, sync::Arc};
 mod fake_namespace_object;
 pub use fake_namespace_object::*;
@@ -217,10 +219,12 @@ impl TryFrom<&str> for ModuleType {
       "js/dynamic" | "javascript/dynamic" => Ok(Self::JsDynamic),
       "js/esm" | "javascript/esm" => Ok(Self::JsEsm),
 
+      // TODO: remove in 0.5.0
       "jsx" | "javascriptx" | "jsx/auto" | "javascriptx/auto" => Ok(Self::Jsx),
       "jsx/dynamic" | "javascriptx/dynamic" => Ok(Self::JsxDynamic),
       "jsx/esm" | "javascriptx/esm" => Ok(Self::JsxEsm),
 
+      // TODO: remove in 0.5.0
       "ts" | "typescript" => Ok(Self::Ts),
       "tsx" | "typescriptx" => Ok(Self::Tsx),
 
@@ -249,3 +253,5 @@ impl TryFrom<&str> for ModuleType {
 pub type ChunkByUkey = Database<Chunk>;
 pub type ChunkGroupByUkey = Database<ChunkGroup>;
 pub(crate) type SharedPluginDriver = Arc<PluginDriver>;
+
+pub static IS_NEW_TREESHAKING: AtomicBool = AtomicBool::new(false);

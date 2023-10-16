@@ -1,12 +1,12 @@
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH,
+  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
 
 use super::utils::{chunk_has_js, get_output_dir};
 use crate::impl_runtime_module;
-use crate::runtime_module::utils::{get_initial_chunk_ids, stringify_chunks};
+use crate::runtime_module::utils::{get_initial_chunk_ids, render_condition_map, stringify_chunks};
 
 #[derive(Debug, Default, Eq)]
 pub struct ReadFileChunkLoadingRuntimeModule {
@@ -110,10 +110,13 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
     }
 
     if with_loading {
+      let condition_map =
+        compilation
+          .chunk_graph
+          .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
       source.add(RawSource::from(
         include_str!("runtime/readfile_chunk_loading_with_loading.js")
-          // TODO
-          .replace("JS_MATCHER", "chunkId")
+          .replace("JS_MATCHER", &render_condition_map(&condition_map))
           .replace("$OUTPUT_DIR$", &root_output_dir),
       ));
     }
@@ -153,8 +156,8 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk)
   }
-  fn stage(&self) -> u8 {
-    RUNTIME_MODULE_STAGE_ATTACH
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
   }
 }
 impl_runtime_module!(ReadFileChunkLoadingRuntimeModule);

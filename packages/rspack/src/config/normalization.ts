@@ -8,16 +8,74 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import { Compilation } from "..";
 import { deprecatedWarn } from "../util";
 import type {
+	Context,
+	Dependencies,
+	Node,
+	DevTool,
 	EntryStatic,
-	EntryStaticNormalized,
+	Externals,
+	ExternalsPresets,
+	ExternalsType,
+	InfrastructureLogging,
 	LibraryOptions,
-	OptimizationRuntimeChunkNormalized,
+	Mode,
+	Name,
+	OptimizationRuntimeChunk,
+	Resolve,
 	RspackOptions,
-	RspackOptionsNormalized
-} from "./types";
-import { OptimizationRuntimeChunkConfig } from "./zod/optimization";
+	Target,
+	SnapshotOptions,
+	CacheOptions,
+	StatsValue,
+	Optimization,
+	Plugins,
+	Watch,
+	WatchOptions,
+	DevServer,
+	Profile,
+	Builtins,
+	EntryRuntime,
+	ChunkLoading,
+	PublicPath,
+	EntryFilename,
+	Path,
+	Clean,
+	Filename,
+	ChunkFilename,
+	CrossOriginLoading,
+	CssFilename,
+	CssChunkFilename,
+	HotUpdateMainFilename,
+	HotUpdateChunkFilename,
+	AssetModuleFilename,
+	UniqueName,
+	ChunkLoadingGlobal,
+	EnabledLibraryTypes,
+	OutputModule,
+	StrictModuleErrorHandling,
+	GlobalObject,
+	ImportFunctionName,
+	Iife,
+	WasmLoading,
+	EnabledWasmLoadingTypes,
+	WebassemblyModuleFilename,
+	TrustedTypes,
+	SourceMapFilename,
+	HashDigest,
+	HashDigestLength,
+	HashFunction,
+	HashSalt,
+	WorkerPublicPath,
+	RuleSetRules,
+	ParserOptionsByModuleType,
+	GeneratorOptionsByModuleType,
+	IncrementalRebuildOptions,
+	RspackFutureOptions,
+	HotUpdateGlobal
+} from "./zod";
 
 export const getNormalizedRspackOptions = (
 	config: RspackOptions
@@ -27,9 +85,9 @@ export const getNormalizedRspackOptions = (
 			config.ignoreWarnings !== undefined
 				? config.ignoreWarnings.map(ignore => {
 						if (typeof ignore === "function") {
-							return ignore as (...args: any[]) => boolean;
+							return ignore;
 						} else {
-							return warning => {
+							return (warning: Error) => {
 								return ignore.test(warning.message);
 							};
 						}
@@ -93,6 +151,7 @@ export const getNormalizedRspackOptions = (
 				cssChunkFilename: output.cssChunkFilename,
 				hotUpdateMainFilename: output.hotUpdateMainFilename,
 				hotUpdateChunkFilename: output.hotUpdateChunkFilename,
+				hotUpdateGlobal: output.hotUpdateGlobal,
 				assetModuleFilename: output.assetModuleFilename,
 				wasmLoading: output.wasmLoading,
 				enabledChunkLoadingTypes: output.enabledChunkLoadingTypes
@@ -290,7 +349,7 @@ const getNormalizedEntryStatic = (entry: EntryStatic) => {
 };
 
 const getNormalizedOptimizationRuntimeChunk = (
-	runtimeChunk?: OptimizationRuntimeChunkConfig
+	runtimeChunk?: OptimizationRuntimeChunk
 ): OptimizationRuntimeChunkNormalized | undefined => {
 	if (runtimeChunk === undefined) return undefined;
 	if (runtimeChunk === false) return false;
@@ -355,3 +414,117 @@ const keyedNestedConfig = <T, R>(
 	}
 	return result;
 };
+
+export type EntryNormalized = EntryStaticNormalized;
+export interface EntryStaticNormalized {
+	[k: string]: EntryDescriptionNormalized;
+}
+export interface EntryDescriptionNormalized {
+	import?: string[];
+	runtime?: EntryRuntime;
+	chunkLoading?: ChunkLoading;
+	asyncChunks?: boolean;
+	publicPath?: PublicPath;
+	baseUri?: string;
+	filename?: EntryFilename;
+}
+
+export interface OutputNormalized {
+	path?: Path;
+	clean?: Clean;
+	publicPath?: PublicPath;
+	filename?: Filename;
+	chunkFilename?: ChunkFilename;
+	crossOriginLoading?: CrossOriginLoading;
+	cssFilename?: CssFilename;
+	cssChunkFilename?: CssChunkFilename;
+	hotUpdateMainFilename?: HotUpdateMainFilename;
+	hotUpdateChunkFilename?: HotUpdateChunkFilename;
+	hotUpdateGlobal?: HotUpdateGlobal;
+	assetModuleFilename?: AssetModuleFilename;
+	uniqueName?: UniqueName;
+	chunkLoadingGlobal?: ChunkLoadingGlobal;
+	enabledLibraryTypes?: EnabledLibraryTypes;
+	library?: LibraryOptions;
+	module?: OutputModule;
+	strictModuleErrorHandling?: StrictModuleErrorHandling;
+	globalObject?: GlobalObject;
+	importFunctionName?: ImportFunctionName;
+	iife?: Iife;
+	wasmLoading?: WasmLoading;
+	enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
+	webassemblyModuleFilename?: WebassemblyModuleFilename;
+	chunkFormat?: string | false;
+	chunkLoading?: string | false;
+	enabledChunkLoadingTypes?: string[];
+	trustedTypes?: TrustedTypes;
+	sourceMapFilename?: SourceMapFilename;
+	hashDigest?: HashDigest;
+	hashDigestLength?: HashDigestLength;
+	hashFunction?: HashFunction;
+	hashSalt?: HashSalt;
+	asyncChunks?: boolean;
+	workerChunkLoading?: ChunkLoading;
+	workerWasmLoading?: WasmLoading;
+	workerPublicPath?: WorkerPublicPath;
+}
+
+export interface ModuleOptionsNormalized {
+	defaultRules?: RuleSetRules;
+	rules: RuleSetRules;
+	parser: ParserOptionsByModuleType;
+	generator: GeneratorOptionsByModuleType;
+}
+
+export interface ExperimentsNormalized {
+	lazyCompilation?: boolean;
+	incrementalRebuild?: false | IncrementalRebuildOptions;
+	asyncWebAssembly?: boolean;
+	outputModule?: boolean;
+	newSplitChunks?: boolean;
+	css?: boolean;
+	futureDefaults?: boolean;
+	rspackFuture?: RspackFutureOptions;
+}
+
+export type IgnoreWarningsNormalized = ((
+	warning: Error,
+	compilation: Compilation
+) => boolean)[];
+
+export type OptimizationRuntimeChunkNormalized =
+	| false
+	| {
+			name: (...args: any[]) => string | undefined;
+	  };
+
+export interface RspackOptionsNormalized {
+	name?: Name;
+	dependencies?: Dependencies;
+	context?: Context;
+	mode?: Mode;
+	entry: EntryNormalized;
+	output: OutputNormalized;
+	resolve: Resolve;
+	resolveLoader: Resolve;
+	module: ModuleOptionsNormalized;
+	target?: Target;
+	externals?: Externals;
+	externalsType?: ExternalsType;
+	externalsPresets: ExternalsPresets;
+	infrastructureLogging: InfrastructureLogging;
+	devtool?: DevTool;
+	node: Node;
+	snapshot: SnapshotOptions;
+	cache?: CacheOptions;
+	stats: StatsValue;
+	optimization: Optimization;
+	plugins: Plugins;
+	experiments: ExperimentsNormalized;
+	watch?: Watch;
+	watchOptions: WatchOptions;
+	devServer?: DevServer;
+	ignoreWarnings?: IgnoreWarningsNormalized;
+	profile?: Profile;
+	builtins: Builtins;
+}

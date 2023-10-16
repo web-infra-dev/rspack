@@ -7,13 +7,14 @@ use rspack_hash::RspackHashDigest;
 use rspack_identifier::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
+use crate::IS_NEW_TREESHAKING;
 mod connection;
 pub use connection::*;
 
 use crate::{
   to_identifier, BoxDependency, BoxModule, BuildDependency, BuildInfo, BuildMeta,
-  DependencyCondition, DependencyId, ExportsInfo, ExportsInfoId, Module, ModuleGraphModule,
-  ModuleIdentifier, ModuleProfile,
+  DependencyCondition, DependencyId, ExportInfo, ExportInfoId, ExportsInfo, ExportsInfoId, Module,
+  ModuleGraphModule, ModuleIdentifier, ModuleProfile,
 };
 
 // TODO Here request can be used JsWord
@@ -42,10 +43,11 @@ pub struct ModuleGraph {
 
   /// Module graph connections table index for `ConnectionId`
   connections_map: HashMap<ModuleGraphConnection, ConnectionId>,
-  connection_to_condition: HashMap<ConnectionId, DependencyCondition>,
 
   import_var_map: IdentifierMap<ImportVarMap>,
   pub exports_info_map: HashMap<ExportsInfoId, ExportsInfo>,
+  pub export_info_map: HashMap<ExportInfoId, ExportInfo>,
+  connection_to_condition: HashMap<ModuleGraphConnection, DependencyCondition>,
 }
 
 impl ModuleGraph {
@@ -81,13 +83,6 @@ impl ModuleGraph {
     self.dependencies.insert(*dependency.id(), dependency);
   }
 
-  pub fn get_condition_by_connection_id(
-    &self,
-    connection_id: &ConnectionId,
-  ) -> Option<&DependencyCondition> {
-    self.connection_to_condition.get(connection_id)
-  }
-
   pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxDependency> {
     self.dependencies.get(dependency_id)
   }
@@ -121,35 +116,49 @@ impl ModuleGraph {
     dependency: BoxDependency,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
-    let module_dependency = dependency.as_module_dependency().is_some();
+    let is_module_dependency = dependency.as_module_dependency().is_some();
     let dependency_id = *dependency.id();
+    let condition = if IS_NEW_TREESHAKING.load(std::sync::atomic::Ordering::Relaxed) {
+      dependency
+        .as_module_dependency()
+        .and_then(|dep| dep.get_condition())
+    } else {
+      None
+    };
     self.add_dependency(dependency);
     self
       .dependency_id_to_module_identifier
       .insert(dependency_id, module_identifier);
-    if !module_dependency {
+    if !is_module_dependency {
       return Ok(());
     }
 
+    let active = !matches!(condition, Some(DependencyCondition::False));
+    let conditional = condition.is_some();
     // TODO: just a placeholder here, finish this when we have basic `getCondition` logic
-    let condition: Option<DependencyCondition> = None;
     let new_connection = ModuleGraphConnection::new(
       original_module_identifier,
       dependency_id,
       module_identifier,
-      condition,
+      active,
+      conditional,
     );
 
     let connection_id = if let Some(connection_id) = self.connections_map.get(&new_connection) {
       *connection_id
     } else {
       let new_connection_id = ConnectionId::from(self.connections.len());
-      self.connections.push(Some(new_connection.clone()));
+      self.connections.push(Some(new_connection));
       self
         .connections_map
         .insert(new_connection, new_connection_id);
       new_connection_id
     };
+    if let Some(condition) = condition {
+      self
+        .connection_to_condition
+        .insert(new_connection, condition);
+    }
 
     self
       .dependency_id_to_connection_id
@@ -532,14 +541,50 @@ impl ModuleGraph {
     let mgm = self
       .module_graph_module_by_identifier(module_identifier)
       .expect("should have mgm");
-    &mgm.exports
+    let exports_info = self
+      .exports_info_map
+      .get(&mgm.exports)
+      .expect("should have export info");
+    exports_info
   }
 
-  pub fn get_exports_info_mut(&mut self, module_identifier: &ModuleIdentifier) -> &mut ExportsInfo {
-    let mgm = self
-      .module_graph_module_by_identifier_mut(module_identifier)
-      .expect("should have mgm");
-    &mut mgm.exports
+  // pub fn get_exports_info_mut(&mut self, module_identifier: &ModuleIdentifier) -> &mut ExportsInfo {
+  //   let mgm = self
+  //     .module_graph_module_by_identifier_mut(module_identifier)
+  //     .expect("should have mgm");
+  //   &mut mgm.exports
+  // }
+
+  pub fn get_exports_info_by_id(&self, id: &ExportsInfoId) -> &ExportsInfo {
+    let exports_info = self
+      .exports_info_map
+      .get(id)
+      .expect("should have exports_info");
+    exports_info
+  }
+
+  pub fn get_exports_info_mut_by_id(&mut self, id: &ExportsInfoId) -> &mut ExportsInfo {
+    let exports_info = self
+      .exports_info_map
+      .get_mut(id)
+      .expect("should have exports_info");
+    exports_info
+  }
+
+  pub fn get_export_info_by_id(&self, id: &ExportInfoId) -> &ExportInfo {
+    let export_info = self
+      .export_info_map
+      .get(id)
+      .expect("should have export info");
+    export_info
+  }
+
+  pub fn get_export_info_mut_by_id(&mut self, id: &ExportInfoId) -> &mut ExportInfo {
+    let exports_info = self
+      .export_info_map
+      .get_mut(id)
+      .expect("should have export info");
+    exports_info
   }
 }
 
@@ -553,8 +598,8 @@ mod test {
 
   use crate::{
     BoxDependency, BuildContext, BuildResult, CodeGenerationResult, Compilation, Context,
-    Dependency, DependencyId, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
-    ModuleIdentifier, ModuleType, SourceType,
+    Dependency, DependencyId, ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph,
+    ModuleGraphModule, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s
@@ -598,7 +643,11 @@ mod test {
           unreachable!()
         }
 
-        fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult> {
+        fn code_generation(
+          &self,
+          _compilation: &Compilation,
+          _runtime: Option<&RuntimeSpec>,
+        ) -> Result<CodeGenerationResult> {
           unreachable!()
         }
       }
@@ -620,6 +669,10 @@ mod test {
       }
 
       impl ModuleDependency for $ident {
+        fn dependency_debug_name(&self) -> &'static str {
+          stringify!($ident)
+        }
+
         fn request(&self) -> &str {
           &*self.1
         }
@@ -644,9 +697,21 @@ mod test {
   impl_noop_trait_dep_type!(Edge);
 
   fn add_module_to_graph(mg: &mut ModuleGraph, m: Box<dyn Module>) {
-    let mgm = ModuleGraphModule::new(m.identifier(), ModuleType::Js);
+    let other_exports_info = ExportInfo::new(None, UsageState::Unknown, None);
+    let side_effects_only_info = ExportInfo::new(
+      Some("*side effects only*".into()),
+      UsageState::Unknown,
+      None,
+    );
+    let exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
+    let mgm = ModuleGraphModule::new(m.identifier(), ModuleType::Js, exports_info.id);
     mg.add_module_graph_module(mgm);
     mg.add_module(m);
+    mg.export_info_map
+      .insert(other_exports_info.id, other_exports_info);
+    mg.export_info_map
+      .insert(side_effects_only_info.id, side_effects_only_info);
+    mg.exports_info_map.insert(exports_info.id, exports_info);
   }
 
   fn link_modules_with_dependency(

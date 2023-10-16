@@ -6,7 +6,7 @@ use std::{
 };
 
 use rspack_core::{BoxPlugin, CompilerOptions, ModuleType, PluginExt};
-use rspack_plugin_html::config::HtmlPluginConfig;
+use rspack_plugin_html::config::HtmlRspackPluginOptions;
 use rspack_regex::RspackRegex;
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -68,7 +68,7 @@ fn default_optimization_chunk_ids() -> String {
   "named".to_string()
 }
 
-fn default_optimization_side_effects() -> String {
+fn default_optimization_false_string_lit() -> String {
   "false".to_string()
 }
 
@@ -121,8 +121,12 @@ pub struct Optimization {
   pub module_ids: String,
   #[serde(default = "default_optimization_chunk_ids")]
   pub chunk_ids: String,
-  #[serde(default = "default_optimization_side_effects")]
+  #[serde(default = "default_optimization_false_string_lit")]
   pub side_effects: String,
+  #[serde(default = "true_by_default")]
+  pub provided_exports: bool,
+  #[serde(default = "default_optimization_false_string_lit")]
+  pub used_exports: String,
 }
 
 #[derive(Debug, JsonSchema, Deserialize)]
@@ -168,7 +172,7 @@ pub struct Builtins {
   #[serde(default)]
   pub provide: HashMap<String, Vec<String>>,
   #[serde(default)]
-  pub html: Vec<HtmlPluginConfig>,
+  pub html: Vec<HtmlRspackPluginOptions>,
   #[serde(default)]
   pub minify_options: Option<Minification>,
   #[serde(default = "default_tree_shaking")]
@@ -346,8 +350,10 @@ impl TestConfig {
 
     assert!(context.is_absolute());
 
+    let root = c::Context::new(context.to_string_lossy().to_string());
+
     let options = CompilerOptions {
-      context: c::Context::new(context.to_string_lossy().to_string()),
+      context: root.clone(),
       output: c::OutputOptions {
         clean: self.output.clean,
         filename: c::Filename::from_str(&self.output.filename).expect("Should exist"),
@@ -360,6 +366,7 @@ impl TestConfig {
           .expect("Should exist"),
         hot_update_main_filename: c::Filename::from_str("[runtime].[fullhash].hot-update.json")
           .expect("Should exist"),
+        hot_update_global: "rspack_testing".to_string(),
         asset_module_filename: c::Filename::from_str("[hash][ext][query]").expect("Should exist"),
         wasm_loading: c::WasmLoading::Enable(c::WasmLoadingType::from("fetch")),
         webassembly_module_filename: c::Filename::from_str("[hash].module.wasm")
@@ -434,6 +441,8 @@ impl TestConfig {
         remove_available_modules: self.optimization.remove_available_modules,
         remove_empty_chunks: self.optimization.remove_empty_chunks,
         side_effects: c::SideEffectOption::from(self.optimization.side_effects.as_str()),
+        provided_exports: self.optimization.provided_exports,
+        used_exports: c::UsedExportsOption::from(self.optimization.used_exports.as_str()),
       },
       profile: false,
     };
@@ -442,9 +451,10 @@ impl TestConfig {
       for request in &desc.import {
         plugins.push(
           rspack_plugin_entry::EntryPlugin::new(
-            name.clone(),
+            root.clone(),
             request.to_owned(),
             rspack_core::EntryOptions {
+              name: Some(name.clone()),
               runtime: Some("runtime".to_string()),
               chunk_loading: None,
               async_chunks: Some(true),
@@ -461,8 +471,9 @@ impl TestConfig {
       plugins
         .push(rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin::new().boxed());
     }
+
     for html in self.builtins.html {
-      plugins.push(rspack_plugin_html::HtmlPlugin::new(html).boxed());
+      plugins.push(rspack_plugin_html::HtmlRspackPlugin::new(html).boxed());
     }
     plugins.push(
       rspack_plugin_css::CssPlugin::new(rspack_plugin_css::plugin::CssConfig {
@@ -546,7 +557,9 @@ impl TestConfig {
       plugins.push(rspack_plugin_wasm::FetchCompileAsyncWasmPlugin {}.boxed());
       plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
     }
-    plugins.push(rspack_plugin_externals::http_url_external_plugin(true));
+    plugins.push(rspack_plugin_externals::http_externals_rspack_plugin(
+      true, false,
+    ));
 
     // Support resolving builtin loaders on the Native side
     plugins.push(crate::loader::BuiltinLoaderResolver.boxed());

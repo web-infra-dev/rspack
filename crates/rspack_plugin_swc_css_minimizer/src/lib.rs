@@ -5,12 +5,12 @@ use rspack_error::Result;
 use rspack_plugin_css::swc_css_compiler::{SwcCssCompiler, SwcCssSourceMapGenConfig};
 
 #[derive(Debug)]
-pub struct SwcCssMinimizerPlugin;
+pub struct SwcCssMinimizerRspackPlugin;
 
 #[async_trait]
-impl Plugin for SwcCssMinimizerPlugin {
+impl Plugin for SwcCssMinimizerRspackPlugin {
   fn name(&self) -> &'static str {
-    "rspack.SwcCssMinimizerPlugin"
+    "rspack.SwcCssMinimizerRspackPlugin"
   }
 
   // TODO: chunk hash

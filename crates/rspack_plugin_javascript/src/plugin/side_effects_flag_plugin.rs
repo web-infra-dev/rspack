@@ -1,13 +1,14 @@
+// use rspack_core::Plugin;
+// use rspack_error::Result;
 use swc_core::common::{Span, Spanned, SyntaxContext, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 #[derive(Debug)]
-pub struct SideEffectsFlagPlugin {
+pub struct SideEffectsFlagPluginVisitor {
   unresolved_ctxt: SyntaxContext,
-  // module_identifier: ModuleIdentifier,
-  side_effects_span: Option<Span>,
+  pub side_effects_span: Option<Span>,
   is_top_level: bool,
 }
 
@@ -22,7 +23,7 @@ impl SyntaxContextInfo {
   }
 }
 
-impl SideEffectsFlagPlugin {
+impl SideEffectsFlagPluginVisitor {
   pub fn new(mark_info: SyntaxContextInfo) -> Self {
     Self {
       unresolved_ctxt: mark_info.unresolved_ctxt,
@@ -32,7 +33,7 @@ impl SideEffectsFlagPlugin {
   }
 }
 
-impl Visit for SideEffectsFlagPlugin {
+impl Visit for SideEffectsFlagPluginVisitor {
   noop_visit_type!();
   fn visit_program(&mut self, node: &Program) {
     assert!(GLOBALS.is_set());
@@ -94,81 +95,82 @@ impl Visit for SideEffectsFlagPlugin {
   }
 }
 
-impl SideEffectsFlagPlugin {
+impl SideEffectsFlagPluginVisitor {
   /// If we find a stmt that has side effects, we will skip the rest of the stmts.
   /// And mark the module as having side effects.
   fn analyze_stmt_side_effects(&mut self, ele: &Stmt) {
-    if self.side_effects_span.is_none() {
-      match ele {
-        Stmt::If(stmt) => {
-          if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
-            self.side_effects_span = Some(stmt.span);
-          }
-        }
-        Stmt::While(stmt) => {
-          if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
-            self.side_effects_span = Some(stmt.span);
-          }
-        }
-        Stmt::DoWhile(stmt) => {
-          if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
-            self.side_effects_span = Some(stmt.span);
-          }
-        }
-        Stmt::For(stmt) => {
-          let pure_init = match stmt.init {
-            Some(ref init) => match init {
-              VarDeclOrExpr::VarDecl(decl) => is_pure_var_decl(decl, self.unresolved_ctxt),
-              VarDeclOrExpr::Expr(expr) => is_pure_expression(expr, self.unresolved_ctxt),
-            },
-            None => true,
-          };
-
-          if !pure_init {
-            self.side_effects_span = Some(stmt.span);
-            return;
-          }
-
-          let pure_test = match stmt.test {
-            Some(box ref test) => is_pure_expression(test, self.unresolved_ctxt),
-            None => true,
-          };
-
-          if !pure_test {
-            self.side_effects_span = Some(stmt.span);
-            return;
-          }
-
-          let pure_update = match stmt.update {
-            Some(ref expr) => is_pure_expression(expr, self.unresolved_ctxt),
-            None => true,
-          };
-
-          if !pure_update {
-            self.side_effects_span = Some(stmt.span);
-          }
-        }
-        Stmt::Expr(stmt) => {
-          if !is_pure_expression(&stmt.expr, self.unresolved_ctxt) {
-            self.side_effects_span = Some(stmt.span);
-          }
-        }
-        Stmt::Switch(stmt) => {
-          if !is_pure_expression(&stmt.discriminant, self.unresolved_ctxt) {
-            self.side_effects_span = Some(stmt.span);
-          }
-        }
-        Stmt::Decl(stmt) => {
-          if !is_pure_decl(stmt, self.unresolved_ctxt) {
-            self.side_effects_span = Some(stmt.span());
-          }
-        }
-        Stmt::Empty(_) => {}
-        Stmt::Labeled(_) => {}
-        Stmt::Block(_) => {}
-        _ => self.side_effects_span = Some(ele.span()),
-      };
+    if self.side_effects_span.is_some() {
+      return;
     }
+    match ele {
+      Stmt::If(stmt) => {
+        if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
+          self.side_effects_span = Some(stmt.span);
+        }
+      }
+      Stmt::While(stmt) => {
+        if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
+          self.side_effects_span = Some(stmt.span);
+        }
+      }
+      Stmt::DoWhile(stmt) => {
+        if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
+          self.side_effects_span = Some(stmt.span);
+        }
+      }
+      Stmt::For(stmt) => {
+        let pure_init = match stmt.init {
+          Some(ref init) => match init {
+            VarDeclOrExpr::VarDecl(decl) => is_pure_var_decl(decl, self.unresolved_ctxt),
+            VarDeclOrExpr::Expr(expr) => is_pure_expression(expr, self.unresolved_ctxt),
+          },
+          None => true,
+        };
+
+        if !pure_init {
+          self.side_effects_span = Some(stmt.span);
+          return;
+        }
+
+        let pure_test = match stmt.test {
+          Some(box ref test) => is_pure_expression(test, self.unresolved_ctxt),
+          None => true,
+        };
+
+        if !pure_test {
+          self.side_effects_span = Some(stmt.span);
+          return;
+        }
+
+        let pure_update = match stmt.update {
+          Some(ref expr) => is_pure_expression(expr, self.unresolved_ctxt),
+          None => true,
+        };
+
+        if !pure_update {
+          self.side_effects_span = Some(stmt.span);
+        }
+      }
+      Stmt::Expr(stmt) => {
+        if !is_pure_expression(&stmt.expr, self.unresolved_ctxt) {
+          self.side_effects_span = Some(stmt.span);
+        }
+      }
+      Stmt::Switch(stmt) => {
+        if !is_pure_expression(&stmt.discriminant, self.unresolved_ctxt) {
+          self.side_effects_span = Some(stmt.span);
+        }
+      }
+      Stmt::Decl(stmt) => {
+        if !is_pure_decl(stmt, self.unresolved_ctxt) {
+          self.side_effects_span = Some(stmt.span());
+        }
+      }
+      Stmt::Empty(_) => {}
+      Stmt::Labeled(_) => {}
+      Stmt::Block(_) => {}
+      _ => self.side_effects_span = Some(ele.span()),
+    };
   }
 }
 
@@ -275,3 +277,6 @@ impl ClassKey for ClassMember {
     }
   }
 }
+
+#[derive(Debug, Default)]
+pub struct SideEffectsFlagPlugin;

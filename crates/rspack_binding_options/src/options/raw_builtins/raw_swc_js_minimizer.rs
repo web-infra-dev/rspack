@@ -1,12 +1,14 @@
 use napi_derive::napi;
 use rspack_error::internal_error;
-use rspack_plugin_swc_js_minimizer::{Minification, MinificationCondition, MinificationConditions};
+use rspack_plugin_swc_js_minimizer::{
+  SwcJsMinimizerRspackPluginOptions, SwcJsMinimizerRule, SwcJsMinimizerRules,
+};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-pub struct RawMinificationCondition {
+pub struct RawSwcJsMinimizerRule {
   #[napi(ts_type = r#""string" | "regexp""#)]
   pub r#type: String,
   pub string_matcher: Option<String>,
@@ -16,38 +18,40 @@ pub struct RawMinificationCondition {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-pub struct RawMinificationConditions {
+pub struct RawSwcJsMinimizerRules {
   #[napi(ts_type = r#""string" | "regexp" | "array""#)]
   pub r#type: String,
   pub string_matcher: Option<String>,
   pub regexp_matcher: Option<String>,
-  pub array_matcher: Option<Vec<RawMinificationCondition>>,
+  pub array_matcher: Option<Vec<RawSwcJsMinimizerRule>>,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-pub struct RawMinification {
+pub struct RawSwcJsMinimizerRspackPluginOptions {
   pub passes: u32,
   pub drop_console: bool,
+  pub keep_class_names: bool,
+  pub keep_fn_names: bool,
   #[napi(ts_type = r#""all" | "some" | "false""#)]
   pub comments: String,
   pub ascii_only: bool,
   pub pure_funcs: Vec<String>,
   pub extract_comments: Option<String>,
-  pub test: Option<RawMinificationConditions>,
-  pub include: Option<RawMinificationConditions>,
-  pub exclude: Option<RawMinificationConditions>,
+  pub test: Option<RawSwcJsMinimizerRules>,
+  pub include: Option<RawSwcJsMinimizerRules>,
+  pub exclude: Option<RawSwcJsMinimizerRules>,
 }
 
-impl TryFrom<RawMinification> for Minification {
+impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for SwcJsMinimizerRspackPluginOptions {
   type Error = rspack_error::Error;
 
-  fn try_from(value: RawMinification) -> rspack_error::Result<Self> {
+  fn try_from(value: RawSwcJsMinimizerRspackPluginOptions) -> rspack_error::Result<Self> {
     fn try_condition(
-      raw_condition: Option<RawMinificationConditions>,
-    ) -> Result<Option<MinificationConditions>, rspack_error::Error> {
-      let condition: Option<MinificationConditions> = if let Some(test) = raw_condition {
+      raw_condition: Option<RawSwcJsMinimizerRules>,
+    ) -> Result<Option<SwcJsMinimizerRules>, rspack_error::Error> {
+      let condition: Option<SwcJsMinimizerRules> = if let Some(test) = raw_condition {
         Some(test.try_into()?)
       } else {
         None
@@ -59,6 +63,8 @@ impl TryFrom<RawMinification> for Minification {
     Ok(Self {
       passes: value.passes as usize,
       drop_console: value.drop_console,
+      keep_class_names: value.keep_class_names,
+      keep_fn_names: value.keep_fn_names,
       pure_funcs: value.pure_funcs,
       ascii_only: value.ascii_only,
       comments: value.comments,
@@ -70,10 +76,10 @@ impl TryFrom<RawMinification> for Minification {
   }
 }
 
-impl TryFrom<RawMinificationCondition> for MinificationCondition {
+impl TryFrom<RawSwcJsMinimizerRule> for SwcJsMinimizerRule {
   type Error = rspack_error::Error;
 
-  fn try_from(x: RawMinificationCondition) -> rspack_error::Result<Self> {
+  fn try_from(x: RawSwcJsMinimizerRule) -> rspack_error::Result<Self> {
     let result = match x.r#type.as_str() {
       "string" => Self::String(x.string_matcher.ok_or_else(|| {
         internal_error!(
@@ -97,11 +103,11 @@ impl TryFrom<RawMinificationCondition> for MinificationCondition {
   }
 }
 
-impl TryFrom<RawMinificationConditions> for MinificationConditions {
+impl TryFrom<RawSwcJsMinimizerRules> for SwcJsMinimizerRules {
   type Error = rspack_error::Error;
 
-  fn try_from(value: RawMinificationConditions) -> rspack_error::Result<Self> {
-    let result: MinificationConditions = match value.r#type.as_str() {
+  fn try_from(value: RawSwcJsMinimizerRules) -> rspack_error::Result<Self> {
+    let result = match value.r#type.as_str() {
       "string" => Self::String(value.string_matcher.ok_or_else(|| {
         internal_error!("should have a string_matcher when MinificationConditions.type is \"string\"")
       })?),

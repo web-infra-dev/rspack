@@ -53,8 +53,12 @@ where
     plugins: Vec<Box<dyn Plugin>>,
     output_filesystem: T,
   ) -> Self {
-    let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
-    let loader_resolver_factory = Arc::new(ResolverFactory::new(options.resolve_loader.clone()));
+    let new_resolver = options.experiments.rspack_future.new_resolver;
+    let resolver_factory = Arc::new(ResolverFactory::new(new_resolver, options.resolve.clone()));
+    let loader_resolver_factory = Arc::new(ResolverFactory::new(
+      new_resolver,
+      options.resolve_loader.clone(),
+    ));
     let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
     let cache = Arc::new(Cache::new(options.clone()));
 
@@ -193,12 +197,12 @@ where
         };
         match exports_info_map.entry(importer) {
           Entry::Occupied(mut occ) => {
-            let export_info = ExportInfo::new(name.clone(), UsageState::Used, None);
+            let export_info = ExportInfo::new(Some(name.clone()), UsageState::Used, None);
             occ.get_mut().insert(name.clone(), export_info);
           }
           Entry::Vacant(vac) => {
             let mut map = HashMap::default();
-            let export_info = ExportInfo::new(name.clone(), UsageState::Used, None);
+            let export_info = ExportInfo::new(Some(name.clone()), UsageState::Used, None);
             map.insert(name.clone(), export_info);
             vac.insert(map);
           }
@@ -212,12 +216,23 @@ where
             .module_graph
             .module_identifier_to_module_graph_module,
         );
+        let mut export_info_map =
+          std::mem::take(&mut self.compilation.module_graph.export_info_map);
         for mgm in mi_to_mgm.values_mut() {
-          // merge exports info
           if let Some(exports_map) = exports_info_map.remove(&mgm.module_identifier) {
-            mgm.exports.exports.extend(exports_map.into_iter());
+            let exports = self
+              .compilation
+              .module_graph
+              .exports_info_map
+              .get_mut(&mgm.exports)
+              .expect("should have exports info");
+            for (name, export_info) in exports_map {
+              exports.exports.insert(name, export_info.id);
+              export_info_map.insert(export_info.id, export_info);
+            }
           }
         }
+        self.compilation.module_graph.export_info_map = export_info_map;
         self
           .compilation
           .module_graph

@@ -92,6 +92,7 @@ where
         new_compilation.make_failed_module =
           std::mem::take(&mut self.compilation.make_failed_module);
         new_compilation.entries = std::mem::take(&mut self.compilation.entries);
+        new_compilation.global_entry = std::mem::take(&mut self.compilation.global_entry);
         new_compilation.lazy_visit_modules =
           std::mem::take(&mut self.compilation.lazy_visit_modules);
         new_compilation.file_dependencies = std::mem::take(&mut self.compilation.file_dependencies);
@@ -167,18 +168,19 @@ pub fn collect_changed_modules(
     .chunk_graph_module_by_module_identifier
     .par_iter()
     .filter_map(|(identifier, cgm)| {
-      let module_hash = compilation.module_graph.get_module_hash(identifier);
       let cid = cgm.id.as_deref();
-      if let Some(module_hash) = module_hash && let Some(cid) = cid {
-          Some((
-              *identifier,
-              (
-                  module_hash.clone(),
-                  cid.to_string(),
-              ),
-          ))
+      // TODO: Determine how to calc module hash if module related to multiple runtime code
+      // gen  
+      if let Some(code_generation_result) = compilation.code_generation_results.get_one(identifier) && let Some(module_hash) = &code_generation_result.hash && let Some(cid) = cid {
+        Some((
+            *identifier,
+            (
+                module_hash.clone(),
+                cid.to_string(),
+            ),
+        ))
       } else {
-          None
+        None
       }
     })
     .collect::<IdentifierMap<_>>();

@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
   Compilation, DependencyType, Module, ModuleArgs, ModuleType, Plugin, PluginContext,
-  PluginModuleHookOutput, RuntimeGlobals, SourceType,
+  PluginModuleHookOutput, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_core::{CodeGenerationResult, Context, ModuleIdentifier};
 use rspack_error::Result;
@@ -37,7 +37,11 @@ impl Module for LazyCompilationProxyModule {
     200.0
   }
 
-  fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
+  fn code_generation(
+    &self,
+    compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     cgr.runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
     cgr.runtime_requirements.insert(RuntimeGlobals::MODULE);

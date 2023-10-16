@@ -45,47 +45,7 @@ import {
 	RspackBuiltinPlugin,
 	deprecated_resolveBuiltins
 } from "./builtin-plugin";
-
-class EntryPlugin {
-	constructor(
-		public context: string,
-		public entry: string,
-		public options: {
-			name?: string;
-			runtime?: string;
-		} = {}
-	) {}
-	apply(compiler: Compiler) {
-		const entry = this.context
-			? path.resolve(this.context, this.entry)
-			: this.entry;
-
-		compiler.options.entry = {
-			[this.options.name || "main"]: {
-				import: [entry],
-				runtime: this.options.runtime
-			}
-		};
-	}
-}
-
-class NodeTargetPlugin {
-	apply() {}
-}
-
-class NodeTemplatePlugin {
-	apply() {}
-}
-
-class EnableLibraryPlugin {
-	constructor(private libraryType: string) {}
-	apply(compiler: Compiler) {
-		compiler.options.output.enabledLibraryTypes = [this.libraryType];
-	}
-}
-class HotModuleReplacementPlugin {
-	apply() {}
-}
+import { optionsApply_compat } from "./rspackOptionsApply";
 
 class Compiler {
 	#_instance?: binding.Rspack;
@@ -159,8 +119,6 @@ class Compiler {
 		this.builtinPlugins = [];
 		// to workaround some plugin access webpack, we may change dev-server to avoid this hack in the future
 		this.webpack = {
-			EntryPlugin, // modernjs/server use this to inject dev-client
-			HotModuleReplacementPlugin, // modernjs/server will auto inject this plugin not set
 			NormalModule,
 			get sources(): typeof import("webpack-sources") {
 				return require("webpack-sources");
@@ -184,14 +142,50 @@ class Compiler {
 			get ProvidePlugin() {
 				return require("./builtin-plugin").ProvidePlugin;
 			},
+			get EntryPlugin() {
+				return require("./builtin-plugin").EntryPlugin;
+			},
+			get ExternalsPlugin() {
+				return require("./builtin-plugin").ExternalsPlugin;
+			},
+			get HotModuleReplacementPlugin() {
+				return require("./builtin-plugin").HotModuleReplacementPlugin;
+			},
+			get LoaderOptionsPlugin() {
+				return require("./lib/LoaderOptionsPlugin").LoaderOptionsPlugin;
+			},
+			get LoaderTargetPlugin() {
+				return require("./lib/LoaderTargetPlugin").LoaderTargetPlugin;
+			},
 			WebpackError: Error,
 			ModuleFilenameHelpers,
+			javascript: {
+				get EnableChunkLoadingPlugin() {
+					return require("./builtin-plugin").EnableChunkLoadingPlugin;
+				}
+			},
 			node: {
-				NodeTargetPlugin,
-				NodeTemplatePlugin
+				get NodeTargetPlugin() {
+					return require("./builtin-plugin").NodeTargetPlugin;
+				},
+				get NodeTemplatePlugin() {
+					return require("./node/NodeTemplatePlugin").default;
+				}
+			},
+			electron: {
+				get ElectronTargetPlugin() {
+					return require("./builtin-plugin").ElectronTargetPlugin;
+				}
+			},
+			wasm: {
+				get EnableWasmLoadingPlugin() {
+					return require("./builtin-plugin").EnableWasmLoadingPlugin;
+				}
 			},
 			library: {
-				EnableLibraryPlugin
+				get EnableLibraryPlugin() {
+					return require("./builtin-plugin").EnableLibraryPlugin;
+				}
 			},
 			util: {
 				get createHash() {
@@ -212,6 +206,19 @@ class Compiler {
 				// get LazySet() {
 				// 	return require("./util/LazySet");
 				// }
+			},
+			// XxxRspackPlugin, Rspack-only plugins
+			get HtmlRspackPlugin() {
+				return require("./builtin-plugin").HtmlRspackPlugin;
+			},
+			get SwcJsMinimizerRspackPlugin() {
+				return require("./builtin-plugin").SwcJsMinimizerRspackPlugin;
+			},
+			get SwcCssMinimizerRspackPlugin() {
+				return require("./builtin-plugin").SwcCssMinimizerRspackPlugin;
+			},
+			get CopyRspackPlugin() {
+				return require("./builtin-plugin").CopyRspackPlugin;
 			}
 		};
 		this.root = this;
@@ -313,18 +320,21 @@ class Compiler {
 				});
 		};
 
+		const options = this.options;
+		// TODO: remove this in v0.4
+		optionsApply_compat(this, options);
 		// TODO: remove this when drop support for builtins options
-		this.options.builtins = deprecated_resolveBuiltins(
-			this.options.builtins,
-			this.options,
+		options.builtins = deprecated_resolveBuiltins(
+			options.builtins,
+			options,
 			this
 		) as any;
-		const options = getRawOptions(this.options, this, processResource);
+		const rawOptions = getRawOptions(options, this, processResource);
 
 		const instanceBinding: typeof binding = require("@rspack/binding");
 
 		this.#_instance = new instanceBinding.Rspack(
-			options,
+			rawOptions,
 			this.builtinPlugins.map(bp => bp.raw()),
 			{
 				beforeCompile: this.#beforeCompile.bind(this),
@@ -408,6 +418,7 @@ class Compiler {
 				// No matter how it will be implemented, it will be copied to the child compiler.
 				compilation: this.#compilation.bind(this),
 				optimizeModules: this.#optimizeModules.bind(this),
+				optimizeTree: this.#optimizeTree.bind(this),
 				optimizeChunkModule: this.#optimizeChunkModules.bind(this),
 				finishModules: this.#finishModules.bind(this),
 				normalModuleFactoryResolveForScheme:
@@ -716,6 +727,7 @@ class Compiler {
 				),
 			compilation: this.hooks.compilation,
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
+			optimizeTree: this.compilation.hooks.optimizeTree,
 			finishModules: this.compilation.hooks.finishModules,
 			optimizeModules: this.compilation.hooks.optimizeModules,
 			chunkAsset: this.compilation.hooks.chunkAsset,
@@ -802,7 +814,7 @@ class Compiler {
 			(loaderContext: any) => {
 				loaderContext._module = {
 					factoryMeta: {
-						sideEffectFree: !resolveData.factoryMeta.sideEffects
+						sideEffectFree: !!resolveData.factoryMeta.sideEffectFree
 					}
 				};
 			}
@@ -841,6 +853,15 @@ class Compiler {
 		);
 		this.#updateDisabledHooks();
 	}
+
+	async #optimizeTree() {
+		await this.compilation.hooks.optimizeTree.promise(
+			this.compilation.__internal__getChunks(),
+			this.compilation.modules
+		);
+		this.#updateDisabledHooks();
+	}
+
 	async #optimizeModules() {
 		await this.compilation.hooks.optimizeModules.promise(
 			this.compilation.modules

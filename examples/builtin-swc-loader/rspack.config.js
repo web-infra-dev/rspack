@@ -1,4 +1,3 @@
-const path = require("path");
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
 	entry: {
@@ -44,6 +43,11 @@ const config = {
 				template: "./index.html"
 			}
 		]
+	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: true
+		}
 	}
 };
 module.exports = config;

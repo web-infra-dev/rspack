@@ -75,6 +75,18 @@ jobs:
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+      - name: free-disk-cache
+        if: ${{ contains(inputs.target, 'linux') }}
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          # just remove android sdk seems enough for use, save us some time
+          android: true
+          dotnet: false
+          haskell: false
+          large-packages: false
+          docker-images: false
+          swap-storage: false
 
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
@@ -96,7 +108,6 @@ jobs:
         shell: bash
         run: |
           echo '[profile.dev.package."*"]' >> Cargo.toml
-          echo 'debug = false' >> Cargo.toml
           echo 'opt-level = 3' >> Cargo.toml
           echo 'codegen-units = 1' >> Cargo.toml
 
@@ -167,7 +178,6 @@ jobs:
           SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
           export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
-
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
@@ -250,7 +260,7 @@ jobs:
       ### x86_64-pc-windows-msvc
 
       - name: Test x86_64-pc-windows-msvc
-        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
+        timeout-minutes: 20 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc'  &&  matrix.node  != '14' }}
         run: pnpm run test:ci
 

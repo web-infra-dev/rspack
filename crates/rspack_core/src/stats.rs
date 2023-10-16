@@ -443,6 +443,7 @@ impl Stats<'_> {
       r#type: "module",
       module_type: *module.module_type(),
       identifier,
+      name_for_condition: module.name_for_condition().map(|n| n.to_string()),
       name: module
         .readable_identifier(&self.compilation.options.context)
         .into(),
@@ -562,6 +563,7 @@ pub struct StatsModule<'a> {
   pub module_type: ModuleType,
   pub identifier: ModuleIdentifier,
   pub name: String,
+  pub name_for_condition: Option<String>,
   pub id: Option<String>,
   pub chunks: Vec<String>,
   pub size: f64,

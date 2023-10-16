@@ -15,6 +15,7 @@ use rspack_core::{
   ModuleRuleUseLoader, ModuleType, ParserOptions, ParserOptionsByModuleType,
 };
 use rspack_error::internal_error;
+use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_sass::SASS_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
 use serde::Deserialize;
@@ -35,20 +36,25 @@ pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
   }
 
   if builtin.starts_with(SWC_LOADER_IDENTIFIER) {
-    return Arc::new(rspack_loader_swc::SwcLoader::new(
-      serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
-        panic!("Could not parse builtin:swc-loader options:{options:?},error: {e:?}")
-      }),
-      Some(builtin.into()),
-    ));
+    return Arc::new(
+      rspack_loader_swc::SwcLoader::new(
+        serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
+          panic!("Could not parse builtin:swc-loader options:{options:?},error: {e:?}")
+        }),
+      )
+      .with_identifier(builtin.into()),
+    );
+  }
+  if builtin.starts_with(REACT_REFRESH_LOADER_IDENTIFIER) {
+    return Arc::new(
+      rspack_loader_react_refresh::ReactRefreshLoader::default().with_identifier(builtin.into()),
+    );
   }
 
   unreachable!("Unexpected builtin loader: {builtin}")
 }
 
-/// `loader` is for js side loader, `builtin_loader` is for rust side loader,
-/// which is mapped to real rust side loader by [get_builtin_loader].
-///
+/// `loader` is for both JS and Rust loaders.
 /// `options` is
 ///   - a `None` on rust side and handled by js side `getOptions` when
 /// using with `loader`.
@@ -59,7 +65,6 @@ pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawModuleRuleUse {
-  #[serde(skip_deserializing)]
   pub loader: String,
   pub options: Option<String>,
 }
@@ -249,6 +254,11 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawModuleRule {
+  /// A conditional match matching an absolute path + query + fragment.
+  /// Note:
+  ///   This is a custom matching rule not initially designed by webpack.
+  ///   Only for single-threaded environment interoperation purpose.
+  pub rspack_resource: Option<RawRuleSetCondition>,
   /// A condition matcher matching an absolute path.
   pub test: Option<RawRuleSetCondition>,
   pub include: Option<RawRuleSetCondition>,
@@ -639,6 +649,7 @@ impl RawOptionsApply for RawModuleRule {
       .unwrap_or_default();
 
     Ok(ModuleRule {
+      rspack_resource: self.rspack_resource.map(|raw| raw.try_into()).transpose()?,
       test: self.test.map(|raw| raw.try_into()).transpose()?,
       include: self.include.map(|raw| raw.try_into()).transpose()?,
       exclude: self.exclude.map(|raw| raw.try_into()).transpose()?,

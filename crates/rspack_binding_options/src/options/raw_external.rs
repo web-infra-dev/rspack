@@ -19,6 +19,22 @@ use {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
+pub struct RawHttpExternalsRspackPluginOptions {
+  pub css: bool,
+  pub web_async: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawExternalsPluginOptions {
+  pub r#type: String,
+  pub externals: Vec<RawExternalItem>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
 pub struct RawExternalItem {
   #[napi(ts_type = r#""string" | "regexp" | "object" | "function""#)]
   pub r#type: String,
@@ -46,11 +62,12 @@ impl Debug for RawExternalItem {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawExternalItemValue {
-  #[napi(ts_type = r#""string" | "bool" | "array""#)]
+  #[napi(ts_type = r#""string" | "bool" | "array" | "object""#)]
   pub r#type: String,
   pub string_payload: Option<String>,
   pub bool_payload: Option<bool>,
   pub array_payload: Option<Vec<String>>,
+  pub object_payload: Option<HashMap<String, Vec<String>>>,
 }
 
 impl From<RawExternalItemValue> for ExternalItemValue {
@@ -70,6 +87,13 @@ impl From<RawExternalItemValue> for ExternalItemValue {
         value
           .array_payload
           .expect("should have a array_payload when RawExternalItemValue.type is \"array\""),
+      ),
+      "object" => Self::Object(
+        value
+          .object_payload
+          .expect("should have a object_payload when RawExternalItemValue.type is \"object\"")
+          .into_iter()
+          .collect(),
       ),
       _ => unreachable!(),
     }
@@ -113,10 +137,10 @@ impl From<ExternalItemFnCtx> for RawExternalItemFnCtx {
 }
 
 impl TryFrom<RawExternalItem> for ExternalItem {
-  type Error = anyhow::Error;
+  type Error = rspack_error::Error;
 
   #[allow(clippy::unwrap_in_result)]
-  fn try_from(value: RawExternalItem) -> anyhow::Result<Self> {
+  fn try_from(value: RawExternalItem) -> rspack_error::Result<Self> {
     match value.r#type.as_str() {
       "string" => Ok(Self::from(value.string_payload.expect(
         "should have a string_payload when RawExternalItem.type is \"string\"",

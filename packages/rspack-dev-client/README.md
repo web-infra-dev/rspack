@@ -3,6 +3,8 @@
   <img alt="Rspack Banner" src="https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/rspack-banner-1610.png">
 </picture>
 
+# ⚠️ DEPRECATED: use @rspack/plugin-react-refresh instead
+
 # @rspack/dev-client
 
 Development client for rspack.

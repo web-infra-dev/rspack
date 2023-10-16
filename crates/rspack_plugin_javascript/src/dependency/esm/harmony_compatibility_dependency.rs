@@ -1,11 +1,11 @@
 use rspack_core::{
-  DependencyTemplate, InitFragmentStage, NormalInitFragment, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource,
+  DependencyTemplate, InitFragmentKey, InitFragmentStage, NormalInitFragment, RuntimeGlobals,
+  TemplateContext, TemplateReplaceSource,
 };
 
 // Mark module `__esModule`.
 // Add `__webpack_require__.r(__webpack_exports__);`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HarmonyCompatibilityDependency;
 
 impl DependencyTemplate for HarmonyCompatibilityDependency {
@@ -26,7 +26,7 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
     init_fragments.push(Box::new(NormalInitFragment::new(
       format!(
-        "'use strict';\n{}({});\n", // todo remove strict
+        "{}({});\n",
         RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
         compilation
           .module_graph
@@ -34,7 +34,9 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
           .expect("should have mgm")
           .get_exports_argument()
       ),
-      InitFragmentStage::StageHarmonyExportsCompatibility,
+      InitFragmentStage::StageHarmonyExports,
+      0,
+      InitFragmentKey::HarmonyCompatibility,
       None,
     )));
 
@@ -52,7 +54,9 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
             .get_module_argument()
         ),
         InitFragmentStage::StageAsyncBoundary,
-        Some("\n__webpack_async_result__();\n} catch(e) { __webpack_async_result__(e); } });".to_string().into()),
+        0,
+        InitFragmentKey::uniqie(),
+        Some("\n__webpack_async_result__();\n} catch(e) { __webpack_async_result__(e); } });".to_string()),
       )));
     }
   }

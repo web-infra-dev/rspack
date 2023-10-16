@@ -1059,6 +1059,32 @@ describe("Compiler", () => {
 			});
 		});
 
+		it("should work with `namedChunks`", done => {
+			const mockFn = jest.fn();
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.afterCompile.tap("Plugin", compilation => {
+						let c = compilation.namedChunks.get("d");
+						expect(c.name).toBe("d");
+						mockFn();
+					});
+				}
+			}
+			const compiler = rspack({
+				entry: {
+					d: "./d"
+				},
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build(error => {
+				expect(error).toBeFalsy();
+				expect(mockFn).toBeCalled();
+				done();
+			});
+		});
+
 		it("should get assets with both `getAssets` and `assets`(getter)", done => {
 			class MyPlugin {
 				apply(compiler: Compiler) {

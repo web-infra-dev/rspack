@@ -1,0 +1,7 @@
+.e-1 {
+    color: blue;
+}
+
+.e {
+    composes: e-1;
+}

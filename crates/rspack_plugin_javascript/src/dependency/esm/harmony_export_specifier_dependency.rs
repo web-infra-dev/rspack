@@ -1,7 +1,7 @@
 use rspack_core::{
   AsModuleDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
   DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, HarmonyExportInitFragment,
-  TemplateContext, TemplateReplaceSource,
+  TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -9,14 +9,16 @@ use swc_core::ecma::atoms::JsWord;
 #[derive(Debug, Clone)]
 pub struct HarmonyExportSpecifierDependency {
   id: DependencyId,
-  export: (JsWord, JsWord),
+  name: JsWord,
+  value: JsWord, // id
 }
 
 impl HarmonyExportSpecifierDependency {
-  pub fn new(export: (JsWord, JsWord)) -> Self {
+  pub fn new(name: JsWord, value: JsWord) -> Self {
     Self {
       id: DependencyId::new(),
-      export,
+      name,
+      value,
     }
   }
 }
@@ -36,14 +38,23 @@ impl Dependency for HarmonyExportSpecifierDependency {
 
   fn get_exports(&self) -> Option<ExportsSpec> {
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(self.export.0.clone())]),
+      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(self.name.clone())]),
       priority: Some(1),
       can_mangle: None,
       terminal_binding: Some(true),
       from: None,
       dependencies: None,
       hide_export: None,
+      exclude_exports: None,
     })
+  }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &rspack_core::ModuleGraph,
+    _module_chain: &mut rustc_hash::FxHashSet<rspack_core::ModuleIdentifier>,
+  ) -> rspack_core::ConnectionState {
+    rspack_core::ConnectionState::Bool(false)
   }
 }
 
@@ -62,18 +73,41 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
       ..
     } = code_generatable_context;
 
+    let mgm = compilation
+      .module_graph
+      .module_graph_module_by_identifier(&module.identifier())
+      .expect("should have module graph module");
+
     let used = if compilation.options.builtins.tree_shaking.is_true() {
       compilation
         .module_graph
         .get_exports_info(&module.identifier())
-        .get_used_exports()
-        .contains(&self.export.0)
+        .old_get_used_exports()
+        .contains(&self.name)
+    } else if compilation.options.is_new_tree_shaking() {
+      let exports_info_id = compilation
+        .module_graph
+        .get_exports_info(&module.identifier())
+        .id;
+      let used_name = exports_info_id.get_used_name(
+        &compilation.module_graph,
+        None,
+        UsedName::Str(self.name.clone()),
+      );
+      // dbg!(&used_name);
+      used_name
+        .map(|item| match item {
+          UsedName::Str(name) => name == self.name,
+          UsedName::Vec(vec) => vec.contains(&self.name),
+        })
+        .unwrap_or_default()
     } else {
       true
     };
     if used {
       init_fragments.push(Box::new(HarmonyExportInitFragment::new(
-        self.export.clone(),
+        mgm.get_exports_argument(),
+        vec![(self.name.clone(), self.value.clone())],
       )));
     }
   }

@@ -1,17 +1,17 @@
 use std::{path::PathBuf, str::FromStr};
 
 use napi_derive::napi;
-use rspack_core::{
-  Builtins, DecoratorOptions, PluginExt, PresetEnv, ReactOptions, RelayConfig, RelayLanguageConfig,
-};
+use rspack_core::{Builtins, DecoratorOptions, PluginExt, PresetEnv};
 use rspack_error::internal_error;
 use rspack_plugin_css::{
   plugin::{CssConfig, LocalIdentName, LocalsConvention, ModulesConfig},
   CssPlugin,
 };
 use rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin;
+use rspack_swc_visitors::{
+  CustomTransform, ImportOptions, ReactOptions, RelayLanguageConfig, RelayOptions, StyleConfig,
+};
 use serde::{Deserialize, Serialize};
-use swc_plugin_import::{CustomTransform, PluginImportConfig, StyleConfig};
 
 #[derive(Deserialize, Debug, Serialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -70,7 +70,7 @@ pub struct RawPluginImportConfig {
   pub ignore_style_component: Option<Vec<String>>,
 }
 
-impl From<RawPluginImportConfig> for PluginImportConfig {
+impl From<RawPluginImportConfig> for ImportOptions {
   fn from(plugin_import: RawPluginImportConfig) -> Self {
     let RawPluginImportConfig {
       library_name,
@@ -154,7 +154,7 @@ impl From<RawReactOptions> for ReactOptions {
       Some(Runtime::Automatic)
     };
 
-    ReactOptions {
+    Self {
       runtime,
       import_source: value.import_source,
       pragma: value.pragma,
@@ -177,7 +177,7 @@ pub struct RawRelayConfig {
   pub language: String,
 }
 
-impl From<RawRelayConfig> for RelayConfig {
+impl From<RawRelayConfig> for RelayOptions {
   fn from(raw_config: RawRelayConfig) -> Self {
     Self {
       artifact_directory: raw_config.artifact_directory.map(PathBuf::from),

@@ -1,0 +1,6 @@
+.f-1 {
+    color: black;
+}
+.f {
+    composes: f-1;
+}

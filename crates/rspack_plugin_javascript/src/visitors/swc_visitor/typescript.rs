@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use swc_core::common::{comments::SingleThreadedComments, Mark, SourceMap};
+use swc_core::common::{comments::Comments, Mark, SourceMap};
 use swc_core::ecma::transforms::base::Assumptions;
 use swc_core::ecma::transforms::{
   react::{default_pragma, default_pragma_frag},
@@ -11,7 +11,7 @@ use swc_core::ecma::visit::Fold;
 pub fn typescript<'a>(
   assumptions: Assumptions,
   top_level_mark: Mark,
-  comments: Option<&'a SingleThreadedComments>,
+  comments: Option<&'a dyn Comments>,
   cm: &Arc<SourceMap>,
 ) -> impl Fold + 'a {
   /*  let import_export_assign_config = match module {
