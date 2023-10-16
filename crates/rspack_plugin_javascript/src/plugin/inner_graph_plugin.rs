@@ -184,7 +184,10 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     match self.rewrite_usage_span.get(&ident.span) {
       Some(ExtraSpanInfo::ReWriteUsedByExports) => {
         let span = ident.span;
+        let sym = ident.sym.clone();
+        dbg!(&sym, self.get_top_level_symbol());
         self.on_usage(Box::new(move |deps, used_by_exports| {
+          dbg!(&sym, &used_by_exports);
           let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
           if let Some(dep) = target_dep {
             dep.set_used_by_exports(used_by_exports);
@@ -216,9 +219,12 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if let Pat::Ident(ident) = &n.name {
       if let Some(box init) = &n.init && is_pure_expression(init, self.unresolved_ctxt) {
         let symbol = ident.id.sym.clone();
-        self.set_symbol_if_is_top_level(symbol);
         match init {
-          Expr::Fn(_) | Expr::Arrow(_) | Expr::Lit(_) => {},
+          Expr::Fn(_) | Expr::Arrow(_) | Expr::Lit(_) => {
+            self.set_symbol_if_is_top_level(symbol);
+            init.visit_children_with(self);
+            self.clear_symbol_if_is_top_level();
+          },
           Expr::Class(class) => {
               // TODO: consider class 
             class.class.visit_children_with(self);
@@ -242,9 +248,9 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
           }
          }
       }
+    } else {
+      n.init.visit_children_with(self);
     }
-    n.visit_children_with(self);
-    self.clear_symbol_if_is_top_level();
   }
 
   fn visit_prop(&mut self, n: &Prop) {
@@ -310,7 +316,12 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if !self.is_enabled() {
       return;
     }
-    // TODO: use rewrite Usage span instead
+    match self.rewrite_usage_span.get(&node.span) {
+      Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) => {
+        self.add_variable_usage(sym.clone(), usage.clone());
+      }
+      _ => {}
+    }
     match node.expr {
       box Expr::Fn(_) | box Expr::Arrow(_) | box Expr::Lit(_) => {
         node.expr.visit_children_with(self);
@@ -596,7 +607,6 @@ impl<'a> InnerGraphPlugin<'a> {
     dbg!(&state.inner_graph);
     for (symbol, cbs) in state.usage_callback_map.iter() {
       let usage = state.inner_graph.get(symbol);
-      dbg!(symbol, usage);
       for cb in cbs {
         let used_by_exports = if let Some(usage) = usage {
           match usage {

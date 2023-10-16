@@ -190,16 +190,21 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
     // TODO this should be at `HarmonyExportExpressionDependency`
     // TODO: add variable usage
+
+    let local = match &ident {
+      Some(ident) => ident.sym.clone(),
+      None => DEFAULT_EXPORT.into(),
+    };
     self
       .dependencies
       .push(Box::new(HarmonyExportSpecifierDependency::new(
         DEFAULT_JS_WORD.clone(),
-        match &ident {
-          Some(ident) => ident.sym.clone(),
-          None => DEFAULT_EXPORT.into(),
-        },
+        local.clone(),
       )));
-
+    self.rewrite_usage_span.insert(
+      export_default_decl.span,
+      ExtraSpanInfo::AddVariableUsage(local, DEFAULT_JS_WORD.clone()),
+    );
     self
       .presentational_dependencies
       .push(Box::new(HarmonyExportExpressionDependency::new(

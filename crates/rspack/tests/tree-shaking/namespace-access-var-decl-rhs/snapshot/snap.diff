@@ -1,33 +1,46 @@
 --- expected
 +++ actual
-@@ -6,9 +6,6 @@
- "./a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
- 'use strict';
- __webpack_require__.r(__webpack_exports__);
+@@ -3,43 +3,9 @@
+ ---
+ ```js title=main.js
+ (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+-"./a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+-'use strict';
+-__webpack_require__.r(__webpack_exports__);
 -__webpack_require__.d(__webpack_exports__, {
 -  'a': function() { return a; }
 -});
-  const a = {
-     a: ''
- };
-@@ -16,9 +13,6 @@
- "./b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
- 'use strict';
- __webpack_require__.r(__webpack_exports__);
+- const a = {
+-    a: ''
+-};
+-},
+-"./b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+-'use strict';
+-__webpack_require__.r(__webpack_exports__);
 -__webpack_require__.d(__webpack_exports__, {
 -  'b': function() { return b; }
 -});
-  const b = {
-     b: ""
- };
-@@ -26,10 +20,6 @@
- "./enum-old.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
- 'use strict';
- __webpack_require__.r(__webpack_exports__);
+- const b = {
+-    b: ""
+-};
+-},
+-"./enum-old.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+-'use strict';
+-__webpack_require__.r(__webpack_exports__);
 -__webpack_require__.d(__webpack_exports__, {
 -  'a': function() { return _a__WEBPACK_IMPORTED_MODULE_0_.a; },
 -  'b': function() { return _b__WEBPACK_IMPORTED_MODULE_1_.b; }
 -});
- /* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a */"./a.js");
- /* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./b */"./b.js");
+-/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a */"./a.js");
+-/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./b */"./b.js");
+-
+-
+-},
+ "./enum.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+-/* harmony import */var _enum_old__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./enum-old */"./enum-old.js");
+-__webpack_require__.es(_enum_old__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
  
+ },
+ "./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
