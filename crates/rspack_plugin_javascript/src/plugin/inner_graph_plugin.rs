@@ -16,7 +16,7 @@ use swc_core::{
 };
 
 use crate::{
-  dependency::PureExpressionDependency,
+  dependency::{PureExpressionDependency, DEFAULT_EXPORT},
   plugin::side_effects_flag_plugin::{is_pure_class, is_pure_expression},
   visitors::{harmony_import_dependency_scanner::ImportMap, ExtraSpanInfo},
   ClassKey,
@@ -203,7 +203,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     };
     if ident.span.ctxt == self.top_level_ctxt {
       let usage = if let Some(symbol) = self.get_top_level_symbol() {
-        InnerGraphMapUsage::Value(symbol)
+        InnerGraphMapUsage::TopLevel(symbol)
       } else {
         InnerGraphMapUsage::True
       };
@@ -276,7 +276,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
   fn visit_export_decl(&mut self, export_decl: &ExportDecl) {
     match self.rewrite_usage_span.get(&export_decl.span) {
       Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) => {
-        self.add_variable_usage(sym.clone(), usage.clone());
+        self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
       }
       _ => {}
     }
@@ -304,7 +304,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         .for_each(|specifier| match specifier {
           ExportSpecifier::Named(named) => match self.rewrite_usage_span.get(&named.span) {
             Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) => {
-              self.add_variable_usage(sym.clone(), usage.clone());
+              self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
             }
             _ => {}
           },
@@ -318,10 +318,12 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     }
     match self.rewrite_usage_span.get(&node.span) {
       Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) => {
-        self.add_variable_usage(sym.clone(), usage.clone());
+        self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
       }
       _ => {}
     }
+    self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
+    // TODO:
     match node.expr {
       box Expr::Fn(_) | box Expr::Arrow(_) | box Expr::Lit(_) => {
         node.expr.visit_children_with(self);
@@ -348,6 +350,8 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         }
       }
     }
+
+    self.clear_symbol_if_is_top_level();
   }
 
   fn visit_export_default_decl(&mut self, node: &ExportDefaultDecl) {
@@ -444,8 +448,8 @@ impl<'a> InnerGraphPlugin<'a> {
     }
   }
 
-  pub fn add_variable_usage(&mut self, name: JsWord, usage: JsWord) {
-    self.add_usage(name, InnerGraphMapUsage::Value(usage));
+  pub fn add_variable_usage(&mut self, name: JsWord, usage: InnerGraphMapUsage) {
+    self.add_usage(name, usage);
   }
 
   pub fn on_usage(&mut self, on_usage_callback: UsageCallback) {

@@ -16,10 +16,13 @@ use swc_core::{
 };
 
 use super::{harmony_import_dependency_scanner::ImportMap, ExtraSpanInfo};
-use crate::dependency::{
-  AnonymousFunctionRangeInfo, HarmonyExportExpressionDependency, HarmonyExportHeaderDependency,
-  HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency, Specifier,
-  DEFAULT_EXPORT,
+use crate::{
+  dependency::{
+    AnonymousFunctionRangeInfo, HarmonyExportExpressionDependency, HarmonyExportHeaderDependency,
+    HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency, Specifier,
+    DEFAULT_EXPORT,
+  },
+  inner_graph_plugin::InnerGraphMapUsage,
 };
 
 pub struct HarmonyExportDependencyScanner<'a> {
@@ -171,6 +174,10 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
         DEFAULT_EXPORT.into(),
       )));
 
+    self.rewrite_usage_span.insert(
+      export_default_expr.span,
+      ExtraSpanInfo::AddVariableUsage(DEFAULT_EXPORT.into(), DEFAULT_JS_WORD.clone()),
+    );
     self
       .presentational_dependencies
       .push(Box::new(HarmonyExportExpressionDependency::new(
@@ -189,7 +196,6 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
     };
 
     // TODO this should be at `HarmonyExportExpressionDependency`
-    // TODO: add variable usage
 
     let local = match &ident {
       Some(ident) => ident.sym.clone(),

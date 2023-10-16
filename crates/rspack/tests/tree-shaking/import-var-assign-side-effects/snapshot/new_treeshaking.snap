@@ -41,7 +41,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 _Layout_js__WEBPACK_IMPORTED_MODULE_0_["default"].sider = _Something_js__WEBPACK_IMPORTED_MODULE_1_["default"];
-var __WEBPACK_DEFAULT_EXPORT__ = _Layout_js__WEBPACK_IMPORTED_MODULE_0_["default"];
+var __WEBPACK_DEFAULT_EXPORT__ = Layout;
 },
 
 },function(__webpack_require__) {

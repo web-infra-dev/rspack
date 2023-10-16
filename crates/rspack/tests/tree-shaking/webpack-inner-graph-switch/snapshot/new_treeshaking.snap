@@ -43,19 +43,20 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
+/* harmony import */var _some_module__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./some-module */"./some-module.js");
 
 function getType(obj) {
     return obj.type;
 }
 // Local functions
 function doSomethingWithBlock(obj) {
-    return Block.doSomething(obj);
+    return _some_module__WEBPACK_IMPORTED_MODULE_0_.Block.doSomething(obj);
 }
 function doSomethingWithInline(obj) {
-    return Inline.doSomething(obj);
+    return _some_module__WEBPACK_IMPORTED_MODULE_0_.Inline.doSomething(obj);
 }
 function doSomethingWithDocument(obj) {
-    return Document.doSomething(obj);
+    return _some_module__WEBPACK_IMPORTED_MODULE_0_.Document.doSomething(obj);
 }
 // Exported functions
 function doSomething(obj) {
@@ -77,17 +78,6 @@ function useDocument(obj) {
 
 var __WEBPACK_DEFAULT_EXPORT__ = doSomething;
 },
-
-},function(__webpack_require__) {
-var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
-var __webpack_exports__ = (__webpack_exec__("./index.js"));
-
-}
-]);
-```
-
-```js title=some-module_js.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["some-module_js"], {
 "./some-module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
@@ -108,5 +98,10 @@ class Document {
 
 },
 
-}]);
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
 ```
