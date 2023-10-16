@@ -129,7 +129,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                     reference.source_order,
                     ids,
                     mode_ids,
-                    Some(export),
+                    Some(export.clone()),
                     false,
                   )));
               } else {
@@ -140,12 +140,12 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                     orig.sym.clone(),
                   )));
 
-                self.rewrite_usage_span.insert(
-                  named.span(),
-                  ExtraSpanInfo::AddVariableUsage(orig.sym.clone(), export.clone()),
-                );
-                self.build_info.harmony_named_exports.insert(export);
+                self.build_info.harmony_named_exports.insert(export.clone());
               }
+              self.rewrite_usage_span.insert(
+                named.span(),
+                ExtraSpanInfo::AddVariableUsage(orig.sym.clone(), export.clone()),
+              );
             }
           }
           _ => unreachable!(),

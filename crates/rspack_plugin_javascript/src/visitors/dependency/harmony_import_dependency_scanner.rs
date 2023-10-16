@@ -133,6 +133,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
             Specifier::Named(orig, exported) => {
               let name = exported.clone().unwrap_or(orig.clone());
               let ids = vec![(name.clone(), Some(orig.clone()))];
+              // TODO: add variable usage
               self
                 .dependencies
                 .push(Box::new(HarmonyExportImportedSpecifierDependency::new(

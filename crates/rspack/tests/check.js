@@ -25,7 +25,7 @@ const falsePositiveMap = {
 	"context-module-elimated": "align webpack unused binding behavior",
 	"rollup-unused-called-import": "align webpack unused binding behavior",
 	"var-function-expr": "align webpack unused binding behavior",
-	"webpack-innergraph-no-side-effects": "align webpack unused binding behavior",
+	"webpack-innergraph-no-side-effects": "align webpack unused binding behavior"
 };
 
 const normalizedList = filteredList.map((item) => {

@@ -310,25 +310,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if !self.is_enabled() {
       return;
     }
-    // exportExpression start
     // TODO: use rewrite Usage span instead
-    let symbol: JsWord = "*default*".into();
-    let usage_name = match node.expr {
-      box Expr::Fn(ref func) => func
-        .ident
-        .as_ref()
-        .map(|ident| ident.sym.clone())
-        .unwrap_or("default".into()),
-      box Expr::Class(ref class) => class
-        .ident
-        .as_ref()
-        .map(|ident| ident.sym.clone())
-        .unwrap_or("default".into()),
-      _ => "default".into(),
-    };
-
-    self.add_variable_usage(symbol, usage_name);
-    // exportExpression end
     match node.expr {
       box Expr::Fn(_) | box Expr::Arrow(_) | box Expr::Lit(_) => {
         node.expr.visit_children_with(self);
