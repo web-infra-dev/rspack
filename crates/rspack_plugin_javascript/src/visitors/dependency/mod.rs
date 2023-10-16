@@ -20,9 +20,10 @@ use rspack_core::{
   ast::javascript::Program, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, ModuleIdentifier, ModuleType, ResourceData,
 };
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::FxHashMap as HashMap;
 use swc_core::common::Span;
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
+use swc_core::ecma::atoms::JsWord;
 pub use util::*;
 
 use self::harmony_import_dependency_scanner::ImportMap;
@@ -43,10 +44,18 @@ use self::{
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
   pub presentational_dependencies: Vec<BoxDependencyTemplate>,
-  pub rewrite_usage_span: HashSet<Span>,
+  // TODO: rename this name
+  pub rewrite_usage_span: HashMap<Span, ExtraSpanInfo>,
   pub import_map: ImportMap,
 }
 
+#[derive(Debug, Clone)]
+pub enum ExtraSpanInfo {
+  ReWriteUsedByExports,
+  // (symbol, usage)
+  // (local, exported) refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/javascript/JavascriptParser.js#L2347-L2352
+  AddVariableUsage(JsWord, JsWord),
+}
 #[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies(
   program: &Program,
@@ -64,7 +73,7 @@ pub fn scan_dependencies(
   let comments = program.comments.clone();
   let mut parser_exports_state = None;
 
-  let mut rewrite_usage_span = HashSet::default();
+  let mut rewrite_usage_span = HashMap::default();
   program.visit_with(&mut ApiScanner::new(
     &unresolved_ctxt,
     resource_data,
@@ -133,6 +142,7 @@ pub fn scan_dependencies(
       &mut presentational_dependencies,
       &mut import_map,
       build_info,
+      &mut rewrite_usage_span,
     ));
     let mut worker_syntax_scanner = rspack_core::needs_refactor::WorkerSyntaxScanner::new(
       rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,

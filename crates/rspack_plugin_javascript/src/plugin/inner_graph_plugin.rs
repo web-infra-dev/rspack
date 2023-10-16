@@ -1,4 +1,4 @@
-use std::collections::hash_map::Entry;
+use std::{collections::hash_map::Entry, hash::Hash};
 
 use rspack_core::{Dependency, SpanExt, UsedByExports};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -7,8 +7,8 @@ use swc_core::{
   ecma::{
     ast::{
       ArrowExpr, CallExpr, Callee, Class, ClassDecl, ClassMember, DefaultDecl, ExportDecl,
-      ExportDefaultDecl, ExportDefaultExpr, Expr, FnDecl, FnExpr, Ident, MemberExpr, Pat, Program,
-      Prop, VarDeclarator,
+      ExportDefaultDecl, ExportDefaultExpr, ExportSpecifier, Expr, FnDecl, FnExpr, Ident,
+      MemberExpr, NamedExport, Pat, Program, Prop, VarDeclarator,
     },
     atoms::JsWord,
     visit::{noop_visit_type, Visit, VisitWith},
@@ -18,7 +18,7 @@ use swc_core::{
 use crate::{
   dependency::PureExpressionDependency,
   plugin::side_effects_flag_plugin::{is_pure_class, is_pure_expression},
-  visitors::harmony_import_dependency_scanner::ImportMap,
+  visitors::{harmony_import_dependency_scanner::ImportMap, ExtraSpanInfo},
   ClassKey,
 };
 
@@ -79,7 +79,7 @@ pub struct InnerGraphPlugin<'a> {
   top_level_ctxt: SyntaxContext,
   state: InnerGraphState,
   scope_level: usize,
-  rewrite_usage_span: &'a mut HashSet<Span>,
+  rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
   import_map: &'a ImportMap,
 }
 
@@ -107,15 +107,19 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
   }
 
   fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
-    if self.rewrite_usage_span.contains(&member_expr.span) {
-      let span = member_expr.span;
-      self.on_usage(Box::new(move |deps, used_by_exports| {
-        let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
-        if let Some(dep) = target_dep {
-          dep.set_used_by_exports(used_by_exports);
-        }
-      }));
-    }
+    match self.rewrite_usage_span.get(&member_expr.span) {
+      Some(ExtraSpanInfo::ReWriteUsedByExports) => {
+        let span = member_expr.span;
+        self.on_usage(Box::new(move |deps, used_by_exports| {
+          let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
+          if let Some(dep) = target_dep {
+            dep.set_used_by_exports(used_by_exports);
+          }
+        }));
+      }
+      // member_expr is not possible to add a variable usage
+      _ => {}
+    };
   }
 
   fn visit_class_member(&mut self, node: &ClassMember) {
@@ -144,13 +148,12 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     self.set_symbol_if_is_top_level(node.ident.sym.clone());
     let scope_level = self.scope_level;
     self.scope_level += 1;
-    println!("enter fun{}", node.ident.sym);
     node.function.visit_children_with(self);
-    println!("leave fun{}", node.ident.sym);
     self.scope_level = scope_level;
     self.clear_symbol_if_is_top_level();
   }
 
+  // TODO: expr
   fn visit_fn_expr(&mut self, node: &FnExpr) {
     let scope_level = self.scope_level;
     self.scope_level += 1;
@@ -178,15 +181,19 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
   }
 
   fn visit_ident(&mut self, ident: &Ident) {
-    if self.rewrite_usage_span.contains(&ident.span) {
-      let span = ident.span;
-      self.on_usage(Box::new(move |deps, used_by_exports| {
-        let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
-        if let Some(dep) = target_dep {
-          dep.set_used_by_exports(used_by_exports);
-        }
-      }));
-    }
+    match self.rewrite_usage_span.get(&ident.span) {
+      Some(ExtraSpanInfo::ReWriteUsedByExports) => {
+        let span = ident.span;
+        self.on_usage(Box::new(move |deps, used_by_exports| {
+          let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
+          if let Some(dep) = target_dep {
+            dep.set_used_by_exports(used_by_exports);
+          }
+        }));
+      }
+      // ident is impossible to add a variable usage
+      _ => {}
+    };
     // imported binding isn't considered as a top level symbol.
     if self.import_map.contains_key(&ident.to_id()) {
       return;
@@ -243,20 +250,30 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
   fn visit_prop(&mut self, n: &Prop) {
     match n {
       Prop::Shorthand(shorthand) => {
-        if self.rewrite_usage_span.contains(&shorthand.span) {
-          let span = shorthand.span;
-          self.on_usage(Box::new(move |deps, used_by_exports| {
-            let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
-            if let Some(dep) = target_dep {
-              dep.set_used_by_exports(used_by_exports);
-            }
-          }));
-        }
+        match self.rewrite_usage_span.get(&shorthand.span) {
+          Some(ExtraSpanInfo::ReWriteUsedByExports) => {
+            let span = shorthand.span;
+            self.on_usage(Box::new(move |deps, used_by_exports| {
+              let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
+              if let Some(dep) = target_dep {
+                dep.set_used_by_exports(used_by_exports);
+              }
+            }));
+          }
+          // prop is impossible to add a variable usage
+          _ => {}
+        };
       }
       _ => n.visit_children_with(self),
     }
   }
   fn visit_export_decl(&mut self, export_decl: &ExportDecl) {
+    match self.rewrite_usage_span.get(&export_decl.span) {
+      Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) => {
+        self.add_variable_usage(sym.clone(), usage.clone());
+      }
+      _ => {}
+    }
     // match &export_decl.decl {
     //   Decl::Class(ClassDecl { ident, .. }) | Decl::Fn(FnDecl { ident, .. }) => {
     //     // self.add_variable_usage(ident.sym.clone(), ident.sym.clone());
@@ -272,11 +289,29 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     // }
     export_decl.visit_children_with(self);
   }
+
+  fn visit_named_export(&mut self, named_export: &NamedExport) {
+    if named_export.src.is_none() {
+      named_export
+        .specifiers
+        .iter()
+        .for_each(|specifier| match specifier {
+          ExportSpecifier::Named(named) => match self.rewrite_usage_span.get(&named.span) {
+            Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) => {
+              self.add_variable_usage(sym.clone(), usage.clone());
+            }
+            _ => {}
+          },
+          _ => unreachable!(),
+        });
+    }
+  }
   fn visit_export_default_expr(&mut self, node: &ExportDefaultExpr) {
     if !self.is_enabled() {
       return;
     }
     // exportExpression start
+    // TODO: use rewrite Usage span instead
     let symbol: JsWord = "*default*".into();
     let usage_name = match node.expr {
       box Expr::Fn(ref func) => func
@@ -346,7 +381,7 @@ impl<'a> InnerGraphPlugin<'a> {
     dependencies: &'a mut Vec<Box<dyn Dependency>>,
     unresolved_ctxt: SyntaxContext,
     top_level_ctxt: SyntaxContext,
-    rewrite_usage_span: &'a mut HashSet<Span>,
+    rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
     import_map: &'a ImportMap,
   ) -> Self {
     Self {
@@ -485,8 +520,9 @@ impl<'a> InnerGraphPlugin<'a> {
       for key in non_terminal.iter() {
         let mut new_set = HashSet::default();
         // Using enum to manipulate original is pretty hard, so I use an extra variable to
-        //mark if the new set has changed to an set
-        let mut new_set_is_true = false;
+        // flagging the new set has changed to boolean `true`
+        // you could refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/InnerGraph.js#L150
+        let mut set_is_true = false;
         let mut is_terminal = true;
         let already_processed = processed.entry(key.clone()).or_default();
         if let Some(InnerGraphMapValue::Set(names)) = state.inner_graph.get(key) {
@@ -502,7 +538,7 @@ impl<'a> InnerGraphPlugin<'a> {
                 let item_value = state.inner_graph.get(v);
                 match item_value {
                   Some(InnerGraphMapValue::True) => {
-                    new_set_is_true = true;
+                    set_is_true = true;
                     break;
                   }
                   Some(InnerGraphMapValue::Set(item_value)) => {
@@ -524,7 +560,7 @@ impl<'a> InnerGraphPlugin<'a> {
               }
             }
           }
-          if new_set_is_true {
+          if set_is_true {
             state
               .inner_graph
               .insert(key.clone(), InnerGraphMapValue::True);
@@ -575,8 +611,10 @@ impl<'a> InnerGraphPlugin<'a> {
       }
     }
 
+    dbg!(&state.inner_graph);
     for (symbol, cbs) in state.usage_callback_map.iter() {
       let usage = state.inner_graph.get(symbol);
+      dbg!(symbol, usage);
       for cb in cbs {
         let used_by_exports = if let Some(usage) = usage {
           match usage {
@@ -591,6 +629,7 @@ impl<'a> InnerGraphPlugin<'a> {
         } else {
           UsedByExports::Bool(false)
         };
+
         cb(self.dependencies, Some(used_by_exports));
       }
     }

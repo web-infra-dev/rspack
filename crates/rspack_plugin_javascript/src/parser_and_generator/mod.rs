@@ -208,6 +208,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       RawSource::from(content).boxed()
     }
     if let Some(mut inner_graph) = inner_graph {
+      dbg!(module_identifier);
       inner_graph.infer_dependency_usage();
     }
 

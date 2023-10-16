@@ -241,6 +241,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
+    // dbg!(&self.ids, self.request(), self.used_by_exports.as_ref());
     get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
   }
 

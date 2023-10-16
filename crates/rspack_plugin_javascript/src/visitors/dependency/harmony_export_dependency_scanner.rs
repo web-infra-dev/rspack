@@ -2,8 +2,9 @@ use rspack_core::{
   tree_shaking::symbol::DEFAULT_JS_WORD, BoxDependency, BoxDependencyTemplate, BuildInfo,
   ConstDependency, SpanExt,
 };
+use rustc_hash::FxHashMap as HashMap;
 use swc_core::{
-  common::Spanned,
+  common::{Span, Spanned},
   ecma::{
     ast::{
       ClassDecl, Decl, DefaultDecl, ExportDecl, ExportDefaultDecl, ExportDefaultExpr,
@@ -14,7 +15,7 @@ use swc_core::{
   },
 };
 
-use super::harmony_import_dependency_scanner::ImportMap;
+use super::{harmony_import_dependency_scanner::ImportMap, ExtraSpanInfo};
 use crate::dependency::{
   AnonymousFunctionRangeInfo, HarmonyExportExpressionDependency, HarmonyExportHeaderDependency,
   HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency, Specifier,
@@ -26,6 +27,7 @@ pub struct HarmonyExportDependencyScanner<'a> {
   pub presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
   pub import_map: &'a mut ImportMap,
   pub build_info: &'a mut BuildInfo,
+  pub rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
 }
 
 impl<'a> HarmonyExportDependencyScanner<'a> {
@@ -34,12 +36,14 @@ impl<'a> HarmonyExportDependencyScanner<'a> {
     presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
     import_map: &'a mut ImportMap,
     build_info: &'a mut BuildInfo,
+    rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
   ) -> Self {
     Self {
       dependencies,
       presentational_dependencies,
       import_map,
       build_info,
+      rewrite_usage_span,
     }
   }
 }
@@ -60,6 +64,11 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
             ident.sym.clone(),
             ident.sym.clone(),
           )));
+
+        self.rewrite_usage_span.insert(
+          export_decl.span(),
+          ExtraSpanInfo::AddVariableUsage(ident.sym.clone(), ident.sym.clone()),
+        );
         self
           .build_info
           .harmony_named_exports
@@ -75,6 +84,11 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                 ident.sym.clone(),
                 ident.sym.clone(),
               )));
+
+            self.rewrite_usage_span.insert(
+              export_decl.span(),
+              ExtraSpanInfo::AddVariableUsage(ident.sym.clone(), ident.sym.clone()),
+            );
             self.build_info.harmony_named_exports.insert(ident.sym);
           });
       }
@@ -125,6 +139,11 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                     export.clone(),
                     orig.sym.clone(),
                   )));
+
+                self.rewrite_usage_span.insert(
+                  named.span(),
+                  ExtraSpanInfo::AddVariableUsage(orig.sym.clone(), export.clone()),
+                );
                 self.build_info.harmony_named_exports.insert(export);
               }
             }
@@ -144,6 +163,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
   fn visit_export_default_expr(&mut self, export_default_expr: &'_ ExportDefaultExpr) {
     // TODO this should be at `HarmonyExportExpressionDependency`
+    // TODO: add variable usage
     self
       .dependencies
       .push(Box::new(HarmonyExportSpecifierDependency::new(
@@ -169,6 +189,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
     };
 
     // TODO this should be at `HarmonyExportExpressionDependency`
+    // TODO: add variable usage
     self
       .dependencies
       .push(Box::new(HarmonyExportSpecifierDependency::new(

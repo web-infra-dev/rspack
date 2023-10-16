@@ -17,7 +17,7 @@ use swc_core::{
   },
 };
 
-use super::collect_destructuring_assignment_properties;
+use super::{collect_destructuring_assignment_properties, ExtraSpanInfo};
 use crate::dependency::{
   HarmonyExportImportedSpecifierDependency, HarmonyImportSideEffectDependency,
   HarmonyImportSpecifierDependency, Specifier,
@@ -73,7 +73,7 @@ pub struct HarmonyImportDependencyScanner<'a> {
   pub import_map: &'a mut ImportMap,
   pub imports: Imports,
   pub build_info: &'a mut BuildInfo,
-  pub rewrite_usage_span: &'a mut HashSet<Span>,
+  pub rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
   last_harmony_import_order: i32,
 }
 
@@ -83,7 +83,7 @@ impl<'a> HarmonyImportDependencyScanner<'a> {
     presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
     import_map: &'a mut ImportMap,
     build_info: &'a mut BuildInfo,
-    rewrite_usage_span: &'a mut HashSet<Span>,
+    rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
   ) -> Self {
     Self {
       dependencies,
@@ -341,15 +341,14 @@ pub struct HarmonyImportRefDependencyScanner<'a> {
   pub import_map: &'a ImportMap,
   pub dependencies: &'a mut Vec<BoxDependency>,
   pub properties_in_destructuring: HashMap<JsWord, HashSet<JsWord>>,
-
-  pub rewrite_usage_span: &'a mut HashSet<Span>,
+  pub rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
 }
 
 impl<'a> HarmonyImportRefDependencyScanner<'a> {
   pub fn new(
     import_map: &'a ImportMap,
     dependencies: &'a mut Vec<BoxDependency>,
-    rewrite_usage_span: &'a mut HashSet<Span>,
+    rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
   ) -> Self {
     Self {
       import_map,
@@ -379,7 +378,9 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
   fn visit_prop(&mut self, n: &Prop) {
     match n {
       Prop::Shorthand(shorthand) => {
-        self.rewrite_usage_span.insert(shorthand.span);
+        self
+          .rewrite_usage_span
+          .insert(shorthand.span, ExtraSpanInfo::ReWriteUsedByExports);
         if let Some(reference) = self.import_map.get(&shorthand.to_id()) {
           self
             .dependencies
@@ -403,7 +404,9 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
 
   fn visit_ident(&mut self, ident: &Ident) {
     if let Some(reference) = self.import_map.get(&ident.to_id()) {
-      self.rewrite_usage_span.insert(ident.span);
+      self
+        .rewrite_usage_span
+        .insert(ident.span, ExtraSpanInfo::ReWriteUsedByExports);
       self
         .dependencies
         .push(Box::new(HarmonyImportSpecifierDependency::new(
@@ -438,7 +441,9 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
         if let Some(prop) = prop {
           let mut ids = reference.names.clone().map(|f| vec![f]).unwrap_or_default();
           ids.push(prop);
-          self.rewrite_usage_span.insert(member_expr.span);
+          self
+            .rewrite_usage_span
+            .insert(member_expr.span, ExtraSpanInfo::ReWriteUsedByExports);
           self
             .dependencies
             .push(Box::new(HarmonyImportSpecifierDependency::new(

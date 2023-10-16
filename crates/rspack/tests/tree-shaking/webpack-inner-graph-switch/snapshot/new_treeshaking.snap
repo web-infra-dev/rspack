@@ -20,9 +20,10 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   'test': function() { return test; }
 });
+/* harmony import */var _module__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./module */"./module.js");
 
  function test() {
-    doSomething({
+    (0, _module__WEBPACK_IMPORTED_MODULE_0_["default"])({
         type: "inline"
     });
 }
@@ -35,6 +36,46 @@ it("should generate correct code when pure expressions are in dead branches", ()
         __webpack_require__.el(/* ./chunk */"./chunk.js").then(__webpack_require__.bind(__webpack_require__, /* ./chunk */"./chunk.js"))
     ]);
 });
+},
+"./module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+'use strict';
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
+
+function getType(obj) {
+    return obj.type;
+}
+// Local functions
+function doSomethingWithBlock(obj) {
+    return Block.doSomething(obj);
+}
+function doSomethingWithInline(obj) {
+    return Inline.doSomething(obj);
+}
+function doSomethingWithDocument(obj) {
+    return Document.doSomething(obj);
+}
+// Exported functions
+function doSomething(obj) {
+    const type = getType(obj);
+    switch(type){
+        case "document":
+            return doSomethingWithDocument(obj);
+        case "block":
+            return doSomethingWithBlock(obj);
+        case "inline":
+            return doSomethingWithInline(obj);
+        default:
+            throw new Error();
+    }
+}
+function useDocument(obj) {
+    return doSomethingWithDocument(obj);
+}
+
+var __WEBPACK_DEFAULT_EXPORT__ = doSomething;
 },
 
 },function(__webpack_require__) {
