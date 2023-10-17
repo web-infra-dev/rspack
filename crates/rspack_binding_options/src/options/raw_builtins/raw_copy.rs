@@ -1,7 +1,9 @@
 use std::path::PathBuf;
 
 use napi_derive::napi;
-use rspack_plugin_copy::{CopyGlobOptions, CopyPattern, CopyRspackPluginOptions, ToType};
+use rspack_plugin_copy::{
+  CopyGlobOptions, CopyPattern, CopyRspackPluginOptions, Info, Related, ToType,
+};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -16,6 +18,28 @@ pub struct RawCopyPattern {
   pub force: bool,
   pub priority: i32,
   pub glob_options: RawCopyGlobOptions,
+  pub info: Option<RawInfo>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawInfo {
+  pub immutable: Option<bool>,
+  pub minimized: Option<bool>,
+  pub chunk_hash: Option<Vec<String>>,
+  pub content_hash: Option<Vec<String>>,
+  pub development: Option<bool>,
+  pub hot_module_replacement: Option<bool>,
+  pub related: Option<RawRelated>,
+  pub version: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawRelated {
+  pub source_map: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -45,6 +69,7 @@ impl From<RawCopyPattern> for CopyPattern {
       force,
       priority,
       glob_options,
+      info,
     } = value;
 
     Self {
@@ -65,7 +90,7 @@ impl From<RawCopyPattern> for CopyPattern {
         None
       },
       no_error_on_missing,
-      info: None,
+      info: info.map(Into::into),
       force,
       priority,
       glob_options: CopyGlobOptions {
@@ -86,6 +111,23 @@ impl From<RawCopyRspackPluginOptions> for CopyRspackPluginOptions {
   fn from(val: RawCopyRspackPluginOptions) -> Self {
     Self {
       patterns: val.patterns.into_iter().map(Into::into).collect(),
+    }
+  }
+}
+
+impl From<RawInfo> for Info {
+  fn from(value: RawInfo) -> Self {
+    Self {
+      immutable: value.immutable,
+      minimized: value.minimized,
+      chunk_hash: value.chunk_hash,
+      content_hash: value.content_hash,
+      development: value.development,
+      hot_module_replacement: value.hot_module_replacement,
+      related: value.related.map(|r| Related {
+        source_map: r.source_map,
+      }),
+      version: value.version,
     }
   }
 }

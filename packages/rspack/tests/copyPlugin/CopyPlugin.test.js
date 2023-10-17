@@ -856,15 +856,19 @@ describe("CopyPlugin", () => {
 		});
 	});
 
-	describe.skip("stats", () => {
-		it("should work have assets info", async () => {
+	describe("stats", () => {
+		it("should minify", async () => {
 			const compiler = getCompiler({
+				mode: "production",
 				entry: path.resolve(__dirname, "./helpers/enter-with-asset-modules.js"),
 				builtins: {
 					copy: {
 						patterns: [
 							{
-								from: path.resolve(__dirname, "./fixtures/directory")
+								from: path.resolve(__dirname, "./fixtures/js"),
+								info: {
+									minimized: false
+								}
 							}
 						]
 					}
@@ -873,36 +877,30 @@ describe("CopyPlugin", () => {
 
 			const { stats } = await compile(compiler);
 
-			expect(stats.toJson().warnings).toMatchSnapshot("warnings");
-			expect(stats.toJson().errors).toMatchSnapshot("errors");
 			expect(readAssets(compiler, stats)).toMatchSnapshot("assets");
+		});
 
-			const assetsInfo = [];
-
-			for (const [name, info] of stats.compilation.assetsInfo.entries()) {
-				assetsInfo.push({
-					name,
-					info: {
-						immutable: info.immutable,
-						copied: info.copied,
-						sourceFilename: info.sourceFilename
+		it("should not minify", async () => {
+			const compiler = getCompiler({
+				mode: "production",
+				entry: path.resolve(__dirname, "./helpers/enter-with-asset-modules.js"),
+				builtins: {
+					copy: {
+						patterns: [
+							{
+								from: path.resolve(__dirname, "./fixtures/js"),
+								info: {
+									minimized: true
+								}
+							}
+						]
 					}
-				});
-			}
+				}
+			});
 
-			expect(
-				assetsInfo.sort((a, b) => {
-					if (a.name < b.name) {
-						return -1;
-					}
+			const { stats } = await compile(compiler);
 
-					if (a.name > b.name) {
-						return 1;
-					}
-
-					return 0;
-				})
-			).toMatchSnapshot("assets info");
+			expect(readAssets(compiler, stats)).toMatchSnapshot("assets");
 		});
 	});
 

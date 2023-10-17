@@ -2733,6 +2733,7 @@ dependencies = [
  "rspack_futures",
  "rspack_hash",
  "rspack_testing",
+ "rustc-hash",
  "sugar_path",
  "testing_macros",
  "tokio",
