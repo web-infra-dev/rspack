@@ -99,4 +99,5 @@ pub struct Optimization {
   pub side_effects: SideEffectOption,
   pub provided_exports: bool,
   pub used_exports: UsedExportsOption,
+  pub inner_graph: bool,
 }

@@ -108,6 +108,7 @@ impl ModuleGraphConnection {
     if !self.conditional {
       return ConnectionState::Bool(self.active);
     }
+
     self.get_condition_state(module_graph, runtime)
   }
 

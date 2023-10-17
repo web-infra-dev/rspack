@@ -1247,7 +1247,7 @@ const AVAILABLE_FORMATS: Pick_FORMAT<
 			let timeStr = time.toString();
 			if (time > 1000) {
 				timeStr = `${(time / 1000).toFixed(2)}`;
-				unit = ' s';
+				unit = " s";
 			}
 			return `${boldQuantity ? bold(timeStr) : timeStr}${unit}`;
 		}

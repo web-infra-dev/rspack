@@ -12,7 +12,7 @@ pub struct URLDependency {
   id: DependencyId,
   request: JsWord,
   span: Option<ErrorSpan>,
-  used_by_exports: UsedByExports,
+  used_by_exports: Option<UsedByExports>,
 }
 
 impl URLDependency {
@@ -23,7 +23,7 @@ impl URLDependency {
       id: DependencyId::new(),
       request,
       span,
-      used_by_exports: UsedByExports::default(),
+      used_by_exports: None,
     }
   }
 }
@@ -40,6 +40,10 @@ impl Dependency for URLDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::NewUrl
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
 }
 
 impl ModuleDependency for URLDependency {
@@ -51,16 +55,12 @@ impl ModuleDependency for URLDependency {
     &self.request
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
-  }
-
   fn set_request(&mut self, request: String) {
     self.request = request.into();
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    get_dependency_used_by_exports_condition(self.id, &self.used_by_exports)
+    get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
   }
 
   fn dependency_debug_name(&self) -> &'static str {

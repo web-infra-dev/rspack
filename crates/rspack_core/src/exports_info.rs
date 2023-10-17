@@ -1109,21 +1109,19 @@ pub enum RuntimeUsageStateType {
   Used,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub enum UsedByExports {
   Set(HashSet<JsWord>),
   Bool(bool),
-  #[default]
-  Nil,
 }
 
 // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/InnerGraph.js#L319-L338
 pub fn get_dependency_used_by_exports_condition(
   dependency_id: DependencyId,
-  used_by_exports: &UsedByExports,
+  used_by_exports: Option<&UsedByExports>,
 ) -> Option<DependencyCondition> {
   match used_by_exports {
-    UsedByExports::Set(used_by_exports) => {
+    Some(UsedByExports::Set(used_by_exports)) => {
       let used_by_exports = Arc::new(used_by_exports.clone());
       Some(DependencyCondition::Fn(Box::new(
         move |_, runtime, module_graph: &ModuleGraph| {
@@ -1142,14 +1140,14 @@ pub fn get_dependency_used_by_exports_condition(
         },
       )))
     }
-    UsedByExports::Bool(bool) => {
+    Some(UsedByExports::Bool(bool)) => {
       if *bool {
         None
       } else {
         Some(DependencyCondition::False)
       }
     }
-    UsedByExports::Nil => None,
+    None => None,
   }
 }
 

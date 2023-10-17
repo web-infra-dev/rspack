@@ -593,6 +593,7 @@ export interface RawCopyPattern {
   force: boolean
   priority: number
   globOptions: RawCopyGlobOptions
+  info?: RawInfo
 }
 
 export interface RawCopyRspackPluginOptions {
@@ -745,6 +746,17 @@ export interface RawIncrementalRebuild {
   emitAsset: boolean
 }
 
+export interface RawInfo {
+  immutable?: boolean
+  minimized?: boolean
+  chunkHash?: Array<string>
+  contentHash?: Array<string>
+  development?: boolean
+  hotModuleReplacement?: boolean
+  related?: RawRelated
+  version?: string
+}
+
 export interface RawLibraryAuxiliaryComment {
   root?: string
   commonjs?: string
@@ -841,6 +853,7 @@ export interface RawOptimizationOptions {
   sideEffects: string
   usedExports: string
   providedExports: boolean
+  innerGraph: boolean
   realContentHash: boolean
 }
 
@@ -927,7 +940,8 @@ export interface RawPresetEnv {
 }
 
 export interface RawProgressPluginOptions {
-  prefix?: string
+  prefix: string
+  profile: boolean
 }
 
 export interface RawReactOptions {
@@ -940,6 +954,10 @@ export interface RawReactOptions {
   useBuiltins?: boolean
   useSpread?: boolean
   refresh?: boolean
+}
+
+export interface RawRelated {
+  sourceMap?: string
 }
 
 export interface RawRelayConfig {

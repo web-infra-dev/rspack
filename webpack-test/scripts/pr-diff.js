@@ -8,6 +8,8 @@ const [, , token, commit_sha] = process.argv;
 	const rootDir = path.resolve(__dirname, "../../");
 	const currentDataPath = path.resolve(rootDir, "out.json");
 	const currentData = JSON.parse(fs.readFileSync(currentDataPath).toString());
+	const currentRenderedMdPath = path.resolve(rootDir, "out.md")
+	const currentRenderedMd = fs.readFileSync(currentRenderedMdPath, 'utf-8')
 
 	const targetDir = path.resolve(rootDir, ".gh-pages");
 	if (!fs.existsSync(targetDir)) {
@@ -70,6 +72,13 @@ ${lastestMainCommitCompatibility},${currentCompatibility},${`${icon} ${diff.toFi
 					",",
 					true,
 				);
+				markdown += `
+<details>
+	<summary>Unpassed tests</summary>
+
+${currentRenderedMd.split('\n').filter(line => !line.includes("🟢")).join('\n')}
+</details>
+`
 				fs.appendFileSync(path.resolve(rootDir, "output.md"), markdown);
 			} else {
 				fs.rmSync(path.resolve(rootDir, "output.md"));

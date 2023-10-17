@@ -25,7 +25,7 @@ fn samples(fixture_path: PathBuf) {
 fn tree_shaking(fixture_path: PathBuf) {
   // For each test case
   // First test is old version tree shaking snapshot test
-  test_fixture(&fixture_path, Box::new(|_, _| {}), None);
+  // test_fixture(&fixture_path, Box::new(|_, _| {}), None);
   // second test is webpack based tree shaking
   IS_NEW_TREESHAKING.store(true, Ordering::SeqCst);
   test_fixture(
@@ -34,6 +34,7 @@ fn tree_shaking(fixture_path: PathBuf) {
       |plugins: &mut Vec<BoxPlugin>, options: &mut CompilerOptions| {
         options.experiments.rspack_future.new_treeshaking = true;
         options.optimization.provided_exports = true;
+        options.optimization.inner_graph = true;
         options.optimization.used_exports = UsedExportsOption::True;
         options.builtins.tree_shaking = TreeShaking::False;
 

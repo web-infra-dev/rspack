@@ -664,8 +664,9 @@ function getRawOptimization(
 			!isNil(optimization.sideEffects) &&
 			!isNil(optimization.realContentHash) &&
 			!isNil(optimization.providedExports) &&
-			!isNil(optimization.usedExports),
-		"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash, optimization.providedExports, optimization.usedExports should not be nil after defaults"
+			!isNil(optimization.usedExports) &&
+			!isNil(optimization.innerGraph),
+		"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash, optimization.providedExports, optimization.usedExports, optimization.innerGraph should not be nil after defaults"
 	);
 	return {
 		chunkIds: optimization.chunkIds,
@@ -676,7 +677,8 @@ function getRawOptimization(
 		sideEffects: String(optimization.sideEffects),
 		realContentHash: optimization.realContentHash,
 		usedExports: String(optimization.usedExports),
-		providedExports: optimization.providedExports
+		providedExports: optimization.providedExports,
+		innerGraph: optimization.innerGraph
 	};
 }
 

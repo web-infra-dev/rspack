@@ -1,6 +1,6 @@
 const process = require("process");
 const { isNumber } = require("util");
-const { extractTestMetric } = require("./test-metric-util");
+const { extractTestMetric, renderAllTestsToMarkdown } = require("./test-metric-util");
 const isCI = require("is-ci");
 const fs = require('fs')
 const path = require('path')
@@ -38,7 +38,9 @@ process.stdin.on("end", () => {
 	}
 
 	let extractedTestInfo = extractTestMetric(jsonObj);
+	let renderedTestMD = renderAllTestsToMarkdown(jsonObj);
 	if (!isCI) {
+		console.log(renderedTestMD)
 		Object.entries(extractedTestInfo).forEach(([k, v]) => {
 			console.log(`${k}: ${v}`);
 		});
@@ -47,6 +49,7 @@ process.stdin.on("end", () => {
     console.log(json)
     const rootPath = path.resolve(__dirname, "../../")
     fs.writeFileSync(path.resolve(rootPath, "out.json"), json)
+		fs.writeFileSync(path.resolve(rootPath, "out.md"), renderedTestMD)
 	}
 });
 

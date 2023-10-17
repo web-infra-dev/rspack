@@ -174,14 +174,14 @@ impl SideEffectsFlagPluginVisitor {
   }
 }
 
-fn is_pure_expression(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
+pub fn is_pure_expression(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
   !expr.may_have_side_effects(&ExprCtx {
     unresolved_ctxt,
     is_unresolved_ref_safe: false,
   })
 }
 
-fn is_pure_decl(stmt: &Decl, unresolved_ctxt: SyntaxContext) -> bool {
+pub fn is_pure_decl(stmt: &Decl, unresolved_ctxt: SyntaxContext) -> bool {
   match stmt {
     Decl::Class(class) => is_pure_class(&class.class, unresolved_ctxt),
     Decl::Fn(_) => true,
@@ -195,7 +195,7 @@ fn is_pure_decl(stmt: &Decl, unresolved_ctxt: SyntaxContext) -> bool {
   }
 }
 
-fn is_pure_class(class: &Class, unresolved_ctxt: SyntaxContext) -> bool {
+pub fn is_pure_class(class: &Class, unresolved_ctxt: SyntaxContext) -> bool {
   if let Some(ref super_class) = class.super_class {
     if !is_pure_expression(super_class, unresolved_ctxt) {
       return false;
@@ -277,6 +277,3 @@ impl ClassKey for ClassMember {
     }
   }
 }
-
-#[derive(Debug, Default)]
-pub struct SideEffectsFlagPlugin;

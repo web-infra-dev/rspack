@@ -307,7 +307,7 @@ impl NormalModuleFactory {
         specifier: request_without_match_resource,
         dependency_type: dependency.dependency_type(),
         dependency_category: dependency.category(),
-        span: dependency.span().cloned(),
+        span: dependency.span(),
         // take the options is safe here, because it
         // is not used in after_resolve hooks
         resolve_options: data.resolve_options.take(),
@@ -382,7 +382,7 @@ impl NormalModuleFactory {
               dependency_type: dependency.dependency_type(),
               dependency_category: dependency.category(),
               resolve_options: data.resolve_options.take(),
-              span: dependency.span().cloned(),
+              span: dependency.span(),
               resolve_to_context: false,
               optional,
               missing_dependencies: &mut missing_dependencies,

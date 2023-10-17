@@ -18,7 +18,7 @@ const { parseResource } = require("./lib/util/identifier");
 const captureStdio = require("./helpers/captureStdio");
 const asModule = require("./helpers/asModule");
 const filterInfraStructureErrors = require("./helpers/infrastructureLogErrors");
-const { getNormalizedFilterName } = require('./lib/util/filterUtil')
+const { normalizeFilteredTestName } = require('./lib/util/filterUtil')
 
 const casesPath = path.join(__dirname, "configCases");
 const categories = fs.readdirSync(casesPath).map(cat => {
@@ -72,10 +72,10 @@ const describeCases = config => {
 						const filterPath = path.join(testDirectory, "test.filter.js");
 						if (fs.existsSync(filterPath)) {
 							let flag = require(filterPath)()
-							let normalizedName = getNormalizedFilterName(flag, testName);
-							if (normalizedName.length > 0) {
-								describe.skip(normalizedName, () => {
-									it("filtered", () => {});
+							if (flag !== true) {
+								let filteredName = normalizeFilteredTestName(flag, testName);
+								describe.skip(testName, () => {
+									it(filteredName, () => {});
 								});
 								return;
 							}

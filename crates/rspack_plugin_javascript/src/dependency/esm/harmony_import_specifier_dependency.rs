@@ -3,9 +3,9 @@ use rspack_core::{
   get_dependency_used_by_exports_condition, get_exports_type,
   tree_shaking::symbol::DEFAULT_JS_WORD, Compilation, ConnectionState, Dependency,
   DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ExportsType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
-  ModuleGraphModule, ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedByExports,
+  ExportsType, ExtendedReferencedExport, ModuleDependency, ModuleGraph, ModuleGraphModule,
+  ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsedByExports,
 };
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
@@ -26,7 +26,7 @@ pub struct HarmonyImportSpecifierDependency {
   call: bool,
   direct_import: bool,
   specifier: Specifier,
-  used_by_exports: UsedByExports,
+  used_by_exports: Option<UsedByExports>,
   namespace_object_as_context: bool,
   referenced_properties_in_destructuring: Option<HashSet<JsWord>>,
   resource_identifier: String,
@@ -58,7 +58,7 @@ impl HarmonyImportSpecifierDependency {
       call,
       direct_import,
       specifier,
-      used_by_exports: UsedByExports::default(),
+      used_by_exports: None,
       namespace_object_as_context: false,
       referenced_properties_in_destructuring,
       resource_identifier,
@@ -197,7 +197,15 @@ impl Dependency for HarmonyImportSpecifierDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
-
+  fn span(&self) -> Option<rspack_core::ErrorSpan> {
+    Some(rspack_core::ErrorSpan {
+      start: self.start,
+      end: self.end,
+    })
+  }
+  fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
+    self.used_by_exports = used_by_exports;
+  }
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -224,10 +232,6 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     &self.request
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    None
-  }
-
   fn set_request(&mut self, request: String) {
     self.request = request.into();
   }
@@ -237,7 +241,13 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    get_dependency_used_by_exports_condition(self.id, &self.used_by_exports)
+    // dbg!(
+    //   &self.ids,
+    //   &self.specifier,
+    //   self.request(),
+    //   self.used_by_exports.as_ref()
+    // );
+    get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
   }
 
   fn get_referenced_exports(
@@ -245,6 +255,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     module_graph: &ModuleGraph,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
+    // TODO: use self.getIds() instead
     // namespace import
     if self.ids.is_empty() {
       return self.get_referenced_exports_in_destructuring(None);
