@@ -104,38 +104,34 @@ impl ProgressPlugin {
               time: now,
             },
           )
-        } else {
-          if i + 1 > full_state.len() || last_state_info[i].value != full_state[i] {
-            let diff = (now - last_state_info[i].time).as_millis();
-            let report_state = if i > 0 {
-              last_state_info[i - 1].value.clone()
-                + " > "
-                + last_state_info[i].value.clone().as_str()
-            } else {
-              last_state_info[i].value.clone()
-            };
+        } else if i + 1 > full_state.len() || last_state_info[i].value != full_state[i] {
+          let diff = (now - last_state_info[i].time).as_millis();
+          let report_state = if i > 0 {
+            last_state_info[i - 1].value.clone() + " > " + last_state_info[i].value.clone().as_str()
+          } else {
+            last_state_info[i].value.clone()
+          };
 
-            let mut color = "\x1b[32m";
-            if diff > 10000 {
-              color = "\x1b[31m"
-            } else if diff > 1000 {
-              color = "\x1b[33m"
-            }
-            println!(
-              "{}{} {} ms {}\x1B[0m",
-              color,
-              " | ".repeat(i),
-              diff,
-              report_state
-            );
-            if i + 1 > full_state.len() {
-              last_state_info.truncate(i);
-            } else {
-              last_state_info[i] = ProgressPluginStateInfo {
-                value: full_state[i].clone(),
-                time: now,
-              };
-            }
+          let mut color = "\x1b[32m";
+          if diff > 10000 {
+            color = "\x1b[31m"
+          } else if diff > 1000 {
+            color = "\x1b[33m"
+          }
+          println!(
+            "{}{} {} ms {}\x1B[0m",
+            color,
+            " | ".repeat(i),
+            diff,
+            report_state
+          );
+          if i + 1 > full_state.len() {
+            last_state_info.truncate(i);
+          } else {
+            last_state_info[i] = ProgressPluginStateInfo {
+              value: full_state[i].clone(),
+              time: now,
+            };
           }
         }
       }
@@ -208,7 +204,7 @@ impl Plugin for ProgressPlugin {
     _args: DoneArgs<'s, 'c>,
   ) -> PluginBuildEndHookOutput {
     self.handler(1.0, String::from("done"), vec![]);
-    if self.options.profile == false {
+    if !self.options.profile {
       self.progress_bar.finish();
     }
     *self.last_modules_count.write().expect("TODO:") = Some(self.modules_count.load(SeqCst));
