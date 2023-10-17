@@ -347,26 +347,15 @@ impl ModuleGraph {
       .and_then(|mgm| mgm.get_issuer().get_module(self))
   }
 
-  pub fn is_async(&self, module: &ModuleIdentifier) -> bool {
+  pub fn is_async(&self, module: &ModuleIdentifier) -> Option<bool> {
     self
       .module_graph_module_by_identifier(module)
-      .map(|mgm| {
-        mgm
-          .build_meta
-          .as_ref()
-          .expect("build_meta should be initialized")
-          .is_async
-      })
-      .unwrap_or_default()
+      .map(|mgm| mgm.is_async)
   }
 
   pub fn set_async(&mut self, module: &ModuleIdentifier) {
     if let Some(mgm) = self.module_graph_module_by_identifier_mut(module) {
-      mgm
-        .build_meta
-        .as_mut()
-        .expect("build_meta should be initialized")
-        .is_async = true;
+      mgm.is_async = true
     }
   }
 

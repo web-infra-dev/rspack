@@ -9,7 +9,7 @@ var webpackExports =
 var webpackError =
 	typeof Symbol === "function" ? Symbol("webpack error") : "__webpack_error__";
 var resolveQueue = queue => {
-	if (queue && !queue.d) {
+	if (queue && queue.d < 1) {
 		queue.d = 1;
 		queue.forEach(fn => fn.r--);
 		queue.forEach(fn => (fn.r-- ? fn.r++ : fn()));
@@ -44,7 +44,7 @@ var wrapDeps = deps =>
 	});
 __webpack_require__.a = (module, body, hasAwait) => {
 	var queue;
-	hasAwait && ((queue = []).d = 1);
+	hasAwait && ((queue = []).d = -1);
 	var depQueues = new Set();
 	var exports = module.exports;
 	var currentDeps;
@@ -84,5 +84,5 @@ __webpack_require__.a = (module, body, hasAwait) => {
 			resolveQueue(queue)
 		)
 	);
-	queue && (queue.d = 0);
+	queue && queue.d < 0 && (queue.d = 0);
 };

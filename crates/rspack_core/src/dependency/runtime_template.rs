@@ -220,7 +220,10 @@ pub fn module_namespace_promise(
         fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
       }
       runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
-      if compilation.module_graph.is_async(&module.identifier()) {
+      if matches!(
+        compilation.module_graph.is_async(&module.identifier()),
+        Some(true)
+      ) {
         if let Some(header) = header {
           appending = format!(
             ".then(function() {{\n {header}\nreturn {}\n}})",

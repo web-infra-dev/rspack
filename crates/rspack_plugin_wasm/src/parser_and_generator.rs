@@ -30,7 +30,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     parse_context.build_info.strict = true;
-    parse_context.build_meta.is_async = true;
+    parse_context.build_meta.has_await = true;
     parse_context.build_meta.exports_type = BuildMetaExportsType::Namespace;
 
     let source = parse_context.source;
@@ -169,7 +169,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                   let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", dep_modules.len());
                   let val = (import_var.clone(), mgm.id(chunk_graph));
 
-                  if let Some(meta)=&mgm.build_meta&&meta.is_async{
+                  if let Some(meta)=&mgm.build_meta&&meta.has_await{
                     promises.push(import_var);
                   }
                   dep_modules.insert(mgm.module_identifier, val);
