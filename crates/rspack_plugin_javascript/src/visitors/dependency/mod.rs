@@ -131,6 +131,7 @@ pub fn scan_dependencies(
       build_info,
       build_meta,
       module_type,
+      compiler_options.experiments.top_level_await,
       &mut presentational_dependencies,
       &mut errors,
     ));

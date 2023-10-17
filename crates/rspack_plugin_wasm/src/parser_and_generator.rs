@@ -169,7 +169,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                   let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", dep_modules.len());
                   let val = (import_var.clone(), mgm.id(chunk_graph));
 
-                  if let Some(meta)=&mgm.build_meta&&meta.has_await{
+                  if matches!(module_graph.is_async(&mgm.module_identifier), Some(true)) {
                     promises.push(import_var);
                   }
                   dep_modules.insert(mgm.module_identifier, val);

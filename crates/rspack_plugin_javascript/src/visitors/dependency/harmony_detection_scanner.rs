@@ -14,6 +14,7 @@ pub struct HarmonyDetectionScanner<'a> {
   build_info: &'a mut BuildInfo,
   build_meta: &'a mut BuildMeta,
   module_type: &'a ModuleType,
+  top_level_await: bool,
   code_generable_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   errors: &'a mut Vec<rspack_error::Error>,
 }
@@ -24,6 +25,7 @@ impl<'a> HarmonyDetectionScanner<'a> {
     build_info: &'a mut BuildInfo,
     build_meta: &'a mut BuildMeta,
     module_type: &'a ModuleType,
+    top_level_await: bool,
     code_generable_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     errors: &'a mut Vec<rspack_error::Error>,
   ) -> Self {
@@ -32,6 +34,7 @@ impl<'a> HarmonyDetectionScanner<'a> {
       build_info,
       build_meta,
       module_type,
+      top_level_await,
       code_generable_dependencies,
       errors,
     }
@@ -57,7 +60,9 @@ impl Visit for HarmonyDetectionScanner<'_> {
     }
 
     if has_top_level_await(program) {
-      if is_harmony || strict_harmony_module {
+      if !self.top_level_await {
+        self.errors.push(internal_error!("The top-level-await experiment is not enabled (set experiments.topLevelAwait: true to enabled it)"));
+      } else if is_harmony || strict_harmony_module {
         self.build_meta.has_await = true;
       } else {
         self.errors.push(internal_error!(

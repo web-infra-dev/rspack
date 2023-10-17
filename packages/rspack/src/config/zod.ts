@@ -963,6 +963,7 @@ const experiments = z.strictObject({
 	incrementalRebuild: z.boolean().or(incrementalRebuildOptions).optional(),
 	asyncWebAssembly: z.boolean().optional(),
 	outputModule: z.boolean().optional(),
+	topLevelAwait: z.boolean().optional(),
 	newSplitChunks: z
 		.boolean()
 		.optional()

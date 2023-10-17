@@ -158,6 +158,7 @@ const applyExperimentsDefaults = (
 	D(experiments, "asyncWebAssembly", false);
 	D(experiments, "newSplitChunks", true);
 	D(experiments, "css", true); // we not align with webpack about the default value for better DX
+	D(experiments, "topLevelAwait", true);
 
 	D(experiments, "incrementalRebuild", {});
 	if (typeof experiments.incrementalRebuild === "object") {
