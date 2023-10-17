@@ -279,7 +279,7 @@ impl NormalModuleFactory {
             }
           }) {
             Some((pos, _)) => &request_without_match_resource[pos..],
-            None => &request_without_match_resource,
+            None => request_without_match_resource,
           };
           s.split('!')
             .filter(|item| !item.is_empty())
