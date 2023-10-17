@@ -199,8 +199,6 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if self.import_map.contains_key(&ident.to_id()) {
       return;
     };
-
-    dbg!(&ident.sym,);
     if ident.span.ctxt == self.top_level_ctxt {
       let usage = if let Some(symbol) = self.get_top_level_symbol() {
         InnerGraphMapUsage::TopLevel(symbol)
@@ -320,11 +318,12 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       }
       _ => {}
     }
-    self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
     // TODO:
     match node.expr {
       box Expr::Fn(_) | box Expr::Arrow(_) | box Expr::Lit(_) => {
+        self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
         node.expr.visit_children_with(self);
+        self.clear_symbol_if_is_top_level();
       }
       box Expr::Class(ref class) => {
         // TODO: class
@@ -348,8 +347,6 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         }
       }
     }
-
-    self.clear_symbol_if_is_top_level();
   }
 
   fn visit_export_default_decl(&mut self, node: &ExportDefaultDecl) {
