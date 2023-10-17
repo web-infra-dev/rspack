@@ -1187,14 +1187,7 @@ impl Compilation {
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
     while plugin_driver.optimize_dependencies(self).await?.is_some() {}
     logger.time_end(start);
-
     // if self.options.is_new_tree_shaking() {
-    //   // for module in self.module_graph.module_graph_modules().values() {}
-    //   // self
-    //   //   .module_graph
-    //   //   .module_graph_modules()
-    //   //   .values()
-    //   //   .foreach(|item| {});
     //   debug_exports_info(&self.module_graph);
     // }
 

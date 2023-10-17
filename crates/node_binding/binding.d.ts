@@ -853,6 +853,7 @@ export interface RawOptimizationOptions {
   sideEffects: string
   usedExports: string
   providedExports: boolean
+  innerGraph: boolean
   realContentHash: boolean
 }
 

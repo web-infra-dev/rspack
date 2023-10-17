@@ -48,6 +48,10 @@ impl Dependency for RequireResolveDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::RequireResolve
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    Some(self.span)
+  }
 }
 
 impl ModuleDependency for RequireResolveDependency {
@@ -57,10 +61,6 @@ impl ModuleDependency for RequireResolveDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    Some(&self.span)
   }
 
   fn weak(&self) -> bool {

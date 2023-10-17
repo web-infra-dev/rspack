@@ -1,6 +1,6 @@
 use crate::{
   AsDependencyTemplate, Context, Dependency, DependencyCategory, DependencyId, DependencyType,
-  ErrorSpan, ModuleDependency,
+  ModuleDependency,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -45,10 +45,6 @@ impl ModuleDependency for EntryDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    None
   }
 
   fn set_request(&mut self, request: String) {

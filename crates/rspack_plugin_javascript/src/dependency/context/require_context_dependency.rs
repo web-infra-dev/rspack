@@ -40,6 +40,10 @@ impl Dependency for RequireContextDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::RequireContext
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
 }
 
 impl ModuleDependency for RequireContextDependency {
@@ -49,10 +53,6 @@ impl ModuleDependency for RequireContextDependency {
 
   fn user_request(&self) -> &str {
     &self.options.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
   }
 
   fn options(&self) -> Option<&ContextOptions> {

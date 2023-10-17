@@ -48,6 +48,10 @@ impl Dependency for ImportContextDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::ImportContext
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
 }
 
 impl ModuleDependency for ImportContextDependency {
@@ -57,10 +61,6 @@ impl ModuleDependency for ImportContextDependency {
 
   fn user_request(&self) -> &str {
     &self.options.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
   }
 
   fn options(&self) -> Option<&ContextOptions> {

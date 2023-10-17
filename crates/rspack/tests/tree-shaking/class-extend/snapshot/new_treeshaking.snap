@@ -15,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {
 }
 function foo() {
     return {
-        OriginLib: _lib__WEBPACK_IMPORTED_MODULE_0_.Lib
+        OriginLib
     };
 }
  const v = _lib__WEBPACK_IMPORTED_MODULE_0_.value;

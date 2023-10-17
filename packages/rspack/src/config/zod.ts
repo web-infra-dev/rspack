@@ -936,6 +936,7 @@ const optimization = z.strictObject({
 	realContentHash: z.boolean().optional(),
 	sideEffects: z.enum(["flag"]).or(z.boolean()).optional(),
 	providedExports: z.boolean().optional(),
+	innerGraph: z.boolean().optional(),
 	usedExports: z.enum(["global"]).or(z.boolean()).optional()
 });
 export type Optimization = z.infer<typeof optimization>;

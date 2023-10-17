@@ -90,6 +90,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           side_effects: SideEffectOption::False,
           provided_exports: Default::default(),
           used_exports: Default::default(),
+          inner_graph: Default::default(),
         },
         profile: false,
       }),

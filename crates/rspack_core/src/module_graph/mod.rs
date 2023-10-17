@@ -681,10 +681,6 @@ mod test {
           &*self.1
         }
 
-        fn span(&self) -> Option<&crate::ErrorSpan> {
-          unreachable!()
-        }
-
         fn set_request(&mut self, request: String) {
           self.1 = request;
         }

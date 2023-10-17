@@ -233,6 +233,10 @@ impl Dependency for HarmonyImportSideEffectDependency {
     &self.id
   }
 
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -268,10 +272,6 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
   }
 
   fn set_request(&mut self, request: String) {
