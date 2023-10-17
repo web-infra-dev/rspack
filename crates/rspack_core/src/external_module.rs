@@ -306,9 +306,9 @@ impl Module for ExternalModule {
       "this" => build_result.build_info.strict = false,
       "system" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
       "module" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
-      "script" | "promise" => build_result.build_meta.has_await = true,
+      "script" | "promise" => build_result.build_meta.has_top_level_await = true,
       "import" => {
-        build_result.build_meta.has_await = true;
+        build_result.build_meta.has_top_level_await = true;
         build_result.build_meta.exports_type = BuildMetaExportsType::Namespace;
       }
       _ => build_result.build_meta.exports_type = BuildMetaExportsType::Dynamic,

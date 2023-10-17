@@ -63,7 +63,7 @@ impl Visit for HarmonyDetectionScanner<'_> {
       if !self.top_level_await {
         self.errors.push(internal_error!("The top-level-await experiment is not enabled (set experiments.topLevelAwait: true to enabled it)"));
       } else if is_harmony || strict_harmony_module {
-        self.build_meta.has_await = true;
+        self.build_meta.has_top_level_await = true;
       } else {
         self.errors.push(internal_error!(
           "Top-level-await is only supported in EcmaScript Modules: {}",
