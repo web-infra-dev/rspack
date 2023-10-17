@@ -1,1 +1,1 @@
-module.exports = () => {return false}
+module.exports = () => 'jest node env blocks'
