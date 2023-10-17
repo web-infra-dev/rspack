@@ -939,7 +939,8 @@ export interface RawPresetEnv {
 }
 
 export interface RawProgressPluginOptions {
-  prefix?: string
+  prefix: string
+  profile: boolean
 }
 
 export interface RawReactOptions {

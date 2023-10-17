@@ -6,13 +6,15 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawProgressPluginOptions {
-  pub prefix: Option<String>,
+  pub prefix: String,
+  pub profile: bool,
 }
 
 impl From<RawProgressPluginOptions> for ProgressPluginOptions {
   fn from(value: RawProgressPluginOptions) -> Self {
     Self {
       prefix: value.prefix,
+      profile: value.profile,
     }
   }
 }
