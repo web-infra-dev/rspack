@@ -75,12 +75,8 @@ ${lastestMainCommitCompatibility},${currentCompatibility},${`${icon} ${diff.toFi
 				markdown += `
 <details>
 	<summary>Unpassed tests</summary>
-	${currentRenderedMd.split('\n').filter(line => !line.includes("🟢")).join('\n')}
-</details>
 
-<details>
-  <summary>All tests</summary>
-	${currentRenderedMd}
+${currentRenderedMd.split('\n').filter(line => !line.includes("🟢")).join('\n')}
 </details>
 `
 				fs.appendFileSync(path.resolve(rootDir, "output.md"), markdown);

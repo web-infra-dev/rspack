@@ -40,6 +40,7 @@ process.stdin.on("end", () => {
 	let extractedTestInfo = extractTestMetric(jsonObj);
 	let renderedTestMD = renderAllTestsToMarkdown(jsonObj);
 	if (!isCI) {
+		console.log(renderedTestMD)
 		Object.entries(extractedTestInfo).forEach(([k, v]) => {
 			console.log(`${k}: ${v}`);
 		});
