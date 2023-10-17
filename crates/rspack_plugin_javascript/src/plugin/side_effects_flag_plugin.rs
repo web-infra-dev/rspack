@@ -1,3 +1,5 @@
+use rspack_core::Compilation;
+use rustc_hash::FxHashSet;
 // use rspack_core::Plugin;
 // use rspack_error::Result;
 use swc_core::common::{Span, Spanned, SyntaxContext, GLOBALS};
@@ -275,5 +277,22 @@ impl ClassKey for ClassMember {
         Key::Public(ref public) => Some(public),
       },
     }
+  }
+}
+
+#[derive(Debug, Default)]
+pub struct SideEffectsFlagPlugin;
+
+impl Plugin for SideEffectsFlagPlugin {
+  async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
+    let mg = &mut compilation.module_graph;
+    for (mi, module) in mg.modules() {
+      let mut module_chain = FxHashSet::new();
+      let side_effects_state = module.get_side_effects_connection_state(&mg, &mut module_chain);
+      if rspack_core::ConnectionState::Bool(false) != side_effects_state {
+        continue;
+      }
+    }
+    Ok(None)
   }
 }
