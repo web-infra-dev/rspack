@@ -107,18 +107,16 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
   }
 
   fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
-    match self.rewrite_usage_span.get(&member_expr.span) {
-      Some(ExtraSpanInfo::ReWriteUsedByExports) => {
-        let span = member_expr.span;
-        self.on_usage(Box::new(move |deps, used_by_exports| {
-          let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
-          if let Some(dep) = target_dep {
-            dep.set_used_by_exports(used_by_exports);
-          }
-        }));
-      }
-      // member_expr is not possible to add a variable usage
-      _ => {}
+    if let Some(ExtraSpanInfo::ReWriteUsedByExports) =
+      self.rewrite_usage_span.get(&member_expr.span)
+    {
+      let span = member_expr.span;
+      self.on_usage(Box::new(move |deps, used_by_exports| {
+        let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
+        if let Some(dep) = target_dep {
+          dep.set_used_by_exports(used_by_exports);
+        }
+      }));
     };
   }
 
@@ -181,19 +179,14 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
   }
 
   fn visit_ident(&mut self, ident: &Ident) {
-    match self.rewrite_usage_span.get(&ident.span) {
-      Some(ExtraSpanInfo::ReWriteUsedByExports) => {
-        let span = ident.span;
-        let sym = ident.sym.clone();
-        self.on_usage(Box::new(move |deps, used_by_exports| {
-          let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
-          if let Some(dep) = target_dep {
-            dep.set_used_by_exports(used_by_exports);
-          }
-        }));
-      }
-      // ident is impossible to add a variable usage
-      _ => {}
+    if let Some(ExtraSpanInfo::ReWriteUsedByExports) = self.rewrite_usage_span.get(&ident.span) {
+      let span = ident.span;
+      self.on_usage(Box::new(move |deps, used_by_exports| {
+        let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
+        if let Some(dep) = target_dep {
+          dep.set_used_by_exports(used_by_exports);
+        }
+      }));
     };
     // imported binding isn't considered as a top level symbol.
     if self.import_map.contains_key(&ident.to_id()) {
@@ -252,29 +245,26 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
   fn visit_prop(&mut self, n: &Prop) {
     match n {
       Prop::Shorthand(shorthand) => {
-        match self.rewrite_usage_span.get(&shorthand.span) {
-          Some(ExtraSpanInfo::ReWriteUsedByExports) => {
-            let span = shorthand.span;
-            self.on_usage(Box::new(move |deps, used_by_exports| {
-              let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
-              if let Some(dep) = target_dep {
-                dep.set_used_by_exports(used_by_exports);
-              }
-            }));
-          }
-          // prop is impossible to add a variable usage
-          _ => {}
+        if let Some(ExtraSpanInfo::ReWriteUsedByExports) =
+          self.rewrite_usage_span.get(&shorthand.span)
+        {
+          let span = shorthand.span;
+          self.on_usage(Box::new(move |deps, used_by_exports| {
+            let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
+            if let Some(dep) = target_dep {
+              dep.set_used_by_exports(used_by_exports);
+            }
+          }));
         };
       }
       _ => n.visit_children_with(self),
     }
   }
   fn visit_export_decl(&mut self, export_decl: &ExportDecl) {
-    match self.rewrite_usage_span.get(&export_decl.span) {
-      Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) => {
-        self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
-      }
-      _ => {}
+    if let Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) =
+      self.rewrite_usage_span.get(&export_decl.span)
+    {
+      self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
     }
     // match &export_decl.decl {
     //   Decl::Class(ClassDecl { ident, .. }) | Decl::Fn(FnDecl { ident, .. }) => {
@@ -298,12 +288,13 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         .specifiers
         .iter()
         .for_each(|specifier| match specifier {
-          ExportSpecifier::Named(named) => match self.rewrite_usage_span.get(&named.span) {
-            Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) => {
+          ExportSpecifier::Named(named) => {
+            if let Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) =
+              self.rewrite_usage_span.get(&named.span)
+            {
               self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
             }
-            _ => {}
-          },
+          }
           _ => unreachable!(),
         });
     }
@@ -312,13 +303,11 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if !self.is_enabled() {
       return;
     }
-    match self.rewrite_usage_span.get(&node.span) {
-      Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) => {
-        self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
-      }
-      _ => {}
+    if let Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) =
+      self.rewrite_usage_span.get(&node.span)
+    {
+      self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
     }
-    // TODO:
     match node.expr {
       box Expr::Fn(_) | box Expr::Arrow(_) | box Expr::Lit(_) => {
         self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
@@ -603,7 +592,7 @@ impl<'a> InnerGraphPlugin<'a> {
       }
     }
 
-    dbg!(&state.inner_graph);
+    // dbg!(&state.inner_graph);
     for (symbol, cbs) in state.usage_callback_map.iter() {
       let usage = state.inner_graph.get(symbol);
       for cb in cbs {

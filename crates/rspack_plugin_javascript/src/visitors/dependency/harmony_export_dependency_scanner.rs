@@ -16,13 +16,10 @@ use swc_core::{
 };
 
 use super::{harmony_import_dependency_scanner::ImportMap, ExtraSpanInfo};
-use crate::{
-  dependency::{
-    AnonymousFunctionRangeInfo, HarmonyExportExpressionDependency, HarmonyExportHeaderDependency,
-    HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency, Specifier,
-    DEFAULT_EXPORT,
-  },
-  inner_graph_plugin::InnerGraphMapUsage,
+use crate::dependency::{
+  AnonymousFunctionRangeInfo, HarmonyExportExpressionDependency, HarmonyExportHeaderDependency,
+  HarmonyExportImportedSpecifierDependency, HarmonyExportSpecifierDependency, Specifier,
+  DEFAULT_EXPORT,
 };
 
 pub struct HarmonyExportDependencyScanner<'a> {
@@ -147,7 +144,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
               }
               self.rewrite_usage_span.insert(
                 named.span(),
-                ExtraSpanInfo::AddVariableUsage(orig.sym.clone(), export.clone()),
+                ExtraSpanInfo::AddVariableUsage(orig.sym.clone(), export),
               );
             }
           }

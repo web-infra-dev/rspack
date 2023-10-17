@@ -241,7 +241,12 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    dbg!(&self.ids, self.request(), self.used_by_exports.as_ref());
+    // dbg!(
+    //   &self.ids,
+    //   &self.specifier,
+    //   self.request(),
+    //   self.used_by_exports.as_ref()
+    // );
     get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
   }
 
@@ -250,6 +255,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     module_graph: &ModuleGraph,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
+    // TODO: use self.getIds() instead
     // namespace import
     if self.ids.is_empty() {
       return self.get_referenced_exports_in_destructuring(None);
