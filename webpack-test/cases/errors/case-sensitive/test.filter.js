@@ -6,5 +6,5 @@ module.exports = function(config) {
 	return fs.existsSync(path.join(__dirname, "TEST.FILTER.JS"));
 };
 */
-module.exports = () => {return false}
+module.exports = () => {return "https://github.com/web-infra-dev/rspack/issues/4347"}
 							
