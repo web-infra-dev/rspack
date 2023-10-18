@@ -27,7 +27,7 @@ pub struct HarmonyImportSpecifierDependency {
   direct_import: bool,
   specifier: Specifier,
   used_by_exports: Option<UsedByExports>,
-  namespace_object_as_context: bool,
+  pub namespace_object_as_context: bool,
   referenced_properties_in_destructuring: Option<HashSet<JsWord>>,
   resource_identifier: String,
 }

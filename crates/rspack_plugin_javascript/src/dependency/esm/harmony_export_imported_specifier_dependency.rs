@@ -21,9 +21,9 @@ pub struct HarmonyExportImportedSpecifierDependency {
   pub source_order: i32,
   pub request: JsWord,
   pub ids: Vec<(JsWord, Option<JsWord>)>,
-  /// used for get_mode
+  /// used for get_mode, legacy issue
   pub mode_ids: Vec<(JsWord, Option<JsWord>)>,
-  name: Option<JsWord>,
+  pub name: Option<JsWord>,
   resource_identifier: String,
   // Because it is shared by multiply HarmonyExportImportedSpecifierDependency, so put it to `BuildInfo`
   // pub active_exports: HashSet<JsWord>,

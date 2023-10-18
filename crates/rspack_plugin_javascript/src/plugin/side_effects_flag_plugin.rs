@@ -1,11 +1,17 @@
-use rspack_core::Compilation;
-use rustc_hash::FxHashSet;
+use async_trait::async_trait;
+use rspack_core::{Compilation, Plugin};
+use rspack_error::Result;
+use rustc_hash::FxHashSet as HashSet;
 // use rspack_core::Plugin;
 // use rspack_error::Result;
 use swc_core::common::{Span, Spanned, SyntaxContext, GLOBALS};
 use swc_core::ecma::ast::*;
-use swc_core::ecma::utils::{ExprCtx, ExprExt};
+use swc_core::ecma::utils::{contains_arguments, ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
+
+use crate::dependency::{
+  HarmonyExportImportedSpecifierDependency, HarmonyImportSpecifierDependency,
+};
 
 #[derive(Debug)]
 pub struct SideEffectsFlagPluginVisitor {
@@ -283,16 +289,55 @@ impl ClassKey for ClassMember {
 #[derive(Debug, Default)]
 pub struct SideEffectsFlagPlugin;
 
+#[async_trait]
 impl Plugin for SideEffectsFlagPlugin {
   async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
     let mg = &mut compilation.module_graph;
-    for (mi, module) in mg.modules() {
-      let mut module_chain = FxHashSet::new();
+    // SAFETY: this method will not modify the map, and we can guarantee there is no other
+    // thread access the map at the same time.
+    let module_identifier_to_module = std::mem::take(&mut mg.module_identifier_to_module);
+    for (mi, module) in module_identifier_to_module.iter() {
+      let mut module_chain = HashSet::default();
       let side_effects_state = module.get_side_effects_connection_state(&mg, &mut module_chain);
-      if rspack_core::ConnectionState::Bool(false) != side_effects_state {
+      if side_effects_state != rspack_core::ConnectionState::Bool(false) {
         continue;
       }
+      let cur_exports_info_id = mg.get_exports_info(mi).id;
+
+      let incommon_connections = mg.get_incoming_connections_cloned(module);
+      for con in incommon_connections {
+        let dep = match mg.dependency_by_id(&con.dependency_id) {
+          Some(dep) => dep,
+          None => continue,
+        };
+        let is_reexport = dep
+          .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
+          .is_some();
+        let is_valid_import_specifier_dep = if let Some(import_specifier_dep) =
+          dep.downcast_ref::<HarmonyImportSpecifierDependency>()
+        {
+          !import_specifier_dep.namespace_object_as_context
+        } else {
+          false
+        };
+        if !is_reexport && !is_valid_import_specifier_dep {
+          continue;
+        }
+        if let Some(name) = dep
+          .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
+          .and_then(|dep| dep.name.clone())
+        {
+          let export_info_id = mg.get_export_info(
+            con
+              .original_module_identifier
+              .expect("should have original_module_identifier"),
+            &name,
+          );
+          export_info_id;
+        }
+      }
     }
+    mg.module_identifier_to_module = module_identifier_to_module;
     Ok(None)
   }
 }

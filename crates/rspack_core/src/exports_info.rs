@@ -550,6 +550,7 @@ impl ExportInfoId {
     }
     false
   }
+  fn move_target() {}
 
   pub fn set_used_conditionally(
     &self,
@@ -623,6 +624,7 @@ impl From<u32> for ExportInfoId {
 #[derive(Debug, Clone, Default)]
 #[allow(unused)]
 pub struct ExportInfo {
+  // the name could be `null` you could refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ExportsInfo.js#L78
   pub name: Option<JsWord>,
   module_identifier: Option<ModuleIdentifier>,
   pub usage_state: UsageState,
@@ -721,7 +723,7 @@ impl<T: 'static> Clone for Box<dyn FilterFn<T>> {
 }
 
 impl ExportInfo {
-  // TODO: remove usage_state in the future
+  // TODO: remove usage_state after new tree shaking is landing
   pub fn new(
     name: Option<JsWord>,
     usage_state: UsageState,
@@ -735,14 +737,43 @@ impl ExportInfo {
     let can_mangle_use = init_from.and_then(|init_from| init_from.can_mangle_use);
     let used_in_runtime = init_from.and_then(|init_from| init_from.used_in_runtime.clone());
 
+    let mut target = init_from
+      .and_then(|item| {
+        if item.target_is_set {
+          Some(
+            item
+              .target
+              .clone()
+              .into_iter()
+              .map(|(k, v)| {
+                (
+                  k,
+                  ExportInfoTargetValue {
+                    connection: v.connection,
+                    exports: match v.exports {
+                      Some(vec) => Some(vec),
+                      None => Some(vec![name
+                        .clone()
+                        .expect("name should not be empty if target is set")]),
+                    },
+                    priority: v.priority,
+                  },
+                )
+              })
+              .collect::<HashMap<DependencyId, ExportInfoTargetValue>>(),
+          )
+        } else {
+          None
+        }
+      })
+      .unwrap_or_default();
     Self {
       name,
       module_identifier: None,
       usage_state,
       used_name: None,
       used_in_runtime,
-      // TODO: init this
-      target: HashMap::default(),
+      target,
       provided: None,
       can_mangle_provide: None,
       terminal_binding: false,

@@ -132,7 +132,7 @@ impl ModuleGraphConnection {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ConnectionState {
   Bool(bool),
   CircularConnection,

@@ -6,6 +6,7 @@ use rspack_error::{internal_error, Result};
 use rspack_hash::RspackHashDigest;
 use rspack_identifier::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use swc_core::ecma::atoms::JsWord;
 
 use crate::IS_NEW_TREESHAKING;
 mod connection;
@@ -25,7 +26,7 @@ pub struct ModuleGraph {
   dependency_id_to_module_identifier: HashMap<DependencyId, ModuleIdentifier>,
 
   /// Module identifier to its module
-  module_identifier_to_module: IdentifierMap<BoxModule>,
+  pub module_identifier_to_module: IdentifierMap<BoxModule>,
 
   /// Module identifier to its module graph module
   pub module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
@@ -247,6 +248,15 @@ impl ModuleGraph {
       .get_mut(identifier)
   }
 
+  /// refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ModuleGraph.js#L582-L585
+  pub fn get_export_info(
+    &mut self,
+    module_id: ModuleIdentifier,
+    export_name: &JsWord,
+  ) -> ExportInfoId {
+    let exports_info_id = self.get_exports_info(&module_id).id;
+    exports_info_id.get_export_info(export_name, self)
+  }
   /// Uniquely identify a connection by a given dependency
   pub fn connection_by_dependency(
     &self,
@@ -380,6 +390,23 @@ impl ModuleGraph {
           .incoming_connections
           .iter()
           .filter_map(|id| self.connection_by_connection_id(id))
+          .collect()
+      })
+      .unwrap_or_default()
+  }
+
+  pub fn get_incoming_connections_cloned(
+    &self,
+    module: &BoxModule,
+  ) -> HashSet<ModuleGraphConnection> {
+    self
+      .module_graph_module_by_identifier(&module.identifier())
+      .map(|mgm| {
+        mgm
+          .incoming_connections
+          .clone()
+          .into_iter()
+          .filter_map(|id| self.connection_by_connection_id(&id).cloned())
           .collect()
       })
       .unwrap_or_default()
