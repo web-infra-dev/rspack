@@ -100,7 +100,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
       .filter(|specifier| {
         let is_import = matches!(
           module_dependency.dependency_type(),
-          DependencyType::EsmImport
+          DependencyType::EsmImport(_)
         );
         if is_import && !ref_mgm.module_type.is_js_like() {
           return true;
@@ -125,7 +125,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
           Specifier::Named(local, imported) => {
             let symbol = if matches!(
               module_dependency.dependency_type(),
-              DependencyType::EsmImport
+              DependencyType::EsmImport(_)
             ) {
               SymbolRef::Indirect(IndirectTopLevelSymbol {
                 src: ref_mgm.module_identifier,

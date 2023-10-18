@@ -44,7 +44,7 @@ pub enum DependencyType {
   ExportInfoApi,
   Entry,
   // Harmony import
-  EsmImport,
+  EsmImport(/* HarmonyImportSideEffectDependency.span */ ErrorSpan), /* TODO: remove span after old tree shaking is removed */
   EsmImportSpecifier,
   // Harmony export
   EsmExport,
@@ -96,7 +96,7 @@ impl Display for DependencyType {
     match self {
       DependencyType::Unknown => write!(f, "unknown"),
       DependencyType::Entry => write!(f, "entry"),
-      DependencyType::EsmImport => write!(f, "esm import"),
+      DependencyType::EsmImport(_) => write!(f, "esm import"),
       DependencyType::EsmExport => write!(f, "esm export"),
       DependencyType::EsmExportSpecifier => write!(f, "esm export specifier"),
       DependencyType::EsmExportImportedSpecifier => write!(f, "esm export import specifier"),
