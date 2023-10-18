@@ -16,19 +16,19 @@ use rspack_regex::RspackRegex;
 use rspack_util::try_any;
 
 #[derive(Debug)]
-pub enum BannerCondition {
+pub enum BannerRule {
   String(String),
   Regexp(RspackRegex),
 }
 
 #[derive(Debug)]
-pub enum BannerConditions {
+pub enum BannerRules {
   String(String),
   Regexp(RspackRegex),
-  Array(Vec<BannerCondition>),
+  Array(Vec<BannerRule>),
 }
 
-impl BannerCondition {
+impl BannerRule {
   #[async_recursion]
   pub async fn try_match(&self, data: &str) -> Result<bool> {
     match self {
@@ -38,7 +38,7 @@ impl BannerCondition {
   }
 }
 
-impl BannerConditions {
+impl BannerRules {
   #[async_recursion]
   pub async fn try_match(&self, data: &str) -> Result<bool> {
     match self {
@@ -50,7 +50,7 @@ impl BannerConditions {
 }
 
 #[derive(Debug)]
-pub struct BannerConfig {
+pub struct BannerPluginOptions {
   // Specifies the banner.
   pub banner: BannerContent,
   // If true, the banner will only be added to the entry chunks.
@@ -60,11 +60,11 @@ pub struct BannerConfig {
   // If true, banner will not be wrapped in a comment.
   pub raw: Option<bool>,
   // Include all modules that pass test assertion.
-  pub test: Option<BannerConditions>,
+  pub test: Option<BannerRules>,
   // Include all modules matching any of these conditions.
-  pub include: Option<BannerConditions>,
+  pub include: Option<BannerRules>,
   // Exclude all modules matching any of these conditions.
-  pub exclude: Option<BannerConditions>,
+  pub exclude: Option<BannerRules>,
 }
 
 pub struct BannerContentFnCtx<'a> {
@@ -91,7 +91,7 @@ impl fmt::Debug for BannerContent {
 }
 
 #[async_recursion]
-async fn match_object(obj: &BannerConfig, str: &str) -> Result<bool> {
+async fn match_object(obj: &BannerPluginOptions, str: &str) -> Result<bool> {
   if let Some(condition) = &obj.test {
     if !condition.try_match(str).await? {
       return Ok(false);
@@ -131,11 +131,11 @@ fn wrap_comment(str: &str) -> String {
 
 #[derive(Debug)]
 pub struct BannerPlugin {
-  config: BannerConfig,
+  config: BannerPluginOptions,
 }
 
 impl BannerPlugin {
-  pub fn new(config: BannerConfig) -> Self {
+  pub fn new(config: BannerPluginOptions) -> Self {
     Self { config }
   }
 

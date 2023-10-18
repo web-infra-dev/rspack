@@ -1,3 +1,36 @@
+/*
+The full syntax, remember update this when you change something in this file.
+
+`RSPACK_PROFILE='TRACE=filter=trace&output=./rspack.trace&layer=chrome|JSCPU=output=./rspack.jscpuprofile|LOGGING=output=./rspack.logging' rspack build`
+                       ^----------------------------------------------: querystring syntax trace options
+                                                                      ^: | is a delimiter for different profile options
+                                                                       ^---------------------------------: querystring syntax js cpuprofile options
+                                                                                                         ^: | is a delimiter for different profile options
+                                                                                                          ^------------------------------: querystring syntax stats.logging options
+                       ^-----------: trace filter, default to `trace`, more syntax: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#example-syntax
+                                    ^--------------------: trace output, `stderr`, `stdout`, or a file path, default to `./.rspack-profile-${timestamp}/trace.json` for layer `chrome` and default to `stdout` for layer `logger`
+                                                          ^-----------: trace layer, `chrome` or `logger`, default to `chrome`
+                                                                             ^---------------------------: js cpuprofile output, `stderr`, `stdout`, or a file path, default to `./.rspack-profile-${timestamp}/jscpuprofile.json`
+                                                                                                                  ^----------------------: stats.logging output, default to `./.rspack-profile-${timestamp}/logging.json`
+
+`RSPACK_PROFILE='TRACE=filter=trace&output=./rspack.trace&layer=chrome' rspack build`: only enable trace
+
+`RSPACK_PROFILE=TRACE rspack build`: only enable trace, and use default options for trace
+
+`RSPACK_PROFILE='JSCPU=output=./rspack.jscpuprofile' rspack build`: only enable js cpuprofile
+
+`RSPACK_PROFILE=JSCPU rspack build`: only enable js cpuprofile, and use default options for js cpuprofile
+
+`RSPACK_PROFILE='LOGGING=output=./rspack.logging' rspack build`: only enable stats.logging
+
+`RSPACK_PROFILE=LOGGING rspack build`: only enable stats.logging, and use default options for stats.logging
+
+`RSPACK_PROFILE=ALL rspack build`: enable all, and use default options
+
+`RSPACK_PROFILE=[rspack_node,rspack_core] rspack build`: enable all, but customize trace filter
+
+*/
+
 import inspector from "inspector";
 import fs from "fs";
 import path from "path";

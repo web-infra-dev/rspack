@@ -48,6 +48,10 @@ impl Dependency for WorkerDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::NewWorker
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
 }
 
 impl ModuleDependency for WorkerDependency {
@@ -57,10 +61,6 @@ impl ModuleDependency for WorkerDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
   }
 
   fn set_request(&mut self, request: String) {
@@ -78,6 +78,10 @@ impl ModuleDependency for WorkerDependency {
   ) -> Vec<ExtendedReferencedExport> {
     vec![]
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "WorkerDependency"
+  }
 }
 
 impl DependencyTemplate for WorkerDependency {
@@ -94,7 +98,7 @@ impl DependencyTemplate for WorkerDependency {
     let chunk_id = compilation
       .module_graph
       .module_identifier_by_dependency_id(&self.id)
-      .map(|module| {
+      .and_then(|module| {
         compilation
           .chunk_graph
           .get_block_chunk_group(module, &compilation.chunk_group_by_ukey)

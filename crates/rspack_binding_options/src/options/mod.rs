@@ -3,6 +3,7 @@ use rspack_core::{
   BoxPlugin, CompilerOptions, Context, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
   IncrementalRebuildMakeState, ModuleOptions, ModuleType, OutputOptions, PluginExt,
 };
+use rspack_plugin_javascript::{FlagDependencyExportsPlugin, FlagDependencyUsagePlugin};
 use serde::Deserialize;
 
 mod raw_builtins;
@@ -124,9 +125,6 @@ impl RawOptionsApply for RawOptions {
       .boxed(),
     );
     plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
-    if dev_server.hot {
-      plugins.push(rspack_plugin_hmr::HotModuleReplacementPlugin {}.boxed());
-    }
     plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
     if experiments.lazy_compilation {
       plugins.push(rspack_plugin_runtime::LazyCompilationPlugin {}.boxed());
@@ -157,6 +155,15 @@ impl RawOptionsApply for RawOptions {
     }
 
     plugins.push(rspack_ids::NamedChunkIdsPlugin::new(None, None).boxed());
+
+    if experiments.rspack_future.new_treeshaking {
+      if optimization.provided_exports {
+        plugins.push(FlagDependencyExportsPlugin::default().boxed());
+      }
+      if optimization.used_exports.is_enable() {
+        plugins.push(FlagDependencyUsagePlugin::default().boxed());
+      }
+    }
 
     // Notice the plugin need to be placed after SplitChunksPlugin
     if optimization.remove_empty_chunks {

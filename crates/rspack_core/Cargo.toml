@@ -15,7 +15,6 @@ dashmap = { workspace = true }
 derivative = { workspace = true }
 dyn-clone = "1.0.11"
 futures = { workspace = true }
-glob = "0.3.1"
 glob-match = "0.2.1"
 hashlink = { workspace = true }
 indexmap = { workspace = true }
@@ -23,7 +22,7 @@ itertools = { workspace = true }
 mime_guess = { workspace = true }
 nodejs-resolver = { version = "0.1.0" }
 once_cell = { workspace = true }
-oxc_resolver = { version = "0.1.0" }
+oxc_resolver = { version = "0.3.1", features = ["tracing-subscriber"] }
 paste = { workspace = true }
 petgraph = { version = "0.6.3", features = ["serde-1"] }
 rayon = { workspace = true }

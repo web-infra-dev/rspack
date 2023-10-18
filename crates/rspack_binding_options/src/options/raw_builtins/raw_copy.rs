@@ -1,13 +1,15 @@
 use std::path::PathBuf;
 
 use napi_derive::napi;
-use rspack_core::{CopyPluginConfig, GlobOptions, Pattern, ToType};
+use rspack_plugin_copy::{
+  CopyGlobOptions, CopyPattern, CopyRspackPluginOptions, Info, Related, ToType,
+};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-pub struct RawPattern {
+pub struct RawCopyPattern {
   pub from: String,
   pub to: Option<String>,
   pub context: Option<String>,
@@ -15,13 +17,35 @@ pub struct RawPattern {
   pub no_error_on_missing: bool,
   pub force: bool,
   pub priority: i32,
-  pub glob_options: RawGlobOptions,
+  pub glob_options: RawCopyGlobOptions,
+  pub info: Option<RawInfo>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-pub struct RawGlobOptions {
+pub struct RawInfo {
+  pub immutable: Option<bool>,
+  pub minimized: Option<bool>,
+  pub chunk_hash: Option<Vec<String>>,
+  pub content_hash: Option<Vec<String>>,
+  pub development: Option<bool>,
+  pub hot_module_replacement: Option<bool>,
+  pub related: Option<RawRelated>,
+  pub version: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawRelated {
+  pub source_map: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawCopyGlobOptions {
   pub case_sensitive_match: Option<bool>,
   pub dot: Option<bool>,
   pub ignore: Option<Vec<String>>,
@@ -30,13 +54,13 @@ pub struct RawGlobOptions {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-pub struct RawCopyConfig {
-  pub patterns: Vec<RawPattern>,
+pub struct RawCopyRspackPluginOptions {
+  pub patterns: Vec<RawCopyPattern>,
 }
 
-impl From<RawPattern> for Pattern {
-  fn from(value: RawPattern) -> Self {
-    let RawPattern {
+impl From<RawCopyPattern> for CopyPattern {
+  fn from(value: RawCopyPattern) -> Self {
+    let RawCopyPattern {
       from,
       to,
       context,
@@ -45,6 +69,7 @@ impl From<RawPattern> for Pattern {
       force,
       priority,
       glob_options,
+      info,
     } = value;
 
     Self {
@@ -65,10 +90,10 @@ impl From<RawPattern> for Pattern {
         None
       },
       no_error_on_missing,
-      info: None,
+      info: info.map(Into::into),
       force,
       priority,
-      glob_options: GlobOptions {
+      glob_options: CopyGlobOptions {
         case_sensitive_match: glob_options.case_sensitive_match,
         dot: glob_options.dot,
         ignore: glob_options.ignore.map(|ignore| {
@@ -82,10 +107,27 @@ impl From<RawPattern> for Pattern {
   }
 }
 
-impl From<RawCopyConfig> for CopyPluginConfig {
-  fn from(val: RawCopyConfig) -> Self {
+impl From<RawCopyRspackPluginOptions> for CopyRspackPluginOptions {
+  fn from(val: RawCopyRspackPluginOptions) -> Self {
     Self {
       patterns: val.patterns.into_iter().map(Into::into).collect(),
+    }
+  }
+}
+
+impl From<RawInfo> for Info {
+  fn from(value: RawInfo) -> Self {
+    Self {
+      immutable: value.immutable,
+      minimized: value.minimized,
+      chunk_hash: value.chunk_hash,
+      content_hash: value.content_hash,
+      development: value.development,
+      hot_module_replacement: value.hot_module_replacement,
+      related: value.related.map(|r| Related {
+        source_map: r.source_map,
+      }),
+      version: value.version,
     }
   }
 }

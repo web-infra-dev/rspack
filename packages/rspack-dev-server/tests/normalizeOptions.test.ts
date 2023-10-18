@@ -1,6 +1,7 @@
 import { RspackOptions, rspack } from "@rspack/core";
 import { RspackDevServer, Configuration } from "@rspack/dev-server";
 import { createCompiler } from "@rspack/core";
+import ReactRefreshPlugin from "@rspack/plugin-react-refresh";
 import serializer from "jest-serializer-path";
 expect.addSnapshotSerializer(serializer);
 
@@ -24,26 +25,71 @@ describe("normalize options snapshot", () => {
 	});
 
 	it("additional entires should added", async () => {
-		await matchAdditionEntries(
-			{},
-			{
-				entry: ["something"]
-			}
-		);
+		expect(
+			await getAdditionEntries({}, { entry: ["something"] })
+		).toMatchSnapshot();
 	});
 
 	it("react-refresh client added when react/refresh enabled", async () => {
-		await matchAdditionEntries(
+		expect(
+			await getAdditionEntries(
+				{},
+				{
+					entry: ["something"],
+					builtins: {
+						react: {
+							refresh: true
+						}
+					}
+				}
+			)
+		).toMatchSnapshot();
+	});
+
+	it("shouldn't have reactRefreshEntry.js when react.refresh is false", async () => {
+		expect(
+			await getAdditionEntries(
+				{},
+				{
+					entry: ["something"],
+					builtins: {
+						react: {
+							refresh: false
+						}
+					}
+				}
+			)
+		).toMatchSnapshot();
+	});
+
+	it("shouldn't have reactRefreshEntry.js by default when rspackFuture.disableReactRefreshByDefault is enabled", async () => {
+		const reactRefreshEntry =
+			"<prefix>/rspack-plugin-react-refresh/client/reactRefreshEntry.js";
+		const entries1 = await getAdditionEntries(
 			{},
 			{
 				entry: ["something"],
-				builtins: {
-					react: {
-						refresh: true
+				experiments: {
+					rspackFuture: {
+						disableTransformByDefault: true
 					}
 				}
 			}
 		);
+		expect(entries1["undefined"]).not.toContain(reactRefreshEntry);
+		const entries2 = await getAdditionEntries(
+			{},
+			{
+				entry: ["something"],
+				plugins: [new ReactRefreshPlugin()],
+				experiments: {
+					rspackFuture: {
+						disableTransformByDefault: true
+					}
+				}
+			}
+		);
+		expect(entries2["undefined"]).toContain(reactRefreshEntry);
 	});
 
 	it("react.development and react.refresh should be true by default when hot enabled", async () => {
@@ -110,7 +156,7 @@ async function match(config: RspackOptions) {
 	await server.stop();
 }
 
-async function matchAdditionEntries(
+async function getAdditionEntries(
 	serverConfig: Configuration,
 	config: RspackOptions
 ) {
@@ -123,9 +169,8 @@ async function matchAdditionEntries(
 	const server = new RspackDevServer(serverConfig, compiler);
 	await server.start();
 	const entries = compiler.builtinPlugins
-		.map(p => p.raw())
-		.filter(p => p.kind === "Entry" /* BuiltinPluginKind.Entry */)
-		.map(p => p.options)
+		.filter(p => p.name === "EntryPlugin")
+		.map(p => p.raw().options)
 		.reduce<Object>((acc, cur: any) => {
 			const name = cur.options.name;
 			const request = cur.entry;
@@ -149,6 +194,6 @@ async function matchAdditionEntries(
 			return [key, replaced];
 		})
 	);
-	expect(value).toMatchSnapshot();
 	await server.stop();
+	return value;
 }

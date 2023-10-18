@@ -49,7 +49,8 @@ import { concatErrorMsgAndStack, isJsStatsError, toJsAssetInfo } from "./util";
 import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import {
 	createFakeCompilationDependencies,
-	createFakeProcessAssetsHook
+	createFakeProcessAssetsHook,
+	createProcessAssetsHook
 } from "./util/fake";
 import { NormalizedJsModule, normalizeJsModule } from "./util/normalization";
 import MergeCaller from "./util/MergeCaller";
@@ -85,11 +86,12 @@ export class Compilation {
 	hooks: {
 		processAssets: ReturnType<typeof createFakeProcessAssetsHook>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
-		additionalAssets: tapable.AsyncSeriesHook<
-			Assets,
-			tapable.UnsetAdditionalOptions
-		>;
+		additionalAssets: any;
 		optimizeModules: tapable.SyncBailHook<Iterable<JsModule>, undefined>;
+		optimizeTree: tapable.AsyncSeriesBailHook<
+			[Iterable<JsChunk>, Iterable<JsModule>],
+			undefined
+		>;
 		optimizeChunkModules: tapable.AsyncSeriesBailHook<
 			[Iterable<JsChunk>, Iterable<JsModule>],
 			undefined
@@ -116,6 +118,12 @@ export class Compilation {
 	normalModuleFactory?: NormalModuleFactory;
 	children: Compilation[] = [];
 	contextModuleFactory?: ContextModuleFactory;
+	fileSystemInfo = {
+		createSnapshot() {
+			// fake implement to support html-webpack-plugin
+			return null;
+		}
+	};
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.name = undefined;
@@ -126,9 +134,15 @@ export class Compilation {
 			processAssets: processAssetsHooks,
 			// TODO: webpack 6 deprecate, keep it just for compatibility
 			/** @deprecated */
-			additionalAssets: processAssetsHooks.stageAdditional,
+			additionalAssets: createProcessAssetsHook(
+				processAssetsHooks,
+				"additionalAssets",
+				Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+				() => []
+			),
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
 			optimizeModules: new tapable.SyncBailHook(["modules"]),
+			optimizeTree: new tapable.AsyncSeriesBailHook(["chunks", "modules"]),
 			optimizeChunkModules: new tapable.AsyncSeriesBailHook([
 				"chunks",
 				"modules"
@@ -444,15 +458,25 @@ export class Compilation {
 	get errors() {
 		let inner = this.#inner;
 		return {
-			push: (...errs: (Error | JsStatsError)[]) => {
+			push: (...errs: (Error | JsStatsError | string)[]) => {
 				// compatible for javascript array
 				for (let i = 0; i < errs.length; i++) {
 					let error = errs[i];
-					this.#inner.pushDiagnostic(
-						"error",
-						isJsStatsError(error) ? error.title : error.name,
-						concatErrorMsgAndStack(error)
-					);
+					if (isJsStatsError(error)) {
+						this.#inner.pushDiagnostic(
+							"error",
+							error.title,
+							concatErrorMsgAndStack(error)
+						);
+					} else if (typeof error === "string") {
+						this.#inner.pushDiagnostic("error", "Error", error);
+					} else {
+						this.#inner.pushDiagnostic(
+							"error",
+							error.name,
+							concatErrorMsgAndStack(error)
+						);
+					}
 				}
 			},
 			[Symbol.iterator]() {
@@ -678,6 +702,21 @@ export class Compilation {
 			};
 		});
 		return chunks;
+	}
+
+	/**
+	 * Get the named chunks.
+	 *
+	 * Note: This is a proxy for webpack internal API, only method `get` is supported now.
+	 */
+	get namedChunks(): Map<string, Readonly<JsChunk>> {
+		return {
+			get: (property: unknown) => {
+				if (typeof property === "string") {
+					return this.#inner.getNamedChunk(property) ?? undefined;
+				}
+			}
+		} as Map<string, Readonly<JsChunk>>;
 	}
 
 	/**

@@ -14,14 +14,14 @@ use swc_html::{
 use swc_html_minifier::minify_document;
 pub use swc_html_minifier::option::MinifyOptions;
 
-use crate::config::HtmlPluginConfig;
+use crate::config::HtmlRspackPluginOptions;
 
 pub struct HtmlCompiler<'a> {
-  config: &'a HtmlPluginConfig,
+  config: &'a HtmlRspackPluginOptions,
 }
 
 impl<'a> HtmlCompiler<'a> {
-  pub fn new(config: &'a HtmlPluginConfig) -> Self {
+  pub fn new(config: &'a HtmlRspackPluginOptions) -> Self {
     Self { config }
   }
 

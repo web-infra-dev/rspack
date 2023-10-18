@@ -47,3 +47,19 @@ exports[`CopyPlugin basic should work with multi compiler mode: warnings 2`] = `
   Symbol(Symbol.iterator): [Function],
 }
 `;
+
+exports[`CopyPlugin stats should minify: assets 1`] = `
+{
+  "asset-modules/deepnested.txt": "",
+  "unoptimized.js": "let a=1;console.log(1);",
+}
+`;
+
+exports[`CopyPlugin stats should not minify: assets 1`] = `
+{
+  "asset-modules/deepnested.txt": "",
+  "unoptimized.js": "const a = 1;
+console.log(a);
+",
+}
+`;

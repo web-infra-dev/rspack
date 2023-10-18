@@ -538,13 +538,7 @@ export const describeCases = config => {
 														__dirname: path.dirname(p),
 														__filename: p,
 														_globalAssign: { expect },
-														define,
-														// TODO support __non_webpack_require__
-														__non_webpack_require__: _require.bind(
-															null,
-															path.dirname(p),
-															options
-														)
+														define
 													};
 													if (testConfig.moduleScope) {
 														testConfig.moduleScope(moduleScope);

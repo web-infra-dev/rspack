@@ -46,6 +46,10 @@ impl Dependency for WasmImportDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::WasmImport
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
 }
 
 impl ModuleDependency for WasmImportDependency {
@@ -55,10 +59,6 @@ impl ModuleDependency for WasmImportDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
   }
 
   fn set_request(&mut self, request: String) {
@@ -71,6 +71,10 @@ impl ModuleDependency for WasmImportDependency {
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![ExtendedReferencedExport::Array(vec![self.name.clone()])]
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "WasmImportDependency"
   }
 }
 

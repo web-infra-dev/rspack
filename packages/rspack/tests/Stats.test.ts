@@ -34,7 +34,7 @@ describe("Stats", () => {
 		    entry ./fixtures/a
 		./fixtures/a.js [876] {main}
 		  entry ./fixtures/a
-		rspack compiled successfully (31124a919605602fc9ae)"
+		Rspack compiled successfully (9608c01366e871cd4b26)"
 	`);
 	});
 
@@ -79,7 +79,7 @@ describe("Stats", () => {
 
 
 
-		rspack compiled with 1 error (18c9b1da202481673984)"
+		Rspack compiled with 1 error (40d126348f49dbce14a2)"
 	`);
 	});
 
@@ -143,6 +143,7 @@ describe("Stats", () => {
 		<t> module factorize task: X ms
 		<t> module build task: X ms
 		<t> finish modules: X ms
+		<t> optimize dependencies: X ms
 		<t> optimize dependencies: X ms
 		<t> create chunks: X ms
 		<t> optimize: X ms

@@ -1,10 +1,9 @@
-use once_cell::sync::Lazy;
-use regex::Regex;
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  Compilation, DependencyId, ExportsType, FakeNamespaceObjectMode, InitFragmentStage, ModuleGraph,
-  ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext,
+  property_access, Compilation, DependencyId, ExportsType, FakeNamespaceObjectMode,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier,
+  NormalInitFragment, RuntimeGlobals, TemplateContext,
 };
 
 pub fn export_from_import(
@@ -32,7 +31,7 @@ pub fn export_from_import(
       {
         match exports_type {
             ExportsType::Dynamic => {
-              return format!("{import_var}_default{}", property_access(&export_name, 1));
+              return format!("{import_var}_default{}", property_access(export_name, 1));
             }
             ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
               export_name = export_name[1..].to_vec();
@@ -41,19 +40,21 @@ pub fn export_from_import(
         }
       } else if !export_name.is_empty() {
         if matches!(exports_type, ExportsType::DefaultOnly) {
-          return format!("/* non-default import from non-esm module */undefined\n{}", property_access(&export_name, 1));
+          return format!("/* non-default import from non-esm module */undefined\n{}", property_access(export_name, 1));
         } else if !matches!(exports_type, ExportsType::Namespace)  && let Some(first_export_name) = export_name.get(0) && first_export_name == "__esModule" {
           return "/* __esModule */true".to_string();
         }
       } else if matches!(exports_type, ExportsType::DefaultOnly | ExportsType::DefaultWithNamed) {
         runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
-        init_fragments.push(Box::new(NormalInitFragment::new(
+        init_fragments.push(NormalInitFragment::new(
           format!(
             "var {import_var}_namespace_cache;\n",
           ),
           InitFragmentStage::StageHarmonyExports,
+          -1,
+          InitFragmentKey::uniqie(),
           None,
-        )));
+        ).boxed());
         return format!("/*#__PURE__*/ ({import_var}_namespace_cache || ({import_var}_namespace_cache = {}({import_var}{})))", RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT, if matches!(exports_type, ExportsType::DefaultOnly) { "" } else { ", 2" });
       }
   }
@@ -100,69 +101,6 @@ pub fn get_exports_type_with_strict(
     .module_graph_module_by_identifier(module)
     .expect("should have mgm")
     .get_exports_type(strict)
-}
-
-static SAFE_IDENTIFIER_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^[_a-zA-Z$][_a-zA-Z$0-9]*$").expect("should init regex"));
-const RESERVED_IDENTIFIER: [&str; 37] = [
-  "break",
-  "case",
-  "catch",
-  "class",
-  "const",
-  "continue",
-  "debugger",
-  "default",
-  "delete",
-  "do",
-  "else",
-  "enum",
-  "export",
-  "extends",
-  "false",
-  "finally",
-  "for",
-  "function",
-  "if",
-  "import",
-  "in",
-  "instanceof",
-  "new",
-  "null",
-  "package",
-  "return",
-  "super",
-  "switch",
-  "this",
-  "throw",
-  "true",
-  "try",
-  "typeof",
-  "var",
-  "void",
-  "while",
-  "with",
-];
-
-fn property_access(o: &Vec<JsWord>, mut start: usize) -> String {
-  let mut str = String::default();
-  while start < o.len() {
-    let property = &o[start];
-    if SAFE_IDENTIFIER_REGEX.is_match(property) && !RESERVED_IDENTIFIER.contains(&property.as_ref())
-    {
-      str.push_str(format!(".{property}").as_str());
-    } else {
-      str.push_str(
-        format!(
-          "[{}]",
-          serde_json::to_string(property).expect("should render property")
-        )
-        .as_str(),
-      );
-    }
-    start += 1;
-  }
-  str
 }
 
 pub fn module_id_expr(request: &str, module_id: &str) -> String {

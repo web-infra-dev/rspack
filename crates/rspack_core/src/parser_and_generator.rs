@@ -5,6 +5,7 @@ use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
 
+use crate::RuntimeSpec;
 use crate::{
   tree_shaking::visitor::OptimizeAnalyzeResult, BoxDependency, BuildExtraDataType, BuildInfo,
   BuildMeta, CodeGenerationData, Compilation, CompilerOptions, DependencyTemplate,
@@ -42,6 +43,7 @@ pub struct GenerateContext<'a> {
   pub runtime_requirements: &'a mut RuntimeGlobals,
   pub data: &'a mut CodeGenerationData,
   pub requested_source_type: SourceType,
+  pub runtime: Option<&'a RuntimeSpec>,
 }
 
 pub trait ParserAndGenerator: Send + Sync + Debug {

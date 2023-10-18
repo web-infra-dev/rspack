@@ -14,6 +14,16 @@ impl<T: Any> AsAny for T {
   }
 }
 
+pub trait IntoAny {
+  fn into_any(self: Box<Self>) -> Box<dyn Any>;
+}
+
+impl<T: Any> IntoAny for T {
+  fn into_any(self: Box<Self>) -> Box<dyn Any> {
+    self
+  }
+}
+
 pub trait DynHash {
   fn dyn_hash(&self, state: &mut dyn std::hash::Hasher);
 }

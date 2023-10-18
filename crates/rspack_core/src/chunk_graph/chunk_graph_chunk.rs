@@ -297,11 +297,18 @@ impl ChunkGraph {
           .module_by_identifier(&module)
           .expect("should exist");
         for connection in module_graph.get_outgoing_connections(module) {
-          // TODO: consider activeState
-          // if (activeState === ModuleGraphConnection.TRANSITIVE_ONLY) {
-          //   add_dependencies(connection.module_identifier, set, module_graph);
-          //   continue;
-          // }
+          // TODO: add runtime after runtime opt
+          let active_state = connection.get_active_state(module_graph, None);
+          match active_state {
+            crate::ConnectionState::Bool(false) => {
+              continue;
+            }
+            crate::ConnectionState::TransitiveOnly => {
+              add_dependencies(connection.module_identifier, set, module_graph);
+              continue;
+            }
+            _ => {}
+          }
           set.insert(connection.module_identifier);
         }
       }

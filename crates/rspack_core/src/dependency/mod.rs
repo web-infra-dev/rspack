@@ -16,7 +16,7 @@ pub use runtime_requirements_dependency::RuntimeRequirementsDependency;
 mod context_element_dependency;
 mod dependency_macro;
 pub use context_element_dependency::*;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::{common::Span, ecma::atoms::JsWord};
 mod const_dependency;
 use std::{
   any::Any,
@@ -32,7 +32,7 @@ use dyn_clone::{clone_trait_object, DynClone};
 use crate::{
   ChunkGroupOptionsKindRef, ConnectionState, Context, ContextMode, ContextOptions, ErrorSpan,
   ExtendedReferencedExport, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport,
-  RuntimeSpec,
+  RuntimeSpec, UsedByExports,
 };
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
@@ -190,6 +190,29 @@ pub trait Dependency:
   fn get_exports(&self) -> Option<ExportsSpec> {
     None
   }
+
+  fn set_used_by_exports(&mut self, _used_by_exports: Option<UsedByExports>) {}
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    ConnectionState::Bool(true)
+  }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    None
+  }
+
+  fn is_span_equal(&self, other: &Span) -> bool {
+    if let Some(err_span) = self.span() {
+      let other = ErrorSpan::from(*other);
+      other == err_span
+    } else {
+      false
+    }
+  }
 }
 
 #[derive(Debug, Default)]
@@ -343,9 +366,10 @@ impl Debug for DependencyCondition {
 }
 
 pub trait ModuleDependency: Dependency {
+  /// name of the original struct or enum
+  fn dependency_debug_name(&self) -> &'static str;
   fn request(&self) -> &str;
   fn user_request(&self) -> &str;
-  fn span(&self) -> Option<&ErrorSpan>;
   fn weak(&self) -> bool {
     false
   }
@@ -364,16 +388,8 @@ pub trait ModuleDependency: Dependency {
     None
   }
 
-  fn get_condition(&self, _module_graph: &ModuleGraph) -> Option<DependencyCondition> {
+  fn get_condition(&self) -> Option<DependencyCondition> {
     None
-  }
-
-  fn get_module_evaluation_side_effects_state(
-    &self,
-    _module_graph: &ModuleGraph,
-    _module_chain: &mut HashSet<ModuleIdentifier>,
-  ) -> ConnectionState {
-    ConnectionState::Bool(true)
   }
 
   fn get_referenced_exports(
@@ -386,6 +402,10 @@ pub trait ModuleDependency: Dependency {
 
   // an identifier to merge equal requests
   fn resource_identifier(&self) -> Option<&str> {
+    None
+  }
+
+  fn is_export_all(&self) -> Option<bool> {
     None
   }
 }

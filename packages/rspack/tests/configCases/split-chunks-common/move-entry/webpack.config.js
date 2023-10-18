@@ -8,9 +8,6 @@ module.exports = {
 	output: {
 		filename: "[name].js"
 	},
-	experiments: {
-		newSplitChunks: true
-	},
 	optimization: {
 		splitChunks: {
 			cacheGroups: {

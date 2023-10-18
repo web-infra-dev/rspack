@@ -82,6 +82,9 @@ try {
 	fs.mkdirSync(NPM);
 } catch (e) {}
 
+// Releasing bindings
+const releasingPackages = [];
+
 const bindings = fs
 	.readdirSync(ARTIFACTS, {
 		withFileTypes: true
@@ -174,7 +177,29 @@ Rspack is [MIT licensed](https://github.com/web-infra-dev/rspack/blob/main/LICEN
 `;
 
 	fs.writeFileSync(`${output}/README.md`, README);
+	releasingPackages.push(pkgJson.name);
 }
+
+// Determine whether to release or not based on the CI build result.
+// Validating not releasable bindings
+fs.readdirSync(NPM, {
+	withFileTypes: true
+})
+	.filter(item => item.isDirectory())
+	.map(item => path.join(NPM, item.name))
+	.forEach(dir => {
+		const pkg = require(`${dir}/package.json`);
+		if (releasingPackages.includes(pkg.name)) {
+			// releasing
+			console.info(`Releasing package: ${pkg.name}`);
+		} else {
+			pkg.private = true;
+			console.info(
+				`Skipping package: ${pkg.name}. (Reason: local package, but its artifact is not available.)`
+			);
+			fs.writeFileSync(`${dir}/package.json`, JSON.stringify(pkg, null, 2));
+		}
+	});
 
 let bindingJsonPath = path.resolve(
 	__dirname,

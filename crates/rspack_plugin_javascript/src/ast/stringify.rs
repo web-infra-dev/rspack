@@ -32,7 +32,7 @@ pub fn stringify(
       EsVersion::Es2022,
       SourceMapConfig {
         enable: devtool.source_map(),
-        inline_sources_content: !devtool.no_sources(),
+        inline_sources_content: true,
         emit_columns: !devtool.cheap(),
         names: Default::default(),
       },

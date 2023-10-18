@@ -1,7 +1,5 @@
 mod harmony_compatibility_dependency;
 pub use harmony_compatibility_dependency::*;
-mod harmony_evaluated_import_specifier_dependency;
-pub use harmony_evaluated_import_specifier_dependency::*;
 mod harmony_export_expression_dependency;
 pub use harmony_export_expression_dependency::*;
 mod harmony_export_imported_specifier_dependency;

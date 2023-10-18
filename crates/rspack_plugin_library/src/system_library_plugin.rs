@@ -2,12 +2,12 @@ use std::hash::Hash;
 
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, ExternalModule, JsChunkHashArgs, Plugin,
+  AdditionalChunkRuntimeRequirementsArgs, ExternalModule, ExternalRequest, JsChunkHashArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRenderHookOutput, RenderArgs, RuntimeGlobals,
 };
+use rspack_error::internal_error;
 
-use super::utils::external_system_dep_array;
 use crate::utils::{external_module_names, normalize_name};
 
 #[derive(Debug, Default)]
@@ -65,7 +65,15 @@ impl Plugin for SystemLibraryPlugin {
           .and_then(|m| (m.get_external_type() == "system").then_some(m))
       })
       .collect::<Vec<&ExternalModule>>();
-    let external_deps_array = external_system_dep_array(&modules);
+    let external_deps_array = modules
+      .iter()
+      .map(|m| match &m.request {
+        ExternalRequest::Single(request) => Some(request.primary()),
+        ExternalRequest::Map(map) => map.get("amd").map(|request| request.primary()),
+      })
+      .collect::<Vec<_>>();
+    let external_deps_array =
+      serde_json::to_string(&external_deps_array).map_err(|e| internal_error!(e.to_string()))?;
     let external_arguments = external_module_names(&modules, compilation);
 
     // The name of the variable provided by System for exporting

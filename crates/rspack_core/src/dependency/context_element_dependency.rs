@@ -46,10 +46,6 @@ impl ModuleDependency for ContextElementDependency {
     &self.user_request
   }
 
-  fn span(&self) -> Option<&crate::ErrorSpan> {
-    None
-  }
-
   fn weak(&self) -> bool {
     matches!(
       self.options.mode,
@@ -79,6 +75,10 @@ impl ModuleDependency for ContextElementDependency {
     } else {
       vec![ExtendedReferencedExport::Array(vec![])]
     }
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "ContextElementDependency"
   }
 }
 

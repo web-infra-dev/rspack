@@ -46,6 +46,10 @@ impl Dependency for CommonJsRequireDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::CjsRequire
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
 }
 
 impl ModuleDependency for CommonJsRequireDependency {
@@ -57,16 +61,16 @@ impl ModuleDependency for CommonJsRequireDependency {
     &self.request
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
-  }
-
   fn get_optional(&self) -> bool {
     self.optional
   }
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "CommonJsRequireDependency"
   }
 }
 

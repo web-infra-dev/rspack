@@ -50,11 +50,11 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
       let map = async_modules
         .par_iter()
         .filter_map(|identifier| {
-          let mut chunk_ids = {
-            let chunk_group = compilation
-              .chunk_graph
-              .get_block_chunk_group(identifier, &compilation.chunk_group_by_ukey);
-            chunk_group
+          if let Some(chunk_group) = compilation
+            .chunk_graph
+            .get_block_chunk_group(identifier, &compilation.chunk_group_by_ukey)
+          {
+            let mut chunk_ids = chunk_group
               .chunks
               .iter()
               .filter_map(|chunk_ukey| {
@@ -68,21 +68,22 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
                   None
                 }
               })
-              .collect::<Vec<_>>()
-          };
-          if chunk_ids.is_empty() {
-            return None;
+              .collect::<Vec<_>>();
+            if chunk_ids.is_empty() {
+              return None;
+            }
+            chunk_ids.sort_unstable();
+            let module = compilation
+              .module_graph
+              .module_graph_module_by_identifier(identifier)
+              .expect("no module found");
+
+            let module_id = module.id(&compilation.chunk_graph);
+            let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
+
+            return Some((module_id_expr, chunk_ids));
           }
-          chunk_ids.sort_unstable();
-          let module = compilation
-            .module_graph
-            .module_graph_module_by_identifier(identifier)
-            .expect("no module found");
-
-          let module_id = module.id(&compilation.chunk_graph);
-          let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
-
-          Some((module_id_expr, chunk_ids))
+          None
         })
         .collect::<HashMap<String, Vec<String>>>();
 

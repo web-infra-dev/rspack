@@ -125,6 +125,9 @@ export type HotUpdateChunkFilename = z.infer<typeof hotUpdateChunkFilename>;
 const hotUpdateMainFilename = filenameTemplate;
 export type HotUpdateMainFilename = z.infer<typeof hotUpdateMainFilename>;
 
+const hotUpdateGlobal = z.string();
+export type HotUpdateGlobal = z.infer<typeof hotUpdateGlobal>;
+
 const uniqueName = z.string();
 export type UniqueName = z.infer<typeof uniqueName>;
 
@@ -262,6 +265,7 @@ const output = z.strictObject({
 	cssChunkFilename: cssChunkFilename.optional(),
 	hotUpdateMainFilename: hotUpdateMainFilename.optional(),
 	hotUpdateChunkFilename: hotUpdateChunkFilename.optional(),
+	hotUpdateGlobal: hotUpdateGlobal.optional(),
 	assetModuleFilename: assetModuleFilename.optional(),
 	uniqueName: uniqueName.optional(),
 	chunkLoadingGlobal: chunkLoadingGlobal.optional(),
@@ -305,6 +309,13 @@ const resolveAlias = z.record(
 );
 export type ResolveAlias = z.infer<typeof resolveAlias>;
 
+const resolveTsconfig = z.strictObject({
+	configFile: z.string(),
+	references: z.array(z.string()).or(z.literal("auto")).optional()
+});
+
+export type ResolveTsconfig = z.infer<typeof resolveTsconfig>;
+
 const baseResolveOptions = z.strictObject({
 	alias: resolveAlias.optional(),
 	/**
@@ -320,6 +331,7 @@ const baseResolveOptions = z.strictObject({
 	modules: z.array(z.string()).optional(),
 	preferRelative: z.boolean().optional(),
 	tsConfigPath: z.string().optional(),
+	tsConfig: resolveTsconfig.optional(),
 	fullySpecified: z.boolean().optional(),
 	exportsFields: z.array(z.string()).optional(),
 	extensionAlias: z.record(z.string().or(z.array(z.string()))).optional()
@@ -337,20 +349,22 @@ export type Resolve = z.infer<typeof resolve>;
 //#endregion
 
 //#region Module
-export type RuleSetCondition =
-	| RegExp
-	| string
-	| RuleSetConditions
-	| RuleSetLogicalConditions
-	| ((value: string) => boolean);
-const ruleSetCondition: z.ZodType<RuleSetCondition> = z
+const baseRuleSetCondition = z
 	.instanceof(RegExp)
 	.or(z.string())
-	.or(z.lazy(() => ruleSetConditions))
-	.or(z.lazy(() => ruleSetLogicalConditions))
 	.or(z.function().args(z.string()).returns(z.boolean()));
 
+export type RuleSetCondition =
+	| z.infer<typeof baseRuleSetCondition>
+	| RuleSetConditions
+	| RuleSetLogicalConditions;
+
+const ruleSetCondition: z.ZodType<RuleSetCondition> = baseRuleSetCondition
+	.or(z.lazy(() => ruleSetConditions))
+	.or(z.lazy(() => ruleSetLogicalConditions));
+
 export type RuleSetConditions = RuleSetCondition[];
+
 const ruleSetConditions: z.ZodType<RuleSetConditions> = z.lazy(() =>
 	z.array(ruleSetCondition)
 );
@@ -360,6 +374,7 @@ export type RuleSetLogicalConditions = {
 	or?: RuleSetConditions;
 	not?: RuleSetConditions;
 };
+
 const ruleSetLogicalConditions: z.ZodType<RuleSetLogicalConditions> =
 	z.strictObject({
 		and: ruleSetConditions.optional(),
@@ -390,37 +405,7 @@ const ruleSetUse = ruleSetUseItem
 	);
 export type RuleSetUse = z.infer<typeof ruleSetUse>;
 
-export type RuleSetRule = {
-	test?: RuleSetCondition;
-	exclude?: RuleSetCondition;
-	include?: RuleSetCondition;
-	issuer?: RuleSetCondition;
-	dependency?: RuleSetCondition;
-	resource?: RuleSetCondition;
-	resourceFragment?: RuleSetCondition;
-	resourceQuery?: RuleSetCondition;
-	scheme?: RuleSetCondition;
-	mimetype?: RuleSetCondition;
-	descriptionData?: {
-		[k: string]: RuleSetCondition;
-	};
-	oneOf?: RuleSetRule[];
-	rules?: RuleSetRule[];
-	type?: string;
-	loader?: RuleSetLoader;
-	options?: RuleSetLoaderOptions;
-	use?: RuleSetUse;
-	parser?: {
-		[k: string]: any;
-	};
-	generator?: {
-		[k: string]: any;
-	};
-	resolve?: ResolveOptions;
-	sideEffects?: boolean;
-	enforce?: "pre" | "post";
-};
-const ruleSetRule: z.ZodType<RuleSetRule> = z.strictObject({
+const baseRuleSetRule = z.strictObject({
 	test: ruleSetCondition.optional(),
 	exclude: ruleSetCondition.optional(),
 	include: ruleSetCondition.optional(),
@@ -432,8 +417,6 @@ const ruleSetRule: z.ZodType<RuleSetRule> = z.strictObject({
 	scheme: ruleSetCondition.optional(),
 	mimetype: ruleSetCondition.optional(),
 	descriptionData: z.record(ruleSetCondition).optional(),
-	oneOf: z.lazy(() => ruleSetRule.array()).optional(),
-	rules: z.lazy(() => ruleSetRule.array()).optional(),
 	type: z.string().optional(),
 	loader: ruleSetLoader.optional(),
 	options: ruleSetLoaderOptions.optional(),
@@ -443,6 +426,16 @@ const ruleSetRule: z.ZodType<RuleSetRule> = z.strictObject({
 	resolve: resolveOptions.optional(),
 	sideEffects: z.boolean().optional(),
 	enforce: z.literal("pre").or(z.literal("post")).optional()
+});
+
+export type RuleSetRule = z.infer<typeof baseRuleSetRule> & {
+	oneOf?: RuleSetRule[];
+	rules?: RuleSetRule[];
+};
+
+const ruleSetRule: z.ZodType<RuleSetRule> = baseRuleSetRule.extend({
+	oneOf: z.lazy(() => ruleSetRule.array()).optional(),
+	rules: z.lazy(() => ruleSetRule.array()).optional()
 });
 
 const ruleSetRules = z.array(z.literal("...").or(ruleSetRule));
@@ -650,7 +643,11 @@ export type ExternalsType = z.infer<typeof externalsType>;
 //#endregion
 
 //#region Externals
-const externalItemValue = z.string().or(z.boolean()).or(z.string().array());
+const externalItemValue = z
+	.string()
+	.or(z.boolean())
+	.or(z.string().array().min(1))
+	.or(z.record(z.string().or(z.string().array())));
 export type ExternalItemValue = z.infer<typeof externalItemValue>;
 
 const externalItemObjectUnknown = z.record(externalItemValue);
@@ -700,6 +697,7 @@ export type Externals = z.infer<typeof externals>;
 const externalsPresets = z.strictObject({
 	node: z.boolean().optional(),
 	web: z.boolean().optional(),
+	webAsync: z.boolean().optional(),
 	electron: z.boolean().optional(),
 	electronMain: z.boolean().optional(),
 	electronPreload: z.boolean().optional(),
@@ -937,7 +935,10 @@ const optimization = z.strictObject({
 	removeAvailableModules: z.boolean().optional(),
 	removeEmptyChunks: z.boolean().optional(),
 	realContentHash: z.boolean().optional(),
-	sideEffects: z.enum(["flag"]).or(z.boolean()).optional()
+	sideEffects: z.enum(["flag"]).or(z.boolean()).optional(),
+	providedExports: z.boolean().optional(),
+	innerGraph: z.boolean().optional(),
+	usedExports: z.enum(["global"]).or(z.boolean()).optional()
 });
 export type Optimization = z.infer<typeof optimization>;
 //#endregion
@@ -952,7 +953,9 @@ export type IncrementalRebuildOptions = z.infer<
 >;
 
 const rspackFutureOptions = z.strictObject({
-	newResolver: z.boolean().optional()
+	newResolver: z.boolean().optional(),
+	newTreeshaking: z.boolean().optional(),
+	disableTransformByDefault: z.boolean().optional()
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 
@@ -961,7 +964,17 @@ const experiments = z.strictObject({
 	incrementalRebuild: z.boolean().or(incrementalRebuildOptions).optional(),
 	asyncWebAssembly: z.boolean().optional(),
 	outputModule: z.boolean().optional(),
-	newSplitChunks: z.boolean().optional(),
+	newSplitChunks: z
+		.boolean()
+		.optional()
+		.refine(val => {
+			if (val === false || val === true) {
+				console.warn(
+					"`experiments.newSplitChunks` will be removed at 0.4.0. See details at https://github.com/web-infra-dev/rspack/discussions/4168"
+				);
+			}
+			return true;
+		}),
 	css: z.boolean().optional(),
 	futureDefaults: z.boolean().optional(),
 	rspackFuture: rspackFutureOptions.optional()

@@ -4,6 +4,7 @@ mod esm;
 mod export_info_api_dep;
 mod hmr;
 mod module_argument_dependency;
+mod pure_expression_dependency;
 mod url;
 mod worker;
 pub use commonjs::*;
@@ -12,6 +13,7 @@ pub use esm::*;
 pub use export_info_api_dep::*;
 pub use hmr::*;
 pub use module_argument_dependency::*;
+pub use pure_expression_dependency::*;
 pub use worker::*;
 
 pub use self::url::*;

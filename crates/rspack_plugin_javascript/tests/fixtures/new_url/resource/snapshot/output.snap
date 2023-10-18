@@ -11,8 +11,10 @@ img.src = imgSrc.href;
 img.src = imgSrc2;
 },
 "./react.svg": function (module, exports, __webpack_require__) {
+'use strict';
 module.exports = __webpack_require__.p + "ef0c5aab88bb335e.svg";},
 "./vue.svg": function (module, exports, __webpack_require__) {
+'use strict';
 module.exports = __webpack_require__.p + "7908863e290b1fc6.svg";},
 
 },function(__webpack_require__) {

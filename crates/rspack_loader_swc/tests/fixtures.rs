@@ -53,6 +53,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           css_filename: rspack_core::Filename::from_str("").expect("TODO:"),
           hot_update_chunk_filename: rspack_core::Filename::from_str("").expect("Should exist"),
           hot_update_main_filename: rspack_core::Filename::from_str("").expect("Should exist"),
+          hot_update_global: "webpackHotUpdate".to_string(),
           library: None,
           enabled_library_types: None,
           strict_module_error_handling: false,
@@ -87,6 +88,9 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           remove_available_modules: false,
           remove_empty_chunks: true,
           side_effects: SideEffectOption::False,
+          provided_exports: Default::default(),
+          used_exports: Default::default(),
+          inner_graph: Default::default(),
         },
         profile: false,
       }),
@@ -113,5 +117,5 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
 
 #[fixture("tests/fixtures/*")]
 fn swc(fixture_path: PathBuf) {
-  test_fixture(&fixture_path);
+  test_fixture(&fixture_path, Box::new(|_, _| {}), None);
 }

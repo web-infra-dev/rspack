@@ -46,6 +46,7 @@ pub struct JsHooksAdapter {
   pub asset_emitted_tsfn: ThreadsafeFunction<JsAssetEmittedArgs, ()>,
   pub after_emit_tsfn: ThreadsafeFunction<(), ()>,
   pub optimize_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
+  pub optimize_tree_tsfn: ThreadsafeFunction<(), ()>,
   pub optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub before_compile_tsfn: ThreadsafeFunction<(), ()>,
   pub after_compile_tsfn: ThreadsafeFunction<JsCompilation, ()>,
@@ -534,6 +535,21 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call optimize modules: {err}"))?
   }
 
+  async fn optimize_tree(
+    &self,
+    _compilation: &mut rspack_core::Compilation,
+  ) -> rspack_error::Result<()> {
+    if self.is_hook_disabled(&Hook::OptimizeTree) {
+      return Ok(());
+    }
+    self
+      .optimize_tree_tsfn
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call optimize tree: {err}",))?
+  }
+
   async fn optimize_chunk_modules(
     &self,
     args: rspack_core::OptimizeChunksArgs<'_>,
@@ -753,6 +769,7 @@ impl JsHooksAdapter {
       asset_emitted,
       after_emit,
       optimize_modules,
+      optimize_tree,
       optimize_chunk_module,
       before_resolve,
       after_resolve,
@@ -811,6 +828,8 @@ impl JsHooksAdapter {
     let make_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_threadsafe_fn!(make, env);
     let optimize_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
       js_fn_into_threadsafe_fn!(optimize_modules, env);
+    let optimize_tree_tsfn: ThreadsafeFunction<(), ()> =
+      js_fn_into_threadsafe_fn!(optimize_tree, env);
     let optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
       js_fn_into_threadsafe_fn!(optimize_chunk_module, env);
     let before_compile_tsfn: ThreadsafeFunction<(), ()> =
@@ -865,6 +884,7 @@ impl JsHooksAdapter {
       asset_emitted_tsfn,
       after_emit_tsfn,
       optimize_modules_tsfn,
+      optimize_tree_tsfn,
       optimize_chunk_modules_tsfn,
       before_compile_tsfn,
       after_compile_tsfn,

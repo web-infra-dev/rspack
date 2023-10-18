@@ -3,11 +3,11 @@ import {
 	RawExternalItemValue,
 	RawExternalsPluginOptions
 } from "@rspack/binding";
-import { BuiltinPluginKind, create } from "./base";
+import { BuiltinPluginName, create } from "./base";
 import { ExternalItem, ExternalItemValue, Externals } from "..";
 
 export const ExternalsPlugin = create(
-	BuiltinPluginKind.Externals,
+	BuiltinPluginName.ExternalsPlugin,
 	(type: string, externals: Externals): RawExternalsPluginOptions => {
 		return {
 			type,
@@ -74,6 +74,13 @@ function getRawExternalItemValue(
 		return {
 			type: "array",
 			arrayPayload: value
+		};
+	} else if (typeof value === "object" && value !== null) {
+		return {
+			type: "object",
+			objectPayload: Object.fromEntries(
+				Object.entries(value).map(([k, v]) => [k, Array.isArray(v) ? v : [v]])
+			)
 		};
 	}
 	throw new Error("unreachable");

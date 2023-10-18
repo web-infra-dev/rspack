@@ -5,4 +5,4 @@
 // 	return supportsWorker();
 // };
 
-module.exports = () => {return 'https://github.com/web-infra-dev/rspack/issues/2408'}
+module.exports = () => {return true}

@@ -108,12 +108,15 @@ describe("snapshots", () => {
 		-   "mode": "none",
 		+   "mode": undefined,
 		@@ ... @@
+		-     "innerGraph": false,
 		-     "minimize": false,
+		+     "innerGraph": true,
 		+     "minimize": true,
 		@@ ... @@
 		-     "moduleIds": "named",
-		-     "realContentHash": false,
 		+     "moduleIds": "deterministic",
+		@@ ... @@
+		-     "realContentHash": false,
 		+     "realContentHash": true,
 		@@ ... @@
 		-     "sideEffects": "flag",
@@ -126,6 +129,9 @@ describe("snapshots", () => {
 		@@ ... @@
 		-       "minSize": 10000,
 		+       "minSize": 20000,
+		@@ ... @@
+		-     "usedExports": false,
+		+     "usedExports": true,
 		@@ ... @@
 		-       "hash": false,
 		+       "hash": true,
@@ -143,12 +149,15 @@ describe("snapshots", () => {
 		-   "mode": "none",
 		+   "mode": "production",
 		@@ ... @@
+		-     "innerGraph": false,
 		-     "minimize": false,
+		+     "innerGraph": true,
 		+     "minimize": true,
 		@@ ... @@
 		-     "moduleIds": "named",
-		-     "realContentHash": false,
 		+     "moduleIds": "deterministic",
+		@@ ... @@
+		-     "realContentHash": false,
 		+     "realContentHash": true,
 		@@ ... @@
 		-     "sideEffects": "flag",
@@ -161,6 +170,9 @@ describe("snapshots", () => {
 		@@ ... @@
 		-       "minSize": 10000,
 		+       "minSize": 20000,
+		@@ ... @@
+		-     "usedExports": false,
+		+     "usedExports": true,
 		@@ ... @@
 		-       "hash": false,
 		+       "hash": true,
@@ -929,6 +941,9 @@ describe("snapshots", () => {
 			-     "chunkLoadingGlobal": "webpackChunk@rspack/core",
 			+     "chunkLoadingGlobal": "webpackChunk@@@Hello World!",
 			@@ ... @@
+			-     "hotUpdateGlobal": "webpackHotUpdate@rspack/core",
+			+     "hotUpdateGlobal": "webpackHotUpdate@@@Hello World!",
+			@@ ... @@
 			-     "trustedTypes": undefined,
 			-     "uniqueName": "@rspack/core",
 			+     "trustedTypes": Object {
@@ -992,6 +1007,9 @@ describe("snapshots", () => {
 			-     "chunkLoadingGlobal": "webpackChunk@rspack/core",
 			+     "chunkLoadingGlobal": "webpackChunkbrowserslist-test",
 			@@ ... @@
+			-     "hotUpdateGlobal": "webpackHotUpdate@rspack/core",
+			+     "hotUpdateGlobal": "webpackHotUpdatebrowserslist-test",
+			@@ ... @@
 			-     "uniqueName": "@rspack/core",
 			+     "uniqueName": "browserslist-test",
 		`)
@@ -1022,6 +1040,9 @@ describe("snapshots", () => {
 			@@ ... @@
 			-     "chunkLoadingGlobal": "webpackChunk@rspack/core",
 			+     "chunkLoadingGlobal": "webpackChunk",
+			@@ ... @@
+			-     "hotUpdateGlobal": "webpackHotUpdate@rspack/core",
+			+     "hotUpdateGlobal": "webpackHotUpdate",
 			@@ ... @@
 			-     "path": "<cwd>/dist",
 			+     "path": "<cwd>/tests/fixtures/dist",

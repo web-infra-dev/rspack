@@ -1,6 +1,6 @@
 use better_scoped_tls::scoped_tls;
 use napi_derive::napi;
-use rspack_core::{Optimization, PluginExt, SideEffectOption};
+use rspack_core::{Optimization, PluginExt, SideEffectOption, UsedExportsOption};
 use rspack_error::internal_error;
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
@@ -23,6 +23,9 @@ pub struct RawOptimizationOptions {
   pub remove_available_modules: bool,
   pub remove_empty_chunks: bool,
   pub side_effects: String,
+  pub used_exports: String,
+  pub provided_exports: bool,
+  pub inner_graph: bool,
   pub real_content_hash: bool,
 }
 
@@ -71,6 +74,9 @@ impl RawOptionsApply for RawOptimizationOptions {
       remove_available_modules: self.remove_available_modules,
       remove_empty_chunks: self.remove_empty_chunks,
       side_effects: SideEffectOption::from(self.side_effects.as_str()),
+      provided_exports: self.provided_exports,
+      used_exports: UsedExportsOption::from(self.used_exports.as_str()),
+      inner_graph: self.inner_graph,
     })
   }
 }

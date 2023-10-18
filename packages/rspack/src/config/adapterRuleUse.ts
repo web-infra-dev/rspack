@@ -17,7 +17,7 @@ import {
 	RuleSetLoaderWithOptions
 } from "./zod";
 import { parsePathQueryFragment } from "../loader-runner";
-import { isNil } from "../util";
+import { deprecatedWarn, isNil, termlink } from "../util";
 import {
 	resolveEmotion,
 	resolvePluginImport,
@@ -31,6 +31,7 @@ export interface ComposeJsUseOptions {
 	devtool: RawOptions["devtool"];
 	context: RawOptions["context"];
 	mode: RawOptions["mode"];
+	experiments: RawOptions["experiments"];
 	compiler: Compiler;
 }
 
@@ -269,6 +270,12 @@ function getBuiltinLoaderOptions(
 	options: ComposeJsUseOptions
 ): RuleSetLoaderWithOptions["options"] {
 	if (identifier.startsWith(`${BUILTIN_LOADER_PREFIX}sass-loader`)) {
+		deprecatedWarn(
+			`'builtin:sass-loader' has been deprecated, please migrate to ${termlink(
+				"sass-loader",
+				"https://github.com/webpack-contrib/sass-loader"
+			)}`
+		);
 		return getSassLoaderOptions(o, options);
 	}
 

@@ -1,6 +1,6 @@
 function loadUpdateChunk(chunkId, updatedModulesList) {
     var success = false;
-    $globalObject$["hotUpdate"] = function (_, moreModules, runtime) {
+    $globalObject$[$hotUpdateGlobal$] = function (_, moreModules, runtime) {
         for(var moduleId in moreModules) {
             for (var moduleId in moreModules) {
                 if (__webpack_require__.o(moreModules, moduleId)) {

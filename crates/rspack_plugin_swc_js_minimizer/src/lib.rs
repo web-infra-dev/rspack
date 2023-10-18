@@ -6,9 +6,9 @@ use std::{
   sync::{mpsc, Mutex},
 };
 
-use async_recursion::async_recursion;
 use async_trait::async_trait;
 use minify::{match_object, minify};
+use rayon::prelude::*;
 use rspack_core::{
   rspack_sources::{
     MapOptions, RawSource, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
@@ -16,9 +16,9 @@ use rspack_core::{
   AssetInfo, CompilationAsset, JsChunkHashArgs, Plugin, PluginContext, PluginJsChunkHashHookOutput,
   PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
-use rspack_error::{internal_error, Diagnostic};
+use rspack_error::{internal_error, Diagnostic, Result};
 use rspack_regex::RspackRegex;
-use rspack_util::try_any;
+use rspack_util::try_any_sync;
 use swc_config::config_types::BoolOrDataConfig;
 use swc_ecma_minifier::option::{
   terser::{TerserCompressorOptions, TerserEcmaVersion},
@@ -26,7 +26,7 @@ use swc_ecma_minifier::option::{
 };
 
 #[derive(Debug, Clone, Default, Hash)]
-pub struct Minification {
+pub struct SwcJsMinimizerRspackPluginOptions {
   pub passes: usize,
   pub drop_console: bool,
   pub keep_class_names: bool,
@@ -35,20 +35,19 @@ pub struct Minification {
   pub extract_comments: Option<String>,
   pub ascii_only: bool,
   pub comments: String,
-  pub test: Option<MinificationConditions>,
-  pub include: Option<MinificationConditions>,
-  pub exclude: Option<MinificationConditions>,
+  pub test: Option<SwcJsMinimizerRules>,
+  pub include: Option<SwcJsMinimizerRules>,
+  pub exclude: Option<SwcJsMinimizerRules>,
 }
 
 #[derive(Debug, Clone, Hash)]
-pub enum MinificationCondition {
+pub enum SwcJsMinimizerRule {
   String(String),
   Regexp(RspackRegex),
 }
 
-impl MinificationCondition {
-  #[async_recursion]
-  pub async fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
+impl SwcJsMinimizerRule {
+  pub fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
     match self {
       Self::String(s) => Ok(data.starts_with(s)),
       Self::Regexp(r) => Ok(r.test(data)),
@@ -57,38 +56,37 @@ impl MinificationCondition {
 }
 
 #[derive(Debug, Clone, Hash)]
-pub enum MinificationConditions {
+pub enum SwcJsMinimizerRules {
   String(String),
   Regexp(rspack_regex::RspackRegex),
-  Array(Vec<MinificationCondition>),
+  Array(Vec<SwcJsMinimizerRule>),
 }
 
-impl MinificationConditions {
-  #[async_recursion]
-  pub async fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
+impl SwcJsMinimizerRules {
+  pub fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
     match self {
       Self::String(s) => Ok(data.starts_with(s)),
       Self::Regexp(r) => Ok(r.test(data)),
-      Self::Array(l) => try_any(l, |i| async { i.try_match(data).await }).await,
+      Self::Array(l) => try_any_sync(l, |i| i.try_match(data)),
     }
   }
 }
 
 #[derive(Debug)]
-pub struct SwcJsMinimizerPlugin {
-  options: Minification,
+pub struct SwcJsMinimizerRspackPlugin {
+  options: SwcJsMinimizerRspackPluginOptions,
 }
 
-impl SwcJsMinimizerPlugin {
-  pub fn new(options: Minification) -> Self {
+impl SwcJsMinimizerRspackPlugin {
+  pub fn new(options: SwcJsMinimizerRspackPluginOptions) -> Self {
     Self { options }
   }
 }
 
 #[async_trait]
-impl Plugin for SwcJsMinimizerPlugin {
+impl Plugin for SwcJsMinimizerRspackPlugin {
   fn name(&self) -> &'static str {
-    "rspack.SwcJsMinimizerPlugin"
+    "rspack.SwcJsMinimizerRspackPlugin"
   }
 
   async fn process_assets_stage_optimize_size(
@@ -136,66 +134,70 @@ impl Plugin for SwcJsMinimizerPlugin {
       ..Default::default()
     };
 
-    for (filename, original) in compilation.assets_mut() {
-      if !(filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")) {
-        continue;
-      }
+    compilation
+      .assets_mut()
+      .par_iter_mut()
+      .filter(|(filename, original)| {
+        if !(filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")) {
+          return false
+        }
 
-      let is_matched = match_object(minify_options, filename)
-        .await
-        .unwrap_or(false);
+        let is_matched = match_object(minify_options, filename)
+          .unwrap_or(false);
 
-      if !is_matched || original.get_info().minimized {
-        continue;
-      }
+        if !is_matched || original.get_info().minimized {
+          return false
+        }
 
-      if let Some(original_source) = original.get_source() {
-        let input = original_source.source().to_string();
-        let input_source_map = original_source.map(&MapOptions::default());
-        let js_minify_options = JsMinifyOptions {
-          compress: BoolOrDataConfig::from_obj(compress.clone()),
-          mangle: BoolOrDataConfig::from_obj(mangle.clone()),
-          format: format.clone(),
-          source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
-          inline_sources_content: true, /* Using true so original_source can be None in SourceMapSource */
-          emit_source_map_columns,
-          module: is_module,
-          ..Default::default()
-        };
+        true
+      })
+      .try_for_each_with(tx,|tx,(filename, original)| -> Result<()>  {
+        if let Some(original_source) = original.get_source() {
+          let input = original_source.source().to_string();
+          let input_source_map = original_source.map(&MapOptions::default());
+          let js_minify_options = JsMinifyOptions {
+            compress: BoolOrDataConfig::from_obj(compress.clone()),
+            mangle: BoolOrDataConfig::from_obj(mangle.clone()),
+            format: format.clone(),
+            source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
+            inline_sources_content: true, /* Using true so original_source can be None in SourceMapSource */
+            emit_source_map_columns,
+            module: is_module,
+            ..Default::default()
+          };
+          let output = match minify(
+            &js_minify_options,
+            input,
+            filename,
+            &all_extracted_comments,
+            extract_comments_option,
+          ) {
+            Ok(r) => r,
+            Err(e) => {
+              tx.send(e.into())
+                .map_err(|e| internal_error!(e.to_string()))?;
+              return Ok(())
+            }
+          };
+          let source = if let Some(map) = &output.map {
+            SourceMapSource::new(SourceMapSourceOptions {
+              value: output.code,
+              name: filename,
+              source_map: SourceMap::from_json(map).map_err(|e| internal_error!(e.to_string()))?,
+              original_source: None,
+              inner_source_map: input_source_map,
+              remove_original_source: true,
+            })
+            .boxed()
+          } else {
+            RawSource::from(output.code).boxed()
+          };
+          original.set_source(Some(source));
+          original.get_info_mut().minimized = true;
+        }
 
-        let output = match minify(
-          &js_minify_options,
-          input,
-          filename,
-          &all_extracted_comments,
-          extract_comments_option,
-        ) {
-          Ok(r) => r,
-          Err(e) => {
-            tx.send(e.into())
-              .map_err(|e| internal_error!(e.to_string()))?;
-            continue;
-          }
-        };
-        let source = if let Some(map) = &output.map {
-          SourceMapSource::new(SourceMapSourceOptions {
-            value: output.code,
-            name: filename,
-            source_map: SourceMap::from_json(map).map_err(|e| internal_error!(e.to_string()))?,
-            original_source: None,
-            inner_source_map: input_source_map,
-            remove_original_source: true,
-          })
-          .boxed()
-        } else {
-          RawSource::from(output.code).boxed()
-        };
-        original.set_source(Some(source));
-        original.get_info_mut().minimized = true;
-      }
-    }
-
-    drop(tx);
+        Ok(())
+    })?;
 
     compilation.push_batch_diagnostic(rx.into_iter().flatten().collect::<Vec<_>>());
 

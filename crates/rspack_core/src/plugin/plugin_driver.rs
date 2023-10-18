@@ -294,16 +294,14 @@ impl PluginDriver {
     Ok(())
   }
 
-  pub fn render_module_content(
-    &self,
-    args: RenderModuleContentArgs,
-  ) -> PluginRenderModuleContentOutput {
+  pub fn render_module_content<'a>(
+    &'a self,
+    mut args: RenderModuleContentArgs<'a>,
+  ) -> PluginRenderModuleContentOutput<'a> {
     for plugin in &self.plugins {
-      if let Some(source) = plugin.render_module_content(PluginContext::new(), &args)? {
-        return Ok(Some(source));
-      }
+      args = plugin.render_module_content(PluginContext::new(), args)?;
     }
-    Ok(None)
+    Ok(args)
   }
 
   pub async fn factorize(
@@ -497,6 +495,24 @@ impl PluginDriver {
   pub async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &self.plugins {
       plugin.optimize_modules(compilation).await?;
+    }
+    Ok(())
+  }
+
+  #[instrument(name = "plugin:optimize_dependencies", skip_all)]
+  pub async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
+    for plugin in &self.plugins {
+      if let Some(t) = plugin.optimize_dependencies(compilation).await? {
+        return Ok(Some(t));
+      };
+    }
+    Ok(None)
+  }
+
+  #[instrument(name = "plugin:optimize_tree", skip_all)]
+  pub async fn optimize_tree(&self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin.optimize_tree(compilation).await?;
     }
     Ok(())
   }

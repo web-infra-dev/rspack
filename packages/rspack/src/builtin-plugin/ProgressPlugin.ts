@@ -1,8 +1,13 @@
-import { RawProgressPluginConfig } from "@rspack/binding";
-import { BuiltinPluginKind, create } from "./base";
+import { RawProgressPluginOptions } from "@rspack/binding";
+import { BuiltinPluginName, create } from "./base";
 
-export type ProgressPluginArgument = RawProgressPluginConfig | undefined;
+export type ProgressPluginArgument =
+	| Partial<RawProgressPluginOptions>
+	| undefined;
 export const ProgressPlugin = create(
-	BuiltinPluginKind.Progress,
-	(progress: ProgressPluginArgument = {}): RawProgressPluginConfig => progress
+	BuiltinPluginName.ProgressPlugin,
+	(progress: ProgressPluginArgument = {}): RawProgressPluginOptions => ({
+		prefix: progress.prefix ?? "",
+		profile: progress.profile ?? false
+	})
 );
