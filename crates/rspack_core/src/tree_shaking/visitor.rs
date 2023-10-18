@@ -24,7 +24,7 @@ use super::{
 use crate::needs_refactor::WorkerSyntaxList;
 use crate::{
   extract_member_expression_chain, BoxDependency, CompilerOptions, DependencyId, DependencyType,
-  FactoryMeta, ModuleGraph, ModuleIdentifier, ModuleSyntax,
+  ErrorSpan, FactoryMeta, ModuleGraph, ModuleIdentifier, ModuleSyntax,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -764,7 +764,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         match decl {
           ModuleDecl::Import(import) => {
             let src = &import.src.value;
-            let dep_id = match self.resolve_module_identifier(src, &DependencyType::EsmImport) {
+            let dep_id = match self.resolve_module_identifier(
+              src,
+              &DependencyType::EsmImport(ErrorSpan::from(import.span)),
+            ) {
               Some(module_identifier) => module_identifier,
               None => {
                 // TODO: Ignore for now because swc helper interference.

@@ -237,7 +237,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
 
     let key = (
       import_decl.src.value.clone(),
-      DependencyType::EsmImport,
+      DependencyType::EsmImport(import_decl.span.into()),
       self.last_harmony_import_order,
     );
     if let Some(importer_info) = self.imports.get_mut(&key) {
