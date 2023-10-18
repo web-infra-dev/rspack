@@ -118,7 +118,7 @@ jobs:
     name: Rust check
     needs: rust_changes
     if: ${{ needs.rust_changes.outputs.changed == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.LINUX_RUNNER_LABELS) }}
     steps:
       - uses: actions/checkout@v3
 
@@ -148,7 +148,7 @@ jobs:
     name: Rust test
     needs: rust_changes
     if: ${{ needs.rust_changes.outputs.changed == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.LINUX_RUNNER_LABELS) }}
     steps:
       - uses: actions/checkout@v3
 

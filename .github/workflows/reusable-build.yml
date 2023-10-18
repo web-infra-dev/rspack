@@ -39,30 +39,9 @@ on:
         type: string
 
 jobs:
-  select:
-    name: Select Host
-    runs-on: ubuntu-latest
-    outputs:
-      host: ${{ steps.run.outputs.host }}
-    steps:
-      - name: Choose Target for ${{ inputs.target }}
-        id: run
-        shell: bash
-        run: |
-          if [[ "${{ contains(inputs.target, 'linux') }}" == "true" ]]; then
-            echo "host=ubuntu-latest" >> "$GITHUB_OUTPUT"
-          fi
-          if [[ "${{ contains(inputs.target, 'windows') }}" == "true" ]]; then
-            echo "host=windows-latest" >> "$GITHUB_OUTPUT"
-          fi
-          if [[ "${{ contains(inputs.target, 'apple') }}" == "true" ]]; then
-            echo "host=macos-latest" >> "$GITHUB_OUTPUT"
-          fi
-
   build:
     name: Build
-    needs: select
-    runs-on: ${{ needs.select.outputs.host }}
+    runs-on: ${{ contains(inputs.target, 'linux') && fromJSON(vars.LINUX_RUNNER_LABELS) || contains(inputs.target, 'windows') && fromJSON(vars.WINDOWS_RUNNER_LABELS) || contains(inputs.target, 'apple') && fromJSON(vars.MACOS_RUNNER_LABELS) }}
     defaults:
       run:
         shell: bash
@@ -76,7 +55,7 @@ jobs:
         uses: mxschmitt/action-tmate@v3
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
       - name: free-disk-cache
-        if: ${{ contains(inputs.target, 'linux') }}
+        if: ${{ startsWith(runner.name, 'GitHub Actions') && contains(inputs.target, 'linux') }}
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -121,6 +100,7 @@ jobs:
           target: ${{ inputs.target }}
           profile: ${{ inputs.profile }}
           pre: unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
+          options: -v $HOME/.cargo:/usr/local/cargo -v $HOME/.rustup:/usr/local/rustup
 
       - name: Build aarch64-unknown-linux-gnu in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
@@ -130,6 +110,7 @@ jobs:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
           profile: ${{ inputs.profile }}
           pre: export JEMALLOC_SYS_WITH_LG_PAGE=16 && export CC_aarch64_unknown_linux_gnu=/usr/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gcc # for jemallocator to compile
+          options: -v $HOME/.cargo:/usr/local/cargo -v $HOME/.rustup:/usr/local/rustup
 
       - name: Build x86_64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'x86_64-unknown-linux-musl' }}
@@ -138,6 +119,7 @@ jobs:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
           profile: ${{ inputs.profile }}
+          options: -v $HOME/.cargo/git/db:/root/.cargo/git/db -v $HOME/.cargo/registry/cache:/root/.cargo/registry/cache -v $HOME/.cargo/registry/index:/root/.cargo/registry/index
 
       - name: Build aarch64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-musl' }}
@@ -148,6 +130,7 @@ jobs:
           profile: ${{ inputs.profile }}
           pre: |
             export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
+          options: -v $HOME/.cargo/git/db:/root/.cargo/git/db -v $HOME/.cargo/registry/cache:/root/.cargo/registry/cache -v $HOME/.cargo/registry/index:/root/.cargo/registry/index
 
       # Windows
 
@@ -187,9 +170,9 @@ jobs:
 
   e2e:
     name: E2E Testing
-    needs: [select, build]
+    needs: build
     if: inputs.target == 'x86_64-unknown-linux-gnu' && inputs.test
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.LINUX_RUNNER_LABELS) }}
     container:
       image: mcr.microsoft.com/playwright:v1.35.0-jammy
     steps:
@@ -213,9 +196,9 @@ jobs:
           pnpm run test:e2e
 
   test:
-    needs: [select, build]
+    needs: build
     if: inputs.test
-    runs-on: ${{ needs.select.outputs.host }}
+    runs-on: ${{ contains(inputs.target, 'linux') && fromJSON(vars.LINUX_RUNNER_LABELS) || contains(inputs.target, 'windows') && fromJSON(vars.WINDOWS_RUNNER_LABELS) || contains(inputs.target, 'apple') && fromJSON(vars.MACOS_RUNNER_LABELS) }}
     timeout-minutes: 30
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors

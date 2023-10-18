@@ -12,6 +12,9 @@ inputs:
     required: false
     type: boolean
 
+env:
+  IS_GITHUB_RUNNER: startsWith(runner.name, 'GitHub Actions')
+
 runs:
   using: composite
   steps:
@@ -24,6 +27,8 @@ runs:
     # Uses `packageManagement` field from package.json
     - name: Install pnpm
       uses: pnpm/action-setup@v2
+      with:
+        dest: ${{ runner.tool_cache }}/pnpm
 
     - name: Get pnpm store directory
       id: pnpm-cache
@@ -32,6 +37,7 @@ runs:
 
     - name: Restore pnpm cache
       id: restore
+      if: ${{ env.IS_GITHUB_RUNNER }}
       uses: actions/cache/restore@v3
       with:
         path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
@@ -45,7 +51,7 @@ runs:
 
     - name: Save pnpm cache
       uses: actions/cache/save@v3
-      if: ${{ inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
+      if: ${{ env.IS_GITHUB_RUNNER && inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
       with:
         path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
         key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
