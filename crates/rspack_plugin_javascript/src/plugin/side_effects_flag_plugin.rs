@@ -333,7 +333,17 @@ impl Plugin for SideEffectsFlagPlugin {
               .expect("should have original_module_identifier"),
             &name,
           );
-          export_info_id;
+          // TODO:
+          export_info_id.move_target();
+          continue;
+        }
+        let import_specifier_dep = dep
+          .downcast_ref::<HarmonyImportSpecifierDependency>()
+          .expect("We can make sure this dependency is a HarmonyImportSpecifierDependency");
+        let ids = import_specifier_dep.get_ids(mg);
+        if ids.len() > 0 {
+          let export_info_id = cur_exports_info_id.get_export_info(&ids[0], mg);
+          export_info_id.get_target();
         }
       }
     }

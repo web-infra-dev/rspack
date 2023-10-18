@@ -65,6 +65,12 @@ impl HarmonyImportSpecifierDependency {
     }
   }
 
+  pub fn get_ids(&self, mg: &mut ModuleGraph) -> Vec<JsWord> {
+    mg.get_dep_meta_if_existing(self.id)
+      .map(|item| item.ids.clone())
+      .unwrap_or_else(|| self.ids.clone())
+  }
+
   // TODO move export_info
   pub fn check_used(&self, reference_mgm: &ModuleGraphModule, compilation: &Compilation) -> bool {
     if compilation.options.builtins.tree_shaking.is_false() {

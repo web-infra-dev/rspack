@@ -520,6 +520,18 @@ impl ExportInfoId {
     }
   }
 
+  pub fn get_target(
+    &self,
+    mg: &mut ModuleGraph,
+    resolve_filter: Option<ResolveFilterFnTy>,
+  ) -> Option<ResolvedExportInfoTarget> {
+    let mut export_info = mg.get_export_info_mut_by_id(self).clone();
+
+    let target = export_info.get_target(mg, Some(Box::new(|(target, mg)| false)));
+    std::mem::replace(mg.get_export_info_mut_by_id(self), export_info);
+    target
+  }
+
   fn set_used_without_info(&self, mg: &mut ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
     let mut changed = false;
     let flag = self.set_used(mg, UsageState::NoInfo, runtime);
@@ -550,7 +562,9 @@ impl ExportInfoId {
     }
     false
   }
-  fn move_target() {}
+  pub fn move_target(&self) {
+    todo!()
+  }
 
   pub fn set_used_conditionally(
     &self,
@@ -697,8 +711,28 @@ pub enum ResolvedExportInfoTargetWithCircular {
   Target(ResolvedExportInfoTarget),
   Circular,
 }
+type ResolveFilterFnTy<'a> =
+  Box<dyn for<'a> Fn((&'a ResolvedExportInfoTarget, &'a ModuleGraph)) -> bool>;
 
-pub type ResolveFilterFnTy = Box<dyn FilterFn<ResolvedExportInfoTarget>>;
+trait Function: for<'a> Fn((&'a ResolvedExportInfoTarget, &'a ModuleGraph)) -> bool {
+  fn clone_boxed(&self) -> Box<dyn Function>;
+}
+
+impl<T> Function for T
+where
+  for<'a> T: 'static + Clone + Fn((&'a ResolvedExportInfoTarget, &'a ModuleGraph)) -> bool,
+{
+  fn clone_boxed(&self) -> Box<dyn Function> {
+    Box::new(self.clone())
+  }
+}
+
+impl Clone for Box<dyn Function> {
+  fn clone(&self) -> Self {
+    self.clone_boxed()
+  }
+}
+
 pub type UsageFilterFnTy = Box<dyn FilterFn<UsageState>>;
 
 pub trait FilterFn<T>: Fn(&T) -> bool + Send + Sync {
@@ -767,6 +801,7 @@ impl ExportInfo {
         }
       })
       .unwrap_or_default();
+    let target_is_set = !target.is_empty();
     Self {
       name,
       module_identifier: None,
@@ -777,7 +812,7 @@ impl ExportInfo {
       provided: None,
       can_mangle_provide: None,
       terminal_binding: false,
-      target_is_set: false,
+      target_is_set,
       max_target_is_set: false,
       id: ExportInfoId::new(),
       exports_info: None,
@@ -886,7 +921,7 @@ impl ExportInfo {
     mg: &mut ModuleGraph,
     resolve_filter: Option<ResolveFilterFnTy>,
   ) -> Option<ResolvedExportInfoTarget> {
-    let filter = resolve_filter.unwrap_or(Box::new(|_: &_| true));
+    let filter = resolve_filter.unwrap_or(Box::new(|_| true));
 
     let mut already_visited = HashSet::default();
     match self._get_target(mg, filter, &mut already_visited) {
@@ -921,7 +956,7 @@ impl ExportInfo {
         if target.exports.is_none() {
           return Some(ResolvedExportInfoTargetWithCircular::Target(target));
         }
-        if !resolve_filter(&target) {
+        if !resolve_filter((&target, mg)) {
           return Some(ResolvedExportInfoTargetWithCircular::Target(target));
         }
         let mut already_visited_owned = false;
@@ -983,7 +1018,7 @@ impl ExportInfo {
               }
             }
           }
-          if !resolve_filter(&target) {
+          if !resolve_filter((&target, mg)) {
             return Some(ResolvedExportInfoTargetWithCircular::Target(target));
           }
           if !already_visited_owned {

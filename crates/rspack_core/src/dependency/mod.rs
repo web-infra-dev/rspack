@@ -213,6 +213,12 @@ pub trait Dependency:
       false
     }
   }
+
+  // For now only `HarmonyImportSpecifierDependency` and
+  // `HarmonyExportImportedSpecifierDependency` can use this method
+  fn get_ids(&self, mg: &ModuleGraph) -> Vec<JsWord> {
+    unreachable!()
+  }
 }
 
 #[derive(Debug, Default)]
