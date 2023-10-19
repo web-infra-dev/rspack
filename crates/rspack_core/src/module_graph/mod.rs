@@ -563,18 +563,6 @@ impl ModuleGraph {
     self.dep_meta_map.get(&id)
   }
 
-  // const connection =
-  // 			/** @type {ModuleGraphConnection} */
-  // 			(this.getConnection(dependency));
-  // 		if (connection.module === module) return;
-  // 		const newConnection = connection.clone();
-  // 		newConnection.module = module;
-  // 		this._dependencyMap.set(dependency, newConnection);
-  // 		connection.setActive(false);
-  // 		const originMgm = this._getModuleGraphModule(connection.originModule);
-  // 		originMgm.outgoingConnections.add(newConnection);
-  // 		const targetMgm = this._getModuleGraphModule(module);
-  // 		targetMgm.incomingConnections.add(newConnection);
   pub fn update_module(&mut self, dep_id: &DependencyId, module_id: &ModuleIdentifier) {
     let connection = self
       .connection_by_dependency_mut(dep_id)
