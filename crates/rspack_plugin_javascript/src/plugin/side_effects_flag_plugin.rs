@@ -292,9 +292,10 @@ pub struct SideEffectsFlagPlugin;
 #[async_trait]
 impl Plugin for SideEffectsFlagPlugin {
   async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
-    let mg = &mut compilation.module_graph;
+    println!("Something");
     // SAFETY: this method will not modify the map, and we can guarantee there is no other
     // thread access the map at the same time.
+    let mg = &mut compilation.module_graph;
     let module_identifier_to_module = std::mem::take(&mut mg.module_identifier_to_module);
     for (mi, module) in module_identifier_to_module.iter() {
       let mut module_chain = HashSet::default();
@@ -304,8 +305,8 @@ impl Plugin for SideEffectsFlagPlugin {
       }
       let cur_exports_info_id = mg.get_exports_info(mi).id;
 
-      let incomming_connections = mg.get_incoming_connections_cloned(module);
-      for con in incomming_connections {
+      let incoming_connections = mg.get_incoming_connections_cloned(module);
+      for con in incoming_connections {
         let dep = match mg.dependency_by_id(&con.dependency_id) {
           Some(dep) => dep,
           None => continue,

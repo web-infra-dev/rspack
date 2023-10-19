@@ -597,6 +597,7 @@ impl ExportInfoId {
         priority: 0,
       },
     );
+    std::mem::replace(mg.get_export_info_mut_by_id(self), export_info);
     Some(target)
   }
 

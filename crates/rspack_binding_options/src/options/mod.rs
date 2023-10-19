@@ -3,7 +3,9 @@ use rspack_core::{
   BoxPlugin, CompilerOptions, Context, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
   IncrementalRebuildMakeState, ModuleOptions, ModuleType, OutputOptions, PluginExt,
 };
-use rspack_plugin_javascript::{FlagDependencyExportsPlugin, FlagDependencyUsagePlugin};
+use rspack_plugin_javascript::{
+  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, SideEffectsFlagPlugin,
+};
 use serde::Deserialize;
 
 mod raw_builtins;
@@ -158,6 +160,9 @@ impl RawOptionsApply for RawOptions {
     plugins.push(rspack_ids::NamedChunkIdsPlugin::new(None, None).boxed());
 
     if experiments.rspack_future.new_treeshaking {
+      if optimization.side_effects.is_enable() {
+        plugins.push(SideEffectsFlagPlugin::default().boxed());
+      }
       if optimization.provided_exports {
         plugins.push(FlagDependencyExportsPlugin::default().boxed());
       }
