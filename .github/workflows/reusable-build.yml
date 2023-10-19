@@ -41,7 +41,7 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: ${{ contains(inputs.target, 'linux') && fromJSON(vars.LINUX_RUNNER_LABELS) || contains(inputs.target, 'windows') && fromJSON(vars.WINDOWS_RUNNER_LABELS) || contains(inputs.target, 'apple') && fromJSON(vars.MACOS_RUNNER_LABELS) }}
+    runs-on: ${{ contains(inputs.target, 'linux') && fromJSON(vars.LINUX_RUNNER_LABELS || '"ubuntu-latest"') || contains(inputs.target, 'windows') && fromJSON(vars.WINDOWS_RUNNER_LABELS || '"windows-latest"') || contains(inputs.target, 'apple') && fromJSON(vars.MACOS_RUNNER_LABELS || '"macos-latest"') }}
     defaults:
       run:
         shell: bash
@@ -172,7 +172,7 @@ jobs:
     name: E2E Testing
     needs: build
     if: inputs.target == 'x86_64-unknown-linux-gnu' && inputs.test
-    runs-on: ${{ fromJSON(vars.LINUX_RUNNER_LABELS) }}
+    runs-on: ${{ fromJSON(vars.LINUX_RUNNER_LABELS || '"ubuntu-latest"') }}
     container:
       image: mcr.microsoft.com/playwright:v1.35.0-jammy
     steps:
@@ -198,7 +198,7 @@ jobs:
   test:
     needs: build
     if: inputs.test
-    runs-on: ${{ contains(inputs.target, 'linux') && fromJSON(vars.LINUX_RUNNER_LABELS) || contains(inputs.target, 'windows') && fromJSON(vars.WINDOWS_RUNNER_LABELS) || contains(inputs.target, 'apple') && fromJSON(vars.MACOS_RUNNER_LABELS) }}
+    runs-on: ${{ contains(inputs.target, 'linux') && fromJSON(vars.LINUX_RUNNER_LABELS || '"ubuntu-latest"') || contains(inputs.target, 'windows') && fromJSON(vars.WINDOWS_RUNNER_LABELS || '"windows-latest"') || contains(inputs.target, 'apple') && fromJSON(vars.MACOS_RUNNER_LABELS || '"macos-latest"') }}
     timeout-minutes: 30
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
