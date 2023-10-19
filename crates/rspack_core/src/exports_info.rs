@@ -10,6 +10,7 @@ use rustc_hash::FxHashSet as HashSet;
 use serde::Serialize;
 use swc_core::ecma::atoms::JsWord;
 
+use crate::ResolveOptionsWithDependencyType;
 use crate::{
   ConnectionState, DependencyCondition, DependencyId, ModuleGraph, ModuleGraphConnection,
   ModuleIdentifier, RuntimeSpec,
@@ -120,7 +121,7 @@ impl ExportsInfoId {
       }
       if let Some(target_key) = target_key {
         export_info.set_target(
-          &target_key,
+          Some(target_key),
           target_module,
           export_info.name.clone().map(|name| vec![name]).as_ref(),
           priority,
@@ -154,7 +155,7 @@ impl ExportsInfoId {
       }
 
       if let Some(target_key) = target_key {
-        other_exports_info.set_target(&target_key, target_module, None, priority);
+        other_exports_info.set_target(Some(target_key), target_module, None, priority);
       }
 
       if !can_mangle && other_exports_info.can_mangle_provide != Some(false) {
@@ -568,7 +569,35 @@ impl ExportInfoId {
     mg: &mut ModuleGraph,
     resolve_filter: ResolveFilterFnTy,
     update_original_connection: UpdateOriginalFunctionTy,
-  ) {
+  ) -> Option<ResolvedExportInfoTarget> {
+    let mut export_info = mg.get_export_info_mut_by_id(self).clone();
+    let target = export_info._get_target(mg, resolve_filter, &mut HashSet::default());
+    let target = match target {
+      Some(ResolvedExportInfoTargetWithCircular::Circular) => return None,
+      Some(ResolvedExportInfoTargetWithCircular::Target(target)) => target,
+      None => return None,
+    };
+    let original_target = export_info
+      .get_max_target()
+      .values()
+      .next()
+      .expect("should have export info target"); // refer to https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ExportsInfo.js#L1388-L1394
+    if original_target.connection.as_ref() == Some(&target.connection)
+      || original_target.exports == target.exports
+    {
+      return None;
+    }
+    export_info.target.clear();
+    export_info.target_is_set = true;
+    export_info.target.insert(
+      None,
+      ExportInfoTargetValue {
+        connection: update_original_connection(&target, mg),
+        exports: target.exports.clone(),
+        priority: 0,
+      },
+    );
+    Some(target)
   }
 
   pub fn set_used_conditionally(
@@ -649,8 +678,8 @@ pub struct ExportInfo {
   pub usage_state: UsageState,
   /// this is mangled name,https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ExportsInfo.js#L1181-L1188
   used_name: Option<JsWord>,
-  target: HashMap<DependencyId, ExportInfoTargetValue>,
-  max_target: HashMap<DependencyId, ExportInfoTargetValue>,
+  pub target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
+  max_target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
   pub provided: Option<ExportInfoProvided>,
   pub can_mangle_provide: Option<bool>,
   pub terminal_binding: bool,
@@ -817,7 +846,7 @@ impl ExportInfo {
                   },
                 )
               })
-              .collect::<HashMap<DependencyId, ExportInfoTargetValue>>(),
+              .collect::<HashMap<Option<DependencyId>, ExportInfoTargetValue>>(),
           )
         } else {
           None
@@ -895,11 +924,11 @@ impl ExportInfo {
       .map(|id| module_graph.get_exports_info(&id))
   }
 
-  pub fn unuset_target(&mut self, key: &DependencyId) -> bool {
+  pub fn unset_target(&mut self, key: &DependencyId) -> bool {
     if self.target.is_empty() {
       false
     } else {
-      match self.target.remove(key) {
+      match self.target.remove(&Some(*key)) {
         Some(_) => {
           self.max_target.clear();
           self.max_target_is_set = false;
@@ -910,7 +939,7 @@ impl ExportInfo {
     }
   }
 
-  fn get_max_target(&mut self) -> &HashMap<DependencyId, ExportInfoTargetValue> {
+  fn get_max_target(&mut self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
     if self.max_target_is_set {
       return &self.max_target;
     }
@@ -1099,7 +1128,7 @@ impl ExportInfo {
 
   pub fn set_target(
     &mut self,
-    key: &DependencyId,
+    key: Option<DependencyId>,
     connection: Option<ModuleGraphConnection>,
     export_name: Option<&Vec<JsWord>>,
     priority: Option<u8>,
@@ -1107,7 +1136,7 @@ impl ExportInfo {
     let normalized_priority = priority.unwrap_or(0);
     if !self.target_is_set {
       self.target.insert(
-        *key,
+        key,
         ExportInfoTargetValue {
           connection,
           exports: Some(export_name.cloned().unwrap_or_default()),
@@ -1116,7 +1145,7 @@ impl ExportInfo {
       );
       return true;
     }
-    if let Some(old_target) = self.target.get_mut(key) {
+    if let Some(old_target) = self.target.get_mut(&key) {
       if old_target.connection != connection
         || old_target.priority != normalized_priority
         || old_target.exports.as_ref() != export_name
@@ -1132,7 +1161,7 @@ impl ExportInfo {
       return false;
     } else {
       self.target.insert(
-        *key,
+        key.clone(),
         ExportInfoTargetValue {
           connection,
           exports: Some(export_name.cloned().unwrap_or_default()),
