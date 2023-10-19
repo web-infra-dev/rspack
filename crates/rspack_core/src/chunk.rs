@@ -48,6 +48,7 @@ impl DatabaseItem for Chunk {
 
 impl Chunk {
   pub fn new(name: Option<String>, kind: ChunkKind) -> Self {
+    println!("123221");
     Self {
       name,
       filename_template: None,
