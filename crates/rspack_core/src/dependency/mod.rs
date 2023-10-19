@@ -456,6 +456,12 @@ impl DependencyId {
   pub fn new() -> Self {
     Self(DEPENDENCY_ID.fetch_add(1, Relaxed))
   }
+  pub fn set_ids(&self, ids: Vec<JsWord>, mg: &mut ModuleGraph) {
+    todo!()
+  }
+  pub fn get_ids(&self, mg: &ModuleGraph) -> Vec<JsWord> {
+    todo!()
+  }
 }
 impl Default for DependencyId {
   fn default() -> Self {

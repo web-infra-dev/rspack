@@ -537,6 +537,10 @@ impl ModuleGraph {
     todo!()
   }
 
+  pub fn update_module(&mut self, dep_id: &DependencyId, module_id: ModuleIdentifier) {
+    todo!()
+  }
+
   pub fn set_dependency_import_var(&mut self, module_identifier: ModuleIdentifier, request: &str) {
     self
       .import_var_map

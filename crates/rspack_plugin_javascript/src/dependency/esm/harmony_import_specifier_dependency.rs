@@ -16,7 +16,7 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct HarmonyImportSpecifierDependency {
-  id: DependencyId,
+  pub id: DependencyId,
   request: JsWord,
   source_order: i32,
   shorthand: bool,
@@ -65,7 +65,7 @@ impl HarmonyImportSpecifierDependency {
     }
   }
 
-  pub fn get_ids(&self, mg: &mut ModuleGraph) -> Vec<JsWord> {
+  pub fn get_ids(&self, mg: &ModuleGraph) -> Vec<JsWord> {
     mg.get_dep_meta_if_existing(self.id)
       .map(|item| item.ids.clone())
       .unwrap_or_else(|| self.ids.clone())

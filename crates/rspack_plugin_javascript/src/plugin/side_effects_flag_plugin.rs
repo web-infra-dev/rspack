@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use rspack_core::{Compilation, Plugin};
+use rspack_core::{Compilation, ConnectionState, ModuleGraph, Plugin, ResolvedExportInfoTarget};
 use rspack_error::Result;
 use rustc_hash::FxHashSet as HashSet;
 // use rspack_core::Plugin;
@@ -304,12 +304,13 @@ impl Plugin for SideEffectsFlagPlugin {
       }
       let cur_exports_info_id = mg.get_exports_info(mi).id;
 
-      let incommon_connections = mg.get_incoming_connections_cloned(module);
-      for con in incommon_connections {
+      let incomming_connections = mg.get_incoming_connections_cloned(module);
+      for con in incomming_connections {
         let dep = match mg.dependency_by_id(&con.dependency_id) {
           Some(dep) => dep,
           None => continue,
         };
+        let dep_id = *dep.id();
         let is_reexport = dep
           .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
           .is_some();
@@ -334,16 +335,64 @@ impl Plugin for SideEffectsFlagPlugin {
             &name,
           );
           // TODO:
-          export_info_id.move_target();
+          export_info_id.move_target(
+            mg,
+            Box::new(|target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
+              mg.module_by_identifier(&target.module)
+                .expect("should have module graph")
+                .get_side_effects_connection_state(mg, &mut HashSet::default())
+                == ConnectionState::Bool(false)
+            }),
+            Box::new(
+              move |target: &ResolvedExportInfoTarget, mg: &mut ModuleGraph| {
+                mg.update_module(&dep_id, target.module);
+                // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
+                let ids = dep_id.get_ids(mg);
+                let processed_ids = target
+                  .exports
+                  .as_ref()
+                  .map(|item| {
+                    let mut ret = Vec::from_iter(item.iter().cloned());
+                    ret.extend_from_slice(&ids[1..]);
+                    ret
+                  })
+                  .unwrap_or_else(|| ids[1..].iter().map(|item| item.clone()).collect::<Vec<_>>());
+                dep_id.set_ids(processed_ids, mg);
+                mg.connection_by_dependency(&dep_id).cloned()
+              },
+            ),
+          );
           continue;
         }
-        let import_specifier_dep = dep
-          .downcast_ref::<HarmonyImportSpecifierDependency>()
-          .expect("We can make sure this dependency is a HarmonyImportSpecifierDependency");
-        let ids = import_specifier_dep.get_ids(mg);
+        // get dependency by id instead directly use it here because we don't  by
+        let ids = dep_id.get_ids(mg);
         if ids.len() > 0 {
           let export_info_id = cur_exports_info_id.get_export_info(&ids[0], mg);
-          export_info_id.get_target();
+          let target = export_info_id.get_target(
+            mg,
+            Some(Box::new(
+              |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
+                mg.module_by_identifier(&target.module)
+                  .expect("should have module graph")
+                  .get_side_effects_connection_state(mg, &mut HashSet::default())
+                  == ConnectionState::Bool(false)
+              },
+            )),
+          );
+          let target = match target {
+            Some(target) => target,
+            None => continue,
+          };
+          mg.update_module(&dep_id, target.module);
+          // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
+          let processed_ids = target
+            .exports
+            .map(|mut item| {
+              item.extend_from_slice(&ids[1..]);
+              item
+            })
+            .unwrap_or_else(|| ids[1..].iter().map(|item| item.clone()).collect::<Vec<_>>());
+          dep_id.set_ids(processed_ids, mg);
         }
       }
     }
