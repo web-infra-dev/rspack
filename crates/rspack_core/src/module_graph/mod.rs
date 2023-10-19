@@ -602,13 +602,11 @@ impl ModuleGraph {
       mg.connection_id_to_dependency_id
         .insert(connection_id, dependency_id);
 
-      {
-        let mgm = mg
-          .module_graph_module_by_identifier_mut(&new_connection.module_identifier)
-          .expect("should have mgm");
+      let mgm = mg
+        .module_graph_module_by_identifier_mut(&new_connection.module_identifier)
+        .expect("should have mgm");
 
-        mgm.add_incoming_connection(connection_id);
-      }
+      mgm.add_incoming_connection(connection_id);
 
       if let Some(identifier) = new_connection.original_module_identifier && let Some(original_mgm) = mg.
       module_graph_module_by_identifier_mut(&identifier) {
