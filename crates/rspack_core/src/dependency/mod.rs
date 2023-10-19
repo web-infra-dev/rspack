@@ -1,7 +1,7 @@
 mod entry;
 mod span;
-use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
+use std::{collections::hash_map::Entry, sync::atomic::AtomicU32};
 
 pub use entry::*;
 use once_cell::sync::Lazy;
@@ -30,9 +30,9 @@ pub use dependency_template::*;
 use dyn_clone::{clone_trait_object, DynClone};
 
 use crate::{
-  ChunkGroupOptionsKindRef, ConnectionState, Context, ContextMode, ContextOptions, ErrorSpan,
-  ExtendedReferencedExport, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport,
-  RuntimeSpec, UsedByExports,
+  ChunkGroupOptionsKindRef, ConnectionState, Context, ContextMode, ContextOptions,
+  DependencyExtraMeta, ErrorSpan, ExtendedReferencedExport, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier, ReferencedExport, RuntimeSpec, UsedByExports,
 };
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
@@ -457,10 +457,22 @@ impl DependencyId {
     Self(DEPENDENCY_ID.fetch_add(1, Relaxed))
   }
   pub fn set_ids(&self, ids: Vec<JsWord>, mg: &mut ModuleGraph) {
-    todo!()
+    match mg.dep_meta_map.entry(*self) {
+      Entry::Occupied(mut occ) => {
+        occ.get_mut().ids = ids;
+      }
+      Entry::Vacant(mut vac) => {
+        vac.insert(DependencyExtraMeta { ids });
+      }
+    };
   }
+  /// # Panic
+  /// This method will panic if one of following condition is true:
+  /// * current dependency id is not belongs to `HarmonyImportSpecifierDependency` or  `HarmonyExportImportedSpecifierDependency`
+  /// * current id is not in `ModuleGraph`
   pub fn get_ids(&self, mg: &ModuleGraph) -> Vec<JsWord> {
-    todo!()
+    let dep = mg.dependency_by_id(self).expect("should have dep");
+    dep.get_ids(mg)
   }
 }
 impl Default for DependencyId {

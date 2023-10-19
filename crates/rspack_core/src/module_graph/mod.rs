@@ -49,9 +49,11 @@ pub struct ModuleGraph {
   pub exports_info_map: HashMap<ExportsInfoId, ExportsInfo>,
   pub export_info_map: HashMap<ExportInfoId, ExportInfo>,
   connection_to_condition: HashMap<ModuleGraphConnection, DependencyCondition>,
+  pub dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
 }
 
 /// https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ModuleGraph.js#L742-L748
+#[derive(Debug)]
 pub struct DependencyExtraMeta {
   pub ids: Vec<JsWord>,
 }
@@ -91,6 +93,13 @@ impl ModuleGraph {
 
   pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxDependency> {
     self.dependencies.get(dependency_id)
+  }
+
+  pub fn dependency_by_id_mut(
+    &mut self,
+    dependency_id: &DependencyId,
+  ) -> Option<&mut BoxDependency> {
+    self.dependencies.get_mut(dependency_id)
   }
 
   fn remove_dependency(&mut self, dependency_id: &DependencyId) {
@@ -534,7 +543,7 @@ impl ModuleGraph {
   /// hashmap to store different kinds of meta, but luckily webpack only have two different kinds
   /// of meta
   pub fn get_dep_meta_if_existing(&self, id: DependencyId) -> Option<&DependencyExtraMeta> {
-    todo!()
+    self.dep_meta_map.get(&id)
   }
 
   pub fn update_module(&mut self, dep_id: &DependencyId, module_id: ModuleIdentifier) {

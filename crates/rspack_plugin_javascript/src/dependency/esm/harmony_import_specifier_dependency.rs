@@ -67,7 +67,7 @@ impl HarmonyImportSpecifierDependency {
 
   pub fn get_ids(&self, mg: &ModuleGraph) -> Vec<JsWord> {
     mg.get_dep_meta_if_existing(self.id)
-      .map(|item| item.ids.clone())
+      .map(|meta| meta.ids.clone())
       .unwrap_or_else(|| self.ids.clone())
   }
 

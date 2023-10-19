@@ -499,6 +499,12 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
   ) -> ConnectionState {
     ConnectionState::Bool(false)
   }
+
+  fn get_ids(&self, mg: &ModuleGraph) -> Vec<JsWord> {
+    mg.get_dep_meta_if_existing(self.id)
+      .map(|meta| meta.ids.clone())
+      .unwrap_or_else(|| self.ids.iter().map(|(id, _)| id.clone()).collect())
+  }
 }
 
 impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
