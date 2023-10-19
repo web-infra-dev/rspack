@@ -10,7 +10,6 @@ use rustc_hash::FxHashSet as HashSet;
 use serde::Serialize;
 use swc_core::ecma::atoms::JsWord;
 
-use crate::ResolveOptionsWithDependencyType;
 use crate::{
   ConnectionState, DependencyCondition, DependencyId, ModuleGraph, ModuleGraphConnection,
   ModuleIdentifier, RuntimeSpec,
@@ -529,7 +528,8 @@ impl ExportInfoId {
     let mut export_info = mg.get_export_info_mut_by_id(self).clone();
 
     let target = export_info.get_target(mg, resolve_filter);
-    std::mem::replace(mg.get_export_info_mut_by_id(self), export_info);
+    // avoid use ref and mut ref at the same time
+    _ = std::mem::replace(mg.get_export_info_mut_by_id(self), export_info);
     target
   }
 
@@ -564,6 +564,7 @@ impl ExportInfoId {
     false
   }
 
+  #[allow(clippy::unwrap_in_result)]
   pub fn move_target(
     &self,
     mg: &mut ModuleGraph,
@@ -581,7 +582,7 @@ impl ExportInfoId {
       .get_max_target()
       .values()
       .next()
-      .expect("should have export info target"); // refer to https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ExportsInfo.js#L1388-L1394
+      .expect("should have export info target"); // refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ExportsInfo.js#L1388-L1394
     if original_target.connection.as_ref() == Some(&target.connection)
       || original_target.exports == target.exports
     {
@@ -597,7 +598,8 @@ impl ExportInfoId {
         priority: 0,
       },
     );
-    std::mem::replace(mg.get_export_info_mut_by_id(self), export_info);
+    // avoid use ref and mut ref at the same time
+    _ = std::mem::replace(mg.get_export_info_mut_by_id(self), export_info);
     Some(target)
   }
 
@@ -766,21 +768,21 @@ where
   }
 }
 
-pub type ResolveFilterFnTy = Box<dyn Function>;
+pub type ResolveFilterFnTy = Box<dyn ResolveFilterFn>;
 
-pub trait Function: Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool {
-  fn clone_boxed(&self) -> Box<dyn Function>;
+pub trait ResolveFilterFn: Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool {
+  fn clone_boxed(&self) -> Box<dyn ResolveFilterFn>;
 }
-impl<T> Function for T
+impl<T> ResolveFilterFn for T
 where
   T: 'static + Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool + Clone,
 {
-  fn clone_boxed(&self) -> Box<dyn Function> {
+  fn clone_boxed(&self) -> Box<dyn ResolveFilterFn> {
     Box::new(self.clone())
   }
 }
 
-impl Clone for Box<dyn Function> {
+impl Clone for Box<dyn ResolveFilterFn> {
   fn clone(&self) -> Self {
     self.clone_boxed()
   }
@@ -824,7 +826,7 @@ impl ExportInfo {
     let can_mangle_use = init_from.and_then(|init_from| init_from.can_mangle_use);
     let used_in_runtime = init_from.and_then(|init_from| init_from.used_in_runtime.clone());
 
-    let mut target = init_from
+    let target = init_from
       .and_then(|item| {
         if item.target_is_set {
           Some(
@@ -1162,7 +1164,7 @@ impl ExportInfo {
       return false;
     } else {
       self.target.insert(
-        key.clone(),
+        key,
         ExportInfoTargetValue {
           connection,
           exports: Some(export_name.cloned().unwrap_or_default()),

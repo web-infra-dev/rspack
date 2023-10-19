@@ -1,6 +1,5 @@
 use rspack_error::{internal_error, Result};
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::ecma::atoms::JsWord;
 
 use crate::{
   is_async_dependency, module_graph::ConnectionId, BuildInfo, BuildMeta, BuildMetaDefaultObject,

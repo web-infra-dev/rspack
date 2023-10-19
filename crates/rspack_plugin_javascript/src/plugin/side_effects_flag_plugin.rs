@@ -6,7 +6,7 @@ use rustc_hash::FxHashSet as HashSet;
 // use rspack_error::Result;
 use swc_core::common::{Span, Spanned, SyntaxContext, GLOBALS};
 use swc_core::ecma::ast::*;
-use swc_core::ecma::utils::{contains_arguments, ExprCtx, ExprExt};
+use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use crate::dependency::{
@@ -299,7 +299,7 @@ impl Plugin for SideEffectsFlagPlugin {
     let module_identifier_to_module = std::mem::take(&mut mg.module_identifier_to_module);
     for (mi, module) in module_identifier_to_module.iter() {
       let mut module_chain = HashSet::default();
-      let side_effects_state = module.get_side_effects_connection_state(&mg, &mut module_chain);
+      let side_effects_state = module.get_side_effects_connection_state(mg, &mut module_chain);
       if side_effects_state != rspack_core::ConnectionState::Bool(false) {
         continue;
       }
@@ -357,7 +357,7 @@ impl Plugin for SideEffectsFlagPlugin {
                     ret.extend_from_slice(&ids[1..]);
                     ret
                   })
-                  .unwrap_or_else(|| ids[1..].iter().map(|item| item.clone()).collect::<Vec<_>>());
+                  .unwrap_or_else(|| ids[1..].to_vec());
                 dep_id.set_ids(processed_ids, mg);
                 mg.connection_by_dependency(&dep_id).cloned()
               },
@@ -367,7 +367,7 @@ impl Plugin for SideEffectsFlagPlugin {
         }
         // get dependency by id instead directly use it here because we don't  by
         let ids = dep_id.get_ids(mg);
-        if ids.len() > 0 {
+        if !ids.is_empty() {
           let export_info_id = cur_exports_info_id.get_export_info(&ids[0], mg);
           let target = export_info_id.get_target(
             mg,
@@ -392,7 +392,7 @@ impl Plugin for SideEffectsFlagPlugin {
               item.extend_from_slice(&ids[1..]);
               item
             })
-            .unwrap_or_else(|| ids[1..].iter().map(|item| item.clone()).collect::<Vec<_>>());
+            .unwrap_or_else(|| ids[1..].to_vec());
           dep_id.set_ids(processed_ids, mg);
         }
       }

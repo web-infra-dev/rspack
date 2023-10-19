@@ -583,7 +583,7 @@ impl ModuleGraph {
       return;
     }
     connection.set_active(false);
-    let mut new_connection = connection.clone();
+    let mut new_connection = *connection;
     let condition = self.connection_to_condition.get(&new_connection).cloned();
     new_connection.module_identifier = *module_id;
     let new_connection = normalize_new_connection(self, new_connection);
@@ -596,7 +596,7 @@ impl ModuleGraph {
 
     pub fn normalize_new_connection(
       mg: &mut ModuleGraph,
-      mut new_connection: ModuleGraphConnection,
+      new_connection: ModuleGraphConnection,
     ) -> ModuleGraphConnection {
       let dependency_id = new_connection.dependency_id;
       let connection_id = if let Some(connection_id) = mg.connections_map.get(&new_connection) {

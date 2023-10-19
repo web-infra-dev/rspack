@@ -216,7 +216,7 @@ pub trait Dependency:
 
   // For now only `HarmonyImportSpecifierDependency` and
   // `HarmonyExportImportedSpecifierDependency` can use this method
-  fn get_ids(&self, mg: &ModuleGraph) -> Vec<JsWord> {
+  fn get_ids(&self, _mg: &ModuleGraph) -> Vec<JsWord> {
     unreachable!()
   }
 }
@@ -461,7 +461,7 @@ impl DependencyId {
       Entry::Occupied(mut occ) => {
         occ.get_mut().ids = ids;
       }
-      Entry::Vacant(mut vac) => {
+      Entry::Vacant(vac) => {
         vac.insert(DependencyExtraMeta { ids });
       }
     };
