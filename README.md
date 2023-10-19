@@ -47,6 +47,10 @@ Please read the [contributing guide](./CONTRIBUTING.md) and let's build Rspack t
 
 This repo has adopted the ByteDance Open Source Code of Conduct. Please check [Code of Conduct](./CODE_OF_CONDUCT.md) for more details.
 
+## Community
+
+Come chat with us on [Discord](https://discord.gg/79ZZ66GH9E)! Rspack team and Rspack users are active there, and we're always looking for contributions.
+
 ## Links
 
 | Name                                                                                    | Description                                                                 |
