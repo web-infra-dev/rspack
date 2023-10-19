@@ -15,6 +15,7 @@ use jsonc_parser::parse_to_serde_value;
 use rspack_core::ast::javascript::{Ast as JsAst, Context as JsAstContext};
 use serde_json::error::Category;
 use swc_config::config_types::BoolOr;
+use swc_config::merge::Merge;
 use swc_core::base::config::{
   BuiltInput, Config, ConfigFile, IsModule, JsMinifyCommentOption, Rc, RootMode,
 };
@@ -309,7 +310,9 @@ impl SwcCompiler {
       .ok_or_else(|| anyhow!("cannot process file because it's ignored by .swcrc"))?;
 
     let helpers = GLOBALS.set(&globals, || {
-      Helpers::new(config.jsc.external_helpers.into())
+      let mut external_helpers = options.config.jsc.external_helpers.clone();
+      external_helpers.merge(config.jsc.external_helpers);
+      Helpers::new(external_helpers.into())
     });
 
     Ok(Self {
