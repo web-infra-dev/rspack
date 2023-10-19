@@ -60,14 +60,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let use_simple_source_map = compiler_options.devtool.source_map();
     let original_map = source.map(&MapOptions::new(!compiler_options.devtool.cheap()));
     let source = source.source();
-    let mut ast = match crate::ast::parse(
-      source.to_string(),
-      syntax,
-      &resource_data.resource_path.to_string_lossy(),
-      module_type,
-    ) {
-      Ok(ast) => ast,
-      Err(e) => {
+
+    macro_rules! bail {
+      ($e:expr) => {{
         return Ok(
           ParseResult {
             source: create_source(
@@ -79,9 +74,19 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             presentational_dependencies: vec![],
             analyze_result: Default::default(),
           }
-          .with_diagnostic(e.into()),
+          .with_diagnostic($e.into()),
         );
-      }
+      }};
+    }
+
+    let mut ast = match crate::ast::parse(
+      source.to_string(),
+      syntax,
+      &resource_data.resource_path.to_string_lossy(),
+      module_type,
+    ) {
+      Ok(ast) => ast,
+      Err(e) => bail!(e),
     };
 
     run_before_pass(
@@ -104,21 +109,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_type,
     ) {
       Ok(ast) => ast,
-      Err(e) => {
-        return Ok(
-          ParseResult {
-            source: create_source(
-              source.to_string(),
-              resource_data.resource_path.to_string_lossy().to_string(),
-              use_simple_source_map,
-            ),
-            dependencies: vec![],
-            presentational_dependencies: vec![],
-            analyze_result: Default::default(),
-          }
-          .with_diagnostic(e.into()),
-        );
-      }
+      Err(e) => bail!(e),
     };
 
     ast.transform(|program, context| {
@@ -134,7 +125,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       presentational_dependencies,
       mut rewrite_usage_span,
       import_map,
-    } = ast.visit(|program, context| {
+    } = match ast.visit(|program, context| {
       scan_dependencies(
         program,
         context.unresolved_mark,
@@ -145,7 +136,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         build_meta,
         module_identifier,
       )
-    });
+    }) {
+      Ok(result) => result,
+      Err(e) => bail!(e),
+    };
 
     let analyze_result = if compiler_options.builtins.tree_shaking.enable() {
       JsModule::new(&ast, &dependencies, module_identifier, compiler_options).analyze()

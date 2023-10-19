@@ -20,6 +20,7 @@ use rspack_core::{
   ast::javascript::Program, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, ModuleIdentifier, ModuleType, ResourceData,
 };
+use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::common::Span;
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
@@ -66,7 +67,8 @@ pub fn scan_dependencies(
   build_info: &mut BuildInfo,
   build_meta: &mut BuildMeta,
   module_identifier: ModuleIdentifier,
-) -> ScanDependenciesResult {
+) -> Result<ScanDependenciesResult> {
+  let mut errors = vec![];
   let mut dependencies: Vec<BoxDependency> = vec![];
   let mut presentational_dependencies: Vec<BoxDependencyTemplate> = vec![];
   let unresolved_ctxt = SyntaxContext::empty().apply_mark(unresolved_mark);
@@ -125,10 +127,13 @@ pub fn scan_dependencies(
 
   if module_type.is_js_auto() || module_type.is_js_esm() {
     program.visit_with(&mut HarmonyDetectionScanner::new(
+      &module_identifier,
       build_info,
       build_meta,
       module_type,
+      compiler_options.experiments.top_level_await,
       &mut presentational_dependencies,
+      &mut errors,
     ));
     program.visit_with(&mut HarmonyImportDependencyScanner::new(
       &mut dependencies,
@@ -179,10 +184,14 @@ pub fn scan_dependencies(
     ));
   }
 
-  ScanDependenciesResult {
-    dependencies,
-    presentational_dependencies,
-    rewrite_usage_span,
-    import_map,
+  if errors.is_empty() {
+    Ok(ScanDependenciesResult {
+      dependencies,
+      presentational_dependencies,
+      rewrite_usage_span,
+      import_map,
+    })
+  } else {
+    Err(rspack_error::Error::BatchErrors(errors))
   }
 }

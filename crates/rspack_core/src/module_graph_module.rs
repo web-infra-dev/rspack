@@ -30,6 +30,7 @@ pub struct ModuleGraphModule {
   pub build_meta: Option<BuildMeta>,
   pub exports: ExportsInfoId,
   pub profile: Option<Box<ModuleProfile>>,
+  pub is_async: bool,
 }
 
 impl ModuleGraphModule {
@@ -55,6 +56,7 @@ impl ModuleGraphModule {
       build_meta: None,
       exports: exports_info_id,
       profile: None,
+      is_async: false,
     }
   }
 

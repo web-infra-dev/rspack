@@ -25,7 +25,7 @@ impl Plugin for InferAsyncModulesPlugin {
       .values()
       .filter(|m| {
         if let Some(meta) = &m.build_meta {
-          meta.is_async
+          meta.has_top_level_await
         } else {
           false
         }

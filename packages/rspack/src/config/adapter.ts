@@ -744,6 +744,7 @@ function getRawExperiments(
 		incrementalRebuild,
 		asyncWebAssembly,
 		newSplitChunks,
+		topLevelAwait,
 		css,
 		rspackFuture
 	} = experiments;
@@ -752,6 +753,7 @@ function getRawExperiments(
 			!isNil(incrementalRebuild) &&
 			!isNil(asyncWebAssembly) &&
 			!isNil(newSplitChunks) &&
+			!isNil(topLevelAwait) &&
 			!isNil(css) &&
 			!isNil(rspackFuture)
 	);
@@ -761,6 +763,7 @@ function getRawExperiments(
 		incrementalRebuild: getRawIncrementalRebuild(incrementalRebuild),
 		asyncWebAssembly,
 		newSplitChunks,
+		topLevelAwait,
 		css,
 		rspackFuture: getRawRspackFutureOptions(rspackFuture)
 	};

@@ -646,6 +646,7 @@ export interface RawExperiments {
   incrementalRebuild: RawIncrementalRebuild
   asyncWebAssembly: boolean
   newSplitChunks: boolean
+  topLevelAwait: boolean
   css: boolean
   rspackFuture: RawRspackFuture
 }
