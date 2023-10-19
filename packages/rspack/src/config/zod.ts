@@ -904,6 +904,7 @@ export type OptimizationSplitChunksCacheGroup = z.infer<
 >;
 
 const optimizationSplitChunksOptions = z.strictObject({
+	automaticNameDelimiter: z.string().optional(),
 	cacheGroups: z
 		.record(z.literal(false).or(optimizationSplitChunksCacheGroup))
 		.optional(),

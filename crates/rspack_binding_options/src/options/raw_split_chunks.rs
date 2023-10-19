@@ -24,7 +24,7 @@ pub struct RawSplitChunksOptions {
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
   #[derivative(Debug = "ignore")]
   pub chunks: Option<Chunks>,
-  //   pub automatic_name_delimiter: String,
+  pub automatic_name_delimiter: Option<String>,
   pub max_async_requests: Option<u32>,
   pub max_initial_requests: Option<u32>,
   //   pub default_size_types: Option<Vec<SizeType>>,
@@ -61,6 +61,7 @@ impl From<RawSplitChunksOptions> for SplitChunksOptions {
           _ => panic!("Invalid chunk type: {chunks}"),
         }
       }),
+      automatic_name_delimiter: value.automatic_name_delimiter,
       ..Default::default()
     };
 

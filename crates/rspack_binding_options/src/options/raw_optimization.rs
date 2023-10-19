@@ -36,6 +36,10 @@ impl RawOptionsApply for RawOptimizationOptions {
     self,
     plugins: &mut Vec<Box<dyn rspack_core::Plugin>>,
   ) -> Result<Self::Options, rspack_error::Error> {
+    let delimiter: Option<String> = match self.split_chunks.as_ref() {
+      Some(options) => options.automatic_name_delimiter.clone(),
+      _ => None,
+    };
     if let Some(options) = self.split_chunks {
       let split_chunks_plugin = IS_ENABLE_NEW_SPLIT_CHUNKS.with(|is_enable_new_split_chunks| {
         if *is_enable_new_split_chunks {
@@ -48,8 +52,8 @@ impl RawOptionsApply for RawOptimizationOptions {
       plugins.push(split_chunks_plugin);
     }
     let chunk_ids_plugin = match self.chunk_ids.as_ref() {
-      "named" => NamedChunkIdsPlugin::new(None, None).boxed(),
-      "deterministic" => DeterministicChunkIdsPlugin::default().boxed(),
+      "named" => NamedChunkIdsPlugin::new(delimiter, None).boxed(),
+      "deterministic" => DeterministicChunkIdsPlugin::new(delimiter, None).boxed(),
       _ => {
         return Err(internal_error!(
           "'chunk_ids' should be 'named' or 'deterministic'."

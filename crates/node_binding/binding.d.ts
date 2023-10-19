@@ -1036,6 +1036,7 @@ export interface RawSplitChunksOptions {
   maxSize?: number
   maxAsyncSize?: number
   maxInitialSize?: number
+  automaticNameDelimiter?: string
 }
 
 export interface RawStatsOptions {
@@ -1099,4 +1100,3 @@ export interface ThreadsafeNodeFS {
   mkdirp: (...args: any[]) => any
   removeDirAll: (...args: any[]) => any
 }
-
