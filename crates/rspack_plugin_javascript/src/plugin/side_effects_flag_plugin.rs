@@ -345,7 +345,7 @@ impl Plugin for SideEffectsFlagPlugin {
             }),
             Box::new(
               move |target: &ResolvedExportInfoTarget, mg: &mut ModuleGraph| {
-                mg.update_module(&dep_id, target.module);
+                mg.update_module(&dep_id, &target.module);
                 // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
                 let ids = dep_id.get_ids(mg);
                 let processed_ids = target
@@ -383,7 +383,7 @@ impl Plugin for SideEffectsFlagPlugin {
             Some(target) => target,
             None => continue,
           };
-          mg.update_module(&dep_id, target.module);
+          mg.update_module(&dep_id, &target.module);
           // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
           let processed_ids = target
             .exports

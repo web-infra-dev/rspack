@@ -282,6 +282,17 @@ impl ModuleGraph {
       .and_then(|connection_id| self.connection_by_connection_id(connection_id))
   }
 
+  pub fn connection_by_dependency_mut(
+    &mut self,
+    dependency_id: &DependencyId,
+  ) -> Option<&mut ModuleGraphConnection> {
+    self
+      .dependency_id_to_connection_id
+      .get(dependency_id)
+      .cloned()
+      .and_then(|connection_id| self.connection_by_connection_id_mut(&connection_id))
+  }
+
   /// Get a list of all dependencies of a module by the module itself, if the module is not found, then None is returned
   pub fn dependencies_by_module(&self, module: &dyn Module) -> Option<&[DependencyId]> {
     self.dependencies_by_module_identifier(&module.identifier())
@@ -321,6 +332,13 @@ impl ModuleGraph {
     connection_id: &ConnectionId,
   ) -> Option<&ModuleGraphConnection> {
     self.connections[**connection_id].as_ref()
+  }
+
+  pub fn connection_by_connection_id_mut(
+    &mut self,
+    connection_id: &ConnectionId,
+  ) -> Option<&mut ModuleGraphConnection> {
+    self.connections[**connection_id].as_mut()
   }
 
   pub fn remove_connection_by_dependency(
@@ -540,14 +558,76 @@ impl ModuleGraph {
   }
 
   /// We can't insert all sort of things into one hashmap like javascript, so we create different
-  /// hashmap to store different kinds of meta, but luckily webpack only have two different kinds
-  /// of meta
+  /// hashmap to store different kinds of meta.
   pub fn get_dep_meta_if_existing(&self, id: DependencyId) -> Option<&DependencyExtraMeta> {
     self.dep_meta_map.get(&id)
   }
 
-  pub fn update_module(&mut self, dep_id: &DependencyId, module_id: ModuleIdentifier) {
-    todo!()
+  // const connection =
+  // 			/** @type {ModuleGraphConnection} */
+  // 			(this.getConnection(dependency));
+  // 		if (connection.module === module) return;
+  // 		const newConnection = connection.clone();
+  // 		newConnection.module = module;
+  // 		this._dependencyMap.set(dependency, newConnection);
+  // 		connection.setActive(false);
+  // 		const originMgm = this._getModuleGraphModule(connection.originModule);
+  // 		originMgm.outgoingConnections.add(newConnection);
+  // 		const targetMgm = this._getModuleGraphModule(module);
+  // 		targetMgm.incomingConnections.add(newConnection);
+  pub fn update_module(&mut self, dep_id: &DependencyId, module_id: &ModuleIdentifier) {
+    let connection = self
+      .connection_by_dependency_mut(dep_id)
+      .expect("should have connection");
+    if &connection.module_identifier == module_id {
+      return;
+    }
+    connection.set_active(false);
+    let mut new_connection = connection.clone();
+    let condition = self.connection_to_condition.get(&new_connection).cloned();
+    new_connection.module_identifier = *module_id;
+    let new_connection = normalize_new_connection(self, new_connection);
+
+    if let Some(condition) = condition {
+      self
+        .connection_to_condition
+        .insert(new_connection, condition);
+    }
+
+    pub fn normalize_new_connection(
+      mg: &mut ModuleGraph,
+      mut new_connection: ModuleGraphConnection,
+    ) -> ModuleGraphConnection {
+      let dependency_id = new_connection.dependency_id;
+      let connection_id = if let Some(connection_id) = mg.connections_map.get(&new_connection) {
+        *connection_id
+      } else {
+        let new_connection_id = ConnectionId::from(mg.connections.len());
+        mg.connections.push(Some(new_connection));
+        mg.connections_map.insert(new_connection, new_connection_id);
+        new_connection_id
+      };
+
+      mg.dependency_id_to_connection_id
+        .insert(dependency_id, connection_id);
+
+      mg.connection_id_to_dependency_id
+        .insert(connection_id, dependency_id);
+
+      {
+        let mgm = mg
+          .module_graph_module_by_identifier_mut(&new_connection.module_identifier)
+          .expect("should have mgm");
+
+        mgm.add_incoming_connection(connection_id);
+      }
+
+      if let Some(identifier) = new_connection.original_module_identifier && let Some(original_mgm) = mg.
+      module_graph_module_by_identifier_mut(&identifier) {
+        original_mgm.add_outgoing_connection(connection_id);
+    };
+      new_connection
+    }
   }
 
   pub fn set_dependency_import_var(&mut self, module_identifier: ModuleIdentifier, request: &str) {

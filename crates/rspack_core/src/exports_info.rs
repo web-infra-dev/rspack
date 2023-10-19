@@ -527,7 +527,7 @@ impl ExportInfoId {
   ) -> Option<ResolvedExportInfoTarget> {
     let mut export_info = mg.get_export_info_mut_by_id(self).clone();
 
-    let target = export_info.get_target(mg, Some(Box::new(|target, mg| false)));
+    let target = export_info.get_target(mg, resolve_filter);
     std::mem::replace(mg.get_export_info_mut_by_id(self), export_info);
     target
   }
