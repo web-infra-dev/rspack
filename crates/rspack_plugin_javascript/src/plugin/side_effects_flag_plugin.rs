@@ -335,7 +335,6 @@ impl Plugin for SideEffectsFlagPlugin {
               .expect("should have original_module_identifier"),
             &name,
           );
-          // TODO:
           export_info_id.move_target(
             mg,
             Box::new(|target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
