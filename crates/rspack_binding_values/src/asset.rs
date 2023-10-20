@@ -1,3 +1,5 @@
+use napi_derive::napi;
+
 use super::JsCompatSource;
 
 #[napi(object)]

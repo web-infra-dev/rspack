@@ -125,7 +125,7 @@ where
 }
 
 // **Note** that Node's main thread and the worker thread share the same binding context. Using `Mutex<HashMap>` would cause deadlocks if multiple compilers exist.
-pub(crate) struct SingleThreadedHashMap<K, V>(DashMap<K, V>);
+pub struct SingleThreadedHashMap<K, V>(DashMap<K, V>);
 
 impl<K, V> SingleThreadedHashMap<K, V>
 where
@@ -134,7 +134,7 @@ where
   /// Acquire a mutable reference to the inner hashmap.
   ///
   /// Safety: Mutable reference can almost let you do anything you want, this is intended to be used from the thread where the map was created.
-  pub(crate) unsafe fn borrow_mut<F, R>(&self, key: &K, f: F) -> Result<R>
+  pub unsafe fn borrow_mut<F, R>(&self, key: &K, f: F) -> Result<R>
   where
     F: FnOnce(&mut V) -> Result<R>,
   {
@@ -151,7 +151,7 @@ where
   ///
   /// Safety: It's not thread-safe if a value is not safe to modify cross thread boundary, so this is intended to be used from the thread where the map was created.
   #[allow(unused)]
-  pub(crate) unsafe fn borrow<F, R>(&self, key: &K, f: F) -> Result<R>
+  pub unsafe fn borrow<F, R>(&self, key: &K, f: F) -> Result<R>
   where
     F: FnOnce(&V) -> Result<R>,
   {
@@ -167,7 +167,7 @@ where
   /// Insert a value into the map.
   ///
   /// Safety: It's not thread-safe if a value has thread affinity, so this is intended to be used from the thread where the map was created.
-  pub(crate) unsafe fn insert_if_vacant(&self, key: K, value: V) -> Result<()> {
+  pub unsafe fn insert_if_vacant(&self, key: K, value: V) -> Result<()> {
     if let dashmap::mapref::entry::Entry::Vacant(vacant) = self.0.entry(key) {
       vacant.insert(value);
       Ok(())
@@ -184,7 +184,7 @@ where
   ///
   /// Safety: It's not thread-safe if a value has thread affinity, so this is intended to be used from the thread where the map was created.
   #[allow(unused)]
-  pub(crate) unsafe fn remove(&self, key: &K) -> Option<V> {
+  pub unsafe fn remove(&self, key: &K) -> Option<V> {
     self.0.remove(key).map(|(_, v)| v)
   }
 }

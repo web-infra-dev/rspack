@@ -3,6 +3,7 @@ use napi::{
   bindgen_prelude::{Result, SharedReference},
   Either,
 };
+use napi_derive::napi;
 use rspack_core::Stats;
 
 use super::{JsCompilation, ToJsCompatSource};

@@ -198,18 +198,7 @@ export interface JsAssetInfoRelated {
 }
 
 export interface JsChunk {
-  name?: string
-  id?: string
-  ids: Array<string>
-  files: Array<string>
-  idNameHints: Array<string>
-  filenameTemplate?: string
-  cssFilenameTemplate?: string
-  runtime: Array<string>
-  hash?: string
-  contentHash: Record<string, string>
-  renderedHash?: string
-  chunkReasons: Array<string>
+  inner: number
 }
 
 export interface JsChunkAssetArgs {
@@ -219,6 +208,22 @@ export interface JsChunkAssetArgs {
 
 export interface JsChunkGroup {
   chunks: Array<JsChunk>
+}
+
+export interface JsChunkStruct {
+  name?: string
+  filenameTemplate?: string
+  cssFilenameTemplate?: string
+  id?: string
+  ids: Array<string>
+  idNameHints: Array<string>
+  files: Array<string>
+  auxiliaryFiles: Array<string>
+  runtime: Array<string>
+  hash?: string
+  renderedHash?: string
+  contentHash: Record<string, string>
+  chunkReasons: Array<string>
 }
 
 export interface JsCompatSource {
