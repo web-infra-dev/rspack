@@ -1,6 +1,6 @@
 use swc_core::common::SyntaxContext;
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit};
-use swc_core::ecma::atoms::{js_word, JsWord};
+use swc_core::ecma::atoms::JsWord;
 
 use super::symbol::{IndirectTopLevelSymbol, StarSymbol, Symbol};
 use super::visitor::SymbolRef;
@@ -20,10 +20,7 @@ pub fn get_first_string_lit_arg(e: &CallExpr) -> Option<JsWord> {
 pub fn get_require_literal(e: &CallExpr, unresolved_ctxt: SyntaxContext) -> Option<JsWord> {
   if e.args.len() == 1 {
     if match &e.callee {
-      ident @ Callee::Expr(box Expr::Ident(Ident {
-        sym: js_word!("require"),
-        ..
-      })) => {
+      ident @ Callee::Expr(box Expr::Ident(Ident { sym, .. })) if sym == "require" => {
         // dbg!(&ident);
         ident
           .as_expr()
