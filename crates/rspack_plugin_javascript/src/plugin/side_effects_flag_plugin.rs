@@ -299,6 +299,7 @@ impl Plugin for SideEffectsFlagPlugin {
     for (mi, module) in module_identifier_to_module.iter() {
       let mut module_chain = HashSet::default();
       let side_effects_state = module.get_side_effects_connection_state(mg, &mut module_chain);
+      dbg!(mi);
       if side_effects_state != rspack_core::ConnectionState::Bool(false) {
         continue;
       }
@@ -363,10 +364,14 @@ impl Plugin for SideEffectsFlagPlugin {
           );
           continue;
         }
+
         // get dependency by id instead directly use it here because we don't  by
         let ids = dep_id.get_ids(mg);
+
+        dbg!(&ids);
         if !ids.is_empty() {
           let export_info_id = cur_exports_info_id.get_export_info(&ids[0], mg);
+
           let target = export_info_id.get_target(
             mg,
             Some(Box::new(
@@ -378,6 +383,7 @@ impl Plugin for SideEffectsFlagPlugin {
               },
             )),
           );
+          dbg!(&target);
           let target = match target {
             Some(target) => target,
             None => continue,

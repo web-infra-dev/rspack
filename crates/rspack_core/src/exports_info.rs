@@ -37,6 +37,10 @@ impl ExportsInfoId {
     Self(EXPORTS_INFO_ID.fetch_add(1, Relaxed))
   }
 
+  pub fn get_exports_info<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportsInfo {
+    mg.get_exports_info_by_id(self)
+  }
+
   /// # Panic
   /// it will panic if you provide a export info that does not exists in the module graph  
   pub fn set_has_provide_info(&self, mg: &mut ModuleGraph) {
@@ -732,7 +736,7 @@ pub enum ExportInfoProvided {
   Null,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ResolvedExportInfoTarget {
   pub module: ModuleIdentifier,
   pub exports: Option<Vec<JsWord>>,
@@ -1014,7 +1018,6 @@ impl ExportInfo {
         if !resolve_filter(&target, mg) {
           return Some(ResolvedExportInfoTargetWithCircular::Target(target));
         }
-        let mut already_visited_owned = false;
         loop {
           let name =
             if let Some(export) = target.exports.as_ref().and_then(|exports| exports.get(0)) {
@@ -1076,15 +1079,13 @@ impl ExportInfo {
           if !resolve_filter(&target, mg) {
             return Some(ResolvedExportInfoTargetWithCircular::Target(target));
           }
-          if !already_visited_owned {
-            already_visited_owned = true;
-          }
           already_visited.insert(export_info_id);
         }
       } else {
         None
       }
     }
+    dbg!(&self.target);
     if self.target.is_empty() {
       return None;
     }

@@ -122,12 +122,15 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           continue;
         };
         // dbg!(
-        //   &connection,
+        //   // &connection,
         //   dep
         //     .as_module_dependency()
         //     .map(|item| item.dependency_debug_name()),
-        //   &referenced_exports,
-        //   &old_referenced_exports
+        //   dep
+        //     .as_module_dependency()
+        //     .map(|item| item.get_ids(&self.compilation.module_graph)),
+        //   // &referenced_exports,
+        //   // &old_referenced_exports
         // );
 
         if old_referenced_exports.is_none()
