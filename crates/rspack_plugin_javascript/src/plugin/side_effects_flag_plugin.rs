@@ -292,7 +292,6 @@ pub struct SideEffectsFlagPlugin;
 #[async_trait]
 impl Plugin for SideEffectsFlagPlugin {
   async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
-    println!("Something");
     // SAFETY: this method will not modify the map, and we can guarantee there is no other
     // thread access the map at the same time.
     let mg = &mut compilation.module_graph;
