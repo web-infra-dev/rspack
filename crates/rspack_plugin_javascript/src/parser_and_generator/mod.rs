@@ -228,6 +228,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     )
   }
 
+  #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
     source: &BoxSource,

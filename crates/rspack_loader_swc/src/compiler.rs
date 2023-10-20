@@ -138,7 +138,7 @@ fn read_config(opts: &Options, name: &FileName) -> Result<Option<Config>, Error>
     if cfg!(target_arch = "wasm32") {
       PathBuf::new()
     } else {
-      ::std::env::current_dir().unwrap()
+      ::std::env::current_dir().expect("should be available")
     }
   });
 
@@ -304,13 +304,13 @@ impl SwcCompiler {
       options.unresolved_mark = Some(unresolved_mark);
     });
 
-    let fm = cm.new_source_file(FileName::Real(resource_path.clone()), source);
+    let fm = cm.new_source_file(FileName::Real(resource_path), source);
     let comments = SingleThreadedComments::default();
     let config = read_config(&options, &fm.name)?
       .ok_or_else(|| anyhow!("cannot process file because it's ignored by .swcrc"))?;
 
     let helpers = GLOBALS.set(&globals, || {
-      let mut external_helpers = options.config.jsc.external_helpers.clone();
+      let mut external_helpers = options.config.jsc.external_helpers;
       external_helpers.merge(config.jsc.external_helpers);
       Helpers::new(external_helpers.into())
     });
