@@ -1,7 +1,6 @@
 use rspack_core::{CompilerOptions, ConstDependency, DependencyTemplate, ResourceData, SpanExt};
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{Expr, Ident, NewExpr, UnaryExpr, UnaryOp};
-use swc_core::ecma::atoms::js_word;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use url::Url;
 
@@ -123,11 +122,7 @@ impl Visit for ImportMetaScanner<'_> {
 
   fn visit_new_expr(&mut self, new_expr: &NewExpr) {
     // exclude new URL("", import.meta.url)
-    if let Expr::Ident(Ident {
-      sym: js_word!("URL"),
-      ..
-    }) = &*new_expr.callee
-    {
+    if matches!(&*new_expr.callee, Expr::Ident(Ident { sym, .. }) if sym == "URL") {
       return;
     }
     new_expr.visit_children_with(self);

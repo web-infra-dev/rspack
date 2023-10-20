@@ -7,7 +7,7 @@ use serde::Serialize;
 use swc_core::common::SyntaxContext;
 use swc_core::common::{util::take::Take, GLOBALS};
 use swc_core::ecma::ast::*;
-use swc_core::ecma::atoms::{js_word, JsWord};
+use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use swc_node_comments::SwcComments;
@@ -422,8 +422,8 @@ impl<'a> ModuleRefAnalyze<'a> {
   fn check_commonjs_feature(&mut self, member_chain: &[(JsWord, SyntaxContext)]) {
     if self.state.contains(AnalyzeState::ASSIGNMENT_LHS) {
       match member_chain {
-        [(js_word!("module"), first_ctxt), (second, _), ..]
-          if second == "exports" && first_ctxt == &self.unresolved_ctxt => {}
+        [(first, first_ctxt), (second, _), ..]
+          if first == "module" && second == "exports" && first_ctxt == &self.unresolved_ctxt => {}
         [(first, first_ctxt), ..] if first == "exports" && &self.unresolved_ctxt == first_ctxt => {}
         _ => return,
       }
@@ -1727,13 +1727,13 @@ fn is_module_exports_member_expr(expr: &Expr, unresolved_ctxt: SyntaxContext) ->
   matches!(expr, Expr::Member(MemberExpr {
     obj:
       box Expr::Ident(Ident {
-        sym: js_word!("module"),
+        sym: obj_sym,
         span: obj_span,
         ..
       }),
     prop: MemberProp::Ident(Ident { sym: prop_sym, .. }),
     ..
-  }) if obj_span.ctxt == unresolved_ctxt && prop_sym == "exports")
+  }) if obj_sym == "module" && obj_span.ctxt == unresolved_ctxt && prop_sym == "exports")
 }
 
 fn is_pure_decl(stmt: &Decl, unresolved_ctxt: SyntaxContext) -> bool {

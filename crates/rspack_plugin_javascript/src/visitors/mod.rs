@@ -209,7 +209,7 @@ pub fn run_before_pass(
         (options.should_transform_by_default() || syntax.typescript()) && syntax.decorators()
       ),
       Optional::new(
-        swc_visitor::typescript(assumptions, top_level_mark, comments, &cm),
+        swc_visitor::typescript(top_level_mark, comments, &cm),
         syntax.typescript()
       ),
       builtins_additional_feature_transforms(

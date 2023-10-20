@@ -506,7 +506,7 @@ pub mod needs_refactor {
         Expr, ExprOrSpread, Id, Ident, ImportDecl, Lit, MemberExpr, MemberProp, MetaPropExpr,
         MetaPropKind, ModuleExportName, NewExpr,
       },
-      atoms::{js_word, JsWord},
+      atoms::JsWord,
       visit::Visit,
     },
   };
@@ -532,7 +532,7 @@ pub mod needs_refactor {
       Ident::within_ignored_ctxt(|| expr.eq_ignore_span(&IMPORT_META))
     }
 
-    if matches!(&*new_expr.callee, Expr::Ident(Ident { sym: js_word!("URL"), .. }))
+    if matches!(&*new_expr.callee, Expr::Ident(Ident { sym, .. }) if sym == "URL")
     && let Some(args) = &new_expr.args
     && let (Some(first), Some(second)) = (args.first(), args.get(1))
     && let (

@@ -4,7 +4,7 @@ use rspack_core::{ErrorSpan, ModuleType};
 use rspack_error::{DiagnosticKind, Error};
 use swc_core::common::{SourceFile, Span, Spanned, SyntaxContext, DUMMY_SP};
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit, Str};
-use swc_core::ecma::atoms::{js_word, JsWord};
+use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::parser::{EsConfig, TsConfig};
 
@@ -121,10 +121,10 @@ pub fn is_require_literal_expr(e: &CallExpr, unresolved_ctxt: &SyntaxContext) ->
           matches!(
             &**callee,
             Expr::Ident(Ident {
-              sym: js_word!("require"),
+              sym,
               span: Span { ctxt, .. },
               ..
-            }) if ctxt == unresolved_ctxt
+            }) if sym == "require" && ctxt == unresolved_ctxt
           )
         }
         _ => false,

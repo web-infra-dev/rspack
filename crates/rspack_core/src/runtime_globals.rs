@@ -1,7 +1,7 @@
 use std::fmt;
 
 use bitflags::bitflags;
-use swc_core::ecma::atoms::JsWordStaticSet;
+use swc_core::ecma::atoms::JsWord;
 
 bitflags! {
   pub struct RuntimeGlobals: u64 {
@@ -307,7 +307,7 @@ impl RuntimeGlobals {
   }
 }
 
-impl From<RuntimeGlobals> for string_cache::Atom<JsWordStaticSet> {
+impl From<RuntimeGlobals> for JsWord {
   fn from(value: RuntimeGlobals) -> Self {
     value.name().into()
   }

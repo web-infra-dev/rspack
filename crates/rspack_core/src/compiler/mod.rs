@@ -4,6 +4,7 @@ mod make;
 mod queue;
 
 use std::collections::hash_map::Entry;
+use std::ops::Deref;
 use std::{path::Path, sync::Arc};
 
 pub use compilation::*;
@@ -183,7 +184,7 @@ where
           SymbolRef::Declaration(d) => (d.src(), d.exported()),
           SymbolRef::Indirect(i) => match i.ty {
             IndirectType::Import(_, _) => (i.src(), i.indirect_id()),
-            IndirectType::ImportDefault(_) => (i.src(), &DEFAULT_JS_WORD),
+            IndirectType::ImportDefault(_) => (i.src(), DEFAULT_JS_WORD.deref()),
             IndirectType::ReExport(_, _) => (i.importer(), i.id()),
             _ => return,
           },

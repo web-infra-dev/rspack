@@ -1,4 +1,5 @@
 use bitflags::bitflags;
+use once_cell::sync::Lazy;
 use rspack_identifier::Identifier;
 use serde::{Deserialize, Serialize};
 use swc_core::ecma::ast::Id;
@@ -80,7 +81,7 @@ pub enum IndirectType {
   ///
   ImportDefault(JsWord),
 }
-pub static DEFAULT_JS_WORD: JsWord = js_word!("default");
+pub static DEFAULT_JS_WORD: Lazy<JsWord> = Lazy::new(|| js_word!("default"));
 /// We have three kind of star symbol
 /// ## import with namespace
 /// ```js
