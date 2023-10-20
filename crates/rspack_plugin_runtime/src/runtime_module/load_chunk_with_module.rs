@@ -54,7 +54,7 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
             .chunk_graph
             .get_block_chunk_group(identifier, &compilation.chunk_group_by_ukey)
           {
-            let mut chunk_ids = chunk_group
+            let chunk_ids = chunk_group
               .chunks
               .iter()
               .filter_map(|chunk_ukey| {
