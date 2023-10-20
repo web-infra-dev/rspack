@@ -1,7 +1,7 @@
 mod entry;
 mod span;
-use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
+use std::{collections::hash_map::Entry, sync::atomic::AtomicU32};
 
 pub use entry::*;
 use once_cell::sync::Lazy;
@@ -30,9 +30,9 @@ pub use dependency_template::*;
 use dyn_clone::{clone_trait_object, DynClone};
 
 use crate::{
-  ChunkGroupOptionsKindRef, ConnectionState, Context, ContextMode, ContextOptions, ErrorSpan,
-  ExtendedReferencedExport, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport,
-  RuntimeSpec, UsedByExports,
+  ChunkGroupOptionsKindRef, ConnectionState, Context, ContextMode, ContextOptions,
+  DependencyExtraMeta, ErrorSpan, ExtendedReferencedExport, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier, ReferencedExport, RuntimeSpec, UsedByExports,
 };
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
@@ -212,6 +212,12 @@ pub trait Dependency:
     } else {
       false
     }
+  }
+
+  // For now only `HarmonyImportSpecifierDependency` and
+  // `HarmonyExportImportedSpecifierDependency` can use this method
+  fn get_ids(&self, _mg: &ModuleGraph) -> Vec<JsWord> {
+    unreachable!()
   }
 }
 
@@ -449,6 +455,24 @@ pub static DEPENDENCY_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
 impl DependencyId {
   pub fn new() -> Self {
     Self(DEPENDENCY_ID.fetch_add(1, Relaxed))
+  }
+  pub fn set_ids(&self, ids: Vec<JsWord>, mg: &mut ModuleGraph) {
+    match mg.dep_meta_map.entry(*self) {
+      Entry::Occupied(mut occ) => {
+        occ.get_mut().ids = ids;
+      }
+      Entry::Vacant(vac) => {
+        vac.insert(DependencyExtraMeta { ids });
+      }
+    };
+  }
+  /// # Panic
+  /// This method will panic if one of following condition is true:
+  /// * current dependency id is not belongs to `HarmonyImportSpecifierDependency` or  `HarmonyExportImportedSpecifierDependency`
+  /// * current id is not in `ModuleGraph`
+  pub fn get_ids(&self, mg: &ModuleGraph) -> Vec<JsWord> {
+    let dep = mg.dependency_by_id(self).expect("should have dep");
+    dep.get_ids(mg)
   }
 }
 impl Default for DependencyId {

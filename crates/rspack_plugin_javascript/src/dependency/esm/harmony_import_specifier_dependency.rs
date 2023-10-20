@@ -16,7 +16,7 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct HarmonyImportSpecifierDependency {
-  id: DependencyId,
+  pub id: DependencyId,
   request: JsWord,
   source_order: i32,
   shorthand: bool,
@@ -27,7 +27,7 @@ pub struct HarmonyImportSpecifierDependency {
   direct_import: bool,
   specifier: Specifier,
   used_by_exports: Option<UsedByExports>,
-  namespace_object_as_context: bool,
+  pub namespace_object_as_context: bool,
   referenced_properties_in_destructuring: Option<HashSet<JsWord>>,
   resource_identifier: String,
 }
@@ -220,6 +220,12 @@ impl Dependency for HarmonyImportSpecifierDependency {
     _module_chain: &mut HashSet<ModuleIdentifier>,
   ) -> ConnectionState {
     ConnectionState::Bool(false)
+  }
+
+  fn get_ids(&self, mg: &ModuleGraph) -> Vec<JsWord> {
+    mg.get_dep_meta_if_existing(self.id)
+      .map(|meta| meta.ids.clone())
+      .unwrap_or_else(|| self.ids.clone())
   }
 }
 

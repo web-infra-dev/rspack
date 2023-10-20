@@ -120,7 +120,7 @@ impl ExportsInfoId {
       }
       if let Some(target_key) = target_key {
         export_info.set_target(
-          &target_key,
+          Some(target_key),
           target_module,
           export_info.name.clone().map(|name| vec![name]).as_ref(),
           priority,
@@ -154,7 +154,7 @@ impl ExportsInfoId {
       }
 
       if let Some(target_key) = target_key {
-        other_exports_info.set_target(&target_key, target_module, None, priority);
+        other_exports_info.set_target(Some(target_key), target_module, None, priority);
       }
 
       if !can_mangle && other_exports_info.can_mangle_provide != Some(false) {
@@ -520,6 +520,19 @@ impl ExportInfoId {
     }
   }
 
+  pub fn get_target(
+    &self,
+    mg: &mut ModuleGraph,
+    resolve_filter: Option<ResolveFilterFnTy>,
+  ) -> Option<ResolvedExportInfoTarget> {
+    let mut export_info = mg.get_export_info_mut_by_id(self).clone();
+
+    let target = export_info.get_target(mg, resolve_filter);
+    // avoid use ref and mut ref at the same time
+    _ = std::mem::replace(mg.get_export_info_mut_by_id(self), export_info);
+    target
+  }
+
   fn set_used_without_info(&self, mg: &mut ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
     let mut changed = false;
     let flag = self.set_used(mg, UsageState::NoInfo, runtime);
@@ -549,6 +562,45 @@ impl ExportInfoId {
       }
     }
     false
+  }
+
+  #[allow(clippy::unwrap_in_result)]
+  pub fn move_target(
+    &self,
+    mg: &mut ModuleGraph,
+    resolve_filter: ResolveFilterFnTy,
+    update_original_connection: UpdateOriginalFunctionTy,
+  ) -> Option<ResolvedExportInfoTarget> {
+    let mut export_info = mg.get_export_info_mut_by_id(self).clone();
+    let target = export_info._get_target(mg, resolve_filter, &mut HashSet::default());
+    let target = match target {
+      Some(ResolvedExportInfoTargetWithCircular::Circular) => return None,
+      Some(ResolvedExportInfoTargetWithCircular::Target(target)) => target,
+      None => return None,
+    };
+    let original_target = export_info
+      .get_max_target()
+      .values()
+      .next()
+      .expect("should have export info target"); // refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ExportsInfo.js#L1388-L1394
+    if original_target.connection.as_ref() == Some(&target.connection)
+      || original_target.exports == target.exports
+    {
+      return None;
+    }
+    export_info.target.clear();
+    export_info.target_is_set = true;
+    export_info.target.insert(
+      None,
+      ExportInfoTargetValue {
+        connection: update_original_connection(&target, mg),
+        exports: target.exports.clone(),
+        priority: 0,
+      },
+    );
+    // avoid use ref and mut ref at the same time
+    _ = std::mem::replace(mg.get_export_info_mut_by_id(self), export_info);
+    Some(target)
   }
 
   pub fn set_used_conditionally(
@@ -623,13 +675,14 @@ impl From<u32> for ExportInfoId {
 #[derive(Debug, Clone, Default)]
 #[allow(unused)]
 pub struct ExportInfo {
+  // the name could be `null` you could refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ExportsInfo.js#L78
   pub name: Option<JsWord>,
   module_identifier: Option<ModuleIdentifier>,
   pub usage_state: UsageState,
   /// this is mangled name,https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ExportsInfo.js#L1181-L1188
   used_name: Option<JsWord>,
-  target: HashMap<DependencyId, ExportInfoTargetValue>,
-  max_target: HashMap<DependencyId, ExportInfoTargetValue>,
+  pub target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
+  max_target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
   pub provided: Option<ExportInfoProvided>,
   pub can_mangle_provide: Option<bool>,
   pub terminal_binding: bool,
@@ -696,7 +749,45 @@ pub enum ResolvedExportInfoTargetWithCircular {
   Circular,
 }
 
-pub type ResolveFilterFnTy = Box<dyn FilterFn<ResolvedExportInfoTarget>>;
+pub type UpdateOriginalFunctionTy = Box<dyn UpdateOriginalFunction>;
+
+pub trait UpdateOriginalFunction:
+  Fn(&ResolvedExportInfoTarget, &mut ModuleGraph) -> Option<ModuleGraphConnection>
+{
+  fn clone_boxed(&self) -> Box<dyn UpdateOriginalFunction>;
+}
+
+impl<T> UpdateOriginalFunction for T
+where
+  T: 'static
+    + Fn(&ResolvedExportInfoTarget, &mut ModuleGraph) -> Option<ModuleGraphConnection>
+    + Clone,
+{
+  fn clone_boxed(&self) -> Box<dyn UpdateOriginalFunction> {
+    Box::new(self.clone())
+  }
+}
+
+pub type ResolveFilterFnTy = Box<dyn ResolveFilterFn>;
+
+pub trait ResolveFilterFn: Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool {
+  fn clone_boxed(&self) -> Box<dyn ResolveFilterFn>;
+}
+impl<T> ResolveFilterFn for T
+where
+  T: 'static + Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool + Clone,
+{
+  fn clone_boxed(&self) -> Box<dyn ResolveFilterFn> {
+    Box::new(self.clone())
+  }
+}
+
+impl Clone for Box<dyn ResolveFilterFn> {
+  fn clone(&self) -> Self {
+    self.clone_boxed()
+  }
+}
+
 pub type UsageFilterFnTy = Box<dyn FilterFn<UsageState>>;
 
 pub trait FilterFn<T>: Fn(&T) -> bool + Send + Sync {
@@ -721,7 +812,7 @@ impl<T: 'static> Clone for Box<dyn FilterFn<T>> {
 }
 
 impl ExportInfo {
-  // TODO: remove usage_state in the future
+  // TODO: remove usage_state after new tree shaking is landing
   pub fn new(
     name: Option<JsWord>,
     usage_state: UsageState,
@@ -735,18 +826,48 @@ impl ExportInfo {
     let can_mangle_use = init_from.and_then(|init_from| init_from.can_mangle_use);
     let used_in_runtime = init_from.and_then(|init_from| init_from.used_in_runtime.clone());
 
+    let target = init_from
+      .and_then(|item| {
+        if item.target_is_set {
+          Some(
+            item
+              .target
+              .clone()
+              .into_iter()
+              .map(|(k, v)| {
+                (
+                  k,
+                  ExportInfoTargetValue {
+                    connection: v.connection,
+                    exports: match v.exports {
+                      Some(vec) => Some(vec),
+                      None => Some(vec![name
+                        .clone()
+                        .expect("name should not be empty if target is set")]),
+                    },
+                    priority: v.priority,
+                  },
+                )
+              })
+              .collect::<HashMap<Option<DependencyId>, ExportInfoTargetValue>>(),
+          )
+        } else {
+          None
+        }
+      })
+      .unwrap_or_default();
+    let target_is_set = !target.is_empty();
     Self {
       name,
       module_identifier: None,
       usage_state,
       used_name: None,
       used_in_runtime,
-      // TODO: init this
-      target: HashMap::default(),
+      target,
       provided: None,
       can_mangle_provide: None,
       terminal_binding: false,
-      target_is_set: false,
+      target_is_set,
       max_target_is_set: false,
       id: ExportInfoId::new(),
       exports_info: None,
@@ -806,11 +927,11 @@ impl ExportInfo {
       .map(|id| module_graph.get_exports_info(&id))
   }
 
-  pub fn unuset_target(&mut self, key: &DependencyId) -> bool {
+  pub fn unset_target(&mut self, key: &DependencyId) -> bool {
     if self.target.is_empty() {
       false
     } else {
-      match self.target.remove(key) {
+      match self.target.remove(&Some(*key)) {
         Some(_) => {
           self.max_target.clear();
           self.max_target_is_set = false;
@@ -821,7 +942,7 @@ impl ExportInfo {
     }
   }
 
-  fn get_max_target(&mut self) -> &HashMap<DependencyId, ExportInfoTargetValue> {
+  fn get_max_target(&mut self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
     if self.max_target_is_set {
       return &self.max_target;
     }
@@ -855,7 +976,7 @@ impl ExportInfo {
     mg: &mut ModuleGraph,
     resolve_filter: Option<ResolveFilterFnTy>,
   ) -> Option<ResolvedExportInfoTarget> {
-    let filter = resolve_filter.unwrap_or(Box::new(|_: &_| true));
+    let filter = resolve_filter.unwrap_or(Box::new(|_, _| true));
 
     let mut already_visited = HashSet::default();
     match self._get_target(mg, filter, &mut already_visited) {
@@ -890,7 +1011,7 @@ impl ExportInfo {
         if target.exports.is_none() {
           return Some(ResolvedExportInfoTargetWithCircular::Target(target));
         }
-        if !resolve_filter(&target) {
+        if !resolve_filter(&target, mg) {
           return Some(ResolvedExportInfoTargetWithCircular::Target(target));
         }
         let mut already_visited_owned = false;
@@ -952,7 +1073,7 @@ impl ExportInfo {
               }
             }
           }
-          if !resolve_filter(&target) {
+          if !resolve_filter(&target, mg) {
             return Some(ResolvedExportInfoTargetWithCircular::Target(target));
           }
           if !already_visited_owned {
@@ -1010,7 +1131,7 @@ impl ExportInfo {
 
   pub fn set_target(
     &mut self,
-    key: &DependencyId,
+    key: Option<DependencyId>,
     connection: Option<ModuleGraphConnection>,
     export_name: Option<&Vec<JsWord>>,
     priority: Option<u8>,
@@ -1018,7 +1139,7 @@ impl ExportInfo {
     let normalized_priority = priority.unwrap_or(0);
     if !self.target_is_set {
       self.target.insert(
-        *key,
+        key,
         ExportInfoTargetValue {
           connection,
           exports: Some(export_name.cloned().unwrap_or_default()),
@@ -1027,7 +1148,7 @@ impl ExportInfo {
       );
       return true;
     }
-    if let Some(old_target) = self.target.get_mut(key) {
+    if let Some(old_target) = self.target.get_mut(&key) {
       if old_target.connection != connection
         || old_target.priority != normalized_priority
         || old_target.exports.as_ref() != export_name
@@ -1043,7 +1164,7 @@ impl ExportInfo {
       return false;
     } else {
       self.target.insert(
-        *key,
+        key,
         ExportInfoTargetValue {
           connection,
           exports: Some(export_name.cloned().unwrap_or_default()),

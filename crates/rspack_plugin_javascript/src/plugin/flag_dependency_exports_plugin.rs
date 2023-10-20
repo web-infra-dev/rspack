@@ -124,7 +124,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           .export_info_map
           .get_mut(&from_exports_info_id)
           .expect("should have export info");
-        export_info.unuset_target(&dep_id);
+        export_info.unset_target(&dep_id);
       }
     }
     match exports {
@@ -246,7 +246,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
 
       if let Some(from) = from {
         let changed = if hidden {
-          export_info.unuset_target(&dep_id)
+          export_info.unset_target(&dep_id)
         } else {
           let fallback = vec![name.clone()];
           let export_name = if let Some(from) = from_export {
@@ -254,7 +254,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           } else {
             Some(&fallback)
           };
-          export_info.set_target(&dep_id, Some(from), export_name, priority)
+          export_info.set_target(Some(dep_id), Some(from), export_name, priority)
         };
         self.changed |= changed;
       }
