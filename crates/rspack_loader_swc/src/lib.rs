@@ -2,7 +2,8 @@
 
 use std::default::Default;
 
-use rspack_core::{rspack_sources::SourceMap, LoaderRunnerContext, Mode, ModuleAst};
+use rspack_ast::RspackAst;
+use rspack_core::{rspack_sources::SourceMap, LoaderRunnerContext, Mode};
 use rspack_error::{internal_error, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use rspack_plugin_javascript::{
@@ -136,7 +137,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
     let program = c.transform(built)?;
     let ast = c.into_js_ast(program);
 
-    // If swc-loader is the lastest loader available,
+    // If swc-loader is the latest loader available,
     // then loader produces AST, which could be used as an optimization.
     if loader_context.loader_index() == 0
       && (loader_context
@@ -147,7 +148,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
     {
       loader_context
         .additional_data
-        .insert(ModuleAst::JavaScript(ast));
+        .insert(RspackAst::JavaScript(ast));
       loader_context.additional_data.insert(codegen_options);
       loader_context.content = Some("".to_owned().into())
     } else {

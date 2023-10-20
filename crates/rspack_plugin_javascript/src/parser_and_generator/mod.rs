@@ -1,3 +1,4 @@
+use rspack_ast::RspackAst;
 use rspack_core::rspack_sources::{
   BoxSource, MapOptions, OriginalSource, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
   SourceMapSource, SourceMapSourceOptions,
@@ -6,8 +7,8 @@ use rspack_core::tree_shaking::analyzer::OptimizeAnalyzer;
 use rspack_core::tree_shaking::js_module::JsModule;
 use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
 use rspack_core::{
-  render_init_fragments, GenerateContext, Module, ModuleAst, ParseContext, ParseResult,
-  ParserAndGenerator, SourceType, TemplateContext,
+  render_init_fragments, GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator,
+  SourceType, TemplateContext,
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::common::SyntaxContext;
@@ -82,7 +83,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     }
 
     let mut ast =
-      if let Some(ModuleAst::JavaScript(loader_ast)) = additional_data.remove::<ModuleAst>() {
+      if let Some(RspackAst::JavaScript(loader_ast)) = additional_data.remove::<RspackAst>() {
         loader_ast
       } else {
         match crate::ast::parse(

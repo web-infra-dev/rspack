@@ -12,7 +12,7 @@ use std::{path::PathBuf, sync::Arc};
 use anyhow::{anyhow, Context, Error};
 use dashmap::DashMap;
 use jsonc_parser::parse_to_serde_value;
-use rspack_core::ast::javascript::{Ast as JsAst, Context as JsAstContext};
+use rspack_ast::javascript::{Ast as JsAst, Context as JsAstContext, Program as JsProgram};
 use serde_json::error::Category;
 use swc_config::config_types::BoolOr;
 use swc_config::merge::Merge;
@@ -414,24 +414,24 @@ pub(crate) trait IntoJsAst {
 
 impl IntoJsAst for SwcCompiler {
   fn into_js_ast(self, program: Program) -> JsAst {
-    JsAst::new(
-      program,
-      self.cm.clone(),
-      Some(self.comments.into_swc_comments()),
-    )
-    .with_context(JsAstContext {
-      globals: self.globals,
-      helpers: self.helpers,
-      source_map: self.cm,
-      top_level_mark: self
-        .options
-        .top_level_mark
-        .expect("`top_level_mark` should be initialized"),
-      unresolved_mark: self
-        .options
-        .unresolved_mark
-        .expect("`unresolved_mark` should be initialized"),
-    })
+    JsAst::default()
+      .with_program(JsProgram::new(
+        program,
+        Some(self.comments.into_swc_comments()),
+      ))
+      .with_context(JsAstContext {
+        globals: self.globals,
+        helpers: self.helpers,
+        source_map: self.cm,
+        top_level_mark: self
+          .options
+          .top_level_mark
+          .expect("`top_level_mark` should be initialized"),
+        unresolved_mark: self
+          .options
+          .unresolved_mark
+          .expect("`unresolved_mark` should be initialized"),
+      })
   }
 }
 
@@ -439,27 +439,15 @@ trait IntoSwcComments {
   fn into_swc_comments(self) -> SwcComments;
 }
 
-trait ToSingleThreadedComments {
-  fn to_single_threaded_comments(&self) -> SingleThreadedComments;
-}
-
 impl IntoSwcComments for SingleThreadedComments {
   fn into_swc_comments(self) -> SwcComments {
-    let (l, t) = self.take_all();
-    let l = l.take();
-    let t = t.take();
-
+    let (l, t) = {
+      let (l, t) = self.take_all();
+      (l.take(), t.take())
+    };
     SwcComments {
       leading: Arc::new(DashMap::from_iter(l.into_iter())),
       trailing: Arc::new(DashMap::from_iter(t.into_iter())),
     }
   }
 }
-
-// impl ToSingleThreadedComments for SwcComments {
-//   fn to_single_threaded_comments(&self) -> SingleThreadedComments {
-//     self.leading.iter_mut().for_each(|f| {
-//       f.key();
-//     });
-//   }
-// }

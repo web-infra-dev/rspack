@@ -12,8 +12,9 @@ anyhow = { workspace = true }
 async-trait = { workspace = true }
 dashmap = { workspace = true }
 either = "1"
-once_cell = { workspace = true }
 jsonc-parser = { version = "0.22.1", features = ["serde"] }
+once_cell = { workspace = true }
+rspack_ast = { path = "../rspack_ast" }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_loader_runner = { path = "../rspack_loader_runner" }

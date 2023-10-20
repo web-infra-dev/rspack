@@ -17,6 +17,8 @@ const config = {
 								syntax: "ecmascript",
 								jsx: true
 							},
+							externalHelpers: true,
+							preserveAllComments: false,
 							transform: {
 								react: {
 									runtime: "automatic",

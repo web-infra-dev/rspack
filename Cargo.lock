@@ -2362,6 +2362,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_ast"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "rspack_error",
+ "swc_core",
+ "swc_error_reporters",
+ "swc_node_comments",
+ "tokio",
+]
+
+[[package]]
 name = "rspack_ast_viewer"
 version = "0.1.0"
 dependencies = [
@@ -2467,6 +2479,7 @@ dependencies = [
  "rayon",
  "regex",
  "rkyv",
+ "rspack_ast",
  "rspack_database",
  "rspack_error",
  "rspack_fs",
@@ -2647,6 +2660,7 @@ dependencies = [
  "indexmap 1.9.3",
  "jsonc-parser 0.22.1",
  "once_cell",
+ "rspack_ast",
  "rspack_core",
  "rspack_error",
  "rspack_loader_runner",
@@ -2893,6 +2907,7 @@ dependencies = [
  "preset_env_base",
  "rayon",
  "regex",
+ "rspack_ast",
  "rspack_core",
  "rspack_error",
  "rspack_hash",

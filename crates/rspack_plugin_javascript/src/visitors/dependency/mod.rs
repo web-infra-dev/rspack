@@ -16,9 +16,10 @@ mod require_context_scanner;
 mod url_scanner;
 mod util;
 mod worker_scanner;
+use rspack_ast::javascript::Program;
 use rspack_core::{
-  ast::javascript::Program, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, ModuleIdentifier, ModuleType, ResourceData,
+  BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta, CompilerOptions, ModuleIdentifier,
+  ModuleType, ResourceData,
 };
 use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;

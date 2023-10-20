@@ -1,7 +1,0 @@
-{
-  "name": "example-test",
-  "scripts": {
-    "build": "rspack build",
-    "dev": "rspack serve"
-  }
-}

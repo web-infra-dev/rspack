@@ -1,10 +1,6 @@
 import logo from "./logo.svg";
 import "./App.css";
 
-(async function () {
-	console.log(123);
-})();
-
 function App() {
 	return (
 		<div className="App">

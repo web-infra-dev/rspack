@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use rspack_core::{ast::javascript::Ast, Devtool};
+use rspack_ast::javascript::Ast;
+use rspack_core::Devtool;
 use rspack_error::{internal_error, Result};
 use swc_core::{
   common::{

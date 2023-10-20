@@ -89,6 +89,15 @@ impl Program {
   }
 }
 
+impl Take for Program {
+  fn dummy() -> Self {
+    Self {
+      program: SwcProgram::Module(Module::dummy()),
+      comments: None,
+    }
+  }
+}
+
 /// Swc transform context
 pub struct Context {
   pub globals: Globals,
@@ -126,6 +135,12 @@ impl std::fmt::Debug for Context {
   }
 }
 
+impl Take for Context {
+  fn dummy() -> Self {
+    Self::new(Arc::new(SourceMap::new(Default::default())))
+  }
+}
+
 /// The global javascript ast
 #[derive(Debug, Clone)]
 pub struct Ast {
@@ -138,6 +153,15 @@ impl Hash for Ast {
     self.program.hash(state);
     // TODO: De we need to implement Hash for `context`?
     // self.context.hash(state);
+  }
+}
+
+impl Default for Ast {
+  fn default() -> Self {
+    Self {
+      program: Program::dummy(),
+      context: Arc::new(Context::dummy()),
+    }
   }
 }
 
@@ -155,6 +179,11 @@ impl Ast {
 
   pub fn with_context(mut self, context: Context) -> Self {
     self.context = Arc::new(context);
+    self
+  }
+
+  pub fn with_program(mut self, program: Program) -> Self {
+    self.program = program;
     self
   }
 
