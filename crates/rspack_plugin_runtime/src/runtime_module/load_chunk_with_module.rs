@@ -72,7 +72,6 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
             if chunk_ids.is_empty() {
               return None;
             }
-            chunk_ids.sort_unstable();
             let module = compilation
               .module_graph
               .module_graph_module_by_identifier(identifier)
