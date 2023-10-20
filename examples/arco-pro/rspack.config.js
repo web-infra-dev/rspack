@@ -1,4 +1,5 @@
 const path = require("path");
+const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
 const { default: HtmlPlugin } = require("@rspack/plugin-html");
 
 const prod = process.env.NODE_ENV === "production";
@@ -38,6 +39,40 @@ const config = {
 				use: "@svgr/webpack"
 			},
 			{
+				test: /\.ts$/,
+				exclude: [/[\\/]node_modules[\\/]/],
+				loader: "builtin:swc-loader",
+				options: {
+					sourceMap: true,
+					jsc: {
+						parser: {
+							syntax: "typescript"
+						}
+					}
+				}
+			},
+			{
+				test: /\.tsx$/,
+				loader: "builtin:swc-loader",
+				exclude: [/[\\/]node_modules[\\/]/],
+				options: {
+					sourceMap: true,
+					jsc: {
+						parser: {
+							syntax: "typescript",
+							tsx: true
+						},
+						transform: {
+							react: {
+								runtime: "automatic",
+								development: !prod,
+								refresh: !prod
+							}
+						}
+					}
+				}
+			},
+			{
 				test: /\.png$/,
 				type: "asset"
 			}
@@ -73,10 +108,16 @@ const config = {
 			title: "Arco Pro App",
 			template: path.join(__dirname, "index.html"),
 			favicon: path.join(__dirname, "public", "favicon.ico")
-		})
+		}),
+		new ReactRefreshPlugin()
 	],
 	infrastructureLogging: {
 		debug: false
+	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: true
+		}
 	}
 };
 module.exports = config;

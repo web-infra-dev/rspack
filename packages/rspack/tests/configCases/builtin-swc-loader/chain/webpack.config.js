@@ -13,6 +13,17 @@ module.exports = {
 								}
 							}
 						}
+					},
+					"./loader.js",
+					{
+						loader: "builtin:swc-loader",
+						options: {
+							jsc: {
+								parser: {
+									syntax: "typescript"
+								}
+							}
+						}
 					}
 				],
 				type: "javascript/auto"

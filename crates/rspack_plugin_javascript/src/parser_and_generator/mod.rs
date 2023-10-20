@@ -128,7 +128,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       program.visit_mut_with(&mut resolver(
         context.unresolved_mark,
         context.top_level_mark,
-        syntax.typescript(),
+        compiler_options.should_transform_by_default() && syntax.typescript(),
       ));
     });
 
@@ -228,7 +228,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     )
   }
 
-  #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
     source: &BoxSource,
