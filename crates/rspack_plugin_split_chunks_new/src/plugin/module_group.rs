@@ -140,7 +140,7 @@ impl SplitChunksPlugin {
               is_match_the_type
             );
           }
-          return is_match
+          is_match
         }).enumerate() {
           let chunks_key = chunks_key.clone();
           scope.spawn(async move {
