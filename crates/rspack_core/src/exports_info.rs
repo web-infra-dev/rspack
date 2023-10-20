@@ -743,6 +743,7 @@ pub struct ResolvedExportInfoTarget {
   connection: ModuleGraphConnection,
 }
 
+#[derive(Debug, Clone)]
 struct UnResolvedExportInfoTarget {
   connection: Option<ModuleGraphConnection>,
   exports: Option<Vec<JsWord>>,
@@ -772,7 +773,7 @@ where
   }
 }
 
-pub type ResolveFilterFnTy = Box<dyn ResolveFilterFn>;
+pub type ResolveFilterFnTy = Arc<dyn Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool>;
 
 pub trait ResolveFilterFn: Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool {
   fn clone_boxed(&self) -> Box<dyn ResolveFilterFn>;
@@ -980,7 +981,7 @@ impl ExportInfo {
     mg: &mut ModuleGraph,
     resolve_filter: Option<ResolveFilterFnTy>,
   ) -> Option<ResolvedExportInfoTarget> {
-    let filter = resolve_filter.unwrap_or(Box::new(|_, _| true));
+    let filter = resolve_filter.unwrap_or(Arc::new(|_, _| true));
 
     let mut already_visited = HashSet::default();
     match self._get_target(mg, filter, &mut already_visited) {
@@ -1002,6 +1003,7 @@ impl ExportInfo {
       resolve_filter: ResolveFilterFnTy,
       mg: &mut ModuleGraph,
     ) -> Option<ResolvedExportInfoTargetWithCircular> {
+      println!("start");
       if let Some(input_target) = input_target {
         let mut target = ResolvedExportInfoTarget {
           module: input_target
@@ -1085,7 +1087,7 @@ impl ExportInfo {
         None
       }
     }
-    dbg!(&self.target);
+
     if self.target.is_empty() {
       return None;
     }
@@ -1093,6 +1095,7 @@ impl ExportInfo {
       return Some(ResolvedExportInfoTargetWithCircular::Circular);
     }
     already_visited.insert(self.id);
+
     let mut values = self
       .get_max_target()
       .values()
@@ -1100,15 +1103,25 @@ impl ExportInfo {
         connection: item.connection,
         exports: item.exports.clone(),
       })
-      .clone();
-    let target = resolve_target(values.next(), already_visited, resolve_filter.clone(), mg);
+      .collect::<Vec<_>>();
+
+    let target = resolve_target(
+      values.get(0).cloned(),
+      already_visited,
+      resolve_filter.clone(),
+      mg,
+    );
+
+    dbg!(&values);
+
     match target {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => {
         Some(ResolvedExportInfoTargetWithCircular::Circular)
       }
       None => None,
       Some(ResolvedExportInfoTargetWithCircular::Target(target)) => {
-        for val in values {
+        println!("something two");
+        for val in values.into_iter().skip(1) {
           let t = resolve_target(Some(val), already_visited, resolve_filter.clone(), mg);
           match t {
             Some(ResolvedExportInfoTargetWithCircular::Circular) => {

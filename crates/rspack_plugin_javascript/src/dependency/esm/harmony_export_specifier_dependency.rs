@@ -1,7 +1,7 @@
 use rspack_core::{
   AsModuleDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
   DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, HarmonyExportInitFragment,
-  TemplateContext, TemplateReplaceSource, UsedName,
+  ModuleGraph, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -36,7 +36,7 @@ impl Dependency for HarmonyExportSpecifierDependency {
     &DependencyType::EsmExportSpecifier
   }
 
-  fn get_exports(&self) -> Option<ExportsSpec> {
+  fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(self.name.clone())]),
       priority: Some(1),

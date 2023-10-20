@@ -187,7 +187,7 @@ pub trait Dependency:
     None
   }
 
-  fn get_exports(&self) -> Option<ExportsSpec> {
+  fn get_exports(&self, mg: &ModuleGraph) -> Option<ExportsSpec> {
     None
   }
 
