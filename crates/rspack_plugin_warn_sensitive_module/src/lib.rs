@@ -6,7 +6,7 @@ use dashmap::DashSet;
 use rspack_core::{Compilation, Logger, Module, ModuleGraph, Plugin};
 use rspack_error::Diagnostic;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct WarnCaseSensitiveModulesPlugin;
 
 impl WarnCaseSensitiveModulesPlugin {
@@ -14,18 +14,19 @@ impl WarnCaseSensitiveModulesPlugin {
     Self
   }
 
+  #[allow(clippy::borrowed_box)]
   pub fn create_sensitive_modules_warning(
     &self,
     modules: &Vec<&&Box<dyn Module>>,
     graph: &ModuleGraph,
   ) -> String {
     let mut message =
-      format!("There are multiple modules with names that only differ in casing.\n");
+      String::from("There are multiple modules with names that only differ in casing.\n");
 
     for m in modules {
       let mut module_msg = format!("  - {}\n", m.identifier().to_string());
       graph.get_incoming_connections(m).iter().for_each(|c| {
-        if let Some(original_identifier) = c.original_module_identifier.clone() {
+        if let Some(original_identifier) = c.original_module_identifier {
           module_msg.push_str(&format!("    - used by {}\n", original_identifier));
         }
       });
