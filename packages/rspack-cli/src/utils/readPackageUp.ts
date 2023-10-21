@@ -6,7 +6,7 @@ const readPackageUp = (cwd = process.cwd()): { type?: "module" } | null => {
 	let packageJsonPath = path.join(currentDir, "package.json");
 
 	while (!fs.existsSync(packageJsonPath)) {
-		let parentDir = path.dirname(currentDir);
+		const parentDir = path.dirname(currentDir);
 		if (parentDir === currentDir) {
 			return null;
 		}

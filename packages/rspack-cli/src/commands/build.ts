@@ -82,7 +82,7 @@ export class BuildCommand implements RspackCommand {
 					}
 				};
 
-				let rspackOptions = { ...options, argv: { ...options } };
+				const rspackOptions = { ...options, argv: { ...options } };
 
 				const errorHandler = (err, Stats) => {
 					callback(err, Stats);

@@ -124,7 +124,9 @@ class DebugHash extends Hash {
 	 * @returns {string|Buffer} digest
 	 */
 	digest(encoding) {
-		return "debug-digest-" + Buffer.from(this.string).toString("hex");
+		return (
+			"debug-digest-" + Buffer.from(this.string).toString(encoding || "hex")
+		);
 	}
 }
 

@@ -1,7 +1,6 @@
 import { run } from "../../utils/test-utils";
-import { writeFileSync, mkdirSync, unlinkSync } from "fs";
-import { rm, readFile } from "fs/promises";
-import { join, resolve } from "path";
+import { readFile } from "fs/promises";
+import { resolve } from "path";
 
 describe("rspack cli", () => {
 	describe("should config not found", () => {
@@ -129,13 +128,9 @@ describe("rspack cli", () => {
 	describe("should load moonrepo config", () => {
 		const cwd = resolve(__dirname, "./moonrepo");
 		it("should load moonrepo config.ts file", async () => {
-			const { exitCode, stderr, stdout } = await run(
-				cwd,
-				["-c", "rspack.config.ts"],
-				{
-					nodeOptions: ["--experimental-loader=ts-node/esm"]
-				}
-			);
+			const { exitCode, stdout } = await run(cwd, ["-c", "rspack.config.ts"], {
+				nodeOptions: ["--experimental-loader=ts-node/esm"]
+			});
 			expect(stdout).toBeTruthy();
 			expect(exitCode).toBe(0);
 			expect(

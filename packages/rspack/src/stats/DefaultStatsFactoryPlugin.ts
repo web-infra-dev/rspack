@@ -216,11 +216,8 @@ const MODULES_GROUPERS = (
 		};
 		const {
 			groupModulesByCacheStatus,
-			groupModulesByLayer,
 			groupModulesByAttributes,
-			groupModulesByType,
-			groupModulesByPath,
-			groupModulesByExtension
+			groupModulesByType
 		} = options;
 		if (groupModulesByAttributes) {
 			groupByFlag("errors", "modules with errors");

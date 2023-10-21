@@ -14,11 +14,11 @@ import { PreviewCommand } from "./commands/preview";
 import {
 	RspackOptions,
 	MultiCompiler,
-	Compiler,
 	rspack,
 	MultiRspackOptions,
 	Stats,
-	MultiStats
+	MultiStats,
+	Compiler
 } from "@rspack/core";
 import { normalizeEnv } from "./utils/options";
 import { loadRspackConfig } from "./utils/loadConfig";
@@ -31,7 +31,7 @@ type Command = "serve" | "build";
 const defaultEntry = "src/index";
 export class RspackCLI {
 	colors: RspackCLIColors;
-	program: yargs.Argv<{}>;
+	program: yargs.Argv;
 	constructor() {
 		this.colors = this.createColors();
 		this.program = yargs();
