@@ -39,6 +39,7 @@ rspack_plugin_split_chunks              = { path = "../rspack_plugin_split_chunk
 rspack_plugin_split_chunks_new          = { path = "../rspack_plugin_split_chunks_new" }
 rspack_plugin_swc_css_minimizer         = { path = "../rspack_plugin_swc_css_minimizer" }
 rspack_plugin_swc_js_minimizer          = { path = "../rspack_plugin_swc_js_minimizer" }
+rspack_plugin_warn_sensitive_module     = { path = "../rspack_plugin_warn_sensitive_module" }
 rspack_plugin_wasm                      = { path = "../rspack_plugin_wasm" }
 rspack_plugin_worker                    = { path = "../rspack_plugin_worker" }
 rspack_regex                            = { path = "../rspack_regex" }
