@@ -5,6 +5,7 @@ mod raw_limit_chunk_count;
 mod raw_progress;
 mod raw_swc_js_minimizer;
 mod raw_to_be_deprecated;
+mod raw_web_worker_template;
 
 use napi::{
   bindgen_prelude::{FromNapiValue, ToNapiValue},
@@ -32,12 +33,14 @@ use rspack_plugin_runtime::{
 use rspack_plugin_swc_css_minimizer::SwcCssMinimizerRspackPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 use rspack_plugin_wasm::enable_wasm_loading_plugin;
+use rspack_plugin_web_worker_template::WebWorkerTemplatePlugin;
 
 pub use self::{
   raw_banner::RawBannerPluginOptions, raw_copy::RawCopyRspackPluginOptions,
   raw_html::RawHtmlRspackPluginOptions, raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
   raw_progress::RawProgressPluginOptions,
   raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
+  raw_web_worker_template::RawWebWorkerTemplatePluginOptions,
 };
 use crate::{
   RawEntryPluginOptions, RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions,
@@ -64,6 +67,7 @@ pub enum BuiltinPluginName {
   ModuleChunkFormatPlugin,
   HotModuleReplacementPlugin,
   LimitChunkCountPlugin,
+  WebWorkerTemplatePlugin,
 
   // rspack specific plugins
   HttpExternalsRspackPlugin,
@@ -160,6 +164,13 @@ impl RawOptionsApply for BuiltinPlugin {
       BuiltinPluginName::LimitChunkCountPlugin => {
         let plugin = LimitChunkCountPlugin::new(
           downcast_into::<RawLimitChunkCountPluginOptions>(self.options)?.into(),
+        )
+        .boxed();
+        plugins.push(plugin);
+      }
+      BuiltinPluginName::WebWorkerTemplatePlugin => {
+        let plugin = WebWorkerTemplatePlugin::new(
+          downcast_into::<RawWebWorkerTemplatePluginOptions>(self.options)?.into(),
         )
         .boxed();
         plugins.push(plugin);

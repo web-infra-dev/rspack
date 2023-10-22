@@ -224,6 +224,11 @@ class Compiler {
 				get LimitChunkCountPlugin() {
 					return require("./builtin-plugin").LimitChunkCountPlugin;
 				}
+			},
+			webworker: {
+				get WebWorkerTemplatePlugin() {
+					return require("./builtin-plugin").WebWorkerTemplatePlugin;
+				}
 			}
 		};
 		this.root = this;

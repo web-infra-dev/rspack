@@ -23,7 +23,8 @@ export enum BuiltinPluginName {
 	HtmlRspackPlugin = "HtmlRspackPlugin",
 	SwcJsMinimizerRspackPlugin = "SwcJsMinimizerRspackPlugin",
 	SwcCssMinimizerRspackPlugin = "SwcCssMinimizerRspackPlugin",
-	LimitChunkCountPlugin = "LimitChunkCountPlugin"
+	LimitChunkCountPlugin = "LimitChunkCountPlugin",
+	WebWorkerTemplatePlugin = "WebWorkerTemplatePlugin"
 }
 
 export abstract class RspackBuiltinPlugin implements RspackPluginInstance {

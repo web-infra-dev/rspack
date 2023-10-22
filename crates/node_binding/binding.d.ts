@@ -132,6 +132,7 @@ export const enum BuiltinPluginName {
   ModuleChunkFormatPlugin = 'ModuleChunkFormatPlugin',
   HotModuleReplacementPlugin = 'HotModuleReplacementPlugin',
   LimitChunkCountPlugin = 'LimitChunkCountPlugin',
+  WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -1083,6 +1084,10 @@ export interface RawSwcJsMinimizerRules {
 
 export interface RawTrustedTypes {
   policyName?: string
+}
+
+export interface RawWebWorkerTemplatePluginOptions {
+
 }
 
 /**
