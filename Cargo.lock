@@ -2929,6 +2929,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "rspack_core",
+ "rspack_util",
 ]
 
 [[package]]
