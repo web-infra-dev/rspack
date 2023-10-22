@@ -9,7 +9,6 @@
  */
 import type * as binding from "@rspack/binding";
 import fs from "fs";
-import path from "path";
 import * as tapable from "tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
 import type { WatchOptions } from "watchpack";
@@ -46,6 +45,7 @@ import {
 	deprecated_resolveBuiltins
 } from "./builtin-plugin";
 import { optionsApply_compat } from "./rspackOptionsApply";
+import { applyRspackOptionsDefaults } from "./config/defaults";
 
 class Compiler {
 	#_instance?: binding.Rspack;
@@ -455,7 +455,7 @@ class Compiler {
 		outputOptions: OutputNormalized,
 		plugins: RspackPluginInstance[]
 	) {
-		const childCompiler = new Compiler(this.context, {
+		const options: RspackOptionsNormalized = {
 			...this.options,
 			output: {
 				...this.options.output,
@@ -466,7 +466,9 @@ class Compiler {
 				...this.options.builtins,
 				html: undefined
 			}
-		});
+		};
+		applyRspackOptionsDefaults(options);
+		const childCompiler = new Compiler(this.context, options);
 		childCompiler.name = compilerName;
 		childCompiler.outputPath = this.outputPath;
 		childCompiler.inputFileSystem = this.inputFileSystem;
