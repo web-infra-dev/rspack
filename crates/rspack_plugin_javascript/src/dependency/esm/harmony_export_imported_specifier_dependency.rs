@@ -518,9 +518,36 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
           .expect("should have module")]),
         ..Default::default()
       }),
-      ExportModeType::ReexportDynamicDefault => todo!(),
+      ExportModeType::ReexportDynamicDefault => {
+        todo!()
+      }
       ExportModeType::ReexportNamedDefault => todo!(),
-      ExportModeType::ReexportNamespaceObject => todo!(),
+      ExportModeType::ReexportNamespaceObject => {
+        // const from = moduleGraph.getConnection(this);
+        // return {
+        // 	exports: [
+        // 		{
+        // 			name: mode.name,
+        // 			from,
+        // 			export: null
+        // 		}
+        // 	],
+        // 	priority: 1,
+        // 	dependencies: [from.module]
+        // };
+        let from = mg.connection_by_dependency(self.id());
+        Some(ExportsSpec {
+          exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
+            name: mode.name.unwrap_or_default(),
+            export: None,
+            from: from.cloned(),
+            ..Default::default()
+          })]),
+          priority: Some(1),
+          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          ..Default::default()
+        })
+      }
       ExportModeType::ReexportFakeNamespaceObject => todo!(),
       ExportModeType::ReexportUndefined => todo!(),
       ExportModeType::NormalReexport => {
@@ -551,7 +578,32 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
         })
       }
       ExportModeType::DynamicReexport => {
-        todo!()
+        let from = mg.connection_by_dependency(self.id());
+        Some(ExportsSpec {
+          exports: ExportsOfExportsSpec::True,
+          from: from.cloned(),
+          can_mangle: Some(false),
+          hide_export: Some(
+            mode
+              .hidden
+              .clone()
+              .into_iter()
+              .flatten()
+              .collect::<Vec<_>>(),
+          ),
+          exclude_exports: if let Some(mut hidden) = mode.hidden {
+            Some(
+              hidden
+                .into_iter()
+                .chain(mode.ignored.into_iter().flatten())
+                .collect::<Vec<_>>(),
+            )
+          } else {
+            Some(mode.ignored.into_iter().flatten().collect::<Vec<_>>())
+          },
+          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          ..Default::default()
+        })
       }
     }
   }
