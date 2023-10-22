@@ -3080,7 +3080,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "rspack_core",
- "rspack_error",
+ "rspack_plugin_runtime",
 ]
 
 [[package]]

@@ -1,31 +1,7 @@
-use rspack_core::{CompilerOptions, Plugin, PluginContext};
-use rspack_error::Result;
+use rspack_core::{BoxPlugin, ChunkLoadingType, PluginExt};
+use rspack_plugin_runtime::{enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin};
 
-#[derive(Debug, Clone, Default)]
-pub struct WebWorkerTemplatePluginOptions {}
-
-#[derive(Debug)]
-pub struct WebWorkerTemplatePlugin {
-  options: WebWorkerTemplatePluginOptions,
-}
-
-impl WebWorkerTemplatePlugin {
-  pub fn new(options: WebWorkerTemplatePluginOptions) -> Self {
-    Self { options }
-  }
-}
-
-#[async_trait::async_trait]
-impl Plugin for WebWorkerTemplatePlugin {
-  fn name(&self) -> &'static str {
-    "WebWorkerTemplatePlugin"
-  }
-
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    options: &mut CompilerOptions,
-  ) -> Result<()> {
-    Ok(())
-  }
+pub fn web_worker_template_plugin(plugins: &mut Vec<BoxPlugin>) {
+  plugins.push(ArrayPushCallbackChunkFormatPlugin.boxed());
+  enable_chunk_loading_plugin(ChunkLoadingType::ImportScripts, plugins);
 }
