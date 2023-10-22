@@ -219,6 +219,11 @@ class Compiler {
 			},
 			get CopyRspackPlugin() {
 				return require("./builtin-plugin").CopyRspackPlugin;
+			},
+			optimize: {
+				get LimitChunkCountPlugin() {
+					return require("./builtin-plugin").LimitChunkCountPlugin;
+				}
 			}
 		};
 		this.root = this;
