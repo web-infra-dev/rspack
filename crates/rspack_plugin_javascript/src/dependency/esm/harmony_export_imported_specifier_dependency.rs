@@ -2,9 +2,9 @@ use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
   get_exports_type, process_export_info, ConnectionState, Dependency, DependencyCategory,
   DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ExportInfoId,
-  ExportInfoProvided, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedName,
+  ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  ExtendedReferencedExport, HarmonyExportInitFragment, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
@@ -490,6 +490,163 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::EsmExportImportedSpecifier
+  }
+
+  #[allow(clippy::unwrap_in_result)]
+  fn get_exports(&self, mg: &ModuleGraph) -> Option<ExportsSpec> {
+    let mode = self.get_mode(
+      self.name.clone(),
+      &self
+        .mode_ids
+        .iter()
+        .map(|id| id.0.clone())
+        .collect::<Vec<_>>(),
+      mg,
+      &self.id,
+      None,
+    );
+    match mode.ty {
+      ExportModeType::Missing => None,
+      ExportModeType::Unused => todo!(),
+      ExportModeType::EmptyStar => Some(ExportsSpec {
+        exports: ExportsOfExportsSpec::Array(vec![]),
+        hide_export: mode
+          .hidden
+          .clone()
+          .map(|item| item.into_iter().collect::<Vec<_>>()),
+        dependencies: Some(vec![*mg
+          .module_identifier_by_dependency_id(self.id())
+          .expect("should have module")]),
+        ..Default::default()
+      }),
+      ExportModeType::ReexportDynamicDefault => {
+        let from = mg.connection_by_dependency(self.id());
+        Some(ExportsSpec {
+          exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
+            name: mode.name.unwrap_or_default(),
+            export: Some(vec![JsWord::from("default")]),
+            from: from.cloned(),
+            ..Default::default()
+          })]),
+          priority: Some(1),
+          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          ..Default::default()
+        })
+      }
+      ExportModeType::ReexportNamedDefault => {
+        let from = mg.connection_by_dependency(self.id());
+        Some(ExportsSpec {
+          exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
+            name: mode.name.unwrap_or_default(),
+            export: Some(vec![JsWord::from("default")]),
+            from: from.cloned(),
+            ..Default::default()
+          })]),
+          priority: Some(1),
+          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          ..Default::default()
+        })
+      }
+      ExportModeType::ReexportNamespaceObject => {
+        let from = mg.connection_by_dependency(self.id());
+        Some(ExportsSpec {
+          exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
+            name: mode.name.unwrap_or_default(),
+            export: None,
+            from: from.cloned(),
+            ..Default::default()
+          })]),
+          priority: Some(1),
+          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          ..Default::default()
+        })
+      }
+      ExportModeType::ReexportFakeNamespaceObject => {
+        let from = mg.connection_by_dependency(self.id());
+        Some(ExportsSpec {
+          exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
+            name: mode.name.unwrap_or_default(),
+            export: None,
+            exports: Some(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
+              name: "default".into(),
+              can_mangle: Some(false),
+              from: from.cloned(),
+              export: None,
+              ..Default::default()
+            })]),
+            from: from.cloned(),
+            ..Default::default()
+          })]),
+          priority: Some(1),
+          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          ..Default::default()
+        })
+      }
+      ExportModeType::ReexportUndefined => Some(ExportsSpec {
+        exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(
+          mode.name.unwrap_or_default(),
+        )]),
+        dependencies: Some(vec![*mg
+          .module_identifier_by_dependency_id(self.id())
+          .expect("should have module id")]),
+        ..Default::default()
+      }),
+      ExportModeType::NormalReexport => {
+        let from = mg.connection_by_dependency(self.id());
+        Some(ExportsSpec {
+          priority: Some(1),
+          exports: ExportsOfExportsSpec::Array(
+            mode
+              .items
+              .map(|items| {
+                items
+                  .into_iter()
+                  .map(|item| {
+                    ExportNameOrSpec::ExportSpec(ExportSpec {
+                      name: item.name,
+                      from: from.cloned(),
+                      export: Some(item.ids),
+                      hidden: Some(item.hidden),
+                      ..Default::default()
+                    })
+                  })
+                  .collect::<Vec<_>>()
+              })
+              .unwrap_or_default(),
+          ),
+          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          ..Default::default()
+        })
+      }
+      ExportModeType::DynamicReexport => {
+        let from = mg.connection_by_dependency(self.id());
+        Some(ExportsSpec {
+          exports: ExportsOfExportsSpec::True,
+          from: from.cloned(),
+          can_mangle: Some(false),
+          hide_export: Some(
+            mode
+              .hidden
+              .clone()
+              .into_iter()
+              .flatten()
+              .collect::<Vec<_>>(),
+          ),
+          exclude_exports: if let Some(hidden) = mode.hidden {
+            Some(
+              hidden
+                .into_iter()
+                .chain(mode.ignored.into_iter().flatten())
+                .collect::<Vec<_>>(),
+            )
+          } else {
+            Some(mode.ignored.into_iter().flatten().collect::<Vec<_>>())
+          },
+          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          ..Default::default()
+        })
+      }
+    }
   }
 
   fn get_module_evaluation_side_effects_state(
