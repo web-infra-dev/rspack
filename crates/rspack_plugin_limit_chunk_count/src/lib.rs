@@ -1,7 +1,6 @@
 mod chunk_combination;
 
 use std::{
-  borrow::BorrowMut,
   cmp::Ordering,
   collections::{HashMap, HashSet},
 };
@@ -219,16 +218,15 @@ fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
 }
 
 fn integrate_chunks(
-  chunk_graph: &ChunkGraph,
+  chunk_graph: &mut ChunkGraph,
   module_graph: &ModuleGraph,
-  chunk_by_ukey: &Database<Chunk>,
-  chunk_group_by_ukey: &Database<ChunkGroup>,
+  chunk_by_ukey: &mut Database<Chunk>,
+  chunk_group_by_ukey: &mut Database<ChunkGroup>,
   a: &ChunkUkey,
   b: &ChunkUkey,
 ) {
-  todo!();
-  let chunk_a = chunk_by_ukey.get(a).unwrap().borrow_mut();
-  let chunk_b = chunk_by_ukey.get(b).unwrap().borrow_mut();
+  let chunk_b = chunk_by_ukey.expect_get(b).clone();
+  let chunk_a = chunk_by_ukey.expect_mut(a);
 
   // Decide for one name (deterministic)
   if let (Some(_), Some(_)) = (&chunk_a.name, &chunk_b.name) {
@@ -274,6 +272,7 @@ fn integrate_chunks(
   }
 
   for (module, chunk_group) in chunk_graph
+    .clone()
     .get_chunk_entry_modules_with_chunk_group_iterable(b)
     .iter()
     .into_iter()
@@ -282,11 +281,17 @@ fn integrate_chunks(
     chunk_graph.connect_chunk_and_entry_module(a.clone(), module.clone(), chunk_group.clone());
   }
 
-  for chunk_group_ukey in chunk_b.groups.clone() {
-    let chunk_group = chunk_group_by_ukey.get(&chunk_group_ukey).unwrap();
+  let mut remove_group_ukeys = vec![];
+  for chunk_group_ukey in chunk_b.groups {
+    let chunk_group = chunk_group_by_ukey.expect_mut(&chunk_group_ukey);
     chunk_group.replace_chunk(b, a);
     chunk_a.add_group(chunk_group_ukey);
-    chunk_b.remove_group(&chunk_group_ukey);
+    remove_group_ukeys.push(chunk_group_ukey);
+  }
+
+  let chunk_b = chunk_by_ukey.expect_mut(b);
+  for group_ukey in remove_group_ukeys {
+    chunk_b.remove_group(&group_ukey);
   }
 }
 
@@ -329,14 +334,14 @@ impl Plugin for LimitChunkCountPlugin {
     }
 
     let chunk_by_ukey = compilation.chunk_by_ukey.clone();
-    let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
+    let chunk_group_by_ukey = &compilation.chunk_group_by_ukey.clone();
 
     let mut chunks = compilation.chunk_by_ukey.values().collect::<Vec<_>>();
     if chunks.len() <= max_chunks {
       return Ok(());
     }
 
-    let chunk_graph = &compilation.chunk_graph;
+    let chunk_graph = &compilation.chunk_graph.clone();
     let module_graph = &compilation.module_graph;
     let mut remaining_chunks_to_merge = chunks.len() - max_chunks;
 
@@ -469,10 +474,10 @@ impl Plugin for LimitChunkCountPlugin {
       let b_chunk = chunk_by_ukey.get(&b).unwrap();
       if can_chunks_be_integrated(&chunk_group_by_ukey, a_chunk, b_chunk) {
         integrate_chunks(
-          &chunk_graph,
+          &mut compilation.chunk_graph,
           &module_graph,
-          &chunk_by_ukey,
-          &chunk_group_by_ukey,
+          &mut compilation.chunk_by_ukey,
+          &mut compilation.chunk_group_by_ukey,
           &a,
           &b,
         );
