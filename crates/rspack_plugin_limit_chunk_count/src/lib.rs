@@ -1,11 +1,11 @@
-mod chunk_combinations;
+mod chunk_combination;
 
 use std::{
   cmp::Ordering,
   collections::{HashMap, HashSet},
 };
 
-use chunk_combinations::{ChunkCombination, ChunkCombinations};
+use chunk_combination::{ChunkCombination, ChunkCombinationBucket, ChunkCombinationUkey};
 use rspack_core::{
   BoxModule, Chunk, ChunkGraph, ChunkGroup, ChunkUkey, ModuleGraph, OptimizeChunksArgs, Plugin,
   PluginContext, PluginOptimizeChunksOutput,
@@ -127,13 +127,14 @@ struct ChunkSizeOptions {
 fn get_integrated_chunks_size(
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
+  chunk_by_ukey: &Database<Chunk>,
   chunk_group_by_ukey: &Database<ChunkGroup>,
-  chunk_a: &Chunk,
-  chunk_b: &Chunk,
+  chunk_a_ukey: &ChunkUkey,
+  chunk_b_ukey: &ChunkUkey,
   options: &ChunkSizeOptions,
 ) -> f64 {
-  let cgc_a = chunk_graph.get_chunk_graph_chunk(&chunk_a.ukey);
-  let cgc_b: &rspack_core::ChunkGraphChunk = chunk_graph.get_chunk_graph_chunk(&chunk_b.ukey);
+  let cgc_a = chunk_graph.get_chunk_graph_chunk(&chunk_a_ukey);
+  let cgc_b: &rspack_core::ChunkGraphChunk = chunk_graph.get_chunk_graph_chunk(&chunk_b_ukey);
   let mut all_modules: Vec<&BoxModule> = cgc_a
     .modules
     .iter()
@@ -148,6 +149,10 @@ fn get_integrated_chunks_size(
   let modules_size = get_modules_size(&all_modules);
   let chunk_overhead = options.chunk_overhead.unwrap_or(10000f64);
   let entry_chunk_multiplicator = options.entry_chunk_multiplicator.unwrap_or(10f64);
+
+  let chunk_a = chunk_by_ukey.get(chunk_a_ukey).unwrap();
+  let chunk_b = chunk_by_ukey.get(chunk_b_ukey).unwrap();
+
   chunk_overhead
     + modules_size
       * (if chunk_a.can_be_initial(chunk_group_by_ukey)
@@ -185,14 +190,14 @@ fn get_chunk_size(
 }
 
 fn add_to_set_map(
-  map: &mut HashMap<&ChunkUkey, HashSet<&ChunkCombination>>,
+  map: &mut HashMap<ChunkUkey, HashSet<ChunkCombinationUkey>>,
   key: &ChunkUkey,
   value: &ChunkCombination,
 ) {
   todo!();
 }
 
-fn integrate_chunks(chunk_a: &mut Chunk, chunk_b: &Chunk) {
+fn integrate_chunks(a: &ChunkUkey, b: &ChunkUkey) {
   todo!();
 }
 
@@ -234,7 +239,7 @@ impl Plugin for LimitChunkCountPlugin {
       return Ok(());
     }
 
-    let chunk_by_ukey = &compilation.chunk_by_ukey;
+    let chunk_by_ukey = compilation.chunk_by_ukey.clone();
     let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
 
     let mut chunks = compilation.chunk_by_ukey.values().collect::<Vec<_>>();
@@ -253,12 +258,13 @@ impl Plugin for LimitChunkCountPlugin {
     // this is large. Size = chunks * (chunks - 1) / 2
     // It uses a multi layer bucket sort plus normal sort in the last layer
     // It's also lazy so only accessed buckets are sorted
-    let mut combinations = ChunkCombinations::new();
+    let mut combinations = ChunkCombinationBucket::new();
 
     // we keep a mapping from chunk to all combinations
     // but this mapping is not kept up-to-date with deletions
     // so `deleted` flag need to be considered when iterating this
-    let mut combinations_by_chunk: HashMap<&ChunkUkey, HashSet<&ChunkCombination>> = HashMap::new();
+    let mut combinations_by_chunk: HashMap<ChunkUkey, HashSet<ChunkCombinationUkey>> =
+      HashMap::new();
 
     let chunk_size_option = ChunkSizeOptions {
       chunk_overhead: self.options.chunk_overhead,
@@ -275,9 +281,10 @@ impl Plugin for LimitChunkCountPlugin {
         let integrated_size = get_integrated_chunks_size(
           &chunk_graph,
           &module_graph,
+          &chunk_by_ukey,
           &chunk_group_by_ukey,
-          a,
-          b,
+          &a.ukey,
+          &b.ukey,
           &chunk_size_option,
         );
         let a_size = get_chunk_size(
@@ -296,6 +303,7 @@ impl Plugin for LimitChunkCountPlugin {
         );
 
         let c = ChunkCombination {
+          ukey: ChunkCombinationUkey::new(),
           deleted: false,
           size_diff: a_size + b_size - integrated_size,
           integrated_size,
@@ -319,11 +327,12 @@ impl Plugin for LimitChunkCountPlugin {
     let mut modified_chunks: HashSet<ChunkUkey> = HashSet::new();
 
     loop {
-      let mut combination = match combinations.pop_first() {
-        Some(combination) => combination,
+      let combination_ukey = match combinations.pop_first() {
+        Some(combination_ukey) => combination_ukey,
         None => break,
       };
 
+      let combination = combinations.get_mut(&combination_ukey).unwrap();
       combination.deleted = true;
       let a = combination.a;
       let b = combination.b;
@@ -367,83 +376,89 @@ impl Plugin for LimitChunkCountPlugin {
         }
       }
 
-      // if can_chunks_be_integrated(&chunk_group_by_ukey, &a, b) {
-      //   integrate_chunks(&mut combination.a, b);
-      //   chunk_by_ukey.remove(&b.ukey);
+      let a_chunk = chunk_by_ukey.get(&a).unwrap();
+      let b_chunk = chunk_by_ukey.get(&b).unwrap();
+      if can_chunks_be_integrated(&chunk_group_by_ukey, a_chunk, b_chunk) {
+        integrate_chunks(&a, &b);
+        compilation.chunk_by_ukey.remove(&a);
 
-      //   modified_chunks.insert(a.ukey.clone());
+        modified_chunks.insert(a);
 
-      //   remaining_chunks_to_merge -= 1;
-      //   if remaining_chunks_to_merge <= 0 {
-      //     break;
-      //   }
+        remaining_chunks_to_merge -= 1;
+        if remaining_chunks_to_merge <= 0 {
+          break;
+        }
 
-      //   let mut combinations_a = combinations_by_chunk.get(&a.ukey);
-      //   if let Some(combinations_a) = combinations_a.clone() {
-      //     for combination in combinations_by_chunk.get(&a.ukey).unwrap() {
-      //       if combination.deleted {
-      //         continue;
-      //       }
-      //       combination.deleted = true;
-      //       combinations_a.remove(combination);
-      //     }
-      //   }
+        let a_combination_ukeys = combinations_by_chunk.get_mut(&a);
+        if let Some(a_combination_ukeys) = a_combination_ukeys {
+          for ukey in a_combination_ukeys.clone() {
+            let combination = combinations.get_mut(&ukey).unwrap();
+            if combination.deleted {
+              continue;
+            }
+            combination.deleted = true;
+            a_combination_ukeys.remove(&ukey);
+          }
+        }
 
-      //   let mut combinations_b = combinations_by_chunk.get(&b.ukey);
-      //   if let Some(combinations_b) = combinations_b.clone() {
-      //     for combination in combinations_b {
-      //       if combination.deleted {
-      //         continue;
-      //       }
-      //       if combination.a.ukey == b.ukey {
-      //         if !can_chunks_be_integrated(&chunk_group_by_ukey, &a, combination.b) {
-      //           combination.deleted = true;
-      //           combinations.delete(combination);
-      //           continue;
-      //         }
-      //         let new_integrated_size = get_integrated_chunks_size(
-      //           &chunk_graph,
-      //           &module_graph,
-      //           &chunk_group_by_ukey,
-      //           &a,
-      //           combination.b,
-      //           &chunk_size_option,
-      //         );
-      //         let finish_update = combinations.start_update(combination);
-      //         combination.a = &combination.a;
-      //         combination.integrated_size = new_integrated_size;
-      //         combination.a_size = integrated_size;
-      //         combination.size_diff = combination.b_size + integrated_size - new_integrated_size;
-      //         finish_update(true);
-      //       } else if combination.b.ukey == b.ukey {
-      //         if !can_chunks_be_integrated(&chunk_group_by_ukey, combination.a, &a) {
-      //           combination.deleted = true;
-      //           combinations.delete(combination);
-      //           continue;
-      //         }
-      //         let new_integrated_size = get_integrated_chunks_size(
-      //           &chunk_graph,
-      //           &module_graph,
-      //           &chunk_group_by_ukey,
-      //           combination.a,
-      //           &a,
-      //           &chunk_size_option,
-      //         );
-      //         let finish_update = combinations.start_update(combination);
-      //         combination.b = &combination.a;
-      //         combination.integrated_size = new_integrated_size;
-      //         combination.b_size = integrated_size;
-      //         combination.size_diff = integrated_size + combination.a_size - new_integrated_size;
-      //         finish_update(true);
-      //       }
-      //     }
-      //   }
-      //   let combinations = combinations_by_chunk.get(&b.ukey);
-      //   if let Some(combinations) = combinations {
-      //     combinations_by_chunk.insert(&a.ukey, combinations.clone());
-      //   }
-      //   combinations_by_chunk.remove(&b.ukey);
-      // }
+        let b_combination_ukeys = combinations_by_chunk.get(&b);
+        if let Some(b_combination_ukeys) = b_combination_ukeys {
+          for ukey in b_combination_ukeys {
+            let combination = combinations.get_mut(ukey).unwrap();
+            if combination.deleted {
+              continue;
+            }
+            if combination.a == b {
+              let combination_b_chunk = chunk_by_ukey.get(&combination.b).unwrap();
+              if !can_chunks_be_integrated(&chunk_group_by_ukey, &a_chunk, combination_b_chunk) {
+                combination.deleted = true;
+                combinations.delete(ukey);
+                continue;
+              }
+              let new_integrated_size = get_integrated_chunks_size(
+                &chunk_graph,
+                &module_graph,
+                &chunk_by_ukey,
+                &chunk_group_by_ukey,
+                &a,
+                &combination.b,
+                &chunk_size_option,
+              );
+              combination.a = a;
+              combination.integrated_size = new_integrated_size;
+              combination.a_size = integrated_size;
+              combination.size_diff = combination.b_size + integrated_size - new_integrated_size;
+              combinations.update();
+            } else if combination.b == b {
+              let combination_a_chunk = chunk_by_ukey.get(&combination.a).unwrap();
+              if !can_chunks_be_integrated(&chunk_group_by_ukey, &combination_a_chunk, &a_chunk) {
+                combination.deleted = true;
+                combinations.delete(ukey);
+                continue;
+              }
+              let new_integrated_size = get_integrated_chunks_size(
+                &chunk_graph,
+                &module_graph,
+                &chunk_by_ukey,
+                &chunk_group_by_ukey,
+                &combination.a,
+                &a,
+                &chunk_size_option,
+              );
+              combination.b = a;
+              combination.integrated_size = new_integrated_size;
+              combination.b_size = integrated_size;
+              combination.size_diff = integrated_size + combination.a_size - new_integrated_size;
+              combinations.update();
+            }
+          }
+        }
+        let combinations = combinations_by_chunk.get(&b);
+        if let Some(combinations) = combinations {
+          combinations_by_chunk.insert(a.clone(), combinations.clone());
+        }
+        combinations_by_chunk.remove(&b);
+      }
     }
 
     Ok(())
