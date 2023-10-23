@@ -262,7 +262,6 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     let mut ids = self.get_ids(module_graph);
-    // TODO: use self.getIds() instead
     // namespace import
     if ids.is_empty() {
       return self.get_referenced_exports_in_destructuring(None);
