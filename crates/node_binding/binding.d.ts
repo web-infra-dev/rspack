@@ -550,6 +550,7 @@ export interface RawBuiltins {
 }
 
 export interface RawCacheGroupOptions {
+  key: string
   priority?: number
   test?: RegExp | string
   idHint?: string
@@ -1024,7 +1025,7 @@ export interface RawSnapshotStrategy {
 export interface RawSplitChunksOptions {
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
   name?: string
-  cacheGroups?: Record<string, RawCacheGroupOptions>
+  cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
   maxAsyncRequests?: number

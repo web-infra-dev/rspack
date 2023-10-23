@@ -59,7 +59,7 @@ impl SplitChunksPlugin {
       let process_span = tracing::trace_span!("Process ModuleGroup({})", module_group_key);
 
       process_span.in_scope(|| {
-        let cache_group = &self.cache_groups[module_group.cache_group_index];
+        let cache_group = module_group.get_cache_group(&self.cache_groups);
 
       let mut is_reuse_existing_chunk = false;
       let mut is_reuse_existing_chunk_with_all_modules = false;

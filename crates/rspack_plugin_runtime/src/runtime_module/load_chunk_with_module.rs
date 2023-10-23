@@ -54,7 +54,7 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
             .chunk_graph
             .get_block_chunk_group(identifier, &compilation.chunk_group_by_ukey)
           {
-            let mut chunk_ids = chunk_group
+            let chunk_ids = chunk_group
               .chunks
               .iter()
               .filter_map(|chunk_ukey| {
@@ -72,7 +72,6 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
             if chunk_ids.is_empty() {
               return None;
             }
-            chunk_ids.sort_unstable();
             let module = compilation
               .module_graph
               .module_graph_module_by_identifier(identifier)

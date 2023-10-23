@@ -3,7 +3,7 @@ use rspack_core::{ChunkUkey, Module};
 use rspack_identifier::IdentifierSet;
 use rustc_hash::FxHashSet;
 
-use crate::common::SplitChunkSizes;
+use crate::{common::SplitChunkSizes, CacheGroup};
 
 /// `ModuleGroup` is a abstraction of middle step for splitting chunks.
 ///
@@ -17,6 +17,8 @@ use crate::common::SplitChunkSizes;
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub(crate) struct ModuleGroup {
+  /// the real index used for mapping the ModuleGroup to corresponding CacheGroup
+  idx: CacheGroupIdx,
   pub modules: IdentifierSet,
   pub cache_group_index: usize,
   pub cache_group_priority: f64,
@@ -31,6 +33,24 @@ pub(crate) struct ModuleGroup {
 }
 
 impl ModuleGroup {
+  pub fn new(
+    idx: CacheGroupIdx,
+    chunk_name: Option<String>,
+    cache_group_index: usize,
+    cache_group: &CacheGroup,
+  ) -> Self {
+    Self {
+      idx,
+      modules: Default::default(),
+      cache_group_index,
+      cache_group_priority: cache_group.priority,
+      cache_group_reuse_existing_chunk: cache_group.reuse_existing_chunk,
+      sizes: Default::default(),
+      chunks: Default::default(),
+      chunk_name,
+    }
+  }
+
   pub fn add_module(&mut self, module: &dyn Module) {
     let old_len = self.modules.len();
     self.modules.insert(module.identifier());
@@ -54,6 +74,19 @@ impl ModuleGroup {
         *size = size.max(0.0)
       });
     }
+  }
+
+  pub fn get_cache_group<'a>(&self, cache_groups: &'a [CacheGroup]) -> &'a CacheGroup {
+    &cache_groups[self.idx.0]
+  }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct CacheGroupIdx(usize);
+
+impl CacheGroupIdx {
+  pub fn new(idx: usize) -> Self {
+    Self(idx)
   }
 }
 

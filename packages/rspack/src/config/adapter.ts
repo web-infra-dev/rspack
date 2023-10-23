@@ -692,21 +692,20 @@ function toRawSplitChunksOptions(
 	const { name, cacheGroups = {}, ...passThrough } = sc;
 	return {
 		name: name === false ? undefined : name,
-		cacheGroups: Object.fromEntries(
-			Object.entries(cacheGroups)
-				.filter(([_key, group]) => group !== false)
-				.map(([key, group]) => {
-					group = group as Exclude<typeof group, false>;
+		cacheGroups: Object.entries(cacheGroups)
+			.filter(([_key, group]) => group !== false)
+			.map(([key, group]) => {
+				group = group as Exclude<typeof group, false>;
 
-					const { test, name, ...passThrough } = group;
-					const rawGroup: RawCacheGroupOptions = {
-						test,
-						name: name === false ? undefined : name,
-						...passThrough
-					};
-					return [key, rawGroup];
-				})
-		),
+				const { test, name, ...passThrough } = group;
+				const rawGroup: RawCacheGroupOptions = {
+					key,
+					test,
+					name: name === false ? undefined : name,
+					...passThrough
+				};
+				return rawGroup;
+			}),
 		...passThrough
 	};
 }
