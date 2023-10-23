@@ -220,11 +220,7 @@ class Compiler {
 			get CopyRspackPlugin() {
 				return require("./builtin-plugin").CopyRspackPlugin;
 			},
-			optimize: {
-				get LimitChunkCountPlugin() {
-					return require("./builtin-plugin").LimitChunkCountPlugin;
-				}
-			},
+			optimize: require("./builtin-plugin").optimize,
 			webworker: {
 				get WebWorkerTemplatePlugin() {
 					return require("./builtin-plugin").WebWorkerTemplatePlugin;
