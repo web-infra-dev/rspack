@@ -34,7 +34,8 @@ export {
 	EntryPlugin,
 	ExternalsPlugin,
 	EnableChunkLoadingPlugin,
-	HotModuleReplacementPlugin
+	HotModuleReplacementPlugin,
+	optimize
 } from "./builtin-plugin";
 export type {
 	BannerPluginArgument,
