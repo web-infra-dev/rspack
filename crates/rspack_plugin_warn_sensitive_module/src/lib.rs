@@ -78,12 +78,12 @@ impl Plugin for WarnCaseSensitiveModulesPlugin {
     }
 
     for lower_map in module_without_case_map.values() {
-      if lower_map.len() > 1 {
-        let mut modules = lower_map.values().collect::<Vec<_>>();
-        modules.sort_by_key(|m| m.identifier());
+      if lower_map.values().len() > 1 {
+        let mut case_modules = lower_map.values().collect::<Vec<_>>();
+        case_modules.sort_by_key(|m| m.identifier());
         diagnostics.insert(Diagnostic::warn(
           "Sensitive Modules Warn".to_string(),
-          self.create_sensitive_modules_warning(&modules, &compilation.module_graph),
+          self.create_sensitive_modules_warning(&case_modules, &compilation.module_graph),
           0,
           0,
         ));
