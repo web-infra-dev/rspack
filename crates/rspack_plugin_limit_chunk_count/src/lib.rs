@@ -1,6 +1,7 @@
 mod chunk_combination;
 
 use std::{
+  borrow::BorrowMut,
   cmp::Ordering,
   collections::{HashMap, HashSet},
 };
@@ -8,7 +9,7 @@ use std::{
 use chunk_combination::{ChunkCombination, ChunkCombinationBucket, ChunkCombinationUkey};
 use rspack_core::{
   BoxModule, Chunk, ChunkGraph, ChunkGroup, ChunkUkey, ModuleGraph, OptimizeChunksArgs, Plugin,
-  PluginContext, PluginOptimizeChunksOutput,
+  PluginContext, PluginOptimizeChunksOutput, RuntimeSpec,
 };
 use rspack_database::Database;
 use rspack_util::comparators::compare_ids;
@@ -192,13 +193,101 @@ fn get_chunk_size(
 fn add_to_set_map(
   map: &mut HashMap<ChunkUkey, HashSet<ChunkCombinationUkey>>,
   key: &ChunkUkey,
-  value: &ChunkCombination,
+  value: ChunkCombinationUkey,
 ) {
-  todo!();
+  if map.get(key).is_none() {
+    let mut set = HashSet::new();
+    set.insert(value);
+    map.insert(key.clone(), set);
+  } else {
+    let set = map.get(key);
+    if set.is_none() {
+      map.insert(key.clone(), HashSet::new());
+    }
+  }
 }
 
-fn integrate_chunks(a: &ChunkUkey, b: &ChunkUkey) {
+fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
+  let mut set: RuntimeSpec = Default::default();
+  for r in a {
+    set.insert(r.clone());
+  }
+  for r in b {
+    set.insert(r.clone());
+  }
+  set
+}
+
+fn integrate_chunks(
+  chunk_graph: &ChunkGraph,
+  module_graph: &ModuleGraph,
+  chunk_by_ukey: &Database<Chunk>,
+  chunk_group_by_ukey: &Database<ChunkGroup>,
+  a: &ChunkUkey,
+  b: &ChunkUkey,
+) {
   todo!();
+  let chunk_a = chunk_by_ukey.get(a).unwrap().borrow_mut();
+  let chunk_b = chunk_by_ukey.get(b).unwrap().borrow_mut();
+
+  // Decide for one name (deterministic)
+  if let (Some(_), Some(_)) = (&chunk_a.name, &chunk_b.name) {
+    if (chunk_graph.get_number_of_entry_modules(a) > 0)
+      == (chunk_graph.get_number_of_entry_modules(b) > 0)
+    {
+      // When both chunks have entry modules or none have one, use
+      // shortest name
+      if chunk_a.name.as_ref().unwrap().len() != chunk_b.name.as_ref().unwrap().len() {
+        chunk_a.name =
+          if chunk_a.name.as_ref().unwrap().len() < chunk_b.name.as_ref().unwrap().len() {
+            chunk_a.name.clone()
+          } else {
+            chunk_b.name.clone()
+          };
+      } else {
+        chunk_a.name = if chunk_a.name.as_ref().unwrap() < chunk_b.name.as_ref().unwrap() {
+          chunk_a.name.clone()
+        } else {
+          chunk_b.name.clone()
+        };
+      }
+    } else if chunk_graph.get_number_of_entry_modules(b) > 0 {
+      // Pick the name of the chunk with the entry module
+      chunk_a.name = chunk_b.name.clone();
+    }
+  } else if chunk_b.name.is_some() {
+    chunk_a.name = chunk_b.name.clone();
+  }
+
+  // Merge id name hints
+  for hint in &chunk_b.id_name_hints {
+    chunk_a.id_name_hints.insert(hint.clone());
+  }
+
+  // Merge runtime
+  chunk_a.runtime = merge_runtime(&chunk_a.runtime, &chunk_b.runtime);
+
+  // get_chunk_modules is used here to create a clone, because disconnect_chunk_and_module modifies
+  for module in chunk_graph.get_chunk_modules(b, module_graph) {
+    chunk_graph.disconnect_chunk_and_module(b, module.identifier());
+    chunk_graph.connect_chunk_and_module(a.clone(), module.identifier());
+  }
+
+  for (module, chunk_group) in chunk_graph
+    .get_chunk_entry_modules_with_chunk_group_iterable(b)
+    .iter()
+    .into_iter()
+  {
+    chunk_graph.disconnect_chunk_and_entry_module(b, module.clone());
+    chunk_graph.connect_chunk_and_entry_module(a.clone(), module.clone(), chunk_group.clone());
+  }
+
+  for chunk_group_ukey in chunk_b.groups.clone() {
+    let chunk_group = chunk_group_by_ukey.get(&chunk_group_ukey).unwrap();
+    chunk_group.replace_chunk(b, a);
+    chunk_a.add_group(chunk_group_ukey);
+    chunk_b.remove_group(&chunk_group_ukey);
+  }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -315,8 +404,8 @@ impl Plugin for LimitChunkCountPlugin {
           b_size,
         };
 
-        add_to_set_map(&mut combinations_by_chunk, &a.ukey, &c);
-        add_to_set_map(&mut combinations_by_chunk, &b.ukey, &c);
+        add_to_set_map(&mut combinations_by_chunk, &a.ukey, c.ukey);
+        add_to_set_map(&mut combinations_by_chunk, &b.ukey, c.ukey);
         combinations.add(c);
       }
     }
@@ -379,7 +468,14 @@ impl Plugin for LimitChunkCountPlugin {
       let a_chunk = chunk_by_ukey.get(&a).unwrap();
       let b_chunk = chunk_by_ukey.get(&b).unwrap();
       if can_chunks_be_integrated(&chunk_group_by_ukey, a_chunk, b_chunk) {
-        integrate_chunks(&a, &b);
+        integrate_chunks(
+          &chunk_graph,
+          &module_graph,
+          &chunk_by_ukey,
+          &chunk_group_by_ukey,
+          &a,
+          &b,
+        );
         compilation.chunk_by_ukey.remove(&a);
 
         modified_chunks.insert(a);

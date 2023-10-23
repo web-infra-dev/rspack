@@ -175,6 +175,36 @@ impl ChunkGroup {
     false
   }
 
+  pub fn replace_chunk(&mut self, old_chunk: &ChunkUkey, new_chunk: &ChunkUkey) -> bool {
+    match self.chunks.iter().position(|x| x == old_chunk) {
+      // when old_chunk doesn't exist
+      None => false,
+      // when old_chunk exists
+      Some(old_idx) => {
+        match self.chunks.iter().position(|x| x == new_chunk) {
+          // when new_chunk doesn't exist
+          None => {
+            self.chunks[old_idx] = new_chunk.clone();
+            true
+          }
+          // when new_chunk exists
+          Some(new_idx) => {
+            if new_idx < old_idx {
+              self.chunks.remove(old_idx);
+              true
+            } else if new_idx != old_idx {
+              self.chunks[old_idx] = new_chunk.clone();
+              self.chunks.remove(new_idx);
+              true
+            } else {
+              false
+            }
+          }
+        }
+      }
+    }
+  }
+
   pub fn id(&self, compilation: &Compilation) -> String {
     self
       .chunks

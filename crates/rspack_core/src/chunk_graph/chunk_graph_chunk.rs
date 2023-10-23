@@ -73,7 +73,7 @@ impl ChunkGraph {
       .expect("Chunk should be added before")
   }
 
-  pub(crate) fn connect_chunk_and_entry_module(
+  pub fn connect_chunk_and_entry_module(
     &mut self,
     chunk: ChunkUkey,
     module_identifier: ModuleIdentifier,
@@ -385,5 +385,17 @@ impl ChunkGraph {
       }
     }
     set.into_iter()
+  }
+
+  pub fn disconnect_chunk_and_entry_module(
+    &mut self,
+    chunk: &ChunkUkey,
+    module_identifier: ModuleIdentifier,
+  ) {
+    let chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
+    chunk_graph_module.chunks.remove(chunk);
+
+    let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(*chunk);
+    chunk_graph_chunk.entry_modules.remove(&module_identifier);
   }
 }
