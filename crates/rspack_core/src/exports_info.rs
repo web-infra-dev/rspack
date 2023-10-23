@@ -343,6 +343,11 @@ impl ExportsInfoId {
       UsedName::Vec(_) => todo!(),
     }
   }
+
+  fn is_used(&self, runtime: Option<&RuntimeSpec>, mg: &ModuleGraph) -> bool {
+    let exports_info = mg.get_exports_info_by_id(self);
+    exports_info.is_used(runtime, mg)
+  }
 }
 
 impl Default for ExportsInfoId {
@@ -442,6 +447,27 @@ impl ExportsInfo {
         info.get_used(runtime)
       }
     }
+  }
+
+  pub fn is_used(&self, runtime: Option<&RuntimeSpec>, mg: &ModuleGraph) -> bool {
+    if let Some(redirect_to) = self.redirect_to {
+      if redirect_to.is_used(runtime, mg) {
+        return true;
+      }
+    } else {
+      let other_exports_info = mg.get_export_info_by_id(&self.other_exports_info);
+      if other_exports_info.get_used(runtime) != UsageState::Unused {
+        return true;
+      }
+    }
+
+    for export_info_id in self.exports.values() {
+      let export_info = mg.get_export_info_by_id(export_info_id);
+      if export_info.get_used(runtime) != UsageState::Unused {
+        return true;
+      }
+    }
+    false
   }
 
   pub fn get_ordered_exports(&self) -> impl Iterator<Item = &ExportInfoId> {
@@ -1003,7 +1029,6 @@ impl ExportInfo {
       resolve_filter: ResolveFilterFnTy,
       mg: &mut ModuleGraph,
     ) -> Option<ResolvedExportInfoTargetWithCircular> {
-      println!("start");
       if let Some(input_target) = input_target {
         let mut target = ResolvedExportInfoTarget {
           module: input_target

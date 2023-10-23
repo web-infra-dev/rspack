@@ -1,14 +1,6 @@
 --- expected
 +++ actual
-@@ -3,12 +3,14 @@
- ---
- ```js title=main.js
- (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-+"./Layout.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-+'use strict';
-+__webpack_require__.r(__webpack_exports__);
-+function Layout() {}
-+},
+@@ -6,9 +6,6 @@
  "./Something.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  'use strict';
  __webpack_require__.r(__webpack_exports__);
@@ -18,28 +10,3 @@
  class Something {
  }
  },
-@@ -18,6 +20,7 @@
- __webpack_require__.d(__webpack_exports__, {
-   'Sider': function() { return _Something__WEBPACK_IMPORTED_MODULE_1_["default"]; }
- });
-+/* harmony import */var _layout_export__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./layout_export */"./layout_export.js");
- /* harmony import */var _Something__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./Something */"./Something.js");
- 
- 
-@@ -30,6 +33,16 @@
- 
- (0, _export__WEBPACK_IMPORTED_MODULE_0_.Sider)();
- },
-+"./layout_export.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-+'use strict';
-+__webpack_require__.r(__webpack_exports__);
-+/* harmony import */var _Layout_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./Layout.js */"./Layout.js");
-+/* harmony import */var _Something_js__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./Something.js */"./Something.js");
-+
-+
-+_Layout_js__WEBPACK_IMPORTED_MODULE_0_["default"].sider = _Something_js__WEBPACK_IMPORTED_MODULE_1_["default"];
-+var __WEBPACK_DEFAULT_EXPORT__ = _Layout_js__WEBPACK_IMPORTED_MODULE_0_["default"];
-+},
- 
- },function(__webpack_require__) {
- var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
