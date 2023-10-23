@@ -1,5 +1,3 @@
+const { FilteredStatus } = require("../../../lib/util/filterUtil")
 
-// Didn't turn on every cases
-module.exports = () => {return true}
-
-							
+module.exports = () => {return [FilteredStatus.PARTIAL_PASS, "https://github.com/web-infra-dev/rspack/issues/3180, https://github.com/web-infra-dev/rspack/issues/4397"]}
