@@ -277,7 +277,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
           if ids.len() == 1 {
             return self.get_referenced_exports_in_destructuring(None);
           }
-          ids = ids.into_iter().skip(1).collect::<Vec<_>>();
+          ids.drain(0..1);
           namespace_object_as_context = true;
         }
         ExportsType::Dynamic => {
