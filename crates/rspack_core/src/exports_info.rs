@@ -467,29 +467,9 @@ impl ExportsInfo {
         return true;
       }
     }
-    return false;
-    // /**
-    // 	 * @param {RuntimeSpec} runtime the runtime
-    // 	 * @returns {boolean} true, when the module exports are used in any way
-    // 	 */
-    // 	isUsed(runtime) {
-    // 		if (this._redirectTo !== undefined) {
-    // 			if (this._redirectTo.isUsed(runtime)) {
-    // 				return true;
-    // 			}
-    // 		} else {
-    // 			if (this._otherExportsInfo.getUsed(runtime) !== UsageState.Unused) {
-    // 				return true;
-    // 			}
-    // 		}
-    // 		for (const exportInfo of this._exports.values()) {
-    // 			if (exportInfo.getUsed(runtime) !== UsageState.Unused) {
-    // 				return true;
-    // 			}
-    // 		}
-    // 		return false;
-    // 	}
+    false
   }
+
   pub fn get_ordered_exports(&self) -> impl Iterator<Item = &ExportInfoId> {
     // TODO need order
     self.exports.values()

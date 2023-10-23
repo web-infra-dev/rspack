@@ -701,7 +701,6 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
           &down_casted_dep.id,
           runtime,
         );
-        dbg!(&mode);
         ConnectionState::Bool(!matches!(
           mode.ty,
           ExportModeType::Unused | ExportModeType::EmptyStar
