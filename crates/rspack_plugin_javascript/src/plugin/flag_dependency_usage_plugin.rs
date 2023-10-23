@@ -10,7 +10,7 @@ use rspack_error::Result;
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::utils::join_jsword;
+use crate::{dependency::HarmonyExportImportedSpecifierDependency, utils::join_jsword};
 
 #[allow(unused)]
 pub struct FlagDependencyUsagePluginProxy<'a> {
@@ -120,6 +120,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           md.get_referenced_exports(&self.compilation.module_graph, runtime.as_ref())
         } else {
           continue;
+        };
+        if let Some(dep) = dep.downcast_ref::<HarmonyExportImportedSpecifierDependency>() {
+          dbg!(&dep);
         };
         dbg!(
           &connection,

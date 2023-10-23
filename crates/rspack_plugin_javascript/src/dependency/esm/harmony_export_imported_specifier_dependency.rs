@@ -655,7 +655,13 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
   fn get_ids(&self, mg: &ModuleGraph) -> Vec<JsWord> {
     mg.get_dep_meta_if_existing(self.id)
       .map(|meta| meta.ids.clone())
-      .unwrap_or_else(|| self.mode_ids.iter().map(|(id, _)| id.clone()).collect())
+      .unwrap_or_else(|| {
+        self
+          .mode_ids
+          .iter()
+          .map(|(id, orig)| orig.clone().unwrap_or(id.clone()))
+          .collect()
+      })
   }
 
   fn dependency_debug_name(&self) -> &'static str {
@@ -718,6 +724,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
     runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     let mode = self.get_mode(self.name.clone(), module_graph, &self.id, runtime);
+    dbg!(&mode);
     match mode.ty {
       ExportModeType::Missing
       | ExportModeType::Unused
