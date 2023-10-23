@@ -1003,7 +1003,6 @@ impl ExportInfo {
       resolve_filter: ResolveFilterFnTy,
       mg: &mut ModuleGraph,
     ) -> Option<ResolvedExportInfoTargetWithCircular> {
-      println!("start");
       if let Some(input_target) = input_target {
         let mut target = ResolvedExportInfoTarget {
           module: input_target

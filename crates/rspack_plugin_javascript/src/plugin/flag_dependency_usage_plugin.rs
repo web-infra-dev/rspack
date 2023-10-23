@@ -242,6 +242,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     force_side_effects: bool,
     queue: &mut VecDeque<(ModuleIdentifier, Option<RuntimeSpec>)>,
   ) {
+    // dbg!(&module_id, &used_exports);
     let mgm = self
       .compilation
       .module_graph
@@ -344,6 +345,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           None => false,
         }
       {
+        dbg!(force_side_effects, &mgm.factory_meta);
         return;
       }
       let changed_flag = mgm_exports_info_id

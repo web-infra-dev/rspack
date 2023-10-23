@@ -1,14 +1,6 @@
 --- expected
 +++ actual
-@@ -10,6 +10,7 @@
-   'something': function() { return _lib__WEBPACK_IMPORTED_MODULE_0_["default"]; }
- });
- /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
-+/* harmony import */var _src_a__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./src/a */"./src/a.js");
- 
-  // export {
-  //   result as test
-@@ -26,13 +27,20 @@
+@@ -26,7 +26,7 @@
  'use strict';
  __webpack_require__.r(__webpack_exports__);
  __webpack_require__.d(__webpack_exports__, {
@@ -17,16 +9,3 @@
  });
   const secret = "888";
   const result = 20000;
-  const something = function() {};
- function __WEBPACK_DEFAULT_EXPORT__(){}
- },
-+"./src/a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-+'use strict';
-+__webpack_require__.r(__webpack_exports__);
-+var __WEBPACK_DEFAULT_EXPORT__ = (()=>{
-+    console.log('');
-+});
-+},
- 
- },function(__webpack_require__) {
- var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
