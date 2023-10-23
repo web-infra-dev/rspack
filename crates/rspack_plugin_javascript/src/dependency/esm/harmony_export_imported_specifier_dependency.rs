@@ -103,8 +103,7 @@ impl HarmonyExportImportedSpecifierDependency {
       exports_info.get_used(UsedName::Str(name.clone()), runtime, module_graph)
         == UsageState::Unused
     } else {
-      false
-      // TODO: runtime opt
+      !exports_info.is_used(runtime, module_graph)
     };
     if is_name_unused {
       let mut mode = ExportMode::new(ExportModeType::Unused);

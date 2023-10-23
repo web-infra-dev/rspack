@@ -343,6 +343,11 @@ impl ExportsInfoId {
       UsedName::Vec(_) => todo!(),
     }
   }
+
+  fn is_used(&self, runtime: Option<&RuntimeSpec>, mg: &ModuleGraph) -> bool {
+    let exports_info = mg.get_exports_info_by_id(self);
+    exports_info.is_used(runtime, mg)
+  }
 }
 
 impl Default for ExportsInfoId {
@@ -444,6 +449,47 @@ impl ExportsInfo {
     }
   }
 
+  pub fn is_used(&self, runtime: Option<&RuntimeSpec>, mg: &ModuleGraph) -> bool {
+    if let Some(redirect_to) = self.redirect_to {
+      if redirect_to.is_used(runtime, mg) {
+        return true;
+      }
+    } else {
+      let other_exports_info = mg.get_export_info_by_id(&self.other_exports_info);
+      if other_exports_info.get_used(runtime) != UsageState::Unused {
+        return true;
+      }
+    }
+
+    for export_info_id in self.exports.values() {
+      let export_info = mg.get_export_info_by_id(export_info_id);
+      if export_info.get_used(runtime) != UsageState::Unused {
+        return true;
+      }
+    }
+    return false;
+    // /**
+    // 	 * @param {RuntimeSpec} runtime the runtime
+    // 	 * @returns {boolean} true, when the module exports are used in any way
+    // 	 */
+    // 	isUsed(runtime) {
+    // 		if (this._redirectTo !== undefined) {
+    // 			if (this._redirectTo.isUsed(runtime)) {
+    // 				return true;
+    // 			}
+    // 		} else {
+    // 			if (this._otherExportsInfo.getUsed(runtime) !== UsageState.Unused) {
+    // 				return true;
+    // 			}
+    // 		}
+    // 		for (const exportInfo of this._exports.values()) {
+    // 			if (exportInfo.getUsed(runtime) !== UsageState.Unused) {
+    // 				return true;
+    // 			}
+    // 		}
+    // 		return false;
+    // 	}
+  }
   pub fn get_ordered_exports(&self) -> impl Iterator<Item = &ExportInfoId> {
     // TODO need order
     self.exports.values()
