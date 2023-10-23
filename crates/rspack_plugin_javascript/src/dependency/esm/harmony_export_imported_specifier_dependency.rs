@@ -562,26 +562,6 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
         })
       }
       ExportModeType::ReexportFakeNamespaceObject => {
-        // const from = moduleGraph.getConnection(this);
-        // 				return {
-        // 					exports: [
-        // 						{
-        // 							name: mode.name,
-        // 							from,
-        // 							export: null,
-        // 							exports: [
-        // 								{
-        // 									name: "default",
-        // 									canMangle: false,
-        // 									from,
-        // 									export: null
-        // 								}
-        // 							]
-        // 						}
-        // 					],
-        // 					priority: 1,
-        // 					dependencies: [from.module]
-        // 				};
         let from = mg.connection_by_dependency(self.id());
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {

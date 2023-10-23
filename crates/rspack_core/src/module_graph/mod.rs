@@ -560,7 +560,6 @@ impl ModuleGraph {
   /// We can't insert all sort of things into one hashmap like javascript, so we create different
   /// hashmap to store different kinds of meta.
   pub fn get_dep_meta_if_existing(&self, id: DependencyId) -> Option<&DependencyExtraMeta> {
-    // dbg!(&self.dep_meta_map);
     self.dep_meta_map.get(&id)
   }
 

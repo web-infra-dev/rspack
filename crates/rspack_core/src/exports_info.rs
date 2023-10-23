@@ -1118,7 +1118,6 @@ impl ExportInfo {
       }
       None => None,
       Some(ResolvedExportInfoTargetWithCircular::Target(target)) => {
-        println!("something two");
         for val in values.into_iter().skip(1) {
           let t = resolve_target(Some(val), already_visited, resolve_filter.clone(), mg);
           match t {
