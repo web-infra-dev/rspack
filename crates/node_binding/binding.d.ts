@@ -782,7 +782,9 @@ export interface RawLibraryOptions {
 }
 
 export interface RawLimitChunkCountPluginOptions {
-
+  chunkOverhead?: number
+  entryChunkMultiplicator?: number
+  maxChunks: number
 }
 
 export interface RawModuleOptions {
