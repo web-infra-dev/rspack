@@ -1096,7 +1096,7 @@ impl ExportInfo {
     }
     already_visited.insert(self.id);
 
-    let mut values = self
+    let values = self
       .get_max_target()
       .values()
       .map(|item| UnResolvedExportInfoTarget {
@@ -1111,8 +1111,6 @@ impl ExportInfo {
       resolve_filter.clone(),
       mg,
     );
-
-    dbg!(&values);
 
     match target {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => {

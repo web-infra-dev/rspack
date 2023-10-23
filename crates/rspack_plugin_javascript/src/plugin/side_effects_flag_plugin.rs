@@ -310,7 +310,6 @@ impl Plugin for SideEffectsFlagPlugin {
         None => continue,
       };
       let side_effects_state = module.get_side_effects_connection_state(mg, &mut module_chain);
-      dbg!(mi);
       if side_effects_state != rspack_core::ConnectionState::Bool(false) {
         continue;
       }
@@ -350,10 +349,7 @@ impl Plugin for SideEffectsFlagPlugin {
             mg,
             Arc::new(|target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
               mg.module_by_identifier(&target.module)
-                .unwrap_or_else(|| {
-                  dbg!(&mg.module_identifier_to_module);
-                  panic!("should have module")
-                })
+                .expect("should have module")
                 .get_side_effects_connection_state(mg, &mut HashSet::default())
                 == ConnectionState::Bool(false)
             }),

@@ -151,7 +151,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           },
           dep_id,
         );
-        dbg!(&ele, exports_info_id.get_exports_info(self.mg));
+        // dbg!(&ele, exports_info_id.get_exports_info(self.mg));
       }
     }
 
