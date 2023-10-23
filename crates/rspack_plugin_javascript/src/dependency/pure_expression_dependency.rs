@@ -29,6 +29,10 @@ impl Dependency for PureExpressionDependency {
   fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
     self.used_by_exports = used_by_exports;
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "PureExpressionDependency"
+  }
 }
 
 impl AsModuleDependency for PureExpressionDependency {

@@ -227,6 +227,10 @@ impl Dependency for HarmonyImportSpecifierDependency {
       .map(|meta| meta.ids.clone())
       .unwrap_or_else(|| self.ids.clone())
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "HarmonyImportSpecifierDependency"
+  }
 }
 
 impl ModuleDependency for HarmonyImportSpecifierDependency {
@@ -295,9 +299,5 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     }
 
     self.get_referenced_exports_in_destructuring(Some(&ids))
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyImportSpecifierDependency"
   }
 }

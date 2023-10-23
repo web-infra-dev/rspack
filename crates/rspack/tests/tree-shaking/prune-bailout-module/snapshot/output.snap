@@ -25,8 +25,7 @@ __webpack_require__.d(__webpack_exports__, {
   'a': function() { return _a_js__WEBPACK_IMPORTED_MODULE_0_["default"]; }
 });
 /* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a.js */"./a.js");
-
-
+ // export {default as b} from './b.js'
 },
 
 },function(__webpack_require__) {

@@ -657,6 +657,10 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
       .map(|meta| meta.ids.clone())
       .unwrap_or_else(|| self.mode_ids.iter().map(|(id, _)| id.clone()).collect())
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "HarmonyExportImportedSpecifierDependency"
+  }
 }
 
 impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
@@ -768,10 +772,6 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
           .collect::<Vec<_>>()
       }
     }
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyExportImportedSpecifierDependency"
   }
 }
 
