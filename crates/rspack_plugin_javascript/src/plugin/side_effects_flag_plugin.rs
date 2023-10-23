@@ -297,15 +297,14 @@ impl Plugin for SideEffectsFlagPlugin {
     // SAFETY: this method will not modify the map, and we can guarantee there is no other
     // thread access the map at the same time.
     let mg = &mut compilation.module_graph;
-    // let module_identifier_to_module = std::mem::take(&mut mg.module_identifier_to_module);
     let module_id_list = mg
       .module_identifier_to_module
       .keys()
       .cloned()
       .collect::<Vec<_>>();
-    for mi in module_id_list {
+    for module_identifier in module_id_list {
       let mut module_chain = HashSet::default();
-      let module = match mg.module_by_identifier(&mi) {
+      let module = match mg.module_by_identifier(&module_identifier) {
         Some(module) => module,
         None => continue,
       };
@@ -313,7 +312,7 @@ impl Plugin for SideEffectsFlagPlugin {
       if side_effects_state != rspack_core::ConnectionState::Bool(false) {
         continue;
       }
-      let cur_exports_info_id = mg.get_exports_info(&mi).id;
+      let cur_exports_info_id = mg.get_exports_info(&module_identifier).id;
 
       let incoming_connections = mg.get_incoming_connections_cloned(module);
       for con in incoming_connections {
@@ -375,10 +374,7 @@ impl Plugin for SideEffectsFlagPlugin {
           continue;
         }
 
-        // get dependency by id instead directly use it here because we don't  by
         let ids = dep_id.get_ids(mg);
-
-        // dbg!(&ids);
         if !ids.is_empty() {
           let export_info_id = cur_exports_info_id.get_export_info(&ids[0], mg);
 
