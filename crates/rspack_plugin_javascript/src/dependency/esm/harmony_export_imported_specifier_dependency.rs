@@ -499,7 +499,10 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
     let mode = self.get_mode(self.name.clone(), mg, &self.id, None);
     match mode.ty {
       ExportModeType::Missing => None,
-      ExportModeType::Unused => todo!(),
+      ExportModeType::Unused => {
+        // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L630-L742
+        unreachable!()
+      }
       ExportModeType::EmptyStar => Some(ExportsSpec {
         exports: ExportsOfExportsSpec::Array(vec![]),
         hide_export: mode
