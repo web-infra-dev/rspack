@@ -185,6 +185,9 @@ describe("Stats", () => {
 		<t> process module group map: X ms
 		<t> ensure max size fit: X ms
 
+		LOG from rspack.WarnCaseSensitiveModulesPlugin
+		<t> check case sensitive modules: X ms
+
 		LOG from rspack.buildChunkGraph
 		<t> prepare entrypoints: X ms
 		<t> process queue: X ms
