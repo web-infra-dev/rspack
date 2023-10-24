@@ -1,6 +1,6 @@
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeModule,
+  Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
 
@@ -9,12 +9,16 @@ use crate::impl_runtime_module;
 #[derive(Debug, Eq)]
 pub struct GetTrustedTypesPolicyRuntimeModule {
   id: Identifier,
+  create_script: bool,
+  create_script_url: bool,
 }
 
-impl Default for GetTrustedTypesPolicyRuntimeModule {
-  fn default() -> Self {
+impl GetTrustedTypesPolicyRuntimeModule {
+  pub fn new(runtime_requirements: &RuntimeGlobals) -> Self {
     Self {
       id: Identifier::from("webpack/runtime/get_trusted_types_policy"),
+      create_script: runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT),
+      create_script_url: runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT_URL),
     }
   }
 }
@@ -31,11 +35,33 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
       .trusted_types
       .as_ref()
       .expect("should have trusted_types");
-    RawSource::from(include_str!("runtime/get_trusted_types_policy.js").replace(
+
+    let mut result = include_str!("runtime/get_trusted_types_policy.js").replace(
       "$policyName$",
       &trusted_types.policy_name.clone().unwrap_or_default(),
-    ))
-    .boxed()
+    );
+    let mut policy_content: Vec<String> = Vec::new();
+    println!("{} {}", self.create_script, self.create_script_url);
+    if self.create_script {
+      policy_content.push(format!(
+        r#"
+        createScript: function (script) {{
+          return script;
+        }}
+        "#
+      ));
+    }
+    if self.create_script_url {
+      policy_content.push(format!(
+        r#"
+        createScriptURL: function (url) {{
+          return url;
+        }}
+        "#
+      ));
+    }
+    result = result.replace("$policyContent$", policy_content.join(",").as_ref());
+    RawSource::from(result).boxed()
   }
 }
 
