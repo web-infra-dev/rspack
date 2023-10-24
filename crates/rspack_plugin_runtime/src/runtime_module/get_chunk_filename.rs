@@ -28,7 +28,7 @@ impl GetChunkFilenameRuntimeModule {
     all_chunks: bool,
   ) -> Self {
     Self {
-      id: Identifier::from(format!("webpack/runtime/get_chunk_filename/{global}")),
+      id: Identifier::from(format!("webpack/runtime/get_chunk_filename/{content_type}")),
       chunk: None,
       content_type,
       source_type,

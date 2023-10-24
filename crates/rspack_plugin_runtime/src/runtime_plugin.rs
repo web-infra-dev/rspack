@@ -167,7 +167,7 @@ impl Plugin for RuntimePlugin {
         RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME => compilation.add_runtime_module(
           chunk,
           GetChunkFilenameRuntimeModule::new(
-            "js",
+            "javascript",
             SourceType::JavaScript,
             RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
             false,
