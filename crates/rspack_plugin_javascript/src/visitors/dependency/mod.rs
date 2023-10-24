@@ -95,6 +95,7 @@ pub fn scan_dependencies(
   ));
 
   // TODO it should enable at js/auto or js/dynamic, but builtins provider will inject require at esm
+  // https://github.com/web-infra-dev/rspack/issues/3544
   program.visit_with(&mut CommonJsImportDependencyScanner::new(
     &mut dependencies,
     &mut presentational_dependencies,
