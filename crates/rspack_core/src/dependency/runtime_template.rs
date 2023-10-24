@@ -61,11 +61,12 @@ pub fn export_from_import(
 
   if !export_name.is_empty() {
     // TODO check used
-    let access = format!("{import_var}{}", property_access(&export_name, 0));
+    let property = property_access(&export_name, 0);
     if is_call && !call_context {
-      return format!("(0, {access})");
+      format!("(0, {import_var}{property})")
+    } else {
+      format!("{import_var}{property}")
     }
-    access
   } else {
     import_var.to_string()
   }

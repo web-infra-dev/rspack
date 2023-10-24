@@ -27,6 +27,7 @@ impl Dependency for HarmonyExportSpecifierDependency {
   fn dependency_debug_name(&self) -> &'static str {
     "HarmonyExportSpecifierDependency"
   }
+
   fn id(&self) -> &DependencyId {
     &self.id
   }
