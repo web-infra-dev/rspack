@@ -66,32 +66,32 @@ fn compare_chunks_with_graph(
 
 // true, if a is always a parent of b
 fn is_available_chunk(chunk_group_by_ukey: &Database<ChunkGroup>, a: &Chunk, b: &Chunk) -> bool {
-  let mut queue = b.groups.clone();
-  while let Some(chunk_group_ukey) = queue.iter().next().cloned() {
-    queue.remove(&chunk_group_ukey);
+  let mut queue = b.groups.clone().into_iter().collect::<Vec<_>>();
+  while let Some(chunk_group_ukey) = queue.pop() {
     if a.is_in_group(&chunk_group_ukey) {
       continue;
     }
-    let chunk_group = chunk_group_by_ukey.get(&chunk_group_ukey);
-    if chunk_group.is_none() {
-      continue;
-    }
-    let chunk_group = chunk_group.unwrap();
+    let chunk_group = chunk_group_by_ukey.expect_get(&chunk_group_ukey);
     if chunk_group.is_initial() {
       return false;
     }
     for parent in chunk_group.parents_iterable() {
-      queue.insert(parent.clone());
+      queue.push(parent.clone());
     }
   }
   true
 }
 
 fn can_chunks_be_integrated(
+  chunk_graph: &ChunkGraph,
   chunk_group_by_ukey: &Database<ChunkGroup>,
   chunk_a: &Chunk,
   chunk_b: &Chunk,
 ) -> bool {
+  if chunk_a.prevent_integration || chunk_b.prevent_integration {
+    return false;
+  }
+
   let has_runtime_a = chunk_a.has_runtime(chunk_group_by_ukey);
   let has_runtime_b = chunk_b.has_runtime(chunk_group_by_ukey);
 
@@ -104,6 +104,13 @@ fn can_chunks_be_integrated(
       return false;
     }
   }
+
+  if chunk_graph.get_number_of_entry_modules(&chunk_a.ukey) > 0
+    || chunk_graph.get_number_of_entry_modules(&chunk_b.ukey) > 0
+  {
+    return false;
+  }
+
   true
 }
 
@@ -371,7 +378,7 @@ impl Plugin for LimitChunkCountPlugin {
     for (b_idx, b) in chunks.iter().enumerate() {
       for a_idx in 0..b_idx {
         let a = &chunks[a_idx];
-        if !can_chunks_be_integrated(&chunk_group_by_ukey, a, b) {
+        if !can_chunks_be_integrated(&chunk_graph, &chunk_group_by_ukey, a, b) {
           continue;
         }
 
@@ -477,7 +484,7 @@ impl Plugin for LimitChunkCountPlugin {
 
       let a_chunk = chunk_by_ukey.get(&a).unwrap();
       let b_chunk = chunk_by_ukey.get(&b).unwrap();
-      if can_chunks_be_integrated(&chunk_group_by_ukey, a_chunk, b_chunk) {
+      if can_chunks_be_integrated(&chunk_graph, &chunk_group_by_ukey, a_chunk, b_chunk) {
         integrate_chunks(
           &mut compilation.chunk_graph,
           &module_graph,
@@ -520,7 +527,7 @@ impl Plugin for LimitChunkCountPlugin {
               continue;
             }
             if combination.a == b {
-              if !can_chunks_be_integrated(&chunk_group_by_ukey, &a_chunk, &b_chunk) {
+              if !can_chunks_be_integrated(&chunk_graph, &chunk_group_by_ukey, &a_chunk, &b_chunk) {
                 combination.deleted = true;
                 combinations.delete(ukey);
                 continue;
@@ -541,7 +548,7 @@ impl Plugin for LimitChunkCountPlugin {
               combination.size_diff = combination.b_size + integrated_size - new_integrated_size;
               combinations.update();
             } else if combination.b == b {
-              if !can_chunks_be_integrated(&chunk_group_by_ukey, &b_chunk, &a_chunk) {
+              if !can_chunks_be_integrated(&chunk_graph, &chunk_group_by_ukey, &b_chunk, &a_chunk) {
                 combination.deleted = true;
                 combinations.delete(ukey);
                 continue;
