@@ -1,4 +1,4 @@
 module.exports = {
 	modules: false,
-	runtimeModules: ["webpack/runtime/base_uri"]
+	runtimeModules: ["webpack/runtime/jsonp_chunk_loading"]
 };

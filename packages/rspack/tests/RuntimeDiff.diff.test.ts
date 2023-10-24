@@ -11,7 +11,7 @@ const cases: string[] = fs
 describe("RuntimeDiffCases", () => {
 	cases.forEach(name => {
 		const src = path.join(caseDir, name);
-		const dist = path.join(tempDir, `diff-${name}`);
+		const dist = path.join(tempDir, `runtime-diff/${name}`);
 		createDiffCase(name, src, dist);
 	});
 });
