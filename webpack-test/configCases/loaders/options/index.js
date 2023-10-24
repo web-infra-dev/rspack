@@ -44,8 +44,8 @@ it("should get options", function() {
 	});
 });
 
-const never = false;
-if (never) {
-	require("./error1");
-	require("./error2");
-}
+// const never = false;
+// if (never) {
+// 	require("./error1");
+// 	require("./error2");
+// }
