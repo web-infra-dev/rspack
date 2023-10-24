@@ -157,6 +157,7 @@ export class DiffBuilder implements ITestProcessor {
 					rspackModules.has(file) && formatCode(rspackModules.get(file)!);
 				const webpackModuleContent =
 					webpackModules.has(file) && formatCode(webpackModules.get(file)!);
+				expect(rspackModuleContent || webpackModuleContent).toBeTruthy();
 				expect(rspackModuleContent).toEqual(webpackModuleContent);
 			}
 		} else if (Array.isArray(moduleList)) {
@@ -165,6 +166,7 @@ export class DiffBuilder implements ITestProcessor {
 					rspackModules.has(file) && formatCode(rspackModules.get(file)!);
 				const webpackModuleContent =
 					webpackModules.has(file) && formatCode(webpackModules.get(file)!);
+				expect(rspackModuleContent || webpackModuleContent).toBeTruthy();
 				expect(rspackModuleContent).toEqual(webpackModuleContent);
 			}
 		}
