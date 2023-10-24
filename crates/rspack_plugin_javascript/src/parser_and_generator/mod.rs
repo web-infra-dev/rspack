@@ -182,6 +182,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             top_level_ctxt,
             &mut rewrite_usage_span,
             &import_map,
+            module_identifier,
           );
           plugin.enable();
           program.visit_with(&mut plugin);
