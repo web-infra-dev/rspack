@@ -20,7 +20,10 @@ export class TestCompilerManager<T extends ECompilerType>
 		fn: (options: TCompilerOptions<T>) => TCompilerOptions<T>
 	) {
 		try {
-			this.options = fn(this.options);
+			const newOptions = fn(this.options);
+			if (newOptions) {
+				this.options = newOptions;
+			}
 		} catch (e) {
 			context.emitError(e);
 		}
@@ -33,7 +36,10 @@ export class TestCompilerManager<T extends ECompilerType>
 		) => TCompiler<T> | null
 	) {
 		try {
-			this.compiler = fn(this.options, this.compiler);
+			const newCompiler = fn(this.options, this.compiler);
+			if (newCompiler) {
+				this.compiler = newCompiler;
+			}
 		} catch (e) {
 			context.emitError(e);
 		}
@@ -46,7 +52,10 @@ export class TestCompilerManager<T extends ECompilerType>
 		) => TCompilerStats<T> | null
 	) {
 		try {
-			this.stats = fn(this.compiler, this.stats);
+			const newStats = fn(this.compiler, this.stats);
+			if (newStats) {
+				this.stats = newStats;
+			}
 		} catch (e) {
 			context.emitError(e);
 		}
@@ -56,7 +65,10 @@ export class TestCompilerManager<T extends ECompilerType>
 		fn: <R>(compiler: TCompiler<T> | null, result: R) => R
 	) {
 		try {
-			this.result = fn(this.compiler, this.result);
+			const newResult = fn(this.compiler, this.result);
+			if (newResult) {
+				this.result = newResult;
+			}
 		} catch (e) {
 			context.emitError(e);
 		}

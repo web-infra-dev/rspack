@@ -10,21 +10,21 @@ import { webpack } from "webpack";
 import { rspack } from "@rspack/core";
 import deepmerge from "deepmerge";
 import { parseBundleModules } from "./parse-bundle-module";
-import { formatCode } from "./format-code";
+import { IFormatCodeOptions, formatCode } from "./format-code";
 import { replaceRuntimeModuleName } from "./replace-runtime-module-name";
 import { createModulePlaceholderPlugin } from "../../plugin/module-placeholder";
 
 const OUTPUT_MAIN_FILE = "bundle.js";
 
-export interface IDiffBuilderOptions {
+export interface IDiffBuilderOptions extends IFormatCodeOptions {
 	webpackDist: string;
 	rspackDist: string;
 	modules: string[] | boolean;
 	runtimeModules: string[] | boolean;
-	ignoreModuleId: boolean;
 }
 
 export class DiffBuilder implements ITestProcessor {
+	private hashes: string[] = [];
 	constructor(private options: IDiffBuilderOptions) {}
 
 	async config(context: ITestContext) {
@@ -99,7 +99,11 @@ export class DiffBuilder implements ITestProcessor {
 				new Promise<void>((resolve, reject) => {
 					compiler.run((error, stats) => {
 						if (error) return reject(error);
-						if (stats) context.setStats(() => stats);
+						if (stats)
+							context.setStats(() => {
+								stats.hash && this.hashes.push(stats.hash);
+								return stats;
+							});
 						resolve();
 					});
 				}),
@@ -110,7 +114,11 @@ export class DiffBuilder implements ITestProcessor {
 				new Promise<void>((resolve, reject) => {
 					compiler.run((error, stats) => {
 						if (error) return reject(error);
-						if (stats) context.setStats(() => stats);
+						if (stats)
+							context.setStats(() => {
+								stats.hash && this.hashes.push(stats.hash);
+								return stats;
+							});
 						resolve();
 					});
 				}),
@@ -147,6 +155,7 @@ export class DiffBuilder implements ITestProcessor {
 		webpackModules: Map<string, string>,
 		moduleList: string[] | boolean
 	) {
+		const formatOptions = this.createFormatOptions();
 		if (moduleList === true) {
 			const modules = [
 				...rspackModules.keys(),
@@ -154,18 +163,22 @@ export class DiffBuilder implements ITestProcessor {
 			].filter((i, idx, arr) => arr.indexOf(i) === idx);
 			for (let file of modules) {
 				const rspackModuleContent =
-					rspackModules.has(file) && formatCode(rspackModules.get(file)!);
+					rspackModules.has(file) &&
+					formatCode(rspackModules.get(file)!, formatOptions);
 				const webpackModuleContent =
-					webpackModules.has(file) && formatCode(webpackModules.get(file)!);
+					webpackModules.has(file) &&
+					formatCode(webpackModules.get(file)!, formatOptions);
 				expect(rspackModuleContent || webpackModuleContent).toBeTruthy();
 				expect(rspackModuleContent).toEqual(webpackModuleContent);
 			}
 		} else if (Array.isArray(moduleList)) {
 			for (let file of moduleList as string[]) {
 				const rspackModuleContent =
-					rspackModules.has(file) && formatCode(rspackModules.get(file)!);
+					rspackModules.has(file) &&
+					formatCode(rspackModules.get(file)!, formatOptions);
 				const webpackModuleContent =
-					webpackModules.has(file) && formatCode(webpackModules.get(file)!);
+					webpackModules.has(file) &&
+					formatCode(webpackModules.get(file)!, formatOptions);
 				expect(rspackModuleContent || webpackModuleContent).toBeTruthy();
 				expect(rspackModuleContent).toEqual(webpackModuleContent);
 			}
@@ -234,5 +247,18 @@ export class DiffBuilder implements ITestProcessor {
 			};
 		}
 		return options;
+	}
+
+	private createFormatOptions() {
+		const formatOptions: IFormatCodeOptions = {
+			ignoreModuleArugments: this.options.ignoreModuleArugments,
+			ignoreModuleId: this.options.ignoreModuleId,
+			ignorePropertyQuotationMark: this.options.ignorePropertyQuotationMark,
+			replacements: this.options.replacements || {}
+		};
+		for (let hash of this.hashes) {
+			formatOptions.replacements![hash] = "fullhash";
+		}
+		return formatOptions;
 	}
 }

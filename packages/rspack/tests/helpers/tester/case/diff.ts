@@ -23,7 +23,10 @@ export function createDiffCase(name: string, src: string, dist: string) {
 					rspackDist: path.join(dist, "rspack"),
 					modules: caseConfig.modules,
 					runtimeModules: caseConfig.runtimeModules,
-					ignoreModuleId: caseConfig.ignoreModuleId
+					ignoreModuleId: caseConfig.ignoreModuleId ?? true,
+					ignoreModuleArugments: caseConfig.ignoreModuleArugments ?? true,
+					ignorePropertyQuotationMark:
+						caseConfig.ignorePropertyQuotationMark ?? true
 				})
 			]
 		});
