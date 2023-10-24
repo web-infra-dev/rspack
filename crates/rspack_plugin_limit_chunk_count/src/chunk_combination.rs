@@ -60,6 +60,7 @@ impl<'a> ChunkCombinationBucket {
   }
 
   pub fn add(&mut self, combination: ChunkCombination) {
+    self.sorted_combinations.push(combination.ukey);
     self.combinations_by_ukey.add(combination);
     self.out_of_date = true;
   }

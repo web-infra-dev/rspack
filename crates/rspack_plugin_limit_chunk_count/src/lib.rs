@@ -24,8 +24,8 @@ fn compare_module_iterables(modules_a: &[&BoxModule], modules_b: &[&BoxModule]) 
   loop {
     match (a_iter.next(), b_iter.next()) {
       (None, None) => return Ordering::Equal,
-      (None, Some(_)) => return Ordering::Less,
-      (Some(_), None) => return Ordering::Greater,
+      (None, Some(_)) => return Ordering::Greater,
+      (Some(_), None) => return Ordering::Less,
       (Some(a_item), Some(b_item)) => {
         let res = compare_modules_by_identifier(&a_item, &b_item);
         if res != Ordering::Equal {
@@ -36,7 +36,7 @@ fn compare_module_iterables(modules_a: &[&BoxModule], modules_b: &[&BoxModule]) 
   }
 }
 
-fn compare_chunks(
+fn compare_chunks_with_graph(
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
   chunk_a: &ChunkUkey,
@@ -45,10 +45,10 @@ fn compare_chunks(
   let cgc_a = chunk_graph.get_chunk_graph_chunk(chunk_a);
   let cgc_b = chunk_graph.get_chunk_graph_chunk(chunk_b);
   if cgc_a.modules.len() > cgc_b.modules.len() {
-    return Ordering::Greater;
+    return Ordering::Less;
   }
   if cgc_a.modules.len() < cgc_b.modules.len() {
-    return Ordering::Less;
+    return Ordering::Greater;
   }
 
   let modules_a: Vec<&BoxModule> = cgc_a
@@ -275,7 +275,6 @@ fn integrate_chunks(
     .clone()
     .get_chunk_entry_modules_with_chunk_group_iterable(b)
     .iter()
-    .into_iter()
   {
     chunk_graph.disconnect_chunk_and_entry_module(b, module.clone());
     chunk_graph.connect_chunk_and_entry_module(a.clone(), module.clone(), chunk_group.clone());
@@ -346,7 +345,7 @@ impl Plugin for LimitChunkCountPlugin {
     let mut remaining_chunks_to_merge = chunks.len() - max_chunks;
 
     // order chunks in a deterministic way
-    chunks.sort_by(|a, b| compare_chunks(chunk_graph, module_graph, &a.ukey, &b.ukey));
+    chunks.sort_by(|a, b| compare_chunks_with_graph(chunk_graph, module_graph, &a.ukey, &b.ukey));
 
     // create a lazy sorted data structure to keep all combinations
     // this is large. Size = chunks * (chunks - 1) / 2
@@ -432,9 +431,11 @@ impl Plugin for LimitChunkCountPlugin {
       let b = combination.b;
       let integrated_size = combination.integrated_size;
 
+      // skip over pair when
+      // one of the already merged chunks is a parent of one of the chunks
       if !modified_chunks.is_empty() {
-        let a_chunk = &chunk_by_ukey.get(&a).unwrap();
-        let b_chunk = &chunk_by_ukey.get(&b).unwrap();
+        let a_chunk = chunk_by_ukey.get(&a).unwrap();
+        let b_chunk = chunk_by_ukey.get(&b).unwrap();
         let mut queue = a_chunk
           .groups
           .iter()
@@ -481,7 +482,7 @@ impl Plugin for LimitChunkCountPlugin {
           &a,
           &b,
         );
-        compilation.chunk_by_ukey.remove(&a);
+        compilation.chunk_by_ukey.remove(&b);
 
         modified_chunks.insert(a);
 
