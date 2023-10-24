@@ -217,7 +217,10 @@ pub fn module_namespace_promise(
       if matches!(exports_type, ExportsType::Dynamic) {
         fake_type |= FakeNamespaceObjectMode::RETURN_VALUE;
       }
-      if matches!(exports_type, ExportsType::DefaultWithNamed) {
+      if matches!(
+        exports_type,
+        ExportsType::DefaultWithNamed | ExportsType::Dynamic
+      ) {
         fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
       }
       runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
