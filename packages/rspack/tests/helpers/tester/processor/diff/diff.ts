@@ -206,7 +206,6 @@ export class DiffBuilder implements ITestProcessor {
 		options.output ??= {};
 		options.output.filename ??= OUTPUT_MAIN_FILE;
 		options.output.chunkFilename ??= "[name].chunk.js";
-		options.output.library ??= "commonjs2";
 		// entry options
 		options.entry = path.join(src, "./src/index.js");
 		options.context = src;

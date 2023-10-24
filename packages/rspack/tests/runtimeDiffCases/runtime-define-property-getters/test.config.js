@@ -1,4 +1,4 @@
 module.exports = {
 	modules: false,
-	runtimeModules: ["webpack/runtime/define_property_getters"]
+	runtimeModules: ["webpack/runtime/has_own_property"]
 };
