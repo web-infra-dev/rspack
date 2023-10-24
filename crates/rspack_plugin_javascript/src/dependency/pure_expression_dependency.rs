@@ -81,6 +81,9 @@ impl DependencyTemplate for PureExpressionDependency {
         }
       }
       None => {
+        // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/PureExpressionDependency.js#L32-L33
+        // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/PureExpressionDependency.js#L103-L113
+        // after check usedExports is not false, webpack ensure that usedExports is a set
         unreachable!()
       }
     }
