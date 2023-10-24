@@ -19,6 +19,7 @@ use rspack_hash::RspackHash;
 pub use side_effects_flag_plugin::*;
 
 use crate::runtime::{render_chunk_modules, render_iife, render_runtime_modules, stringify_array};
+use crate::utils::is_test_mode;
 
 #[derive(Debug)]
 pub struct JsPlugin;
@@ -136,6 +137,12 @@ impl JsPlugin {
     // let module_used = runtime_requirements.contains(RuntimeGlobals::MODULE);
     // let use_require = require_function || intercept_module_execution || module_used;
     let mut header = ConcatSource::default();
+
+    if is_test_mode() {
+      header.add(RawSource::from(
+        "\n/************************************************************************/\n",
+      ));
+    }
 
     header.add(RawSource::from(
       "// The module cache\n var __webpack_module_cache__ = {};\n",
@@ -272,7 +279,11 @@ impl JsPlugin {
         RuntimeGlobals::STARTUP
       ));
     }
-
+    if is_test_mode() {
+      header.add(RawSource::from(
+        "\n/************************************************************************/\n",
+      ));
+    }
     (header.boxed(), RawSource::from(startup.join("\n")).boxed())
   }
 

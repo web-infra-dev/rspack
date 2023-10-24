@@ -282,7 +282,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for HarmonyExportInitFragment
       self
         .export_map
         .iter()
-        .map(|s| format!("'{}': function() {{ return {}; }}", s.0, s.1))
+        .map(|s| format!("\"{}\": function() {{ return {}; }}", s.0, s.1))
         .collect::<Vec<_>>()
         .join(",\n  ")
     );

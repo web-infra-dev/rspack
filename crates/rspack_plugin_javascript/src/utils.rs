@@ -182,3 +182,8 @@ pub fn join_jsword(arr: &[JsWord], separator: &str) -> String {
   }
   ret
 }
+
+pub fn is_test_mode() -> bool {
+  let is_test_mode = std::env::var("TEST").ok().unwrap_or_default();
+  is_test_mode == "true"
+}

@@ -626,7 +626,7 @@ impl ModuleGraph {
         module_var_map.insert(
           request.to_string(),
           format!(
-            "{}__WEBPACK_IMPORTED_MODULE_{}_",
+            "{}__WEBPACK_IMPORTED_MODULE_{}__",
             to_identifier(request),
             module_var_map.len()
           ),
