@@ -1,11 +1,11 @@
 --- expected
 +++ actual
 @@ -10,7 +10,7 @@
-   'b': function() { return b; }
+   'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
  });
- 
--var __WEBPACK_DEFAULT_EXPORT__ = /* "./lib" unused */null;
+ var a = 1;
+-var __WEBPACK_DEFAULT_EXPORT__ = a;
 +var __WEBPACK_DEFAULT_EXPORT__ = (/* unused pure expression or super */ null && (a));
-  const b = 1;
  },
  "./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';

@@ -1,23 +1,24 @@
 use rspack_core::{
-  AsModuleDependency, ConnectionState, Dependency, DependencyId, DependencyTemplate, ModuleGraph,
-  ModuleIdentifier, TemplateContext, TemplateReplaceSource, UsedByExports,
+  AsModuleDependency, Dependency, DependencyId, DependencyTemplate, ModuleIdentifier,
+  TemplateContext, TemplateReplaceSource, UsedByExports,
 };
-use rustc_hash::FxHashSet as HashSet;
 #[derive(Debug, Clone)]
 pub struct PureExpressionDependency {
   pub start: u32,
   pub end: u32,
   pub used_by_exports: Option<UsedByExports>,
   id: DependencyId,
+  pub module_identifier: ModuleIdentifier,
 }
 
 impl PureExpressionDependency {
-  pub fn new(start: u32, end: u32) -> Self {
+  pub fn new(start: u32, end: u32, module_identifier: ModuleIdentifier) -> Self {
     Self {
       start,
       end,
       used_by_exports: None,
       id: DependencyId::default(),
+      module_identifier,
     }
   }
 }
@@ -34,14 +35,6 @@ impl Dependency for PureExpressionDependency {
   fn dependency_debug_name(&self) -> &'static str {
     "PureExpressionDependency"
   }
-
-  fn get_module_evaluation_side_effects_state(
-    &self,
-    _module_graph: &ModuleGraph,
-    _module_chain: &mut HashSet<ModuleIdentifier>,
-  ) -> ConnectionState {
-    ConnectionState::Bool(false)
-  }
 }
 
 impl AsModuleDependency for PureExpressionDependency {
@@ -55,10 +48,20 @@ impl AsModuleDependency for PureExpressionDependency {
 }
 
 impl DependencyTemplate for PureExpressionDependency {
-  fn apply(
-    &self,
-    _source: &mut TemplateReplaceSource,
-    _code_generatable_context: &mut TemplateContext,
-  ) {
+  fn apply(&self, source: &mut TemplateReplaceSource, ctx: &mut TemplateContext) {
+    if self.used_by_exports != Some(UsedByExports::Bool(false)) {
+      let exports_info = ctx
+        .compilation
+        .module_graph
+        .get_exports_info(&self.module_identifier);
+      // TODO: runtime optimization
+      // return;
+    }
+    source.insert(
+      self.start,
+      "(/* unused pure expression or super */ null && (",
+      None,
+    );
+    source.insert(self.end, "))", None);
   }
 }

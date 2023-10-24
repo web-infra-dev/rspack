@@ -1,6 +1,6 @@
 use std::{collections::hash_map::Entry, hash::Hash};
 
-use rspack_core::{Dependency, SpanExt, UsedByExports};
+use rspack_core::{Dependency, ModuleIdentifier, SpanExt, UsedByExports};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
   common::{Span, Spanned, SyntaxContext},
@@ -71,6 +71,7 @@ pub struct InnerGraphState {
   usage_callback_map: HashMap<JsWord, Vec<UsageCallback>>,
   current_top_level_symbol: Option<JsWord>,
   enable: bool,
+  module_identifier: ModuleIdentifier,
 }
 
 pub struct InnerGraphPlugin<'a> {
@@ -224,11 +225,12 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
           if self.has_toplevel_symbol() && is_pure_expression(init, self.unresolved_ctxt) {
             let start = init.span().real_lo();
             let end = init.span().real_hi();
+            let module_identifier = self.state.module_identifier;
             self.on_usage(Box::new(move |deps, used_by_exports| {
               match used_by_exports {
                 Some(UsedByExports::Bool(true)) | None=> {},
                 _ => {
-                  let mut dep = PureExpressionDependency::new(start, end);
+                  let mut dep = PureExpressionDependency::new(start, end, module_identifier);
                   dep.used_by_exports = used_by_exports;
                   deps.push(Box::new(dep));
                 }
@@ -323,11 +325,12 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         if is_pure_expression(&node.expr, self.unresolved_ctxt) {
           let start = node.expr.span().real_lo();
           let end = node.expr.span().real_hi();
+          let module_identifier = self.state.module_identifier;
           self.on_usage(Box::new(
             move |deps, used_by_exports| match used_by_exports {
               Some(UsedByExports::Bool(true)) | None => {}
               _ => {
-                let mut dep = PureExpressionDependency::new(start, end);
+                let mut dep = PureExpressionDependency::new(start, end, module_identifier);
                 dep.used_by_exports = used_by_exports;
                 deps.push(Box::new(dep));
               }
@@ -365,12 +368,17 @@ impl<'a> InnerGraphPlugin<'a> {
     top_level_ctxt: SyntaxContext,
     rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
     import_map: &'a ImportMap,
+    module_identifier: ModuleIdentifier,
   ) -> Self {
     Self {
       dependencies,
       unresolved_ctxt,
       top_level_ctxt,
-      state: InnerGraphState::default(),
+      state: {
+        let mut state = InnerGraphState::default();
+        state.module_identifier = module_identifier;
+        state
+      },
       scope_level: 0,
       rewrite_usage_span,
       import_map,

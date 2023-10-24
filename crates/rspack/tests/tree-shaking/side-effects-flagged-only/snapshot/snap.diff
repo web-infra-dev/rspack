@@ -1,0 +1,14 @@
+--- expected
++++ actual
+@@ -35,9 +35,9 @@
+ "./src/a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+-var __WEBPACK_DEFAULT_EXPORT__ = (()=>{
++var __WEBPACK_DEFAULT_EXPORT__ = (/* unused pure expression or super */ null && ((()=>{
+     console.log("");
+-});
++})));
+ },
+ 
+ },function(__webpack_require__) {
