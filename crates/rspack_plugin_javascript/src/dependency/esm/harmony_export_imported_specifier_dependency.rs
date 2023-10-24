@@ -724,7 +724,6 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
     runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     let mode = self.get_mode(self.name.clone(), module_graph, &self.id, runtime);
-    dbg!(&mode);
     match mode.ty {
       ExportModeType::Missing
       | ExportModeType::Unused

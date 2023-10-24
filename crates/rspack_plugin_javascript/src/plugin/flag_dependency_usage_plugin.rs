@@ -10,7 +10,7 @@ use rspack_error::Result;
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{dependency::HarmonyExportImportedSpecifierDependency, utils::join_jsword};
+use crate::utils::join_jsword;
 
 #[allow(unused)]
 pub struct FlagDependencyUsagePluginProxy<'a> {
@@ -121,15 +121,12 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         } else {
           continue;
         };
-        if let Some(dep) = dep.downcast_ref::<HarmonyExportImportedSpecifierDependency>() {
-          dbg!(&dep);
-        };
-        dbg!(
-          &connection,
-          dep.dependency_debug_name(),
-          &referenced_exports,
-          &old_referenced_exports
-        );
+        // dbg!(
+        //   &connection,
+        //   dep.dependency_debug_name(),
+        //   &referenced_exports,
+        //   &old_referenced_exports
+        // );
 
         if old_referenced_exports.is_none()
           || matches!(old_referenced_exports.as_ref().expect("should be some"), ProcessModuleReferencedExports::ExtendRef(v) if is_no_exports_referenced(v))
