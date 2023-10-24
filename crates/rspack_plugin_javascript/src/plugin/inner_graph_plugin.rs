@@ -374,10 +374,9 @@ impl<'a> InnerGraphPlugin<'a> {
       dependencies,
       unresolved_ctxt,
       top_level_ctxt,
-      state: {
-        let mut state = InnerGraphState::default();
-        state.module_identifier = module_identifier;
-        state
+      state: InnerGraphState {
+        module_identifier,
+        ..Default::default()
       },
       scope_level: 0,
       rewrite_usage_span,
