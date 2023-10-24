@@ -58,22 +58,33 @@ const RUNTIME_MODULE_NAME_MAPPING = {
 	"webpack/runtime/node_module_decorator":
 		"webpack/runtime/node module decorator",
 	// module name with parameters
-	"webpack/runtime/get_chunk_filename/$1":
-		/webpack\/runtime\/get ([\w\.\-_\s]+) chunk filename/g,
-	"webpack/runtime/get_main_filename/$1":
-		/webpack\/runtime\/get ([\w\.\-_\s]+) filename/g,
-	"webpack/runtime/chunk_prefetch_function/$1":
-		/webpack\/runtime\/chunk ([\w\.\-_\s]+) function/g
+	"webpack/runtime/get_chunk_filename": "webpack/runtime/get $1 chunk filename",
+	"webpack/runtime/get_main_filename": "webpack/runtime/get $1 filename",
+	"webpack/runtime/chunk_prefetch_function": "webpack/runtime/chunk $1 function"
+};
+
+const RUNTIME_MODULE_PARAM_REGEX = {
+	"webpack/runtime/get_chunk_filename":
+		/webpack\/runtime\/get_chunk_filename\/([\w\.\-_\s]+)(\*\/)?/g,
+	"webpack/runtime/get_main_filename":
+		/webpack\/runtime\/get_main_filename\/([\w\.\-_\s]+)(\*\/)?/g,
+	"webpack/runtime/chunk_prefetch_function":
+		/webpack\/runtime\/chunk_prefetch_function\/([\w\.\-_\s]+)(\*\/)?/g
 };
 
 export function replaceRuntimeModuleName(raw: string) {
 	for (let [rspackName, webpackName] of Object.entries(
 		RUNTIME_MODULE_NAME_MAPPING
 	)) {
-		if (typeof webpackName === "string") {
-			raw = raw.split(webpackName).join(rspackName);
+		if (RUNTIME_MODULE_PARAM_REGEX[rspackName]) {
+			raw = raw.replace(
+				RUNTIME_MODULE_PARAM_REGEX[rspackName],
+				(full, $1, $2) => {
+					return webpackName.replace("$1", $1.trim()) + ($2 ? " */" : "");
+				}
+			);
 		} else {
-			raw = raw.replace(webpackName, rspackName);
+			raw = raw.split(rspackName).join(webpackName);
 		}
 	}
 	return raw;

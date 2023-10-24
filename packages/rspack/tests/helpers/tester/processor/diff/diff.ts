@@ -126,15 +126,15 @@ export class DiffBuilder implements ITestProcessor {
 		);
 	}
 	async check(context: ITestContext) {
-		const rspackDistContent = fs.readFileSync(
-			path.join(this.options.rspackDist, OUTPUT_MAIN_FILE),
-			"utf-8"
-		);
-		const webpackDistContent = replaceRuntimeModuleName(
+		const rspackDistContent = replaceRuntimeModuleName(
 			fs.readFileSync(
-				path.join(this.options.webpackDist, OUTPUT_MAIN_FILE),
+				path.join(this.options.rspackDist, OUTPUT_MAIN_FILE),
 				"utf-8"
 			)
+		);
+		const webpackDistContent = fs.readFileSync(
+			path.join(this.options.webpackDist, OUTPUT_MAIN_FILE),
+			"utf-8"
 		);
 		const rspackModules = parseBundleModules(rspackDistContent);
 		const webpackModules = parseBundleModules(webpackDistContent);
@@ -173,6 +173,7 @@ export class DiffBuilder implements ITestProcessor {
 			}
 		} else if (Array.isArray(moduleList)) {
 			for (let file of moduleList as string[]) {
+				file = replaceRuntimeModuleName(file);
 				const rspackModuleContent =
 					rspackModules.has(file) &&
 					formatCode(rspackModules.get(file)!, formatOptions);
