@@ -410,7 +410,7 @@ pub async fn run_builtin_loader(
   JsLoaderContext::try_from(&cx).map_err(|e| Error::from_reason(e.to_string()))
 }
 
-#[napi(object)]
+// #[napi(object)]
 pub struct JsLoaderResult {
   /// Content in pitching stage can be empty
   pub content: Option<Buffer>,
@@ -425,5 +425,85 @@ pub struct JsLoaderResult {
   /// Used to instruct how rust loaders should execute
   pub is_pitching: bool,
 }
+
+impl napi::bindgen_prelude::TypeName for JsLoaderResult {
+  fn type_name() -> &'static str {
+    "JsLoaderResult"
+  }
+  fn value_type() -> napi::ValueType {
+    napi::ValueType::Object
+  }
+}
+impl napi::bindgen_prelude::FromNapiValue for JsLoaderResult {
+  unsafe fn from_napi_value(
+    env: napi::bindgen_prelude::sys::napi_env,
+    napi_val: napi::bindgen_prelude::sys::napi_value,
+  ) -> napi::bindgen_prelude::Result<Self> {
+    let obj = napi::bindgen_prelude::Object::from_napi_value(env, napi_val)?;
+    let content_: Option<Buffer> = obj.get("content")?;
+    let file_dependencies_: Vec<String> = obj.get("fileDependencies")?.ok_or_else(|| {
+      napi::bindgen_prelude::Error::new(
+        napi::bindgen_prelude::Status::InvalidArg,
+        format!("Missing field `{}`", "fileDependencies"),
+      )
+    })?;
+    let context_dependencies_: Vec<String> = obj.get("contextDependencies")?.ok_or_else(|| {
+      napi::bindgen_prelude::Error::new(
+        napi::bindgen_prelude::Status::InvalidArg,
+        format!("Missing field `{}`", "contextDependencies"),
+      )
+    })?;
+    let missing_dependencies_: Vec<String> = obj.get("missingDependencies")?.ok_or_else(|| {
+      napi::bindgen_prelude::Error::new(
+        napi::bindgen_prelude::Status::InvalidArg,
+        format!("Missing field `{}`", "missingDependencies"),
+      )
+    })?;
+    let build_dependencies_: Vec<String> = obj.get("buildDependencies")?.ok_or_else(|| {
+      napi::bindgen_prelude::Error::new(
+        napi::bindgen_prelude::Status::InvalidArg,
+        format!("Missing field `{}`", "buildDependencies"),
+      )
+    })?;
+    let source_map_: Option<Buffer> = obj.get("sourceMap")?;
+    let additional_data_: Option<Buffer> = obj.get("additionalData")?;
+    // eagerly clone this field since `External<T>` might be dropped.
+    let additional_data_external_: External<AdditionalData> = obj
+      .get("additionalDataExternal")?
+      .map(|v: External<AdditionalData>| External::new(v.clone()))
+      .ok_or_else(|| {
+        napi::bindgen_prelude::Error::new(
+          napi::bindgen_prelude::Status::InvalidArg,
+          format!("Missing field `{}`", "additionalDataExternal"),
+        )
+      })?;
+    let cacheable_: bool = obj.get("cacheable")?.ok_or_else(|| {
+      napi::bindgen_prelude::Error::new(
+        napi::bindgen_prelude::Status::InvalidArg,
+        format!("Missing field `{}`", "cacheable"),
+      )
+    })?;
+    let is_pitching_: bool = obj.get("isPitching")?.ok_or_else(|| {
+      napi::bindgen_prelude::Error::new(
+        napi::bindgen_prelude::Status::InvalidArg,
+        format!("Missing field `{}`", "isPitching"),
+      )
+    })?;
+    let val = Self {
+      content: content_,
+      file_dependencies: file_dependencies_,
+      context_dependencies: context_dependencies_,
+      missing_dependencies: missing_dependencies_,
+      build_dependencies: build_dependencies_,
+      source_map: source_map_,
+      additional_data: additional_data_,
+      additional_data_external: additional_data_external_,
+      cacheable: cacheable_,
+      is_pitching: is_pitching_,
+    };
+    Ok(val)
+  }
+}
+impl napi::bindgen_prelude::ValidateNapiValue for JsLoaderResult {}
 
 pub type LoaderThreadsafeLoaderResult = Option<JsLoaderResult>;

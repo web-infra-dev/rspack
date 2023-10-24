@@ -8,6 +8,7 @@ const prod = process.env.NODE_ENV === "production";
 const config = {
 	context: __dirname,
 	entry: { main: "./src/index.tsx" },
+	target: ["web", "es5"],
 	devServer: {
 		port: 5555,
 		webSocketServer: "sockjs",
@@ -39,7 +40,7 @@ const config = {
 				use: "@svgr/webpack"
 			},
 			{
-				test: /\.ts$/,
+				test: /\.(j|t)s$/,
 				exclude: [/[\\/]node_modules[\\/]/],
 				loader: "builtin:swc-loader",
 				options: {
@@ -47,12 +48,16 @@ const config = {
 					jsc: {
 						parser: {
 							syntax: "typescript"
-						}
+						},
+						externalHelpers: true
+					},
+					env: {
+						targets: "Chrome >= 48"
 					}
 				}
 			},
 			{
-				test: /\.tsx$/,
+				test: /\.(j|t)sx$/,
 				loader: "builtin:swc-loader",
 				exclude: [/[\\/]node_modules[\\/]/],
 				options: {
@@ -68,7 +73,11 @@ const config = {
 								development: !prod,
 								refresh: !prod
 							}
-						}
+						},
+						externalHelpers: true
+					},
+					env: {
+						targets: "Chrome >= 48"
 					}
 				}
 			},

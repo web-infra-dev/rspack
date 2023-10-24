@@ -300,21 +300,6 @@ export interface JsLoaderContext {
   diagnosticsExternal: ExternalObject<Array<Diagnostic>>
 }
 
-export interface JsLoaderResult {
-  /** Content in pitching stage can be empty */
-  content?: Buffer
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  buildDependencies: Array<string>
-  sourceMap?: Buffer
-  additionalData?: Buffer
-  additionalDataExternal: ExternalObject<AdditionalData>
-  cacheable: boolean
-  /** Used to instruct how rust loaders should execute */
-  isPitching: boolean
-}
-
 export interface JsModule {
   originalSource?: JsCompatSource
   resource: string
