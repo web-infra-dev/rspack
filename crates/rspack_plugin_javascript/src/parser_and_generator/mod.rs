@@ -1,3 +1,4 @@
+use rspack_ast::RspackAst;
 use rspack_core::rspack_sources::{
   BoxSource, MapOptions, OriginalSource, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
   SourceMapSource, SourceMapSourceOptions,
@@ -12,6 +13,7 @@ use rspack_core::{
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::common::SyntaxContext;
 
+use crate::ast::CodegenOptions;
 use crate::inner_graph_plugin::InnerGraphPlugin;
 use crate::utils::syntax_by_module_type;
 use crate::visitors::ScanDependenciesResult;
@@ -47,6 +49,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       build_info,
       build_meta,
       module_identifier,
+      mut additional_data,
       ..
     } = parse_context;
 
@@ -79,15 +82,20 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       }};
     }
 
-    let mut ast = match crate::ast::parse(
-      source.to_string(),
-      syntax,
-      &resource_data.resource_path.to_string_lossy(),
-      module_type,
-    ) {
-      Ok(ast) => ast,
-      Err(e) => bail!(e),
-    };
+    let mut ast =
+      if let Some(RspackAst::JavaScript(loader_ast)) = additional_data.remove::<RspackAst>() {
+        loader_ast
+      } else {
+        match crate::ast::parse(
+          source.to_string(),
+          syntax,
+          &resource_data.resource_path.to_string_lossy(),
+          module_type,
+        ) {
+          Ok(ast) => ast,
+          Err(e) => bail!(e),
+        }
+      };
 
     run_before_pass(
       resource_data,
@@ -99,8 +107,12 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       &source,
     )?;
 
-    let output: crate::TransformOutput =
-      crate::ast::stringify(&ast, &compiler_options.devtool, Some(true))?;
+    let output: crate::TransformOutput = crate::ast::stringify(
+      &ast,
+      additional_data
+        .remove::<CodegenOptions>()
+        .unwrap_or_else(|| CodegenOptions::new(&compiler_options.devtool, Some(true))),
+    )?;
 
     ast = match crate::ast::parse(
       output.code.clone(),
@@ -116,7 +128,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       program.visit_mut_with(&mut resolver(
         context.unresolved_mark,
         context.top_level_mark,
-        syntax.typescript(),
+        compiler_options.should_transform_by_default() && syntax.typescript(),
       ));
     });
 

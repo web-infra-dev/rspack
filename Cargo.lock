@@ -1258,6 +1258,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "jsonc-parser"
+version = "0.22.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "538702ed54bac04d391352d4c9ad0ec2a9225e3c477ffa23fc44d0f04fa83c54"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1589,7 +1598,7 @@ dependencies = [
  "dashmap",
  "dunce",
  "indexmap 1.9.3",
- "jsonc-parser",
+ "jsonc-parser 0.21.1",
  "once_cell",
  "path-absolutize",
  "rustc-hash",
@@ -2353,6 +2362,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_ast"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "rspack_error",
+ "swc_core",
+ "swc_error_reporters",
+ "swc_node_comments",
+ "tokio",
+]
+
+[[package]]
 name = "rspack_ast_viewer"
 version = "0.1.0"
 dependencies = [
@@ -2458,6 +2479,7 @@ dependencies = [
  "rayon",
  "regex",
  "rkyv",
+ "rspack_ast",
  "rspack_database",
  "rspack_error",
  "rspack_fs",
@@ -2506,6 +2528,7 @@ dependencies = [
  "rspack_binding_options",
  "rspack_core",
  "rspack_fs",
+ "rspack_sources",
  "rspack_testing",
  "rspack_tracing",
  "rspack_util",
@@ -2591,6 +2614,7 @@ dependencies = [
 name = "rspack_loader_runner"
 version = "0.1.0"
 dependencies = [
+ "anymap",
  "async-recursion",
  "async-trait",
  "bitflags 1.3.2",
@@ -2631,12 +2655,16 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "dashmap",
  "either",
  "indexmap 1.9.3",
+ "jsonc-parser 0.22.1",
  "once_cell",
+ "rspack_ast",
  "rspack_core",
  "rspack_error",
  "rspack_loader_runner",
+ "rspack_plugin_javascript",
  "rspack_swc_visitors",
  "rspack_testing",
  "serde",
@@ -2879,6 +2907,7 @@ dependencies = [
  "preset_env_base",
  "rayon",
  "regex",
+ "rspack_ast",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
@@ -3677,7 +3706,7 @@ dependencies = [
  "dashmap",
  "either",
  "indexmap 1.9.3",
- "jsonc-parser",
+ "jsonc-parser 0.21.1",
  "lru",
  "once_cell",
  "parking_lot 0.12.1",

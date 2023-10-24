@@ -47,7 +47,7 @@ pub fn syntax_by_module_type(
   should_transform_by_default: bool,
 ) -> Syntax {
   let js_syntax = Syntax::Es(EsConfig {
-    jsx: matches!(module_type, ModuleType::Jsx),
+    jsx: should_transform_by_default && matches!(module_type, ModuleType::Jsx),
     export_default_from: true,
     decorators_before_export: true,
     // If `disableTransformByDefault` is on, then we treat everything passed in as a web standard stuff,

@@ -37,7 +37,7 @@ pub(crate) fn transform<'a>(
   _top_level_mark: Mark,
   unresolved_mark: Mark,
   cm: Arc<SourceMap>,
-  content: String,
+  content: &'a String,
   rspack_experiments: &'a RspackExperiments,
 ) -> impl Fold + 'a {
   use rspack_swc_visitors::EmotionOptions;

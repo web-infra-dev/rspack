@@ -122,9 +122,10 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
               "userRequest": "./index",
             },
           ],
-          "size": 75,
-          "source": "import stringModule from './stringModule'
-import rawModule from './raw.png'",
+          "size": 78,
+          "source": "import stringModule from './stringModule';
+import rawModule from './raw.png';
+",
           "type": "module",
         },
         {
@@ -166,7 +167,7 @@ import rawModule from './raw.png'",
       ],
       "parents": [],
       "siblings": [],
-      "size": 125,
+      "size": 128,
       "type": "chunk",
     },
   ],
@@ -258,9 +259,10 @@ import rawModule from './raw.png'",
           "userRequest": "./index",
         },
       ],
-      "size": 75,
-      "source": "import stringModule from './stringModule'
-import rawModule from './raw.png'",
+      "size": 78,
+      "source": "import stringModule from './stringModule';
+import rawModule from './raw.png';
+",
       "type": "module",
     },
     {
@@ -468,8 +470,9 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
               "userRequest": "./index",
             },
           ],
-          "size": 38,
-          "source": "import("./dynamic").then(console.log);",
+          "size": 39,
+          "source": "import("./dynamic").then(console.log);
+",
           "type": "module",
         },
       ],
@@ -478,7 +481,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       ],
       "parents": [],
       "siblings": [],
-      "size": 38,
+      "size": 39,
       "type": "chunk",
     },
   ],
@@ -526,8 +529,9 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
           "userRequest": "./index",
         },
       ],
-      "size": 38,
-      "source": "import("./dynamic").then(console.log);",
+      "size": 39,
+      "source": "import("./dynamic").then(console.log);
+",
       "type": "module",
     },
     {
@@ -832,7 +836,7 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
       "moduleType": "javascript/auto",
       "name": "./index.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
-      "size": 103,
+      "size": 115,
       "type": "module",
     },
     {
@@ -852,7 +856,7 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
       "moduleType": "javascript/auto",
       "name": "./locals/en.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/en.js",
-      "size": 30,
+      "size": 33,
       "type": "module",
     },
     {
@@ -1843,7 +1847,7 @@ exports[`StatsTestCases should print correct stats for reasons 1`] = `
           "userRequest": "./a",
         },
       ],
-      "size": 55,
+      "size": 59,
       "type": "module",
     },
     {
@@ -2629,8 +2633,9 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
               "userRequest": "./raw.png",
             },
           ],
-          "size": 7,
-          "source": "raw.png",
+          "size": 9,
+          "source": "raw.png;
+",
           "type": "module",
         },
         {
@@ -2656,9 +2661,10 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
               "userRequest": "./index",
             },
           ],
-          "size": 75,
-          "source": "import stringModule from './stringModule'
-import rawModule from './raw.png'",
+          "size": 78,
+          "source": "import stringModule from './stringModule';
+import rawModule from './raw.png';
+",
           "type": "module",
         },
         {
@@ -2700,7 +2706,7 @@ import rawModule from './raw.png'",
       ],
       "parents": [],
       "siblings": [],
-      "size": 83,
+      "size": 88,
       "type": "chunk",
     },
   ],
@@ -2754,8 +2760,9 @@ import rawModule from './raw.png'",
           "userRequest": "./raw.png",
         },
       ],
-      "size": 7,
-      "source": "raw.png",
+      "size": 9,
+      "source": "raw.png;
+",
       "type": "module",
     },
     {
@@ -2781,9 +2788,10 @@ import rawModule from './raw.png'",
           "userRequest": "./index",
         },
       ],
-      "size": 75,
-      "source": "import stringModule from './stringModule'
-import rawModule from './raw.png'",
+      "size": 78,
+      "source": "import stringModule from './stringModule';
+import rawModule from './raw.png';
+",
       "type": "module",
     },
     {

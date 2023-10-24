@@ -1,0 +1,38 @@
+[package]
+edition    = "2021"
+license    = "MIT"
+name       = "rspack_ast"
+repository = "https://github.com/web-infra-dev/rspack"
+version    = "0.1.0"
+
+[dependencies]
+anyhow = { workspace = true }
+rspack_error = { path = "../rspack_error" }
+swc_core = { workspace = true, features = [
+  "__ecma",
+  "__visit",
+  "__utils",
+  "__ecma_transforms",
+  "ecma_ast",
+  "ecma_codegen",
+  "ecma_quote",
+  "common_concurrent",
+  "common_tty",
+  "swc_ecma_ast",
+  "ecma_transforms_react",
+  "ecma_transforms_module",
+  "swc_ecma_codegen",
+  "swc_ecma_visit",
+  "ecma_visit_path",
+  "css_ast",
+  "css_codegen",
+  "css_parser",
+  "css_utils",
+  "css_visit",
+  "css_visit_path",
+  "css_compat",
+  "css_modules",
+] }
+swc_error_reporters = { workspace = true }
+swc_node_comments = { workspace = true }
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }

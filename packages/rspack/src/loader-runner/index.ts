@@ -30,7 +30,8 @@ import {
 	isNil,
 	serializeObject,
 	toBuffer,
-	toObject
+	toObject,
+	stringifyLoaderObject
 } from "../util";
 import { absolutify, contextify, makePathsRelative } from "../util/identifier";
 import { memoize } from "../util/memoize";
@@ -64,10 +65,6 @@ function dirname(path: string) {
 	if (idx < 0) return path;
 	if (idx === idx2) return path.slice(0, idx + 1);
 	return path.slice(0, idx);
-}
-
-function stringifyLoaderObject(o: LoaderObject): string {
-	return o.path + o.query + o.fragment;
 }
 
 function createLoaderObject(loader: any, compiler: Compiler): LoaderObject {
@@ -163,9 +160,9 @@ function getCurrentLoader(
 	return null;
 }
 
-export async function runLoader(
-	rawContext: JsLoaderContext,
-	compiler: Compiler
+export async function runLoaders(
+	compiler: Compiler,
+	rawContext: JsLoaderContext
 ) {
 	const resource = rawContext.resource;
 	const loaderContext: LoaderContext = {} as LoaderContext;
@@ -557,7 +554,9 @@ export async function runLoader(
 					contextDependencies,
 					missingDependencies,
 					assetFilenames,
-					isPitching: loaderContext.__internal__context.isPitching
+					isPitching: loaderContext.__internal__context.isPitching,
+					additionalDataExternal:
+						loaderContext.__internal__context.additionalDataExternal
 				});
 			});
 		} else {
@@ -589,7 +588,9 @@ export async function runLoader(
 						contextDependencies,
 						missingDependencies,
 						assetFilenames,
-						isPitching: loaderContext.__internal__context.isPitching
+						isPitching: loaderContext.__internal__context.isPitching,
+						additionalDataExternal:
+							loaderContext.__internal__context.additionalDataExternal
 					});
 				}
 			);

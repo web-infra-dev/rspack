@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use rspack_core::{ast::javascript::Ast, Devtool};
+use rspack_ast::javascript::Ast;
+use rspack_core::Devtool;
 use rspack_error::{internal_error, Result};
 use swc_core::{
   common::{
@@ -20,29 +21,48 @@ use swc_core::{
 
 use crate::TransformOutput;
 
-pub fn stringify(
-  ast: &Ast,
-  devtool: &Devtool,
-  keep_comments: Option<bool>,
-) -> Result<TransformOutput> {
-  ast.visit(|program, context| {
-    print(
-      program.get_inner_program(),
-      context.source_map.clone(),
-      EsVersion::Es2022,
-      SourceMapConfig {
+#[derive(Default, Clone)]
+pub struct CodegenOptions {
+  pub target: Option<EsVersion>,
+  pub source_map_config: SourceMapConfig,
+  pub keep_comments: Option<bool>,
+  pub minify: Option<bool>,
+  pub ascii_only: Option<bool>,
+}
+
+impl CodegenOptions {
+  pub fn new(devtool: &Devtool, keep_comments: Option<bool>) -> Self {
+    Self {
+      source_map_config: SourceMapConfig {
         enable: devtool.source_map(),
         inline_sources_content: true,
         emit_columns: !devtool.cheap(),
         names: Default::default(),
       },
-      false,
-      if let Some(true) = keep_comments {
-        program.comments.as_ref().map(|c| c as &dyn Comments)
-      } else {
-        None
-      },
-      false,
+      keep_comments,
+      ..Default::default()
+    }
+  }
+}
+
+pub fn stringify(ast: &Ast, options: CodegenOptions) -> Result<TransformOutput> {
+  ast.visit(|program, context| {
+    let keep_comments = options.keep_comments;
+    let target = options.target.unwrap_or(EsVersion::latest());
+    let source_map_options = options.source_map_config;
+    let minify = options.minify.unwrap_or_default();
+    let ascii_only = options.ascii_only.unwrap_or_default();
+    print(
+      program.get_inner_program(),
+      context.source_map.clone(),
+      target,
+      source_map_options,
+      minify,
+      keep_comments
+        .unwrap_or_default()
+        .then(|| program.comments.as_ref().map(|c| c as &dyn Comments))
+        .flatten(),
+      ascii_only,
     )
   })
 }
@@ -107,6 +127,7 @@ pub fn print(
   Ok(TransformOutput { code: src, map })
 }
 
+#[derive(Default, Clone)]
 pub struct SourceMapConfig {
   pub enable: bool,
   pub inline_sources_content: bool,

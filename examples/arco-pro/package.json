@@ -38,7 +38,7 @@
   },
   "devDependencies": {
     "serve": "14.1.2",
-    "@pmmmwh/react-refresh-webpack-plugin": "^0.5.9",
+    "@rspack/plugin-react-refresh": "workspace:*",
     "@rspack/cli": "workspace:*",
     "@rspack/plugin-html": "workspace:*",
     "@svgr/webpack": "^6.5.1",

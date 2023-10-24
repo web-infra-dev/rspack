@@ -83,6 +83,19 @@ impl Program {
   pub fn get_inner_program(&self) -> &SwcProgram {
     &self.program
   }
+
+  pub fn into_inner_program(self) -> SwcProgram {
+    self.program
+  }
+}
+
+impl Take for Program {
+  fn dummy() -> Self {
+    Self {
+      program: SwcProgram::Module(Module::dummy()),
+      comments: None,
+    }
+  }
 }
 
 /// Swc transform context
@@ -122,6 +135,12 @@ impl std::fmt::Debug for Context {
   }
 }
 
+impl Take for Context {
+  fn dummy() -> Self {
+    Self::new(Arc::new(SourceMap::new(Default::default())))
+  }
+}
+
 /// The global javascript ast
 #[derive(Debug, Clone)]
 pub struct Ast {
@@ -137,6 +156,15 @@ impl Hash for Ast {
   }
 }
 
+impl Default for Ast {
+  fn default() -> Self {
+    Self {
+      program: Program::dummy(),
+      context: Arc::new(Context::dummy()),
+    }
+  }
+}
+
 impl Ast {
   pub fn new(
     program: SwcProgram,
@@ -149,8 +177,22 @@ impl Ast {
     }
   }
 
+  pub fn with_context(mut self, context: Context) -> Self {
+    self.context = Arc::new(context);
+    self
+  }
+
+  pub fn with_program(mut self, program: Program) -> Self {
+    self.program = program;
+    self
+  }
+
   pub fn get_context(&self) -> &Context {
     &self.context
+  }
+
+  pub fn into_program(self) -> Program {
+    self.program
   }
 
   pub fn transform<F, R>(&mut self, f: F) -> R
