@@ -773,13 +773,12 @@ mod test {
         fn id(&self) -> &DependencyId {
           &self.2
         }
-      }
-
-      impl ModuleDependency for $ident {
         fn dependency_debug_name(&self) -> &'static str {
           stringify!($ident)
         }
+      }
 
+      impl ModuleDependency for $ident {
         fn request(&self) -> &str {
           &*self.1
         }

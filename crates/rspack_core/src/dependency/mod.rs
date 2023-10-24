@@ -173,6 +173,9 @@ impl Display for DependencyCategory {
 pub trait Dependency:
   AsDependencyTemplate + AsModuleDependency + AsAny + DynClone + Send + Sync + Debug
 {
+  /// name of the original struct or enum
+  fn dependency_debug_name(&self) -> &'static str;
+
   fn id(&self) -> &DependencyId;
 
   fn category(&self) -> &DependencyCategory {
@@ -372,8 +375,6 @@ impl Debug for DependencyCondition {
 }
 
 pub trait ModuleDependency: Dependency {
-  /// name of the original struct or enum
-  fn dependency_debug_name(&self) -> &'static str;
   fn request(&self) -> &str;
   fn user_request(&self) -> &str;
   fn weak(&self) -> bool {

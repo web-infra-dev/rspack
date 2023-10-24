@@ -41,6 +41,10 @@ impl Dependency for ModuleHotAcceptDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "ModuleHotAcceptDependency"
+  }
 }
 
 impl ModuleDependency for ModuleHotAcceptDependency {
@@ -54,10 +58,6 @@ impl ModuleDependency for ModuleHotAcceptDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "ModuleHotAcceptDependency"
   }
 }
 
