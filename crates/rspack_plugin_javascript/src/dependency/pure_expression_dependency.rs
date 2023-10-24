@@ -14,6 +14,7 @@ pub struct PureExpressionDependency {
 
 impl PureExpressionDependency {
   pub fn new(start: u32, end: u32, module_identifier: ModuleIdentifier) -> Self {
+    dbg!(&start, end, module_identifier);
     Self {
       start,
       end,

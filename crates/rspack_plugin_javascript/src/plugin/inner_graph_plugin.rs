@@ -312,19 +312,21 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     }
 
     self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
-    match node.expr {
-      box Expr::Fn(_) | box Expr::Arrow(_) | box Expr::Lit(_) => {
-        node.expr.visit_children_with(self);
+
+    let expr = node.expr.unwrap_parens();
+    match expr {
+      Expr::Fn(_) | Expr::Arrow(_) | Expr::Lit(_) => {
+        expr.visit_children_with(self);
       }
-      box Expr::Class(ref class) => {
+      Expr::Class(ref class) => {
         // TODO: class
         class.visit_with(self);
       }
       _ => {
-        node.expr.visit_children_with(self);
-        if is_pure_expression(&node.expr, self.unresolved_ctxt) {
-          let start = node.expr.span().real_lo();
-          let end = node.expr.span().real_hi();
+        expr.visit_children_with(self);
+        if is_pure_expression(expr, self.unresolved_ctxt) {
+          let start = expr.span().real_lo();
+          let end = expr.span().real_hi();
           let module_identifier = self.state.module_identifier;
           self.on_usage(Box::new(
             move |deps, used_by_exports| match used_by_exports {
