@@ -96,6 +96,13 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
     {
       return;
     }
+    // var a = exports/module.exports/this;
+    // Object.setPrototypeOf(exports/module.exports/this, a);
+    // ...
+    if self.is_exports_or_module_exports_or_this_expr(expr) {
+      self.bailout();
+      return;
+    }
     expr.visit_children_with(self);
   }
 
@@ -116,10 +123,14 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
           self.stmt_level == 1 && self.last_stmt_is_expr_stmt,
           &assign_expr.right,
         );
+        assign_expr.right.visit_children_with(self);
+        return;
       }
       // exports.xxx = 1;
       if self.is_exports_member_expr_start(expr) {
         self.enable();
+        assign_expr.right.visit_children_with(self);
+        return;
       }
       if self.is_exports_or_module_exports_or_this_expr(expr) {
         self.enable();
@@ -135,13 +146,9 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
           // this = {};
           self.bailout();
         }
+        assign_expr.right.visit_children_with(self);
+        return;
       }
-    }
-    // var a = exports;
-    // var a = module.exports;
-    // var a = this;
-    if self.is_exports_or_module_exports_or_this_expr(&assign_expr.right) {
-      self.bailout();
     }
     assign_expr.visit_children_with(self);
   }
@@ -151,15 +158,32 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
       // Object.defineProperty(exports, "__esModule", { value: true });
       // Object.defineProperty(module.exports, "__esModule", { value: true });
       // Object.defineProperty(this, "__esModule", { value: true });
-      if expr_matcher::is_object_define_property(expr) && let Some(ExprOrSpread { expr, .. }) = call_expr.args.get(0) && let Some(ExprOrSpread { expr: box Expr::Lit(Lit::Str(str)), .. }) = call_expr.args.get(1) && &str.value == "__esModule" && let Some(value) = get_value_of_property_description(&call_expr.args.get(2)) &&  self.is_exports_or_module_exports_or_this_expr(expr) {
+      if expr_matcher::is_object_define_property(expr)
+      && let Some(ExprOrSpread { expr, .. }) = call_expr.args.get(0)
+      && self.is_exports_or_module_exports_or_this_expr(expr)
+      && let Some(arg2) = call_expr.args.get(2) {
         self.enable();
-        self.check_namespace(self.stmt_level == 1, value);
+
+        if let Some(ExprOrSpread { expr: box Expr::Lit(Lit::Str(str)), .. }) = call_expr.args.get(1)
+        && &str.value == "__esModule"
+        && let Some(value) = get_value_of_property_description(arg2) {
+          self.check_namespace(self.stmt_level == 1, value);
+        }
+
+        self.enter_call += 1;
+        arg2.visit_children_with(self);
+        self.enter_call -= 1;
+        return;
       }
       // exports()
       // module.exports()
       // this()
       if self.is_exports_or_module_exports_or_this_expr(expr) {
         self.bailout();
+        self.enter_call += 1;
+        call_expr.args.visit_children_with(self);
+        self.enter_call -= 1;
+        return;
       }
     }
     self.enter_call += 1;
@@ -241,13 +265,11 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
   }
 }
 
-fn get_value_of_property_description<'a>(
-  expr_or_spread: &Option<&'a ExprOrSpread>,
-) -> Option<&'a Expr> {
-  if let Some(ExprOrSpread {
+fn get_value_of_property_description(expr_or_spread: &ExprOrSpread) -> Option<&Expr> {
+  if let ExprOrSpread {
     expr: box Expr::Object(ObjectLit { props, .. }),
     ..
-  }) = expr_or_spread
+  } = expr_or_spread
   {
     for prop in props {
       if let PropOrSpread::Prop(prop) = prop && let Prop::KeyValue(key_value_prop) = &**prop && let PropName::Ident(ident) = &key_value_prop.key && &ident.sym == "value" {
