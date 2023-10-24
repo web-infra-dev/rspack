@@ -1,6 +1,6 @@
 use rspack_core::{
   AsModuleDependency, Dependency, DependencyId, DependencyTemplate, ModuleIdentifier,
-  TemplateContext, TemplateReplaceSource, UsedByExports,
+  TemplateContext, TemplateReplaceSource, UsageState, UsedByExports, UsedName,
 };
 #[derive(Debug, Clone)]
 pub struct PureExpressionDependency {
@@ -49,14 +49,33 @@ impl AsModuleDependency for PureExpressionDependency {
 
 impl DependencyTemplate for PureExpressionDependency {
   fn apply(&self, source: &mut TemplateReplaceSource, ctx: &mut TemplateContext) {
-    if self.used_by_exports != Some(UsedByExports::Bool(false)) {
-      let exports_info = ctx
-        .compilation
-        .module_graph
-        .get_exports_info(&self.module_identifier);
-      // TODO: runtime optimization
-      // return;
+    match self.used_by_exports {
+      Some(UsedByExports::Bool(true)) => {
+        unreachable!()
+      }
+      Some(UsedByExports::Bool(false)) => {}
+      Some(UsedByExports::Set(ref set)) => {
+        let exports_info = ctx
+          .compilation
+          .module_graph
+          .get_exports_info(&self.module_identifier);
+        // TODO: runtime optimization,
+        let runtime_condition = set.iter().any(|id| {
+          exports_info.get_used(
+            UsedName::Str(id.clone()),
+            None,
+            &ctx.compilation.module_graph,
+          ) != UsageState::Unused
+        });
+        if runtime_condition {
+          return;
+        }
+      }
+      None => {
+        unreachable!()
+      }
     }
+
     source.insert(
       self.start,
       "(/* unused pure expression or super */ null && (",

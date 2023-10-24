@@ -1,6 +1,6 @@
 --- expected
 +++ actual
-@@ -43,20 +43,10 @@
+@@ -43,34 +43,33 @@
  __webpack_require__.d(__webpack_exports__, {
    'exportDefaultUsed': function() { return exportDefaultUsed; }
  });
@@ -11,7 +11,7 @@
 +var __WEBPACK_DEFAULT_EXPORT__ = (/* unused pure expression or super */ null && (mod));
  
   const exportDefaultUsed = false;
--},
+ },
 -"./package1/script1.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 -'use strict';
 -__webpack_require__.r(__webpack_exports__);
@@ -19,10 +19,10 @@
 -__webpack_require__.es(_script2__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
 -
 -var __WEBPACK_DEFAULT_EXPORT__ = 1;
- },
+-},
  "./package1/script2.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  'use strict';
-@@ -64,13 +54,22 @@
+ __webpack_require__.r(__webpack_exports__);
  __webpack_require__.d(__webpack_exports__, {
    'exportDefaultUsed': function() { return exportDefaultUsed; }
  });
@@ -52,8 +52,7 @@
  /* harmony import */var _script1__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./script1 */"./package2/script1.js");
 -__webpack_require__.es(_script1__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
  
--var __WEBPACK_DEFAULT_EXPORT__ = _script1__WEBPACK_IMPORTED_MODULE_0_["default"];
-+var __WEBPACK_DEFAULT_EXPORT__ = (/* unused pure expression or super */ null && (_script1__WEBPACK_IMPORTED_MODULE_0_["default"]));
+ var __WEBPACK_DEFAULT_EXPORT__ = _script1__WEBPACK_IMPORTED_MODULE_0_["default"];
  
 - const exportDefaultUsed = true;
 + const exportDefaultUsed = false;
