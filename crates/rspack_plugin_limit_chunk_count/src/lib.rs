@@ -199,9 +199,13 @@ fn add_to_set_map(
     set.insert(value);
     map.insert(key.clone(), set);
   } else {
-    let set = map.get(key);
-    if set.is_none() {
-      map.insert(key.clone(), HashSet::new());
+    let set = map.get_mut(key);
+    if let Some(set) = set {
+      set.insert(value);
+    } else {
+      let mut set = HashSet::new();
+      set.insert(value);
+      map.insert(key.clone(), set);
     }
   }
 }
@@ -484,6 +488,7 @@ impl Plugin for LimitChunkCountPlugin {
         );
         compilation.chunk_by_ukey.remove(&b);
 
+        // flag chunk a as modified as further optimization are possible for all children here
         modified_chunks.insert(a);
 
         remaining_chunks_to_merge -= 1;
@@ -491,32 +496,36 @@ impl Plugin for LimitChunkCountPlugin {
           break;
         }
 
-        let a_combination_ukeys = combinations_by_chunk.get_mut(&a);
-        if let Some(a_combination_ukeys) = a_combination_ukeys {
-          for ukey in a_combination_ukeys.clone() {
+        // Update all affected combinations
+        // delete all combination with the removed chunk
+        // we will use combinations with the kept chunk instead
+        let a_combinations = combinations_by_chunk.get_mut(&a);
+        if let Some(a_combinations) = a_combinations {
+          for ukey in a_combinations.clone() {
             let combination = combinations.get_mut(&ukey).unwrap();
             if combination.deleted {
               continue;
             }
             combination.deleted = true;
-            a_combination_ukeys.remove(&ukey);
+            combinations.delete(&ukey);
           }
         }
 
-        let b_combination_ukeys = combinations_by_chunk.get(&b);
-        if let Some(b_combination_ukeys) = b_combination_ukeys {
-          for ukey in b_combination_ukeys {
+        // Update combinations with the kept chunk with new sizes
+        let b_combinations = combinations_by_chunk.get(&b);
+        if let Some(b_combinations) = b_combinations {
+          for ukey in b_combinations {
             let combination = combinations.get_mut(ukey).unwrap();
             if combination.deleted {
               continue;
             }
             if combination.a == b {
-              let combination_b_chunk = chunk_by_ukey.get(&combination.b).unwrap();
-              if !can_chunks_be_integrated(&chunk_group_by_ukey, &a_chunk, combination_b_chunk) {
+              if !can_chunks_be_integrated(&chunk_group_by_ukey, &a_chunk, &b_chunk) {
                 combination.deleted = true;
                 combinations.delete(ukey);
                 continue;
               }
+              // Update size
               let new_integrated_size = get_integrated_chunks_size(
                 &chunk_graph,
                 &module_graph,
@@ -532,12 +541,12 @@ impl Plugin for LimitChunkCountPlugin {
               combination.size_diff = combination.b_size + integrated_size - new_integrated_size;
               combinations.update();
             } else if combination.b == b {
-              let combination_a_chunk = chunk_by_ukey.get(&combination.a).unwrap();
-              if !can_chunks_be_integrated(&chunk_group_by_ukey, &combination_a_chunk, &a_chunk) {
+              if !can_chunks_be_integrated(&chunk_group_by_ukey, &b_chunk, &a_chunk) {
                 combination.deleted = true;
                 combinations.delete(ukey);
                 continue;
               }
+              // Update size
               let new_integrated_size = get_integrated_chunks_size(
                 &chunk_graph,
                 &module_graph,
@@ -555,10 +564,8 @@ impl Plugin for LimitChunkCountPlugin {
             }
           }
         }
-        let combinations = combinations_by_chunk.get(&b);
-        if let Some(combinations) = combinations {
-          combinations_by_chunk.insert(a.clone(), combinations.clone());
-        }
+        let combinations = combinations_by_chunk.get(&b).unwrap();
+        combinations_by_chunk.insert(a.clone(), combinations.clone());
         combinations_by_chunk.remove(&b);
       }
     }
