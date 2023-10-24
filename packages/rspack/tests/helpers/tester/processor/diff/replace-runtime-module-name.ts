@@ -59,11 +59,11 @@ const RUNTIME_MODULE_NAME_MAPPING = {
 		"webpack/runtime/node module decorator",
 	// module name with parameters
 	"webpack/runtime/get_chunk_filename/$1":
-		/webpack\/runtime\/get ([\w\.\-_]+) chunk filename/g,
+		/webpack\/runtime\/get ([\w\.\-_\s]+) chunk filename/g,
 	"webpack/runtime/get_main_filename/$1":
-		/webpack\/runtime\/get ([\w\.\-_]+) filename/g,
+		/webpack\/runtime\/get ([\w\.\-_\s]+) filename/g,
 	"webpack/runtime/chunk_prefetch_function/$1":
-		/webpack\/runtime\/chunk ([\w\.\-_]+) function/g
+		/webpack\/runtime\/chunk ([\w\.\-_\s]+) function/g
 };
 
 export function replaceRuntimeModuleName(raw: string) {

@@ -193,6 +193,7 @@ impl Plugin for RuntimePlugin {
         RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME => compilation.add_runtime_module(
           chunk,
           GetMainFilenameRuntimeModule::new(
+            "update manifest",
             RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME,
             compilation
               .options
