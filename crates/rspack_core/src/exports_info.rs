@@ -1266,7 +1266,7 @@ pub enum RuntimeUsageStateType {
   Used,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UsedByExports {
   Set(HashSet<JsWord>),
   Bool(bool),

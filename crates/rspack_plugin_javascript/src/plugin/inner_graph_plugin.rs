@@ -308,11 +308,11 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     {
       self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
     }
+
+    self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
     match node.expr {
       box Expr::Fn(_) | box Expr::Arrow(_) | box Expr::Lit(_) => {
-        self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
         node.expr.visit_children_with(self);
-        self.clear_symbol_if_is_top_level();
       }
       box Expr::Class(ref class) => {
         // TODO: class
@@ -336,6 +336,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         }
       }
     }
+    self.clear_symbol_if_is_top_level();
   }
 
   fn visit_export_default_decl(&mut self, node: &ExportDefaultDecl) {

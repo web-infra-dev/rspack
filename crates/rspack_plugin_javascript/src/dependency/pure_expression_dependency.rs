@@ -1,7 +1,8 @@
 use rspack_core::{
-  AsModuleDependency, Dependency, DependencyId, DependencyTemplate, TemplateContext,
-  TemplateReplaceSource, UsedByExports,
+  AsModuleDependency, ConnectionState, Dependency, DependencyId, DependencyTemplate, ModuleGraph,
+  ModuleIdentifier, TemplateContext, TemplateReplaceSource, UsedByExports,
 };
+use rustc_hash::FxHashSet as HashSet;
 #[derive(Debug, Clone)]
 pub struct PureExpressionDependency {
   pub start: u32,
@@ -32,6 +33,14 @@ impl Dependency for PureExpressionDependency {
 
   fn dependency_debug_name(&self) -> &'static str {
     "PureExpressionDependency"
+  }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    ConnectionState::Bool(false)
   }
 }
 
