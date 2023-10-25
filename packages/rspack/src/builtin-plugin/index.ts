@@ -17,19 +17,12 @@ export * from "./CommonJsChunkFormatPlugin";
 export * from "./ModuleChunkFormatPlugin";
 export * from "./HotModuleReplacementPlugin";
 export * from "./WebWorkerTemplatePlugin";
+export * from "./LimitChunkCountPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";
 export * from "./SwcJsMinimizerPlugin";
 export * from "./SwcCssMinimizerPlugin";
-
-import { LimitChunkCountPlugin } from "./LimitChunkCountPlugin";
-
-export const optimize = {
-	get LimitChunkCountPlugin() {
-		return LimitChunkCountPlugin;
-	}
-};
 
 ///// DEPRECATED /////
 import {
