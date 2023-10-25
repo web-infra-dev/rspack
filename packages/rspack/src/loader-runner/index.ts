@@ -96,25 +96,8 @@ function createLoaderObject(loader: any, compiler: Compiler): LoaderObject {
 				obj.path = splittedRequest.path;
 				obj.query = splittedRequest.query;
 				obj.fragment = splittedRequest.fragment;
-
-				if (obj.query.startsWith("??")) {
-					const ident = obj.query.slice(2);
-					if (ident === "[[missing ident]]") {
-						throw new Error(
-							"No ident is provided by referenced loader. " +
-								"When using a function for Rule.use in config you need to " +
-								"provide an 'ident' property for referenced loader options."
-						);
-					}
-					obj.options = compiler.ruleSet.references.get(ident);
-					if (obj.options === undefined) {
-						throw new Error("Invalid ident is provided by referenced loader");
-					}
-					obj.ident = ident;
-				} else {
-					obj.options = undefined;
-					obj.ident = undefined;
-				}
+				obj.options = undefined;
+				obj.ident = undefined;
 			} else {
 				if (!value.loader)
 					throw new Error(
