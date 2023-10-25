@@ -36,7 +36,7 @@ const RUNTIME_MODULE_NAME_MAPPING = {
 	"webpack/runtime/chunk_preload_trigger":
 		"webpack/runtime/chunk preload trigger",
 	"webpack/runtime/css_loading": "webpack/runtime/css loading",
-	"rspack/runtime/wasm loading": "webpack/runtime/wasm loading",
+	"webpack/runtime/async_wasm_loading": "webpack/runtime/wasm loading",
 	"webpack/runtime/hot_module_replacement":
 		"webpack/runtime/hot module replacement",
 	"webpack/runtime/readfile_chunk_loading":
