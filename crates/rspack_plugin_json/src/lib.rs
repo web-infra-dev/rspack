@@ -41,7 +41,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     // TODO default_object is not align with webpack
     build_meta.default_object = BuildMetaDefaultObject::RedirectWarn;
     let source = box_source.source();
-    let strip_bom_source = source.strip_prefix("\u{feff}");
+    let strip_bom_source = source.strip_prefix('\u{feff}');
     let need_strip_bom = strip_bom_source.is_some();
 
     let parse_result = json::parse(strip_bom_source.unwrap_or(&source)).map_err(|e| {

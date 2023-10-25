@@ -69,6 +69,6 @@ pub fn property_name(prop: &str) -> Result<Cow<str>> {
   } else {
     serde_json::to_string(prop)
       .map_err(|e| internal_error!(e.to_string()))
-      .map(|s| Cow::from(s))
+      .map(Cow::from)
   }
 }
