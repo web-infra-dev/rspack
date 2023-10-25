@@ -25,7 +25,9 @@ import { parseResource } from "../util/identifier";
 import {
 	ComposeJsUseOptions,
 	LoaderContext,
-	createRawModuleRuleUses
+	createRawModuleRuleUses,
+	LoaderDefinition,
+	LoaderDefinitionFunction
 } from "./adapterRuleUse";
 import {
 	CrossOriginLoading,
@@ -58,7 +60,7 @@ import {
 	RspackOptionsNormalized
 } from "./normalization";
 
-export type { LoaderContext };
+export type { LoaderContext, LoaderDefinition, LoaderDefinitionFunction };
 
 export const getRawOptions = (
 	options: RspackOptionsNormalized,

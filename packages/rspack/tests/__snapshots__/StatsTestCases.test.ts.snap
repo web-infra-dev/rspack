@@ -503,7 +503,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "627ffdc10e023d4d79a6",
+  "hash": "3290e10b2fba8a8bd75a",
   "logging": {},
   "modules": [
     {
@@ -606,7 +606,7 @@ chunk {main} main.xxxx.js (main) >{dynamic_js}< [entry]
   entry ./index
 ./dynamic.js [426] {dynamic_js}
   dynamic import ./dynamic [10]
-Rspack compiled successfully (627ffdc10e023d4d79a6)"
+Rspack compiled successfully (3290e10b2fba8a8bd75a)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -2502,7 +2502,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "86603a19716580fa0e3f",
+  "hash": "21b6a905e9c471003723",
   "logging": {},
   "modules": [
     {
@@ -2565,7 +2565,7 @@ chunk {main} bundle.js (main) [entry]
     entry ./index
 ./index.js [10] {main}
   entry ./index
-Rspack compiled successfully (86603a19716580fa0e3f)"
+Rspack compiled successfully (21b6a905e9c471003723)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple-module-source 1`] = `
@@ -2951,7 +2951,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "86603a19716580fa0e3f",
+  "hash": "21b6a905e9c471003723",
   "logging": {},
   "modules": [
     {
@@ -3008,7 +3008,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 2`] = `
 asset bundle.js 589 bytes [emitted111] (name: main) [testA: aaaaaa]
 Entrypoint main 589 bytes = bundle.js
 ./index.js
-Rspack compiled successfully (86603a19716580fa0e3f)"
+Rspack compiled successfully (21b6a905e9c471003723)"
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 1`] = `

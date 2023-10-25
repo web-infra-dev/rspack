@@ -17,6 +17,7 @@ anyhow            = { workspace = true }
 async-trait       = { workspace = true }
 dojang            = "0.1.6"
 itertools         = { workspace = true }
+path-clean        = { workspace = true }
 rayon             = { workspace = true }
 regex             = { workspace = true }
 rspack_base64     = { path = "../rspack_base64" }
