@@ -71,27 +71,27 @@ impl<'a> ChunkCombinationBucket {
       let b = self.combinations_by_ukey.get(b_ukey).unwrap();
       // Layer 1: ordered by largest size benefit
       if a.size_diff < b.size_diff {
-        return Ordering::Greater;
-      } else if a.size_diff > b.size_diff {
         return Ordering::Less;
+      } else if a.size_diff > b.size_diff {
+        return Ordering::Greater;
       } else {
         // Layer 2: ordered by smallest combined size
         if a.integrated_size < b.integrated_size {
-          return Ordering::Less;
-        } else if a.integrated_size > b.integrated_size {
           return Ordering::Greater;
+        } else if a.integrated_size > b.integrated_size {
+          return Ordering::Less;
         } else {
           // Layer 3: ordered by position difference in orderedChunk (-> to be deterministic)
           if a.b_idx < b.a_idx {
-            return Ordering::Less;
-          } else if a.b_idx > b.a_idx {
             return Ordering::Greater;
+          } else if a.b_idx > b.a_idx {
+            return Ordering::Less;
           } else {
             // Layer 4: ordered by position in orderedChunk (-> to be deterministic)
             if a.b_idx < b.b_idx {
-              return Ordering::Less;
-            } else if a.b_idx > b.b_idx {
               return Ordering::Greater;
+            } else if a.b_idx > b.b_idx {
+              return Ordering::Less;
             } else {
               return Ordering::Equal;
             }
@@ -116,5 +116,271 @@ impl<'a> ChunkCombinationBucket {
 
   pub fn update(&mut self) {
     self.out_of_date = true;
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use rspack_core::ChunkUkey;
+
+  use super::*;
+
+  #[test]
+  fn pop_delete_and_update() {
+    let chunk_0 = ChunkUkey::new();
+    let chunk_1 = ChunkUkey::new();
+    let chunk_2 = ChunkUkey::new();
+    let chunk_3 = ChunkUkey::new();
+    let chunk_4 = ChunkUkey::new();
+    let chunk_5 = ChunkUkey::new();
+
+    let mut combinations = ChunkCombinationBucket::new();
+
+    let combination_0 = ChunkCombinationUkey::new();
+    combinations.add(ChunkCombination {
+      ukey: combination_0,
+      a: chunk_0.clone(),
+      a_idx: 0,
+      a_size: 10022_f64,
+      b: chunk_1.clone(),
+      b_idx: 1,
+      b_size: 10022_f64,
+      deleted: false,
+      integrated_size: 10044_f64,
+      size_diff: 10000_f64,
+    });
+
+    let combination_1 = ChunkCombinationUkey::new();
+    combinations.add(ChunkCombination {
+      ukey: combination_1,
+      a: chunk_0.clone(),
+      a_idx: 0,
+      a_size: 10022_f64,
+      b: chunk_2.clone(),
+      b_idx: 2,
+      b_size: 10030_f64,
+      deleted: false,
+      integrated_size: 10052_f64,
+      size_diff: 10000_f64,
+    });
+
+    let combination_2 = ChunkCombinationUkey::new();
+    combinations.add(ChunkCombination {
+      ukey: combination_2,
+      a: chunk_1.clone(),
+      a_idx: 1,
+      a_size: 10022_f64,
+      b: chunk_2.clone(),
+      b_idx: 2,
+      b_size: 10030_f64,
+      deleted: false,
+      integrated_size: 10052_f64,
+      size_diff: 10000_f64,
+    });
+
+    let combination_3 = ChunkCombinationUkey::new();
+    combinations.add(ChunkCombination {
+      ukey: combination_3,
+      a: chunk_0.clone(),
+      a_idx: 0,
+      a_size: 10022_f64,
+      b: chunk_3.clone(),
+      b_idx: 3,
+      b_size: 10022_f64,
+      deleted: false,
+      integrated_size: 10044_f64,
+      size_diff: 10000_f64,
+    });
+
+    let combination_4 = ChunkCombinationUkey::new();
+    combinations.add(ChunkCombination {
+      ukey: combination_4,
+      a: chunk_1.clone(),
+      a_idx: 1,
+      a_size: 10022_f64,
+      b: chunk_3.clone(),
+      b_idx: 3,
+      b_size: 10022_f64,
+      deleted: false,
+      integrated_size: 10044_f64,
+      size_diff: 10000_f64,
+    });
+
+    let combination_5 = ChunkCombinationUkey::new();
+    combinations.add(ChunkCombination {
+      ukey: combination_5,
+      a: chunk_2.clone(),
+      a_idx: 2,
+      a_size: 10030_f64,
+      b: chunk_3.clone(),
+      b_idx: 3,
+      b_size: 10022_f64,
+      deleted: false,
+      integrated_size: 10052_f64,
+      size_diff: 10000_f64,
+    });
+
+    let combination_6 = ChunkCombinationUkey::new();
+    combinations.add(ChunkCombination {
+      ukey: combination_6,
+      a: chunk_0.clone(),
+      a_idx: 0,
+      a_size: 10022_f64,
+      b: chunk_4.clone(),
+      b_idx: 4,
+      b_size: 10022_f64,
+      deleted: false,
+      integrated_size: 10044_f64,
+      size_diff: 10000_f64,
+    });
+
+    let combination_7 = ChunkCombinationUkey::new();
+    combinations.add(ChunkCombination {
+      ukey: combination_7,
+      a: chunk_1.clone(),
+      a_idx: 1,
+      a_size: 10022_f64,
+      b: chunk_4.clone(),
+      b_idx: 4,
+      b_size: 10022_f64,
+      deleted: false,
+      integrated_size: 10044_f64,
+      size_diff: 10000_f64,
+    });
+
+    let combination_8 = ChunkCombinationUkey::new();
+    combinations.add(ChunkCombination {
+      ukey: combination_8,
+      a: chunk_2.clone(),
+      a_idx: 2,
+      a_size: 10030_f64,
+      b: chunk_4.clone(),
+      b_idx: 4,
+      b_size: 10022_f64,
+      deleted: false,
+      integrated_size: 10052_f64,
+      size_diff: 10000_f64,
+    });
+
+    let combination_9 = ChunkCombinationUkey::new();
+    combinations.add(ChunkCombination {
+      ukey: combination_9,
+      a: chunk_3.clone(),
+      a_idx: 3,
+      a_size: 10022_f64,
+      b: chunk_4.clone(),
+      b_idx: 4,
+      b_size: 10022_f64,
+      deleted: false,
+      integrated_size: 10044_f64,
+      size_diff: 10000_f64,
+    });
+
+    let combination_10 = ChunkCombinationUkey::new();
+    combinations.add(ChunkCombination {
+      ukey: combination_10,
+      a: chunk_0.clone(),
+      a_idx: 0,
+      a_size: 10022_f64,
+      b: chunk_5.clone(),
+      b_idx: 5,
+      b_size: 10010_f64,
+      deleted: false,
+      integrated_size: 11230_f64,
+      size_diff: 9802_f64,
+    });
+
+    let combination_11 = ChunkCombinationUkey::new();
+    combinations.add(ChunkCombination {
+      ukey: combination_11,
+      a: chunk_1.clone(),
+      a_idx: 1,
+      a_size: 10022_f64,
+      b: chunk_5.clone(),
+      b_idx: 5,
+      b_size: 10010_f64,
+      deleted: false,
+      integrated_size: 11230_f64,
+      size_diff: 9802_f64,
+    });
+
+    let combination_12 = ChunkCombinationUkey::new();
+    combinations.add(ChunkCombination {
+      ukey: combination_12,
+      a: chunk_2.clone(),
+      a_idx: 2,
+      a_size: 10030_f64,
+      b: chunk_5.clone(),
+      b_idx: 5,
+      b_size: 10010_f64,
+      deleted: false,
+      integrated_size: 11310_f64,
+      size_diff: 9730_f64,
+    });
+
+    let combination_13 = ChunkCombinationUkey::new();
+    combinations.add(ChunkCombination {
+      ukey: combination_13,
+      a: chunk_3.clone(),
+      a_idx: 3,
+      a_size: 10022_f64,
+      b: chunk_5.clone(),
+      b_idx: 5,
+      b_size: 10010_f64,
+      deleted: false,
+      integrated_size: 11230_f64,
+      size_diff: 9802_f64,
+    });
+
+    let combination_14 = ChunkCombinationUkey::new();
+    combinations.add(ChunkCombination {
+      ukey: combination_14,
+      a: chunk_4.clone(),
+      a_idx: 4,
+      a_size: 10022_f64,
+      b: chunk_5.clone(),
+      b_idx: 5,
+      b_size: 10010_f64,
+      deleted: false,
+      integrated_size: 11230_f64,
+      size_diff: 9802_f64,
+    });
+
+    assert_eq!(combinations.pop_first().unwrap(), combination_0);
+
+    combinations.delete(&combination_1);
+    combinations.delete(&combination_3);
+    combinations.delete(&combination_6);
+    combinations.delete(&combination_10);
+
+    let c = combinations.get_mut(&combination_2).unwrap();
+    c.a = chunk_1;
+    c.integrated_size = 10074_f64;
+    c.a_size = 10044_f64;
+    c.size_diff = 10000_f64;
+    combinations.update();
+
+    let c = combinations.get_mut(&combination_4).unwrap();
+    c.a = chunk_1;
+    c.integrated_size = 10074_f64;
+    c.a_size = 10044_f64;
+    c.size_diff = 10000_f64;
+    combinations.update();
+
+    let c = combinations.get_mut(&combination_7).unwrap();
+    c.a = chunk_1;
+    c.integrated_size = 10066_f64;
+    c.a_size = 10044_f64;
+    c.size_diff = 10000_f64;
+    combinations.update();
+
+    let c = combinations.get_mut(&combination_8).unwrap();
+    c.a = chunk_1;
+    c.integrated_size = 11450_f64;
+    c.a_size = 10044_f64;
+    c.size_diff = 9604_f64;
+    combinations.update();
+
+    assert_eq!(combinations.pop_first().unwrap(), combination_9);
   }
 }
