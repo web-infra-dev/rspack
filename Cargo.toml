@@ -50,9 +50,9 @@ ustr               = { version = "0.9.0" }
 xxhash-rust        = { version = "0.8.6" }
 
 # Pinned
-napi                = { version = "=2.12.5" }
+napi                = { version = "=2.13.3" }
 napi-build          = { version = "=2.0.1" }
-napi-derive         = { version = "=2.12.3" }
+napi-derive         = { version = "=2.13.0" }
 napi-sys            = { version = "=2.2.3" }
 styled_components   = { version = "0.77.0" }
 swc_config          = { version = "=0.1.7" }
