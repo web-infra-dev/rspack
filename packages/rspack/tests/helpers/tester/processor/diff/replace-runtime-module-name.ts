@@ -28,7 +28,7 @@ const RUNTIME_MODULE_NAME_MAPPING = {
 	"webpack/runtime/runtime_id": "webpack/runtime/runtimeId",
 	"webpack/runtime/startup_chunk_dependencies":
 		"webpack/runtime/startup chunk dependencies",
-	"webpack/runtime/start_entry_point": "webpack/runtime/startup entrypoint",
+	"webpack/runtime/startup_entrypoint": "webpack/runtime/startup entrypoint",
 	"webpack/runtime/system_context": "webpack/runtime/__system_context__",
 	"webpack/runtime/chunk_prefetch_startup": "webpack/runtime/startup prefetch",
 	"webpack/runtime/chunk_prefetch_trigger":
