@@ -27,7 +27,7 @@ fn compare_module_iterables(modules_a: &[&BoxModule], modules_b: &[&BoxModule]) 
       (None, Some(_)) => return Ordering::Greater,
       (Some(_), None) => return Ordering::Less,
       (Some(a_item), Some(b_item)) => {
-        let res = compare_modules_by_identifier(&a_item, &b_item);
+        let res = compare_modules_by_identifier(a_item, b_item);
         if res != Ordering::Equal {
           return res;
         }
@@ -72,7 +72,7 @@ fn add_to_set_map(
   if map.get(key).is_none() {
     let mut set = HashSet::new();
     set.insert(value);
-    map.insert(key.clone(), set);
+    map.insert(*key, set);
   } else {
     let set = map.get_mut(key);
     if let Some(set) = set {
@@ -80,7 +80,7 @@ fn add_to_set_map(
     } else {
       let mut set = HashSet::new();
       set.insert(value);
-      map.insert(key.clone(), set);
+      map.insert(*key, set);
     }
   }
 }
@@ -114,19 +114,16 @@ fn integrate_chunks(
     {
       // When both chunks have entry modules or none have one, use
       // shortest name
-      if chunk_a.name.as_ref().unwrap().len() != chunk_b.name.as_ref().unwrap().len() {
-        chunk_a.name =
-          if chunk_a.name.as_ref().unwrap().len() < chunk_b.name.as_ref().unwrap().len() {
-            chunk_a.name.clone()
-          } else {
-            chunk_b.name.clone()
-          };
-      } else {
-        chunk_a.name = if chunk_a.name.as_ref().unwrap() < chunk_b.name.as_ref().unwrap() {
-          chunk_a.name.clone()
-        } else {
-          chunk_b.name.clone()
-        };
+      match (chunk_a.name.clone(), chunk_b.name.clone()) {
+        (Some(a), Some(b)) => {
+          if a.len() != b.len() {
+            chunk_a.name = if a.len() < b.len() { Some(a) } else { Some(b) };
+          }
+        }
+        (None, Some(b)) => {
+          chunk_a.name = Some(b);
+        }
+        _ => {}
       }
     } else if chunk_graph.get_number_of_entry_modules(b) > 0 {
       // Pick the name of the chunk with the entry module
@@ -147,7 +144,7 @@ fn integrate_chunks(
   // get_chunk_modules is used here to create a clone, because disconnect_chunk_and_module modifies
   for module in chunk_graph.get_chunk_modules(b, module_graph) {
     chunk_graph.disconnect_chunk_and_module(b, module.identifier());
-    chunk_graph.connect_chunk_and_module(a.clone(), module.identifier());
+    chunk_graph.connect_chunk_and_module(*a, module.identifier());
   }
 
   for (module, chunk_group) in chunk_graph
@@ -155,8 +152,8 @@ fn integrate_chunks(
     .get_chunk_entry_modules_with_chunk_group_iterable(b)
     .iter()
   {
-    chunk_graph.disconnect_chunk_and_entry_module(b, module.clone());
-    chunk_graph.connect_chunk_and_entry_module(a.clone(), module.clone(), chunk_group.clone());
+    chunk_graph.disconnect_chunk_and_entry_module(b, *module);
+    chunk_graph.connect_chunk_and_entry_module(*a, *module, *chunk_group);
   }
 
   let mut remove_group_ukeys = vec![];
@@ -217,7 +214,7 @@ impl Plugin for LimitChunkCountPlugin {
     let mut chunks_ukeys = compilation
       .chunk_by_ukey
       .keys()
-      .map(|key| key.clone())
+      .copied()
       .collect::<Vec<_>>();
     if chunks_ukeys.len() <= max_chunks {
       return Ok(());
@@ -225,7 +222,7 @@ impl Plugin for LimitChunkCountPlugin {
 
     let chunk_graph = &compilation.chunk_graph.clone();
     let module_graph = &compilation.module_graph;
-    let mut remaining_chunks_to_merge = chunks_ukeys.len() - max_chunks;
+    let mut remaining_chunks_to_merge = (chunks_ukeys.len() - max_chunks) as i64;
 
     // order chunks in a deterministic way
     chunks_ukeys.sort_by(|a, b| compare_chunks_with_graph(chunk_graph, module_graph, a, b));
@@ -248,33 +245,32 @@ impl Plugin for LimitChunkCountPlugin {
     };
 
     for (b_idx, b) in chunks_ukeys.iter().enumerate() {
-      for a_idx in 0..b_idx {
-        let a = &chunks_ukeys[a_idx];
-        if !chunk_graph.can_chunks_be_integrated(&a, &b, &chunk_by_ukey, &chunk_group_by_ukey) {
+      for (a_idx, a) in chunks_ukeys.iter().enumerate().take(b_idx) {
+        if !chunk_graph.can_chunks_be_integrated(a, b, &chunk_by_ukey, &chunk_group_by_ukey) {
           continue;
         }
 
         let integrated_size = chunk_graph.get_integrated_chunks_size(
-          &a,
-          &b,
+          a,
+          b,
           &chunk_size_option,
           &chunk_by_ukey,
           &chunk_group_by_ukey,
-          &module_graph,
+          module_graph,
         );
         let a_size = chunk_graph.get_chunk_size(
           a,
           &chunk_size_option,
           &chunk_by_ukey,
           &chunk_group_by_ukey,
-          &module_graph,
+          module_graph,
         );
         let b_size = chunk_graph.get_chunk_size(
           b,
           &chunk_size_option,
           &chunk_by_ukey,
           &chunk_group_by_ukey,
-          &module_graph,
+          module_graph,
         );
 
         let c = ChunkCombination {
@@ -282,16 +278,16 @@ impl Plugin for LimitChunkCountPlugin {
           deleted: false,
           size_diff: a_size + b_size - integrated_size,
           integrated_size,
-          a: a.clone(),
-          b: b.clone(),
+          a: *a,
+          b: *b,
           a_idx,
           b_idx,
           a_size,
           b_size,
         };
 
-        add_to_set_map(&mut combinations_by_chunk, &a, c.ukey);
-        add_to_set_map(&mut combinations_by_chunk, &b, c.ukey);
+        add_to_set_map(&mut combinations_by_chunk, a, c.ukey);
+        add_to_set_map(&mut combinations_by_chunk, b, c.ukey);
         combinations.add(c);
       }
     }
@@ -301,13 +297,10 @@ impl Plugin for LimitChunkCountPlugin {
     // further optimizations
     let mut modified_chunks: HashSet<ChunkUkey> = HashSet::new();
 
-    loop {
-      let combination_ukey = match combinations.pop_first() {
-        Some(combination_ukey) => combination_ukey,
-        None => break,
-      };
-
-      let combination = combinations.get_mut(&combination_ukey).unwrap();
+    while let Some(combination_ukey) = combinations.pop_first() {
+      let combination = combinations
+        .get_mut(&combination_ukey)
+        .expect("chunk combination not found");
       combination.deleted = true;
       let a = combination.a;
       let b = combination.b;
@@ -316,15 +309,11 @@ impl Plugin for LimitChunkCountPlugin {
       // skip over pair when
       // one of the already merged chunks is a parent of one of the chunks
       if !modified_chunks.is_empty() {
-        let a_chunk = chunk_by_ukey.get(&a).unwrap();
-        let b_chunk = chunk_by_ukey.get(&b).unwrap();
-        let mut queue = a_chunk
-          .groups
-          .iter()
-          .map(|ukey| ukey.clone())
-          .collect::<HashSet<_>>();
+        let a_chunk = chunk_by_ukey.get(&a).expect("chunk not found");
+        let b_chunk = chunk_by_ukey.get(&b).expect("chunk not found");
+        let mut queue = a_chunk.groups.iter().copied().collect::<HashSet<_>>();
         for group_ukey in b_chunk.groups.iter() {
-          queue.insert(group_ukey.clone());
+          queue.insert(*group_ukey);
         }
         for group_ukey in queue.clone() {
           for modified_chunk_ukey in modified_chunks.clone() {
@@ -347,7 +336,7 @@ impl Plugin for LimitChunkCountPlugin {
           let group = chunk_group_by_ukey.get(&group_ukey);
           if let Some(group) = group {
             for parent in group.parents_iterable() {
-              queue.insert(parent.clone());
+              queue.insert(*parent);
             }
           }
         }
@@ -356,7 +345,7 @@ impl Plugin for LimitChunkCountPlugin {
       if chunk_graph.can_chunks_be_integrated(&a, &b, &chunk_by_ukey, &chunk_group_by_ukey) {
         integrate_chunks(
           &mut compilation.chunk_graph,
-          &module_graph,
+          module_graph,
           &mut compilation.chunk_by_ukey,
           &mut compilation.chunk_group_by_ukey,
           &a,
@@ -378,7 +367,9 @@ impl Plugin for LimitChunkCountPlugin {
         let a_combinations = combinations_by_chunk.get_mut(&a);
         if let Some(a_combinations) = a_combinations {
           for ukey in a_combinations.clone() {
-            let combination = combinations.get_mut(&ukey).unwrap();
+            let combination = combinations
+              .get_mut(&ukey)
+              .expect("chunk combination not found");
             if combination.deleted {
               continue;
             }
@@ -391,7 +382,9 @@ impl Plugin for LimitChunkCountPlugin {
         let b_combinations = combinations_by_chunk.get(&b);
         if let Some(b_combinations) = b_combinations {
           for ukey in b_combinations {
-            let combination = combinations.get_mut(ukey).unwrap();
+            let combination = combinations
+              .get_mut(ukey)
+              .expect("chunk combination not found");
             if combination.deleted {
               continue;
             }
@@ -409,7 +402,7 @@ impl Plugin for LimitChunkCountPlugin {
                 &chunk_size_option,
                 &chunk_by_ukey,
                 &chunk_group_by_ukey,
-                &module_graph,
+                module_graph,
               );
               combination.a = a;
               combination.integrated_size = new_integrated_size;
@@ -430,7 +423,7 @@ impl Plugin for LimitChunkCountPlugin {
                 &chunk_size_option,
                 &chunk_by_ukey,
                 &chunk_group_by_ukey,
-                &module_graph,
+                module_graph,
               );
               combination.b = a;
               combination.integrated_size = new_integrated_size;
@@ -440,8 +433,10 @@ impl Plugin for LimitChunkCountPlugin {
             }
           }
         }
-        let combinations = combinations_by_chunk.get(&b).unwrap();
-        combinations_by_chunk.insert(a.clone(), combinations.clone());
+        let combinations = combinations_by_chunk
+          .get(&b)
+          .expect("chunk combination not found");
+        combinations_by_chunk.insert(a, combinations.clone());
         combinations_by_chunk.remove(&b);
       }
     }

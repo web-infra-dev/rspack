@@ -46,7 +46,7 @@ pub struct ChunkCombinationBucket {
   out_of_date: bool,
 }
 
-impl<'a> ChunkCombinationBucket {
+impl ChunkCombinationBucket {
   pub fn new() -> Self {
     Self {
       combinations_by_ukey: Default::default(),
@@ -67,33 +67,37 @@ impl<'a> ChunkCombinationBucket {
 
   fn sort_combinations(&mut self) {
     self.sorted_combinations.sort_by(|a_ukey, b_ukey| {
-      let a = self.combinations_by_ukey.get(a_ukey).unwrap();
-      let b = self.combinations_by_ukey.get(b_ukey).unwrap();
+      let a = self
+        .combinations_by_ukey
+        .get(a_ukey)
+        .expect("chunk combination not found");
+      let b = self
+        .combinations_by_ukey
+        .get(b_ukey)
+        .expect("chunk combination not found");
       // Layer 1: ordered by largest size benefit
       if a.size_diff < b.size_diff {
-        return Ordering::Less;
+        Ordering::Less
       } else if a.size_diff > b.size_diff {
-        return Ordering::Greater;
+        Ordering::Greater
       } else {
         // Layer 2: ordered by smallest combined size
         if a.integrated_size < b.integrated_size {
-          return Ordering::Greater;
+          Ordering::Greater
         } else if a.integrated_size > b.integrated_size {
-          return Ordering::Less;
+          Ordering::Less
         } else {
           // Layer 3: ordered by position difference in orderedChunk (-> to be deterministic)
-          if a.b_idx < b.a_idx {
-            return Ordering::Greater;
-          } else if a.b_idx > b.a_idx {
-            return Ordering::Less;
-          } else {
-            // Layer 4: ordered by position in orderedChunk (-> to be deterministic)
-            if a.b_idx < b.b_idx {
-              return Ordering::Greater;
-            } else if a.b_idx > b.b_idx {
-              return Ordering::Less;
-            } else {
-              return Ordering::Equal;
+          match a.b_idx.cmp(&b.a_idx) {
+            Ordering::Less => Ordering::Greater,
+            Ordering::Greater => Ordering::Less,
+            Ordering::Equal => {
+              // Layer 4: ordered by position in orderedChunk (-> to be deterministic)
+              match a.b_idx.cmp(&b.b_idx) {
+                Ordering::Less => Ordering::Greater,
+                Ordering::Greater => Ordering::Less,
+                Ordering::Equal => Ordering::Equal,
+              }
             }
           }
         }
@@ -139,10 +143,10 @@ mod test {
     let combination_0 = ChunkCombinationUkey::new();
     combinations.add(ChunkCombination {
       ukey: combination_0,
-      a: chunk_0.clone(),
+      a: chunk_0,
       a_idx: 0,
       a_size: 10022_f64,
-      b: chunk_1.clone(),
+      b: chunk_1,
       b_idx: 1,
       b_size: 10022_f64,
       deleted: false,
@@ -153,10 +157,10 @@ mod test {
     let combination_1 = ChunkCombinationUkey::new();
     combinations.add(ChunkCombination {
       ukey: combination_1,
-      a: chunk_0.clone(),
+      a: chunk_0,
       a_idx: 0,
       a_size: 10022_f64,
-      b: chunk_2.clone(),
+      b: chunk_2,
       b_idx: 2,
       b_size: 10030_f64,
       deleted: false,
@@ -167,10 +171,10 @@ mod test {
     let combination_2 = ChunkCombinationUkey::new();
     combinations.add(ChunkCombination {
       ukey: combination_2,
-      a: chunk_1.clone(),
+      a: chunk_1,
       a_idx: 1,
       a_size: 10022_f64,
-      b: chunk_2.clone(),
+      b: chunk_2,
       b_idx: 2,
       b_size: 10030_f64,
       deleted: false,
@@ -181,10 +185,10 @@ mod test {
     let combination_3 = ChunkCombinationUkey::new();
     combinations.add(ChunkCombination {
       ukey: combination_3,
-      a: chunk_0.clone(),
+      a: chunk_0,
       a_idx: 0,
       a_size: 10022_f64,
-      b: chunk_3.clone(),
+      b: chunk_3,
       b_idx: 3,
       b_size: 10022_f64,
       deleted: false,
@@ -195,10 +199,10 @@ mod test {
     let combination_4 = ChunkCombinationUkey::new();
     combinations.add(ChunkCombination {
       ukey: combination_4,
-      a: chunk_1.clone(),
+      a: chunk_1,
       a_idx: 1,
       a_size: 10022_f64,
-      b: chunk_3.clone(),
+      b: chunk_3,
       b_idx: 3,
       b_size: 10022_f64,
       deleted: false,
@@ -209,10 +213,10 @@ mod test {
     let combination_5 = ChunkCombinationUkey::new();
     combinations.add(ChunkCombination {
       ukey: combination_5,
-      a: chunk_2.clone(),
+      a: chunk_2,
       a_idx: 2,
       a_size: 10030_f64,
-      b: chunk_3.clone(),
+      b: chunk_3,
       b_idx: 3,
       b_size: 10022_f64,
       deleted: false,
@@ -223,10 +227,10 @@ mod test {
     let combination_6 = ChunkCombinationUkey::new();
     combinations.add(ChunkCombination {
       ukey: combination_6,
-      a: chunk_0.clone(),
+      a: chunk_0,
       a_idx: 0,
       a_size: 10022_f64,
-      b: chunk_4.clone(),
+      b: chunk_4,
       b_idx: 4,
       b_size: 10022_f64,
       deleted: false,
@@ -237,10 +241,10 @@ mod test {
     let combination_7 = ChunkCombinationUkey::new();
     combinations.add(ChunkCombination {
       ukey: combination_7,
-      a: chunk_1.clone(),
+      a: chunk_1,
       a_idx: 1,
       a_size: 10022_f64,
-      b: chunk_4.clone(),
+      b: chunk_4,
       b_idx: 4,
       b_size: 10022_f64,
       deleted: false,
@@ -251,10 +255,10 @@ mod test {
     let combination_8 = ChunkCombinationUkey::new();
     combinations.add(ChunkCombination {
       ukey: combination_8,
-      a: chunk_2.clone(),
+      a: chunk_2,
       a_idx: 2,
       a_size: 10030_f64,
-      b: chunk_4.clone(),
+      b: chunk_4,
       b_idx: 4,
       b_size: 10022_f64,
       deleted: false,
@@ -265,10 +269,10 @@ mod test {
     let combination_9 = ChunkCombinationUkey::new();
     combinations.add(ChunkCombination {
       ukey: combination_9,
-      a: chunk_3.clone(),
+      a: chunk_3,
       a_idx: 3,
       a_size: 10022_f64,
-      b: chunk_4.clone(),
+      b: chunk_4,
       b_idx: 4,
       b_size: 10022_f64,
       deleted: false,
@@ -279,10 +283,10 @@ mod test {
     let combination_10 = ChunkCombinationUkey::new();
     combinations.add(ChunkCombination {
       ukey: combination_10,
-      a: chunk_0.clone(),
+      a: chunk_0,
       a_idx: 0,
       a_size: 10022_f64,
-      b: chunk_5.clone(),
+      b: chunk_5,
       b_idx: 5,
       b_size: 10010_f64,
       deleted: false,
@@ -293,10 +297,10 @@ mod test {
     let combination_11 = ChunkCombinationUkey::new();
     combinations.add(ChunkCombination {
       ukey: combination_11,
-      a: chunk_1.clone(),
+      a: chunk_1,
       a_idx: 1,
       a_size: 10022_f64,
-      b: chunk_5.clone(),
+      b: chunk_5,
       b_idx: 5,
       b_size: 10010_f64,
       deleted: false,
@@ -307,10 +311,10 @@ mod test {
     let combination_12 = ChunkCombinationUkey::new();
     combinations.add(ChunkCombination {
       ukey: combination_12,
-      a: chunk_2.clone(),
+      a: chunk_2,
       a_idx: 2,
       a_size: 10030_f64,
-      b: chunk_5.clone(),
+      b: chunk_5,
       b_idx: 5,
       b_size: 10010_f64,
       deleted: false,
@@ -321,10 +325,10 @@ mod test {
     let combination_13 = ChunkCombinationUkey::new();
     combinations.add(ChunkCombination {
       ukey: combination_13,
-      a: chunk_3.clone(),
+      a: chunk_3,
       a_idx: 3,
       a_size: 10022_f64,
-      b: chunk_5.clone(),
+      b: chunk_5,
       b_idx: 5,
       b_size: 10010_f64,
       deleted: false,
@@ -335,10 +339,10 @@ mod test {
     let combination_14 = ChunkCombinationUkey::new();
     combinations.add(ChunkCombination {
       ukey: combination_14,
-      a: chunk_4.clone(),
+      a: chunk_4,
       a_idx: 4,
       a_size: 10022_f64,
-      b: chunk_5.clone(),
+      b: chunk_5,
       b_idx: 5,
       b_size: 10010_f64,
       deleted: false,

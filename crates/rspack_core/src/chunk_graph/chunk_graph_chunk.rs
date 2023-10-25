@@ -446,7 +446,7 @@ impl ChunkGraph {
           return false;
         }
         for parent in chunk_group.parents_iterable() {
-          queue.push(parent.clone());
+          queue.push(*parent);
         }
       }
       true
@@ -488,10 +488,10 @@ impl ChunkGraph {
     let modules_size = get_modules_size(&modules);
     let chunk_overhead = options.chunk_overhead.unwrap_or(10000f64);
     let entry_chunk_multiplicator = options.entry_chunk_multiplicator.unwrap_or(10f64);
-    let chunk = chunk_by_ukey.get(chunk_ukey).unwrap();
+    let chunk = chunk_by_ukey.get(chunk_ukey).expect("chunk not found");
     chunk_overhead
       + modules_size
-        * (if chunk.can_be_initial(&chunk_group_by_ukey) {
+        * (if chunk.can_be_initial(chunk_group_by_ukey) {
           entry_chunk_multiplicator
         } else {
           1f64
@@ -507,8 +507,8 @@ impl ChunkGraph {
     chunk_group_by_ukey: &Database<ChunkGroup>,
     module_graph: &ModuleGraph,
   ) -> f64 {
-    let cgc_a = self.get_chunk_graph_chunk(&chunk_a_ukey);
-    let cgc_b = self.get_chunk_graph_chunk(&chunk_b_ukey);
+    let cgc_a = self.get_chunk_graph_chunk(chunk_a_ukey);
+    let cgc_b = self.get_chunk_graph_chunk(chunk_b_ukey);
     let mut all_modules: Vec<&BoxModule> = cgc_a
       .modules
       .iter()
@@ -524,8 +524,8 @@ impl ChunkGraph {
     let chunk_overhead = options.chunk_overhead.unwrap_or(10000f64);
     let entry_chunk_multiplicator = options.entry_chunk_multiplicator.unwrap_or(10f64);
 
-    let chunk_a = chunk_by_ukey.get(chunk_a_ukey).unwrap();
-    let chunk_b = chunk_by_ukey.get(chunk_b_ukey).unwrap();
+    let chunk_a = chunk_by_ukey.get(chunk_a_ukey).expect("chunk not found");
+    let chunk_b = chunk_by_ukey.get(chunk_b_ukey).expect("chunk not found");
 
     chunk_overhead
       + modules_size

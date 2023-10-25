@@ -115,12 +115,9 @@ impl RawOptionsApply for RawOptions {
     let dev_server: DevServerOptions = self.dev_server.into();
 
     // prelude plugins
-    let mut prelude_plugins = vec![];
-
-    prelude_plugins.push(rspack_plugin_schemes::DataUriPlugin.boxed());
-    prelude_plugins.push(rspack_plugin_schemes::FileUriPlugin.boxed());
-
-    prelude_plugins.push(
+    let mut prelude_plugins = vec![
+      rspack_plugin_schemes::DataUriPlugin.boxed(),
+      rspack_plugin_schemes::FileUriPlugin.boxed(),
       rspack_plugin_asset::AssetPlugin::new(rspack_plugin_asset::AssetConfig {
         parse_options: module
           .parser
@@ -129,9 +126,10 @@ impl RawOptionsApply for RawOptions {
           .and_then(|x| x.get_asset(&ModuleType::Asset).cloned()),
       })
       .boxed(),
-    );
-    prelude_plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
-    prelude_plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
+      rspack_plugin_json::JsonPlugin {}.boxed(),
+      rspack_plugin_runtime::RuntimePlugin {}.boxed(),
+    ];
+
     if experiments.lazy_compilation {
       prelude_plugins.push(rspack_plugin_runtime::LazyCompilationPlugin {}.boxed());
     }

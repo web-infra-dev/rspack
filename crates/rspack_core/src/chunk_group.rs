@@ -178,13 +178,13 @@ impl ChunkGroup {
   pub fn replace_chunk(&mut self, old_chunk: &ChunkUkey, new_chunk: &ChunkUkey) -> bool {
     if let Some(runtime_chunk) = self.runtime_chunk {
       if runtime_chunk == *old_chunk {
-        self.runtime_chunk = Some(new_chunk.clone());
+        self.runtime_chunk = Some(*new_chunk);
       }
     }
 
     if let Some(entry_point_chunk) = self.entry_point_chunk {
       if entry_point_chunk == *old_chunk {
-        self.entry_point_chunk = Some(new_chunk.clone());
+        self.entry_point_chunk = Some(*new_chunk);
       }
     }
 
@@ -196,7 +196,7 @@ impl ChunkGroup {
         match self.chunks.iter().position(|x| x == new_chunk) {
           // when new_chunk doesn't exist
           None => {
-            self.chunks[old_idx] = new_chunk.clone();
+            self.chunks[old_idx] = *new_chunk;
             true
           }
           // when new_chunk exists
@@ -205,7 +205,7 @@ impl ChunkGroup {
               self.chunks.remove(old_idx);
               true
             } else if new_idx != old_idx {
-              self.chunks[old_idx] = new_chunk.clone();
+              self.chunks[old_idx] = *new_chunk;
               self.chunks.remove(new_idx);
               true
             } else {

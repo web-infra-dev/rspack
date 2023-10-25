@@ -375,7 +375,7 @@ impl Chunk {
   }
 
   pub fn remove_group(&mut self, chunk_group: &ChunkGroupUkey) {
-    self.groups.remove(&chunk_group);
+    self.groups.remove(chunk_group);
   }
 }
 
