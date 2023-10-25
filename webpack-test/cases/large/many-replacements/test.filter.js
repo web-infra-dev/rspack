@@ -1,10 +1,5 @@
+// module.exports = function (config) {
+// 	return !process.env.CI;
+// };
 
-/*
-module.exports = function (config) {
-	return !process.env.CI;
-};
-
-*/
-module.exports = () => {return "https://github.com/web-infra-dev/rspack/issues/4396"}
-
-							
+module.exports = () => false // passed it, but it's too slow

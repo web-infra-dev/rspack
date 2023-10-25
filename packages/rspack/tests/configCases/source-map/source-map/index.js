@@ -12,8 +12,7 @@ it("should map to the original content if `module` enabled", async () => {
 	const consumer = await new sourceMap.SourceMapConsumer(map);
 	expect(map.sources).toContain("./App.jsx");
 	expect(map.sourcesContent[1]).toEqual(app);
-	const STUB =
-		"\u0048\u0065\u006c\u006c\u006f\u0020\u0052\u0073\u0070\u0061\u0063\u006b\u0021";
+	const STUB = "Hello" + " " + "Rspack!";
 	const { line, column } = consumer.originalPositionFor(
 		positionFor(generated, STUB)
 	);

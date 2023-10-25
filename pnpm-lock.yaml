@@ -989,12 +989,14 @@ importers:
       html-loader: ^4.2.0
       html-webpack-plugin: ^5.5.0
       jest-serializer-path: ^0.1.15
+      json-parse-even-better-errors: ^3.0.0
       less: 4.1.3
       less-loader: ^11.1.0
       neo-async: 2.6.2
       postcss-loader: ^7.0.2
       postcss-pxtorem: ^6.0.0
       pug-loader: ^2.4.0
+      querystring: ^0.2.1
       react-refresh: 0.14.0
       react-relay: ^14.1.0
       sass: ^1.56.2
@@ -1019,7 +1021,9 @@ importers:
       compare-versions: 6.0.0-rc.1
       enhanced-resolve: 5.12.0
       graceful-fs: 4.2.10
+      json-parse-even-better-errors: 3.0.0
       neo-async: 2.6.2
+      querystring: 0.2.1
       react-refresh: 0.14.0
       schema-utils: 4.0.0
       tapable: 2.2.1
@@ -1289,9 +1293,10 @@ importers:
       babel-plugin-import: ^1.13.5
       browserslist: ^4.21.3
       chokidar: 3.5.3
-      coffee-loader: ^4.0.0
-      coffeescript: ^2.7.0
+      coffee-loader: ^1.0.0
+      coffeescript: ^2.5.1
       copy-webpack-plugin: '5'
+      css-loader: ^5.0.1
       csv-to-markdown-table: ^1.3.0
       enhanced-resolve: 5.12.0
       file-loader: ^6.2.0
@@ -1348,9 +1353,10 @@ importers:
       babel-loader: 9.1.2
       babel-plugin-import: 1.13.5
       chokidar: 3.5.3
-      coffee-loader: 4.0.0_coffeescript@2.7.0
+      coffee-loader: 1.0.1_coffeescript@2.7.0
       coffeescript: 2.7.0
       copy-webpack-plugin: 5.1.2
+      css-loader: 5.0.1
       csv-to-markdown-table: 1.3.0
       file-loader: 6.2.0
       is-ci: 3.0.1
@@ -15519,14 +15525,16 @@ packages:
     engines: {iojs: '>= 1.0.0', node: '>= 0.12.0'}
     dev: true
 
-  /coffee-loader/4.0.0_coffeescript@2.7.0:
-    resolution: {integrity: sha512-RvgC8c0JwRew5lq3x2J+P4z9Cvan/v91muEvV90VJXcTuJbJQN20taZxfj6/XC4yysA8PInPGpxdB1J9LphLuQ==}
-    engines: {node: '>= 14.15.0'}
+  /coffee-loader/1.0.1_coffeescript@2.7.0:
+    resolution: {integrity: sha512-l3lcWeyNE11ZXNYEpkIkerrvBdSpT06/kcR7MyY+0ys38MOuqzhr+s+s7Tsvv2QH1+qEmhvG8mGuUWIO2zH7Bg==}
+    engines: {node: '>= 10.13.0'}
     peerDependencies:
       coffeescript: '>= 2.0.0'
-      webpack: ^5.0.0
+      webpack: ^4.0.0 || ^5.0.0
     dependencies:
       coffeescript: 2.7.0
+      loader-utils: 2.0.4
+      schema-utils: 3.1.2
     dev: true
 
   /coffeescript/2.7.0:
@@ -16238,6 +16246,26 @@ packages:
   /css-color-keywords/1.0.0:
     resolution: {integrity: sha512-FyyrDHZKEjXDpNJYvVsV960FiqQyXc/LlYmsxl2BcdMb2WPx0OGRVgTg55rPSyLSNMqP52R9r8geSp7apN3Ofg==}
     engines: {node: '>=4'}
+
+  /css-loader/5.0.1:
+    resolution: {integrity: sha512-cXc2ti9V234cq7rJzFKhirb2L2iPy8ZjALeVJAozXYz9te3r4eqLSixNAbMDJSgJEQywqXzs8gonxaboeKqwiw==}
+    engines: {node: '>= 10.13.0'}
+    peerDependencies:
+      webpack: ^4.27.0 || ^5.0.0
+    dependencies:
+      camelcase: 6.3.0
+      cssesc: 3.0.0
+      icss-utils: 5.1.0_postcss@8.4.21
+      loader-utils: 2.0.4
+      postcss: 8.4.21
+      postcss-modules-extract-imports: 3.0.0_postcss@8.4.21
+      postcss-modules-local-by-default: 4.0.3_postcss@8.4.21
+      postcss-modules-scope: 3.0.0_postcss@8.4.21
+      postcss-modules-values: 4.0.0_postcss@8.4.21
+      postcss-value-parser: 4.2.0
+      schema-utils: 3.1.2
+      semver: 7.5.1
+    dev: true
 
   /css-loader/6.7.3:
     resolution: {integrity: sha512-qhOH1KlBMnZP8FzRO6YCH9UHXQhVMcEGLyNdb7Hv2cpcmJbW0YrddO+tG1ab5nT41KpHIYGsbeHqxB9xPu1pKQ==}
@@ -21080,7 +21108,6 @@ packages:
   /json-parse-even-better-errors/3.0.0:
     resolution: {integrity: sha512-iZbGHafX/59r39gPwVPRBGw0QQKnA7tte5pSMrhWOW7swGsVvVTjmfyAV9pNqk8YGT7tRCdxRu8uzcgZwoDooA==}
     engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
-    dev: true
 
   /json-schema-traverse/0.4.1:
     resolution: {integrity: sha512-xbbCH5dCYU5T8LcEhhuh7HJ88HXuW3qsI3Y0zOZFKfZEHcpWiHU/Jxzk629Brsab/mMiHQti9wMP+845RPe3Vg==}
@@ -24119,6 +24146,18 @@ packages:
       postcss-value-parser: 4.2.0
     dev: true
 
+  /postcss-modules-local-by-default/4.0.3_postcss@8.4.21:
+    resolution: {integrity: sha512-2/u2zraspoACtrbFRnTijMiQtb4GW4BvatjaG/bCjYQo8kLTdevCUlwuBHx2sCnSyrI3x3qj4ZK1j5LQBgzmwA==}
+    engines: {node: ^10 || ^12 || >= 14}
+    peerDependencies:
+      postcss: ^8.1.0
+    dependencies:
+      icss-utils: 5.1.0_postcss@8.4.21
+      postcss: 8.4.21
+      postcss-selector-parser: 6.0.11
+      postcss-value-parser: 4.2.0
+    dev: true
+
   /postcss-modules-local-by-default/4.0.3_postcss@8.4.23:
     resolution: {integrity: sha512-2/u2zraspoACtrbFRnTijMiQtb4GW4BvatjaG/bCjYQo8kLTdevCUlwuBHx2sCnSyrI3x3qj4ZK1j5LQBgzmwA==}
     engines: {node: ^10 || ^12 || >= 14}
@@ -24694,6 +24733,12 @@ packages:
 
   /querystring/0.2.0:
     resolution: {integrity: sha512-X/xY82scca2tau62i9mDyU9K+I+djTMUsvwf7xnUX5GLvVzgJybOJf4Y6o9Zx3oJK/LSXg5tTZBjwzqVPaPO2g==}
+    engines: {node: '>=0.4.x'}
+    deprecated: The querystring API is considered Legacy. new code should use the URLSearchParams API instead.
+    dev: false
+
+  /querystring/0.2.1:
+    resolution: {integrity: sha512-wkvS7mL/JMugcup3/rMitHmd9ecIGd2lhFhK9N3UUQ450h66d1r3Y9nvXzQAW1Lq+wyx61k/1pfKS5KuKiyEbg==}
     engines: {node: '>=0.4.x'}
     deprecated: The querystring API is considered Legacy. new code should use the URLSearchParams API instead.
     dev: false
