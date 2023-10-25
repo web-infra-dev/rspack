@@ -7,10 +7,9 @@ use std::{
 
 use chunk_combination::{ChunkCombination, ChunkCombinationBucket, ChunkCombinationUkey};
 use rspack_core::{
-  BoxModule, Chunk, ChunkGraph, ChunkGroup, ChunkSizeOptions, ChunkUkey, ModuleGraph,
-  OptimizeChunksArgs, Plugin, PluginContext, PluginOptimizeChunksOutput, RuntimeSpec,
+  BoxModule, ChunkGraph, ChunkSizeOptions, ChunkUkey, ModuleGraph, OptimizeChunksArgs, Plugin,
+  PluginContext, PluginOptimizeChunksOutput,
 };
-use rspack_database::Database;
 use rspack_util::comparators::compare_ids;
 
 // TODO: we should remove this function to crate rspack_util
