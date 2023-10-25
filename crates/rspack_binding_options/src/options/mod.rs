@@ -114,10 +114,10 @@ impl RawOptionsApply for RawOptions {
     let node = self.node.map(|n| n.into());
     let dev_server: DevServerOptions = self.dev_server.into();
 
-    // prelude plugins
-    let mut prelude_plugins = vec![
-      rspack_plugin_schemes::DataUriPlugin.boxed(),
-      rspack_plugin_schemes::FileUriPlugin.boxed(),
+    plugins.push(rspack_plugin_schemes::DataUriPlugin.boxed());
+    plugins.push(rspack_plugin_schemes::FileUriPlugin.boxed());
+
+    plugins.push(
       rspack_plugin_asset::AssetPlugin::new(rspack_plugin_asset::AssetConfig {
         parse_options: module
           .parser
@@ -126,26 +126,25 @@ impl RawOptionsApply for RawOptions {
           .and_then(|x| x.get_asset(&ModuleType::Asset).cloned()),
       })
       .boxed(),
-      rspack_plugin_json::JsonPlugin {}.boxed(),
-      rspack_plugin_runtime::RuntimePlugin {}.boxed(),
-    ];
-
+    );
+    plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
+    plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
     if experiments.lazy_compilation {
-      prelude_plugins.push(rspack_plugin_runtime::LazyCompilationPlugin {}.boxed());
+      plugins.push(rspack_plugin_runtime::LazyCompilationPlugin {}.boxed());
     }
     if experiments.async_web_assembly {
-      prelude_plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
+      plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
     }
     rspack_plugin_worker::worker_plugin(
       output.worker_chunk_loading.clone(),
       output.worker_wasm_loading.clone(),
-      &mut prelude_plugins,
+      plugins,
     );
-    prelude_plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
-    prelude_plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin {}.boxed());
+    plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
+    plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin {}.boxed());
 
     if devtool.source_map() {
-      prelude_plugins.push(
+      plugins.push(
         rspack_plugin_devtool::DevtoolPlugin::new(rspack_plugin_devtool::DevtoolPluginOptions {
           inline: devtool.inline(),
           append: !devtool.hidden(),
@@ -158,29 +157,26 @@ impl RawOptionsApply for RawOptions {
       );
     }
 
-    prelude_plugins.push(rspack_ids::NamedChunkIdsPlugin::new(None, None).boxed());
+    plugins.push(rspack_ids::NamedChunkIdsPlugin::new(None, None).boxed());
 
     if experiments.rspack_future.new_treeshaking {
       if optimization.side_effects.is_enable() {
-        prelude_plugins.push(SideEffectsFlagPlugin::default().boxed());
+        plugins.push(SideEffectsFlagPlugin::default().boxed());
       }
       if optimization.provided_exports {
-        prelude_plugins.push(FlagDependencyExportsPlugin::default().boxed());
+        plugins.push(FlagDependencyExportsPlugin::default().boxed());
       }
       if optimization.used_exports.is_enable() {
-        prelude_plugins.push(FlagDependencyUsagePlugin::default().boxed());
+        plugins.push(FlagDependencyUsagePlugin::default().boxed());
       }
     }
 
     // Notice the plugin need to be placed after SplitChunksPlugin
     if optimization.remove_empty_chunks {
-      prelude_plugins.push(rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin.boxed());
+      plugins.push(rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin.boxed());
     }
 
-    prelude_plugins
-      .push(rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin.boxed());
-
-    plugins.splice(0..0, prelude_plugins);
+    plugins.push(rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin.boxed());
 
     Ok(Self::Options {
       context,
