@@ -1,4 +1,4 @@
-it("should get options", function() {
+it("should get options", function () {
 	expect(require("./a")).toStrictEqual({
 		arg: true,
 		arg1: null,
@@ -43,9 +43,3 @@ it("should get options", function() {
 		foo: "bar"
 	});
 });
-
-const never = false;
-if (never) {
-	require("./error1");
-	require("./error2");
-}
