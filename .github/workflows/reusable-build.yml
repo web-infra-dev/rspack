@@ -126,6 +126,11 @@ jobs:
           pre: |
             export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
 
+      # setup rust target for windows and macos
+      - name: Setup Rust Target
+        if: ${{ !contains(inputs.target, 'linux') }}
+        run: rustup target add ${{ inputs.target }}
+
       # Windows
 
       - name: Build i686-pc-windows-msvc
