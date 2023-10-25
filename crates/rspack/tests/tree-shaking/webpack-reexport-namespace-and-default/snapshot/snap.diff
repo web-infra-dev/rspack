@@ -2,7 +2,7 @@
 +++ actual
 @@ -31,7 +31,6 @@
  __webpack_require__.d(__webpack_exports__, {
-   'mod': function() { return mod; }
+   mod: function() { return mod; }
  });
 -/* harmony import */var _package1_script__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./package1/script */"./package1/script.js");
  /* harmony import */var _package2_script__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./package2/script */"./package2/script.js");
@@ -10,7 +10,7 @@
  
 @@ -43,20 +42,10 @@
  __webpack_require__.d(__webpack_exports__, {
-   'exportDefaultUsed': function() { return exportDefaultUsed; }
+   exportDefaultUsed: function() { return exportDefaultUsed; }
  });
 -/* harmony import */var _script1__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./script1 */"./package1/script1.js");
 -__webpack_require__.es(_script1__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
@@ -32,7 +32,7 @@
  'use strict';
 @@ -64,13 +53,22 @@
  __webpack_require__.d(__webpack_exports__, {
-   'exportDefaultUsed': function() { return exportDefaultUsed; }
+   exportDefaultUsed: function() { return exportDefaultUsed; }
  });
 +/* harmony import */var _script3__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./script3 */"./package1/script3.js");
  
@@ -47,7 +47,7 @@
 +'use strict';
 +__webpack_require__.r(__webpack_exports__);
 +__webpack_require__.d(__webpack_exports__, {
-+  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
++  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 +});
 +var __WEBPACK_DEFAULT_EXPORT__ = 1;
 +},
@@ -55,7 +55,7 @@
  'use strict';
  __webpack_require__.r(__webpack_exports__);
 @@ -79,11 +77,10 @@
-   'exportDefaultUsed': function() { return exportDefaultUsed; }
+   exportDefaultUsed: function() { return exportDefaultUsed; }
  });
  /* harmony import */var _script1__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./script1 */"./package2/script1.js");
 -__webpack_require__.es(_script1__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);

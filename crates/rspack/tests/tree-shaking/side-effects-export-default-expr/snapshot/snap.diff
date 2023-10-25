@@ -1,7 +1,7 @@
 --- expected
 +++ actual
 @@ -10,7 +10,7 @@
-   'b': function() { return b; }
+   b: function() { return b; }
  });
  
 -var __WEBPACK_DEFAULT_EXPORT__ = /* "./lib" unused */null;

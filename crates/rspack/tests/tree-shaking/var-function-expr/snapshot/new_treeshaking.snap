@@ -7,7 +7,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'app': function() { return app; }
+  app: function() { return app; }
 });
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
 
@@ -31,8 +31,8 @@ __webpack_require__.r(__webpack_exports__);
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'result': function() { return result; },
-  'something': function() { return something; }
+  result: function() { return result; },
+  something: function() { return something; }
 });
  const secret = "888";
  const result = 20000;

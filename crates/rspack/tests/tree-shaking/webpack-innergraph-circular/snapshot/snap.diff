@@ -4,11 +4,11 @@
  'use strict';
  __webpack_require__.r(__webpack_exports__);
  __webpack_require__.d(__webpack_exports__, {
--  'A': function() { return A; },
--  'B': function() { return B; },
-   'exportAUsed': function() { return exportAUsed; },
-   'exportBUsed': function() { return exportBUsed; },
-   'exportCUsed': function() { return exportCUsed; }
+-  A: function() { return A; },
+-  B: function() { return B; },
+   exportAUsed: function() { return exportAUsed; },
+   exportBUsed: function() { return exportBUsed; },
+   exportCUsed: function() { return exportCUsed; }
 @@ -49,8 +47,8 @@
   function C(s) {
      return s + "C";

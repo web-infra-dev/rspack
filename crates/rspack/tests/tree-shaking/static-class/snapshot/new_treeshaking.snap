@@ -7,7 +7,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'a': function() { return a; }
+  a: function() { return a; }
 });
 /* harmony import */var _b_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./b.js */"./b.js");
 
@@ -28,8 +28,8 @@ class Result {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'bb': function() { return bb; },
-  'cc': function() { return cc; }
+  bb: function() { return bb; },
+  cc: function() { return cc; }
 });
  const bb = 2;
  const cc = 3;
