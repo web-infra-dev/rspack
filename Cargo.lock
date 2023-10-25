@@ -1811,6 +1811,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ecba01bf2678719532c5e3059e0b5f0811273d94b397088b82e3bd0a78c78fdd"
 
 [[package]]
+name = "path-clean"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17359afc20d7ab31fdb42bb844c8b3bb1dabd7dcf7e68428492da7f16966fcef"
+
+[[package]]
 name = "path-dedot"
 version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2877,6 +2883,7 @@ dependencies = [
  "async-trait",
  "dojang",
  "itertools",
+ "path-clean 1.0.1",
  "rayon",
  "regex",
  "rspack_base64",
@@ -4319,7 +4326,7 @@ dependencies = [
  "normpath",
  "once_cell",
  "parking_lot 0.12.1",
- "path-clean",
+ "path-clean 0.1.0",
  "pathdiff",
  "serde",
  "serde_json",
@@ -4544,7 +4551,7 @@ dependencies = [
  "bitflags 2.3.3",
  "indexmap 1.9.3",
  "is-macro",
- "path-clean",
+ "path-clean 0.1.0",
  "pathdiff",
  "regex",
  "serde",
