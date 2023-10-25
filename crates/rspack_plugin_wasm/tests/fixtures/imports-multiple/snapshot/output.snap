@@ -26,8 +26,8 @@ var __webpack_exports__ = (__webpack_exec__("./index.js"));
 __webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'result': function() { return result; },
-  'getNumber': function() { return getNumber; }
+  result: function() { return result; },
+  getNumber: function() { return getNumber; }
 });
 /* harmony import */var _wasm_wasm__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./wasm.wasm */"./wasm.wasm");
 var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_wasm_wasm__WEBPACK_IMPORTED_MODULE_0_]);
@@ -44,7 +44,7 @@ __webpack_async_result__();
 __webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'getNumber': function() { return getNumber; }
+  getNumber: function() { return getNumber; }
 });
 /* harmony import */var _wasm_wasm__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./wasm.wasm */"./wasm.wasm");
 var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_wasm_wasm__WEBPACK_IMPORTED_MODULE_0_]);

@@ -7,8 +7,8 @@ source: crates/rspack_testing/src/run_fixture.rs
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'z': function() { return _c__WEBPACK_IMPORTED_MODULE_0_.z; },
-  'x': function() { return x; }
+  z: function() { return _c__WEBPACK_IMPORTED_MODULE_0_.z; },
+  x: function() { return x; }
 });
 /* harmony import */var _c__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./c */"../node_modules/pmodule/c.js");
 /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./tracker */"../node_modules/pmodule/tracker.js");
@@ -23,7 +23,7 @@ var y = "y";
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'z': function() { return z; }
+  z: function() { return z; }
 });
 /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./tracker */"../node_modules/pmodule/tracker.js");
 var z = "z";
@@ -35,9 +35,9 @@ var z = "z";
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'x': function() { return _b__WEBPACK_IMPORTED_MODULE_1_.x; },
-  'z': function() { return _b__WEBPACK_IMPORTED_MODULE_1_.z; },
-  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  x: function() { return _b__WEBPACK_IMPORTED_MODULE_1_.x; },
+  z: function() { return _b__WEBPACK_IMPORTED_MODULE_1_.z; },
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
 /* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./b */"../node_modules/pmodule/b.js");
 /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE_2_ = __webpack_require__(/* ./tracker */"../node_modules/pmodule/tracker.js");
@@ -51,8 +51,8 @@ var __WEBPACK_DEFAULT_EXPORT__ = "def";
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'track': function() { return track; },
-  'log': function() { return log; }
+  track: function() { return track; },
+  log: function() { return log; }
 });
  function track(file) {
     log.push(file);
