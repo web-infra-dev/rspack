@@ -273,11 +273,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .for_each(|dependency| dependency.apply(&mut source, &mut context));
       };
 
-      Ok(render_init_fragments(
-        source.boxed(),
-        init_fragments,
-        generate_context,
-      ))
+      render_init_fragments(source.boxed(), init_fragments, generate_context)
     } else {
       Err(internal_error!(
         "Unsupported source type {:?} for plugin JavaScript",

@@ -6,12 +6,13 @@ use std::{
 use dyn_clone::{clone_trait_object, DynClone};
 use hashlink::LinkedHashSet;
 use indexmap::IndexMap;
+use rspack_error::Result;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_util::ext::{DynHash, IntoAny};
 use rustc_hash::FxHasher;
 use swc_core::ecma::atoms::JsWord;
 
-use crate::{ExportsArgument, GenerateContext, RuntimeGlobals};
+use crate::{property_name, ExportsArgument, GenerateContext, RuntimeGlobals};
 
 pub struct InitFragmentContents {
   pub start: String,
@@ -99,7 +100,7 @@ pub trait InitFragmentRenderContext {
 
 pub trait InitFragment<C>: IntoAny + DynHash + DynClone + Debug + Sync + Send {
   /// getContent + getEndContent
-  fn contents(self: Box<Self>, context: &mut C) -> InitFragmentContents;
+  fn contents(self: Box<Self>, context: &mut C) -> Result<InitFragmentContents>;
 
   fn stage(&self) -> InitFragmentStage;
 
@@ -143,7 +144,7 @@ pub fn render_init_fragments<C: InitFragmentRenderContext>(
   source: BoxSource,
   mut fragments: Vec<Box<dyn InitFragment<C>>>,
   context: &mut C,
-) -> BoxSource {
+) -> Result<BoxSource> {
   // here use sort_by_key because need keep order equal stage fragments
   fragments.sort_by(|a, b| {
     let stage = a.stage().cmp(&b.stage());
@@ -170,14 +171,14 @@ pub fn render_init_fragments<C: InitFragmentRenderContext>(
   let mut end_contents = vec![];
   let mut concat_source = ConcatSource::default();
 
-  keyed_fragments.into_iter().for_each(|(key, fragments)| {
+  for (key, fragments) in keyed_fragments {
     let f = key.merge_fragments(fragments);
-    let contents = f.contents(context);
+    let contents = f.contents(context)?;
     concat_source.add(RawSource::from(contents.start));
     if let Some(end_content) = contents.end {
       end_contents.push(RawSource::from(end_content))
     }
-  });
+  }
 
   concat_source.add(source);
 
@@ -185,7 +186,7 @@ pub fn render_init_fragments<C: InitFragmentRenderContext>(
     concat_source.add(content);
   }
 
-  concat_source.boxed()
+  Ok(concat_source.boxed())
 }
 
 pub type BoxInitFragment<C> = Box<dyn InitFragment<C>>;
@@ -236,11 +237,11 @@ impl NormalInitFragment {
 }
 
 impl<C> InitFragment<C> for NormalInitFragment {
-  fn contents(self: Box<Self>, _context: &mut C) -> InitFragmentContents {
-    InitFragmentContents {
+  fn contents(self: Box<Self>, _context: &mut C) -> Result<InitFragmentContents> {
+    Ok(InitFragmentContents {
       start: self.content,
       end: self.end_content,
-    }
+    })
   }
 
   fn stage(&self) -> InitFragmentStage {
@@ -273,7 +274,7 @@ impl HarmonyExportInitFragment {
 }
 
 impl<C: InitFragmentRenderContext> InitFragment<C> for HarmonyExportInitFragment {
-  fn contents(self: Box<Self>, context: &mut C) -> InitFragmentContents {
+  fn contents(self: Box<Self>, context: &mut C) -> Result<InitFragmentContents> {
     context.add_runtime_requirements(RuntimeGlobals::EXPORTS);
     context.add_runtime_requirements(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
 
@@ -282,12 +283,15 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for HarmonyExportInitFragment
       self
         .export_map
         .iter()
-        .map(|s| format!("'{}': function() {{ return {}; }}", s.0, s.1))
-        .collect::<Vec<_>>()
+        .map(|s| {
+          let prop = property_name(&s.0)?;
+          Ok(format!("{}: function() {{ return {}; }}", prop, s.1))
+        })
+        .collect::<Result<Vec<_>>>()?
         .join(",\n  ")
     );
 
-    InitFragmentContents {
+    Ok(InitFragmentContents {
       start: format!(
         "{}({}, {});\n",
         RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
@@ -295,7 +299,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for HarmonyExportInitFragment
         exports
       ),
       end: None,
-    }
+    })
   }
 
   fn stage(&self) -> InitFragmentStage {
@@ -329,21 +333,21 @@ impl AwaitDependenciesInitFragment {
 }
 
 impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFragment {
-  fn contents(self: Box<Self>, context: &mut C) -> InitFragmentContents {
+  fn contents(self: Box<Self>, context: &mut C) -> Result<InitFragmentContents> {
     context.add_runtime_requirements(RuntimeGlobals::MODULE);
     if self.promises.is_empty() {
-      InitFragmentContents {
+      Ok(InitFragmentContents {
         start: "".to_string(),
         end: None,
-      }
+      })
     } else {
       let sep = Vec::from_iter(self.promises.into_iter()).join(", ");
-      InitFragmentContents {
+      Ok(InitFragmentContents {
         start: format!(
           "var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{sep}]);\n([{sep}] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__);"
         ),
         end: None,
-      }
+      })
     }
   }
 

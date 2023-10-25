@@ -41,8 +41,10 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     // TODO default_object is not align with webpack
     build_meta.default_object = BuildMetaDefaultObject::RedirectWarn;
     let source = box_source.source();
+    let strip_bom_source = source.strip_prefix("\u{feff}");
+    let need_strip_bom = strip_bom_source.is_some();
 
-    let parse_result = json::parse(&source).map_err(|e| {
+    let parse_result = json::parse(strip_bom_source.unwrap_or(&source)).map_err(|e| {
       match e {
         UnexpectedCharacter { ch, line, column } => {
           let rope = ropey::Rope::from_str(&source);
@@ -51,6 +53,11 @@ impl ParserAndGenerator for JsonParserAndGenerator {
             .chars()
             .take(column)
             .fold(line_offset, |acc, cur| acc + cur.len_utf8());
+          let start_offset = if need_strip_bom {
+            start_offset + 1
+          } else {
+            start_offset
+          };
           Error::TraceableError(
             TraceableError::from_file(
               resource_data.resource_path.to_string_lossy().to_string(),
