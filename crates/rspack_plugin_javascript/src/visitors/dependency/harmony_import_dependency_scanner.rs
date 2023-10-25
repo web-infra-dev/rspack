@@ -184,7 +184,8 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           n.local.sym.clone(),
           match &n.imported {
             Some(ModuleExportName::Ident(ident)) => Some(ident.sym.clone()),
-            _ => None,
+            Some(ModuleExportName::Str(str)) => Some(str.value.clone()),
+            None => None,
           },
         );
         self.import_map.insert(
@@ -194,7 +195,8 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
             specifier.clone(),
             Some(match &n.imported {
               Some(ModuleExportName::Ident(ident)) => ident.sym.clone(),
-              _ => n.local.sym.clone(),
+              Some(ModuleExportName::Str(str)) => str.value.clone(),
+              None => n.local.sym.clone(),
             }),
             self.last_harmony_import_order,
           ),
@@ -274,9 +276,9 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
               specifiers.push(Specifier::Named(
                 orig.sym.clone(),
                 match &named.exported {
+                  Some(ModuleExportName::Str(export)) => Some(export.value.clone()),
                   Some(ModuleExportName::Ident(export)) => Some(export.sym.clone()),
                   None => None,
-                  _ => unreachable!(),
                 },
               ));
             }
