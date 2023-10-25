@@ -6,7 +6,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   find_graph_roots, BoxModule, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkUkey, Module, ModuleGraph, ModuleGraphModule, ModuleIdentifier, RuntimeGlobals, SourceType,
+  ChunkUkey, Module, ModuleGraph, ModuleGraphModule, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
+  SourceType,
 };
 use crate::{ChunkGraph, Compilation};
 
@@ -48,6 +49,18 @@ fn get_modules_size(modules: &[&BoxModule]) -> f64 {
     }
   }
   size
+}
+
+// TODO: we should remove this function to crate rspack_util
+fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
+  let mut set: RuntimeSpec = Default::default();
+  for r in a {
+    set.insert(r.clone());
+  }
+  for r in b {
+    set.insert(r.clone());
+  }
+  set
 }
 
 impl ChunkGraph {
@@ -536,5 +549,77 @@ impl ChunkGraph {
         } else {
           1f64
         })
+  }
+
+  pub fn integrate_chunks(
+    &mut self,
+    a: &ChunkUkey,
+    b: &ChunkUkey,
+    chunk_by_ukey: &mut Database<Chunk>,
+    chunk_group_by_ukey: &mut Database<ChunkGroup>,
+    module_graph: &ModuleGraph,
+  ) {
+    let chunk_b = chunk_by_ukey.expect_get(b).clone();
+    let chunk_a = chunk_by_ukey.expect_mut(a);
+
+    // Decide for one name (deterministic)
+    if let (Some(_), Some(_)) = (&chunk_a.name, &chunk_b.name) {
+      if (self.get_number_of_entry_modules(a) > 0) == (self.get_number_of_entry_modules(b) > 0) {
+        // When both chunks have entry modules or none have one, use
+        // shortest name
+        match (chunk_a.name.clone(), chunk_b.name.clone()) {
+          (Some(a), Some(b)) => {
+            if a.len() != b.len() {
+              chunk_a.name = if a.len() < b.len() { Some(a) } else { Some(b) };
+            }
+          }
+          (None, Some(b)) => {
+            chunk_a.name = Some(b);
+          }
+          _ => {}
+        }
+      } else if self.get_number_of_entry_modules(b) > 0 {
+        // Pick the name of the chunk with the entry module
+        chunk_a.name = chunk_b.name.clone();
+      }
+    } else if chunk_b.name.is_some() {
+      chunk_a.name = chunk_b.name.clone();
+    }
+
+    // Merge id name hints
+    for hint in &chunk_b.id_name_hints {
+      chunk_a.id_name_hints.insert(hint.clone());
+    }
+
+    // Merge runtime
+    chunk_a.runtime = merge_runtime(&chunk_a.runtime, &chunk_b.runtime);
+
+    // get_chunk_modules is used here to create a clone, because disconnect_chunk_and_module modifies
+    for module in self.get_chunk_modules(b, module_graph) {
+      self.disconnect_chunk_and_module(b, module.identifier());
+      self.connect_chunk_and_module(*a, module.identifier());
+    }
+
+    for (module, chunk_group) in self
+      .clone()
+      .get_chunk_entry_modules_with_chunk_group_iterable(b)
+      .iter()
+    {
+      self.disconnect_chunk_and_entry_module(b, *module);
+      self.connect_chunk_and_entry_module(*a, *module, *chunk_group);
+    }
+
+    let mut remove_group_ukeys = vec![];
+    for chunk_group_ukey in chunk_b.groups {
+      let chunk_group = chunk_group_by_ukey.expect_mut(&chunk_group_ukey);
+      chunk_group.replace_chunk(b, a);
+      chunk_a.add_group(chunk_group_ukey);
+      remove_group_ukeys.push(chunk_group_ukey);
+    }
+
+    let chunk_b = chunk_by_ukey.expect_mut(b);
+    for group_ukey in remove_group_ukeys {
+      chunk_b.remove_group(&group_ukey);
+    }
   }
 }
