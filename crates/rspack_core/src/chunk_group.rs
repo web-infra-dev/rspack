@@ -176,6 +176,12 @@ impl ChunkGroup {
   }
 
   pub fn replace_chunk(&mut self, old_chunk: &ChunkUkey, new_chunk: &ChunkUkey) -> bool {
+    if let Some(runtime_chunk) = self.runtime_chunk {
+      if runtime_chunk == *old_chunk {
+        self.runtime_chunk = Some(new_chunk.clone());
+      }
+    }
+
     match self.chunks.iter().position(|x| x == old_chunk) {
       // when old_chunk doesn't exist
       None => false,
