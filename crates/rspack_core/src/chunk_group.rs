@@ -182,6 +182,12 @@ impl ChunkGroup {
       }
     }
 
+    if let Some(entry_point_chunk) = self.entry_point_chunk {
+      if entry_point_chunk == *old_chunk {
+        self.entry_point_chunk = Some(new_chunk.clone());
+      }
+    }
+
     match self.chunks.iter().position(|x| x == old_chunk) {
       // when old_chunk doesn't exist
       None => false,
