@@ -1,10 +1,11 @@
+use rspack_ast::javascript::Ast;
 use swc_core::common::SyntaxContext;
 
 use super::{
   analyzer::OptimizeAnalyzer,
   visitor::{ModuleRefAnalyze, OptimizeAnalyzeResult, SyntaxContextInfo},
 };
-use crate::{ast::javascript::Ast, BoxDependency, CompilerOptions, ModuleIdentifier};
+use crate::{BoxDependency, CompilerOptions, ModuleIdentifier};
 
 pub struct JsModule<'b, 'a: 'b> {
   ast: &'a Ast,

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use rspack_core::{ast::javascript::Ast, ModuleType};
+use rspack_ast::javascript::Ast;
+use rspack_core::ModuleType;
 use rspack_error::Error;
 use swc_core::common::comments::Comments;
 use swc_core::common::{FileName, SourceFile};
@@ -81,7 +82,7 @@ pub fn parse(
 
   match parse_js(
     fm.clone(),
-    ast::EsVersion::Es2022,
+    ast::EsVersion::EsNext,
     syntax,
     module_type_to_is_module(module_type),
     Some(&comments),

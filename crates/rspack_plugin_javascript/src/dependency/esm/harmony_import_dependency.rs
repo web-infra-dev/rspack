@@ -230,6 +230,10 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
 }
 
 impl Dependency for HarmonyImportSideEffectDependency {
+  fn dependency_debug_name(&self) -> &'static str {
+    "HarmonyImportDependency"
+  }
+
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -306,10 +310,6 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
   }
 
   // It's from HarmonyImportSideEffectDependency.
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyImportDependency"
-  }
 }
 
 impl DependencyTemplate for HarmonyImportSideEffectDependency {

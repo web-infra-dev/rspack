@@ -4,7 +4,6 @@ use rspack_core::{
   Content, Plugin, PluginContext, PluginNormalModuleFactoryResolveForSchemeOutput,
   PluginReadResourceOutput, ResourceData,
 };
-use rspack_error::internal_error;
 
 static URI_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"(?is)^data:([^;,]+)?((?:;[^;,]+)*?)(?:;(base64))?,(.*)$").expect("Invalid Regex")
@@ -58,7 +57,10 @@ impl Plugin for DataUriPlugin {
       let body = captures.get(4).expect("should have data uri body").as_str();
       let is_base64 = captures.get(3).is_some();
       if is_base64 && let Some(cleaned) = rspack_base64::clean_base64(body) {
-        return Ok(Some(Content::Buffer(rspack_base64::decode_to_vec(cleaned.as_bytes()).map_err(|e| internal_error!(e.to_string()))?)))
+        return match rspack_base64::decode_to_vec(cleaned.as_bytes()) {
+          Ok(buffer) => Ok(Some(Content::Buffer(buffer) )),
+          Err(_) => Ok(Some(Content::String(resource_data.resource.to_string())))
+        };
       }
       if !body.is_ascii() {
         return Ok(Some(Content::Buffer(urlencoding::decode_binary(body.as_bytes()).into_owned())))

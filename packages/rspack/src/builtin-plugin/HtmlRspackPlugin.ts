@@ -22,7 +22,7 @@ const htmlRspackPluginOptions = z.strictObject({
 export type HtmlRspackPluginOptions = z.infer<typeof htmlRspackPluginOptions>;
 export const HtmlRspackPlugin = create(
 	BuiltinPluginName.HtmlRspackPlugin,
-	(c: HtmlRspackPluginOptions): RawHtmlRspackPluginOptions => {
+	(c: HtmlRspackPluginOptions = {}): RawHtmlRspackPluginOptions => {
 		validate(c, htmlRspackPluginOptions);
 		const meta: Record<string, Record<string, string>> = {};
 		for (const key in c.meta) {

@@ -78,7 +78,7 @@ impl SplitChunksPlugin {
     let invalidated_module_groups = module_group_map
       .par_iter_mut()
       .filter_map(|(module_group_key, module_group)| {
-        let cache_group = &self.cache_groups[module_group.cache_group_index];
+        let cache_group = module_group.get_cache_group(&self.cache_groups);
         // Fast path
         if cache_group.min_size.is_empty() {
           tracing::debug!(

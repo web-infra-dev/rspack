@@ -78,9 +78,6 @@ jobs:
           save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
           shared-key: build-${{ inputs.target }}
 
-      - name: Setup Rust Target
-        run: rustup target add ${{ inputs.target }}
-
       # Compile dependencies with optimization to make tests run faster
       - name: Add optimization to debug profile
         if: inputs.profile == 'debug'
@@ -110,7 +107,6 @@ jobs:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
           profile: ${{ inputs.profile }}
           pre: export JEMALLOC_SYS_WITH_LG_PAGE=16 && export CC_aarch64_unknown_linux_gnu=/usr/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gcc # for jemallocator to compile
-          options: -v $HOME/.cargo:/usr/local/cargo -v $HOME/.rustup:/usr/local/rustup
 
       - name: Build x86_64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'x86_64-unknown-linux-musl' }}
@@ -119,7 +115,6 @@ jobs:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
           profile: ${{ inputs.profile }}
-          options: -v $HOME/.cargo/git/db:/root/.cargo/git/db -v $HOME/.cargo/registry/cache:/root/.cargo/registry/cache -v $HOME/.cargo/registry/index:/root/.cargo/registry/index
 
       - name: Build aarch64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-musl' }}
@@ -130,7 +125,11 @@ jobs:
           profile: ${{ inputs.profile }}
           pre: |
             export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
-          options: -v $HOME/.cargo/git/db:/root/.cargo/git/db -v $HOME/.cargo/registry/cache:/root/.cargo/registry/cache -v $HOME/.cargo/registry/index:/root/.cargo/registry/index
+
+      # setup rust target for windows and macos
+      - name: Setup Rust Target
+        if: ${{ !contains(inputs.target, 'linux') }}
+        run: rustup target add ${{ inputs.target }}
 
       # Windows
 

@@ -4,18 +4,13 @@ use rspack_core::{
   ConstDependency, DependencyType, SpanExt,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::{
-  common::Span,
-  ecma::{
-    ast::{
-      AssignExpr, AssignOp, Callee, ExportAll, ExportSpecifier, Expr, Id, Ident, ImportDecl,
-      ImportSpecifier, Lit, MemberExpr, MemberProp, ModuleExportName, NamedExport, Pat, PatOrExpr,
-      Program, Prop,
-    },
-    atoms::JsWord,
-    visit::{noop_visit_type, Visit, VisitWith},
-  },
-};
+use swc_core::atoms::JsWord;
+use swc_core::common::Span;
+use swc_core::ecma::ast::{AssignExpr, AssignOp, MemberExpr, MemberProp};
+use swc_core::ecma::ast::{Callee, ExportAll, ExportSpecifier, Expr, Id, TaggedTpl};
+use swc_core::ecma::ast::{Ident, ImportDecl, Pat, PatOrExpr, Program, Prop};
+use swc_core::ecma::ast::{ImportSpecifier, Lit, ModuleExportName, NamedExport};
+use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use super::{collect_destructuring_assignment_properties, ExtraSpanInfo};
 use crate::dependency::{
@@ -469,6 +464,12 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
   fn visit_callee(&mut self, callee: &Callee) {
     self.enter_callee = true;
     callee.visit_children_with(self);
+    self.enter_callee = false;
+  }
+
+  fn visit_tagged_tpl(&mut self, n: &TaggedTpl) {
+    self.enter_callee = true;
+    n.visit_children_with(self);
     self.enter_callee = false;
   }
 

@@ -52,6 +52,10 @@ impl Dependency for CommonJsRequireContextDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "CommonJsRequireContextDependency"
+  }
 }
 
 impl ModuleDependency for CommonJsRequireContextDependency {
@@ -73,10 +77,6 @@ impl ModuleDependency for CommonJsRequireContextDependency {
 
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "CommonJsRequireContextDependency"
   }
 }
 

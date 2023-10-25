@@ -2,16 +2,32 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: /\.js$/,
+				test: /\.jsx$/,
 				loader: "builtin:swc-loader",
 				options: {
-					rspackExperiments: {
-						react: {
-							runtime: "automatic"
+					sourceMap: true,
+					jsc: {
+						parser: {
+							syntax: "ecmascript",
+							jsx: true
+						},
+						transform: {
+							react: {
+								runtime: "automatic",
+								pragma: "React.createElement",
+								pragmaFrag: "React.Fragment",
+								throwIfNamespace: true,
+								useBuiltins: false
+							}
 						}
 					}
 				}
 			}
 		]
+	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: true
+		}
 	}
 };

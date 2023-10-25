@@ -1,4 +1,4 @@
 
-module.exports = () => {return false}
+module.exports = () => {return "new tree-shaking re-implementation"}
 
 							

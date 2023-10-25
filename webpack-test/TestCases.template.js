@@ -220,7 +220,10 @@ const describeCases = config => {
                   // RSPACK exclusive: Rspack enables `css` by default.
                   // Turning off here to fallback to webpack's default css processing logic.
                   css: false,
-									...(config.module ? { outputModule: true } : {})
+									...(config.module ? { outputModule: true } : {}),
+									rspackFuture: {
+										newResolver: true
+									}
 								},
 								infrastructureLogging: config.cache && {
 									debug: true,

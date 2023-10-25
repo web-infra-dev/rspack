@@ -31,7 +31,7 @@ import Cache from "./lib/Cache";
 import { makePathsRelative } from "./util/identifier";
 import CacheFacade from "./lib/CacheFacade";
 import ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
-import { runLoader } from "./loader-runner";
+import { runLoaders } from "./loader-runner";
 import { Logger } from "./logging/Logger";
 import { NormalModuleFactory } from "./NormalModuleFactory";
 import { WatchFileSystem } from "./util/fs";
@@ -438,7 +438,7 @@ class Compiler {
 				buildModule: this.#buildModule.bind(this)
 			},
 			createThreadsafeNodeFSFromRaw(this.outputFileSystem),
-			(loaderContext: binding.JsLoaderContext) => runLoader(loaderContext, this)
+			runLoaders.bind(undefined, this)
 		);
 
 		callback(null, this.#_instance);

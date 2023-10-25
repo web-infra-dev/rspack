@@ -6,6 +6,7 @@ use std::{
 use napi_derive::napi;
 use rspack_core::{rspack_sources::SourceMap, Content, ResourceData};
 use rspack_error::Diagnostic;
+use rspack_loader_runner::AdditionalData;
 use rustc_hash::FxHashSet as HashSet;
 use tracing::{span_enabled, Level};
 use {
@@ -213,9 +214,14 @@ fn sync_loader_context(
     .map(|s| rspack_core::rspack_sources::SourceMap::from_slice(s))
     .transpose()
     .map_err(|e| internal_error!(e.to_string()))?;
-  loader_context.additional_data = loader_result
-    .additional_data
-    .map(|item| String::from_utf8_lossy(&item).to_string());
+  loader_context.additional_data = loader_result.additional_data_external.clone();
+  if let Some(data) = loader_result.additional_data {
+    loader_context
+      .additional_data
+      .insert(String::from_utf8_lossy(&data).to_string());
+  } else {
+    loader_context.additional_data.remove::<String>();
+  }
 
   Ok(())
 }
@@ -239,12 +245,21 @@ pub struct JsLoaderContext {
 
   pub current_loader: String,
   pub is_pitching: bool,
+  /// Loader index from JS.
+  /// If loaders are dispatched by JS loader runner,
+  /// then, this field is correspondence with loader index in JS side.
+  /// It is useful when loader dispatched on JS side has an builtin loader, for example: builtin:swc-loader,
+  /// Then this field will be used as an hack to test whether it should return an AST or string.
+  pub loader_index_from_js: Option<u32>,
+  /// Internal additional data, contains more than `String`
+  /// @internal
+  pub additional_data_external: External<AdditionalData>,
   /// Internal loader context
   /// @internal
-  pub context: External<rspack_core::LoaderRunnerContext>,
+  pub context_external: External<rspack_core::LoaderRunnerContext>,
   /// Internal loader diagnostic
   /// @internal
-  pub diagnostics: External<Vec<Diagnostic>>,
+  pub diagnostics_external: External<Vec<Diagnostic>>,
 }
 
 impl TryFrom<&rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
@@ -260,7 +275,10 @@ impl TryFrom<&rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
         .content
         .as_ref()
         .map(|c| c.to_owned().into_bytes().into()),
-      additional_data: cx.additional_data.to_owned().map(|v| v.into_bytes().into()),
+      additional_data: cx
+        .additional_data
+        .get::<String>()
+        .map(|v| v.clone().into_bytes().into()),
       source_map: cx
         .source_map
         .clone()
@@ -297,8 +315,11 @@ impl TryFrom<&rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
 
       current_loader: cx.current_loader().to_string(),
       is_pitching: true,
-      context: External::new(cx.context.clone()),
-      diagnostics: External::new(cx.__diagnostics.clone()),
+      loader_index_from_js: None,
+
+      additional_data_external: External::new(cx.additional_data.clone()),
+      context_external: External::new(cx.context.clone()),
+      diagnostics_external: External::new(cx.__diagnostics.clone()),
     })
   }
 }
@@ -313,6 +334,16 @@ pub async fn run_builtin_loader(
   let loader = get_builtin_loader(&builtin, options);
   let loader_item = loader.clone().into();
   let list = &[loader_item];
+  let additional_data = {
+    let mut additional_data = loader_context.additional_data_external.clone();
+    if let Some(data) = loader_context
+      .additional_data
+      .map(|b| String::from_utf8_lossy(b.as_ref()).to_string())
+    {
+      additional_data.insert(data);
+    }
+    additional_data
+  };
 
   let mut cx = LoaderContext {
     content: loader_context
@@ -322,15 +353,13 @@ pub async fn run_builtin_loader(
     resource_path: Path::new(&loader_context.resource_path),
     resource_query: loader_context.resource_query.as_deref(),
     resource_fragment: loader_context.resource_fragment.as_deref(),
-    context: loader_context.context.clone(),
+    context: loader_context.context_external.clone(),
     source_map: loader_context
       .source_map
       .map(|s| SourceMap::from_slice(s.as_ref()))
       .transpose()
       .map_err(|e| Error::from_reason(e.to_string()))?,
-    additional_data: loader_context
-      .additional_data
-      .map(|b| String::from_utf8_lossy(b.as_ref()).to_string()),
+    additional_data,
     cacheable: loader_context.cacheable,
     file_dependencies: HashSet::from_iter(
       loader_context
@@ -361,27 +390,27 @@ pub async fn run_builtin_loader(
     __diagnostics: vec![],
     __resource_data: &ResourceData::new(Default::default(), Default::default()),
     __loader_items: LoaderItemList(list),
-    __loader_index: 0,
+    // This is used an hack to `builtin:swc-loader` in order to determine whether to return AST or source.
+    __loader_index: loader_context.loader_index_from_js.unwrap_or(0) as usize,
     __plugins: &[],
   };
   if loader_context.is_pitching {
-    // Run pitching loader
-    loader
-      .pitch(&mut cx)
-      .await
-      .map_err(|e| Error::from_reason(e.to_string()))?;
+    // Builtin loaders dispatched using JS loader-runner does not support pitching.
+    // This phase is ignored.
   } else {
     // Run normal loader
     loader
       .run(&mut cx)
       .await
       .map_err(|e| Error::from_reason(e.to_string()))?;
+    // restore the hack
+    cx.__loader_index = 0;
   }
 
   JsLoaderContext::try_from(&cx).map_err(|e| Error::from_reason(e.to_string()))
 }
 
-#[napi(object)]
+// #[napi(object)]
 pub struct JsLoaderResult {
   /// Content in pitching stage can be empty
   pub content: Option<Buffer>,
@@ -391,9 +420,90 @@ pub struct JsLoaderResult {
   pub build_dependencies: Vec<String>,
   pub source_map: Option<Buffer>,
   pub additional_data: Option<Buffer>,
+  pub additional_data_external: External<AdditionalData>,
   pub cacheable: bool,
   /// Used to instruct how rust loaders should execute
   pub is_pitching: bool,
 }
+
+impl napi::bindgen_prelude::TypeName for JsLoaderResult {
+  fn type_name() -> &'static str {
+    "JsLoaderResult"
+  }
+  fn value_type() -> napi::ValueType {
+    napi::ValueType::Object
+  }
+}
+impl napi::bindgen_prelude::FromNapiValue for JsLoaderResult {
+  unsafe fn from_napi_value(
+    env: napi::bindgen_prelude::sys::napi_env,
+    napi_val: napi::bindgen_prelude::sys::napi_value,
+  ) -> napi::bindgen_prelude::Result<Self> {
+    let obj = napi::bindgen_prelude::Object::from_napi_value(env, napi_val)?;
+    let content_: Option<Buffer> = obj.get("content")?;
+    let file_dependencies_: Vec<String> = obj.get("fileDependencies")?.ok_or_else(|| {
+      napi::bindgen_prelude::Error::new(
+        napi::bindgen_prelude::Status::InvalidArg,
+        format!("Missing field `{}`", "fileDependencies"),
+      )
+    })?;
+    let context_dependencies_: Vec<String> = obj.get("contextDependencies")?.ok_or_else(|| {
+      napi::bindgen_prelude::Error::new(
+        napi::bindgen_prelude::Status::InvalidArg,
+        format!("Missing field `{}`", "contextDependencies"),
+      )
+    })?;
+    let missing_dependencies_: Vec<String> = obj.get("missingDependencies")?.ok_or_else(|| {
+      napi::bindgen_prelude::Error::new(
+        napi::bindgen_prelude::Status::InvalidArg,
+        format!("Missing field `{}`", "missingDependencies"),
+      )
+    })?;
+    let build_dependencies_: Vec<String> = obj.get("buildDependencies")?.ok_or_else(|| {
+      napi::bindgen_prelude::Error::new(
+        napi::bindgen_prelude::Status::InvalidArg,
+        format!("Missing field `{}`", "buildDependencies"),
+      )
+    })?;
+    let source_map_: Option<Buffer> = obj.get("sourceMap")?;
+    let additional_data_: Option<Buffer> = obj.get("additionalData")?;
+    // eagerly clone this field since `External<T>` might be dropped.
+    let additional_data_external_: External<AdditionalData> = obj
+      .get("additionalDataExternal")?
+      .map(|v: External<AdditionalData>| External::new(v.clone()))
+      .ok_or_else(|| {
+        napi::bindgen_prelude::Error::new(
+          napi::bindgen_prelude::Status::InvalidArg,
+          format!("Missing field `{}`", "additionalDataExternal"),
+        )
+      })?;
+    let cacheable_: bool = obj.get("cacheable")?.ok_or_else(|| {
+      napi::bindgen_prelude::Error::new(
+        napi::bindgen_prelude::Status::InvalidArg,
+        format!("Missing field `{}`", "cacheable"),
+      )
+    })?;
+    let is_pitching_: bool = obj.get("isPitching")?.ok_or_else(|| {
+      napi::bindgen_prelude::Error::new(
+        napi::bindgen_prelude::Status::InvalidArg,
+        format!("Missing field `{}`", "isPitching"),
+      )
+    })?;
+    let val = Self {
+      content: content_,
+      file_dependencies: file_dependencies_,
+      context_dependencies: context_dependencies_,
+      missing_dependencies: missing_dependencies_,
+      build_dependencies: build_dependencies_,
+      source_map: source_map_,
+      additional_data: additional_data_,
+      additional_data_external: additional_data_external_,
+      cacheable: cacheable_,
+      is_pitching: is_pitching_,
+    };
+    Ok(val)
+  }
+}
+impl napi::bindgen_prelude::ValidateNapiValue for JsLoaderResult {}
 
 pub type LoaderThreadsafeLoaderResult = Option<JsLoaderResult>;

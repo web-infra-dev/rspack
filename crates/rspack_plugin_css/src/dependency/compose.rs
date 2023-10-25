@@ -36,6 +36,10 @@ impl Dependency for CssComposeDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "CssComposeDependency"
+  }
 }
 
 impl ModuleDependency for CssComposeDependency {
@@ -49,10 +53,6 @@ impl ModuleDependency for CssComposeDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "CssComposeDependency"
   }
 }
 

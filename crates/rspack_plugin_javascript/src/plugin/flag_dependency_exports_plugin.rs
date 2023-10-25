@@ -99,7 +99,8 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
     let dep = self.mg.dependency_by_id(dep_id)?;
-    let exports_specs = dep.get_exports()?;
+    // this is why we can bubble here. https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/FlagDependencyExportsPlugin.js#L140
+    let exports_specs = dep.get_exports(self.mg)?;
     exports_specs_from_dependencies.insert(*dep_id, exports_specs);
     Some(())
   }
@@ -151,6 +152,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           },
           dep_id,
         );
+        // dbg!(&ele, exports_info_id.get_exports_info(self.mg));
       }
     }
 

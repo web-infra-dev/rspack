@@ -1,6 +1,7 @@
 import type { JsAssetInfo, JsStatsError } from "@rspack/binding";
 import { AssetInfo } from "../Compilation";
 import terminalLink from "terminal-link";
+import { LoaderObject } from "../config/adapterRuleUse";
 
 export function mapValues(
 	record: Record<string, string>,
@@ -85,6 +86,10 @@ export function concatErrorMsgAndStack(err: Error | JsStatsError): string {
 export function indent(str: string, prefix: string) {
 	const rem = str.replace(/\n([^\n])/g, "\n" + prefix + "$1");
 	return prefix + rem;
+}
+
+export function stringifyLoaderObject(o: LoaderObject): string {
+	return o.path + o.query + o.fragment;
 }
 
 export function asArray<T>(item: T[]): T[];
