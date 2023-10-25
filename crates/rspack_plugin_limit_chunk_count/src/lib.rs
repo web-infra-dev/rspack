@@ -7,8 +7,8 @@ use std::{
 
 use chunk_combination::{ChunkCombination, ChunkCombinationBucket, ChunkCombinationUkey};
 use rspack_core::{
-  BoxModule, Chunk, ChunkGraph, ChunkGroup, ChunkUkey, ModuleGraph, OptimizeChunksArgs, Plugin,
-  PluginContext, PluginOptimizeChunksOutput, RuntimeSpec,
+  BoxModule, Chunk, ChunkGraph, ChunkGroup, ChunkSizeOptions, ChunkUkey, ModuleGraph,
+  OptimizeChunksArgs, Plugin, PluginContext, PluginOptimizeChunksOutput, RuntimeSpec,
 };
 use rspack_database::Database;
 use rspack_util::comparators::compare_ids;
@@ -39,11 +39,11 @@ fn compare_module_iterables(modules_a: &[&BoxModule], modules_b: &[&BoxModule]) 
 fn compare_chunks_with_graph(
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
-  chunk_a: &ChunkUkey,
-  chunk_b: &ChunkUkey,
+  chunk_a_ukey: &ChunkUkey,
+  chunk_b_ukey: &ChunkUkey,
 ) -> Ordering {
-  let cgc_a = chunk_graph.get_chunk_graph_chunk(chunk_a);
-  let cgc_b = chunk_graph.get_chunk_graph_chunk(chunk_b);
+  let cgc_a = chunk_graph.get_chunk_graph_chunk(chunk_a_ukey);
+  let cgc_b = chunk_graph.get_chunk_graph_chunk(chunk_b_ukey);
   if cgc_a.modules.len() > cgc_b.modules.len() {
     return Ordering::Less;
   }
@@ -62,138 +62,6 @@ fn compare_chunks_with_graph(
     .filter_map(|module_id| module_graph.module_by_identifier(module_id))
     .collect();
   compare_module_iterables(&modules_a, &modules_b)
-}
-
-// true, if a is always a parent of b
-fn is_available_chunk(chunk_group_by_ukey: &Database<ChunkGroup>, a: &Chunk, b: &Chunk) -> bool {
-  let mut queue = b.groups.clone().into_iter().collect::<Vec<_>>();
-  while let Some(chunk_group_ukey) = queue.pop() {
-    if a.is_in_group(&chunk_group_ukey) {
-      continue;
-    }
-    let chunk_group = chunk_group_by_ukey.expect_get(&chunk_group_ukey);
-    if chunk_group.is_initial() {
-      return false;
-    }
-    for parent in chunk_group.parents_iterable() {
-      queue.push(parent.clone());
-    }
-  }
-  true
-}
-
-fn can_chunks_be_integrated(
-  chunk_graph: &ChunkGraph,
-  chunk_group_by_ukey: &Database<ChunkGroup>,
-  chunk_a: &Chunk,
-  chunk_b: &Chunk,
-) -> bool {
-  if chunk_a.prevent_integration || chunk_b.prevent_integration {
-    return false;
-  }
-
-  let has_runtime_a = chunk_a.has_runtime(chunk_group_by_ukey);
-  let has_runtime_b = chunk_b.has_runtime(chunk_group_by_ukey);
-
-  if has_runtime_a != has_runtime_b {
-    if has_runtime_a {
-      return is_available_chunk(chunk_group_by_ukey, chunk_a, chunk_b);
-    } else if has_runtime_b {
-      return is_available_chunk(chunk_group_by_ukey, chunk_b, chunk_a);
-    } else {
-      return false;
-    }
-  }
-
-  if chunk_graph.get_number_of_entry_modules(&chunk_a.ukey) > 0
-    || chunk_graph.get_number_of_entry_modules(&chunk_b.ukey) > 0
-  {
-    return false;
-  }
-
-  true
-}
-
-fn get_modules_size(modules: &[&BoxModule]) -> f64 {
-  let mut size = 0f64;
-  for module in modules {
-    for source_type in module.source_types() {
-      size += module.size(source_type);
-    }
-  }
-  size
-}
-
-struct ChunkSizeOptions {
-  // constant overhead for a chunk
-  chunk_overhead: Option<f64>,
-  // multiplicator for initial chunks
-  entry_chunk_multiplicator: Option<f64>,
-}
-
-fn get_integrated_chunks_size(
-  chunk_graph: &ChunkGraph,
-  module_graph: &ModuleGraph,
-  chunk_by_ukey: &Database<Chunk>,
-  chunk_group_by_ukey: &Database<ChunkGroup>,
-  chunk_a_ukey: &ChunkUkey,
-  chunk_b_ukey: &ChunkUkey,
-  options: &ChunkSizeOptions,
-) -> f64 {
-  let cgc_a = chunk_graph.get_chunk_graph_chunk(&chunk_a_ukey);
-  let cgc_b: &rspack_core::ChunkGraphChunk = chunk_graph.get_chunk_graph_chunk(&chunk_b_ukey);
-  let mut all_modules: Vec<&BoxModule> = cgc_a
-    .modules
-    .iter()
-    .filter_map(|id| module_graph.module_by_identifier(id))
-    .collect::<Vec<_>>();
-  for id in &cgc_b.modules {
-    let module = module_graph.module_by_identifier(id);
-    if let Some(module) = module {
-      all_modules.push(module);
-    }
-  }
-  let modules_size = get_modules_size(&all_modules);
-  let chunk_overhead = options.chunk_overhead.unwrap_or(10000f64);
-  let entry_chunk_multiplicator = options.entry_chunk_multiplicator.unwrap_or(10f64);
-
-  let chunk_a = chunk_by_ukey.get(chunk_a_ukey).unwrap();
-  let chunk_b = chunk_by_ukey.get(chunk_b_ukey).unwrap();
-
-  chunk_overhead
-    + modules_size
-      * (if chunk_a.can_be_initial(chunk_group_by_ukey)
-        || chunk_b.can_be_initial(chunk_group_by_ukey)
-      {
-        entry_chunk_multiplicator
-      } else {
-        1f64
-      })
-}
-
-fn get_chunk_size(
-  chunk_graph: &ChunkGraph,
-  module_graph: &ModuleGraph,
-  chunk_group_by_ukey: &Database<ChunkGroup>,
-  chunk: &Chunk,
-  options: &ChunkSizeOptions,
-) -> f64 {
-  let cgc = chunk_graph.get_chunk_graph_chunk(&chunk.ukey);
-  let modules: Vec<&BoxModule> = cgc
-    .modules
-    .iter()
-    .filter_map(|id| module_graph.module_by_identifier(id))
-    .collect::<Vec<_>>();
-  let modules_size = get_modules_size(&modules);
-  let chunk_overhead = options.chunk_overhead.unwrap_or(10000f64);
-  let entry_chunk_multiplicator = options.entry_chunk_multiplicator.unwrap_or(10f64);
-  chunk_overhead
-    + modules_size
-      * (if chunk.can_be_initial(&chunk_group_by_ukey) {
-        entry_chunk_multiplicator
-      } else {
-        1f64
-      })
 }
 
 fn add_to_set_map(
@@ -344,19 +212,23 @@ impl Plugin for LimitChunkCountPlugin {
     }
 
     let chunk_by_ukey = compilation.chunk_by_ukey.clone();
-    let chunk_group_by_ukey = &compilation.chunk_group_by_ukey.clone();
+    let chunk_group_by_ukey = compilation.chunk_group_by_ukey.clone();
 
-    let mut chunks = compilation.chunk_by_ukey.values().collect::<Vec<_>>();
-    if chunks.len() <= max_chunks {
+    let mut chunks_ukeys = compilation
+      .chunk_by_ukey
+      .keys()
+      .map(|key| key.clone())
+      .collect::<Vec<_>>();
+    if chunks_ukeys.len() <= max_chunks {
       return Ok(());
     }
 
     let chunk_graph = &compilation.chunk_graph.clone();
     let module_graph = &compilation.module_graph;
-    let mut remaining_chunks_to_merge = chunks.len() - max_chunks;
+    let mut remaining_chunks_to_merge = chunks_ukeys.len() - max_chunks;
 
     // order chunks in a deterministic way
-    chunks.sort_by(|a, b| compare_chunks_with_graph(chunk_graph, module_graph, &a.ukey, &b.ukey));
+    chunks_ukeys.sort_by(|a, b| compare_chunks_with_graph(chunk_graph, module_graph, a, b));
 
     // create a lazy sorted data structure to keep all combinations
     // this is large. Size = chunks * (chunks - 1) / 2
@@ -375,35 +247,34 @@ impl Plugin for LimitChunkCountPlugin {
       entry_chunk_multiplicator: self.options.entry_chunk_multiplicator,
     };
 
-    for (b_idx, b) in chunks.iter().enumerate() {
+    for (b_idx, b) in chunks_ukeys.iter().enumerate() {
       for a_idx in 0..b_idx {
-        let a = &chunks[a_idx];
-        if !can_chunks_be_integrated(&chunk_graph, &chunk_group_by_ukey, a, b) {
+        let a = &chunks_ukeys[a_idx];
+        if !chunk_graph.can_chunks_be_integrated(&a, &b, &chunk_by_ukey, &chunk_group_by_ukey) {
           continue;
         }
 
-        let integrated_size = get_integrated_chunks_size(
-          &chunk_graph,
-          &module_graph,
+        let integrated_size = chunk_graph.get_integrated_chunks_size(
+          &a,
+          &b,
+          &chunk_size_option,
           &chunk_by_ukey,
           &chunk_group_by_ukey,
-          &a.ukey,
-          &b.ukey,
-          &chunk_size_option,
-        );
-        let a_size = get_chunk_size(
-          &chunk_graph,
           &module_graph,
-          &chunk_group_by_ukey,
+        );
+        let a_size = chunk_graph.get_chunk_size(
           a,
           &chunk_size_option,
-        );
-        let b_size = get_chunk_size(
-          &chunk_graph,
-          &module_graph,
+          &chunk_by_ukey,
           &chunk_group_by_ukey,
+          &module_graph,
+        );
+        let b_size = chunk_graph.get_chunk_size(
           b,
           &chunk_size_option,
+          &chunk_by_ukey,
+          &chunk_group_by_ukey,
+          &module_graph,
         );
 
         let c = ChunkCombination {
@@ -411,16 +282,16 @@ impl Plugin for LimitChunkCountPlugin {
           deleted: false,
           size_diff: a_size + b_size - integrated_size,
           integrated_size,
-          a: a.ukey,
-          b: b.ukey,
+          a: a.clone(),
+          b: b.clone(),
           a_idx,
           b_idx,
           a_size,
           b_size,
         };
 
-        add_to_set_map(&mut combinations_by_chunk, &a.ukey, c.ukey);
-        add_to_set_map(&mut combinations_by_chunk, &b.ukey, c.ukey);
+        add_to_set_map(&mut combinations_by_chunk, &a, c.ukey);
+        add_to_set_map(&mut combinations_by_chunk, &b, c.ukey);
         combinations.add(c);
       }
     }
@@ -482,9 +353,7 @@ impl Plugin for LimitChunkCountPlugin {
         }
       }
 
-      let a_chunk = chunk_by_ukey.get(&a).unwrap();
-      let b_chunk = chunk_by_ukey.get(&b).unwrap();
-      if can_chunks_be_integrated(&chunk_graph, &chunk_group_by_ukey, a_chunk, b_chunk) {
+      if chunk_graph.can_chunks_be_integrated(&a, &b, &chunk_by_ukey, &chunk_group_by_ukey) {
         integrate_chunks(
           &mut compilation.chunk_graph,
           &module_graph,
@@ -527,20 +396,20 @@ impl Plugin for LimitChunkCountPlugin {
               continue;
             }
             if combination.a == b {
-              if !can_chunks_be_integrated(&chunk_graph, &chunk_group_by_ukey, &a_chunk, &b_chunk) {
+              if !chunk_graph.can_chunks_be_integrated(&a, &b, &chunk_by_ukey, &chunk_group_by_ukey)
+              {
                 combination.deleted = true;
                 combinations.delete(ukey);
                 continue;
               }
               // Update size
-              let new_integrated_size = get_integrated_chunks_size(
-                &chunk_graph,
-                &module_graph,
-                &chunk_by_ukey,
-                &chunk_group_by_ukey,
+              let new_integrated_size = chunk_graph.get_integrated_chunks_size(
                 &a,
                 &combination.b,
                 &chunk_size_option,
+                &chunk_by_ukey,
+                &chunk_group_by_ukey,
+                &module_graph,
               );
               combination.a = a;
               combination.integrated_size = new_integrated_size;
@@ -548,20 +417,20 @@ impl Plugin for LimitChunkCountPlugin {
               combination.size_diff = combination.b_size + integrated_size - new_integrated_size;
               combinations.update();
             } else if combination.b == b {
-              if !can_chunks_be_integrated(&chunk_graph, &chunk_group_by_ukey, &b_chunk, &a_chunk) {
+              if !chunk_graph.can_chunks_be_integrated(&b, &a, &chunk_by_ukey, &chunk_group_by_ukey)
+              {
                 combination.deleted = true;
                 combinations.delete(ukey);
                 continue;
               }
               // Update size
-              let new_integrated_size = get_integrated_chunks_size(
-                &chunk_graph,
-                &module_graph,
-                &chunk_by_ukey,
-                &chunk_group_by_ukey,
+              let new_integrated_size = chunk_graph.get_integrated_chunks_size(
                 &combination.a,
                 &a,
                 &chunk_size_option,
+                &chunk_by_ukey,
+                &chunk_group_by_ukey,
+                &module_graph,
               );
               combination.b = a;
               combination.integrated_size = new_integrated_size;
