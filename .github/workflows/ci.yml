@@ -29,12 +29,18 @@ concurrency:
   cancel-in-progress: ${{ github.ref_name != 'main' }}
 
 jobs:
+  get-runner-labels:
+    name: Get Runner Labels
+    uses: ./.github/workflows/get-runner-labels.yml
+
   test-linux:
     name: Test Linux
+    needs: [get-runner-labels]
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
       profile: "debug"
+      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
 
   # test-windows:
   #   name: Test Windows
@@ -45,11 +51,13 @@ jobs:
 
   test-mac:
     name: Test Mac
+    needs: [get-runner-labels]
     if: github.ref_name == 'main'
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-apple-darwin
       profile: "debug"
+      runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
   cargo-deny:
     name: Check license of dependencies
     runs-on: ubuntu-latest
@@ -116,9 +124,9 @@ jobs:
 
   rust_check:
     name: Rust check
-    needs: rust_changes
+    needs: [get-runner-labels, rust_changes]
     if: ${{ needs.rust_changes.outputs.changed == 'true' }}
-    runs-on: ${{ fromJSON(vars.LINUX_RUNNER_LABELS || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
       - uses: actions/checkout@v3
 
@@ -146,9 +154,9 @@ jobs:
 
   rust_test:
     name: Rust test
-    needs: rust_changes
+    needs: [get-runner-labels, rust_changes]
     if: ${{ needs.rust_changes.outputs.changed == 'true' }}
-    runs-on: ${{ fromJSON(vars.LINUX_RUNNER_LABELS || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
       - uses: actions/checkout@v3
 
