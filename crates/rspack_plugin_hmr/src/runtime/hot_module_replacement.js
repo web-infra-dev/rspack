@@ -35,9 +35,7 @@ __webpack_require__.hmrI = {};
 
 function createRequire(require, moduleId) {
 	var me = installedModules[moduleId];
-	if (!me) {
-		return require;
-	}
+	if (!me) return require;
 	var fn = function (request) {
 		if (me.hot.active) {
 			if (installedModules[request]) {
@@ -55,9 +53,9 @@ function createRequire(require, moduleId) {
 		} else {
 			console.warn(
 				"[HMR] unexpected require(" +
-					request +
-					") from disposed module " +
-					moduleId
+				request +
+				") from disposed module " +
+				moduleId
 			);
 			currentParents = [];
 		}
@@ -106,30 +104,24 @@ function createModuleHotObject(moduleId, me) {
 		},
 		active: true,
 		accept: function (dep, callback, errorHandler) {
-			if (dep === undefined) {
-				hot._selfAccepted = true;
-			} else if (typeof dep === "function") {
-				hot._selfAccepted = dep;
-			} else if (typeof dep === "object" && dep !== null) {
+			if (dep === undefined) hot._selfAccepted = true;
+			else if (typeof dep === "function") hot._selfAccepted = dep;
+			else if (typeof dep === "object" && dep !== null) {
 				for (var i = 0; i < dep.length; i++) {
-					hot._acceptedDependencies[dep[i]] = callback || function () {};
+					hot._acceptedDependencies[dep[i]] = callback || function () { };
 					hot._acceptedErrorHandlers[dep[i]] = errorHandler;
 				}
 			} else {
-				hot._acceptedDependencies[dep] = callback || function () {};
+				hot._acceptedDependencies[dep] = callback || function () { };
 				hot._acceptedErrorHandlers[dep] = errorHandler;
 			}
 		},
 		decline: function (dep) {
-			if (dep === undefined) {
-				hot._selfDeclined = true;
-			} else if (typeof dep === "object" && dep !== null) {
-				for (var i = 0; i < dep.length; i++) {
+			if (dep === undefined) hot._selfDeclined = true;
+			else if (typeof dep === "object" && dep !== null)
+				for (var i = 0; i < dep.length; i++)
 					hot._declinedDependencies[dep[i]] = true;
-				}
-			} else {
-				hot._declinedDependencies[dep] = true;
-			}
+			else hot._declinedDependencies[dep] = true;
 		},
 		dispose: function (callback) {
 			hot._disposeHandlers.push(callback);
@@ -139,9 +131,7 @@ function createModuleHotObject(moduleId, me) {
 		},
 		removeDisposeHandler: function (callback) {
 			var idx = hot._disposeHandlers.indexOf(callback);
-			if (idx > 0) {
-				hot._disposeHandlers.splice(idx, 1);
-			}
+			if (idx >= 0) hot._disposeHandlers.splice(idx, 1);
 		},
 		invalidate: function () {
 			this._selfInvalidated = true;
@@ -173,9 +163,7 @@ function createModuleHotObject(moduleId, me) {
 		check: hotCheck,
 		apply: hotApply,
 		status: function (l) {
-			if (!l) {
-				return currentStatus;
-			}
+			if (!l) return currentStatus;
 			registeredStatusHandlers.push(l);
 		},
 		addStatusHandler: function (l) {
@@ -191,12 +179,12 @@ function createModuleHotObject(moduleId, me) {
 	return hot;
 }
 
-function setStatus(newStats) {
-	currentStatus = newStats;
+function setStatus(newStatus) {
+	currentStatus = newStatus;
 	var results = [];
-	for (var i = 0; i < registeredStatusHandlers.length; i++) {
-		results[i] = registeredStatusHandlers[i].call(null, newStats);
-	}
+	for (var i = 0; i < registeredStatusHandlers.length; i++)
+		results[i] = registeredStatusHandlers[i].call(null, newStatus);
+
 	return Promise.all(results);
 }
 
@@ -228,9 +216,7 @@ function trackBlockingPromise(promise) {
 }
 
 function waitForBlockingPromises(fn) {
-	if (blockingPromises === 0) {
-		return fn();
-	}
+	if (blockingPromises === 0) return fn();
 	return new Promise(function (resolve) {
 		blockingPromisesWaiting.push(function () {
 			resolve(fn());
@@ -272,7 +258,7 @@ function hotCheck(applyOnUpdate) {
 						);
 						return promises;
 					},
-					[])
+						[])
 				).then(function () {
 					return waitForBlockingPromises(function () {
 						if (applyOnUpdate) {
@@ -291,7 +277,7 @@ function hotCheck(applyOnUpdate) {
 function hotApply(options) {
 	if (currentStatus !== "ready") {
 		return Promise.resolve().then(function () {
-			throw Error(
+			throw new Error(
 				"apply() is only allowed in ready status (state: " + currentStatus + ")"
 			);
 		});
@@ -321,18 +307,14 @@ function internalApply(options) {
 	var disposePromise = setStatus("dispose");
 
 	results.forEach(function (result) {
-		if (result.dispose) {
-			result.dispose();
-		}
+		if (result.dispose) result.dispose();
 	});
 
 	var applyPromise = setStatus("apply");
 
 	var error;
 	var reportError = function (err) {
-		if (!error) {
-			error = err;
-		}
+		if (!error) error = err;
 	};
 
 	var outdatedModules = [];
@@ -357,9 +339,7 @@ function internalApply(options) {
 		if (queuedInvalidatedModules) {
 			return internalApply(options).then(function (list) {
 				outdatedModules.forEach(function (moduleId) {
-					if (list.indexOf(moduleId) < 0) {
-						list.push(moduleId);
-					}
+					if (list.indexOf(moduleId) < 0) list.push(moduleId);
 				});
 				return list;
 			});
@@ -373,9 +353,7 @@ function internalApply(options) {
 
 function applyInvalidatedModules() {
 	if (queuedInvalidatedModules) {
-		if (!currentUpdateApplyHandlers) {
-			currentUpdateApplyHandlers = [];
-		}
+		if (!currentUpdateApplyHandlers) currentUpdateApplyHandlers = [];
 		Object.keys(__webpack_require__.hmrI).forEach(function (key) {
 			queuedInvalidatedModules.forEach(function (moduleId) {
 				__webpack_require__.hmrI[key](moduleId, currentUpdateApplyHandlers);
