@@ -12,7 +12,9 @@ export interface IFormatCodeOptions {
 }
 
 export function formatCode(raw: string, options: IFormatCodeOptions) {
-	const ast = parse(raw);
+	const ast = parse(raw, {
+		sourceType: "unambiguous"
+	});
 	traverse(ast, {
 		ObjectProperty(path) {
 			if (options.ignorePropertyQuotationMark) {
