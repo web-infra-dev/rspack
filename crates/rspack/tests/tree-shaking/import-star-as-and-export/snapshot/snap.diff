@@ -1,35 +1,34 @@
 --- expected
 +++ actual
-@@ -3,31 +3,11 @@
+@@ -3,30 +3,11 @@
  ---
  ```js title=main.js
  (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
--"./answer.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+-"./app.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 -'use strict';
 -__webpack_require__.r(__webpack_exports__);
 -__webpack_require__.d(__webpack_exports__, {
--  a: function() { return a; }
+-  app: function() { return _lib__WEBPACK_IMPORTED_MODULE_0_; }
 -});
-- const a = 103330;
-- const b = 103330;
+-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
+-
+-
 -},
  "./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  'use strict';
  __webpack_require__.r(__webpack_exports__);
--/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
+-/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./app */"./app.js");
  
--_lib__WEBPACK_IMPORTED_MODULE_0_.Lib.a;
+-_app__WEBPACK_IMPORTED_MODULE_0_.app;
 -},
 -"./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 -'use strict';
 -__webpack_require__.r(__webpack_exports__);
 -__webpack_require__.d(__webpack_exports__, {
--  Lib: function() { return _answer__WEBPACK_IMPORTED_MODULE_0_; }
+-  a: function() { return a; }
 -});
--/* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./answer */"./answer.js");
--
--
-+Lib.a;
+- const a = 20000;
++app;
  },
  
  },function(__webpack_require__) {

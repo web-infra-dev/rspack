@@ -121,12 +121,12 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         } else {
           continue;
         };
-        dbg!(
-          // &connection,
-          dep.dependency_debug_name(),
-          &referenced_exports,
-          // &old_referenced_exports
-        );
+        // dbg!(
+        //   &connection,
+        //   dep.dependency_debug_name(),
+        //   &referenced_exports,
+        //   &old_referenced_exports
+        // );
 
         if old_referenced_exports.is_none()
           || matches!(old_referenced_exports, Some(ProcessModuleReferencedExports::ExtendRef(ref v)) if is_no_exports_referenced(v))
@@ -273,10 +273,12 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           }
         } else {
           let mut current_exports_info_id = mgm_exports_info_id;
+          // dbg!(&current_exports_info_id.get_exports_info(&self.compilation.module_graph));
           let len = used_exports.len();
           for (i, used_export) in used_exports.into_iter().enumerate() {
             let export_info_id = current_exports_info_id
               .get_export_info(&used_export, &mut self.compilation.module_graph);
+            // dbg!(&export_info_id.get_export_info(&self.compilation.module_graph));
             let export_info = self
               .compilation
               .module_graph
@@ -288,6 +290,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             if !last_one {
               let nested_info =
                 export_info_id.get_nested_exports_info(&self.compilation.module_graph);
+              dbg!(&nested_info);
               if let Some(nested_info) = nested_info {
                 let changed_flag = export_info_id.set_used_conditionally(
                   &mut self.compilation.module_graph,

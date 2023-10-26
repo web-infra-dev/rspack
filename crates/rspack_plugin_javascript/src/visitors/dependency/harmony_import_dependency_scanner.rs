@@ -425,9 +425,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
   }
 
   fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
-    dbg!(&member_expr);
     let mut member_chain = extract_member_expression_chain(member_expr);
-    dbg!(&member_chain);
     if member_chain.len() > 1 && let Some(reference) = self.import_map.get(&member_chain[0]) {
       member_chain.pop_front();
       if !member_chain.is_empty() {

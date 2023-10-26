@@ -233,7 +233,7 @@ pub trait Dependency:
 #[derive(Debug, Default)]
 pub struct ExportSpec {
   pub name: JsWord,
-  pub export: Option<Vec<JsWord>>,
+  pub export: Option<Nullable<Vec<JsWord>>>,
   pub exports: Option<Vec<ExportNameOrSpec>>,
   pub can_mangle: Option<bool>,
   pub terminal_binding: Option<bool>,
@@ -241,6 +241,12 @@ pub struct ExportSpec {
   pub hidden: Option<bool>,
   pub from: Option<ModuleGraphConnection>,
   pub from_export: Option<ModuleGraphConnection>,
+}
+
+#[derive(Debug)]
+pub enum Nullable<T> {
+  Null,
+  Value(T),
 }
 
 impl ExportSpec {

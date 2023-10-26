@@ -112,9 +112,9 @@ impl HarmonyExportImportedSpecifierDependency {
     }
 
     let imported_exports_type = get_exports_type(module_graph, id, &parent_module);
-    dbg!(&imported_exports_type);
+    // dbg!(&imported_exports_type);
     let ids = self.get_ids(module_graph);
-    dbg!(&ids, &self.mode_ids);
+    // dbg!(&ids, &self.mode_ids);
     // Special handling for reexporting the default export
     // from non-namespace modules
     if let Some(name) = name.as_ref() &&  ids.get(0).map(|item| item.as_ref())  == Some("default") {
@@ -499,6 +499,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
   #[allow(clippy::unwrap_in_result)]
   fn get_exports(&self, mg: &ModuleGraph) -> Option<ExportsSpec> {
     let mode = self.get_mode(self.name.clone(), mg, &self.id, None);
+    dbg!(&mode);
     match mode.ty {
       ExportModeType::Missing => None,
       ExportModeType::Unused => {
@@ -521,7 +522,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
             name: mode.name.unwrap_or_default(),
-            export: Some(vec![JsWord::from("default")]),
+            export: Some(rspack_core::Nullable::Value(vec![JsWord::from("default")])),
             from: from.cloned(),
             ..Default::default()
           })]),
@@ -535,7 +536,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
             name: mode.name.unwrap_or_default(),
-            export: Some(vec![JsWord::from("default")]),
+            export: Some(rspack_core::Nullable::Value(vec![JsWord::from("default")])),
             from: from.cloned(),
             ..Default::default()
           })]),
@@ -549,7 +550,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
             name: mode.name.unwrap_or_default(),
-            export: None,
+            export: Some(rspack_core::Nullable::Null),
             from: from.cloned(),
             ..Default::default()
           })]),
@@ -563,12 +564,12 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
             name: mode.name.unwrap_or_default(),
-            export: None,
+            export: Some(rspack_core::Nullable::Null),
             exports: Some(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
               name: "default".into(),
               can_mangle: Some(false),
               from: from.cloned(),
-              export: None,
+              export: Some(rspack_core::Nullable::Null),
               ..Default::default()
             })]),
             from: from.cloned(),
@@ -602,7 +603,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
                     ExportNameOrSpec::ExportSpec(ExportSpec {
                       name: item.name,
                       from: from.cloned(),
-                      export: Some(item.ids),
+                      export: Some(rspack_core::Nullable::Value(item.ids)),
                       hidden: Some(item.hidden),
                       ..Default::default()
                     })
