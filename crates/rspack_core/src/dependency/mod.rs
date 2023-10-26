@@ -155,18 +155,24 @@ impl From<&str> for DependencyCategory {
   }
 }
 
+impl DependencyCategory {
+  pub fn as_str(&self) -> &'static str {
+    match self {
+      DependencyCategory::Unknown => "unknown",
+      DependencyCategory::Esm => "esm",
+      DependencyCategory::CommonJS => "commonjs",
+      DependencyCategory::Url => "url",
+      DependencyCategory::CssImport => "css-import",
+      DependencyCategory::CssCompose => "css-compose",
+      DependencyCategory::Wasm => "wasm",
+      DependencyCategory::Worker => "worker",
+    }
+  }
+}
+
 impl Display for DependencyCategory {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      DependencyCategory::Unknown => write!(f, "unknown"),
-      DependencyCategory::Esm => write!(f, "esm"),
-      DependencyCategory::CommonJS => write!(f, "commonjs"),
-      DependencyCategory::Url => write!(f, "url"),
-      DependencyCategory::CssImport => write!(f, "css-import"),
-      DependencyCategory::CssCompose => write!(f, "css-compose"),
-      DependencyCategory::Wasm => write!(f, "wasm"),
-      DependencyCategory::Worker => write!(f, "worker"),
-    }
+    write!(f, "{}", self.as_str())
   }
 }
 
