@@ -1,5 +1,3 @@
-import { replaceModuleArgument } from "./replace-module-argument";
-
 const BOOTSTRAP_SPLIT_LINE =
 	"/************************************************************************/";
 const MODULE_START_FLAG = "/* start::";
