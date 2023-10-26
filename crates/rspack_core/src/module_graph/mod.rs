@@ -6,7 +6,9 @@ use rspack_error::{internal_error, Result};
 use rspack_hash::RspackHashDigest;
 use rspack_identifier::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use swc_core::ecma::atoms::JsWord;
 
+use crate::IS_NEW_TREESHAKING;
 mod connection;
 pub use connection::*;
 
@@ -24,7 +26,7 @@ pub struct ModuleGraph {
   dependency_id_to_module_identifier: HashMap<DependencyId, ModuleIdentifier>,
 
   /// Module identifier to its module
-  module_identifier_to_module: IdentifierMap<BoxModule>,
+  pub module_identifier_to_module: IdentifierMap<BoxModule>,
 
   /// Module identifier to its module graph module
   pub module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
@@ -42,11 +44,18 @@ pub struct ModuleGraph {
 
   /// Module graph connections table index for `ConnectionId`
   connections_map: HashMap<ModuleGraphConnection, ConnectionId>,
-  connection_to_condition: HashMap<ConnectionId, DependencyCondition>,
 
   import_var_map: IdentifierMap<ImportVarMap>,
   pub exports_info_map: HashMap<ExportsInfoId, ExportsInfo>,
   pub export_info_map: HashMap<ExportInfoId, ExportInfo>,
+  connection_to_condition: HashMap<ModuleGraphConnection, DependencyCondition>,
+  pub dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
+}
+
+/// https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ModuleGraph.js#L742-L748
+#[derive(Debug)]
+pub struct DependencyExtraMeta {
+  pub ids: Vec<JsWord>,
 }
 
 impl ModuleGraph {
@@ -82,15 +91,15 @@ impl ModuleGraph {
     self.dependencies.insert(*dependency.id(), dependency);
   }
 
-  pub fn get_condition_by_connection_id(
-    &self,
-    connection_id: &ConnectionId,
-  ) -> Option<&DependencyCondition> {
-    self.connection_to_condition.get(connection_id)
-  }
-
   pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxDependency> {
     self.dependencies.get(dependency_id)
+  }
+
+  pub fn dependency_by_id_mut(
+    &mut self,
+    dependency_id: &DependencyId,
+  ) -> Option<&mut BoxDependency> {
+    self.dependencies.get_mut(dependency_id)
   }
 
   fn remove_dependency(&mut self, dependency_id: &DependencyId) {
@@ -122,35 +131,49 @@ impl ModuleGraph {
     dependency: BoxDependency,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
-    let module_dependency = dependency.as_module_dependency().is_some();
+    let is_module_dependency = dependency.as_module_dependency().is_some();
     let dependency_id = *dependency.id();
+    let condition = if IS_NEW_TREESHAKING.load(std::sync::atomic::Ordering::Relaxed) {
+      dependency
+        .as_module_dependency()
+        .and_then(|dep| dep.get_condition())
+    } else {
+      None
+    };
     self.add_dependency(dependency);
     self
       .dependency_id_to_module_identifier
       .insert(dependency_id, module_identifier);
-    if !module_dependency {
+    if !is_module_dependency {
       return Ok(());
     }
 
+    let active = !matches!(condition, Some(DependencyCondition::False));
+    let conditional = condition.is_some();
     // TODO: just a placeholder here, finish this when we have basic `getCondition` logic
-    let condition: Option<DependencyCondition> = None;
     let new_connection = ModuleGraphConnection::new(
       original_module_identifier,
       dependency_id,
       module_identifier,
-      condition,
+      active,
+      conditional,
     );
 
     let connection_id = if let Some(connection_id) = self.connections_map.get(&new_connection) {
       *connection_id
     } else {
       let new_connection_id = ConnectionId::from(self.connections.len());
-      self.connections.push(Some(new_connection.clone()));
+      self.connections.push(Some(new_connection));
       self
         .connections_map
         .insert(new_connection, new_connection_id);
       new_connection_id
     };
+    if let Some(condition) = condition {
+      self
+        .connection_to_condition
+        .insert(new_connection, condition);
+    }
 
     self
       .dependency_id_to_connection_id
@@ -239,6 +262,15 @@ impl ModuleGraph {
       .get_mut(identifier)
   }
 
+  /// refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ModuleGraph.js#L582-L585
+  pub fn get_export_info(
+    &mut self,
+    module_id: ModuleIdentifier,
+    export_name: &JsWord,
+  ) -> ExportInfoId {
+    let exports_info_id = self.get_exports_info(&module_id).id;
+    exports_info_id.get_export_info(export_name, self)
+  }
   /// Uniquely identify a connection by a given dependency
   pub fn connection_by_dependency(
     &self,
@@ -248,6 +280,17 @@ impl ModuleGraph {
       .dependency_id_to_connection_id
       .get(dependency_id)
       .and_then(|connection_id| self.connection_by_connection_id(connection_id))
+  }
+
+  pub fn connection_by_dependency_mut(
+    &mut self,
+    dependency_id: &DependencyId,
+  ) -> Option<&mut ModuleGraphConnection> {
+    self
+      .dependency_id_to_connection_id
+      .get(dependency_id)
+      .cloned()
+      .and_then(|connection_id| self.connection_by_connection_id_mut(&connection_id))
   }
 
   /// Get a list of all dependencies of a module by the module itself, if the module is not found, then None is returned
@@ -289,6 +332,13 @@ impl ModuleGraph {
     connection_id: &ConnectionId,
   ) -> Option<&ModuleGraphConnection> {
     self.connections[**connection_id].as_ref()
+  }
+
+  pub fn connection_by_connection_id_mut(
+    &mut self,
+    connection_id: &ConnectionId,
+  ) -> Option<&mut ModuleGraphConnection> {
+    self.connections[**connection_id].as_mut()
   }
 
   pub fn remove_connection_by_dependency(
@@ -339,26 +389,15 @@ impl ModuleGraph {
       .and_then(|mgm| mgm.get_issuer().get_module(self))
   }
 
-  pub fn is_async(&self, module: &ModuleIdentifier) -> bool {
+  pub fn is_async(&self, module: &ModuleIdentifier) -> Option<bool> {
     self
       .module_graph_module_by_identifier(module)
-      .map(|mgm| {
-        mgm
-          .build_meta
-          .as_ref()
-          .expect("build_meta should be initialized")
-          .is_async
-      })
-      .unwrap_or_default()
+      .map(|mgm| mgm.is_async)
   }
 
   pub fn set_async(&mut self, module: &ModuleIdentifier) {
     if let Some(mgm) = self.module_graph_module_by_identifier_mut(module) {
-      mgm
-        .build_meta
-        .as_mut()
-        .expect("build_meta should be initialized")
-        .is_async = true;
+      mgm.is_async = true
     }
   }
 
@@ -383,6 +422,23 @@ impl ModuleGraph {
           .incoming_connections
           .iter()
           .filter_map(|id| self.connection_by_connection_id(id))
+          .collect()
+      })
+      .unwrap_or_default()
+  }
+
+  pub fn get_incoming_connections_cloned(
+    &self,
+    module: &BoxModule,
+  ) -> HashSet<ModuleGraphConnection> {
+    self
+      .module_graph_module_by_identifier(&module.identifier())
+      .map(|mgm| {
+        mgm
+          .incoming_connections
+          .clone()
+          .into_iter()
+          .filter_map(|id| self.connection_by_connection_id(&id).cloned())
           .collect()
       })
       .unwrap_or_default()
@@ -501,6 +557,65 @@ impl ModuleGraph {
     false
   }
 
+  /// We can't insert all sort of things into one hashmap like javascript, so we create different
+  /// hashmap to store different kinds of meta.
+  pub fn get_dep_meta_if_existing(&self, id: DependencyId) -> Option<&DependencyExtraMeta> {
+    self.dep_meta_map.get(&id)
+  }
+
+  pub fn update_module(&mut self, dep_id: &DependencyId, module_id: &ModuleIdentifier) {
+    let connection = self
+      .connection_by_dependency_mut(dep_id)
+      .expect("should have connection");
+    if &connection.module_identifier == module_id {
+      return;
+    }
+    connection.set_active(false);
+    let mut new_connection = *connection;
+    let condition = self.connection_to_condition.get(&new_connection).cloned();
+    new_connection.module_identifier = *module_id;
+    let new_connection = normalize_new_connection(self, new_connection);
+
+    if let Some(condition) = condition {
+      self
+        .connection_to_condition
+        .insert(new_connection, condition);
+    }
+
+    pub fn normalize_new_connection(
+      mg: &mut ModuleGraph,
+      new_connection: ModuleGraphConnection,
+    ) -> ModuleGraphConnection {
+      let dependency_id = new_connection.dependency_id;
+      let connection_id = if let Some(connection_id) = mg.connections_map.get(&new_connection) {
+        *connection_id
+      } else {
+        let new_connection_id = ConnectionId::from(mg.connections.len());
+        mg.connections.push(Some(new_connection));
+        mg.connections_map.insert(new_connection, new_connection_id);
+        new_connection_id
+      };
+
+      mg.dependency_id_to_connection_id
+        .insert(dependency_id, connection_id);
+
+      mg.connection_id_to_dependency_id
+        .insert(connection_id, dependency_id);
+
+      let mgm = mg
+        .module_graph_module_by_identifier_mut(&new_connection.module_identifier)
+        .expect("should have mgm");
+
+      mgm.add_incoming_connection(connection_id);
+
+      if let Some(identifier) = new_connection.original_module_identifier && let Some(original_mgm) = mg.
+      module_graph_module_by_identifier_mut(&identifier) {
+        original_mgm.add_outgoing_connection(connection_id);
+    };
+      new_connection
+    }
+  }
+
   pub fn set_dependency_import_var(&mut self, module_identifier: ModuleIdentifier, request: &str) {
     self
       .import_var_map
@@ -591,7 +706,7 @@ mod test {
   use crate::{
     BoxDependency, BuildContext, BuildResult, CodeGenerationResult, Compilation, Context,
     Dependency, DependencyId, ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph,
-    ModuleGraphModule, ModuleIdentifier, ModuleType, SourceType, UsageState,
+    ModuleGraphModule, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s
@@ -635,7 +750,11 @@ mod test {
           unreachable!()
         }
 
-        fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult> {
+        fn code_generation(
+          &self,
+          _compilation: &Compilation,
+          _runtime: Option<&RuntimeSpec>,
+        ) -> Result<CodeGenerationResult> {
           unreachable!()
         }
       }
@@ -654,6 +773,9 @@ mod test {
         fn id(&self) -> &DependencyId {
           &self.2
         }
+        fn dependency_debug_name(&self) -> &'static str {
+          stringify!($ident)
+        }
       }
 
       impl ModuleDependency for $ident {
@@ -663,10 +785,6 @@ mod test {
 
         fn user_request(&self) -> &str {
           &*self.1
-        }
-
-        fn span(&self) -> Option<&crate::ErrorSpan> {
-          unreachable!()
         }
 
         fn set_request(&mut self, request: String) {
@@ -681,9 +799,12 @@ mod test {
   impl_noop_trait_dep_type!(Edge);
 
   fn add_module_to_graph(mg: &mut ModuleGraph, m: Box<dyn Module>) {
-    let other_exports_info = ExportInfo::new("null".into(), UsageState::Unknown, None);
-    let side_effects_only_info =
-      ExportInfo::new("*side effects only*".into(), UsageState::Unknown, None);
+    let other_exports_info = ExportInfo::new(None, UsageState::Unknown, None);
+    let side_effects_only_info = ExportInfo::new(
+      Some("*side effects only*".into()),
+      UsageState::Unknown,
+      None,
+    );
     let exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
     let mgm = ModuleGraphModule::new(m.identifier(), ModuleType::Js, exports_info.id);
     mg.add_module_graph_module(mgm);

@@ -9,7 +9,6 @@
  */
 import type * as binding from "@rspack/binding";
 import fs from "fs";
-import path from "path";
 import * as tapable from "tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
 import type { WatchOptions } from "watchpack";
@@ -24,7 +23,7 @@ import { Stats } from "./Stats";
 import { Compilation, CompilationParams } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import ResolverFactory from "./ResolverFactory";
-import { getRawOptions } from "./config/adapter";
+import { getRawOptions } from "./config";
 import { LoaderContext, LoaderResult } from "./config/adapterRuleUse";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
@@ -32,7 +31,7 @@ import Cache from "./lib/Cache";
 import { makePathsRelative } from "./util/identifier";
 import CacheFacade from "./lib/CacheFacade";
 import ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
-import { runLoader } from "./loader-runner";
+import { runLoaders } from "./loader-runner";
 import { Logger } from "./logging/Logger";
 import { NormalModuleFactory } from "./NormalModuleFactory";
 import { WatchFileSystem } from "./util/fs";
@@ -46,10 +45,6 @@ import {
 	deprecated_resolveBuiltins
 } from "./builtin-plugin";
 import { optionsApply_compat } from "./rspackOptionsApply";
-
-class HotModuleReplacementPlugin {
-	apply() {}
-}
 
 class Compiler {
 	#_instance?: binding.Rspack;
@@ -123,7 +118,6 @@ class Compiler {
 		this.builtinPlugins = [];
 		// to workaround some plugin access webpack, we may change dev-server to avoid this hack in the future
 		this.webpack = {
-			HotModuleReplacementPlugin, // modernjs/server will auto inject this plugin not set
 			NormalModule,
 			get sources(): typeof import("webpack-sources") {
 				return require("webpack-sources");
@@ -153,6 +147,9 @@ class Compiler {
 			get ExternalsPlugin() {
 				return require("./builtin-plugin").ExternalsPlugin;
 			},
+			get HotModuleReplacementPlugin() {
+				return require("./builtin-plugin").HotModuleReplacementPlugin;
+			},
 			get LoaderOptionsPlugin() {
 				return require("./lib/LoaderOptionsPlugin").LoaderOptionsPlugin;
 			},
@@ -161,6 +158,11 @@ class Compiler {
 			},
 			WebpackError: Error,
 			ModuleFilenameHelpers,
+			javascript: {
+				get EnableChunkLoadingPlugin() {
+					return require("./builtin-plugin").EnableChunkLoadingPlugin;
+				}
+			},
 			node: {
 				get NodeTargetPlugin() {
 					return require("./builtin-plugin").NodeTargetPlugin;
@@ -203,6 +205,19 @@ class Compiler {
 				// get LazySet() {
 				// 	return require("./util/LazySet");
 				// }
+			},
+			// XxxRspackPlugin, Rspack-only plugins
+			get HtmlRspackPlugin() {
+				return require("./builtin-plugin").HtmlRspackPlugin;
+			},
+			get SwcJsMinimizerRspackPlugin() {
+				return require("./builtin-plugin").SwcJsMinimizerRspackPlugin;
+			},
+			get SwcCssMinimizerRspackPlugin() {
+				return require("./builtin-plugin").SwcCssMinimizerRspackPlugin;
+			},
+			get CopyRspackPlugin() {
+				return require("./builtin-plugin").CopyRspackPlugin;
 			}
 		};
 		this.root = this;
@@ -416,7 +431,7 @@ class Compiler {
 				buildModule: this.#buildModule.bind(this)
 			},
 			createThreadsafeNodeFSFromRaw(this.outputFileSystem),
-			(loaderContext: binding.JsLoaderContext) => runLoader(loaderContext, this)
+			runLoaders.bind(undefined, this)
 		);
 
 		callback(null, this.#_instance);

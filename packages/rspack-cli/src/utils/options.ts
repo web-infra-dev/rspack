@@ -1,5 +1,5 @@
 import yargs from "yargs";
-export const commonOptions = (yargs: yargs.Argv<{}>) => {
+export const commonOptions = (yargs: yargs.Argv) => {
 	return yargs.options({
 		config: {
 			g: true,
@@ -40,7 +40,7 @@ export const commonOptions = (yargs: yargs.Argv<{}>) => {
 	});
 };
 
-export const previewOptions = (yargs: yargs.Argv<{}>) => {
+export const previewOptions = (yargs: yargs.Argv) => {
 	return yargs
 		.positional("dir", {
 			type: "string",

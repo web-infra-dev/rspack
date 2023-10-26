@@ -7,8 +7,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'Lib': function() { return Lib; },
-  'v': function() { return v; }
+  v: function() { return v; }
 });
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
 
@@ -16,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {
 }
 function foo() {
     return {
-        OriginLib: _lib__WEBPACK_IMPORTED_MODULE_0_.Lib
+        OriginLib
     };
 }
  const v = _lib__WEBPACK_IMPORTED_MODULE_0_.value;
@@ -32,8 +31,8 @@ _app__WEBPACK_IMPORTED_MODULE_0_.v;
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'Lib': function() { return Lib; },
-  'value': function() { return value; }
+  Lib: function() { return Lib; },
+  value: function() { return value; }
 });
  class Lib {
 }

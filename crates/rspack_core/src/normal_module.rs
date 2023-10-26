@@ -30,7 +30,8 @@ use crate::{
   BuildMeta, BuildResult, CodeGenerationResult, Compilation, CompilerOptions, ConnectionState,
   Context, DependencyTemplate, GenerateContext, GeneratorOptions, LibIdentOptions,
   LoaderRunnerPluginProcessResource, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, SourceType,
+  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RuntimeSpec,
+  SourceType,
 };
 
 bitflags! {
@@ -192,6 +193,10 @@ impl NormalModule {
       code_generation_dependencies: None,
       presentational_dependencies: None,
     }
+  }
+
+  pub fn id(&self) -> ModuleIdentifier {
+    self.id
   }
 
   pub fn match_resource(&self) -> Option<&ResourceData> {
@@ -373,7 +378,7 @@ impl Module for NormalModule {
     diagnostics.extend(ds);
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
-    self.original_source = Some(original_source);
+    self.original_source = Some(source.clone());
     self.source = NormalModuleSource::new_built(source, &diagnostics);
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
@@ -401,7 +406,11 @@ impl Module for NormalModule {
     )
   }
 
-  fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
+  fn code_generation(
+    &self,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<CodeGenerationResult> {
     if let NormalModuleSource::BuiltSucceed(source) = &self.source {
       let mut code_generation_result = CodeGenerationResult::default();
       for source_type in self.source_types() {
@@ -414,6 +423,7 @@ impl Module for NormalModule {
             runtime_requirements: &mut code_generation_result.runtime_requirements,
             data: &mut code_generation_result.data,
             requested_source_type: *source_type,
+            runtime,
           },
         )?;
         code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
@@ -507,16 +517,18 @@ impl Module for NormalModule {
         module_chain.insert(self.identifier());
         let mut current = ConnectionState::Bool(false);
         for dependency_id in mgm.dependencies.iter() {
-          if let Some(dependency) = module_graph.dependency_by_id(dependency_id).expect("should have dependency").as_module_dependency() {
+          if let Some(dependency) = module_graph.dependency_by_id(dependency_id) {
             let state = dependency.get_module_evaluation_side_effects_state(module_graph, module_chain);
             if matches!(state, ConnectionState::Bool(true)) {
               // TODO add optimization bailout
+              module_chain.remove(&self.identifier());
               return ConnectionState::Bool(true);
-            } else if matches!(state, ConnectionState::CircularConnection) {
+            } else if !matches!(state, ConnectionState::CircularConnection) {
               current = add_connection_states(current, state);
             }
           }
         }
+        module_chain.remove(&self.identifier());
         return current;
       }
     }

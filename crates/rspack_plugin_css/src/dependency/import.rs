@@ -25,6 +25,10 @@ impl CssImportDependency {
 }
 
 impl Dependency for CssImportDependency {
+  fn dependency_debug_name(&self) -> &'static str {
+    "CssImportDependency"
+  }
+
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -36,6 +40,10 @@ impl Dependency for CssImportDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::CssImport
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
 }
 
 impl ModuleDependency for CssImportDependency {
@@ -45,10 +53,6 @@ impl ModuleDependency for CssImportDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
   }
 
   fn set_request(&mut self, request: String) {

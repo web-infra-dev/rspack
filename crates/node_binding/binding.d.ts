@@ -15,6 +15,7 @@ export class JsCompilation {
   getAssetSource(name: string): JsCompatSource | null
   getModules(): Array<JsModule>
   getChunks(): Array<JsChunk>
+  getNamedChunk(name: string): JsChunk | null
   /**
    * Only available for those none Js and Css source,
    * return true if set module source successfully, false if failed.
@@ -129,6 +130,7 @@ export const enum BuiltinPluginName {
   CommonJsChunkFormatPlugin = 'CommonJsChunkFormatPlugin',
   ArrayPushCallbackChunkFormatPlugin = 'ArrayPushCallbackChunkFormatPlugin',
   ModuleChunkFormatPlugin = 'ModuleChunkFormatPlugin',
+  HotModuleReplacementPlugin = 'HotModuleReplacementPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -274,29 +276,28 @@ export interface JsLoaderContext {
   currentLoader: string
   isPitching: boolean
   /**
+   * Loader index from JS.
+   * If loaders are dispatched by JS loader runner,
+   * then, this field is correspondence with loader index in JS side.
+   * It is useful when loader dispatched on JS side has an builtin loader, for example: builtin:swc-loader,
+   * Then this field will be used as an hack to test whether it should return an AST or string.
+   */
+  loaderIndexFromJs?: number
+  /**
+   * Internal additional data, contains more than `String`
+   * @internal
+   */
+  additionalDataExternal: ExternalObject<AdditionalData>
+  /**
    * Internal loader context
    * @internal
    */
-  context: ExternalObject<LoaderRunnerContext>
+  contextExternal: ExternalObject<LoaderRunnerContext>
   /**
    * Internal loader diagnostic
    * @internal
    */
-  diagnostics: ExternalObject<Array<Diagnostic>>
-}
-
-export interface JsLoaderResult {
-  /** Content in pitching stage can be empty */
-  content?: Buffer
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  buildDependencies: Array<string>
-  sourceMap?: Buffer
-  additionalData?: Buffer
-  cacheable: boolean
-  /** Used to instruct how rust loaders should execute */
-  isPitching: boolean
+  diagnosticsExternal: ExternalObject<Array<Diagnostic>>
 }
 
 export interface JsModule {
@@ -549,6 +550,7 @@ export interface RawBuiltins {
 }
 
 export interface RawCacheGroupOptions {
+  key: string
   priority?: number
   test?: RegExp | string
   idHint?: string
@@ -592,6 +594,7 @@ export interface RawCopyPattern {
   force: boolean
   priority: number
   globOptions: RawCopyGlobOptions
+  info?: RawInfo
 }
 
 export interface RawCopyRspackPluginOptions {
@@ -644,6 +647,7 @@ export interface RawExperiments {
   incrementalRebuild: RawIncrementalRebuild
   asyncWebAssembly: boolean
   newSplitChunks: boolean
+  topLevelAwait: boolean
   css: boolean
   rspackFuture: RawRspackFuture
 }
@@ -668,10 +672,11 @@ export interface RawExternalItemFnResult {
 }
 
 export interface RawExternalItemValue {
-  type: "string" | "bool" | "array"
+  type: "string" | "bool" | "array" | "object"
   stringPayload?: string
   boolPayload?: boolean
   arrayPayload?: Array<string>
+  objectPayload?: Record<string, Array<string>>
 }
 
 export interface RawExternalsPluginOptions {
@@ -741,6 +746,17 @@ export interface RawHttpExternalsRspackPluginOptions {
 export interface RawIncrementalRebuild {
   make: boolean
   emitAsset: boolean
+}
+
+export interface RawInfo {
+  immutable?: boolean
+  minimized?: boolean
+  chunkHash?: Array<string>
+  contentHash?: Array<string>
+  development?: boolean
+  hotModuleReplacement?: boolean
+  related?: RawRelated
+  version?: string
 }
 
 export interface RawLibraryAuxiliaryComment {
@@ -839,6 +855,7 @@ export interface RawOptimizationOptions {
   sideEffects: string
   usedExports: string
   providedExports: boolean
+  innerGraph: boolean
   realContentHash: boolean
 }
 
@@ -877,6 +894,7 @@ export interface RawOutputOptions {
   cssChunkFilename: string
   hotUpdateMainFilename: string
   hotUpdateChunkFilename: string
+  hotUpdateGlobal: string
   uniqueName: string
   chunkLoadingGlobal: string
   library?: RawLibraryOptions
@@ -924,7 +942,8 @@ export interface RawPresetEnv {
 }
 
 export interface RawProgressPluginOptions {
-  prefix?: string
+  prefix: string
+  profile: boolean
 }
 
 export interface RawReactOptions {
@@ -937,6 +956,10 @@ export interface RawReactOptions {
   useBuiltins?: boolean
   useSpread?: boolean
   refresh?: boolean
+}
+
+export interface RawRelated {
+  sourceMap?: string
 }
 
 export interface RawRelayConfig {
@@ -954,7 +977,7 @@ export interface RawResolveOptions {
   alias?: Record<string, Array<string | false>>
   fallback?: Record<string, Array<string | false>>
   symlinks?: boolean
-  tsConfigPath?: string
+  tsconfig?: RawResolveTsconfigOptions
   modules?: Array<string>
   byDependency?: Record<string, RawResolveOptions>
   fullySpecified?: boolean
@@ -962,9 +985,16 @@ export interface RawResolveOptions {
   extensionAlias?: Record<string, Array<string>>
 }
 
+export interface RawResolveTsconfigOptions {
+  configFile: string
+  referencesType: "auto" | "manual" | "disabled"
+  references?: Array<string>
+}
+
 export interface RawRspackFuture {
   newResolver: boolean
   newTreeshaking: boolean
+  disableTransformByDefault: boolean
 }
 
 export interface RawRuleSetCondition {
@@ -995,7 +1025,7 @@ export interface RawSnapshotStrategy {
 export interface RawSplitChunksOptions {
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
   name?: string
-  cacheGroups?: Record<string, RawCacheGroupOptions>
+  cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
   maxAsyncRequests?: number

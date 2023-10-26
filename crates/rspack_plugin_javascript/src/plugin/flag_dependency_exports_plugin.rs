@@ -99,7 +99,8 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
     let dep = self.mg.dependency_by_id(dep_id)?;
-    let exports_specs = dep.get_exports()?;
+    // this is why we can bubble here. https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/FlagDependencyExportsPlugin.js#L140
+    let exports_specs = dep.get_exports(self.mg)?;
     exports_specs_from_dependencies.insert(*dep_id, exports_specs);
     Some(())
   }
@@ -124,7 +125,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           .export_info_map
           .get_mut(&from_exports_info_id)
           .expect("should have export info");
-        export_info.unuset_target(&dep_id);
+        export_info.unset_target(&dep_id);
       }
     }
     match exports {
@@ -151,6 +152,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           },
           dep_id,
         );
+        // dbg!(&ele, exports_info_id.get_exports_info(self.mg));
       }
     }
 
@@ -199,7 +201,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
               .unwrap_or(global_export_info.terminal_binding),
             spec.exports.as_ref(),
             if spec.from.is_some() {
-              spec.from.clone()
+              spec.from
             } else {
               global_export_info.from.cloned()
             },
@@ -246,7 +248,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
 
       if let Some(from) = from {
         let changed = if hidden {
-          export_info.unuset_target(&dep_id)
+          export_info.unset_target(&dep_id)
         } else {
           let fallback = vec![name.clone()];
           let export_name = if let Some(from) = from_export {
@@ -254,7 +256,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           } else {
             Some(&fallback)
           };
-          export_info.set_target(&dep_id, Some(from), export_name, priority)
+          export_info.set_target(Some(dep_id), Some(from), export_name, priority)
         };
         self.changed |= changed;
       }

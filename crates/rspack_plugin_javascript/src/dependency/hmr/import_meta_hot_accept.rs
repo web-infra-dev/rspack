@@ -37,6 +37,14 @@ impl Dependency for ImportMetaHotAcceptDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::ImportMetaHotAccept
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "ImportMetaHotAcceptDependency"
+  }
 }
 
 impl ModuleDependency for ImportMetaHotAcceptDependency {
@@ -46,10 +54,6 @@ impl ModuleDependency for ImportMetaHotAcceptDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
   }
 
   fn set_request(&mut self, request: String) {

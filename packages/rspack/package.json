@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "0.3.4",
+  "version": "0.3.8",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "A Fast Rust-based Web Bundler",
@@ -51,6 +51,7 @@
     "sass": "^1.56.2",
     "sass-loader": "^13.2.0",
     "source-map": "^0.7.4",
+    "styled-components": "^6.0.8",
     "terser": "5.16.1",
     "ts-node": "10.9.1",
     "wast-loader": "^1.11.4"
@@ -62,7 +63,9 @@
     "compare-versions": "6.0.0-rc.1",
     "enhanced-resolve": "5.12.0",
     "graceful-fs": "4.2.10",
+    "json-parse-even-better-errors": "^3.0.0",
     "neo-async": "2.6.2",
+    "querystring": "^0.2.1",
     "react-refresh": "0.14.0",
     "schema-utils": "^4.0.0",
     "tapable": "2.2.1",

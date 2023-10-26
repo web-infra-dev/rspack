@@ -1,5 +1,5 @@
 var HotModuleReplacementPlugin =
-	require("../../../../").HotModuleReplacementPlugin;
+	require("@rspack/core").HotModuleReplacementPlugin;
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {

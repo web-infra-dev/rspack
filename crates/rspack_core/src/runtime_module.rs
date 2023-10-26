@@ -7,8 +7,8 @@ pub trait RuntimeModule: Module {
   fn name(&self) -> Identifier;
   fn generate(&self, compilation: &Compilation) -> BoxSource;
   fn attach(&mut self, _chunk: ChunkUkey) {}
-  fn stage(&self) -> u8 {
-    0
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Normal
   }
   // webpack fullHash || dependentHash
   fn cacheable(&self) -> bool {
@@ -20,10 +20,13 @@ pub trait RuntimeModule: Module {
   }
 }
 
-/**
- * Runtime modules which attach to handlers of other runtime modules
- */
-pub const RUNTIME_MODULE_STAGE_ATTACH: u8 = 10;
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum RuntimeModuleStage {
+  Normal,  // Runtime modules without any dependencies to other runtime modules
+  Basic,   // Runtime modules with simple dependencies on other runtime modules
+  Attach,  // Runtime modules which attach to handlers of other runtime modules
+  Trigger, // Runtime modules which trigger actions on bootstrap
+}
 
 pub trait RuntimeModuleExt {
   fn boxed(self) -> Box<dyn RuntimeModule>;

@@ -1,4 +1,5 @@
 const path = require("path");
+const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
 const { default: HtmlPlugin } = require("@rspack/plugin-html");
 
 const prod = process.env.NODE_ENV === "production";
@@ -7,6 +8,7 @@ const prod = process.env.NODE_ENV === "production";
 const config = {
 	context: __dirname,
 	entry: { main: "./src/index.tsx" },
+	target: ["web", "es5"],
 	devServer: {
 		port: 5555,
 		webSocketServer: "sockjs",
@@ -36,6 +38,48 @@ const config = {
 			{
 				test: /\.svg$/,
 				use: "@svgr/webpack"
+			},
+			{
+				test: /\.(j|t)s$/,
+				exclude: [/[\\/]node_modules[\\/]/],
+				loader: "builtin:swc-loader",
+				options: {
+					sourceMap: true,
+					jsc: {
+						parser: {
+							syntax: "typescript"
+						},
+						externalHelpers: true
+					},
+					env: {
+						targets: "Chrome >= 48"
+					}
+				}
+			},
+			{
+				test: /\.(j|t)sx$/,
+				loader: "builtin:swc-loader",
+				exclude: [/[\\/]node_modules[\\/]/],
+				options: {
+					sourceMap: true,
+					jsc: {
+						parser: {
+							syntax: "typescript",
+							tsx: true
+						},
+						transform: {
+							react: {
+								runtime: "automatic",
+								development: !prod,
+								refresh: !prod
+							}
+						},
+						externalHelpers: true
+					},
+					env: {
+						targets: "Chrome >= 48"
+					}
+				}
 			},
 			{
 				test: /\.png$/,
@@ -73,10 +117,16 @@ const config = {
 			title: "Arco Pro App",
 			template: path.join(__dirname, "index.html"),
 			favicon: path.join(__dirname, "public", "favicon.ico")
-		})
+		}),
+		new ReactRefreshPlugin()
 	],
 	infrastructureLogging: {
 		debug: false
+	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: true
+		}
 	}
 };
 module.exports = config;

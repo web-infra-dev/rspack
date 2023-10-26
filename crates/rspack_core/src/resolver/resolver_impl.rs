@@ -216,7 +216,7 @@ fn to_nodejs_resolver_options(
   dependency_type: DependencyCategory,
 ) -> nodejs_resolver::Options {
   let options = options.merge_by_dependency(dependency_type);
-  let tsconfig = options.tsconfig;
+  let tsconfig = options.tsconfig.map(|c| c.config_file);
   let enforce_extension = nodejs_resolver::EnforceExtension::Auto;
   let external_cache = Some(cache);
   let description_file = String::from("package.json");
@@ -278,7 +278,7 @@ fn to_oxc_resolver_options(
   dependency_type: DependencyCategory,
 ) -> oxc_resolver::ResolveOptions {
   let options = options.merge_by_dependency(dependency_type);
-  let tsconfig = options.tsconfig;
+  let tsconfig = options.tsconfig.map(|c| c.into());
   let enforce_extension = oxc_resolver::EnforceExtension::Auto;
   let description_files = vec!["package.json".to_string()];
   let extensions = options.extensions.unwrap_or_else(|| {
@@ -423,6 +423,10 @@ fn map_oxc_resolver_error(
         },
       )
     }
+    oxc_resolver::ResolveError::TsconfigNotFound(path) => ResolveError(
+      format!("{} is not a tsconfig", path.display()),
+      internal_error!("{} is not a tsconfig", path.display()),
+    ),
     _ => {
       let is_recursion = matches!(error, oxc_resolver::ResolveError::Recursion);
       map_resolver_error(is_recursion, args, plugin_driver)

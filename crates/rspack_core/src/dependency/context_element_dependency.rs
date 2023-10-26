@@ -20,6 +20,10 @@ pub struct ContextElementDependency {
 }
 
 impl Dependency for ContextElementDependency {
+  fn dependency_debug_name(&self) -> &'static str {
+    "ContextElementDependency"
+  }
+
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -44,10 +48,6 @@ impl ModuleDependency for ContextElementDependency {
 
   fn user_request(&self) -> &str {
     &self.user_request
-  }
-
-  fn span(&self) -> Option<&crate::ErrorSpan> {
-    None
   }
 
   fn weak(&self) -> bool {

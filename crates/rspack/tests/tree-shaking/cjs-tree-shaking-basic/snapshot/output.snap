@@ -7,7 +7,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'answer': function() { return answer; }
+  answer: function() { return answer; }
 });
 
  const answer = 42;
@@ -16,7 +16,7 @@ __webpack_require__.d(__webpack_exports__, {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'myanswer': function() { return _lib__WEBPACK_IMPORTED_MODULE_0_.myanswer; }
+  myanswer: function() { return _lib__WEBPACK_IMPORTED_MODULE_0_.myanswer; }
 });
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
 
@@ -33,7 +33,7 @@ __webpack_require__(/* ./answer */"./answer.js");
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'myanswer': function() { return myanswer; }
+  myanswer: function() { return myanswer; }
 });
  const myanswer = 'anyser';
 },

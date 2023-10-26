@@ -16,6 +16,7 @@ pub struct RawIncrementalRebuild {
 pub struct RawRspackFuture {
   pub new_resolver: bool,
   pub new_treeshaking: bool,
+  pub disable_transform_by_default: bool,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -26,6 +27,7 @@ pub struct RawExperiments {
   pub incremental_rebuild: RawIncrementalRebuild,
   pub async_web_assembly: bool,
   pub new_split_chunks: bool,
+  pub top_level_await: bool,
   pub css: bool,
   pub rspack_future: RawRspackFuture,
 }
@@ -35,6 +37,7 @@ impl From<RawRspackFuture> for RspackFuture {
     Self {
       new_resolver: value.new_resolver,
       new_treeshaking: value.new_treeshaking,
+      disable_transform_by_default: value.disable_transform_by_default,
     }
   }
 }

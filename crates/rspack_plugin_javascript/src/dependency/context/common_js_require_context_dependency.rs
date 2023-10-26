@@ -48,6 +48,14 @@ impl Dependency for CommonJsRequireContextDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::CommonJSRequireContext
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "CommonJsRequireContextDependency"
+  }
 }
 
 impl ModuleDependency for CommonJsRequireContextDependency {
@@ -57,10 +65,6 @@ impl ModuleDependency for CommonJsRequireContextDependency {
 
   fn user_request(&self) -> &str {
     &self.options.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
   }
 
   fn options(&self) -> Option<&ContextOptions> {

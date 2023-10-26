@@ -22,12 +22,12 @@ var __webpack_exports__ = (__webpack_exec__("./index.js"));
 ```js title=module_js.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["module_js"], {
 "./module.js": function (module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
 'use strict';
+__webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'result': function() { return result; },
-  'getNumber': function() { return getNumber; }
+  result: function() { return result; },
+  getNumber: function() { return getNumber; }
 });
 /* harmony import */var _wasm_wasm__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./wasm.wasm */"./wasm.wasm");
 var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_wasm_wasm__WEBPACK_IMPORTED_MODULE_0_]);
@@ -40,11 +40,11 @@ var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_was
 __webpack_async_result__();
 } catch(e) { __webpack_async_result__(e); } });},
 "./module2.js": function (module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
 'use strict';
+__webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'getNumber': function() { return getNumber; }
+  getNumber: function() { return getNumber; }
 });
 /* harmony import */var _wasm_wasm__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./wasm.wasm */"./wasm.wasm");
 var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_wasm_wasm__WEBPACK_IMPORTED_MODULE_0_]);
@@ -56,6 +56,7 @@ var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_was
 __webpack_async_result__();
 } catch(e) { __webpack_async_result__(e); } });},
 "./wasm.wasm": function (module, exports, __webpack_require__) {
+'use strict';
 var __webpack_instantiate__ = function ([WEBPACK_IMPORTED_MODULE_0, WEBPACK_IMPORTED_MODULE_1]) {
 return __webpack_require__.v(exports, module.id, "1bcb32989c290fbc.module.wasm" , {
 "./module": {

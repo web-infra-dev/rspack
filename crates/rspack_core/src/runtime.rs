@@ -1,3 +1,4 @@
+use std::collections::hash_map::IntoValues;
 use std::{cmp::Ordering, fmt::Debug, sync::Arc};
 
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -6,7 +7,7 @@ pub type RuntimeSpec = HashSet<Arc<str>>;
 pub type RuntimeKey = String;
 
 #[derive(Default, Clone, Copy, Debug)]
-enum RuntimeMode {
+pub enum RuntimeMode {
   #[default]
   Empty = 0,
   SingleEntry = 1,
@@ -50,11 +51,11 @@ pub fn compare_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> Ordering {
 
 #[derive(Default, Clone, Debug)]
 pub struct RuntimeSpecMap<T> {
-  mode: RuntimeMode,
-  map: HashMap<RuntimeKey, T>,
+  pub mode: RuntimeMode,
+  pub map: HashMap<RuntimeKey, T>,
 
-  single_runtime: Option<RuntimeSpec>,
-  single_value: Option<T>,
+  pub single_runtime: Option<RuntimeSpec>,
+  pub single_value: Option<T>,
 }
 
 impl<T> RuntimeSpecMap<T> {
@@ -150,6 +151,10 @@ impl RuntimeSpecSet {
 
   pub fn values(&self) -> Vec<&RuntimeSpec> {
     self.map.values().collect()
+  }
+
+  pub fn into_values(self) -> IntoValues<String, RuntimeSpec> {
+    self.map.into_values()
   }
 
   pub fn len(&self) -> usize {

@@ -27,7 +27,7 @@ on:
         required: true
         type: string
       profile: # Rust profile, "debug" or "release"
-        default: 'release'
+        default: "release"
         required: false
         type: string
       test: # Run tests?
@@ -39,30 +39,9 @@ on:
         type: string
 
 jobs:
-  select:
-    name: Select Host
-    runs-on: ubuntu-latest
-    outputs:
-      host: ${{ steps.run.outputs.host }}
-    steps:
-      - name: Choose Target for ${{ inputs.target }}
-        id: run
-        shell: bash
-        run: |
-          if [[ "${{ contains(inputs.target, 'linux') }}" == "true" ]]; then
-            echo "host=ubuntu-latest" >> "$GITHUB_OUTPUT"
-          fi
-          if [[ "${{ contains(inputs.target, 'windows') }}" == "true" ]]; then
-            echo "host=windows-latest" >> "$GITHUB_OUTPUT"
-          fi
-          if [[ "${{ contains(inputs.target, 'apple') }}" == "true" ]]; then
-            echo "host=macos-latest" >> "$GITHUB_OUTPUT"
-          fi
-
   build:
     name: Build
-    needs: select
-    runs-on: ${{ needs.select.outputs.host }}
+    runs-on: ${{ contains(inputs.target, 'linux') && fromJSON(vars.LINUX_RUNNER_LABELS || '"ubuntu-latest"') || contains(inputs.target, 'windows') && fromJSON(vars.WINDOWS_RUNNER_LABELS || '"windows-latest"') || contains(inputs.target, 'apple') && fromJSON(vars.MACOS_RUNNER_LABELS || '"macos-latest"') }}
     defaults:
       run:
         shell: bash
@@ -75,6 +54,18 @@ jobs:
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+      - name: free-disk-cache
+        if: ${{ startsWith(runner.name, 'GitHub Actions') && contains(inputs.target, 'linux') }}
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          # just remove android sdk seems enough for use, save us some time
+          android: true
+          dotnet: false
+          haskell: false
+          large-packages: false
+          docker-images: false
+          swap-storage: false
 
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
@@ -86,9 +77,6 @@ jobs:
         with:
           save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
           shared-key: build-${{ inputs.target }}
-
-      - name: Setup Rust Target
-        run: rustup target add ${{ inputs.target }}
 
       # Compile dependencies with optimization to make tests run faster
       - name: Add optimization to debug profile
@@ -109,6 +97,7 @@ jobs:
           target: ${{ inputs.target }}
           profile: ${{ inputs.profile }}
           pre: unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
+          options: -v $HOME/.cargo:/usr/local/cargo -v $HOME/.rustup:/usr/local/rustup
 
       - name: Build aarch64-unknown-linux-gnu in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
@@ -136,6 +125,11 @@ jobs:
           profile: ${{ inputs.profile }}
           pre: |
             export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
+
+      # setup rust target for windows and macos
+      - name: Setup Rust Target
+        if: ${{ !contains(inputs.target, 'linux') }}
+        run: rustup target add ${{ inputs.target }}
 
       # Windows
 
@@ -166,7 +160,6 @@ jobs:
           SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
           export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
-
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
@@ -176,9 +169,9 @@ jobs:
 
   e2e:
     name: E2E Testing
-    needs: [select, build]
+    needs: build
     if: inputs.target == 'x86_64-unknown-linux-gnu' && inputs.test
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.LINUX_RUNNER_LABELS || '"ubuntu-latest"') }}
     container:
       image: mcr.microsoft.com/playwright:v1.35.0-jammy
     steps:
@@ -202,9 +195,9 @@ jobs:
           pnpm run test:e2e
 
   test:
-    needs: [select, build]
+    needs: build
     if: inputs.test
-    runs-on: ${{ needs.select.outputs.host }}
+    runs-on: ${{ contains(inputs.target, 'linux') && fromJSON(vars.LINUX_RUNNER_LABELS || '"ubuntu-latest"') || contains(inputs.target, 'windows') && fromJSON(vars.WINDOWS_RUNNER_LABELS || '"windows-latest"') || contains(inputs.target, 'apple') && fromJSON(vars.MACOS_RUNNER_LABELS || '"macos-latest"') }}
     timeout-minutes: 30
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors

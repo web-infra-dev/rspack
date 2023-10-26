@@ -48,6 +48,14 @@ impl Dependency for WorkerDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::NewWorker
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "WorkerDependency"
+  }
 }
 
 impl ModuleDependency for WorkerDependency {
@@ -57,10 +65,6 @@ impl ModuleDependency for WorkerDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
   }
 
   fn set_request(&mut self, request: String) {

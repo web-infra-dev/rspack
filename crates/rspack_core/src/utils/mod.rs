@@ -6,6 +6,12 @@ use rustc_hash::FxHashMap as HashMap;
 mod identifier;
 pub use identifier::*;
 
+mod property_name;
+pub use property_name::*;
+
+mod property_access;
+pub use property_access::*;
+
 mod comment;
 pub use comment::*;
 

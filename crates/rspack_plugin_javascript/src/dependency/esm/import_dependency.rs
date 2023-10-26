@@ -52,6 +52,14 @@ impl Dependency for ImportDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::DynamicImport
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "ImportDependency"
+  }
 }
 
 impl ModuleDependency for ImportDependency {
@@ -61,10 +69,6 @@ impl ModuleDependency for ImportDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
   }
 
   fn group_options(&self) -> Option<ChunkGroupOptionsKindRef> {

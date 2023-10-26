@@ -25,9 +25,11 @@ exports[`snapshots should have the correct base config 1`] = `
     "lazyCompilation": false,
     "newSplitChunks": true,
     "rspackFuture": {
+      "disableTransformByDefault": false,
       "newResolver": false,
       "newTreeshaking": false,
     },
+    "topLevelAwait": true,
   },
   "externals": undefined,
   "externalsPresets": {
@@ -185,6 +187,7 @@ exports[`snapshots should have the correct base config 1`] = `
   },
   "optimization": {
     "chunkIds": "named",
+    "innerGraph": false,
     "minimize": false,
     "minimizer": [],
     "moduleIds": "named",
@@ -243,6 +246,7 @@ exports[`snapshots should have the correct base config 1`] = `
     "hashFunction": "md4",
     "hashSalt": undefined,
     "hotUpdateChunkFilename": "[id].[fullhash].hot-update.js",
+    "hotUpdateGlobal": "webpackHotUpdate@rspack/core",
     "hotUpdateMainFilename": "[runtime].[fullhash].hot-update.json",
     "iife": true,
     "importFunctionName": "import",

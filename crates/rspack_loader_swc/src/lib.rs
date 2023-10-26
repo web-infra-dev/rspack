@@ -1,25 +1,23 @@
 #![feature(let_chains)]
 
 use std::default::Default;
-use std::sync::Arc;
 
+use rspack_ast::RspackAst;
 use rspack_core::{rspack_sources::SourceMap, LoaderRunnerContext, Mode};
 use rspack_error::{internal_error, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
+use rspack_plugin_javascript::{
+  ast::{self, SourceMapConfig},
+  TransformOutput,
+};
 use swc_config::{config_types::MergingOption, merge::Merge};
-use swc_core::base::{
-  config::{InputSourceMap, TransformConfig},
-  try_with_handler, Compiler,
-};
-use swc_core::common::{
-  comments::SingleThreadedComments, FileName, FilePathMapping, Mark, GLOBALS,
-};
-use swc_core::ecma::transforms::base::pass::noop;
-use xxhash_rust::xxh32::xxh32;
+use swc_core::base::config::{InputSourceMap, OutputCharset, TransformConfig};
 
+mod compiler;
 mod options;
 mod transformer;
 
+use compiler::{IntoJsAst, SwcCompiler};
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 
@@ -56,83 +54,108 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       return Err(internal_error!("Content should be available"))
     };
 
-    let c = Compiler::new(Arc::from(swc_core::common::SourceMap::new(
-      FilePathMapping::empty(),
-    )));
-    let default_development = matches!(loader_context.context.options.mode, Mode::Development);
-    let mut swc_options = self.options_with_additional.swc_options.clone();
-    if swc_options.config.jsc.transform.as_ref().is_some() {
-      let mut transform = TransformConfig::default();
-      transform.react.development = Some(default_development);
-      swc_options
-        .config
-        .jsc
-        .transform
-        .merge(MergingOption::from(Some(transform)));
-    }
-    if let Some(pre_source_map) = std::mem::take(&mut loader_context.source_map) {
-      if let Ok(source_map) = pre_source_map.to_json() {
-        swc_options.config.input_source_map = Some(InputSourceMap::Str(source_map))
+    let swc_options = {
+      let mut swc_options = self.options_with_additional.swc_options.clone();
+      if swc_options.config.jsc.transform.as_ref().is_some() {
+        let mut transform = TransformConfig::default();
+        let default_development = matches!(loader_context.context.options.mode, Mode::Development);
+        transform.react.development = Some(default_development);
+        swc_options
+          .config
+          .jsc
+          .transform
+          .merge(MergingOption::from(Some(transform)));
       }
-    }
+      if let Some(pre_source_map) = std::mem::take(&mut loader_context.source_map) {
+        if let Ok(source_map) = pre_source_map.to_json() {
+          swc_options.config.input_source_map = Some(InputSourceMap::Str(source_map))
+        }
+      }
 
-    if swc_options.config.jsc.experimental.plugins.is_some() {
-      loader_context.emit_diagnostic(Diagnostic::warn(
-        SWC_LOADER_IDENTIFIER.to_string(),
-        "Experimental plugins are not currently supported.".to_string(),
-        0,
-        0,
-      ));
-    }
+      if swc_options.config.jsc.experimental.plugins.is_some() {
+        loader_context.emit_diagnostic(Diagnostic::warn(
+          SWC_LOADER_IDENTIFIER.to_string(),
+          "Experimental plugins are not currently supported.".to_string(),
+          0,
+          0,
+        ));
+      }
 
-    GLOBALS.set(&Default::default(), || {
-      try_with_handler(c.cm.clone(), Default::default(), |handler| {
-        c.run(|| {
-          let top_level_mark = Mark::new();
-          let unresolved_mark = Mark::new();
-          swc_options.top_level_mark = Some(top_level_mark);
-          swc_options.unresolved_mark = Some(unresolved_mark);
-          let source = content.try_into_string()?;
-          let rspack_options = &*loader_context.context.options;
-          let source_content_hash = self
-            .options_with_additional
-            .rspack_experiments
-            .emotion
-            .as_ref()
-            .map(|_| xxh32(source.as_bytes(), 0));
+      if swc_options.config.jsc.target.is_some() && swc_options.config.env.is_some() {
+        loader_context.emit_diagnostic(Diagnostic::warn(
+          SWC_LOADER_IDENTIFIER.to_string(),
+          "`env` and `jsc.target` cannot be used together".to_string(),
+          0,
+          0,
+        ));
+      }
+      swc_options
+    };
 
-          let fm = c
-            .cm
-            .new_source_file(FileName::Real(resource_path.clone()), source);
-          let comments = SingleThreadedComments::default();
+    let devtool = &loader_context.context.options.devtool;
+    let source = content.try_into_string()?;
+    let c = SwcCompiler::new(resource_path.clone(), source.clone(), swc_options)?;
 
-          let out = c.process_js_with_custom_pass(
-            fm,
-            None,
-            handler,
-            &swc_options,
-            comments,
-            |_| {
-              transformer::transform(
-                &resource_path,
-                rspack_options,
-                Some(c.comments()),
-                top_level_mark,
-                unresolved_mark,
-                c.cm.clone(),
-                source_content_hash,
-                &self.options_with_additional.rspack_experiments,
-              )
-            },
-            |_| noop(),
-          )?;
-          loader_context.content = Some(out.code.into());
-          loader_context.source_map = out.map.map(|m| SourceMap::from_json(&m)).transpose()?;
+    let rspack_options = &*loader_context.context.options;
+    let swc_options = c.options();
+    let top_level_mark = swc_options
+      .top_level_mark
+      .expect("`top_level_mark` should be initialized");
+    let unresolved_mark = swc_options
+      .unresolved_mark
+      .expect("`unresolved_mark` should be initialized");
 
-          Ok(())
-        })
-      })
+    let built = c.parse(None, |_| {
+      transformer::transform(
+        &resource_path,
+        rspack_options,
+        Some(c.comments()),
+        top_level_mark,
+        unresolved_mark,
+        c.cm().clone(),
+        &source,
+        &self.options_with_additional.rspack_experiments,
+      )
     })?;
+
+    let codegen_options = ast::CodegenOptions {
+      target: Some(built.target),
+      minify: Some(built.minify),
+      ascii_only: built
+        .output
+        .charset
+        .as_ref()
+        .map(|v| matches!(v, OutputCharset::Ascii)),
+      source_map_config: SourceMapConfig {
+        enable: devtool.source_map(),
+        inline_sources_content: true,
+        emit_columns: !devtool.cheap(),
+        names: Default::default(),
+      },
+      keep_comments: Some(true),
+    };
+    let program = c.transform(built)?;
+    let ast = c.into_js_ast(program);
+
+    // If swc-loader is the latest loader available,
+    // then loader produces AST, which could be used as an optimization.
+    if loader_context.loader_index() == 0
+      && (loader_context
+        .current_loader()
+        .composed_index_by_identifier(&self.identifier)
+        .map(|idx| idx == 0)
+        .unwrap_or(true))
+    {
+      loader_context
+        .additional_data
+        .insert(RspackAst::JavaScript(ast));
+      loader_context.additional_data.insert(codegen_options);
+      loader_context.content = Some("".to_owned().into())
+    } else {
+      let TransformOutput { code, map } = ast::stringify(&ast, codegen_options)?;
+      loader_context.content = Some(code.into());
+      loader_context.source_map = map.map(|m| SourceMap::from_json(&m)).transpose()?;
+    }
 
     Ok(())
   }

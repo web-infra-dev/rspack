@@ -7,7 +7,7 @@ use rspack_core::{
   PluginJsChunkHashHookOutput, PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
 };
 
-use super::utils::{external_arguments, external_dep_array};
+use super::utils::{external_arguments, externals_dep_array};
 use crate::utils::normalize_name;
 
 #[derive(Debug)]
@@ -70,7 +70,7 @@ impl Plugin for AmdLibraryPlugin {
           })
       })
       .collect::<Vec<&ExternalModule>>();
-    let external_deps_array = external_dep_array(&modules);
+    let externals_deps_array = externals_dep_array(&modules)?;
     let external_arguments = external_arguments(&modules, compilation);
     let mut fn_start = format!("function({external_arguments}){{\n");
     if compilation.options.output.iife || !chunk.has_runtime(&compilation.chunk_group_by_ukey) {
@@ -80,7 +80,7 @@ impl Plugin for AmdLibraryPlugin {
     let mut source = ConcatSource::default();
     if self.require_as_wrapper {
       source.add(RawSource::from(format!(
-        "require({external_deps_array}, {fn_start}"
+        "require({externals_deps_array}, {fn_start}"
       )));
     } else if let Some(name) = name {
       let normalize_name = compilation.get_path(
@@ -93,13 +93,13 @@ impl Plugin for AmdLibraryPlugin {
         ),
       );
       source.add(RawSource::from(format!(
-        "define('{normalize_name}', {external_deps_array}, {fn_start}"
+        "define('{normalize_name}', {externals_deps_array}, {fn_start}"
       )));
     } else if modules.is_empty() {
       source.add(RawSource::from(format!("define({fn_start}")));
     } else {
       source.add(RawSource::from(format!(
-        "define({external_deps_array}, {fn_start}"
+        "define({externals_deps_array}, {fn_start}"
       )));
     }
     source.add(args.source.clone());

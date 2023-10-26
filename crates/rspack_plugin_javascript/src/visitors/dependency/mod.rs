@@ -7,7 +7,7 @@ mod context_helper;
 mod export_info_api_scanner;
 mod harmony_detection_scanner;
 mod harmony_export_dependency_scanner;
-mod harmony_import_dependency_scanner;
+pub mod harmony_import_dependency_scanner;
 mod hot_module_replacement_scanner;
 mod import_meta_scanner;
 mod import_scanner;
@@ -16,13 +16,19 @@ mod require_context_scanner;
 mod url_scanner;
 mod util;
 mod worker_scanner;
+use rspack_ast::javascript::Program;
 use rspack_core::{
-  ast::javascript::Program, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, ModuleIdentifier, ModuleType, ResourceData,
+  BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta, CompilerOptions, ModuleIdentifier,
+  ModuleType, ResourceData,
 };
+use rspack_error::Result;
+use rustc_hash::FxHashMap as HashMap;
+use swc_core::common::Span;
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
+use swc_core::ecma::atoms::JsWord;
 pub use util::*;
 
+use self::harmony_import_dependency_scanner::ImportMap;
 use self::{
   api_scanner::ApiScanner, common_js_export_scanner::CommonJsExportDependencyScanner,
   common_js_import_dependency_scanner::CommonJsImportDependencyScanner,
@@ -36,8 +42,22 @@ use self::{
   node_stuff_scanner::NodeStuffScanner, require_context_scanner::RequireContextScanner,
   url_scanner::UrlScanner, worker_scanner::WorkerScanner,
 };
-pub type ScanDependenciesResult = (Vec<BoxDependency>, Vec<BoxDependencyTemplate>);
 
+pub struct ScanDependenciesResult {
+  pub dependencies: Vec<BoxDependency>,
+  pub presentational_dependencies: Vec<BoxDependencyTemplate>,
+  // TODO: rename this name
+  pub rewrite_usage_span: HashMap<Span, ExtraSpanInfo>,
+  pub import_map: ImportMap,
+}
+
+#[derive(Debug, Clone)]
+pub enum ExtraSpanInfo {
+  ReWriteUsedByExports,
+  // (symbol, usage)
+  // (local, exported) refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/javascript/JavascriptParser.js#L2347-L2352
+  AddVariableUsage(JsWord, JsWord),
+}
 #[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies(
   program: &Program,
@@ -48,12 +68,15 @@ pub fn scan_dependencies(
   build_info: &mut BuildInfo,
   build_meta: &mut BuildMeta,
   module_identifier: ModuleIdentifier,
-) -> ScanDependenciesResult {
+) -> Result<ScanDependenciesResult> {
+  let mut errors = vec![];
   let mut dependencies: Vec<BoxDependency> = vec![];
   let mut presentational_dependencies: Vec<BoxDependencyTemplate> = vec![];
   let unresolved_ctxt = SyntaxContext::empty().apply_mark(unresolved_mark);
   let comments = program.comments.clone();
   let mut parser_exports_state = None;
+
+  let mut rewrite_usage_span = HashMap::default();
   program.visit_with(&mut ApiScanner::new(
     &unresolved_ctxt,
     resource_data,
@@ -72,6 +95,7 @@ pub fn scan_dependencies(
   ));
 
   // TODO it should enable at js/auto or js/dynamic, but builtins provider will inject require at esm
+  // https://github.com/web-infra-dev/rspack/issues/3544
   program.visit_with(&mut CommonJsImportDependencyScanner::new(
     &mut dependencies,
     &mut presentational_dependencies,
@@ -101,25 +125,31 @@ pub fn scan_dependencies(
     }
   }
 
+  let mut import_map = Default::default();
+
   if module_type.is_js_auto() || module_type.is_js_esm() {
     program.visit_with(&mut HarmonyDetectionScanner::new(
+      &module_identifier,
       build_info,
       build_meta,
       module_type,
+      compiler_options.experiments.top_level_await,
       &mut presentational_dependencies,
+      &mut errors,
     ));
-    let mut import_map = Default::default();
     program.visit_with(&mut HarmonyImportDependencyScanner::new(
       &mut dependencies,
       &mut presentational_dependencies,
       &mut import_map,
       build_info,
+      &mut rewrite_usage_span,
     ));
     program.visit_with(&mut HarmonyExportDependencyScanner::new(
       &mut dependencies,
       &mut presentational_dependencies,
       &mut import_map,
       build_info,
+      &mut rewrite_usage_span,
     ));
     let mut worker_syntax_scanner = rspack_core::needs_refactor::WorkerSyntaxScanner::new(
       rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
@@ -156,5 +186,14 @@ pub fn scan_dependencies(
     ));
   }
 
-  (dependencies, presentational_dependencies)
+  if errors.is_empty() {
+    Ok(ScanDependenciesResult {
+      dependencies,
+      presentational_dependencies,
+      rewrite_usage_span,
+      import_map,
+    })
+  } else {
+    Err(rspack_error::Error::BatchErrors(errors))
+  }
 }

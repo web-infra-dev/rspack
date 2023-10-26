@@ -22,17 +22,19 @@ const config = {
 		rules: [
 			{
 				test: /\.vue$/,
-				use: "vue-loader"
+				use: [
+					{
+						loader: "vue-loader",
+						options: {
+							experimentalInlineMatchResource: true
+						}
+					}
+				]
 			},
 			{
 				test: /\.less$/,
-				use: ["vue-style-loader", "css-loader", "less-loader"],
-				type: "javascript/auto"
-			},
-			{
-				test: /\.css$/,
-				use: ["vue-style-loader", "css-loader"],
-				type: "javascript/auto"
+				loader: "less-loader",
+				type: "css"
 			},
 			{
 				test: /\.svg$/,

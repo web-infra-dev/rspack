@@ -3,25 +3,22 @@ mod flag_dependency_exports_plugin;
 mod flag_dependency_usage_plugin;
 pub mod impl_plugin_for_js_plugin;
 pub mod infer_async_modules_plugin;
+pub mod inner_graph_plugin;
 mod side_effects_flag_plugin;
-
 use std::hash::Hash;
 
 pub use flag_dependency_exports_plugin::*;
 pub use flag_dependency_usage_plugin::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  ChunkUkey, Compilation, JsChunkHashArgs, PluginJsChunkHashHookOutput, RenderArgs,
-  RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
+  render_init_fragments, ChunkRenderContext, ChunkUkey, Compilation, JsChunkHashArgs,
+  PluginJsChunkHashHookOutput, RenderArgs, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 pub use side_effects_flag_plugin::*;
 
-use crate::runtime::{
-  render_chunk_init_fragments, render_chunk_modules, render_iife, render_runtime_modules,
-  stringify_array,
-};
+use crate::runtime::{render_chunk_modules, render_iife, render_runtime_modules, stringify_array};
 
 #[derive(Debug)]
 pub struct JsPlugin;
@@ -321,7 +318,11 @@ impl JsPlugin {
     } else {
       sources.boxed()
     };
-    final_source = render_chunk_init_fragments(final_source, chunk_init_fragments);
+    final_source = render_init_fragments(
+      final_source,
+      chunk_init_fragments,
+      &mut ChunkRenderContext {},
+    )?;
     if let Some(source) = compilation.plugin_driver.render(RenderArgs {
       compilation,
       chunk: &args.chunk_ukey,
@@ -351,7 +352,8 @@ impl JsPlugin {
       })
       .await?
       .expect("should run render_chunk hook");
-    let final_source = render_chunk_init_fragments(source, chunk_init_fragments);
+    let final_source =
+      render_init_fragments(source, chunk_init_fragments, &mut ChunkRenderContext {})?;
     if let Some(source) = compilation.plugin_driver.render(RenderArgs {
       compilation,
       chunk: &args.chunk_ukey,
@@ -398,6 +400,7 @@ impl Default for JsPlugin {
     Self::new()
   }
 }
+
 #[derive(Debug, Clone)]
 pub struct ExtractedCommentsInfo {
   pub source: BoxSource,

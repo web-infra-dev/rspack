@@ -9,7 +9,7 @@ const rimraf = require("rimraf");
 const checkArrayExpectation = require("./checkArrayExpectation");
 const createLazyTestEnv = require("./helpers/createLazyTestEnv");
 const { remove } = require("./helpers/remove");
-const { getNormalizedFilterName } = require('./lib/util/filterUtil')
+const { normalizeFilteredTestName } = require('./lib/util/filterUtil')
 const prepareOptions = require("./helpers/prepareOptions");
 const deprecationTracking = require("./helpers/deprecationTracking");
 const FakeDocument = require("./helpers/FakeDocument");
@@ -65,10 +65,10 @@ const describeCases = config => {
 						const filterPath = path.join(testDirectory, "test.filter.js");
 						if (fs.existsSync(filterPath)) {
 							let flag = require(filterPath)(config)
-							let normalizedName = getNormalizedFilterName(flag, testName);
-							if (normalizedName.length > 0) {
-								describe.skip(normalizedName, () => {
-									it("filtered", () => {});
+							if (flag !== true) {
+								let filteredName = normalizeFilteredTestName(flag, testName);
+								describe.skip(testName, () => {
+									it(filteredName, () => {});
 								});
 								return false;
 							}

@@ -305,7 +305,7 @@ impl NormalModuleFactory {
         specifier: request_without_match_resource,
         dependency_type: dependency.dependency_type(),
         dependency_category: dependency.category(),
-        span: dependency.span().cloned(),
+        span: dependency.span(),
         // take the options is safe here, because it
         // is not used in after_resolve hooks
         resolve_options: data.resolve_options.take(),
@@ -380,7 +380,7 @@ impl NormalModuleFactory {
               dependency_type: dependency.dependency_type(),
               dependency_category: dependency.category(),
               resolve_options: data.resolve_options.take(),
-              span: dependency.span().cloned(),
+              span: dependency.span(),
               resolve_to_context: false,
               optional,
               missing_dependencies: &mut missing_dependencies,
@@ -615,9 +615,18 @@ impl NormalModuleFactory {
       .registered_parser_and_generator_builder
       .get(&resolved_module_type)
       .ok_or_else(|| {
-        internal_error!(
-          "Parser and generator builder for module type {resolved_module_type:?} is not registered"
-        )
+        let mut e = format!("Unexpected `ModuleType` found: {resolved_module_type}. ");
+
+        match resolved_module_type {
+          ModuleType::Css => e.push_str(
+            "Setting `'css'` as the `Rule.type` is only possible with `experiments.css` set to `true`",
+          ),
+          ModuleType::Ts | ModuleType::Tsx |
+          ModuleType::Jsx | ModuleType::JsxDynamic | ModuleType::JsxEsm => e.push_str("`Rule.type` that are not supported by webpack is deprecated. See: https://github.com/web-infra-dev/rspack/discussions/4070"),
+          _ => (),
+        }
+
+        internal_error!(e)
       })?();
 
     self.context.module_type = Some(resolved_module_type);

@@ -82,6 +82,8 @@ export const applyRspackOptionsDefaults = (
 	applyModuleDefaults(options.module, {
 		// syncWebAssembly: options.experiments.syncWebAssembly,
 		asyncWebAssembly: options.experiments.asyncWebAssembly!,
+		disableTransformByDefault:
+			options.experiments.rspackFuture!.disableTransformByDefault!,
 		css: options.experiments.css!
 	});
 
@@ -156,6 +158,7 @@ const applyExperimentsDefaults = (
 	D(experiments, "asyncWebAssembly", false);
 	D(experiments, "newSplitChunks", true);
 	D(experiments, "css", true); // we not align with webpack about the default value for better DX
+	D(experiments, "topLevelAwait", true);
 
 	D(experiments, "incrementalRebuild", {});
 	if (typeof experiments.incrementalRebuild === "object") {
@@ -175,6 +178,7 @@ const applyExperimentsDefaults = (
 	if (typeof experiments.rspackFuture === "object") {
 		D(experiments.rspackFuture, "newResolver", false);
 		D(experiments.rspackFuture, "newTreeshaking", false);
+		D(experiments.rspackFuture, "disableTransformByDefault", false);
 	}
 };
 
@@ -196,7 +200,15 @@ const applySnapshotDefaults = (
 
 const applyModuleDefaults = (
 	module: ModuleOptions,
-	{ asyncWebAssembly, css }: { asyncWebAssembly: boolean; css: boolean }
+	{
+		asyncWebAssembly,
+		css,
+		disableTransformByDefault
+	}: {
+		asyncWebAssembly: boolean;
+		css: boolean;
+		disableTransformByDefault: boolean;
+	}
 ) => {
 	F(module.parser!, "asset", () => ({}));
 	F(module.parser!.asset!, "dataUrlCondition", () => ({}));
@@ -258,20 +270,26 @@ const applyModuleDefaults = (
 					or: ["text/javascript", "application/javascript"]
 				},
 				...esm
-			},
-			{
-				test: /\.jsx$/i,
-				type: "jsx"
-			},
-			{
-				test: /\.ts$/i,
-				type: "ts"
-			},
-			{
-				test: /\.tsx$/i,
-				type: "tsx"
 			}
 		];
+
+		// TODO: remove in 0.5.0
+		if (!disableTransformByDefault) {
+			rules.push(
+				{
+					test: /\.jsx$/i,
+					type: "jsx"
+				},
+				{
+					test: /\.ts$/i,
+					type: "ts"
+				},
+				{
+					test: /\.tsx$/i,
+					type: "tsx"
+				}
+			);
+		}
 
 		if (asyncWebAssembly) {
 			const wasm = {
@@ -421,6 +439,7 @@ const applyOutputDefaults = (
 		`[id].[fullhash].hot-update.${output.module ? "mjs" : "js"}`
 	);
 	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
+	F(output, "hotUpdateGlobal", () => "webpackHotUpdate" + output.uniqueName);
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	F(output, "path", () => path.join(process.cwd(), "dist"));
@@ -669,6 +688,7 @@ const applyOptimizationDefaults = (
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
 	D(optimization, "providedExports", true);
 	D(optimization, "usedExports", production);
+	D(optimization, "innerGraph", production);
 	D(optimization, "runtimeChunk", false);
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);

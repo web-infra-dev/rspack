@@ -1,9 +1,8 @@
 use rspack_core::{
+  property_access,
   rspack_sources::{ConcatSource, RawSource, SourceExt},
   Plugin, PluginContext, PluginRenderStartupHookOutput, RenderStartupArgs,
 };
-
-use crate::utils::property_access;
 
 #[derive(Debug, Default)]
 pub struct ExportPropertyLibraryPlugin;
@@ -40,7 +39,7 @@ impl Plugin for ExportPropertyLibraryPlugin {
       s.add(args.source.clone());
       s.add(RawSource::from(format!(
         "__webpack_exports__ = __webpack_exports__{};",
-        property_access(export)
+        property_access(export, 0)
       )));
       return Ok(Some(s.boxed()));
     }

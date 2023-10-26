@@ -93,7 +93,7 @@ impl ContextModuleFactory {
       specifier,
       dependency_type: dependency.dependency_type(),
       dependency_category: dependency.category(),
-      span: dependency.span().cloned(),
+      span: dependency.span(),
       resolve_options: data.resolve_options.clone(),
       resolve_to_context: true,
       optional: false,

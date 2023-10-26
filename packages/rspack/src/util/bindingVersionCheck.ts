@@ -61,7 +61,7 @@ const getAddonPlatformArchAbi = function () {
 	let binding = "";
 	binding += platform;
 
-	let abi = NodePlatformArchToAbi[platform][arch];
+	const abi = NodePlatformArchToAbi[platform][arch];
 	if (abi === undefined) return new Error(`unsupported cpu arch: ${arch}`);
 	binding += "-" + arch;
 
@@ -92,7 +92,7 @@ export const checkVersion = () => {
 		return result;
 	}
 
-	let platformArchAbi = getAddonPlatformArchAbi();
+	const platformArchAbi = getAddonPlatformArchAbi();
 	if (platformArchAbi instanceof Error) {
 		return (result = platformArchAbi);
 	}

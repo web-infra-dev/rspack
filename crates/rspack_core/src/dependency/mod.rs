@@ -1,7 +1,7 @@
 mod entry;
 mod span;
-use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
+use std::{collections::hash_map::Entry, sync::atomic::AtomicU32};
 
 pub use entry::*;
 use once_cell::sync::Lazy;
@@ -16,7 +16,7 @@ pub use runtime_requirements_dependency::RuntimeRequirementsDependency;
 mod context_element_dependency;
 mod dependency_macro;
 pub use context_element_dependency::*;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::{common::Span, ecma::atoms::JsWord};
 mod const_dependency;
 use std::{
   any::Any,
@@ -30,9 +30,9 @@ pub use dependency_template::*;
 use dyn_clone::{clone_trait_object, DynClone};
 
 use crate::{
-  ChunkGroupOptionsKindRef, ConnectionState, Context, ContextMode, ContextOptions, ErrorSpan,
-  ExtendedReferencedExport, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport,
-  RuntimeSpec,
+  ChunkGroupOptionsKindRef, ConnectionState, Context, ContextMode, ContextOptions,
+  DependencyExtraMeta, ErrorSpan, ExtendedReferencedExport, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier, ReferencedExport, RuntimeSpec, UsedByExports,
 };
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
@@ -44,10 +44,10 @@ pub enum DependencyType {
   ExportInfoApi,
   Entry,
   // Harmony import
-  EsmImport,
+  EsmImport(/* HarmonyImportSideEffectDependency.span */ ErrorSpan), /* TODO: remove span after old tree shaking is removed */
   EsmImportSpecifier,
   // Harmony export
-  EsmExport,
+  EsmExport(ErrorSpan),
   EsmExportImportedSpecifier,
   EsmExportSpecifier,
   // import()
@@ -96,8 +96,8 @@ impl Display for DependencyType {
     match self {
       DependencyType::Unknown => write!(f, "unknown"),
       DependencyType::Entry => write!(f, "entry"),
-      DependencyType::EsmImport => write!(f, "esm import"),
-      DependencyType::EsmExport => write!(f, "esm export"),
+      DependencyType::EsmImport(_) => write!(f, "esm import"),
+      DependencyType::EsmExport(_) => write!(f, "esm export"),
       DependencyType::EsmExportSpecifier => write!(f, "esm export specifier"),
       DependencyType::EsmExportImportedSpecifier => write!(f, "esm export import specifier"),
       DependencyType::EsmImportSpecifier => write!(f, "esm import specifier"),
@@ -155,24 +155,33 @@ impl From<&str> for DependencyCategory {
   }
 }
 
+impl DependencyCategory {
+  pub fn as_str(&self) -> &'static str {
+    match self {
+      DependencyCategory::Unknown => "unknown",
+      DependencyCategory::Esm => "esm",
+      DependencyCategory::CommonJS => "commonjs",
+      DependencyCategory::Url => "url",
+      DependencyCategory::CssImport => "css-import",
+      DependencyCategory::CssCompose => "css-compose",
+      DependencyCategory::Wasm => "wasm",
+      DependencyCategory::Worker => "worker",
+    }
+  }
+}
+
 impl Display for DependencyCategory {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      DependencyCategory::Unknown => write!(f, "unknown"),
-      DependencyCategory::Esm => write!(f, "esm"),
-      DependencyCategory::CommonJS => write!(f, "commonjs"),
-      DependencyCategory::Url => write!(f, "url"),
-      DependencyCategory::CssImport => write!(f, "css-import"),
-      DependencyCategory::CssCompose => write!(f, "css-compose"),
-      DependencyCategory::Wasm => write!(f, "wasm"),
-      DependencyCategory::Worker => write!(f, "worker"),
-    }
+    write!(f, "{}", self.as_str())
   }
 }
 
 pub trait Dependency:
   AsDependencyTemplate + AsModuleDependency + AsAny + DynClone + Send + Sync + Debug
 {
+  /// name of the original struct or enum
+  fn dependency_debug_name(&self) -> &'static str;
+
   fn id(&self) -> &DependencyId;
 
   fn category(&self) -> &DependencyCategory {
@@ -187,8 +196,37 @@ pub trait Dependency:
     None
   }
 
-  fn get_exports(&self) -> Option<ExportsSpec> {
+  fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
     None
+  }
+
+  fn set_used_by_exports(&mut self, _used_by_exports: Option<UsedByExports>) {}
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_chain: &mut HashSet<ModuleIdentifier>,
+  ) -> ConnectionState {
+    ConnectionState::Bool(true)
+  }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    None
+  }
+
+  fn is_span_equal(&self, other: &Span) -> bool {
+    if let Some(err_span) = self.span() {
+      let other = ErrorSpan::from(*other);
+      other == err_span
+    } else {
+      false
+    }
+  }
+
+  // For now only `HarmonyImportSpecifierDependency` and
+  // `HarmonyExportImportedSpecifierDependency` can use this method
+  fn get_ids(&self, _mg: &ModuleGraph) -> Vec<JsWord> {
+    unreachable!()
   }
 }
 
@@ -345,7 +383,6 @@ impl Debug for DependencyCondition {
 pub trait ModuleDependency: Dependency {
   fn request(&self) -> &str;
   fn user_request(&self) -> &str;
-  fn span(&self) -> Option<&ErrorSpan>;
   fn weak(&self) -> bool {
     false
   }
@@ -364,16 +401,8 @@ pub trait ModuleDependency: Dependency {
     None
   }
 
-  fn get_condition(&self, _module_graph: &ModuleGraph) -> Option<DependencyCondition> {
+  fn get_condition(&self) -> Option<DependencyCondition> {
     None
-  }
-
-  fn get_module_evaluation_side_effects_state(
-    &self,
-    _module_graph: &ModuleGraph,
-    _module_chain: &mut HashSet<ModuleIdentifier>,
-  ) -> ConnectionState {
-    ConnectionState::Bool(true)
   }
 
   fn get_referenced_exports(
@@ -386,6 +415,10 @@ pub trait ModuleDependency: Dependency {
 
   // an identifier to merge equal requests
   fn resource_identifier(&self) -> Option<&str> {
+    None
+  }
+
+  fn is_export_all(&self) -> Option<bool> {
     None
   }
 }
@@ -430,6 +463,24 @@ impl DependencyId {
   pub fn new() -> Self {
     Self(DEPENDENCY_ID.fetch_add(1, Relaxed))
   }
+  pub fn set_ids(&self, ids: Vec<JsWord>, mg: &mut ModuleGraph) {
+    match mg.dep_meta_map.entry(*self) {
+      Entry::Occupied(mut occ) => {
+        occ.get_mut().ids = ids;
+      }
+      Entry::Vacant(vac) => {
+        vac.insert(DependencyExtraMeta { ids });
+      }
+    };
+  }
+  /// # Panic
+  /// This method will panic if one of following condition is true:
+  /// * current dependency id is not belongs to `HarmonyImportSpecifierDependency` or  `HarmonyExportImportedSpecifierDependency`
+  /// * current id is not in `ModuleGraph`
+  pub fn get_ids(&self, mg: &ModuleGraph) -> Vec<JsWord> {
+    let dep = mg.dependency_by_id(self).expect("should have dep");
+    dep.get_ids(mg)
+  }
 }
 impl Default for DependencyId {
   fn default() -> Self {
@@ -462,7 +513,7 @@ pub mod needs_refactor {
         Expr, ExprOrSpread, Id, Ident, ImportDecl, Lit, MemberExpr, MemberProp, MetaPropExpr,
         MetaPropKind, ModuleExportName, NewExpr,
       },
-      atoms::{js_word, JsWord},
+      atoms::JsWord,
       visit::Visit,
     },
   };
@@ -488,7 +539,7 @@ pub mod needs_refactor {
       Ident::within_ignored_ctxt(|| expr.eq_ignore_span(&IMPORT_META))
     }
 
-    if matches!(&*new_expr.callee, Expr::Ident(Ident { sym: js_word!("URL"), .. }))
+    if matches!(&*new_expr.callee, Expr::Ident(Ident { sym, .. }) if sym == "URL")
     && let Some(args) = &new_expr.args
     && let (Some(first), Some(second)) = (args.first(), args.get(1))
     && let (

@@ -1,5 +1,4 @@
-it("basic", () => {
-	const { lib, lib2 } = require("./lib");
+it("should convert TypeScript to JavaScript", () => {
+	const { lib } = require("./lib");
 	expect(lib).toBe("lib");
-	expect(lib2).toBe("lib2");
 });

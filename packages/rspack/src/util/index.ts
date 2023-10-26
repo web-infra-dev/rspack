@@ -1,6 +1,7 @@
 import type { JsAssetInfo, JsStatsError } from "@rspack/binding";
 import { AssetInfo } from "../Compilation";
 import terminalLink from "terminal-link";
+import { LoaderObject } from "../config/adapterRuleUse";
 
 export function mapValues(
 	record: Record<string, string>,
@@ -87,6 +88,10 @@ export function indent(str: string, prefix: string) {
 	return prefix + rem;
 }
 
+export function stringifyLoaderObject(o: LoaderObject): string {
+	return o.path + o.query + o.fragment;
+}
+
 export function asArray<T>(item: T[]): T[];
 export function asArray<T>(item: readonly T[]): readonly T[];
 export function asArray<T>(item: T): T[];
@@ -107,10 +112,19 @@ export function toJsAssetInfo(info?: AssetInfo): JsAssetInfo {
 		...info
 	};
 }
-
+const getDeprecationStatus = () => {
+	const defaultEnableDeprecatedWarning = false;
+	return (
+		(process.env.RSPACK_BUILTINS_DEPRECATED ??
+			`${defaultEnableDeprecatedWarning}`) !== "false"
+	);
+};
 const yellow = (content: string) =>
 	`\u001b[1m\u001b[33m${content}\u001b[39m\u001b[22m`;
-export const deprecatedWarn = (content: string, enable = true) => {
+export const deprecatedWarn = (
+	content: string,
+	enable = getDeprecationStatus()
+) => {
 	if (enable) {
 		console.warn(yellow(content));
 	}

@@ -73,7 +73,8 @@ import type {
 	ParserOptionsByModuleType,
 	GeneratorOptionsByModuleType,
 	IncrementalRebuildOptions,
-	RspackFutureOptions
+	RspackFutureOptions,
+	HotUpdateGlobal
 } from "./zod";
 
 export const getNormalizedRspackOptions = (
@@ -150,6 +151,7 @@ export const getNormalizedRspackOptions = (
 				cssChunkFilename: output.cssChunkFilename,
 				hotUpdateMainFilename: output.hotUpdateMainFilename,
 				hotUpdateChunkFilename: output.hotUpdateChunkFilename,
+				hotUpdateGlobal: output.hotUpdateGlobal,
 				assetModuleFilename: output.assetModuleFilename,
 				wasmLoading: output.wasmLoading,
 				enabledChunkLoadingTypes: output.enabledChunkLoadingTypes
@@ -438,6 +440,7 @@ export interface OutputNormalized {
 	cssChunkFilename?: CssChunkFilename;
 	hotUpdateMainFilename?: HotUpdateMainFilename;
 	hotUpdateChunkFilename?: HotUpdateChunkFilename;
+	hotUpdateGlobal?: HotUpdateGlobal;
 	assetModuleFilename?: AssetModuleFilename;
 	uniqueName?: UniqueName;
 	chunkLoadingGlobal?: ChunkLoadingGlobal;
@@ -479,6 +482,7 @@ export interface ExperimentsNormalized {
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	newSplitChunks?: boolean;
+	topLevelAwait?: boolean;
 	css?: boolean;
 	futureDefaults?: boolean;
 	rspackFuture?: RspackFutureOptions;

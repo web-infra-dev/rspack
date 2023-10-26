@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-pub use rspack_loader_runner::{run_loaders, Content, Loader, LoaderContext, ResourceData};
+pub use rspack_loader_runner::{run_loaders, Content, Loader, LoaderContext};
 
 use crate::{CompilerOptions, ResolverFactory};
 

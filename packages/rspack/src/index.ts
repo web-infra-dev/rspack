@@ -33,7 +33,8 @@ export {
 	CopyRspackPlugin,
 	EntryPlugin,
 	ExternalsPlugin,
-	EnableChunkLoadingPlugin
+	EnableChunkLoadingPlugin,
+	HotModuleReplacementPlugin
 } from "./builtin-plugin";
 export type {
 	BannerPluginArgument,

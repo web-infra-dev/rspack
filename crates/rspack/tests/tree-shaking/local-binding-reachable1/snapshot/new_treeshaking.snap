@@ -7,7 +7,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'defaults': function() { return defaults; }
+  defaults: function() { return defaults; }
 });
  const defaults = {
     test: 1000
@@ -17,9 +17,7 @@ __webpack_require__.d(__webpack_exports__, {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'callit': function() { return callit; },
-  'Sider': function() { return Sider; },
-  'Something': function() { return Something; }
+  Something: function() { return Something; }
 });
 /* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./Layout */"./Layout.js");
 

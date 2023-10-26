@@ -33,10 +33,8 @@ impl CssUrlDependency {
     identifier: &ModuleIdentifier,
     compilation: &Compilation,
   ) -> Option<String> {
-    let code_gen_result = compilation
-      .code_generation_results
-      .module_generation_result_map
-      .get(identifier);
+    // TODO: how to handle if module related to multi runtime codegen
+    let code_gen_result = compilation.code_generation_results.get_one(identifier);
     if let Some(code_gen_result) = code_gen_result {
       if let Some(url) = code_gen_result.data.get::<CodeGenerationDataUrl>() {
         Some(url.inner().to_string())
@@ -68,6 +66,14 @@ impl Dependency for CssUrlDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::CssUrl
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "CssUrlDependency"
+  }
 }
 
 impl ModuleDependency for CssUrlDependency {
@@ -77,10 +83,6 @@ impl ModuleDependency for CssUrlDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
   }
 
   fn set_request(&mut self, request: String) {

@@ -1,31 +1,11 @@
 --- expected
 +++ actual
-@@ -7,10 +7,12 @@
- 'use strict';
- __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
-+  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; },
-   'b': function() { return b; }
+@@ -10,7 +10,7 @@
+   b: function() { return b; }
  });
-+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
  
 -var __WEBPACK_DEFAULT_EXPORT__ = /* "./lib" unused */null;
-+var __WEBPACK_DEFAULT_EXPORT__ = _lib__WEBPACK_IMPORTED_MODULE_0_.a;
++var __WEBPACK_DEFAULT_EXPORT__ = (/* unused pure expression or super */ null && (a));
   const b = 1;
  },
  "./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-@@ -20,6 +22,14 @@
- 
- _app__WEBPACK_IMPORTED_MODULE_0_.b;
- },
-+"./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-+'use strict';
-+__webpack_require__.r(__webpack_exports__);
-+__webpack_require__.d(__webpack_exports__, {
-+  'a': function() { return a; }
-+});
-+ const a = 20000;
-+},
- 
- },function(__webpack_require__) {
- var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

@@ -20,12 +20,14 @@ import type {
 import assert from "assert";
 import { Compiler } from "../Compiler";
 import { normalizeStatsPreset } from "../Stats";
-import { isNil } from "../util";
+import { deprecatedWarn, isNil } from "../util";
 import { parseResource } from "../util/identifier";
 import {
 	ComposeJsUseOptions,
 	LoaderContext,
-	createRawModuleRuleUses
+	createRawModuleRuleUses,
+	LoaderDefinition,
+	LoaderDefinitionFunction
 } from "./adapterRuleUse";
 import {
 	CrossOriginLoading,
@@ -58,7 +60,7 @@ import {
 	RspackOptionsNormalized
 } from "./normalization";
 
-export type { LoaderContext };
+export type { LoaderContext, LoaderDefinition, LoaderDefinitionFunction };
 
 export const getRawOptions = (
 	options: RspackOptionsNormalized,
@@ -75,6 +77,7 @@ export const getRawOptions = (
 	);
 	const devtool = options.devtool === false ? "" : options.devtool;
 	const mode = options.mode;
+	const experiments = getRawExperiments(options.experiments);
 	return {
 		mode,
 		target: getRawTarget(options.target),
@@ -86,7 +89,8 @@ export const getRawOptions = (
 			compiler,
 			devtool,
 			mode,
-			context: options.context
+			context: options.context,
+			experiments
 		}),
 		devtool,
 		optimization: getRawOptimization(options.optimization),
@@ -107,7 +111,7 @@ export const getRawOptions = (
 			name: "",
 			version: ""
 		},
-		experiments: getRawExperiments(options.experiments),
+		experiments,
 		node: getRawNode(options.node),
 		profile: options.profile!,
 		// TODO: remove this
@@ -148,6 +152,8 @@ function getRawResolveByDependency(
 }
 
 function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
+	let references = resolve.tsConfig?.references;
+	let tsconfigConfigFile = resolve.tsConfigPath ?? resolve.tsConfig?.configFile;
 	return {
 		...resolve,
 		alias: getRawAlias(resolve.alias),
@@ -156,6 +162,14 @@ function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 			string,
 			Array<string>
 		>,
+		tsconfig: tsconfigConfigFile
+			? {
+					configFile: tsconfigConfigFile,
+					referencesType:
+						references == "auto" ? "auto" : references ? "manual" : "disabled",
+					references: references == "auto" ? undefined : references
+			  }
+			: undefined,
 		byDependency: getRawResolveByDependency(resolve.byDependency)
 	};
 }
@@ -187,6 +201,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		cssChunkFilename: output.cssChunkFilename!,
 		hotUpdateChunkFilename: output.hotUpdateChunkFilename!,
 		hotUpdateMainFilename: output.hotUpdateMainFilename!,
+		hotUpdateGlobal: output.hotUpdateGlobal!,
 		uniqueName: output.uniqueName!,
 		chunkLoadingGlobal: output.chunkLoadingGlobal!,
 		enabledLibraryTypes: output.enabledLibraryTypes,
@@ -318,6 +333,15 @@ function tryMatch(payload: string, condition: RuleSetCondition): boolean {
 	return false;
 }
 
+const deprecatedRuleType = (type?: string) => {
+	type ??= "javascript/auto";
+	if (/ts|typescript|tsx|typescriptx|jsx|javascriptx/.test(type)) {
+		deprecatedWarn(
+			`'Rule.type: ${type}' has been deprecated, please migrate to builtin:swc-loader with type 'javascript/auto'`
+		);
+	}
+};
+
 const getRawModuleRule = (
 	rule: RuleSetRule,
 	path: string,
@@ -441,6 +465,9 @@ const getRawModuleRule = (
 
 			return true;
 		});
+	}
+	if (options.experiments.rspackFuture.disableTransformByDefault) {
+		deprecatedRuleType(rule.type);
 	}
 	return rawModuleRule;
 };
@@ -639,8 +666,9 @@ function getRawOptimization(
 			!isNil(optimization.sideEffects) &&
 			!isNil(optimization.realContentHash) &&
 			!isNil(optimization.providedExports) &&
-			!isNil(optimization.usedExports),
-		"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash, optimization.providedExports, optimization.usedExports should not be nil after defaults"
+			!isNil(optimization.usedExports) &&
+			!isNil(optimization.innerGraph),
+		"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash, optimization.providedExports, optimization.usedExports, optimization.innerGraph should not be nil after defaults"
 	);
 	return {
 		chunkIds: optimization.chunkIds,
@@ -651,7 +679,8 @@ function getRawOptimization(
 		sideEffects: String(optimization.sideEffects),
 		realContentHash: optimization.realContentHash,
 		usedExports: String(optimization.usedExports),
-		providedExports: optimization.providedExports
+		providedExports: optimization.providedExports,
+		innerGraph: optimization.innerGraph
 	};
 }
 
@@ -665,21 +694,20 @@ function toRawSplitChunksOptions(
 	const { name, cacheGroups = {}, ...passThrough } = sc;
 	return {
 		name: name === false ? undefined : name,
-		cacheGroups: Object.fromEntries(
-			Object.entries(cacheGroups)
-				.filter(([_key, group]) => group !== false)
-				.map(([key, group]) => {
-					group = group as Exclude<typeof group, false>;
+		cacheGroups: Object.entries(cacheGroups)
+			.filter(([_key, group]) => group !== false)
+			.map(([key, group]) => {
+				group = group as Exclude<typeof group, false>;
 
-					const { test, name, ...passThrough } = group;
-					const rawGroup: RawCacheGroupOptions = {
-						test,
-						name: name === false ? undefined : name,
-						...passThrough
-					};
-					return [key, rawGroup];
-				})
-		),
+				const { test, name, ...passThrough } = group;
+				const rawGroup: RawCacheGroupOptions = {
+					key,
+					test,
+					name: name === false ? undefined : name,
+					...passThrough
+				};
+				return rawGroup;
+			}),
 		...passThrough
 	};
 }
@@ -717,6 +745,7 @@ function getRawExperiments(
 		incrementalRebuild,
 		asyncWebAssembly,
 		newSplitChunks,
+		topLevelAwait,
 		css,
 		rspackFuture
 	} = experiments;
@@ -725,6 +754,7 @@ function getRawExperiments(
 			!isNil(incrementalRebuild) &&
 			!isNil(asyncWebAssembly) &&
 			!isNil(newSplitChunks) &&
+			!isNil(topLevelAwait) &&
 			!isNil(css) &&
 			!isNil(rspackFuture)
 	);
@@ -734,6 +764,7 @@ function getRawExperiments(
 		incrementalRebuild: getRawIncrementalRebuild(incrementalRebuild),
 		asyncWebAssembly,
 		newSplitChunks,
+		topLevelAwait,
 		css,
 		rspackFuture: getRawRspackFutureOptions(rspackFuture)
 	};
@@ -744,9 +775,11 @@ function getRawRspackFutureOptions(
 ): RawRspackFuture {
 	assert(!isNil(future.newResolver));
 	assert(!isNil(future.newTreeshaking));
+	assert(!isNil(future.disableTransformByDefault));
 	return {
 		newResolver: future.newResolver,
-		newTreeshaking: future.newTreeshaking
+		newTreeshaking: future.newTreeshaking,
+		disableTransformByDefault: future.disableTransformByDefault
 	};
 }
 

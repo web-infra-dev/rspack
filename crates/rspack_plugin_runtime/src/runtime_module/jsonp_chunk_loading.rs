@@ -1,6 +1,6 @@
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH,
+  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
 
@@ -85,7 +85,12 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     {
       source.add(RawSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_hmr.js")
-          .replace("$globalObject$", &compilation.options.output.global_object),
+          .replace("$globalObject$", &compilation.options.output.global_object)
+          .replace(
+            "$hotUpdateGlobal$",
+            &serde_json::to_string(&compilation.options.output.hot_update_global)
+              .expect("failed to serde_json::to_string(hot_update_global)"),
+          ),
       ));
       source.add(RawSource::from(
         include_str!("runtime/javascript_hot_module_replacement.js").replace("$key$", "jsonp"),
@@ -136,8 +141,8 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     self.chunk = Some(chunk);
   }
 
-  fn stage(&self) -> u8 {
-    RUNTIME_MODULE_STAGE_ATTACH
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
   }
 }
 

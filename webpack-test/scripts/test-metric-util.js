@@ -1,3 +1,5 @@
+const { decodeFilteredTest, FilteredStatus } = require("../lib/util/filterUtil");
+
 function extractTestMetric(jsonObj) {
 	const testResults = jsonObj["testResults"];
 	const willNotSupportTestCount = getTestWillNotSupportTestCount(testResults);
@@ -21,24 +23,49 @@ function extractTestMetric(jsonObj) {
 
 function getTestWillNotSupportTestCount(testResults) {
 	const willNotSupportTestCount = testResults.reduce((acc, testSuite) => {
-		return acc + getTestSuiteWillNotSupportTestCount(testSuite);
+		return acc + getTestSuiteCountByStatus(testSuite, FilteredStatus.NO_PLAN);
 	}, 0);
 	return willNotSupportTestCount;
 }
 
-function getTestSuiteWillNotSupportTestCount(suite) {
+function getTestSuiteCountByStatus(suite, status) {
 	return suite.assertionResults.filter((item) => {
 		// pending means this test is skipped
 		const isPending = item.status === "pending";
 		if (!isPending) {
 			return false;
 		}
-		const titles = item.ancestorTitles;
-		const lastPartOfTitle = titles[titles.length - 1];
-		return lastPartOfTitle?.startsWith("WillNotSupport");
+		return decodeFilteredTest(item.fullName).status === status
 	}).length;
+}
+
+function renderTestToMarkdown(testFullName) {
+	const decoded = decodeFilteredTest(testFullName)
+	let icon = "🟢";
+	let fullName = testFullName
+	let extra = "";
+	if (decoded !== null) {
+		icon = decoded.status === FilteredStatus.TODO ? "⚪️" 
+			: decoded.status === FilteredStatus.NO_PLAN ? "⚫️"
+			: decoded.status === FilteredStatus.FAILED ? "🔴"
+			: decoded.status === FilteredStatus.PARTIAL_PASS ? "🟡"
+			: "ERROR"
+		fullName = decoded.fullName;
+		extra = `: ${decoded.reason}`
+	}
+	return `${icon} ${fullName}${extra}`
+}
+
+function renderAllTestsToMarkdown(jsonObj) {
+	const testResults = jsonObj["testResults"];
+	return testResults
+		.flatMap(testSuite => testSuite.assertionResults)
+		// use `1 ` to break GitHub markdown list auto ordering
+		.map((test, index) => `${index + 1} ${renderTestToMarkdown(test.fullName)}`)
+		.join('\n')
 }
 
 module.exports = {
 	extractTestMetric,
+	renderAllTestsToMarkdown,
 };

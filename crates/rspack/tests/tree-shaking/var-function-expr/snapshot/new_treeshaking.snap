@@ -7,11 +7,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'app': function() { return app; },
-  'app2': function() { return app2; },
-  'app4': function() { return app4; },
-  'app5': function() { return app5; },
-  'app3': function() { return app3; }
+  app: function() { return app; }
 });
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
 
@@ -19,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {
     _lib__WEBPACK_IMPORTED_MODULE_0_.result;
 };
  var app2 = ()=>{
-    _lib__WEBPACK_IMPORTED_MODULE_0_.secret;
+    secret;
 };
  var app4 = (0, _lib__WEBPACK_IMPORTED_MODULE_0_.something)('app4'), app5 = 10000;
  var app3 = (0, _lib__WEBPACK_IMPORTED_MODULE_0_.something)('app3');
@@ -35,9 +31,8 @@ __webpack_require__.r(__webpack_exports__);
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'secret': function() { return secret; },
-  'result': function() { return result; },
-  'something': function() { return something; }
+  result: function() { return result; },
+  something: function() { return something; }
 });
  const secret = "888";
  const result = 20000;

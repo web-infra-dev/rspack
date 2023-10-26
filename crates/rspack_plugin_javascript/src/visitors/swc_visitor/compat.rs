@@ -74,15 +74,18 @@ fn compat_by_es_version(
       ),
       Optional::new(compat::es2021::es2021(), es_version < EsVersion::Es2021),
       Optional::new(
-        compat::es2020::es2020(compat::es2020::Config {
-          nullish_coalescing: compat::es2020::nullish_coalescing::Config {
-            no_document_all: assumptions.no_document_all
+        compat::es2020::es2020(
+          compat::es2020::Config {
+            nullish_coalescing: compat::es2020::nullish_coalescing::Config {
+              no_document_all: assumptions.no_document_all
+            },
+            optional_chaining: compat::es2020::optional_chaining::Config {
+              no_document_all: assumptions.no_document_all,
+              pure_getter: assumptions.pure_getters
+            }
           },
-          optional_chaining: compat::es2020::optional_chaining::Config {
-            no_document_all: assumptions.no_document_all,
-            pure_getter: assumptions.pure_getters
-          }
-        }),
+          unresolved_mark
+        ),
         es_version < EsVersion::Es2020
       ),
       Optional::new(compat::es2019::es2019(), es_version < EsVersion::Es2019),
