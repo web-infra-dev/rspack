@@ -114,6 +114,12 @@ export function toJsAssetInfo(info?: AssetInfo): JsAssetInfo {
 }
 const getDeprecationStatus = () => {
 	const defaultEnableDeprecatedWarning = true;
+	if (
+		process.env.RSPACK_DEP_WARNINGS === "false" ||
+		process.env.RSPACK_DEP_WARNINGS === "0"
+	) {
+		return false;
+	}
 	return (
 		(process.env.RSPACK_DEP_WARNINGS ?? `${defaultEnableDeprecatedWarning}`) !==
 		"false"
