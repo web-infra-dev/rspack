@@ -1,27 +1,20 @@
 --- expected
 +++ actual
-@@ -7,23 +7,12 @@
+@@ -8,6 +8,7 @@
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+   a: function() { return a; },
++  dddd: function() { return dddd; },
+   aa: function() { return _aa__WEBPACK_IMPORTED_MODULE_0_; }
+ });
+ /* harmony import */var _aa__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./aa */"./package/autogen/aa.js");
+@@ -20,7 +21,8 @@
  'use strict';
  __webpack_require__.r(__webpack_exports__);
  __webpack_require__.d(__webpack_exports__, {
--  a: function() { return a; },
--  aa: function() { return _aa__WEBPACK_IMPORTED_MODULE_0_; }
-+  a: function() { return a; }
- });
--/* harmony import */var _aa__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./aa */"./package/autogen/aa.js");
- 
-  function a() {}
-  function dddd() {}
- 
--},
--"./package/autogen/aa.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
--'use strict';
--__webpack_require__.r(__webpack_exports__);
--__webpack_require__.d(__webpack_exports__, {
 -  aa: function() { return aa; }
--});
-- const aa = 3;
-- const cc = 3;
- },
- "./package/autogen/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
- 'use strict';
++  aa: function() { return aa; },
++  cc: function() { return cc; }
+ });
+  const aa = 3;
+  const cc = 3;

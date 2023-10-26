@@ -18,6 +18,7 @@ use crate::dependency::{
   HarmonyImportSpecifierDependency, Specifier,
 };
 
+#[derive(Debug)]
 pub struct ImporterReferenceInfo {
   pub request: JsWord,
   pub specifier: Specifier,
@@ -110,13 +111,14 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           .for_each(|specifier| match specifier {
             Specifier::Namespace(n) => {
               let ids = vec![(n.clone(), None)];
+              let mode_ids = vec![];
               self
                 .dependencies
                 .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
                   request.clone(),
                   source_order,
                   ids.clone(),
-                  ids,
+                  mode_ids,
                   Some(n.clone()),
                   false,
                 )));
@@ -423,8 +425,10 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
   }
 
   fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
+    dbg!(&member_expr);
     let mut member_chain = extract_member_expression_chain(member_expr);
-    if let Some(reference) = self.import_map.get(&member_chain[0]) {
+    dbg!(&member_chain);
+    if member_chain.len() > 1 && let Some(reference) = self.import_map.get(&member_chain[0]) {
       member_chain.pop_front();
       if !member_chain.is_empty() {
         let mut ids = reference.names.clone().map(|f| vec![f]).unwrap_or_default();

@@ -112,7 +112,9 @@ impl HarmonyExportImportedSpecifierDependency {
     }
 
     let imported_exports_type = get_exports_type(module_graph, id, &parent_module);
+    dbg!(&imported_exports_type);
     let ids = self.get_ids(module_graph);
+    dbg!(&ids, &self.mode_ids);
     // Special handling for reexporting the default export
     // from non-namespace modules
     if let Some(name) = name.as_ref() &&  ids.get(0).map(|item| item.as_ref())  == Some("default") {
@@ -724,6 +726,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
     runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     let mode = self.get_mode(self.name.clone(), module_graph, &self.id, runtime);
+    dbg!(&mode);
     match mode.ty {
       ExportModeType::Missing
       | ExportModeType::Unused

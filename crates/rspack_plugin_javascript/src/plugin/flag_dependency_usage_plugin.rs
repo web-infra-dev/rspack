@@ -122,10 +122,10 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           continue;
         };
         dbg!(
-          &connection,
+          // &connection,
           dep.dependency_debug_name(),
           &referenced_exports,
-          &old_referenced_exports
+          // &old_referenced_exports
         );
 
         if old_referenced_exports.is_none()
@@ -240,6 +240,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     force_side_effects: bool,
     queue: &mut VecDeque<(ModuleIdentifier, Option<RuntimeSpec>)>,
   ) {
+    // dbg!(&module_id, &used_exports);
     let mgm = self
       .compilation
       .module_graph
