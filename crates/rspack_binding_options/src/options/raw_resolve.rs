@@ -1,9 +1,7 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use napi_derive::napi;
-use rspack_core::{
-  Alias, AliasMap, ByDependency, DependencyCategory, Resolve, TsconfigOptions, TsconfigReferences,
-};
+use rspack_core::{Alias, AliasMap, ByDependency, Resolve, TsconfigOptions, TsconfigReferences};
 use serde::Deserialize;
 
 pub type AliasValue = serde_json::Value;
@@ -103,10 +101,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
       .by_dependency
       .map(|i| {
         i.into_iter()
-          .map(|(k, v)| {
-            let v = v.try_into()?;
-            Ok((DependencyCategory::from(k.as_str()), v))
-          })
+          .map(|(k, v)| Ok((k.into(), v.try_into()?)))
           .collect::<Result<ByDependency, Self::Error>>()
       })
       .transpose()?;

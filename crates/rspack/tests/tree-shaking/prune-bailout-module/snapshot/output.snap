@@ -7,7 +7,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
 var __WEBPACK_DEFAULT_EXPORT__ = 300;
 },
@@ -22,7 +22,7 @@ _lib__WEBPACK_IMPORTED_MODULE_0_.a;
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'a': function() { return _a_js__WEBPACK_IMPORTED_MODULE_0_["default"]; }
+  a: function() { return _a_js__WEBPACK_IMPORTED_MODULE_0_["default"]; }
 });
 /* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a.js */"./a.js");
 

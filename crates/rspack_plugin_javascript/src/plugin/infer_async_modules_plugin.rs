@@ -46,7 +46,7 @@ impl Plugin for InferAsyncModulesPlugin {
             if let Some(dep) = module_graph.dependency_by_id(&con.dependency_id) {
               matches!(
                 dep.dependency_type(),
-                DependencyType::EsmImport(_) | DependencyType::EsmExport
+                DependencyType::EsmImport(_) | DependencyType::EsmExport(_)
               )
             } else {
               false

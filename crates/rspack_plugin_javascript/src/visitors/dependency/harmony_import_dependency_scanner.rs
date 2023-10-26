@@ -101,7 +101,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
     for ((request, dependency_type, source_order), importer_info) in
       std::mem::take(&mut self.imports).into_iter()
     {
-      if matches!(dependency_type, DependencyType::EsmExport)
+      if matches!(dependency_type, DependencyType::EsmExport(_))
         && !importer_info.specifiers.is_empty()
       {
         importer_info
@@ -184,7 +184,8 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           n.local.sym.clone(),
           match &n.imported {
             Some(ModuleExportName::Ident(ident)) => Some(ident.sym.clone()),
-            _ => None,
+            Some(ModuleExportName::Str(str)) => Some(str.value.clone()),
+            None => None,
           },
         );
         self.import_map.insert(
@@ -194,7 +195,8 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
             specifier.clone(),
             Some(match &n.imported {
               Some(ModuleExportName::Ident(ident)) => ident.sym.clone(),
-              _ => n.local.sym.clone(),
+              Some(ModuleExportName::Str(str)) => str.value.clone(),
+              None => n.local.sym.clone(),
             }),
             self.last_harmony_import_order,
           ),
@@ -274,9 +276,9 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
               specifiers.push(Specifier::Named(
                 orig.sym.clone(),
                 match &named.exported {
+                  Some(ModuleExportName::Str(export)) => Some(export.value.clone()),
                   Some(ModuleExportName::Ident(export)) => Some(export.sym.clone()),
                   None => None,
-                  _ => unreachable!(),
                 },
               ));
             }
@@ -284,7 +286,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
         });
       let key = (
         src.value.clone(),
-        DependencyType::EsmExport,
+        DependencyType::EsmExport(named_export.span.into()),
         self.last_harmony_import_order,
       );
       if let Some(importer_info) = self.imports.get_mut(&key) {
@@ -309,7 +311,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
     self.last_harmony_import_order += 1;
     let key = (
       export_all.src.value.clone(),
-      DependencyType::EsmExport,
+      DependencyType::EsmExport(export_all.span.into()),
       self.last_harmony_import_order,
     );
 

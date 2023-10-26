@@ -322,7 +322,7 @@ impl JsPlugin {
       final_source,
       chunk_init_fragments,
       &mut ChunkRenderContext {},
-    );
+    )?;
     if let Some(source) = compilation.plugin_driver.render(RenderArgs {
       compilation,
       chunk: &args.chunk_ukey,
@@ -353,7 +353,7 @@ impl JsPlugin {
       .await?
       .expect("should run render_chunk hook");
     let final_source =
-      render_init_fragments(source, chunk_init_fragments, &mut ChunkRenderContext {});
+      render_init_fragments(source, chunk_init_fragments, &mut ChunkRenderContext {})?;
     if let Some(source) = compilation.plugin_driver.render(RenderArgs {
       compilation,
       chunk: &args.chunk_ukey,

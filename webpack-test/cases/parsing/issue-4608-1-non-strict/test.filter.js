@@ -2,4 +2,4 @@
 // 	return !config.module;
 // };
 
-module.exports = () => {return false}
+module.exports = () => {return "https://github.com/web-infra-dev/rspack/issues/4439"}
