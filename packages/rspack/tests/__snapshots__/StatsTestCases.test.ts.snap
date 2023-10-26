@@ -14,6 +14,7 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
       "info": {
         "development": false,
         "hotModuleReplacement": false,
+        "sourceFilename": "raw.png",
       },
       "name": "220e6fb336d7b999e76d.png",
       "size": 7,
@@ -323,7 +324,7 @@ import rawModule from './raw.png';
 
 exports[`StatsTestCases should print correct stats for auxiliary-files-test 2`] = `
 "PublicPath: (none)
-asset 220e6fb336d7b999e76d.png 7 bytes {main} [emitted] (name: main)
+asset 220e6fb336d7b999e76d.png 7 bytes {main} [emitted] [from: raw.png] (name: main)
 asset bundle.js 459 bytes {main} [emitted] (name: main)
 Entrypoint main 459 bytes = bundle.js
 chunk {main} bundle.js (main) [entry]
