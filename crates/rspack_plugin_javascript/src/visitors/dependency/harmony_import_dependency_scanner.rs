@@ -101,7 +101,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
     for ((request, dependency_type, source_order), importer_info) in
       std::mem::take(&mut self.imports).into_iter()
     {
-      if matches!(dependency_type, DependencyType::EsmExport)
+      if matches!(dependency_type, DependencyType::EsmExport(_))
         && !importer_info.specifiers.is_empty()
       {
         importer_info
@@ -286,7 +286,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
         });
       let key = (
         src.value.clone(),
-        DependencyType::EsmExport,
+        DependencyType::EsmExport(named_export.span.into()),
         self.last_harmony_import_order,
       );
       if let Some(importer_info) = self.imports.get_mut(&key) {
@@ -311,7 +311,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
     self.last_harmony_import_order += 1;
     let key = (
       export_all.src.value.clone(),
-      DependencyType::EsmExport,
+      DependencyType::EsmExport(export_all.span.into()),
       self.last_harmony_import_order,
     );
 

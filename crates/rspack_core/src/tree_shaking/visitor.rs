@@ -869,9 +869,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           }
 
           ModuleDecl::ExportAll(export_all) => {
-            let dep_id = match self
-              .resolve_module_identifier(&export_all.src.value, &DependencyType::EsmExport)
-            {
+            let dep_id = match self.resolve_module_identifier(
+              &export_all.src.value,
+              &DependencyType::EsmExport(export_all.span.into()),
+            ) {
               Some(module_identifier) => module_identifier,
               None => {
                 // TODO: ignore for now, or three copy js will failed
@@ -1508,7 +1509,9 @@ impl<'a> ModuleRefAnalyze<'a> {
   fn analyze_named_export(&mut self, named_export: &NamedExport) {
     let src = named_export.src.as_ref().map(|src| &src.value);
     if let Some(src) = src {
-      let dep_id = match self.resolve_module_identifier(src, &DependencyType::EsmExport) {
+      let dep_id = match self
+        .resolve_module_identifier(src, &DependencyType::EsmExport(named_export.span.into()))
+      {
         Some(module_identifier) => module_identifier,
         None => {
           eprintln!(
