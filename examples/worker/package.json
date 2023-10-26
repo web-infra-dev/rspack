@@ -10,5 +10,8 @@
   "license": "MIT",
   "dependencies": {
     "@rspack/cli": "workspace:*"
+  },
+  "devDependencies": {
+    "@rspack/core": "workspace:*"
   }
 }
