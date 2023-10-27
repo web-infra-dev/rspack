@@ -18,6 +18,14 @@ impl RspackRegex {
     self.algo.test(text)
   }
 
+  pub fn global(&self) -> bool {
+    self.algo.global()
+  }
+
+  pub fn sticky(&self) -> bool {
+    self.algo.sticky()
+  }
+
   pub fn with_flags(expr: &str, flags: &str) -> Result<Self, Error> {
     Ok(Self {
       algo: Algo::new(expr, flags)?,

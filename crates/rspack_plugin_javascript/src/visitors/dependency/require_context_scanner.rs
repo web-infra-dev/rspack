@@ -1,6 +1,5 @@
-use rspack_core::{
-  BoxDependency, ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt,
-};
+use rspack_core::{clean_regexp_in_context_module, BoxDependency, ContextMode};
+use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
 use rspack_regex::RspackRegex;
 use swc_core::ecma::{
   ast::{CallExpr, Lit},
@@ -67,7 +66,7 @@ impl Visit for RequireContextScanner<'_> {
             ContextOptions {
               mode,
               recursive,
-              reg_exp,
+              reg_exp: clean_regexp_in_context_module(reg_exp),
               reg_str,
               include: None,
               exclude: None,

@@ -1,9 +1,6 @@
 use once_cell::sync::Lazy;
-use rspack_core::{
-  BoxDependency, BuildMeta, ChunkGroupOptions, ContextMode, ContextNameSpaceObject, ContextOptions,
-  DependencyCategory, SpanExt,
-};
-use rspack_regex::RspackRegex;
+use rspack_core::{context_reg_exp, BoxDependency, BuildMeta, ChunkGroupOptions, ContextMode};
+use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
 use swc_core::{
   common::{comments::Comments, Span},
   ecma::{
@@ -117,7 +114,7 @@ impl Visit for ImportScanner<'_> {
                     ContextOptions {
                       mode: ContextMode::Lazy,
                       recursive: true,
-                      reg_exp: RspackRegex::new(&reg).expect("reg failed"),
+                      reg_exp: context_reg_exp(&reg, ""),
                       reg_str: reg,
                       include: None,
                       exclude: None,
