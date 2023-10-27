@@ -199,6 +199,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       } else {
         InnerGraphMapUsage::True
       };
+      dbg!(&usage);
       self.add_usage(ident.sym.clone(), usage);
     }
   }
@@ -504,8 +505,9 @@ impl<'a> InnerGraphPlugin<'a> {
     }
     let state = &mut self.state;
     let mut non_terminal = HashSet::from_iter(state.inner_graph.keys().cloned());
-    let mut processed: HashMap<JsWord, HashSet<JsWord>> = HashMap::default();
+    let mut processed: HashMap<JsWord, HashSet<InnerGraphMapSetValue>> = HashMap::default();
 
+    dbg!(state.module_identifier, &state.inner_graph,);
     while !non_terminal.is_empty() {
       let mut keys_to_remove = vec![];
       for key in non_terminal.iter() {
@@ -518,7 +520,7 @@ impl<'a> InnerGraphPlugin<'a> {
         let already_processed = processed.entry(key.clone()).or_default();
         if let Some(InnerGraphMapValue::Set(names)) = state.inner_graph.get(key) {
           for name in names.iter() {
-            already_processed.insert(name.to_jsword().clone());
+            already_processed.insert(name.clone());
           }
           for name in names {
             match name {
@@ -534,10 +536,10 @@ impl<'a> InnerGraphPlugin<'a> {
                   }
                   Some(InnerGraphMapValue::Set(item_value)) => {
                     for i in item_value {
-                      if i.to_jsword() == key {
+                      if matches!(i, InnerGraphMapSetValue::TopLevel(value) if value == key) {
                         continue;
                       }
-                      if already_processed.contains(i.to_jsword()) {
+                      if already_processed.contains(i) {
                         continue;
                       }
                       new_set.insert(i.clone());
@@ -602,7 +604,7 @@ impl<'a> InnerGraphPlugin<'a> {
       }
     }
 
-    dbg!(&state.inner_graph);
+    dbg!(&state.inner_graph,);
     for (symbol, cbs) in state.usage_callback_map.iter() {
       let usage = state.inner_graph.get(symbol);
       for cb in cbs {
