@@ -3,9 +3,7 @@ use std::sync::atomic::Ordering;
 
 use cargo_rst::git_diff;
 use rspack_core::{BoxPlugin, CompilerOptions, TreeShaking, UsedExportsOption, IS_NEW_TREESHAKING};
-use rspack_plugin_javascript::{
-  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, SideEffectsFlagPlugin,
-};
+use rspack_plugin_javascript::{FlagDependencyExportsPlugin, FlagDependencyUsagePlugin};
 use rspack_testing::test_fixture;
 use testing_macros::fixture;
 
