@@ -49,8 +49,8 @@ __webpack_require__.d(__webpack_exports__, {
  function C(s) {
     return s + "C";
 }
- const exportAUsed = false;
- const exportBUsed = false;
+ const exportAUsed = true;
+ const exportBUsed = true;
  const exportCUsed = false;
 },
 "./module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
