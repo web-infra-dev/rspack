@@ -52,8 +52,27 @@ impl Visit for SideEffectsFlagPluginVisitor {
 
   fn visit_module(&mut self, node: &Module) {
     for module_item in &node.body {
-      if !is_import_decl(module_item) {
-        module_item.visit_with(self);
+      match module_item {
+        ModuleItem::ModuleDecl(decl) => match decl {
+          ModuleDecl::Import(_) => {}
+          ModuleDecl::ExportDecl(decl) => decl.visit_with(self),
+          ModuleDecl::ExportNamed(named) => {}
+          ModuleDecl::ExportDefaultDecl(decl) => {
+            decl.visit_with(self);
+          }
+          ModuleDecl::ExportDefaultExpr(expr) => {
+            if !is_pure_expression(&expr.expr, self.unresolved_ctxt) {
+              self.side_effects_span = Some(node.span);
+            }
+          }
+          ModuleDecl::ExportAll(_) => {
+            // nothing to analyze
+          }
+          ModuleDecl::TsImportEquals(_) => unreachable!(),
+          ModuleDecl::TsExportAssignment(_) => unreachable!(),
+          ModuleDecl::TsNamespaceExport(_) => unreachable!(),
+        },
+        ModuleItem::Stmt(stmt) => stmt.visit_with(self),
       }
     }
   }

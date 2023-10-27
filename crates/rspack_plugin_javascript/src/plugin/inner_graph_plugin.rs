@@ -602,7 +602,7 @@ impl<'a> InnerGraphPlugin<'a> {
       }
     }
 
-    // dbg!(&state.inner_graph);
+    dbg!(&state.inner_graph);
     for (symbol, cbs) in state.usage_callback_map.iter() {
       let usage = state.inner_graph.get(symbol);
       for cb in cbs {
