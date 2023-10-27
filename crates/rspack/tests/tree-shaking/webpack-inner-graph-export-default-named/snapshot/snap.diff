@@ -1,15 +1,46 @@
 --- expected
 +++ actual
+@@ -12,7 +12,7 @@
+ /* harmony import */var _dep_a__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dep?a */"./dep.js?a");
+ 
+ function abc() {
+-    return _dep_a__WEBPACK_IMPORTED_MODULE_0_.x;
++    return x;
+ }
+ },
+ "./b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 @@ -21,7 +21,7 @@
  /* harmony import */var _dep_b__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dep?b */"./dep.js?b");
  
  function abc() {
 -    return /* "./dep?b" unused */null;
-+    return _dep_b__WEBPACK_IMPORTED_MODULE_0_.x;
++    return x;
  }
  },
  "./c.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-@@ -56,12 +56,13 @@
+@@ -30,7 +30,7 @@
+ /* harmony import */var _dep_c__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dep?c */"./dep.js?c");
+ 
+ function abc() {
+-    return _dep_c__WEBPACK_IMPORTED_MODULE_0_.x;
++    return x;
+ }
+ abc();
+ },
+@@ -44,7 +44,7 @@
+ 
+ class def {
+     method() {
+-        return _dep_d__WEBPACK_IMPORTED_MODULE_0_.x;
++        return x;
+     }
+ }
+ },
+@@ -52,11 +52,10 @@
+ 'use strict';
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  x: function() { return x; },
    "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
  });
   const x = "x";
@@ -18,13 +49,11 @@
  },
  "./dep.js?b": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  'use strict';
+@@ -71,21 +70,19 @@
+ 'use strict';
  __webpack_require__.r(__webpack_exports__);
  __webpack_require__.d(__webpack_exports__, {
-+  x: function() { return x; },
-   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
- });
-  const x = "x";
-@@ -75,7 +76,7 @@
+-  x: function() { return x; },
    "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
  });
   const x = "x";
@@ -33,7 +62,9 @@
  },
  "./dep.js?d": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  'use strict';
-@@ -85,12 +86,13 @@
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  x: function() { return x; },
    "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
  });
   const x = "x";
@@ -42,13 +73,11 @@
  },
  "./dep.js?e": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  'use strict';
+@@ -100,11 +97,10 @@
+ 'use strict';
  __webpack_require__.r(__webpack_exports__);
  __webpack_require__.d(__webpack_exports__, {
-+  x: function() { return x; },
-   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
- });
-  const x = "x";
-@@ -104,7 +106,7 @@
+-  x: function() { return x; },
    "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
  });
   const x = "x";
@@ -57,12 +86,21 @@
  },
  "./e.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  'use strict';
-@@ -113,7 +115,7 @@
+@@ -113,7 +109,7 @@
  
  class def {
      method() {
 -        return /* "./dep?e" unused */null;
-+        return _dep_e__WEBPACK_IMPORTED_MODULE_0_.x;
++        return x;
      }
  }
  },
+@@ -124,7 +120,7 @@
+ 
+ class def {
+     method() {
+-        return _dep_f__WEBPACK_IMPORTED_MODULE_0_.x;
++        return x;
+     }
+ }
+ new def().method();

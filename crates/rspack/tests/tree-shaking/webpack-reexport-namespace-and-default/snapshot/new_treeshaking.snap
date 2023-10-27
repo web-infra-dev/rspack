@@ -80,7 +80,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 var __WEBPACK_DEFAULT_EXPORT__ = _script1__WEBPACK_IMPORTED_MODULE_0_["default"];
 
- const exportDefaultUsed = false;
+ const exportDefaultUsed = true;
 },
 "./package2/script1.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';

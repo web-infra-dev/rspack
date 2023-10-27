@@ -199,7 +199,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       } else {
         InnerGraphMapUsage::True
       };
-      dbg!(&usage);
+      dbg!(&usage, &ident.sym);
       self.add_usage(ident.sym.clone(), usage);
     }
   }
@@ -350,17 +350,19 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       return;
     }
     // TODO:
-    // let symbol: JsWord = "*default*".into();
+    self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
     match &node.decl {
       DefaultDecl::Class(class) => {
         // self.visit_class(symbol, &class.class);
-        class.visit_children_with(self);
+        class.class.visit_with(self);
       }
       DefaultDecl::Fn(func) => {
-        func.visit_with(self);
+        func.function.visit_with(self);
       }
       DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
     }
+
+    self.clear_symbol_if_is_top_level();
   }
 }
 
