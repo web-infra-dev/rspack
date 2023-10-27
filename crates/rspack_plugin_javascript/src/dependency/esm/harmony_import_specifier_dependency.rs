@@ -204,6 +204,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
     })
   }
   fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
+    dbg!(&used_by_exports);
     self.used_by_exports = used_by_exports;
   }
   fn category(&self) -> &DependencyCategory {

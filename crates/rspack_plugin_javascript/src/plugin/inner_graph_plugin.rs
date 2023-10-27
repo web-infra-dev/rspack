@@ -182,6 +182,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
   fn visit_ident(&mut self, ident: &Ident) {
     if let Some(ExtraSpanInfo::ReWriteUsedByExports) = self.rewrite_usage_span.get(&ident.span) {
       let span = ident.span;
+      dbg!(&self.state.current_top_level_symbol);
       self.on_usage(Box::new(move |deps, used_by_exports| {
         let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
         if let Some(dep) = target_dep {
@@ -219,7 +220,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         },
         Expr::Class(class) => {
             // TODO: consider class 
-          class.class.visit_children_with(self);
+          class.class.visit_with(self);
         }
         _ => {
           init.visit_children_with(self);
@@ -349,8 +350,20 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if !self.is_enabled() {
       return;
     }
-    // TODO:
-    self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
+
+    if let Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) =
+      self.rewrite_usage_span.get(&node.span)
+    {
+      self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
+    }
+
+    let ident = match &node.decl {
+      DefaultDecl::Class(class) => class.ident.as_ref().map(|item| item.sym.clone()),
+      DefaultDecl::Fn(func) => func.ident.as_ref().map(|item| item.sym.clone()),
+      DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
+    }
+    .unwrap_or(DEFAULT_EXPORT.into());
+    self.set_symbol_if_is_top_level(ident);
     match &node.decl {
       DefaultDecl::Class(class) => {
         // self.visit_class(symbol, &class.class);
@@ -606,7 +619,7 @@ impl<'a> InnerGraphPlugin<'a> {
       }
     }
 
-    dbg!(&state.inner_graph,);
+    dbg!(state.module_identifier, &state.inner_graph,);
     for (symbol, cbs) in state.usage_callback_map.iter() {
       let usage = state.inner_graph.get(symbol);
       for cb in cbs {
