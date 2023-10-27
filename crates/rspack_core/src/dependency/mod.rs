@@ -466,6 +466,9 @@ pub struct DependencyId(u32);
 pub static DEPENDENCY_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
 
 impl DependencyId {
+  pub fn get_dep<'a>(&self, mg: &'a ModuleGraph) -> Option<&'a BoxDependency> {
+    mg.dependency_by_id(self)
+  }
   pub fn new() -> Self {
     Self(DEPENDENCY_ID.fetch_add(1, Relaxed))
   }

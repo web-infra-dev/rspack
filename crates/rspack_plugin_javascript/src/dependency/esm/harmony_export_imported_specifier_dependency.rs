@@ -499,7 +499,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
   #[allow(clippy::unwrap_in_result)]
   fn get_exports(&self, mg: &ModuleGraph) -> Option<ExportsSpec> {
     let mode = self.get_mode(self.name.clone(), mg, &self.id, None);
-    dbg!(&mode);
+    // dbg!(&mode);
     match mode.ty {
       ExportModeType::Missing => None,
       ExportModeType::Unused => {

@@ -204,6 +204,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
     })
   }
   fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
+    dbg!(&used_by_exports);
     self.used_by_exports = used_by_exports;
   }
   fn category(&self) -> &DependencyCategory {
@@ -251,13 +252,14 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    // dbg!(
-    //   &self.ids,
-    //   &self.specifier,
-    //   self.request(),
-    //   self.used_by_exports.as_ref()
-    // );
-    get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
+    dbg!(
+      &self.ids,
+      &self.specifier,
+      self.request(),
+      self.used_by_exports.as_ref()
+    );
+    let ret = get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref());
+    ret
   }
 
   fn get_referenced_exports(

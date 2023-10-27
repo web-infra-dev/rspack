@@ -179,7 +179,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     dep_id: DependencyId,
   ) {
     for export_name_or_spec in exports {
-      dbg!(&export_name_or_spec);
+      // dbg!(&export_name_or_spec);
       let (name, can_mangle, terminal_binding, exports, from, from_export, priority, hidden) =
         match export_name_or_spec {
           ExportNameOrSpec::String(name) => (
@@ -223,7 +223,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         .get_mut(&export_info_id)
         .expect("should have export info")
         .clone();
-      dbg!(&export_info);
+      // dbg!(&export_info);
       if let Some(ref mut provided) = export_info.provided && matches!(provided, ExportInfoProvided::False | ExportInfoProvided::Null) {
         *provided = ExportInfoProvided::True;
         self.changed = true;
@@ -260,7 +260,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           } else {
             Some(&(fallback))
           };
-          dbg!(&from, &export_name);
+          // dbg!(&from, &export_name);
           export_info.set_target(Some(dep_id), Some(from), export_name, priority)
         };
         self.changed |= changed;
@@ -268,7 +268,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
 
       // Recalculate target exportsInfo
       let target = export_info.get_target(self.mg, None);
-      dbg!(&target);
+      // dbg!(&target);
       let export_info_old = self
         .mg
         .export_info_map

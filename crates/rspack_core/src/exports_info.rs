@@ -1138,7 +1138,7 @@ impl ExportInfo {
         exports: item.exports.clone(),
       })
       .collect::<Vec<_>>();
-    dbg!(&values);
+    // dbg!(&values);
     let target = resolve_target(
       values.get(0).cloned(),
       already_visited,
