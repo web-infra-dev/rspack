@@ -1138,7 +1138,6 @@ impl ExportInfo {
         exports: item.exports.clone(),
       })
       .collect::<Vec<_>>();
-    // dbg!(&values);
     let target = resolve_target(
       values.get(0).cloned(),
       already_visited,
@@ -1395,7 +1394,6 @@ pub fn process_export_info(
       .get(&export_info_id)
       .expect("should have export info");
     let used = export_info.get_used(runtime);
-    // dbg!(&export_info);
     if used == UsageState::Unused {
       return;
     }

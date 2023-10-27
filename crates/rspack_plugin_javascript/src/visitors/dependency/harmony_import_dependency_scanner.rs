@@ -6,10 +6,10 @@ use rspack_core::{
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::JsWord;
 use swc_core::common::Span;
-use swc_core::ecma::ast::{AssignExpr, AssignOp, MemberExpr, MemberProp};
+use swc_core::ecma::ast::{AssignExpr, AssignOp, MemberExpr};
 use swc_core::ecma::ast::{Callee, ExportAll, ExportSpecifier, Expr, Id, TaggedTpl};
 use swc_core::ecma::ast::{Ident, ImportDecl, Pat, PatOrExpr, Program, Prop};
-use swc_core::ecma::ast::{ImportSpecifier, Lit, ModuleExportName, NamedExport};
+use swc_core::ecma::ast::{ImportSpecifier, ModuleExportName, NamedExport};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use super::{collect_destructuring_assignment_properties, ExtraSpanInfo};
@@ -111,14 +111,13 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           .for_each(|specifier| match specifier {
             Specifier::Namespace(n) => {
               let ids = vec![(n.clone(), None)];
-              let mode_ids = vec![];
               self
                 .dependencies
                 .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
                   request.clone(),
                   source_order,
-                  ids.clone(),
-                  mode_ids,
+                  ids,
+                  vec![],
                   Some(n.clone()),
                   false,
                 )));
@@ -436,7 +435,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
             .map(|item| item.0)
             .collect::<Vec<_>>(),
         );
-        dbg!(&ids);
+        // dbg!(&ids);
         self
           .rewrite_usage_span
           .insert(member_expr.span, ExtraSpanInfo::ReWriteUsedByExports);

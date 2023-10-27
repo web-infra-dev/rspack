@@ -248,7 +248,7 @@ impl HarmonyExportImportedSpecifierDependency {
     imported_module_identifier: &ModuleIdentifier,
   ) -> StarReexportsInfo {
     let imported_exports_info = module_graph.get_exports_info(imported_module_identifier);
-    dbg!(&imported_exports_info);
+    // dbg!(&imported_exports_info);
     let other_export_info = module_graph
       .export_info_map
       .get(&imported_exports_info.other_exports_info)
@@ -260,9 +260,7 @@ impl HarmonyExportImportedSpecifierDependency {
       e.insert("default".into());
       e
     };
-    dbg!(&ignored_exports, no_extra_exports, no_extra_imports);
     let mut hidden_exports = self.discover_active_exports_from_other_star_exports(module_graph);
-    dbg!(&hidden_exports);
     if !no_extra_exports && !no_extra_imports {
       if let Some(hidden_exports) = hidden_exports.as_mut() {
         for e in ignored_exports.iter() {
@@ -283,7 +281,7 @@ impl HarmonyExportImportedSpecifierDependency {
     } else {
       None
     };
-    dbg!(&hidden_exports);
+    // dbg!(&hidden_exports);
 
     let parent_module = module_graph
       .parent_module_by_dependency_id(&self.id)
@@ -313,7 +311,7 @@ impl HarmonyExportImportedSpecifierDependency {
           continue;
         }
 
-        dbg!(&hidden_exports);
+        // dbg!(&hidden_exports);
         if hidden_exports
           .as_ref()
           .map(|hidden_exports| hidden_exports.contains(&export_name))
@@ -717,7 +715,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
           &down_casted_dep.id,
           runtime,
         );
-        dbg!(&mode);
+        // dbg!(&mode);
         ConnectionState::Bool(!matches!(
           mode.ty,
           ExportModeType::Unused | ExportModeType::EmptyStar
@@ -732,7 +730,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
     runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     let mode = self.get_mode(self.name.clone(), module_graph, &self.id, runtime);
-    dbg!(&mode);
+    // dbg!(&mode);
     match mode.ty {
       ExportModeType::Missing
       | ExportModeType::Unused

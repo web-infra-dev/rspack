@@ -98,13 +98,13 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         };
         let active_state =
           connection.get_active_state(&self.compilation.module_graph, runtime.as_ref());
-        dbg!(
-          &connection,
-          &active_state,
-          dep_id
-            .get_dep(&self.compilation.module_graph)
-            .map(|item| item.dependency_debug_name())
-        );
+        // dbg!(
+        //   &connection,
+        //   &active_state,
+        //   dep_id
+        //     .get_dep(&self.compilation.module_graph)
+        //     .map(|item| item.dependency_debug_name())
+        // );
         match active_state {
           ConnectionState::Bool(false) => {
             continue;
@@ -296,7 +296,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             if !last_one {
               let nested_info =
                 export_info_id.get_nested_exports_info(&self.compilation.module_graph);
-              dbg!(&nested_info);
+              // dbg!(&nested_info);
               if let Some(nested_info) = nested_info {
                 let changed_flag = export_info_id.set_used_conditionally(
                   &mut self.compilation.module_graph,

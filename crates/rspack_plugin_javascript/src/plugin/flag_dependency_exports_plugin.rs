@@ -240,7 +240,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       }
 
       if let Some(exports) = exports {
-        dbg!(&exports);
+        // dbg!(&exports);
         let nested_exports_info = export_info.create_nested_exports_info(self.mg);
         self.merge_exports(
           nested_exports_info,
