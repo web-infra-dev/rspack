@@ -100,10 +100,11 @@ var __WEBPACK_DEFAULT_EXPORT__ = false;
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
+  x: function() { return x; },
   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
  const x = "x";
-var __WEBPACK_DEFAULT_EXPORT__ = false;
+var __WEBPACK_DEFAULT_EXPORT__ = true;
 },
 "./e.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
@@ -123,7 +124,7 @@ __webpack_require__.r(__webpack_exports__);
 
 class def {
     method() {
-        return x;
+        return _dep_f__WEBPACK_IMPORTED_MODULE_0_.x;
     }
 }
 new def().method();

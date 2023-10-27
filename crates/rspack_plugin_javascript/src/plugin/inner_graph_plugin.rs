@@ -119,6 +119,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         }
       }));
     };
+    member_expr.visit_children_with(self);
   }
 
   fn visit_class_member(&mut self, node: &ClassMember) {
@@ -152,11 +153,10 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     self.clear_symbol_if_is_top_level();
   }
 
-  // TODO: expr
   fn visit_fn_expr(&mut self, node: &FnExpr) {
     let scope_level = self.scope_level;
     self.scope_level += 1;
-    node.visit_children_with(self);
+    node.function.visit_children_with(self);
     self.scope_level = scope_level;
   }
 
@@ -182,7 +182,6 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
   fn visit_ident(&mut self, ident: &Ident) {
     if let Some(ExtraSpanInfo::ReWriteUsedByExports) = self.rewrite_usage_span.get(&ident.span) {
       let span = ident.span;
-      dbg!(&self.state.current_top_level_symbol);
       self.on_usage(Box::new(move |deps, used_by_exports| {
         let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
         if let Some(dep) = target_dep {
@@ -200,7 +199,6 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       } else {
         InnerGraphMapUsage::True
       };
-      dbg!(&usage, &ident.sym);
       self.add_usage(ident.sym.clone(), usage);
     }
   }

@@ -9,20 +9,7 @@
  }
  },
  "./c.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-@@ -100,11 +100,10 @@
- 'use strict';
- __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
--  x: function() { return x; },
-   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
- });
-  const x = "x";
--var __WEBPACK_DEFAULT_EXPORT__ = true;
-+var __WEBPACK_DEFAULT_EXPORT__ = false;
- },
- "./e.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
- 'use strict';
-@@ -113,7 +112,7 @@
+@@ -113,7 +113,7 @@
  
  class def {
      method() {
@@ -31,12 +18,3 @@
      }
  }
  },
-@@ -124,7 +123,7 @@
- 
- class def {
-     method() {
--        return _dep_f__WEBPACK_IMPORTED_MODULE_0_.x;
-+        return x;
-     }
- }
- new def().method();
