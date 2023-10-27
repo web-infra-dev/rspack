@@ -6,13 +6,11 @@ use rspack_core::{
 };
 use rspack_hash::RspackHash;
 use swc_core::common::Spanned;
-use swc_core::ecma::ast::ObjectLit;
-use swc_core::ecma::{
-  ast::{Expr, ExprOrSpread, Lit, NewExpr},
-  visit::{noop_visit_type, Visit, VisitWith},
-};
+use swc_core::ecma::ast::{Expr, ExprOrSpread, NewExpr};
+use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use crate::dependency::WorkerDependency;
+use crate::utils::get_literal_str_by_obj_prop;
 
 // TODO: should created by WorkerPlugin
 pub struct WorkerScanner<'a> {
@@ -148,28 +146,10 @@ struct ParsedNewWorkerOptions {
 }
 
 fn parse_new_worker_options(arg: &ExprOrSpread) -> ParsedNewWorkerOptions {
-  fn get_prop_literal_str(obj: &ObjectLit, key: &str) -> Option<String> {
-    obj
-      .props
-      .iter()
-      .filter_map(|p| {
-        p.as_prop()
-          .and_then(|p| p.as_key_value())
-          .filter(|kv| {
-            kv.key.as_str().filter(|k| &*k.value == key).is_some()
-              || kv.key.as_ident().filter(|k| &*k.sym == key).is_some()
-          })
-          .and_then(|name| name.value.as_lit())
-          .and_then(|lit| match lit {
-            Lit::Str(s) => Some(s.value.to_string()),
-            _ => None,
-          })
-      })
-      .next()
-  }
-
   let obj = arg.expr.as_object();
-  let name = obj.and_then(|obj| get_prop_literal_str(obj, "name"));
+  let name = obj
+    .and_then(|obj| get_literal_str_by_obj_prop(obj, "name"))
+    .map(|str| str.value.to_string());
   let span = arg.span();
   ParsedNewWorkerOptions {
     range: (span.real_lo(), span.real_hi()),

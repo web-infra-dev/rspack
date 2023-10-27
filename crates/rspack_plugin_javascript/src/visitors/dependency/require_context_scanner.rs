@@ -46,15 +46,7 @@ impl Visit for RequireContextScanner<'_> {
           };
 
         let mode = if let Some(Lit::Str(str)) = node.args.get(3).and_then(|x| x.expr.as_lit()) {
-          match str.value.to_string().as_str() {
-            "sync" => ContextMode::Sync,
-            "eager" => ContextMode::Eager,
-            "weak" => ContextMode::Weak,
-            "lazy" => ContextMode::Lazy,
-            "lazy-once" => ContextMode::LazyOnce,
-            // TODO should give warning
-            _ => unreachable!("unknown context mode"),
-          }
+          str.value.to_string().as_str().into()
         } else {
           ContextMode::Sync
         };

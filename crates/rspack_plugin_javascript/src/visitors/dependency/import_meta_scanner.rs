@@ -106,6 +106,8 @@ impl Visit for ImportMetaScanner<'_> {
           format!("'{url}'").into(),
           None,
         )));
+    } else if expr_matcher::is_import_meta_webpack_context(expr) {
+      // nothing
     } else if is_member_expr_starts_with_import_meta(expr) {
       self
         .presentational_dependencies
