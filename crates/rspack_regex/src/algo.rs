@@ -59,7 +59,7 @@ pub enum Algo {
 
 impl Algo {
   pub(crate) fn new(expr: &str, flags: &str) -> Result<Algo, Error> {
-    let ignore_case = flags.contains('i');
+    let ignore_case = flags.contains('i') || flags.contains('g') || flags.contains('y');
     if let Some(algo) = Self::try_compile_to_end_with_fast_path(expr) && !ignore_case {
       Ok(algo)
     } else {
@@ -92,6 +92,20 @@ impl Algo {
     match self {
       Algo::Regress(regex) => regex.find(str).is_some(),
       Algo::EndWith { pats } => pats.iter().any(|pat| str.ends_with(pat)),
+    }
+  }
+
+  pub(crate) fn global(&self) -> bool {
+    match self {
+      Algo::Regress(reg) => reg.flags.contains('g'),
+      Algo::EndWith { .. } => unreachable!(),
+    }
+  }
+
+  pub(crate) fn sticky(&self) -> bool {
+    match self {
+      Algo::Regress(reg) => reg.flags.contains('y'),
+      Algo::EndWith { .. } => unreachable!(),
     }
   }
 }
