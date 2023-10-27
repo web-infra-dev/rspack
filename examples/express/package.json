@@ -10,7 +10,8 @@
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
-    "run-script-webpack-plugin": ""
+    "run-script-webpack-plugin": "",
+    "@rspack/core": "workspace:*"
   },
   "dependencies": {
     "express": "4.18.2"

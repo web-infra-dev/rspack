@@ -1,21 +1,16 @@
 const path = require("path");
+const rspack = require("@rspack/core");
 
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
-	context: __dirname,
-	mode: "development",
-	entry: {
-		main: "./src/index.ts"
-	},
+	entry: "./src/index.ts",
 	resolve: {
 		tsConfigPath: path.resolve(__dirname, "tsconfig.json")
 	},
-	builtins: {
-		html: [
-			{
-				template: "./index.html"
-			}
-		]
-	}
+	plugins: [
+		new rspack.HtmlRspackPlugin({
+			template: "./index.html"
+		})
+	]
 };
 module.exports = config;

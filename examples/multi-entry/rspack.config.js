@@ -1,3 +1,4 @@
+const rspack = require("@rspack/core");
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
 	mode: "development",
@@ -8,11 +9,6 @@ const config = {
 	output: {
 		publicPath: "http://localhost:3000"
 	},
-	builtins: {
-		html: [{}],
-		define: {
-			"process.env.NODE_ENV": "'development'"
-		}
-	}
+	plugins: [new rspack.HtmlRspackPlugin()]
 };
 module.exports = config;

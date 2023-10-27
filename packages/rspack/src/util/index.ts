@@ -113,10 +113,16 @@ export function toJsAssetInfo(info?: AssetInfo): JsAssetInfo {
 	};
 }
 const getDeprecationStatus = () => {
-	const defaultEnableDeprecatedWarning = false;
+	const defaultEnableDeprecatedWarning = true;
+	if (
+		process.env.RSPACK_DEP_WARNINGS === "false" ||
+		process.env.RSPACK_DEP_WARNINGS === "0"
+	) {
+		return false;
+	}
 	return (
-		(process.env.RSPACK_BUILTINS_DEPRECATED ??
-			`${defaultEnableDeprecatedWarning}`) !== "false"
+		(process.env.RSPACK_DEP_WARNINGS ?? `${defaultEnableDeprecatedWarning}`) !==
+		"false"
 	);
 };
 const yellow = (content: string) =>
@@ -127,6 +133,12 @@ export const deprecatedWarn = (
 ) => {
 	if (enable) {
 		console.warn(yellow(content));
+		console.warn(
+			indent(
+				"Set env `RSPACK_DEP_WARNINGS` to 'false' to temporarily disable deprecation warnings.\n",
+				"    "
+			)
+		);
 	}
 };
 export const termlink = terminalLink;
