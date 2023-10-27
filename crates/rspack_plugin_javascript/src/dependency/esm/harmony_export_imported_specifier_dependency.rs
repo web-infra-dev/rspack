@@ -194,6 +194,7 @@ impl HarmonyExportImportedSpecifierDependency {
       ignored_exports,
       hidden,
     } = self.get_star_reexports(module_graph, runtime, imported_module_identifier);
+    // dbg!(&exports, &imported_module_identifier, &checked, &hidden);
     if let Some(exports) = exports {
       if exports.is_empty() {
         let mut export_mode = ExportMode::new(ExportModeType::EmptyStar);
@@ -247,6 +248,7 @@ impl HarmonyExportImportedSpecifierDependency {
     imported_module_identifier: &ModuleIdentifier,
   ) -> StarReexportsInfo {
     let imported_exports_info = module_graph.get_exports_info(imported_module_identifier);
+    dbg!(&imported_exports_info);
     let other_export_info = module_graph
       .export_info_map
       .get(&imported_exports_info.other_exports_info)
@@ -258,7 +260,9 @@ impl HarmonyExportImportedSpecifierDependency {
       e.insert("default".into());
       e
     };
+    dbg!(&ignored_exports, no_extra_exports, no_extra_imports);
     let mut hidden_exports = self.discover_active_exports_from_other_star_exports(module_graph);
+    dbg!(&hidden_exports);
     if !no_extra_exports && !no_extra_imports {
       if let Some(hidden_exports) = hidden_exports.as_mut() {
         for e in ignored_exports.iter() {
@@ -279,6 +283,7 @@ impl HarmonyExportImportedSpecifierDependency {
     } else {
       None
     };
+    dbg!(&hidden_exports);
 
     let parent_module = module_graph
       .parent_module_by_dependency_id(&self.id)
@@ -292,11 +297,6 @@ impl HarmonyExportImportedSpecifierDependency {
           .get(export_info_id)
           .expect("should have export info");
         let export_name = export_info.name.clone().unwrap_or_default();
-        // dbg!(
-        //   &export_info.get_used(runtime),
-        //   &ignored_exports,
-        //   &export_name
-        // );
         if ignored_exports.contains(&export_name)
           || matches!(export_info.get_used(runtime), UsageState::Unused)
         {
@@ -312,13 +312,17 @@ impl HarmonyExportImportedSpecifierDependency {
         ) {
           continue;
         }
-        if let Some(hidden) = hidden.as_mut() && hidden_exports.as_ref()
+
+        dbg!(&hidden_exports);
+        if hidden_exports
+          .as_ref()
           .map(|hidden_exports| hidden_exports.contains(&export_name))
-          .is_some()
+          == Some(true)
         {
-          hidden.insert(export_name.clone());
+          hidden.as_mut().expect("According previous condition if hidden_exports is `Some`, hidden must be `Some(HashSet)").insert(export_name.clone());
           continue;
         }
+
         exports.insert(export_name.clone());
         if matches!(
           imported_export_info.provided,
@@ -713,6 +717,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
           &down_casted_dep.id,
           runtime,
         );
+        dbg!(&mode);
         ConnectionState::Bool(!matches!(
           mode.ty,
           ExportModeType::Unused | ExportModeType::EmptyStar
