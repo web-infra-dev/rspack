@@ -185,3 +185,8 @@ pub fn join_jsword(arr: &[JsWord], separator: &str) -> String {
   }
   ret
 }
+
+pub fn is_diff_mode() -> bool {
+  let is_diff_mode = std::env::var("RSPACK_DIFF").ok().unwrap_or_default();
+  is_diff_mode == "true"
+}

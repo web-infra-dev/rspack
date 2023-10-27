@@ -3010,6 +3010,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "itertools",
+ "once_cell",
  "rayon",
  "rspack_core",
  "rspack_error",
