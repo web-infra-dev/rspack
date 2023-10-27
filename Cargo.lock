@@ -2439,6 +2439,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_plugin_json",
  "rspack_plugin_library",
+ "rspack_plugin_limit_chunk_count",
  "rspack_plugin_progress",
  "rspack_plugin_real_content_hash",
  "rspack_plugin_remove_empty_chunks",
@@ -2449,6 +2450,7 @@ dependencies = [
  "rspack_plugin_swc_css_minimizer",
  "rspack_plugin_swc_js_minimizer",
  "rspack_plugin_wasm",
+ "rspack_plugin_web_worker_template",
  "rspack_plugin_worker",
  "rspack_regex",
  "rspack_swc_visitors",
@@ -2959,6 +2961,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_limit_chunk_count"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rspack_core",
+ "rspack_database",
+ "rspack_util",
+]
+
+[[package]]
 name = "rspack_plugin_progress"
 version = "0.1.0"
 dependencies = [
@@ -3099,6 +3111,15 @@ dependencies = [
  "serde_json",
  "swc_core",
  "wasmparser",
+]
+
+[[package]]
+name = "rspack_plugin_web_worker_template"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rspack_core",
+ "rspack_plugin_runtime",
 ]
 
 [[package]]

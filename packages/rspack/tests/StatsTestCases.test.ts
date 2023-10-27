@@ -31,49 +31,56 @@ describe("StatsTestCases", () => {
 			if (fs.existsSync(configPath)) {
 				config = require(configPath);
 			}
-			const options: RspackOptions = {
-				target: "node",
-				context,
-				entry: {
-					main: "./index"
-				},
-				output: {
-					filename: "bundle.js"
-				},
-				...config
-			};
-			options.output!.path = outputPath;
+			let options: RspackOptions[] = (
+				Array.isArray(config) ? config : [config]
+			).map(c => {
+				const result: RspackOptions = {
+					target: "node",
+					context,
+					entry: {
+						main: "./index"
+					},
+					output: {
+						filename: "bundle.js"
+					},
+					...c
+				};
+				result.output!.path = outputPath;
+				return result;
+			});
 			const stats = await util.promisify(rspack)(options);
 			if (!stats) return expect(false);
-			const statsOptions = options.stats ?? {
-				all: true,
-				timings: false,
-				builtAt: false,
-				version: false
-			};
-			const statsJson = stats.toJson(statsOptions);
-			// case ends with error should generate errors
-			if (/error$/.test(testName)) {
-				expect(statsJson.errors!.length > 0);
-			} else if (statsJson.errors) {
-				expect(statsJson.errors.length === 0);
+			for (const option of options) {
+				const statsOptions = option.stats ?? {
+					all: true,
+					timings: false,
+					builtAt: false,
+					version: false
+				};
+				const statsJson = stats.toJson(statsOptions);
+				// case ends with error should generate errors
+				if (/error$/.test(testName)) {
+					expect(statsJson.errors!.length > 0);
+				} else if (statsJson.errors) {
+					expect(statsJson.errors.length === 0);
+				}
+				statsJson.errors?.forEach(error => {
+					error.formatted = error.formatted
+						?.replace(project_dir_reg, "<PROJECT_ROOT>")
+						?.replace(/\\/g, "/");
+				});
+				statsJson.warnings?.forEach(error => {
+					error.formatted = error.formatted
+						?.replace(project_dir_reg, "<PROJECT_ROOT>")
+						?.replace(/\\/g, "/");
+				});
+				expect(statsJson).toMatchSnapshot();
+				let statsString = stats.toString(statsOptions);
+				statsString = statsString
+					.replace(project_dir_reg, "<PROJECT_ROOT>")
+					.replace(/\\/g, "/");
+				expect(statsString).toMatchSnapshot();
 			}
-			statsJson.errors?.forEach(error => {
-				error.formatted = error.formatted
-					?.replace(project_dir_reg, "<PROJECT_ROOT>")
-					?.replace(/\\/g, "/");
-			});
-			statsJson.warnings?.forEach(error => {
-				error.formatted = error.formatted
-					?.replace(project_dir_reg, "<PROJECT_ROOT>")
-					?.replace(/\\/g, "/");
-			});
-			expect(statsJson).toMatchSnapshot();
-			let statsString = stats.toString(statsOptions);
-			statsString = statsString
-				.replace(project_dir_reg, "<PROJECT_ROOT>")
-				.replace(/\\/g, "/");
-			expect(statsString).toMatchSnapshot();
 		});
 	});
 });
