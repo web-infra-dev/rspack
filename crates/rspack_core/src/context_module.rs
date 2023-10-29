@@ -45,6 +45,20 @@ pub enum ContextMode {
   LazyOnce,
 }
 
+impl From<&str> for ContextMode {
+  fn from(value: &str) -> Self {
+    match value {
+      "sync" => ContextMode::Sync,
+      "eager" => ContextMode::Eager,
+      "weak" => ContextMode::Weak,
+      "lazy" => ContextMode::Lazy,
+      "lazy-once" => ContextMode::LazyOnce,
+      // TODO should give warning
+      _ => panic!("unknown context mode"),
+    }
+  }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ContextNameSpaceObject {
   Bool(bool),
@@ -78,6 +92,7 @@ pub struct ContextOptions {
   pub mode: ContextMode,
   pub recursive: bool,
   pub reg_exp: Option<RspackRegex>,
+  // TODO: remove `reg_str`
   pub reg_str: String, // generate context module id
   pub include: Option<String>,
   pub exclude: Option<String>,

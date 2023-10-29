@@ -5,7 +5,7 @@ use rspack_core::{
 };
 
 #[derive(Debug, Clone)]
-pub struct RequireContextDependency {
+pub struct ImportMetaContextDependency {
   start: u32,
   end: u32,
   pub id: DependencyId,
@@ -14,7 +14,7 @@ pub struct RequireContextDependency {
   resource_identifier: String,
 }
 
-impl RequireContextDependency {
+impl ImportMetaContextDependency {
   pub fn new(start: u32, end: u32, options: ContextOptions, span: Option<ErrorSpan>) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(&options);
     Self {
@@ -28,17 +28,17 @@ impl RequireContextDependency {
   }
 }
 
-impl Dependency for RequireContextDependency {
+impl Dependency for ImportMetaContextDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
 
   fn category(&self) -> &DependencyCategory {
-    &DependencyCategory::CommonJS
+    &DependencyCategory::Esm
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::RequireContext
+    &DependencyType::ImportMetaContext
   }
 
   fn span(&self) -> Option<ErrorSpan> {
@@ -46,11 +46,11 @@ impl Dependency for RequireContextDependency {
   }
 
   fn dependency_debug_name(&self) -> &'static str {
-    "RequireContextDependency"
+    "ImportMetaContextDependency"
   }
 }
 
-impl ModuleDependency for RequireContextDependency {
+impl ModuleDependency for ImportMetaContextDependency {
   fn request(&self) -> &str {
     &self.options.request
   }
@@ -72,7 +72,7 @@ impl ModuleDependency for RequireContextDependency {
   }
 }
 
-impl DependencyTemplate for RequireContextDependency {
+impl DependencyTemplate for ImportMetaContextDependency {
   fn apply(
     &self,
     source: &mut TemplateReplaceSource,

@@ -76,6 +76,8 @@ pub enum DependencyType {
   ContextElement,
   // import context
   ImportContext,
+  // import.meta.webpackContext
+  ImportMetaContext,
   // commonjs require context
   CommonJSRequireContext,
   // require.context
@@ -113,6 +115,7 @@ impl Display for DependencyType {
       DependencyType::CssImport => write!(f, "css import"),
       DependencyType::CssCompose => write!(f, "css compose"),
       DependencyType::ContextElement => write!(f, "context element"),
+      // TODO: mode
       DependencyType::ImportContext => write!(f, "import context"),
       DependencyType::CommonJSRequireContext => write!(f, "commonjs require context"),
       DependencyType::RequireContext => write!(f, "require.context"),
@@ -122,6 +125,8 @@ impl Display for DependencyType {
       DependencyType::StaticExports => write!(f, "static exports"),
       DependencyType::Custom(ty) => write!(f, "custom {ty}"),
       DependencyType::ExportInfoApi => write!(f, "export info api"),
+      // TODO: mode
+      DependencyType::ImportMetaContext => write!(f, "import.meta context"),
     }
   }
 }

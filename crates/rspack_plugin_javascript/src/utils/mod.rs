@@ -1,5 +1,8 @@
+mod get_prop_from_obj;
+
 use std::path::Path;
 
+pub use get_prop_from_obj::*;
 use rspack_core::{ErrorSpan, ModuleType};
 use rspack_error::{DiagnosticKind, Error};
 use swc_core::common::{SourceFile, Span, Spanned, SyntaxContext, DUMMY_SP};
