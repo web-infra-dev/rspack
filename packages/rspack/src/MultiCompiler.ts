@@ -8,21 +8,16 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import {
-	Compilation,
-	Compiler,
-	RspackOptions,
-	RspackOptionsNormalized,
-	Stats
-} from ".";
+import { Compiler, RspackOptions, Stats } from ".";
 import ResolverFactory from "./ResolverFactory";
 import { WatchFileSystem } from "./util/fs";
 import Watching from "./Watching";
-import tapable, {
+import {
 	AsyncSeriesHook,
 	Callback,
 	MultiHook,
-	SyncHook
+	SyncHook,
+	SyncBailHook
 } from "tapable";
 import MultiStats from "./MultiStats";
 import asyncLib from "neo-async";
@@ -30,9 +25,6 @@ import ArrayQueue from "./util/ArrayQueue";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import MultiWatching from "./MultiWatching";
 import { WatchOptions } from "./config";
-import { IFs } from "memfs";
-import assert from "assert";
-import { isNil } from "./util";
 
 type Any = any;
 

@@ -1,3 +1,4 @@
+const rspack = require("@rspack/core");
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
 	entry: {
@@ -17,12 +18,14 @@ const config = {
 								syntax: "ecmascript",
 								jsx: true
 							},
+							externalHelpers: true,
+							preserveAllComments: false,
 							transform: {
 								react: {
+									runtime: "automatic",
 									pragma: "React.createElement",
 									pragmaFrag: "React.Fragment",
 									throwIfNamespace: true,
-									development: false,
 									useBuiltins: false
 								}
 							}
@@ -37,13 +40,11 @@ const config = {
 			}
 		]
 	},
-	builtins: {
-		html: [
-			{
-				template: "./index.html"
-			}
-		]
-	},
+	plugins: [
+		new rspack.HtmlRspackPlugin({
+			template: "./index.html"
+		})
+	],
 	experiments: {
 		rspackFuture: {
 			disableTransformByDefault: true

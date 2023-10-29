@@ -117,18 +117,17 @@ impl Visit for ApiScanner<'_> {
           )));
       }
       WEBPACK_RESOURCE_QUERY => {
-        if let Some(resource_query) = &self.resource_data.resource_query {
-          self
-            .presentational_dependencies
-            .push(Box::new(ConstDependency::new(
-              ident.span.real_lo(),
-              ident.span.real_hi(),
-              serde_json::to_string(resource_query)
-                .expect("should render module id")
-                .into(),
-              None,
-            )));
-        }
+        let resource_query = self.resource_data.resource_query.as_deref().unwrap_or("");
+        self
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            serde_json::to_string(resource_query)
+              .expect("should render module id")
+              .into(),
+            None,
+          )));
       }
       WEBPACK_CHUNK_LOAD => {
         self

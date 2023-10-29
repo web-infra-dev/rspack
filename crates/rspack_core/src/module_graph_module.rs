@@ -30,6 +30,7 @@ pub struct ModuleGraphModule {
   pub build_meta: Option<BuildMeta>,
   pub exports: ExportsInfoId,
   pub profile: Option<Box<ModuleProfile>>,
+  pub is_async: bool,
 }
 
 impl ModuleGraphModule {
@@ -55,6 +56,7 @@ impl ModuleGraphModule {
       build_meta: None,
       exports: exports_info_id,
       profile: None,
+      is_async: false,
     }
   }
 
@@ -130,12 +132,15 @@ impl ModuleGraphModule {
         .filter_map(|con: &ModuleGraphConnection| {
           // TODO: runtime opt
           let active_state = con.get_active_state(module_graph, None);
-          // dbg!(&con, &active_state,);
-          // dbg!(&module_graph
-          //   .dependency_by_id(&con.dependency_id)
-          //   .and_then(|dep| dep
-          //     .as_module_dependency()
-          //     .map(|item| item.dependency_debug_name())));
+          // dbg!(
+          //   &con,
+          //   active_state,
+          //   &module_graph
+          //     .dependency_by_id(&con.dependency_id)
+          //     .and_then(|dep| dep
+          //       .as_module_dependency()
+          //       .map(|item| item.dependency_debug_name()))
+          // );
           match active_state {
             crate::ConnectionState::Bool(false) => None,
             _ => Some(con.dependency_id),

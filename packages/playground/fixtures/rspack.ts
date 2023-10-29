@@ -49,7 +49,11 @@ class Rspack {
 	}
 
 	// TODO add some plugin to watch hmr complete
-	async waitingForHmr(poll: () => Promise<boolean>) {
+	waitingForHmr(poll: () => Promise<boolean>) {
+		return this.waitUntil(poll);
+	}
+
+	async waitUntil(poll: () => Promise<boolean>) {
 		const maxTries = 100;
 		for (let tries = 0; tries < maxTries; tries++) {
 			const isSuccess = await poll();
@@ -57,7 +61,7 @@ class Rspack {
 				return;
 			}
 			if (tries === maxTries - 1) {
-				throw new Error("outof max retry time");
+				throw new Error("out of max retry time");
 			}
 			await sleep(200);
 		}

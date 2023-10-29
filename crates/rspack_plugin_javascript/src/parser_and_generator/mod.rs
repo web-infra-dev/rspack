@@ -1,3 +1,4 @@
+use rspack_ast::RspackAst;
 use rspack_core::rspack_sources::{
   BoxSource, MapOptions, OriginalSource, RawSource, ReplaceSource, Source, SourceExt, SourceMap,
   SourceMapSource, SourceMapSourceOptions,
@@ -12,6 +13,7 @@ use rspack_core::{
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::common::SyntaxContext;
 
+use crate::ast::CodegenOptions;
 use crate::inner_graph_plugin::InnerGraphPlugin;
 use crate::utils::syntax_by_module_type;
 use crate::visitors::ScanDependenciesResult;
@@ -47,6 +49,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       build_info,
       build_meta,
       module_identifier,
+      mut additional_data,
       ..
     } = parse_context;
 
@@ -60,14 +63,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let use_simple_source_map = compiler_options.devtool.source_map();
     let original_map = source.map(&MapOptions::new(!compiler_options.devtool.cheap()));
     let source = source.source();
-    let mut ast = match crate::ast::parse(
-      source.to_string(),
-      syntax,
-      &resource_data.resource_path.to_string_lossy(),
-      module_type,
-    ) {
-      Ok(ast) => ast,
-      Err(e) => {
+
+    macro_rules! bail {
+      ($e:expr) => {{
         return Ok(
           ParseResult {
             source: create_source(
@@ -79,10 +77,25 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             presentational_dependencies: vec![],
             analyze_result: Default::default(),
           }
-          .with_diagnostic(e.into()),
+          .with_diagnostic($e.into()),
         );
-      }
-    };
+      }};
+    }
+
+    let mut ast =
+      if let Some(RspackAst::JavaScript(loader_ast)) = additional_data.remove::<RspackAst>() {
+        loader_ast
+      } else {
+        match crate::ast::parse(
+          source.to_string(),
+          syntax,
+          &resource_data.resource_path.to_string_lossy(),
+          module_type,
+        ) {
+          Ok(ast) => ast,
+          Err(e) => bail!(e),
+        }
+      };
 
     run_before_pass(
       resource_data,
@@ -94,8 +107,12 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       &source,
     )?;
 
-    let output: crate::TransformOutput =
-      crate::ast::stringify(&ast, &compiler_options.devtool, Some(true))?;
+    let output: crate::TransformOutput = crate::ast::stringify(
+      &ast,
+      additional_data
+        .remove::<CodegenOptions>()
+        .unwrap_or_else(|| CodegenOptions::new(&compiler_options.devtool, Some(true))),
+    )?;
 
     ast = match crate::ast::parse(
       output.code.clone(),
@@ -104,28 +121,14 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_type,
     ) {
       Ok(ast) => ast,
-      Err(e) => {
-        return Ok(
-          ParseResult {
-            source: create_source(
-              source.to_string(),
-              resource_data.resource_path.to_string_lossy().to_string(),
-              use_simple_source_map,
-            ),
-            dependencies: vec![],
-            presentational_dependencies: vec![],
-            analyze_result: Default::default(),
-          }
-          .with_diagnostic(e.into()),
-        );
-      }
+      Err(e) => bail!(e),
     };
 
     ast.transform(|program, context| {
       program.visit_mut_with(&mut resolver(
         context.unresolved_mark,
         context.top_level_mark,
-        syntax.typescript(),
+        compiler_options.should_transform_by_default() && syntax.typescript(),
       ));
     });
 
@@ -134,7 +137,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       presentational_dependencies,
       mut rewrite_usage_span,
       import_map,
-    } = ast.visit(|program, context| {
+    } = match ast.visit(|program, context| {
       scan_dependencies(
         program,
         context.unresolved_mark,
@@ -145,7 +148,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         build_meta,
         module_identifier,
       )
-    });
+    }) {
+      Ok(result) => result,
+      Err(e) => bail!(e),
+    };
 
     let analyze_result = if compiler_options.builtins.tree_shaking.enable() {
       JsModule::new(&ast, &dependencies, module_identifier, compiler_options).analyze()
@@ -176,6 +182,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             top_level_ctxt,
             &mut rewrite_usage_span,
             &import_map,
+            module_identifier,
           );
           plugin.enable();
           program.visit_with(&mut plugin);
@@ -266,11 +273,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .for_each(|dependency| dependency.apply(&mut source, &mut context));
       };
 
-      Ok(render_init_fragments(
-        source.boxed(),
-        init_fragments,
-        generate_context,
-      ))
+      render_init_fragments(source.boxed(), init_fragments, generate_context)
     } else {
       Err(internal_error!(
         "Unsupported source type {:?} for plugin JavaScript",

@@ -1,9 +1,19 @@
+use std::sync::Arc;
+
+use async_trait::async_trait;
+use rspack_core::{Compilation, ConnectionState, ModuleGraph, Plugin, ResolvedExportInfoTarget};
+use rspack_error::Result;
+use rustc_hash::FxHashSet as HashSet;
 // use rspack_core::Plugin;
 // use rspack_error::Result;
 use swc_core::common::{Span, Spanned, SyntaxContext, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
+
+use crate::dependency::{
+  HarmonyExportImportedSpecifierDependency, HarmonyImportSpecifierDependency,
+};
 
 #[derive(Debug)]
 pub struct SideEffectsFlagPluginVisitor {
@@ -275,5 +285,127 @@ impl ClassKey for ClassMember {
         Key::Public(ref public) => Some(public),
       },
     }
+  }
+}
+
+#[derive(Debug, Default)]
+pub struct SideEffectsFlagPlugin;
+
+#[async_trait]
+impl Plugin for SideEffectsFlagPlugin {
+  async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
+    // SAFETY: this method will not modify the map, and we can guarantee there is no other
+    // thread access the map at the same time.
+    let mg = &mut compilation.module_graph;
+    let module_id_list = mg
+      .module_identifier_to_module
+      .keys()
+      .cloned()
+      .collect::<Vec<_>>();
+    for module_identifier in module_id_list {
+      let mut module_chain = HashSet::default();
+      let module = match mg.module_by_identifier(&module_identifier) {
+        Some(module) => module,
+        None => continue,
+      };
+      let side_effects_state = module.get_side_effects_connection_state(mg, &mut module_chain);
+      if side_effects_state != rspack_core::ConnectionState::Bool(false) {
+        continue;
+      }
+      let cur_exports_info_id = mg.get_exports_info(&module_identifier).id;
+
+      let incoming_connections = mg.get_incoming_connections_cloned(module);
+      for con in incoming_connections {
+        let dep = match mg.dependency_by_id(&con.dependency_id) {
+          Some(dep) => dep,
+          None => continue,
+        };
+        let dep_id = *dep.id();
+        let is_reexport = dep
+          .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
+          .is_some();
+        let is_valid_import_specifier_dep = if let Some(import_specifier_dep) =
+          dep.downcast_ref::<HarmonyImportSpecifierDependency>()
+        {
+          !import_specifier_dep.namespace_object_as_context
+        } else {
+          false
+        };
+        if !is_reexport && !is_valid_import_specifier_dep {
+          continue;
+        }
+        if let Some(name) = dep
+          .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
+          .and_then(|dep| dep.name.clone())
+        {
+          let export_info_id = mg.get_export_info(
+            con
+              .original_module_identifier
+              .expect("should have original_module_identifier"),
+            &name,
+          );
+          export_info_id.move_target(
+            mg,
+            Arc::new(|target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
+              mg.module_by_identifier(&target.module)
+                .expect("should have module")
+                .get_side_effects_connection_state(mg, &mut HashSet::default())
+                == ConnectionState::Bool(false)
+            }),
+            Box::new(
+              move |target: &ResolvedExportInfoTarget, mg: &mut ModuleGraph| {
+                mg.update_module(&dep_id, &target.module);
+                // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
+                let ids = dep_id.get_ids(mg);
+                let processed_ids = target
+                  .exports
+                  .as_ref()
+                  .map(|item| {
+                    let mut ret = Vec::from_iter(item.iter().cloned());
+                    ret.extend_from_slice(&ids[1..]);
+                    ret
+                  })
+                  .unwrap_or_else(|| ids[1..].to_vec());
+                dep_id.set_ids(processed_ids, mg);
+                mg.connection_by_dependency(&dep_id).cloned()
+              },
+            ),
+          );
+          continue;
+        }
+
+        let ids = dep_id.get_ids(mg);
+        if !ids.is_empty() {
+          let export_info_id = cur_exports_info_id.get_export_info(&ids[0], mg);
+
+          let target = export_info_id.get_target(
+            mg,
+            Some(Arc::new(
+              |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
+                mg.module_by_identifier(&target.module)
+                  .expect("should have module graph")
+                  .get_side_effects_connection_state(mg, &mut HashSet::default())
+                  == ConnectionState::Bool(false)
+              },
+            )),
+          );
+          let target = match target {
+            Some(target) => target,
+            None => continue,
+          };
+          mg.update_module(&dep_id, &target.module);
+          // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
+          let processed_ids = target
+            .exports
+            .map(|mut item| {
+              item.extend_from_slice(&ids[1..]);
+              item
+            })
+            .unwrap_or_else(|| ids[1..].to_vec());
+          dep_id.set_ids(processed_ids, mg);
+        }
+      }
+    }
+    Ok(None)
   }
 }

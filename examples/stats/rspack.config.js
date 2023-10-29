@@ -1,3 +1,4 @@
+const rspack = require("@rspack/core");
 class StatsPrinterTestPlugin {
 	apply(compiler) {
 		compiler.hooks.compilation.tap("StatsPrinterTestPlugin", compilation => {
@@ -41,13 +42,11 @@ const config = {
 		main: "./src/index.js"
 	},
 	stats: true,
-	plugins: [new StatsPrinterTestPlugin()],
-	builtins: {
-		html: [
-			{
-				template: "./index.html"
-			}
-		]
-	}
+	plugins: [
+		new StatsPrinterTestPlugin(),
+		new rspack.HtmlRspackPlugin({
+			template: "./index.html"
+		})
+	]
 };
 module.exports = config;

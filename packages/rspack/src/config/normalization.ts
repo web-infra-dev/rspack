@@ -482,6 +482,7 @@ export interface ExperimentsNormalized {
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	newSplitChunks?: boolean;
+	topLevelAwait?: boolean;
 	css?: boolean;
 	futureDefaults?: boolean;
 	rspackFuture?: RspackFutureOptions;

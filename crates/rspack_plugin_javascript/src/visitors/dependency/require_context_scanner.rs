@@ -1,6 +1,5 @@
-use rspack_core::{
-  BoxDependency, ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt,
-};
+use rspack_core::{clean_regexp_in_context_module, BoxDependency, ContextMode};
+use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
 use rspack_regex::RspackRegex;
 use swc_core::ecma::{
   ast::{CallExpr, Lit},
@@ -47,15 +46,7 @@ impl Visit for RequireContextScanner<'_> {
           };
 
         let mode = if let Some(Lit::Str(str)) = node.args.get(3).and_then(|x| x.expr.as_lit()) {
-          match str.value.to_string().as_str() {
-            "sync" => ContextMode::Sync,
-            "eager" => ContextMode::Eager,
-            "weak" => ContextMode::Weak,
-            "lazy" => ContextMode::Lazy,
-            "lazy-once" => ContextMode::LazyOnce,
-            // TODO should give warning
-            _ => unreachable!("unknown context mode"),
-          }
+          str.value.to_string().as_str().into()
         } else {
           ContextMode::Sync
         };
@@ -67,7 +58,7 @@ impl Visit for RequireContextScanner<'_> {
             ContextOptions {
               mode,
               recursive,
-              reg_exp,
+              reg_exp: clean_regexp_in_context_module(reg_exp),
               reg_str,
               include: None,
               exclude: None,

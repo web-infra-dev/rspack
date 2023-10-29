@@ -873,6 +873,8 @@ impl Compilation {
         })
     };
 
+    // dbg!(&self.module_graph.module_identifier_to_module_graph_module);
+
     // add context module and context element module to bailout_module_identifiers
     if self.options.builtins.tree_shaking.enable() {
       self.bailout_module_identifiers = self

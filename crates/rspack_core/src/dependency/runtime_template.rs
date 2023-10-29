@@ -61,11 +61,12 @@ pub fn export_from_import(
 
   if !export_name.is_empty() {
     // TODO check used
-    let access = format!("{import_var}{}", property_access(&export_name, 0));
+    let property = property_access(&export_name, 0);
     if is_call && !call_context {
-      return format!("(0, {access})");
+      format!("(0, {import_var}{property})")
+    } else {
+      format!("{import_var}{property}")
     }
-    access
   } else {
     import_var.to_string()
   }
@@ -216,11 +217,17 @@ pub fn module_namespace_promise(
       if matches!(exports_type, ExportsType::Dynamic) {
         fake_type |= FakeNamespaceObjectMode::RETURN_VALUE;
       }
-      if matches!(exports_type, ExportsType::DefaultWithNamed) {
+      if matches!(
+        exports_type,
+        ExportsType::DefaultWithNamed | ExportsType::Dynamic
+      ) {
         fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
       }
       runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
-      if compilation.module_graph.is_async(&module.identifier()) {
+      if matches!(
+        compilation.module_graph.is_async(&module.identifier()),
+        Some(true)
+      ) {
         if let Some(header) = header {
           appending = format!(
             ".then(function() {{\n {header}\nreturn {}\n}})",

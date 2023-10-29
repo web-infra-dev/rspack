@@ -44,6 +44,10 @@ impl Dependency for RequireContextDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "RequireContextDependency"
+  }
 }
 
 impl ModuleDependency for RequireContextDependency {
@@ -66,10 +70,6 @@ impl ModuleDependency for RequireContextDependency {
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
   }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "RequireContextDependency"
-  }
 }
 
 impl DependencyTemplate for RequireContextDependency {
@@ -91,7 +91,7 @@ impl DependencyTemplate for RequireContextDependency {
     source.replace(
       self.start,
       self.end,
-      format!("{}({module_id_str})", RuntimeGlobals::REQUIRE,).as_str(),
+      format!("{}({module_id_str})", RuntimeGlobals::REQUIRE).as_str(),
       None,
     );
   }

@@ -25,7 +25,7 @@ fn samples(fixture_path: PathBuf) {
 fn tree_shaking(fixture_path: PathBuf) {
   // For each test case
   // First test is old version tree shaking snapshot test
-  // test_fixture(&fixture_path, Box::new(|_, _| {}), None);
+  test_fixture(&fixture_path, Box::new(|_, _| {}), None);
   // second test is webpack based tree shaking
   IS_NEW_TREESHAKING.store(true, Ordering::SeqCst);
   test_fixture(
@@ -38,6 +38,9 @@ fn tree_shaking(fixture_path: PathBuf) {
         options.optimization.used_exports = UsedExportsOption::True;
         options.builtins.tree_shaking = TreeShaking::False;
 
+        // if options.optimization.side_effects.is_enable() {
+        //   plugins.push(Box::<SideEffectsFlagPlugin>::default());
+        // }
         plugins.push(Box::<FlagDependencyExportsPlugin>::default());
         plugins.push(Box::<FlagDependencyUsagePlugin>::default());
       },

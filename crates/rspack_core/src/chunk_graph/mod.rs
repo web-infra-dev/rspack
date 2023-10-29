@@ -6,6 +6,7 @@ use crate::{ChunkGroupUkey, ChunkUkey};
 pub mod chunk_graph_chunk;
 pub mod chunk_graph_module;
 pub use chunk_graph_chunk::ChunkGraphChunk;
+pub use chunk_graph_chunk::ChunkSizeOptions;
 pub use chunk_graph_module::ChunkGraphModule;
 
 #[derive(Debug, Clone, Default)]

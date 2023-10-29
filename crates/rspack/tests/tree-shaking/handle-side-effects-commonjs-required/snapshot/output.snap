@@ -10,10 +10,6 @@ console.log('something');
 "./source/index.js": function (module, exports, __webpack_require__) {
 var _class_call_check = __webpack_require__(/* @swc/helpers/_/_class_call_check */"../../../../../node_modules/@swc/helpers/esm/_class_call_check.js");
 var _create_class = __webpack_require__(/* @swc/helpers/_/_create_class */"../../../../../node_modules/@swc/helpers/esm/_create_class.js");
-var test = function test() {
-    var res = new Response();
-    return res;
-};
 var Response = function() {
     "use strict";
     function Response(mode) {
@@ -33,6 +29,10 @@ var Response = function() {
     ]);
     return Response;
 }();
+function test() {
+    var res = new Response();
+    return res;
+}
 var result = test();
 module.exports = result;
 },
@@ -40,8 +40,8 @@ module.exports = result;
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  '_class_call_check': function() { return _class_call_check; },
-  '_': function() { return _class_call_check; }
+  _class_call_check: function() { return _class_call_check; },
+  _: function() { return _class_call_check; }
 });
  function _class_call_check(instance, Constructor) {
     if (!(instance instanceof Constructor)) throw new TypeError("Cannot call a class as a function");
@@ -52,8 +52,8 @@ __webpack_require__.d(__webpack_exports__, {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  '_create_class': function() { return _create_class; },
-  '_': function() { return _create_class; }
+  _create_class: function() { return _create_class; },
+  _: function() { return _create_class; }
 });
 function _defineProperties(target, props) {
     for(var i = 0; i < props.length; i++){

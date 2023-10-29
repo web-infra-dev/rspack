@@ -13,7 +13,7 @@ use swc_core::ecma::visit::{as_folder, Fold, VisitMut, VisitMutWith};
 pub type Provide = HashMap<String, Vec<String>>;
 pub type RawProvide = Provide;
 
-pub fn provide_builtin(opts: &Provide, unresolved_mark: Mark) -> impl Fold + '_ {
+pub fn provide(opts: &Provide, unresolved_mark: Mark) -> impl Fold + '_ {
   as_folder(ProvideBuiltin::new(opts, unresolved_mark))
 }
 static SOURCE_DOT: &str = r#"."#;

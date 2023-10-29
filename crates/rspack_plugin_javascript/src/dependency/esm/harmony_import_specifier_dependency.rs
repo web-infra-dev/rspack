@@ -16,7 +16,7 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct HarmonyImportSpecifierDependency {
-  id: DependencyId,
+  pub id: DependencyId,
   request: JsWord,
   source_order: i32,
   shorthand: bool,
@@ -27,7 +27,7 @@ pub struct HarmonyImportSpecifierDependency {
   direct_import: bool,
   specifier: Specifier,
   used_by_exports: Option<UsedByExports>,
-  namespace_object_as_context: bool,
+  pub namespace_object_as_context: bool,
   referenced_properties_in_destructuring: Option<HashSet<JsWord>>,
   resource_identifier: String,
 }
@@ -221,6 +221,16 @@ impl Dependency for HarmonyImportSpecifierDependency {
   ) -> ConnectionState {
     ConnectionState::Bool(false)
   }
+
+  fn get_ids(&self, mg: &ModuleGraph) -> Vec<JsWord> {
+    mg.get_dep_meta_if_existing(self.id)
+      .map(|meta| meta.ids.clone())
+      .unwrap_or_else(|| self.ids.clone())
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "HarmonyImportSpecifierDependency"
+  }
 }
 
 impl ModuleDependency for HarmonyImportSpecifierDependency {
@@ -247,7 +257,8 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     //   self.request(),
     //   self.used_by_exports.as_ref()
     // );
-    get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
+    let ret = get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref());
+    ret
   }
 
   fn get_referenced_exports(
@@ -255,23 +266,22 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     module_graph: &ModuleGraph,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
-    // TODO: use self.getIds() instead
+    let mut ids = self.get_ids(module_graph);
     // namespace import
-    if self.ids.is_empty() {
+    if ids.is_empty() {
       return self.get_referenced_exports_in_destructuring(None);
     }
 
-    let mut ids = vec![];
     let mut namespace_object_as_context = self.namespace_object_as_context;
-    if let Some(id) = self.ids.get(0) && id == "default" {
+    if let Some(id) = ids.get(0) && id == "default" {
       let parent_module = module_graph.parent_module_by_dependency_id(&self.id).expect("should have parent module");
       let exports_type = get_exports_type(module_graph, &self.id, &parent_module);
       match exports_type {
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
-          if self.ids.len() == 1 {
+          if ids.len() == 1 {
             return self.get_referenced_exports_in_destructuring(None);
           }
-          ids = self.ids.iter().skip(1).collect::<Vec<_>>();
+          ids.drain(0..1);
           namespace_object_as_context = true;
         }
         ExportsType::Dynamic => {
@@ -289,10 +299,6 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
       ids.shrink_to(ids.len() - 1);
     }
 
-    self.get_referenced_exports_in_destructuring(Some(&self.ids))
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyImportSpecifierDependency"
+    self.get_referenced_exports_in_destructuring(Some(&ids))
   }
 }

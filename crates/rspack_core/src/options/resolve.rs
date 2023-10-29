@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{borrow::Cow, path::PathBuf};
 
 use hashlink::LinkedHashMap;
 
@@ -115,11 +115,13 @@ impl Resolve {
   }
 }
 
-#[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
-pub struct ByDependency(LinkedHashMap<DependencyCategory, Resolve>);
+type DependencyCategoryStr = Cow<'static, str>;
 
-impl FromIterator<(DependencyCategory, Resolve)> for ByDependency {
-  fn from_iter<I: IntoIterator<Item = (DependencyCategory, Resolve)>>(i: I) -> Self {
+#[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
+pub struct ByDependency(LinkedHashMap<DependencyCategoryStr, Resolve>);
+
+impl FromIterator<(DependencyCategoryStr, Resolve)> for ByDependency {
+  fn from_iter<I: IntoIterator<Item = (DependencyCategoryStr, Resolve)>>(i: I) -> Self {
     Self(LinkedHashMap::from_iter(i.into_iter()))
   }
 }
@@ -139,7 +141,7 @@ impl ByDependency {
   }
 
   pub fn get(&self, k: &DependencyCategory) -> Option<&Resolve> {
-    self.0.get(k)
+    self.0.get(k.as_str()).or_else(|| self.0.get("default"))
   }
 }
 

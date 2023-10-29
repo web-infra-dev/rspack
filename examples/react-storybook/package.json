@@ -24,6 +24,7 @@
     "@types/react-dom": "^18.0.8",
     "prop-types": "^15.8.1",
     "storybook": "^7.0.0",
-    "storybook-react-rspack": "7.0.0-rc.18"
+    "storybook-react-rspack": "7.0.0-rc.18",
+    "@rspack/core": "workspace:*"
   }
 }

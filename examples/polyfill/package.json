@@ -12,7 +12,8 @@
     "core-js": "3.30.1"
   },
   "devDependencies": {
-    "@rspack/cli": "workspace:*"
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*"
   },
   "sideEffects": false,
   "keywords": [],

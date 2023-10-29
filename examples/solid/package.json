@@ -18,5 +18,8 @@
   },
   "keywords": [],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@rspack/core": "workspace:*"
+  }
 }

@@ -1,0 +1,36 @@
+# Origin Source
+# https://github.com/ant-design/ant-design/blob/79f566b7f8abb1012ef55b0d2793bfdf5595b85d/.github/workflows/issue-reply.yml
+name: Issue Labeled
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+jobs:
+  issue-labeled:
+    permissions:
+      issues: write # for actions-cool/issues-helper to update issues
+      pull-requests: write # for actions-cool/issues-helper to update PRs
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🤔 Need Reproduce
+        if: github.event.label.name == 'need reproduction'
+        uses: actions-cool/issues-helper@v3
+        with:
+          actions: "create-comment"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            Hello @${{ github.event.issue.user.login }}, sorry we can't investigate the problem further without reproduction demo, please provide a repro demo by forking [rspack-repro](https://github.com/web-infra-dev/rspack-repro), or provide a minimal GitHub repository by yourself. Issues labeled by `need reproduction` will be closed if no activities in 3 days.
+      - name: invalid
+        if: github.event.label.name == 'invalid'
+        uses: actions-cool/issues-helper@v3
+        with:
+          actions: "create-comment,close-issue"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            Hello @${{ github.event.issue.user.login }}, your issue has been closed because it does not conform to our issue requirements. Please use our [issue template](https://github.com/web-infra-dev/rspack/issues/new/choose) to create an issue, thank you!

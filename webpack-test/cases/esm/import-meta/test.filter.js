@@ -1,3 +1,4 @@
+const { FilteredStatus } = require("../../../lib/util/filterUtil")
 
 /*
 const supportsRequireInModule = require("../../../helpers/supportsRequireInModule");
@@ -7,6 +8,6 @@ module.exports = config => {
 };
 
 */
-module.exports = () => {return false}
+module.exports = () => {return [FilteredStatus.PARTIAL_PASS, "https://github.com/web-infra-dev/rspack/issues/4350"]}
 
 							

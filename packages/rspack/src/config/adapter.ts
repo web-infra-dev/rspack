@@ -25,7 +25,9 @@ import { parseResource } from "../util/identifier";
 import {
 	ComposeJsUseOptions,
 	LoaderContext,
-	createRawModuleRuleUses
+	createRawModuleRuleUses,
+	LoaderDefinition,
+	LoaderDefinitionFunction
 } from "./adapterRuleUse";
 import {
 	CrossOriginLoading,
@@ -58,7 +60,7 @@ import {
 	RspackOptionsNormalized
 } from "./normalization";
 
-export type { LoaderContext };
+export type { LoaderContext, LoaderDefinition, LoaderDefinitionFunction };
 
 export const getRawOptions = (
 	options: RspackOptionsNormalized,
@@ -692,21 +694,20 @@ function toRawSplitChunksOptions(
 	const { name, cacheGroups = {}, ...passThrough } = sc;
 	return {
 		name: name === false ? undefined : name,
-		cacheGroups: Object.fromEntries(
-			Object.entries(cacheGroups)
-				.filter(([_key, group]) => group !== false)
-				.map(([key, group]) => {
-					group = group as Exclude<typeof group, false>;
+		cacheGroups: Object.entries(cacheGroups)
+			.filter(([_key, group]) => group !== false)
+			.map(([key, group]) => {
+				group = group as Exclude<typeof group, false>;
 
-					const { test, name, ...passThrough } = group;
-					const rawGroup: RawCacheGroupOptions = {
-						test,
-						name: name === false ? undefined : name,
-						...passThrough
-					};
-					return [key, rawGroup];
-				})
-		),
+				const { test, name, ...passThrough } = group;
+				const rawGroup: RawCacheGroupOptions = {
+					key,
+					test,
+					name: name === false ? undefined : name,
+					...passThrough
+				};
+				return rawGroup;
+			}),
 		...passThrough
 	};
 }
@@ -744,6 +745,7 @@ function getRawExperiments(
 		incrementalRebuild,
 		asyncWebAssembly,
 		newSplitChunks,
+		topLevelAwait,
 		css,
 		rspackFuture
 	} = experiments;
@@ -752,6 +754,7 @@ function getRawExperiments(
 			!isNil(incrementalRebuild) &&
 			!isNil(asyncWebAssembly) &&
 			!isNil(newSplitChunks) &&
+			!isNil(topLevelAwait) &&
 			!isNil(css) &&
 			!isNil(rspackFuture)
 	);
@@ -761,6 +764,7 @@ function getRawExperiments(
 		incrementalRebuild: getRawIncrementalRebuild(incrementalRebuild),
 		asyncWebAssembly,
 		newSplitChunks,
+		topLevelAwait,
 		css,
 		rspackFuture: getRawRspackFutureOptions(rspackFuture)
 	};

@@ -16,7 +16,7 @@ impl NapiErrorExt for Error {
   fn into_rspack_error(self) -> rspack_error::Error {
     rspack_error::Error::Napi {
       status: format!("{}", self.status),
-      reason: self.reason.clone(),
+      reason: self.reason,
       backtrace: "".to_owned(),
     }
   }
@@ -49,7 +49,7 @@ fn get_backtrace() -> String {
 #[inline(always)]
 fn extract_stack_or_message_from_napi_error(env: &Env, err: Error) -> (String, Option<String>) {
   if !err.reason.is_empty() {
-    return (err.reason.clone(), None);
+    return (err.reason, None);
   }
 
   match unsafe { ToNapiValue::to_napi_value(env.raw(), err) } {

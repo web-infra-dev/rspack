@@ -12,7 +12,8 @@
     "@rspack/cli": "workspace:*",
     "postcss-loader": "7.3.3",
     "autoprefixer": "10.4.15",
-    "postcss-plugin-px2rem": "0.8.1"
+    "postcss-plugin-px2rem": "0.8.1",
+    "@rspack/core": "workspace:*"
   },
   "browserslist": "last 4 version",
   "sideEffects": false,

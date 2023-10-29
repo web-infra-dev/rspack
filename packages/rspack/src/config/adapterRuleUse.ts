@@ -9,13 +9,7 @@ import { ResolveRequest } from "enhanced-resolve";
 import { Compiler } from "../Compiler";
 import { Logger } from "../logging/Logger";
 import Hash from "../util/hash";
-import {
-	Mode,
-	Resolve,
-	RuleSetUse,
-	RuleSetUseItem,
-	RuleSetLoaderWithOptions
-} from "./zod";
+import { Mode, Resolve, RuleSetUseItem, RuleSetLoaderWithOptions } from "./zod";
 import { parsePathQueryFragment } from "../loader-runner";
 import { deprecatedWarn, isNil, termlink } from "../util";
 import {

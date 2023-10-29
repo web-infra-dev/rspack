@@ -1,6 +1,7 @@
 import type { JsAssetInfo, JsStatsError } from "@rspack/binding";
 import { AssetInfo } from "../Compilation";
 import terminalLink from "terminal-link";
+import { LoaderObject } from "../config/adapterRuleUse";
 
 export function mapValues(
 	record: Record<string, string>,
@@ -87,6 +88,10 @@ export function indent(str: string, prefix: string) {
 	return prefix + rem;
 }
 
+export function stringifyLoaderObject(o: LoaderObject): string {
+	return o.path + o.query + o.fragment;
+}
+
 export function asArray<T>(item: T[]): T[];
 export function asArray<T>(item: readonly T[]): readonly T[];
 export function asArray<T>(item: T): T[];
@@ -108,10 +113,16 @@ export function toJsAssetInfo(info?: AssetInfo): JsAssetInfo {
 	};
 }
 const getDeprecationStatus = () => {
-	const defaultEnableDeprecatedWarning = false;
+	const defaultEnableDeprecatedWarning = true;
+	if (
+		process.env.RSPACK_DEP_WARNINGS === "false" ||
+		process.env.RSPACK_DEP_WARNINGS === "0"
+	) {
+		return false;
+	}
 	return (
-		(process.env.RSPACK_BUILTINS_DEPRECATED ??
-			`${defaultEnableDeprecatedWarning}`) !== "false"
+		(process.env.RSPACK_DEP_WARNINGS ?? `${defaultEnableDeprecatedWarning}`) !==
+		"false"
 	);
 };
 const yellow = (content: string) =>
@@ -122,6 +133,12 @@ export const deprecatedWarn = (
 ) => {
 	if (enable) {
 		console.warn(yellow(content));
+		console.warn(
+			indent(
+				"Set env `RSPACK_DEP_WARNINGS` to 'false' to temporarily disable deprecation warnings.\n",
+				"    "
+			)
+		);
 	}
 };
 export const termlink = terminalLink;

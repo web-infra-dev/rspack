@@ -29,6 +29,7 @@ pub struct Chunk {
   pub id: Option<String>,
   pub ids: Vec<String>,
   pub id_name_hints: HashSet<String>,
+  pub prevent_integration: bool,
   pub files: HashSet<String>,
   pub auxiliary_files: HashSet<String>,
   pub groups: HashSet<ChunkGroupUkey>,
@@ -56,6 +57,7 @@ impl Chunk {
       id: None,
       ids: vec![],
       id_name_hints: Default::default(),
+      prevent_integration: false,
       files: Default::default(),
       auxiliary_files: Default::default(),
       groups: Default::default(),
@@ -370,6 +372,10 @@ impl Chunk {
         chunk_group.id(compilation).hash(hasher);
       }
     }
+  }
+
+  pub fn remove_group(&mut self, chunk_group: &ChunkGroupUkey) {
+    self.groups.remove(chunk_group);
   }
 }
 

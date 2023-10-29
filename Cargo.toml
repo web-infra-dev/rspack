@@ -28,6 +28,7 @@ mimalloc-rust      = { version = "0.2" }
 mime_guess         = { version = "2.0.4" }
 once_cell          = { version = "1.18.0" }
 paste              = { version = "1.0" }
+path-clean         = { version = "1.0.1" }
 pathdiff           = { version = "0.2.1" }
 preset_env_base    = { version = "0.4.5" }
 rayon              = { version = "1.7.0" }
@@ -50,20 +51,20 @@ ustr               = { version = "0.9.0" }
 xxhash-rust        = { version = "0.8.6" }
 
 # Pinned
-napi                = { version = "=2.12.5" }
+napi                = { version = "=2.13.3" }
 napi-build          = { version = "=2.0.1" }
-napi-derive         = { version = "=2.12.3" }
+napi-derive         = { version = "=2.13.0" }
 napi-sys            = { version = "=2.2.3" }
-styled_components   = { version = "=0.72.0" }
+styled_components   = { version = "0.77.0" }
 swc_config          = { version = "=0.1.7" }
-swc_core            = { version = "=0.83.1", default-features = false }
-swc_css             = { version = "=0.155.2" }
-swc_ecma_minifier   = { version = "=0.187.0", default-features = false }
-swc_emotion         = { version = "=0.42.0" }
-swc_error_reporters = { version = "=0.16.1" }
-swc_html            = { version = "=0.131.0" }
-swc_html_minifier   = { version = "=0.128.0" }
-swc_node_comments   = { version = "=0.19.1" }
+swc_core            = { version = "0.86.9", default-features = false }
+swc_css             = { version = "0.157.1" }
+swc_ecma_minifier   = { version = "0.189.9", default-features = false }
+swc_emotion         = { version = "=0.53.0" }
+swc_error_reporters = { version = "=0.17.0" }
+swc_html            = { version = "=0.134.10" }
+swc_html_minifier   = { version = "=0.131.9" }
+swc_node_comments   = { version = "=0.20.0" }
 tikv-jemallocator   = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
 
 [profile.dev]

@@ -116,6 +116,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
               };
               if let Some(reference) = self.import_map.get(&orig.to_id()) {
                 let ids = vec![(export.clone(), reference.names.clone())];
+                // dbg!(&reference);
                 let mode_ids = match reference.specifier {
                   Specifier::Namespace(_) => {
                     vec![]

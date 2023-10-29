@@ -14,7 +14,8 @@
     "svelte-preprocess": "^5.0.1",
     "tslib": "^2.5.0",
     "typescript": "5.0.2",
-    "webpack-bundle-analyzer": "4.6.1"
+    "webpack-bundle-analyzer": "4.6.1",
+    "@rspack/core": "workspace:*"
   },
   "scripts": {
     "build": "rspack build",

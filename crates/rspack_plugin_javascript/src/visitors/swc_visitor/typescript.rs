@@ -1,15 +1,13 @@
 use std::sync::Arc;
 
 use swc_core::common::{comments::Comments, Mark, SourceMap};
-use swc_core::ecma::transforms::base::Assumptions;
 use swc_core::ecma::transforms::{
   react::{default_pragma, default_pragma_frag},
-  typescript::{self, TsEnumConfig, TsImportExportAssignConfig},
+  typescript,
 };
 use swc_core::ecma::visit::Fold;
 
 pub fn typescript<'a>(
-  assumptions: Assumptions,
   top_level_mark: Mark,
   comments: Option<&'a dyn Comments>,
   cm: &Arc<SourceMap>,
@@ -24,17 +22,12 @@ pub fn typescript<'a>(
     _ => TsImportExportAssignConfig::Classic,
   };*/
 
-  typescript::strip_with_jsx(
+  typescript::tsx(
     cm.clone(),
-    typescript::Config {
+    typescript::Config::default(),
+    typescript::TsxConfig {
       pragma: Some(default_pragma()),
       pragma_frag: Some(default_pragma_frag()),
-      ts_enum_config: TsEnumConfig {
-        treat_const_enum_as_enum: false,
-        ts_enum_is_readonly: assumptions.ts_enum_is_readonly,
-      },
-      import_export_assign_config: TsImportExportAssignConfig::Classic,
-      ..Default::default()
     },
     comments,
     top_level_mark,
