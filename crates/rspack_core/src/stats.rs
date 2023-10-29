@@ -150,7 +150,7 @@ impl Stats<'_> {
       .runtime_modules
       .iter()
       .map(|(identifier, module)| {
-        self.get_runtime_module(identifier, &module, reasons, module_assets)
+        self.get_runtime_module(identifier, module, reasons, module_assets)
       })
       .collect::<Result<_>>()?;
     let mut modules = modules
@@ -505,7 +505,7 @@ impl Stats<'_> {
       .collect();
     chunks.sort_unstable();
 
-    return Ok(StatsModule {
+    Ok(StatsModule {
       r#type: "module",
       module_type: ModuleType::Runtime,
       identifier: module.identifier(),
@@ -523,7 +523,7 @@ impl Stats<'_> {
       modules: None,
       source: None,
       profile: None,
-    });
+    })
   }
   fn get_chunk_relations(&self, chunk: &Chunk) -> (Vec<String>, Vec<String>, Vec<String>) {
     let mut parents = HashSet::default();
