@@ -195,6 +195,13 @@ import rawModule from './raw.png';
       "logging": {},
       "modules": [
         {
+          "filteredChildren": 2,
+          "moduleType": "runtime",
+          "size": 320,
+          "sizes": {},
+          "type": "runtime modules",
+        },
+        {
           "assets": [],
           "chunks": [
             "main",
@@ -522,6 +529,13 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "logging": {},
       "modules": [
         {
+          "filteredChildren": 7,
+          "moduleType": "runtime",
+          "size": 1120,
+          "sizes": {},
+          "type": "runtime modules",
+        },
+        {
           "assets": [],
           "chunks": [
             "main",
@@ -733,6 +747,13 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "logging": {},
       "modules": [
         {
+          "filteredChildren": 6,
+          "moduleType": "runtime",
+          "size": 960,
+          "sizes": {},
+          "type": "runtime modules",
+        },
+        {
           "assets": [],
           "chunks": [
             "main",
@@ -907,6 +928,13 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
     {
       "filteredModules": undefined,
       "modules": [
+        {
+          "filteredChildren": 1,
+          "moduleType": "runtime",
+          "size": 160,
+          "sizes": {},
+          "type": "runtime modules",
+        },
         {
           "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
           "issuer": undefined,
@@ -7509,20 +7537,20 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
       "errors": [
         {
           "formatted": "error[internal]: 
-  x Expected '{', got 'error'
-   ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
- 1 | export error;
-   :        ^^^^^
-   \`----
+  [38;2;255;30;30m×[0m Expected '{', got 'error'
+   ╭─[[38;2;92;157;255;1;4m<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts[0m:1:1]
+ [2m1[0m │ export error;
+   · [38;2;246;87;248m       ─────[0m
+   ╰────
 
 
 ",
           "message": "
-  x Expected '{', got 'error'
-   ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
- 1 | export error;
-   :        ^^^^^
-   \`----
+  [38;2;255;30;30m×[0m Expected '{', got 'error'
+   ╭─[[38;2;92;157;255;1;4m<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts[0m:1:1]
+ [2m1[0m │ export error;
+   · [38;2;246;87;248m       ─────[0m
+   ╰────
 ",
           "title": "",
         },
@@ -7795,6 +7823,13 @@ console.log(a);
       "hash": "60c0b28697ddcc279184",
       "logging": {},
       "modules": [
+        {
+          "filteredChildren": 4,
+          "moduleType": "runtime",
+          "size": 640,
+          "sizes": {},
+          "type": "runtime modules",
+        },
         {
           "assets": [],
           "chunks": [
@@ -8089,6 +8124,13 @@ console.log(a);
       "logging": {},
       "modules": [
         {
+          "filteredChildren": 4,
+          "moduleType": "runtime",
+          "size": 640,
+          "sizes": {},
+          "type": "runtime modules",
+        },
+        {
           "assets": [],
           "chunks": [
             "main",
@@ -8225,53 +8267,60 @@ Rspack compiled with 1 error (1de1b232f302860d0385)"
 
 exports[`StatsTestCases should print correct stats for runtime-modules 1`] = `
 {
-  "filteredModules": undefined,
-  "modules": [
+  "children": [
     {
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/runtime-modules/index.js",
-      "issuer": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "javascript/auto",
-      "name": "./index.js",
-      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/runtime-modules/index.js",
-      "size": 19,
-      "type": "module",
-    },
-    {
-      "identifier": "webpack/runtime/has_own_property",
-      "issuer": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/has_own_property",
-      "nameForCondition": undefined,
-      "size": 160,
-      "type": "module",
-    },
-    {
-      "identifier": "webpack/runtime/make_namespace_object",
-      "issuer": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/make_namespace_object",
-      "nameForCondition": undefined,
-      "size": 160,
-      "type": "module",
-    },
-    {
-      "identifier": "webpack/runtime/define_property_getters",
-      "issuer": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/define_property_getters",
-      "nameForCondition": undefined,
-      "size": 160,
-      "type": "module",
+      "filteredModules": undefined,
+      "modules": [
+        {
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/runtime-modules/index.js",
+          "issuer": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "javascript/auto",
+          "name": "./index.js",
+          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/runtime-modules/index.js",
+          "size": 20,
+          "type": "module",
+        },
+        {
+          "identifier": "webpack/runtime/has_own_property",
+          "issuer": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/has_own_property",
+          "nameForCondition": undefined,
+          "size": 160,
+          "type": "module",
+        },
+        {
+          "identifier": "webpack/runtime/make_namespace_object",
+          "issuer": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/make_namespace_object",
+          "nameForCondition": undefined,
+          "size": 160,
+          "type": "module",
+        },
+        {
+          "identifier": "webpack/runtime/define_property_getters",
+          "issuer": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/define_property_getters",
+          "nameForCondition": undefined,
+          "size": 160,
+          "type": "module",
+        },
+      ],
+      "name": undefined,
     },
   ],
+  "rspackVersion": "0.3.8",
+  "version": "5.75.0",
 }
 `;
 
@@ -8379,6 +8428,13 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "hash": "21b6a905e9c471003723",
       "logging": {},
       "modules": [
+        {
+          "filteredChildren": 3,
+          "moduleType": "runtime",
+          "size": 480,
+          "sizes": {},
+          "type": "runtime modules",
+        },
         {
           "assets": [],
           "chunks": [
@@ -8619,6 +8675,13 @@ import rawModule from './raw.png';
       "logging": {},
       "modules": [
         {
+          "filteredChildren": 4,
+          "moduleType": "runtime",
+          "size": 640,
+          "sizes": {},
+          "type": "runtime modules",
+        },
+        {
           "assets": [],
           "chunks": [
             "main",
@@ -8854,6 +8917,13 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "hash": "21b6a905e9c471003723",
       "logging": {},
       "modules": [
+        {
+          "filteredChildren": 3,
+          "moduleType": "runtime",
+          "size": 480,
+          "sizes": {},
+          "type": "runtime modules",
+        },
         {
           "assets": [],
           "chunks": [
