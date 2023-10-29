@@ -755,7 +755,6 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object.nameForCondition = module.nameForCondition;
 			object.issuer = module.issuer;
 			object.issuerName = module.issuerName;
-			object.chunks = module.chunks;
 			object.issuerPath = factory.create(
 				`${type.slice(0, -8)}.issuerPath`,
 				module.issuerPath,
@@ -769,6 +768,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		ids: (object, module) => {
 			object.id = module.id;
 			object.issuerId = module.issuerId;
+			object.chunks = module.chunks;
 		},
 		moduleAssets: (object, module) => {
 			object.assets = module.assets;

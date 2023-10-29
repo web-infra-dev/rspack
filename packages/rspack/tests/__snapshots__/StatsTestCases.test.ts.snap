@@ -2454,6 +2454,65 @@ error[internal]: Export should be relative path and start with "./", but got ../
 Rspack compiled with 1 error (1de1b232f302860d0385)"
 `;
 
+exports[`StatsTestCases should print correct stats for runtime-modules 1`] = `
+{
+  "filteredModules": undefined,
+  "modules": [
+    {
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/runtime-modules/index.js",
+      "issuer": undefined,
+      "issuerName": undefined,
+      "issuerPath": [],
+      "moduleType": "javascript/auto",
+      "name": "./index.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/runtime-modules/index.js",
+      "size": 19,
+      "type": "module",
+    },
+    {
+      "identifier": "webpack/runtime/has_own_property",
+      "issuer": undefined,
+      "issuerName": undefined,
+      "issuerPath": [],
+      "moduleType": "runtime",
+      "name": "webpack/runtime/has_own_property",
+      "nameForCondition": undefined,
+      "size": 160,
+      "type": "module",
+    },
+    {
+      "identifier": "webpack/runtime/make_namespace_object",
+      "issuer": undefined,
+      "issuerName": undefined,
+      "issuerPath": [],
+      "moduleType": "runtime",
+      "name": "webpack/runtime/make_namespace_object",
+      "nameForCondition": undefined,
+      "size": 160,
+      "type": "module",
+    },
+    {
+      "identifier": "webpack/runtime/define_property_getters",
+      "issuer": undefined,
+      "issuerName": undefined,
+      "issuerPath": [],
+      "moduleType": "runtime",
+      "name": "webpack/runtime/define_property_getters",
+      "nameForCondition": undefined,
+      "size": 160,
+      "type": "module",
+    },
+  ],
+}
+`;
+
+exports[`StatsTestCases should print correct stats for runtime-modules 2`] = `
+"./index.js
+webpack/runtime/has_own_property
+webpack/runtime/make_namespace_object
+webpack/runtime/define_property_getters"
+`;
+
 exports[`StatsTestCases should print correct stats for simple 1`] = `
 {
   "assets": [
