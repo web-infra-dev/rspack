@@ -94,6 +94,7 @@ pub(crate) mod expr_matcher {
     is_import_meta_webpack_hot: "import.meta.webpackHot",
     is_import_meta_webpack_hot_accept: "import.meta.webpackHot.accept",
     is_import_meta_webpack_hot_decline: "import.meta.webpackHot.decline",
+    is_import_meta_webpack_context: "import.meta.webpackContext",
     is_import_meta_url: "import.meta.url",
     is_import_meta: "import.meta",
     is_exports_esmodule: "exports.__esModule",
@@ -168,6 +169,14 @@ pub fn is_import_meta_hot_decline_call(node: &CallExpr) -> bool {
     .callee
     .as_expr()
     .map(|expr| expr_matcher::is_import_meta_webpack_hot_decline(expr))
+    .unwrap_or_default()
+}
+
+pub fn is_import_meta_context_call(node: &CallExpr) -> bool {
+  node
+    .callee
+    .as_expr()
+    .map(|expr| expr_matcher::is_import_meta_webpack_context(expr))
     .unwrap_or_default()
 }
 

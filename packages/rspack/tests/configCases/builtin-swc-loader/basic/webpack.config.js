@@ -4,16 +4,12 @@ module.exports = {
 			{
 				test: /\.ts$/,
 				use: [
-					"./pitching-loader",
 					{
 						loader: "builtin:swc-loader",
 						options: {
-							// Enable source map
-							sourceMap: true,
 							jsc: {
 								parser: {
-									syntax: "typescript",
-									jsx: false
+									syntax: "typescript"
 								}
 							}
 						}
@@ -22,5 +18,10 @@ module.exports = {
 				type: "javascript/auto"
 			}
 		]
+	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: true
+		}
 	}
 };

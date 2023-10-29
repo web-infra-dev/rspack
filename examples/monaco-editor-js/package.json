@@ -11,5 +11,8 @@
   "dependencies": {
     "@rspack/cli": "workspace:*",
     "monaco-editor": "^0.39.0"
+  },
+  "devDependencies": {
+    "@rspack/core": "workspace:*"
   }
 }

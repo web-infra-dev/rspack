@@ -47,7 +47,7 @@ pub enum DependencyType {
   EsmImport(/* HarmonyImportSideEffectDependency.span */ ErrorSpan), /* TODO: remove span after old tree shaking is removed */
   EsmImportSpecifier,
   // Harmony export
-  EsmExport,
+  EsmExport(ErrorSpan),
   EsmExportImportedSpecifier,
   EsmExportSpecifier,
   // import()
@@ -76,6 +76,8 @@ pub enum DependencyType {
   ContextElement,
   // import context
   ImportContext,
+  // import.meta.webpackContext
+  ImportMetaContext,
   // commonjs require context
   CommonJSRequireContext,
   // require.context
@@ -97,7 +99,7 @@ impl Display for DependencyType {
       DependencyType::Unknown => write!(f, "unknown"),
       DependencyType::Entry => write!(f, "entry"),
       DependencyType::EsmImport(_) => write!(f, "esm import"),
-      DependencyType::EsmExport => write!(f, "esm export"),
+      DependencyType::EsmExport(_) => write!(f, "esm export"),
       DependencyType::EsmExportSpecifier => write!(f, "esm export specifier"),
       DependencyType::EsmExportImportedSpecifier => write!(f, "esm export import specifier"),
       DependencyType::EsmImportSpecifier => write!(f, "esm import specifier"),
@@ -113,6 +115,7 @@ impl Display for DependencyType {
       DependencyType::CssImport => write!(f, "css import"),
       DependencyType::CssCompose => write!(f, "css compose"),
       DependencyType::ContextElement => write!(f, "context element"),
+      // TODO: mode
       DependencyType::ImportContext => write!(f, "import context"),
       DependencyType::CommonJSRequireContext => write!(f, "commonjs require context"),
       DependencyType::RequireContext => write!(f, "require.context"),
@@ -122,6 +125,8 @@ impl Display for DependencyType {
       DependencyType::StaticExports => write!(f, "static exports"),
       DependencyType::Custom(ty) => write!(f, "custom {ty}"),
       DependencyType::ExportInfoApi => write!(f, "export info api"),
+      // TODO: mode
+      DependencyType::ImportMetaContext => write!(f, "import.meta context"),
     }
   }
 }
@@ -155,24 +160,33 @@ impl From<&str> for DependencyCategory {
   }
 }
 
+impl DependencyCategory {
+  pub fn as_str(&self) -> &'static str {
+    match self {
+      DependencyCategory::Unknown => "unknown",
+      DependencyCategory::Esm => "esm",
+      DependencyCategory::CommonJS => "commonjs",
+      DependencyCategory::Url => "url",
+      DependencyCategory::CssImport => "css-import",
+      DependencyCategory::CssCompose => "css-compose",
+      DependencyCategory::Wasm => "wasm",
+      DependencyCategory::Worker => "worker",
+    }
+  }
+}
+
 impl Display for DependencyCategory {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      DependencyCategory::Unknown => write!(f, "unknown"),
-      DependencyCategory::Esm => write!(f, "esm"),
-      DependencyCategory::CommonJS => write!(f, "commonjs"),
-      DependencyCategory::Url => write!(f, "url"),
-      DependencyCategory::CssImport => write!(f, "css-import"),
-      DependencyCategory::CssCompose => write!(f, "css-compose"),
-      DependencyCategory::Wasm => write!(f, "wasm"),
-      DependencyCategory::Worker => write!(f, "worker"),
-    }
+    write!(f, "{}", self.as_str())
   }
 }
 
 pub trait Dependency:
   AsDependencyTemplate + AsModuleDependency + AsAny + DynClone + Send + Sync + Debug
 {
+  /// name of the original struct or enum
+  fn dependency_debug_name(&self) -> &'static str;
+
   fn id(&self) -> &DependencyId;
 
   fn category(&self) -> &DependencyCategory {
@@ -187,7 +201,7 @@ pub trait Dependency:
     None
   }
 
-  fn get_exports(&self) -> Option<ExportsSpec> {
+  fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
     None
   }
 
@@ -224,7 +238,7 @@ pub trait Dependency:
 #[derive(Debug, Default)]
 pub struct ExportSpec {
   pub name: JsWord,
-  pub export: Option<Vec<JsWord>>,
+  pub export: Option<Nullable<Vec<JsWord>>>,
   pub exports: Option<Vec<ExportNameOrSpec>>,
   pub can_mangle: Option<bool>,
   pub terminal_binding: Option<bool>,
@@ -232,6 +246,12 @@ pub struct ExportSpec {
   pub hidden: Option<bool>,
   pub from: Option<ModuleGraphConnection>,
   pub from_export: Option<ModuleGraphConnection>,
+}
+
+#[derive(Debug)]
+pub enum Nullable<T> {
+  Null,
+  Value(T),
 }
 
 impl ExportSpec {
@@ -372,8 +392,6 @@ impl Debug for DependencyCondition {
 }
 
 pub trait ModuleDependency: Dependency {
-  /// name of the original struct or enum
-  fn dependency_debug_name(&self) -> &'static str;
   fn request(&self) -> &str;
   fn user_request(&self) -> &str;
   fn weak(&self) -> bool {
@@ -453,6 +471,9 @@ pub struct DependencyId(u32);
 pub static DEPENDENCY_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
 
 impl DependencyId {
+  pub fn get_dep<'a>(&self, mg: &'a ModuleGraph) -> Option<&'a BoxDependency> {
+    mg.dependency_by_id(self)
+  }
   pub fn new() -> Self {
     Self(DEPENDENCY_ID.fetch_add(1, Relaxed))
   }

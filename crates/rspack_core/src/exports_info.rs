@@ -10,6 +10,7 @@ use rustc_hash::FxHashSet as HashSet;
 use serde::Serialize;
 use swc_core::ecma::atoms::JsWord;
 
+use crate::Nullable;
 use crate::{
   ConnectionState, DependencyCondition, DependencyId, ModuleGraph, ModuleGraphConnection,
   ModuleIdentifier, RuntimeSpec,
@@ -35,6 +36,10 @@ impl ExportsHash for ExportsInfoId {
 impl ExportsInfoId {
   pub fn new() -> Self {
     Self(EXPORTS_INFO_ID.fetch_add(1, Relaxed))
+  }
+
+  pub fn get_exports_info<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportsInfo {
+    mg.get_exports_info_by_id(self)
   }
 
   /// # Panic
@@ -122,7 +127,11 @@ impl ExportsInfoId {
         export_info.set_target(
           Some(target_key),
           target_module,
-          export_info.name.clone().map(|name| vec![name]).as_ref(),
+          export_info
+            .name
+            .clone()
+            .map(|name| Nullable::Value(vec![name]))
+            .as_ref(),
           priority,
         );
       }
@@ -339,6 +348,11 @@ impl ExportsInfoId {
       UsedName::Vec(_) => todo!(),
     }
   }
+
+  fn is_used(&self, runtime: Option<&RuntimeSpec>, mg: &ModuleGraph) -> bool {
+    let exports_info = mg.get_exports_info_by_id(self);
+    exports_info.is_used(runtime, mg)
+  }
 }
 
 impl Default for ExportsInfoId {
@@ -440,6 +454,27 @@ impl ExportsInfo {
     }
   }
 
+  pub fn is_used(&self, runtime: Option<&RuntimeSpec>, mg: &ModuleGraph) -> bool {
+    if let Some(redirect_to) = self.redirect_to {
+      if redirect_to.is_used(runtime, mg) {
+        return true;
+      }
+    } else {
+      let other_exports_info = mg.get_export_info_by_id(&self.other_exports_info);
+      if other_exports_info.get_used(runtime) != UsageState::Unused {
+        return true;
+      }
+    }
+
+    for export_info_id in self.exports.values() {
+      let export_info = mg.get_export_info_by_id(export_info_id);
+      if export_info.get_used(runtime) != UsageState::Unused {
+        return true;
+      }
+    }
+    false
+  }
+
   pub fn get_ordered_exports(&self) -> impl Iterator<Item = &ExportInfoId> {
     // TODO need order
     self.exports.values()
@@ -505,6 +540,10 @@ impl ExportsHash for ExportInfoId {
 impl ExportInfoId {
   pub fn new() -> Self {
     Self(EXPORT_INFO_ID.fetch_add(1, Relaxed))
+  }
+
+  pub fn get_export_info<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportInfo {
+    mg.get_export_info_by_id(self)
   }
 
   fn set_has_use_info(&self, mg: &mut ModuleGraph) {
@@ -732,13 +771,14 @@ pub enum ExportInfoProvided {
   Null,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ResolvedExportInfoTarget {
   pub module: ModuleIdentifier,
   pub exports: Option<Vec<JsWord>>,
   connection: ModuleGraphConnection,
 }
 
+#[derive(Debug, Clone)]
 struct UnResolvedExportInfoTarget {
   connection: Option<ModuleGraphConnection>,
   exports: Option<Vec<JsWord>>,
@@ -768,7 +808,7 @@ where
   }
 }
 
-pub type ResolveFilterFnTy = Box<dyn ResolveFilterFn>;
+pub type ResolveFilterFnTy = Arc<dyn Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool>;
 
 pub trait ResolveFilterFn: Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool {
   fn clone_boxed(&self) -> Box<dyn ResolveFilterFn>;
@@ -976,7 +1016,7 @@ impl ExportInfo {
     mg: &mut ModuleGraph,
     resolve_filter: Option<ResolveFilterFnTy>,
   ) -> Option<ResolvedExportInfoTarget> {
-    let filter = resolve_filter.unwrap_or(Box::new(|_, _| true));
+    let filter = resolve_filter.unwrap_or(Arc::new(|_, _| true));
 
     let mut already_visited = HashSet::default();
     match self._get_target(mg, filter, &mut already_visited) {
@@ -1014,7 +1054,6 @@ impl ExportInfo {
         if !resolve_filter(&target, mg) {
           return Some(ResolvedExportInfoTargetWithCircular::Target(target));
         }
-        let mut already_visited_owned = false;
         loop {
           let name =
             if let Some(export) = target.exports.as_ref().and_then(|exports| exports.get(0)) {
@@ -1076,15 +1115,13 @@ impl ExportInfo {
           if !resolve_filter(&target, mg) {
             return Some(ResolvedExportInfoTargetWithCircular::Target(target));
           }
-          if !already_visited_owned {
-            already_visited_owned = true;
-          }
           already_visited.insert(export_info_id);
         }
       } else {
         None
       }
     }
+
     if self.target.is_empty() {
       return None;
     }
@@ -1092,22 +1129,29 @@ impl ExportInfo {
       return Some(ResolvedExportInfoTargetWithCircular::Circular);
     }
     already_visited.insert(self.id);
-    let mut values = self
+
+    let values = self
       .get_max_target()
       .values()
       .map(|item| UnResolvedExportInfoTarget {
         connection: item.connection,
         exports: item.exports.clone(),
       })
-      .clone();
-    let target = resolve_target(values.next(), already_visited, resolve_filter.clone(), mg);
+      .collect::<Vec<_>>();
+    let target = resolve_target(
+      values.get(0).cloned(),
+      already_visited,
+      resolve_filter.clone(),
+      mg,
+    );
+
     match target {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => {
         Some(ResolvedExportInfoTargetWithCircular::Circular)
       }
       None => None,
       Some(ResolvedExportInfoTargetWithCircular::Target(target)) => {
-        for val in values {
+        for val in values.into_iter().skip(1) {
           let t = resolve_target(Some(val), already_visited, resolve_filter.clone(), mg);
           match t {
             Some(ResolvedExportInfoTargetWithCircular::Circular) => {
@@ -1133,9 +1177,14 @@ impl ExportInfo {
     &mut self,
     key: Option<DependencyId>,
     connection: Option<ModuleGraphConnection>,
-    export_name: Option<&Vec<JsWord>>,
+    export_name: Option<&Nullable<Vec<JsWord>>>,
     priority: Option<u8>,
   ) -> bool {
+    let export_name = match export_name {
+      Some(Nullable::Null) => None,
+      Some(Nullable::Value(vec)) => Some(vec),
+      None => None,
+    };
     let normalized_priority = priority.unwrap_or(0);
     if !self.target_is_set {
       self.target.insert(
@@ -1230,7 +1279,7 @@ pub enum RuntimeUsageStateType {
   Used,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UsedByExports {
   Set(HashSet<JsWord>),
   Bool(bool),
@@ -1353,6 +1402,7 @@ pub fn process_export_info(
       return;
     }
     already_visited.insert(export_info.id);
+    // FIXME: more branch
     if used != UsageState::OnlyPropertiesUsed {
       already_visited.remove(&export_info.id);
       referenced_export.push(prefix);

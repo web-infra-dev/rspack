@@ -378,7 +378,7 @@ impl Module for NormalModule {
     diagnostics.extend(ds);
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
-    self.original_source = Some(original_source);
+    self.original_source = Some(source.clone());
     self.source = NormalModuleSource::new_built(source, &diagnostics);
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);

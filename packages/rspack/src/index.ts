@@ -60,4 +60,7 @@ export const library = { EnableLibraryPlugin };
 import { EnableWasmLoadingPlugin } from "./builtin-plugin";
 export const wasm = { EnableWasmLoadingPlugin };
 
+import { LimitChunkCountPlugin } from "./builtin-plugin";
+export const optimize = { LimitChunkCountPlugin };
+
 export { Watching };

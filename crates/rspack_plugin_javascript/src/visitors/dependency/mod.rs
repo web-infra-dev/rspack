@@ -16,9 +16,10 @@ mod require_context_scanner;
 mod url_scanner;
 mod util;
 mod worker_scanner;
+use rspack_ast::javascript::Program;
 use rspack_core::{
-  ast::javascript::Program, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, ModuleIdentifier, ModuleType, ResourceData,
+  BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta, CompilerOptions, ModuleIdentifier,
+  ModuleType, ResourceData,
 };
 use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
@@ -94,6 +95,7 @@ pub fn scan_dependencies(
   ));
 
   // TODO it should enable at js/auto or js/dynamic, but builtins provider will inject require at esm
+  // https://github.com/web-infra-dev/rspack/issues/3544
   program.visit_with(&mut CommonJsImportDependencyScanner::new(
     &mut dependencies,
     &mut presentational_dependencies,

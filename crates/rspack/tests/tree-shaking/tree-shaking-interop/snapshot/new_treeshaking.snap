@@ -7,7 +7,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'default': function() { return test; }
+  "default": function() { return test; }
 });
 function test() {}
 },
@@ -21,7 +21,7 @@ function test() {}
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'a': function() { return a; }
+  a: function() { return a; }
 });
 __webpack_require__.el(/* ./bar */"./bar.js").then(__webpack_require__.bind(__webpack_require__, /* ./bar */"./bar.js")).then((mod)=>{
     console.log(mod);

@@ -131,6 +131,8 @@ export const enum BuiltinPluginName {
   ArrayPushCallbackChunkFormatPlugin = 'ArrayPushCallbackChunkFormatPlugin',
   ModuleChunkFormatPlugin = 'ModuleChunkFormatPlugin',
   HotModuleReplacementPlugin = 'HotModuleReplacementPlugin',
+  LimitChunkCountPlugin = 'LimitChunkCountPlugin',
+  WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -276,29 +278,28 @@ export interface JsLoaderContext {
   currentLoader: string
   isPitching: boolean
   /**
+   * Loader index from JS.
+   * If loaders are dispatched by JS loader runner,
+   * then, this field is correspondence with loader index in JS side.
+   * It is useful when loader dispatched on JS side has an builtin loader, for example: builtin:swc-loader,
+   * Then this field will be used as an hack to test whether it should return an AST or string.
+   */
+  loaderIndexFromJs?: number
+  /**
+   * Internal additional data, contains more than `String`
+   * @internal
+   */
+  additionalDataExternal: ExternalObject<AdditionalData>
+  /**
    * Internal loader context
    * @internal
    */
-  context: ExternalObject<LoaderRunnerContext>
+  contextExternal: ExternalObject<LoaderRunnerContext>
   /**
    * Internal loader diagnostic
    * @internal
    */
-  diagnostics: ExternalObject<Array<Diagnostic>>
-}
-
-export interface JsLoaderResult {
-  /** Content in pitching stage can be empty */
-  content?: Buffer
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  buildDependencies: Array<string>
-  sourceMap?: Buffer
-  additionalData?: Buffer
-  cacheable: boolean
-  /** Used to instruct how rust loaders should execute */
-  isPitching: boolean
+  diagnosticsExternal: ExternalObject<Array<Diagnostic>>
 }
 
 export interface JsModule {
@@ -550,6 +551,7 @@ export interface RawBuiltins {
 }
 
 export interface RawCacheGroupOptions {
+  key: string
   priority?: number
   test?: RegExp | string
   idHint?: string
@@ -777,6 +779,12 @@ export interface RawLibraryOptions {
   libraryType: string
   umdNamedDefine?: boolean
   auxiliaryComment?: RawLibraryAuxiliaryComment
+}
+
+export interface RawLimitChunkCountPluginOptions {
+  chunkOverhead?: number
+  entryChunkMultiplicator?: number
+  maxChunks: number
 }
 
 export interface RawModuleOptions {
@@ -1024,7 +1032,7 @@ export interface RawSnapshotStrategy {
 export interface RawSplitChunksOptions {
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
   name?: string
-  cacheGroups?: Record<string, RawCacheGroupOptions>
+  cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
   maxAsyncRequests?: number

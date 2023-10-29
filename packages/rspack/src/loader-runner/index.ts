@@ -30,7 +30,8 @@ import {
 	isNil,
 	serializeObject,
 	toBuffer,
-	toObject
+	toObject,
+	stringifyLoaderObject
 } from "../util";
 import { absolutify, contextify, makePathsRelative } from "../util/identifier";
 import { memoize } from "../util/memoize";
@@ -66,10 +67,6 @@ function dirname(path: string) {
 	return path.slice(0, idx);
 }
 
-function stringifyLoaderObject(o: LoaderObject): string {
-	return o.path + o.query + o.fragment;
-}
-
 function createLoaderObject(loader: any, compiler: Compiler): LoaderObject {
 	const obj: any = {
 		path: null,
@@ -99,25 +96,8 @@ function createLoaderObject(loader: any, compiler: Compiler): LoaderObject {
 				obj.path = splittedRequest.path;
 				obj.query = splittedRequest.query;
 				obj.fragment = splittedRequest.fragment;
-
-				if (obj.query.startsWith("??")) {
-					const ident = obj.query.slice(2);
-					if (ident === "[[missing ident]]") {
-						throw new Error(
-							"No ident is provided by referenced loader. " +
-								"When using a function for Rule.use in config you need to " +
-								"provide an 'ident' property for referenced loader options."
-						);
-					}
-					obj.options = compiler.ruleSet.references.get(ident);
-					if (obj.options === undefined) {
-						throw new Error("Invalid ident is provided by referenced loader");
-					}
-					obj.ident = ident;
-				} else {
-					obj.options = undefined;
-					obj.ident = undefined;
-				}
+				obj.options = undefined;
+				obj.ident = undefined;
 			} else {
 				if (!value.loader)
 					throw new Error(
@@ -163,9 +143,9 @@ function getCurrentLoader(
 	return null;
 }
 
-export async function runLoader(
-	rawContext: JsLoaderContext,
-	compiler: Compiler
+export async function runLoaders(
+	compiler: Compiler,
+	rawContext: JsLoaderContext
 ) {
 	const resource = rawContext.resource;
 	const loaderContext: LoaderContext = {} as LoaderContext;
@@ -185,9 +165,34 @@ export async function runLoader(
 	const buildDependencies: string[] = rawContext.buildDependencies.slice();
 	const assetFilenames = rawContext.assetFilenames.slice();
 
-	const loaders = rawContext.currentLoader
-		.split("$")
-		.map(loader => createLoaderObject(loader, compiler));
+	const loaders = rawContext.currentLoader.split("$").map(loader => {
+		const splittedRequest = parsePathQueryFragment(loader);
+		const obj: any = {};
+		obj.loader = obj.path = splittedRequest.path;
+		obj.query = splittedRequest.query;
+		obj.fragment = splittedRequest.fragment;
+		const type = /\.mjs$/i.test(splittedRequest.path) ? "module" : "commonjs";
+		obj.type = type;
+		obj.options = splittedRequest.query
+			? splittedRequest.query.slice(1)
+			: undefined;
+		if (typeof obj.options === "string" && obj.options[0] === "?") {
+			const ident = obj.options.slice(1);
+			if (ident === "[[missing ident]]") {
+				throw new Error(
+					"No ident is provided by referenced loader. " +
+						"When using a function for Rule.use in config you need to " +
+						"provide an 'ident' property for referenced loader options."
+				);
+			}
+			obj.options = compiler.ruleSet.references.get(ident);
+			if (obj.options === undefined) {
+				throw new Error("Invalid ident is provided by referenced loader");
+			}
+			obj.ident = ident;
+		}
+		return createLoaderObject(obj, compiler);
+	});
 
 	loaderContext.__internal__context = rawContext;
 	loaderContext.context = contextDirectory;
@@ -507,6 +512,22 @@ export async function runLoader(
 		const loader = getCurrentLoader(loaderContext);
 		let options = loader?.options;
 
+		if (typeof options === "string") {
+			if (options.startsWith("{") && options.endsWith("}")) {
+				try {
+					const parseJson = require("json-parse-even-better-errors");
+					options = parseJson(options);
+				} catch (e: any) {
+					throw new Error(`Cannot parse string options: ${e.message}`);
+				}
+			} else {
+				const querystring = require("querystring");
+				options = querystring.parse(options, "&", "=", {
+					maxKeys: 0
+				});
+			}
+		}
+
 		if (options === null || options === undefined) {
 			options = {};
 		}
@@ -557,7 +578,9 @@ export async function runLoader(
 					contextDependencies,
 					missingDependencies,
 					assetFilenames,
-					isPitching: loaderContext.__internal__context.isPitching
+					isPitching: loaderContext.__internal__context.isPitching,
+					additionalDataExternal:
+						loaderContext.__internal__context.additionalDataExternal
 				});
 			});
 		} else {
@@ -589,7 +612,9 @@ export async function runLoader(
 						contextDependencies,
 						missingDependencies,
 						assetFilenames,
-						isPitching: loaderContext.__internal__context.isPitching
+						isPitching: loaderContext.__internal__context.isPitching,
+						additionalDataExternal:
+							loaderContext.__internal__context.additionalDataExternal
 					});
 				}
 			);

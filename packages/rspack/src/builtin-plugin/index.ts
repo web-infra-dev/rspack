@@ -16,6 +16,8 @@ export * from "./ArrayPushCallbackChunkFormatPlugin";
 export * from "./CommonJsChunkFormatPlugin";
 export * from "./ModuleChunkFormatPlugin";
 export * from "./HotModuleReplacementPlugin";
+export * from "./WebWorkerTemplatePlugin";
+export * from "./LimitChunkCountPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";

@@ -10,7 +10,8 @@
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
-    "@rspack/plugin-node-polyfill": "workspace:*"
+    "@rspack/plugin-node-polyfill": "workspace:*",
+    "@rspack/core": "workspace:*"
   },
   "sideEffects": false,
   "keywords": [],

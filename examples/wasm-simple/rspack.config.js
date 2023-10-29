@@ -1,3 +1,4 @@
+const rspack = require("@rspack/core");
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
 	entry: {
@@ -10,8 +11,6 @@ const config = {
 	experiments: {
 		asyncWebAssembly: true
 	},
-	builtins: {
-		html: [{}]
-	}
+	plugins: [new rspack.HtmlRspackPlugin()]
 };
 module.exports = config;

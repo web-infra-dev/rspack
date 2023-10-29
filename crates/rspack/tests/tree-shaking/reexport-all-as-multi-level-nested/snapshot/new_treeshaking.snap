@@ -7,7 +7,8 @@ source: crates/rspack_testing/src/run_fixture.rs
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'a': function() { return a; }
+  a: function() { return a; },
+  aa: function() { return _aa__WEBPACK_IMPORTED_MODULE_0_; }
 });
 /* harmony import */var _aa__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./aa */"./package/autogen/aa.js");
 
@@ -18,28 +19,19 @@ __webpack_require__.d(__webpack_exports__, {
 "./package/autogen/aa.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  aa: function() { return aa; }
+});
  const aa = 3;
  const cc = 3;
-},
-"./package/autogen/b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-'use strict';
-__webpack_require__.r(__webpack_exports__);
- function b() {}
-},
-"./package/autogen/c.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-'use strict';
-__webpack_require__.r(__webpack_exports__);
- function c() {}
 },
 "./package/autogen/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'a': function() { return _a__WEBPACK_IMPORTED_MODULE_0_; }
+  a: function() { return _a__WEBPACK_IMPORTED_MODULE_0_; }
 });
 /* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a */"./package/autogen/a.js");
-/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./b */"./package/autogen/b.js");
-/* harmony import */var _c__WEBPACK_IMPORTED_MODULE_2_ = __webpack_require__(/* ./c */"./package/autogen/c.js");
 
 
 

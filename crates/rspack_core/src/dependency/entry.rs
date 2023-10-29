@@ -21,6 +21,10 @@ impl EntryDependency {
 }
 
 impl Dependency for EntryDependency {
+  fn dependency_debug_name(&self) -> &'static str {
+    "EntryDependency"
+  }
+
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -49,10 +53,6 @@ impl ModuleDependency for EntryDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "EntryDependency"
   }
 }
 

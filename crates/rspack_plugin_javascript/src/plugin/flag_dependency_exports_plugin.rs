@@ -99,7 +99,8 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
     let dep = self.mg.dependency_by_id(dep_id)?;
-    let exports_specs = dep.get_exports()?;
+    // this is why we can bubble here. https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/FlagDependencyExportsPlugin.js#L140
+    let exports_specs = dep.get_exports(self.mg)?;
     exports_specs_from_dependencies.insert(*dep_id, exports_specs);
     Some(())
   }
@@ -140,6 +141,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       }
       ExportsOfExportsSpec::Null => {}
       ExportsOfExportsSpec::Array(ele) => {
+        // dbg!(ele);
         self.merge_exports(
           exports_info_id,
           ele,
@@ -151,6 +153,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           },
           dep_id,
         );
+        // dbg!(&ele, exports_info_id.get_exports_info(self.mg));
       }
     }
 
@@ -176,6 +179,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     dep_id: DependencyId,
   ) {
     for export_name_or_spec in exports {
+      // dbg!(&export_name_or_spec);
       let (name, can_mangle, terminal_binding, exports, from, from_export, priority, hidden) =
         match export_name_or_spec {
           ExportNameOrSpec::String(name) => (
@@ -184,7 +188,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
             global_export_info.terminal_binding,
             None::<&Vec<ExportNameOrSpec>>,
             global_export_info.from.cloned(),
-            None::<&Vec<JsWord>>,
+            None::<&rspack_core::Nullable<Vec<JsWord>>>,
             global_export_info.priority,
             false,
           ),
@@ -219,6 +223,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         .get_mut(&export_info_id)
         .expect("should have export info")
         .clone();
+      // dbg!(&export_info);
       if let Some(ref mut provided) = export_info.provided && matches!(provided, ExportInfoProvided::False | ExportInfoProvided::Null) {
         *provided = ExportInfoProvided::True;
         self.changed = true;
@@ -235,6 +240,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       }
 
       if let Some(exports) = exports {
+        // dbg!(&exports);
         let nested_exports_info = export_info.create_nested_exports_info(self.mg);
         self.merge_exports(
           nested_exports_info,
@@ -248,12 +254,13 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         let changed = if hidden {
           export_info.unset_target(&dep_id)
         } else {
-          let fallback = vec![name.clone()];
+          let fallback = rspack_core::Nullable::Value(vec![name.clone()]);
           let export_name = if let Some(from) = from_export {
             Some(from)
           } else {
-            Some(&fallback)
+            Some(&(fallback))
           };
+          // dbg!(&from, &export_name);
           export_info.set_target(Some(dep_id), Some(from), export_name, priority)
         };
         self.changed |= changed;
@@ -261,7 +268,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
 
       // Recalculate target exportsInfo
       let target = export_info.get_target(self.mg, None);
-
+      // dbg!(&target);
       let export_info_old = self
         .mg
         .export_info_map

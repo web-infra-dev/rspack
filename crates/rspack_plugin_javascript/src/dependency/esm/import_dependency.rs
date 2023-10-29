@@ -56,6 +56,10 @@ impl Dependency for ImportDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "ImportDependency"
+  }
 }
 
 impl ModuleDependency for ImportDependency {
@@ -85,10 +89,6 @@ impl ModuleDependency for ImportDependency {
     } else {
       vec![ExtendedReferencedExport::Array(vec![])]
     }
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "ImportDependency"
   }
 }
 

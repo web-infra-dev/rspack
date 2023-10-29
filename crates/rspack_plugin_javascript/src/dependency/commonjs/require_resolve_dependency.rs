@@ -52,6 +52,10 @@ impl Dependency for RequireResolveDependency {
   fn span(&self) -> Option<ErrorSpan> {
     Some(self.span)
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "RequireResolveDependency"
+  }
 }
 
 impl ModuleDependency for RequireResolveDependency {
@@ -85,10 +89,6 @@ impl ModuleDependency for RequireResolveDependency {
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![]
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "RequireResolveDependency"
   }
 }
 

@@ -1,8 +1,6 @@
-use rspack_core::{
-  BoxDependency, ConstDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
-  DependencyCategory, DependencyTemplate, RuntimeGlobals, SpanExt,
-};
-use rspack_regex::RspackRegex;
+use rspack_core::{context_reg_exp, ContextOptions, DependencyCategory};
+use rspack_core::{BoxDependency, ConstDependency, ContextMode, ContextNameSpaceObject};
+use rspack_core::{DependencyTemplate, RuntimeGlobals, SpanExt};
 use swc_core::{
   common::{Spanned, SyntaxContext},
   ecma::{
@@ -126,7 +124,7 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
                     ContextOptions {
                       mode: ContextMode::Sync,
                       recursive: true,
-                      reg_exp: RspackRegex::new(&reg).expect("reg failed"),
+                      reg_exp: context_reg_exp(&reg, ""),
                       reg_str: reg,
                       include: None,
                       exclude: None,

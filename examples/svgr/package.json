@@ -16,6 +16,7 @@
     "react": "15",
     "react-dom": "15",
     "url-loader": "4.1.1",
-    "@svgr/webpack": "6.5.1"
+    "@svgr/webpack": "6.5.1",
+    "@rspack/core": "workspace:*"
   }
 }

@@ -20,6 +20,10 @@ pub struct ContextElementDependency {
 }
 
 impl Dependency for ContextElementDependency {
+  fn dependency_debug_name(&self) -> &'static str {
+    "ContextElementDependency"
+  }
+
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -75,10 +79,6 @@ impl ModuleDependency for ContextElementDependency {
     } else {
       vec![ExtendedReferencedExport::Array(vec![])]
     }
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "ContextElementDependency"
   }
 }
 

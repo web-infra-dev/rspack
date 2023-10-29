@@ -1258,6 +1258,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "jsonc-parser"
+version = "0.22.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "538702ed54bac04d391352d4c9ad0ec2a9225e3c477ffa23fc44d0f04fa83c54"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1515,9 +1524,9 @@ dependencies = [
 
 [[package]]
 name = "napi"
-version = "2.12.5"
+version = "2.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69b29acdc6cc5c918c3eabd51d241b1c6dfa8914f3552fcfd76e1d7536934581"
+checksum = "fd063c93b900149304e3ba96ce5bf210cd4f81ef5eb80ded0d100df3e85a3ac0"
 dependencies = [
  "anyhow",
  "bitflags 2.3.3",
@@ -1538,10 +1547,11 @@ checksum = "882a73d9ef23e8dc2ebbffb6a6ae2ef467c0f18ac10711e4cc59c5485d41df0e"
 
 [[package]]
 name = "napi-derive"
-version = "2.12.3"
+version = "2.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af2ac63101a19228b0881694cac07468d642fd10e4f943a9c9feebeebf1a4787"
+checksum = "da1c6a8fa84d549aa8708fcd062372bf8ec6e849de39016ab921067d21bde367"
 dependencies = [
+ "cfg-if",
  "convert_case",
  "napi-derive-backend",
  "proc-macro2",
@@ -1589,7 +1599,7 @@ dependencies = [
  "dashmap",
  "dunce",
  "indexmap 1.9.3",
- "jsonc-parser",
+ "jsonc-parser 0.21.1",
  "once_cell",
  "path-absolutize",
  "rustc-hash",
@@ -1800,6 +1810,12 @@ name = "path-clean"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ecba01bf2678719532c5e3059e0b5f0811273d94b397088b82e3bd0a78c78fdd"
+
+[[package]]
+name = "path-clean"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17359afc20d7ab31fdb42bb844c8b3bb1dabd7dcf7e68428492da7f16966fcef"
 
 [[package]]
 name = "path-dedot"
@@ -2353,6 +2369,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_ast"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "rspack_error",
+ "swc_core",
+ "swc_error_reporters",
+ "swc_node_comments",
+ "tokio",
+]
+
+[[package]]
 name = "rspack_ast_viewer"
 version = "0.1.0"
 dependencies = [
@@ -2411,6 +2439,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_plugin_json",
  "rspack_plugin_library",
+ "rspack_plugin_limit_chunk_count",
  "rspack_plugin_progress",
  "rspack_plugin_real_content_hash",
  "rspack_plugin_remove_empty_chunks",
@@ -2422,6 +2451,7 @@ dependencies = [
  "rspack_plugin_swc_js_minimizer",
  "rspack_plugin_warn_sensitive_module",
  "rspack_plugin_wasm",
+ "rspack_plugin_web_worker_template",
  "rspack_plugin_worker",
  "rspack_regex",
  "rspack_swc_visitors",
@@ -2459,6 +2489,7 @@ dependencies = [
  "rayon",
  "regex",
  "rkyv",
+ "rspack_ast",
  "rspack_database",
  "rspack_error",
  "rspack_fs",
@@ -2507,6 +2538,7 @@ dependencies = [
  "rspack_binding_options",
  "rspack_core",
  "rspack_fs",
+ "rspack_sources",
  "rspack_testing",
  "rspack_tracing",
  "rspack_util",
@@ -2592,6 +2624,7 @@ dependencies = [
 name = "rspack_loader_runner"
 version = "0.1.0"
 dependencies = [
+ "anymap",
  "async-recursion",
  "async-trait",
  "bitflags 1.3.2",
@@ -2632,12 +2665,16 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "dashmap",
  "either",
  "indexmap 1.9.3",
+ "jsonc-parser 0.22.1",
  "once_cell",
+ "rspack_ast",
  "rspack_core",
  "rspack_error",
  "rspack_loader_runner",
+ "rspack_plugin_javascript",
  "rspack_swc_visitors",
  "rspack_testing",
  "serde",
@@ -2850,6 +2887,7 @@ dependencies = [
  "async-trait",
  "dojang",
  "itertools",
+ "path-clean 1.0.1",
  "rayon",
  "regex",
  "rspack_base64",
@@ -2880,6 +2918,7 @@ dependencies = [
  "preset_env_base",
  "rayon",
  "regex",
+ "rspack_ast",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
@@ -2920,6 +2959,16 @@ dependencies = [
  "rspack_error",
  "rspack_identifier",
  "serde_json",
+]
+
+[[package]]
+name = "rspack_plugin_limit_chunk_count"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rspack_core",
+ "rspack_database",
+ "rspack_util",
 ]
 
 [[package]]
@@ -3072,6 +3121,15 @@ dependencies = [
  "serde_json",
  "swc_core",
  "wasmparser",
+]
+
+[[package]]
+name = "rspack_plugin_web_worker_template"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rspack_core",
+ "rspack_plugin_runtime",
 ]
 
 [[package]]
@@ -3688,7 +3746,7 @@ dependencies = [
  "dashmap",
  "either",
  "indexmap 1.9.3",
- "jsonc-parser",
+ "jsonc-parser 0.21.1",
  "lru",
  "once_cell",
  "parking_lot 0.12.1",
@@ -4301,7 +4359,7 @@ dependencies = [
  "normpath",
  "once_cell",
  "parking_lot 0.12.1",
- "path-clean",
+ "path-clean 0.1.0",
  "pathdiff",
  "serde",
  "serde_json",
@@ -4526,7 +4584,7 @@ dependencies = [
  "bitflags 2.3.3",
  "indexmap 1.9.3",
  "is-macro",
- "path-clean",
+ "path-clean 0.1.0",
  "pathdiff",
  "regex",
  "serde",

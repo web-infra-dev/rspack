@@ -1,4 +1,4 @@
 
-module.exports = () => {return "blocked by context support for loader"}
+module.exports = () => {return "https://github.com/web-infra-dev/rspack/issues/4397"}
 
 							

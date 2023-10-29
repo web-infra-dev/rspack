@@ -2,7 +2,7 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: /\.jsx?$/,
+				test: /\.js$/,
 				loader: "builtin:swc-loader",
 				options: {
 					rspackExperiments: {
@@ -11,5 +11,10 @@ module.exports = {
 				}
 			}
 		]
+	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: true
+		}
 	}
 };
