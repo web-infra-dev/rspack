@@ -148,8 +148,10 @@ impl Stats<'_> {
     let runtime_modules: Vec<StatsModule> = self
       .compilation
       .runtime_modules
-      .values()
-      .map(|module| self.get_runtime_module(module, reasons, module_assets))
+      .iter()
+      .map(|(identifier, module)| {
+        self.get_runtime_module(identifier, &module, reasons, module_assets)
+      })
       .collect::<Result<_>>()?;
     let mut modules = modules
       .into_iter()
@@ -480,15 +482,15 @@ impl Stats<'_> {
 
   fn get_runtime_module<'a>(
     &'a self,
+    identifier: &ModuleIdentifier,
     module: &'a Box<dyn RuntimeModule>,
     reasons: bool,
     module_assets: bool,
   ) -> Result<StatsModule<'a>> {
-    let identifier = module.identifier();
     let mut chunks: Vec<String> = self
       .compilation
       .chunk_graph
-      .get_chunk_graph_module(identifier)
+      .get_chunk_graph_module(*identifier)
       .chunks
       .iter()
       .map(|k| {
@@ -506,7 +508,7 @@ impl Stats<'_> {
     return Ok(StatsModule {
       r#type: "module",
       module_type: ModuleType::Runtime,
-      identifier,
+      identifier: module.identifier(),
       name_for_condition: module.name_for_condition().map(|n| n.to_string()),
       name: module.name().to_string(),
       id: Some(String::new()),
