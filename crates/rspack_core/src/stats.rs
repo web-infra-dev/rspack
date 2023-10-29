@@ -9,8 +9,8 @@ use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  BoxModule, Chunk, ChunkGroupUkey, Compilation, LogType, ModuleIdentifier, ModuleType,
-  RuntimeModule, SourceType,
+  BoxModule, BoxRuntimeModule, Chunk, ChunkGroupUkey, Compilation, LogType, ModuleIdentifier,
+  ModuleType, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -483,7 +483,7 @@ impl Stats<'_> {
   fn get_runtime_module<'a>(
     &'a self,
     identifier: &ModuleIdentifier,
-    module: &'a Box<dyn RuntimeModule>,
+    module: &'a BoxRuntimeModule,
     reasons: bool,
     module_assets: bool,
   ) -> Result<StatsModule<'a>> {
