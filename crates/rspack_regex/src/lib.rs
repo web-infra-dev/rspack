@@ -11,6 +11,7 @@ mod algo;
 #[derive(Debug, Clone, Hash)]
 pub struct RspackRegex {
   pub algo: Algo,
+  raw: String,
 }
 
 impl RspackRegex {
@@ -18,8 +19,24 @@ impl RspackRegex {
     self.algo.test(text)
   }
 
+  pub fn global(&self) -> bool {
+    self.algo.global()
+  }
+
+  pub fn sticky(&self) -> bool {
+    self.algo.sticky()
+  }
+
+  pub fn raw(&self) -> &str {
+    &self.raw
+  }
+
   pub fn with_flags(expr: &str, flags: &str) -> Result<Self, Error> {
+    let mut chars = flags.chars().collect::<Vec<char>>();
+    chars.sort();
+    let raw = format!("{expr}|{}", chars.into_iter().collect::<String>());
     Ok(Self {
+      raw,
       algo: Algo::new(expr, flags)?,
     })
   }

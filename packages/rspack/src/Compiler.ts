@@ -45,6 +45,7 @@ import {
 	deprecated_resolveBuiltins
 } from "./builtin-plugin";
 import { optionsApply_compat } from "./rspackOptionsApply";
+import { applyRspackOptionsDefaults } from "./config/defaults";
 
 class Compiler {
 	#_instance?: binding.Rspack;
@@ -218,6 +219,16 @@ class Compiler {
 			},
 			get CopyRspackPlugin() {
 				return require("./builtin-plugin").CopyRspackPlugin;
+			},
+			optimize: {
+				get LimitChunkCountPlugin() {
+					return require("./builtin-plugin").LimitChunkCountPlugin;
+				}
+			},
+			webworker: {
+				get WebWorkerTemplatePlugin() {
+					return require("./builtin-plugin").WebWorkerTemplatePlugin;
+				}
 			}
 		};
 		this.root = this;
@@ -444,7 +455,7 @@ class Compiler {
 		outputOptions: OutputNormalized,
 		plugins: RspackPluginInstance[]
 	) {
-		const childCompiler = new Compiler(this.context, {
+		const options: RspackOptionsNormalized = {
 			...this.options,
 			output: {
 				...this.options.output,
@@ -455,7 +466,9 @@ class Compiler {
 				...this.options.builtins,
 				html: undefined
 			}
-		});
+		};
+		applyRspackOptionsDefaults(options);
+		const childCompiler = new Compiler(this.context, options);
 		childCompiler.name = compilerName;
 		childCompiler.outputPath = this.outputPath;
 		childCompiler.inputFileSystem = this.inputFileSystem;

@@ -114,6 +114,7 @@ importers:
       '@angular/router': ^16.0.0
       '@ngtools/webpack': ^16.0.0
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       '@rspack/plugin-minify': workspace:*
       html-webpack-plugin: ^5.5.0
       karma: ~6.4.0
@@ -145,6 +146,7 @@ importers:
       '@angular/compiler-cli': 16.0.0_scldldeidleauflck5yigfgo3u
       '@ngtools/webpack': 16.0.0_cgwpibwus2sfr6wgvih7aq35fm
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       '@rspack/plugin-minify': link:../../packages/rspack-plugin-minify
       html-webpack-plugin: 5.5.0_webpack@5.76.0
       karma: 6.4.2
@@ -163,6 +165,7 @@ importers:
       '@arco-themes/react-arco-pro': ^0.0.7
       '@loadable/component': ^5.15.2
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       '@rspack/plugin-html': workspace:*
       '@rspack/plugin-react-refresh': workspace:*
       '@svgr/webpack': ^6.5.1
@@ -222,6 +225,7 @@ importers:
       regenerator-runtime: 0.13.9
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       '@rspack/plugin-html': link:../../packages/rspack-plugin-html
       '@rspack/plugin-react-refresh': link:../../packages/rspack-plugin-react-refresh
       '@svgr/webpack': 6.5.1
@@ -239,26 +243,32 @@ importers:
   examples/basic:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
 
   examples/basic-ts:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       typescript: ^5.1.3
     dependencies:
       typescript: 5.1.3
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
 
   examples/builtin-swc-loader:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       react: 18.2.0
       react-dom: 18.2.0
       react-refresh: 0.14.0
     dependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
       react-refresh: 0.14.0
@@ -266,18 +276,23 @@ importers:
   examples/bundle-splitting:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
 
   examples/code-splitting:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
 
   examples/cra:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       react: ^18.2.0
       react-dom: ^18.2.0
       web-vitals: ^2.1.4
@@ -286,11 +301,13 @@ importers:
       react-dom: 18.2.0_react@18.2.0
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       web-vitals: 2.1.4
 
   examples/cra-ts:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       react: ^18.2.0
       react-dom: ^18.2.0
       web-vitals: ^2.1.4
@@ -299,6 +316,7 @@ importers:
       react-dom: 18.2.0_react@18.2.0
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       web-vitals: 2.1.4
 
   examples/emotion:
@@ -306,6 +324,7 @@ importers:
       '@emotion/react': 11.10.6
       '@emotion/styled': 11.10.6
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       react: '17'
       react-dom: '17'
     dependencies:
@@ -315,39 +334,48 @@ importers:
       react-dom: 17.0.2_react@17.0.2
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
 
   examples/eslint:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       eslint: '8'
       eslint-rspack-plugin: ^4.0.0-alpha
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       eslint: 8.40.0
       eslint-rspack-plugin: 4.0.0-alpha_eslint@8.40.0
 
   examples/express:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       express: 4.18.2
       run-script-webpack-plugin: ''
     dependencies:
       express: 4.18.2
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       run-script-webpack-plugin: 0.2.0
 
   examples/extract-license:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
 
   examples/library:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
 
   examples/loader-compat:
     specifiers:
@@ -355,6 +383,7 @@ importers:
       '@mdx-js/loader': 2.2.1
       '@node-rs/crc32': 1.7.0
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       '@svgr/webpack': 6.5.1
       autoprefixer: 10.4.13
       babel-loader: 9.1.2
@@ -381,6 +410,7 @@ importers:
       '@babel/preset-env': 7.20.2
       '@mdx-js/loader': 2.2.1
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       '@svgr/webpack': 6.5.1
       autoprefixer: 10.4.13
       babel-loader: 9.1.2
@@ -405,14 +435,18 @@ importers:
   examples/monaco-editor-js:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       monaco-editor: ^0.39.0
     dependencies:
       '@rspack/cli': link:../../packages/rspack-cli
       monaco-editor: 0.39.0
+    devDependencies:
+      '@rspack/core': link:../../packages/rspack
 
   examples/monaco-editor-ts-react:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       '@types/react': ^18.0.25
       '@types/react-dom': ^18.0.8
       monaco-editor: ^0.39.0
@@ -427,15 +461,28 @@ importers:
       react-dom: 18.0.0_react@18.0.0
       react-refresh: 0.13.0
     devDependencies:
+      '@rspack/core': link:../../packages/rspack
       '@types/react': 18.2.6
       '@types/react-dom': 18.2.4
       typescript: 5.1.6
 
+  examples/monaco-editor-webpack-plugin:
+    specifiers:
+      '@rspack/cli': workspace:*
+      monaco-editor: ^0.39.0
+      monaco-editor-webpack-plugin: ^7.1.0
+    dependencies:
+      '@rspack/cli': link:../../packages/rspack-cli
+      monaco-editor: 0.39.0
+      monaco-editor-webpack-plugin: 7.1.0_monaco-editor@0.39.0
+
   examples/multi-entry:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
 
   examples/nestjs:
     specifiers:
@@ -443,6 +490,7 @@ importers:
       '@nestjs/core': ^9.0.5
       '@nestjs/platform-express': ^9.0.0
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       reflect-metadata: ^0.1.13
       run-script-webpack-plugin: 0.2.0
       rxjs: ^7.5.5
@@ -455,32 +503,40 @@ importers:
       rxjs: 7.6.0
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
 
   examples/node-globals-shim:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
 
   examples/node-polyfill:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       '@rspack/plugin-node-polyfill': workspace:*
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       '@rspack/plugin-node-polyfill': link:../../packages/rspack-plugin-node-polyfill
 
   examples/perfsee:
     specifiers:
       '@perfsee/webpack': 1.6.0
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
     devDependencies:
       '@perfsee/webpack': 1.6.0
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
 
   examples/plugin-compat:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       '@rspack/plugin-minify': workspace:*
       copy-webpack-plugin: 5.1.2
       fork-ts-checker-webpack-plugin: 8.0.0
@@ -492,6 +548,7 @@ importers:
       webpack-stats-plugin: 1.1.1
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       '@rspack/plugin-minify': link:../../packages/rspack-plugin-minify
       copy-webpack-plugin: 5.1.2
       fork-ts-checker-webpack-plugin: 8.0.0
@@ -505,26 +562,32 @@ importers:
   examples/polyfill:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       core-js: 3.30.1
     dependencies:
       core-js: 3.30.1
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
 
   examples/postcss:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
 
   examples/postcss-loader:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       autoprefixer: 10.4.15
       postcss-loader: 7.3.3
       postcss-plugin-px2rem: 0.8.1
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       autoprefixer: 10.4.15
       postcss-loader: 7.3.3
       postcss-plugin-px2rem: 0.8.1
@@ -532,12 +595,15 @@ importers:
   examples/proxy:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
 
   examples/react:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       react: 18.2.0
       react-dom: 18.2.0
       react-refresh: 0.14.0
@@ -546,10 +612,13 @@ importers:
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
       react-refresh: 0.14.0
+    devDependencies:
+      '@rspack/core': link:../../packages/rspack
 
   examples/react-15:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       react: 15.7.0
       react-dom: 15.7.0
       react-refresh: 0.14.0
@@ -558,10 +627,13 @@ importers:
       react: 15.7.0
       react-dom: 15.7.0_react@15.7.0
       react-refresh: 0.14.0
+    devDependencies:
+      '@rspack/core': link:../../packages/rspack
 
   examples/react-15-classic:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       react: 15.0.0
       react-dom: 15.0.0
       react-refresh: 0.14.0
@@ -570,6 +642,8 @@ importers:
       react: 15.0.0
       react-dom: 15.0.0_react@15.0.0
       react-refresh: 0.14.0
+    devDependencies:
+      '@rspack/core': link:../../packages/rspack
 
   examples/react-refresh:
     specifiers:
@@ -616,6 +690,7 @@ importers:
   examples/react-storybook:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       '@storybook/addon-essentials': ^7.0.0
       '@storybook/addon-interactions': ^7.0.0
       '@storybook/addon-links': ^7.0.0
@@ -634,6 +709,7 @@ importers:
       react-dom: 17.0.2_react@17.0.2
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       '@storybook/addon-essentials': 7.0.15_sfoxds7t5ydpegc3knd667wn6m
       '@storybook/addon-interactions': 7.0.15_sfoxds7t5ydpegc3knd667wn6m
       '@storybook/addon-links': 7.0.15_sfoxds7t5ydpegc3knd667wn6m
@@ -649,6 +725,7 @@ importers:
   examples/react-with-less:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       less-loader: 11.1.0
       normalize.css: 8.0.1
       react: 17.0.0
@@ -659,10 +736,13 @@ importers:
       normalize.css: 8.0.1
       react: 17.0.0
       react-dom: 17.0.0_react@17.0.0
+    devDependencies:
+      '@rspack/core': link:../../packages/rspack
 
   examples/react-with-sass:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       react: 17.0.0
       react-dom: 17.0.0
       sass-loader: ^13.2.0
@@ -671,11 +751,14 @@ importers:
       react: 17.0.0
       react-dom: 17.0.0_react@17.0.0
       sass-loader: 13.2.0
+    devDependencies:
+      '@rspack/core': link:../../packages/rspack
 
   examples/solid:
     specifiers:
       '@babel/core': 7.20.12
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       babel-loader: 9.1.2
       babel-preset-solid: 1.6.9
       solid-js: 1.6.9
@@ -687,16 +770,21 @@ importers:
       babel-preset-solid: 1.6.9_@babel+core@7.20.12
       solid-js: 1.6.9
       solid-refresh: 0.5.2_solid-js@1.6.9
+    devDependencies:
+      '@rspack/core': link:../../packages/rspack
 
   examples/stats:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
 
   examples/styled-components:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       '@types/styled-components': 5.1.26
       react: '17'
       react-dom: '17'
@@ -708,10 +796,12 @@ importers:
       styled-components: 5.3.6_sfoxds7t5ydpegc3knd667wn6m
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
 
   examples/svelte:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       '@rspack/plugin-html': workspace:*
       '@tsconfig/svelte': ^3.0.0
       cross-env: ^7.0.3
@@ -725,6 +815,7 @@ importers:
       webpack-bundle-analyzer: 4.6.1
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       '@rspack/plugin-html': link:../../packages/rspack-plugin-html
       '@tsconfig/svelte': 3.0.0
       cross-env: 7.0.3
@@ -740,12 +831,14 @@ importers:
   examples/svgr:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       '@svgr/webpack': 6.5.1
       react: '15'
       react-dom: '15'
       url-loader: 4.1.1
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       '@svgr/webpack': 6.5.1
       react: 15.7.0
       react-dom: 15.7.0_react@15.7.0
@@ -754,12 +847,14 @@ importers:
   examples/tailwind:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       autoprefixer: 10.4.14
       postcss: 8.4.21
       postcss-loader: 7.2.3
       tailwindcss: 3.3.1
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       autoprefixer: 10.4.14_postcss@8.4.21
       postcss: 8.4.21
       postcss-loader: 7.2.3_postcss@8.4.21
@@ -768,12 +863,14 @@ importers:
   examples/tailwind-jit:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       autoprefixer: 10.4.14
       postcss: 8.4.21
       postcss-loader: 7.2.3
       tailwindcss: 3.3.1
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       autoprefixer: 10.4.14_postcss@8.4.21
       postcss: 8.4.21
       postcss-loader: 7.2.3_postcss@8.4.21
@@ -782,6 +879,7 @@ importers:
   examples/vue:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       less: 4.1.3
       less-loader: ^11.1.0
       vue: 3.2.47
@@ -790,6 +888,7 @@ importers:
       vue: 3.2.47
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       less: 4.1.3
       less-loader: 11.1.0_less@4.1.3
       vue-loader: 17.2.2_vue@3.2.47
@@ -797,6 +896,7 @@ importers:
   examples/vue2:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       css-loader: ^6.7.4
       less: 4.1.3
       less-loader: ^11.1.0
@@ -805,6 +905,7 @@ importers:
       vue-style-loader: ^4.1.3
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       css-loader: 6.7.4
       less: 4.1.3
       less-loader: 11.1.0_less@4.1.3
@@ -815,6 +916,7 @@ importers:
   examples/vue2-ts:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       css-loader: ^6.7.4
       less: 4.1.3
       less-loader: ^11.1.0
@@ -823,6 +925,7 @@ importers:
       vue-style-loader: ^4.1.3
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       css-loader: 6.8.1
       less: 4.1.3
       less-loader: 11.1.0_less@4.1.3
@@ -834,6 +937,7 @@ importers:
     specifiers:
       '@babel/core': 7.21.0
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       '@vue/babel-plugin-jsx': 1.1.1
       babel-loader: 9.1.2
       vue: 3.2.45
@@ -842,6 +946,7 @@ importers:
     devDependencies:
       '@babel/core': 7.21.0
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       '@vue/babel-plugin-jsx': 1.1.1_@babel+core@7.21.0
       babel-loader: 9.1.2_@babel+core@7.21.0
 
@@ -850,6 +955,7 @@ importers:
       '@babel/core': 7.21.0
       '@babel/preset-typescript': ^7.22.5
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       '@vue/babel-plugin-jsx': 1.1.1
       babel-loader: 9.1.2
       typescript: ^5.1.3
@@ -861,6 +967,7 @@ importers:
       '@babel/core': 7.21.0
       '@babel/preset-typescript': 7.22.5_@babel+core@7.21.0
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       '@vue/babel-plugin-jsx': 1.1.1_@babel+core@7.21.0
       babel-loader: 9.1.2_@babel+core@7.21.0
       typescript: 5.1.3
@@ -869,6 +976,7 @@ importers:
   examples/vue3-vanilla:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       css-loader: ^6.8.1
       less: 4.1.3
       less-loader: ^11.1.0
@@ -879,6 +987,7 @@ importers:
       vue: 3.2.47
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       css-loader: 6.8.1
       less: 4.1.3
       less-loader: 11.1.0_less@4.1.3
@@ -888,21 +997,29 @@ importers:
   examples/wasm-simple:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
     dependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+    devDependencies:
+      '@rspack/core': link:../../packages/rspack
 
   examples/worker:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
     dependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+    devDependencies:
+      '@rspack/core': link:../../packages/rspack
 
   examples/worklet:
     specifiers:
       '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
       esbuild: 0.19.3
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
       esbuild: 0.19.3
 
   npm/darwin-arm64:
@@ -1299,6 +1416,7 @@ importers:
       css-loader: ^5.0.1
       csv-to-markdown-table: ^1.3.0
       enhanced-resolve: 5.12.0
+      es5-ext: ^0.10.53
       file-loader: ^6.2.0
       graceful-fs: 4.2.10
       is-ci: 3.0.1
@@ -1358,6 +1476,7 @@ importers:
       copy-webpack-plugin: 5.1.2
       css-loader: 5.0.1
       csv-to-markdown-table: 1.3.0
+      es5-ext: 0.10.62
       file-loader: 6.2.0
       is-ci: 3.0.1
       jest-serializer-path: 0.1.15
@@ -16416,6 +16535,13 @@ packages:
     resolution: {integrity: sha512-NJGVKPS81XejHcLhaLJS7plab0fK3slPh11mESeeDq2W4ZI5kUKK/LRRdVDvjJseojbPB7ZwjnyOybg3Igea/A==}
     dev: true
 
+  /d/1.0.1:
+    resolution: {integrity: sha512-m62ShEObQ39CfralilEQRjH6oAMtNCV1xJyEx5LpRYUVN+EviphDgUc/F3hnYbADmkiNs67Y+3ylmlG7Lnu+FA==}
+    dependencies:
+      es5-ext: 0.10.62
+      type: 1.2.0
+    dev: true
+
   /d3-array/1.2.4:
     resolution: {integrity: sha512-KHW6M86R+FUPYGb3R5XiYjXPq7VzwxZ22buHhAEVG5ztoEcZZMLov530mmccaqA1GghZArjQV46fuc8kUqhhHw==}
     dev: false
@@ -17389,11 +17515,36 @@ packages:
       is-date-object: 1.0.5
       is-symbol: 1.0.4
 
+  /es5-ext/0.10.62:
+    resolution: {integrity: sha512-BHLqn0klhEpnOKSrzn/Xsz2UIW8j+cGmo9JLzr8BiUapV8hPL9+FliFqjwr9ngW7jWdnxv6eO+/LqyhJVqgrjA==}
+    engines: {node: '>=0.10'}
+    requiresBuild: true
+    dependencies:
+      es6-iterator: 2.0.3
+      es6-symbol: 3.1.3
+      next-tick: 1.1.0
+    dev: true
+
+  /es6-iterator/2.0.3:
+    resolution: {integrity: sha512-zw4SRzoUkd+cl+ZoE15A9o1oQd920Bb0iOJMQkQhl3jNc03YqVjAhG7scf9C5KWRU/R13Orf588uCC6525o02g==}
+    dependencies:
+      d: 1.0.1
+      es5-ext: 0.10.62
+      es6-symbol: 3.1.3
+    dev: true
+
   /es6-object-assign/1.1.0:
     resolution: {integrity: sha512-MEl9uirslVwqQU369iHNWZXsI8yaZYGg/D65aOgZkeyFJwHYSxilf7rQzXKI7DdDuBPrBXbfk3sl9hJhmd5AUw==}
 
   /es6-promise/3.3.1:
     resolution: {integrity: sha512-SOp9Phqvqn7jtEUxPWdWfWoLmyt2VaJ6MpvP9Comy1MceMXqE6bxvaTu4iaxpYYPzhny28Lc+M87/c2cPK6lDg==}
+    dev: true
+
+  /es6-symbol/3.1.3:
+    resolution: {integrity: sha512-NJ6Yn3FuDinBaBRWl/q5X/s4koRHBrgKAu+yGI6JCBeiu3qrcbJhwT2GeR/EXVfylRk8dpQVJoLEFhK+Mu31NA==}
+    dependencies:
+      d: 1.0.1
+      ext: 1.7.0
     dev: true
 
   /esbuild-plugin-alias/0.2.1:
@@ -17959,6 +18110,12 @@ packages:
       sort-keys-length: 1.0.1
     dev: true
     optional: true
+
+  /ext/1.7.0:
+    resolution: {integrity: sha512-6hxeJYaL110a9b5TEJSj0gojyHQAmA2ch5Os+ySCiA1QGdS697XWY1pzsrSjqA9LDEEgdB/KypIlR59RcLuHYw==}
+    dependencies:
+      type: 2.7.2
+    dev: true
 
   /extend/3.0.2:
     resolution: {integrity: sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==}
@@ -22690,6 +22847,16 @@ packages:
       commander: 9.4.0
     dev: false
 
+  /monaco-editor-webpack-plugin/7.1.0_monaco-editor@0.39.0:
+    resolution: {integrity: sha512-ZjnGINHN963JQkFqjjcBtn1XBtUATDZBMgNQhDQwd78w2ukRhFXAPNgWuacaQiDZsUr4h1rWv5Mv6eriKuOSzA==}
+    peerDependencies:
+      monaco-editor: '>= 0.31.0'
+      webpack: ^4.5.0 || 5.x
+    dependencies:
+      loader-utils: 2.0.4
+      monaco-editor: 0.39.0
+    dev: false
+
   /monaco-editor/0.39.0:
     resolution: {integrity: sha512-zhbZ2Nx93tLR8aJmL2zI1mhJpsl87HMebNBM6R8z4pLfs8pj604pIVIVwyF1TivcfNtIPpMXL+nb3DsBmE/x6Q==}
     dev: false
@@ -22822,6 +22989,10 @@ packages:
 
   /neo-async/2.6.2:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
+
+  /next-tick/1.1.0:
+    resolution: {integrity: sha512-CXdUiJembsNjuToQvxayPZF9Vqht7hewsvy2sOWafLvi2awflj9mOC6bHIg50orX8IJvWKY9wYQ/zB2kogPslQ==}
+    dev: true
 
   /nice-napi/1.0.2:
     resolution: {integrity: sha512-px/KnJAJZf5RuBGcfD+Sp2pAKq0ytz8j+1NehvgIGFkvtvFrDM3T8E4x/JJODXK9WZow8RRGrbA9QQ3hs+pDhA==}
@@ -28338,6 +28509,14 @@ packages:
     dependencies:
       media-typer: 0.3.0
       mime-types: 2.1.35
+
+  /type/1.2.0:
+    resolution: {integrity: sha512-+5nt5AAniqsCnu2cEQQdpzCAh33kVx8n0VoFidKpB1dVVLAN/F+bgVOqOJqOnEnrhp222clB5p3vUlD+1QAnfg==}
+    dev: true
+
+  /type/2.7.2:
+    resolution: {integrity: sha512-dzlvlNlt6AXU7EBSfpAscydQ7gXB+pPGsPnfJnZpiNJBDj7IaJzQlBZYGdEi4R9HmPdBv2XmWJ6YUtoTa7lmCw==}
+    dev: true
 
   /typed-assert/1.0.9:
     resolution: {integrity: sha512-KNNZtayBCtmnNmbo5mG47p1XsCyrx6iVqomjcZnec/1Y5GGARaxPs6r49RnSPeUP3YjNYiU9sQHAtY4BBvnZwg==}

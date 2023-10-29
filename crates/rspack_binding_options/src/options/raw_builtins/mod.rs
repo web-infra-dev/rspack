@@ -1,6 +1,7 @@
 mod raw_banner;
 mod raw_copy;
 mod raw_html;
+mod raw_limit_chunk_count;
 mod raw_progress;
 mod raw_swc_js_minimizer;
 mod raw_to_be_deprecated;
@@ -22,6 +23,7 @@ use rspack_plugin_externals::{
 use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_library::enable_library_plugin;
+use rspack_plugin_limit_chunk_count::LimitChunkCountPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_runtime::{
   enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, CommonJsChunkFormatPlugin,
@@ -30,10 +32,12 @@ use rspack_plugin_runtime::{
 use rspack_plugin_swc_css_minimizer::SwcCssMinimizerRspackPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 use rspack_plugin_wasm::enable_wasm_loading_plugin;
+use rspack_plugin_web_worker_template::web_worker_template_plugin;
 
 pub use self::{
   raw_banner::RawBannerPluginOptions, raw_copy::RawCopyRspackPluginOptions,
-  raw_html::RawHtmlRspackPluginOptions, raw_progress::RawProgressPluginOptions,
+  raw_html::RawHtmlRspackPluginOptions, raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
+  raw_progress::RawProgressPluginOptions,
   raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
 };
 use crate::{
@@ -60,6 +64,8 @@ pub enum BuiltinPluginName {
   ArrayPushCallbackChunkFormatPlugin,
   ModuleChunkFormatPlugin,
   HotModuleReplacementPlugin,
+  LimitChunkCountPlugin,
+  WebWorkerTemplatePlugin,
 
   // rspack specific plugins
   HttpExternalsRspackPlugin,
@@ -152,6 +158,16 @@ impl RawOptionsApply for BuiltinPlugin {
       }
       BuiltinPluginName::HotModuleReplacementPlugin => {
         plugins.push(HotModuleReplacementPlugin.boxed());
+      }
+      BuiltinPluginName::LimitChunkCountPlugin => {
+        let plugin = LimitChunkCountPlugin::new(
+          downcast_into::<RawLimitChunkCountPluginOptions>(self.options)?.into(),
+        )
+        .boxed();
+        plugins.push(plugin);
+      }
+      BuiltinPluginName::WebWorkerTemplatePlugin => {
+        web_worker_template_plugin(plugins);
       }
 
       // rspack specific plugins

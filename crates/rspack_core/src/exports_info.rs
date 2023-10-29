@@ -10,6 +10,7 @@ use rustc_hash::FxHashSet as HashSet;
 use serde::Serialize;
 use swc_core::ecma::atoms::JsWord;
 
+use crate::Nullable;
 use crate::{
   ConnectionState, DependencyCondition, DependencyId, ModuleGraph, ModuleGraphConnection,
   ModuleIdentifier, RuntimeSpec,
@@ -126,7 +127,11 @@ impl ExportsInfoId {
         export_info.set_target(
           Some(target_key),
           target_module,
-          export_info.name.clone().map(|name| vec![name]).as_ref(),
+          export_info
+            .name
+            .clone()
+            .map(|name| Nullable::Value(vec![name]))
+            .as_ref(),
           priority,
         );
       }
@@ -535,6 +540,10 @@ impl ExportsHash for ExportInfoId {
 impl ExportInfoId {
   pub fn new() -> Self {
     Self(EXPORT_INFO_ID.fetch_add(1, Relaxed))
+  }
+
+  pub fn get_export_info<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportInfo {
+    mg.get_export_info_by_id(self)
   }
 
   fn set_has_use_info(&self, mg: &mut ModuleGraph) {
@@ -1129,7 +1138,6 @@ impl ExportInfo {
         exports: item.exports.clone(),
       })
       .collect::<Vec<_>>();
-
     let target = resolve_target(
       values.get(0).cloned(),
       already_visited,
@@ -1169,9 +1177,14 @@ impl ExportInfo {
     &mut self,
     key: Option<DependencyId>,
     connection: Option<ModuleGraphConnection>,
-    export_name: Option<&Vec<JsWord>>,
+    export_name: Option<&Nullable<Vec<JsWord>>>,
     priority: Option<u8>,
   ) -> bool {
+    let export_name = match export_name {
+      Some(Nullable::Null) => None,
+      Some(Nullable::Value(vec)) => Some(vec),
+      None => None,
+    };
     let normalized_priority = priority.unwrap_or(0);
     if !self.target_is_set {
       self.target.insert(
@@ -1389,6 +1402,7 @@ pub fn process_export_info(
       return;
     }
     already_visited.insert(export_info.id);
+    // FIXME: more branch
     if used != UsageState::OnlyPropertiesUsed {
       already_visited.remove(&export_info.id);
       referenced_export.push(prefix);

@@ -94,6 +94,7 @@ pub(crate) mod expr_matcher {
     is_import_meta_webpack_hot: "import.meta.webpackHot",
     is_import_meta_webpack_hot_accept: "import.meta.webpackHot.accept",
     is_import_meta_webpack_hot_decline: "import.meta.webpackHot.decline",
+    is_import_meta_webpack_context: "import.meta.webpackContext",
     is_import_meta_url: "import.meta.url",
     is_import_meta: "import.meta",
     is_exports_esmodule: "exports.__esModule",
@@ -168,6 +169,14 @@ pub fn is_import_meta_hot_decline_call(node: &CallExpr) -> bool {
     .callee
     .as_expr()
     .map(|expr| expr_matcher::is_import_meta_webpack_hot_decline(expr))
+    .unwrap_or_default()
+}
+
+pub fn is_import_meta_context_call(node: &CallExpr) -> bool {
+  node
+    .callee
+    .as_expr()
+    .map(|expr| expr_matcher::is_import_meta_webpack_context(expr))
     .unwrap_or_default()
 }
 
@@ -253,4 +262,17 @@ pub fn is_unresolved_member_object_ident(expr: &Expr, unresolved_ctxt: &SyntaxCo
     };
   }
   false
+}
+
+pub fn is_unresolved_require(expr: &Expr, unresolved_ctxt: &SyntaxContext) -> bool {
+  let ident = match expr {
+    Expr::Ident(ident) => Some(ident),
+    Expr::Member(mem) => mem.obj.as_ident(),
+    _ => None,
+  };
+  let Some(ident) = ident else {
+    unreachable!("please don't use this fn in other case");
+  };
+  assert!(ident.sym.eq("require"));
+  ident.span.ctxt == *unresolved_ctxt
 }

@@ -10,7 +10,8 @@
   },
   "devDependencies": {
     "esbuild": "0.19.3",
-    "@rspack/cli": "workspace:*"
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*"
   },
   "sideEffects": false,
   "keywords": [],

@@ -12,6 +12,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@rspack/cli": "workspace:*"
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*"
   }
 }

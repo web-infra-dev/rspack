@@ -37,13 +37,7 @@ module.exports = class PolyfillBuiltinsPlugin {
 			process: [require.resolve("process/browser")]
 		};
 
-		compiler.options.builtins = {
-			...compiler.options.builtins,
-			provide: {
-				...provide,
-				...compiler.options.builtins?.provide
-			}
-		};
+		compiler.options.plugins.push(new compiler.webpack.ProvidePlugin(provide));
 		compiler.options.resolve.fallback = {
 			...PolyfilledBuiltinModules,
 			...compiler.options.resolve.fallback

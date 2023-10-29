@@ -1,30 +1,33 @@
-const path = require('path');
+const rspack = require("@rspack/core");
+const path = require("path");
 
 module.exports = {
 	entry: {
-		app: './src/index.tsx',
+		app: "./src/index.tsx"
 	},
 	devServer: {
-		hot: true,
+		hot: true
 	},
 	resolve: {
-		extensions: ['*', '.js', '.jsx', '.tsx', '.ts'],
+		extensions: ["*", ".js", ".jsx", ".tsx", ".ts"],
 		tsConfigPath: path.resolve(__dirname, "tsconfig.json")
 	},
 	output: {
-		globalObject: 'self',
-		filename: '[name].bundle.js',
-		path: path.resolve(__dirname, 'dist')
+		globalObject: "self",
+		filename: "[name].bundle.js",
+		path: path.resolve(__dirname, "dist")
 	},
 	module: {
 		rules: [
 			{
 				test: /\.ttf$/,
-				type: 'asset/resource',
+				type: "asset/resource"
 			}
 		]
 	},
-	builtins: {
-		html: [{ template: './src/index.html' }]
-	}
+	plugins: [
+		new rspack.HtmlRspackPlugin({
+			template: "./src/index.html"
+		})
+	]
 };

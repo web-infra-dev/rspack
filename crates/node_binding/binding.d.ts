@@ -131,6 +131,8 @@ export const enum BuiltinPluginName {
   ArrayPushCallbackChunkFormatPlugin = 'ArrayPushCallbackChunkFormatPlugin',
   ModuleChunkFormatPlugin = 'ModuleChunkFormatPlugin',
   HotModuleReplacementPlugin = 'HotModuleReplacementPlugin',
+  LimitChunkCountPlugin = 'LimitChunkCountPlugin',
+  WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -778,6 +780,12 @@ export interface RawLibraryOptions {
   libraryType: string
   umdNamedDefine?: boolean
   auxiliaryComment?: RawLibraryAuxiliaryComment
+}
+
+export interface RawLimitChunkCountPluginOptions {
+  chunkOverhead?: number
+  entryChunkMultiplicator?: number
+  maxChunks: number
 }
 
 export interface RawModuleOptions {

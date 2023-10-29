@@ -99,7 +99,7 @@ impl DependencyTemplate for ImportContextDependency {
     source.replace(
       self.callee_start,
       self.callee_end,
-      format!("{}({module_id_str})", RuntimeGlobals::REQUIRE,).as_str(),
+      format!("{}({module_id_str})", RuntimeGlobals::REQUIRE).as_str(),
       None,
     );
 

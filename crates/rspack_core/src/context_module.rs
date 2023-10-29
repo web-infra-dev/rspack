@@ -45,6 +45,20 @@ pub enum ContextMode {
   LazyOnce,
 }
 
+impl From<&str> for ContextMode {
+  fn from(value: &str) -> Self {
+    match value {
+      "sync" => ContextMode::Sync,
+      "eager" => ContextMode::Eager,
+      "weak" => ContextMode::Weak,
+      "lazy" => ContextMode::Lazy,
+      "lazy-once" => ContextMode::LazyOnce,
+      // TODO should give warning
+      _ => panic!("unknown context mode"),
+    }
+  }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ContextNameSpaceObject {
   Bool(bool),
@@ -59,11 +73,26 @@ impl ContextNameSpaceObject {
   }
 }
 
+pub fn context_reg_exp(expr: &str, flags: &str) -> Option<RspackRegex> {
+  let regexp = RspackRegex::with_flags(expr, flags).expect("reg failed");
+  clean_regexp_in_context_module(regexp)
+}
+
+pub fn clean_regexp_in_context_module(regexp: RspackRegex) -> Option<RspackRegex> {
+  if regexp.sticky() || regexp.global() {
+    // TODO: warning
+    None
+  } else {
+    Some(regexp)
+  }
+}
+
 #[derive(Debug, Clone)]
 pub struct ContextOptions {
   pub mode: ContextMode,
   pub recursive: bool,
-  pub reg_exp: RspackRegex,
+  pub reg_exp: Option<RspackRegex>,
+  // TODO: remove `reg_str`
   pub reg_str: String, // generate context module id
   pub include: Option<String>,
   pub exclude: Option<String>,
@@ -173,7 +202,7 @@ impl ContextModule {
       .as_str()
   }
 
-  pub fn get_fake_map(&self, compilation: &Compilation) -> FakeMapValue {
+  fn get_fake_map(&self, compilation: &Compilation) -> FakeMapValue {
     if self.options.context_options.namespace_object.is_false() {
       return FakeMapValue::Bit(FakeNamespaceObjectMode::NAMESPACE);
     }
@@ -233,11 +262,7 @@ impl ContextModule {
     }
   }
 
-  pub fn get_return_module_object_source(
-    &self,
-    fake_map: &FakeMapValue,
-    async_module: bool,
-  ) -> String {
+  fn get_return_module_object_source(&self, fake_map: &FakeMapValue, async_module: bool) -> String {
     if let FakeMapValue::Bit(bit) = fake_map {
       return self.get_return(bit, async_module);
     }
@@ -248,7 +273,7 @@ impl ContextModule {
     )
   }
 
-  pub fn get_return(&self, fake_map_bit: &FakeNamespaceObjectMode, async_module: bool) -> String {
+  fn get_return(&self, fake_map_bit: &FakeNamespaceObjectMode, async_module: bool) -> String {
     if *fake_map_bit == FakeNamespaceObjectMode::NAMESPACE {
       return format!("return {}(id);", RuntimeGlobals::REQUIRE);
     }
@@ -260,7 +285,7 @@ impl ContextModule {
     )
   }
 
-  pub fn get_user_request_map(&self, compilation: &Compilation) -> HashMap<String, String> {
+  fn get_user_request_map(&self, compilation: &Compilation) -> HashMap<String, String> {
     let mut map = HashMap::default();
     if let Some(dependencies) = compilation
       .module_graph
@@ -292,14 +317,14 @@ impl ContextModule {
   }
 
   #[inline]
-  pub fn get_source_string(&self, compilation: &Compilation) -> Result<BoxSource> {
+  fn get_source_string(&self, compilation: &Compilation) -> Result<BoxSource> {
     match self.options.context_options.mode {
       ContextMode::Lazy => Ok(self.get_lazy_source(compilation)),
       _ => self.generate_source(compilation),
     }
   }
 
-  pub fn get_lazy_source(&self, compilation: &Compilation) -> BoxSource {
+  fn get_lazy_source(&self, compilation: &Compilation) -> BoxSource {
     let map = self.get_user_request_map(compilation);
     let fake_map = self.get_fake_map(compilation);
     let return_module_object = self.get_return_module_object_source(&fake_map, true);
@@ -340,7 +365,7 @@ impl ContextModule {
     source.boxed()
   }
 
-  pub fn generate_source(&self, compilation: &Compilation) -> Result<BoxSource> {
+  fn generate_source(&self, compilation: &Compilation) -> Result<BoxSource> {
     let map = self.get_user_request_map(compilation);
     let fake_map = self.get_fake_map(compilation);
     let mode = &self.options.context_options.mode;
@@ -602,8 +627,12 @@ impl ContextModule {
               vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
             );
 
+            let Some(reg_exp) = &options.context_options.reg_exp else {
+              return Ok(());
+            };
+
             requests.iter().for_each(|r| {
-              if options.context_options.reg_exp.test(&r.request) {
+              if reg_exp.test(&r.request) {
                 dependencies.push(Box::new(ContextElementDependency {
                   id: DependencyId::new(),
                   request: format!(

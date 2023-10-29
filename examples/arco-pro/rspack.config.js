@@ -1,4 +1,5 @@
 const path = require("path");
+const rspack = require("@rspack/core");
 const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
 const { default: HtmlPlugin } = require("@rspack/plugin-html");
 
@@ -7,22 +8,13 @@ const prod = process.env.NODE_ENV === "production";
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
 	context: __dirname,
-	entry: { main: "./src/index.tsx" },
+	entry: "./src/index.tsx",
 	target: ["web", "es5"],
 	devServer: {
 		port: 5555,
 		webSocketServer: "sockjs",
 		historyApiFallback: true
 	},
-	mode: prod ? "production" : "development",
-	devtool: false,
-	builtins: {
-		progress: {},
-		treeShaking: true,
-		sideEffects: true,
-		noEmitAssets: false
-	},
-	cache: false,
 	module: {
 		rules: [
 			{
@@ -118,7 +110,8 @@ const config = {
 			template: path.join(__dirname, "index.html"),
 			favicon: path.join(__dirname, "public", "favicon.ico")
 		}),
-		new ReactRefreshPlugin()
+		new ReactRefreshPlugin(),
+		new rspack.ProgressPlugin()
 	],
 	infrastructureLogging: {
 		debug: false

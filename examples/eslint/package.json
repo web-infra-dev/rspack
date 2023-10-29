@@ -12,7 +12,8 @@
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "eslint-rspack-plugin": "^4.0.0-alpha",
-    "eslint": "8"
+    "eslint": "8",
+    "@rspack/core": "workspace:*"
   },
   "sideEffects": false,
   "keywords": [],
