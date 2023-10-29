@@ -1,4 +1,14 @@
 // expect 2 warnings
-// warning info includes user path, so it is not stable
-// you can run test "errors/case-sensitive" in webpack-test which restrict the warning info with RegExp
-module.exports = ["", ""];
+// the sequence of warnings is not guaranteed
+module.exports = [
+	[
+		/There are multiple modules with names that only differ in casing/,
+		/(case-sensitive.A\.js)|(case-sensitive.B.file\.js)/,
+		/(case-sensitive.a\.js)|(case-sensitive.b.file\.js)/
+	],
+	[
+		/There are multiple modules with names that only differ in casing/,
+		/(case-sensitive.A\.js)|(case-sensitive.B.file\.js)/,
+		/(case-sensitive.a\.js)|(case-sensitive.b.file\.js)/
+	]
+];
