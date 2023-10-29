@@ -1546,7 +1546,6 @@ impl Compilation {
       .chunk_by_ukey
       .get(chunk_ukey)
       .expect("chunk not found by ukey");
-
     let runtime_module_identifier =
       ModuleIdentifier::from(format!("{:?}/{}", chunk.runtime, module.identifier()));
     module.attach(*chunk_ukey);
