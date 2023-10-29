@@ -1,21 +1,16 @@
 use rspack_core::{context_reg_exp, ContextOptions, DependencyCategory};
 use rspack_core::{BoxDependency, ConstDependency, ContextMode, ContextNameSpaceObject};
 use rspack_core::{DependencyTemplate, RuntimeGlobals, SpanExt};
-use swc_core::{
-  common::{Spanned, SyntaxContext},
-  ecma::{
-    ast::{BinExpr, CallExpr, Callee, Expr, IfStmt, Lit, TryStmt, UnaryExpr, UnaryOp},
-    atoms::JsWord,
-    visit::{noop_visit_type, Visit, VisitWith},
-  },
-};
+use swc_core::common::{Spanned, SyntaxContext};
+use swc_core::ecma::ast::{BinExpr, CallExpr, Callee, Expr, IfStmt};
+use swc_core::ecma::ast::{Lit, TryStmt, UnaryExpr, UnaryOp};
+use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
-use super::{
-  context_helper::scanner_context_module, expr_matcher, is_unresolved_member_object_ident,
-};
-use crate::dependency::{
-  CommonJsRequireContextDependency, CommonJsRequireDependency, RequireResolveDependency,
-};
+use super::context_helper::scanner_context_module;
+use super::{expr_matcher, is_unresolved_member_object_ident, is_unresolved_require};
+use crate::dependency::CommonJsRequireContextDependency;
+use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
 
 pub struct CommonJsImportDependencyScanner<'a> {
   dependencies: &'a mut Vec<BoxDependency>,
@@ -58,9 +53,10 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
   }
 
   fn replace_require_resolve(&mut self, expr: &Expr, value: &'static str) {
-    if expr_matcher::is_require(expr)
+    if (expr_matcher::is_require(expr)
       || expr_matcher::is_require_resolve(expr)
-      || expr_matcher::is_require_resolve_weak(expr)
+      || expr_matcher::is_require_resolve_weak(expr))
+      && is_unresolved_require(expr, self.unresolved_ctxt)
     {
       self
         .presentational_dependencies

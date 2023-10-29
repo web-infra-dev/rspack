@@ -16,6 +16,7 @@ mod require_context_scanner;
 mod url_scanner;
 mod util;
 mod worker_scanner;
+
 use rspack_ast::javascript::Program;
 use rspack_core::{
   BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta, CompilerOptions, ModuleIdentifier,
