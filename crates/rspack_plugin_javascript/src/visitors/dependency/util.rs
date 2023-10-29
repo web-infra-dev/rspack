@@ -263,3 +263,16 @@ pub fn is_unresolved_member_object_ident(expr: &Expr, unresolved_ctxt: &SyntaxCo
   }
   false
 }
+
+pub fn is_unresolved_require(expr: &Expr, unresolved_ctxt: &SyntaxContext) -> bool {
+  let ident = match expr {
+    Expr::Ident(ident) => Some(ident),
+    Expr::Member(mem) => mem.obj.as_ident(),
+    _ => None,
+  };
+  let Some(ident) = ident else {
+    unreachable!("please don't use this fn in other case");
+  };
+  assert!(ident.sym.eq("require"));
+  ident.span.ctxt == *unresolved_ctxt
+}
