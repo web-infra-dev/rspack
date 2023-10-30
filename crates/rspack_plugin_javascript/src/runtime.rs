@@ -120,12 +120,6 @@ fn render_module(
     RawSource::from(serde_json::to_string(module_id).map_err(|e| internal_error!(e.to_string()))?),
     RawSource::from(": "),
   ]);
-<<<<<<< HEAD
-  if let Some(build_info) = &mgm.build_info
-    && build_info.strict
-  {
-    sources.add(RawSource::from("'use strict';\n"));
-=======
   if is_diff_mode() {
     sources.add(RawSource::from(format!("\n/* start::{} */\n", module_id)));
   }
@@ -133,9 +127,10 @@ fn render_module(
     "(function ({module_argument}, {exports_argument}, {}) {{\n",
     RuntimeGlobals::REQUIRE
   )));
-  if let Some(build_info) = &mgm.build_info && build_info.strict {
+  if let Some(build_info) = &mgm.build_info
+    && build_info.strict
+  {
     sources.add(RawSource::from("\"use strict\";\n"));
->>>>>>> df3cedf23 (feat(runtime-diff): rspack diff toolkit)
   }
   sources.add(source);
   sources.add(RawSource::from("})"));
