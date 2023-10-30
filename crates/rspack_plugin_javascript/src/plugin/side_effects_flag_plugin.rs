@@ -282,11 +282,12 @@ fn is_pure_var_decl(var: &VarDecl, unresolved_ctxt: SyntaxContext) -> bool {
   })
 }
 
-pub trait ClassKey {
+pub trait ClassExt {
   fn class_key(&self) -> Option<&PropName>;
+  fn is_static(&self) -> bool;
 }
 
-impl ClassKey for ClassMember {
+impl ClassExt for ClassMember {
   fn class_key(&self) -> Option<&PropName> {
     match self {
       ClassMember::Constructor(c) => Some(&c.key),
@@ -301,6 +302,20 @@ impl ClassKey for ClassMember {
         Key::Private(_) => None,
         Key::Public(ref public) => Some(public),
       },
+    }
+  }
+
+  fn is_static(&self) -> bool {
+    match self {
+      ClassMember::Constructor(cons) => false,
+      ClassMember::Method(m) => m.is_static,
+      ClassMember::PrivateMethod(m) => m.is_static,
+      ClassMember::ClassProp(p) => p.is_static,
+      ClassMember::PrivateProp(p) => p.is_static,
+      ClassMember::TsIndexSignature(_) => unreachable!(),
+      ClassMember::Empty(_) => false,
+      ClassMember::StaticBlock(_) => true,
+      ClassMember::AutoAccessor(a) => a.is_static,
     }
   }
 }
