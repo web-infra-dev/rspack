@@ -576,10 +576,12 @@ class Compiler {
 			return finalCallback(null, entries, compilation);
 		});
 	}
-	isChild() {
+
+	isChild(): boolean {
 		const isRoot = this.root === this;
 		return !isRoot;
 	}
+
 	getInfrastructureLogger(name: string | Function) {
 		if (!name) {
 			throw new TypeError(
