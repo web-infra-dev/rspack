@@ -30,7 +30,9 @@ impl Plugin for EntryPlugin {
     compilation: &mut Compilation,
     param: &mut MakeParam,
   ) -> PluginMakeHookOutput {
-    if let Some(state) = compilation.options.get_incremental_rebuild_make_state() && !state.is_first() {
+    if let Some(state) = compilation.options.get_incremental_rebuild_make_state()
+      && !state.is_first()
+    {
       return Ok(());
     }
     let dependency: BoxDependency = Box::new(EntryDependency::new(

@@ -170,18 +170,25 @@ impl ParserAndGenerator for CssParserAndGenerator {
       &mut diagnostic_vec,
     );
 
-    let  dependencies = if let Some(locals) = &self.exports && !locals.is_empty() {
+    let dependencies = if let Some(locals) = &self.exports
+      && !locals.is_empty()
+    {
       let mut dep_set = FxHashSet::default();
-      let compose_deps = locals.iter().flat_map(|(_, value)| value).filter_map(|(_, from)| if let Some(from) = from {
-        if dep_set.contains(&from) {
-          None
-        } else {
-          dep_set.insert(from);
-          Some(Box::new(CssComposeDependency::new(from.to_owned(), None)) as BoxDependency)
-        }
-      } else {
-        None
-      });
+      let compose_deps = locals
+        .iter()
+        .flat_map(|(_, value)| value)
+        .filter_map(|(_, from)| {
+          if let Some(from) = from {
+            if dep_set.contains(&from) {
+              None
+            } else {
+              dep_set.insert(from);
+              Some(Box::new(CssComposeDependency::new(from.to_owned(), None)) as BoxDependency)
+            }
+          } else {
+            None
+          }
+        });
       dependencies.extend(compose_deps);
       dependencies
     } else {

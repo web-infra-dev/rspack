@@ -170,15 +170,12 @@ pub fn collect_changed_modules(
     .filter_map(|(identifier, cgm)| {
       let cid = cgm.id.as_deref();
       // TODO: Determine how to calc module hash if module related to multiple runtime code
-      // gen  
-      if let Some(code_generation_result) = compilation.code_generation_results.get_one(identifier) && let Some(module_hash) = &code_generation_result.hash && let Some(cid) = cid {
-        Some((
-            *identifier,
-            (
-                module_hash.clone(),
-                cid.to_string(),
-            ),
-        ))
+      // gen
+      if let Some(code_generation_result) = compilation.code_generation_results.get_one(identifier)
+        && let Some(module_hash) = &code_generation_result.hash
+        && let Some(cid) = cid
+      {
+        Some((*identifier, (module_hash.clone(), cid.to_string())))
       } else {
         None
       }

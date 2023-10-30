@@ -245,14 +245,20 @@ pub struct RuleSetLogicalConditions {
 impl RuleSetLogicalConditions {
   #[async_recursion]
   pub async fn try_match(&self, data: &str) -> Result<bool> {
-    if let Some(and) = &self.and && try_any(and, |i| async { i.try_match(data).await.map(|i| !i) }).await? {
-      return Ok(false)
+    if let Some(and) = &self.and
+      && try_any(and, |i| async { i.try_match(data).await.map(|i| !i) }).await?
+    {
+      return Ok(false);
     }
-    if let Some(or) = &self.or && try_all(or, |i| async { i.try_match(data).await.map(|i| !i) }).await? {
-      return Ok(false)
+    if let Some(or) = &self.or
+      && try_all(or, |i| async { i.try_match(data).await.map(|i| !i) }).await?
+    {
+      return Ok(false);
     }
-    if let Some(not) = &self.not && not.try_match(data).await? {
-      return Ok(false)
+    if let Some(not) = &self.not
+      && not.try_match(data).await?
+    {
+      return Ok(false);
     }
     Ok(true)
   }

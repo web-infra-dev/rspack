@@ -105,10 +105,12 @@ fn render_module(
   // TODO unused exports_argument
   let module_argument = {
     let module_argument = mgm.get_module_argument();
-    if let Some(runtime_requirements) = runtime_requirements && runtime_requirements.contains(RuntimeGlobals::MODULE) {
+    if let Some(runtime_requirements) = runtime_requirements
+      && runtime_requirements.contains(RuntimeGlobals::MODULE)
+    {
       module_argument.to_string()
     } else {
-     format!("__unused_webpack_{module_argument}")
+      format!("__unused_webpack_{module_argument}")
     }
   };
   let exports_argument = mgm.get_exports_argument();
@@ -120,7 +122,9 @@ fn render_module(
       RuntimeGlobals::REQUIRE
     )),
   ]);
-  if let Some(build_info) = &mgm.build_info && build_info.strict {
+  if let Some(build_info) = &mgm.build_info
+    && build_info.strict
+  {
     sources.add(RawSource::from("'use strict';\n"));
   }
   sources.add(source);

@@ -201,7 +201,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             connection.module_identifier,
             ProcessModuleReferencedExports::Map(exports_map),
           );
-        } else {
         }
       }
     }

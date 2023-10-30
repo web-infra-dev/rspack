@@ -70,7 +70,7 @@ impl Visit for ImportScanner<'_> {
 
   fn visit_call_expr(&mut self, node: &CallExpr) {
     if let Callee::Import(import_call) = &node.callee {
-      if let Some(dyn_imported) = node.args.get(0) {
+      if let Some(dyn_imported) = node.args.first() {
         if dyn_imported.spread.is_none() {
           match dyn_imported.expr.as_ref() {
             Expr::Lit(Lit::Str(imported)) => {
@@ -136,7 +136,7 @@ impl Visit for ImportScanner<'_> {
       }
     } else if is_import_meta_context_call(node) && !node.args.is_empty() {
       assert!(node.callee.is_expr());
-      let Some(dyn_imported) = node.args.get(0) else {
+      let Some(dyn_imported) = node.args.first() else {
         return;
       };
       if dyn_imported.spread.is_some() {

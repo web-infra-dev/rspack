@@ -554,13 +554,25 @@ pub mod needs_refactor {
     }
 
     if matches!(&*new_expr.callee, Expr::Ident(Ident { sym, .. }) if sym == "URL")
-    && let Some(args) = &new_expr.args
-    && let (Some(first), Some(second)) = (args.first(), args.get(1))
-    && let (
-      ExprOrSpread { spread: None, expr: box Expr::Lit(Lit::Str(path)) },
-      ExprOrSpread { spread: None, expr: box expr },
-    ) = (first, second) && is_import_meta_url(expr) {
-      return Some((path.span.real_lo(), expr.span().real_hi(), path.value.to_string()))
+      && let Some(args) = &new_expr.args
+      && let (Some(first), Some(second)) = (args.first(), args.get(1))
+      && let (
+        ExprOrSpread {
+          spread: None,
+          expr: box Expr::Lit(Lit::Str(path)),
+        },
+        ExprOrSpread {
+          spread: None,
+          expr: box expr,
+        },
+      ) = (first, second)
+      && is_import_meta_url(expr)
+    {
+      return Some((
+        path.span.real_lo(),
+        expr.span().real_hi(),
+        path.value.to_string(),
+      ));
     }
     None
   }
@@ -641,8 +653,9 @@ pub mod needs_refactor {
       let mut caps = Vec::new();
       for s in syntax {
         if let Some(captures) = WORKER_FROM_REGEX.captures(s)
-        && let Some(ids) = captures.get(1)
-        && let Some(source) = captures.get(3) {
+          && let Some(ids) = captures.get(1)
+          && let Some(source) = captures.get(3)
+        {
           caps.push((ids.as_str(), source.as_str()));
         } else {
           result.push(WorkerSyntax::new(JsWord::from(*s), None))

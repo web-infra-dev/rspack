@@ -95,7 +95,9 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
 
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
     // https://github.com/webpack/webpack/blob/main/lib/JavascriptMetaInfoPlugin.js#L46
-    if let Callee::Expr(box Expr::Ident(ident)) = &call_expr.callee && &ident.sym == "eval" {
+    if let Callee::Expr(box Expr::Ident(ident)) = &call_expr.callee
+      && &ident.sym == "eval"
+    {
       if let Some(current_symbol) = self.get_top_level_symbol() {
         // We use `""` to represent `null
         self.add_usage("".into(), InnerGraphMapUsage::TopLevel(current_symbol));
@@ -123,7 +125,9 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
   }
 
   fn visit_class_member(&mut self, node: &ClassMember) {
-    if let Some(key) = node.class_key() && key.is_computed() {
+    if let Some(key) = node.class_key()
+      && key.is_computed()
+    {
       key.visit_with(self);
     }
 
@@ -208,16 +212,19 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       return;
     }
 
-    if let Pat::Ident(ident) = &n.name && let Some(box init) = &n.init && is_pure_expression(init, self.unresolved_ctxt) {
+    if let Pat::Ident(ident) = &n.name
+      && let Some(box init) = &n.init
+      && is_pure_expression(init, self.unresolved_ctxt)
+    {
       let symbol = ident.id.sym.clone();
       match init {
         Expr::Fn(_) | Expr::Arrow(_) | Expr::Lit(_) => {
           self.set_symbol_if_is_top_level(symbol);
           init.visit_children_with(self);
           self.clear_symbol_if_is_top_level();
-        },
+        }
         Expr::Class(class) => {
-            // TODO: consider class 
+          // TODO: consider class
           class.class.visit_with(self);
         }
         _ => {
@@ -226,16 +233,16 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
             let start = init.span().real_lo();
             let end = init.span().real_hi();
             let module_identifier = self.state.module_identifier;
-            self.on_usage(Box::new(move |deps, used_by_exports| {
-              match used_by_exports {
-                Some(UsedByExports::Bool(true)) | None=> {},
+            self.on_usage(Box::new(
+              move |deps, used_by_exports| match used_by_exports {
+                Some(UsedByExports::Bool(true)) | None => {}
                 _ => {
                   let mut dep = PureExpressionDependency::new(start, end, module_identifier);
                   dep.used_by_exports = used_by_exports;
                   deps.push(Box::new(dep));
                 }
-              }
-            }));
+              },
+            ));
           }
         }
       }
@@ -467,7 +474,7 @@ impl<'a> InnerGraphPlugin<'a> {
           .state
           .usage_callback_map
           .entry(symbol)
-          .or_insert(vec![])
+          .or_default()
           .push(on_usage_callback);
       } else {
         on_usage_callback(self.dependencies, Some(UsedByExports::Bool(true)));
@@ -480,7 +487,9 @@ impl<'a> InnerGraphPlugin<'a> {
   pub fn visit_class_custom(&mut self, symbol: JsWord, class: &Class) {
     self.set_top_level_symbol(Some(symbol));
     // `onUsageSuper`
-    if let Some(box Expr::Ident(ident)) = &class.super_class && is_pure_class(class, self.unresolved_ctxt) {
+    if let Some(box Expr::Ident(ident)) = &class.super_class
+      && is_pure_class(class, self.unresolved_ctxt)
+    {
       ident.visit_children_with(self);
       // self.on_usage_by_span(Some(symbol), class.span.real_lo(), class.span.real_hi());
     }

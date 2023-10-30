@@ -219,7 +219,8 @@ impl Compilation {
     tracing::trace!("Emit asset {}", filename);
     if let Some(mut original) = self.assets.remove(&filename)
       && let Some(original_source) = &original.source
-      && let Some(asset_source) = asset.get_source() {
+      && let Some(asset_source) = asset.get_source()
+    {
       let is_source_equal = is_source_equal(original_source, asset_source);
       if !is_source_equal {
         tracing::error!(

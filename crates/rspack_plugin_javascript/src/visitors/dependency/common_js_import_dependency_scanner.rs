@@ -37,7 +37,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
 
   fn add_require_resolve(&mut self, node: &CallExpr, weak: bool) {
     if !node.args.is_empty() {
-      if let Some(Lit::Str(str)) = node.args.get(0).and_then(|x| x.expr.as_lit()) {
+      if let Some(Lit::Str(str)) = node.args.first().and_then(|x| x.expr.as_lit()) {
         self
           .dependencies
           .push(Box::new(RequireResolveDependency::new(
@@ -84,18 +84,30 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
       if let Expr::Ident(ident) = &**expr {
         if "require".eq(&ident.sym) && ident.span.ctxt == *self.unresolved_ctxt {
           {
-            if let Some(expr) = call_expr.args.get(0) && call_expr.args.len() == 1 && expr.spread.is_none() {
+            if let Some(expr) = call_expr.args.first()
+              && call_expr.args.len() == 1
+              && expr.spread.is_none()
+            {
               // TemplateLiteral String
-              if let Expr::Tpl(tpl) = expr.expr.as_ref()  && tpl.exprs.is_empty(){
-                let s = tpl.quasis.first().expect("should have one quasis").raw.as_ref();
+              if let Expr::Tpl(tpl) = expr.expr.as_ref()
+                && tpl.exprs.is_empty()
+              {
+                let s = tpl
+                  .quasis
+                  .first()
+                  .expect("should have one quasis")
+                  .raw
+                  .as_ref();
                 let request = JsWord::from(s);
-                  self.dependencies.push(Box::new(CommonJsRequireDependency::new(
-                  request,
-                  Some(call_expr.span.into()),
-                  call_expr.span.real_lo(),
-                  call_expr.span.real_hi(),
-                  self.in_try
-                )));
+                self
+                  .dependencies
+                  .push(Box::new(CommonJsRequireDependency::new(
+                    request,
+                    Some(call_expr.span.into()),
+                    call_expr.span.real_lo(),
+                    call_expr.span.real_hi(),
+                    self.in_try,
+                  )));
                 return;
               }
               if let Expr::Lit(Lit::Str(s)) = expr.expr.as_ref() {
@@ -126,7 +138,7 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
                       exclude: None,
                       category: DependencyCategory::CommonJS,
                       request: context,
-                      namespace_object: ContextNameSpaceObject::Unset
+                      namespace_object: ContextNameSpaceObject::Unset,
                     },
                     Some(call_expr.span.into()),
                   )));

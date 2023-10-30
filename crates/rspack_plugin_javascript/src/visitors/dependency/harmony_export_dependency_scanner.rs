@@ -215,9 +215,16 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
         export_default_decl.span().real_lo(),
         export_default_decl.decl.span().real_lo(),
         ident.is_some(),
-        if let DefaultDecl::Fn(f) = &export_default_decl.decl && f.ident.is_none() {
-          let first_parmas_start = f.function.params.get(0).map(|first| first.span.real_lo());
-          Some(AnonymousFunctionRangeInfo { is_async: f.function.is_async, is_generator:f.function.is_generator, body_start: f.function.body.span().real_lo(), first_parmas_start })
+        if let DefaultDecl::Fn(f) = &export_default_decl.decl
+          && f.ident.is_none()
+        {
+          let first_parmas_start = f.function.params.first().map(|first| first.span.real_lo());
+          Some(AnonymousFunctionRangeInfo {
+            is_async: f.function.is_async,
+            is_generator: f.function.is_generator,
+            body_start: f.function.body.span().real_lo(),
+            first_parmas_start,
+          })
         } else {
           None
         },

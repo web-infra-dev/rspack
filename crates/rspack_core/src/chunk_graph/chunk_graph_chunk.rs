@@ -68,7 +68,7 @@ impl ChunkGraph {
     self
       .chunk_graph_chunk_by_chunk_ukey
       .entry(chunk_ukey)
-      .or_insert_with(ChunkGraphChunk::new);
+      .or_default();
   }
   pub fn add_chunk_wit_chunk_graph_chunk(&mut self, chunk_ukey: ChunkUkey, cgc: ChunkGraphChunk) {
     debug_assert!(!self

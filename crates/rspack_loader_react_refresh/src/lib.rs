@@ -28,7 +28,7 @@ impl ReactRefreshLoader {
 impl Loader<LoaderRunnerContext> for ReactRefreshLoader {
   async fn run(&self, loader_context: &mut LoaderContext<'_, LoaderRunnerContext>) -> Result<()> {
     let Some(content) = std::mem::take(&mut loader_context.content) else {
-      return Err(internal_error!("Content should be available"))
+      return Err(internal_error!("Content should be available"));
     };
     let mut source = content.try_into_string()?;
     source += r#"

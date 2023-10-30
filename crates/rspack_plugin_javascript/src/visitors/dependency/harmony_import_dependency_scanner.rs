@@ -366,9 +366,18 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
   // import * as a from 'a';
   // const { value } = a;
   fn visit_assign_expr(&mut self, assign_expr: &AssignExpr) {
-    if let PatOrExpr::Pat(box Pat::Object(object_pat)) = &assign_expr.left && assign_expr.op == AssignOp::Assign && let box Expr::Ident(ident) = &assign_expr.right && let Some(reference) = self.import_map.get(&ident.to_id()) && matches!(reference.specifier, Specifier::Namespace(_))  {
+    if let PatOrExpr::Pat(box Pat::Object(object_pat)) = &assign_expr.left
+      && assign_expr.op == AssignOp::Assign
+      && let box Expr::Ident(ident) = &assign_expr.right
+      && let Some(reference) = self.import_map.get(&ident.to_id())
+      && matches!(reference.specifier, Specifier::Namespace(_))
+    {
       if let Some(value) = collect_destructuring_assignment_properties(object_pat) {
-        self.properties_in_destructuring.entry(ident.sym.clone()).and_modify(|v| v.extend(value.clone())).or_insert(value);
+        self
+          .properties_in_destructuring
+          .entry(ident.sym.clone())
+          .and_modify(|v| v.extend(value.clone()))
+          .or_insert(value);
       }
     }
     assign_expr.visit_children_with(self);
@@ -425,7 +434,9 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
 
   fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
     let mut member_chain = extract_member_expression_chain(member_expr);
-    if member_chain.len() > 1 && let Some(reference) = self.import_map.get(&member_chain[0]) {
+    if member_chain.len() > 1
+      && let Some(reference) = self.import_map.get(&member_chain[0])
+    {
       member_chain.pop_front();
       if !member_chain.is_empty() {
         let mut ids = reference.names.clone().map(|f| vec![f]).unwrap_or_default();

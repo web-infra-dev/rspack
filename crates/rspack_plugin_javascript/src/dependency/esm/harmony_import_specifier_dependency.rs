@@ -273,8 +273,12 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     }
 
     let mut namespace_object_as_context = self.namespace_object_as_context;
-    if let Some(id) = ids.get(0) && id == "default" {
-      let parent_module = module_graph.parent_module_by_dependency_id(&self.id).expect("should have parent module");
+    if let Some(id) = ids.first()
+      && id == "default"
+    {
+      let parent_module = module_graph
+        .parent_module_by_dependency_id(&self.id)
+        .expect("should have parent module");
       let exports_type = get_exports_type(module_graph, &self.id, &parent_module);
       match exports_type {
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {

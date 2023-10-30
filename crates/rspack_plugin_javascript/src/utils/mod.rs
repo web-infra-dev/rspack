@@ -176,7 +176,7 @@ pub fn ecma_parse_error_to_rspack_error(
 
 pub fn join_jsword(arr: &[JsWord], separator: &str) -> String {
   let mut ret = String::new();
-  if let Some(item) = arr.get(0) {
+  if let Some(item) = arr.first() {
     ret.push_str(item);
   }
   for item in arr.iter().skip(1) {
