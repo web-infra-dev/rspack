@@ -15,8 +15,8 @@ module.exports = [1, 2, 3, 4].map(n => ({
 		})
 	],
 	stats: {
-		hash: false,
-		timings: false,
+		
+
 		builtAt: false,
 		chunkModules: true,
 		// dependentModules: true,

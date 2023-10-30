@@ -79,7 +79,10 @@ export interface KnownCreateStatsOptionsContext {
 
 type CreateStatsOptionsContext = KnownCreateStatsOptionsContext &
 	Record<string, any>;
-
+const OFF_FOR_TO_STRING = (
+	{ all }: { all?: boolean },
+	{ forToString }: { forToString?: boolean }
+) => (forToString ? all === true : all !== false);
 export class Compilation {
 	#inner: JsCompilation;
 
@@ -285,7 +288,10 @@ export class Compilation {
 		options.errorsCount = optionOrLocalFallback(options.errorsCount, true);
 		options.warnings = optionOrLocalFallback(options.warnings, true);
 		options.warningsCount = optionOrLocalFallback(options.warningsCount, true);
-		options.hash = optionOrLocalFallback(options.hash, true);
+		options.hash = OFF_FOR_TO_STRING(
+			{ all: options.all },
+			{ forToString: context.forToString }
+		);
 		options.version = optionOrLocalFallback(options.version, true);
 		options.publicPath = optionOrLocalFallback(options.publicPath, true);
 		options.outputPath = optionOrLocalFallback(

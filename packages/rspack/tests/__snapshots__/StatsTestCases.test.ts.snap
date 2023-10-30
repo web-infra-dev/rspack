@@ -1306,6 +1306,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       },
       "errors": [],
       "errorsCount": 0,
+      "hash": "c5f1537b5674c0e6055e",
       "logging": {},
       "name": "1 chunks",
       "namedChunkGroups": {
@@ -1339,6 +1340,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       "outputPath": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/dist",
       "publicPath": "",
       "rspackVersion": "0.3.8",
+      "time": 64,
       "version": "5.75.0",
       "warnings": [],
       "warningsCount": 0,
@@ -1614,6 +1616,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       },
       "errors": [],
       "errorsCount": 0,
+      "hash": "cd8b220831e8c033241f",
       "logging": {},
       "name": "2 chunks",
       "namedChunkGroups": {
@@ -1647,6 +1650,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       "outputPath": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/dist",
       "publicPath": "",
       "rspackVersion": "0.3.8",
+      "time": 62,
       "version": "5.75.0",
       "warnings": [],
       "warningsCount": 0,
@@ -1954,6 +1958,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       },
       "errors": [],
       "errorsCount": 0,
+      "hash": "bb25cd472ef1b782ce35",
       "logging": {},
       "name": "3 chunks",
       "namedChunkGroups": {
@@ -1987,6 +1992,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       "outputPath": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/dist",
       "publicPath": "",
       "rspackVersion": "0.3.8",
+      "time": 60,
       "version": "5.75.0",
       "warnings": [],
       "warningsCount": 0,
@@ -2328,6 +2334,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       },
       "errors": [],
       "errorsCount": 0,
+      "hash": "3cb6d4513c679d7884a2",
       "logging": {},
       "name": "4 chunks",
       "namedChunkGroups": {
@@ -2361,6 +2368,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       "outputPath": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/dist",
       "publicPath": "",
       "rspackVersion": "0.3.8",
+      "time": 57,
       "version": "5.75.0",
       "warnings": [],
       "warningsCount": 0,
@@ -2368,6 +2376,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   ],
   "errors": [],
   "errorsCount": 0,
+  "hash": "c5f1537b5674c0e6055ecd8b220831e8c033241fbb25cd472ef1b782ce353cb6d4513c679d7884a2",
   "rspackVersion": "0.3.8",
   "version": "5.75.0",
   "warnings": [],
@@ -2386,7 +2395,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
     ./d.js
     ./e.js
     ./index.js
-  1 chunks (Rspack 0.3.8) compiled successfully
+  1 chunks (Rspack 0.3.8) compiled successfully in X ms
 
 2 chunks:
   PublicPath: (none)
@@ -2400,7 +2409,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle2.js (main) >{c}< [entry]
     ./b.js
     ./index.js
-  2 chunks (Rspack 0.3.8) compiled successfully
+  2 chunks (Rspack 0.3.8) compiled successfully in X ms
 
 3 chunks:
   PublicPath: (none)
@@ -2416,7 +2425,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle3.js (main) >{c}< [entry]
     ./b.js
     ./index.js
-  3 chunks (Rspack 0.3.8) compiled successfully
+  3 chunks (Rspack 0.3.8) compiled successfully in X ms
 
 4 chunks:
   PublicPath: (none)
@@ -2434,7 +2443,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle4.js (main) >{c}< [entry]
     ./b.js
     ./index.js
-  4 chunks (Rspack 0.3.8) compiled successfully"
+  4 chunks (Rspack 0.3.8) compiled successfully in X ms"
 `;
 
 exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 3`] = `
@@ -2670,6 +2679,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       },
       "errors": [],
       "errorsCount": 0,
+      "hash": "c5f1537b5674c0e6055e",
       "logging": {},
       "name": "1 chunks",
       "namedChunkGroups": {
@@ -2703,6 +2713,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       "outputPath": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/dist",
       "publicPath": "",
       "rspackVersion": "0.3.8",
+      "time": 64,
       "version": "5.75.0",
       "warnings": [],
       "warningsCount": 0,
@@ -2978,6 +2989,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       },
       "errors": [],
       "errorsCount": 0,
+      "hash": "cd8b220831e8c033241f",
       "logging": {},
       "name": "2 chunks",
       "namedChunkGroups": {
@@ -3011,6 +3023,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       "outputPath": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/dist",
       "publicPath": "",
       "rspackVersion": "0.3.8",
+      "time": 62,
       "version": "5.75.0",
       "warnings": [],
       "warningsCount": 0,
@@ -3318,6 +3331,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       },
       "errors": [],
       "errorsCount": 0,
+      "hash": "bb25cd472ef1b782ce35",
       "logging": {},
       "name": "3 chunks",
       "namedChunkGroups": {
@@ -3351,6 +3365,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       "outputPath": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/dist",
       "publicPath": "",
       "rspackVersion": "0.3.8",
+      "time": 60,
       "version": "5.75.0",
       "warnings": [],
       "warningsCount": 0,
@@ -3692,6 +3707,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       },
       "errors": [],
       "errorsCount": 0,
+      "hash": "3cb6d4513c679d7884a2",
       "logging": {},
       "name": "4 chunks",
       "namedChunkGroups": {
@@ -3725,6 +3741,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       "outputPath": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/dist",
       "publicPath": "",
       "rspackVersion": "0.3.8",
+      "time": 57,
       "version": "5.75.0",
       "warnings": [],
       "warningsCount": 0,
@@ -3732,6 +3749,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   ],
   "errors": [],
   "errorsCount": 0,
+  "hash": "c5f1537b5674c0e6055ecd8b220831e8c033241fbb25cd472ef1b782ce353cb6d4513c679d7884a2",
   "rspackVersion": "0.3.8",
   "version": "5.75.0",
   "warnings": [],
@@ -3750,7 +3768,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
     ./d.js
     ./e.js
     ./index.js
-  1 chunks (Rspack 0.3.8) compiled successfully
+  1 chunks (Rspack 0.3.8) compiled successfully in X ms
 
 2 chunks:
   PublicPath: (none)
@@ -3764,7 +3782,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle2.js (main) >{c}< [entry]
     ./b.js
     ./index.js
-  2 chunks (Rspack 0.3.8) compiled successfully
+  2 chunks (Rspack 0.3.8) compiled successfully in X ms
 
 3 chunks:
   PublicPath: (none)
@@ -3780,7 +3798,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle3.js (main) >{c}< [entry]
     ./b.js
     ./index.js
-  3 chunks (Rspack 0.3.8) compiled successfully
+  3 chunks (Rspack 0.3.8) compiled successfully in X ms
 
 4 chunks:
   PublicPath: (none)
@@ -3798,7 +3816,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle4.js (main) >{c}< [entry]
     ./b.js
     ./index.js
-  4 chunks (Rspack 0.3.8) compiled successfully"
+  4 chunks (Rspack 0.3.8) compiled successfully in X ms"
 `;
 
 exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 5`] = `
@@ -4034,6 +4052,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       },
       "errors": [],
       "errorsCount": 0,
+      "hash": "c5f1537b5674c0e6055e",
       "logging": {},
       "name": "1 chunks",
       "namedChunkGroups": {
@@ -4067,6 +4086,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       "outputPath": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/dist",
       "publicPath": "",
       "rspackVersion": "0.3.8",
+      "time": 64,
       "version": "5.75.0",
       "warnings": [],
       "warningsCount": 0,
@@ -4342,6 +4362,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       },
       "errors": [],
       "errorsCount": 0,
+      "hash": "cd8b220831e8c033241f",
       "logging": {},
       "name": "2 chunks",
       "namedChunkGroups": {
@@ -4375,6 +4396,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       "outputPath": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/dist",
       "publicPath": "",
       "rspackVersion": "0.3.8",
+      "time": 62,
       "version": "5.75.0",
       "warnings": [],
       "warningsCount": 0,
@@ -4682,6 +4704,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       },
       "errors": [],
       "errorsCount": 0,
+      "hash": "bb25cd472ef1b782ce35",
       "logging": {},
       "name": "3 chunks",
       "namedChunkGroups": {
@@ -4715,6 +4738,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       "outputPath": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/dist",
       "publicPath": "",
       "rspackVersion": "0.3.8",
+      "time": 60,
       "version": "5.75.0",
       "warnings": [],
       "warningsCount": 0,
@@ -5056,6 +5080,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       },
       "errors": [],
       "errorsCount": 0,
+      "hash": "3cb6d4513c679d7884a2",
       "logging": {},
       "name": "4 chunks",
       "namedChunkGroups": {
@@ -5089,6 +5114,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       "outputPath": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/dist",
       "publicPath": "",
       "rspackVersion": "0.3.8",
+      "time": 57,
       "version": "5.75.0",
       "warnings": [],
       "warningsCount": 0,
@@ -5096,6 +5122,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   ],
   "errors": [],
   "errorsCount": 0,
+  "hash": "c5f1537b5674c0e6055ecd8b220831e8c033241fbb25cd472ef1b782ce353cb6d4513c679d7884a2",
   "rspackVersion": "0.3.8",
   "version": "5.75.0",
   "warnings": [],
@@ -5114,7 +5141,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
     ./d.js
     ./e.js
     ./index.js
-  1 chunks (Rspack 0.3.8) compiled successfully
+  1 chunks (Rspack 0.3.8) compiled successfully in X ms
 
 2 chunks:
   PublicPath: (none)
@@ -5128,7 +5155,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle2.js (main) >{c}< [entry]
     ./b.js
     ./index.js
-  2 chunks (Rspack 0.3.8) compiled successfully
+  2 chunks (Rspack 0.3.8) compiled successfully in X ms
 
 3 chunks:
   PublicPath: (none)
@@ -5144,7 +5171,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle3.js (main) >{c}< [entry]
     ./b.js
     ./index.js
-  3 chunks (Rspack 0.3.8) compiled successfully
+  3 chunks (Rspack 0.3.8) compiled successfully in X ms
 
 4 chunks:
   PublicPath: (none)
@@ -5162,7 +5189,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle4.js (main) >{c}< [entry]
     ./b.js
     ./index.js
-  4 chunks (Rspack 0.3.8) compiled successfully"
+  4 chunks (Rspack 0.3.8) compiled successfully in X ms"
 `;
 
 exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 7`] = `
@@ -5398,6 +5425,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       },
       "errors": [],
       "errorsCount": 0,
+      "hash": "c5f1537b5674c0e6055e",
       "logging": {},
       "name": "1 chunks",
       "namedChunkGroups": {
@@ -5431,6 +5459,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       "outputPath": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/dist",
       "publicPath": "",
       "rspackVersion": "0.3.8",
+      "time": 64,
       "version": "5.75.0",
       "warnings": [],
       "warningsCount": 0,
@@ -5706,6 +5735,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       },
       "errors": [],
       "errorsCount": 0,
+      "hash": "cd8b220831e8c033241f",
       "logging": {},
       "name": "2 chunks",
       "namedChunkGroups": {
@@ -5739,6 +5769,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       "outputPath": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/dist",
       "publicPath": "",
       "rspackVersion": "0.3.8",
+      "time": 62,
       "version": "5.75.0",
       "warnings": [],
       "warningsCount": 0,
@@ -6046,6 +6077,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       },
       "errors": [],
       "errorsCount": 0,
+      "hash": "bb25cd472ef1b782ce35",
       "logging": {},
       "name": "3 chunks",
       "namedChunkGroups": {
@@ -6079,6 +6111,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       "outputPath": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/dist",
       "publicPath": "",
       "rspackVersion": "0.3.8",
+      "time": 60,
       "version": "5.75.0",
       "warnings": [],
       "warningsCount": 0,
@@ -6420,6 +6453,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       },
       "errors": [],
       "errorsCount": 0,
+      "hash": "3cb6d4513c679d7884a2",
       "logging": {},
       "name": "4 chunks",
       "namedChunkGroups": {
@@ -6453,6 +6487,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
       "outputPath": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/dist",
       "publicPath": "",
       "rspackVersion": "0.3.8",
+      "time": 57,
       "version": "5.75.0",
       "warnings": [],
       "warningsCount": 0,
@@ -6460,6 +6495,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   ],
   "errors": [],
   "errorsCount": 0,
+  "hash": "c5f1537b5674c0e6055ecd8b220831e8c033241fbb25cd472ef1b782ce353cb6d4513c679d7884a2",
   "rspackVersion": "0.3.8",
   "version": "5.75.0",
   "warnings": [],
@@ -6478,7 +6514,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
     ./d.js
     ./e.js
     ./index.js
-  1 chunks (Rspack 0.3.8) compiled successfully
+  1 chunks (Rspack 0.3.8) compiled successfully in X ms
 
 2 chunks:
   PublicPath: (none)
@@ -6492,7 +6528,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle2.js (main) >{c}< [entry]
     ./b.js
     ./index.js
-  2 chunks (Rspack 0.3.8) compiled successfully
+  2 chunks (Rspack 0.3.8) compiled successfully in X ms
 
 3 chunks:
   PublicPath: (none)
@@ -6508,7 +6544,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle3.js (main) >{c}< [entry]
     ./b.js
     ./index.js
-  3 chunks (Rspack 0.3.8) compiled successfully
+  3 chunks (Rspack 0.3.8) compiled successfully in X ms
 
 4 chunks:
   PublicPath: (none)
@@ -6526,7 +6562,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   chunk bundle4.js (main) >{c}< [entry]
     ./b.js
     ./index.js
-  4 chunks (Rspack 0.3.8) compiled successfully"
+  4 chunks (Rspack 0.3.8) compiled successfully in X ms"
 `;
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 1`] = `
@@ -8688,7 +8724,7 @@ Entrypoint main 631 bytes = bundle.js
 ./raw.png
 ./index.js
 ./stringModule.js
-Rspack compiled successfully (fda4826197bca94bf290)"
+Rspack compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
@@ -8851,7 +8887,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 2`] = `
 asset bundle.js 589 bytes [emitted111] (name: main) [testA: aaaaaa]
 Entrypoint main 589 bytes = bundle.js
 ./index.js
-Rspack compiled successfully (21b6a905e9c471003723)"
+Rspack compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 1`] = `

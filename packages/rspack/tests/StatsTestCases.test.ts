@@ -77,6 +77,8 @@ describe("StatsTestCases", () => {
 				expect(statsJson).toMatchSnapshot();
 				let statsString = stats.toString(statsOptions);
 				statsString = statsString
+					.replace(/\u001b\[[0-9;]*m/g, "")
+					.replace(/[.0-9]+(\s?ms)/g, "X$1") // replace xxxms with Xms so make timstamp stable in CI
 					.replace(project_dir_reg, "<PROJECT_ROOT>")
 					.replace(/\\/g, "/");
 				expect(statsString).toMatchSnapshot();
