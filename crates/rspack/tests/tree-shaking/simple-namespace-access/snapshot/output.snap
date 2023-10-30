@@ -10,8 +10,7 @@ __webpack_require__.r(__webpack_exports__);
 /* TREE-SHAKING */ 
 console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0__.xxx.test);
 console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0__.square);
-})
-,
+}),
 "./maths.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -33,8 +32,7 @@ __webpack_require__.d(__webpack_exports__, {
     return x * x * x;
 }
 
-})
-,
+}),
 "./test.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -43,8 +41,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
  function test() {}
  function ccc() {}
-})
-,
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

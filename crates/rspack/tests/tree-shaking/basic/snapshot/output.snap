@@ -10,8 +10,7 @@ __webpack_require__.d(__webpack_exports__, {
   answer: function() { return answer; }
 });
  const answer = 103330;
-})
-,
+}),
 "./app.js": (function (module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -29,15 +28,13 @@ setTimeout(()=>{
 if (module.hot?.accept) module.hot.accept((module1)=>{
     console.log("xxx:", module1);
 });
-})
-,
+}),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./app */"./app.js");
 
-})
-,
+}),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -48,8 +45,7 @@ __webpack_require__.d(__webpack_exports__, {
 
  const secret = "888";
  const myanswer = _answer__WEBPACK_IMPORTED_MODULE_0__.answer, result = 20000;
-})
-,
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

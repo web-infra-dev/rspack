@@ -24,8 +24,7 @@ it("default export should be unused", ()=>{
 it("default export should be used", ()=>{
     expect(_package2_script__WEBPACK_IMPORTED_MODULE_3__.exportDefaultUsed).toBe(true);
 });
-})
-,
+}),
 "./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -37,8 +36,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 
  const mod = _package2_script__WEBPACK_IMPORTED_MODULE_1__["default"];
-})
-,
+}),
 "./package1/script.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -51,8 +49,7 @@ __webpack_require__.es(_script1__WEBPACK_IMPORTED_MODULE_0__, __webpack_exports_
 var __WEBPACK_DEFAULT_EXPORT__ = /* "./script1" unused */null;
 
  const exportDefaultUsed = false;
-})
-,
+}),
 "./package1/script1.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -60,8 +57,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.es(_script2__WEBPACK_IMPORTED_MODULE_0__, __webpack_exports__);
 
 var __WEBPACK_DEFAULT_EXPORT__ = 1;
-})
-,
+}),
 "./package1/script2.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -74,8 +70,7 @@ function __WEBPACK_DEFAULT_EXPORT__(){
 }
 
  const exportDefaultUsed = false;
-})
-,
+}),
 "./package2/script.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -89,8 +84,7 @@ __webpack_require__.es(_script1__WEBPACK_IMPORTED_MODULE_0__, __webpack_exports_
 var __WEBPACK_DEFAULT_EXPORT__ = _script1__WEBPACK_IMPORTED_MODULE_0__["default"];
 
  const exportDefaultUsed = true;
-})
-,
+}),
 "./package2/script1.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -98,8 +92,7 @@ __webpack_require__.d(__webpack_exports__, {
   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
 var __WEBPACK_DEFAULT_EXPORT__ = 1;
-})
-,
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

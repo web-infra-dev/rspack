@@ -11,8 +11,7 @@ Object.defineProperty(exports, "__esModule", {
 exports["default"] = void 0;
 /* eslint-disable no-template-curly-in-string */ var _default = {};
 exports["default"] = _default;
-})
-,
+}),
 "./antd/index.ts": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -25,8 +24,7 @@ const locales = {
     zh_CN: _locale_zh__WEBPACK_IMPORTED_MODULE_0__["default"]
 };
 
-})
-,
+}),
 "./index.ts": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -37,8 +35,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 _antd_index__WEBPACK_IMPORTED_MODULE_0__.locales.zh_CN;
  function test() {}
-})
-,
+}),
 "./locale_zh.ts": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -48,8 +45,7 @@ __webpack_require__.d(__webpack_exports__, {
 /* harmony import */var _zh_locale__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./zh_locale */"./zh_locale.js");
 
 var __WEBPACK_DEFAULT_EXPORT__ = _zh_locale__WEBPACK_IMPORTED_MODULE_0__["default"];
-})
-,
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

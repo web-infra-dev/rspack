@@ -9,8 +9,7 @@ source: crates/rspack_testing/src/run_fixture.rs
         if (mod.result !== 42) throw new Error('panic');
     });
 })();
-})
-,
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
@@ -39,8 +38,7 @@ var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_was
 }
 
 __webpack_async_result__();
-} catch(e) { __webpack_async_result__(e); } });})
-,
+} catch(e) { __webpack_async_result__(e); } });}),
 "./module2.js": (function (module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
@@ -56,8 +54,7 @@ var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_was
 }
 
 __webpack_async_result__();
-} catch(e) { __webpack_async_result__(e); } });})
-,
+} catch(e) { __webpack_async_result__(e); } });}),
 "./wasm.wasm": (function (module, exports, __webpack_require__) {
 "use strict";
 var __webpack_instantiate__ = function ([WEBPACK_IMPORTED_MODULE_0, WEBPACK_IMPORTED_MODULE_1]) {
@@ -90,8 +87,7 @@ var WEBPACK_IMPORTED_MODULE_1 = __webpack_require__("./module2.js");
 
   } catch(e) { __webpack_async_result__(e); }
 }, 1);
-})
-,
+}),
 
 }]);
 ```

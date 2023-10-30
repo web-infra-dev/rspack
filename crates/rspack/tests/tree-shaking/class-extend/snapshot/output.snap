@@ -19,16 +19,14 @@ function foo() {
     };
 }
  const v = _lib__WEBPACK_IMPORTED_MODULE_0__.value;
-})
-,
+}),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./app */"./app.js");
 
 _app__WEBPACK_IMPORTED_MODULE_0__.v;
-})
-,
+}),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -38,8 +36,7 @@ __webpack_require__.d(__webpack_exports__, {
  class Lib {
 }
  const value = 1;
-})
-,
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

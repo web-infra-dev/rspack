@@ -5,8 +5,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["./sub/fold"], {
 "./sub_fold.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 console.log('123');
-})
-,
+}),
 
 }]);
 ```
@@ -15,8 +14,7 @@ console.log('123');
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["./sub/other"], {
 "./other.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 console.log('123');
-})
-,
+}),
 
 }]);
 ```
@@ -25,8 +23,7 @@ console.log('123');
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["./sub/single"], {
 "./single_quote.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 console.log('123');
-})
-,
+}),
 
 }]);
 ```
@@ -35,8 +32,7 @@ console.log('123');
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["./user/[id]"], {
 "./user/1.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 console.log('user [id]');
-})
-,
+}),
 
 }]);
 ```
@@ -45,8 +41,7 @@ console.log('user [id]');
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["bug_only_single_quote_js"], {
 "./bug_only_single_quote.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 console.log('123');
-})
-,
+}),
 
 }]);
 ```
@@ -62,8 +57,7 @@ __webpack_require__.el(/* ./user/1 */"./user/1.js").then(__webpack_require__.t.b
 __webpack_require__.el(/* ./user/page/2 */"./user/page/2.js").then(__webpack_require__.t.bind(__webpack_require__, /* ./user/page/2 */"./user/page/2.js", 23));
 __webpack_require__.el(/* ./user/page/3 */"./user/page/3.js").then(__webpack_require__.t.bind(__webpack_require__, /* ./user/page/3 */"./user/page/3.js", 23));
 __webpack_require__.el(/* ./bug_only_single_quote.js */"./bug_only_single_quote.js").then(__webpack_require__.t.bind(__webpack_require__, /* ./bug_only_single_quote.js */"./bug_only_single_quote.js", 23));
-})
-,
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
@@ -77,8 +71,7 @@ var __webpack_exports__ = (__webpack_exec__("./index.js"));
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["normal"], {
 "./normal.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 console.log('123');
-})
-,
+}),
 
 }]);
 ```
@@ -87,8 +80,7 @@ console.log('123');
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["user/(id)/page"], {
 "./user/page/3.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 console.log('user (id)/page3');
-})
-,
+}),
 
 }]);
 ```
@@ -97,8 +89,7 @@ console.log('user (id)/page3');
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["user/[id]/page"], {
 "./user/page/2.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 console.log('user [id]/page2');
-})
-,
+}),
 
 }]);
 ```

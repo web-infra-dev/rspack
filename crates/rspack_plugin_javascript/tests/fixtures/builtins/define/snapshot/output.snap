@@ -15,10 +15,10 @@ const { DO_NOT_CONVERTED9 } = __webpack_require__(/* ./lib */"./lib.js");
 equal(true, true);
 // require("assert").deepStrictEqual(FALSE, false);
 assert.deepStrictEqual(5, 5);
-assert.deepStrictEqual(null, null);
-assert.deepStrictEqual(undefined, undefined);
-// assert.equal(FUNCTION(5), 6);
+assert.deepStrictEqual(// assert.equal(FUNCTION(5), 6);
 // assert.equal(typeof FUNCTION, "function");
+null, null);
+assert.deepStrictEqual(undefined, undefined);
 assert.deepStrictEqual(100.05, 100.05);
 assert.deepStrictEqual(0, 0);
 let ZERO_OBJ = {
@@ -253,8 +253,7 @@ assert.deepStrictEqual(error_count, 8);
 console.log(console.log(console.log)); // TODO: recursive
  // assert.equal(wurst, unde);
  // assert.equal(suppe, wurst);
-})
-,
+}),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -267,8 +266,7 @@ const DO_NOT_CONVERTED7 = 402;
 const DO_NOT_CONVERTED9 = 403;
 var __WEBPACK_DEFAULT_EXPORT__ = 401; // DO_NOT_CONVERTED8
 
-})
-,
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

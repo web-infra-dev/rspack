@@ -1,6 +1,6 @@
 --- expected
 +++ actual
-@@ -32,7 +32,6 @@
+@@ -31,7 +31,6 @@
  __webpack_require__.d(__webpack_exports__, {
    mod: function() { return mod; }
  });
@@ -8,7 +8,7 @@
  /* harmony import */var _package2_script__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/* ./package2/script */"./package2/script.js");
  
  
-@@ -45,37 +44,36 @@
+@@ -43,20 +42,10 @@
  __webpack_require__.d(__webpack_exports__, {
    exportDefaultUsed: function() { return exportDefaultUsed; }
  });
@@ -19,8 +19,7 @@
 +var __WEBPACK_DEFAULT_EXPORT__ = (/* unused pure expression or super */ null && (mod));
  
   const exportDefaultUsed = false;
- })
- ,
+-}),
 -"./package1/script1.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 -"use strict";
 -__webpack_require__.r(__webpack_exports__);
@@ -28,6 +27,7 @@
 -__webpack_require__.es(_script2__WEBPACK_IMPORTED_MODULE_0__, __webpack_exports__);
 -
 -var __WEBPACK_DEFAULT_EXPORT__ = 1;
+<<<<<<< HEAD
 <<<<<<< HEAD
  },
  "./package1/script2.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
@@ -45,9 +45,12 @@
 =======
 -})
 -,
+=======
+ }),
+>>>>>>> 49860ef57 (feat(runtime-diff): fix tc)
  "./package1/script2.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
- __webpack_require__.r(__webpack_exports__);
+@@ -64,13 +53,22 @@
  __webpack_require__.d(__webpack_exports__, {
    exportDefaultUsed: function() { return exportDefaultUsed; }
  });
@@ -59,8 +62,7 @@
  }
  
   const exportDefaultUsed = false;
- })
- ,
+ }),
 +"./package1/script3.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 +"use strict";
 +__webpack_require__.r(__webpack_exports__);
@@ -68,13 +70,16 @@
 +  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 +});
 +var __WEBPACK_DEFAULT_EXPORT__ = 1;
-+})
-+,
++}),
  "./package2/script.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
  __webpack_require__.r(__webpack_exports__);
+<<<<<<< HEAD
 @@ -84,11 +82,10 @@
 >>>>>>> 674fd416a (feat(runtime-diff): fix rust tc)
+=======
+@@ -79,11 +77,10 @@
+>>>>>>> 49860ef57 (feat(runtime-diff): fix tc)
    exportDefaultUsed: function() { return exportDefaultUsed; }
  });
  /* harmony import */var _script1__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./script1 */"./package2/script1.js");
@@ -86,7 +91,10 @@
 =======
 - const exportDefaultUsed = true;
 + const exportDefaultUsed = false;
- })
- ,
+ }),
  "./package2/script1.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+<<<<<<< HEAD
 >>>>>>> 674fd416a (feat(runtime-diff): fix rust tc)
+=======
+ "use strict";
+>>>>>>> 49860ef57 (feat(runtime-diff): fix tc)

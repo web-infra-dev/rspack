@@ -1,6 +1,6 @@
 --- expected
 +++ actual
-@@ -30,9 +30,6 @@
+@@ -28,9 +28,6 @@
  "./index.ts": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
  __webpack_require__.r(__webpack_exports__);

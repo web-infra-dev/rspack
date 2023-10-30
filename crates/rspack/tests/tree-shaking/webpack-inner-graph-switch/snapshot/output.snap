@@ -7,8 +7,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 
-})
-,
+}),
 
 }]);
 ```
@@ -28,8 +27,7 @@ __webpack_require__.d(__webpack_exports__, {
         type: "inline"
     });
 }
-})
-,
+}),
 "./index.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 it("should generate correct code when pure expressions are in dead branches", ()=>{
     __webpack_require__(/* ./import-module */"./import-module.js").test();
@@ -38,8 +36,7 @@ it("should generate correct code when pure expressions are in dead branches", ()
         __webpack_require__.el(/* ./chunk */"./chunk.js").then(__webpack_require__.bind(__webpack_require__, /* ./chunk */"./chunk.js"))
     ]);
 });
-})
-,
+}),
 "./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -80,8 +77,7 @@ function useDocument(obj) {
 }
 
 var __WEBPACK_DEFAULT_EXPORT__ = doSomething;
-})
-,
+}),
 "./some-module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -100,8 +96,7 @@ class Document {
     static doSomething() {}
 }
 
-})
-,
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

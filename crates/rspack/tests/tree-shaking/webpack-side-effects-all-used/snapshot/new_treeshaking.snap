@@ -16,8 +16,7 @@ var c = "c";
 
 
 (0, _tracker__WEBPACK_IMPORTED_MODULE_0__.track)("a.js");
-})
-,
+}),
 "../node_modules/pmodule/b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -33,8 +32,7 @@ var y = "y";
 
 
 (0, _tracker__WEBPACK_IMPORTED_MODULE_1__.track)("b.js");
-})
-,
+}),
 "../node_modules/pmodule/c.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -46,8 +44,7 @@ var z = "z";
 
 
 (0, _tracker__WEBPACK_IMPORTED_MODULE_0__.track)("c.js");
-})
-,
+}),
 "../node_modules/pmodule/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -65,8 +62,7 @@ __webpack_require__.es(_a__WEBPACK_IMPORTED_MODULE_0__, __webpack_exports__);
 
 (0, _tracker__WEBPACK_IMPORTED_MODULE_2__.track)("index.js");
 var __WEBPACK_DEFAULT_EXPORT__ = "def";
-})
-,
+}),
 "../node_modules/pmodule/tracker.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -82,8 +78,7 @@ __webpack_require__.d(__webpack_exports__, {
  function reset() {
     log.length = 0;
 }
-})
-,
+}),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -102,8 +97,7 @@ pmodule_tracker__WEBPACK_IMPORTED_MODULE_0__.log.should.be.eql([
     "c.js",
     "index.js"
 ]);
-})
-,
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

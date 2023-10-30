@@ -14,8 +14,7 @@ __webpack_require__.d(__webpack_exports__, {
 function abc() {
     return _dep_a__WEBPACK_IMPORTED_MODULE_0__.x;
 }
-})
-,
+}),
 "./b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -24,8 +23,7 @@ __webpack_require__.r(__webpack_exports__);
 function abc() {
     return /* "./dep?b" unused */null;
 }
-})
-,
+}),
 "./c.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -35,8 +33,7 @@ function abc() {
     return _dep_c__WEBPACK_IMPORTED_MODULE_0__.x;
 }
 abc();
-})
-,
+}),
 "./d.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -50,8 +47,7 @@ class def {
         return _dep_d__WEBPACK_IMPORTED_MODULE_0__.x;
     }
 }
-})
-,
+}),
 "./dep.js?a": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -61,8 +57,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = true;
-})
-,
+}),
 "./dep.js?b": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -71,8 +66,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = false;
-})
-,
+}),
 "./dep.js?c": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -82,8 +76,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = true;
-})
-,
+}),
 "./dep.js?d": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -93,8 +86,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = true;
-})
-,
+}),
 "./dep.js?e": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -103,8 +95,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = false;
-})
-,
+}),
 "./dep.js?f": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -114,8 +105,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = true;
-})
-,
+}),
 "./e.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -126,8 +116,7 @@ class def {
         return /* "./dep?e" unused */null;
     }
 }
-})
-,
+}),
 "./f.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -139,8 +128,7 @@ class def {
     }
 }
 new def().method();
-})
-,
+}),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -190,8 +178,7 @@ it("e should be unused", ()=>{
 it("f should be used", ()=>{
     expect(_dep_f__WEBPACK_IMPORTED_MODULE_11__["default"]).toBe(true);
 });
-})
-,
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

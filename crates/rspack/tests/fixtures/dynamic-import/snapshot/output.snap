@@ -10,8 +10,7 @@ __webpack_require__.d(__webpack_exports__, {
   a: function() { return a; }
 });
  const a = 'a';
-})
-,
+}),
 
 }]);
 ```
@@ -25,8 +24,7 @@ __webpack_require__.d(__webpack_exports__, {
   b: function() { return b; }
 });
  const b = "b";
-})
-,
+}),
 
 }]);
 ```
@@ -54,8 +52,7 @@ var map = {"./a.js": "./child/a.js","./b.js": "./child/b.js",};
       };
       webpackAsyncContext.id = "./child Lazy  recursive ^\\.\\/.*\\.js$";
       module.exports = webpackAsyncContext;
-      })
-,
+      }),
 "./index.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 const request = 'a';
 __webpack_require__.el(/* ./child/a.js */"./child/a.js").then(__webpack_require__.bind(__webpack_require__, /* ./child/a.js */"./child/a.js")).then(({ a })=>console.log("Literal", a));
@@ -63,8 +60,7 @@ __webpack_require__.el(/* ./child/b.js */"./child/b.js").then(__webpack_require_
 __webpack_require__(/* ./child */"./child Lazy  recursive ^\\.\\/.*\\.js$")((`./child/${request}.js`).replace('./child/', './')).then(({ a })=>console.log("context_module_tpl", a));
 __webpack_require__(/* ./child */"./child Lazy  recursive ^\\.\\/.*\\.js$")(('./child/' + request + '.js').replace('./child/', './')).then(({ a })=>console.log("context_module_bin", a));
 __webpack_require__(/* ./child */"./child Lazy  recursive ^\\.\\/.*\\.js$")(("./child/".concat(request, ".js")).replace('./child/', './')).then(({ a })=>console.log("context_module_concat", a));
-})
-,
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

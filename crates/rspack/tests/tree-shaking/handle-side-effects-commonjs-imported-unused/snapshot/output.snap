@@ -8,8 +8,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 __webpack_require__.r(__webpack_exports__);
 
 console.log('something');
-})
-,
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

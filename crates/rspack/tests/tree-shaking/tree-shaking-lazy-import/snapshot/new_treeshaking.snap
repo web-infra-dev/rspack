@@ -15,8 +15,7 @@ function myanswer() {
     _test__WEBPACK_IMPORTED_MODULE_0__["default"];
 }
 var __WEBPACK_DEFAULT_EXPORT__ = myanswer;
-})
-,
+}),
 "./test.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -25,8 +24,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 function test() {}
 var __WEBPACK_DEFAULT_EXPORT__ = test;
-})
-,
+}),
 
 }]);
 ```
@@ -40,8 +38,7 @@ __webpack_require__.d(__webpack_exports__, {
   answer: function() { return answer; }
 });
  const answer = 30;
-})
-,
+}),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -50,8 +47,7 @@ __webpack_require__.r(__webpack_exports__);
 const a = test(()=>__webpack_require__.el(/* ./lib */"./lib.js").then(__webpack_require__.bind(__webpack_require__, /* ./lib */"./lib.js")));
 (0, _app__WEBPACK_IMPORTED_MODULE_0__.answer)();
 a;
-})
-,
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

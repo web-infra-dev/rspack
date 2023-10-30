@@ -138,7 +138,7 @@ fn render_module(
 >>>>>>> df3cedf23 (feat(runtime-diff): rspack diff toolkit)
   }
   sources.add(source);
-  sources.add(RawSource::from("})\n"));
+  sources.add(RawSource::from("})"));
   if is_diff_mode() {
     sources.add(RawSource::from(format!("\n/* end::{} */\n", module_id)));
   }

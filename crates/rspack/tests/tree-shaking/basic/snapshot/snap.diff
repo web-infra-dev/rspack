@@ -1,6 +1,6 @@
 --- expected
 +++ actual
-@@ -23,7 +23,7 @@
+@@ -22,7 +22,7 @@
   function render() {
      function test() {
          const container = document.getElementById("root");

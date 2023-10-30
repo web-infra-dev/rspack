@@ -8,8 +8,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _inner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./inner */"./inner.js");
 
-})
-,
+}),
 
 }]);
 ```
@@ -30,8 +29,7 @@ it("export should be unused when only unused functions use it", ()=>{
     expect(_inner__WEBPACK_IMPORTED_MODULE_0__.exportCUsed).toBe(false);
     return __webpack_require__.el(/* ./chunk */"./chunk.js").then(__webpack_require__.bind(__webpack_require__, /* ./chunk */"./chunk.js"));
 });
-})
-,
+}),
 "./inner.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -54,8 +52,7 @@ __webpack_require__.d(__webpack_exports__, {
  const exportAUsed = true;
  const exportBUsed = true;
  const exportCUsed = false;
-})
-,
+}),
 "./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -90,8 +87,7 @@ function withC(v) {
     return C(value);
 }
 
-})
-,
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

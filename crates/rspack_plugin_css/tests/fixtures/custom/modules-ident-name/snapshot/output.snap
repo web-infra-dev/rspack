@@ -16,15 +16,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _style_module_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./style.module.css */"./style.module.css");
 
 console.log(_style_module_css__WEBPACK_IMPORTED_MODULE_0__);
-})
-,
+}),
 "./style.module.css": (function (module, exports, __webpack_require__) {
 "use strict";
 module.exports = {
   "foo": "_style-module__foo---___6655ebe837449348-_66",
 };
-})
-,
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
