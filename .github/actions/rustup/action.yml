@@ -30,9 +30,6 @@ inputs:
     required: false
     type: string
 
-env:
-  IS_GITHUB_RUNNER: startsWith(runner.name, 'GitHub Actions')
-
 runs:
   using: composite
   steps:
@@ -80,7 +77,7 @@ runs:
 
     - name: Cache on ${{ github.ref_name }}
       uses: Swatinem/rust-cache@v2
-      if: ${{ env.IS_GITHUB_RUNNER }}
+      if: ${{ startsWith(runner.name, 'GitHub Actions') }}
       with:
         shared-key: ${{ inputs.shared-key }}
         save-if: ${{ inputs.save-cache == 'true' }}
