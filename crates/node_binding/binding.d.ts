@@ -131,8 +131,6 @@ export const enum BuiltinPluginName {
   ArrayPushCallbackChunkFormatPlugin = 'ArrayPushCallbackChunkFormatPlugin',
   ModuleChunkFormatPlugin = 'ModuleChunkFormatPlugin',
   HotModuleReplacementPlugin = 'HotModuleReplacementPlugin',
-  LimitChunkCountPlugin = 'LimitChunkCountPlugin',
-  WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -278,28 +276,29 @@ export interface JsLoaderContext {
   currentLoader: string
   isPitching: boolean
   /**
-   * Loader index from JS.
-   * If loaders are dispatched by JS loader runner,
-   * then, this field is correspondence with loader index in JS side.
-   * It is useful when loader dispatched on JS side has an builtin loader, for example: builtin:swc-loader,
-   * Then this field will be used as an hack to test whether it should return an AST or string.
-   */
-  loaderIndexFromJs?: number
-  /**
-   * Internal additional data, contains more than `String`
-   * @internal
-   */
-  additionalDataExternal: ExternalObject<AdditionalData>
-  /**
    * Internal loader context
    * @internal
    */
-  contextExternal: ExternalObject<LoaderRunnerContext>
+  context: ExternalObject<LoaderRunnerContext>
   /**
    * Internal loader diagnostic
    * @internal
    */
-  diagnosticsExternal: ExternalObject<Array<Diagnostic>>
+  diagnostics: ExternalObject<Array<Diagnostic>>
+}
+
+export interface JsLoaderResult {
+  /** Content in pitching stage can be empty */
+  content?: Buffer
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+  buildDependencies: Array<string>
+  sourceMap?: Buffer
+  additionalData?: Buffer
+  cacheable: boolean
+  /** Used to instruct how rust loaders should execute */
+  isPitching: boolean
 }
 
 export interface JsModule {
@@ -441,6 +440,13 @@ export interface JsStatsModuleReason {
 export interface JsStatsWarning {
   message: string
   formatted: string
+}
+
+export interface NodeFS {
+  writeFile: (...args: any[]) => any
+  removeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
 }
 
 export interface PathData {
@@ -774,12 +780,6 @@ export interface RawLibraryOptions {
   auxiliaryComment?: RawLibraryAuxiliaryComment
 }
 
-export interface RawLimitChunkCountPluginOptions {
-  chunkOverhead?: number
-  entryChunkMultiplicator?: number
-  maxChunks: number
-}
-
 export interface RawModuleOptions {
   rules: Array<RawModuleRule>
   parser?: Record<string, RawParserOptions>
@@ -1092,4 +1092,12 @@ export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", 
 
 /** Builtin loader runner */
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
+
+export interface ThreadsafeNodeFS {
+  writeFile: (...args: any[]) => any
+  removeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
+  removeDirAll: (...args: any[]) => any
+}
 
