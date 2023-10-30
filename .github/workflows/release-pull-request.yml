@@ -21,6 +21,7 @@ jobs:
   release:
     name: Create Release Pull Request
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'web-infra-dev'
 
     steps:
       - name: Checkout Main Branch
