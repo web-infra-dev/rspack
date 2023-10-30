@@ -11,7 +11,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./lib */"./lib.js");
 
- class Lib extends _lib__WEBPACK_IMPORTED_MODULE_0__.Lib {
+ class Lib extends (/* unused pure expression or super */ null && (OriginLib)) {
 }
 function foo() {
     return {
