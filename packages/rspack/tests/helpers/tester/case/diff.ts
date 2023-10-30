@@ -29,30 +29,7 @@ export function createDiffCase(name: string, src: string, dist: string) {
 		fs.existsSync(caseConfigFile) ? require(caseConfigFile) : {}
 	);
 
-	const fileCompareMap: Map<string, TFileCompareResult> = new Map();
-
-	const createCompareResultHandler = (type: keyof TFileCompareResult) => {
-		return (file: string, results: TModuleCompareResult[]) => {
-			const fileResult = fileCompareMap.get(file) || {
-				modules: [],
-				runtimeModules: []
-			};
-			fileResult[type] = results;
-			fileCompareMap.set(file, fileResult);
-		};
-	};
-
-	const processor = new DiffProcessor({
-		files: caseConfig.files,
-		modules: caseConfig.modules,
-		runtimeModules: caseConfig.runtimeModules,
-		ignoreModuleId: caseConfig.ignoreModuleId ?? true,
-		ignoreModuleArugments: caseConfig.ignoreModuleArugments ?? true,
-		ignorePropertyQuotationMark: caseConfig.ignorePropertyQuotationMark ?? true,
-		onCompareModules: createCompareResultHandler("modules"),
-		onCompareRuntimeModules: createCompareResultHandler("runtimeModules")
-	});
-
+	const [processor, compareMap] = createDiffProcessor(caseConfig);
 	const tester = new Tester({
 		name,
 		src,
@@ -85,7 +62,7 @@ export function createDiffCase(name: string, src: string, dist: string) {
 			});
 			describe(`${prefix}check`, () => {
 				beforeAll(async () => {
-					fileCompareMap.clear();
+					compareMap.clear();
 					await tester.check();
 				});
 				for (let file of caseConfig.files!) {
@@ -93,7 +70,7 @@ export function createDiffCase(name: string, src: string, dist: string) {
 						let moduleResults: TModuleCompareResult[] = [];
 						let runtimeResults: TModuleCompareResult[] = [];
 						beforeAll(() => {
-							const fileResult = fileCompareMap.get(file);
+							const fileResult = compareMap.get(file);
 							if (!fileResult) {
 								throw new Error(`File ${file} has no results`);
 							}
@@ -111,6 +88,36 @@ export function createDiffCase(name: string, src: string, dist: string) {
 			await tester.resume();
 		});
 	});
+}
+
+export function createDiffProcessor(config: IDiffProcessorOptions) {
+	const fileCompareMap: Map<string, TFileCompareResult> = new Map();
+	const createCompareResultHandler = (type: keyof TFileCompareResult) => {
+		return (file: string, results: TModuleCompareResult[]) => {
+			const fileResult = fileCompareMap.get(file) || {
+				modules: [],
+				runtimeModules: []
+			};
+			fileResult[type] = results;
+			fileCompareMap.set(file, fileResult);
+		};
+	};
+
+	const processor = new DiffProcessor({
+		files: config.files,
+		modules: config.modules,
+		runtimeModules: config.runtimeModules,
+		ignoreModuleId: config.ignoreModuleId ?? true,
+		ignoreModuleArugments: config.ignoreModuleArugments ?? true,
+		ignorePropertyQuotationMark: config.ignorePropertyQuotationMark ?? true,
+		onCompareModules: createCompareResultHandler("modules"),
+		onCompareRuntimeModules: createCompareResultHandler("runtimeModules")
+	});
+
+	return [processor, fileCompareMap] as [
+		DiffProcessor,
+		Map<string, TFileCompareResult>
+	];
 }
 
 export function checkBundleFiles(name: string, dist: string, files: string[]) {
