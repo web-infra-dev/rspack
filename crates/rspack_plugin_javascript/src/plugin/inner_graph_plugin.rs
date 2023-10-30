@@ -322,7 +322,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
           self.clear_symbol_if_is_top_level();
         }
         Expr::Class(class) => {
-          // TODO: consider class
+          // TODO: should remove top level if it is not pure
           class.class.visit_with(self);
         }
         _ => {
@@ -412,7 +412,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         expr.visit_children_with(self);
       }
       Expr::Class(ref class) => {
-        // TODO: class
+        // TODO: should remove set top level
         class.visit_with(self);
       }
       _ => {
@@ -458,6 +458,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     self.set_symbol_if_is_top_level(ident);
     match &node.decl {
       DefaultDecl::Class(class) => {
+        // TODO: should remove toplevel if it isnot pure
         class.class.visit_with(self);
       }
       DefaultDecl::Fn(func) => {
