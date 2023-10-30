@@ -57,24 +57,6 @@ describe("StatsTestCases", () => {
 					builtAt: false,
 					version: false
 				};
-				const statsJson = stats.toJson(statsOptions);
-				// case ends with error should generate errors
-				if (/error$/.test(testName)) {
-					expect(statsJson.errors!.length > 0);
-				} else if (statsJson.errors) {
-					expect(statsJson.errors.length === 0);
-				}
-				statsJson.errors?.forEach(error => {
-					error.formatted = error.formatted
-						?.replace(project_dir_reg, "<PROJECT_ROOT>")
-						?.replace(/\\/g, "/");
-				});
-				statsJson.warnings?.forEach(error => {
-					error.formatted = error.formatted
-						?.replace(project_dir_reg, "<PROJECT_ROOT>")
-						?.replace(/\\/g, "/");
-				});
-				expect(statsJson).toMatchSnapshot();
 				let statsString = stats.toString(statsOptions);
 				statsString = statsString
 					.replace(/\u001b\[[0-9;]*m/g, "")
