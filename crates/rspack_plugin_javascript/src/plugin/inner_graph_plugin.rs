@@ -248,7 +248,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if !self.is_enabled() {
       return;
     }
-    let is_pure_class = is_pure_decl(&Decl::Class(node.clone()), self.unresolved_ctxt);
+    let is_pure_class = is_pure_class(&node.class, self.unresolved_ctxt);
     if is_pure_class {
       self.set_symbol_if_is_top_level(node.ident.sym.clone());
     }
