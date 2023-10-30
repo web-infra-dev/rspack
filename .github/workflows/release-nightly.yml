@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     name: Build Nightly
+    if: github.repository_owner == 'web-infra-dev'
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
