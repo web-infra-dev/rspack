@@ -56,7 +56,7 @@ impl Visit for SideEffectsFlagPluginVisitor {
         ModuleItem::ModuleDecl(decl) => match decl {
           ModuleDecl::Import(_) => {}
           ModuleDecl::ExportDecl(decl) => decl.visit_with(self),
-          ModuleDecl::ExportNamed(named) => {}
+          ModuleDecl::ExportNamed(_) => {}
           ModuleDecl::ExportDefaultDecl(decl) => {
             decl.visit_with(self);
           }
@@ -278,10 +278,6 @@ fn is_pure_var_decl(var: &VarDecl, unresolved_ctxt: SyntaxContext) -> bool {
       true
     }
   })
-}
-
-fn is_import_decl(module_item: &ModuleItem) -> bool {
-  matches!(module_item, ModuleItem::ModuleDecl(ModuleDecl::Import(_)))
 }
 
 pub trait ClassKey {

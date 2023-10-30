@@ -514,14 +514,11 @@ impl Module for NormalModule {
         if module_chain.contains(&self.identifier()) {
           return ConnectionState::CircularConnection;
         }
-        dbg!(&mgm.module_identifier);
         module_chain.insert(self.identifier());
         let mut current = ConnectionState::Bool(false);
         for dependency_id in mgm.dependencies.iter() {
           if let Some(dependency) = module_graph.dependency_by_id(dependency_id) {
-            // dbg!(&dependency.dependency_debug_name(), );
             let state = dependency.get_module_evaluation_side_effects_state(module_graph, module_chain);
-            dbg!(&dependency.dependency_debug_name(), state);
             if matches!(state, ConnectionState::Bool(true)) {
               // TODO add optimization bailout
               module_chain.remove(&self.identifier());
