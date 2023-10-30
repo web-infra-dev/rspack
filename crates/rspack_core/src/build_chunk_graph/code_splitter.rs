@@ -375,7 +375,7 @@ impl<'me> CodeSplitter<'me> {
         chunk_group: item.chunk_group,
         module_identifier: *module_identifier,
       });
-    self.queue.extend(queue_items.into_iter());
+    self.queue.extend(queue_items);
 
     for (module_identifier, group_options) in mgm
       .dynamic_depended_modules(&self.compilation.module_graph)
@@ -450,20 +450,34 @@ impl<'me> CodeSplitter<'me> {
         .split_point_module_identifier_to_chunk_ukey
         .insert(*module_identifier, chunk.ukey);
 
-      let mut chunk_group = if let Some(kind) = group_options.as_ref() && let &ChunkGroupOptionsKindRef::Entry(entry_options) = kind {
+      let mut chunk_group = if let Some(kind) = group_options.as_ref()
+        && let &ChunkGroupOptionsKindRef::Entry(entry_options) = kind
+      {
         if let Some(filename) = &entry_options.filename {
           chunk.filename_template = Some(filename.clone());
         }
-        chunk.chunk_reasons.push(format!("AsyncEntrypoint({module_identifier})"));
+        chunk
+          .chunk_reasons
+          .push(format!("AsyncEntrypoint({module_identifier})"));
         self
           .remove_parent_modules_context
           .add_root_chunk(chunk.ukey);
         let mut entrypoint = ChunkGroup::new(
           ChunkGroupKind::new_entrypoint(false, entry_options.clone()),
-          RuntimeSpec::from_iter([entry_options.runtime.as_deref().expect("should have runtime for AsyncEntrypoint").into()]),
+          RuntimeSpec::from_iter([entry_options
+            .runtime
+            .as_deref()
+            .expect("should have runtime for AsyncEntrypoint")
+            .into()]),
           ChunkGroupInfo {
-            chunk_loading: entry_options.chunk_loading.as_ref().map(|x| !matches!(x, ChunkLoading::Disable)).unwrap_or(item_chunk_group.info.chunk_loading),
-            async_chunks: entry_options.async_chunks.unwrap_or(item_chunk_group.info.async_chunks),
+            chunk_loading: entry_options
+              .chunk_loading
+              .as_ref()
+              .map(|x| !matches!(x, ChunkLoading::Disable))
+              .unwrap_or(item_chunk_group.info.chunk_loading),
+            async_chunks: entry_options
+              .async_chunks
+              .unwrap_or(item_chunk_group.info.async_chunks),
           },
         );
         entrypoint.set_runtime_chunk(chunk.ukey);
@@ -481,7 +495,10 @@ impl<'me> CodeSplitter<'me> {
           .chunk_reasons
           .push(format!("DynamicImport({module_identifier})"));
         ChunkGroup::new(
-          ChunkGroupKind::Normal { options: ChunkGroupOptions::default().name_optional(group_options.as_ref().and_then(|x| x.name())) },
+          ChunkGroupKind::Normal {
+            options: ChunkGroupOptions::default()
+              .name_optional(group_options.as_ref().and_then(|x| x.name())),
+          },
           item_chunk_group.runtime.clone(),
           ChunkGroupInfo {
             chunk_loading: item_chunk_group.info.chunk_loading,

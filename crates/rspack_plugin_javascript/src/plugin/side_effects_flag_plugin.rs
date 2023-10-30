@@ -92,7 +92,9 @@ impl Visit for SideEffectsFlagPluginVisitor {
   }
 
   fn visit_class_member(&mut self, node: &ClassMember) {
-    if let Some(key) = node.class_key() && key.is_computed() {
+    if let Some(key) = node.class_key()
+      && key.is_computed()
+    {
       key.visit_with(self);
     }
 

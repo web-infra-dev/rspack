@@ -112,7 +112,9 @@ impl ExportsInfoId {
         changed = true;
       }
       if let Some(ref exclude_exports) = exclude_exports {
-        if let Some(ref export_name) = export_info.name && exclude_exports.contains(export_name) {
+        if let Some(ref export_name) = export_info.name
+          && exclude_exports.contains(export_name)
+        {
           continue;
         }
       }
@@ -225,11 +227,13 @@ impl ExportsInfoId {
     name: Option<Vec<JsWord>>,
     mg: &ModuleGraph,
   ) -> Option<ExportsInfoId> {
-    if let Some(name) = name  && !name.is_empty() {
+    if let Some(name) = name
+      && !name.is_empty()
+    {
       let info = self.get_read_only_export_info(&name[0], mg);
-        if let Some(exports_info) = info.exports_info {
-          return exports_info.get_nested_exports_info(Some(name[1..].to_vec()), mg);
-        }
+      if let Some(exports_info) = info.exports_info {
+        return exports_info.get_nested_exports_info(Some(name[1..].to_vec()), mg);
+      }
     }
     Some(*self)
   }
@@ -1056,7 +1060,7 @@ impl ExportInfo {
         }
         loop {
           let name =
-            if let Some(export) = target.exports.as_ref().and_then(|exports| exports.get(0)) {
+            if let Some(export) = target.exports.as_ref().and_then(|exports| exports.first()) {
               export
             } else {
               return Some(ResolvedExportInfoTargetWithCircular::Target(target));
@@ -1139,7 +1143,7 @@ impl ExportInfo {
       })
       .collect::<Vec<_>>();
     let target = resolve_target(
-      values.get(0).cloned(),
+      values.first().cloned(),
       already_visited,
       resolve_filter.clone(),
       mg,

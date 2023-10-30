@@ -14,8 +14,16 @@ fn compat_by_preset_env(
   assumptions: Assumptions,
   comments: Option<&dyn Comments>,
 ) -> impl Fold + '_ {
-  if let Some(PresetEnv { mode, targets, core_js }) = preset_env_config && !targets.is_empty() {
-    let core_js = if let Some(core_js) = &core_js && let Ok(core_js) = core_js.parse() {
+  if let Some(PresetEnv {
+    mode,
+    targets,
+    core_js,
+  }) = preset_env_config
+    && !targets.is_empty()
+  {
+    let core_js = if let Some(core_js) = &core_js
+      && let Ok(core_js) = core_js.parse()
+    {
       Some(core_js)
     } else {
       None

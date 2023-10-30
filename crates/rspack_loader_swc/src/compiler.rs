@@ -446,8 +446,8 @@ impl IntoSwcComments for SingleThreadedComments {
       (l.take(), t.take())
     };
     SwcComments {
-      leading: Arc::new(DashMap::from_iter(l.into_iter())),
-      trailing: Arc::new(DashMap::from_iter(t.into_iter())),
+      leading: Arc::new(DashMap::from_iter(l)),
+      trailing: Arc::new(DashMap::from_iter(t)),
     }
   }
 }

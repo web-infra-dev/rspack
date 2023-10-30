@@ -122,7 +122,7 @@ pub struct ByDependency(LinkedHashMap<DependencyCategoryStr, Resolve>);
 
 impl FromIterator<(DependencyCategoryStr, Resolve)> for ByDependency {
   fn from_iter<I: IntoIterator<Item = (DependencyCategoryStr, Resolve)>>(i: I) -> Self {
-    Self(LinkedHashMap::from_iter(i.into_iter()))
+    Self(LinkedHashMap::from_iter(i))
   }
 }
 
@@ -160,12 +160,12 @@ fn merge_resolver_options(base: Resolve, other: Resolve) -> Resolve {
   }
 
   let alias = overwrite(base.alias, other.alias, |pre, mut now| {
-    now.extend(pre.into_iter());
+    now.extend(pre);
     now.dedup();
     now
   });
   let fallback = overwrite(base.fallback, other.fallback, |pre, mut now| {
-    now.extend(pre.into_iter());
+    now.extend(pre);
     now.dedup();
     now
   });
@@ -203,7 +203,7 @@ fn merge_resolver_options(base: Resolve, other: Resolve) -> Resolve {
     base.extension_alias,
     other.extension_alias,
     |pre, mut now| {
-      now.extend(pre.into_iter());
+      now.extend(pre);
       now.dedup();
       now
     },

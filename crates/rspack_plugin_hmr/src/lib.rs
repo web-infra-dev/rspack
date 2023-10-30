@@ -51,7 +51,14 @@ impl Plugin for HotModuleReplacementPlugin {
     args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
     let compilation = args.compilation;
-    let Some(CompilationRecords { old_chunks, all_old_runtime, old_all_modules, old_runtime_modules, old_hash }) = compilation.records.take() else {
+    let Some(CompilationRecords {
+      old_chunks,
+      all_old_runtime,
+      old_all_modules,
+      old_runtime_modules,
+      old_hash,
+    }) = compilation.records.take()
+    else {
       return Ok(());
     };
 
@@ -155,11 +162,8 @@ impl Plugin for HotModuleReplacementPlugin {
           .chunk_graph
           .get_chunk_runtime_modules_in_order(&current_chunk.ukey)
           .iter()
-          .filter_map(|module| {
-            updated_runtime_modules
-              .contains(module)
-              .then(|| ModuleIdentifier::from(module.as_str()))
-          })
+          .filter(|&module| updated_runtime_modules.contains(module))
+          .map(|module| ModuleIdentifier::from(module.as_str()))
           .collect::<Vec<_>>();
 
         // subtractRuntime

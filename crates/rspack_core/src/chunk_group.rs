@@ -154,12 +154,14 @@ impl ChunkGroup {
       .position(|ukey| *ukey == before)
       .expect("before chunk not found");
 
-    if let Some(old_idx) = old_idx && old_idx > idx {
+    if let Some(old_idx) = old_idx
+      && old_idx > idx
+    {
       self.chunks.remove(old_idx);
       self.chunks.insert(idx, chunk);
     } else if old_idx.is_none() {
       self.chunks.insert(idx, chunk);
-      return true
+      return true;
     }
 
     false

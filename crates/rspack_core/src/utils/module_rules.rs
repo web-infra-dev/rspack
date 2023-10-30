@@ -27,27 +27,40 @@ pub async fn module_rule_matcher<'a>(
   matched_rules: &mut Vec<&'a ModuleRule>,
 ) -> Result<bool> {
   if let Some(test_rule) = &module_rule.rspack_resource
-    && !test_rule.try_match(&resource_data.resource).await? {
-    return Ok(false)
+    && !test_rule.try_match(&resource_data.resource).await?
+  {
+    return Ok(false);
   }
 
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
   // See: https://webpack.js.org/configuration/module/#ruletest
   if let Some(test_rule) = &module_rule.test
-    && !test_rule.try_match(&resource_data.resource_path.to_string_lossy()).await? {
+    && !test_rule
+      .try_match(&resource_data.resource_path.to_string_lossy())
+      .await?
+  {
     return Ok(false);
   } else if let Some(resource_rule) = &module_rule.resource
-    && !resource_rule.try_match(&resource_data.resource_path.to_string_lossy()).await? {
+    && !resource_rule
+      .try_match(&resource_data.resource_path.to_string_lossy())
+      .await?
+  {
     return Ok(false);
   }
 
   if let Some(include_rule) = &module_rule.include
-    && !include_rule.try_match(&resource_data.resource_path.to_string_lossy()).await? {
+    && !include_rule
+      .try_match(&resource_data.resource_path.to_string_lossy())
+      .await?
+  {
     return Ok(false);
   }
 
   if let Some(exclude_rule) = &module_rule.exclude
-    && exclude_rule.try_match(&resource_data.resource_path.to_string_lossy()).await? {
+    && exclude_rule
+      .try_match(&resource_data.resource_path.to_string_lossy())
+      .await?
+  {
     return Ok(false);
   }
 
@@ -96,12 +109,14 @@ pub async fn module_rule_matcher<'a>(
 
   if let Some(issuer_rule) = &module_rule.issuer
     && let Some(issuer) = issuer
-    && !issuer_rule.try_match(issuer).await? {
+    && !issuer_rule.try_match(issuer).await?
+  {
     return Ok(false);
   }
 
   if let Some(dependency_rule) = &module_rule.dependency
-    && !dependency_rule.try_match(&dependency.to_string()).await? {
+    && !dependency_rule.try_match(&dependency.to_string()).await?
+  {
     return Ok(false);
   }
 
