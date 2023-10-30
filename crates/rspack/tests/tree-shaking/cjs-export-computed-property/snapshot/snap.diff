@@ -1,12 +1,12 @@
 --- expected
 +++ actual
 @@ -28,9 +28,6 @@
- "./index.ts": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
- 'use strict';
+ "./index.ts": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ "use strict";
  __webpack_require__.r(__webpack_exports__);
 -__webpack_require__.d(__webpack_exports__, {
 -  test: function() { return test; }
 -});
- /* harmony import */var _antd_index__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./antd/index */"./antd/index.ts");
+ /* harmony import */var _antd_index__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./antd/index */"./antd/index.ts");
  
- _antd_index__WEBPACK_IMPORTED_MODULE_0_.locales.zh_CN;
+ _antd_index__WEBPACK_IMPORTED_MODULE_0__.locales.zh_CN;

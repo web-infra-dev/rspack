@@ -1,14 +1,14 @@
 --- expected
 +++ actual
 @@ -21,7 +21,7 @@
- /* harmony import */var _dep_b__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dep?b */"./dep.js?b");
+ /* harmony import */var _dep_b__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./dep?b */"./dep.js?b");
  
  function abc() {
 -    return /* "./dep?b" unused */null;
 +    return x;
  }
- },
- "./c.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ }),
+ "./c.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 @@ -113,7 +113,7 @@
  
  class def {
@@ -17,4 +17,4 @@
 +        return x;
      }
  }
- },
+ }),
