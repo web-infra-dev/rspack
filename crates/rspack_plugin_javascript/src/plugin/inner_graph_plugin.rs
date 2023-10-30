@@ -119,6 +119,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         }
       }));
     };
+    member_expr.visit_children_with(self);
   }
 
   fn visit_class_member(&mut self, node: &ClassMember) {
@@ -152,11 +153,10 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     self.clear_symbol_if_is_top_level();
   }
 
-  // TODO: expr
   fn visit_fn_expr(&mut self, node: &FnExpr) {
     let scope_level = self.scope_level;
     self.scope_level += 1;
-    node.visit_children_with(self);
+    node.function.visit_children_with(self);
     self.scope_level = scope_level;
   }
 
@@ -218,7 +218,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         },
         Expr::Class(class) => {
             // TODO: consider class 
-          class.class.visit_children_with(self);
+          class.class.visit_with(self);
         }
         _ => {
           init.visit_children_with(self);
@@ -348,18 +348,32 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if !self.is_enabled() {
       return;
     }
-    // TODO:
-    // let symbol: JsWord = "*default*".into();
+
+    if let Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) =
+      self.rewrite_usage_span.get(&node.span)
+    {
+      self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
+    }
+
+    let ident = match &node.decl {
+      DefaultDecl::Class(class) => class.ident.as_ref().map(|item| item.sym.clone()),
+      DefaultDecl::Fn(func) => func.ident.as_ref().map(|item| item.sym.clone()),
+      DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
+    }
+    .unwrap_or(DEFAULT_EXPORT.into());
+    self.set_symbol_if_is_top_level(ident);
     match &node.decl {
       DefaultDecl::Class(class) => {
         // self.visit_class(symbol, &class.class);
-        class.visit_children_with(self);
+        class.class.visit_with(self);
       }
       DefaultDecl::Fn(func) => {
-        func.visit_with(self);
+        func.function.visit_with(self);
       }
       DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
     }
+
+    self.clear_symbol_if_is_top_level();
   }
 }
 
@@ -504,8 +518,9 @@ impl<'a> InnerGraphPlugin<'a> {
     }
     let state = &mut self.state;
     let mut non_terminal = HashSet::from_iter(state.inner_graph.keys().cloned());
-    let mut processed: HashMap<JsWord, HashSet<JsWord>> = HashMap::default();
+    let mut processed: HashMap<JsWord, HashSet<InnerGraphMapSetValue>> = HashMap::default();
 
+    // dbg!(state.module_identifier, &state.inner_graph,);
     while !non_terminal.is_empty() {
       let mut keys_to_remove = vec![];
       for key in non_terminal.iter() {
@@ -518,7 +533,7 @@ impl<'a> InnerGraphPlugin<'a> {
         let already_processed = processed.entry(key.clone()).or_default();
         if let Some(InnerGraphMapValue::Set(names)) = state.inner_graph.get(key) {
           for name in names.iter() {
-            already_processed.insert(name.to_jsword().clone());
+            already_processed.insert(name.clone());
           }
           for name in names {
             match name {
@@ -534,10 +549,10 @@ impl<'a> InnerGraphPlugin<'a> {
                   }
                   Some(InnerGraphMapValue::Set(item_value)) => {
                     for i in item_value {
-                      if i.to_jsword() == key {
+                      if matches!(i, InnerGraphMapSetValue::TopLevel(value) if value == key) {
                         continue;
                       }
-                      if already_processed.contains(i.to_jsword()) {
+                      if already_processed.contains(i) {
                         continue;
                       }
                       new_set.insert(i.clone());
@@ -602,7 +617,7 @@ impl<'a> InnerGraphPlugin<'a> {
       }
     }
 
-    // dbg!(&state.inner_graph);
+    // dbg!(state.module_identifier, &state.inner_graph,);
     for (symbol, cbs) in state.usage_callback_map.iter() {
       let usage = state.inner_graph.get(symbol);
       for cb in cbs {
