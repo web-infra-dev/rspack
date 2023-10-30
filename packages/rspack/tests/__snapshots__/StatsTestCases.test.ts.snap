@@ -191,7 +191,7 @@ import rawModule from './raw.png';
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "284a08e9097a65a2de53",
+      "hash": "723d673b7fe3f2cae7bb",
       "logging": {},
       "modules": [
         {
@@ -325,7 +325,7 @@ import rawModule from './raw.png';
   ],
   "errors": [],
   "errorsCount": 0,
-  "hash": "284a08e9097a65a2de53",
+  "hash": "723d673b7fe3f2cae7bb",
   "rspackVersion": "0.3.8",
   "version": "5.75.0",
   "warnings": [],
@@ -351,7 +351,7 @@ chunk {main} bundle.js (main) [entry]
   entry ./index
 ./stringModule.js [363] {main}
   esm import ./stringModule [10]
-Rspack compiled successfully (284a08e9097a65a2de53)"
+Rspack compiled successfully (723d673b7fe3f2cae7bb)"
 `;
 
 exports[`StatsTestCases should print correct stats for filename 1`] = `
@@ -6640,7 +6640,7 @@ exports[`StatsTestCases should print correct stats for minify-error-recovery 1`]
   │         ^ Expected a semicolon
 2 │ (function() {
 3 │ var __webpack_modules__ = {
-4 │ "10": function (__unused_webpack_module, exports, __webpack_require__) {
+4 │ "10": (function (__unused_webpack_module, exports, __webpack_require__) {
 5 │ console.log(0);
 
 ",
@@ -6665,7 +6665,7 @@ exports[`StatsTestCases should print correct stats for minify-error-recovery 1`]
   │         ^ Expected a semicolon
 2 │ (function() {
 3 │ var __webpack_modules__ = {
-4 │ "10": function (__unused_webpack_module, exports, __webpack_require__) {
+4 │ "10": (function (__unused_webpack_module, exports, __webpack_require__) {
 5 │ console.log(0);
 
 ",
@@ -6689,7 +6689,7 @@ exports[`StatsTestCases should print correct stats for minify-error-recovery 2`]
   │         ^ Expected a semicolon
 2 │ (function() {
 3 │ var __webpack_modules__ = {
-4 │ "10": function (__unused_webpack_module, exports, __webpack_require__) {
+4 │ "10": (function (__unused_webpack_module, exports, __webpack_require__) {
 5 │ console.log(0);
 
 
@@ -6881,14 +6881,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
           "assets": [
             {
               "name": "e1~runtime.js",
-              "size": 2458,
+              "size": 2454,
             },
             {
               "name": "e1.js",
-              "size": 412,
+              "size": 415,
             },
           ],
-          "assetsSize": 2870,
+          "assetsSize": 2869,
           "chunks": [
             "e1~runtime",
             "e1",
@@ -6899,14 +6899,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
           "assets": [
             {
               "name": "e2~runtime.js",
-              "size": 2458,
+              "size": 2454,
             },
             {
               "name": "e2.js",
-              "size": 412,
+              "size": 415,
             },
           ],
-          "assetsSize": 2870,
+          "assetsSize": 2869,
           "chunks": [
             "e2~runtime",
             "e2",
@@ -6921,14 +6921,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
           "assets": [
             {
               "name": "e1~runtime.js",
-              "size": 2458,
+              "size": 2454,
             },
             {
               "name": "e1.js",
-              "size": 412,
+              "size": 415,
             },
           ],
-          "assetsSize": 2870,
+          "assetsSize": 2869,
           "chunks": [
             "e1~runtime",
             "e1",
@@ -6939,14 +6939,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
           "assets": [
             {
               "name": "e2~runtime.js",
-              "size": 2458,
+              "size": 2454,
             },
             {
               "name": "e2.js",
-              "size": 412,
+              "size": 415,
             },
           ],
-          "assetsSize": 2870,
+          "assetsSize": 2869,
           "chunks": [
             "e2~runtime",
             "e2",
@@ -6963,8 +6963,8 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk 2`] = `
-"Entrypoint e1 2.8 KiB = e1~runtime.js 2.4 KiB e1.js 412 bytes
-Entrypoint e2 2.8 KiB = e2~runtime.js 2.4 KiB e2.js 412 bytes
+"Entrypoint e1 2.8 KiB = e1~runtime.js 2.4 KiB e1.js 415 bytes
+Entrypoint e2 2.8 KiB = e2~runtime.js 2.4 KiB e2.js 415 bytes
 chunk e1.js (e1) [entry]
 chunk e1~runtime.js (e1~runtime) [initial]
 chunk e2.js (e2) [entry]
@@ -7034,14 +7034,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
           "assets": [
             {
               "name": "runtime~e1.js",
-              "size": 2458,
+              "size": 2454,
             },
             {
               "name": "e1.js",
-              "size": 406,
+              "size": 409,
             },
           ],
-          "assetsSize": 2864,
+          "assetsSize": 2863,
           "chunks": [
             "runtime~e1",
             "e1",
@@ -7052,14 +7052,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
           "assets": [
             {
               "name": "runtime~e2.js",
-              "size": 2458,
+              "size": 2454,
             },
             {
               "name": "e2.js",
-              "size": 406,
+              "size": 409,
             },
           ],
-          "assetsSize": 2864,
+          "assetsSize": 2863,
           "chunks": [
             "runtime~e2",
             "e2",
@@ -7074,14 +7074,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
           "assets": [
             {
               "name": "runtime~e1.js",
-              "size": 2458,
+              "size": 2454,
             },
             {
               "name": "e1.js",
-              "size": 406,
+              "size": 409,
             },
           ],
-          "assetsSize": 2864,
+          "assetsSize": 2863,
           "chunks": [
             "runtime~e1",
             "e1",
@@ -7092,14 +7092,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
           "assets": [
             {
               "name": "runtime~e2.js",
-              "size": 2458,
+              "size": 2454,
             },
             {
               "name": "e2.js",
-              "size": 406,
+              "size": 409,
             },
           ],
-          "assetsSize": 2864,
+          "assetsSize": 2863,
           "chunks": [
             "runtime~e2",
             "e2",
@@ -7116,8 +7116,8 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-multiple 2`] = `
-"Entrypoint e1 2.8 KiB = runtime~e1.js 2.4 KiB e1.js 406 bytes
-Entrypoint e2 2.8 KiB = runtime~e2.js 2.4 KiB e2.js 406 bytes
+"Entrypoint e1 2.8 KiB = runtime~e1.js 2.4 KiB e1.js 409 bytes
+Entrypoint e2 2.8 KiB = runtime~e2.js 2.4 KiB e2.js 409 bytes
 chunk e1.js (e1) [entry]
 chunk e2.js (e2) [entry]
 chunk runtime~e1.js (runtime~e1) [initial]
@@ -7174,14 +7174,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
           "assets": [
             {
               "name": "runtime.js",
-              "size": 2455,
+              "size": 2451,
             },
             {
               "name": "e1.js",
-              "size": 409,
+              "size": 412,
             },
           ],
-          "assetsSize": 2864,
+          "assetsSize": 2863,
           "chunks": [
             "runtime",
             "e1",
@@ -7192,14 +7192,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
           "assets": [
             {
               "name": "runtime.js",
-              "size": 2455,
+              "size": 2451,
             },
             {
               "name": "e2.js",
-              "size": 409,
+              "size": 412,
             },
           ],
-          "assetsSize": 2864,
+          "assetsSize": 2863,
           "chunks": [
             "runtime",
             "e2",
@@ -7214,14 +7214,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
           "assets": [
             {
               "name": "runtime.js",
-              "size": 2455,
+              "size": 2451,
             },
             {
               "name": "e1.js",
-              "size": 409,
+              "size": 412,
             },
           ],
-          "assetsSize": 2864,
+          "assetsSize": 2863,
           "chunks": [
             "runtime",
             "e1",
@@ -7232,14 +7232,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
           "assets": [
             {
               "name": "runtime.js",
-              "size": 2455,
+              "size": 2451,
             },
             {
               "name": "e2.js",
-              "size": 409,
+              "size": 412,
             },
           ],
-          "assetsSize": 2864,
+          "assetsSize": 2863,
           "chunks": [
             "runtime",
             "e2",
@@ -7256,8 +7256,8 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-single 2`] = `
-"Entrypoint e1 2.8 KiB = runtime.js 2.4 KiB e1.js 409 bytes
-Entrypoint e2 2.8 KiB = runtime.js 2.4 KiB e2.js 409 bytes
+"Entrypoint e1 2.8 KiB = runtime.js 2.39 KiB e1.js 412 bytes
+Entrypoint e2 2.8 KiB = runtime.js 2.39 KiB e2.js 412 bytes
 chunk e1.js (e1) [entry]
 chunk e2.js (e2) [entry]
 chunk runtime.js (runtime) [initial]"
@@ -7326,14 +7326,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
           "assets": [
             {
               "name": "runtime~e1.js",
-              "size": 2458,
+              "size": 2454,
             },
             {
               "name": "e1.js",
-              "size": 406,
+              "size": 409,
             },
           ],
-          "assetsSize": 2864,
+          "assetsSize": 2863,
           "chunks": [
             "runtime~e1",
             "e1",
@@ -7344,14 +7344,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
           "assets": [
             {
               "name": "runtime~e2.js",
-              "size": 2458,
+              "size": 2454,
             },
             {
               "name": "e2.js",
-              "size": 406,
+              "size": 409,
             },
           ],
-          "assetsSize": 2864,
+          "assetsSize": 2863,
           "chunks": [
             "runtime~e2",
             "e2",
@@ -7366,14 +7366,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
           "assets": [
             {
               "name": "runtime~e1.js",
-              "size": 2458,
+              "size": 2454,
             },
             {
               "name": "e1.js",
-              "size": 406,
+              "size": 409,
             },
           ],
-          "assetsSize": 2864,
+          "assetsSize": 2863,
           "chunks": [
             "runtime~e1",
             "e1",
@@ -7384,14 +7384,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
           "assets": [
             {
               "name": "runtime~e2.js",
-              "size": 2458,
+              "size": 2454,
             },
             {
               "name": "e2.js",
-              "size": 406,
+              "size": 409,
             },
           ],
-          "assetsSize": 2864,
+          "assetsSize": 2863,
           "chunks": [
             "runtime~e2",
             "e2",
@@ -7408,8 +7408,8 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-true 2`] = `
-"Entrypoint e1 2.8 KiB = runtime~e1.js 2.4 KiB e1.js 406 bytes
-Entrypoint e2 2.8 KiB = runtime~e2.js 2.4 KiB e2.js 406 bytes
+"Entrypoint e1 2.8 KiB = runtime~e1.js 2.4 KiB e1.js 409 bytes
+Entrypoint e2 2.8 KiB = runtime~e2.js 2.4 KiB e2.js 409 bytes
 chunk e1.js (e1) [entry]
 chunk e2.js (e2) [entry]
 chunk runtime~e1.js (runtime~e1) [initial]
@@ -7788,7 +7788,7 @@ console.log(a);
       ],
       "errorsCount": 1,
       "filteredModules": undefined,
-      "hash": "60c0b28697ddcc279184",
+      "hash": "a6345ebe74df1d261022",
       "logging": {},
       "modules": [
         {
@@ -7900,7 +7900,7 @@ console.log(a);
     },
   ],
   "errorsCount": 1,
-  "hash": "60c0b28697ddcc279184",
+  "hash": "a6345ebe74df1d261022",
   "rspackVersion": "0.3.8",
   "version": "5.75.0",
   "warnings": [],
@@ -7934,7 +7934,7 @@ error[internal]: Resolve error
 
 
 
-Rspack compiled with 1 error (60c0b28697ddcc279184)"
+Rspack compiled with 1 error (a6345ebe74df1d261022)"
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 1`] = `
@@ -8080,7 +8080,7 @@ console.log(a);
       ],
       "errorsCount": 1,
       "filteredModules": undefined,
-      "hash": "1de1b232f302860d0385",
+      "hash": "4680e7554802934963fb",
       "logging": {},
       "modules": [
         {
@@ -8186,7 +8186,7 @@ console.log(a);
     },
   ],
   "errorsCount": 1,
-  "hash": "1de1b232f302860d0385",
+  "hash": "4680e7554802934963fb",
   "rspackVersion": "0.3.8",
   "version": "5.75.0",
   "warnings": [],
@@ -8214,7 +8214,7 @@ error[internal]: Export should be relative path and start with "./", but got ../
 
 
 
-Rspack compiled with 1 error (1de1b232f302860d0385)"
+Rspack compiled with 1 error (4680e7554802934963fb)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple 1`] = `
@@ -8549,7 +8549,7 @@ import rawModule from './raw.png';
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "fda4826197bca94bf290",
+      "hash": "3afbc51474916d0ee3d6",
       "logging": {},
       "modules": [
         {
@@ -8673,7 +8673,7 @@ import rawModule from './raw.png';
   ],
   "errors": [],
   "errorsCount": 0,
-  "hash": "fda4826197bca94bf290",
+  "hash": "3afbc51474916d0ee3d6",
   "rspackVersion": "0.3.8",
   "version": "5.75.0",
   "warnings": [],
@@ -8688,7 +8688,7 @@ Entrypoint main 631 bytes = bundle.js
 ./raw.png
 ./index.js
 ./stringModule.js
-Rspack compiled successfully (fda4826197bca94bf290)"
+Rspack compiled successfully (3afbc51474916d0ee3d6)"
 `;
 
 exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `

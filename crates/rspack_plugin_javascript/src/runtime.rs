@@ -195,6 +195,8 @@ pub fn render_runtime_modules(
         "/* start::{} */\n",
         module.identifier()
       )));
+    } else {
+      sources.add(RawSource::from(format!("// {}\n", module.identifier())));
     }
     if !module.should_isolate() {
       sources.add(RawSource::from("!function() {\n"));
