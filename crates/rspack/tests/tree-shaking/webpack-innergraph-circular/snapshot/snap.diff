@@ -1,6 +1,40 @@
 --- expected
 +++ actual
+<<<<<<< HEAD
 @@ -84,7 +84,7 @@
+=======
+@@ -36,8 +36,6 @@
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  A: function() { return A; },
+-  B: function() { return B; },
+   exportAUsed: function() { return exportAUsed; },
+   exportBUsed: function() { return exportBUsed; },
+   exportCUsed: function() { return exportCUsed; }
+@@ -51,8 +49,8 @@
+  function C(s) {
+     return s + "C";
+ }
+- const exportAUsed = true;
+- const exportBUsed = true;
++ const exportAUsed = false;
++ const exportBUsed = false;
+  const exportCUsed = false;
+ })
+ ,
+@@ -79,15 +77,15 @@
+ }
+ function withA(v) {
+     const value = x(v);
+-    return (0, _inner__WEBPACK_IMPORTED_MODULE_0__.A)(value);
++    return A(value);
+ }
+ function withB(v) {
+     const value = x(v);
+-    return (0, _inner__WEBPACK_IMPORTED_MODULE_0__.B)(value);
++    return B(value);
+>>>>>>> 674fd416a (feat(runtime-diff): fix rust tc)
  }
  function withC(v) {
      const value = x(v);
@@ -8,4 +42,4 @@
 +    return C(value);
  }
  
- },
+ })

@@ -5,7 +5,24 @@
  class Result {
      static test() {
 -        /* "./b.js" unused */null;
+<<<<<<< HEAD
 +        cc;
      }
  }
   const a = 3;
+=======
++        _b_js__WEBPACK_IMPORTED_MODULE_0__.cc;
+     }
+ }
+  const a = 3;
+@@ -29,7 +29,8 @@
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  bb: function() { return bb; }
++  bb: function() { return bb; },
++  cc: function() { return cc; }
+ });
+  const bb = 2;
+  const cc = 3;
+>>>>>>> 674fd416a (feat(runtime-diff): fix rust tc)

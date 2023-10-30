@@ -2,10 +2,10 @@
 +++ actual
 @@ -11,11 +11,11 @@
  });
- /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
+ /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./lib */"./lib.js");
  
 - class Lib extends /* "./lib" unused */null {
-+ class Lib extends _lib__WEBPACK_IMPORTED_MODULE_0_.Lib {
++ class Lib extends _lib__WEBPACK_IMPORTED_MODULE_0__.Lib {
  }
  function foo() {
      return {
@@ -13,9 +13,9 @@
 +        OriginLib
      };
  }
-  const v = _lib__WEBPACK_IMPORTED_MODULE_0_.value;
-@@ -31,6 +31,7 @@
- 'use strict';
+  const v = _lib__WEBPACK_IMPORTED_MODULE_0__.value;
+@@ -33,6 +33,7 @@
+ "use strict";
  __webpack_require__.r(__webpack_exports__);
  __webpack_require__.d(__webpack_exports__, {
 +  Lib: function() { return Lib; },

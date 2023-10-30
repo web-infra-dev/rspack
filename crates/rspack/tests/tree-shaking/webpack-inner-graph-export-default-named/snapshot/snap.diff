@@ -1,5 +1,6 @@
 --- expected
 +++ actual
+<<<<<<< HEAD
 @@ -21,7 +21,7 @@
  /* harmony import */var _dep_b__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dep?b */"./dep.js?b");
  
@@ -18,3 +19,81 @@
      }
  }
  },
+=======
+@@ -16,16 +16,6 @@
+ }
+ })
+ ,
+-"./b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+-"use strict";
+-__webpack_require__.r(__webpack_exports__);
+-/* harmony import */var _dep_b__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./dep?b */"./dep.js?b");
+-
+-function abc() {
+-    return /* "./dep?b" unused */null;
+-}
+-})
+-,
+ "./c.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);
+@@ -60,7 +50,7 @@
+   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+ });
+  const x = "x";
+-var __WEBPACK_DEFAULT_EXPORT__ = true;
++var __WEBPACK_DEFAULT_EXPORT__ = false;
+ })
+ ,
+ "./dep.js?b": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+@@ -81,7 +71,7 @@
+   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+ });
+  const x = "x";
+-var __WEBPACK_DEFAULT_EXPORT__ = true;
++var __WEBPACK_DEFAULT_EXPORT__ = false;
+ })
+ ,
+ "./dep.js?d": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+@@ -92,7 +82,7 @@
+   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+ });
+  const x = "x";
+-var __WEBPACK_DEFAULT_EXPORT__ = true;
++var __WEBPACK_DEFAULT_EXPORT__ = false;
+ })
+ ,
+ "./dep.js?e": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+@@ -113,19 +103,7 @@
+   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+ });
+  const x = "x";
+-var __WEBPACK_DEFAULT_EXPORT__ = true;
+-})
+-,
+-"./e.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+-"use strict";
+-__webpack_require__.r(__webpack_exports__);
+-/* harmony import */var _dep_e__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./dep?e */"./dep.js?e");
+-
+-class def {
+-    method() {
+-        return /* "./dep?e" unused */null;
+-    }
+-}
++var __WEBPACK_DEFAULT_EXPORT__ = false;
+ })
+ ,
+ "./f.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+@@ -145,10 +123,8 @@
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);
+ /* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./a */"./a.js");
+-/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/* ./b */"./b.js");
+ /* harmony import */var _c__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/* ./c */"./c.js");
+ /* harmony import */var _d__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/* ./d */"./d.js");
+-/* harmony import */var _e__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/* ./e */"./e.js");
+ /* harmony import */var _f__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/* ./f */"./f.js");
+ /* harmony import */var _dep_a__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/* ./dep?a */"./dep.js?a");
+ /* harmony import */var _dep_b__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/* ./dep?b */"./dep.js?b");
+>>>>>>> 674fd416a (feat(runtime-diff): fix rust tc)
