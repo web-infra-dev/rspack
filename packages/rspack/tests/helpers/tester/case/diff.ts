@@ -124,7 +124,7 @@ export function checkBundleFiles(name: string, dist: string, files: string[]) {
 	describe(`Checking ${name} dist files`, () => {
 		for (let file of files) {
 			it(`${name}: ${file} should be generated`, () => {
-				expect(fs.existsSync(path.join(dist, "bundle.js"))).toBeTruthy();
+				expect(fs.existsSync(path.join(dist, file))).toBeTruthy();
 			});
 		}
 	});
