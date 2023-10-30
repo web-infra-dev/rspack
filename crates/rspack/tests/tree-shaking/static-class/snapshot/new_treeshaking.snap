@@ -19,11 +19,7 @@ __webpack_require__.d(__webpack_exports__, {
 }
 class Result {
     static test() {
-<<<<<<< HEAD
         cc;
-=======
-        _b_js__WEBPACK_IMPORTED_MODULE_0__.cc;
->>>>>>> 674fd416a (feat(runtime-diff): fix rust tc)
     }
 }
  const a = 3;

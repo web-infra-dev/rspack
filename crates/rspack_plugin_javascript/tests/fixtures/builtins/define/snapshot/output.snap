@@ -15,10 +15,10 @@ const { DO_NOT_CONVERTED9 } = __webpack_require__(/* ./lib */"./lib.js");
 equal(true, true);
 // require("assert").deepStrictEqual(FALSE, false);
 assert.deepStrictEqual(5, 5);
-assert.deepStrictEqual(// assert.equal(FUNCTION(5), 6);
-// assert.equal(typeof FUNCTION, "function");
-null, null);
+assert.deepStrictEqual(null, null);
 assert.deepStrictEqual(undefined, undefined);
+// assert.equal(FUNCTION(5), 6);
+// assert.equal(typeof FUNCTION, "function");
 assert.deepStrictEqual(100.05, 100.05);
 assert.deepStrictEqual(0, 0);
 let ZERO_OBJ = {

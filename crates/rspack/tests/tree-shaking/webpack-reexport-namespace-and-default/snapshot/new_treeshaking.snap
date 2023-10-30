@@ -53,36 +53,15 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   exportDefaultUsed: function() { return exportDefaultUsed; }
 });
-<<<<<<< HEAD
 
 function __WEBPACK_DEFAULT_EXPORT__(){
     return mod;
 }
 
  const exportDefaultUsed = false;
-},
-"./package2/script.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-'use strict';
-=======
-/* harmony import */var _script3__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./script3 */"./package1/script3.js");
-
-function __WEBPACK_DEFAULT_EXPORT__(){
-    return _script3__WEBPACK_IMPORTED_MODULE_0__["default"];
-}
-
- const exportDefaultUsed = false;
-}),
-"./package1/script3.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
-});
-var __WEBPACK_DEFAULT_EXPORT__ = 1;
 }),
 "./package2/script.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
->>>>>>> 674fd416a (feat(runtime-diff): fix rust tc)
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; },
@@ -92,17 +71,10 @@ __webpack_require__.d(__webpack_exports__, {
 
 var __WEBPACK_DEFAULT_EXPORT__ = _script1__WEBPACK_IMPORTED_MODULE_0__["default"];
 
-<<<<<<< HEAD
  const exportDefaultUsed = true;
-},
-"./package2/script1.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-'use strict';
-=======
- const exportDefaultUsed = false;
 }),
 "./package2/script1.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
->>>>>>> 674fd416a (feat(runtime-diff): fix rust tc)
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
