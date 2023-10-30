@@ -1,31 +1,56 @@
 import fs from "fs-extra";
 import path from "path";
 import { Tester } from "../tester";
-import { DiffProcessor, IDiffProcessorOptions } from "../processor";
+import {
+	DiffProcessor,
+	IDiffProcessorOptions,
+	OUTPUT_MAIN_FILE
+} from "../processor";
 import rimraf from "rimraf";
-import { ECompareResultType, TCompareResult } from "../helper";
+import { ECompareResultType, TModuleCompareResult } from "../helper";
+
+const DEFAULT_CASE_CONFIG: IDiffProcessorOptions = {
+	files: [OUTPUT_MAIN_FILE],
+	ignorePropertyQuotationMark: true,
+	ignoreModuleId: true,
+	ignoreModuleArugments: true
+};
+
+type TFileCompareResult = {
+	modules: TModuleCompareResult[];
+	runtimeModules: TModuleCompareResult[];
+};
 
 export function createDiffCase(name: string, src: string, dist: string) {
 	const caseConfigFile = path.join(src, "test.config.js");
-	const caseConfig: IDiffProcessorOptions = fs.existsSync(caseConfigFile)
-		? require(caseConfigFile)
-		: {};
+	const caseConfig: IDiffProcessorOptions = Object.assign(
+		{},
+		DEFAULT_CASE_CONFIG,
+		fs.existsSync(caseConfigFile) ? require(caseConfigFile) : {}
+	);
 
-	let moduleCompareResults: TCompareResult[] = [];
-	let runtimeCompareResults: TCompareResult[] = [];
+	const fileCompareMap: Map<string, TFileCompareResult> = new Map();
+
+	const createCompareResultHandler = (type: keyof TFileCompareResult) => {
+		return (file: string, results: TModuleCompareResult[]) => {
+			const fileResult = fileCompareMap.get(file) || {
+				modules: [],
+				runtimeModules: []
+			};
+			fileResult[type] = results;
+			fileCompareMap.set(file, fileResult);
+		};
+	};
 
 	const processor = new DiffProcessor({
+		files: caseConfig.files,
 		modules: caseConfig.modules,
-		onCompareModules(results) {
-			moduleCompareResults = results;
-		},
 		runtimeModules: caseConfig.runtimeModules,
-		onCompareRuntimeModules(results) {
-			runtimeCompareResults = results;
-		},
 		ignoreModuleId: caseConfig.ignoreModuleId ?? true,
 		ignoreModuleArugments: caseConfig.ignoreModuleArugments ?? true,
-		ignorePropertyQuotationMark: caseConfig.ignorePropertyQuotationMark ?? true
+		ignorePropertyQuotationMark: caseConfig.ignorePropertyQuotationMark ?? true,
+		onCompareModules: createCompareResultHandler("modules"),
+		onCompareRuntimeModules: createCompareResultHandler("runtimeModules")
 	});
 
 	const tester = new Tester({
@@ -47,99 +72,92 @@ export function createDiffCase(name: string, src: string, dist: string) {
 				beforeAll(async () => {
 					await tester.compile();
 				});
-				it(`webpack bundled script should be generated`, () => {
-					expect(
-						fs.existsSync(path.join(dist, "webpack", "bundle.js"))
-					).toBeTruthy();
-				});
-				it(`rspack bundled script should be generated`, () => {
-					expect(
-						fs.existsSync(path.join(dist, "rspack", "bundle.js"))
-					).toBeTruthy();
-				});
+				checkBundleFiles(
+					"webpack",
+					path.join(dist, "webpack"),
+					caseConfig.files!
+				);
+				checkBundleFiles(
+					"rspack",
+					path.join(dist, "rspack"),
+					caseConfig.files!
+				);
 			});
 			describe(`${prefix}check`, () => {
 				beforeAll(async () => {
-					moduleCompareResults = [];
-					runtimeCompareResults = [];
+					fileCompareMap.clear();
 					await tester.check();
 				});
-				describe("compare modules", () => {
-					it("should not have rspack only modules", () => {
-						expect(
-							moduleCompareResults
-								.filter(i => i.type === ECompareResultType.OnlyRspack)
-								.map(i => i.name)
-						).toEqual([]);
+				for (let file of caseConfig.files!) {
+					describe(`Comparing "${file}"`, () => {
+						let moduleResults: TModuleCompareResult[] = [];
+						let runtimeResults: TModuleCompareResult[] = [];
+						beforeAll(() => {
+							const fileResult = fileCompareMap.get(file);
+							if (!fileResult) {
+								throw new Error(`File ${file} has no results`);
+							}
+							moduleResults = fileResult.modules;
+							runtimeResults = fileResult.runtimeModules;
+						});
+						checkCompareResults("modules", moduleResults);
+						checkCompareResults("runtime modules", runtimeResults);
 					});
-					it("should not have webpack only modules", () => {
-						expect(
-							moduleCompareResults
-								.filter(i => i.type === ECompareResultType.OnlyWebpack)
-								.map(i => i.name)
-						).toEqual([]);
-					});
-					it("should not have missing modules", () => {
-						expect(
-							moduleCompareResults
-								.filter(i => i.type === ECompareResultType.Missing)
-								.map(i => i.name)
-						).toEqual([]);
-					});
-					it(`all modules should be the same`, () => {
-						for (let result of moduleCompareResults.filter(
-							i => i.type === ECompareResultType.Different
-						)) {
-							console.log(`${result.name}:\n${result.detail}`);
-						}
-						expect(
-							moduleCompareResults.every(
-								i => i.type === ECompareResultType.Same
-							)
-						).toEqual(true);
-					});
-				});
-				describe("compare runtime modules", () => {
-					it("should not have rspack only modules", () => {
-						expect(
-							runtimeCompareResults
-								.filter(i => i.type === ECompareResultType.OnlyRspack)
-								.map(i => i.name)
-						).toEqual([]);
-					});
-					it("should not have webpack only modules", () => {
-						expect(
-							runtimeCompareResults
-								.filter(i => i.type === ECompareResultType.OnlyWebpack)
-								.map(i => i.name)
-						).toEqual([]);
-					});
-					it("should not have missing modules", () => {
-						expect(
-							runtimeCompareResults
-								.filter(i => i.type === ECompareResultType.Missing)
-								.map(i => i.name)
-						).toEqual([]);
-					});
-					it(`all modules should be the same`, () => {
-						for (let result of runtimeCompareResults.filter(
-							i => i.type === ECompareResultType.Different
-						)) {
-							console.log(`${result.name}:\n${result.detail}`);
-						}
-						expect(
-							runtimeCompareResults.every(
-								i => i.type === ECompareResultType.Same
-							)
-						).toEqual(true);
-					});
-				});
+				}
 			});
 		} while (tester.next());
 
 		afterAll(async () => {
 			await tester.resume();
 		});
-		beforeAll(async () => {});
+	});
+}
+
+export function checkBundleFiles(name: string, dist: string, files: string[]) {
+	describe(`Checking ${name} dist files`, () => {
+		for (let file of files) {
+			it(`${name}: ${file} should be generated`, () => {
+				expect(fs.existsSync(path.join(dist, "bundle.js"))).toBeTruthy();
+			});
+		}
+	});
+}
+
+export function checkCompareResults(
+	name: string,
+	compareResults: TModuleCompareResult[]
+) {
+	describe(`Comparing ${name}`, () => {
+		it("should not miss any module", () => {
+			expect(
+				compareResults
+					.filter(i => i.type === ECompareResultType.Missing)
+					.map(i => i.name)
+			).toEqual([]);
+		});
+		it("should not have any respack-only module", () => {
+			expect(
+				compareResults
+					.filter(i => i.type === ECompareResultType.OnlyRspack)
+					.map(i => i.name)
+			).toEqual([]);
+		});
+		it("should not have any webpack-only module", () => {
+			expect(
+				compareResults
+					.filter(i => i.type === ECompareResultType.OnlyWebpack)
+					.map(i => i.name)
+			).toEqual([]);
+		});
+		it(`all modules should be the same`, () => {
+			for (let result of compareResults.filter(
+				i => i.type === ECompareResultType.Different
+			)) {
+				console.log(`${result.name}:\n${result.detail}`);
+			}
+			expect(
+				compareResults.every(i => i.type === ECompareResultType.Same)
+			).toEqual(true);
+		});
 	});
 }

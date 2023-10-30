@@ -10,7 +10,7 @@ export const enum ECompareResultType {
 	Different = "different"
 }
 export type TCompareModules = string[] | true;
-export type TCompareResult = {
+export type TModuleCompareResult = {
 	type: ECompareResultType;
 	name: string;
 	detail?: unknown;
@@ -22,7 +22,7 @@ export function compareModules(
 	webpackModules: Map<string, string>,
 	formatOptions: IFormatCodeOptions
 ) {
-	const compareResults: TCompareResult[] = [];
+	const compareResults: TModuleCompareResult[] = [];
 	let compareModules: string[] = [];
 	if (moduleList === true) {
 		compareModules = [...rspackModules.keys(), ...webpackModules.keys()].filter(

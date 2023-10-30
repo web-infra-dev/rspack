@@ -15,19 +15,22 @@ import {
 	runBuild,
 	replaceRuntimeModuleName,
 	IFormatCodeOptions,
-	formatCode,
 	TCompareModules,
-	TCompareResult,
+	TModuleCompareResult,
 	compareModules
 } from "../helper";
 
-const OUTPUT_MAIN_FILE = "bundle.js";
+export const OUTPUT_MAIN_FILE = "bundle.js";
 
 export interface IDiffProcessorOptions extends IFormatCodeOptions {
+	files?: string[];
 	modules?: TCompareModules;
-	onCompareModules?: (results: TCompareResult[]) => void;
+	onCompareModules?: (file: string, results: TModuleCompareResult[]) => void;
 	runtimeModules?: TCompareModules;
-	onCompareRuntimeModules?: (results: TCompareResult[]) => void;
+	onCompareRuntimeModules?: (
+		file: string,
+		results: TModuleCompareResult[]
+	) => void;
 }
 
 export class DiffProcessor implements ITestProcessor {
@@ -97,46 +100,44 @@ export class DiffProcessor implements ITestProcessor {
 		webpackStats?.hash && this.hashes.push(webpackStats?.hash);
 	}
 	async check(context: ITestContext) {
-		const rspackModules = parseModules(
-			replaceRuntimeModuleName(
-				fs.readFileSync(
-					path.join(this.getRspackDist(context), OUTPUT_MAIN_FILE),
-					"utf-8"
-				)
-			)
-		);
-		const webpackModules = parseModules(
-			fs.readFileSync(
-				path.join(this.getWebpackDist(context), OUTPUT_MAIN_FILE),
-				"utf-8"
-			)
-		);
-		const formatOptions = this.createFormatOptions();
-		if (
-			this.options.modules &&
-			typeof this.options.onCompareModules === "function"
-		) {
-			this.options.onCompareModules(
-				compareModules(
-					this.options.modules,
-					rspackModules.modules,
-					webpackModules.modules,
-					formatOptions
+		for (let file of this.options.files!) {
+			const rspackModules = parseModules(
+				replaceRuntimeModuleName(
+					fs.readFileSync(path.join(this.getRspackDist(context), file), "utf-8")
 				)
 			);
-		}
-		if (
-			this.options.runtimeModules &&
-			typeof this.options.onCompareRuntimeModules === "function"
-		) {
-			this.options.onCompareRuntimeModules(
-				compareModules(
-					this.options.runtimeModules,
-					rspackModules.runtimeModules,
-					webpackModules.runtimeModules,
-					formatOptions
-				)
+			const webpackModules = parseModules(
+				fs.readFileSync(path.join(this.getWebpackDist(context), file), "utf-8")
 			);
+			const formatOptions = this.createFormatOptions();
+			if (
+				this.options.modules &&
+				typeof this.options.onCompareModules === "function"
+			) {
+				this.options.onCompareModules(
+					file,
+					compareModules(
+						this.options.modules,
+						rspackModules.modules,
+						webpackModules.modules,
+						formatOptions
+					)
+				);
+			}
+			if (
+				this.options.runtimeModules &&
+				typeof this.options.onCompareRuntimeModules === "function"
+			) {
+				this.options.onCompareRuntimeModules(
+					file,
+					compareModules(
+						this.options.runtimeModules,
+						rspackModules.runtimeModules,
+						webpackModules.runtimeModules,
+						formatOptions
+					)
+				);
+			}
 		}
 	}
 
