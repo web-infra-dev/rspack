@@ -138,37 +138,6 @@ importers:
         version: 3.4.12
 
   examples/angular:
-<<<<<<< HEAD
-    specifiers:
-      '@angular-devkit/build-angular': ^16.0.0
-      '@angular-devkit/build-webpack': ^0.1600.0
-      '@angular/animations': ^16.0.0
-      '@angular/cli': ~16.0.0
-      '@angular/common': ^16.0.0
-      '@angular/compiler': ^16.0.0
-      '@angular/compiler-cli': ^16.0.0
-      '@angular/core': ^16.0.0
-      '@angular/forms': ^16.0.0
-      '@angular/platform-browser': ^16.0.0
-      '@angular/platform-browser-dynamic': ^16.0.0
-      '@angular/router': ^16.0.0
-      '@ngtools/webpack': ^16.0.0
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      '@rspack/plugin-minify': workspace:*
-      html-webpack-plugin: ^5.5.0
-      karma: ~6.4.0
-      karma-chrome-launcher: ~3.1.0
-      karma-coverage: ~2.2.0
-      karma-jasmine: ~5.1.0
-      karma-jasmine-html-reporter: ~2.0.0
-      rxjs: ~7.8.0
-      tslib: ^2.3.0
-      typescript: ~4.9.4
-      webpack: 5.76.0
-      zone.js: ~0.13.0
-=======
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dependencies:
       '@angular/animations':
         specifier: ^16.0.0
@@ -204,66 +173,6 @@ importers:
         specifier: ~0.13.0
         version: 0.13.0
     devDependencies:
-<<<<<<< HEAD
-      '@angular-devkit/build-angular': 16.0.0_mnfslylpnho3rdn2foiwopn2te
-      '@angular-devkit/build-webpack': 0.1600.0_webpack@5.76.0
-      '@angular/cli': 16.0.0
-      '@angular/compiler-cli': 16.0.0_scldldeidleauflck5yigfgo3u
-      '@ngtools/webpack': 16.0.0_cgwpibwus2sfr6wgvih7aq35fm
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      '@rspack/plugin-minify': link:../../packages/rspack-plugin-minify
-      html-webpack-plugin: 5.5.0_webpack@5.76.0
-      karma: 6.4.2
-      karma-chrome-launcher: 3.1.1
-      karma-coverage: 2.2.0
-      karma-jasmine: 5.1.0_karma@6.4.2
-      karma-jasmine-html-reporter: 2.0.0_vjwhabvycyeyewnlmqeepdokki
-      typescript: 4.9.4
-      webpack: 5.76.0
-
-  examples/arco-pro:
-    specifiers:
-      '@antv/data-set': ^0.11.8
-      '@arco-design/color': ^0.4.0
-      '@arco-design/web-react': 2.29.2
-      '@arco-themes/react-arco-pro': ^0.0.7
-      '@loadable/component': ^5.15.2
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      '@rspack/plugin-html': workspace:*
-      '@rspack/plugin-react-refresh': workspace:*
-      '@svgr/webpack': ^6.5.1
-      '@swc/core': ^1.3.14
-      '@turf/turf': ^6.5.0
-      arco-design-pro: ^2.3.0
-      axios: ^0.24.0
-      bizcharts: ^4.1.15
-      bundle-stats: ^4.1.2
-      classnames: ^2.3.1
-      copy-to-clipboard: ^3.3.1
-      css-loader: ^6.7.1
-      dayjs: ^1.10.7
-      html-webpack-plugin: ^5.5.0
-      less-loader: ^11.1.0
-      lodash: ^4.17.21
-      mini-css-extract-plugin: ^2.6.1
-      mockjs: ^1.1.0
-      nprogress: ^0.2.0
-      postcss-loader: 7.0.2
-      query-string: ^6.14.1
-      react: ^17.0.2
-      react-color: ^2.19.3
-      react-dom: ^17.0.2
-      react-redux: ^7.2.6
-      react-router: ^5.2.1
-      react-router-dom: ^5.3.0
-      redux: ^4.1.2
-      regenerator-runtime: 0.13.9
-      serve: 14.1.2
-      style-loader: ^3.3.1
-      swc-loader: ^0.2.3
-=======
       '@angular-devkit/build-angular':
         specifier: ^16.0.0
         version: 16.0.0(@angular/compiler-cli@16.0.0)(@types/node@18.15.11)(html-webpack-plugin@5.5.0)(jest@29.5.0)(karma@6.4.2)(ts-node@10.9.1)(typescript@4.9.4)(webpack-cli@4.10.0)
@@ -282,6 +191,9 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       '@rspack/plugin-minify':
         specifier: workspace:*
         version: link:../../packages/rspack-plugin-minify
@@ -311,7 +223,6 @@ importers:
         version: 5.76.0(webpack-cli@4.10.0)
 
   examples/arco-pro:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dependencies:
       '@antv/data-set':
         specifier: ^0.11.8
@@ -386,46 +297,18 @@ importers:
         specifier: 0.13.9
         version: 0.13.9
     devDependencies:
-<<<<<<< HEAD
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      '@rspack/plugin-html': link:../../packages/rspack-plugin-html
-      '@rspack/plugin-react-refresh': link:../../packages/rspack-plugin-react-refresh
-      '@svgr/webpack': 6.5.1
-      '@swc/core': 1.3.23
-      bundle-stats: 4.1.6
-      css-loader: 6.7.3
-      html-webpack-plugin: 5.5.0
-      less-loader: 11.1.0
-      mini-css-extract-plugin: 2.7.2
-      postcss-loader: 7.0.2
-      serve: 14.1.2
-      style-loader: 3.3.1
-      swc-loader: 0.2.3_@swc+core@1.3.23
-
-  examples/basic:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-
-  examples/basic-ts:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      typescript: ^5.1.3
-=======
-      '@pmmmwh/react-refresh-webpack-plugin':
-        specifier: ^0.5.9
-        version: 0.5.10(react-refresh@0.14.0)(webpack@5.89.0)
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       '@rspack/plugin-html':
         specifier: workspace:*
         version: link:../../packages/rspack-plugin-html
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../packages/rspack-plugin-react-refresh
       '@svgr/webpack':
         specifier: ^6.5.1
         version: 6.5.1
@@ -465,65 +348,31 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/basic-ts:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dependencies:
       typescript:
         specifier: ^5.1.3
         version: 5.1.3
     devDependencies:
-<<<<<<< HEAD
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-
-  examples/builtin-swc-loader:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      react: 18.2.0
-      react-dom: 18.2.0
-      react-refresh: 0.14.0
-    dependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      react: 18.2.0
-      react-dom: 18.2.0_react@18.2.0
-      react-refresh: 0.14.0
-
-  examples/bundle-splitting:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-
-  examples/code-splitting:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-
-  examples/cra:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      react: ^18.2.0
-      react-dom: ^18.2.0
-      web-vitals: ^2.1.4
-=======
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/builtin-swc-loader:
     dependencies:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -539,15 +388,20 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/code-splitting:
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/cra:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dependencies:
       react:
         specifier: ^18.2.0
@@ -556,28 +410,17 @@ importers:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
     devDependencies:
-<<<<<<< HEAD
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      web-vitals: 2.1.4
-
-  examples/cra-ts:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      react: ^18.2.0
-      react-dom: ^18.2.0
-      web-vitals: ^2.1.4
-=======
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       web-vitals:
         specifier: ^2.1.4
         version: 2.1.4
 
   examples/cra-ts:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dependencies:
       react:
         specifier: ^18.2.0
@@ -586,29 +429,17 @@ importers:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
     devDependencies:
-<<<<<<< HEAD
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      web-vitals: 2.1.4
-
-  examples/emotion:
-    specifiers:
-      '@emotion/react': 11.10.6
-      '@emotion/styled': 11.10.6
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      react: '17'
-      react-dom: '17'
-=======
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       web-vitals:
         specifier: ^2.1.4
         version: 2.1.4
 
   examples/emotion:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dependencies:
       '@emotion/react':
         specifier: 11.10.6
@@ -623,38 +454,21 @@ importers:
         specifier: '17'
         version: 17.0.2(react@17.0.2)
     devDependencies:
-<<<<<<< HEAD
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-
-  examples/eslint:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      eslint: '8'
-      eslint-rspack-plugin: ^4.0.0-alpha
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      eslint: 8.40.0
-      eslint-rspack-plugin: 4.0.0-alpha_eslint@8.40.0
-
-  examples/express:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      express: 4.18.2
-      run-script-webpack-plugin: ''
-=======
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/eslint:
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       eslint:
         specifier: '8'
         version: 8.40.0
@@ -663,64 +477,17 @@ importers:
         version: 4.0.0-alpha(eslint@8.40.0)(webpack@5.89.0)
 
   examples/express:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dependencies:
       express:
         specifier: 4.18.2
         version: 4.18.2
     devDependencies:
-<<<<<<< HEAD
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      run-script-webpack-plugin: 0.2.0
-
-  examples/extract-license:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-
-  examples/library:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-
-  examples/loader-compat:
-    specifiers:
-      '@babel/preset-env': 7.20.2
-      '@mdx-js/loader': 2.2.1
-      '@node-rs/crc32': 1.7.0
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      '@svgr/webpack': 6.5.1
-      autoprefixer: 10.4.13
-      babel-loader: 9.1.2
-      css-loader: 6.7.3
-      image-webpack-loader: 8.1.0
-      json-loader: 0.5.7
-      less-loader: 11.1.0
-      node-loader: 2.0.0
-      postcss-loader: 7.0.2
-      raw-loader: 4.0.2
-      sass-loader: 13.2.0
-      source-map-loader: 4.0.1
-      style-loader: 3.3.2
-      stylus: 0.59.0
-      stylus-loader: 7.1.0
-      svg-react-loader: 0.4.6
-      thread-loader: 4.0.1
-      ts-loader: 9.4.2
-      url-loader: 4.1.1
-      yaml-loader: 0.8.0
-=======
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       run-script-webpack-plugin:
         specifier: ''
         version: 0.2.0
@@ -730,69 +497,25 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/library:
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/loader-compat:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dependencies:
       '@node-rs/crc32':
         specifier: 1.7.0
         version: 1.7.0
     devDependencies:
-<<<<<<< HEAD
-      '@babel/preset-env': 7.20.2
-      '@mdx-js/loader': 2.2.1
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      '@svgr/webpack': 6.5.1
-      autoprefixer: 10.4.13
-      babel-loader: 9.1.2
-      css-loader: 6.7.3
-      image-webpack-loader: 8.1.0
-      json-loader: 0.5.7
-      less-loader: 11.1.0
-      node-loader: 2.0.0
-      postcss-loader: 7.0.2
-      raw-loader: 4.0.2
-      sass-loader: 13.2.0
-      source-map-loader: 4.0.1
-      style-loader: 3.3.2
-      stylus: 0.59.0
-      stylus-loader: 7.1.0_stylus@0.59.0
-      svg-react-loader: 0.4.6
-      thread-loader: 4.0.1
-      ts-loader: 9.4.2
-      url-loader: 4.1.1
-      yaml-loader: 0.8.0
-
-  examples/monaco-editor-js:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      monaco-editor: ^0.39.0
-    dependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      monaco-editor: 0.39.0
-    devDependencies:
-      '@rspack/core': link:../../packages/rspack
-
-  examples/monaco-editor-ts-react:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      '@types/react': ^18.0.25
-      '@types/react-dom': ^18.0.8
-      monaco-editor: ^0.39.0
-      react: 18.0.0
-      react-dom: 18.0.0
-      react-refresh: 0.13.0
-      typescript: ^5.1.6
-=======
       '@babel/preset-env':
         specifier: 7.20.2
         version: 7.20.2(@babel/core@7.23.2)
@@ -802,6 +525,9 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       '@svgr/webpack':
         specifier: 6.5.1
         version: 6.5.1
@@ -871,9 +597,12 @@ importers:
       monaco-editor:
         specifier: ^0.39.0
         version: 0.39.0
+    devDependencies:
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/monaco-editor-ts-react:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dependencies:
       '@rspack/cli':
         specifier: workspace:*
@@ -891,12 +620,9 @@ importers:
         specifier: 0.13.0
         version: 0.13.0
     devDependencies:
-<<<<<<< HEAD
-      '@rspack/core': link:../../packages/rspack
-      '@types/react': 18.2.6
-      '@types/react-dom': 18.2.4
-      typescript: 5.1.6
-=======
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       '@types/react':
         specifier: ^18.0.25
         version: 18.2.6
@@ -906,45 +632,29 @@ importers:
       typescript:
         specifier: ^5.1.6
         version: 5.1.6
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
 
   examples/monaco-editor-webpack-plugin:
-    specifiers:
-      '@rspack/cli': workspace:*
-      monaco-editor: ^0.39.0
-      monaco-editor-webpack-plugin: ^7.1.0
     dependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      monaco-editor: 0.39.0
-      monaco-editor-webpack-plugin: 7.1.0_monaco-editor@0.39.0
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../packages/rspack-cli
+      monaco-editor:
+        specifier: ^0.39.0
+        version: 0.39.0
+      monaco-editor-webpack-plugin:
+        specifier: ^7.1.0
+        version: 7.1.0(monaco-editor@0.39.0)(webpack@5.89.0)
 
   examples/multi-entry:
-<<<<<<< HEAD
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-
-  examples/nestjs:
-    specifiers:
-      '@nestjs/common': ^9.0.0
-      '@nestjs/core': ^9.0.5
-      '@nestjs/platform-express': ^9.0.0
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      reflect-metadata: ^0.1.13
-      run-script-webpack-plugin: 0.2.0
-      rxjs: ^7.5.5
-=======
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/nestjs:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dependencies:
       '@nestjs/common':
         specifier: ^9.0.0
@@ -965,85 +675,30 @@ importers:
         specifier: ^7.5.5
         version: 7.6.0
     devDependencies:
-<<<<<<< HEAD
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-
-  examples/node-globals-shim:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-
-  examples/node-polyfill:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      '@rspack/plugin-node-polyfill': workspace:*
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      '@rspack/plugin-node-polyfill': link:../../packages/rspack-plugin-node-polyfill
-
-  examples/perfsee:
-    specifiers:
-      '@perfsee/webpack': 1.6.0
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-    devDependencies:
-      '@perfsee/webpack': 1.6.0
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-
-  examples/plugin-compat:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      '@rspack/plugin-minify': workspace:*
-      copy-webpack-plugin: 5.1.2
-      fork-ts-checker-webpack-plugin: 8.0.0
-      generate-package-json-webpack-plugin: ^2.6.0
-      html-webpack-plugin: ^5.5.0
-      license-webpack-plugin: ^4.0.2
-      rspack-manifest-plugin: 5.0.0-alpha0
-      webpack-bundle-analyzer: 4.7.0
-      webpack-stats-plugin: 1.1.1
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      '@rspack/plugin-minify': link:../../packages/rspack-plugin-minify
-      copy-webpack-plugin: 5.1.2
-      fork-ts-checker-webpack-plugin: 8.0.0
-      generate-package-json-webpack-plugin: 2.6.0
-      html-webpack-plugin: 5.5.0
-      license-webpack-plugin: 4.0.2
-      rspack-manifest-plugin: 5.0.0-alpha0
-      webpack-bundle-analyzer: 4.7.0
-      webpack-stats-plugin: 1.1.1
-
-  examples/polyfill:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      core-js: 3.30.1
-=======
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/node-globals-shim:
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/node-polyfill:
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       '@rspack/plugin-node-polyfill':
         specifier: workspace:*
         version: link:../../packages/rspack-plugin-node-polyfill
@@ -1056,12 +711,18 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/plugin-compat:
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       '@rspack/plugin-minify':
         specifier: workspace:*
         version: link:../../packages/rspack-plugin-minify
@@ -1091,106 +752,35 @@ importers:
         version: 1.1.1
 
   examples/polyfill:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dependencies:
       core-js:
         specifier: 3.30.1
         version: 3.30.1
     devDependencies:
-<<<<<<< HEAD
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-
-  examples/postcss:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-
-  examples/postcss-loader:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      autoprefixer: 10.4.15
-      postcss-loader: 7.3.3
-      postcss-plugin-px2rem: 0.8.1
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      autoprefixer: 10.4.15
-      postcss-loader: 7.3.3
-      postcss-plugin-px2rem: 0.8.1
-
-  examples/proxy:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-
-  examples/react:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      react: 18.2.0
-      react-dom: 18.2.0
-      react-refresh: 0.14.0
-    dependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      react: 18.2.0
-      react-dom: 18.2.0_react@18.2.0
-      react-refresh: 0.14.0
-    devDependencies:
-      '@rspack/core': link:../../packages/rspack
-
-  examples/react-15:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      react: 15.7.0
-      react-dom: 15.7.0
-      react-refresh: 0.14.0
-    dependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      react: 15.7.0
-      react-dom: 15.7.0_react@15.7.0
-      react-refresh: 0.14.0
-    devDependencies:
-      '@rspack/core': link:../../packages/rspack
-
-  examples/react-15-classic:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      react: 15.0.0
-      react-dom: 15.0.0
-      react-refresh: 0.14.0
-    dependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      react: 15.0.0
-      react-dom: 15.0.0_react@15.0.0
-      react-refresh: 0.14.0
-    devDependencies:
-      '@rspack/core': link:../../packages/rspack
-=======
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/postcss:
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/postcss-loader:
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       autoprefixer:
         specifier: 10.4.15
         version: 10.4.15(postcss@8.4.21)
@@ -1206,6 +796,9 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/react:
     dependencies:
@@ -1221,6 +814,10 @@ importers:
       react-refresh:
         specifier: 0.14.0
         version: 0.14.0
+    devDependencies:
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/react-15:
     dependencies:
@@ -1236,6 +833,10 @@ importers:
       react-refresh:
         specifier: 0.14.0
         version: 0.14.0
+    devDependencies:
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/react-15-classic:
     dependencies:
@@ -1251,7 +852,10 @@ importers:
       react-refresh:
         specifier: 0.14.0
         version: 0.14.0
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
+    devDependencies:
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/react-refresh:
     dependencies:
@@ -1310,25 +914,6 @@ importers:
         version: 0.13.0
 
   examples/react-storybook:
-<<<<<<< HEAD
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      '@storybook/addon-essentials': ^7.0.0
-      '@storybook/addon-interactions': ^7.0.0
-      '@storybook/addon-links': ^7.0.0
-      '@storybook/blocks': ^7.0.0
-      '@storybook/react': ^7.0.0
-      '@storybook/testing-library': ^0.0.14-next.1
-      '@types/react': ^18.0.25
-      '@types/react-dom': ^18.0.8
-      prop-types: ^15.8.1
-      react: ^17.0.2
-      react-dom: ^17.0.2
-      storybook: ^7.0.0
-      storybook-react-rspack: 7.0.0-rc.18
-=======
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dependencies:
       react:
         specifier: ^17.0.2
@@ -1337,92 +922,12 @@ importers:
         specifier: ^17.0.2
         version: 17.0.2(react@17.0.2)
     devDependencies:
-<<<<<<< HEAD
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      '@storybook/addon-essentials': 7.0.15_sfoxds7t5ydpegc3knd667wn6m
-      '@storybook/addon-interactions': 7.0.15_sfoxds7t5ydpegc3knd667wn6m
-      '@storybook/addon-links': 7.0.15_sfoxds7t5ydpegc3knd667wn6m
-      '@storybook/blocks': 7.0.15_sfoxds7t5ydpegc3knd667wn6m
-      '@storybook/react': 7.0.15_sfoxds7t5ydpegc3knd667wn6m
-      '@storybook/testing-library': 0.0.14-next.2
-      '@types/react': 18.2.6
-      '@types/react-dom': 18.2.4
-      prop-types: 15.8.1
-      storybook: 7.0.15
-      storybook-react-rspack: 7.0.0-rc.18_sfoxds7t5ydpegc3knd667wn6m
-
-  examples/react-with-less:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      less-loader: 11.1.0
-      normalize.css: 8.0.1
-      react: 17.0.0
-      react-dom: 17.0.0
-    dependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      less-loader: 11.1.0
-      normalize.css: 8.0.1
-      react: 17.0.0
-      react-dom: 17.0.0_react@17.0.0
-    devDependencies:
-      '@rspack/core': link:../../packages/rspack
-
-  examples/react-with-sass:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      react: 17.0.0
-      react-dom: 17.0.0
-      sass-loader: ^13.2.0
-    dependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      react: 17.0.0
-      react-dom: 17.0.0_react@17.0.0
-      sass-loader: 13.2.0
-    devDependencies:
-      '@rspack/core': link:../../packages/rspack
-
-  examples/solid:
-    specifiers:
-      '@babel/core': 7.20.12
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      babel-loader: 9.1.2
-      babel-preset-solid: 1.6.9
-      solid-js: 1.6.9
-      solid-refresh: 0.5.2
-    dependencies:
-      '@babel/core': 7.20.12
-      '@rspack/cli': link:../../packages/rspack-cli
-      babel-loader: 9.1.2_@babel+core@7.20.12
-      babel-preset-solid: 1.6.9_@babel+core@7.20.12
-      solid-js: 1.6.9
-      solid-refresh: 0.5.2_solid-js@1.6.9
-    devDependencies:
-      '@rspack/core': link:../../packages/rspack
-
-  examples/stats:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-
-  examples/styled-components:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      '@types/styled-components': 5.1.26
-      react: '17'
-      react-dom: '17'
-      styled-components: 5.3.6
-=======
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       '@storybook/addon-essentials':
         specifier: ^7.0.0
         version: 7.0.15(react-dom@17.0.2)(react@17.0.2)
@@ -1474,6 +979,10 @@ importers:
       react-dom:
         specifier: 17.0.0
         version: 17.0.0(react@17.0.0)
+    devDependencies:
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/react-with-sass:
     dependencies:
@@ -1489,6 +998,10 @@ importers:
       sass-loader:
         specifier: ^13.2.0
         version: 13.2.0(sass@1.56.2)(webpack@5.89.0)
+    devDependencies:
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/solid:
     dependencies:
@@ -1510,15 +1023,21 @@ importers:
       solid-refresh:
         specifier: 0.5.2
         version: 0.5.2(solid-js@1.6.9)
+    devDependencies:
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/stats:
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/styled-components:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dependencies:
       '@types/styled-components':
         specifier: 5.1.26
@@ -1533,106 +1052,21 @@ importers:
         specifier: 5.3.6
         version: 5.3.6(react-dom@17.0.2)(react-is@18.2.0)(react@17.0.2)
     devDependencies:
-<<<<<<< HEAD
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-
-  examples/svelte:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      '@rspack/plugin-html': workspace:*
-      '@tsconfig/svelte': ^3.0.0
-      cross-env: ^7.0.3
-      postcss-load-config: 4.0.1
-      svelte: ^3.55.1
-      svelte-check: ^3.0.3
-      svelte-loader: ^3.1.5
-      svelte-preprocess: ^5.0.1
-      tslib: ^2.5.0
-      typescript: 5.0.2
-      webpack-bundle-analyzer: 4.6.1
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      '@rspack/plugin-html': link:../../packages/rspack-plugin-html
-      '@tsconfig/svelte': 3.0.0
-      cross-env: 7.0.3
-      postcss-load-config: 4.0.1
-      svelte: 3.55.1
-      svelte-check: 3.0.3_hauqram6hvgn56rvtbovahy7jm
-      svelte-loader: 3.1.5_svelte@3.55.1
-      svelte-preprocess: 5.0.1_fgsixxaxqkmmnk2d2zstzcy2wi
-      tslib: 2.5.0
-      typescript: 5.0.2
-      webpack-bundle-analyzer: 4.6.1
-
-  examples/svgr:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      '@svgr/webpack': 6.5.1
-      react: '15'
-      react-dom: '15'
-      url-loader: 4.1.1
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      '@svgr/webpack': 6.5.1
-      react: 15.7.0
-      react-dom: 15.7.0_react@15.7.0
-      url-loader: 4.1.1
-
-  examples/tailwind:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      autoprefixer: 10.4.14
-      postcss: 8.4.21
-      postcss-loader: 7.2.3
-      tailwindcss: 3.3.1
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      autoprefixer: 10.4.14_postcss@8.4.21
-      postcss: 8.4.21
-      postcss-loader: 7.2.3_postcss@8.4.21
-      tailwindcss: 3.3.1_postcss@8.4.21
-
-  examples/tailwind-jit:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      autoprefixer: 10.4.14
-      postcss: 8.4.21
-      postcss-loader: 7.2.3
-      tailwindcss: 3.3.1
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      autoprefixer: 10.4.14_postcss@8.4.21
-      postcss: 8.4.21
-      postcss-loader: 7.2.3_postcss@8.4.21
-      tailwindcss: 3.3.1_postcss@8.4.21
-
-  examples/vue:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      less: 4.1.3
-      less-loader: ^11.1.0
-      vue: 3.2.47
-      vue-loader: ^17.2.2
-=======
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/svelte:
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       '@rspack/plugin-html':
         specifier: workspace:*
         version: link:../../packages/rspack-plugin-html
@@ -1672,6 +1106,9 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       '@svgr/webpack':
         specifier: 6.5.1
         version: 6.5.1
@@ -1690,6 +1127,9 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       autoprefixer:
         specifier: 10.4.14
         version: 10.4.14(postcss@8.4.21)
@@ -1708,6 +1148,9 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       autoprefixer:
         specifier: 10.4.14
         version: 10.4.14(postcss@8.4.21)
@@ -1722,71 +1165,17 @@ importers:
         version: 3.3.1(postcss@8.4.21)(ts-node@10.9.1)
 
   examples/vue:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dependencies:
       vue:
         specifier: 3.2.47
         version: 3.2.47
     devDependencies:
-<<<<<<< HEAD
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      less: 4.1.3
-      less-loader: 11.1.0_less@4.1.3
-      vue-loader: 17.2.2_vue@3.2.47
-
-  examples/vue2:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      css-loader: ^6.7.4
-      less: 4.1.3
-      less-loader: ^11.1.0
-      vue: 2.7.14
-      vue-loader: ^15.11.0
-      vue-style-loader: ^4.1.3
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      css-loader: 6.7.4
-      less: 4.1.3
-      less-loader: 11.1.0_less@4.1.3
-      vue: 2.7.14
-      vue-loader: 15.11.1_css-loader@6.7.4
-      vue-style-loader: 4.1.3
-
-  examples/vue2-ts:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      css-loader: ^6.7.4
-      less: 4.1.3
-      less-loader: ^11.1.0
-      vue: 2.7.14
-      vue-loader: ^15.10.1
-      vue-style-loader: ^4.1.3
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      css-loader: 6.8.1
-      less: 4.1.3
-      less-loader: 11.1.0_less@4.1.3
-      vue: 2.7.14
-      vue-loader: 15.10.1_css-loader@6.8.1
-      vue-style-loader: 4.1.3
-
-  examples/vue3-jsx:
-    specifiers:
-      '@babel/core': 7.21.0
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      '@vue/babel-plugin-jsx': 1.1.1
-      babel-loader: 9.1.2
-      vue: 3.2.45
-=======
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       less:
         specifier: 4.1.3
         version: 4.1.3
@@ -1802,6 +1191,9 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       css-loader:
         specifier: ^6.7.4
         version: 6.7.4(webpack@5.89.0)
@@ -1826,6 +1218,9 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       css-loader:
         specifier: ^6.7.4
         version: 6.8.1(webpack@5.89.0)
@@ -1846,37 +1241,20 @@ importers:
         version: 4.1.3
 
   examples/vue3-jsx:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dependencies:
       vue:
         specifier: 3.2.45
         version: 3.2.45
     devDependencies:
-<<<<<<< HEAD
-      '@babel/core': 7.21.0
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      '@vue/babel-plugin-jsx': 1.1.1_@babel+core@7.21.0
-      babel-loader: 9.1.2_@babel+core@7.21.0
-
-  examples/vue3-tsx:
-    specifiers:
-      '@babel/core': 7.21.0
-      '@babel/preset-typescript': ^7.22.5
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      '@vue/babel-plugin-jsx': 1.1.1
-      babel-loader: 9.1.2
-      typescript: ^5.1.3
-      vue: 3.2.45
-      vue-loader: ^17.2.2
-=======
       '@babel/core':
         specifier: 7.21.0
         version: 7.21.0
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       '@vue/babel-plugin-jsx':
         specifier: 1.1.1
         version: 1.1.1(@babel/core@7.21.0)
@@ -1885,33 +1263,11 @@ importers:
         version: 9.1.2(@babel/core@7.21.0)(webpack@5.89.0)
 
   examples/vue3-tsx:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dependencies:
       vue:
         specifier: 3.2.45
         version: 3.2.45
     devDependencies:
-<<<<<<< HEAD
-      '@babel/core': 7.21.0
-      '@babel/preset-typescript': 7.22.5_@babel+core@7.21.0
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      '@vue/babel-plugin-jsx': 1.1.1_@babel+core@7.21.0
-      babel-loader: 9.1.2_@babel+core@7.21.0
-      typescript: 5.1.3
-      vue-loader: 17.2.2_vue@3.2.45
-
-  examples/vue3-vanilla:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      css-loader: ^6.8.1
-      less: 4.1.3
-      less-loader: ^11.1.0
-      style-loader: ^3.3.3
-      vue: 3.2.47
-      vue-loader: ^17.2.2
-=======
       '@babel/core':
         specifier: 7.21.0
         version: 7.21.0
@@ -1921,6 +1277,9 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       '@vue/babel-plugin-jsx':
         specifier: 1.1.1
         version: 1.1.1(@babel/core@7.21.0)
@@ -1935,52 +1294,17 @@ importers:
         version: 17.2.2(vue@3.2.45)(webpack@5.89.0)
 
   examples/vue3-vanilla:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dependencies:
       vue:
         specifier: 3.2.47
         version: 3.2.47
     devDependencies:
-<<<<<<< HEAD
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      css-loader: 6.8.1
-      less: 4.1.3
-      less-loader: 11.1.0_less@4.1.3
-      style-loader: 3.3.3
-      vue-loader: 17.2.2_vue@3.2.47
-
-  examples/wasm-simple:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-    dependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-    devDependencies:
-      '@rspack/core': link:../../packages/rspack
-
-  examples/worker:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-    dependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-    devDependencies:
-      '@rspack/core': link:../../packages/rspack
-
-  examples/worklet:
-    specifiers:
-      '@rspack/cli': workspace:*
-      '@rspack/core': workspace:*
-      esbuild: 0.19.3
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/core': link:../../packages/rspack
-      esbuild: 0.19.3
-=======
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       css-loader:
         specifier: ^6.8.1
         version: 6.8.1(webpack@5.89.0)
@@ -2002,22 +1326,32 @@ importers:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+    devDependencies:
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/worker:
     dependencies:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+    devDependencies:
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
 
   examples/worklet:
     devDependencies:
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
       esbuild:
         specifier: 0.19.3
         version: 0.19.3
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
 
   npm/darwin-arm64: {}
 
@@ -2097,73 +1431,6 @@ importers:
         version: 8.8.1
 
   packages/rspack:
-<<<<<<< HEAD
-    specifiers:
-      '@rspack/binding': workspace:*
-      '@rspack/core': workspace:*
-      '@rspack/plugin-minify': workspace:^
-      '@rspack/plugin-node-polyfill': workspace:^
-      '@swc/helpers': 0.5.1
-      '@types/watchpack': ^2.4.0
-      '@types/webpack-sources': 3.2.0
-      '@types/ws': 8.5.3
-      babel-loader: ^9.1.0
-      babel-plugin-import: ^1.13.5
-      browserslist: ^4.21.3
-      compare-versions: 6.0.0-rc.1
-      copy-webpack-plugin: '5'
-      cross-env: ^7.0.3
-      enhanced-resolve: 5.12.0
-      file-loader: ^6.2.0
-      graceful-fs: 4.2.10
-      html-loader: ^4.2.0
-      html-webpack-plugin: ^5.5.0
-      jest-serializer-path: ^0.1.15
-      json-parse-even-better-errors: ^3.0.0
-      less: 4.1.3
-      less-loader: ^11.1.0
-      neo-async: 2.6.2
-      postcss-loader: ^7.0.2
-      postcss-pxtorem: ^6.0.0
-      pug-loader: ^2.4.0
-      querystring: ^0.2.1
-      react-refresh: 0.14.0
-      react-relay: ^14.1.0
-      sass: ^1.56.2
-      sass-loader: ^13.2.0
-      schema-utils: ^4.0.0
-      source-map: ^0.7.4
-      styled-components: ^6.0.8
-      tapable: 2.2.1
-      terminal-link: ^2.1.1
-      terser: 5.16.1
-      ts-node: 10.9.1
-      util: 0.12.5
-      wast-loader: ^1.11.4
-      watchpack: ^2.4.0
-      webpack-sources: 3.2.3
-      zod: ^3.21.4
-      zod-validation-error: 1.2.0
-    dependencies:
-      '@rspack/binding': link:../../crates/node_binding
-      '@swc/helpers': 0.5.1
-      browserslist: 4.21.4
-      compare-versions: 6.0.0-rc.1
-      enhanced-resolve: 5.12.0
-      graceful-fs: 4.2.10
-      json-parse-even-better-errors: 3.0.0
-      neo-async: 2.6.2
-      querystring: 0.2.1
-      react-refresh: 0.14.0
-      schema-utils: 4.0.0
-      tapable: 2.2.1
-      terminal-link: 2.1.1
-      util: 0.12.5
-      watchpack: 2.4.0
-      webpack-sources: 3.2.3
-      zod: 3.21.4
-      zod-validation-error: 1.2.0_zod@3.21.4
-=======
     dependencies:
       '@rspack/binding':
         specifier: workspace:*
@@ -2183,9 +1450,15 @@ importers:
       graceful-fs:
         specifier: 4.2.10
         version: 4.2.10
+      json-parse-even-better-errors:
+        specifier: ^3.0.0
+        version: 3.0.0
       neo-async:
         specifier: 2.6.2
         version: 2.6.2
+      querystring:
+        specifier: ^0.2.1
+        version: 0.2.1
       react-refresh:
         specifier: 0.14.0
         version: 0.14.0
@@ -2213,7 +1486,6 @@ importers:
       zod-validation-error:
         specifier: 1.2.0
         version: 1.2.0(zod@3.21.4)
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     devDependencies:
       '@rspack/core':
         specifier: workspace:*
@@ -2603,61 +1875,6 @@ importers:
         version: 7.2.1
 
   webpack-test:
-<<<<<<< HEAD
-    specifiers:
-      '@rspack/binding': workspace:*
-      '@rspack/core': workspace:*
-      '@rspack/plugin-minify': workspace:^
-      '@rspack/plugin-node-polyfill': workspace:^
-      '@swc/helpers': 0.5.1
-      '@types/node': ^18.6.3
-      '@types/rimraf': 3.0.2
-      '@types/sinon': 10.0.13
-      '@types/watchpack': ^2.4.0
-      '@types/webpack-sources': 3.2.0
-      '@types/ws': 8.5.3
-      ajv: ^8.12.0
-      babel-loader: ^9.1.0
-      babel-plugin-import: ^1.13.5
-      browserslist: ^4.21.3
-      chokidar: 3.5.3
-      coffee-loader: ^1.0.0
-      coffeescript: ^2.5.1
-      copy-webpack-plugin: '5'
-      css-loader: ^5.0.1
-      csv-to-markdown-table: ^1.3.0
-      enhanced-resolve: 5.12.0
-      es5-ext: ^0.10.53
-      file-loader: ^6.2.0
-      graceful-fs: 4.2.10
-      is-ci: 3.0.1
-      jest-serializer-path: ^0.1.15
-      less: 4.1.3
-      less-loader: ^11.1.0
-      neo-async: 2.6.2
-      postcss-loader: ^7.0.2
-      postcss-pxtorem: ^6.0.0
-      pug-loader: ^2.4.0
-      react-refresh: 0.14.0
-      react-relay: ^14.1.0
-      rimraf: 3.0.2
-      sass: ^1.56.2
-      sass-loader: ^13.2.0
-      schema-utils: ^4.0.0
-      sinon: 14.0.0
-      source-map: ^0.7.4
-      tapable: 2.2.1
-      terser: 5.16.1
-      ts-node: 10.9.1
-      typescript: ^4.7.4
-      util: 0.12.5
-      uvu: 0.5.6
-      watchpack: ^2.4.0
-      webassembly-feature: ^1.3.0
-      webpack-dev-server: 4.13.1
-      webpack-sources: 3.2.3
-=======
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dependencies:
       '@rspack/binding':
         specifier: workspace:*
@@ -2693,48 +1910,6 @@ importers:
         specifier: 3.2.3
         version: 3.2.3
     devDependencies:
-<<<<<<< HEAD
-      '@rspack/core': link:../packages/rspack
-      '@rspack/plugin-minify': link:../packages/rspack-plugin-minify
-      '@rspack/plugin-node-polyfill': link:../packages/rspack-plugin-node-polyfill
-      '@types/node': 18.7.9
-      '@types/rimraf': 3.0.2
-      '@types/sinon': 10.0.13
-      '@types/watchpack': 2.4.0
-      '@types/webpack-sources': 3.2.0
-      '@types/ws': 8.5.3
-      ajv: 8.12.0
-      babel-loader: 9.1.2
-      babel-plugin-import: 1.13.5
-      chokidar: 3.5.3
-      coffee-loader: 1.0.1_coffeescript@2.7.0
-      coffeescript: 2.7.0
-      copy-webpack-plugin: 5.1.2
-      css-loader: 5.0.1
-      csv-to-markdown-table: 1.3.0
-      es5-ext: 0.10.62
-      file-loader: 6.2.0
-      is-ci: 3.0.1
-      jest-serializer-path: 0.1.15
-      less: 4.1.3
-      less-loader: 11.1.0_less@4.1.3
-      postcss-loader: 7.0.2
-      postcss-pxtorem: 6.0.0
-      pug-loader: 2.4.0
-      react-relay: 14.1.0
-      rimraf: 3.0.2
-      sass: 1.56.2
-      sass-loader: 13.2.0_sass@1.56.2
-      sinon: 14.0.0
-      source-map: 0.7.4
-      terser: 5.16.1
-      ts-node: 10.9.1_3cs3zdlytrbp4mm23txabjguba
-      typescript: 4.9.4
-      util: 0.12.5
-      uvu: 0.5.6
-      webassembly-feature: 1.3.0
-      webpack-dev-server: 4.13.1
-=======
       '@rspack/core':
         specifier: workspace:*
         version: link:../packages/rspack
@@ -2775,17 +1950,23 @@ importers:
         specifier: 3.5.3
         version: 3.5.3
       coffee-loader:
-        specifier: ^4.0.0
-        version: 4.0.0(coffeescript@2.7.0)(webpack@5.89.0)
+        specifier: ^1.0.0
+        version: 1.0.0(coffeescript@2.7.0)(webpack@5.89.0)
       coffeescript:
-        specifier: ^2.7.0
+        specifier: ^2.5.1
         version: 2.7.0
       copy-webpack-plugin:
         specifier: '5'
         version: 5.1.2(webpack@5.89.0)
+      css-loader:
+        specifier: ^5.0.1
+        version: 5.0.1(webpack@5.89.0)
       csv-to-markdown-table:
         specifier: ^1.3.0
         version: 1.3.0
+      es5-ext:
+        specifier: ^0.10.53
+        version: 0.10.53
       file-loader:
         specifier: ^6.2.0
         version: 6.2.0(webpack@5.89.0)
@@ -2849,7 +2030,6 @@ importers:
       webpack-dev-server:
         specifier: 4.13.1
         version: 4.13.1(webpack-cli@4.10.0)(webpack@5.89.0)
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
 
 packages:
 
@@ -7551,7 +6731,7 @@ packages:
       babel-plugin-polyfill-corejs3: 0.6.0(@babel/core@7.21.0)
       babel-plugin-polyfill-regenerator: 0.4.1(@babel/core@7.21.0)
       core-js-compat: 3.26.1
-      semver: 6.3.0
+      semver: 6.3.1
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -10090,11 +9270,7 @@ packages:
       fsevents: 2.3.2
     dev: true
 
-<<<<<<< HEAD
-  /@pmmmwh/react-refresh-webpack-plugin/0.5.10_react-refresh@0.11.0:
-=======
   /@pmmmwh/react-refresh-webpack-plugin@0.5.10(react-refresh@0.11.0)(webpack@5.89.0):
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     resolution: {integrity: sha512-j0Ya0hCFZPd4x40qLzbhGsh9TMtdb+CJQiso+WxLOPNasohq9cc5SNUcwsZaRH6++Xh91Xkm/xHCkuIiIu0LUA==}
     engines: {node: '>= 10.13'}
     peerDependencies:
@@ -10209,7 +9385,7 @@ packages:
       react-refresh: 0.14.0
       schema-utils: 3.1.2
       source-map: 0.7.4
-      webpack: 5.89.0(@swc/core@1.3.23)(webpack-cli@4.10.0)
+      webpack: 5.89.0(webpack-cli@4.10.0)
 
   /@pnpm/cli-meta@5.0.0:
     resolution: {integrity: sha512-sI6G+fJ73e79tYehFulbHJDtMj8t5w38G0Pe+gncle+lP0gtBlofvVzgfqhJxjlqq+OGvSdsUIbgOYWvGhOmng==}
@@ -14067,7 +13243,7 @@ packages:
       '@vue/shared': 3.2.47
       estree-walker: 2.0.2
       magic-string: 0.25.9
-      postcss: 8.4.23
+      postcss: 8.4.21
       source-map: 0.6.1
 
   /@vue/compiler-ssr@3.2.45:
@@ -16476,26 +15652,17 @@ packages:
     engines: {iojs: '>= 1.0.0', node: '>= 0.12.0'}
     dev: true
 
-<<<<<<< HEAD
-  /coffee-loader/1.0.1_coffeescript@2.7.0:
-    resolution: {integrity: sha512-l3lcWeyNE11ZXNYEpkIkerrvBdSpT06/kcR7MyY+0ys38MOuqzhr+s+s7Tsvv2QH1+qEmhvG8mGuUWIO2zH7Bg==}
+  /coffee-loader@1.0.0(coffeescript@2.7.0)(webpack@5.89.0):
+    resolution: {integrity: sha512-/fjJBA842cpoN2upABQFO45ALS0clTHM8WsAbvDrArn6y4TaZikKgSPyMZxwqAkkz6zTV7MgS4RuxU3wS4XUvw==}
     engines: {node: '>= 10.13.0'}
-=======
-  /coffee-loader@4.0.0(coffeescript@2.7.0)(webpack@5.89.0):
-    resolution: {integrity: sha512-RvgC8c0JwRew5lq3x2J+P4z9Cvan/v91muEvV90VJXcTuJbJQN20taZxfj6/XC4yysA8PInPGpxdB1J9LphLuQ==}
-    engines: {node: '>= 14.15.0'}
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     peerDependencies:
       coffeescript: '>= 2.0.0'
       webpack: ^4.0.0 || ^5.0.0
     dependencies:
       coffeescript: 2.7.0
-<<<<<<< HEAD
       loader-utils: 2.0.4
-      schema-utils: 3.1.2
-=======
+      schema-utils: 2.7.1
       webpack: 5.89.0(webpack-cli@4.10.0)
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     dev: true
 
   /coffeescript@2.7.0:
@@ -17227,8 +16394,7 @@ packages:
     resolution: {integrity: sha512-FyyrDHZKEjXDpNJYvVsV960FiqQyXc/LlYmsxl2BcdMb2WPx0OGRVgTg55rPSyLSNMqP52R9r8geSp7apN3Ofg==}
     engines: {node: '>=4'}
 
-<<<<<<< HEAD
-  /css-loader/5.0.1:
+  /css-loader@5.0.1(webpack@5.89.0):
     resolution: {integrity: sha512-cXc2ti9V234cq7rJzFKhirb2L2iPy8ZjALeVJAozXYz9te3r4eqLSixNAbMDJSgJEQywqXzs8gonxaboeKqwiw==}
     engines: {node: '>= 10.13.0'}
     peerDependencies:
@@ -17236,22 +16402,20 @@ packages:
     dependencies:
       camelcase: 6.3.0
       cssesc: 3.0.0
-      icss-utils: 5.1.0_postcss@8.4.21
+      icss-utils: 5.1.0(postcss@8.4.21)
       loader-utils: 2.0.4
       postcss: 8.4.21
-      postcss-modules-extract-imports: 3.0.0_postcss@8.4.21
-      postcss-modules-local-by-default: 4.0.3_postcss@8.4.21
-      postcss-modules-scope: 3.0.0_postcss@8.4.21
-      postcss-modules-values: 4.0.0_postcss@8.4.21
+      postcss-modules-extract-imports: 3.0.0(postcss@8.4.21)
+      postcss-modules-local-by-default: 4.0.3(postcss@8.4.21)
+      postcss-modules-scope: 3.0.0(postcss@8.4.21)
+      postcss-modules-values: 4.0.0(postcss@8.4.21)
       postcss-value-parser: 4.2.0
-      schema-utils: 3.1.2
+      schema-utils: 3.3.0
       semver: 7.5.1
+      webpack: 5.89.0(webpack-cli@4.10.0)
     dev: true
 
-  /css-loader/6.7.3:
-=======
   /css-loader@6.7.3(webpack@5.80.0):
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     resolution: {integrity: sha512-qhOH1KlBMnZP8FzRO6YCH9UHXQhVMcEGLyNdb7Hv2cpcmJbW0YrddO+tG1ab5nT41KpHIYGsbeHqxB9xPu1pKQ==}
     engines: {node: '>= 12.13.0'}
     peerDependencies:
@@ -17404,18 +16568,7 @@ packages:
     resolution: {integrity: sha512-NJGVKPS81XejHcLhaLJS7plab0fK3slPh11mESeeDq2W4ZI5kUKK/LRRdVDvjJseojbPB7ZwjnyOybg3Igea/A==}
     dev: true
 
-<<<<<<< HEAD
-  /d/1.0.1:
-    resolution: {integrity: sha512-m62ShEObQ39CfralilEQRjH6oAMtNCV1xJyEx5LpRYUVN+EviphDgUc/F3hnYbADmkiNs67Y+3ylmlG7Lnu+FA==}
-    dependencies:
-      es5-ext: 0.10.62
-      type: 1.2.0
-    dev: true
-
-  /d3-array/1.2.4:
-=======
   /d3-array@1.2.4:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     resolution: {integrity: sha512-KHW6M86R+FUPYGb3R5XiYjXPq7VzwxZ22buHhAEVG5ztoEcZZMLov530mmccaqA1GghZArjQV46fuc8kUqhhHw==}
     dev: false
 
@@ -17539,6 +16692,13 @@ packages:
   /d3-voronoi@1.1.4:
     resolution: {integrity: sha512-dArJ32hchFsrQ8uMiTBLq256MpnZjeuBtdHpaDlYuQyjU0CVzCJl/BVW+SkszaAeH95D/8gxqAhgx0ouAWAfRg==}
     dev: false
+
+  /d@1.0.1:
+    resolution: {integrity: sha512-m62ShEObQ39CfralilEQRjH6oAMtNCV1xJyEx5LpRYUVN+EviphDgUc/F3hnYbADmkiNs67Y+3ylmlG7Lnu+FA==}
+    dependencies:
+      es5-ext: 0.10.53
+      type: 1.2.0
+    dev: true
 
   /dagre@0.8.5:
     resolution: {integrity: sha512-/aTqmnRta7x7MCCpExk7HQL2O4owCT2h8NT//9I1OQ9vt29Pa0BzSAkR5lwFUcQ7491yVi/3CXU9jQ5o0Mn2Sw==}
@@ -18392,47 +17552,37 @@ packages:
       is-date-object: 1.0.5
       is-symbol: 1.0.4
 
-<<<<<<< HEAD
-  /es5-ext/0.10.62:
-    resolution: {integrity: sha512-BHLqn0klhEpnOKSrzn/Xsz2UIW8j+cGmo9JLzr8BiUapV8hPL9+FliFqjwr9ngW7jWdnxv6eO+/LqyhJVqgrjA==}
-    engines: {node: '>=0.10'}
-    requiresBuild: true
+  /es5-ext@0.10.53:
+    resolution: {integrity: sha512-Xs2Stw6NiNHWypzRTY1MtaG/uJlwCk8kH81920ma8mvN8Xq1gsfhZvpkImLQArw8AHnv8MT2I45J3c0R8slE+Q==}
     dependencies:
       es6-iterator: 2.0.3
       es6-symbol: 3.1.3
-      next-tick: 1.1.0
+      next-tick: 1.0.0
     dev: true
 
-  /es6-iterator/2.0.3:
+  /es6-iterator@2.0.3:
     resolution: {integrity: sha512-zw4SRzoUkd+cl+ZoE15A9o1oQd920Bb0iOJMQkQhl3jNc03YqVjAhG7scf9C5KWRU/R13Orf588uCC6525o02g==}
     dependencies:
       d: 1.0.1
-      es5-ext: 0.10.62
+      es5-ext: 0.10.53
       es6-symbol: 3.1.3
     dev: true
 
-  /es6-object-assign/1.1.0:
-=======
   /es6-object-assign@1.1.0:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     resolution: {integrity: sha512-MEl9uirslVwqQU369iHNWZXsI8yaZYGg/D65aOgZkeyFJwHYSxilf7rQzXKI7DdDuBPrBXbfk3sl9hJhmd5AUw==}
 
   /es6-promise@3.3.1:
     resolution: {integrity: sha512-SOp9Phqvqn7jtEUxPWdWfWoLmyt2VaJ6MpvP9Comy1MceMXqE6bxvaTu4iaxpYYPzhny28Lc+M87/c2cPK6lDg==}
     dev: true
 
-<<<<<<< HEAD
-  /es6-symbol/3.1.3:
+  /es6-symbol@3.1.3:
     resolution: {integrity: sha512-NJ6Yn3FuDinBaBRWl/q5X/s4koRHBrgKAu+yGI6JCBeiu3qrcbJhwT2GeR/EXVfylRk8dpQVJoLEFhK+Mu31NA==}
     dependencies:
       d: 1.0.1
       ext: 1.7.0
     dev: true
 
-  /esbuild-plugin-alias/0.2.1:
-=======
   /esbuild-plugin-alias@0.2.1:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     resolution: {integrity: sha512-jyfL/pwPqaFXyKnj8lP8iLk6Z0m099uXR45aSN8Av1XD4vhvQutxxPzgA2bTcAwQpa1zCXDcWOlhFgyP3GKqhQ==}
     dev: true
 
@@ -19004,17 +18154,13 @@ packages:
     dev: true
     optional: true
 
-<<<<<<< HEAD
-  /ext/1.7.0:
+  /ext@1.7.0:
     resolution: {integrity: sha512-6hxeJYaL110a9b5TEJSj0gojyHQAmA2ch5Os+ySCiA1QGdS697XWY1pzsrSjqA9LDEEgdB/KypIlR59RcLuHYw==}
     dependencies:
       type: 2.7.2
     dev: true
 
-  /extend/3.0.2:
-=======
   /extend@3.0.2:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     resolution: {integrity: sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==}
     dev: true
 
@@ -19489,7 +18635,7 @@ packages:
       memfs: 3.4.12
       minimatch: 3.1.2
       node-abort-controller: 3.1.1
-      schema-utils: 3.1.2
+      schema-utils: 3.3.0
       semver: 7.5.1
       tapable: 2.2.1
       typescript: 5.1.6
@@ -23776,8 +22922,7 @@ packages:
       commander: 9.4.0
     dev: false
 
-<<<<<<< HEAD
-  /monaco-editor-webpack-plugin/7.1.0_monaco-editor@0.39.0:
+  /monaco-editor-webpack-plugin@7.1.0(monaco-editor@0.39.0)(webpack@5.89.0):
     resolution: {integrity: sha512-ZjnGINHN963JQkFqjjcBtn1XBtUATDZBMgNQhDQwd78w2ukRhFXAPNgWuacaQiDZsUr4h1rWv5Mv6eriKuOSzA==}
     peerDependencies:
       monaco-editor: '>= 0.31.0'
@@ -23785,12 +22930,10 @@ packages:
     dependencies:
       loader-utils: 2.0.4
       monaco-editor: 0.39.0
+      webpack: 5.89.0(webpack-cli@4.10.0)
     dev: false
 
-  /monaco-editor/0.39.0:
-=======
   /monaco-editor@0.39.0:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     resolution: {integrity: sha512-zhbZ2Nx93tLR8aJmL2zI1mhJpsl87HMebNBM6R8z4pLfs8pj604pIVIVwyF1TivcfNtIPpMXL+nb3DsBmE/x6Q==}
     dev: false
 
@@ -23875,11 +23018,6 @@ packages:
       thenify-all: 1.6.0
     dev: true
 
-  /nanoid@3.3.4:
-    resolution: {integrity: sha512-MqBkQh/OHTS2egovRtLk45wEyNXwF+cokD+1YPf9u5VfJiRdAiRwB2froX5Co9Rh20xs4siNPm8naNotSD6RBw==}
-    engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
-    hasBin: true
-
   /nanoid@3.3.6:
     resolution: {integrity: sha512-BGcqMMJuToF7i1rt+2PWSNVnWIkGCU78jBG3RxO/bZlnZPK2Cmi2QaffxGO/2RvWi9sL+FAiRiXMgsyxQ1DIDA==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
@@ -23921,15 +23059,11 @@ packages:
   /neo-async@2.6.2:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
 
-<<<<<<< HEAD
-  /next-tick/1.1.0:
-    resolution: {integrity: sha512-CXdUiJembsNjuToQvxayPZF9Vqht7hewsvy2sOWafLvi2awflj9mOC6bHIg50orX8IJvWKY9wYQ/zB2kogPslQ==}
+  /next-tick@1.0.0:
+    resolution: {integrity: sha512-mc/caHeUcdjnC/boPWJefDr4KUIWQNv+tlnFnJd38QMou86QtxQzBJfxgGRzvx8jazYRqrVlaHarfO72uNxPOg==}
     dev: true
 
-  /nice-napi/1.0.2:
-=======
   /nice-napi@1.0.2:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     resolution: {integrity: sha512-px/KnJAJZf5RuBGcfD+Sp2pAKq0ytz8j+1NehvgIGFkvtvFrDM3T8E4x/JJODXK9WZow8RRGrbA9QQ3hs+pDhA==}
     os: ['!win32']
     requiresBuild: true
@@ -25265,23 +24399,19 @@ packages:
       postcss-value-parser: 4.2.0
     dev: true
 
-<<<<<<< HEAD
-  /postcss-modules-local-by-default/4.0.3_postcss@8.4.21:
+  /postcss-modules-local-by-default@4.0.3(postcss@8.4.21):
     resolution: {integrity: sha512-2/u2zraspoACtrbFRnTijMiQtb4GW4BvatjaG/bCjYQo8kLTdevCUlwuBHx2sCnSyrI3x3qj4ZK1j5LQBgzmwA==}
     engines: {node: ^10 || ^12 || >= 14}
     peerDependencies:
       postcss: ^8.1.0
     dependencies:
-      icss-utils: 5.1.0_postcss@8.4.21
+      icss-utils: 5.1.0(postcss@8.4.21)
       postcss: 8.4.21
       postcss-selector-parser: 6.0.11
       postcss-value-parser: 4.2.0
     dev: true
 
-  /postcss-modules-local-by-default/4.0.3_postcss@8.4.23:
-=======
   /postcss-modules-local-by-default@4.0.3(postcss@8.4.23):
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     resolution: {integrity: sha512-2/u2zraspoACtrbFRnTijMiQtb4GW4BvatjaG/bCjYQo8kLTdevCUlwuBHx2sCnSyrI3x3qj4ZK1j5LQBgzmwA==}
     engines: {node: ^10 || ^12 || >= 14}
     peerDependencies:
@@ -25390,7 +24520,7 @@ packages:
     resolution: {integrity: sha512-tP7u/Sn/dVxK2NnruI4H9BG+x+Wxz6oeZ1cJ8P6G/PZY0IKk4k/63TDsQf2kQq3+qoJeLm2kIBUNlZe3zgb4Zg==}
     engines: {node: ^10 || ^12 || >=14}
     dependencies:
-      nanoid: 3.3.4
+      nanoid: 3.3.6
       picocolors: 1.0.0
       source-map-js: 1.0.2
 
@@ -25401,6 +24531,7 @@ packages:
       nanoid: 3.3.6
       picocolors: 1.0.0
       source-map-js: 1.0.2
+    dev: true
 
   /prelude-ls@1.1.2:
     resolution: {integrity: sha512-ESF23V4SKG6lVSGZgYNpbsiaAkdab6ZgOxe52p7+Kid3W3u3bxR4Vfd/o21dmN7jSt0IwgZ4v5MUd26FEtXE9w==}
@@ -25954,17 +25085,13 @@ packages:
     deprecated: The querystring API is considered Legacy. new code should use the URLSearchParams API instead.
     dev: false
 
-<<<<<<< HEAD
-  /querystring/0.2.1:
+  /querystring@0.2.1:
     resolution: {integrity: sha512-wkvS7mL/JMugcup3/rMitHmd9ecIGd2lhFhK9N3UUQ450h66d1r3Y9nvXzQAW1Lq+wyx61k/1pfKS5KuKiyEbg==}
     engines: {node: '>=0.4.x'}
     deprecated: The querystring API is considered Legacy. new code should use the URLSearchParams API instead.
     dev: false
 
-  /queue-microtask/1.2.3:
-=======
   /queue-microtask@1.2.3:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
 
   /quick-lru@4.0.1:
@@ -29181,7 +28308,7 @@ packages:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.17
       jest-worker: 27.5.1
-      schema-utils: 3.1.2
+      schema-utils: 3.3.0
       serialize-javascript: 6.0.1
       terser: 5.17.1
       webpack: 5.76.0(webpack-cli@4.10.0)
@@ -29701,19 +28828,15 @@ packages:
       media-typer: 0.3.0
       mime-types: 2.1.35
 
-<<<<<<< HEAD
-  /type/1.2.0:
+  /type@1.2.0:
     resolution: {integrity: sha512-+5nt5AAniqsCnu2cEQQdpzCAh33kVx8n0VoFidKpB1dVVLAN/F+bgVOqOJqOnEnrhp222clB5p3vUlD+1QAnfg==}
     dev: true
 
-  /type/2.7.2:
+  /type@2.7.2:
     resolution: {integrity: sha512-dzlvlNlt6AXU7EBSfpAscydQ7gXB+pPGsPnfJnZpiNJBDj7IaJzQlBZYGdEi4R9HmPdBv2XmWJ6YUtoTa7lmCw==}
     dev: true
 
-  /typed-assert/1.0.9:
-=======
   /typed-assert@1.0.9:
->>>>>>> e52fe2ad3 (feat(runtime-diff): rspack diff toolkit)
     resolution: {integrity: sha512-KNNZtayBCtmnNmbo5mG47p1XsCyrx6iVqomjcZnec/1Y5GGARaxPs6r49RnSPeUP3YjNYiU9sQHAtY4BBvnZwg==}
     dev: true
 
@@ -31116,7 +30239,7 @@ packages:
       loader-runner: 4.3.0
       mime-types: 2.1.35
       neo-async: 2.6.2
-      schema-utils: 3.1.2
+      schema-utils: 3.3.0
       tapable: 2.2.1
       terser-webpack-plugin: 5.3.9(esbuild@0.17.18)(webpack@5.80.0)
       watchpack: 2.4.0
