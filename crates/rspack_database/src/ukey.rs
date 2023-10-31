@@ -90,3 +90,9 @@ impl<Item> From<usize> for Ukey<Item> {
     Self(value, std::marker::PhantomData)
   }
 }
+
+impl<Item> From<Ukey<Item>> for usize {
+  fn from(value: Ukey<Item>) -> Self {
+    value.0
+  }
+}

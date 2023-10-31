@@ -24,7 +24,7 @@ use crate::{
 
 #[napi]
 pub struct JsCompilation {
-  inner: &'static mut rspack_core::Compilation,
+  pub(crate) inner: &'static mut rspack_core::Compilation,
 }
 
 #[napi]

@@ -96,6 +96,12 @@ export class Rspack {
   unsafe_drop(): void
 }
 
+export function __chunk_inner_can_be_initial(jsChunk: JsChunk, compilation: JsCompilation): boolean
+
+export function __chunk_inner_has_runtime(jsChunk: JsChunk, compilation: JsCompilation): boolean
+
+export function __chunk_inner_is_only_initial(jsChunk: JsChunk, compilation: JsCompilation): boolean
+
 export interface AfterResolveData {
   request: string
   context: string
@@ -198,7 +204,19 @@ export interface JsAssetInfoRelated {
 }
 
 export interface JsChunk {
-  inner: number
+  __inner_ukey: number
+  name?: string
+  id?: string
+  ids: Array<string>
+  idNameHints: Array<string>
+  filenameTemplate?: string
+  cssFilenameTemplate?: string
+  files: Array<string>
+  runtime: Array<string>
+  hash?: string
+  contentHash: Record<string, string>
+  renderedHash?: string
+  chunkReasons: Array<string>
 }
 
 export interface JsChunkAssetArgs {
@@ -208,22 +226,6 @@ export interface JsChunkAssetArgs {
 
 export interface JsChunkGroup {
   chunks: Array<JsChunk>
-}
-
-export interface JsChunkStruct {
-  name?: string
-  filenameTemplate?: string
-  cssFilenameTemplate?: string
-  id?: string
-  ids: Array<string>
-  idNameHints: Array<string>
-  files: Array<string>
-  auxiliaryFiles: Array<string>
-  runtime: Array<string>
-  hash?: string
-  renderedHash?: string
-  contentHash: Record<string, string>
-  chunkReasons: Array<string>
 }
 
 export interface JsCompatSource {
