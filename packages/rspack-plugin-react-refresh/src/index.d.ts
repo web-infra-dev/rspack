@@ -17,4 +17,9 @@ export default class ReactRefreshRspackPlugin {
 	 * @param {import("@rspack/core").Compiler} compiler
 	 */
 	apply(compiler: Compiler): void;
+
+	/**
+	 * @deprecated
+	 */
+	static deprecated_runtimePaths: string;
 }
