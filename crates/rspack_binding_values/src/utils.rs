@@ -133,7 +133,8 @@ where
 {
   /// Acquire a mutable reference to the inner hashmap.
   ///
-  /// Safety: Mutable reference can almost let you do anything you want, this is intended to be used from the thread where the map was created.
+  /// # Safety
+  /// Mutable reference can almost let you do anything you want, this is intended to be used from the thread where the map was created.
   pub unsafe fn borrow_mut<F, R>(&self, key: &K, f: F) -> Result<R>
   where
     F: FnOnce(&mut V) -> Result<R>,
@@ -149,7 +150,8 @@ where
 
   /// Acquire a shared reference to the inner hashmap.
   ///
-  /// Safety: It's not thread-safe if a value is not safe to modify cross thread boundary, so this is intended to be used from the thread where the map was created.
+  /// # Safety
+  /// It's not thread-safe if a value is not safe to modify cross thread boundary, so this is intended to be used from the thread where the map was created.
   #[allow(unused)]
   pub unsafe fn borrow<F, R>(&self, key: &K, f: F) -> Result<R>
   where
@@ -166,7 +168,8 @@ where
 
   /// Insert a value into the map.
   ///
-  /// Safety: It's not thread-safe if a value has thread affinity, so this is intended to be used from the thread where the map was created.
+  /// # Safety
+  /// It's not thread-safe if a value has thread affinity, so this is intended to be used from the thread where the map was created.
   pub unsafe fn insert_if_vacant(&self, key: K, value: V) -> Result<()> {
     if let dashmap::mapref::entry::Entry::Vacant(vacant) = self.0.entry(key) {
       vacant.insert(value);
@@ -182,7 +185,8 @@ where
   ///
   /// See: [DashMap::remove] for more details. https://docs.rs/dashmap/latest/dashmap/struct.DashMap.html#method.remove
   ///
-  /// Safety: It's not thread-safe if a value has thread affinity, so this is intended to be used from the thread where the map was created.
+  /// # Safety
+  /// It's not thread-safe if a value has thread affinity, so this is intended to be used from the thread where the map was created.
   #[allow(unused)]
   pub unsafe fn remove(&self, key: &K) -> Option<V> {
     self.0.remove(key).map(|(_, v)| v)
