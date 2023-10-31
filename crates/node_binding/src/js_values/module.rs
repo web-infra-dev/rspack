@@ -1,5 +1,4 @@
 use napi::bindgen_prelude::*;
-use napi_derive::napi;
 use rspack_core::Module;
 use rspack_identifier::Identifiable;
 

@@ -1,6 +1,9 @@
-#![feature(try_blocks)]
+mod chunk {
+  // TODO: should we merge rspack_binding_options and node_binding?
+  pub use rspack_binding_options::chunk::*;
+}
+
 mod asset;
-mod chunk;
 mod chunk_group;
 mod compilation;
 mod hooks;
@@ -9,7 +12,6 @@ mod normal_module_factory;
 mod path_data;
 mod source;
 mod stats;
-mod utils;
 
 pub use asset::*;
 pub use chunk::*;
@@ -21,4 +23,3 @@ pub use normal_module_factory::*;
 pub use path_data::*;
 pub use source::*;
 pub use stats::*;
-pub use utils::*;
