@@ -1,6 +1,6 @@
 import * as util from "util";
 import path from "path";
-import { rspack, RspackOptions, Stats } from "../src";
+import { Compiler, rspack, RspackOptions, Stats } from "../src";
 import serializer from "jest-serializer-path";
 
 expect.addSnapshotSerializer(serializer);
@@ -348,6 +348,38 @@ describe("Stats", () => {
 		"asset main.js 215 bytes {main} [emitted] (name: main)
 		chunk {main} main.js (main) [entry]
 		./fixtures/a.js [876] {main}"
+	`);
+	});
+
+	it("should have null as placeholders in stats before chunkIds", async () => {
+		let stats;
+
+		class TestPlugin {
+			apply(compiler: Compiler) {
+				compiler.hooks.thisCompilation.tap("custom", compilation => {
+					compilation.hooks.optimizeModules.tap("test plugin", () => {
+						stats = compiler.compilation.getStats().toJson({});
+					});
+				});
+			}
+		}
+		await compile({
+			context: __dirname,
+			entry: "./fixtures/a",
+			plugins: [new TestPlugin()]
+		});
+
+		expect(stats!.entrypoints).toMatchInlineSnapshot(`
+		{
+		  "main": {
+		    "assets": [],
+		    "assetsSize": 0,
+		    "chunks": [
+		      null,
+		    ],
+		    "name": "main",
+		  },
+		}
 	`);
 	});
 });

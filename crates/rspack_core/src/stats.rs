@@ -1,3 +1,4 @@
+use either::Either;
 use itertools::Itertools;
 use rspack_error::{
   emitter::{
@@ -83,10 +84,7 @@ impl Stats<'_> {
     }
     for (name, asset) in &mut assets {
       if let Some(chunks) = compilation_file_to_chunks.get(name) {
-        asset.chunks = chunks
-          .iter()
-          .map(|chunk| chunk.id.clone().expect("Chunk should have id"))
-          .collect();
+        asset.chunks = chunks.iter().map(|chunk| chunk.id.clone()).collect();
         asset.chunks.sort_unstable();
         asset.chunk_names = chunks
           .iter()
@@ -192,7 +190,7 @@ impl Stats<'_> {
           r#type: "chunk",
           files,
           auxiliary_files,
-          id: c.expect_id().to_string(),
+          id: c.id.clone(),
           names: c.name.clone().map(|n| vec![n]).unwrap_or_default(),
           entry: c.has_entry_module(&self.compilation.chunk_graph),
           initial: c.can_be_initial(&self.compilation.chunk_group_by_ukey),
@@ -207,7 +205,17 @@ impl Stats<'_> {
         })
       })
       .collect::<Result<_>>()?;
-    chunks.sort_by_cached_key(|v| v.id.to_string());
+
+    // make result deterministic
+    chunks.sort_unstable_by_key(|v| {
+      // chunk id only exist after chunkIds hook
+      if let Some(id) = &v.id {
+        Either::Left(id.clone())
+      } else {
+        Either::Right(v.size as u32)
+      }
+    });
+
     Ok(chunks)
   }
 
@@ -217,7 +225,7 @@ impl Stats<'_> {
       .chunk_group_by_ukey
       .get(ukey)
       .expect("compilation.chunk_group_by_ukey should have ukey from entrypoint");
-    let chunks: Vec<String> = cg
+    let chunks: Vec<Option<String>> = cg
       .chunks
       .iter()
       .map(|c| {
@@ -227,7 +235,7 @@ impl Stats<'_> {
           .get(c)
           .expect("compilation.chunk_by_ukey should have ukey from chunk_group")
       })
-      .map(|c| c.expect_id().to_string())
+      .map(|c| c.id.clone())
       .collect();
     let assets = cg.chunks.iter().fold(Vec::new(), |mut acc, c| {
       let chunk = self
@@ -396,7 +404,7 @@ impl Stats<'_> {
       })
       .transpose()?;
 
-    let mut chunks: Vec<String> = self
+    let mut chunks: Vec<Option<String>> = self
       .compilation
       .chunk_graph
       .get_chunk_graph_module(mgm.module_identifier)
@@ -408,8 +416,8 @@ impl Stats<'_> {
           .chunk_by_ukey
           .get(k)
           .unwrap_or_else(|| panic!("Could not find chunk by ukey: {k:?}"))
-          .expect_id()
-          .to_string()
+          .id
+          .clone()
       })
       .collect();
     chunks.sort_unstable();
@@ -547,7 +555,7 @@ pub struct StatsAsset {
   pub r#type: &'static str,
   pub name: String,
   pub size: f64,
-  pub chunks: Vec<String>,
+  pub chunks: Vec<Option<String>>,
   pub chunk_names: Vec<String>,
   pub info: StatsAssetInfo,
   pub emitted: bool,
@@ -573,7 +581,7 @@ pub struct StatsModule<'a> {
   pub name: String,
   pub name_for_condition: Option<String>,
   pub id: Option<String>,
-  pub chunks: Vec<String>,
+  pub chunks: Vec<Option<String>>, // has id after the call of chunkIds hook
   pub size: f64,
   pub issuer: Option<String>,
   pub issuer_name: Option<String>,
@@ -598,7 +606,7 @@ pub struct StatsChunk<'a> {
   pub r#type: &'static str,
   pub files: Vec<String>,
   pub auxiliary_files: Vec<String>,
-  pub id: String,
+  pub id: Option<String>,
   pub entry: bool,
   pub initial: bool,
   pub names: Vec<String>,
@@ -619,7 +627,7 @@ pub struct StatsChunkGroupAsset {
 pub struct StatsChunkGroup {
   pub name: String,
   pub assets: Vec<StatsChunkGroupAsset>,
-  pub chunks: Vec<String>,
+  pub chunks: Vec<Option<String>>,
   pub assets_size: f64,
 }
 

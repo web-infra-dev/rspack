@@ -84,3 +84,15 @@ impl<Item> Hash for Ukey<Item> {
 }
 
 impl<Item> Copy for Ukey<Item> {}
+
+impl<Item> From<usize> for Ukey<Item> {
+  fn from(value: usize) -> Self {
+    Self(value, std::marker::PhantomData)
+  }
+}
+
+impl<Item> From<Ukey<Item>> for usize {
+  fn from(value: Ukey<Item>) -> Self {
+    value.0
+  }
+}
