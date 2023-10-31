@@ -31,10 +31,25 @@ describe("StatsTestCases", () => {
 			if (fs.existsSync(configPath)) {
 				config = require(configPath);
 			}
-			let options: RspackOptions[] = (
-				Array.isArray(config) ? config : [config]
-			).map(c => {
-				const result: RspackOptions = {
+			let options;
+			if (Array.isArray(config)) {
+				options = config.map(c => {
+					const result: RspackOptions = {
+						target: "node",
+						context,
+						entry: {
+							main: "./index"
+						},
+						output: {
+							filename: "bundle.js"
+						},
+						...c
+					};
+					result.output!.path = outputPath;
+					return result;
+				});
+			} else {
+				options = {
 					target: "node",
 					context,
 					entry: {
@@ -43,44 +58,53 @@ describe("StatsTestCases", () => {
 					output: {
 						filename: "bundle.js"
 					},
-					...c
+					...config
 				};
-				result.output!.path = outputPath;
-				return result;
-			});
+				options.output!.path = outputPath;
+			}
 			const stats = await util.promisify(rspack)(options);
 			if (!stats) return expect(false);
-			for (const option of options) {
-				const statsOptions = option.stats ?? {
-					all: true,
-					timings: false,
-					builtAt: false,
-					version: false
-				};
-				const statsJson = stats.toJson(statsOptions);
-				// case ends with error should generate errors
-				if (/error$/.test(testName)) {
-					expect(statsJson.errors!.length > 0);
-				} else if (statsJson.errors) {
-					expect(statsJson.errors.length === 0);
-				}
-				statsJson.errors?.forEach(error => {
-					error.formatted = error.formatted
-						?.replace(project_dir_reg, "<PROJECT_ROOT>")
-						?.replace(/\\/g, "/");
-				});
-				statsJson.warnings?.forEach(error => {
-					error.formatted = error.formatted
-						?.replace(project_dir_reg, "<PROJECT_ROOT>")
-						?.replace(/\\/g, "/");
-				});
-				expect(statsJson).toMatchSnapshot();
-				let statsString = stats.toString(statsOptions);
-				statsString = statsString
-					.replace(project_dir_reg, "<PROJECT_ROOT>")
-					.replace(/\\/g, "/");
-				expect(statsString).toMatchSnapshot();
+			const statsOptions = options.stats ?? {
+				all: true,
+				timings: false,
+				builtAt: false,
+				version: false
+			};
+			const statsJson = stats.toJson(statsOptions);
+			// case ends with error should generate errors
+			if (/error$/.test(testName)) {
+				expect(statsJson.errors!.length > 0);
+			} else if (statsJson.errors) {
+				expect(statsJson.errors.length === 0);
 			}
+			statsJson.errors?.forEach(error => {
+				error.formatted = error.formatted
+					?.replace(project_dir_reg, "<PROJECT_ROOT>")
+					?.replace(/\\/g, "/");
+			});
+			statsJson.warnings?.forEach(error => {
+				error.formatted = error.formatted
+					?.replace(project_dir_reg, "<PROJECT_ROOT>")
+					?.replace(/\\/g, "/");
+			});
+			statsJson.children?.forEach(child => {
+				child.errors?.forEach(error => {
+					error.formatted = error.formatted
+						?.replace(project_dir_reg, "<PROJECT_ROOT>")
+						?.replace(/\\/g, "/");
+				});
+				child.warnings?.forEach(error => {
+					error.formatted = error.formatted
+						?.replace(project_dir_reg, "<PROJECT_ROOT>")
+						?.replace(/\\/g, "/");
+				});
+			});
+			expect(statsJson).toMatchSnapshot();
+			let statsString = stats.toString(statsOptions);
+			statsString = statsString
+				.replace(project_dir_reg, "<PROJECT_ROOT>")
+				.replace(/\\/g, "/");
+			expect(statsString).toMatchSnapshot();
 		});
 	});
 });
