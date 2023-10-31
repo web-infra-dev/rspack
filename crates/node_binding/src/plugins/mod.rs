@@ -6,10 +6,6 @@ use async_trait::async_trait;
 pub use loader::JsLoaderResolver;
 use napi::{Env, Result};
 use rspack_binding_macros::js_fn_into_threadsafe_fn;
-use rspack_binding_values::{
-  AfterResolveData, BeforeResolveData, JsAssetEmittedArgs, JsChunkAssetArgs, JsModule,
-  JsResolveForSchemeInput, JsResolveForSchemeResult, ToJsModule,
-};
 use rspack_core::{
   ChunkAssetArgs, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
   PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
@@ -19,6 +15,10 @@ use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::NapiResultExt;
 
+use crate::js_values::{
+  AfterResolveData, BeforeResolveData, JsAssetEmittedArgs, JsChunkAssetArgs, JsModule,
+  JsResolveForSchemeInput, JsResolveForSchemeResult, ToJsModule,
+};
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
 pub struct JsHooksAdapter {

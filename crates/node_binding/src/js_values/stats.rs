@@ -3,7 +3,6 @@ use napi::{
   bindgen_prelude::{Result, SharedReference},
   Either,
 };
-use napi_derive::napi;
 use rspack_core::Stats;
 
 use super::{JsCompilation, ToJsCompatSource};
@@ -169,7 +168,7 @@ pub struct JsStatsAsset {
   pub r#type: &'static str,
   pub name: String,
   pub size: f64,
-  pub chunks: Vec<Option<String>>,
+  pub chunks: Vec<String>,
   pub chunk_names: Vec<String>,
   pub info: JsStatsAssetInfo,
   pub emitted: bool,
@@ -212,7 +211,7 @@ pub struct JsStatsModule {
   pub identifier: String,
   pub name: String,
   pub id: Option<String>,
-  pub chunks: Vec<Option<String>>,
+  pub chunks: Vec<String>,
   pub size: f64,
   pub issuer: Option<String>,
   pub issuer_name: Option<String>,
@@ -341,7 +340,7 @@ pub struct JsStatsChunk {
   pub r#type: &'static str,
   pub files: Vec<String>,
   pub auxiliary_files: Vec<String>,
-  pub id: Option<String>,
+  pub id: String,
   pub entry: bool,
   pub initial: bool,
   pub names: Vec<String>,
@@ -394,7 +393,7 @@ impl From<rspack_core::StatsChunkGroupAsset> for JsStatsChunkGroupAsset {
 pub struct JsStatsChunkGroup {
   pub name: String,
   pub assets: Vec<JsStatsChunkGroupAsset>,
-  pub chunks: Vec<Option<String>>,
+  pub chunks: Vec<String>,
   pub assets_size: f64,
 }
 
@@ -552,7 +551,11 @@ impl JsStats {
   }
 
   #[napi(catch_unwind)]
-  pub fn get_hash(&self) -> Option<String> {
-    self.inner.get_hash().map(|hash| hash.to_string())
+  pub fn get_hash(&self) -> String {
+    self
+      .inner
+      .get_hash()
+      .expect("should have hash in stats::get_hash")
+      .to_string()
   }
 }

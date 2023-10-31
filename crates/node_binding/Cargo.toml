@@ -12,7 +12,6 @@ crate-type = ["cdylib"]
 [dependencies]
 rspack_binding_macros  = { path = "../rspack_binding_macros" }
 rspack_binding_options = { path = "../rspack_binding_options" }
-rspack_binding_values  = { path = "../rspack_binding_values" }
 rspack_core            = { path = "../rspack_core" }
 rspack_error           = { path = "../rspack_error" }
 rspack_fs_node         = { path = "../rspack_fs_node" }

@@ -1,4 +1,3 @@
-use napi_derive::napi;
 use rspack_core::{NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, ResourceData};
 
 #[napi(object)]

@@ -1,6 +1,4 @@
-use napi_derive::napi;
-
-use crate::JsChunk;
+use crate::js_values::JsChunk;
 
 #[napi(object)]
 pub struct JsChunkGroup {

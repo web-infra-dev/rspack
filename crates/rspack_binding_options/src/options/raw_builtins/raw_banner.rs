@@ -3,7 +3,6 @@ use std::{fmt::Debug, sync::Arc};
 use derivative::Derivative;
 use napi::{Env, JsFunction};
 use napi_derive::napi;
-use rspack_binding_values::JsChunk;
 use rspack_error::internal_error;
 use rspack_napi_shared::{
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
@@ -13,6 +12,8 @@ use rspack_plugin_banner::{
   BannerContent, BannerContentFnCtx, BannerPluginOptions, BannerRule, BannerRules,
 };
 use serde::Deserialize;
+
+use crate::chunk::JsChunk;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

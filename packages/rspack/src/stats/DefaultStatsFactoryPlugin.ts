@@ -529,7 +529,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 		},
 		hash: (object, _compilation, context: KnownStatsFactoryContext) => {
-			object.hash = context._inner.getHash() || undefined;
+			object.hash = context._inner.getHash();
 		},
 		version: object => {
 			const { version, webpackVersion } = require("../../package.json");
