@@ -8,9 +8,10 @@ export async function runBuild<T extends ECompilerType>(
 	await context.build<T>(
 		compiler =>
 			new Promise<void>((resolve, reject) => {
-				compiler.run((error, stats) => {
+				compiler.run((error, newStats) => {
 					if (error) return reject(error);
-					stats = stats;
+					context.stats(() => newStats);
+					stats = newStats;
 					resolve();
 				});
 			}),
