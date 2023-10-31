@@ -288,9 +288,12 @@ export class Compilation {
 		options.errorsCount = optionOrLocalFallback(options.errorsCount, true);
 		options.warnings = optionOrLocalFallback(options.warnings, true);
 		options.warningsCount = optionOrLocalFallback(options.warningsCount, true);
-		options.hash = OFF_FOR_TO_STRING(
-			{ all: options.all },
-			{ forToString: context.forToString }
+		options.hash = optionOrLocalFallback(
+			options.hash,
+			OFF_FOR_TO_STRING(
+				{ all: options.all },
+				{ forToString: context.forToString }
+			)
 		);
 		options.version = optionOrLocalFallback(options.version, true);
 		options.publicPath = optionOrLocalFallback(options.publicPath, true);
