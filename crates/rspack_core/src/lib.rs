@@ -94,14 +94,14 @@ pub enum SourceType {
   Unknown,
 }
 
-impl ToString for SourceType {
-  fn to_string(&self) -> String {
+impl std::fmt::Display for SourceType {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      SourceType::JavaScript => "javascript".into(),
-      SourceType::Css => "css".into(),
-      SourceType::Wasm => "wasm".into(),
-      SourceType::Asset => "asset".into(),
-      SourceType::Unknown => "unknown".into(),
+      SourceType::JavaScript => write!(f, "javascript"),
+      SourceType::Css => write!(f, "css"),
+      SourceType::Wasm => write!(f, "wasm"),
+      SourceType::Asset => write!(f, "asset"),
+      SourceType::Unknown => write!(f, "unknown"),
     }
   }
 }
