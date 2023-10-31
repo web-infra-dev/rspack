@@ -70,6 +70,13 @@ describe("StatsTestCases", () => {
 				builtAt: false,
 				version: false
 			};
+			if (typeof statsOptions === "object" && statsOptions !== null) {
+				Object.assign(statsOptions, {
+					timings: false,
+					builtAt: false,
+					version: false
+				});
+			}
 			const statsJson = stats.toJson(statsOptions);
 			// case ends with error should generate errors
 			if (/error$/.test(testName)) {

@@ -3031,8 +3031,6 @@ import(/* webpackChunkName: "c" */ "./c");
   "errors": [],
   "errorsCount": 0,
   "hash": "c5f1537b5674c0e6055ecd8b220831e8c033241fbb25cd472ef1b782ce353cb6d4513c679d7884a2",
-  "rspackVersion": "0.3.8",
-  "version": "5.75.0",
   "warnings": [],
   "warningsCount": 0,
 }
