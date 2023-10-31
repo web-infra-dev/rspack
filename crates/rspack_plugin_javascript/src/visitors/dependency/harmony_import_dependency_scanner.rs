@@ -6,7 +6,7 @@ use rspack_core::{
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::JsWord;
 use swc_core::common::Span;
-use swc_core::ecma::ast::{AssignExpr, AssignOp, MemberExpr};
+use swc_core::ecma::ast::{AssignExpr, AssignOp, MemberExpr, OptChainExpr};
 use swc_core::ecma::ast::{Callee, ExportAll, ExportSpecifier, Expr, Id, TaggedTpl};
 use swc_core::ecma::ast::{Ident, ImportDecl, Pat, PatOrExpr, Program, Prop};
 use swc_core::ecma::ast::{ImportSpecifier, ModuleExportName, NamedExport};
@@ -432,18 +432,70 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
     }
   }
 
-  fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
-    let mut member_chain = extract_member_expression_chain(member_expr);
+  fn visit_opt_chain_expr(&mut self, opt_chain_expr: &OptChainExpr) {
+    let expression_info = extract_member_expression_chain(opt_chain_expr);
+    // dbg!(&expression_info);
+    let member_chain = expression_info.members();
     if member_chain.len() > 1
       && let Some(reference) = self.import_map.get(&member_chain[0])
     {
+      let mut non_optional_members = expression_info.non_optional_part();
+      // dbg!(&non_optional_members);
+      let start: u32 = opt_chain_expr.span.real_lo();
+      let end = if !non_optional_members.is_empty()
+        && let Some(span) = expression_info
+          .members_spans()
+          .get(non_optional_members.len() - 1)
+      {
+        span.real_hi()
+      } else {
+        opt_chain_expr.span.real_hi()
+      };
+      non_optional_members.pop_front();
+      let mut ids = reference.names.clone().map(|f| vec![f]).unwrap_or_default();
+      ids.extend_from_slice(
+        &non_optional_members
+          .into_iter()
+          .map(|item| item.0.clone())
+          .collect::<Vec<_>>(),
+      );
+      self
+        .rewrite_usage_span
+        .insert(opt_chain_expr.span, ExtraSpanInfo::ReWriteUsedByExports);
+      self
+        .dependencies
+        .push(Box::new(HarmonyImportSpecifierDependency::new(
+          reference.request.clone(),
+          reference.source_order,
+          false,
+          start,
+          end,
+          ids,
+          self.enter_callee,
+          !self.enter_callee, // x.xx()
+          reference.specifier.clone(),
+          None,
+        )));
+      return;
+    }
+    opt_chain_expr.visit_children_with(self);
+  }
+
+  fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
+    let expression_info = extract_member_expression_chain(member_expr);
+    let member_chain = expression_info.members();
+    if member_chain.len() > 1
+      && let Some(reference) = self.import_map.get(&member_chain[0])
+    {
+      let mut member_chain = member_chain.clone();
       member_chain.pop_front();
       if !member_chain.is_empty() {
         let mut ids = reference.names.clone().map(|f| vec![f]).unwrap_or_default();
+        // dbg!(&member_chain);
         ids.extend_from_slice(
           &member_chain
             .into_iter()
-            .map(|item| item.0)
+            .map(|item| item.0.clone())
             .collect::<Vec<_>>(),
         );
         // dbg!(&ids);
