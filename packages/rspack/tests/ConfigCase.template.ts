@@ -1,5 +1,5 @@
 "use strict";
-import { rspack, RspackOptions } from "../src";
+import { rspack } from "../src";
 import assert from "assert";
 
 const path = require("path");

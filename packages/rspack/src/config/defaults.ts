@@ -19,7 +19,6 @@ import {
 	getTargetsProperties
 } from "./target";
 import type {
-	Target,
 	Context,
 	ExternalsPresets,
 	InfrastructureLogging,
@@ -38,6 +37,7 @@ import {
 	OutputNormalized,
 	RspackOptionsNormalized
 } from "./normalization";
+import Template from "../Template";
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized
@@ -400,7 +400,11 @@ const applyOutputDefaults = (
 		}
 	});
 
-	F(output, "chunkLoadingGlobal", () => "webpackChunk" + output.uniqueName);
+	F(output, "chunkLoadingGlobal", () =>
+		Template.toIdentifier(
+			"webpackChunk" + Template.toIdentifier(output.uniqueName)
+		)
+	);
 	F(output, "module", () => !!outputModule);
 	D(output, "filename", output.module ? "[name].mjs" : "[name].js");
 	F(output, "iife", () => !output.module);
@@ -439,7 +443,11 @@ const applyOutputDefaults = (
 		`[id].[fullhash].hot-update.${output.module ? "mjs" : "js"}`
 	);
 	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
-	F(output, "hotUpdateGlobal", () => "webpackHotUpdate" + output.uniqueName);
+	F(output, "hotUpdateGlobal", () =>
+		Template.toIdentifier(
+			"webpackHotUpdate" + Template.toIdentifier(output.uniqueName)
+		)
+	);
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	F(output, "path", () => path.join(process.cwd(), "dist"));
