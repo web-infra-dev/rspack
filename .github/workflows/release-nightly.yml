@@ -68,7 +68,7 @@ jobs:
         run: ls -R npm
 
       - name: Resolve dependencies for bindings
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install
 
       - name: Publish
         id: publish
