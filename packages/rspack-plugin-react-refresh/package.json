@@ -4,8 +4,12 @@
   "license": "MIT",
   "description": "React refresh plugin for rspack",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "exports": {
-    ".": "./src/index.js",
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    },
     "./react-refresh": "./client/reactRefresh.js",
     "./react-refresh-entry": "./client/reactRefreshEntry.js"
   },
