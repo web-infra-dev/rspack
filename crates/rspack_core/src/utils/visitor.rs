@@ -78,7 +78,7 @@ impl ExpressionInfo {
   }
 
   pub fn members(&self) -> VecDeque<Cow<(JsWord, SyntaxContext)>> {
-    self.members.iter().map(|m| Cow::Borrowed(m)).collect()
+    self.members.iter().map(Cow::Borrowed).collect()
   }
 
   pub fn members_optionals(&self) -> &VecDeque<bool> {
@@ -101,7 +101,7 @@ impl ExpressionInfo {
       .members
       .iter()
       .take(index + 1)
-      .map(|m| Cow::Borrowed(m))
+      .map(Cow::Borrowed)
       .collect()
   }
 }
@@ -131,7 +131,7 @@ pub fn extract_member_expression_chain<'e, T: Into<MaybeExpr<'e>>>(
       box OptChainBase::Call(ref expr) => {
         let mut members = VecDeque::new();
         walk_expr(
-          &*expr.callee,
+          &expr.callee,
           &mut members,
           &mut Default::default(),
           &mut Default::default(),
@@ -149,8 +149,8 @@ pub fn extract_member_expression_chain<'e, T: Into<MaybeExpr<'e>>>(
     let mut members_optionals = VecDeque::new();
     let mut members_spans = VecDeque::new();
     match callee {
-      Callee::Expr(ref expr) => walk_expr(
-        &*expr,
+      Callee::Expr(box ref expr) => walk_expr(
+        expr,
         &mut members,
         &mut members_optionals,
         &mut members_spans,
@@ -205,7 +205,7 @@ pub fn extract_member_expression_chain<'e, T: Into<MaybeExpr<'e>>>(
       members_optionals.push_front(false);
     }
 
-    walk_expr(&*expr.obj, members, members_optionals, members_spans, kind);
+    walk_expr(&expr.obj, members, members_optionals, members_spans, kind);
   }
 
   fn walk_expr(
@@ -240,14 +240,14 @@ pub fn extract_member_expression_chain<'e, T: Into<MaybeExpr<'e>>>(
 
   match maybe_member_expr.into() {
     MaybeExpr::Expr(e) => walk_expr(
-      &*e,
+      &e,
       &mut members,
       &mut members_optionals,
       &mut members_spans,
       &mut kind,
     ),
     MaybeExpr::MemberExpr(e) => walk_member_expr(
-      &*e,
+      &e,
       false,
       &mut members,
       &mut members_optionals,
@@ -255,7 +255,7 @@ pub fn extract_member_expression_chain<'e, T: Into<MaybeExpr<'e>>>(
       &mut kind,
     ),
     MaybeExpr::OptChainExpr(e) => walk_opt_chain(
-      &*e,
+      &e,
       &mut members,
       &mut members_optionals,
       &mut members_spans,
