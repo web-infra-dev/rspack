@@ -993,11 +993,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_member_expr(&mut self, node: &MemberExpr) {
     let expression_info = extract_member_expression_chain(node);
-    let member_chain = expression_info
-      .members()
-      .into_iter()
-      .cloned()
-      .collect::<Vec<_>>();
+    let member_chain = expression_info.members().into_iter().collect::<Vec<_>>();
     self.check_commonjs_feature(&member_chain);
     if !member_chain.is_empty() {
       let (first, first_ctxt) = member_chain[0].clone().into_owned();
