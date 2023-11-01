@@ -8,7 +8,7 @@ use rspack_core::{
   UsedByExports,
 };
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::{common::Span, ecma::atoms::JsWord};
 
 use super::{
   create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply, Specifier,
@@ -30,6 +30,7 @@ pub struct HarmonyImportSpecifierDependency {
   pub namespace_object_as_context: bool,
   referenced_properties_in_destructuring: Option<HashSet<JsWord>>,
   resource_identifier: String,
+  span_for_on_usage_search: Span,
 }
 
 impl HarmonyImportSpecifierDependency {
@@ -45,6 +46,7 @@ impl HarmonyImportSpecifierDependency {
     direct_import: bool,
     specifier: Specifier,
     referenced_properties_in_destructuring: Option<HashSet<JsWord>>,
+    span_for_on_usage_search: Span,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
@@ -62,6 +64,7 @@ impl HarmonyImportSpecifierDependency {
       namespace_object_as_context: false,
       referenced_properties_in_destructuring,
       resource_identifier,
+      span_for_on_usage_search,
     }
   }
 
@@ -202,6 +205,9 @@ impl Dependency for HarmonyImportSpecifierDependency {
       start: self.start,
       end: self.end,
     })
+  }
+  fn span_for_on_usage_search(&self) -> Option<rspack_core::ErrorSpan> {
+    Some(self.span_for_on_usage_search.into())
   }
   fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
     self.used_by_exports = used_by_exports;

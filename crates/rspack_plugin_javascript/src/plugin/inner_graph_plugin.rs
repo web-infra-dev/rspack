@@ -8,7 +8,8 @@ use swc_core::{
     ast::{
       ArrowExpr, CallExpr, Callee, Class, ClassDecl, ClassExpr, ClassMember, DefaultDecl,
       ExportDecl, ExportDefaultDecl, ExportDefaultExpr, ExportSpecifier, Expr, FnDecl, FnExpr,
-      Ident, Key, MemberExpr, NamedExport, Pat, Program, Prop, PropName, VarDeclarator,
+      Ident, Key, MemberExpr, NamedExport, OptChainExpr, Pat, Program, Prop, PropName,
+      VarDeclarator,
     },
     atoms::JsWord,
     visit::{noop_visit_type, Visit, VisitWith},
@@ -108,6 +109,21 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       }
     }
     call_expr.visit_children_with(self);
+  }
+
+  fn visit_opt_chain_expr(&mut self, opt_chain_expr: &OptChainExpr) {
+    if let Some(ExtraSpanInfo::ReWriteUsedByExports) =
+      self.rewrite_usage_span.get(&opt_chain_expr.span)
+    {
+      let span = opt_chain_expr.span;
+      self.on_usage(Box::new(move |deps, used_by_exports| {
+        let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
+        if let Some(dep) = target_dep {
+          dep.set_used_by_exports(used_by_exports);
+        }
+      }));
+    };
+    opt_chain_expr.visit_children_with(self);
   }
 
   fn visit_member_expr(&mut self, member_expr: &MemberExpr) {

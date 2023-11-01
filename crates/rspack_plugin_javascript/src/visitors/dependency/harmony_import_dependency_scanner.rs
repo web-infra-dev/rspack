@@ -403,6 +403,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
               false,
               reference.specifier.clone(),
               None,
+              shorthand.span,
             )));
         }
       }
@@ -428,6 +429,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
           true, // x()
           reference.specifier.clone(),
           self.properties_in_destructuring.remove(&ident.sym),
+          ident.span,
         )));
     }
   }
@@ -441,7 +443,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
     {
       let mut non_optional_members = expression_info.non_optional_part();
       // dbg!(&non_optional_members);
-      let start: u32 = opt_chain_expr.span.real_lo();
+      let start = opt_chain_expr.span.real_lo();
       let end = if !non_optional_members.is_empty()
         && let Some(span) = expression_info
           .members_spans()
@@ -475,6 +477,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
           !self.enter_callee, // x.xx()
           reference.specifier.clone(),
           None,
+          opt_chain_expr.span,
         )));
       return;
     }
@@ -515,6 +518,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
             !self.enter_callee, // x.xx()
             reference.specifier.clone(),
             None,
+            member_expr.span,
           )));
         return;
       }
