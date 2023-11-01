@@ -61,7 +61,7 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
         .to_string(),
       );
     }
-    result = result.replace("$policyContent$", policy_content.join(",").as_ref());
+    result = result.replace("$policyContent$", policy_content.join(",\n").as_ref());
     RawSource::from(result).boxed()
   }
 }
