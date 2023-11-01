@@ -1,10 +1,13 @@
-const path = require("path");
-const { validate: validateOptions } = require("schema-utils");
+import path from "path";
+import type { Compiler } from "@rspack/core";
+import { normalizeOptions, type PluginOptions } from "./options";
+import { validate as validateOptions } from "schema-utils";
+
+export type { PluginOptions };
 
 const reactRefreshPath = require.resolve("../client/reactRefresh.js");
 const reactRefreshEntryPath = require.resolve("../client/reactRefreshEntry.js");
-const schema = require("./options.json");
-const { normalizeOptions } = require("./options");
+const schema = require("../options.json");
 
 const refreshUtilsPath = require.resolve(
 	"@pmmmwh/react-refresh-webpack-plugin/lib/runtime/RefreshUtils",
@@ -29,26 +32,21 @@ const runtimePaths = [
  * @property {(string | RegExp | (string | RegExp)[] | null)=} include included resourcePath for loader
  * @property {(string | RegExp | (string | RegExp)[] | null)=} exclude excluded resourcePath for loader
  */
+export default class ReactRefreshRspackPlugin {
+	options: PluginOptions;
 
-module.exports = class ReactRefreshRspackPlugin {
-	/**
-	 * @param {Options} options
-	 */
-	constructor(options = {}) {
+	static deprecated_runtimePaths: string[];
+
+	constructor(options: PluginOptions = {}) {
 		validateOptions(schema, options, {
 			name: "React Refresh Rspack Plugin",
 			baseDataPath: "options"
 		});
-		/**
-		 * @type {Options}
-		 */
+
 		this.options = normalizeOptions(options);
 	}
 
-	/**
-	 * @param {import("@rspack/core").Compiler} compiler
-	 */
-	apply(compiler) {
+	apply(compiler: Compiler) {
 		new compiler.webpack.EntryPlugin(compiler.context, reactRefreshEntryPath, {
 			name: undefined
 		}).apply(compiler);
@@ -70,6 +68,6 @@ module.exports = class ReactRefreshRspackPlugin {
 			...compiler.options.resolve.alias
 		};
 	}
-};
+}
 
-module.exports.deprecated_runtimePaths = runtimePaths;
+ReactRefreshRspackPlugin.deprecated_runtimePaths = runtimePaths;
