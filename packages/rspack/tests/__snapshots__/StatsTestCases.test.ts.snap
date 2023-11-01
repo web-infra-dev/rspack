@@ -701,7 +701,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "869c6983b495c7e3ace1",
+  "hash": "e0f84a486a4a759713c2",
   "logging": {},
   "modules": [
     {
@@ -764,7 +764,7 @@ chunk {main} bundle.js (main) [entry]
     entry ./index.js
 ./index.js [10] {main}
   entry ./index.js
-Rspack compiled successfully (869c6983b495c7e3ace1)"
+Rspack compiled successfully (e0f84a486a4a759713c2)"
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 1`] = `
