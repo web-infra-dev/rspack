@@ -263,69 +263,59 @@ import rawModule from './raw.png';
       "source": "import stringModule from './stringModule';
 import rawModule from './raw.png';
 ",
-          "type": "module",
-        },
+      "type": "module",
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "main",
+      ],
+      "id": "363",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/stringModule.js",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+      "issuerId": "10",
+      "issuerName": "./index.js",
+      "issuerPath": [
         {
-          "assets": [],
-          "chunks": [
-            "main",
-          ],
-          "id": "363",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/stringModule.js",
-          "issuer": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
-          "issuerId": "10",
-          "issuerName": "./index.js",
-          "issuerPath": [
-            {
-              "id": "10",
-              "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
-              "name": "./index.js",
-            },
-          ],
-          "moduleType": "javascript/auto",
-          "name": "./stringModule.js",
-          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/stringModule.js",
-          "reasons": [
-            {
-              "moduleId": "10",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
-              "moduleName": "./index.js",
-              "type": "esm import",
-              "userRequest": "./stringModule",
-            },
-          ],
-          "size": 1,
-          "source": "",
-          "type": "module",
+          "id": "10",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+          "name": "./index.js",
         },
       ],
-      "name": undefined,
-      "namedChunkGroups": {
-        "main": {
-          "assets": [
-            {
-              "name": "bundle.js",
-              "size": 459,
-            },
-          ],
-          "assetsSize": 459,
-          "chunks": [
-            "main",
-          ],
-          "name": "main",
+      "moduleType": "javascript/auto",
+      "name": "./stringModule.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/stringModule.js",
+      "reasons": [
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
+          "moduleName": "./index.js",
+          "type": "esm import",
+          "userRequest": "./stringModule",
         },
-      },
-      "outputPath": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/dist",
-      "publicPath": "",
-      "warnings": [],
-      "warningsCount": 0,
+      ],
+      "size": 1,
+      "source": "",
+      "type": "module",
     },
   ],
-  "errors": [],
-  "errorsCount": 0,
-  "hash": "284a08e9097a65a2de53",
-  "rspackVersion": "0.3.8",
-  "version": "5.75.0",
+  "namedChunkGroups": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 459,
+        },
+      ],
+      "assetsSize": 459,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "outputPath": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/dist",
+  "publicPath": "",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -3259,38 +3249,12 @@ exports[`StatsTestCases should print correct stats for minify-error-recovery 1`]
 5 │ console.log(0);
 
 ",
-          "message": "Expected a semicolon",
-          "title": "JavaScript parsing error",
-        },
-      ],
-      "errorsCount": 1,
-      "logging": {},
-      "name": undefined,
-      "warnings": [],
-      "warningsCount": 0,
-    },
-  ],
-  "errors": [
-    {
-      "compilerPath": undefined,
-      "formatted": "error[javascript]: JavaScript parsing error
-  ┌─ bundle.js:1:9
-  │
-1 │ const a {}
-  │         ^ Expected a semicolon
-2 │ (function() {
-3 │ var __webpack_modules__ = {
-4 │ "10": function (__unused_webpack_module, exports, __webpack_require__) {
-5 │ console.log(0);
-
-",
       "message": "Expected a semicolon",
       "title": "JavaScript parsing error",
     },
   ],
   "errorsCount": 1,
-  "rspackVersion": "0.3.8",
-  "version": "5.75.0",
+  "logging": {},
   "warnings": [],
   "warningsCount": 0,
 }
@@ -3403,145 +3367,137 @@ Rspack compiled with 1 error"
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk 1`] = `
 {
-  "children": [
+  "chunks": [
     {
-      "chunks": [
-        {
-          "auxiliaryFiles": [],
-          "entry": true,
-          "files": [
-            "e1.js",
-          ],
-          "initial": true,
-          "names": [
-            "e1",
-          ],
-          "size": 27,
-          "type": "chunk",
-        },
-        {
-          "auxiliaryFiles": [],
-          "entry": false,
-          "files": [
-            "e1~runtime.js",
-          ],
-          "initial": true,
-          "names": [
-            "e1~runtime",
-          ],
-          "size": 0,
-          "type": "chunk",
-        },
-        {
-          "auxiliaryFiles": [],
-          "entry": true,
-          "files": [
-            "e2.js",
-          ],
-          "initial": true,
-          "names": [
-            "e2",
-          ],
-          "size": 27,
-          "type": "chunk",
-        },
-        {
-          "auxiliaryFiles": [],
-          "entry": false,
-          "files": [
-            "e2~runtime.js",
-          ],
-          "initial": true,
-          "names": [
-            "e2~runtime",
-          ],
-          "size": 0,
-          "type": "chunk",
-        },
+      "auxiliaryFiles": [],
+      "entry": true,
+      "files": [
+        "e1.js",
       ],
-      "entrypoints": {
-        "e1": {
-          "assets": [
-            {
-              "name": "e1~runtime.js",
-              "size": 2458,
-            },
-            {
-              "name": "e1.js",
-              "size": 412,
-            },
-          ],
-          "assetsSize": 2870,
-          "chunks": [
-            "e1~runtime",
-            "e1",
-          ],
-          "name": "e1",
-        },
-        "e2": {
-          "assets": [
-            {
-              "name": "e2~runtime.js",
-              "size": 2458,
-            },
-            {
-              "name": "e2.js",
-              "size": 412,
-            },
-          ],
-          "assetsSize": 2870,
-          "chunks": [
-            "e2~runtime",
-            "e2",
-          ],
-          "name": "e2",
-        },
-      },
-      "errors": [],
-      "name": undefined,
-      "namedChunkGroups": {
-        "e1": {
-          "assets": [
-            {
-              "name": "e1~runtime.js",
-              "size": 2458,
-            },
-            {
-              "name": "e1.js",
-              "size": 412,
-            },
-          ],
-          "assetsSize": 2870,
-          "chunks": [
-            "e1~runtime",
-            "e1",
-          ],
-          "name": "e1",
-        },
-        "e2": {
-          "assets": [
-            {
-              "name": "e2~runtime.js",
-              "size": 2458,
-            },
-            {
-              "name": "e2.js",
-              "size": 412,
-            },
-          ],
-          "assetsSize": 2870,
-          "chunks": [
-            "e2~runtime",
-            "e2",
-          ],
-          "name": "e2",
-        },
-      },
+      "initial": true,
+      "names": [
+        "e1",
+      ],
+      "size": 27,
+      "type": "chunk",
+    },
+    {
+      "auxiliaryFiles": [],
+      "entry": false,
+      "files": [
+        "e1~runtime.js",
+      ],
+      "initial": true,
+      "names": [
+        "e1~runtime",
+      ],
+      "size": 0,
+      "type": "chunk",
+    },
+    {
+      "auxiliaryFiles": [],
+      "entry": true,
+      "files": [
+        "e2.js",
+      ],
+      "initial": true,
+      "names": [
+        "e2",
+      ],
+      "size": 27,
+      "type": "chunk",
+    },
+    {
+      "auxiliaryFiles": [],
+      "entry": false,
+      "files": [
+        "e2~runtime.js",
+      ],
+      "initial": true,
+      "names": [
+        "e2~runtime",
+      ],
+      "size": 0,
+      "type": "chunk",
     },
   ],
+  "entrypoints": {
+    "e1": {
+      "assets": [
+        {
+          "name": "e1~runtime.js",
+          "size": 2454,
+        },
+        {
+          "name": "e1.js",
+          "size": 414,
+        },
+      ],
+      "assetsSize": 2868,
+      "chunks": [
+        "e1~runtime",
+        "e1",
+      ],
+      "name": "e1",
+    },
+    "e2": {
+      "assets": [
+        {
+          "name": "e2~runtime.js",
+          "size": 2454,
+        },
+        {
+          "name": "e2.js",
+          "size": 414,
+        },
+      ],
+      "assetsSize": 2868,
+      "chunks": [
+        "e2~runtime",
+        "e2",
+      ],
+      "name": "e2",
+    },
+  },
   "errors": [],
-  "rspackVersion": "0.3.8",
-  "version": "5.75.0",
+  "namedChunkGroups": {
+    "e1": {
+      "assets": [
+        {
+          "name": "e1~runtime.js",
+          "size": 2454,
+        },
+        {
+          "name": "e1.js",
+          "size": 414,
+        },
+      ],
+      "assetsSize": 2868,
+      "chunks": [
+        "e1~runtime",
+        "e1",
+      ],
+      "name": "e1",
+    },
+    "e2": {
+      "assets": [
+        {
+          "name": "e2~runtime.js",
+          "size": 2454,
+        },
+        {
+          "name": "e2.js",
+          "size": 414,
+        },
+      ],
+      "assetsSize": 2868,
+      "chunks": [
+        "e2~runtime",
+        "e2",
+      ],
+      "name": "e2",
+    },
+  },
 }
 `;
 
@@ -3556,145 +3512,137 @@ chunk e2~runtime.js (e2~runtime) [initial]"
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-multiple 1`] = `
 {
-  "children": [
+  "chunks": [
     {
-      "chunks": [
-        {
-          "auxiliaryFiles": [],
-          "entry": true,
-          "files": [
-            "e1.js",
-          ],
-          "initial": true,
-          "names": [
-            "e1",
-          ],
-          "size": 27,
-          "type": "chunk",
-        },
-        {
-          "auxiliaryFiles": [],
-          "entry": true,
-          "files": [
-            "e2.js",
-          ],
-          "initial": true,
-          "names": [
-            "e2",
-          ],
-          "size": 27,
-          "type": "chunk",
-        },
-        {
-          "auxiliaryFiles": [],
-          "entry": false,
-          "files": [
-            "runtime~e1.js",
-          ],
-          "initial": true,
-          "names": [
-            "runtime~e1",
-          ],
-          "size": 0,
-          "type": "chunk",
-        },
-        {
-          "auxiliaryFiles": [],
-          "entry": false,
-          "files": [
-            "runtime~e2.js",
-          ],
-          "initial": true,
-          "names": [
-            "runtime~e2",
-          ],
-          "size": 0,
-          "type": "chunk",
-        },
+      "auxiliaryFiles": [],
+      "entry": true,
+      "files": [
+        "e1.js",
       ],
-      "entrypoints": {
-        "e1": {
-          "assets": [
-            {
-              "name": "runtime~e1.js",
-              "size": 2458,
-            },
-            {
-              "name": "e1.js",
-              "size": 406,
-            },
-          ],
-          "assetsSize": 2864,
-          "chunks": [
-            "runtime~e1",
-            "e1",
-          ],
-          "name": "e1",
-        },
-        "e2": {
-          "assets": [
-            {
-              "name": "runtime~e2.js",
-              "size": 2458,
-            },
-            {
-              "name": "e2.js",
-              "size": 406,
-            },
-          ],
-          "assetsSize": 2864,
-          "chunks": [
-            "runtime~e2",
-            "e2",
-          ],
-          "name": "e2",
-        },
-      },
-      "errors": [],
-      "name": undefined,
-      "namedChunkGroups": {
-        "e1": {
-          "assets": [
-            {
-              "name": "runtime~e1.js",
-              "size": 2458,
-            },
-            {
-              "name": "e1.js",
-              "size": 406,
-            },
-          ],
-          "assetsSize": 2864,
-          "chunks": [
-            "runtime~e1",
-            "e1",
-          ],
-          "name": "e1",
-        },
-        "e2": {
-          "assets": [
-            {
-              "name": "runtime~e2.js",
-              "size": 2458,
-            },
-            {
-              "name": "e2.js",
-              "size": 406,
-            },
-          ],
-          "assetsSize": 2864,
-          "chunks": [
-            "runtime~e2",
-            "e2",
-          ],
-          "name": "e2",
-        },
-      },
+      "initial": true,
+      "names": [
+        "e1",
+      ],
+      "size": 27,
+      "type": "chunk",
+    },
+    {
+      "auxiliaryFiles": [],
+      "entry": true,
+      "files": [
+        "e2.js",
+      ],
+      "initial": true,
+      "names": [
+        "e2",
+      ],
+      "size": 27,
+      "type": "chunk",
+    },
+    {
+      "auxiliaryFiles": [],
+      "entry": false,
+      "files": [
+        "runtime~e1.js",
+      ],
+      "initial": true,
+      "names": [
+        "runtime~e1",
+      ],
+      "size": 0,
+      "type": "chunk",
+    },
+    {
+      "auxiliaryFiles": [],
+      "entry": false,
+      "files": [
+        "runtime~e2.js",
+      ],
+      "initial": true,
+      "names": [
+        "runtime~e2",
+      ],
+      "size": 0,
+      "type": "chunk",
     },
   ],
+  "entrypoints": {
+    "e1": {
+      "assets": [
+        {
+          "name": "runtime~e1.js",
+          "size": 2454,
+        },
+        {
+          "name": "e1.js",
+          "size": 408,
+        },
+      ],
+      "assetsSize": 2862,
+      "chunks": [
+        "runtime~e1",
+        "e1",
+      ],
+      "name": "e1",
+    },
+    "e2": {
+      "assets": [
+        {
+          "name": "runtime~e2.js",
+          "size": 2454,
+        },
+        {
+          "name": "e2.js",
+          "size": 408,
+        },
+      ],
+      "assetsSize": 2862,
+      "chunks": [
+        "runtime~e2",
+        "e2",
+      ],
+      "name": "e2",
+    },
+  },
   "errors": [],
-  "rspackVersion": "0.3.8",
-  "version": "5.75.0",
+  "namedChunkGroups": {
+    "e1": {
+      "assets": [
+        {
+          "name": "runtime~e1.js",
+          "size": 2454,
+        },
+        {
+          "name": "e1.js",
+          "size": 408,
+        },
+      ],
+      "assetsSize": 2862,
+      "chunks": [
+        "runtime~e1",
+        "e1",
+      ],
+      "name": "e1",
+    },
+    "e2": {
+      "assets": [
+        {
+          "name": "runtime~e2.js",
+          "size": 2454,
+        },
+        {
+          "name": "e2.js",
+          "size": 408,
+        },
+      ],
+      "assetsSize": 2862,
+      "chunks": [
+        "runtime~e2",
+        "e2",
+      ],
+      "name": "e2",
+    },
+  },
 }
 `;
 
@@ -3709,132 +3657,124 @@ chunk runtime~e2.js (runtime~e2) [initial]"
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-single 1`] = `
 {
-  "children": [
+  "chunks": [
     {
-      "chunks": [
-        {
-          "auxiliaryFiles": [],
-          "entry": true,
-          "files": [
-            "e1.js",
-          ],
-          "initial": true,
-          "names": [
-            "e1",
-          ],
-          "size": 27,
-          "type": "chunk",
-        },
-        {
-          "auxiliaryFiles": [],
-          "entry": true,
-          "files": [
-            "e2.js",
-          ],
-          "initial": true,
-          "names": [
-            "e2",
-          ],
-          "size": 27,
-          "type": "chunk",
-        },
-        {
-          "auxiliaryFiles": [],
-          "entry": false,
-          "files": [
-            "runtime.js",
-          ],
-          "initial": true,
-          "names": [
-            "runtime",
-          ],
-          "size": 0,
-          "type": "chunk",
-        },
+      "auxiliaryFiles": [],
+      "entry": true,
+      "files": [
+        "e1.js",
       ],
-      "entrypoints": {
-        "e1": {
-          "assets": [
-            {
-              "name": "runtime.js",
-              "size": 2455,
-            },
-            {
-              "name": "e1.js",
-              "size": 409,
-            },
-          ],
-          "assetsSize": 2864,
-          "chunks": [
-            "runtime",
-            "e1",
-          ],
-          "name": "e1",
-        },
-        "e2": {
-          "assets": [
-            {
-              "name": "runtime.js",
-              "size": 2455,
-            },
-            {
-              "name": "e2.js",
-              "size": 409,
-            },
-          ],
-          "assetsSize": 2864,
-          "chunks": [
-            "runtime",
-            "e2",
-          ],
-          "name": "e2",
-        },
-      },
-      "errors": [],
-      "name": undefined,
-      "namedChunkGroups": {
-        "e1": {
-          "assets": [
-            {
-              "name": "runtime.js",
-              "size": 2455,
-            },
-            {
-              "name": "e1.js",
-              "size": 409,
-            },
-          ],
-          "assetsSize": 2864,
-          "chunks": [
-            "runtime",
-            "e1",
-          ],
-          "name": "e1",
-        },
-        "e2": {
-          "assets": [
-            {
-              "name": "runtime.js",
-              "size": 2455,
-            },
-            {
-              "name": "e2.js",
-              "size": 409,
-            },
-          ],
-          "assetsSize": 2864,
-          "chunks": [
-            "runtime",
-            "e2",
-          ],
-          "name": "e2",
-        },
-      },
+      "initial": true,
+      "names": [
+        "e1",
+      ],
+      "size": 27,
+      "type": "chunk",
+    },
+    {
+      "auxiliaryFiles": [],
+      "entry": true,
+      "files": [
+        "e2.js",
+      ],
+      "initial": true,
+      "names": [
+        "e2",
+      ],
+      "size": 27,
+      "type": "chunk",
+    },
+    {
+      "auxiliaryFiles": [],
+      "entry": false,
+      "files": [
+        "runtime.js",
+      ],
+      "initial": true,
+      "names": [
+        "runtime",
+      ],
+      "size": 0,
+      "type": "chunk",
     },
   ],
+  "entrypoints": {
+    "e1": {
+      "assets": [
+        {
+          "name": "runtime.js",
+          "size": 2451,
+        },
+        {
+          "name": "e1.js",
+          "size": 411,
+        },
+      ],
+      "assetsSize": 2862,
+      "chunks": [
+        "runtime",
+        "e1",
+      ],
+      "name": "e1",
+    },
+    "e2": {
+      "assets": [
+        {
+          "name": "runtime.js",
+          "size": 2451,
+        },
+        {
+          "name": "e2.js",
+          "size": 411,
+        },
+      ],
+      "assetsSize": 2862,
+      "chunks": [
+        "runtime",
+        "e2",
+      ],
+      "name": "e2",
+    },
+  },
   "errors": [],
-  "rspackVersion": "0.3.8",
-  "version": "5.75.0",
+  "namedChunkGroups": {
+    "e1": {
+      "assets": [
+        {
+          "name": "runtime.js",
+          "size": 2451,
+        },
+        {
+          "name": "e1.js",
+          "size": 411,
+        },
+      ],
+      "assetsSize": 2862,
+      "chunks": [
+        "runtime",
+        "e1",
+      ],
+      "name": "e1",
+    },
+    "e2": {
+      "assets": [
+        {
+          "name": "runtime.js",
+          "size": 2451,
+        },
+        {
+          "name": "e2.js",
+          "size": 411,
+        },
+      ],
+      "assetsSize": 2862,
+      "chunks": [
+        "runtime",
+        "e2",
+      ],
+      "name": "e2",
+    },
+  },
 }
 `;
 
@@ -3848,145 +3788,137 @@ chunk runtime.js (runtime) [initial]"
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-true 1`] = `
 {
-  "children": [
+  "chunks": [
     {
-      "chunks": [
-        {
-          "auxiliaryFiles": [],
-          "entry": true,
-          "files": [
-            "e1.js",
-          ],
-          "initial": true,
-          "names": [
-            "e1",
-          ],
-          "size": 27,
-          "type": "chunk",
-        },
-        {
-          "auxiliaryFiles": [],
-          "entry": true,
-          "files": [
-            "e2.js",
-          ],
-          "initial": true,
-          "names": [
-            "e2",
-          ],
-          "size": 27,
-          "type": "chunk",
-        },
-        {
-          "auxiliaryFiles": [],
-          "entry": false,
-          "files": [
-            "runtime~e1.js",
-          ],
-          "initial": true,
-          "names": [
-            "runtime~e1",
-          ],
-          "size": 0,
-          "type": "chunk",
-        },
-        {
-          "auxiliaryFiles": [],
-          "entry": false,
-          "files": [
-            "runtime~e2.js",
-          ],
-          "initial": true,
-          "names": [
-            "runtime~e2",
-          ],
-          "size": 0,
-          "type": "chunk",
-        },
+      "auxiliaryFiles": [],
+      "entry": true,
+      "files": [
+        "e1.js",
       ],
-      "entrypoints": {
-        "e1": {
-          "assets": [
-            {
-              "name": "runtime~e1.js",
-              "size": 2458,
-            },
-            {
-              "name": "e1.js",
-              "size": 406,
-            },
-          ],
-          "assetsSize": 2864,
-          "chunks": [
-            "runtime~e1",
-            "e1",
-          ],
-          "name": "e1",
-        },
-        "e2": {
-          "assets": [
-            {
-              "name": "runtime~e2.js",
-              "size": 2458,
-            },
-            {
-              "name": "e2.js",
-              "size": 406,
-            },
-          ],
-          "assetsSize": 2864,
-          "chunks": [
-            "runtime~e2",
-            "e2",
-          ],
-          "name": "e2",
-        },
-      },
-      "errors": [],
-      "name": undefined,
-      "namedChunkGroups": {
-        "e1": {
-          "assets": [
-            {
-              "name": "runtime~e1.js",
-              "size": 2458,
-            },
-            {
-              "name": "e1.js",
-              "size": 406,
-            },
-          ],
-          "assetsSize": 2864,
-          "chunks": [
-            "runtime~e1",
-            "e1",
-          ],
-          "name": "e1",
-        },
-        "e2": {
-          "assets": [
-            {
-              "name": "runtime~e2.js",
-              "size": 2458,
-            },
-            {
-              "name": "e2.js",
-              "size": 406,
-            },
-          ],
-          "assetsSize": 2864,
-          "chunks": [
-            "runtime~e2",
-            "e2",
-          ],
-          "name": "e2",
-        },
-      },
+      "initial": true,
+      "names": [
+        "e1",
+      ],
+      "size": 27,
+      "type": "chunk",
+    },
+    {
+      "auxiliaryFiles": [],
+      "entry": true,
+      "files": [
+        "e2.js",
+      ],
+      "initial": true,
+      "names": [
+        "e2",
+      ],
+      "size": 27,
+      "type": "chunk",
+    },
+    {
+      "auxiliaryFiles": [],
+      "entry": false,
+      "files": [
+        "runtime~e1.js",
+      ],
+      "initial": true,
+      "names": [
+        "runtime~e1",
+      ],
+      "size": 0,
+      "type": "chunk",
+    },
+    {
+      "auxiliaryFiles": [],
+      "entry": false,
+      "files": [
+        "runtime~e2.js",
+      ],
+      "initial": true,
+      "names": [
+        "runtime~e2",
+      ],
+      "size": 0,
+      "type": "chunk",
     },
   ],
+  "entrypoints": {
+    "e1": {
+      "assets": [
+        {
+          "name": "runtime~e1.js",
+          "size": 2454,
+        },
+        {
+          "name": "e1.js",
+          "size": 408,
+        },
+      ],
+      "assetsSize": 2862,
+      "chunks": [
+        "runtime~e1",
+        "e1",
+      ],
+      "name": "e1",
+    },
+    "e2": {
+      "assets": [
+        {
+          "name": "runtime~e2.js",
+          "size": 2454,
+        },
+        {
+          "name": "e2.js",
+          "size": 408,
+        },
+      ],
+      "assetsSize": 2862,
+      "chunks": [
+        "runtime~e2",
+        "e2",
+      ],
+      "name": "e2",
+    },
+  },
   "errors": [],
-  "rspackVersion": "0.3.8",
-  "version": "5.75.0",
+  "namedChunkGroups": {
+    "e1": {
+      "assets": [
+        {
+          "name": "runtime~e1.js",
+          "size": 2454,
+        },
+        {
+          "name": "e1.js",
+          "size": 408,
+        },
+      ],
+      "assetsSize": 2862,
+      "chunks": [
+        "runtime~e1",
+        "e1",
+      ],
+      "name": "e1",
+    },
+    "e2": {
+      "assets": [
+        {
+          "name": "runtime~e2.js",
+          "size": 2454,
+        },
+        {
+          "name": "e2.js",
+          "size": 408,
+        },
+      ],
+      "assetsSize": 2862,
+      "chunks": [
+        "runtime~e2",
+        "e2",
+      ],
+      "name": "e2",
+    },
+  },
 }
 `;
 
@@ -4292,127 +4224,102 @@ console.log(a);
 3 │ 
 
 ",
-          "message": "Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias",
-          "title": "Resolve error",
-        },
-      ],
-      "errorsCount": 1,
-      "filteredModules": undefined,
-      "hash": "60c0b28697ddcc279184",
-      "logging": {},
-      "modules": [
-        {
-          "assets": [],
-          "chunks": [
-            "main",
-          ],
-          "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-          "issuer": undefined,
-          "issuerId": undefined,
-          "issuerName": undefined,
-          "issuerPath": [],
-          "moduleType": "javascript/auto",
-          "name": "./index.js",
-          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-          "reasons": [
-            {
-              "moduleId": undefined,
-              "moduleIdentifier": undefined,
-              "moduleName": undefined,
-              "type": "entry",
-              "userRequest": "./index",
-            },
-          ],
-          "size": 51,
-          "source": "import { a } from "cycle-alias/a";
-console.log(a);
-",
-          "type": "module",
-        },
-        {
-          "assets": [],
-          "chunks": [
-            "main",
-          ],
-          "id": "280",
-          "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a",
-          "issuer": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-          "issuerId": "10",
-          "issuerName": "./index.js",
-          "issuerPath": [
-            {
-              "id": "10",
-              "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-              "name": "./index.js",
-            },
-          ],
-          "moduleType": "javascript/auto",
-          "name": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing)",
-          "nameForCondition": undefined,
-          "reasons": [
-            {
-              "moduleId": "10",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-              "moduleName": "./index.js",
-              "type": "esm import",
-              "userRequest": "cycle-alias/a",
-            },
-            {
-              "moduleId": "10",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-              "moduleName": "./index.js",
-              "type": "esm import specifier",
-              "userRequest": "cycle-alias/a",
-            },
-          ],
-          "size": 160,
-          "source": undefined,
-          "type": "module",
-        },
-      ],
-      "name": undefined,
-      "namedChunkGroups": {
-        "main": {
-          "assets": [
-            {
-              "name": "bundle.js",
-              "size": 725,
-            },
-          ],
-          "assetsSize": 725,
-          "chunks": [
-            "main",
-          ],
-          "name": "main",
-        },
-      },
-      "outputPath": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/dist",
-      "publicPath": "auto",
-      "warnings": [],
-      "warningsCount": 0,
-    },
-  ],
-  "errors": [
-    {
-      "compilerPath": undefined,
-      "formatted": "error[internal]: Resolve error
-  ┌─ tests/statsCases/resolve-overflow/index.js:1:1
-  │
-1 │ import { a } from "cycle-alias/a";
-  │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias
-2 │ console.log(a);
-3 │ 
-
-",
       "message": "Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias",
       "title": "Resolve error",
     },
   ],
   "errorsCount": 1,
-  "hash": "60c0b28697ddcc279184",
-  "rspackVersion": "0.3.8",
-  "version": "5.75.0",
+  "filteredModules": undefined,
+  "hash": "a6345ebe74df1d261022",
+  "logging": {},
+  "modules": [
+    {
+      "assets": [],
+      "chunks": [
+        "main",
+      ],
+      "id": "10",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
+      "issuerPath": [],
+      "moduleType": "javascript/auto",
+      "name": "./index.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+      "reasons": [
+        {
+          "moduleId": undefined,
+          "moduleIdentifier": undefined,
+          "moduleName": undefined,
+          "type": "entry",
+          "userRequest": "./index",
+        },
+      ],
+      "size": 51,
+      "source": "import { a } from "cycle-alias/a";
+console.log(a);
+",
+      "type": "module",
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "main",
+      ],
+      "id": "280",
+      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+      "issuerId": "10",
+      "issuerName": "./index.js",
+      "issuerPath": [
+        {
+          "id": "10",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+          "name": "./index.js",
+        },
+      ],
+      "moduleType": "javascript/auto",
+      "name": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing)",
+      "nameForCondition": undefined,
+      "reasons": [
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+          "moduleName": "./index.js",
+          "type": "esm import",
+          "userRequest": "cycle-alias/a",
+        },
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+          "moduleName": "./index.js",
+          "type": "esm import specifier",
+          "userRequest": "cycle-alias/a",
+        },
+      ],
+      "size": 160,
+      "source": undefined,
+      "type": "module",
+    },
+  ],
+  "namedChunkGroups": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 725,
+        },
+      ],
+      "assetsSize": 725,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "outputPath": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/dist",
+  "publicPath": "auto",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -4582,121 +4489,102 @@ console.log(a);
       "formatted": "error[internal]: Export should be relative path and start with "./", but got ../../index.js
 
 ",
-          "message": "Export should be relative path and start with "./", but got ../../index.js",
-          "title": "",
-        },
-      ],
-      "errorsCount": 1,
-      "filteredModules": undefined,
-      "hash": "1de1b232f302860d0385",
-      "logging": {},
-      "modules": [
-        {
-          "assets": [],
-          "chunks": [
-            "main",
-          ],
-          "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-          "issuer": undefined,
-          "issuerId": undefined,
-          "issuerName": undefined,
-          "issuerPath": [],
-          "moduleType": "javascript/auto",
-          "name": "./index.js",
-          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-          "reasons": [
-            {
-              "moduleId": undefined,
-              "moduleIdentifier": undefined,
-              "moduleName": undefined,
-              "type": "entry",
-              "userRequest": "./index",
-            },
-          ],
-          "size": 39,
-          "source": "import a from "pkg-a";
-console.log(a);
-",
-          "type": "module",
-        },
-        {
-          "assets": [],
-          "chunks": [
-            "main",
-          ],
-          "id": "788",
-          "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a",
-          "issuer": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-          "issuerId": "10",
-          "issuerName": "./index.js",
-          "issuerPath": [
-            {
-              "id": "10",
-              "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-              "name": "./index.js",
-            },
-          ],
-          "moduleType": "javascript/auto",
-          "name": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing)",
-          "nameForCondition": undefined,
-          "reasons": [
-            {
-              "moduleId": "10",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-              "moduleName": "./index.js",
-              "type": "esm import",
-              "userRequest": "pkg-a",
-            },
-            {
-              "moduleId": "10",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-              "moduleName": "./index.js",
-              "type": "esm import specifier",
-              "userRequest": "pkg-a",
-            },
-          ],
-          "size": 160,
-          "source": undefined,
-          "type": "module",
-        },
-      ],
-      "name": undefined,
-      "namedChunkGroups": {
-        "main": {
-          "assets": [
-            {
-              "name": "bundle.js",
-              "size": 741,
-            },
-          ],
-          "assetsSize": 741,
-          "chunks": [
-            "main",
-          ],
-          "name": "main",
-        },
-      },
-      "outputPath": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/dist",
-      "publicPath": "",
-      "warnings": [],
-      "warningsCount": 0,
-    },
-  ],
-  "errors": [
-    {
-      "compilerPath": undefined,
-      "formatted": "error[internal]: Export should be relative path and start with "./", but got ../../index.js
-
-",
       "message": "Export should be relative path and start with "./", but got ../../index.js",
       "title": "",
     },
   ],
   "errorsCount": 1,
-  "hash": "1de1b232f302860d0385",
-  "rspackVersion": "0.3.8",
-  "version": "5.75.0",
+  "filteredModules": undefined,
+  "hash": "4680e7554802934963fb",
+  "logging": {},
+  "modules": [
+    {
+      "assets": [],
+      "chunks": [
+        "main",
+      ],
+      "id": "10",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
+      "issuerPath": [],
+      "moduleType": "javascript/auto",
+      "name": "./index.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+      "reasons": [
+        {
+          "moduleId": undefined,
+          "moduleIdentifier": undefined,
+          "moduleName": undefined,
+          "type": "entry",
+          "userRequest": "./index",
+        },
+      ],
+      "size": 39,
+      "source": "import a from "pkg-a";
+console.log(a);
+",
+      "type": "module",
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "main",
+      ],
+      "id": "788",
+      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+      "issuerId": "10",
+      "issuerName": "./index.js",
+      "issuerPath": [
+        {
+          "id": "10",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+          "name": "./index.js",
+        },
+      ],
+      "moduleType": "javascript/auto",
+      "name": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing)",
+      "nameForCondition": undefined,
+      "reasons": [
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+          "moduleName": "./index.js",
+          "type": "esm import",
+          "userRequest": "pkg-a",
+        },
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+          "moduleName": "./index.js",
+          "type": "esm import specifier",
+          "userRequest": "pkg-a",
+        },
+      ],
+      "size": 160,
+      "source": undefined,
+      "type": "module",
+    },
+  ],
+  "namedChunkGroups": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 741,
+        },
+      ],
+      "assetsSize": 741,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "outputPath": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/dist",
+  "publicPath": "",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -4980,133 +4868,6 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
           "source": "import stringModule from './stringModule';
 import rawModule from './raw.png';
 ",
-              "type": "module",
-            },
-            {
-              "assets": [],
-              "chunks": [
-                "main",
-              ],
-              "id": "363",
-              "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/stringModule.js",
-              "issuer": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
-              "issuerId": "10",
-              "issuerName": "./index.js",
-              "issuerPath": [
-                {
-                  "id": "10",
-                  "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
-                  "name": "./index.js",
-                },
-              ],
-              "moduleType": "javascript/auto",
-              "name": "./stringModule.js",
-              "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/stringModule.js",
-              "reasons": [
-                {
-                  "moduleId": "10",
-                  "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
-                  "moduleName": "./index.js",
-                  "type": "esm import",
-                  "userRequest": "./stringModule",
-                },
-              ],
-              "size": 1,
-              "source": "",
-              "type": "module",
-            },
-          ],
-          "names": [
-            "main",
-          ],
-          "parents": [],
-          "siblings": [],
-          "size": 88,
-          "type": "chunk",
-        },
-      ],
-      "entrypoints": {
-        "main": {
-          "assets": [
-            {
-              "name": "bundle.js",
-              "size": 631,
-            },
-          ],
-          "assetsSize": 631,
-          "chunks": [
-            "main",
-          ],
-          "name": "main",
-        },
-      },
-      "errors": [],
-      "errorsCount": 0,
-      "filteredModules": undefined,
-      "hash": "fda4826197bca94bf290",
-      "logging": {},
-      "modules": [
-        {
-          "assets": [],
-          "chunks": [
-            "main",
-          ],
-          "id": "98",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/raw.png",
-          "issuer": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
-          "issuerId": "10",
-          "issuerName": "./index.js",
-          "issuerPath": [
-            {
-              "id": "10",
-              "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
-              "name": "./index.js",
-            },
-          ],
-          "moduleType": "javascript/auto",
-          "name": "./raw.png",
-          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/raw.png",
-          "reasons": [
-            {
-              "moduleId": "10",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
-              "moduleName": "./index.js",
-              "type": "esm import",
-              "userRequest": "./raw.png",
-            },
-          ],
-          "size": 9,
-          "source": "raw.png;
-",
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "10",
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "javascript/auto",
-      "name": "./index.js",
-      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
-      "reasons": [
-        {
-          "moduleId": undefined,
-          "moduleIdentifier": undefined,
-          "moduleName": undefined,
-          "type": "entry",
-          "userRequest": "./index",
-        },
-      ],
-      "size": 78,
-      "source": "import stringModule from './stringModule';
-import rawModule from './raw.png';
-",
           "type": "module",
         },
         {
@@ -5143,33 +4904,150 @@ import rawModule from './raw.png';
           "type": "module",
         },
       ],
-      "name": undefined,
-      "namedChunkGroups": {
-        "main": {
-          "assets": [
-            {
-              "name": "bundle.js",
-              "size": 631,
-            },
-          ],
-          "assetsSize": 631,
-          "chunks": [
-            "main",
-          ],
-          "name": "main",
-        },
-      },
-      "outputPath": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/dist",
-      "publicPath": "",
-      "warnings": [],
-      "warningsCount": 0,
+      "names": [
+        "main",
+      ],
+      "parents": [],
+      "siblings": [],
+      "size": 88,
+      "type": "chunk",
     },
   ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 631,
+        },
+      ],
+      "assetsSize": 631,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
   "errors": [],
   "errorsCount": 0,
-  "hash": "fda4826197bca94bf290",
-  "rspackVersion": "0.3.8",
-  "version": "5.75.0",
+  "filteredModules": undefined,
+  "hash": "3afbc51474916d0ee3d6",
+  "logging": {},
+  "modules": [
+    {
+      "assets": [],
+      "chunks": [
+        "main",
+      ],
+      "id": "98",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/raw.png",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
+      "issuerId": "10",
+      "issuerName": "./index.js",
+      "issuerPath": [
+        {
+          "id": "10",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
+          "name": "./index.js",
+        },
+      ],
+      "moduleType": "javascript/auto",
+      "name": "./raw.png",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/raw.png",
+      "reasons": [
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
+          "moduleName": "./index.js",
+          "type": "esm import",
+          "userRequest": "./raw.png",
+        },
+      ],
+      "size": 9,
+      "source": "raw.png;
+",
+      "type": "module",
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "main",
+      ],
+      "id": "10",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
+      "issuer": undefined,
+      "issuerId": undefined,
+      "issuerName": undefined,
+      "issuerPath": [],
+      "moduleType": "javascript/auto",
+      "name": "./index.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
+      "reasons": [
+        {
+          "moduleId": undefined,
+          "moduleIdentifier": undefined,
+          "moduleName": undefined,
+          "type": "entry",
+          "userRequest": "./index",
+        },
+      ],
+      "size": 78,
+      "source": "import stringModule from './stringModule';
+import rawModule from './raw.png';
+",
+      "type": "module",
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "main",
+      ],
+      "id": "363",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/stringModule.js",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
+      "issuerId": "10",
+      "issuerName": "./index.js",
+      "issuerPath": [
+        {
+          "id": "10",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
+          "name": "./index.js",
+        },
+      ],
+      "moduleType": "javascript/auto",
+      "name": "./stringModule.js",
+      "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/stringModule.js",
+      "reasons": [
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
+          "moduleName": "./index.js",
+          "type": "esm import",
+          "userRequest": "./stringModule",
+        },
+      ],
+      "size": 1,
+      "source": "",
+      "type": "module",
+    },
+  ],
+  "namedChunkGroups": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 631,
+        },
+      ],
+      "assetsSize": 631,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "outputPath": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/dist",
+  "publicPath": "",
   "warnings": [],
   "warningsCount": 0,
 }

@@ -18,7 +18,7 @@ use swc_core::{
 use crate::{
   dependency::{PureExpressionDependency, DEFAULT_EXPORT},
   is_pure_decl,
-  plugin::side_effects_flag_plugin::{is_pure_class, is_pure_expression},
+  plugin::side_effects_flag_plugin::is_pure_expression,
   visitors::{harmony_import_dependency_scanner::ImportMap, ExtraSpanInfo},
   ClassExt,
 };
@@ -137,7 +137,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       // key needs with visit a empty toplevel symbol, cause it maybe computed value.
       key.visit_with(self);
       match key {
-        PropName::Ident(ident) => true,
+        PropName::Ident(_ident) => true,
         PropName::Str(_) => true,
         PropName::Num(_) => true,
         PropName::Computed(computed) => is_pure_expression(&computed.expr, self.unresolved_ctxt),
@@ -212,8 +212,8 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         block.visit_with(self)
       }
       ClassMember::AutoAccessor(a) => match a.key {
-        Key::Private(ref private) => {}
-        Key::Public(ref public) => {
+        Key::Private(ref _private) => {}
+        Key::Public(ref _public) => {
           // already visited.
         }
       },
@@ -722,7 +722,7 @@ impl<'a> InnerGraphPlugin<'a> {
       }
     }
 
-    dbg!(state.module_identifier, &state.inner_graph,);
+    // dbg!(state.module_identifier, &state.inner_graph,);
     for (symbol, cbs) in state.usage_callback_map.iter() {
       let usage = state.inner_graph.get(symbol);
       for cb in cbs {

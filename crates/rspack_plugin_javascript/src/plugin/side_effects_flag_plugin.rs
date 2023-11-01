@@ -307,7 +307,7 @@ impl ClassExt for ClassMember {
 
   fn is_static(&self) -> bool {
     match self {
-      ClassMember::Constructor(cons) => false,
+      ClassMember::Constructor(_cons) => false,
       ClassMember::Method(m) => m.is_static,
       ClassMember::PrivateMethod(m) => m.is_static,
       ClassMember::ClassProp(p) => p.is_static,
