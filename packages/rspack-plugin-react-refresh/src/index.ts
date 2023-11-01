@@ -32,7 +32,7 @@ const runtimePaths = [
  * @property {(string | RegExp | (string | RegExp)[] | null)=} include included resourcePath for loader
  * @property {(string | RegExp | (string | RegExp)[] | null)=} exclude excluded resourcePath for loader
  */
-export default class ReactRefreshRspackPlugin {
+class ReactRefreshRspackPlugin {
 	options: PluginOptions;
 
 	static deprecated_runtimePaths: string[];
@@ -71,3 +71,6 @@ export default class ReactRefreshRspackPlugin {
 }
 
 ReactRefreshRspackPlugin.deprecated_runtimePaths = runtimePaths;
+
+// @ts-expect-error output module.exports
+export = ReactRefreshRspackPlugin;
