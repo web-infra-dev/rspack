@@ -59,6 +59,7 @@ pub enum ExtraSpanInfo {
   // (local, exported) refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/javascript/JavascriptParser.js#L2347-L2352
   AddVariableUsage(JsWord, JsWord),
 }
+
 #[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies(
   program: &Program,
@@ -177,6 +178,12 @@ pub fn scan_dependencies(
     &mut dependencies,
     comments.as_ref().map(|c| c as &dyn Comments),
     build_meta,
+    compiler_options
+      .module
+      .parser
+      .as_ref()
+      .and_then(|p| p.get(module_type))
+      .and_then(|p| p.get_javascript(module_type)),
   ));
 
   if compiler_options.dev_server.hot {

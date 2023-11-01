@@ -12,7 +12,6 @@ const project_dir_reg = new RegExp(
 );
 
 const base = path.resolve(__dirname, "statsCases");
-const outputBase = path.resolve(__dirname, "stats");
 const tests = fs.readdirSync(base).filter(testName => {
 	return (
 		!testName.startsWith(".") &&

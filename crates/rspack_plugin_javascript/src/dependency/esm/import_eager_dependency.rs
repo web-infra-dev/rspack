@@ -1,11 +1,13 @@
-use rspack_core::{module_namespace_promise, DependencyType, ErrorSpan, ImportDependencyTrait};
-use rspack_core::{ChunkGroupOptions, ChunkGroupOptionsKindRef, Dependency};
-use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
-use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
+use rspack_core::{
+  module_namespace_promise, ChunkGroupOptions, ChunkGroupOptionsKindRef, Dependency,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ExtendedReferencedExport, ImportDependencyTrait, ModuleDependency, ModuleGraph, ReferencedExport,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+};
 use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
-pub struct ImportDependency {
+pub struct ImportEagerDependency {
   start: u32,
   end: u32,
   id: DependencyId,
@@ -17,7 +19,7 @@ pub struct ImportDependency {
   pub group_options: ChunkGroupOptions,
 }
 
-impl ImportDependency {
+impl ImportEagerDependency {
   pub fn new(
     start: u32,
     end: u32,
@@ -38,7 +40,7 @@ impl ImportDependency {
   }
 }
 
-impl Dependency for ImportDependency {
+impl Dependency for ImportEagerDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -48,7 +50,7 @@ impl Dependency for ImportDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::DynamicImport
+    &DependencyType::DynamicImportEager
   }
 
   fn span(&self) -> Option<ErrorSpan> {
@@ -56,11 +58,11 @@ impl Dependency for ImportDependency {
   }
 
   fn dependency_debug_name(&self) -> &'static str {
-    "ImportDependency"
+    "ImportEagerDependency"
   }
 }
 
-impl ModuleDependency for ImportDependency {
+impl ModuleDependency for ImportEagerDependency {
   fn request(&self) -> &str {
     &self.request
   }
@@ -76,15 +78,27 @@ impl ModuleDependency for ImportDependency {
   fn set_request(&mut self, request: String) {
     self.request = request.into();
   }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    if let Some(referenced_exports) = &self.referenced_exports {
+      vec![ReferencedExport::new(referenced_exports.clone(), false).into()]
+    } else {
+      vec![ExtendedReferencedExport::Array(vec![])]
+    }
+  }
 }
 
-impl ImportDependencyTrait for ImportDependency {
+impl ImportDependencyTrait for ImportEagerDependency {
   fn referenced_exports(&self) -> Option<&Vec<JsWord>> {
     self.referenced_exports.as_ref()
   }
 }
 
-impl DependencyTemplate for ImportDependency {
+impl DependencyTemplate for ImportEagerDependency {
   fn apply(
     &self,
     source: &mut TemplateReplaceSource,
@@ -97,7 +111,7 @@ impl DependencyTemplate for ImportDependency {
         code_generatable_context,
         &self.id,
         &self.request,
-        true,
+        false,
         self.dependency_type().as_str().as_ref(),
         false,
       )

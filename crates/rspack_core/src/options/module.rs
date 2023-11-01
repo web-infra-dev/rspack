@@ -20,7 +20,7 @@ impl FromIterator<(ModuleType, ParserOptions)> for ParserOptionsByModuleType {
 }
 
 impl ParserOptionsByModuleType {
-  pub fn get(&self, module_type: &ModuleType) -> Option<&ParserOptions> {
+  pub fn get<'a>(&'a self, module_type: &'a ModuleType) -> Option<&'a ParserOptions> {
     self.0.get(module_type)
   }
 }
@@ -28,17 +28,53 @@ impl ParserOptionsByModuleType {
 #[derive(Debug, Clone)]
 pub enum ParserOptions {
   Asset(AssetParserOptions),
+  Javascript(JavascriptParserOptions),
   Unknown,
 }
 
+macro_rules! get_parser_option {
+  ($fn_name:ident, $variant:ident, $module_variant:ident, $ret_ty:ident) => {
+    pub fn $fn_name(&self, module_type: &ModuleType) -> Option<&$ret_ty> {
+      match self {
+        Self::$variant(value) if *module_type == ModuleType::$module_variant => Some(value),
+        _ => None,
+      }
+    }
+  };
+}
+
 impl ParserOptions {
-  pub fn get_asset(&self, module_type: &ModuleType) -> Option<&AssetParserOptions> {
-    let maybe = match self {
-      ParserOptions::Asset(i) => Some(i),
-      _ => None,
-    };
-    maybe.filter(|_| matches!(module_type, ModuleType::Asset))
+  get_parser_option!(get_asset, Asset, Asset, AssetParserOptions);
+  get_parser_option!(get_javascript, Javascript, Js, JavascriptParserOptions);
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub enum DynamicImportMode {
+  #[default]
+  Lazy,
+  Weak,
+  Eager,
+  LazyOnce,
+}
+
+impl From<&str> for DynamicImportMode {
+  fn from(value: &str) -> Self {
+    match value {
+      "weak" => DynamicImportMode::Weak,
+      "eager" => DynamicImportMode::Eager,
+      "lazy" => DynamicImportMode::Lazy,
+      "lazyOnce" => DynamicImportMode::LazyOnce,
+      _ => {
+        // TODO: warning
+        DynamicImportMode::default()
+      }
+    }
   }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct JavascriptParserOptions {
+  pub dynamic_import_mode: DynamicImportMode,
 }
 
 #[derive(Debug, Clone)]
