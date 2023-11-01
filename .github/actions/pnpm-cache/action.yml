@@ -7,6 +7,10 @@ inputs:
     default: '16'
     required: false
     type: string
+  frozen-lockfile:
+    default: false
+    required: false
+    type: boolean
   save-if:
     default: false
     required: false
@@ -47,7 +51,12 @@ runs:
 
     - name: Install dependencies
       shell: bash
-      run: pnpm install
+      run: |
+        if [[ "${{ inputs.frozen-lockfile}}" == 'true' ]]; then
+          pnpm install --frozen-lockfile
+        else
+          pnpm install --no-frozen-lockfile
+        fi
 
     - name: Save pnpm cache
       uses: actions/cache/save@v3
