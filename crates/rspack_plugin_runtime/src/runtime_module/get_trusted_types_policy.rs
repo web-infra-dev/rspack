@@ -41,7 +41,6 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
       &trusted_types.policy_name.clone().unwrap_or_default(),
     );
     let mut policy_content: Vec<String> = Vec::new();
-    println!("{} {}", self.create_script, self.create_script_url);
     if self.create_script {
       policy_content.push(
         r#"
