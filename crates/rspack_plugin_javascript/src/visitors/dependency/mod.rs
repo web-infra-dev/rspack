@@ -8,6 +8,7 @@ mod export_info_api_scanner;
 mod harmony_detection_scanner;
 mod harmony_export_dependency_scanner;
 pub mod harmony_import_dependency_scanner;
+mod harmony_top_level_this;
 mod hot_module_replacement_scanner;
 mod import_meta_scanner;
 mod import_scanner;
@@ -38,6 +39,7 @@ use self::{
   harmony_detection_scanner::HarmonyDetectionScanner,
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
+  harmony_top_level_this::HarmonyTopLevelThis,
   hot_module_replacement_scanner::HotModuleReplacementScanner,
   import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
   node_stuff_scanner::NodeStuffScanner, require_context_scanner::RequireContextScanner,
@@ -153,6 +155,13 @@ pub fn scan_dependencies(
       build_info,
       &mut rewrite_usage_span,
     ));
+
+    if build_meta.esm {
+      program.visit_with(&mut HarmonyTopLevelThis {
+        presentational_dependencies: &mut presentational_dependencies,
+      })
+    }
+
     let mut worker_syntax_scanner = rspack_core::needs_refactor::WorkerSyntaxScanner::new(
       rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
     );
