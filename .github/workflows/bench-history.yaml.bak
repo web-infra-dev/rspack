@@ -34,7 +34,7 @@ jobs:
       - name: Run Hmr benchmark
         run: |
           corepack enable
-          pnpm i
+          pnpm install --no-frozen-lockfile
           pnpm -w build:cli:release
           export ROOT_DIR=$(pwd) && cd benchcases/react-refresh && pnpm dev
 
