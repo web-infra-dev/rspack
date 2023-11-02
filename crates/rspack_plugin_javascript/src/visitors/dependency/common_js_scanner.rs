@@ -6,7 +6,7 @@ use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use super::expr_matcher;
 
 pub struct CommonJsScanner<'a> {
-  unresolved_ctxt: &'a SyntaxContext,
+  unresolved_ctxt: SyntaxContext,
   presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   has_module_ident: bool,
 }
@@ -14,7 +14,7 @@ pub struct CommonJsScanner<'a> {
 impl<'a> CommonJsScanner<'a> {
   pub fn new(
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-    unresolved_ctxt: &'a SyntaxContext,
+    unresolved_ctxt: SyntaxContext,
   ) -> Self {
     Self {
       presentational_dependencies,
@@ -31,7 +31,7 @@ impl Visit for CommonJsScanner<'_> {
     if self.has_module_ident {
       return;
     }
-    if &ident.sym == "module" && ident.span.ctxt == *self.unresolved_ctxt {
+    if &ident.sym == "module" && ident.span.ctxt == self.unresolved_ctxt {
       self
         .presentational_dependencies
         .push(Box::new(RuntimeRequirementsDependency::new(

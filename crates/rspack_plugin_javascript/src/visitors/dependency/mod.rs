@@ -82,7 +82,7 @@ pub fn scan_dependencies(
 
   let mut rewrite_usage_span = HashMap::default();
   program.visit_with(&mut ApiScanner::new(
-    &unresolved_ctxt,
+    unresolved_ctxt,
     resource_data,
     &mut presentational_dependencies,
     compiler_options.output.module,
@@ -91,7 +91,7 @@ pub fn scan_dependencies(
 
   program.visit_with(&mut CompatibilityScanner::new(
     &mut presentational_dependencies,
-    &unresolved_ctxt,
+    unresolved_ctxt,
   ));
   program.visit_with(&mut ExportInfoApiScanner::new(
     &mut presentational_dependencies,
@@ -103,17 +103,17 @@ pub fn scan_dependencies(
   program.visit_with(&mut CommonJsImportDependencyScanner::new(
     &mut dependencies,
     &mut presentational_dependencies,
-    &unresolved_ctxt,
+    unresolved_ctxt,
   ));
   if module_type.is_js_auto() || module_type.is_js_dynamic() {
     program.visit_with(&mut CommonJsScanner::new(
       &mut presentational_dependencies,
-      &unresolved_ctxt,
+      unresolved_ctxt,
     ));
     program.visit_with(&mut RequireContextScanner::new(&mut dependencies));
     program.visit_with(&mut CommonJsExportDependencyScanner::new(
       &mut presentational_dependencies,
-      &unresolved_ctxt,
+      unresolved_ctxt,
       build_meta,
       *module_type,
       &mut parser_exports_state,
@@ -121,7 +121,7 @@ pub fn scan_dependencies(
     if let Some(node_option) = &compiler_options.node {
       program.visit_with(&mut NodeStuffScanner::new(
         &mut presentational_dependencies,
-        &unresolved_ctxt,
+        unresolved_ctxt,
         compiler_options,
         node_option,
         resource_data,
