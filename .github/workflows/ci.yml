@@ -122,6 +122,17 @@ jobs:
               - 'Cargo.toml'
               - 'rust-toolchain.toml'
 
+  pnpm_lockfile_check:
+    name: Pnpm Lockfile Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Pnpm Cache # Required by some tests
+        uses: ./.github/actions/pnpm-cache
+        with:
+          frozen-lockfile: true
+
   rust_check:
     name: Rust check
     needs: [get-runner-labels, rust_changes]
