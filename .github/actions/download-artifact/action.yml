@@ -25,12 +25,12 @@ runs:
   steps:
     - name: Download artifact
       uses: actions/download-artifact@v3
-      if: ${{ startsWith(runner.name, 'GitHub Actions') || !inputs.try-local-cache }}
+      if: ${{ startsWith(runner.name, 'GitHub Actions') || inputs.try-local-cache == 'false' }}
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
     - name: Download local
-      if: ${{ !startsWith(runner.name, 'GitHub Actions') && inputs.try-local-cache }}
+      if: ${{ !startsWith(runner.name, 'GitHub Actions') && inputs.try-local-cache == 'true' }}
       shell: bash
       run: |
         set -e
