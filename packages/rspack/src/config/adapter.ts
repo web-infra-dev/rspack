@@ -51,7 +51,8 @@ import {
 	GeneratorOptionsByModuleType,
 	IncrementalRebuildOptions,
 	OptimizationSplitChunksOptions,
-	RspackFutureOptions
+	RspackFutureOptions,
+	JavascriptParserOptions
 } from "./zod";
 import {
 	ExperimentsNormalized,
@@ -547,9 +548,20 @@ function getRawParserOptions(
 			type: "asset",
 			asset: getRawAssetParserOptions(parser)
 		};
+	} else if (type === "javascript") {
+		return {
+			type: "javascript",
+			javascript: getRawJavascriptParserOptions(parser)
+		};
 	}
 	return {
 		type: "unknown"
+	};
+}
+
+function getRawJavascriptParserOptions(parser: JavascriptParserOptions) {
+	return {
+		dynamicImportMode: parser.dynamicImportMode ?? "lazy"
 	};
 }
 

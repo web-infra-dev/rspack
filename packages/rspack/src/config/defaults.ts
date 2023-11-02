@@ -22,6 +22,7 @@ import type {
 	Context,
 	ExternalsPresets,
 	InfrastructureLogging,
+	JavascriptParserOptions,
 	Mode,
 	ModuleOptions,
 	Node,
@@ -38,6 +39,8 @@ import {
 	RspackOptionsNormalized
 } from "./normalization";
 import Template from "../Template";
+import { assertNotNill } from "../util/assertNotNil";
+import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized
@@ -198,6 +201,12 @@ const applySnapshotDefaults = (
 	);
 };
 
+const applyJavascriptParserOptionsDefaults = (
+	parserOptions: JavascriptParserOptions
+) => {
+	D(parserOptions, "dynamicImportMode", "lazy");
+};
+
 const applyModuleDefaults = (
 	module: ModuleOptions,
 	{
@@ -210,11 +219,19 @@ const applyModuleDefaults = (
 		disableTransformByDefault: boolean;
 	}
 ) => {
-	F(module.parser!, "asset", () => ({}));
-	F(module.parser!.asset!, "dataUrlCondition", () => ({}));
-	if (typeof module.parser!.asset!.dataUrlCondition === "object") {
-		D(module.parser!.asset!.dataUrlCondition, "maxSize", 8096);
+	assertNotNill(module.parser);
+
+	F(module.parser, ASSET_MODULE_TYPE, () => ({}));
+	assertNotNill(module.parser.asset);
+
+	F(module.parser.asset, "dataUrlCondition", () => ({}));
+	if (typeof module.parser.asset.dataUrlCondition === "object") {
+		D(module.parser.asset.dataUrlCondition, "maxSize", 8096);
 	}
+
+	F(module.parser, "javascript", () => ({}));
+	assertNotNill(module.parser.javascript);
+	applyJavascriptParserOptionsDefaults(module.parser.javascript);
 
 	A(module, "defaultRules", () => {
 		const esm = {

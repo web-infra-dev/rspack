@@ -456,9 +456,19 @@ const assetParserOptions = z.strictObject({
 });
 export type AssetParserOptions = z.infer<typeof assetParserOptions>;
 
-const parserOptionsByModuleTypeKnown = z.strictObject({
-	asset: assetParserOptions.optional()
+//TODO: "weak", "lazy-once"
+const dynamicImportMode = z.enum(["eager", "lazy"]);
+
+const javascriptParserOptions = z.strictObject({
+	dynamicImportMode: dynamicImportMode.optional()
 });
+export type JavascriptParserOptions = z.infer<typeof javascriptParserOptions>;
+
+const parserOptionsByModuleTypeKnown = z.strictObject({
+	asset: assetParserOptions.optional(),
+	javascript: javascriptParserOptions.optional()
+});
+
 export type ParserOptionsByModuleTypeKnown = z.infer<
 	typeof parserOptionsByModuleTypeKnown
 >;
