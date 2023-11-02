@@ -22,7 +22,7 @@ pub const WEBPACK_BASE_URI: &str = "__webpack_base_uri__";
 pub const NON_WEBPACK_REQUIRE: &str = "__non_webpack_require__";
 
 pub struct ApiScanner<'a> {
-  pub unresolved_ctxt: &'a SyntaxContext,
+  pub unresolved_ctxt: SyntaxContext,
   pub module: bool,
   pub build_info: &'a mut BuildInfo,
   pub enter_assign: bool,
@@ -32,7 +32,7 @@ pub struct ApiScanner<'a> {
 
 impl<'a> ApiScanner<'a> {
   pub fn new(
-    unresolved_ctxt: &'a SyntaxContext,
+    unresolved_ctxt: SyntaxContext,
     resource_data: &'a ResourceData,
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     module: bool,
@@ -79,7 +79,7 @@ impl Visit for ApiScanner<'_> {
   }
 
   fn visit_ident(&mut self, ident: &Ident) {
-    if ident.span.ctxt != *self.unresolved_ctxt {
+    if ident.span.ctxt != self.unresolved_ctxt {
       return;
     }
     match ident.sym.as_ref() as &str {

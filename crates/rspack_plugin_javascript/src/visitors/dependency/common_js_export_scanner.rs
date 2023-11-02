@@ -18,7 +18,7 @@ use crate::dependency::ModuleDecoratorDependency;
 
 pub struct CommonJsExportDependencyScanner<'a> {
   presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-  unresolved_ctxt: &'a SyntaxContext,
+  unresolved_ctxt: SyntaxContext,
   build_meta: &'a mut BuildMeta,
   module_type: ModuleType,
   is_harmony: bool,
@@ -31,7 +31,7 @@ pub struct CommonJsExportDependencyScanner<'a> {
 impl<'a> CommonJsExportDependencyScanner<'a> {
   pub fn new(
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-    unresolved_ctxt: &'a SyntaxContext,
+    unresolved_ctxt: SyntaxContext,
     build_meta: &'a mut BuildMeta,
     module_type: ModuleType,
     parser_exports_state: &'a mut Option<bool>,
@@ -71,7 +71,7 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
   }
 
   fn visit_ident(&mut self, ident: &Ident) {
-    if &ident.sym == "module" && ident.span.ctxt == *self.unresolved_ctxt {
+    if &ident.sym == "module" && ident.span.ctxt == self.unresolved_ctxt {
       // here should use, but scanner is not one pass, so here use extra `visit_program` to calculate is_harmony
       // matches!( self.build_meta.exports_type, BuildMetaExportsType::Namespace)
       let decorator = if self.is_harmony {
@@ -210,13 +210,13 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
   }
 
   fn is_exports_or_module_exports_or_this_expr(&self, expr: &Expr) -> bool {
-    matches!(expr,  Expr::Ident(ident) if &ident.sym == "exports" && ident.span.ctxt == *self.unresolved_ctxt)
+    matches!(expr,  Expr::Ident(ident) if &ident.sym == "exports" && ident.span.ctxt == self.unresolved_ctxt)
       || expr_matcher::is_module_exports(expr)
       || matches!(expr,  Expr::This(_) if  self.enter_call == 0)
   }
 
   fn is_exports_expr(&self, expr: &Expr) -> bool {
-    matches!(expr,  Expr::Ident(ident) if &ident.sym == "exports" && ident.span.ctxt == *self.unresolved_ctxt)
+    matches!(expr,  Expr::Ident(ident) if &ident.sym == "exports" && ident.span.ctxt == self.unresolved_ctxt)
   }
 
   fn check_namespace(&mut self, top_level: bool, value_expr: Option<&Expr>) {

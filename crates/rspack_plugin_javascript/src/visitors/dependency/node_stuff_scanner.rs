@@ -13,7 +13,7 @@ const GLOBAL: &str = "global";
 
 pub struct NodeStuffScanner<'a> {
   pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-  pub unresolved_ctxt: &'a SyntaxContext,
+  pub unresolved_ctxt: SyntaxContext,
   pub compiler_options: &'a CompilerOptions,
   pub node_option: &'a NodeOption,
   pub resource_data: &'a ResourceData,
@@ -22,7 +22,7 @@ pub struct NodeStuffScanner<'a> {
 impl<'a> NodeStuffScanner<'a> {
   pub fn new(
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-    unresolved_ctxt: &'a SyntaxContext,
+    unresolved_ctxt: SyntaxContext,
     compiler_options: &'a CompilerOptions,
     node_option: &'a NodeOption,
     resource_data: &'a ResourceData,
@@ -41,7 +41,7 @@ impl Visit for NodeStuffScanner<'_> {
   noop_visit_type!();
 
   fn visit_ident(&mut self, ident: &Ident) {
-    if ident.span.ctxt == *self.unresolved_ctxt {
+    if ident.span.ctxt == self.unresolved_ctxt {
       match ident.sym.as_ref() as &str {
         DIR_NAME => {
           let dirname = match self.node_option.dirname.as_str() {
