@@ -9,6 +9,7 @@ on:
 jobs:
   get-runner-labels:
     name: Get Runner Labels
+    if: github.repository_owner == 'web-infra-dev'
     uses: ./.github/workflows/get-runner-labels.yml
 
   build:
@@ -44,6 +45,7 @@ jobs:
 
   release:
     name: Release Nightly
+    if: github.repository_owner == 'web-infra-dev'
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -88,7 +90,7 @@ jobs:
     name: Trigger Ecosystem CI if successed
     needs: [release]
     runs-on: ubuntu-latest
-    if: ${{ always() && !contains(needs.*.result, 'failure') }}
+    if: github.repository_owner == 'web-infra-dev' && ${{ always() && !contains(needs.*.result, 'failure') }}
     steps:
       - uses: actions/github-script@v6
         with:
@@ -112,7 +114,7 @@ jobs:
     name: Notify if failed
     needs: [release]
     runs-on: ubuntu-latest
-    if: ${{ always() && contains(needs.*.result, 'failure') }}
+    if: github.repository_owner == 'web-infra-dev' && ${{ always() && contains(needs.*.result, 'failure') }}
     steps:
       - uses: actions/github-script@v6
         with:
