@@ -1,7 +1,7 @@
 const path = require("path");
-const rspack = require("@rspack/core");
 const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
 const { default: HtmlPlugin } = require("@rspack/plugin-html");
+const { default: ProgressPlugin } = require('@rspack/plugin-progress')
 
 const prod = process.env.NODE_ENV === "production";
 
@@ -111,7 +111,8 @@ const config = {
 			favicon: path.join(__dirname, "public", "favicon.ico")
 		}),
 		new ReactRefreshPlugin(),
-		new rspack.ProgressPlugin()
+		// new rspack.ProgressPlugin(),
+		new ProgressPlugin(),
 	],
 	infrastructureLogging: {
 		debug: false

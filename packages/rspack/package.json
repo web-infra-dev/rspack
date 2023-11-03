@@ -33,7 +33,7 @@
     "@rspack/plugin-minify": "workspace:^",
     "@rspack/plugin-node-polyfill": "workspace:^",
     "@types/watchpack": "^2.4.0",
-    "@types/webpack": "5.28.3",
+    "@types/webpack": "^5.28.4",
     "@types/webpack-sources": "3.2.0",
     "@types/ws": "8.5.3",
     "babel-loader": "^9.1.0",

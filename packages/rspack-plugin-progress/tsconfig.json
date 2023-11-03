@@ -6,9 +6,7 @@
     "allowJs": true,
     "strict": true
   },
-  "include": [
-    "src"
-  ],
+  "include": ["src"],
   "ts-node": {
     "transpileOnly": true
   },

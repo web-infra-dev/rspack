@@ -636,13 +636,15 @@ impl rspack_core::Plugin for JsHooksAdapter {
     if self.is_hook_disabled(&Hook::BuildModule) {
       return Ok(());
     }
-
+    if !module.module_type().is_js_like() {
+      return Ok(());
+    }
+    let Ok(js_module) = module.to_js_module() else {
+      return Ok(());
+    };
     self
       .build_module_tsfn
-      .call(
-        module.to_js_module().expect("Convert to js_module failed."),
-        ThreadsafeFunctionCallMode::NonBlocking,
-      )
+      .call(js_module, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
       .map_err(|err| internal_error!("Failed to call build module: {err}"))?
