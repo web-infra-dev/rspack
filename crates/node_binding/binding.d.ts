@@ -443,6 +443,13 @@ export interface JsStatsWarning {
   formatted: string
 }
 
+export interface NodeFS {
+  writeFile: (...args: any[]) => any
+  removeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
+}
+
 export interface PathData {
   filename?: string
   hash?: string
@@ -753,6 +760,10 @@ export interface RawInfo {
   version?: string
 }
 
+export interface RawJavascriptParserOptions {
+  dynamicImportMode: string
+}
+
 export interface RawLibraryAuxiliaryComment {
   root?: string
   commonjs?: string
@@ -919,8 +930,9 @@ export interface RawOutputOptions {
 }
 
 export interface RawParserOptions {
-  type: "asset" | "unknown"
+  type: "asset" | "javascript" | "unknown"
   asset?: RawAssetParserOptions
+  javascript?: RawJavascriptParserOptions
 }
 
 export interface RawPluginImportConfig {
@@ -1092,4 +1104,12 @@ export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", 
 
 /** Builtin loader runner */
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
+
+export interface ThreadsafeNodeFS {
+  writeFile: (...args: any[]) => any
+  removeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
+  removeDirAll: (...args: any[]) => any
+}
 
