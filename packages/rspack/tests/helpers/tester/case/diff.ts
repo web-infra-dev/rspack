@@ -13,7 +13,7 @@ const DEFAULT_CASE_CONFIG: IDiffProcessorOptions = {
 	files: [OUTPUT_MAIN_FILE],
 	ignorePropertyQuotationMark: true,
 	ignoreModuleId: true,
-	ignoreModuleArugments: true
+	ignoreModuleArugments: false
 };
 
 type TFileCompareResult = {

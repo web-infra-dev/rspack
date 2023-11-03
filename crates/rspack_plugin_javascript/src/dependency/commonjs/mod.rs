@@ -1,5 +1,8 @@
+mod common_js_exports_dependency;
 mod common_js_require_dependency;
 pub use common_js_require_dependency::CommonJsRequireDependency;
+mod common_js_exports_dependency;
+pub use common_js_exports_dependency::CommonJsExportsDependency;
 mod require_resolve_dependency;
 pub use require_resolve_dependency::RequireResolveDependency;
 mod module_decorator_dependency;

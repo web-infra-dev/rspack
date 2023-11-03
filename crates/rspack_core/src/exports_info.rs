@@ -1,4 +1,5 @@
 use std::hash::Hasher;
+use std::iter;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
@@ -515,11 +516,20 @@ impl ExportsInfo {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum UsedName {
   Str(JsWord),
   Vec(Vec<JsWord>),
 }
+
+// impl UsedName {
+//   pub fn iter(&self) -> impl Iterator<Item = &String> {
+//     match self {
+//       UsedName::Vec(names) => names.iter().map(|n| n.to_string()).into_iter(),
+//       UsedName::Str(name) => iter::once(name.to_string()).chain(&[]),
+//     }
+//   }
+// }
 
 #[derive(Debug, Clone, Hash)]
 pub struct ExportInfoTargetValue {
