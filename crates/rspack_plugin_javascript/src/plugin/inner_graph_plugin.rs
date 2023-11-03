@@ -6,7 +6,7 @@ use swc_core::{
   common::{Span, Spanned, SyntaxContext},
   ecma::{
     ast::{
-      ArrowExpr, CallExpr, Callee, Class, ClassDecl, ClassExpr, ClassMember, Decl, DefaultDecl,
+      ArrowExpr, CallExpr, Callee, Class, ClassDecl, ClassExpr, ClassMember, DefaultDecl,
       ExportDecl, ExportDefaultDecl, ExportDefaultExpr, ExportSpecifier, Expr, FnDecl, FnExpr,
       Ident, Key, MemberExpr, NamedExport, Pat, Program, Prop, PropName, VarDeclarator,
     },
@@ -17,7 +17,7 @@ use swc_core::{
 
 use crate::{
   dependency::{PureExpressionDependency, DEFAULT_EXPORT},
-  is_pure_decl,
+  is_pure_class,
   plugin::side_effects_flag_plugin::is_pure_expression,
   visitors::{harmony_import_dependency_scanner::ImportMap, ExtraSpanInfo},
   ClassExt,
@@ -125,7 +125,6 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     member_expr.visit_children_with(self);
   }
 
-  // TODO: Considering nested class
   fn visit_class_member(&mut self, node: &ClassMember) {
     if self.scope_level != 1 {
       node.visit_children_with(self);
@@ -150,7 +149,6 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if !is_static || is_key_pure {
       self.set_top_level_symbol(pre_top_level.clone());
     }
-    // TODO: onusage
     if is_static && !matches!(node, ClassMember::Method(_) | ClassMember::PrivateMethod(_)) {
       let span = match node {
         ClassMember::Constructor(_) => unreachable!(),
@@ -179,18 +177,22 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         ));
       }
     }
+    let scope_level = self.scope_level;
     match node {
       ClassMember::Constructor(c) => {
+        self.scope_level += 1;
         c.params.visit_with(self);
         c.body.visit_with(self);
         c.accessibility.visit_children_with(self);
       }
       ClassMember::Method(m) => {
+        self.scope_level += 1;
         m.function.visit_with(self);
         m.kind.visit_with(self);
         m.accessibility.visit_children_with(self);
       }
       ClassMember::PrivateMethod(c) => {
+        self.scope_level += 1;
         c.function.visit_with(self);
         c.kind.visit_with(self);
         c.accessibility.visit_children_with(self);
@@ -208,7 +210,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       ClassMember::TsIndexSignature(_) => {}
       ClassMember::Empty(_) => {}
       ClassMember::StaticBlock(block) => {
-        // TODO: need to check with webpack
+        self.scope_level += 1;
         block.visit_with(self)
       }
       ClassMember::AutoAccessor(a) => match a.key {
@@ -218,6 +220,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         }
       },
     };
+    self.scope_level = scope_level;
     self.set_top_level_symbol(pre_top_level);
   }
 
@@ -248,7 +251,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if !self.is_enabled() {
       return;
     }
-    let is_pure_class = is_pure_decl(&Decl::Class(node.clone()), self.unresolved_ctxt);
+    let is_pure_class = is_pure_class(&node.class, self.unresolved_ctxt);
     if is_pure_class {
       self.set_symbol_if_is_top_level(node.ident.sym.clone());
     }
@@ -322,7 +325,10 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
           self.clear_symbol_if_is_top_level();
         }
         Expr::Class(class) => {
-          // TODO: should remove top level if it is not pure
+          let is_pure = is_pure_class(&class.class, self.unresolved_ctxt);
+          if !is_pure {
+            self.set_top_level_symbol(None);
+          }
           class.class.visit_with(self);
         }
         _ => {
@@ -412,7 +418,10 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         expr.visit_children_with(self);
       }
       Expr::Class(ref class) => {
-        // TODO: should remove set top level
+        let is_pure = is_pure_class(&class.class, self.unresolved_ctxt);
+        if !is_pure {
+          self.set_top_level_symbol(None);
+        }
         class.visit_with(self);
       }
       _ => {
