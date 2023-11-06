@@ -1185,6 +1185,9 @@ impl Compilation {
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
 
+    // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
+    plugin_driver.seal(self)?;
+
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
     while plugin_driver.optimize_dependencies(self).await?.is_some() {}

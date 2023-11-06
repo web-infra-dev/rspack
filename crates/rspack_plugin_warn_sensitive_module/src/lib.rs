@@ -14,23 +14,28 @@ impl WarnCaseSensitiveModulesPlugin {
     Self
   }
 
-  #[allow(clippy::borrowed_box)]
   pub fn create_sensitive_modules_warning(
     &self,
-    modules: &Vec<&&Box<dyn Module>>,
+    modules: &Vec<&dyn Module>,
     graph: &ModuleGraph,
   ) -> String {
     let mut message =
       String::from("There are multiple modules with names that only differ in casing.\n");
 
     for m in modules {
-      let mut module_msg = format!("  - {}\n", m.identifier().to_string());
-      graph.get_incoming_connections(m).iter().for_each(|c| {
-        if let Some(original_identifier) = c.original_module_identifier {
-          module_msg.push_str(&format!("    - used by {}\n", original_identifier));
-        }
-      });
-      message.push_str(&module_msg);
+      if let Some(boxed_m) = graph.module_by_identifier(&m.identifier()) {
+        let mut module_msg = format!("  - {}\n", m.identifier());
+        graph
+          .get_incoming_connections(boxed_m)
+          .iter()
+          .for_each(|c| {
+            if let Some(original_identifier) = c.original_module_identifier {
+              module_msg.push_str(&format!("    - used by {}\n", original_identifier));
+            }
+          });
+
+        message.push_str(&module_msg);
+      }
     }
 
     message
@@ -45,7 +50,7 @@ impl Plugin for WarnCaseSensitiveModulesPlugin {
     "rspack.WarnCaseSensitiveModulesPlugin"
   }
 
-  fn module_ids(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
+  fn seal(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
     let logger = compilation.get_logger(self.name());
     let start = logger.time("check case sensitive modules");
     let diagnostics: DashSet<Diagnostic> = DashSet::default();
@@ -71,15 +76,17 @@ impl Plugin for WarnCaseSensitiveModulesPlugin {
 
       let identifier = module.identifier().to_string();
       let lower_identifier = identifier.to_lowercase();
-      let lower_map = module_without_case_map
-        .entry(lower_identifier)
-        .or_insert(HashMap::new());
+      let lower_map = module_without_case_map.entry(lower_identifier).or_default();
       lower_map.insert(identifier, module);
     }
 
-    for lower_map in module_without_case_map.values() {
+    // sort by module identifier, guarantee the warning order
+    let mut case_map_vec = module_without_case_map.into_iter().collect::<Vec<_>>();
+    case_map_vec.sort_by(|a, b| a.0.cmp(&b.0));
+
+    for (_, lower_map) in case_map_vec {
       if lower_map.values().len() > 1 {
-        let mut case_modules = lower_map.values().collect::<Vec<_>>();
+        let mut case_modules = lower_map.values().map(|m| m.as_ref()).collect::<Vec<_>>();
         case_modules.sort_by_key(|m| m.identifier());
         diagnostics.insert(Diagnostic::warn(
           "Sensitive Modules Warn".to_string(),
