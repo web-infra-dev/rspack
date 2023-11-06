@@ -35,6 +35,7 @@ rspack_plugin_json                      = { path = "../rspack_plugin_json" }
 rspack_plugin_library                   = { path = "../rspack_plugin_library" }
 rspack_plugin_remove_empty_chunks       = { path = "../rspack_plugin_remove_empty_chunks" }
 rspack_plugin_runtime                   = { path = "../rspack_plugin_runtime" }
+rspack_plugin_warn_sensitive_module     = { path = "../rspack_plugin_warn_sensitive_module" }
 rspack_plugin_wasm                      = { path = "../rspack_plugin_wasm" }
 rspack_regex                            = { path = "../rspack_regex" }
 rspack_tracing                          = { path = "../rspack_tracing" }

@@ -555,6 +555,8 @@ impl TestConfig {
     // Notice the plugin need to be placed after SplitChunksPlugin
     plugins.push(rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin.boxed());
 
+    plugins.push(rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin.boxed());
+
     plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin {}.boxed());
     if self.experiments.async_web_assembly {
       plugins.push(rspack_plugin_wasm::FetchCompileAsyncWasmPlugin {}.boxed());
