@@ -2,7 +2,6 @@
 
 use std::collections::HashMap;
 
-use dashmap::DashSet;
 use rspack_core::{Compilation, Logger, Module, ModuleGraph, Plugin};
 use rspack_error::Diagnostic;
 
@@ -53,7 +52,7 @@ impl Plugin for WarnCaseSensitiveModulesPlugin {
   fn seal(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
     let logger = compilation.get_logger(self.name());
     let start = logger.time("check case sensitive modules");
-    let diagnostics: DashSet<Diagnostic> = DashSet::default();
+    let mut diagnostics: Vec<Diagnostic> = vec![];
     let modules = compilation
       .module_graph
       .modules()
@@ -88,7 +87,7 @@ impl Plugin for WarnCaseSensitiveModulesPlugin {
       if lower_map.values().len() > 1 {
         let mut case_modules = lower_map.values().map(|m| m.as_ref()).collect::<Vec<_>>();
         case_modules.sort_by_key(|m| m.identifier());
-        diagnostics.insert(Diagnostic::warn(
+        diagnostics.push(Diagnostic::warn(
           "Sensitive Modules Warn".to_string(),
           self.create_sensitive_modules_warning(&case_modules, &compilation.module_graph),
           0,
@@ -97,7 +96,7 @@ impl Plugin for WarnCaseSensitiveModulesPlugin {
       }
     }
 
-    compilation.push_batch_diagnostic(diagnostics.into_iter().collect());
+    compilation.push_batch_diagnostic(diagnostics);
     logger.time_end(start);
     Ok(())
   }
