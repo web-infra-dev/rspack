@@ -11,7 +11,8 @@
       "default": "./dist/index.js"
     },
     "./react-refresh": "./client/reactRefresh.js",
-    "./react-refresh-entry": "./client/reactRefreshEntry.js"
+    "./react-refresh-entry": "./client/reactRefreshEntry.js",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "build": "rimraf dist/ && tsc -b ./tsconfig.build.json --force",
