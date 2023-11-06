@@ -24,7 +24,7 @@ impl Visit for RequireContextScanner<'_> {
 
   fn visit_call_expr(&mut self, node: &CallExpr) {
     if is_require_context_call(node) && !node.args.is_empty() {
-      if let Some(Lit::Str(str)) = node.args.get(0).and_then(|x| x.expr.as_lit()) {
+      if let Some(Lit::Str(str)) = node.args.first().and_then(|x| x.expr.as_lit()) {
         let recursive =
           if let Some(Lit::Bool(bool)) = node.args.get(1).and_then(|x| x.expr.as_lit()) {
             bool.value

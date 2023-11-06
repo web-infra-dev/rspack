@@ -7,6 +7,8 @@ use rspack_core::{
 use rspack_error::{internal_error, Result};
 use rustc_hash::FxHashSet as HashSet;
 
+use crate::utils::is_diff_mode;
+
 pub fn render_chunk_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -105,26 +107,37 @@ fn render_module(
   // TODO unused exports_argument
   let module_argument = {
     let module_argument = mgm.get_module_argument();
-    if let Some(runtime_requirements) = runtime_requirements && runtime_requirements.contains(RuntimeGlobals::MODULE) {
+    if let Some(runtime_requirements) = runtime_requirements
+      && runtime_requirements.contains(RuntimeGlobals::MODULE)
+    {
       module_argument.to_string()
     } else {
-     format!("__unused_webpack_{module_argument}")
+      format!("__unused_webpack_{module_argument}")
     }
   };
   let exports_argument = mgm.get_exports_argument();
   let mut sources = ConcatSource::new([
     RawSource::from(serde_json::to_string(module_id).map_err(|e| internal_error!(e.to_string()))?),
     RawSource::from(": "),
-    RawSource::from(format!(
-      "function ({module_argument}, {exports_argument}, {}) {{\n",
-      RuntimeGlobals::REQUIRE
-    )),
   ]);
-  if let Some(build_info) = &mgm.build_info && build_info.strict {
-    sources.add(RawSource::from("'use strict';\n"));
+  if is_diff_mode() {
+    sources.add(RawSource::from(format!("\n/* start::{} */\n", module_id)));
+  }
+  sources.add(RawSource::from(format!(
+    "(function ({module_argument}, {exports_argument}, {}) {{\n",
+    RuntimeGlobals::REQUIRE
+  )));
+  if let Some(build_info) = &mgm.build_info
+    && build_info.strict
+  {
+    sources.add(RawSource::from("\"use strict\";\n"));
   }
   sources.add(source);
-  sources.add(RawSource::from("},\n"));
+  sources.add(RawSource::from("})"));
+  if is_diff_mode() {
+    sources.add(RawSource::from(format!("\n/* end::{} */\n", module_id)));
+  }
+  sources.add(RawSource::from(",\n"));
 
   Ok(sources.boxed())
 }
@@ -172,9 +185,16 @@ pub fn render_runtime_modules(
     .collect::<Vec<_>>();
   runtime_modules.sort_unstable_by_key(|(_, m)| m.stage());
   runtime_modules.iter().for_each(|((_, source), module)| {
-    sources.add(RawSource::from(format!("// {}\n", module.identifier())));
+    if is_diff_mode() {
+      sources.add(RawSource::from(format!(
+        "/* start::{} */\n",
+        module.identifier()
+      )));
+    } else {
+      sources.add(RawSource::from(format!("// {}\n", module.identifier())));
+    }
     if !module.should_isolate() {
-      sources.add(RawSource::from("(function() {\n"));
+      sources.add(RawSource::from("!function() {\n"));
     }
     if module.cacheable() {
       sources.add(source.clone());
@@ -182,7 +202,13 @@ pub fn render_runtime_modules(
       sources.add(module.generate(compilation));
     }
     if !module.should_isolate() {
-      sources.add(RawSource::from("\n})();\n"));
+      sources.add(RawSource::from("\n}();\n"));
+    }
+    if is_diff_mode() {
+      sources.add(RawSource::from(format!(
+        "/* end::{} */\n",
+        module.identifier()
+      )));
     }
   });
   Ok(sources.boxed())

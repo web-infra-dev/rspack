@@ -46,7 +46,7 @@ impl<'a> HotModuleReplacementScanner<'a> {
   ) {
     let mut dependencies: Vec<BoxDependency> = vec![];
 
-    if let Some(first_arg) = call_expr.args.get(0) {
+    if let Some(first_arg) = call_expr.args.first() {
       match &*first_arg.expr {
         Expr::Lit(Lit::Str(s)) => {
           dependencies.push(create_dependency(

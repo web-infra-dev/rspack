@@ -7,27 +7,45 @@ on:
     - cron: "0 0 * * 0,1,3,4,5,6"
 
 jobs:
+  get-runner-labels:
+    name: Get Runner Labels
+    if: github.repository_owner == 'web-infra-dev'
+    uses: ./.github/workflows/get-runner-labels.yml
+
   build:
     name: Build Nightly
+    if: github.repository_owner == 'web-infra-dev'
+    needs: [get-runner-labels]
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
-        target:
-          - x86_64-unknown-linux-gnu
-          - aarch64-unknown-linux-gnu
-          - x86_64-unknown-linux-musl
-          - aarch64-unknown-linux-musl
-          - i686-pc-windows-msvc
-          - x86_64-pc-windows-msvc
-          - aarch64-pc-windows-msvc
-          - x86_64-apple-darwin
-          - aarch64-apple-darwin
+        array:
+          - target: x86_64-unknown-linux-gnu
+            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+          - target: aarch64-unknown-linux-gnu
+            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+          - target: x86_64-unknown-linux-musl
+            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+          - target: aarch64-unknown-linux-musl
+            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+          - target: i686-pc-windows-msvc
+            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+          - target: x86_64-pc-windows-msvc
+            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+          - target: aarch64-pc-windows-msvc
+            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+          - target: x86_64-apple-darwin
+            runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+          - target: aarch64-apple-darwin
+            runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
     uses: ./.github/workflows/reusable-build.yml
     with:
-      target: ${{ matrix.target }}
+      target: ${{ matrix.array.target }}
+      runner: ${{ matrix.array.runner }}
 
   release:
     name: Release Nightly
+    if: github.repository_owner == 'web-infra-dev'
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -72,7 +90,7 @@ jobs:
     name: Trigger Ecosystem CI if successed
     needs: [release]
     runs-on: ubuntu-latest
-    if: ${{ always() && !contains(needs.*.result, 'failure') }}
+    if: github.repository_owner == 'web-infra-dev' && ${{ always() && !contains(needs.*.result, 'failure') }}
     steps:
       - uses: actions/github-script@v6
         with:
@@ -96,7 +114,7 @@ jobs:
     name: Notify if failed
     needs: [release]
     runs-on: ubuntu-latest
-    if: ${{ always() && contains(needs.*.result, 'failure') }}
+    if: github.repository_owner == 'web-infra-dev' && ${{ always() && contains(needs.*.result, 'failure') }}
     steps:
       - uses: actions/github-script@v6
         with:

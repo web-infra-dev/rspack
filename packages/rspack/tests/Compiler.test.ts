@@ -1,11 +1,6 @@
 // @ts-nocheck
 import { RawSource } from "webpack-sources";
-import {
-	Compiler,
-	getNormalizedRspackOptions,
-	rspack,
-	RspackOptions
-} from "../src";
+import { Compiler, getNormalizedRspackOptions, rspack } from "../src";
 import { Stats } from "../src/Stats";
 const path = require("path");
 import { createFsFromVolume, Volume } from "memfs";

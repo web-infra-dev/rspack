@@ -150,18 +150,22 @@ impl BannerPlugin {
   fn update_source(&self, comment: String, old: BoxSource, footer: Option<bool>) -> BoxSource {
     let old_source = old.to_owned();
 
-    if let Some(footer) = footer && footer {
+    if let Some(footer) = footer
+      && footer
+    {
       ConcatSource::new([
         old_source,
         RawSource::from("\n").boxed(),
         RawSource::from(comment).boxed(),
-      ]).boxed()
+      ])
+      .boxed()
     } else {
       ConcatSource::new([
         RawSource::from(comment).boxed(),
         RawSource::from("\n").boxed(),
-        old_source
-      ]).boxed()
+        old_source,
+      ])
+      .boxed()
     }
   }
 }
@@ -186,7 +190,10 @@ impl Plugin for BannerPlugin {
     for chunk in compilation.chunk_by_ukey.values() {
       let can_be_initial = chunk.can_be_initial(&compilation.chunk_group_by_ukey);
 
-      if let Some(entry_only) = self.config.entry_only && entry_only && !can_be_initial {
+      if let Some(entry_only) = self.config.entry_only
+        && entry_only
+        && !can_be_initial
+      {
         continue;
       }
 

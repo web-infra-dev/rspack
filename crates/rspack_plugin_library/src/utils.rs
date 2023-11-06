@@ -55,7 +55,7 @@ pub fn normalize_name(o: &Option<LibraryOptions>) -> Result<Option<String>> {
   }) = o
   {
     // TODO error "AMD library name must be a simple string or unset."
-    if let Some(name) = root.get(0) {
+    if let Some(name) = root.first() {
       return Ok(Some(name.to_string()));
     }
   }

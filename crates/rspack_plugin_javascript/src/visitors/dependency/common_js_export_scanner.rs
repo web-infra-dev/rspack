@@ -18,7 +18,7 @@ use crate::dependency::ModuleDecoratorDependency;
 
 pub struct CommonJsExportDependencyScanner<'a> {
   presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-  unresolved_ctxt: &'a SyntaxContext,
+  unresolved_ctxt: SyntaxContext,
   build_meta: &'a mut BuildMeta,
   module_type: ModuleType,
   is_harmony: bool,
@@ -31,7 +31,7 @@ pub struct CommonJsExportDependencyScanner<'a> {
 impl<'a> CommonJsExportDependencyScanner<'a> {
   pub fn new(
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-    unresolved_ctxt: &'a SyntaxContext,
+    unresolved_ctxt: SyntaxContext,
     build_meta: &'a mut BuildMeta,
     module_type: ModuleType,
     parser_exports_state: &'a mut Option<bool>,
@@ -71,7 +71,7 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
   }
 
   fn visit_ident(&mut self, ident: &Ident) {
-    if &ident.sym == "module" && ident.span.ctxt == *self.unresolved_ctxt {
+    if &ident.sym == "module" && ident.span.ctxt == self.unresolved_ctxt {
       // here should use, but scanner is not one pass, so here use extra `visit_program` to calculate is_harmony
       // matches!( self.build_meta.exports_type, BuildMetaExportsType::Namespace)
       let decorator = if self.is_harmony {
@@ -158,14 +158,22 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
       // Object.defineProperty(module.exports, "__esModule", { value: true });
       // Object.defineProperty(this, "__esModule", { value: true });
       if expr_matcher::is_object_define_property(expr)
-      && let Some(ExprOrSpread { expr, .. }) = call_expr.args.get(0)
-      && self.is_exports_or_module_exports_or_this_expr(expr)
-      && let Some(arg2) = call_expr.args.get(2) {
+        && let Some(ExprOrSpread { expr, .. }) = call_expr.args.first()
+        && self.is_exports_or_module_exports_or_this_expr(expr)
+        && let Some(arg2) = call_expr.args.get(2)
+      {
         self.enable();
 
-        if let Some(ExprOrSpread { expr: box Expr::Lit(Lit::Str(str)), .. }) = call_expr.args.get(1)
-        && str.value == "__esModule" {
-          self.check_namespace(self.stmt_level == 1, get_value_of_property_description(arg2));
+        if let Some(ExprOrSpread {
+          expr: box Expr::Lit(Lit::Str(str)),
+          ..
+        }) = call_expr.args.get(1)
+          && str.value == "__esModule"
+        {
+          self.check_namespace(
+            self.stmt_level == 1,
+            get_value_of_property_description(arg2),
+          );
         }
 
         self.enter_call += 1;
@@ -202,20 +210,23 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
   }
 
   fn is_exports_or_module_exports_or_this_expr(&self, expr: &Expr) -> bool {
-    matches!(expr,  Expr::Ident(ident) if &ident.sym == "exports" && ident.span.ctxt == *self.unresolved_ctxt)
+    matches!(expr,  Expr::Ident(ident) if &ident.sym == "exports" && ident.span.ctxt == self.unresolved_ctxt)
       || expr_matcher::is_module_exports(expr)
       || matches!(expr,  Expr::This(_) if  self.enter_call == 0)
   }
 
   fn is_exports_expr(&self, expr: &Expr) -> bool {
-    matches!(expr,  Expr::Ident(ident) if &ident.sym == "exports" && ident.span.ctxt == *self.unresolved_ctxt)
+    matches!(expr,  Expr::Ident(ident) if &ident.sym == "exports" && ident.span.ctxt == self.unresolved_ctxt)
   }
 
   fn check_namespace(&mut self, top_level: bool, value_expr: Option<&Expr>) {
     if matches!(self.parser_exports_state, Some(false)) || self.parser_exports_state.is_none() {
       return;
     }
-    if let Some(value_expr) = value_expr && is_truthy_literal(value_expr) && top_level {
+    if let Some(value_expr) = value_expr
+      && is_truthy_literal(value_expr)
+      && top_level
+    {
       self.set_flagged();
     } else {
       self.set_dynamic();
@@ -270,7 +281,11 @@ fn get_value_of_property_description(expr_or_spread: &ExprOrSpread) -> Option<&E
   } = expr_or_spread
   {
     for prop in props {
-      if let PropOrSpread::Prop(prop) = prop && let Prop::KeyValue(key_value_prop) = &**prop && let PropName::Ident(ident) = &key_value_prop.key && &ident.sym == "value" {
+      if let PropOrSpread::Prop(prop) = prop
+        && let Prop::KeyValue(key_value_prop) = &**prop
+        && let PropName::Ident(ident) = &key_value_prop.key
+        && &ident.sym == "value"
+      {
         return Some(&key_value_prop.value);
       }
     }

@@ -44,13 +44,13 @@ impl<Item: Any> Ukey<Item> {
 
 impl<Item> Clone for Ukey<Item> {
   fn clone(&self) -> Self {
-    Self(self.0, std::marker::PhantomData)
+    *self
   }
 }
 
 impl<Item> PartialOrd for Ukey<Item> {
   fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-    self.0.partial_cmp(&other.0)
+    Some(self.cmp(other))
   }
 }
 

@@ -14,8 +14,16 @@ fn compat_by_preset_env(
   assumptions: Assumptions,
   comments: Option<&dyn Comments>,
 ) -> impl Fold + '_ {
-  if let Some(PresetEnv { mode, targets, core_js }) = preset_env_config && !targets.is_empty() {
-    let core_js = if let Some(core_js) = &core_js && let Ok(core_js) = core_js.parse() {
+  if let Some(PresetEnv {
+    mode,
+    targets,
+    core_js,
+  }) = preset_env_config
+    && !targets.is_empty()
+  {
+    let core_js = if let Some(core_js) = &core_js
+      && let Ok(core_js) = core_js.parse()
+    {
       Some(core_js)
     } else {
       None
@@ -66,9 +74,11 @@ fn compat_by_es_version(
               constant_super: assumptions.constant_super,
               set_public_fields: assumptions.set_public_class_fields,
               no_document_all: assumptions.no_document_all,
-              static_blocks_mark: Mark::new()
+              static_blocks_mark: Mark::new(),
+              pure_getter: false,
             }
-          }
+          },
+          Mark::new()
         ),
         es_version < EsVersion::Es2022
       ),
