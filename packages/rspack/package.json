@@ -70,7 +70,7 @@
     "graceful-fs": "4.2.10",
     "json-parse-even-better-errors": "^3.0.0",
     "neo-async": "2.6.2",
-    "querystring": "^0.2.1",
+    "fast-querystring": "1.1.2",
     "react-refresh": "0.14.0",
     "schema-utils": "^4.0.0",
     "tapable": "2.2.1",
