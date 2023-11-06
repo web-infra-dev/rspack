@@ -75,7 +75,6 @@
     "schema-utils": "^4.0.0",
     "tapable": "2.2.1",
     "terminal-link": "^2.1.1",
-    "util": "0.12.5",
     "watchpack": "^2.4.0",
     "webpack-sources": "3.2.3",
     "zod": "^3.21.4",
