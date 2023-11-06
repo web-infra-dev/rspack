@@ -6,7 +6,7 @@
 
 # Default to project manager
 
-* @Boshen
+* @hardfist
 
 # Ignore lock files
 
@@ -15,9 +15,9 @@ pnpm-lock.yaml
 
 # Infra
 
-/.github/workflows @Boshen
+/.github/workflows @jerrykingxyz
 /benchcases @IWANABETHATGUY
-/scripts @Boshen @hyf0
+/scripts @jerrykingxyz
 
 # Examples
 
@@ -38,7 +38,6 @@ pnpm-lock.yaml
 /crates/rspack_base64 @h-a-n-a
 /crates/rspack_binding_macros @h-a-n-a
 /crates/rspack_binding_options @web-infra-dev/rspack-dx
-/crates/rspack_build @Boshen
 /crates/rspack_core @web-infra-dev/rspack-ux
 /crates/rspack_database @hyf0
 /crates/rspack_error @web-infra-dev/rspack-dx
