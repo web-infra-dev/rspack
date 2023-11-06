@@ -112,6 +112,7 @@ pub fn scan_dependencies(
     ));
     program.visit_with(&mut RequireContextScanner::new(&mut dependencies));
     program.visit_with(&mut CommonJsExportDependencyScanner::new(
+      &mut dependencies,
       &mut presentational_dependencies,
       unresolved_ctxt,
       build_meta,

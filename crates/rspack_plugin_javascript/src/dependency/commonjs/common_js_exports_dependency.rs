@@ -1,10 +1,11 @@
 use rspack_core::{
-  module_id, property_access, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ExportsArgument, ModuleArgument, ModuleDependency, RuntimeGlobals,
+  property_access, AsModuleDependency, Dependency, DependencyCategory, DependencyId,
+  DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph, NormalInitFragment,
   TemplateContext, TemplateReplaceSource, UsedName,
 };
-use swc_core::ecma::atoms::JsWord;
 
+#[derive(Debug, Clone)]
 pub enum ExportsBase {
   Exports,
   ModuleExports,
@@ -46,7 +47,7 @@ impl ExportsBase {
 pub struct CommonJsExportsDependency {
   id: DependencyId,
   range: (u32, u32),
-  value_range: (u32, u32),
+  value_range: Option<(u32, u32)>,
   base: ExportsBase,
   names: UsedName,
 }
@@ -54,7 +55,7 @@ pub struct CommonJsExportsDependency {
 impl CommonJsExportsDependency {
   pub fn new(
     range: (u32, u32),
-    value_range: (u32, u32),
+    value_range: Option<(u32, u32)>,
     base: ExportsBase,
     names: UsedName,
   ) -> Self {
@@ -68,6 +69,50 @@ impl CommonJsExportsDependency {
   }
 }
 
+impl Dependency for CommonJsExportsDependency {
+  fn dependency_debug_name(&self) -> &'static str {
+    "CommonJsExportsDependency"
+  }
+
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
+  fn category(&self) -> &DependencyCategory {
+    &DependencyCategory::CommonJS
+  }
+
+  fn dependency_type(&self) -> &DependencyType {
+    &DependencyType::CjsExports
+  }
+
+  fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
+    Some(ExportsSpec {
+      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(match &self.names {
+        UsedName::Str(name) => name.clone(),
+        UsedName::Vec(names) => names[0].clone(),
+      })]),
+      priority: None,
+      can_mangle: Some(false), // in webpack, object own property may not be mangled
+      terminal_binding: None,
+      from: None,
+      dependencies: None,
+      hide_export: None,
+      exclude_exports: None,
+    })
+  }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &rspack_core::ModuleGraph,
+    _module_chain: &mut rustc_hash::FxHashSet<rspack_core::ModuleIdentifier>,
+  ) -> rspack_core::ConnectionState {
+    rspack_core::ConnectionState::Bool(false)
+  }
+}
+
+impl AsModuleDependency for CommonJsExportsDependency {}
+
 impl DependencyTemplate for CommonJsExportsDependency {
   fn apply(
     &self,
@@ -78,6 +123,7 @@ impl DependencyTemplate for CommonJsExportsDependency {
       compilation,
       module,
       runtime,
+      init_fragments,
       ..
     } = code_generatable_context;
 
@@ -90,7 +136,7 @@ impl DependencyTemplate for CommonJsExportsDependency {
       .module_graph
       .get_exports_info(&module.identifier())
       .id
-      .get_used_name(&compilation.module_graph, *runtime, self.names);
+      .get_used_name(&compilation.module_graph, *runtime, self.names.clone());
 
     let exports_argument = mgm.get_exports_argument();
     let module_argument = mgm.get_module_argument();
@@ -102,45 +148,79 @@ impl DependencyTemplate for CommonJsExportsDependency {
     } else if self.base.is_this() {
       "this".to_string()
     } else {
-      panic!("Unsupport base type");
+      panic!("Unexpect base type");
     };
 
     if self.base.is_expression() {
-      /*
-      if (!used) {
-          initFragments.push(
-            new InitFragment(
-              "var __webpack_unused_export__;\n",
-              InitFragment.STAGE_CONSTANTS,
-              0,
-              "__webpack_unused_export__"
-            )
-          );
-          source.replace(
-            dep.range[0],
-            dep.range[1] - 1,
-            "__webpack_unused_export__"
-          );
-          return;
-        }
-        source.replace(
-          dep.range[0],
-          dep.range[1] - 1,
-          `${base}${propertyAccess(used)}`
-        );
-       */
       if let Some(used) = used {
-      } else {
         source.replace(
           self.range.0,
           self.range.1,
           &format!("{}{}", base, property_access(used.iter(), 0)),
           None,
         )
+      } else {
+        init_fragments.push(
+          NormalInitFragment::new(
+            format!("var __webpack_unused_export__;\n"),
+            InitFragmentStage::StageConstants,
+            0,
+            InitFragmentKey::uniqie(),
+            None,
+          )
+          .boxed(),
+        );
+        source.replace(
+          self.range.0,
+          self.range.1,
+          "__webpack_unused_export__",
+          None,
+        );
       }
     } else if self.base.is_define_property() {
+      if let Some(value_range) = self.value_range {
+        if let Some(used) = used {
+          if let UsedName::Vec(used) = used {
+            source.replace(
+              self.range.0,
+              value_range.0 - 1,
+              &format!(
+                "{}{}, {}, (",
+                base,
+                property_access(used[0..used.len() - 1].iter(), 0),
+                serde_json::to_string(&used[used.len() - 1])
+                  .expect("Unexpect render define property base")
+              ),
+              None,
+            );
+            source.replace(value_range.1, self.range.1 - 1, "))", None);
+          } else {
+            panic!("Unexpect base type");
+          }
+        } else {
+          init_fragments.push(
+            NormalInitFragment::new(
+              format!("var __webpack_unused_export__;\n"),
+              InitFragmentStage::StageConstants,
+              0,
+              InitFragmentKey::uniqie(),
+              None,
+            )
+            .boxed(),
+          );
+          source.replace(
+            self.range.0,
+            value_range.0 - 1,
+            "__webpack_unused_export__ = (",
+            None,
+          );
+          source.replace(value_range.1, self.range.1 - 1, ")", None);
+        }
+      } else {
+        panic!("Define property need value range");
+      }
     } else {
-      panic!("Unsupport base type");
+      panic!("Unexpect base type");
     }
   }
 }

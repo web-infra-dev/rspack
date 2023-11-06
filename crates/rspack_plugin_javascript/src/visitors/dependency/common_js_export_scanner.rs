@@ -1,8 +1,9 @@
 use rspack_core::{
-  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, DependencyTemplate, ModuleType,
-  RuntimeGlobals,
+  extract_member_expression_chain, BoxDependency, BuildMeta, BuildMetaDefaultObject,
+  BuildMetaExportsType, DependencyTemplate, ModuleType, RuntimeGlobals, SpanExt, UsedName,
 };
 use swc_core::{
+  atoms::Atom,
   common::SyntaxContext,
   ecma::{
     ast::{
@@ -14,9 +15,10 @@ use swc_core::{
 };
 
 use super::{expr_matcher, is_require_call_expr};
-use crate::dependency::ModuleDecoratorDependency;
+use crate::dependency::{CommonJsExportsDependency, ExportsBase, ModuleDecoratorDependency};
 
 pub struct CommonJsExportDependencyScanner<'a> {
+  dependencies: &'a mut Vec<BoxDependency>,
   presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   unresolved_ctxt: SyntaxContext,
   build_meta: &'a mut BuildMeta,
@@ -30,6 +32,7 @@ pub struct CommonJsExportDependencyScanner<'a> {
 
 impl<'a> CommonJsExportDependencyScanner<'a> {
   pub fn new(
+    dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
     build_meta: &'a mut BuildMeta,
@@ -37,6 +40,7 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
     parser_exports_state: &'a mut Option<bool>,
   ) -> Self {
     Self {
+      dependencies,
       presentational_dependencies,
       unresolved_ctxt,
       build_meta,
@@ -122,17 +126,70 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
           self.stmt_level == 1 && self.last_stmt_is_expr_stmt,
           Some(&assign_expr.right),
         );
+
+        let range = (
+          expr.as_member().unwrap().span.real_lo(),
+          expr.as_member().unwrap().span.real_hi(),
+        );
+        if expr_matcher::is_module_exports_esmodule(expr) {
+          self
+            .dependencies
+            .push(Box::new(CommonJsExportsDependency::new(
+              range,
+              None,
+              ExportsBase::ModuleExports,
+              UsedName::Vec(vec![Atom::new("exports"), Atom::new("__esModule")]),
+            )));
+        } else if expr_matcher::is_exports_esmodule(expr) {
+          self
+            .dependencies
+            .push(Box::new(CommonJsExportsDependency::new(
+              range,
+              None,
+              ExportsBase::Exports,
+              UsedName::Vec(vec![Atom::new("__esModule")]),
+            )));
+        } else if expr_matcher::is_this_esmodule(expr) {
+          self
+            .dependencies
+            .push(Box::new(CommonJsExportsDependency::new(
+              range,
+              None,
+              ExportsBase::This,
+              UsedName::Vec(vec![Atom::new("__esModule")]),
+            )));
+        }
+
         assign_expr.right.visit_children_with(self);
         return;
       }
       // exports.xxx = 1;
       if self.is_exports_member_expr_start(expr) {
         self.enable();
+
+        self
+          .dependencies
+          .push(Box::new(CommonJsExportsDependency::new(
+            (
+              expr.as_member().unwrap().span.real_lo(),
+              expr.as_member().unwrap().span.real_hi(),
+            ),
+            None,
+            ExportsBase::Exports,
+            UsedName::Vec(
+              extract_member_expression_chain(expr.as_member().unwrap())
+                .iter()
+                .map(|n| n.0.clone())
+                .collect::<Vec<_>>(),
+            ),
+          )));
+
         assign_expr.right.visit_children_with(self);
         return;
       }
       if self.is_exports_or_module_exports_or_this_expr(expr) {
         self.enable();
+
         if is_require_call_expr(&assign_expr.right, self.unresolved_ctxt) {
           // exports = require('xx');
           // module.exports = require('xx');
