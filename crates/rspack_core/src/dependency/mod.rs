@@ -229,8 +229,13 @@ pub trait Dependency:
     None
   }
 
+  /// `Span` used for Dependency search in `on_usage` in `InnerGraph`
+  fn span_for_on_usage_search(&self) -> Option<ErrorSpan> {
+    self.span()
+  }
+
   fn is_span_equal(&self, other: &Span) -> bool {
-    if let Some(err_span) = self.span() {
+    if let Some(err_span) = self.span_for_on_usage_search() {
       let other = ErrorSpan::from(*other);
       other == err_span
     } else {
