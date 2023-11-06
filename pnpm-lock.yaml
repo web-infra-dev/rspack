@@ -1467,9 +1467,6 @@ importers:
       terminal-link:
         specifier: ^2.1.1
         version: 2.1.1
-      util:
-        specifier: 0.12.5
-        version: 0.12.5
       watchpack:
         specifier: ^2.4.0
         version: 2.4.0
