@@ -1,18 +1,17 @@
 mod minify;
 
-use std::{
-  collections::HashMap,
-  hash::Hash,
-  sync::{mpsc, Mutex},
-};
+use std::collections::HashMap;
+use std::hash::Hash;
+use std::path::Path;
+use std::sync::{mpsc, Mutex};
 
 use async_trait::async_trait;
 use minify::{match_object, minify};
 use rayon::prelude::*;
+use regex::Regex;
+use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt, SourceMap};
+use rspack_core::rspack_sources::{Source, SourceMapSource, SourceMapSourceOptions};
 use rspack_core::{
-  rspack_sources::{
-    MapOptions, RawSource, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
-  },
   AssetInfo, CompilationAsset, JsChunkHashArgs, Plugin, PluginContext, PluginJsChunkHashHookOutput,
   PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
@@ -72,6 +71,12 @@ impl SwcJsMinimizerRules {
   }
 }
 
+struct ExtractComments<'a> {
+  filename: String,
+  condition: &'a Regex,
+  banner: String,
+}
+
 #[derive(Debug)]
 pub struct SwcJsMinimizerRspackPlugin {
   options: SwcJsMinimizerRspackPluginOptions,
@@ -106,7 +111,15 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
     let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
     // collect all extracted comments info
     let all_extracted_comments = Mutex::new(HashMap::new());
-    let extract_comments_option = &minify_options.extract_comments.clone();
+    let extract_comments_condition = minify_options.extract_comments.as_ref().map(|condition| {
+      let regexp = if condition.eq("true") {
+        // copied from terser-webpack-plugin
+        Regex::new(r"@preserve|@lic|@cc_on|^\**!")
+      } else {
+        Regex::new(&condition[1..condition.len() - 2])
+      };
+      regexp.expect("Invalid extractComments")
+    });
     let emit_source_map_columns = !compilation.options.devtool.cheap();
     let compress = TerserCompressorOptions {
       passes: minify_options.passes,
@@ -151,7 +164,7 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
 
         true
       })
-      .try_for_each_with(tx,|tx,(filename, original)| -> Result<()>  {
+      .try_for_each_with(tx,|tx, (filename, original)| -> Result<()>  {
         if let Some(original_source) = original.get_source() {
           let input = original_source.source().to_string();
           let input_source_map = original_source.map(&MapOptions::default());
@@ -165,12 +178,23 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
             module: is_module,
             ..Default::default()
           };
+          let extract_comments_option = extract_comments_condition.as_ref().map(|condition| {
+            let comments_filename = filename.to_string() + ".LICENSE.txt";
+            let dir = Path::new(filename).parent().expect("should has parent");
+            let relative = Path::new(&comments_filename).strip_prefix(dir).expect("should has common prefix").to_string_lossy().to_string().replace('\\', "/");
+            let banner = format!("/*! For license information please see {relative} */");
+            ExtractComments {
+              filename: comments_filename,
+              condition,
+              banner
+            }
+          });
           let output = match minify(
             &js_minify_options,
             input,
             filename,
             &all_extracted_comments,
-            extract_comments_option,
+            &extract_comments_option,
           ) {
             Ok(r) => r,
             Err(e) => {
@@ -191,6 +215,15 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
             .boxed()
           } else {
             RawSource::from(output.code).boxed()
+          };
+          let source = if let Some(banner) = extract_comments_option.map(|option| option.banner) {
+            ConcatSource::new([
+              RawSource::Source(banner).boxed(),
+              RawSource::from("\n").boxed(),
+              source
+            ]).boxed()
+          } else {
+            source
           };
           original.set_source(Some(source));
           original.get_info_mut().minimized = true;

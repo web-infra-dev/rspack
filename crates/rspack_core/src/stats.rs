@@ -427,9 +427,10 @@ impl Stats<'_> {
     // TODO: a placeholder for concatenation modules
     let modules = nested_modules.then(Vec::new);
     let profile = if let Some(p) = mgm.get_profile()
-    && let Some(factory) = p.factory.duration()
-    && let Some(integration) = p.integration.duration()
-    && let Some(building) = p.building.duration() {
+      && let Some(factory) = p.factory.duration()
+      && let Some(integration) = p.integration.duration()
+      && let Some(building) = p.building.duration()
+    {
       Some(StatsModuleProfile {
         factory: StatsMillisecond::new(factory.as_secs(), factory.subsec_millis()),
         integration: StatsMillisecond::new(integration.as_secs(), integration.subsec_millis()),
@@ -475,7 +476,9 @@ impl Stats<'_> {
         for p in &cg.parents {
           if let Some(pg) = self.compilation.chunk_group_by_ukey.get(p) {
             for c in &pg.chunks {
-              if let Some(c) = self.compilation.chunk_by_ukey.get(c) && let Some(id) = &c.id {
+              if let Some(c) = self.compilation.chunk_by_ukey.get(c)
+                && let Some(id) = &c.id
+              {
                 parents.insert(id.to_string());
               }
             }
@@ -486,7 +489,9 @@ impl Stats<'_> {
         for p in &cg.children {
           if let Some(pg) = self.compilation.chunk_group_by_ukey.get(p) {
             for c in &pg.chunks {
-              if let Some(c) = self.compilation.chunk_by_ukey.get(c) && let Some(id) = &c.id {
+              if let Some(c) = self.compilation.chunk_by_ukey.get(c)
+                && let Some(id) = &c.id
+              {
                 children.insert(id.to_string());
               }
             }
@@ -495,15 +500,18 @@ impl Stats<'_> {
       }
       if let Some(cg) = self.compilation.chunk_group_by_ukey.get(cg) {
         for c in &cg.chunks {
-          if let Some(c) = self.compilation.chunk_by_ukey.get(c) && c.id != chunk.id && let Some(id) = &c.id  {
+          if let Some(c) = self.compilation.chunk_by_ukey.get(c)
+            && c.id != chunk.id
+            && let Some(id) = &c.id
+          {
             siblings.insert(id.to_string());
           }
         }
       }
     }
-    let mut parents = Vec::from_iter(parents.into_iter());
-    let mut children = Vec::from_iter(children.into_iter());
-    let mut siblings = Vec::from_iter(siblings.into_iter());
+    let mut parents = Vec::from_iter(parents);
+    let mut children = Vec::from_iter(children);
+    let mut siblings = Vec::from_iter(siblings);
     parents.sort();
     children.sort();
     siblings.sort();

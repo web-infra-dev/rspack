@@ -105,7 +105,8 @@ impl SplitChunksPlugin {
         compilation.chunk_graph.add_chunk(new_chunk.ukey);
         new_chunk.ukey
       }
-    } else if let Some(reusable_chunk) = self.find_the_best_reusable_chunk(compilation, module_group)
+    } else if let Some(reusable_chunk) =
+      self.find_the_best_reusable_chunk(compilation, module_group)
       && module_group.cache_group_reuse_existing_chunk
     {
       *is_reuse_existing_chunk = true;

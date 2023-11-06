@@ -187,9 +187,7 @@ impl Resolver {
             .package_json()
             .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(&d.raw_json))),
         })),
-        Err(error) if matches!(error, oxc_resolver::ResolveError::Ignored(_)) => {
-          Ok(ResolveResult::Ignored)
-        }
+        Err(oxc_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
         Err(error) => Err(ResolveInnerError::OxcResolver(error)),
       },
     }

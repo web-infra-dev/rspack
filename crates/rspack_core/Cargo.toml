@@ -31,7 +31,7 @@ rkyv = { workspace = true }
 rspack_ast = { path = "../rspack_ast" }
 rspack_database = { path = "../rspack_database", features = ["rayon"] }
 rspack_error = { path = "../rspack_error" }
-rspack_fs = { path = "../rspack_fs", features = ["async"] }
+rspack_fs = { path = "../rspack_fs", features = ["async", "rspack-error"] }
 rspack_futures = { path = "../rspack_futures" }
 rspack_hash = { path = "../rspack_hash" }
 rspack_identifier = { path = "../rspack_identifier" }

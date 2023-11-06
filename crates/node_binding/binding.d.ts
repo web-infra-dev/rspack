@@ -760,6 +760,10 @@ export interface RawInfo {
   version?: string
 }
 
+export interface RawJavascriptParserOptions {
+  dynamicImportMode: string
+}
+
 export interface RawLibraryAuxiliaryComment {
   root?: string
   commonjs?: string
@@ -926,8 +930,9 @@ export interface RawOutputOptions {
 }
 
 export interface RawParserOptions {
-  type: "asset" | "unknown"
+  type: "asset" | "javascript" | "unknown"
   asset?: RawAssetParserOptions
+  javascript?: RawJavascriptParserOptions
 }
 
 export interface RawPluginImportConfig {

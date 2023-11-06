@@ -85,9 +85,17 @@ impl ChunkGroup {
     chunk.add_group(self.ukey);
   }
 
-  pub fn unshift_chunk(&mut self, chunk: &mut Chunk) {
-    self.chunks.insert(0, chunk.ukey);
-    chunk.add_group(self.ukey);
+  pub fn unshift_chunk(&mut self, chunk: &mut Chunk) -> bool {
+    if let Ok(index) = self.chunks.binary_search(&chunk.ukey) {
+      if index > 0 {
+        self.chunks.remove(index);
+        self.chunks.insert(0, chunk.ukey);
+      }
+      false
+    } else {
+      self.chunks.insert(0, chunk.ukey);
+      true
+    }
   }
 
   pub fn is_initial(&self) -> bool {
@@ -154,12 +162,14 @@ impl ChunkGroup {
       .position(|ukey| *ukey == before)
       .expect("before chunk not found");
 
-    if let Some(old_idx) = old_idx && old_idx > idx {
+    if let Some(old_idx) = old_idx
+      && old_idx > idx
+    {
       self.chunks.remove(old_idx);
       self.chunks.insert(idx, chunk);
     } else if old_idx.is_none() {
       self.chunks.insert(idx, chunk);
-      return true
+      return true;
     }
 
     false

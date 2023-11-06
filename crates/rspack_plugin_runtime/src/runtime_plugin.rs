@@ -193,6 +193,7 @@ impl Plugin for RuntimePlugin {
         RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME => compilation.add_runtime_module(
           chunk,
           GetMainFilenameRuntimeModule::new(
+            "update manifest",
             RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME,
             compilation
               .options
@@ -227,8 +228,10 @@ impl Plugin for RuntimePlugin {
         }
         RuntimeGlobals::DEFINE_PROPERTY_GETTERS => compilation
           .add_runtime_module(chunk, DefinePropertyGettersRuntimeModule::default().boxed()),
-        RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => compilation
-          .add_runtime_module(chunk, GetTrustedTypesPolicyRuntimeModule::default().boxed()),
+        RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => compilation.add_runtime_module(
+          chunk,
+          GetTrustedTypesPolicyRuntimeModule::new(runtime_requirements).boxed(),
+        ),
         RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT => compilation.add_runtime_module(
           chunk,
           CreateFakeNamespaceObjectRuntimeModule::default().boxed(),

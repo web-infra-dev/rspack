@@ -22,6 +22,7 @@ use swc_core::ecma::transforms::base::pass::{noop, Optional};
 macro_rules! either {
   ($config:expr, $f:expr) => {
     if let Some(config) = &$config {
+      #[allow(clippy::redundant_closure_call)]
       Either::Left($f(config))
     } else {
       Either::Right(noop())

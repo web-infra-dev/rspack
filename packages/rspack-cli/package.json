@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "0.3.8",
+  "version": "0.3.10",
   "license": "MIT",
   "description": "CLI for rspack",
   "bin": {

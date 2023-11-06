@@ -195,9 +195,10 @@ impl ModuleGraph {
       mgm.add_incoming_connection(connection_id);
     }
 
-    if let Some(identifier) = original_module_identifier && let Some(original_mgm) = self.
-    module_graph_module_by_identifier_mut(&identifier) {
-        original_mgm.add_outgoing_connection(connection_id);
+    if let Some(identifier) = original_module_identifier
+      && let Some(original_mgm) = self.module_graph_module_by_identifier_mut(&identifier)
+    {
+      original_mgm.add_outgoing_connection(connection_id);
     };
 
     Ok(())
@@ -608,25 +609,23 @@ impl ModuleGraph {
 
       mgm.add_incoming_connection(connection_id);
 
-      if let Some(identifier) = new_connection.original_module_identifier && let Some(original_mgm) = mg.
-      module_graph_module_by_identifier_mut(&identifier) {
+      if let Some(identifier) = new_connection.original_module_identifier
+        && let Some(original_mgm) = mg.module_graph_module_by_identifier_mut(&identifier)
+      {
         original_mgm.add_outgoing_connection(connection_id);
-    };
+      };
       new_connection
     }
   }
 
   pub fn set_dependency_import_var(&mut self, module_identifier: ModuleIdentifier, request: &str) {
-    self
-      .import_var_map
-      .entry(module_identifier)
-      .or_insert_with(Default::default);
+    self.import_var_map.entry(module_identifier).or_default();
     if let Some(module_var_map) = self.import_var_map.get_mut(&module_identifier) {
       if !module_var_map.contains_key(request) {
         module_var_map.insert(
           request.to_string(),
           format!(
-            "{}__WEBPACK_IMPORTED_MODULE_{}_",
+            "{}__WEBPACK_IMPORTED_MODULE_{}__",
             to_identifier(request),
             module_var_map.len()
           ),
@@ -825,7 +824,9 @@ mod test {
     let dependency_id = *dep.id();
     mg.dependency_id_to_module_identifier
       .insert(dependency_id, *to);
-    if let Some(p_id) = from && let Some(mgm) = mg.module_graph_module_by_identifier_mut(p_id) {
+    if let Some(p_id) = from
+      && let Some(mgm) = mg.module_graph_module_by_identifier_mut(p_id)
+    {
       mgm.dependencies.push(dependency_id);
     }
     mg.set_resolved_module(from.copied(), dep, *to)

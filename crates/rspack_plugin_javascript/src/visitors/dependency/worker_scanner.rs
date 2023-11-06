@@ -105,10 +105,14 @@ impl<'a> WorkerScanner<'a> {
     new_expr: &NewExpr,
   ) -> Option<(ParsedNewWorkerPath, Option<ParsedNewWorkerOptions>)> {
     if self.syntax_list.match_new_worker(new_expr)
-    && let Some(args) = &new_expr.args
-    && let Some(expr_or_spread) = args.first()
-    && let ExprOrSpread { spread: None, expr: box Expr::New(new_url_expr) } = expr_or_spread
-    && let Some((start, end, request)) = rspack_core::needs_refactor::match_new_url(new_url_expr) {
+      && let Some(args) = &new_expr.args
+      && let Some(expr_or_spread) = args.first()
+      && let ExprOrSpread {
+        spread: None,
+        expr: box Expr::New(new_url_expr),
+      } = expr_or_spread
+      && let Some((start, end, request)) = rspack_core::needs_refactor::match_new_url(new_url_expr)
+    {
       let path = ParsedNewWorkerPath {
         range: (start, end),
         value: request,

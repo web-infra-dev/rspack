@@ -30,7 +30,7 @@ pub fn get_literal_str_by_obj_prop<'a>(obj: &'a ObjectLit, field: &'a str) -> Op
 
 pub fn get_bool_by_obj_prop<'a>(obj: &'a ObjectLit, field: &'a str) -> Option<&'a Bool> {
   let Some(lit) = get_value_by_obj_prop(obj, field).and_then(|e| e.as_lit()) else {
-    return None
+    return None;
   };
   match lit {
     Lit::Bool(bool) => Some(bool),
@@ -40,7 +40,7 @@ pub fn get_bool_by_obj_prop<'a>(obj: &'a ObjectLit, field: &'a str) -> Option<&'
 
 pub fn get_regex_by_obj_prop<'a>(obj: &'a ObjectLit, field: &'a str) -> Option<&'a Regex> {
   let Some(lit) = get_value_by_obj_prop(obj, field).and_then(|e| e.as_lit()) else {
-    return None
+    return None;
   };
   match lit {
     Lit::Regex(regexp) => Some(regexp),

@@ -224,7 +224,12 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         .expect("should have export info")
         .clone();
       // dbg!(&export_info);
-      if let Some(ref mut provided) = export_info.provided && matches!(provided, ExportInfoProvided::False | ExportInfoProvided::Null) {
+      if let Some(ref mut provided) = export_info.provided
+        && matches!(
+          provided,
+          ExportInfoProvided::False | ExportInfoProvided::Null
+        )
+      {
         *provided = ExportInfoProvided::True;
         self.changed = true;
       }

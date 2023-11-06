@@ -123,6 +123,13 @@ testCommand
 		await $`./x test example`;
 		await $`./x test unit`;
 	});
+// x test webpack
+testCommand
+	.command("webpack")
+	.description("run webpack test suites")
+	.action(async function () {
+		await $`pnpm --filter "webpack-test" test`;
+	});
 
 let versionCommand = program
 	.command("version")

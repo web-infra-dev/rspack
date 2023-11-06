@@ -146,24 +146,28 @@ impl ExternalModule {
         "module.exports = {}",
         get_source_for_global_variable_external(request, external_type)
       ),
-      "global" if let Some(request) = request=> format!(
+      "global" if let Some(request) = request => format!(
         "module.exports ={} ",
         get_source_for_global_variable_external(request, &compilation.options.output.global_object)
       ),
-      "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" if let Some(request) = request => {
+      "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static"
+        if let Some(request) = request =>
+      {
         self.get_source_for_commonjs(request)
       }
       "node-commonjs" if let Some(request) = request => {
         if compilation.options.output.module {
-          chunk_init_fragments
-          .push(NormalInitFragment::new(
-            "import { createRequire as __WEBPACK_EXTERNAL_createRequire } from 'module';\n"
-              .to_string(),
-            InitFragmentStage::StageHarmonyImports,
-            0,
-            InitFragmentKey::ExternalModule("node-commonjs".to_string()),
-            None,
-          ).boxed());
+          chunk_init_fragments.push(
+            NormalInitFragment::new(
+              "import { createRequire as __WEBPACK_EXTERNAL_createRequire } from 'module';\n"
+                .to_string(),
+              InitFragmentStage::StageHarmonyImports,
+              0,
+              InitFragmentKey::ExternalModule("node-commonjs".to_string()),
+              None,
+            )
+            .boxed(),
+          );
           format!(
             "__WEBPACK_EXTERNAL_createRequire(import.meta.url)('{}')",
             request.primary()
@@ -198,8 +202,8 @@ impl ExternalModule {
             .map(|m| m.id(&compilation.chunk_graph))
             .unwrap_or_default();
           let identifier = to_identifier(id);
-          chunk_init_fragments
-            .push(NormalInitFragment::new(
+          chunk_init_fragments.push(
+            NormalInitFragment::new(
               format!(
                 "import * as __WEBPACK_EXTERNAL_MODULE_{identifier}__ from '{}';\n",
                 request.primary()
@@ -208,7 +212,9 @@ impl ExternalModule {
               0,
               InitFragmentKey::ExternalModule(identifier.clone()),
               None,
-            ).boxed());
+            )
+            .boxed(),
+          );
           runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
           format!(
             r#"var x = y => {{ var x = {{}}; {}(x, y); return x; }}

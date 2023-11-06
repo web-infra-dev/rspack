@@ -19,7 +19,9 @@ impl Plugin for DataUriPlugin {
     _ctx: PluginContext,
     resource_data: ResourceData,
   ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
-    if resource_data.get_scheme().is_data() && let Some(captures) = URI_REGEX.captures(&resource_data.resource) {
+    if resource_data.get_scheme().is_data()
+      && let Some(captures) = URI_REGEX.captures(&resource_data.resource)
+    {
       let mimetype = captures
         .get(1)
         .map(|i| i.as_str())
@@ -53,19 +55,23 @@ impl Plugin for DataUriPlugin {
   }
 
   async fn read_resource(&self, resource_data: &ResourceData) -> PluginReadResourceOutput {
-    if resource_data.get_scheme().is_data() && let Some(captures) = URI_REGEX.captures(&resource_data.resource) {
+    if resource_data.get_scheme().is_data()
+      && let Some(captures) = URI_REGEX.captures(&resource_data.resource)
+    {
       let body = captures.get(4).expect("should have data uri body").as_str();
       let is_base64 = captures.get(3).is_some();
       if is_base64 && let Some(cleaned) = rspack_base64::clean_base64(body) {
         return match rspack_base64::decode_to_vec(cleaned.as_bytes()) {
-          Ok(buffer) => Ok(Some(Content::Buffer(buffer) )),
-          Err(_) => Ok(Some(Content::String(resource_data.resource.to_string())))
+          Ok(buffer) => Ok(Some(Content::Buffer(buffer))),
+          Err(_) => Ok(Some(Content::String(resource_data.resource.to_string()))),
         };
       }
       if !body.is_ascii() {
-        return Ok(Some(Content::Buffer(urlencoding::decode_binary(body.as_bytes()).into_owned())))
+        return Ok(Some(Content::Buffer(
+          urlencoding::decode_binary(body.as_bytes()).into_owned(),
+        )));
       } else {
-        return Ok(Some(Content::Buffer(body.bytes().collect())))
+        return Ok(Some(Content::Buffer(body.bytes().collect())));
       }
     }
     Ok(None)

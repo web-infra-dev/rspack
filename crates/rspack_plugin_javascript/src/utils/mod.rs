@@ -114,7 +114,7 @@ pub fn get_callexpr_literal_args(e: &CallExpr) -> String {
   }
 }
 
-pub fn is_require_literal_expr(e: &CallExpr, unresolved_ctxt: &SyntaxContext) -> bool {
+pub fn is_require_literal_expr(e: &CallExpr, unresolved_ctxt: SyntaxContext) -> bool {
   if e.args.len() == 1 {
     let res = !get_callexpr_literal_args(e).is_empty();
 
@@ -127,7 +127,7 @@ pub fn is_require_literal_expr(e: &CallExpr, unresolved_ctxt: &SyntaxContext) ->
               sym,
               span: Span { ctxt, .. },
               ..
-            }) if sym == "require" && ctxt == unresolved_ctxt
+            }) if sym == "require" && *ctxt == unresolved_ctxt
           )
         }
         _ => false,
@@ -176,7 +176,7 @@ pub fn ecma_parse_error_to_rspack_error(
 
 pub fn join_jsword(arr: &[JsWord], separator: &str) -> String {
   let mut ret = String::new();
-  if let Some(item) = arr.get(0) {
+  if let Some(item) = arr.first() {
     ret.push_str(item);
   }
   for item in arr.iter().skip(1) {
@@ -184,4 +184,9 @@ pub fn join_jsword(arr: &[JsWord], separator: &str) -> String {
     ret.push_str(item);
   }
   ret
+}
+
+pub fn is_diff_mode() -> bool {
+  let is_diff_mode = std::env::var("RSPACK_DIFF").ok().unwrap_or_default();
+  is_diff_mode == "true"
 }

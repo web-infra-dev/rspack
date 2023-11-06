@@ -1,6 +1,6 @@
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeGlobals, RuntimeModule,
+  Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
 
@@ -32,11 +32,22 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     } else {
       "url".to_string()
     };
+    let cross_origin_loading = match &compilation.options.output.cross_origin_loading {
+      CrossOriginLoading::Disable => "".to_string(),
+      CrossOriginLoading::Enable(value) => format!(
+        r#"
+        if (script.src.indexOf(window.location.origin + '/') !== 0) {{
+          script.crossOrigin = "{value}";
+        }}
+        "#
+      ),
+    };
+
     RawSource::from(
       include_str!("runtime/load_script.js")
         .replace(
           "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
-          &compilation.options.output.cross_origin_loading.to_string(),
+          &cross_origin_loading,
         )
         .replace("$URL$", &url),
     )

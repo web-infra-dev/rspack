@@ -12,6 +12,7 @@ jobs:
     permissions:
       issues: write
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'web-infra-dev'
     steps:
       - name: need reproduce
         uses: actions-cool/issues-helper@v3

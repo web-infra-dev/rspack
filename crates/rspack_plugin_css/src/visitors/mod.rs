@@ -60,7 +60,9 @@ fn replace_module_request_prefix(specifier: String, diagnostics: &mut Vec<Diagno
 
 impl Visit for Analyzer<'_> {
   fn visit_at_rule(&mut self, n: &AtRule) {
-    if let AtRuleName::Ident(ident) = &n.name && &*ident.value == "import" {
+    if let AtRuleName::Ident(ident) = &n.name
+      && &*ident.value == "import"
+    {
       self.nearest_at_import_span = Some(n.span);
     }
     n.visit_children_with(self);
@@ -108,18 +110,20 @@ impl Visit for Analyzer<'_> {
       UrlValue::Str(s) => s.value.to_string(),
       UrlValue::Raw(r) => r.value.to_string(),
     });
-    if let Some(specifier) = specifier && !specifier.is_empty(){
-    let mut specifier = replace_module_request_prefix(specifier, self.diagnostics);
-    specifier = normalize_url(&specifier);
-    let dep = Box::new(CssUrlDependency::new(
-      specifier,
-      Some(u.span.into()),
-      u.span.real_lo(),
-      u.span.real_hi()
-    ));
-    self.deps.push(dep.clone());
-    self.code_generation_dependencies.push(dep);
-  // }
+    if let Some(specifier) = specifier
+      && !specifier.is_empty()
+    {
+      let mut specifier = replace_module_request_prefix(specifier, self.diagnostics);
+      specifier = normalize_url(&specifier);
+      let dep = Box::new(CssUrlDependency::new(
+        specifier,
+        Some(u.span.into()),
+        u.span.real_lo(),
+        u.span.real_hi(),
+      ));
+      self.deps.push(dep.clone());
+      self.code_generation_dependencies.push(dep);
+      // }
     }
   }
 }

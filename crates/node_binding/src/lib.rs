@@ -279,7 +279,9 @@ pub fn cleanup_global_trace() {
   let mut state = GLOBAL_TRACE_STATE
     .lock()
     .expect("Failed to lock GLOBAL_TRACE_STATE");
-  if let TraceState::On(guard) = &mut *state && let Some(g) = guard.take() {
+  if let TraceState::On(guard) = &mut *state
+    && let Some(g) = guard.take()
+  {
     g.flush();
     drop(g);
     let new_state = TraceState::Off;
