@@ -27,8 +27,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tailwindcss": "^3.3.0",
-    "vue": "3.2.47",
-    "vue-loader": "^17.2.2",
+    "vue": "3.3.7",
+    "vue-loader": "^17.3.1",
     "webpack-dev-server": "4.13.1",
     "ws": "8.8.1"
   }
