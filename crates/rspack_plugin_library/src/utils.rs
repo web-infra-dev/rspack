@@ -1,5 +1,5 @@
 use rspack_core::{
-  to_identifier, Compilation, ExternalModule, ExternalRequest, LibraryName, LibraryOptions,
+  to_identifier, ChunkUkey, Compilation, ExternalModule, ExternalRequest, LibraryOptions,
 };
 use rspack_error::{internal_error, Result};
 use rspack_identifier::Identifiable;
@@ -46,18 +46,25 @@ pub fn external_module_names(
   inner_external_arguments(modules, compilation)
 }
 
-pub fn normalize_name(o: &Option<LibraryOptions>) -> Result<Option<String>> {
-  if let Some(LibraryOptions {
-    name: Some(LibraryName {
-      root: Some(root), ..
-    }),
-    ..
-  }) = o
+pub fn get_options_for_chunk<'a>(
+  compilation: &'a Compilation,
+  chunk_ukey: &'a ChunkUkey,
+) -> Option<&'a LibraryOptions> {
+  if compilation
+    .chunk_graph
+    .get_number_of_entry_modules(chunk_ukey)
+    == 0
   {
-    // TODO error "AMD library name must be a simple string or unset."
-    if let Some(name) = root.first() {
-      return Ok(Some(name.to_string()));
-    }
+    return None;
   }
-  Ok(None)
+  let chunk = compilation
+    .chunk_by_ukey
+    .get(chunk_ukey)
+    .expect("chunk not found");
+  chunk
+    .get_entry_options(&compilation.chunk_group_by_ukey)
+    .and_then(|options| options.library.as_ref())
+    .or(compilation.options.output.library.as_ref())
 }
+
+pub const COMMON_LIBRARY_NAME_MESSAGE: &str = "Common configuration options that specific library names are 'output.library[.name]', 'entry.xyz.library[.name]', 'ModuleFederationPlugin.name' and 'ModuleFederationPlugin.library[.name]'.";

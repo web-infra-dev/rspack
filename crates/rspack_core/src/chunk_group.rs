@@ -5,7 +5,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
-  Filename, ModuleIdentifier, PublicPath, RuntimeSpec,
+  Filename, LibraryOptions, ModuleIdentifier, PublicPath, RuntimeSpec,
 };
 
 impl DatabaseItem for ChunkGroup {
@@ -241,7 +241,7 @@ impl ChunkGroup {
   }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum ChunkGroupKind {
   Entrypoint {
     initial: bool,
@@ -276,7 +276,7 @@ impl ChunkGroupKind {
   }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone)]
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<String>,
@@ -285,6 +285,7 @@ pub struct EntryOptions {
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
   pub filename: Option<Filename>,
+  pub library: Option<LibraryOptions>,
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]

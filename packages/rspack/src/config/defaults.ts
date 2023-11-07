@@ -610,7 +610,11 @@ const applyOutputDefaults = (
 		if (output.library) {
 			enabledLibraryTypes.push(output.library.type);
 		}
-		// TODO respect entryOptions.library
+		forEachEntry(desc => {
+			if (desc.library) {
+				enabledLibraryTypes.push(desc.library.type);
+			}
+		});
 		return enabledLibraryTypes;
 	});
 	A(output, "enabledChunkLoadingTypes", () => {

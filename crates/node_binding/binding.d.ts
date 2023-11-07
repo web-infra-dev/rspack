@@ -635,6 +635,7 @@ export interface RawEntryOptions {
   publicPath?: string
   baseUri?: string
   filename?: string
+  library?: RawLibraryOptions
 }
 
 export interface RawEntryPluginOptions {
@@ -771,10 +772,17 @@ export interface RawLibraryAuxiliaryComment {
   amd?: string
 }
 
-export interface RawLibraryName {
+export interface RawLibraryCustomUmdObject {
   amd?: string
   commonjs?: string
   root?: Array<string>
+}
+
+export interface RawLibraryName {
+  type: "string" | "array" | "umdObject"
+  stringPayload?: string
+  arrayPayload?: Array<string>
+  umdObjectPayload?: RawLibraryCustomUmdObject
 }
 
 export interface RawLibraryOptions {
@@ -783,6 +791,7 @@ export interface RawLibraryOptions {
   libraryType: string
   umdNamedDefine?: boolean
   auxiliaryComment?: RawLibraryAuxiliaryComment
+  amdContainer?: string
 }
 
 export interface RawLimitChunkCountPluginOptions {

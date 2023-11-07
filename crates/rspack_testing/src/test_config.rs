@@ -384,6 +384,7 @@ impl TestConfig {
           library_type: l.r#type,
           umd_named_define: None,
           auxiliary_comment: None,
+          amd_container: None,
         }),
         enabled_library_types: Some(vec!["system".to_string()]),
         strict_module_error_handling: false,
@@ -464,6 +465,7 @@ impl TestConfig {
               public_path: None,
               base_uri: None,
               filename: None,
+              library: None,
             },
           )
           .boxed(),
