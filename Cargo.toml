@@ -68,8 +68,9 @@ swc_node_comments   = { version = "=0.20.2" }
 tikv-jemallocator   = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
 
 [profile.dev]
-debug       = 2
-incremental = true
+codegen-units = 16   # debug build will cause runtime panic if codegen-unints is default
+debug         = 2
+incremental   = true
 
 [profile.release]
 codegen-units = 1
