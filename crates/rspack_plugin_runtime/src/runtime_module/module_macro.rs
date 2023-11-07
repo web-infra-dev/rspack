@@ -21,7 +21,7 @@ macro_rules! impl_runtime_module {
 
     impl rspack_core::Module for $ident {
       fn module_type(&self) -> &rspack_core::ModuleType {
-        &rspack_core::ModuleType::Js
+        &rspack_core::ModuleType::Runtime
       }
 
       fn source_types(&self) -> &[rspack_core::SourceType] {

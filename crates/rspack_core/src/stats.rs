@@ -9,8 +9,8 @@ use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  BoxModule, BoxRuntimeModule, Chunk, ChunkGroupUkey, Compilation, LogType, ModuleIdentifier,
-  ModuleType, SourceType,
+  BoxModule, BoxRuntimeModule, Chunk, ChunkGroupUkey, Compilation, LogType, Module,
+  ModuleIdentifier, ModuleType, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -137,26 +137,22 @@ impl Stats<'_> {
     nested_modules: bool,
     source: bool,
   ) -> Result<Vec<StatsModule>> {
-    let modules: Vec<StatsModule> = self
+    let mut modules: Vec<StatsModule> = self
       .compilation
       .module_graph
       .modules()
       .values()
       .map(|module| self.get_module(module, reasons, module_assets, nested_modules, source))
+      .chain(
+        self
+          .compilation
+          .runtime_modules
+          .iter()
+          .map(|(identifier, module)| {
+            self.get_runtime_module(identifier, module, reasons, module_assets)
+          }),
+      )
       .collect::<Result<_>>()?;
-
-    let runtime_modules: Vec<StatsModule> = self
-      .compilation
-      .runtime_modules
-      .iter()
-      .map(|(identifier, module)| {
-        self.get_runtime_module(identifier, module, reasons, module_assets)
-      })
-      .collect::<Result<_>>()?;
-    let mut modules = modules
-      .into_iter()
-      .chain(runtime_modules.into_iter())
-      .collect::<Vec<_>>();
     Self::sort_modules(&mut modules);
     Ok(modules)
   }
@@ -507,7 +503,7 @@ impl Stats<'_> {
 
     Ok(StatsModule {
       r#type: "module",
-      module_type: ModuleType::Runtime,
+      module_type: *module.module_type(),
       identifier: module.identifier(),
       name_for_condition: module.name_for_condition().map(|n| n.to_string()),
       name: module.name().to_string(),
