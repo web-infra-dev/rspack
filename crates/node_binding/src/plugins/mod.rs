@@ -10,6 +10,7 @@ use rspack_binding_values::{
   AfterResolveData, BeforeResolveData, JsAssetEmittedArgs, JsChunkAssetArgs, JsModule,
   JsResolveForSchemeInput, JsResolveForSchemeResult, ToJsModule,
 };
+use rspack_core::tree_shaking::js_module;
 use rspack_core::{
   ChunkAssetArgs, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
   PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
@@ -18,6 +19,7 @@ use rspack_core::{
 use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::NapiResultExt;
+use tracing::debug;
 
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
@@ -714,13 +716,13 @@ impl rspack_core::Plugin for JsHooksAdapter {
     if self.is_hook_disabled(&Hook::SucceedModule) {
       return Ok(());
     }
-
+    let js_module = match args.to_js_module() {
+      Ok(expr) => expr,
+      Err(_) => return Ok(()),
+    };
     self
       .succeed_module_tsfn
-      .call(
-        args.to_js_module().expect("Convert to js_module failed."),
-        ThreadsafeFunctionCallMode::NonBlocking,
-      )
+      .call(js_module, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
       .map_err(|err| internal_error!("Failed to call succeed_module hook: {err}"))?
