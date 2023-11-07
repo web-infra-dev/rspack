@@ -182,6 +182,12 @@ impl fmt::Display for Error {
   }
 }
 
+impl From<serde_json::Error> for Error {
+  fn from(value: serde_json::Error) -> Self {
+    Error::InternalError(InternalError::new(value.to_string(), Severity::Error))
+  }
+}
+
 impl From<io::Error> for Error {
   fn from(source: io::Error) -> Self {
     Error::Io { source }
