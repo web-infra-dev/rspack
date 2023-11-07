@@ -9,8 +9,8 @@ use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  BoxModule, BoxRuntimeModule, Chunk, ChunkGroupUkey, Compilation, LogType, Module,
-  ModuleIdentifier, ModuleType, SourceType,
+  BoxModule, BoxRuntimeModule, Chunk, ChunkGroupUkey, Compilation, LogType, ModuleIdentifier,
+  ModuleType, SourceType,
 };
 
 #[derive(Debug, Clone)]
