@@ -1,20 +1,27 @@
 {
   "name": "@rspack/plugin-react-refresh",
-  "version": "0.3.8",
+  "version": "0.3.11",
   "license": "MIT",
   "description": "React refresh plugin for rspack",
-  "main": "src/index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
-    ".": "./src/index.js",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
     "./react-refresh": "./client/reactRefresh.js",
     "./react-refresh-entry": "./client/reactRefreshEntry.js"
   },
   "scripts": {
+    "build": "rimraf dist/ && tsc -b ./tsconfig.build.json --force",
+    "dev": "tsc -b -w",
     "test": "jest --runInBand"
   },
   "files": [
     "client",
-    "src"
+    "dist",
+    "options.json"
   ],
   "publishConfig": {
     "access": "public"

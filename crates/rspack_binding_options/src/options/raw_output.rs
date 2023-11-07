@@ -1,8 +1,6 @@
 use napi_derive::napi;
-use rspack_core::{
-  to_identifier, BoxPlugin, CrossOriginLoading, LibraryAuxiliaryComment, LibraryName,
-  LibraryOptions, OutputOptions, TrustedTypes,
-};
+use rspack_core::{BoxPlugin, CrossOriginLoading, LibraryName, LibraryOptions};
+use rspack_core::{LibraryAuxiliaryComment, OutputOptions, TrustedTypes};
 use serde::Deserialize;
 
 use crate::RawOptionsApply;
@@ -164,7 +162,7 @@ impl RawOptionsApply for RawOutputOptions {
       webassembly_module_filename: self.webassembly_module_filename.into(),
       unique_name: self.unique_name,
       chunk_loading: self.chunk_loading.as_str().into(),
-      chunk_loading_global: to_identifier(&self.chunk_loading_global),
+      chunk_loading_global: self.chunk_loading_global.as_str().into(),
       filename: self.filename.into(),
       chunk_filename: self.chunk_filename.into(),
       cross_origin_loading: self.cross_origin_loading.into(),

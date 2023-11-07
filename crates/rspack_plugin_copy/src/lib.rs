@@ -145,10 +145,12 @@ impl CopyRspackPlugin {
     if entry.is_dir() {
       return None;
     }
-    if let Some(ignore) = &pattern.glob_options.ignore && ignore.iter().any(|ignore| {
-      ignore.matches(&entry.to_string_lossy())
-    }) {
-      return None
+    if let Some(ignore) = &pattern.glob_options.ignore
+      && ignore
+        .iter()
+        .any(|ignore| ignore.matches(&entry.to_string_lossy()))
+    {
+      return None;
     }
 
     let from = entry.as_path().to_path_buf();
@@ -181,7 +183,7 @@ impl CopyRspackPlugin {
       ToType::File
     };
 
-    logger.log(&format!("'to' option '{to}' determined as '{to_type}'"));
+    logger.log(format!("'to' option '{to}' determined as '{to_type}'"));
 
     let relative = pathdiff::diff_paths(&absolute_filename, context);
     let filename = if matches!(to_type, ToType::Dir) {
@@ -413,10 +415,10 @@ impl CopyRspackPlugin {
           })
           .collect();
 
-        if need_add_context_to_dependency &&
-        let Some(common_dir) = get_closest_common_parent_dir(
-          &entries.iter().map(|it| it.as_path()).collect(),
-        ) {
+        if need_add_context_to_dependency
+          && let Some(common_dir) =
+            get_closest_common_parent_dir(&entries.iter().map(|it| it.as_path()).collect())
+        {
           context_dependencies.insert(common_dir);
         }
 
@@ -523,7 +525,9 @@ impl Plugin for CopyRspackPlugin {
         let mut pattern = pattern.clone();
         if pattern.context.is_none() {
           pattern.context = Some(args.compilation.options.context.as_path().into());
-        } else if let Some(ctx) = pattern.context.clone() && !ctx.is_absolute() {
+        } else if let Some(ctx) = pattern.context.clone()
+          && !ctx.is_absolute()
+        {
           pattern.context = Some(args.compilation.options.context.as_path().join(ctx))
         };
 
@@ -632,11 +636,11 @@ fn set_info(target: &mut AssetInfo, info: Info) {
   }
 
   if let Some(chunk_hash) = info.chunk_hash {
-    target.chunk_hash = rustc_hash::FxHashSet::from_iter(chunk_hash.into_iter());
+    target.chunk_hash = rustc_hash::FxHashSet::from_iter(chunk_hash);
   }
 
   if let Some(content_hash) = info.content_hash {
-    target.content_hash = rustc_hash::FxHashSet::from_iter(content_hash.into_iter());
+    target.content_hash = rustc_hash::FxHashSet::from_iter(content_hash);
   }
 
   if let Some(development) = info.development {
@@ -679,6 +683,7 @@ fn ensure_info_fields() {
       source_map: Default::default(),
     },
     version: Default::default(),
+    source_filename: Default::default(),
   };
 
   std::hint::black_box(info);

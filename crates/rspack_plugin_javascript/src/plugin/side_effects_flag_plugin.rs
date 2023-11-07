@@ -52,8 +52,27 @@ impl Visit for SideEffectsFlagPluginVisitor {
 
   fn visit_module(&mut self, node: &Module) {
     for module_item in &node.body {
-      if !is_import_decl(module_item) {
-        module_item.visit_with(self);
+      match module_item {
+        ModuleItem::ModuleDecl(decl) => match decl {
+          ModuleDecl::Import(_) => {}
+          ModuleDecl::ExportDecl(decl) => decl.visit_with(self),
+          ModuleDecl::ExportNamed(_) => {}
+          ModuleDecl::ExportDefaultDecl(decl) => {
+            decl.visit_with(self);
+          }
+          ModuleDecl::ExportDefaultExpr(expr) => {
+            if !is_pure_expression(&expr.expr, self.unresolved_ctxt) {
+              self.side_effects_span = Some(node.span);
+            }
+          }
+          ModuleDecl::ExportAll(_) => {
+            // nothing to analyze
+          }
+          ModuleDecl::TsImportEquals(_) => unreachable!(),
+          ModuleDecl::TsExportAssignment(_) => unreachable!(),
+          ModuleDecl::TsNamespaceExport(_) => unreachable!(),
+        },
+        ModuleItem::Stmt(stmt) => stmt.visit_with(self),
       }
     }
   }
@@ -73,7 +92,9 @@ impl Visit for SideEffectsFlagPluginVisitor {
   }
 
   fn visit_class_member(&mut self, node: &ClassMember) {
-    if let Some(key) = node.class_key() && key.is_computed() {
+    if let Some(key) = node.class_key()
+      && key.is_computed()
+    {
       key.visit_with(self);
     }
 
@@ -261,15 +282,12 @@ fn is_pure_var_decl(var: &VarDecl, unresolved_ctxt: SyntaxContext) -> bool {
   })
 }
 
-fn is_import_decl(module_item: &ModuleItem) -> bool {
-  matches!(module_item, ModuleItem::ModuleDecl(ModuleDecl::Import(_)))
-}
-
-pub trait ClassKey {
+pub trait ClassExt {
   fn class_key(&self) -> Option<&PropName>;
+  fn is_static(&self) -> bool;
 }
 
-impl ClassKey for ClassMember {
+impl ClassExt for ClassMember {
   fn class_key(&self) -> Option<&PropName> {
     match self {
       ClassMember::Constructor(c) => Some(&c.key),
@@ -284,6 +302,20 @@ impl ClassKey for ClassMember {
         Key::Private(_) => None,
         Key::Public(ref public) => Some(public),
       },
+    }
+  }
+
+  fn is_static(&self) -> bool {
+    match self {
+      ClassMember::Constructor(_cons) => false,
+      ClassMember::Method(m) => m.is_static,
+      ClassMember::PrivateMethod(m) => m.is_static,
+      ClassMember::ClassProp(p) => p.is_static,
+      ClassMember::PrivateProp(p) => p.is_static,
+      ClassMember::TsIndexSignature(_) => unreachable!(),
+      ClassMember::Empty(_) => false,
+      ClassMember::StaticBlock(_) => true,
+      ClassMember::AutoAccessor(a) => a.is_static,
     }
   }
 }

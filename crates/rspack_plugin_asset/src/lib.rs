@@ -127,10 +127,14 @@ impl AssetParserAndGenerator {
     resource_data: &ResourceData,
     data_url: Option<&AssetGeneratorDataUrl>,
   ) -> Result<String> {
-    if let Some(AssetGeneratorDataUrl::Options(data_url)) = data_url && let Some(mimetype) = &data_url.mimetype {
+    if let Some(AssetGeneratorDataUrl::Options(data_url)) = data_url
+      && let Some(mimetype) = &data_url.mimetype
+    {
       return Ok(mimetype.to_owned());
     }
-    if let Some(mimetype) = &resource_data.mimetype && let Some(parameters) = &resource_data.parameters {
+    if let Some(mimetype) = &resource_data.mimetype
+      && let Some(parameters) = &resource_data.parameters
+    {
       return Ok(format!("{mimetype}{parameters}"));
     }
     mime_guess::MimeGuess::from_path(&resource_data.resource_path)
@@ -149,7 +153,9 @@ impl AssetParserAndGenerator {
     resource_data: &ResourceData,
     data_url: Option<&AssetGeneratorDataUrl>,
   ) -> String {
-    if let Some(AssetGeneratorDataUrl::Options(data_url)) = data_url && let Some(encoding) = &data_url.encoding {
+    if let Some(AssetGeneratorDataUrl::Options(data_url)) = data_url
+      && let Some(encoding) = &data_url.encoding
+    {
       return encoding.to_string();
     }
     if let Some(encoding) = &resource_data.encoding {
@@ -362,7 +368,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           let contenthash = contenthash.rendered(compilation.options.output.hash_digest_length);
 
           let source_file_name = self.get_source_file_name(normal_module, compilation);
-          let (filename, asset_info) = compilation.get_asset_path_with_info(
+          let (filename, mut asset_info) = compilation.get_asset_path_with_info(
             asset_filename_template,
             PathData::default()
               .module(module)
@@ -385,6 +391,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
               .insert(RuntimeGlobals::PUBLIC_PATH);
             format!(r#"{} + "{}""#, RuntimeGlobals::PUBLIC_PATH, filename)
           };
+          asset_info.set_source_filename(source_file_name);
 
           generate_context
             .data

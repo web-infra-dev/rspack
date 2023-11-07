@@ -8,6 +8,7 @@ mod export_info_api_scanner;
 mod harmony_detection_scanner;
 mod harmony_export_dependency_scanner;
 pub mod harmony_import_dependency_scanner;
+mod harmony_top_level_this;
 mod hot_module_replacement_scanner;
 mod import_meta_scanner;
 mod import_scanner;
@@ -16,6 +17,7 @@ mod require_context_scanner;
 mod url_scanner;
 mod util;
 mod worker_scanner;
+
 use rspack_ast::javascript::Program;
 use rspack_core::{
   BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta, CompilerOptions, ModuleIdentifier,
@@ -37,6 +39,7 @@ use self::{
   harmony_detection_scanner::HarmonyDetectionScanner,
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
+  harmony_top_level_this::HarmonyTopLevelThis,
   hot_module_replacement_scanner::HotModuleReplacementScanner,
   import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
   node_stuff_scanner::NodeStuffScanner, require_context_scanner::RequireContextScanner,
@@ -58,6 +61,7 @@ pub enum ExtraSpanInfo {
   // (local, exported) refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/javascript/JavascriptParser.js#L2347-L2352
   AddVariableUsage(JsWord, JsWord),
 }
+
 #[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies(
   program: &Program,
@@ -78,7 +82,7 @@ pub fn scan_dependencies(
 
   let mut rewrite_usage_span = HashMap::default();
   program.visit_with(&mut ApiScanner::new(
-    &unresolved_ctxt,
+    unresolved_ctxt,
     resource_data,
     &mut presentational_dependencies,
     compiler_options.output.module,
@@ -87,7 +91,7 @@ pub fn scan_dependencies(
 
   program.visit_with(&mut CompatibilityScanner::new(
     &mut presentational_dependencies,
-    &unresolved_ctxt,
+    unresolved_ctxt,
   ));
   program.visit_with(&mut ExportInfoApiScanner::new(
     &mut presentational_dependencies,
@@ -99,17 +103,17 @@ pub fn scan_dependencies(
   program.visit_with(&mut CommonJsImportDependencyScanner::new(
     &mut dependencies,
     &mut presentational_dependencies,
-    &unresolved_ctxt,
+    unresolved_ctxt,
   ));
   if module_type.is_js_auto() || module_type.is_js_dynamic() {
     program.visit_with(&mut CommonJsScanner::new(
       &mut presentational_dependencies,
-      &unresolved_ctxt,
+      unresolved_ctxt,
     ));
     program.visit_with(&mut RequireContextScanner::new(&mut dependencies));
     program.visit_with(&mut CommonJsExportDependencyScanner::new(
       &mut presentational_dependencies,
-      &unresolved_ctxt,
+      unresolved_ctxt,
       build_meta,
       *module_type,
       &mut parser_exports_state,
@@ -117,7 +121,7 @@ pub fn scan_dependencies(
     if let Some(node_option) = &compiler_options.node {
       program.visit_with(&mut NodeStuffScanner::new(
         &mut presentational_dependencies,
-        &unresolved_ctxt,
+        unresolved_ctxt,
         compiler_options,
         node_option,
         resource_data,
@@ -151,6 +155,13 @@ pub fn scan_dependencies(
       build_info,
       &mut rewrite_usage_span,
     ));
+
+    if build_meta.esm {
+      program.visit_with(&mut HarmonyTopLevelThis {
+        presentational_dependencies: &mut presentational_dependencies,
+      })
+    }
+
     let mut worker_syntax_scanner = rspack_core::needs_refactor::WorkerSyntaxScanner::new(
       rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
     );
@@ -176,6 +187,12 @@ pub fn scan_dependencies(
     &mut dependencies,
     comments.as_ref().map(|c| c as &dyn Comments),
     build_meta,
+    compiler_options
+      .module
+      .parser
+      .as_ref()
+      .and_then(|p| p.get(module_type))
+      .and_then(|p| p.get_javascript(module_type)),
   ));
 
   if compiler_options.dev_server.hot {

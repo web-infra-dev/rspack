@@ -60,7 +60,11 @@ impl ExportInfoApiDependency {
             .get_exports_info_by_id(&mgm.exports);
           let info_id = exports_info.exports.get(export_name)?;
           let export_info = compilation.module_graph.export_info_map.get(info_id)?;
-          Some(export_info.usage_state)
+          if compilation.options.is_new_tree_shaking() {
+            export_info.global_used
+          } else {
+            Some(export_info.usage_state)
+          }
         }
         _ => {
           // TODO: support other prop

@@ -85,7 +85,9 @@ impl Context {
 pub fn get_context(resource_data: &ResourceData) -> Context {
   if let Some(dirname) = resource_data.resource_path.parent() {
     dirname.into()
-  } else if let Some(parsed) = parse_resource(&resource_data.resource) && let Some(dirname) = parsed.path.parent() {
+  } else if let Some(parsed) = parse_resource(&resource_data.resource)
+    && let Some(dirname) = parsed.path.parent()
+  {
     dirname.into()
   } else {
     Context::from("")

@@ -331,6 +331,10 @@ impl_module_downcast_helpers!(RawModule, raw_module);
 impl_module_downcast_helpers!(ContextModule, context_module);
 impl_module_downcast_helpers!(ExternalModule, external_module);
 
+pub struct LibIdentOptions<'me> {
+  pub context: &'me str,
+}
+
 #[cfg(test)]
 mod test {
   use std::borrow::Cow;
@@ -476,8 +480,4 @@ mod test {
     assert_ne!(r1, r2);
     assert_ne!(&r1.boxed(), &r2.boxed());
   }
-}
-
-pub struct LibIdentOptions<'me> {
-  pub context: &'me str,
 }

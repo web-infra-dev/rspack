@@ -1,18 +1,18 @@
 mod minify;
 
-use std::{
-  collections::HashMap,
-  hash::Hash,
-  sync::{mpsc, Mutex},
-};
+use std::collections::HashMap;
+use std::hash::Hash;
+use std::path::Path;
+use std::sync::{mpsc, Mutex};
 
 use async_trait::async_trait;
 use minify::{match_object, minify};
+use once_cell::sync::OnceCell;
 use rayon::prelude::*;
+use regex::Regex;
+use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt, SourceMap};
+use rspack_core::rspack_sources::{Source, SourceMapSource, SourceMapSourceOptions};
 use rspack_core::{
-  rspack_sources::{
-    MapOptions, RawSource, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
-  },
   AssetInfo, CompilationAsset, JsChunkHashArgs, Plugin, PluginContext, PluginJsChunkHashHookOutput,
   PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
@@ -20,24 +20,58 @@ use rspack_error::{internal_error, Diagnostic, Result};
 use rspack_regex::RspackRegex;
 use rspack_util::try_any_sync;
 use swc_config::config_types::BoolOrDataConfig;
-use swc_ecma_minifier::option::{
+use swc_core::base::config::JsMinifyFormatOptions;
+pub use swc_ecma_minifier::option::{
   terser::{TerserCompressorOptions, TerserEcmaVersion},
   MangleOptions,
 };
-
-#[derive(Debug, Clone, Default, Hash)]
+#[derive(Debug, Clone, Default)]
 pub struct SwcJsMinimizerRspackPluginOptions {
-  pub passes: usize,
-  pub drop_console: bool,
-  pub keep_class_names: bool,
-  pub keep_fn_names: bool,
-  pub pure_funcs: Vec<String>,
   pub extract_comments: Option<String>,
-  pub ascii_only: bool,
-  pub comments: String,
+  pub compress: BoolOrDataConfig<TerserCompressorOptions>,
+  pub mangle: BoolOrDataConfig<MangleOptions>,
+  pub format: JsMinifyFormatOptions,
   pub test: Option<SwcJsMinimizerRules>,
   pub include: Option<SwcJsMinimizerRules>,
   pub exclude: Option<SwcJsMinimizerRules>,
+
+  /// Internal fields for hashing only.
+  /// This guaranteed these field should only be readonly.
+  /// Otherwise, hash would be generated with inconsistencies.
+  pub __compress_cache: OnceCell<BoolOrDataConfig<String>>,
+  pub __mangle_cache: OnceCell<BoolOrDataConfig<String>>,
+  pub __format_cache: OnceCell<String>,
+}
+
+impl std::hash::Hash for SwcJsMinimizerRspackPluginOptions {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.extract_comments.hash(state);
+    self
+      .__format_cache
+      .get_or_init(|| serde_json::to_string(&self.format).expect("Should be able to serialize"))
+      .hash(state);
+    self
+      .__compress_cache
+      .get_or_init(|| {
+        self
+          .compress
+          .as_ref()
+          .map(|v| serde_json::to_string(v).expect("Should be able to serialize"))
+      })
+      .hash(state);
+    self
+      .__mangle_cache
+      .get_or_init(|| {
+        self
+          .mangle
+          .as_ref()
+          .map(|v| serde_json::to_string(v).expect("Should be able to serialize"))
+      })
+      .hash(state);
+    self.test.hash(state);
+    self.include.hash(state);
+    self.exclude.hash(state);
+  }
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -70,6 +104,12 @@ impl SwcJsMinimizerRules {
       Self::Array(l) => try_any_sync(l, |i| i.try_match(data)),
     }
   }
+}
+
+struct ExtractComments<'a> {
+  filename: String,
+  condition: &'a Regex,
+  banner: String,
 }
 
 #[derive(Debug)]
@@ -106,33 +146,16 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
     let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
     // collect all extracted comments info
     let all_extracted_comments = Mutex::new(HashMap::new());
-    let extract_comments_option = &minify_options.extract_comments.clone();
+    let extract_comments_condition = minify_options.extract_comments.as_ref().map(|condition| {
+      let regexp = if condition.eq("true") {
+        // copied from terser-webpack-plugin
+        Regex::new(r"@preserve|@lic|@cc_on|^\**!")
+      } else {
+        Regex::new(&condition[1..condition.len() - 2])
+      };
+      regexp.expect("Invalid extractComments")
+    });
     let emit_source_map_columns = !compilation.options.devtool.cheap();
-    let compress = TerserCompressorOptions {
-      passes: minify_options.passes,
-      drop_console: minify_options.drop_console,
-      pure_funcs: minify_options.pure_funcs.clone(),
-      ..Default::default()
-    };
-
-    let mangle = MangleOptions {
-      keep_class_names: minify_options.keep_class_names,
-      keep_fn_names: minify_options.keep_fn_names,
-      ..Default::default()
-    };
-
-    let comments = match minify_options.comments.as_str() {
-      "false" => JsMinifyCommentOption::False,
-      "all" => JsMinifyCommentOption::PreserveAllComments,
-      "some" => JsMinifyCommentOption::PreserveSomeComments,
-      _ => JsMinifyCommentOption::False,
-    };
-
-    let format = JsMinifyFormatOptions {
-      ascii_only: minify_options.ascii_only,
-      comments,
-      ..Default::default()
-    };
 
     compilation
       .assets_mut()
@@ -151,26 +174,37 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
 
         true
       })
-      .try_for_each_with(tx,|tx,(filename, original)| -> Result<()>  {
+      .try_for_each_with(tx,|tx, (filename, original)| -> Result<()>  {
         if let Some(original_source) = original.get_source() {
           let input = original_source.source().to_string();
           let input_source_map = original_source.map(&MapOptions::default());
           let js_minify_options = JsMinifyOptions {
-            compress: BoolOrDataConfig::from_obj(compress.clone()),
-            mangle: BoolOrDataConfig::from_obj(mangle.clone()),
-            format: format.clone(),
+            compress: minify_options.compress.clone(),
+            mangle: minify_options.mangle.clone(),
+            format: minify_options.format.clone(),
             source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
             inline_sources_content: true, /* Using true so original_source can be None in SourceMapSource */
             emit_source_map_columns,
             module: is_module,
             ..Default::default()
           };
+          let extract_comments_option = extract_comments_condition.as_ref().map(|condition| {
+            let comments_filename = filename.to_string() + ".LICENSE.txt";
+            let dir = Path::new(filename).parent().expect("should has parent");
+            let relative = Path::new(&comments_filename).strip_prefix(dir).expect("should has common prefix").to_string_lossy().to_string().replace('\\', "/");
+            let banner = format!("/*! For license information please see {relative} */");
+            ExtractComments {
+              filename: comments_filename,
+              condition,
+              banner
+            }
+          });
           let output = match minify(
             &js_minify_options,
             input,
             filename,
             &all_extracted_comments,
-            extract_comments_option,
+            &extract_comments_option,
           ) {
             Ok(r) => r,
             Err(e) => {
@@ -191,6 +225,15 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
             .boxed()
           } else {
             RawSource::from(output.code).boxed()
+          };
+          let source = if let Some(banner) = extract_comments_option.map(|option| option.banner) {
+            ConcatSource::new([
+              RawSource::Source(banner).boxed(),
+              RawSource::from("\n").boxed(),
+              source
+            ]).boxed()
+          } else {
+            source
           };
           original.set_source(Some(source));
           original.get_info_mut().minimized = true;
@@ -235,14 +278,6 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
 }
 
 #[derive(Debug, Clone, Default)]
-pub enum JsMinifyCommentOption {
-  #[default]
-  False,
-  PreserveSomeComments,
-  PreserveAllComments,
-}
-
-#[derive(Debug, Clone, Default)]
 pub struct JsMinifyOptions {
   pub compress: BoolOrDataConfig<TerserCompressorOptions>,
   pub mangle: BoolOrDataConfig<MangleOptions>,
@@ -265,29 +300,4 @@ pub struct TerserSourceMapOption {
   pub url: Option<String>,
   pub root: Option<String>,
   pub content: Option<String>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct JsMinifyFormatOptions {
-  pub ascii_only: bool,
-  pub beautify: bool,
-  pub braces: bool,
-  pub comments: JsMinifyCommentOption,
-  pub ecma: usize,
-  pub indent_level: Option<usize>,
-  pub indent_start: bool,
-  pub inline_script: bool,
-  pub keep_numbers: bool,
-  pub keep_quoted_props: bool,
-  pub max_line_len: usize,
-  pub preamble: String,
-  pub quote_keys: bool,
-  pub quote_style: usize,
-  pub preserve_annotations: bool,
-  pub safari10: bool,
-  pub semicolons: bool,
-  pub shebang: bool,
-  pub webkit: bool,
-  pub wrap_iife: bool,
-  pub wrap_func_args: bool,
 }

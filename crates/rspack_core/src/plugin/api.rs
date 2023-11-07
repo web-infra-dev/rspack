@@ -447,6 +447,10 @@ pub trait Plugin: Debug + Send + Sync {
   async fn after_emit(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
+
+  fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
 }
 
 pub type BoxPlugin = Box<dyn Plugin>;

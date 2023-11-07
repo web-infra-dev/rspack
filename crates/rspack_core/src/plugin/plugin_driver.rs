@@ -631,4 +631,12 @@ impl PluginDriver {
     }
     Ok(())
   }
+
+  #[instrument(name = "plugin:seal", skip_all)]
+  pub fn seal(&self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin.seal(compilation)?;
+    }
+    Ok(())
+  }
 }

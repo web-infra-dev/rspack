@@ -65,7 +65,9 @@ impl ModuleIssuer {
   }
 
   pub fn get_module<'a>(&self, module_graph: &'a ModuleGraph) -> Option<&'a BoxModule> {
-    if let Some(id) = self.identifier() && let Some(module) = module_graph.module_by_identifier(id) {
+    if let Some(id) = self.identifier()
+      && let Some(module) = module_graph.module_by_identifier(id)
+    {
       Some(module)
     } else {
       None
@@ -480,7 +482,9 @@ impl Module for NormalModule {
   }
 
   fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
-    if let Some(deps) = self.code_generation_dependencies.as_deref() && !deps.is_empty() {
+    if let Some(deps) = self.code_generation_dependencies.as_deref()
+      && !deps.is_empty()
+    {
       Some(deps)
     } else {
       None
@@ -488,7 +492,9 @@ impl Module for NormalModule {
   }
 
   fn get_presentational_dependencies(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
-    if let Some(deps) = self.presentational_dependencies.as_deref() && !deps.is_empty() {
+    if let Some(deps) = self.presentational_dependencies.as_deref()
+      && !deps.is_empty()
+    {
       Some(deps)
     } else {
       None
@@ -509,7 +515,9 @@ impl Module for NormalModule {
       if let Some(side_effect_free) = mgm.factory_meta.as_ref().and_then(|m| m.side_effect_free) {
         return ConnectionState::Bool(!side_effect_free);
       }
-      if let Some(side_effect_free) = mgm.build_meta.as_ref().and_then(|m| m.side_effect_free) && side_effect_free {
+      if let Some(side_effect_free) = mgm.build_meta.as_ref().and_then(|m| m.side_effect_free)
+        && side_effect_free
+      {
         // use module chain instead of is_evaluating_side_effects to mut module graph
         if module_chain.contains(&self.identifier()) {
           return ConnectionState::CircularConnection;
@@ -518,7 +526,8 @@ impl Module for NormalModule {
         let mut current = ConnectionState::Bool(false);
         for dependency_id in mgm.dependencies.iter() {
           if let Some(dependency) = module_graph.dependency_by_id(dependency_id) {
-            let state = dependency.get_module_evaluation_side_effects_state(module_graph, module_chain);
+            let state =
+              dependency.get_module_evaluation_side_effects_state(module_graph, module_chain);
             if matches!(state, ConnectionState::Bool(true)) {
               // TODO add optimization bailout
               module_chain.remove(&self.identifier());
@@ -549,7 +558,9 @@ impl NormalModule {
     if content.is_buffer() {
       return Ok(RawSource::Buffer(content.into_bytes()).boxed());
     }
-    if self.options.devtool.enabled() && let Some(source_map) = source_map {
+    if self.options.devtool.enabled()
+      && let Some(source_map) = source_map
+    {
       let content = content.into_string_lossy();
       return Ok(
         SourceMapSource::new(WithoutOriginalOptions {
@@ -560,7 +571,9 @@ impl NormalModule {
         .boxed(),
       );
     }
-    if self.options.devtool.source_map() && let Content::String(content) = content {
+    if self.options.devtool.source_map()
+      && let Content::String(content) = content
+    {
       return Ok(OriginalSource::new(content, self.request()).boxed());
     }
     Ok(RawSource::from(content.into_string_lossy()).boxed())

@@ -10,9 +10,10 @@ use napi_derive::napi;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlOptions, AssetGeneratorOptions,
   AssetInlineGeneratorOptions, AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions,
-  AssetResourceGeneratorOptions, BoxLoader, DescriptionData, FuncUseCtx, GeneratorOptions,
-  GeneratorOptionsByModuleType, ModuleOptions, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
-  ModuleRuleUseLoader, ModuleType, ParserOptions, ParserOptionsByModuleType,
+  AssetResourceGeneratorOptions, BoxLoader, DescriptionData, DynamicImportMode, FuncUseCtx,
+  GeneratorOptions, GeneratorOptionsByModuleType, JavascriptParserOptions, ModuleOptions,
+  ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, ParserOptions,
+  ParserOptionsByModuleType,
 };
 use rspack_error::internal_error;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
@@ -290,9 +291,10 @@ pub struct RawModuleRule {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawParserOptions {
-  #[napi(ts_type = r#""asset" | "unknown""#)]
+  #[napi(ts_type = r#""asset" | "javascript" | "unknown""#)]
   pub r#type: String,
   pub asset: Option<RawAssetParserOptions>,
+  pub javascript: Option<RawJavascriptParserOptions>,
 }
 
 impl From<RawParserOptions> for ParserOptions {
@@ -304,11 +306,29 @@ impl From<RawParserOptions> for ParserOptions {
           .expect("should have an \"asset\" when RawParserOptions.type is \"asset\"")
           .into(),
       ),
+      "javascript" => Self::Javascript(
+        value.javascript.expect("should have an \"javascript\" when RawParserOptions.type is \"javascript\"").into()
+      ),
       "unknown" => Self::Unknown,
       _ => panic!(
-        "Failed to resolve the RawParserOptions.type {}. Expected type is \"asset\", \"unknown\".",
+        "Failed to resolve the RawParserOptions.type {}. Expected type is \"asset\", \"javascript\",  \"unknown\".",
         value.r#type
       ),
+    }
+  }
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawJavascriptParserOptions {
+  pub dynamic_import_mode: String,
+}
+
+impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
+  fn from(value: RawJavascriptParserOptions) -> Self {
+    Self {
+      dynamic_import_mode: DynamicImportMode::from(value.dynamic_import_mode.as_str()),
     }
   }
 }

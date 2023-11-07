@@ -117,20 +117,25 @@ impl HarmonyExportImportedSpecifierDependency {
     // dbg!(&ids, &self.mode_ids);
     // Special handling for reexporting the default export
     // from non-namespace modules
-    if let Some(name) = name.as_ref() &&  ids.get(0).map(|item| item.as_ref())  == Some("default") {
+    if let Some(name) = name.as_ref()
+      && ids.first().map(|item| item.as_ref()) == Some("default")
+    {
       match imported_exports_type {
         ExportsType::Dynamic => {
-          let mut export_mode = ExportMode::new(ExportModeType::ReexportDynamicDefault, );
+          let mut export_mode = ExportMode::new(ExportModeType::ReexportDynamicDefault);
           export_mode.name = Some(name.clone());
           return export_mode;
-        },
+        }
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
-          let export_info_id = exports_info.id.get_read_only_export_info(name, module_graph).id;
-          let mut export_mode = ExportMode::new( ExportModeType::ReexportNamedDefault);
+          let export_info_id = exports_info
+            .id
+            .get_read_only_export_info(name, module_graph)
+            .id;
+          let mut export_mode = ExportMode::new(ExportModeType::ReexportNamedDefault);
           export_mode.name = Some(name.clone());
           export_mode.partial_namespace_export_info = Some(export_info_id);
           return export_mode;
-        },
+        }
         _ => {}
       }
     }
@@ -348,9 +353,11 @@ impl HarmonyExportImportedSpecifierDependency {
         if matches!(export_info.get_used(runtime), UsageState::Unused) {
           continue;
         }
-        if let Some(hidden) = hidden.as_mut() && hidden_exports.as_ref()
-          .map(|hidden_exports| hidden_exports.contains(&import_export_info_name))
-          .is_some()
+        if let Some(hidden) = hidden.as_mut()
+          && hidden_exports
+            .as_ref()
+            .map(|hidden_exports| hidden_exports.contains(&import_export_info_name))
+            .is_some()
         {
           hidden.insert(import_export_info_name.clone());
           continue;

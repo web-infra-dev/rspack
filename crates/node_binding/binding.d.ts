@@ -56,7 +56,7 @@ export class JsStats {
   getErrors(): Array<JsStatsError>
   getWarnings(): Array<JsStatsWarning>
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
-  getHash(): string
+  getHash(): string | null
 }
 
 export class Rspack {
@@ -95,6 +95,12 @@ export class Rspack {
    */
   unsafe_drop(): void
 }
+
+export function __chunk_inner_can_be_initial(jsChunk: JsChunk, compilation: JsCompilation): boolean
+
+export function __chunk_inner_has_runtime(jsChunk: JsChunk, compilation: JsCompilation): boolean
+
+export function __chunk_inner_is_only_initial(jsChunk: JsChunk, compilation: JsCompilation): boolean
 
 export interface AfterResolveData {
   request: string
@@ -173,8 +179,8 @@ export interface JsAssetInfo {
    * the value(s) of the content hash used for this asset
    */
   contentHash: Array<string>
+  sourceFilename?: string
   /**
-   * when asset was created from a source file (potentially transformed), the original filename relative to compilation context
    * size in bytes, only set after asset has been emitted
    * when asset is only used for development and doesn't count towards user-facing assets
    */
@@ -198,8 +204,19 @@ export interface JsAssetInfoRelated {
 }
 
 export interface JsChunk {
+  __inner_ukey: number
   name?: string
+  id?: string
+  ids: Array<string>
+  idNameHints: Array<string>
+  filenameTemplate?: string
+  cssFilenameTemplate?: string
   files: Array<string>
+  runtime: Array<string>
+  hash?: string
+  contentHash: Record<string, string>
+  renderedHash?: string
+  chunkReasons: Array<string>
 }
 
 export interface JsChunkAssetArgs {
@@ -333,7 +350,7 @@ export interface JsStatsAsset {
   type: string
   name: string
   size: number
-  chunks: Array<string>
+  chunks: Array<string | undefined | null>
   chunkNames: Array<string>
   info: JsStatsAssetInfo
   emitted: boolean
@@ -342,6 +359,7 @@ export interface JsStatsAsset {
 export interface JsStatsAssetInfo {
   development: boolean
   hotModuleReplacement: boolean
+  sourceFilename?: string
 }
 
 export interface JsStatsAssetsByChunkName {
@@ -353,7 +371,7 @@ export interface JsStatsChunk {
   type: string
   files: Array<string>
   auxiliaryFiles: Array<string>
-  id: string
+  id?: string
   entry: boolean
   initial: boolean
   names: Array<string>
@@ -367,7 +385,7 @@ export interface JsStatsChunk {
 export interface JsStatsChunkGroup {
   name: string
   assets: Array<JsStatsChunkGroupAsset>
-  chunks: Array<string>
+  chunks: Array<string | undefined | null>
   assetsSize: number
 }
 
@@ -405,7 +423,7 @@ export interface JsStatsModule {
   identifier: string
   name: string
   id?: string
-  chunks: Array<string>
+  chunks: Array<string | undefined | null>
   size: number
   issuer?: string
   issuerName?: string
@@ -760,6 +778,10 @@ export interface RawInfo {
   version?: string
 }
 
+export interface RawJavascriptParserOptions {
+  dynamicImportMode: string
+}
+
 export interface RawLibraryAuxiliaryComment {
   root?: string
   commonjs?: string
@@ -926,8 +948,9 @@ export interface RawOutputOptions {
 }
 
 export interface RawParserOptions {
-  type: "asset" | "unknown"
+  type: "asset" | "javascript" | "unknown"
   asset?: RawAssetParserOptions
+  javascript?: RawJavascriptParserOptions
 }
 
 export interface RawPluginImportConfig {
@@ -1058,14 +1081,10 @@ export interface RawStyleConfig {
 }
 
 export interface RawSwcJsMinimizerRspackPluginOptions {
-  passes: number
-  dropConsole: boolean
-  keepClassNames: boolean
-  keepFnNames: boolean
-  comments: "all" | "some" | "false"
-  asciiOnly: boolean
-  pureFuncs: Array<string>
   extractComments?: string
+  compress: boolean | string
+  mangle: boolean | string
+  format: string
   test?: RawSwcJsMinimizerRules
   include?: RawSwcJsMinimizerRules
   exclude?: RawSwcJsMinimizerRules

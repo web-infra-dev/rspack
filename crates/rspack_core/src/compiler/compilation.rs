@@ -219,7 +219,8 @@ impl Compilation {
     tracing::trace!("Emit asset {}", filename);
     if let Some(mut original) = self.assets.remove(&filename)
       && let Some(original_source) = &original.source
-      && let Some(asset_source) = asset.get_source() {
+      && let Some(asset_source) = asset.get_source()
+    {
       let is_source_equal = is_source_equal(original_source, asset_source);
       if !is_source_equal {
         tracing::error!(
@@ -1185,6 +1186,9 @@ impl Compilation {
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
 
+    // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
+    plugin_driver.seal(self)?;
+
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
     while plugin_driver.optimize_dependencies(self).await?.is_some() {}
@@ -1682,6 +1686,7 @@ pub struct AssetInfo {
   /// the asset version, emit can be skipped when both filename and version are the same
   /// An empty string means no version, it will always emit
   pub version: String,
+  pub source_filename: Option<String>,
 }
 
 impl AssetInfo {
@@ -1725,6 +1730,10 @@ impl AssetInfo {
 
   pub fn set_immutable(&mut self, v: bool) {
     self.immutable = v;
+  }
+
+  pub fn set_source_filename(&mut self, v: String) {
+    self.source_filename = Some(v);
   }
 }
 

@@ -60,7 +60,9 @@ pub enum Algo {
 impl Algo {
   pub(crate) fn new(expr: &str, flags: &str) -> Result<Algo, Error> {
     let ignore_case = flags.contains('i') || flags.contains('g') || flags.contains('y');
-    if let Some(algo) = Self::try_compile_to_end_with_fast_path(expr) && !ignore_case {
+    if let Some(algo) = Self::try_compile_to_end_with_fast_path(expr)
+      && !ignore_case
+    {
       Ok(algo)
     } else {
       match HashRegressRegex::new(expr, flags) {

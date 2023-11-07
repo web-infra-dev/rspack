@@ -104,15 +104,15 @@ pub(crate) mod expr_matcher {
   });
 }
 
-pub fn is_require_call_expr(expr: &Expr, ctxt: &SyntaxContext) -> bool {
+pub fn is_require_call_expr(expr: &Expr, ctxt: SyntaxContext) -> bool {
   matches!(expr, Expr::Call(call_expr) if is_require_call(call_expr, ctxt))
 }
 
-pub fn is_require_call(node: &CallExpr, ctxt: &SyntaxContext) -> bool {
+pub fn is_require_call(node: &CallExpr, ctxt: SyntaxContext) -> bool {
   node
     .callee
     .as_expr()
-    .map(|expr| matches!(expr, box Expr::Ident(ident) if &ident.sym == "require" && ident.span.ctxt == *ctxt))
+    .map(|expr| matches!(expr, box Expr::Ident(ident) if &ident.sym == "require" && ident.span.ctxt == ctxt))
     .unwrap_or_default()
 }
 
@@ -255,11 +255,24 @@ fn test() {
   }));
 }
 
-pub fn is_unresolved_member_object_ident(expr: &Expr, unresolved_ctxt: &SyntaxContext) -> bool {
+pub fn is_unresolved_member_object_ident(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
   if let Expr::Member(member) = expr {
     if let Expr::Ident(ident) = &*member.obj {
-      return ident.span.ctxt == *unresolved_ctxt;
+      return ident.span.ctxt == unresolved_ctxt;
     };
   }
   false
+}
+
+pub fn is_unresolved_require(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
+  let ident = match expr {
+    Expr::Ident(ident) => Some(ident),
+    Expr::Member(mem) => mem.obj.as_ident(),
+    _ => None,
+  };
+  let Some(ident) = ident else {
+    unreachable!("please don't use this fn in other case");
+  };
+  assert!(ident.sym.eq("require"));
+  ident.span.ctxt == unresolved_ctxt
 }

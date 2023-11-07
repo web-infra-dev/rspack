@@ -1,36 +1,6 @@
 --- expected
 +++ actual
-@@ -34,8 +34,6 @@
- 'use strict';
- __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
--  A: function() { return A; },
--  B: function() { return B; },
-   exportAUsed: function() { return exportAUsed; },
-   exportBUsed: function() { return exportBUsed; },
-   exportCUsed: function() { return exportCUsed; }
-@@ -49,8 +47,8 @@
-  function C(s) {
-     return s + "C";
- }
-- const exportAUsed = true;
-- const exportBUsed = true;
-+ const exportAUsed = false;
-+ const exportBUsed = false;
-  const exportCUsed = false;
- },
- "./module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-@@ -76,15 +74,15 @@
- }
- function withA(v) {
-     const value = x(v);
--    return (0, _inner__WEBPACK_IMPORTED_MODULE_0_.A)(value);
-+    return A(value);
- }
- function withB(v) {
-     const value = x(v);
--    return (0, _inner__WEBPACK_IMPORTED_MODULE_0_.B)(value);
-+    return B(value);
+@@ -84,7 +84,7 @@
  }
  function withC(v) {
      const value = x(v);
@@ -38,4 +8,4 @@
 +    return C(value);
  }
  
- },
+ }),
