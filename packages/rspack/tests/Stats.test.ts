@@ -34,7 +34,7 @@ describe("Stats", () => {
 		    entry ./fixtures/a
 		./fixtures/a.js [876] {main}
 		  entry ./fixtures/a
-		Rspack compiled successfully (9608c01366e871cd4b26)"
+		Rspack compiled successfully (28f6a741bb6c785d1890)"
 	`);
 	});
 
@@ -79,7 +79,7 @@ describe("Stats", () => {
 
 
 
-		Rspack compiled with 1 error (40d126348f49dbce14a2)"
+		Rspack compiled with 1 error (720d278abb396fd4623f)"
 	`);
 	});
 
