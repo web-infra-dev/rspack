@@ -7,6 +7,7 @@ use std::sync::{mpsc, Mutex};
 
 use async_trait::async_trait;
 use minify::{match_object, minify};
+use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt, SourceMap};
@@ -33,23 +34,39 @@ pub struct SwcJsMinimizerRspackPluginOptions {
   pub test: Option<SwcJsMinimizerRules>,
   pub include: Option<SwcJsMinimizerRules>,
   pub exclude: Option<SwcJsMinimizerRules>,
+
+  /// Internal fields for hashing only.
+  /// This gauranteed these field should only be readonly.
+  /// Otherwise, hash would be generated with inconsistencies.
+  pub __compress_cache: OnceCell<BoolOrDataConfig<String>>,
+  pub __mangle_cache: OnceCell<BoolOrDataConfig<String>>,
+  pub __format_cache: OnceCell<String>,
 }
 
 impl std::hash::Hash for SwcJsMinimizerRspackPluginOptions {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.extract_comments.hash(state);
-    serde_json::to_string(&self.format)
-      .expect("Should be able to serialize")
+    self
+      .__format_cache
+      .get_or_init(|| serde_json::to_string(&self.format).expect("Should be able to serialize"))
       .hash(state);
     self
-      .compress
-      .as_ref()
-      .map(|v| serde_json::to_string(v).expect("Should be able to serialize"))
+      .__compress_cache
+      .get_or_init(|| {
+        self
+          .compress
+          .as_ref()
+          .map(|v| serde_json::to_string(v).expect("Should be able to serialize"))
+      })
       .hash(state);
     self
-      .mangle
-      .as_ref()
-      .map(|v| serde_json::to_string(v).expect("Should be able to serialize"))
+      .__mangle_cache
+      .get_or_init(|| {
+        self
+          .mangle
+          .as_ref()
+          .map(|v| serde_json::to_string(v).expect("Should be able to serialize"))
+      })
       .hash(state);
     self.test.hash(state);
     self.include.hash(state);

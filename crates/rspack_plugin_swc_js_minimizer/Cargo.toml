@@ -15,8 +15,10 @@ rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
 rspack_regex             = { path = "../rspack_regex" }
 rspack_util              = { path = "../rspack_util" }
 
+
 async-recursion = { workspace = true }
 async-trait = { workspace = true }
+once_cell = { workspace = true }
 regex = { workspace = true }
 serde_json = { workspace = true }
 swc_config = { workspace = true }

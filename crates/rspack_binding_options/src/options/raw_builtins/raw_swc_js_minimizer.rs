@@ -71,6 +71,7 @@ impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for SwcJsMinimizerRspackPlugi
       test: try_condition(value.test)?,
       include: try_condition(value.include)?,
       exclude: try_condition(value.exclude)?,
+      ..Default::default()
     })
   }
 }
