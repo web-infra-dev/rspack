@@ -69,6 +69,7 @@ impl Stats<'_> {
                 info: StatsAssetInfo {
                   development: asset.info.development,
                   hot_module_replacement: asset.info.hot_module_replacement,
+                  source_filename: asset.info.source_filename.clone(),
                 },
                 emitted: self.compilation.emitted_assets.contains(name),
               },
@@ -563,6 +564,7 @@ pub struct StatsAssetsByChunkName {
 pub struct StatsAssetInfo {
   pub development: bool,
   pub hot_module_replacement: bool,
+  pub source_filename: Option<String>,
 }
 
 #[derive(Debug)]

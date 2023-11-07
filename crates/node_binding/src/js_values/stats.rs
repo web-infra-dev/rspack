@@ -192,6 +192,7 @@ impl From<rspack_core::StatsAsset> for JsStatsAsset {
 pub struct JsStatsAssetInfo {
   pub development: bool,
   pub hot_module_replacement: bool,
+  pub source_filename: Option<String>,
 }
 
 impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
@@ -199,6 +200,7 @@ impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
     Self {
       development: stats.development,
       hot_module_replacement: stats.hot_module_replacement,
+      source_filename: stats.source_filename,
     }
   }
 }
