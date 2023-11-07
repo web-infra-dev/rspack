@@ -1,13 +1,12 @@
 [package]
 edition    = "2021"
 license    = "MIT"
-name       = "rspack_binding_options"
+name       = "rspack_binding_values"
 repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
 [dependencies]
 rspack_binding_macros                   = { path = "../rspack_binding_macros" }
-rspack_binding_values                   = { path = "../rspack_binding_values" }
 rspack_core                             = { path = "../rspack_core" }
 rspack_error                            = { path = "../rspack_error" }
 rspack_identifier                       = { path = "../rspack_identifier" }
@@ -31,7 +30,6 @@ rspack_plugin_html                      = { path = "../rspack_plugin_html" }
 rspack_plugin_javascript                = { path = "../rspack_plugin_javascript" }
 rspack_plugin_json                      = { path = "../rspack_plugin_json" }
 rspack_plugin_library                   = { path = "../rspack_plugin_library" }
-rspack_plugin_limit_chunk_count         = { path = "../rspack_plugin_limit_chunk_count" }
 rspack_plugin_progress                  = { path = "../rspack_plugin_progress" }
 rspack_plugin_real_content_hash         = { path = "../rspack_plugin_real_content_hash" }
 rspack_plugin_remove_empty_chunks       = { path = "../rspack_plugin_remove_empty_chunks" }
@@ -41,9 +39,7 @@ rspack_plugin_split_chunks              = { path = "../rspack_plugin_split_chunk
 rspack_plugin_split_chunks_new          = { path = "../rspack_plugin_split_chunks_new" }
 rspack_plugin_swc_css_minimizer         = { path = "../rspack_plugin_swc_css_minimizer" }
 rspack_plugin_swc_js_minimizer          = { path = "../rspack_plugin_swc_js_minimizer" }
-rspack_plugin_warn_sensitive_module     = { path = "../rspack_plugin_warn_sensitive_module" }
 rspack_plugin_wasm                      = { path = "../rspack_plugin_wasm" }
-rspack_plugin_web_worker_template       = { path = "../rspack_plugin_web_worker_template" }
 rspack_plugin_worker                    = { path = "../rspack_plugin_worker" }
 rspack_regex                            = { path = "../rspack_regex" }
 rspack_swc_visitors                     = { path = "../rspack_swc_visitors" }
@@ -51,10 +47,13 @@ rspack_swc_visitors                     = { path = "../rspack_swc_visitors" }
 anyhow            = { workspace = true, features = ["backtrace"] }
 async-trait       = { workspace = true }
 better_scoped_tls = { workspace = true }
+dashmap           = { workspace = true }
 derivative        = { workspace = true }
+futures           = { workspace = true }
 glob              = { workspace = true }
 napi              = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
 napi-derive       = { workspace = true }
+napi-sys          = { workspace = true }
 rustc-hash        = { workspace = true }
 serde             = { workspace = true, features = ["derive"] }
 serde_json        = { workspace = true }

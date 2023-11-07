@@ -1,6 +1,7 @@
 use std::{borrow::Cow, hash::Hash, sync::Arc};
 
 use napi::bindgen_prelude::*;
+use napi_derive::napi;
 use rspack_core::rspack_sources::{
   stream_chunks::{stream_chunks_default, GeneratedInfo, OnChunk, OnName, OnSource, StreamChunks},
   CachedSource, ConcatSource, MapOptions, OriginalSource, RawSource, ReplaceSource, Source,
