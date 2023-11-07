@@ -14,7 +14,9 @@ use rspack_plugin_javascript::{
   utils::ecma_parse_error_to_rspack_error, ExtractedCommentsInfo, IsModule, SourceMapsConfig,
   TransformOutput,
 };
+use swc_config::config_types::BoolOr;
 use swc_core::{
+  base::config::JsMinifyCommentOption,
   common::{
     collections::AHashMap,
     comments::{Comment, CommentKind, Comments, SingleThreadedComments},
@@ -39,9 +41,7 @@ use swc_ecma_minifier::{
   option::{MinifyOptions, TopLevelOptions},
 };
 
-use crate::{
-  ExtractComments, JsMinifyCommentOption, JsMinifyOptions, SwcJsMinimizerRspackPluginOptions,
-};
+use crate::{ExtractComments, JsMinifyOptions, SwcJsMinimizerRspackPluginOptions};
 
 pub fn match_object(obj: &SwcJsMinimizerRspackPluginOptions, str: &str) -> Result<bool> {
   if let Some(condition) = &obj.test {
@@ -71,12 +71,12 @@ pub fn match_object(obj: &SwcJsMinimizerRspackPluginOptions, str: &str) -> Resul
  */
 pub(crate) fn minify_file_comments(
   comments: &SingleThreadedComments,
-  preserve_comments: JsMinifyCommentOption,
+  preserve_comments: BoolOr<JsMinifyCommentOption>,
 ) {
   match preserve_comments {
-    JsMinifyCommentOption::PreserveAllComments => {}
+    BoolOr::Bool(true) | BoolOr::Data(JsMinifyCommentOption::PreserveAllComments) => {}
 
-    JsMinifyCommentOption::PreserveSomeComments => {
+    BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments) => {
       let preserve_excl = |_: &BytePos, vc: &mut Vec<Comment>| -> bool {
         // Preserve license comments.
         vc.retain(|c: &Comment| c.text.contains("@license") || c.text.starts_with('!'));
@@ -88,7 +88,7 @@ pub(crate) fn minify_file_comments(
       t.retain(preserve_excl);
     }
 
-    JsMinifyCommentOption::False => {
+    BoolOr::Bool(false) => {
       let (mut l, mut t) = comments.borrow_all_mut();
       l.clear();
       t.clear();
@@ -272,7 +272,15 @@ pub fn minify(
           }
         }
 
-        minify_file_comments(&comments, opts.format.comments.to_owned());
+        minify_file_comments(
+          &comments,
+          opts
+            .format
+            .comments
+            .clone()
+            .into_inner()
+            .unwrap_or(BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments)),
+        );
 
         print(
           &program,

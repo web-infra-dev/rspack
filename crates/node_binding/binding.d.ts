@@ -1081,14 +1081,10 @@ export interface RawStyleConfig {
 }
 
 export interface RawSwcJsMinimizerRspackPluginOptions {
-  passes: number
-  dropConsole: boolean
-  keepClassNames: boolean
-  keepFnNames: boolean
-  comments: "all" | "some" | "false"
-  asciiOnly: boolean
-  pureFuncs: Array<string>
   extractComments?: string
+  compress: boolean | string
+  mangle: boolean | string
+  format: string
   test?: RawSwcJsMinimizerRules
   include?: RawSwcJsMinimizerRules
   exclude?: RawSwcJsMinimizerRules
