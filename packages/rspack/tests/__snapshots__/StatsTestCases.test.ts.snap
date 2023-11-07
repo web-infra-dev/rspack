@@ -195,13 +195,6 @@ import rawModule from './raw.png';
       "logging": {},
       "modules": [
         {
-          "filteredChildren": 2,
-          "moduleType": "runtime",
-          "size": 320,
-          "sizes": {},
-          "type": "runtime modules",
-        },
-        {
           "assets": [],
           "chunks": [
             "main",
@@ -307,6 +300,44 @@ import rawModule from './raw.png';
           "source": "",
           "type": "module",
         },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/public_path",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/public_path",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/make_namespace_object",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/make_namespace_object",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
       ],
       "name": undefined,
       "namedChunkGroups": {
@@ -352,13 +383,14 @@ chunk {main} bundle.js (main) [entry]
     entry ./index
   ./stringModule.js [363] {main}
     esm import ./stringModule [10]
-runtime modules 2 modules
 ./raw.png [692] {main}
   esm import ./raw.png [10]
 ./index.js [10] {main}
   entry ./index
 ./stringModule.js [363] {main}
   esm import ./stringModule [10]
+webpack/runtime/public_path {main}
+webpack/runtime/make_namespace_object {main}
 Rspack compiled successfully (284a08e9097a65a2de53)"
 `;
 
@@ -529,13 +561,6 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "logging": {},
       "modules": [
         {
-          "filteredChildren": 7,
-          "moduleType": "runtime",
-          "size": 1120,
-          "sizes": {},
-          "type": "runtime modules",
-        },
-        {
           "assets": [],
           "chunks": [
             "main",
@@ -597,6 +622,139 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 ",
           "type": "module",
         },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/ensure_chunk",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/ensure_chunk",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/has_own_property",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/has_own_property",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/make_namespace_object",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/make_namespace_object",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/require_chunk_loading",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/require_chunk_loading",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/load_chunk_with_module",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/load_chunk_with_module",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/define_property_getters",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/define_property_getters",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/get_chunk_filename/__webpack_require__.u",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/get_chunk_filename/__webpack_require__.u",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
       ],
       "name": undefined,
       "namedChunkGroups": {
@@ -641,11 +799,17 @@ chunk {dynamic_js} dynamic_js.xxxx.js <{main}>
 chunk {main} main.xxxx.js (main) >{dynamic_js}< [entry]
   ./index.js [10] {main}
     entry ./index
-runtime modules 7 modules
 ./index.js [10] {main}
   entry ./index
 ./dynamic.js [426] {dynamic_js}
   dynamic import ./dynamic [10]
+webpack/runtime/ensure_chunk {main}
+webpack/runtime/has_own_property {main}
+webpack/runtime/make_namespace_object {main}
+webpack/runtime/require_chunk_loading {main}
+webpack/runtime/load_chunk_with_module {main}
+webpack/runtime/define_property_getters {main}
+webpack/runtime/get_chunk_filename/__webpack_require__.u {main}
 Rspack compiled successfully (3290e10b2fba8a8bd75a)"
 `;
 
@@ -747,13 +911,6 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "logging": {},
       "modules": [
         {
-          "filteredChildren": 6,
-          "moduleType": "runtime",
-          "size": 960,
-          "sizes": {},
-          "type": "runtime modules",
-        },
-        {
           "assets": [],
           "chunks": [
             "main",
@@ -779,6 +936,120 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
           "size": 25,
           "source": "console.log("index.js");
 ",
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/get_full_hash",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/get_full_hash",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/has_own_property",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/has_own_property",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/require_chunk_loading",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/require_chunk_loading",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/hot_module_replacement",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/hot_module_replacement",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/get_chunk_update_filename",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/get_chunk_update_filename",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/get_main_filename/__webpack_require__.hmrF",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/get_main_filename/__webpack_require__.hmrF",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
           "type": "module",
         },
       ],
@@ -821,9 +1092,14 @@ Entrypoint main 8.89 KiB = bundle.js
 chunk {main} bundle.js (main) [entry]
   ./index.js [10] {main}
     entry ./index.js
-runtime modules 6 modules
 ./index.js [10] {main}
   entry ./index.js
+webpack/runtime/get_full_hash {main}
+webpack/runtime/has_own_property {main}
+webpack/runtime/require_chunk_loading {main}
+webpack/runtime/hot_module_replacement {main}
+webpack/runtime/get_chunk_update_filename {main}
+webpack/runtime/get_main_filename/__webpack_require__.hmrF {main}
 Rspack compiled successfully (869c6983b495c7e3ace1)"
 `;
 
@@ -7824,13 +8100,6 @@ console.log(a);
       "logging": {},
       "modules": [
         {
-          "filteredChildren": 4,
-          "moduleType": "runtime",
-          "size": 640,
-          "sizes": {},
-          "type": "runtime modules",
-        },
-        {
           "assets": [],
           "chunks": [
             "main",
@@ -7857,6 +8126,82 @@ console.log(a);
           "source": "import { a } from "cycle-alias/a";
 console.log(a);
 ",
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/has_own_property",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/has_own_property",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/make_namespace_object",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/make_namespace_object",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/define_property_getters",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/define_property_getters",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/compat_get_default_export",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/compat_get_default_export",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
           "type": "module",
         },
         {
@@ -7957,9 +8302,12 @@ chunk {main} bundle.js (main) [entry]
   <PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing) [280] {main}
     esm import cycle-alias/a [10]
     esm import specifier cycle-alias/a [10]
-runtime modules 4 modules
 ./index.js [10] {main}
   entry ./index
+webpack/runtime/has_own_property {main}
+webpack/runtime/make_namespace_object {main}
+webpack/runtime/define_property_getters {main}
+webpack/runtime/compat_get_default_export {main}
 <PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing) [280] {main}
   esm import cycle-alias/a [10]
   esm import specifier cycle-alias/a [10]
@@ -8124,13 +8472,6 @@ console.log(a);
       "logging": {},
       "modules": [
         {
-          "filteredChildren": 4,
-          "moduleType": "runtime",
-          "size": 640,
-          "sizes": {},
-          "type": "runtime modules",
-        },
-        {
           "assets": [],
           "chunks": [
             "main",
@@ -8157,6 +8498,82 @@ console.log(a);
           "source": "import a from "pkg-a";
 console.log(a);
 ",
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/has_own_property",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/has_own_property",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/make_namespace_object",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/make_namespace_object",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/define_property_getters",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/define_property_getters",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/compat_get_default_export",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/compat_get_default_export",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
           "type": "module",
         },
         {
@@ -8251,9 +8668,12 @@ chunk {main} bundle.js (main) [entry]
   <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing) [788] {main}
     esm import pkg-a [10]
     esm import specifier pkg-a [10]
-runtime modules 4 modules
 ./index.js [10] {main}
   entry ./index
+webpack/runtime/has_own_property {main}
+webpack/runtime/make_namespace_object {main}
+webpack/runtime/define_property_getters {main}
+webpack/runtime/compat_get_default_export {main}
 <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing) [788] {main}
   esm import pkg-a [10]
   esm import specifier pkg-a [10]
@@ -8272,6 +8692,13 @@ exports[`StatsTestCases should print correct stats for runtime-modules 1`] = `
       "filteredModules": undefined,
       "modules": [
         {
+          "filteredChildren": 3,
+          "moduleType": "runtime",
+          "size": 480,
+          "sizes": {},
+          "type": "runtime modules",
+        },
+        {
           "identifier": "<PROJECT_ROOT>/tests/statsCases/runtime-modules/index.js",
           "issuer": undefined,
           "issuerName": undefined,
@@ -8280,39 +8707,6 @@ exports[`StatsTestCases should print correct stats for runtime-modules 1`] = `
           "name": "./index.js",
           "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/runtime-modules/index.js",
           "size": 20,
-          "type": "module",
-        },
-        {
-          "identifier": "webpack/runtime/has_own_property",
-          "issuer": undefined,
-          "issuerName": undefined,
-          "issuerPath": [],
-          "moduleType": "runtime",
-          "name": "webpack/runtime/has_own_property",
-          "nameForCondition": undefined,
-          "size": 160,
-          "type": "module",
-        },
-        {
-          "identifier": "webpack/runtime/make_namespace_object",
-          "issuer": undefined,
-          "issuerName": undefined,
-          "issuerPath": [],
-          "moduleType": "runtime",
-          "name": "webpack/runtime/make_namespace_object",
-          "nameForCondition": undefined,
-          "size": 160,
-          "type": "module",
-        },
-        {
-          "identifier": "webpack/runtime/define_property_getters",
-          "issuer": undefined,
-          "issuerName": undefined,
-          "issuerPath": [],
-          "moduleType": "runtime",
-          "name": "webpack/runtime/define_property_getters",
-          "nameForCondition": undefined,
-          "size": 160,
           "type": "module",
         },
       ],
@@ -8325,10 +8719,8 @@ exports[`StatsTestCases should print correct stats for runtime-modules 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for runtime-modules 2`] = `
-"./index.js
-webpack/runtime/has_own_property
-webpack/runtime/make_namespace_object
-webpack/runtime/define_property_getters"
+"runtime modules 3 modules
+./index.js"
 `;
 
 exports[`StatsTestCases should print correct stats for simple 1`] = `
@@ -8429,13 +8821,6 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "logging": {},
       "modules": [
         {
-          "filteredChildren": 3,
-          "moduleType": "runtime",
-          "size": 480,
-          "sizes": {},
-          "type": "runtime modules",
-        },
-        {
           "assets": [],
           "chunks": [
             "main",
@@ -8461,6 +8846,63 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
           "size": 26,
           "source": "export const answer = 42;
 ",
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/has_own_property",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/has_own_property",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/make_namespace_object",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/make_namespace_object",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/define_property_getters",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/define_property_getters",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
           "type": "module",
         },
       ],
@@ -8503,9 +8945,11 @@ Entrypoint main 589 bytes = bundle.js
 chunk {main} bundle.js (main) [entry]
   ./index.js [10] {main}
     entry ./index
-runtime modules 3 modules
 ./index.js [10] {main}
   entry ./index
+webpack/runtime/has_own_property {main}
+webpack/runtime/make_namespace_object {main}
+webpack/runtime/define_property_getters {main}
 Rspack compiled successfully (21b6a905e9c471003723)"
 `;
 
@@ -8675,13 +9119,6 @@ import rawModule from './raw.png';
       "logging": {},
       "modules": [
         {
-          "filteredChildren": 4,
-          "moduleType": "runtime",
-          "size": 640,
-          "sizes": {},
-          "type": "runtime modules",
-        },
-        {
           "assets": [],
           "chunks": [
             "main",
@@ -8775,6 +9212,82 @@ import rawModule from './raw.png';
           ],
           "size": 1,
           "source": "",
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/has_own_property",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/has_own_property",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/make_namespace_object",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/make_namespace_object",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/define_property_getters",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/define_property_getters",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/compat_get_default_export",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/compat_get_default_export",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
           "type": "module",
         },
       ],
@@ -8918,13 +9431,6 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "logging": {},
       "modules": [
         {
-          "filteredChildren": 3,
-          "moduleType": "runtime",
-          "size": 480,
-          "sizes": {},
-          "type": "runtime modules",
-        },
-        {
           "assets": [],
           "chunks": [
             "main",
@@ -8948,6 +9454,60 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
             },
           ],
           "size": 26,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/has_own_property",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/has_own_property",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/make_namespace_object",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/make_namespace_object",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
+          "identifier": "webpack/runtime/define_property_getters",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/define_property_getters",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
           "type": "module",
         },
       ],
