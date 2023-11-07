@@ -101,9 +101,11 @@ pub fn render_chunk_modules(
 fn render_module(
   source: BoxSource,
   mgm: &ModuleGraphModule,
-  runtime_requirements: Option<&RuntimeGlobals>,
+  _runtime_requirements: Option<&RuntimeGlobals>,
   module_id: &str,
 ) -> Result<BoxSource> {
+  // TODO: determine arguments by runtime requirments
+
   // let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
   // let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
   // let need_require = runtime_requirements.is_some_and(|r| {

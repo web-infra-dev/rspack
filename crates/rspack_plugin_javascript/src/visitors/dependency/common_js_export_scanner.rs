@@ -180,7 +180,8 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
               extract_member_expression_chain(expr.as_member().unwrap())
                 .iter()
                 .map(|n| n.0.clone())
-                .collect::<Vec<_>>(),
+                .collect::<Vec<_>>()[1..]
+                .to_vec(),
             ),
           )));
 

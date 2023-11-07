@@ -181,6 +181,8 @@ export class DiffProcessor implements ITestProcessor {
 				templateLiteral: false
 			};
 			webpackOptions.output!.path = dist;
+			webpackOptions.optimization!.concatenateModules = false;
+			webpackOptions.optimization!.mangleExports = false;
 		}
 		if (type === ECompilerType.Rspack) {
 			const rspackOptions = options as TCompilerOptions<ECompilerType.Rspack>;

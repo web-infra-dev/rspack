@@ -215,6 +215,8 @@ bitflags! {
     const NODE_MODULE_DECORATOR = 1 << 47;
 
     const HARMONY_MODULE_DECORATOR = 1 << 48;
+
+    const THIS_AS_EXPORTS = 1 << 49;
   }
 }
 
@@ -284,6 +286,7 @@ impl RuntimeGlobals {
       R::CREATE_FAKE_NAMESPACE_OBJECT => "__webpack_require__.t",
       R::HARMONY_MODULE_DECORATOR => "__webpack_require__.hmd",
       R::NODE_MODULE_DECORATOR => "__webpack_require__.nmd",
+      R::THIS_AS_EXPORTS => "top-level-this-exports",
       r => panic!(
         "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
       ),

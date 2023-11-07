@@ -2,7 +2,7 @@ use rspack_core::{
   property_access, AsModuleDependency, Dependency, DependencyCategory, DependencyId,
   DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph, NormalInitFragment,
-  TemplateContext, TemplateReplaceSource, UsedName,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedName,
 };
 
 #[derive(Debug, Clone)]
@@ -124,6 +124,7 @@ impl DependencyTemplate for CommonJsExportsDependency {
       module,
       runtime,
       init_fragments,
+      runtime_requirements,
       ..
     } = code_generatable_context;
 
@@ -142,10 +143,13 @@ impl DependencyTemplate for CommonJsExportsDependency {
     let module_argument = mgm.get_module_argument();
 
     let base = if self.base.is_exports() {
+      runtime_requirements.insert(RuntimeGlobals::EXPORTS);
       exports_argument.to_string()
     } else if self.base.is_module_exports() {
+      runtime_requirements.insert(RuntimeGlobals::MODULE);
       format!("{}.exports", module_argument)
     } else if self.base.is_this() {
+      runtime_requirements.insert(RuntimeGlobals::THIS_AS_EXPORTS);
       "this".to_string()
     } else {
       panic!("Unexpect base type");
