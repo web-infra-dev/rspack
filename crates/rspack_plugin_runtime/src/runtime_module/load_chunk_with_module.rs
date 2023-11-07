@@ -123,14 +123,16 @@ impl_runtime_module!(LoadChunkWithModuleRuntimeModule);
 fn stringify_map(map: &HashMap<String, Vec<String>>) -> String {
   format!(
     r#"{{{}}}"#,
-    map.keys().sorted().fold(String::new(), |prev, cur| {
-      prev
-        + format!(
-          r#"{}: {},"#,
-          cur,
-          stringify_array(map.get(cur).expect("get key from map"))
+    map
+      .keys()
+      .sorted_unstable()
+      .map(|key| {
+        format!(
+          r#"{}: {}"#,
+          key,
+          stringify_array(map.get(key).expect("get key from map"))
         )
-        .as_str()
-    })
+      })
+      .join(", ")
   )
 }

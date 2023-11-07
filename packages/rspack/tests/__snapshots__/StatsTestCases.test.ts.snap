@@ -504,7 +504,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "e2c6efa4b9748641b90e",
+  "hash": "2fc9254c48527d8a0f62",
   "logging": {},
   "modules": [
     {
@@ -607,7 +607,7 @@ chunk {main} main.xxxx.js (main) >{dynamic_js}< [entry]
   entry ./index
 ./dynamic.js [426] {dynamic_js}
   dynamic import ./dynamic [10]
-Rspack compiled successfully (e2c6efa4b9748641b90e)"
+Rspack compiled successfully (2fc9254c48527d8a0f62)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -1208,7 +1208,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "7b30e12b7c388f0656b0",
+      "hash": "dd84ffabbcf23038f36e",
       "logging": {},
       "modules": [
         {
@@ -1710,7 +1710,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "6856f0e9bfd85c8b6be3",
+      "hash": "3e9b37b218ba7bc75de2",
       "logging": {},
       "modules": [
         {
@@ -2244,7 +2244,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "b433eb8ebb48758610e2",
+      "hash": "9efd38806ce66b6a9791",
       "logging": {},
       "modules": [
         {
@@ -2812,7 +2812,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "38c68d78b5d32162ff8e",
+      "hash": "de66cb644888925a8f42",
       "logging": {},
       "modules": [
         {
@@ -3031,7 +3031,7 @@ import(/* webpackChunkName: "c" */ "./c");
   ],
   "errors": [],
   "errorsCount": 0,
-  "hash": "7b30e12b7c388f0656b06856f0e9bfd85c8b6be3b433eb8ebb48758610e238c68d78b5d32162ff8e",
+  "hash": "dd84ffabbcf23038f36e3e9b37b218ba7bc75de29efd38806ce66b6a9791de66cb644888925a8f42",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -3064,7 +3064,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
     dynamic import ./e [460]
   ./index.js [10] {main}
     entry ./index
-  1 chunks compiled successfully (7b30e12b7c388f0656b0)
+  1 chunks compiled successfully (dd84ffabbcf23038f36e)
 
 2 chunks:
   PublicPath: (none)
@@ -3094,7 +3094,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
     dynamic import ./e [460]
   ./index.js [10] {main}
     entry ./index
-  2 chunks compiled successfully (6856f0e9bfd85c8b6be3)
+  2 chunks compiled successfully (3e9b37b218ba7bc75de2)
 
 3 chunks:
   PublicPath: (none)
@@ -3126,7 +3126,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
     dynamic import ./e [460]
   ./index.js [10] {main}
     entry ./index
-  3 chunks compiled successfully (b433eb8ebb48758610e2)
+  3 chunks compiled successfully (9efd38806ce66b6a9791)
 
 4 chunks:
   PublicPath: (none)
@@ -3160,7 +3160,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
     dynamic import ./e [460]
   ./index.js [10] {main}
     entry ./index
-  4 chunks compiled successfully (38c68d78b5d32162ff8e)"
+  4 chunks compiled successfully (de66cb644888925a8f42)"
 `;
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 1`] = `
