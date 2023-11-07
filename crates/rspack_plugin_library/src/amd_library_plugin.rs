@@ -38,17 +38,15 @@ impl AmdLibraryPlugin {
       if library.name.is_some() {
         internal_error_bail!("AMD library name must be unset. {COMMON_LIBRARY_NAME_MESSAGE}")
       }
-    } else {
-      if let Some(name) = &library.name
-        && !matches!(
-          name,
-          LibraryName::NonUmdObject(LibraryNonUmdObject::String(_))
-        )
-      {
-        internal_error_bail!(
-          "AMD library name must be a simple string or unset. {COMMON_LIBRARY_NAME_MESSAGE}"
-        )
-      }
+    } else if let Some(name) = &library.name
+      && !matches!(
+        name,
+        LibraryName::NonUmdObject(LibraryNonUmdObject::String(_))
+      )
+    {
+      internal_error_bail!(
+        "AMD library name must be a simple string or unset. {COMMON_LIBRARY_NAME_MESSAGE}"
+      )
     }
     Ok(AmdLibraryPluginParsed {
       name: library.name.as_ref().map(|name| match name {
@@ -82,7 +80,7 @@ impl Plugin for AmdLibraryPlugin {
     args: &mut AdditionalChunkRuntimeRequirementsArgs,
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
     if self
-      .get_options_for_chunk(&args.compilation, args.chunk)?
+      .get_options_for_chunk(args.compilation, args.chunk)?
       .is_none()
     {
       return Ok(());

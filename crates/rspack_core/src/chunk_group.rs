@@ -245,7 +245,7 @@ impl ChunkGroup {
 pub enum ChunkGroupKind {
   Entrypoint {
     initial: bool,
-    options: EntryOptions,
+    options: Box<EntryOptions>,
   },
   Normal {
     options: ChunkGroupOptions,
@@ -254,7 +254,10 @@ pub enum ChunkGroupKind {
 
 impl ChunkGroupKind {
   pub fn new_entrypoint(initial: bool, options: EntryOptions) -> Self {
-    Self::Entrypoint { initial, options }
+    Self::Entrypoint {
+      initial,
+      options: Box::new(options),
+    }
   }
 
   pub fn is_entrypoint(&self) -> bool {

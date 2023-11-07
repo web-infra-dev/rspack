@@ -81,7 +81,7 @@ impl Plugin for SystemLibraryPlugin {
     // system-named-assets-path is not supported
     let name = options
       .name
-      .map(|name| serde_json::to_string(name))
+      .map(serde_json::to_string)
       .transpose()
       .map_err(|e| internal_error!(e.to_string()))?
       .map(|s| format!("{s}, "))

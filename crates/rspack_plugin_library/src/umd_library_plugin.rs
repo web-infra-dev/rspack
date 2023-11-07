@@ -95,7 +95,7 @@ impl Plugin for UmdLibraryPlugin {
 
   fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
     let compilation = args.compilation;
-    let Some(options) = dbg!(self.get_options_for_chunk(compilation, args.chunk)) else {
+    let Some(options) = self.get_options_for_chunk(compilation, args.chunk) else {
       return Ok(None);
     };
     let chunk = args.chunk();

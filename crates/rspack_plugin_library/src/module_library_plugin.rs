@@ -23,7 +23,7 @@ impl ModuleLibraryPlugin {
     Ok(())
   }
 
-  fn get_options_for_chunk<'a>(
+  fn get_options_for_chunk(
     &self,
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,

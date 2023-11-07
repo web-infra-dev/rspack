@@ -265,7 +265,6 @@ impl PluginDriver {
   pub fn render(&self, args: RenderArgs) -> PluginRenderHookOutput {
     for plugin in &self.plugins {
       if let Some(source) = plugin.render(PluginContext::new(), &args)? {
-        dbg!(plugin.name());
         return Ok(Some(source));
       }
     }

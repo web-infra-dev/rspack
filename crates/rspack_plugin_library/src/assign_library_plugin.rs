@@ -93,18 +93,16 @@ impl AssignLibraryPlugin {
           "Library name must be a string or string array. {COMMON_LIBRARY_NAME_MESSAGE}"
         )
       }
-    } else {
-      if let Some(name) = &library.name
-        && !matches!(
-          name,
-          LibraryName::NonUmdObject(LibraryNonUmdObject::Array(_))
-            | LibraryName::NonUmdObject(LibraryNonUmdObject::String(_))
-        )
-      {
-        internal_error_bail!(
-          "Library name must be a string, string array or unset. {COMMON_LIBRARY_NAME_MESSAGE}"
-        )
-      }
+    } else if let Some(name) = &library.name
+      && !matches!(
+        name,
+        LibraryName::NonUmdObject(LibraryNonUmdObject::Array(_))
+          | LibraryName::NonUmdObject(LibraryNonUmdObject::String(_))
+      )
+    {
+      internal_error_bail!(
+        "Library name must be a string, string array or unset. {COMMON_LIBRARY_NAME_MESSAGE}"
+      )
     }
     Ok(AssignLibraryPluginParsed {
       name: library.name.as_ref().map(|n| match n {
