@@ -287,7 +287,7 @@ function getRawCompressOptions(options?: SwcJsMinimizerRspackPluginOptions) {
 
 		if (options?.compress && typeof options.compress === "object") {
 			return {
-				// TODO: deprecate default merging in 0.5
+				// TODO: deprecate default merging in 0.4
 				..._default,
 				...options.compress
 			};
@@ -318,7 +318,7 @@ function getRawMangleOptions(options?: SwcJsMinimizerRspackPluginOptions) {
 
 		if (options?.mangle && typeof options.mangle === "object") {
 			return {
-				// TODO: deprecate default merging in 0.5
+				// TODO: deprecate default merging in 0.4
 				..._default,
 				...options.mangle
 			};
@@ -335,11 +335,12 @@ function getRawMangleOptions(options?: SwcJsMinimizerRspackPluginOptions) {
 function getRawFormatOptions(options?: SwcJsMinimizerRspackPluginOptions) {
 	function _inner() {
 		const _default = {
-			comments: options?.format?.comments ? options?.format?.comments : false,
+			comments: options?.comments ? options?.comments : false,
 			asciiOnly: options?.asciiOnly ?? false
 		} satisfies SwcJsMinimizerRspackPluginOptions["format"];
 
 		if (options?.format && typeof options.format === "object") {
+			// TODO: deprecate default merging in 0.4
 			return {
 				..._default,
 				...options.format
@@ -358,8 +359,6 @@ export const SwcJsMinimizerRspackPlugin = create(
 		options?: SwcJsMinimizerRspackPluginOptions
 	): RawSwcJsMinimizerRspackPluginOptions => {
 		return {
-			comments: options?.comments ? options.comments : "false",
-			asciiOnly: options?.asciiOnly ?? false,
 			extractComments: options?.extractComments
 				? String(options.extractComments)
 				: undefined,

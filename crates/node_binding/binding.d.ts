@@ -1081,8 +1081,6 @@ export interface RawStyleConfig {
 }
 
 export interface RawSwcJsMinimizerRspackPluginOptions {
-  comments: "all" | "some" | "false"
-  asciiOnly: boolean
   extractComments?: string
   compress: boolean | string
   mangle: boolean | string

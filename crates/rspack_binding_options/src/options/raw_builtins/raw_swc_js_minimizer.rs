@@ -29,9 +29,6 @@ pub struct RawSwcJsMinimizerRules {
 #[derive(Debug)]
 #[napi(object)]
 pub struct RawSwcJsMinimizerRspackPluginOptions {
-  #[napi(ts_type = r#""all" | "some" | "false""#)]
-  pub comments: String,
-  pub ascii_only: bool,
   pub extract_comments: Option<String>,
   pub compress: Either<bool, String>,
   pub mangle: Either<bool, String>,
