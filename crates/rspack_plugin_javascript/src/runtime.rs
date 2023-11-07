@@ -229,9 +229,11 @@ pub fn stringify_chunks_to_array(chunks: &HashSet<String>) -> String {
 pub fn stringify_array(vec: &[String]) -> String {
   format!(
     r#"[{}]"#,
-    vec.iter().fold(String::new(), |prev, cur| {
-      prev + format!(r#""{cur}","#).as_str()
-    })
+    vec
+      .iter()
+      .map(|item| format!("\"{item}\""))
+      .collect::<Vec<_>>()
+      .join(", ")
   )
 }
 
