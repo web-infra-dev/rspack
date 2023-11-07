@@ -36,7 +36,7 @@ pub struct SwcJsMinimizerRspackPluginOptions {
   pub exclude: Option<SwcJsMinimizerRules>,
 
   /// Internal fields for hashing only.
-  /// This gauranteed these field should only be readonly.
+  /// This guaranteed these field should only be readonly.
   /// Otherwise, hash would be generated with inconsistencies.
   pub __compress_cache: OnceCell<BoolOrDataConfig<String>>,
   pub __mangle_cache: OnceCell<BoolOrDataConfig<String>>,

@@ -279,7 +279,7 @@ pub fn minify(
             .comments
             .clone()
             .into_inner()
-            .unwrap_or_else(|| BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments)),
+            .unwrap_or(BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments)),
         );
 
         print(
