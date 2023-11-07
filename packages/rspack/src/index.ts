@@ -10,6 +10,7 @@ export * from "./MultiStats";
 export * from "./ChunkGroup";
 export * from "./NormalModuleFactory";
 export { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
+export type { NormalizedJsModule } from "./util/normalization";
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
 export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
 export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";

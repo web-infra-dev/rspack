@@ -29,6 +29,7 @@ pub struct ProgressPlugin {
   pub last_state_info: RwLock<Vec<ProgressPluginStateInfo>>,
   pub last_update_time: RwLock<Instant>,
 }
+
 #[derive(Debug)]
 pub struct ProgressPluginStateInfo {
   pub value: String,
@@ -57,11 +58,13 @@ impl ProgressPlugin {
       last_update_time: RwLock::new(Instant::now()),
     }
   }
-  pub fn update_throttled(&self) {
+
+  fn update_throttled(&self) {
     if *self.last_update_time.read().expect("TODO:") + Duration::from_millis(50) < Instant::now() {
       self.update();
     }
   }
+
   fn update(&self) {
     let previous_modules_done = self.modules_done.fetch_add(1, SeqCst);
     let modules_done = previous_modules_done + 1;
@@ -71,72 +74,71 @@ impl ProgressPlugin {
         self.modules_count.load(SeqCst),
       ) as f32);
     let mut state_items = vec![];
-    {
-      let last_active_module = self.last_active_module.read().expect("TODO:");
-      if let Some(last_active_module) = last_active_module.clone() {
-        state_items.push(last_active_module);
-      }
+    let last_active_module = self.last_active_module.read().expect("TODO:");
+    if let Some(last_active_module) = last_active_module.clone() {
+      state_items.push(last_active_module);
     }
     self.handler(0.1 + percent * 0.55, String::from("building"), state_items);
     *self.last_update_time.write().expect("TODO:") = Instant::now();
   }
-  pub fn handler(&self, percent: f32, msg: String, state_items: Vec<String>) {
+
+  fn handler(&self, percent: f32, msg: String, state_items: Vec<String>) {
     if self.options.profile {
       self.default_handler(percent, msg, state_items);
     } else {
       self.progress_bar_handler(percent, msg, state_items);
     }
   }
+
   fn default_handler(&self, _: f32, msg: String, state_items: Vec<String>) {
     let full_state = [vec![msg], state_items].concat();
     let now = Instant::now();
-    {
-      let mut last_state_info = self.last_state_info.write().expect("TODO:");
+    let mut last_state_info = self.last_state_info.write().expect("TODO:");
 
-      let len = full_state.len().max(last_state_info.len());
-      let original_last_state_info_len = last_state_info.len();
-      for i in (0..len).rev() {
-        if i + 1 > original_last_state_info_len {
-          last_state_info.insert(
-            original_last_state_info_len,
-            ProgressPluginStateInfo {
-              value: full_state[i].clone(),
-              time: now,
-            },
-          )
-        } else if i + 1 > full_state.len() || last_state_info[i].value != full_state[i] {
-          let diff = (now - last_state_info[i].time).as_millis();
-          let report_state = if i > 0 {
-            last_state_info[i - 1].value.clone() + " > " + last_state_info[i].value.clone().as_str()
-          } else {
-            last_state_info[i].value.clone()
+    let len = full_state.len().max(last_state_info.len());
+    let original_last_state_info_len = last_state_info.len();
+    for i in (0..len).rev() {
+      if i + 1 > original_last_state_info_len {
+        last_state_info.insert(
+          original_last_state_info_len,
+          ProgressPluginStateInfo {
+            value: full_state[i].clone(),
+            time: now,
+          },
+        )
+      } else if i + 1 > full_state.len() || last_state_info[i].value != full_state[i] {
+        let diff = (now - last_state_info[i].time).as_millis();
+        let report_state = if i > 0 {
+          last_state_info[i - 1].value.clone() + " > " + last_state_info[i].value.clone().as_str()
+        } else {
+          last_state_info[i].value.clone()
+        };
+
+        let mut color = "\x1b[32m";
+        if diff > 10000 {
+          color = "\x1b[31m"
+        } else if diff > 1000 {
+          color = "\x1b[33m"
+        }
+        println!(
+          "{}{} {} ms {}\x1B[0m",
+          color,
+          " | ".repeat(i),
+          diff,
+          report_state
+        );
+        if i + 1 > full_state.len() {
+          last_state_info.truncate(i);
+        } else {
+          last_state_info[i] = ProgressPluginStateInfo {
+            value: full_state[i].clone(),
+            time: now,
           };
-
-          let mut color = "\x1b[32m";
-          if diff > 10000 {
-            color = "\x1b[31m"
-          } else if diff > 1000 {
-            color = "\x1b[33m"
-          }
-          println!(
-            "{}{} {} ms {}\x1B[0m",
-            color,
-            " | ".repeat(i),
-            diff,
-            report_state
-          );
-          if i + 1 > full_state.len() {
-            last_state_info.truncate(i);
-          } else {
-            last_state_info[i] = ProgressPluginStateInfo {
-              value: full_state[i].clone(),
-              time: now,
-            };
-          }
         }
       }
     }
   }
+
   fn progress_bar_handler(&self, percent: f32, msg: String, state_items: Vec<String>) {
     self
       .progress_bar
@@ -144,6 +146,7 @@ impl ProgressPlugin {
     self.progress_bar.set_position((percent * 100.0) as u64);
   }
 }
+
 #[async_trait::async_trait]
 impl Plugin for ProgressPlugin {
   fn name(&self) -> &'static str {

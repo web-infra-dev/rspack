@@ -39,6 +39,7 @@
   "devDependencies": {
     "serve": "14.1.2",
     "@rspack/plugin-react-refresh": "workspace:*",
+    "@rspack/plugin-progress": "workspace:*",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/plugin-html": "workspace:*",

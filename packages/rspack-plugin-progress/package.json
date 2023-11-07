@@ -1,0 +1,39 @@
+{
+  "name": "@rspack/plugin-progress",
+  "version": "0.3.10",
+  "license": "MIT",
+  "description": "ProgressPlugin for rspack",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b ./tsconfig.build.json",
+    "dev": "tsc -w"
+  },
+  "files": [
+    "dist"
+  ],
+  "homepage": "https://rspack.dev",
+  "bugs": "https://github.com/web-infra-dev/rspack/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack"
+  },
+  "devDependencies": {
+    "@rspack/core": "workspace:*",
+    "@types/webpack": "^5.28.4",
+    "typescript": "5.0.2"
+  },
+  "dependencies": {
+    "webpack": "5.89.0"
+  },
+  "peerDependencies": {
+    "@rspack/core": ">= 0.3.10"
+  }
+}
