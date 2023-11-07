@@ -493,7 +493,7 @@ impl Stats<'_> {
     reasons: bool,
     module_assets: bool,
   ) -> Result<StatsModule<'a>> {
-    let mut chunks: Vec<String> = self
+    let mut chunks: Vec<Option<String>> = self
       .compilation
       .chunk_graph
       .get_chunk_graph_module(*identifier)
@@ -505,8 +505,8 @@ impl Stats<'_> {
           .chunk_by_ukey
           .get(k)
           .unwrap_or_else(|| panic!("Could not find chunk by ukey: {k:?}"))
-          .expect_id()
-          .to_string()
+          .id
+          .clone()
       })
       .collect();
     chunks.sort_unstable();
