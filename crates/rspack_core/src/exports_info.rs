@@ -1455,16 +1455,18 @@ pub fn process_export_info(
   }
 }
 
-#[allow(clippy::dbg_macro)]
-pub fn debug_exports_info(module_graph: &ModuleGraph) {
-  for mgm in module_graph.module_graph_modules().values() {
-    dbg!(&mgm.module_identifier);
-    let exports_info_id = mgm.exports;
-    let exports_info = module_graph.get_exports_info_by_id(&exports_info_id);
-    dbg!(&exports_info);
-    for id in exports_info.exports.values() {
-      let export_info = module_graph.get_export_info_by_id(id);
-      dbg!(&export_info);
+#[macro_export]
+macro_rules! debug_exports_info {
+  ($mg:expr) => {
+    for mgm in $mg.module_graph_modules().values() {
+      dbg!(&mgm.module_identifier);
+      let exports_info_id = mgm.exports;
+      let exports_info = $mg.get_exports_info_by_id(&exports_info_id);
+      dbg!(&exports_info);
+      for id in exports_info.exports.values() {
+        let export_info = $mg.get_export_info_by_id(id);
+        dbg!(&export_info);
+      }
     }
-  }
+  };
 }
