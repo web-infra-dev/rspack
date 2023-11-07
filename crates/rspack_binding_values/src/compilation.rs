@@ -3,6 +3,9 @@ use std::path::PathBuf;
 
 use napi::bindgen_prelude::*;
 use napi::NapiRaw;
+use napi_derive::napi;
+use rspack_binding_macros::call_js_function_with_napi_objects;
+use rspack_binding_macros::convert_raw_napi_value_to_napi_value;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
 use rspack_core::ModuleIdentifier;
@@ -15,13 +18,13 @@ use super::module::ToJsModule;
 use super::PathWithInfo;
 use crate::utils::callbackify;
 use crate::{
-  js_values::{chunk::JsChunk, module::JsModule, PathData},
-  CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsStats, ToJsCompatSource,
+  chunk::JsChunk, module::JsModule, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup,
+  JsCompatSource, JsStats, PathData, ToJsCompatSource,
 };
 
 #[napi]
 pub struct JsCompilation {
-  inner: &'static mut rspack_core::Compilation,
+  pub(crate) inner: &'static mut rspack_core::Compilation,
 }
 
 #[napi]
