@@ -132,6 +132,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                     mode_ids,
                     Some(export.clone()),
                     false,
+                    None,
                   )));
               } else {
                 self

@@ -40,6 +40,7 @@ impl HarmonyExportImportedSpecifierDependency {
     mode_ids: Vec<(JsWord, Option<JsWord>)>,
     name: Option<JsWord>,
     export_all: bool,
+    other_star_exports: Option<Vec<DependencyId>>,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
@@ -50,8 +51,8 @@ impl HarmonyExportImportedSpecifierDependency {
       request,
       ids,
       resource_identifier,
-      other_star_exports: None,
       export_all,
+      other_star_exports,
     }
   }
 

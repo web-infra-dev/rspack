@@ -63,7 +63,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let use_simple_source_map = compiler_options.devtool.source_map();
     let original_map = source.map(&MapOptions::new(!compiler_options.devtool.cheap()));
     let source = source.source();
-
     macro_rules! bail {
       ($e:expr) => {{
         return Ok(

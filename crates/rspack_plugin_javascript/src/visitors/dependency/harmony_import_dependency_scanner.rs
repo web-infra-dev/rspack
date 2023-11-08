@@ -120,6 +120,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
                   vec![],
                   Some(n.clone()),
                   false,
+                  None,
                 )));
               self.build_info.harmony_named_exports.insert(n.clone());
             }
@@ -139,6 +140,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
                   ids,
                   Some(name.clone()),
                   false,
+                  None,
                 )));
               self.build_info.harmony_named_exports.insert(name);
             }
@@ -153,17 +155,18 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
         importer_info.exports_all,
       );
       if importer_info.exports_all {
+        let export_imported_dep = HarmonyExportImportedSpecifierDependency::new(
+          request.clone(),
+          source_order,
+          vec![],
+          vec![],
+          None,
+          true,
+          Some(self.build_info.all_star_exports.clone()),
+        );
+
         self.build_info.all_star_exports.push(dependency.id);
-        self
-          .dependencies
-          .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
-            request.clone(),
-            source_order,
-            vec![],
-            vec![],
-            None,
-            true,
-          )));
+        self.dependencies.push(Box::new(export_imported_dep));
       }
       self.dependencies.push(Box::new(dependency));
     }
