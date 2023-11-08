@@ -126,6 +126,7 @@ pub enum ModuleType {
   AssetResource,
   AssetSource,
   Asset,
+  Runtime,
 }
 
 impl ModuleType {
@@ -209,6 +210,7 @@ impl ModuleType {
       ModuleType::AssetSource => "asset/source",
       ModuleType::AssetResource => "asset/resource",
       ModuleType::AssetInline => "asset/inline",
+      ModuleType::Runtime => "runtime",
     }
   }
 }

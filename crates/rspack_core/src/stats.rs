@@ -10,7 +10,8 @@ use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  BoxModule, Chunk, ChunkGroupUkey, Compilation, LogType, ModuleIdentifier, ModuleType, SourceType,
+  BoxModule, BoxRuntimeModule, Chunk, ChunkGroupUkey, Compilation, LogType, ModuleIdentifier,
+  ModuleType, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -141,6 +142,15 @@ impl Stats<'_> {
       .modules()
       .values()
       .map(|module| self.get_module(module, reasons, module_assets, nested_modules, source))
+      .chain(
+        self
+          .compilation
+          .runtime_modules
+          .iter()
+          .map(|(identifier, module)| {
+            self.get_runtime_module(identifier, module, reasons, module_assets)
+          }),
+      )
       .collect::<Result<_>>()?;
     Self::sort_modules(&mut modules);
     Ok(modules)
@@ -476,6 +486,51 @@ impl Stats<'_> {
     })
   }
 
+  fn get_runtime_module<'a>(
+    &'a self,
+    identifier: &ModuleIdentifier,
+    module: &'a BoxRuntimeModule,
+    reasons: bool,
+    module_assets: bool,
+  ) -> Result<StatsModule<'a>> {
+    let mut chunks: Vec<Option<String>> = self
+      .compilation
+      .chunk_graph
+      .get_chunk_graph_module(*identifier)
+      .chunks
+      .iter()
+      .map(|k| {
+        self
+          .compilation
+          .chunk_by_ukey
+          .get(k)
+          .unwrap_or_else(|| panic!("Could not find chunk by ukey: {k:?}"))
+          .id
+          .clone()
+      })
+      .collect();
+    chunks.sort_unstable();
+
+    Ok(StatsModule {
+      r#type: "module",
+      module_type: *module.module_type(),
+      identifier: module.identifier(),
+      name_for_condition: module.name_for_condition().map(|n| n.to_string()),
+      name: module.name().to_string(),
+      id: Some(String::new()),
+      chunks,
+      size: module.size(&SourceType::JavaScript),
+      issuer: None,
+      issuer_name: None,
+      issuer_id: None,
+      issuer_path: Vec::new(),
+      reasons: reasons.then_some(vec![]),
+      assets: module_assets.then_some(vec![]),
+      modules: None,
+      source: None,
+      profile: None,
+    })
+  }
   fn get_chunk_relations(&self, chunk: &Chunk) -> (Vec<String>, Vec<String>, Vec<String>) {
     let mut parents = HashSet::default();
     let mut children = HashSet::default();

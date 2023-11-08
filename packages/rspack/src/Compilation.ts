@@ -273,6 +273,10 @@ export class Compilation {
 			!context.forToString
 		);
 		options.modules = optionOrLocalFallback(options.modules, true);
+		options.runtimeModules = optionOrLocalFallback(
+			options.runtimeModules,
+			!context.forToString
+		);
 		options.reasons = optionOrLocalFallback(
 			options.reasons,
 			!context.forToString
