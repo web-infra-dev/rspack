@@ -321,7 +321,7 @@ export interface JsLoaderContext {
 
 export interface JsModule {
   originalSource?: JsCompatSource
-  resource: string
+  resource?: string
   moduleIdentifier: string
 }
 

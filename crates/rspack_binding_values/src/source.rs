@@ -9,6 +9,7 @@ use rspack_core::rspack_sources::{
 };
 
 #[napi(object)]
+#[derive(Clone)]
 pub struct JsCompatSource {
   /// Whether the underlying data structure is a `RawSource`
   pub is_raw: bool,
