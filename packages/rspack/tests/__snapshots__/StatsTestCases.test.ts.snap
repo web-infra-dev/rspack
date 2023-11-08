@@ -787,7 +787,6 @@ webpack/runtime/require_chunk_loading {main}
 webpack/runtime/load_chunk_with_module {main}
 webpack/runtime/define_property_getters {main}
 webpack/runtime/get_chunk_filename/__webpack_require__.u {main}
-Rspack compiled successfully (e2c6efa4b9748641b90e)"
 Rspack compiled successfully (2fc9254c48527d8a0f62)"
 `;
 
@@ -3949,7 +3948,6 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/load_chunk_with_module {main}
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
-  1 chunks compiled successfully (7b30e12b7c388f0656b0)
   1 chunks compiled successfully (dd84ffabbcf23038f36e)
 
 2 chunks:
@@ -3988,8 +3986,8 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/__webpack_require__.u {main}
-  2 chunks compiled successfully (6856f0e9bfd85c8b6be3)
   2 chunks compiled successfully (3e9b37b218ba7bc75de2)
+
 3 chunks:
   PublicPath: (none)
   asset bundle3.js 1.63 KiB {main} [emitted] (name: main)
@@ -4028,7 +4026,6 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/__webpack_require__.u {main}
-  3 chunks compiled successfully (b433eb8ebb48758610e2)
   3 chunks compiled successfully (9efd38806ce66b6a9791)
 
 4 chunks:
@@ -4071,7 +4068,6 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/__webpack_require__.u {main}
-  4 chunks compiled successfully (38c68d78b5d32162ff8e)"
   4 chunks compiled successfully (de66cb644888925a8f42)"
 `;
 
