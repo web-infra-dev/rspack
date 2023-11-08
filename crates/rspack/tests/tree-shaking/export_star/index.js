@@ -1,3 +1,3 @@
-import {  a } from "./foo";
-a;
-// c();
+import { c, bar } from "./foo";
+bar.a;
+c();
