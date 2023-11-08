@@ -41,16 +41,8 @@ impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for SwcJsMinimizerRspackPlugi
   type Error = rspack_error::Error;
 
   fn try_from(value: RawSwcJsMinimizerRspackPluginOptions) -> Result<Self> {
-    fn into_condition(
-      raw_condition: Option<RawSwcJsMinimizerRules>,
-    ) -> Result<Option<SwcJsMinimizerRules>> {
-      let condition: Option<SwcJsMinimizerRules> = if let Some(test) = raw_condition {
-        Some(RawSwcJsMinimizerRulesWrapper(test).into())
-      } else {
-        None
-      };
-
-      Ok(condition)
+    fn into_condition(c: Option<RawSwcJsMinimizerRules>) -> Option<SwcJsMinimizerRules> {
+      c.map(|test| RawSwcJsMinimizerRulesWrapper(test).into())
     }
 
     Ok(Self {
@@ -58,9 +50,9 @@ impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for SwcJsMinimizerRspackPlugi
       compress: try_deserialize_into(&value.compress)?,
       mangle: try_deserialize_into(&value.mangle)?,
       format: serde_json::from_str(&value.format)?,
-      test: into_condition(value.test)?,
-      include: into_condition(value.include)?,
-      exclude: into_condition(value.exclude)?,
+      test: into_condition(value.test),
+      include: into_condition(value.include),
+      exclude: into_condition(value.exclude),
       ..Default::default()
     })
   }
