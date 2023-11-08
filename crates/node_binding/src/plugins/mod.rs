@@ -10,7 +10,6 @@ use rspack_binding_values::{
   AfterResolveData, BeforeResolveData, JsAssetEmittedArgs, JsChunkAssetArgs, JsModule,
   JsResolveForSchemeInput, JsResolveForSchemeResult, ToJsModule,
 };
-use rspack_core::tree_shaking::js_module;
 use rspack_core::{
   ChunkAssetArgs, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
   PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
@@ -19,7 +18,6 @@ use rspack_core::{
 use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::NapiResultExt;
-use tracing::debug;
 
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
@@ -718,7 +716,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
     }
     let js_module = args
       .to_js_module()
-      .expect("Faile to convert module to JsModule");
+      .expect("Failed to convert module to JsModule");
     self
       .succeed_module_tsfn
       .call(js_module, ThreadsafeFunctionCallMode::NonBlocking)
