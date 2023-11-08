@@ -10,12 +10,12 @@ module.exports = {
 		main: "./index"
 	},
 	optimization: {
-		minimize: true
-	},
-	plugins: [
-		new rspack.SwcJsMinimizerRspackPlugin({
-			test: [/a\d?\.js/],
-			exclude: [/a\.js/]
-		})
-	]
+		minimize: true,
+		minimizer: [
+			new rspack.SwcJsMinimizerRspackPlugin({
+				test: [/a\d?\.js/],
+				exclude: [/a\.js/]
+			})
+		]
+	}
 };
