@@ -206,7 +206,7 @@ impl RawOptionsApply for BuiltinPlugin {
 }
 
 fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> Result<T> {
-  <T as FromNapiValue>::from_unknown(o).into_rspack_result()
+  rspack_napi_shared::downcast_into(o).into_rspack_result()
 }
 
 // TO BE DEPRECATED

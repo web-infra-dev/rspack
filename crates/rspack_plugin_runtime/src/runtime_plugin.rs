@@ -16,7 +16,7 @@ use crate::runtime_module::{
   HarmonyModuleDecoratorRuntimeModule, HasOwnPropertyRuntimeModule,
   LoadChunkWithModuleRuntimeModule, LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule,
   NodeModuleDecoratorRuntimeModule, NormalRuntimeModule, OnChunkLoadedRuntimeModule,
-  PublicPathRuntimeModule,
+  PublicPathRuntimeModule, SystemContextRuntimeModule,
 };
 
 #[derive(Debug)]
@@ -139,6 +139,18 @@ impl Plugin for RuntimePlugin {
       runtime_requirements.insert(RuntimeGlobals::GLOBAL);
     }
 
+    let library_type = {
+      let chunk = compilation
+        .chunk_by_ukey
+        .get(chunk)
+        .expect("should have chunk");
+      chunk
+        .get_entry_options(&compilation.chunk_group_by_ukey)
+        .and_then(|options| options.library.as_ref())
+        .or(compilation.options.output.library.as_ref())
+        .map(|library| library.library_type.clone())
+    };
+
     for runtime_requirement in runtime_requirements.iter() {
       match runtime_requirement {
         RuntimeGlobals::ASYNC_MODULE => {
@@ -249,6 +261,9 @@ impl Plugin for RuntimePlugin {
         ),
         RuntimeGlobals::NODE_MODULE_DECORATOR => {
           compilation.add_runtime_module(chunk, NodeModuleDecoratorRuntimeModule::default().boxed())
+        }
+        RuntimeGlobals::SYSTEM_CONTEXT if matches!(&library_type, Some(t) if t == "system") => {
+          compilation.add_runtime_module(chunk, SystemContextRuntimeModule::default().boxed())
         }
         _ => {}
       }

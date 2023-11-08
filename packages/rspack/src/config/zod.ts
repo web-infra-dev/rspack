@@ -53,6 +53,75 @@ export type WasmLoadingType = z.infer<typeof wasmLoadingType>;
 const wasmLoading = z.literal(false).or(wasmLoadingType);
 export type WasmLoading = z.infer<typeof wasmLoading>;
 
+const libraryCustomUmdObject = z.strictObject({
+	amd: z.string().optional(),
+	commonjs: z.string().optional(),
+	root: z.string().or(z.array(z.string())).optional()
+});
+export type LibraryCustomUmdObject = z.infer<typeof libraryCustomUmdObject>;
+
+const libraryName = z
+	.string()
+	.or(z.array(z.string()))
+	.or(libraryCustomUmdObject);
+export type LibraryName = z.infer<typeof libraryName>;
+
+const libraryCustomUmdCommentObject = z.strictObject({
+	amd: z.string().optional(),
+	commonjs: z.string().optional(),
+	commonjs2: z.string().optional(),
+	root: z.string().optional()
+});
+export type LibraryCustomUmdCommentObject = z.infer<
+	typeof libraryCustomUmdCommentObject
+>;
+
+const amdContainer = z.string();
+export type AmdComtainer = z.infer<typeof amdContainer>;
+
+const auxiliaryComment = z.string().or(libraryCustomUmdCommentObject);
+export type AuxiliaryComment = z.infer<typeof auxiliaryComment>;
+
+const libraryExport = z.string().or(z.array(z.string()));
+export type LibraryExport = z.infer<typeof libraryExport>;
+
+const libraryType = z
+	.enum([
+		"var",
+		"module",
+		"assign",
+		"assign-properties",
+		"this",
+		"window",
+		"self",
+		"global",
+		"commonjs",
+		"commonjs2",
+		"commonjs-module",
+		"commonjs-static",
+		"amd",
+		"amd-require",
+		"umd",
+		"umd2",
+		"jsonp",
+		"system"
+	])
+	.or(z.string());
+export type LibraryType = z.infer<typeof libraryType>;
+
+const umdNamedDefine = z.boolean();
+export type UmdNamedDefine = z.infer<typeof umdNamedDefine>;
+
+const libraryOptions = z.strictObject({
+	amdContainer: amdContainer.optional(),
+	auxiliaryComment: auxiliaryComment.optional(),
+	export: libraryExport.optional(),
+	name: libraryName.optional(),
+	type: libraryType,
+	umdNamedDefine: umdNamedDefine.optional()
+});
+export type LibraryOptions = z.infer<typeof libraryOptions>;
+
 const filenameTemplate = z.string();
 export type FilenameTemplate = z.infer<typeof filenameTemplate>;
 
@@ -76,7 +145,8 @@ const entryDescription = z.strictObject({
 	chunkLoading: chunkLoading.optional(),
 	asyncChunks: asyncChunks.optional(),
 	wasmLoading: wasmLoading.optional(),
-	filename: entryFilename.optional()
+	filename: entryFilename.optional(),
+	library: libraryOptions.optional()
 });
 export type EntryDescription = z.infer<typeof entryDescription>;
 
@@ -133,71 +203,6 @@ export type UniqueName = z.infer<typeof uniqueName>;
 
 const chunkLoadingGlobal = z.string();
 export type ChunkLoadingGlobal = z.infer<typeof chunkLoadingGlobal>;
-
-const libraryCustomUmdObject = z.strictObject({
-	amd: z.string().optional(),
-	commonjs: z.string().optional(),
-	root: z.string().or(z.array(z.string())).optional()
-});
-export type LibraryCustomUmdObject = z.infer<typeof libraryCustomUmdObject>;
-
-const libraryName = z
-	.string()
-	.or(z.array(z.string()))
-	.or(libraryCustomUmdObject);
-export type LibraryName = z.infer<typeof libraryName>;
-
-const libraryCustomUmdCommentObject = z.strictObject({
-	amd: z.string().optional(),
-	commonjs: z.string().optional(),
-	commonjs2: z.string().optional(),
-	root: z.string().optional()
-});
-export type LibraryCustomUmdCommentObject = z.infer<
-	typeof libraryCustomUmdCommentObject
->;
-
-const auxiliaryComment = z.string().or(libraryCustomUmdCommentObject);
-export type AuxiliaryComment = z.infer<typeof auxiliaryComment>;
-
-const libraryExport = z.string().or(z.array(z.string()));
-export type LibraryExport = z.infer<typeof libraryExport>;
-
-const libraryType = z
-	.enum([
-		"var",
-		"module",
-		"assign",
-		"assign-properties",
-		"this",
-		"window",
-		"self",
-		"global",
-		"commonjs",
-		"commonjs2",
-		"commonjs-module",
-		"commonjs-static",
-		"amd",
-		"amd-require",
-		"umd",
-		"umd2",
-		"jsonp",
-		"system"
-	])
-	.or(z.string());
-export type LibraryType = z.infer<typeof libraryType>;
-
-const umdNamedDefine = z.boolean();
-export type UmdNamedDefine = z.infer<typeof umdNamedDefine>;
-
-const libraryOptions = z.strictObject({
-	auxiliaryComment: auxiliaryComment.optional(),
-	export: libraryExport.optional(),
-	name: libraryName.optional(),
-	type: libraryType,
-	umdNamedDefine: umdNamedDefine.optional()
-});
-export type LibraryOptions = z.infer<typeof libraryOptions>;
 
 const enabledLibraryTypes = z.array(libraryType);
 export type EnabledLibraryTypes = z.infer<typeof enabledLibraryTypes>;
@@ -274,6 +279,7 @@ const output = z.strictObject({
 	libraryExport: libraryExport.optional(),
 	libraryTarget: libraryType.optional(),
 	umdNamedDefine: umdNamedDefine.optional(),
+	amdContainer: amdContainer.optional(),
 	auxiliaryComment: auxiliaryComment.optional(),
 	module: outputModule.optional(),
 	strictModuleErrorHandling: strictModuleErrorHandling.optional(),

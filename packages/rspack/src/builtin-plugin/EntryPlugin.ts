@@ -1,6 +1,13 @@
 import { RawEntryOptions, RawEntryPluginOptions } from "@rspack/binding";
 import { BuiltinPluginName, create } from "./base";
-import { ChunkLoading, EntryRuntime, Filename, PublicPath } from "..";
+import {
+	ChunkLoading,
+	EntryRuntime,
+	Filename,
+	LibraryOptions,
+	PublicPath,
+	getRawLibrary
+} from "..";
 
 export type EntryOptions = {
 	name?: string;
@@ -10,6 +17,7 @@ export type EntryOptions = {
 	publicPath?: PublicPath;
 	baseUri?: string;
 	filename?: Filename;
+	library?: LibraryOptions;
 };
 export const EntryPlugin = create(
 	BuiltinPluginName.EntryPlugin,
@@ -38,6 +46,7 @@ function getRawEntryOptions(entry: EntryOptions): RawEntryOptions {
 		runtime: runtime === false ? undefined : runtime,
 		chunkLoading: chunkLoading === false ? "false" : chunkLoading,
 		asyncChunks: entry.asyncChunks,
-		filename: entry.filename
+		filename: entry.filename,
+		library: entry.library && getRawLibrary(entry.library)
 	};
 }

@@ -20,6 +20,7 @@ pub const WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
 pub const WEBPACK_CHUNK_LOAD: &str = "__webpack_chunk_load__";
 pub const WEBPACK_BASE_URI: &str = "__webpack_base_uri__";
 pub const NON_WEBPACK_REQUIRE: &str = "__non_webpack_require__";
+pub const SYSTEM_CONTEXT: &str = "__system_context__";
 
 pub struct ApiScanner<'a> {
   pub unresolved_ctxt: SyntaxContext,
@@ -173,6 +174,14 @@ impl Visit for ApiScanner<'_> {
             None,
           )));
       }
+      SYSTEM_CONTEXT => self
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
+          ident.span.real_lo(),
+          ident.span.real_hi(),
+          RuntimeGlobals::SYSTEM_CONTEXT.name().into(),
+          Some(RuntimeGlobals::SYSTEM_CONTEXT),
+        ))),
       _ => {}
     }
   }

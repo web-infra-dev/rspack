@@ -62,9 +62,9 @@ export default class EntryOptionPlugin {
 			baseUri: desc.baseUri,
 			publicPath: desc.publicPath,
 			chunkLoading: desc.chunkLoading,
-			asyncChunks: desc.asyncChunks
+			asyncChunks: desc.asyncChunks,
 			// wasmLoading: desc.wasmLoading,
-			// library: desc.library
+			library: desc.library
 		};
 		// if (desc.layer !== undefined && !compiler.options.experiments.layers) {
 		// 	throw new Error(

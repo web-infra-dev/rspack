@@ -384,6 +384,7 @@ impl TestConfig {
           library_type: l.r#type,
           umd_named_define: None,
           auxiliary_comment: None,
+          amd_container: None,
         }),
         enabled_library_types: Some(vec!["system".to_string()]),
         strict_module_error_handling: false,
@@ -464,6 +465,7 @@ impl TestConfig {
               public_path: None,
               base_uri: None,
               filename: None,
+              library: None,
             },
           )
           .boxed(),
@@ -499,20 +501,6 @@ impl TestConfig {
       })
       .boxed(),
     );
-    if let Some(library) = &options.output.library {
-      let library = library.library_type.as_str();
-      match library {
-        "system" => {
-          plugins.push(rspack_plugin_library::SystemLibraryPlugin::default().boxed());
-        }
-        "amd" | "amd-require" => {
-          plugins.push(rspack_plugin_library::ExportPropertyLibraryPlugin::default().boxed());
-          plugins
-            .push(rspack_plugin_library::AmdLibraryPlugin::new("amd-require".eq(library)).boxed());
-        }
-        _ => {}
-      }
-    }
     plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
     plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {}.boxed());
     plugins.push(rspack_plugin_runtime::CssModulesPlugin {}.boxed());

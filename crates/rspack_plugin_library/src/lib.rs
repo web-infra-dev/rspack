@@ -1,6 +1,8 @@
+#![feature(let_chains)]
+
 mod amd_library_plugin;
 mod assign_library_plugin;
-mod export_property_plugin;
+mod export_property_library_plugin;
 mod module_library_plugin;
 mod system_library_plugin;
 mod umd_library_plugin;
@@ -8,7 +10,7 @@ mod utils;
 
 pub use amd_library_plugin::AmdLibraryPlugin;
 pub use assign_library_plugin::*;
-pub use export_property_plugin::ExportPropertyLibraryPlugin;
+pub use export_property_library_plugin::ExportPropertyLibraryPlugin;
 pub use module_library_plugin::ModuleLibraryPlugin;
 use rspack_core::{BoxPlugin, PluginExt};
 pub use system_library_plugin::SystemLibraryPlugin;
@@ -98,17 +100,20 @@ pub fn enable_library_plugin(library_type: String, plugins: &mut Vec<BoxPlugin>)
     ),
     "umd" | "umd2" => {
       plugins.push(ExportPropertyLibraryPlugin::default().boxed());
-      plugins.push(UmdLibraryPlugin::new("umd2".eq(&library_type)).boxed());
+      plugins.push(UmdLibraryPlugin::new("umd2" == library_type, library_type).boxed());
     }
     "amd" | "amd-require" => {
       plugins.push(ExportPropertyLibraryPlugin::default().boxed());
-      plugins.push(AmdLibraryPlugin::new("amd-require".eq(&library_type)).boxed());
+      plugins.push(AmdLibraryPlugin::new("amd-require" == library_type, library_type).boxed());
     }
     "module" => {
       plugins.push(ExportPropertyLibraryPlugin::default().boxed());
       plugins.push(ModuleLibraryPlugin::default().boxed());
     }
-    "system" => plugins.push(SystemLibraryPlugin::default().boxed()),
+    "system" => {
+      plugins.push(ExportPropertyLibraryPlugin::default().boxed());
+      plugins.push(SystemLibraryPlugin::default().boxed());
+    }
     _ => {}
   }
 }

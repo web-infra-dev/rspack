@@ -1,6 +1,6 @@
 use std::ptr;
 
-use napi::{bindgen_prelude::FromNapiValue, JsFunction, JsObject, JsString};
+use napi::{bindgen_prelude::FromNapiValue, JsFunction, JsObject, JsString, JsUnknown};
 
 fn get_js_global_object(env: napi::sys::napi_env) -> napi::Result<JsObject> {
   let mut global = ptr::null_mut();
@@ -26,4 +26,8 @@ pub fn object_prototype_to_string_call(
     to_string_ret.into_utf8()?.into_owned()?
   };
   type_description
+}
+
+pub fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> napi::Result<T> {
+  <T as FromNapiValue>::from_unknown(o)
 }
