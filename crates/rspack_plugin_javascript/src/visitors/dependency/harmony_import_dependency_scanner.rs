@@ -165,7 +165,10 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           Some(self.build_info.all_star_exports.clone()),
         );
 
-        self.build_info.all_star_exports.push(dependency.id);
+        self
+          .build_info
+          .all_star_exports
+          .push(export_imported_dep.id);
         self.dependencies.push(Box::new(export_imported_dep));
       }
       self.dependencies.push(Box::new(dependency));

@@ -1192,9 +1192,9 @@ impl Compilation {
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
     while plugin_driver.optimize_dependencies(self).await?.is_some() {}
     logger.time_end(start);
-    if self.options.is_new_tree_shaking() {
-      debug_exports_info!(&self.module_graph);
-    }
+    // if self.options.is_new_tree_shaking() {
+    //   debug_exports_info!(&self.module_graph);
+    // }
 
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
