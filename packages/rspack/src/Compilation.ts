@@ -274,7 +274,7 @@ export class Compilation {
 		);
 		options.modules = optionOrLocalFallback(options.modules, true);
 		options.runtimeModules = optionOrLocalFallback(
-			options.ids,
+			options.runtimeModules,
 			!context.forToString
 		);
 		options.reasons = optionOrLocalFallback(
