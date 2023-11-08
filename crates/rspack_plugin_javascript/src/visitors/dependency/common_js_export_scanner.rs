@@ -152,7 +152,7 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
           } else if is_this_start {
             ExportsBase::This
           } else {
-            panic!("unexpect expr type");
+            panic!("Unexpected expr type");
           };
 
           self
