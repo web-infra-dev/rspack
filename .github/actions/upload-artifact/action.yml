@@ -62,4 +62,11 @@ runs:
 
         # TODO echo machine name as runner labels
         # echo "runner_labels=\"$(uname -n)\"" >> "$GITHUB_OUTPUT"
-        echo 'runner-labels="rspack-ci"' >> "$GITHUB_OUTPUT"
+        if [ -z "$RUNNER_LABELS" ]; then
+          # RUNNER_LABELS not exist
+          echo "self hosted runner must exist RUNNER_LABELS variable"
+          exit 1
+        fi
+
+        labelJson="[\"${RUNNER_LABELS//,/\",\"}\"]"
+        echo "runner-labels=$labelJson" >> "$GITHUB_OUTPUT"
