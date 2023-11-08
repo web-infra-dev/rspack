@@ -234,7 +234,7 @@ impl DependencyTemplate for CommonJsExportsDependency {
         panic!("Define property need value range");
       }
     } else {
-      panic!("Unexpect base type");
+      panic!("Unexpected base type");
     }
   }
 }
