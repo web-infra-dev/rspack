@@ -521,7 +521,7 @@ export async function runLoaders(
 					throw new Error(`Cannot parse string options: ${e.message}`);
 				}
 			} else {
-				const querystring = require("fast-querystring");
+				const querystring = require("node:querystring");
 				options = querystring.parse(options);
 			}
 		}
