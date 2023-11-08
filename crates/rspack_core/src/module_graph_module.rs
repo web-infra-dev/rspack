@@ -186,22 +186,18 @@ impl ModuleGraphModule {
       .dependencies
       .iter()
       .filter_map(|id| {
-        if let Some(dep) = module_graph
+        let dep = module_graph
           .dependency_by_id(id)
           .expect("should have id")
-          .as_module_dependency()
-        {
-          if !is_async_dependency(dep) {
-            return None;
-          }
-          let module = module_graph
-            .module_identifier_by_dependency_id(id)
-            .expect("should have a module here");
-
-          let chunk_name = dep.group_options();
-          return Some((module, chunk_name));
+          .as_module_dependency()?;
+        if !is_async_dependency(dep) {
+          return None;
         }
-        None
+        let module = module_graph
+          .module_identifier_by_dependency_id(id)
+          .expect("should have a module here");
+
+        Some((module, dep.group_options()))
       })
       .collect()
   }

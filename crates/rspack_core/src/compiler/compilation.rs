@@ -12,7 +12,6 @@ use dashmap::DashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
-use rspack_database::Database;
 use rspack_error::{
   internal_error, CatchUnwindFuture, Diagnostic, Result, Severity, TWithDiagnosticArray,
 };
@@ -36,8 +35,8 @@ use crate::{
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxDependency,
   BoxModule, BuildQueue, BuildTask, BuildTaskResult, CacheCount, CacheOptions, Chunk, ChunkByUkey,
-  ChunkContentHash, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey,
-  CleanQueue, CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults,
+  ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashArgs, ChunkKind,
+  ChunkUkey, CleanQueue, CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults,
   CompilationLogger, CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, Entry,
   EntryData, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult,
   Filename, Logger, Module, ModuleGraph, ModuleIdentifier, ModuleProfile, ModuleType, PathData,
@@ -71,8 +70,8 @@ pub struct Compilation {
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
   pub runtime_module_code_generation_results: IdentifierMap<(RspackHashDigest, BoxSource)>,
   pub chunk_graph: ChunkGraph,
-  pub chunk_by_ukey: Database<Chunk>,
-  pub chunk_group_by_ukey: Database<ChunkGroup>,
+  pub chunk_by_ukey: ChunkByUkey,
+  pub chunk_group_by_ukey: ChunkGroupByUkey,
   pub entrypoints: IndexMap<String, ChunkGroupUkey>,
   pub async_entrypoints: Vec<ChunkGroupUkey>,
   assets: CompilationAssets,

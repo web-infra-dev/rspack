@@ -36,6 +36,9 @@ pub use find_graph_roots::*;
 mod visitor;
 pub use visitor::*;
 
+mod to_path;
+pub use to_path::to_path;
+
 pub fn parse_to_url(url: &str) -> url::Url {
   if !url.contains(':') {
     let mut construct_string = String::with_capacity("specifier:".len() + url.len());
@@ -85,8 +88,11 @@ pub fn join_string_component(mut components: Vec<String>) -> String {
 pub fn stringify_map<T: Display>(map: &HashMap<String, T>) -> String {
   format!(
     r#"{{{}}}"#,
-    map.keys().sorted().fold(String::new(), |prev, cur| {
-      prev + format!(r#""{}": {},"#, cur, map.get(cur).expect("get key from map")).as_str()
-    })
+    map
+      .keys()
+      .sorted_unstable()
+      .fold(String::new(), |prev, cur| {
+        prev + format!(r#""{}": {},"#, cur, map.get(cur).expect("get key from map")).as_str()
+      })
   )
 }

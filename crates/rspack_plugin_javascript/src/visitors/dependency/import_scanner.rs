@@ -1,12 +1,11 @@
 use once_cell::sync::Lazy;
-use rspack_core::{
-  clean_regexp_in_context_module, context_reg_exp, DynamicImportMode, JavascriptParserOptions,
-};
+use rspack_core::clean_regexp_in_context_module;
+use rspack_core::{context_reg_exp, DynamicImportMode, JavascriptParserOptions};
 use rspack_core::{BoxDependency, BuildMeta, ChunkGroupOptions, ContextMode};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
 use rspack_regex::RspackRegex;
-use swc_core::common::comments::Comments;
-use swc_core::common::Span;
+use swc_core::common::comments::{CommentKind, Comments};
+use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, Lit};
 use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
@@ -27,15 +26,11 @@ pub struct ImportScanner<'a> {
 
 fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaContextDependency> {
   assert!(node.callee.is_expr());
-  let Some(dyn_imported) = node.args.first() else {
-    return None;
-  };
+  let dyn_imported = node.args.first()?;
   if dyn_imported.spread.is_some() {
     return None;
   }
-  let Some(lit) = dyn_imported.expr.as_lit() else {
-    return None;
-  };
+  let lit = dyn_imported.expr.as_lit()?;
   let context = match lit {
     Lit::Str(str) => str.value.to_string(),
     _ => return None,
@@ -58,6 +53,7 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
       .unwrap_or(true);
     let reg_str = regexp.raw().to_string();
     ContextOptions {
+      chunk_name: None,
       reg_exp: clean_regexp_in_context_module(regexp),
       reg_str,
       include: None,
@@ -70,6 +66,7 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
     }
   } else {
     ContextOptions {
+      chunk_name: None,
       recursive: true,
       mode: ContextMode::Sync,
       include: None,
@@ -105,7 +102,6 @@ impl<'a> ImportScanner<'a> {
   }
 
   fn try_extract_webpack_chunk_name(&self, first_arg_span_of_import_call: &Span) -> Option<String> {
-    use swc_core::common::comments::CommentKind;
     static WEBPACK_CHUNK_NAME_CAPTURE_RE: Lazy<regex::Regex> = Lazy::new(|| {
       regex::Regex::new(r#"webpackChunkName\s*:\s*("(?P<_1>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)"|'(?P<_2>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)'|`(?P<_3>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)`)"#)
         .expect("invalid regex")
@@ -212,6 +208,7 @@ impl Visit for ImportScanner<'_> {
       }
       _ => {
         if let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) {
+          let chunk_name = self.try_extract_webpack_chunk_name(&dyn_imported.span());
           self
             .dependencies
             .push(Box::new(ImportContextDependency::new(
@@ -219,6 +216,7 @@ impl Visit for ImportScanner<'_> {
               import_call.span.real_hi(),
               node.span.real_hi(),
               ContextOptions {
+                chunk_name,
                 mode: ContextMode::Lazy,
                 recursive: true,
                 reg_exp: context_reg_exp(&reg, ""),
