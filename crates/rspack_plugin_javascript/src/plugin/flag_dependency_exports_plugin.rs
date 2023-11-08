@@ -272,7 +272,6 @@ impl<'a> FlagDependencyExportsProxy<'a> {
 
       // Recalculate target exportsInfo
       let target = export_info.get_target(self.mg, None);
-      // let target: Option<ResolvedExportInfoTarget> = None;
       // dbg!(&target);
       let export_info_old = self
         .mg
