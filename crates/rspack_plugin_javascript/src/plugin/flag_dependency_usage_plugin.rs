@@ -2,9 +2,9 @@ use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
 use rspack_core::{
-  is_exports_object_referenced, is_no_exports_referenced, BuildMetaExportsType, Compilation,
-  ConnectionState, DependencyId, ExportsInfoId, ExtendedReferencedExport, ModuleIdentifier, Plugin,
-  ReferencedExport, RuntimeSpec, UsageState,
+  debug_exports_info, is_exports_object_referenced, is_no_exports_referenced, BuildMetaExportsType,
+  Compilation, ConnectionState, DependencyId, ExportsInfoId, ExtendedReferencedExport,
+  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
 };
 use rspack_error::Result;
 use rspack_identifier::IdentifierMap;
@@ -42,6 +42,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
     let mut q = VecDeque::new();
     let mg = &mut self.compilation.module_graph;
+    // debug_exports_info!(mg);
     for exports_info_id in self.exports_info_module_map.keys() {
       exports_info_id.set_has_use_info(mg);
     }

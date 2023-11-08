@@ -4,7 +4,7 @@ use std::collections::VecDeque;
 use rspack_core::{
   BuildMetaExportsType, Compilation, DependencyId, ExportInfoProvided, ExportNameOrSpec,
   ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, Plugin,
+  ModuleIdentifier, Plugin, ResolvedExportInfoTarget,
 };
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -233,7 +233,6 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       {
         *provided = ExportInfoProvided::True;
         self.changed = true;
-        dbg!(&"changed");
       }
 
       if Some(false) != export_info.can_mangle_provide && can_mangle == Some(false) {
@@ -247,7 +246,6 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       }
 
       if let Some(exports) = exports {
-        // dbg!(&exports);
         let nested_exports_info = export_info.create_nested_exports_info(self.mg);
         self.merge_exports(
           nested_exports_info,
@@ -267,15 +265,14 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           } else {
             Some(&fallback)
           };
-          // dbg!(&from, &export_name);
           export_info.set_target(Some(dep_id), Some(from), export_name, priority)
         };
         self.changed |= changed;
-        dbg!(&changed, hidden);
       }
 
       // Recalculate target exportsInfo
       let target = export_info.get_target(self.mg, None);
+      // let target: Option<ResolvedExportInfoTarget> = None;
       // dbg!(&target);
       let export_info_old = self
         .mg
@@ -289,7 +286,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         let target_module_exports_info = self.mg.get_exports_info(&target.module);
         target_exports_info = target_module_exports_info
           .id
-          .get_nested_exports_info(target.exports, self.mg);
+          .get_nested_exports_info(target.export, self.mg);
         match self.dependencies.entry(target.module) {
           Entry::Occupied(mut occ) => {
             occ.get_mut().insert(self.current_module_id);

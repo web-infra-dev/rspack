@@ -2,8 +2,9 @@ mod termcolorful;
 use std::str::FromStr;
 use std::{path::PathBuf, time::Instant};
 
-use rspack_core::Compiler;
+use rspack_core::{BoxPlugin, Compiler, CompilerOptions, TreeShaking, UsedExportsOption};
 use rspack_fs::AsyncNativeFileSystem;
+use rspack_plugin_javascript::{FlagDependencyExportsPlugin, FlagDependencyUsagePlugin};
 use rspack_testing::apply_from_fixture;
 #[cfg(feature = "tracing")]
 use rspack_tracing::{enable_tracing_by_env, enable_tracing_by_env_with_chrome_layer};
@@ -50,7 +51,7 @@ async fn main() {
   let path_list = vec![
     // "examples/cjs-tree-shaking-basic",
     // "examples/basic",
-    "examples/basic",
+    "crates/rspack/tests/tree-shaking/export_star",
     // "examples/export-star-chain",
     // "examples/bbb",
     /* "examples/named-export-decl-with-src-eval",
@@ -78,7 +79,20 @@ async fn run(relative_path: &str, #[cfg(feature = "tracing")] layer: Layer) {
   // let bundle_dir = manifest_dir.join("tests/fixtures/postcss/pxtorem");
   let bundle_dir: PathBuf = manifest_dir.join(relative_path);
   println!("{bundle_dir:?}");
-  let (options, plugins) = apply_from_fixture(&bundle_dir);
+  let (mut options, mut plugins): (CompilerOptions, Vec<BoxPlugin>) =
+    apply_from_fixture(&bundle_dir);
+
+  options.experiments.rspack_future.new_treeshaking = true;
+  options.optimization.provided_exports = true;
+  options.optimization.inner_graph = true;
+  options.optimization.used_exports = UsedExportsOption::True;
+  options.builtins.tree_shaking = TreeShaking::False;
+
+  // if options.optimization.side_effects.is_enable() {
+  //   plugins.push(Box::<SideEffectsFlagPlugin>::default());
+  // }
+  plugins.push(Box::<FlagDependencyExportsPlugin>::default());
+  plugins.push(Box::<FlagDependencyUsagePlugin>::default());
   #[cfg(feature = "hmr")]
   let options = {
     let mut options = options;

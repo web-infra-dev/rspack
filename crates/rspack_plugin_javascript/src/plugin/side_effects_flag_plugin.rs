@@ -390,7 +390,7 @@ impl Plugin for SideEffectsFlagPlugin {
                 // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
                 let ids = dep_id.get_ids(mg);
                 let processed_ids = target
-                  .exports
+                  .export
                   .as_ref()
                   .map(|item| {
                     let mut ret = Vec::from_iter(item.iter().cloned());
@@ -428,7 +428,7 @@ impl Plugin for SideEffectsFlagPlugin {
           mg.update_module(&dep_id, &target.module);
           // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
           let processed_ids = target
-            .exports
+            .export
             .map(|mut item| {
               item.extend_from_slice(&ids[1..]);
               item
