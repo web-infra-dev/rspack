@@ -1,30 +1,17 @@
-use napi::Either;
+use napi::{bindgen_prelude::Either3, Either};
 use napi_derive::napi;
-use rspack_error::{internal_error, Result};
+use rspack_error::Result;
+use rspack_napi_shared::{JsRegExp, JsRegExpExt};
 use rspack_plugin_swc_js_minimizer::{
   SwcJsMinimizerRspackPluginOptions, SwcJsMinimizerRule, SwcJsMinimizerRules,
 };
 use serde::Deserialize;
 use swc_config::config_types::BoolOrDataConfig;
 
-#[derive(Debug)]
-#[napi(object)]
-pub struct RawSwcJsMinimizerRule {
-  #[napi(ts_type = r#""string" | "regexp""#)]
-  pub r#type: String,
-  pub string_matcher: Option<String>,
-  pub regexp_matcher: Option<String>,
-}
-
-#[derive(Debug)]
-#[napi(object)]
-pub struct RawSwcJsMinimizerRules {
-  #[napi(ts_type = r#""string" | "regexp" | "array""#)]
-  pub r#type: String,
-  pub string_matcher: Option<String>,
-  pub regexp_matcher: Option<String>,
-  pub array_matcher: Option<Vec<RawSwcJsMinimizerRule>>,
-}
+type RawSwcJsMinimizerRule = Either<String, JsRegExp>;
+type RawSwcJsMinimizerRules = Either3<String, JsRegExp, Vec<RawSwcJsMinimizerRule>>;
+struct RawSwcJsMinimizerRuleWrapper(RawSwcJsMinimizerRule);
+struct RawSwcJsMinimizerRulesWrapper(RawSwcJsMinimizerRules);
 
 #[derive(Debug)]
 #[napi(object)]
@@ -33,8 +20,11 @@ pub struct RawSwcJsMinimizerRspackPluginOptions {
   pub compress: Either<bool, String>,
   pub mangle: Either<bool, String>,
   pub format: String,
+  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
   pub test: Option<RawSwcJsMinimizerRules>,
+  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
   pub include: Option<RawSwcJsMinimizerRules>,
+  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
   pub exclude: Option<RawSwcJsMinimizerRules>,
 }
 
@@ -51,16 +41,8 @@ impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for SwcJsMinimizerRspackPlugi
   type Error = rspack_error::Error;
 
   fn try_from(value: RawSwcJsMinimizerRspackPluginOptions) -> Result<Self> {
-    fn try_condition(
-      raw_condition: Option<RawSwcJsMinimizerRules>,
-    ) -> Result<Option<SwcJsMinimizerRules>> {
-      let condition: Option<SwcJsMinimizerRules> = if let Some(test) = raw_condition {
-        Some(test.try_into()?)
-      } else {
-        None
-      };
-
-      Ok(condition)
+    fn into_condition(c: Option<RawSwcJsMinimizerRules>) -> Option<SwcJsMinimizerRules> {
+      c.map(|test| RawSwcJsMinimizerRulesWrapper(test).into())
     }
 
     Ok(Self {
@@ -68,73 +50,33 @@ impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for SwcJsMinimizerRspackPlugi
       compress: try_deserialize_into(&value.compress)?,
       mangle: try_deserialize_into(&value.mangle)?,
       format: serde_json::from_str(&value.format)?,
-      test: try_condition(value.test)?,
-      include: try_condition(value.include)?,
-      exclude: try_condition(value.exclude)?,
+      test: into_condition(value.test),
+      include: into_condition(value.include),
+      exclude: into_condition(value.exclude),
       ..Default::default()
     })
   }
 }
 
-impl TryFrom<RawSwcJsMinimizerRule> for SwcJsMinimizerRule {
-  type Error = rspack_error::Error;
-
-  fn try_from(x: RawSwcJsMinimizerRule) -> Result<Self> {
-    let result = match x.r#type.as_str() {
-      "string" => Self::String(x.string_matcher.ok_or_else(|| {
-        internal_error!(
-          "should have a string_matcher when MinificationConditions.type is \"string\""
-        )
-      })?),
-      "regexp" => Self::Regexp(rspack_regex::RspackRegex::new(
-        &x.regexp_matcher.ok_or_else(|| {
-          internal_error!(
-            "should have a regexp_matcher when MinificationConditions.type is \"regexp\""
-          )
-        })?,
-      )?),
-      _ => panic!(
-        "Failed to resolve the condition type {}. Expected type is `string`, `regexp` or `array`.",
-        x.r#type
-      ),
-    };
-
-    Ok(result)
+impl From<RawSwcJsMinimizerRuleWrapper> for SwcJsMinimizerRule {
+  fn from(x: RawSwcJsMinimizerRuleWrapper) -> Self {
+    match x.0 {
+      Either::A(v) => Self::String(v),
+      Either::B(v) => Self::Regexp(v.to_rspack_regex()),
+    }
   }
 }
 
-impl TryFrom<RawSwcJsMinimizerRules> for SwcJsMinimizerRules {
-  type Error = rspack_error::Error;
-
-  fn try_from(value: RawSwcJsMinimizerRules) -> Result<Self> {
-    let result = match value.r#type.as_str() {
-      "string" => Self::String(value.string_matcher.ok_or_else(|| {
-        internal_error!("should have a string_matcher when MinificationConditions.type is \"string\"")
-      })?),
-      "regexp" => Self::Regexp(rspack_regex::RspackRegex::new(
-        &value.regexp_matcher.ok_or_else(|| {
-          internal_error!(
-            "should have a regexp_matcher when MinificationConditions.type is \"regexp\""
-          )
-        })?,
-      )?),
-      "array" => Self::Array(
-        value.array_matcher
-          .ok_or_else(|| {
-            internal_error!(
-              "should have a array_matcher when MinificationConditions.type is \"array\""
-            )
-          })?
-          .into_iter()
-          .map(|i| i.try_into())
-          .collect::<rspack_error::Result<Vec<_>>>()?,
+impl From<RawSwcJsMinimizerRulesWrapper> for SwcJsMinimizerRules {
+  fn from(value: RawSwcJsMinimizerRulesWrapper) -> Self {
+    match value.0 {
+      Either3::A(v) => Self::String(v),
+      Either3::B(v) => Self::Regexp(v.to_rspack_regex()),
+      Either3::C(v) => Self::Array(
+        v.into_iter()
+          .map(|v| RawSwcJsMinimizerRuleWrapper(v).into())
+          .collect(),
       ),
-      _ => panic!(
-        "Failed to resolve the MinificationContions type {}. Expected type is `string`, `regexp`, `array`.",
-        value.r#type
-      ),
-    };
-
-    Ok(result)
+    }
   }
 }

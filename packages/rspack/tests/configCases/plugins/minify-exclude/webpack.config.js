@@ -9,11 +9,11 @@ module.exports = {
 		main: "./index"
 	},
 	optimization: {
-		minimize: true
-	},
-	plugins: [
-		new rspack.SwcJsMinimizerRspackPlugin({
-			exclude: [/b\.js/]
-		})
-	]
+		minimize: true,
+		minimizer: [
+			new rspack.SwcJsMinimizerRspackPlugin({
+				exclude: [/b\.js/]
+			})
+		]
+	}
 };

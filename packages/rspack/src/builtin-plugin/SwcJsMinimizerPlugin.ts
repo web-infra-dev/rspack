@@ -1,8 +1,4 @@
-import {
-	RawSwcJsMinimizerRspackPluginOptions,
-	RawSwcJsMinimizerRule,
-	RawSwcJsMinimizerRules
-} from "@rspack/binding";
+import { RawSwcJsMinimizerRspackPluginOptions } from "@rspack/binding";
 import { BuiltinPluginName, create } from "./base";
 
 type MinifyCondition = string | RegExp;
@@ -236,39 +232,6 @@ export interface TerserMangleOptions {
 }
 export interface TerserManglePropertiesOptions {}
 
-function getRawSwcJsMinimizerRule(
-	condition: MinifyCondition
-): RawSwcJsMinimizerRule {
-	if (typeof condition === "string") {
-		return {
-			type: "string",
-			stringMatcher: condition
-		};
-	}
-	if (condition instanceof RegExp) {
-		return {
-			type: "regexp",
-			regexpMatcher: condition.source
-		};
-	}
-	throw new Error("unreachable: condition should be one of string, RegExp");
-}
-
-function getRawSwcJsMinimizerRules(
-	condition?: MinifyConditions
-): RawSwcJsMinimizerRules | undefined {
-	if (!condition) return undefined;
-
-	if (Array.isArray(condition)) {
-		return {
-			type: "array",
-			arrayMatcher: condition.map(i => getRawSwcJsMinimizerRule(i))
-		};
-	}
-
-	return getRawSwcJsMinimizerRule(condition);
-}
-
 function getRawCompressOptions(options?: SwcJsMinimizerRspackPluginOptions) {
 	function _inner(): TerserCompressOptions | boolean {
 		const _default = {
@@ -365,9 +328,9 @@ export const SwcJsMinimizerRspackPlugin = create(
 			compress: getRawCompressOptions(options),
 			mangle: getRawMangleOptions(options),
 			format: getRawFormatOptions(options),
-			test: getRawSwcJsMinimizerRules(options?.test),
-			include: getRawSwcJsMinimizerRules(options?.include),
-			exclude: getRawSwcJsMinimizerRules(options?.exclude)
+			test: options?.test,
+			include: options?.include,
+			exclude: options?.exclude
 		};
 	}
 );

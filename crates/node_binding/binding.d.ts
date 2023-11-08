@@ -520,12 +520,6 @@ export interface RawAssetResourceGeneratorOptions {
   publicPath?: string
 }
 
-export interface RawBannerContent {
-  type: "string" | "function"
-  stringPayload?: string
-  fnPayload?: (...args: any[]) => any
-}
-
 export interface RawBannerContentFnCtx {
   hash: string
   chunk: JsChunk
@@ -533,26 +527,13 @@ export interface RawBannerContentFnCtx {
 }
 
 export interface RawBannerPluginOptions {
-  banner: RawBannerContent
+  banner: string | ((...args: any[]) => any)
   entryOnly?: boolean
   footer?: boolean
   raw?: boolean
-  test?: RawBannerRules
-  include?: RawBannerRules
-  exclude?: RawBannerRules
-}
-
-export interface RawBannerRule {
-  type: "string" | "regexp"
-  stringMatcher?: string
-  regexpMatcher?: string
-}
-
-export interface RawBannerRules {
-  type: "string" | "regexp" | "array"
-  stringMatcher?: string
-  regexpMatcher?: string
-  arrayMatcher?: Array<RawBannerRule>
+  test?: string | RegExp | (string | RegExp)[]
+  include?: string | RegExp | (string | RegExp)[]
+  exclude?: string | RegExp | (string | RegExp)[]
 }
 
 export interface RawBuiltins {
@@ -672,14 +653,6 @@ export interface RawExperiments {
   rspackFuture: RawRspackFuture
 }
 
-export interface RawExternalItem {
-  type: "string" | "regexp" | "object" | "function"
-  stringPayload?: string
-  regexpPayload?: string
-  objectPayload?: Record<string, RawExternalItemValue>
-  fnPayload?: (value: any) => any
-}
-
 export interface RawExternalItemFnCtx {
   request: string
   context: string
@@ -691,17 +664,9 @@ export interface RawExternalItemFnResult {
   result?: RawExternalItemValue
 }
 
-export interface RawExternalItemValue {
-  type: "string" | "bool" | "array" | "object"
-  stringPayload?: string
-  boolPayload?: boolean
-  arrayPayload?: Array<string>
-  objectPayload?: Record<string, Array<string>>
-}
-
 export interface RawExternalsPluginOptions {
   type: string
-  externals: Array<RawExternalItem>
+  externals: (string | RegExp | Record<string, string | boolean | string[] | Record<string, string[]>> | ((...args: any[]) => any))[]
 }
 
 export interface RawExternalsPresets {
@@ -1094,22 +1059,9 @@ export interface RawSwcJsMinimizerRspackPluginOptions {
   compress: boolean | string
   mangle: boolean | string
   format: string
-  test?: RawSwcJsMinimizerRules
-  include?: RawSwcJsMinimizerRules
-  exclude?: RawSwcJsMinimizerRules
-}
-
-export interface RawSwcJsMinimizerRule {
-  type: "string" | "regexp"
-  stringMatcher?: string
-  regexpMatcher?: string
-}
-
-export interface RawSwcJsMinimizerRules {
-  type: "string" | "regexp" | "array"
-  stringMatcher?: string
-  regexpMatcher?: string
-  arrayMatcher?: Array<RawSwcJsMinimizerRule>
+  test?: string | RegExp | (string | RegExp)[]
+  include?: string | RegExp | (string | RegExp)[]
+  exclude?: string | RegExp | (string | RegExp)[]
 }
 
 export interface RawTrustedTypes {

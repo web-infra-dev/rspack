@@ -1149,16 +1149,16 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
     },
     {
       "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/en.js",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }), raw: "^//.///.*$|" }), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-      "issuerName": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }), raw: "^//.///.*$|" }), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+      "issuerName": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
       "issuerPath": [
         {
           "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
           "name": "./index.js",
         },
         {
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }), raw: "^//.///.*$|" }), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-          "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }), raw: "^//.///.*$|" }), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+          "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
         },
       ],
       "moduleType": "javascript/auto",
@@ -1169,16 +1169,16 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
     },
     {
       "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh.js",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }), raw: "^//.///.*$|" }), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-      "issuerName": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }), raw: "^//.///.*$|" }), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+      "issuerName": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
       "issuerPath": [
         {
           "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
           "name": "./index.js",
         },
         {
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }), raw: "^//.///.*$|" }), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-          "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }), raw: "^//.///.*$|" }), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+          "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
         },
       ],
       "moduleType": "javascript/auto",
@@ -1204,7 +1204,7 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
       "type": "module",
     },
     {
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }), raw: "^//.///.*$|" }), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
       "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
       "issuerName": "./index.js",
       "issuerPath": [
@@ -1214,7 +1214,7 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
         },
       ],
       "moduleType": "javascript/auto",
-      "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }), raw: "^//.///.*$|" }), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+      "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
       "nameForCondition": undefined,
       "size": 160,
       "type": "module",
@@ -1229,7 +1229,7 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 2`] = `
 ./locals/en.js
 <PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh.js (missing)
 <PROJECT_ROOT>/tests/statsCases/ignore-plugin/./globalIndex.js (missing)
-<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }), raw: "^//.///.*$|" }), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }"
+<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }"
 `;
 
 exports[`StatsTestCases should print correct stats for ignore-warning 1`] = `
