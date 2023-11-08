@@ -55,7 +55,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       }
     }
     self.mg.module_identifier_to_module_graph_module = module_graph_modules;
-
+    dbg!("start");
     while let Some(module_id) = q.pop_back() {
       self.changed = false;
       self.current_module_id = module_id;
@@ -67,6 +67,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         self.process_exports_spec(dep_id, exports_spec, exports_info_id);
       }
       if self.changed {
+        dbg!(&module_id);
         self.notify_dependencies(&mut q);
       }
     }
@@ -232,6 +233,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       {
         *provided = ExportInfoProvided::True;
         self.changed = true;
+        dbg!(&"changed");
       }
 
       if Some(false) != export_info.can_mangle_provide && can_mangle == Some(false) {
@@ -263,12 +265,13 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           let export_name = if let Some(from) = from_export {
             Some(from)
           } else {
-            Some(&(fallback))
+            Some(&fallback)
           };
           // dbg!(&from, &export_name);
           export_info.set_target(Some(dep_id), Some(from), export_name, priority)
         };
         self.changed |= changed;
+        dbg!(&changed, hidden);
       }
 
       // Recalculate target exportsInfo
@@ -309,10 +312,12 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           .set_redirect_name_to(self.mg, target_exports_info);
         if changed {
           self.changed = true;
+          dbg!(&changed);
         }
       } else if export_info.exports_info != target_exports_info {
         export_info.exports_info = target_exports_info;
         self.changed = true;
+        dbg!(&self.changed);
       }
     }
   }

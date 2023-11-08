@@ -155,6 +155,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
         importer_info.exports_all,
       );
       if importer_info.exports_all {
+        let list = Some(self.build_info.all_star_exports.clone());
         let export_imported_dep = HarmonyExportImportedSpecifierDependency::new(
           request.clone(),
           source_order,
@@ -162,7 +163,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           vec![],
           None,
           true,
-          Some(self.build_info.all_star_exports.clone()),
+          list,
         );
 
         self

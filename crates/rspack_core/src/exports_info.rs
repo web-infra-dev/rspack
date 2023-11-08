@@ -1203,6 +1203,7 @@ impl ExportInfo {
           priority: normalized_priority,
         },
       );
+      self.target_is_set = true;
       return true;
     }
     if let Some(old_target) = self.target.get_mut(&key) {
