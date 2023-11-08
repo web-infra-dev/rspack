@@ -1,2 +1,1 @@
-import {a} from "./app";
-a
+import * as test from "./app";
