@@ -176,7 +176,7 @@ impl DependencyTemplate for CommonJsExportsDependency {
       } else {
         init_fragments.push(
           NormalInitFragment::new(
-            format!("var __webpack_unused_export__;\n"),
+            "var __webpack_unused_export__;\n".to_string(),
             InitFragmentStage::StageConstants,
             0,
             InitFragmentKey::uniqie(),
@@ -214,7 +214,7 @@ impl DependencyTemplate for CommonJsExportsDependency {
         } else {
           init_fragments.push(
             NormalInitFragment::new(
-              format!("var __webpack_unused_export__;\n"),
+              "var __webpack_unused_export__;\n".to_string(),
               InitFragmentStage::StageConstants,
               0,
               InitFragmentKey::uniqie(),

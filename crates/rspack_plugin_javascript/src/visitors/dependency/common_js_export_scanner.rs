@@ -118,20 +118,23 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
       let is_this_start: bool = self.is_this_member_expr_start(expr);
 
       if is_exports_start || is_module_exports_start || is_this_start {
-        let remaining_members = extract_member_expression_chain(expr.as_member().unwrap())
-          .members()
-          .iter()
-          .skip(if is_module_exports_start { 2 } else { 1 })
-          .map(|n| n.0.clone())
-          .collect::<Vec<_>>();
+        let remaining_members = expr.as_member().map(|expr| {
+          extract_member_expression_chain(expr)
+            .members()
+            .iter()
+            .skip(if is_module_exports_start { 2 } else { 1 })
+            .map(|n| n.0.clone())
+            .collect::<Vec<_>>()
+        });
 
-        if remaining_members.len() > 0 {
+        if let Some(remaining_members) = remaining_members
+          && !remaining_members.is_empty()
+        {
           self.enable();
 
           // exports.__esModule = true;
           // module.exports.__esModule = true;
           // this.__esModule = true;
-
           if let Some(first_member) = remaining_members.first()
             && first_member == "__esModule"
           {
@@ -144,23 +147,20 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
             );
           }
 
-          let span = expr.as_member().unwrap().span;
-          let base = if is_exports_start {
-            ExportsBase::Exports
-          } else if is_module_exports_start {
-            ExportsBase::ModuleExports
-          } else if is_this_start {
-            ExportsBase::This
-          } else {
-            panic!("Unexpected expr type");
-          };
-
           self
             .dependencies
             .push(Box::new(CommonJsExportsDependency::new(
-              (span.real_lo(), span.real_hi()),
+              (expr.span().real_lo(), expr.span().real_hi()),
               None,
-              base,
+              if is_exports_start {
+                ExportsBase::Exports
+              } else if is_module_exports_start {
+                ExportsBase::ModuleExports
+              } else if is_this_start {
+                ExportsBase::This
+              } else {
+                panic!("Unexpected expr type");
+              },
               UsedName::Vec(remaining_members),
             )));
         }
