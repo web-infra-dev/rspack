@@ -716,6 +716,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
     if self.is_hook_disabled(&Hook::SucceedModule) {
       return Ok(());
     }
+    debug!("something");
     let js_module = match args.to_js_module() {
       Ok(expr) => expr,
       Err(_) => return Ok(()),

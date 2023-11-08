@@ -346,10 +346,10 @@ importers:
   examples/basic:
     devDependencies:
       '@rspack/cli':
-        specifier: 0.3.10
+        specifier: workspace:*
         version: link:../../packages/rspack-cli
       '@rspack/core':
-        specifier: 0.3.10
+        specifier: workspace:*
         version: link:../../packages/rspack
 
   examples/basic-ts:
@@ -24609,7 +24609,6 @@ packages:
   /prepend-http@2.0.0:
     resolution: {integrity: sha512-ravE6m9Atw9Z/jjttRUZ+clIXogdghyZAuWJ3qEzjT+jI/dL1ifAqhZeC5VHzQp1MSt1+jxKkFNemj/iO7tVUA==}
     engines: {node: '>=4'}
-    requiresBuild: true
     dev: true
 
   /prettier@2.8.8:
