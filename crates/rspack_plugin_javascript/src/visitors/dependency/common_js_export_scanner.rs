@@ -118,6 +118,10 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
       let is_this_start: bool = self.is_this_member_expr_start(expr);
 
       if is_exports_start || is_module_exports_start || is_this_start {
+        if is_exports_start {
+          self.enable();
+        }
+
         let remaining_members = expr.as_member().map(|expr| {
           extract_member_expression_chain(expr)
             .members()
@@ -130,8 +134,6 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
         if let Some(remaining_members) = remaining_members
           && !remaining_members.is_empty()
         {
-          self.enable();
-
           // exports.__esModule = true;
           // module.exports.__esModule = true;
           // this.__esModule = true;
