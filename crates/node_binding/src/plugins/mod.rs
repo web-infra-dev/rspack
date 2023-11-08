@@ -714,13 +714,12 @@ impl rspack_core::Plugin for JsHooksAdapter {
     if self.is_hook_disabled(&Hook::SucceedModule) {
       return Ok(());
     }
-
+    let js_module = args
+      .to_js_module()
+      .expect("Failed to convert module to JsModule");
     self
       .succeed_module_tsfn
-      .call(
-        args.to_js_module().expect("Convert to js_module failed."),
-        ThreadsafeFunctionCallMode::NonBlocking,
-      )
+      .call(js_module, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
       .map_err(|err| internal_error!("Failed to call succeed_module hook: {err}"))?
