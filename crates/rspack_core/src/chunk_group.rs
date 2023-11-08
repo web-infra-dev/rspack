@@ -291,23 +291,19 @@ pub struct EntryOptions {
   pub library: Option<LibraryOptions>,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct ChunkGroupOptions {
   pub name: Option<String>,
 }
 
 impl ChunkGroupOptions {
-  pub fn name(mut self, v: impl Into<String>) -> Self {
-    self.name = Some(v.into());
-    self
-  }
-
   pub fn name_optional<T: Into<String>>(mut self, v: Option<T>) -> Self {
     self.name = v.map(|v| v.into());
     self
   }
 }
 
+#[derive(Debug)]
 pub enum ChunkGroupOptionsKindRef<'a> {
   Entry(&'a EntryOptions),
   Normal(&'a ChunkGroupOptions),

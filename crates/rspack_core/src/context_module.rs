@@ -7,6 +7,8 @@ use std::{
   sync::Arc,
 };
 
+use once_cell::sync::Lazy;
+use regex::Regex;
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
@@ -16,11 +18,12 @@ use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  contextify, get_exports_type_with_strict, stringify_map, BoxDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ContextElementDependency,
-  DependencyCategory, DependencyId, DependencyType, ExportsType, FakeNamespaceObjectMode,
-  LibIdentOptions, Module, ModuleType, Resolve, ResolveInnerOptions,
-  ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
+  contextify, get_exports_type_with_strict, stringify_map, to_path, BoxDependency, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, ChunkGraph, ChunkGroupOptions, CodeGenerationResult,
+  Compilation, ContextElementDependency, DependencyCategory, DependencyId, DependencyType,
+  ExportsType, FakeNamespaceObjectMode, LibIdentOptions, Module, ModuleType, Resolve,
+  ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
+  RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -99,6 +102,7 @@ pub struct ContextOptions {
   pub category: DependencyCategory,
   pub request: String,
   pub namespace_object: ContextNameSpaceObject,
+  pub chunk_name: Option<String>,
 }
 
 impl Display for ContextOptions {
@@ -577,7 +581,94 @@ impl Hash for ContextModule {
   }
 }
 
+static WEBPACK_CHUNK_NAME_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[index|request\]").expect("regexp init failed"));
+
 impl ContextModule {
+  fn visit_dirs(
+    ctx: &str,
+    dir: &Path,
+    dependencies: &mut Vec<BoxDependency>,
+    options: &ContextModuleOptions,
+    resolve_options: &ResolveInnerOptions,
+    count: &mut i32,
+  ) -> Result<()> {
+    if !dir.is_dir() {
+      return Ok(());
+    }
+    for entry in fs::read_dir(dir)? {
+      let path = entry?.path();
+      if path.is_dir() {
+        if options.context_options.recursive {
+          Self::visit_dirs(ctx, &path, dependencies, options, resolve_options, count)?;
+        }
+      } else if path
+        .file_name()
+        .map_or(false, |name| name.to_string_lossy().starts_with('.'))
+      {
+        // ignore hidden files
+        continue;
+      } else {
+        // FIXME: nodejs resolver return path of context, sometimes is '/a/b', sometimes is '/a/b/'
+        let relative_path = {
+          let p = path
+            .to_string_lossy()
+            .to_string()
+            .drain(ctx.len()..)
+            .collect::<String>()
+            .replace('\\', "/");
+          if p.starts_with('/') {
+            format!(".{p}")
+          } else {
+            format!("./{p}")
+          }
+        };
+        let requests = alternative_requests(
+          resolve_options,
+          vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
+        );
+
+        let Some(reg_exp) = &options.context_options.reg_exp else {
+          return Ok(());
+        };
+
+        requests.iter().for_each(|r| {
+          if !reg_exp.test(&r.request) {
+            return;
+          }
+          *count += 1;
+          let name = options.context_options.chunk_name.as_ref().map(|name| {
+            let mut name = name.to_string();
+            if !WEBPACK_CHUNK_NAME_PLACEHOLDER.is_match(&name) {
+              name += "[index]"
+            }
+            name = name.replace("[index]", count.to_string().as_str());
+            name = name.replace("[request]", &to_path(&r.request));
+            name
+          });
+          let group_options = ChunkGroupOptions { name };
+          dependencies.push(Box::new(ContextElementDependency {
+            id: DependencyId::new(),
+            group_options,
+            request: format!(
+              "{}{}{}",
+              r.request,
+              options.resource_query.clone().unwrap_or_default(),
+              options.resource_fragment.clone().unwrap_or_default()
+            ),
+            user_request: r.request.to_string(),
+            category: options.context_options.category,
+            context: options.resource.clone().into(),
+            options: options.context_options.clone(),
+            resource_identifier: format!("context{}|{}", &options.resource, path.to_string_lossy()),
+            referenced_exports: None,
+          }));
+        })
+      }
+    }
+    Ok(())
+  }
+
   pub fn resolve_dependencies(
     &self,
     build_context: BuildContext<'_>,
@@ -586,80 +677,6 @@ impl ContextModule {
 
     tracing::trace!("resolving context module path {}", self.options.resource);
 
-    fn visit_dirs(
-      ctx: &str,
-      dir: &Path,
-      dependencies: &mut Vec<BoxDependency>,
-      options: &ContextModuleOptions,
-      resolve_options: &ResolveInnerOptions,
-    ) -> Result<()> {
-      if dir.is_dir() {
-        for entry in fs::read_dir(dir)? {
-          let entry = entry?;
-          let path = entry.path();
-          if path.is_dir() {
-            if options.context_options.recursive {
-              visit_dirs(ctx, &path, dependencies, options, resolve_options)?;
-            }
-          } else if path
-            .file_name()
-            .map_or(false, |name| name.to_string_lossy().starts_with('.'))
-          {
-            // ignore hidden files
-            continue;
-          } else {
-            // FIXME: nodejs resolver return path of context, sometimes is '/a/b', sometimes is '/a/b/'
-            let relative_path = {
-              let p = path
-                .to_string_lossy()
-                .to_string()
-                .drain(ctx.len()..)
-                .collect::<String>()
-                .replace('\\', "/");
-              if p.starts_with('/') {
-                format!(".{p}")
-              } else {
-                format!("./{p}")
-              }
-            };
-            let requests = alternative_requests(
-              resolve_options,
-              vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
-            );
-
-            let Some(reg_exp) = &options.context_options.reg_exp else {
-              return Ok(());
-            };
-
-            requests.iter().for_each(|r| {
-              if reg_exp.test(&r.request) {
-                dependencies.push(Box::new(ContextElementDependency {
-                  id: DependencyId::new(),
-                  request: format!(
-                    "{}{}{}",
-                    r.request,
-                    options.resource_query.clone().unwrap_or_default(),
-                    options.resource_fragment.clone().unwrap_or_default()
-                  ),
-                  user_request: r.request.to_string(),
-                  category: options.context_options.category,
-                  context: options.resource.clone().into(),
-                  options: options.context_options.clone(),
-                  resource_identifier: format!(
-                    "context{}|{}",
-                    &options.resource,
-                    path.to_string_lossy()
-                  ),
-                  referenced_exports: None,
-                }));
-              }
-            })
-          }
-        }
-      }
-      Ok(())
-    }
-
     let resolver = &self.resolve_factory.get(ResolveOptionsWithDependencyType {
       resolve_options: self.options.resolve_options.clone(),
       resolve_to_context: false,
@@ -667,12 +684,13 @@ impl ContextModule {
       dependency_category: self.options.context_options.category,
     });
 
-    visit_dirs(
+    Self::visit_dirs(
       &self.options.resource,
       Path::new(&self.options.resource),
       &mut dependencies,
       &self.options,
       &resolver.options(),
+      &mut 0,
     )?;
 
     tracing::trace!("resolving dependencies for {:?}", dependencies);

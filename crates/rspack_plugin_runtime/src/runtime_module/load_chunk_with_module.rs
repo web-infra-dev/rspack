@@ -1,9 +1,7 @@
 use itertools::Itertools;
 use rayon::prelude::*;
-use rspack_core::{
-  rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeModule,
-};
+use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
+use rspack_core::{ChunkUkey, Compilation, RuntimeModule};
 use rspack_identifier::Identifier;
 use rspack_plugin_javascript::runtime::stringify_array;
 use rustc_hash::FxHashMap as HashMap;
@@ -32,67 +30,64 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
-    if let Some(chunk_ukey) = &self.chunk {
-      let runtime = &compilation
-        .chunk_by_ukey
-        .get(chunk_ukey)
-        .expect("should have chunk")
-        .runtime;
+    let chunk_ukey = self.chunk.expect("should have chunk");
+    let runtime = &compilation
+      .chunk_by_ukey
+      .get(&chunk_ukey)
+      .expect("should have chunk")
+      .runtime;
 
-      let async_modules = compilation
-        .module_graph
-        .module_graph_modules()
-        .par_iter()
-        .map(|(_, mgm)| mgm.dynamic_depended_modules(&compilation.module_graph))
-        .flatten()
-        .map(|(id, _)| id)
-        .collect::<HashSet<_>>();
-      let map = async_modules
-        .par_iter()
-        .filter_map(|identifier| {
-          if let Some(chunk_group) = compilation
-            .chunk_graph
-            .get_block_chunk_group(identifier, &compilation.chunk_group_by_ukey)
-          {
-            let chunk_ids = chunk_group
-              .chunks
-              .iter()
-              .filter_map(|chunk_ukey| {
-                let chunk = compilation
-                  .chunk_by_ukey
-                  .get(chunk_ukey)
-                  .expect("chunk should exist");
-                if chunk.runtime.is_superset(runtime) {
-                  Some(chunk.expect_id().to_string())
-                } else {
-                  None
-                }
-              })
-              .collect::<Vec<_>>();
-            if chunk_ids.is_empty() {
-              return None;
+    let async_modules = compilation
+      .module_graph
+      .module_graph_modules()
+      .par_iter()
+      .map(|(_, mgm)| mgm.dynamic_depended_modules(&compilation.module_graph))
+      .flatten()
+      .map(|(id, _)| id)
+      .collect::<HashSet<_>>();
+    let map = async_modules
+      .par_iter()
+      .filter_map(|identifier| {
+        let chunk_group = compilation
+          .chunk_graph
+          .get_block_chunk_group(identifier, &compilation.chunk_group_by_ukey)?;
+        let chunk_ids = chunk_group
+          .chunks
+          .iter()
+          .filter_map(|chunk_ukey| {
+            let chunk = compilation
+              .chunk_by_ukey
+              .get(chunk_ukey)
+              .expect("chunk should exist");
+            if chunk.runtime.is_superset(runtime) {
+              Some(chunk.expect_id().to_string())
+            } else {
+              None
             }
-            let module = compilation
-              .module_graph
-              .module_graph_module_by_identifier(identifier)
-              .expect("no module found");
+          })
+          .collect::<Vec<_>>();
+        if chunk_ids.is_empty() {
+          return None;
+        }
+        let module = compilation
+          .module_graph
+          .module_graph_module_by_identifier(identifier)
+          .expect("no module found");
 
-            let module_id = module.id(&compilation.chunk_graph);
-            let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
+        let module_id = module.id(&compilation.chunk_graph);
+        let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
 
-            return Some((module_id_expr, chunk_ids));
-          }
-          None
-        })
-        .collect::<HashMap<String, Vec<String>>>();
+        Some((module_id_expr, chunk_ids))
+      })
+      .collect::<HashMap<String, Vec<String>>>();
 
-      let mut source = ConcatSource::default();
-      source.add(RawSource::from(format!(
-        "var map = {};\n",
-        &stringify_map(&map)
-      )));
-      source.add(RawSource::from(
-        "
+    let mut source = ConcatSource::default();
+    source.add(RawSource::from(format!(
+      "var map = {};\n",
+      &stringify_map(&map)
+    )));
+    source.add(RawSource::from(
+      "
 __webpack_require__.el = function(module) {
   var chunkId = map[module];
   if (chunkId === undefined) {
@@ -105,12 +100,9 @@ __webpack_require__.el = function(module) {
   };
 }
 ",
-      ));
+    ));
 
-      source.boxed()
-    } else {
-      unreachable!("should have chunk")
-    }
+    source.boxed()
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

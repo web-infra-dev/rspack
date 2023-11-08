@@ -4,6 +4,8 @@ use rspack_core::{
   ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 
+use super::ContextDependencyTrait;
+
 #[derive(Debug, Clone)]
 pub struct ImportContextDependency {
   callee_start: u32,
@@ -77,6 +79,12 @@ impl ModuleDependency for ImportContextDependency {
 
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
+  }
+}
+
+impl ContextDependencyTrait for ImportContextDependency {
+  fn chunk_name(&self) -> Option<&str> {
+    self.options.chunk_name.as_deref()
   }
 }
 
