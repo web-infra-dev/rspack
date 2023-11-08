@@ -2,10 +2,10 @@ use std::fmt::Debug;
 
 use napi::{
   bindgen_prelude::{FromNapiValue, TypeName, ValidateNapiValue},
-  JsObject, NapiRaw, NapiValue,
+  sys, Error, JsObject, NapiRaw, Result, Status,
 };
 
-use crate::object_prototype_to_string_call;
+use crate::utils::NapiType;
 
 pub struct JsRegExp(JsObject);
 
@@ -32,26 +32,28 @@ impl JsRegExp {
 }
 
 impl NapiRaw for JsRegExp {
-  unsafe fn raw(&self) -> napi::sys::napi_value {
-    self.0.raw()
+  unsafe fn raw(&self) -> sys::napi_value {
+    unsafe { self.0.raw() }
   }
 }
 
 impl FromNapiValue for JsRegExp {
-  unsafe fn from_napi_value(
-    env: napi::sys::napi_env,
-    napi_val: napi::sys::napi_value,
-  ) -> napi::Result<Self> {
-    let js_object = JsObject::from_raw(env, napi_val)?;
-    let ty_string = object_prototype_to_string_call(env, &js_object)?;
-    if ty_string.as_str() != "[object RegExp]" {
-      return Err(napi::Error::from_reason(format!(
-        "Expect [object RegExp] got {ty_string}"
-      )));
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
+    let ty = NapiType::new(env, napi_val)?;
+    if !ty.is_regex()? {
+      return Err(Error::new(
+        Status::InvalidArg,
+        format!(
+          "Expect value to be '[object RegExp]', but received {}",
+          ty.get_type()?
+        ),
+      ));
     }
-    Ok(Self(js_object))
+    Ok(Self(unsafe { JsObject::from_napi_value(env, napi_val) }?))
   }
 }
+
+impl ValidateNapiValue for JsRegExp {}
 
 impl TypeName for JsRegExp {
   fn type_name() -> &'static str {
@@ -62,5 +64,3 @@ impl TypeName for JsRegExp {
     napi::ValueType::Object
   }
 }
-
-impl ValidateNapiValue for JsRegExp {}

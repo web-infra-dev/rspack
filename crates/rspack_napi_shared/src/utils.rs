@@ -1,31 +1,40 @@
-use std::ptr;
-
-use napi::{bindgen_prelude::FromNapiValue, JsFunction, JsObject, JsString, JsUnknown};
-
-fn get_js_global_object(env: napi::sys::napi_env) -> napi::Result<JsObject> {
-  let mut global = ptr::null_mut();
-  let status = unsafe { napi::sys::napi_get_global(env, &mut global) };
-  if status != 0 {
-    panic!("napi: Get `global` failed")
-  }
-  unsafe { JsObject::from_napi_value(env, global) }
-}
+use napi::{
+  bindgen_prelude::FromNapiValue, sys, Env, JsFunction, JsObject, JsString, JsStringUtf8,
+  JsUnknown, Result,
+};
 
 /// `Object.prototype.toString.call`
-pub fn object_prototype_to_string_call(
-  env: napi::sys::napi_env,
+fn object_prototype_to_string_call(
+  raw_env: napi::sys::napi_env,
   obj: &JsObject,
-) -> napi::Result<String> {
-  let type_description: napi::Result<String> = try {
-    let global: JsObject = get_js_global_object(env)?;
-    // `Object`
-    let object: JsObject = global.get_named_property("Object")?;
-    let prototype: JsObject = object.get_named_property("prototype")?;
-    let to_string: JsFunction = prototype.get_named_property("toString")?;
-    let to_string_ret: JsString = to_string.call_without_args(Some(obj))?.try_into()?;
-    to_string_ret.into_utf8()?.into_owned()?
-  };
-  type_description
+) -> Result<JsStringUtf8> {
+  let env = Env::from(raw_env);
+  let s: JsString = env
+    .get_global()?
+    .get_named_property::<JsObject>("Object")?
+    .get_named_property::<JsObject>("prototype")?
+    .get_named_property::<JsFunction>("toString")?
+    .call_without_args(Some(obj))?
+    .try_into()?;
+  s.into_utf8()
+}
+
+pub struct NapiType(JsStringUtf8);
+
+impl NapiType {
+  pub fn new(env: sys::napi_env, val: sys::napi_value) -> Result<Self> {
+    let o = unsafe { JsObject::from_napi_value(env, val) }?;
+    let s = object_prototype_to_string_call(env, &o)?;
+    Ok(Self(s))
+  }
+
+  pub fn get_type(&self) -> Result<&str> {
+    self.0.as_str()
+  }
+
+  pub fn is_regex(&self) -> Result<bool> {
+    Ok(self.get_type()? == "[object RegExp]")
+  }
 }
 
 pub fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> napi::Result<T> {

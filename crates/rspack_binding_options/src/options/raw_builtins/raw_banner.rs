@@ -1,39 +1,17 @@
-use std::{fmt::Debug, sync::Arc};
+use std::sync::Arc;
 
 use derivative::Derivative;
-use napi::{Env, JsFunction};
+use napi::{Either, Env, JsFunction};
 use napi_derive::napi;
 use rspack_binding_values::JsChunk;
-use rspack_error::internal_error;
+use rspack_error::{internal_error, Result};
 use rspack_napi_shared::{
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  NapiResultExt, NAPI_ENV,
+  JsRegExp, JsRegExpExt, NapiResultExt, NAPI_ENV,
 };
 use rspack_plugin_banner::{
   BannerContent, BannerContentFnCtx, BannerPluginOptions, BannerRule, BannerRules,
 };
-use serde::Deserialize;
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawBannerRule {
-  #[napi(ts_type = r#""string" | "regexp""#)]
-  pub r#type: String,
-  pub string_matcher: Option<String>,
-  pub regexp_matcher: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawBannerRules {
-  #[napi(ts_type = r#""string" | "regexp" | "array""#)]
-  pub r#type: String,
-  pub string_matcher: Option<String>,
-  pub regexp_matcher: Option<String>,
-  pub array_matcher: Option<Vec<RawBannerRule>>,
-}
 
 #[napi(object)]
 pub struct RawBannerContentFnCtx {
@@ -52,38 +30,19 @@ impl<'a> From<BannerContentFnCtx<'a>> for RawBannerContentFnCtx {
   }
 }
 
-#[derive(Derivative, Deserialize)]
-#[derivative(Debug)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawBannerContent {
-  #[napi(ts_type = r#""string" | "function""#)]
-  pub r#type: String,
-  pub string_payload: Option<String>,
-  #[derivative(Debug = "ignore")]
-  #[serde(skip_deserializing)]
-  pub fn_payload: Option<JsFunction>,
-}
+type RawBannerContent = Either<String, JsFunction>;
+struct RawBannerContentWrapper(RawBannerContent);
 
-impl TryFrom<RawBannerContent> for BannerContent {
+impl TryFrom<RawBannerContentWrapper> for BannerContent {
   type Error = rspack_error::Error;
-
-  fn try_from(value: RawBannerContent) -> Result<Self, Self::Error> {
-    match value.r#type.as_str() {
-      "string" => {
-        let s = value.string_payload.ok_or_else(|| {
-          internal_error!("should have a string_payload when RawBannerContent.type is \"string\"")
-        })?;
-        Ok(BannerContent::String(s))
-      }
-      "function" => {
-        let func = value.fn_payload.ok_or_else(|| {
-          internal_error!("should have a fn_payload when RawBannerContent.type is \"function\"")
-        })?;
+  fn try_from(value: RawBannerContentWrapper) -> Result<Self> {
+    match value.0 {
+      Either::A(s) => Ok(Self::String(s)),
+      Either::B(f) => {
         let func: ThreadsafeFunction<RawBannerContentFnCtx, String> =
           NAPI_ENV.with(|env| -> anyhow::Result<_> {
             let env = env.borrow().expect("Failed to get env with external");
-            let func_use = rspack_binding_macros::js_fn_into_threadsafe_fn!(func, &Env::from(env));
+            let func_use = rspack_binding_macros::js_fn_into_threadsafe_fn!(f, &Env::from(env));
             Ok(func_use)
           })?;
         let func = Arc::new(func);
@@ -100,109 +59,65 @@ impl TryFrom<RawBannerContent> for BannerContent {
           },
         )))
       }
-      _ => unreachable!(),
     }
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+type RawBannerRule = Either<String, JsRegExp>;
+type RawBannerRules = Either<RawBannerRule, Vec<RawBannerRule>>;
+struct RawBannerRuleWrapper(RawBannerRule);
+struct RawBannerRulesWrapper(RawBannerRules);
+
+#[derive(Derivative)]
+#[derivative(Debug)]
 #[napi(object)]
 pub struct RawBannerPluginOptions {
+  #[derivative(Debug = "ignore")]
+  #[napi(ts_type = "string | ((...args: any[]) => any)")]
   pub banner: RawBannerContent,
   pub entry_only: Option<bool>,
   pub footer: Option<bool>,
   pub raw: Option<bool>,
+  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
   pub test: Option<RawBannerRules>,
+  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
   pub include: Option<RawBannerRules>,
+  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
   pub exclude: Option<RawBannerRules>,
 }
 
-impl TryFrom<RawBannerRule> for BannerRule {
-  type Error = rspack_error::Error;
-
-  fn try_from(x: RawBannerRule) -> rspack_error::Result<Self> {
-    let result = match x.r#type.as_str() {
-      "string" => Self::String(x.string_matcher.ok_or_else(|| {
-        internal_error!("should have a string_matcher when BannerConditions.type is \"string\"")
-      })?),
-      "regexp" => Self::Regexp(rspack_regex::RspackRegex::new(
-        &x.regexp_matcher.ok_or_else(|| {
-          internal_error!(
-            "should have a regexp_matcher when BannerConditions.type is \"regexp\""
-          )
-        })?,
-      )?),
-      _ => panic!(
-        "Failed to resolve the condition type {}. Expected type is `string`, `regexp`, `array`, `logical` or `function`.",
-        x.r#type
-      ),
-    };
-
-    Ok(result)
+impl From<RawBannerRuleWrapper> for BannerRule {
+  fn from(x: RawBannerRuleWrapper) -> Self {
+    match x.0 {
+      Either::A(s) => BannerRule::String(s),
+      Either::B(r) => BannerRule::Regexp(r.to_rspack_regex()),
+    }
   }
 }
 
-impl TryFrom<RawBannerRules> for BannerRules {
-  type Error = rspack_error::Error;
-
-  fn try_from(x: RawBannerRules) -> rspack_error::Result<Self> {
-    let result: BannerRules = match x.r#type.as_str() {
-      "string" => Self::String(x.string_matcher.ok_or_else(|| {
-        internal_error!("should have a string_matcher when BannerConditions.type is \"string\"")
-      })?),
-      "regexp" => Self::Regexp(rspack_regex::RspackRegex::new(
-        &x.regexp_matcher.ok_or_else(|| {
-          internal_error!(
-            "should have a regexp_matcher when BannerConditions.type is \"regexp\""
-          )
-        })?,
-      )?),
-      "array" => Self::Array(
-        x.array_matcher
-          .ok_or_else(|| {
-            internal_error!(
-              "should have a array_matcher when BannerConditions.type is \"array\""
-            )
-          })?
-          .into_iter()
-          .map(|i| i.try_into())
-          .collect::<rspack_error::Result<Vec<_>>>()?,
-      ),
-      _ => panic!(
-        "Failed to resolve the condition type {}. Expected type is `string`, `regexp`, `array`, `logical` or `function`.",
-        x.r#type
-      ),
-    };
-
-    Ok(result)
+impl From<RawBannerRulesWrapper> for BannerRules {
+  fn from(x: RawBannerRulesWrapper) -> Self {
+    match x.0 {
+      Either::A(v) => BannerRules::Single(RawBannerRuleWrapper(v).into()),
+      Either::B(v) => v
+        .into_iter()
+        .map(|v| RawBannerRuleWrapper(v).into())
+        .collect(),
+    }
   }
 }
 
 impl TryFrom<RawBannerPluginOptions> for BannerPluginOptions {
   type Error = rspack_error::Error;
-
-  fn try_from(value: RawBannerPluginOptions) -> std::result::Result<Self, Self::Error> {
-    fn try_condition(
-      raw_condition: Option<RawBannerRules>,
-    ) -> Result<Option<BannerRules>, rspack_error::Error> {
-      let condition: Option<BannerRules> = if let Some(test) = raw_condition {
-        Some(test.try_into()?)
-      } else {
-        None
-      };
-
-      Ok(condition)
-    }
-
+  fn try_from(value: RawBannerPluginOptions) -> Result<Self> {
     Ok(BannerPluginOptions {
-      banner: value.banner.try_into()?,
+      banner: RawBannerContentWrapper(value.banner).try_into()?,
       entry_only: value.entry_only,
       footer: value.footer,
       raw: value.raw,
-      test: try_condition(value.test)?,
-      include: try_condition(value.include)?,
-      exclude: try_condition(value.exclude)?,
+      test: value.test.map(|v| RawBannerRulesWrapper(v).into()),
+      include: value.include.map(|v| RawBannerRulesWrapper(v).into()),
+      exclude: value.exclude.map(|v| RawBannerRulesWrapper(v).into()),
     })
   }
 }

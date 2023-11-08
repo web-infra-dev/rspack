@@ -317,7 +317,7 @@ impl<T: 'static, R> Drop for ThreadsafeFunction<T, R> {
 }
 
 unsafe extern "C" fn cleanup_cb(cleanup_data: *mut c_void) {
-  let aborted = Arc::<AtomicBool>::from_raw(cleanup_data.cast());
+  let aborted = unsafe { Arc::<AtomicBool>::from_raw(cleanup_data.cast()) };
   aborted.store(true, Ordering::SeqCst);
 }
 
@@ -331,7 +331,7 @@ unsafe extern "C" fn thread_finalize_cb<T: 'static, C, R>(
   C: 'static + Send + FnMut(ThreadSafeContext<T, R>) -> Result<()>,
 {
   // cleanup
-  drop(Box::<C>::from_raw(finalize_data.cast()));
+  drop(unsafe { Box::<C>::from_raw(finalize_data.cast()) });
 }
 
 unsafe extern "C" fn call_js_cb<T: 'static, C, R>(
@@ -347,21 +347,20 @@ unsafe extern "C" fn call_js_cb<T: 'static, C, R>(
     return;
   }
 
-  let ctx: &mut C = &mut *context.cast::<C>();
-  let val = Ok(*Box::<(
-    T,
-    tokio::sync::oneshot::Sender<rspack_error::Result<R>>,
-  )>::from_raw(data.cast()));
+  let ctx: &mut C = unsafe { &mut *context.cast::<C>() };
+  let val = Ok(*unsafe {
+    Box::<(T, tokio::sync::oneshot::Sender<rspack_error::Result<R>>)>::from_raw(data.cast())
+  });
 
   let mut recv = ptr::null_mut();
-  sys::napi_get_undefined(raw_env, &mut recv);
+  unsafe { sys::napi_get_undefined(raw_env, &mut recv) };
 
   let ret = val.and_then(|v| {
     let (value, tx) = v;
     (ctx)(ThreadSafeContext {
-      env: Env::from_raw(raw_env),
+      env: unsafe { Env::from_raw(raw_env) },
       value,
-      callback: JsFunction::from_raw(raw_env, js_callback)
+      callback: unsafe { JsFunction::from_raw(raw_env, js_callback) }
         .unwrap_or_else(|_| panic!("Threadsafe function callback is not a function")),
       tx,
     })
@@ -369,7 +368,7 @@ unsafe extern "C" fn call_js_cb<T: 'static, C, R>(
 
   let status = match ret {
     Ok(()) => sys::Status::napi_ok,
-    Err(e) => sys::napi_fatal_exception(raw_env, JsError::from(e).into_value(raw_env)),
+    Err(e) => unsafe { sys::napi_fatal_exception(raw_env, JsError::from(e).into_value(raw_env)) },
   };
   if status == sys::Status::napi_ok {
     return;
@@ -377,44 +376,50 @@ unsafe extern "C" fn call_js_cb<T: 'static, C, R>(
   if status == sys::Status::napi_pending_exception {
     let mut error_result = ptr::null_mut();
     assert_eq!(
-      sys::napi_get_and_clear_last_exception(raw_env, &mut error_result),
+      unsafe { sys::napi_get_and_clear_last_exception(raw_env, &mut error_result) },
       sys::Status::napi_ok
     );
 
     // When shutting down, napi_fatal_exception sometimes returns another exception
-    let stat = sys::napi_fatal_exception(raw_env, error_result);
+    let stat = unsafe { sys::napi_fatal_exception(raw_env, error_result) };
     assert!(stat == sys::Status::napi_ok || stat == sys::Status::napi_pending_exception);
   } else {
     let error_code: Status = status.into();
     let error_code_string = format!("{error_code:?}");
     let mut error_code_value = ptr::null_mut();
     assert_eq!(
-      sys::napi_create_string_utf8(
-        raw_env,
-        error_code_string.as_ptr() as *const _,
-        error_code_string.len(),
-        &mut error_code_value,
-      ),
+      unsafe {
+        sys::napi_create_string_utf8(
+          raw_env,
+          error_code_string.as_ptr() as *const _,
+          error_code_string.len(),
+          &mut error_code_value,
+        )
+      },
       sys::Status::napi_ok,
     );
     let error_msg = "Call JavaScript callback failed in thread safe function";
     let mut error_msg_value = ptr::null_mut();
     assert_eq!(
-      sys::napi_create_string_utf8(
-        raw_env,
-        error_msg.as_ptr() as *const _,
-        error_msg.len(),
-        &mut error_msg_value,
-      ),
+      unsafe {
+        sys::napi_create_string_utf8(
+          raw_env,
+          error_msg.as_ptr() as *const _,
+          error_msg.len(),
+          &mut error_msg_value,
+        )
+      },
       sys::Status::napi_ok,
     );
     let mut error_value = ptr::null_mut();
     assert_eq!(
-      sys::napi_create_error(raw_env, error_code_value, error_msg_value, &mut error_value),
+      unsafe {
+        sys::napi_create_error(raw_env, error_code_value, error_msg_value, &mut error_value)
+      },
       sys::Status::napi_ok,
     );
     assert_eq!(
-      sys::napi_fatal_exception(raw_env, error_value),
+      unsafe { sys::napi_fatal_exception(raw_env, error_value) },
       sys::Status::napi_ok
     );
   }

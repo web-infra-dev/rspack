@@ -41,8 +41,8 @@ pub use self::{
   raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
 };
 use crate::{
-  RawEntryPluginOptions, RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions,
-  RawOptionsApply,
+  RawEntryPluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
+  RawHttpExternalsRspackPluginOptions, RawOptionsApply,
 };
 
 #[napi(string_enum)]
@@ -123,7 +123,7 @@ impl RawOptionsApply for BuiltinPlugin {
         let externals = plugin_options
           .externals
           .into_iter()
-          .map(|e| e.try_into())
+          .map(|e| RawExternalItemWrapper(e).try_into())
           .collect::<Result<Vec<_>>>()?;
         let plugin = ExternalsPlugin::new(plugin_options.r#type, externals).boxed();
         plugins.push(plugin);
