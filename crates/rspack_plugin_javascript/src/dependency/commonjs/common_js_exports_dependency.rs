@@ -152,7 +152,7 @@ impl DependencyTemplate for CommonJsExportsDependency {
       runtime_requirements.insert(RuntimeGlobals::THIS_AS_EXPORTS);
       "this".to_string()
     } else {
-      panic!("Unexpect base type");
+      panic!("Unexpected base type");
     };
 
     if self.base.is_expression() {
@@ -202,13 +202,14 @@ impl DependencyTemplate for CommonJsExportsDependency {
                 "Object.defineProperty({}{}, {}, (",
                 base,
                 property_access(used[0..used.len() - 1].iter(), 0),
-                serde_json::to_string(&used.last()).expect("Unexpect render define property base")
+                serde_json::to_string(&used.last())
+                  .expect("Unexpected render define property base")
               ),
               None,
             );
             source.replace(value_range.1, self.range.1, "))", None);
           } else {
-            panic!("Unexpect base type");
+            panic!("Unexpected base type");
           }
         } else {
           init_fragments.push(

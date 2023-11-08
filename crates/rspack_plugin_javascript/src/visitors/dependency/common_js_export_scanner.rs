@@ -229,7 +229,7 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
               } else if self.is_this_expr(expr) {
                 ExportsBase::DefinePropertyThis
               } else {
-                panic!("unexpect expr type");
+                panic!("Unexpected expr type");
               },
               UsedName::Vec(vec![str.value.clone()]),
             )));
