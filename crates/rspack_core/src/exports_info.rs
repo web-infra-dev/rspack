@@ -870,9 +870,10 @@ impl ExportInfo {
     } else {
       false
     };
+
     let can_mangle_use = init_from.and_then(|init_from| init_from.can_mangle_use);
     let used_in_runtime = init_from.and_then(|init_from| init_from.used_in_runtime.clone());
-
+    let provided = init_from.and_then(|init_from| init_from.provided);
     let target = init_from
       .and_then(|item| {
         if item.target_is_set {
@@ -911,7 +912,7 @@ impl ExportInfo {
       used_name: None,
       used_in_runtime,
       target,
-      provided: None,
+      provided,
       can_mangle_provide: None,
       terminal_binding: false,
       target_is_set,

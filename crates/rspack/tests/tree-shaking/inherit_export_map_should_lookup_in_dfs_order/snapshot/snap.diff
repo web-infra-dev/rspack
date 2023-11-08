@@ -1,6 +1,14 @@
 --- expected
 +++ actual
-@@ -14,6 +14,9 @@
+@@ -6,14 +6,14 @@
+ "./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);
+-__webpack_require__.d(__webpack_exports__, {
+-  c: function() { return c; }
+-});
+  const c = 'a';
+ }),
  "./bar.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
  __webpack_require__.r(__webpack_exports__);
