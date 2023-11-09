@@ -1,12 +1,15 @@
+use std::marker::PhantomData;
+
 use napi::{
   bindgen_prelude::FromNapiValue, sys, Env, JsFunction, JsObject, JsString, JsStringUtf8,
-  JsUnknown, Result,
+  JsUnknown, NapiRaw, NapiValue, Result,
 };
 
 /// `Object.prototype.toString.call`
-fn object_prototype_to_string_call(
-  raw_env: napi::sys::napi_env,
-  obj: &JsObject,
+/// Safety: [napi::JsStringUtf8]'s lifetime is bound to `&T`
+unsafe fn object_prototype_to_string_call<T: NapiRaw>(
+  raw_env: sys::napi_env,
+  obj: &T,
 ) -> Result<JsStringUtf8> {
   let env = Env::from(raw_env);
   let s: JsString = env
@@ -14,18 +17,22 @@ fn object_prototype_to_string_call(
     .get_named_property::<JsObject>("Object")?
     .get_named_property::<JsObject>("prototype")?
     .get_named_property::<JsFunction>("toString")?
-    .call_without_args(Some(obj))?
+    .call_without_args(Some(
+      // Safety: `JsObject::call_without_args` only leverages the `JsObject::raw` method.
+      // It's not necessarily have to be exactly an `JsObject` instance.
+      unsafe { &JsObject::from_raw_unchecked(raw_env, obj.raw()) },
+    ))?
     .try_into()?;
   s.into_utf8()
 }
 
-pub struct NapiType(JsStringUtf8);
+pub struct NapiTypeRef<'r>(JsStringUtf8, PhantomData<&'r *mut ()>);
 
-impl NapiType {
-  pub fn new(env: sys::napi_env, val: sys::napi_value) -> Result<Self> {
-    let o = unsafe { JsObject::from_napi_value(env, val) }?;
-    let s = object_prototype_to_string_call(env, &o)?;
-    Ok(Self(s))
+impl<'r> NapiTypeRef<'r> {
+  // Safety: This call would be successful when `val` is a valid `impl NapiRaw` and `env` is a valid `napi_env`.
+  pub unsafe fn new<T: NapiRaw>(env: sys::napi_env, val: &'r T) -> Result<NapiTypeRef<'r>> {
+    let s = unsafe { object_prototype_to_string_call(env, val) }?;
+    Ok(Self(s, PhantomData))
   }
 
   pub fn get_type(&self) -> Result<&str> {
