@@ -106,6 +106,9 @@ export interface LoaderContext<OptionsType = {}> {
 	loaders: LoaderObject[];
 	mode?: Mode;
 	hot?: boolean;
+	/**
+	 * @param schema Considering performance, Rspack does not perform the schema validation. If your loader requires schema validation, please call scheme-utils or zod on your own.
+	 */
 	getOptions(schema?: any): OptionsType;
 	resolve(
 		context: string,
