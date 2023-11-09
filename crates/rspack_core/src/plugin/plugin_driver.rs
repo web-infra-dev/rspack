@@ -9,12 +9,13 @@ use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetEmittedArgs, BoxLoader,
-  BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs, ChunkContentHash, ChunkHashArgs,
-  Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
-  JsChunkHashArgs, MakeParam, Module, ModuleArgs, ModuleType, NormalModule,
-  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext,
-  OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
+  AssetEmittedArgs, BoxLoader, BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs,
+  ChunkContentHash, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, Content,
+  ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, MakeParam, Module, ModuleArgs,
+  ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
   PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
   PluginFactorizeHookOutput, PluginJsChunkHashHookOutput, PluginMakeHookOutput,
   PluginModuleHookOutput, PluginNormalModuleFactoryAfterResolveOutput,
@@ -408,6 +409,16 @@ impl PluginDriver {
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
     for plugin in &self.plugins {
       plugin.additional_tree_runtime_requirements(PluginContext::new(), args)?;
+    }
+    Ok(())
+  }
+
+  pub fn runtime_requirement_in_module(
+    &self,
+    args: &mut AdditionalModuleRequirementsArgs,
+  ) -> PluginAdditionalModuleRequirementsOutput {
+    for plugin in &self.plugins {
+      plugin.runtime_requirements_in_module(PluginContext::new(), args)?;
     }
     Ok(())
   }

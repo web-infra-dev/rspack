@@ -1,10 +1,12 @@
 use std::hash::Hash;
 
 use async_trait::async_trait;
+use once_cell::sync::Lazy;
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, ChunkLoading, JsChunkHashArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
-  PublicPath, RuntimeGlobals, RuntimeModuleExt, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ChunkLoading,
+  JsChunkHashArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  PluginAdditionalModuleRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput, PublicPath,
+  RuntimeGlobals, RuntimeModuleExt, SourceType,
 };
 
 use crate::runtime_module::{
@@ -18,6 +20,99 @@ use crate::runtime_module::{
   NodeModuleDecoratorRuntimeModule, NormalRuntimeModule, OnChunkLoadedRuntimeModule,
   PublicPathRuntimeModule, SystemContextRuntimeModule,
 };
+
+static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
+  vec![
+    // RuntimeGlobals::CHUNK_NAME,
+    // RuntimeGlobals::RUNTIME_ID,
+    RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
+    RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+    RuntimeGlobals::CREATE_SCRIPT,
+    RuntimeGlobals::CREATE_SCRIPT_URL,
+    RuntimeGlobals::GET_TRUSTED_TYPES_POLICY,
+    RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+    RuntimeGlobals::ENSURE_CHUNK,
+    RuntimeGlobals::ENTRY_MODULE_ID,
+    RuntimeGlobals::GET_FULL_HASH,
+    RuntimeGlobals::GLOBAL,
+    RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
+    RuntimeGlobals::MODULE_CACHE,
+    RuntimeGlobals::MODULE_FACTORIES,
+    RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY,
+    RuntimeGlobals::INTERCEPT_MODULE_EXECUTION,
+    RuntimeGlobals::PUBLIC_PATH,
+    RuntimeGlobals::BASE_URI,
+    // RuntimeGlobals::RELATIVE_URL,
+    // RuntimeGlobals::SCRIPT_NONCE,
+    // RuntimeGlobals::UNCAUGHT_ERROR_HANDLER,
+    RuntimeGlobals::ASYNC_MODULE,
+    // RuntimeGlobals::WASM_INSTANCES,
+    RuntimeGlobals::INSTANTIATE_WASM,
+    // RuntimeGlobals::SHARE_SCOPE_MAP,
+    // RuntimeGlobals::INITIALIZE_SHARING,
+    RuntimeGlobals::LOAD_SCRIPT,
+    // RuntimeGlobals::SYSTEM_CONTEXT,
+    RuntimeGlobals::ON_CHUNKS_LOADED,
+  ]
+});
+
+static MODULE_DEPENDENCIES: Lazy<Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>> = Lazy::new(|| {
+  vec![
+    (RuntimeGlobals::MODULE_LOADED, vec![RuntimeGlobals::MODULE]),
+    (RuntimeGlobals::MODULE_ID, vec![RuntimeGlobals::MODULE]),
+  ]
+});
+
+static TREE_DEPENDENCIES: Lazy<Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>> = Lazy::new(|| {
+  vec![
+    (
+      RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
+      vec![RuntimeGlobals::DEFINE_PROPERTY_GETTERS],
+    ),
+    (
+      RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+      vec![
+        RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+        RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
+        RuntimeGlobals::REQUIRE,
+      ],
+    ),
+    (
+      RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+      vec![RuntimeGlobals::HAS_OWN_PROPERTY],
+    ),
+    // (RuntimeGlobals::INITIALIZE_SHARING, [RuntimeGlobals::SHARE_SCOPE_MAP]),
+    // (RuntimeGlobals::SHARE_SCOPE_MAP, [RuntimeGlobals::HAS_OWN_PROPERTY]),
+    (
+      RuntimeGlobals::HARMONY_MODULE_DECORATOR,
+      vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
+    ),
+    (
+      RuntimeGlobals::NODE_MODULE_DECORATOR,
+      vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
+    ),
+  ]
+});
+
+fn handle_require_scope_globals(runtime_requirements: &mut RuntimeGlobals) {
+  if GLOBALS_ON_REQUIRE
+    .iter()
+    .any(|requirement| runtime_requirements.contains(*requirement))
+  {
+    runtime_requirements.insert(RuntimeGlobals::REQUIRE_SCOPE);
+  }
+}
+
+fn handle_dependency_globals(
+  runtime_requirements: &mut RuntimeGlobals,
+  dependencies: &[(RuntimeGlobals, Vec<RuntimeGlobals>)],
+) {
+  for (requirement, dependencies) in dependencies.iter() {
+    if runtime_requirements.contains(*requirement) {
+      runtime_requirements.extend(dependencies.clone());
+    }
+  }
+}
 
 #[derive(Debug)]
 pub struct RuntimePlugin;
@@ -49,6 +144,20 @@ impl Plugin for RuntimePlugin {
         .runtime_requirements
         .insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     }
+
+    Ok(())
+  }
+
+  #[allow(clippy::unwrap_in_result)]
+  fn runtime_requirements_in_module(
+    &self,
+    _ctx: PluginContext,
+    args: &mut AdditionalModuleRequirementsArgs,
+  ) -> PluginAdditionalModuleRequirementsOutput {
+    let runtime_requirements = &mut args.runtime_requirements;
+
+    handle_require_scope_globals(runtime_requirements);
+    handle_dependency_globals(runtime_requirements, &MODULE_DEPENDENCIES);
 
     Ok(())
   }
@@ -101,26 +210,8 @@ impl Plugin for RuntimePlugin {
       runtime_requirements.insert(RuntimeGlobals::GET_FULL_HASH);
     }
 
-    if runtime_requirements.contains(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT) {
-      runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-    }
-
-    if runtime_requirements.contains(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT) {
-      runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-      runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
-      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-    }
-
-    if runtime_requirements.contains(RuntimeGlobals::DEFINE_PROPERTY_GETTERS) {
-      runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-    }
-
-    if runtime_requirements.contains(RuntimeGlobals::HARMONY_MODULE_DECORATOR)
-      || runtime_requirements.contains(RuntimeGlobals::NODE_MODULE_DECORATOR)
-    {
-      runtime_requirements.insert(RuntimeGlobals::MODULE);
-      runtime_requirements.insert(RuntimeGlobals::REQUIRE_SCOPE);
-    }
+    handle_require_scope_globals(runtime_requirements);
+    handle_dependency_globals(runtime_requirements, &TREE_DEPENDENCIES);
 
     let public_path = {
       let chunk = compilation
