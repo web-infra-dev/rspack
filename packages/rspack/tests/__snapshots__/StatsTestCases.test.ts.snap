@@ -1286,7 +1286,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
             "hotModuleReplacement": false,
           },
           "name": "bundle1.js",
-          "size": 1464,
+          "size": 1532,
           "type": "asset",
         },
       ],
@@ -1503,10 +1503,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1464,
+              "size": 1532,
             },
           ],
-          "assetsSize": 1464,
+          "assetsSize": 1532,
           "chunks": [
             "main",
           ],
@@ -1516,7 +1516,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "5a558e2a445a1ef33d85",
+      "hash": "dd84ffabbcf23038f36e",
       "logging": {},
       "modules": [
         {
@@ -1722,6 +1722,25 @@ import(/* webpackChunkName: "c" */ "./c");
             "main",
           ],
           "id": "",
+          "identifier": "webpack/runtime/has_own_property",
+          "issuer": undefined,
+          "issuerId": undefined,
+          "issuerName": undefined,
+          "issuerPath": [],
+          "moduleType": "runtime",
+          "name": "webpack/runtime/has_own_property",
+          "nameForCondition": undefined,
+          "reasons": [],
+          "size": 160,
+          "source": undefined,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "",
           "identifier": "webpack/runtime/make_namespace_object",
           "issuer": undefined,
           "issuerId": undefined,
@@ -1799,10 +1818,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1464,
+              "size": 1532,
             },
           ],
-          "assetsSize": 1464,
+          "assetsSize": 1532,
           "chunks": [
             "main",
           ],
@@ -1812,10 +1831,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1464,
+              "size": 1532,
             },
           ],
-          "assetsSize": 1464,
+          "assetsSize": 1532,
           "chunks": [
             "main",
           ],
@@ -3890,7 +3909,7 @@ import(/* webpackChunkName: "c" */ "./c");
   ],
   "errors": [],
   "errorsCount": 0,
-  "hash": "5a558e2a445a1ef33d853e9b37b218ba7bc75de29efd38806ce66b6a9791de66cb644888925a8f42",
+  "hash": "dd84ffabbcf23038f36e3e9b37b218ba7bc75de29efd38806ce66b6a9791de66cb644888925a8f42",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -3899,9 +3918,9 @@ import(/* webpackChunkName: "c" */ "./c");
 exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 2`] = `
 "1 chunks:
   PublicPath: (none)
-  asset bundle1.js 1.43 KiB {main} [emitted] (name: main)
-  Entrypoint main 1.43 KiB = bundle1.js
-  Chunk Group c 1.43 KiB = bundle1.js
+  asset bundle1.js 1.5 KiB {main} [emitted] (name: main)
+  Entrypoint main 1.5 KiB = bundle1.js
+  Chunk Group c 1.5 KiB = bundle1.js
   chunk {main} bundle1.js (main) <{main}> >{main}< [entry]
     ./b.js [996] {main}
       cjs require ./b [10]
@@ -3924,11 +3943,12 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   ./index.js [10] {main}
     entry ./index
   webpack/runtime/ensure_chunk {main}
+  webpack/runtime/has_own_property {main}
   webpack/runtime/make_namespace_object {main}
   webpack/runtime/load_chunk_with_module {main}
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
-  1 chunks compiled successfully (5a558e2a445a1ef33d85)
+  1 chunks compiled successfully (dd84ffabbcf23038f36e)
 
 2 chunks:
   PublicPath: (none)
