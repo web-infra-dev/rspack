@@ -1193,7 +1193,7 @@ impl Compilation {
     while plugin_driver.optimize_dependencies(self).await?.is_some() {}
     logger.time_end(start);
     // if self.options.is_new_tree_shaking() {
-    //   debug_exports_info(&self.module_graph);
+    //   debug_exports_info!(&self.module_graph);
     // }
 
     let start = logger.time("create chunks");

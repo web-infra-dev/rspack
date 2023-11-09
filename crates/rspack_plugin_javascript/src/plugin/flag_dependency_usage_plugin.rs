@@ -42,6 +42,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
     let mut q = VecDeque::new();
     let mg = &mut self.compilation.module_graph;
+    // debug_exports_info!(mg);
     for exports_info_id in self.exports_info_module_map.keys() {
       exports_info_id.set_has_use_info(mg);
     }
@@ -98,12 +99,13 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         };
         let active_state =
           connection.get_active_state(&self.compilation.module_graph, runtime.as_ref());
+
         // dbg!(
         //   &connection,
-        //   &active_state,
         //   dep_id
         //     .get_dep(&self.compilation.module_graph)
-        //     .map(|item| item.dependency_debug_name())
+        //     .map(|dep| dep.dependency_debug_name()),
+        //   active_state
         // );
         match active_state {
           ConnectionState::Bool(false) => {

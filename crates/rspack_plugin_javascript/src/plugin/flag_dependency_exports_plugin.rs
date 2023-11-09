@@ -55,7 +55,6 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       }
     }
     self.mg.module_identifier_to_module_graph_module = module_graph_modules;
-
     while let Some(module_id) = q.pop_back() {
       self.changed = false;
       self.current_module_id = module_id;
@@ -245,7 +244,6 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       }
 
       if let Some(exports) = exports {
-        // dbg!(&exports);
         let nested_exports_info = export_info.create_nested_exports_info(self.mg);
         self.merge_exports(
           nested_exports_info,
@@ -263,9 +261,8 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           let export_name = if let Some(from) = from_export {
             Some(from)
           } else {
-            Some(&(fallback))
+            Some(&fallback)
           };
-          // dbg!(&from, &export_name);
           export_info.set_target(Some(dep_id), Some(from), export_name, priority)
         };
         self.changed |= changed;
@@ -286,7 +283,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         let target_module_exports_info = self.mg.get_exports_info(&target.module);
         target_exports_info = target_module_exports_info
           .id
-          .get_nested_exports_info(target.exports, self.mg);
+          .get_nested_exports_info(target.export, self.mg);
         match self.dependencies.entry(target.module) {
           Entry::Occupied(mut occ) => {
             occ.get_mut().insert(self.current_module_id);
