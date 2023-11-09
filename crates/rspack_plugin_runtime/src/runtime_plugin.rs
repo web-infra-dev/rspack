@@ -105,7 +105,7 @@ fn handle_require_scope_globals(runtime_requirements: &mut RuntimeGlobals) {
 
 fn handle_dependency_globals(
   runtime_requirements: &mut RuntimeGlobals,
-  dependencies: &Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>,
+  dependencies: &[(RuntimeGlobals, Vec<RuntimeGlobals>)],
 ) {
   for (requirement, dependencies) in dependencies.iter() {
     if runtime_requirements.contains(*requirement) {
