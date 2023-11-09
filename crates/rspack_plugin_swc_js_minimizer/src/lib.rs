@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 mod minify;
 
 use std::collections::HashMap;
@@ -226,7 +228,12 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
           } else {
             RawSource::from(output.code).boxed()
           };
-          let source = if let Some(banner) = extract_comments_option.map(|option| option.banner) {
+          let source = if let Some(banner) = extract_comments_option.map(|option| option.banner)
+            && all_extracted_comments
+            .lock()
+            .expect("all_extract_comments lock failed")
+            .contains_key(filename)
+          {
             ConcatSource::new([
               RawSource::Source(banner).boxed(),
               RawSource::from("\n").boxed(),
