@@ -7,8 +7,8 @@ use rspack_core::tree_shaking::analyzer::OptimizeAnalyzer;
 use rspack_core::tree_shaking::js_module::JsModule;
 use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
 use rspack_core::{
-  render_init_fragments, GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator,
-  SourceType, TemplateContext,
+  render_init_fragments, DependenciesBlock, GenerateContext, Module, ParseContext, ParseResult,
+  ParserAndGenerator, SourceType, TemplateContext,
 };
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
@@ -167,7 +167,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     diagnostics.append(&mut warning_diagnostics);
 
     let analyze_result = if compiler_options.builtins.tree_shaking.enable() {
-      JsModule::new(&ast, &dependencies, module_identifier, compiler_options).analyze()
+      let mut all_dependencies = dependencies.clone();
+      for mut block in blocks.clone() {
+        all_dependencies.extend(block.take_dependencies());
+      }
+      JsModule::new(&ast, &all_dependencies, module_identifier, compiler_options).analyze()
     } else {
       OptimizeAnalyzeResult::default()
     };

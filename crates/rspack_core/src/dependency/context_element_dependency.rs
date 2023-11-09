@@ -8,7 +8,6 @@ use crate::{
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub struct ContextElementDependency {
-  pub group_options: ChunkGroupOptions,
   pub id: DependencyId,
   // TODO remove this async dependency mark
   pub options: ContextOptions,

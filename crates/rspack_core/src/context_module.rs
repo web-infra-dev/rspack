@@ -8,7 +8,7 @@ use std::{
 };
 
 use once_cell::sync::Lazy;
-use regex::Regex;
+use regex::{Captures, Regex};
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
@@ -22,8 +22,9 @@ use crate::{
   AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation, ContextElementDependency,
   DependenciesBlock, DependencyCategory, DependencyId, DependencyType, ExportsType,
-  FakeNamespaceObjectMode, LibIdentOptions, Module, ModuleType, Resolve, ResolveInnerOptions,
-  ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
+  FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module, ModuleType, Resolve,
+  ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
+  RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -605,15 +606,18 @@ impl Hash for ContextModule {
 
 static WEBPACK_CHUNK_NAME_PLACEHOLDER: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\[index|request\]").expect("regexp init failed"));
+static WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[index\]").expect("regexp init failed"));
+static WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[request\]").expect("regexp init failed"));
 
 impl ContextModule {
   fn visit_dirs(
     ctx: &str,
     dir: &Path,
-    dependencies: &mut Vec<BoxDependency>,
+    dependencies: &mut Vec<ContextElementDependency>,
     options: &ContextModuleOptions,
     resolve_options: &ResolveInnerOptions,
-    count: &mut i32,
   ) -> Result<()> {
     if !dir.is_dir() {
       return Ok(());
@@ -622,7 +626,7 @@ impl ContextModule {
       let path = entry?.path();
       if path.is_dir() {
         if options.context_options.recursive {
-          Self::visit_dirs(ctx, &path, dependencies, options, resolve_options, count)?;
+          Self::visit_dirs(ctx, &path, dependencies, options, resolve_options)?;
         }
       } else if path
         .file_name()
@@ -658,20 +662,8 @@ impl ContextModule {
           if !reg_exp.test(&r.request) {
             return;
           }
-          *count += 1;
-          let name = options.context_options.chunk_name.as_ref().map(|name| {
-            let mut name = name.to_string();
-            if !WEBPACK_CHUNK_NAME_PLACEHOLDER.is_match(&name) {
-              name += "[index]"
-            }
-            name = name.replace("[index]", count.to_string().as_str());
-            name = name.replace("[request]", &to_path(&r.request));
-            name
-          });
-          let group_options = ChunkGroupOptions { name };
-          dependencies.push(Box::new(ContextElementDependency {
+          dependencies.push(ContextElementDependency {
             id: DependencyId::new(),
-            group_options,
             request: format!(
               "{}{}{}",
               r.request,
@@ -684,7 +676,7 @@ impl ContextModule {
             options: options.context_options.clone(),
             resource_identifier: format!("context{}|{}", &options.resource, path.to_string_lossy()),
             referenced_exports: None,
-          }));
+          });
         })
       }
     }
@@ -704,34 +696,64 @@ impl ContextModule {
       dependency_category: self.options.context_options.category,
     });
 
-    let mut deps = vec![];
+    let mut context_element_dependencies = vec![];
     Self::visit_dirs(
       &self.options.resource,
       Path::new(&self.options.resource),
-      &mut deps,
+      &mut context_element_dependencies,
       &self.options,
       &resolver.options(),
-      &mut 0,
     )?;
 
-    tracing::trace!("resolving dependencies for {:?}", deps);
+    tracing::trace!(
+      "resolving dependencies for {:?}",
+      context_element_dependencies
+    );
 
-    let mut dependencies = vec![];
+    let mut dependencies: Vec<BoxDependency> = vec![];
     let mut blocks = vec![];
-    if matches!(self.options.context_options.mode, ContextMode::LazyOnce) && !deps.is_empty() {
+    if matches!(self.options.context_options.mode, ContextMode::LazyOnce)
+      && !context_element_dependencies.is_empty()
+    {
+      let name = self.options.context_options.chunk_name.clone();
       let mut block = AsyncDependenciesBlock::default();
-      for dependency in deps {
-        block.add_dependency(dependency);
+      block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions { name }));
+      for context_element_dependency in context_element_dependencies {
+        block.add_dependency(Box::new(context_element_dependency));
       }
       blocks.push(block);
     } else if matches!(self.options.context_options.mode, ContextMode::Lazy) {
-      for dependency in deps {
+      let mut index = 0;
+      for context_element_dependency in context_element_dependencies {
+        let name = self
+          .options
+          .context_options
+          .chunk_name
+          .as_ref()
+          .map(|name| {
+            let mut name = name.to_string();
+            if !WEBPACK_CHUNK_NAME_PLACEHOLDER.is_match(&name) {
+              name += "[index]"
+            }
+            let name = WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER.replace_all(&name, |_: &Captures| {
+              let replacer = index.to_string();
+              index += 1;
+              replacer
+            });
+            let name = WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER
+              .replace_all(&name, &to_path(&context_element_dependency.user_request));
+            name.into_owned()
+          });
         let mut block = AsyncDependenciesBlock::default();
-        block.add_dependency(dependency);
+        block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions { name }));
+        block.add_dependency(Box::new(context_element_dependency));
         blocks.push(block);
       }
     } else {
-      dependencies = deps;
+      dependencies = context_element_dependencies
+        .into_iter()
+        .map(|d| Box::new(d) as BoxDependency)
+        .collect();
     }
 
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
