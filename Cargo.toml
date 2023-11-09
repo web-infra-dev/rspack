@@ -5,7 +5,7 @@ resolver = "2"          # See https://doc.rust-lang.org/cargo/reference/resolver
 [workspace.dependencies]
 anyhow             = { version = "1.0.71", features = ["backtrace"] }
 async-recursion    = { version = "1.0.4" }
-async-scoped       = { version = "0.7.1" }
+async-scoped       = { version = "0.7.1", git = "https://github.com/Brooooooklyn/async-scoped.git", rev = "e1ec8ce" }
 async-trait        = { version = "0.1.71" }
 backtrace          = "0.3"
 better_scoped_tls  = { version = "0.1.1" }
@@ -51,10 +51,10 @@ ustr               = { version = "0.9.0" }
 xxhash-rust        = { version = "0.8.6" }
 
 # Pinned
-napi                = { version = "=2.13.3" }
-napi-build          = { version = "=2.0.1" }
-napi-derive         = { version = "=2.13.0" }
-napi-sys            = { version = "=2.2.3" }
+napi                = { version = "=2.14.1" }
+napi-build          = { version = "=2.1.0" }
+napi-derive         = { version = "=2.14.2" }
+napi-sys            = { version = "=2.3.0" }
 styled_components   = { version = "0.90.0" }
 swc_config          = { version = "=0.1.7" }
 swc_core            = { version = "0.86.82", default-features = false }

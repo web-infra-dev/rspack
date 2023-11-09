@@ -124,9 +124,15 @@ importers:
         specifier: workspace:*
         version: link:../../npm/win32-x64-msvc
     devDependencies:
+      '@emnapi/core':
+        specifier: 0.44.0
+        version: 0.44.0
+      '@emnapi/runtime':
+        specifier: 0.44.0
+        version: 0.44.0
       '@napi-rs/cli':
-        specifier: 3.0.0-alpha.5
-        version: 3.0.0-alpha.5
+        specifier: 3.0.0-alpha.8
+        version: 3.0.0-alpha.8(@emnapi/runtime@0.44.0)
 
   crates/rspack_fs_node:
     devDependencies:
@@ -7064,6 +7070,18 @@ packages:
     resolution: {integrity: sha512-dBVuXR082gk3jsFp7Rd/JI4kytwGHecnCoTtXFb7DB6CNHp4rg5k1bhg0nWdLGLnOV71lmDzGQaLMy8iPLY0pw==}
     engines: {node: '>=10.0.0'}
 
+  /@emnapi/core@0.44.0:
+    resolution: {integrity: sha512-FlaXf4DVutyXXRzYkEIRA/f++XqewtbXG8zT3ON7ImjshqnYU7XV1q+t/7Fq15/AIrwDWbM5KHlHeBI3sCLnvA==}
+    dependencies:
+      tslib: 2.5.0
+    dev: true
+
+  /@emnapi/runtime@0.44.0:
+    resolution: {integrity: sha512-ZX/etZEZw8DR7zAB1eVQT40lNo0jeqpb6dCgOvctB6FIQ5PoXfMuNY8+ayQfu8tNQbAB8gQWSSJupR8NxeiZXw==}
+    dependencies:
+      tslib: 2.5.0
+    dev: true
+
   /@emotion/babel-plugin@11.10.6:
     resolution: {integrity: sha512-p2dAqtVrkhSa7xz1u/m9eHYdLi+en8NowrmXeF/dKtJpU8lCWli8RUAati7NcSl0afsBott48pdnANuD0wh9QQ==}
     dependencies:
@@ -8324,20 +8342,34 @@ packages:
     hasBin: true
     dev: true
 
-  /@napi-rs/cli@3.0.0-alpha.5:
-    resolution: {integrity: sha512-zT5yAMSsBM2LDwiVKCTCI4+mUnuhSShvVV963u0wu7JTuCy2HERRyOai3QtZ/anEVusPIjEhd9nXj35qwBWlOA==}
+  /@napi-rs/cli@3.0.0-alpha.8(@emnapi/runtime@0.44.0):
+    resolution: {integrity: sha512-efnPAyv5+c02c87pbDvJVZxp6Ut1/qcZNWymWKbA6w0xDRUwUmk9vrjGDHSC5Tk2u+fGzR9vIqj9ldjr+U7XSg==}
     engines: {node: '>= 16'}
     hasBin: true
+    peerDependencies:
+      '@emnapi/runtime': 0.44.0
+    peerDependenciesMeta:
+      '@emnapi/runtime':
+        optional: true
+      '@tybys/wasm-util':
+        optional: true
+      emnapi:
+        optional: true
     dependencies:
+      '@emnapi/runtime': 0.44.0
       '@octokit/rest': 20.0.2
+      '@tybys/wasm-util': 0.8.0
       clipanion: 3.2.1
       colorette: 2.0.20
       debug: 4.3.4
-      inquirer: 9.2.11
+      emnapi: 0.44.0
+      inquirer: 9.2.12
       js-yaml: 4.1.0
       lodash-es: 4.17.21
+      toml: 3.0.0
       typanion: 3.14.0
     transitivePeerDependencies:
+      - node-addon-api
       - supports-color
     dev: true
 
@@ -12556,6 +12588,12 @@ packages:
       '@turf/invariant': 6.5.0
       d3-voronoi: 1.1.2
     dev: false
+
+  /@tybys/wasm-util@0.8.0:
+    resolution: {integrity: sha512-00Sa73E9LjWg1d0+zo5WGLUSpHiVGK6OqlDn6fKaVnf0K9FOw+mF+diQAtvJXyBGurQhfJi2oS0JP9EV9ytbCg==}
+    dependencies:
+      tslib: 2.5.0
+    dev: true
 
   /@types/acorn@4.0.6:
     resolution: {integrity: sha512-veQTnWP+1D/xbxVrPC3zHnCZRjSrKfhbMUlEA43iMZLu7EsnTtkJklIuwrCPbOi8YkvDQAiW05VQQFvvz9oieQ==}
@@ -17359,6 +17397,15 @@ packages:
     engines: {node: '>=12'}
     dev: true
 
+  /emnapi@0.44.0:
+    resolution: {integrity: sha512-tc5OD0Xz4Vca9Z/mkF4nt5xzn0A0Pfh/oApWUAG5h+AqFyAprB8OlkEXv1UO/MT2lAczYxbk4+cViNiVOxbFIw==}
+    peerDependencies:
+      node-addon-api: '>= 6.1.0'
+    peerDependenciesMeta:
+      node-addon-api:
+        optional: true
+    dev: true
+
   /emoji-regex@8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
 
@@ -19861,8 +19908,8 @@ packages:
     resolution: {integrity: sha512-7NXolsK4CAS5+xvdj5OMMbI962hU/wvwoxk+LWR9Ek9bVtyuuYScDN6eS0rUm6TxApFpw7CX1o4uJzcd4AyD3Q==}
     dev: true
 
-  /inquirer@9.2.11:
-    resolution: {integrity: sha512-B2LafrnnhbRzCWfAdOXisUzL89Kg8cVJlYmhqoi3flSiV/TveO+nsXwgKr9h9PIo+J1hz7nBSk6gegRIMBBf7g==}
+  /inquirer@9.2.12:
+    resolution: {integrity: sha512-mg3Fh9g2zfuVWJn6lhST0O7x4n03k7G8Tx5nvikJkbq8/CK47WDVm+UznF0G6s5Zi0KcyUisr6DU8T67N5U+1Q==}
     engines: {node: '>=14.18.0'}
     dependencies:
       '@ljharb/through': 2.3.11
@@ -27652,6 +27699,10 @@ packages:
 
   /token-stream@1.0.0:
     resolution: {integrity: sha512-VSsyNPPW74RpHwR8Fc21uubwHY7wMDeJLys2IX5zJNih+OnAnaifKHo+1LHT7DAdloQ7apeaaWg8l7qnf/TnEg==}
+    dev: true
+
+  /toml@3.0.0:
+    resolution: {integrity: sha512-y/mWCZinnvxjTKYhJ+pYxwD0mRLVvOtdS2Awbgxln6iEnt4rk0yBxeSBHkGJcPucRiG0e55mwWp+g/05rsrd6w==}
     dev: true
 
   /topojson-client@3.1.0:

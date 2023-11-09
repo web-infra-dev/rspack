@@ -59,15 +59,35 @@ impl SnapshotManager {
           Some(hash) => *hash,
           None => {
             let res = if path.is_dir() {
+              #[cfg(not(target_os = "wasi"))]
               let dir = &mut tokio::fs::read_dir(path).await?;
+              #[cfg(target_os = "wasi")]
+              let dir = &mut std::fs::read_dir(path)?;
               let mut sub_files = vec![];
-              while let Some(entry) = dir.next_entry().await? {
-                let dir_u8 = entry.path().as_os_str().to_string_lossy().to_string();
-                sub_files.push(dir_u8);
+              #[cfg(not(target_os = "wasi"))]
+              {
+                while let Some(entry) = dir.next_entry().await? {
+                  let dir_u8 = entry.path().as_os_str().to_string_lossy().to_string();
+                  sub_files.push(dir_u8);
+                }
+              }
+              #[cfg(target_os = "wasi")]
+              {
+                for entry in dir {
+                  let dir_u8 = entry?.path().as_os_str().to_string_lossy().to_string();
+                  sub_files.push(dir_u8);
+                }
               }
               calc_hash(&sub_files)
             } else {
-              calc_hash(&tokio::fs::read(path).await?)
+              #[cfg(not(target_os = "wasi"))]
+              {
+                calc_hash(&tokio::fs::read(path).await?)
+              }
+              #[cfg(target_os = "wasi")]
+              {
+                calc_hash(&std::fs::read(path)?)
+              }
             };
             hash_cache.insert(path.to_owned(), res);
             res
@@ -100,7 +120,10 @@ impl SnapshotManager {
         let update_time = match update_time_cache.get(path) {
           Some(t) => *t,
           None => {
+            #[cfg(not(target_os = "wasi"))]
             let t = tokio::fs::metadata(path).await?.modified()?;
+            #[cfg(target_os = "wasi")]
+            let t = std::fs::metadata(path)?.modified()?;
             update_time_cache.insert(path.clone(), t);
             t
           }
@@ -123,7 +146,10 @@ impl SnapshotManager {
         let current_hash = match hash_cache.get(path) {
           Some(h) => *h,
           None => {
+            #[cfg(not(target_os = "wasi"))]
             let res = calc_hash(&tokio::fs::read(path).await?);
+            #[cfg(target_os = "wasi")]
+            let res = calc_hash(&std::fs::read(path)?);
             hash_cache.insert(path.clone(), res);
             res
           }

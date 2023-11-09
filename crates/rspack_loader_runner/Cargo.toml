@@ -17,7 +17,6 @@ async-trait     = { workspace = true }
 bitflags        = { workspace = true }
 derivative      = { workspace = true }
 rustc-hash      = { workspace = true }
-tokio           = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot", "fs"] }
 
 once_cell         = { workspace = true }
 regex             = { workspace = true }
@@ -25,3 +24,9 @@ rspack_error      = { path = "../rspack_error" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_sources    = { workspace = true }
 serde_json        = { workspace = true }
+
+[target.'cfg(not(target_os = "wasi"))'.dependencies]
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot", "fs"] }
+
+[target.'cfg(target_os = "wasi")'.dependencies]
+tokio = { workspace = true, features = ["rt", "macros", "test-util"] }

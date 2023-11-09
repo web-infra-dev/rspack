@@ -17,6 +17,7 @@ use rspack_core::{
 };
 use rspack_error::internal_error;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
+#[cfg(not(target_os = "wasi"))]
 use rspack_loader_sass::SASS_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
 use serde::Deserialize;
@@ -28,6 +29,7 @@ use {
 use crate::{RawOptionsApply, RawResolveOptions};
 
 pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
+  #[cfg(not(target_os = "wasi"))]
   if builtin.starts_with(SASS_LOADER_IDENTIFIER) {
     return Arc::new(rspack_loader_sass::SassLoader::new(
       serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {

@@ -24,5 +24,10 @@ rspack_futures = { path = "../rspack_futures" }
 rspack_hash    = { path = "../rspack_hash" }
 rustc-hash     = { workspace = true }
 sugar_path     = { workspace = true }
-tokio          = { workspace = true, features = ["fs"] }
 tracing        = { workspace = true }
+
+[target.'cfg(not(target_os = "wasi"))'.dependencies]
+tokio = { workspace = true, features = ["fs"] }
+
+[target.'cfg(target_os = "wasi")'.dependencies]
+tokio = { workspace = true }

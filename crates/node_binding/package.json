@@ -19,6 +19,7 @@
     "build:debug:linux": "cross-env RUST_TARGET=x86_64-unknown-linux-gnu node scripts/build.js",
     "build:release:all": "run-p build:release:arm64 build:release:x64 build:release:linux && pnpm move-binding",
     "build:release": "node scripts/build.js --release",
+    "build:release:wasm": "cross-env RUST_TARGET=wasm32-wasi-preview1-threads node scripts/build.js --release",
     "watch:release": "node scripts/build.js --release --watch",
     "build:release:arm64": "cross-env RUST_TARGET=aarch64-apple-darwin node scripts/build.js --release",
     "build:release:x64": "cross-env RUST_TARGET=x86_64-apple-darwin node scripts/build.js --release",
@@ -30,7 +31,9 @@
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
-    "@napi-rs/cli": "3.0.0-alpha.5"
+    "@napi-rs/cli": "3.0.0-alpha.8",
+    "@emnapi/core": "0.44.0",
+    "@emnapi/runtime": "0.44.0"
   },
   "napi": {
     "binaryName": "rspack"
