@@ -1,4 +1,4 @@
-use std::{collections::HashMap, hash::Hash};
+use std::hash::Hash;
 
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
@@ -56,15 +56,15 @@ static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
   ]
 });
 
-static MODULE_DEPENDENCIES: Lazy<HashMap<RuntimeGlobals, Vec<RuntimeGlobals>>> = Lazy::new(|| {
-  HashMap::from([
+static MODULE_DEPENDENCIES: Lazy<Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>> = Lazy::new(|| {
+  vec![
     (RuntimeGlobals::MODULE_LOADED, vec![RuntimeGlobals::MODULE]),
     (RuntimeGlobals::MODULE_ID, vec![RuntimeGlobals::MODULE]),
-  ])
+  ]
 });
 
-static TREE_DEPENDENCIES: Lazy<HashMap<RuntimeGlobals, Vec<RuntimeGlobals>>> = Lazy::new(|| {
-  HashMap::from([
+static TREE_DEPENDENCIES: Lazy<Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>> = Lazy::new(|| {
+  vec![
     (
       RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
       vec![RuntimeGlobals::DEFINE_PROPERTY_GETTERS],
@@ -91,7 +91,7 @@ static TREE_DEPENDENCIES: Lazy<HashMap<RuntimeGlobals, Vec<RuntimeGlobals>>> = L
       RuntimeGlobals::NODE_MODULE_DECORATOR,
       vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
     ),
-  ])
+  ]
 });
 
 fn handle_require_scope_globals(runtime_requirements: &mut RuntimeGlobals) {
@@ -105,7 +105,7 @@ fn handle_require_scope_globals(runtime_requirements: &mut RuntimeGlobals) {
 
 fn handle_dependency_globals(
   runtime_requirements: &mut RuntimeGlobals,
-  dependencies: &HashMap<RuntimeGlobals, Vec<RuntimeGlobals>>,
+  dependencies: &Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>,
 ) {
   for (requirement, dependencies) in dependencies.iter() {
     if runtime_requirements.contains(*requirement) {
