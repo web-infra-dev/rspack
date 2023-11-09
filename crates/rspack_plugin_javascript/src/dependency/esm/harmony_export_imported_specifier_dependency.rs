@@ -308,14 +308,7 @@ impl HarmonyExportImportedSpecifierDependency {
         }
         hide_exports
       });
-    // TODO: shoud align
-    // dbg!(&hidden_exports);
     if !no_extra_exports && !no_extra_imports {
-      // if let Some(hidden_exports) = hidden_exports.as_mut() {
-      //   for e in ignored_exports.iter() {
-      //     hidden_exports.remove(e);
-      //   }
-      // }
       return StarReexportsInfo {
         ignored_exports,
         hidden: hidden_exports,
