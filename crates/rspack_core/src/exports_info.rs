@@ -350,7 +350,7 @@ impl ExportsInfoId {
         info.get_used_name(&name, runtime).map(UsedName::Str)
       }
       UsedName::Vec(names) => {
-        if names.len() == 0 {
+        if names.is_empty() {
           if self.is_used(runtime, mg) {
             Some(UsedName::Vec(names))
           } else {
@@ -373,11 +373,10 @@ impl ExportsInfoId {
               if info.exports_info.is_some()
                 && info.get_used(runtime) == UsageState::OnlyPropertiesUsed
               {
-                if let Some(nested) = info.exports_info.unwrap().get_used_name(
-                  mg,
-                  runtime,
-                  UsedName::Vec(remain_names.clone()),
-                ) {
+                if let Some(exports_info) = info.exports_info
+                  && let Some(nested) =
+                    exports_info.get_used_name(mg, runtime, UsedName::Vec(remain_names.clone()))
+                {
                   arr.extend(match nested {
                     UsedName::Str(name) => vec![name],
                     UsedName::Vec(names) => names,
@@ -996,19 +995,17 @@ impl ExportInfo {
         if matches!(usage, UsageState::Unused) {
           return None;
         }
-      } else {
-        if let Some(used_in_runtime) = &self.used_in_runtime {
-          if let Some(runtime) = runtime {
-            if runtime
-              .iter()
-              .all(|r| !used_in_runtime.contains_key(r.to_string().as_str()))
-            {
-              return None;
-            }
+      } else if let Some(used_in_runtime) = &self.used_in_runtime {
+        if let Some(runtime) = runtime {
+          if runtime
+            .iter()
+            .all(|r| !used_in_runtime.contains_key(r.to_string().as_str()))
+          {
+            return None;
           }
-        } else {
-          return None;
         }
+      } else {
+        return None;
       }
     }
     if let Some(used_name) = self.used_name.as_ref() {
