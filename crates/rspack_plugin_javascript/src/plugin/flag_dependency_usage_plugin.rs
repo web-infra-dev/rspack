@@ -99,13 +99,14 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         };
         let active_state =
           connection.get_active_state(&self.compilation.module_graph, runtime.as_ref());
-        // dbg!(
-        //   &connection,
-        //   &active_state,
-        //   dep_id
-        //     .get_dep(&self.compilation.module_graph)
-        //     .map(|item| item.dependency_debug_name())
-        // );
+
+        dbg!(
+          &connection,
+          dep_id
+            .get_dep(&self.compilation.module_graph)
+            .map(|dep| dep.dependency_debug_name()),
+          active_state
+        );
         match active_state {
           ConnectionState::Bool(false) => {
             continue;
