@@ -7,13 +7,14 @@ use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::BoxSource;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, AssetEmittedArgs, AssetInfo, BoxLoader, BoxModule,
-  ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs,
-  DoneArgs, FactorizeArgs, JsChunkHashArgs, MakeParam, Module, ModuleArgs, ModuleFactoryResult,
-  ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
-  NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
-  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
-  RenderStartupArgs, Resolver, SourceType, ThisCompilationArgs,
+  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
+  AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationArgs,
+  CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, MakeParam, Module,
+  ModuleArgs, ModuleFactoryResult, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleBeforeResolveArgs, NormalModuleFactoryContext, OptimizeChunksArgs,
+  ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
+  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, SourceType,
+  ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -35,6 +36,7 @@ pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
 pub type PluginProcessAssetsOutput = Result<()>;
 pub type PluginOptimizeChunksOutput = Result<()>;
 pub type PluginAdditionalChunkRuntimeRequirementsOutput = Result<()>;
+pub type PluginAdditionalModuleRequirementsOutput = Result<()>;
 pub type PluginRenderModuleContentOutput<'a> = Result<RenderModuleContentArgs<'a>>;
 pub type PluginRenderStartupHookOutput = Result<Option<BoxSource>>;
 pub type PluginRenderHookOutput = Result<Option<BoxSource>>;
@@ -219,6 +221,14 @@ pub trait Plugin: Debug + Send + Sync {
     _ctx: PluginContext,
     _args: &mut AdditionalChunkRuntimeRequirementsArgs,
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    Ok(())
+  }
+
+  fn runtime_requirements_in_module(
+    &self,
+    _ctx: PluginContext,
+    _args: &mut AdditionalModuleRequirementsArgs,
+  ) -> PluginAdditionalModuleRequirementsOutput {
     Ok(())
   }
 
