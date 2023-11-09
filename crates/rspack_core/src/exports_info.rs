@@ -349,9 +349,52 @@ impl ExportsInfoId {
         let info = self.get_read_only_export_info(&name, mg);
         info.get_used_name(&name, runtime).map(UsedName::Str)
       }
-      UsedName::Vec(_) => {
-        // TODO
-        Some(name.clone())
+      UsedName::Vec(names) => {
+        if names.len() == 0 {
+          if self.is_used(runtime, mg) {
+            Some(UsedName::Vec(names))
+          } else {
+            None
+          }
+        } else {
+          let info = self.get_read_only_export_info(&names[0], mg);
+
+          if let Some(first_name) = info.get_used_name(&names[0], runtime) {
+            let mut arr = if first_name == names[0] && names.len() == 1 {
+              names.clone()
+            } else {
+              vec![first_name]
+            };
+            if arr.len() == 1 {
+              Some(UsedName::Vec(arr))
+            } else {
+              let remain_names = names[1..].to_vec();
+
+              if info.exports_info.is_some()
+                && info.get_used(runtime) == UsageState::OnlyPropertiesUsed
+              {
+                if let Some(nested) = info.exports_info.unwrap().get_used_name(
+                  mg,
+                  runtime,
+                  UsedName::Vec(remain_names.clone()),
+                ) {
+                  arr.extend(match nested {
+                    UsedName::Str(name) => vec![name],
+                    UsedName::Vec(names) => names,
+                  });
+                  Some(UsedName::Vec(arr))
+                } else {
+                  None
+                }
+              } else {
+                arr.extend(remain_names);
+                Some(UsedName::Vec(arr))
+              }
+            }
+          } else {
+            None
+          }
+        }
       }
     }
   }
@@ -946,7 +989,7 @@ impl ExportInfo {
   pub fn get_used_name(
     &self,
     fallback_name: &JsWord,
-    _runtime: Option<&RuntimeSpec>,
+    runtime: Option<&RuntimeSpec>,
   ) -> Option<JsWord> {
     if self.has_use_in_runtime_info {
       if let Some(usage) = self.global_used {
@@ -954,8 +997,18 @@ impl ExportInfo {
           return None;
         }
       } else {
-        self.used_in_runtime.as_ref()?;
-        // TODO: runtime optimization
+        if let Some(used_in_runtime) = &self.used_in_runtime {
+          if let Some(runtime) = runtime {
+            if runtime
+              .iter()
+              .all(|r| !used_in_runtime.contains_key(r.to_string().as_str()))
+            {
+              return None;
+            }
+          }
+        } else {
+          return None;
+        }
       }
     }
     if let Some(used_name) = self.used_name.as_ref() {
