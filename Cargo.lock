@@ -245,7 +245,6 @@ dependencies = [
  "mimalloc-rust",
  "rspack_core",
  "rspack_fs",
- "rspack_plugin_javascript",
  "rspack_testing",
  "rspack_tracing",
  "tikv-jemallocator",

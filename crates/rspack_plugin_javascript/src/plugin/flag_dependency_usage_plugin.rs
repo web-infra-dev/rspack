@@ -2,9 +2,9 @@ use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
 use rspack_core::{
-  debug_exports_info, is_exports_object_referenced, is_no_exports_referenced, BuildMetaExportsType,
-  Compilation, ConnectionState, DependencyId, ExportsInfoId, ExtendedReferencedExport,
-  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
+  is_exports_object_referenced, is_no_exports_referenced, BuildMetaExportsType, Compilation,
+  ConnectionState, DependencyId, ExportsInfoId, ExtendedReferencedExport, ModuleIdentifier, Plugin,
+  ReferencedExport, RuntimeSpec, UsageState,
 };
 use rspack_error::Result;
 use rspack_identifier::IdentifierMap;
@@ -100,13 +100,13 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         let active_state =
           connection.get_active_state(&self.compilation.module_graph, runtime.as_ref());
 
-        dbg!(
-          &connection,
-          dep_id
-            .get_dep(&self.compilation.module_graph)
-            .map(|dep| dep.dependency_debug_name()),
-          active_state
-        );
+        // dbg!(
+        //   &connection,
+        //   dep_id
+        //     .get_dep(&self.compilation.module_graph)
+        //     .map(|dep| dep.dependency_debug_name()),
+        //   active_state
+        // );
         match active_state {
           ConnectionState::Bool(false) => {
             continue;

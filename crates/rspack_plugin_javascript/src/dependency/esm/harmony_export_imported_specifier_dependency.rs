@@ -263,9 +263,15 @@ impl HarmonyExportImportedSpecifierDependency {
     imported_module_identifier: &ModuleIdentifier,
   ) -> StarReexportsInfo {
     let exports_info = exports_info_id
-      .map(|id| id.get_exports_info(&module_graph))
-      // TODO: replace default value
-      .unwrap();
+      .unwrap_or_else(|| {
+        // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L425
+        let parent_module = module_graph
+          .parent_module_by_dependency_id(&self.id)
+          .expect("should have parent module");
+        module_graph.get_exports_info(&parent_module).id
+      })
+      .get_exports_info(module_graph);
+
     let imported_exports_info = module_graph.get_exports_info(imported_module_identifier);
     // dbg!(&imported_exports_info);
     let other_export_info_of_imported =
@@ -290,7 +296,7 @@ impl HarmonyExportImportedSpecifierDependency {
       e
     };
 
-    let mut hidden_exports = self
+    let hidden_exports = self
       .discover_active_exports_from_other_star_exports(module_graph)
       .map(|other_star_exports| {
         let mut hide_exports = HashSet::default();
@@ -366,7 +372,7 @@ impl HarmonyExportImportedSpecifierDependency {
       }
     } else if no_extra_exports {
       for imported_export_info_id in imported_exports_info.get_ordered_exports() {
-        let imported_export_info = module_graph.get_export_info_by_id(&imported_export_info_id);
+        let imported_export_info = module_graph.get_export_info_by_id(imported_export_info_id);
         let imported_export_info_name = imported_export_info.name.clone().unwrap_or_default();
         if ignored_exports.contains(&imported_export_info_name)
           || matches!(
@@ -422,7 +428,7 @@ impl HarmonyExportImportedSpecifierDependency {
     } else {
       return None;
     }
-    let i = self.other_star_exports.as_ref().unwrap().len();
+    let i = self.other_star_exports.as_ref()?.len();
 
     let all_star_exports = self.all_star_exports(module_graph);
     if !all_star_exports.is_empty() {
@@ -452,11 +458,11 @@ impl HarmonyExportImportedSpecifierDependency {
 }
 
 #[derive(Debug)]
-struct DiscoverActiveExportsFromOtherStarExportsRet {
+pub struct DiscoverActiveExportsFromOtherStarExportsRet {
   names: Vec<JsWord>,
   names_slice: usize,
-  dependency_indices: Vec<usize>,
-  dependency_index: usize,
+  pub dependency_indices: Vec<usize>,
+  pub dependency_index: usize,
 }
 
 impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
@@ -764,7 +770,6 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     let id = self.id;
-    let req = self.request.clone();
     Some(DependencyCondition::Fn(Box::new(
       move |_mc, runtime, module_graph: &ModuleGraph| {
         let dep = module_graph
@@ -779,7 +784,6 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
           &down_casted_dep.id,
           runtime,
         );
-        dbg!(&req, &mode);
         ConnectionState::Bool(!matches!(
           mode.ty,
           ExportModeType::Unused | ExportModeType::EmptyStar

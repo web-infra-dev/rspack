@@ -4,7 +4,7 @@ use std::collections::VecDeque;
 use rspack_core::{
   BuildMetaExportsType, Compilation, DependencyId, ExportInfoProvided, ExportNameOrSpec,
   ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, Plugin, ResolvedExportInfoTarget,
+  ModuleIdentifier, Plugin,
 };
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -55,7 +55,6 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       }
     }
     self.mg.module_identifier_to_module_graph_module = module_graph_modules;
-    dbg!("start");
     while let Some(module_id) = q.pop_back() {
       self.changed = false;
       self.current_module_id = module_id;
@@ -67,7 +66,6 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         self.process_exports_spec(dep_id, exports_spec, exports_info_id);
       }
       if self.changed {
-        dbg!(&module_id);
         self.notify_dependencies(&mut q);
       }
     }
@@ -308,12 +306,10 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           .set_redirect_name_to(self.mg, target_exports_info);
         if changed {
           self.changed = true;
-          dbg!(&changed);
         }
       } else if export_info.exports_info != target_exports_info {
         export_info.exports_info = target_exports_info;
         self.changed = true;
-        dbg!(&self.changed);
       }
     }
   }
