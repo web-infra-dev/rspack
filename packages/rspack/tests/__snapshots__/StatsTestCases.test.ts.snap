@@ -1286,7 +1286,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
             "hotModuleReplacement": false,
           },
           "name": "bundle1.js",
-          "size": 1532,
+          "size": 1464,
           "type": "asset",
         },
       ],
@@ -1503,10 +1503,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1532,
+              "size": 1464,
             },
           ],
-          "assetsSize": 1532,
+          "assetsSize": 1464,
           "chunks": [
             "main",
           ],
@@ -1516,7 +1516,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "dd84ffabbcf23038f36e",
+      "hash": "5a558e2a445a1ef33d85",
       "logging": {},
       "modules": [
         {
@@ -1722,25 +1722,6 @@ import(/* webpackChunkName: "c" */ "./c");
             "main",
           ],
           "id": "",
-          "identifier": "webpack/runtime/has_own_property",
-          "issuer": undefined,
-          "issuerId": undefined,
-          "issuerName": undefined,
-          "issuerPath": [],
-          "moduleType": "runtime",
-          "name": "webpack/runtime/has_own_property",
-          "nameForCondition": undefined,
-          "reasons": [],
-          "size": 160,
-          "source": undefined,
-          "type": "module",
-        },
-        {
-          "assets": [],
-          "chunks": [
-            "main",
-          ],
-          "id": "",
           "identifier": "webpack/runtime/make_namespace_object",
           "issuer": undefined,
           "issuerId": undefined,
@@ -1818,10 +1799,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1532,
+              "size": 1464,
             },
           ],
-          "assetsSize": 1532,
+          "assetsSize": 1464,
           "chunks": [
             "main",
           ],
@@ -1831,10 +1812,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1532,
+              "size": 1464,
             },
           ],
-          "assetsSize": 1532,
+          "assetsSize": 1464,
           "chunks": [
             "main",
           ],
@@ -3909,7 +3890,7 @@ import(/* webpackChunkName: "c" */ "./c");
   ],
   "errors": [],
   "errorsCount": 0,
-  "hash": "dd84ffabbcf23038f36e3e9b37b218ba7bc75de29efd38806ce66b6a9791de66cb644888925a8f42",
+  "hash": "5a558e2a445a1ef33d853e9b37b218ba7bc75de29efd38806ce66b6a9791de66cb644888925a8f42",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -3918,9 +3899,9 @@ import(/* webpackChunkName: "c" */ "./c");
 exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 2`] = `
 "1 chunks:
   PublicPath: (none)
-  asset bundle1.js 1.5 KiB {main} [emitted] (name: main)
-  Entrypoint main 1.5 KiB = bundle1.js
-  Chunk Group c 1.5 KiB = bundle1.js
+  asset bundle1.js 1.43 KiB {main} [emitted] (name: main)
+  Entrypoint main 1.43 KiB = bundle1.js
+  Chunk Group c 1.43 KiB = bundle1.js
   chunk {main} bundle1.js (main) <{main}> >{main}< [entry]
     ./b.js [996] {main}
       cjs require ./b [10]
@@ -3943,12 +3924,11 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   ./index.js [10] {main}
     entry ./index
   webpack/runtime/ensure_chunk {main}
-  webpack/runtime/has_own_property {main}
   webpack/runtime/make_namespace_object {main}
   webpack/runtime/load_chunk_with_module {main}
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
-  1 chunks compiled successfully (dd84ffabbcf23038f36e)
+  1 chunks compiled successfully (5a558e2a445a1ef33d85)
 
 2 chunks:
   PublicPath: (none)
@@ -5008,7 +4988,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 725,
+      "size": 657,
       "type": "asset",
     },
   ],
@@ -5112,10 +5092,10 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 725,
+          "size": 657,
         },
       ],
-      "assetsSize": 725,
+      "assetsSize": 657,
       "chunks": [
         "main",
       ],
@@ -5139,7 +5119,7 @@ console.log(a);
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "316ac2fb3476f8bb6f1d",
+  "hash": "b3aa48d7f25969e7d1b7",
   "logging": {},
   "modules": [
     {
@@ -5169,25 +5149,6 @@ console.log(a);
       "source": "import { a } from "cycle-alias/a";
 console.log(a);
 ",
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/has_own_property",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/has_own_property",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
       "type": "module",
     },
     {
@@ -5293,10 +5254,10 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 725,
+          "size": 657,
         },
       ],
-      "assetsSize": 725,
+      "assetsSize": 657,
       "chunks": [
         "main",
       ],
@@ -5312,8 +5273,8 @@ console.log(a);
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
 "PublicPath: auto
-asset bundle.js 725 bytes {main} [emitted] (name: main)
-Entrypoint main 725 bytes = bundle.js
+asset bundle.js 657 bytes {main} [emitted] (name: main)
+Entrypoint main 657 bytes = bundle.js
 chunk {main} bundle.js (main) [entry]
   ./index.js [10] {main}
     entry ./index
@@ -5322,7 +5283,6 @@ chunk {main} bundle.js (main) [entry]
     esm import specifier cycle-alias/a [10]
 ./index.js [10] {main}
   entry ./index
-webpack/runtime/has_own_property {main}
 webpack/runtime/make_namespace_object {main}
 webpack/runtime/define_property_getters {main}
 webpack/runtime/compat_get_default_export {main}
@@ -5340,7 +5300,7 @@ error[internal]: Resolve error
 
 
 
-Rspack compiled with 1 error (316ac2fb3476f8bb6f1d)"
+Rspack compiled with 1 error (b3aa48d7f25969e7d1b7)"
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 1`] = `
@@ -5359,7 +5319,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 741,
+      "size": 673,
       "type": "asset",
     },
   ],
@@ -5463,10 +5423,10 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 741,
+          "size": 673,
         },
       ],
-      "assetsSize": 741,
+      "assetsSize": 673,
       "chunks": [
         "main",
       ],
@@ -5484,7 +5444,7 @@ console.log(a);
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "1126dba73be58b520899",
+  "hash": "fddd84a0a64aedf6f22f",
   "logging": {},
   "modules": [
     {
@@ -5514,25 +5474,6 @@ console.log(a);
       "source": "import a from "pkg-a";
 console.log(a);
 ",
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/has_own_property",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/has_own_property",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
       "type": "module",
     },
     {
@@ -5638,10 +5579,10 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 741,
+          "size": 673,
         },
       ],
-      "assetsSize": 741,
+      "assetsSize": 673,
       "chunks": [
         "main",
       ],
@@ -5657,8 +5598,8 @@ console.log(a);
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
 "PublicPath: (none)
-asset bundle.js 741 bytes {main} [emitted] (name: main)
-Entrypoint main 741 bytes = bundle.js
+asset bundle.js 673 bytes {main} [emitted] (name: main)
+Entrypoint main 673 bytes = bundle.js
 chunk {main} bundle.js (main) [entry]
   ./index.js [10] {main}
     entry ./index
@@ -5667,7 +5608,6 @@ chunk {main} bundle.js (main) [entry]
     esm import specifier pkg-a [10]
 ./index.js [10] {main}
   entry ./index
-webpack/runtime/has_own_property {main}
 webpack/runtime/make_namespace_object {main}
 webpack/runtime/define_property_getters {main}
 webpack/runtime/compat_get_default_export {main}
@@ -5679,7 +5619,7 @@ error[internal]: Export should be relative path and start with "./", but got ../
 
 
 
-Rspack compiled with 1 error (1126dba73be58b520899)"
+Rspack compiled with 1 error (fddd84a0a64aedf6f22f)"
 `;
 
 exports[`StatsTestCases should print correct stats for runtime-modules 1`] = `
@@ -5975,7 +5915,7 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 631,
+      "size": 563,
       "type": "asset",
     },
   ],
@@ -6106,10 +6046,10 @@ import rawModule from './raw.png';
       "assets": [
         {
           "name": "bundle.js",
-          "size": 631,
+          "size": 563,
         },
       ],
-      "assetsSize": 631,
+      "assetsSize": 563,
       "chunks": [
         "main",
       ],
@@ -6119,7 +6059,7 @@ import rawModule from './raw.png';
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "29752efc1d9212dd2d67",
+  "hash": "e6eeda16ef3c16b69511",
   "logging": {},
   "modules": [
     {
@@ -6224,25 +6164,6 @@ import rawModule from './raw.png';
         "main",
       ],
       "id": "",
-      "identifier": "webpack/runtime/has_own_property",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/has_own_property",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
       "identifier": "webpack/runtime/make_namespace_object",
       "issuer": undefined,
       "issuerId": undefined,
@@ -6300,10 +6221,10 @@ import rawModule from './raw.png';
       "assets": [
         {
           "name": "bundle.js",
-          "size": 631,
+          "size": 563,
         },
       ],
-      "assetsSize": 631,
+      "assetsSize": 563,
       "chunks": [
         "main",
       ],
@@ -6319,13 +6240,13 @@ import rawModule from './raw.png';
 
 exports[`StatsTestCases should print correct stats for simple-module-source 2`] = `
 "PublicPath: (none)
-asset bundle.js 631 bytes [emitted] (name: main)
-Entrypoint main 631 bytes = bundle.js
-runtime modules 4 modules
+asset bundle.js 563 bytes [emitted] (name: main)
+Entrypoint main 563 bytes = bundle.js
+runtime modules 3 modules
 ./raw.png
 ./index.js
 ./stringModule.js
-Rspack compiled successfully (29752efc1d9212dd2d67)"
+Rspack compiled successfully (e6eeda16ef3c16b69511)"
 `;
 
 exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
