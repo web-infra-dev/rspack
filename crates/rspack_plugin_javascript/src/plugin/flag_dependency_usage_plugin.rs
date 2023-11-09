@@ -85,7 +85,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         .module_graph
         .module_graph_module_by_identifier(&module_id)
         .expect("should have module graph module");
-      let dep_id_list = mgm.dependencies.clone();
+      let dep_id_list = mgm.all_dependencies.clone();
       for dep_id in dep_id_list.into_iter() {
         let connection = self
           .compilation

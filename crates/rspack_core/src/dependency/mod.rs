@@ -31,9 +31,9 @@ pub use dependency_template::*;
 use dyn_clone::{clone_trait_object, DynClone};
 
 use crate::{
-  ChunkGroupOptionsKindRef, ConnectionState, Context, ContextMode, ContextOptions,
-  DependencyExtraMeta, ErrorSpan, ExtendedReferencedExport, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, ReferencedExport, RuntimeSpec, UsedByExports,
+  ConnectionState, Context, ContextMode, ContextOptions, DependencyExtraMeta, ErrorSpan,
+  ExtendedReferencedExport, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport,
+  RuntimeSpec, UsedByExports,
 };
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
@@ -426,11 +426,6 @@ pub trait ModuleDependency: Dependency {
     false
   }
 
-  // TODO: wired to place ChunkGroupOptions on dependency, should place on AsyncDependenciesBlock
-  fn group_options(&self) -> Option<ChunkGroupOptionsKindRef> {
-    None
-  }
-
   fn get_condition(&self) -> Option<DependencyCondition> {
     None
   }
@@ -485,33 +480,20 @@ clone_trait_object!(ModuleDependency);
 pub type BoxModuleDependency = Box<dyn ModuleDependency>;
 pub type BoxDependency = Box<dyn Dependency>;
 
-pub fn is_async_dependency(dep: &dyn ModuleDependency) -> bool {
-  if matches!(dep.dependency_type(), DependencyType::DynamicImport) {
-    return true;
-  }
-  if matches!(dep.dependency_type(), DependencyType::NewWorker) {
-    return true;
-  }
-  if matches!(dep.dependency_type(), DependencyType::ContextElement) {
-    if let Some(options) = dep.options() {
-      return matches!(options.mode, ContextMode::Lazy | ContextMode::LazyOnce);
-    }
-  }
-  false
-}
-
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct DependencyId(u32);
 
 pub static DEPENDENCY_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
 
 impl DependencyId {
-  pub fn get_dep<'a>(&self, mg: &'a ModuleGraph) -> Option<&'a BoxDependency> {
-    mg.dependency_by_id(self)
+  pub fn get_dependency<'a>(&self, mg: &'a ModuleGraph) -> &'a BoxDependency {
+    mg.dependency_by_id(self).expect("should have dependency")
   }
+
   pub fn new() -> Self {
     Self(DEPENDENCY_ID.fetch_add(1, Relaxed))
   }
+
   pub fn set_ids(&self, ids: Vec<JsWord>, mg: &mut ModuleGraph) {
     match mg.dep_meta_map.entry(*self) {
       Entry::Occupied(mut occ) => {
@@ -551,7 +533,7 @@ impl From<u32> for DependencyId {
   }
 }
 
-// should move to rspack_plugin_javascript
+// TODO: should move to rspack_plugin_javascript once we drop old treeshaking
 pub mod needs_refactor {
   use once_cell::sync::Lazy;
   use regex::Regex;

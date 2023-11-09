@@ -141,6 +141,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let ScanDependenciesResult {
       mut dependencies,
+      blocks,
       presentational_dependencies,
       mut rewrite_usage_span,
       import_map,
@@ -234,6 +235,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ParseResult {
         source,
         dependencies,
+        blocks,
         presentational_dependencies,
         analyze_result,
       }
@@ -268,7 +270,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .module_graph_module_by_identifier(&module.identifier())
         .expect("should have module graph module");
 
-      mgm.dependencies.iter().for_each(|id| {
+      mgm.all_dependencies.iter().for_each(|id| {
         if let Some(dependency) = compilation
           .module_graph
           .dependency_by_id(id)

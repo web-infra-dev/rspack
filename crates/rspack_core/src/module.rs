@@ -14,10 +14,10 @@ use swc_core::ecma::atoms::JsWord;
 
 use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
-  BoxDependency, ChunkUkey, CodeGenerationResult, Compilation, CompilerContext, CompilerOptions,
-  ConnectionState, Context, ContextModule, DependencyId, DependencyTemplate, ExternalModule,
-  ModuleDependency, ModuleGraph, ModuleType, NormalModule, RawModule, Resolve, RuntimeSpec,
-  SharedPluginDriver, SourceType,
+  AsyncDependenciesBlock, BoxDependency, ChunkUkey, CodeGenerationResult, Compilation,
+  CompilerContext, CompilerOptions, ConnectionState, Context, ContextModule, DependenciesBlock,
+  DependencyId, DependencyTemplate, ExternalModule, ModuleDependency, ModuleGraph, ModuleType,
+  NormalModule, RawModule, Resolve, RuntimeSpec, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext<'a> {
@@ -128,6 +128,7 @@ pub struct BuildResult {
   pub build_info: BuildInfo,
   pub analyze_result: OptimizeAnalyzeResult,
   pub dependencies: Vec<BoxDependency>,
+  pub blocks: Vec<AsyncDependenciesBlock>,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -138,7 +139,9 @@ pub struct FactoryMeta {
 pub type ModuleIdentifier = Identifier;
 
 #[async_trait]
-pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
+pub trait Module:
+  Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable + DependenciesBlock
+{
   /// Defines what kind of module this is.
   fn module_type(&self) -> &ModuleType;
 
@@ -174,6 +177,7 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
         build_info,
         build_meta: Default::default(),
         dependencies: Vec::new(),
+        blocks: Vec::new(),
         analyze_result: Default::default(),
       }
       .with_empty_diagnostic(),
@@ -346,8 +350,8 @@ mod test {
 
   use super::Module;
   use crate::{
-    BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, ModuleExt, ModuleType,
-    RuntimeSpec, SourceType,
+    AsyncDependenciesBlockId, BuildContext, BuildResult, CodeGenerationResult, Compilation,
+    Context, DependenciesBlock, DependencyId, ModuleExt, ModuleType, RuntimeSpec, SourceType,
   };
 
   #[derive(Debug, Eq)]
@@ -385,6 +389,24 @@ mod test {
       impl Identifiable for $ident {
         fn identifier(&self) -> Identifier {
           (stringify!($ident).to_owned() + self.0).into()
+        }
+      }
+
+      impl DependenciesBlock for $ident {
+        fn add_block(&mut self, _: AsyncDependenciesBlockId) {
+          unreachable!()
+        }
+
+        fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+          unreachable!()
+        }
+
+        fn add_dependency(&mut self, _: DependencyId) {
+          unreachable!()
+        }
+
+        fn get_dependencies(&self) -> &[DependencyId] {
+          unreachable!()
         }
       }
 

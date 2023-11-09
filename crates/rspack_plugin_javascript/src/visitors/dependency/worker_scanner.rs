@@ -1,8 +1,8 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  BoxDependency, BoxDependencyTemplate, ConstDependency, EntryOptions, ModuleIdentifier,
-  OutputOptions, SpanExt,
+  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, ConstDependency, EntryOptions,
+  GroupOptions, ModuleIdentifier, OutputOptions, SpanExt,
 };
 use rspack_hash::RspackHash;
 use swc_core::common::Spanned;
@@ -16,6 +16,7 @@ use crate::utils::get_literal_str_by_obj_prop;
 pub struct WorkerScanner<'a> {
   pub presentational_dependencies: Vec<BoxDependencyTemplate>,
   pub dependencies: Vec<BoxDependency>,
+  pub blocks: Vec<AsyncDependenciesBlock>,
   index: usize,
   module_identifier: &'a ModuleIdentifier,
   output_options: &'a OutputOptions,
@@ -32,6 +33,7 @@ impl<'a> WorkerScanner<'a> {
     Self {
       presentational_dependencies: Vec::new(),
       dependencies: Vec::new(),
+      blocks: Vec::new(),
       index: 0,
       module_identifier,
       output_options,
@@ -56,23 +58,27 @@ impl<'a> WorkerScanner<'a> {
     let range = parsed_options.as_ref().map(|options| options.range);
     let name = parsed_options.and_then(|options| options.name);
     let output_module = self.output_options.module;
-    self.dependencies.push(Box::new(WorkerDependency::new(
+    let dep = Box::new(WorkerDependency::new(
       parsed_path.range.0,
       parsed_path.range.1,
       parsed_path.value,
       self.output_options.worker_public_path.clone(),
       Some(new_expr.span.into()),
-      EntryOptions {
-        name,
-        runtime: Some(runtime),
-        chunk_loading: Some(self.output_options.worker_chunk_loading.clone()),
-        async_chunks: None,
-        public_path: None,
-        base_uri: None,
-        filename: None,
-        library: None,
-      },
-    )));
+    ));
+    let mut block = AsyncDependenciesBlock::default();
+    block.set_group_options(GroupOptions::Entrypoint(EntryOptions {
+      name,
+      runtime: Some(runtime),
+      chunk_loading: Some(self.output_options.worker_chunk_loading.clone()),
+      async_chunks: None,
+      public_path: None,
+      base_uri: None,
+      filename: None,
+      library: None,
+    }));
+    block.add_dependency(dep);
+    self.blocks.push(block);
+
     if let Some(range) = range {
       self
         .presentational_dependencies

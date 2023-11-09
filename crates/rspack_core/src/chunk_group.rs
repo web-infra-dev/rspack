@@ -303,17 +303,17 @@ impl ChunkGroupOptions {
   }
 }
 
-#[derive(Debug)]
-pub enum ChunkGroupOptionsKindRef<'a> {
-  Entry(&'a EntryOptions),
-  Normal(&'a ChunkGroupOptions),
+#[derive(Debug, Clone)]
+pub enum GroupOptions {
+  Entrypoint(EntryOptions),
+  ChunkGroup(ChunkGroupOptions),
 }
 
-impl ChunkGroupOptionsKindRef<'_> {
+impl GroupOptions {
   pub fn name(&self) -> Option<&str> {
     match self {
-      Self::Entry(e) => e.name.as_deref(),
-      Self::Normal(n) => n.name.as_deref(),
+      Self::Entrypoint(e) => e.name.as_deref(),
+      Self::ChunkGroup(n) => n.name.as_deref(),
     }
   }
 }

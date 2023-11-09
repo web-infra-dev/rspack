@@ -94,6 +94,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     Ok(
       ParseResult {
         dependencies,
+        blocks: vec![],
         presentational_dependencies: vec![],
         source,
         analyze_result: Default::default(),
@@ -151,7 +152,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
         if let Some(dependencies) = module_graph
           .module_graph_module_by_identifier(&module.identifier())
-          .map(|mgm| &mgm.dependencies)
+          .map(|mgm| &mgm.all_dependencies)
         {
           dependencies
             .iter()

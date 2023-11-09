@@ -307,6 +307,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       rspack_core::ParseResult {
         // Assets do not have dependencies
         dependencies: vec![],
+        blocks: vec![],
         source,
         presentational_dependencies: vec![],
         analyze_result,

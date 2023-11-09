@@ -129,7 +129,7 @@ pub fn css_modules_exports_to_string(
               .module_graph_module_by_identifier(&module.identifier())
               .and_then(|mgm| {
                 // workaround
-                mgm.dependencies.iter().find_map(|id| {
+                mgm.all_dependencies.iter().find_map(|id| {
                   let dependency = compilation
                     .module_graph
                     .dependency_by_id(id)

@@ -219,6 +219,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     Ok(
       ParseResult {
         dependencies,
+        blocks: vec![],
         presentational_dependencies: vec![],
         source: new_source,
         analyze_result: Default::default(),
@@ -252,7 +253,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           .module_graph_module_by_identifier(&module.identifier())
           .expect("should have module graph module");
 
-        mgm.dependencies.iter().for_each(|id| {
+        mgm.all_dependencies.iter().for_each(|id| {
           if let Some(dependency) = compilation
             .module_graph
             .dependency_by_id(id)

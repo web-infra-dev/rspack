@@ -7,11 +7,14 @@ use rspack_sources::{RawSource, Source, SourceExt};
 use serde_json::json;
 
 use crate::{
-  CodeGenerationResult, Compilation, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  AsyncDependenciesBlockId, CodeGenerationResult, Compilation, DependenciesBlock, DependencyId,
+  Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
 };
 
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct MissingModule {
+  blocks: Vec<AsyncDependenciesBlockId>,
+  dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
   readable_identifier: String,
   error_message: String,
@@ -24,10 +27,30 @@ impl MissingModule {
     error_message: String,
   ) -> Self {
     Self {
+      dependencies: Vec::new(),
+      blocks: Vec::new(),
       identifier,
       readable_identifier,
       error_message,
     }
+  }
+}
+
+impl DependenciesBlock for MissingModule {
+  fn add_block(&mut self, block: AsyncDependenciesBlockId) {
+    self.blocks.push(block)
+  }
+
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+    &self.blocks
+  }
+
+  fn add_dependency(&mut self, dependency: DependencyId) {
+    self.dependencies.push(dependency)
+  }
+
+  fn get_dependencies(&self) -> &[DependencyId] {
+    &self.dependencies
   }
 }
 
@@ -86,6 +109,8 @@ impl PartialEq for MissingModule {
     self.identifier == other.identifier
   }
 }
+
+impl Eq for MissingModule {}
 
 impl Hash for MissingModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

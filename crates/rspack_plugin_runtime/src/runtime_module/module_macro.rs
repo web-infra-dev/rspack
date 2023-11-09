@@ -19,6 +19,24 @@ macro_rules! impl_runtime_module {
       }
     }
 
+    impl rspack_core::DependenciesBlock for $ident {
+      fn add_block(&mut self, _: rspack_core::AsyncDependenciesBlockId) {
+        unreachable!()
+      }
+
+      fn get_blocks(&self) -> &[rspack_core::AsyncDependenciesBlockId] {
+        unreachable!()
+      }
+
+      fn add_dependency(&mut self, _: rspack_core::DependencyId) {
+        unreachable!()
+      }
+
+      fn get_dependencies(&self) -> &[rspack_core::DependencyId] {
+        unreachable!()
+      }
+    }
+
     impl rspack_core::Module for $ident {
       fn module_type(&self) -> &rspack_core::ModuleType {
         &rspack_core::ModuleType::Runtime

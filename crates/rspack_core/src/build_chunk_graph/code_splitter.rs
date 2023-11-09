@@ -7,8 +7,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
 use crate::{
-  ChunkGroup, ChunkGroupInfo, ChunkGroupKind, ChunkGroupOptions, ChunkGroupOptionsKindRef,
-  ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, Logger, ModuleIdentifier, RuntimeSpec,
+  ChunkGroup, ChunkGroupInfo, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading,
+  ChunkUkey, Compilation, GroupOptions, Logger, ModuleIdentifier, RuntimeSpec,
 };
 
 pub(super) struct CodeSplitter<'me> {
@@ -482,7 +482,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .insert(*module_identifier, chunk.ukey);
 
       let mut chunk_group = if let Some(kind) = group_options.as_ref()
-        && let &ChunkGroupOptionsKindRef::Entry(entry_options) = kind
+        && let GroupOptions::Entrypoint(entry_options) = kind
       {
         if let Some(filename) = &entry_options.filename {
           chunk.filename_template = Some(filename.clone());

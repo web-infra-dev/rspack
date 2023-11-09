@@ -9,7 +9,7 @@ use crate::{
   ModuleProfile, ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve,
   ResolverFactory, SharedPluginDriver, WorkerQueue,
 };
-use crate::{ExportInfo, ExportsInfo, UsageState};
+use crate::{DependencyId, ExportInfo, ExportsInfo, UsageState};
 
 #[derive(Debug)]
 pub enum TaskResult {
@@ -28,7 +28,8 @@ pub struct FactorizeTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub original_module_context: Option<Box<Context>>,
   pub issuer: Option<Box<str>>,
-  pub dependencies: Vec<BoxDependency>,
+  pub dependency: BoxDependency,
+  pub dependencies: Vec<DependencyId>,
   pub is_entry: bool,
   pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,
@@ -54,7 +55,7 @@ pub struct FactorizeTaskResult {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub factory_result: ModuleFactoryResult,
   pub module_graph_module: Box<ModuleGraphModule>,
-  pub dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<DependencyId>,
   pub diagnostics: Vec<Diagnostic>,
   pub is_entry: bool,
   pub current_profile: Option<Box<ModuleProfile>>,
@@ -68,7 +69,7 @@ impl WorkerTask for FactorizeTask {
     if let Some(current_profile) = &self.current_profile {
       current_profile.mark_factory_start();
     }
-    let dependency = &self.dependencies[0];
+    let dependency = self.dependency;
 
     let context = if let Some(context) = dependency.get_context() {
       context
@@ -89,7 +90,7 @@ impl WorkerTask for FactorizeTask {
           .create(ModuleFactoryCreateData {
             resolve_options: self.resolve_options,
             context,
-            dependency: dependency.clone(),
+            dependency,
           })
           .await?
           .split_into_parts()
@@ -112,7 +113,7 @@ impl WorkerTask for FactorizeTask {
           .create(ModuleFactoryCreateData {
             resolve_options: self.resolve_options,
             context,
-            dependency: dependency.clone(),
+            dependency,
           })
           .await?
           .split_into_parts()
@@ -160,7 +161,7 @@ pub struct AddTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module: Box<dyn Module>,
   pub module_graph_module: Box<ModuleGraphModule>,
-  pub dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<DependencyId>,
   pub is_entry: bool,
   pub current_profile: Option<Box<ModuleProfile>>,
 }
@@ -232,7 +233,7 @@ impl AddTask {
   fn set_resolved_module(
     module_graph: &mut ModuleGraph,
     original_module_identifier: Option<ModuleIdentifier>,
-    dependencies: Vec<BoxDependency>,
+    dependencies: Vec<DependencyId>,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
     for dependency in dependencies {
@@ -339,7 +340,7 @@ pub type BuildQueue = WorkerQueue<BuildTask>;
 
 pub struct ProcessDependenciesTask {
   pub original_module_identifier: ModuleIdentifier,
-  pub dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<DependencyId>,
   pub resolve_options: Option<Box<Resolve>>,
 }
 

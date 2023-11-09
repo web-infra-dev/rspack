@@ -86,7 +86,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
   ) -> Option<()> {
     let mgm = self.mg.module_graph_module_by_identifier(&mi)?;
     // This clone is aiming to avoid use mut ref and immutable ref at the same time.
-    for ele in mgm.dependencies.clone().iter() {
+    for ele in mgm.all_dependencies.clone().iter() {
       self.process_dependency(ele, exports_specs_from_dependencies);
     }
     None

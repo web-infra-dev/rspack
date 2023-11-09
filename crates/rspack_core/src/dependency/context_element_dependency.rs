@@ -1,9 +1,9 @@
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  AsDependencyTemplate, ChunkGroupOptions, ChunkGroupOptionsKindRef, Context, ContextMode,
-  ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyType,
-  ExtendedReferencedExport, ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec,
+  AsDependencyTemplate, ChunkGroupOptions, Context, ContextMode, ContextOptions, Dependency,
+  DependencyCategory, DependencyId, DependencyType, ExtendedReferencedExport, ModuleDependency,
+  ModuleGraph, ReferencedExport, RuntimeSpec,
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
@@ -80,10 +80,6 @@ impl ModuleDependency for ContextElementDependency {
     } else {
       vec![ExtendedReferencedExport::Array(vec![])]
     }
-  }
-
-  fn group_options(&self) -> Option<ChunkGroupOptionsKindRef> {
-    Some(ChunkGroupOptionsKindRef::Normal(&self.group_options))
   }
 }
 

@@ -18,12 +18,12 @@ use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  contextify, get_exports_type_with_strict, stringify_map, to_path, BoxDependency, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, ChunkGraph, ChunkGroupOptions, CodeGenerationResult,
-  Compilation, ContextElementDependency, DependencyCategory, DependencyId, DependencyType,
-  ExportsType, FakeNamespaceObjectMode, LibIdentOptions, Module, ModuleType, Resolve,
-  ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
-  RuntimeSpec, SourceType,
+  contextify, get_exports_type_with_strict, stringify_map, to_path, AsyncDependenciesBlock,
+  AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation, ContextElementDependency,
+  DependenciesBlock, DependencyCategory, DependencyId, DependencyType, ExportsType,
+  FakeNamespaceObjectMode, LibIdentOptions, Module, ModuleType, Resolve, ResolveInnerOptions,
+  ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -176,6 +176,8 @@ pub enum FakeMapValue {
 
 #[derive(Debug)]
 pub struct ContextModule {
+  dependencies: Vec<DependencyId>,
+  blocks: Vec<AsyncDependenciesBlockId>,
   identifier: Identifier,
   options: ContextModuleOptions,
   resolve_factory: Arc<ResolverFactory>,
@@ -192,6 +194,8 @@ impl Eq for ContextModule {}
 impl ContextModule {
   pub fn new(options: ContextModuleOptions, resolve_factory: Arc<ResolverFactory>) -> Self {
     Self {
+      dependencies: Vec::new(),
+      blocks: Vec::new(),
       identifier: create_identifier(&options),
       options,
       resolve_factory,
@@ -472,6 +476,24 @@ impl ContextModule {
   }
 }
 
+impl DependenciesBlock for ContextModule {
+  fn add_block(&mut self, block: AsyncDependenciesBlockId) {
+    self.blocks.push(block)
+  }
+
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+    &self.blocks
+  }
+
+  fn add_dependency(&mut self, dependency: DependencyId) {
+    self.dependencies.push(dependency)
+  }
+
+  fn get_dependencies(&self) -> &[DependencyId] {
+    &self.dependencies
+  }
+}
+
 #[async_trait::async_trait]
 impl Module for ContextModule {
   fn module_type(&self) -> &ModuleType {
@@ -673,8 +695,6 @@ impl ContextModule {
     &self,
     build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    let mut dependencies = vec![];
-
     tracing::trace!("resolving context module path {}", self.options.resource);
 
     let resolver = &self.resolve_factory.get(ResolveOptionsWithDependencyType {
@@ -684,16 +704,35 @@ impl ContextModule {
       dependency_category: self.options.context_options.category,
     });
 
+    let mut deps = vec![];
     Self::visit_dirs(
       &self.options.resource,
       Path::new(&self.options.resource),
-      &mut dependencies,
+      &mut deps,
       &self.options,
       &resolver.options(),
       &mut 0,
     )?;
 
-    tracing::trace!("resolving dependencies for {:?}", dependencies);
+    tracing::trace!("resolving dependencies for {:?}", deps);
+
+    let mut dependencies = vec![];
+    let mut blocks = vec![];
+    if matches!(self.options.context_options.mode, ContextMode::LazyOnce) && !deps.is_empty() {
+      let mut block = AsyncDependenciesBlock::default();
+      for dependency in deps {
+        block.add_dependency(dependency);
+      }
+      blocks.push(block);
+    } else if matches!(self.options.context_options.mode, ContextMode::Lazy) {
+      for dependency in deps {
+        let mut block = AsyncDependenciesBlock::default();
+        block.add_dependency(dependency);
+        blocks.push(block);
+      }
+    } else {
+      dependencies = deps;
+    }
 
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
@@ -712,6 +751,7 @@ impl ContextModule {
         build_info,
         build_meta: BuildMeta::default(),
         dependencies,
+        blocks,
         analyze_result: Default::default(),
       }
       .with_diagnostic(vec![]),
