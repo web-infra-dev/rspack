@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Compilation, Compiler } from "..";
 import type * as oldBuiltins from "../builtin-plugin";
 import type * as webpackDevServer from "webpack-dev-server";
+import { deprecatedWarn, termlink } from "../util";
 
 //#region Name
 const name = z.string();
@@ -985,9 +986,15 @@ const experiments = z.strictObject({
 		.boolean()
 		.optional()
 		.refine(val => {
-			if (val === false || val === true) {
-				console.warn(
-					"`experiments.newSplitChunks` will be removed at 0.4.0. See details at https://github.com/web-infra-dev/rspack/discussions/4168"
+			if (val === false) {
+				deprecatedWarn(
+					`'experiments.newSplitChunks = ${JSON.stringify(
+						val
+					)}' has been deprecated, please switch to 'experiments.newSplitChunks = true' to use webpack's behavior.
+ 	See the discussion ${termlink(
+		"here",
+		"https://github.com/web-infra-dev/rspack/discussions/4168"
+	)}`
 				);
 			}
 			return true;
