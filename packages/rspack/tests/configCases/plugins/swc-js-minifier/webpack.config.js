@@ -4,12 +4,13 @@ const { SwcJsMinimizerRspackPlugin } = require("@rspack/core");
 module.exports = {
 	entry: {
 		main: ["./index.js"],
-		extract: ["./extract.js"]
+		extract: ["./extract.js"],
+		"no-extract": ["./no-extract.js"]
 	},
 	plugins: [
 		new SwcJsMinimizerRspackPlugin({
 			extractComments: true,
-			include: ["extract.js"]
+			include: ["extract.js", "no-extract.js"]
 		})
 	]
 };
