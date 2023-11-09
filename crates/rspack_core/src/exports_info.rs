@@ -349,7 +349,10 @@ impl ExportsInfoId {
         let info = self.get_read_only_export_info(&name, mg);
         info.get_used_name(&name, runtime).map(UsedName::Str)
       }
-      UsedName::Vec(_) => todo!(),
+      UsedName::Vec(_) => {
+        // TODO
+        Some(name.clone())
+      }
     }
   }
 
@@ -515,7 +518,7 @@ impl ExportsInfo {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum UsedName {
   Str(JsWord),
   Vec(Vec<JsWord>),

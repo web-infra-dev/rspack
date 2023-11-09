@@ -97,9 +97,6 @@ pub(crate) mod expr_matcher {
     is_import_meta_webpack_context: "import.meta.webpackContext",
     is_import_meta_url: "import.meta.url",
     is_import_meta: "import.meta",
-    is_exports_esmodule: "exports.__esModule",
-    is_this_esmodule: "this.__esModule",
-    is_module_exports_esmodule: "module.exports.__esModule",
     is_object_define_property: "Object.defineProperty",
   });
 }

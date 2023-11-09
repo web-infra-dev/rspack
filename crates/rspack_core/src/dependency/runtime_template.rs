@@ -61,7 +61,7 @@ pub fn export_from_import(
           format!("var {import_var}_namespace_cache;\n",),
           InitFragmentStage::StageHarmonyExports,
           -1,
-          InitFragmentKey::uniqie(),
+          InitFragmentKey::unique(),
           None,
         )
         .boxed(),
