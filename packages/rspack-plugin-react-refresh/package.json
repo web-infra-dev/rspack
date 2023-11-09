@@ -21,8 +21,7 @@
   },
   "files": [
     "client",
-    "dist",
-    "options.json"
+    "dist"
   ],
   "publishConfig": {
     "access": "public"
@@ -35,8 +34,7 @@
     "directory": "packages/rspack-plugin-react-refresh"
   },
   "dependencies": {
-    "@pmmmwh/react-refresh-webpack-plugin": "0.5.10",
-    "schema-utils": "^4.0.0"
+    "@pmmmwh/react-refresh-webpack-plugin": "0.5.10"
   },
   "devDependencies": {
     "@rspack/core": "workspace:*",
