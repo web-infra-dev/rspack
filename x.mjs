@@ -158,7 +158,7 @@ rspackCommand
 	.option("-d, --debug", "Launch debugger in VSCode")
 	.action(async function ({ debug }) {
 		if (!debug) {
-			await $`npx rspack ${getVariadicArgs().toString()}`;
+			await $`npx rspack ${getVariadicArgs()}`;
 			return;
 		}
 		await launchRspackCli(getVariadicArgs());
@@ -185,7 +185,7 @@ jestCommand
 	.option("-d, --debug", "Launch debugger in VSCode")
 	.action(async ({ debug }) => {
 		if (!debug) {
-			await $`npx jest ${getVariadicArgs().toString()}`;
+			await $`npx jest ${getVariadicArgs()}`;
 			return;
 		}
 		await launchJestWithArgs(getVariadicArgs());
@@ -308,13 +308,7 @@ async function launchDebugger(launchConfig) {
 // Get args after `--`
 function getVariadicArgs() {
 	let idx = argv.findIndex(c => c === "--");
-	let args = idx === -1 ? [] : argv.slice(idx + 1);
-	Object.assign(args, {
-		toString() {
-			return this.join(" ");
-		}
-	});
-	return args;
+	return idx === -1 ? [] : argv.slice(idx + 1);
 }
 
 async function hasCommandCode() {
