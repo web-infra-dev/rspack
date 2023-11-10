@@ -1,4 +1,5 @@
 #![feature(let_chains)]
+#![feature(if_let_guard)]
 #![feature(box_patterns)]
 pub mod dependency;
 pub(crate) mod parser_and_generator;

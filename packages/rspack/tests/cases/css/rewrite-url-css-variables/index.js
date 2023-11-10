@@ -14,4 +14,6 @@ it("should rewrite the css url() in css variables", function () {
 	expect(b.includes("./logo.png")).toBe(false);
 	expect(b.endsWith(".png")).toBe(true);
 	expect(b).toMatchSnapshot();
+	const c = /--c: (.*?);/.exec(css)[1];
+	expect(c).toBe(JSON.stringify(""));
 });
