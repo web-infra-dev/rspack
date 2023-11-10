@@ -282,8 +282,9 @@ async function launchJestWithArgs(additionalArgs) {
 }
 
 async function launchDebugger(launchConfig) {
-	if (!(await hasCommandCode())) return;
-	await hasLaunchExtensionInstalled();
+	if (!(await hasCommandCode()) || !(await hasLaunchExtensionInstalled())) {
+		return;
+	}
 	launchConfig = [
 		...launchConfig,
 		{
@@ -341,7 +342,7 @@ async function hasLaunchExtensionInstalled() {
 			console.error(stderr);
 			return false;
 		}
-		return stdout.includes("fabiospampinato.vscode-debug-launcher");
+		return stdout?.includes("fabiospampinato.vscode-debug-launcher");
 	} catch (p) {
 		console.error(
 			new Error(p.stderr || p.message, {
