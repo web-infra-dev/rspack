@@ -1672,9 +1672,6 @@ importers:
 
   packages/rspack-dev-server:
     dependencies:
-      '@rspack/dev-server':
-        specifier: workspace:*
-        version: 'link:'
       '@rspack/plugin-react-refresh':
         specifier: workspace:*
         version: link:../rspack-plugin-react-refresh
@@ -1709,6 +1706,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
+      '@rspack/dev-server':
+        specifier: workspace:*
+        version: 'link:'
       '@types/connect-history-api-fallback':
         specifier: 1.3.5
         version: 1.3.5
