@@ -41,7 +41,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./foo */"./foo.js");
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_foo__WEBPACK_IMPORTED_MODULE_0__);
 
-_foo__WEBPACK_IMPORTED_MODULE_0___default();
+_foo__WEBPACK_IMPORTED_MODULE_0___default()();
 }),
 
 },function(__webpack_require__) {
