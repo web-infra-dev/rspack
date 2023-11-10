@@ -39,9 +39,9 @@ export type StatsModule = KnownStatsModule & Record<string, any>;
 export type StatsModuleIssuer = binding.JsStatsModuleIssuer &
 	Record<string, any>;
 
-type StatsError = binding.JsStatsError & Record<string, any>;
+export type StatsError = binding.JsStatsError & Record<string, any>;
 
-type StatsWarnings = binding.JsStatsWarning & Record<string, any>;
+export type StatsWarnings = binding.JsStatsWarning & Record<string, any>;
 
 export type StatsModuleReason = binding.JsStatsModuleReason &
 	Record<string, any>;
