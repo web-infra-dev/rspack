@@ -1,7 +1,8 @@
 {
-    "recommendations": [
-        "streetsidesoftware.code-spell-checker",
-        "tamasfe.even-better-toml",
-        "rust-lang.rust-analyzer"
-    ]
+  "recommendations": [
+    "streetsidesoftware.code-spell-checker",
+    "tamasfe.even-better-toml",
+    "rust-lang.rust-analyzer",
+    "fabiospampinato.vscode-debug-launcher"
+  ]
 }
