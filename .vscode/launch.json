@@ -27,6 +27,13 @@
     },
     {
       "type": "lldb",
+      "request": "attach",
+      "sourceLanguages": ["rust"],
+      "pid": "${command:pickMyProcess}",
+      "name": "debug-rust-attach"
+    },
+    {
+      "type": "lldb",
       "request": "launch",
       "sourceLanguages": ["rust"],
       "name": "debug-rust-basic",
