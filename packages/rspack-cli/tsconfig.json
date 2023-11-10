@@ -13,6 +13,9 @@
     },
     {
       "path": "../rspack-dev-server"
+    },
+    {
+      "path": "../rspack-plugin-react-refresh"
     }
   ]
 }
