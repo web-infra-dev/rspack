@@ -2,9 +2,9 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{BoxDependency, ModuleDependency, SpanExt};
 use rspack_error::{Diagnostic, DiagnosticKind};
-use swc_core::common::Span;
+use swc_core::common::{BytePos, Span};
 use swc_core::css::ast::{
-  AtRule, AtRuleName, ImportHref, ImportPrelude, Stylesheet, Url, UrlValue,
+  AtRule, AtRuleName, ImportHref, ImportPrelude, Stylesheet, Token, Url, UrlValue,
 };
 use swc_core::css::visit::{Visit, VisitWith};
 
@@ -101,6 +101,41 @@ impl Visit for Analyzer<'_> {
   //   n.visit_children_with_path(self, ast_path);
   //   self.in_support_contdition = false;
   // }
+
+  fn visit_token_and_span(&mut self, t: &swc_core::css::ast::TokenAndSpan) {
+    match &t.token {
+      Token::Url { value, .. } | Token::String { value, .. } => {
+        /// Normalize span for `Token::String`, which only has the span of the string node itself.
+        /// This aligns the span with `Token::Url`. It's of the span of the whole token.
+        /// `url("...")` -> `url("...")`
+        ///      ^^^^^       ^^^^^^^^^^
+        fn normalize_span(span: Span) -> Span {
+          Span::new(
+            BytePos(span.lo().0 - 4),
+            BytePos(span.hi().0 + 1),
+            span.ctxt(),
+          )
+        }
+
+        let mut specifier = replace_module_request_prefix(value.to_string(), self.diagnostics);
+        specifier = normalize_url(&specifier);
+        let span = if matches!(t.token, Token::String { .. }) {
+          normalize_span(t.span)
+        } else {
+          t.span
+        };
+        let dep = Box::new(CssUrlDependency::new(
+          specifier,
+          Some(span.into()),
+          span.real_lo(),
+          span.real_hi(),
+        ));
+        self.deps.push(dep.clone());
+        self.code_generation_dependencies.push(dep);
+      }
+      _ => t.visit_children_with(self),
+    }
+  }
 
   fn visit_url(&mut self, u: &Url) {
     u.visit_children_with(self);
