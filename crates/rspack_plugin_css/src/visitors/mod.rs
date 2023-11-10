@@ -61,8 +61,8 @@ fn replace_module_request_prefix(specifier: String, diagnostics: &mut Vec<Diagno
   }
 }
 
-static URL_KEYWORD: &'static str = "url";
-static IMPORT_KEYWORD: &'static str = "import";
+static URL_KEYWORD: &str = "url";
+static IMPORT_KEYWORD: &str = "import";
 
 impl Analyzer<'_> {
   fn analyze_url(&mut self, value: impl Into<String>, span: Span) {
