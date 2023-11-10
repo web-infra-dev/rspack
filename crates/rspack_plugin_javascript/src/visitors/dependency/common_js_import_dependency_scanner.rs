@@ -15,7 +15,7 @@ use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
 pub struct CommonJsImportDependencyScanner<'a> {
   dependencies: &'a mut Vec<BoxDependency>,
   presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-  unresolved_ctxt: &'a SyntaxContext,
+  unresolved_ctxt: SyntaxContext,
   in_try: bool,
   in_if: bool,
 }
@@ -24,7 +24,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
   pub fn new(
     dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-    unresolved_ctxt: &'a SyntaxContext,
+    unresolved_ctxt: SyntaxContext,
   ) -> Self {
     Self {
       dependencies,
@@ -82,7 +82,7 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
     if let Callee::Expr(expr) = &call_expr.callee {
       if let Expr::Ident(ident) = &**expr {
-        if "require".eq(&ident.sym) && ident.span.ctxt == *self.unresolved_ctxt {
+        if "require".eq(&ident.sym) && ident.span.ctxt == self.unresolved_ctxt {
           {
             if let Some(expr) = call_expr.args.first()
               && call_expr.args.len() == 1
@@ -130,6 +130,7 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
                     call_expr.callee.span().real_hi(),
                     call_expr.span.real_hi(),
                     ContextOptions {
+                      chunk_name: None,
                       mode: ContextMode::Sync,
                       recursive: true,
                       reg_exp: context_reg_exp(&reg, ""),

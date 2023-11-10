@@ -1,32 +1,82 @@
-use std::hash::Hash;
+use std::{borrow::Cow, hash::Hash};
 
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, Chunk, Compilation, ExternalModule, ExternalRequest,
-  Filename, JsChunkHashArgs, LibraryAuxiliaryComment, PathData, Plugin,
+  AdditionalChunkRuntimeRequirementsArgs, Chunk, ChunkUkey, Compilation, ExternalModule,
+  ExternalRequest, Filename, JsChunkHashArgs, LibraryAuxiliaryComment, LibraryCustomUmdObject,
+  LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
 };
 use rspack_error::{internal_error, Result};
 
-use super::utils::{external_arguments, externals_dep_array};
+use crate::utils::{external_arguments, externals_dep_array, get_options_for_chunk};
+
+#[derive(Debug)]
+struct UmdLibraryPluginParsed<'a> {
+  names: Cow<'a, LibraryCustomUmdObject>,
+  auxiliary_comment: Option<&'a LibraryAuxiliaryComment>,
+  named_define: Option<bool>,
+}
 
 #[derive(Debug)]
 pub struct UmdLibraryPlugin {
   _optional_amd_external_as_global: bool,
+  library_type: LibraryType,
 }
 
 impl UmdLibraryPlugin {
-  pub fn new(_optional_amd_external_as_global: bool) -> Self {
+  pub fn new(_optional_amd_external_as_global: bool, library_type: LibraryType) -> Self {
     Self {
+      library_type,
       _optional_amd_external_as_global,
     }
+  }
+
+  fn parse_options<'a>(&self, library: &'a LibraryOptions) -> UmdLibraryPluginParsed<'a> {
+    let names = if let Some(LibraryName::UmdObject(names)) = &library.name {
+      Cow::Borrowed(names)
+    } else {
+      let (single_name, root) = library
+        .name
+        .as_ref()
+        .and_then(|n| match n {
+          LibraryName::NonUmdObject(LibraryNonUmdObject::String(s)) => {
+            Some((s.clone(), vec![s.clone()]))
+          }
+          LibraryName::NonUmdObject(LibraryNonUmdObject::Array(arr)) => {
+            Some((arr.first()?.clone(), arr.clone()))
+          }
+          LibraryName::UmdObject(_) => unreachable!(),
+        })
+        .unzip();
+      Cow::Owned(LibraryCustomUmdObject {
+        commonjs: single_name.clone(),
+        root,
+        amd: single_name,
+      })
+    };
+    UmdLibraryPluginParsed {
+      names,
+      auxiliary_comment: library.auxiliary_comment.as_ref(),
+      named_define: library.umd_named_define,
+    }
+  }
+
+  fn get_options_for_chunk<'a>(
+    &self,
+    compilation: &'a Compilation,
+    chunk_ukey: &'a ChunkUkey,
+  ) -> Option<UmdLibraryPluginParsed<'a>> {
+    get_options_for_chunk(compilation, chunk_ukey)
+      .filter(|library| library.library_type == self.library_type)
+      .map(|library| self.parse_options(library))
   }
 }
 
 impl Plugin for UmdLibraryPlugin {
   fn name(&self) -> &'static str {
-    "UmdLibraryPlugin"
+    "rspack.UmdLibraryPlugin"
   }
 
   fn additional_chunk_runtime_requirements(
@@ -34,14 +84,9 @@ impl Plugin for UmdLibraryPlugin {
     _ctx: PluginContext,
     args: &mut AdditionalChunkRuntimeRequirementsArgs,
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    if args
-      .compilation
-      .chunk_graph
-      .get_number_of_entry_modules(args.chunk)
-      == 0
-    {
+    let Some(_) = self.get_options_for_chunk(args.compilation, args.chunk) else {
       return Ok(());
-    }
+    };
     args
       .runtime_requirements
       .insert(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME);
@@ -49,14 +94,10 @@ impl Plugin for UmdLibraryPlugin {
   }
 
   fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
-    let compilation = &args.compilation;
-    if compilation
-      .chunk_graph
-      .get_number_of_entry_modules(args.chunk)
-      == 0
-    {
+    let compilation = args.compilation;
+    let Some(options) = self.get_options_for_chunk(compilation, args.chunk) else {
       return Ok(None);
-    }
+    };
     let chunk = args.chunk();
     let modules = compilation
       .chunk_graph
@@ -84,24 +125,13 @@ impl Plugin for UmdLibraryPlugin {
       ""
     };
 
-    let (name, umd_named_define, auxiliary_comment) =
-      if let Some(library) = &compilation.options.output.library {
-        (
-          &library.name,
-          &library.umd_named_define,
-          &library.auxiliary_comment,
-        )
-      } else {
-        (&None, &None, &None)
-      };
+    let UmdLibraryPluginParsed {
+      names,
+      auxiliary_comment,
+      named_define,
+    } = options;
 
-    let (amd, commonjs, root) = if let Some(name) = &name {
-      (&name.amd, &name.commonjs, &name.root)
-    } else {
-      (&None, &None, &None)
-    };
-
-    let define = if let (Some(amd), Some(_)) = &(amd, umd_named_define) {
+    let define = if let (Some(amd), Some(_)) = &(&names.amd, named_define) {
       format!(
         "define({}, {}, {amd_factory});\n",
         library_name(&[amd.to_string()], chunk, compilation),
@@ -114,15 +144,17 @@ impl Plugin for UmdLibraryPlugin {
       )
     };
 
-    let factory = if name.is_some() {
+    let factory = if names.commonjs.is_some() || names.root.is_some() {
       let commonjs_code = format!(
         "{}
         exports[{}] = factory({});\n",
         get_auxiliary_comment("commonjs", auxiliary_comment),
-        &commonjs
+        names
+          .commonjs
           .clone()
           .map(|commonjs| library_name(&[commonjs], chunk, compilation))
-          .or_else(|| root
+          .or_else(|| names
+            .root
             .clone()
             .map(|root| library_name(&root, chunk, compilation)))
           .unwrap_or_default(),
@@ -135,9 +167,10 @@ impl Plugin for UmdLibraryPlugin {
         replace_keys(
           accessor_access(
             Some("root"),
-            &root
+            &names
+              .root
               .clone()
-              .or_else(|| commonjs.clone().map(|commonjs| vec![commonjs]))
+              .or_else(|| names.commonjs.clone().map(|commonjs| vec![commonjs]))
               .unwrap_or_default(),
           ),
           chunk,
@@ -203,14 +236,9 @@ impl Plugin for UmdLibraryPlugin {
     _ctx: PluginContext,
     args: &mut JsChunkHashArgs,
   ) -> PluginJsChunkHashHookOutput {
-    if args
-      .compilation
-      .chunk_graph
-      .get_number_of_entry_modules(args.chunk_ukey)
-      == 0
-    {
+    let Some(_) = self.get_options_for_chunk(args.compilation, args.chunk_ukey) else {
       return Ok(());
-    }
+    };
     self.name().hash(&mut args.hasher);
     args
       .compilation
@@ -325,7 +353,7 @@ fn accessor_access(base: Option<&str>, accessor: &Vec<String>) -> String {
     .join(", ")
 }
 
-fn get_auxiliary_comment(t: &str, auxiliary_comment: &Option<LibraryAuxiliaryComment>) -> String {
+fn get_auxiliary_comment(t: &str, auxiliary_comment: Option<&LibraryAuxiliaryComment>) -> String {
   if let Some(auxiliary_comment) = auxiliary_comment {
     if let Some(value) = match t {
       "amd" => &auxiliary_comment.amd,

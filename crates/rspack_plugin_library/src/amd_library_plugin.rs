@@ -2,28 +2,76 @@ use std::hash::Hash;
 
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, ExternalModule, Filename, JsChunkHashArgs, PathData,
-  Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
-  PluginJsChunkHashHookOutput, PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, ChunkUkey, Compilation, ExternalModule, Filename,
+  JsChunkHashArgs, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
+  PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
+};
+use rspack_error::{internal_error_bail, Result};
+
+use crate::utils::{
+  external_arguments, externals_dep_array, get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE,
 };
 
-use super::utils::{external_arguments, externals_dep_array};
-use crate::utils::normalize_name;
+#[derive(Debug)]
+struct AmdLibraryPluginParsed<'a> {
+  name: Option<&'a str>,
+  amd_container: Option<&'a str>,
+}
 
 #[derive(Debug)]
 pub struct AmdLibraryPlugin {
-  pub require_as_wrapper: bool,
+  library_type: LibraryType,
+  require_as_wrapper: bool,
 }
 
 impl AmdLibraryPlugin {
-  pub fn new(require_as_wrapper: bool) -> Self {
-    Self { require_as_wrapper }
+  pub fn new(require_as_wrapper: bool, library_type: LibraryType) -> Self {
+    Self {
+      require_as_wrapper,
+      library_type,
+    }
+  }
+
+  fn parse_options<'a>(&self, library: &'a LibraryOptions) -> Result<AmdLibraryPluginParsed<'a>> {
+    if self.require_as_wrapper {
+      if library.name.is_some() {
+        internal_error_bail!("AMD library name must be unset. {COMMON_LIBRARY_NAME_MESSAGE}")
+      }
+    } else if let Some(name) = &library.name
+      && !matches!(
+        name,
+        LibraryName::NonUmdObject(LibraryNonUmdObject::String(_))
+      )
+    {
+      internal_error_bail!(
+        "AMD library name must be a simple string or unset. {COMMON_LIBRARY_NAME_MESSAGE}"
+      )
+    }
+    Ok(AmdLibraryPluginParsed {
+      name: library.name.as_ref().map(|name| match name {
+        LibraryName::NonUmdObject(LibraryNonUmdObject::String(s)) => s.as_str(),
+        _ => unreachable!("AMD library name must be a simple string or unset."),
+      }),
+      amd_container: library.amd_container.as_deref(),
+    })
+  }
+
+  fn get_options_for_chunk<'a>(
+    &self,
+    compilation: &'a Compilation,
+    chunk_ukey: &'a ChunkUkey,
+  ) -> Result<Option<AmdLibraryPluginParsed<'a>>> {
+    get_options_for_chunk(compilation, chunk_ukey)
+      .filter(|library| library.library_type == self.library_type)
+      .map(|library| self.parse_options(library))
+      .transpose()
   }
 }
 
 impl Plugin for AmdLibraryPlugin {
   fn name(&self) -> &'static str {
-    "AmdLibraryPlugin"
+    "rspack.AmdLibraryPlugin"
   }
 
   fn additional_chunk_runtime_requirements(
@@ -31,11 +79,9 @@ impl Plugin for AmdLibraryPlugin {
     _ctx: PluginContext,
     args: &mut AdditionalChunkRuntimeRequirementsArgs,
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    if args
-      .compilation
-      .chunk_graph
-      .get_number_of_entry_modules(args.chunk)
-      == 0
+    if self
+      .get_options_for_chunk(args.compilation, args.chunk)?
+      .is_none()
     {
       return Ok(());
     }
@@ -46,14 +92,10 @@ impl Plugin for AmdLibraryPlugin {
   }
 
   fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
-    let compilation = &args.compilation;
-    if compilation
-      .chunk_graph
-      .get_number_of_entry_modules(args.chunk)
-      == 0
-    {
+    let compilation = args.compilation;
+    let Some(options) = self.get_options_for_chunk(compilation, args.chunk)? else {
       return Ok(None);
-    }
+    };
     let chunk = args.chunk();
     let modules = compilation
       .chunk_graph
@@ -76,15 +118,18 @@ impl Plugin for AmdLibraryPlugin {
     if compilation.options.output.iife || !chunk.has_runtime(&compilation.chunk_group_by_ukey) {
       fn_start.push_str(" return ");
     }
-    let name = normalize_name(&compilation.options.output.library)?;
     let mut source = ConcatSource::default();
+    let amd_container_prefix = options
+      .amd_container
+      .map(|c| format!("{c}."))
+      .unwrap_or_default();
     if self.require_as_wrapper {
       source.add(RawSource::from(format!(
-        "require({externals_deps_array}, {fn_start}"
+        "{amd_container_prefix}require({externals_deps_array}, {fn_start}"
       )));
-    } else if let Some(name) = name {
+    } else if let Some(name) = options.name {
       let normalize_name = compilation.get_path(
-        &Filename::from(name),
+        &Filename::from(name.to_string()),
         PathData::default().chunk(chunk).content_hash_optional(
           chunk
             .content_hash
@@ -93,13 +138,15 @@ impl Plugin for AmdLibraryPlugin {
         ),
       );
       source.add(RawSource::from(format!(
-        "define('{normalize_name}', {externals_deps_array}, {fn_start}"
+        "{amd_container_prefix}define('{normalize_name}', {externals_deps_array}, {fn_start}"
       )));
     } else if modules.is_empty() {
-      source.add(RawSource::from(format!("define({fn_start}")));
+      source.add(RawSource::from(format!(
+        "{amd_container_prefix}define({fn_start}"
+      )));
     } else {
       source.add(RawSource::from(format!(
-        "define({externals_deps_array}, {fn_start}"
+        "{amd_container_prefix}define({externals_deps_array}, {fn_start}"
       )));
     }
     source.add(args.source.clone());
@@ -112,21 +159,20 @@ impl Plugin for AmdLibraryPlugin {
     _ctx: PluginContext,
     args: &mut JsChunkHashArgs,
   ) -> PluginJsChunkHashHookOutput {
-    if args
-      .compilation
-      .chunk_graph
-      .get_number_of_entry_modules(args.chunk_ukey)
-      == 0
-    {
+    let compilation = args.compilation;
+    let Some(options) = self.get_options_for_chunk(compilation, args.chunk_ukey)? else {
       return Ok(());
-    }
+    };
     self.name().hash(&mut args.hasher);
-    args
-      .compilation
-      .options
-      .output
-      .library
-      .hash(&mut args.hasher);
+    if self.require_as_wrapper {
+      self.require_as_wrapper.hash(&mut args.hasher);
+    } else if let Some(name) = options.name {
+      "named".hash(&mut args.hasher);
+      name.hash(&mut args.hasher);
+    } else if let Some(amd_container) = options.amd_container {
+      "amdContainer".hash(&mut args.hasher);
+      amd_container.hash(&mut args.hasher);
+    }
     Ok(())
   }
 }

@@ -2,6 +2,8 @@ use napi_derive::napi;
 use rspack_core::EntryOptions;
 use serde::Deserialize;
 
+use crate::RawLibraryOptions;
+
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
@@ -22,6 +24,7 @@ pub struct RawEntryOptions {
   pub public_path: Option<String>,
   pub base_uri: Option<String>,
   pub filename: Option<String>,
+  pub library: Option<RawLibraryOptions>,
 }
 
 impl From<RawEntryOptions> for EntryOptions {
@@ -34,6 +37,7 @@ impl From<RawEntryOptions> for EntryOptions {
       public_path: value.public_path.map(Into::into),
       base_uri: value.base_uri,
       filename: value.filename.map(Into::into),
+      library: value.library.map(Into::into),
     }
   }
 }

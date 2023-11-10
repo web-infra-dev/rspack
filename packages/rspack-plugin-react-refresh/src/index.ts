@@ -1,13 +1,11 @@
 import path from "path";
 import type { Compiler } from "@rspack/core";
 import { normalizeOptions, type PluginOptions } from "./options";
-import { validate as validateOptions } from "schema-utils";
 
 export type { PluginOptions };
 
 const reactRefreshPath = require.resolve("../client/reactRefresh.js");
 const reactRefreshEntryPath = require.resolve("../client/reactRefreshEntry.js");
-const schema = require("../options.json");
 
 const refreshUtilsPath = require.resolve(
 	"@pmmmwh/react-refresh-webpack-plugin/lib/runtime/RefreshUtils",
@@ -38,11 +36,6 @@ class ReactRefreshRspackPlugin {
 	static deprecated_runtimePaths: string[];
 
 	constructor(options: PluginOptions = {}) {
-		validateOptions(schema, options, {
-			name: "React Refresh Rspack Plugin",
-			baseDataPath: "options"
-		});
-
 		this.options = normalizeOptions(options);
 	}
 

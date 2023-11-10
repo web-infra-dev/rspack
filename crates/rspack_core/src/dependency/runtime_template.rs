@@ -61,7 +61,7 @@ pub fn export_from_import(
           format!("var {import_var}_namespace_cache;\n",),
           InitFragmentStage::StageHarmonyExports,
           -1,
-          InitFragmentKey::uniqie(),
+          InitFragmentKey::unique(),
           None,
         )
         .boxed(),
@@ -188,6 +188,8 @@ pub fn module_namespace_promise(
   code_generatable_context: &mut TemplateContext,
   id: &DependencyId,
   request: &str,
+  block: bool, // FIXME:
+  _message: &str,
   weak: bool,
 ) -> String {
   let TemplateContext {
@@ -198,8 +200,8 @@ pub fn module_namespace_promise(
   } = code_generatable_context;
 
   let module_id_expr = module_id(compilation, id, request, weak);
-
   let exports_type = get_exports_type(&compilation.module_graph, id, &module.identifier());
+  let promise = block_promise(&module_id_expr, block, runtime_requirements);
 
   let header = if weak {
     runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES);
@@ -276,13 +278,17 @@ pub fn module_namespace_promise(
     }
   }
 
-  format!(
-    "{}{appending}",
-    block_promise(&module_id_expr, runtime_requirements)
-  )
+  format!("{promise}{appending}")
 }
 
-pub fn block_promise(module_id_str: &str, runtime_requirements: &mut RuntimeGlobals) -> String {
+pub fn block_promise(
+  module_id_str: &str,
+  block: bool,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> String {
+  if !block {
+    return "Promise.resolve()".to_string();
+  }
   runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
   runtime_requirements.insert(RuntimeGlobals::LOAD_CHUNK_WITH_MODULE);
   format!(

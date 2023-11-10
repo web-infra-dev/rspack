@@ -56,6 +56,7 @@ impl Visit for RequireContextScanner<'_> {
             node.span.real_lo(),
             node.span.real_hi(),
             ContextOptions {
+              chunk_name: None,
               mode,
               recursive,
               reg_exp: clean_regexp_in_context_module(reg_exp),

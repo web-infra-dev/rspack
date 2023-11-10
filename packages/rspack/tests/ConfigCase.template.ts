@@ -79,7 +79,11 @@ export const describeCases = config => {
 					}
 					describe(testName, function () {
 						const filterPath = path.join(testDirectory, "test.filter.js");
-						if (fs.existsSync(filterPath) && !require(filterPath)()) {
+						if (
+							fs.existsSync(filterPath) &&
+							(typeof require(filterPath)() === "string" ||
+								!require(filterPath)())
+						) {
 							describe.skip(testName, () => {
 								it("filtered", () => {});
 							});

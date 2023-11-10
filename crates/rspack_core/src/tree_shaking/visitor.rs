@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::{collections::hash_map::Entry, collections::VecDeque, hash::Hash, path::PathBuf};
 
 use bitflags::bitflags;
@@ -421,9 +422,10 @@ impl<'a> ModuleRefAnalyze<'a> {
     default_ident
   }
 
-  fn check_commonjs_feature(&mut self, member_chain: &[(JsWord, SyntaxContext)]) {
+  fn check_commonjs_feature(&mut self, member_chain: &[Cow<(JsWord, SyntaxContext)>]) {
     if self.state.contains(AnalyzeState::ASSIGNMENT_LHS) {
-      match member_chain {
+      let member_chain = member_chain.iter().map(|m| &**m).collect::<Vec<_>>();
+      match &*member_chain {
         [(first, first_ctxt), (second, _), ..]
           if first == "module" && second == "exports" && first_ctxt == &self.unresolved_ctxt => {}
         [(first, first_ctxt), ..] if first == "exports" && &self.unresolved_ctxt == first_ctxt => {}
@@ -990,12 +992,11 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
 
   fn visit_member_expr(&mut self, node: &MemberExpr) {
-    let member_chain = extract_member_expression_chain(node)
-      .into_iter()
-      .collect::<Vec<_>>();
+    let expression_info = extract_member_expression_chain(node);
+    let member_chain = expression_info.members().into_iter().collect::<Vec<_>>();
     self.check_commonjs_feature(&member_chain);
     if !member_chain.is_empty() {
-      let (first, first_ctxt) = member_chain[0].clone();
+      let (first, first_ctxt) = member_chain[0].clone().into_owned();
       if self.potential_top_level_ctxt.contains(&first_ctxt) {
         let member_expr = Part::MemberExpr {
           first: first.clone(),
@@ -1003,7 +1004,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             .into_iter()
             .skip(1)
             // .take(1)
-            .map(|(name, _)| name)
+            .map(|m| m.0.clone())
             .collect::<Vec<_>>(),
         };
         match self.current_body_owner_symbol_ext {

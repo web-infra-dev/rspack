@@ -376,6 +376,7 @@ describe("snapshots", () => {
 		@@ ... @@
 		-     "library": undefined,
 		+     "library": Object {
+		+       "amdContainer": undefined,
 		+       "auxiliaryComment": undefined,
 		+       "export": undefined,
 		+       "name": Array [
@@ -407,6 +408,7 @@ describe("snapshots", () => {
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
+			+       "amdContainer": undefined,
 			+       "auxiliaryComment": undefined,
 			+       "export": undefined,
 			+       "name": Array [
@@ -441,6 +443,7 @@ describe("snapshots", () => {
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
+			+       "amdContainer": undefined,
 			+       "auxiliaryComment": undefined,
 			+       "export": undefined,
 			+       "name": Array [
@@ -478,6 +481,7 @@ describe("snapshots", () => {
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
+			+       "amdContainer": undefined,
 			+       "auxiliaryComment": undefined,
 			+       "export": undefined,
 			+       "name": Object {
@@ -516,6 +520,7 @@ describe("snapshots", () => {
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
+			+       "amdContainer": undefined,
 			+       "auxiliaryComment": undefined,
 			+       "export": undefined,
 			+       "name": Object {

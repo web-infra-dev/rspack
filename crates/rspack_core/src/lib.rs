@@ -94,6 +94,18 @@ pub enum SourceType {
   Unknown,
 }
 
+impl std::fmt::Display for SourceType {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      SourceType::JavaScript => write!(f, "javascript"),
+      SourceType::Css => write!(f, "css"),
+      SourceType::Wasm => write!(f, "wasm"),
+      SourceType::Asset => write!(f, "asset"),
+      SourceType::Unknown => write!(f, "unknown"),
+    }
+  }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ModuleType {
   Json,
@@ -114,6 +126,7 @@ pub enum ModuleType {
   AssetResource,
   AssetSource,
   Asset,
+  Runtime,
 }
 
 impl ModuleType {
@@ -197,6 +210,7 @@ impl ModuleType {
       ModuleType::AssetSource => "asset/source",
       ModuleType::AssetResource => "asset/resource",
       ModuleType::AssetInline => "asset/inline",
+      ModuleType::Runtime => "runtime",
     }
   }
 }

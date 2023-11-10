@@ -38,6 +38,17 @@ pub enum ExternalItem {
   Fn(ExternalItemFn),
 }
 
+impl std::fmt::Debug for ExternalItem {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Self::Object(v) => f.debug_tuple("Object").field(v).finish(),
+      Self::String(v) => f.debug_tuple("String").field(v).finish(),
+      Self::RegExp(v) => f.debug_tuple("RegExp").field(v).finish(),
+      Self::Fn(_) => f.debug_tuple("Fn").field(&"...").finish(),
+    }
+  }
+}
+
 impl From<ExternalItemObject> for ExternalItem {
   fn from(value: ExternalItemObject) -> Self {
     Self::Object(value)

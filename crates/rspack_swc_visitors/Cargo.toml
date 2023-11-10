@@ -8,16 +8,11 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-indexmap          = { workspace = true }
-once_cell         = { workspace = true }
-regex             = { workspace = true }
-serde             = { workspace = true, features = ["derive"] }
+indexmap = { workspace = true }
+once_cell = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 styled_components = { workspace = true }
-swc_core          = { workspace = true, features = ["ecma_ast"] }
-swc_emotion       = { workspace = true }
-swc_plugin_import = { path = "../swc_plugin_import" }
-
-[dev-dependencies]
 swc_core = { workspace = true, features = [
   "ecma_ast",
   "__visit",
@@ -25,4 +20,8 @@ swc_core = { workspace = true, features = [
   "__parser",
   "__utils",
   "ecma_preset_env",
+  "__ecma_transforms",
+  "ecma_transforms_optimization",
 ] }
+swc_emotion = { workspace = true }
+swc_plugin_import = { path = "../swc_plugin_import" }

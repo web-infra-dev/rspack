@@ -59,6 +59,7 @@ cleanCommand
 
 // x build
 const buildCommand = program.command("build").alias("b").description("build");
+const watchCommand = program.command("watch").alias("w").description("watch");
 
 buildCommand
 	.option("-a", "build all")
@@ -69,6 +70,17 @@ buildCommand
 		let mode = r ? "release" : "debug";
 		b && (await $`pnpm --filter @rspack/binding build:${mode}`);
 		j && (await $`pnpm --filter "@rspack/*" build`);
+	});
+
+watchCommand
+	.option("-a", "watch all")
+	.option("-b", "watch rust binding")
+	.option("-j", "watch js packages")
+	.option("-r", "release")
+	.action(async function ({ a, b = a, j = a, r }) {
+		let mode = r ? "release" : "debug";
+		b && (await $`pnpm --filter @rspack/binding watch:${mode}`);
+		j && (await $`pnpm --filter "@rspack/*" watch`);
 	});
 
 // x build binding

@@ -100,14 +100,14 @@ impl Algo {
   pub(crate) fn global(&self) -> bool {
     match self {
       Algo::Regress(reg) => reg.flags.contains('g'),
-      Algo::EndWith { .. } => unreachable!(),
+      Algo::EndWith { .. } => false,
     }
   }
 
   pub(crate) fn sticky(&self) -> bool {
     match self {
       Algo::Regress(reg) => reg.flags.contains('y'),
-      Algo::EndWith { .. } => unreachable!(),
+      Algo::EndWith { .. } => false,
     }
   }
 }

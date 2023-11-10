@@ -3,7 +3,6 @@ use std::{
   sync::{mpsc, Arc, Mutex},
 };
 
-use regex::Regex;
 use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
   ModuleType,
@@ -15,7 +14,9 @@ use rspack_plugin_javascript::{
   utils::ecma_parse_error_to_rspack_error, ExtractedCommentsInfo, IsModule, SourceMapsConfig,
   TransformOutput,
 };
+use swc_config::config_types::BoolOr;
 use swc_core::{
+  base::config::JsMinifyCommentOption,
   common::{
     collections::AHashMap,
     comments::{Comment, CommentKind, Comments, SingleThreadedComments},
@@ -40,7 +41,7 @@ use swc_ecma_minifier::{
   option::{MinifyOptions, TopLevelOptions},
 };
 
-use crate::{JsMinifyCommentOption, JsMinifyOptions, SwcJsMinimizerRspackPluginOptions};
+use crate::{ExtractComments, JsMinifyOptions, SwcJsMinimizerRspackPluginOptions};
 
 pub fn match_object(obj: &SwcJsMinimizerRspackPluginOptions, str: &str) -> Result<bool> {
   if let Some(condition) = &obj.test {
@@ -70,12 +71,12 @@ pub fn match_object(obj: &SwcJsMinimizerRspackPluginOptions, str: &str) -> Resul
  */
 pub(crate) fn minify_file_comments(
   comments: &SingleThreadedComments,
-  preserve_comments: JsMinifyCommentOption,
+  preserve_comments: BoolOr<JsMinifyCommentOption>,
 ) {
   match preserve_comments {
-    JsMinifyCommentOption::PreserveAllComments => {}
+    BoolOr::Bool(true) | BoolOr::Data(JsMinifyCommentOption::PreserveAllComments) => {}
 
-    JsMinifyCommentOption::PreserveSomeComments => {
+    BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments) => {
       let preserve_excl = |_: &BytePos, vc: &mut Vec<Comment>| -> bool {
         // Preserve license comments.
         vc.retain(|c: &Comment| c.text.contains("@license") || c.text.starts_with('!'));
@@ -87,7 +88,7 @@ pub(crate) fn minify_file_comments(
       t.retain(preserve_excl);
     }
 
-    JsMinifyCommentOption::False => {
+    BoolOr::Bool(false) => {
       let (mut l, mut t) = comments.borrow_all_mut();
       l.clear();
       t.clear();
@@ -100,7 +101,7 @@ pub fn minify(
   input: String,
   filename: &str,
   all_extract_comments: &Mutex<HashMap<String, ExtractedCommentsInfo>>,
-  extract_comments: &Option<String>,
+  extract_comments: &Option<ExtractComments<'_>>,
 ) -> Result<TransformOutput> {
   let cm: Arc<SourceMap> = Default::default();
   GLOBALS.set(&Default::default(), || -> Result<TransformOutput> {
@@ -222,14 +223,6 @@ pub fn minify(
         });
 
         if let Some(extract_comments) = extract_comments {
-          let comments_file_name = filename.to_string() + ".LICENSE.txt";
-          let reg = if extract_comments.eq("true") {
-            // copied from terser-webpack-plugin
-            Regex::new(r"@preserve|@lic|@cc_on|^\**!")
-          } else {
-            Regex::new(&extract_comments[1..extract_comments.len() - 2])
-          }
-          .expect("Invalid extractComments");
           let mut extracted_comments = vec![];
           // add all matched comments to source
 
@@ -237,7 +230,7 @@ pub fn minify(
 
           leading_trivial.iter().for_each(|(_, comments)| {
             comments.iter().for_each(|c| {
-              if reg.is_match(&c.text) {
+              if extract_comments.condition.is_match(&c.text) {
                 extracted_comments.push(match c.kind {
                   CommentKind::Line => {
                     format!("// {}", c.text)
@@ -251,7 +244,7 @@ pub fn minify(
           });
           trailing_trivial.iter().for_each(|(_, comments)| {
             comments.iter().for_each(|c| {
-              if reg.is_match(&c.text) {
+              if extract_comments.condition.is_match(&c.text) {
                 extracted_comments.push(match c.kind {
                   CommentKind::Line => {
                     format!("// {}", c.text)
@@ -273,13 +266,21 @@ pub fn minify(
                 filename.to_string(),
                 ExtractedCommentsInfo {
                   source: RawSource::Source(extracted_comments.join("\n\n")).boxed(),
-                  comments_file_name,
+                  comments_file_name: extract_comments.filename.to_string(),
                 },
               );
           }
         }
 
-        minify_file_comments(&comments, opts.format.comments.to_owned());
+        minify_file_comments(
+          &comments,
+          opts
+            .format
+            .comments
+            .clone()
+            .into_inner()
+            .unwrap_or(BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments)),
+        );
 
         print(
           &program,

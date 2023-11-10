@@ -30,14 +30,14 @@ runs:
   steps:
     - name: Upload artifact
       uses: actions/upload-artifact@v3
-      if: ${{ startsWith(runner.name, 'GitHub Actions') || !inputs.try-local-cache }}
+      if: ${{ startsWith(runner.name, 'GitHub Actions') || inputs.try-local-cache == 'false' }}
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
         if-no-files-found: error
     - name: Upload local
       id: upload-local
-      if: ${{ !startsWith(runner.name, 'GitHub Actions') && inputs.try-local-cache }}
+      if: ${{ !startsWith(runner.name, 'GitHub Actions') && inputs.try-local-cache == 'true' }}
       shell: bash
       run: |
         set -e
@@ -45,8 +45,8 @@ runs:
         if [[ ! -d "$cache_dir" ]]; then
           mkdir -p "$cache_dir"
         fi
-        # clear cache directory older than 1 days
-        find $cache_dir -type d -maxdepth 1 -mindepth 1 -ctime +1 | xargs rm -rf
+        # clear cache directory older than 3 hours
+        find $cache_dir -type d -maxdepth 1 -mindepth 1 -cmin +180 | xargs rm -rf
 
         # save file
         save_dir="$cache_dir/${{ github.repository_id }}-${{ github.run_id }}-${{ inputs.name }}"
@@ -62,4 +62,11 @@ runs:
 
         # TODO echo machine name as runner labels
         # echo "runner_labels=\"$(uname -n)\"" >> "$GITHUB_OUTPUT"
-        echo 'runner-labels="rspack-ci"' >> "$GITHUB_OUTPUT"
+        if [ -z "$RUNNER_LABELS" ]; then
+          # RUNNER_LABELS not exist
+          echo "self hosted runner must exist RUNNER_LABELS variable"
+          exit 1
+        fi
+
+        labelJson="[\"${RUNNER_LABELS//,/\",\"}\"]"
+        echo "runner-labels=$labelJson" >> "$GITHUB_OUTPUT"

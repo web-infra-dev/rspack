@@ -1,4 +1,5 @@
 #![feature(try_blocks)]
+#![forbid(unsafe_op_in_unsafe_fn)]
 
 mod errors;
 mod ext;
@@ -16,5 +17,5 @@ thread_local! {
 pub use crate::{
   ext::{js_reg_exp_ext::JsRegExpExt, js_string_ext::JsStringExt},
   js_values::js_reg_exp::JsRegExp,
-  utils::object_prototype_to_string_call,
+  utils::downcast_into,
 };

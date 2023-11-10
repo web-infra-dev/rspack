@@ -86,7 +86,7 @@ export const compareIds = (
 };
 
 export const compareChunksById = (a: Chunk, b: Chunk): -1 | 0 | 1 => {
-	return compareIds(a.id, b.id);
+	return compareIds(a.id || "", b.id || "");
 };
 
 const compareSelectCache: TwoKeyWeakMap<

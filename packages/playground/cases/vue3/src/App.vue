@@ -3,12 +3,12 @@
 	<button id="count" @click="count++">{{ count }}</button>
 </template>
 
-<script>
+<script setup lang="ts">
 import { ref } from 'vue';
-export default {
-  setup() {
-    const count = ref(0)
-    return { count }
-  }
-}
+import { Type } from "./enums"
+
+defineProps<{
+  __: Type
+}>();
+const count = ref(Type.START)
 </script>

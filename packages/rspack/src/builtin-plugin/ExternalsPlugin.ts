@@ -1,8 +1,4 @@
-import {
-	RawExternalItem,
-	RawExternalItemValue,
-	RawExternalsPluginOptions
-} from "@rspack/binding";
+import { RawExternalsPluginOptions } from "@rspack/binding";
 import { BuiltinPluginName, create } from "./base";
 import { ExternalItem, ExternalItemValue, Externals } from "..";
 
@@ -18,45 +14,42 @@ export const ExternalsPlugin = create(
 	}
 );
 
+type ArrayType<T> = T extends (infer R)[] ? R : never;
+type RecordValue<T> = T extends Record<any, infer R> ? R : never;
+type RawExternalItem = ArrayType<RawExternalsPluginOptions["externals"]>;
+type RawExternalItemValue = RecordValue<RawExternalItem>;
+
 function getRawExternalItem(item: ExternalItem): RawExternalItem {
-	if (typeof item === "string") {
-		return { type: "string", stringPayload: item };
+	if (typeof item === "string" || item instanceof RegExp) {
+		return item;
 	}
-	if (item instanceof RegExp) {
-		return { type: "regexp", regexpPayload: item.source };
-	}
+
 	if (typeof item === "function") {
-		return {
-			type: "function",
-			fnPayload: async ctx => {
-				return await new Promise((resolve, reject) => {
-					const promise = item(ctx, (err, result, type) => {
-						if (err) reject(err);
-						resolve({
-							result: getRawExternalItemValueFormFnResult(result),
-							external_type: type
-						});
-					}) as Promise<ExternalItemValue>;
-					if (promise && promise.then) {
-						promise.then(
-							result =>
-								resolve({
-									result: getRawExternalItemValueFormFnResult(result),
-									external_type: undefined
-								}),
-							e => reject(e)
-						);
-					}
-				});
-			}
+		return async ctx => {
+			return await new Promise((resolve, reject) => {
+				const promise = item(ctx, (err, result, type) => {
+					if (err) reject(err);
+					resolve({
+						result: getRawExternalItemValueFormFnResult(result),
+						externalType: type
+					});
+				}) as Promise<ExternalItemValue>;
+				if (promise && promise.then) {
+					promise.then(
+						result =>
+							resolve({
+								result: getRawExternalItemValueFormFnResult(result),
+								externalType: undefined
+							}),
+						e => reject(e)
+					);
+				}
+			});
 		};
 	}
-	return {
-		type: "object",
-		objectPayload: Object.fromEntries(
-			Object.entries(item).map(([k, v]) => [k, getRawExternalItemValue(v)])
-		)
-	};
+	return Object.fromEntries(
+		Object.entries(item).map(([k, v]) => [k, getRawExternalItemValue(v)])
+	);
 }
 
 function getRawExternalItemValueFormFnResult(result?: ExternalItemValue) {
@@ -66,22 +59,10 @@ function getRawExternalItemValueFormFnResult(result?: ExternalItemValue) {
 function getRawExternalItemValue(
 	value: ExternalItemValue
 ): RawExternalItemValue {
-	if (typeof value === "string") {
-		return { type: "string", stringPayload: value };
-	} else if (typeof value === "boolean") {
-		return { type: "bool", boolPayload: value };
-	} else if (Array.isArray(value)) {
-		return {
-			type: "array",
-			arrayPayload: value
-		};
-	} else if (typeof value === "object" && value !== null) {
-		return {
-			type: "object",
-			objectPayload: Object.fromEntries(
-				Object.entries(value).map(([k, v]) => [k, Array.isArray(v) ? v : [v]])
-			)
-		};
+	if (value && typeof value === "object" && !Array.isArray(value)) {
+		return Object.fromEntries(
+			Object.entries(value).map(([k, v]) => [k, Array.isArray(v) ? v : [v]])
+		);
 	}
-	throw new Error("unreachable");
+	return value;
 }

@@ -12,7 +12,6 @@ use dashmap::DashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
-use rspack_database::Database;
 use rspack_error::{
   internal_error, CatchUnwindFuture, Diagnostic, Result, Severity, TWithDiagnosticArray,
 };
@@ -34,16 +33,17 @@ use crate::{
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
   is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
-  AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxDependency,
-  BoxModule, BuildQueue, BuildTask, BuildTaskResult, CacheCount, CacheOptions, Chunk, ChunkByUkey,
-  ChunkContentHash, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey,
-  CleanQueue, CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults,
-  CompilationLogger, CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, Entry,
-  EntryData, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult,
-  Filename, Logger, Module, ModuleGraph, ModuleIdentifier, ModuleProfile, ModuleType, PathData,
-  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
-  RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec,
-  SharedPluginDriver, SourceType, Stats, TaskResult, WorkerTask,
+  AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs,
+  AdditionalModuleRequirementsArgs, BoxDependency, BoxModule, BuildQueue, BuildTask,
+  BuildTaskResult, CacheCount, CacheOptions, Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph,
+  ChunkGroupByUkey, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask,
+  CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
+  CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, Entry, EntryData,
+  EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger,
+  Module, ModuleGraph, ModuleIdentifier, ModuleProfile, ModuleType, PathData, ProcessAssetsArgs,
+  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
+  Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver,
+  SourceType, Stats, TaskResult, WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
@@ -71,8 +71,8 @@ pub struct Compilation {
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
   pub runtime_module_code_generation_results: IdentifierMap<(RspackHashDigest, BoxSource)>,
   pub chunk_graph: ChunkGraph,
-  pub chunk_by_ukey: Database<Chunk>,
-  pub chunk_group_by_ukey: Database<ChunkGroup>,
+  pub chunk_by_ukey: ChunkByUkey,
+  pub chunk_group_by_ukey: ChunkGroupByUkey,
   pub entrypoints: IndexMap<String, ChunkGroupUkey>,
   pub async_entrypoints: Vec<ChunkGroupUkey>,
   assets: CompilationAssets,
@@ -1186,12 +1186,15 @@ impl Compilation {
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
 
+    // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
+    plugin_driver.seal(self)?;
+
     let start = logger.time("optimize dependencies");
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
     while plugin_driver.optimize_dependencies(self).await?.is_some() {}
     logger.time_end(start);
     // if self.options.is_new_tree_shaking() {
-    //   debug_exports_info(&self.module_graph);
+    //   debug_exports_info!(&self.module_graph);
     // }
 
     let start = logger.time("create chunks");
@@ -1296,6 +1299,11 @@ impl Compilation {
 
     for (module_identifier, runtime_requirements) in module_runtime_requirements.iter_mut() {
       for (runtime, requirements) in runtime_requirements.iter_mut() {
+        plugin_driver.runtime_requirement_in_module(&mut AdditionalModuleRequirementsArgs {
+          compilation: self,
+          module_identifier,
+          runtime_requirements: requirements,
+        })?;
         self.chunk_graph.add_module_runtime_requirements(
           *module_identifier,
           runtime,
@@ -1683,6 +1691,7 @@ pub struct AssetInfo {
   /// the asset version, emit can be skipped when both filename and version are the same
   /// An empty string means no version, it will always emit
   pub version: String,
+  pub source_filename: Option<String>,
 }
 
 impl AssetInfo {
@@ -1726,6 +1735,10 @@ impl AssetInfo {
 
   pub fn set_immutable(&mut self, v: bool) {
     self.immutable = v;
+  }
+
+  pub fn set_source_filename(&mut self, v: String) {
+    self.source_filename = Some(v);
   }
 }
 

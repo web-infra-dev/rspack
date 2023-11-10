@@ -282,11 +282,12 @@ fn is_pure_var_decl(var: &VarDecl, unresolved_ctxt: SyntaxContext) -> bool {
   })
 }
 
-pub trait ClassKey {
+pub trait ClassExt {
   fn class_key(&self) -> Option<&PropName>;
+  fn is_static(&self) -> bool;
 }
 
-impl ClassKey for ClassMember {
+impl ClassExt for ClassMember {
   fn class_key(&self) -> Option<&PropName> {
     match self {
       ClassMember::Constructor(c) => Some(&c.key),
@@ -301,6 +302,20 @@ impl ClassKey for ClassMember {
         Key::Private(_) => None,
         Key::Public(ref public) => Some(public),
       },
+    }
+  }
+
+  fn is_static(&self) -> bool {
+    match self {
+      ClassMember::Constructor(_cons) => false,
+      ClassMember::Method(m) => m.is_static,
+      ClassMember::PrivateMethod(m) => m.is_static,
+      ClassMember::ClassProp(p) => p.is_static,
+      ClassMember::PrivateProp(p) => p.is_static,
+      ClassMember::TsIndexSignature(_) => unreachable!(),
+      ClassMember::Empty(_) => false,
+      ClassMember::StaticBlock(_) => true,
+      ClassMember::AutoAccessor(a) => a.is_static,
     }
   }
 }
@@ -375,7 +390,7 @@ impl Plugin for SideEffectsFlagPlugin {
                 // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
                 let ids = dep_id.get_ids(mg);
                 let processed_ids = target
-                  .exports
+                  .export
                   .as_ref()
                   .map(|item| {
                     let mut ret = Vec::from_iter(item.iter().cloned());
@@ -413,7 +428,7 @@ impl Plugin for SideEffectsFlagPlugin {
           mg.update_module(&dep_id, &target.module);
           // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
           let processed_ids = target
-            .exports
+            .export
             .map(|mut item| {
               item.extend_from_slice(&ids[1..]);
               item

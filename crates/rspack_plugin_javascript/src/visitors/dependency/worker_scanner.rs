@@ -70,6 +70,7 @@ impl<'a> WorkerScanner<'a> {
         public_path: None,
         base_uri: None,
         filename: None,
+        library: None,
       },
     )));
     if let Some(range) = range {

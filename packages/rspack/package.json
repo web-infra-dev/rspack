@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "0.3.8",
+  "version": "0.3.11",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "A Fast Rust-based Web Bundler",
@@ -10,7 +10,8 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
@@ -67,15 +68,13 @@
     "browserslist": "^4.21.3",
     "compare-versions": "6.0.0-rc.1",
     "enhanced-resolve": "5.12.0",
+    "fast-querystring": "1.1.2",
     "graceful-fs": "4.2.10",
     "json-parse-even-better-errors": "^3.0.0",
     "neo-async": "2.6.2",
-    "querystring": "^0.2.1",
     "react-refresh": "0.14.0",
-    "schema-utils": "^4.0.0",
     "tapable": "2.2.1",
     "terminal-link": "^2.1.1",
-    "util": "0.12.5",
     "watchpack": "^2.4.0",
     "webpack-sources": "3.2.3",
     "zod": "^3.21.4",

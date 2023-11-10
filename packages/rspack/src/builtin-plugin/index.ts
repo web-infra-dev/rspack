@@ -271,6 +271,14 @@ export function deprecated_resolveBuiltins(
 				)}`
 			);
 	}
+	if (builtins.devFriendlySplitChunks) {
+		isRoot &&
+			deprecatedWarn(
+				`'builtins.devFriendlySplitChunks = ${JSON.stringify(
+					builtins.devFriendlySplitChunks
+				)}' has been deprecated, please switch to 'builtins.devFriendlySplitChunks = false' to use webpack's behavior.`
+			);
+	}
 	const disableMinify =
 		!options.optimization.minimize ||
 		options.optimization.minimizer!.some(item => item !== "...");

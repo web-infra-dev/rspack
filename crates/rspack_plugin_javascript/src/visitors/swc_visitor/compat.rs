@@ -74,9 +74,11 @@ fn compat_by_es_version(
               constant_super: assumptions.constant_super,
               set_public_fields: assumptions.set_public_class_fields,
               no_document_all: assumptions.no_document_all,
-              static_blocks_mark: Mark::new()
+              static_blocks_mark: Mark::new(),
+              pure_getter: false,
             }
-          }
+          },
+          Mark::new()
         ),
         es_version < EsVersion::Es2022
       ),

@@ -444,8 +444,17 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             .chunk_group_by_ukey
             .get_mut(chunk_group_ukey)
             .expect("chunk group not found");
+          if chunk_group.runtime.is_superset(&runtime) {
+            continue;
+          }
           chunk_group.parents.insert(item.chunk_group);
           chunk_group.runtime.extend(runtime.clone());
+          self.queue_delayed.push(QueueItem {
+            action: QueueAction::_ProcessModule,
+            chunk: *chunk_ukey,
+            chunk_group: *chunk_group_ukey,
+            module_identifier: *module_identifier,
+          });
         }
         continue;
       } else {
