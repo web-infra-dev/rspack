@@ -419,11 +419,9 @@ fn map_oxc_resolver_error(error: oxc_resolver::ResolveError) -> ResolveError {
     }
     oxc_resolver::ResolveError::IOError(error) => ResolveError(
       format!("IOError"),
-      // TODO: update ResolveError::IOError
-      // Error::Io {
-      //   source: error.into(),
-      // },
-      internal_error!("IOError!"),
+      Error::Io {
+        source: error.into(),
+      },
     ),
     oxc_resolver::ResolveError::Builtin(error) => ResolveError(
       format!("Builtin module: {}", error),
