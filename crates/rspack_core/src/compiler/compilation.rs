@@ -11,7 +11,9 @@ use std::{
 use dashmap::DashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use rayon::prelude::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
+use rayon::prelude::{
+  IntoParallelIterator, IntoParallelRefIterator, ParallelBridge, ParallelIterator,
+};
 use rspack_error::{
   internal_error, CatchUnwindFuture, Diagnostic, Result, Severity, TWithDiagnosticArray,
 };
@@ -1226,7 +1228,22 @@ impl Compilation {
 
     let start = logger.time("runtime requirements");
     self
-      .process_runtime_requirements(plugin_driver.clone())
+      .process_runtime_requirements(
+        self
+          .module_graph
+          .modules()
+          .keys()
+          .copied()
+          .collect::<Vec<_>>(),
+        self
+          .chunk_by_ukey
+          .keys()
+          .copied()
+          .collect::<Vec<_>>()
+          .into_iter(),
+        self.get_chunk_graph_entries().into_iter(),
+        plugin_driver.clone(),
+      )
       .await?;
     logger.time_end(start);
 
@@ -1266,32 +1283,33 @@ impl Compilation {
   #[instrument(name = "compilation:process_runtime_requirements", skip_all)]
   pub async fn process_runtime_requirements(
     &mut self,
+    modules: impl IntoParallelIterator<Item = ModuleIdentifier>,
+    chunks: impl Iterator<Item = ChunkUkey>,
+    chunk_graph_entries: impl Iterator<Item = ChunkUkey>,
     plugin_driver: SharedPluginDriver,
   ) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let start = logger.time("runtime requirements.modules");
-    let mut module_runtime_requirements = self
-      .module_graph
-      .modules()
-      .par_iter()
-      .filter_map(|(_, module)| {
+    let mut module_runtime_requirements = modules
+      .into_par_iter()
+      .filter_map(|module_identifier| {
         if self
           .chunk_graph
-          .get_number_of_module_chunks(module.identifier())
+          .get_number_of_module_chunks(module_identifier)
           > 0
         {
           let mut module_runtime_requirements: Vec<(RuntimeSpec, RuntimeGlobals)> = vec![];
           for runtime in self
             .chunk_graph
-            .get_module_runtimes(module.identifier(), &self.chunk_by_ukey)
+            .get_module_runtimes(module_identifier, &self.chunk_by_ukey)
             .values()
           {
             let runtime_requirements = self
               .code_generation_results
-              .get_runtime_requirements(&module.identifier(), Some(runtime));
+              .get_runtime_requirements(&module_identifier, Some(runtime));
             module_runtime_requirements.push((runtime.clone(), runtime_requirements));
           }
-          return Some((module.identifier(), module_runtime_requirements));
+          return Some((module_identifier, module_runtime_requirements));
         }
         None
       })
@@ -1315,12 +1333,16 @@ impl Compilation {
 
     let start = logger.time("runtime requirements.chunks");
     let mut chunk_requirements = HashMap::default();
-    for (chunk_ukey, chunk) in self.chunk_by_ukey.iter() {
+    for chunk_ukey in chunks {
       let mut set = RuntimeGlobals::default();
       for module in self
         .chunk_graph
-        .get_chunk_modules(chunk_ukey, &self.module_graph)
+        .get_chunk_modules(&chunk_ukey, &self.module_graph)
       {
+        let chunk = self
+          .chunk_by_ukey
+          .get(&chunk_ukey)
+          .expect("should have chunk");
         if let Some(runtime_requirements) = self
           .chunk_graph
           .get_module_runtime_requirements(module.identifier(), &chunk.runtime)
@@ -1328,7 +1350,7 @@ impl Compilation {
           set.insert(*runtime_requirements);
         }
       }
-      chunk_requirements.insert(*chunk_ukey, set);
+      chunk_requirements.insert(chunk_ukey, set);
     }
     for (chunk_ukey, set) in chunk_requirements.iter_mut() {
       plugin_driver.additional_chunk_runtime_requirements(
@@ -1346,10 +1368,10 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("runtime requirements.entries");
-    for entry_ukey in self.get_chunk_graph_entries().iter() {
+    for entry_ukey in chunk_graph_entries {
       let entry = self
         .chunk_by_ukey
-        .get(entry_ukey)
+        .get(&entry_ukey)
         .expect("chunk not found by ukey");
 
       let mut set = RuntimeGlobals::default();
@@ -1365,20 +1387,20 @@ impl Compilation {
       plugin_driver.additional_tree_runtime_requirements(
         &mut AdditionalChunkRuntimeRequirementsArgs {
           compilation: self,
-          chunk: entry_ukey,
+          chunk: &entry_ukey,
           runtime_requirements: &mut set,
         },
       )?;
 
       plugin_driver.runtime_requirements_in_tree(&mut AdditionalChunkRuntimeRequirementsArgs {
         compilation: self,
-        chunk: entry_ukey,
+        chunk: &entry_ukey,
         runtime_requirements: &mut set,
       })?;
 
       self
         .chunk_graph
-        .add_tree_runtime_requirements(entry_ukey, set);
+        .add_tree_runtime_requirements(&entry_ukey, set);
     }
     logger.time_end(start);
     Ok(())
