@@ -202,7 +202,7 @@ impl ResolveInnerError {
   ) -> ResolveError {
     match self {
       Self::NodejsResolver(error) => map_nodejs_resolver_error(error, args, plugin_driver),
-      Self::OxcResolver(error) => map_oxc_resolver_error(error),
+      Self::OxcResolver(error) => map_oxc_resolver_error(error, args, plugin_driver),
     }
   }
 }
@@ -403,7 +403,11 @@ fn map_nodejs_resolver_error(
   }
 }
 
-fn map_oxc_resolver_error(error: oxc_resolver::ResolveError) -> ResolveError {
+fn map_oxc_resolver_error(
+  error: oxc_resolver::ResolveError,
+  args: &ResolveArgs<'_>,
+  plugin_driver: &SharedPluginDriver,
+) -> ResolveError {
   match error {
     oxc_resolver::ResolveError::InvalidPackageTarget(specifier) => {
       let message = format!(
@@ -430,10 +434,6 @@ fn map_oxc_resolver_error(error: oxc_resolver::ResolveError) -> ResolveError {
     oxc_resolver::ResolveError::Ignored(path) => ResolveError(
       format!("Path is ignored: {}", path.display()),
       internal_error!("Path is ignored: {}", path.display()),
-    ),
-    oxc_resolver::ResolveError::NotFound(path) => ResolveError(
-      format!("Path not found : {}", path.display()),
-      internal_error!("Path not found : {}", path.display()),
     ),
     oxc_resolver::ResolveError::TsconfigNotFound(path) => ResolveError(
       format!("{} is not a tsconfig", path.display()),
@@ -498,6 +498,11 @@ fn map_oxc_resolver_error(error: oxc_resolver::ResolveError) -> ResolveError {
       "Recursion in resolving".to_string(),
       internal_error!("Recursion in resolving"),
     ),
+    _ => {
+      // path no find
+      let is_recursion = matches!(error, oxc_resolver::ResolveError::Recursion);
+      map_resolver_error(is_recursion, args, plugin_driver)
+    }
   }
 }
 
