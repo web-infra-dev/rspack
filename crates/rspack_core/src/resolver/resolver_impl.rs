@@ -418,7 +418,7 @@ fn map_oxc_resolver_error(error: oxc_resolver::ResolveError) -> ResolveError {
       )
     }
     oxc_resolver::ResolveError::IOError(error) => ResolveError(
-      format!("IOError"),
+      "IOError".to_string(),
       Error::Io {
         source: error.into(),
       },
@@ -440,11 +440,11 @@ fn map_oxc_resolver_error(error: oxc_resolver::ResolveError) -> ResolveError {
       internal_error!("{} is not a tsconfig", path.display()),
     ),
     oxc_resolver::ResolveError::ExtensionAlias => ResolveError(
-      format!("All of the aliased extension are not found"),
+      "All of the aliased extension are not found".to_string(),
       internal_error!("All of the aliased extension are not found"),
     ),
     oxc_resolver::ResolveError::Specifier(_) => ResolveError(
-      format!("The provided patn specifier cannot be parsed"),
+      "The provided patn specifier cannot be parsed".to_string(),
       internal_error!("The provided patn specifier cannot be parsed"),
     ),
     oxc_resolver::ResolveError::JSON(json) => {
@@ -495,7 +495,7 @@ fn map_oxc_resolver_error(error: oxc_resolver::ResolveError) -> ResolveError {
       internal_error!("{} is unimplemented", error),
     ),
     oxc_resolver::ResolveError::Recursion => ResolveError(
-      format!("Recursion in resolving"),
+      "Recursion in resolving".to_string(),
       internal_error!("Recursion in resolving"),
     ),
   }
