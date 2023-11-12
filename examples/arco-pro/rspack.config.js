@@ -36,7 +36,7 @@ const config = {
 				exclude: [/[\\/]node_modules[\\/]/],
 				loader: "builtin:swc-loader",
 				options: {
-					sourceMap: true,
+					sourceMap: false,
 					jsc: {
 						parser: {
 							syntax: "typescript"
@@ -53,7 +53,7 @@ const config = {
 				loader: "builtin:swc-loader",
 				exclude: [/[\\/]node_modules[\\/]/],
 				options: {
-					sourceMap: true,
+					sourceMap: false,
 					jsc: {
 						parser: {
 							syntax: "typescript",
@@ -94,6 +94,7 @@ const config = {
 		filename: "[name].[contenthash].js"
 	},
 	optimization: {
+		minimize: false, // Disabling minification because it takes too long on CI
 		realContentHash: true,
 		splitChunks: {
 			cacheGroups: {
