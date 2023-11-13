@@ -146,7 +146,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       node.visit_children_with(self);
       return;
     }
-    let pre_top_level = self.get_top_level_symbol();
+    let previous_top_level_symbol = self.get_top_level_symbol();
     self.set_top_level_symbol(None);
     let is_key_pure = if let Some(key) = node.class_key() {
       // key needs with visit a empty toplevel symbol, cause it maybe computed value.
@@ -163,7 +163,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     };
     let is_static = node.is_static();
     if !is_static || is_key_pure {
-      self.set_top_level_symbol(pre_top_level.clone());
+      self.set_top_level_symbol(previous_top_level_symbol.clone());
     }
     if is_static && !matches!(node, ClassMember::Method(_) | ClassMember::PrivateMethod(_)) {
       let span = match node {
@@ -237,7 +237,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       },
     };
     self.scope_level = scope_level;
-    self.set_top_level_symbol(pre_top_level);
+    self.set_top_level_symbol(previous_top_level_symbol);
   }
 
   fn visit_fn_decl(&mut self, node: &FnDecl) {
@@ -349,7 +349,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         }
         _ => {
           init.visit_children_with(self);
-          if self.has_toplevel_symbol() && is_pure_expression(init, self.unresolved_ctxt) {
+          if !self.has_toplevel_symbol() && is_pure_expression(init, self.unresolved_ctxt) {
             let start = init.span().real_lo();
             let end = init.span().real_hi();
             let module_identifier = self.state.module_identifier;

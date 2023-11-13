@@ -3,11 +3,36 @@ source: crates/rspack_testing/src/run_fixture.rs
 ---
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  test: function() { return test; }
+});
+/* harmony import */var _swc_helpers_async_to_generator__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* @swc/helpers/_/_async_to_generator */"../../../../../node_modules/@swc/helpers/esm/_async_to_generator.js");
+/* harmony import */var _swc_helpers_ts_generator__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/* @swc/helpers/_/_ts_generator */"../../../../../node_modules/@swc/helpers/esm/_ts_generator.js");
+
+
+ function test() {
+    return _test.apply(this, arguments);
+}
+function _test() {
+    _test = (0, _swc_helpers_async_to_generator__WEBPACK_IMPORTED_MODULE_0__._async_to_generator)(function() {
+        return (0, _swc_helpers_ts_generator__WEBPACK_IMPORTED_MODULE_1__._ts_generator)(this, function(_state) {
+            return [
+                2
+            ];
+        });
+    });
+    return _test.apply(this, arguments);
+}
+test();
+}),
 "../../../../../node_modules/@swc/helpers/esm/_async_to_generator.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  _: function() { return _async_to_generator; }
+  _async_to_generator: function() { return _async_to_generator; }
 });
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
     try {
@@ -41,7 +66,7 @@ function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  _: function() { return tslib__WEBPACK_IMPORTED_MODULE_0__.__generator; }
+  _ts_generator: function() { return tslib__WEBPACK_IMPORTED_MODULE_0__.__generator; }
 });
 /* harmony import */var tslib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* tslib */"../../../../../node_modules/tslib/tslib.es6.js");
 
@@ -479,34 +504,10 @@ var __setModuleDefault = Object.create ? function(o, v) {
     return typeof state === "function" ? receiver === state : state.has(receiver);
 }
 }),
-"./index.ts": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  test: function() { return test; }
-});
-/* harmony import */var _swc_helpers_async_to_generator__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* @swc/helpers/_/_async_to_generator */"../../../../../node_modules/@swc/helpers/esm/_async_to_generator.js");
-/* harmony import */var _swc_helpers_ts_generator__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/* @swc/helpers/_/_ts_generator */"../../../../../node_modules/@swc/helpers/esm/_ts_generator.js");
-
-
- function test() {
-    return _test.apply(this, arguments);
-}
-function _test() {
-    _test = (0, _swc_helpers_async_to_generator__WEBPACK_IMPORTED_MODULE_0__._)(function() {
-        return (0, _swc_helpers_ts_generator__WEBPACK_IMPORTED_MODULE_1__._)(this, function(_state) {
-            return [
-                2
-            ];
-        });
-    });
-    return _test.apply(this, arguments);
-}
-}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
-var __webpack_exports__ = (__webpack_exec__("./index.ts"));
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
 
 }
 ]);
