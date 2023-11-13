@@ -114,6 +114,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             use_simple_source_map,
           ),
           dependencies: vec![],
+          blocks: vec![],
           presentational_dependencies: vec![],
           analyze_result: Default::default(),
         }
