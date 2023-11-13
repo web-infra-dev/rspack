@@ -1,8 +1,7 @@
 use rspack_core::{
-  module_namespace_promise, ChunkGroupOptions, ChunkGroupOptionsKindRef, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ExtendedReferencedExport, ImportDependencyTrait, ModuleDependency, ModuleGraph, ReferencedExport,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  module_namespace_promise, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, ExtendedReferencedExport, ImportDependencyTrait, ModuleDependency,
+  ModuleGraph, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -14,9 +13,6 @@ pub struct ImportEagerDependency {
   request: JsWord,
   span: Option<ErrorSpan>,
   referenced_exports: Option<Vec<JsWord>>,
-  /// This is used to implement `webpackChunkName`, `webpackPrefetch` etc.
-  /// for example: `import(/* webpackChunkName: "my-chunk-name", webpackPrefetch: true */ './module')`
-  pub group_options: ChunkGroupOptions,
 }
 
 impl ImportEagerDependency {
@@ -25,7 +21,6 @@ impl ImportEagerDependency {
     end: u32,
     request: JsWord,
     span: Option<ErrorSpan>,
-    group_options: ChunkGroupOptions,
     referenced_exports: Option<Vec<JsWord>>,
   ) -> Self {
     Self {
@@ -35,7 +30,6 @@ impl ImportEagerDependency {
       span,
       id: DependencyId::new(),
       referenced_exports,
-      group_options,
     }
   }
 }
@@ -69,10 +63,6 @@ impl ModuleDependency for ImportEagerDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn group_options(&self) -> Option<ChunkGroupOptionsKindRef> {
-    Some(ChunkGroupOptionsKindRef::Normal(&self.group_options))
   }
 
   fn set_request(&mut self, request: String) {

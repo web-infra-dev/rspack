@@ -8,7 +8,7 @@ use std::{
 };
 
 use once_cell::sync::Lazy;
-use regex::Regex;
+use regex::{Captures, Regex};
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
@@ -18,10 +18,11 @@ use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  contextify, get_exports_type_with_strict, stringify_map, to_path, BoxDependency, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, ChunkGraph, ChunkGroupOptions, CodeGenerationResult,
-  Compilation, ContextElementDependency, DependencyCategory, DependencyId, DependencyType,
-  ExportsType, FakeNamespaceObjectMode, LibIdentOptions, Module, ModuleType, Resolve,
+  contextify, get_exports_type_with_strict, stringify_map, to_path, AsyncDependenciesBlock,
+  AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation, ContextElementDependency,
+  DependenciesBlock, DependencyCategory, DependencyId, DependencyType, ExportsType,
+  FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module, ModuleType, Resolve,
   ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
   RuntimeSpec, SourceType,
 };
@@ -176,6 +177,8 @@ pub enum FakeMapValue {
 
 #[derive(Debug)]
 pub struct ContextModule {
+  dependencies: Vec<DependencyId>,
+  blocks: Vec<AsyncDependenciesBlockId>,
   identifier: Identifier,
   options: ContextModuleOptions,
   resolve_factory: Arc<ResolverFactory>,
@@ -192,6 +195,8 @@ impl Eq for ContextModule {}
 impl ContextModule {
   pub fn new(options: ContextModuleOptions, resolve_factory: Arc<ResolverFactory>) -> Self {
     Self {
+      dependencies: Vec::new(),
+      blocks: Vec::new(),
       identifier: create_identifier(&options),
       options,
       resolve_factory,
@@ -472,6 +477,24 @@ impl ContextModule {
   }
 }
 
+impl DependenciesBlock for ContextModule {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
+    self.blocks.push(block)
+  }
+
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+    &self.blocks
+  }
+
+  fn add_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.push(dependency)
+  }
+
+  fn get_dependencies(&self) -> &[DependencyId] {
+    &self.dependencies
+  }
+}
+
 #[async_trait::async_trait]
 impl Module for ContextModule {
   fn module_type(&self) -> &ModuleType {
@@ -583,15 +606,18 @@ impl Hash for ContextModule {
 
 static WEBPACK_CHUNK_NAME_PLACEHOLDER: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\[index|request\]").expect("regexp init failed"));
+static WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[index\]").expect("regexp init failed"));
+static WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[request\]").expect("regexp init failed"));
 
 impl ContextModule {
   fn visit_dirs(
     ctx: &str,
     dir: &Path,
-    dependencies: &mut Vec<BoxDependency>,
+    dependencies: &mut Vec<ContextElementDependency>,
     options: &ContextModuleOptions,
     resolve_options: &ResolveInnerOptions,
-    count: &mut i32,
   ) -> Result<()> {
     if !dir.is_dir() {
       return Ok(());
@@ -600,7 +626,7 @@ impl ContextModule {
       let path = entry?.path();
       if path.is_dir() {
         if options.context_options.recursive {
-          Self::visit_dirs(ctx, &path, dependencies, options, resolve_options, count)?;
+          Self::visit_dirs(ctx, &path, dependencies, options, resolve_options)?;
         }
       } else if path
         .file_name()
@@ -636,20 +662,8 @@ impl ContextModule {
           if !reg_exp.test(&r.request) {
             return;
           }
-          *count += 1;
-          let name = options.context_options.chunk_name.as_ref().map(|name| {
-            let mut name = name.to_string();
-            if !WEBPACK_CHUNK_NAME_PLACEHOLDER.is_match(&name) {
-              name += "[index]"
-            }
-            name = name.replace("[index]", count.to_string().as_str());
-            name = name.replace("[request]", &to_path(&r.request));
-            name
-          });
-          let group_options = ChunkGroupOptions { name };
-          dependencies.push(Box::new(ContextElementDependency {
+          dependencies.push(ContextElementDependency {
             id: DependencyId::new(),
-            group_options,
             request: format!(
               "{}{}{}",
               r.request,
@@ -662,7 +676,7 @@ impl ContextModule {
             options: options.context_options.clone(),
             resource_identifier: format!("context{}|{}", &options.resource, path.to_string_lossy()),
             referenced_exports: None,
-          }));
+          });
         })
       }
     }
@@ -673,8 +687,6 @@ impl ContextModule {
     &self,
     build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    let mut dependencies = vec![];
-
     tracing::trace!("resolving context module path {}", self.options.resource);
 
     let resolver = &self.resolve_factory.get(ResolveOptionsWithDependencyType {
@@ -684,16 +696,66 @@ impl ContextModule {
       dependency_category: self.options.context_options.category,
     });
 
+    let mut context_element_dependencies = vec![];
     Self::visit_dirs(
       &self.options.resource,
       Path::new(&self.options.resource),
-      &mut dependencies,
+      &mut context_element_dependencies,
       &self.options,
       &resolver.options(),
-      &mut 0,
     )?;
+    context_element_dependencies.sort_by_cached_key(|d| d.user_request.to_string());
 
-    tracing::trace!("resolving dependencies for {:?}", dependencies);
+    tracing::trace!(
+      "resolving dependencies for {:?}",
+      context_element_dependencies
+    );
+
+    let mut dependencies: Vec<BoxDependency> = vec![];
+    let mut blocks = vec![];
+    if matches!(self.options.context_options.mode, ContextMode::LazyOnce)
+      && !context_element_dependencies.is_empty()
+    {
+      let name = self.options.context_options.chunk_name.clone();
+      let mut block = AsyncDependenciesBlock::default();
+      block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions { name }));
+      for context_element_dependency in context_element_dependencies {
+        block.add_dependency(Box::new(context_element_dependency));
+      }
+      blocks.push(block);
+    } else if matches!(self.options.context_options.mode, ContextMode::Lazy) {
+      let mut index = 0;
+      for context_element_dependency in context_element_dependencies {
+        let name = self
+          .options
+          .context_options
+          .chunk_name
+          .as_ref()
+          .map(|name| {
+            let name = if !WEBPACK_CHUNK_NAME_PLACEHOLDER.is_match(name) {
+              Cow::Owned(format!("{name}[index]"))
+            } else {
+              Cow::Borrowed(name)
+            };
+            let name = WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER
+              .replace_all(&name, |_: &Captures| index.to_string());
+            index += 1;
+            let name = WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER.replace_all(&name, |_: &Captures| {
+              to_path(&context_element_dependency.user_request)
+            });
+            name.into_owned()
+          });
+        let mut block = AsyncDependenciesBlock::default();
+        block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions { name }));
+        block.add_dependency(Box::new(context_element_dependency));
+        blocks.push(block);
+      }
+    } else {
+      dependencies = context_element_dependencies
+        .into_iter()
+        .map(|d| Box::new(d) as BoxDependency)
+        .collect();
+    }
 
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
@@ -712,6 +774,7 @@ impl ContextModule {
         build_info,
         build_meta: BuildMeta::default(),
         dependencies,
+        blocks,
         analyze_result: Default::default(),
       }
       .with_diagnostic(vec![]),

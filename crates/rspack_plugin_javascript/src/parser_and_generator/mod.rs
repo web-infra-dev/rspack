@@ -7,8 +7,9 @@ use rspack_core::tree_shaking::analyzer::OptimizeAnalyzer;
 use rspack_core::tree_shaking::js_module::JsModule;
 use rspack_core::tree_shaking::visitor::OptimizeAnalyzeResult;
 use rspack_core::{
-  render_init_fragments, GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator,
-  SourceType, TemplateContext,
+  render_init_fragments, AsyncDependenciesBlockId, Compilation, DependenciesBlock, DependencyId,
+  GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator, SourceType,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
@@ -28,6 +29,43 @@ pub struct JavaScriptParserAndGenerator;
 impl JavaScriptParserAndGenerator {
   pub(crate) fn new() -> Self {
     Self {}
+  }
+
+  fn source_block(
+    &self,
+    compilation: &Compilation,
+    block_id: &AsyncDependenciesBlockId,
+    source: &mut TemplateReplaceSource,
+    context: &mut TemplateContext,
+  ) {
+    let block = compilation
+      .module_graph
+      .block_by_id(block_id)
+      .expect("should have block");
+    block.get_dependencies().iter().for_each(|dependency_id| {
+      self.source_dependency(compilation, dependency_id, source, context)
+    });
+    block
+      .get_blocks()
+      .iter()
+      .for_each(|block_id| self.source_block(compilation, block_id, source, context));
+  }
+
+  fn source_dependency(
+    &self,
+    compilation: &Compilation,
+    dependency_id: &DependencyId,
+    source: &mut TemplateReplaceSource,
+    context: &mut TemplateContext,
+  ) {
+    if let Some(dependency) = compilation
+      .module_graph
+      .dependency_by_id(dependency_id)
+      .expect("should have dependency")
+      .as_dependency_template()
+    {
+      dependency.apply(source, context)
+    }
   }
 }
 
@@ -76,6 +114,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             use_simple_source_map,
           ),
           dependencies: vec![],
+          blocks: vec![],
           presentational_dependencies: vec![],
           analyze_result: Default::default(),
         }
@@ -141,6 +180,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let ScanDependenciesResult {
       mut dependencies,
+      blocks,
       presentational_dependencies,
       mut rewrite_usage_span,
       import_map,
@@ -166,7 +206,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     diagnostics.append(&mut warning_diagnostics);
 
     let analyze_result = if compiler_options.builtins.tree_shaking.enable() {
-      JsModule::new(&ast, &dependencies, module_identifier, compiler_options).analyze()
+      let mut all_dependencies = dependencies.clone();
+      for mut block in blocks.clone() {
+        all_dependencies.extend(block.take_dependencies());
+      }
+      JsModule::new(&ast, &all_dependencies, module_identifier, compiler_options).analyze()
     } else {
       OptimizeAnalyzeResult::default()
     };
@@ -234,6 +278,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ParseResult {
         source,
         dependencies,
+        blocks,
         presentational_dependencies,
         analyze_result,
       }
@@ -263,20 +308,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         runtime: generate_context.runtime,
       };
 
-      let mgm = compilation
-        .module_graph
-        .module_graph_module_by_identifier(&module.identifier())
-        .expect("should have module graph module");
-
-      mgm.dependencies.iter().for_each(|id| {
-        if let Some(dependency) = compilation
-          .module_graph
-          .dependency_by_id(id)
-          .expect("should have dependency")
-          .as_dependency_template()
-        {
-          dependency.apply(&mut source, &mut context)
-        }
+      module.get_dependencies().iter().for_each(|dependency_id| {
+        self.source_dependency(compilation, dependency_id, &mut source, &mut context)
       });
 
       if let Some(dependencies) = module.get_presentational_dependencies() {
@@ -284,6 +317,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .iter()
           .for_each(|dependency| dependency.apply(&mut source, &mut context));
       };
+
+      module
+        .get_blocks()
+        .iter()
+        .for_each(|block_id| self.source_block(compilation, block_id, &mut source, &mut context));
 
       render_init_fragments(source.boxed(), init_fragments, generate_context)
     } else {

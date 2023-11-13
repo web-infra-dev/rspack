@@ -19,7 +19,7 @@ use rspack_error::{
 };
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_identifier::{IdentifierMap, IdentifierSet};
+use rspack_identifier::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::ast::ModuleItem;
@@ -36,11 +36,12 @@ use crate::{
   is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs,
-  AdditionalModuleRequirementsArgs, BoxDependency, BoxModule, BuildQueue, BuildTask,
-  BuildTaskResult, CacheCount, CacheOptions, Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph,
-  ChunkGroupByUkey, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask,
-  CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, Entry, EntryData,
+  AdditionalModuleRequirementsArgs, AsyncDependenciesBlock, AsyncDependenciesBlockId,
+  BoxDependency, BoxModule, BuildQueue, BuildTask, BuildTaskResult, CacheCount, CacheOptions,
+  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult,
+  CodeGenerationResult, CodeGenerationResults, CompilationLogger, CompilationLogging,
+  CompilerOptions, ContentHashArgs, DependencyId, DependencyParents, Entry, EntryData,
   EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger,
   Module, ModuleGraph, ModuleIdentifier, ModuleProfile, ModuleType, PathData, ProcessAssetsArgs,
   ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
@@ -456,7 +457,7 @@ impl Compilation {
           &mut factorize_queue,
           parent_module_identifier,
           parent_module.and_then(|m| m.get_context()),
-          vec![dependency.clone()],
+          vec![id],
           parent_module_identifier.is_none(),
           None,
           None,
@@ -558,7 +559,8 @@ impl Compilation {
 
         let mut sorted_dependencies = HashMap::default();
 
-        task.dependencies.into_iter().for_each(|dependency| {
+        task.dependencies.into_iter().for_each(|dependency_id| {
+          let dependency = dependency_id.get_dependency(&self.module_graph);
           // only module dependency can put into resolve queue.
           if let Some(module_dependency) = dependency.as_module_dependency() {
             // TODO need implement more dependency `resource_identifier()`
@@ -577,9 +579,7 @@ impl Compilation {
             sorted_dependencies
               .entry(resource_identifier)
               .or_insert(vec![])
-              .push(dependency);
-          } else {
-            self.module_graph.add_dependency(dependency);
+              .push(dependency_id);
           }
         });
 
@@ -644,8 +644,7 @@ impl Compilation {
 
               tracing::trace!("Module created: {}", &module_identifier);
               if !diagnostics.is_empty() {
-                make_failed_dependencies
-                  .insert((*dependencies[0].id(), original_module_identifier));
+                make_failed_dependencies.insert((dependencies[0], original_module_identifier));
               }
 
               module_graph_module.set_issuer_if_unset(original_module_identifier);
@@ -704,7 +703,7 @@ impl Compilation {
             },
             Ok(TaskResult::Build(box task_result)) => {
               let BuildTaskResult {
-                module,
+                mut module,
                 build_result,
                 diagnostics,
                 current_profile,
@@ -745,14 +744,54 @@ impl Compilation {
                 .build_dependencies
                 .extend(build_result.build_info.build_dependencies.clone());
 
-              let mut dep_ids = vec![];
-              for dependency in build_result.dependencies.iter() {
-                if let Some(dependency) = dependency.as_module_dependency() {
-                  self
-                    .module_graph
-                    .set_dependency_import_var(module.identifier(), dependency.request());
-                }
-                dep_ids.push(*dependency.id());
+              let mut queue = vec![];
+              let mut all_dependencies = vec![];
+              let mut handle_block =
+                |dependencies: Vec<BoxDependency>,
+                 blocks: Vec<AsyncDependenciesBlock>,
+                 queue: &mut Vec<AsyncDependenciesBlock>,
+                 module_graph: &mut ModuleGraph,
+                 current_block: Option<AsyncDependenciesBlockId>| {
+                  for dependency in dependencies {
+                    if let Some(dependency) = dependency.as_module_dependency() {
+                      module_graph
+                        .set_dependency_import_var(module.identifier(), dependency.request());
+                    }
+                    let dependency_id = *dependency.id();
+                    module.add_dependency_id(dependency_id);
+                    all_dependencies.push(dependency_id);
+                    module_graph.set_parents(
+                      dependency_id,
+                      DependencyParents {
+                        block: current_block,
+                        module: module.identifier(),
+                      },
+                    );
+                    module_graph.add_dependency(dependency);
+                  }
+                  for block in blocks {
+                    queue.push(block);
+                  }
+                };
+              handle_block(
+                build_result.dependencies,
+                build_result.blocks,
+                &mut queue,
+                &mut self.module_graph,
+                None,
+              );
+              while let Some(mut block) = queue.pop() {
+                let dependencies = block.take_dependencies();
+                let blocks = block.take_blocks();
+                let block_id = block.id();
+                self.module_graph.add_block(block);
+                handle_block(
+                  dependencies,
+                  blocks,
+                  &mut queue,
+                  &mut self.module_graph,
+                  Some(block_id),
+                );
               }
 
               {
@@ -760,13 +799,13 @@ impl Compilation {
                   .module_graph
                   .module_graph_module_by_identifier_mut(&module.identifier())
                   .expect("Failed to get mgm");
-                mgm.dependencies = Box::new(dep_ids);
+                mgm.all_dependencies = Box::new(all_dependencies.clone());
                 if let Some(current_profile) = current_profile {
                   mgm.set_profile(current_profile);
                 }
               }
               process_dependencies_queue.add_task(ProcessDependenciesTask {
-                dependencies: build_result.dependencies,
+                dependencies: all_dependencies,
                 original_module_identifier: module.identifier(),
                 resolve_options: module.get_resolve_options(),
               });
@@ -924,7 +963,7 @@ impl Compilation {
     queue: &mut FactorizeQueue,
     original_module_identifier: Option<ModuleIdentifier>,
     original_module_context: Option<Box<Context>>,
-    dependencies: Vec<BoxDependency>,
+    dependencies: Vec<DependencyId>,
     is_entry: bool,
     module_type: Option<ModuleType>,
     side_effects: Option<bool>,
@@ -937,6 +976,7 @@ impl Compilation {
       original_module_identifier,
       issuer,
       original_module_context,
+      dependency: dependencies[0].get_dependency(&self.module_graph).clone(),
       dependencies,
       is_entry,
       module_type,
