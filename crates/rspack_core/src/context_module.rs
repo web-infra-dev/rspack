@@ -704,6 +704,7 @@ impl ContextModule {
       &self.options,
       &resolver.options(),
     )?;
+    context_element_dependencies.sort_by_cached_key(|d| d.user_request.to_string());
 
     tracing::trace!(
       "resolving dependencies for {:?}",
@@ -731,17 +732,17 @@ impl ContextModule {
           .chunk_name
           .as_ref()
           .map(|name| {
-            let mut name = name.to_string();
-            if !WEBPACK_CHUNK_NAME_PLACEHOLDER.is_match(&name) {
-              name += "[index]"
-            }
-            let name = WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER.replace_all(&name, |_: &Captures| {
-              let replacer = index.to_string();
-              index += 1;
-              replacer
+            let name = if !WEBPACK_CHUNK_NAME_PLACEHOLDER.is_match(&name) {
+              Cow::Owned(format!("{name}[index]"))
+            } else {
+              Cow::Borrowed(name)
+            };
+            let name = WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER
+              .replace_all(&name, |_: &Captures| index.to_string());
+            index += 1;
+            let name = WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER.replace_all(&name, |_: &Captures| {
+              to_path(&context_element_dependency.user_request)
             });
-            let name = WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER
-              .replace_all(&name, &to_path(&context_element_dependency.user_request));
             name.into_owned()
           });
         let mut block = AsyncDependenciesBlock::default();
