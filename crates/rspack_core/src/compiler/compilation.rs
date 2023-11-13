@@ -781,7 +781,7 @@ impl Compilation {
               while let Some(mut block) = queue.pop() {
                 let dependencies = block.take_dependencies();
                 let blocks = block.take_blocks();
-                let block_id = block.identifier();
+                let block_id = block.id();
                 self.module_graph.add_block(block);
                 handle_block(
                   dependencies,

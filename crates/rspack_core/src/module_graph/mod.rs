@@ -98,7 +98,7 @@ impl ModuleGraph {
   }
 
   pub fn add_block(&mut self, block: AsyncDependenciesBlock) {
-    self.blocks.insert(block.identifier(), block);
+    self.blocks.insert(block.id(), block);
   }
 
   pub fn set_parents(&mut self, dependency: DependencyId, parents: DependencyParents) {

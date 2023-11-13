@@ -18,14 +18,15 @@ pub trait DependenciesBlock {
 static ASYNC_DEPENDENCIES_BLOCK_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
 
 fn get_async_dependencies_block_id() -> AsyncDependenciesBlockId {
-  AsyncDependenciesBlockId::from(
+  AsyncDependenciesBlockId(Identifier::from(
     ASYNC_DEPENDENCIES_BLOCK_ID
       .fetch_add(1, Ordering::Relaxed)
       .to_string(),
-  )
+  ))
 }
 
-pub type AsyncDependenciesBlockId = Identifier;
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct AsyncDependenciesBlockId(Identifier);
 
 #[derive(Debug, Clone)]
 pub struct AsyncDependenciesBlock {
@@ -51,6 +52,10 @@ impl Default for AsyncDependenciesBlock {
 }
 
 impl AsyncDependenciesBlock {
+  pub fn id(&self) -> AsyncDependenciesBlockId {
+    self.id
+  }
+
   pub fn set_group_options(&mut self, group_options: GroupOptions) {
     self.group_options = Some(group_options)
   }
@@ -80,7 +85,7 @@ impl AsyncDependenciesBlock {
 
 impl Identifiable for AsyncDependenciesBlock {
   fn identifier(&self) -> Identifier {
-    self.id
+    self.id.0
   }
 }
 
