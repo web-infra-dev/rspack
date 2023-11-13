@@ -10,6 +10,9 @@ const config = {
 	devServer: {
 		historyApiFallback: true
 	},
+	optimization: {
+		minimize: false, // Disabling minification because it takes too long on CI
+	},
 	plugins: [
 		new VueLoaderPlugin(),
 		new rspack.HtmlRspackPlugin({
