@@ -1,12 +1,13 @@
 export type PluginOptions = {
 	include?: string | RegExp | (string | RegExp)[] | null;
 	exclude?: string | RegExp | (string | RegExp)[] | null;
+	library?: string;
 };
 
-const d = (
+const d = <K extends keyof PluginOptions>(
 	object: PluginOptions,
-	property: keyof PluginOptions,
-	defaultValue: PluginOptions[keyof PluginOptions]
+	property: K,
+	defaultValue?: PluginOptions[K]
 ) => {
 	if (
 		typeof object[property] === "undefined" &&
@@ -20,5 +21,6 @@ const d = (
 export function normalizeOptions(options: PluginOptions) {
 	d(options, "exclude", /node_modules/i);
 	d(options, "include", /\.([cm]js|[jt]sx?|flow)$/i);
+	d(options, "library");
 	return options;
 }
