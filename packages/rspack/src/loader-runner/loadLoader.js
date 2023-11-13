@@ -10,7 +10,14 @@
 
 var assert = require("assert");
 var LoaderLoadingError = require("./LoaderLoadingError");
-var { toBuffer, serializeObject, isNil, toObject } = require("../util");
+var { stringifyLoaderObject } = require(".");
+var {
+	toBuffer,
+	serializeObject,
+	isNil,
+	toObject,
+	stringifyLoaderObject
+} = require("../util");
 var url;
 
 module.exports = function loadLoader(loader, callback) {
@@ -38,9 +45,11 @@ module.exports = function loadLoader(loader, callback) {
 					const callback = this.async();
 					const { runBuiltinLoader } = require("@rspack/binding");
 					let options = this.getOptions() ?? {};
+					// This is used an hack to tell `builtin:swc-loader` whether to return AST or source.
+					this.__internal__context.loaderIndexFromJs = this.loaderIndex;
 					try {
 						const context = await runBuiltinLoader(
-							loader.path,
+							stringifyLoaderObject(loader),
 							JSON.stringify(options),
 							Object.assign({}, this.__internal__context, {
 								content: isNil(content) ? undefined : toBuffer(content),
@@ -49,6 +58,8 @@ module.exports = function loadLoader(loader, callback) {
 							})
 						);
 
+						this.__internal__context.additionalDataExternal =
+							context.additionalDataExternal;
 						context.fileDependencies.forEach(this.addDependency);
 						context.contextDependencies.forEach(this.addContextDependency);
 						context.missingDependencies.forEach(this.addMissingDependency);
@@ -64,7 +75,7 @@ module.exports = function loadLoader(loader, callback) {
 								: toObject(context.additionalData)
 						);
 						this._compilation.__internal__pushNativeDiagnostics(
-							context.diagnostics
+							context.diagnosticsExternal
 						);
 					} catch (e) {
 						return callback(e);

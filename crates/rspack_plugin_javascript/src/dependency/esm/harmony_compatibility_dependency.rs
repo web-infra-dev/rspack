@@ -21,6 +21,10 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
       module,
       ..
     } = code_generatable_context;
+    let mgm = compilation
+      .module_graph
+      .module_graph_module_by_identifier(&module.identifier())
+      .expect("should have mgm");
     // TODO __esModule is used
     runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
@@ -28,11 +32,7 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
       format!(
         "{}({});\n",
         RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
-        compilation
-          .module_graph
-          .module_graph_module_by_identifier(&module.identifier())
-          .expect("should have mgm")
-          .get_exports_argument()
+        mgm.get_exports_argument()
       ),
       InitFragmentStage::StageHarmonyExports,
       0,
@@ -40,7 +40,10 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
       None,
     )));
 
-    if compilation.module_graph.is_async(&module.identifier()) {
+    if matches!(
+      compilation.module_graph.is_async(&module.identifier()),
+      Some(true)
+    ) {
       runtime_requirements.insert(RuntimeGlobals::MODULE);
       runtime_requirements.insert(RuntimeGlobals::ASYNC_MODULE);
       init_fragments.push(Box::new(NormalInitFragment::new(
@@ -55,8 +58,8 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
         ),
         InitFragmentStage::StageAsyncBoundary,
         0,
-        InitFragmentKey::uniqie(),
-        Some("\n__webpack_async_result__();\n} catch(e) { __webpack_async_result__(e); } });".to_string()),
+        InitFragmentKey::unique(),
+        Some(format!("\n__webpack_async_result__();\n}} catch(e) {{ __webpack_async_result__(e); }} }}{});", if matches!(mgm.build_meta.as_ref().map(|meta| meta.has_top_level_await), Some(true)) { ", 1" } else { "" })),
       )));
     }
   }

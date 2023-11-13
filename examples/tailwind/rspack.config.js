@@ -1,3 +1,4 @@
+const rspack = require("@rspack/core");
 /**
  * @type {import('@rspack/cli').Configuration}
  */
@@ -27,11 +28,9 @@ module.exports = {
 			}
 		]
 	},
-	builtins: {
-		html: [
-			{
-				template: "./index.html"
-			}
-		]
-	}
+	plugins: [
+		new rspack.HtmlRspackPlugin({
+			template: "./index.html"
+		})
+	]
 };

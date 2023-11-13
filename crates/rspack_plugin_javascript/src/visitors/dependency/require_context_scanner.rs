@@ -1,6 +1,5 @@
-use rspack_core::{
-  BoxDependency, ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt,
-};
+use rspack_core::{clean_regexp_in_context_module, BoxDependency, ContextMode};
+use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
 use rspack_regex::RspackRegex;
 use swc_core::ecma::{
   ast::{CallExpr, Lit},
@@ -25,7 +24,7 @@ impl Visit for RequireContextScanner<'_> {
 
   fn visit_call_expr(&mut self, node: &CallExpr) {
     if is_require_context_call(node) && !node.args.is_empty() {
-      if let Some(Lit::Str(str)) = node.args.get(0).and_then(|x| x.expr.as_lit()) {
+      if let Some(Lit::Str(str)) = node.args.first().and_then(|x| x.expr.as_lit()) {
         let recursive =
           if let Some(Lit::Bool(bool)) = node.args.get(1).and_then(|x| x.expr.as_lit()) {
             bool.value
@@ -47,15 +46,7 @@ impl Visit for RequireContextScanner<'_> {
           };
 
         let mode = if let Some(Lit::Str(str)) = node.args.get(3).and_then(|x| x.expr.as_lit()) {
-          match str.value.to_string().as_str() {
-            "sync" => ContextMode::Sync,
-            "eager" => ContextMode::Eager,
-            "weak" => ContextMode::Weak,
-            "lazy" => ContextMode::Lazy,
-            "lazy-once" => ContextMode::LazyOnce,
-            // TODO should give warning
-            _ => unreachable!("unknown context mode"),
-          }
+          str.value.to_string().as_str().into()
         } else {
           ContextMode::Sync
         };
@@ -65,9 +56,10 @@ impl Visit for RequireContextScanner<'_> {
             node.span.real_lo(),
             node.span.real_hi(),
             ContextOptions {
+              chunk_name: None,
               mode,
               recursive,
-              reg_exp,
+              reg_exp: clean_regexp_in_context_module(reg_exp),
               reg_str,
               include: None,
               exclude: None,

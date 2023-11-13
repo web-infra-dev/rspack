@@ -216,11 +216,8 @@ const MODULES_GROUPERS = (
 		};
 		const {
 			groupModulesByCacheStatus,
-			groupModulesByLayer,
 			groupModulesByAttributes,
-			groupModulesByType,
-			groupModulesByPath,
-			groupModulesByExtension
+			groupModulesByType
 		} = options;
 		if (groupModulesByAttributes) {
 			groupByFlag("errors", "modules with errors");
@@ -532,7 +529,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 		},
 		hash: (object, _compilation, context: KnownStatsFactoryContext) => {
-			object.hash = context._inner.getHash();
+			object.hash = context._inner.getHash() || undefined;
 		},
 		version: object => {
 			const { version, webpackVersion } = require("../../package.json");

@@ -16,5 +16,8 @@
     "react": "15.0.0",
     "react-dom": "15.0.0",
     "react-refresh": "0.14.0"
+  },
+  "devDependencies": {
+    "@rspack/core": "workspace:*"
   }
 }

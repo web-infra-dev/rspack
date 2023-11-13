@@ -3,6 +3,7 @@ const { spawn } = require("child_process");
 const CARGO_SAFELY_EXIT_CODE = 0;
 
 let release = process.argv.includes("--release");
+let watch = process.argv.includes("--watch");
 build().then((value) => {
   // Regarding cargo's non-zero exit code as an error.
   if (value !== CARGO_SAFELY_EXIT_CODE) {
@@ -24,6 +25,9 @@ async function build() {
 		];
 		if (release) {
 			args.push("--release");
+		}
+		if (watch) {
+			args.push("--watch");
 		}
 
 		if (process.env.USE_ZIG) {

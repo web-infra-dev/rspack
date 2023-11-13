@@ -1,10 +1,12 @@
+use linked_hash_set::LinkedHashSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
   get_exports_type, process_export_info, ConnectionState, Dependency, DependencyCategory,
   DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ExportInfoId,
-  ExportInfoProvided, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedName,
+  ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsInfoId, ExportsOfExportsSpec,
+  ExportsSpec, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, ModuleDependency,
+  ModuleGraph, ModuleIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState,
+  UsedName,
 };
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
@@ -21,9 +23,9 @@ pub struct HarmonyExportImportedSpecifierDependency {
   pub source_order: i32,
   pub request: JsWord,
   pub ids: Vec<(JsWord, Option<JsWord>)>,
-  /// used for get_mode
+  /// used for get_mode, legacy issue
   pub mode_ids: Vec<(JsWord, Option<JsWord>)>,
-  name: Option<JsWord>,
+  pub name: Option<JsWord>,
   resource_identifier: String,
   // Because it is shared by multiply HarmonyExportImportedSpecifierDependency, so put it to `BuildInfo`
   // pub active_exports: HashSet<JsWord>,
@@ -40,6 +42,7 @@ impl HarmonyExportImportedSpecifierDependency {
     mode_ids: Vec<(JsWord, Option<JsWord>)>,
     name: Option<JsWord>,
     export_all: bool,
+    other_star_exports: Option<Vec<DependencyId>>,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
@@ -50,8 +53,8 @@ impl HarmonyExportImportedSpecifierDependency {
       request,
       ids,
       resource_identifier,
-      other_star_exports: None,
       export_all,
+      other_star_exports,
     }
   }
 
@@ -69,7 +72,8 @@ impl HarmonyExportImportedSpecifierDependency {
   /// FIXME: this should use parent module id
   pub fn all_star_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a Vec<DependencyId> {
     let build_info = module_graph
-      .module_graph_module_by_dependency_id(&self.id)
+      .parent_module_by_dependency_id(&self.id)
+      .and_then(|ident| module_graph.module_graph_module_by_identifier(&ident))
       .expect("should have mgm")
       .build_info
       .as_ref()
@@ -82,7 +86,6 @@ impl HarmonyExportImportedSpecifierDependency {
   pub fn get_mode(
     &self,
     name: Option<JsWord>,
-    ids: &Vec<JsWord>,
     module_graph: &ModuleGraph,
     id: &DependencyId,
     runtime: Option<&RuntimeSpec>,
@@ -98,25 +101,45 @@ impl HarmonyExportImportedSpecifierDependency {
     let parent_module = module_graph
       .parent_module_by_dependency_id(id)
       .expect("should have parent module");
-    let exports_type = get_exports_type(module_graph, id, &parent_module);
     let exports_info = module_graph.get_exports_info(&parent_module);
 
+    let is_name_unused = if let Some(ref name) = name {
+      exports_info.get_used(UsedName::Str(name.clone()), runtime, module_graph)
+        == UsageState::Unused
+    } else {
+      !exports_info.is_used(runtime, module_graph)
+    };
+    if is_name_unused {
+      let mut mode = ExportMode::new(ExportModeType::Unused);
+      mode.name = Some("*".into());
+      return mode;
+    }
+    let imported_exports_type = get_exports_type(module_graph, id, &parent_module);
+    // dbg!(&imported_exports_type);
+    let ids = self.get_ids(module_graph);
+
+    // dbg!(&ids, &self.mode_ids);
     // Special handling for reexporting the default export
     // from non-namespace modules
-    if let Some(name) = name.as_ref() && !ids.is_empty() && let Some(id) = ids.get(0) && id == "default" {
-      match exports_type {
+    if let Some(name) = name.as_ref()
+      && ids.first().map(|item| item.as_ref()) == Some("default")
+    {
+      match imported_exports_type {
         ExportsType::Dynamic => {
-          let mut export_mode = ExportMode::new(ExportModeType::ReexportDynamicDefault, );
+          let mut export_mode = ExportMode::new(ExportModeType::ReexportDynamicDefault);
           export_mode.name = Some(name.clone());
           return export_mode;
-        },
+        }
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
-          let export_info = exports_info.id.get_read_only_export_info(name, module_graph).id;
-          let mut export_mode = ExportMode::new( ExportModeType::ReexportNamedDefault);
+          let export_info_id = exports_info
+            .id
+            .get_read_only_export_info(name, module_graph)
+            .id;
+          let mut export_mode = ExportMode::new(ExportModeType::ReexportNamedDefault);
           export_mode.name = Some(name.clone());
-          export_mode.partial_namespace_export_info = Some(export_info);
+          export_mode.partial_namespace_export_info = Some(export_info_id);
           return export_mode;
-        },
+        }
         _ => {}
       }
     }
@@ -129,7 +152,7 @@ impl HarmonyExportImportedSpecifierDependency {
         .id;
       if !ids.is_empty() {
         // export { name as name }
-        match exports_type {
+        match imported_exports_type {
           ExportsType::DefaultOnly => {
             let mut export_mode = ExportMode::new(ExportModeType::ReexportUndefined);
             export_mode.name = Some(name);
@@ -149,7 +172,7 @@ impl HarmonyExportImportedSpecifierDependency {
         }
       } else {
         // export * as name
-        match exports_type {
+        match imported_exports_type {
           ExportsType::DefaultOnly => {
             let mut export_mode = ExportMode::new(ExportModeType::ReexportFakeNamespaceObject);
             export_mode.name = Some(name);
@@ -179,7 +202,13 @@ impl HarmonyExportImportedSpecifierDependency {
       checked,
       ignored_exports,
       hidden,
-    } = self.get_star_reexports(module_graph, runtime, imported_module_identifier);
+    } = self.get_star_reexports(
+      module_graph,
+      runtime,
+      Some(exports_info.id),
+      imported_module_identifier,
+    );
+    // dbg!(&exports, &imported_module_identifier, &checked, &hidden);
     if let Some(exports) = exports {
       if exports.is_empty() {
         let mut export_mode = ExportMode::new(ExportModeType::EmptyStar);
@@ -230,27 +259,56 @@ impl HarmonyExportImportedSpecifierDependency {
     &self,
     module_graph: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
+    exports_info_id: Option<ExportsInfoId>,
     imported_module_identifier: &ModuleIdentifier,
   ) -> StarReexportsInfo {
+    let exports_info = exports_info_id
+      .unwrap_or_else(|| {
+        // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L425
+        let parent_module = module_graph
+          .parent_module_by_dependency_id(&self.id)
+          .expect("should have parent module");
+        module_graph.get_exports_info(&parent_module).id
+      })
+      .get_exports_info(module_graph);
+
     let imported_exports_info = module_graph.get_exports_info(imported_module_identifier);
-    let other_export_info = module_graph
-      .export_info_map
-      .get(&imported_exports_info.other_exports_info)
-      .expect("should have export info");
-    let no_extra_exports = matches!(other_export_info.provided, Some(ExportInfoProvided::False));
-    let no_extra_imports = matches!(other_export_info.get_used(runtime), UsageState::Unused);
+    // dbg!(&imported_exports_info);
+    let other_export_info_of_imported =
+      module_graph.get_export_info_by_id(&imported_exports_info.other_exports_info);
+
+    let other_exports_info_of_exports_info =
+      module_graph.get_export_info_by_id(&exports_info.other_exports_info);
+
+    let no_extra_exports = matches!(
+      other_export_info_of_imported.provided,
+      Some(ExportInfoProvided::False)
+    );
+
+    let no_extra_imports = matches!(
+      other_exports_info_of_exports_info.get_used(runtime),
+      UsageState::Unused
+    );
+
     let ignored_exports: HashSet<JsWord> = {
       let mut e = self.active_exports(module_graph).clone();
       e.insert("default".into());
       e
     };
-    let mut hidden_exports = self.discover_active_exports_from_other_star_exports(module_graph);
-    if !no_extra_exports && !no_extra_imports {
-      if let Some(hidden_exports) = hidden_exports.as_mut() {
-        for e in ignored_exports.iter() {
-          hidden_exports.remove(e);
+
+    let hidden_exports = self
+      .discover_active_exports_from_other_star_exports(module_graph)
+      .map(|other_star_exports| {
+        let mut hide_exports = HashSet::default();
+        for i in 0..other_star_exports.names_slice {
+          hide_exports.insert(other_star_exports.names[i].clone());
         }
-      }
+        for e in ignored_exports.iter() {
+          hide_exports.remove(e);
+        }
+        hide_exports
+      });
+    if !no_extra_exports && !no_extra_imports {
       return StarReexportsInfo {
         ignored_exports,
         hidden: hidden_exports,
@@ -265,24 +323,12 @@ impl HarmonyExportImportedSpecifierDependency {
     } else {
       None
     };
-
-    let parent_module = module_graph
-      .parent_module_by_dependency_id(&self.id)
-      .expect("should have parent module");
-    let exports_info = module_graph.get_exports_info(&parent_module);
+    // dbg!(&hidden, &hidden_exports, no_extra_imports);
 
     if no_extra_imports {
       for export_info_id in exports_info.get_ordered_exports() {
-        let export_info = module_graph
-          .export_info_map
-          .get(export_info_id)
-          .expect("should have export info");
+        let export_info = module_graph.get_export_info_by_id(export_info_id);
         let export_name = export_info.name.clone().unwrap_or_default();
-        // dbg!(
-        //   &export_info.get_used(runtime),
-        //   &ignored_exports,
-        //   &export_name
-        // );
         if ignored_exports.contains(&export_name)
           || matches!(export_info.get_used(runtime), UsageState::Unused)
         {
@@ -298,13 +344,16 @@ impl HarmonyExportImportedSpecifierDependency {
         ) {
           continue;
         }
-        if let Some(hidden) = hidden.as_mut() && hidden_exports.as_ref()
+
+        if hidden_exports
+          .as_ref()
           .map(|hidden_exports| hidden_exports.contains(&export_name))
-          .is_some()
+          == Some(true)
         {
-          hidden.insert(export_name.clone());
+          hidden.as_mut().expect("According previous condition if hidden_exports is `Some`, hidden must be `Some(HashSet)").insert(export_name.clone());
           continue;
         }
+
         exports.insert(export_name.clone());
         if matches!(
           imported_export_info.provided,
@@ -315,35 +364,41 @@ impl HarmonyExportImportedSpecifierDependency {
         checked.insert(export_name);
       }
     } else if no_extra_exports {
-      for import_export_info_id in imported_exports_info.get_ordered_exports() {
-        let import_export_info = module_graph
-          .export_info_map
-          .get(import_export_info_id)
-          .expect("should have export info");
-        let import_export_info_name = import_export_info.name.clone().unwrap_or_default();
-        if ignored_exports.contains(&import_export_info_name)
-          || matches!(import_export_info.provided, Some(ExportInfoProvided::False))
+      for imported_export_info_id in imported_exports_info.get_ordered_exports() {
+        let imported_export_info = module_graph.get_export_info_by_id(imported_export_info_id);
+        let imported_export_info_name = imported_export_info.name.clone().unwrap_or_default();
+        if ignored_exports.contains(&imported_export_info_name)
+          || matches!(
+            imported_export_info.provided,
+            Some(ExportInfoProvided::False)
+          )
         {
           continue;
         }
         let export_info = exports_info
           .id
-          .get_read_only_export_info(&import_export_info_name, module_graph);
+          .get_read_only_export_info(&imported_export_info_name, module_graph);
         if matches!(export_info.get_used(runtime), UsageState::Unused) {
           continue;
         }
-        if let Some(hidden) = hidden.as_mut() && hidden_exports.as_ref()
-          .map(|hidden_exports| hidden_exports.contains(&import_export_info_name))
-          .is_some()
+        if let Some(hidden) = hidden.as_mut()
+          && hidden_exports
+            .as_ref()
+            .map(|hidden_exports| hidden_exports.contains(&imported_export_info_name))
+            == Some(true)
         {
-          hidden.insert(import_export_info_name.clone());
+          hidden.insert(imported_export_info_name.clone());
           continue;
         }
-        exports.insert(import_export_info_name.clone());
-        if matches!(import_export_info.provided, Some(ExportInfoProvided::True)) {
+
+        exports.insert(imported_export_info_name.clone());
+        if matches!(
+          imported_export_info.provided,
+          Some(ExportInfoProvided::True)
+        ) {
           continue;
         }
-        checked.insert(import_export_info_name);
+        checked.insert(imported_export_info_name);
       }
     }
 
@@ -358,26 +413,49 @@ impl HarmonyExportImportedSpecifierDependency {
   pub fn discover_active_exports_from_other_star_exports(
     &self,
     module_graph: &ModuleGraph,
-  ) -> Option<HashSet<JsWord>> {
+  ) -> Option<DiscoverActiveExportsFromOtherStarExportsRet> {
     if let Some(other_star_exports) = &self.other_star_exports {
       if other_star_exports.is_empty() {
         return None;
       }
+    } else {
+      return None;
     }
+    let i = self.other_star_exports.as_ref()?.len();
 
     let all_star_exports = self.all_star_exports(module_graph);
     if !all_star_exports.is_empty() {
-      let names = determine_export_assignments(module_graph, all_star_exports.clone(), None);
-      return Some(names);
+      let (names, dependency_indices) =
+        determine_export_assignments(module_graph, all_star_exports.clone(), None);
+
+      return Some(DiscoverActiveExportsFromOtherStarExportsRet {
+        names,
+        names_slice: dependency_indices[i - 1],
+        dependency_indices,
+        dependency_index: i,
+      });
     }
 
     if let Some(other_star_exports) = &self.other_star_exports {
-      let names =
+      let (names, dependency_indices) =
         determine_export_assignments(module_graph, other_star_exports.clone(), Some(self.id));
-      return Some(names);
+      return Some(DiscoverActiveExportsFromOtherStarExportsRet {
+        names,
+        names_slice: dependency_indices[i - 1],
+        dependency_indices,
+        dependency_index: i,
+      });
     }
     None
   }
+}
+
+#[derive(Debug)]
+pub struct DiscoverActiveExportsFromOtherStarExportsRet {
+  names: Vec<JsWord>,
+  names_slice: usize,
+  pub dependency_indices: Vec<usize>,
+  pub dependency_index: usize,
 }
 
 impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
@@ -434,17 +512,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
 
     if is_new_tree_shaking {
       // TODO: runtime opt
-      let mode = self.get_mode(
-        self.name.clone(),
-        &self
-          .mode_ids
-          .iter()
-          .map(|id| id.0.clone())
-          .collect::<Vec<_>>(),
-        &compilation.module_graph,
-        &self.id,
-        None,
-      );
+      let mode = self.get_mode(self.name.clone(), &compilation.module_graph, &self.id, None);
       if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
         harmony_import_dependency_apply(self, self.source_order, code_generatable_context, &[]);
       }
@@ -492,12 +560,179 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
     &DependencyType::EsmExportImportedSpecifier
   }
 
+  #[allow(clippy::unwrap_in_result)]
+  fn get_exports(&self, mg: &ModuleGraph) -> Option<ExportsSpec> {
+    let mode = self.get_mode(self.name.clone(), mg, &self.id, None);
+    // dbg!(&mode);
+    match mode.ty {
+      ExportModeType::Missing => None,
+      ExportModeType::Unused => {
+        // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L630-L742
+        unreachable!()
+      }
+      ExportModeType::EmptyStar => Some(ExportsSpec {
+        exports: ExportsOfExportsSpec::Array(vec![]),
+        hide_export: mode
+          .hidden
+          .clone()
+          .map(|item| item.into_iter().collect::<Vec<_>>()),
+        dependencies: Some(vec![*mg
+          .module_identifier_by_dependency_id(self.id())
+          .expect("should have module")]),
+        ..Default::default()
+      }),
+      ExportModeType::ReexportDynamicDefault => {
+        let from = mg.connection_by_dependency(self.id());
+        Some(ExportsSpec {
+          exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
+            name: mode.name.unwrap_or_default(),
+            export: Some(rspack_core::Nullable::Value(vec![JsWord::from("default")])),
+            from: from.cloned(),
+            ..Default::default()
+          })]),
+          priority: Some(1),
+          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          ..Default::default()
+        })
+      }
+      ExportModeType::ReexportNamedDefault => {
+        let from = mg.connection_by_dependency(self.id());
+        Some(ExportsSpec {
+          exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
+            name: mode.name.unwrap_or_default(),
+            export: Some(rspack_core::Nullable::Value(vec![JsWord::from("default")])),
+            from: from.cloned(),
+            ..Default::default()
+          })]),
+          priority: Some(1),
+          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          ..Default::default()
+        })
+      }
+      ExportModeType::ReexportNamespaceObject => {
+        let from = mg.connection_by_dependency(self.id());
+        Some(ExportsSpec {
+          exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
+            name: mode.name.unwrap_or_default(),
+            export: Some(rspack_core::Nullable::Null),
+            from: from.cloned(),
+            ..Default::default()
+          })]),
+          priority: Some(1),
+          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          ..Default::default()
+        })
+      }
+      ExportModeType::ReexportFakeNamespaceObject => {
+        let from = mg.connection_by_dependency(self.id());
+        Some(ExportsSpec {
+          exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
+            name: mode.name.unwrap_or_default(),
+            export: Some(rspack_core::Nullable::Null),
+            exports: Some(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
+              name: "default".into(),
+              can_mangle: Some(false),
+              from: from.cloned(),
+              export: Some(rspack_core::Nullable::Null),
+              ..Default::default()
+            })]),
+            from: from.cloned(),
+            ..Default::default()
+          })]),
+          priority: Some(1),
+          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          ..Default::default()
+        })
+      }
+      ExportModeType::ReexportUndefined => Some(ExportsSpec {
+        exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(
+          mode.name.unwrap_or_default(),
+        )]),
+        dependencies: Some(vec![*mg
+          .module_identifier_by_dependency_id(self.id())
+          .expect("should have module id")]),
+        ..Default::default()
+      }),
+      ExportModeType::NormalReexport => {
+        let from = mg.connection_by_dependency(self.id());
+        Some(ExportsSpec {
+          priority: Some(1),
+          exports: ExportsOfExportsSpec::Array(
+            mode
+              .items
+              .map(|items| {
+                items
+                  .into_iter()
+                  .map(|item| {
+                    ExportNameOrSpec::ExportSpec(ExportSpec {
+                      name: item.name,
+                      from: from.cloned(),
+                      export: Some(rspack_core::Nullable::Value(item.ids)),
+                      hidden: Some(item.hidden),
+                      ..Default::default()
+                    })
+                  })
+                  .collect::<Vec<_>>()
+              })
+              .unwrap_or_default(),
+          ),
+          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          ..Default::default()
+        })
+      }
+      ExportModeType::DynamicReexport => {
+        let from = mg.connection_by_dependency(self.id());
+        Some(ExportsSpec {
+          exports: ExportsOfExportsSpec::True,
+          from: from.cloned(),
+          can_mangle: Some(false),
+          hide_export: Some(
+            mode
+              .hidden
+              .clone()
+              .into_iter()
+              .flatten()
+              .collect::<Vec<_>>(),
+          ),
+          exclude_exports: if let Some(hidden) = mode.hidden {
+            Some(
+              hidden
+                .into_iter()
+                .chain(mode.ignored.into_iter().flatten())
+                .collect::<Vec<_>>(),
+            )
+          } else {
+            Some(mode.ignored.into_iter().flatten().collect::<Vec<_>>())
+          },
+          dependencies: Some(vec![from.expect("should have module").module_identifier]),
+          ..Default::default()
+        })
+      }
+    }
+  }
+
   fn get_module_evaluation_side_effects_state(
     &self,
     _module_graph: &ModuleGraph,
     _module_chain: &mut HashSet<ModuleIdentifier>,
   ) -> ConnectionState {
     ConnectionState::Bool(false)
+  }
+
+  fn get_ids(&self, mg: &ModuleGraph) -> Vec<JsWord> {
+    mg.get_dep_meta_if_existing(self.id)
+      .map(|meta| meta.ids.clone())
+      .unwrap_or_else(|| {
+        self
+          .mode_ids
+          .iter()
+          .map(|(id, orig)| orig.clone().unwrap_or(id.clone()))
+          .collect()
+      })
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "HarmonyExportImportedSpecifierDependency"
   }
 }
 
@@ -538,11 +773,6 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
           .expect("should be HarmonyExportImportedSpecifierDependency");
         let mode = down_casted_dep.get_mode(
           down_casted_dep.name.clone(),
-          &down_casted_dep
-            .mode_ids
-            .iter()
-            .map(|id| id.0.clone())
-            .collect::<Vec<_>>(),
           module_graph,
           &down_casted_dep.id,
           runtime,
@@ -560,17 +790,8 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
     module_graph: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
-    let mode = self.get_mode(
-      self.name.clone(),
-      &self
-        .mode_ids
-        .iter()
-        .map(|id| id.0.clone())
-        .collect::<Vec<_>>(),
-      module_graph,
-      &self.id,
-      runtime,
-    );
+    let mode = self.get_mode(self.name.clone(), module_graph, &self.id, runtime);
+    // dbg!(&mode);
     match mode.ty {
       ExportModeType::Missing
       | ExportModeType::Unused
@@ -625,10 +846,6 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
           .collect::<Vec<_>>()
       }
     }
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyExportImportedSpecifierDependency"
   }
 }
 
@@ -690,36 +907,43 @@ pub struct StarReexportsInfo {
   hidden: Option<HashSet<JsWord>>,
 }
 
+/// return (names, dependency_indices)
 fn determine_export_assignments(
   module_graph: &ModuleGraph,
   mut dependencies: Vec<DependencyId>,
   additional_dependency: Option<DependencyId>,
-) -> HashSet<JsWord> {
+) -> (Vec<JsWord>, Vec<usize>) {
   if let Some(additional_dependency) = additional_dependency {
     dependencies.push(additional_dependency);
   }
 
-  let mut names = HashSet::default();
+  // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L109
+  // js `Set` keep the insertion order, use `LinkedHashSet` to align there behavior
+  let mut names: LinkedHashSet<JsWord> = LinkedHashSet::new();
+  let mut dependency_indices = vec![];
 
   for dependency in dependencies.iter() {
+    dependency_indices.push(names.len());
     if let Some(module_identifier) = module_graph.module_identifier_by_dependency_id(dependency) {
       let exports_info = module_graph.get_exports_info(module_identifier);
       for export_info_id in exports_info.exports.values() {
-        let export_info = module_graph
-          .export_info_map
-          .get(export_info_id)
-          .expect("should have export info");
-        // This is safe because a real export can't export empty string
-        let export_name = export_info.name.clone().unwrap_or_default();
+        let export_info = module_graph.get_export_info_by_id(export_info_id);
+        //SAFETY: This is safe because a real export can't export empty string
+        let export_info_name = export_info.name.clone().unwrap_or_default();
         if matches!(export_info.provided, Some(ExportInfoProvided::True))
-          && &export_name != "default"
-          && !names.contains(&export_name)
+          && &export_info_name != "default"
+          && !names.contains(&export_info_name)
         {
-          names.insert(export_name.clone());
+          names.insert(export_info_name.clone());
+          let cur_len = dependency_indices.len();
+          dependency_indices[cur_len - 1] = names.len();
         }
       }
     }
   }
 
-  names
+  (
+    names.into_iter().collect::<Vec<JsWord>>(),
+    dependency_indices,
+  )
 }

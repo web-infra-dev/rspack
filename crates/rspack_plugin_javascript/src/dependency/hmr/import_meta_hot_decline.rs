@@ -26,6 +26,10 @@ impl ImportMetaHotDeclineDependency {
 }
 
 impl Dependency for ImportMetaHotDeclineDependency {
+  fn dependency_debug_name(&self) -> &'static str {
+    "ImportMetaHotDeclineDependency"
+  }
+
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -54,10 +58,6 @@ impl ModuleDependency for ImportMetaHotDeclineDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "ImportMetaHotDeclineDependency"
   }
 }
 

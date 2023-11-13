@@ -2,7 +2,7 @@ var inProgress = {};
 
 // var dataWebpackPrefix = "webpack:";
 // loadScript function to load a script via script tag
-__webpack_require__.l = function loadScript(url, done, key, chunkId) {
+__webpack_require__.l = function (url, done, key, chunkId) {
 	if (inProgress[url]) {
 		inProgress[url].push(done);
 		return;
@@ -23,16 +23,17 @@ __webpack_require__.l = function loadScript(url, done, key, chunkId) {
 	}
 	if (!script) {
 		needAttach = true;
-		script = document.createElement("script");
+		script = document.createElement('script');
 
-		script.charset = "utf-8";
+		script.charset = 'utf-8';
 		script.timeout = 120;
 		// script.setAttribute("data-webpack", dataWebpackPrefix + key);
+		if (__webpack_require__.nc) {
+			script.setAttribute("nonce", __webpack_require__.nc);
+		}
 		script.src = $URL$;
 
-		if (__CROSS_ORIGIN_LOADING_PLACEHOLDER__ && script.src.indexOf(window.location.origin + '/') !== 0) {
-			script.crossOrigin = __CROSS_ORIGIN_LOADING_PLACEHOLDER__;
-		}
+		__CROSS_ORIGIN_LOADING_PLACEHOLDER__
 	}
 	inProgress[url] = [done];
 	var onScriptComplete = function (prev, event) {
@@ -49,7 +50,7 @@ __webpack_require__.l = function loadScript(url, done, key, chunkId) {
 	};
 	var timeout = setTimeout(
 		onScriptComplete.bind(null, undefined, {
-			type: "timeout",
+			type: 'timeout',
 			target: script
 		}),
 		120000

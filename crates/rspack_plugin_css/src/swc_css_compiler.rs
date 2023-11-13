@@ -28,7 +28,7 @@ impl SwcCssCompiler {
       .cm
       .new_source_file(FileName::Custom(path.to_string()), source);
 
-    let lexer = Lexer::new(SourceFileInput::from(&*fm), config);
+    let lexer = Lexer::new(SourceFileInput::from(&*fm), None, config);
     let mut parser = Parser::new(lexer, config);
     let stylesheet = parser.parse_all();
     stylesheet

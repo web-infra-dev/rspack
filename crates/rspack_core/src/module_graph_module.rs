@@ -2,12 +2,11 @@ use rspack_error::{internal_error, Result};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  is_async_dependency, module_graph::ConnectionId, BuildInfo, BuildMeta, BuildMetaDefaultObject,
-  BuildMetaExportsType, ChunkGraph, ChunkGroupOptionsKindRef, DependencyId, ExportsArgument,
-  ExportsType, FactoryMeta, ModuleArgument, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  ModuleIssuer, ModuleProfile, ModuleSyntax, ModuleType,
+  module_graph::ConnectionId, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType,
+  ChunkGraph, DependencyId, ExportsArgument, ExportsType, FactoryMeta, ModuleArgument, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, ModuleIssuer, ModuleProfile, ModuleSyntax, ModuleType,
 };
-use crate::{ExportsInfoId, IS_NEW_TREESHAKING};
+use crate::{ExportsInfoId, GroupOptions, IS_NEW_TREESHAKING};
 
 #[derive(Debug)]
 pub struct ModuleGraphModule {
@@ -21,7 +20,8 @@ pub struct ModuleGraphModule {
   pub module_identifier: ModuleIdentifier,
   // TODO remove this since its included in module
   pub module_type: ModuleType,
-  pub dependencies: Box<Vec<DependencyId>>,
+  // TODO: remove this once we drop old treeshaking
+  pub all_dependencies: Box<Vec<DependencyId>>,
   pub(crate) pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
   pub module_syntax: ModuleSyntax,
@@ -30,6 +30,7 @@ pub struct ModuleGraphModule {
   pub build_meta: Option<BuildMeta>,
   pub exports: ExportsInfoId,
   pub profile: Option<Box<ModuleProfile>>,
+  pub is_async: bool,
 }
 
 impl ModuleGraphModule {
@@ -45,7 +46,7 @@ impl ModuleGraphModule {
       issuer: ModuleIssuer::Unset,
       // exec_order: usize::MAX,
       module_identifier,
-      dependencies: Default::default(),
+      all_dependencies: Default::default(),
       module_type,
       pre_order_index: None,
       post_order_index: None,
@@ -55,6 +56,7 @@ impl ModuleGraphModule {
       build_meta: None,
       exports: exports_info_id,
       profile: None,
+      is_async: false,
     }
   }
 
@@ -115,13 +117,6 @@ impl ModuleGraphModule {
     Ok(result)
   }
 
-  // pub fn dependencies(&mut self) -> Vec<&ModuleDependency> {
-  //   self
-  //     .outgoing_connections_unordered()
-  //     .map(|conn| &conn.dependency)
-  //     .collect()
-  // }
-
   pub fn depended_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a ModuleIdentifier> {
     if IS_NEW_TREESHAKING.load(std::sync::atomic::Ordering::Relaxed) {
       self
@@ -130,12 +125,15 @@ impl ModuleGraphModule {
         .filter_map(|con: &ModuleGraphConnection| {
           // TODO: runtime opt
           let active_state = con.get_active_state(module_graph, None);
-          // dbg!(&con, &active_state,);
-          // dbg!(&module_graph
-          //   .dependency_by_id(&con.dependency_id)
-          //   .and_then(|dep| dep
-          //     .as_module_dependency()
-          //     .map(|item| item.dependency_debug_name())));
+          // dbg!(
+          //   &con,
+          //   active_state,
+          //   &module_graph
+          //     .dependency_by_id(&con.dependency_id)
+          //     .and_then(|dep| dep
+          //       .as_module_dependency()
+          //       .map(|item| item.dependency_debug_name()))
+          // );
           match active_state {
             crate::ConnectionState::Bool(false) => None,
             _ => Some(con.dependency_id),
@@ -147,7 +145,7 @@ impl ModuleGraphModule {
             .expect("should have id")
             .as_module_dependency()
           {
-            return !is_async_dependency(dep) && !dep.weak();
+            return module_graph.get_parent_block(id).is_none() && !dep.weak();
           }
           false
         })
@@ -155,7 +153,7 @@ impl ModuleGraphModule {
         .collect()
     } else {
       self
-        .dependencies
+        .all_dependencies
         .iter()
         .filter(|id| {
           if let Some(dep) = module_graph
@@ -163,7 +161,7 @@ impl ModuleGraphModule {
             .expect("should have id")
             .as_module_dependency()
           {
-            return !is_async_dependency(dep) && !dep.weak();
+            return module_graph.get_parent_block(id).is_none() && !dep.weak();
           }
           false
         })
@@ -176,27 +174,28 @@ impl ModuleGraphModule {
   pub fn dynamic_depended_modules<'a>(
     &self,
     module_graph: &'a ModuleGraph,
-  ) -> Vec<(&'a ModuleIdentifier, Option<ChunkGroupOptionsKindRef<'a>>)> {
+  ) -> Vec<(&'a ModuleIdentifier, Option<&'a GroupOptions>)> {
     self
-      .dependencies
+      .all_dependencies
       .iter()
       .filter_map(|id| {
-        if let Some(dep) = module_graph
+        let Some(dep) = module_graph
           .dependency_by_id(id)
           .expect("should have id")
           .as_module_dependency()
-        {
-          if !is_async_dependency(dep) {
-            return None;
-          }
-          let module = module_graph
-            .module_identifier_by_dependency_id(id)
-            .expect("should have a module here");
-
-          let chunk_name = dep.group_options();
-          return Some((module, chunk_name));
-        }
-        None
+        else {
+          return None;
+        };
+        let Some(block_id) = module_graph.get_parent_block(dep.id()) else {
+          return None;
+        };
+        let module = module_graph
+          .module_identifier_by_dependency_id(id)
+          .expect("should have a module here");
+        let Some(block) = module_graph.block_by_id(&block_id) else {
+          return None;
+        };
+        Some((module, block.get_group_options()))
       })
       .collect()
   }
@@ -206,7 +205,7 @@ impl ModuleGraphModule {
     module_graph: &'a ModuleGraph,
   ) -> Vec<&'a ModuleIdentifier> {
     self
-      .dependencies
+      .all_dependencies
       .iter()
       .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
       .collect()

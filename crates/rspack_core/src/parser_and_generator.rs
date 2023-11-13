@@ -2,15 +2,14 @@ use std::{collections::HashMap, fmt::Debug};
 
 use rkyv::AlignedVec;
 use rspack_error::{Result, TWithDiagnosticArray};
-use rspack_loader_runner::ResourceData;
+use rspack_loader_runner::{AdditionalData, ResourceData};
 use rspack_sources::BoxSource;
 
-use crate::RuntimeSpec;
 use crate::{
-  tree_shaking::visitor::OptimizeAnalyzeResult, BoxDependency, BuildExtraDataType, BuildInfo,
-  BuildMeta, CodeGenerationData, Compilation, CompilerOptions, DependencyTemplate,
-  GeneratorOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType, ParserOptions,
-  RuntimeGlobals, SourceType,
+  tree_shaking::visitor::OptimizeAnalyzeResult, AsyncDependenciesBlock, BoxDependency,
+  BuildExtraDataType, BuildInfo, BuildMeta, CodeGenerationData, Compilation, CompilerOptions,
+  DependencyTemplate, GeneratorOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType,
+  ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -22,7 +21,7 @@ pub struct ParseContext<'a> {
   pub module_parser_options: Option<&'a ParserOptions>,
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,
-  pub additional_data: Option<String>,
+  pub additional_data: AdditionalData,
   pub code_generation_dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
@@ -31,6 +30,7 @@ pub struct ParseContext<'a> {
 #[derive(Debug)]
 pub struct ParseResult {
   pub dependencies: Vec<BoxDependency>,
+  pub blocks: Vec<AsyncDependenciesBlock>,
   pub presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
   pub source: BoxSource,
   pub analyze_result: OptimizeAnalyzeResult,

@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "0.3.7",
+  "version": "0.3.11",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "A Fast Rust-based Web Bundler",
@@ -10,12 +10,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
     "dev": "tsc -w",
-    "test": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage"
+    "test": "cross-env NO_COLOR=1 RSPACK_DEP_WARNINGS=false node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathIgnorePatterns \".diff.test.ts\"",
+    "test-diff": "cross-env RSPACK_DIFF=true NO_COLOR=1 RSPACK_DEP_WARNINGS=false node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \".diff.test.ts\""
   },
   "files": [
     "dist"
@@ -32,15 +34,18 @@
     "@rspack/plugin-minify": "workspace:^",
     "@rspack/plugin-node-polyfill": "workspace:^",
     "@types/watchpack": "^2.4.0",
+    "@types/webpack": "5.28.3",
     "@types/webpack-sources": "3.2.0",
     "@types/ws": "8.5.3",
     "babel-loader": "^9.1.0",
     "babel-plugin-import": "^1.13.5",
     "copy-webpack-plugin": "5",
     "cross-env": "^7.0.3",
+    "deepmerge": "^4.3.1",
     "file-loader": "^6.2.0",
     "html-loader": "^4.2.0",
     "html-webpack-plugin": "^5.5.0",
+    "jest-diff": "^29.7.0",
     "jest-serializer-path": "^0.1.15",
     "less": "4.1.3",
     "less-loader": "^11.1.0",
@@ -54,7 +59,8 @@
     "styled-components": "^6.0.8",
     "terser": "5.16.1",
     "ts-node": "10.9.1",
-    "wast-loader": "^1.11.4"
+    "wast-loader": "^1.11.4",
+    "webpack": "5.89.0"
   },
   "dependencies": {
     "@rspack/binding": "workspace:*",
@@ -62,13 +68,13 @@
     "browserslist": "^4.21.3",
     "compare-versions": "6.0.0-rc.1",
     "enhanced-resolve": "5.12.0",
+    "fast-querystring": "1.1.2",
     "graceful-fs": "4.2.10",
+    "json-parse-even-better-errors": "^3.0.0",
     "neo-async": "2.6.2",
     "react-refresh": "0.14.0",
-    "schema-utils": "^4.0.0",
     "tapable": "2.2.1",
     "terminal-link": "^2.1.1",
-    "util": "0.12.5",
     "watchpack": "^2.4.0",
     "webpack-sources": "3.2.3",
     "zod": "^3.21.4",

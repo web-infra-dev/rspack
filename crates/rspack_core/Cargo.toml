@@ -14,6 +14,7 @@ bitflags = { workspace = true }
 dashmap = { workspace = true }
 derivative = { workspace = true }
 dyn-clone = "1.0.11"
+either = "1"
 futures = { workspace = true }
 glob-match = "0.2.1"
 hashlink = { workspace = true }
@@ -22,15 +23,16 @@ itertools = { workspace = true }
 mime_guess = { workspace = true }
 nodejs-resolver = { version = "0.1.0" }
 once_cell = { workspace = true }
-oxc_resolver = { version = "0.3.1", features = ["tracing-subscriber"] }
+oxc_resolver = { version = "0.5.3", features = ["tracing-subscriber"] }
 paste = { workspace = true }
 petgraph = { version = "0.6.3", features = ["serde-1"] }
 rayon = { workspace = true }
 regex = { workspace = true }
 rkyv = { workspace = true }
+rspack_ast = { path = "../rspack_ast" }
 rspack_database = { path = "../rspack_database", features = ["rayon"] }
 rspack_error = { path = "../rspack_error" }
-rspack_fs = { path = "../rspack_fs", features = ["async"] }
+rspack_fs = { path = "../rspack_fs", features = ["async", "rspack-error"] }
 rspack_futures = { path = "../rspack_futures" }
 rspack_hash = { path = "../rspack_hash" }
 rspack_identifier = { path = "../rspack_identifier" }

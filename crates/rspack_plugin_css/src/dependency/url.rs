@@ -70,6 +70,10 @@ impl Dependency for CssUrlDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "CssUrlDependency"
+  }
 }
 
 impl ModuleDependency for CssUrlDependency {
@@ -84,10 +88,6 @@ impl ModuleDependency for CssUrlDependency {
   fn set_request(&mut self, request: String) {
     self.request = request;
   }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "CssUrlDependency"
-  }
 }
 
 impl DependencyTemplate for CssUrlDependency {
@@ -98,8 +98,8 @@ impl DependencyTemplate for CssUrlDependency {
   ) {
     let TemplateContext { compilation, .. } = code_generatable_context;
     if let Some(mgm) = compilation
-        .module_graph
-        .module_graph_module_by_dependency_id(self.id())
+      .module_graph
+      .module_graph_module_by_dependency_id(self.id())
       && let Some(target_url) = self.get_target_url(&mgm.module_identifier, compilation)
     {
       let content = format!("url({})", css_escape_string(&target_url));

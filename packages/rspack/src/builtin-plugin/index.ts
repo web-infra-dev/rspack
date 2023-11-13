@@ -16,6 +16,8 @@ export * from "./ArrayPushCallbackChunkFormatPlugin";
 export * from "./CommonJsChunkFormatPlugin";
 export * from "./ModuleChunkFormatPlugin";
 export * from "./HotModuleReplacementPlugin";
+export * from "./WebWorkerTemplatePlugin";
+export * from "./LimitChunkCountPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";
@@ -172,49 +174,54 @@ export function deprecated_resolveBuiltins(
 	// );
 	const contextPath = options.context!;
 	const production = options.mode === "production" || !options.mode;
+	const isRoot = !compiler.isChild();
 	if (builtins.define) {
-		deprecatedWarn(
-			`'builtins.define = ${JSON.stringify(
-				builtins.define
-			)}' has been deprecated, please migrate to ${termlink(
-				"rspack.DefinePlugin",
-				"https://www.rspack.dev/config/plugins.html#defineplugin"
-			)}`
-		);
+		isRoot &&
+			deprecatedWarn(
+				`'builtins.define = ${JSON.stringify(
+					builtins.define
+				)}' has been deprecated, please migrate to ${termlink(
+					"rspack.DefinePlugin",
+					"https://www.rspack.dev/config/plugins.html#defineplugin"
+				)}`
+			);
 		new DefinePlugin(builtins.define).apply(compiler);
 	}
 	if (builtins.provide) {
-		deprecatedWarn(
-			`'builtins.provide = ${JSON.stringify(
-				builtins.provide
-			)}' has been deprecated, please migrate to ${termlink(
-				"rspack.ProvidePlugin",
-				"https://www.rspack.dev/config/plugins.html#provideplugin"
-			)}`
-		);
+		isRoot &&
+			deprecatedWarn(
+				`'builtins.provide = ${JSON.stringify(
+					builtins.provide
+				)}' has been deprecated, please migrate to ${termlink(
+					"rspack.ProvidePlugin",
+					"https://www.rspack.dev/config/plugins.html#provideplugin"
+				)}`
+			);
 		new ProvidePlugin(builtins.provide).apply(compiler);
 	}
 	if (builtins.progress) {
-		deprecatedWarn(
-			`'builtins.progress = ${JSON.stringify(
-				builtins.progress
-			)}' has been deprecated, please migrate to ${termlink(
-				"rspack.ProgressPlugin",
-				"https://www.rspack.dev/config/plugins.html#progressplugin"
-			)}`
-		);
+		isRoot &&
+			deprecatedWarn(
+				`'builtins.progress = ${JSON.stringify(
+					builtins.progress
+				)}' has been deprecated, please migrate to ${termlink(
+					"rspack.ProgressPlugin",
+					"https://www.rspack.dev/config/plugins.html#progressplugin"
+				)}`
+			);
 		const progress = builtins.progress === true ? {} : builtins.progress;
 		new ProgressPlugin(progress).apply(compiler);
 	}
 	if (builtins.banner) {
-		deprecatedWarn(
-			`'builtins.banner = ${JSON.stringify(
-				builtins.banner
-			)}' has been deprecated, please migrate to ${termlink(
-				"rspack.BannerPlugin",
-				"https://www.rspack.dev/config/plugins.html#bannerplugin"
-			)}`
-		);
+		isRoot &&
+			deprecatedWarn(
+				`'builtins.banner = ${JSON.stringify(
+					builtins.banner
+				)}' has been deprecated, please migrate to ${termlink(
+					"rspack.BannerPlugin",
+					"https://www.rspack.dev/config/plugins.html#bannerplugin"
+				)}`
+			);
 		if (Array.isArray(builtins.banner)) {
 			for (const banner of builtins.banner) {
 				new BannerPlugin(banner).apply(compiler);
@@ -225,41 +232,52 @@ export function deprecated_resolveBuiltins(
 	}
 
 	if (builtins.html) {
-		deprecatedWarn(
-			`'builtins.html = ${JSON.stringify(
-				builtins.html
-			)}' has been deprecated, please migrate to ${termlink(
-				"rspack.HtmlRspackPlugin",
-				"https://www.rspack.dev/config/plugins.html#htmlrspackplugin"
-			)}`
-		);
+		isRoot &&
+			deprecatedWarn(
+				`'builtins.html = ${JSON.stringify(
+					builtins.html
+				)}' has been deprecated, please migrate to ${termlink(
+					"rspack.HtmlRspackPlugin",
+					"https://www.rspack.dev/config/plugins.html#htmlrspackplugin"
+				)}`
+			);
 		for (const html of builtins.html) {
 			new HtmlRspackPlugin(html).apply(compiler);
 		}
 	}
 	if (builtins.copy) {
-		deprecatedWarn(
-			`'builtins.copy = ${JSON.stringify(
-				builtins.copy
-			)}' has been deprecated, please migrate to ${termlink(
-				"rspack.CopyRspackPlugin",
-				"https://www.rspack.dev/config/plugins.html#copyrspackplugin"
-			)}`
-		);
+		isRoot &&
+			deprecatedWarn(
+				`'builtins.copy = ${JSON.stringify(
+					builtins.copy
+				)}' has been deprecated, please migrate to ${termlink(
+					"rspack.CopyRspackPlugin",
+					"https://www.rspack.dev/config/plugins.html#copyrspackplugin"
+				)}`
+			);
 		new CopyRspackPlugin(builtins.copy).apply(compiler);
 	}
 	if (builtins.minifyOptions) {
-		deprecatedWarn(
-			`'builtins.minifyOptions = ${JSON.stringify(
-				builtins.minifyOptions
-			)}' has been deprecated, please migrate to ${termlink(
-				"rspack.SwcJsMinimizerRspackPlugin",
-				"https://www.rspack.dev/config/plugins.html#SwcJsMinimizerRspackPlugin"
-			)} and ${termlink(
-				"rspack.SwcCssMinimizerRspackPlugin",
-				"https://www.rspack.dev/config/plugins.html#SwcCssMinimizerRspackPlugin"
-			)}`
-		);
+		isRoot &&
+			deprecatedWarn(
+				`'builtins.minifyOptions = ${JSON.stringify(
+					builtins.minifyOptions
+				)}' has been deprecated, please migrate to ${termlink(
+					"rspack.SwcJsMinimizerRspackPlugin",
+					"https://www.rspack.dev/config/plugins.html#SwcJsMinimizerRspackPlugin"
+				)} and ${termlink(
+					"rspack.SwcCssMinimizerRspackPlugin",
+					"https://www.rspack.dev/config/plugins.html#SwcCssMinimizerRspackPlugin"
+				)}`
+			);
+	}
+	if (builtins.devFriendlySplitChunks) {
+		isRoot &&
+			deprecatedWarn(
+				`'builtins.devFriendlySplitChunks = ${JSON.stringify(
+					builtins.devFriendlySplitChunks
+				)}' has been deprecated, please switch to 'builtins.devFriendlySplitChunks = false' to use webpack's behavior.`
+			);
 	}
 	const disableMinify =
 		!options.optimization.minimize ||
@@ -271,11 +289,12 @@ export function deprecated_resolveBuiltins(
 
 	let noEmitAssets = false;
 	if (builtins.noEmitAssets) {
-		deprecatedWarn(
-			`'builtins.noEmitAssets = ${JSON.stringify(
-				builtins.noEmitAssets
-			)}' has been deprecated, this is only a temporary workaround for memory output FS, since Rspack have already supported memory output FS, so you can safely remove this`
-		);
+		isRoot &&
+			deprecatedWarn(
+				`'builtins.noEmitAssets = ${JSON.stringify(
+					builtins.noEmitAssets
+				)}' has been deprecated, this is only a temporary workaround for memory output FS, since Rspack have already supported memory output FS, so you can safely remove this`
+			);
 		noEmitAssets = true;
 	}
 
@@ -291,15 +310,16 @@ export function deprecated_resolveBuiltins(
 			] as const
 		).forEach(key => {
 			if (builtins[key]) {
-				deprecatedWarn(
-					`'builtins.${key} = ${JSON.stringify(
-						builtins[key]
-					)}' only works for 'experiments.rspackFuture.disableTransformByDefault = false', please migrate to ${termlink(
-						"builtin:swc-loader options",
-						"https://www.rspack.dev/guide/loader.html#builtinswc-loader"
-					)}`,
-					true
-				);
+				isRoot &&
+					deprecatedWarn(
+						`'builtins.${key} = ${JSON.stringify(
+							builtins[key]
+						)}' only works for 'experiments.rspackFuture.disableTransformByDefault = false', please migrate to ${termlink(
+							"builtin:swc-loader options",
+							"https://www.rspack.dev/guide/loader.html#builtinswc-loader"
+						)}`,
+						true
+					);
 			}
 		});
 	}

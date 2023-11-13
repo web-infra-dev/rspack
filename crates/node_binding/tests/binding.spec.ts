@@ -1,8 +1,6 @@
-import assert from 'assert'
 import path from 'path'
-import log from 'why-is-node-running'
 import binding from '..'
-import { RawOptions } from '../binding.d'
+import { RawOptions } from '../binding'
 
 describe('binding', () => {
   it('work', async () => {

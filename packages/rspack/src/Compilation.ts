@@ -54,6 +54,7 @@ import {
 } from "./util/fake";
 import { NormalizedJsModule, normalizeJsModule } from "./util/normalization";
 import MergeCaller from "./util/MergeCaller";
+import { Chunk } from "./Chunk";
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
@@ -129,7 +130,7 @@ export class Compilation {
 		this.name = undefined;
 		this.startTime = undefined;
 		this.endTime = undefined;
-		let processAssetsHooks = createFakeProcessAssetsHook(this);
+		const processAssetsHooks = createFakeProcessAssetsHook(this);
 		this.hooks = {
 			processAssets: processAssetsHooks,
 			// TODO: webpack 6 deprecate, keep it just for compatibility
@@ -272,6 +273,10 @@ export class Compilation {
 			!context.forToString
 		);
 		options.modules = optionOrLocalFallback(options.modules, true);
+		options.runtimeModules = optionOrLocalFallback(
+			options.runtimeModules,
+			!context.forToString
+		);
 		options.reasons = optionOrLocalFallback(
 			options.reasons,
 			!context.forToString
@@ -456,12 +461,12 @@ export class Compilation {
 	}
 
 	get errors() {
-		let inner = this.#inner;
+		const inner = this.#inner;
 		return {
 			push: (...errs: (Error | JsStatsError | string)[]) => {
 				// compatible for javascript array
 				for (let i = 0; i < errs.length; i++) {
-					let error = errs[i];
+					const error = errs[i];
 					if (isJsStatsError(error)) {
 						this.#inner.pushDiagnostic(
 							"error",
@@ -481,7 +486,7 @@ export class Compilation {
 			},
 			[Symbol.iterator]() {
 				// TODO: this is obviously a bad design, optimize this after finishing angular prototype
-				let errors = inner.getStats().getErrors();
+				const errors = inner.getStats().getErrors();
 				let index = 0;
 				return {
 					next() {
@@ -499,14 +504,14 @@ export class Compilation {
 	}
 
 	get warnings() {
-		let inner = this.#inner;
+		const inner = this.#inner;
 		return {
 			// compatible for javascript array
 			push: (...warns: (Error | JsStatsError)[]) => {
 				// TODO: find a way to make JsStatsError be actual errors
 				warns = this.hooks.processWarnings.call(warns as any);
 				for (let i = 0; i < warns.length; i++) {
-					let warn = warns[i];
+					const warn = warns[i];
 					this.#inner.pushDiagnostic(
 						"warning",
 						isJsStatsError(warn) ? warn.title : warn.name,
@@ -516,7 +521,7 @@ export class Compilation {
 			},
 			[Symbol.iterator]() {
 				// TODO: this is obviously a bad design, optimize this after finishing angular prototype
-				let warnings = inner.getStats().getWarnings();
+				const warnings = inner.getStats().getWarnings();
 				let index = 0;
 				return {
 					next() {
@@ -685,23 +690,7 @@ export class Compilation {
 
 	// FIXME: This is not aligned with Webpack.
 	get chunks() {
-		var stats = this.getStats().toJson({
-			all: false,
-			chunks: true,
-			chunkModules: true,
-			reasons: true
-		});
-		const chunks = stats.chunks?.map(chunk => {
-			return {
-				...chunk,
-				name: chunk.names.length > 0 ? chunk.names[0] : "",
-				modules: this.__internal__getAssociatedModules(chunk),
-				isOnlyInitial: function () {
-					return this.initial;
-				}
-			};
-		});
-		return chunks;
+		return this.__internal__getChunks();
 	}
 
 	/**
@@ -709,14 +698,15 @@ export class Compilation {
 	 *
 	 * Note: This is a proxy for webpack internal API, only method `get` is supported now.
 	 */
-	get namedChunks(): Map<string, Readonly<JsChunk>> {
+	get namedChunks(): Map<string, Readonly<Chunk>> {
 		return {
 			get: (property: unknown) => {
 				if (typeof property === "string") {
-					return this.#inner.getNamedChunk(property) ?? undefined;
+					const chunk = this.#inner.getNamedChunk(property);
+					return chunk && Chunk.__from_binding(chunk, this.#inner);
 				}
 			}
-		} as Map<string, Readonly<JsChunk>>;
+		} as Map<string, Readonly<Chunk>>;
 	}
 
 	/**
@@ -727,13 +717,13 @@ export class Compilation {
 	 * @internal
 	 */
 	__internal__getAssociatedModules(chunk: JsStatsChunk): any[] | undefined {
-		let modules = this.__internal__getModules();
-		let moduleMap: Map<string, JsModule> = new Map();
-		for (let module of modules) {
+		const modules = this.__internal__getModules();
+		const moduleMap: Map<string, JsModule> = new Map();
+		for (const module of modules) {
 			moduleMap.set(module.moduleIdentifier, module);
 		}
 		return chunk.modules?.flatMap(chunkModule => {
-			let jsModule = this.__internal__findJsModule(
+			const jsModule = this.__internal__findJsModule(
 				chunkModule.issuer ?? chunkModule.identifier,
 				moduleMap
 			);
@@ -783,8 +773,10 @@ export class Compilation {
 	 *
 	 * @internal
 	 */
-	__internal__getChunks(): JsChunk[] {
-		return this.#inner.getChunks();
+	__internal__getChunks(): Chunk[] {
+		return this.#inner
+			.getChunks()
+			.map(c => Chunk.__from_binding(c, this.#inner));
 	}
 
 	getStats() {

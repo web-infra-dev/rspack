@@ -5,7 +5,12 @@
       "port": 9229,
       "request": "attach",
       "skipFiles": ["<node_internals>/**"],
-      "type": "node"
+      "sourceMaps": true,
+      "continueOnAttach": true,
+      "type": "node",
+      "presentation": {
+        "hidden": true
+      }
     },
     {
       "type": "lldb",
@@ -13,8 +18,19 @@
       "sourceLanguages": ["rust"],
       "name": "debug-rust-jest",
       "program": "node",
-      "args": ["--inspect", "../../node_modules/.bin/jest", "--workerThreads"],
+      "args": [
+        "--inspect-brk",
+        "../../node_modules/.bin/jest",
+        "--workerThreads"
+      ],
       "cwd": "${workspaceFolder}/packages/rspack"
+    },
+    {
+      "type": "lldb",
+      "request": "attach",
+      "sourceLanguages": ["rust"],
+      "pid": "${command:pickMyProcess}",
+      "name": "debug-rust-attach"
     },
     {
       "type": "lldb",
@@ -23,36 +39,51 @@
       "name": "debug-rust-basic",
       "program": "node",
       "args": [
-        "--inspect",
-        "bin/rspack",
+        "--inspect-brk",
+        "${workspaceFolder}/packages/rspack-cli/bin/rspack",
         "-c",
-        "../../examples/basic/rspack.config.js"
+        "rspack.config.js"
       ],
-      "cwd": "${workspaceFolder}/packages/rspack-cli"
+      "cwd": "${workspaceFolder}/examples/basic",
+      "presentation": {
+        "hidden": true
+      }
     },
     {
       "type": "lldb",
       "request": "launch",
       "sourceLanguages": ["rust"],
-      "name": "debug-rust-2",
+      "name": "debug-rust-angular",
       "program": "node",
       "args": [
-        "--inspect",
-        "../../packages/rspack-cli/bin/rspack",
+        "--inspect-brk",
+        "${workspaceFolder}/packages/rspack-cli/bin/rspack",
         "-c",
         "./rspack.config.js"
       ],
-      "cwd": "${workspaceFolder}/examples/angular"
+      "cwd": "${workspaceFolder}/examples/angular",
+      "presentation": {
+        "hidden": true
+      }
     }
   ],
   "compounds": [
     {
       "name": "debug-basic",
-      "configurations": ["debug-js", "debug-rust-basic"]
+      "configurations": ["debug-js", "debug-rust-basic"],
+      "stopAll": true,
+      "presentation": {
+        "group": "examples",
+        "order": 1
+      }
     },
     {
-      "name": "debug-rspack-2",
-      "configurations": ["debug-js", "debug-rust-2"]
+      "name": "debug-angular",
+      "configurations": ["debug-js", "debug-rust-angular"],
+      "presentation": {
+        "group": "examples",
+        "order": 2
+      }
     }
   ]
 }

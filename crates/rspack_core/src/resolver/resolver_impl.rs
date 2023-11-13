@@ -187,9 +187,7 @@ impl Resolver {
             .package_json()
             .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(&d.raw_json))),
         })),
-        Err(error) if matches!(error, oxc_resolver::ResolveError::Ignored(_)) => {
-          Ok(ResolveResult::Ignored)
-        }
+        Err(oxc_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
         Err(error) => Err(ResolveInnerError::OxcResolver(error)),
       },
     }
@@ -423,11 +421,85 @@ fn map_oxc_resolver_error(
         },
       )
     }
+    oxc_resolver::ResolveError::IOError(error) => ResolveError(
+      "IOError".to_string(),
+      Error::Io {
+        source: error.into(),
+      },
+    ),
+    oxc_resolver::ResolveError::Builtin(error) => ResolveError(
+      format!("Builtin module: {}", error),
+      internal_error!("Builtin module: {}", error),
+    ),
+    oxc_resolver::ResolveError::Ignored(path) => ResolveError(
+      format!("Path is ignored: {}", path.display()),
+      internal_error!("Path is ignored: {}", path.display()),
+    ),
     oxc_resolver::ResolveError::TsconfigNotFound(path) => ResolveError(
       format!("{} is not a tsconfig", path.display()),
       internal_error!("{} is not a tsconfig", path.display()),
     ),
+    oxc_resolver::ResolveError::ExtensionAlias => ResolveError(
+      "All of the aliased extension are not found".to_string(),
+      internal_error!("All of the aliased extension are not found"),
+    ),
+    oxc_resolver::ResolveError::Specifier(_) => ResolveError(
+      "The provided patn specifier cannot be parsed".to_string(),
+      internal_error!("The provided patn specifier cannot be parsed"),
+    ),
+    oxc_resolver::ResolveError::JSON(json) => {
+      ResolveError(format!("{:?}", json), internal_error!("{:?}", json))
+    }
+    oxc_resolver::ResolveError::Restriction(path) => ResolveError(
+      format!(
+        "Restriction by `ResolveOptions::restrictions`: {}",
+        path.display()
+      ),
+      internal_error!(
+        "Restriction by `ResolveOptions::restrictions`: {}",
+        path.display()
+      ),
+    ),
+    oxc_resolver::ResolveError::InvalidModuleSpecifier(error) => ResolveError(
+      format!("Invalid module specifier: {}", error),
+      internal_error!("Invalid module specifier: {}", error),
+    ),
+    oxc_resolver::ResolveError::PackagePathNotExported(error) => ResolveError(
+      format!("Package subpath '{}' is not defined by \"exports\"", error),
+      internal_error!("Package subpath '{}' is not defined by \"exports\"", error),
+    ),
+    oxc_resolver::ResolveError::InvalidPackageConfig(path) => ResolveError(
+      format!("Invalid package config in: {}", path.display()),
+      internal_error!("Invalid package config in: {}", path.display()),
+    ),
+    oxc_resolver::ResolveError::InvalidPackageConfigDefault(path) => ResolveError(
+      format!("Default condition should be last one: {}", path.display()),
+      internal_error!("Default condition should be last one: {}", path.display()),
+    ),
+    oxc_resolver::ResolveError::InvalidPackageConfigDirectory(path) => ResolveError(
+      format!(
+        "Expecting folder to folder mapping. \"{}\" should end with \"/\"",
+        path.display()
+      ),
+      internal_error!(
+        "Expecting folder to folder mapping. \"{}\" should end with \"/\"",
+        path.display()
+      ),
+    ),
+    oxc_resolver::ResolveError::PackageImportNotDefined(error) => ResolveError(
+      format!("Package import not defined: {}", error),
+      internal_error!("Package import not defined: {}", error),
+    ),
+    oxc_resolver::ResolveError::Unimplemented(error) => ResolveError(
+      format!("{} is unimplemented", error),
+      internal_error!("{} is unimplemented", error),
+    ),
+    oxc_resolver::ResolveError::Recursion => ResolveError(
+      "Recursion in resolving".to_string(),
+      internal_error!("Recursion in resolving"),
+    ),
     _ => {
+      // path no find
       let is_recursion = matches!(error, oxc_resolver::ResolveError::Recursion);
       map_resolver_error(is_recursion, args, plugin_driver)
     }

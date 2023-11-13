@@ -26,7 +26,12 @@ const falsePositiveMap = {
 	"rollup-unused-called-import": "align webpack unused binding behavior",
 	"var-function-expr": "align webpack unused binding behavior",
 	"webpack-innergraph-no-side-effects": "align webpack unused binding behavior",
-	"side-effects-export-default-expr": "align webpack unused binding behavior"
+	"side-effects-export-default-expr": "align webpack unused binding behavior",
+	"webpack-innergraph-circular": "align webpack unused binding behavior https://github.com/web-infra-dev/rspack/pull/4463/files",
+	"static-class": "align webpack unused binding behavior https://github.com/web-infra-dev/rspack/pull/4463/files",
+	"webpack-inner-graph-export-default-named": "align webpack unused binding behavior https://github.com/web-infra-dev/rspack/pull/4463/files",
+	"class-extend": "align webpack unused binding behavior https://github.com/web-infra-dev/rspack/pull/4481/files",
+	"export_star": "same as webpack https://gist.github.com/IWANABETHATGUY/1ee8aa4c2889a9246d19d7be0ac75bb7"
 };
 
 const normalizedList = filteredList.map((item) => {

@@ -27,6 +27,7 @@ pub struct RawExperiments {
   pub incremental_rebuild: RawIncrementalRebuild,
   pub async_web_assembly: bool,
   pub new_split_chunks: bool,
+  pub top_level_await: bool,
   pub css: bool,
   pub rspack_future: RawRspackFuture,
 }

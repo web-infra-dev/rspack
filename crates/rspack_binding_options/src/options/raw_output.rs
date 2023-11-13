@@ -1,8 +1,9 @@
 use napi_derive::napi;
 use rspack_core::{
-  to_identifier, BoxPlugin, CrossOriginLoading, LibraryAuxiliaryComment, LibraryName,
-  LibraryOptions, OutputOptions, TrustedTypes,
+  BoxPlugin, CrossOriginLoading, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
+  LibraryOptions,
 };
+use rspack_core::{LibraryAuxiliaryComment, OutputOptions, TrustedTypes};
 use serde::Deserialize;
 
 use crate::RawOptionsApply;
@@ -26,13 +27,48 @@ impl From<RawTrustedTypes> for TrustedTypes {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawLibraryName {
+  #[napi(ts_type = r#""string" | "array" | "umdObject""#)]
+  pub r#type: String,
+  pub string_payload: Option<String>,
+  pub array_payload: Option<Vec<String>>,
+  pub umd_object_payload: Option<RawLibraryCustomUmdObject>,
+}
+
+impl From<RawLibraryName> for LibraryName {
+  fn from(value: RawLibraryName) -> Self {
+    match value.r#type.as_str() {
+      "string" => {
+        Self::NonUmdObject(LibraryNonUmdObject::String(value.string_payload.expect(
+          "should have a string_payload when RawLibraryName.type is \"string\"",
+        )))
+      }
+      "array" => Self::NonUmdObject(LibraryNonUmdObject::Array(
+        value
+          .array_payload
+          .expect("should have a array_payload when RawLibraryName.type is \"array\""),
+      )),
+      "umdObject" => Self::UmdObject(
+        value
+          .umd_object_payload
+          .expect("should have a umd_object_payload when RawLibraryName.type is \"umdObject\"")
+          .into(),
+      ),
+      _ => unreachable!(),
+    }
+  }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawLibraryCustomUmdObject {
   pub amd: Option<String>,
   pub commonjs: Option<String>,
   pub root: Option<Vec<String>>,
 }
 
-impl From<RawLibraryName> for LibraryName {
-  fn from(value: RawLibraryName) -> Self {
+impl From<RawLibraryCustomUmdObject> for LibraryCustomUmdObject {
+  fn from(value: RawLibraryCustomUmdObject) -> Self {
     Self {
       amd: value.amd,
       commonjs: value.commonjs,
@@ -72,6 +108,7 @@ pub struct RawLibraryOptions {
   pub library_type: String,
   pub umd_named_define: Option<bool>,
   pub auxiliary_comment: Option<RawLibraryAuxiliaryComment>,
+  pub amd_container: Option<String>,
 }
 
 impl From<RawLibraryOptions> for LibraryOptions {
@@ -82,6 +119,7 @@ impl From<RawLibraryOptions> for LibraryOptions {
       library_type: value.library_type,
       umd_named_define: value.umd_named_define,
       auxiliary_comment: value.auxiliary_comment.map(Into::into),
+      amd_container: value.amd_container,
     }
   }
 }
@@ -164,7 +202,7 @@ impl RawOptionsApply for RawOutputOptions {
       webassembly_module_filename: self.webassembly_module_filename.into(),
       unique_name: self.unique_name,
       chunk_loading: self.chunk_loading.as_str().into(),
-      chunk_loading_global: to_identifier(&self.chunk_loading_global),
+      chunk_loading_global: self.chunk_loading_global.as_str().into(),
       filename: self.filename.into(),
       chunk_filename: self.chunk_filename.into(),
       cross_origin_loading: self.cross_origin_loading.into(),

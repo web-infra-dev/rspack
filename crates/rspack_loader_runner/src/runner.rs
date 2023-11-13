@@ -4,6 +4,7 @@ use std::{
   sync::Arc,
 };
 
+use anymap::CloneAny;
 use derivative::Derivative;
 use once_cell::sync::OnceCell;
 use rspack_error::{
@@ -134,6 +135,8 @@ impl DescriptionData {
   }
 }
 
+pub type AdditionalData = anymap::Map<dyn CloneAny + Send + Sync>;
+
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct LoaderContext<'c, C> {
@@ -157,7 +160,7 @@ pub struct LoaderContext<'c, C> {
 
   pub context: C,
   pub source_map: Option<SourceMap>,
-  pub additional_data: Option<String>,
+  pub additional_data: AdditionalData,
   pub cacheable: bool,
 
   pub file_dependencies: HashSet<PathBuf>,
@@ -246,10 +249,10 @@ async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) ->
   // Bail out if loader does not exist,
   // or the last loader has been executed.
   if loader_context.__loader_index == 0
-    && (loader_context.__loader_items.get(0).is_none()
+    && (loader_context.__loader_items.first().is_none()
       || loader_context
         .__loader_items
-        .get(0)
+        .first()
         .map(|loader| loader.normal_executed())
         .unwrap_or_default())
   {
@@ -285,7 +288,7 @@ async fn create_loader_context<'c, C: 'c>(
     resource_fragment: resource_data.resource_fragment.as_deref(),
     context,
     source_map: None,
-    additional_data: None,
+    additional_data: Default::default(),
     __loader_index: 0,
     __loader_items: LoaderItemList(__loader_items),
     __plugins: plugins,
@@ -364,7 +367,7 @@ pub struct LoaderResult {
   pub asset_filenames: HashSet<String>,
   pub content: Content,
   pub source_map: Option<SourceMap>,
-  pub additional_data: Option<String>,
+  pub additional_data: AdditionalData,
 }
 
 impl<C> TryFrom<LoaderContext<'_, C>> for TWithDiagnosticArray<LoaderResult> {
@@ -700,5 +703,63 @@ mod test {
       // p2 pitched successfully.
       assert_eq!(i.borrow()[1], "pitch-normal-pitch".to_string());
     });
+  }
+
+  #[tokio::test]
+  async fn should_able_to_consume_additional_data() {
+    struct Normal;
+
+    impl Identifiable for Normal {
+      fn identifier(&self) -> Identifier {
+        "/rspack/normal-loader1".into()
+      }
+    }
+
+    #[async_trait::async_trait]
+    impl Loader<()> for Normal {
+      async fn run(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
+        let data = loader_context.additional_data.get::<&str>().unwrap();
+        assert_eq!(*data, "additional-data");
+        Ok(())
+      }
+    }
+
+    struct Normal2;
+
+    impl Identifiable for Normal2 {
+      fn identifier(&self) -> Identifier {
+        "/rspack/normal-loader2".into()
+      }
+    }
+
+    #[async_trait::async_trait]
+    impl Loader<()> for Normal2 {
+      async fn run(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
+        loader_context.additional_data.insert("additional-data");
+        Ok(())
+      }
+    }
+
+    let rs = ResourceData {
+      scheme: OnceCell::new(),
+      resource: "/rspack/main.js?abc=123#efg".to_owned(),
+      resource_description: None,
+      resource_fragment: None,
+      resource_query: None,
+      resource_path: Default::default(),
+      mimetype: None,
+      parameters: None,
+      encoding: None,
+      encoded_content: None,
+    };
+
+    run_loaders(
+      &[Arc::new(Normal) as Arc<dyn Loader>, Arc::new(Normal2)],
+      &rs,
+      &[Box::new(TestContentPlugin)],
+      (),
+    )
+    .await
+    .unwrap();
   }
 }

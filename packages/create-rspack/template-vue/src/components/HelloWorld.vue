@@ -1,16 +1,12 @@
-<script >
-import { defineComponent } from 'vue';
+<script setup>
+import { ref } from "vue";
 
-export default defineComponent({
-  props: {
-    msg: {
-      type: String,
-    }
-  },
-  data:function() {
-    return {count: 0}
+defineProps({
+  msg: {
+    type: String,
   }
 })
+const count = ref(0);
 </script>
 
 <template>

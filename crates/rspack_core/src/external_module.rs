@@ -11,10 +11,11 @@ use serde::Serialize;
 use crate::{
   property_access,
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
-  to_identifier, BuildContext, BuildInfo, BuildMetaExportsType, BuildResult, ChunkInitFragments,
-  ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult, Compilation, Context, ExternalType,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleType,
-  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
+  to_identifier, AsyncDependenciesBlockId, BuildContext, BuildInfo, BuildMetaExportsType,
+  BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult,
+  Compilation, Context, DependenciesBlock, DependencyId, ExternalType, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleType, NormalInitFragment,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -80,6 +81,8 @@ fn get_source_for_default_case(_optional: bool, request: &ExternalRequestValue) 
 
 #[derive(Debug)]
 pub struct ExternalModule {
+  dependencies: Vec<DependencyId>,
+  blocks: Vec<AsyncDependenciesBlockId>,
   id: Identifier,
   pub request: ExternalRequest,
   external_type: ExternalType,
@@ -90,6 +93,8 @@ pub struct ExternalModule {
 impl ExternalModule {
   pub fn new(request: ExternalRequest, external_type: ExternalType, user_request: String) -> Self {
     Self {
+      dependencies: Vec::new(),
+      blocks: Vec::new(),
       id: Identifier::from(format!("external {external_type} {request:?}")),
       request,
       external_type,
@@ -146,24 +151,28 @@ impl ExternalModule {
         "module.exports = {}",
         get_source_for_global_variable_external(request, external_type)
       ),
-      "global" if let Some(request) = request=> format!(
+      "global" if let Some(request) = request => format!(
         "module.exports ={} ",
         get_source_for_global_variable_external(request, &compilation.options.output.global_object)
       ),
-      "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" if let Some(request) = request => {
+      "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static"
+        if let Some(request) = request =>
+      {
         self.get_source_for_commonjs(request)
       }
       "node-commonjs" if let Some(request) = request => {
         if compilation.options.output.module {
-          chunk_init_fragments
-          .push(NormalInitFragment::new(
-            "import { createRequire as __WEBPACK_EXTERNAL_createRequire } from 'module';\n"
-              .to_string(),
-            InitFragmentStage::StageHarmonyImports,
-            0,
-            InitFragmentKey::ExternalModule("node-commonjs".to_string()),
-            None,
-          ).boxed());
+          chunk_init_fragments.push(
+            NormalInitFragment::new(
+              "import { createRequire as __WEBPACK_EXTERNAL_createRequire } from 'module';\n"
+                .to_string(),
+              InitFragmentStage::StageHarmonyImports,
+              0,
+              InitFragmentKey::ExternalModule("node-commonjs".to_string()),
+              None,
+            )
+            .boxed(),
+          );
           format!(
             "__WEBPACK_EXTERNAL_createRequire(import.meta.url)('{}')",
             request.primary()
@@ -198,8 +207,8 @@ impl ExternalModule {
             .map(|m| m.id(&compilation.chunk_graph))
             .unwrap_or_default();
           let identifier = to_identifier(id);
-          chunk_init_fragments
-            .push(NormalInitFragment::new(
+          chunk_init_fragments.push(
+            NormalInitFragment::new(
               format!(
                 "import * as __WEBPACK_EXTERNAL_MODULE_{identifier}__ from '{}';\n",
                 request.primary()
@@ -208,7 +217,9 @@ impl ExternalModule {
               0,
               InitFragmentKey::ExternalModule(identifier.clone()),
               None,
-            ).boxed());
+            )
+            .boxed(),
+          );
           runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
           format!(
             r#"var x = y => {{ var x = {{}}; {}(x, y); return x; }}
@@ -235,6 +246,24 @@ impl ExternalModule {
 impl Identifiable for ExternalModule {
   fn identifier(&self) -> Identifier {
     self.id
+  }
+}
+
+impl DependenciesBlock for ExternalModule {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
+    self.blocks.push(block)
+  }
+
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+    &self.blocks
+  }
+
+  fn add_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.push(dependency)
+  }
+
+  fn get_dependencies(&self) -> &[DependencyId] {
+    &self.dependencies
   }
 }
 
@@ -299,6 +328,7 @@ impl Module for ExternalModule {
       build_info,
       build_meta: Default::default(),
       dependencies: Vec::new(),
+      blocks: Vec::new(),
       analyze_result: Default::default(),
     };
     // TODO add exports_type for request
@@ -306,9 +336,9 @@ impl Module for ExternalModule {
       "this" => build_result.build_info.strict = false,
       "system" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
       "module" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
-      "script" | "promise" => build_result.build_meta.is_async = true,
+      "script" | "promise" => build_result.build_meta.has_top_level_await = true,
       "import" => {
-        build_result.build_meta.is_async = true;
+        build_result.build_meta.has_top_level_await = true;
         build_result.build_meta.exports_type = BuildMetaExportsType::Namespace;
       }
       _ => build_result.build_meta.exports_type = BuildMetaExportsType::Dynamic,

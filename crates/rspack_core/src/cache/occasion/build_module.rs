@@ -110,7 +110,9 @@ impl BuildModuleOccasion {
         .as_normal_module()
         .expect("Only normal module supports build cache");
       // only resume the build_meta to make sure other modules will not be affected
-      if matches!(module.source(), NormalModuleSource::BuiltFailed(_)) && let Some(last_result) = last_build_result {
+      if matches!(module.source(), NormalModuleSource::BuiltFailed(_))
+        && let Some(last_result) = last_build_result
+      {
         data.inner.build_meta = last_result.build_meta;
         return Ok((Ok(data), false));
       }

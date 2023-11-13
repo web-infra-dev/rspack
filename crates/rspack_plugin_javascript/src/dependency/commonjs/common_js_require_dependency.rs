@@ -50,6 +50,10 @@ impl Dependency for CommonJsRequireDependency {
   fn span(&self) -> Option<ErrorSpan> {
     self.span
   }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "CommonJsRequireDependency"
+  }
 }
 
 impl ModuleDependency for CommonJsRequireDependency {
@@ -67,10 +71,6 @@ impl ModuleDependency for CommonJsRequireDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
-  }
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "CommonJsRequireDependency"
   }
 }
 

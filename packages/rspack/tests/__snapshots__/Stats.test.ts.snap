@@ -37,7 +37,7 @@ exports[`Stats should have ids when ids is true 1`] = `
       "names": [
         "main",
       ],
-      "size": 55,
+      "size": 59,
       "type": "chunk",
     },
   ],
@@ -56,7 +56,7 @@ exports[`Stats should have ids when ids is true 1`] = `
       "moduleType": "javascript/auto",
       "name": "./fixtures/a.js",
       "nameForCondition": "<PROJECT_ROOT>/tests/fixtures/a.js",
-      "size": 55,
+      "size": 59,
       "type": "module",
     },
   ],
@@ -122,10 +122,11 @@ exports[`Stats should have stats 1`] = `
               "userRequest": "./fixtures/a",
             },
           ],
-          "size": 55,
+          "size": 59,
           "source": "module.exports = function a() {
-	return "This is a";
-};",
+    return "This is a";
+};
+",
           "type": "module",
         },
       ],
@@ -134,7 +135,7 @@ exports[`Stats should have stats 1`] = `
       ],
       "parents": [],
       "siblings": [],
-      "size": 55,
+      "size": 59,
       "type": "chunk",
     },
   ],
@@ -156,7 +157,7 @@ exports[`Stats should have stats 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "9608c01366e871cd4b26",
+  "hash": "28f6a741bb6c785d1890",
   "logging": {},
   "modules": [
     {
@@ -182,10 +183,11 @@ exports[`Stats should have stats 1`] = `
           "userRequest": "./fixtures/a",
         },
       ],
-      "size": 55,
+      "size": 59,
       "source": "module.exports = function a() {
-	return "This is a";
-};",
+    return "This is a";
+};
+",
       "type": "module",
     },
   ],
@@ -281,10 +283,11 @@ exports[`Stats should output stats with query 1`] = `
               "userRequest": "./a",
             },
           ],
-          "size": 55,
+          "size": 59,
           "source": "module.exports = function a() {
-	return "This is a";
-};",
+    return "This is a";
+};
+",
           "type": "module",
         },
         {
@@ -316,10 +319,11 @@ exports[`Stats should output stats with query 1`] = `
               "userRequest": "./a?a=1",
             },
           ],
-          "size": 55,
+          "size": 59,
           "source": "module.exports = function a() {
-	return "This is a";
-};",
+    return "This is a";
+};
+",
           "type": "module",
         },
         {
@@ -351,11 +355,12 @@ exports[`Stats should output stats with query 1`] = `
               "userRequest": "./c?c=3",
             },
           ],
-          "size": 72,
+          "size": 79,
           "source": "module.exports = function b() {
-	require("./a");
-	return "This is c";
-};",
+    require("./a");
+    return "This is c";
+};
+",
           "type": "module",
         },
         {
@@ -394,7 +399,7 @@ exports.c = require("./c?c=3");
       ],
       "parents": [],
       "siblings": [],
-      "size": 281,
+      "size": 296,
       "type": "chunk",
     },
   ],
@@ -416,7 +421,7 @@ exports.c = require("./c?c=3");
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "f30a2457d70baa4da0c5",
+  "hash": "f141b204a28da3455a73",
   "logging": {},
   "modules": [
     {
@@ -453,10 +458,11 @@ exports.c = require("./c?c=3");
           "userRequest": "./a",
         },
       ],
-      "size": 55,
+      "size": 59,
       "source": "module.exports = function a() {
-	return "This is a";
-};",
+    return "This is a";
+};
+",
       "type": "module",
     },
     {
@@ -488,10 +494,11 @@ exports.c = require("./c?c=3");
           "userRequest": "./a?a=1",
         },
       ],
-      "size": 55,
+      "size": 59,
       "source": "module.exports = function a() {
-	return "This is a";
-};",
+    return "This is a";
+};
+",
       "type": "module",
     },
     {
@@ -523,11 +530,12 @@ exports.c = require("./c?c=3");
           "userRequest": "./c?c=3",
         },
       ],
-      "size": 72,
+      "size": 79,
       "source": "module.exports = function b() {
-	require("./a");
-	return "This is c";
-};",
+    require("./a");
+    return "This is c";
+};
+",
       "type": "module",
     },
     {

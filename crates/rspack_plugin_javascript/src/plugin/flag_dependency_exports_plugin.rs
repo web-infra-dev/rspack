@@ -2,9 +2,9 @@ use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
 use rspack_core::{
-  BuildMetaExportsType, Compilation, DependencyId, ExportInfoProvided, ExportNameOrSpec,
-  ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, Plugin,
+  BuildMetaExportsType, Compilation, DependenciesBlock, DependencyId, ExportInfoProvided,
+  ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, Plugin,
 };
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -55,13 +55,12 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       }
     }
     self.mg.module_identifier_to_module_graph_module = module_graph_modules;
-
     while let Some(module_id) = q.pop_back() {
       self.changed = false;
       self.current_module_id = module_id;
       let mut exports_specs_from_dependencies: HashMap<DependencyId, ExportsSpec> =
         HashMap::default();
-      self.process_dependencies_block(module_id, &mut exports_specs_from_dependencies);
+      self.process_dependencies_block(&module_id, &mut exports_specs_from_dependencies);
       let exports_info_id = self.mg.get_exports_info(&module_id).id;
       for (dep_id, exports_spec) in exports_specs_from_dependencies.into_iter() {
         self.process_exports_spec(dep_id, exports_spec, exports_info_id);
@@ -81,25 +80,37 @@ impl<'a> FlagDependencyExportsProxy<'a> {
   }
 
   pub fn process_dependencies_block(
-    &mut self,
-    mi: ModuleIdentifier,
+    &self,
+    module_identifier: &ModuleIdentifier,
     exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
-    let mgm = self.mg.module_graph_module_by_identifier(&mi)?;
-    // This clone is aiming to avoid use mut ref and immutable ref at the same time.
-    for ele in mgm.dependencies.clone().iter() {
+    let block = &**self.mg.module_by_identifier(module_identifier)?;
+    self.process_dependencies_block_inner(block, exports_specs_from_dependencies)
+  }
+
+  fn process_dependencies_block_inner<B: DependenciesBlock + ?Sized>(
+    &self,
+    block: &B,
+    exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
+  ) -> Option<()> {
+    for ele in block.get_dependencies().iter() {
       self.process_dependency(ele, exports_specs_from_dependencies);
+    }
+    for block_id in block.get_blocks() {
+      let block = self.mg.block_by_id(block_id)?;
+      self.process_dependencies_block_inner(block, exports_specs_from_dependencies);
     }
     None
   }
 
   pub fn process_dependency(
-    &mut self,
+    &self,
     dep_id: &DependencyId,
     exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
     let dep = self.mg.dependency_by_id(dep_id)?;
-    let exports_specs = dep.get_exports()?;
+    // this is why we can bubble here. https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/FlagDependencyExportsPlugin.js#L140
+    let exports_specs = dep.get_exports(self.mg)?;
     exports_specs_from_dependencies.insert(*dep_id, exports_specs);
     Some(())
   }
@@ -124,7 +135,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           .export_info_map
           .get_mut(&from_exports_info_id)
           .expect("should have export info");
-        export_info.unuset_target(&dep_id);
+        export_info.unset_target(&dep_id);
       }
     }
     match exports {
@@ -140,6 +151,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       }
       ExportsOfExportsSpec::Null => {}
       ExportsOfExportsSpec::Array(ele) => {
+        // dbg!(ele);
         self.merge_exports(
           exports_info_id,
           ele,
@@ -151,6 +163,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           },
           dep_id,
         );
+        // dbg!(&ele, exports_info_id.get_exports_info(self.mg));
       }
     }
 
@@ -176,6 +189,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     dep_id: DependencyId,
   ) {
     for export_name_or_spec in exports {
+      // dbg!(&export_name_or_spec);
       let (name, can_mangle, terminal_binding, exports, from, from_export, priority, hidden) =
         match export_name_or_spec {
           ExportNameOrSpec::String(name) => (
@@ -184,7 +198,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
             global_export_info.terminal_binding,
             None::<&Vec<ExportNameOrSpec>>,
             global_export_info.from.cloned(),
-            None::<&Vec<JsWord>>,
+            None::<&rspack_core::Nullable<Vec<JsWord>>>,
             global_export_info.priority,
             false,
           ),
@@ -219,7 +233,13 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         .get_mut(&export_info_id)
         .expect("should have export info")
         .clone();
-      if let Some(ref mut provided) = export_info.provided && matches!(provided, ExportInfoProvided::False | ExportInfoProvided::Null) {
+      // dbg!(&export_info);
+      if let Some(ref mut provided) = export_info.provided
+        && matches!(
+          provided,
+          ExportInfoProvided::False | ExportInfoProvided::Null
+        )
+      {
         *provided = ExportInfoProvided::True;
         self.changed = true;
       }
@@ -246,22 +266,22 @@ impl<'a> FlagDependencyExportsProxy<'a> {
 
       if let Some(from) = from {
         let changed = if hidden {
-          export_info.unuset_target(&dep_id)
+          export_info.unset_target(&dep_id)
         } else {
-          let fallback = vec![name.clone()];
+          let fallback = rspack_core::Nullable::Value(vec![name.clone()]);
           let export_name = if let Some(from) = from_export {
             Some(from)
           } else {
             Some(&fallback)
           };
-          export_info.set_target(&dep_id, Some(from), export_name, priority)
+          export_info.set_target(Some(dep_id), Some(from), export_name, priority)
         };
         self.changed |= changed;
       }
 
       // Recalculate target exportsInfo
       let target = export_info.get_target(self.mg, None);
-
+      // dbg!(&target);
       let export_info_old = self
         .mg
         .export_info_map
@@ -274,7 +294,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         let target_module_exports_info = self.mg.get_exports_info(&target.module);
         target_exports_info = target_module_exports_info
           .id
-          .get_nested_exports_info(target.exports, self.mg);
+          .get_nested_exports_info(target.export, self.mg);
         match self.dependencies.entry(target.module) {
           Entry::Occupied(mut occ) => {
             occ.get_mut().insert(self.current_module_id);

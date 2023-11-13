@@ -14,8 +14,16 @@ fn compat_by_preset_env(
   assumptions: Assumptions,
   comments: Option<&dyn Comments>,
 ) -> impl Fold + '_ {
-  if let Some(PresetEnv { mode, targets, core_js }) = preset_env_config && !targets.is_empty() {
-    let core_js = if let Some(core_js) = &core_js && let Ok(core_js) = core_js.parse() {
+  if let Some(PresetEnv {
+    mode,
+    targets,
+    core_js,
+  }) = preset_env_config
+    && !targets.is_empty()
+  {
+    let core_js = if let Some(core_js) = &core_js
+      && let Ok(core_js) = core_js.parse()
+    {
       Some(core_js)
     } else {
       None
@@ -66,23 +74,28 @@ fn compat_by_es_version(
               constant_super: assumptions.constant_super,
               set_public_fields: assumptions.set_public_class_fields,
               no_document_all: assumptions.no_document_all,
-              static_blocks_mark: Mark::new()
+              static_blocks_mark: Mark::new(),
+              pure_getter: false,
             }
-          }
+          },
+          Mark::new()
         ),
         es_version < EsVersion::Es2022
       ),
       Optional::new(compat::es2021::es2021(), es_version < EsVersion::Es2021),
       Optional::new(
-        compat::es2020::es2020(compat::es2020::Config {
-          nullish_coalescing: compat::es2020::nullish_coalescing::Config {
-            no_document_all: assumptions.no_document_all
+        compat::es2020::es2020(
+          compat::es2020::Config {
+            nullish_coalescing: compat::es2020::nullish_coalescing::Config {
+              no_document_all: assumptions.no_document_all
+            },
+            optional_chaining: compat::es2020::optional_chaining::Config {
+              no_document_all: assumptions.no_document_all,
+              pure_getter: assumptions.pure_getters
+            }
           },
-          optional_chaining: compat::es2020::optional_chaining::Config {
-            no_document_all: assumptions.no_document_all,
-            pure_getter: assumptions.pure_getters
-          }
-        }),
+          unresolved_mark
+        ),
         es_version < EsVersion::Es2020
       ),
       Optional::new(compat::es2019::es2019(), es_version < EsVersion::Es2019),

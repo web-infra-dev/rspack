@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Compilation, Compiler } from "..";
 import type * as oldBuiltins from "../builtin-plugin";
 import type * as webpackDevServer from "webpack-dev-server";
+import { deprecatedWarn, termlink } from "../util";
 
 //#region Name
 const name = z.string();
@@ -53,6 +54,75 @@ export type WasmLoadingType = z.infer<typeof wasmLoadingType>;
 const wasmLoading = z.literal(false).or(wasmLoadingType);
 export type WasmLoading = z.infer<typeof wasmLoading>;
 
+const libraryCustomUmdObject = z.strictObject({
+	amd: z.string().optional(),
+	commonjs: z.string().optional(),
+	root: z.string().or(z.array(z.string())).optional()
+});
+export type LibraryCustomUmdObject = z.infer<typeof libraryCustomUmdObject>;
+
+const libraryName = z
+	.string()
+	.or(z.array(z.string()))
+	.or(libraryCustomUmdObject);
+export type LibraryName = z.infer<typeof libraryName>;
+
+const libraryCustomUmdCommentObject = z.strictObject({
+	amd: z.string().optional(),
+	commonjs: z.string().optional(),
+	commonjs2: z.string().optional(),
+	root: z.string().optional()
+});
+export type LibraryCustomUmdCommentObject = z.infer<
+	typeof libraryCustomUmdCommentObject
+>;
+
+const amdContainer = z.string();
+export type AmdComtainer = z.infer<typeof amdContainer>;
+
+const auxiliaryComment = z.string().or(libraryCustomUmdCommentObject);
+export type AuxiliaryComment = z.infer<typeof auxiliaryComment>;
+
+const libraryExport = z.string().or(z.array(z.string()));
+export type LibraryExport = z.infer<typeof libraryExport>;
+
+const libraryType = z
+	.enum([
+		"var",
+		"module",
+		"assign",
+		"assign-properties",
+		"this",
+		"window",
+		"self",
+		"global",
+		"commonjs",
+		"commonjs2",
+		"commonjs-module",
+		"commonjs-static",
+		"amd",
+		"amd-require",
+		"umd",
+		"umd2",
+		"jsonp",
+		"system"
+	])
+	.or(z.string());
+export type LibraryType = z.infer<typeof libraryType>;
+
+const umdNamedDefine = z.boolean();
+export type UmdNamedDefine = z.infer<typeof umdNamedDefine>;
+
+const libraryOptions = z.strictObject({
+	amdContainer: amdContainer.optional(),
+	auxiliaryComment: auxiliaryComment.optional(),
+	export: libraryExport.optional(),
+	name: libraryName.optional(),
+	type: libraryType,
+	umdNamedDefine: umdNamedDefine.optional()
+});
+export type LibraryOptions = z.infer<typeof libraryOptions>;
+
 const filenameTemplate = z.string();
 export type FilenameTemplate = z.infer<typeof filenameTemplate>;
 
@@ -76,7 +146,8 @@ const entryDescription = z.strictObject({
 	chunkLoading: chunkLoading.optional(),
 	asyncChunks: asyncChunks.optional(),
 	wasmLoading: wasmLoading.optional(),
-	filename: entryFilename.optional()
+	filename: entryFilename.optional(),
+	library: libraryOptions.optional()
 });
 export type EntryDescription = z.infer<typeof entryDescription>;
 
@@ -133,71 +204,6 @@ export type UniqueName = z.infer<typeof uniqueName>;
 
 const chunkLoadingGlobal = z.string();
 export type ChunkLoadingGlobal = z.infer<typeof chunkLoadingGlobal>;
-
-const libraryCustomUmdObject = z.strictObject({
-	amd: z.string().optional(),
-	commonjs: z.string().optional(),
-	root: z.string().or(z.array(z.string())).optional()
-});
-export type LibraryCustomUmdObject = z.infer<typeof libraryCustomUmdObject>;
-
-const libraryName = z
-	.string()
-	.or(z.array(z.string()))
-	.or(libraryCustomUmdObject);
-export type LibraryName = z.infer<typeof libraryName>;
-
-const libraryCustomUmdCommentObject = z.strictObject({
-	amd: z.string().optional(),
-	commonjs: z.string().optional(),
-	commonjs2: z.string().optional(),
-	root: z.string().optional()
-});
-export type LibraryCustomUmdCommentObject = z.infer<
-	typeof libraryCustomUmdCommentObject
->;
-
-const auxiliaryComment = z.string().or(libraryCustomUmdCommentObject);
-export type AuxiliaryComment = z.infer<typeof auxiliaryComment>;
-
-const libraryExport = z.string().or(z.array(z.string()));
-export type LibraryExport = z.infer<typeof libraryExport>;
-
-const libraryType = z
-	.enum([
-		"var",
-		"module",
-		"assign",
-		"assign-properties",
-		"this",
-		"window",
-		"self",
-		"global",
-		"commonjs",
-		"commonjs2",
-		"commonjs-module",
-		"commonjs-static",
-		"amd",
-		"amd-require",
-		"umd",
-		"umd2",
-		"jsonp",
-		"system"
-	])
-	.or(z.string());
-export type LibraryType = z.infer<typeof libraryType>;
-
-const umdNamedDefine = z.boolean();
-export type UmdNamedDefine = z.infer<typeof umdNamedDefine>;
-
-const libraryOptions = z.strictObject({
-	auxiliaryComment: auxiliaryComment.optional(),
-	export: libraryExport.optional(),
-	name: libraryName.optional(),
-	type: libraryType,
-	umdNamedDefine: umdNamedDefine.optional()
-});
-export type LibraryOptions = z.infer<typeof libraryOptions>;
 
 const enabledLibraryTypes = z.array(libraryType);
 export type EnabledLibraryTypes = z.infer<typeof enabledLibraryTypes>;
@@ -274,6 +280,7 @@ const output = z.strictObject({
 	libraryExport: libraryExport.optional(),
 	libraryTarget: libraryType.optional(),
 	umdNamedDefine: umdNamedDefine.optional(),
+	amdContainer: amdContainer.optional(),
 	auxiliaryComment: auxiliaryComment.optional(),
 	module: outputModule.optional(),
 	strictModuleErrorHandling: strictModuleErrorHandling.optional(),
@@ -456,9 +463,19 @@ const assetParserOptions = z.strictObject({
 });
 export type AssetParserOptions = z.infer<typeof assetParserOptions>;
 
-const parserOptionsByModuleTypeKnown = z.strictObject({
-	asset: assetParserOptions.optional()
+//TODO: "weak", "lazy-once"
+const dynamicImportMode = z.enum(["eager", "lazy"]);
+
+const javascriptParserOptions = z.strictObject({
+	dynamicImportMode: dynamicImportMode.optional()
 });
+export type JavascriptParserOptions = z.infer<typeof javascriptParserOptions>;
+
+const parserOptionsByModuleTypeKnown = z.strictObject({
+	asset: assetParserOptions.optional(),
+	javascript: javascriptParserOptions.optional()
+});
+
 export type ParserOptionsByModuleTypeKnown = z.infer<
 	typeof parserOptionsByModuleTypeKnown
 >;
@@ -836,7 +853,8 @@ const statsOptions = z.strictObject({
 		.or(z.boolean())
 		.optional(),
 	loggingDebug: z.boolean().or(filterTypes).optional(),
-	loggingTrace: z.boolean().optional()
+	loggingTrace: z.boolean().optional(),
+	runtimeModules: z.boolean().optional()
 });
 export type StatsOptions = z.infer<typeof statsOptions>;
 
@@ -963,13 +981,20 @@ const experiments = z.strictObject({
 	incrementalRebuild: z.boolean().or(incrementalRebuildOptions).optional(),
 	asyncWebAssembly: z.boolean().optional(),
 	outputModule: z.boolean().optional(),
+	topLevelAwait: z.boolean().optional(),
 	newSplitChunks: z
 		.boolean()
 		.optional()
 		.refine(val => {
-			if (val === false || val === true) {
-				console.warn(
-					"`experiments.newSplitChunks` will be removed at 0.4.0. See details at https://github.com/web-infra-dev/rspack/discussions/4168"
+			if (val === false) {
+				deprecatedWarn(
+					`'experiments.newSplitChunks = ${JSON.stringify(
+						val
+					)}' has been deprecated, please switch to 'experiments.newSplitChunks = true' to use webpack's behavior.
+ 	See the discussion ${termlink(
+		"here",
+		"https://github.com/web-infra-dev/rspack/discussions/4168"
+	)}`
 				);
 			}
 			return true;

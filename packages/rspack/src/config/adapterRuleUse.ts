@@ -9,13 +9,7 @@ import { ResolveRequest } from "enhanced-resolve";
 import { Compiler } from "../Compiler";
 import { Logger } from "../logging/Logger";
 import Hash from "../util/hash";
-import {
-	Mode,
-	Resolve,
-	RuleSetUse,
-	RuleSetUseItem,
-	RuleSetLoaderWithOptions
-} from "./zod";
+import { Mode, Resolve, RuleSetUseItem, RuleSetLoaderWithOptions } from "./zod";
 import { parsePathQueryFragment } from "../loader-runner";
 import { deprecatedWarn, isNil, termlink } from "../util";
 import {
@@ -112,6 +106,9 @@ export interface LoaderContext<OptionsType = {}> {
 	loaders: LoaderObject[];
 	mode?: Mode;
 	hot?: boolean;
+	/**
+	 * @param schema To provide the best performance, Rspack does not perform the schema validation. If your loader requires schema validation, please call scheme-utils or zod on your own.
+	 */
 	getOptions(schema?: any): OptionsType;
 	resolve(
 		context: string,

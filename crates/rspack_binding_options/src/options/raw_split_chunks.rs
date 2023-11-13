@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use derivative::Derivative;
 use napi::{Either, JsString};
@@ -18,7 +18,7 @@ type Chunks = Either<JsRegExp, JsString>;
 pub struct RawSplitChunksOptions {
   pub fallback_cache_group: Option<RawFallbackCacheGroupOptions>,
   pub name: Option<String>,
-  pub cache_groups: Option<HashMap<String, RawCacheGroupOptions>>,
+  pub cache_groups: Option<Vec<RawCacheGroupOptions>>,
   /// What kind of chunks should be selected.
   #[serde(skip_deserializing)]
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
@@ -66,50 +66,44 @@ impl From<RawSplitChunksOptions> for SplitChunksOptions {
 
     defaults
       .cache_groups
-      .extend(
-        value
-          .cache_groups
-          .unwrap_or_default()
-          .into_iter()
-          .map(|(k, v)| {
-            (
-              k,
-              CacheGroupOptions {
-                name: v.name,
-                priority: v.priority,
-                reuse_existing_chunk: Some(false),
-                test: v.test.map(|test| {
-                  let test = match test {
-                    Either::A(s) => s.into_string(),
-                    Either::B(_reg) => unimplemented!(),
-                  };
-                  let f: TestFn = Arc::new(move |module| {
-                    let re = rspack_regex::RspackRegex::new(&test)
-                      .unwrap_or_else(|_| panic!("Invalid regex: {}", &test));
-                    module
-                      .name_for_condition()
-                      .map_or(false, |name| re.test(&name))
-                  });
-                  f
-                }),
-                chunks: v.chunks.map(|chunks| {
-                  let Either::B(chunks) = chunks else {
-                    panic!("expected string")
-                  };
-                  let chunks = chunks.into_string();
-                  match chunks.as_str() {
-                    "initial" => ChunkType::Initial,
-                    "async" => ChunkType::Async,
-                    "all" => ChunkType::All,
-                    _ => panic!("Invalid chunk type: {chunks}"),
-                  }
-                }),
-                min_chunks: v.min_chunks,
-                ..Default::default()
-              },
-            )
-          }),
-      );
+      .extend(value.cache_groups.unwrap_or_default().into_iter().map(|v| {
+        (
+          v.key,
+          CacheGroupOptions {
+            name: v.name,
+            priority: v.priority,
+            reuse_existing_chunk: Some(false),
+            test: v.test.map(|test| {
+              let test = match test {
+                Either::A(s) => s.into_string(),
+                Either::B(_reg) => unimplemented!(),
+              };
+              let f: TestFn = Arc::new(move |module| {
+                let re = rspack_regex::RspackRegex::new(&test)
+                  .unwrap_or_else(|_| panic!("Invalid regex: {}", &test));
+                module
+                  .name_for_condition()
+                  .map_or(false, |name| re.test(&name))
+              });
+              f
+            }),
+            chunks: v.chunks.map(|chunks| {
+              let Either::B(chunks) = chunks else {
+                panic!("expected string")
+              };
+              let chunks = chunks.into_string();
+              match chunks.as_str() {
+                "initial" => ChunkType::Initial,
+                "async" => ChunkType::Async,
+                "all" => ChunkType::All,
+                _ => panic!("Invalid chunk type: {chunks}"),
+              }
+            }),
+            min_chunks: v.min_chunks,
+            ..Default::default()
+          },
+        )
+      }));
     defaults
   }
 }
@@ -119,6 +113,7 @@ impl From<RawSplitChunksOptions> for SplitChunksOptions {
 #[napi(object)]
 #[derivative(Debug)]
 pub struct RawCacheGroupOptions {
+  pub key: String,
   pub priority: Option<i32>,
   // pub reuse_existing_chunk: Option<bool>,
   //   pub r#type: SizeType,
@@ -191,7 +186,7 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
     let create_sizes = |size: Option<f64>| {
       size
         .map(|size| SplitChunkSizes::with_initial_value(&default_size_types, size))
-        .unwrap_or_else(SplitChunkSizes::default)
+        .unwrap_or_default()
     };
 
     let empty_sizes = SplitChunkSizes::empty();
@@ -206,7 +201,7 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
         .cache_groups
         .unwrap_or_default()
         .into_iter()
-        .map(|(key, v)| {
+        .map(|v| {
           let enforce = v.enforce.unwrap_or_default();
 
           let min_size = create_sizes(v.min_size).merge(if enforce {
@@ -234,9 +229,11 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
                 &overall_max_initial_size
               });
 
-          let min_chunks = v
-            .min_chunks
-            .unwrap_or(if enforce { 1 } else { overall_min_chunks });
+          let min_chunks = if enforce {
+            1
+          } else {
+            v.min_chunks.unwrap_or(overall_min_chunks)
+          };
 
           let r#type = v
             .r#type
@@ -244,8 +241,8 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
             .unwrap_or_else(rspack_plugin_split_chunks_new::create_default_module_type_filter);
 
           new_split_chunks_plugin::CacheGroup {
-            id_hint: v.id_hint.unwrap_or_else(|| key.clone()),
-            key,
+            id_hint: v.id_hint.unwrap_or_else(|| v.key.clone()),
+            key: v.key,
             name: v
               .name
               .map(new_split_chunks_plugin::create_chunk_name_getter_by_const_name)

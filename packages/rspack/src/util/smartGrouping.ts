@@ -133,7 +133,7 @@ export const smartGrouping = <T, R>(
 					}
 				}
 				const targetGroupCount = (options && options.targetGroupCount) || 4;
-				let sizeValue = force
+				const sizeValue = force
 					? items.size
 					: Math.min(
 							items.size,

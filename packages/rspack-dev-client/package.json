@@ -1,6 +1,6 @@
 {
   "name": "@rspack/dev-client",
-  "version": "0.3.7",
+  "version": "0.3.11",
   "license": "MIT",
   "description": "Development client for rspack",
   "scripts": {
@@ -34,6 +34,7 @@
   },
   "exports": {
     "./react-refresh": "./src/reactRefresh.js",
-    "./react-refresh-entry": "./src/reactRefreshEntry.js"
+    "./react-refresh-entry": "./src/reactRefreshEntry.js",
+    "./package.json": "./package.json"
   }
 }

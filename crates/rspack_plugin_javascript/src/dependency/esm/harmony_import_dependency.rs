@@ -177,7 +177,8 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
     .module_graph
     .get_import_var(&module.identifier(), module_dependency.request());
   let key = module_dependency.request();
-  if compilation.module_graph.is_async(ref_module) {
+  let is_async_module = matches!(compilation.module_graph.is_async(ref_module), Some(true));
+  if is_async_module {
     init_fragments.push(Box::new(NormalInitFragment::new(
       content.0,
       InitFragmentStage::StageHarmonyImports,
@@ -216,7 +217,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
         RuntimeGlobals::REQUIRE,
         RuntimeGlobals::EXPORT_STAR,
       ),
-      if compilation.module_graph.is_async(ref_module) {
+      if is_async_module {
         InitFragmentStage::StageAsyncHarmonyImports
       } else {
         InitFragmentStage::StageHarmonyImports
@@ -229,6 +230,10 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
 }
 
 impl Dependency for HarmonyImportSideEffectDependency {
+  fn dependency_debug_name(&self) -> &'static str {
+    "HarmonyImportDependency"
+  }
+
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -305,10 +310,6 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
   }
 
   // It's from HarmonyImportSideEffectDependency.
-
-  fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyImportDependency"
-  }
 }
 
 impl DependencyTemplate for HarmonyImportSideEffectDependency {

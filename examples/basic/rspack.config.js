@@ -1,16 +1,11 @@
+const rspack = require("@rspack/core");
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
-	context: __dirname,
-	mode: "development",
-	entry: {
-		main: "./src/index.js"
-	},
-	builtins: {
-		html: [
-			{
-				template: "./index.html"
-			}
-		]
-	}
+	entry: "./src/index.js",
+	plugins: [
+		new rspack.HtmlRspackPlugin({
+			template: "./index.html"
+		})
+	]
 };
 module.exports = config;

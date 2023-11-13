@@ -98,7 +98,9 @@ impl ExternalsPlugin {
     };
 
     fn parse_external_type_from_str(v: &str) -> Option<(ExternalType, String)> {
-      if UNSPECIFIED_EXTERNAL_TYPE_REGEXP.is_match(v) && let Some((t, c)) = v.split_once(' ') {
+      if UNSPECIFIED_EXTERNAL_TYPE_REGEXP.is_match(v)
+        && let Some((t, c)) = v.split_once(' ')
+      {
         return Some((t.to_owned(), c.to_owned()));
       }
       None

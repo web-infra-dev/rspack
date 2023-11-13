@@ -30,7 +30,8 @@ import {
 	isNil,
 	serializeObject,
 	toBuffer,
-	toObject
+	toObject,
+	stringifyLoaderObject
 } from "../util";
 import { absolutify, contextify, makePathsRelative } from "../util/identifier";
 import { memoize } from "../util/memoize";
@@ -45,7 +46,7 @@ export function parsePathQueryFragment(str: string): {
 	query: string;
 	fragment: string;
 } {
-	let match = PATH_QUERY_FRAGMENT_REGEXP.exec(str);
+	const match = PATH_QUERY_FRAGMENT_REGEXP.exec(str);
 	return {
 		path: match?.[1].replace(/\0(.)/g, "$1") || "",
 		query: match?.[2] ? match[2].replace(/\0(.)/g, "$1") : "",
@@ -55,19 +56,15 @@ export function parsePathQueryFragment(str: string): {
 
 function dirname(path: string) {
 	if (path === "/") return "/";
-	var i = path.lastIndexOf("/");
-	var j = path.lastIndexOf("\\");
-	var i2 = path.indexOf("/");
-	var j2 = path.indexOf("\\");
-	var idx = i > j ? i : j;
-	var idx2 = i > j ? i2 : j2;
+	const i = path.lastIndexOf("/");
+	const j = path.lastIndexOf("\\");
+	const i2 = path.indexOf("/");
+	const j2 = path.indexOf("\\");
+	const idx = i > j ? i : j;
+	const idx2 = i > j ? i2 : j2;
 	if (idx < 0) return path;
 	if (idx === idx2) return path.slice(0, idx + 1);
 	return path.slice(0, idx);
-}
-
-function stringifyLoaderObject(o: LoaderObject): string {
-	return o.path + o.query + o.fragment;
 }
 
 function createLoaderObject(loader: any, compiler: Compiler): LoaderObject {
@@ -95,29 +92,12 @@ function createLoaderObject(loader: any, compiler: Compiler): LoaderObject {
 		},
 		set: function (value) {
 			if (typeof value === "string") {
-				let splittedRequest = parsePathQueryFragment(value);
+				const splittedRequest = parsePathQueryFragment(value);
 				obj.path = splittedRequest.path;
 				obj.query = splittedRequest.query;
 				obj.fragment = splittedRequest.fragment;
-
-				if (obj.query.startsWith("??")) {
-					const ident = obj.query.slice(2);
-					if (ident === "[[missing ident]]") {
-						throw new Error(
-							"No ident is provided by referenced loader. " +
-								"When using a function for Rule.use in config you need to " +
-								"provide an 'ident' property for referenced loader options."
-						);
-					}
-					obj.options = compiler.ruleSet.references.get(ident);
-					if (obj.options === undefined) {
-						throw new Error("Invalid ident is provided by referenced loader");
-					}
-					obj.ident = ident;
-				} else {
-					obj.options = undefined;
-					obj.ident = undefined;
-				}
+				obj.options = undefined;
+				obj.ident = undefined;
 			} else {
 				if (!value.loader)
 					throw new Error(
@@ -163,9 +143,9 @@ function getCurrentLoader(
 	return null;
 }
 
-export async function runLoader(
-	rawContext: JsLoaderContext,
-	compiler: Compiler
+export async function runLoaders(
+	compiler: Compiler,
+	rawContext: JsLoaderContext
 ) {
 	const resource = rawContext.resource;
 	const loaderContext: LoaderContext = {} as LoaderContext;
@@ -179,15 +159,40 @@ export async function runLoader(
 
 	// execution state
 	let cacheable = true;
-	let fileDependencies: string[] = rawContext.fileDependencies.slice();
-	let contextDependencies: string[] = rawContext.contextDependencies.slice();
-	let missingDependencies: string[] = rawContext.missingDependencies.slice();
-	let buildDependencies: string[] = rawContext.buildDependencies.slice();
-	let assetFilenames = rawContext.assetFilenames.slice();
+	const fileDependencies: string[] = rawContext.fileDependencies.slice();
+	const contextDependencies: string[] = rawContext.contextDependencies.slice();
+	const missingDependencies: string[] = rawContext.missingDependencies.slice();
+	const buildDependencies: string[] = rawContext.buildDependencies.slice();
+	const assetFilenames = rawContext.assetFilenames.slice();
 
-	const loaders = rawContext.currentLoader
-		.split("$")
-		.map(loader => createLoaderObject(loader, compiler));
+	const loaders = rawContext.currentLoader.split("$").map(loader => {
+		const splittedRequest = parsePathQueryFragment(loader);
+		const obj: any = {};
+		obj.loader = obj.path = splittedRequest.path;
+		obj.query = splittedRequest.query;
+		obj.fragment = splittedRequest.fragment;
+		const type = /\.mjs$/i.test(splittedRequest.path) ? "module" : "commonjs";
+		obj.type = type;
+		obj.options = splittedRequest.query
+			? splittedRequest.query.slice(1)
+			: undefined;
+		if (typeof obj.options === "string" && obj.options[0] === "?") {
+			const ident = obj.options.slice(1);
+			if (ident === "[[missing ident]]") {
+				throw new Error(
+					"No ident is provided by referenced loader. " +
+						"When using a function for Rule.use in config you need to " +
+						"provide an 'ident' property for referenced loader options."
+				);
+			}
+			obj.options = compiler.ruleSet.references.get(ident);
+			if (obj.options === undefined) {
+				throw new Error("Invalid ident is provided by referenced loader");
+			}
+			obj.ident = ident;
+		}
+		return createLoaderObject(obj, compiler);
+	});
 
 	loaderContext.__internal__context = rawContext;
 	loaderContext.context = contextDirectory;
@@ -237,7 +242,7 @@ export async function runLoader(
 			);
 		},
 		set: function (value) {
-			var splittedResource = value && parsePathQueryFragment(value);
+			const splittedResource = value && parsePathQueryFragment(value);
 			loaderContext.resourcePath = splittedResource
 				? splittedResource.path
 				: undefined;
@@ -303,7 +308,7 @@ export async function runLoader(
 	Object.defineProperty(loaderContext, "query", {
 		enumerable: true,
 		get: function () {
-			var entry = loaderContext.loaders[loaderContext.loaderIndex];
+			const entry = loaderContext.loaders[loaderContext.loaderIndex];
 			return entry.options && typeof entry.options === "object"
 				? entry.options
 				: entry.query;
@@ -503,27 +508,28 @@ export async function runLoader(
 	};
 	loaderContext._compiler = compiler;
 	loaderContext._compilation = compiler.compilation;
-	loaderContext.getOptions = function (schema) {
-		let loader = getCurrentLoader(loaderContext);
+	loaderContext.getOptions = function () {
+		const loader = getCurrentLoader(loaderContext);
 		let options = loader?.options;
+
+		if (typeof options === "string") {
+			if (options.startsWith("{") && options.endsWith("}")) {
+				try {
+					const parseJson = require("json-parse-even-better-errors");
+					options = parseJson(options);
+				} catch (e: any) {
+					throw new Error(`Cannot parse string options: ${e.message}`);
+				}
+			} else {
+				const querystring = require("fast-querystring");
+				options = querystring.parse(options);
+			}
+		}
 
 		if (options === null || options === undefined) {
 			options = {};
 		}
 
-		if (schema) {
-			let name = "Loader";
-			let baseDataPath = "options";
-			let match;
-			if (schema.title && (match = /^(.+) (.+)$/.exec(schema.title))) {
-				[, name, baseDataPath] = match;
-			}
-			const { validate } = require("schema-utils");
-			validate(schema, options, {
-				name,
-				baseDataPath
-			});
-		}
 		return options;
 	};
 
@@ -557,7 +563,9 @@ export async function runLoader(
 					contextDependencies,
 					missingDependencies,
 					assetFilenames,
-					isPitching: loaderContext.__internal__context.isPitching
+					isPitching: loaderContext.__internal__context.isPitching,
+					additionalDataExternal:
+						loaderContext.__internal__context.additionalDataExternal
 				});
 			});
 		} else {
@@ -589,7 +597,9 @@ export async function runLoader(
 						contextDependencies,
 						missingDependencies,
 						assetFilenames,
-						isPitching: loaderContext.__internal__context.isPitching
+						isPitching: loaderContext.__internal__context.isPitching,
+						additionalDataExternal:
+							loaderContext.__internal__context.additionalDataExternal
 					});
 				}
 			);
@@ -598,7 +608,7 @@ export async function runLoader(
 }
 
 function utf8BufferToString(buf: Buffer) {
-	var str = buf.toString("utf-8");
+	const str = buf.toString("utf-8");
 	if (str.charCodeAt(0) === 0xfeff) {
 		return str.slice(1);
 	} else {
@@ -618,10 +628,10 @@ function runSyncOrAsync(
 	args: any[],
 	callback: Function
 ) {
-	var isSync = true;
-	var isDone = false;
-	var isError = false; // internal error
-	var reportedError = false;
+	let isSync = true;
+	let isDone = false;
+	let isError = false; // internal error
+	let reportedError = false;
 	// @ts-expect-error loader-runner leverages `arguments` to achieve the same functionality.
 	context.async = function async() {
 		if (isDone) {
@@ -631,7 +641,7 @@ function runSyncOrAsync(
 		isSync = false;
 		return innerCallback;
 	};
-	var innerCallback = (context.callback = function () {
+	const innerCallback = (context.callback = function () {
 		if (isDone) {
 			if (reportedError) return; // ignore
 			throw new Error("callback(): The callback was already called.");
@@ -646,7 +656,7 @@ function runSyncOrAsync(
 		}
 	});
 	try {
-		var result = (function LOADER_EXECUTION() {
+		const result = (function LOADER_EXECUTION() {
 			return fn.apply(context, args);
 		})();
 		if (isSync) {
@@ -690,7 +700,7 @@ function iteratePitchingLoaders(
 	if (loaderContext.loaderIndex >= loaderContext.loaders.length)
 		return callback(null, args);
 
-	var currentLoaderObject = loaderContext.loaders[loaderContext.loaderIndex];
+	const currentLoaderObject = loaderContext.loaders[loaderContext.loaderIndex];
 
 	// iterate
 	if (currentLoaderObject.pitchExecuted) {
@@ -704,9 +714,8 @@ function iteratePitchingLoaders(
 			loaderContext.cacheable(false);
 			return callback(err);
 		}
-		var fn = currentLoaderObject.pitch;
+		const fn = currentLoaderObject.pitch;
 		currentLoaderObject.pitchExecuted = true;
-
 		if (!fn) return iteratePitchingLoaders(loaderContext, args, callback);
 
 		runSyncOrAsync(
@@ -719,11 +728,11 @@ function iteratePitchingLoaders(
 			],
 			function (err: Error) {
 				if (err) return callback(err);
-				var args = Array.prototype.slice.call(arguments, 1);
+				const args = Array.prototype.slice.call(arguments, 1);
 				// Determine whether to continue the pitching process based on
 				// argument values (as opposed to argument presence) in order
 				// to support synchronous and asynchronous usages.
-				var hasArg = args.some(function (value) {
+				const hasArg = args.some(function (value) {
 					return value !== undefined;
 				});
 				// If a loader pitched successfully,
@@ -749,7 +758,7 @@ function iterateNormalLoaders(
 	// JS loaders ends
 	if (loaderContext.loaderIndex < 0) return callback(null, args);
 
-	var currentLoaderObject = loaderContext.loaders[loaderContext.loaderIndex];
+	const currentLoaderObject = loaderContext.loaders[loaderContext.loaderIndex];
 
 	// iterate
 	if (currentLoaderObject.normalExecuted) {
@@ -763,7 +772,7 @@ function iterateNormalLoaders(
 			return callback(err);
 		}
 
-		var fn = currentLoaderObject.normal;
+		const fn = currentLoaderObject.normal;
 		currentLoaderObject.normalExecuted = true;
 		if (!fn) {
 			return iterateNormalLoaders(loaderContext, args, callback);
@@ -774,7 +783,7 @@ function iterateNormalLoaders(
 		runSyncOrAsync(fn, loaderContext, args, function (err: Error) {
 			if (err) return callback(err);
 
-			var args = Array.prototype.slice.call(arguments, 1);
+			const args = Array.prototype.slice.call(arguments, 1);
 			iterateNormalLoaders(loaderContext, args, callback);
 		});
 	});

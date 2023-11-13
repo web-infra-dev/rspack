@@ -60,7 +60,7 @@ function renderAllTestsToMarkdown(jsonObj) {
 	const testResults = jsonObj["testResults"];
 	return testResults
 		.flatMap(testSuite => testSuite.assertionResults)
-		.map((test, index) => `${index + 1}. ${renderTestToMarkdown(test.fullName)}`)
+		.map((test, index) => `- ${renderTestToMarkdown(test.fullName)}`)
 		.join('\n')
 }
 

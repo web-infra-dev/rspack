@@ -6,6 +6,7 @@ use rspack_core::{Chunk, ChunkByUkey, ChunkGraph, ChunkUkey, Compilation, Module
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::ModuleGroupMap;
+use crate::module_group::CacheGroupIdx;
 use crate::SplitChunksPlugin;
 use crate::{
   cache_group::CacheGroup,
@@ -64,6 +65,7 @@ impl SplitChunksPlugin {
     /// If a module meets requirements of a `ModuleGroup`. We consider the `Module` and the `CacheGroup`
     /// to be a `MatchedItem`, which are consumed later to calculate `ModuleGroup`.
     struct MatchedItem<'a> {
+      idx: CacheGroupIdx,
       module: &'a dyn Module,
       cache_group_index: usize,
       cache_group: &'a CacheGroup,
@@ -125,27 +127,40 @@ impl SplitChunksPlugin {
         let chunks_key = Self::get_key(belong_to_chunks.iter(), chunk_idx_map);
         let module_group_map = &module_group_map;
 
-        for (cache_group_index, cache_group) in self.cache_groups.iter().enumerate() {
+        for (cache_group_index, (idx, cache_group)) in self.cache_groups.iter().enumerate().filter(|(_, cache_group)| {
+          // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
+          let is_match_the_test: bool = (cache_group.test)(module);
+          let is_match_the_type: bool = (cache_group.r#type)(module);
+          let is_match = is_match_the_test && is_match_the_type;
+
+          if !is_match {
+            tracing::trace!(
+              "Module({:?}) is ignored by CacheGroup({:?}). Reason: !(is_match_the_test({:?}) && is_match_the_type({:?}))",
+              module.identifier(),
+              cache_group.key,
+              is_match_the_test,
+              is_match_the_type
+            );
+          }
+          is_match
+        }).enumerate() {
           let chunks_key = chunks_key.clone();
           scope.spawn(async move {
-            // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
-            let is_match_the_test: bool = (cache_group.test)(module);
-            let is_match_the_type: bool = (cache_group.r#type)(module);
-
-            if !(is_match_the_test && is_match_the_type) {
-              tracing::trace!(
-                "Module({:?}) is ignored by CacheGroup({:?}). Reason: !(is_match_the_test({:?}) && is_match_the_type({:?}))",
-                module.identifier(),
-                cache_group.key,
-                is_match_the_test,
-                is_match_the_type
-              );
-              return;
-            }
-
             let combs = get_combination(chunks_key.clone());
 
             for chunk_combination in combs {
+              // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
+              if chunk_combination.len() < cache_group.min_chunks as usize {
+                tracing::trace!(
+                  "Module({:?}) is ignored by CacheGroup({:?}). Reason: chunk_combination.len({:?}) < cache_group.min_chunks({:?})",
+                  module.identifier(),
+                  cache_group.key,
+                  chunk_combination.len(),
+                  cache_group.min_chunks,
+                );
+                continue;
+              }
+
               let selected_chunks = chunk_combination
                 .iter()
                 .map(|c| chunk_db.get(c).expect("This should never happen, please file an issue"))
@@ -168,6 +183,7 @@ impl SplitChunksPlugin {
 
               merge_matched_item_into_module_group_map(
                 MatchedItem {
+                  idx: CacheGroupIdx::new(idx),
                   module,
                   cache_group,
                   cache_group_index,
@@ -184,6 +200,7 @@ impl SplitChunksPlugin {
                 module_group_map: &DashMap<String, ModuleGroup>,
               ) {
                 let MatchedItem {
+                  idx,
                   module,
                   cache_group_index,
                   cache_group,
@@ -201,15 +218,7 @@ impl SplitChunksPlugin {
                   [&cache_group.key, " chunks:", selected_chunks_key.to_string().as_str()].join("")
                 };
 
-                let mut module_group = module_group_map.entry(key).or_insert_with(|| ModuleGroup {
-                  modules: Default::default(),
-                  cache_group_index,
-                  cache_group_priority: cache_group.priority,
-                  cache_group_reuse_existing_chunk: cache_group.reuse_existing_chunk,
-                  sizes: Default::default(),
-                  chunks: Default::default(),
-                  chunk_name,
-                });
+                let mut module_group = module_group_map.entry(key).or_insert_with(|| ModuleGroup::new(idx, chunk_name, cache_group_index, cache_group));
 
                 module_group.add_module(module);
                 module_group
@@ -276,7 +285,7 @@ impl SplitChunksPlugin {
           is_used_chunk
         });
 
-        let cache_group = &self.cache_groups[other_module_group.cache_group_index];
+        let cache_group = other_module_group.get_cache_group(&self.cache_groups);
 
         // Since we removed some modules and chunks from the `other_module_group`. There are chances
         // that the `min_chunks` and `min_size` validation is not satisfied anymore.

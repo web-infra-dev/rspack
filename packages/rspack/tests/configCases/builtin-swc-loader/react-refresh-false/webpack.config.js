@@ -2,17 +2,31 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: /\.js$/,
+				test: /\.jsx$/,
 				loader: "builtin:swc-loader",
 				options: {
-					// TODO: add back this until `@rspack/plugin-react-refresh` is finished
-					// rspackExperiments: {
-					// 	react: {
-					// 		refresh: false
-					// 	}
-					// }
+					jsc: {
+						parser: {
+							syntax: "ecmascript",
+							jsx: true
+						},
+						transform: {
+							react: {
+								runtime: "classic",
+								pragma: "React.createElement",
+								pragmaFrag: "React.Fragment",
+								throwIfNamespace: true,
+								useBuiltins: false
+							}
+						}
+					}
 				}
 			}
 		]
+	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: true
+		}
 	}
 };

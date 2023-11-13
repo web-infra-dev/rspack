@@ -3,22 +3,22 @@ source: crates/rspack_testing/src/run_fixture.rs
 ---
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-'use strict';
+"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _maths_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./maths.js */"./maths.js");
+/* harmony import */var _maths_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./maths.js */"./maths.js");
 /* TREE-SHAKING */ 
-console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0_.xxx.test);
-console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0_.square);
-},
-"./maths.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-'use strict';
+console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0__.xxx.test);
+console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0__.square);
+}),
+"./maths.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'xxx': function() { return _test_js__WEBPACK_IMPORTED_MODULE_0_; },
-  'square': function() { return square; }
+  xxx: function() { return _test_js__WEBPACK_IMPORTED_MODULE_0__; },
+  square: function() { return square; }
 });
-/* harmony import */var _test_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./test.js */"./test.js");
+/* harmony import */var _test_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./test.js */"./test.js");
 // maths.js
 // This function isn't used anywhere, so
 // Rollup excludes it from the bundle...
@@ -32,13 +32,16 @@ __webpack_require__.d(__webpack_exports__, {
     return x * x * x;
 }
 
-},
-"./test.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-'use strict';
+}),
+"./test.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
 __webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  test: function() { return test; }
+});
  function test() {}
  function ccc() {}
-},
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

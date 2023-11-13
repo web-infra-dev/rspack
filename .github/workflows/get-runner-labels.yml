@@ -1,0 +1,31 @@
+name: Get Runner Labels
+
+on:
+  workflow_call:
+    outputs:
+      LINUX_RUNNER_LABELS:
+        description: "linux runner labels"
+        value: ${{ jobs.main.outputs.LINUX_RUNNER_LABELS }}
+      MACOS_RUNNER_LABELS:
+        description: "macos runner labels"
+        value: ${{ jobs.main.outputs.MACOS_RUNNER_LABELS }}
+      WINDOWS_RUNNER_LABELS:
+        description: "windows runner labels"
+        value: ${{ jobs.main.outputs.WINDOWS_RUNNER_LABELS }}
+
+jobs:
+  main:
+    name: Get Runner Labels
+    runs-on: ubuntu-latest
+    outputs:
+      LINUX_RUNNER_LABELS: ${{ steps.run.outputs.LINUX_RUNNER_LABELS }}
+      MACOS_RUNNER_LABELS: ${{ steps.run.outputs.MACOS_RUNNER_LABELS }}
+      WINDOWS_RUNNER_LABELS: ${{ steps.run.outputs.WINDOWS_RUNNER_LABELS }}
+    steps:
+      - id: run
+        shell: bash
+        run: |
+          # set default value for vars.XXX_RUNNER_LABELS
+          echo 'LINUX_RUNNER_LABELS=${{ vars.LINUX_RUNNER_LABELS || '"ubuntu-latest"' }}' >> "$GITHUB_OUTPUT"
+          echo 'MACOS_RUNNER_LABELS=${{ vars.MACOS_RUNNER_LABELS || '"macos-latest"' }}' >> "$GITHUB_OUTPUT"
+          echo 'WINDOWS_RUNNER_LABELS=${{ vars.WINDOWS_RUNNER_LABELS || '"windows-latest"' }}' >> "$GITHUB_OUTPUT"

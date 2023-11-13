@@ -1,21 +1,16 @@
 use indexmap::IndexMap;
 use rspack_core::{
-  tree_shaking::symbol::DEFAULT_JS_WORD, BoxDependency, BoxDependencyTemplate, BuildInfo,
-  ConstDependency, DependencyType, SpanExt,
+  extract_member_expression_chain, tree_shaking::symbol::DEFAULT_JS_WORD, BoxDependency,
+  BoxDependencyTemplate, BuildInfo, ConstDependency, DependencyType, SpanExt,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::{
-  common::Span,
-  ecma::{
-    ast::{
-      AssignExpr, AssignOp, Callee, ExportAll, ExportSpecifier, Expr, Id, Ident, ImportDecl,
-      ImportSpecifier, Lit, MemberExpr, MemberProp, ModuleExportName, NamedExport, Pat, PatOrExpr,
-      Program, Prop,
-    },
-    atoms::JsWord,
-    visit::{noop_visit_type, Visit, VisitWith},
-  },
-};
+use swc_core::atoms::JsWord;
+use swc_core::common::Span;
+use swc_core::ecma::ast::{AssignExpr, AssignOp, MemberExpr, OptChainExpr};
+use swc_core::ecma::ast::{Callee, ExportAll, ExportSpecifier, Expr, Id, TaggedTpl};
+use swc_core::ecma::ast::{Ident, ImportDecl, Pat, PatOrExpr, Program, Prop};
+use swc_core::ecma::ast::{ImportSpecifier, ModuleExportName, NamedExport};
+use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use super::{collect_destructuring_assignment_properties, ExtraSpanInfo};
 use crate::dependency::{
@@ -23,6 +18,7 @@ use crate::dependency::{
   HarmonyImportSpecifierDependency, Specifier,
 };
 
+#[derive(Debug)]
 pub struct ImporterReferenceInfo {
   pub request: JsWord,
   pub specifier: Specifier,
@@ -106,7 +102,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
     for ((request, dependency_type, source_order), importer_info) in
       std::mem::take(&mut self.imports).into_iter()
     {
-      if matches!(dependency_type, DependencyType::EsmExport)
+      if matches!(dependency_type, DependencyType::EsmExport(_))
         && !importer_info.specifiers.is_empty()
       {
         importer_info
@@ -120,10 +116,11 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
                 .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
                   request.clone(),
                   source_order,
-                  ids.clone(),
                   ids,
+                  vec![],
                   Some(n.clone()),
                   false,
+                  None,
                 )));
               self.build_info.harmony_named_exports.insert(n.clone());
             }
@@ -143,6 +140,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
                   ids,
                   Some(name.clone()),
                   false,
+                  None,
                 )));
               self.build_info.harmony_named_exports.insert(name);
             }
@@ -157,17 +155,22 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
         importer_info.exports_all,
       );
       if importer_info.exports_all {
-        self.build_info.all_star_exports.push(dependency.id);
+        let list = Some(self.build_info.all_star_exports.clone());
+        let export_imported_dep = HarmonyExportImportedSpecifierDependency::new(
+          request.clone(),
+          source_order,
+          vec![],
+          vec![],
+          None,
+          true,
+          list,
+        );
+
         self
-          .dependencies
-          .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
-            request.clone(),
-            source_order,
-            vec![],
-            vec![],
-            None,
-            true,
-          )));
+          .build_info
+          .all_star_exports
+          .push(export_imported_dep.id);
+        self.dependencies.push(Box::new(export_imported_dep));
       }
       self.dependencies.push(Box::new(dependency));
     }
@@ -189,7 +192,8 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           n.local.sym.clone(),
           match &n.imported {
             Some(ModuleExportName::Ident(ident)) => Some(ident.sym.clone()),
-            _ => None,
+            Some(ModuleExportName::Str(str)) => Some(str.value.clone()),
+            None => None,
           },
         );
         self.import_map.insert(
@@ -199,7 +203,8 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
             specifier.clone(),
             Some(match &n.imported {
               Some(ModuleExportName::Ident(ident)) => ident.sym.clone(),
-              _ => n.local.sym.clone(),
+              Some(ModuleExportName::Str(str)) => str.value.clone(),
+              None => n.local.sym.clone(),
             }),
             self.last_harmony_import_order,
           ),
@@ -279,9 +284,9 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
               specifiers.push(Specifier::Named(
                 orig.sym.clone(),
                 match &named.exported {
+                  Some(ModuleExportName::Str(export)) => Some(export.value.clone()),
                   Some(ModuleExportName::Ident(export)) => Some(export.sym.clone()),
                   None => None,
-                  _ => unreachable!(),
                 },
               ));
             }
@@ -289,7 +294,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
         });
       let key = (
         src.value.clone(),
-        DependencyType::EsmExport,
+        DependencyType::EsmExport(named_export.span.into()),
         self.last_harmony_import_order,
       );
       if let Some(importer_info) = self.imports.get_mut(&key) {
@@ -314,7 +319,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
     self.last_harmony_import_order += 1;
     let key = (
       export_all.src.value.clone(),
-      DependencyType::EsmExport,
+      DependencyType::EsmExport(export_all.span.into()),
       self.last_harmony_import_order,
     );
 
@@ -368,9 +373,18 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
   // import * as a from 'a';
   // const { value } = a;
   fn visit_assign_expr(&mut self, assign_expr: &AssignExpr) {
-    if let PatOrExpr::Pat(box Pat::Object(object_pat)) = &assign_expr.left && assign_expr.op == AssignOp::Assign && let box Expr::Ident(ident) = &assign_expr.right && let Some(reference) = self.import_map.get(&ident.to_id()) && matches!(reference.specifier, Specifier::Namespace(_))  {
+    if let PatOrExpr::Pat(box Pat::Object(object_pat)) = &assign_expr.left
+      && assign_expr.op == AssignOp::Assign
+      && let box Expr::Ident(ident) = &assign_expr.right
+      && let Some(reference) = self.import_map.get(&ident.to_id())
+      && matches!(reference.specifier, Specifier::Namespace(_))
+    {
       if let Some(value) = collect_destructuring_assignment_properties(object_pat) {
-        self.properties_in_destructuring.entry(ident.sym.clone()).and_modify(|v| v.extend(value.clone())).or_insert(value);
+        self
+          .properties_in_destructuring
+          .entry(ident.sym.clone())
+          .and_modify(|v| v.extend(value.clone()))
+          .or_insert(value);
       }
     }
     assign_expr.visit_children_with(self);
@@ -396,6 +410,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
               false,
               reference.specifier.clone(),
               None,
+              shorthand.span,
             )));
         }
       }
@@ -421,46 +436,98 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
           true, // x()
           reference.specifier.clone(),
           self.properties_in_destructuring.remove(&ident.sym),
+          ident.span,
         )));
     }
   }
 
+  fn visit_opt_chain_expr(&mut self, opt_chain_expr: &OptChainExpr) {
+    let expression_info = extract_member_expression_chain(opt_chain_expr);
+    // dbg!(&expression_info);
+    let member_chain = expression_info.members();
+    if member_chain.len() > 1
+      && let Some(reference) = self.import_map.get(&member_chain[0])
+    {
+      let mut non_optional_members = expression_info.non_optional_part();
+      // dbg!(&non_optional_members);
+      let start = opt_chain_expr.span.real_lo();
+      let end = if !non_optional_members.is_empty()
+        && let Some(span) = expression_info
+          .members_spans()
+          .get(non_optional_members.len() - 1)
+      {
+        span.real_hi()
+      } else {
+        opt_chain_expr.span.real_hi()
+      };
+      non_optional_members.pop_front();
+      let mut ids = reference.names.clone().map(|f| vec![f]).unwrap_or_default();
+      ids.extend_from_slice(
+        &non_optional_members
+          .into_iter()
+          .map(|item| item.0.clone())
+          .collect::<Vec<_>>(),
+      );
+      self
+        .rewrite_usage_span
+        .insert(opt_chain_expr.span, ExtraSpanInfo::ReWriteUsedByExports);
+      self
+        .dependencies
+        .push(Box::new(HarmonyImportSpecifierDependency::new(
+          reference.request.clone(),
+          reference.source_order,
+          false,
+          start,
+          end,
+          ids,
+          self.enter_callee,
+          !self.enter_callee, // x.xx()
+          reference.specifier.clone(),
+          None,
+          opt_chain_expr.span,
+        )));
+      return;
+    }
+    opt_chain_expr.visit_children_with(self);
+  }
+
   fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
-    if let Expr::Ident(ident) = &*member_expr.obj {
-      if let Some(reference) = self.import_map.get(&ident.to_id()) {
-        let prop = match &member_expr.prop {
-          MemberProp::Ident(ident) => Some(ident.sym.clone()),
-          MemberProp::Computed(c) => {
-            if let Expr::Lit(Lit::Str(str)) = &*c.expr {
-              Some(str.value.clone())
-            } else {
-              None
-            }
-          }
-          _ => None,
-        };
-        if let Some(prop) = prop {
-          let mut ids = reference.names.clone().map(|f| vec![f]).unwrap_or_default();
-          ids.push(prop);
-          self
-            .rewrite_usage_span
-            .insert(member_expr.span, ExtraSpanInfo::ReWriteUsedByExports);
-          self
-            .dependencies
-            .push(Box::new(HarmonyImportSpecifierDependency::new(
-              reference.request.clone(),
-              reference.source_order,
-              false,
-              member_expr.span.real_lo(),
-              member_expr.span.real_hi(),
-              ids,
-              self.enter_callee,
-              !self.enter_callee, // x.xx()
-              reference.specifier.clone(),
-              None,
-            )));
-          return;
-        }
+    let expression_info = extract_member_expression_chain(member_expr);
+    let member_chain = expression_info.members();
+    if member_chain.len() > 1
+      && let Some(reference) = self.import_map.get(&member_chain[0])
+    {
+      let mut member_chain = member_chain.clone();
+      member_chain.pop_front();
+      if !member_chain.is_empty() {
+        let mut ids = reference.names.clone().map(|f| vec![f]).unwrap_or_default();
+        // dbg!(&member_chain);
+        ids.extend_from_slice(
+          &member_chain
+            .into_iter()
+            .map(|item| item.0.clone())
+            .collect::<Vec<_>>(),
+        );
+        // dbg!(&ids);
+        self
+          .rewrite_usage_span
+          .insert(member_expr.span, ExtraSpanInfo::ReWriteUsedByExports);
+        self
+          .dependencies
+          .push(Box::new(HarmonyImportSpecifierDependency::new(
+            reference.request.clone(),
+            reference.source_order,
+            false,
+            member_expr.span.real_lo(),
+            member_expr.span.real_hi(),
+            ids,
+            self.enter_callee,
+            !self.enter_callee, // x.xx()
+            reference.specifier.clone(),
+            None,
+            member_expr.span,
+          )));
+        return;
       }
     }
     member_expr.visit_children_with(self);
@@ -469,6 +536,12 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
   fn visit_callee(&mut self, callee: &Callee) {
     self.enter_callee = true;
     callee.visit_children_with(self);
+    self.enter_callee = false;
+  }
+
+  fn visit_tagged_tpl(&mut self, n: &TaggedTpl) {
+    self.enter_callee = true;
+    n.visit_children_with(self);
     self.enter_callee = false;
   }
 

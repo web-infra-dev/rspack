@@ -41,7 +41,7 @@ impl ChunkGraph {
     self
       .chunk_graph_module_by_module_identifier
       .entry(module_identifier)
-      .or_insert_with(ChunkGraphModule::new);
+      .or_default();
   }
 
   pub fn is_module_in_chunk(

@@ -19,6 +19,7 @@ use rspack_hash::RspackHash;
 pub use side_effects_flag_plugin::*;
 
 use crate::runtime::{render_chunk_modules, render_iife, render_runtime_modules, stringify_array};
+use crate::utils::is_diff_mode;
 
 #[derive(Debug)]
 pub struct JsPlugin;
@@ -136,6 +137,12 @@ impl JsPlugin {
     // let module_used = runtime_requirements.contains(RuntimeGlobals::MODULE);
     // let use_require = require_function || intercept_module_execution || module_used;
     let mut header = ConcatSource::default();
+
+    if is_diff_mode() {
+      header.add(RawSource::from(
+        "\n/************************************************************************/\n",
+      ));
+    }
 
     header.add(RawSource::from(
       "// The module cache\n var __webpack_module_cache__ = {};\n",
@@ -272,7 +279,11 @@ impl JsPlugin {
         RuntimeGlobals::STARTUP
       ));
     }
-
+    if is_diff_mode() {
+      header.add(RawSource::from(
+        "\n/************************************************************************/\n",
+      ));
+    }
     (header.boxed(), RawSource::from(startup.join("\n")).boxed())
   }
 
@@ -322,7 +333,7 @@ impl JsPlugin {
       final_source,
       chunk_init_fragments,
       &mut ChunkRenderContext {},
-    );
+    )?;
     if let Some(source) = compilation.plugin_driver.render(RenderArgs {
       compilation,
       chunk: &args.chunk_ukey,
@@ -353,7 +364,7 @@ impl JsPlugin {
       .await?
       .expect("should run render_chunk hook");
     let final_source =
-      render_init_fragments(source, chunk_init_fragments, &mut ChunkRenderContext {});
+      render_init_fragments(source, chunk_init_fragments, &mut ChunkRenderContext {})?;
     if let Some(source) = compilation.plugin_driver.render(RenderArgs {
       compilation,
       chunk: &args.chunk_ukey,

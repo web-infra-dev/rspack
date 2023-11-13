@@ -20,9 +20,10 @@ pub const WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
 pub const WEBPACK_CHUNK_LOAD: &str = "__webpack_chunk_load__";
 pub const WEBPACK_BASE_URI: &str = "__webpack_base_uri__";
 pub const NON_WEBPACK_REQUIRE: &str = "__non_webpack_require__";
+pub const SYSTEM_CONTEXT: &str = "__system_context__";
 
 pub struct ApiScanner<'a> {
-  pub unresolved_ctxt: &'a SyntaxContext,
+  pub unresolved_ctxt: SyntaxContext,
   pub module: bool,
   pub build_info: &'a mut BuildInfo,
   pub enter_assign: bool,
@@ -32,7 +33,7 @@ pub struct ApiScanner<'a> {
 
 impl<'a> ApiScanner<'a> {
   pub fn new(
-    unresolved_ctxt: &'a SyntaxContext,
+    unresolved_ctxt: SyntaxContext,
     resource_data: &'a ResourceData,
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     module: bool,
@@ -79,7 +80,7 @@ impl Visit for ApiScanner<'_> {
   }
 
   fn visit_ident(&mut self, ident: &Ident) {
-    if ident.span.ctxt != *self.unresolved_ctxt {
+    if ident.span.ctxt != self.unresolved_ctxt {
       return;
     }
     match ident.sym.as_ref() as &str {
@@ -117,18 +118,17 @@ impl Visit for ApiScanner<'_> {
           )));
       }
       WEBPACK_RESOURCE_QUERY => {
-        if let Some(resource_query) = &self.resource_data.resource_query {
-          self
-            .presentational_dependencies
-            .push(Box::new(ConstDependency::new(
-              ident.span.real_lo(),
-              ident.span.real_hi(),
-              serde_json::to_string(resource_query)
-                .expect("should render module id")
-                .into(),
-              None,
-            )));
-        }
+        let resource_query = self.resource_data.resource_query.as_deref().unwrap_or("");
+        self
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            serde_json::to_string(resource_query)
+              .expect("should render module id")
+              .into(),
+            None,
+          )));
       }
       WEBPACK_CHUNK_LOAD => {
         self
@@ -174,6 +174,14 @@ impl Visit for ApiScanner<'_> {
             None,
           )));
       }
+      SYSTEM_CONTEXT => self
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
+          ident.span.real_lo(),
+          ident.span.real_hi(),
+          RuntimeGlobals::SYSTEM_CONTEXT.name().into(),
+          Some(RuntimeGlobals::SYSTEM_CONTEXT),
+        ))),
       _ => {}
     }
   }

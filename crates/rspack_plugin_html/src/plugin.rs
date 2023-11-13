@@ -34,6 +34,7 @@ impl HtmlRspackPlugin {
     HtmlRspackPlugin { config }
   }
 }
+
 fn default_template() -> &'static str {
   r#"<!DOCTYPE html>
 <html>
@@ -69,19 +70,20 @@ impl Plugin for HtmlRspackPlugin {
       )
     } else if let Some(template) = &config.template {
       // TODO: support loader query form
-      let resolved_template =
-        AsRef::<Path>::as_ref(&compilation.options.context).join(template.as_str());
+      let resolved_template = path_clean::clean(
+        AsRef::<Path>::as_ref(&compilation.options.context).join(template.as_str()),
+      );
 
       let content = fs::read_to_string(&resolved_template).context(format!(
         "failed to read `{}` from `{}`",
         resolved_template.display(),
         &compilation.options.context
       ))?;
-      (
-        content,
-        resolved_template.to_string_lossy().to_string(),
-        template.clone(),
-      )
+
+      let url = resolved_template.to_string_lossy().to_string();
+      compilation.file_dependencies.insert(resolved_template);
+
+      (content, url, template.clone())
     } else {
       (
         default_template().to_owned(),

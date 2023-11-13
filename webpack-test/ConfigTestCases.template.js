@@ -137,6 +137,9 @@ const describeCases = config => {
 								// 		path.resolve(__dirname, "../node_modules")
 								// 	];
 								// }
+								if (!options.experiments) options.experiments = {};
+								if (!options.experiments.rspackFuture) options.experiments.rspackFuture = {};
+								options.experiments.rspackFuture.newResolver = true;
 							});
 							testConfig = {
 								findBundle: function(i, options) {

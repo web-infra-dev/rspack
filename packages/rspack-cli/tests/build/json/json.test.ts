@@ -1,7 +1,7 @@
 import { existsSync } from "fs";
+import { resolve } from "path";
 import { run, readFile } from "../../utils/test-utils";
 
-import { resolve } from "path";
 const successMessage = "stats are successfully stored as json to stats.json";
 
 describe("json", () => {

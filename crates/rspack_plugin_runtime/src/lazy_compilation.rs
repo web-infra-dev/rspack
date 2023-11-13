@@ -4,8 +4,9 @@ use std::hash::Hash;
 use async_trait::async_trait;
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
-  Compilation, DependencyType, Module, ModuleArgs, ModuleType, Plugin, PluginContext,
-  PluginModuleHookOutput, RuntimeGlobals, RuntimeSpec, SourceType,
+  AsyncDependenciesBlockId, Compilation, DependenciesBlock, DependencyId, DependencyType, Module,
+  ModuleArgs, ModuleType, Plugin, PluginContext, PluginModuleHookOutput, RuntimeGlobals,
+  RuntimeSpec, SourceType,
 };
 use rspack_core::{CodeGenerationResult, Context, ModuleIdentifier};
 use rspack_error::Result;
@@ -13,7 +14,27 @@ use rspack_identifier::Identifiable;
 
 #[derive(Debug)]
 pub struct LazyCompilationProxyModule {
+  dependencies: Vec<DependencyId>,
+  blocks: Vec<AsyncDependenciesBlockId>,
   pub module_identifier: ModuleIdentifier,
+}
+
+impl DependenciesBlock for LazyCompilationProxyModule {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
+    self.blocks.push(block)
+  }
+
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+    &self.blocks
+  }
+
+  fn add_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.push(dependency)
+  }
+
+  fn get_dependencies(&self) -> &[DependencyId] {
+    &self.dependencies
+  }
 }
 
 impl Module for LazyCompilationProxyModule {
@@ -106,6 +127,8 @@ impl Plugin for LazyCompilationPlugin {
     ) {
       return Ok(Some(Box::new(LazyCompilationProxyModule {
         module_identifier: args.indentfiler,
+        dependencies: Vec::new(),
+        blocks: Vec::new(),
       })));
     }
 

@@ -5,7 +5,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
-  Filename, ModuleIdentifier, PublicPath, RuntimeSpec,
+  Filename, LibraryOptions, ModuleIdentifier, PublicPath, RuntimeSpec,
 };
 
 impl DatabaseItem for ChunkGroup {
@@ -85,9 +85,17 @@ impl ChunkGroup {
     chunk.add_group(self.ukey);
   }
 
-  pub fn unshift_chunk(&mut self, chunk: &mut Chunk) {
-    self.chunks.insert(0, chunk.ukey);
-    chunk.add_group(self.ukey);
+  pub fn unshift_chunk(&mut self, chunk: &mut Chunk) -> bool {
+    if let Ok(index) = self.chunks.binary_search(&chunk.ukey) {
+      if index > 0 {
+        self.chunks.remove(index);
+        self.chunks.insert(0, chunk.ukey);
+      }
+      false
+    } else {
+      self.chunks.insert(0, chunk.ukey);
+      true
+    }
   }
 
   pub fn is_initial(&self) -> bool {
@@ -154,12 +162,14 @@ impl ChunkGroup {
       .position(|ukey| *ukey == before)
       .expect("before chunk not found");
 
-    if let Some(old_idx) = old_idx && old_idx > idx {
+    if let Some(old_idx) = old_idx
+      && old_idx > idx
+    {
       self.chunks.remove(old_idx);
       self.chunks.insert(idx, chunk);
     } else if old_idx.is_none() {
       self.chunks.insert(idx, chunk);
-      return true
+      return true;
     }
 
     false
@@ -173,6 +183,48 @@ impl ChunkGroup {
     }
 
     false
+  }
+
+  pub fn replace_chunk(&mut self, old_chunk: &ChunkUkey, new_chunk: &ChunkUkey) -> bool {
+    if let Some(runtime_chunk) = self.runtime_chunk {
+      if runtime_chunk == *old_chunk {
+        self.runtime_chunk = Some(*new_chunk);
+      }
+    }
+
+    if let Some(entry_point_chunk) = self.entry_point_chunk {
+      if entry_point_chunk == *old_chunk {
+        self.entry_point_chunk = Some(*new_chunk);
+      }
+    }
+
+    match self.chunks.iter().position(|x| x == old_chunk) {
+      // when old_chunk doesn't exist
+      None => false,
+      // when old_chunk exists
+      Some(old_idx) => {
+        match self.chunks.iter().position(|x| x == new_chunk) {
+          // when new_chunk doesn't exist
+          None => {
+            self.chunks[old_idx] = *new_chunk;
+            true
+          }
+          // when new_chunk exists
+          Some(new_idx) => {
+            if new_idx < old_idx {
+              self.chunks.remove(old_idx);
+              true
+            } else if new_idx != old_idx {
+              self.chunks[old_idx] = *new_chunk;
+              self.chunks.remove(new_idx);
+              true
+            } else {
+              false
+            }
+          }
+        }
+      }
+    }
   }
 
   pub fn id(&self, compilation: &Compilation) -> String {
@@ -189,11 +241,11 @@ impl ChunkGroup {
   }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum ChunkGroupKind {
   Entrypoint {
     initial: bool,
-    options: EntryOptions,
+    options: Box<EntryOptions>,
   },
   Normal {
     options: ChunkGroupOptions,
@@ -201,7 +253,7 @@ pub enum ChunkGroupKind {
 }
 
 impl ChunkGroupKind {
-  pub fn new_entrypoint(initial: bool, options: EntryOptions) -> Self {
+  pub fn new_entrypoint(initial: bool, options: Box<EntryOptions>) -> Self {
     Self::Entrypoint { initial, options }
   }
 
@@ -224,7 +276,7 @@ impl ChunkGroupKind {
   }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone)]
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<String>,
@@ -233,35 +285,32 @@ pub struct EntryOptions {
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
   pub filename: Option<Filename>,
+  pub library: Option<LibraryOptions>,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct ChunkGroupOptions {
   pub name: Option<String>,
 }
 
 impl ChunkGroupOptions {
-  pub fn name(mut self, v: impl Into<String>) -> Self {
-    self.name = Some(v.into());
-    self
-  }
-
   pub fn name_optional<T: Into<String>>(mut self, v: Option<T>) -> Self {
     self.name = v.map(|v| v.into());
     self
   }
 }
 
-pub enum ChunkGroupOptionsKindRef<'a> {
-  Entry(&'a EntryOptions),
-  Normal(&'a ChunkGroupOptions),
+#[derive(Debug, Clone)]
+pub enum GroupOptions {
+  Entrypoint(Box<EntryOptions>),
+  ChunkGroup(ChunkGroupOptions),
 }
 
-impl ChunkGroupOptionsKindRef<'_> {
+impl GroupOptions {
   pub fn name(&self) -> Option<&str> {
     match self {
-      Self::Entry(e) => e.name.as_deref(),
-      Self::Normal(n) => n.name.as_deref(),
+      Self::Entrypoint(e) => e.name.as_deref(),
+      Self::ChunkGroup(n) => n.name.as_deref(),
     }
   }
 }

@@ -6,6 +6,8 @@
 
 use std::sync::atomic::AtomicBool;
 use std::{fmt, sync::Arc};
+mod dependencies_block;
+pub use dependencies_block::{AsyncDependenciesBlock, AsyncDependenciesBlockId, DependenciesBlock};
 mod fake_namespace_object;
 pub use fake_namespace_object::*;
 mod module_profile;
@@ -15,7 +17,6 @@ pub mod external_module;
 pub use external_module::*;
 mod logger;
 pub use logger::*;
-pub mod ast;
 pub mod cache;
 mod missing_module;
 pub use missing_module::*;
@@ -95,6 +96,18 @@ pub enum SourceType {
   Unknown,
 }
 
+impl std::fmt::Display for SourceType {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      SourceType::JavaScript => write!(f, "javascript"),
+      SourceType::Css => write!(f, "css"),
+      SourceType::Wasm => write!(f, "wasm"),
+      SourceType::Asset => write!(f, "asset"),
+      SourceType::Unknown => write!(f, "unknown"),
+    }
+  }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ModuleType {
   Json,
@@ -115,6 +128,7 @@ pub enum ModuleType {
   AssetResource,
   AssetSource,
   Asset,
+  Runtime,
 }
 
 impl ModuleType {
@@ -198,6 +212,7 @@ impl ModuleType {
       ModuleType::AssetSource => "asset/source",
       ModuleType::AssetResource => "asset/resource",
       ModuleType::AssetInline => "asset/inline",
+      ModuleType::Runtime => "runtime",
     }
   }
 }

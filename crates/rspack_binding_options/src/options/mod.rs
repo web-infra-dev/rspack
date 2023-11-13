@@ -3,7 +3,9 @@ use rspack_core::{
   BoxPlugin, CompilerOptions, Context, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
   IncrementalRebuildMakeState, ModuleOptions, ModuleType, OutputOptions, PluginExt,
 };
-use rspack_plugin_javascript::{FlagDependencyExportsPlugin, FlagDependencyUsagePlugin};
+use rspack_plugin_javascript::{
+  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, SideEffectsFlagPlugin,
+};
 use serde::Deserialize;
 
 mod raw_builtins;
@@ -101,6 +103,7 @@ impl RawOptionsApply for RawOptions {
       },
       async_web_assembly: self.experiments.async_web_assembly,
       new_split_chunks: self.experiments.new_split_chunks,
+      top_level_await: self.experiments.top_level_await,
       rspack_future: self.experiments.rspack_future.into(),
     };
     let optimization = IS_ENABLE_NEW_SPLIT_CHUNKS.set(&experiments.new_split_chunks, || {
@@ -157,6 +160,9 @@ impl RawOptionsApply for RawOptions {
     plugins.push(rspack_ids::NamedChunkIdsPlugin::new(None, None).boxed());
 
     if experiments.rspack_future.new_treeshaking {
+      if optimization.side_effects.is_enable() {
+        plugins.push(SideEffectsFlagPlugin::default().boxed());
+      }
       if optimization.provided_exports {
         plugins.push(FlagDependencyExportsPlugin::default().boxed());
       }
@@ -171,6 +177,8 @@ impl RawOptionsApply for RawOptions {
     }
 
     plugins.push(rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin.boxed());
+
+    plugins.push(rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin.boxed());
 
     Ok(Self::Options {
       context,
