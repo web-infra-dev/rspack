@@ -1,5 +1,4 @@
 use std::{
-  collections::VecDeque,
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
   path::PathBuf,
@@ -32,20 +31,20 @@ use super::{
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
-  is_source_equal, module_graph,
+  is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs,
   AdditionalModuleRequirementsArgs, AsyncDependenciesBlock, AsyncDependenciesBlockId,
   BoxDependency, BoxModule, BuildQueue, BuildTask, BuildTaskResult, CacheCount, CacheOptions,
-  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey,
+  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
   ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult,
   CodeGenerationResult, CodeGenerationResults, CompilationLogger, CompilationLogging,
-  CompilerOptions, ContentHashArgs, DependenciesBlock, DependencyId, DependencyParents, Entry,
-  EntryData, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult,
-  Filename, Logger, Module, ModuleGraph, ModuleIdentifier, ModuleProfile, ModuleType, PathData,
-  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
-  RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec,
-  SharedPluginDriver, SourceType, Stats, TaskResult, WorkerTask,
+  CompilerOptions, ContentHashArgs, DependencyId, DependencyParents, Entry, EntryData,
+  EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger,
+  Module, ModuleGraph, ModuleIdentifier, ModuleProfile, ModuleType, PathData, ProcessAssetsArgs,
+  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
+  Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver,
+  SourceType, Stats, TaskResult, WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
@@ -757,7 +756,7 @@ impl Compilation {
                         .set_dependency_import_var(module.identifier(), dependency.request());
                     }
                     let dependency_id = *dependency.id();
-                    module.add_dependency(dependency_id);
+                    module.add_dependency_id(dependency_id);
                     all_dependencies.push(dependency_id);
                     module_graph.set_parents(
                       dependency_id,

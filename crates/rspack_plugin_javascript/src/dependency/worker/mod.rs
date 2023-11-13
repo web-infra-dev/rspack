@@ -1,6 +1,6 @@
 use rspack_core::{
-  Dependency, DependencyCategory, DependencyId, DependencyTemplate, DependencyType, EntryOptions,
-  ErrorSpan, ExtendedReferencedExport, ModuleDependency, ModuleGraph, RuntimeGlobals, RuntimeSpec,
+  Dependency, DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ExtendedReferencedExport, ModuleDependency, ModuleGraph, RuntimeGlobals, RuntimeSpec,
   TemplateContext, TemplateReplaceSource,
 };
 

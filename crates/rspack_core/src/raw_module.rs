@@ -50,7 +50,7 @@ impl Identifiable for RawModule {
 }
 
 impl DependenciesBlock for RawModule {
-  fn add_block(&mut self, block: AsyncDependenciesBlockId) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
     self.blocks.push(block)
   }
 
@@ -58,7 +58,7 @@ impl DependenciesBlock for RawModule {
     &self.blocks
   }
 
-  fn add_dependency(&mut self, dependency: DependencyId) {
+  fn add_dependency_id(&mut self, dependency: DependencyId) {
     self.dependencies.push(dependency)
   }
 

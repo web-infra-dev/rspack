@@ -73,7 +73,7 @@ impl<'me> CodeSplitter<'me> {
       compilation.chunk_graph.add_chunk(chunk.ukey);
 
       let mut entrypoint = ChunkGroup::new(
-        ChunkGroupKind::new_entrypoint(true, options.clone()),
+        ChunkGroupKind::new_entrypoint(true, Box::new(options.clone())),
         HashSet::from_iter([Arc::from(
           options.runtime.clone().unwrap_or_else(|| name.to_string()),
         )]),

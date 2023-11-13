@@ -6,18 +6,18 @@ use rspack_identifier::{Identifiable, Identifier};
 use crate::{BoxDependency, DependencyId, GroupOptions};
 
 pub trait DependenciesBlock {
-  fn add_block(&mut self, block: AsyncDependenciesBlockId);
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId);
 
   fn get_blocks(&self) -> &[AsyncDependenciesBlockId];
 
-  fn add_dependency(&mut self, dependency: DependencyId);
+  fn add_dependency_id(&mut self, dependency: DependencyId);
 
   fn get_dependencies(&self) -> &[DependencyId];
 }
 
 static ASYNC_DEPENDENCIES_BLOCK_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
 
-fn get_async_dependencies_id() -> AsyncDependenciesBlockId {
+fn get_async_dependencies_block_id() -> AsyncDependenciesBlockId {
   AsyncDependenciesBlockId::from(
     ASYNC_DEPENDENCIES_BLOCK_ID
       .fetch_add(1, Ordering::Relaxed)
@@ -40,7 +40,7 @@ pub struct AsyncDependenciesBlock {
 impl Default for AsyncDependenciesBlock {
   fn default() -> Self {
     Self {
-      id: get_async_dependencies_id(),
+      id: get_async_dependencies_block_id(),
       group_options: Default::default(),
       blocks: Default::default(),
       block_ids: Default::default(),
@@ -85,7 +85,7 @@ impl Identifiable for AsyncDependenciesBlock {
 }
 
 impl DependenciesBlock for AsyncDependenciesBlock {
-  fn add_block(&mut self, block: AsyncDependenciesBlockId) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
     self.block_ids.push(block)
   }
 
@@ -93,7 +93,7 @@ impl DependenciesBlock for AsyncDependenciesBlock {
     &self.block_ids
   }
 
-  fn add_dependency(&mut self, dependency: DependencyId) {
+  fn add_dependency_id(&mut self, dependency: DependencyId) {
     self.dependency_ids.push(dependency)
   }
 

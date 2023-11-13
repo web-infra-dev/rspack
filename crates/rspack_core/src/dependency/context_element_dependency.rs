@@ -1,9 +1,9 @@
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  AsDependencyTemplate, ChunkGroupOptions, Context, ContextMode, ContextOptions, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ExtendedReferencedExport, ModuleDependency,
-  ModuleGraph, ReferencedExport, RuntimeSpec,
+  AsDependencyTemplate, Context, ContextMode, ContextOptions, Dependency, DependencyCategory,
+  DependencyId, DependencyType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
+  ReferencedExport, RuntimeSpec,
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]

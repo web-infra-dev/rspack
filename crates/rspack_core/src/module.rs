@@ -393,7 +393,7 @@ mod test {
       }
 
       impl DependenciesBlock for $ident {
-        fn add_block(&mut self, _: AsyncDependenciesBlockId) {
+        fn add_block_id(&mut self, _: AsyncDependenciesBlockId) {
           unreachable!()
         }
 
@@ -401,7 +401,7 @@ mod test {
           unreachable!()
         }
 
-        fn add_dependency(&mut self, _: DependencyId) {
+        fn add_dependency_id(&mut self, _: DependencyId) {
           unreachable!()
         }
 

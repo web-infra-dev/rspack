@@ -2,8 +2,9 @@ use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
 use rspack_core::{
-  is_exports_object_referenced, is_no_exports_referenced, BuildMetaExportsType, Compilation,
-  ConnectionState, DependencyId, ExportsInfoId, ExtendedReferencedExport, ModuleIdentifier, Plugin,
+  is_exports_object_referenced, is_no_exports_referenced, AsyncDependenciesBlockId,
+  BuildMetaExportsType, Compilation, ConnectionState, DependenciesBlock, DependencyId,
+  ExportsInfoId, ExtendedReferencedExport, GroupOptions, ModuleIdentifier, Plugin,
   ReferencedExport, RuntimeSpec, UsageState,
 };
 use rspack_error::Result;
@@ -11,6 +12,11 @@ use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::utils::join_jsword;
+
+enum ModuleOrAsyncDependenciesBlock {
+  Module(ModuleIdentifier),
+  AsyncDependenciesBlock(AsyncDependenciesBlockId),
+}
 
 #[allow(unused)]
 pub struct FlagDependencyUsagePluginProxy<'a> {
@@ -58,13 +64,18 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     self.compilation.entries = entries;
 
     while let Some((module_id, runtime)) = q.pop_front() {
-      self.process_module(module_id, runtime, false, &mut q);
+      self.process_module(
+        ModuleOrAsyncDependenciesBlock::Module(module_id),
+        runtime,
+        false,
+        &mut q,
+      );
     }
   }
 
   fn process_module(
     &mut self,
-    root_module_id: ModuleIdentifier,
+    block_id: ModuleOrAsyncDependenciesBlock,
     runtime: Option<RuntimeSpec>,
     force_side_effects: bool,
     q: &mut VecDeque<(ModuleIdentifier, Option<RuntimeSpec>)>,
@@ -77,15 +88,52 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
     let mut map: IdentifierMap<ProcessModuleReferencedExports> = IdentifierMap::default();
     let mut queue = VecDeque::new();
-    queue.push_back(root_module_id);
+    queue.push_back(block_id);
     while let Some(module_id) = queue.pop_front() {
-      // TODO: we don't have blocks.blocks https://github.com/webpack/webpack/blob/3f71468514ae2f179ff34c837ce82fcc8f97e24c/lib/FlagDependencyUsagePlugin.js#L180-L194
-      let mgm = self
-        .compilation
-        .module_graph
-        .module_graph_module_by_identifier(&module_id)
-        .expect("should have module graph module");
-      let dep_id_list = mgm.all_dependencies.clone();
+      let (blocks, dependencies) = match module_id {
+        ModuleOrAsyncDependenciesBlock::Module(module) => {
+          let block = self
+            .compilation
+            .module_graph
+            .module_by_identifier(&module)
+            .expect("should have module");
+          (block.get_blocks(), block.get_dependencies())
+        }
+        ModuleOrAsyncDependenciesBlock::AsyncDependenciesBlock(async_dependencies_block_id) => {
+          let block = self
+            .compilation
+            .module_graph
+            .block_by_id(&async_dependencies_block_id)
+            .expect("should have module");
+          (block.get_blocks(), block.get_dependencies())
+        }
+      };
+      let (block_id_list, dep_id_list) = (blocks.to_vec(), dependencies.to_vec());
+      for block_id in block_id_list {
+        let block = self
+          .compilation
+          .module_graph
+          .block_by_id(&block_id)
+          .expect("should have block");
+        if !self.global
+          && let Some(GroupOptions::Entrypoint(options)) = block.get_group_options()
+        {
+          let runtime = options
+            .runtime
+            .as_ref()
+            .map(|runtime| RuntimeSpec::from_iter([runtime.as_str().into()]));
+          self.process_module(
+            ModuleOrAsyncDependenciesBlock::AsyncDependenciesBlock(block_id),
+            runtime,
+            true,
+            q,
+          )
+        } else {
+          queue.push_back(ModuleOrAsyncDependenciesBlock::AsyncDependenciesBlock(
+            block_id,
+          ));
+        }
+      }
       for dep_id in dep_id_list.into_iter() {
         let connection = self
           .compilation
@@ -112,7 +160,12 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             continue;
           }
           ConnectionState::TransitiveOnly => {
-            self.process_module(connection.module_identifier, runtime.clone(), false, q);
+            self.process_module(
+              ModuleOrAsyncDependenciesBlock::Module(connection.module_identifier),
+              runtime.clone(),
+              false,
+              q,
+            );
             continue;
           }
           _ => {}

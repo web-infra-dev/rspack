@@ -248,12 +248,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           init_fragments: &mut init_fragments,
         };
 
-        let mgm = compilation
-          .module_graph
-          .module_graph_module_by_identifier(&module.identifier())
-          .expect("should have module graph module");
-
-        mgm.all_dependencies.iter().for_each(|id| {
+        module.get_dependencies().iter().for_each(|id| {
           if let Some(dependency) = compilation
             .module_graph
             .dependency_by_id(id)

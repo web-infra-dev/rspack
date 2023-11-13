@@ -20,7 +20,7 @@ pub struct LazyCompilationProxyModule {
 }
 
 impl DependenciesBlock for LazyCompilationProxyModule {
-  fn add_block(&mut self, block: AsyncDependenciesBlockId) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
     self.blocks.push(block)
   }
 
@@ -28,7 +28,7 @@ impl DependenciesBlock for LazyCompilationProxyModule {
     &self.blocks
   }
 
-  fn add_dependency(&mut self, dependency: DependencyId) {
+  fn add_dependency_id(&mut self, dependency: DependencyId) {
     self.dependencies.push(dependency)
   }
 

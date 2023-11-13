@@ -31,7 +31,7 @@ pub use dependency_template::*;
 use dyn_clone::{clone_trait_object, DynClone};
 
 use crate::{
-  ConnectionState, Context, ContextMode, ContextOptions, DependencyExtraMeta, ErrorSpan,
+  ConnectionState, Context, ContextOptions, DependencyExtraMeta, ErrorSpan,
   ExtendedReferencedExport, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport,
   RuntimeSpec, UsedByExports,
 };

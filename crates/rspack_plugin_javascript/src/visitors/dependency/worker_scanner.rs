@@ -66,7 +66,7 @@ impl<'a> WorkerScanner<'a> {
       Some(new_expr.span.into()),
     ));
     let mut block = AsyncDependenciesBlock::default();
-    block.set_group_options(GroupOptions::Entrypoint(EntryOptions {
+    block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
       name,
       runtime: Some(runtime),
       chunk_loading: Some(self.output_options.worker_chunk_loading.clone()),
@@ -75,7 +75,7 @@ impl<'a> WorkerScanner<'a> {
       base_uri: None,
       filename: None,
       library: None,
-    }));
+    })));
     block.add_dependency(dep);
     self.blocks.push(block);
 

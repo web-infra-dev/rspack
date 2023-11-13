@@ -478,7 +478,7 @@ impl ContextModule {
 }
 
 impl DependenciesBlock for ContextModule {
-  fn add_block(&mut self, block: AsyncDependenciesBlockId) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
     self.blocks.push(block)
   }
 
@@ -486,7 +486,7 @@ impl DependenciesBlock for ContextModule {
     &self.blocks
   }
 
-  fn add_dependency(&mut self, dependency: DependencyId) {
+  fn add_dependency_id(&mut self, dependency: DependencyId) {
     self.dependencies.push(dependency)
   }
 
@@ -732,7 +732,7 @@ impl ContextModule {
           .chunk_name
           .as_ref()
           .map(|name| {
-            let name = if !WEBPACK_CHUNK_NAME_PLACEHOLDER.is_match(&name) {
+            let name = if !WEBPACK_CHUNK_NAME_PLACEHOLDER.is_match(name) {
               Cow::Owned(format!("{name}[index]"))
             } else {
               Cow::Borrowed(name)

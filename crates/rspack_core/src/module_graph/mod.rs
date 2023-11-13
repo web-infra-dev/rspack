@@ -760,7 +760,7 @@ mod test {
       }
 
       impl DependenciesBlock for $ident {
-        fn add_block(&mut self, _: AsyncDependenciesBlockId) {
+        fn add_block_id(&mut self, _: AsyncDependenciesBlockId) {
           unreachable!()
         }
 
@@ -768,7 +768,7 @@ mod test {
           unreachable!()
         }
 
-        fn add_dependency(&mut self, _: DependencyId) {
+        fn add_dependency_id(&mut self, _: DependencyId) {
           unreachable!()
         }
 
@@ -879,6 +879,7 @@ mod test {
     dep: BoxDependency,
   ) -> DependencyId {
     let dependency_id = *dep.id();
+    mg.add_dependency(dep);
     mg.dependency_id_to_module_identifier
       .insert(dependency_id, *to);
     if let Some(p_id) = from
@@ -886,7 +887,7 @@ mod test {
     {
       mgm.all_dependencies.push(dependency_id);
     }
-    mg.set_resolved_module(from.copied(), *dep.id(), *to)
+    mg.set_resolved_module(from.copied(), dependency_id, *to)
       .expect("failed to set resolved module");
 
     assert_eq!(
