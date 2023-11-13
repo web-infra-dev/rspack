@@ -558,7 +558,7 @@ export interface RawCacheGroupOptions {
   chunks?: RegExp | 'async' | 'initial' | 'all'
   type?: RegExp | string
   minChunks?: number
-  minSize?: number
+  minSize?: RawSplitChunksSizesOptions
   maxSize?: number
   maxAsyncSize?: number
   maxInitialSize?: number
@@ -680,7 +680,7 @@ export interface RawExternalsPresets {
 
 export interface RawFallbackCacheGroupOptions {
   chunks?: RegExp | 'async' | 'initial' | 'all'
-  minSize?: number
+  minSize?: RawSplitChunksSizesOptions
   maxSize?: number
   maxAsyncSize?: number
   maxInitialSize?: number
@@ -1035,12 +1035,20 @@ export interface RawSplitChunksOptions {
   maxAsyncRequests?: number
   maxInitialRequests?: number
   minChunks?: number
-  minSize?: number
+  minSize?: RawSplitChunksSizesOptions
   enforceSizeThreshold?: number
   minRemainingSize?: number
   maxSize?: number
   maxAsyncSize?: number
   maxInitialSize?: number
+}
+
+export interface RawSplitChunksSizesOptions {
+  javascript?: number
+  css?: number
+  wasm?: number
+  asset?: number
+  unknown?: number
 }
 
 export interface RawStatsOptions {

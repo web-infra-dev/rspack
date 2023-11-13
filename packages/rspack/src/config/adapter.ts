@@ -16,7 +16,8 @@ import type {
 	RawModuleRuleUses,
 	RawFuncUseCtx,
 	RawRspackFuture,
-	RawLibraryName
+	RawLibraryName,
+	RawSplitChunksSizesOptions
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../Compiler";
@@ -54,6 +55,8 @@ import {
 	OptimizationSplitChunksOptions,
 	RspackFutureOptions,
 	JavascriptParserOptions,
+	OptimizationSplitChunksCacheGroup,
+	OptimizationSplitChunksSizes,
 	LibraryName
 } from "./zod";
 import {
@@ -720,23 +723,50 @@ function toRawSplitChunksOptions(
 		return;
 	}
 
-	const { name, cacheGroups = {}, ...passThrough } = sc;
+	function getRawSplitChunksSizes(
+		sizes?: OptimizationSplitChunksSizes
+	): RawSplitChunksSizesOptions | undefined {
+		if (typeof sizes === "number") {
+			return {
+				javascript: sizes
+			};
+		}
+		return sizes;
+	}
+
+	const {
+		name,
+		minSize,
+		fallbackCacheGroup,
+		cacheGroups = {},
+		...passThrough
+	} = sc;
+
+	const fallbackMin = getRawSplitChunksSizes(fallbackCacheGroup?.minSize);
+
 	return {
 		name: name === false ? undefined : name,
+		minSize: getRawSplitChunksSizes(minSize),
 		cacheGroups: Object.entries(cacheGroups)
 			.filter(([_key, group]) => group !== false)
 			.map(([key, group]) => {
 				group = group as Exclude<typeof group, false>;
 
-				const { test, name, ...passThrough } = group;
+				const { test, name, minSize, ...passThrough } = group;
 				const rawGroup: RawCacheGroupOptions = {
 					key,
 					test,
+					minSize: getRawSplitChunksSizes(minSize),
 					name: name === false ? undefined : name,
 					...passThrough
 				};
 				return rawGroup;
 			}),
+
+		fallbackCacheGroup: {
+			...fallbackCacheGroup,
+			minSize: fallbackMin
+		},
 		...passThrough
 	};
 }

@@ -69,6 +69,10 @@ pub fn create_module_filter_from_rspack_str(st: String) -> ModuleFilter {
 pub struct SplitChunkSizes(pub(crate) FxHashMap<SourceType, f64>);
 
 impl SplitChunkSizes {
+  pub fn new(map: FxHashMap<SourceType, f64>) -> Self {
+    Self(map)
+  }
+
   pub fn empty() -> Self {
     Self(Default::default())
   }

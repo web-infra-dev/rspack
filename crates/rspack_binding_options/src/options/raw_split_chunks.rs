@@ -7,6 +7,7 @@ use new_split_chunks_plugin::ModuleTypeFilter;
 use rspack_core::SourceType;
 use rspack_napi_shared::{JsRegExp, JsRegExpExt, JsStringExt};
 use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SplitChunksOptions, TestFn};
+use rustc_hash::FxHashMap;
 use serde::Deserialize;
 
 type Chunks = Either<JsRegExp, JsString>;
@@ -30,7 +31,7 @@ pub struct RawSplitChunksOptions {
   //   pub default_size_types: Option<Vec<SizeType>>,
   pub min_chunks: Option<u32>,
   // hide_path_info: bool,
-  pub min_size: Option<f64>,
+  pub min_size: Option<RawSplitChunksSizesOptions>,
   //   pub min_size_reduction: usize,
   pub enforce_size_threshold: Option<f64>,
   pub min_remaining_size: Option<f64>,
@@ -40,13 +41,17 @@ pub struct RawSplitChunksOptions {
   pub max_initial_size: Option<f64>,
 }
 
+pub fn extract_size_value(options: Option<RawSplitChunksSizesOptions>) -> Option<f64> {
+  options.and_then(|options| options.javascript.or(options.unknown))
+}
+
 impl From<RawSplitChunksOptions> for SplitChunksOptions {
   fn from(value: RawSplitChunksOptions) -> Self {
     let mut defaults = SplitChunksOptions {
       max_async_requests: value.max_async_requests,
       max_initial_requests: value.max_initial_requests,
       min_chunks: value.min_chunks,
-      min_size: value.min_size,
+      min_size: extract_size_value(value.min_size),
       enforce_size_threshold: value.enforce_size_threshold,
       min_remaining_size: value.min_remaining_size,
       chunks: value.chunks.map(|chunks| {
@@ -138,7 +143,7 @@ pub struct RawCacheGroupOptions {
   //   pub max_initial_requests: usize,
   pub min_chunks: Option<u32>,
   // hide_path_info: bool,
-  pub min_size: Option<f64>,
+  pub min_size: Option<RawSplitChunksSizesOptions>,
   //   pub min_size_reduction: usize,
   //   pub enforce_size_threshold: usize,
   //   pub min_remaining_size: usize,
@@ -189,9 +194,15 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
         .unwrap_or_default()
     };
 
+    let create_sizes_from_obj = |sizes: Option<RawSplitChunksSizesOptions>| {
+      sizes
+        .map(|sizes| SplitChunkSizes::new(sizes.to_hash_map()))
+        .unwrap_or_default()
+    };
+
     let empty_sizes = SplitChunkSizes::empty();
 
-    let overall_min_size = create_sizes(raw_opts.min_size);
+    let overall_min_size = create_sizes_from_obj(raw_opts.min_size);
     let overall_max_size = create_sizes(raw_opts.max_size);
     let overall_max_async_size = create_sizes(raw_opts.max_async_size).merge(&overall_max_size);
     let overall_max_initial_size = create_sizes(raw_opts.max_initial_size).merge(&overall_max_size);
@@ -204,7 +215,7 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
         .map(|v| {
           let enforce = v.enforce.unwrap_or_default();
 
-          let min_size = create_sizes(v.min_size).merge(if enforce {
+          let min_size = create_sizes_from_obj(v.min_size).merge(if enforce {
             &empty_sizes
           } else {
             &overall_min_size
@@ -273,7 +284,7 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
     let fallback_chunks_filter = raw_fallback_cache_group.chunks.map(create_chunks_filter);
 
     let fallback_min_size =
-      create_sizes(raw_fallback_cache_group.min_size).merge(&overall_min_size);
+      create_sizes_from_obj(raw_fallback_cache_group.min_size).merge(&overall_min_size);
 
     let fallback_max_size = create_sizes(raw_fallback_cache_group.max_size);
 
@@ -303,6 +314,43 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
   }
 }
 
+#[derive(Derivative, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+#[derivative(Debug)]
+pub struct RawSplitChunksSizesOptions {
+  pub javascript: Option<f64>,
+  pub css: Option<f64>,
+  pub wasm: Option<f64>,
+  pub asset: Option<f64>,
+  // 不知道webpack里是如何转换的？我先遵循之前的实现就行吧？
+  pub unknown: Option<f64>,
+}
+
+impl RawSplitChunksSizesOptions {
+  pub fn to_hash_map(&self) -> FxHashMap<SourceType, f64> {
+    let mut map = FxHashMap::<SourceType, f64>::default();
+
+    if let Some(javascript) = self.javascript {
+      map.insert(SourceType::JavaScript, javascript);
+    }
+    if let Some(css) = self.css {
+      map.insert(SourceType::Css, css);
+    }
+    if let Some(wasm) = self.wasm {
+      map.insert(SourceType::Wasm, wasm);
+    }
+    if let Some(asset) = self.asset {
+      map.insert(SourceType::Asset, asset);
+    }
+    if let Some(unknown) = self.unknown {
+      map.insert(SourceType::Unknown, unknown);
+    }
+
+    map
+  }
+}
+
 #[derive(Deserialize, Default, Derivative)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
@@ -312,7 +360,7 @@ pub struct RawFallbackCacheGroupOptions {
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
   #[derivative(Debug = "ignore")]
   pub chunks: Option<Chunks>,
-  pub min_size: Option<f64>,
+  pub min_size: Option<RawSplitChunksSizesOptions>,
   pub max_size: Option<f64>,
   pub max_async_size: Option<f64>,
   pub max_initial_size: Option<f64>,
