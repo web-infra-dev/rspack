@@ -719,9 +719,6 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack
-      '@rspack/plugin-minify':
-        specifier: workspace:*
-        version: link:../../packages/rspack-plugin-minify
       copy-webpack-plugin:
         specifier: 5.1.2
         version: 5.1.2
