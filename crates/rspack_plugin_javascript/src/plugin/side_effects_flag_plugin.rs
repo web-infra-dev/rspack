@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -56,6 +57,8 @@ impl Visit for SideEffectsFlagPluginVisitor {
         ModuleItem::ModuleDecl(decl) => match decl {
           ModuleDecl::Import(_) => {}
           ModuleDecl::ExportDecl(decl) => decl.visit_with(self),
+          // `export { foo } from 'mod'`
+          // `export { foo as bar } from 'mod'`
           ModuleDecl::ExportNamed(_) => {}
           ModuleDecl::ExportDefaultDecl(decl) => {
             decl.visit_with(self);
@@ -65,9 +68,8 @@ impl Visit for SideEffectsFlagPluginVisitor {
               self.side_effects_span = Some(node.span);
             }
           }
-          ModuleDecl::ExportAll(_) => {
-            // nothing to analyze
-          }
+          // export * from './x'
+          ModuleDecl::ExportAll(_) => {}
           ModuleDecl::TsImportEquals(_) => unreachable!(),
           ModuleDecl::TsExportAssignment(_) => unreachable!(),
           ModuleDecl::TsNamespaceExport(_) => unreachable!(),
@@ -91,6 +93,12 @@ impl Visit for SideEffectsFlagPluginVisitor {
     node.visit_children_with(self);
   }
 
+  fn visit_export_decl(&mut self, node: &ExportDecl) {
+    if !is_pure_decl(&node.decl, self.unresolved_ctxt) {
+      self.side_effects_span = Some(node.decl.span());
+    }
+    node.visit_children_with(self);
+  }
   fn visit_class_member(&mut self, node: &ClassMember) {
     if let Some(key) = node.class_key()
       && key.is_computed()

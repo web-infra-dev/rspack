@@ -538,6 +538,10 @@ impl Module for NormalModule {
     module_chain: &mut HashSet<ModuleIdentifier>,
   ) -> ConnectionState {
     if let Some(mgm) = module_graph.module_graph_module_by_identifier(&self.identifier()) {
+      // dbg!(
+      //   &mgm.module_identifier,
+      //   &mgm.build_meta.as_ref().and_then(|m| m.side_effect_free)
+      // );
       if let Some(side_effect_free) = mgm.factory_meta.as_ref().and_then(|m| m.side_effect_free) {
         return ConnectionState::Bool(!side_effect_free);
       }

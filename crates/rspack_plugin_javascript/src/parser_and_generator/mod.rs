@@ -223,6 +223,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         let mut visitor =
           SideEffectsFlagPluginVisitor::new(SyntaxContextInfo::new(unresolved_ctxt));
         program.visit_with(&mut visitor);
+
+        dbg!(&module_identifier, &visitor.side_effects_span);
         build_meta.side_effect_free = Some(visitor.side_effects_span.is_none());
       });
     }
