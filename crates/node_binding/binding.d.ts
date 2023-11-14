@@ -217,6 +217,7 @@ export interface JsChunk {
   contentHash: Record<string, string>
   renderedHash?: string
   chunkReasons: Array<string>
+  auxiliaryFiles: Array<string>
 }
 
 export interface JsChunkAssetArgs {
