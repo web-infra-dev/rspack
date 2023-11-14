@@ -12,6 +12,7 @@
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*"
   },
+  "sideEffects": false,
   "keywords": [],
   "author": "",
   "license": "MIT"

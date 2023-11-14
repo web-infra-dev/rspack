@@ -53,9 +53,7 @@ impl<'a, 'b> OptimizeAnalyzer for JsModule<'a, 'b> {
         worker_syntax_list,
       );
       program.visit_with(&mut analyzer);
-      let res = analyzer.into();
-      dbg!(&res);
-      res
+      analyzer.into()
     })
   }
 }

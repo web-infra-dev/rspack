@@ -556,7 +556,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         }
       })
       .collect::<Vec<_>>();
-    dbg!(&self.immediate_evaluate_reference_map);
     self.used_symbol_ref.extend(side_effect_symbol_list);
     let side_effect_symbol_list = self
       .immediate_evaluate_reference_map
@@ -615,7 +614,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           .collect::<Vec<_>>()
       })
       .collect::<Vec<_>>();
-    dbg!(&side_effect_symbol_list);
     self.used_symbol_ref.extend(side_effect_symbol_list);
     // all reachable export from used symbol in current module
     for used_id in &self.used_id_set {
@@ -967,10 +965,11 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       });
     }
 
-    let pre_state = self.state;
+    let mut pre_state = self.state;
     self.state.insert(AnalyzeState::ASSIGNMENT_LHS);
     node.left.visit_with(self);
-    self.state = pre_state;
+    // cargo clippy told me to do this..
+    std::mem::swap(&mut self.state, &mut pre_state);
 
     let pre_state = self.state;
     if valid_assign_target {
