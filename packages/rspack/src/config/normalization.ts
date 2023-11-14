@@ -124,7 +124,7 @@ export const getNormalizedRspackOptions = (
 					"cssFilename",
 					"cssChunkFilename"
 				] as const;
-				const checkFilename = (prop: typeof filenames[number]) => {
+				const checkFilename = (prop: (typeof filenames)[number]) => {
 					const oldFilename = output[prop];
 					if (typeof oldFilename === "string" && oldFilename.endsWith(ext)) {
 						const newFilename =

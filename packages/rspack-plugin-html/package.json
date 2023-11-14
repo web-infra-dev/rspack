@@ -7,7 +7,6 @@
   "typings": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./package.json": "./package.json"
@@ -34,7 +33,6 @@
     "directory": "packages/rspack-plugin-html"
   },
   "dependencies": {
-    "@types/html-minifier-terser": "7.0.0",
     "html-minifier-terser": "7.0.0",
     "lodash.template": "^4.5.0",
     "parse5": "7.1.1",
@@ -50,6 +48,7 @@
   },
   "devDependencies": {
     "@rspack/core": "workspace:*",
+    "@types/html-minifier-terser": "7.0.0",
     "@types/lodash.template": "^4.5.1",
     "@types/pug": "^2.0.6",
     "html-loader": "^4.2.0",

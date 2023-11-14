@@ -8,6 +8,7 @@
       "esnext"
     ],
     "allowJs": true,
+    // TODO: Remove skipLibCheck when fix upstream type bug
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,

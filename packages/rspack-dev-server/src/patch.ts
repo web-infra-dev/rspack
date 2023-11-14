@@ -17,6 +17,7 @@ function applyDevServerPatch() {
 
 	// @ts-expect-error private API
 	WebpackDevServer.prototype.sendStats = function sendStats__rspack_patched(
+		// @ts-expect-error
 		...args
 	) {
 		let stats = args[1];

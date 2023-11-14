@@ -7,8 +7,10 @@
 
 const createHash = require("../../util/createHash");
 
-/** @typedef {import("../util/Hash")} Hash */
-/** @typedef {typeof import("../util/Hash")} HashConstructor */
+// /** @typedef {import("../util/Hash")} Hash */
+// /** @typedef {typeof import("../util/Hash")} HashConstructor */
+/** @typedef {any} Hash */
+/** @typedef {any} HashConstructor */
 
 /**
  * @typedef {Object} HashableObject
@@ -31,6 +33,7 @@ class LazyHashedEtag {
 	 */
 	toString() {
 		if (this._hash === undefined) {
+			// @ts-expect-error
 			const hash = createHash(this._hashFunction);
 			this._obj.updateHash(hash);
 			this._hash = /** @type {string} */ (hash.digest("base64"));

@@ -2,6 +2,7 @@ import { RspackOptions, rspack } from "@rspack/core";
 import { RspackDevServer, Configuration } from "@rspack/dev-server";
 import { createCompiler } from "@rspack/core";
 import ReactRefreshPlugin from "@rspack/plugin-react-refresh";
+// @ts-expect-error
 import serializer from "jest-serializer-path";
 expect.addSnapshotSerializer(serializer);
 
@@ -174,9 +175,12 @@ async function getAdditionEntries(
 		.reduce<Object>((acc, cur: any) => {
 			const name = cur.options.name;
 			const request = cur.entry;
+			// @ts-expect-error
 			if (acc[name]) {
+				// @ts-expect-error
 				acc[name].import.push(request);
 			} else {
+				// @ts-expect-error
 				acc[name] = { import: [request] };
 			}
 			return acc;
@@ -184,6 +188,7 @@ async function getAdditionEntries(
 	// some hack for snapshot
 	const value = Object.fromEntries(
 		Object.entries(entries).map(([key, item]) => {
+			// @ts-expect-error
 			const replaced = item.import?.map(entry => {
 				const array = entry
 					.replace(/\\/g, "/")

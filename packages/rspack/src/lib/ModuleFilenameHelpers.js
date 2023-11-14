@@ -5,13 +5,18 @@
 
 "use strict";
 
-/** @typedef {import("./ChunkGraph")} ChunkGraph */
-/** @typedef {import("./Module")} Module */
-/** @typedef {import("./RequestShortener")} RequestShortener */
-/** @typedef {typeof import("./util/Hash")} Hash */
+// /** @typedef {import("./ChunkGraph")} ChunkGraph */
+// /** @typedef {import("./Module")} Module */
+// /** @typedef {import("./RequestShortener")} RequestShortener */
+// /** @typedef {typeof import("./util/Hash")} Hash */
+/** @typedef {any} ChunkGraph */
+/** @typedef {any} Module */
+/** @typedef {any} RequestShortener */
+/** @typedef {any} Hash */
 
 const ModuleFilenameHelpers = exports;
 
+// @ts-expect-error
 const asRegExp = test => {
 	if (typeof test === "string") {
 		test = new RegExp("^" + test.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"));
@@ -19,6 +24,7 @@ const asRegExp = test => {
 	return test;
 };
 
+// @ts-expect-error
 ModuleFilenameHelpers.matchPart = (str, test) => {
 	if (!test) return true;
 	test = asRegExp(test);
@@ -29,6 +35,7 @@ ModuleFilenameHelpers.matchPart = (str, test) => {
 	}
 };
 
+// @ts-expect-error
 ModuleFilenameHelpers.matchObject = (obj, str) => {
 	if (obj.test) {
 		if (!ModuleFilenameHelpers.matchPart(str, obj.test)) {
