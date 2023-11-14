@@ -860,9 +860,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               unimplemented!()
             }
             Decl::Var(var) => {
-              self.state |= AnalyzeState::EXPORT_DECL;
+              let pre_state = self.state;
+              self.state.insert(AnalyzeState::EXPORT_DECL);
               var.visit_with(self);
-              self.state.remove(AnalyzeState::EXPORT_DECL);
+              self.state = pre_state;
             }
             Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
               unreachable!("We have been converted Typescript to javascript already")
@@ -964,14 +965,18 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       });
     }
 
+    let mut pre_state = self.state;
     self.state.insert(AnalyzeState::ASSIGNMENT_LHS);
     node.left.visit_with(self);
-    self.state.remove(AnalyzeState::ASSIGNMENT_LHS);
+    // cargo clippy told me to do this..
+    std::mem::swap(&mut self.state, &mut pre_state);
+
+    let pre_state = self.state;
     if valid_assign_target {
       self.state.insert(AnalyzeState::ASSIGNMENT_RHS);
     }
     node.right.visit_with(self);
-    self.state.remove(AnalyzeState::ASSIGNMENT_RHS);
+    self.state = pre_state;
     self.current_body_owner_symbol_ext = before_owner_extend_symbol;
   }
 
@@ -983,9 +988,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           expr.visit_with(self);
         }
         _ => {
+          let pre_state = self.state;
           self.state.insert(AnalyzeState::STATIC_VAR_DECL);
           expr.visit_with(self);
-          self.state.remove(AnalyzeState::STATIC_VAR_DECL);
+          self.state = pre_state;
         }
       }
     }
@@ -1027,6 +1033,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
 
   fn visit_export_default_decl(&mut self, node: &ExportDefaultDecl) {
+    let pre_state = self.state;
     self.state.insert(AnalyzeState::EXPORT_DEFAULT);
     match &node.decl {
       DefaultDecl::Class(_) | DefaultDecl::Fn(_) => {
@@ -1036,11 +1043,13 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         unreachable!("We have been converted Typescript to javascript already")
       }
     }
-    self.state.remove(AnalyzeState::EXPORT_DEFAULT);
+    self.state = pre_state;
   }
 
   fn visit_class_expr(&mut self, node: &ClassExpr) {
+    // TODO: handle
     if self.state.contains(AnalyzeState::EXPORT_DEFAULT) {
+      let pre_state = self.state;
       self.state.remove(AnalyzeState::EXPORT_DEFAULT);
       let default_ident = self.generate_default_ident();
       self.add_export(
@@ -1087,6 +1096,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       self.current_body_owner_symbol_ext = Some(body_owner_extend_symbol);
       node.class.visit_with(self);
       self.current_body_owner_symbol_ext = before_owner_extend_symbol;
+      self.state = pre_state;
     } else {
       // if the class expr is not inside a default expr, it will not
       // generate a binding.
@@ -1142,6 +1152,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_fn_expr(&mut self, node: &FnExpr) {
     if self.state.contains(AnalyzeState::EXPORT_DEFAULT) {
+      let pre_state = self.state;
       self.state.remove(AnalyzeState::EXPORT_DEFAULT);
       let default_ident = self.generate_default_ident();
       self.add_export(
@@ -1195,6 +1206,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       self.current_body_owner_symbol_ext = Some(body_owner_extend_symbol);
       node.function.visit_with(self);
       self.current_body_owner_symbol_ext = before_owner_extend_symbol;
+      self.state = pre_state;
     } else {
       // if the function expr is not inside a default expr, it will not
       // generate a binding.
