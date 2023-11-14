@@ -341,12 +341,12 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
           self.clear_symbol_if_is_top_level();
         }
         Expr::Class(class) => {
-          // TODO: should tag top level with ident
           let is_pure = is_pure_class(&class.class, self.unresolved_ctxt);
-          if !is_pure {
-            self.set_top_level_symbol(None);
+          if is_pure {
+            self.set_symbol_if_is_top_level(symbol);
           }
           class.class.visit_with(self);
+          self.clear_symbol_if_is_top_level();
         }
         _ => {
           init.visit_children_with(self);
@@ -365,8 +365,8 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
                 }
               },
             ));
+            self.clear_symbol_if_is_top_level();
           }
-          self.clear_symbol_if_is_top_level();
         }
       }
     } else {
@@ -530,9 +530,9 @@ impl<'a> InnerGraphPlugin<'a> {
     self.scope_level == 0
   }
 
-  fn has_toplevel_symbol(&self) -> bool {
-    self.state.current_top_level_symbol.is_some()
-  }
+  // fn has_toplevel_symbol(&self) -> bool {
+  //   self.state.current_top_level_symbol.is_some()
+  // }
   pub fn bailout(&mut self) {
     self.state.enable = false;
   }
