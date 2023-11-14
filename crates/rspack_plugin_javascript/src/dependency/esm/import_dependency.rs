@@ -1,5 +1,5 @@
+use rspack_core::Dependency;
 use rspack_core::{module_namespace_promise, DependencyType, ErrorSpan, ImportDependencyTrait};
-use rspack_core::{ChunkGroupOptions, ChunkGroupOptionsKindRef, Dependency};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
 use swc_core::ecma::atoms::JsWord;
@@ -12,9 +12,6 @@ pub struct ImportDependency {
   request: JsWord,
   span: Option<ErrorSpan>,
   referenced_exports: Option<Vec<JsWord>>,
-  /// This is used to implement `webpackChunkName`, `webpackPrefetch` etc.
-  /// for example: `import(/* webpackChunkName: "my-chunk-name", webpackPrefetch: true */ './module')`
-  pub group_options: ChunkGroupOptions,
 }
 
 impl ImportDependency {
@@ -23,7 +20,6 @@ impl ImportDependency {
     end: u32,
     request: JsWord,
     span: Option<ErrorSpan>,
-    group_options: ChunkGroupOptions,
     referenced_exports: Option<Vec<JsWord>>,
   ) -> Self {
     Self {
@@ -33,7 +29,6 @@ impl ImportDependency {
       span,
       id: DependencyId::new(),
       referenced_exports,
-      group_options,
     }
   }
 }
@@ -67,10 +62,6 @@ impl ModuleDependency for ImportDependency {
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn group_options(&self) -> Option<ChunkGroupOptionsKindRef> {
-    Some(ChunkGroupOptionsKindRef::Normal(&self.group_options))
   }
 
   fn set_request(&mut self, request: String) {

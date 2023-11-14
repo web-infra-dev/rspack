@@ -1,6 +1,8 @@
 use once_cell::sync::Lazy;
-use rspack_core::clean_regexp_in_context_module;
-use rspack_core::{context_reg_exp, DynamicImportMode, JavascriptParserOptions};
+use rspack_core::{
+  clean_regexp_in_context_module, context_reg_exp, AsyncDependenciesBlock, DynamicImportMode,
+  GroupOptions, JavascriptParserOptions,
+};
 use rspack_core::{BoxDependency, BuildMeta, ChunkGroupOptions, ContextMode};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
 use rspack_regex::RspackRegex;
@@ -19,6 +21,7 @@ use crate::utils::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_
 
 pub struct ImportScanner<'a> {
   pub dependencies: &'a mut Vec<BoxDependency>,
+  pub blocks: &'a mut Vec<AsyncDependenciesBlock>,
   pub comments: Option<&'a dyn Comments>,
   pub build_meta: &'a BuildMeta,
   pub options: Option<&'a JavascriptParserOptions>,
@@ -89,12 +92,14 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
 impl<'a> ImportScanner<'a> {
   pub fn new(
     dependencies: &'a mut Vec<BoxDependency>,
+    blocks: &'a mut Vec<AsyncDependenciesBlock>,
     comments: Option<&'a dyn Comments>,
     build_meta: &'a BuildMeta,
     options: Option<&'a JavascriptParserOptions>,
   ) -> Self {
     Self {
       dependencies,
+      blocks,
       comments,
       build_meta,
       options,
@@ -169,7 +174,6 @@ impl Visit for ImportScanner<'_> {
             node.span.real_hi(),
             imported.value.clone(),
             Some(node.span.into()),
-            ChunkGroupOptions::default(),
             // TODO scan dynamic import referenced exports
             None,
           );
@@ -177,15 +181,20 @@ impl Visit for ImportScanner<'_> {
           return;
         }
         let chunk_name = self.try_extract_webpack_chunk_name(&imported.span);
-        self.dependencies.push(Box::new(ImportDependency::new(
+        let dep = Box::new(ImportDependency::new(
           node.span.real_lo(),
           node.span.real_hi(),
           imported.value.clone(),
           Some(node.span.into()),
-          ChunkGroupOptions::default().name_optional(chunk_name),
           // TODO scan dynamic import referenced exports
           None,
-        )));
+        ));
+        let mut block = AsyncDependenciesBlock::default();
+        block.set_group_options(GroupOptions::ChunkGroup(
+          ChunkGroupOptions::default().name_optional(chunk_name),
+        ));
+        block.add_dependency(dep);
+        self.blocks.push(block);
       }
       Expr::Tpl(tpl) if tpl.quasis.len() == 1 => {
         let chunk_name = self.try_extract_webpack_chunk_name(&tpl.span);
@@ -197,14 +206,19 @@ impl Visit for ImportScanner<'_> {
             .raw
             .to_string(),
         );
-        self.dependencies.push(Box::new(ImportDependency::new(
+        let dep = Box::new(ImportDependency::new(
           node.span.real_lo(),
           node.span.real_hi(),
           request,
           Some(node.span.into()),
-          ChunkGroupOptions::default().name_optional(chunk_name),
           None,
-        )));
+        ));
+        let mut block = AsyncDependenciesBlock::default();
+        block.set_group_options(GroupOptions::ChunkGroup(
+          ChunkGroupOptions::default().name_optional(chunk_name),
+        ));
+        block.add_dependency(dep);
+        self.blocks.push(block);
       }
       _ => {
         if let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) {

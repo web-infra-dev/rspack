@@ -25,6 +25,7 @@ export class Chunk implements JsChunk {
 	contentHash: Record<string, string>;
 	renderedHash?: string;
 	chunkReasons: Array<string>;
+	auxiliaryFiles: Array<string>;
 
 	static __from_binding(chunk: JsChunk, compilation: JsCompilation) {
 		return new Chunk(chunk, compilation);
@@ -47,6 +48,7 @@ export class Chunk implements JsChunk {
 		this.contentHash = chunk.contentHash;
 		this.renderedHash = chunk.renderedHash;
 		this.chunkReasons = chunk.chunkReasons;
+		this.auxiliaryFiles = chunk.auxiliaryFiles;
 	}
 
 	isOnlyInitial() {

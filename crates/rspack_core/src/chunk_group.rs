@@ -253,11 +253,8 @@ pub enum ChunkGroupKind {
 }
 
 impl ChunkGroupKind {
-  pub fn new_entrypoint(initial: bool, options: EntryOptions) -> Self {
-    Self::Entrypoint {
-      initial,
-      options: Box::new(options),
-    }
+  pub fn new_entrypoint(initial: bool, options: Box<EntryOptions>) -> Self {
+    Self::Entrypoint { initial, options }
   }
 
   pub fn is_entrypoint(&self) -> bool {
@@ -303,17 +300,17 @@ impl ChunkGroupOptions {
   }
 }
 
-#[derive(Debug)]
-pub enum ChunkGroupOptionsKindRef<'a> {
-  Entry(&'a EntryOptions),
-  Normal(&'a ChunkGroupOptions),
+#[derive(Debug, Clone)]
+pub enum GroupOptions {
+  Entrypoint(Box<EntryOptions>),
+  ChunkGroup(ChunkGroupOptions),
 }
 
-impl ChunkGroupOptionsKindRef<'_> {
+impl GroupOptions {
   pub fn name(&self) -> Option<&str> {
     match self {
-      Self::Entry(e) => e.name.as_deref(),
-      Self::Normal(n) => n.name.as_deref(),
+      Self::Entrypoint(e) => e.name.as_deref(),
+      Self::ChunkGroup(n) => n.name.as_deref(),
     }
   }
 }
