@@ -15,6 +15,7 @@ const WINDOWS_PATH_SEPARATOR_REGEXP = /\\/g;
  * @property {Map<string, Map<string, string>>=} relativePaths
  */
 
+// @ts-expect-error
 const relativePathToRequest = relativePath => {
 	if (relativePath === "") return "./.";
 	if (relativePath === "..") return "../.";
@@ -81,10 +82,12 @@ const requestToAbsolute = (context, relativePath) => {
 	return relativePath;
 };
 
+// @ts-expect-error
 const makeCacheable = realFn => {
 	/** @type {WeakMap<object, Map<string, ParsedResource>>} */
 	const cache = new WeakMap();
 
+	// @ts-expect-error
 	const getCache = associatedObjectForCache => {
 		const entry = cache.get(associatedObjectForCache);
 		if (entry !== undefined) return entry;
@@ -109,8 +112,10 @@ const makeCacheable = realFn => {
 		return result;
 	};
 
+	// @ts-expect-error
 	fn.bindCache = associatedObjectForCache => {
 		const cache = getCache(associatedObjectForCache);
+		// @ts-expect-error
 		return str => {
 			const entry = cache.get(str);
 			if (entry !== undefined) return entry;
@@ -123,6 +128,7 @@ const makeCacheable = realFn => {
 	return fn;
 };
 
+// @ts-expect-error
 const makeCacheableWithContext = fn => {
 	/** @type {WeakMap<object, Map<string, Map<string, string>>>} */
 	const cache = new WeakMap();
@@ -164,6 +170,7 @@ const makeCacheableWithContext = fn => {
 	 * @returns {function(string, string): string} cached function
 	 */
 	cachedFn.bindCache = associatedObjectForCache => {
+		// @ts-expect-error
 		let innerCache;
 		if (associatedObjectForCache) {
 			innerCache = cache.get(associatedObjectForCache);
@@ -182,8 +189,10 @@ const makeCacheableWithContext = fn => {
 		 */
 		const boundFn = (context, identifier) => {
 			let cachedResult;
+			// @ts-expect-error
 			let innerSubCache = innerCache.get(context);
 			if (innerSubCache === undefined) {
+				// @ts-expect-error
 				innerCache.set(context, (innerSubCache = new Map()));
 			} else {
 				cachedResult = innerSubCache.get(identifier);
@@ -207,6 +216,7 @@ const makeCacheableWithContext = fn => {
 	 * @returns {function(string): string} cached function
 	 */
 	cachedFn.bindContextCache = (context, associatedObjectForCache) => {
+		// @ts-expect-error
 		let innerSubCache;
 		if (associatedObjectForCache) {
 			let innerCache = cache.get(associatedObjectForCache);
@@ -228,11 +238,13 @@ const makeCacheableWithContext = fn => {
 		 * @returns {string} the returned relative path
 		 */
 		const boundFn = identifier => {
+			// @ts-expect-error
 			const cachedResult = innerSubCache.get(identifier);
 			if (cachedResult !== undefined) {
 				return cachedResult;
 			} else {
 				const result = fn(context, identifier);
+				// @ts-expect-error
 				innerSubCache.set(identifier, result);
 				return result;
 			}
@@ -319,8 +331,11 @@ const _parseResource = str => {
 	const match = PATH_QUERY_FRAGMENT_REGEXP.exec(str);
 	return {
 		resource: str,
+		// @ts-expect-error
 		path: match[1].replace(/\0(.)/g, "$1"),
+		// @ts-expect-error
 		query: match[2] ? match[2].replace(/\0(.)/g, "$1") : "",
+		// @ts-expect-error
 		fragment: match[3] || ""
 	};
 };
@@ -335,7 +350,9 @@ const _parseResourceWithoutFragment = str => {
 	const match = PATH_QUERY_REGEXP.exec(str);
 	return {
 		resource: str,
+		// @ts-expect-error
 		path: match[1].replace(/\0(.)/g, "$1"),
+		// @ts-expect-error
 		query: match[2] ? match[2].replace(/\0(.)/g, "$1") : ""
 	};
 };

@@ -54,7 +54,7 @@ const parse = (input, context) => {
 /**
  * @param {string} input input string
  * @param {string} context the context directory
- * @returns {string[] | undefined} selected browsers
+ * @returns {string[] | undefined | null} selected browsers
  */
 const load = (input, context) => {
 	const { configPath, env, query } = parse(input, context);

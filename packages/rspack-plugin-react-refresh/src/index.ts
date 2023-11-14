@@ -49,7 +49,9 @@ class ReactRefreshRspackPlugin {
 		}).apply(compiler);
 
 		compiler.options.module.rules.unshift({
+			// @ts-expect-error
 			include: this.options.include,
+			// @ts-expect-error
 			exclude: {
 				or: [this.options.exclude, [...runtimePaths]].filter(Boolean)
 			},

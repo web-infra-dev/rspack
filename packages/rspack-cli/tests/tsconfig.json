@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "strict": false,
+    "checkJs": false,
+    "rootDir": "."
+  },
+  "include": ["."],
+  "references": []
+}

@@ -14,7 +14,8 @@ const mergeEtags = require("./cache/mergeEtags.js");
 /** @typedef {import("./Cache").Etag} Etag */
 /** @typedef {import("./WebpackError")} WebpackError */
 /** @typedef {import("./cache/getLazyHashedEtag").HashableObject} HashableObject */
-/** @typedef {typeof import("./util/Hash")} HashConstructor */
+// /** @typedef {typeof import("./util/Hash")} HashConstructor */
+/** @typedef {any} HashConstructor */
 
 /**
  * @template T
@@ -47,6 +48,7 @@ class MultiItemCache {
 	 * @returns {void}
 	 */
 	get(callback) {
+		// @ts-expect-error
 		forEachBail(this._items, (item, callback) => item.get(callback), callback);
 	}
 
@@ -55,6 +57,7 @@ class MultiItemCache {
 	 * @returns {Promise<T>} promise with the data
 	 */
 	getPromise() {
+		// @ts-expect-error
 		const next = i => {
 			return this._items[i].getPromise().then(result => {
 				if (result !== undefined) return result;

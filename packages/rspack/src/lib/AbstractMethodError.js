@@ -21,9 +21,11 @@ function createMessage(method) {
  */
 function Message() {
 	/** @type {string} */
+	// @ts-expect-error
 	this.stack = undefined;
 	Error.captureStackTrace(this);
 	/** @type {RegExpMatchArray} */
+	// @ts-expect-error
 	const match = this.stack.split("\n")[3].match(CURRENT_METHOD_REGEXP);
 
 	this.message = match && match[1] ? createMessage(match[1]) : createMessage();

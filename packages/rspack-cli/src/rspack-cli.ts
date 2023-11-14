@@ -58,6 +58,7 @@ export class RspackCLI {
 			? (config as MultiRspackOptions).some(i => i.watch)
 			: (config as RspackOptions).watch;
 
+		// @ts-expect-error
 		return rspack(config, isWatch ? callback : undefined);
 	}
 	createColors(useColor?: boolean): RspackCLIColors {

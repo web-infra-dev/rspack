@@ -12,7 +12,7 @@ import { KnownCreateStatsOptionsContext } from ".";
 import { StatsCompilation } from "./stats/statsFactoryUtils";
 import { Stats } from "./Stats";
 import { indent } from "./util";
-import identifierUtils from "./util/identifier";
+import * as identifierUtils from "./util/identifier";
 
 export default class MultiStats {
 	stats: Stats[];
