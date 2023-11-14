@@ -331,7 +331,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
 
     if let Pat::Ident(ident) = &n.name
       && let Some(box init) = &n.init
-      && self.is_toplevel()
+        && self.is_toplevel()
     {
       let symbol = ident.id.sym.clone();
       match init {
@@ -350,8 +350,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         }
         _ => {
           init.visit_children_with(self);
-          if is_pure_expression(init, self.unresolved_ctxt) {
-            self.set_symbol_if_is_top_level(symbol);
+          if !self.has_toplevel_symbol() && is_pure_expression(init, self.unresolved_ctxt) {
             let start = init.span().real_lo();
             let end = init.span().real_hi();
             let module_identifier = self.state.module_identifier;
@@ -366,7 +365,6 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
               },
             ));
           }
-          self.clear_symbol_if_is_top_level();
         }
       }
     } else {
