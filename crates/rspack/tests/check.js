@@ -31,7 +31,8 @@ const falsePositiveMap = {
 	"static-class": "align webpack unused binding behavior https://github.com/web-infra-dev/rspack/pull/4463/files",
 	"webpack-inner-graph-export-default-named": "align webpack unused binding behavior https://github.com/web-infra-dev/rspack/pull/4463/files",
 	"class-extend": "align webpack unused binding behavior https://github.com/web-infra-dev/rspack/pull/4481/files",
-	"export_star": "same as webpack https://gist.github.com/IWANABETHATGUY/1ee8aa4c2889a9246d19d7be0ac75bb7"
+	"export_star": "same as webpack https://gist.github.com/IWANABETHATGUY/1ee8aa4c2889a9246d19d7be0ac75bb7",
+	"issue-4637": "align webpack https://github.com/web-infra-dev/rspack/pull/4637/files#diff-d434486532fb1507da93a26ce108dca465337b6af0ee86b4ab94fd788810d288"
 };
 
 const normalizedList = filteredList.map((item) => {
