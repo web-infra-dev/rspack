@@ -25,7 +25,8 @@ function _test() {
         });
     });
     return _test.apply(this, arguments);
-} // test();
+}
+test();
 }),
 "../../../../../node_modules/@swc/helpers/esm/_async_to_generator.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
