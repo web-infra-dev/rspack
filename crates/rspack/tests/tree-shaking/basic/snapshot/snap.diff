@@ -9,12 +9,3 @@
      }
  }
  if (module.hot?.accept) module.hot.accept((module1)=>{
-@@ -44,7 +44,7 @@
- /* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./answer */"./answer.js");
- 
-  const secret = "888";
-- const myanswer = _answer__WEBPACK_IMPORTED_MODULE_0__.answer, result = 20000;
-+ const myanswer = (/* unused pure expression or super */ null && (_answer__WEBPACK_IMPORTED_MODULE_0__.answer)), result = 20000;
- }),
- 
- },function(__webpack_require__) {

@@ -7,9 +7,8 @@ use swc_core::{
   ecma::{
     ast::{
       ArrowExpr, CallExpr, Callee, Class, ClassDecl, ClassExpr, ClassMember, DefaultDecl,
-      ExportDecl, ExportDefaultDecl, ExportDefaultExpr, ExportSpecifier, Expr, FnDecl, FnExpr,
-      Ident, Key, MemberExpr, NamedExport, OptChainExpr, Pat, Program, Prop, PropName,
-      VarDeclarator,
+      ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr, FnDecl, FnExpr, Ident, Key,
+      MemberExpr, NamedExport, OptChainExpr, Pat, Program, Prop, PropName, VarDeclarator,
     },
     atoms::JsWord,
     visit::{noop_visit_type, Visit, VisitWith},
@@ -393,41 +392,46 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     }
   }
   fn visit_export_decl(&mut self, export_decl: &ExportDecl) {
-    if let Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) =
-      self.rewrite_usage_span.get(&export_decl.span)
+    let rewrite_usage_span = std::mem::take(self.rewrite_usage_span);
+    if let Some(ExtraSpanInfo::AddVariableUsage(usages)) = rewrite_usage_span.get(&export_decl.span)
     {
-      self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
+      for (sym, usage) in usages {
+        self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
+      }
     }
+    *self.rewrite_usage_span = rewrite_usage_span;
 
     export_decl.visit_children_with(self);
   }
 
   fn visit_named_export(&mut self, named_export: &NamedExport) {
-    if named_export.src.is_none() {
-      named_export
-        .specifiers
-        .iter()
-        .for_each(|specifier| match specifier {
-          ExportSpecifier::Named(named) => {
-            if let Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) =
-              self.rewrite_usage_span.get(&named.span)
-            {
-              self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
-            }
-          }
-          _ => unreachable!(),
-        });
+    if !self.is_enabled() {
+      return;
     }
+    let rewrite_usage_span = std::mem::take(self.rewrite_usage_span);
+    if named_export.src.is_none() {
+      if let Some(ExtraSpanInfo::AddVariableUsage(usages)) =
+        rewrite_usage_span.get(&named_export.span)
+      {
+        for (sym, usage) in usages {
+          self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
+        }
+      }
+    }
+    *self.rewrite_usage_span = rewrite_usage_span;
+    named_export.visit_children_with(self);
   }
   fn visit_export_default_expr(&mut self, node: &ExportDefaultExpr) {
     if !self.is_enabled() {
       return;
     }
-    if let Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) =
-      self.rewrite_usage_span.get(&node.span)
-    {
-      self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
+    let rewrite_usage_span = std::mem::take(self.rewrite_usage_span);
+    if let Some(ExtraSpanInfo::AddVariableUsage(usages)) = rewrite_usage_span.get(&node.span) {
+      for (sym, usage) in usages {
+        self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
+      }
     }
+    *self.rewrite_usage_span = rewrite_usage_span;
 
     self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
 
@@ -470,11 +474,13 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       return;
     }
 
-    if let Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) =
-      self.rewrite_usage_span.get(&node.span)
-    {
-      self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
+    let rewrite_usage_span = std::mem::take(self.rewrite_usage_span);
+    if let Some(ExtraSpanInfo::AddVariableUsage(usages)) = rewrite_usage_span.get(&node.span) {
+      for (sym, usage) in usages {
+        self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
+      }
     }
+    *self.rewrite_usage_span = rewrite_usage_span;
 
     let ident = match &node.decl {
       DefaultDecl::Class(class) => class.ident.as_ref().map(|item| item.sym.clone()),
