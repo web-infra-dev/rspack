@@ -51,6 +51,8 @@ impl From<RawExternalItemValueWrapper> for ExternalItemValue {
 #[napi(object)]
 pub struct RawExternalItemFnResult {
   pub external_type: Option<String>,
+  // sadly, napi.rs does not support type alias at the moment. Need to add Either here
+  #[napi(ts_type = "string | boolean | string[] | Record<string, string[]>")]
   pub result: Option<RawExternalItemValue>,
 }
 
