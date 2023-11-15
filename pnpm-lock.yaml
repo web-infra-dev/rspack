@@ -415,6 +415,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../packages/rspack-plugin-react-refresh
       web-vitals:
         specifier: ^2.1.4
         version: 2.1.4
@@ -434,6 +437,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../packages/rspack-plugin-react-refresh
       web-vitals:
         specifier: ^2.1.4
         version: 2.1.4
@@ -31185,7 +31191,7 @@ packages:
       ansi-html-community: 0.0.8
       bonjour-service: 1.0.14
       chokidar: 3.5.3
-      colorette: 2.0.20
+      colorette: 2.0.19
       compression: 1.7.4
       connect-history-api-fallback: 2.0.0
       default-gateway: 6.0.3

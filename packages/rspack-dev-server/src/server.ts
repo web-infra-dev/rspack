@@ -13,7 +13,6 @@ import type { FSWatcher } from "chokidar";
 import rdm from "webpack-dev-middleware";
 import type { Server } from "http";
 import fs from "fs";
-import ReactRefreshPlugin from "@rspack/plugin-react-refresh";
 import WebpackDevServer from "webpack-dev-server";
 import type { ResolvedDevServer, DevServer } from "./config";
 import { getRspackMemoryAssets } from "./middleware";
@@ -175,6 +174,7 @@ export class RspackDevServer extends WebpackDevServer {
 					// enable react.refresh by default
 					compiler.options.builtins.react.refresh ??= true;
 					if (compiler.options.builtins.react.refresh) {
+						const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
 						const runtimePaths = ReactRefreshPlugin.deprecated_runtimePaths;
 						new compiler.webpack.EntryPlugin(
 							compiler.context,

@@ -17,12 +17,7 @@ const config = {
 				});
 			}
 		}
-	],
-	experiments: {
-		rspackFuture: {
-			disableTransformByDefault: true
-		}
-	}
+	]
 };
 
 module.exports = config;

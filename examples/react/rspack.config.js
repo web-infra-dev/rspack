@@ -7,6 +7,31 @@ const config = {
 	module: {
 		rules: [
 			{
+				test: /\.jsx$/,
+				use: {
+					loader: "builtin:swc-loader",
+					options: {
+						sourceMap: true,
+						jsc: {
+							parser: {
+								syntax: "ecmascript",
+								jsx: true
+							},
+							externalHelpers: true,
+							preserveAllComments: false,
+							transform: {
+								react: {
+									runtime: "automatic",
+									throwIfNamespace: true,
+									useBuiltins: false
+								}
+							}
+						}
+					}
+				},
+				type: "javascript/auto"
+			},
+			{
 				test: /\.(png|svg|jpg)$/,
 				type: "asset/resource"
 			}
