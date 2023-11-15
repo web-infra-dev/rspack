@@ -116,11 +116,6 @@ const config = {
 	],
 	infrastructureLogging: {
 		debug: false
-	},
-	experiments: {
-		rspackFuture: {
-			disableTransformByDefault: true
-		}
 	}
 };
 module.exports = config;

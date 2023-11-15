@@ -3,11 +3,6 @@ const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
 
 /** @type { import('@rspack/core').RspackOptions } */
 module.exports = {
-	experiments: {
-		rspackFuture: {
-			disableTransformByDefault: true
-		}
-	},
 	context: __dirname,
 	mode: "development",
 	module: {

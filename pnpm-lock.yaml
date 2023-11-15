@@ -415,6 +415,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../packages/rspack-plugin-react-refresh
       web-vitals:
         specifier: ^2.1.4
         version: 2.1.4
@@ -434,6 +437,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack
+      '@rspack/plugin-react-refresh':
+        specifier: workspace:*
+        version: link:../../packages/rspack-plugin-react-refresh
       web-vitals:
         specifier: ^2.1.4
         version: 2.1.4
