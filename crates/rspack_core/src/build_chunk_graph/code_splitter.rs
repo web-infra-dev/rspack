@@ -1,16 +1,14 @@
-use std::{ops::AddAssign, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::anyhow;
 use rspack_error::{internal_error, Result};
-use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
 use crate::{
   AsyncDependenciesBlockId, ChunkGroup, ChunkGroupInfo, ChunkGroupKind, ChunkGroupOptions,
-  ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, DependenciesBlock, GroupOptions, Logger,
-  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
-  IS_NEW_TREESHAKING,
+  ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, DependenciesBlock, Logger,
+  ModuleDependency, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec, IS_NEW_TREESHAKING,
 };
 
 pub(super) struct CodeSplitter<'me> {
@@ -262,7 +260,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       match action {
         QueueAction::AddAndEnterEntryModule(i) => self.add_and_enter_entry_module(&i),
         QueueAction::AddAndEnterModule(i) => self.add_and_enter_module(&i),
-        QueueAction::EnterModule(i) => self.enter_module(&i),
+        QueueAction::_EnterModule(i) => self.enter_module(&i),
         QueueAction::ProcessBlock(i) => self.process_block(&i),
         QueueAction::ProcessEntryBlock(i) => self.process_entry_block(&i),
         QueueAction::LeaveModule(i) => self.leave_module(&i),
@@ -340,7 +338,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     self.queue.push(QueueAction::LeaveModule(LeaveModule {
       module: item.module,
       chunk_group: item.chunk_group,
-      chunk: item.chunk,
     }));
     self.process_block(&ProcessBlock {
       block: item.module.into(),
@@ -689,7 +686,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 enum QueueAction {
   AddAndEnterEntryModule(AddAndEnterEntryModule),
   AddAndEnterModule(AddAndEnterModule),
-  EnterModule(EnterModule),
+  _EnterModule(EnterModule),
   ProcessBlock(ProcessBlock),
   ProcessEntryBlock(ProcessEntryBlock),
   LeaveModule(LeaveModule),
@@ -743,13 +740,6 @@ impl DependenciesBlockIdentifier {
       DependenciesBlockIdentifier::AsyncDependenciesBlock(_) => None,
     }
   }
-
-  pub fn as_async_dependencies_block(&self) -> Option<&AsyncDependenciesBlockId> {
-    match self {
-      DependenciesBlockIdentifier::Module(_) => None,
-      DependenciesBlockIdentifier::AsyncDependenciesBlock(a) => Some(a),
-    }
-  }
 }
 
 impl From<ModuleIdentifier> for DependenciesBlockIdentifier {
@@ -768,5 +758,4 @@ impl From<AsyncDependenciesBlockId> for DependenciesBlockIdentifier {
 struct LeaveModule {
   module: ModuleIdentifier,
   chunk_group: ChunkGroupUkey,
-  chunk: ChunkUkey,
 }
