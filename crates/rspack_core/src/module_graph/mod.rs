@@ -105,18 +105,18 @@ impl ModuleGraph {
     self.dependency_id_to_parents.insert(dependency, parents);
   }
 
-  pub fn get_parent_module(&self, dependency: &DependencyId) -> Option<ModuleIdentifier> {
+  pub fn get_parent_module(&self, dependency: &DependencyId) -> Option<&ModuleIdentifier> {
     self
       .dependency_id_to_parents
       .get(dependency)
-      .map(|p| p.module)
+      .map(|p| &p.module)
   }
 
-  pub fn get_parent_block(&self, dependency: &DependencyId) -> Option<AsyncDependenciesBlockId> {
+  pub fn get_parent_block(&self, dependency: &DependencyId) -> Option<&AsyncDependenciesBlockId> {
     self
       .dependency_id_to_parents
       .get(dependency)
-      .and_then(|p| p.block)
+      .and_then(|p| p.block.as_ref())
   }
 
   pub fn block_by_id(

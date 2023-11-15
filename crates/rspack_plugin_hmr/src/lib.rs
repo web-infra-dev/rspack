@@ -211,7 +211,6 @@ impl Plugin for HotModuleReplacementPlugin {
           .insert(SourceType::Css, digest);
 
         compilation.chunk_by_ukey.add(hot_update_chunk);
-        compilation.chunk_graph.add_chunk(ukey);
 
         for module_identifier in new_modules.iter() {
           compilation

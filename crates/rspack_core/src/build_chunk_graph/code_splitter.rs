@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{ops::AddAssign, sync::Arc};
 
 use anyhow::anyhow;
 use rspack_error::{internal_error, Result};
@@ -7,19 +7,23 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
 use crate::{
-  ChunkGroup, ChunkGroupInfo, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading,
-  ChunkUkey, Compilation, GroupOptions, Logger, ModuleIdentifier, RuntimeSpec,
+  AsyncDependenciesBlockId, ChunkGroup, ChunkGroupInfo, ChunkGroupKind, ChunkGroupOptions,
+  ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, DependenciesBlock, GroupOptions, Logger,
+  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
+  IS_NEW_TREESHAKING,
 };
 
 pub(super) struct CodeSplitter<'me> {
   pub(super) compilation: &'me mut Compilation,
   next_free_module_pre_order_index: u32,
   next_free_module_post_order_index: u32,
-  queue: Vec<QueueItem>,
-  queue_delayed: Vec<QueueItem>,
-  split_point_modules: IdentifierSet,
+  queue: Vec<QueueAction>,
+  queue_delayed: Vec<QueueAction>,
+  block_chunk_groups: HashMap<AsyncDependenciesBlockId, ChunkGroupUkey>,
+  named_chunk_groups: HashMap<String, ChunkGroupUkey>,
+  named_async_entrypoints: HashMap<String, ChunkGroupUkey>,
+  block_modules_map: HashMap<DependenciesBlockIdentifier, Vec<ModuleIdentifier>>,
   pub(super) remove_parent_modules_context: RemoveParentModulesContext,
-  depended_modules_cache: IdentifierMap<Vec<ModuleIdentifier>>,
 }
 
 impl<'me> CodeSplitter<'me> {
@@ -30,9 +34,11 @@ impl<'me> CodeSplitter<'me> {
       next_free_module_post_order_index: 0,
       queue: Default::default(),
       queue_delayed: Default::default(),
-      split_point_modules: Default::default(),
+      block_chunk_groups: Default::default(),
+      named_chunk_groups: Default::default(),
+      named_async_entrypoints: Default::default(),
+      block_modules_map: Default::default(),
       remove_parent_modules_context: Default::default(),
-      depended_modules_cache: Default::default(),
     }
   }
 
@@ -69,8 +75,6 @@ impl<'me> CodeSplitter<'me> {
       self
         .remove_parent_modules_context
         .add_root_chunk(chunk.ukey);
-
-      compilation.chunk_graph.add_chunk(chunk.ukey);
 
       let mut entrypoint = ChunkGroup::new(
         ChunkGroupKind::new_entrypoint(true, Box::new(options.clone())),
@@ -115,8 +119,6 @@ impl<'me> CodeSplitter<'me> {
       };
 
       for module_identifier in module_identifiers {
-        compilation.chunk_graph.add_module(*module_identifier);
-
         input_entrypoints_and_modules
           .entry(entrypoint.ukey)
           .or_default()
@@ -173,7 +175,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             );
             chunk.prevent_integration = true;
             chunk.chunk_reasons.push(format!("RuntimeChunk({name})",));
-            compilation.chunk_graph.add_chunk(chunk.ukey);
             runtime_chunks.insert(chunk.ukey);
             chunk
           }
@@ -205,21 +206,15 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .get(&chunk_group)
         .ok_or_else(|| anyhow::format_err!("no chunk group found"))?;
 
-      modules.iter().for_each(|block| {
-        self
-          .compilation
-          .chunk_graph
-          .connect_block_and_chunk_group(*block, chunk_group.ukey);
-      });
-
       let chunk = chunk_group.get_entry_point_chunk();
       for module in modules {
-        self.queue.push(QueueItem {
-          action: QueueAction::AddAndEnter,
-          chunk,
-          chunk_group: chunk_group.ukey,
-          module_identifier: module,
-        });
+        self
+          .queue
+          .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
+            chunk,
+            chunk_group: chunk_group.ukey,
+            module,
+          }));
       }
     }
     self.queue.reverse();
@@ -258,32 +253,43 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
     logger.time_end(start);
 
-    // make sure all module (weak dependency particularly) has a mgm
-    for module_identifier in self.compilation.module_graph.modules().keys() {
-      self.compilation.chunk_graph.add_module(*module_identifier)
-    }
-
     Ok(())
   }
 
   fn process_queue(&mut self) {
     tracing::trace!("process_queue");
-    while let Some(queue_item) = self.queue.pop() {
-      match queue_item.action {
-        QueueAction::AddAndEnter => self.add_and_enter_module(&queue_item),
-        QueueAction::_Enter => self.enter_module(&queue_item),
-        QueueAction::_ProcessModule => self.process_module(&queue_item),
-        QueueAction::Leave => self.leave_module(&queue_item),
+    while let Some(action) = self.queue.pop() {
+      match action {
+        QueueAction::AddAndEnterEntryModule(i) => self.add_and_enter_entry_module(&i),
+        QueueAction::AddAndEnterModule(i) => self.add_and_enter_module(&i),
+        QueueAction::EnterModule(i) => self.enter_module(&i),
+        QueueAction::ProcessBlock(i) => self.process_block(&i),
+        QueueAction::ProcessEntryBlock(i) => self.process_entry_block(&i),
+        QueueAction::LeaveModule(i) => self.leave_module(&i),
       }
     }
   }
 
-  fn add_and_enter_module(&mut self, item: &QueueItem) {
+  fn add_and_enter_entry_module(&mut self, item: &AddAndEnterEntryModule) {
+    tracing::trace!("add_and_enter_entry_module {:?}", item);
+    self.compilation.chunk_graph.connect_chunk_and_entry_module(
+      item.chunk,
+      item.module,
+      item.chunk_group,
+    );
+    self.add_and_enter_module(&AddAndEnterModule {
+      module: item.module,
+      chunk_group: item.chunk_group,
+      chunk: item.chunk,
+    })
+  }
+
+  fn add_and_enter_module(&mut self, item: &AddAndEnterModule) {
     tracing::trace!("add_and_enter_module {:?}", item);
     if self
       .compilation
       .chunk_graph
-      .is_module_in_chunk(&item.module_identifier, item.chunk)
+      .is_module_in_chunk(&item.module, item.chunk)
     {
       return;
     }
@@ -291,16 +297,15 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     self
       .compilation
       .chunk_graph
-      .add_module(item.module_identifier);
-
-    self
-      .compilation
-      .chunk_graph
-      .connect_chunk_and_module(item.chunk, item.module_identifier);
-    self.enter_module(item)
+      .connect_chunk_and_module(item.chunk, item.module);
+    self.enter_module(&EnterModule {
+      module: item.module,
+      chunk_group: item.chunk_group,
+      chunk: item.chunk,
+    })
   }
 
-  fn enter_module(&mut self, item: &QueueItem) {
+  fn enter_module(&mut self, item: &EnterModule) {
     tracing::trace!("enter_module {:?}", item);
     let chunk_group = self
       .compilation
@@ -310,12 +315,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     if chunk_group
       .module_pre_order_indices
-      .get(&item.module_identifier)
+      .get(&item.module)
       .is_none()
     {
       chunk_group
         .module_pre_order_indices
-        .insert(item.module_identifier, chunk_group.next_pre_order_index);
+        .insert(item.module, chunk_group.next_pre_order_index);
       chunk_group.next_pre_order_index += 1;
     }
 
@@ -323,8 +328,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let module = self
         .compilation
         .module_graph
-        .module_graph_module_by_identifier_mut(&item.module_identifier)
-        .unwrap_or_else(|| panic!("No module found {:?}", &item.module_identifier));
+        .module_graph_module_by_identifier_mut(&item.module)
+        .unwrap_or_else(|| panic!("No module found {:?}", &item.module));
 
       if module.pre_order_index.is_none() {
         module.pre_order_index = Some(self.next_free_module_pre_order_index);
@@ -332,14 +337,19 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
     }
 
-    self.queue.push(QueueItem {
-      action: QueueAction::Leave,
-      ..item.clone()
-    });
-    self.process_module(item)
+    self.queue.push(QueueAction::LeaveModule(LeaveModule {
+      module: item.module,
+      chunk_group: item.chunk_group,
+      chunk: item.chunk,
+    }));
+    self.process_block(&ProcessBlock {
+      block: item.module.into(),
+      chunk_group: item.chunk_group,
+      chunk: item.chunk,
+    })
   }
 
-  fn leave_module(&mut self, item: &QueueItem) {
+  fn leave_module(&mut self, item: &LeaveModule) {
     tracing::trace!("leave_module {:?}", item);
     let chunk_group = self
       .compilation
@@ -349,20 +359,20 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     if chunk_group
       .module_post_order_indices
-      .get(&item.module_identifier)
+      .get(&item.module)
       .is_none()
     {
       chunk_group
         .module_post_order_indices
-        .insert(item.module_identifier, chunk_group.next_post_order_index);
+        .insert(item.module, chunk_group.next_post_order_index);
       chunk_group.next_post_order_index += 1;
     }
 
     let module = self
       .compilation
       .module_graph
-      .module_graph_module_by_identifier_mut(&item.module_identifier)
-      .unwrap_or_else(|| panic!("no module found: {:?}", &item.module_identifier));
+      .module_graph_module_by_identifier_mut(&item.module)
+      .unwrap_or_else(|| panic!("no module found: {:?}", &item.module));
 
     if module.post_order_index.is_none() {
       module.post_order_index = Some(self.next_free_module_post_order_index);
@@ -370,226 +380,393 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
   }
 
-  fn process_module(&mut self, item: &QueueItem) {
-    tracing::trace!("process_module {:?}", item);
+  fn process_entry_block(&mut self, item: &ProcessEntryBlock) {
+    tracing::trace!("process_entry_block {:?}", item);
+    let modules = self.get_block_modules(item.block.into());
+    for module in modules {
+      self.queue.push(QueueAction::AddAndEnterEntryModule(
+        AddAndEnterEntryModule {
+          chunk: item.chunk,
+          chunk_group: item.chunk_group,
+          module,
+        },
+      ));
+    }
+    let blocks = self
+      .compilation
+      .module_graph
+      .block_by_id(&item.block)
+      .expect("should have block")
+      .get_blocks()
+      .to_vec();
+    for block in blocks {
+      self.iterator_block(block, item.chunk_group, item.chunk);
+    }
+  }
+
+  fn process_block(&mut self, item: &ProcessBlock) {
+    tracing::trace!("process_block {:?}", item);
+    let modules = self.get_block_modules(item.block);
+    for module in modules {
+      self
+        .queue
+        .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
+          chunk: item.chunk,
+          chunk_group: item.chunk_group,
+          module,
+        }));
+    }
+    let blocks = match &item.block {
+      DependenciesBlockIdentifier::Module(m) => self
+        .compilation
+        .module_graph
+        .module_by_identifier(m)
+        .expect("should have module")
+        .get_blocks()
+        .to_vec(),
+      DependenciesBlockIdentifier::AsyncDependenciesBlock(a) => self
+        .compilation
+        .module_graph
+        .block_by_id(a)
+        .expect("should have block")
+        .get_blocks()
+        .to_vec(),
+    };
+    for block in blocks {
+      self.iterator_block(block, item.chunk_group, item.chunk);
+    }
+  }
+
+  fn iterator_block(
+    &mut self,
+    block_id: AsyncDependenciesBlockId,
+    item_chunk_group_ukey: ChunkGroupUkey,
+    item_chunk_ukey: ChunkUkey,
+  ) {
+    let cgi = self.block_chunk_groups.get(&block_id);
+    let mut entrypoint = None;
+    let mut c = None;
+    let block = self
+      .compilation
+      .module_graph
+      .block_by_id(&block_id)
+      .expect("should have block");
+    let item_chunk_group = self
+      .compilation
+      .chunk_group_by_ukey
+      .get_mut(&item_chunk_group_ukey)
+      .expect("chunk group not found");
+    let chunk = if let Some(chunk_name) = block.get_group_options().and_then(|x| x.name()) {
+      Compilation::add_named_chunk(
+        chunk_name.to_string(),
+        &mut self.compilation.chunk_by_ukey,
+        &mut self.compilation.named_chunks,
+      )
+    } else {
+      Compilation::add_chunk(&mut self.compilation.chunk_by_ukey)
+    };
+    self
+      .remove_parent_modules_context
+      .add_chunk_relation(item_chunk_ukey, chunk.ukey);
+
+    let entry_options = block.get_group_options().and_then(|o| o.entry_options());
+    if let Some(cgi) = cgi {
+      if entry_options.is_some() {
+        entrypoint = Some(*cgi);
+      } else {
+        c = Some(*cgi);
+      }
+    } else {
+      let chunk_name = block.get_group_options().and_then(|o| o.name());
+      if let Some(entry_options) = entry_options {
+        let chunk_group =
+          if let Some(cgi) = chunk_name.and_then(|name| self.named_async_entrypoints.get(name)) {
+            self
+              .compilation
+              .chunk_graph
+              .connect_block_and_chunk_group(block_id, *cgi);
+            *cgi
+          } else {
+            if let Some(filename) = &entry_options.filename {
+              chunk.filename_template = Some(filename.clone());
+            }
+            chunk
+              .chunk_reasons
+              .push(format!("AsyncEntrypoint({:?})", block_id));
+            self
+              .remove_parent_modules_context
+              .add_root_chunk(chunk.ukey);
+            let mut entrypoint = ChunkGroup::new(
+              ChunkGroupKind::new_entrypoint(false, Box::new(entry_options.clone())),
+              RuntimeSpec::from_iter([entry_options
+                .runtime
+                .as_deref()
+                .expect("should have runtime for AsyncEntrypoint")
+                .into()]),
+              ChunkGroupInfo {
+                chunk_loading: entry_options
+                  .chunk_loading
+                  .as_ref()
+                  .map(|x| !matches!(x, ChunkLoading::Disable))
+                  .unwrap_or(item_chunk_group.info.chunk_loading),
+                async_chunks: entry_options
+                  .async_chunks
+                  .unwrap_or(item_chunk_group.info.async_chunks),
+              },
+            );
+            entrypoint.set_runtime_chunk(chunk.ukey);
+            entrypoint.set_entry_point_chunk(chunk.ukey);
+            self.compilation.async_entrypoints.push(entrypoint.ukey);
+
+            if let Some(name) = entrypoint.kind.name() {
+              self
+                .named_async_entrypoints
+                .insert(name.to_owned(), entrypoint.ukey);
+              self
+                .compilation
+                .named_chunk_groups
+                .insert(name.to_owned(), entrypoint.ukey);
+            }
+
+            item_chunk_group.children.insert(entrypoint.ukey);
+            entrypoint.parents.insert(item_chunk_group.ukey);
+
+            entrypoint.connect_chunk(chunk);
+
+            self
+              .compilation
+              .chunk_graph
+              .connect_block_and_chunk_group(block_id, entrypoint.ukey);
+
+            let ukey = entrypoint.ukey;
+            self.compilation.chunk_group_by_ukey.add(entrypoint);
+            ukey
+          };
+        entrypoint = Some(chunk_group);
+        self
+          .queue_delayed
+          .push(QueueAction::ProcessEntryBlock(ProcessEntryBlock {
+            block: block_id,
+            chunk_group,
+            chunk: chunk.ukey,
+          }));
+      } else if !item_chunk_group.info.async_chunks || !item_chunk_group.info.chunk_loading {
+        self.queue.push(QueueAction::ProcessBlock(ProcessBlock {
+          block: block_id.into(),
+          chunk_group: item_chunk_group_ukey,
+          chunk: item_chunk_ukey,
+        }));
+      } else {
+        let chunk_group =
+          if let Some(cgi) = chunk_name.and_then(|name| self.named_chunk_groups.get(name)) {
+            // TODO: AsyncDependencyToInitialChunkError
+            *cgi
+          } else {
+            chunk
+              .chunk_reasons
+              .push(format!("DynamicImport({:?})", block_id));
+            let mut chunk_group = ChunkGroup::new(
+              ChunkGroupKind::Normal {
+                options: ChunkGroupOptions::default()
+                  .name_optional(block.get_group_options().and_then(|x| x.name())),
+              },
+              item_chunk_group.runtime.clone(),
+              ChunkGroupInfo {
+                chunk_loading: item_chunk_group.info.chunk_loading,
+                async_chunks: item_chunk_group.info.async_chunks,
+              },
+            );
+
+            if let Some(name) = chunk_group.kind.name() {
+              self
+                .named_async_entrypoints
+                .insert(name.to_owned(), chunk_group.ukey);
+              self
+                .compilation
+                .named_chunk_groups
+                .insert(name.to_owned(), chunk_group.ukey);
+            }
+
+            item_chunk_group.children.insert(chunk_group.ukey);
+            chunk_group.parents.insert(item_chunk_group.ukey);
+
+            chunk_group.connect_chunk(chunk);
+
+            self
+              .compilation
+              .chunk_graph
+              .connect_block_and_chunk_group(block_id, chunk_group.ukey);
+
+            let ukey = chunk_group.ukey;
+            self.compilation.chunk_group_by_ukey.add(chunk_group);
+            ukey
+          };
+        c = Some(chunk_group);
+      }
+    }
+    if let Some(c) = c {
+      self
+        .queue_delayed
+        .push(QueueAction::ProcessBlock(ProcessBlock {
+          block: block_id.into(),
+          chunk_group: c,
+          chunk: chunk.ukey,
+        }));
+    } else if let Some(_entrypoint) = entrypoint {
+      // TODO: chunk_group.add_async_entrypoint(entrypoint)
+    }
+  }
+
+  fn get_block_modules(&mut self, module: DependenciesBlockIdentifier) -> Vec<ModuleIdentifier> {
+    if let Some(modules) = self.block_modules_map.get(&module) {
+      return modules.clone();
+    }
+    self.extract_block_modules(*module.as_module().expect(
+      "block_modules_map must not empty when calling get_block_modules(AsyncDependenciesBlock)",
+    ));
+    self
+      .block_modules_map
+      .get(&module)
+      .expect("block_modules_map.get(module) must not empty after extract_block_modules")
+      .clone()
+  }
+
+  fn extract_block_modules(&mut self, module: ModuleIdentifier) {
+    self.block_modules_map.insert(module.into(), Vec::new());
 
     let mgm = self
       .compilation
       .module_graph
-      .module_graph_module_by_identifier(&item.module_identifier)
-      .unwrap_or_else(|| panic!("no module found: {:?}", &item.module_identifier));
-
-    let queue_items = self
-      .depended_modules_cache
-      .entry(item.module_identifier)
-      .or_insert_with(|| {
+      .module_graph_module_by_identifier(&module)
+      .unwrap_or_else(|| panic!("no module found: {:?}", &module));
+    let dependencies: Vec<&dyn ModuleDependency> =
+      if IS_NEW_TREESHAKING.load(std::sync::atomic::Ordering::Relaxed) {
         mgm
-          .depended_modules(&self.compilation.module_graph)
-          .into_iter()
-          .rev()
-          .copied()
-          .collect::<Vec<_>>()
-      })
-      .iter()
-      .map(|module_identifier| QueueItem {
-        action: QueueAction::AddAndEnter,
-        chunk: item.chunk,
-        chunk_group: item.chunk_group,
-        module_identifier: *module_identifier,
-      });
-    self.queue.extend(queue_items);
-
-    for (module_identifier, group_options) in mgm
-      .dynamic_depended_modules(&self.compilation.module_graph)
-      .into_iter()
-      .rev()
-    {
-      let item_chunk_group = self
-        .compilation
-        .chunk_group_by_ukey
-        .get_mut(&item.chunk_group)
-        .expect("chunk group not found");
-      if !item_chunk_group.info.async_chunks || !item_chunk_group.info.chunk_loading {
-        self.queue.push(QueueItem {
-          action: QueueAction::AddAndEnter,
-          chunk: item.chunk,
-          chunk_group: item.chunk_group,
-          module_identifier: *module_identifier,
-        });
+          .outgoing_connections_unordered(&self.compilation.module_graph)
+          .expect("should have outgoing connections")
+          .filter_map(|con: &ModuleGraphConnection| {
+            // TODO: runtime opt
+            let active_state = con.get_active_state(&self.compilation.module_graph, None);
+            match active_state {
+              crate::ConnectionState::Bool(false) => None,
+              _ => Some(con.dependency_id),
+            }
+          })
+          .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(&dep_id))
+          .filter_map(|dep| dep.as_module_dependency())
+          .collect()
+      } else {
+        mgm
+          .all_dependencies
+          .iter()
+          .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(&dep_id))
+          .filter_map(|dep| dep.as_module_dependency())
+          .collect()
+      };
+    for dep in dependencies {
+      if dep.weak() {
         continue;
       }
-
-      let is_already_split_module = self.split_point_modules.contains(module_identifier);
-
-      if is_already_split_module {
-        let chunk_ukey = self
-          .compilation
-          .chunk_graph
-          .split_point_module_identifier_to_chunk_ukey
-          .get(module_identifier)
-          .expect("split point module not found");
-        let chunk = self
-          .compilation
-          .chunk_by_ukey
-          .get(chunk_ukey)
-          .expect("chunk not found");
-        self
-          .remove_parent_modules_context
-          .add_chunk_relation(item.chunk, *chunk_ukey);
-        item_chunk_group.children.extend(chunk.groups.clone());
-        let runtime = item_chunk_group.runtime.clone();
-        for chunk_group_ukey in chunk.groups.iter() {
-          let chunk_group = self
-            .compilation
-            .chunk_group_by_ukey
-            .get_mut(chunk_group_ukey)
-            .expect("chunk group not found");
-          if chunk_group.runtime.is_superset(&runtime) {
-            continue;
-          }
-          chunk_group.parents.insert(item.chunk_group);
-          chunk_group.runtime.extend(runtime.clone());
-          self.queue_delayed.push(QueueItem {
-            action: QueueAction::_ProcessModule,
-            chunk: *chunk_ukey,
-            chunk_group: *chunk_group_ukey,
-            module_identifier: *module_identifier,
-          });
-        }
-        continue;
+      let dep_id = dep.id();
+      let block_id = if let Some(block) = self.compilation.module_graph.get_parent_block(dep_id) {
+        (*block).into()
       } else {
-        self.split_point_modules.insert(*module_identifier);
-      }
-
-      let chunk = if let Some(chunk_name) = group_options.as_ref().and_then(|x| x.name()) {
-        Compilation::add_named_chunk(
-          chunk_name.to_string(),
-          &mut self.compilation.chunk_by_ukey,
-          &mut self.compilation.named_chunks,
-        )
-      } else {
-        Compilation::add_chunk(&mut self.compilation.chunk_by_ukey)
+        module.into()
       };
-      self
-        .remove_parent_modules_context
-        .add_chunk_relation(item.chunk, chunk.ukey);
-      self.compilation.chunk_graph.add_chunk(chunk.ukey);
-
-      self
-        .compilation
-        .chunk_graph
-        .split_point_module_identifier_to_chunk_ukey
-        .insert(*module_identifier, chunk.ukey);
-
-      let mut chunk_group = if let Some(kind) = group_options.as_ref()
-        && let GroupOptions::Entrypoint(entry_options) = kind
-      {
-        if let Some(filename) = &entry_options.filename {
-          chunk.filename_template = Some(filename.clone());
-        }
-        chunk
-          .chunk_reasons
-          .push(format!("AsyncEntrypoint({module_identifier})"));
-        self
-          .remove_parent_modules_context
-          .add_root_chunk(chunk.ukey);
-        let mut entrypoint = ChunkGroup::new(
-          ChunkGroupKind::new_entrypoint(false, entry_options.clone()),
-          RuntimeSpec::from_iter([entry_options
-            .runtime
-            .as_deref()
-            .expect("should have runtime for AsyncEntrypoint")
-            .into()]),
-          ChunkGroupInfo {
-            chunk_loading: entry_options
-              .chunk_loading
-              .as_ref()
-              .map(|x| !matches!(x, ChunkLoading::Disable))
-              .unwrap_or(item_chunk_group.info.chunk_loading),
-            async_chunks: entry_options
-              .async_chunks
-              .unwrap_or(item_chunk_group.info.async_chunks),
-          },
-        );
-        entrypoint.set_runtime_chunk(chunk.ukey);
-        entrypoint.set_entry_point_chunk(chunk.ukey);
-        self.compilation.async_entrypoints.push(entrypoint.ukey);
-        self.compilation.chunk_graph.add_module(*module_identifier);
-        self.compilation.chunk_graph.connect_chunk_and_entry_module(
-          chunk.ukey,
-          *module_identifier,
-          entrypoint.ukey,
-        );
-        entrypoint
-      } else {
-        chunk
-          .chunk_reasons
-          .push(format!("DynamicImport({module_identifier})"));
-        ChunkGroup::new(
-          ChunkGroupKind::Normal {
-            options: ChunkGroupOptions::default()
-              .name_optional(group_options.as_ref().and_then(|x| x.name())),
-          },
-          item_chunk_group.runtime.clone(),
-          ChunkGroupInfo {
-            chunk_loading: item_chunk_group.info.chunk_loading,
-            async_chunks: item_chunk_group.info.async_chunks,
-          },
-        )
-      };
-
-      if let Some(name) = chunk_group.kind.name() {
-        self
+      let modules = self.block_modules_map.entry(block_id).or_default();
+      modules.push(
+        *self
           .compilation
-          .named_chunk_groups
-          .insert(name.to_owned(), chunk_group.ukey);
-      }
-
-      self
-        .compilation
-        .chunk_graph
-        .connect_block_and_chunk_group(*module_identifier, chunk_group.ukey);
-
-      item_chunk_group.children.insert(chunk_group.ukey);
-      chunk_group.parents.insert(item_chunk_group.ukey);
-
-      chunk_group.connect_chunk(chunk);
-
-      let chunk_group = {
-        let ukey = chunk_group.ukey;
-        self.compilation.chunk_group_by_ukey.add(chunk_group);
-
-        self
-          .compilation
-          .chunk_group_by_ukey
-          .get(&ukey)
-          .unwrap_or_else(|| panic!("chunk group not found: {ukey:?}"))
-      };
-
-      self.queue_delayed.push(QueueItem {
-        action: QueueAction::AddAndEnter,
-        chunk: chunk.ukey,
-        chunk_group: chunk_group.ukey,
-        module_identifier: *module_identifier,
-      });
+          .module_graph
+          .module_identifier_by_dependency_id(dep_id)
+          .expect("should have module_identifier"),
+      );
     }
   }
 }
 
 #[derive(Debug, Clone)]
-struct QueueItem {
-  action: QueueAction,
-  chunk_group: ChunkGroupUkey,
-  chunk: ChunkUkey,
-  module_identifier: ModuleIdentifier,
+enum QueueAction {
+  AddAndEnterEntryModule(AddAndEnterEntryModule),
+  AddAndEnterModule(AddAndEnterModule),
+  EnterModule(EnterModule),
+  ProcessBlock(ProcessBlock),
+  ProcessEntryBlock(ProcessEntryBlock),
+  LeaveModule(LeaveModule),
 }
 
 #[derive(Debug, Clone)]
-enum QueueAction {
-  AddAndEnter,
-  _Enter,
-  _ProcessModule,
-  Leave,
+struct AddAndEnterEntryModule {
+  module: ModuleIdentifier,
+  chunk_group: ChunkGroupUkey,
+  chunk: ChunkUkey,
 }
 
-// struct chunkGroupInfoMap {}
+#[derive(Debug, Clone)]
+struct AddAndEnterModule {
+  module: ModuleIdentifier,
+  chunk_group: ChunkGroupUkey,
+  chunk: ChunkUkey,
+}
+
+#[derive(Debug, Clone)]
+struct EnterModule {
+  module: ModuleIdentifier,
+  chunk_group: ChunkGroupUkey,
+  chunk: ChunkUkey,
+}
+
+#[derive(Debug, Clone)]
+struct ProcessBlock {
+  block: DependenciesBlockIdentifier,
+  chunk_group: ChunkGroupUkey,
+  chunk: ChunkUkey,
+}
+
+#[derive(Debug, Clone)]
+struct ProcessEntryBlock {
+  block: AsyncDependenciesBlockId,
+  chunk_group: ChunkGroupUkey,
+  chunk: ChunkUkey,
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+enum DependenciesBlockIdentifier {
+  Module(ModuleIdentifier),
+  AsyncDependenciesBlock(AsyncDependenciesBlockId),
+}
+
+impl DependenciesBlockIdentifier {
+  pub fn as_module(&self) -> Option<&ModuleIdentifier> {
+    match self {
+      DependenciesBlockIdentifier::Module(m) => Some(m),
+      DependenciesBlockIdentifier::AsyncDependenciesBlock(_) => None,
+    }
+  }
+
+  pub fn as_async_dependencies_block(&self) -> Option<&AsyncDependenciesBlockId> {
+    match self {
+      DependenciesBlockIdentifier::Module(_) => None,
+      DependenciesBlockIdentifier::AsyncDependenciesBlock(a) => Some(a),
+    }
+  }
+}
+
+impl From<ModuleIdentifier> for DependenciesBlockIdentifier {
+  fn from(value: ModuleIdentifier) -> Self {
+    Self::Module(value)
+  }
+}
+
+impl From<AsyncDependenciesBlockId> for DependenciesBlockIdentifier {
+  fn from(value: AsyncDependenciesBlockId) -> Self {
+    Self::AsyncDependenciesBlock(value)
+  }
+}
+
+#[derive(Debug, Clone)]
+struct LeaveModule {
+  module: ModuleIdentifier,
+  chunk_group: ChunkGroupUkey,
+  chunk: ChunkUkey,
+}

@@ -294,8 +294,6 @@ impl SplitChunksPlugin {
           chunk.split(new_part, &mut compilation.chunk_group_by_ukey);
 
           group.nodes.iter().for_each(|module| {
-            compilation.chunk_graph.add_chunk(new_part.ukey);
-
             // Add module to new chunk
             compilation
               .chunk_graph

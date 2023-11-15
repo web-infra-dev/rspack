@@ -201,7 +201,7 @@ impl JsPlugin {
             .module_graph_module_by_identifier(module)
             .map(|module| module.id(&compilation.chunk_graph))
             .expect("should have module id");
-          let mut module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
+          let mut module_id_expr = serde_json::to_string(&module_id).expect("invalid module_id");
           if runtime_requirements.contains(RuntimeGlobals::ENTRY_MODULE_ID) {
             module_id_expr = format!("{} = {module_id_expr}", RuntimeGlobals::ENTRY_MODULE_ID);
           }
@@ -303,9 +303,10 @@ impl JsPlugin {
     sources.add(header);
     sources.add(render_runtime_modules(compilation, &args.chunk_ukey)?);
     if chunk.has_entry_module(&compilation.chunk_graph) {
-      let last_entry_module = compilation
+      let entry_modules = compilation
         .chunk_graph
-        .get_chunk_entry_modules_with_chunk_group_iterable(&chunk.ukey)
+        .get_chunk_entry_modules_with_chunk_group_iterable(&chunk.ukey);
+      let last_entry_module = entry_modules
         .keys()
         .last()
         .expect("should have last entry module");

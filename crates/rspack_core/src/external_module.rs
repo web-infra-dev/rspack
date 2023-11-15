@@ -189,7 +189,7 @@ impl ExternalModule {
           .unwrap_or_default();
         format!(
           "module.exports = __WEBPACK_EXTERNAL_MODULE_{}__",
-          to_identifier(id)
+          to_identifier(&id)
         )
       }
       "import" if let Some(request) = request => self.get_source_for_import(request, compilation),
@@ -206,7 +206,7 @@ impl ExternalModule {
             .module_graph_module_by_identifier(&self.identifier())
             .map(|m| m.id(&compilation.chunk_graph))
             .unwrap_or_default();
-          let identifier = to_identifier(id);
+          let identifier = to_identifier(&id);
           chunk_init_fragments.push(
             NormalInitFragment::new(
               format!(

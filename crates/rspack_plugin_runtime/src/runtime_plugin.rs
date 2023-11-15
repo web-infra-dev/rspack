@@ -317,7 +317,7 @@ impl Plugin for RuntimePlugin {
         RuntimeGlobals::GET_FULL_HASH => {
           compilation.add_runtime_module(chunk, GetFullHashRuntimeModule::default().boxed())
         }
-        RuntimeGlobals::LOAD_CHUNK_WITH_MODULE => {
+        RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK => {
           compilation.add_runtime_module(chunk, LoadChunkWithModuleRuntimeModule::default().boxed())
         }
         RuntimeGlobals::GLOBAL => {
@@ -376,7 +376,7 @@ impl Plugin for RuntimePlugin {
       if let Some((hash, _)) = args
         .compilation
         .runtime_module_code_generation_results
-        .get(identifier)
+        .get(&identifier)
       {
         hash.hash(&mut args.hasher);
       }

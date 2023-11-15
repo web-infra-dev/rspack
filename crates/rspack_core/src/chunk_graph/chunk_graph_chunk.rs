@@ -1,13 +1,18 @@
 //!  There are methods whose verb is `ChunkGraphChunk`
 
+use std::hash::BuildHasherDefault;
+
+use dashmap::mapref::one::{
+  MappedRef as DashMapMappedRef, Ref as DashMapRef, RefMut as DashMapRefMut,
+};
 use rspack_database::Database;
-use rspack_identifier::{IdentifierLinkedMap, IdentifierSet};
+use rspack_identifier::{IdentifierHasher, IdentifierLinkedMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  find_graph_roots, BoxModule, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkUkey, Module, ModuleGraph, ModuleGraphModule, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
-  SourceType,
+  find_graph_roots, BoxModule, Chunk, ChunkByUkey, ChunkGraphModule, ChunkGroup, ChunkGroupByUkey,
+  ChunkGroupUkey, ChunkUkey, Module, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use crate::{ChunkGraph, Compilation};
 
@@ -64,12 +69,6 @@ fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
 }
 
 impl ChunkGraph {
-  pub fn add_chunk(&mut self, chunk_ukey: ChunkUkey) {
-    self
-      .chunk_graph_chunk_by_chunk_ukey
-      .entry(chunk_ukey)
-      .or_default();
-  }
   pub fn add_chunk_wit_chunk_graph_chunk(&mut self, chunk_ukey: ChunkUkey, cgc: ChunkGraphChunk) {
     debug_assert!(!self
       .chunk_graph_chunk_by_chunk_ukey
@@ -86,23 +85,33 @@ impl ChunkGraph {
   pub fn get_chunk_entry_modules_with_chunk_group_iterable(
     &self,
     chunk_ukey: &ChunkUkey,
-  ) -> &IdentifierLinkedMap<ChunkGroupUkey> {
+  ) -> IdentifierLinkedMap<ChunkGroupUkey> {
     let cgc = self.get_chunk_graph_chunk(chunk_ukey);
-    &cgc.entry_modules
+    cgc.entry_modules.clone()
   }
 
-  pub fn get_chunk_graph_chunk_mut(&mut self, chunk_ukey: ChunkUkey) -> &mut ChunkGraphChunk {
+  pub fn get_chunk_graph_chunk_mut(
+    &self,
+    chunk_ukey: ChunkUkey,
+  ) -> DashMapRefMut<'_, ChunkUkey, ChunkGraphChunk, BuildHasherDefault<IdentifierHasher>> {
     self
       .chunk_graph_chunk_by_chunk_ukey
-      .get_mut(&chunk_ukey)
-      .expect("Chunk should be added before")
+      .entry(chunk_ukey)
+      .or_default()
   }
 
-  pub fn get_chunk_graph_chunk(&self, chunk_ukey: &ChunkUkey) -> &ChunkGraphChunk {
+  pub fn get_chunk_graph_chunk(
+    &self,
+    chunk_ukey: &ChunkUkey,
+  ) -> DashMapRef<'_, ChunkUkey, ChunkGraphChunk, BuildHasherDefault<IdentifierHasher>> {
     self
       .chunk_graph_chunk_by_chunk_ukey
-      .get(chunk_ukey)
-      .expect("Chunk should be added before")
+      .entry(*chunk_ukey)
+      .or_default();
+    self
+      .chunk_graph_chunk_by_chunk_ukey
+      .get(&chunk_ukey)
+      .expect("cgc must have been added")
   }
 
   pub fn connect_chunk_and_entry_module(
@@ -111,18 +120,11 @@ impl ChunkGraph {
     module_identifier: ModuleIdentifier,
     entrypoint: ChunkGroupUkey,
   ) {
-    self
-      .chunk_graph_module_by_module_identifier
-      .entry(module_identifier)
-      .or_default();
-    let chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
+    let mut chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
     chunk_graph_module.entry_in_chunks.insert(chunk);
+    drop(chunk_graph_module);
 
-    self
-      .chunk_graph_chunk_by_chunk_ukey
-      .entry(chunk)
-      .or_default();
-    let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk);
+    let mut chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk);
     chunk_graph_chunk
       .entry_modules
       .insert(module_identifier, entrypoint);
@@ -133,10 +135,11 @@ impl ChunkGraph {
     chunk: &ChunkUkey,
     module_identifier: ModuleIdentifier,
   ) {
-    let chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
+    let mut chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
     chunk_graph_module.chunks.remove(chunk);
+    drop(chunk_graph_module);
 
-    let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(*chunk);
+    let mut chunk_graph_chunk = self.get_chunk_graph_chunk_mut(*chunk);
     chunk_graph_chunk.modules.remove(&module_identifier);
   }
 
@@ -145,18 +148,11 @@ impl ChunkGraph {
     chunk: ChunkUkey,
     module_identifier: ModuleIdentifier,
   ) {
-    self
-      .chunk_graph_module_by_module_identifier
-      .entry(module_identifier)
-      .or_default();
-    let chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
+    let mut chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
     chunk_graph_module.chunks.insert(chunk);
+    drop(chunk_graph_module);
 
-    self
-      .chunk_graph_chunk_by_chunk_ukey
-      .entry(chunk)
-      .or_default();
-    let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk);
+    let mut chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk);
     chunk_graph_chunk.modules.insert(module_identifier);
   }
 
@@ -165,18 +161,11 @@ impl ChunkGraph {
     chunk: ChunkUkey,
     module_identifier: ModuleIdentifier,
   ) {
-    self
-      .chunk_graph_module_by_module_identifier
-      .entry(module_identifier)
-      .or_default();
-    let cgm = self.get_chunk_graph_module_mut(module_identifier);
+    let mut cgm = self.get_chunk_graph_module_mut(module_identifier);
     cgm.runtime_in_chunks.insert(chunk);
+    drop(cgm);
 
-    self
-      .chunk_graph_chunk_by_chunk_ukey
-      .entry(chunk)
-      .or_default();
-    let cgc = self.get_chunk_graph_chunk_mut(chunk);
+    let mut cgc = self.get_chunk_graph_chunk_mut(chunk);
     if !cgc.runtime_modules.contains(&module_identifier) {
       cgc.runtime_modules.push(module_identifier);
     }
@@ -195,9 +184,9 @@ impl ChunkGraph {
       .collect()
   }
 
-  pub fn get_chunk_module_identifiers(&self, chunk: &ChunkUkey) -> &IdentifierSet {
+  pub fn get_chunk_module_identifiers(&self, chunk: &ChunkUkey) -> IdentifierSet {
     let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk);
-    &chunk_graph_chunk.modules
+    chunk_graph_chunk.modules.clone()
   }
 
   pub fn get_ordered_chunk_modules<'module>(
@@ -232,19 +221,20 @@ impl ChunkGraph {
     modules
   }
 
-  pub fn get_chunk_modules_iterable_by_source_type<'module_graph: 'me, 'me>(
-    &'me self,
+  pub fn get_chunk_modules_iterable_by_source_type(
+    &self,
     chunk: &ChunkUkey,
     source_type: SourceType,
-    module_graph: &'module_graph ModuleGraph,
-  ) -> impl Iterator<Item = &'module_graph dyn Module> + 'me {
+    module_graph: &ModuleGraph,
+  ) -> Vec<ModuleIdentifier> {
     let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk);
     chunk_graph_chunk
       .modules
       .iter()
       .filter_map(|uri| module_graph.module_by_identifier(uri))
       .filter(move |module| module.source_types().contains(&source_type))
-      .map(|m| m.as_ref())
+      .map(|m| m.identifier())
+      .collect::<Vec<_>>()
   }
 
   pub fn get_chunk_modules_size(&self, chunk: &ChunkUkey, module_graph: &ModuleGraph) -> f64 {
@@ -271,7 +261,7 @@ impl ChunkGraph {
     chunk_ukey: &ChunkUkey,
     runtime_requirements: RuntimeGlobals,
   ) {
-    let cgc = self.get_chunk_graph_chunk_mut(*chunk_ukey);
+    let mut cgc = self.get_chunk_graph_chunk_mut(*chunk_ukey);
     cgc.runtime_requirements.insert(runtime_requirements);
   }
 
@@ -283,29 +273,29 @@ impl ChunkGraph {
     self.add_chunk_runtime_requirements(chunk_ukey, runtime_requirements);
   }
 
-  pub fn get_chunk_runtime_requirements(&self, chunk_ukey: &ChunkUkey) -> &RuntimeGlobals {
+  pub fn get_chunk_runtime_requirements(&self, chunk_ukey: &ChunkUkey) -> RuntimeGlobals {
     let cgc = self.get_chunk_graph_chunk(chunk_ukey);
-    &cgc.runtime_requirements
+    cgc.runtime_requirements
   }
 
-  pub fn get_tree_runtime_requirements(&self, chunk_ukey: &ChunkUkey) -> &RuntimeGlobals {
+  pub fn get_tree_runtime_requirements(&self, chunk_ukey: &ChunkUkey) -> RuntimeGlobals {
     self.get_chunk_runtime_requirements(chunk_ukey)
   }
 
   pub fn get_chunk_runtime_modules_in_order(
     &self,
     chunk_ukey: &ChunkUkey,
-  ) -> &Vec<ModuleIdentifier> {
+  ) -> Vec<ModuleIdentifier> {
     let cgc = self.get_chunk_graph_chunk(chunk_ukey);
-    &cgc.runtime_modules
+    cgc.runtime_modules.clone()
   }
 
   pub fn get_chunk_runtime_modules_iterable(
     &self,
     chunk_ukey: &ChunkUkey,
-  ) -> impl Iterator<Item = &ModuleIdentifier> {
+  ) -> Vec<ModuleIdentifier> {
     let cgc = self.get_chunk_graph_chunk(chunk_ukey);
-    cgc.runtime_modules.iter()
+    cgc.runtime_modules.clone()
   }
 
   pub fn get_chunk_condition_map<F: Fn(&ChunkUkey, &Compilation) -> bool>(
@@ -383,10 +373,10 @@ impl ChunkGraph {
     chunk_group_by_ukey: &mut ChunkGroupByUkey,
   ) {
     let chunk_ukey = &chunk.ukey;
-    let cgc = self.get_chunk_graph_chunk_mut(*chunk_ukey);
+    let mut cgc = self.get_chunk_graph_chunk_mut(*chunk_ukey);
     let cgc_modules = std::mem::take(&mut cgc.modules);
     for module in cgc_modules {
-      let cgm = self.get_chunk_graph_module_mut(module);
+      let mut cgm = self.get_chunk_graph_module_mut(module);
       cgm.chunks.remove(chunk_ukey);
     }
     chunk.disconnect_from_groups(chunk_group_by_ukey)
@@ -448,10 +438,11 @@ impl ChunkGraph {
     chunk: &ChunkUkey,
     module_identifier: ModuleIdentifier,
   ) {
-    let chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
+    let mut chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
     chunk_graph_module.chunks.remove(chunk);
+    drop(chunk_graph_module);
 
-    let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(*chunk);
+    let mut chunk_graph_chunk = self.get_chunk_graph_chunk_mut(*chunk);
     chunk_graph_chunk.entry_modules.remove(&module_identifier);
   }
 

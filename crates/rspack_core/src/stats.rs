@@ -471,7 +471,7 @@ impl Stats<'_> {
         .compilation
         .chunk_graph
         .get_module_id(identifier)
-        .clone(),
+        .map(|s| s.to_owned()),
       chunks,
       size: module.size(&SourceType::JavaScript),
       issuer: issuer.map(|i| i.identifier().to_string()),
@@ -589,7 +589,10 @@ fn get_stats_module_name_and_id(
 ) -> (String, Option<String>) {
   let identifier = module.identifier();
   let name = module.readable_identifier(&compilation.options.context);
-  let id = compilation.chunk_graph.get_module_id(identifier).to_owned();
+  let id = compilation
+    .chunk_graph
+    .get_module_id(identifier)
+    .map(|s| s.to_owned());
   (name.to_string(), id)
 }
 

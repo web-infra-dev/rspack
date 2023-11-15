@@ -8,8 +8,8 @@ use anyhow::bail;
 use bitflags::bitflags;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::Filename;
 use rspack_core::{Chunk, ChunkGraph, Compilation, Module, ModuleGraph, PathData, SourceType};
+use rspack_core::{Filename, ModuleIdentifier};
 use rspack_identifier::IdentifierSet;
 
 static ESCAPE_LOCAL_IDENT_REGEX: Lazy<Regex> =
@@ -112,13 +112,15 @@ impl CssPlugin {
     chunk: &Chunk,
     chunk_graph: &'chunk_graph ChunkGraph,
     module_graph: &'chunk_graph ModuleGraph,
-    compilation: &Compilation,
+    compilation: &'chunk_graph Compilation,
   ) -> Vec<&'chunk_graph dyn Module> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/css/CssModulesPlugin.js#L368
-    let mut css_modules = chunk_graph
-      .get_chunk_modules_iterable_by_source_type(&chunk.ukey, SourceType::Css, module_graph)
-      .collect::<Vec<_>>();
-    css_modules.sort_unstable_by_key(|module| module.identifier());
+    let mut css_modules = chunk_graph.get_chunk_modules_iterable_by_source_type(
+      &chunk.ukey,
+      SourceType::Css,
+      module_graph,
+    );
+    css_modules.sort_unstable();
 
     let css_modules = Self::get_modules_in_order(chunk, css_modules, compilation);
 
@@ -127,8 +129,8 @@ impl CssPlugin {
 
   pub(crate) fn get_modules_in_order<'module>(
     chunk: &Chunk,
-    modules: Vec<&'module dyn Module>,
-    compilation: &Compilation,
+    modules: Vec<ModuleIdentifier>,
+    compilation: &'module Compilation,
   ) -> Vec<&'module dyn Module> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/css/CssModulesPlugin.js#L269
     if modules.is_empty() {
@@ -152,7 +154,7 @@ impl CssPlugin {
             // For A -> B -> C, the pre order is A: 0, B: 1, C: 2.
             // The post order is A: 2, B: 1, C: 0.
             chunk_group
-              .module_post_order_index(&module.identifier())
+              .module_post_order_index(&module)
               .map(|index| (index, module))
           })
           .collect::<Vec<_>>();
@@ -168,8 +170,12 @@ impl CssPlugin {
         };
 
         SortedModules {
-          set: sorted_modules.iter().map(|m| m.identifier()).collect(),
-          list: sorted_modules,
+          set: IdentifierSet::from_iter(sorted_modules.clone()),
+          list: sorted_modules
+            .into_iter()
+            .filter_map(|m| compilation.module_graph.module_by_identifier(&m))
+            .map(|m| m.as_ref())
+            .collect(),
         }
       })
       .collect::<Vec<_>>();

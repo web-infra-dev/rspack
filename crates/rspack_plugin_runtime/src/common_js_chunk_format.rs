@@ -71,7 +71,7 @@ impl Plugin for CommonJsChunkFormatPlugin {
     update_hash_for_entry_startup(
       args.hasher,
       args.compilation,
-      args
+      &args
         .compilation
         .chunk_graph
         .get_chunk_entry_modules_with_chunk_group_iterable(args.chunk_ukey),
@@ -127,7 +127,7 @@ impl Plugin for CommonJsChunkFormatPlugin {
         .chunk_graph
         .get_chunk_entry_modules_with_chunk_group_iterable(args.chunk_ukey);
       let start_up_source =
-        generate_entry_startup(args.compilation, args.chunk_ukey, entries, false);
+        generate_entry_startup(args.compilation, args.chunk_ukey, &entries, false);
       let last_entry_module = entries
         .keys()
         .last()

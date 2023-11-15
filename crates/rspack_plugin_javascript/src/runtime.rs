@@ -56,7 +56,7 @@ pub fn render_chunk_modules(
             render_module_result.module_source,
             mgm,
             runtime_requirements,
-            mgm.id(&compilation.chunk_graph),
+            &mgm.id(&compilation.chunk_graph),
           ),
           &code_gen_result.chunk_init_fragments,
           render_module_result.chunk_init_fragments,
@@ -101,7 +101,7 @@ pub fn render_chunk_modules(
 fn render_module(
   source: BoxSource,
   mgm: &ModuleGraphModule,
-  runtime_requirements: Option<&RuntimeGlobals>,
+  runtime_requirements: Option<RuntimeGlobals>,
   module_id: &str,
 ) -> Result<BoxSource> {
   let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));

@@ -143,7 +143,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
         runtime_requirements.insert(RuntimeGlobals::INSTANTIATE_WASM);
 
-        let mut dep_modules = IndexMap::<ModuleIdentifier, (String, &str)>::new();
+        let mut dep_modules = IndexMap::new();
         let mut wasm_deps_by_request = IndexMap::<&str, Vec<(Identifier, String)>>::new();
         let mut promises: Vec<String> = vec![];
 
@@ -191,7 +191,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
         let imports_code = dep_modules
           .iter()
-          .map(|(_, val)| render_import_stmt(&val.0, val.1))
+          .map(|(_, val)| render_import_stmt(&val.0, &val.1))
           .collect::<Vec<_>>()
           .join("");
 

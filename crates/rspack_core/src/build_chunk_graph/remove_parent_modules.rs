@@ -45,7 +45,7 @@ impl<'me> CodeSplitter<'me> {
     }
 
     impl<'a> AnalyzeContext<'a> {
-      fn chunk_modules(&self, chunk: &ChunkUkey) -> &IdentifierSet {
+      fn chunk_modules(&self, chunk: &ChunkUkey) -> IdentifierSet {
         self
           .compilation
           .chunk_graph
@@ -171,7 +171,6 @@ impl<'me> CodeSplitter<'me> {
           .chunk_graph
           .get_chunk_module_identifiers(&chunk.ukey)
           .into_par_iter()
-          .cloned()
           .flat_map(move |module| {
             let is_all_parents_load_this_module = parents_loaded_modules
               .clone()

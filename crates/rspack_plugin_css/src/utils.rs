@@ -142,7 +142,7 @@ pub fn css_modules_exports_to_string(
             })
             .expect("should have css from module");
 
-          let from = serde_json::to_string(from.id(&compilation.chunk_graph)).expect("TODO:");
+          let from = serde_json::to_string(&from.id(&compilation.chunk_graph)).expect("TODO:");
           format!("{}({from})[{name}]", RuntimeGlobals::REQUIRE)
         }
       })

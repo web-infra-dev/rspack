@@ -133,7 +133,7 @@ impl Plugin for JsPlugin {
     {
       if let Some((hash, _)) = compilation
         .runtime_module_code_generation_results
-        .get(runtime_module_identifier)
+        .get(&runtime_module_identifier)
       {
         hash.hash(&mut hasher);
       }

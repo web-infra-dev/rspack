@@ -166,8 +166,9 @@ pub fn collect_changed_modules(
   let modules_map = compilation
     .chunk_graph
     .chunk_graph_module_by_module_identifier
-    .par_iter()
-    .filter_map(|(identifier, cgm)| {
+    .iter()
+    .filter_map(|refmut| {
+      let (identifier, cgm) = refmut.pair();
       let cid = cgm.id.as_deref();
       // TODO: Determine how to calc module hash if module related to multiple runtime code
       // gen

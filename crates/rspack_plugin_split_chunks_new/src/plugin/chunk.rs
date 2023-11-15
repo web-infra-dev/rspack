@@ -102,7 +102,6 @@ impl SplitChunksPlugin {
         new_chunk
           .chunk_reasons
           .push("Create by split chunks".to_string());
-        compilation.chunk_graph.add_chunk(new_chunk.ukey);
         new_chunk.ukey
       }
     } else if let Some(reusable_chunk) =
@@ -117,7 +116,6 @@ impl SplitChunksPlugin {
       new_chunk
         .chunk_reasons
         .push("Create by split chunks".to_string());
-      compilation.chunk_graph.add_chunk(new_chunk.ukey);
       new_chunk.ukey
     }
   }

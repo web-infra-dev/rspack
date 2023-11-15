@@ -102,7 +102,7 @@ impl DependencyTemplate for ImportContextDependency {
       .map(|m| m.id(&compilation.chunk_graph))
       .expect("should have dependency id");
 
-    let module_id_str = module_id_expr(&self.options.request, module_id);
+    let module_id_str = module_id_expr(&self.options.request, &module_id);
 
     source.replace(
       self.callee_start,

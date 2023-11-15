@@ -73,7 +73,7 @@ impl Plugin for ModuleChunkFormatPlugin {
     update_hash_for_entry_startup(
       args.hasher,
       args.compilation,
-      args
+      &args
         .compilation
         .chunk_graph
         .get_chunk_entry_modules_with_chunk_group_iterable(args.chunk_ukey),
@@ -174,7 +174,7 @@ impl Plugin for ModuleChunkFormatPlugin {
           ));
         }
 
-        let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
+        let module_id_expr = serde_json::to_string(&module_id).expect("invalid module_id");
 
         startup_source.push(format!(
           "{}__webpack_exec__({module_id_expr});",

@@ -1,15 +1,19 @@
 //!  There are methods whose verb is `ChunkGraphModule`
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
-use std::hash::Hasher;
+use std::hash::{BuildHasherDefault, Hasher};
 
-use rspack_identifier::Identifier;
+use dashmap::mapref::one::{
+  MappedRef as DashMapMappedRef, Ref as DashMapRef, RefMut as DashMapRefMut,
+};
+use rspack_identifier::{Identifier, IdentifierHasher};
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  BoxModule, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, ExportsHash,
-  ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  AsyncDependenciesBlockId, BoxModule, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkUkey, ExportsHash, ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap,
+  RuntimeSpecSet,
 };
 use crate::{ChunkGraph, ModuleGraph};
 
@@ -37,13 +41,6 @@ impl ChunkGraphModule {
 }
 
 impl ChunkGraph {
-  pub fn add_module(&mut self, module_identifier: ModuleIdentifier) {
-    self
-      .chunk_graph_module_by_module_identifier
-      .entry(module_identifier)
-      .or_default();
-  }
-
   pub fn is_module_in_chunk(
     &self,
     module_identifier: &ModuleIdentifier,
@@ -54,31 +51,32 @@ impl ChunkGraph {
   }
 
   pub(crate) fn get_chunk_graph_module_mut(
-    &mut self,
+    &self,
     module_identifier: ModuleIdentifier,
-  ) -> &mut ChunkGraphModule {
+  ) -> DashMapRefMut<'_, Identifier, ChunkGraphModule, BuildHasherDefault<IdentifierHasher>> {
     self
       .chunk_graph_module_by_module_identifier
-      .get_mut(&module_identifier)
-      .unwrap_or_else(|| panic!("Module({}) should be added before using", module_identifier))
+      .entry(module_identifier)
+      .or_default()
   }
 
   pub(crate) fn get_chunk_graph_module(
     &self,
     module_identifier: ModuleIdentifier,
-  ) -> &ChunkGraphModule {
+  ) -> DashMapRef<'_, Identifier, ChunkGraphModule, BuildHasherDefault<IdentifierHasher>> {
+    self
+      .chunk_graph_module_by_module_identifier
+      .entry(module_identifier)
+      .or_default();
     self
       .chunk_graph_module_by_module_identifier
       .get(&module_identifier)
-      .unwrap_or_else(|| panic!("Module({}) should be added before using", module_identifier))
+      .expect("cgm must have been added")
   }
 
-  pub fn get_module_chunks(&self, module_identifier: ModuleIdentifier) -> &HashSet<ChunkUkey> {
-    let chunk_graph_module = self
-      .chunk_graph_module_by_module_identifier
-      .get(&module_identifier)
-      .unwrap_or_else(|| panic!("Module({}) should be added before using", module_identifier));
-    &chunk_graph_module.chunks
+  pub fn get_module_chunks(&self, module_identifier: ModuleIdentifier) -> HashSet<ChunkUkey> {
+    let chunk_graph_module = self.get_chunk_graph_module(module_identifier);
+    chunk_graph_module.chunks.clone()
   }
 
   pub fn get_number_of_module_chunks(&self, module_identifier: ModuleIdentifier) -> usize {
@@ -92,7 +90,7 @@ impl ChunkGraph {
     runtime: &RuntimeSpec,
     runtime_requirements: RuntimeGlobals,
   ) {
-    let cgm = self.get_chunk_graph_module_mut(module_identifier);
+    let mut cgm = self.get_chunk_graph_module_mut(module_identifier);
 
     if let Some(runtime_requirements_map) = &mut cgm.runtime_requirements {
       if let Some(value) = runtime_requirements_map.get_mut(runtime) {
@@ -111,11 +109,11 @@ impl ChunkGraph {
     &self,
     module_identifier: ModuleIdentifier,
     runtime: &RuntimeSpec,
-  ) -> Option<&RuntimeGlobals> {
+  ) -> Option<RuntimeGlobals> {
     let cgm = self.get_chunk_graph_module(module_identifier);
     if let Some(runtime_requirements) = &cgm.runtime_requirements {
       if let Some(runtime_requirements) = runtime_requirements.get(runtime) {
-        return Some(runtime_requirements);
+        return Some(*runtime_requirements);
       }
     }
     None
@@ -135,13 +133,13 @@ impl ChunkGraph {
     runtimes
   }
 
-  pub fn get_module_id(&self, module_identifier: ModuleIdentifier) -> &Option<String> {
+  pub fn get_module_id(&self, module_identifier: ModuleIdentifier) -> Option<String> {
     let cgm = self.get_chunk_graph_module(module_identifier);
-    &cgm.id
+    cgm.id.to_owned()
   }
 
   pub fn set_module_id(&mut self, module_identifier: ModuleIdentifier, id: String) {
-    let cgm = self.get_chunk_graph_module_mut(module_identifier);
+    let mut cgm = self.get_chunk_graph_module_mut(module_identifier);
     cgm.id = Some(id);
   }
 
@@ -149,7 +147,7 @@ impl ChunkGraph {
   /// is entry module.
   pub fn get_block_chunk_group<'a>(
     &self,
-    block: &ModuleIdentifier,
+    block: &AsyncDependenciesBlockId,
     chunk_group_by_ukey: &'a ChunkGroupByUkey,
   ) -> Option<&'a ChunkGroup> {
     self
@@ -160,7 +158,7 @@ impl ChunkGraph {
 
   pub fn connect_block_and_chunk_group(
     &mut self,
-    block: ModuleIdentifier,
+    block: AsyncDependenciesBlockId,
     chunk_group: ChunkGroupUkey,
   ) {
     self.block_to_chunk_group_ukey.insert(block, chunk_group);

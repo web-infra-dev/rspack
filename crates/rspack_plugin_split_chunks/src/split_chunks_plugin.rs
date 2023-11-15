@@ -800,8 +800,6 @@ impl Plugin for SplitChunksPlugin {
           }
         };
 
-        compilation.chunk_graph.add_chunk(new_chunk);
-
         // Walk through all chunks
         let new_chunk_ukey = new_chunk;
         self.split_used_chunks(&used_chunks, new_chunk, compilation);

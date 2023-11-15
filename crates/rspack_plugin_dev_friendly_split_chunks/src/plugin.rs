@@ -179,8 +179,7 @@ impl Plugin for DevFriendlySplitChunksPlugin {
     let module_to_chunk_graph_module = compilation
       .chunk_graph
       .chunk_graph_module_by_module_identifier
-      .iter_mut()
-      .collect::<DashMap<_, _>>();
+      .clone();
 
     // Yeah. Leaky abstraction, but fast.
     let mut chunk_and_cgc = split_modules

@@ -203,12 +203,10 @@ impl ContextModule {
     }
   }
 
-  pub fn id<'chunk_graph>(&self, chunk_graph: &'chunk_graph ChunkGraph) -> &'chunk_graph str {
+  pub fn id<'chunk_graph>(&self, chunk_graph: &'chunk_graph ChunkGraph) -> String {
     chunk_graph
       .get_module_id(self.identifier)
-      .as_ref()
       .expect("module id not found")
-      .as_str()
   }
 
   fn get_fake_map(&self, compilation: &Compilation) -> FakeMapValue {
@@ -231,6 +229,7 @@ impl ContextModule {
             .get_module_id(*module_identifier)
             .clone()
           {
+            let module_id = module_id.to_string();
             let exports_type = get_exports_type_with_strict(
               &compilation.module_graph,
               dependency_id,
@@ -461,7 +460,7 @@ impl ContextModule {
 
     source.add(RawSource::from(format!(
       "webpackContext.id = '{}';\n",
-      serde_json::to_string(self.id(&compilation.chunk_graph))
+      serde_json::to_string(&self.id(&compilation.chunk_graph))
         .map_err(|e| internal_error!(e.to_string()))?
     )));
     source.add(RawSource::from(
@@ -571,7 +570,7 @@ impl Module for ContextModule {
           .insert(RuntimeGlobals::ENSURE_CHUNK);
         code_generation_result
           .runtime_requirements
-          .insert(RuntimeGlobals::LOAD_CHUNK_WITH_MODULE);
+          .insert(RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK);
       }
       _ => {}
     }

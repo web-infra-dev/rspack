@@ -395,7 +395,7 @@ impl Filename {
     } else if let Some(module) = options.module {
       if let Some(chunk_graph) = options.chunk_graph {
         if let Some(id) = chunk_graph.get_module_id(module.identifier()) {
-          template = template.replace(ID_PLACEHOLDER, id);
+          template = template.replace(ID_PLACEHOLDER, &id);
         }
       }
     }
