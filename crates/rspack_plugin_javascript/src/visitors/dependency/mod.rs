@@ -56,12 +56,13 @@ pub struct ScanDependenciesResult {
   pub warning_diagnostics: Vec<Diagnostic>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum ExtraSpanInfo {
+  #[default]
   ReWriteUsedByExports,
   // (symbol, usage)
   // (local, exported) refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/javascript/JavascriptParser.js#L2347-L2352
-  AddVariableUsage(JsWord, JsWord),
+  AddVariableUsage(Vec<(JsWord, JsWord)>),
 }
 
 #[allow(clippy::too_many_arguments)]
