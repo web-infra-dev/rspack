@@ -179,7 +179,7 @@ const applyExperimentsDefaults = (
 
 	D(experiments, "rspackFuture", {});
 	if (typeof experiments.rspackFuture === "object") {
-		D(experiments.rspackFuture, "newResolver", false);
+		D(experiments.rspackFuture, "newResolver", true);
 		D(experiments.rspackFuture, "newTreeshaking", false);
 		D(experiments.rspackFuture, "disableTransformByDefault", true);
 	}
