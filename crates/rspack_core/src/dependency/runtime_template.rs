@@ -32,14 +32,7 @@ pub fn export_from_import(
     {
       match exports_type {
         ExportsType::Dynamic => {
-          if is_call {
-            return format!("{import_var}_default(){}", property_access(export_name, 1));
-          } else {
-            return format!(
-              "({import_var}_default(){})",
-              property_access(export_name, 1)
-            );
-          }
+          return format!("{import_var}_default{}", property_access(export_name, 1));
         }
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
           export_name = export_name[1..].to_vec();
