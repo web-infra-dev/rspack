@@ -24,6 +24,9 @@
     "url": "https://github.com/web-infra-dev/rspack",
     "directory": "packages/rspack-cli"
   },
+  "peerDependencies": {
+    "@rspack/core": "workspace:*"
+  },
   "devDependencies": {
     "@types/rechoir": "^0.6.1",
     "@types/webpack-bundle-analyzer": "^4.6.0",
@@ -35,7 +38,6 @@
   },
   "dependencies": {
     "@discoveryjs/json-ext": "^0.5.7",
-    "@rspack/core": "workspace:*",
     "@rspack/dev-server": "workspace:*",
     "colorette": "2.0.19",
     "exit-hook": "^3.2.0",
