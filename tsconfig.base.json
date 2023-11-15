@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "module": "NodeNext",
+    "module": "CommonJS",
     "moduleResolution": "NodeNext",
     "target": "ES2018",
     "esModuleInterop": true,
