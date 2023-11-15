@@ -5,9 +5,9 @@ import {
 	EntryRuntime,
 	Filename,
 	LibraryOptions,
-	PublicPath,
-	getRawLibrary
+	PublicPath
 } from "..";
+import { getRawLibrary } from "../config";
 
 export type EntryOptions = {
 	name?: string;
