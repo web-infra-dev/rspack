@@ -1,3 +1,4 @@
+const rspack = require("@rspack/core");
 const path = require("path");
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
@@ -5,16 +6,6 @@ const config = {
 	mode: "development",
 	entry: {
 		main: ["./src/index.jsx"]
-	},
-	builtins: {
-		html: [
-			{
-				template: "./index.html"
-			}
-		],
-		define: {
-			"process.env.NODE_ENV": "'development'"
-		}
 	},
 	module: {
 		rules: [
@@ -25,6 +16,14 @@ const config = {
 			}
 		]
 	},
+	optimization: {
+		minimize: false, // Disabling minification because it takes too long on CI
+	},
+	plugins: [
+		new rspack.HtmlRspackPlugin({
+			template: "./index.html"
+		})
+	],
 	output: {
 		path: path.resolve(__dirname, "dist")
 	}

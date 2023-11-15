@@ -1,4 +1,4 @@
-/** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
+/** @type {import('ts-jest/dist/types').JestConfigWithTsJest} */
 const config = {
 	testEnvironment: "../../scripts/test/patch-node-env.cjs",
 	testMatch: [
@@ -9,7 +9,7 @@ const config = {
 		"<rootDir>/tests/copyPlugin/*.test.js",
 		"<rootDir>/tests/WatchSuspend.test.js"
 	],
-	testTimeout: process.env.CI ? 120000 : 30000,
+	testTimeout: process.env.CI ? 60000 : 30000,
 	cache: false,
 	transform: {
 		"^.+\\.tsx?$": [
@@ -19,6 +19,11 @@ const config = {
 			}
 		],
 		"^.+\\.jsx?$": "babel-jest"
+	},
+	globals: {
+		"ts-jest": {
+			tsconfig: "<rootDir>/tests/tsconfig.json"
+		}
 	}
 };
 

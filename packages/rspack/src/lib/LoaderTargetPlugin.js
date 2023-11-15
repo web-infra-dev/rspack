@@ -7,7 +7,8 @@
 
 const NormalModule = require("../NormalModule");
 
-/** @typedef {import("./Compiler")} Compiler */
+// /** @typedef {import("./Compiler")} Compiler */
+/** @typedef {any} Compiler */
 
 class LoaderTargetPlugin {
 	/**
@@ -23,9 +24,12 @@ class LoaderTargetPlugin {
 	 * @returns {void}
 	 */
 	apply(compiler) {
+		// @ts-expect-error
 		compiler.hooks.compilation.tap("LoaderTargetPlugin", compilation => {
+			// @ts-expect-error
 			NormalModule.getCompilationHooks(compilation).loader.tap(
 				"LoaderTargetPlugin",
+				// @ts-expect-error
 				loaderContext => {
 					loaderContext.target = this.target;
 				}

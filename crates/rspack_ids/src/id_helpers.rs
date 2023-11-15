@@ -351,7 +351,7 @@ pub fn get_short_chunk_name(
     })
     .collect::<Vec<_>>();
 
-  let mut id_name_hints = Vec::from_iter(chunk.id_name_hints.clone().into_iter());
+  let mut id_name_hints = Vec::from_iter(chunk.id_name_hints.clone());
   id_name_hints.sort_unstable();
 
   id_name_hints.extend(short_module_names);
@@ -505,7 +505,7 @@ fn compare_chunks_by_modules(
 
   a_modules
     .into_iter()
-    .zip_longest(b_modules.into_iter())
+    .zip_longest(b_modules)
     .find_map(|pair| match pair {
       Both(a_module, b_module) => {
         let a_module_id = chunk_graph.get_module_id(a_module.identifier());

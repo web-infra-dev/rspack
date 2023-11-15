@@ -44,13 +44,13 @@ impl<Item: Any> Ukey<Item> {
 
 impl<Item> Clone for Ukey<Item> {
   fn clone(&self) -> Self {
-    Self(self.0, std::marker::PhantomData)
+    *self
   }
 }
 
 impl<Item> PartialOrd for Ukey<Item> {
   fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-    self.0.partial_cmp(&other.0)
+    Some(self.cmp(other))
   }
 }
 
@@ -84,3 +84,15 @@ impl<Item> Hash for Ukey<Item> {
 }
 
 impl<Item> Copy for Ukey<Item> {}
+
+impl<Item> From<usize> for Ukey<Item> {
+  fn from(value: usize) -> Self {
+    Self(value, std::marker::PhantomData)
+  }
+}
+
+impl<Item> From<Ukey<Item>> for usize {
+  fn from(value: Ukey<Item>) -> Self {
+    value.0
+  }
+}

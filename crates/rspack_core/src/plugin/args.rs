@@ -151,6 +151,13 @@ pub struct AdditionalChunkRuntimeRequirementsArgs<'a> {
   pub runtime_requirements: &'a mut RuntimeGlobals,
 }
 
+#[derive(Debug)]
+pub struct AdditionalModuleRequirementsArgs<'a> {
+  pub compilation: &'a mut Compilation,
+  pub module_identifier: &'a ModuleIdentifier,
+  pub runtime_requirements: &'a mut RuntimeGlobals,
+}
+
 impl<'me> AdditionalChunkRuntimeRequirementsArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
     self

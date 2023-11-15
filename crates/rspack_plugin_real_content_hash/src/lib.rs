@@ -235,10 +235,11 @@ impl AssetData {
     })
     .get_or_init(|| {
       if let AssetDataContent::String(content) = &self.content
-      && (!self.own_hashes.is_empty() || self
-        .referenced_hashes
-        .iter()
-        .any(|hash| matches!(hash_to_new_hash.get(hash.as_str()), Some(h) if h != hash)))
+        && (!self.own_hashes.is_empty()
+          || self
+            .referenced_hashes
+            .iter()
+            .any(|hash| matches!(hash_to_new_hash.get(hash.as_str()), Some(h) if h != hash)))
       {
         let new_content = hash_regexp.replace_all(content, |c: &Captures| {
           let hash = c

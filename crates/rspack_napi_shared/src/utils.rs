@@ -1,29 +1,49 @@
-use std::ptr;
+use std::marker::PhantomData;
 
-use napi::{bindgen_prelude::FromNapiValue, JsFunction, JsObject, JsString};
-
-fn get_js_global_object(env: napi::sys::napi_env) -> napi::Result<JsObject> {
-  let mut global = ptr::null_mut();
-  let status = unsafe { napi::sys::napi_get_global(env, &mut global) };
-  if status != 0 {
-    panic!("napi: Get `global` failed")
-  }
-  unsafe { JsObject::from_napi_value(env, global) }
-}
+use napi::{
+  bindgen_prelude::FromNapiValue, sys, Env, JsFunction, JsObject, JsString, JsStringUtf8,
+  JsUnknown, NapiRaw, NapiValue, Result,
+};
 
 /// `Object.prototype.toString.call`
-pub fn object_prototype_to_string_call(
-  env: napi::sys::napi_env,
-  obj: &JsObject,
-) -> napi::Result<String> {
-  let type_description: napi::Result<String> = try {
-    let global: JsObject = get_js_global_object(env)?;
-    // `Object`
-    let object: JsObject = global.get_named_property("Object")?;
-    let prototype: JsObject = object.get_named_property("prototype")?;
-    let to_string: JsFunction = prototype.get_named_property("toString")?;
-    let to_string_ret: JsString = to_string.call_without_args(Some(obj))?.try_into()?;
-    to_string_ret.into_utf8()?.into_owned()?
-  };
-  type_description
+/// Safety: [napi::JsStringUtf8]'s lifetime is bound to `&T`
+unsafe fn object_prototype_to_string_call<T: NapiRaw>(
+  raw_env: sys::napi_env,
+  obj: &T,
+) -> Result<JsStringUtf8> {
+  let env = Env::from(raw_env);
+  let s: JsString = env
+    .get_global()?
+    .get_named_property::<JsObject>("Object")?
+    .get_named_property::<JsObject>("prototype")?
+    .get_named_property::<JsFunction>("toString")?
+    .call_without_args(Some(
+      // Safety: `JsObject::call_without_args` only leverages the `JsObject::raw` method.
+      // It's not necessarily have to be exactly an `JsObject` instance.
+      unsafe { &JsObject::from_raw_unchecked(raw_env, obj.raw()) },
+    ))?
+    .try_into()?;
+  s.into_utf8()
+}
+
+pub struct NapiTypeRef<'r>(JsStringUtf8, PhantomData<&'r *mut ()>);
+
+impl<'r> NapiTypeRef<'r> {
+  // Safety: This call would be successful when `val` is a valid `impl NapiRaw` and `env` is a valid `napi_env`.
+  pub unsafe fn new<T: NapiRaw>(env: sys::napi_env, val: &'r T) -> Result<NapiTypeRef<'r>> {
+    let s = unsafe { object_prototype_to_string_call(env, val) }?;
+    Ok(Self(s, PhantomData))
+  }
+
+  pub fn get_type(&self) -> Result<&str> {
+    self.0.as_str()
+  }
+
+  pub fn is_regex(&self) -> Result<bool> {
+    Ok(self.get_type()? == "[object RegExp]")
+  }
+}
+
+pub fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> napi::Result<T> {
+  <T as FromNapiValue>::from_unknown(o)
 }

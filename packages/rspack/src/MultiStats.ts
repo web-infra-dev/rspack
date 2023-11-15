@@ -12,7 +12,7 @@ import { KnownCreateStatsOptionsContext } from "./Compilation";
 import { StatsCompilation } from "./stats/statsFactoryUtils";
 import { Stats } from "./Stats";
 import { indent } from "./util";
-import identifierUtils from "./util/identifier";
+import * as identifierUtils from "./util/identifier";
 
 export default class MultiStats {
 	stats: Stats[];
@@ -72,10 +72,7 @@ export default class MultiStats {
 	toJson(options?: any) {
 		options = this.#createChildOptions(options, { forToString: false });
 
-		const obj: StatsCompilation = {
-			rspackVersion: require("../package.json").version,
-			version: require("../package.json").webpackVersion
-		};
+		const obj: StatsCompilation = {};
 		obj.children = this.stats.map((stat, idx) => {
 			const obj = stat.toJson(options.children[idx]);
 			const compilationName = stat.compilation.name;
@@ -89,6 +86,10 @@ export default class MultiStats {
 			obj.name = name;
 			return obj;
 		});
+		if (options.version) {
+			obj.rspackVersion = require("../package.json").version;
+			obj.version = require("../package.json").webpackVersion;
+		}
 		if (options.hash) {
 			obj.hash = obj.children.map(j => j.hash).join("");
 		}

@@ -13,7 +13,6 @@
   "license": "ISC",
   "devDependencies": {
     "@rspack/cli": "workspace:*",
-    "@rspack/plugin-minify": "workspace:*",
     "copy-webpack-plugin": "5.1.2",
     "fork-ts-checker-webpack-plugin": "8.0.0",
     "generate-package-json-webpack-plugin": "^2.6.0",
@@ -21,6 +20,7 @@
     "license-webpack-plugin": "^4.0.2",
     "rspack-manifest-plugin": "5.0.0-alpha0",
     "webpack-bundle-analyzer": "4.7.0",
-    "webpack-stats-plugin": "1.1.1"
+    "webpack-stats-plugin": "1.1.1",
+    "@rspack/core": "workspace:*"
   }
 }

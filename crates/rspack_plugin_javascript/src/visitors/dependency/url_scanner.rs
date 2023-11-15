@@ -29,7 +29,9 @@ impl Visit for UrlScanner<'_> {
 
   fn visit_new_expr(&mut self, new_expr: &NewExpr) {
     // TODO: https://github.com/web-infra-dev/rspack/discussions/3619
-    if self.worker_syntax_list.match_new_worker(new_expr) && let Some(args) = &new_expr.args {
+    if self.worker_syntax_list.match_new_worker(new_expr)
+      && let Some(args) = &new_expr.args
+    {
       for arg in args.iter().skip(1) {
         arg.visit_with(self);
       }

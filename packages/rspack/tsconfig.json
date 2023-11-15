@@ -1,12 +1,15 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    // TODO: Remove skipLibCheck when fix upstream type bug
+    "skipLibCheck": true,
     "outDir": "dist",
     "rootDir": ".",
     "allowJs": true,
     "strict": true
   },
   "include": ["src", "package.json"],
+  "exclude": ["src/config/schema.check.js"],
   "ts-node": {
     "transpileOnly": true
   },

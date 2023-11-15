@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::{collections::hash_map::Entry, collections::VecDeque, hash::Hash, path::PathBuf};
 
 use bitflags::bitflags;
@@ -67,7 +68,9 @@ impl SymbolRef {
     match self {
       SymbolRef::Declaration(_) => {}
       SymbolRef::Indirect(ref mut i) => {
-        if i.src.is_empty() && let Some(module_id) = mg.module_identifier_by_dependency_id(&i.dep_id) {
+        if i.src.is_empty()
+          && let Some(module_id) = mg.module_identifier_by_dependency_id(&i.dep_id)
+        {
           i.src = *module_id;
         }
       }
@@ -419,9 +422,10 @@ impl<'a> ModuleRefAnalyze<'a> {
     default_ident
   }
 
-  fn check_commonjs_feature(&mut self, member_chain: &[(JsWord, SyntaxContext)]) {
+  fn check_commonjs_feature(&mut self, member_chain: &[Cow<(JsWord, SyntaxContext)>]) {
     if self.state.contains(AnalyzeState::ASSIGNMENT_LHS) {
-      match member_chain {
+      let member_chain = member_chain.iter().map(|m| &**m).collect::<Vec<_>>();
+      match &*member_chain {
         [(first, first_ctxt), (second, _), ..]
           if first == "module" && second == "exports" && first_ctxt == &self.unresolved_ctxt => {}
         [(first, first_ctxt), ..] if first == "exports" && &self.unresolved_ctxt == first_ctxt => {}
@@ -716,9 +720,15 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
 
   fn visit_new_expr(&mut self, new_expr: &NewExpr) {
-    if self.worker_syntax_list.match_new_worker(new_expr) && let Some(args) = &new_expr.args {
+    if self.worker_syntax_list.match_new_worker(new_expr)
+      && let Some(args) = &new_expr.args
+    {
       new_expr.callee.visit_with(self);
-      if let Some(ExprOrSpread {  expr: box Expr::New(new_expr) , .. }) = args.get(0)  {
+      if let Some(ExprOrSpread {
+        expr: box Expr::New(new_expr),
+        ..
+      }) = args.first()
+      {
         if let Some((_, _, request)) = crate::needs_refactor::match_new_url(new_expr) {
           let src = Part::Worker(request.into());
           match self.current_body_owner_symbol_ext {
@@ -850,9 +860,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               unimplemented!()
             }
             Decl::Var(var) => {
-              self.state |= AnalyzeState::EXPORT_DECL;
+              let pre_state = self.state;
+              self.state.insert(AnalyzeState::EXPORT_DECL);
               var.visit_with(self);
-              self.state.remove(AnalyzeState::EXPORT_DECL);
+              self.state = pre_state;
             }
             Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
               unreachable!("We have been converted Typescript to javascript already")
@@ -954,14 +965,18 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       });
     }
 
+    let mut pre_state = self.state;
     self.state.insert(AnalyzeState::ASSIGNMENT_LHS);
     node.left.visit_with(self);
-    self.state.remove(AnalyzeState::ASSIGNMENT_LHS);
+    // cargo clippy told me to do this..
+    std::mem::swap(&mut self.state, &mut pre_state);
+
+    let pre_state = self.state;
     if valid_assign_target {
       self.state.insert(AnalyzeState::ASSIGNMENT_RHS);
     }
     node.right.visit_with(self);
-    self.state.remove(AnalyzeState::ASSIGNMENT_RHS);
+    self.state = pre_state;
     self.current_body_owner_symbol_ext = before_owner_extend_symbol;
   }
 
@@ -973,21 +988,21 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           expr.visit_with(self);
         }
         _ => {
+          let pre_state = self.state;
           self.state.insert(AnalyzeState::STATIC_VAR_DECL);
           expr.visit_with(self);
-          self.state.remove(AnalyzeState::STATIC_VAR_DECL);
+          self.state = pre_state;
         }
       }
     }
   }
 
   fn visit_member_expr(&mut self, node: &MemberExpr) {
-    let member_chain = extract_member_expression_chain(node)
-      .into_iter()
-      .collect::<Vec<_>>();
+    let expression_info = extract_member_expression_chain(node);
+    let member_chain = expression_info.members().into_iter().collect::<Vec<_>>();
     self.check_commonjs_feature(&member_chain);
     if !member_chain.is_empty() {
-      let (first, first_ctxt) = member_chain[0].clone();
+      let (first, first_ctxt) = member_chain[0].clone().into_owned();
       if self.potential_top_level_ctxt.contains(&first_ctxt) {
         let member_expr = Part::MemberExpr {
           first: first.clone(),
@@ -995,7 +1010,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             .into_iter()
             .skip(1)
             // .take(1)
-            .map(|(name, _)| name)
+            .map(|m| m.0.clone())
             .collect::<Vec<_>>(),
         };
         match self.current_body_owner_symbol_ext {
@@ -1018,6 +1033,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
 
   fn visit_export_default_decl(&mut self, node: &ExportDefaultDecl) {
+    let pre_state = self.state;
     self.state.insert(AnalyzeState::EXPORT_DEFAULT);
     match &node.decl {
       DefaultDecl::Class(_) | DefaultDecl::Fn(_) => {
@@ -1027,11 +1043,13 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         unreachable!("We have been converted Typescript to javascript already")
       }
     }
-    self.state.remove(AnalyzeState::EXPORT_DEFAULT);
+    self.state = pre_state;
   }
 
   fn visit_class_expr(&mut self, node: &ClassExpr) {
+    // TODO: handle
     if self.state.contains(AnalyzeState::EXPORT_DEFAULT) {
+      let pre_state = self.state;
       self.state.remove(AnalyzeState::EXPORT_DEFAULT);
       let default_ident = self.generate_default_ident();
       self.add_export(
@@ -1078,6 +1096,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       self.current_body_owner_symbol_ext = Some(body_owner_extend_symbol);
       node.class.visit_with(self);
       self.current_body_owner_symbol_ext = before_owner_extend_symbol;
+      self.state = pre_state;
     } else {
       // if the class expr is not inside a default expr, it will not
       // generate a binding.
@@ -1133,6 +1152,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_fn_expr(&mut self, node: &FnExpr) {
     if self.state.contains(AnalyzeState::EXPORT_DEFAULT) {
+      let pre_state = self.state;
       self.state.remove(AnalyzeState::EXPORT_DEFAULT);
       let default_ident = self.generate_default_ident();
       self.add_export(
@@ -1186,6 +1206,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       self.current_body_owner_symbol_ext = Some(body_owner_extend_symbol);
       node.function.visit_with(self);
       self.current_body_owner_symbol_ext = before_owner_extend_symbol;
+      self.state = pre_state;
     } else {
       // if the function expr is not inside a default expr, it will not
       // generate a binding.
@@ -1223,13 +1244,14 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         ele.init.visit_with(self);
         continue;
       };
-      if let Some(ref init) = ele.init && self.potential_top_level_ctxt.contains(&lhs.ctxt) {
-
+      if let Some(ref init) = ele.init
+        && self.potential_top_level_ctxt.contains(&lhs.ctxt)
+      {
         let mut symbol_ext = SymbolExt::new(lhs.atom, SymbolFlag::VAR_DECL);
         match init {
-            box Expr::Fn(_) => symbol_ext.flag.insert(SymbolFlag::FUNCTION_EXPR),
-            box Expr::Arrow(_) => symbol_ext.flag.insert(SymbolFlag::ARROW_EXPR),
-            _ => {}
+          box Expr::Fn(_) => symbol_ext.flag.insert(SymbolFlag::FUNCTION_EXPR),
+          box Expr::Arrow(_) => symbol_ext.flag.insert(SymbolFlag::ARROW_EXPR),
+          _ => {}
         };
         if is_export {
           symbol_ext.flag.insert(SymbolFlag::EXPORT);
@@ -1632,7 +1654,10 @@ impl<'a> ModuleRefAnalyze<'a> {
     dependency_type: &DependencyType,
   ) -> Option<DependencyId> {
     self.dependencies.iter().find_map(|dep| {
-      if let Some(dep) = dep.as_module_dependency() && dep.request() == src && dependency_type == dep.dependency_type() {
+      if let Some(dep) = dep.as_module_dependency()
+        && dep.request() == src
+        && dependency_type == dep.dependency_type()
+      {
         Some(*dep.id())
       } else {
         None

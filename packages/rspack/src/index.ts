@@ -20,7 +20,7 @@ export type {
 export { MultiCompiler } from "./MultiCompiler";
 export type { MultiCompilerOptions, MultiRspackOptions } from "./MultiCompiler";
 
-export * from "./config";
+export { RspackOptionsApply as WebpackOptionsApply } from "./rspackOptionsApply";
 
 export { RuntimeGlobals } from "./RuntimeGlobals";
 
@@ -35,10 +35,33 @@ export { NormalModule } from "./NormalModule";
 
 export { default as ModuleFilenameHelpers } from "./lib/ModuleFilenameHelpers";
 
+export { default as Template } from "./Template";
+
 export const WebpackError = Error;
+
+export type { Watching } from "./Watching";
 
 export * as sources from "webpack-sources";
 
+import {
+	getNormalizedRspackOptions,
+	applyRspackOptionsDefaults
+} from "./config";
+export const config = {
+	getNormalizedWebpackOptions: getNormalizedRspackOptions,
+	applyWebpackOptionsDefaults: applyRspackOptionsDefaults
+};
+
+import { createHash } from "./util/createHash";
+import { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
+export const util = { createHash, cleverMerge };
+
+export {
+	registerGlobalTrace as experimental_registerGlobalTrace,
+	cleanupGlobalTrace as experimental_cleanupGlobalTrace
+} from "@rspack/binding";
+
+///// Internal Plugins /////
 export { BannerPlugin } from "./builtin-plugin";
 export type { BannerPluginArgument } from "./builtin-plugin";
 
@@ -80,17 +103,13 @@ export const wasm = { EnableWasmLoadingPlugin };
 import { EnableChunkLoadingPlugin } from "./builtin-plugin";
 export const javascript = { EnableChunkLoadingPlugin };
 
-export type { Watching } from "./Watching";
+import { WebWorkerTemplatePlugin } from "./builtin-plugin";
+export const webworker = { WebWorkerTemplatePlugin };
 
-import { createHash } from "./util/createHash";
-import { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
-export const util = { createHash, cleverMerge };
+import { LimitChunkCountPlugin } from "./builtin-plugin";
+export const optimize = { LimitChunkCountPlugin };
 
-export {
-	registerGlobalTrace as experimental_registerGlobalTrace,
-	cleanupGlobalTrace as experimental_cleanupGlobalTrace
-} from "@rspack/binding";
-
+///// Rspack Postfixed Internal Plugins /////
 export { HtmlRspackPlugin } from "./builtin-plugin";
 export type { HtmlRspackPluginOptions } from "./builtin-plugin";
 

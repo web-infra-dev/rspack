@@ -1,25 +1,22 @@
 #![feature(let_chains)]
 
-use std::default::Default;
-
-use rspack_ast::RspackAst;
-use rspack_core::{rspack_sources::SourceMap, LoaderRunnerContext, Mode};
-use rspack_error::{internal_error, Diagnostic, Result};
-use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
-use rspack_plugin_javascript::{
-  ast::{self, SourceMapConfig},
-  TransformOutput,
-};
-use swc_config::{config_types::MergingOption, merge::Merge};
-use swc_core::base::config::{InputSourceMap, OutputCharset, TransformConfig};
-
 mod compiler;
 mod options;
 mod transformer;
 
+use std::default::Default;
+
 use compiler::{IntoJsAst, SwcCompiler};
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
+use rspack_ast::RspackAst;
+use rspack_core::{rspack_sources::SourceMap, LoaderRunnerContext, Mode};
+use rspack_error::{internal_error, Diagnostic, Result};
+use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
+use rspack_plugin_javascript::ast::{self, SourceMapConfig};
+use rspack_plugin_javascript::TransformOutput;
+use swc_config::{config_types::MergingOption, merge::Merge};
+use swc_core::base::config::{InputSourceMap, OutputCharset, TransformConfig};
 
 #[derive(Debug)]
 pub struct SwcLoader {
@@ -51,7 +48,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
   async fn run(&self, loader_context: &mut LoaderContext<'_, LoaderRunnerContext>) -> Result<()> {
     let resource_path = loader_context.resource_path.to_path_buf();
     let Some(content) = std::mem::take(&mut loader_context.content) else {
-      return Err(internal_error!("Content should be available"))
+      return Err(internal_error!("Content should be available"));
     };
 
     let swc_options = {

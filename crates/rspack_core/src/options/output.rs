@@ -514,17 +514,22 @@ pub fn get_js_chunk_filename_template<'filename>(
   }
 }
 
-#[derive(Debug, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub struct LibraryOptions {
   pub name: Option<LibraryName>,
-  pub export: Option<Vec<String>>,
+  pub export: Option<LibraryExport>,
   // webpack type
-  pub library_type: String,
+  pub library_type: LibraryType,
   pub umd_named_define: Option<bool>,
   pub auxiliary_comment: Option<LibraryAuxiliaryComment>,
+  pub amd_container: Option<String>,
 }
 
-#[derive(Debug, Hash)]
+pub type LibraryType = String;
+
+pub type LibraryExport = Vec<String>;
+
+#[derive(Debug, Clone, Hash)]
 pub struct LibraryAuxiliaryComment {
   pub root: Option<String>,
   pub commonjs: Option<String>,
@@ -532,8 +537,20 @@ pub struct LibraryAuxiliaryComment {
   pub amd: Option<String>,
 }
 
-#[derive(Debug, Hash)]
-pub struct LibraryName {
+#[derive(Debug, Clone, Hash)]
+pub enum LibraryName {
+  NonUmdObject(LibraryNonUmdObject),
+  UmdObject(LibraryCustomUmdObject),
+}
+
+#[derive(Debug, Clone, Hash)]
+pub enum LibraryNonUmdObject {
+  Array(Vec<String>),
+  String(String),
+}
+
+#[derive(Debug, Clone, Hash)]
+pub struct LibraryCustomUmdObject {
   pub amd: Option<String>,
   pub commonjs: Option<String>,
   pub root: Option<Vec<String>>,

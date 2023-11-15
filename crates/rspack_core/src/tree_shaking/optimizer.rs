@@ -432,7 +432,6 @@ impl<'a> CodeSizeOptimizer<'a> {
 
         if eliminator.could_be_skipped() {
           continue;
-        } else {
         }
 
         let mut reachable_dependency_identifier = IdentifierSet::default();
@@ -470,7 +469,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             panic!("Failed to get ModuleGraphModule by module identifier {module_identifier}")
           });
         // reachable_dependency_identifier.extend(analyze_result.inherit_export_maps.keys());
-        for dependency_id in mgm.dependencies.iter() {
+        for dependency_id in mgm.all_dependencies.iter() {
           if self
             .compilation
             .module_graph
@@ -626,7 +625,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       .module_graph_module_by_identifier(&cur)
       .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {cur}"));
     let mut module_ident_list = vec![];
-    for dep in mgm.dependencies.iter() {
+    for dep in mgm.all_dependencies.iter() {
       if module_graph
         .dependency_by_id(dep)
         .expect("should have dependency")
@@ -636,18 +635,18 @@ impl<'a> CodeSizeOptimizer<'a> {
         continue;
       }
       let Some(&module_ident) = module_graph.module_identifier_by_dependency_id(dep) else {
-          let ast_or_source = module_graph
-            .module_by_identifier(&mgm.module_identifier)
-            .and_then(|module| module.as_normal_module())
-            .map(|normal_module| normal_module.source())
-            .unwrap_or_else(|| panic!("Failed to get normal module of {}", mgm.module_identifier));
-          if matches!(ast_or_source, NormalModuleSource::BuiltFailed(_)) {
-            // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
-            continue;
-          } else {
-            panic!("Failed to resolve {dep:?}")
-          }
-        };
+        let ast_or_source = module_graph
+          .module_by_identifier(&mgm.module_identifier)
+          .and_then(|module| module.as_normal_module())
+          .map(|normal_module| normal_module.source())
+          .unwrap_or_else(|| panic!("Failed to get normal module of {}", mgm.module_identifier));
+        if matches!(ast_or_source, NormalModuleSource::BuiltFailed(_)) {
+          // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
+          continue;
+        } else {
+          panic!("Failed to resolve {dep:?}")
+        }
+      };
       module_ident_list.push(module_ident);
       Self::normalize_side_effects(module_ident, module_graph, visited_module, side_effects_map);
     }
@@ -943,7 +942,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                       }
                       let first_reexport_of_each_path = reexport_paths
                         .iter()
-                        .filter_map(|path| path.get(0).cloned())
+                        .filter_map(|path| path.first().cloned())
                         .collect::<Vec<_>>();
                       vac.insert(first_reexport_of_each_path);
                       ReExportConnectionStatus::Vacant(reexport_paths)
@@ -1113,7 +1112,9 @@ impl<'a> CodeSizeOptimizer<'a> {
 
         let (include_default_export, next_member_chain) = match star_symbol.ty() {
           StarSymbolKind::ReExportAllAs => {
-            let next_member_chain = if let Some(name) = member_chain.get(0) && name == star_symbol.binding() {
+            let next_member_chain = if let Some(name) = member_chain.first()
+              && name == star_symbol.binding()
+            {
               member_chain[1..].to_vec()
             } else {
               vec![]
@@ -1121,7 +1122,9 @@ impl<'a> CodeSizeOptimizer<'a> {
             (true, next_member_chain)
           }
           StarSymbolKind::ImportAllAs => {
-            let next_member_chain = if let Some(name) = member_chain.get(0) && name == star_symbol.binding() {
+            let next_member_chain = if let Some(name) = member_chain.first()
+              && name == star_symbol.binding()
+            {
               member_chain[1..].to_vec()
             } else {
               vec![]
@@ -1132,7 +1135,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         };
 
         // try to access first member expr element
-        if let Some(name) = next_member_chain.get(0) {
+        if let Some(name) = next_member_chain.first() {
           if let Some(export_symbol_ref) = analyze_result.export_map.get(name) {
             self
               .symbol_graph
@@ -1178,7 +1181,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                   }
                   let first_reexport_of_each_path = reexport_paths
                     .iter()
-                    .filter_map(|path| path.get(0).cloned())
+                    .filter_map(|path| path.first().cloned())
                     .collect::<Vec<_>>();
                   vac.insert(first_reexport_of_each_path);
                   ReExportConnectionStatus::Vacant(reexport_paths)

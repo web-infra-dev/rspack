@@ -67,7 +67,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
         self.rewrite_usage_span.insert(
           export_decl.span(),
-          ExtraSpanInfo::AddVariableUsage(ident.sym.clone(), ident.sym.clone()),
+          ExtraSpanInfo::AddVariableUsage(vec![(ident.sym.clone(), ident.sym.clone())]),
         );
         self
           .build_info
@@ -75,6 +75,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
           .insert(ident.sym.clone());
       }
       Decl::Var(v) => {
+        let mut usages = vec![];
         find_pat_ids::<_, Ident>(&v.decls)
           .into_iter()
           .for_each(|ident| {
@@ -85,12 +86,13 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                 ident.sym.clone(),
               )));
 
-            self.rewrite_usage_span.insert(
-              export_decl.span(),
-              ExtraSpanInfo::AddVariableUsage(ident.sym.clone(), ident.sym.clone()),
-            );
+            usages.push((ident.sym.clone(), ident.sym.clone()));
             self.build_info.harmony_named_exports.insert(ident.sym);
           });
+
+        self
+          .rewrite_usage_span
+          .insert(export_decl.span(), ExtraSpanInfo::AddVariableUsage(usages));
       }
       _ => {}
     }
@@ -103,6 +105,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
   fn visit_named_export(&mut self, named_export: &'_ NamedExport) {
     if named_export.src.is_none() {
+      let mut usages = vec![];
       named_export
         .specifiers
         .iter()
@@ -116,6 +119,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
               };
               if let Some(reference) = self.import_map.get(&orig.to_id()) {
                 let ids = vec![(export.clone(), reference.names.clone())];
+                // dbg!(&reference);
                 let mode_ids = match reference.specifier {
                   Specifier::Namespace(_) => {
                     vec![]
@@ -131,6 +135,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                     mode_ids,
                     Some(export.clone()),
                     false,
+                    None,
                   )));
               } else {
                 self
@@ -142,14 +147,15 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
                 self.build_info.harmony_named_exports.insert(export.clone());
               }
-              self.rewrite_usage_span.insert(
-                named.span(),
-                ExtraSpanInfo::AddVariableUsage(orig.sym.clone(), export),
-              );
+              usages.push((orig.sym.clone(), export));
             }
           }
           _ => unreachable!(),
         });
+
+      self
+        .rewrite_usage_span
+        .insert(named_export.span(), ExtraSpanInfo::AddVariableUsage(usages));
       self
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
@@ -173,7 +179,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
     self.rewrite_usage_span.insert(
       export_default_expr.span,
-      ExtraSpanInfo::AddVariableUsage(DEFAULT_EXPORT.into(), DEFAULT_JS_WORD.clone()),
+      ExtraSpanInfo::AddVariableUsage(vec![(DEFAULT_EXPORT.into(), DEFAULT_JS_WORD.clone())]),
     );
     self
       .presentational_dependencies
@@ -206,7 +212,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
       )));
     self.rewrite_usage_span.insert(
       export_default_decl.span,
-      ExtraSpanInfo::AddVariableUsage(local, DEFAULT_JS_WORD.clone()),
+      ExtraSpanInfo::AddVariableUsage(vec![(local, DEFAULT_JS_WORD.clone())]),
     );
     self
       .presentational_dependencies
@@ -214,9 +220,16 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
         export_default_decl.span().real_lo(),
         export_default_decl.decl.span().real_lo(),
         ident.is_some(),
-        if let DefaultDecl::Fn(f) = &export_default_decl.decl && f.ident.is_none() {
-          let first_parmas_start = f.function.params.get(0).map(|first| first.span.real_lo());
-          Some(AnonymousFunctionRangeInfo { is_async: f.function.is_async, is_generator:f.function.is_generator, body_start: f.function.body.span().real_lo(), first_parmas_start })
+        if let DefaultDecl::Fn(f) = &export_default_decl.decl
+          && f.ident.is_none()
+        {
+          let first_parmas_start = f.function.params.first().map(|first| first.span.real_lo());
+          Some(AnonymousFunctionRangeInfo {
+            is_async: f.function.is_async,
+            is_generator: f.function.is_generator,
+            body_start: f.function.body.span().real_lo(),
+            first_parmas_start,
+          })
         } else {
           None
         },

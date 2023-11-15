@@ -12,6 +12,15 @@ import { Compilation, FilterItemTypes } from ".";
 import { StatsValue, StatsOptions } from "./config";
 import type { StatsCompilation } from "./stats/statsFactoryUtils";
 
+export type {
+	StatsCompilation,
+	StatsAsset,
+	StatsChunk,
+	StatsModule,
+	StatsError,
+	StatsWarnings
+} from "./stats/statsFactoryUtils";
+
 export class Stats {
 	#inner: binding.JsStats;
 	compilation: Compilation;

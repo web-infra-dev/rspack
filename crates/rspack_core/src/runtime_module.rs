@@ -20,6 +20,8 @@ pub trait RuntimeModule: Module {
   }
 }
 
+pub type BoxRuntimeModule = Box<dyn RuntimeModule>;
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RuntimeModuleStage {
   Normal,  // Runtime modules without any dependencies to other runtime modules

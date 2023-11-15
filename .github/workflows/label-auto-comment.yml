@@ -24,7 +24,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.issue.number }}
           body: |
-            Hello @${{ github.event.issue.user.login }}, sorry we can't investigate the problem further without reproduction demo, please provide a repro demo by forking [rspack-repro](https://github.com/web-infra-dev/rspack-repro), or provide a minimal GitHub repository by yourself. Issues labeled by `need reproduction` will be closed if no activities in 3 days.
+            Hello @${{ github.event.issue.user.login }}, sorry we can't investigate the problem further without reproduction demo, please provide a repro demo by forking [rspack-repro](https://github.com/web-infra-dev/rspack-repro), or provide a minimal GitHub repository by yourself. Issues labeled by `need reproduction` will be closed if no activities in 14 days.
       - name: invalid
         if: github.event.label.name == 'invalid'
         uses: actions-cool/issues-helper@v3

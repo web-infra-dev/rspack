@@ -1,3 +1,5 @@
+const noNameLibraryTypes = ["amd-require", "module"]
+
 /** @type {import('@rspack/cli').Configuration} */
 const config = [
 	"var",
@@ -26,7 +28,7 @@ const config = [
 	output: {
 		filename: `${type}.js`,
 		library: {
-			name: "MyLibrary",
+			name: noNameLibraryTypes.includes(type) ? undefined : "MyLibrary",
 			type: type
 		}
 	}

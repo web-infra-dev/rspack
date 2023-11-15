@@ -249,10 +249,10 @@ async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) ->
   // Bail out if loader does not exist,
   // or the last loader has been executed.
   if loader_context.__loader_index == 0
-    && (loader_context.__loader_items.get(0).is_none()
+    && (loader_context.__loader_items.first().is_none()
       || loader_context
         .__loader_items
-        .get(0)
+        .first()
         .map(|loader| loader.normal_executed())
         .unwrap_or_default())
   {

@@ -56,7 +56,7 @@ export class JsStats {
   getErrors(): Array<JsStatsError>
   getWarnings(): Array<JsStatsWarning>
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
-  getHash(): string
+  getHash(): string | null
 }
 
 export class Rspack {
@@ -96,6 +96,12 @@ export class Rspack {
   unsafe_drop(): void
 }
 
+export function __chunk_inner_can_be_initial(jsChunk: JsChunk, compilation: JsCompilation): boolean
+
+export function __chunk_inner_has_runtime(jsChunk: JsChunk, compilation: JsCompilation): boolean
+
+export function __chunk_inner_is_only_initial(jsChunk: JsChunk, compilation: JsCompilation): boolean
+
 export interface AfterResolveData {
   request: string
   context: string
@@ -131,6 +137,8 @@ export const enum BuiltinPluginName {
   ArrayPushCallbackChunkFormatPlugin = 'ArrayPushCallbackChunkFormatPlugin',
   ModuleChunkFormatPlugin = 'ModuleChunkFormatPlugin',
   HotModuleReplacementPlugin = 'HotModuleReplacementPlugin',
+  LimitChunkCountPlugin = 'LimitChunkCountPlugin',
+  WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -171,8 +179,8 @@ export interface JsAssetInfo {
    * the value(s) of the content hash used for this asset
    */
   contentHash: Array<string>
+  sourceFilename?: string
   /**
-   * when asset was created from a source file (potentially transformed), the original filename relative to compilation context
    * size in bytes, only set after asset has been emitted
    * when asset is only used for development and doesn't count towards user-facing assets
    */
@@ -196,8 +204,20 @@ export interface JsAssetInfoRelated {
 }
 
 export interface JsChunk {
+  __inner_ukey: number
   name?: string
+  id?: string
+  ids: Array<string>
+  idNameHints: Array<string>
+  filenameTemplate?: string
+  cssFilenameTemplate?: string
   files: Array<string>
+  runtime: Array<string>
+  hash?: string
+  contentHash: Record<string, string>
+  renderedHash?: string
+  chunkReasons: Array<string>
+  auxiliaryFiles: Array<string>
 }
 
 export interface JsChunkAssetArgs {
@@ -302,7 +322,7 @@ export interface JsLoaderContext {
 
 export interface JsModule {
   originalSource?: JsCompatSource
-  resource: string
+  resource?: string
   moduleIdentifier: string
 }
 
@@ -331,7 +351,7 @@ export interface JsStatsAsset {
   type: string
   name: string
   size: number
-  chunks: Array<string>
+  chunks: Array<string | undefined | null>
   chunkNames: Array<string>
   info: JsStatsAssetInfo
   emitted: boolean
@@ -340,6 +360,7 @@ export interface JsStatsAsset {
 export interface JsStatsAssetInfo {
   development: boolean
   hotModuleReplacement: boolean
+  sourceFilename?: string
 }
 
 export interface JsStatsAssetsByChunkName {
@@ -351,7 +372,7 @@ export interface JsStatsChunk {
   type: string
   files: Array<string>
   auxiliaryFiles: Array<string>
-  id: string
+  id?: string
   entry: boolean
   initial: boolean
   names: Array<string>
@@ -365,7 +386,7 @@ export interface JsStatsChunk {
 export interface JsStatsChunkGroup {
   name: string
   assets: Array<JsStatsChunkGroupAsset>
-  chunks: Array<string>
+  chunks: Array<string | undefined | null>
   assetsSize: number
 }
 
@@ -403,7 +424,7 @@ export interface JsStatsModule {
   identifier: string
   name: string
   id?: string
-  chunks: Array<string>
+  chunks: Array<string | undefined | null>
   size: number
   issuer?: string
   issuerName?: string
@@ -500,12 +521,6 @@ export interface RawAssetResourceGeneratorOptions {
   publicPath?: string
 }
 
-export interface RawBannerContent {
-  type: "string" | "function"
-  stringPayload?: string
-  fnPayload?: (...args: any[]) => any
-}
-
 export interface RawBannerContentFnCtx {
   hash: string
   chunk: JsChunk
@@ -513,26 +528,13 @@ export interface RawBannerContentFnCtx {
 }
 
 export interface RawBannerPluginOptions {
-  banner: RawBannerContent
+  banner: string | ((...args: any[]) => any)
   entryOnly?: boolean
   footer?: boolean
   raw?: boolean
-  test?: RawBannerRules
-  include?: RawBannerRules
-  exclude?: RawBannerRules
-}
-
-export interface RawBannerRule {
-  type: "string" | "regexp"
-  stringMatcher?: string
-  regexpMatcher?: string
-}
-
-export interface RawBannerRules {
-  type: "string" | "regexp" | "array"
-  stringMatcher?: string
-  regexpMatcher?: string
-  arrayMatcher?: Array<RawBannerRule>
+  test?: string | RegExp | (string | RegExp)[]
+  include?: string | RegExp | (string | RegExp)[]
+  exclude?: string | RegExp | (string | RegExp)[]
 }
 
 export interface RawBuiltins {
@@ -633,6 +635,7 @@ export interface RawEntryOptions {
   publicPath?: string
   baseUri?: string
   filename?: string
+  library?: RawLibraryOptions
 }
 
 export interface RawEntryPluginOptions {
@@ -651,14 +654,6 @@ export interface RawExperiments {
   rspackFuture: RawRspackFuture
 }
 
-export interface RawExternalItem {
-  type: "string" | "regexp" | "object" | "function"
-  stringPayload?: string
-  regexpPayload?: string
-  objectPayload?: Record<string, RawExternalItemValue>
-  fnPayload?: (value: any) => any
-}
-
 export interface RawExternalItemFnCtx {
   request: string
   context: string
@@ -670,17 +665,9 @@ export interface RawExternalItemFnResult {
   result?: RawExternalItemValue
 }
 
-export interface RawExternalItemValue {
-  type: "string" | "bool" | "array" | "object"
-  stringPayload?: string
-  boolPayload?: boolean
-  arrayPayload?: Array<string>
-  objectPayload?: Record<string, Array<string>>
-}
-
 export interface RawExternalsPluginOptions {
   type: string
-  externals: Array<RawExternalItem>
+  externals: (string | RegExp | Record<string, string | boolean | string[] | Record<string, string[]>> | ((...args: any[]) => any))[]
 }
 
 export interface RawExternalsPresets {
@@ -758,6 +745,10 @@ export interface RawInfo {
   version?: string
 }
 
+export interface RawJavascriptParserOptions {
+  dynamicImportMode: string
+}
+
 export interface RawLibraryAuxiliaryComment {
   root?: string
   commonjs?: string
@@ -765,10 +756,17 @@ export interface RawLibraryAuxiliaryComment {
   amd?: string
 }
 
-export interface RawLibraryName {
+export interface RawLibraryCustomUmdObject {
   amd?: string
   commonjs?: string
   root?: Array<string>
+}
+
+export interface RawLibraryName {
+  type: "string" | "array" | "umdObject"
+  stringPayload?: string
+  arrayPayload?: Array<string>
+  umdObjectPayload?: RawLibraryCustomUmdObject
 }
 
 export interface RawLibraryOptions {
@@ -777,6 +775,13 @@ export interface RawLibraryOptions {
   libraryType: string
   umdNamedDefine?: boolean
   auxiliaryComment?: RawLibraryAuxiliaryComment
+  amdContainer?: string
+}
+
+export interface RawLimitChunkCountPluginOptions {
+  chunkOverhead?: number
+  entryChunkMultiplicator?: number
+  maxChunks: number
 }
 
 export interface RawModuleOptions {
@@ -918,8 +923,9 @@ export interface RawOutputOptions {
 }
 
 export interface RawParserOptions {
-  type: "asset" | "unknown"
+  type: "asset" | "javascript" | "unknown"
   asset?: RawAssetParserOptions
+  javascript?: RawJavascriptParserOptions
 }
 
 export interface RawPluginImportConfig {
@@ -1050,30 +1056,13 @@ export interface RawStyleConfig {
 }
 
 export interface RawSwcJsMinimizerRspackPluginOptions {
-  passes: number
-  dropConsole: boolean
-  keepClassNames: boolean
-  keepFnNames: boolean
-  comments: "all" | "some" | "false"
-  asciiOnly: boolean
-  pureFuncs: Array<string>
   extractComments?: string
-  test?: RawSwcJsMinimizerRules
-  include?: RawSwcJsMinimizerRules
-  exclude?: RawSwcJsMinimizerRules
-}
-
-export interface RawSwcJsMinimizerRule {
-  type: "string" | "regexp"
-  stringMatcher?: string
-  regexpMatcher?: string
-}
-
-export interface RawSwcJsMinimizerRules {
-  type: "string" | "regexp" | "array"
-  stringMatcher?: string
-  regexpMatcher?: string
-  arrayMatcher?: Array<RawSwcJsMinimizerRule>
+  compress: boolean | string
+  mangle: boolean | string
+  format: string
+  test?: string | RegExp | (string | RegExp)[]
+  include?: string | RegExp | (string | RegExp)[]
+  exclude?: string | RegExp | (string | RegExp)[]
 }
 
 export interface RawTrustedTypes {

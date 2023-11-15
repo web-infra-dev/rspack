@@ -26,12 +26,12 @@ use rustc_hash::FxHasher;
 use serde_json::json;
 
 use crate::{
-  add_connection_states, contextify, get_context, BoxLoader, BoxModule, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, CodeGenerationResult, Compilation, CompilerOptions, ConnectionState,
-  Context, DependencyTemplate, GenerateContext, GeneratorOptions, LibIdentOptions,
-  LoaderRunnerPluginProcessResource, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RuntimeSpec,
-  SourceType,
+  add_connection_states, contextify, get_context, AsyncDependenciesBlockId, BoxLoader, BoxModule,
+  BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
+  CompilerOptions, ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate,
+  GenerateContext, GeneratorOptions, LibIdentOptions, LoaderRunnerPluginProcessResource, Module,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, ParserOptions, Resolve, RuntimeSpec, SourceType,
 };
 
 bitflags! {
@@ -65,7 +65,9 @@ impl ModuleIssuer {
   }
 
   pub fn get_module<'a>(&self, module_graph: &'a ModuleGraph) -> Option<&'a BoxModule> {
-    if let Some(id) = self.identifier() && let Some(module) = module_graph.module_by_identifier(id) {
+    if let Some(id) = self.identifier()
+      && let Some(module) = module_graph.module_by_identifier(id)
+    {
       Some(module)
     } else {
       None
@@ -76,6 +78,9 @@ impl ModuleIssuer {
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct NormalModule {
+  blocks: Vec<AsyncDependenciesBlockId>,
+  dependencies: Vec<DependencyId>,
+
   id: ModuleIdentifier,
   /// Context of this module
   context: Box<Context>,
@@ -170,6 +175,8 @@ impl NormalModule {
       format!("{module_type}|{request}")
     };
     Self {
+      blocks: Vec::new(),
+      dependencies: Vec::new(),
       id: ModuleIdentifier::from(identifier),
       context: Box::new(get_context(&resource_data)),
       request,
@@ -275,6 +282,24 @@ impl Identifiable for NormalModule {
   }
 }
 
+impl DependenciesBlock for NormalModule {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
+    self.blocks.push(block)
+  }
+
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+    &self.blocks
+  }
+
+  fn add_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.push(dependency)
+  }
+
+  fn get_dependencies(&self) -> &[DependencyId] {
+    &self.dependencies
+  }
+}
+
 #[async_trait::async_trait]
 impl Module for NormalModule {
   fn module_type(&self) -> &ModuleType {
@@ -335,6 +360,7 @@ impl Module for NormalModule {
             build_info,
             build_meta: Default::default(),
             dependencies: Vec::new(),
+            blocks: Vec::new(),
             analyze_result: Default::default(),
           }
           .with_diagnostic(e.into()),
@@ -355,6 +381,7 @@ impl Module for NormalModule {
       ParseResult {
         source,
         dependencies,
+        blocks,
         presentational_dependencies,
         analyze_result,
       },
@@ -400,6 +427,7 @@ impl Module for NormalModule {
         build_info,
         build_meta,
         dependencies,
+        blocks,
         analyze_result,
       }
       .with_diagnostic(diagnostics),
@@ -480,7 +508,9 @@ impl Module for NormalModule {
   }
 
   fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
-    if let Some(deps) = self.code_generation_dependencies.as_deref() && !deps.is_empty() {
+    if let Some(deps) = self.code_generation_dependencies.as_deref()
+      && !deps.is_empty()
+    {
       Some(deps)
     } else {
       None
@@ -488,7 +518,9 @@ impl Module for NormalModule {
   }
 
   fn get_presentational_dependencies(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
-    if let Some(deps) = self.presentational_dependencies.as_deref() && !deps.is_empty() {
+    if let Some(deps) = self.presentational_dependencies.as_deref()
+      && !deps.is_empty()
+    {
       Some(deps)
     } else {
       None
@@ -509,16 +541,19 @@ impl Module for NormalModule {
       if let Some(side_effect_free) = mgm.factory_meta.as_ref().and_then(|m| m.side_effect_free) {
         return ConnectionState::Bool(!side_effect_free);
       }
-      if let Some(side_effect_free) = mgm.build_meta.as_ref().and_then(|m| m.side_effect_free) && side_effect_free {
+      if let Some(side_effect_free) = mgm.build_meta.as_ref().and_then(|m| m.side_effect_free)
+        && side_effect_free
+      {
         // use module chain instead of is_evaluating_side_effects to mut module graph
         if module_chain.contains(&self.identifier()) {
           return ConnectionState::CircularConnection;
         }
         module_chain.insert(self.identifier());
         let mut current = ConnectionState::Bool(false);
-        for dependency_id in mgm.dependencies.iter() {
+        for dependency_id in self.get_dependencies().iter() {
           if let Some(dependency) = module_graph.dependency_by_id(dependency_id) {
-            let state = dependency.get_module_evaluation_side_effects_state(module_graph, module_chain);
+            let state =
+              dependency.get_module_evaluation_side_effects_state(module_graph, module_chain);
             if matches!(state, ConnectionState::Bool(true)) {
               // TODO add optimization bailout
               module_chain.remove(&self.identifier());
@@ -549,7 +584,9 @@ impl NormalModule {
     if content.is_buffer() {
       return Ok(RawSource::Buffer(content.into_bytes()).boxed());
     }
-    if self.options.devtool.enabled() && let Some(source_map) = source_map {
+    if self.options.devtool.enabled()
+      && let Some(source_map) = source_map
+    {
       let content = content.into_string_lossy();
       return Ok(
         SourceMapSource::new(WithoutOriginalOptions {
@@ -560,7 +597,9 @@ impl NormalModule {
         .boxed(),
       );
     }
-    if self.options.devtool.source_map() && let Content::String(content) = content {
+    if self.options.devtool.source_map()
+      && let Content::String(content) = content
+    {
       return Ok(OriginalSource::new(content, self.request()).boxed());
     }
     Ok(RawSource::from(content.into_string_lossy()).boxed())

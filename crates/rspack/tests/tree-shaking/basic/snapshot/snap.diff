@@ -4,7 +4,7 @@
   function render() {
      function test() {
          const container = document.getElementById("root");
--        container.innerHTML = `adddd333:${/* "./lib" unused */null}:${_lib__WEBPACK_IMPORTED_MODULE_0_.myanswer}`;
+-        container.innerHTML = `adddd333:${/* "./lib" unused */null}:${_lib__WEBPACK_IMPORTED_MODULE_0__.myanswer}`;
 +        container.innerHTML = `adddd333:${secret}:${myanswer}`;
      }
  }

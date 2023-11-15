@@ -1,5 +1,6 @@
 mod entry;
 mod span;
+use std::borrow::Cow;
 use std::sync::atomic::Ordering::Relaxed;
 use std::{collections::hash_map::Entry, sync::atomic::AtomicU32};
 
@@ -30,9 +31,9 @@ pub use dependency_template::*;
 use dyn_clone::{clone_trait_object, DynClone};
 
 use crate::{
-  ChunkGroupOptionsKindRef, ConnectionState, Context, ContextMode, ContextOptions,
-  DependencyExtraMeta, ErrorSpan, ExtendedReferencedExport, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, ReferencedExport, RuntimeSpec, UsedByExports,
+  ConnectionState, Context, ContextOptions, DependencyExtraMeta, ErrorSpan,
+  ExtendedReferencedExport, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ReferencedExport,
+  RuntimeSpec, UsedByExports,
 };
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
@@ -52,8 +53,12 @@ pub enum DependencyType {
   EsmExportSpecifier,
   // import()
   DynamicImport,
+  // import() eager
+  DynamicImportEager,
   // cjs require
   CjsRequire,
+  // cjs exports
+  CjsExports,
   // new URL("./foo", import.meta.url)
   NewUrl,
   // new Worker()
@@ -76,6 +81,8 @@ pub enum DependencyType {
   ContextElement,
   // import context
   ImportContext,
+  // import.meta.webpackContext
+  ImportMetaContext,
   // commonjs require context
   CommonJSRequireContext,
   // require.context
@@ -91,38 +98,49 @@ pub enum DependencyType {
   Custom(Box<str>), // TODO it will increase large layout size
 }
 
+impl DependencyType {
+  pub fn as_str(&self) -> Cow<str> {
+    match self {
+      DependencyType::Unknown => Cow::Borrowed("unknown"),
+      DependencyType::Entry => Cow::Borrowed("entry"),
+      DependencyType::EsmImport(_) => Cow::Borrowed("esm import"),
+      DependencyType::EsmExport(_) => Cow::Borrowed("esm export"),
+      DependencyType::EsmExportSpecifier => Cow::Borrowed("esm export specifier"),
+      DependencyType::EsmExportImportedSpecifier => Cow::Borrowed("esm export import specifier"),
+      DependencyType::EsmImportSpecifier => Cow::Borrowed("esm import specifier"),
+      DependencyType::DynamicImport => Cow::Borrowed("dynamic import"),
+      DependencyType::CjsRequire => Cow::Borrowed("cjs require"),
+      DependencyType::CjsExports => Cow::Borrowed("cjs exports"),
+      DependencyType::NewUrl => Cow::Borrowed("new URL()"),
+      DependencyType::NewWorker => Cow::Borrowed("new Worker()"),
+      DependencyType::ImportMetaHotAccept => Cow::Borrowed("import.meta.webpackHot.accept"),
+      DependencyType::ImportMetaHotDecline => Cow::Borrowed("import.meta.webpackHot.decline"),
+      DependencyType::ModuleHotAccept => Cow::Borrowed("module.hot.accept"),
+      DependencyType::ModuleHotDecline => Cow::Borrowed("module.hot.decline"),
+      DependencyType::CssUrl => Cow::Borrowed("css url"),
+      DependencyType::CssImport => Cow::Borrowed("css import"),
+      DependencyType::CssCompose => Cow::Borrowed("css compose"),
+      DependencyType::ContextElement => Cow::Borrowed("context element"),
+      // TODO: mode
+      DependencyType::ImportContext => Cow::Borrowed("import context"),
+      DependencyType::DynamicImportEager => Cow::Borrowed("import() eager"),
+      DependencyType::CommonJSRequireContext => Cow::Borrowed("commonjs require context"),
+      DependencyType::RequireContext => Cow::Borrowed("require.context"),
+      DependencyType::RequireResolve => Cow::Borrowed("require.resolve"),
+      DependencyType::WasmImport => Cow::Borrowed("wasm import"),
+      DependencyType::WasmExportImported => Cow::Borrowed("wasm export imported"),
+      DependencyType::StaticExports => Cow::Borrowed("static exports"),
+      DependencyType::Custom(ty) => Cow::Owned(format!("custom {ty}")),
+      DependencyType::ExportInfoApi => Cow::Borrowed("export info api"),
+      // TODO: mode
+      DependencyType::ImportMetaContext => Cow::Borrowed("import.meta context"),
+    }
+  }
+}
+
 impl Display for DependencyType {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      DependencyType::Unknown => write!(f, "unknown"),
-      DependencyType::Entry => write!(f, "entry"),
-      DependencyType::EsmImport(_) => write!(f, "esm import"),
-      DependencyType::EsmExport(_) => write!(f, "esm export"),
-      DependencyType::EsmExportSpecifier => write!(f, "esm export specifier"),
-      DependencyType::EsmExportImportedSpecifier => write!(f, "esm export import specifier"),
-      DependencyType::EsmImportSpecifier => write!(f, "esm import specifier"),
-      DependencyType::DynamicImport => write!(f, "dynamic import"),
-      DependencyType::CjsRequire => write!(f, "cjs require"),
-      DependencyType::NewUrl => write!(f, "new URL()"),
-      DependencyType::NewWorker => write!(f, "new Worker()"),
-      DependencyType::ImportMetaHotAccept => write!(f, "import.meta.webpackHot.accept"),
-      DependencyType::ImportMetaHotDecline => write!(f, "import.meta.webpackHot.decline"),
-      DependencyType::ModuleHotAccept => write!(f, "module.hot.accept"),
-      DependencyType::ModuleHotDecline => write!(f, "module.hot.decline"),
-      DependencyType::CssUrl => write!(f, "css url"),
-      DependencyType::CssImport => write!(f, "css import"),
-      DependencyType::CssCompose => write!(f, "css compose"),
-      DependencyType::ContextElement => write!(f, "context element"),
-      DependencyType::ImportContext => write!(f, "import context"),
-      DependencyType::CommonJSRequireContext => write!(f, "commonjs require context"),
-      DependencyType::RequireContext => write!(f, "require.context"),
-      DependencyType::RequireResolve => write!(f, "require.resolve"),
-      DependencyType::WasmImport => write!(f, "wasm import"),
-      DependencyType::WasmExportImported => write!(f, "wasm export imported"),
-      DependencyType::StaticExports => write!(f, "static exports"),
-      DependencyType::Custom(ty) => write!(f, "custom {ty}"),
-      DependencyType::ExportInfoApi => write!(f, "export info api"),
-    }
+    write!(f, "{}", self.as_str())
   }
 }
 
@@ -214,8 +232,13 @@ pub trait Dependency:
     None
   }
 
+  /// `Span` used for Dependency search in `on_usage` in `InnerGraph`
+  fn span_for_on_usage_search(&self) -> Option<ErrorSpan> {
+    self.span()
+  }
+
   fn is_span_equal(&self, other: &Span) -> bool {
-    if let Some(err_span) = self.span() {
+    if let Some(err_span) = self.span_for_on_usage_search() {
       let other = ErrorSpan::from(*other);
       other == err_span
     } else {
@@ -233,7 +256,7 @@ pub trait Dependency:
 #[derive(Debug, Default)]
 pub struct ExportSpec {
   pub name: JsWord,
-  pub export: Option<Vec<JsWord>>,
+  pub export: Option<Nullable<Vec<JsWord>>>,
   pub exports: Option<Vec<ExportNameOrSpec>>,
   pub can_mangle: Option<bool>,
   pub terminal_binding: Option<bool>,
@@ -241,6 +264,12 @@ pub struct ExportSpec {
   pub hidden: Option<bool>,
   pub from: Option<ModuleGraphConnection>,
   pub from_export: Option<ModuleGraphConnection>,
+}
+
+#[derive(Debug)]
+pub enum Nullable<T> {
+  Null,
+  Value(T),
 }
 
 impl ExportSpec {
@@ -392,13 +421,9 @@ pub trait ModuleDependency: Dependency {
   fn options(&self) -> Option<&ContextOptions> {
     None
   }
+
   fn get_optional(&self) -> bool {
     false
-  }
-
-  // TODO: wired to place ChunkGroupOptions on dependency, should place on AsyncDependenciesBlock
-  fn group_options(&self) -> Option<ChunkGroupOptionsKindRef> {
-    None
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
@@ -423,6 +448,22 @@ pub trait ModuleDependency: Dependency {
   }
 }
 
+pub trait ImportDependencyTrait: ModuleDependency {
+  fn referenced_exports(&self) -> Option<&Vec<JsWord>>;
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    if let Some(referenced_exports) = self.referenced_exports() {
+      vec![ReferencedExport::new(referenced_exports.clone(), false).into()]
+    } else {
+      vec![ExtendedReferencedExport::Array(vec![])]
+    }
+  }
+}
+
 impl dyn Dependency + '_ {
   pub fn downcast_ref<D: Any>(&self) -> Option<&D> {
     self.as_any().downcast_ref::<D>()
@@ -439,30 +480,20 @@ clone_trait_object!(ModuleDependency);
 pub type BoxModuleDependency = Box<dyn ModuleDependency>;
 pub type BoxDependency = Box<dyn Dependency>;
 
-pub fn is_async_dependency(dep: &dyn ModuleDependency) -> bool {
-  if matches!(dep.dependency_type(), DependencyType::DynamicImport) {
-    return true;
-  }
-  if matches!(dep.dependency_type(), DependencyType::NewWorker) {
-    return true;
-  }
-  if matches!(dep.dependency_type(), DependencyType::ContextElement) {
-    if let Some(options) = dep.options() {
-      return matches!(options.mode, ContextMode::Lazy | ContextMode::LazyOnce);
-    }
-  }
-  false
-}
-
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct DependencyId(u32);
 
 pub static DEPENDENCY_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
 
 impl DependencyId {
+  pub fn get_dependency<'a>(&self, mg: &'a ModuleGraph) -> &'a BoxDependency {
+    mg.dependency_by_id(self).expect("should have dependency")
+  }
+
   pub fn new() -> Self {
     Self(DEPENDENCY_ID.fetch_add(1, Relaxed))
   }
+
   pub fn set_ids(&self, ids: Vec<JsWord>, mg: &mut ModuleGraph) {
     match mg.dep_meta_map.entry(*self) {
       Entry::Occupied(mut occ) => {
@@ -502,7 +533,7 @@ impl From<u32> for DependencyId {
   }
 }
 
-// should move to rspack_plugin_javascript
+// TODO: should move to rspack_plugin_javascript once we drop old treeshaking
 pub mod needs_refactor {
   use once_cell::sync::Lazy;
   use regex::Regex;
@@ -540,13 +571,25 @@ pub mod needs_refactor {
     }
 
     if matches!(&*new_expr.callee, Expr::Ident(Ident { sym, .. }) if sym == "URL")
-    && let Some(args) = &new_expr.args
-    && let (Some(first), Some(second)) = (args.first(), args.get(1))
-    && let (
-      ExprOrSpread { spread: None, expr: box Expr::Lit(Lit::Str(path)) },
-      ExprOrSpread { spread: None, expr: box expr },
-    ) = (first, second) && is_import_meta_url(expr) {
-      return Some((path.span.real_lo(), expr.span().real_hi(), path.value.to_string()))
+      && let Some(args) = &new_expr.args
+      && let (Some(first), Some(second)) = (args.first(), args.get(1))
+      && let (
+        ExprOrSpread {
+          spread: None,
+          expr: box Expr::Lit(Lit::Str(path)),
+        },
+        ExprOrSpread {
+          spread: None,
+          expr: box expr,
+        },
+      ) = (first, second)
+      && is_import_meta_url(expr)
+    {
+      return Some((
+        path.span.real_lo(),
+        expr.span().real_hi(),
+        path.value.to_string(),
+      ));
     }
     None
   }
@@ -627,8 +670,9 @@ pub mod needs_refactor {
       let mut caps = Vec::new();
       for s in syntax {
         if let Some(captures) = WORKER_FROM_REGEX.captures(s)
-        && let Some(ids) = captures.get(1)
-        && let Some(source) = captures.get(3) {
+          && let Some(ids) = captures.get(1)
+          && let Some(source) = captures.get(3)
+        {
           caps.push((ids.as_str(), source.as_str()));
         } else {
           result.push(WorkerSyntax::new(JsWord::from(*s), None))

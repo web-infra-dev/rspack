@@ -54,6 +54,7 @@ import {
 } from "./util/fake";
 import { NormalizedJsModule, normalizeJsModule } from "./util/normalization";
 import MergeCaller from "./util/MergeCaller";
+import { Chunk } from "./Chunk";
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
@@ -272,6 +273,10 @@ export class Compilation {
 			!context.forToString
 		);
 		options.modules = optionOrLocalFallback(options.modules, true);
+		options.runtimeModules = optionOrLocalFallback(
+			options.runtimeModules,
+			!context.forToString
+		);
 		options.reasons = optionOrLocalFallback(
 			options.reasons,
 			!context.forToString
@@ -685,23 +690,7 @@ export class Compilation {
 
 	// FIXME: This is not aligned with Webpack.
 	get chunks() {
-		const stats = this.getStats().toJson({
-			all: false,
-			chunks: true,
-			chunkModules: true,
-			reasons: true
-		});
-		const chunks = stats.chunks?.map(chunk => {
-			return {
-				...chunk,
-				name: chunk.names.length > 0 ? chunk.names[0] : "",
-				modules: this.__internal__getAssociatedModules(chunk),
-				isOnlyInitial: function () {
-					return this.initial;
-				}
-			};
-		});
-		return chunks;
+		return this.__internal__getChunks();
 	}
 
 	/**
@@ -709,14 +698,15 @@ export class Compilation {
 	 *
 	 * Note: This is a proxy for webpack internal API, only method `get` is supported now.
 	 */
-	get namedChunks(): Map<string, Readonly<JsChunk>> {
+	get namedChunks(): Map<string, Readonly<Chunk>> {
 		return {
 			get: (property: unknown) => {
 				if (typeof property === "string") {
-					return this.#inner.getNamedChunk(property) ?? undefined;
+					const chunk = this.#inner.getNamedChunk(property);
+					return chunk && Chunk.__from_binding(chunk, this.#inner);
 				}
 			}
-		} as Map<string, Readonly<JsChunk>>;
+		} as Map<string, Readonly<Chunk>>;
 	}
 
 	/**
@@ -783,8 +773,10 @@ export class Compilation {
 	 *
 	 * @internal
 	 */
-	__internal__getChunks(): JsChunk[] {
-		return this.#inner.getChunks();
+	__internal__getChunks(): Chunk[] {
+		return this.#inner
+			.getChunks()
+			.map(c => Chunk.__from_binding(c, this.#inner));
 	}
 
 	getStats() {

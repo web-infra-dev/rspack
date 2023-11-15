@@ -167,6 +167,7 @@ function resolveLoggingOptions(value: string): LoggingOptions {
 class RspackProfileJSCPUProfilePlugin {
 	constructor(private output: string) {}
 
+	// @ts-expect-error
 	apply(compiler) {
 		const session = new inspector.Session();
 		session.connect();
@@ -174,6 +175,7 @@ class RspackProfileJSCPUProfilePlugin {
 		session.post("Profiler.start");
 		compiler.hooks.done.tapAsync(
 			RspackProfileJSCPUProfilePlugin.name,
+			// @ts-expect-error
 			(stats, callback) => {
 				if (compiler.watchMode) return callback();
 				session.post("Profiler.stop", (error, param) => {
@@ -192,9 +194,11 @@ class RspackProfileJSCPUProfilePlugin {
 class RspackProfileLoggingPlugin {
 	constructor(private output: string) {}
 
+	// @ts-expect-error
 	apply(compiler) {
 		compiler.hooks.done.tapAsync(
 			RspackProfileLoggingPlugin.name,
+			// @ts-expect-error
 			(stats, callback) => {
 				if (compiler.watchMode) return callback();
 				const logging = stats.toJson({

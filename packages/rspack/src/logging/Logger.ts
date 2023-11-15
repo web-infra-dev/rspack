@@ -39,7 +39,7 @@ export function getLogTypesBitFlag(types: LogTypeEnum[]) {
 	return types.reduce((acc, cur) => acc | getLogTypeBitFlag(cur), 0);
 }
 
-export type LogTypeEnum = typeof LogType[keyof typeof LogType];
+export type LogTypeEnum = (typeof LogType)[keyof typeof LogType];
 
 const LOG_SYMBOL = Symbol("webpack logger raw log method");
 const TIMERS_SYMBOL = Symbol("webpack logger times");

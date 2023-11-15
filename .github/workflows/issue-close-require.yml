@@ -12,12 +12,13 @@ jobs:
     permissions:
       issues: write
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'web-infra-dev'
     steps:
       - name: need reproduce
         uses: actions-cool/issues-helper@v3
         with:
           actions: "close-issues"
           labels: "need reproduction"
-          inactive-day: 3
+          inactive-day: 14
           body: |
-            Since the issue was labeled with `need reproduction`, but no response in 3 days. This issue will be closed. Feel free to comment and reopen it if you have any further questions.
+            Since the issue was labeled with `need reproduction`, but no response in 14 days. This issue will be closed. Feel free to comment and reopen it if you have any further questions.

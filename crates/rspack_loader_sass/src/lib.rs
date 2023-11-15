@@ -248,7 +248,7 @@ fn get_possible_requests(
   };
 
   let dirname = request_path.parent();
-  let dirname = if matches!(dirname, None)
+  let dirname = if dirname.is_none()
     || matches!(
       dirname,
       Some(p) if p == Path::new("") || p == Path::new(".")
@@ -522,7 +522,8 @@ impl Identifiable for SassLoader {
 fn sass_exception_to_error(e: Box<Exception>) -> Error {
   if let Some(span) = e.span()
     && let Some(message) = e.sass_message()
-    && let Some(e) = make_traceable_error("Sass Error", message, span) {
+    && let Some(e) = make_traceable_error("Sass Error", message, span)
+  {
     Error::TraceableError(e.with_kind(DiagnosticKind::Scss))
   } else {
     internal_error!(e.message().to_string())
@@ -538,7 +539,9 @@ fn sass_log_to_diagnostics(
     Severity::Error => "Sass Error",
     Severity::Warn => "Sass Warning",
   };
-  if let Some(span) = span && let Some(e) = make_traceable_error(title, message, span) {
+  if let Some(span) = span
+    && let Some(e) = make_traceable_error(title, message, span)
+  {
     Error::TraceableError(e.with_kind(DiagnosticKind::Scss).with_severity(severity)).into()
   } else {
     let f = match severity {

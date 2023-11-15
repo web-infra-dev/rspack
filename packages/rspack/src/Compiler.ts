@@ -46,6 +46,9 @@ import {
 	deprecated_resolveBuiltins
 } from "./builtin-plugin";
 import { optionsApply_compat } from "./rspackOptionsApply";
+import { applyRspackOptionsDefaults } from "./config/defaults";
+import { assertNotNill } from "./util/assertNotNil";
+import { FileSystemInfoEntry } from "./FileSystemInfo";
 
 class Compiler {
 	#_instance?: binding.Rspack;
@@ -75,6 +78,11 @@ class Compiler {
 	cache: Cache;
 	compilerPath: string;
 	removedFiles?: ReadonlySet<string>;
+	fileTimestamps?: ReadonlyMap<string, FileSystemInfoEntry | "ignore" | null>;
+	contextTimestamps?: ReadonlyMap<
+		string,
+		FileSystemInfoEntry | "ignore" | null
+	>;
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
@@ -340,8 +348,8 @@ class Compiler {
 		compilerIndex: number,
 		outputOptions: OutputNormalized,
 		plugins: RspackPluginInstance[]
-	) {
-		const childCompiler = new Compiler(this.context, {
+	): Compiler {
+		const options: RspackOptionsNormalized = {
 			...this.options,
 			output: {
 				...this.options.output,
@@ -352,7 +360,9 @@ class Compiler {
 				...this.options.builtins,
 				html: undefined
 			}
-		});
+		};
+		applyRspackOptionsDefaults(options);
+		const childCompiler = new Compiler(this.context, options);
 		childCompiler.name = compilerName;
 		childCompiler.outputPath = this.outputPath;
 		childCompiler.inputFileSystem = this.inputFileSystem;
@@ -367,11 +377,11 @@ class Compiler {
 		childCompiler.compilerPath = `${this.compilerPath}${compilerName}|${compilerIndex}|`;
 		// childCompiler._backCompat = this._backCompat;
 
-		const relativeCompilerName = makePathsRelative(
-			this.context,
-			compilerName,
-			this.root
-		);
+		// const relativeCompilerName = makePathsRelative(
+		// 	this.context,
+		// 	compilerName,
+		// 	this.root
+		// );
 		// if (!this.records[relativeCompilerName]) {
 		// 	this.records[relativeCompilerName] = [];
 		// }
@@ -418,8 +428,6 @@ class Compiler {
 	}
 
 	runAsChild(callback: any) {
-		const startTime = Date.now();
-
 		const finalCallback = (
 			err: Error | null,
 			entries?: any,
@@ -436,9 +444,12 @@ class Compiler {
 			}
 		};
 
-		this.run((err, stats) => {
-			if (err) return finalCallback(err);
-			const compilation: Compilation = stats!.compilation;
+		this.compile((err, compilation) => {
+			if (err) {
+				return finalCallback(err);
+			}
+
+			assertNotNill(compilation);
 
 			this.parentCompilation!.children.push(compilation);
 			for (const { name, source, info } of compilation.getAssets()) {
@@ -454,16 +465,15 @@ class Compiler {
 				entries.push(...ep.getFiles());
 			}
 
-			// compilation.startTime = startTime;
-			// compilation.endTime = Date.now();
-
 			return finalCallback(null, entries, compilation);
 		});
 	}
-	isChild() {
+
+	isChild(): boolean {
 		const isRoot = this.root === this;
 		return !isRoot;
 	}
+
 	getInfrastructureLogger(name: string | Function) {
 		if (!name) {
 			throw new TypeError(
@@ -919,6 +929,7 @@ class Compiler {
 			});
 		});
 	}
+
 	// Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
 	rebuild(
 		modifiedFiles?: ReadonlySet<string>,
@@ -944,6 +955,30 @@ class Compiler {
 					}
 				}
 			);
+		});
+	}
+
+	compile(callback: Callback<Error, Compilation>) {
+		const startTime = Date.now();
+		this.hooks.beforeCompile.callAsync(void 0, (err: any) => {
+			if (err) {
+				return callback(err);
+			}
+			this.hooks.compile.call([]);
+
+			this.build(err => {
+				if (err) {
+					return callback(err);
+				}
+				this.compilation.startTime = startTime;
+				this.compilation.endTime = Date.now();
+				this.hooks.afterCompile.callAsync(this.compilation, err => {
+					if (err) {
+						return callback(err);
+					}
+					return callback(null, this.compilation);
+				});
+			});
 		});
 	}
 

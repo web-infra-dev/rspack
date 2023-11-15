@@ -3,44 +3,44 @@ source: crates/rspack_testing/src/run_fixture.rs
 ---
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-'use strict';
+"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _module__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./module */"./module.js");
+/* harmony import */var _module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./module */"./module.js");
 
 it("should be able to handle circular referenced", ()=>{
-    expect((0, _module__WEBPACK_IMPORTED_MODULE_0_.x)()).toEqual([
-        _module__WEBPACK_IMPORTED_MODULE_0_.y,
-        _module__WEBPACK_IMPORTED_MODULE_0_.z
+    expect((0, _module__WEBPACK_IMPORTED_MODULE_0__.x)()).toEqual([
+        _module__WEBPACK_IMPORTED_MODULE_0__.y,
+        _module__WEBPACK_IMPORTED_MODULE_0__.z
     ]);
-    const [_a, b, c, d] = (0, _module__WEBPACK_IMPORTED_MODULE_0_.a)();
+    const [_a, b, c, d] = (0, _module__WEBPACK_IMPORTED_MODULE_0__.a)();
     expect(b()).toEqual([
-        _module__WEBPACK_IMPORTED_MODULE_0_.a,
+        _module__WEBPACK_IMPORTED_MODULE_0__.a,
         b,
         c,
         d
     ]);
     expect(c()).toEqual([
-        _module__WEBPACK_IMPORTED_MODULE_0_.a,
+        _module__WEBPACK_IMPORTED_MODULE_0__.a,
         b,
         c,
         d
     ]);
     expect(d()).toEqual([
-        _module__WEBPACK_IMPORTED_MODULE_0_.a,
+        _module__WEBPACK_IMPORTED_MODULE_0__.a,
         b,
         c,
         d
     ]);
-    const [f2, f4] = (0, _module__WEBPACK_IMPORTED_MODULE_0_.f3)();
+    const [f2, f4] = (0, _module__WEBPACK_IMPORTED_MODULE_0__.f3)();
     const [f1, _f3] = f2();
-    expect(_f3).toBe(_module__WEBPACK_IMPORTED_MODULE_0_.f3);
-    expect((0, _module__WEBPACK_IMPORTED_MODULE_0_.f3)()).toEqual(f1());
+    expect(_f3).toBe(_module__WEBPACK_IMPORTED_MODULE_0__.f3);
+    expect((0, _module__WEBPACK_IMPORTED_MODULE_0__.f3)()).toEqual(f1());
     expect(f2()).toEqual(f4());
 });
-},
-"./module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-'use strict';
+}),
+"./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   x: function() { return x; },
@@ -126,7 +126,7 @@ function f4() {
     ];
 }
 
-},
+}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

@@ -20,8 +20,10 @@ const {
 
 /** @typedef {import("enhanced-resolve").ResolveOptions} ResolveOptions */
 /** @typedef {import("enhanced-resolve").Resolver} Resolver */
-/** @typedef {import("../declarations/WebpackOptions").ResolveOptions} WebpackResolveOptions */
-/** @typedef {import("../declarations/WebpackOptions").ResolvePluginInstance} ResolvePluginInstance */
+// /** @typedef {import("../declarations/WebpackOptions").ResolveOptions} WebpackResolveOptions */
+// /** @typedef {import("../declarations/WebpackOptions").ResolvePluginInstance} ResolvePluginInstance */
+/** @typedef {any} WebpackResolveOptions */
+/** @typedef {any} ResolvePluginInstance */
 
 /** @typedef {WebpackResolveOptions & {dependencyType?: string, resolveToContext?: boolean }} ResolveOptionsWithDependencyType */
 /**
@@ -48,6 +50,7 @@ const convertToResolveOptions = resolveOptionsWithDepType => {
 		plugins:
 			plugins &&
 			/** @type {ResolvePluginInstance[]} */ (
+				// @ts-expect-error
 				plugins.filter(item => item !== "...")
 			)
 	};
@@ -63,6 +66,7 @@ const convertToResolveOptions = resolveOptionsWithDepType => {
 			partialOptions
 		);
 
+	// @ts-expect-error
 	return removeOperations(
 		resolveByProperty(options, "byDependency", dependencyType)
 	);

@@ -89,8 +89,8 @@ impl From<RawSplitChunksOptions> for SplitChunksOptions {
             }),
             chunks: v.chunks.map(|chunks| {
               let Either::B(chunks) = chunks else {
-                    panic!("expected string")
-                  };
+                panic!("expected string")
+              };
               let chunks = chunks.into_string();
               match chunks.as_str() {
                 "initial" => ChunkType::Initial,
@@ -186,7 +186,7 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
     let create_sizes = |size: Option<f64>| {
       size
         .map(|size| SplitChunkSizes::with_initial_value(&default_size_types, size))
-        .unwrap_or_else(SplitChunkSizes::default)
+        .unwrap_or_default()
     };
 
     let empty_sizes = SplitChunkSizes::empty();

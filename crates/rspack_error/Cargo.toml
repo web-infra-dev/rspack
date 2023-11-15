@@ -13,6 +13,7 @@ codespan-reporting = { version = "=0.11.2", package = "rspack-codespan-reporting
 futures            = { workspace = true }
 rspack_sources     = { workspace = true }
 rspack_util        = { path = "../rspack_util" }
+serde_json         = { workspace = true }
 sugar_path         = { workspace = true }
 swc_core           = { workspace = true, features = ["common"] }
 termcolor          = "1.2"

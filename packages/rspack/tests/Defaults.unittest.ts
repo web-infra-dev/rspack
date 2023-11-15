@@ -376,6 +376,7 @@ describe("snapshots", () => {
 		@@ ... @@
 		-     "library": undefined,
 		+     "library": Object {
+		+       "amdContainer": undefined,
 		+       "auxiliaryComment": undefined,
 		+       "export": undefined,
 		+       "name": Array [
@@ -407,6 +408,7 @@ describe("snapshots", () => {
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
+			+       "amdContainer": undefined,
 			+       "auxiliaryComment": undefined,
 			+       "export": undefined,
 			+       "name": Array [
@@ -441,6 +443,7 @@ describe("snapshots", () => {
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
+			+       "amdContainer": undefined,
 			+       "auxiliaryComment": undefined,
 			+       "export": undefined,
 			+       "name": Array [
@@ -478,6 +481,7 @@ describe("snapshots", () => {
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
+			+       "amdContainer": undefined,
 			+       "auxiliaryComment": undefined,
 			+       "export": undefined,
 			+       "name": Object {
@@ -516,6 +520,7 @@ describe("snapshots", () => {
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
+			+       "amdContainer": undefined,
 			+       "auxiliaryComment": undefined,
 			+       "export": undefined,
 			+       "name": Object {
@@ -938,11 +943,11 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-     "chunkLoadingGlobal": "webpackChunk@rspack/core",
-			+     "chunkLoadingGlobal": "webpackChunk@@@Hello World!",
+			-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
+			+     "chunkLoadingGlobal": "webpackChunk_Hello_World_",
 			@@ ... @@
-			-     "hotUpdateGlobal": "webpackHotUpdate@rspack/core",
-			+     "hotUpdateGlobal": "webpackHotUpdate@@@Hello World!",
+			-     "hotUpdateGlobal": "webpackHotUpdate_rspack_core",
+			+     "hotUpdateGlobal": "webpackHotUpdate_Hello_World_",
 			@@ ... @@
 			-     "trustedTypes": undefined,
 			-     "uniqueName": "@rspack/core",
@@ -1004,11 +1009,11 @@ describe("snapshots", () => {
 			-   "context": "<cwd>",
 			+   "context": "<cwd>/tests/fixtures/browserslist",
 			@@ ... @@
-			-     "chunkLoadingGlobal": "webpackChunk@rspack/core",
-			+     "chunkLoadingGlobal": "webpackChunkbrowserslist-test",
+			-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
+			+     "chunkLoadingGlobal": "webpackChunkbrowserslist_test",
 			@@ ... @@
-			-     "hotUpdateGlobal": "webpackHotUpdate@rspack/core",
-			+     "hotUpdateGlobal": "webpackHotUpdatebrowserslist-test",
+			-     "hotUpdateGlobal": "webpackHotUpdate_rspack_core",
+			+     "hotUpdateGlobal": "webpackHotUpdatebrowserslist_test",
 			@@ ... @@
 			-     "uniqueName": "@rspack/core",
 			+     "uniqueName": "browserslist-test",
@@ -1038,10 +1043,10 @@ describe("snapshots", () => {
 			-       "make": false,
 			+       "make": true,
 			@@ ... @@
-			-     "chunkLoadingGlobal": "webpackChunk@rspack/core",
+			-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
 			+     "chunkLoadingGlobal": "webpackChunk",
 			@@ ... @@
-			-     "hotUpdateGlobal": "webpackHotUpdate@rspack/core",
+			-     "hotUpdateGlobal": "webpackHotUpdate_rspack_core",
 			+     "hotUpdateGlobal": "webpackHotUpdate",
 			@@ ... @@
 			-     "path": "<cwd>/dist",

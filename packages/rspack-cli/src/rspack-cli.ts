@@ -24,6 +24,7 @@ import { normalizeEnv } from "./utils/options";
 import { loadRspackConfig } from "./utils/loadConfig";
 import findConfig from "./utils/findConfig";
 import type { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
+import * as rspackCore from "@rspack/core";
 import path from "path";
 
 type Command = "serve" | "build";
@@ -57,6 +58,7 @@ export class RspackCLI {
 			? (config as MultiRspackOptions).some(i => i.watch)
 			: (config as RspackOptions).watch;
 
+		// @ts-expect-error
 		return rspack(config, isWatch ? callback : undefined);
 	}
 	createColors(useColor?: boolean): RspackCLIColors {
@@ -170,7 +172,22 @@ export class RspackCLI {
 			}
 			item.builtins = item.builtins || {};
 			if (isServe) {
-				item.builtins.progress = item.builtins.progress ?? true;
+				let installed = (item.plugins ||= []).find(
+					item => item instanceof rspackCore.ProgressPlugin
+				);
+				let o: rspackCore.ProgressPluginArgument | undefined;
+				if (
+					!installed &&
+					(o =
+						item.builtins.progress && typeof item.builtins.progress === "object"
+							? item.builtins.progress
+							: item.builtins.progress === true
+							? {}
+							: undefined)
+				) {
+					(item.plugins ||= []).push(new rspackCore.ProgressPlugin(o));
+				}
+				delete item.builtins.progress;
 			}
 
 			// no emit assets when run dev server, it will use node_binding api get file content
@@ -186,11 +203,14 @@ export class RspackCLI {
 
 			// When mode is set to 'none', optimization.nodeEnv defaults to false.
 			if (item.mode !== "none") {
-				item.builtins.define = {
-					// User defined `process.env.NODE_ENV` always has highest priority than default define
-					"process.env.NODE_ENV": JSON.stringify(item.mode),
-					...item.builtins.define
-				};
+				(item.plugins ||= []).push(
+					new rspackCore.DefinePlugin({
+						// User defined `process.env.NODE_ENV` always has highest priority than default define
+						"process.env.NODE_ENV": JSON.stringify(item.mode),
+						...item.builtins.define
+					})
+				);
+				delete item.builtins.define;
 			}
 
 			if (typeof item.stats === "undefined") {

@@ -1,6 +1,6 @@
 import * as util from "util";
 import path from "path";
-import { rspack, RspackOptions, Stats } from "../src";
+import { Compiler, rspack, RspackOptions, Stats } from "../src";
 import serializer from "jest-serializer-path";
 
 expect.addSnapshotSerializer(serializer);
@@ -34,7 +34,7 @@ describe("Stats", () => {
 		    entry ./fixtures/a
 		./fixtures/a.js [876] {main}
 		  entry ./fixtures/a
-		Rspack compiled successfully (9608c01366e871cd4b26)"
+		Rspack compiled successfully (28f6a741bb6c785d1890)"
 	`);
 	});
 
@@ -79,7 +79,7 @@ describe("Stats", () => {
 
 
 
-		Rspack compiled with 1 error (40d126348f49dbce14a2)"
+		Rspack compiled with 1 error (22193973344376247dbc)"
 	`);
 	});
 
@@ -184,6 +184,9 @@ describe("Stats", () => {
 		<t> ensure min size fit: X ms
 		<t> process module group map: X ms
 		<t> ensure max size fit: X ms
+
+		LOG from rspack.WarnCaseSensitiveModulesPlugin
+		<t> check case sensitive modules: X ms
 
 		LOG from rspack.buildChunkGraph
 		<t> prepare entrypoints: X ms
@@ -348,6 +351,38 @@ describe("Stats", () => {
 		"asset main.js 215 bytes {main} [emitted] (name: main)
 		chunk {main} main.js (main) [entry]
 		./fixtures/a.js [876] {main}"
+	`);
+	});
+
+	it("should have null as placeholders in stats before chunkIds", async () => {
+		let stats;
+
+		class TestPlugin {
+			apply(compiler: Compiler) {
+				compiler.hooks.thisCompilation.tap("custom", compilation => {
+					compilation.hooks.optimizeModules.tap("test plugin", () => {
+						stats = compiler.compilation.getStats().toJson({});
+					});
+				});
+			}
+		}
+		await compile({
+			context: __dirname,
+			entry: "./fixtures/a",
+			plugins: [new TestPlugin()]
+		});
+
+		expect(stats!.entrypoints).toMatchInlineSnapshot(`
+		{
+		  "main": {
+		    "assets": [],
+		    "assetsSize": 0,
+		    "chunks": [
+		      null,
+		    ],
+		    "name": "main",
+		  },
+		}
 	`);
 	});
 });

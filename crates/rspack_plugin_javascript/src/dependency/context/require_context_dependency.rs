@@ -91,7 +91,7 @@ impl DependencyTemplate for RequireContextDependency {
     source.replace(
       self.start,
       self.end,
-      format!("{}({module_id_str})", RuntimeGlobals::REQUIRE,).as_str(),
+      format!("{}({module_id_str})", RuntimeGlobals::REQUIRE).as_str(),
       None,
     );
   }

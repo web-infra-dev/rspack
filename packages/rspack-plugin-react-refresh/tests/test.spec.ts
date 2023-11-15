@@ -3,6 +3,7 @@ const path = require("path");
 const { rspack } = require("@rspack/core");
 const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
 
+const uniqueName = "ReactRefreshLibrary";
 const compileWithReactRefresh = (fixturePath, refreshOptions, callback) => {
 	let dist = path.join(fixturePath, "dist");
 	rspack(
@@ -13,7 +14,8 @@ const compileWithReactRefresh = (fixturePath, refreshOptions, callback) => {
 				fixture: path.join(fixturePath, "index.js")
 			},
 			output: {
-				path: dist
+				path: dist,
+				uniqueName
 			},
 			plugins: [new ReactRefreshPlugin(refreshOptions)],
 			optimization: {
@@ -84,6 +86,17 @@ describe("react-refresh-rspack-plugin", () => {
 			{},
 			(_, __, { reactRefresh, fixture, runtime, vendor }) => {
 				expect(fixture).toContain("function $RefreshReg$");
+				done();
+			}
+		);
+	});
+
+	it("should add library to make sure work in Micro-Frontend", done => {
+		compileWithReactRefresh(
+			path.join(__dirname, "fixtures/default"),
+			{},
+			(_, __, { reactRefresh, fixture, runtime, vendor }) => {
+				expect(reactRefresh).toContain(uniqueName);
 				done();
 			}
 		);

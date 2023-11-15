@@ -94,6 +94,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     Ok(
       ParseResult {
         dependencies,
+        blocks: vec![],
         presentational_dependencies: vec![],
         source,
         analyze_result: Default::default(),
@@ -149,48 +150,44 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let module_graph = &compilation.module_graph;
         let chunk_graph = &compilation.chunk_graph;
 
-        if let Some(dependencies) = module_graph
-          .module_graph_module_by_identifier(&module.identifier())
-          .map(|mgm| &mgm.dependencies)
-        {
-          dependencies
-            .iter()
-            .map(|id| module_graph.dependency_by_id(id).expect("should be ok"))
-            .filter(|dep| dep.dependency_type() == &WasmImport)
-            .map(|dep| {
-              (
-                dep,
-                module_graph.module_graph_module_by_dependency_id(dep.id()),
-              )
-            })
-            .for_each(|(dep, mgm)| {
-              if let Some(mgm) = mgm {
-                if !dep_modules.contains_key(&mgm.module_identifier) {
-                  let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", dep_modules.len());
-                  let val = (import_var.clone(), mgm.id(chunk_graph));
+        module
+          .get_dependencies()
+          .iter()
+          .map(|id| module_graph.dependency_by_id(id).expect("should be ok"))
+          .filter(|dep| dep.dependency_type() == &WasmImport)
+          .map(|dep| {
+            (
+              dep,
+              module_graph.module_graph_module_by_dependency_id(dep.id()),
+            )
+          })
+          .for_each(|(dep, mgm)| {
+            if let Some(mgm) = mgm {
+              if !dep_modules.contains_key(&mgm.module_identifier) {
+                let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", dep_modules.len());
+                let val = (import_var.clone(), mgm.id(chunk_graph));
 
-                  if matches!(module_graph.is_async(&mgm.module_identifier), Some(true)) {
-                    promises.push(import_var);
-                  }
-                  dep_modules.insert(mgm.module_identifier, val);
+                if matches!(module_graph.is_async(&mgm.module_identifier), Some(true)) {
+                  promises.push(import_var);
                 }
-
-                let dep = dep
-                  .as_any()
-                  .downcast_ref::<WasmImportDependency>()
-                  .expect("should be wasm import dependency");
-
-                let dep_name = serde_json::to_string(dep.name()).expect("should be ok.");
-                let request = dep.request();
-                let val = (mgm.module_identifier, dep_name);
-                if let Some(deps) = wasm_deps_by_request.get_mut(&request) {
-                  deps.push(val);
-                } else {
-                  wasm_deps_by_request.insert(request, vec![val]);
-                }
+                dep_modules.insert(mgm.module_identifier, val);
               }
-            })
-        }
+
+              let dep = dep
+                .as_any()
+                .downcast_ref::<WasmImportDependency>()
+                .expect("should be wasm import dependency");
+
+              let dep_name = serde_json::to_string(dep.name()).expect("should be ok.");
+              let request = dep.request();
+              let val = (mgm.module_identifier, dep_name);
+              if let Some(deps) = wasm_deps_by_request.get_mut(&request) {
+                deps.push(val);
+              } else {
+                wasm_deps_by_request.insert(request, vec![val]);
+              }
+            }
+          });
 
         let imports_code = dep_modules
           .iter()
