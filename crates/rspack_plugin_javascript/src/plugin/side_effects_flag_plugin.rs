@@ -10,6 +10,7 @@ use swc_core::common::{Span, Spanned, SyntaxContext, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
+use swc_node_comments::SwcComments;
 
 use crate::dependency::{
   HarmonyExportImportedSpecifierDependency, HarmonyImportSpecifierDependency,
@@ -211,6 +212,52 @@ impl SideEffectsFlagPluginVisitor {
     };
   }
 }
+
+// fn is_pure_call_expr<'a, 'b>(
+//   call_expr: &'a CallExpr,
+//   unresolved_ctxt: SyntaxContext,
+//   comments: Option<&'b SwcComments>,
+// ) -> bool {
+//   let callee = &call_expr.callee;
+//   // dbg!(&call_expr);
+//   let unwrap_callee_span = match callee {
+//     // super is keyword in rust
+//     Callee::Super(su) => su.span,
+//     Callee::Import(import) => import.span,
+//     Callee::Expr(box expr) => match expr {
+//       Expr::Paren(exp) => exp.expr.span(),
+//       _ => expr.span(),
+//     },
+//   };
+//   // dbg!(&unwrap_callee_span);
+//   // dbg!(&callee.span());
+//   let pure_flag = comments
+//     .and_then(|comments| {
+//       // dbg!(&comments.leading);
+//       let comment_list = comments.leading.get(&callee.span_lo())?;
+//       let last_comment = comment_list.last()?;
+//       match last_comment.kind {
+//         comments::CommentKind::Line => None,
+//         comments::CommentKind::Block => Some(PURE_COMMENTS.is_match(&last_comment.text)),
+//       }
+//     })
+//     .unwrap_or(false);
+//   if !pure_flag {
+//     let expr = Expr::Call(call_expr.clone());
+//     !expr.may_have_side_effects(&ExprCtx {
+//       unresolved_ctxt,
+//       is_unresolved_ref_safe: false,
+//     })
+//   } else {
+//     call_expr.args.iter().all(|arg| {
+//       if arg.spread.is_some() {
+//         return false;
+//       } else {
+//         is_pure_expression(&arg.expr, unresolved_ctxt, comments)
+//       }
+//     })
+//   }
+// }
 
 pub fn is_pure_expression(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
   !expr.may_have_side_effects(&ExprCtx {

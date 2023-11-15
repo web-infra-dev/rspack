@@ -108,7 +108,7 @@ const config = {
 		providedExports: true,
 		usedExports: true,
 		sideEffects: true,
-		innerGraph: true,
+		innerGraph: false,
 		moduleIds: "named"
 	},
 	plugins: [
@@ -124,12 +124,12 @@ const config = {
 		debug: false
 	},
 	builtins: {
-		treeShaking: true
+		treeShaking: false
 	},
 	experiments: {
 		rspackFuture: {
 			disableTransformByDefault: true,
-			newTreeshaking: true
+			newTreeshaking: false
 		}
 	}
 };

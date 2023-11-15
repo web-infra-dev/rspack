@@ -5,7 +5,7 @@ import zhCN from "@arco-design/web-react/es/locale/zh-CN";
 import axios from "axios";
 import React, { Suspense, useEffect } from "react";
 import ReactDOM from "react-dom";
-import { Provider } from "react-redux";
+import { Provider, connect } from "react-redux";
 import { BrowserRouter, Route, Switch } from "react-router-dom";
 import { createStore } from "redux";
 import { GlobalContext } from "./context";
@@ -19,7 +19,7 @@ import checkLogin from "./utils/checkLogin";
 import useStorage from "./utils/useStorage";
 
 const store = createStore(rootReducer);
-
+connect;
 function Index() {
 	const [lang, setLang] = useStorage("arco-lang", "en-US");
 	const [theme, setTheme] = useStorage("arco-theme", "light");

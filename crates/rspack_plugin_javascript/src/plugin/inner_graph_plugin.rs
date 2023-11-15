@@ -349,6 +349,8 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         }
         _ => {
           init.visit_children_with(self);
+          let res = is_pure_expression(init, self.unresolved_ctxt);
+          dbg!(&res);
           if is_pure_expression(init, self.unresolved_ctxt) {
             self.set_symbol_if_is_top_level(symbol);
             let start = init.span().real_lo();
