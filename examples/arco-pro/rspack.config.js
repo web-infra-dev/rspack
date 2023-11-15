@@ -11,7 +11,7 @@ const config = {
 	entry: "./src/index.tsx",
 	target: ["web", "es2022"],
 	devServer: {
-		port: 3000,
+		port: 5555,
 		webSocketServer: "sockjs",
 		historyApiFallback: true
 	},
