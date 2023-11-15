@@ -64,7 +64,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     for dep in global_entry_dep_id_list {
       self.process_entry_dependency(dep, None, &mut q);
     }
-    // TODO: compilation.globalEntry.dependencies, we don't have now https://github.com/webpack/webpack/blob/3f71468514ae2f179ff34c837ce82fcc8f97e24c/lib/FlagDependencyUsagePlugin.js#L328-L330
     self.compilation.entries = entries;
 
     while let Some((module_id, runtime)) = q.pop_front() {

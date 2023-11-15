@@ -171,17 +171,15 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           .push(export_imported_dep.id);
         self.dependencies.push(Box::new(export_imported_dep));
       }
-      if !self.options.is_new_tree_shaking() || !importer_info.exports_all {
-        let dependency = HarmonyImportSideEffectDependency::new(
-          request.clone(),
-          source_order,
-          Some(importer_info.span.into()),
-          importer_info.specifiers,
-          dependency_type,
-          importer_info.exports_all,
-        );
-        self.dependencies.push(Box::new(dependency));
-      }
+      let dependency = HarmonyImportSideEffectDependency::new(
+        request.clone(),
+        source_order,
+        Some(importer_info.span.into()),
+        importer_info.specifiers,
+        dependency_type,
+        importer_info.exports_all,
+      );
+      self.dependencies.push(Box::new(dependency));
     }
 
     // collect import reference info
