@@ -7,7 +7,7 @@ on:
 jobs:
   trigger:
     runs-on: ubuntu-latest
-    if: github.repository == 'web-infra-dev/rspack' && github.event.issue.pull_request && startsWith(github.event.comment.body, '!eco-ci')
+    if: github.repository == 'web-infra-dev/rspack' && github.event.issue.pull_request && contains(github.event.comment.body, '!eco-ci')
     steps:
       - uses: actions/github-script@v6
         with:
