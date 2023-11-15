@@ -5484,7 +5484,7 @@ console.log(a);
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "432c6329523a2019be22",
+  "hash": "70fb47b3fcabdfbd56a5",
   "logging": {},
   "modules": [
     {
@@ -5679,7 +5679,7 @@ error[internal]: Export should be relative path and start with "./", but got ../
 
 
 
-Rspack compiled with 1 error (432c6329523a2019be22)"
+Rspack compiled with 1 error (70fb47b3fcabdfbd56a5)"
 `;
 
 exports[`StatsTestCases should print correct stats for runtime-modules 1`] = `
