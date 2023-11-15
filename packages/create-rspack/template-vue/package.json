@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "@rspack/cli": "latest",
+    "@rspack/core": "latest",
     "vue-loader": "^17.2.2"
   },
   "keywords": [],

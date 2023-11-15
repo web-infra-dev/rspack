@@ -11,8 +11,9 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@rspack/cli": "latest",
+    "@rspack/core": "latest",
     "@types/react": "^18.0.25",
-    "@types/react-dom": "^18.0.8",
-    "@rspack/cli": "latest"
+    "@types/react-dom": "^18.0.8"
   }
 }
