@@ -23,6 +23,11 @@ module.exports = {
 		new rspack.HtmlRspackPlugin({ template: "./src/index.html" }),
 		new ReactRefreshPlugin()
 	],
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: false
+		}
+	},
 	entry: "./src/index.jsx",
 	devServer: {
 		hot: true
