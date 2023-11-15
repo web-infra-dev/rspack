@@ -415,7 +415,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
   fn process_block(&mut self, item: &ProcessBlock) {
     tracing::trace!("process_block {:?}", item);
     let modules = self.get_block_modules(item.block);
-    for module in modules {
+    for module in modules.into_iter().rev() {
       self
         .queue
         .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
@@ -440,7 +440,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .get_blocks()
         .to_vec(),
     };
-    for block in blocks {
+    for block in blocks.into_iter().rev() {
       self.iterator_block(block, item.chunk_group, item.chunk);
     }
   }
