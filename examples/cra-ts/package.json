@@ -8,8 +8,9 @@
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
-    "web-vitals": "^2.1.4",
-    "@rspack/core": "workspace:*"
+    "@rspack/core": "workspace:*",
+    "@rspack/plugin-react-refresh": "workspace:*",
+    "web-vitals": "^2.1.4"
   },
   "scripts": {
     "dev": "rspack serve",
