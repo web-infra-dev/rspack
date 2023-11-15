@@ -35,6 +35,9 @@
     "type": "git",
     "url": "https://github.com/web-infra-dev/rspack"
   },
+  "engines": {
+    "pnpm": "7.32.0"
+  },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@taplo/cli": "^0.5.2",
