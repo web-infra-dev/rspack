@@ -28,6 +28,7 @@ pub struct HarmonyImportSideEffectDependency {
   pub span: Option<ErrorSpan>,
   pub specifiers: Vec<Specifier>,
   pub dependency_type: DependencyType,
+  pub export_all: bool,
   resource_identifier: String,
 }
 
@@ -38,6 +39,7 @@ impl HarmonyImportSideEffectDependency {
     span: Option<ErrorSpan>,
     specifiers: Vec<Specifier>,
     dependency_type: DependencyType,
+    export_all: bool,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_esm_dependency(&request);
     Self {
@@ -47,6 +49,7 @@ impl HarmonyImportSideEffectDependency {
       span,
       specifiers,
       dependency_type,
+      export_all,
       resource_identifier,
     }
   }
@@ -265,7 +268,7 @@ impl Dependency for HarmonyImportSideEffectDependency {
 
 impl ModuleDependency for HarmonyImportSideEffectDependency {
   fn is_export_all(&self) -> Option<bool> {
-    None
+    Some(self.export_all)
   }
 
   fn request(&self) -> &str {
