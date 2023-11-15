@@ -9,12 +9,13 @@ const prod = process.env.NODE_ENV === "production";
 const config = {
 	context: __dirname,
 	entry: "./src/index.tsx",
-	target: ["web", "es5"],
+	target: ["web", "es2022"],
 	devServer: {
-		port: 5555,
+		port: 3000,
 		webSocketServer: "sockjs",
 		historyApiFallback: true
 	},
+	devtool: false,
 	module: {
 		rules: [
 			{
@@ -103,7 +104,12 @@ const config = {
 					minChunks: 2
 				}
 			}
-		}
+		},
+		providedExports: true,
+		usedExports: true,
+		sideEffects: true,
+		innerGraph: true,
+		moduleIds: "named"
 	},
 	plugins: [
 		new HtmlPlugin({
@@ -117,9 +123,13 @@ const config = {
 	infrastructureLogging: {
 		debug: false
 	},
+	builtins: {
+		treeShaking: true
+	},
 	experiments: {
 		rspackFuture: {
-			disableTransformByDefault: true
+			disableTransformByDefault: true,
+			newTreeshaking: true
 		}
 	}
 };

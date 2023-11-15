@@ -146,14 +146,6 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
             }
           });
       }
-      let dependency = HarmonyImportSideEffectDependency::new(
-        request.clone(),
-        source_order,
-        Some(importer_info.span.into()),
-        importer_info.specifiers,
-        dependency_type,
-        importer_info.exports_all,
-      );
       if importer_info.exports_all {
         let list = Some(self.build_info.all_star_exports.clone());
         let export_imported_dep = HarmonyExportImportedSpecifierDependency::new(
@@ -171,8 +163,16 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           .all_star_exports
           .push(export_imported_dep.id);
         self.dependencies.push(Box::new(export_imported_dep));
+      } else {
+        let dependency = HarmonyImportSideEffectDependency::new(
+          request.clone(),
+          source_order,
+          Some(importer_info.span.into()),
+          importer_info.specifiers,
+          dependency_type,
+        );
+        self.dependencies.push(Box::new(dependency));
       }
-      self.dependencies.push(Box::new(dependency));
     }
 
     // collect import reference info

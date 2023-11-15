@@ -1,0 +1,14 @@
+--- expected
++++ actual
+@@ -3,11 +3,6 @@
+ ---
+ ```js title=main.js
+ (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+-"./bar.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+-"use strict";
+-__webpack_require__.r(__webpack_exports__);
+- const a = 'bar';
+-}),
+ "./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);

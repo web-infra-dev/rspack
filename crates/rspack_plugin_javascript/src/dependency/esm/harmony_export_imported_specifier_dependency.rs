@@ -477,14 +477,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       .get_import_var(&module.identifier(), &self.request);
     let is_new_tree_shaking = compilation.options.is_new_tree_shaking();
 
-    let used_exports = if compilation.options.builtins.tree_shaking.is_true() {
-      Some(
-        compilation
-          .module_graph
-          .get_exports_info(&module.identifier())
-          .old_get_used_exports(),
-      )
-    } else if is_new_tree_shaking {
+    let used_exports = if is_new_tree_shaking {
       let exports_info_id = compilation
         .module_graph
         .get_exports_info(&module.identifier())
@@ -506,6 +499,13 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         })
         .collect::<HashSet<_>>();
       Some(res)
+    } else if compilation.options.builtins.tree_shaking.is_true() {
+      Some(
+        compilation
+          .module_graph
+          .get_exports_info(&module.identifier())
+          .old_get_used_exports(),
+      )
     } else {
       None
     };
@@ -515,9 +515,12 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       let mode = self.get_mode(self.name.clone(), &compilation.module_graph, &self.id, None);
       if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
         harmony_import_dependency_apply(self, self.source_order, code_generatable_context, &[]);
+      } else {
+        return;
       }
     }
 
+    // dbg!(self.dependency_debug_name(), self.request());
     let mut exports = vec![];
     for id in &self.ids {
       if used_exports.is_none() || matches!(used_exports.as_ref(), Some(x) if x.contains(&id.0)) {

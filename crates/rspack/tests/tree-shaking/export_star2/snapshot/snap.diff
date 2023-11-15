@@ -1,0 +1,34 @@
+--- expected
++++ actual
+@@ -3,31 +3,10 @@
+ ---
+ ```js title=main.js
+ (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+-"./bar.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+-"use strict";
+-__webpack_require__.r(__webpack_exports__);
+- function b() {}
+-
+-
+-}),
+-"./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+-"use strict";
+-__webpack_require__.r(__webpack_exports__);
+- const a = 3;
+-
+-
+-}),
+ "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);
+-
+-
+ 
+-}),
+-"./result.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+-"use strict";
+-__webpack_require__.r(__webpack_exports__);
+- const c = 103330;
+ 
+ 
+ }),
