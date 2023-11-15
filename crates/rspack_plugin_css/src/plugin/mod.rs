@@ -270,6 +270,7 @@ impl CssPlugin {
   }
 }
 
+#[derive(Debug)]
 struct SortedModules<'module> {
   pub list: Vec<&'module dyn Module>,
   pub set: IdentifierSet,
