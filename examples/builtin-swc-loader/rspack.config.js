@@ -44,11 +44,6 @@ const config = {
 		new rspack.HtmlRspackPlugin({
 			template: "./index.html"
 		})
-	],
-	experiments: {
-		rspackFuture: {
-			disableTransformByDefault: true
-		}
-	}
+	]
 };
 module.exports = config;
