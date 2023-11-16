@@ -134,7 +134,7 @@ pub fn module_id(
     .module_identifier_by_dependency_id(id)
     && let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier)
   {
-    module_id_expr(request, &module_id)
+    module_id_expr(request, module_id)
   } else if weak {
     "null /* weak dependency, without id */".to_string()
   } else {
@@ -199,7 +199,7 @@ pub fn module_namespace_promise(
     ..
   } = code_generatable_context;
 
-  let promise = block_promise(block, runtime_requirements, &compilation);
+  let promise = block_promise(block, runtime_requirements, compilation);
   let exports_type = get_exports_type(&compilation.module_graph, dep_id, &module.identifier());
   let module_id_expr = module_id(compilation, dep_id, request, weak);
 

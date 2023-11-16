@@ -668,7 +668,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         mgm
           .all_dependencies
           .iter()
-          .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(&dep_id))
+          .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(dep_id))
           .filter_map(|dep| dep.as_module_dependency())
           .collect()
       };

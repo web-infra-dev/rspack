@@ -1,7 +1,4 @@
-use std::hash::BuildHasherDefault;
-
-use dashmap::DashMap;
-use rspack_identifier::{Identifier, IdentifierHasher, IdentifierMap};
+use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::AsyncDependenciesBlockId;

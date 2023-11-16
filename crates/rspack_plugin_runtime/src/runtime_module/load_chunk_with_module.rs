@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
-use rspack_core::{block_promise_key, ChunkUkey, Compilation, DependenciesBlock, RuntimeModule};
+use rspack_core::{block_promise_key, ChunkUkey, Compilation, RuntimeModule};
 use rspack_identifier::Identifier;
 use rspack_plugin_javascript::runtime::stringify_array;
 use rustc_hash::FxHashMap as HashMap;
@@ -68,7 +68,7 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
         if chunk_ids.is_empty() {
           return None;
         }
-        let key = block_promise_key(&block_id, compilation);
+        let key = block_promise_key(block_id, compilation);
         Some((key, chunk_ids))
       })
       .collect::<HashMap<String, Vec<String>>>();

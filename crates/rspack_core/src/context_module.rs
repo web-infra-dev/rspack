@@ -338,11 +338,11 @@ impl ContextModule {
         let block = self
           .get_blocks()
           .first()
-          .expect("LazyOnce ContextModule should have first block");
+          .ok_or_else(|| internal_error!("LazyOnce ContextModule should have first block"))?;
         let block = compilation
           .module_graph
           .block_by_id(block)
-          .expect("should have block");
+          .ok_or_else(|| internal_error!("should have block"))?;
         self.generate_source(block.get_dependencies(), compilation)
       }
       _ => self.generate_source(self.get_dependencies(), compilation),
@@ -605,7 +605,7 @@ impl Module for ContextModule {
       let block = compilation
         .module_graph
         .block_by_id(block)
-        .expect("should have block");
+        .ok_or_else(|| internal_error!("should have block in ContextModule code_generation"))?;
       all_deps.extend(block.get_dependencies());
     }
     let fake_map = self.get_fake_map(all_deps.iter(), compilation);
