@@ -33,7 +33,9 @@ const {
  * @returns {void}
  */
 
+// @ts-expect-error
 const needCalls = (times, callback) => {
+	// @ts-expect-error
 	return err => {
 		if (--times === 0) {
 			return callback(err);
@@ -71,7 +73,9 @@ class Cache {
 	 * @returns {void}
 	 */
 	get(identifier, etag, callback) {
+		// @ts-expect-error
 		const gotHandlers = [];
+		// @ts-expect-error
 		this.hooks.get.callAsync(identifier, etag, gotHandlers, (err, result) => {
 			if (err) {
 				callback(makeWebpackError(err, "Cache.hooks.get"));
@@ -84,10 +88,12 @@ class Cache {
 				const innerCallback = needCalls(gotHandlers.length, () =>
 					callback(null, result)
 				);
+				// @ts-expect-error
 				for (const gotHandler of gotHandlers) {
 					gotHandler(result, innerCallback);
 				}
 			} else if (gotHandlers.length === 1) {
+				// @ts-expect-error
 				gotHandlers[0](result, () => callback(null, result));
 			} else {
 				callback(null, result);
@@ -108,6 +114,7 @@ class Cache {
 			identifier,
 			etag,
 			data,
+			// @ts-expect-error
 			makeWebpackErrorCallback(callback, "Cache.hooks.store")
 		);
 	}
@@ -121,6 +128,7 @@ class Cache {
 	storeBuildDependencies(dependencies, callback) {
 		this.hooks.storeBuildDependencies.callAsync(
 			dependencies,
+			// @ts-expect-error
 			makeWebpackErrorCallback(callback, "Cache.hooks.storeBuildDependencies")
 		);
 	}
@@ -138,6 +146,7 @@ class Cache {
 	 */
 	endIdle(callback) {
 		this.hooks.endIdle.callAsync(
+			// @ts-expect-error
 			makeWebpackErrorCallback(callback, "Cache.hooks.endIdle")
 		);
 	}
@@ -148,6 +157,7 @@ class Cache {
 	 */
 	shutdown(callback) {
 		this.hooks.shutdown.callAsync(
+			// @ts-expect-error
 			makeWebpackErrorCallback(callback, "Cache.hooks.shutdown")
 		);
 	}

@@ -1,5 +1,6 @@
 import path from "path";
 import type { Compiler } from "@rspack/core";
+import { DefinePlugin } from "@rspack/core";
 import { normalizeOptions, type PluginOptions } from "./options";
 
 export type { PluginOptions };
@@ -48,12 +49,26 @@ class ReactRefreshRspackPlugin {
 		}).apply(compiler);
 
 		compiler.options.module.rules.unshift({
+			// @ts-expect-error
 			include: this.options.include,
+			// @ts-expect-error
 			exclude: {
 				or: [this.options.exclude, [...runtimePaths]].filter(Boolean)
 			},
 			use: "builtin:react-refresh-loader"
 		});
+
+		const definedModules = {
+			// For Mutiple Instance Mode
+			__react_refresh_library__: JSON.stringify(
+				compiler.webpack.Template.toIdentifier(
+					this.options.library ||
+						compiler.options.output.uniqueName ||
+						compiler.options.output.library
+				)
+			)
+		};
+		new DefinePlugin(definedModules).apply(compiler);
 
 		const refreshPath = path.dirname(require.resolve("react-refresh"));
 		compiler.options.resolve.alias = {

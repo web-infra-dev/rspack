@@ -227,6 +227,9 @@ class Compiler {
 			get CopyRspackPlugin() {
 				return require("./builtin-plugin").CopyRspackPlugin;
 			},
+			get Template() {
+				return require("./Template");
+			},
 			optimize: {
 				get LimitChunkCountPlugin() {
 					return require("./builtin-plugin").LimitChunkCountPlugin;

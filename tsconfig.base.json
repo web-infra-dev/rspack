@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "module": "CommonJS",
+    "moduleResolution": "NodeNext",
     "target": "ES2018",
-    "moduleResolution": "node",
     "esModuleInterop": true,
     "outDir": "dist",
     "declaration": true,
@@ -11,6 +11,9 @@
     "declarationMap": true,
     "composite": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "allowJs": true,
+    "checkJs": true,
+    "strict": true,
+    "skipLibCheck": false
   }
 }

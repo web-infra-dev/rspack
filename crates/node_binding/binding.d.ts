@@ -34,7 +34,7 @@ export class JsCompilation {
   getMissingDependencies(): Array<string>
   getBuildDependencies(): Array<string>
   pushDiagnostic(severity: "error" | "warning", title: string, message: string): void
-  pushNativeDiagnostics(diagnostics: ExternalObject<Array<Diagnostic>>): void
+  pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
   getStats(): JsStats
   getAssetPath(filename: string, data: PathData): string
   getAssetPathWithInfo(filename: string, data: PathData): PathWithInfo
@@ -217,6 +217,7 @@ export interface JsChunk {
   contentHash: Record<string, string>
   renderedHash?: string
   chunkReasons: Array<string>
+  auxiliaryFiles: Array<string>
 }
 
 export interface JsChunkAssetArgs {
@@ -306,17 +307,17 @@ export interface JsLoaderContext {
    * Internal additional data, contains more than `String`
    * @internal
    */
-  additionalDataExternal: ExternalObject<AdditionalData>
+  additionalDataExternal: ExternalObject<'AdditionalData'>
   /**
    * Internal loader context
    * @internal
    */
-  contextExternal: ExternalObject<LoaderRunnerContext>
+  contextExternal: ExternalObject<'LoaderRunnerContext'>
   /**
    * Internal loader diagnostic
    * @internal
    */
-  diagnosticsExternal: ExternalObject<Array<Diagnostic>>
+  diagnosticsExternal: ExternalObject<'Diagnostic[]'>
 }
 
 export interface JsModule {
@@ -661,7 +662,7 @@ export interface RawExternalItemFnCtx {
 
 export interface RawExternalItemFnResult {
   externalType?: string
-  result?: RawExternalItemValue
+  result?: string | boolean | string[] | Record<string, string[]>
 }
 
 export interface RawExternalsPluginOptions {

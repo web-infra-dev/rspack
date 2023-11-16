@@ -67,7 +67,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
         self.rewrite_usage_span.insert(
           export_decl.span(),
-          ExtraSpanInfo::AddVariableUsage(ident.sym.clone(), ident.sym.clone()),
+          ExtraSpanInfo::AddVariableUsage(vec![(ident.sym.clone(), ident.sym.clone())]),
         );
         self
           .build_info
@@ -75,6 +75,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
           .insert(ident.sym.clone());
       }
       Decl::Var(v) => {
+        let mut usages = vec![];
         find_pat_ids::<_, Ident>(&v.decls)
           .into_iter()
           .for_each(|ident| {
@@ -85,12 +86,13 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                 ident.sym.clone(),
               )));
 
-            self.rewrite_usage_span.insert(
-              export_decl.span(),
-              ExtraSpanInfo::AddVariableUsage(ident.sym.clone(), ident.sym.clone()),
-            );
+            usages.push((ident.sym.clone(), ident.sym.clone()));
             self.build_info.harmony_named_exports.insert(ident.sym);
           });
+
+        self
+          .rewrite_usage_span
+          .insert(export_decl.span(), ExtraSpanInfo::AddVariableUsage(usages));
       }
       _ => {}
     }
@@ -103,6 +105,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
   fn visit_named_export(&mut self, named_export: &'_ NamedExport) {
     if named_export.src.is_none() {
+      let mut usages = vec![];
       named_export
         .specifiers
         .iter()
@@ -144,14 +147,15 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
                 self.build_info.harmony_named_exports.insert(export.clone());
               }
-              self.rewrite_usage_span.insert(
-                named.span(),
-                ExtraSpanInfo::AddVariableUsage(orig.sym.clone(), export),
-              );
+              usages.push((orig.sym.clone(), export));
             }
           }
           _ => unreachable!(),
         });
+
+      self
+        .rewrite_usage_span
+        .insert(named_export.span(), ExtraSpanInfo::AddVariableUsage(usages));
       self
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
@@ -175,7 +179,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
     self.rewrite_usage_span.insert(
       export_default_expr.span,
-      ExtraSpanInfo::AddVariableUsage(DEFAULT_EXPORT.into(), DEFAULT_JS_WORD.clone()),
+      ExtraSpanInfo::AddVariableUsage(vec![(DEFAULT_EXPORT.into(), DEFAULT_JS_WORD.clone())]),
     );
     self
       .presentational_dependencies
@@ -208,7 +212,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
       )));
     self.rewrite_usage_span.insert(
       export_default_decl.span,
-      ExtraSpanInfo::AddVariableUsage(local, DEFAULT_JS_WORD.clone()),
+      ExtraSpanInfo::AddVariableUsage(vec![(local, DEFAULT_JS_WORD.clone())]),
     );
     self
       .presentational_dependencies

@@ -20,10 +20,10 @@ mod worker_scanner;
 
 use rspack_ast::javascript::Program;
 use rspack_core::{
-  BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta, CompilerOptions, ModuleIdentifier,
-  ModuleType, ResourceData,
+  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
+  CompilerOptions, ModuleIdentifier, ModuleType, ResourceData,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::common::Span;
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
@@ -48,18 +48,21 @@ use self::{
 
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
+  pub blocks: Vec<AsyncDependenciesBlock>,
   pub presentational_dependencies: Vec<BoxDependencyTemplate>,
   // TODO: rename this name
   pub rewrite_usage_span: HashMap<Span, ExtraSpanInfo>,
   pub import_map: ImportMap,
+  pub warning_diagnostics: Vec<Diagnostic>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum ExtraSpanInfo {
+  #[default]
   ReWriteUsedByExports,
   // (symbol, usage)
   // (local, exported) refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/javascript/JavascriptParser.js#L2347-L2352
-  AddVariableUsage(JsWord, JsWord),
+  AddVariableUsage(Vec<(JsWord, JsWord)>),
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -73,9 +76,11 @@ pub fn scan_dependencies(
   build_meta: &mut BuildMeta,
   module_identifier: ModuleIdentifier,
 ) -> Result<ScanDependenciesResult> {
+  let mut warning_diagnostics: Vec<Diagnostic> = vec![];
   let mut errors = vec![];
-  let mut dependencies: Vec<BoxDependency> = vec![];
-  let mut presentational_dependencies: Vec<BoxDependencyTemplate> = vec![];
+  let mut dependencies = vec![];
+  let mut blocks = vec![];
+  let mut presentational_dependencies = vec![];
   let unresolved_ctxt = SyntaxContext::empty().apply_mark(unresolved_mark);
   let comments = program.comments.clone();
   let mut parser_exports_state = None;
@@ -174,6 +179,7 @@ pub fn scan_dependencies(
       worker_syntax_list,
     );
     program.visit_with(&mut worker_scanner);
+    blocks.append(&mut worker_scanner.blocks);
     dependencies.append(&mut worker_scanner.dependencies);
     presentational_dependencies.append(&mut worker_scanner.presentational_dependencies);
     program.visit_with(&mut UrlScanner::new(&mut dependencies, worker_syntax_list));
@@ -181,11 +187,13 @@ pub fn scan_dependencies(
       &mut presentational_dependencies,
       resource_data,
       compiler_options,
+      &mut warning_diagnostics,
     ));
   }
 
   program.visit_with(&mut ImportScanner::new(
     &mut dependencies,
+    &mut blocks,
     comments.as_ref().map(|c| c as &dyn Comments),
     build_meta,
     compiler_options
@@ -207,9 +215,11 @@ pub fn scan_dependencies(
   if errors.is_empty() {
     Ok(ScanDependenciesResult {
       dependencies,
+      blocks,
       presentational_dependencies,
       rewrite_usage_span,
       import_map,
+      warning_diagnostics,
     })
   } else {
     Err(rspack_error::Error::BatchErrors(errors))

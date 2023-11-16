@@ -1,13 +1,12 @@
 {
   "name": "@rspack/plugin-react-refresh",
-  "version": "0.3.11",
+  "version": "0.3.13",
   "license": "MIT",
   "description": "React refresh plugin for rspack",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./react-refresh": "./client/reactRefresh.js",

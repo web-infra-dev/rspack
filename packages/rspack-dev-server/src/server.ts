@@ -25,9 +25,13 @@ export class RspackDevServer extends WebpackDevServer {
 	/**
 	 * resolved after `normalizedOptions`
 	 */
+	// @ts-expect-error
 	options: ResolvedDevServer;
+	// @ts-expect-error
 	staticWatchers: FSWatcher[];
+	// @ts-expect-error
 	sockets: Socket[];
+	// @ts-expect-error
 	server: Server;
 	// @ts-expect-error
 	public compiler: Compiler | MultiCompiler;
@@ -35,6 +39,7 @@ export class RspackDevServer extends WebpackDevServer {
 
 	constructor(options: DevServer, compiler: Compiler | MultiCompiler) {
 		super(
+			// @ts-expect-error
 			{
 				...options,
 				setupMiddlewares: (middlewares, devServer) => {
@@ -54,6 +59,7 @@ export class RspackDevServer extends WebpackDevServer {
 												path: publicPath,
 												middleware: getRspackMemoryAssets(
 													compiler,
+													// @ts-expect-error
 													this.middleware
 												)
 											};
@@ -69,6 +75,7 @@ export class RspackDevServer extends WebpackDevServer {
 						}
 					}
 
+					// @ts-expect-error
 					options.setupMiddlewares?.call(this, middlewares, devServer);
 					return middlewares;
 				}
@@ -136,6 +143,7 @@ export class RspackDevServer extends WebpackDevServer {
 			);
 		}
 
+		// @ts-expect-error
 		return clientImplementation;
 	}
 
@@ -158,6 +166,7 @@ export class RspackDevServer extends WebpackDevServer {
 				compiler.options.devServer ??= {};
 				compiler.options.devServer.hot = true;
 				if (
+					// @ts-expect-error
 					!compiler.options.experiments.rspackFuture.disableTransformByDefault
 				) {
 					compiler.options.builtins.react ??= {};
@@ -298,6 +307,7 @@ export class RspackDevServer extends WebpackDevServer {
 		compilers.forEach(compiler => {
 			if (compiler.options.experiments.lazyCompilation) {
 				middlewares.push({
+					// @ts-expect-error
 					middleware: (req, res) => {
 						if (req.url.indexOf("/lazy-compilation-web/") > -1) {
 							const path = req.url.replace("/lazy-compilation-web/", "");
@@ -319,10 +329,13 @@ export class RspackDevServer extends WebpackDevServer {
 
 		middlewares.forEach(middleware => {
 			if (typeof middleware === "function") {
+				// @ts-expect-error
 				this.app.use(middleware);
 			} else if (typeof middleware.path !== "undefined") {
+				// @ts-expect-error
 				this.app.use(middleware.path, middleware.middleware);
 			} else {
+				// @ts-expect-error
 				this.app.use(middleware.middleware);
 			}
 		});

@@ -2,10 +2,10 @@
   "extends": "../../tsconfig.base.json",
   "include": ["src"],
   "compilerOptions": {
-    "strictNullChecks": true,
+    // TODO: Remove skipLibCheck when fix upstream type bug
+    "skipLibCheck": true,
     "outDir": "dist",
-    "rootDir": "src",
-    "moduleResolution": "nodenext"
+    "rootDir": "src"
   },
   "references": [
     {

@@ -1,13 +1,12 @@
 {
   "name": "@rspack/dev-server",
-  "version": "0.3.11",
+  "version": "0.3.13",
   "license": "MIT",
   "description": "Development server for rspack",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./package.json": "./package.json"

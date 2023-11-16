@@ -24,7 +24,7 @@ mod plugins;
 use hook::*;
 // Napi macro registered this successfully
 #[allow(unused)]
-use loader::*;
+use loader::run_builtin_loader;
 use plugins::*;
 use rspack_binding_options::*;
 use rspack_binding_values::*;

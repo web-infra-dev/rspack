@@ -11,13 +11,15 @@ use std::{
 use dashmap::DashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use rayon::prelude::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
+use rayon::prelude::{
+  IntoParallelIterator, IntoParallelRefIterator, ParallelBridge, ParallelIterator,
+};
 use rspack_error::{
   internal_error, CatchUnwindFuture, Diagnostic, Result, Severity, TWithDiagnosticArray,
 };
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_identifier::{IdentifierMap, IdentifierSet};
+use rspack_identifier::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::ast::ModuleItem;
@@ -34,11 +36,12 @@ use crate::{
   is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs,
-  AdditionalModuleRequirementsArgs, BoxDependency, BoxModule, BuildQueue, BuildTask,
-  BuildTaskResult, CacheCount, CacheOptions, Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph,
-  ChunkGroupByUkey, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask,
-  CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, ContentHashArgs, DependencyId, Entry, EntryData,
+  AdditionalModuleRequirementsArgs, AsyncDependenciesBlock, AsyncDependenciesBlockId,
+  BoxDependency, BoxModule, BuildQueue, BuildTask, BuildTaskResult, CacheCount, CacheOptions,
+  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult,
+  CodeGenerationResult, CodeGenerationResults, CompilationLogger, CompilationLogging,
+  CompilerOptions, ContentHashArgs, DependencyId, DependencyParents, Entry, EntryData,
   EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger,
   Module, ModuleGraph, ModuleIdentifier, ModuleProfile, ModuleType, PathData, ProcessAssetsArgs,
   ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
@@ -454,7 +457,7 @@ impl Compilation {
           &mut factorize_queue,
           parent_module_identifier,
           parent_module.and_then(|m| m.get_context()),
-          vec![dependency.clone()],
+          vec![id],
           parent_module_identifier.is_none(),
           None,
           None,
@@ -556,7 +559,8 @@ impl Compilation {
 
         let mut sorted_dependencies = HashMap::default();
 
-        task.dependencies.into_iter().for_each(|dependency| {
+        task.dependencies.into_iter().for_each(|dependency_id| {
+          let dependency = dependency_id.get_dependency(&self.module_graph);
           // only module dependency can put into resolve queue.
           if let Some(module_dependency) = dependency.as_module_dependency() {
             // TODO need implement more dependency `resource_identifier()`
@@ -575,9 +579,7 @@ impl Compilation {
             sorted_dependencies
               .entry(resource_identifier)
               .or_insert(vec![])
-              .push(dependency);
-          } else {
-            self.module_graph.add_dependency(dependency);
+              .push(dependency_id);
           }
         });
 
@@ -642,8 +644,7 @@ impl Compilation {
 
               tracing::trace!("Module created: {}", &module_identifier);
               if !diagnostics.is_empty() {
-                make_failed_dependencies
-                  .insert((*dependencies[0].id(), original_module_identifier));
+                make_failed_dependencies.insert((dependencies[0], original_module_identifier));
               }
 
               module_graph_module.set_issuer_if_unset(original_module_identifier);
@@ -702,7 +703,7 @@ impl Compilation {
             },
             Ok(TaskResult::Build(box task_result)) => {
               let BuildTaskResult {
-                module,
+                mut module,
                 build_result,
                 diagnostics,
                 current_profile,
@@ -743,14 +744,54 @@ impl Compilation {
                 .build_dependencies
                 .extend(build_result.build_info.build_dependencies.clone());
 
-              let mut dep_ids = vec![];
-              for dependency in build_result.dependencies.iter() {
-                if let Some(dependency) = dependency.as_module_dependency() {
-                  self
-                    .module_graph
-                    .set_dependency_import_var(module.identifier(), dependency.request());
-                }
-                dep_ids.push(*dependency.id());
+              let mut queue = vec![];
+              let mut all_dependencies = vec![];
+              let mut handle_block =
+                |dependencies: Vec<BoxDependency>,
+                 blocks: Vec<AsyncDependenciesBlock>,
+                 queue: &mut Vec<AsyncDependenciesBlock>,
+                 module_graph: &mut ModuleGraph,
+                 current_block: Option<AsyncDependenciesBlockId>| {
+                  for dependency in dependencies {
+                    if let Some(dependency) = dependency.as_module_dependency() {
+                      module_graph
+                        .set_dependency_import_var(module.identifier(), dependency.request());
+                    }
+                    let dependency_id = *dependency.id();
+                    module.add_dependency_id(dependency_id);
+                    all_dependencies.push(dependency_id);
+                    module_graph.set_parents(
+                      dependency_id,
+                      DependencyParents {
+                        block: current_block,
+                        module: module.identifier(),
+                      },
+                    );
+                    module_graph.add_dependency(dependency);
+                  }
+                  for block in blocks {
+                    queue.push(block);
+                  }
+                };
+              handle_block(
+                build_result.dependencies,
+                build_result.blocks,
+                &mut queue,
+                &mut self.module_graph,
+                None,
+              );
+              while let Some(mut block) = queue.pop() {
+                let dependencies = block.take_dependencies();
+                let blocks = block.take_blocks();
+                let block_id = block.id();
+                self.module_graph.add_block(block);
+                handle_block(
+                  dependencies,
+                  blocks,
+                  &mut queue,
+                  &mut self.module_graph,
+                  Some(block_id),
+                );
               }
 
               {
@@ -758,13 +799,13 @@ impl Compilation {
                   .module_graph
                   .module_graph_module_by_identifier_mut(&module.identifier())
                   .expect("Failed to get mgm");
-                mgm.dependencies = Box::new(dep_ids);
+                mgm.all_dependencies = Box::new(all_dependencies.clone());
                 if let Some(current_profile) = current_profile {
                   mgm.set_profile(current_profile);
                 }
               }
               process_dependencies_queue.add_task(ProcessDependenciesTask {
-                dependencies: build_result.dependencies,
+                dependencies: all_dependencies,
                 original_module_identifier: module.identifier(),
                 resolve_options: module.get_resolve_options(),
               });
@@ -922,7 +963,7 @@ impl Compilation {
     queue: &mut FactorizeQueue,
     original_module_identifier: Option<ModuleIdentifier>,
     original_module_context: Option<Box<Context>>,
-    dependencies: Vec<BoxDependency>,
+    dependencies: Vec<DependencyId>,
     is_entry: bool,
     module_type: Option<ModuleType>,
     side_effects: Option<bool>,
@@ -935,6 +976,7 @@ impl Compilation {
       original_module_identifier,
       issuer,
       original_module_context,
+      dependency: dependencies[0].get_dependency(&self.module_graph).clone(),
       dependencies,
       is_entry,
       module_type,
@@ -1226,7 +1268,22 @@ impl Compilation {
 
     let start = logger.time("runtime requirements");
     self
-      .process_runtime_requirements(plugin_driver.clone())
+      .process_runtime_requirements(
+        self
+          .module_graph
+          .modules()
+          .keys()
+          .copied()
+          .collect::<Vec<_>>(),
+        self
+          .chunk_by_ukey
+          .keys()
+          .copied()
+          .collect::<Vec<_>>()
+          .into_iter(),
+        self.get_chunk_graph_entries().into_iter(),
+        plugin_driver.clone(),
+      )
       .await?;
     logger.time_end(start);
 
@@ -1266,32 +1323,33 @@ impl Compilation {
   #[instrument(name = "compilation:process_runtime_requirements", skip_all)]
   pub async fn process_runtime_requirements(
     &mut self,
+    modules: impl IntoParallelIterator<Item = ModuleIdentifier>,
+    chunks: impl Iterator<Item = ChunkUkey>,
+    chunk_graph_entries: impl Iterator<Item = ChunkUkey>,
     plugin_driver: SharedPluginDriver,
   ) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let start = logger.time("runtime requirements.modules");
-    let mut module_runtime_requirements = self
-      .module_graph
-      .modules()
-      .par_iter()
-      .filter_map(|(_, module)| {
+    let mut module_runtime_requirements = modules
+      .into_par_iter()
+      .filter_map(|module_identifier| {
         if self
           .chunk_graph
-          .get_number_of_module_chunks(module.identifier())
+          .get_number_of_module_chunks(module_identifier)
           > 0
         {
           let mut module_runtime_requirements: Vec<(RuntimeSpec, RuntimeGlobals)> = vec![];
           for runtime in self
             .chunk_graph
-            .get_module_runtimes(module.identifier(), &self.chunk_by_ukey)
+            .get_module_runtimes(module_identifier, &self.chunk_by_ukey)
             .values()
           {
             let runtime_requirements = self
               .code_generation_results
-              .get_runtime_requirements(&module.identifier(), Some(runtime));
+              .get_runtime_requirements(&module_identifier, Some(runtime));
             module_runtime_requirements.push((runtime.clone(), runtime_requirements));
           }
-          return Some((module.identifier(), module_runtime_requirements));
+          return Some((module_identifier, module_runtime_requirements));
         }
         None
       })
@@ -1315,12 +1373,16 @@ impl Compilation {
 
     let start = logger.time("runtime requirements.chunks");
     let mut chunk_requirements = HashMap::default();
-    for (chunk_ukey, chunk) in self.chunk_by_ukey.iter() {
+    for chunk_ukey in chunks {
       let mut set = RuntimeGlobals::default();
       for module in self
         .chunk_graph
-        .get_chunk_modules(chunk_ukey, &self.module_graph)
+        .get_chunk_modules(&chunk_ukey, &self.module_graph)
       {
+        let chunk = self
+          .chunk_by_ukey
+          .get(&chunk_ukey)
+          .expect("should have chunk");
         if let Some(runtime_requirements) = self
           .chunk_graph
           .get_module_runtime_requirements(module.identifier(), &chunk.runtime)
@@ -1328,7 +1390,7 @@ impl Compilation {
           set.insert(*runtime_requirements);
         }
       }
-      chunk_requirements.insert(*chunk_ukey, set);
+      chunk_requirements.insert(chunk_ukey, set);
     }
     for (chunk_ukey, set) in chunk_requirements.iter_mut() {
       plugin_driver.additional_chunk_runtime_requirements(
@@ -1346,10 +1408,10 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("runtime requirements.entries");
-    for entry_ukey in self.get_chunk_graph_entries().iter() {
+    for entry_ukey in chunk_graph_entries {
       let entry = self
         .chunk_by_ukey
-        .get(entry_ukey)
+        .get(&entry_ukey)
         .expect("chunk not found by ukey");
 
       let mut set = RuntimeGlobals::default();
@@ -1365,20 +1427,20 @@ impl Compilation {
       plugin_driver.additional_tree_runtime_requirements(
         &mut AdditionalChunkRuntimeRequirementsArgs {
           compilation: self,
-          chunk: entry_ukey,
+          chunk: &entry_ukey,
           runtime_requirements: &mut set,
         },
       )?;
 
       plugin_driver.runtime_requirements_in_tree(&mut AdditionalChunkRuntimeRequirementsArgs {
         compilation: self,
-        chunk: entry_ukey,
+        chunk: &entry_ukey,
         runtime_requirements: &mut set,
       })?;
 
       self
         .chunk_graph
-        .add_tree_runtime_requirements(entry_ukey, set);
+        .add_tree_runtime_requirements(&entry_ukey, set);
     }
     logger.time_end(start);
     Ok(())

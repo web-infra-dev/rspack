@@ -2,6 +2,7 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "strict": true,
+    // TODO: Remove skipLibCheck when fix upstream type bug
     "skipLibCheck": true,
     "jsx": "react-jsx",
     "moduleResolution": "node"

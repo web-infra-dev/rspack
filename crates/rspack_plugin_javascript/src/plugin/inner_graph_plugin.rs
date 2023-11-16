@@ -7,14 +7,14 @@ use swc_core::{
   ecma::{
     ast::{
       ArrowExpr, CallExpr, Callee, Class, ClassDecl, ClassExpr, ClassMember, DefaultDecl,
-      ExportDecl, ExportDefaultDecl, ExportDefaultExpr, ExportSpecifier, Expr, FnDecl, FnExpr,
-      Ident, Key, MemberExpr, NamedExport, OptChainExpr, Pat, Program, Prop, PropName,
-      VarDeclarator,
+      ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr, FnDecl, FnExpr, Ident, Key,
+      MemberExpr, NamedExport, OptChainExpr, Pat, Program, Prop, PropName, VarDeclarator,
     },
     atoms::JsWord,
     visit::{noop_visit_type, Visit, VisitWith},
   },
 };
+use swc_node_comments::SwcComments;
 
 use crate::{
   dependency::{PureExpressionDependency, DEFAULT_EXPORT},
@@ -84,6 +84,7 @@ pub struct InnerGraphPlugin<'a> {
   scope_level: usize,
   rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
   import_map: &'a ImportMap,
+  pub comments: Option<SwcComments>,
 }
 
 impl<'a> Visit for InnerGraphPlugin<'a> {
@@ -146,7 +147,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       node.visit_children_with(self);
       return;
     }
-    let pre_top_level = self.get_top_level_symbol();
+    let previous_top_level_symbol = self.get_top_level_symbol();
     self.set_top_level_symbol(None);
     let is_key_pure = if let Some(key) = node.class_key() {
       // key needs with visit a empty toplevel symbol, cause it maybe computed value.
@@ -155,7 +156,9 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         PropName::Ident(_ident) => true,
         PropName::Str(_) => true,
         PropName::Num(_) => true,
-        PropName::Computed(computed) => is_pure_expression(&computed.expr, self.unresolved_ctxt),
+        PropName::Computed(computed) => {
+          is_pure_expression(&computed.expr, self.unresolved_ctxt, self.comments.as_ref())
+        }
         PropName::BigInt(_) => true,
       }
     } else {
@@ -163,7 +166,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     };
     let is_static = node.is_static();
     if !is_static || is_key_pure {
-      self.set_top_level_symbol(pre_top_level.clone());
+      self.set_top_level_symbol(previous_top_level_symbol.clone());
     }
     if is_static && !matches!(node, ClassMember::Method(_) | ClassMember::PrivateMethod(_)) {
       let span = match node {
@@ -237,7 +240,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       },
     };
     self.scope_level = scope_level;
-    self.set_top_level_symbol(pre_top_level);
+    self.set_top_level_symbol(previous_top_level_symbol);
   }
 
   fn visit_fn_decl(&mut self, node: &FnDecl) {
@@ -267,7 +270,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if !self.is_enabled() {
       return;
     }
-    let is_pure_class = is_pure_class(&node.class, self.unresolved_ctxt);
+    let is_pure_class = is_pure_class(&node.class, self.unresolved_ctxt, self.comments.as_ref());
     if is_pure_class {
       self.set_symbol_if_is_top_level(node.ident.sym.clone());
     }
@@ -328,10 +331,9 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if !self.is_enabled() {
       return;
     }
-
     if let Pat::Ident(ident) = &n.name
       && let Some(box init) = &n.init
-      && is_pure_expression(init, self.unresolved_ctxt)
+      && self.is_toplevel()
     {
       let symbol = ident.id.sym.clone();
       match init {
@@ -341,15 +343,17 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
           self.clear_symbol_if_is_top_level();
         }
         Expr::Class(class) => {
-          let is_pure = is_pure_class(&class.class, self.unresolved_ctxt);
-          if !is_pure {
-            self.set_top_level_symbol(None);
+          let is_pure = is_pure_class(&class.class, self.unresolved_ctxt, self.comments.as_ref());
+          if is_pure {
+            self.set_symbol_if_is_top_level(symbol);
           }
           class.class.visit_with(self);
+          self.clear_symbol_if_is_top_level();
         }
         _ => {
           init.visit_children_with(self);
-          if self.has_toplevel_symbol() && is_pure_expression(init, self.unresolved_ctxt) {
+          if is_pure_expression(init, self.unresolved_ctxt, self.comments.as_ref()) {
+            self.set_symbol_if_is_top_level(symbol);
             let start = init.span().real_lo();
             let end = init.span().real_hi();
             let module_identifier = self.state.module_identifier;
@@ -363,6 +367,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
                 }
               },
             ));
+            self.clear_symbol_if_is_top_level();
           }
         }
       }
@@ -390,59 +395,65 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     }
   }
   fn visit_export_decl(&mut self, export_decl: &ExportDecl) {
-    if let Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) =
-      self.rewrite_usage_span.get(&export_decl.span)
+    let rewrite_usage_span = std::mem::take(self.rewrite_usage_span);
+    if let Some(ExtraSpanInfo::AddVariableUsage(usages)) = rewrite_usage_span.get(&export_decl.span)
     {
-      self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
+      for (sym, usage) in usages {
+        self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
+      }
     }
+    *self.rewrite_usage_span = rewrite_usage_span;
 
     export_decl.visit_children_with(self);
   }
 
   fn visit_named_export(&mut self, named_export: &NamedExport) {
-    if named_export.src.is_none() {
-      named_export
-        .specifiers
-        .iter()
-        .for_each(|specifier| match specifier {
-          ExportSpecifier::Named(named) => {
-            if let Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) =
-              self.rewrite_usage_span.get(&named.span)
-            {
-              self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
-            }
-          }
-          _ => unreachable!(),
-        });
+    if !self.is_enabled() {
+      return;
     }
+    let rewrite_usage_span = std::mem::take(self.rewrite_usage_span);
+    if named_export.src.is_none() {
+      if let Some(ExtraSpanInfo::AddVariableUsage(usages)) =
+        rewrite_usage_span.get(&named_export.span)
+      {
+        for (sym, usage) in usages {
+          self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
+        }
+      }
+    }
+    *self.rewrite_usage_span = rewrite_usage_span;
+    named_export.visit_children_with(self);
   }
   fn visit_export_default_expr(&mut self, node: &ExportDefaultExpr) {
     if !self.is_enabled() {
       return;
     }
-    if let Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) =
-      self.rewrite_usage_span.get(&node.span)
-    {
-      self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
+    let rewrite_usage_span = std::mem::take(self.rewrite_usage_span);
+    if let Some(ExtraSpanInfo::AddVariableUsage(usages)) = rewrite_usage_span.get(&node.span) {
+      for (sym, usage) in usages {
+        self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
+      }
     }
-
-    self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
+    *self.rewrite_usage_span = rewrite_usage_span;
 
     let expr = node.expr.unwrap_parens();
     match expr {
       Expr::Fn(_) | Expr::Arrow(_) | Expr::Lit(_) => {
+        self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
         expr.visit_children_with(self);
+        self.clear_symbol_if_is_top_level();
       }
       Expr::Class(ref class) => {
-        let is_pure = is_pure_class(&class.class, self.unresolved_ctxt);
-        if !is_pure {
-          self.set_top_level_symbol(None);
+        let is_pure = is_pure_class(&class.class, self.unresolved_ctxt, self.comments.as_ref());
+        if is_pure {
+          self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
         }
         class.visit_with(self);
+        self.clear_symbol_if_is_top_level();
       }
       _ => {
-        expr.visit_children_with(self);
-        if is_pure_expression(expr, self.unresolved_ctxt) {
+        if is_pure_expression(expr, self.unresolved_ctxt, self.comments.as_ref()) {
+          self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
           let start = expr.span().real_lo();
           let end = expr.span().real_hi();
           let module_identifier = self.state.module_identifier;
@@ -456,10 +467,14 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
               }
             },
           ));
+
+          expr.visit_children_with(self);
+          self.clear_symbol_if_is_top_level();
+        } else {
+          expr.visit_children_with(self);
         }
       }
     }
-    self.clear_symbol_if_is_top_level();
   }
 
   fn visit_export_default_decl(&mut self, node: &ExportDefaultDecl) {
@@ -467,11 +482,13 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
       return;
     }
 
-    if let Some(ExtraSpanInfo::AddVariableUsage(sym, usage)) =
-      self.rewrite_usage_span.get(&node.span)
-    {
-      self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
+    let rewrite_usage_span = std::mem::take(self.rewrite_usage_span);
+    if let Some(ExtraSpanInfo::AddVariableUsage(usages)) = rewrite_usage_span.get(&node.span) {
+      for (sym, usage) in usages {
+        self.add_variable_usage(sym.clone(), InnerGraphMapUsage::Value(usage.clone()));
+      }
     }
+    *self.rewrite_usage_span = rewrite_usage_span;
 
     let ident = match &node.decl {
       DefaultDecl::Class(class) => class.ident.as_ref().map(|item| item.sym.clone()),
@@ -483,11 +500,14 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     self.set_symbol_if_is_top_level(ident);
     match &node.decl {
       DefaultDecl::Class(class) => {
-        // TODO: should remove toplevel if it isnot pure
-        class.class.visit_with(self);
+        let is_pure = is_pure_class(&class.class, self.unresolved_ctxt, self.comments.as_ref());
+        if !is_pure {
+          self.set_top_level_symbol(None);
+        }
+        class.visit_with(self);
       }
       DefaultDecl::Fn(func) => {
-        func.function.visit_with(self);
+        func.visit_with(self);
       }
       DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
     }
@@ -504,6 +524,7 @@ impl<'a> InnerGraphPlugin<'a> {
     rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
     import_map: &'a ImportMap,
     module_identifier: ModuleIdentifier,
+    comments: Option<SwcComments>,
   ) -> Self {
     Self {
       dependencies,
@@ -516,6 +537,7 @@ impl<'a> InnerGraphPlugin<'a> {
       scope_level: 0,
       rewrite_usage_span,
       import_map,
+      comments,
     }
   }
 
@@ -527,9 +549,9 @@ impl<'a> InnerGraphPlugin<'a> {
     self.scope_level == 0
   }
 
-  fn has_toplevel_symbol(&self) -> bool {
-    self.state.current_top_level_symbol.is_some()
-  }
+  // fn has_toplevel_symbol(&self) -> bool {
+  //   self.state.current_top_level_symbol.is_some()
+  // }
   pub fn bailout(&mut self) {
     self.state.enable = false;
   }
@@ -598,7 +620,7 @@ impl<'a> InnerGraphPlugin<'a> {
 
   pub fn visit_class_custom(&mut self, class: &Class) {
     if let Some(super_class) = &class.super_class
-      && is_pure_expression(super_class, self.unresolved_ctxt)
+      && is_pure_expression(super_class, self.unresolved_ctxt, self.comments.as_ref())
     {
       let start = super_class.span().real_lo();
       let end = super_class.span().real_hi();

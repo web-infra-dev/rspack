@@ -1,4 +1,4 @@
-/** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
+/** @type {import('ts-jest/dist/types').JestConfigWithTsJest} */
 const config = {
 	testEnvironment: "../../scripts/test/patch-node-env.cjs",
 	testMatch: [
@@ -13,6 +13,11 @@ const config = {
 	cache: false,
 	transform: {
 		"^.+\\.(t|j)sx?$": "@swc/jest"
+	},
+	globals: {
+		"ts-jest": {
+			tsconfig: "<rootDir>/tests/tsconfig.json"
+		}
 	}
 };
 

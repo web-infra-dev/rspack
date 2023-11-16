@@ -63,6 +63,7 @@ module.exports = {
 		asyncWebAssembly: true
 	},
 	optimization: {
+		minimize: false, // Disabling minification because it takes too long on CI
 		runtimeChunk: false,
 		//swc has different behavior compare to terser,this lead output size inflate
 		minimizer: [

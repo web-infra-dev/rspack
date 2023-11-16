@@ -21,38 +21,62 @@ pub struct JsChunk {
   pub content_hash: HashMap<String, String>,
   pub rendered_hash: Option<String>,
   pub chunk_reasons: Vec<String>,
+  pub auxiliary_files: Vec<String>,
 }
 
 impl JsChunk {
   pub fn from(chunk: &rspack_core::Chunk) -> Self {
-    let name = chunk.name.clone();
-    let mut files = Vec::from_iter(chunk.files.iter().cloned());
+    let Chunk {
+      // not implement yet
+      ukey: _ukey,
+      prevent_integration: _prevent_integration,
+      groups: _groups,
+      kind: _kind,
+
+      // used in js chunk
+      name,
+      filename_template,
+      css_filename_template,
+      id,
+      ids,
+      id_name_hints,
+      files,
+      auxiliary_files,
+      runtime,
+      hash,
+      rendered_hash,
+      content_hash,
+      chunk_reasons,
+    } = chunk;
+    let mut files = Vec::from_iter(files.iter().cloned());
     files.sort_unstable();
+    let mut auxiliary_files = auxiliary_files.iter().cloned().collect::<Vec<_>>();
+    auxiliary_files.sort_unstable();
+    let mut runtime = Vec::<String>::from_iter(runtime.clone().into_iter().map(|r| r.to_string()));
+    runtime.sort_unstable();
 
     Self {
       inner_ukey: usize::from(chunk.ukey) as u32,
-      name,
-      id: chunk.id.clone(),
-      ids: chunk.ids.clone(),
-      id_name_hints: Vec::from_iter(chunk.id_name_hints.clone()),
-      filename_template: chunk
-        .filename_template
+      name: name.clone(),
+      id: id.clone(),
+      ids: ids.clone(),
+      id_name_hints: Vec::from_iter(id_name_hints.clone()),
+      filename_template: filename_template
         .as_ref()
         .map(|tpl| tpl.template().to_string()),
-      css_filename_template: chunk
-        .css_filename_template
+      css_filename_template: css_filename_template
         .as_ref()
         .map(|tpl| tpl.template().to_string()),
       files,
-      runtime: Vec::<String>::from_iter(chunk.runtime.clone().into_iter().map(|r| r.to_string())),
-      hash: chunk.hash.as_ref().map(|d| d.encoded().to_string()),
-      content_hash: chunk
-        .content_hash
+      runtime,
+      hash: hash.as_ref().map(|d| d.encoded().to_string()),
+      content_hash: content_hash
         .iter()
         .map(|(key, v)| (key.to_string(), v.encoded().to_string()))
         .collect::<std::collections::HashMap<String, String>>(),
-      rendered_hash: chunk.rendered_hash.as_ref().map(|hash| hash.to_string()),
-      chunk_reasons: chunk.chunk_reasons.clone(),
+      rendered_hash: rendered_hash.as_ref().map(|hash| hash.to_string()),
+      chunk_reasons: chunk_reasons.clone(),
+      auxiliary_files,
     }
   }
 

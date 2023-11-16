@@ -13,6 +13,9 @@ module.exports = {
 			template: "./index.html"
 		})
 	],
+	optimization: {
+		minimize: false, // Disabling minification because it takes too long on CI
+	},
 	module: {
 		rules: [
 			{

@@ -15,6 +15,10 @@ type PluginImportConfig = {
 
 type PluginImportOptions = PluginImportConfig[] | undefined;
 
+function isObject(val: any): boolean {
+	return Object.prototype.toString.call(val) === "[object Object]";
+}
+
 function resolvePluginImport(
 	pluginImport: PluginImportOptions
 ): RawPluginImportConfig[] | undefined {
@@ -33,6 +37,10 @@ function resolvePluginImport(
 		} else if (typeof config.style === "string") {
 			const isTpl = config.style.includes("{{");
 			rawConfig.style![isTpl ? "custom" : "css"] = config.style;
+		} else if (isObject(config.style)) {
+			// for child compiler
+			// see https://github.com/web-infra-dev/rspack/issues/4597
+			rawConfig.style = config.style;
 		}
 
 		// This option will overrides the behavior of style

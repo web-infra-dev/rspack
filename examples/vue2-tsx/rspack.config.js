@@ -14,6 +14,10 @@ const config = defineConfig({
 
   experiments: { css: true },
 
+	optimization: {
+		minimize: false, // Disabling minification because it takes too long on CI
+	},
+
   plugins: [
     new VueLoaderPlugin(),
     new HtmlRspackPlugin({

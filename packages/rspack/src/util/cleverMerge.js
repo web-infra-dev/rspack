@@ -44,9 +44,11 @@ const cachedCleverMerge = (first, second) => {
 		mergeCache.set(first, innerCache);
 	}
 	const prevMerge = innerCache.get(second);
+	// @ts-expect-error
 	if (prevMerge !== undefined) return prevMerge;
 	const newMerge = _cleverMerge(first, second, true);
 	innerCache.set(second, newMerge);
+	// @ts-expect-error
 	return newMerge;
 };
 
@@ -74,6 +76,7 @@ const cachedSetProperty = (obj, property, value) => {
 
 	let result = mapByValue.get(value);
 
+	// @ts-expect-error
 	if (result) return result;
 
 	result = {
@@ -82,6 +85,7 @@ const cachedSetProperty = (obj, property, value) => {
 	};
 	mapByValue.set(value, result);
 
+	// @ts-expect-error
 	return result;
 };
 
@@ -120,6 +124,7 @@ const cachedParseObject = obj => {
 const parseObject = obj => {
 	const info = new Map();
 	let dynamicInfo;
+	// @ts-expect-error
 	const getInfo = p => {
 		const entry = info.get(p);
 		if (entry !== undefined) return entry;
@@ -134,6 +139,7 @@ const parseObject = obj => {
 	for (const key of Object.keys(obj)) {
 		if (key.startsWith("by")) {
 			const byProperty = key;
+			// @ts-expect-error
 			const byObj = obj[byProperty];
 			if (typeof byObj === "object") {
 				for (const byValue of Object.keys(byObj)) {
@@ -170,10 +176,12 @@ const parseObject = obj => {
 				}
 			} else {
 				const entry = getInfo(key);
+				// @ts-expect-error
 				entry.base = obj[key];
 			}
 		} else {
 			const entry = getInfo(key);
+			// @ts-expect-error
 			entry.base = obj[key];
 		}
 	}
@@ -193,6 +201,7 @@ const serializeObject = (info, dynamicInfo) => {
 	// Setup byProperty structure
 	for (const entry of info.values()) {
 		if (entry.byProperty !== undefined) {
+			// @ts-expect-error
 			const byObj = (obj[entry.byProperty] = obj[entry.byProperty] || {});
 			for (const byValue of entry.byValues.keys()) {
 				byObj[byValue] = byObj[byValue] || {};
@@ -201,10 +210,12 @@ const serializeObject = (info, dynamicInfo) => {
 	}
 	for (const [key, entry] of info) {
 		if (entry.base !== undefined) {
+			// @ts-expect-error
 			obj[key] = entry.base;
 		}
 		// Fill byProperty structure
 		if (entry.byProperty !== undefined) {
+			// @ts-expect-error
 			const byObj = (obj[entry.byProperty] = obj[entry.byProperty] || {});
 			for (const byValue of Object.keys(byObj)) {
 				const value = getFromByValues(entry.byValues, byValue);
@@ -213,6 +224,7 @@ const serializeObject = (info, dynamicInfo) => {
 		}
 	}
 	if (dynamicInfo !== undefined) {
+		// @ts-expect-error
 		obj[dynamicInfo.byProperty] = dynamicInfo.fn;
 	}
 	return obj;
@@ -262,6 +274,7 @@ const cleverMerge = (first, second) => {
 	if (typeof second !== "object" || second === null) return second;
 	if (typeof first !== "object" || first === null) return first;
 
+	// @ts-expect-error
 	return _cleverMerge(first, second, false);
 };
 
@@ -281,6 +294,7 @@ const _cleverMerge = (first, second, internalCaching = false) => {
 	// If the first argument has a dynamic part we modify the dynamic part to merge the second argument
 	if (firstDynamicInfo !== undefined) {
 		let { byProperty, fn } = firstDynamicInfo;
+		// @ts-expect-error
 		const fnInfo = fn[DYNAMIC_INFO];
 		if (fnInfo) {
 			second = internalCaching
@@ -288,12 +302,14 @@ const _cleverMerge = (first, second, internalCaching = false) => {
 				: cleverMerge(fnInfo[1], second);
 			fn = fnInfo[0];
 		}
+		// @ts-expect-error
 		const newFn = (...args) => {
 			const fnResult = fn(...args);
 			return internalCaching
 				? cachedCleverMerge(fnResult, second)
 				: cleverMerge(fnResult, second);
 		};
+		// @ts-expect-error
 		newFn[DYNAMIC_INFO] = [fn, second];
 		return serializeObject(firstObject.static, { byProperty, fn: newFn });
 	}
@@ -478,6 +494,7 @@ const mergeSingleValue = (a, b, internalCaching) => {
 				case VALUE_TYPE_UNDEFINED:
 					return b;
 				case VALUE_TYPE_DELETE:
+					// @ts-expect-error
 					return b.filter(item => item !== "...");
 				case VALUE_TYPE_ARRAY_EXTEND: {
 					const newArray = [];
@@ -493,6 +510,7 @@ const mergeSingleValue = (a, b, internalCaching) => {
 					return newArray;
 				}
 				case VALUE_TYPE_OBJECT:
+					// @ts-expect-error
 					return b.map(item => (item === "..." ? a : item));
 				default:
 					throw new Error("Not implemented");
@@ -509,7 +527,9 @@ const mergeSingleValue = (a, b, internalCaching) => {
  */
 const removeOperations = obj => {
 	const newObj = /** @type {T} */ ({});
+	// @ts-expect-error
 	for (const key of Object.keys(obj)) {
+		// @ts-expect-error
 		const value = obj[key];
 		const type = getValueType(value);
 		switch (type) {
@@ -517,12 +537,15 @@ const removeOperations = obj => {
 			case VALUE_TYPE_DELETE:
 				break;
 			case VALUE_TYPE_OBJECT:
+				// @ts-expect-error
 				newObj[key] = removeOperations(value);
 				break;
 			case VALUE_TYPE_ARRAY_EXTEND:
+				// @ts-expect-error
 				newObj[key] = value.filter(i => i !== "...");
 				break;
 			default:
+				// @ts-expect-error
 				newObj[key] = value;
 				break;
 		}
@@ -536,7 +559,7 @@ const removeOperations = obj => {
  * @param {T} obj the object
  * @param {P} byProperty the by description
  * @param  {...any} values values
- * @returns {Omit<T, P>} object with merged byProperty
+ * @returns {Omit<T, P>|undefined} object with merged byProperty
  */
 const resolveByProperty = (obj, byProperty, ...values) => {
 	if (typeof obj !== "object" || obj === null || !(byProperty in obj)) {

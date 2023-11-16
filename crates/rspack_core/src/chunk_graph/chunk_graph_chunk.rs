@@ -111,9 +111,17 @@ impl ChunkGraph {
     module_identifier: ModuleIdentifier,
     entrypoint: ChunkGroupUkey,
   ) {
+    self
+      .chunk_graph_module_by_module_identifier
+      .entry(module_identifier)
+      .or_default();
     let chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
     chunk_graph_module.entry_in_chunks.insert(chunk);
 
+    self
+      .chunk_graph_chunk_by_chunk_ukey
+      .entry(chunk)
+      .or_default();
     let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk);
     chunk_graph_chunk
       .entry_modules
@@ -137,9 +145,17 @@ impl ChunkGraph {
     chunk: ChunkUkey,
     module_identifier: ModuleIdentifier,
   ) {
+    self
+      .chunk_graph_module_by_module_identifier
+      .entry(module_identifier)
+      .or_default();
     let chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
     chunk_graph_module.chunks.insert(chunk);
 
+    self
+      .chunk_graph_chunk_by_chunk_ukey
+      .entry(chunk)
+      .or_default();
     let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk);
     chunk_graph_chunk.modules.insert(module_identifier);
   }
@@ -147,14 +163,22 @@ impl ChunkGraph {
   pub fn connect_chunk_and_runtime_module(
     &mut self,
     chunk: ChunkUkey,
-    identifier: ModuleIdentifier,
+    module_identifier: ModuleIdentifier,
   ) {
-    let cgm = self.get_chunk_graph_module_mut(identifier);
+    self
+      .chunk_graph_module_by_module_identifier
+      .entry(module_identifier)
+      .or_default();
+    let cgm = self.get_chunk_graph_module_mut(module_identifier);
     cgm.runtime_in_chunks.insert(chunk);
 
+    self
+      .chunk_graph_chunk_by_chunk_ukey
+      .entry(chunk)
+      .or_default();
     let cgc = self.get_chunk_graph_chunk_mut(chunk);
-    if !cgc.runtime_modules.contains(&identifier) {
-      cgc.runtime_modules.push(identifier);
+    if !cgc.runtime_modules.contains(&module_identifier) {
+      cgc.runtime_modules.push(module_identifier);
     }
   }
 
