@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import type * as binding from "@rspack/binding";
-import * as rspackIndex from "./index";
+import rspack from "./index";
 import fs from "fs";
 import * as tapable from "tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
@@ -53,7 +53,7 @@ import { FileSystemInfoEntry } from "./FileSystemInfo";
 class Compiler {
 	#_instance?: binding.Rspack;
 
-	webpack = rspackIndex;
+	webpack = rspack;
 	// @ts-expect-error
 	compilation: Compilation;
 	builtinPlugins: RspackBuiltinPlugin[];
