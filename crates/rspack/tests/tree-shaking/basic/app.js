@@ -1,18 +1,11 @@
-import { myanswer, secret } from "./lib";
+import {answer} from "./answer";
 
-setTimeout(() => {
-	console.log(myanswer);
-}, 1000);
-
-export function render() {
-	function test() {
-		const container = document.getElementById("root");
-		container.innerHTML = `adddd333:${secret}:${myanswer}`;
-	}
+export function test(params) {
+	answer
 }
 
-if (module.hot?.accept) {
-	module.hot.accept((module) => {
-		console.log("xxx:", module);
-	});
+export default function () {
+	const a= {
+		test
+	}
 }

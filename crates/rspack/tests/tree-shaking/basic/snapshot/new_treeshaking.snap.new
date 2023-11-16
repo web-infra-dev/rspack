@@ -1,26 +1,18 @@
 ---
 source: crates/rspack_testing/src/run_fixture.rs
+assertion_line: 146
 ---
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./answer.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  answer: function() { return answer; }
-});
- const answer = 103330;
-}),
 "./app.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
-/* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./answer */"./answer.js");
 
  function test(params) {
-    _answer__WEBPACK_IMPORTED_MODULE_0__.answer;
+    answer;
 }
 function __WEBPACK_DEFAULT_EXPORT__(){
     const a = {

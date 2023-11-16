@@ -391,8 +391,9 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
           }));
         };
       }
-      _ => n.visit_children_with(self),
+      _ => {}
     }
+    n.visit_children_with(self)
   }
   fn visit_export_decl(&mut self, export_decl: &ExportDecl) {
     let rewrite_usage_span = std::mem::take(self.rewrite_usage_span);
