@@ -33,11 +33,26 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
   if dyn_imported.spread.is_some() {
     return None;
   }
-  let lit = dyn_imported.expr.as_lit()?;
-  let context = match lit {
-    Lit::Str(str) => str.value.to_string(),
-    _ => return None,
-  };
+  let context = dyn_imported
+    .expr
+    .as_lit()
+    .and_then(|lit| {
+      if let Lit::Str(str) = lit {
+        return Some(str.value.to_string());
+      }
+      None
+    })
+    // TODO: should've used expression evaluation to handle cases like `abc${"efg"}`, etc.
+    .or_else(|| {
+      if let Some(tpl) = dyn_imported.expr.as_tpl()
+        && tpl.exprs.is_empty()
+        && tpl.quasis.len() == 1
+        && let Some(el) = tpl.quasis.first()
+      {
+        return Some(el.raw.to_string());
+      }
+      None
+    })?;
   let reg = r"^\.\/.*$";
   let reg_str = reg.to_string();
   let context_options = if let Some(obj) = node.args.get(1).and_then(|arg| arg.expr.as_object()) {
