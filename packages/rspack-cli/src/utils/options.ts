@@ -82,16 +82,13 @@ export const previewOptions = (yargs: yargs.Argv) => {
 		});
 };
 
-// @ts-expect-error
-export function normalizeEnv(argv) {
-	// @ts-expect-error
-	function parseValue(previous, value) {
+export function normalizeEnv(argv: yargs.Arguments) {
+	function parseValue(previous: Record<string, unknown>, value: string) {
 		const [allKeys, val] = value.split(/=(.+)/, 2);
 		const splitKeys = allKeys.split(/\.(?!$)/);
 
 		let prevRef = previous;
 
-		// @ts-expect-error
 		splitKeys.forEach((someKey, index) => {
 			// https://github.com/webpack/webpack-cli/issues/3284
 			if (someKey.endsWith("=")) {
