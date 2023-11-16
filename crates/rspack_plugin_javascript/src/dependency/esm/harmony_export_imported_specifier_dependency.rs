@@ -16,6 +16,7 @@ use super::{create_resource_identifier_for_esm_dependency, harmony_import_depend
 // Create _webpack_require__.d(__webpack_exports__, {}).
 // case1: `import { a } from 'a'; export { a }`
 // case2: `export { a } from 'a';`
+// case3: `export * from 'a'`
 #[derive(Debug, Clone)]
 pub struct HarmonyExportImportedSpecifierDependency {
   pub id: DependencyId,
