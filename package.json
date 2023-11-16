@@ -36,7 +36,7 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "engines": {
-    "pnpm": "7.32.0"
+    "pnpm": "8.10.5"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
@@ -71,5 +71,5 @@
     "sass-embedded-win32-ia32": "1.58.3",
     "sass-embedded-win32-x64": "1.58.3"
   },
-  "packageManager": "pnpm@7.32.0"
+  "packageManager": "pnpm@v8.10.5"
 }
