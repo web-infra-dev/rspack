@@ -29,10 +29,5 @@ module.exports = {
 				type: "javascript/auto"
 			}
 		]
-	},
-	experiments: {
-		rspackFuture: {
-			disableTransformByDefault: true
-		}
 	}
 };

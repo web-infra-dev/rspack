@@ -2,11 +2,6 @@ const { RunScriptWebpackPlugin } = require("run-script-webpack-plugin");
 
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
-	experiments: {
-		rspackFuture: {
-			disableTransformByDefault: true
-		}
-	},
 	context: __dirname,
 	target: "node",
 	entry: {

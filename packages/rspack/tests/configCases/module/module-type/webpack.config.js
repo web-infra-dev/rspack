@@ -17,5 +17,10 @@ module.exports = {
 				type: "tsx"
 			}
 		]
+	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: false
+		}
 	}
 };

@@ -494,15 +494,8 @@ fn map_oxc_resolver_error(
       format!("{} is unimplemented", error),
       internal_error!("{} is unimplemented", error),
     ),
-    oxc_resolver::ResolveError::Recursion => ResolveError(
-      "Recursion in resolving".to_string(),
-      internal_error!("Recursion in resolving"),
-    ),
-    _ => {
-      // path no find
-      let is_recursion = matches!(error, oxc_resolver::ResolveError::Recursion);
-      map_resolver_error(is_recursion, args, plugin_driver)
-    }
+    oxc_resolver::ResolveError::Recursion => map_resolver_error(true, args, plugin_driver),
+    oxc_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args, plugin_driver),
   }
 }
 

@@ -13,9 +13,14 @@ module.exports = {
         type: "js"
       },
       {
-        test: resolve("app.tsx"), 
+        test: resolve("app.tsx"),
         type: "ts"
       },
 		]
+	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: false
+		}
 	}
 };

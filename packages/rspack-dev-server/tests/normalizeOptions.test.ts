@@ -95,7 +95,12 @@ describe("normalize options snapshot", () => {
 	it("react.development and react.refresh should be true by default when hot enabled", async () => {
 		const compiler = rspack({
 			entry: ENTRY,
-			stats: "none"
+			stats: "none",
+			experiments: {
+				rspackFuture: {
+					disableTransformByDefault: false
+				}
+			}
 		});
 		const server = new RspackDevServer(
 			{

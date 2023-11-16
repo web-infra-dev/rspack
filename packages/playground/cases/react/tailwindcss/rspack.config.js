@@ -33,5 +33,10 @@ module.exports = {
 				type: "css"
 			}
 		]
+	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: false
+		}
 	}
 };

@@ -4,5 +4,10 @@ module.exports = {
 			language: "typescript",
 			artifactDirectory: "./custom"
 		}
+	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: false
+		}
 	}
 };
