@@ -154,12 +154,14 @@ pub fn scan_dependencies(
       build_info,
       &mut rewrite_usage_span,
     ));
+    let comments = program.comments.as_ref();
     program.visit_with(&mut HarmonyExportDependencyScanner::new(
       &mut dependencies,
       &mut presentational_dependencies,
       &mut import_map,
       build_info,
       &mut rewrite_usage_span,
+      comments,
     ));
 
     if build_meta.esm {
