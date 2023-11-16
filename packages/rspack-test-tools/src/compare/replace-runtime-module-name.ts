@@ -65,20 +65,26 @@ const RUNTIME_MODULE_NAME_MAPPING = {
 
 const RUNTIME_MODULE_PARAM_REGEX = {
 	"webpack/runtime/get_chunk_filename":
-		/webpack\/runtime\/get_chunk_filename\/([\w\.\-_\s]+)(\*\/)?/g,
+		/webpack\/runtime\/get_chunk_filename\/([\w.\-_\s]+)(\*\/)?/g,
 	"webpack/runtime/get_main_filename":
-		/webpack\/runtime\/get_main_filename\/([\w\.\-_\s]+)(\*\/)?/g,
+		/webpack\/runtime\/get_main_filename\/([\w.\-_\s]+)(\*\/)?/g,
 	"webpack/runtime/chunk_prefetch_function":
-		/webpack\/runtime\/chunk_prefetch_function\/([\w\.\-_\s]+)(\*\/)?/g
+		/webpack\/runtime\/chunk_prefetch_function\/([\w.\-_\s]+)(\*\/)?/g
 };
 
 export function replaceRuntimeModuleName(raw: string) {
 	for (let [rspackName, webpackName] of Object.entries(
 		RUNTIME_MODULE_NAME_MAPPING
 	)) {
-		if (RUNTIME_MODULE_PARAM_REGEX[rspackName]) {
+		if (
+			RUNTIME_MODULE_PARAM_REGEX[
+				rspackName as keyof typeof RUNTIME_MODULE_PARAM_REGEX
+			]
+		) {
 			raw = raw.replace(
-				RUNTIME_MODULE_PARAM_REGEX[rspackName],
+				RUNTIME_MODULE_PARAM_REGEX[
+					rspackName as keyof typeof RUNTIME_MODULE_PARAM_REGEX
+				],
 				(full, $1, $2) => {
 					return webpackName.replace("$1", $1.trim()) + ($2 ? " */" : "");
 				}

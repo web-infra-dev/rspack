@@ -3,7 +3,7 @@ import {
 	Compiler as RspackCompiler,
 	Stats as RspackStats
 } from "@rspack/core";
-import {
+import type {
 	Configuration as WebpackOptions,
 	Compiler as WebpackCompiler,
 	Stats as WebpackStats
@@ -43,7 +43,7 @@ export interface ITestContext {
 	hasError(): boolean;
 }
 
-export const enum ECompilerType {
+export enum ECompilerType {
 	Rspack = "rspack",
 	Webpack = "webpack"
 }
@@ -119,3 +119,22 @@ export interface ITestProcessor {
 	run?(context: ITestContext): Promise<void>;
 	check?(context: ITestContext): Promise<unknown>;
 }
+
+export enum ECompareResultType {
+	Same = "same",
+	Missing = "missing",
+	OnlyDist = "only-dist",
+	OnlySource = "only-source",
+	Different = "different"
+}
+export type TCompareModules = string[] | true;
+export type TModuleCompareResult = {
+	type: ECompareResultType;
+	name: string;
+	detail?: unknown;
+	lines?: {
+		common: number;
+		source: number;
+		dist: number;
+	};
+};

@@ -1,5 +1,5 @@
 import { TestContext } from "./context";
-import { ITester, ITesterConfig, ITestContext, ITestProcessor } from "./type";
+import { ITester, ITesterConfig, ITestContext, ITestProcessor } from "../type";
 
 export class Tester implements ITester {
 	private context: ITestContext;
