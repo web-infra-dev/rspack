@@ -1,3 +1,4 @@
+#![feature(result_option_inspect)]
 #![feature(let_chains)]
 #![feature(box_patterns)]
 #![recursion_limit = "256"]

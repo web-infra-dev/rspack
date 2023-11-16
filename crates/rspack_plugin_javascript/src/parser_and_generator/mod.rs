@@ -220,8 +220,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     {
       ast.transform(|program, context| {
         let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
-        let mut visitor =
-          SideEffectsFlagPluginVisitor::new(SyntaxContextInfo::new(unresolved_ctxt));
+        let mut visitor = SideEffectsFlagPluginVisitor::new(
+          SyntaxContextInfo::new(unresolved_ctxt),
+          program.comments.as_ref(),
+        );
         program.visit_with(&mut visitor);
         build_meta.side_effect_free = Some(visitor.side_effects_span.is_none());
       });
@@ -239,9 +241,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             &mut rewrite_usage_span,
             &import_map,
             module_identifier,
+            program.comments.take(),
           );
           plugin.enable();
           program.visit_with(&mut plugin);
+          program.comments = plugin.comments.take();
           Some(plugin)
         })
       } else {

@@ -240,7 +240,7 @@ fn is_pure_call_expr<'a, 'b>(
   comments: Option<&'b SwcComments>,
 ) -> bool {
   let callee = &call_expr.callee;
-  // dbg!(&callee);
+  dbg!(&callee);
   // dbg!(&call_expr);
   // let unwrap_callee_span = match callee {
   //   // super is keyword in rust
