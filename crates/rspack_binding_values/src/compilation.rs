@@ -321,7 +321,7 @@ impl JsCompilation {
     self.inner.push_diagnostic(diagnostic);
   }
 
-  #[napi]
+  #[napi(ts_args_type = r#"diagnostics: ExternalObject<'Diagnostic[]'>"#)]
   pub fn push_native_diagnostics(&mut self, mut diagnostics: External<Vec<Diagnostic>>) {
     while let Some(diagnostic) = diagnostics.pop() {
       self.inner.push_diagnostic(diagnostic);

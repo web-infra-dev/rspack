@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "0.3.12",
+  "version": "0.3.13",
   "license": "MIT",
   "description": "A Fast Rust-based web bundler",
   "private": true,
@@ -34,6 +34,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/web-infra-dev/rspack"
+  },
+  "engines": {
+    "pnpm": "7.32.0"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
