@@ -4,11 +4,9 @@
     // TODO: Remove skipLibCheck when fix upstream type bug
     "skipLibCheck": true,
     "outDir": "dist",
-    "rootDir": ".",
-    "allowJs": true,
-    "strict": true
+    "rootDir": "src"
   },
-  "include": ["src", "package.json"],
+  "include": ["src"],
   "exclude": ["src/config/schema.check.js"],
   "ts-node": {
     "transpileOnly": true
