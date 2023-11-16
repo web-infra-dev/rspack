@@ -1,12 +1,10 @@
 use indexmap::IndexMap;
-use rspack_core::CompilerOptions;
 use rspack_core::{
   extract_member_expression_chain, tree_shaking::symbol::DEFAULT_JS_WORD, BoxDependency,
   BoxDependencyTemplate, BuildInfo, ConstDependency, DependencyType, SpanExt,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::JsWord;
-use swc_core::base::Compiler;
 use swc_core::common::Span;
 use swc_core::ecma::ast::{AssignExpr, AssignOp, MemberExpr, OptChainExpr};
 use swc_core::ecma::ast::{Callee, ExportAll, ExportSpecifier, Expr, Id, TaggedTpl};
@@ -73,9 +71,6 @@ pub struct HarmonyImportDependencyScanner<'a> {
   pub build_info: &'a mut BuildInfo,
   pub rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
   last_harmony_import_order: i32,
-  /// TODO: the options only used for check is_new_treeshaking, should removed after we
-  /// stabilized the new tree shaking
-  options: &'a CompilerOptions,
 }
 
 impl<'a> HarmonyImportDependencyScanner<'a> {
@@ -85,7 +80,6 @@ impl<'a> HarmonyImportDependencyScanner<'a> {
     import_map: &'a mut ImportMap,
     build_info: &'a mut BuildInfo,
     rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
-    options: &'a CompilerOptions,
   ) -> Self {
     Self {
       dependencies,
@@ -95,7 +89,6 @@ impl<'a> HarmonyImportDependencyScanner<'a> {
       build_info,
       rewrite_usage_span,
       last_harmony_import_order: 0,
-      options,
     }
   }
 }

@@ -153,7 +153,6 @@ pub fn scan_dependencies(
       &mut import_map,
       build_info,
       &mut rewrite_usage_span,
-      compiler_options,
     ));
     program.visit_with(&mut HarmonyExportDependencyScanner::new(
       &mut dependencies,

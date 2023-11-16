@@ -317,14 +317,12 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if self.import_map.contains_key(&ident.to_id()) {
       return;
     };
-    // dbg!(&ident);
     if ident.span.ctxt == self.top_level_ctxt {
       let usage = if let Some(symbol) = self.get_top_level_symbol() {
         InnerGraphMapUsage::TopLevel(symbol)
       } else {
         InnerGraphMapUsage::True
       };
-      // dbg!(&usage);
       self.add_usage(ident.sym.clone(), usage);
     }
   }
@@ -354,8 +352,6 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         }
         _ => {
           init.visit_children_with(self);
-          let res = is_pure_expression(init, self.unresolved_ctxt, self.comments.as_ref());
-          // dbg!(&res);
           if is_pure_expression(init, self.unresolved_ctxt, self.comments.as_ref()) {
             self.set_symbol_if_is_top_level(symbol);
             let start = init.span().real_lo();
@@ -504,7 +500,10 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     self.set_symbol_if_is_top_level(ident);
     match &node.decl {
       DefaultDecl::Class(class) => {
-        // TODO: should remove toplevel if it isnot pure
+        let is_pure = is_pure_class(&class.class, self.unresolved_ctxt, self.comments.as_ref());
+        if !is_pure {
+          self.set_top_level_symbol(None);
+        }
         class.visit_with(self);
       }
       DefaultDecl::Fn(func) => {

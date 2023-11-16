@@ -230,14 +230,12 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
   }
 }
 
-static PURE_COMMENTS: Lazy<regex::Regex> = Lazy::new(|| {
-  let reg = regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex");
-  reg
-});
-fn is_pure_call_expr<'a, 'b>(
-  call_expr: &'a CallExpr,
+static PURE_COMMENTS: Lazy<regex::Regex> =
+  Lazy::new(|| regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex"));
+fn is_pure_call_expr(
+  call_expr: &CallExpr,
   unresolved_ctxt: SyntaxContext,
-  comments: Option<&'b SwcComments>,
+  comments: Option<&SwcComments>,
 ) -> bool {
   let callee = &call_expr.callee;
   // dbg!(&callee);
@@ -273,7 +271,7 @@ fn is_pure_call_expr<'a, 'b>(
   } else {
     call_expr.args.iter().all(|arg| {
       if arg.spread.is_some() {
-        return false;
+        false
       } else {
         is_pure_expression(&arg.expr, unresolved_ctxt, comments)
       }
@@ -295,10 +293,10 @@ pub fn is_pure_expression<'a>(
   }
 }
 
-pub fn is_pure_decl<'a>(
+pub fn is_pure_decl(
   stmt: &Decl,
   unresolved_ctxt: SyntaxContext,
-  comments: Option<&'a SwcComments>,
+  comments: Option<&SwcComments>,
 ) -> bool {
   match stmt {
     Decl::Class(class) => is_pure_class(&class.class, unresolved_ctxt, comments),
@@ -313,10 +311,10 @@ pub fn is_pure_decl<'a>(
   }
 }
 
-pub fn is_pure_class<'a>(
+pub fn is_pure_class(
   class: &Class,
   unresolved_ctxt: SyntaxContext,
-  comments: Option<&'a SwcComments>,
+  comments: Option<&SwcComments>,
 ) -> bool {
   if let Some(ref super_class) = class.super_class {
     if !is_pure_expression(super_class, unresolved_ctxt, comments) {

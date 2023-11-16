@@ -16,7 +16,6 @@ use super::{create_resource_identifier_for_esm_dependency, harmony_import_depend
 // Create _webpack_require__.d(__webpack_exports__, {}).
 // case1: `import { a } from 'a'; export { a }`
 // case2: `export { a } from 'a';`
-// TODO case3: `export * from 'a'`
 #[derive(Debug, Clone)]
 pub struct HarmonyExportImportedSpecifierDependency {
   pub id: DependencyId,
@@ -520,7 +519,6 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       }
     }
 
-    // dbg!(self.dependency_debug_name(), self.request());
     let mut exports = vec![];
     for id in &self.ids {
       if used_exports.is_none() || matches!(used_exports.as_ref(), Some(x) if x.contains(&id.0)) {
