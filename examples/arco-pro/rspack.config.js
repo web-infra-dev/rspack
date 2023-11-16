@@ -15,7 +15,6 @@ const config = {
 		webSocketServer: "sockjs",
 		historyApiFallback: true
 	},
-	devtool: false,
 	module: {
 		rules: [
 			{
@@ -104,12 +103,7 @@ const config = {
 					minChunks: 2
 				}
 			}
-		},
-		providedExports: true,
-		usedExports: true,
-		sideEffects: true,
-		innerGraph: true,
-		moduleIds: "named"
+		}
 	},
 	plugins: [
 		new HtmlPlugin({
@@ -123,13 +117,9 @@ const config = {
 	infrastructureLogging: {
 		debug: false
 	},
-	builtins: {
-		treeShaking: true
-	},
 	experiments: {
 		rspackFuture: {
-			disableTransformByDefault: true,
-			newTreeshaking: true
+			disableTransformByDefault: true
 		}
 	}
 };
