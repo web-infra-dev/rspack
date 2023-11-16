@@ -104,35 +104,18 @@ fn render_module(
   runtime_requirements: Option<&RuntimeGlobals>,
   module_id: &str,
 ) -> Result<BoxSource> {
-  let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
-  // TODO: determine arguments by runtime requirements after aligning commonjs dependencies with webpack
-  // let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
-  // let need_require = runtime_requirements.is_some_and(|r| {
-  //   r.contains(RuntimeGlobals::REQUIRE) || r.contains(RuntimeGlobals::REQUIRE_SCOPE)
-  // });
-  let need_exports = true;
-  let need_require = true;
-
-  let mut args = Vec::new();
-  if need_module || need_exports || need_require {
+  // TODO unused exports_argument
+  let module_argument = {
     let module_argument = mgm.get_module_argument();
-    args.push(if need_module {
+    if let Some(runtime_requirements) = runtime_requirements
+      && runtime_requirements.contains(RuntimeGlobals::MODULE)
+    {
       module_argument.to_string()
     } else {
       format!("__unused_webpack_{module_argument}")
-    });
-  }
-  if need_exports || need_require {
-    let exports_argument = mgm.get_exports_argument();
-    args.push(if need_exports {
-      exports_argument.to_string()
-    } else {
-      format!("__unused_webpack_{exports_argument}")
-    });
-  }
-  if need_require {
-    args.push(RuntimeGlobals::REQUIRE.to_string());
-  }
+    }
+  };
+  let exports_argument = mgm.get_exports_argument();
   let mut sources = ConcatSource::new([
     RawSource::from(serde_json::to_string(module_id).map_err(|e| internal_error!(e.to_string()))?),
     RawSource::from(": "),
@@ -141,8 +124,8 @@ fn render_module(
     sources.add(RawSource::from(format!("\n/* start::{} */\n", module_id)));
   }
   sources.add(RawSource::from(format!(
-    "(function ({}) {{\n",
-    args.join(", ")
+    "(function ({module_argument}, {exports_argument}, {}) {{\n",
+    RuntimeGlobals::REQUIRE
   )));
   if let Some(build_info) = &mgm.build_info
     && build_info.strict
