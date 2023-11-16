@@ -1,6 +1,5 @@
 import { RspackOptions, rspack } from "@rspack/core";
 import { RspackDevServer, Configuration } from "@rspack/dev-server";
-import { createCompiler } from "@rspack/core";
 import ReactRefreshPlugin from "@rspack/plugin-react-refresh";
 // @ts-expect-error
 import serializer from "jest-serializer-path";
@@ -94,7 +93,7 @@ describe("normalize options snapshot", () => {
 	});
 
 	it("react.development and react.refresh should be true by default when hot enabled", async () => {
-		const compiler = createCompiler({
+		const compiler = rspack({
 			entry: ENTRY,
 			stats: "none"
 		});
@@ -111,7 +110,7 @@ describe("normalize options snapshot", () => {
 	});
 
 	it("hot should be true by default", async () => {
-		const compiler = createCompiler({
+		const compiler = rspack({
 			entry: ENTRY,
 			stats: "none"
 		});
@@ -140,7 +139,7 @@ describe("normalize options snapshot", () => {
 });
 
 async function match(config: RspackOptions) {
-	const compiler = createCompiler({
+	const compiler = rspack({
 		...config,
 		entry: ENTRY,
 		stats: "none"
@@ -161,7 +160,7 @@ async function getAdditionEntries(
 	serverConfig: Configuration,
 	config: RspackOptions
 ) {
-	const compiler = createCompiler({
+	const compiler = rspack({
 		...config,
 		stats: "none",
 		entry: ENTRY

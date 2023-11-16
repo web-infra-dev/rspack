@@ -1,6 +1,6 @@
 import path from "path";
 import { Fixtures, PlaywrightTestArgs } from "@playwright/test";
-import { Compiler, Configuration, createCompiler } from "@rspack/core";
+import { Compiler, Configuration, rspack } from "@rspack/core";
 import { RspackDevServer } from "@rspack/dev-server";
 import WebpackDevServer from "webpack-dev-server";
 import type { PathInfoFixtures } from "./pathInfo";
@@ -19,7 +19,7 @@ class Rspack {
 		const configPath = path.resolve(projectDir, "rspack.config.js");
 		const config = handleRspackConfig(require(configPath));
 		delete require.cache[configPath];
-		const compiler = createCompiler(config);
+		const compiler = rspack(config);
 
 		this.projectDir = projectDir;
 		this.compiler = compiler;
@@ -32,7 +32,7 @@ class Rspack {
 		});
 		const DevServerConstructor = wds ? WebpackDevServer : RspackDevServer;
 		this.devServer = new DevServerConstructor(
-			compiler.options.devServer ?? {},
+			compiler.options.devServer ?? ({} as any),
 			compiler
 		);
 	}
