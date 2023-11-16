@@ -437,9 +437,6 @@ const applyOutputDefaults = (
 		if (libraryName) return libraryName;
 		const pkgPath = path.resolve(context, "package.json");
 		try {
-			if (output?.library?.name) {
-				return output.library.name;
-			}
 			const packageInfo = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
 			return packageInfo.name || "";
 		} catch (e: any) {
