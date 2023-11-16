@@ -262,6 +262,11 @@ jobs:
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc'  &&  matrix.node  != '14' }}
         run: pnpm run test:ci
 
+      ### Diff with webpack
+      - name: Diff test
+        timeout-minutes: 15
+        run: pnpm run test:diff
+
       ### write the latest metric into branch gh-pages
       ### Note that, We can't merge this script, because this script only runs on main branch
       - name: Update main branch test compatibility metric
