@@ -14,6 +14,7 @@ use swc_core::{
     visit::{noop_visit_type, Visit, VisitWith},
   },
 };
+use swc_node_comments::SwcComments;
 
 use super::{harmony_import_dependency_scanner::ImportMap, ExtraSpanInfo};
 use crate::dependency::{
@@ -22,21 +23,23 @@ use crate::dependency::{
   DEFAULT_EXPORT,
 };
 
-pub struct HarmonyExportDependencyScanner<'a> {
+pub struct HarmonyExportDependencyScanner<'a, 'b> {
   pub dependencies: &'a mut Vec<BoxDependency>,
   pub presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
   pub import_map: &'a mut ImportMap,
   pub build_info: &'a mut BuildInfo,
   pub rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
+  pub comments: Option<&'b SwcComments>,
 }
 
-impl<'a> HarmonyExportDependencyScanner<'a> {
+impl<'a, 'b> HarmonyExportDependencyScanner<'a, 'b> {
   pub fn new(
     dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
     import_map: &'a mut ImportMap,
     build_info: &'a mut BuildInfo,
     rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
+    comments: Option<&'b SwcComments>,
   ) -> Self {
     Self {
       dependencies,
@@ -44,11 +47,12 @@ impl<'a> HarmonyExportDependencyScanner<'a> {
       import_map,
       build_info,
       rewrite_usage_span,
+      comments,
     }
   }
 }
 
-impl Visit for HarmonyExportDependencyScanner<'_> {
+impl<'a, 'b> Visit for HarmonyExportDependencyScanner<'a, 'b> {
   noop_visit_type!();
 
   fn visit_program(&mut self, program: &'_ Program) {
@@ -169,7 +173,6 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
   fn visit_export_default_expr(&mut self, export_default_expr: &'_ ExportDefaultExpr) {
     // TODO this should be at `HarmonyExportExpressionDependency`
-    // TODO: add variable usage
     self
       .dependencies
       .push(Box::new(HarmonyExportSpecifierDependency::new(
@@ -181,11 +184,19 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
       export_default_expr.span,
       ExtraSpanInfo::AddVariableUsage(vec![(DEFAULT_EXPORT.into(), DEFAULT_JS_WORD.clone())]),
     );
+    let end = self
+      .comments
+      .and_then(|comments| {
+        let comment_list = comments.leading.get(&export_default_expr.expr.span_lo())?;
+        let first_comment = comment_list.first()?;
+        Some(first_comment.span.span().real_lo())
+      })
+      .unwrap_or(export_default_expr.expr.span().real_lo());
     self
       .presentational_dependencies
       .push(Box::new(HarmonyExportExpressionDependency::new(
         export_default_expr.span().real_lo(),
-        export_default_expr.expr.span().real_lo(),
+        end,
         false,
         None,
       )));
