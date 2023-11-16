@@ -1,13 +1,11 @@
 use rspack_error::{internal_error, Result};
 use rustc_hash::FxHashSet as HashSet;
 
+use crate::ExportsInfoId;
 use crate::{
   module_graph::ConnectionId, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType,
   ChunkGraph, DependencyId, ExportsArgument, ExportsType, FactoryMeta, ModuleArgument, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, ModuleIssuer, ModuleProfile, ModuleSyntax, ModuleType,
-};
-use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockId, ExportsInfoId, GroupOptions, IS_NEW_TREESHAKING,
 };
 
 #[derive(Debug)]
