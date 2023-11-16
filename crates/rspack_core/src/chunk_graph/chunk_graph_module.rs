@@ -3,9 +3,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::hash::{BuildHasherDefault, Hasher};
 
-use dashmap::mapref::one::{
-  MappedRef as DashMapMappedRef, Ref as DashMapRef, RefMut as DashMapRefMut,
-};
+use dashmap::mapref::one::{Ref as DashMapRef, RefMut as DashMapRefMut};
 use rspack_identifier::{Identifier, IdentifierHasher};
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet as HashSet;
@@ -64,10 +62,15 @@ impl ChunkGraph {
     &self,
     module_identifier: ModuleIdentifier,
   ) -> DashMapRef<'_, Identifier, ChunkGraphModule, BuildHasherDefault<IdentifierHasher>> {
-    self
+    if !self
       .chunk_graph_module_by_module_identifier
-      .entry(module_identifier)
-      .or_default();
+      .contains_key(&module_identifier)
+    {
+      self
+        .chunk_graph_module_by_module_identifier
+        .entry(module_identifier)
+        .or_default();
+    }
     self
       .chunk_graph_module_by_module_identifier
       .get(&module_identifier)

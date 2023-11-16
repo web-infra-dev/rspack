@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use rayon::prelude::*;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_hash::RspackHashDigest;
