@@ -13,8 +13,7 @@
   },
   "scripts": {
     "build": "rimraf dist/ && tsc -b ./tsconfig.build.json --force",
-    "dev": "tsc -b -w",
-    "test": "jest --runInBand"
+    "dev": "tsc -b -w"
   },
   "files": [
     "client",
