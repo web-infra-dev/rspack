@@ -1,7 +1,8 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use once_cell::sync::Lazy;
-use rspack_identifier::{Identifiable, Identifier};
+use rspack_identifier::Identifier;
+use serde::Serialize;
 
 use crate::{BoxDependency, DependencyId, GroupOptions};
 
@@ -25,7 +26,7 @@ fn get_async_dependencies_block_id() -> AsyncDependenciesBlockId {
   ))
 }
 
-#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 pub struct AsyncDependenciesBlockId(Identifier);
 
 #[derive(Debug, Clone)]
@@ -80,12 +81,6 @@ impl AsyncDependenciesBlock {
 
   pub fn take_blocks(&mut self) -> Vec<AsyncDependenciesBlock> {
     std::mem::take(&mut self.blocks)
-  }
-}
-
-impl Identifiable for AsyncDependenciesBlock {
-  fn identifier(&self) -> Identifier {
-    self.id.0
   }
 }
 

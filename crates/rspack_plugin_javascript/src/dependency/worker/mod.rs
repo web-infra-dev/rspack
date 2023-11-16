@@ -90,11 +90,11 @@ impl DependencyTemplate for WorkerDependency {
     } = code_generatable_context;
     let chunk_id = compilation
       .module_graph
-      .module_identifier_by_dependency_id(&self.id)
-      .and_then(|module| {
+      .get_parent_block(&self.id)
+      .and_then(|block| {
         compilation
           .chunk_graph
-          .get_block_chunk_group(module, &compilation.chunk_group_by_ukey)
+          .get_block_chunk_group(block, &compilation.chunk_group_by_ukey)
       })
       .map(|entrypoint| entrypoint.get_entry_point_chunk())
       .and_then(|ukey| compilation.chunk_by_ukey.get(&ukey))

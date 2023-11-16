@@ -8,8 +8,9 @@ use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  BoxModule, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, ExportsHash,
-  ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  AsyncDependenciesBlockId, BoxModule, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkUkey, ExportsHash, ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap,
+  RuntimeSpecSet,
 };
 use crate::{ChunkGraph, ModuleGraph};
 
@@ -145,11 +146,9 @@ impl ChunkGraph {
     cgm.id = Some(id);
   }
 
-  /// Notice, you should only call this function with a ModuleIdentifier that's imported dynamically or
-  /// is entry module.
   pub fn get_block_chunk_group<'a>(
     &self,
-    block: &ModuleIdentifier,
+    block: &AsyncDependenciesBlockId,
     chunk_group_by_ukey: &'a ChunkGroupByUkey,
   ) -> Option<&'a ChunkGroup> {
     self
@@ -160,7 +159,7 @@ impl ChunkGraph {
 
   pub fn connect_block_and_chunk_group(
     &mut self,
-    block: ModuleIdentifier,
+    block: AsyncDependenciesBlockId,
     chunk_group: ChunkGroupUkey,
   ) {
     self.block_to_chunk_group_ukey.insert(block, chunk_group);

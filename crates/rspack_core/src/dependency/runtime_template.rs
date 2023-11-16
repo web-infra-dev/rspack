@@ -1,9 +1,9 @@
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  property_access, Compilation, DependencyId, ExportsType, FakeNamespaceObjectMode,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier,
-  NormalInitFragment, RuntimeGlobals, TemplateContext,
+  property_access, AsyncDependenciesBlockId, Compilation, DependenciesBlock, DependencyId,
+  ExportsType, FakeNamespaceObjectMode, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext,
 };
 
 pub fn export_from_import(
@@ -134,7 +134,7 @@ pub fn module_id(
     .module_identifier_by_dependency_id(id)
     && let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier)
   {
-    module_id_expr(request, module_id)
+    module_id_expr(request, &module_id)
   } else if weak {
     "null /* weak dependency, without id */".to_string()
   } else {
@@ -186,9 +186,9 @@ pub fn import_statement(
 
 pub fn module_namespace_promise(
   code_generatable_context: &mut TemplateContext,
-  id: &DependencyId,
+  dep_id: &DependencyId,
+  block: Option<&AsyncDependenciesBlockId>,
   request: &str,
-  block: bool, // FIXME:
   _message: &str,
   weak: bool,
 ) -> String {
@@ -199,9 +199,9 @@ pub fn module_namespace_promise(
     ..
   } = code_generatable_context;
 
-  let module_id_expr = module_id(compilation, id, request, weak);
-  let exports_type = get_exports_type(&compilation.module_graph, id, &module.identifier());
-  let promise = block_promise(&module_id_expr, block, runtime_requirements);
+  let promise = block_promise(block, runtime_requirements, &compilation);
+  let exports_type = get_exports_type(&compilation.module_graph, dep_id, &module.identifier());
+  let module_id_expr = module_id(compilation, dep_id, request, weak);
 
   let header = if weak {
     runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES);
@@ -220,7 +220,7 @@ pub fn module_namespace_promise(
       if let Some(header) = header {
         appending = format!(
           ".then(function() {{ {header}\nreturn {}}})",
-          module_raw(compilation, runtime_requirements, id, request, weak)
+          module_raw(compilation, runtime_requirements, dep_id, request, weak)
         )
       } else {
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
@@ -246,7 +246,7 @@ pub fn module_namespace_promise(
         if let Some(header) = header {
           appending = format!(
             ".then(function() {{\n {header}\nreturn {}\n}})",
-            module_raw(compilation, runtime_requirements, id, request, weak)
+            module_raw(compilation, runtime_requirements, dep_id, request, weak)
           )
         } else {
           runtime_requirements.insert(RuntimeGlobals::REQUIRE);
@@ -282,19 +282,36 @@ pub fn module_namespace_promise(
 }
 
 pub fn block_promise(
-  module_id_str: &str,
-  block: bool,
+  block: Option<&AsyncDependenciesBlockId>,
   runtime_requirements: &mut RuntimeGlobals,
+  compilation: &Compilation,
 ) -> String {
-  if !block {
+  let Some(block) = block else {
     return "Promise.resolve()".to_string();
-  }
+  };
+  let key = block_promise_key(block, compilation);
   runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
-  runtime_requirements.insert(RuntimeGlobals::LOAD_CHUNK_WITH_MODULE);
-  format!(
-    "{}({module_id_str})",
-    RuntimeGlobals::LOAD_CHUNK_WITH_MODULE
-  )
+  runtime_requirements.insert(RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK);
+  format!("{}({key})", RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK)
+}
+
+pub fn block_promise_key(block_id: &AsyncDependenciesBlockId, compilation: &Compilation) -> String {
+  let block = compilation
+    .module_graph
+    .block_by_id(block_id)
+    .expect("should have block");
+  let key = block
+    .get_dependencies()
+    .iter()
+    .filter_map(|dep_id| {
+      compilation
+        .module_graph
+        .module_graph_module_by_dependency_id(dep_id)
+    })
+    .map(|m| m.id(&compilation.chunk_graph))
+    .collect::<Vec<_>>()
+    .join(",");
+  serde_json::to_string(&key).expect("string should be able to json to_string")
 }
 
 pub fn module_raw(

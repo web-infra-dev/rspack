@@ -317,7 +317,7 @@ impl Plugin for RuntimePlugin {
         RuntimeGlobals::GET_FULL_HASH => {
           compilation.add_runtime_module(chunk, GetFullHashRuntimeModule::default().boxed())
         }
-        RuntimeGlobals::LOAD_CHUNK_WITH_MODULE => {
+        RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK => {
           compilation.add_runtime_module(chunk, LoadChunkWithModuleRuntimeModule::default().boxed())
         }
         RuntimeGlobals::GLOBAL => {

@@ -571,7 +571,7 @@ impl Module for ContextModule {
           .insert(RuntimeGlobals::ENSURE_CHUNK);
         code_generation_result
           .runtime_requirements
-          .insert(RuntimeGlobals::LOAD_CHUNK_WITH_MODULE);
+          .insert(RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK);
       }
       _ => {}
     }

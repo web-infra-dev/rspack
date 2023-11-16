@@ -751,23 +751,29 @@ impl Compilation {
                  blocks: Vec<AsyncDependenciesBlock>,
                  queue: &mut Vec<AsyncDependenciesBlock>,
                  module_graph: &mut ModuleGraph,
-                 current_block: Option<AsyncDependenciesBlockId>| {
+                 current_block: Option<AsyncDependenciesBlock>| {
                   for dependency in dependencies {
                     if let Some(dependency) = dependency.as_module_dependency() {
                       module_graph
                         .set_dependency_import_var(module.identifier(), dependency.request());
                     }
                     let dependency_id = *dependency.id();
-                    module.add_dependency_id(dependency_id);
+                    if current_block.is_none() {
+                      module.add_dependency_id(dependency_id);
+                    }
                     all_dependencies.push(dependency_id);
                     module_graph.set_parents(
                       dependency_id,
                       DependencyParents {
-                        block: current_block,
+                        block: current_block.as_ref().map(|block| block.id()),
                         module: module.identifier(),
                       },
                     );
                     module_graph.add_dependency(dependency);
+                  }
+                  if let Some(current_block) = current_block {
+                    module.add_block_id(current_block.id());
+                    module_graph.add_block(current_block);
                   }
                   for block in blocks {
                     queue.push(block);
@@ -783,14 +789,12 @@ impl Compilation {
               while let Some(mut block) = queue.pop() {
                 let dependencies = block.take_dependencies();
                 let blocks = block.take_blocks();
-                let block_id = block.id();
-                self.module_graph.add_block(block);
                 handle_block(
                   dependencies,
                   blocks,
                   &mut queue,
                   &mut self.module_graph,
-                  Some(block_id),
+                  Some(block),
                 );
               }
 

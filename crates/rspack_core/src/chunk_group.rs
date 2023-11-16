@@ -313,6 +313,13 @@ impl GroupOptions {
       Self::ChunkGroup(n) => n.name.as_deref(),
     }
   }
+
+  pub fn entry_options(&self) -> Option<&EntryOptions> {
+    match self {
+      GroupOptions::Entrypoint(e) => Some(e),
+      GroupOptions::ChunkGroup(_) => None,
+    }
+  }
 }
 
 #[derive(Debug, Default, Clone)]
