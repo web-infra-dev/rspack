@@ -7,6 +7,7 @@ use std::{
   sync::Arc,
 };
 
+use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -209,54 +210,56 @@ impl ContextModule {
       .expect("module id not found")
   }
 
-  fn get_fake_map(&self, compilation: &Compilation) -> FakeMapValue {
+  fn get_fake_map(
+    &self,
+    dependencies: impl IntoIterator<Item = &DependencyId>,
+    compilation: &Compilation,
+  ) -> FakeMapValue {
+    let dependencies = dependencies.into_iter();
     if self.options.context_options.namespace_object.is_false() {
       return FakeMapValue::Bit(FakeNamespaceObjectMode::NAMESPACE);
     }
     let mut has_type = 0;
     let mut fake_map = HashMap::default();
-    if let Some(dependencies) = compilation
-      .module_graph
-      .dependencies_by_module_identifier(&self.identifier)
-    {
-      for dependency_id in dependencies {
-        if let Some(module_identifier) = compilation
+    let sorted_modules = dependencies
+      .filter_map(|dep_id| {
+        compilation
           .module_graph
-          .module_identifier_by_dependency_id(dependency_id)
-        {
-          if let Some(module_id) = compilation
-            .chunk_graph
-            .get_module_id(*module_identifier)
-            .clone()
-          {
-            let module_id = module_id.to_string();
-            let exports_type = get_exports_type_with_strict(
-              &compilation.module_graph,
-              dependency_id,
-              matches!(
-                self.options.context_options.namespace_object,
-                ContextNameSpaceObject::Strict
-              ),
-            );
-            match exports_type {
-              ExportsType::Namespace => {
-                fake_map.insert(module_id, FakeNamespaceObjectMode::NAMESPACE);
-                has_type |= 1;
-              }
-              ExportsType::Dynamic => {
-                fake_map.insert(module_id, FakeNamespaceObjectMode::DYNAMIC);
-                has_type |= 2;
-              }
-              ExportsType::DefaultOnly => {
-                fake_map.insert(module_id, FakeNamespaceObjectMode::MODULE_ID);
-                has_type |= 4;
-              }
-              ExportsType::DefaultWithNamed => {
-                fake_map.insert(module_id, FakeNamespaceObjectMode::DEFAULT_WITH_NAMED);
-                has_type |= 8;
-              }
-            }
-          }
+          .module_identifier_by_dependency_id(dep_id)
+          .map(|m| (m, dep_id))
+      })
+      .filter_map(|(m, dep)| {
+        compilation
+          .chunk_graph
+          .get_module_id(*m)
+          .map(|id| (id, dep))
+      })
+      .sorted_unstable_by_key(|(module_id, _)| module_id.to_string());
+    for (module_id, dep) in sorted_modules {
+      let exports_type = get_exports_type_with_strict(
+        &compilation.module_graph,
+        dep,
+        matches!(
+          self.options.context_options.namespace_object,
+          ContextNameSpaceObject::Strict
+        ),
+      );
+      match exports_type {
+        ExportsType::Namespace => {
+          fake_map.insert(module_id, FakeNamespaceObjectMode::NAMESPACE);
+          has_type |= 1;
+        }
+        ExportsType::Dynamic => {
+          fake_map.insert(module_id, FakeNamespaceObjectMode::DYNAMIC);
+          has_type |= 2;
+        }
+        ExportsType::DefaultOnly => {
+          fake_map.insert(module_id, FakeNamespaceObjectMode::MODULE_ID);
+          has_type |= 4;
+        }
+        ExportsType::DefaultWithNamed => {
+          fake_map.insert(module_id, FakeNamespaceObjectMode::DEFAULT_WITH_NAMED);
+          has_type |= 8;
         }
       }
     }
@@ -293,31 +296,31 @@ impl ContextModule {
     )
   }
 
-  fn get_user_request_map(&self, compilation: &Compilation) -> HashMap<String, String> {
+  fn get_user_request_map(
+    &self,
+    dependencies: impl IntoIterator<Item = &DependencyId>,
+    compilation: &Compilation,
+  ) -> HashMap<String, String> {
+    let dependencies = dependencies.into_iter();
     let mut map = HashMap::default();
-    if let Some(dependencies) = compilation
-      .module_graph
-      .dependencies_by_module_identifier(&self.identifier)
-    {
-      for dependency in dependencies {
-        if let Some(module_identifier) = compilation
+    for dependency in dependencies {
+      if let Some(module_identifier) = compilation
+        .module_graph
+        .module_identifier_by_dependency_id(dependency)
+      {
+        if let Some(dependency) = compilation
           .module_graph
-          .module_identifier_by_dependency_id(dependency)
+          .dependency_by_id(dependency)
+          .and_then(|d| d.as_module_dependency())
         {
-          if let Some(dependency) = compilation
-            .module_graph
-            .dependency_by_id(dependency)
-            .and_then(|d| d.as_module_dependency())
-          {
-            map.insert(
-              dependency.user_request().to_string(),
-              if let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier) {
-                format!("\"{module_id}\"")
-              } else {
-                "null".to_string()
-              },
-            );
-          }
+          map.insert(
+            dependency.user_request().to_string(),
+            if let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier) {
+              format!("\"{module_id}\"")
+            } else {
+              "null".to_string()
+            },
+          );
         }
       }
     }
@@ -328,13 +331,29 @@ impl ContextModule {
   fn get_source_string(&self, compilation: &Compilation) -> Result<BoxSource> {
     match self.options.context_options.mode {
       ContextMode::Lazy => Ok(self.get_lazy_source(compilation)),
-      _ => self.generate_source(compilation),
+      ContextMode::LazyOnce => {
+        let block = self
+          .get_blocks()
+          .first()
+          .expect("LazyOnce ContextModule should have first block");
+        let block = compilation
+          .module_graph
+          .block_by_id(block)
+          .expect("should have block");
+        self.generate_source(block.get_dependencies(), compilation)
+      }
+      _ => self.generate_source(self.get_dependencies(), compilation),
     }
   }
 
   fn get_lazy_source(&self, compilation: &Compilation) -> BoxSource {
-    let map = self.get_user_request_map(compilation);
-    let fake_map = self.get_fake_map(compilation);
+    let dependencies = self
+      .get_blocks()
+      .iter()
+      .filter_map(|b| compilation.module_graph.block_by_id(b))
+      .filter_map(|b| b.get_dependencies().first());
+    let fake_map = self.get_fake_map(dependencies.clone(), compilation);
+    let map = self.get_user_request_map(dependencies, compilation);
     let return_module_object = self.get_return_module_object_source(&fake_map, true);
     let mut source = ConcatSource::default();
     source.add(RawSource::from(format!(
@@ -373,9 +392,13 @@ impl ContextModule {
     source.boxed()
   }
 
-  fn generate_source(&self, compilation: &Compilation) -> Result<BoxSource> {
-    let map = self.get_user_request_map(compilation);
-    let fake_map = self.get_fake_map(compilation);
+  fn generate_source(
+    &self,
+    dependencies: &[DependencyId],
+    compilation: &Compilation,
+  ) -> Result<BoxSource> {
+    let map = self.get_user_request_map(dependencies, compilation);
+    let fake_map = self.get_fake_map(dependencies, compilation);
     let mode = &self.options.context_options.mode;
     let return_module_object = {
       match *mode {
@@ -574,7 +597,15 @@ impl Module for ContextModule {
       }
       _ => {}
     }
-    let fake_map = self.get_fake_map(compilation);
+    let mut all_deps = self.get_dependencies().to_vec();
+    for block in self.get_blocks() {
+      let block = compilation
+        .module_graph
+        .block_by_id(block)
+        .expect("should have block");
+      all_deps.extend(block.get_dependencies());
+    }
+    let fake_map = self.get_fake_map(all_deps.iter(), compilation);
     if !matches!(fake_map, FakeMapValue::Bit(bit) if bit == FakeNamespaceObjectMode::NAMESPACE) {
       code_generation_result
         .runtime_requirements

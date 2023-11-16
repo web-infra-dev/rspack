@@ -163,6 +163,12 @@ impl ModuleGraph {
     self.dependency_id_to_module_identifier.get(id)
   }
 
+  pub fn get_module(&self, id: &DependencyId) -> Option<&BoxModule> {
+    self
+      .module_identifier_by_dependency_id(id)
+      .and_then(|m| self.module_by_identifier(m))
+  }
+
   /// Add a connection between two module graph modules, if a connection exists, then it will be reused.
   pub fn set_resolved_module(
     &mut self,
