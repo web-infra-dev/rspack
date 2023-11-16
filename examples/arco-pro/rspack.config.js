@@ -9,7 +9,7 @@ const prod = process.env.NODE_ENV === "production";
 const config = {
 	context: __dirname,
 	entry: "./src/index.tsx",
-	target: ["web", "es2022"],
+	target: ["web", "es5"],
 	devServer: {
 		port: 5555,
 		webSocketServer: "sockjs",
@@ -108,7 +108,7 @@ const config = {
 		providedExports: true,
 		usedExports: true,
 		sideEffects: true,
-		innerGraph: false,
+		innerGraph: true,
 		moduleIds: "named"
 	},
 	plugins: [
@@ -124,12 +124,12 @@ const config = {
 		debug: false
 	},
 	builtins: {
-		treeShaking: false
+		treeShaking: true
 	},
 	experiments: {
 		rspackFuture: {
 			disableTransformByDefault: true,
-			newTreeshaking: false
+			newTreeshaking: true
 		}
 	}
 };

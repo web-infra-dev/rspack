@@ -327,7 +327,6 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if !self.is_enabled() {
       return;
     }
-
     if let Pat::Ident(ident) = &n.name
       && let Some(box init) = &n.init
       && self.is_toplevel()
@@ -350,7 +349,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         _ => {
           init.visit_children_with(self);
           let res = is_pure_expression(init, self.unresolved_ctxt);
-          dbg!(&res);
+          // dbg!(&res);
           if is_pure_expression(init, self.unresolved_ctxt) {
             self.set_symbol_if_is_top_level(symbol);
             let start = init.span().real_lo();
@@ -495,10 +494,10 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     match &node.decl {
       DefaultDecl::Class(class) => {
         // TODO: should remove toplevel if it isnot pure
-        class.class.visit_with(self);
+        class.visit_with(self);
       }
       DefaultDecl::Fn(func) => {
-        func.function.visit_with(self);
+        func.visit_with(self);
       }
       DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
     }
