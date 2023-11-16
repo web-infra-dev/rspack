@@ -10,8 +10,8 @@ export async function runBuild<T extends ECompilerType>(
 			new Promise<void>((resolve, reject) => {
 				compiler.run((error, newStats) => {
 					if (error) return reject(error);
-					context.stats(() => newStats);
-					stats = newStats;
+					context.stats(() => newStats as TCompilerStats<T>);
+					stats = newStats as TCompilerStats<T>;
 					resolve();
 				});
 			}),
