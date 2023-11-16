@@ -238,19 +238,6 @@ fn is_pure_call_expr(
   comments: Option<&SwcComments>,
 ) -> bool {
   let callee = &call_expr.callee;
-  // dbg!(&callee);
-  // dbg!(&call_expr);
-  // let unwrap_callee_span = match callee {
-  //   // super is keyword in rust
-  //   Callee::Super(su) => su.span,
-  //   Callee::Import(import) => import.span,
-  //   Callee::Expr(box expr) => match expr {
-  //     Expr::Paren(exp) => exp.expr.span(),
-  //     _ => expr.span(),
-  //   },
-  // };
-  // dbg!(&unwrap_callee_span);
-  // dbg!(&callee.span());
   let pure_flag = comments
     .and_then(|comments| {
       // dbg!(&comments.leading);
