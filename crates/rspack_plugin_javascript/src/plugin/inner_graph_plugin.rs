@@ -14,6 +14,7 @@ use swc_core::{
     visit::{noop_visit_type, Visit, VisitWith},
   },
 };
+use swc_node_comments::SwcComments;
 
 use crate::{
   dependency::{PureExpressionDependency, DEFAULT_EXPORT},
@@ -83,6 +84,7 @@ pub struct InnerGraphPlugin<'a> {
   scope_level: usize,
   rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
   import_map: &'a ImportMap,
+  pub comments: Option<SwcComments>,
 }
 
 impl<'a> Visit for InnerGraphPlugin<'a> {
@@ -154,7 +156,9 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         PropName::Ident(_ident) => true,
         PropName::Str(_) => true,
         PropName::Num(_) => true,
-        PropName::Computed(computed) => is_pure_expression(&computed.expr, self.unresolved_ctxt),
+        PropName::Computed(computed) => {
+          is_pure_expression(&computed.expr, self.unresolved_ctxt, self.comments.as_ref())
+        }
         PropName::BigInt(_) => true,
       }
     } else {
@@ -266,7 +270,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if !self.is_enabled() {
       return;
     }
-    let is_pure_class = is_pure_class(&node.class, self.unresolved_ctxt);
+    let is_pure_class = is_pure_class(&node.class, self.unresolved_ctxt, self.comments.as_ref());
     if is_pure_class {
       self.set_symbol_if_is_top_level(node.ident.sym.clone());
     }
@@ -327,7 +331,6 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     if !self.is_enabled() {
       return;
     }
-
     if let Pat::Ident(ident) = &n.name
       && let Some(box init) = &n.init
       && self.is_toplevel()
@@ -340,7 +343,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
           self.clear_symbol_if_is_top_level();
         }
         Expr::Class(class) => {
-          let is_pure = is_pure_class(&class.class, self.unresolved_ctxt);
+          let is_pure = is_pure_class(&class.class, self.unresolved_ctxt, self.comments.as_ref());
           if is_pure {
             self.set_symbol_if_is_top_level(symbol);
           }
@@ -349,7 +352,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         }
         _ => {
           init.visit_children_with(self);
-          if is_pure_expression(init, self.unresolved_ctxt) {
+          if is_pure_expression(init, self.unresolved_ctxt, self.comments.as_ref()) {
             self.set_symbol_if_is_top_level(symbol);
             let start = init.span().real_lo();
             let end = init.span().real_hi();
@@ -433,23 +436,24 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     }
     *self.rewrite_usage_span = rewrite_usage_span;
 
-    self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
-
     let expr = node.expr.unwrap_parens();
     match expr {
       Expr::Fn(_) | Expr::Arrow(_) | Expr::Lit(_) => {
+        self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
         expr.visit_children_with(self);
+        self.clear_symbol_if_is_top_level();
       }
       Expr::Class(ref class) => {
-        let is_pure = is_pure_class(&class.class, self.unresolved_ctxt);
-        if !is_pure {
-          self.set_top_level_symbol(None);
+        let is_pure = is_pure_class(&class.class, self.unresolved_ctxt, self.comments.as_ref());
+        if is_pure {
+          self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
         }
         class.visit_with(self);
+        self.clear_symbol_if_is_top_level();
       }
       _ => {
-        expr.visit_children_with(self);
-        if is_pure_expression(expr, self.unresolved_ctxt) {
+        if is_pure_expression(expr, self.unresolved_ctxt, self.comments.as_ref()) {
+          self.set_symbol_if_is_top_level(DEFAULT_EXPORT.into());
           let start = expr.span().real_lo();
           let end = expr.span().real_hi();
           let module_identifier = self.state.module_identifier;
@@ -463,10 +467,14 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
               }
             },
           ));
+
+          expr.visit_children_with(self);
+          self.clear_symbol_if_is_top_level();
+        } else {
+          expr.visit_children_with(self);
         }
       }
     }
-    self.clear_symbol_if_is_top_level();
   }
 
   fn visit_export_default_decl(&mut self, node: &ExportDefaultDecl) {
@@ -492,11 +500,14 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     self.set_symbol_if_is_top_level(ident);
     match &node.decl {
       DefaultDecl::Class(class) => {
-        // TODO: should remove toplevel if it isnot pure
-        class.class.visit_with(self);
+        let is_pure = is_pure_class(&class.class, self.unresolved_ctxt, self.comments.as_ref());
+        if !is_pure {
+          self.set_top_level_symbol(None);
+        }
+        class.visit_with(self);
       }
       DefaultDecl::Fn(func) => {
-        func.function.visit_with(self);
+        func.visit_with(self);
       }
       DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
     }
@@ -513,6 +524,7 @@ impl<'a> InnerGraphPlugin<'a> {
     rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
     import_map: &'a ImportMap,
     module_identifier: ModuleIdentifier,
+    comments: Option<SwcComments>,
   ) -> Self {
     Self {
       dependencies,
@@ -525,6 +537,7 @@ impl<'a> InnerGraphPlugin<'a> {
       scope_level: 0,
       rewrite_usage_span,
       import_map,
+      comments,
     }
   }
 
@@ -607,7 +620,7 @@ impl<'a> InnerGraphPlugin<'a> {
 
   pub fn visit_class_custom(&mut self, class: &Class) {
     if let Some(super_class) = &class.super_class
-      && is_pure_expression(super_class, self.unresolved_ctxt)
+      && is_pure_expression(super_class, self.unresolved_ctxt, self.comments.as_ref())
     {
       let start = super_class.span().real_lo();
       let end = super_class.span().real_hi();

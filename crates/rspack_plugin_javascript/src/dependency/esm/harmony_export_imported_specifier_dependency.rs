@@ -16,7 +16,7 @@ use super::{create_resource_identifier_for_esm_dependency, harmony_import_depend
 // Create _webpack_require__.d(__webpack_exports__, {}).
 // case1: `import { a } from 'a'; export { a }`
 // case2: `export { a } from 'a';`
-// TODO case3: `export * from 'a'`
+// case3: `export * from 'a'`
 #[derive(Debug, Clone)]
 pub struct HarmonyExportImportedSpecifierDependency {
   pub id: DependencyId,
@@ -477,14 +477,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       .get_import_var(&module.identifier(), &self.request);
     let is_new_tree_shaking = compilation.options.is_new_tree_shaking();
 
-    let used_exports = if compilation.options.builtins.tree_shaking.is_true() {
-      Some(
-        compilation
-          .module_graph
-          .get_exports_info(&module.identifier())
-          .old_get_used_exports(),
-      )
-    } else if is_new_tree_shaking {
+    let used_exports = if is_new_tree_shaking {
       let exports_info_id = compilation
         .module_graph
         .get_exports_info(&module.identifier())
@@ -506,6 +499,13 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         })
         .collect::<HashSet<_>>();
       Some(res)
+    } else if compilation.options.builtins.tree_shaking.is_true() {
+      Some(
+        compilation
+          .module_graph
+          .get_exports_info(&module.identifier())
+          .old_get_used_exports(),
+      )
     } else {
       None
     };
@@ -515,6 +515,8 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       let mode = self.get_mode(self.name.clone(), &compilation.module_graph, &self.id, None);
       if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
         harmony_import_dependency_apply(self, self.source_order, code_generatable_context, &[]);
+      } else {
+        return;
       }
     }
 
