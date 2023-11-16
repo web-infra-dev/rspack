@@ -403,9 +403,43 @@ const applyOutputDefaults = (
 		futureDefaults: boolean;
 	}
 ) => {
+
+
+	const getLibraryName = (library:string | string[]| Record<string,any>):string => {
+		const libraryName =
+			typeof library === "object" &&
+			library &&
+			!Array.isArray(library) &&
+			"type" in library
+				? library.name
+				: /** @type {LibraryName} */ (library);
+		if (Array.isArray(libraryName)) {
+			return libraryName.join(".");
+		} else if (typeof libraryName === "object") {
+			return getLibraryName(libraryName.root);
+		} else if (typeof libraryName === "string") {
+			return libraryName;
+		}
+		return "";
+	};
+
+
 	F(output, "uniqueName", () => {
+		const libraryName = getLibraryName(output.library).replace(
+			/^\[(\\*[\w:]+\\*)\](\.)|(\.)\[(\\*[\w:]+\\*)\](?=\.|$)|\[(\\*[\w:]+\\*)\]/g,
+			(m, a, d1, d2, b, c) => {
+				const content = a || b || c;
+				return content.startsWith("\\") && content.endsWith("\\")
+					? `${d2 || ""}[${content.slice(1, -1)}]${d1 || ""}`
+					: "";
+			}
+		);
+		if (libraryName) return libraryName;
 		const pkgPath = path.resolve(context, "package.json");
 		try {
+			if (output?.library?.name) {
+				return output.library.name;
+			}
 			const packageInfo = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
 			return packageInfo.name || "";
 		} catch (e: any) {
