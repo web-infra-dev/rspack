@@ -240,7 +240,7 @@ impl NormalModuleFactory {
 
             match request_without_match_resource
               .char_indices()
-              .nth(whole_matched.len())
+              .nth(whole_matched.chars().count())
             {
               Some((pos, _)) => &request_without_match_resource[pos..],
               None => {

@@ -2,11 +2,14 @@
 
 import "zx/globals";
 import chalk from "chalk";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { version_handler } from "./scripts/release/version.mjs";
 import { publish_handler } from "./scripts/release/publish.mjs";
 const { yellow } = chalk;
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 process.env.FORCE_COLOR = 3; // Fix zx losing color output in subprocesses
 
 const program = new Command();
@@ -229,7 +232,7 @@ program.parse(argv, { from: "user" });
 async function launchRspackCli(additionalArgs) {
 	let args = [
 		"--inspect-brk",
-		"${workspaceFolder}/packages/rspack-cli/bin/rspack",
+		path.join(__dirname, "/packages/rspack-cli/bin/rspack"),
 		...additionalArgs
 	];
 	let launch = [
