@@ -12,13 +12,7 @@ const config = {
 	testTimeout: process.env.CI ? 60000 : 30000,
 	cache: false,
 	transform: {
-		"^.+\\.tsx?$": [
-			"ts-jest",
-			{
-				isolatedModules: true
-			}
-		],
-		"^.+\\.jsx?$": "babel-jest"
+		"^.+\\.(t|j)sx?$": "@swc/jest"
 	},
 	globals: {
 		"ts-jest": {
