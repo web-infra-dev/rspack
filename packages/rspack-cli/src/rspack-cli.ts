@@ -21,7 +21,7 @@ import {
 	Compiler
 } from "@rspack/core";
 import { normalizeEnv } from "./utils/options";
-import { loadRspackConfig } from "./utils/loadConfig";
+import { LoadedRspackConfig, loadRspackConfig } from "./utils/loadConfig";
 import findConfig from "./utils/findConfig";
 import type { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
 import * as rspackCore from "@rspack/core";
@@ -40,7 +40,7 @@ export class RspackCLI {
 	async createCompiler(
 		options: RspackBuildCLIOptions,
 		rspackCommand: Command,
-		callback?: (e: Error, res?: Stats | MultiStats) => void
+		callback?: (e: Error | null, res?: Stats | MultiStats) => void
 	) {
 		process.env.RSPACK_CONFIG_VALIDATE = "loose";
 		let nodeEnv = process?.env?.NODE_ENV;
@@ -58,7 +58,6 @@ export class RspackCLI {
 			? (config as MultiRspackOptions).some(i => i.watch)
 			: (config as RspackOptions).watch;
 
-		// @ts-expect-error
 		return rspack(config, isWatch ? callback : undefined);
 	}
 	createColors(useColor?: boolean): RspackCLIColors {
@@ -89,8 +88,7 @@ export class RspackCLI {
 		};
 	}
 	async run(argv: string[]) {
-		// @ts-expect-error
-		if (semver.lt(semver.clean(process.version), "14.0.0")) {
+		if (semver.lt(semver.clean(process.version)!, "14.0.0")) {
 			this.getLogger().warn(
 				`Minimum recommended Node.js version is 14.0.0, current version is ${process.version}`
 			);
@@ -246,13 +244,14 @@ export class RspackCLI {
 	async loadConfig(
 		options: RspackCLIOptions
 	): Promise<RspackOptions | MultiRspackOptions> {
-		let loadedConfig = await loadRspackConfig(options);
+		let loadedConfig = (await loadRspackConfig(
+			options
+		)) as NonNullable<LoadedRspackConfig>;
 		if (options.configName) {
 			const notFoundConfigNames: string[] = [];
 
-			// @ts-expect-error
 			loadedConfig = options.configName.map((configName: string) => {
-				let found: RspackOptions | MultiRspackOptions | undefined;
+				let found: RspackOptions | undefined;
 
 				if (Array.isArray(loadedConfig)) {
 					found = loadedConfig.find(options => options.name === configName);
@@ -267,7 +266,9 @@ export class RspackCLI {
 					notFoundConfigNames.push(configName);
 				}
 
-				return found;
+				// WARNING: if config is not found, the program will exit
+				// so assert here is okay to avoid runtime filtering
+				return found!;
 			});
 
 			if (notFoundConfigNames.length > 0) {
@@ -284,7 +285,6 @@ export class RspackCLI {
 		}
 
 		if (typeof loadedConfig === "function") {
-			// @ts-expect-error
 			loadedConfig = loadedConfig(options.argv?.env, options.argv);
 			// if return promise we should await its result
 			if (
@@ -293,7 +293,6 @@ export class RspackCLI {
 				loadedConfig = await loadedConfig;
 			}
 		}
-		// @ts-expect-error
 		return loadedConfig;
 	}
 
