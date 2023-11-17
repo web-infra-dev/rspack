@@ -12,9 +12,9 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
   AssetEmittedArgs, BoxLoader, BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs,
   ChunkContentHash, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, Content,
-  ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, MakeParam, Module, ModuleArgs,
-  ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
-  NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
+  ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, MakeParam, Module, ModuleType,
+  NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  NormalModuleCreateData, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
   PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
   PluginFactorizeHookOutput, PluginJsChunkHashHookOutput, PluginMakeHookOutput,
@@ -321,10 +321,10 @@ impl PluginDriver {
     Ok(None)
   }
 
-  pub async fn module(&self, args: ModuleArgs) -> PluginModuleHookOutput {
+  pub async fn create_module(&self, args: NormalModuleCreateData) -> PluginModuleHookOutput {
     for plugin in &self.plugins {
       tracing::trace!("running render runtime:{}", plugin.name());
-      if let Some(module) = plugin.module(PluginContext::new(), &args).await? {
+      if let Some(module) = plugin.create_module(PluginContext::new(), &args).await? {
         return Ok(Some(module));
       }
     }

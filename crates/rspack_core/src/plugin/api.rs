@@ -10,11 +10,11 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
   AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationArgs,
   CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, MakeParam, Module,
-  ModuleArgs, ModuleFactoryResult, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleBeforeResolveArgs, NormalModuleFactoryContext, OptimizeChunksArgs,
-  ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
-  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, SourceType,
-  ThisCompilationArgs,
+  ModuleFactoryResult, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleBeforeResolveArgs, NormalModuleCreateData, NormalModuleFactoryContext,
+  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs,
+  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
+  SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -126,7 +126,11 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
-  async fn module(&self, _ctx: PluginContext, _args: &ModuleArgs) -> PluginModuleHookOutput {
+  async fn create_module(
+    &self,
+    _ctx: PluginContext,
+    _args: &NormalModuleCreateData,
+  ) -> PluginModuleHookOutput {
     Ok(None)
   }
 

@@ -4,8 +4,8 @@ use std::hash::Hash;
 use async_trait::async_trait;
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
-  AsyncDependenciesBlockId, Compilation, DependenciesBlock, DependencyId, DependencyType, Module,
-  ModuleArgs, ModuleType, Plugin, PluginContext, PluginModuleHookOutput, RuntimeGlobals,
+  AsyncDependenciesBlockId, Compilation, DependenciesBlock, DependencyId, Module, ModuleType,
+  NormalModuleCreateData, Plugin, PluginContext, PluginModuleHookOutput, RuntimeGlobals,
   RuntimeSpec, SourceType,
 };
 use rspack_core::{CodeGenerationResult, Context, ModuleIdentifier};
@@ -115,22 +115,26 @@ impl Plugin for LazyCompilationPlugin {
     "LazyCompilationPlugin"
   }
 
-  async fn module(&self, _ctx: PluginContext, args: &ModuleArgs) -> PluginModuleHookOutput {
-    if args.indentfiler.contains("rspack-dev-client")
-      || args.lazy_visit_modules.contains(args.indentfiler.as_str())
-    {
-      return Ok(None);
-    }
-    if matches!(
-      args.dependency_type,
-      DependencyType::DynamicImport | DependencyType::Entry
-    ) {
-      return Ok(Some(Box::new(LazyCompilationProxyModule {
-        module_identifier: args.indentfiler,
-        dependencies: Vec::new(),
-        blocks: Vec::new(),
-      })));
-    }
+  async fn create_module(
+    &self,
+    _ctx: PluginContext,
+    _args: &NormalModuleCreateData,
+  ) -> PluginModuleHookOutput {
+    // if args.indentfiler.contains("rspack-dev-client")
+    //   || args.lazy_visit_modules.contains(args.indentfiler.as_str())
+    // {
+    //   return Ok(None);
+    // }
+    // if matches!(
+    //   args.dependency_type,
+    //   DependencyType::DynamicImport | DependencyType::Entry
+    // ) {
+    //   return Ok(Some(Box::new(LazyCompilationProxyModule {
+    //     module_identifier: args.indentfiler,
+    //     dependencies: Vec::new(),
+    //     blocks: Vec::new(),
+    //   })));
+    // }
 
     Ok(None)
   }

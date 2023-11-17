@@ -152,6 +152,14 @@ impl NormalModuleSource {
 pub static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
+  fn create_id(module_type: &ModuleType, request: &str) -> String {
+    if *module_type == ModuleType::Js {
+      request.to_string()
+    } else {
+      format!("{module_type}|{request}")
+    }
+  }
+
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     request: String,
@@ -169,15 +177,11 @@ impl NormalModule {
     contains_inline_loader: bool,
   ) -> Self {
     let module_type = module_type.into();
-    let identifier = if module_type == ModuleType::Js {
-      request.to_string()
-    } else {
-      format!("{module_type}|{request}")
-    };
+    let id = Self::create_id(&module_type, &request);
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
-      id: ModuleIdentifier::from(identifier),
+      id: ModuleIdentifier::from(id),
       context: Box::new(get_context(&resource_data)),
       request,
       user_request,
