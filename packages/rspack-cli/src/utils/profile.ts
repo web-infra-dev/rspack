@@ -38,7 +38,8 @@ import { URLSearchParams } from "url";
 import {
 	experimental_registerGlobalTrace as registerGlobalTrace,
 	experimental_cleanupGlobalTrace as cleanupGlobalTrace,
-	RspackOptions
+	RspackOptions,
+	type Compiler
 } from "@rspack/core";
 
 type JSCPUProfileOptionsOutput = string;
@@ -167,16 +168,14 @@ function resolveLoggingOptions(value: string): LoggingOptions {
 class RspackProfileJSCPUProfilePlugin {
 	constructor(private output: string) {}
 
-	// @ts-expect-error
-	apply(compiler) {
+	apply(compiler: Compiler) {
 		const session = new inspector.Session();
 		session.connect();
 		session.post("Profiler.enable");
 		session.post("Profiler.start");
 		compiler.hooks.done.tapAsync(
 			RspackProfileJSCPUProfilePlugin.name,
-			// @ts-expect-error
-			(stats, callback) => {
+			(_stats, callback) => {
 				if (compiler.watchMode) return callback();
 				session.post("Profiler.stop", (error, param) => {
 					if (error) {
@@ -194,11 +193,9 @@ class RspackProfileJSCPUProfilePlugin {
 class RspackProfileLoggingPlugin {
 	constructor(private output: string) {}
 
-	// @ts-expect-error
-	apply(compiler) {
+	apply(compiler: Compiler) {
 		compiler.hooks.done.tapAsync(
 			RspackProfileLoggingPlugin.name,
-			// @ts-expect-error
 			(stats, callback) => {
 				if (compiler.watchMode) return callback();
 				const logging = stats.toJson({

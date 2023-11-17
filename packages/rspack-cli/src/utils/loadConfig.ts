@@ -48,7 +48,7 @@ export type LoadedRspackConfig =
 	| MultiRspackOptions
 	| ((
 			env: Record<string, any>,
-			argv: Record<string, any>
+			argv?: Record<string, any>
 	  ) => RspackOptions | MultiRspackOptions);
 
 export async function loadRspackConfig(
