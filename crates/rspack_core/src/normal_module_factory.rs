@@ -14,12 +14,12 @@ use crate::{
   module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
   tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
   BoxLoader, CompilerContext, CompilerOptions, DependencyCategory, DependencyType, FactorizeArgs,
-  FactoryMeta, FuncUseCtx, GeneratorOptions, MissingModule, ModuleArgs, ModuleExt, ModuleFactory,
+  FactoryMeta, FuncUseCtx, GeneratorOptions, MissingModule, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
   ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleBeforeResolveArgs, ParserOptions, RawModule, Resolve, ResolveArgs, ResolveError,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
-  ResourceParsedData, SharedPluginDriver,
+  NormalModuleBeforeResolveArgs, NormalModuleCreateData, ParserOptions, RawModule, Resolve,
+  ResolveArgs, ResolveError, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
+  ResolverFactory, ResourceData, ResourceParsedData, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -632,21 +632,16 @@ impl NormalModuleFactory {
 
     self.context.module_type = Some(resolved_module_type);
 
-    let id = NormalModule::create_id(resolved_module_type, &user_request);
-
     let module = if let Some(module) = self
       .plugin_driver
-      .module(ModuleArgs {
+      .create_module(NormalModuleCreateData {
         dependency_type: data.dependency.dependency_type().clone(),
-        indentfiler: ModuleIdentifier::from(id.as_str()),
-        lazy_visit_modules: self.context.lazy_visit_modules.clone(),
       })
       .await?
     {
       module
     } else {
       let normal_module = NormalModule::new(
-        id,
         request,
         user_request,
         dependency.request().to_owned(),

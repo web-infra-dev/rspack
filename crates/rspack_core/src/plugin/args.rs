@@ -82,11 +82,8 @@ pub struct FactorizeArgs<'me> {
 }
 
 #[derive(Debug, Clone)]
-pub struct ModuleArgs {
-  pub indentfiler: ModuleIdentifier,
+pub struct NormalModuleCreateData {
   pub dependency_type: DependencyType,
-  // lazy compilation visit module
-  pub lazy_visit_modules: std::collections::HashSet<String>,
 }
 
 #[derive(Debug, Clone)]
