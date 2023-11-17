@@ -57,8 +57,6 @@ pub enum DependencyType {
   DynamicImportEager,
   // cjs require
   CjsRequire,
-  // cjs exports
-  CjsExports,
   // new URL("./foo", import.meta.url)
   NewUrl,
   // new Worker()
@@ -110,7 +108,6 @@ impl DependencyType {
       DependencyType::EsmImportSpecifier => Cow::Borrowed("esm import specifier"),
       DependencyType::DynamicImport => Cow::Borrowed("dynamic import"),
       DependencyType::CjsRequire => Cow::Borrowed("cjs require"),
-      DependencyType::CjsExports => Cow::Borrowed("cjs exports"),
       DependencyType::NewUrl => Cow::Borrowed("new URL()"),
       DependencyType::NewWorker => Cow::Borrowed("new Worker()"),
       DependencyType::ImportMetaHotAccept => Cow::Borrowed("import.meta.webpackHot.accept"),
