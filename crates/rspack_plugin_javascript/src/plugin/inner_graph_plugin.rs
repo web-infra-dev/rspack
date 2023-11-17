@@ -377,21 +377,18 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
   }
 
   fn visit_prop(&mut self, n: &Prop) {
-    match n {
-      Prop::Shorthand(shorthand) => {
-        if let Some(ExtraSpanInfo::ReWriteUsedByExports) =
-          self.rewrite_usage_span.get(&shorthand.span)
-        {
-          let span = shorthand.span;
-          self.on_usage(Box::new(move |deps, used_by_exports| {
-            let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
-            if let Some(dep) = target_dep {
-              dep.set_used_by_exports(used_by_exports);
-            }
-          }));
-        };
-      }
-      _ => {}
+    if let Prop::Shorthand(shorthand) = n {
+      if let Some(ExtraSpanInfo::ReWriteUsedByExports) =
+        self.rewrite_usage_span.get(&shorthand.span)
+      {
+        let span = shorthand.span;
+        self.on_usage(Box::new(move |deps, used_by_exports| {
+          let target_dep = deps.iter_mut().find(|item| item.is_span_equal(&span));
+          if let Some(dep) = target_dep {
+            dep.set_used_by_exports(used_by_exports);
+          }
+        }));
+      };
     }
     n.visit_children_with(self)
   }
