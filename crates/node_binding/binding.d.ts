@@ -139,6 +139,7 @@ export const enum BuiltinPluginName {
   HotModuleReplacementPlugin = 'HotModuleReplacementPlugin',
   LimitChunkCountPlugin = 'LimitChunkCountPlugin',
   WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
+  MergeDuplicateChunksPlugin = 'MergeDuplicateChunksPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',

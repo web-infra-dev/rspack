@@ -32,7 +32,8 @@ import {
 	ExternalsPlugin,
 	HttpExternalsRspackPlugin,
 	ModuleChunkFormatPlugin,
-	NodeTargetPlugin
+	NodeTargetPlugin,
+	MergeDuplicateChunksPlugin
 } from "./builtin-plugin";
 
 export function optionsApply_compat(
@@ -178,6 +179,10 @@ export class RspackOptionsApply {
 					item.apply(compiler);
 				}
 			}
+		}
+
+		if (options.optimization.mergeDuplicateChunks) {
+			new MergeDuplicateChunksPlugin().apply(compiler);
 		}
 
 		if (options.builtins.devFriendlySplitChunks) {

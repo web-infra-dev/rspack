@@ -24,7 +24,8 @@ export enum BuiltinPluginName {
 	SwcJsMinimizerRspackPlugin = "SwcJsMinimizerRspackPlugin",
 	SwcCssMinimizerRspackPlugin = "SwcCssMinimizerRspackPlugin",
 	LimitChunkCountPlugin = "LimitChunkCountPlugin",
-	WebWorkerTemplatePlugin = "WebWorkerTemplatePlugin"
+	WebWorkerTemplatePlugin = "WebWorkerTemplatePlugin",
+	MergeDuplicateChunksPlugin = "MergeDuplicateChunksPlugin"
 }
 
 export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
