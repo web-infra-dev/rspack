@@ -50,7 +50,7 @@ impl Plugin for DeterministicChunkIdsPlugin {
       |a, b| compare_chunks_natural(chunk_graph, module_graph, a, b),
       |chunk, id| {
         let size = used_ids.len();
-        used_ids.insert(id.clone());
+        used_ids.insert(id.to_string());
         if used_ids.len() == size {
           return false;
         }
@@ -69,8 +69,8 @@ impl Plugin for DeterministicChunkIdsPlugin {
         .chunk_by_ukey
         .get_mut(&chunk_ukey)
         .expect("Chunk should exists");
-      chunk.id = Some(id.clone());
-      chunk.ids = vec![id];
+      chunk.id = Some(id.to_string());
+      chunk.ids = vec![id.to_string()];
     });
 
     Ok(())

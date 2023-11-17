@@ -33,12 +33,12 @@ impl Plugin for DeterministicModuleIdsPlugin {
       |a, b| compare_modules_by_pre_order_index_or_identifier(module_graph, a, b),
       |module, id| {
         let size = used_ids.len();
-        used_ids.insert(id.clone());
+        used_ids.insert(id.to_string());
         if used_ids.len() == size {
           conflicts += 1;
           return false;
         }
-        chunk_graph.set_module_id(module.identifier(), id);
+        chunk_graph.set_module_id(module.identifier(), id.to_string());
         true
       },
       &[usize::pow(10, max_length)],
