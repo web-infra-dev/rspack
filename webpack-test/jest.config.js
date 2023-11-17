@@ -50,8 +50,5 @@ module.exports =  {
       "<rootDir>/schemas",
       "<rootDir>/node_modules"
     ],
-    "testEnvironment": "./patch-node-env.js",
-    "coverageReporters": [
-      "json"
-    ]
-  }
+    "testEnvironment": "./patch-node-env.js"
+}
