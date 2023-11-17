@@ -3538,7 +3538,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "d656d3dd2806a24e06ef",
+      "hash": "8dd62cfee594f804ad9e",
       "logging": {},
       "modules": [
         {
@@ -3909,7 +3909,7 @@ import(/* webpackChunkName: "c" */ "./c");
   ],
   "errors": [],
   "errorsCount": 0,
-  "hash": "6e7ccce6721ce1bccdbd3a8b9d1fa40825a5d5716fcd20dc7a1dc647d37dd656d3dd2806a24e06ef",
+  "hash": "6e7ccce6721ce1bccdbd3a8b9d1fa40825a5d5716fcd20dc7a1dc647d37d8dd62cfee594f804ad9e",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -4068,7 +4068,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/__webpack_require__.u {main}
-  4 chunks compiled successfully (d656d3dd2806a24e06ef)"
+  4 chunks compiled successfully (8dd62cfee594f804ad9e)"
 `;
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 1`] = `

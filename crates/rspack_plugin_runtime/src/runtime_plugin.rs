@@ -16,7 +16,7 @@ use crate::runtime_module::{
   GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
   GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
   HarmonyModuleDecoratorRuntimeModule, HasOwnPropertyRuntimeModule,
-  LoadChunkWithModuleRuntimeModule, LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule,
+  LoadChunkWithBlockRuntimeModule, LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule,
   NodeModuleDecoratorRuntimeModule, NormalRuntimeModule, OnChunkLoadedRuntimeModule,
   PublicPathRuntimeModule, SystemContextRuntimeModule,
 };
@@ -318,7 +318,7 @@ impl Plugin for RuntimePlugin {
           compilation.add_runtime_module(chunk, GetFullHashRuntimeModule::default().boxed())
         }
         RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK => {
-          compilation.add_runtime_module(chunk, LoadChunkWithModuleRuntimeModule::default().boxed())
+          compilation.add_runtime_module(chunk, LoadChunkWithBlockRuntimeModule::default().boxed())
         }
         RuntimeGlobals::GLOBAL => {
           compilation.add_runtime_module(chunk, GlobalRuntimeModule::default().boxed())

@@ -10,21 +10,21 @@ use rustc_hash::FxHashSet as HashSet;
 use crate::impl_runtime_module;
 
 #[derive(Debug, Eq)]
-pub struct LoadChunkWithModuleRuntimeModule {
+pub struct LoadChunkWithBlockRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for LoadChunkWithModuleRuntimeModule {
+impl Default for LoadChunkWithBlockRuntimeModule {
   fn default() -> Self {
     Self {
-      id: Identifier::from("webpack/runtime/load_chunk_with_module"),
+      id: Identifier::from("webpack/runtime/load_chunk_with_block"),
       chunk: None,
     }
   }
 }
 
-impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
+impl RuntimeModule for LoadChunkWithBlockRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
@@ -65,9 +65,6 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
             }
           })
           .collect::<Vec<_>>();
-        if chunk_ids.is_empty() {
-          return None;
-        }
         let key = block_promise_key(block_id, compilation);
         Some((key, chunk_ids))
       })
@@ -81,15 +78,11 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
     source.add(RawSource::from(
       "
 __webpack_require__.el = function(module) {
-  var chunkId = map[module];
-  if (chunkId === undefined) {
-      return Promise.resolve();
-  }
-  if (chunkId.length > 1) {
-    return Promise.all(chunkId.map(__webpack_require__.e));
-  } else {
-    return __webpack_require__.e(chunkId[0]);
-  };
+  var chunkIds = map[module];
+  if (chunkIds === undefined) return Promise.resolve();
+  if (chunkIds.length > 1) return Promise.all(chunkIds.map(__webpack_require__.e));
+  if (chunkIds.length === 1) return __webpack_require__.e(chunkIds[0]);
+  return Promise.resolve();
 }
 ",
     ));
@@ -102,7 +95,7 @@ __webpack_require__.el = function(module) {
   }
 }
 
-impl_runtime_module!(LoadChunkWithModuleRuntimeModule);
+impl_runtime_module!(LoadChunkWithBlockRuntimeModule);
 
 fn stringify_map(map: &HashMap<String, Vec<String>>) -> String {
   format!(

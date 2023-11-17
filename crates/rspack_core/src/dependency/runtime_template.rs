@@ -287,6 +287,7 @@ pub fn block_promise(
   compilation: &Compilation,
 ) -> String {
   let Some(block) = block else {
+    // ImportEagerDependency
     return "Promise.resolve()".to_string();
   };
   let key = block_promise_key(block, compilation);

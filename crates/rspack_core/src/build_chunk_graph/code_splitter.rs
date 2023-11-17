@@ -226,7 +226,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     while !self.queue.is_empty() || !self.queue_delayed.is_empty() {
       self.process_queue();
       if self.queue.is_empty() {
-        self.queue = std::mem::take(&mut self.queue_delayed);
+        let mut queue_delayed = std::mem::take(&mut self.queue_delayed);
+        queue_delayed.reverse();
+        self.queue = queue_delayed;
       }
     }
     logger.time_end(start);
@@ -416,6 +418,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     tracing::trace!("process_block {:?}", item);
     let modules = self.get_block_modules(item.block);
     for module in modules.into_iter().rev() {
+      if self
+        .compilation
+        .chunk_graph
+        .is_module_in_chunk(&module, item.chunk)
+      {
+        continue;
+      }
+      // webpack use queueBuffer to rev
       self
         .queue
         .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
@@ -440,7 +450,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .get_blocks()
         .to_vec(),
     };
-    for block in blocks.into_iter().rev() {
+    for block in blocks {
       self.iterator_block(block, item.chunk_group, item.chunk);
     }
   }
@@ -452,6 +462,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     item_chunk_ukey: ChunkUkey,
   ) {
     let cgi = self.block_chunk_groups.get(&block_id);
+    let is_already_split = cgi.is_some();
     let mut entrypoint = None;
     let mut c = None;
     let block = self
@@ -487,8 +498,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
     } else {
       let chunk_name = block.get_group_options().and_then(|o| o.name());
-      if let Some(entry_options) = entry_options {
-        let chunk_group =
+      let cgi = if let Some(entry_options) = entry_options {
+        let cgi =
           if let Some(cgi) = chunk_name.and_then(|name| self.named_async_entrypoints.get(name)) {
             self
               .compilation
@@ -551,69 +562,77 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             self.compilation.chunk_group_by_ukey.add(entrypoint);
             ukey
           };
-        entrypoint = Some(chunk_group);
+        entrypoint = Some(cgi);
         self
           .queue_delayed
           .push(QueueAction::ProcessEntryBlock(ProcessEntryBlock {
             block: block_id,
-            chunk_group,
+            chunk_group: cgi,
             chunk: chunk.ukey,
           }));
+        cgi
       } else if !item_chunk_group.info.async_chunks || !item_chunk_group.info.chunk_loading {
         self.queue.push(QueueAction::ProcessBlock(ProcessBlock {
           block: block_id.into(),
           chunk_group: item_chunk_group_ukey,
           chunk: item_chunk_ukey,
         }));
+        return;
       } else {
-        let chunk_group =
-          if let Some(cgi) = chunk_name.and_then(|name| self.named_chunk_groups.get(name)) {
-            // TODO: AsyncDependencyToInitialChunkError
-            *cgi
-          } else {
-            chunk
-              .chunk_reasons
-              .push(format!("DynamicImport({:?})", block_id));
-            let mut chunk_group = ChunkGroup::new(
-              ChunkGroupKind::Normal {
-                options: ChunkGroupOptions::default()
-                  .name_optional(block.get_group_options().and_then(|x| x.name())),
-              },
-              item_chunk_group.runtime.clone(),
-              ChunkGroupInfo {
-                chunk_loading: item_chunk_group.info.chunk_loading,
-                async_chunks: item_chunk_group.info.async_chunks,
-              },
-            );
+        let cgi = if let Some(cgi) = chunk_name.and_then(|name| self.named_chunk_groups.get(name)) {
+          // TODO: AsyncDependencyToInitialChunkError
+          *cgi
+        } else {
+          chunk
+            .chunk_reasons
+            .push(format!("DynamicImport({:?})", block_id));
+          let mut chunk_group = ChunkGroup::new(
+            ChunkGroupKind::Normal {
+              options: ChunkGroupOptions::default()
+                .name_optional(block.get_group_options().and_then(|x| x.name())),
+            },
+            item_chunk_group.runtime.clone(),
+            ChunkGroupInfo {
+              chunk_loading: item_chunk_group.info.chunk_loading,
+              async_chunks: item_chunk_group.info.async_chunks,
+            },
+          );
 
-            if let Some(name) = chunk_group.kind.name() {
-              self
-                .named_async_entrypoints
-                .insert(name.to_owned(), chunk_group.ukey);
-              self
-                .compilation
-                .named_chunk_groups
-                .insert(name.to_owned(), chunk_group.ukey);
-            }
-
-            item_chunk_group.children.insert(chunk_group.ukey);
-            chunk_group.parents.insert(item_chunk_group.ukey);
-
-            chunk_group.connect_chunk(chunk);
-
+          if let Some(name) = chunk_group.kind.name() {
+            self
+              .named_chunk_groups
+              .insert(name.to_owned(), chunk_group.ukey);
             self
               .compilation
-              .chunk_graph
-              .connect_block_and_chunk_group(block_id, chunk_group.ukey);
+              .named_chunk_groups
+              .insert(name.to_owned(), chunk_group.ukey);
+          }
 
-            let ukey = chunk_group.ukey;
-            self.compilation.chunk_group_by_ukey.add(chunk_group);
-            ukey
-          };
-        c = Some(chunk_group);
-      }
+          item_chunk_group.children.insert(chunk_group.ukey);
+          chunk_group.parents.insert(item_chunk_group.ukey);
+
+          chunk_group.connect_chunk(chunk);
+
+          self
+            .compilation
+            .chunk_graph
+            .connect_block_and_chunk_group(block_id, chunk_group.ukey);
+
+          let ukey = chunk_group.ukey;
+          self.compilation.chunk_group_by_ukey.add(chunk_group);
+          ukey
+        };
+        c = Some(cgi);
+        cgi
+      };
+      self.block_chunk_groups.insert(block_id, cgi);
     }
+
     if let Some(c) = c {
+      // Inconsistent with webpack, webpack use minAvailableModules to avoid cycle, but calculate it is too complex
+      if is_already_split {
+        return;
+      }
       self
         .queue_delayed
         .push(QueueAction::ProcessBlock(ProcessBlock {
@@ -622,7 +641,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           chunk: chunk.ukey,
         }));
     } else if let Some(_entrypoint) = entrypoint {
-      // TODO: chunk_group.add_async_entrypoint(entrypoint)
+      // TODO: chunk_group.add_async_entrypoint(entrypoint) used by getAllReferencedAsyncEntrypoints
     }
   }
 

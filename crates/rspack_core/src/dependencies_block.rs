@@ -74,9 +74,10 @@ impl AsyncDependenciesBlock {
     std::mem::take(&mut self.dependencies)
   }
 
-  pub fn add_block(&mut self, block: AsyncDependenciesBlock) {
-    self.block_ids.push(block.id);
-    self.blocks.push(block);
+  pub fn add_block(&mut self, _block: AsyncDependenciesBlock) {
+    unimplemented!("Nested block are not implemented");
+    // self.block_ids.push(block.id);
+    // self.blocks.push(block);
   }
 
   pub fn take_blocks(&mut self) -> Vec<AsyncDependenciesBlock> {
@@ -85,8 +86,9 @@ impl AsyncDependenciesBlock {
 }
 
 impl DependenciesBlock for AsyncDependenciesBlock {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
-    self.block_ids.push(block)
+  fn add_block_id(&mut self, _block: AsyncDependenciesBlockId) {
+    unimplemented!("Nested block are not implemented");
+    // self.block_ids.push(block);
   }
 
   fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
