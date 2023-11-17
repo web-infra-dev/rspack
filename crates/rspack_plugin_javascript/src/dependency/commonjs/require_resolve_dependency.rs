@@ -1,5 +1,5 @@
 use rspack_core::{
-  module_id, ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
+  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
   DependencyType, ErrorSpan, ExtendedReferencedExport, ModuleDependency, ModuleGraph, RuntimeSpec,
   TemplateContext, TemplateReplaceSource,
 };
@@ -71,10 +71,6 @@ impl ModuleDependency for RequireResolveDependency {
     self.weak
   }
 
-  fn options(&self) -> Option<&ContextOptions> {
-    None
-  }
-
   fn get_optional(&self) -> bool {
     self.optional
   }
@@ -112,3 +108,5 @@ impl DependencyTemplate for RequireResolveDependency {
     );
   }
 }
+
+impl AsContextDependency for RequireResolveDependency {}

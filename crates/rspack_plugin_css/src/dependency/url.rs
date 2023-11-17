@@ -1,9 +1,9 @@
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rspack_core::{
-  CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
-  PublicPath, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ModuleDependency, ModuleIdentifier, PublicPath, TemplateContext, TemplateReplaceSource,
 };
 
 use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER;
@@ -107,6 +107,8 @@ impl DependencyTemplate for CssUrlDependency {
     }
   }
 }
+
+impl AsContextDependency for CssUrlDependency {}
 
 static WHITE_OR_BRACKET_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"[\n\t ()'"\\]"#).expect("Invalid Regexp"));

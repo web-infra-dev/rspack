@@ -1,22 +1,23 @@
-use rspack_core::{
-  create_resource_identifier_for_context_dependency, module_id_expr, ContextOptions, Dependency,
-  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
-};
+use rspack_core::{module_id_expr, AsModuleDependency, ContextDependency};
+use rspack_core::{ContextOptions, Dependency, DependencyCategory, DependencyId};
+use rspack_core::{DependencyTemplate, DependencyType, ErrorSpan, RuntimeGlobals};
+use rspack_core::{TemplateContext, TemplateReplaceSource};
+
+use super::create_resource_identifier_for_context_dependency;
 
 #[derive(Debug, Clone)]
 pub struct ImportMetaContextDependency {
   start: u32,
   end: u32,
-  pub id: DependencyId,
-  pub options: ContextOptions,
+  id: DependencyId,
+  options: ContextOptions,
   span: Option<ErrorSpan>,
   resource_identifier: String,
 }
 
 impl ImportMetaContextDependency {
   pub fn new(start: u32, end: u32, options: ContextOptions, span: Option<ErrorSpan>) -> Self {
-    let resource_identifier = create_resource_identifier_for_context_dependency(&options);
+    let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
       start,
       end,
@@ -50,25 +51,25 @@ impl Dependency for ImportMetaContextDependency {
   }
 }
 
-impl ModuleDependency for ImportMetaContextDependency {
+impl ContextDependency for ImportMetaContextDependency {
   fn request(&self) -> &str {
     &self.options.request
   }
 
-  fn user_request(&self) -> &str {
-    &self.options.request
+  fn options(&self) -> &ContextOptions {
+    &self.options
   }
 
-  fn options(&self) -> Option<&ContextOptions> {
-    Some(&self.options)
+  fn get_context(&self) -> Option<&str> {
+    None
+  }
+
+  fn resource_identifier(&self) -> &str {
+    &self.resource_identifier
   }
 
   fn set_request(&mut self, request: String) {
     self.options.request = request;
-  }
-
-  fn resource_identifier(&self) -> Option<&str> {
-    Some(&self.resource_identifier)
   }
 }
 
@@ -96,3 +97,5 @@ impl DependencyTemplate for ImportMetaContextDependency {
     );
   }
 }
+
+impl AsModuleDependency for ImportMetaContextDependency {}

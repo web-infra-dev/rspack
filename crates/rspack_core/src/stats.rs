@@ -395,12 +395,21 @@ impl Stats<'_> {
             let dependency = self
               .compilation
               .module_graph
-              .dependency_by_id(&connection.dependency_id)
-              .and_then(|d| d.as_module_dependency());
-
-            let r#type = dependency.map(|d| d.dependency_type().to_string());
-
-            let user_request = dependency.map(|d| d.user_request().to_string());
+              .dependency_by_id(&connection.dependency_id);
+            let (r#type, user_request) =
+              if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
+                (
+                  Some(d.dependency_type().to_string()),
+                  Some(d.user_request().to_string()),
+                )
+              } else if let Some(d) = dependency.and_then(|d| d.as_context_dependency()) {
+                (
+                  Some(d.dependency_type().to_string()),
+                  Some(d.request().to_string()),
+                )
+              } else {
+                (None, None)
+              };
             StatsModuleReason {
               module_identifier: connection.original_module_identifier.map(|i| i.to_string()),
               module_name,

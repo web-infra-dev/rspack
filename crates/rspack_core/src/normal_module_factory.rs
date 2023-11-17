@@ -67,7 +67,7 @@ impl NormalModuleFactory {
     }
   }
 
-  pub async fn before_resolve(
+  async fn before_resolve(
     &mut self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
@@ -106,7 +106,7 @@ impl NormalModuleFactory {
     Ok(None)
   }
 
-  pub async fn after_resolve(
+  async fn after_resolve(
     &mut self,
     data: &ModuleFactoryCreateData,
     factory_result: &ModuleFactoryResult,
@@ -750,7 +750,7 @@ impl NormalModuleFactory {
     (resolved_parser, resolved_generator)
   }
 
-  pub fn calculate_module_type(
+  fn calculate_module_type(
     &self,
     module_rules: &[&ModuleRule],
     default_module_type: Option<ModuleType>,
@@ -766,7 +766,7 @@ impl NormalModuleFactory {
     resolved_module_type
   }
 
-  pub async fn factorize(
+  async fn factorize(
     &mut self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {

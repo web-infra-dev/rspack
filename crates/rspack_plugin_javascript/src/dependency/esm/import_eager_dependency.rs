@@ -1,7 +1,8 @@
 use rspack_core::{
-  module_namespace_promise, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ExtendedReferencedExport, ImportDependencyTrait, ModuleDependency,
-  ModuleGraph, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  module_namespace_promise, AsContextDependency, Dependency, DependencyCategory, DependencyId,
+  DependencyTemplate, DependencyType, ErrorSpan, ExtendedReferencedExport, ImportDependencyTrait,
+  ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -110,3 +111,5 @@ impl DependencyTemplate for ImportEagerDependency {
     );
   }
 }
+
+impl AsContextDependency for ImportEagerDependency {}
