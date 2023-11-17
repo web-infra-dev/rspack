@@ -5,7 +5,6 @@ use regex::Regex;
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
-use rspack_identifier::Identifiable;
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
 use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
@@ -633,33 +632,35 @@ impl NormalModuleFactory {
 
     self.context.module_type = Some(resolved_module_type);
 
-    let normal_module = NormalModule::new(
-      request,
-      user_request,
-      dependency.request().to_owned(),
-      resolved_module_type,
-      resolved_parser_and_generator,
-      resolved_parser_options,
-      resolved_generator_options,
-      match_resource_data,
-      resource_data,
-      resolved_resolve_options,
-      loaders,
-      self.context.options.clone(),
-      contains_inline,
-    );
+    let id = NormalModule::create_id(resolved_module_type, &user_request);
 
     let module = if let Some(module) = self
       .plugin_driver
       .module(ModuleArgs {
         dependency_type: data.dependency.dependency_type().clone(),
-        indentfiler: normal_module.identifier(),
+        indentfiler: ModuleIdentifier::from(id.as_str()),
         lazy_visit_modules: self.context.lazy_visit_modules.clone(),
       })
       .await?
     {
       module
     } else {
+      let normal_module = NormalModule::new(
+        id,
+        request,
+        user_request,
+        dependency.request().to_owned(),
+        resolved_module_type,
+        resolved_parser_and_generator,
+        resolved_parser_options,
+        resolved_generator_options,
+        match_resource_data,
+        resource_data,
+        resolved_resolve_options,
+        loaders,
+        self.context.options.clone(),
+        contains_inline,
+      );
       Box::new(normal_module)
     };
 

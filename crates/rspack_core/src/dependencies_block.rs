@@ -1,6 +1,5 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use once_cell::sync::Lazy;
 use rspack_identifier::{Identifiable, Identifier};
 
 use crate::{BoxDependency, DependencyId, GroupOptions};
@@ -15,7 +14,7 @@ pub trait DependenciesBlock {
   fn get_dependencies(&self) -> &[DependencyId];
 }
 
-static ASYNC_DEPENDENCIES_BLOCK_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
+static ASYNC_DEPENDENCIES_BLOCK_ID: AtomicU32 = AtomicU32::new(0);
 
 fn get_async_dependencies_block_id() -> AsyncDependenciesBlockId {
   AsyncDependenciesBlockId(Identifier::from(
