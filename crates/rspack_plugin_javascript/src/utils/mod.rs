@@ -1,5 +1,6 @@
 mod basic_evaluated_expression;
 mod get_prop_from_obj;
+mod mangle_exports;
 
 use std::path::Path;
 
