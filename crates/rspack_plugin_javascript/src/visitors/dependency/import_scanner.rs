@@ -5,7 +5,7 @@ use rspack_core::{
 };
 use rspack_core::{BoxDependency, BuildMeta, ChunkGroupOptions, ContextMode};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
-use rspack_regex::RspackRegex;
+use rspack_regex::{regexp_as_str, RspackRegex};
 use swc_core::common::comments::{CommentKind, Comments};
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, Lit};
@@ -69,7 +69,7 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
     let recursive = get_bool_by_obj_prop(obj, "recursive")
       .map(|bool| bool.value)
       .unwrap_or(true);
-    let reg_str = regexp.raw().to_string();
+    let reg_str = regexp_as_str(&regexp).to_string();
     ContextOptions {
       chunk_name: None,
       reg_exp: clean_regexp_in_context_module(regexp),
@@ -236,33 +236,34 @@ impl Visit for ImportScanner<'_> {
         self.blocks.push(block);
       }
       _ => {
-        if let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) {
-          let chunk_name = self.try_extract_webpack_chunk_name(&dyn_imported.span());
-          self
-            .dependencies
-            .push(Box::new(ImportContextDependency::new(
-              import_call.span.real_lo(),
-              import_call.span.real_hi(),
-              node.span.real_hi(),
-              ContextOptions {
-                chunk_name,
-                mode: ContextMode::Lazy,
-                recursive: true,
-                reg_exp: context_reg_exp(&reg, ""),
-                reg_str: reg,
-                include: None,
-                exclude: None,
-                category: DependencyCategory::Esm,
-                request: context,
-                namespace_object: if self.build_meta.strict_harmony_module {
-                  ContextNameSpaceObject::Strict
-                } else {
-                  ContextNameSpaceObject::Bool(true)
-                },
+        let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) else {
+          return;
+        };
+        let chunk_name = self.try_extract_webpack_chunk_name(&dyn_imported.span());
+        self
+          .dependencies
+          .push(Box::new(ImportContextDependency::new(
+            import_call.span.real_lo(),
+            import_call.span.real_hi(),
+            node.span.real_hi(),
+            ContextOptions {
+              chunk_name,
+              mode: ContextMode::Lazy,
+              recursive: true,
+              reg_exp: context_reg_exp(&reg, ""),
+              reg_str: reg,
+              include: None,
+              exclude: None,
+              category: DependencyCategory::Esm,
+              request: context,
+              namespace_object: if self.build_meta.strict_harmony_module {
+                ContextNameSpaceObject::Strict
+              } else {
+                ContextNameSpaceObject::Bool(true)
               },
-              Some(node.span.into()),
-            )));
-        }
+            },
+            Some(node.span.into()),
+          )));
       }
     }
   }

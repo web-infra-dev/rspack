@@ -1,6 +1,6 @@
 use rspack_core::{
-  module_id, Dependency, DependencyCategory, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -81,3 +81,5 @@ impl DependencyTemplate for ImportMetaHotDeclineDependency {
     );
   }
 }
+
+impl AsContextDependency for ImportMetaHotDeclineDependency {}

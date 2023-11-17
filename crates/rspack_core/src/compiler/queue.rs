@@ -85,6 +85,7 @@ impl WorkerTask for FactorizeTask {
       | DependencyType::CommonJSRequireContext
       | DependencyType::RequireContext
       | DependencyType::ImportMetaContext => {
+        assert!(dependency.as_module_dependency().is_none());
         let factory = ContextModuleFactory::new(self.plugin_driver, self.cache);
         factory
           .create(ModuleFactoryCreateData {
@@ -96,6 +97,7 @@ impl WorkerTask for FactorizeTask {
           .split_into_parts()
       }
       _ => {
+        assert!(dependency.as_context_dependency().is_none());
         let factory = NormalModuleFactory::new(
           NormalModuleFactoryContext {
             original_module_identifier: self.original_module_identifier,
@@ -189,7 +191,7 @@ impl AddTask {
       .module_graph_module_by_identifier(&module_identifier)
       .is_some()
     {
-      Self::set_resolved_module(
+      set_resolved_module(
         &mut compilation.module_graph,
         self.original_module_identifier,
         self.dependencies,
@@ -205,7 +207,7 @@ impl AddTask {
       .module_graph
       .add_module_graph_module(*self.module_graph_module);
 
-    Self::set_resolved_module(
+    set_resolved_module(
       &mut compilation.module_graph,
       self.original_module_identifier,
       self.dependencies,
@@ -229,22 +231,16 @@ impl AddTask {
   }
 }
 
-impl AddTask {
-  fn set_resolved_module(
-    module_graph: &mut ModuleGraph,
-    original_module_identifier: Option<ModuleIdentifier>,
-    dependencies: Vec<DependencyId>,
-    module_identifier: ModuleIdentifier,
-  ) -> Result<()> {
-    for dependency in dependencies {
-      module_graph.set_resolved_module(
-        original_module_identifier,
-        dependency,
-        module_identifier,
-      )?;
-    }
-    Ok(())
+fn set_resolved_module(
+  module_graph: &mut ModuleGraph,
+  original_module_identifier: Option<ModuleIdentifier>,
+  dependencies: Vec<DependencyId>,
+  module_identifier: ModuleIdentifier,
+) -> Result<()> {
+  for dependency in dependencies {
+    module_graph.set_resolved_module(original_module_identifier, dependency, module_identifier)?;
   }
+  Ok(())
 }
 
 pub type AddQueue = WorkerQueue<AddTask>;

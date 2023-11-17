@@ -1,7 +1,8 @@
 use rspack_core::{
-  get_dependency_used_by_exports_condition, module_id, Dependency, DependencyCategory,
-  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedByExports,
+  get_dependency_used_by_exports_condition, module_id, AsContextDependency, Dependency,
+  DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
+  ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  UsedByExports,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -97,3 +98,5 @@ impl DependencyTemplate for URLDependency {
     );
   }
 }
+
+impl AsContextDependency for URLDependency {}

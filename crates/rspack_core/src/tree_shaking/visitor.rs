@@ -1659,6 +1659,11 @@ impl<'a> ModuleRefAnalyze<'a> {
         && dependency_type == dep.dependency_type()
       {
         Some(*dep.id())
+      } else if let Some(dep) = dep.as_context_dependency()
+        && dep.request() == src
+        && dependency_type == dep.dependency_type()
+      {
+        Some(*dep.id())
       } else {
         None
       }

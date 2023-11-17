@@ -428,7 +428,7 @@ impl From<RawGeneratorOptions> for GeneratorOptions {
       ),
       "unknown" => Self::Unknown,
       _ => panic!(
-        "Failed to resolve the RawGeneratorOptions.type {}. Expected type is \"asset\", \"asset/inline\", \"asset/resource\", \"unknown\".",
+        r#"Failed to resolve the RawGeneratorOptions.type {}. Expected type is "asset", "asset/inline", "asset/resource", "unknown"."#,
         value.r#type
       ),
     }

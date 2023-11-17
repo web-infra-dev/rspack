@@ -41,12 +41,12 @@ use crate::{
   Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
   ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult,
   CodeGenerationResult, CodeGenerationResults, CompilationLogger, CompilationLogging,
-  CompilerOptions, ContentHashArgs, DependencyId, DependencyParents, Entry, EntryData,
-  EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger,
-  Module, ModuleGraph, ModuleIdentifier, ModuleProfile, ModuleType, PathData, ProcessAssetsArgs,
-  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
-  Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver,
-  SourceType, Stats, TaskResult, WorkerTask,
+  CompilerOptions, ContentHashArgs, ContextDependency, DependencyId, DependencyParents, Entry,
+  EntryData, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult,
+  Filename, Logger, Module, ModuleGraph, ModuleIdentifier, ModuleProfile, ModuleType, PathData,
+  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
+  RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec,
+  SharedPluginDriver, SourceType, Stats, TaskResult, WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
@@ -445,11 +445,15 @@ impl Compilation {
           .module_graph
           .dependency_by_id(&id)
           .expect("dependency not found");
+        if dependency.as_module_dependency().is_none()
+          && dependency.as_context_dependency().is_none()
+        {
+          return;
+        }
+
         let parent_module =
           parent_module_identifier.and_then(|id| self.module_graph.module_by_identifier(&id));
-        if (parent_module_identifier.is_some() && parent_module.is_none())
-          || dependency.as_module_dependency().is_none()
-        {
+        if parent_module_identifier.is_some() && parent_module.is_none() {
           return;
         }
 
@@ -561,12 +565,13 @@ impl Compilation {
 
         task.dependencies.into_iter().for_each(|dependency_id| {
           let dependency = dependency_id.get_dependency(&self.module_graph);
-          // only module dependency can put into resolve queue.
-          if let Some(module_dependency) = dependency.as_module_dependency() {
-            // TODO need implement more dependency `resource_identifier()`
-            // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L1621
-            let resource_identifier =
-              if let Some(resource_identifier) = module_dependency.resource_identifier() {
+          // FIXME: now only module/context dependency can put into resolve queue.
+          // FIXME: should align webpack
+          let resource_identifier =
+            if let Some(module_dependency) = dependency.as_module_dependency() {
+              // TODO need implement more dependency `resource_identifier()`
+              // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L1621
+              let id = if let Some(resource_identifier) = module_dependency.resource_identifier() {
                 resource_identifier.to_string()
               } else {
                 format!(
@@ -575,7 +580,14 @@ impl Compilation {
                   module_dependency.request()
                 )
               };
+              Some(id)
+            } else {
+              dependency
+                .as_context_dependency()
+                .map(|d| ContextDependency::resource_identifier(d).to_string())
+            };
 
+          if let Some(resource_identifier) = resource_identifier {
             sorted_dependencies
               .entry(resource_identifier)
               .or_insert(vec![])
@@ -754,6 +766,9 @@ impl Compilation {
                  current_block: Option<AsyncDependenciesBlockId>| {
                   for dependency in dependencies {
                     if let Some(dependency) = dependency.as_module_dependency() {
+                      module_graph
+                        .set_dependency_import_var(module.identifier(), dependency.request());
+                    } else if let Some(dependency) = dependency.as_context_dependency() {
                       module_graph
                         .set_dependency_import_var(module.identifier(), dependency.request());
                     }

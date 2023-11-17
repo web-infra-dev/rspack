@@ -42,7 +42,6 @@ impl ModuleGraphModule {
     Self {
       outgoing_connections: Default::default(),
       incoming_connections: Default::default(),
-
       issuer: ModuleIssuer::Unset,
       // exec_order: usize::MAX,
       module_identifier,
@@ -62,7 +61,8 @@ impl ModuleGraphModule {
 
   pub fn id<'chunk_graph>(&self, chunk_graph: &'chunk_graph ChunkGraph) -> &'chunk_graph str {
     let c = chunk_graph.get_module_id(self.module_identifier).as_ref();
-    c.expect("module id not found").as_str()
+    c.unwrap_or_else(|| panic!("{} module id not found", self.module_identifier))
+      .as_str()
   }
 
   pub fn add_incoming_connection(&mut self, connection_id: ConnectionId) {
@@ -140,13 +140,13 @@ impl ModuleGraphModule {
           }
         })
         .filter(|id| {
-          if let Some(dep) = module_graph
-            .dependency_by_id(id)
-            .expect("should have id")
-            .as_module_dependency()
-          {
+          let dep = module_graph.dependency_by_id(id).expect("should have id");
+          if let Some(dep) = dep.as_module_dependency() {
             return module_graph.get_parent_block(id).is_none() && !dep.weak();
+          } else if dep.as_context_dependency().is_some() {
+            return module_graph.get_parent_block(id).is_none();
           }
+
           false
         })
         .filter_map(|id| module_graph.module_identifier_by_dependency_id(&id))
@@ -156,12 +156,11 @@ impl ModuleGraphModule {
         .all_dependencies
         .iter()
         .filter(|id| {
-          if let Some(dep) = module_graph
-            .dependency_by_id(id)
-            .expect("should have id")
-            .as_module_dependency()
-          {
+          let dep = module_graph.dependency_by_id(id).expect("should have id");
+          if let Some(dep) = dep.as_module_dependency() {
             return module_graph.get_parent_block(id).is_none() && !dep.weak();
+          } else if dep.as_context_dependency().is_some() {
+            return module_graph.get_parent_block(id).is_none();
           }
           false
         })
@@ -179,14 +178,16 @@ impl ModuleGraphModule {
       .all_dependencies
       .iter()
       .filter_map(|id| {
-        let Some(dep) = module_graph
-          .dependency_by_id(id)
-          .expect("should have id")
-          .as_module_dependency()
-        else {
+        let dep = module_graph.dependency_by_id(id).expect("should have id");
+        let id = if let Some(dep) = dep.as_module_dependency() {
+          dep.id()
+        } else if let Some(dep) = dep.as_context_dependency() {
+          dep.id()
+        } else {
           return None;
         };
-        let Some(block_id) = module_graph.get_parent_block(dep.id()) else {
+
+        let Some(block_id) = module_graph.get_parent_block(id) else {
           return None;
         };
         let module = module_graph

@@ -35,10 +35,6 @@ impl RspackRegex {
     self.algo.sticky()
   }
 
-  pub fn raw(&self) -> &str {
-    &self.raw
-  }
-
   pub fn with_flags(expr: &str, flags: &str) -> Result<Self, Error> {
     let mut chars = flags.chars().collect::<Vec<char>>();
     chars.sort();
@@ -68,4 +64,8 @@ impl TryFrom<SwcRegex> for RspackRegex {
   fn try_from(value: SwcRegex) -> Result<Self, Self::Error> {
     RspackRegex::with_flags(value.exp.as_ref(), value.flags.as_ref())
   }
+}
+
+pub fn regexp_as_str(reg: &RspackRegex) -> &str {
+  &reg.raw
 }

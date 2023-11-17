@@ -1,11 +1,11 @@
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
   get_dependency_used_by_exports_condition, get_exports_type,
-  tree_shaking::symbol::DEFAULT_JS_WORD, Compilation, ConnectionState, Dependency,
-  DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
-  ExportsType, ExtendedReferencedExport, ModuleDependency, ModuleGraph, ModuleGraphModule,
-  ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsedByExports,
+  tree_shaking::symbol::DEFAULT_JS_WORD, AsContextDependency, Compilation, ConnectionState,
+  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
+  DependencyType, ExportsType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsedByExports,
 };
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{common::Span, ecma::atoms::JsWord};
@@ -237,6 +237,10 @@ impl Dependency for HarmonyImportSpecifierDependency {
   fn dependency_debug_name(&self) -> &'static str {
     "HarmonyImportSpecifierDependency"
   }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
+  }
 }
 
 impl ModuleDependency for HarmonyImportSpecifierDependency {
@@ -250,10 +254,6 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
-  }
-
-  fn resource_identifier(&self) -> Option<&str> {
-    Some(&self.resource_identifier)
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
@@ -312,3 +312,5 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     self.get_referenced_exports_in_destructuring(Some(&ids))
   }
 }
+
+impl AsContextDependency for HarmonyImportSpecifierDependency {}

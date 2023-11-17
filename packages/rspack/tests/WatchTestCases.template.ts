@@ -10,7 +10,7 @@ import deprecationTracking from "./helpers/deprecationTracking";
 import FakeDocument from "./helpers/FakeDocument";
 import { rspack, RspackOptions } from "../src";
 
-function copyDiff(src, dest, initial) {
+function copyDiff(src: string, dest: string, initial: boolean) {
 	if (!fs.existsSync(dest)) fs.mkdirSync(dest);
 	const files = fs.readdirSync(src);
 	files.forEach(filename => {
