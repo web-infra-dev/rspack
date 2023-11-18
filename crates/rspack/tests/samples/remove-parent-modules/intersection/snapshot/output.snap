@@ -17,8 +17,8 @@ __webpack_require__.r(__webpack_exports__);
 
 console.log('a');
 }),
-"./i-1.js": (function (__unused_webpack_module, exports, __webpack_require__) {
-console.log('i-1');
+"./i-2.js": (function (__unused_webpack_module, exports, __webpack_require__) {
+console.log('i-2');
 }),
 
 }]);
@@ -40,8 +40,8 @@ __webpack_require__.r(__webpack_exports__);
 
 console.log('a');
 }),
-"./i-2.js": (function (__unused_webpack_module, exports, __webpack_require__) {
-console.log('i-2');
+"./i-1.js": (function (__unused_webpack_module, exports, __webpack_require__) {
+console.log('i-1');
 }),
 
 }]);
