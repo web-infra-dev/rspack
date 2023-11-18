@@ -1,0 +1,24 @@
+{
+  "name": "rspack-with-nutui-react",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "rspack serve",
+    "build": "rimraf dist/* & rspack build",
+    "reset": "rimraf ./**/node_modules"
+  },
+  "dependencies": {
+    "@nutui/nutui-react": "^2.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@rspack/cli": "latest",
+    "@types/react": "18.2.0",
+    "@types/react-dom": "18.2.1",
+    "rimraf": "^5.0.5",
+    "sass": "^1.69.5",
+    "sass-loader": "^13.3.2",
+    "typescript": "^5.0.4"
+  }
+}
