@@ -17,6 +17,8 @@ pub(super) struct CodeSplitter<'me> {
   next_free_module_post_order_index: u32,
   queue: Vec<QueueAction>,
   queue_delayed: Vec<QueueAction>,
+  queue_connect: HashMap<ChunkGroupUkey, HashSet<ChunkGroupUkey>>,
+  outdated_chunk_group_info: HashSet<ChunkGroupUkey>,
   block_chunk_groups: HashMap<AsyncDependenciesBlockIdentifier, ChunkGroupUkey>,
   named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   named_async_entrypoints: HashMap<String, ChunkGroupUkey>,
@@ -32,6 +34,8 @@ impl<'me> CodeSplitter<'me> {
       next_free_module_post_order_index: 0,
       queue: Default::default(),
       queue_delayed: Default::default(),
+      queue_connect: Default::default(),
+      outdated_chunk_group_info: Default::default(),
       block_chunk_groups: Default::default(),
       named_chunk_groups: Default::default(),
       named_async_entrypoints: Default::default(),
@@ -78,10 +82,10 @@ impl<'me> CodeSplitter<'me> {
 
       let mut entrypoint = ChunkGroup::new(
         ChunkGroupKind::new_entrypoint(true, Box::new(options.clone())),
-        HashSet::from_iter([Arc::from(
-          options.runtime.clone().unwrap_or_else(|| name.to_string()),
-        )]),
         ChunkGroupInfo {
+          runtime: HashSet::from_iter([Arc::from(
+            options.runtime.clone().unwrap_or_else(|| name.to_string()),
+          )]),
           chunk_loading: !matches!(
             options
               .chunk_loading
@@ -223,12 +227,17 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     self.queue.reverse();
 
     let start = logger.time("process queue");
-    while !self.queue.is_empty() || !self.queue_delayed.is_empty() {
+    while !self.queue.is_empty() || !self.queue_connect.is_empty() {
       self.process_queue();
+      if !self.queue_connect.is_empty() {
+        self.process_connect_queue();
+      }
+      if !self.outdated_chunk_group_info.is_empty() {
+        self.process_outdated_chunk_group_info();
+      }
       if self.queue.is_empty() {
-        let mut queue_delayed = std::mem::take(&mut self.queue_delayed);
-        queue_delayed.reverse();
-        self.queue = queue_delayed;
+        self.queue = std::mem::replace(&mut self.queue_delayed, self.queue);
+        self.queue.reverse();
       }
     }
     logger.time_end(start);
@@ -241,7 +250,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .chunk_by_ukey
           .entry(*chunk_ukey)
           .and_modify(|chunk| {
-            chunk.runtime.extend(chunk_group.runtime.clone());
+            chunk.runtime.extend(chunk_group.info.runtime.clone());
           });
       }
     }
@@ -475,6 +484,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .chunk_group_by_ukey
       .get_mut(&item_chunk_group_ukey)
       .expect("chunk group not found");
+
     let chunk = if let Some(chunk_name) = block.get_group_options().and_then(|x| x.name()) {
       Compilation::add_named_chunk(
         chunk_name.to_string(),
@@ -518,12 +528,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
               .add_root_chunk(chunk.ukey);
             let mut entrypoint = ChunkGroup::new(
               ChunkGroupKind::new_entrypoint(false, Box::new(entry_options.clone())),
-              RuntimeSpec::from_iter([entry_options
-                .runtime
-                .as_deref()
-                .expect("should have runtime for AsyncEntrypoint")
-                .into()]),
               ChunkGroupInfo {
+                runtime: RuntimeSpec::from_iter([entry_options
+                  .runtime
+                  .as_deref()
+                  .expect("should have runtime for AsyncEntrypoint")
+                  .into()]),
                 chunk_loading: entry_options
                   .chunk_loading
                   .as_ref()
@@ -547,9 +557,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
                 .named_chunk_groups
                 .insert(name.to_owned(), entrypoint.ukey);
             }
-
-            item_chunk_group.children.insert(entrypoint.ukey);
-            entrypoint.parents.insert(item_chunk_group.ukey);
 
             entrypoint.connect_chunk(chunk);
 
@@ -581,6 +588,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       } else {
         let cgi = if let Some(cgi) = chunk_name.and_then(|name| self.named_chunk_groups.get(name)) {
           // TODO: AsyncDependencyToInitialChunkError
+          self
+            .compilation
+            .chunk_graph
+            .connect_block_and_chunk_group(block_id, *cgi);
           *cgi
         } else {
           chunk
@@ -591,8 +602,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
               options: ChunkGroupOptions::default()
                 .name_optional(block.get_group_options().and_then(|x| x.name())),
             },
-            item_chunk_group.runtime.clone(),
             ChunkGroupInfo {
+              runtime: item_chunk_group.info.runtime.clone(),
               chunk_loading: item_chunk_group.info.chunk_loading,
               async_chunks: item_chunk_group.info.async_chunks,
             },
@@ -607,9 +618,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
               .named_chunk_groups
               .insert(name.to_owned(), chunk_group.ukey);
           }
-
-          item_chunk_group.children.insert(chunk_group.ukey);
-          chunk_group.parents.insert(item_chunk_group.ukey);
 
           chunk_group.connect_chunk(chunk);
 
@@ -629,10 +637,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     if let Some(c) = c {
+      let connect_list = self.queue_connect.entry(item_chunk_group_ukey).or_default();
+      connect_list.insert(c);
+
       // Inconsistent with webpack, webpack use minAvailableModules to avoid cycle, but calculate it is too complex
       if is_already_split {
         return;
       }
+
       self
         .queue_delayed
         .push(QueueAction::ProcessBlock(ProcessBlock {
@@ -709,6 +721,46 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .module_identifier_by_dependency_id(dep_id)
           .expect("should have module_identifier"),
       );
+    }
+  }
+
+  fn process_connect_queue(&mut self) {
+    for (chunk_group_ukey, targets) in self.queue_connect.drain() {
+      let chunk_group = self
+        .compilation
+        .chunk_group_by_ukey
+        .expect_get_mut(&chunk_group_ukey);
+      let runtime = chunk_group.info.runtime.clone();
+      chunk_group.children.extend(targets.clone());
+      for target_ukey in targets {
+        let target = self
+          .compilation
+          .chunk_group_by_ukey
+          .expect_get_mut(&target_ukey);
+        target.parents.insert(chunk_group_ukey);
+        let mut updated = false;
+        for r in runtime.iter() {
+          updated = target.info.runtime.insert(r.clone());
+        }
+        if updated {
+          self.outdated_chunk_group_info.insert(target_ukey);
+        }
+      }
+    }
+  }
+
+  fn process_outdated_chunk_group_info(&mut self) {
+    for chunk_group_ukey in self.outdated_chunk_group_info.drain() {
+      let chunk_group = self
+        .compilation
+        .chunk_group_by_ukey
+        .expect_get(&chunk_group_ukey);
+      if !chunk_group.children.is_empty() {
+        for child in chunk_group.children.iter() {
+          let connect_list = self.queue_connect.entry(chunk_group_ukey).or_default();
+          connect_list.insert(*child);
+        }
+      }
     }
   }
 }

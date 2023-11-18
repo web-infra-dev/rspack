@@ -27,14 +27,13 @@ pub struct ChunkGroup {
   // ChunkGroupInfo
   pub(crate) next_pre_order_index: usize,
   pub(crate) next_post_order_index: usize,
-  pub(crate) runtime: RuntimeSpec,
   // Entrypoint
   pub(crate) runtime_chunk: Option<ChunkUkey>,
   pub(crate) entry_point_chunk: Option<ChunkUkey>,
 }
 
 impl ChunkGroup {
-  pub fn new(kind: ChunkGroupKind, runtime: RuntimeSpec, info: ChunkGroupInfo) -> Self {
+  pub fn new(kind: ChunkGroupKind, info: ChunkGroupInfo) -> Self {
     Self {
       ukey: ChunkGroupUkey::new(),
       chunks: vec![],
@@ -46,7 +45,6 @@ impl ChunkGroup {
       kind,
       next_pre_order_index: 0,
       next_post_order_index: 0,
-      runtime,
       // name,
       runtime_chunk: None,
       entry_point_chunk: None,
@@ -326,4 +324,5 @@ impl GroupOptions {
 pub struct ChunkGroupInfo {
   pub chunk_loading: bool,
   pub async_chunks: bool,
+  pub runtime: RuntimeSpec,
 }
