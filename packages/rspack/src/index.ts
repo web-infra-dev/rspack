@@ -65,4 +65,10 @@ export const optimize = { LimitChunkCountPlugin };
 
 export const sources = require("webpack-sources");
 
+export const util = {
+	get serialization() {
+		return require("./util/serialization");
+	}
+};
+
 export { Watching };
