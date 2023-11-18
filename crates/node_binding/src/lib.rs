@@ -4,9 +4,6 @@
 #[macro_use]
 extern crate napi_derive;
 
-#[macro_use]
-extern crate rspack_binding_macros;
-
 use std::collections::HashSet;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -15,26 +12,23 @@ use std::sync::Mutex;
 use napi::bindgen_prelude::*;
 use once_cell::sync::Lazy;
 use rspack_binding_options::BuiltinPlugin;
+use rspack_binding_values::SingleThreadedHashMap;
 use rspack_core::PluginExt;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
 use rspack_napi_shared::NAPI_ENV;
 
 mod hook;
-mod js_values;
 mod loader;
 mod plugins;
-mod utils;
 
 use hook::*;
-use js_values::*;
 // Napi macro registered this successfully
 #[allow(unused)]
-use loader::*;
+use loader::run_builtin_loader;
 use plugins::*;
 use rspack_binding_options::*;
+use rspack_binding_values::*;
 use rspack_tracing::chrome::FlushGuard;
-use utils::*;
-
 #[cfg(not(target_os = "linux"))]
 #[global_allocator]
 static GLOBAL: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;

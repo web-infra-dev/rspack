@@ -307,6 +307,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       rspack_core::ParseResult {
         // Assets do not have dependencies
         dependencies: vec![],
+        blocks: vec![],
         source,
         presentational_dependencies: vec![],
         analyze_result,
@@ -368,7 +369,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           let contenthash = contenthash.rendered(compilation.options.output.hash_digest_length);
 
           let source_file_name = self.get_source_file_name(normal_module, compilation);
-          let (filename, asset_info) = compilation.get_asset_path_with_info(
+          let (filename, mut asset_info) = compilation.get_asset_path_with_info(
             asset_filename_template,
             PathData::default()
               .module(module)
@@ -391,6 +392,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
               .insert(RuntimeGlobals::PUBLIC_PATH);
             format!(r#"{} + "{}""#, RuntimeGlobals::PUBLIC_PATH, filename)
           };
+          asset_info.set_source_filename(source_file_name);
 
           generate_context
             .data

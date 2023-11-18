@@ -7,7 +7,8 @@
 
 const WebpackError = require("./WebpackError.js");
 
-/** @typedef {import("./Module")} Module */
+// /** @typedef {import("./Module")} Module */
+/** @typedef {any} Module */
 
 /**
  * @template T
@@ -85,6 +86,7 @@ const tryRunOrWebpackError = (fn, hook) => {
 		if (err instanceof WebpackError) {
 			throw err;
 		}
+		// @ts-expect-error
 		throw new HookWebpackError(err, hook);
 	}
 	return r;

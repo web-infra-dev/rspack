@@ -37,13 +37,13 @@ impl ContextModuleFactory {
     }
   }
 
-  pub async fn before_resolve(
+  async fn before_resolve(
     &mut self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
     let dependency = data
       .dependency
-      .as_module_dependency_mut()
+      .as_context_dependency_mut()
       .expect("should be module dependency");
     let mut before_resolve_args = NormalModuleBeforeResolveArgs {
       request: dependency.request().to_string(),
@@ -74,14 +74,14 @@ impl ContextModuleFactory {
     Ok(None)
   }
 
-  pub async fn resolve(
+  async fn resolve(
     &self,
     data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
     let dependency = data
       .dependency
-      .as_module_dependency()
-      .expect("should be module dependency");
+      .as_context_dependency()
+      .expect("should be context dependency");
     let factory_meta = Default::default();
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
@@ -119,14 +119,13 @@ impl ContextModuleFactory {
           resource_query: resource.query,
           resource_fragment: resource.fragment,
           resolve_options: data.resolve_options,
-          context_options: dependency.options().expect("should has options").clone(),
+          context_options: dependency.options().clone(),
         },
         plugin_driver.resolver_factory.clone(),
       )) as BoxModule,
       Ok(ResolveResult::Ignored) => {
         let ident = format!("{}/{}", data.context, specifier);
         let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
-
         let raw_module = RawModule::new(
           "/* (ignored) */".to_owned(),
           module_identifier,
@@ -134,7 +133,6 @@ impl ContextModuleFactory {
           Default::default(),
         )
         .boxed();
-
         return Ok(ModuleFactoryResult::new(raw_module).with_empty_diagnostic());
       }
       Err(ResolveError(runtime_error, internal_error)) => {

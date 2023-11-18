@@ -224,15 +224,19 @@ pub fn generate_entry_startup(
   RawSource::from(source).boxed()
 }
 
+/**
+ * This is ported from https://github.com/webpack/webpack/blob/87660921808566ef3b8796f8df61bd79fc026108/lib/esm/ModuleChunkFormatPlugin.js#L98
+ */
 pub fn get_relative_path(base_chunk_output_name: &str, other_chunk_output_name: &str) -> String {
   let mut base_chunk_output_name_arr = base_chunk_output_name.split('/').collect::<Vec<_>>();
   base_chunk_output_name_arr.pop();
   let mut other_chunk_output_name_arr = other_chunk_output_name.split('/').collect::<Vec<_>>();
-  while !base_chunk_output_name_arr.is_empty() && !other_chunk_output_name_arr.is_empty() {
-    if base_chunk_output_name_arr[0] == other_chunk_output_name_arr[0] {
-      base_chunk_output_name_arr.remove(0);
-      other_chunk_output_name_arr.remove(0);
-    }
+  while !base_chunk_output_name_arr.is_empty()
+    && !other_chunk_output_name_arr.is_empty()
+    && base_chunk_output_name_arr[0] == other_chunk_output_name_arr[0]
+  {
+    base_chunk_output_name_arr.remove(0);
+    other_chunk_output_name_arr.remove(0);
   }
   let path = if base_chunk_output_name_arr.is_empty() {
     "./".to_string()

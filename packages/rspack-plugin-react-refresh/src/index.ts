@@ -1,13 +1,12 @@
 import path from "path";
 import type { Compiler } from "@rspack/core";
+import { DefinePlugin } from "@rspack/core";
 import { normalizeOptions, type PluginOptions } from "./options";
-import { validate as validateOptions } from "schema-utils";
 
 export type { PluginOptions };
 
 const reactRefreshPath = require.resolve("../client/reactRefresh.js");
 const reactRefreshEntryPath = require.resolve("../client/reactRefreshEntry.js");
-const schema = require("../options.json");
 
 const refreshUtilsPath = require.resolve(
 	"@pmmmwh/react-refresh-webpack-plugin/lib/runtime/RefreshUtils",
@@ -38,11 +37,6 @@ class ReactRefreshRspackPlugin {
 	static deprecated_runtimePaths: string[];
 
 	constructor(options: PluginOptions = {}) {
-		validateOptions(schema, options, {
-			name: "React Refresh Rspack Plugin",
-			baseDataPath: "options"
-		});
-
 		this.options = normalizeOptions(options);
 	}
 
@@ -55,12 +49,26 @@ class ReactRefreshRspackPlugin {
 		}).apply(compiler);
 
 		compiler.options.module.rules.unshift({
+			// @ts-expect-error
 			include: this.options.include,
+			// @ts-expect-error
 			exclude: {
 				or: [this.options.exclude, [...runtimePaths]].filter(Boolean)
 			},
 			use: "builtin:react-refresh-loader"
 		});
+
+		const definedModules = {
+			// For Mutiple Instance Mode
+			__react_refresh_library__: JSON.stringify(
+				compiler.webpack.Template.toIdentifier(
+					this.options.library ||
+						compiler.options.output.uniqueName ||
+						compiler.options.output.library
+				)
+			)
+		};
+		new DefinePlugin(definedModules).apply(compiler);
 
 		const refreshPath = path.dirname(require.resolve("react-refresh"));
 		compiler.options.resolve.alias = {

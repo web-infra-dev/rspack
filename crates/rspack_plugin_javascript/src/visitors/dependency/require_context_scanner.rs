@@ -24,7 +24,7 @@ impl Visit for RequireContextScanner<'_> {
 
   fn visit_call_expr(&mut self, node: &CallExpr) {
     if is_require_context_call(node) && !node.args.is_empty() {
-      if let Some(Lit::Str(str)) = node.args.first().and_then(|x| x.expr.as_lit()) {
+      let mut analyze = |request: &str| {
         let recursive =
           if let Some(Lit::Bool(bool)) = node.args.get(1).and_then(|x| x.expr.as_lit()) {
             bool.value
@@ -56,6 +56,7 @@ impl Visit for RequireContextScanner<'_> {
             node.span.real_lo(),
             node.span.real_hi(),
             ContextOptions {
+              chunk_name: None,
               mode,
               recursive,
               reg_exp: clean_regexp_in_context_module(reg_exp),
@@ -63,11 +64,28 @@ impl Visit for RequireContextScanner<'_> {
               include: None,
               exclude: None,
               category: DependencyCategory::CommonJS,
-              request: str.value.to_string(),
+              request: request.to_string(),
               namespace_object: ContextNameSpaceObject::Unset,
             },
             Some(node.span.into()),
           )));
+      };
+
+      // Handle string evaluatables.
+      // For example: require.context("", ...), require.context(``, ...)
+      // https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/dependencies/RequireContextDependencyParserPlugin.js#L47
+      // TODO: should've used expression evaluation to handle cases like `abc${"efg"}`, etc.
+      match node.args.first().map(|x| &*x.expr) {
+        Some(t) if let Some(Lit::Str(str)) = t.as_lit() => analyze(&str.value),
+        Some(t)
+          if let Some(tpl) = t.as_tpl()
+            && tpl.exprs.is_empty()
+            && tpl.quasis.len() == 1
+            && let Some(el) = tpl.quasis.first() =>
+        {
+          analyze(&el.raw)
+        }
+        _ => (),
       }
     } else {
       node.visit_children_with(self);

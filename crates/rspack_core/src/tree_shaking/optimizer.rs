@@ -469,15 +469,13 @@ impl<'a> CodeSizeOptimizer<'a> {
             panic!("Failed to get ModuleGraphModule by module identifier {module_identifier}")
           });
         // reachable_dependency_identifier.extend(analyze_result.inherit_export_maps.keys());
-        for dependency_id in mgm.dependencies.iter() {
-          if self
+        for dependency_id in mgm.all_dependencies.iter() {
+          let dep = self
             .compilation
             .module_graph
             .dependency_by_id(dependency_id)
-            .expect("should have dependency")
-            .as_module_dependency()
-            .is_none()
-          {
+            .expect("should have dependency");
+          if dep.as_module_dependency().is_none() && dep.as_context_dependency().is_none() {
             continue;
           }
           let module_identifier = match self
@@ -625,12 +623,11 @@ impl<'a> CodeSizeOptimizer<'a> {
       .module_graph_module_by_identifier(&cur)
       .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {cur}"));
     let mut module_ident_list = vec![];
-    for dep in mgm.dependencies.iter() {
-      if module_graph
+    for dep in mgm.all_dependencies.iter() {
+      let dependency = module_graph
         .dependency_by_id(dep)
-        .expect("should have dependency")
-        .as_module_dependency()
-        .is_none()
+        .expect("should have dependency");
+      if dependency.as_module_dependency().is_none() && dependency.as_context_dependency().is_none()
       {
         continue;
       }

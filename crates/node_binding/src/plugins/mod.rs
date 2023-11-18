@@ -6,6 +6,10 @@ use async_trait::async_trait;
 pub use loader::JsLoaderResolver;
 use napi::{Env, Result};
 use rspack_binding_macros::js_fn_into_threadsafe_fn;
+use rspack_binding_values::{
+  AfterResolveData, BeforeResolveData, JsAssetEmittedArgs, JsChunkAssetArgs, JsModule,
+  JsResolveForSchemeInput, JsResolveForSchemeResult, ToJsModule,
+};
 use rspack_core::{
   ChunkAssetArgs, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
   PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
@@ -15,10 +19,6 @@ use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::NapiResultExt;
 
-use crate::js_values::{
-  AfterResolveData, BeforeResolveData, JsAssetEmittedArgs, JsChunkAssetArgs, JsModule,
-  JsResolveForSchemeInput, JsResolveForSchemeResult, ToJsModule,
-};
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
 pub struct JsHooksAdapter {
@@ -714,13 +714,12 @@ impl rspack_core::Plugin for JsHooksAdapter {
     if self.is_hook_disabled(&Hook::SucceedModule) {
       return Ok(());
     }
-
+    let js_module = args
+      .to_js_module()
+      .expect("Failed to convert module to JsModule");
     self
       .succeed_module_tsfn
-      .call(
-        args.to_js_module().expect("Convert to js_module failed."),
-        ThreadsafeFunctionCallMode::NonBlocking,
-      )
+      .call(js_module, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
       .map_err(|err| internal_error!("Failed to call succeed_module hook: {err}"))?

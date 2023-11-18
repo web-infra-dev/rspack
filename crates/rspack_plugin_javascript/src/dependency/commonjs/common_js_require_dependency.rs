@@ -1,7 +1,7 @@
-use rspack_core::{
-  module_id, Dependency, DependencyCategory, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
-};
+use rspack_core::{module_id, AsContextDependency, Dependency, DependencyCategory};
+use rspack_core::{DependencyId, DependencyTemplate};
+use rspack_core::{DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals};
+use rspack_core::{TemplateContext, TemplateReplaceSource};
 use swc_core::ecma::atoms::JsWord;
 
 // Webpack RequireHeaderDependency + CommonJsRequireDependency
@@ -100,3 +100,5 @@ impl DependencyTemplate for CommonJsRequireDependency {
     );
   }
 }
+
+impl AsContextDependency for CommonJsRequireDependency {}

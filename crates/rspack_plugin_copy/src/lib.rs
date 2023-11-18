@@ -683,6 +683,7 @@ fn ensure_info_fields() {
       source_map: Default::default(),
     },
     version: Default::default(),
+    source_filename: Default::default(),
   };
 
   std::hint::black_box(info);

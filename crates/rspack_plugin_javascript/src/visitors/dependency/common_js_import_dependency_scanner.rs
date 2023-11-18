@@ -130,6 +130,7 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
                     call_expr.callee.span().real_hi(),
                     call_expr.span.real_hi(),
                     ContextOptions {
+                      chunk_name: None,
                       mode: ContextMode::Sync,
                       recursive: true,
                       reg_exp: context_reg_exp(&reg, ""),

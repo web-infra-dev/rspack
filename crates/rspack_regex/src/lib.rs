@@ -1,5 +1,7 @@
 #![feature(let_chains)]
 
+use std::fmt::Debug;
+
 use rspack_error::Error;
 use swc_core::ecma::ast::Regex as SwcRegex;
 
@@ -8,10 +10,16 @@ use self::algo::Algo;
 mod algo;
 
 /// Using wrapper type required by [TryFrom] trait
-#[derive(Debug, Clone, Hash)]
+#[derive(Clone, Hash)]
 pub struct RspackRegex {
   pub algo: Algo,
   raw: String,
+}
+
+impl Debug for RspackRegex {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_tuple("RspackRegex").field(&self.raw).finish()
+  }
 }
 
 impl RspackRegex {
@@ -25,10 +33,6 @@ impl RspackRegex {
 
   pub fn sticky(&self) -> bool {
     self.algo.sticky()
-  }
-
-  pub fn raw(&self) -> &str {
-    &self.raw
   }
 
   pub fn with_flags(expr: &str, flags: &str) -> Result<Self, Error> {
@@ -60,4 +64,8 @@ impl TryFrom<SwcRegex> for RspackRegex {
   fn try_from(value: SwcRegex) -> Result<Self, Self::Error> {
     RspackRegex::with_flags(value.exp.as_ref(), value.flags.as_ref())
   }
+}
+
+pub fn regexp_as_str(reg: &RspackRegex) -> &str {
+  &reg.raw
 }

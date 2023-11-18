@@ -5,7 +5,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
-  Filename, ModuleIdentifier, PublicPath, RuntimeSpec,
+  Filename, LibraryOptions, ModuleIdentifier, PublicPath, RuntimeSpec,
 };
 
 impl DatabaseItem for ChunkGroup {
@@ -241,11 +241,11 @@ impl ChunkGroup {
   }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum ChunkGroupKind {
   Entrypoint {
     initial: bool,
-    options: EntryOptions,
+    options: Box<EntryOptions>,
   },
   Normal {
     options: ChunkGroupOptions,
@@ -253,7 +253,7 @@ pub enum ChunkGroupKind {
 }
 
 impl ChunkGroupKind {
-  pub fn new_entrypoint(initial: bool, options: EntryOptions) -> Self {
+  pub fn new_entrypoint(initial: bool, options: Box<EntryOptions>) -> Self {
     Self::Entrypoint { initial, options }
   }
 
@@ -276,7 +276,7 @@ impl ChunkGroupKind {
   }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone)]
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<String>,
@@ -285,35 +285,32 @@ pub struct EntryOptions {
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
   pub filename: Option<Filename>,
+  pub library: Option<LibraryOptions>,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct ChunkGroupOptions {
   pub name: Option<String>,
 }
 
 impl ChunkGroupOptions {
-  pub fn name(mut self, v: impl Into<String>) -> Self {
-    self.name = Some(v.into());
-    self
-  }
-
   pub fn name_optional<T: Into<String>>(mut self, v: Option<T>) -> Self {
     self.name = v.map(|v| v.into());
     self
   }
 }
 
-pub enum ChunkGroupOptionsKindRef<'a> {
-  Entry(&'a EntryOptions),
-  Normal(&'a ChunkGroupOptions),
+#[derive(Debug, Clone)]
+pub enum GroupOptions {
+  Entrypoint(Box<EntryOptions>),
+  ChunkGroup(ChunkGroupOptions),
 }
 
-impl ChunkGroupOptionsKindRef<'_> {
+impl GroupOptions {
   pub fn name(&self) -> Option<&str> {
     match self {
-      Self::Entry(e) => e.name.as_deref(),
-      Self::Normal(n) => n.name.as_deref(),
+      Self::Entrypoint(e) => e.name.as_deref(),
+      Self::ChunkGroup(n) => n.name.as_deref(),
     }
   }
 }

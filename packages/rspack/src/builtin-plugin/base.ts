@@ -39,7 +39,7 @@ export function create<T extends any[], R>(
 	name: BuiltinPluginName,
 	resolve: (...args: T) => R
 ) {
-	return class Plugin extends RspackBuiltinPlugin {
+	class Plugin extends RspackBuiltinPlugin {
 		name = name;
 		_options: R;
 
@@ -56,5 +56,11 @@ export function create<T extends any[], R>(
 				options: this._options
 			};
 		}
-	};
+	}
+
+	// Make the plugin class name consistent with webpack
+	// https://stackoverflow.com/a/46132163
+	Object.defineProperty(Plugin, "name", { value: name });
+
+	return Plugin;
 }

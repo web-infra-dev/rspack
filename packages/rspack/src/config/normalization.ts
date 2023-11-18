@@ -124,7 +124,7 @@ export const getNormalizedRspackOptions = (
 					"cssFilename",
 					"cssChunkFilename"
 				] as const;
-				const checkFilename = (prop: typeof filenames[number]) => {
+				const checkFilename = (prop: (typeof filenames)[number]) => {
 					const oldFilename = output[prop];
 					if (typeof oldFilename === "string" && oldFilename.endsWith(ext)) {
 						const newFilename =
@@ -180,6 +180,10 @@ export const getNormalizedRspackOptions = (
 						output.auxiliaryComment !== undefined
 							? output.auxiliaryComment
 							: libraryBase.auxiliaryComment,
+					amdContainer:
+						output.amdContainer !== undefined
+							? output.amdContainer
+							: libraryBase.amdContainer,
 					export:
 						output.libraryExport !== undefined
 							? output.libraryExport
@@ -341,7 +345,8 @@ const getNormalizedEntryStatic = (entry: EntryStatic) => {
 				baseUri: value.baseUri,
 				chunkLoading: value.chunkLoading,
 				asyncChunks: value.asyncChunks,
-				filename: value.filename
+				filename: value.filename,
+				library: value.library
 			};
 		}
 	}
@@ -427,6 +432,7 @@ export interface EntryDescriptionNormalized {
 	publicPath?: PublicPath;
 	baseUri?: string;
 	filename?: EntryFilename;
+	library?: LibraryOptions;
 }
 
 export interface OutputNormalized {

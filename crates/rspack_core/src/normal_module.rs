@@ -26,12 +26,12 @@ use rustc_hash::FxHasher;
 use serde_json::json;
 
 use crate::{
-  add_connection_states, contextify, get_context, BoxLoader, BoxModule, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, CodeGenerationResult, Compilation, CompilerOptions, ConnectionState,
-  Context, DependencyTemplate, GenerateContext, GeneratorOptions, LibIdentOptions,
-  LoaderRunnerPluginProcessResource, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RuntimeSpec,
-  SourceType,
+  add_connection_states, contextify, get_context, AsyncDependenciesBlockId, BoxLoader, BoxModule,
+  BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
+  CompilerOptions, ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate,
+  GenerateContext, GeneratorOptions, LibIdentOptions, LoaderRunnerPluginProcessResource, Module,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, ParserOptions, Resolve, RuntimeSpec, SourceType,
 };
 
 bitflags! {
@@ -78,6 +78,9 @@ impl ModuleIssuer {
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct NormalModule {
+  blocks: Vec<AsyncDependenciesBlockId>,
+  dependencies: Vec<DependencyId>,
+
   id: ModuleIdentifier,
   /// Context of this module
   context: Box<Context>,
@@ -149,6 +152,14 @@ impl NormalModuleSource {
 pub static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
+  fn create_id(module_type: &ModuleType, request: &str) -> String {
+    if *module_type == ModuleType::Js {
+      request.to_string()
+    } else {
+      format!("{module_type}|{request}")
+    }
+  }
+
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     request: String,
@@ -166,13 +177,11 @@ impl NormalModule {
     contains_inline_loader: bool,
   ) -> Self {
     let module_type = module_type.into();
-    let identifier = if module_type == ModuleType::Js {
-      request.to_string()
-    } else {
-      format!("{module_type}|{request}")
-    };
+    let id = Self::create_id(&module_type, &request);
     Self {
-      id: ModuleIdentifier::from(identifier),
+      blocks: Vec::new(),
+      dependencies: Vec::new(),
+      id: ModuleIdentifier::from(id),
       context: Box::new(get_context(&resource_data)),
       request,
       user_request,
@@ -277,6 +286,24 @@ impl Identifiable for NormalModule {
   }
 }
 
+impl DependenciesBlock for NormalModule {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
+    self.blocks.push(block)
+  }
+
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+    &self.blocks
+  }
+
+  fn add_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.push(dependency)
+  }
+
+  fn get_dependencies(&self) -> &[DependencyId] {
+    &self.dependencies
+  }
+}
+
 #[async_trait::async_trait]
 impl Module for NormalModule {
   fn module_type(&self) -> &ModuleType {
@@ -337,6 +364,7 @@ impl Module for NormalModule {
             build_info,
             build_meta: Default::default(),
             dependencies: Vec::new(),
+            blocks: Vec::new(),
             analyze_result: Default::default(),
           }
           .with_diagnostic(e.into()),
@@ -357,6 +385,7 @@ impl Module for NormalModule {
       ParseResult {
         source,
         dependencies,
+        blocks,
         presentational_dependencies,
         analyze_result,
       },
@@ -402,6 +431,7 @@ impl Module for NormalModule {
         build_info,
         build_meta,
         dependencies,
+        blocks,
         analyze_result,
       }
       .with_diagnostic(diagnostics),
@@ -524,7 +554,7 @@ impl Module for NormalModule {
         }
         module_chain.insert(self.identifier());
         let mut current = ConnectionState::Bool(false);
-        for dependency_id in mgm.dependencies.iter() {
+        for dependency_id in self.get_dependencies().iter() {
           if let Some(dependency) = module_graph.dependency_by_id(dependency_id) {
             let state =
               dependency.get_module_evaluation_side_effects_state(module_graph, module_chain);

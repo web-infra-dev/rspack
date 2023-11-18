@@ -1,6 +1,6 @@
 use crate::{
-  AsDependencyTemplate, Context, Dependency, DependencyCategory, DependencyId, DependencyType,
-  ModuleDependency,
+  AsContextDependency, AsDependencyTemplate, Context, Dependency, DependencyCategory, DependencyId,
+  DependencyType, ModuleDependency,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -57,3 +57,4 @@ impl ModuleDependency for EntryDependency {
 }
 
 impl AsDependencyTemplate for EntryDependency {}
+impl AsContextDependency for EntryDependency {}

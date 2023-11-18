@@ -8,8 +8,10 @@
 const ModuleFilenameHelpers = require("./ModuleFilenameHelpers");
 const { NormalModule } = require("../NormalModule");
 
-/** @typedef {import("../declarations/plugins/LoaderOptionsPlugin").LoaderOptionsPluginOptions} LoaderOptionsPluginOptions */
-/** @typedef {import("./Compiler")} Compiler */
+// /** @typedef {import("../declarations/plugins/LoaderOptionsPlugin").LoaderOptionsPluginOptions} LoaderOptionsPluginOptions */
+// /** @typedef {import("./Compiler")} Compiler */
+/** @typedef {any} LoaderOptionsPluginOptions */
+/** @typedef {any} Compiler */
 
 class LoaderOptionsPlugin {
 	/**
@@ -32,9 +34,11 @@ class LoaderOptionsPlugin {
 	 */
 	apply(compiler) {
 		const options = this.options;
+		// @ts-expect-error
 		compiler.hooks.compilation.tap("LoaderOptionsPlugin", compilation => {
 			NormalModule.getCompilationHooks(compilation).loader.tap(
 				"LoaderOptionsPlugin",
+				// @ts-expect-error
 				context => {
 					const resource = context.resourcePath;
 					if (!resource) return;

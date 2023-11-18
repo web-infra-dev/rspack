@@ -5,7 +5,6 @@ use regex::Regex;
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
-use rspack_identifier::Identifiable;
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
 use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
@@ -15,12 +14,12 @@ use crate::{
   module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
   tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
   BoxLoader, CompilerContext, CompilerOptions, DependencyCategory, DependencyType, FactorizeArgs,
-  FactoryMeta, FuncUseCtx, GeneratorOptions, MissingModule, ModuleArgs, ModuleExt, ModuleFactory,
+  FactoryMeta, FuncUseCtx, GeneratorOptions, MissingModule, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
   ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleBeforeResolveArgs, ParserOptions, RawModule, Resolve, ResolveArgs, ResolveError,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
-  ResourceParsedData, SharedPluginDriver,
+  NormalModuleBeforeResolveArgs, NormalModuleCreateData, ParserOptions, RawModule, Resolve,
+  ResolveArgs, ResolveError, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
+  ResolverFactory, ResourceData, ResourceParsedData, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -67,7 +66,7 @@ impl NormalModuleFactory {
     }
   }
 
-  pub async fn before_resolve(
+  async fn before_resolve(
     &mut self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
@@ -106,7 +105,7 @@ impl NormalModuleFactory {
     Ok(None)
   }
 
-  pub async fn after_resolve(
+  async fn after_resolve(
     &mut self,
     data: &ModuleFactoryCreateData,
     factory_result: &ModuleFactoryResult,
@@ -240,7 +239,7 @@ impl NormalModuleFactory {
 
             match request_without_match_resource
               .char_indices()
-              .nth(whole_matched.len())
+              .nth(whole_matched.chars().count())
             {
               Some((pos, _)) => &request_without_match_resource[pos..],
               None => {
@@ -257,6 +256,11 @@ impl NormalModuleFactory {
         let mut request = request_without_match_resource.chars();
         let first_char = request.next();
         let second_char = request.next();
+
+        if first_char.is_none() {
+          Err(internal_error!("Empty dependency (no request)"))?
+        }
+
         // See: https://webpack.js.org/concepts/loaders/#inline
         no_pre_auto_loaders = matches!(first_char, Some('-')) && matches!(second_char, Some('!'));
         no_auto_loaders = no_pre_auto_loaders || matches!(first_char, Some('!'));
@@ -274,10 +278,7 @@ impl NormalModuleFactory {
             }
           }) {
             Some((pos, _)) => &request_without_match_resource[pos..],
-            None => {
-              let dependency = &data.dependency;
-              unreachable!("Invalid dependency: {dependency:?}")
-            }
+            None => request_without_match_resource,
           };
           s.split('!')
             .filter(|item| !item.is_empty())
@@ -631,33 +632,30 @@ impl NormalModuleFactory {
 
     self.context.module_type = Some(resolved_module_type);
 
-    let normal_module = NormalModule::new(
-      request,
-      user_request,
-      dependency.request().to_owned(),
-      resolved_module_type,
-      resolved_parser_and_generator,
-      resolved_parser_options,
-      resolved_generator_options,
-      match_resource_data,
-      resource_data,
-      resolved_resolve_options,
-      loaders,
-      self.context.options.clone(),
-      contains_inline,
-    );
-
     let module = if let Some(module) = self
       .plugin_driver
-      .module(ModuleArgs {
+      .create_module(NormalModuleCreateData {
         dependency_type: data.dependency.dependency_type().clone(),
-        indentfiler: normal_module.identifier(),
-        lazy_visit_modules: self.context.lazy_visit_modules.clone(),
       })
       .await?
     {
       module
     } else {
+      let normal_module = NormalModule::new(
+        request,
+        user_request,
+        dependency.request().to_owned(),
+        resolved_module_type,
+        resolved_parser_and_generator,
+        resolved_parser_options,
+        resolved_generator_options,
+        match_resource_data,
+        resource_data,
+        resolved_resolve_options,
+        loaders,
+        self.context.options.clone(),
+        contains_inline,
+      );
       Box::new(normal_module)
     };
 
@@ -748,7 +746,7 @@ impl NormalModuleFactory {
     (resolved_parser, resolved_generator)
   }
 
-  pub fn calculate_module_type(
+  fn calculate_module_type(
     &self,
     module_rules: &[&ModuleRule],
     default_module_type: Option<ModuleType>,
@@ -764,7 +762,7 @@ impl NormalModuleFactory {
     resolved_module_type
   }
 
-  pub async fn factorize(
+  async fn factorize(
     &mut self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {

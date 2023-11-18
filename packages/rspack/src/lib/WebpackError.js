@@ -7,9 +7,12 @@
 
 const inspect = require("util").inspect.custom;
 
-/** @typedef {import("./Chunk")} Chunk */
-/** @typedef {import("./Dependency").DependencyLocation} DependencyLocation */
-/** @typedef {import("./Module")} Module */
+// /** @typedef {import("./Chunk")} Chunk */
+// /** @typedef {import("./Dependency").DependencyLocation} DependencyLocation */
+// /** @typedef {import("./Module")} Module */
+/** @typedef {any} Chunk */
+/** @typedef {any} DependencyLocation */
+/** @typedef {any} Module */
 
 class WebpackError extends Error {
 	/**
@@ -18,17 +21,19 @@ class WebpackError extends Error {
 	 */
 	constructor(message) {
 		super(message);
-
+		// @ts-expect-error
 		this.details = undefined;
 		/** @type {Module} */
 		this.module = undefined;
 		/** @type {DependencyLocation} */
 		this.loc = undefined;
 		/** @type {boolean} */
+		// @ts-expect-error
 		this.hideStack = undefined;
 		/** @type {Chunk} */
 		this.chunk = undefined;
 		/** @type {string} */
+		// @ts-expect-error
 		this.file = undefined;
 	}
 

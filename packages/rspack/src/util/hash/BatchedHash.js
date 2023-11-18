@@ -14,6 +14,7 @@ const Hash = require(".");
 const MAX_SHORT_STRING = require("./wasm-hash").MAX_SHORT_STRING;
 
 class BatchedHash extends Hash {
+	// @ts-expect-error
 	constructor(hash) {
 		super();
 		this.string = undefined;

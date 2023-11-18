@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "0.3.10",
+  "version": "0.3.14",
   "license": "MIT",
   "description": "A Fast Rust-based web bundler",
   "private": true,
@@ -22,7 +22,6 @@
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
     "build:binding:release": "pnpm --filter @rspack/binding run build:release",
     "prepare": "is-ci || husky install",
-    "pnpm:devPreinstall": "is-ci || node ./scripts/doctor.js",
     "test:example": "pnpm --filter \"example-*\" build",
     "test:unit": "pnpm --filter \"@rspack/*\" test",
     "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
@@ -35,12 +34,16 @@
     "type": "git",
     "url": "https://github.com/web-infra-dev/rspack"
   },
+  "engines": {
+    "pnpm": "7.32.0"
+  },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@taplo/cli": "^0.5.2",
     "@types/jest": "29.1.0",
     "@types/node": "16",
     "@types/rimraf": "3.0.2",
+    "chalk": "^5.3.0",
     "commander": "10.0.1",
     "cross-env": "^7.0.3",
     "husky": "^7.0.4",
@@ -50,11 +53,11 @@
     "lint-staged": "^12.5.0",
     "npm-run-all": "4.1.5",
     "oxlint": "0.0.10",
-    "prettier": "2.5.1",
+    "prettier": "2.8",
     "rimraf": "3.0.2",
     "ts-jest": "29.1.0",
     "typescript": "5.0.2",
-    "webpack": "5.76.0",
+    "webpack": "5.89.0",
     "webpack-cli": "4.10.0",
     "why-is-node-running": "2.2.1"
   },

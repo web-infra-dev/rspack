@@ -178,6 +178,8 @@ impl RawOptionsApply for RawOptions {
 
     plugins.push(rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin.boxed());
 
+    plugins.push(rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin.boxed());
+
     Ok(Self::Options {
       context,
       mode,

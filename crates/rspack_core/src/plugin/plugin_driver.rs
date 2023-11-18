@@ -9,12 +9,13 @@ use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetEmittedArgs, BoxLoader,
-  BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs, ChunkContentHash, ChunkHashArgs,
-  Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
-  JsChunkHashArgs, MakeParam, Module, ModuleArgs, ModuleType, NormalModule,
-  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext,
-  OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
+  AssetEmittedArgs, BoxLoader, BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs,
+  ChunkContentHash, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, Content,
+  ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, MakeParam, Module, ModuleType,
+  NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  NormalModuleCreateData, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
   PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
   PluginFactorizeHookOutput, PluginJsChunkHashHookOutput, PluginMakeHookOutput,
   PluginModuleHookOutput, PluginNormalModuleFactoryAfterResolveOutput,
@@ -320,10 +321,10 @@ impl PluginDriver {
     Ok(None)
   }
 
-  pub async fn module(&self, args: ModuleArgs) -> PluginModuleHookOutput {
+  pub async fn create_module(&self, args: NormalModuleCreateData) -> PluginModuleHookOutput {
     for plugin in &self.plugins {
       tracing::trace!("running render runtime:{}", plugin.name());
-      if let Some(module) = plugin.module(PluginContext::new(), &args).await? {
+      if let Some(module) = plugin.create_module(PluginContext::new(), &args).await? {
         return Ok(Some(module));
       }
     }
@@ -408,6 +409,16 @@ impl PluginDriver {
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
     for plugin in &self.plugins {
       plugin.additional_tree_runtime_requirements(PluginContext::new(), args)?;
+    }
+    Ok(())
+  }
+
+  pub fn runtime_requirement_in_module(
+    &self,
+    args: &mut AdditionalModuleRequirementsArgs,
+  ) -> PluginAdditionalModuleRequirementsOutput {
+    for plugin in &self.plugins {
+      plugin.runtime_requirements_in_module(PluginContext::new(), args)?;
     }
     Ok(())
   }
@@ -628,6 +639,14 @@ impl PluginDriver {
   pub async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &self.plugins {
       plugin.after_emit(compilation).await?;
+    }
+    Ok(())
+  }
+
+  #[instrument(name = "plugin:seal", skip_all)]
+  pub fn seal(&self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin.seal(compilation)?;
     }
     Ok(())
   }

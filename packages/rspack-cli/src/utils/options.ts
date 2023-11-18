@@ -82,8 +82,8 @@ export const previewOptions = (yargs: yargs.Argv) => {
 		});
 };
 
-export function normalizeEnv(argv) {
-	function parseValue(previous, value) {
+export function normalizeEnv(argv: yargs.Arguments) {
+	function parseValue(previous: Record<string, unknown>, value: string) {
 		const [allKeys, val] = value.split(/=(.+)/, 2);
 		const splitKeys = allKeys.split(/\.(?!$)/);
 

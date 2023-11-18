@@ -5,8 +5,10 @@
 
 "use strict";
 
-/** @typedef {import("./Dependency").DependencyLocation} DependencyLocation */
-/** @typedef {import("./Dependency").SourcePosition} SourcePosition */
+// /** @typedef {import("./Dependency").DependencyLocation} DependencyLocation */
+// /** @typedef {import("./Dependency").SourcePosition} SourcePosition */
+/** @typedef {any} DependencyLocation */
+/** @typedef {any} SourcePosition */
 
 /**
  * @param {SourcePosition} pos position

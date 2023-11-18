@@ -7,8 +7,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
 use crate::{
-  ChunkGroup, ChunkGroupInfo, ChunkGroupKind, ChunkGroupOptions, ChunkGroupOptionsKindRef,
-  ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, Logger, ModuleIdentifier, RuntimeSpec,
+  ChunkGroup, ChunkGroupInfo, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading,
+  ChunkUkey, Compilation, GroupOptions, Logger, ModuleIdentifier, RuntimeSpec,
 };
 
 pub(super) struct CodeSplitter<'me> {
@@ -73,7 +73,7 @@ impl<'me> CodeSplitter<'me> {
       compilation.chunk_graph.add_chunk(chunk.ukey);
 
       let mut entrypoint = ChunkGroup::new(
-        ChunkGroupKind::new_entrypoint(true, options.clone()),
+        ChunkGroupKind::new_entrypoint(true, Box::new(options.clone())),
         HashSet::from_iter([Arc::from(
           options.runtime.clone().unwrap_or_else(|| name.to_string()),
         )]),
@@ -444,8 +444,17 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             .chunk_group_by_ukey
             .get_mut(chunk_group_ukey)
             .expect("chunk group not found");
+          if chunk_group.runtime.is_superset(&runtime) {
+            continue;
+          }
           chunk_group.parents.insert(item.chunk_group);
           chunk_group.runtime.extend(runtime.clone());
+          self.queue_delayed.push(QueueItem {
+            action: QueueAction::_ProcessModule,
+            chunk: *chunk_ukey,
+            chunk_group: *chunk_group_ukey,
+            module_identifier: *module_identifier,
+          });
         }
         continue;
       } else {
@@ -473,7 +482,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .insert(*module_identifier, chunk.ukey);
 
       let mut chunk_group = if let Some(kind) = group_options.as_ref()
-        && let &ChunkGroupOptionsKindRef::Entry(entry_options) = kind
+        && let GroupOptions::Entrypoint(entry_options) = kind
       {
         if let Some(filename) = &entry_options.filename {
           chunk.filename_template = Some(filename.clone());

@@ -12,7 +12,10 @@ const config = {
 	},
 	mode: isProduction ? "production" : "development",
 	entry: { main: "./src/index.tsx" },
-	devtool: 'source-map',
+	devtool: false,
+	optimization: {
+		minimize: false, // Disabling minification because it takes too long on CI
+	},
 	module: {
 		rules: [
 			{

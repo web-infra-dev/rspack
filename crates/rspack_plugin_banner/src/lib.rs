@@ -13,7 +13,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
-use rspack_util::try_any;
+use rspack_util::try_any_sync;
 
 #[derive(Debug)]
 pub enum BannerRule {
@@ -23,14 +23,18 @@ pub enum BannerRule {
 
 #[derive(Debug)]
 pub enum BannerRules {
-  String(String),
-  Regexp(RspackRegex),
+  Single(BannerRule),
   Array(Vec<BannerRule>),
 }
 
+impl FromIterator<BannerRule> for BannerRules {
+  fn from_iter<T: IntoIterator<Item = BannerRule>>(iter: T) -> Self {
+    Self::Array(iter.into_iter().collect())
+  }
+}
+
 impl BannerRule {
-  #[async_recursion]
-  pub async fn try_match(&self, data: &str) -> Result<bool> {
+  pub fn try_match(&self, data: &str) -> Result<bool> {
     match self {
       Self::String(s) => Ok(data.starts_with(s)),
       Self::Regexp(r) => Ok(r.test(data)),
@@ -42,9 +46,8 @@ impl BannerRules {
   #[async_recursion]
   pub async fn try_match(&self, data: &str) -> Result<bool> {
     match self {
-      Self::String(s) => Ok(data.starts_with(s)),
-      Self::Regexp(r) => Ok(r.test(data)),
-      Self::Array(l) => try_any(l, |i| async { i.try_match(data).await }).await,
+      Self::Single(s) => s.try_match(data),
+      Self::Array(l) => try_any_sync(l, |i| i.try_match(data)),
     }
   }
 }

@@ -47,6 +47,7 @@ import {
 import { optionsApply_compat } from "./rspackOptionsApply";
 import { applyRspackOptionsDefaults } from "./config/defaults";
 import { assertNotNill } from "./util/assertNotNil";
+import { FileSystemInfoEntry } from "./FileSystemInfo";
 
 class Compiler {
 	#_instance?: binding.Rspack;
@@ -76,6 +77,11 @@ class Compiler {
 	cache: Cache;
 	compilerPath: string;
 	removedFiles?: ReadonlySet<string>;
+	fileTimestamps?: ReadonlyMap<string, FileSystemInfoEntry | "ignore" | null>;
+	contextTimestamps?: ReadonlyMap<
+		string,
+		FileSystemInfoEntry | "ignore" | null
+	>;
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
@@ -220,6 +226,9 @@ class Compiler {
 			},
 			get CopyRspackPlugin() {
 				return require("./builtin-plugin").CopyRspackPlugin;
+			},
+			get Template() {
+				return require("./Template");
 			},
 			optimize: {
 				get LimitChunkCountPlugin() {

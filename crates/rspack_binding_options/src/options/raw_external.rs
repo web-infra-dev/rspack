@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
 
+use napi::bindgen_prelude::Either4;
 use napi::JsFunction;
 use napi_derive::napi;
 use rspack_core::ExternalItemFnCtx;
-use rspack_core::{ExternalItem, ExternalItemFnResult, ExternalItemObject, ExternalItemValue};
-use rspack_regex::RspackRegex;
-use serde::Deserialize;
+use rspack_core::{ExternalItem, ExternalItemFnResult, ExternalItemValue};
+use rspack_napi_shared::{JsRegExp, JsRegExpExt};
 use {
   napi::Env,
   rspack_error::internal_error,
@@ -16,95 +16,43 @@ use {
   std::sync::Arc,
 };
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawHttpExternalsRspackPluginOptions {
   pub css: bool,
   pub web_async: bool,
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawExternalsPluginOptions {
   pub r#type: String,
+  #[napi(
+    ts_type = "(string | RegExp | Record<string, string | boolean | string[] | Record<string, string[]>> | ((...args: any[]) => any))[]"
+  )]
   pub externals: Vec<RawExternalItem>,
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawExternalItem {
-  #[napi(ts_type = r#""string" | "regexp" | "object" | "function""#)]
-  pub r#type: String,
-  pub string_payload: Option<String>,
-  pub regexp_payload: Option<String>,
-  pub object_payload: Option<HashMap<String, RawExternalItemValue>>,
-  #[serde(skip_deserializing)]
-  #[napi(ts_type = r#"(value: any) => any"#)]
-  pub fn_payload: Option<JsFunction>,
-}
+type RawExternalItem = Either4<String, JsRegExp, HashMap<String, RawExternalItemValue>, JsFunction>;
+type RawExternalItemValue = Either4<String, bool, Vec<String>, HashMap<String, Vec<String>>>;
+pub(crate) struct RawExternalItemWrapper(pub(crate) RawExternalItem);
+struct RawExternalItemValueWrapper(RawExternalItemValue);
 
-impl Debug for RawExternalItem {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("RawExternalItem")
-      .field("r#type", &self.r#type)
-      .field("string_payload", &self.string_payload)
-      .field("regexp_payload", &self.regexp_payload)
-      .field("object_payload", &self.object_payload)
-      .field("fn_payload", &"Function")
-      .finish()
-  }
-}
-
-#[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawExternalItemValue {
-  #[napi(ts_type = r#""string" | "bool" | "array" | "object""#)]
-  pub r#type: String,
-  pub string_payload: Option<String>,
-  pub bool_payload: Option<bool>,
-  pub array_payload: Option<Vec<String>>,
-  pub object_payload: Option<HashMap<String, Vec<String>>>,
-}
-
-impl From<RawExternalItemValue> for ExternalItemValue {
-  fn from(value: RawExternalItemValue) -> Self {
-    match value.r#type.as_str() {
-      "string" => Self::String(
-        value
-          .string_payload
-          .expect("should have a string_payload when RawExternalItemValue.type is \"string\""),
-      ),
-      "bool" => Self::Bool(
-        value
-          .bool_payload
-          .expect("should have a bool_payload when RawExternalItemValue.type is \"bool\""),
-      ),
-      "array" => Self::Array(
-        value
-          .array_payload
-          .expect("should have a array_payload when RawExternalItemValue.type is \"array\""),
-      ),
-      "object" => Self::Object(
-        value
-          .object_payload
-          .expect("should have a object_payload when RawExternalItemValue.type is \"object\"")
-          .into_iter()
-          .collect(),
-      ),
-      _ => unreachable!(),
+impl From<RawExternalItemValueWrapper> for ExternalItemValue {
+  fn from(value: RawExternalItemValueWrapper) -> Self {
+    match value.0 {
+      Either4::A(v) => Self::String(v),
+      Either4::B(v) => Self::Bool(v),
+      Either4::C(v) => Self::Array(v),
+      Either4::D(v) => Self::Object(v.into_iter().collect()),
     }
   }
 }
 
-#[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawExternalItemFnResult {
   pub external_type: Option<String>,
+  // sadly, napi.rs does not support type alias at the moment. Need to add Either here
+  #[napi(ts_type = "string | boolean | string[] | Record<string, string[]>")]
   pub result: Option<RawExternalItemValue>,
 }
 
@@ -112,13 +60,12 @@ impl From<RawExternalItemFnResult> for ExternalItemFnResult {
   fn from(value: RawExternalItemFnResult) -> Self {
     Self {
       external_type: value.external_type,
-      result: value.result.map(Into::into),
+      result: value.result.map(|v| RawExternalItemValueWrapper(v).into()),
     }
   }
 }
 
-#[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawExternalItemFnCtx {
   pub request: String,
@@ -136,41 +83,24 @@ impl From<ExternalItemFnCtx> for RawExternalItemFnCtx {
   }
 }
 
-impl TryFrom<RawExternalItem> for ExternalItem {
+impl TryFrom<RawExternalItemWrapper> for ExternalItem {
   type Error = rspack_error::Error;
 
   #[allow(clippy::unwrap_in_result)]
-  fn try_from(value: RawExternalItem) -> rspack_error::Result<Self> {
-    match value.r#type.as_str() {
-      "string" => Ok(Self::from(value.string_payload.expect(
-        "should have a string_payload when RawExternalItem.type is \"string\"",
-      ))),
-      "regexp" => {
-        let payload = value
-          .regexp_payload
-          .expect("should have a regexp_payload when RawExternalItem.type is \"regexp\"");
-        let reg =
-          RspackRegex::new(&payload).expect("regex_payload is not a legal regex in rust side");
-        Ok(Self::from(reg))
-      }
-      "object" => {
-        let payload: ExternalItemObject = value
-          .object_payload
-          .expect("should have a object_payload when RawExternalItem.type is \"object\"")
-          .into_iter()
-          .map(|(k, v)| (k, v.into()))
-          .collect();
-        Ok(payload.into())
-      }
-      "function" => {
-        let fn_payload = value
-          .fn_payload
-          .expect("should have a fn_payload for external");
+  fn try_from(value: RawExternalItemWrapper) -> rspack_error::Result<Self> {
+    match value.0 {
+      Either4::A(v) => Ok(Self::String(v)),
+      Either4::B(v) => Ok(Self::RegExp(v.to_rspack_regex())),
+      Either4::C(v) => Ok(Self::Object(
+        v.into_iter()
+          .map(|(k, v)| (k, RawExternalItemValueWrapper(v).into()))
+          .collect(),
+      )),
+      Either4::D(v) => {
         let fn_payload: ThreadsafeFunction<RawExternalItemFnCtx, RawExternalItemFnResult> =
           NAPI_ENV.with(|env| -> anyhow::Result<_> {
             let env = env.borrow().expect("Failed to get env with external");
-            let fn_payload =
-              rspack_binding_macros::js_fn_into_threadsafe_fn!(fn_payload, &Env::from(env));
+            let fn_payload = rspack_binding_macros::js_fn_into_threadsafe_fn!(v, &Env::from(env));
             Ok(fn_payload)
           })?;
         let fn_payload = Arc::new(fn_payload);
@@ -186,13 +116,11 @@ impl TryFrom<RawExternalItem> for ExternalItem {
           })
         })))
       }
-      _ => unreachable!(),
     }
   }
 }
 
-#[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 #[napi(object)]
 pub struct RawExternalsPresets {
   pub node: bool,

@@ -22,13 +22,16 @@ export class BuildCommand implements RspackCommand {
 				}),
 			async options => {
 				const logger = cli.getLogger();
-				let createJsonStringifyStream;
+				let createJsonStringifyStream: typeof import("@discoveryjs/json-ext").stringifyStream;
 				if (options.json) {
 					const jsonExt = await import("@discoveryjs/json-ext");
 					createJsonStringifyStream = jsonExt.default.stringifyStream;
 				}
 
-				const callback = (error, stats: Stats | MultiStats) => {
+				const errorHandler = (
+					error: Error | null,
+					stats: Stats | MultiStats | undefined
+				) => {
 					if (error) {
 						logger.error(error);
 						process.exit(2);
@@ -49,7 +52,7 @@ export class BuildCommand implements RspackCommand {
 						? compiler.options.stats
 						: undefined;
 					if (options.json && createJsonStringifyStream) {
-						const handleWriteError = error => {
+						const handleWriteError = (error: Error) => {
 							logger.error(error);
 							process.exit(2);
 						};
@@ -83,10 +86,6 @@ export class BuildCommand implements RspackCommand {
 				};
 
 				const rspackOptions = { ...options, argv: { ...options } };
-
-				const errorHandler = (err, Stats) => {
-					callback(err, Stats);
-				};
 
 				const compiler = await cli.createCompiler(
 					rspackOptions,

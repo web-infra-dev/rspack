@@ -15,7 +15,8 @@ import type {
 	RawIncrementalRebuild,
 	RawModuleRuleUses,
 	RawFuncUseCtx,
-	RawRspackFuture
+	RawRspackFuture,
+	RawLibraryName
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../Compiler";
@@ -52,7 +53,8 @@ import {
 	IncrementalRebuildOptions,
 	OptimizationSplitChunksOptions,
 	RspackFutureOptions,
-	JavascriptParserOptions
+	JavascriptParserOptions,
+	LibraryName
 } from "./zod";
 import {
 	ExperimentsNormalized,
@@ -231,7 +233,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 	};
 }
 
-function getRawLibrary(
+export function getRawLibrary(
 	library: LibraryOptions
 ): RawOptions["output"]["library"] {
 	const {
@@ -239,9 +241,11 @@ function getRawLibrary(
 		name,
 		export: libraryExport,
 		umdNamedDefine,
-		auxiliaryComment
+		auxiliaryComment,
+		amdContainer
 	} = library;
 	return {
+		amdContainer,
 		auxiliaryComment:
 			typeof auxiliaryComment === "string"
 				? {
@@ -252,29 +256,42 @@ function getRawLibrary(
 				  }
 				: auxiliaryComment,
 		libraryType: type,
-		name:
-			name == null
-				? name
-				: typeof name === "object" && !Array.isArray(name)
-				? {
-						amd: name.amd,
-						commonjs: name.commonjs,
-						root:
-							Array.isArray(name.root) || name.root == null
-								? name.root
-								: [name.root]
-				  }
-				: {
-						amd: Array.isArray(name) ? name[0] : name,
-						commonjs: Array.isArray(name) ? name[0] : name,
-						root: Array.isArray(name) || name == null ? name : [name]
-				  },
+		name: isNil(name) ? name : getRawLibraryName(name),
 		export:
 			Array.isArray(libraryExport) || libraryExport == null
 				? libraryExport
 				: [libraryExport],
 		umdNamedDefine
 	};
+}
+
+function getRawLibraryName(name: LibraryName): RawLibraryName {
+	if (typeof name === "string") {
+		return {
+			type: "string",
+			stringPayload: name
+		};
+	}
+	if (Array.isArray(name)) {
+		return {
+			type: "array",
+			arrayPayload: name
+		};
+	}
+	if (typeof name === "object" && !Array.isArray(name)) {
+		return {
+			type: "umdObject",
+			umdObjectPayload: {
+				commonjs: name.commonjs,
+				root:
+					Array.isArray(name.root) || isNil(name.root)
+						? name.root
+						: [name.root],
+				amd: name.amd
+			}
+		};
+	}
+	throw new Error("unreachable");
 }
 
 function getRawModule(

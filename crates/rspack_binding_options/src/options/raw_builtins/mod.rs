@@ -41,8 +41,8 @@ pub use self::{
   raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
 };
 use crate::{
-  RawEntryPluginOptions, RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions,
-  RawOptionsApply,
+  RawEntryPluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
+  RawHttpExternalsRspackPluginOptions, RawOptionsApply,
 };
 
 #[napi(string_enum)]
@@ -123,7 +123,7 @@ impl RawOptionsApply for BuiltinPlugin {
         let externals = plugin_options
           .externals
           .into_iter()
-          .map(|e| e.try_into())
+          .map(|e| RawExternalItemWrapper(e).try_into())
           .collect::<Result<Vec<_>>>()?;
         let plugin = ExternalsPlugin::new(plugin_options.r#type, externals).boxed();
         plugins.push(plugin);
@@ -206,7 +206,7 @@ impl RawOptionsApply for BuiltinPlugin {
 }
 
 fn downcast_into<T: FromNapiValue + 'static>(o: JsUnknown) -> Result<T> {
-  <T as FromNapiValue>::from_unknown(o).into_rspack_result()
+  rspack_napi_shared::downcast_into(o).into_rspack_result()
 }
 
 // TO BE DEPRECATED

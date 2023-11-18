@@ -31,7 +31,8 @@ impl Visit for ExportInfoApiScanner<'_> {
   noop_visit_type!();
 
   fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
-    let member_chain = extract_member_expression_chain(member_expr);
+    let expression_info = extract_member_expression_chain(member_expr);
+    let member_chain = expression_info.members();
     if !member_chain.is_empty()
       && &member_chain[0].0 == "__webpack_exports_info__"
       && member_chain[0].1 == self.unresolved_ctxt
@@ -46,7 +47,7 @@ impl Visit for ExportInfoApiScanner<'_> {
             .into_iter()
             .skip(1)
             .take(len - 2)
-            .map(|item| (item.0))
+            .map(|item| item.0.clone())
             .collect::<Vec<_>>(),
           prop,
         ));

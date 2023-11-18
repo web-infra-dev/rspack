@@ -25,7 +25,7 @@ use crate::{
   cache::Cache, fast_set, AssetEmittedArgs, CompilerOptions, Logger, Plugin, PluginDriver,
   ResolverFactory, SharedPluginDriver,
 };
-use crate::{ExportInfo, UsageState};
+use crate::{ExportInfo, UsageState, IS_NEW_TREESHAKING};
 
 #[derive(Debug)]
 pub struct Compiler<T>
@@ -62,7 +62,9 @@ where
     ));
     let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
     let cache = Arc::new(Cache::new(options.clone()));
-
+    if options.is_new_tree_shaking() {
+      IS_NEW_TREESHAKING.store(true, std::sync::atomic::Ordering::SeqCst);
+    }
     Self {
       options: options.clone(),
       compilation: Compilation::new(

@@ -5,12 +5,11 @@ use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::{AdditionalData, ResourceData};
 use rspack_sources::BoxSource;
 
-use crate::RuntimeSpec;
 use crate::{
-  tree_shaking::visitor::OptimizeAnalyzeResult, BoxDependency, BuildExtraDataType, BuildInfo,
-  BuildMeta, CodeGenerationData, Compilation, CompilerOptions, DependencyTemplate,
-  GeneratorOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType, ParserOptions,
-  RuntimeGlobals, SourceType,
+  tree_shaking::visitor::OptimizeAnalyzeResult, AsyncDependenciesBlock, BoxDependency,
+  BuildExtraDataType, BuildInfo, BuildMeta, CodeGenerationData, Compilation, CompilerOptions,
+  DependencyTemplate, GeneratorOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType,
+  ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -31,6 +30,7 @@ pub struct ParseContext<'a> {
 #[derive(Debug)]
 pub struct ParseResult {
   pub dependencies: Vec<BoxDependency>,
+  pub blocks: Vec<AsyncDependenciesBlock>,
   pub presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
   pub source: BoxSource,
   pub analyze_result: OptimizeAnalyzeResult,

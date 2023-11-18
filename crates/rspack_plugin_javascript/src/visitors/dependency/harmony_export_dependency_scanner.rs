@@ -14,6 +14,7 @@ use swc_core::{
     visit::{noop_visit_type, Visit, VisitWith},
   },
 };
+use swc_node_comments::SwcComments;
 
 use super::{harmony_import_dependency_scanner::ImportMap, ExtraSpanInfo};
 use crate::dependency::{
@@ -22,21 +23,23 @@ use crate::dependency::{
   DEFAULT_EXPORT,
 };
 
-pub struct HarmonyExportDependencyScanner<'a> {
+pub struct HarmonyExportDependencyScanner<'a, 'b> {
   pub dependencies: &'a mut Vec<BoxDependency>,
   pub presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
   pub import_map: &'a mut ImportMap,
   pub build_info: &'a mut BuildInfo,
   pub rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
+  pub comments: Option<&'b SwcComments>,
 }
 
-impl<'a> HarmonyExportDependencyScanner<'a> {
+impl<'a, 'b> HarmonyExportDependencyScanner<'a, 'b> {
   pub fn new(
     dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
     import_map: &'a mut ImportMap,
     build_info: &'a mut BuildInfo,
     rewrite_usage_span: &'a mut HashMap<Span, ExtraSpanInfo>,
+    comments: Option<&'b SwcComments>,
   ) -> Self {
     Self {
       dependencies,
@@ -44,11 +47,12 @@ impl<'a> HarmonyExportDependencyScanner<'a> {
       import_map,
       build_info,
       rewrite_usage_span,
+      comments,
     }
   }
 }
 
-impl Visit for HarmonyExportDependencyScanner<'_> {
+impl<'a, 'b> Visit for HarmonyExportDependencyScanner<'a, 'b> {
   noop_visit_type!();
 
   fn visit_program(&mut self, program: &'_ Program) {
@@ -67,7 +71,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
         self.rewrite_usage_span.insert(
           export_decl.span(),
-          ExtraSpanInfo::AddVariableUsage(ident.sym.clone(), ident.sym.clone()),
+          ExtraSpanInfo::AddVariableUsage(vec![(ident.sym.clone(), ident.sym.clone())]),
         );
         self
           .build_info
@@ -75,6 +79,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
           .insert(ident.sym.clone());
       }
       Decl::Var(v) => {
+        let mut usages = vec![];
         find_pat_ids::<_, Ident>(&v.decls)
           .into_iter()
           .for_each(|ident| {
@@ -85,12 +90,13 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                 ident.sym.clone(),
               )));
 
-            self.rewrite_usage_span.insert(
-              export_decl.span(),
-              ExtraSpanInfo::AddVariableUsage(ident.sym.clone(), ident.sym.clone()),
-            );
+            usages.push((ident.sym.clone(), ident.sym.clone()));
             self.build_info.harmony_named_exports.insert(ident.sym);
           });
+
+        self
+          .rewrite_usage_span
+          .insert(export_decl.span(), ExtraSpanInfo::AddVariableUsage(usages));
       }
       _ => {}
     }
@@ -103,6 +109,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
   fn visit_named_export(&mut self, named_export: &'_ NamedExport) {
     if named_export.src.is_none() {
+      let mut usages = vec![];
       named_export
         .specifiers
         .iter()
@@ -132,6 +139,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                     mode_ids,
                     Some(export.clone()),
                     false,
+                    None,
                   )));
               } else {
                 self
@@ -143,14 +151,15 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
                 self.build_info.harmony_named_exports.insert(export.clone());
               }
-              self.rewrite_usage_span.insert(
-                named.span(),
-                ExtraSpanInfo::AddVariableUsage(orig.sym.clone(), export),
-              );
+              usages.push((orig.sym.clone(), export));
             }
           }
           _ => unreachable!(),
         });
+
+      self
+        .rewrite_usage_span
+        .insert(named_export.span(), ExtraSpanInfo::AddVariableUsage(usages));
       self
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
@@ -164,7 +173,6 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
   fn visit_export_default_expr(&mut self, export_default_expr: &'_ ExportDefaultExpr) {
     // TODO this should be at `HarmonyExportExpressionDependency`
-    // TODO: add variable usage
     self
       .dependencies
       .push(Box::new(HarmonyExportSpecifierDependency::new(
@@ -174,13 +182,21 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
     self.rewrite_usage_span.insert(
       export_default_expr.span,
-      ExtraSpanInfo::AddVariableUsage(DEFAULT_EXPORT.into(), DEFAULT_JS_WORD.clone()),
+      ExtraSpanInfo::AddVariableUsage(vec![(DEFAULT_EXPORT.into(), DEFAULT_JS_WORD.clone())]),
     );
+    let end = self
+      .comments
+      .and_then(|comments| {
+        let comment_list = comments.leading.get(&export_default_expr.expr.span_lo())?;
+        let first_comment = comment_list.first()?;
+        Some(first_comment.span.span().real_lo())
+      })
+      .unwrap_or(export_default_expr.expr.span().real_lo());
     self
       .presentational_dependencies
       .push(Box::new(HarmonyExportExpressionDependency::new(
         export_default_expr.span().real_lo(),
-        export_default_expr.expr.span().real_lo(),
+        end,
         false,
         None,
       )));
@@ -207,7 +223,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
       )));
     self.rewrite_usage_span.insert(
       export_default_decl.span,
-      ExtraSpanInfo::AddVariableUsage(local, DEFAULT_JS_WORD.clone()),
+      ExtraSpanInfo::AddVariableUsage(vec![(local, DEFAULT_JS_WORD.clone())]),
     );
     self
       .presentational_dependencies

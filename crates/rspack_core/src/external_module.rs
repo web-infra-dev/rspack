@@ -11,10 +11,11 @@ use serde::Serialize;
 use crate::{
   property_access,
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
-  to_identifier, BuildContext, BuildInfo, BuildMetaExportsType, BuildResult, ChunkInitFragments,
-  ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult, Compilation, Context, ExternalType,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleType,
-  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
+  to_identifier, AsyncDependenciesBlockId, BuildContext, BuildInfo, BuildMetaExportsType,
+  BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult,
+  Compilation, Context, DependenciesBlock, DependencyId, ExternalType, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleType, NormalInitFragment,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -80,6 +81,8 @@ fn get_source_for_default_case(_optional: bool, request: &ExternalRequestValue) 
 
 #[derive(Debug)]
 pub struct ExternalModule {
+  dependencies: Vec<DependencyId>,
+  blocks: Vec<AsyncDependenciesBlockId>,
   id: Identifier,
   pub request: ExternalRequest,
   external_type: ExternalType,
@@ -90,6 +93,8 @@ pub struct ExternalModule {
 impl ExternalModule {
   pub fn new(request: ExternalRequest, external_type: ExternalType, user_request: String) -> Self {
     Self {
+      dependencies: Vec::new(),
+      blocks: Vec::new(),
       id: Identifier::from(format!("external {external_type} {request:?}")),
       request,
       external_type,
@@ -244,6 +249,24 @@ impl Identifiable for ExternalModule {
   }
 }
 
+impl DependenciesBlock for ExternalModule {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
+    self.blocks.push(block)
+  }
+
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+    &self.blocks
+  }
+
+  fn add_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.push(dependency)
+  }
+
+  fn get_dependencies(&self) -> &[DependencyId] {
+    &self.dependencies
+  }
+}
+
 #[async_trait::async_trait]
 impl Module for ExternalModule {
   fn module_type(&self) -> &ModuleType {
@@ -305,6 +328,7 @@ impl Module for ExternalModule {
       build_info,
       build_meta: Default::default(),
       dependencies: Vec::new(),
+      blocks: Vec::new(),
       analyze_result: Default::default(),
     };
     // TODO add exports_type for request

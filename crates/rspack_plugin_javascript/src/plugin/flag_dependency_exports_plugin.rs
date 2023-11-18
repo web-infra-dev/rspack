@@ -2,9 +2,9 @@ use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
 use rspack_core::{
-  BuildMetaExportsType, Compilation, DependencyId, ExportInfoProvided, ExportNameOrSpec,
-  ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, Plugin,
+  BuildMetaExportsType, Compilation, DependenciesBlock, DependencyId, ExportInfoProvided,
+  ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, Plugin,
 };
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -55,13 +55,12 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       }
     }
     self.mg.module_identifier_to_module_graph_module = module_graph_modules;
-
     while let Some(module_id) = q.pop_back() {
       self.changed = false;
       self.current_module_id = module_id;
       let mut exports_specs_from_dependencies: HashMap<DependencyId, ExportsSpec> =
         HashMap::default();
-      self.process_dependencies_block(module_id, &mut exports_specs_from_dependencies);
+      self.process_dependencies_block(&module_id, &mut exports_specs_from_dependencies);
       let exports_info_id = self.mg.get_exports_info(&module_id).id;
       for (dep_id, exports_spec) in exports_specs_from_dependencies.into_iter() {
         self.process_exports_spec(dep_id, exports_spec, exports_info_id);
@@ -81,20 +80,31 @@ impl<'a> FlagDependencyExportsProxy<'a> {
   }
 
   pub fn process_dependencies_block(
-    &mut self,
-    mi: ModuleIdentifier,
+    &self,
+    module_identifier: &ModuleIdentifier,
     exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
-    let mgm = self.mg.module_graph_module_by_identifier(&mi)?;
-    // This clone is aiming to avoid use mut ref and immutable ref at the same time.
-    for ele in mgm.dependencies.clone().iter() {
+    let block = &**self.mg.module_by_identifier(module_identifier)?;
+    self.process_dependencies_block_inner(block, exports_specs_from_dependencies)
+  }
+
+  fn process_dependencies_block_inner<B: DependenciesBlock + ?Sized>(
+    &self,
+    block: &B,
+    exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
+  ) -> Option<()> {
+    for ele in block.get_dependencies().iter() {
       self.process_dependency(ele, exports_specs_from_dependencies);
+    }
+    for block_id in block.get_blocks() {
+      let block = self.mg.block_by_id(block_id)?;
+      self.process_dependencies_block_inner(block, exports_specs_from_dependencies);
     }
     None
   }
 
   pub fn process_dependency(
-    &mut self,
+    &self,
     dep_id: &DependencyId,
     exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
@@ -245,7 +255,6 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       }
 
       if let Some(exports) = exports {
-        // dbg!(&exports);
         let nested_exports_info = export_info.create_nested_exports_info(self.mg);
         self.merge_exports(
           nested_exports_info,
@@ -263,9 +272,8 @@ impl<'a> FlagDependencyExportsProxy<'a> {
           let export_name = if let Some(from) = from_export {
             Some(from)
           } else {
-            Some(&(fallback))
+            Some(&fallback)
           };
-          // dbg!(&from, &export_name);
           export_info.set_target(Some(dep_id), Some(from), export_name, priority)
         };
         self.changed |= changed;
@@ -286,7 +294,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         let target_module_exports_info = self.mg.get_exports_info(&target.module);
         target_exports_info = target_module_exports_info
           .id
-          .get_nested_exports_info(target.exports, self.mg);
+          .get_nested_exports_info(target.export, self.mg);
         match self.dependencies.entry(target.module) {
           Entry::Occupied(mut occ) => {
             occ.get_mut().insert(self.current_module_id);

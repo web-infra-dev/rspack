@@ -508,7 +508,7 @@ export async function runLoaders(
 	};
 	loaderContext._compiler = compiler;
 	loaderContext._compilation = compiler.compilation;
-	loaderContext.getOptions = function (schema) {
+	loaderContext.getOptions = function () {
 		const loader = getCurrentLoader(loaderContext);
 		let options = loader?.options;
 
@@ -521,10 +521,8 @@ export async function runLoaders(
 					throw new Error(`Cannot parse string options: ${e.message}`);
 				}
 			} else {
-				const querystring = require("querystring");
-				options = querystring.parse(options, "&", "=", {
-					maxKeys: 0
-				});
+				const querystring = require("fast-querystring");
+				options = querystring.parse(options);
 			}
 		}
 
@@ -532,19 +530,6 @@ export async function runLoaders(
 			options = {};
 		}
 
-		if (schema) {
-			let name = "Loader";
-			let baseDataPath = "options";
-			let match;
-			if (schema.title && (match = /^(.+) (.+)$/.exec(schema.title))) {
-				[, name, baseDataPath] = match;
-			}
-			const { validate } = require("schema-utils");
-			validate(schema, options, {
-				name,
-				baseDataPath
-			});
-		}
 		return options;
 	};
 

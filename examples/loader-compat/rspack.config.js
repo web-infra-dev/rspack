@@ -128,6 +128,9 @@ const config = {
 				}
 			}
 		]
-	}
+	},
+	optimization: {
+		minimize: false, // Disabling minification because it takes too long on CI
+	},
 };
 module.exports = config;

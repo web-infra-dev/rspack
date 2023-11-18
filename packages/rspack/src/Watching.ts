@@ -83,6 +83,8 @@ class Watching {
 				removedFiles
 			) => {
 				if (err) {
+					this.compiler.fileTimestamps = undefined;
+					this.compiler.contextTimestamps = undefined;
 					this.compiler.modifiedFiles = undefined;
 					this.compiler.removedFiles = undefined;
 					return this.handler(err);
@@ -122,8 +124,8 @@ class Watching {
 			this.compiler.watchMode = false;
 			this.compiler.modifiedFiles = undefined;
 			this.compiler.removedFiles = undefined;
-			// this.compiler.fileTimestamps = undefined;
-			// this.compiler.contextTimestamps = undefined;
+			this.compiler.fileTimestamps = undefined;
+			this.compiler.contextTimestamps = undefined;
 			// this.compiler.fsStartTime = undefined;
 			const shutdown = (err: Error) => {
 				this.compiler.hooks.watchClose.call();
@@ -205,10 +207,23 @@ class Watching {
 			return;
 		}
 
-		this.#go(changedFiles, removedFiles);
+		this.#go(
+			fileTimeInfoEntries,
+			contextTimeInfoEntries,
+			changedFiles,
+			removedFiles
+		);
 	}
 
-	#go(changedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>) {
+	#go(
+		fileTimeInfoEntries?: ReadonlyMap<string, FileSystemInfoEntry | "ignore">,
+		contextTimeInfoEntries?: ReadonlyMap<
+			string,
+			FileSystemInfoEntry | "ignore"
+		>,
+		changedFiles?: ReadonlySet<string>,
+		removedFiles?: ReadonlySet<string>
+	) {
 		if (this.startTime === undefined) this.startTime = Date.now();
 		this.running = true;
 		if (this.watcher) {
@@ -220,11 +235,21 @@ class Watching {
 			this.lastWatcherStartTime = Date.now();
 		}
 
-		if (changedFiles && removedFiles) {
+		if (
+			fileTimeInfoEntries &&
+			contextTimeInfoEntries &&
+			changedFiles &&
+			removedFiles
+		) {
 			this.#mergeWithCollected(changedFiles, removedFiles);
+			this.compiler.fileTimestamps = fileTimeInfoEntries;
+			this.compiler.contextTimestamps = contextTimeInfoEntries;
 		} else if (this.pausedWatcher) {
-			const { changes, removals } = this.pausedWatcher.getInfo();
+			const { changes, removals, fileTimeInfoEntries, contextTimeInfoEntries } =
+				this.pausedWatcher.getInfo();
 			this.#mergeWithCollected(changes, removals);
+			this.compiler.fileTimestamps = fileTimeInfoEntries;
+			this.compiler.contextTimestamps = contextTimeInfoEntries;
 		}
 
 		const modifiedFiles = (this.compiler.modifiedFiles =

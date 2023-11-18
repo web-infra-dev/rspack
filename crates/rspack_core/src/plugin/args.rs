@@ -82,11 +82,8 @@ pub struct FactorizeArgs<'me> {
 }
 
 #[derive(Debug, Clone)]
-pub struct ModuleArgs {
-  pub indentfiler: ModuleIdentifier,
+pub struct NormalModuleCreateData {
   pub dependency_type: DependencyType,
-  // lazy compilation visit module
-  pub lazy_visit_modules: std::collections::HashSet<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -148,6 +145,13 @@ pub struct ThisCompilationArgs<'c> {
 pub struct AdditionalChunkRuntimeRequirementsArgs<'a> {
   pub compilation: &'a mut Compilation,
   pub chunk: &'a ChunkUkey,
+  pub runtime_requirements: &'a mut RuntimeGlobals,
+}
+
+#[derive(Debug)]
+pub struct AdditionalModuleRequirementsArgs<'a> {
+  pub compilation: &'a mut Compilation,
+  pub module_identifier: &'a ModuleIdentifier,
   pub runtime_requirements: &'a mut RuntimeGlobals,
 }
 

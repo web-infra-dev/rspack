@@ -1,10 +1,10 @@
 use swc_core::ecma::atoms::JsWord;
 
-use crate::{
-  AsDependencyTemplate, Context, ContextMode, ContextOptions, Dependency, DependencyCategory,
-  DependencyId, DependencyType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
-  ReferencedExport, RuntimeSpec,
-};
+use crate::{AsContextDependency, AsDependencyTemplate, Context};
+use crate::{ContextMode, ContextOptions, Dependency};
+use crate::{DependencyCategory, DependencyId, DependencyType};
+use crate::{ExtendedReferencedExport, ModuleDependency};
+use crate::{ModuleGraph, ReferencedExport, RuntimeSpec};
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub struct ContextElementDependency {
@@ -39,6 +39,10 @@ impl Dependency for ContextElementDependency {
   fn get_context(&self) -> Option<&Context> {
     Some(&self.context)
   }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
+  }
 }
 
 impl ModuleDependency for ContextElementDependency {
@@ -57,16 +61,8 @@ impl ModuleDependency for ContextElementDependency {
     )
   }
 
-  fn options(&self) -> Option<&ContextOptions> {
-    Some(&self.options)
-  }
-
   fn set_request(&mut self, request: String) {
     self.request = request;
-  }
-
-  fn resource_identifier(&self) -> Option<&str> {
-    Some(&self.resource_identifier)
   }
 
   fn get_referenced_exports(
@@ -83,3 +79,4 @@ impl ModuleDependency for ContextElementDependency {
 }
 
 impl AsDependencyTemplate for ContextElementDependency {}
+impl AsContextDependency for ContextElementDependency {}

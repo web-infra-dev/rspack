@@ -1,10 +1,11 @@
 use rspack_core::tree_shaking::symbol::{self, IndirectTopLevelSymbol};
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
-  import_statement, AwaitDependenciesInitFragment, ConnectionState, Dependency, DependencyCategory,
-  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ExtendedReferencedExport, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
-  ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  import_statement, AsContextDependency, AwaitDependenciesInitFragment, ConnectionState,
+  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, ExtendedReferencedExport, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, ModuleDependency, ModuleIdentifier, NormalInitFragment, RuntimeGlobals,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_core::{ModuleGraph, RuntimeSpec};
 use rustc_hash::FxHashSet as HashSet;
@@ -231,7 +232,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
 
 impl Dependency for HarmonyImportSideEffectDependency {
   fn dependency_debug_name(&self) -> &'static str {
-    "HarmonyImportDependency"
+    "HarmonyImportSideEffectDependency"
   }
 
   fn id(&self) -> &DependencyId {
@@ -264,6 +265,10 @@ impl Dependency for HarmonyImportSideEffectDependency {
       ConnectionState::Bool(true)
     }
   }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
+  }
 }
 
 impl ModuleDependency for HarmonyImportSideEffectDependency {
@@ -281,10 +286,6 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
-  }
-
-  fn resource_identifier(&self) -> Option<&str> {
-    Some(&self.resource_identifier)
   }
 
   fn get_referenced_exports(
@@ -326,3 +327,5 @@ impl DependencyTemplate for HarmonyImportSideEffectDependency {
     );
   }
 }
+
+impl AsContextDependency for HarmonyImportSideEffectDependency {}

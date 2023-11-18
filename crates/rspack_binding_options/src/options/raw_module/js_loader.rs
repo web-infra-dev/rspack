@@ -253,12 +253,15 @@ pub struct JsLoaderContext {
   pub loader_index_from_js: Option<u32>,
   /// Internal additional data, contains more than `String`
   /// @internal
+  #[napi(ts_type = "ExternalObject<'AdditionalData'>")]
   pub additional_data_external: External<AdditionalData>,
   /// Internal loader context
   /// @internal
+  #[napi(ts_type = "ExternalObject<'LoaderRunnerContext'>")]
   pub context_external: External<rspack_core::LoaderRunnerContext>,
   /// Internal loader diagnostic
   /// @internal
+  #[napi(ts_type = "ExternalObject<'Diagnostic[]'>")]
   pub diagnostics_external: External<Vec<Diagnostic>>,
 }
 

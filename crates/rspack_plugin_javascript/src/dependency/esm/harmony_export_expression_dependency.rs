@@ -1,7 +1,6 @@
-use rspack_core::{
-  AsModuleDependency, Dependency, DependencyId, DependencyTemplate, ModuleDependency,
-  TemplateContext, TemplateReplaceSource,
-};
+use rspack_core::{AsContextDependency, AsModuleDependency, Dependency};
+use rspack_core::{DependencyId, DependencyTemplate};
+use rspack_core::{TemplateContext, TemplateReplaceSource};
 
 pub const DEFAULT_EXPORT: &str = "__WEBPACK_DEFAULT_EXPORT__";
 // pub const NAMESPACE_OBJECT_EXPORT: &'static str = "__WEBPACK_NAMESPACE_OBJECT__";
@@ -57,15 +56,7 @@ impl Dependency for HarmonyExportExpressionDependency {
   }
 }
 
-impl AsModuleDependency for HarmonyExportExpressionDependency {
-  fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
-    None
-  }
-
-  fn as_module_dependency_mut(&mut self) -> Option<&mut dyn ModuleDependency> {
-    None
-  }
-}
+impl AsModuleDependency for HarmonyExportExpressionDependency {}
 
 impl DependencyTemplate for HarmonyExportExpressionDependency {
   fn apply(
@@ -108,3 +99,5 @@ impl DependencyTemplate for HarmonyExportExpressionDependency {
     }
   }
 }
+
+impl AsContextDependency for HarmonyExportExpressionDependency {}

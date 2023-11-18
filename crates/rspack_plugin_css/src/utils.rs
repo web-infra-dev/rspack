@@ -120,35 +120,34 @@ pub fn css_modules_exports_to_string(
   for (key, elements) in exports {
     let content = elements
       .iter()
-      .map(|(name, from)| {
-        match from {
-          None => name.to_owned(),
-          Some(from_name) => {
-            let from: &rspack_core::ModuleGraphModule = compilation
-              .module_graph
-              .module_graph_module_by_identifier(&module.identifier())
-              .and_then(|mgm| {
-                // workaround
-                mgm.dependencies.iter().find_map(|id| {
-                  let dependency = compilation
-                    .module_graph
-                    .dependency_by_id(id)
-                    .and_then(|d| d.as_module_dependency());
-                  if let Some(dependency) = dependency {
-                    if dependency.request() == from_name {
-                      return compilation
-                        .module_graph
-                        .module_graph_module_by_dependency_id(id);
-                    }
-                  }
-                  None
-                })
-              })
-              .expect("should have css from module");
+      .map(|(name, from)| match from {
+        None => name.to_owned(),
+        Some(from_name) => {
+          let from = module
+            .get_dependencies()
+            .iter()
+            .find_map(|id| {
+              let dependency = compilation.module_graph.dependency_by_id(id);
+              let request = if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
+                Some(d.request())
+              } else {
+                dependency
+                  .and_then(|d| d.as_context_dependency())
+                  .map(|d| d.request())
+              };
+              if let Some(request) = request
+                && request == from_name
+              {
+                return compilation
+                  .module_graph
+                  .module_graph_module_by_dependency_id(id);
+              }
+              None
+            })
+            .expect("should have css from module");
 
-            let from = serde_json::to_string(from.id(&compilation.chunk_graph)).expect("TODO:");
-            format!("{}({from})[{name}]", RuntimeGlobals::REQUIRE)
-          }
+          let from = serde_json::to_string(from.id(&compilation.chunk_graph)).expect("TODO:");
+          format!("{}({from})[{name}]", RuntimeGlobals::REQUIRE)
         }
       })
       .collect::<Vec<_>>()
