@@ -1,9 +1,9 @@
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  property_access, AsyncDependenciesBlockId, Compilation, DependenciesBlock, DependencyId,
-  ExportsType, FakeNamespaceObjectMode, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext,
+  property_access, AsyncDependenciesBlockIdentifier, Compilation, DependencyId, ExportsType,
+  FakeNamespaceObjectMode, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph,
+  ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext,
 };
 
 pub fn export_from_import(
@@ -187,7 +187,7 @@ pub fn import_statement(
 pub fn module_namespace_promise(
   code_generatable_context: &mut TemplateContext,
   dep_id: &DependencyId,
-  block: Option<&AsyncDependenciesBlockId>,
+  block: Option<&AsyncDependenciesBlockIdentifier>,
   request: &str,
   _message: &str,
   weak: bool,
@@ -282,7 +282,7 @@ pub fn module_namespace_promise(
 }
 
 pub fn block_promise(
-  block: Option<&AsyncDependenciesBlockId>,
+  block: Option<&AsyncDependenciesBlockIdentifier>,
   runtime_requirements: &mut RuntimeGlobals,
   compilation: &Compilation,
 ) -> String {
@@ -290,29 +290,14 @@ pub fn block_promise(
     // ImportEagerDependency
     return "Promise.resolve()".to_string();
   };
-  let key = block_promise_key(block, compilation);
+  let block = compilation
+    .module_graph
+    .block_by_id(block)
+    .expect("should have block");
+  let key = block.block_promise_key(compilation);
   runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
   runtime_requirements.insert(RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK);
   format!("{}({key})", RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK)
-}
-
-pub fn block_promise_key(block_id: &AsyncDependenciesBlockId, compilation: &Compilation) -> String {
-  let block = compilation
-    .module_graph
-    .block_by_id(block_id)
-    .expect("should have block");
-  let key = block
-    .get_dependencies()
-    .iter()
-    .filter_map(|dep_id| {
-      compilation
-        .module_graph
-        .module_graph_module_by_dependency_id(dep_id)
-    })
-    .map(|m| m.id(&compilation.chunk_graph))
-    .collect::<Vec<_>>()
-    .join(",");
-  serde_json::to_string(&key).expect("string should be able to json to_string")
 }
 
 pub fn module_raw(

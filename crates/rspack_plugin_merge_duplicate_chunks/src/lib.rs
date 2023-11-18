@@ -30,6 +30,10 @@ impl Plugin for MergeDuplicateChunksPlugin {
       .copied()
       .collect::<Vec<_>>();
     for chunk_ukey in chunk_ukeys {
+      if !compilation.chunk_by_ukey.contains(&chunk_ukey) {
+        // already remove by deplicates
+        continue;
+      }
       let mut possible_duplicates: Option<HashSet<ChunkUkey>> = None;
       for module in compilation
         .chunk_graph

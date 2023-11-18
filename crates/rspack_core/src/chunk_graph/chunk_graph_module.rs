@@ -8,9 +8,9 @@ use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  AsyncDependenciesBlockId, BoxModule, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkUkey, ExportsHash, ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap,
-  RuntimeSpecSet,
+  AsyncDependenciesBlockIdentifier, BoxModule, ChunkByUkey, ChunkGroup, ChunkGroupByUkey,
+  ChunkGroupUkey, ChunkUkey, ExportsHash, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
+  RuntimeSpecMap, RuntimeSpecSet,
 };
 use crate::{ChunkGraph, ModuleGraph};
 
@@ -148,7 +148,7 @@ impl ChunkGraph {
 
   pub fn get_block_chunk_group<'a>(
     &self,
-    block: &AsyncDependenciesBlockId,
+    block: &AsyncDependenciesBlockIdentifier,
     chunk_group_by_ukey: &'a ChunkGroupByUkey,
   ) -> Option<&'a ChunkGroup> {
     self
@@ -159,7 +159,7 @@ impl ChunkGraph {
 
   pub fn connect_block_and_chunk_group(
     &mut self,
-    block: AsyncDependenciesBlockId,
+    block: AsyncDependenciesBlockIdentifier,
     chunk_group: ChunkGroupUkey,
   ) {
     self.block_to_chunk_group_ukey.insert(block, chunk_group);

@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, ConstDependency, EntryOptions,
-  GroupOptions, ModuleIdentifier, OutputOptions, SpanExt,
+  ErrorSpan, GroupOptions, ModuleIdentifier, OutputOptions, SpanExt,
 };
 use rspack_hash::RspackHash;
 use swc_core::common::Spanned;
@@ -58,14 +58,18 @@ impl<'a> WorkerScanner<'a> {
     let range = parsed_options.as_ref().map(|options| options.range);
     let name = parsed_options.and_then(|options| options.name);
     let output_module = self.output_options.module;
+    let span = ErrorSpan::from(new_expr.span);
     let dep = Box::new(WorkerDependency::new(
       parsed_path.range.0,
       parsed_path.range.1,
       parsed_path.value,
       self.output_options.worker_public_path.clone(),
-      Some(new_expr.span.into()),
+      Some(span),
     ));
-    let mut block = AsyncDependenciesBlock::default();
+    let mut block = AsyncDependenciesBlock::new(
+      *self.module_identifier,
+      format!("{}:{}", span.start, span.end),
+    );
     block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
       name,
       runtime: Some(runtime),

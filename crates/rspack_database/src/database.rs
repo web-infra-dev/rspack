@@ -31,6 +31,10 @@ impl<Item: Any> Database<Item> {
     }
   }
 
+  pub fn contains(&self, id: &Ukey<Item>) -> bool {
+    self.inner.contains_key(id)
+  }
+
   pub fn get(&self, id: &Ukey<Item>) -> Option<&Item> {
     self.inner.get(id)
   }

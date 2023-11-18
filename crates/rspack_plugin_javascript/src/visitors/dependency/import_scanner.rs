@@ -1,7 +1,7 @@
 use once_cell::sync::Lazy;
 use rspack_core::{
   clean_regexp_in_context_module, context_reg_exp, AsyncDependenciesBlock, DynamicImportMode,
-  GroupOptions, JavascriptParserOptions,
+  ErrorSpan, GroupOptions, JavascriptParserOptions, ModuleIdentifier,
 };
 use rspack_core::{BoxDependency, BuildMeta, ChunkGroupOptions, ContextMode};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
@@ -20,6 +20,7 @@ use crate::dependency::{
 use crate::utils::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop};
 
 pub struct ImportScanner<'a> {
+  module_identifier: ModuleIdentifier,
   pub dependencies: &'a mut Vec<BoxDependency>,
   pub blocks: &'a mut Vec<AsyncDependenciesBlock>,
   pub comments: Option<&'a dyn Comments>,
@@ -106,6 +107,7 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
 
 impl<'a> ImportScanner<'a> {
   pub fn new(
+    module_identifier: ModuleIdentifier,
     dependencies: &'a mut Vec<BoxDependency>,
     blocks: &'a mut Vec<AsyncDependenciesBlock>,
     comments: Option<&'a dyn Comments>,
@@ -113,6 +115,7 @@ impl<'a> ImportScanner<'a> {
     options: Option<&'a JavascriptParserOptions>,
   ) -> Self {
     Self {
+      module_identifier,
       dependencies,
       blocks,
       comments,
@@ -196,15 +199,19 @@ impl Visit for ImportScanner<'_> {
           return;
         }
         let chunk_name = self.try_extract_webpack_chunk_name(&imported.span);
+        let span = ErrorSpan::from(node.span);
         let dep = Box::new(ImportDependency::new(
           node.span.real_lo(),
           node.span.real_hi(),
           imported.value.clone(),
-          Some(node.span.into()),
+          Some(span),
           // TODO scan dynamic import referenced exports
           None,
         ));
-        let mut block = AsyncDependenciesBlock::default();
+        let mut block = AsyncDependenciesBlock::new(
+          self.module_identifier,
+          format!("{}:{}", span.start, span.end),
+        );
         block.set_group_options(GroupOptions::ChunkGroup(
           ChunkGroupOptions::default().name_optional(chunk_name),
         ));
@@ -221,14 +228,18 @@ impl Visit for ImportScanner<'_> {
             .raw
             .to_string(),
         );
+        let span = ErrorSpan::from(node.span);
         let dep = Box::new(ImportDependency::new(
           node.span.real_lo(),
           node.span.real_hi(),
           request,
-          Some(node.span.into()),
+          Some(span),
           None,
         ));
-        let mut block = AsyncDependenciesBlock::default();
+        let mut block = AsyncDependenciesBlock::new(
+          self.module_identifier,
+          format!("{}:{}", span.start, span.end),
+        );
         block.set_group_options(GroupOptions::ChunkGroup(
           ChunkGroupOptions::default().name_optional(chunk_name),
         ));

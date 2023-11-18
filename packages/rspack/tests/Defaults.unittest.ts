@@ -109,8 +109,9 @@ describe("snapshots", () => {
 		+   "mode": undefined,
 		@@ ... @@
 		-     "innerGraph": false,
-		-     "minimize": false,
 		+     "innerGraph": true,
+		@@ ... @@
+		-     "minimize": false,
 		+     "minimize": true,
 		@@ ... @@
 		-     "moduleIds": "named",
@@ -150,8 +151,9 @@ describe("snapshots", () => {
 		+   "mode": "production",
 		@@ ... @@
 		-     "innerGraph": false,
-		-     "minimize": false,
 		+     "innerGraph": true,
+		@@ ... @@
+		-     "minimize": false,
 		+     "minimize": true,
 		@@ ... @@
 		-     "moduleIds": "named",

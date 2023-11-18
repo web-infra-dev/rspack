@@ -6,7 +6,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
 use crate::{
-  AsyncDependenciesBlockId, ChunkGroup, ChunkGroupInfo, ChunkGroupKind, ChunkGroupOptions,
+  AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupInfo, ChunkGroupKind, ChunkGroupOptions,
   ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, DependenciesBlock, Logger,
   ModuleDependency, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec, IS_NEW_TREESHAKING,
 };
@@ -17,7 +17,7 @@ pub(super) struct CodeSplitter<'me> {
   next_free_module_post_order_index: u32,
   queue: Vec<QueueAction>,
   queue_delayed: Vec<QueueAction>,
-  block_chunk_groups: HashMap<AsyncDependenciesBlockId, ChunkGroupUkey>,
+  block_chunk_groups: HashMap<AsyncDependenciesBlockIdentifier, ChunkGroupUkey>,
   named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   named_async_entrypoints: HashMap<String, ChunkGroupUkey>,
   block_modules_map: HashMap<DependenciesBlockIdentifier, Vec<ModuleIdentifier>>,
@@ -457,7 +457,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn iterator_block(
     &mut self,
-    block_id: AsyncDependenciesBlockId,
+    block_id: AsyncDependenciesBlockIdentifier,
     item_chunk_group_ukey: ChunkGroupUkey,
     item_chunk_ukey: ChunkUkey,
   ) {
@@ -753,7 +753,7 @@ struct ProcessBlock {
 
 #[derive(Debug, Clone)]
 struct ProcessEntryBlock {
-  block: AsyncDependenciesBlockId,
+  block: AsyncDependenciesBlockIdentifier,
   chunk_group: ChunkGroupUkey,
   chunk: ChunkUkey,
 }
@@ -761,7 +761,7 @@ struct ProcessEntryBlock {
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 enum DependenciesBlockIdentifier {
   Module(ModuleIdentifier),
-  AsyncDependenciesBlock(AsyncDependenciesBlockId),
+  AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
 }
 
 impl DependenciesBlockIdentifier {
@@ -779,8 +779,8 @@ impl From<ModuleIdentifier> for DependenciesBlockIdentifier {
   }
 }
 
-impl From<AsyncDependenciesBlockId> for DependenciesBlockIdentifier {
-  fn from(value: AsyncDependenciesBlockId) -> Self {
+impl From<AsyncDependenciesBlockIdentifier> for DependenciesBlockIdentifier {
+  fn from(value: AsyncDependenciesBlockIdentifier) -> Self {
     Self::AsyncDependenciesBlock(value)
   }
 }

@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
-use rspack_core::{block_promise_key, ChunkUkey, Compilation, RuntimeModule};
+use rspack_core::{ChunkUkey, Compilation, RuntimeModule};
 use rspack_identifier::Identifier;
 use rspack_plugin_javascript::runtime::stringify_array;
 use rustc_hash::FxHashMap as HashMap;
@@ -65,7 +65,14 @@ impl RuntimeModule for LoadChunkWithBlockRuntimeModule {
             }
           })
           .collect::<Vec<_>>();
-        let key = block_promise_key(block_id, compilation);
+        if chunk_ids.is_empty() {
+          return None;
+        }
+        let block = compilation
+          .module_graph
+          .block_by_id(block_id)
+          .expect("should have block");
+        let key = block.block_promise_key(compilation);
         Some((key, chunk_ids))
       })
       .collect::<HashMap<String, Vec<String>>>();
@@ -81,8 +88,7 @@ __webpack_require__.el = function(module) {
   var chunkIds = map[module];
   if (chunkIds === undefined) return Promise.resolve();
   if (chunkIds.length > 1) return Promise.all(chunkIds.map(__webpack_require__.e));
-  if (chunkIds.length === 1) return __webpack_require__.e(chunkIds[0]);
-  return Promise.resolve();
+  return __webpack_require__.e(chunkIds[0]);
 }
 ",
     ));
