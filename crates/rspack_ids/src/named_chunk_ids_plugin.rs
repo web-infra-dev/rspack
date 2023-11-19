@@ -61,8 +61,6 @@ impl Plugin for NamedChunkIdsPlugin {
       },
     );
 
-    dbg!(&chunk_id_to_name);
-    dbg!(&unnamed_chunks);
     let unnamed_chunks = unnamed_chunks
       .iter()
       .map(|chunk| chunk.ukey)
