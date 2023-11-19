@@ -817,7 +817,7 @@ impl Compilation {
                   .module_graph
                   .module_graph_module_by_identifier_mut(&module.identifier())
                   .expect("Failed to get mgm");
-                mgm.__deprecated_all_dependencies = Box::new(all_dependencies.clone());
+                mgm.__deprecated_all_dependencies = all_dependencies.clone();
                 if let Some(current_profile) = current_profile {
                   mgm.set_profile(current_profile);
                 }

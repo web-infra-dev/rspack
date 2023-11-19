@@ -346,7 +346,7 @@ impl ModuleGraph {
   ) -> Option<&[DependencyId]> {
     self
       .module_graph_module_by_identifier(module_identifier)
-      .map(|m| &**m.__deprecated_all_dependencies)
+      .map(|m| &*m.__deprecated_all_dependencies)
   }
 
   /// # Deprecated!!!

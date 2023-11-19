@@ -21,7 +21,7 @@ pub struct ModuleGraphModule {
   // TODO remove this since its included in module
   pub module_type: ModuleType,
   // TODO: remove this once we drop old treeshaking
-  pub(crate) __deprecated_all_dependencies: Box<Vec<DependencyId>>,
+  pub(crate) __deprecated_all_dependencies: Vec<DependencyId>,
   pub(crate) pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
   pub module_syntax: ModuleSyntax,

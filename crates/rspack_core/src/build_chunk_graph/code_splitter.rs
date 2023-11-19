@@ -6,9 +6,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
 use crate::{
-  AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupInfo, ChunkGroupKind, ChunkGroupOptions,
-  ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, DependenciesBlock, Logger,
-  ModuleDependency, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec, IS_NEW_TREESHAKING,
+  AsyncDependenciesBlockIdentifier, BoxDependency, ChunkGroup, ChunkGroupInfo, ChunkGroupKind,
+  ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, DependenciesBlock,
+  Logger, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec, IS_NEW_TREESHAKING,
 };
 
 pub(super) struct CodeSplitter<'me> {
@@ -676,7 +676,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn extract_block_modules(&mut self, module: ModuleIdentifier) {
     self.block_modules_map.insert(module.into(), Vec::new());
-    let dependencies: Vec<&dyn ModuleDependency> =
+    let dependencies: Vec<&BoxDependency> =
       if IS_NEW_TREESHAKING.load(std::sync::atomic::Ordering::Relaxed) {
         let mgm = self
           .compilation
@@ -695,7 +695,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             }
           })
           .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(&dep_id))
-          .filter_map(|dep| dep.as_module_dependency())
           .collect()
       } else {
         self
@@ -705,11 +704,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .expect("should have module")
           .iter()
           .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(dep_id))
-          .filter_map(|dep| dep.as_module_dependency())
           .collect()
       };
     for dep in dependencies {
-      if dep.weak() {
+      if dep.as_module_dependency().is_none() && dep.as_context_dependency().is_none() {
+        continue;
+      }
+      if matches!(dep.as_module_dependency().map(|d| d.weak()), Some(true)) {
         continue;
       }
       let dep_id = dep.id();
