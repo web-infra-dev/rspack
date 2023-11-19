@@ -14,7 +14,7 @@ pub use connection::*;
 
 use crate::{
   to_identifier, BoxDependency, BoxModule, BuildDependency, BuildInfo, BuildMeta,
-  DependencyCondition, DependencyId, ExportInfo, ExportInfoId, ExportsInfo, ExportsInfoId, Module,
+  DependencyCondition, DependencyId, ExportInfo, ExportInfoId, ExportsInfo, ExportsInfoId,
   ModuleGraphModule, ModuleIdentifier, ModuleProfile,
 };
 
@@ -341,19 +341,45 @@ impl ModuleGraph {
       .and_then(|connection_id| self.connection_by_connection_id_mut(&connection_id))
   }
 
-  /// Get a list of all dependencies of a module by the module itself, if the module is not found, then None is returned
-  pub fn dependencies_by_module(&self, module: &dyn Module) -> Option<&[DependencyId]> {
-    self.dependencies_by_module_identifier(&module.identifier())
-  }
-
-  /// Get a list of all dependencies of a module by the module identifier, if the module is not found, then None is returned
-  pub fn dependencies_by_module_identifier(
+  /// # Deprecated!!!
+  /// # Don't use this anymore!!!
+  /// A module is a DependenciesBlock, which means it has some Dependencies and some AsyncDependenciesBlocks
+  /// a static import is a Dependency, but a dynamic import is a AsyncDependenciesBlock
+  /// AsyncDependenciesBlock means it is a code-splitting point, and will create a ChunkGroup in code-splitting
+  /// and AsyncDependenciesBlock also is DependenciesBlock, so it can has some Dependencies and some AsyncDependenciesBlocks
+  /// so if you want get a module's dependencies and its blocks' dependencies (all dependencies)
+  /// just use module.get_dependencies() and module.get_blocks().map(|b| b.get_dependencyes())
+  /// you don't need this one
+  pub(crate) fn get_module_all_dependencies(
     &self,
     module_identifier: &ModuleIdentifier,
   ) -> Option<&[DependencyId]> {
     self
-      .module_by_identifier(module_identifier)
-      .map(|m| m.get_dependencies())
+      .module_graph_module_by_identifier(module_identifier)
+      .map(|m| &**m.__deprecated_all_dependencies)
+  }
+
+  /// # Deprecated!!!
+  /// # Don't use this anymore!!!
+  /// A module is a DependenciesBlock, which means it has some Dependencies and some AsyncDependenciesBlocks
+  /// a static import is a Dependency, but a dynamic import is a AsyncDependenciesBlock
+  /// AsyncDependenciesBlock means it is a code-splitting point, and will create a ChunkGroup in code-splitting
+  /// and AsyncDependenciesBlock also is DependenciesBlock, so it can has some Dependencies and some AsyncDependenciesBlocks
+  /// so if you want get a module's dependencies and its blocks' dependencies (all dependencies)
+  /// just use module.get_dependencies() and module.get_blocks().map(|b| b.get_dependencyes())
+  /// you don't need this one
+  pub(crate) fn get_module_all_depended_modules(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<Vec<&ModuleIdentifier>> {
+    self
+      .module_graph_module_by_identifier(module_identifier)
+      .map(|m| {
+        m.__deprecated_all_dependencies
+          .iter()
+          .filter_map(|id| self.module_identifier_by_dependency_id(id))
+          .collect()
+      })
   }
 
   pub fn dependency_by_connection_id(
@@ -894,7 +920,7 @@ mod test {
     if let Some(p_id) = from
       && let Some(mgm) = mg.module_graph_module_by_identifier_mut(p_id)
     {
-      mgm.all_dependencies.push(dependency_id);
+      mgm.__deprecated_all_dependencies.push(dependency_id);
     }
     mg.set_resolved_module(from.copied(), dependency_id, *to)
       .expect("failed to set resolved module");

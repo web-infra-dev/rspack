@@ -676,14 +676,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn extract_block_modules(&mut self, module: ModuleIdentifier) {
     self.block_modules_map.insert(module.into(), Vec::new());
-
-    let mgm = self
-      .compilation
-      .module_graph
-      .module_graph_module_by_identifier(&module)
-      .unwrap_or_else(|| panic!("no module found: {:?}", &module));
     let dependencies: Vec<&dyn ModuleDependency> =
       if IS_NEW_TREESHAKING.load(std::sync::atomic::Ordering::Relaxed) {
+        let mgm = self
+          .compilation
+          .module_graph
+          .module_graph_module_by_identifier(&module)
+          .unwrap_or_else(|| panic!("no module found: {:?}", &module));
         mgm
           .outgoing_connections_unordered(&self.compilation.module_graph)
           .expect("should have outgoing connections")
@@ -699,8 +698,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .filter_map(|dep| dep.as_module_dependency())
           .collect()
       } else {
-        mgm
-          .all_dependencies
+        self
+          .compilation
+          .module_graph
+          .get_module_all_dependencies(&module)
+          .expect("should have module")
           .iter()
           .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(dep_id))
           .filter_map(|dep| dep.as_module_dependency())

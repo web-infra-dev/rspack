@@ -21,7 +21,7 @@ pub struct ModuleGraphModule {
   // TODO remove this since its included in module
   pub module_type: ModuleType,
   // TODO: remove this once we drop old treeshaking
-  pub all_dependencies: Box<Vec<DependencyId>>,
+  pub(crate) __deprecated_all_dependencies: Box<Vec<DependencyId>>,
   pub(crate) pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
   pub module_syntax: ModuleSyntax,
@@ -46,7 +46,7 @@ impl ModuleGraphModule {
       issuer: ModuleIssuer::Unset,
       // exec_order: usize::MAX,
       module_identifier,
-      all_dependencies: Default::default(),
+      __deprecated_all_dependencies: Default::default(),
       module_type,
       pre_order_index: None,
       post_order_index: None,
@@ -115,17 +115,6 @@ impl ModuleGraphModule {
       .into_iter();
 
     Ok(result)
-  }
-
-  pub fn all_depended_modules<'a>(
-    &self,
-    module_graph: &'a ModuleGraph,
-  ) -> Vec<&'a ModuleIdentifier> {
-    self
-      .all_dependencies
-      .iter()
-      .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
-      .collect()
   }
 
   pub fn set_profile(&mut self, profile: Box<ModuleProfile>) {

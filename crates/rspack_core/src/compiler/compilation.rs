@@ -397,12 +397,10 @@ impl Compilation {
 
     // collect origin_module_deps
     for module_id in deps_builder.get_force_build_modules() {
-      let mgm = self
+      let deps = self
         .module_graph
-        .module_graph_module_by_identifier(module_id)
-        .expect("module graph module not exist");
-      let deps = mgm
-        .all_depended_modules(&self.module_graph)
+        .get_module_all_depended_modules(module_id)
+        .expect("module graph module not exist")
         .into_iter()
         .cloned()
         .collect::<Vec<_>>();
@@ -416,8 +414,10 @@ impl Compilation {
     // calc need_check_isolated_module_ids & regen_module_issues
     for id in deps_builder.get_force_build_modules() {
       if let Some(mgm) = self.module_graph.module_graph_module_by_identifier(id) {
-        let depended_modules = mgm
-          .all_depended_modules(&self.module_graph)
+        let depended_modules = self
+          .module_graph
+          .get_module_all_depended_modules(id)
+          .expect("module graph module not exist")
           .into_iter()
           .copied();
         need_check_isolated_module_ids.extend(depended_modules);
@@ -802,7 +802,7 @@ impl Compilation {
                   .module_graph
                   .module_graph_module_by_identifier_mut(&module.identifier())
                   .expect("Failed to get mgm");
-                mgm.all_dependencies = Box::new(all_dependencies.clone());
+                mgm.__deprecated_all_dependencies = Box::new(all_dependencies.clone());
                 if let Some(current_profile) = current_profile {
                   mgm.set_profile(current_profile);
                 }
@@ -907,11 +907,11 @@ impl Compilation {
     } else {
       self.has_module_import_export_change
         || !origin_module_deps.into_iter().all(|(module_id, deps)| {
-          if let Some(mgm) = self
+          if let Some(all_depended_modules) = self
             .module_graph
-            .module_graph_module_by_identifier(&module_id)
+            .get_module_all_depended_modules(&module_id)
           {
-            mgm.all_depended_modules(&self.module_graph) == deps.iter().collect::<Vec<_>>()
+            all_depended_modules == deps.iter().collect::<Vec<_>>()
           } else {
             false
           }
@@ -932,7 +932,7 @@ impl Compilation {
             let mut values = vec![(module.identifier(), BailoutFlag::CONTEXT_MODULE)];
             if let Some(dependencies) = self
               .module_graph
-              .dependencies_by_module_identifier(&module.identifier())
+              .get_module_all_dependencies(&module.identifier())
             {
               for dependency in dependencies {
                 if let Some(dependency_module) = self

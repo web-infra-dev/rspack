@@ -386,8 +386,10 @@ impl CleanTask {
       return CleanTaskResult::ModuleIsUsed { module_identifier };
     }
 
-    let dependent_module_identifiers: Vec<ModuleIdentifier> = mgm
-      .all_depended_modules(&compilation.module_graph)
+    let dependent_module_identifiers: Vec<ModuleIdentifier> = compilation
+      .module_graph
+      .get_module_all_depended_modules(&module_identifier)
+      .expect("should have module")
       .into_iter()
       .copied()
       .collect();
