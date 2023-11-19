@@ -24,6 +24,7 @@ pub struct ChunkGroup {
   pub(crate) module_post_order_indices: IdentifierMap<usize>,
   pub(crate) parents: HashSet<ChunkGroupUkey>,
   pub(crate) children: HashSet<ChunkGroupUkey>,
+  async_entrypoints: HashSet<ChunkGroupUkey>,
   // ChunkGroupInfo
   pub(crate) next_pre_order_index: usize,
   pub(crate) next_post_order_index: usize,
@@ -42,6 +43,7 @@ impl ChunkGroup {
       module_pre_order_indices: Default::default(),
       parents: Default::default(),
       children: Default::default(),
+      async_entrypoints: Default::default(),
       kind,
       next_pre_order_index: 0,
       next_post_order_index: 0,
@@ -128,6 +130,14 @@ impl ChunkGroup {
         unreachable!("Normal chunk group doesn't have runtime chunk")
       }
     }
+  }
+
+  pub fn add_async_entrypoint(&mut self, async_entrypoint: ChunkGroupUkey) -> bool {
+    self.async_entrypoints.insert(async_entrypoint)
+  }
+
+  pub fn async_entrypoints_iterable(&self) -> impl Iterator<Item = &ChunkGroupUkey> {
+    self.async_entrypoints.iter()
   }
 
   pub fn ancestors(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> HashSet<ChunkGroupUkey> {

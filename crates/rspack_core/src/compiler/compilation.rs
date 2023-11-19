@@ -1453,6 +1453,7 @@ impl Compilation {
   pub async fn create_hash(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let mut compilation_hasher = RspackHash::from(&self.options.output);
+    // TODO: runtimeChunk referencedBy for correct hashing AsyncEntrypoint
     let runtime_chunk_ukeys = self.get_chunk_graph_entries();
 
     fn try_process_chunk_hash_results(

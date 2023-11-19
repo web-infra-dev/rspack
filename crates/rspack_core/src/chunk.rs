@@ -218,6 +218,52 @@ impl Chunk {
     chunks
   }
 
+  pub fn get_all_referenced_async_entrypoints(
+    &self,
+    chunk_group_by_ukey: &ChunkGroupByUkey,
+  ) -> HashSet<ChunkGroupUkey> {
+    let mut async_entrypoints = HashSet::default();
+    let mut visit_chunk_groups = HashSet::default();
+
+    fn add_async_entrypoints(
+      chunk_group_ukey: &ChunkGroupUkey,
+      async_entrypoints: &mut HashSet<ChunkGroupUkey>,
+      chunk_group_by_ukey: &ChunkGroupByUkey,
+      visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
+    ) {
+      let group = chunk_group_by_ukey
+        .get(chunk_group_ukey)
+        .expect("Group should exist");
+
+      for chunk_ukey in group.async_entrypoints_iterable() {
+        async_entrypoints.insert(*chunk_ukey);
+      }
+
+      for child_group_ukey in group.children.iter() {
+        if !visit_chunk_groups.contains(child_group_ukey) {
+          visit_chunk_groups.insert(*child_group_ukey);
+          add_async_entrypoints(
+            child_group_ukey,
+            async_entrypoints,
+            chunk_group_by_ukey,
+            visit_chunk_groups,
+          );
+        }
+      }
+    }
+
+    for group_ukey in &self.groups {
+      add_async_entrypoints(
+        group_ukey,
+        &mut async_entrypoints,
+        chunk_group_by_ukey,
+        &mut visit_chunk_groups,
+      );
+    }
+
+    async_entrypoints
+  }
+
   pub fn has_runtime(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> bool {
     self
       .groups

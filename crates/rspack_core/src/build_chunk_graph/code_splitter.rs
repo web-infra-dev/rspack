@@ -482,8 +482,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let item_chunk_group = self
       .compilation
       .chunk_group_by_ukey
-      .get_mut(&item_chunk_group_ukey)
-      .expect("chunk group not found");
+      .expect_get(&item_chunk_group_ukey);
 
     let chunk = if let Some(chunk_name) = block.get_group_options().and_then(|x| x.name()) {
       Compilation::add_named_chunk(
@@ -652,8 +651,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           chunk_group: c,
           chunk: chunk.ukey,
         }));
-    } else if let Some(_entrypoint) = entrypoint {
-      // TODO: chunk_group.add_async_entrypoint(entrypoint) used by getAllReferencedAsyncEntrypoints
+    } else if let Some(entrypoint) = entrypoint {
+      let item_chunk_group = self
+        .compilation
+        .chunk_group_by_ukey
+        .expect_get_mut(&item_chunk_group_ukey);
+      item_chunk_group.add_async_entrypoint(entrypoint);
     }
   }
 
