@@ -63,4 +63,6 @@ export const wasm = { EnableWasmLoadingPlugin };
 import { LimitChunkCountPlugin } from "./builtin-plugin";
 export const optimize = { LimitChunkCountPlugin };
 
+export const sources = require("webpack-sources");
+
 export { Watching };

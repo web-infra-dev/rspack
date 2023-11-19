@@ -114,7 +114,9 @@ describe("snapshots", () => {
 		+     "minimize": true,
 		@@ ... @@
 		-     "moduleIds": "named",
+		-     "nodeEnv": false,
 		+     "moduleIds": "deterministic",
+		+     "nodeEnv": "production",
 		@@ ... @@
 		-     "realContentHash": false,
 		+     "realContentHash": true,
@@ -155,7 +157,9 @@ describe("snapshots", () => {
 		+     "minimize": true,
 		@@ ... @@
 		-     "moduleIds": "named",
+		-     "nodeEnv": false,
 		+     "moduleIds": "deterministic",
+		+     "nodeEnv": "production",
 		@@ ... @@
 		-     "realContentHash": false,
 		+     "realContentHash": true,
@@ -195,6 +199,9 @@ describe("snapshots", () => {
 		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "development",
+		@@ ... @@
+		-     "nodeEnv": false,
+		+     "nodeEnv": "development",
 		@@ ... @@
 		-       "production",
 		+       "development",
@@ -895,6 +902,9 @@ describe("snapshots", () => {
 			@@ ... @@
 			-   "mode": "none",
 			+   "mode": "development",
+			@@ ... @@
+			-     "nodeEnv": false,
+			+     "nodeEnv": "development",
 			@@ ... @@
 			-       "production",
 			+       "development",

@@ -726,6 +726,11 @@ const applyOptimizationDefaults = (
 		// new SwcJsMinimizerPlugin(),
 		// new SwcCssMinimizerPlugin()
 	]);
+	F(optimization, "nodeEnv", () => {
+		if (production) return "production";
+		if (development) return "development";
+		return false;
+	});
 	const { splitChunks } = optimization;
 	if (splitChunks) {
 		// A(splitChunks, "defaultSizeTypes", () =>
