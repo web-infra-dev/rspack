@@ -93,7 +93,7 @@ where
   #[instrument(name = "build", skip_all)]
   pub async fn build(&mut self) -> Result<()> {
     self.cache.end_idle();
-    // TODO: clear the outdate cache entries in resolver,
+    // TODO: clear the outdated cache entries in resolver,
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.resolver_factory.clear_cache();
 
