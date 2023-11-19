@@ -1,8 +1,8 @@
 use rspack_core::{
-  property_access, AsModuleDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph, NormalInitFragment,
-  RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedName,
+  property_access, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
+  DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec,
+  ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph,
+  NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedName,
 };
 
 #[derive(Debug, Clone)]
@@ -238,3 +238,5 @@ impl DependencyTemplate for CommonJsExportsDependency {
     }
   }
 }
+
+impl AsContextDependency for CommonJsExportsDependency {}

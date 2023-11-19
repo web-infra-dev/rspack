@@ -466,17 +466,17 @@ impl<'a> CodeSizeOptimizer<'a> {
           .compilation
           .module_graph
           .get_module_all_dependencies(&module_identifier)
-          .expect("should have module")
+          .unwrap_or_else(|| {
+            panic!("Failed to get ModuleGraphModule by module identifier {module_identifier}")
+          })
           .iter()
         {
-          if self
+          let dep = self
             .compilation
             .module_graph
             .dependency_by_id(dependency_id)
-            .expect("should have dependency")
-            .as_module_dependency()
-            .is_none()
-          {
+            .expect("should have dependency");
+          if dep.as_module_dependency().is_none() && dep.as_context_dependency().is_none() {
             continue;
           }
           let module_identifier = match self
@@ -626,11 +626,10 @@ impl<'a> CodeSizeOptimizer<'a> {
       .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {cur}"))
       .iter()
     {
-      if module_graph
+      let dependency = module_graph
         .dependency_by_id(dep)
-        .expect("should have dependency")
-        .as_module_dependency()
-        .is_none()
+        .expect("should have dependency");
+      if dependency.as_module_dependency().is_none() && dependency.as_context_dependency().is_none()
       {
         continue;
       }

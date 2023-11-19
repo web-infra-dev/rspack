@@ -1,12 +1,12 @@
 use linked_hash_set::LinkedHashSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
-  get_exports_type, process_export_info, ConnectionState, Dependency, DependencyCategory,
-  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ExportInfoId,
-  ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsInfoId, ExportsOfExportsSpec,
-  ExportsSpec, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState,
-  UsedName,
+  get_exports_type, process_export_info, AsContextDependency, ConnectionState, Dependency,
+  DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
+  ExportInfoId, ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsInfoId,
+  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
+  HarmonyExportInitFragment, ModuleDependency, ModuleGraph, ModuleIdentifier, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
@@ -736,6 +736,10 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
   fn dependency_debug_name(&self) -> &'static str {
     "HarmonyExportImportedSpecifierDependency"
   }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
+  }
 }
 
 impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
@@ -749,10 +753,6 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
-  }
-
-  fn resource_identifier(&self) -> Option<&str> {
-    Some(&self.resource_identifier)
   }
 
   fn is_export_all(&self) -> Option<bool> {
@@ -850,6 +850,8 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
     }
   }
 }
+
+impl AsContextDependency for HarmonyExportImportedSpecifierDependency {}
 
 #[allow(unused)]
 #[derive(Debug, PartialEq, Eq)]

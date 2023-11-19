@@ -42,7 +42,6 @@ impl ModuleGraphModule {
     Self {
       outgoing_connections: Default::default(),
       incoming_connections: Default::default(),
-
       issuer: ModuleIssuer::Unset,
       // exec_order: usize::MAX,
       module_identifier,
@@ -62,7 +61,8 @@ impl ModuleGraphModule {
 
   pub fn id<'chunk_graph>(&self, chunk_graph: &'chunk_graph ChunkGraph) -> &'chunk_graph str {
     let c = chunk_graph.get_module_id(self.module_identifier).as_ref();
-    c.expect("module id not found").as_str()
+    c.unwrap_or_else(|| panic!("{} module id not found", self.module_identifier))
+      .as_str()
   }
 
   pub fn add_incoming_connection(&mut self, connection_id: ConnectionId) {

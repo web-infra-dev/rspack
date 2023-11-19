@@ -74,10 +74,6 @@ impl ModuleGraph {
     &self.module_identifier_to_module
   }
 
-  pub fn modules_mut(&mut self) -> &mut IdentifierMap<BoxModule> {
-    &mut self.module_identifier_to_module
-  }
-
   pub fn module_graph_modules(&self) -> &IdentifierMap<ModuleGraphModule> {
     &self.module_identifier_to_module_graph_module
   }
@@ -137,13 +133,6 @@ impl ModuleGraph {
     self.dependencies.get(dependency_id)
   }
 
-  pub fn dependency_by_id_mut(
-    &mut self,
-    dependency_id: &DependencyId,
-  ) -> Option<&mut BoxDependency> {
-    self.dependencies.get_mut(dependency_id)
-  }
-
   fn remove_dependency(&mut self, dependency_id: &DependencyId) {
     self.dependencies.remove(dependency_id);
   }
@@ -180,7 +169,8 @@ impl ModuleGraph {
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
     let dependency = dependency_id.get_dependency(self);
-    let is_module_dependency = dependency.as_module_dependency().is_some();
+    let is_module_dependency =
+      dependency.as_module_dependency().is_some() || dependency.as_context_dependency().is_some();
     let condition = if IS_NEW_TREESHAKING.load(std::sync::atomic::Ordering::Relaxed) {
       dependency
         .as_module_dependency()
@@ -884,6 +874,7 @@ mod test {
       }
 
       impl crate::AsDependencyTemplate for $ident {}
+      impl crate::AsContextDependency for $ident {}
     };
   }
 

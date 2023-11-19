@@ -84,5 +84,3 @@ pub trait ModuleFactory {
     data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>>;
 }
-
-pub type BoxModuleFactory = Box<dyn ModuleFactory>;

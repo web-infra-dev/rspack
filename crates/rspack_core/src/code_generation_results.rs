@@ -4,7 +4,6 @@ use std::ops::{Deref, DerefMut};
 use std::sync::atomic::AtomicU32;
 
 use anymap::CloneAny;
-use once_cell::sync::Lazy;
 use rspack_error::{internal_error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_identifier::IdentifierMap;
@@ -146,7 +145,7 @@ impl Default for CodeGenResultId {
   }
 }
 
-pub static CODE_GEN_RESULT_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
+pub static CODE_GEN_RESULT_ID: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Default)]
 pub struct CodeGenerationResults {

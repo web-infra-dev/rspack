@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
 import util from "util";
-import { rspack, RspackOptions, cleverMerge } from "../src";
+import { rspack, RspackOptions } from "../src";
 import serializer from "jest-serializer-path";
 
 expect.addSnapshotSerializer(serializer);

@@ -125,7 +125,7 @@ impl GeneratorOptions {
     maybe.filter(|_| matches!(module_type, ModuleType::Asset))
   }
 
-  pub fn get_asset_inline(&self, module_type: &ModuleType) -> Option<&AssetInlineGeneratorOptions> {
+  fn get_asset_inline(&self, module_type: &ModuleType) -> Option<&AssetInlineGeneratorOptions> {
     let maybe = match self {
       Self::AssetInline(i) => Some(i),
       _ => None,
@@ -133,10 +133,7 @@ impl GeneratorOptions {
     maybe.filter(|_| matches!(module_type, ModuleType::AssetInline))
   }
 
-  pub fn get_asset_resource(
-    &self,
-    module_type: &ModuleType,
-  ) -> Option<&AssetResourceGeneratorOptions> {
+  fn get_asset_resource(&self, module_type: &ModuleType) -> Option<&AssetResourceGeneratorOptions> {
     let maybe = match self {
       Self::AssetResource(i) => Some(i),
       _ => None,

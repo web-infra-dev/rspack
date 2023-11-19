@@ -1,18 +1,17 @@
-use rspack_core::{
-  create_resource_identifier_for_context_dependency, module_id_expr, normalize_context,
-  ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
-};
+use rspack_core::{module_id_expr, AsModuleDependency, ContextDependency};
+use rspack_core::{normalize_context, DependencyCategory, DependencyId, DependencyTemplate};
+use rspack_core::{ContextOptions, Dependency, TemplateReplaceSource};
+use rspack_core::{DependencyType, ErrorSpan, RuntimeGlobals, TemplateContext};
 
-use super::ContextDependencyTrait;
+use super::create_resource_identifier_for_context_dependency;
 
 #[derive(Debug, Clone)]
 pub struct ImportContextDependency {
   callee_start: u32,
   callee_end: u32,
   args_end: u32,
-  pub id: DependencyId,
-  pub options: ContextOptions,
+  id: DependencyId,
+  options: ContextOptions,
   span: Option<ErrorSpan>,
   resource_identifier: String,
 }
@@ -25,7 +24,7 @@ impl ImportContextDependency {
     options: ContextOptions,
     span: Option<ErrorSpan>,
   ) -> Self {
-    let resource_identifier = create_resource_identifier_for_context_dependency(&options);
+    let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
       callee_start,
       callee_end,
@@ -60,31 +59,25 @@ impl Dependency for ImportContextDependency {
   }
 }
 
-impl ModuleDependency for ImportContextDependency {
+impl ContextDependency for ImportContextDependency {
+  fn options(&self) -> &ContextOptions {
+    &self.options
+  }
+
   fn request(&self) -> &str {
     &self.options.request
   }
 
-  fn user_request(&self) -> &str {
-    &self.options.request
+  fn get_context(&self) -> Option<&str> {
+    None
   }
 
-  fn options(&self) -> Option<&ContextOptions> {
-    Some(&self.options)
+  fn resource_identifier(&self) -> &str {
+    &self.resource_identifier
   }
 
   fn set_request(&mut self, request: String) {
     self.options.request = request;
-  }
-
-  fn resource_identifier(&self) -> Option<&str> {
-    Some(&self.resource_identifier)
-  }
-}
-
-impl ContextDependencyTrait for ImportContextDependency {
-  fn chunk_name(&self) -> Option<&str> {
-    self.options.chunk_name.as_deref()
   }
 }
 
@@ -123,3 +116,5 @@ impl DependencyTemplate for ImportContextDependency {
     }
   }
 }
+
+impl AsModuleDependency for ImportContextDependency {}

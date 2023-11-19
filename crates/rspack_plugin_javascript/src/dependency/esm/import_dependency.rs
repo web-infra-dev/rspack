@@ -1,5 +1,5 @@
-use rspack_core::Dependency;
 use rspack_core::{module_namespace_promise, DependencyType, ErrorSpan, ImportDependencyTrait};
+use rspack_core::{AsContextDependency, Dependency};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
 use swc_core::ecma::atoms::JsWord;
@@ -101,3 +101,5 @@ impl DependencyTemplate for ImportDependency {
     );
   }
 }
+
+impl AsContextDependency for ImportDependency {}

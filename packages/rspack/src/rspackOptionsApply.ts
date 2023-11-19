@@ -33,6 +33,7 @@ import {
 	HttpExternalsRspackPlugin,
 	ModuleChunkFormatPlugin,
 	NodeTargetPlugin,
+	DefinePlugin,
 	MergeDuplicateChunksPlugin
 } from "./builtin-plugin";
 
@@ -187,6 +188,11 @@ export class RspackOptionsApply {
 
 		if (options.builtins.devFriendlySplitChunks) {
 			options.optimization.splitChunks = undefined;
+		}
+		if (options.optimization.nodeEnv) {
+			new DefinePlugin({
+				"process.env.NODE_ENV": JSON.stringify(options.optimization.nodeEnv)
+			}).apply(compiler);
 		}
 		if (options.devServer?.hot) {
 			options.output.strictModuleErrorHandling = true;

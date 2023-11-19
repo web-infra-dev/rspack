@@ -12,13 +12,13 @@ it("should generate correct sourceMap", async () => {
 	expect(map.sources).toContain("./a.ts");
 	expect(map.sourcesContent[1]).toEqual(sourceContent);
 
-	checkStub("fo" + "o", sourceContent);
-	checkStub("ba" + "r", sourceContent);
-	checkStub("ba" + "z", sourceContent);
-	checkStub(wrap("f" + 1), sourceContent);
-	checkStub(wrap("b" + 1), sourceContent);
-	checkStub(wrap("b" + 2), sourceContent);
-	checkStub(wrap("ab" + "c"), sourceContent);
+	checkStub(["fo", "o"].join(""), sourceContent);
+	checkStub(["ba", "r"].join(""), sourceContent);
+	checkStub(["ba", "z"].join(""), sourceContent);
+	checkStub(wrap(["f", 1].join("")), sourceContent);
+	checkStub(wrap(["b", 1].join("")), sourceContent);
+	checkStub(wrap(["b", 2].join("")), sourceContent);
+	checkStub(wrap(["ab", "c"].join("")), sourceContent);
 });
 
 const wrap = v => `"${v}"`;

@@ -1,7 +1,7 @@
 use rspack_core::{
-  Dependency, DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ExtendedReferencedExport, ModuleDependency, ModuleGraph, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -126,3 +126,5 @@ impl DependencyTemplate for WorkerDependency {
     );
   }
 }
+
+impl AsContextDependency for WorkerDependency {}

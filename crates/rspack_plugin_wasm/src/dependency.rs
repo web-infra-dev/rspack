@@ -1,6 +1,6 @@
 use rspack_core::{
-  AsDependencyTemplate, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  ExtendedReferencedExport, ModuleDependency, ModuleGraph, RuntimeSpec,
+  AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
+  DependencyType, ErrorSpan, ExtendedReferencedExport, ModuleDependency, ModuleGraph, RuntimeSpec,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -79,3 +79,5 @@ impl ModuleDependency for WasmImportDependency {
 }
 
 impl AsDependencyTemplate for WasmImportDependency {}
+
+impl AsContextDependency for WasmImportDependency {}

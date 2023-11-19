@@ -182,6 +182,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
 
         let referenced_exports = if let Some(md) = dep.as_module_dependency() {
           md.get_referenced_exports(&self.compilation.module_graph, runtime.as_ref())
+        } else if dep.as_context_dependency().is_some() {
+          vec![ExtendedReferencedExport::Array(vec![])]
         } else {
           continue;
         };

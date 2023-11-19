@@ -1,7 +1,7 @@
 use rspack_core::{
-  AsModuleDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, HarmonyExportInitFragment,
-  ModuleGraph, TemplateContext, TemplateReplaceSource, UsedName,
+  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory, DependencyId,
+  DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec,
+  HarmonyExportInitFragment, ModuleGraph, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -116,3 +116,5 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
     }
   }
 }
+
+impl AsContextDependency for HarmonyExportSpecifierDependency {}

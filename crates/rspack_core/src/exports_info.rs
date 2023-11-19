@@ -3,7 +3,6 @@ use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
 
-use once_cell::sync::Lazy;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
@@ -23,7 +22,7 @@ pub trait ExportsHash {
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct ExportsInfoId(u32);
 
-pub static EXPORTS_INFO_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
+pub static EXPORTS_INFO_ID: AtomicU32 = AtomicU32::new(0);
 
 impl ExportsHash for ExportsInfoId {
   fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {
@@ -349,10 +348,7 @@ impl ExportsInfoId {
         let info = self.get_read_only_export_info(&name, mg);
         info.get_used_name(&name, runtime).map(UsedName::Str)
       }
-      UsedName::Vec(_) => {
-        // TODO
-        Some(name.clone())
-      }
+      UsedName::Vec(_) => todo!(),
     }
   }
 
@@ -547,7 +543,7 @@ impl ExportsInfo {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum UsedName {
   Str(JsWord),
   Vec(Vec<JsWord>),
@@ -563,7 +559,7 @@ pub struct ExportInfoTargetValue {
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct ExportInfoId(u32);
 
-pub static EXPORT_INFO_ID: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
+pub static EXPORT_INFO_ID: AtomicU32 = AtomicU32::new(0);
 
 impl ExportsHash for ExportInfoId {
   fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {

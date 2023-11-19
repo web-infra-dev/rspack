@@ -127,16 +127,20 @@ pub fn css_modules_exports_to_string(
             .get_dependencies()
             .iter()
             .find_map(|id| {
-              let dependency = compilation
-                .module_graph
-                .dependency_by_id(id)
-                .and_then(|d| d.as_module_dependency());
-              if let Some(dependency) = dependency {
-                if dependency.request() == from_name {
-                  return compilation
-                    .module_graph
-                    .module_graph_module_by_dependency_id(id);
-                }
+              let dependency = compilation.module_graph.dependency_by_id(id);
+              let request = if let Some(d) = dependency.and_then(|d| d.as_module_dependency()) {
+                Some(d.request())
+              } else {
+                dependency
+                  .and_then(|d| d.as_context_dependency())
+                  .map(|d| d.request())
+              };
+              if let Some(request) = request
+                && request == from_name
+              {
+                return compilation
+                  .module_graph
+                  .module_graph_module_by_dependency_id(id);
               }
               None
             })

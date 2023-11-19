@@ -50,6 +50,19 @@ pub enum ContextMode {
   LazyOnce,
 }
 
+impl ContextMode {
+  pub fn as_str(&self) -> &str {
+    match self {
+      ContextMode::Sync => "sync",
+      ContextMode::Eager => "eager",
+      ContextMode::Weak => "weak",
+      ContextMode::Lazy => "lazy",
+      ContextMode::LazyOnce => "lazy-once",
+      ContextMode::AsyncWeak => "async-weak",
+    }
+  }
+}
+
 impl From<&str> for ContextMode {
   fn from(value: &str) -> Self {
     match value {
@@ -58,6 +71,7 @@ impl From<&str> for ContextMode {
       "weak" => ContextMode::Weak,
       "lazy" => ContextMode::Lazy,
       "lazy-once" => ContextMode::LazyOnce,
+      "async-weak" => ContextMode::AsyncWeak,
       // TODO should give warning
       _ => panic!("unknown context mode"),
     }
@@ -105,23 +119,6 @@ pub struct ContextOptions {
   pub request: String,
   pub namespace_object: ContextNameSpaceObject,
   pub chunk_name: Option<String>,
-}
-
-impl Display for ContextOptions {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(
-      f,
-      "({:?}, {}, {},  {:?}, {:?},  {:?}, {}, {:?})",
-      self.mode,
-      self.recursive,
-      self.reg_str,
-      self.include,
-      self.exclude,
-      self.category,
-      self.request,
-      self.namespace_object
-    )
-  }
 }
 
 impl PartialEq for ContextOptions {
@@ -311,19 +308,24 @@ impl ContextModule {
         .module_graph
         .module_identifier_by_dependency_id(dependency)
       {
-        if let Some(dependency) = compilation
-          .module_graph
-          .dependency_by_id(dependency)
-          .and_then(|d| d.as_module_dependency())
-        {
-          map.insert(
-            dependency.user_request().to_string(),
-            if let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier) {
-              format!("\"{module_id}\"")
-            } else {
-              "null".to_string()
-            },
-          );
+        if let Some(dependency) = compilation.module_graph.dependency_by_id(dependency) {
+          let request = if let Some(d) = dependency.as_module_dependency() {
+            Some(d.user_request().to_string())
+          } else {
+            dependency
+              .as_context_dependency()
+              .map(|d| d.request().to_string())
+          };
+          if let Some(request) = request {
+            map.insert(
+              request,
+              if let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier) {
+                format!("\"{module_id}\"")
+              } else {
+                "null".to_string()
+              },
+            );
+          }
         }
       }
     }
@@ -744,7 +746,7 @@ impl ContextModule {
     Ok(())
   }
 
-  pub fn resolve_dependencies(
+  fn resolve_dependencies(
     &self,
     build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
@@ -923,8 +925,4 @@ fn alternative_requests(
   }
 
   items
-}
-
-pub fn create_resource_identifier_for_context_dependency(options: &ContextOptions) -> String {
-  format!("{options}")
 }

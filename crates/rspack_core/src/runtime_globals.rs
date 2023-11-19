@@ -220,8 +220,6 @@ bitflags! {
      * the System.register context object
      */
     const SYSTEM_CONTEXT = 1 << 49;
-
-    const THIS_AS_EXPORTS = 1 << 50;
   }
 }
 
@@ -292,7 +290,6 @@ impl RuntimeGlobals {
       R::HARMONY_MODULE_DECORATOR => "__webpack_require__.hmd",
       R::NODE_MODULE_DECORATOR => "__webpack_require__.nmd",
       R::SYSTEM_CONTEXT => "__webpack_require__.y",
-      R::THIS_AS_EXPORTS => "top-level-this-exports",
       r => panic!(
         "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
       ),
