@@ -12,6 +12,7 @@ pub enum DependencyCategory {
   CssCompose,
   Wasm,
   Worker,
+  LoaderImport,
 }
 
 impl From<&str> for DependencyCategory {
@@ -41,6 +42,7 @@ impl DependencyCategory {
       DependencyCategory::CssCompose => "css-compose",
       DependencyCategory::Wasm => "wasm",
       DependencyCategory::Worker => "worker",
+      DependencyCategory::LoaderImport => "loader import",
     }
   }
 }

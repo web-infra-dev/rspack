@@ -45,6 +45,7 @@ export class JsCompilation {
   addMissingDependencies(deps: Array<string>): void
   addBuildDependencies(deps: Array<string>): void
   rebuildModule(moduleIdentifiers: Array<string>, f: (...args: any[]) => any): void
+  importModule(request: string, publicPath: string | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: (...args: any[]) => any): void
 }
 
 export class JsStats {
@@ -253,6 +254,11 @@ export interface JsAssetInfoRelated {
   sourceMap?: string
 }
 
+export interface JsBuildTimeExecutionOption {
+  publicPath?: string
+  baseUri?: string
+}
+
 export interface JsChunk {
   __inner_ukey: number
   __inner_groups: Array<number>
@@ -302,8 +308,20 @@ export interface JsCompatSource {
 
 export interface JsExecuteModuleArg {
   entry: string
+  request: string
+  options: JsBuildTimeExecutionOption
   runtimeModules: Array<string>
   codegenResults: JsCodegenerationResults
+  id: number
+}
+
+export interface JsExecuteModuleResult {
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  buildDependencies: Array<string>
+  missingDependencies: Array<string>
+  assets: Array<string>
+  id: number
 }
 
 export interface JsHooks {
@@ -392,6 +410,7 @@ export interface JsLoaderContext {
    * @internal
    */
   diagnosticsExternal: ExternalObject<'Diagnostic[]'>
+  _moduleIdentifier: string
 }
 
 export interface JsModule {

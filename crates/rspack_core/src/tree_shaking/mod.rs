@@ -68,6 +68,7 @@ bitflags::bitflags! {
       const DYNAMIC_IMPORT = 1 << 3;
       const CONTEXT_MODULE = 1 << 4;
       const CONTAINER_EXPOSED = 1 << 5;
+      const BUILDTIME_EXECUTION = 1 << 6;
   }
 }
 

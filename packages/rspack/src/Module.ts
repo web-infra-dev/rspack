@@ -38,8 +38,13 @@ export class Module {
 
 export class CodeGenerationResult {
 	#inner: JsCodegenerationResult;
+
 	constructor(result: JsCodegenerationResult) {
 		this.#inner = result;
+	}
+
+	get(sourceType: string) {
+		return this.#inner.sources[sourceType];
 	}
 }
 

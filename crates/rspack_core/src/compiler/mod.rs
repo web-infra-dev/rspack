@@ -1,4 +1,5 @@
 mod compilation;
+mod execute_module;
 mod hmr;
 mod make;
 mod queue;

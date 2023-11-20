@@ -13,7 +13,7 @@ use crate::{
   ModuleGraph, ModuleGraphModule, ModuleIdentifier, ModuleProfile, Resolve, ResolverFactory,
   SharedPluginDriver, WorkerQueue,
 };
-use crate::{BoxModule, DependencyId, ExportInfo, ExportsInfo, UsageState};
+use crate::{BoxModule, DependencyId, ExecuteModuleResult, ExportInfo, ExportsInfo, UsageState};
 
 #[derive(Debug)]
 pub enum TaskResult {
@@ -47,6 +47,7 @@ pub struct FactorizeTask {
   pub plugin_driver: SharedPluginDriver,
   pub cache: Arc<Cache>,
   pub current_profile: Option<Box<ModuleProfile>>,
+  pub connect_origin: bool,
   #[derivative(Debug = "ignore")]
   pub callback: Option<ModuleCreationCallback>,
 }
@@ -77,6 +78,7 @@ pub struct FactorizeTaskResult {
   pub diagnostics: Vec<Diagnostic>,
   #[derivative(Debug = "ignore")]
   pub callback: Option<ModuleCreationCallback>,
+  pub connect_origin: bool,
 }
 
 impl FactorizeTaskResult {
@@ -147,6 +149,7 @@ impl WorkerTask for FactorizeTask {
       context_dependencies: Default::default(),
       missing_dependencies: Default::default(),
       diagnostics: Default::default(),
+      connect_origin: self.connect_origin,
       callback: self.callback,
     };
 
@@ -220,6 +223,7 @@ pub struct AddTask {
   pub dependencies: Vec<DependencyId>,
   pub is_entry: bool,
   pub current_profile: Option<Box<ModuleProfile>>,
+  pub connect_origin: bool,
   #[derivative(Debug = "ignore")]
   pub callback: Option<ModuleCreationCallback>,
 }
@@ -241,7 +245,7 @@ impl AddTask {
       current_profile.mark_integration_start();
     }
 
-    if self.module.as_self_module().is_some() {
+    if self.module.as_self_module().is_some() && self.connect_origin {
       let issuer = self
         .module_graph_module
         .get_issuer()
@@ -262,10 +266,11 @@ impl AddTask {
 
     let module_identifier = self.module.identifier();
 
-    if compilation
-      .module_graph
-      .module_graph_module_by_identifier(&module_identifier)
-      .is_some()
+    if self.connect_origin
+      && compilation
+        .module_graph
+        .module_graph_module_by_identifier(&module_identifier)
+        .is_some()
     {
       set_resolved_module(
         &mut compilation.module_graph,
@@ -287,12 +292,14 @@ impl AddTask {
       .module_graph
       .add_module_graph_module(*self.module_graph_module);
 
-    set_resolved_module(
-      &mut compilation.module_graph,
-      self.original_module_identifier,
-      self.dependencies,
-      module_identifier,
-    )?;
+    if self.connect_origin {
+      set_resolved_module(
+        &mut compilation.module_graph,
+        self.original_module_identifier,
+        self.dependencies,
+        module_identifier,
+      )?;
+    }
 
     if self.is_entry {
       compilation
@@ -337,6 +344,7 @@ pub struct BuildTask {
   pub plugin_driver: SharedPluginDriver,
   pub cache: Arc<Cache>,
   pub current_profile: Option<Box<ModuleProfile>>,
+  pub queue_handler: Option<QueueHandler>,
 }
 
 #[derive(Debug)]
@@ -378,6 +386,9 @@ impl WorkerTask for BuildTask {
                 module: module.identifier(),
                 module_context: module.as_normal_module().and_then(|m| m.get_context()),
                 module_source_map_kind: module.get_source_map_kind().clone(),
+                queue_handler: self.queue_handler.clone(),
+                plugin_driver: plugin_driver.clone(),
+                cache: cache.clone(),
               },
               plugin_driver: plugin_driver.clone(),
               compiler_options: &compiler_options,
@@ -444,6 +455,22 @@ pub struct ProcessDependenciesResult {
 
 pub type ProcessDependenciesQueue = WorkerQueue<ProcessDependenciesTask>;
 
+#[derive(Clone, Debug)]
+pub struct BuildTimeExecutionOption {
+  pub public_path: Option<String>,
+  pub base_uri: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct BuildTimeExecutionTask {
+  pub module: ModuleIdentifier,
+  pub request: String,
+  pub options: BuildTimeExecutionOption,
+  pub sender: UnboundedSender<Result<ExecuteModuleResult>>,
+}
+
+pub type BuildTimeExecutionQueue = WorkerQueue<BuildTimeExecutionTask>;
+
 pub struct CleanTask {
   pub module_identifier: ModuleIdentifier,
 }
@@ -506,6 +533,8 @@ pub enum QueueTask {
   Add(Box<AddTask>),
   Build(Box<BuildTask>),
   ProcessDependencies(Box<ProcessDependenciesTask>),
+  BuildTimeExecution(Box<BuildTimeExecutionTask>),
+
   Subscription(Box<Subscription>),
 }
 
@@ -595,6 +624,7 @@ impl QueueHandlerProcessor {
     add_queue: &mut AddQueue,
     build_queue: &mut BuildQueue,
     process_dependencies_queue: &mut ProcessDependenciesQueue,
+    buildtime_execution_queue: &mut BuildTimeExecutionQueue,
   ) {
     while let Ok(task) = self.receiver.try_recv() {
       match task {
@@ -609,6 +639,9 @@ impl QueueHandlerProcessor {
         }
         QueueTask::ProcessDependencies(task) => {
           process_dependencies_queue.add_task(*task);
+        }
+        QueueTask::BuildTimeExecution(task) => {
+          buildtime_execution_queue.add_task(*task);
         }
         QueueTask::Subscription(subscription) => {
           let Subscription { task, callback } = *subscription;

@@ -70,7 +70,11 @@ impl HarmonyImportSpecifierDependency {
 
   // TODO move export_info
   pub fn check_used(&self, reference_mgm: &ModuleGraphModule, compilation: &Compilation) -> bool {
-    if compilation.options.builtins.tree_shaking.is_false() {
+    if compilation.options.builtins.tree_shaking.is_false()
+      || compilation
+        .bailout_module_identifiers
+        .contains_key(&reference_mgm.module_identifier)
+    {
       return true;
     }
     if !compilation

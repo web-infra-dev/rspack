@@ -429,10 +429,78 @@ impl JsCompilation {
       )
     })
   }
+
+  #[allow(clippy::too_many_arguments)]
+  #[napi]
+  pub fn import_module(
+    &'static self,
+    env: Env,
+    request: String,
+    public_path: Option<String>,
+    base_uri: Option<String>,
+    original_module: Option<String>,
+    original_module_context: Option<String>,
+    callback: JsFunction,
+  ) -> Result<()> {
+    callbackify(env, callback, async {
+      self
+        .inner
+        .import_module(
+          request,
+          public_path,
+          base_uri,
+          original_module.map(|s| s.into()),
+          original_module_context.map(|ctx| Box::new(rspack_core::Context::new(ctx))),
+        )
+        .await
+        .map(|res| JsExecuteModuleResult {
+          file_dependencies: res
+            .file_dependencies
+            .into_iter()
+            .map(|d| d.to_string_lossy().to_string())
+            .collect(),
+          context_dependencies: res
+            .context_dependencies
+            .into_iter()
+            .map(|d| d.to_string_lossy().to_string())
+            .collect(),
+          build_dependencies: res
+            .build_dependencies
+            .into_iter()
+            .map(|d| d.to_string_lossy().to_string())
+            .collect(),
+          missing_dependencies: res
+            .missing_dependencies
+            .into_iter()
+            .map(|d| d.to_string_lossy().to_string())
+            .collect(),
+          assets: res.assets.into_iter().collect(),
+          id: res.id,
+        })
+        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
+    })
+  }
+}
+
+#[napi(object)]
+pub struct JsExecuteModuleResult {
+  pub file_dependencies: Vec<String>,
+  pub context_dependencies: Vec<String>,
+  pub build_dependencies: Vec<String>,
+  pub missing_dependencies: Vec<String>,
+  pub assets: Vec<String>,
+  pub id: u32,
 }
 
 impl JsCompilation {
   pub fn from_compilation(inner: &'static mut rspack_core::Compilation) -> Self {
     Self { inner }
   }
+}
+
+#[napi(object)]
+#[derive(Clone, Debug)]
+pub struct JsBuildTimeExecutionOption {
+  pub public_path: Option<String>,
+  pub base_uri: Option<String>,
 }

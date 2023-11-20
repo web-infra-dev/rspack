@@ -21,15 +21,16 @@ const filterInfraStructureErrors = require("./helpers/infrastructureLogErrors");
 const { normalizeFilteredTestName } = require('./lib/util/filterUtil')
 
 const casesPath = path.join(__dirname, "configCases");
-const categories = fs.readdirSync(casesPath).map(cat => {
-	return {
-		name: cat,
-		tests: fs
-			.readdirSync(path.join(casesPath, cat))
-			.filter(folder => !folder.startsWith("_"))
-			.sort()
-	};
-});
+const categories = fs.readdirSync(casesPath)
+	.map(cat => {
+		return {
+			name: cat,
+			tests: fs
+				.readdirSync(path.join(casesPath, cat))
+				.filter(folder => !folder.startsWith("_"))
+				.sort()
+		};
+	});
 
 const createLogger = appendTarget => {
 	return {
@@ -39,14 +40,14 @@ const createLogger = appendTarget => {
 		info: l => appendTarget.push(l),
 		warn: console.warn.bind(console),
 		error: console.error.bind(console),
-		logTime: () => {},
-		group: () => {},
-		groupCollapsed: () => {},
-		groupEnd: () => {},
-		profile: () => {},
-		profileEnd: () => {},
-		clear: () => {},
-		status: () => {}
+		logTime: () => { },
+		group: () => { },
+		groupCollapsed: () => { },
+		groupEnd: () => { },
+		profile: () => { },
+		profileEnd: () => { },
+		clear: () => { },
+		status: () => { }
 	};
 };
 
@@ -78,7 +79,7 @@ const describeCases = config => {
 							if (flag !== true) {
 								let filteredName = normalizeFilteredTestName(flag, testName);
 								describe.skip(testName, () => {
-									it(filteredName, () => {});
+									it(filteredName, () => { });
 								});
 								return;
 							}
@@ -152,7 +153,7 @@ const describeCases = config => {
 								// }
 							});
 							testConfig = {
-								findBundle: function(i, options) {
+								findBundle: function (i, options) {
 									const ext = path.extname(
 										parseResource(options.output.filename).path
 									);
@@ -274,27 +275,27 @@ const describeCases = config => {
 												)
 											);
 										}
-//										const allModules = children
-//											? children.reduce(
-//												(all, { modules }) => all.concat(modules),
-//												modules || []
-//											)
-//											    : modules;
-//										if (
-//											allModules.some(
-//												m => m.type !== "cached modules" && !m.cached
-//											)
-//										) {
-//											return done(
-//												new Error(
-//													`Some modules were not cached:\n${stats.toString({
-//														all: false,
-//														modules: true,
-//														modulesSpace: 100
-//													})}`
-//												)
-//											);
-//										}
+										//										const allModules = children
+										//											? children.reduce(
+										//												(all, { modules }) => all.concat(modules),
+										//												modules || []
+										//											)
+										//											    : modules;
+										//										if (
+										//											allModules.some(
+										//												m => m.type !== "cached modules" && !m.cached
+										//											)
+										//										) {
+										//											return done(
+										//												new Error(
+										//													`Some modules were not cached:\n${stats.toString({
+										//														all: false,
+										//														modules: true,
+										//														modulesSpace: 100
+										//													})}`
+										//												)
+										//											);
+										//										}
 									}
 									const infrastructureLogErrors = filterInfraStructureErrors(
 										infraStructureLog,

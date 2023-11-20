@@ -5,17 +5,18 @@ use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{Content, LoaderContext, ResourceData};
 use rspack_sources::BoxSource;
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
-  AssetInfo, BoxLoader, BoxModule, Chunk, ChunkAssetArgs, ChunkHashArgs, CodeGenerationResults,
-  Compilation, CompilationArgs, CompilationParams, CompilerOptions, ContentHashArgs, DoneArgs,
-  FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext, MakeParam, Module, ModuleFactoryResult,
-  ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleBeforeResolveArgs, NormalModuleCreateData, OptimizeChunksArgs, ParserAndGenerator,
-  PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs,
-  RenderModuleContentArgs, RenderStartupArgs, Resolver, RuntimeModule,
-  RuntimeRequirementsInTreeArgs, SourceType, ThisCompilationArgs,
+  AssetInfo, BoxLoader, BoxModule, BuildTimeExecutionOption, Chunk, ChunkAssetArgs, ChunkHashArgs,
+  CodeGenerationResults, Compilation, CompilationArgs, CompilationParams, CompilerOptions,
+  ContentHashArgs, DependencyId, DoneArgs, FactorizeArgs, JsChunkHashArgs, LoaderRunnerContext,
+  MakeParam, Module, ModuleFactoryResult, ModuleIdentifier, ModuleType, NormalModule,
+  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, NormalModuleCreateData,
+  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs,
+  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
+  RuntimeModule, RuntimeRequirementsInTreeArgs, SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -525,13 +526,25 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  fn prepare_execute_module(
+    &self,
+    _id: DependencyId,
+    _options: &BuildTimeExecutionOption,
+    _import_module_informer: UnboundedSender<Result<String>>,
+  ) -> Result<()> {
+    Ok(())
+  }
+
   fn execute_module(
     &self,
     _entry: ModuleIdentifier,
+    _request: &str,
+    _options: &BuildTimeExecutionOption,
     _runtime_modules: Vec<ModuleIdentifier>,
     _codegen_results: &CodeGenerationResults,
-  ) -> Result<Option<String>> {
-    Ok(None)
+    _id: u32,
+  ) -> Result<()> {
+    Ok(())
   }
 }
 

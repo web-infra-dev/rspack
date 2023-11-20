@@ -114,9 +114,9 @@ impl<Item: Default + DatabaseItem + 'static> Database<Item> {
 }
 
 impl<Item: DatabaseItem> Database<Item> {
-  pub fn add(&mut self, item: Item) {
+  pub fn add(&mut self, item: Item) -> &mut Item {
     debug_assert!(self.inner.get(&item.ukey()).is_none());
     let ukey = item.ukey();
-    self.inner.insert(ukey, item);
+    self.inner.entry(ukey).or_insert(item)
   }
 }
