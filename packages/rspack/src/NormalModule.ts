@@ -52,7 +52,7 @@ const deprecateAllProperties = <O extends object>(
 	return newObj;
 };
 // Actually it is just a NormalModule proxy, used for hooks api alignment
-// Maybe we can 1:1 align to webpack NormalModule once we found a better way to reduce communitate overhead between rust and js
+// Maybe we can 1:1 align to webpack NormalModule once we found a better way to reduce communicate overhead between rust and js
 export class NormalModule {
 	constructor() {}
 	static getCompilationHooks(compilation: Compilation) {
