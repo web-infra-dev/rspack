@@ -472,6 +472,7 @@ impl TestConfig {
         );
       }
     }
+    plugins.push(rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin.boxed());
     if self.builtins.dev_friendly_split_chunks {
       plugins
         .push(rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin::new().boxed());

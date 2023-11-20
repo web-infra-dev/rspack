@@ -51,7 +51,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     let url = match self.chunk {
       Some(chunk) => match compilation.chunk_by_ukey.get(&chunk) {
         Some(chunk) => {
-          let chunks = match self.all_chunks {
+          let mut chunks = match self.all_chunks {
             true => chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey),
             false => {
               let mut chunks = chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey);
@@ -74,6 +74,12 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
               chunks
             }
           };
+          for entrypoint in
+            chunk.get_all_referenced_async_entrypoints(&compilation.chunk_group_by_ukey)
+          {
+            let entrypoint = compilation.chunk_group_by_ukey.expect_get(&entrypoint);
+            chunks.insert(entrypoint.get_entry_point_chunk());
+          }
 
           let mut chunks_map = HashMap::default();
           for chunk_ukey in chunks.iter() {

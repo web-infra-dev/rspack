@@ -6,6 +6,7 @@ use crate::{DependencyCondition, ExtendedReferencedExport, ModuleGraph, RuntimeS
 pub trait ModuleDependency: Dependency {
   fn request(&self) -> &str;
   fn user_request(&self) -> &str;
+  // TODO: move to ModuleGraphConnection
   fn weak(&self) -> bool {
     false
   }

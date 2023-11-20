@@ -10,21 +10,21 @@ use rustc_hash::FxHashSet as HashSet;
 use crate::impl_runtime_module;
 
 #[derive(Debug, Eq)]
-pub struct LoadChunkWithModuleRuntimeModule {
+pub struct LoadChunkWithBlockRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
 }
 
-impl Default for LoadChunkWithModuleRuntimeModule {
+impl Default for LoadChunkWithBlockRuntimeModule {
   fn default() -> Self {
     Self {
-      id: Identifier::from("webpack/runtime/load_chunk_with_module"),
+      id: Identifier::from("webpack/runtime/load_chunk_with_block"),
       chunk: None,
     }
   }
 }
 
-impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
+impl RuntimeModule for LoadChunkWithBlockRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
@@ -37,20 +37,19 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
       .expect("should have chunk")
       .runtime;
 
-    let async_modules = compilation
+    let blocks = compilation
       .module_graph
-      .module_graph_modules()
+      .modules()
       .par_iter()
-      .map(|(_, mgm)| mgm.dynamic_depended_modules(&compilation.module_graph))
+      .map(|(_, module)| module.get_blocks())
       .flatten()
-      .map(|(id, _)| id)
       .collect::<HashSet<_>>();
-    let map = async_modules
+    let map = blocks
       .par_iter()
-      .filter_map(|identifier| {
+      .filter_map(|block_id| {
         let chunk_group = compilation
           .chunk_graph
-          .get_block_chunk_group(identifier, &compilation.chunk_group_by_ukey)?;
+          .get_block_chunk_group(block_id, &compilation.chunk_group_by_ukey)?;
         let chunk_ids = chunk_group
           .chunks
           .iter()
@@ -69,15 +68,12 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
         if chunk_ids.is_empty() {
           return None;
         }
-        let module = compilation
+        let block = compilation
           .module_graph
-          .module_graph_module_by_identifier(identifier)
-          .expect("no module found");
-
-        let module_id = module.id(&compilation.chunk_graph);
-        let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
-
-        Some((module_id_expr, chunk_ids))
+          .block_by_id(block_id)
+          .expect("should have block");
+        let key = block.block_promise_key(compilation);
+        Some((key, chunk_ids))
       })
       .collect::<HashMap<String, Vec<String>>>();
 
@@ -89,15 +85,10 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
     source.add(RawSource::from(
       "
 __webpack_require__.el = function(module) {
-  var chunkId = map[module];
-  if (chunkId === undefined) {
-      return Promise.resolve();
-  }
-  if (chunkId.length > 1) {
-    return Promise.all(chunkId.map(__webpack_require__.e));
-  } else {
-    return __webpack_require__.e(chunkId[0]);
-  };
+  var chunkIds = map[module];
+  if (chunkIds === undefined) return Promise.resolve();
+  if (chunkIds.length > 1) return Promise.all(chunkIds.map(__webpack_require__.e));
+  return __webpack_require__.e(chunkIds[0]);
 }
 ",
     ));
@@ -110,7 +101,7 @@ __webpack_require__.el = function(module) {
   }
 }
 
-impl_runtime_module!(LoadChunkWithModuleRuntimeModule);
+impl_runtime_module!(LoadChunkWithBlockRuntimeModule);
 
 fn stringify_map(map: &HashMap<String, Vec<String>>) -> String {
   format!(

@@ -24,17 +24,17 @@ pub struct ChunkGroup {
   pub(crate) module_post_order_indices: IdentifierMap<usize>,
   pub(crate) parents: HashSet<ChunkGroupUkey>,
   pub(crate) children: HashSet<ChunkGroupUkey>,
+  async_entrypoints: HashSet<ChunkGroupUkey>,
   // ChunkGroupInfo
   pub(crate) next_pre_order_index: usize,
   pub(crate) next_post_order_index: usize,
-  pub(crate) runtime: RuntimeSpec,
   // Entrypoint
   pub(crate) runtime_chunk: Option<ChunkUkey>,
   pub(crate) entry_point_chunk: Option<ChunkUkey>,
 }
 
 impl ChunkGroup {
-  pub fn new(kind: ChunkGroupKind, runtime: RuntimeSpec, info: ChunkGroupInfo) -> Self {
+  pub fn new(kind: ChunkGroupKind, info: ChunkGroupInfo) -> Self {
     Self {
       ukey: ChunkGroupUkey::new(),
       chunks: vec![],
@@ -43,10 +43,10 @@ impl ChunkGroup {
       module_pre_order_indices: Default::default(),
       parents: Default::default(),
       children: Default::default(),
+      async_entrypoints: Default::default(),
       kind,
       next_pre_order_index: 0,
       next_post_order_index: 0,
-      runtime,
       // name,
       runtime_chunk: None,
       entry_point_chunk: None,
@@ -130,6 +130,14 @@ impl ChunkGroup {
         unreachable!("Normal chunk group doesn't have runtime chunk")
       }
     }
+  }
+
+  pub fn add_async_entrypoint(&mut self, async_entrypoint: ChunkGroupUkey) -> bool {
+    self.async_entrypoints.insert(async_entrypoint)
+  }
+
+  pub fn async_entrypoints_iterable(&self) -> impl Iterator<Item = &ChunkGroupUkey> {
+    self.async_entrypoints.iter()
   }
 
   pub fn ancestors(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> HashSet<ChunkGroupUkey> {
@@ -313,10 +321,18 @@ impl GroupOptions {
       Self::ChunkGroup(n) => n.name.as_deref(),
     }
   }
+
+  pub fn entry_options(&self) -> Option<&EntryOptions> {
+    match self {
+      GroupOptions::Entrypoint(e) => Some(e),
+      GroupOptions::ChunkGroup(_) => None,
+    }
+  }
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct ChunkGroupInfo {
   pub chunk_loading: bool,
   pub async_chunks: bool,
+  pub runtime: RuntimeSpec,
 }

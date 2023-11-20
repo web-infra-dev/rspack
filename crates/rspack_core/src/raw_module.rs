@@ -7,14 +7,14 @@ use rspack_identifier::Identifiable;
 use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 
 use crate::{
-  dependencies_block::AsyncDependenciesBlockId, BuildContext, BuildInfo, BuildResult,
+  dependencies_block::AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildResult,
   CodeGenerationResult, Context, DependenciesBlock, DependencyId, Module, ModuleIdentifier,
   ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
 pub struct RawModule {
-  blocks: Vec<AsyncDependenciesBlockId>,
+  blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   source: BoxSource,
   identifier: ModuleIdentifier,
@@ -50,11 +50,11 @@ impl Identifiable for RawModule {
 }
 
 impl DependenciesBlock for RawModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
     &self.blocks
   }
 

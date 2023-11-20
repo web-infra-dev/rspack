@@ -584,7 +584,7 @@ impl ChunkGraph {
     module_graph: &ModuleGraph,
   ) {
     let chunk_b = chunk_by_ukey.expect_get(b).clone();
-    let chunk_a = chunk_by_ukey.expect_mut(a);
+    let chunk_a = chunk_by_ukey.expect_get_mut(a);
 
     // Decide for one name (deterministic)
     if let (Some(_), Some(_)) = (&chunk_a.name, &chunk_b.name) {
@@ -635,13 +635,13 @@ impl ChunkGraph {
 
     let mut remove_group_ukeys = vec![];
     for chunk_group_ukey in chunk_b.groups {
-      let chunk_group = chunk_group_by_ukey.expect_mut(&chunk_group_ukey);
+      let chunk_group = chunk_group_by_ukey.expect_get_mut(&chunk_group_ukey);
       chunk_group.replace_chunk(b, a);
       chunk_a.add_group(chunk_group_ukey);
       remove_group_ukeys.push(chunk_group_ukey);
     }
 
-    let chunk_b = chunk_by_ukey.expect_mut(b);
+    let chunk_b = chunk_by_ukey.expect_get_mut(b);
     for group_ukey in remove_group_ukeys {
       chunk_b.remove_group(&group_ukey);
     }

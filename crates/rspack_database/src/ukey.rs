@@ -34,7 +34,7 @@ impl<Item: Any> Ukey<Item> {
   }
 
   pub fn as_mut<'db>(&self, db: &'db mut Storage<Item>) -> &'db mut Item {
-    db.expect_mut(self)
+    db.expect_get_mut(self)
   }
 
   pub fn as_usize(&self) -> usize {

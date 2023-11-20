@@ -2442,6 +2442,7 @@ dependencies = [
  "rspack_plugin_json",
  "rspack_plugin_library",
  "rspack_plugin_limit_chunk_count",
+ "rspack_plugin_merge_duplicate_chunks",
  "rspack_plugin_progress",
  "rspack_plugin_real_content_hash",
  "rspack_plugin_remove_empty_chunks",
@@ -3037,6 +3038,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_merge_duplicate_chunks"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rspack_core",
+ "rspack_database",
+ "rspack_util",
+ "rustc-hash",
+]
+
+[[package]]
 name = "rspack_plugin_progress"
 version = "0.1.0"
 dependencies = [
@@ -3279,6 +3291,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_plugin_json",
  "rspack_plugin_library",
+ "rspack_plugin_merge_duplicate_chunks",
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
  "rspack_plugin_warn_sensitive_module",

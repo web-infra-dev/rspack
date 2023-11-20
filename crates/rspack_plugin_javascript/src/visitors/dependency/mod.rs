@@ -193,6 +193,7 @@ pub fn scan_dependencies(
   }
 
   program.visit_with(&mut ImportScanner::new(
+    module_identifier,
     &mut dependencies,
     &mut blocks,
     comments.as_ref().map(|c| c as &dyn Comments),

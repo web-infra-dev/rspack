@@ -8,13 +8,13 @@ use rspack_identifier::{Identifiable, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
 
-use crate::{AsyncDependenciesBlock, AsyncDependenciesBlockId, IS_NEW_TREESHAKING};
+use crate::{AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, IS_NEW_TREESHAKING};
 mod connection;
 pub use connection::*;
 
 use crate::{
   to_identifier, BoxDependency, BoxModule, BuildDependency, BuildInfo, BuildMeta,
-  DependencyCondition, DependencyId, ExportInfo, ExportInfoId, ExportsInfo, ExportsInfoId, Module,
+  DependencyCondition, DependencyId, ExportInfo, ExportInfoId, ExportsInfo, ExportsInfoId,
   ModuleGraphModule, ModuleIdentifier, ModuleProfile,
 };
 
@@ -23,7 +23,7 @@ pub type ImportVarMap = HashMap<String /* request */, String /* import_var */>;
 
 #[derive(Debug, Default)]
 pub struct DependencyParents {
-  pub block: Option<AsyncDependenciesBlockId>,
+  pub block: Option<AsyncDependenciesBlockIdentifier>,
   pub module: ModuleIdentifier,
 }
 
@@ -37,7 +37,7 @@ pub struct ModuleGraph {
   /// Module identifier to its module graph module
   pub module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
 
-  blocks: HashMap<AsyncDependenciesBlockId, AsyncDependenciesBlock>,
+  blocks: HashMap<AsyncDependenciesBlockIdentifier, AsyncDependenciesBlock>,
 
   dependency_id_to_connection_id: HashMap<DependencyId, ConnectionId>,
   connection_id_to_dependency_id: HashMap<ConnectionId, DependencyId>,
@@ -94,30 +94,33 @@ impl ModuleGraph {
   }
 
   pub fn add_block(&mut self, block: AsyncDependenciesBlock) {
-    self.blocks.insert(block.id(), block);
+    self.blocks.insert(block.identifier(), block);
   }
 
   pub fn set_parents(&mut self, dependency: DependencyId, parents: DependencyParents) {
     self.dependency_id_to_parents.insert(dependency, parents);
   }
 
-  pub fn get_parent_module(&self, dependency: &DependencyId) -> Option<ModuleIdentifier> {
+  pub fn get_parent_module(&self, dependency: &DependencyId) -> Option<&ModuleIdentifier> {
     self
       .dependency_id_to_parents
       .get(dependency)
-      .map(|p| p.module)
+      .map(|p| &p.module)
   }
 
-  pub fn get_parent_block(&self, dependency: &DependencyId) -> Option<AsyncDependenciesBlockId> {
+  pub fn get_parent_block(
+    &self,
+    dependency: &DependencyId,
+  ) -> Option<&AsyncDependenciesBlockIdentifier> {
     self
       .dependency_id_to_parents
       .get(dependency)
-      .and_then(|p| p.block)
+      .and_then(|p| p.block.as_ref())
   }
 
   pub fn block_by_id(
     &self,
-    block_id: &AsyncDependenciesBlockId,
+    block_id: &AsyncDependenciesBlockIdentifier,
   ) -> Option<&AsyncDependenciesBlock> {
     self.blocks.get(block_id)
   }
@@ -150,6 +153,12 @@ impl ModuleGraph {
 
   pub fn module_identifier_by_dependency_id(&self, id: &DependencyId) -> Option<&ModuleIdentifier> {
     self.dependency_id_to_module_identifier.get(id)
+  }
+
+  pub fn get_module(&self, id: &DependencyId) -> Option<&BoxModule> {
+    self
+      .module_identifier_by_dependency_id(id)
+      .and_then(|m| self.module_by_identifier(m))
   }
 
   /// Add a connection between two module graph modules, if a connection exists, then it will be reused.
@@ -322,19 +331,45 @@ impl ModuleGraph {
       .and_then(|connection_id| self.connection_by_connection_id_mut(&connection_id))
   }
 
-  /// Get a list of all dependencies of a module by the module itself, if the module is not found, then None is returned
-  pub fn dependencies_by_module(&self, module: &dyn Module) -> Option<&[DependencyId]> {
-    self.dependencies_by_module_identifier(&module.identifier())
-  }
-
-  /// Get a list of all dependencies of a module by the module identifier, if the module is not found, then None is returned
-  pub fn dependencies_by_module_identifier(
+  /// # Deprecated!!!
+  /// # Don't use this anymore!!!
+  /// A module is a DependenciesBlock, which means it has some Dependencies and some AsyncDependenciesBlocks
+  /// a static import is a Dependency, but a dynamic import is a AsyncDependenciesBlock
+  /// AsyncDependenciesBlock means it is a code-splitting point, and will create a ChunkGroup in code-splitting
+  /// and AsyncDependenciesBlock also is DependenciesBlock, so it can has some Dependencies and some AsyncDependenciesBlocks
+  /// so if you want get a module's dependencies and its blocks' dependencies (all dependencies)
+  /// just use module.get_dependencies() and module.get_blocks().map(|b| b.get_dependencyes())
+  /// you don't need this one
+  pub(crate) fn get_module_all_dependencies(
     &self,
     module_identifier: &ModuleIdentifier,
   ) -> Option<&[DependencyId]> {
     self
-      .module_by_identifier(module_identifier)
-      .map(|m| m.get_dependencies())
+      .module_graph_module_by_identifier(module_identifier)
+      .map(|m| &*m.__deprecated_all_dependencies)
+  }
+
+  /// # Deprecated!!!
+  /// # Don't use this anymore!!!
+  /// A module is a DependenciesBlock, which means it has some Dependencies and some AsyncDependenciesBlocks
+  /// a static import is a Dependency, but a dynamic import is a AsyncDependenciesBlock
+  /// AsyncDependenciesBlock means it is a code-splitting point, and will create a ChunkGroup in code-splitting
+  /// and AsyncDependenciesBlock also is DependenciesBlock, so it can has some Dependencies and some AsyncDependenciesBlocks
+  /// so if you want get a module's dependencies and its blocks' dependencies (all dependencies)
+  /// just use module.get_dependencies() and module.get_blocks().map(|b| b.get_dependencyes())
+  /// you don't need this one
+  pub(crate) fn get_module_all_depended_modules(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<Vec<&ModuleIdentifier>> {
+    self
+      .module_graph_module_by_identifier(module_identifier)
+      .map(|m| {
+        m.__deprecated_all_dependencies
+          .iter()
+          .filter_map(|id| self.module_identifier_by_dependency_id(id))
+          .collect()
+      })
   }
 
   pub fn dependency_by_connection_id(
@@ -731,10 +766,10 @@ mod test {
   use rspack_sources::Source;
 
   use crate::{
-    AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildResult, CodeGenerationResult,
-    Compilation, Context, DependenciesBlock, Dependency, DependencyId, ExportInfo, ExportsInfo,
-    Module, ModuleDependency, ModuleGraph, ModuleGraphModule, ModuleIdentifier, ModuleType,
-    RuntimeSpec, SourceType, UsageState,
+    AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildResult,
+    CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency, DependencyId,
+    ExportInfo, ExportsInfo, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
+    ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, UsageState,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s
@@ -750,11 +785,11 @@ mod test {
       }
 
       impl DependenciesBlock for $ident {
-        fn add_block_id(&mut self, _: AsyncDependenciesBlockId) {
+        fn add_block_id(&mut self, _: AsyncDependenciesBlockIdentifier) {
           unreachable!()
         }
 
-        fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+        fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
           unreachable!()
         }
 
@@ -876,7 +911,7 @@ mod test {
     if let Some(p_id) = from
       && let Some(mgm) = mg.module_graph_module_by_identifier_mut(p_id)
     {
-      mgm.all_dependencies.push(dependency_id);
+      mgm.__deprecated_all_dependencies.push(dependency_id);
     }
     mg.set_resolved_module(from.copied(), dependency_id, *to)
       .expect("failed to set resolved module");
