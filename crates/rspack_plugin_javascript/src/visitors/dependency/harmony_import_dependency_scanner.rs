@@ -632,6 +632,7 @@ mod test {
       nested(foo).call(true);
       nested(foo)``
       (`${foo}`)``
+      (new foo()).bar();
     "#
       .into(),
       swc_core::ecma::parser::Syntax::Es(Default::default()),
@@ -647,7 +648,7 @@ mod test {
       .filter_map(|dep| dep.downcast_ref::<HarmonyImportSpecifierDependency>())
       .collect::<Vec<_>>();
 
-    assert_eq!(specifiers.len(), 7);
+    assert_eq!(specifiers.len(), 8);
     assert!(specifiers.iter().all(|d| !d.call));
   }
 }
