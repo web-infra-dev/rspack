@@ -37,15 +37,13 @@ runs:
           set -e
           if [ -x "$(command -v sccache)" ]; then
             export RUSTC_WRAPPER=sccache
+            echo "enable sccache"
           fi
           ${{ inputs.pre }}
           rustup target add ${{ inputs.target }}
           corepack enable
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
           ${{ inputs.post }}
-          if [ -x "$(command -v sccache)" ]; then
-            sccache --show-stats
-          fi
         '
 
         docker run \
