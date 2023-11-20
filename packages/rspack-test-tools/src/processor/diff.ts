@@ -4,6 +4,7 @@ import {
 	ITestProcessor,
 	TCompareModules,
 	TCompilerOptions,
+	TFileCompareResult,
 	TModuleCompareResult
 } from "../type";
 import path from "path";
@@ -21,8 +22,9 @@ export interface IDiffProcessorOptions extends IFormatCodeOptions {
 	rspackPath: string;
 	files?: string[];
 	modules?: TCompareModules;
-	onCompareModules?: (file: string, results: TModuleCompareResult[]) => void;
 	runtimeModules?: TCompareModules;
+	onCompareFile?: (file: string, result: TFileCompareResult) => void;
+	onCompareModules?: (file: string, results: TModuleCompareResult[]) => void;
 	onCompareRuntimeModules?: (
 		file: string,
 		results: TModuleCompareResult[]
@@ -41,7 +43,7 @@ export class DiffProcessor implements ITestProcessor {
 		);
 		this.setCompilerOptions(
 			ECompilerType.Webpack,
-			["webpack.config.js"],
+			["webpack.config.js", "rspack.config.js"],
 			context
 		);
 	}
@@ -81,17 +83,23 @@ export class DiffProcessor implements ITestProcessor {
 				format: this.createFormatOptions(),
 				renameModule: replaceRuntimeModuleName
 			});
+			if (typeof this.options.onCompareFile === "function") {
+				this.options.onCompareFile(file, result);
+			}
 			if (
 				typeof this.options.onCompareModules === "function" &&
-				result["modules"]
+				result.modules["modules"]
 			) {
-				this.options.onCompareModules(file, result["modules"]);
+				this.options.onCompareModules(file, result.modules["modules"]);
 			}
 			if (
 				typeof this.options.onCompareRuntimeModules === "function" &&
-				result["runtimeModules"]
+				result.modules["runtimeModules"]
 			) {
-				this.options.onCompareRuntimeModules(file, result["runtimeModules"]);
+				this.options.onCompareRuntimeModules(
+					file,
+					result.modules["runtimeModules"]
+				);
 			}
 		}
 	}
