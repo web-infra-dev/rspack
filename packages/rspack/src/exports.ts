@@ -21,6 +21,15 @@ export { RspackOptionsApply, RspackOptionsApply as WebpackOptionsApply };
 export { RuntimeGlobals } from "./RuntimeGlobals";
 
 export { Stats } from "./Stats";
+export type {
+	StatsCompilation,
+	StatsAsset,
+	StatsChunk,
+	StatsError,
+	StatsModule,
+	StatsWarnings
+} from "./Stats";
+
 export type { MultiStats } from "./MultiStats";
 
 export type { ChunkGroup } from "./ChunkGroup";
