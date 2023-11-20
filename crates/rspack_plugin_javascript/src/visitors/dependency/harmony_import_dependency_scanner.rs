@@ -542,11 +542,11 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
   }
 
   fn visit_tagged_tpl(&mut self, n: &TaggedTpl) {
-    n.tpl.visit_with(self);
-
     self.enter_callee = true;
     n.tag.visit_with(self);
     self.enter_callee = false;
+
+    n.tpl.visit_with(self);
   }
 
   fn visit_import_decl(&mut self, _decl: &ImportDecl) {}
@@ -629,7 +629,9 @@ mod test {
       new foo().bar;
       new foo.bar();
       `${foo}`;
-      chain(foo).call(true);
+      nested(foo).call(true);
+      nested(foo)``
+      (`${foo}`)``
     "#
       .into(),
       swc_core::ecma::parser::Syntax::Es(Default::default()),
@@ -645,7 +647,7 @@ mod test {
       .filter_map(|dep| dep.downcast_ref::<HarmonyImportSpecifierDependency>())
       .collect::<Vec<_>>();
 
-    assert_eq!(specifiers.len(), 5);
+    assert_eq!(specifiers.len(), 7);
     assert!(specifiers.iter().all(|d| !d.call));
   }
 }
