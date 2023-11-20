@@ -370,7 +370,7 @@ impl Filename {
       if let Some(id) = &options.id {
         template = template.replace(ID_PLACEHOLDER, id);
       } else if let Some(id) = &chunk.id {
-        template = template.replace(ID_PLACEHOLDER, id);
+        template = template.replace(ID_PLACEHOLDER, &id.to_string());
       }
       if let Some(name) = chunk.name_for_filename_template() {
         template = template.replace(NAME_PLACEHOLDER, name);
