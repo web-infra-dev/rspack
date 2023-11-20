@@ -111,18 +111,16 @@ impl ChunkGraph {
     module_identifier: ModuleIdentifier,
     entrypoint: ChunkGroupUkey,
   ) {
-    self
+    let chunk_graph_module = self
       .chunk_graph_module_by_module_identifier
       .entry(module_identifier)
       .or_default();
-    let chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
     chunk_graph_module.entry_in_chunks.insert(chunk);
 
-    self
+    let chunk_graph_chunk = self
       .chunk_graph_chunk_by_chunk_ukey
       .entry(chunk)
       .or_default();
-    let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk);
     chunk_graph_chunk
       .entry_modules
       .insert(module_identifier, entrypoint);
@@ -145,18 +143,16 @@ impl ChunkGraph {
     chunk: ChunkUkey,
     module_identifier: ModuleIdentifier,
   ) {
-    self
+    let chunk_graph_module = self
       .chunk_graph_module_by_module_identifier
       .entry(module_identifier)
       .or_default();
-    let chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
     chunk_graph_module.chunks.insert(chunk);
 
-    self
+    let chunk_graph_chunk = self
       .chunk_graph_chunk_by_chunk_ukey
       .entry(chunk)
       .or_default();
-    let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk);
     chunk_graph_chunk.modules.insert(module_identifier);
   }
 
