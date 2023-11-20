@@ -1,9 +1,9 @@
 use rspack_core::{
-  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, DependencyTemplate, ModuleType,
-  RuntimeGlobals,
+  extract_member_expression_chain, BoxDependency, BuildMeta, BuildMetaDefaultObject,
+  BuildMetaExportsType, DependencyTemplate, ModuleType, RuntimeGlobals, SpanExt, UsedName,
 };
 use swc_core::{
-  common::SyntaxContext,
+  common::{Spanned, SyntaxContext},
   ecma::{
     ast::{
       AssignExpr, CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit, MemberExpr, ModuleItem,
@@ -14,9 +14,10 @@ use swc_core::{
 };
 
 use super::{expr_matcher, is_require_call_expr};
-use crate::dependency::ModuleDecoratorDependency;
+use crate::dependency::{CommonJsExportsDependency, ExportsBase, ModuleDecoratorDependency};
 
 pub struct CommonJsExportDependencyScanner<'a> {
+  dependencies: &'a mut Vec<BoxDependency>,
   presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   unresolved_ctxt: SyntaxContext,
   build_meta: &'a mut BuildMeta,
@@ -30,6 +31,7 @@ pub struct CommonJsExportDependencyScanner<'a> {
 
 impl<'a> CommonJsExportDependencyScanner<'a> {
   pub fn new(
+    dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
     build_meta: &'a mut BuildMeta,
@@ -37,6 +39,7 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
     parser_exports_state: &'a mut Option<bool>,
   ) -> Self {
     Self {
+      dependencies,
       presentational_dependencies,
       unresolved_ctxt,
       build_meta,
@@ -107,32 +110,69 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
 
   fn visit_assign_expr(&mut self, assign_expr: &AssignExpr) {
     if let PatOrExpr::Pat(box Pat::Expr(box expr)) = &assign_expr.left {
-      // exports.__esModule = true;
-      // module.exports.__esModule = true;
-      // this.__esModule = true;
-      if expr_matcher::is_module_exports_esmodule(expr)
-        || expr_matcher::is_exports_esmodule(expr)
-        || expr_matcher::is_this_esmodule(expr)
-      {
-        self.enable();
-        self.check_namespace(
-          // const flagIt = () => (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = false
-          // const flagIt = () => { exports.__esModule = true }; => stmt_level = 2, last_stmt_is_expr_stmt = true
-          // (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = true
-          self.stmt_level == 1 && self.last_stmt_is_expr_stmt,
-          Some(&assign_expr.right),
-        );
-        assign_expr.right.visit_children_with(self);
-        return;
-      }
       // exports.xxx = 1;
-      if self.is_exports_member_expr_start(expr) {
-        self.enable();
+      // module.exports.xxx = 1;
+      // this.xxx = 1;
+      let is_exports_start = self.is_exports_member_expr_start(expr);
+      let is_module_exports_start = self.is_module_exports_member_expr_start(expr);
+      let is_this_start: bool = self.is_this_member_expr_start(expr);
+
+      if is_exports_start || is_module_exports_start || is_this_start {
+        if is_exports_start {
+          self.enable();
+        }
+
+        let remaining_members = expr.as_member().map(|expr: &MemberExpr| {
+          extract_member_expression_chain(expr)
+            .members()
+            .iter()
+            .skip(if is_module_exports_start { 2 } else { 1 })
+            .map(|n| n.0.clone())
+            .collect::<Vec<_>>()
+        });
+
+        if let Some(remaining_members) = remaining_members
+          && !remaining_members.is_empty()
+        {
+          // exports.__esModule = true;
+          // module.exports.__esModule = true;
+          // this.__esModule = true;
+          if let Some(first_member) = remaining_members.first()
+            && first_member == "__esModule"
+          {
+            self.check_namespace(
+              // const flagIt = () => (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = false
+              // const flagIt = () => { exports.__esModule = true }; => stmt_level = 2, last_stmt_is_expr_stmt = true
+              // (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = true
+              self.stmt_level == 1 && self.last_stmt_is_expr_stmt,
+              Some(&assign_expr.right),
+            );
+          }
+
+          self
+            .dependencies
+            .push(Box::new(CommonJsExportsDependency::new(
+              (expr.span().real_lo(), expr.span().real_hi()),
+              None,
+              if is_exports_start {
+                ExportsBase::Exports
+              } else if is_module_exports_start {
+                ExportsBase::ModuleExports
+              } else if is_this_start {
+                ExportsBase::This
+              } else {
+                panic!("Unexpected expr type");
+              },
+              UsedName::Vec(remaining_members),
+            )));
+        }
+
         assign_expr.right.visit_children_with(self);
         return;
       }
       if self.is_exports_or_module_exports_or_this_expr(expr) {
         self.enable();
+
         if is_require_call_expr(&assign_expr.right, self.unresolved_ctxt) {
           // exports = require('xx');
           // module.exports = require('xx');
@@ -154,9 +194,9 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
 
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
     if let Callee::Expr(expr) = &call_expr.callee {
-      // Object.defineProperty(exports, "__esModule", { value: true });
-      // Object.defineProperty(module.exports, "__esModule", { value: true });
-      // Object.defineProperty(this, "__esModule", { value: true });
+      // Object.defineProperty(exports, "xxx", { value: 1 });
+      // Object.defineProperty(module.exports, "xxx", { value: 1 });
+      // Object.defineProperty(this, "xxx", { value: 1 });
       if expr_matcher::is_object_define_property(expr)
         && let Some(ExprOrSpread { expr, .. }) = call_expr.args.first()
         && self.is_exports_or_module_exports_or_this_expr(expr)
@@ -168,12 +208,33 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
           expr: box Expr::Lit(Lit::Str(str)),
           ..
         }) = call_expr.args.get(1)
-          && str.value == "__esModule"
         {
-          self.check_namespace(
-            self.stmt_level == 1,
-            get_value_of_property_description(arg2),
-          );
+          // Object.defineProperty(exports, "__esModule", { value: true });
+          // Object.defineProperty(module.exports, "__esModule", { value: true });
+          // Object.defineProperty(this, "__esModule", { value: true });
+          if str.value == "__esModule" {
+            self.check_namespace(
+              self.stmt_level == 1,
+              get_value_of_property_description(arg2),
+            );
+          }
+
+          self
+            .dependencies
+            .push(Box::new(CommonJsExportsDependency::new(
+              (call_expr.span.real_lo(), call_expr.span.real_hi()),
+              Some((arg2.span().real_lo(), arg2.span().real_hi())),
+              if self.is_exports_expr(expr) {
+                ExportsBase::DefinePropertyExports
+              } else if expr_matcher::is_module_exports(expr) {
+                ExportsBase::DefinePropertyModuleExports
+              } else if self.is_this_expr(expr) {
+                ExportsBase::DefinePropertyThis
+              } else {
+                panic!("Unexpected expr type");
+              },
+              UsedName::Vec(vec![str.value.clone()]),
+            )));
         }
 
         self.enter_call += 1;
@@ -209,14 +270,39 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
     }
   }
 
+  fn is_module_exports_member_expr_start(&self, mut expr: &Expr) -> bool {
+    loop {
+      match expr {
+        _ if expr_matcher::is_module_exports(expr) => return true,
+        Expr::Member(MemberExpr { obj, .. }) => expr = obj.as_ref(),
+        _ => return false,
+      }
+    }
+  }
+
+  fn is_this_member_expr_start(&self, mut expr: &Expr) -> bool {
+    if self.enter_call != 0 {
+      return false;
+    }
+    loop {
+      match expr {
+        _ if self.is_this_expr(expr) => return true,
+        Expr::Member(MemberExpr { obj, .. }) => expr = obj.as_ref(),
+        _ => return false,
+      }
+    }
+  }
+
   fn is_exports_or_module_exports_or_this_expr(&self, expr: &Expr) -> bool {
-    matches!(expr,  Expr::Ident(ident) if &ident.sym == "exports" && ident.span.ctxt == self.unresolved_ctxt)
-      || expr_matcher::is_module_exports(expr)
-      || matches!(expr,  Expr::This(_) if  self.enter_call == 0)
+    self.is_exports_expr(expr) || expr_matcher::is_module_exports(expr) || self.is_this_expr(expr)
   }
 
   fn is_exports_expr(&self, expr: &Expr) -> bool {
     matches!(expr,  Expr::Ident(ident) if &ident.sym == "exports" && ident.span.ctxt == self.unresolved_ctxt)
+  }
+
+  fn is_this_expr(&self, expr: &Expr) -> bool {
+    matches!(expr,  Expr::This(_) if self.enter_call == 0 && self.stmt_level == 1)
   }
 
   fn check_namespace(&mut self, top_level: bool, value_expr: Option<&Expr>) {
