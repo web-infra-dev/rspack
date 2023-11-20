@@ -6,8 +6,8 @@ use rspack_core::{
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::JsWord;
 use swc_core::common::Span;
-use swc_core::ecma::ast::{AssignExpr, AssignOp, MemberExpr, OptChainExpr};
-use swc_core::ecma::ast::{Callee, ExportAll, ExportSpecifier, Expr, Id, TaggedTpl};
+use swc_core::ecma::ast::{AssignExpr, AssignOp, CallExpr, MemberExpr, OptChainExpr};
+use swc_core::ecma::ast::{ExportAll, ExportSpecifier, Expr, Id, TaggedTpl};
 use swc_core::ecma::ast::{Ident, ImportDecl, Pat, PatOrExpr, Program, Prop};
 use swc_core::ecma::ast::{ImportSpecifier, ModuleExportName, NamedExport};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
@@ -533,19 +533,119 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
     member_expr.visit_children_with(self);
   }
 
-  fn visit_callee(&mut self, callee: &Callee) {
+  fn visit_call_expr(&mut self, call_expr: &CallExpr) {
     self.enter_callee = true;
-    callee.visit_children_with(self);
+    call_expr.callee.visit_with(self);
     self.enter_callee = false;
+
+    call_expr.args.visit_with(self);
   }
 
   fn visit_tagged_tpl(&mut self, n: &TaggedTpl) {
+    n.tpl.visit_with(self);
+
     self.enter_callee = true;
-    n.visit_children_with(self);
+    n.tag.visit_with(self);
     self.enter_callee = false;
   }
 
   fn visit_import_decl(&mut self, _decl: &ImportDecl) {}
 
   fn visit_named_export(&mut self, _named_export: &NamedExport) {}
+}
+
+#[cfg(test)]
+mod test {
+  use rspack_ast::javascript::Program;
+  use rspack_core::{BuildInfo, Dependency, ModuleType};
+
+  use super::HarmonyImportDependencyScanner;
+  use crate::{ast::parse, dependency::HarmonyImportSpecifierDependency};
+
+  fn scan_dependencies(program: &Program) -> Vec<Box<dyn Dependency>> {
+    let mut build_info = BuildInfo {
+      cacheable: false,
+      hash: None,
+      strict: true,
+      file_dependencies: Default::default(),
+      context_dependencies: Default::default(),
+      missing_dependencies: Default::default(),
+      build_dependencies: Default::default(),
+      asset_filenames: Default::default(),
+      harmony_named_exports: Default::default(),
+      all_star_exports: Default::default(),
+      need_create_require: false,
+    };
+    let mut import_map = Default::default();
+    let mut deps = vec![];
+    let mut presentation_deps = vec![];
+    let mut rewrite_usage_span = Default::default();
+    let mut scanner = HarmonyImportDependencyScanner::new(
+      &mut deps,
+      &mut presentation_deps,
+      &mut import_map,
+      &mut build_info,
+      &mut rewrite_usage_span,
+    );
+
+    program.visit_with(&mut scanner);
+
+    deps
+  }
+
+  #[test]
+  fn should_be_call() {
+    let ast = parse(
+      r#"
+      import { foo } from 'bar';
+      foo();
+      foo.bar();
+      foo``;
+    "#
+      .into(),
+      swc_core::ecma::parser::Syntax::Es(Default::default()),
+      "",
+      &ModuleType::Js,
+    )
+    .unwrap();
+
+    let deps = scan_dependencies(&ast.into_program());
+
+    let specifiers = deps
+      .iter()
+      .filter_map(|dep| dep.downcast_ref::<HarmonyImportSpecifierDependency>())
+      .collect::<Vec<_>>();
+
+    assert_eq!(specifiers.len(), 3);
+    assert!(specifiers.iter().all(|d| d.call));
+  }
+
+  #[test]
+  fn should_not_be_call() {
+    let ast = parse(
+      r#"
+      import { foo } from 'bar';
+      new foo();
+      new foo().bar;
+      new foo.bar();
+      `${foo}`;
+      chain(foo).call(true);
+    "#
+      .into(),
+      swc_core::ecma::parser::Syntax::Es(Default::default()),
+      "",
+      &ModuleType::Js,
+    )
+    .unwrap();
+
+    let deps = scan_dependencies(&ast.into_program());
+
+    let specifiers = deps
+      .iter()
+      .filter_map(|dep| dep.downcast_ref::<HarmonyImportSpecifierDependency>())
+      .collect::<Vec<_>>();
+
+    assert_eq!(specifiers.len(), 5);
+    assert!(specifiers.iter().all(|d| !d.call));
+  }
 }
