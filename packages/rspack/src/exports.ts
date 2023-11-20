@@ -51,7 +51,7 @@ export const config = {
 	applyWebpackOptionsDefaults: applyRspackOptionsDefaults
 };
 
-export type * from "./config";
+export * from "./config";
 
 import { createHash } from "./util/createHash";
 import { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
