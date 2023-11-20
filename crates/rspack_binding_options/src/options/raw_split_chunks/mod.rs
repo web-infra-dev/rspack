@@ -1,13 +1,22 @@
+mod raw_split_chunk_cache_group_test;
+mod raw_split_chunk_name;
+
 use std::sync::Arc;
 
 use derivative::Derivative;
 use napi::{Either, JsString};
 use napi_derive::napi;
-use new_split_chunks_plugin::ModuleTypeFilter;
+use raw_split_chunk_name::normalize_raw_chunk_name;
+use raw_split_chunk_name::RawChunkOptionName;
 use rspack_core::SourceType;
 use rspack_napi_shared::{JsRegExp, JsRegExpExt, JsStringExt};
-use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SplitChunksOptions, TestFn};
+use rspack_plugin_split_chunks_new::ChunkNameGetter;
 use serde::Deserialize;
+
+use self::raw_split_chunk_cache_group_test::default_cache_group_test;
+use self::raw_split_chunk_cache_group_test::normalize_raw_cache_group_test;
+use self::raw_split_chunk_cache_group_test::RawCacheGroupTest;
+use self::raw_split_chunk_name::default_chunk_option_name;
 
 type Chunks = Either<JsRegExp, JsString>;
 
@@ -17,7 +26,10 @@ type Chunks = Either<JsRegExp, JsString>;
 #[derivative(Debug)]
 pub struct RawSplitChunksOptions {
   pub fallback_cache_group: Option<RawFallbackCacheGroupOptions>,
-  pub name: Option<String>,
+  #[serde(skip_deserializing)]
+  #[napi(ts_type = "string | false | Function")]
+  #[derivative(Debug = "ignore")]
+  pub name: Option<RawChunkOptionName>,
   pub cache_groups: Option<Vec<RawCacheGroupOptions>>,
   /// What kind of chunks should be selected.
   #[serde(skip_deserializing)]
@@ -40,8 +52,10 @@ pub struct RawSplitChunksOptions {
   pub max_initial_size: Option<f64>,
 }
 
-impl From<RawSplitChunksOptions> for SplitChunksOptions {
+impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::SplitChunksOptions {
   fn from(value: RawSplitChunksOptions) -> Self {
+    use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SplitChunksOptions, TestFn};
+
     let mut defaults = SplitChunksOptions {
       max_async_requests: value.max_async_requests,
       max_initial_requests: value.max_initial_requests,
@@ -70,22 +84,13 @@ impl From<RawSplitChunksOptions> for SplitChunksOptions {
         (
           v.key,
           CacheGroupOptions {
-            name: v.name,
+            // FIXME: since old split chunk will not used so I use `None` here
+            name: None,
             priority: v.priority,
             reuse_existing_chunk: Some(false),
-            test: v.test.map(|test| {
-              let test = match test {
-                Either::A(s) => s.into_string(),
-                Either::B(_reg) => unimplemented!(),
-              };
-              let f: TestFn = Arc::new(move |module| {
-                let re = rspack_regex::RspackRegex::new(&test)
-                  .unwrap_or_else(|_| panic!("Invalid regex: {}", &test));
-                module
-                  .name_for_condition()
-                  .map_or(false, |name| re.test(&name))
-              });
-              f
+            test: v.test.map(|_| {
+              let f: TestFn = Arc::new(move |_| false);
+              f // FIXME: since old split chunk will not used so I use `|| -> false` here
             }),
             chunks: v.chunks.map(|chunks| {
               let Either::B(chunks) = chunks else {
@@ -118,9 +123,9 @@ pub struct RawCacheGroupOptions {
   // pub reuse_existing_chunk: Option<bool>,
   //   pub r#type: SizeType,
   #[serde(skip_deserializing)]
-  #[napi(ts_type = "RegExp | string")]
+  #[napi(ts_type = "RegExp | string | Function")]
   #[derivative(Debug = "ignore")]
-  pub test: Option<Either<JsString, JsRegExp>>,
+  pub test: Option<RawCacheGroupTest>,
   //   pub filename: String,
   //   pub enforce: bool,
   pub id_hint: Option<String>,
@@ -146,13 +151,14 @@ pub struct RawCacheGroupOptions {
   pub max_size: Option<f64>,
   pub max_async_size: Option<f64>,
   pub max_initial_size: Option<f64>,
-  pub name: Option<String>,
+  #[serde(skip_deserializing)]
+  #[napi(ts_type = "string | false | Function")]
+  #[derivative(Debug = "ignore")]
+  pub name: Option<RawChunkOptionName>,
   // used_exports: bool,
   pub reuse_existing_chunk: Option<bool>,
   pub enforce: Option<bool>,
 }
-
-use rspack_plugin_split_chunks_new as new_split_chunks_plugin;
 
 fn create_chunks_filter(raw: Chunks) -> rspack_plugin_split_chunks_new::ChunkFilter {
   match raw {
@@ -166,9 +172,9 @@ fn create_chunks_filter(raw: Chunks) -> rspack_plugin_split_chunks_new::ChunkFil
   }
 }
 
-impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
+impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks_new::PluginOptions {
   fn from(raw_opts: RawSplitChunksOptions) -> Self {
-    use new_split_chunks_plugin::SplitChunkSizes;
+    use rspack_plugin_split_chunks_new::SplitChunkSizes;
 
     let mut cache_groups = vec![];
 
@@ -176,10 +182,9 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
 
     let overall_min_chunks = raw_opts.min_chunks.unwrap_or(1);
 
-    let overall_name_getter = raw_opts
-      .name
-      .map(new_split_chunks_plugin::create_chunk_name_getter_by_const_name)
-      .unwrap_or_else(new_split_chunks_plugin::create_empty_chunk_name_getter);
+    let overall_name_getter = raw_opts.name.map_or(default_chunk_option_name(), |name| {
+      normalize_raw_chunk_name(name)
+    });
 
     let default_size_types = [SourceType::JavaScript, SourceType::Unknown];
 
@@ -240,15 +245,20 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
             .map(create_module_type_filter)
             .unwrap_or_else(rspack_plugin_split_chunks_new::create_default_module_type_filter);
 
-          new_split_chunks_plugin::CacheGroup {
+          let mut name = v.name.map_or(default_chunk_option_name(), |name| {
+            normalize_raw_chunk_name(name)
+          });
+          if matches!(name, ChunkNameGetter::Disabled) {
+            name = overall_name_getter.clone();
+          }
+          rspack_plugin_split_chunks_new::CacheGroup {
             id_hint: v.id_hint.unwrap_or_else(|| v.key.clone()),
             key: v.key,
-            name: v
-              .name
-              .map(new_split_chunks_plugin::create_chunk_name_getter_by_const_name)
-              .unwrap_or_else(|| overall_name_getter.clone()),
+            name,
             priority: v.priority.unwrap_or(0) as f64,
-            test: create_module_filter(v.test),
+            test: v.test.map_or(default_cache_group_test(), |test| {
+              normalize_raw_cache_group_test(test)
+            }),
             chunk_filter: v.chunks.map(create_chunks_filter).unwrap_or_else(|| {
               overall_chunk_filter
                 .clone()
@@ -287,7 +297,7 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
       .merge(&overall_max_initial_size)
       .merge(&overall_max_size);
 
-    new_split_chunks_plugin::PluginOptions {
+    rspack_plugin_split_chunks_new::PluginOptions {
       cache_groups,
       fallback_cache_group: rspack_plugin_split_chunks_new::FallbackCacheGroup {
         chunks_filter: fallback_chunks_filter.unwrap_or_else(|| {
@@ -318,7 +328,9 @@ pub struct RawFallbackCacheGroupOptions {
   pub max_initial_size: Option<f64>,
 }
 
-fn create_module_type_filter(raw: Either<JsRegExp, JsString>) -> ModuleTypeFilter {
+fn create_module_type_filter(
+  raw: Either<JsRegExp, JsString>,
+) -> rspack_plugin_split_chunks_new::ModuleTypeFilter {
   match raw {
     Either::A(js_reg) => {
       let regex = js_reg.to_rspack_regex();
@@ -329,20 +341,4 @@ fn create_module_type_filter(raw: Either<JsRegExp, JsString>) -> ModuleTypeFilte
       Arc::new(move |m| m.module_type().as_str() == type_str.as_str())
     }
   }
-}
-
-pub fn create_module_filter(
-  re: Option<Either<JsString, JsRegExp>>,
-) -> new_split_chunks_plugin::ModuleFilter {
-  re.map(|test| match test {
-    Either::A(data) => {
-      let data = data.into_string();
-      rspack_plugin_split_chunks_new::create_module_filter_from_rspack_str(data)
-    }
-    Either::B(data) => {
-      let re = data.to_rspack_regex();
-      rspack_plugin_split_chunks_new::create_module_filter_from_rspack_regex(re)
-    }
-  })
-  .unwrap_or_else(rspack_plugin_split_chunks_new::create_default_module_filter)
 }

@@ -1,8 +1,8 @@
 use derivative::Derivative;
 
-use crate::common::{
-  ChunkFilter, ChunkNameGetter, ModuleFilter, ModuleTypeFilter, SplitChunkSizes,
-};
+use super::cache_group_test::CacheGroupTest;
+use super::chunk_name::ChunkNameGetter;
+use crate::common::{ChunkFilter, ModuleTypeFilter, SplitChunkSizes};
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -21,7 +21,7 @@ pub struct CacheGroup {
   #[derivative(Debug = "ignore")]
   pub chunk_filter: ChunkFilter,
   #[derivative(Debug = "ignore")]
-  pub test: ModuleFilter,
+  pub test: CacheGroupTest,
   #[derivative(Debug = "ignore")]
   pub r#type: ModuleTypeFilter,
   /// `name` is used to create chunk

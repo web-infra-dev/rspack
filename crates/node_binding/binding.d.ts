@@ -325,6 +325,7 @@ export interface JsModule {
   originalSource?: JsCompatSource
   resource?: string
   moduleIdentifier: string
+  nameForCondition?: string
 }
 
 export interface JsResolveForSchemeInput {
@@ -554,7 +555,7 @@ export interface RawBuiltins {
 export interface RawCacheGroupOptions {
   key: string
   priority?: number
-  test?: RegExp | string
+  test?: RegExp | string | Function
   idHint?: string
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
@@ -564,9 +565,13 @@ export interface RawCacheGroupOptions {
   maxSize?: number
   maxAsyncSize?: number
   maxInitialSize?: number
-  name?: string
+  name?: string | false | Function
   reuseExistingChunk?: boolean
   enforce?: boolean
+}
+
+export interface RawCacheGroupTestCtx {
+  module: JsModule
 }
 
 export interface RawCacheOptions {
@@ -579,6 +584,10 @@ export interface RawCacheOptions {
   cacheLocation: string
   name: string
   version: string
+}
+
+export interface RawChunkOptionNameCtx {
+  module: JsModule
 }
 
 export interface RawCopyGlobOptions {
@@ -1030,7 +1039,7 @@ export interface RawSnapshotStrategy {
 
 export interface RawSplitChunksOptions {
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
-  name?: string
+  name?: string | false | Function
   cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
