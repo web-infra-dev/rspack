@@ -62,6 +62,10 @@ pub enum DependencyType {
   WasmExportImported,
   /// static exports
   StaticExports,
+  /// container exposed
+  ContainerExposed,
+  /// container entry,
+  ContainerEntry,
   Custom(Box<str>), // TODO it will increase large layout size
 }
 
@@ -101,6 +105,8 @@ impl DependencyType {
       DependencyType::ExportInfoApi => Cow::Borrowed("export info api"),
       // TODO: mode
       DependencyType::ImportMetaContext => Cow::Borrowed("import.meta context"),
+      DependencyType::ContainerExposed => Cow::Borrowed("container exposed"),
+      DependencyType::ContainerEntry => Cow::Borrowed("container entry"),
     }
   }
 }

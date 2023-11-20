@@ -39,10 +39,9 @@ impl Plugin for EntryPlugin {
       self.entry_request.clone(),
       self.context.clone(),
     ));
-    let dependency_id = dependency.id();
-    compilation.add_entry(*dependency_id, self.options.clone());
-    param.add_force_build_dependency(*dependency_id, None);
-    compilation.module_graph.add_dependency(dependency);
+    let dependency_id = *dependency.id();
+    compilation.add_entry(dependency, self.options.clone());
+    param.add_force_build_dependency(dependency_id, None);
     Ok(())
   }
 }

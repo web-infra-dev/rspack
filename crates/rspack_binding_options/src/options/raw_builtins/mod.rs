@@ -2,6 +2,7 @@ mod raw_banner;
 mod raw_copy;
 mod raw_html;
 mod raw_limit_chunk_count;
+mod raw_mf;
 mod raw_progress;
 mod raw_swc_js_minimizer;
 mod raw_to_be_deprecated;
@@ -11,7 +12,9 @@ use napi::{
   JsUnknown,
 };
 use napi_derive::napi;
-use rspack_core::{BoxPlugin, Define, DefinePlugin, PluginExt, Provide, ProvidePlugin};
+use rspack_core::{
+  mf::ContainerPlugin, BoxPlugin, Define, DefinePlugin, PluginExt, Provide, ProvidePlugin,
+};
 use rspack_error::Result;
 use rspack_napi_shared::NapiResultExt;
 use rspack_plugin_banner::BannerPlugin;
@@ -38,7 +41,7 @@ use rspack_plugin_web_worker_template::web_worker_template_plugin;
 pub use self::{
   raw_banner::RawBannerPluginOptions, raw_copy::RawCopyRspackPluginOptions,
   raw_html::RawHtmlRspackPluginOptions, raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
-  raw_progress::RawProgressPluginOptions,
+  raw_mf::RawContainerPluginOptions, raw_progress::RawProgressPluginOptions,
   raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
 };
 use crate::{
@@ -68,6 +71,7 @@ pub enum BuiltinPluginName {
   LimitChunkCountPlugin,
   WebWorkerTemplatePlugin,
   MergeDuplicateChunksPlugin,
+  ContainerPlugin,
 
   // rspack specific plugins
   HttpExternalsRspackPlugin,
@@ -173,6 +177,12 @@ impl RawOptionsApply for BuiltinPlugin {
       }
       BuiltinPluginName::MergeDuplicateChunksPlugin => {
         plugins.push(MergeDuplicateChunksPlugin.boxed());
+      }
+      BuiltinPluginName::ContainerPlugin => {
+        plugins.push(
+          ContainerPlugin::new(downcast_into::<RawContainerPluginOptions>(self.options)?.into())
+            .boxed(),
+        );
       }
 
       // rspack specific plugins

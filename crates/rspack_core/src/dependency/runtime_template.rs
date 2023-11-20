@@ -353,3 +353,11 @@ pub fn weak_error(request: &str) -> String {
   let msg = format!("Module is not available (weak dependency), request is {request}.");
   format!("var e = new Error('{msg}'); e.code = 'MODULE_NOT_FOUND'; throw e;")
 }
+
+pub fn returning_function(return_value: &str, args: &str) -> String {
+  format!("function({args}) {{ return {return_value}; }}")
+}
+
+pub fn basic_function(args: &str, body: &str) -> String {
+  format!("function({args}) {{\n{body}\n}}")
+}

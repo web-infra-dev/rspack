@@ -109,7 +109,6 @@ impl Display for ExportsArgument {
 
 #[derive(Debug, Default, Clone, Hash)]
 pub struct BuildMeta {
-  pub strict: bool,
   pub strict_harmony_module: bool,
   pub has_top_level_await: bool,
   pub esm: bool,

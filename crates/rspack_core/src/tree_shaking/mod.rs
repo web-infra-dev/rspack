@@ -67,6 +67,7 @@ bitflags::bitflags! {
       const COMMONJS_EXPORTS = 1 << 2;
       const DYNAMIC_IMPORT = 1 << 3;
       const CONTEXT_MODULE = 1 << 4;
+      const CONTAINER_EXPOSED = 1 << 5;
   }
 }
 

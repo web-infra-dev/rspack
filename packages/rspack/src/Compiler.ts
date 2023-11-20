@@ -58,7 +58,7 @@ class Compiler {
 	webpack = rspack;
 	// @ts-expect-error
 	compilation: Compilation;
-	builtinPlugins: RspackBuiltinPlugin[];
+	builtinPlugins: binding.BuiltinPlugin[];
 	root: Compiler;
 	running: boolean;
 	idle: boolean;
@@ -241,7 +241,7 @@ class Compiler {
 
 		this.#_instance = new instanceBinding.Rspack(
 			rawOptions,
-			this.builtinPlugins.map(bp => bp.raw()),
+			this.builtinPlugins,
 			{
 				beforeCompile: this.#beforeCompile.bind(this),
 				afterCompile: this.#afterCompile.bind(this),
@@ -1101,7 +1101,7 @@ class Compiler {
 		return source.buffer();
 	}
 
-	__internal__registerBuiltinPlugin(plugin: RspackBuiltinPlugin) {
+	__internal__registerBuiltinPlugin(plugin: binding.BuiltinPlugin) {
 		this.builtinPlugins.push(plugin);
 	}
 }
