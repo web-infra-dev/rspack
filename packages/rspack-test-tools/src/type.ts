@@ -128,13 +128,25 @@ export enum ECompareResultType {
 	Different = "different"
 }
 export type TCompareModules = string[] | true;
-export type TModuleCompareResult = {
+export type TCompareResult = {
 	type: ECompareResultType;
-	name: string;
 	detail?: unknown;
 	lines?: {
 		common: number;
 		source: number;
 		dist: number;
 	};
+};
+export type TModuleCompareResult = TCompareResult & {
+	name: string;
+};
+
+export type TFileCompareResult = TCompareResult & {
+	file: {
+		source: string;
+		dist: string;
+	};
+	modules: Partial<
+		Record<"modules" | "runtimeModules", TModuleCompareResult[]>
+	>;
 };
