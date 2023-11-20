@@ -2,7 +2,7 @@
 const path = require("path");
 const jestDiff = require("jest-diff").diff;
 const stripAnsi = require("strip-ansi");
-import { getNormalizedRspackOptions, applyRspackOptionsDefaults } from "../src";
+import rspack from "../src";
 /**
  * Escapes regular expression metacharacters
  * @param {string} str String to quote
@@ -62,8 +62,8 @@ expect.addSnapshotSerializer({
 });
 
 const getDefaultConfig = config => {
-	config = getNormalizedRspackOptions(config);
-	applyRspackOptionsDefaults(config);
+	config = rspack.config.getNormalizedRspackOptions(config);
+	rspack.config.applyRspackOptionsDefaults(config);
 	process.chdir(cwd);
 	return config;
 };

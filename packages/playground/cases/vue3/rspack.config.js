@@ -42,7 +42,7 @@ module.exports = {
 		]
 	},
 	cache: false,
-	stats: "error",
+	stats: "errors-warnings",
 	infrastructureLogging: {
 		debug: false
 	},

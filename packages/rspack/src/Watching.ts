@@ -14,7 +14,7 @@ import { WatchOptions } from "./config";
 import { FileSystemInfoEntry, Watcher } from "./util/fs";
 import assert from "assert";
 
-class Watching {
+export class Watching {
 	watcher?: Watcher;
 	pausedWatcher?: Watcher;
 	compiler: Compiler;
@@ -371,5 +371,3 @@ class Watching {
 		}
 	}
 }
-
-export default Watching;
