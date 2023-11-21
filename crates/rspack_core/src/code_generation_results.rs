@@ -253,7 +253,7 @@ impl CodeGenerationResults {
     match self.get(module_identifier, runtime) {
       Ok(result) => result.runtime_requirements,
       Err(_) => {
-        eprint!("Failed to get runtime requirements for {module_identifier}");
+        eprintln!("Failed to get runtime requirements for {module_identifier}");
         Default::default()
       }
     }
