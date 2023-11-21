@@ -9,6 +9,8 @@ use crate::JsCompilation;
 pub struct JsChunk {
   #[napi(js_name = "__inner_ukey")]
   pub inner_ukey: u32, // ChunkUkey
+  #[napi(js_name = "__inner_groups")]
+  pub inner_groups: Vec<u32>,
   pub name: Option<String>,
   pub id: Option<String>,
   pub ids: Vec<String>,
@@ -57,6 +59,11 @@ impl JsChunk {
 
     Self {
       inner_ukey: usize::from(chunk.ukey) as u32,
+      inner_groups: chunk
+        .groups
+        .iter()
+        .map(|ukey| ukey.as_usize() as u32)
+        .collect(),
       name: name.clone(),
       id: id.clone(),
       ids: ids.clone(),
@@ -79,36 +86,34 @@ impl JsChunk {
       auxiliary_files,
     }
   }
+}
 
-  fn chunk<'compilation>(&self, compilation: &'compilation Compilation) -> &'compilation Chunk {
-    let inner_key = self.inner_ukey;
-    let ukey = ChunkUkey::from(inner_key as usize);
-
-    compilation
-      .chunk_by_ukey
-      .get(&ukey)
-      .expect("Chunk must exist")
-  }
+fn chunk(ukey: u32, compilation: &Compilation) -> &Chunk {
+  let ukey = ChunkUkey::from(ukey as usize);
+  compilation
+    .chunk_by_ukey
+    .get(&ukey)
+    .expect("Chunk must exist")
 }
 
 #[napi(js_name = "__chunk_inner_is_only_initial")]
-pub fn is_only_initial(js_chunk: JsChunk, compilation: &JsCompilation) -> bool {
+pub fn is_only_initial(js_chunk_ukey: u32, compilation: &JsCompilation) -> bool {
   let compilation = &compilation.inner;
-  let chunk = js_chunk.chunk(compilation);
+  let chunk = chunk(js_chunk_ukey, compilation);
   chunk.is_only_initial(&compilation.chunk_group_by_ukey)
 }
 
 #[napi(js_name = "__chunk_inner_can_be_initial")]
-pub fn can_be_initial(js_chunk: JsChunk, compilation: &JsCompilation) -> bool {
+pub fn can_be_initial(js_chunk_ukey: u32, compilation: &JsCompilation) -> bool {
   let compilation = &compilation.inner;
-  let chunk = js_chunk.chunk(compilation);
+  let chunk = chunk(js_chunk_ukey, compilation);
   chunk.can_be_initial(&compilation.chunk_group_by_ukey)
 }
 
 #[napi(js_name = "__chunk_inner_has_runtime")]
-pub fn has_runtime(js_chunk: JsChunk, compilation: &JsCompilation) -> bool {
+pub fn has_runtime(js_chunk_ukey: u32, compilation: &JsCompilation) -> bool {
   let compilation = &compilation.inner;
-  let chunk = js_chunk.chunk(compilation);
+  let chunk = chunk(js_chunk_ukey, compilation);
   chunk.has_runtime(&compilation.chunk_group_by_ukey)
 }
 

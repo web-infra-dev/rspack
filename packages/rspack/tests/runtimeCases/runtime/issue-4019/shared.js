@@ -1,1 +1,1 @@
-console.log("shell");
+module.exports = "shared";

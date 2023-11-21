@@ -1463,7 +1463,7 @@ importers:
         specifier: ^1.13.5
         version: 1.13.5
       copy-webpack-plugin:
-        specifier: '5'
+        specifier: 5.1.2
         version: 5.1.2(webpack@5.89.0)
       cross-env:
         specifier: ^7.0.3

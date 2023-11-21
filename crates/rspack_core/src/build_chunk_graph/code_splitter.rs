@@ -8,13 +8,14 @@ use super::remove_parent_modules::RemoveParentModulesContext;
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependency, ChunkGroup, ChunkGroupInfo, ChunkGroupKind,
   ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, DependenciesBlock,
-  Logger, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec, IS_NEW_TREESHAKING,
+  GroupOptions, Logger, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec, IS_NEW_TREESHAKING,
 };
 
 pub(super) struct CodeSplitter<'me> {
   pub(super) compilation: &'me mut Compilation,
   next_free_module_pre_order_index: u32,
   next_free_module_post_order_index: u32,
+  next_chunk_group_index: u32,
   queue: Vec<QueueAction>,
   queue_delayed: Vec<QueueAction>,
   queue_connect: HashMap<ChunkGroupUkey, HashSet<ChunkGroupUkey>>,
@@ -26,12 +27,23 @@ pub(super) struct CodeSplitter<'me> {
   pub(super) remove_parent_modules_context: RemoveParentModulesContext,
 }
 
+fn add_chunk_in_group(group_options: Option<&GroupOptions>, info: ChunkGroupInfo) -> ChunkGroup {
+  let options = ChunkGroupOptions::default().name_optional(
+    group_options
+      .and_then(|x| x.name())
+      .map(|name| name.to_string()),
+  );
+  let kind = ChunkGroupKind::Normal { options };
+  ChunkGroup::new(kind, info)
+}
+
 impl<'me> CodeSplitter<'me> {
   pub fn new(compilation: &'me mut Compilation) -> Self {
     CodeSplitter {
       compilation,
       next_free_module_pre_order_index: 0,
       next_free_module_post_order_index: 0,
+      next_chunk_group_index: 0,
       queue: Default::default(),
       queue_delayed: Default::default(),
       queue_connect: Default::default(),
@@ -210,8 +222,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let chunk_group = self
         .compilation
         .chunk_group_by_ukey
-        .get(&chunk_group)
+        .get_mut(&chunk_group)
         .ok_or_else(|| anyhow::format_err!("no chunk group found"))?;
+
+      self.next_chunk_group_index += 1;
+      chunk_group.index = Some(self.next_chunk_group_index);
 
       let chunk = chunk_group.get_entry_point_chunk();
       for module in modules {
@@ -547,6 +562,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             entrypoint.set_entry_point_chunk(chunk.ukey);
             self.compilation.async_entrypoints.push(entrypoint.ukey);
 
+            self.next_chunk_group_index += 1;
+            entrypoint.index = Some(self.next_chunk_group_index);
+
             if let Some(name) = entrypoint.kind.name() {
               self
                 .named_async_entrypoints
@@ -596,17 +614,15 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           chunk
             .chunk_reasons
             .push(format!("DynamicImport({:?})", block_id));
-          let mut chunk_group = ChunkGroup::new(
-            ChunkGroupKind::Normal {
-              options: ChunkGroupOptions::default()
-                .name_optional(block.get_group_options().and_then(|x| x.name())),
-            },
-            ChunkGroupInfo {
-              runtime: item_chunk_group.info.runtime.clone(),
-              chunk_loading: item_chunk_group.info.chunk_loading,
-              async_chunks: item_chunk_group.info.async_chunks,
-            },
-          );
+          let info = ChunkGroupInfo {
+            runtime: item_chunk_group.info.runtime.clone(),
+            chunk_loading: item_chunk_group.info.chunk_loading,
+            async_chunks: item_chunk_group.info.async_chunks,
+          };
+          let mut chunk_group = add_chunk_in_group(block.get_group_options(), info);
+
+          self.next_chunk_group_index += 1;
+          chunk_group.index = Some(self.next_chunk_group_index);
 
           if let Some(name) = chunk_group.kind.name() {
             self

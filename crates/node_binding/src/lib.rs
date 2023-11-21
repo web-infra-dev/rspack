@@ -29,6 +29,7 @@ use plugins::*;
 use rspack_binding_options::*;
 use rspack_binding_values::*;
 use rspack_tracing::chrome::FlushGuard;
+
 #[cfg(not(target_os = "linux"))]
 #[global_allocator]
 static GLOBAL: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;

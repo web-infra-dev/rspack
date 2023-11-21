@@ -3,10 +3,9 @@ use rspack_database::DatabaseItem;
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{
-  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
-  Filename, LibraryOptions, ModuleIdentifier, PublicPath, RuntimeSpec,
-};
+use crate::{Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey};
+use crate::{ChunkLoading, ChunkUkey, Compilation, Filename};
+use crate::{LibraryOptions, ModuleIdentifier, PublicPath, RuntimeSpec};
 
 impl DatabaseItem for ChunkGroup {
   fn ukey(&self) -> rspack_database::Ukey<Self> {
@@ -20,9 +19,10 @@ pub struct ChunkGroup {
   pub kind: ChunkGroupKind,
   pub chunks: Vec<ChunkUkey>,
   pub info: ChunkGroupInfo,
+  pub index: Option<u32>,
+  pub parents: HashSet<ChunkGroupUkey>,
   pub(crate) module_pre_order_indices: IdentifierMap<usize>,
   pub(crate) module_post_order_indices: IdentifierMap<usize>,
-  pub(crate) parents: HashSet<ChunkGroupUkey>,
   pub(crate) children: HashSet<ChunkGroupUkey>,
   async_entrypoints: HashSet<ChunkGroupUkey>,
   // ChunkGroupInfo
@@ -47,9 +47,9 @@ impl ChunkGroup {
       kind,
       next_pre_order_index: 0,
       next_post_order_index: 0,
-      // name,
       runtime_chunk: None,
       entry_point_chunk: None,
+      index: None,
     }
   }
 
@@ -247,6 +247,23 @@ impl ChunkGroup {
       })
       .join("+")
   }
+
+  pub fn get_parents<'a>(
+    &'a self,
+    chunk_group_by_ukey: &'a ChunkGroupByUkey,
+  ) -> Vec<&'a ChunkGroup> {
+    self
+      .parents_iterable()
+      .map(|ukey| chunk_group_by_ukey.get(ukey).expect("parent must exists"))
+      .collect_vec()
+  }
+
+  pub fn name(&self) -> Option<&str> {
+    match &self.kind {
+      ChunkGroupKind::Entrypoint { options, .. } => options.name.as_deref(),
+      ChunkGroupKind::Normal { options } => options.name.as_deref(),
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -302,8 +319,8 @@ pub struct ChunkGroupOptions {
 }
 
 impl ChunkGroupOptions {
-  pub fn name_optional<T: Into<String>>(mut self, v: Option<T>) -> Self {
-    self.name = v.map(|v| v.into());
+  pub fn name_optional(mut self, name: Option<String>) -> Self {
+    self.name = name;
     self
   }
 }

@@ -90,11 +90,11 @@ export class Compilation {
 		additionalAssets: any;
 		optimizeModules: tapable.SyncBailHook<Iterable<JsModule>, undefined>;
 		optimizeTree: tapable.AsyncSeriesBailHook<
-			[Iterable<JsChunk>, Iterable<JsModule>],
+			[Iterable<Chunk>, Iterable<JsModule>],
 			undefined
 		>;
 		optimizeChunkModules: tapable.AsyncSeriesBailHook<
-			[Iterable<JsChunk>, Iterable<JsModule>],
+			[Iterable<Chunk>, Iterable<JsModule>],
 			undefined
 		>;
 		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], undefined>;
@@ -235,7 +235,7 @@ export class Compilation {
 		return new Map(
 			Object.entries(this.#inner.entrypoints).map(([n, e]) => [
 				n,
-				new ChunkGroup(e)
+				ChunkGroup.__from_binding(e, this.#inner)
 			])
 		);
 	}

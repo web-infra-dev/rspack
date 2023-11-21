@@ -4,10 +4,9 @@ use rspack_database::DatabaseItem;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::{
-  ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, EntryOptions, Filename,
-  ModuleGraph, RuntimeSpec, SourceType,
-};
+use crate::ChunkGraph;
+use crate::{ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, SourceType};
+use crate::{Compilation, EntryOptions, Filename, ModuleGraph, RuntimeSpec};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChunkKind {
