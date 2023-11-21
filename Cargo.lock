@@ -3134,6 +3134,7 @@ dependencies = [
  "async-trait",
  "dashmap",
  "derivative",
+ "futures",
  "futures-util",
  "num-bigint",
  "rayon",

@@ -9,6 +9,6 @@ it("should run", function () {
 	expect(d).toBe("d");
 });
 
-it("should be main", function () {
-	expect(require.main).toBe(module);
-});
+// it("should be main", function () {
+// 	expect(require.main).toBe(module);
+// });

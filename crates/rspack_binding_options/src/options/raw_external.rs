@@ -1,20 +1,15 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::sync::Arc;
 
 use napi::bindgen_prelude::Either4;
-use napi::JsFunction;
+use napi::{Env, JsFunction};
 use napi_derive::napi;
 use rspack_core::ExternalItemFnCtx;
 use rspack_core::{ExternalItem, ExternalItemFnResult, ExternalItemValue};
-use rspack_napi_shared::{JsRegExp, JsRegExpExt};
-use {
-  napi::Env,
-  rspack_error::internal_error,
-  rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  rspack_napi_shared::NapiResultExt,
-  rspack_napi_shared::NAPI_ENV,
-  std::sync::Arc,
-};
+use rspack_error::internal_error;
+use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
+use rspack_napi_shared::{JsRegExp, JsRegExpExt, NapiResultExt, NAPI_ENV};
 
 #[napi(object)]
 pub struct RawHttpExternalsRspackPluginOptions {

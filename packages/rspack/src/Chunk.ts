@@ -31,8 +31,7 @@ export class Chunk implements JsChunk {
 		return new Chunk(chunk, compilation);
 	}
 
-	// Should not construct by user
-	private constructor(chunk: JsChunk, compilation: JsCompilation) {
+	constructor(chunk: JsChunk, compilation: JsCompilation) {
 		this.#inner_chunk = chunk;
 		this.#inner_compilation = compilation;
 

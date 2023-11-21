@@ -28,7 +28,7 @@ pub struct ExternalItemFnResult {
   pub result: Option<ExternalItemValue>,
 }
 
-pub type ExternalItemFn =
+type ExternalItemFn =
   Box<dyn Fn(ExternalItemFnCtx) -> BoxFuture<'static, Result<ExternalItemFnResult>> + Sync + Send>;
 
 pub enum ExternalItem {

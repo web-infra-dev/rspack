@@ -9,9 +9,9 @@ use std::{borrow::Cow, fmt::Debug};
 use rspack_core::{ChunkUkey, Compilation, Logger, Plugin};
 use rustc_hash::FxHashMap;
 
-use crate::{
-  cache_group::CacheGroup, common::FallbackCacheGroup, module_group::ModuleGroup, SplitChunkSizes,
-};
+use crate::common::FallbackCacheGroup;
+use crate::module_group::ModuleGroup;
+use crate::{CacheGroup, SplitChunkSizes};
 
 type ModuleGroupMap = FxHashMap<String, ModuleGroup>;
 
