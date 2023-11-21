@@ -23,15 +23,27 @@ impl Plugin for MergeDuplicateChunksPlugin {
     args: OptimizeChunksArgs<'_>,
   ) -> PluginOptimizeChunksOutput {
     let compilation = args.compilation;
-    let mut not_deplicates = HashSet::default();
-    let chunk_ukeys = compilation
+
+    let mut not_duplicates = HashSet::default();
+
+    let mut chunk_ukeys = compilation
       .chunk_by_ukey
       .keys()
       .copied()
       .collect::<Vec<_>>();
+
+    chunk_ukeys.sort_by_key(|ukey| {
+      compilation
+        .chunk_by_ukey
+        .get(ukey)
+        .expect("should has ukey")
+        .name
+        .as_ref()
+    });
+
     for chunk_ukey in chunk_ukeys {
       if !compilation.chunk_by_ukey.contains(&chunk_ukey) {
-        // already remove by deplicates
+        // already remove by duplicates
         continue;
       }
       let mut possible_duplicates: Option<HashSet<ChunkUkey>> = None;
@@ -40,18 +52,11 @@ impl Plugin for MergeDuplicateChunksPlugin {
         .get_chunk_modules(&chunk_ukey, &compilation.module_graph)
       {
         if let Some(ref mut possible_duplicates) = possible_duplicates {
-          let mut not_deplicates = HashSet::default();
-          for dup in possible_duplicates.iter() {
-            if !compilation
+          possible_duplicates.retain(|dup| {
+            compilation
               .chunk_graph
               .is_module_in_chunk(&module.identifier(), *dup)
-            {
-              not_deplicates.insert(*dup);
-            }
-          }
-          for not_dup in not_deplicates {
-            possible_duplicates.remove(&not_dup);
-          }
+          });
           if possible_duplicates.is_empty() {
             break;
           }
@@ -60,15 +65,14 @@ impl Plugin for MergeDuplicateChunksPlugin {
             .chunk_graph
             .get_module_chunks(module.identifier())
           {
-            if dup != &chunk_ukey
+            if *dup != chunk_ukey
               && compilation
                 .chunk_graph
                 .get_number_of_chunk_modules(&chunk_ukey)
                 == compilation.chunk_graph.get_number_of_chunk_modules(dup)
-              && !not_deplicates.contains(dup)
+              && !not_duplicates.contains(dup)
             {
-              let possible_duplicates = possible_duplicates.get_or_insert_default();
-              possible_duplicates.insert(*dup);
+              possible_duplicates.get_or_insert_default().insert(*dup);
             }
           }
           if possible_duplicates.is_none() {
@@ -143,7 +147,7 @@ impl Plugin for MergeDuplicateChunksPlugin {
         }
       }
 
-      not_deplicates.insert(chunk_ukey);
+      not_duplicates.insert(chunk_ukey);
     }
     Ok(())
   }
