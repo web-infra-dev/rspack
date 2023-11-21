@@ -57,6 +57,7 @@ impl<Item: Any> Database<Item> {
       .get(id)
       .unwrap_or_else(|| panic!("Not found {id:?}"))
   }
+
   pub fn expect_get_mut(&mut self, id: &Ukey<Item>) -> &mut Item {
     self
       .inner

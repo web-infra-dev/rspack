@@ -28,7 +28,6 @@ import { LoaderContext, LoaderResult } from "./config/adapterRuleUse";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import Cache from "./lib/Cache";
-import { makePathsRelative } from "./util/identifier";
 import CacheFacade from "./lib/CacheFacade";
 import ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
 import { runLoaders } from "./loader-runner";

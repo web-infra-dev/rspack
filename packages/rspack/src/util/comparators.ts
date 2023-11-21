@@ -12,6 +12,7 @@ import type {
 	JsStatsChunk as Chunk,
 	JsStatsModule as Module
 } from "@rspack/binding";
+import { ChunkGroup } from "../ChunkGroup";
 
 export type Comparator = <T>(arg0: T, arg1: T) => -1 | 0 | 1;
 
@@ -87,6 +88,14 @@ export const compareIds = (
 
 export const compareChunksById = (a: Chunk, b: Chunk): -1 | 0 | 1 => {
 	return compareIds(a.id || "", b.id || "");
+};
+
+export const compareChunkGroupsByIndex = (
+	a: ChunkGroup,
+	b: ChunkGroup
+): -1 | 0 | 1 => {
+	//@ts-expect-error copy from webpack
+	return a.index < b.index ? -1 : 1;
 };
 
 const compareSelectCache: TwoKeyWeakMap<

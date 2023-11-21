@@ -96,11 +96,13 @@ export class Rspack {
   unsafe_drop(): void
 }
 
-export function __chunk_inner_can_be_initial(jsChunk: JsChunk, compilation: JsCompilation): boolean
+export function __chunk_group_inner_get_chunk_group(ukey: number, compilation: JsCompilation): JsChunkGroup
 
-export function __chunk_inner_has_runtime(jsChunk: JsChunk, compilation: JsCompilation): boolean
+export function __chunk_inner_can_be_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
 
-export function __chunk_inner_is_only_initial(jsChunk: JsChunk, compilation: JsCompilation): boolean
+export function __chunk_inner_has_runtime(jsChunkUkey: number, compilation: JsCompilation): boolean
+
+export function __chunk_inner_is_only_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
 
 export interface AfterResolveData {
   request: string
@@ -206,6 +208,7 @@ export interface JsAssetInfoRelated {
 
 export interface JsChunk {
   __inner_ukey: number
+  __inner_groups: Array<number>
   name?: string
   id?: string
   ids: Array<string>
@@ -227,7 +230,10 @@ export interface JsChunkAssetArgs {
 }
 
 export interface JsChunkGroup {
+  __inner_parents: Array<number>
   chunks: Array<JsChunk>
+  index?: number
+  name?: string
 }
 
 export interface JsCompatSource {
