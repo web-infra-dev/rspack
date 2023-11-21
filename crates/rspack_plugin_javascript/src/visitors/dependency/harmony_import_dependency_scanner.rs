@@ -6,7 +6,7 @@ use rspack_core::{
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::JsWord;
 use swc_core::common::Span;
-use swc_core::ecma::ast::{AssignExpr, AssignOp, CallExpr, MemberExpr, OptChainExpr};
+use swc_core::ecma::ast::{AssignExpr, AssignOp, CallExpr, MemberExpr, NewExpr, OptChainExpr};
 use swc_core::ecma::ast::{ExportAll, ExportSpecifier, Expr, Id, TaggedTpl};
 use swc_core::ecma::ast::{Ident, ImportDecl, Pat, PatOrExpr, Program, Prop};
 use swc_core::ecma::ast::{ImportSpecifier, ModuleExportName, NamedExport};
@@ -344,6 +344,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
 
 pub struct HarmonyImportRefDependencyScanner<'a> {
   pub enter_callee: bool,
+  pub enter_new_expr: bool,
   pub import_map: &'a ImportMap,
   pub dependencies: &'a mut Vec<BoxDependency>,
   pub properties_in_destructuring: HashMap<JsWord, HashSet<JsWord>>,
@@ -360,6 +361,7 @@ impl<'a> HarmonyImportRefDependencyScanner<'a> {
       import_map,
       dependencies,
       enter_callee: false,
+      enter_new_expr: false,
       properties_in_destructuring: HashMap::default(),
       rewrite_usage_span,
     }
@@ -432,7 +434,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
           ident.span.real_lo(),
           ident.span.real_hi(),
           reference.names.clone().map(|f| vec![f]).unwrap_or_default(),
-          self.enter_callee,
+          self.enter_callee && !self.enter_new_expr,
           true, // x()
           reference.specifier.clone(),
           self.properties_in_destructuring.remove(&ident.sym),
@@ -480,7 +482,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
           start,
           end,
           ids,
-          self.enter_callee,
+          self.enter_callee && !self.enter_new_expr,
           !self.enter_callee, // x.xx()
           reference.specifier.clone(),
           None,
@@ -521,7 +523,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
             member_expr.span.real_lo(),
             member_expr.span.real_hi(),
             ids,
-            self.enter_callee,
+            self.enter_callee && !self.enter_new_expr,
             !self.enter_callee, // x.xx()
             reference.specifier.clone(),
             None,
@@ -534,16 +536,26 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
   }
 
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
+    // every time into new call_expr, reset enter callee
+    let old = self.enter_new_expr;
+
+    self.enter_new_expr = false;
     self.enter_callee = true;
     call_expr.callee.visit_with(self);
+    self.enter_new_expr = old;
     self.enter_callee = false;
 
     call_expr.args.visit_with(self);
   }
 
   fn visit_tagged_tpl(&mut self, n: &TaggedTpl) {
+    // every time into new tagged tpl expr, reset enter callee
+    let old = self.enter_new_expr;
+
+    self.enter_new_expr = false;
     self.enter_callee = true;
     n.tag.visit_with(self);
+    self.enter_new_expr = old;
     self.enter_callee = false;
 
     n.tpl.visit_with(self);
@@ -552,6 +564,15 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
   fn visit_import_decl(&mut self, _decl: &ImportDecl) {}
 
   fn visit_named_export(&mut self, _named_export: &NamedExport) {}
+
+  fn visit_new_expr(&mut self, n: &NewExpr) {
+    let old = self.enter_new_expr;
+    self.enter_new_expr = true;
+    n.callee.visit_with(self);
+    self.enter_new_expr = old;
+
+    n.args.visit_with(self);
+  }
 }
 
 #[cfg(test)]
@@ -601,6 +622,7 @@ mod test {
       foo();
       foo.bar();
       foo``;
+      new (foo())();
     "#
       .into(),
       swc_core::ecma::parser::Syntax::Es(Default::default()),
@@ -616,7 +638,7 @@ mod test {
       .filter_map(|dep| dep.downcast_ref::<HarmonyImportSpecifierDependency>())
       .collect::<Vec<_>>();
 
-    assert_eq!(specifiers.len(), 3);
+    assert_eq!(specifiers.len(), 4);
     assert!(specifiers.iter().all(|d| d.call));
   }
 
@@ -633,6 +655,9 @@ mod test {
       nested(foo)``
       (`${foo}`)``
       (new foo()).bar();
+      new foo().bar();
+      new foo.a().bar();
+      new (foo.bar)().baz();
     "#
       .into(),
       swc_core::ecma::parser::Syntax::Es(Default::default()),
@@ -648,7 +673,7 @@ mod test {
       .filter_map(|dep| dep.downcast_ref::<HarmonyImportSpecifierDependency>())
       .collect::<Vec<_>>();
 
-    assert_eq!(specifiers.len(), 8);
+    assert_eq!(specifiers.len(), 11);
     assert!(specifiers.iter().all(|d| !d.call));
   }
 }
