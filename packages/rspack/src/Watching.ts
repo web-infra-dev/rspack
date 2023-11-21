@@ -58,6 +58,12 @@ class Watching {
 		this.handler = handler;
 		this.suspended = false;
 
+		// The default aggregateTimeout of WatchPack is 200ms,
+		// using smaller values can improve hmr performance
+		if (typeof this.watchOptions.aggregateTimeout !== "number") {
+			this.watchOptions.aggregateTimeout = 5;
+		}
+
 		process.nextTick(() => {
 			if (this.#initial) this.#invalidate();
 		});
