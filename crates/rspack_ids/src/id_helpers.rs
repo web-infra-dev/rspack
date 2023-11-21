@@ -500,8 +500,8 @@ fn compare_chunks_by_modules(
   a: &Chunk,
   b: &Chunk,
 ) -> Ordering {
-  let a_modules = chunk_graph.get_chunk_modules(&a.ukey, module_graph);
-  let b_modules = chunk_graph.get_chunk_modules(&b.ukey, module_graph);
+  let a_modules = chunk_graph.get_ordered_chunk_modules(&a.ukey, module_graph);
+  let b_modules = chunk_graph.get_ordered_chunk_modules(&b.ukey, module_graph);
 
   a_modules
     .into_iter()
