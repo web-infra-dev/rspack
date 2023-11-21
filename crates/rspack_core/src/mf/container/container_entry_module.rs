@@ -6,7 +6,9 @@ use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::{RawSource, Source, SourceExt};
 
-use super::{container_exposed_dependency::ContainerExposedDependency, ExposeOptions};
+use super::{
+  container_exposed_dependency::ContainerExposedDependency, container_plugin::ExposeOptions,
+};
 use crate::{
   basic_function, block_promise, module_raw, returning_function, throw_missing_module_error_block,
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
@@ -20,13 +22,14 @@ pub struct ContainerEntryModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
-  name: String,
+  lib_ident: String,
   exposes: Vec<(String, ExposeOptions)>,
   share_scope: String,
 }
 
 impl ContainerEntryModule {
   pub fn new(name: String, exposes: Vec<(String, ExposeOptions)>, share_scope: String) -> Self {
+    let lib_ident = format!("webpack/container/entry/{}", &name);
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
@@ -35,7 +38,7 @@ impl ContainerEntryModule {
         share_scope,
         serde_json::to_string(&exposes).expect("should able to json to_string")
       )),
-      name,
+      lib_ident,
       exposes,
       share_scope,
     }
@@ -89,7 +92,7 @@ impl Module for ContainerEntryModule {
   }
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
-    Some(format!("webpack/container/entry/{}", self.name).into())
+    Some(self.lib_ident.as_str().into())
   }
 
   async fn build(

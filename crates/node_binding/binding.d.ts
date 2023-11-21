@@ -142,9 +142,12 @@ export const enum BuiltinPluginName {
   LimitChunkCountPlugin = 'LimitChunkCountPlugin',
   WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
   MergeDuplicateChunksPlugin = 'MergeDuplicateChunksPlugin',
-  ContainerPlugin = 'ContainerPlugin',
   SplitChunksPlugin = 'SplitChunksPlugin',
   OldSplitChunksPlugin = 'OldSplitChunksPlugin',
+  ContainerPlugin = 'ContainerPlugin',
+  ContainerReferencePlugin = 'ContainerReferencePlugin',
+  ShareRuntimePlugin = 'ShareRuntimePlugin',
+  MFScopeRuntimePlugin = 'MFScopeRuntimePlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -489,13 +492,6 @@ export interface JsStatsWarning {
   formatted: string
 }
 
-export interface NodeFS {
-  writeFile: (...args: any[]) => any
-  removeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-}
-
 export interface PathData {
   filename?: string
   hash?: string
@@ -622,6 +618,12 @@ export interface RawContainerPluginOptions {
   runtime?: string
   filename?: string
   exposes: Array<RawExposeOptions>
+}
+
+export interface RawContainerReferencePluginOptions {
+  remoteType: string
+  remotes: Array<RawRemoteOptions>
+  shareScope?: string
 }
 
 export interface RawCopyGlobOptions {
@@ -1022,6 +1024,12 @@ export interface RawRelayConfig {
   language: 'javascript' | 'typescript' | 'flow'
 }
 
+export interface RawRemoteOptions {
+  key: string
+  external: Array<string>
+  shareScope: string
+}
+
 export interface RawResolveOptions {
   preferRelative?: boolean
   extensions?: Array<string>
@@ -1130,12 +1138,4 @@ export function registerGlobalTrace(filter: string, layer: "chrome" | "logger", 
 
 /** Builtin loader runner */
 export function runBuiltinLoader(builtin: string, options: string | undefined | null, loaderContext: JsLoaderContext): Promise<JsLoaderContext>
-
-export interface ThreadsafeNodeFS {
-  writeFile: (...args: any[]) => any
-  removeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-  removeDirAll: (...args: any[]) => any
-}
 

@@ -120,6 +120,7 @@ import { LimitChunkCountPlugin } from "./builtin-plugin";
 export const optimize = { LimitChunkCountPlugin };
 
 import { ContainerPlugin } from "./container/ContainerPlugin";
+import { ContainerReferencePlugin } from "./container/ContainerReferencePlugin";
 import { ModuleFederationPlugin } from "./container/ModuleFederationPlugin";
 export type { ModuleFederationPluginOptions } from "./container/ModuleFederationPlugin";
 export type {
@@ -130,7 +131,19 @@ export type {
 	ExposesObject,
 	ExposesConfig
 } from "./container/ContainerPlugin";
-export const container = { ContainerPlugin, ModuleFederationPlugin };
+export type {
+	ContainerReferencePluginOptions,
+	Remotes,
+	RemotesItem,
+	RemotesItems,
+	RemotesObject,
+	RemotesConfig
+} from "./container/ContainerReferencePlugin";
+export const container = {
+	ContainerPlugin,
+	ContainerReferencePlugin,
+	ModuleFederationPlugin
+};
 
 ///// Rspack Postfixed Internal Plugins /////
 export { HtmlRspackPlugin } from "./builtin-plugin";

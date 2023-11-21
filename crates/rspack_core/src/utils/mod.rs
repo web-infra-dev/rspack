@@ -3,6 +3,9 @@ use std::fmt::Display;
 use itertools::Itertools;
 use rustc_hash::FxHashMap as HashMap;
 
+mod extract_url_and_global;
+pub use extract_url_and_global::*;
+
 mod identifier;
 pub use identifier::*;
 

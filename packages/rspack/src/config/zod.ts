@@ -215,6 +215,11 @@ export type Clean = z.infer<typeof clean>;
 const outputModule = z.boolean();
 export type OutputModule = z.infer<typeof outputModule>;
 
+const strictModuleExceptionHandling = z.boolean();
+export type StrictModuleExceptionHandling = z.infer<
+	typeof strictModuleExceptionHandling
+>;
+
 const strictModuleErrorHandling = z.boolean();
 export type StrictModuleErrorHandling = z.infer<
 	typeof strictModuleErrorHandling
@@ -284,6 +289,7 @@ const output = z.strictObject({
 	amdContainer: amdContainer.optional(),
 	auxiliaryComment: auxiliaryComment.optional(),
 	module: outputModule.optional(),
+	strictModuleExceptionHandling: strictModuleExceptionHandling.optional(),
 	strictModuleErrorHandling: strictModuleErrorHandling.optional(),
 	globalObject: globalObject.optional(),
 	importFunctionName: importFunctionName.optional(),
@@ -634,7 +640,7 @@ export type Target = z.infer<typeof target>;
 //#endregion
 
 //#region ExternalsType
-const externalsType = z.enum([
+export const externalsType = z.enum([
 	"var",
 	"module",
 	"assign",

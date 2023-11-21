@@ -26,16 +26,20 @@ export enum BuiltinPluginName {
 	LimitChunkCountPlugin = "LimitChunkCountPlugin",
 	WebWorkerTemplatePlugin = "WebWorkerTemplatePlugin",
 	MergeDuplicateChunksPlugin = "MergeDuplicateChunksPlugin",
-	ContainerPlugin = "ContainerPlugin",
 	SplitChunksPlugin = "SplitChunksPlugin",
-	OldSplitChunksPlugin = "OldSplitChunksPlugin"
+	OldSplitChunksPlugin = "OldSplitChunksPlugin",
+	ContainerPlugin = "ContainerPlugin",
+	ContainerReferencePlugin = "ContainerReferencePlugin",
+	ShareRuntimePlugin = "ShareRuntimePlugin",
+	MFScopeRuntimePlugin = "MFScopeRuntimePlugin",
 }
 
 export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
-	abstract raw(compiler: Compiler): binding.BuiltinPlugin;
+	abstract raw(compiler: Compiler): binding.BuiltinPlugin | null;
 	abstract name: BuiltinPluginName;
 	apply(compiler: Compiler) {
-		compiler.__internal__registerBuiltinPlugin(this.raw(compiler));
+		let raw = this.raw(compiler);
+		if (raw) compiler.__internal__registerBuiltinPlugin(raw);
 	}
 }
 

@@ -524,6 +524,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               | DependencyType::DynamicImport
               | DependencyType::CjsRequire
               | DependencyType::ImportContext
+              | DependencyType::ContainerExposed
           );
 
           if self.side_effects_free_modules.contains(module_identifier)
@@ -1290,8 +1291,11 @@ impl<'a> CodeSizeOptimizer<'a> {
       Some(result) => result,
       None => {
         // TODO: checking if it is none js type
-        return;
-        // panic!("Can't get analyze result from entry_identifier {}", entry_identifier);
+        // return;
+        panic!(
+          "Can't get analyze result from entry_identifier {}",
+          entry_identifier
+        );
       }
     };
 
