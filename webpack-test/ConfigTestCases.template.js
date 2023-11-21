@@ -651,20 +651,21 @@ const describeCases = config => {
 											}
 										};
 
-										if (Array.isArray(bundlePath)) {
-											for (const bundlePathItem of bundlePath) {
+										try {
+											if (Array.isArray(bundlePath)) {
+												for (const bundlePathItem of bundlePath) {
+													results.push(
+														_require(outputDirectory, options, "./" + bundlePathItem)
+													);
+												}
+											} else {
 												results.push(
-													_require(
-														outputDirectory,
-														options,
-														"./" + bundlePathItem
-													)
+													_require(outputDirectory, options, bundlePath)
 												);
 											}
-										} else {
-											results.push(
-												_require(outputDirectory, options, bundlePath)
-											);
+										} catch (err) {
+											// Abort early if `_require` throws
+											return handleFatalError(err, done);
 										}
 									}
 								}
