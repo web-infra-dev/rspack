@@ -1,6 +1,6 @@
 {
   "name": "create-rspack",
-  "version": "0.3.14",
+  "version": "0.3.15",
   "license": "MIT",
   "main": "index.js",
   "bin": {

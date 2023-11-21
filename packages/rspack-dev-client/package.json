@@ -1,6 +1,6 @@
 {
   "name": "@rspack/dev-client",
-  "version": "0.3.14",
+  "version": "0.3.15",
   "license": "MIT",
   "description": "Development client for rspack",
   "scripts": {
