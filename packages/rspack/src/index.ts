@@ -1,11 +1,13 @@
 import { rspack as rspackFn } from "./rspack";
 import * as rspackExports from "./exports";
-
 // add exports on rspack() function
-const rspack = Object.assign(rspackFn, rspackExports);
-export { rspack };
-export { rspack as webpack };
-export default rspack;
+type Rspack = typeof rspackFn &
+	typeof rspackExports & { rspack: Rspack; webpack: Rspack };
+const fn: any = Object.assign(rspackFn, rspackExports);
+fn.rspack = fn;
+fn.webpack = fn;
+const rspack: Rspack = fn;
 
-// re-export, so user can use named import
 export * from "./exports";
+export { rspack };
+module.exports = rspack;
