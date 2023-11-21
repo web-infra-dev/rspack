@@ -899,11 +899,15 @@ const optimizationSplitChunksChunks = z
 	.enum(["initial", "async", "all"])
 	.or(z.instanceof(RegExp));
 const optimizationSplitChunksSizes = z.number();
+const newOptimizationSplitChunksSizes = z.number().or(z.record(z.number()));
+export type OptimizationSplitChunksSizes = z.infer<
+	typeof newOptimizationSplitChunksSizes
+>;
 const sharedOptimizationSplitChunksCacheGroup = {
 	chunks: optimizationSplitChunksChunks.optional(),
 	minChunks: z.number().optional(),
 	name: optimizationSplitChunksName.optional(),
-	minSize: optimizationSplitChunksSizes.optional(),
+	minSize: newOptimizationSplitChunksSizes.optional(),
 	maxSize: optimizationSplitChunksSizes.optional(),
 	maxAsyncSize: optimizationSplitChunksSizes.optional(),
 	maxInitialSize: optimizationSplitChunksSizes.optional()
@@ -930,7 +934,7 @@ const optimizationSplitChunksOptions = z.strictObject({
 	fallbackCacheGroup: z
 		.strictObject({
 			chunks: optimizationSplitChunksChunks.optional(),
-			minSize: z.number().optional(),
+			minSize: newOptimizationSplitChunksSizes.optional(),
 			maxSize: z.number().optional(),
 			maxAsyncSize: z.number().optional(),
 			maxInitialSize: z.number().optional()
