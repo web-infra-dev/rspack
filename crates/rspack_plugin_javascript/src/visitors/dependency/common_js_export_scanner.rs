@@ -6,15 +6,19 @@ use swc_core::{
   common::{Spanned, SyntaxContext},
   ecma::{
     ast::{
-      AssignExpr, CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit, MemberExpr, ModuleItem,
-      ObjectLit, Pat, PatOrExpr, Program, Prop, PropName, PropOrSpread, Stmt, UnaryOp,
+      ArrowExpr, AssignExpr, CallExpr, Callee, ClassMember, Expr, ExprOrSpread, FnDecl, FnExpr,
+      Ident, Lit, MemberExpr, ModuleItem, ObjectLit, Pat, PatOrExpr, Program, Prop, PropName,
+      PropOrSpread, Stmt, UnaryOp,
     },
     visit::{noop_visit_type, Visit, VisitWith},
   },
 };
 
 use super::{expr_matcher, is_require_call_expr};
-use crate::dependency::{CommonJsExportsDependency, ExportsBase, ModuleDecoratorDependency};
+use crate::{
+  dependency::{CommonJsExportsDependency, ExportsBase, ModuleDecoratorDependency},
+  ClassExt,
+};
 
 pub struct CommonJsExportDependencyScanner<'a> {
   dependencies: &'a mut Vec<BoxDependency>,
@@ -27,6 +31,7 @@ pub struct CommonJsExportDependencyScanner<'a> {
   enter_call: u32,
   stmt_level: u32,
   last_stmt_is_expr_stmt: bool,
+  is_top_level: bool,
 }
 
 impl<'a> CommonJsExportDependencyScanner<'a> {
@@ -49,6 +54,7 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
       enter_call: 0,
       stmt_level: 0,
       last_stmt_is_expr_stmt: false,
+      is_top_level: true,
     }
   }
 }
@@ -257,6 +263,40 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
     call_expr.visit_children_with(self);
     self.enter_call -= 1;
   }
+
+  fn visit_class_member(&mut self, node: &ClassMember) {
+    if let Some(key) = node.class_key()
+      && key.is_computed()
+    {
+      key.visit_with(self);
+    }
+
+    let top_level = self.is_top_level;
+    self.is_top_level = false;
+    node.visit_children_with(self);
+    self.is_top_level = top_level;
+  }
+
+  fn visit_fn_decl(&mut self, node: &FnDecl) {
+    let top_level = self.is_top_level;
+    self.is_top_level = false;
+    node.visit_children_with(self);
+    self.is_top_level = top_level;
+  }
+
+  fn visit_fn_expr(&mut self, node: &FnExpr) {
+    let top_level = self.is_top_level;
+    self.is_top_level = false;
+    node.visit_children_with(self);
+    self.is_top_level = top_level;
+  }
+
+  fn visit_arrow_expr(&mut self, node: &ArrowExpr) {
+    let top_level = self.is_top_level;
+    self.is_top_level = false;
+    node.visit_children_with(self);
+    self.is_top_level = top_level;
+  }
 }
 
 impl<'a> CommonJsExportDependencyScanner<'a> {
@@ -302,7 +342,7 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
   }
 
   fn is_this_expr(&self, expr: &Expr) -> bool {
-    matches!(expr,  Expr::This(_) if self.enter_call == 0 && self.stmt_level == 1)
+    matches!(expr,  Expr::This(_) if self.is_top_level)
   }
 
   fn check_namespace(&mut self, top_level: bool, value_expr: Option<&Expr>) {
