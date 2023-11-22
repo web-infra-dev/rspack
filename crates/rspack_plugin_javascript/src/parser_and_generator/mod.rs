@@ -312,6 +312,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         runtime: generate_context.runtime,
       };
 
+      dbg!(&module.identifier());
       module.get_dependencies().iter().for_each(|dependency_id| {
         self.source_dependency(compilation, dependency_id, &mut source, &mut context)
       });

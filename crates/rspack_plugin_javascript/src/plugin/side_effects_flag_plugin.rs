@@ -423,9 +423,8 @@ impl Plugin for SideEffectsFlagPlugin {
       .collect::<Vec<_>>();
     for module_identifier in module_id_list {
       let mut module_chain = HashSet::default();
-      let module = match mg.module_by_identifier(&module_identifier) {
-        Some(module) => module,
-        None => continue,
+      let Some(module) = mg.module_by_identifier(&module_identifier) else {
+        continue;
       };
       let side_effects_state = module.get_side_effects_connection_state(mg, &mut module_chain);
       if side_effects_state != rspack_core::ConnectionState::Bool(false) {
@@ -507,10 +506,11 @@ impl Plugin for SideEffectsFlagPlugin {
               },
             )),
           );
-          dbg!(&target);
           let Some(target) = target else {
             continue;
           };
+
+          // dbg!(&mg.connection_by_dependency(&dep_id));
           mg.update_module(&dep_id, &target.module);
           // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
           let processed_ids = target
@@ -521,6 +521,7 @@ impl Plugin for SideEffectsFlagPlugin {
             })
             .unwrap_or_else(|| ids[1..].to_vec());
           dep_id.set_ids(processed_ids, mg);
+          // dbg!(&mg.connection_by_dependency(&dep_id),);
         }
       }
     }

@@ -1088,7 +1088,7 @@ impl ExportInfo {
           return Some(ResolvedExportInfoTargetWithCircular::Circular);
         }
         let mut export_info = mg.get_export_info_by_id(&export_info_id).clone();
-        dbg!(&export_info);
+        // dbg!(&export_info);
 
         let export_info_id = export_info.id;
         let new_target = export_info._get_target(mg, resolve_filter.clone(), already_visited);
@@ -1464,17 +1464,24 @@ pub fn process_export_info(
 }
 
 #[macro_export]
-macro_rules! debug_exports_info {
+macro_rules! debug_all_exports_info {
   ($mg:expr) => {
     for mgm in $mg.module_graph_modules().values() {
-      dbg!(&mgm.module_identifier);
-      let exports_info_id = mgm.exports;
-      let exports_info = $mg.get_exports_info_by_id(&exports_info_id);
-      dbg!(&exports_info);
-      for id in exports_info.exports.values() {
-        let export_info = $mg.get_export_info_by_id(id);
-        dbg!(&export_info);
-      }
+      crate::debug_exports_info!(mgm, $mg);
+    }
+  };
+}
+
+#[macro_export]
+macro_rules! debug_exports_info {
+  ($mgm:expr, $mg:expr) => {
+    dbg!(&$mgm.module_identifier);
+    let exports_info_id = $mgm.exports;
+    let exports_info = $mg.get_exports_info_by_id(&exports_info_id);
+    dbg!(&exports_info);
+    for id in exports_info.exports.values() {
+      let export_info = $mg.get_export_info_by_id(id);
+      dbg!(&export_info);
     }
   };
 }

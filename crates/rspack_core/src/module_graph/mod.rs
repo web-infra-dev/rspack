@@ -29,7 +29,7 @@ pub struct DependencyParents {
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
-  dependency_id_to_module_identifier: HashMap<DependencyId, ModuleIdentifier>,
+  pub dependency_id_to_module_identifier: HashMap<DependencyId, ModuleIdentifier>,
 
   /// Module identifier to its module
   pub module_identifier_to_module: IdentifierMap<BoxModule>,
@@ -638,13 +638,14 @@ impl ModuleGraph {
     let old_connection_module_id = connection.module_identifier;
     let old_connection_original_module_id = connection.original_module_identifier;
     let old_connection_dependency_id = connection.dependency_id;
-
     let new_connection_id = ConnectionId::from(mg.connections.len());
     connection.set_active(true);
     connection.module_identifier = module_identifier;
     mg.connections.push(Some(connection));
     mg.connections_map.insert(connection, new_connection_id);
 
+    mg.dependency_id_to_module_identifier
+      .insert(old_connection_dependency_id, module_identifier);
     mg.dependency_id_to_connection_id
       .insert(old_connection_dependency_id, new_connection_id);
 
@@ -672,10 +673,10 @@ impl ModuleGraph {
     if &connection.module_identifier == module_id {
       return;
     }
-    connection.set_active(false);
     let connection_copy = *connection;
-    let condition = self.connection_to_condition.get(&connection_copy).cloned();
-    let mut new_connection = Self::normalize_new_connection(self, connection_copy, *module_id);
+    connection.set_active(false);
+    let condition = { self.connection_to_condition.get(&connection_copy).cloned() };
+    let new_connection = Self::normalize_new_connection(self, connection_copy, *module_id);
 
     // copy condition
     if let Some(condition) = condition {

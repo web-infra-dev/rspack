@@ -272,6 +272,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     //   self.used_by_exports.as_ref()
     // );
     let ret = get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref());
+    // dbg!(&ret);
     ret
   }
 
