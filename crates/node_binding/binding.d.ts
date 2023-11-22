@@ -280,11 +280,12 @@ export interface JsHooks {
   thisCompilation: (...args: any[]) => any
   emit: (...args: any[]) => any
   assetEmitted: (...args: any[]) => any
+  shouldEmit: (...args: any[]) => any
   afterEmit: (...args: any[]) => any
   make: (...args: any[]) => any
   optimizeModules: (...args: any[]) => any
   optimizeTree: (...args: any[]) => any
-  optimizeChunkModule: (...args: any[]) => any
+  optimizeChunkModules: (...args: any[]) => any
   beforeCompile: (...args: any[]) => any
   afterCompile: (...args: any[]) => any
   finishModules: (...args: any[]) => any
