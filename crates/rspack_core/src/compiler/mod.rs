@@ -275,6 +275,15 @@ where
   #[instrument(name = "compile_done", skip_all)]
   async fn compile_done(&mut self) -> Result<()> {
     let logger = self.compilation.get_logger("rspack.Compiler");
+
+    if !self
+      .plugin_driver
+      .should_emit(&mut self.compilation)
+      .await?
+    {
+      return self.compilation.done(self.plugin_driver.clone()).await;
+    }
+
     if !self.compilation.options.builtins.no_emit_assets {
       let start = logger.time("emitAssets");
       self.emit_assets().await?;

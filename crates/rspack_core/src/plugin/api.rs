@@ -41,6 +41,7 @@ pub type PluginRenderModuleContentOutput<'a> = Result<RenderModuleContentArgs<'a
 pub type PluginRenderStartupHookOutput = Result<Option<BoxSource>>;
 pub type PluginRenderHookOutput = Result<Option<BoxSource>>;
 pub type PluginJsChunkHashHookOutput = Result<()>;
+pub type PluginShouldEmitHookOutput = Result<Option<bool>>;
 
 #[async_trait::async_trait]
 pub trait Plugin: Debug + Send + Sync {
@@ -456,6 +457,10 @@ pub trait Plugin: Debug + Send + Sync {
 
   async fn asset_emitted(&self, _args: &AssetEmittedArgs) -> Result<()> {
     Ok(())
+  }
+
+  async fn should_emit(&self, _compilation: &mut Compilation) -> PluginShouldEmitHookOutput {
+    Ok(None)
   }
 
   async fn after_emit(&self, _compilation: &mut Compilation) -> Result<()> {

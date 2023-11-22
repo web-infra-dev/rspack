@@ -97,6 +97,7 @@ class Compiler {
 		normalModuleFactory: tapable.SyncHook<NormalModuleFactory>;
 		contextModuleFactory: tapable.SyncHook<ContextModuleFactory>;
 		initialize: tapable.SyncHook<[]>;
+		shouldEmit: tapable.SyncBailHook<[Compilation], undefined>;
 		infrastructureLog: tapable.SyncBailHook<[string, string, any[]], true>;
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
 		run: tapable.AsyncSeriesHook<[Compiler]>;
@@ -137,6 +138,7 @@ class Compiler {
 		this.removedFiles = undefined;
 		this.hooks = {
 			initialize: new SyncHook([]),
+			shouldEmit: new tapable.SyncBailHook(["compilation"]),
 			done: new tapable.AsyncSeriesHook<Stats>(["stats"]),
 			afterDone: new tapable.SyncHook<Stats>(["stats"]),
 			beforeRun: new tapable.AsyncSeriesHook(["compiler"]),
@@ -247,6 +249,7 @@ class Compiler {
 				afterCompile: this.#afterCompile.bind(this),
 				finishMake: this.#finishMake.bind(this),
 				make: this.#make.bind(this),
+				shouldEmit: this.#shouldEmit.bind(this),
 				emit: this.#emit.bind(this),
 				assetEmitted: this.#assetEmitted.bind(this),
 				afterEmit: this.#afterEmit.bind(this),
@@ -325,7 +328,7 @@ class Compiler {
 				compilation: this.#compilation.bind(this),
 				optimizeModules: this.#optimizeModules.bind(this),
 				optimizeTree: this.#optimizeTree.bind(this),
-				optimizeChunkModule: this.#optimizeChunkModules.bind(this),
+				optimizeChunkModules: this.#optimizeChunkModules.bind(this),
 				finishModules: this.#finishModules.bind(this),
 				normalModuleFactoryResolveForScheme:
 					this.#normalModuleFactoryResolveForScheme.bind(this),
@@ -562,11 +565,13 @@ class Compiler {
 
 	#updateDisabledHooks(callback?: (error?: Error) => void) {
 		const disabledHooks: string[] = [];
-		const hookMap = {
+		type HookMap = Record<keyof binding.JsHooks, any>;
+		const hookMap: HookMap = {
 			make: this.hooks.make,
 			beforeCompile: this.hooks.beforeCompile,
 			afterCompile: this.hooks.afterCompile,
 			finishMake: this.hooks.finishMake,
+			shouldEmit: this.hooks.shouldEmit,
 			emit: this.hooks.emit,
 			assetEmitted: this.hooks.assetEmitted,
 			afterEmit: this.hooks.afterEmit,
@@ -635,7 +640,6 @@ class Compiler {
 					Compilation.PROCESS_ASSETS_STAGE_REPORT
 				),
 			compilation: this.hooks.compilation,
-			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
 			optimizeTree: this.compilation.hooks.optimizeTree,
 			finishModules: this.compilation.hooks.finishModules,
 			optimizeModules: this.compilation.hooks.optimizeModules,
@@ -644,10 +648,15 @@ class Compiler {
 			afterResolve: this.compilation.normalModuleFactory?.hooks.afterResolve,
 			succeedModule: this.compilation.hooks.succeedModule,
 			stillValidModule: this.compilation.hooks.stillValidModule,
-			buildModule: this.compilation.hooks.buildModule
+			buildModule: this.compilation.hooks.buildModule,
+			thisCompilation: undefined,
+			optimizeChunkModules: undefined,
+			contextModuleBeforeResolve: undefined,
+			normalModuleFactoryResolveForScheme: undefined,
+			executeModule: undefined
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
-			if (hook?.taps.length === 0) {
+			if (typeof hook !== "undefined" && hook.taps.length === 0) {
 				disabledHooks.push(name);
 			}
 		}
@@ -793,6 +802,11 @@ class Compiler {
 	async #make() {
 		await this.hooks.make.promise(this.compilation);
 		this.#updateDisabledHooks();
+	}
+	async #shouldEmit(): Promise<boolean | undefined> {
+		const res = this.hooks.shouldEmit.call(this.compilation);
+		this.#updateDisabledHooks();
+		return Promise.resolve(res);
 	}
 	async #emit() {
 		await this.hooks.emit.promise(this.compilation);
@@ -971,6 +985,7 @@ class Compiler {
 				});
 			});
 		};
+
 		if (this.idle) {
 			this.cache.endIdle(err => {
 				if (err) return callback(err);

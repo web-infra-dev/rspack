@@ -3,22 +3,21 @@ use std::fmt::Debug;
 use std::path::PathBuf;
 
 use async_trait::async_trait;
-pub use loader::JsLoaderResolver;
 use napi::{Env, Result};
 use rspack_binding_macros::js_fn_into_threadsafe_fn;
-use rspack_binding_values::{
-  AfterResolveData, BeforeResolveData, JsAssetEmittedArgs, JsChunkAssetArgs, JsExecuteModuleArg,
-  JsModule, JsResolveForSchemeInput, JsResolveForSchemeResult, ToJsModule,
-};
-use rspack_core::{
-  ChunkAssetArgs, ModuleIdentifier, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
-  PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
-  PluginNormalModuleFactoryResolveForSchemeOutput, ResourceData,
-};
+use rspack_binding_values::JsExecuteModuleArg;
+use rspack_binding_values::{AfterResolveData, JsChunkAssetArgs, JsModule};
+use rspack_binding_values::{BeforeResolveData, JsAssetEmittedArgs, ToJsModule};
+use rspack_binding_values::{JsResolveForSchemeInput, JsResolveForSchemeResult};
+use rspack_core::{ChunkAssetArgs, ModuleIdentifier, NormalModuleAfterResolveArgs};
+use rspack_core::{NormalModuleBeforeResolveArgs, PluginNormalModuleFactoryAfterResolveOutput};
+use rspack_core::{PluginNormalModuleFactoryBeforeResolveOutput, ResourceData};
+use rspack_core::{PluginNormalModuleFactoryResolveForSchemeOutput, PluginShouldEmitHookOutput};
 use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::NapiResultExt;
 
+pub use self::loader::JsLoaderResolver;
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
 pub struct JsHooksAdapter {
@@ -44,6 +43,7 @@ pub struct JsHooksAdapter {
   pub process_assets_stage_report_tsfn: ThreadsafeFunction<(), ()>,
   pub emit_tsfn: ThreadsafeFunction<(), ()>,
   pub asset_emitted_tsfn: ThreadsafeFunction<JsAssetEmittedArgs, ()>,
+  pub should_emit_tsfn: ThreadsafeFunction<JsCompilation, Option<bool>>,
   pub after_emit_tsfn: ThreadsafeFunction<(), ()>,
   pub optimize_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub optimize_tree_tsfn: ThreadsafeFunction<(), ()>,
@@ -698,6 +698,28 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call asset emitted: {err}"))?
   }
 
+  async fn should_emit(
+    &self,
+    compilation: &mut rspack_core::Compilation,
+  ) -> PluginShouldEmitHookOutput {
+    if self.is_hook_disabled(&Hook::ShouldEmit) {
+      return Ok(None);
+    }
+
+    let compilation = JsCompilation::from_compilation(unsafe {
+      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
+        compilation,
+      )
+    });
+
+    let res = self
+      .should_emit_tsfn
+      .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await;
+    res.map_err(|err| internal_error!("Failed to call should emit: {err}"))?
+  }
+
   async fn after_emit(&self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
     if self.is_hook_disabled(&Hook::AfterEmit) {
       return Ok(());
@@ -708,7 +730,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call after emit: {err}",))?
+      .map_err(|err| internal_error!("Failed to call after emit: {err}"))?
   }
 
   async fn succeed_module(&self, args: &dyn rspack_core::Module) -> rspack_error::Result<()> {
@@ -793,12 +815,13 @@ impl JsHooksAdapter {
       process_assets_stage_report,
       this_compilation,
       compilation,
+      should_emit,
       emit,
       asset_emitted,
       after_emit,
       optimize_modules,
       optimize_tree,
-      optimize_chunk_module,
+      optimize_chunk_modules,
       before_resolve,
       after_resolve,
       context_module_before_resolve,
@@ -847,6 +870,8 @@ impl JsHooksAdapter {
     let process_assets_stage_report_tsfn: ThreadsafeFunction<(), ()> =
       js_fn_into_threadsafe_fn!(process_assets_stage_report, env);
     let emit_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_threadsafe_fn!(emit, env);
+    let should_emit_tsfn: ThreadsafeFunction<JsCompilation, Option<bool>> =
+      js_fn_into_threadsafe_fn!(should_emit, env);
     let asset_emitted_tsfn: ThreadsafeFunction<JsAssetEmittedArgs, ()> =
       js_fn_into_threadsafe_fn!(asset_emitted, env);
     let after_emit_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_threadsafe_fn!(after_emit, env);
@@ -860,7 +885,7 @@ impl JsHooksAdapter {
     let optimize_tree_tsfn: ThreadsafeFunction<(), ()> =
       js_fn_into_threadsafe_fn!(optimize_tree, env);
     let optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
-      js_fn_into_threadsafe_fn!(optimize_chunk_module, env);
+      js_fn_into_threadsafe_fn!(optimize_chunk_modules, env);
     let before_compile_tsfn: ThreadsafeFunction<(), ()> =
       js_fn_into_threadsafe_fn!(before_compile, env);
     let after_compile_tsfn: ThreadsafeFunction<JsCompilation, ()> =
@@ -911,6 +936,7 @@ impl JsHooksAdapter {
       process_assets_stage_report_tsfn,
       compilation_tsfn,
       this_compilation_tsfn,
+      should_emit_tsfn,
       emit_tsfn,
       asset_emitted_tsfn,
       after_emit_tsfn,

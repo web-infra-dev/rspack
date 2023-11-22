@@ -620,6 +620,16 @@ impl PluginDriver {
     Ok(())
   }
 
+  pub async fn should_emit(&self, compilation: &mut Compilation) -> Result<bool> {
+    let mut res = true;
+    for plugin in &self.plugins {
+      if let Some(temp) = plugin.should_emit(compilation).await? {
+        res &= temp;
+      }
+    }
+    Ok(res)
+  }
+
   #[instrument(name = "plugin:emit", skip_all)]
   pub async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &self.plugins {
