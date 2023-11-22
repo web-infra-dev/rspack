@@ -38,7 +38,6 @@ export class RspackDevServer extends WebpackDevServer {
 
 	constructor(options: DevServer, compiler: Compiler | MultiCompiler) {
 		super(
-			// @ts-expect-error
 			{
 				...options,
 				setupMiddlewares: (middlewares, devServer) => {
@@ -74,7 +73,6 @@ export class RspackDevServer extends WebpackDevServer {
 						}
 					}
 
-					// @ts-expect-error
 					options.setupMiddlewares?.call(this, middlewares, devServer);
 					return middlewares;
 				}

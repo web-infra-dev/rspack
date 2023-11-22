@@ -18,9 +18,7 @@
     "test": "cross-env NO_COLOR=1 RSPACK_DEP_WARNINGS=false node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathIgnorePatterns \".diff.test.ts\"",
     "test-diff": "cross-env RSPACK_DIFF=true NO_COLOR=1 RSPACK_DEP_WARNINGS=false node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage --testPathPattern \".diff.test.ts\""
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "engines": {
     "node": ">=16.0.0"
   },
@@ -39,7 +37,6 @@
     "@swc/jest": "^0.2.29",
     "@types/watchpack": "^2.4.0",
     "@types/webpack": "5.28.3",
-    "@types/webpack-dev-server": "^4.7.2",
     "@types/webpack-sources": "3.2.0",
     "@types/ws": "8.5.3",
     "babel-loader": "^9.1.0",
