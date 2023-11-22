@@ -1,12 +1,11 @@
 use rspack_core::{
+  impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, RuntimeModule,
 };
 use rspack_identifier::Identifier;
 use rspack_plugin_javascript::runtime::stringify_chunks_to_array;
 use rustc_hash::FxHashSet as HashSet;
-
-use crate::impl_runtime_module;
 
 #[derive(Debug, Eq)]
 pub struct StartupChunkDependenciesRuntimeModule {

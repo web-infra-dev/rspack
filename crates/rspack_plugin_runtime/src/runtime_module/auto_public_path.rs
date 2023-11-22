@@ -1,5 +1,5 @@
 use rspack_core::{
-  get_js_chunk_filename_template,
+  get_js_chunk_filename_template, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, SourceType,
@@ -7,7 +7,6 @@ use rspack_core::{
 use rspack_identifier::Identifier;
 
 use super::utils::get_undo_path;
-use crate::impl_runtime_module;
 
 #[derive(Debug, Eq)]
 pub struct AutoPublicPathRuntimeModule {
