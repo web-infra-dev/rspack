@@ -187,12 +187,12 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         } else {
           continue;
         };
-        // dbg!(
-        //   &connection,
-        //   dep.dependency_debug_name(),
-        //   &referenced_exports,
-        //   &old_referenced_exports
-        // );
+        dbg!(
+          &connection,
+          dep.dependency_debug_name(),
+          &referenced_exports,
+          &old_referenced_exports
+        );
 
         if old_referenced_exports.is_none()
           || matches!(old_referenced_exports, Some(ProcessModuleReferencedExports::ExtendRef(ref v)) if is_no_exports_referenced(v))
@@ -305,7 +305,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     force_side_effects: bool,
     queue: &mut VecDeque<(ModuleIdentifier, Option<RuntimeSpec>)>,
   ) {
-    // dbg!(&module_id, &used_exports);
+    dbg!(&module_id, &used_exports);
     let mgm = self
       .compilation
       .module_graph
@@ -387,6 +387,10 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               UsageState::Used,
               runtime.as_ref(),
             );
+            // dbg!(
+            //   &export_info_id.get_export_info(&self.compilation.module_graph),
+            //   changed_flag
+            // );
             if changed_flag {
               let current_module = if current_exports_info_id == mgm_exports_info_id {
                 Some(module_id)
@@ -428,6 +432,7 @@ pub struct FlagDependencyUsagePlugin;
 #[async_trait::async_trait]
 impl Plugin for FlagDependencyUsagePlugin {
   async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
+    println!("flag dep usage");
     // TODO: `global` is always `true`, until we finished runtime optimization.
     let mut proxy = FlagDependencyUsagePluginProxy::new(true, compilation);
     proxy.apply();

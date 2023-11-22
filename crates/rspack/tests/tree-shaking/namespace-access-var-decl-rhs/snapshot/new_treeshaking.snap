@@ -3,10 +3,25 @@ source: crates/rspack_testing/src/run_fixture.rs
 ---
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./enum.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-
+__webpack_require__.d(__webpack_exports__, {
+  a: function() { return a; }
+});
+ const a = {
+    a: ''
+};
+}),
+"./b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  b: function() { return b; }
+});
+ const b = {
+    b: ""
+};
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
@@ -21,7 +36,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   getDocPermissionTextSendMe: function() { return getDocPermissionTextSendMe; }
 });
-/* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./enum.js */"./enum.js");
+/* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./enum.js */"./a.js");
 
 function Record() {}
  const code2CreateChatDocPermission = {

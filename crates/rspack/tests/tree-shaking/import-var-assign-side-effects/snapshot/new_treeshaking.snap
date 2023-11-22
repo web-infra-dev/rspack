@@ -3,17 +3,19 @@ source: crates/rspack_testing/src/run_fixture.rs
 ---
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./export.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./Something.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-
-
-
+__webpack_require__.d(__webpack_exports__, {
+  "default": function() { return Something; }
+});
+class Something {
+}
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./export */"./export.js");
+/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./export */"./Something.js");
 
 (0, _export__WEBPACK_IMPORTED_MODULE_0__.Sider)();
 }),
