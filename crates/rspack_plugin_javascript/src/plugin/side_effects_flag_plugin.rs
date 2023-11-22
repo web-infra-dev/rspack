@@ -436,25 +436,20 @@ impl Plugin for SideEffectsFlagPlugin {
 
       let incoming_connections = mg.get_incoming_connections_cloned(module);
       for con in incoming_connections {
-        let dep = match mg.dependency_by_id(&con.dependency_id) {
-          Some(dep) => dep,
-          None => continue,
+        let Some(dep) = mg.dependency_by_id(&con.dependency_id) else {
+          continue;
         };
         let dep_id = *dep.id();
         let is_reexport = dep
           .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
           .is_some();
-        let is_valid_import_specifier_dep = if let Some(import_specifier_dep) =
-          dep.downcast_ref::<HarmonyImportSpecifierDependency>()
-        {
-          !import_specifier_dep.namespace_object_as_context
-        } else {
-          false
-        };
+        let is_valid_import_specifier_dep = dep
+          .downcast_ref::<HarmonyImportSpecifierDependency>()
+          .map(|import_specifier_dep| !import_specifier_dep.namespace_object_as_context)
+          .unwrap_or_default();
         if !is_reexport && !is_valid_import_specifier_dep {
           continue;
         }
-        dbg!(&dep.dependency_debug_name());
         if let Some(name) = dep
           .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
           .and_then(|dep| dep.name.clone())
@@ -496,6 +491,8 @@ impl Plugin for SideEffectsFlagPlugin {
         }
 
         let ids = dep_id.get_ids(mg);
+
+        dbg!(&dep.dependency_debug_name(), &ids);
         if !ids.is_empty() {
           let export_info_id = cur_exports_info_id.get_export_info(&ids[0], mg);
 
@@ -510,6 +507,7 @@ impl Plugin for SideEffectsFlagPlugin {
               },
             )),
           );
+          dbg!(&target);
           let target = match target {
             Some(target) => target,
             None => continue,

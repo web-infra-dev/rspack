@@ -554,6 +554,10 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
     &self.id
   }
 
+  fn name(&self) -> Option<&JsWord> {
+    self.name.as_ref()
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
