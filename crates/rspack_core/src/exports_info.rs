@@ -1151,14 +1151,12 @@ impl ExportInfo {
         export: item.exports.clone(),
       })
       .collect::<Vec<_>>();
-    dbg!(&values);
     let target = Self::resolve_target(
       values.first().cloned(),
       already_visited,
       resolve_filter.clone(),
       mg,
     );
-    dbg!(&target);
 
     match target {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => {
