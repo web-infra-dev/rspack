@@ -17,7 +17,7 @@ __webpack_require__.d(__webpack_exports__, {
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./lib */"./answer.js");
 
-_lib__WEBPACK_IMPORTED_MODULE_0__.a;
+_lib__WEBPACK_IMPORTED_MODULE_0__.Lib.a;
 }),
 
 },function(__webpack_require__) {
