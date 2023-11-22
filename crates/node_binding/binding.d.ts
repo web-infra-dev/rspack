@@ -236,6 +236,14 @@ export interface JsChunkGroup {
   name?: string
 }
 
+export interface JsCodegenerationResult {
+  sources: Record<string, string>
+}
+
+export interface JsCodegenerationResults {
+  map: Record<string, Record<string, JsCodegenerationResult>>
+}
+
 export interface JsCompatSource {
   /** Whether the underlying data structure is a `RawSource` */
   isRaw: boolean
@@ -243,6 +251,12 @@ export interface JsCompatSource {
   isBuffer: boolean
   source: Buffer
   map?: Buffer
+}
+
+export interface JsExecuteModuleArg {
+  entry: string
+  runtimeModules: Array<string>
+  codegenResults: JsCodegenerationResults
 }
 
 export interface JsHooks {
@@ -283,6 +297,7 @@ export interface JsHooks {
   chunkAsset: (...args: any[]) => any
   succeedModule: (...args: any[]) => any
   stillValidModule: (...args: any[]) => any
+  executeModule: (...args: any[]) => any
 }
 
 export interface JsLoaderContext {

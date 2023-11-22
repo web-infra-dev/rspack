@@ -1697,6 +1697,14 @@ impl Compilation {
   pub fn get_logger(&self, name: impl Into<String>) -> CompilationLogger {
     CompilationLogger::new(name.into(), self.logging.clone())
   }
+
+  pub fn execute_module(&self, entry: ModuleIdentifier) -> Result<Option<String>> {
+    let codegen_result = Default::default();
+    // TODO
+    self
+      .plugin_driver
+      .execute_module(entry, vec![], &codegen_result)
+  }
 }
 
 pub type CompilationAssets = HashMap<String, CompilationAsset>;
