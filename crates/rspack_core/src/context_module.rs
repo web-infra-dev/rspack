@@ -7,6 +7,7 @@ use std::{
   sync::Arc,
 };
 
+use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -19,7 +20,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   contextify, get_exports_type_with_strict, stringify_map, to_path, AsyncDependenciesBlock,
-  AsyncDependenciesBlockId, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation, ContextElementDependency,
   DependenciesBlock, DependencyCategory, DependencyId, DependencyType, ExportsType,
   FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module, ModuleType, Resolve,
@@ -175,7 +176,7 @@ pub enum FakeMapValue {
 #[derive(Debug)]
 pub struct ContextModule {
   dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockId>,
+  blocks: Vec<AsyncDependenciesBlockIdentifier>,
   identifier: Identifier,
   options: ContextModuleOptions,
   resolve_factory: Arc<ResolverFactory>,
@@ -208,53 +209,57 @@ impl ContextModule {
       .as_str()
   }
 
-  fn get_fake_map(&self, compilation: &Compilation) -> FakeMapValue {
+  fn get_fake_map(
+    &self,
+    dependencies: impl IntoIterator<Item = &DependencyId>,
+    compilation: &Compilation,
+  ) -> FakeMapValue {
+    let dependencies = dependencies.into_iter();
     if self.options.context_options.namespace_object.is_false() {
       return FakeMapValue::Bit(FakeNamespaceObjectMode::NAMESPACE);
     }
     let mut has_type = 0;
     let mut fake_map = HashMap::default();
-    if let Some(dependencies) = compilation
-      .module_graph
-      .dependencies_by_module_identifier(&self.identifier)
-    {
-      for dependency_id in dependencies {
-        if let Some(module_identifier) = compilation
+    let sorted_modules = dependencies
+      .filter_map(|dep_id| {
+        compilation
           .module_graph
-          .module_identifier_by_dependency_id(dependency_id)
-        {
-          if let Some(module_id) = compilation
-            .chunk_graph
-            .get_module_id(*module_identifier)
-            .clone()
-          {
-            let exports_type = get_exports_type_with_strict(
-              &compilation.module_graph,
-              dependency_id,
-              matches!(
-                self.options.context_options.namespace_object,
-                ContextNameSpaceObject::Strict
-              ),
-            );
-            match exports_type {
-              ExportsType::Namespace => {
-                fake_map.insert(module_id, FakeNamespaceObjectMode::NAMESPACE);
-                has_type |= 1;
-              }
-              ExportsType::Dynamic => {
-                fake_map.insert(module_id, FakeNamespaceObjectMode::DYNAMIC);
-                has_type |= 2;
-              }
-              ExportsType::DefaultOnly => {
-                fake_map.insert(module_id, FakeNamespaceObjectMode::MODULE_ID);
-                has_type |= 4;
-              }
-              ExportsType::DefaultWithNamed => {
-                fake_map.insert(module_id, FakeNamespaceObjectMode::DEFAULT_WITH_NAMED);
-                has_type |= 8;
-              }
-            }
-          }
+          .module_identifier_by_dependency_id(dep_id)
+          .map(|m| (m, dep_id))
+      })
+      .filter_map(|(m, dep)| {
+        compilation
+          .chunk_graph
+          .get_module_id(*m)
+          .clone()
+          .map(|id| (id, dep))
+      })
+      .sorted_unstable_by_key(|(module_id, _)| module_id.to_string());
+    for (module_id, dep) in sorted_modules {
+      let exports_type = get_exports_type_with_strict(
+        &compilation.module_graph,
+        dep,
+        matches!(
+          self.options.context_options.namespace_object,
+          ContextNameSpaceObject::Strict
+        ),
+      );
+      match exports_type {
+        ExportsType::Namespace => {
+          fake_map.insert(module_id, FakeNamespaceObjectMode::NAMESPACE);
+          has_type |= 1;
+        }
+        ExportsType::Dynamic => {
+          fake_map.insert(module_id, FakeNamespaceObjectMode::DYNAMIC);
+          has_type |= 2;
+        }
+        ExportsType::DefaultOnly => {
+          fake_map.insert(module_id, FakeNamespaceObjectMode::MODULE_ID);
+          has_type |= 4;
+        }
+        ExportsType::DefaultWithNamed => {
+          fake_map.insert(module_id, FakeNamespaceObjectMode::DEFAULT_WITH_NAMED);
+          has_type |= 8;
         }
       }
     }
@@ -291,23 +296,24 @@ impl ContextModule {
     )
   }
 
-  fn get_user_request_map(&self, compilation: &Compilation) -> HashMap<String, String> {
+  fn get_user_request_map(
+    &self,
+    dependencies: impl IntoIterator<Item = &DependencyId>,
+    compilation: &Compilation,
+  ) -> HashMap<String, String> {
+    let dependencies = dependencies.into_iter();
     let mut map = HashMap::default();
-    if let Some(dependencies) = compilation
-      .module_graph
-      .dependencies_by_module_identifier(&self.identifier)
-    {
-      for dependency in dependencies {
-        if let Some(module_identifier) = compilation
-          .module_graph
-          .module_identifier_by_dependency_id(dependency)
-        {
-          let dep = compilation.module_graph.dependency_by_id(dependency);
-          let request = if let Some(d) = dep.and_then(|d| d.as_module_dependency()) {
+    for dependency in dependencies {
+      if let Some(module_identifier) = compilation
+        .module_graph
+        .module_identifier_by_dependency_id(dependency)
+      {
+        if let Some(dependency) = compilation.module_graph.dependency_by_id(dependency) {
+          let request = if let Some(d) = dependency.as_module_dependency() {
             Some(d.user_request().to_string())
           } else {
-            dep
-              .and_then(|d| d.as_context_dependency())
+            dependency
+              .as_context_dependency()
               .map(|d| d.request().to_string())
           };
           if let Some(request) = request {
@@ -326,19 +332,62 @@ impl ContextModule {
     map
   }
 
+  fn get_block_promise_key_map(
+    &self,
+    blocks: impl IntoIterator<Item = &AsyncDependenciesBlock>,
+    compilation: &Compilation,
+  ) -> HashMap<String, String> {
+    let blocks = blocks
+      .into_iter()
+      .filter_map(|b| b.get_dependencies().first().map(|first| (b, first)));
+    let mut map = HashMap::default();
+    for (block, dep_id) in blocks {
+      if let Some(dependency) = compilation
+        .module_graph
+        .dependency_by_id(dep_id)
+        .and_then(|d| d.as_module_dependency())
+      {
+        let key = block.block_promise_key(compilation);
+        map.insert(dependency.user_request().to_string(), key);
+      }
+    }
+    map
+  }
+
   #[inline]
   fn get_source_string(&self, compilation: &Compilation) -> Result<BoxSource> {
     match self.options.context_options.mode {
       ContextMode::Lazy => Ok(self.get_lazy_source(compilation)),
-      _ => self.generate_source(compilation),
+      ContextMode::LazyOnce => {
+        let block = self
+          .get_blocks()
+          .first()
+          .ok_or_else(|| internal_error!("LazyOnce ContextModule should have first block"))?;
+        let block = compilation
+          .module_graph
+          .block_by_id(block)
+          .ok_or_else(|| internal_error!("should have block"))?;
+        self.generate_source(block.get_dependencies(), compilation)
+      }
+      _ => self.generate_source(self.get_dependencies(), compilation),
     }
   }
 
   fn get_lazy_source(&self, compilation: &Compilation) -> BoxSource {
-    let map = self.get_user_request_map(compilation);
-    let fake_map = self.get_fake_map(compilation);
+    let blocks = self
+      .get_blocks()
+      .iter()
+      .filter_map(|b| compilation.module_graph.block_by_id(b));
+    let block_map = self.get_block_promise_key_map(blocks.clone(), compilation);
+    let dependencies = blocks.filter_map(|b| b.get_dependencies().first());
+    let fake_map = self.get_fake_map(dependencies.clone(), compilation);
+    let map = self.get_user_request_map(dependencies, compilation);
     let return_module_object = self.get_return_module_object_source(&fake_map, true);
     let mut source = ConcatSource::default();
+    source.add(RawSource::from(format!(
+      "var blockMap = {};\n",
+      stringify_map(&block_map)
+    )));
     source.add(RawSource::from(format!(
       "var map = {};\n",
       stringify_map(&map)
@@ -359,8 +408,9 @@ impl ContextModule {
             throw e;
           }});
         }}
+        var blockId = blockMap[req];
         var id = map[req];
-        return __webpack_require__.el(id).then(function() {{
+        return __webpack_require__.el(blockId).then(function() {{
           {return_module_object}
         }});
       }}
@@ -375,9 +425,13 @@ impl ContextModule {
     source.boxed()
   }
 
-  fn generate_source(&self, compilation: &Compilation) -> Result<BoxSource> {
-    let map = self.get_user_request_map(compilation);
-    let fake_map = self.get_fake_map(compilation);
+  fn generate_source(
+    &self,
+    dependencies: &[DependencyId],
+    compilation: &Compilation,
+  ) -> Result<BoxSource> {
+    let map = self.get_user_request_map(dependencies, compilation);
+    let fake_map = self.get_fake_map(dependencies, compilation);
     let mode = &self.options.context_options.mode;
     let return_module_object = {
       match *mode {
@@ -479,11 +533,11 @@ impl ContextModule {
 }
 
 impl DependenciesBlock for ContextModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
     &self.blocks
   }
 
@@ -572,11 +626,19 @@ impl Module for ContextModule {
           .insert(RuntimeGlobals::ENSURE_CHUNK);
         code_generation_result
           .runtime_requirements
-          .insert(RuntimeGlobals::LOAD_CHUNK_WITH_MODULE);
+          .insert(RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK);
       }
       _ => {}
     }
-    let fake_map = self.get_fake_map(compilation);
+    let mut all_deps = self.get_dependencies().to_vec();
+    for block in self.get_blocks() {
+      let block = compilation
+        .module_graph
+        .block_by_id(block)
+        .ok_or_else(|| internal_error!("should have block in ContextModule code_generation"))?;
+      all_deps.extend(block.get_dependencies());
+    }
+    let fake_map = self.get_fake_map(all_deps.iter(), compilation);
     if !matches!(fake_map, FakeMapValue::Bit(bit) if bit == FakeNamespaceObjectMode::NAMESPACE) {
       code_generation_result
         .runtime_requirements
@@ -718,7 +780,7 @@ impl ContextModule {
       && !context_element_dependencies.is_empty()
     {
       let name = self.options.context_options.chunk_name.clone();
-      let mut block = AsyncDependenciesBlock::default();
+      let mut block = AsyncDependenciesBlock::new(self.identifier, "");
       block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions { name }));
       for context_element_dependency in context_element_dependencies {
         block.add_dependency(Box::new(context_element_dependency));
@@ -746,7 +808,8 @@ impl ContextModule {
             });
             name.into_owned()
           });
-        let mut block = AsyncDependenciesBlock::default();
+        let mut block =
+          AsyncDependenciesBlock::new(self.identifier, &context_element_dependency.user_request);
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions { name }));
         block.add_dependency(Box::new(context_element_dependency));
         blocks.push(block);

@@ -82,7 +82,7 @@ impl DerefMut for CodeGenerationData {
 
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResult {
-  inner: HashMap<SourceType, BoxSource>,
+  pub inner: HashMap<SourceType, BoxSource>,
   /// [definition in webpack](https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L75)
   pub data: CodeGenerationData,
   pub chunk_init_fragments: ChunkInitFragments,
@@ -147,10 +147,10 @@ impl Default for CodeGenResultId {
 
 pub static CODE_GEN_RESULT_ID: AtomicU32 = AtomicU32::new(0);
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResults {
   pub module_generation_result_map: HashMap<CodeGenResultId, CodeGenerationResult>,
-  map: IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
+  pub map: IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
 }
 
 impl CodeGenerationResults {
@@ -253,7 +253,7 @@ impl CodeGenerationResults {
     match self.get(module_identifier, runtime) {
       Ok(result) => result.runtime_requirements,
       Err(_) => {
-        eprint!("Failed to get runtime requirements for {module_identifier}");
+        eprintln!("Failed to get runtime requirements for {module_identifier}");
         Default::default()
       }
     }

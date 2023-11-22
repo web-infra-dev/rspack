@@ -7,7 +7,9 @@
 use std::sync::atomic::AtomicBool;
 use std::{fmt, sync::Arc};
 mod dependencies_block;
-pub use dependencies_block::{AsyncDependenciesBlock, AsyncDependenciesBlockId, DependenciesBlock};
+pub use dependencies_block::{
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock,
+};
 mod fake_namespace_object;
 pub use fake_namespace_object::*;
 mod module_profile;

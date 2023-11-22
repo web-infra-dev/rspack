@@ -29,7 +29,6 @@ import { LoaderContext, LoaderResult } from "./config/adapterRuleUse";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import Cache from "./lib/Cache";
-import { makePathsRelative } from "./util/identifier";
 import CacheFacade from "./lib/CacheFacade";
 import ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
 import { runLoaders } from "./loader-runner";
@@ -49,6 +48,9 @@ import { optionsApply_compat } from "./rspackOptionsApply";
 import { applyRspackOptionsDefaults } from "./config/defaults";
 import { assertNotNill } from "./util/assertNotNil";
 import { FileSystemInfoEntry } from "./FileSystemInfo";
+import { RuntimeGlobals } from "./RuntimeGlobals";
+import { tryRunOrWebpackError } from "./lib/HookWebpackError";
+import { CodeGenerationResult } from "./Module";
 
 class Compiler {
 	#_instance?: binding.Rspack;
@@ -333,7 +335,8 @@ class Compiler {
 				contextModuleBeforeResolve: this.#contextModuleBeforeResolve.bind(this),
 				succeedModule: this.#succeedModule.bind(this),
 				stillValidModule: this.#stillValidModule.bind(this),
-				buildModule: this.#buildModule.bind(this)
+				buildModule: this.#buildModule.bind(this),
+				executeModule: this.#executeModule.bind(this)
 			},
 			createThreadsafeNodeFSFromRaw(this.outputFileSystem),
 			runLoaders.bind(undefined, this)
@@ -825,6 +828,73 @@ class Compiler {
 	#stillValidModule(module: binding.JsModule) {
 		this.compilation.hooks.stillValidModule.call(module);
 		this.#updateDisabledHooks();
+	}
+
+	#executeModule({
+		entry,
+		runtimeModules,
+		codegenResults
+	}: {
+		entry: string;
+		runtimeModules: string[];
+		codegenResults: binding.JsCodegenerationResults;
+	}) {
+		const __webpack_require__: any = (id: string) => {
+			const cached = moduleCache[id];
+			if (cached !== undefined) {
+				if (cached.error) throw cached.error;
+				return cached.exports;
+			}
+
+			var execOptions = {
+				id,
+				module: {
+					id,
+					exports: {},
+					loaded: false,
+					error: undefined
+				},
+				require: __webpack_require__
+			};
+
+			interceptModuleExecution.forEach((handler: (execOptions: any) => void) =>
+				handler(execOptions)
+			);
+
+			const result = codegenResults.map[id]["build time"];
+			const moduleObject = execOptions.module;
+
+			if (id) moduleCache[id] = moduleObject;
+
+			tryRunOrWebpackError(
+				() =>
+					this.compilation.hooks.executeModule.call(
+						{ result: new CodeGenerationResult(result), moduleObject },
+						{ __webpack_require__ }
+					),
+				"Compilation.hooks.executeModule"
+			);
+			moduleObject.loaded = true;
+			return moduleObject.exports;
+		};
+
+		const moduleCache: Record<string, any> = (__webpack_require__[
+			RuntimeGlobals.moduleCache.replace(`${RuntimeGlobals.require}.`, "")
+		] = {});
+		const interceptModuleExecution = (__webpack_require__[
+			RuntimeGlobals.interceptModuleExecution.replace(
+				`${RuntimeGlobals.require}.`,
+				""
+			)
+		] = []);
+
+		for (const runtimeModule of runtimeModules) {
+			__webpack_require__(runtimeModule);
+		}
+
+		exports = __webpack_require__(entry);
+
+		return JSON.stringify(exports);
 	}
 
 	#compilation(native: binding.JsCompilation) {

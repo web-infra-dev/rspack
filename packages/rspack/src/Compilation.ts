@@ -55,6 +55,7 @@ import {
 import { NormalizedJsModule, normalizeJsModule } from "./util/normalization";
 import MergeCaller from "./util/MergeCaller";
 import { Chunk } from "./Chunk";
+import { CodeGenerationResult, Module } from "./Module";
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
@@ -78,6 +79,20 @@ export interface KnownCreateStatsOptionsContext {
 	forToString?: boolean;
 }
 
+export interface ExecuteModuleArgument {
+	result: CodeGenerationResult;
+	moduleObject: {
+		id: string;
+		exports: any;
+		loaded: boolean;
+		error?: Error;
+	};
+}
+
+export interface ExecuteModuleContext {
+	__webpack_require__: (id: string) => any;
+}
+
 type CreateStatsOptionsContext = KnownCreateStatsOptionsContext &
 	Record<string, any>;
 
@@ -90,11 +105,11 @@ export class Compilation {
 		additionalAssets: any;
 		optimizeModules: tapable.SyncBailHook<Iterable<JsModule>, undefined>;
 		optimizeTree: tapable.AsyncSeriesBailHook<
-			[Iterable<JsChunk>, Iterable<JsModule>],
+			[Iterable<Chunk>, Iterable<JsModule>],
 			undefined
 		>;
 		optimizeChunkModules: tapable.AsyncSeriesBailHook<
-			[Iterable<JsChunk>, Iterable<JsModule>],
+			[Iterable<Chunk>, Iterable<JsModule>],
 			undefined
 		>;
 		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], undefined>;
@@ -105,6 +120,9 @@ export class Compilation {
 		statsFactory: tapable.SyncHook<[StatsFactory, StatsOptions], void>;
 		statsPrinter: tapable.SyncHook<[StatsPrinter, StatsOptions], void>;
 		buildModule: tapable.SyncHook<[NormalizedJsModule]>;
+		executeModule: tapable.SyncHook<
+			[ExecuteModuleArgument, ExecuteModuleContext]
+		>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -155,7 +173,8 @@ export class Compilation {
 			stillValidModule: new tapable.SyncHook(["module"]),
 			statsFactory: new tapable.SyncHook(["statsFactory", "options"]),
 			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"]),
-			buildModule: new tapable.SyncHook(["module"])
+			buildModule: new tapable.SyncHook(["module"]),
+			executeModule: new tapable.SyncHook(["options", "context"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -235,7 +254,7 @@ export class Compilation {
 		return new Map(
 			Object.entries(this.#inner.entrypoints).map(([n, e]) => [
 				n,
-				new ChunkGroup(e)
+				ChunkGroup.__from_binding(e, this.#inner)
 			])
 		);
 	}

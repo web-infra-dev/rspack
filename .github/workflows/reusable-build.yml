@@ -157,7 +157,10 @@ jobs:
       - name: Build aarch64-apple-darwin
         if: ${{ inputs.target == 'aarch64-apple-darwin' }}
         run: |
-          sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*;
+          if [[ "${{ startsWith(runner.name, 'GitHub Actions') }}" == "true" ]]; then
+            # Github runner
+            sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*;
+          fi
           export CC=$(xcrun -f clang);
           export CXX=$(xcrun -f clang++);
           SYSROOT=$(xcrun --sdk macosx --show-sdk-path);

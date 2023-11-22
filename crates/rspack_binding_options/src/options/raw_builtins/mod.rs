@@ -24,6 +24,7 @@ use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_library::enable_library_plugin;
 use rspack_plugin_limit_chunk_count::LimitChunkCountPlugin;
+use rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_runtime::{
   enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, CommonJsChunkFormatPlugin,
@@ -66,6 +67,7 @@ pub enum BuiltinPluginName {
   HotModuleReplacementPlugin,
   LimitChunkCountPlugin,
   WebWorkerTemplatePlugin,
+  MergeDuplicateChunksPlugin,
 
   // rspack specific plugins
   HttpExternalsRspackPlugin,
@@ -168,6 +170,9 @@ impl RawOptionsApply for BuiltinPlugin {
       }
       BuiltinPluginName::WebWorkerTemplatePlugin => {
         web_worker_template_plugin(plugins);
+      }
+      BuiltinPluginName::MergeDuplicateChunksPlugin => {
+        plugins.push(MergeDuplicateChunksPlugin.boxed());
       }
 
       // rspack specific plugins

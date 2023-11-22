@@ -461,15 +461,16 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
         }
 
-        let mgm = self
+        // reachable_dependency_identifier.extend(analyze_result.inherit_export_maps.keys());
+        for dependency_id in self
           .compilation
           .module_graph
-          .module_graph_module_by_identifier(&module_identifier)
+          .get_module_all_dependencies(&module_identifier)
           .unwrap_or_else(|| {
             panic!("Failed to get ModuleGraphModule by module identifier {module_identifier}")
-          });
-        // reachable_dependency_identifier.extend(analyze_result.inherit_export_maps.keys());
-        for dependency_id in mgm.all_dependencies.iter() {
+          })
+          .iter()
+        {
           let dep = self
             .compilation
             .module_graph
@@ -488,7 +489,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               match self
                 .compilation
                 .module_graph
-                .module_by_identifier(&mgm.module_identifier)
+                .module_by_identifier(&module_identifier)
                 .and_then(|module| module.as_normal_module())
                 .map(|normal_module| normal_module.source())
               {
@@ -543,7 +544,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             let deps_module_id_of_context_module = self
               .compilation
               .module_graph
-              .dependencies_by_module_identifier(module_identifier)
+              .get_module_all_dependencies(module_identifier)
               .map(|deps| {
                 deps
                   .iter()
@@ -619,11 +620,12 @@ impl<'a> CodeSizeOptimizer<'a> {
       return;
     }
     visited_module.insert(cur);
-    let mgm = module_graph
-      .module_graph_module_by_identifier(&cur)
-      .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {cur}"));
     let mut module_ident_list = vec![];
-    for dep in mgm.all_dependencies.iter() {
+    for dep in module_graph
+      .get_module_all_dependencies(&cur)
+      .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {cur}"))
+      .iter()
+    {
       let dependency = module_graph
         .dependency_by_id(dep)
         .expect("should have dependency");
@@ -633,10 +635,10 @@ impl<'a> CodeSizeOptimizer<'a> {
       }
       let Some(&module_ident) = module_graph.module_identifier_by_dependency_id(dep) else {
         let ast_or_source = module_graph
-          .module_by_identifier(&mgm.module_identifier)
+          .module_by_identifier(&cur)
           .and_then(|module| module.as_normal_module())
           .map(|normal_module| normal_module.source())
-          .unwrap_or_else(|| panic!("Failed to get normal module of {}", mgm.module_identifier));
+          .unwrap_or_else(|| panic!("Failed to get normal module of {}", cur));
         if matches!(ast_or_source, NormalModuleSource::BuiltFailed(_)) {
           // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
           continue;

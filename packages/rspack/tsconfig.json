@@ -6,10 +6,13 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src"],
-  "exclude": ["src/config/schema.check.js"],
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/config/schema.check.js"
+  ],
   "ts-node": {
     "transpileOnly": true
   },
-  "references": []
 }

@@ -5,11 +5,17 @@ use crate::{DependencyCondition, ExtendedReferencedExport, ModuleGraph, RuntimeS
 
 pub trait ModuleDependency: Dependency {
   fn request(&self) -> &str;
-  fn user_request(&self) -> &str;
+
+  fn user_request(&self) -> &str {
+    self.request()
+  }
+
+  // TODO: move to ModuleGraphConnection
   fn weak(&self) -> bool {
     false
   }
-  fn set_request(&mut self, request: String);
+
+  fn set_request(&mut self, _request: String) {}
 
   fn get_optional(&self) -> bool {
     false

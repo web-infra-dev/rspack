@@ -40,4 +40,5 @@ pub struct JsHooks {
   pub chunk_asset: JsFunction,
   pub succeed_module: JsFunction,
   pub still_valid_module: JsFunction,
+  pub execute_module: JsFunction,
 }

@@ -50,7 +50,8 @@ const createLogger = appendTarget => {
 	};
 };
 
-let count = 0;
+const TIMEOUT = 10_000;
+
 const describeCases = config => {
 	describe(config.name, () => {
 		let stderr;
@@ -60,7 +61,7 @@ const describeCases = config => {
 		afterEach(() => {
 			stderr.restore();
 		});
-		jest.setTimeout(20000);
+		jest.setTimeout(TIMEOUT);
 
 		for (const category of categories) {
 			// eslint-disable-next-line no-loop-func
@@ -151,7 +152,7 @@ const describeCases = config => {
 										return "./bundle" + i + ext;
 									}
 								},
-								timeout: 30000
+								timeout: TIMEOUT
 							};
 							try {
 								// try to load a test file
@@ -237,7 +238,7 @@ const describeCases = config => {
 									if (err) return handleFatalError(err, done);
 									done();
 								});
-							}, 60000);
+							}, TIMEOUT);
 							it(`${testName} should pre-compile to fill disk cache (2nd)`, done => {
 								rimraf.sync(outputDirectory);
 								fs.mkdirSync(outputDirectory, { recursive: true });
@@ -305,7 +306,7 @@ const describeCases = config => {
 									}
 									done();
 								});
-							}, 40000);
+							}, TIMEOUT);
 						}
 						it(`${testName} should compile`, done => {
 							rimraf.sync(outputDirectory);
@@ -648,20 +649,21 @@ const describeCases = config => {
 											}
 										};
 
-										if (Array.isArray(bundlePath)) {
-											for (const bundlePathItem of bundlePath) {
+										try {
+											if (Array.isArray(bundlePath)) {
+												for (const bundlePathItem of bundlePath) {
+													results.push(
+														_require(outputDirectory, options, "./" + bundlePathItem)
+													);
+												}
+											} else {
 												results.push(
-													_require(
-														outputDirectory,
-														options,
-														"./" + bundlePathItem
-													)
+													_require(outputDirectory, options, bundlePath)
 												);
 											}
-										} else {
-											results.push(
-												_require(outputDirectory, options, bundlePath)
-											);
+										} catch (err) {
+											// Abort early if `_require` throws
+											return handleFatalError(err, done);
 										}
 									}
 								}
@@ -708,7 +710,7 @@ const describeCases = config => {
 							} else {
 								rspack(options, onCompiled);
 							}
-						}, 30000);
+						}, TIMEOUT);
 
 						const {
 							it: _it,
@@ -716,7 +718,7 @@ const describeCases = config => {
 							afterEach: _afterEach,
 							setDefaultTimeout,
 							getNumberOfTests
-						} = createLazyTestEnv(10000);
+						} = createLazyTestEnv(TIMEOUT);
 					});
 				}
 			});

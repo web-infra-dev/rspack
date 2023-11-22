@@ -26,8 +26,8 @@ use rustc_hash::FxHasher;
 use serde_json::json;
 
 use crate::{
-  add_connection_states, contextify, get_context, AsyncDependenciesBlockId, BoxLoader, BoxModule,
-  BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
+  add_connection_states, contextify, get_context, AsyncDependenciesBlockIdentifier, BoxLoader,
+  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
   CompilerOptions, ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate,
   GenerateContext, GeneratorOptions, LibIdentOptions, LoaderRunnerPluginProcessResource, Module,
   ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
@@ -78,7 +78,7 @@ impl ModuleIssuer {
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct NormalModule {
-  blocks: Vec<AsyncDependenciesBlockId>,
+  blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
 
   id: ModuleIdentifier,
@@ -287,11 +287,11 @@ impl Identifiable for NormalModule {
 }
 
 impl DependenciesBlock for NormalModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
     &self.blocks
   }
 

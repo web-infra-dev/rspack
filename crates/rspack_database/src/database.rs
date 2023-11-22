@@ -31,6 +31,10 @@ impl<Item: Any> Database<Item> {
     }
   }
 
+  pub fn contains(&self, id: &Ukey<Item>) -> bool {
+    self.inner.contains_key(id)
+  }
+
   pub fn get(&self, id: &Ukey<Item>) -> Option<&Item> {
     self.inner.get(id)
   }
@@ -53,7 +57,8 @@ impl<Item: Any> Database<Item> {
       .get(id)
       .unwrap_or_else(|| panic!("Not found {id:?}"))
   }
-  pub fn expect_mut(&mut self, id: &Ukey<Item>) -> &mut Item {
+
+  pub fn expect_get_mut(&mut self, id: &Ukey<Item>) -> &mut Item {
     self
       .inner
       .get_mut(id)
@@ -112,7 +117,7 @@ impl<Item: Default + DatabaseItem + 'static> Database<Item> {
     let item = Item::default();
     let ukey = item.ukey();
     self.add(item);
-    self.expect_mut(&ukey)
+    self.expect_get_mut(&ukey)
   }
 }
 

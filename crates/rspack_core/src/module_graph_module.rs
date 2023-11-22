@@ -1,12 +1,12 @@
 use rspack_error::{internal_error, Result};
 use rustc_hash::FxHashSet as HashSet;
 
+use crate::ExportsInfoId;
 use crate::{
   module_graph::ConnectionId, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType,
   ChunkGraph, DependencyId, ExportsArgument, ExportsType, FactoryMeta, ModuleArgument, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, ModuleIssuer, ModuleProfile, ModuleSyntax, ModuleType,
 };
-use crate::{ExportsInfoId, GroupOptions, IS_NEW_TREESHAKING};
 
 #[derive(Debug)]
 pub struct ModuleGraphModule {
@@ -21,7 +21,7 @@ pub struct ModuleGraphModule {
   // TODO remove this since its included in module
   pub module_type: ModuleType,
   // TODO: remove this once we drop old treeshaking
-  pub all_dependencies: Box<Vec<DependencyId>>,
+  pub(crate) __deprecated_all_dependencies: Vec<DependencyId>,
   pub(crate) pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
   pub module_syntax: ModuleSyntax,
@@ -45,7 +45,7 @@ impl ModuleGraphModule {
       issuer: ModuleIssuer::Unset,
       // exec_order: usize::MAX,
       module_identifier,
-      all_dependencies: Default::default(),
+      __deprecated_all_dependencies: Default::default(),
       module_type,
       pre_order_index: None,
       post_order_index: None,
@@ -115,101 +115,6 @@ impl ModuleGraphModule {
       .into_iter();
 
     Ok(result)
-  }
-
-  pub fn depended_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a ModuleIdentifier> {
-    if IS_NEW_TREESHAKING.load(std::sync::atomic::Ordering::Relaxed) {
-      self
-        .outgoing_connections_unordered(module_graph)
-        .expect("should have outgoing connections")
-        .filter_map(|con: &ModuleGraphConnection| {
-          // TODO: runtime opt
-          let active_state = con.get_active_state(module_graph, None);
-          // dbg!(
-          //   &con,
-          //   active_state,
-          //   &module_graph
-          //     .dependency_by_id(&con.dependency_id)
-          //     .and_then(|dep| dep
-          //       .as_module_dependency()
-          //       .map(|item| item.dependency_debug_name()))
-          // );
-          match active_state {
-            crate::ConnectionState::Bool(false) => None,
-            _ => Some(con.dependency_id),
-          }
-        })
-        .filter(|id| {
-          let dep = module_graph.dependency_by_id(id).expect("should have id");
-          if let Some(dep) = dep.as_module_dependency() {
-            return module_graph.get_parent_block(id).is_none() && !dep.weak();
-          } else if dep.as_context_dependency().is_some() {
-            return module_graph.get_parent_block(id).is_none();
-          }
-
-          false
-        })
-        .filter_map(|id| module_graph.module_identifier_by_dependency_id(&id))
-        .collect()
-    } else {
-      self
-        .all_dependencies
-        .iter()
-        .filter(|id| {
-          let dep = module_graph.dependency_by_id(id).expect("should have id");
-          if let Some(dep) = dep.as_module_dependency() {
-            return module_graph.get_parent_block(id).is_none() && !dep.weak();
-          } else if dep.as_context_dependency().is_some() {
-            return module_graph.get_parent_block(id).is_none();
-          }
-          false
-        })
-        .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
-        .collect()
-    }
-    // dbg!(&self.module_identifier);
-  }
-
-  pub fn dynamic_depended_modules<'a>(
-    &self,
-    module_graph: &'a ModuleGraph,
-  ) -> Vec<(&'a ModuleIdentifier, Option<&'a GroupOptions>)> {
-    self
-      .all_dependencies
-      .iter()
-      .filter_map(|id| {
-        let dep = module_graph.dependency_by_id(id).expect("should have id");
-        let id = if let Some(dep) = dep.as_module_dependency() {
-          dep.id()
-        } else if let Some(dep) = dep.as_context_dependency() {
-          dep.id()
-        } else {
-          return None;
-        };
-
-        let Some(block_id) = module_graph.get_parent_block(id) else {
-          return None;
-        };
-        let module = module_graph
-          .module_identifier_by_dependency_id(id)
-          .expect("should have a module here");
-        let Some(block) = module_graph.block_by_id(&block_id) else {
-          return None;
-        };
-        Some((module, block.get_group_options()))
-      })
-      .collect()
-  }
-
-  pub fn all_depended_modules<'a>(
-    &self,
-    module_graph: &'a ModuleGraph,
-  ) -> Vec<&'a ModuleIdentifier> {
-    self
-      .all_dependencies
-      .iter()
-      .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
-      .collect()
   }
 
   pub fn set_profile(&mut self, profile: Box<ModuleProfile>) {

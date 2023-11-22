@@ -23,7 +23,7 @@ pub struct HarmonyImportSpecifierDependency {
   start: u32,
   end: u32,
   ids: Vec<JsWord>,
-  call: bool,
+  pub(crate) call: bool,
   direct_import: bool,
   specifier: Specifier,
   used_by_exports: Option<UsedByExports>,

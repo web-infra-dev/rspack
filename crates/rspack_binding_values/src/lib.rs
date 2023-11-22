@@ -2,6 +2,7 @@
 mod asset;
 mod chunk;
 mod chunk_group;
+mod codegen_result;
 mod compilation;
 mod hooks;
 mod module;
@@ -14,6 +15,7 @@ mod utils;
 pub use asset::*;
 pub use chunk::*;
 pub use chunk_group::*;
+pub use codegen_result::*;
 pub use compilation::*;
 pub use hooks::*;
 pub use module::*;

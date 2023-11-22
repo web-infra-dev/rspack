@@ -4,6 +4,7 @@ import { Compilation, Compiler } from "..";
 import type * as oldBuiltins from "../builtin-plugin";
 import type * as webpackDevServer from "webpack-dev-server";
 import { deprecatedWarn, termlink } from "../util";
+import { Module } from "../Module";
 
 //#region Name
 const name = z.string();
@@ -894,7 +895,20 @@ const optimizationRuntimeChunk = z
 	);
 export type OptimizationRuntimeChunk = z.infer<typeof optimizationRuntimeChunk>;
 
-const optimizationSplitChunksName = z.string().or(z.literal(false));
+const optimizationSplitChunksNameFunction = z.function().args(
+	z.instanceof(Module).optional()
+	// FIXME: z.array(z.instanceof(Chunk)).optional(), z.string()
+	// FIXME: Chunk[],   															cacheChunkKey
+);
+
+export type OptimizationSplitChunksNameFunction = z.infer<
+	typeof optimizationSplitChunksNameFunction
+>;
+
+const optimizationSplitChunksName = z
+	.string()
+	.or(z.literal(false))
+	.or(optimizationSplitChunksNameFunction);
 const optimizationSplitChunksChunks = z
 	.enum(["initial", "async", "all"])
 	.or(z.instanceof(RegExp));
@@ -909,7 +923,15 @@ const sharedOptimizationSplitChunksCacheGroup = {
 	maxInitialSize: optimizationSplitChunksSizes.optional()
 };
 const optimizationSplitChunksCacheGroup = z.strictObject({
-	test: z.string().or(z.instanceof(RegExp)).optional(),
+	test: z
+		.string()
+		.or(z.instanceof(RegExp))
+		.or(
+			z
+				.function()
+				.args(z.instanceof(Module) /** FIXME: lack of CacheGroupContext */)
+		)
+		.optional(),
 	priority: z.number().optional(),
 	enforce: z.boolean().optional(),
 	reuseExistingChunk: z.boolean().optional(),
@@ -947,6 +969,7 @@ const optimization = z.strictObject({
 	chunkIds: z.enum(["named", "deterministic"]).optional(),
 	minimize: z.boolean().optional(),
 	minimizer: z.literal("...").or(plugin).array().optional(),
+	mergeDuplicateChunks: z.boolean().optional(),
 	splitChunks: optimizationSplitChunksOptions.optional(),
 	runtimeChunk: optimizationRuntimeChunk.optional(),
 	removeAvailableModules: z.boolean().optional(),

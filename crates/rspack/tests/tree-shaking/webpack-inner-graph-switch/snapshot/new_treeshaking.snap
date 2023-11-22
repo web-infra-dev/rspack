@@ -32,8 +32,8 @@ __webpack_require__.d(__webpack_exports__, {
 it("should generate correct code when pure expressions are in dead branches", ()=>{
     __webpack_require__(/* ./import-module */"./import-module.js").test();
     return Promise.all([
-        __webpack_require__.el(/* ./some-module */"./some-module.js").then(__webpack_require__.bind(__webpack_require__, /* ./some-module */"./some-module.js")),
-        __webpack_require__.el(/* ./chunk */"./chunk.js").then(__webpack_require__.bind(__webpack_require__, /* ./chunk */"./chunk.js"))
+        __webpack_require__.el("./index.js@156:179").then(__webpack_require__.bind(__webpack_require__, /* ./some-module */"./some-module.js")),
+        __webpack_require__.el("./index.js@189:206").then(__webpack_require__.bind(__webpack_require__, /* ./chunk */"./chunk.js"))
     ]);
 });
 }),

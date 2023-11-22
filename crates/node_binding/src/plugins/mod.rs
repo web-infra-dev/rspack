@@ -7,11 +7,11 @@ pub use loader::JsLoaderResolver;
 use napi::{Env, Result};
 use rspack_binding_macros::js_fn_into_threadsafe_fn;
 use rspack_binding_values::{
-  AfterResolveData, BeforeResolveData, JsAssetEmittedArgs, JsChunkAssetArgs, JsModule,
-  JsResolveForSchemeInput, JsResolveForSchemeResult, ToJsModule,
+  AfterResolveData, BeforeResolveData, JsAssetEmittedArgs, JsChunkAssetArgs, JsExecuteModuleArg,
+  JsModule, JsResolveForSchemeInput, JsResolveForSchemeResult, ToJsModule,
 };
 use rspack_core::{
-  ChunkAssetArgs, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  ChunkAssetArgs, ModuleIdentifier, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
   PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
   PluginNormalModuleFactoryResolveForSchemeOutput, ResourceData,
 };
@@ -61,6 +61,7 @@ pub struct JsHooksAdapter {
     ThreadsafeFunction<JsResolveForSchemeInput, JsResolveForSchemeResult>,
   pub succeed_module_tsfn: ThreadsafeFunction<JsModule, ()>,
   pub still_valid_module_tsfn: ThreadsafeFunction<JsModule, ()>,
+  pub execute_module_tsfn: ThreadsafeFunction<JsExecuteModuleArg, Option<String>>,
 }
 
 impl Debug for JsHooksAdapter {
@@ -740,6 +741,34 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .await
       .map_err(|err| internal_error!("Failed to call still_valid_module hook: {err}"))?
   }
+
+  fn execute_module(
+    &self,
+    entry: ModuleIdentifier,
+    runtime_modules: Vec<ModuleIdentifier>,
+    codegen_results: &rspack_core::CodeGenerationResults,
+  ) -> rspack_error::Result<Option<String>> {
+    if self.is_hook_disabled(&Hook::ExecuteModule) {
+      return Ok(None);
+    }
+
+    self
+      .execute_module_tsfn
+      .call(
+        JsExecuteModuleArg {
+          entry: entry.to_string(),
+          runtime_modules: runtime_modules
+            .into_iter()
+            .map(|id| id.to_string())
+            .collect(),
+          codegen_results: codegen_results.clone().into(),
+        },
+        ThreadsafeFunctionCallMode::NonBlocking,
+      )
+      .into_rspack_result()?
+      .blocking_recv()
+      .map_err(|recv_err| rspack_error::internal_error!(recv_err.to_string()))?
+  }
 }
 
 impl JsHooksAdapter {
@@ -782,6 +811,7 @@ impl JsHooksAdapter {
       chunk_asset,
       succeed_module,
       still_valid_module,
+      execute_module,
     } = js_hooks;
 
     let process_assets_stage_additional_tsfn: ThreadsafeFunction<(), ()> =
@@ -857,6 +887,8 @@ impl JsHooksAdapter {
       js_fn_into_threadsafe_fn!(succeed_module, env);
     let still_valid_module_tsfn: ThreadsafeFunction<JsModule, ()> =
       js_fn_into_threadsafe_fn!(still_valid_module, env);
+    let execute_module_tsfn: ThreadsafeFunction<JsExecuteModuleArg, Option<String>> =
+      js_fn_into_threadsafe_fn!(execute_module, env);
 
     Ok(JsHooksAdapter {
       disabled_hooks,
@@ -897,6 +929,7 @@ impl JsHooksAdapter {
       after_resolve,
       succeed_module_tsfn,
       still_valid_module_tsfn,
+      execute_module_tsfn,
     })
   }
 

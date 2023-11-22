@@ -96,11 +96,13 @@ export class Rspack {
   unsafe_drop(): void
 }
 
-export function __chunk_inner_can_be_initial(jsChunk: JsChunk, compilation: JsCompilation): boolean
+export function __chunk_group_inner_get_chunk_group(ukey: number, compilation: JsCompilation): JsChunkGroup
 
-export function __chunk_inner_has_runtime(jsChunk: JsChunk, compilation: JsCompilation): boolean
+export function __chunk_inner_can_be_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
 
-export function __chunk_inner_is_only_initial(jsChunk: JsChunk, compilation: JsCompilation): boolean
+export function __chunk_inner_has_runtime(jsChunkUkey: number, compilation: JsCompilation): boolean
+
+export function __chunk_inner_is_only_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
 
 export interface AfterResolveData {
   request: string
@@ -139,6 +141,7 @@ export const enum BuiltinPluginName {
   HotModuleReplacementPlugin = 'HotModuleReplacementPlugin',
   LimitChunkCountPlugin = 'LimitChunkCountPlugin',
   WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
+  MergeDuplicateChunksPlugin = 'MergeDuplicateChunksPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -205,6 +208,7 @@ export interface JsAssetInfoRelated {
 
 export interface JsChunk {
   __inner_ukey: number
+  __inner_groups: Array<number>
   name?: string
   id?: string
   ids: Array<string>
@@ -226,7 +230,18 @@ export interface JsChunkAssetArgs {
 }
 
 export interface JsChunkGroup {
+  __inner_parents: Array<number>
   chunks: Array<JsChunk>
+  index?: number
+  name?: string
+}
+
+export interface JsCodegenerationResult {
+  sources: Record<string, string>
+}
+
+export interface JsCodegenerationResults {
+  map: Record<string, Record<string, JsCodegenerationResult>>
 }
 
 export interface JsCompatSource {
@@ -236,6 +251,12 @@ export interface JsCompatSource {
   isBuffer: boolean
   source: Buffer
   map?: Buffer
+}
+
+export interface JsExecuteModuleArg {
+  entry: string
+  runtimeModules: Array<string>
+  codegenResults: JsCodegenerationResults
 }
 
 export interface JsHooks {
@@ -276,6 +297,7 @@ export interface JsHooks {
   chunkAsset: (...args: any[]) => any
   succeedModule: (...args: any[]) => any
   stillValidModule: (...args: any[]) => any
+  executeModule: (...args: any[]) => any
 }
 
 export interface JsLoaderContext {
@@ -324,6 +346,7 @@ export interface JsModule {
   originalSource?: JsCompatSource
   resource?: string
   moduleIdentifier: string
+  nameForCondition?: string
 }
 
 export interface JsResolveForSchemeInput {
@@ -553,7 +576,7 @@ export interface RawBuiltins {
 export interface RawCacheGroupOptions {
   key: string
   priority?: number
-  test?: RegExp | string
+  test?: RegExp | string | Function
   idHint?: string
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
@@ -563,9 +586,13 @@ export interface RawCacheGroupOptions {
   maxSize?: number
   maxAsyncSize?: number
   maxInitialSize?: number
-  name?: string
+  name?: string | false | Function
   reuseExistingChunk?: boolean
   enforce?: boolean
+}
+
+export interface RawCacheGroupTestCtx {
+  module: JsModule
 }
 
 export interface RawCacheOptions {
@@ -578,6 +605,10 @@ export interface RawCacheOptions {
   cacheLocation: string
   name: string
   version: string
+}
+
+export interface RawChunkOptionNameCtx {
+  module: JsModule
 }
 
 export interface RawCopyGlobOptions {
@@ -1029,7 +1060,7 @@ export interface RawSnapshotStrategy {
 
 export interface RawSplitChunksOptions {
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
-  name?: string
+  name?: string | false | Function
   cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'

@@ -19,8 +19,8 @@ pub struct InitFragmentContents {
   pub end: Option<String>,
 }
 
-pub struct InitFragmentKeyUniqie;
-pub type InitFragmentKeyUKey = rspack_database::Ukey<InitFragmentKeyUniqie>;
+pub struct InitFragmentKeyUnique;
+pub type InitFragmentKeyUKey = rspack_database::Ukey<InitFragmentKeyUnique>;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum InitFragmentKey {
@@ -31,12 +31,12 @@ pub enum InitFragmentKey {
   AwaitDependencies,
   HarmonyCompatibility,
   ModuleDecorator(String /* module_id */),
-  Uniqie(InitFragmentKeyUKey),
+  Unique(InitFragmentKeyUKey),
 }
 
 impl InitFragmentKey {
-  pub fn uniqie() -> Self {
-    Self::Uniqie(rspack_database::Ukey::new())
+  pub fn unique() -> Self {
+    Self::Unique(rspack_database::Ukey::new())
   }
 }
 
@@ -79,7 +79,7 @@ impl InitFragmentKey {
       | InitFragmentKey::HarmonyExportStar(_)
       | InitFragmentKey::ExternalModule(_)
       | InitFragmentKey::ModuleDecorator(_) => first(fragments),
-      InitFragmentKey::HarmonyCompatibility | InitFragmentKey::Uniqie(_) => {
+      InitFragmentKey::HarmonyCompatibility | InitFragmentKey::Unique(_) => {
         debug_assert!(fragments.len() == 1, "fragment = {:?}", self);
         first(fragments)
       }

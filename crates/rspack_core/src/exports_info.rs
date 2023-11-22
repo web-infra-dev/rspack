@@ -348,7 +348,10 @@ impl ExportsInfoId {
         let info = self.get_read_only_export_info(&name, mg);
         info.get_used_name(&name, runtime).map(UsedName::Str)
       }
-      UsedName::Vec(_) => todo!(),
+      UsedName::Vec(_) => {
+        // TODO
+        Some(name.clone())
+      }
     }
   }
 
@@ -423,6 +426,35 @@ impl ExportsInfo {
   /// only used for old version tree shaking
   pub fn old_get_used_exports(&self) -> HashSet<JsWord> {
     self.exports.keys().cloned().collect::<HashSet<_>>()
+  }
+
+  pub fn owned_exports(&self) -> impl Iterator<Item = &ExportInfoId> {
+    self.exports.values()
+  }
+
+  pub fn is_equally_used(&self, a: &RuntimeSpec, b: &RuntimeSpec, mg: &ModuleGraph) -> bool {
+    if let Some(redirect_to) = self.redirect_to {
+      let redirect_to = redirect_to.get_exports_info(mg);
+      if redirect_to.is_equally_used(a, b, mg) {
+        return false;
+      }
+    } else {
+      let other_exports_info = &self.other_exports_info.get_export_info(mg);
+      if other_exports_info.get_used(Some(a)) != other_exports_info.get_used(Some(b)) {
+        return false;
+      }
+    }
+    let side_effects_only_info = self._side_effects_only_info.get_export_info(mg);
+    if side_effects_only_info.get_used(Some(a)) != side_effects_only_info.get_used(Some(b)) {
+      return false;
+    }
+    for export_info in self.owned_exports() {
+      let export_info = export_info.get_export_info(mg);
+      if export_info.get_used(Some(a)) != export_info.get_used(Some(b)) {
+        return false;
+      }
+    }
+    true
   }
 
   pub fn get_used(
@@ -514,7 +546,7 @@ impl ExportsInfo {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum UsedName {
   Str(JsWord),
   Vec(Vec<JsWord>),

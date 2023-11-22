@@ -111,18 +111,16 @@ impl ChunkGraph {
     module_identifier: ModuleIdentifier,
     entrypoint: ChunkGroupUkey,
   ) {
-    self
+    let chunk_graph_module = self
       .chunk_graph_module_by_module_identifier
       .entry(module_identifier)
       .or_default();
-    let chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
     chunk_graph_module.entry_in_chunks.insert(chunk);
 
-    self
+    let chunk_graph_chunk = self
       .chunk_graph_chunk_by_chunk_ukey
       .entry(chunk)
       .or_default();
-    let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk);
     chunk_graph_chunk
       .entry_modules
       .insert(module_identifier, entrypoint);
@@ -145,18 +143,16 @@ impl ChunkGraph {
     chunk: ChunkUkey,
     module_identifier: ModuleIdentifier,
   ) {
-    self
+    let chunk_graph_module = self
       .chunk_graph_module_by_module_identifier
       .entry(module_identifier)
       .or_default();
-    let chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
     chunk_graph_module.chunks.insert(chunk);
 
-    self
+    let chunk_graph_chunk = self
       .chunk_graph_chunk_by_chunk_ukey
       .entry(chunk)
       .or_default();
-    let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk);
     chunk_graph_chunk.modules.insert(module_identifier);
   }
 
@@ -584,7 +580,7 @@ impl ChunkGraph {
     module_graph: &ModuleGraph,
   ) {
     let chunk_b = chunk_by_ukey.expect_get(b).clone();
-    let chunk_a = chunk_by_ukey.expect_mut(a);
+    let chunk_a = chunk_by_ukey.expect_get_mut(a);
 
     // Decide for one name (deterministic)
     if let (Some(_), Some(_)) = (&chunk_a.name, &chunk_b.name) {
@@ -635,13 +631,13 @@ impl ChunkGraph {
 
     let mut remove_group_ukeys = vec![];
     for chunk_group_ukey in chunk_b.groups {
-      let chunk_group = chunk_group_by_ukey.expect_mut(&chunk_group_ukey);
+      let chunk_group = chunk_group_by_ukey.expect_get_mut(&chunk_group_ukey);
       chunk_group.replace_chunk(b, a);
       chunk_a.add_group(chunk_group_ukey);
       remove_group_ukeys.push(chunk_group_ukey);
     }
 
-    let chunk_b = chunk_by_ukey.expect_mut(b);
+    let chunk_b = chunk_by_ukey.expect_get_mut(b);
     for group_ukey in remove_group_ukeys {
       chunk_b.remove_group(&group_ukey);
     }

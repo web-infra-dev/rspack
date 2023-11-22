@@ -157,8 +157,6 @@ impl RawOptionsApply for RawOptions {
       );
     }
 
-    plugins.push(rspack_ids::NamedChunkIdsPlugin::new(None, None).boxed());
-
     if experiments.rspack_future.new_treeshaking {
       if optimization.side_effects.is_enable() {
         plugins.push(SideEffectsFlagPlugin::default().boxed());

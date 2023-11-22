@@ -2,7 +2,7 @@ use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
 use rspack_core::{
-  is_exports_object_referenced, is_no_exports_referenced, AsyncDependenciesBlockId,
+  is_exports_object_referenced, is_no_exports_referenced, AsyncDependenciesBlockIdentifier,
   BuildMetaExportsType, Compilation, ConnectionState, DependenciesBlock, DependencyId,
   ExportsInfoId, ExtendedReferencedExport, GroupOptions, ModuleIdentifier, Plugin,
   ReferencedExport, RuntimeSpec, UsageState,
@@ -15,7 +15,7 @@ use crate::utils::join_jsword;
 
 enum ModuleOrAsyncDependenciesBlock {
   Module(ModuleIdentifier),
-  AsyncDependenciesBlock(AsyncDependenciesBlockId),
+  AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
 }
 
 #[allow(unused)]
