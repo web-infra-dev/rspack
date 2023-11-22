@@ -3,6 +3,7 @@ use napi_derive::napi;
 use rspack_core::Module;
 
 use super::{JsCompatSource, ToJsCompatSource};
+use crate::JsCodegenerationResults;
 
 #[napi(object)]
 pub struct JsModule {
@@ -66,4 +67,11 @@ impl ToJsModule for dyn Module + '_ {
       })
       .map_err(|_| napi::Error::from_reason("Failed to convert module to JsModule"))
   }
+}
+
+#[napi(object)]
+pub struct JsExecuteModuleArg {
+  pub entry: String,
+  pub runtime_modules: Vec<String>,
+  pub codegen_results: JsCodegenerationResults,
 }

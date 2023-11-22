@@ -1,4 +1,8 @@
-import { JsModule } from "@rspack/binding";
+import {
+	JsCodegenerationResult,
+	JsCodegenerationResults,
+	JsModule
+} from "@rspack/binding";
 
 export class Module {
 	#inner: JsModule;
@@ -21,5 +25,19 @@ export class Module {
 		} else {
 			return null;
 		}
+	}
+}
+
+export class CodeGenerationResult {
+	#inner: JsCodegenerationResult;
+	constructor(result: JsCodegenerationResult) {
+		this.#inner = result;
+	}
+}
+
+export class CodeGenerationResults {
+	#inner: JsCodegenerationResults;
+	constructor(result: JsCodegenerationResults) {
+		this.#inner = result;
 	}
 }
