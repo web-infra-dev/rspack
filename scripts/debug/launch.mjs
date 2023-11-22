@@ -60,9 +60,6 @@ export async function launchJestWithArgs(additionalArgs) {
 }
 
 async function launchDebugger(launchConfig) {
-	if (!(await hasCommandCode()) || !(await hasLaunchExtensionInstalled())) {
-		return;
-	}
 	launchConfig = [
 		...launchConfig,
 		{
@@ -81,11 +78,12 @@ async function launchDebugger(launchConfig) {
 		encodeURIComponent(JSON.stringify(c));
 
 	if (process.platform === "win32") {
-		return Promise.all(
-			launchConfig.map(c => $`cmd.exe /c start ${launchConfig.map(mapUrl)}`)
-		);
+		return Promise.all(launchConfig.map(c => $`cmd.exe /c start ${mapUrl(c)}`));
 	}
 
+	if (!(await hasCommandCode())) {
+		return;
+	}
 	await $`code --open-url ${launchConfig.map(mapUrl)}`;
 }
 
@@ -101,25 +99,6 @@ async function hasCommandCode() {
 			new Error(p.stderr || p.message, {
 				cause:
 					"Only Vscode has been supported by now. Did you forget to install 'code' command?"
-			})
-		);
-		return false;
-	}
-}
-
-async function hasLaunchExtensionInstalled() {
-	try {
-		let { stdout, stderr } = await $`code --list-extensions`.quiet();
-		if (stderr) {
-			console.error(stderr);
-			return false;
-		}
-		return stdout?.includes("fabiospampinato.vscode-debug-launcher");
-	} catch (p) {
-		console.error(
-			new Error(p.stderr || p.message, {
-				cause:
-					"VSCode extension `fabiospampinato.vscode-debug-launcher` is required. https://marketplace.visualstudio.com/items?itemName=fabiospampinato.vscode-debug-launcher"
 			})
 		);
 		return false;
