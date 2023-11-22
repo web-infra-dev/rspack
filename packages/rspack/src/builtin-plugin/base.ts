@@ -25,14 +25,15 @@ export enum BuiltinPluginName {
 	SwcCssMinimizerRspackPlugin = "SwcCssMinimizerRspackPlugin",
 	LimitChunkCountPlugin = "LimitChunkCountPlugin",
 	WebWorkerTemplatePlugin = "WebWorkerTemplatePlugin",
-	MergeDuplicateChunksPlugin = "MergeDuplicateChunksPlugin"
+	MergeDuplicateChunksPlugin = "MergeDuplicateChunksPlugin",
+	ContainerPlugin = "ContainerPlugin"
 }
 
 export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
-	abstract raw(): binding.BuiltinPlugin;
+	abstract raw(compiler: Compiler): binding.BuiltinPlugin;
 	abstract name: BuiltinPluginName;
 	apply(compiler: Compiler) {
-		compiler.__internal__registerBuiltinPlugin(this);
+		compiler.__internal__registerBuiltinPlugin(this.raw(compiler));
 	}
 }
 

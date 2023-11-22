@@ -1,4 +1,4 @@
-const { ContainerPlugin } = require("../../../../").container;
+const { ContainerPlugin } = require("../../../../packages/rspack").container;
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {

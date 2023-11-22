@@ -96,6 +96,17 @@ impl WorkerTask for FactorizeTask {
           .await?
           .split_into_parts()
       }
+      DependencyType::ContainerEntry => {
+        let factory = crate::mf::ContainerEntryModuleFactory;
+        factory
+          .create(ModuleFactoryCreateData {
+            resolve_options: self.resolve_options,
+            context,
+            dependency,
+          })
+          .await?
+          .split_into_parts()
+      }
       _ => {
         assert!(dependency.as_context_dependency().is_none());
         let factory = NormalModuleFactory::new(

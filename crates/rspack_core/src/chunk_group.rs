@@ -301,10 +301,12 @@ impl ChunkGroupKind {
   }
 }
 
+pub type EntryRuntime = String;
+
 #[derive(Debug, Default, Clone)]
 pub struct EntryOptions {
   pub name: Option<String>,
-  pub runtime: Option<String>,
+  pub runtime: Option<EntryRuntime>,
   pub chunk_loading: Option<ChunkLoading>,
   pub async_chunks: Option<bool>,
   pub public_path: Option<PublicPath>,

@@ -17,6 +17,7 @@ pub use system_library_plugin::SystemLibraryPlugin;
 pub use umd_library_plugin::UmdLibraryPlugin;
 
 pub fn enable_library_plugin(library_type: String, plugins: &mut Vec<BoxPlugin>) {
+  let ns_object_used = library_type != "module";
   match library_type.as_str() {
     "var" => plugins.push(
       AssignLibraryPlugin::new(AssignLibraryPluginOptions {
@@ -99,19 +100,21 @@ pub fn enable_library_plugin(library_type: String, plugins: &mut Vec<BoxPlugin>)
       .boxed(),
     ),
     "umd" | "umd2" => {
-      plugins.push(ExportPropertyLibraryPlugin::default().boxed());
+      plugins.push(ExportPropertyLibraryPlugin::new(library_type.clone(), ns_object_used).boxed());
       plugins.push(UmdLibraryPlugin::new("umd2" == library_type, library_type).boxed());
     }
     "amd" | "amd-require" => {
-      plugins.push(ExportPropertyLibraryPlugin::default().boxed());
+      plugins.push(ExportPropertyLibraryPlugin::new(library_type.clone(), ns_object_used).boxed());
       plugins.push(AmdLibraryPlugin::new("amd-require" == library_type, library_type).boxed());
     }
     "module" => {
-      plugins.push(ExportPropertyLibraryPlugin::default().boxed());
+      plugins.push(ExportPropertyLibraryPlugin::new(library_type.clone(), ns_object_used).boxed());
       plugins.push(ModuleLibraryPlugin::default().boxed());
     }
     "system" => {
-      plugins.push(ExportPropertyLibraryPlugin::default().boxed());
+      plugins.push(
+        ExportPropertyLibraryPlugin::new(library_type.clone(), library_type != "module").boxed(),
+      );
       plugins.push(SystemLibraryPlugin::default().boxed());
     }
     _ => {}

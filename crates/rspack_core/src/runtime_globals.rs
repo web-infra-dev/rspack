@@ -222,6 +222,12 @@ bitflags! {
     const SYSTEM_CONTEXT = 1 << 49;
 
     const THIS_AS_EXPORTS = 1 << 50;
+
+    const CURRENT_REMOTE_GET_SCOPE = 1 << 51;
+
+    const SHARE_SCOPE_MAP = 1 << 52;
+
+    const INITIALIZE_SHARING = 1 << 53;
   }
 }
 
@@ -293,6 +299,9 @@ impl RuntimeGlobals {
       R::NODE_MODULE_DECORATOR => "__webpack_require__.nmd",
       R::SYSTEM_CONTEXT => "__webpack_require__.y",
       R::THIS_AS_EXPORTS => "top-level-this-exports",
+      R::CURRENT_REMOTE_GET_SCOPE => "__webpack_require__.R",
+      R::SHARE_SCOPE_MAP => "__webpack_require__.S",
+      R::INITIALIZE_SHARING => "__webpack_require__.I",
       r => panic!(
         "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
       ),
