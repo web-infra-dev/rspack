@@ -2940,7 +2940,6 @@ dependencies = [
  "rspack_error",
  "rspack_hash",
  "rspack_identifier",
- "rspack_plugin_runtime",
  "rustc-hash",
  "serde_json",
 ]
@@ -3197,7 +3196,6 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_identifier",
- "rspack_plugin_runtime",
  "rspack_testing",
  "serde_json",
  "swc_core",

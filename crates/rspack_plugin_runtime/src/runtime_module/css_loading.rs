@@ -1,4 +1,5 @@
 use rspack_core::{
+  impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
@@ -6,8 +7,8 @@ use rspack_identifier::Identifier;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::utils::chunk_has_css;
-use crate::impl_runtime_module;
 use crate::runtime_module::{render_condition_map, stringify_chunks};
+
 #[derive(Debug, Default, Eq)]
 pub struct CssLoadingRuntimeModule {
   id: Identifier,

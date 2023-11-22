@@ -1,10 +1,10 @@
 use rspack_core::{
+  impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
 
-use crate::impl_runtime_module;
 use crate::runtime_module::utils::{
   chunk_has_js, get_initial_chunk_ids, render_condition_map, stringify_chunks,
 };

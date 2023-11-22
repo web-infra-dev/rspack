@@ -1,13 +1,11 @@
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
-use rspack_core::{ChunkUkey, Compilation, RuntimeModule};
+use rspack_core::{impl_runtime_module, ChunkUkey, Compilation, RuntimeModule};
 use rspack_identifier::Identifier;
 use rspack_plugin_javascript::runtime::stringify_array;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
-
-use crate::impl_runtime_module;
 
 #[derive(Debug, Eq)]
 pub struct LoadChunkWithBlockRuntimeModule {
