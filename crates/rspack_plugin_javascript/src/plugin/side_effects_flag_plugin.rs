@@ -467,7 +467,7 @@ impl Plugin for SideEffectsFlagPlugin {
                 .get_side_effects_connection_state(mg, &mut HashSet::default())
                 == ConnectionState::Bool(false)
             }),
-            Box::new(
+            Arc::new(
               move |target: &ResolvedExportInfoTarget, mg: &mut ModuleGraph| {
                 mg.update_module(&dep_id, &target.module);
                 // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306

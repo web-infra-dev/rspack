@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use linked_hash_set::LinkedHashSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
@@ -769,7 +771,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     let id = self.id;
-    Some(DependencyCondition::Fn(Box::new(
+    Some(DependencyCondition::Fn(Arc::new(
       move |_mc, runtime, module_graph: &ModuleGraph| {
         let dep = module_graph
           .dependency_by_id(&id)

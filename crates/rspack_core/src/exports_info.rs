@@ -682,7 +682,7 @@ impl ExportInfoId {
   pub fn set_used_conditionally(
     &self,
     mg: &mut ModuleGraph,
-    condition: UsageFilterFnTy,
+    condition: UsageFilterFnTy<UsageState>,
     new_value: UsageState,
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
@@ -827,49 +827,12 @@ pub enum ResolvedExportInfoTargetWithCircular {
   Circular,
 }
 
-pub type UpdateOriginalFunctionTy = Box<dyn UpdateOriginalFunction>;
-
-pub trait UpdateOriginalFunction:
-  Fn(&ResolvedExportInfoTarget, &mut ModuleGraph) -> Option<ModuleGraphConnection>
-{
-  fn clone_boxed(&self) -> Box<dyn UpdateOriginalFunction>;
-}
-
-impl<T> UpdateOriginalFunction for T
-where
-  T: 'static
-    + Fn(&ResolvedExportInfoTarget, &mut ModuleGraph) -> Option<ModuleGraphConnection>
-    + Clone,
-{
-  fn clone_boxed(&self) -> Box<dyn UpdateOriginalFunction> {
-    Box::new(self.clone())
-  }
-}
+pub type UpdateOriginalFunctionTy =
+  Arc<dyn Fn(&ResolvedExportInfoTarget, &mut ModuleGraph) -> Option<ModuleGraphConnection>>;
 
 pub type ResolveFilterFnTy = Arc<dyn Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool>;
 
-pub type UsageFilterFnTy = Box<dyn FilterFn<UsageState>>;
-
-pub trait FilterFn<T>: Fn(&T) -> bool + Send + Sync {
-  fn clone_boxed(&self) -> Box<dyn FilterFn<T>>;
-}
-
-/// Copy from https://github.com/rust-lang/rust/issues/24000#issuecomment-479425396
-impl<T, F> FilterFn<F> for T
-where
-  T: 'static + Fn(&F) -> bool + Send + Sync + Clone,
-  F: 'static,
-{
-  fn clone_boxed(&self) -> Box<dyn FilterFn<F>> {
-    Box::new(self.clone())
-  }
-}
-
-impl<T: 'static> Clone for Box<dyn FilterFn<T>> {
-  fn clone(&self) -> Self {
-    self.clone_boxed()
-  }
-}
+pub type UsageFilterFnTy<T> = Box<dyn Fn(&T) -> bool>;
 
 impl ExportInfo {
   // TODO: remove usage_state after new tree shaking is landing
@@ -1308,7 +1271,7 @@ pub fn get_dependency_used_by_exports_condition(
   match used_by_exports {
     Some(UsedByExports::Set(used_by_exports)) => {
       let used_by_exports = Arc::new(used_by_exports.clone());
-      Some(DependencyCondition::Fn(Box::new(
+      Some(DependencyCondition::Fn(Arc::new(
         move |_, runtime, module_graph: &ModuleGraph| {
           let module_identifier = module_graph
             .parent_module_by_dependency_id(&dependency_id)
