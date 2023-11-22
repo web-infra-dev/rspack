@@ -508,9 +508,8 @@ impl Plugin for SideEffectsFlagPlugin {
             )),
           );
           dbg!(&target);
-          let target = match target {
-            Some(target) => target,
-            None => continue,
+          let Some(target) = target else {
+            continue;
           };
           mg.update_module(&dep_id, &target.module);
           // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
