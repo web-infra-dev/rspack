@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_core::tree_shaking::symbol::{self, IndirectTopLevelSymbol};
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
@@ -298,7 +300,7 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
 
   // TODO: It's from HarmonyImportSideEffectDependency.
   fn get_condition(&self) -> Option<DependencyCondition> {
-    Some(DependencyCondition::Fn(Box::new(
+    Some(DependencyCondition::Fn(Arc::new(
       move |con, _, module_graph: &ModuleGraph| {
         let id = con.module_identifier;
         if let Some(module) = module_graph.module_by_identifier(&id) {
