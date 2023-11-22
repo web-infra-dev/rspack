@@ -20,5 +20,10 @@ module.exports = {
 				style: `{{ member }}/style.css`
 			}
 		]
+	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: false
+		}
 	}
 };

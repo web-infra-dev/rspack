@@ -42,16 +42,11 @@ module.exports = {
 		]
 	},
 	cache: false,
-	stats: "error",
+	stats: "errors-warnings",
 	infrastructureLogging: {
 		debug: false
 	},
 	watchOptions: {
 		poll: 1000
-	},
-	experiments: {
-		rspackFuture: {
-			disableTransformByDefault: true
-		}
 	}
 };

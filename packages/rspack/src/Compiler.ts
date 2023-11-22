@@ -8,6 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import type * as binding from "@rspack/binding";
+import { rspack } from "./index";
 import fs from "fs";
 import * as tapable from "tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
@@ -36,7 +37,7 @@ import { NormalModuleFactory } from "./NormalModuleFactory";
 import { WatchFileSystem } from "./util/fs";
 import { getScheme } from "./util/scheme";
 import { checkVersion } from "./util/bindingVersionCheck";
-import Watching from "./Watching";
+import { Watching } from "./Watching";
 import { NormalModule } from "./NormalModule";
 import { normalizeJsModule } from "./util/normalization";
 import {
@@ -54,7 +55,7 @@ import { CodeGenerationResult } from "./Module";
 class Compiler {
 	#_instance?: binding.Rspack;
 
-	webpack: any;
+	webpack = rspack;
 	// @ts-expect-error
 	compilation: Compilation;
 	builtinPlugins: RspackBuiltinPlugin[];
@@ -126,123 +127,6 @@ class Compiler {
 		this.cache = new Cache();
 		this.compilerPath = "";
 		this.builtinPlugins = [];
-		// to workaround some plugin access webpack, we may change dev-server to avoid this hack in the future
-		this.webpack = {
-			NormalModule,
-			get sources(): typeof import("webpack-sources") {
-				return require("webpack-sources");
-			},
-			Compilation,
-			get version() {
-				return require("../package.json").webpackVersion; // this is a hack to be compatible with plugin which detect webpack's version
-			},
-			get rspackVersion() {
-				return require("../package.json").version;
-			},
-			get BannerPlugin() {
-				return require("./builtin-plugin").BannerPlugin;
-			},
-			get DefinePlugin() {
-				return require("./builtin-plugin").DefinePlugin;
-			},
-			get ProgressPlugin() {
-				return require("./builtin-plugin").ProgressPlugin;
-			},
-			get ProvidePlugin() {
-				return require("./builtin-plugin").ProvidePlugin;
-			},
-			get EntryPlugin() {
-				return require("./builtin-plugin").EntryPlugin;
-			},
-			get ExternalsPlugin() {
-				return require("./builtin-plugin").ExternalsPlugin;
-			},
-			get HotModuleReplacementPlugin() {
-				return require("./builtin-plugin").HotModuleReplacementPlugin;
-			},
-			get LoaderOptionsPlugin() {
-				return require("./lib/LoaderOptionsPlugin").LoaderOptionsPlugin;
-			},
-			get LoaderTargetPlugin() {
-				return require("./lib/LoaderTargetPlugin").LoaderTargetPlugin;
-			},
-			WebpackError: Error,
-			ModuleFilenameHelpers,
-			javascript: {
-				get EnableChunkLoadingPlugin() {
-					return require("./builtin-plugin").EnableChunkLoadingPlugin;
-				}
-			},
-			node: {
-				get NodeTargetPlugin() {
-					return require("./builtin-plugin").NodeTargetPlugin;
-				},
-				get NodeTemplatePlugin() {
-					return require("./node/NodeTemplatePlugin").default;
-				}
-			},
-			electron: {
-				get ElectronTargetPlugin() {
-					return require("./builtin-plugin").ElectronTargetPlugin;
-				}
-			},
-			wasm: {
-				get EnableWasmLoadingPlugin() {
-					return require("./builtin-plugin").EnableWasmLoadingPlugin;
-				}
-			},
-			library: {
-				get EnableLibraryPlugin() {
-					return require("./builtin-plugin").EnableLibraryPlugin;
-				}
-			},
-			util: {
-				get createHash() {
-					return require("./util/createHash").createHash;
-				},
-				get cleverMerge() {
-					return require("./util/cleverMerge").cachedCleverMerge;
-				}
-				// get comparators() {
-				// 	return require("./util/comparators");
-				// },
-				// get runtime() {
-				// 	return require("./util/runtime");
-				// },
-				// get serialization() {
-				// 	return require("./util/serialization");
-				// },
-				// get LazySet() {
-				// 	return require("./util/LazySet");
-				// }
-			},
-			// XxxRspackPlugin, Rspack-only plugins
-			get HtmlRspackPlugin() {
-				return require("./builtin-plugin").HtmlRspackPlugin;
-			},
-			get SwcJsMinimizerRspackPlugin() {
-				return require("./builtin-plugin").SwcJsMinimizerRspackPlugin;
-			},
-			get SwcCssMinimizerRspackPlugin() {
-				return require("./builtin-plugin").SwcCssMinimizerRspackPlugin;
-			},
-			get CopyRspackPlugin() {
-				return require("./builtin-plugin").CopyRspackPlugin;
-			},
-			get Template() {
-				return require("./Template");
-			},
-			optimize: {
-				get LimitChunkCountPlugin() {
-					return require("./builtin-plugin").LimitChunkCountPlugin;
-				}
-			},
-			webworker: {
-				get WebWorkerTemplatePlugin() {
-					return require("./builtin-plugin").WebWorkerTemplatePlugin;
-				}
-			}
-		};
 		this.root = this;
 		this.ruleSet = new RuleSetCompiler();
 		this.running = false;

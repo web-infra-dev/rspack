@@ -1,3 +1,4 @@
+const rspack = require("@rspack/core");
 /**
  * @type {import('@rspack/cli').Configuration}
  */
@@ -6,13 +7,6 @@ module.exports = {
 	entry: {
 		main: "./src/main.tsx"
 	},
-	builtins: {
-		html: [
-			{
-				template: "./index.html"
-			}
-		]
-	},
 	module: {
 		rules: [
 			{
@@ -20,5 +14,10 @@ module.exports = {
 				type: "asset"
 			}
 		]
-	}
+	},
+	plugins: [
+		new rspack.HtmlRspackPlugin({
+			template: "./index.html"
+		})
+	]
 };

@@ -24,6 +24,11 @@ module.exports = {
 			}
 		]
 	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: false
+		}
+	},
 	watchOptions: {
 		poll: 1000
 	}

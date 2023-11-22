@@ -1727,9 +1727,9 @@ checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 
 [[package]]
 name = "oxc_resolver"
-version = "0.5.3"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05eb41b7e97d361603484307a9fc526318320dd290739779b3af0f261195b417"
+checksum = "1d10d078b6ba0b8cfa0eb634ef749698aa82ef4a86c7ba1446453644ccf13fd2"
 dependencies = [
  "dashmap",
  "dunce",
@@ -1740,7 +1740,6 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]

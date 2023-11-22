@@ -4,11 +4,6 @@ const config = {
 	entry: path.resolve(__dirname, "./index.js"),
 	builtins: {
 		react: {}
-	},
-	experiments: {
-		rspackFuture: {
-			disableTransformByDefault: true
-		}
 	}
 };
 
