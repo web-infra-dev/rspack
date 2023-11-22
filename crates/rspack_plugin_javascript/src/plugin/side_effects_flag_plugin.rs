@@ -431,6 +431,7 @@ impl Plugin for SideEffectsFlagPlugin {
       if side_effects_state != rspack_core::ConnectionState::Bool(false) {
         continue;
       }
+      dbg!(&module_identifier);
       let cur_exports_info_id = mg.get_exports_info(&module_identifier).id;
 
       let incoming_connections = mg.get_incoming_connections_cloned(module);
@@ -453,6 +454,7 @@ impl Plugin for SideEffectsFlagPlugin {
         if !is_reexport && !is_valid_import_specifier_dep {
           continue;
         }
+        dbg!(&dep.dependency_debug_name());
         if let Some(name) = dep
           .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
           .and_then(|dep| dep.name.clone())

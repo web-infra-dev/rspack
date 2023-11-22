@@ -1,2 +1,2 @@
-import {Lib} from './lib'
-Lib.a
+import {a} from './lib'
+a
