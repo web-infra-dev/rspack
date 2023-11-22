@@ -225,6 +225,10 @@ pub fn extract_member_expression_chain<'e, T: Into<MaybeExpr<'e>>>(
       Expr::Member(ref expr) => {
         walk_member_expr(expr, false, members, members_optionals, members_spans, kind)
       }
+      Expr::This(ref this_expr) => {
+        members.push_front((JsWord::from("this"), this_expr.span.ctxt));
+        members_spans.push_front(this_expr.span);
+      }
       Expr::Ident(ref ident) => {
         members.push_front((ident.sym.clone(), ident.span.ctxt));
         members_spans.push_front(ident.span);

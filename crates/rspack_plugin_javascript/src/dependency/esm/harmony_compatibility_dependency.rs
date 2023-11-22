@@ -58,7 +58,7 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
         ),
         InitFragmentStage::StageAsyncBoundary,
         0,
-        InitFragmentKey::uniqie(),
+        InitFragmentKey::unique(),
         Some(format!("\n__webpack_async_result__();\n}} catch(e) {{ __webpack_async_result__(e); }} }}{});", if matches!(mgm.build_meta.as_ref().map(|meta| meta.has_top_level_await), Some(true)) { ", 1" } else { "" })),
       )));
     }
