@@ -206,6 +206,14 @@ impl Dependency for HarmonyImportSpecifierDependency {
       end: self.end,
     })
   }
+
+  fn name(&self) -> Option<&JsWord> {
+    match self.specifier {
+      Specifier::Namespace(ref atom) => Some(atom),
+      Specifier::Default(ref atom) => Some(atom),
+      Specifier::Named(ref local, _) => Some(local),
+    }
+  }
   fn span_for_on_usage_search(&self) -> Option<rspack_core::ErrorSpan> {
     Some(self.span_for_on_usage_search.into())
   }
