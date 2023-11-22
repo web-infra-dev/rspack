@@ -23,7 +23,7 @@
     "build:binding:release": "pnpm --filter @rspack/binding run build:release",
     "prepare": "is-ci || husky install",
     "test:example": "pnpm --filter \"example-*\" build",
-    "test:diff": "pnpm --filter \"@rspack/*\" test-diff",
+    "test:diff": "pnpm --filter \"@rspack/*\" test:diff",
     "test:unit": "pnpm --filter \"@rspack/*\" test",
     "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
     "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:example && pnpm run test:unit && pnpm test:webpack",
