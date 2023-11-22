@@ -1,6 +1,13 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
-use swc_core::ecma::ast::{BinExpr, BinaryOp, CallExpr, Callee, Expr, Lit, MemberProp, Tpl};
+use swc_core::ecma::ast::{
+  BinExpr, BinaryOp, CallExpr, Callee, Expr, Lit, MemberProp, TaggedTpl, Tpl,
+};
+
+enum TemplateStringKind {
+  Raw,
+  Cooked,
+}
 
 #[inline]
 fn split_context_from_prefix(prefix: String) -> (String, String) {
@@ -13,9 +20,12 @@ fn split_context_from_prefix(prefix: String) -> (String, String) {
 
 pub fn scanner_context_module(expr: &Expr) -> Option<(String, String)> {
   match expr {
-    Expr::Tpl(tpl) if !tpl.exprs.is_empty() => Some(scan_context_module_tpl(tpl)),
+    Expr::Tpl(tpl) if !tpl.exprs.is_empty() => {
+      Some(scan_context_module_tpl(tpl, TemplateStringKind::Cooked))
+    }
     Expr::Bin(bin) => scan_context_module_bin(bin),
     Expr::Call(call) => scan_context_module_concat_call(call),
+    Expr::TaggedTpl(t_tpl) => scan_context_module_tagged_tpl(t_tpl),
     _ => None,
   }
 }
@@ -30,7 +40,7 @@ fn quote_meta(str: String) -> String {
 }
 
 // require(`./${a}.js`)
-fn scan_context_module_tpl(tpl: &Tpl) -> (String, String) {
+fn scan_context_module_tpl(tpl: &Tpl, kind: TemplateStringKind) -> (String, String) {
   let prefix_raw = tpl
     .quasis
     .first()
@@ -53,7 +63,15 @@ fn scan_context_module_tpl(tpl: &Tpl) -> (String, String) {
     .iter()
     .skip(tpl.quasis.len())
     .skip(1)
-    .map(|s| s.raw.to_string() + ".*")
+    .map(|s| {
+      let cooked = s.cooked.clone().unwrap_or(s.raw.clone());
+      match kind {
+        TemplateStringKind::Raw => s.raw.as_ref(),
+        TemplateStringKind::Cooked => cooked.as_ref(),
+      }
+      .to_string()
+        + ".*"
+    })
     .collect::<Vec<String>>()
     .join("");
   let reg = format!(
@@ -143,6 +161,37 @@ fn scan_context_module_concat_call(expr: &CallExpr) -> Option<(String, String)> 
   );
 
   Some((context, reg))
+}
+
+// require(String.raw`./${a}.js`)
+fn scan_context_module_tagged_tpl(tpl: &TaggedTpl) -> Option<(String, String)> {
+  if let Some(tag) = tpl.tag.as_member() {
+    if tag
+      .obj
+      .as_ident()
+      .and_then(|ident| Some("String".eq(&ident.sym)))
+      .is_none()
+      || tag
+        .prop
+        .as_ident()
+        .and_then(|ident| Some("raw".eq(&ident.sym)))
+        .is_none()
+    {
+      return Some(scan_context_module_tpl(
+        tpl.tpl.as_ref(),
+        TemplateStringKind::Cooked,
+      ));
+    }
+  } else {
+    return Some(scan_context_module_tpl(
+      tpl.tpl.as_ref(),
+      TemplateStringKind::Cooked,
+    ));
+  }
+  return Some(scan_context_module_tpl(
+    tpl.tpl.as_ref(),
+    TemplateStringKind::Raw,
+  ));
 }
 
 fn is_concat_call(expr: &CallExpr) -> bool {
