@@ -650,7 +650,7 @@ class Compiler {
 			stillValidModule: this.compilation.hooks.stillValidModule,
 			buildModule: this.compilation.hooks.buildModule,
 			thisCompilation: undefined,
-			optimizeChunkModules: undefined,
+			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
 			contextModuleBeforeResolve: undefined,
 			normalModuleFactoryResolveForScheme: undefined,
 			executeModule: undefined
