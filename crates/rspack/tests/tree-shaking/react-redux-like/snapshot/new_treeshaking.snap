@@ -8,8 +8,8 @@ source: crates/rspack_testing/src/run_fixture.rs
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./foo */"./lib.js");
 
-_foo__WEBPACK_IMPORTED_MODULE_0__.Provider;
-_foo__WEBPACK_IMPORTED_MODULE_0__.useSelector;
+_foo__WEBPACK_IMPORTED_MODULE_0__["default"];
+_foo__WEBPACK_IMPORTED_MODULE_0__["default"];
 }),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";

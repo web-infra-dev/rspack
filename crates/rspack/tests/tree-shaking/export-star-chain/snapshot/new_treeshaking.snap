@@ -52,7 +52,7 @@ __webpack_require__.d(__webpack_exports__, {
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./export */"./colors/index.js");
 
-_export__WEBPACK_IMPORTED_MODULE_0__.Colors;
+_export__WEBPACK_IMPORTED_MODULE_0__;
 _export__WEBPACK_IMPORTED_MODULE_0__.Something;
 }),
 "./something/Something.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {

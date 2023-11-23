@@ -165,6 +165,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       return;
     }
 
+    let ids = self.get_ids(&compilation.module_graph);
     let import_var = code_generatable_context
       .compilation
       .module_graph
@@ -183,11 +184,12 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       code_generatable_context,
       true,
       import_var,
-      self.ids.clone(),
+      ids,
       &self.id,
       self.call,
       !self.direct_import,
     );
+    dbg!(&export_expr);
     if self.shorthand {
       source.insert(self.end, format!(": {export_expr}").as_str(), None);
     } else {

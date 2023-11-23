@@ -26,7 +26,7 @@ var __WEBPACK_DEFAULT_EXPORT__ = 10;
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./a.js */"./b.js");
 
-_a_js__WEBPACK_IMPORTED_MODULE_0__.b;
+_a_js__WEBPACK_IMPORTED_MODULE_0__["default"];
 }),
 
 },function(__webpack_require__) {

@@ -17,7 +17,7 @@ class Something {
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./export */"./Something.js");
 
-(0, _export__WEBPACK_IMPORTED_MODULE_0__.Sider)();
+(0, _export__WEBPACK_IMPORTED_MODULE_0__["default"])();
 }),
 
 },function(__webpack_require__) {

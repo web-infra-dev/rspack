@@ -520,6 +520,7 @@ impl Plugin for SideEffectsFlagPlugin {
               item
             })
             .unwrap_or_else(|| ids[1..].to_vec());
+          dbg!(&processed_ids);
           dep_id.set_ids(processed_ids, mg);
           // dbg!(&mg.connection_by_dependency(&dep_id),);
         }

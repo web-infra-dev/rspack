@@ -1,14 +1,17 @@
 --- expected
 +++ actual
-@@ -9,7 +9,7 @@
+@@ -9,9 +9,9 @@
  __webpack_require__.d(__webpack_exports__, {
    "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
  });
 -/* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./containers */"./src/containers/index.js");
 +/* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./containers */"./src/containers/containers.js");
  
- const { PlatformProvider } = _containers__WEBPACK_IMPORTED_MODULE_0__.containers;
+-const { PlatformProvider } = _containers__WEBPACK_IMPORTED_MODULE_0__.containers;
++const { PlatformProvider } = _containers__WEBPACK_IMPORTED_MODULE_0__;
  const Index = ()=>{
+     console.log("PlatformProvider", PlatformProvider);
+     return 'something';
 @@ -23,16 +23,6 @@
  __webpack_require__.r(__webpack_exports__);
  /* harmony import */var _platform_container__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./platform-container */"./src/containers/platform-container/index.js");
