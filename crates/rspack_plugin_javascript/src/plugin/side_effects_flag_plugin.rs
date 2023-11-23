@@ -413,6 +413,7 @@ pub struct SideEffectsFlagPlugin;
 #[async_trait]
 impl Plugin for SideEffectsFlagPlugin {
   async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
+    println!("sdie effects plugin");
     // SAFETY: this method will not modify the map, and we can guarantee there is no other
     // thread access the map at the same time.
     let mg = &mut compilation.module_graph;
@@ -508,6 +509,7 @@ impl Plugin for SideEffectsFlagPlugin {
             continue;
           };
 
+          dbg!(&mg.connection_by_dependency(&dep_id));
           mg.update_module(&dep_id, &target.module);
           // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
           let processed_ids = target
@@ -517,6 +519,8 @@ impl Plugin for SideEffectsFlagPlugin {
               item
             })
             .unwrap_or_else(|| ids[1..].to_vec());
+
+          dbg!(&mg.connection_by_dependency(&dep_id));
           dep_id.set_ids(processed_ids, mg);
         }
       }
