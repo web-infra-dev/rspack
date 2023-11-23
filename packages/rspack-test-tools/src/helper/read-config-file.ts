@@ -12,5 +12,7 @@ export function readConfigFile<T extends ECompilerType>(
 		.map(i => path.resolve(root, i))
 		.find(i => fs.existsSync(i));
 	const fileConfig: TCompilerOptions<T> = existsFile ? require(existsFile) : {};
-	return deepmerge<TCompilerOptions<T>>(options, fileConfig);
+	return deepmerge<TCompilerOptions<T>>(options, fileConfig, {
+		arrayMerge: (a, b) => [...a, ...b]
+	});
 }

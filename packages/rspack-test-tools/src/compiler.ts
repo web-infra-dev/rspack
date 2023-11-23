@@ -25,7 +25,7 @@ export class TestCompilerManager<T extends ECompilerType>
 				this.compilerOptions = newOptions;
 			}
 		} catch (e) {
-			context.emitError(e);
+			context.emitError(e as Error);
 		}
 	}
 	compiler(
@@ -41,7 +41,7 @@ export class TestCompilerManager<T extends ECompilerType>
 				this.compilerInstance = newCompiler;
 			}
 		} catch (e) {
-			context.emitError(e);
+			context.emitError(e as Error);
 		}
 	}
 	stats(
@@ -57,7 +57,7 @@ export class TestCompilerManager<T extends ECompilerType>
 				this.compilerStats = newStats;
 			}
 		} catch (e) {
-			context.emitError(e);
+			context.emitError(e as Error);
 		}
 	}
 	result(
@@ -70,7 +70,7 @@ export class TestCompilerManager<T extends ECompilerType>
 				this.runResult = newResult;
 			}
 		} catch (e) {
-			context.emitError(e);
+			context.emitError(e as Error);
 		}
 	}
 	async build(
@@ -83,7 +83,7 @@ export class TestCompilerManager<T extends ECompilerType>
 		try {
 			await fn(this.compilerInstance!);
 		} catch (e) {
-			context.emitError(e);
+			context.emitError(e as Error);
 		}
 	}
 }

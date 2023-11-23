@@ -1,4 +1,4 @@
-import { TestCompilerManager } from "./compiler";
+import { TestCompilerManager } from "../compiler";
 import {
 	ITestCompilerManager,
 	ECompilerType,
@@ -7,7 +7,7 @@ import {
 	TCompiler,
 	TCompilerOptions,
 	TCompilerStats
-} from "./type";
+} from "../type";
 import path from "path";
 
 const DEFAULT_COMPILER_NAME = "__default__";
