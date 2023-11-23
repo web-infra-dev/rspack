@@ -125,6 +125,10 @@ impl ModuleGraph {
     self.blocks.get(block_id)
   }
 
+  pub fn dependencies(&self) -> &HashMap<DependencyId, BoxDependency> {
+    &self.dependencies
+  }
+
   pub fn add_dependency(&mut self, dependency: BoxDependency) {
     self.dependencies.insert(*dependency.id(), dependency);
   }
@@ -155,10 +159,9 @@ impl ModuleGraph {
     self.dependency_id_to_module_identifier.get(id)
   }
 
-  pub fn get_module(&self, id: &DependencyId) -> Option<&BoxModule> {
-    self
-      .module_identifier_by_dependency_id(id)
-      .and_then(|m| self.module_by_identifier(m))
+  pub fn get_module(&self, dependency_id: &DependencyId) -> Option<&BoxModule> {
+    let connection = self.connection_by_dependency(dependency_id)?;
+    self.module_by_identifier(&connection.module_identifier)
   }
 
   /// Add a connection between two module graph modules, if a connection exists, then it will be reused.

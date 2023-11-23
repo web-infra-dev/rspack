@@ -175,7 +175,7 @@ async function getAdditionEntries(
 	await server.start();
 	const entries = compiler.builtinPlugins
 		.filter(p => p.name === "EntryPlugin")
-		.map(p => p.raw().options)
+		.map(p => p.options)
 		.reduce<Object>((acc, cur: any) => {
 			const name = cur.options.name;
 			const request = cur.entry;

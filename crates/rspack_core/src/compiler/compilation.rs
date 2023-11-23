@@ -41,11 +41,12 @@ use crate::{
   ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue,
   CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, ContentHashArgs, ContextDependency, DependencyId,
-  DependencyParents, Entry, EntryData, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask,
-  FactorizeTaskResult, Filename, Logger, Module, ModuleGraph, ModuleIdentifier, ModuleProfile,
-  ModuleType, PathData, ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult,
-  ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals,
-  RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult, WorkerTask,
+  DependencyParents, DependencyType, Entry, EntryData, EntryOptions, Entrypoint, FactorizeQueue,
+  FactorizeTask, FactorizeTaskResult, Filename, Logger, Module, ModuleGraph, ModuleIdentifier,
+  ModuleProfile, ModuleType, PathData, ProcessAssetsArgs, ProcessDependenciesQueue,
+  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory,
+  RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult,
+  WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
@@ -172,19 +173,21 @@ impl Compilation {
     }
   }
 
-  pub fn add_entry(&mut self, entry: DependencyId, options: EntryOptions) {
+  pub fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) {
+    let entry_id = *entry.id();
+    self.module_graph.add_dependency(entry);
     if let Some(name) = options.name.clone() {
       if let Some(data) = self.entries.get_mut(&name) {
-        data.dependencies.push(entry);
+        data.dependencies.push(entry_id);
       } else {
         let data = EntryData {
-          dependencies: vec![entry],
+          dependencies: vec![entry_id],
           options,
         };
         self.entries.insert(name, data);
       }
     } else {
-      self.global_entry.dependencies.push(entry);
+      self.global_entry.dependencies.push(entry_id);
     }
   }
 
@@ -939,11 +942,13 @@ impl Compilation {
     if self.options.builtins.tree_shaking.enable() {
       self.bailout_module_identifiers = self
         .module_graph
-        .modules()
+        .dependencies()
         .values()
         .par_bridge()
-        .filter_map(|module| {
-          if module.as_context_module().is_some() {
+        .filter_map(|dep| {
+          if dep.as_context_dependency().is_some()
+            && let Some(module) = self.module_graph.get_module(dep.id())
+          {
             let mut values = vec![(module.identifier(), BailoutFlag::CONTEXT_MODULE)];
             if let Some(dependencies) = self
               .module_graph
@@ -960,6 +965,10 @@ impl Compilation {
             }
 
             Some(values)
+          } else if matches!(dep.dependency_type(), DependencyType::ContainerExposed)
+            && let Some(module) = self.module_graph.get_module(dep.id())
+          {
+            Some(vec![(module.identifier(), BailoutFlag::CONTAINER_EXPOSED)])
           } else {
             None
           }

@@ -23,6 +23,17 @@ impl AsyncDependenciesBlockIdentifier {
   pub fn new(from: ModuleIdentifier, modifier: Ustr) -> Self {
     Self { from, modifier }
   }
+
+  pub fn get<'a>(&self, compilation: &'a Compilation) -> Option<&'a AsyncDependenciesBlock> {
+    compilation.module_graph.block_by_id(self)
+  }
+
+  pub fn expect_get<'a>(&self, compilation: &'a Compilation) -> &'a AsyncDependenciesBlock {
+    compilation
+      .module_graph
+      .block_by_id(self)
+      .expect("should have block")
+  }
 }
 
 #[derive(Debug, Clone)]

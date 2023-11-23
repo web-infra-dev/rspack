@@ -142,6 +142,7 @@ export const enum BuiltinPluginName {
   LimitChunkCountPlugin = 'LimitChunkCountPlugin',
   WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
   MergeDuplicateChunksPlugin = 'MergeDuplicateChunksPlugin',
+  ContainerPlugin = 'ContainerPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -612,6 +613,15 @@ export interface RawChunkOptionNameCtx {
   module: JsModule
 }
 
+export interface RawContainerPluginOptions {
+  name: string
+  shareScope: string
+  library: RawLibraryOptions
+  runtime?: string
+  filename?: string
+  exposes: Array<RawExposeOptions>
+}
+
 export interface RawCopyGlobOptions {
   caseSensitiveMatch?: boolean
   dot?: boolean
@@ -684,6 +694,12 @@ export interface RawExperiments {
   topLevelAwait: boolean
   css: boolean
   rspackFuture: RawRspackFuture
+}
+
+export interface RawExposeOptions {
+  key: string
+  name?: string
+  import: Array<string>
 }
 
 export interface RawExternalItemFnCtx {
