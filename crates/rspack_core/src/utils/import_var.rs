@@ -18,7 +18,7 @@ pub fn get_import_var(mg: &ModuleGraph, dep_id: DependencyId) -> String {
       .expect("should be module dependency")
       .user_request(),
   );
-  let mut import_var_map_of_module = mg.import_var_map.entry(parent_module_id).or_default();
+  let mut import_var_map_of_module = mg.import_var_map.entry(*parent_module_id).or_default();
   let len = import_var_map_of_module.len();
 
   let import_var = match import_var_map_of_module.entry(module_id.to_string()) {
