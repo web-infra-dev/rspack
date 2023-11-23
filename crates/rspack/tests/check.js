@@ -50,8 +50,14 @@ const falsePositiveMap = {
 	"reexport_entry_elimination": "update dep",
 	"side-effects-analyzed": "update dep",
 	"side-effects-prune": "update dep",
-	"side-effects-two": "update dep"
-
+	"side-effects-two": "update dep",
+	"export-star-chain": "update dep",
+	"import-export-all-as-a-empty-module": "update dep",
+"import-star-as-and-export": "update dep",
+"module-rule-side-effects2": "align with webpack",
+"react-redux-like": "update dep",
+"webpack-side-effects-all-used": "update dep",
+"webpack-side-effects-simple-unused": "update dep"
 };
 
 const normalizedList = filteredList.map((item) => {

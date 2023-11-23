@@ -3,9 +3,9 @@ use std::sync::Arc;
 use linked_hash_set::LinkedHashSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
-  get_exports_type, process_export_info, AsContextDependency, ConnectionState, Dependency,
-  DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
-  ExportInfoId, ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsInfoId,
+  get_exports_type, get_import_var, process_export_info, AsContextDependency, ConnectionState,
+  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
+  DependencyType, ExportInfoId, ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsInfoId,
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
   HarmonyExportInitFragment, ModuleDependency, ModuleGraph, ModuleIdentifier, RuntimeSpec,
   TemplateContext, TemplateReplaceSource, UsageState, UsedName,
@@ -474,9 +474,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       .module_graph_module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
-    let import_var = compilation
-      .module_graph
-      .get_import_var(&module.identifier(), &self.request);
+    let import_var = get_import_var(&compilation.module_graph, self.id);
     let is_new_tree_shaking = compilation.options.is_new_tree_shaking();
 
     let used_exports = if is_new_tree_shaking {
@@ -530,7 +528,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
           JsWord::from(export_from_import(
             code_generatable_context,
             true,
-            import_var,
+            &import_var,
             id.1.clone().map(|i| vec![i]).unwrap_or_default(),
             &self.id,
             false,

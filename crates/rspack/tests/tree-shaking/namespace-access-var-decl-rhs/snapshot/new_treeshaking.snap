@@ -37,6 +37,7 @@ __webpack_require__.d(__webpack_exports__, {
   getDocPermissionTextSendMe: function() { return getDocPermissionTextSendMe; }
 });
 /* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./enum.js */"./a.js");
+/* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/* ./enum.js */"./b.js");
 
 function Record() {}
  const code2CreateChatDocPermission = {
@@ -45,7 +46,7 @@ function Record() {}
  function getDocPermissionTextSendMe() {}
  class Doc extends Record({}) {
     isSheet() {
-        return this.type === _enum_js__WEBPACK_IMPORTED_MODULE_0__.b.b;
+        return this.type === _enum_js__WEBPACK_IMPORTED_MODULE_1__.b.b;
     }
 }
 Doc.fromJS = (data)=>new Doc(data);

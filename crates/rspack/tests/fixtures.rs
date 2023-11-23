@@ -28,7 +28,7 @@ fn tree_shaking(fixture_path: PathBuf) {
   // For each test case
   // First test is old version tree shaking snapshot test
   // TODO: recover
-  // test_fixture(&fixture_path, Box::new(|_, _| {}), None);
+  test_fixture(&fixture_path, Box::new(|_, _| {}), None);
   // second test is webpack based tree shaking
   IS_NEW_TREESHAKING.store(true, Ordering::SeqCst);
   test_fixture(

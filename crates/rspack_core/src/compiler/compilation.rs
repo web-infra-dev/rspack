@@ -767,13 +767,13 @@ impl Compilation {
                  module_graph: &mut ModuleGraph,
                  current_block: Option<AsyncDependenciesBlock>| {
                   for dependency in dependencies {
-                    if let Some(dependency) = dependency.as_module_dependency() {
-                      module_graph
-                        .set_dependency_import_var(module.identifier(), dependency.request());
-                    } else if let Some(dependency) = dependency.as_context_dependency() {
-                      module_graph
-                        .set_dependency_import_var(module.identifier(), dependency.request());
-                    }
+                    // if let Some(dependency) = dependency.as_module_dependency() {
+                    //   module_graph
+                    //     .set_dependency_import_var(module.identifier(), dependency.request());
+                    // } else if let Some(dependency) = dependency.as_context_dependency() {
+                    //   module_graph
+                    //     .set_dependency_import_var(module.identifier(), dependency.request());
+                    // }
                     let dependency_id = *dependency.id();
                     if current_block.is_none() {
                       module.add_dependency_id(dependency_id);
