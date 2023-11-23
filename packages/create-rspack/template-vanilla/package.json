@@ -1,0 +1,14 @@
+{
+  "name": "rspack-vanilla-starter",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "NODE_ENV=develpoment rspack serve",
+    "build": "NODE_ENV=production rspack build"
+  },
+  "devDependencies": {
+    "browserify": "latest",
+    "@rspack/cli": "0.4.0",
+    "@rspack/core": "0.4.0"
+  }
+}

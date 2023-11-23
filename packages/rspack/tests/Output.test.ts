@@ -1,13 +1,13 @@
 // @ts-nocheck
 import { readdirSync } from "fs";
-import { Compiler, getNormalizedRspackOptions, rspack } from "../src";
+import { Compiler, rspack } from "../src";
 const path = require("path");
 
 describe("Output", () => {
 	function compile(entry: string, options, callback) {
 		const noOutputPath = !options.output || !options.output.path;
 
-		options = getNormalizedRspackOptions(options);
+		options = rspack.config.getNormalizedRspackOptions(options);
 
 		if (!options.mode) options.mode = "production";
 		options.entry = entry;

@@ -1,5 +1,5 @@
 use rspack_core::{
-  get_css_chunk_filename_template, get_js_chunk_filename_template,
+  get_css_chunk_filename_template, get_js_chunk_filename_template, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   stringify_map, ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule, SourceType,
 };
@@ -7,7 +7,6 @@ use rspack_identifier::Identifier;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::utils::chunk_has_css;
-use crate::impl_runtime_module;
 
 #[derive(Debug, Eq)]
 pub struct GetChunkFilenameRuntimeModule {

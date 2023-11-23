@@ -3,11 +3,6 @@ const rspack = require("@rspack/core");
 const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
 
 module.exports = {
-	experiments: {
-		rspackFuture: {
-			disableTransformByDefault: true
-		}
-	},
 	context: __dirname,
 	entry: {
 		main: "./src/main.jsx"

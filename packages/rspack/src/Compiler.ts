@@ -8,6 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import type * as binding from "@rspack/binding";
+import { rspack } from "./index";
 import fs from "fs";
 import * as tapable from "tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
@@ -36,7 +37,7 @@ import { NormalModuleFactory } from "./NormalModuleFactory";
 import { WatchFileSystem } from "./util/fs";
 import { getScheme } from "./util/scheme";
 import { checkVersion } from "./util/bindingVersionCheck";
-import Watching from "./Watching";
+import { Watching } from "./Watching";
 import { NormalModule } from "./NormalModule";
 import { normalizeJsModule } from "./util/normalization";
 import {
@@ -54,10 +55,10 @@ import { CodeGenerationResult } from "./Module";
 class Compiler {
 	#_instance?: binding.Rspack;
 
-	webpack: any;
+	webpack = rspack;
 	// @ts-expect-error
 	compilation: Compilation;
-	builtinPlugins: RspackBuiltinPlugin[];
+	builtinPlugins: binding.BuiltinPlugin[];
 	root: Compiler;
 	running: boolean;
 	idle: boolean;
@@ -96,6 +97,7 @@ class Compiler {
 		normalModuleFactory: tapable.SyncHook<NormalModuleFactory>;
 		contextModuleFactory: tapable.SyncHook<ContextModuleFactory>;
 		initialize: tapable.SyncHook<[]>;
+		shouldEmit: tapable.SyncBailHook<[Compilation], undefined>;
 		infrastructureLog: tapable.SyncBailHook<[string, string, any[]], true>;
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
 		run: tapable.AsyncSeriesHook<[Compiler]>;
@@ -126,123 +128,6 @@ class Compiler {
 		this.cache = new Cache();
 		this.compilerPath = "";
 		this.builtinPlugins = [];
-		// to workaround some plugin access webpack, we may change dev-server to avoid this hack in the future
-		this.webpack = {
-			NormalModule,
-			get sources(): typeof import("webpack-sources") {
-				return require("webpack-sources");
-			},
-			Compilation,
-			get version() {
-				return require("../package.json").webpackVersion; // this is a hack to be compatible with plugin which detect webpack's version
-			},
-			get rspackVersion() {
-				return require("../package.json").version;
-			},
-			get BannerPlugin() {
-				return require("./builtin-plugin").BannerPlugin;
-			},
-			get DefinePlugin() {
-				return require("./builtin-plugin").DefinePlugin;
-			},
-			get ProgressPlugin() {
-				return require("./builtin-plugin").ProgressPlugin;
-			},
-			get ProvidePlugin() {
-				return require("./builtin-plugin").ProvidePlugin;
-			},
-			get EntryPlugin() {
-				return require("./builtin-plugin").EntryPlugin;
-			},
-			get ExternalsPlugin() {
-				return require("./builtin-plugin").ExternalsPlugin;
-			},
-			get HotModuleReplacementPlugin() {
-				return require("./builtin-plugin").HotModuleReplacementPlugin;
-			},
-			get LoaderOptionsPlugin() {
-				return require("./lib/LoaderOptionsPlugin").LoaderOptionsPlugin;
-			},
-			get LoaderTargetPlugin() {
-				return require("./lib/LoaderTargetPlugin").LoaderTargetPlugin;
-			},
-			WebpackError: Error,
-			ModuleFilenameHelpers,
-			javascript: {
-				get EnableChunkLoadingPlugin() {
-					return require("./builtin-plugin").EnableChunkLoadingPlugin;
-				}
-			},
-			node: {
-				get NodeTargetPlugin() {
-					return require("./builtin-plugin").NodeTargetPlugin;
-				},
-				get NodeTemplatePlugin() {
-					return require("./node/NodeTemplatePlugin").default;
-				}
-			},
-			electron: {
-				get ElectronTargetPlugin() {
-					return require("./builtin-plugin").ElectronTargetPlugin;
-				}
-			},
-			wasm: {
-				get EnableWasmLoadingPlugin() {
-					return require("./builtin-plugin").EnableWasmLoadingPlugin;
-				}
-			},
-			library: {
-				get EnableLibraryPlugin() {
-					return require("./builtin-plugin").EnableLibraryPlugin;
-				}
-			},
-			util: {
-				get createHash() {
-					return require("./util/createHash").createHash;
-				},
-				get cleverMerge() {
-					return require("./util/cleverMerge").cachedCleverMerge;
-				}
-				// get comparators() {
-				// 	return require("./util/comparators");
-				// },
-				// get runtime() {
-				// 	return require("./util/runtime");
-				// },
-				// get serialization() {
-				// 	return require("./util/serialization");
-				// },
-				// get LazySet() {
-				// 	return require("./util/LazySet");
-				// }
-			},
-			// XxxRspackPlugin, Rspack-only plugins
-			get HtmlRspackPlugin() {
-				return require("./builtin-plugin").HtmlRspackPlugin;
-			},
-			get SwcJsMinimizerRspackPlugin() {
-				return require("./builtin-plugin").SwcJsMinimizerRspackPlugin;
-			},
-			get SwcCssMinimizerRspackPlugin() {
-				return require("./builtin-plugin").SwcCssMinimizerRspackPlugin;
-			},
-			get CopyRspackPlugin() {
-				return require("./builtin-plugin").CopyRspackPlugin;
-			},
-			get Template() {
-				return require("./Template");
-			},
-			optimize: {
-				get LimitChunkCountPlugin() {
-					return require("./builtin-plugin").LimitChunkCountPlugin;
-				}
-			},
-			webworker: {
-				get WebWorkerTemplatePlugin() {
-					return require("./builtin-plugin").WebWorkerTemplatePlugin;
-				}
-			}
-		};
 		this.root = this;
 		this.ruleSet = new RuleSetCompiler();
 		this.running = false;
@@ -253,6 +138,7 @@ class Compiler {
 		this.removedFiles = undefined;
 		this.hooks = {
 			initialize: new SyncHook([]),
+			shouldEmit: new tapable.SyncBailHook(["compilation"]),
 			done: new tapable.AsyncSeriesHook<Stats>(["stats"]),
 			afterDone: new tapable.SyncHook<Stats>(["stats"]),
 			beforeRun: new tapable.AsyncSeriesHook(["compiler"]),
@@ -357,12 +243,13 @@ class Compiler {
 
 		this.#_instance = new instanceBinding.Rspack(
 			rawOptions,
-			this.builtinPlugins.map(bp => bp.raw()),
+			this.builtinPlugins,
 			{
 				beforeCompile: this.#beforeCompile.bind(this),
 				afterCompile: this.#afterCompile.bind(this),
 				finishMake: this.#finishMake.bind(this),
 				make: this.#make.bind(this),
+				shouldEmit: this.#shouldEmit.bind(this),
 				emit: this.#emit.bind(this),
 				assetEmitted: this.#assetEmitted.bind(this),
 				afterEmit: this.#afterEmit.bind(this),
@@ -441,7 +328,7 @@ class Compiler {
 				compilation: this.#compilation.bind(this),
 				optimizeModules: this.#optimizeModules.bind(this),
 				optimizeTree: this.#optimizeTree.bind(this),
-				optimizeChunkModule: this.#optimizeChunkModules.bind(this),
+				optimizeChunkModules: this.#optimizeChunkModules.bind(this),
 				finishModules: this.#finishModules.bind(this),
 				normalModuleFactoryResolveForScheme:
 					this.#normalModuleFactoryResolveForScheme.bind(this),
@@ -678,11 +565,13 @@ class Compiler {
 
 	#updateDisabledHooks(callback?: (error?: Error) => void) {
 		const disabledHooks: string[] = [];
-		const hookMap = {
+		type HookMap = Record<keyof binding.JsHooks, any>;
+		const hookMap: HookMap = {
 			make: this.hooks.make,
 			beforeCompile: this.hooks.beforeCompile,
 			afterCompile: this.hooks.afterCompile,
 			finishMake: this.hooks.finishMake,
+			shouldEmit: this.hooks.shouldEmit,
 			emit: this.hooks.emit,
 			assetEmitted: this.hooks.assetEmitted,
 			afterEmit: this.hooks.afterEmit,
@@ -751,7 +640,6 @@ class Compiler {
 					Compilation.PROCESS_ASSETS_STAGE_REPORT
 				),
 			compilation: this.hooks.compilation,
-			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
 			optimizeTree: this.compilation.hooks.optimizeTree,
 			finishModules: this.compilation.hooks.finishModules,
 			optimizeModules: this.compilation.hooks.optimizeModules,
@@ -760,10 +648,15 @@ class Compiler {
 			afterResolve: this.compilation.normalModuleFactory?.hooks.afterResolve,
 			succeedModule: this.compilation.hooks.succeedModule,
 			stillValidModule: this.compilation.hooks.stillValidModule,
-			buildModule: this.compilation.hooks.buildModule
+			buildModule: this.compilation.hooks.buildModule,
+			thisCompilation: undefined,
+			optimizeChunkModules: undefined,
+			contextModuleBeforeResolve: undefined,
+			normalModuleFactoryResolveForScheme: undefined,
+			executeModule: undefined
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
-			if (hook?.taps.length === 0) {
+			if (typeof hook !== "undefined" && hook.taps.length === 0) {
 				disabledHooks.push(name);
 			}
 		}
@@ -909,6 +802,11 @@ class Compiler {
 	async #make() {
 		await this.hooks.make.promise(this.compilation);
 		this.#updateDisabledHooks();
+	}
+	async #shouldEmit(): Promise<boolean | undefined> {
+		const res = this.hooks.shouldEmit.call(this.compilation);
+		this.#updateDisabledHooks();
+		return Promise.resolve(res);
 	}
 	async #emit() {
 		await this.hooks.emit.promise(this.compilation);
@@ -1087,6 +985,7 @@ class Compiler {
 				});
 			});
 		};
+
 		if (this.idle) {
 			this.cache.endIdle(err => {
 				if (err) return callback(err);
@@ -1217,7 +1116,7 @@ class Compiler {
 		return source.buffer();
 	}
 
-	__internal__registerBuiltinPlugin(plugin: RspackBuiltinPlugin) {
+	__internal__registerBuiltinPlugin(plugin: binding.BuiltinPlugin) {
 		this.builtinPlugins.push(plugin);
 	}
 }

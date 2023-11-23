@@ -216,7 +216,7 @@ jobs:
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
-        node: [14, 16, 18]
+        node: [16, 18, 20]
     name: Test Node ${{ matrix.node }}
     env:
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true

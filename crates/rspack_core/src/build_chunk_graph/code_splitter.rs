@@ -1,14 +1,13 @@
-use std::sync::Arc;
-
 use anyhow::anyhow;
 use rspack_error::{internal_error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, ChunkGroup, ChunkGroupInfo, ChunkGroupKind,
-  ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, DependenciesBlock,
-  GroupOptions, Logger, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec, IS_NEW_TREESHAKING,
+  get_entry_runtime, AsyncDependenciesBlockIdentifier, BoxDependency, ChunkGroup, ChunkGroupInfo,
+  ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
+  DependenciesBlock, GroupOptions, Logger, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
+  IS_NEW_TREESHAKING,
 };
 
 pub(super) struct CodeSplitter<'me> {
@@ -95,9 +94,7 @@ impl<'me> CodeSplitter<'me> {
       let mut entrypoint = ChunkGroup::new(
         ChunkGroupKind::new_entrypoint(true, Box::new(options.clone())),
         ChunkGroupInfo {
-          runtime: HashSet::from_iter([Arc::from(
-            options.runtime.clone().unwrap_or_else(|| name.to_string()),
-          )]),
+          runtime: get_entry_runtime(name, options),
           chunk_loading: !matches!(
             options
               .chunk_loading

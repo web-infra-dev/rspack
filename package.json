@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "0.3.14",
+  "version": "0.4.0",
   "license": "MIT",
   "description": "A Fast Rust-based web bundler",
   "private": true,
@@ -36,7 +36,7 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "engines": {
-    "pnpm": "7.32.0"
+    "pnpm": "8.10.5"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
@@ -44,7 +44,6 @@
     "@types/jest": "29.1.0",
     "@types/node": "16",
     "@types/rimraf": "3.0.2",
-    "chalk": "^5.3.0",
     "commander": "10.0.1",
     "cross-env": "^7.0.3",
     "husky": "^7.0.4",
@@ -71,5 +70,5 @@
     "sass-embedded-win32-ia32": "1.58.3",
     "sass-embedded-win32-x64": "1.58.3"
   },
-  "packageManager": "pnpm@7.32.0"
+  "packageManager": "pnpm@8.10.5"
 }

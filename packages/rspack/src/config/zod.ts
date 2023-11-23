@@ -1002,7 +1002,21 @@ export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 
 const experiments = z.strictObject({
 	lazyCompilation: z.boolean().optional(),
-	incrementalRebuild: z.boolean().or(incrementalRebuildOptions).optional(),
+	incrementalRebuild: z
+		.boolean()
+		.or(incrementalRebuildOptions)
+		.optional()
+		.refine(val => {
+			if (val !== undefined) {
+				deprecatedWarn(
+					`'experiments.incrementalRebuild' has been deprecated, and will be drop support in 0.5.0. See the discussion ${termlink(
+						"here",
+						"https://github.com/web-infra-dev/rspack/issues/4708"
+					)}`
+				);
+			}
+			return true;
+		}),
 	asyncWebAssembly: z.boolean().optional(),
 	outputModule: z.boolean().optional(),
 	topLevelAwait: z.boolean().optional(),

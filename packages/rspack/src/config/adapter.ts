@@ -17,6 +17,7 @@ import type {
 	RawFuncUseCtx,
 	RawRspackFuture,
 	RawLibraryName,
+	RawLibraryOptions,
 	JsModule
 } from "@rspack/binding";
 import assert from "assert";
@@ -56,7 +57,8 @@ import {
 	RspackFutureOptions,
 	JavascriptParserOptions,
 	LibraryName,
-	OptimizationSplitChunksNameFunction
+	EntryRuntime,
+	ChunkLoading
 } from "./zod";
 import {
 	ExperimentsNormalized,
@@ -201,7 +203,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		assetModuleFilename: output.assetModuleFilename!,
 		filename: output.filename!,
 		chunkFilename: output.chunkFilename!,
-		chunkLoading: chunkLoading === false ? "false" : chunkLoading,
+		chunkLoading: getRawChunkLoading(chunkLoading),
 		crossOriginLoading: getRawCrossOriginLoading(output.crossOriginLoading!),
 		cssFilename: output.cssFilename!,
 		cssChunkFilename: output.cssChunkFilename!,
@@ -236,9 +238,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 	};
 }
 
-export function getRawLibrary(
-	library: LibraryOptions
-): RawOptions["output"]["library"] {
+export function getRawLibrary(library: LibraryOptions): RawLibraryOptions {
 	const {
 		type,
 		name,
@@ -888,4 +888,12 @@ function getRawStats(stats: StatsValue): RawOptions["stats"] {
 	return {
 		colors: statsOptions.colors ?? false
 	};
+}
+
+export function getRawEntryRuntime(runtime: EntryRuntime) {
+	return runtime === false ? undefined : runtime;
+}
+
+export function getRawChunkLoading(chunkLoading: ChunkLoading) {
+	return chunkLoading === false ? "false" : chunkLoading;
 }

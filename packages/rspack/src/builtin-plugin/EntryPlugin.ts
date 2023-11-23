@@ -6,8 +6,11 @@ import {
 	Filename,
 	LibraryOptions,
 	PublicPath,
+	getRawChunkLoading,
+	getRawEntryRuntime,
 	getRawLibrary
-} from "..";
+} from "../config";
+import { isNil } from "../util";
 
 export type EntryOptions = {
 	name?: string;
@@ -43,8 +46,10 @@ function getRawEntryOptions(entry: EntryOptions): RawEntryOptions {
 		name: entry.name,
 		publicPath: entry.publicPath,
 		baseUri: entry.baseUri,
-		runtime: runtime === false ? undefined : runtime,
-		chunkLoading: chunkLoading === false ? "false" : chunkLoading,
+		runtime: !isNil(runtime) ? getRawEntryRuntime(runtime) : undefined,
+		chunkLoading: !isNil(chunkLoading)
+			? getRawChunkLoading(chunkLoading)
+			: undefined,
 		asyncChunks: entry.asyncChunks,
 		filename: entry.filename,
 		library: entry.library && getRawLibrary(entry.library)

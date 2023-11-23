@@ -22,7 +22,6 @@ mod load_chunk_with_block;
 mod load_script;
 mod make_namespace_object;
 mod module_chunk_loading;
-mod module_macro;
 mod node_module_decorator;
 mod normal;
 mod on_chunk_loaded;

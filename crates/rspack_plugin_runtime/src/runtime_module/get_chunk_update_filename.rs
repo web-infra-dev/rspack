@@ -1,10 +1,9 @@
 use rspack_core::{
+  impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
-
-use crate::impl_runtime_module;
 
 // TODO workaround for get_chunk_update_filename
 #[derive(Debug, Eq)]
