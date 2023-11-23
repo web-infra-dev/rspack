@@ -18,7 +18,7 @@ import type {
 	RawRspackFuture,
 	RawLibraryName,
 	RawLibraryOptions,
-	JsModule,
+	JsModule
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../Compiler";
