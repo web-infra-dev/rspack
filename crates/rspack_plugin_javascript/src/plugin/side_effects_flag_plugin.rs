@@ -509,7 +509,7 @@ impl Plugin for SideEffectsFlagPlugin {
             continue;
           };
 
-          dbg!(&mg.connection_by_dependency(&dep_id));
+          // dbg!(&mg.connection_by_dependency(&dep_id));
           mg.update_module(&dep_id, &target.module);
           // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
           let processed_ids = target
@@ -520,7 +520,7 @@ impl Plugin for SideEffectsFlagPlugin {
             })
             .unwrap_or_else(|| ids[1..].to_vec());
 
-          dbg!(&mg.connection_by_dependency(&dep_id));
+          // dbg!(&mg.connection_by_dependency(&dep_id));
           dep_id.set_ids(processed_ids, mg);
         }
       }
