@@ -9,7 +9,7 @@ use crate::{
   ModuleProfile, ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve,
   ResolverFactory, SharedPluginDriver, WorkerQueue,
 };
-use crate::{DependencyId, ExportInfo, ExportsInfo, UsageState};
+use crate::{DependencyId, ExportInfo, ExportsInfo, Task, UsageState};
 
 #[derive(Debug)]
 pub enum TaskResult {
@@ -24,6 +24,7 @@ pub trait WorkerTask {
   async fn run(self) -> Result<TaskResult>;
 }
 
+#[derive(Debug)]
 pub struct FactorizeTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub original_module_context: Option<Box<Context>>,
@@ -159,6 +160,7 @@ impl WorkerTask for FactorizeTask {
 
 pub type FactorizeQueue = WorkerQueue<FactorizeTask>;
 
+#[derive(Debug)]
 pub struct AddTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module: Box<dyn Module>,
@@ -245,6 +247,7 @@ fn set_resolved_module(
 
 pub type AddQueue = WorkerQueue<AddTask>;
 
+#[derive(Debug)]
 pub struct BuildTask {
   pub module: Box<dyn Module>,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -334,10 +337,17 @@ impl WorkerTask for BuildTask {
 
 pub type BuildQueue = WorkerQueue<BuildTask>;
 
+#[derive(Debug)]
 pub struct ProcessDependenciesTask {
   pub original_module_identifier: ModuleIdentifier,
   pub dependencies: Vec<DependencyId>,
   pub resolve_options: Option<Box<Resolve>>,
+}
+
+impl Task<ModuleIdentifier> for ProcessDependenciesTask {
+  fn get_key(&self) -> ModuleIdentifier {
+    self.original_module_identifier
+  }
 }
 
 #[derive(Debug)]
@@ -345,8 +355,9 @@ pub struct ProcessDependenciesResult {
   pub module_identifier: ModuleIdentifier,
 }
 
-pub type ProcessDependenciesQueue = WorkerQueue<ProcessDependenciesTask>;
+pub type ProcessDependenciesQueue = WorkerQueue<ProcessDependenciesTask, ModuleIdentifier>;
 
+#[derive(Debug)]
 pub struct CleanTask {
   pub module_identifier: ModuleIdentifier,
 }

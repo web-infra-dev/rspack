@@ -23,7 +23,7 @@ use rspack_identifier::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::ast::ModuleItem;
-use tokio::sync::mpsc::error::TryRecvError;
+use tokio::sync::mpsc::{error::TryRecvError, unbounded_channel};
 use tracing::instrument;
 
 use super::{
@@ -109,6 +109,8 @@ pub struct Compilation {
   pub build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub side_effects_free_modules: IdentifierSet,
   pub module_item_map: IdentifierMap<Vec<ModuleItem>>,
+
+  pub process_dependencies_queue: ProcessDependenciesQueue,
 }
 
 impl Compilation {
@@ -169,6 +171,8 @@ impl Compilation {
       side_effects_free_modules: IdentifierSet::default(),
       module_item_map: IdentifierMap::default(),
       include_module_ids: IdentifierSet::default(),
+
+      process_dependencies_queue: ProcessDependenciesQueue::new(),
     }
   }
 
@@ -431,7 +435,9 @@ impl Compilation {
     let mut factorize_queue = FactorizeQueue::new();
     let mut add_queue = AddQueue::new();
     let mut build_queue = BuildQueue::new();
-    let mut process_dependencies_queue = ProcessDependenciesQueue::new();
+
+    self.process_dependencies_queue = ProcessDependenciesQueue::new();
+
     let mut make_failed_dependencies: HashSet<BuildDependency> = HashSet::default();
     let mut make_failed_module = HashSet::default();
     let mut errored = None;
@@ -557,7 +563,7 @@ impl Compilation {
       add_time.end(start);
 
       let start = process_deps_time.start();
-      while let Some(task) = process_dependencies_queue.get_task() {
+      while let Some(task) = self.process_dependencies_queue.get_task() {
         active_task_count += 1;
 
         let mut sorted_dependencies = HashMap::default();
@@ -822,11 +828,13 @@ impl Compilation {
                   mgm.set_profile(current_profile);
                 }
               }
-              process_dependencies_queue.add_task(ProcessDependenciesTask {
-                dependencies: all_dependencies,
-                original_module_identifier: module.identifier(),
-                resolve_options: module.get_resolve_options(),
-              });
+              self
+                .process_dependencies_queue
+                .add_task(ProcessDependenciesTask {
+                  dependencies: all_dependencies,
+                  original_module_identifier: module.identifier(),
+                  resolve_options: module.get_resolve_options(),
+                });
               self.module_graph.set_module_build_info_and_meta(
                 &module.identifier(),
                 build_result.build_info,
@@ -1698,7 +1706,39 @@ impl Compilation {
     CompilationLogger::new(name.into(), self.logging.clone())
   }
 
-  pub fn execute_module(&self, entry: ModuleIdentifier) -> Result<Option<String>> {
+  #[allow(clippy::unwrap_in_result)]
+  pub fn execute_module(&mut self, entry: ModuleIdentifier) -> Result<Option<String>> {
+    let (tx, mut rx) = unbounded_channel();
+    self.process_dependencies_queue.wait_for(entry, tx.clone());
+
+    let mut modules = HashSet::default();
+    modules.insert(entry);
+
+    loop {
+      match rx.try_recv() {
+        Ok(id) => {
+          modules.remove(&id);
+
+          let module = self
+            .module_graph
+            .module_by_identifier(&id)
+            .expect("has module");
+
+          for connection in self.module_graph.get_outgoing_connections(module) {
+            modules.insert(connection.module_identifier);
+            self
+              .process_dependencies_queue
+              .wait_for(connection.module_identifier, tx.clone());
+          }
+
+          if modules.is_empty() {
+            break;
+          }
+        }
+        Err(_) => return Err(rspack_error::internal_error!("Failed to build module")),
+      }
+    }
+
     let codegen_result = Default::default();
     // TODO
     self
