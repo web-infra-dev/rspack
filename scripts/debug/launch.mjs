@@ -81,26 +81,5 @@ async function launchDebugger(launchConfig) {
 		return Promise.all(launchConfig.map(c => $`cmd.exe /c start ${mapUrl(c)}`));
 	}
 
-	if (!(await hasCommandCode())) {
-		return;
-	}
 	await $`code --open-url ${launchConfig.map(mapUrl)}`;
-}
-
-async function hasCommandCode() {
-	let which = process.platform === "win32" ? "where.exe" : "which";
-	try {
-		let fs = await import("node:fs/promises");
-		let { stdout } = await $`${which} node`.quiet();
-		await fs.access(stdout.split(/[\n\r]/)[0]);
-		return true;
-	} catch (p) {
-		console.error(
-			new Error(p.stderr || p.message, {
-				cause:
-					"Only Vscode has been supported by now. Did you forget to install 'code' command?"
-			})
-		);
-		return false;
-	}
 }
