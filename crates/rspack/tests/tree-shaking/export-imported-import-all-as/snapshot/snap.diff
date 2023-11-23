@@ -17,7 +17,7 @@
 -/* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./answer */"./answer.js");
 +/* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./answer */"./test.js");
  
- _answer__WEBPACK_IMPORTED_MODULE_0__.filter;
+-_answer__WEBPACK_IMPORTED_MODULE_0__.filter;
 -}),
 -"./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 -"use strict";
@@ -29,6 +29,7 @@
 - const a = 3;
 -
 -
++_answer__WEBPACK_IMPORTED_MODULE_0__;
  }),
  "./test.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";

@@ -8,7 +8,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./app */"./lib.js");
 
-_app__WEBPACK_IMPORTED_MODULE_0__.app;
+_app__WEBPACK_IMPORTED_MODULE_0__;
 }),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
