@@ -1535,9 +1535,6 @@ importers:
       '@types/watchpack':
         specifier: ^2.4.0
         version: 2.4.0
-      '@types/webpack':
-        specifier: 5.28.3
-        version: 5.28.3(@swc/core@1.3.99)
       '@types/webpack-dev-server':
         specifier: ^4.7.2
         version: 4.7.2(webpack@5.89.0)
@@ -12552,19 +12549,6 @@ packages:
       '@types/node': 18.15.11
       tapable: 2.2.1
       webpack: 5.89.0
-    transitivePeerDependencies:
-      - '@swc/core'
-      - esbuild
-      - uglify-js
-      - webpack-cli
-    dev: true
-
-  /@types/webpack@5.28.3(@swc/core@1.3.99):
-    resolution: {integrity: sha512-Hd0GBzpP0mO2ZKChw2V7flK45m01/2g9FalpMum2X66uouzG3P1vkxvOtLVzAWLna4N9h0s2sVjND9Slnlef8A==}
-    dependencies:
-      '@types/node': 18.15.11
-      tapable: 2.2.1
-      webpack: 5.89.0(@swc/core@1.3.99)
     transitivePeerDependencies:
       - '@swc/core'
       - esbuild
