@@ -66,7 +66,7 @@ const toPercent = d => (d * 100).toFixed(2) + '%';
         modules: true,
         runtimeModules: true,
         ignoreModuleId: true,
-        ignoreModuleArugments: true,
+        ignoreModuleArguments: true,
         ignorePropertyQuotationMark: true,
         onCompareFile: function (file, result) {
           if (['different', 'same'].includes(result.type)) {

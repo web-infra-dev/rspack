@@ -190,7 +190,7 @@ export class DiffProcessor implements ITestProcessor {
 
 	private createFormatOptions() {
 		const formatOptions: IFormatCodeOptions = {
-			ignoreModuleArugments: this.options.ignoreModuleArugments,
+			ignoreModuleArguments: this.options.ignoreModuleArguments,
 			ignoreModuleId: this.options.ignoreModuleId,
 			ignorePropertyQuotationMark: this.options.ignorePropertyQuotationMark,
 			replacements: this.options.replacements || {}

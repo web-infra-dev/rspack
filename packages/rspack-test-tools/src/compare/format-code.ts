@@ -8,7 +8,7 @@ export interface IFormatCodeOptions {
 	replacements?: Record<string, string>;
 	ignorePropertyQuotationMark: boolean;
 	ignoreModuleId: boolean;
-	ignoreModuleArugments: boolean;
+	ignoreModuleArguments: boolean;
 }
 
 export function formatCode(raw: string, options: IFormatCodeOptions) {
@@ -39,7 +39,7 @@ export function formatCode(raw: string, options: IFormatCodeOptions) {
 		concise: false
 	}).code;
 
-	if (options.ignoreModuleArugments) {
+	if (options.ignoreModuleArguments) {
 		result = replaceModuleArgument(result);
 	}
 
