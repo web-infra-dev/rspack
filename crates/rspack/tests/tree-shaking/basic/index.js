@@ -1,1 +1,3 @@
-import * as test from "./app";
+import { answer } from "./lib";
+answer
+
