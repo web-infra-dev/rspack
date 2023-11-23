@@ -199,7 +199,6 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
       None,
     )));
   } else {
-    dbg!(&content, module_dependency.request());
     init_fragments.push(Box::new(NormalInitFragment::new(
       format!("{}{}", content.0, content.1),
       InitFragmentStage::StageHarmonyImports,

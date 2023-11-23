@@ -81,7 +81,7 @@ pub trait Dependency:
     None
   }
 
-  fn name(&self) -> Option<&JsWord> {
+  fn dependency_name(&self) -> Option<&JsWord> {
     None
   }
 }

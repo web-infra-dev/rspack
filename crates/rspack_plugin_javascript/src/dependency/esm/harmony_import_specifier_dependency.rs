@@ -132,9 +132,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let TemplateContext {
-      mut compilation, ..
-    } = code_generatable_context;
+    let TemplateContext { compilation, .. } = code_generatable_context;
 
     let reference_mgm = compilation
       .module_graph
@@ -169,13 +167,9 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     }
 
     let ids = self.get_ids(&compilation.module_graph);
-    dbg!(
-      // &ids,
-      // &self.ids,
-      compilation
-        .module_graph
-        .module_identifier_by_dependency_id(&self.id)
-    );
+    compilation
+      .module_graph
+      .module_identifier_by_dependency_id(&self.id);
     let import_var = get_import_var(&compilation.module_graph, self.id);
 
     // TODO: scope hoist
@@ -216,13 +210,6 @@ impl Dependency for HarmonyImportSpecifierDependency {
     })
   }
 
-  fn name(&self) -> Option<&JsWord> {
-    match self.specifier {
-      Specifier::Namespace(ref atom) => Some(atom),
-      Specifier::Default(ref atom) => Some(atom),
-      Specifier::Named(ref local, _) => Some(local),
-    }
-  }
   fn span_for_on_usage_search(&self) -> Option<rspack_core::ErrorSpan> {
     Some(self.span_for_on_usage_search.into())
   }
