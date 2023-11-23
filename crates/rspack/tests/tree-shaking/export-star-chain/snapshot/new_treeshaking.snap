@@ -51,9 +51,10 @@ __webpack_require__.d(__webpack_exports__, {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./export */"./colors/index.js");
+/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/* ./export */"./something/Something.js");
 
 _export__WEBPACK_IMPORTED_MODULE_0__;
-_export__WEBPACK_IMPORTED_MODULE_0__.Something;
+_export__WEBPACK_IMPORTED_MODULE_1__.Something;
 }),
 "./something/Something.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";

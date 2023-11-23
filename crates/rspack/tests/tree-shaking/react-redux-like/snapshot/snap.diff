@@ -1,6 +1,6 @@
 --- expected
 +++ actual
-@@ -3,35 +3,13 @@
+@@ -3,35 +3,14 @@
  ---
  ```js title=main.js
  (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
@@ -31,11 +31,12 @@
  __webpack_require__.r(__webpack_exports__);
 -/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./foo */"./foo.js");
 +/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./foo */"./lib.js");
++/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/* ./foo */"./selector.js");
  
 -_foo__WEBPACK_IMPORTED_MODULE_0__.Provider;
 -_foo__WEBPACK_IMPORTED_MODULE_0__.useSelector;
 +_foo__WEBPACK_IMPORTED_MODULE_0__["default"];
-+_foo__WEBPACK_IMPORTED_MODULE_0__["default"];
++_foo__WEBPACK_IMPORTED_MODULE_1__["default"];
  }),
  "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";

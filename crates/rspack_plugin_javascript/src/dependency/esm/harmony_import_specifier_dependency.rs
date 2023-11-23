@@ -1,3 +1,4 @@
+use rspack_core::get_import_var;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
   get_dependency_used_by_exports_condition, get_exports_type,
@@ -131,15 +132,17 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let TemplateContext { compilation, .. } = code_generatable_context;
+    let TemplateContext {
+      mut compilation, ..
+    } = code_generatable_context;
 
     let reference_mgm = compilation
       .module_graph
       .module_graph_module_by_dependency_id(&self.id)
       .expect("should have ref module");
 
-    let compilation = &code_generatable_context.compilation;
-    if compilation.options.is_new_tree_shaking() {
+    let is_new_tree_shaking = compilation.options.is_new_tree_shaking();
+    if is_new_tree_shaking {
       let connection = compilation.module_graph.connection_by_dependency(&self.id);
       let is_target_active = if let Some(con) = connection {
         // TODO: runtime opt
@@ -166,13 +169,17 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     }
 
     let ids = self.get_ids(&compilation.module_graph);
-    let import_var = code_generatable_context
-      .compilation
-      .module_graph
-      .get_import_var(&code_generatable_context.module.identifier(), &self.request);
+    dbg!(
+      // &ids,
+      // &self.ids,
+      compilation
+        .module_graph
+        .module_identifier_by_dependency_id(&self.id)
+    );
+    let import_var = get_import_var(&compilation.module_graph, self.id);
 
     // TODO: scope hoist
-    if compilation.options.is_new_tree_shaking() {
+    if is_new_tree_shaking {
       harmony_import_dependency_apply(
         self,
         self.source_order,
@@ -183,13 +190,13 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     let export_expr = export_from_import(
       code_generatable_context,
       true,
-      import_var,
+      &import_var,
       ids,
       &self.id,
       self.call,
       !self.direct_import,
     );
-    dbg!(&export_expr);
+    // dbg!(&export_expr);
     if self.shorthand {
       source.insert(self.end, format!(": {export_expr}").as_str(), None);
     } else {

@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::collections::hash_map::Entry;
 use std::path::PathBuf;
 
+use dashmap::DashMap;
 use rspack_error::{internal_error, Result};
 use rspack_hash::RspackHashDigest;
 use rspack_identifier::{Identifiable, IdentifierMap};
@@ -55,7 +56,7 @@ pub struct ModuleGraph {
   /// Module graph connections table index for `ConnectionId`
   connections_map: HashMap<ModuleGraphConnection, ConnectionId>,
 
-  import_var_map: IdentifierMap<ImportVarMap>,
+  pub import_var_map: DashMap<ModuleIdentifier, ImportVarMap>,
   pub exports_info_map: HashMap<ExportsInfoId, ExportsInfo>,
   pub export_info_map: HashMap<ExportInfoId, ExportInfo>,
   connection_to_condition: HashMap<ModuleGraphConnection, DependencyCondition>,
@@ -646,6 +647,7 @@ impl ModuleGraph {
 
     mg.dependency_id_to_module_identifier
       .insert(old_connection_dependency_id, module_identifier);
+
     mg.dependency_id_to_connection_id
       .insert(old_connection_dependency_id, new_connection_id);
 
@@ -688,27 +690,29 @@ impl ModuleGraph {
 
   pub fn set_dependency_import_var(&mut self, module_identifier: ModuleIdentifier, request: &str) {
     self.import_var_map.entry(module_identifier).or_default();
-    if let Some(module_var_map) = self.import_var_map.get_mut(&module_identifier) {
+    if let Some(mut module_var_map) = self.import_var_map.get_mut(&module_identifier) {
+      let len = module_var_map.len();
       if !module_var_map.contains_key(request) {
         module_var_map.insert(
           request.to_string(),
           format!(
             "{}__WEBPACK_IMPORTED_MODULE_{}__",
             to_identifier(request),
-            module_var_map.len()
+            len
           ),
         );
       }
     }
   }
 
-  pub fn get_import_var(&self, module_identifier: &ModuleIdentifier, request: &str) -> &str {
+  pub fn get_import_var(&self, module_identifier: &ModuleIdentifier, request: &str) -> String {
     self
       .import_var_map
       .get(module_identifier)
       .expect("should have module import var")
       .get(request)
       .unwrap_or_else(|| panic!("should have import var for {module_identifier} {request}"))
+      .to_string()
   }
 
   pub fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> &ExportsInfo {

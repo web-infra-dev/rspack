@@ -187,12 +187,12 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         } else {
           continue;
         };
-        dbg!(
-          &connection,
-          dep.dependency_debug_name(),
-          &referenced_exports,
-          &old_referenced_exports
-        );
+        // dbg!(
+        //   &connection,
+        //   dep.dependency_debug_name(),
+        //   &referenced_exports,
+        //   &old_referenced_exports
+        // );
 
         if old_referenced_exports.is_none()
           || matches!(old_referenced_exports, Some(ProcessModuleReferencedExports::ExtendRef(ref v)) if is_no_exports_referenced(v))
@@ -305,7 +305,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     force_side_effects: bool,
     queue: &mut VecDeque<(ModuleIdentifier, Option<RuntimeSpec>)>,
   ) {
-    dbg!(&module_id, &used_exports);
+    // dbg!(&module_id, &used_exports);
     let mgm = self
       .compilation
       .module_graph
