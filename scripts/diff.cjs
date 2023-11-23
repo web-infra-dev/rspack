@@ -106,6 +106,7 @@ Lines,${summary[`rspackOnly${type}Lines`]},${summary[`common${type}Lines`]},${su
 Lines(Common Modules),${summary[`rspackOnly${type}LinesInCommonModules`]},${summary[`common${type}LinesInCommonModules`]},${summary[`webpackOnly${type}LinesInCommonModules`]},${toPercent(summary[`common${type}LinesInCommonModules`] / (summary[`rspackOnly${type}LinesInCommonModules`] + summary[`webpackOnly${type}LinesInCommonModules`] + summary[`common${type}LinesInCommonModules`]))}`
         , ",", true);
     };
+
     if (summary.success) {
       output.push('\n');
       output.push(tablify(''));
