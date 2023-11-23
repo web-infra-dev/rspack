@@ -1291,11 +1291,8 @@ impl<'a> CodeSizeOptimizer<'a> {
       Some(result) => result,
       None => {
         // TODO: checking if it is none js type
-        // return;
-        panic!(
-          "Can't get analyze result from entry_identifier {}",
-          entry_identifier
-        );
+        return;
+        // panic!("Can't get analyze result from entry_identifier {}", entry_identifier);
       }
     };
 

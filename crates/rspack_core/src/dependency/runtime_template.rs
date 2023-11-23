@@ -246,7 +246,7 @@ pub fn module_namespace_promise(
       runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
       if matches!(
         compilation.module_graph.is_async(
-          &compilation
+          compilation
             .module_graph
             .module_identifier_by_dependency_id(dep_id)
             .expect("should have module")
