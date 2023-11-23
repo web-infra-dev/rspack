@@ -36,7 +36,12 @@ module.exports = {
 								}
 							},
 							env: {
-								targets: "Chrome >= 48"
+								targets: [
+									"chrome >= 87",
+									"edge >= 88",
+									"firefox >= 78",
+									"safari >= 14"
+								]
 							}
 						}
 					}

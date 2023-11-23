@@ -23,7 +23,7 @@ const config = {
 				}
 			},
 			{
-				test: /\.(jsx?|tsx?)$/,
+				test: /\.(js|ts)$/,
 				use: [
 					{
 						loader: "builtin:swc-loader",
@@ -32,18 +32,16 @@ const config = {
 							jsc: {
 								parser: {
 									syntax: "typescript",
-									tsx: true
-								},
-								transform: {
-									react: {
-										runtime: "automatic",
-										development: isDev,
-										refresh: isDev
-									}
+									tsx: false
 								}
 							},
 							env: {
-								targets: "Chrome >= 48"
+								targets: [
+									"chrome >= 87",
+									"edge >= 88",
+									"firefox >= 78",
+									"safari >= 14"
+								]
 							}
 						}
 					}
