@@ -430,7 +430,6 @@ impl Plugin for SideEffectsFlagPlugin {
       if side_effects_state != rspack_core::ConnectionState::Bool(false) {
         continue;
       }
-      dbg!(&module_identifier);
       let cur_exports_info_id = mg.get_exports_info(&module_identifier).id;
 
       let incoming_connections = mg.get_incoming_connections_cloned(module);
@@ -491,7 +490,6 @@ impl Plugin for SideEffectsFlagPlugin {
 
         let ids = dep_id.get_ids(mg);
 
-        dbg!(&dep.dependency_debug_name(), &ids);
         if !ids.is_empty() {
           let export_info_id = cur_exports_info_id.get_export_info(&ids[0], mg);
 
@@ -510,7 +508,6 @@ impl Plugin for SideEffectsFlagPlugin {
             continue;
           };
 
-          dbg!(&mg.connection_by_dependency(&dep_id));
           mg.update_module(&dep_id, &target.module);
           // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
           let processed_ids = target
@@ -520,9 +517,7 @@ impl Plugin for SideEffectsFlagPlugin {
               item
             })
             .unwrap_or_else(|| ids[1..].to_vec());
-          dbg!(&processed_ids);
           dep_id.set_ids(processed_ids, mg);
-          dbg!(&mg.connection_by_dependency(&dep_id),);
         }
       }
     }

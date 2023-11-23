@@ -32,7 +32,7 @@ pub struct HarmonyExportImportedSpecifierDependency {
   // Because it is shared by multiply HarmonyExportImportedSpecifierDependency, so put it to `BuildInfo`
   // pub active_exports: HashSet<JsWord>,
   // pub all_star_exports: Option<Vec<DependencyId>>,
-  pub other_star_exports: Option<Vec<DependencyId>>, // look like it is unused
+  pub other_star_exports: Option<Vec<DependencyId>>,
   pub export_all: bool,
 }
 
@@ -552,10 +552,6 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
 impl Dependency for HarmonyExportImportedSpecifierDependency {
   fn id(&self) -> &DependencyId {
     &self.id
-  }
-
-  fn name(&self) -> Option<&JsWord> {
-    self.name.as_ref()
   }
 
   fn category(&self) -> &DependencyCategory {

@@ -1010,6 +1010,7 @@ impl ExportInfo {
     }
   }
 
+  #[allow(clippy::unwrap_in_result)]
   fn resolve_target(
     input_target: Option<UnResolvedExportInfoTarget>,
     already_visited: &mut HashSet<ExportInfoId>,
@@ -1430,7 +1431,7 @@ pub fn process_export_info(
 macro_rules! debug_all_exports_info {
   ($mg:expr) => {
     for mgm in $mg.module_graph_modules().values() {
-      crate::debug_exports_info!(mgm, $mg);
+      $crate::debug_exports_info!(mgm, $mg);
     }
   };
 }
