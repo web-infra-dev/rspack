@@ -15,7 +15,7 @@ use napi_derive::napi;
 use rspack_core::{
   mf::{
     container_plugin::ContainerPlugin, container_reference_plugin::ContainerReferencePlugin,
-    mf_scope_runtime_plugin::MFScopeRuntimePlugin, share_runtime_plugin::ShareRuntimePlugin,
+    module_federation_runtime_plugin::ModuleFederationRuntimePlugin,
   },
   BoxPlugin, Define, DefinePlugin, PluginExt, Provide, ProvidePlugin,
 };
@@ -80,8 +80,7 @@ pub enum BuiltinPluginName {
   OldSplitChunksPlugin,
   ContainerPlugin,
   ContainerReferencePlugin,
-  ShareRuntimePlugin,
-  MFScopeRuntimePlugin,
+  ModuleFederationRuntimePlugin,
 
   // rspack specific plugins
   HttpExternalsRspackPlugin,
@@ -212,9 +211,8 @@ impl RawOptionsApply for BuiltinPlugin {
           .boxed(),
         );
       }
-      BuiltinPluginName::ShareRuntimePlugin => plugins.push(ShareRuntimePlugin::default().boxed()),
-      BuiltinPluginName::MFScopeRuntimePlugin => {
-        plugins.push(MFScopeRuntimePlugin::default().boxed())
+      BuiltinPluginName::ModuleFederationRuntimePlugin => {
+        plugins.push(ModuleFederationRuntimePlugin::default().boxed())
       }
 
       // rspack specific plugins

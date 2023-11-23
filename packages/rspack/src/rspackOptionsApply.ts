@@ -38,6 +38,7 @@ import {
 	SplitChunksPlugin,
 	OldSplitChunksPlugin
 } from "./builtin-plugin";
+import { ModuleFederationRuntimePlugin } from "./container/ModuleFederationRuntimePlugin";
 
 export function optionsApply_compat(
 	compiler: Compiler,
@@ -172,6 +173,8 @@ export class RspackOptionsApply {
 			"options.context should have value after `applyRspackOptionsDefaults`"
 		);
 		compiler.hooks.entryOption.call(options.context, options.entry);
+
+		new ModuleFederationRuntimePlugin().apply(compiler);
 
 		const { minimize, minimizer } = options.optimization;
 		if (minimize && minimizer) {

@@ -8,6 +8,7 @@ import { ExternalsPlugin } from "../builtin-plugin/ExternalsPlugin";
 import { ExternalsType } from "../config";
 import { parseOptions } from "./options";
 import { RemoteRuntimeSingletonPlugin } from "./RemoteRuntimeSingletonPlugin";
+import { ShareRuntimeSingletonPlugin } from "../sharing/ShareRuntimeSingletonPlugin";
 
 export type ContainerReferencePluginOptions = {
 	remoteType: ExternalsType;
@@ -65,6 +66,7 @@ export class ContainerReferencePlugin extends RspackBuiltinPlugin {
 			}
 		}
 		new ExternalsPlugin(remoteType, remoteExternals).apply(compiler);
+		new ShareRuntimeSingletonPlugin().apply(compiler);
 		new RemoteRuntimeSingletonPlugin().apply(compiler);
 
 		return {
