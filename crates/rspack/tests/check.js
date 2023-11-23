@@ -38,7 +38,20 @@ const falsePositiveMap = {
 	"ts-target-es5": "align to webpack, https://github.com/web-infra-dev/rspack/pull/4629/files#r1392268704",
 	"webpack-reexport-namespace-and-default": "align to webapck, https://github.com/web-infra-dev/rspack/pull/4629/files#r1393576913",
 	"bb": "update dep",
-	"cjs-tree-shaking-basic": "update dep"
+	"cjs-tree-shaking-basic": "update dep",
+	"cyclic-reference-export-all": "redundant `usePlatform: function() { return usePlatform;`",
+	"export-imported-import-all-as": "update dep",
+	"import-var-assign-side-effects": "update dep",
+	"nested-import-3": "update dep",
+	"nested-import-4": "update dep",
+	"prune-bailout-module": "update dep",
+	"pure_comments_magic_comments": "update dep",
+	"reexport-all-as": "update dep",
+	"reexport_entry_elimination": "update dep",
+	"side-effects-analyzed": "update dep",
+	"side-effects-prune": "update dep",
+	"side-effects-two": "update dep"
+
 };
 
 const normalizedList = filteredList.map((item) => {
