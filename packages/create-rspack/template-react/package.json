@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "dev": "NODE_ENV=develpoment rspack serve",
+    "dev": "NODE_ENV=development rspack serve",
     "build": "NODE_ENV=production rspack build"
   },
   "dependencies": {
