@@ -15,7 +15,7 @@ const DEFAULT_CASE_CONFIG: IDiffProcessorOptions = {
 	files: ["bundle.js"],
 	ignorePropertyQuotationMark: true,
 	ignoreModuleId: true,
-	ignoreModuleArugments: true
+	ignoreModuleArguments: true
 };
 
 type TFileCompareResult = {
@@ -119,7 +119,7 @@ function createDiffProcessor(config: IDiffProcessorOptions) {
 		modules: config.modules,
 		runtimeModules: config.runtimeModules,
 		ignoreModuleId: config.ignoreModuleId ?? true,
-		ignoreModuleArugments: config.ignoreModuleArugments ?? true,
+		ignoreModuleArguments: config.ignoreModuleArguments ?? true,
 		ignorePropertyQuotationMark: config.ignorePropertyQuotationMark ?? true,
 		onCompareModules: createCompareResultHandler("modules"),
 		onCompareRuntimeModules: createCompareResultHandler("runtimeModules")
