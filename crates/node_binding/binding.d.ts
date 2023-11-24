@@ -143,6 +143,8 @@ export const enum BuiltinPluginName {
   WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
   MergeDuplicateChunksPlugin = 'MergeDuplicateChunksPlugin',
   ContainerPlugin = 'ContainerPlugin',
+  SplitChunksPlugin = 'SplitChunksPlugin',
+  OldSplitChunksPlugin = 'OldSplitChunksPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',

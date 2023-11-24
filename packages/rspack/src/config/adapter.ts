@@ -716,7 +716,7 @@ function getRawOptimization(
 	};
 }
 
-function toRawSplitChunksOptions(
+export function toRawSplitChunksOptions(
 	sc?: OptimizationSplitChunksOptions
 ): RawOptions["optimization"]["splitChunks"] | undefined {
 	if (!sc) {
