@@ -505,7 +505,8 @@ function getRawRuleSetCondition(
 	if (condition instanceof RegExp) {
 		return {
 			type: "regexp",
-			regexpMatcher: condition.source
+			regexpMatcher: condition.source,
+			regexpMatcherFlags: condition.flags
 		};
 	}
 	if (typeof condition === "function") {

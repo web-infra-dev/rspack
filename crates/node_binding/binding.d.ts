@@ -1056,6 +1056,7 @@ export interface RawRuleSetCondition {
   type: "string" | "regexp" | "logical" | "array" | "function"
   stringMatcher?: string
   regexpMatcher?: string
+  regexpMatcherFlags?: string
   logicalMatcher?: Array<RawRuleSetLogicalConditions>
   arrayMatcher?: Array<RawRuleSetCondition>
   funcMatcher?: (value: string) => boolean
