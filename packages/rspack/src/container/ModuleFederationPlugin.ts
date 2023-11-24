@@ -8,6 +8,7 @@ import {
 import { isValidate } from "../util/validate";
 import { ContainerPlugin, Exposes } from "./ContainerPlugin";
 import { ContainerReferencePlugin, Remotes } from "./ContainerReferencePlugin";
+import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";
 
 export interface ModuleFederationPluginOptions {
 	exposes?: Exposes;
@@ -38,6 +39,8 @@ export class ModuleFederationPlugin {
 		) {
 			compiler.options.output.enabledLibraryTypes!.push(library.type);
 		}
+		const mfRuntimePlugin = new ModuleFederationRuntimePlugin();
+		mfRuntimePlugin.apply(compiler);
 		compiler.hooks.afterPlugins.tap("ModuleFederationPlugin", () => {
 			if (
 				options.exposes &&
@@ -60,11 +63,14 @@ export class ModuleFederationPlugin {
 					? options.remotes.length > 0
 					: Object.keys(options.remotes).length > 0)
 			) {
-				new ContainerReferencePlugin({
-					remoteType,
-					shareScope: options.shareScope,
-					remotes: options.remotes
-				}).apply(compiler);
+				new ContainerReferencePlugin(
+					{
+						remoteType,
+						shareScope: options.shareScope,
+						remotes: options.remotes
+					},
+					mfRuntimePlugin
+				).apply(compiler);
 			}
 			// if (options.shared) {
 			// 	new SharePlugin({

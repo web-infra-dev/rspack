@@ -44,7 +44,7 @@ pub struct ModuleFederationRuntimeModule {
 impl Default for ModuleFederationRuntimeModule {
   fn default() -> Self {
     Self {
-      id: Identifier::from("webpack/runtime/mf_scope"),
+      id: Identifier::from("webpack/runtime/module_federation_runtime"),
       chunk: None,
     }
   }

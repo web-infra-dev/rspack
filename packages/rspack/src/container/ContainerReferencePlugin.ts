@@ -7,8 +7,8 @@ import { Compiler } from "../Compiler";
 import { ExternalsPlugin } from "../builtin-plugin/ExternalsPlugin";
 import { ExternalsType } from "../config";
 import { parseOptions } from "./options";
-import { RemoteRuntimeSingletonPlugin } from "./RemoteRuntimeSingletonPlugin";
-import { ShareRuntimeSingletonPlugin } from "../sharing/ShareRuntimeSingletonPlugin";
+import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";
+import { isNil } from "../util";
 
 export type ContainerReferencePluginOptions = {
 	remoteType: ExternalsType;
@@ -30,8 +30,12 @@ export class ContainerReferencePlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.ContainerReferencePlugin;
 	_options: RawContainerReferencePluginOptions;
 	_remotes;
+	_mfRuntimePlugin: [boolean, ModuleFederationRuntimePlugin];
 
-	constructor(options: ContainerReferencePluginOptions) {
+	constructor(
+		options: ContainerReferencePluginOptions,
+		mfRuntimePlugin?: ModuleFederationRuntimePlugin
+	) {
 		super();
 		this._remotes = parseOptions(
 			options.remotes,
@@ -50,6 +54,10 @@ export class ContainerReferencePlugin extends RspackBuiltinPlugin {
 			remoteType: options.remoteType,
 			remotes: this._remotes.map(([key, r]) => ({ key, ...r }))
 		};
+		this._mfRuntimePlugin = [
+			!isNil(mfRuntimePlugin),
+			mfRuntimePlugin ?? new ModuleFederationRuntimePlugin()
+		];
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin {
@@ -66,8 +74,14 @@ export class ContainerReferencePlugin extends RspackBuiltinPlugin {
 			}
 		}
 		new ExternalsPlugin(remoteType, remoteExternals).apply(compiler);
-		new ShareRuntimeSingletonPlugin().apply(compiler);
-		new RemoteRuntimeSingletonPlugin().apply(compiler);
+		const [injected, mfRuntimePlugin] = this._mfRuntimePlugin;
+		mfRuntimePlugin.addPlugin(
+			require.resolve("../sharing/initializeSharing.js")
+		);
+		mfRuntimePlugin.addPlugin(require.resolve("./remotesLoading.js"));
+		if (!injected) {
+			mfRuntimePlugin.apply(compiler);
+		}
 
 		return {
 			name: this.name as any,

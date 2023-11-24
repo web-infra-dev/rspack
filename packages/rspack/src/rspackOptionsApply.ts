@@ -174,8 +174,6 @@ export class RspackOptionsApply {
 		);
 		compiler.hooks.entryOption.call(options.context, options.entry);
 
-		new ModuleFederationRuntimePlugin().apply(compiler);
-
 		const { minimize, minimizer } = options.optimization;
 		if (minimize && minimizer) {
 			for (const item of minimizer) {
