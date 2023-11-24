@@ -1,5 +1,13 @@
-module.exports = {
-	builtins: {
-		treeShaking: true
+/**@type {import("@rspack/cli").Configuration} */
+const config = {
+	experiments: {
+		rspackFuture: {
+			newTreeshaking: true
+		}
 	}
 }
+module.exports = config
+
+
+
+

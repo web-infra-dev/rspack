@@ -5,6 +5,6 @@ module.exports = function(config) {
 };
 
 */
-module.exports = () => {return "new tree-shaking re-implementation"}
+module.exports = () => {return true}
 
-							
+
