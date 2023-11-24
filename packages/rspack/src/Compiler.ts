@@ -122,6 +122,7 @@ class Compiler {
 	options: RspackOptionsNormalized;
 	#disabledHooks: string[];
 	parentCompilation?: Compilation;
+
 	constructor(context: string, options: RspackOptionsNormalized) {
 		this.outputFileSystem = fs;
 		this.options = options;
@@ -194,6 +195,7 @@ class Compiler {
 			this.options.output.hashFunction
 		);
 	}
+
 	/**
 	 * Lazy initialize instance so it could access the changed options
 	 */

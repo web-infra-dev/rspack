@@ -46,7 +46,7 @@ pub use self::{
 };
 use crate::{
   RawEntryPluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
-  RawHttpExternalsRspackPluginOptions, RawOptionsApply,
+  RawHttpExternalsRspackPluginOptions, RawOptionsApply, RawSplitChunksOptions,
 };
 
 #[napi(string_enum)]
@@ -72,6 +72,8 @@ pub enum BuiltinPluginName {
   WebWorkerTemplatePlugin,
   MergeDuplicateChunksPlugin,
   ContainerPlugin,
+  SplitChunksPlugin,
+  OldSplitChunksPlugin,
 
   // rspack specific plugins
   HttpExternalsRspackPlugin,
@@ -183,6 +185,16 @@ impl RawOptionsApply for BuiltinPlugin {
           ContainerPlugin::new(downcast_into::<RawContainerPluginOptions>(self.options)?.into())
             .boxed(),
         );
+      }
+      BuiltinPluginName::SplitChunksPlugin => {
+        use rspack_plugin_split_chunks_new::SplitChunksPlugin;
+        let options = downcast_into::<RawSplitChunksOptions>(self.options)?.into();
+        plugins.push(SplitChunksPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::OldSplitChunksPlugin => {
+        use rspack_plugin_split_chunks::SplitChunksPlugin;
+        let options = downcast_into::<RawSplitChunksOptions>(self.options)?.into();
+        plugins.push(SplitChunksPlugin::new(options).boxed());
       }
 
       // rspack specific plugins

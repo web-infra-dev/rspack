@@ -26,7 +26,9 @@ export enum BuiltinPluginName {
 	LimitChunkCountPlugin = "LimitChunkCountPlugin",
 	WebWorkerTemplatePlugin = "WebWorkerTemplatePlugin",
 	MergeDuplicateChunksPlugin = "MergeDuplicateChunksPlugin",
-	ContainerPlugin = "ContainerPlugin"
+	ContainerPlugin = "ContainerPlugin",
+	SplitChunksPlugin = "SplitChunksPlugin",
+	OldSplitChunksPlugin = "OldSplitChunksPlugin"
 }
 
 export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
