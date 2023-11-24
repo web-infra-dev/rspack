@@ -64,10 +64,9 @@ fn scan_context_module_tpl(tpl: &Tpl, kind: TemplateStringKind) -> (String, Stri
     .skip(tpl.quasis.len())
     .skip(1)
     .map(|s| {
-      let cooked = s.cooked.clone().unwrap_or(s.raw.clone());
       match kind {
         TemplateStringKind::Raw => s.raw.as_ref(),
-        TemplateStringKind::Cooked => cooked.as_ref(),
+        TemplateStringKind::Cooked => s.cooked.as_ref().unwrap_or(&s.raw),
       }
       .to_string()
         + ".*"
@@ -165,33 +164,29 @@ fn scan_context_module_concat_call(expr: &CallExpr) -> Option<(String, String)> 
 
 // require(String.raw`./${a}.js`)
 fn scan_context_module_tagged_tpl(tpl: &TaggedTpl) -> Option<(String, String)> {
-  if let Some(tag) = tpl.tag.as_member() {
-    if tag
-      .obj
-      .as_ident()
-      .and_then(|ident| Some("String".eq(&ident.sym)))
-      .is_none()
-      || tag
-        .prop
+  match tpl.tag.as_member() {
+    Some(tag)
+      if tag
+        .obj
         .as_ident()
-        .and_then(|ident| Some("raw".eq(&ident.sym)))
-        .is_none()
+        .map(|ident| ident.sym == *"String")
+        .unwrap_or(false)
+        && tag
+          .prop
+          .as_ident()
+          .map(|ident| ident.sym == *"raw")
+          .unwrap_or(false) =>
     {
-      return Some(scan_context_module_tpl(
+      Some(scan_context_module_tpl(
         tpl.tpl.as_ref(),
-        TemplateStringKind::Cooked,
-      ));
+        TemplateStringKind::Raw,
+      ))
     }
-  } else {
-    return Some(scan_context_module_tpl(
+    _ => Some(scan_context_module_tpl(
       tpl.tpl.as_ref(),
       TemplateStringKind::Cooked,
-    ));
+    )),
   }
-  return Some(scan_context_module_tpl(
-    tpl.tpl.as_ref(),
-    TemplateStringKind::Raw,
-  ));
 }
 
 fn is_concat_call(expr: &CallExpr) -> bool {
