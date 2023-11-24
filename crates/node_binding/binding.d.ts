@@ -1013,6 +1013,11 @@ export interface RawReactOptions {
   refresh?: boolean
 }
 
+export interface RawRegexMatcher {
+  source: string
+  flags: string
+}
+
 export interface RawRelated {
   sourceMap?: string
 }
@@ -1055,7 +1060,7 @@ export interface RawRspackFuture {
 export interface RawRuleSetCondition {
   type: "string" | "regexp" | "logical" | "array" | "function"
   stringMatcher?: string
-  regexpMatcher?: string
+  regexpMatcher?: RawRegexMatcher
   logicalMatcher?: Array<RawRuleSetLogicalConditions>
   arrayMatcher?: Array<RawRuleSetCondition>
   funcMatcher?: (value: string) => boolean
