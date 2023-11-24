@@ -1,9 +1,9 @@
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  property_access, AsyncDependenciesBlockIdentifier, Compilation, DependencyId, ExportsType,
-  FakeNamespaceObjectMode, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph,
-  ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext,
+  get_import_var, property_access, AsyncDependenciesBlockIdentifier, Compilation, DependencyId,
+  ExportsType, FakeNamespaceObjectMode, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext,
 };
 
 pub fn export_from_import(
@@ -166,9 +166,7 @@ pub fn import_statement(
 
   runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
-  let import_var = compilation
-    .module_graph
-    .get_import_var(&module.identifier(), request);
+  let import_var = get_import_var(&compilation.module_graph, *id);
 
   let opt_declaration = if update { "" } else { "var " };
 

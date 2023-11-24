@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::collections::hash_map::Entry;
 use std::path::PathBuf;
 
+use dashmap::DashMap;
 use rspack_error::{internal_error, Result};
 use rspack_hash::RspackHashDigest;
 use rspack_identifier::{Identifiable, IdentifierMap};
@@ -13,9 +14,9 @@ mod connection;
 pub use connection::*;
 
 use crate::{
-  to_identifier, BoxDependency, BoxModule, BuildDependency, BuildInfo, BuildMeta,
-  DependencyCondition, DependencyId, ExportInfo, ExportInfoId, ExportsInfo, ExportsInfoId,
-  ModuleGraphModule, ModuleIdentifier, ModuleProfile,
+  BoxDependency, BoxModule, BuildDependency, BuildInfo, BuildMeta, DependencyCondition,
+  DependencyId, ExportInfo, ExportInfoId, ExportsInfo, ExportsInfoId, ModuleGraphModule,
+  ModuleIdentifier, ModuleProfile,
 };
 
 // TODO Here request can be used JsWord
@@ -29,7 +30,7 @@ pub struct DependencyParents {
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
-  dependency_id_to_module_identifier: HashMap<DependencyId, ModuleIdentifier>,
+  pub dependency_id_to_module_identifier: HashMap<DependencyId, ModuleIdentifier>,
 
   /// Module identifier to its module
   pub module_identifier_to_module: IdentifierMap<BoxModule>,
@@ -55,7 +56,7 @@ pub struct ModuleGraph {
   /// Module graph connections table index for `ConnectionId`
   connections_map: HashMap<ModuleGraphConnection, ConnectionId>,
 
-  import_var_map: IdentifierMap<ImportVarMap>,
+  pub import_var_map: DashMap<ModuleIdentifier, ImportVarMap>,
   pub exports_info_map: HashMap<ExportsInfoId, ExportsInfo>,
   pub export_info_map: HashMap<ExportInfoId, ExportInfo>,
   connection_to_condition: HashMap<ModuleGraphConnection, DependencyCondition>,
@@ -630,6 +631,43 @@ impl ModuleGraph {
     self.dep_meta_map.get(&id)
   }
 
+  pub fn normalize_new_connection(
+    mg: &mut ModuleGraph,
+    mut connection: ModuleGraphConnection,
+    module_identifier: ModuleIdentifier,
+  ) -> ModuleGraphConnection {
+    let old_connection_module_id = connection.module_identifier;
+    let old_connection_original_module_id = connection.original_module_identifier;
+    let old_connection_dependency_id = connection.dependency_id;
+    let new_connection_id = ConnectionId::from(mg.connections.len());
+    connection.set_active(true);
+    connection.module_identifier = module_identifier;
+    mg.connections.push(Some(connection));
+    mg.connections_map.insert(connection, new_connection_id);
+
+    mg.dependency_id_to_module_identifier
+      .insert(old_connection_dependency_id, module_identifier);
+
+    mg.dependency_id_to_connection_id
+      .insert(old_connection_dependency_id, new_connection_id);
+
+    mg.connection_id_to_dependency_id
+      .insert(new_connection_id, old_connection_dependency_id);
+
+    let mgm = mg
+      .module_graph_module_by_identifier_mut(&old_connection_module_id)
+      .expect("should have mgm");
+
+    mgm.add_incoming_connection(new_connection_id);
+
+    if let Some(identifier) = old_connection_original_module_id
+      && let Some(original_mgm) = mg.module_graph_module_by_identifier_mut(&identifier)
+    {
+      original_mgm.add_outgoing_connection(new_connection_id);
+    };
+    connection
+  }
+
   pub fn update_module(&mut self, dep_id: &DependencyId, module_id: &ModuleIdentifier) {
     let connection = self
       .connection_by_dependency_mut(dep_id)
@@ -637,76 +675,17 @@ impl ModuleGraph {
     if &connection.module_identifier == module_id {
       return;
     }
+    let connection_copy = *connection;
     connection.set_active(false);
-    let mut new_connection = *connection;
-    let condition = self.connection_to_condition.get(&new_connection).cloned();
-    new_connection.module_identifier = *module_id;
-    let new_connection = normalize_new_connection(self, new_connection);
+    let condition = { self.connection_to_condition.get(&connection_copy).cloned() };
+    let new_connection = Self::normalize_new_connection(self, connection_copy, *module_id);
 
+    // copy condition
     if let Some(condition) = condition {
       self
         .connection_to_condition
         .insert(new_connection, condition);
     }
-
-    pub fn normalize_new_connection(
-      mg: &mut ModuleGraph,
-      new_connection: ModuleGraphConnection,
-    ) -> ModuleGraphConnection {
-      let dependency_id = new_connection.dependency_id;
-      let connection_id = if let Some(connection_id) = mg.connections_map.get(&new_connection) {
-        *connection_id
-      } else {
-        let new_connection_id = ConnectionId::from(mg.connections.len());
-        mg.connections.push(Some(new_connection));
-        mg.connections_map.insert(new_connection, new_connection_id);
-        new_connection_id
-      };
-
-      mg.dependency_id_to_connection_id
-        .insert(dependency_id, connection_id);
-
-      mg.connection_id_to_dependency_id
-        .insert(connection_id, dependency_id);
-
-      let mgm = mg
-        .module_graph_module_by_identifier_mut(&new_connection.module_identifier)
-        .expect("should have mgm");
-
-      mgm.add_incoming_connection(connection_id);
-
-      if let Some(identifier) = new_connection.original_module_identifier
-        && let Some(original_mgm) = mg.module_graph_module_by_identifier_mut(&identifier)
-      {
-        original_mgm.add_outgoing_connection(connection_id);
-      };
-      new_connection
-    }
-  }
-
-  pub fn set_dependency_import_var(&mut self, module_identifier: ModuleIdentifier, request: &str) {
-    self.import_var_map.entry(module_identifier).or_default();
-    if let Some(module_var_map) = self.import_var_map.get_mut(&module_identifier) {
-      if !module_var_map.contains_key(request) {
-        module_var_map.insert(
-          request.to_string(),
-          format!(
-            "{}__WEBPACK_IMPORTED_MODULE_{}__",
-            to_identifier(request),
-            module_var_map.len()
-          ),
-        );
-      }
-    }
-  }
-
-  pub fn get_import_var(&self, module_identifier: &ModuleIdentifier, request: &str) -> &str {
-    self
-      .import_var_map
-      .get(module_identifier)
-      .expect("should have module import var")
-      .get(request)
-      .unwrap_or_else(|| panic!("should have import var for {module_identifier} {request}"))
   }
 
   pub fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> &ExportsInfo {

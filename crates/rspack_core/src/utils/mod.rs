@@ -24,6 +24,9 @@ pub use source::*;
 mod hash;
 pub use hash::*;
 
+mod import_var;
+pub use import_var::*;
+
 mod module_rules;
 pub use module_rules::*;
 

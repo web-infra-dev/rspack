@@ -387,6 +387,10 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               UsageState::Used,
               runtime.as_ref(),
             );
+            // dbg!(
+            //   &export_info_id.get_export_info(&self.compilation.module_graph),
+            //   changed_flag
+            // );
             if changed_flag {
               let current_module = if current_exports_info_id == mgm_exports_info_id {
                 Some(module_id)

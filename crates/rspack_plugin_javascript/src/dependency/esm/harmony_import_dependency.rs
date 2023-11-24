@@ -1,11 +1,13 @@
+use std::sync::Arc;
+
 use rspack_core::tree_shaking::symbol::{self, IndirectTopLevelSymbol};
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
-  import_statement, AsContextDependency, AwaitDependenciesInitFragment, ConnectionState,
-  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ExtendedReferencedExport, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, ModuleDependency, ModuleIdentifier, NormalInitFragment, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource,
+  get_import_var, import_statement, AsContextDependency, AwaitDependenciesInitFragment,
+  ConnectionState, Dependency, DependencyCategory, DependencyCondition, DependencyId,
+  DependencyTemplate, DependencyType, ErrorSpan, ExtendedReferencedExport, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleIdentifier, NormalInitFragment,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rspack_core::{ModuleGraph, RuntimeSpec};
 use rustc_hash::FxHashSet as HashSet;
@@ -174,10 +176,11 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
     .module_graph
     .module_identifier_by_dependency_id(module_dependency.id())
     .expect("should have dependency referenced module");
-  let import_var = compilation
-    .module_graph
-    .get_import_var(&module.identifier(), module_dependency.request());
-  let key = module_dependency.request();
+  let import_var = get_import_var(&compilation.module_graph, *module_dependency.id());
+  //
+  // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyImportDependency.js#L282-L285
+  let module_key = ref_module;
+  let key = format!("harmony import {}", module_key);
   let is_async_module = matches!(compilation.module_graph.is_async(ref_module), Some(true));
   if is_async_module {
     init_fragments.push(Box::new(NormalInitFragment::new(
@@ -298,7 +301,7 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
 
   // TODO: It's from HarmonyImportSideEffectDependency.
   fn get_condition(&self) -> Option<DependencyCondition> {
-    Some(DependencyCondition::Fn(Box::new(
+    Some(DependencyCondition::Fn(Arc::new(
       move |con, _, module_graph: &ModuleGraph| {
         let id = con.module_identifier;
         if let Some(module) = module_graph.module_by_identifier(&id) {
