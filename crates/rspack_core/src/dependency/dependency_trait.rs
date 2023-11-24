@@ -80,10 +80,6 @@ pub trait Dependency:
   fn resource_identifier(&self) -> Option<&str> {
     None
   }
-
-  fn dependency_name(&self) -> Option<&JsWord> {
-    None
-  }
 }
 
 impl dyn Dependency + '_ {

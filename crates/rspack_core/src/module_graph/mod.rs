@@ -14,9 +14,9 @@ mod connection;
 pub use connection::*;
 
 use crate::{
-  to_identifier, BoxDependency, BoxModule, BuildDependency, BuildInfo, BuildMeta,
-  DependencyCondition, DependencyId, ExportInfo, ExportInfoId, ExportsInfo, ExportsInfoId,
-  ModuleGraphModule, ModuleIdentifier, ModuleProfile,
+  BoxDependency, BoxModule, BuildDependency, BuildInfo, BuildMeta, DependencyCondition,
+  DependencyId, ExportInfo, ExportInfoId, ExportsInfo, ExportsInfoId, ModuleGraphModule,
+  ModuleIdentifier, ModuleProfile,
 };
 
 // TODO Here request can be used JsWord
@@ -686,33 +686,6 @@ impl ModuleGraph {
         .connection_to_condition
         .insert(new_connection, condition);
     }
-  }
-
-  pub fn set_dependency_import_var(&mut self, module_identifier: ModuleIdentifier, request: &str) {
-    self.import_var_map.entry(module_identifier).or_default();
-    if let Some(mut module_var_map) = self.import_var_map.get_mut(&module_identifier) {
-      let len = module_var_map.len();
-      if !module_var_map.contains_key(request) {
-        module_var_map.insert(
-          request.to_string(),
-          format!(
-            "{}__WEBPACK_IMPORTED_MODULE_{}__",
-            to_identifier(request),
-            len
-          ),
-        );
-      }
-    }
-  }
-
-  pub fn get_import_var(&self, module_identifier: &ModuleIdentifier, request: &str) -> String {
-    self
-      .import_var_map
-      .get(module_identifier)
-      .expect("should have module import var")
-      .get(request)
-      .unwrap_or_else(|| panic!("should have import var for {module_identifier} {request}"))
-      .to_string()
   }
 
   pub fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> &ExportsInfo {
