@@ -23,6 +23,8 @@ import type {
 	ExternalsPresets,
 	InfrastructureLogging,
 	JavascriptParserOptions,
+	Library,
+	LibraryOptions,
 	Mode,
 	ModuleOptions,
 	Node,
@@ -403,16 +405,14 @@ const applyOutputDefaults = (
 		futureDefaults: boolean;
 	}
 ) => {
-
-
-	const getLibraryName = (library:string | string[]| Record<string,any>):string => {
+	const getLibraryName = (library: Library): string => {
 		const libraryName =
 			typeof library === "object" &&
 			library &&
 			!Array.isArray(library) &&
 			"type" in library
 				? library.name
-				: /** @type {LibraryName} */ (library);
+				: library;
 		if (Array.isArray(libraryName)) {
 			return libraryName.join(".");
 		} else if (typeof libraryName === "object") {
@@ -422,8 +422,6 @@ const applyOutputDefaults = (
 		}
 		return "";
 	};
-
-
 	F(output, "uniqueName", () => {
 		const libraryName = getLibraryName(output.library).replace(
 			/^\[(\\*[\w:]+\\*)\](\.)|(\.)\[(\\*[\w:]+\\*)\](?=\.|$)|\[(\\*[\w:]+\\*)\]/g,
