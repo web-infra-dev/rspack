@@ -1,3 +1,4 @@
+
 /**@type {import("@rspack/cli").Configuration} */
 const config = {
 	experiments: {
@@ -7,8 +8,3 @@ const config = {
 	}
 }
 module.exports = config
-
-
-
-
-
