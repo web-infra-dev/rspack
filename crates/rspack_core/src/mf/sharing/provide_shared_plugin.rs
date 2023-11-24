@@ -57,7 +57,7 @@ impl fmt::Display for ProvideVersion {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       ProvideVersion::Version(v) => write!(f, "{}", v),
-      ProvideVersion::False => write!(f, "false"),
+      ProvideVersion::False => write!(f, "0"),
     }
   }
 }
@@ -80,6 +80,7 @@ impl ProvideSharedPlugin {
     }
   }
 
+  #[allow(clippy::too_many_arguments)]
   pub async fn provide_shared_module(
     &self,
     key: &str,
@@ -101,27 +102,25 @@ impl ProvideSharedPlugin {
           eager,
         },
       );
-    } else {
-      if let Some(description) = &resource_data.resource_description {
-        if let Some(description) = description.json().as_object()
-          && let Some(version) = description.get("version")
-          && let Some(version) = version.as_str()
-        {
-          self.resolved_provide_map.write().await.insert(
-            resource.to_string(),
-            VersionedProvideOptions {
-              share_key: share_key.to_string(),
-              share_scope: share_scope.to_string(),
-              version: ProvideVersion::Version(version.to_string()),
-              eager,
-            },
-          );
-        } else {
-          return Err(Error::InternalError(InternalError::new(format!("{error_header} No version in description file (usually package.json). Add version to description file {}, or manually specify version in shared config. shared module {key} -> {resource}", description.path().display()), Severity::Warn)));
-        }
+    } else if let Some(description) = &resource_data.resource_description {
+      if let Some(description) = description.json().as_object()
+        && let Some(version) = description.get("version")
+        && let Some(version) = version.as_str()
+      {
+        self.resolved_provide_map.write().await.insert(
+          resource.to_string(),
+          VersionedProvideOptions {
+            share_key: share_key.to_string(),
+            share_scope: share_scope.to_string(),
+            version: ProvideVersion::Version(version.to_string()),
+            eager,
+          },
+        );
       } else {
-        return Err(Error::InternalError(InternalError::new(format!("{error_header} No description file (usually package.json) found. Add description file with name and version, or manually specify version in shared config. shared module {key} -> {resource}"), Severity::Warn)));
+        return Err(Error::InternalError(InternalError::new(format!("{error_header} No version in description file (usually package.json). Add version to description file {}, or manually specify version in shared config. shared module {key} -> {resource}", description.path().display()), Severity::Warn)));
       }
+    } else {
+      return Err(Error::InternalError(InternalError::new(format!("{error_header} No description file (usually package.json) found. Add description file with name and version, or manually specify version in shared config. shared module {key} -> {resource}"), Severity::Warn)));
     }
     Ok(())
   }
@@ -138,9 +137,7 @@ impl Plugin for ProvideSharedPlugin {
     let mut match_provides = self.match_provides.write().await;
     let mut prefix_match_provides = self.prefix_match_provides.write().await;
     for (request, config) in &self.provides {
-      if RELATIVE_REQUEST.is_match(&request) {
-        resolved_provide_map.insert(request.to_string(), config.to_versioned());
-      } else if ABSOLUTE_REQUEST.is_match(&request) {
+      if RELATIVE_REQUEST.is_match(request) || ABSOLUTE_REQUEST.is_match(request) {
         resolved_provide_map.insert(request.to_string(), config.to_versioned());
       } else if request.ends_with('/') {
         prefix_match_provides.insert(request.to_string(), config.clone());

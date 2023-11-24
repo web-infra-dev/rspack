@@ -158,9 +158,8 @@ impl Module for ProvideSharedModule {
       .insert(RuntimeGlobals::INITIALIZE_SHARING);
     let init = format!(
       "register({}, {}, {}{})",
-      serde_json::to_string(&self.name)
-        .expect("ProvideSharedModule name should able to json to_string"),
-      serde_json::to_string(&self.version.to_string()).unwrap_or("0".to_string()),
+      serde_json::to_string(&self.name).expect("ProvideSharedModule name should able to json to_string"),
+      serde_json::to_string(&self.version.to_string()).expect("ProvideVersion::Version should able to json to_string in ProvideSharedModule::code_generation"),
       if self.eager {
         sync_module_factory(
           &self.get_dependencies()[0],

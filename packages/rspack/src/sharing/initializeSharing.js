@@ -23,7 +23,7 @@ if (__webpack_require__.MF) {
 		var warn = function (msg) {
 			if (typeof console !== "undefined" && console.warn) console.warn(msg);
 		};
-		var uniqueName = "app";
+		var uniqueName = data.uniqueName;
 		var register = function (name, version, factory, eager) {
 			var versions = (scope[name] = scope[name] || {});
 			var activeVersion = versions[version];

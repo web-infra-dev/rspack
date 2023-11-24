@@ -332,7 +332,7 @@ impl PluginDriver {
         plugin.name()
       );
       if let Some(module) = plugin
-        .normal_module_factory_create_module(PluginContext::new(), &args)
+        .normal_module_factory_create_module(PluginContext::new(), args)
         .await?
       {
         return Ok(Some(module));
@@ -349,7 +349,7 @@ impl PluginDriver {
     for plugin in &self.plugins {
       tracing::trace!("running normal_module_factory_module:{}", plugin.name());
       module = plugin
-        .normal_module_factory_module(PluginContext::new(), module, &args)
+        .normal_module_factory_module(PluginContext::new(), module, args)
         .await?;
     }
     Ok(module)

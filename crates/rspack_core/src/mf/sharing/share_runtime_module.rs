@@ -95,10 +95,11 @@ var initPerScope = function(name, register, initExternal) {{
 {init_per_scope_body}
   }}
 }};
-{initialize_sharing} = function(name, initScope) {{ return {initialize_sharing_fn}({{ name: name, initScope: initScope, initPerScope: initPerScope, initTokens: initTokens, initPromises: initPromises }}); }};
+{initialize_sharing} = function(name, initScope) {{ return {initialize_sharing_fn}({{ name: name, initScope: initScope, initPerScope: initPerScope, uniqueName: {unique_name}, initTokens: initTokens, initPromises: initPromises }}); }};
 "#,
       share_scope_map = RuntimeGlobals::SHARE_SCOPE_MAP,
       init_per_scope_body = init_per_scope_body,
+      unique_name = serde_json::to_string(&compilation.options.output.unique_name).expect("uniqueName should able to json to_string"),
       initialize_sharing = RuntimeGlobals::INITIALIZE_SHARING,
       initialize_sharing_fn = "__webpack_require__.MF.initializeSharing"
     ))

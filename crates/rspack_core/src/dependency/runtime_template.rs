@@ -387,7 +387,7 @@ pub fn async_module_factory(
 ) -> String {
   let block = compilation
     .module_graph
-    .block_by_id(&block_id)
+    .block_by_id(block_id)
     .expect("should have block");
   let dep = block.get_dependencies()[0];
   let ensure_chunk = block_promise(Some(block_id), runtime_requirements, compilation);
