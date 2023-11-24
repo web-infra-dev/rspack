@@ -25,7 +25,7 @@ pub fn scanner_context_module(expr: &Expr) -> Option<(String, String)> {
     }
     Expr::Bin(bin) => scan_context_module_bin(bin),
     Expr::Call(call) => scan_context_module_concat_call(call),
-    Expr::TaggedTpl(t_tpl) => scan_context_module_tagged_tpl(t_tpl),
+    Expr::TaggedTpl(t_tpl) => Some(scan_context_module_tagged_tpl(t_tpl)),
     _ => None,
   }
 }
@@ -163,7 +163,7 @@ fn scan_context_module_concat_call(expr: &CallExpr) -> Option<(String, String)> 
 }
 
 // require(String.raw`./${a}.js`)
-fn scan_context_module_tagged_tpl(tpl: &TaggedTpl) -> Option<(String, String)> {
+fn scan_context_module_tagged_tpl(tpl: &TaggedTpl) -> (String, String) {
   match tpl.tag.as_member() {
     Some(tag)
       if tag
@@ -177,15 +177,9 @@ fn scan_context_module_tagged_tpl(tpl: &TaggedTpl) -> Option<(String, String)> {
           .map(|ident| ident.sym == *"raw")
           .unwrap_or(false) =>
     {
-      Some(scan_context_module_tpl(
-        tpl.tpl.as_ref(),
-        TemplateStringKind::Raw,
-      ))
+      scan_context_module_tpl(tpl.tpl.as_ref(), TemplateStringKind::Raw)
     }
-    _ => Some(scan_context_module_tpl(
-      tpl.tpl.as_ref(),
-      TemplateStringKind::Cooked,
-    )),
+    _ => scan_context_module_tpl(tpl.tpl.as_ref(), TemplateStringKind::Cooked),
   }
 }
 
