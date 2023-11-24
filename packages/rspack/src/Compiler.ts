@@ -426,11 +426,11 @@ class Compiler {
 			}
 		}
 
-		// compilation.hooks.childCompiler.call(
-		// 	childCompiler,
-		// 	compilerName,
-		// 	compilerIndex
-		// );
+		compilation.hooks.childCompiler.call(
+			childCompiler,
+			compilerName,
+			compilerIndex
+		);
 
 		return childCompiler;
 	}
