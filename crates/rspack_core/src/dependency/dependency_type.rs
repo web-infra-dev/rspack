@@ -68,6 +68,10 @@ pub enum DependencyType {
   ContainerEntry,
   /// remote to external,
   RemoteToExternal,
+  /// provide shared module
+  ProvideSharedModule,
+  /// provide module for shared
+  ProvideModuleForShared,
   Custom(Box<str>), // TODO it will increase large layout size
 }
 
@@ -110,6 +114,8 @@ impl DependencyType {
       DependencyType::ContainerExposed => Cow::Borrowed("container exposed"),
       DependencyType::ContainerEntry => Cow::Borrowed("container entry"),
       DependencyType::RemoteToExternal => Cow::Borrowed("remote to external"),
+      DependencyType::ProvideSharedModule => Cow::Borrowed("provide shared module"),
+      DependencyType::ProvideModuleForShared => Cow::Borrowed("provide module for shared"),
     }
   }
 }

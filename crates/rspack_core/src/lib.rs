@@ -138,6 +138,7 @@ pub enum ModuleType {
   Asset,
   Runtime,
   Remote,
+  Provide,
 }
 
 impl ModuleType {
@@ -223,6 +224,7 @@ impl ModuleType {
       ModuleType::AssetInline => "asset/inline",
       ModuleType::Runtime => "runtime",
       ModuleType::Remote => "remote-module",
+      ModuleType::Provide => "provide-module",
     }
   }
 }

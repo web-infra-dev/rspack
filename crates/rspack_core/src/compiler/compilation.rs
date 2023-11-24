@@ -182,6 +182,7 @@ impl Compilation {
       } else {
         let data = EntryData {
           dependencies: vec![entry_id],
+          include_dependencies: vec![],
           options,
         };
         self.entries.insert(name, data);
@@ -189,6 +190,30 @@ impl Compilation {
     } else {
       self.global_entry.dependencies.push(entry_id);
     }
+  }
+
+  pub async fn add_include(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
+    let entry_id = *entry.id();
+    self.module_graph.add_dependency(entry);
+    if let Some(name) = options.name.clone() {
+      if let Some(data) = self.entries.get_mut(&name) {
+        data.include_dependencies.push(entry_id);
+      } else {
+        let data = EntryData {
+          dependencies: vec![],
+          include_dependencies: vec![entry_id],
+          options,
+        };
+        self.entries.insert(name, data);
+      }
+    } else {
+      self.global_entry.include_dependencies.push(entry_id);
+    }
+    self
+      .update_module_graph(vec![MakeParam::ForceBuildDeps(HashSet::from_iter([(
+        entry_id, None,
+      )]))])
+      .await
   }
 
   pub fn update_asset(

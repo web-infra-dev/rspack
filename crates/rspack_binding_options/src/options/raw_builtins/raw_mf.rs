@@ -1,7 +1,9 @@
+use napi::Either;
 use napi_derive::napi;
 use rspack_core::mf::{
   container_plugin::{ContainerPluginOptions, ExposeOptions},
   container_reference_plugin::{ContainerReferencePluginOptions, RemoteOptions},
+  provide_shared_plugin::{ProvideOptions, ProvideVersion},
 };
 
 use crate::RawLibraryOptions;
@@ -85,5 +87,43 @@ impl From<RawRemoteOptions> for (String, RemoteOptions) {
         share_scope: value.share_scope,
       },
     )
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawProvideOptions {
+  pub key: String,
+  pub share_key: String,
+  pub share_scope: String,
+  #[napi(ts_type = "string | false | undefined")]
+  pub version: Option<RawProvideVersion>,
+  pub eager: bool,
+}
+
+impl From<RawProvideOptions> for (String, ProvideOptions) {
+  fn from(value: RawProvideOptions) -> Self {
+    (
+      value.key,
+      ProvideOptions {
+        share_key: value.share_key,
+        share_scope: value.share_scope,
+        version: value.version.map(|v| RawProvideVersionWrapper(v).into()),
+        eager: value.eager,
+      },
+    )
+  }
+}
+
+pub type RawProvideVersion = Either<String, bool>;
+
+struct RawProvideVersionWrapper(RawProvideVersion);
+
+impl From<RawProvideVersionWrapper> for ProvideVersion {
+  fn from(value: RawProvideVersionWrapper) -> Self {
+    match value.0 {
+      Either::A(s) => ProvideVersion::Version(s),
+      Either::B(_) => ProvideVersion::False,
+    }
   }
 }

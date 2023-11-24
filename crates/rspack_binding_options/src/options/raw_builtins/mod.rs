@@ -16,6 +16,7 @@ use rspack_core::{
   mf::{
     container_plugin::ContainerPlugin, container_reference_plugin::ContainerReferencePlugin,
     module_federation_runtime_plugin::ModuleFederationRuntimePlugin,
+    provide_shared_plugin::ProvideSharedPlugin,
   },
   BoxPlugin, Define, DefinePlugin, PluginExt, Provide, ProvidePlugin,
 };
@@ -42,7 +43,7 @@ use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 use rspack_plugin_wasm::enable_wasm_loading_plugin;
 use rspack_plugin_web_worker_template::web_worker_template_plugin;
 
-use self::raw_mf::RawContainerReferencePluginOptions;
+use self::raw_mf::{RawContainerReferencePluginOptions, RawProvideOptions};
 pub use self::{
   raw_banner::RawBannerPluginOptions, raw_copy::RawCopyRspackPluginOptions,
   raw_html::RawHtmlRspackPluginOptions, raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
@@ -81,6 +82,7 @@ pub enum BuiltinPluginName {
   ContainerPlugin,
   ContainerReferencePlugin,
   ModuleFederationRuntimePlugin,
+  ProvideSharedPlugin,
 
   // rspack specific plugins
   HttpExternalsRspackPlugin,
@@ -213,6 +215,14 @@ impl RawOptionsApply for BuiltinPlugin {
       }
       BuiltinPluginName::ModuleFederationRuntimePlugin => {
         plugins.push(ModuleFederationRuntimePlugin::default().boxed())
+      }
+      BuiltinPluginName::ProvideSharedPlugin => {
+        let mut provides: Vec<_> = downcast_into::<Vec<RawProvideOptions>>(self.options)?
+          .into_iter()
+          .map(Into::into)
+          .collect();
+        provides.sort_unstable_by_key(|(k, _)| k.to_string());
+        plugins.push(ProvideSharedPlugin::new(provides).boxed())
       }
 
       // rspack specific plugins

@@ -20,5 +20,6 @@ pub struct EntryDescription {
 #[derive(Debug, Default)]
 pub struct EntryData {
   pub dependencies: Vec<DependencyId>,
+  pub include_dependencies: Vec<DependencyId>,
   pub options: EntryOptions,
 }

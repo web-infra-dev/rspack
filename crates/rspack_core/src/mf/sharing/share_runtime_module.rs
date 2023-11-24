@@ -33,10 +33,8 @@ impl RuntimeModule for ShareRuntimeModule {
       .chunk
       .expect("should have chunk in <ShareRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
-    let mut init_per_scope: FxHashMap<
-      String,
-      LinkedHashMap<DataInitStage, LinkedHashSet<DataInit>>,
-    > = FxHashMap::default();
+    let mut init_per_scope: FxHashMap<String, LinkedHashMap<DataInitStage, LinkedHashSet<String>>> =
+      FxHashMap::default();
     for c in chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey) {
       let chunk = compilation.chunk_by_ukey.expect_get(&c);
       let modules = compilation
@@ -73,15 +71,7 @@ impl RuntimeModule for ShareRuntimeModule {
         let stages = stages
           .into_iter()
           .sorted_unstable_by_key(|(stage, _)| *stage)
-          .flat_map(|(_, inits)| {
-            inits.into_iter().filter_map(|init| match init {
-              DataInit::ExternalModuleId(Some(id)) => Some(format!(
-                "initExternal({});",
-                serde_json::to_string(&id).expect("module_id should able to json to_string")
-              )),
-              _ => None,
-            })
-          })
+          .flat_map(|(_, inits)| inits)
           .collect::<Vec<_>>()
           .join("\n");
         format!(
@@ -131,12 +121,7 @@ pub struct CodeGenerationDataShareInit {
 pub struct ShareInitData {
   pub share_scope: String,
   pub init_stage: DataInitStage,
-  pub init: DataInit,
+  pub init: String,
 }
 
 pub type DataInitStage = i8;
-
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub enum DataInit {
-  ExternalModuleId(Option<String>),
-}

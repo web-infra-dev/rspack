@@ -30,7 +30,8 @@ export enum BuiltinPluginName {
 	OldSplitChunksPlugin = "OldSplitChunksPlugin",
 	ContainerPlugin = "ContainerPlugin",
 	ContainerReferencePlugin = "ContainerReferencePlugin",
-	ModuleFederationRuntimePlugin = "ModuleFederationRuntimePlugin"
+	ModuleFederationRuntimePlugin = "ModuleFederationRuntimePlugin",
+	ProvideSharedPlugin = "ProvideSharedPlugin"
 }
 
 export abstract class RspackBuiltinPlugin implements RspackPluginInstance {

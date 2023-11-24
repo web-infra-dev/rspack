@@ -97,7 +97,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
       .runtime_requirements
       .contains(RuntimeGlobals::ON_CHUNKS_LOADED);
 
-    if with_loading {
+    if with_loading || with_external_install_chunk {
       source.add(RawSource::from(
         include_str!("runtime/readfile_chunk_loading.js").replace(
           "$withOnChunkLoad$",

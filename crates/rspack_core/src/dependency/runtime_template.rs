@@ -1,9 +1,10 @@
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  get_import_var, property_access, AsyncDependenciesBlockIdentifier, Compilation, DependencyId,
-  ExportsType, FakeNamespaceObjectMode, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext,
+  get_import_var, property_access, AsyncDependenciesBlockIdentifier, Compilation,
+  DependenciesBlock, DependencyId, ExportsType, FakeNamespaceObjectMode, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier, NormalInitFragment,
+  RuntimeGlobals, TemplateContext,
 };
 
 pub fn export_from_import(
@@ -363,4 +364,43 @@ pub fn returning_function(return_value: &str, args: &str) -> String {
 
 pub fn basic_function(args: &str, body: &str) -> String {
   format!("function({args}) {{\n{body}\n}}")
+}
+
+pub fn sync_module_factory(
+  dep: &DependencyId,
+  request: &str,
+  compilation: &Compilation,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> String {
+  let factory = returning_function(
+    &module_raw(compilation, runtime_requirements, dep, request, false),
+    "",
+  );
+  returning_function(&factory, "")
+}
+
+pub fn async_module_factory(
+  block_id: &AsyncDependenciesBlockIdentifier,
+  request: &str,
+  compilation: &Compilation,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> String {
+  let block = compilation
+    .module_graph
+    .block_by_id(&block_id)
+    .expect("should have block");
+  let dep = block.get_dependencies()[0];
+  let ensure_chunk = block_promise(Some(block_id), runtime_requirements, compilation);
+  let factory = returning_function(
+    &module_raw(compilation, runtime_requirements, &dep, request, false),
+    "",
+  );
+  returning_function(
+    &if ensure_chunk.starts_with("Promise.resolve(") {
+      factory
+    } else {
+      format!("{ensure_chunk}.then({})", returning_function(&factory, ""))
+    },
+    "",
+  )
 }
