@@ -101,6 +101,7 @@ export class Compilation {
 
 	hooks: {
 		processAssets: ReturnType<typeof createFakeProcessAssetsHook>;
+		childCompiler: tapable.SyncHook<[Compiler, string, number]>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
 		additionalAssets: any;
 		optimizeModules: tapable.SyncBailHook<Iterable<JsModule>, undefined>;
@@ -159,6 +160,11 @@ export class Compilation {
 				Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
 				() => []
 			),
+			childCompiler: new tapable.SyncHook([
+				"childCompiler",
+				"compilerName",
+				"compilerIndex"
+			]),
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
 			optimizeModules: new tapable.SyncBailHook(["modules"]),
 			optimizeTree: new tapable.AsyncSeriesBailHook(["chunks", "modules"]),
