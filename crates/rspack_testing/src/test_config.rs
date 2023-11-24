@@ -472,6 +472,7 @@ impl TestConfig {
         );
       }
     }
+    plugins.push(rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin.boxed());
     if self.builtins.dev_friendly_split_chunks {
       plugins
         .push(rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin::new().boxed());
@@ -539,7 +540,6 @@ impl TestConfig {
     } else {
       plugins.push(rspack_ids::DeterministicChunkIdsPlugin::default().boxed());
     }
-    plugins.push(rspack_ids::StableNamedChunkIdsPlugin::new(None, None).boxed());
     // Notice the plugin need to be placed after SplitChunksPlugin
     plugins.push(rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin.boxed());
 

@@ -1,9 +1,9 @@
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  property_access, Compilation, DependencyId, ExportsType, FakeNamespaceObjectMode,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier,
-  NormalInitFragment, RuntimeGlobals, TemplateContext,
+  get_import_var, property_access, AsyncDependenciesBlockIdentifier, Compilation, DependencyId,
+  ExportsType, FakeNamespaceObjectMode, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext,
 };
 
 pub fn export_from_import(
@@ -32,7 +32,14 @@ pub fn export_from_import(
     {
       match exports_type {
         ExportsType::Dynamic => {
-          return format!("{import_var}_default{}", property_access(export_name, 1));
+          if is_call {
+            return format!("{import_var}_default(){}", property_access(export_name, 1));
+          } else {
+            return format!(
+              "({import_var}_default(){})",
+              property_access(export_name, 1)
+            );
+          }
         }
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
           export_name = export_name[1..].to_vec();
@@ -61,7 +68,7 @@ pub fn export_from_import(
           format!("var {import_var}_namespace_cache;\n",),
           InitFragmentStage::StageHarmonyExports,
           -1,
-          InitFragmentKey::uniqie(),
+          InitFragmentKey::unique(),
           None,
         )
         .boxed(),
@@ -159,9 +166,7 @@ pub fn import_statement(
 
   runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
-  let import_var = compilation
-    .module_graph
-    .get_import_var(&module.identifier(), request);
+  let import_var = get_import_var(&compilation.module_graph, *id);
 
   let opt_declaration = if update { "" } else { "var " };
 
@@ -186,9 +191,9 @@ pub fn import_statement(
 
 pub fn module_namespace_promise(
   code_generatable_context: &mut TemplateContext,
-  id: &DependencyId,
+  dep_id: &DependencyId,
+  block: Option<&AsyncDependenciesBlockIdentifier>,
   request: &str,
-  block: bool, // FIXME:
   _message: &str,
   weak: bool,
 ) -> String {
@@ -199,9 +204,9 @@ pub fn module_namespace_promise(
     ..
   } = code_generatable_context;
 
-  let module_id_expr = module_id(compilation, id, request, weak);
-  let exports_type = get_exports_type(&compilation.module_graph, id, &module.identifier());
-  let promise = block_promise(&module_id_expr, block, runtime_requirements);
+  let promise = block_promise(block, runtime_requirements, compilation);
+  let exports_type = get_exports_type(&compilation.module_graph, dep_id, &module.identifier());
+  let module_id_expr = module_id(compilation, dep_id, request, weak);
 
   let header = if weak {
     runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES);
@@ -220,7 +225,7 @@ pub fn module_namespace_promise(
       if let Some(header) = header {
         appending = format!(
           ".then(function() {{ {header}\nreturn {}}})",
-          module_raw(compilation, runtime_requirements, id, request, weak)
+          module_raw(compilation, runtime_requirements, dep_id, request, weak)
         )
       } else {
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
@@ -240,13 +245,18 @@ pub fn module_namespace_promise(
       }
       runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
       if matches!(
-        compilation.module_graph.is_async(&module.identifier()),
+        compilation.module_graph.is_async(
+          compilation
+            .module_graph
+            .module_identifier_by_dependency_id(dep_id)
+            .expect("should have module")
+        ),
         Some(true)
       ) {
         if let Some(header) = header {
           appending = format!(
             ".then(function() {{\n {header}\nreturn {}\n}})",
-            module_raw(compilation, runtime_requirements, id, request, weak)
+            module_raw(compilation, runtime_requirements, dep_id, request, weak)
           )
         } else {
           runtime_requirements.insert(RuntimeGlobals::REQUIRE);
@@ -282,19 +292,22 @@ pub fn module_namespace_promise(
 }
 
 pub fn block_promise(
-  module_id_str: &str,
-  block: bool,
+  block: Option<&AsyncDependenciesBlockIdentifier>,
   runtime_requirements: &mut RuntimeGlobals,
+  compilation: &Compilation,
 ) -> String {
-  if !block {
+  let Some(block) = block else {
+    // ImportEagerDependency
     return "Promise.resolve()".to_string();
-  }
+  };
+  let block = compilation
+    .module_graph
+    .block_by_id(block)
+    .expect("should have block");
+  let key = block.block_promise_key(compilation);
   runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
-  runtime_requirements.insert(RuntimeGlobals::LOAD_CHUNK_WITH_MODULE);
-  format!(
-    "{}({module_id_str})",
-    RuntimeGlobals::LOAD_CHUNK_WITH_MODULE
-  )
+  runtime_requirements.insert(RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK);
+  format!("{}({key})", RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK)
 }
 
 pub fn module_raw(
@@ -342,4 +355,12 @@ pub fn throw_missing_module_error_block(request: &str) -> String {
 pub fn weak_error(request: &str) -> String {
   let msg = format!("Module is not available (weak dependency), request is {request}.");
   format!("var e = new Error('{msg}'); e.code = 'MODULE_NOT_FOUND'; throw e;")
+}
+
+pub fn returning_function(return_value: &str, args: &str) -> String {
+  format!("function({args}) {{ return {return_value}; }}")
+}
+
+pub fn basic_function(args: &str, body: &str) -> String {
+  format!("function({args}) {{\n{body}\n}}")
 }

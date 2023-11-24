@@ -26,6 +26,7 @@ pub enum Hook {
   ProcessAssetsStageReport,
   Emit,
   AssetEmitted,
+  ShouldEmit,
   AfterEmit,
   OptimizeChunkModules,
   BeforeCompile,
@@ -40,6 +41,7 @@ pub enum Hook {
   BeforeResolve,
   SucceedModule,
   StillValidModule,
+  ExecuteModule,
 }
 
 impl From<String> for Hook {
@@ -68,6 +70,7 @@ impl From<String> for Hook {
       "processAssetsStageReport" => Hook::ProcessAssetsStageReport,
       "emit" => Hook::Emit,
       "assetEmitted" => Hook::AssetEmitted,
+      "shouldEmit" => Hook::ShouldEmit,
       "afterEmit" => Hook::AfterEmit,
       "optimizeChunkModules" => Hook::OptimizeChunkModules,
       "beforeCompile" => Hook::BeforeCompile,
@@ -81,6 +84,7 @@ impl From<String> for Hook {
       "beforeResolve" => Hook::BeforeResolve,
       "succeedModule" => Hook::SucceedModule,
       "stillValidModule" => Hook::StillValidModule,
+      "executeModule" => Hook::ExecuteModule,
       hook_name => panic!("{hook_name} is an invalid hook name"),
     }
   }

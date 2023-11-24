@@ -2,7 +2,7 @@ use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
 use rspack_core::{
-  is_exports_object_referenced, is_no_exports_referenced, AsyncDependenciesBlockId,
+  is_exports_object_referenced, is_no_exports_referenced, AsyncDependenciesBlockIdentifier,
   BuildMetaExportsType, Compilation, ConnectionState, DependenciesBlock, DependencyId,
   ExportsInfoId, ExtendedReferencedExport, GroupOptions, ModuleIdentifier, Plugin,
   ReferencedExport, RuntimeSpec, UsageState,
@@ -15,7 +15,7 @@ use crate::utils::join_jsword;
 
 enum ModuleOrAsyncDependenciesBlock {
   Module(ModuleIdentifier),
-  AsyncDependenciesBlock(AsyncDependenciesBlockId),
+  AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
 }
 
 #[allow(unused)]
@@ -387,6 +387,10 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               UsageState::Used,
               runtime.as_ref(),
             );
+            // dbg!(
+            //   &export_info_id.get_export_info(&self.compilation.module_graph),
+            //   changed_flag
+            // );
             if changed_flag {
               let current_module = if current_exports_info_id == mgm_exports_info_id {
                 Some(module_id)

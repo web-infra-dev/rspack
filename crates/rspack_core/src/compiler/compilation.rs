@@ -36,17 +36,17 @@ use crate::{
   is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs,
-  AdditionalModuleRequirementsArgs, AsyncDependenciesBlock, AsyncDependenciesBlockId,
-  BoxDependency, BoxModule, BuildQueue, BuildTask, BuildTaskResult, CacheCount, CacheOptions,
-  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult,
-  CodeGenerationResult, CodeGenerationResults, CompilationLogger, CompilationLogging,
-  CompilerOptions, ContentHashArgs, ContextDependency, DependencyId, DependencyParents, Entry,
-  EntryData, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult,
-  Filename, Logger, Module, ModuleGraph, ModuleIdentifier, ModuleProfile, ModuleType, PathData,
-  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
-  RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec,
-  SharedPluginDriver, SourceType, Stats, TaskResult, WorkerTask,
+  AdditionalModuleRequirementsArgs, AsyncDependenciesBlock, BoxDependency, BoxModule, BuildQueue,
+  BuildTask, BuildTaskResult, CacheCount, CacheOptions, Chunk, ChunkByUkey, ChunkContentHash,
+  ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue,
+  CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
+  CompilationLogging, CompilerOptions, ContentHashArgs, ContextDependency, DependencyId,
+  DependencyParents, DependencyType, Entry, EntryData, EntryOptions, Entrypoint, FactorizeQueue,
+  FactorizeTask, FactorizeTaskResult, Filename, Logger, Module, ModuleGraph, ModuleIdentifier,
+  ModuleProfile, ModuleType, PathData, ProcessAssetsArgs, ProcessDependenciesQueue,
+  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory,
+  RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult,
+  WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
@@ -173,19 +173,21 @@ impl Compilation {
     }
   }
 
-  pub fn add_entry(&mut self, entry: DependencyId, options: EntryOptions) {
+  pub fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) {
+    let entry_id = *entry.id();
+    self.module_graph.add_dependency(entry);
     if let Some(name) = options.name.clone() {
       if let Some(data) = self.entries.get_mut(&name) {
-        data.dependencies.push(entry);
+        data.dependencies.push(entry_id);
       } else {
         let data = EntryData {
-          dependencies: vec![entry],
+          dependencies: vec![entry_id],
           options,
         };
         self.entries.insert(name, data);
       }
     } else {
-      self.global_entry.dependencies.push(entry);
+      self.global_entry.dependencies.push(entry_id);
     }
   }
 
@@ -398,12 +400,10 @@ impl Compilation {
 
     // collect origin_module_deps
     for module_id in deps_builder.get_force_build_modules() {
-      let mgm = self
+      let deps = self
         .module_graph
-        .module_graph_module_by_identifier(module_id)
-        .expect("module graph module not exist");
-      let deps = mgm
-        .all_depended_modules(&self.module_graph)
+        .get_module_all_depended_modules(module_id)
+        .expect("module graph module not exist")
         .into_iter()
         .cloned()
         .collect::<Vec<_>>();
@@ -417,8 +417,10 @@ impl Compilation {
     // calc need_check_isolated_module_ids & regen_module_issues
     for id in deps_builder.get_force_build_modules() {
       if let Some(mgm) = self.module_graph.module_graph_module_by_identifier(id) {
-        let depended_modules = mgm
-          .all_depended_modules(&self.module_graph)
+        let depended_modules = self
+          .module_graph
+          .get_module_all_depended_modules(id)
+          .expect("module graph module not exist")
           .into_iter()
           .copied();
         need_check_isolated_module_ids.extend(depended_modules);
@@ -763,26 +765,25 @@ impl Compilation {
                  blocks: Vec<AsyncDependenciesBlock>,
                  queue: &mut Vec<AsyncDependenciesBlock>,
                  module_graph: &mut ModuleGraph,
-                 current_block: Option<AsyncDependenciesBlockId>| {
+                 current_block: Option<AsyncDependenciesBlock>| {
                   for dependency in dependencies {
-                    if let Some(dependency) = dependency.as_module_dependency() {
-                      module_graph
-                        .set_dependency_import_var(module.identifier(), dependency.request());
-                    } else if let Some(dependency) = dependency.as_context_dependency() {
-                      module_graph
-                        .set_dependency_import_var(module.identifier(), dependency.request());
-                    }
                     let dependency_id = *dependency.id();
-                    module.add_dependency_id(dependency_id);
+                    if current_block.is_none() {
+                      module.add_dependency_id(dependency_id);
+                    }
                     all_dependencies.push(dependency_id);
                     module_graph.set_parents(
                       dependency_id,
                       DependencyParents {
-                        block: current_block,
+                        block: current_block.as_ref().map(|block| block.identifier()),
                         module: module.identifier(),
                       },
                     );
                     module_graph.add_dependency(dependency);
+                  }
+                  if let Some(current_block) = current_block {
+                    module.add_block_id(current_block.identifier());
+                    module_graph.add_block(current_block);
                   }
                   for block in blocks {
                     queue.push(block);
@@ -798,14 +799,12 @@ impl Compilation {
               while let Some(mut block) = queue.pop() {
                 let dependencies = block.take_dependencies();
                 let blocks = block.take_blocks();
-                let block_id = block.id();
-                self.module_graph.add_block(block);
                 handle_block(
                   dependencies,
                   blocks,
                   &mut queue,
                   &mut self.module_graph,
-                  Some(block_id),
+                  Some(block),
                 );
               }
 
@@ -814,7 +813,7 @@ impl Compilation {
                   .module_graph
                   .module_graph_module_by_identifier_mut(&module.identifier())
                   .expect("Failed to get mgm");
-                mgm.all_dependencies = Box::new(all_dependencies.clone());
+                mgm.__deprecated_all_dependencies = all_dependencies.clone();
                 if let Some(current_profile) = current_profile {
                   mgm.set_profile(current_profile);
                 }
@@ -919,11 +918,11 @@ impl Compilation {
     } else {
       self.has_module_import_export_change
         || !origin_module_deps.into_iter().all(|(module_id, deps)| {
-          if let Some(mgm) = self
+          if let Some(all_depended_modules) = self
             .module_graph
-            .module_graph_module_by_identifier(&module_id)
+            .get_module_all_depended_modules(&module_id)
           {
-            mgm.all_depended_modules(&self.module_graph) == deps.iter().collect::<Vec<_>>()
+            all_depended_modules == deps.iter().collect::<Vec<_>>()
           } else {
             false
           }
@@ -936,15 +935,17 @@ impl Compilation {
     if self.options.builtins.tree_shaking.enable() {
       self.bailout_module_identifiers = self
         .module_graph
-        .modules()
+        .dependencies()
         .values()
         .par_bridge()
-        .filter_map(|module| {
-          if module.as_context_module().is_some() {
+        .filter_map(|dep| {
+          if dep.as_context_dependency().is_some()
+            && let Some(module) = self.module_graph.get_module(dep.id())
+          {
             let mut values = vec![(module.identifier(), BailoutFlag::CONTEXT_MODULE)];
             if let Some(dependencies) = self
               .module_graph
-              .dependencies_by_module_identifier(&module.identifier())
+              .get_module_all_dependencies(&module.identifier())
             {
               for dependency in dependencies {
                 if let Some(dependency_module) = self
@@ -957,6 +958,10 @@ impl Compilation {
             }
 
             Some(values)
+          } else if matches!(dep.dependency_type(), DependencyType::ContainerExposed)
+            && let Some(module) = self.module_graph.get_module(dep.id())
+          {
+            Some(vec![(module.identifier(), BailoutFlag::CONTAINER_EXPOSED)])
           } else {
             None
           }
@@ -1251,7 +1256,7 @@ impl Compilation {
     while plugin_driver.optimize_dependencies(self).await?.is_some() {}
     logger.time_end(start);
     // if self.options.is_new_tree_shaking() {
-    //   debug_exports_info!(&self.module_graph);
+    //   // debug_all_exports_info!(&self.module_graph);
     // }
 
     let start = logger.time("create chunks");
@@ -1465,6 +1470,7 @@ impl Compilation {
   pub async fn create_hash(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let mut compilation_hasher = RspackHash::from(&self.options.output);
+    // TODO: runtimeChunk referencedBy for correct hashing AsyncEntrypoint
     let runtime_chunk_ukeys = self.get_chunk_graph_entries();
 
     fn try_process_chunk_hash_results(
@@ -1692,6 +1698,14 @@ impl Compilation {
 
   pub fn get_logger(&self, name: impl Into<String>) -> CompilationLogger {
     CompilationLogger::new(name.into(), self.logging.clone())
+  }
+
+  pub fn execute_module(&self, entry: ModuleIdentifier) -> Result<Option<String>> {
+    let codegen_result = Default::default();
+    // TODO
+    self
+      .plugin_driver
+      .execute_module(entry, vec![], &codegen_result)
   }
 }
 

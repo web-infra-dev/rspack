@@ -19,5 +19,10 @@ module.exports = {
 			process: "./process.js"
 		},
 		treeShaking: true
+	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: false
+		}
 	}
 };

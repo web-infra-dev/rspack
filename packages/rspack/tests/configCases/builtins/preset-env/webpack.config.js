@@ -3,5 +3,10 @@ module.exports = {
 		presetEnv: {
 			targets: ["chrome 20"]
 		}
+	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: false
+		}
 	}
 };

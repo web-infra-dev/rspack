@@ -6,8 +6,8 @@ use rspack_core::{
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::JsWord;
 use swc_core::common::Span;
-use swc_core::ecma::ast::{AssignExpr, AssignOp, MemberExpr, OptChainExpr};
-use swc_core::ecma::ast::{Callee, ExportAll, ExportSpecifier, Expr, Id, TaggedTpl};
+use swc_core::ecma::ast::{AssignExpr, AssignOp, CallExpr, MemberExpr, NewExpr, OptChainExpr};
+use swc_core::ecma::ast::{ExportAll, ExportSpecifier, Expr, Id, TaggedTpl};
 use swc_core::ecma::ast::{Ident, ImportDecl, Pat, PatOrExpr, Program, Prop};
 use swc_core::ecma::ast::{ImportSpecifier, ModuleExportName, NamedExport};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
@@ -344,6 +344,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
 
 pub struct HarmonyImportRefDependencyScanner<'a> {
   pub enter_callee: bool,
+  pub enter_new_expr: bool,
   pub import_map: &'a ImportMap,
   pub dependencies: &'a mut Vec<BoxDependency>,
   pub properties_in_destructuring: HashMap<JsWord, HashSet<JsWord>>,
@@ -360,6 +361,7 @@ impl<'a> HarmonyImportRefDependencyScanner<'a> {
       import_map,
       dependencies,
       enter_callee: false,
+      enter_new_expr: false,
       properties_in_destructuring: HashMap::default(),
       rewrite_usage_span,
     }
@@ -432,7 +434,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
           ident.span.real_lo(),
           ident.span.real_hi(),
           reference.names.clone().map(|f| vec![f]).unwrap_or_default(),
-          self.enter_callee,
+          self.enter_callee && !self.enter_new_expr,
           true, // x()
           reference.specifier.clone(),
           self.properties_in_destructuring.remove(&ident.sym),
@@ -480,7 +482,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
           start,
           end,
           ids,
-          self.enter_callee,
+          self.enter_callee && !self.enter_new_expr,
           !self.enter_callee, // x.xx()
           reference.specifier.clone(),
           None,
@@ -521,7 +523,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
             member_expr.span.real_lo(),
             member_expr.span.real_hi(),
             ids,
-            self.enter_callee,
+            self.enter_callee && !self.enter_new_expr,
             !self.enter_callee, // x.xx()
             reference.specifier.clone(),
             None,
@@ -533,19 +535,145 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
     member_expr.visit_children_with(self);
   }
 
-  fn visit_callee(&mut self, callee: &Callee) {
+  fn visit_call_expr(&mut self, call_expr: &CallExpr) {
+    // every time into new call_expr, reset enter callee
+    let old = self.enter_new_expr;
+
+    self.enter_new_expr = false;
     self.enter_callee = true;
-    callee.visit_children_with(self);
+    call_expr.callee.visit_with(self);
+    self.enter_new_expr = old;
     self.enter_callee = false;
+
+    call_expr.args.visit_with(self);
   }
 
   fn visit_tagged_tpl(&mut self, n: &TaggedTpl) {
+    // every time into new tagged tpl expr, reset enter callee
+    let old = self.enter_new_expr;
+
+    self.enter_new_expr = false;
     self.enter_callee = true;
-    n.visit_children_with(self);
+    n.tag.visit_with(self);
+    self.enter_new_expr = old;
     self.enter_callee = false;
+
+    n.tpl.visit_with(self);
   }
 
   fn visit_import_decl(&mut self, _decl: &ImportDecl) {}
 
   fn visit_named_export(&mut self, _named_export: &NamedExport) {}
+
+  fn visit_new_expr(&mut self, n: &NewExpr) {
+    let old = self.enter_new_expr;
+    self.enter_new_expr = true;
+    n.callee.visit_with(self);
+    self.enter_new_expr = old;
+
+    n.args.visit_with(self);
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use rspack_ast::javascript::Program;
+  use rspack_core::{BuildInfo, Dependency, ModuleType};
+
+  use super::HarmonyImportDependencyScanner;
+  use crate::{ast::parse, dependency::HarmonyImportSpecifierDependency};
+
+  fn scan_dependencies(program: &Program) -> Vec<Box<dyn Dependency>> {
+    let mut build_info = BuildInfo {
+      cacheable: false,
+      hash: None,
+      strict: true,
+      file_dependencies: Default::default(),
+      context_dependencies: Default::default(),
+      missing_dependencies: Default::default(),
+      build_dependencies: Default::default(),
+      asset_filenames: Default::default(),
+      harmony_named_exports: Default::default(),
+      all_star_exports: Default::default(),
+      need_create_require: false,
+    };
+    let mut import_map = Default::default();
+    let mut deps = vec![];
+    let mut presentation_deps = vec![];
+    let mut rewrite_usage_span = Default::default();
+    let mut scanner = HarmonyImportDependencyScanner::new(
+      &mut deps,
+      &mut presentation_deps,
+      &mut import_map,
+      &mut build_info,
+      &mut rewrite_usage_span,
+    );
+
+    program.visit_with(&mut scanner);
+
+    deps
+  }
+
+  #[test]
+  fn should_be_call() {
+    let ast = parse(
+      r#"
+      import { foo } from 'bar';
+      foo();
+      foo.bar();
+      foo``;
+      new (foo())();
+    "#
+      .into(),
+      swc_core::ecma::parser::Syntax::Es(Default::default()),
+      "",
+      &ModuleType::Js,
+    )
+    .unwrap();
+
+    let deps = scan_dependencies(&ast.into_program());
+
+    let specifiers = deps
+      .iter()
+      .filter_map(|dep| dep.downcast_ref::<HarmonyImportSpecifierDependency>())
+      .collect::<Vec<_>>();
+
+    assert_eq!(specifiers.len(), 4);
+    assert!(specifiers.iter().all(|d| d.call));
+  }
+
+  #[test]
+  fn should_not_be_call() {
+    let ast = parse(
+      r#"
+      import { foo } from 'bar';
+      new foo();
+      new foo().bar;
+      new foo.bar();
+      `${foo}`;
+      nested(foo).call(true);
+      nested(foo)``
+      (`${foo}`)``
+      (new foo()).bar();
+      new foo().bar();
+      new foo.a().bar();
+      new (foo.bar)().baz();
+    "#
+      .into(),
+      swc_core::ecma::parser::Syntax::Es(Default::default()),
+      "",
+      &ModuleType::Js,
+    )
+    .unwrap();
+
+    let deps = scan_dependencies(&ast.into_program());
+
+    let specifiers = deps
+      .iter()
+      .filter_map(|dep| dep.downcast_ref::<HarmonyImportSpecifierDependency>())
+      .collect::<Vec<_>>();
+
+    assert_eq!(specifiers.len(), 11);
+    assert!(specifiers.iter().all(|d| !d.call));
+  }
 }

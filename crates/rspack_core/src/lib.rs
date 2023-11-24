@@ -3,11 +3,15 @@
 #![feature(iter_intersperse)]
 #![feature(box_patterns)]
 #![feature(anonymous_lifetime_in_impl_trait)]
+#![feature(hash_raw_entry)]
 
 use std::sync::atomic::AtomicBool;
 use std::{fmt, sync::Arc};
 mod dependencies_block;
-pub use dependencies_block::{AsyncDependenciesBlock, AsyncDependenciesBlockId, DependenciesBlock};
+pub mod mf;
+pub use dependencies_block::{
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock,
+};
 mod fake_namespace_object;
 pub use fake_namespace_object::*;
 mod module_profile;
@@ -92,6 +96,8 @@ pub enum SourceType {
   Css,
   Wasm,
   Asset,
+  Remote,
+  ShareInit,
   #[default]
   Unknown,
 }
@@ -103,6 +109,8 @@ impl std::fmt::Display for SourceType {
       SourceType::Css => write!(f, "css"),
       SourceType::Wasm => write!(f, "wasm"),
       SourceType::Asset => write!(f, "asset"),
+      SourceType::Remote => write!(f, "remote"),
+      SourceType::ShareInit => write!(f, "share-init"),
       SourceType::Unknown => write!(f, "unknown"),
     }
   }
@@ -129,6 +137,7 @@ pub enum ModuleType {
   AssetSource,
   Asset,
   Runtime,
+  Remote,
 }
 
 impl ModuleType {
@@ -213,6 +222,7 @@ impl ModuleType {
       ModuleType::AssetResource => "asset/resource",
       ModuleType::AssetInline => "asset/inline",
       ModuleType::Runtime => "runtime",
+      ModuleType::Remote => "remote-module",
     }
   }
 }

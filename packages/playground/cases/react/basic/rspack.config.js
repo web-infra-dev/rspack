@@ -23,6 +23,11 @@ module.exports = {
 	infrastructureLogging: {
 		debug: false
 	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: false
+		}
+	},
 	builtins: {
 		provide: {
 			$ReactRefreshRuntime$: [require.resolve("./react-refresh.js")]

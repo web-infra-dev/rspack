@@ -1,9 +1,9 @@
 use rspack_core::{
+  impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Compilation, RuntimeModule,
 };
 use rspack_identifier::Identifier;
-use rspack_plugin_runtime::impl_runtime_module;
 
 #[derive(Debug, Eq)]
 pub struct HotModuleReplacementRuntimeModule {

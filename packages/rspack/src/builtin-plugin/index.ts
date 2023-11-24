@@ -18,6 +18,8 @@ export * from "./ModuleChunkFormatPlugin";
 export * from "./HotModuleReplacementPlugin";
 export * from "./WebWorkerTemplatePlugin";
 export * from "./LimitChunkCountPlugin";
+export * from "./MergeDuplicateChunksPlugin";
+export * from "./SplitChunksPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";

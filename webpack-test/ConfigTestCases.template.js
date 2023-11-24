@@ -50,7 +50,8 @@ const createLogger = appendTarget => {
 	};
 };
 
-let count = 0;
+const TIMEOUT = 10_000;
+
 const describeCases = config => {
 	describe(config.name, () => {
 		let stderr;
@@ -58,9 +59,11 @@ const describeCases = config => {
 			stderr = captureStdio(process.stderr, true);
 		});
 		afterEach(() => {
-			stderr.restore();
+			if (stderr) {
+				stderr.restore();
+			}
 		});
-		jest.setTimeout(20000);
+		jest.setTimeout(TIMEOUT);
 
 		for (const category of categories) {
 			// eslint-disable-next-line no-loop-func
@@ -87,10 +90,12 @@ const describeCases = config => {
 						const cacheDirectory = path.join(outBaseDir, ".cache", testSubPath);
 						let options, optionsArr, testConfig;
 						beforeAll(() => {
-							options = prepareOptions(
-								require(path.join(testDirectory, "webpack.config.js")),
-								{ testPath: outputDirectory }
-							);
+							expect(() => {
+								options = prepareOptions(
+									require(path.join(testDirectory, "webpack.config.js")),
+									{ testPath: outputDirectory }
+								);
+							}).not.toThrow();
 							optionsArr = [].concat(options);
 							optionsArr.forEach((options, idx) => {
 								if (!options.context) options.context = testDirectory;
@@ -137,9 +142,6 @@ const describeCases = config => {
 								// 		path.resolve(__dirname, "../node_modules")
 								// 	];
 								// }
-								if (!options.experiments) options.experiments = {};
-								if (!options.experiments.rspackFuture) options.experiments.rspackFuture = {};
-								options.experiments.rspackFuture.newResolver = true;
 							});
 							testConfig = {
 								findBundle: function(i, options) {
@@ -154,7 +156,7 @@ const describeCases = config => {
 										return "./bundle" + i + ext;
 									}
 								},
-								timeout: 30000
+								timeout: TIMEOUT
 							};
 							try {
 								// try to load a test file
@@ -240,7 +242,7 @@ const describeCases = config => {
 									if (err) return handleFatalError(err, done);
 									done();
 								});
-							}, 60000);
+							}, TIMEOUT);
 							it(`${testName} should pre-compile to fill disk cache (2nd)`, done => {
 								rimraf.sync(outputDirectory);
 								fs.mkdirSync(outputDirectory, { recursive: true });
@@ -308,7 +310,7 @@ const describeCases = config => {
 									}
 									done();
 								});
-							}, 40000);
+							}, TIMEOUT);
 						}
 						it(`${testName} should compile`, done => {
 							rimraf.sync(outputDirectory);
@@ -651,20 +653,21 @@ const describeCases = config => {
 											}
 										};
 
-										if (Array.isArray(bundlePath)) {
-											for (const bundlePathItem of bundlePath) {
+										try {
+											if (Array.isArray(bundlePath)) {
+												for (const bundlePathItem of bundlePath) {
+													results.push(
+														_require(outputDirectory, options, "./" + bundlePathItem)
+													);
+												}
+											} else {
 												results.push(
-													_require(
-														outputDirectory,
-														options,
-														"./" + bundlePathItem
-													)
+													_require(outputDirectory, options, bundlePath)
 												);
 											}
-										} else {
-											results.push(
-												_require(outputDirectory, options, bundlePath)
-											);
+										} catch (err) {
+											// Abort early if `_require` throws
+											return handleFatalError(err, done);
 										}
 									}
 								}
@@ -711,7 +714,7 @@ const describeCases = config => {
 							} else {
 								rspack(options, onCompiled);
 							}
-						}, 30000);
+						}, TIMEOUT);
 
 						const {
 							it: _it,
@@ -719,7 +722,7 @@ const describeCases = config => {
 							afterEach: _afterEach,
 							setDefaultTimeout,
 							getNumberOfTests
-						} = createLazyTestEnv(10000);
+						} = createLazyTestEnv(TIMEOUT);
 					});
 				}
 			});

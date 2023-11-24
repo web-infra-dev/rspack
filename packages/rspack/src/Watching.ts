@@ -14,7 +14,7 @@ import { WatchOptions } from "./config";
 import { FileSystemInfoEntry, Watcher } from "./util/fs";
 import assert from "assert";
 
-class Watching {
+export class Watching {
 	watcher?: Watcher;
 	pausedWatcher?: Watcher;
 	compiler: Compiler;
@@ -57,6 +57,12 @@ class Watching {
 		this.watchOptions = watchOptions;
 		this.handler = handler;
 		this.suspended = false;
+
+		// The default aggregateTimeout of WatchPack is 200ms,
+		// using smaller values can improve hmr performance
+		if (typeof this.watchOptions.aggregateTimeout !== "number") {
+			this.watchOptions.aggregateTimeout = 5;
+		}
 
 		process.nextTick(() => {
 			if (this.#initial) this.#invalidate();
@@ -371,5 +377,3 @@ class Watching {
 		}
 	}
 }
-
-export default Watching;

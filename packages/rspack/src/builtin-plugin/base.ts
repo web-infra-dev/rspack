@@ -24,14 +24,21 @@ export enum BuiltinPluginName {
 	SwcJsMinimizerRspackPlugin = "SwcJsMinimizerRspackPlugin",
 	SwcCssMinimizerRspackPlugin = "SwcCssMinimizerRspackPlugin",
 	LimitChunkCountPlugin = "LimitChunkCountPlugin",
-	WebWorkerTemplatePlugin = "WebWorkerTemplatePlugin"
+	WebWorkerTemplatePlugin = "WebWorkerTemplatePlugin",
+	MergeDuplicateChunksPlugin = "MergeDuplicateChunksPlugin",
+	SplitChunksPlugin = "SplitChunksPlugin",
+	OldSplitChunksPlugin = "OldSplitChunksPlugin",
+	ContainerPlugin = "ContainerPlugin",
+	ContainerReferencePlugin = "ContainerReferencePlugin",
+	ModuleFederationRuntimePlugin = "ModuleFederationRuntimePlugin"
 }
 
 export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
-	abstract raw(): binding.BuiltinPlugin;
+	abstract raw(compiler: Compiler): binding.BuiltinPlugin | null;
 	abstract name: BuiltinPluginName;
 	apply(compiler: Compiler) {
-		compiler.__internal__registerBuiltinPlugin(this);
+		let raw = this.raw(compiler);
+		if (raw) compiler.__internal__registerBuiltinPlugin(raw);
 	}
 }
 

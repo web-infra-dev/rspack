@@ -3,8 +3,14 @@ use std::fmt::Display;
 use itertools::Itertools;
 use rustc_hash::FxHashMap as HashMap;
 
+mod extract_url_and_global;
+pub use extract_url_and_global::*;
+
 mod identifier;
 pub use identifier::*;
+
+mod runtime;
+pub use runtime::*;
 
 mod property_name;
 pub use property_name::*;
@@ -20,6 +26,9 @@ pub use source::*;
 
 mod hash;
 pub use hash::*;
+
+mod import_var;
+pub use import_var::*;
 
 mod module_rules;
 pub use module_rules::*;

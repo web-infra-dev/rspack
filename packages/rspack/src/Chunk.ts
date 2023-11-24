@@ -1,17 +1,17 @@
 import {
+	__chunk_group_inner_get_chunk_group,
 	__chunk_inner_can_be_initial,
 	__chunk_inner_has_runtime,
 	__chunk_inner_is_only_initial,
 	type JsChunk,
 	type JsCompilation
 } from "@rspack/binding";
+import { ChunkGroup } from "./ChunkGroup";
+import { compareChunkGroupsByIndex } from "./util/comparators";
 
-export class Chunk implements JsChunk {
-	#inner_chunk: JsChunk;
+export class Chunk {
+	#inner: JsChunk;
 	#inner_compilation: JsCompilation;
-
-	// @ts-expect-error should not use inner_ukey in js side
-	__inner_ukey: never;
 
 	name?: string;
 	id?: string;
@@ -31,9 +31,8 @@ export class Chunk implements JsChunk {
 		return new Chunk(chunk, compilation);
 	}
 
-	// Should not construct by user
-	private constructor(chunk: JsChunk, compilation: JsCompilation) {
-		this.#inner_chunk = chunk;
+	constructor(chunk: JsChunk, compilation: JsCompilation) {
+		this.#inner = chunk;
 		this.#inner_compilation = compilation;
 
 		this.name = chunk.name;
@@ -53,22 +52,34 @@ export class Chunk implements JsChunk {
 
 	isOnlyInitial() {
 		return __chunk_inner_is_only_initial(
-			this.#inner_chunk,
+			this.#inner.__inner_ukey,
 			this.#inner_compilation
 		);
 	}
 
 	canBeInitial() {
 		return __chunk_inner_can_be_initial(
-			this.#inner_chunk,
+			this.#inner.__inner_ukey,
 			this.#inner_compilation
 		);
 	}
 
 	hasRuntime() {
 		return __chunk_inner_has_runtime(
-			this.#inner_chunk,
+			this.#inner.__inner_ukey,
 			this.#inner_compilation
 		);
+	}
+
+	get groupsIterable(): Set<ChunkGroup> {
+		const chunk_groups = this.#inner.__inner_groups.map(ukey => {
+			const cg = __chunk_group_inner_get_chunk_group(
+				ukey as number,
+				this.#inner_compilation
+			);
+			return ChunkGroup.__from_binding(cg, this.#inner_compilation);
+		});
+		chunk_groups.sort(compareChunkGroupsByIndex);
+		return new Set(chunk_groups);
 	}
 }

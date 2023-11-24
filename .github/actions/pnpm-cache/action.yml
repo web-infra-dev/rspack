@@ -36,7 +36,8 @@ runs:
       shell: bash
       run: |
         # set cache-dir to .cache
-        pnpm config set store-dir ~/.cache/pnpm
+        pnpm config set store-dir ~/.cache/pnpm/$(pnpm -v) --location project
+        echo "STORE_PATH is $(pnpm store path)"
         echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
     - name: Restore pnpm cache

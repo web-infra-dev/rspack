@@ -32,8 +32,13 @@ import {
 	ExternalsPlugin,
 	HttpExternalsRspackPlugin,
 	ModuleChunkFormatPlugin,
-	NodeTargetPlugin
+	NodeTargetPlugin,
+	DefinePlugin,
+	MergeDuplicateChunksPlugin,
+	SplitChunksPlugin,
+	OldSplitChunksPlugin
 } from "./builtin-plugin";
+import { ModuleFederationRuntimePlugin } from "./container/ModuleFederationRuntimePlugin";
 
 export function optionsApply_compat(
 	compiler: Compiler,
@@ -180,8 +185,29 @@ export class RspackOptionsApply {
 			}
 		}
 
+		if (options.optimization.mergeDuplicateChunks) {
+			new MergeDuplicateChunksPlugin().apply(compiler);
+		}
+
 		if (options.builtins.devFriendlySplitChunks) {
 			options.optimization.splitChunks = undefined;
+		}
+
+		if (
+			options.optimization.splitChunks &&
+			options.experiments.newSplitChunks === false
+		) {
+			new OldSplitChunksPlugin(options.optimization.splitChunks).apply(
+				compiler
+			);
+		} else if (options.optimization.splitChunks) {
+			new SplitChunksPlugin(options.optimization.splitChunks).apply(compiler);
+		}
+
+		if (options.optimization.nodeEnv) {
+			new DefinePlugin({
+				"process.env.NODE_ENV": JSON.stringify(options.optimization.nodeEnv)
+			}).apply(compiler);
 		}
 		if (options.devServer?.hot) {
 			options.output.strictModuleErrorHandling = true;

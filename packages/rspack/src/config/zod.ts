@@ -4,6 +4,7 @@ import { Compilation, Compiler } from "..";
 import type * as oldBuiltins from "../builtin-plugin";
 import type * as webpackDevServer from "webpack-dev-server";
 import { deprecatedWarn, termlink } from "../util";
+import { Module } from "../Module";
 
 //#region Name
 const name = z.string();
@@ -123,6 +124,9 @@ const libraryOptions = z.strictObject({
 });
 export type LibraryOptions = z.infer<typeof libraryOptions>;
 
+const library = libraryName.or(libraryOptions).optional();
+export type Library = z.infer<typeof library>;
+
 const filenameTemplate = z.string();
 export type FilenameTemplate = z.infer<typeof filenameTemplate>;
 
@@ -214,6 +218,11 @@ export type Clean = z.infer<typeof clean>;
 const outputModule = z.boolean();
 export type OutputModule = z.infer<typeof outputModule>;
 
+const strictModuleExceptionHandling = z.boolean();
+export type StrictModuleExceptionHandling = z.infer<
+	typeof strictModuleExceptionHandling
+>;
+
 const strictModuleErrorHandling = z.boolean();
 export type StrictModuleErrorHandling = z.infer<
 	typeof strictModuleErrorHandling
@@ -276,13 +285,14 @@ const output = z.strictObject({
 	uniqueName: uniqueName.optional(),
 	chunkLoadingGlobal: chunkLoadingGlobal.optional(),
 	enabledLibraryTypes: enabledLibraryTypes.optional(),
-	library: libraryName.or(libraryOptions).optional(),
+	library: library.optional(),
 	libraryExport: libraryExport.optional(),
 	libraryTarget: libraryType.optional(),
 	umdNamedDefine: umdNamedDefine.optional(),
 	amdContainer: amdContainer.optional(),
 	auxiliaryComment: auxiliaryComment.optional(),
 	module: outputModule.optional(),
+	strictModuleExceptionHandling: strictModuleExceptionHandling.optional(),
 	strictModuleErrorHandling: strictModuleErrorHandling.optional(),
 	globalObject: globalObject.optional(),
 	importFunctionName: importFunctionName.optional(),
@@ -633,7 +643,7 @@ export type Target = z.infer<typeof target>;
 //#endregion
 
 //#region ExternalsType
-const externalsType = z.enum([
+export const externalsType = z.enum([
 	"var",
 	"module",
 	"assign",
@@ -894,7 +904,20 @@ const optimizationRuntimeChunk = z
 	);
 export type OptimizationRuntimeChunk = z.infer<typeof optimizationRuntimeChunk>;
 
-const optimizationSplitChunksName = z.string().or(z.literal(false));
+const optimizationSplitChunksNameFunction = z.function().args(
+	z.instanceof(Module).optional()
+	// FIXME: z.array(z.instanceof(Chunk)).optional(), z.string()
+	// FIXME: Chunk[],   															cacheChunkKey
+);
+
+export type OptimizationSplitChunksNameFunction = z.infer<
+	typeof optimizationSplitChunksNameFunction
+>;
+
+const optimizationSplitChunksName = z
+	.string()
+	.or(z.literal(false))
+	.or(optimizationSplitChunksNameFunction);
 const optimizationSplitChunksChunks = z
 	.enum(["initial", "async", "all"])
 	.or(z.instanceof(RegExp));
@@ -909,7 +932,15 @@ const sharedOptimizationSplitChunksCacheGroup = {
 	maxInitialSize: optimizationSplitChunksSizes.optional()
 };
 const optimizationSplitChunksCacheGroup = z.strictObject({
-	test: z.string().or(z.instanceof(RegExp)).optional(),
+	test: z
+		.string()
+		.or(z.instanceof(RegExp))
+		.or(
+			z
+				.function()
+				.args(z.instanceof(Module) /** FIXME: lack of CacheGroupContext */)
+		)
+		.optional(),
 	priority: z.number().optional(),
 	enforce: z.boolean().optional(),
 	reuseExistingChunk: z.boolean().optional(),
@@ -947,6 +978,7 @@ const optimization = z.strictObject({
 	chunkIds: z.enum(["named", "deterministic"]).optional(),
 	minimize: z.boolean().optional(),
 	minimizer: z.literal("...").or(plugin).array().optional(),
+	mergeDuplicateChunks: z.boolean().optional(),
 	splitChunks: optimizationSplitChunksOptions.optional(),
 	runtimeChunk: optimizationRuntimeChunk.optional(),
 	removeAvailableModules: z.boolean().optional(),
@@ -955,7 +987,8 @@ const optimization = z.strictObject({
 	sideEffects: z.enum(["flag"]).or(z.boolean()).optional(),
 	providedExports: z.boolean().optional(),
 	innerGraph: z.boolean().optional(),
-	usedExports: z.enum(["global"]).or(z.boolean()).optional()
+	usedExports: z.enum(["global"]).or(z.boolean()).optional(),
+	nodeEnv: z.union([z.string(), z.literal(false)]).optional()
 });
 export type Optimization = z.infer<typeof optimization>;
 //#endregion
@@ -978,7 +1011,21 @@ export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 
 const experiments = z.strictObject({
 	lazyCompilation: z.boolean().optional(),
-	incrementalRebuild: z.boolean().or(incrementalRebuildOptions).optional(),
+	incrementalRebuild: z
+		.boolean()
+		.or(incrementalRebuildOptions)
+		.optional()
+		.refine(val => {
+			if (val !== undefined) {
+				deprecatedWarn(
+					`'experiments.incrementalRebuild' has been deprecated, and will be drop support in 0.5.0. See the discussion ${termlink(
+						"here",
+						"https://github.com/web-infra-dev/rspack/issues/4708"
+					)}`
+				);
+			}
+			return true;
+		}),
 	asyncWebAssembly: z.boolean().optional(),
 	outputModule: z.boolean().optional(),
 	topLevelAwait: z.boolean().optional(),

@@ -17,11 +17,15 @@ struct ExportPropertyLibraryPluginParsed<'a> {
 #[derive(Debug, Default)]
 pub struct ExportPropertyLibraryPlugin {
   library_type: LibraryType,
+  _ns_object_used: bool,
 }
 
 impl ExportPropertyLibraryPlugin {
-  pub fn new(library_type: LibraryType) -> Self {
-    Self { library_type }
+  pub fn new(library_type: LibraryType, ns_object_used: bool) -> Self {
+    Self {
+      library_type,
+      _ns_object_used: ns_object_used,
+    }
   }
 
   fn parse_options<'a>(

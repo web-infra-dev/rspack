@@ -27,7 +27,7 @@ it("export should be unused when only unused functions use it", ()=>{
     expect(_inner__WEBPACK_IMPORTED_MODULE_0__.exportAUsed).toBe(true);
     expect(_inner__WEBPACK_IMPORTED_MODULE_0__.exportBUsed).toBe(true);
     expect(_inner__WEBPACK_IMPORTED_MODULE_0__.exportCUsed).toBe(false);
-    return __webpack_require__.el(/* ./chunk */"./chunk.js").then(__webpack_require__.bind(__webpack_require__, /* ./chunk */"./chunk.js"));
+    return __webpack_require__.el("./index.js@319:336").then(__webpack_require__.bind(__webpack_require__, /* ./chunk */"./chunk.js"));
 });
 }),
 "./inner.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {

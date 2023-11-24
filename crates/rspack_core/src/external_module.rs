@@ -9,9 +9,9 @@ use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::{
-  property_access,
+  extract_url_and_global, property_access,
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
-  to_identifier, AsyncDependenciesBlockId, BuildContext, BuildInfo, BuildMetaExportsType,
+  to_identifier, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMetaExportsType,
   BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl, CodeGenerationResult,
   Compilation, Context, DependenciesBlock, DependencyId, ExternalType, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleType, NormalInitFragment,
@@ -82,7 +82,7 @@ fn get_source_for_default_case(_optional: bool, request: &ExternalRequestValue) 
 #[derive(Debug)]
 pub struct ExternalModule {
   dependencies: Vec<DependencyId>,
-  blocks: Vec<AsyncDependenciesBlockId>,
+  blocks: Vec<AsyncDependenciesBlockIdentifier>,
   id: Identifier,
   pub request: ExternalRequest,
   external_type: ExternalType,
@@ -134,12 +134,45 @@ impl ExternalModule {
     )
   }
 
+  fn get_source_for_script_external(
+    &self,
+    url_and_global: &ExternalRequestValue,
+    runtime_requirements: &mut RuntimeGlobals,
+  ) -> Result<String> {
+    let url_and_global = extract_url_and_global(url_and_global.primary())?;
+    runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
+    Ok(format!(
+      r#"
+var __webpack_error__ = new Error();
+module.exports = new Promise(function(resolve, reject) {{
+  if(typeof {global} !== "undefined") return resolve();
+  {load_script}({url_str}, function(event) {{
+    if(typeof {global} !== "undefined") return resolve();
+    var errorType = event && (event.type === 'load' ? 'missing' : event.type);
+    var realSrc = event && event.target && event.target.src;
+    __webpack_error__.message = 'Loading script failed.\n(' + errorType + ': ' + realSrc + ')';
+    __webpack_error__.name = 'ScriptExternalLoadError';
+    __webpack_error__.type = errorType;
+    __webpack_error__.request = realSrc;
+    reject(__webpack_error__);
+  }}, {global_str});
+}}).then(function() {{ return {global}; }});
+"#,
+      global = url_and_global.global,
+      global_str =
+        serde_json::to_string(url_and_global.global).map_err(|e| internal_error!(e.to_string()))?,
+      url_str =
+        serde_json::to_string(url_and_global.url).map_err(|e| internal_error!(e.to_string()))?,
+      load_script = RuntimeGlobals::LOAD_SCRIPT.name()
+    ))
+  }
+
   fn get_source(
     &self,
     compilation: &Compilation,
     request: Option<&ExternalRequestValue>,
     external_type: &ExternalType,
-  ) -> (BoxSource, ChunkInitFragments, RuntimeGlobals) {
+  ) -> Result<(BoxSource, ChunkInitFragments, RuntimeGlobals)> {
     let mut chunk_init_fragments: ChunkInitFragments = Default::default();
     let mut runtime_requirements: RuntimeGlobals = Default::default();
     let source = match self.external_type.as_str() {
@@ -231,15 +264,17 @@ impl ExternalModule {
           self.get_source_for_import(request, compilation)
         }
       }
-      // TODO "script"
+      "script" if let Some(request) = request => {
+        self.get_source_for_script_external(request, &mut runtime_requirements)?
+      }
       _ => "".to_string(),
     };
     runtime_requirements.insert(RuntimeGlobals::MODULE);
-    (
+    Ok((
       RawSource::from(source).boxed(),
       chunk_init_fragments,
       runtime_requirements,
-    )
+    ))
   }
 }
 
@@ -250,11 +285,11 @@ impl Identifiable for ExternalModule {
 }
 
 impl DependenciesBlock for ExternalModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
     &self.blocks
   }
 
@@ -379,7 +414,7 @@ impl Module for ExternalModule {
       }
       _ => {
         let (source, chunk_init_fragments, runtime_requirements) =
-          self.get_source(compilation, request, external_type);
+          self.get_source(compilation, request, external_type)?;
         cgr.add(SourceType::JavaScript, source);
         cgr.chunk_init_fragments = chunk_init_fragments;
         cgr.runtime_requirements.insert(runtime_requirements);

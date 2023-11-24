@@ -1,46 +1,56 @@
-use std::sync::atomic::{AtomicU32, Ordering};
+use serde::Serialize;
+use ustr::Ustr;
 
-use rspack_identifier::{Identifiable, Identifier};
-
-use crate::{BoxDependency, DependencyId, GroupOptions};
+use crate::{BoxDependency, Compilation, DependencyId, GroupOptions, ModuleIdentifier};
 
 pub trait DependenciesBlock {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockId);
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier);
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockId];
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier];
 
   fn add_dependency_id(&mut self, dependency: DependencyId);
 
   fn get_dependencies(&self) -> &[DependencyId];
 }
 
-static ASYNC_DEPENDENCIES_BLOCK_ID: AtomicU32 = AtomicU32::new(0);
-
-fn get_async_dependencies_block_id() -> AsyncDependenciesBlockId {
-  AsyncDependenciesBlockId(Identifier::from(
-    ASYNC_DEPENDENCIES_BLOCK_ID
-      .fetch_add(1, Ordering::Relaxed)
-      .to_string(),
-  ))
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
+pub struct AsyncDependenciesBlockIdentifier {
+  from: ModuleIdentifier,
+  modifier: Ustr,
 }
 
-#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct AsyncDependenciesBlockId(Identifier);
+impl AsyncDependenciesBlockIdentifier {
+  pub fn new(from: ModuleIdentifier, modifier: Ustr) -> Self {
+    Self { from, modifier }
+  }
+
+  pub fn get<'a>(&self, compilation: &'a Compilation) -> Option<&'a AsyncDependenciesBlock> {
+    compilation.module_graph.block_by_id(self)
+  }
+
+  pub fn expect_get<'a>(&self, compilation: &'a Compilation) -> &'a AsyncDependenciesBlock {
+    compilation
+      .module_graph
+      .block_by_id(self)
+      .expect("should have block")
+  }
+}
 
 #[derive(Debug, Clone)]
 pub struct AsyncDependenciesBlock {
-  id: AsyncDependenciesBlockId,
+  id: AsyncDependenciesBlockIdentifier,
   group_options: Option<GroupOptions>,
   blocks: Vec<AsyncDependenciesBlock>,
-  block_ids: Vec<AsyncDependenciesBlockId>,
+  block_ids: Vec<AsyncDependenciesBlockIdentifier>,
   dependency_ids: Vec<DependencyId>,
   dependencies: Vec<BoxDependency>,
 }
 
-impl Default for AsyncDependenciesBlock {
-  fn default() -> Self {
+impl AsyncDependenciesBlock {
+  /// modifier should be Dependency.span in most of time
+  pub fn new(from: ModuleIdentifier, modifier: impl AsRef<str>) -> Self {
     Self {
-      id: get_async_dependencies_block_id(),
+      id: AsyncDependenciesBlockIdentifier::new(from, modifier.as_ref().into()),
       group_options: Default::default(),
       blocks: Default::default(),
       block_ids: Default::default(),
@@ -51,8 +61,21 @@ impl Default for AsyncDependenciesBlock {
 }
 
 impl AsyncDependenciesBlock {
-  pub fn id(&self) -> AsyncDependenciesBlockId {
+  // represent an unique AsyncDependenciesBlock, we use this as the block_promise_key at codegen
+  // why not Id(u32)? Id(u32) is unstable since module is built concurrently
+  // why not ChunkGroup.id? ChunkGroup.id = ChunkGroup.chunks.map(c => c.id).join("+"), probably will break incremental build, same reason we create __webpack_require__.el
+  pub fn identifier(&self) -> AsyncDependenciesBlockIdentifier {
     self.id
+  }
+
+  pub fn block_promise_key(&self, compilation: &Compilation) -> String {
+    let module_id = compilation
+      .chunk_graph
+      .get_module_id(self.id.from)
+      .as_ref()
+      .expect("should have module_id");
+    let key = format!("{}@{}", module_id, self.id.modifier);
+    serde_json::to_string(&key).expect("AsyncDependenciesBlock.id should be able to json to_string")
   }
 
   pub fn set_group_options(&mut self, group_options: GroupOptions) {
@@ -72,9 +95,10 @@ impl AsyncDependenciesBlock {
     std::mem::take(&mut self.dependencies)
   }
 
-  pub fn add_block(&mut self, block: AsyncDependenciesBlock) {
-    self.block_ids.push(block.id);
-    self.blocks.push(block);
+  pub fn add_block(&mut self, _block: AsyncDependenciesBlock) {
+    unimplemented!("Nested block are not implemented");
+    // self.block_ids.push(block.id);
+    // self.blocks.push(block);
   }
 
   pub fn take_blocks(&mut self) -> Vec<AsyncDependenciesBlock> {
@@ -82,18 +106,13 @@ impl AsyncDependenciesBlock {
   }
 }
 
-impl Identifiable for AsyncDependenciesBlock {
-  fn identifier(&self) -> Identifier {
-    self.id.0
-  }
-}
-
 impl DependenciesBlock for AsyncDependenciesBlock {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
-    self.block_ids.push(block)
+  fn add_block_id(&mut self, _block: AsyncDependenciesBlockIdentifier) {
+    unimplemented!("Nested block are not implemented");
+    // self.block_ids.push(block);
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
     &self.block_ids
   }
 

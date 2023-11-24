@@ -1,0 +1,77 @@
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border);
+  box-sizing: border-box;
+  background-color: var(--color-bg-2);
+  height: 100%;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  width: 200px;
+  padding-left: 20px;
+  box-sizing: border-box;
+}
+
+.logo-name {
+  color: var(--color-text-1);
+  font-weight: 500;
+  font-size: 20px;
+  margin-left: 10px;
+  font-family: 'PingFang SC';
+}
+
+.right {
+  display: flex;
+  list-style: none;
+  padding-right: 20px;
+
+  li {
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+  }
+
+  a {
+    text-decoration: none;
+    color: var(--color-text-1);
+  }
+}
+
+.username {
+  cursor: pointer;
+}
+
+.round {
+  :global(.arco-input-inner-wrapper) {
+    border-radius: 16px;
+  }
+
+  svg {
+    font-size: 16px;
+  }
+}
+
+.dropdown-icon {
+  margin-right: 8px;
+  font-size: 16px;
+  vertical-align: text-bottom;
+}
+
+.fixed-settings {
+  position: fixed;
+  top: 280px;
+  right: 0px;
+
+  svg {
+    font-size: 18px;
+    vertical-align: -4px;
+  }
+}

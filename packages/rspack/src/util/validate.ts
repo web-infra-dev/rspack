@@ -27,3 +27,12 @@ export function validate<T extends z.ZodType>(opts: any, schema: T) {
 		}
 	}
 }
+
+export function isValidate<T extends z.ZodType>(opts: any, schema: T) {
+	try {
+		validate(opts, schema);
+		return true;
+	} catch {
+		return false;
+	}
+}

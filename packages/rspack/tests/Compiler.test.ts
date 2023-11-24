@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { RawSource } from "webpack-sources";
-import { Compiler, getNormalizedRspackOptions, rspack } from "../src";
+import { Compiler, rspack } from "../src";
 import { Stats } from "../src/Stats";
 const path = require("path");
 import { createFsFromVolume, Volume } from "memfs";
@@ -11,7 +11,7 @@ describe("Compiler", () => {
 	function compile(entry: string, options, callback) {
 		const noOutputPath = !options.output || !options.output.path;
 
-		options = getNormalizedRspackOptions(options);
+		options = rspack.config.getNormalizedRspackOptions(options);
 
 		if (!options.mode) options.mode = "production";
 		options.entry = entry;

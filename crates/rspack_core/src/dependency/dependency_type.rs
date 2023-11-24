@@ -24,6 +24,8 @@ pub enum DependencyType {
   DynamicImportEager,
   // cjs require
   CjsRequire,
+  // cjs exports
+  CjsExports,
   // new URL("./foo", import.meta.url)
   NewUrl,
   // new Worker()
@@ -60,6 +62,12 @@ pub enum DependencyType {
   WasmExportImported,
   /// static exports
   StaticExports,
+  /// container exposed
+  ContainerExposed,
+  /// container entry,
+  ContainerEntry,
+  /// remote to external,
+  RemoteToExternal,
   Custom(Box<str>), // TODO it will increase large layout size
 }
 
@@ -75,6 +83,7 @@ impl DependencyType {
       DependencyType::EsmImportSpecifier => Cow::Borrowed("esm import specifier"),
       DependencyType::DynamicImport => Cow::Borrowed("dynamic import"),
       DependencyType::CjsRequire => Cow::Borrowed("cjs require"),
+      DependencyType::CjsExports => Cow::Borrowed("cjs exports"),
       DependencyType::NewUrl => Cow::Borrowed("new URL()"),
       DependencyType::NewWorker => Cow::Borrowed("new Worker()"),
       DependencyType::ImportMetaHotAccept => Cow::Borrowed("import.meta.webpackHot.accept"),
@@ -98,6 +107,9 @@ impl DependencyType {
       DependencyType::ExportInfoApi => Cow::Borrowed("export info api"),
       // TODO: mode
       DependencyType::ImportMetaContext => Cow::Borrowed("import.meta context"),
+      DependencyType::ContainerExposed => Cow::Borrowed("container exposed"),
+      DependencyType::ContainerEntry => Cow::Borrowed("container entry"),
+      DependencyType::RemoteToExternal => Cow::Borrowed("remote to external"),
     }
   }
 }

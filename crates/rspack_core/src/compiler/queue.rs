@@ -96,6 +96,17 @@ impl WorkerTask for FactorizeTask {
           .await?
           .split_into_parts()
       }
+      DependencyType::ContainerEntry => {
+        let factory = crate::mf::container_entry_module_factory::ContainerEntryModuleFactory;
+        factory
+          .create(ModuleFactoryCreateData {
+            resolve_options: self.resolve_options,
+            context,
+            dependency,
+          })
+          .await?
+          .split_into_parts()
+      }
       _ => {
         assert!(dependency.as_context_dependency().is_none());
         let factory = NormalModuleFactory::new(
@@ -382,8 +393,10 @@ impl CleanTask {
       return CleanTaskResult::ModuleIsUsed { module_identifier };
     }
 
-    let dependent_module_identifiers: Vec<ModuleIdentifier> = mgm
-      .all_depended_modules(&compilation.module_graph)
+    let dependent_module_identifiers: Vec<ModuleIdentifier> = compilation
+      .module_graph
+      .get_module_all_depended_modules(&module_identifier)
+      .expect("should have module")
       .into_iter()
       .copied()
       .collect();

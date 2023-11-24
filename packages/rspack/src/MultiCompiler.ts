@@ -11,7 +11,7 @@
 import { Compiler, RspackOptions, Stats } from ".";
 import ResolverFactory from "./ResolverFactory";
 import { WatchFileSystem } from "./util/fs";
-import Watching from "./Watching";
+import { Watching } from "./Watching";
 import {
 	AsyncSeriesHook,
 	Callback,

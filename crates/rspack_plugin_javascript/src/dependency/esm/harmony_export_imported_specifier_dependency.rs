@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
 use linked_hash_set::LinkedHashSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
-  get_exports_type, process_export_info, AsContextDependency, ConnectionState, Dependency,
-  DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
-  ExportInfoId, ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsInfoId,
+  get_exports_type, get_import_var, process_export_info, AsContextDependency, ConnectionState,
+  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
+  DependencyType, ExportInfoId, ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsInfoId,
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
   HarmonyExportInitFragment, ModuleDependency, ModuleGraph, ModuleIdentifier, RuntimeSpec,
   TemplateContext, TemplateReplaceSource, UsageState, UsedName,
@@ -30,7 +32,7 @@ pub struct HarmonyExportImportedSpecifierDependency {
   // Because it is shared by multiply HarmonyExportImportedSpecifierDependency, so put it to `BuildInfo`
   // pub active_exports: HashSet<JsWord>,
   // pub all_star_exports: Option<Vec<DependencyId>>,
-  pub other_star_exports: Option<Vec<DependencyId>>, // look like it is unused
+  pub other_star_exports: Option<Vec<DependencyId>>,
   pub export_all: bool,
 }
 
@@ -472,9 +474,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       .module_graph_module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
-    let import_var = compilation
-      .module_graph
-      .get_import_var(&module.identifier(), &self.request);
+    let import_var = get_import_var(&compilation.module_graph, self.id);
     let is_new_tree_shaking = compilation.options.is_new_tree_shaking();
 
     let used_exports = if is_new_tree_shaking {
@@ -528,7 +528,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
           JsWord::from(export_from_import(
             code_generatable_context,
             true,
-            import_var,
+            &import_var,
             id.1.clone().map(|i| vec![i]).unwrap_or_default(),
             &self.id,
             false,
@@ -765,7 +765,7 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     let id = self.id;
-    Some(DependencyCondition::Fn(Box::new(
+    Some(DependencyCondition::Fn(Arc::new(
       move |_mc, runtime, module_graph: &ModuleGraph| {
         let dep = module_graph
           .dependency_by_id(&id)

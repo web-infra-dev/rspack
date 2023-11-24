@@ -2,7 +2,7 @@
 const path = require("path");
 const jestDiff = require("jest-diff").diff;
 const stripAnsi = require("strip-ansi");
-import { getNormalizedRspackOptions, applyRspackOptionsDefaults } from "../src";
+import rspack from "../src";
 /**
  * Escapes regular expression metacharacters
  * @param {string} str String to quote
@@ -62,8 +62,8 @@ expect.addSnapshotSerializer({
 });
 
 const getDefaultConfig = config => {
-	config = getNormalizedRspackOptions(config);
-	applyRspackOptionsDefaults(config);
+	config = rspack.config.getNormalizedRspackOptions(config);
+	rspack.config.applyRspackOptionsDefaults(config);
 	process.chdir(cwd);
 	return config;
 };
@@ -109,12 +109,15 @@ describe("snapshots", () => {
 		+   "mode": undefined,
 		@@ ... @@
 		-     "innerGraph": false,
-		-     "minimize": false,
 		+     "innerGraph": true,
+		@@ ... @@
+		-     "minimize": false,
 		+     "minimize": true,
 		@@ ... @@
 		-     "moduleIds": "named",
+		-     "nodeEnv": false,
 		+     "moduleIds": "deterministic",
+		+     "nodeEnv": "production",
 		@@ ... @@
 		-     "realContentHash": false,
 		+     "realContentHash": true,
@@ -150,12 +153,15 @@ describe("snapshots", () => {
 		+   "mode": "production",
 		@@ ... @@
 		-     "innerGraph": false,
-		-     "minimize": false,
 		+     "innerGraph": true,
+		@@ ... @@
+		-     "minimize": false,
 		+     "minimize": true,
 		@@ ... @@
 		-     "moduleIds": "named",
+		-     "nodeEnv": false,
 		+     "moduleIds": "deterministic",
+		+     "nodeEnv": "production",
 		@@ ... @@
 		-     "realContentHash": false,
 		+     "realContentHash": true,
@@ -195,6 +201,9 @@ describe("snapshots", () => {
 		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "development",
+		@@ ... @@
+		-     "nodeEnv": false,
+		+     "nodeEnv": "development",
 		@@ ... @@
 		-       "production",
 		+       "development",
@@ -369,10 +378,16 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
+		-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
+		+     "chunkLoadingGlobal": "webpackChunkmyLib_awesome",
+		@@ ... @@
 		-     "enabledLibraryTypes": Array [],
 		+     "enabledLibraryTypes": Array [
 		+       "var",
 		+     ],
+		@@ ... @@
+		-     "hotUpdateGlobal": "webpackHotUpdate_rspack_core",
+		+     "hotUpdateGlobal": "webpackHotUpdatemyLib_awesome",
 		@@ ... @@
 		-     "library": undefined,
 		+     "library": Object {
@@ -386,6 +401,9 @@ describe("snapshots", () => {
 		+       "type": "var",
 		+       "umdNamedDefine": undefined,
 		+     },
+		@@ ... @@
+		-     "uniqueName": "@rspack/core",
+		+     "uniqueName": "myLib.awesome",
 	`)
 	);
 	test(
@@ -401,10 +419,16 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
+			-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
+			+     "chunkLoadingGlobal": "webpackChunkmyLib",
+			@@ ... @@
 			-     "enabledLibraryTypes": Array [],
 			+     "enabledLibraryTypes": Array [
 			+       "var",
 			+     ],
+			@@ ... @@
+			-     "hotUpdateGlobal": "webpackHotUpdate_rspack_core",
+			+     "hotUpdateGlobal": "webpackHotUpdatemyLib",
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
@@ -418,6 +442,9 @@ describe("snapshots", () => {
 			+       "type": "var",
 			+       "umdNamedDefine": undefined,
 			+     },
+			@@ ... @@
+			-     "uniqueName": "@rspack/core",
+			+     "uniqueName": "myLib",
 		`)
 	);
 	test(
@@ -436,10 +463,16 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
+			-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
+			+     "chunkLoadingGlobal": "webpackChunkmyLib_lib",
+			@@ ... @@
 			-     "enabledLibraryTypes": Array [],
 			+     "enabledLibraryTypes": Array [
 			+       "var",
 			+     ],
+			@@ ... @@
+			-     "hotUpdateGlobal": "webpackHotUpdate_rspack_core",
+			+     "hotUpdateGlobal": "webpackHotUpdatemyLib_lib",
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
@@ -454,6 +487,9 @@ describe("snapshots", () => {
 			+       "type": "var",
 			+       "umdNamedDefine": undefined,
 			+     },
+			@@ ... @@
+			-     "uniqueName": "@rspack/core",
+			+     "uniqueName": "myLib.lib",
 		`)
 	);
 	test(
@@ -474,10 +510,16 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
+			-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
+			+     "chunkLoadingGlobal": "webpackChunkmyLib",
+			@@ ... @@
 			-     "enabledLibraryTypes": Array [],
 			+     "enabledLibraryTypes": Array [
 			+       "var",
 			+     ],
+			@@ ... @@
+			-     "hotUpdateGlobal": "webpackHotUpdate_rspack_core",
+			+     "hotUpdateGlobal": "webpackHotUpdatemyLib",
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
@@ -493,6 +535,9 @@ describe("snapshots", () => {
 			+       "type": "var",
 			+       "umdNamedDefine": undefined,
 			+     },
+			@@ ... @@
+			-     "uniqueName": "@rspack/core",
+			+     "uniqueName": "myLib",
 		`)
 	);
 	test(
@@ -513,10 +558,16 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
+			-     "chunkLoadingGlobal": "webpackChunk_rspack_core",
+			+     "chunkLoadingGlobal": "webpackChunk_name_my_name_Lib_name_",
+			@@ ... @@
 			-     "enabledLibraryTypes": Array [],
 			+     "enabledLibraryTypes": Array [
 			+       "var",
 			+     ],
+			@@ ... @@
+			-     "hotUpdateGlobal": "webpackHotUpdate_rspack_core",
+			+     "hotUpdateGlobal": "webpackHotUpdate_name_my_name_Lib_name_",
 			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
@@ -533,6 +584,9 @@ describe("snapshots", () => {
 			+       "type": "var",
 			+       "umdNamedDefine": undefined,
 			+     },
+			@@ ... @@
+			-     "uniqueName": "@rspack/core",
+			+     "uniqueName": "[name].my[name]Lib.[name]",
 		`)
 	);
 	test("target node", { target: "node" }, e =>
@@ -895,6 +949,9 @@ describe("snapshots", () => {
 			@@ ... @@
 			-   "mode": "none",
 			+   "mode": "development",
+			@@ ... @@
+			-     "nodeEnv": false,
+			+     "nodeEnv": "development",
 			@@ ... @@
 			-       "production",
 			+       "development",

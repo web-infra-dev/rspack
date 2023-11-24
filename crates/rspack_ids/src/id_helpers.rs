@@ -253,7 +253,7 @@ pub fn assign_deterministic_ids<T: Copy>(
   mut items: Vec<T>,
   get_name: impl Fn(T) -> String,
   comparator: impl Fn(&T, &T) -> Ordering,
-  mut assign_id: impl FnMut(T, String) -> bool,
+  mut assign_id: impl FnMut(T, usize) -> bool,
   ranges: &[usize],
   expand_factor: usize,
   extra_space: usize,
@@ -279,10 +279,10 @@ pub fn assign_deterministic_ids<T: Copy>(
   for item in items {
     let ident = get_name(item);
     let mut i = salt;
-    let mut id = get_number_hash(&format!("{ident}{i}"), range).to_string();
+    let mut id = get_number_hash(&format!("{ident}{i}"), range);
     while !assign_id(item, id) {
       i += 1;
-      id = get_number_hash(&format!("{ident}{i}"), range).to_string();
+      id = get_number_hash(&format!("{ident}{i}"), range);
     }
   }
 }
@@ -500,8 +500,8 @@ fn compare_chunks_by_modules(
   a: &Chunk,
   b: &Chunk,
 ) -> Ordering {
-  let a_modules = chunk_graph.get_chunk_modules(&a.ukey, module_graph);
-  let b_modules = chunk_graph.get_chunk_modules(&b.ukey, module_graph);
+  let a_modules = chunk_graph.get_ordered_chunk_modules(&a.ukey, module_graph);
+  let b_modules = chunk_graph.get_ordered_chunk_modules(&b.ukey, module_graph);
 
   a_modules
     .into_iter()

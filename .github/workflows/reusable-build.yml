@@ -46,6 +46,10 @@ on:
         type: boolean
         required: false
         default: true
+      test-diff: # Run Diff Test
+        type: boolean
+        required: false
+        default: false
       ref: # Git reference to checkout
         required: false
         type: string
@@ -157,7 +161,10 @@ jobs:
       - name: Build aarch64-apple-darwin
         if: ${{ inputs.target == 'aarch64-apple-darwin' }}
         run: |
-          sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*;
+          if [[ "${{ startsWith(runner.name, 'GitHub Actions') }}" == "true" ]]; then
+            # Github runner
+            sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*;
+          fi
           export CC=$(xcrun -f clang);
           export CXX=$(xcrun -f clang++);
           SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
@@ -213,7 +220,7 @@ jobs:
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
-        node: [14, 16, 18]
+        node: [16, 18, 20]
     name: Test Node ${{ matrix.node }}
     env:
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
@@ -258,6 +265,11 @@ jobs:
         timeout-minutes: 20 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc'  &&  matrix.node  != '14' }}
         run: pnpm run test:ci
+
+      - name: Diff test
+        timeout-minutes: 15
+        if: ${{ inputs.test-diff }}
+        run: pnpm run test:diff
 
       ### write the latest metric into branch gh-pages
       ### Note that, We can't merge this script, because this script only runs on main branch

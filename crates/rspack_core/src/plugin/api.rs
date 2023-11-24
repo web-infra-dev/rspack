@@ -8,13 +8,13 @@ use rspack_sources::BoxSource;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
-  AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationArgs,
-  CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, MakeParam, Module,
-  ModuleFactoryResult, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleBeforeResolveArgs, NormalModuleCreateData, NormalModuleFactoryContext,
-  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs,
-  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
-  SourceType, ThisCompilationArgs,
+  AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs, ChunkHashArgs, CodeGenerationResults,
+  Compilation, CompilationArgs, CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs,
+  JsChunkHashArgs, MakeParam, Module, ModuleFactoryResult, ModuleIdentifier, ModuleType,
+  NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  NormalModuleCreateData, NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator,
+  PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs,
+  RenderModuleContentArgs, RenderStartupArgs, Resolver, SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -41,6 +41,7 @@ pub type PluginRenderModuleContentOutput<'a> = Result<RenderModuleContentArgs<'a
 pub type PluginRenderStartupHookOutput = Result<Option<BoxSource>>;
 pub type PluginRenderHookOutput = Result<Option<BoxSource>>;
 pub type PluginJsChunkHashHookOutput = Result<()>;
+pub type PluginShouldEmitHookOutput = Result<Option<bool>>;
 
 #[async_trait::async_trait]
 pub trait Plugin: Debug + Send + Sync {
@@ -458,12 +459,25 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn should_emit(&self, _compilation: &mut Compilation) -> PluginShouldEmitHookOutput {
+    Ok(None)
+  }
+
   async fn after_emit(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
 
   fn seal(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
+  }
+
+  fn execute_module(
+    &self,
+    _entry: ModuleIdentifier,
+    _runtime_modules: Vec<ModuleIdentifier>,
+    _codegen_results: &CodeGenerationResults,
+  ) -> Result<Option<String>> {
+    Ok(None)
   }
 }
 

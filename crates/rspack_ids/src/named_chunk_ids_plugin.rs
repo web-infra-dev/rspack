@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use rspack_core::{Chunk, Plugin};
 
 use crate::id_helpers::{
-  assign_ascending_chunk_ids, assign_names_par, get_long_chunk_name, get_short_chunk_name,
-  get_used_chunk_ids,
+  assign_ascending_chunk_ids, assign_names_par, compare_chunks_natural, get_long_chunk_name,
+  get_short_chunk_name, get_used_chunk_ids,
 };
 
 #[derive(Debug)]
@@ -23,6 +23,10 @@ impl NamedChunkIdsPlugin {
 }
 
 impl Plugin for NamedChunkIdsPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.NamedChunkIdsPlugin"
+  }
+
   fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
     let mut used_ids = get_used_chunk_ids(compilation);
     let chunk_graph = &compilation.chunk_graph;
@@ -50,8 +54,7 @@ impl Plugin for NamedChunkIdsPlugin {
       chunks,
       |chunk| get_short_chunk_name(chunk, chunk_graph, &context, &self.delimiter, module_graph),
       |chunk, _| get_long_chunk_name(chunk, chunk_graph, &context, &self.delimiter, module_graph),
-      // TODO: we should do compareChunksNatural
-      |a, b| a.name.cmp(&b.name),
+      |a, b| compare_chunks_natural(chunk_graph, module_graph, a, b),
       &mut used_ids,
       |chunk, name| {
         chunk_id_to_name.insert(chunk.ukey, name);

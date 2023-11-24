@@ -7,13 +7,13 @@ use rspack_sources::{RawSource, Source, SourceExt};
 use serde_json::json;
 
 use crate::{
-  AsyncDependenciesBlockId, CodeGenerationResult, Compilation, DependenciesBlock, DependencyId,
-  Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  AsyncDependenciesBlockIdentifier, CodeGenerationResult, Compilation, DependenciesBlock,
+  DependencyId, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
 pub struct MissingModule {
-  blocks: Vec<AsyncDependenciesBlockId>,
+  blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
   readable_identifier: String,
@@ -37,11 +37,11 @@ impl MissingModule {
 }
 
 impl DependenciesBlock for MissingModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockId) {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
     self.blocks.push(block)
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
     &self.blocks
   }
 

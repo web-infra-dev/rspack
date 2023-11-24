@@ -6,9 +6,9 @@ source: crates/rspack_testing/src/run_fixture.rs
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _package1_script__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/* ./package1/script */"./package1/script.js");
-/* harmony import */var _package1_script2__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/* ./package1/script2 */"./package1/script2.js");
-/* harmony import */var _package2_script__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/* ./package2/script */"./package2/script.js");
+/* harmony import */var _package1_script__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./package1/script */"./package1/script.js");
+/* harmony import */var _package1_script2__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/* ./package1/script2 */"./package1/script2.js");
+/* harmony import */var _package2_script__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/* ./package2/script */"./package2/script.js");
 
 
 
@@ -17,12 +17,12 @@ it("should load module correctly", ()=>{
 });
 // if (process.env.NODE_ENV === "production") {
 it("default export should be unused", ()=>{
-    expect(_package1_script__WEBPACK_IMPORTED_MODULE_1__.exportDefaultUsed).toBe(false);
-    expect(_package1_script2__WEBPACK_IMPORTED_MODULE_2__.exportDefaultUsed).toBe(false);
+    expect(_package1_script__WEBPACK_IMPORTED_MODULE_0__.exportDefaultUsed).toBe(false);
+    expect(_package1_script2__WEBPACK_IMPORTED_MODULE_1__.exportDefaultUsed).toBe(false);
 });
 // }
 it("default export should be used", ()=>{
-    expect(_package2_script__WEBPACK_IMPORTED_MODULE_3__.exportDefaultUsed).toBe(true);
+    expect(_package2_script__WEBPACK_IMPORTED_MODULE_2__.exportDefaultUsed).toBe(true);
 });
 }),
 "./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {

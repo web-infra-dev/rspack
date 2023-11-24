@@ -11,19 +11,20 @@ use tracing::instrument;
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
   AssetEmittedArgs, BoxLoader, BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs,
-  ChunkContentHash, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, Content,
-  ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, MakeParam, Module, ModuleType,
-  NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
-  NormalModuleCreateData, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginAdditionalModuleRequirementsOutput,
-  PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
-  PluginFactorizeHookOutput, PluginJsChunkHashHookOutput, PluginMakeHookOutput,
-  PluginModuleHookOutput, PluginNormalModuleFactoryAfterResolveOutput,
-  PluginNormalModuleFactoryBeforeResolveOutput, PluginProcessAssetsOutput,
-  PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
-  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput, PluginThisCompilationHookOutput,
-  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
-  RenderStartupArgs, Resolver, ResolverFactory, Stats, ThisCompilationArgs,
+  ChunkContentHash, ChunkHashArgs, CodeGenerationResults, Compilation, CompilationArgs,
+  CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, MakeParam,
+  Module, ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleBeforeResolveArgs, NormalModuleCreateData, NormalModuleFactoryContext,
+  OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  PluginAdditionalModuleRequirementsOutput, PluginBuildEndHookOutput, PluginChunkHashHookOutput,
+  PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
+  PluginJsChunkHashHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,
+  PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
+  PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
+  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
+  PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
+  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory, Stats,
+  ThisCompilationArgs,
 };
 
 pub struct PluginDriver {
@@ -619,6 +620,16 @@ impl PluginDriver {
     Ok(())
   }
 
+  pub async fn should_emit(&self, compilation: &mut Compilation) -> Result<bool> {
+    let mut res = true;
+    for plugin in &self.plugins {
+      if let Some(temp) = plugin.should_emit(compilation).await? {
+        res &= temp;
+      }
+    }
+    Ok(res)
+  }
+
   #[instrument(name = "plugin:emit", skip_all)]
   pub async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &self.plugins {
@@ -649,5 +660,23 @@ impl PluginDriver {
       plugin.seal(compilation)?;
     }
     Ok(())
+  }
+
+  #[instrument(name = "plugin:execute_module", skip_all)]
+  pub fn execute_module(
+    &self,
+    entry: ModuleIdentifier,
+    runtime_modules: Vec<ModuleIdentifier>,
+    codegen_results: &CodeGenerationResults,
+  ) -> Result<Option<String>> {
+    for plugin in &self.plugins {
+      if let Some(exports) =
+        plugin.execute_module(entry, runtime_modules.clone(), codegen_results)?
+      {
+        return Ok(Some(exports));
+      }
+    }
+
+    Ok(None)
   }
 }

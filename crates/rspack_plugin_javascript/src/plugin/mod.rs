@@ -86,9 +86,17 @@ impl JsPlugin {
             execOptions.factory.call(module.exports, module, module.exports, execOptions.require);
             "#,
       ),
-      false => RawSource::from(
-        "__webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n",
-      ),
+      false => {
+        if runtime_requirements.contains(RuntimeGlobals::THIS_AS_EXPORTS) {
+          RawSource::from(
+            "__webpack_modules__[moduleId].call(module.exports, module, module.exports, __webpack_require__);\n",
+          )
+        } else {
+          RawSource::from(
+            "__webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n",
+          )
+        }
+      }
     };
 
     if strict_module_error_handling {
@@ -355,7 +363,6 @@ impl JsPlugin {
     let source = args
       .compilation
       .plugin_driver
-      .clone()
       .render_chunk(RenderChunkArgs {
         compilation: args.compilation,
         chunk_ukey: &args.chunk_ukey,

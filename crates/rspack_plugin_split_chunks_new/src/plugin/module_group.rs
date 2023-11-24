@@ -1,4 +1,3 @@
-use async_scoped::TokioScope;
 use dashmap::DashMap;
 use num_bigint::BigUint as ChunksKey;
 use rayon::prelude::*;
@@ -6,12 +5,11 @@ use rspack_core::{Chunk, ChunkByUkey, ChunkGraph, ChunkUkey, Compilation, Module
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::ModuleGroupMap;
-use crate::module_group::CacheGroupIdx;
+use crate::module_group::{compare_entries, CacheGroupIdx, ModuleGroup};
+use crate::options::cache_group::CacheGroup;
+use crate::options::cache_group_test::{CacheGroupTest, CacheGroupTestFnCtx};
+use crate::options::chunk_name::{ChunkNameGetter, ChunkNameGetterFnCtx};
 use crate::SplitChunksPlugin;
-use crate::{
-  cache_group::CacheGroup,
-  module_group::{compare_entries, ModuleGroup},
-};
 
 impl SplitChunksPlugin {
   #[tracing::instrument(skip_all)]
@@ -116,120 +114,165 @@ impl SplitChunksPlugin {
 
     let chunk_idx_map = &chunk_idx_map;
 
-    async_scoped::Scope::scope_and_block(|scope: &mut TokioScope<'_, _>| {
-      for module in compilation.module_graph.modules().values() {
-        let module = &**module;
+    for module in compilation.module_graph.modules().values() {
+      let module = &**module;
 
-        let belong_to_chunks = compilation
-          .chunk_graph
-          .get_module_chunks(module.identifier());
+      let belong_to_chunks = compilation
+        .chunk_graph
+        .get_module_chunks(module.identifier());
 
-        let chunks_key = Self::get_key(belong_to_chunks.iter(), chunk_idx_map);
-        let module_group_map = &module_group_map;
+      let chunks_key = Self::get_key(belong_to_chunks.iter(), chunk_idx_map);
+      let module_group_map = &module_group_map;
 
-        for (cache_group_index, (idx, cache_group)) in self.cache_groups.iter().enumerate().filter(|(_, cache_group)| {
-          // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
-          let is_match_the_test: bool = (cache_group.test)(module);
-          let is_match_the_type: bool = (cache_group.r#type)(module);
-          let is_match = is_match_the_test && is_match_the_type;
+      let (tx, mut rx) = futures::channel::mpsc::unbounded();
 
-          if !is_match {
-            tracing::trace!(
-              "Module({:?}) is ignored by CacheGroup({:?}). Reason: !(is_match_the_test({:?}) && is_match_the_type({:?}))",
-              module.identifier(),
-              cache_group.key,
-              is_match_the_test,
-              is_match_the_type
-            );
+      for idx in 0..self.cache_groups.len() {
+        let cache_group = &self.cache_groups[idx];
+        let tx = tx.clone();
+        // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
+        let is_match_the_test = match &cache_group.test {
+          CacheGroupTest::String(str) => module
+            .name_for_condition()
+            .map_or(false, |name| name.starts_with(str)),
+          CacheGroupTest::RegExp(regexp) => module
+            .name_for_condition()
+            .map_or(false, |name| regexp.test(&name)),
+          CacheGroupTest::Fn(f) => {
+            let ctx = CacheGroupTestFnCtx { module };
+            f(ctx).await.unwrap_or_default()
           }
-          is_match
-        }).enumerate() {
-          let chunks_key = chunks_key.clone();
-          scope.spawn(async move {
-            let combs = get_combination(chunks_key.clone());
+          CacheGroupTest::Enabled => true,
+        };
+        let is_match_the_type: bool = (cache_group.r#type)(module);
+        let is_match = is_match_the_test && is_match_the_type;
+        if !is_match {
+          tracing::trace!(
+                "Module({:?}) is ignored by CacheGroup({:?}). Reason: !(is_match_the_test({:?}) && is_match_the_type({:?}))",
+                module.identifier(),
+                cache_group.key,
+                is_match_the_test,
+                is_match_the_type
+              );
+        }
+        tx.unbounded_send((idx, is_match)).expect("sender failed");
+      }
+      drop(tx);
+      let mut temp = vec![];
+      while let Some(value) = rx.try_next().expect("receiver failed") {
+        temp.push(value)
+      }
+      temp.sort_by(|a, b| a.0.cmp(&b.0));
 
-            for chunk_combination in combs {
-              // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
-              if chunk_combination.len() < cache_group.min_chunks as usize {
-                tracing::trace!(
+      let filtered = self
+        .cache_groups
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| temp[*index].1);
+
+      for (cache_group_index, (idx, cache_group)) in filtered.enumerate() {
+        let chunks_key = chunks_key.clone();
+        let combs = get_combination(chunks_key.clone());
+
+        for chunk_combination in combs {
+          // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
+          if chunk_combination.len() < cache_group.min_chunks as usize {
+            tracing::trace!(
                   "Module({:?}) is ignored by CacheGroup({:?}). Reason: chunk_combination.len({:?}) < cache_group.min_chunks({:?})",
                   module.identifier(),
                   cache_group.key,
                   chunk_combination.len(),
                   cache_group.min_chunks,
                 );
-                continue;
-              }
+            continue;
+          }
 
-              let selected_chunks = chunk_combination
-                .iter()
-                .map(|c| chunk_db.get(c).expect("This should never happen, please file an issue"))
-                // Filter by `splitChunks.cacheGroups.{cacheGroup}.chunks`
-                .filter(|c| (cache_group.chunk_filter)(c, chunk_group_db))
-                .collect::<Box<[_]>>();
+          let selected_chunks = chunk_combination
+            .iter()
+            .map(|c| {
+              chunk_db
+                .get(c)
+                .expect("This should never happen, please file an issue")
+            })
+            // Filter by `splitChunks.cacheGroups.{cacheGroup}.chunks`
+            .filter(|c| (cache_group.chunk_filter)(c, chunk_group_db))
+            .collect::<Box<[_]>>();
 
-              // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
-              if selected_chunks.len() < cache_group.min_chunks as usize {
-                tracing::trace!(
+          // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
+          if selected_chunks.len() < cache_group.min_chunks as usize {
+            tracing::trace!(
                   "Module({:?}) is ignored by CacheGroup({:?}). Reason: selected_chunks.len({:?}) < cache_group.min_chunks({:?})",
                   module.identifier(),
                   cache_group.key,
                   selected_chunks.len(),
                   cache_group.min_chunks,
                 );
-                continue;
+            continue;
+          }
+          let selected_chunks_key = Self::get_key(
+            selected_chunks.iter().map(|chunk| &chunk.ukey),
+            chunk_idx_map,
+          );
+
+          merge_matched_item_into_module_group_map(
+            MatchedItem {
+              idx: CacheGroupIdx::new(idx),
+              module,
+              cache_group,
+              cache_group_index,
+              selected_chunks,
+              selected_chunks_key,
+            },
+            module_group_map,
+          )
+          .await;
+
+          #[tracing::instrument(skip_all)]
+          async fn merge_matched_item_into_module_group_map(
+            matched_item: MatchedItem<'_>,
+            module_group_map: &DashMap<String, ModuleGroup>,
+          ) {
+            let MatchedItem {
+              idx,
+              module,
+              cache_group_index,
+              cache_group,
+              selected_chunks,
+              selected_chunks_key,
+            } = matched_item;
+
+            // `Module`s with the same chunk_name would be merged togother.
+            // `Module`s could be in different `ModuleGroup`s.
+            let chunk_name = match &cache_group.name {
+              ChunkNameGetter::String(name) => Some(name.to_string()),
+              ChunkNameGetter::Disabled => None,
+              ChunkNameGetter::Fn(f) => {
+                let ctx = ChunkNameGetterFnCtx { module };
+                f(ctx).await
               }
-              let selected_chunks_key = Self::get_key(selected_chunks.iter().map(|chunk| &chunk.ukey), chunk_idx_map);
+            };
+            let key: String = if let Some(cache_group_name) = &chunk_name {
+              [&cache_group.key, " name:", cache_group_name].join("")
+            } else {
+              [
+                &cache_group.key,
+                " chunks:",
+                selected_chunks_key.to_string().as_str(),
+              ]
+              .join("")
+            };
 
-              merge_matched_item_into_module_group_map(
-                MatchedItem {
-                  idx: CacheGroupIdx::new(idx),
-                  module,
-                  cache_group,
-                  cache_group_index,
-                  selected_chunks,
-                  selected_chunks_key,
-                },
-                module_group_map,
-              )
-              .await;
+            let mut module_group = module_group_map
+              .entry(key)
+              .or_insert_with(|| ModuleGroup::new(idx, chunk_name, cache_group_index, cache_group));
 
-              #[tracing::instrument(skip_all)]
-              async fn merge_matched_item_into_module_group_map(
-                matched_item: MatchedItem<'_>,
-                module_group_map: &DashMap<String, ModuleGroup>,
-              ) {
-                let MatchedItem {
-                  idx,
-                  module,
-                  cache_group_index,
-                  cache_group,
-                  selected_chunks,
-                  selected_chunks_key,
-                } = matched_item;
-
-                // `Module`s with the same chunk_name would be merged togother.
-                // `Module`s could be in different `ModuleGroup`s.
-                let chunk_name: Option<String> = (cache_group.name)(module).await;
-
-                let key: String = if let Some(cache_group_name) = &chunk_name {
-                  [&cache_group.key, " name:", cache_group_name].join("")
-                } else {
-                  [&cache_group.key, " chunks:", selected_chunks_key.to_string().as_str()].join("")
-                };
-
-                let mut module_group = module_group_map.entry(key).or_insert_with(|| ModuleGroup::new(idx, chunk_name, cache_group_index, cache_group));
-
-                module_group.add_module(module);
-                module_group
-                  .chunks
-                  .extend(selected_chunks.iter().map(|c| c.ukey))
-              }
-            }
-          });
+            module_group.add_module(module);
+            module_group
+              .chunks
+              .extend(selected_chunks.iter().map(|c| c.ukey))
+          }
         }
       }
-    });
+    }
 
     module_group_map.into_iter().collect()
   }

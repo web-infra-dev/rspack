@@ -423,9 +423,8 @@ impl Plugin for SideEffectsFlagPlugin {
       .collect::<Vec<_>>();
     for module_identifier in module_id_list {
       let mut module_chain = HashSet::default();
-      let module = match mg.module_by_identifier(&module_identifier) {
-        Some(module) => module,
-        None => continue,
+      let Some(module) = mg.module_by_identifier(&module_identifier) else {
+        continue;
       };
       let side_effects_state = module.get_side_effects_connection_state(mg, &mut module_chain);
       if side_effects_state != rspack_core::ConnectionState::Bool(false) {
@@ -435,21 +434,17 @@ impl Plugin for SideEffectsFlagPlugin {
 
       let incoming_connections = mg.get_incoming_connections_cloned(module);
       for con in incoming_connections {
-        let dep = match mg.dependency_by_id(&con.dependency_id) {
-          Some(dep) => dep,
-          None => continue,
+        let Some(dep) = mg.dependency_by_id(&con.dependency_id) else {
+          continue;
         };
         let dep_id = *dep.id();
         let is_reexport = dep
           .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
           .is_some();
-        let is_valid_import_specifier_dep = if let Some(import_specifier_dep) =
-          dep.downcast_ref::<HarmonyImportSpecifierDependency>()
-        {
-          !import_specifier_dep.namespace_object_as_context
-        } else {
-          false
-        };
+        let is_valid_import_specifier_dep = dep
+          .downcast_ref::<HarmonyImportSpecifierDependency>()
+          .map(|import_specifier_dep| !import_specifier_dep.namespace_object_as_context)
+          .unwrap_or_default();
         if !is_reexport && !is_valid_import_specifier_dep {
           continue;
         }
@@ -471,7 +466,7 @@ impl Plugin for SideEffectsFlagPlugin {
                 .get_side_effects_connection_state(mg, &mut HashSet::default())
                 == ConnectionState::Bool(false)
             }),
-            Box::new(
+            Arc::new(
               move |target: &ResolvedExportInfoTarget, mg: &mut ModuleGraph| {
                 mg.update_module(&dep_id, &target.module);
                 // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
@@ -494,6 +489,7 @@ impl Plugin for SideEffectsFlagPlugin {
         }
 
         let ids = dep_id.get_ids(mg);
+
         if !ids.is_empty() {
           let export_info_id = cur_exports_info_id.get_export_info(&ids[0], mg);
 
@@ -508,10 +504,11 @@ impl Plugin for SideEffectsFlagPlugin {
               },
             )),
           );
-          let target = match target {
-            Some(target) => target,
-            None => continue,
+          let Some(target) = target else {
+            continue;
           };
+
+          // dbg!(&mg.connection_by_dependency(&dep_id));
           mg.update_module(&dep_id, &target.module);
           // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
           let processed_ids = target
@@ -521,6 +518,8 @@ impl Plugin for SideEffectsFlagPlugin {
               item
             })
             .unwrap_or_else(|| ids[1..].to_vec());
+
+          // dbg!(&mg.connection_by_dependency(&dep_id));
           dep_id.set_ids(processed_ids, mg);
         }
       }

@@ -158,7 +158,7 @@ __webpack_require__.r(__webpack_exports__);
 
 it("should generate valid code", ()=>{
     expect((0, _a__WEBPACK_IMPORTED_MODULE_0__["default"])()).toBe("x");
-    expect(new (0, _d__WEBPACK_IMPORTED_MODULE_3__["default"])().method()).toBe("x");
+    expect(new _d__WEBPACK_IMPORTED_MODULE_3__["default"]().method()).toBe("x");
 });
 it("a should be used", ()=>{
     expect(_dep_a__WEBPACK_IMPORTED_MODULE_6__["default"]).toBe(true);

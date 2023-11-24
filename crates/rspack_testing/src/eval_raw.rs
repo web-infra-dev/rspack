@@ -33,3 +33,13 @@ JSON.stringify(raw, null, 2)
 "#
   )
 }
+
+pub fn evaluate_js(input: &str) -> String {
+  let r = Command::new("node")
+    .args(["-e", input])
+    .stdout(Stdio::piped())
+    .spawn()
+    .expect("ok");
+  let out = r.wait_with_output().expect("ok");
+  String::from_utf8(out.stdout).expect("failed to evaluate")
+}

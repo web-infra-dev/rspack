@@ -1,9 +1,10 @@
 {
   "name": "monorepo",
-  "version": "0.3.14",
+  "version": "0.4.0",
   "license": "MIT",
   "description": "A Fast Rust-based web bundler",
   "private": true,
+  "main": "./packages/rspack/dist/index.js",
   "scripts": {
     "x": "zx x.mjs",
     "dev": "pnpm --filter @rspack/cli run dev",
@@ -23,6 +24,7 @@
     "build:binding:release": "pnpm --filter @rspack/binding run build:release",
     "prepare": "is-ci || husky install",
     "test:example": "pnpm --filter \"example-*\" build",
+    "test:diff": "pnpm --filter \"@rspack/*\" test:diff",
     "test:unit": "pnpm --filter \"@rspack/*\" test",
     "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
     "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:example && pnpm run test:unit && pnpm test:webpack",
@@ -35,15 +37,14 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "engines": {
-    "pnpm": "7.32.0"
+    "pnpm": "8.10.5"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@taplo/cli": "^0.5.2",
     "@types/jest": "29.1.0",
-    "@types/node": "16",
+    "@types/node": "^20.9.4",
     "@types/rimraf": "3.0.2",
-    "chalk": "^5.3.0",
     "commander": "10.0.1",
     "cross-env": "^7.0.3",
     "husky": "^7.0.4",
@@ -70,5 +71,5 @@
     "sass-embedded-win32-ia32": "1.58.3",
     "sass-embedded-win32-x64": "1.58.3"
   },
-  "packageManager": "pnpm@7.32.0"
+  "packageManager": "pnpm@8.10.5"
 }

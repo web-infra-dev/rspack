@@ -3,5 +3,10 @@ module.exports = {
 		react: {
 			runtime: "classic"
 		}
+	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: false
+		}
 	}
 };

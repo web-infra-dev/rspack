@@ -61,6 +61,7 @@ node_modules/
 !webpack-examples/*/node_modules
 !webpack-test/*/**/node_modules
 !packages/rspack-cli/tests/**/node_modules
+!packages/rspack/tests/**/node_modules
 jspm_packages/
 
 # Snowpack dependency directory (https://snowpack.dev/)
@@ -221,4 +222,5 @@ justfile
 /webpack-examples/**/dist
 
 smoke-example
+diff_output
 

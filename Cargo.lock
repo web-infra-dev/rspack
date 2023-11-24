@@ -1727,9 +1727,9 @@ checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 
 [[package]]
 name = "oxc_resolver"
-version = "0.5.3"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05eb41b7e97d361603484307a9fc526318320dd290739779b3af0f261195b417"
+checksum = "1d10d078b6ba0b8cfa0eb634ef749698aa82ef4a86c7ba1446453644ccf13fd2"
 dependencies = [
  "dashmap",
  "dunce",
@@ -1740,7 +1740,6 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -2442,6 +2441,7 @@ dependencies = [
  "rspack_plugin_json",
  "rspack_plugin_library",
  "rspack_plugin_limit_chunk_count",
+ "rspack_plugin_merge_duplicate_chunks",
  "rspack_plugin_progress",
  "rspack_plugin_real_content_hash",
  "rspack_plugin_remove_empty_chunks",
@@ -2939,7 +2939,6 @@ dependencies = [
  "rspack_error",
  "rspack_hash",
  "rspack_identifier",
- "rspack_plugin_runtime",
  "rustc-hash",
  "serde_json",
 ]
@@ -3037,6 +3036,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_merge_duplicate_chunks"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rspack_core",
+ "rspack_database",
+ "rspack_util",
+ "rustc-hash",
+]
+
+[[package]]
 name = "rspack_plugin_progress"
 version = "0.1.0"
 dependencies = [
@@ -3122,6 +3132,7 @@ dependencies = [
  "async-trait",
  "dashmap",
  "derivative",
+ "futures",
  "futures-util",
  "num-bigint",
  "rayon",
@@ -3184,7 +3195,6 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_identifier",
- "rspack_plugin_runtime",
  "rspack_testing",
  "serde_json",
  "swc_core",
@@ -3279,6 +3289,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_plugin_json",
  "rspack_plugin_library",
+ "rspack_plugin_merge_duplicate_chunks",
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
  "rspack_plugin_warn_sensitive_module",

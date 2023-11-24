@@ -109,7 +109,6 @@ impl Display for ExportsArgument {
 
 #[derive(Debug, Default, Clone, Hash)]
 pub struct BuildMeta {
-  pub strict: bool,
   pub strict_harmony_module: bool,
   pub has_top_level_await: bool,
   pub esm: bool,
@@ -350,7 +349,7 @@ mod test {
 
   use super::Module;
   use crate::{
-    AsyncDependenciesBlockId, BuildContext, BuildResult, CodeGenerationResult, Compilation,
+    AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResult, Compilation,
     Context, DependenciesBlock, DependencyId, ModuleExt, ModuleType, RuntimeSpec, SourceType,
   };
 
@@ -393,11 +392,11 @@ mod test {
       }
 
       impl DependenciesBlock for $ident {
-        fn add_block_id(&mut self, _: AsyncDependenciesBlockId) {
+        fn add_block_id(&mut self, _: AsyncDependenciesBlockIdentifier) {
           unreachable!()
         }
 
-        fn get_blocks(&self) -> &[AsyncDependenciesBlockId] {
+        fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
           unreachable!()
         }
 
