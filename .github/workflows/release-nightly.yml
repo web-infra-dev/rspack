@@ -42,7 +42,7 @@ jobs:
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
-      diff: false
+      test-diff: false
 
   release:
     name: Release Nightly
