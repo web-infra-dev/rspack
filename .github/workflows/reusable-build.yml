@@ -46,7 +46,7 @@ on:
         type: boolean
         required: false
         default: true
-      diff: # Run Diff Test
+      test-diff: # Run Diff Test
         type: boolean
         required: false
         default: true
@@ -268,7 +268,7 @@ jobs:
 
       - name: Diff test
         timeout-minutes: 15
-        if: ${{ inputs.diff }}
+        if: ${{ inputs.test-diff }}
         run: pnpm run test:diff
 
       ### write the latest metric into branch gh-pages
