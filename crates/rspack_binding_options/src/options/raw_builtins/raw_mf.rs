@@ -1,5 +1,8 @@
 use napi_derive::napi;
-use rspack_core::mf::{ContainerPluginOptions, ExposeOptions};
+use rspack_core::mf::{
+  container_plugin::{ContainerPluginOptions, ExposeOptions},
+  container_reference_plugin::{ContainerReferencePluginOptions, RemoteOptions},
+};
 
 use crate::RawLibraryOptions;
 
@@ -42,6 +45,44 @@ impl From<RawExposeOptions> for (String, ExposeOptions) {
       ExposeOptions {
         name: value.name,
         import: value.import,
+      },
+    )
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawContainerReferencePluginOptions {
+  pub remote_type: String,
+  pub remotes: Vec<RawRemoteOptions>,
+  pub share_scope: Option<String>,
+}
+
+impl From<RawContainerReferencePluginOptions> for ContainerReferencePluginOptions {
+  fn from(value: RawContainerReferencePluginOptions) -> Self {
+    Self {
+      remote_type: value.remote_type,
+      remotes: value.remotes.into_iter().map(|e| e.into()).collect(),
+      share_scope: value.share_scope,
+    }
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawRemoteOptions {
+  pub key: String,
+  pub external: Vec<String>,
+  pub share_scope: String,
+}
+
+impl From<RawRemoteOptions> for (String, RemoteOptions) {
+  fn from(value: RawRemoteOptions) -> Self {
+    (
+      value.key,
+      RemoteOptions {
+        external: value.external,
+        share_scope: value.share_scope,
       },
     )
   }

@@ -38,6 +38,7 @@ import {
 	SplitChunksPlugin,
 	OldSplitChunksPlugin
 } from "./builtin-plugin";
+import { ModuleFederationRuntimePlugin } from "./container/ModuleFederationRuntimePlugin";
 
 export function optionsApply_compat(
 	compiler: Compiler,

@@ -142,9 +142,11 @@ export const enum BuiltinPluginName {
   LimitChunkCountPlugin = 'LimitChunkCountPlugin',
   WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
   MergeDuplicateChunksPlugin = 'MergeDuplicateChunksPlugin',
-  ContainerPlugin = 'ContainerPlugin',
   SplitChunksPlugin = 'SplitChunksPlugin',
   OldSplitChunksPlugin = 'OldSplitChunksPlugin',
+  ContainerPlugin = 'ContainerPlugin',
+  ContainerReferencePlugin = 'ContainerReferencePlugin',
+  ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -624,6 +626,12 @@ export interface RawContainerPluginOptions {
   exposes: Array<RawExposeOptions>
 }
 
+export interface RawContainerReferencePluginOptions {
+  remoteType: string
+  remotes: Array<RawRemoteOptions>
+  shareScope?: string
+}
+
 export interface RawCopyGlobOptions {
   caseSensitiveMatch?: boolean
   dot?: boolean
@@ -1020,6 +1028,12 @@ export interface RawRelated {
 export interface RawRelayConfig {
   artifactDirectory?: string
   language: 'javascript' | 'typescript' | 'flow'
+}
+
+export interface RawRemoteOptions {
+  key: string
+  external: Array<string>
+  shareScope: string
 }
 
 export interface RawResolveOptions {

@@ -194,6 +194,9 @@ export const getNormalizedRspackOptions = (
 							? output.umdNamedDefine
 							: libraryBase.umdNamedDefine
 				},
+				strictModuleErrorHandling:
+					output.strictModuleErrorHandling ??
+					output.strictModuleExceptionHandling,
 				trustedTypes: optionalNestedConfig(
 					output.trustedTypes,
 					trustedTypes => {

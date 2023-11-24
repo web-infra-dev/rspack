@@ -97,7 +97,7 @@ impl WorkerTask for FactorizeTask {
           .split_into_parts()
       }
       DependencyType::ContainerEntry => {
-        let factory = crate::mf::ContainerEntryModuleFactory;
+        let factory = crate::mf::container_entry_module_factory::ContainerEntryModuleFactory;
         factory
           .create(ModuleFactoryCreateData {
             resolve_options: self.resolve_options,
