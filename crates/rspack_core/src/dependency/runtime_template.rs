@@ -24,7 +24,6 @@ pub fn export_from_import(
   } = code_generatable_context;
 
   let exports_type = get_exports_type(&compilation.module_graph, id, &module.identifier());
-  // dbg!(&export_name, &import_var);
 
   if default_interop {
     if !export_name.is_empty()
