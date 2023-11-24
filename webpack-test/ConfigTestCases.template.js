@@ -59,7 +59,9 @@ const describeCases = config => {
 			stderr = captureStdio(process.stderr, true);
 		});
 		afterEach(() => {
-			stderr.restore();
+			if (stderr) {
+				stderr.restore();
+			}
 		});
 		jest.setTimeout(TIMEOUT);
 
@@ -88,10 +90,12 @@ const describeCases = config => {
 						const cacheDirectory = path.join(outBaseDir, ".cache", testSubPath);
 						let options, optionsArr, testConfig;
 						beforeAll(() => {
-							options = prepareOptions(
-								require(path.join(testDirectory, "webpack.config.js")),
-								{ testPath: outputDirectory }
-							);
+							expect(() => {
+								options = prepareOptions(
+									require(path.join(testDirectory, "webpack.config.js")),
+									{ testPath: outputDirectory }
+								);
+							}).not.toThrow();
 							optionsArr = [].concat(options);
 							optionsArr.forEach((options, idx) => {
 								if (!options.context) options.context = testDirectory;
