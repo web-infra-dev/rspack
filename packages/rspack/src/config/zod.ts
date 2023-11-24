@@ -124,6 +124,9 @@ const libraryOptions = z.strictObject({
 });
 export type LibraryOptions = z.infer<typeof libraryOptions>;
 
+const library = libraryName.or(libraryOptions).optional();
+export type Library = z.infer<typeof library>;
+
 const filenameTemplate = z.string();
 export type FilenameTemplate = z.infer<typeof filenameTemplate>;
 
@@ -282,7 +285,7 @@ const output = z.strictObject({
 	uniqueName: uniqueName.optional(),
 	chunkLoadingGlobal: chunkLoadingGlobal.optional(),
 	enabledLibraryTypes: enabledLibraryTypes.optional(),
-	library: libraryName.or(libraryOptions).optional(),
+	library: library.optional(),
 	libraryExport: libraryExport.optional(),
 	libraryTarget: libraryType.optional(),
 	umdNamedDefine: umdNamedDefine.optional(),
