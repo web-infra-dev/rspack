@@ -49,7 +49,7 @@ on:
       test-diff: # Run Diff Test
         type: boolean
         required: false
-        default: true
+        default: false
       ref: # Git reference to checkout
         required: false
         type: string

@@ -55,7 +55,6 @@ jobs:
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
-      test-diff: false
 
   release:
     name: Release
