@@ -3,8 +3,6 @@ use napi::{
   bindgen_prelude::{Result, SharedReference},
   Either,
 };
-use rspack_core::{AssetInfoMap, Stats};
-use serde_json::json;
 use napi_derive::napi;
 use rspack_core::Stats;
 
@@ -195,22 +193,22 @@ impl From<rspack_core::StatsAsset> for JsStatsAsset {
   }
 }
 
-#[napi(object)]
-pub struct JsStatsAssetInfo {
-  pub development: bool,
-  pub hot_module_replacement: bool,
-  pub source_filename: Option<String>,
-}
+// #[napi(object)]
+// pub struct JsStatsAssetInfo {
+//   pub development: bool,
+//   pub hot_module_replacement: bool,
+//   pub source_filename: Option<String>,
+// }
 
-impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
-  fn from(stats: rspack_core::StatsAssetInfo) -> Self {
-    Self {
-      development: stats.development,
-      hot_module_replacement: stats.hot_module_replacement,
-      source_filename: stats.source_filename,
-    }
-  }
-}
+// impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
+//   fn from(stats: rspack_core::StatsAssetInfo) -> Self {
+//     Self {
+//       development: stats.development,
+//       hot_module_replacement: stats.hot_module_replacement,
+//       source_filename: stats.source_filename,
+//     }
+//   }
+// }
 
 type JsStatsModuleSource = Either<String, Buffer>;
 #[napi(object)]

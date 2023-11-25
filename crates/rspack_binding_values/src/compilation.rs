@@ -19,10 +19,8 @@ use super::module::ToJsModule;
 use super::PathWithInfo;
 use crate::utils::callbackify;
 use crate::{
-  js_values::{chunk::JsChunk, module::JsModule, PathData},
-  CompatSource, JsAsset, JsChunkGroup, JsCompatSource, JsStats, ToJsCompatSource,
-  chunk::JsChunk, module::JsModule, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup,
-  JsCompatSource, JsStats, PathData, ToJsCompatSource,
+  chunk::JsChunk, module::JsModule, CompatSource, JsAsset, JsChunkGroup, JsCompatSource, JsStats,
+  PathData, ToJsCompatSource,
 };
 
 #[napi]
@@ -40,7 +38,7 @@ impl JsCompilation {
     env: Env,
     filename: String,
     new_source_or_function: Either<JsCompatSource, JsFunction>,
-    asset_info_update_or_function: Option<Either<crate::js_values::JsAssetInfo, JsFunction>>,
+    asset_info_update_or_function: Option<Either<crate::JsAssetInfo, JsFunction>>,
   ) -> Result<()> {
     self
       .inner
