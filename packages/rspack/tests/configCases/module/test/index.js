@@ -9,3 +9,8 @@ it("support js regex", () => {
 	expect(css).toEqual({});
 	expect(cssModule["module-test"]).toBeTruthy;
 });
+
+it("should support regex flags", () => {
+	const svg = require("./a.SVG");
+	expect(svg.startsWith("data:image/svg+xml;base64,")).toBe(true);
+});
