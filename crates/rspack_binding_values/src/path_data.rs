@@ -1,7 +1,5 @@
-use rspack_core::AssetInfoMap;
 use napi_derive::napi;
-
-use super::JsAssetInfo;
+use rspack_core::AssetInfoMap;
 
 #[napi(object)]
 pub struct PathData {

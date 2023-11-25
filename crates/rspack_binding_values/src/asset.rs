@@ -54,7 +54,7 @@ pub struct JsAssetInfo {}
 // }
 
 impl From<JsAssetInfo> for rspack_core::AssetInfo {
-  fn from(i: JsAssetInfo) -> Self {
+  fn from(_i: JsAssetInfo) -> Self {
     todo!();
     // Self {
     //   immutable: i.immutable,
