@@ -318,9 +318,9 @@ function resolveStringifyLoaders(
 	const obj = parsePathQueryFragment(use.loader);
 	let ident: string | null = null;
 
-	if (use.options === null) obj.query = "";
-	else if (use.options === undefined) obj.query = "";
-	else if (typeof use.options === "string") obj.query = "?" + use.options;
+	if (use.options === null) {
+	} else if (use.options === undefined) {
+	} else if (typeof use.options === "string") obj.query = "?" + use.options;
 	else if (use.ident) obj.query = "??" + (ident = use.ident);
 	else if (typeof use.options === "object" && use.options.ident)
 		obj.query = "??" + (ident = use.options.ident);
