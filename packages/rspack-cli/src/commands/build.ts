@@ -2,9 +2,7 @@ import * as fs from "fs";
 import type { RspackCLI } from "../rspack-cli";
 import { RspackCommand } from "../types";
 import { commonOptions } from "../utils/options";
-import { Stats } from "@rspack/core/src/stats";
-import { Compiler, MultiCompiler } from "@rspack/core";
-import MultiStats from "@rspack/core/src/multiStats";
+import { MultiStats, Stats } from "@rspack/core";
 
 export class BuildCommand implements RspackCommand {
 	async apply(cli: RspackCLI): Promise<void> {
@@ -24,13 +22,16 @@ export class BuildCommand implements RspackCommand {
 				}),
 			async options => {
 				const logger = cli.getLogger();
-				let createJsonStringifyStream;
+				let createJsonStringifyStream: typeof import("@discoveryjs/json-ext").stringifyStream;
 				if (options.json) {
 					const jsonExt = await import("@discoveryjs/json-ext");
 					createJsonStringifyStream = jsonExt.default.stringifyStream;
 				}
 
-				const callback = (error, stats: Stats | MultiStats) => {
+				const errorHandler = (
+					error: Error | null,
+					stats: Stats | MultiStats | undefined
+				) => {
 					if (error) {
 						logger.error(error);
 						process.exit(2);
@@ -51,7 +52,7 @@ export class BuildCommand implements RspackCommand {
 						? compiler.options.stats
 						: undefined;
 					if (options.json && createJsonStringifyStream) {
-						const handleWriteError = error => {
+						const handleWriteError = (error: Error) => {
 							logger.error(error);
 							process.exit(2);
 						};
@@ -84,11 +85,7 @@ export class BuildCommand implements RspackCommand {
 					}
 				};
 
-				let rspackOptions = { ...options, argv: { ...options } };
-
-				const errorHandler = (err, Stats) => {
-					callback(err, Stats);
-				};
+				const rspackOptions = { ...options, argv: { ...options } };
 
 				const compiler = await cli.createCompiler(
 					rspackOptions,

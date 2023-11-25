@@ -8,6 +8,7 @@
  * https://github.com/jantimon/html-webpack-plugin/blob/d5ce5a8f2d12a2450a65ec51c285dd54e36cd921/LICENSE
  */
 import type { Compiler, Compilation, RspackPluginInstance } from "@rspack/core";
+// @ts-ignore
 import type { Options as MinifyOptions } from "html-minifier-terser";
 import assert from "assert";
 import path from "path";
@@ -253,6 +254,7 @@ export default class HtmlRspackPlugin implements RspackPluginInstance {
 	name = "HtmlRspackPlugin";
 
 	userOptions: Options;
+	// @ts-expect-error
 	options: ProcessedOptions;
 
 	constructor(options?: Options) {
@@ -395,6 +397,7 @@ function hookIntoCompiler(
 	const filename = options.filename;
 	if (path.resolve(filename) === path.normalize(filename)) {
 		const outputPath = compiler.options.output.path;
+		// @ts-expect-error
 		options.filename = path.relative(outputPath, filename);
 	}
 
@@ -631,6 +634,7 @@ function hookIntoCompiler(
 		const compilationHash = compilation.hash;
 
 		const rspackPublicPath = compilation.getAssetPath(
+			// @ts-expect-error
 			compilation.outputOptions.publicPath,
 			{ hash: compilationHash }
 		);
@@ -649,9 +653,11 @@ function hookIntoCompiler(
 				  path
 						.relative(
 							path.resolve(
+								// @ts-expect-error
 								compilation.options.output.path,
 								path.dirname(filename)
 							),
+							// @ts-expect-error
 							compilation.options.output.path
 						)
 						.split(path.sep)
@@ -687,6 +693,7 @@ function hookIntoCompiler(
 
 		// Append a hash for cache busting
 		if (options.hash && assets.manifest) {
+			// @ts-expect-error
 			assets.manifest = appendHash(assets.manifest, compilationHash);
 		}
 
@@ -696,6 +703,7 @@ function hookIntoCompiler(
 		for (let i = 0; i < entryNames.length; i++) {
 			const entryName = entryNames[i];
 			/** entryPointUnfilteredFiles - also includes hot module update files */
+			// @ts-expect-error
 			const entryPointUnfilteredFiles = compilation.entrypoints
 				.get(entryName)
 				.getFiles();
@@ -719,7 +727,8 @@ function hookIntoCompiler(
 			const entryPointPublicPaths = entryPointFiles.map(chunkFile => {
 				const entryPointPublicPath = publicPath + urlencodePath(chunkFile);
 				return options.hash
-					? appendHash(entryPointPublicPath, compilationHash)
+					? // @ts-expect-error
+					  appendHash(entryPointPublicPath, compilationHash)
 					: entryPointPublicPath;
 			});
 
@@ -731,12 +740,15 @@ function hookIntoCompiler(
 				}
 				// Skip if this file is already known
 				// (e.g. because of common chunk optimizations)
+				// @ts-expect-error
 				if (entryPointPublicPathMap[entryPointPublicPath]) {
 					return;
 				}
+				// @ts-expect-error
 				entryPointPublicPathMap[entryPointPublicPath] = true;
 				// ext will contain .js or .css, because .mjs recognizes as .js
 				const ext = extMatch[1] === "mjs" ? "js" : extMatch[1];
+				// @ts-expect-error
 				assets[ext].push(entryPointPublicPath);
 			});
 		}
@@ -761,7 +773,9 @@ function hookIntoCompiler(
 			return entryNames.sort(sortMode);
 		}
 		// Check if the given sort mode is a valid chunkSorter sort mode
+		// @ts-expect-error
 		if (typeof chunkSorter[sortMode] !== "undefined") {
+			// @ts-expect-error
 			return chunkSorter[sortMode](entryNames, compilation, options);
 		}
 		throw new Error('"' + sortMode + '" is not a valid chunk sort mode');
@@ -842,6 +856,7 @@ function hookIntoCompiler(
 		return addFileToAssets(faviconFilePath, compilation).then(faviconName => {
 			const faviconPath = publicPath + faviconName;
 			if (options.hash) {
+				// @ts-expect-error
 				return appendHash(faviconPath, compilation.hash);
 			}
 			return faviconPath;
@@ -1014,6 +1029,7 @@ function hookIntoCompiler(
 		// Add script tags to head or body depending on
 		// the htmlPluginOptions
 		if (scriptTarget === "body") {
+			// @ts-expect-error
 			result.bodyTags.push(...assetTags.scripts);
 		} else {
 			// If script loading is blocking add the scripts to the end of the head
@@ -1204,9 +1220,12 @@ function hookIntoCompiler(
 		try {
 			return require("html-minifier-terser").minify(html, options.minify);
 		} catch (e) {
+			// @ts-expect-error
 			const isParseError = String(e.message).indexOf("Parse Error") === 0;
 			if (isParseError) {
+				// @ts-expect-error
 				e.message = "html-minifier-terser error:";
+				// @ts-expect-error
 				"\n" + e.message;
 			}
 			throw e;

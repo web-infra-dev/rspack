@@ -1,5 +1,6 @@
 #![feature(let_chains)]
 use std::{
+  fmt::Display,
   fs,
   hash::Hash,
   path::{Path, PathBuf, MAIN_SEPARATOR},
@@ -8,28 +9,80 @@ use std::{
 
 use async_trait::async_trait;
 use dashmap::DashSet;
-use glob::MatchOptions;
+use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::RawSource, AssetInfo, Compilation, CompilationAsset, Filename, FromType,
-  PathData, Pattern, Plugin, ToType,
+  rspack_sources::RawSource, AssetInfo, AssetInfoRelated, Compilation, CompilationAsset,
+  CompilationLogger, Filename, Logger, PathData, Plugin,
 };
 use rspack_error::Diagnostic;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use sugar_path::{AsPath, SugarPath};
-use tracing::Level;
 
-#[derive(Debug)]
-struct Logger(&'static str);
+#[derive(Debug, Clone)]
+pub struct CopyRspackPluginOptions {
+  pub patterns: Vec<CopyPattern>,
+}
 
-impl Logger {
-  pub fn log(&self, msg: &str) {
-    tracing::event!(Level::INFO, msg);
+#[derive(Debug, Clone)]
+pub struct Info {
+  pub immutable: Option<bool>,
+  pub minimized: Option<bool>,
+  pub chunk_hash: Option<Vec<String>>,
+  pub content_hash: Option<Vec<String>>,
+  pub development: Option<bool>,
+  pub hot_module_replacement: Option<bool>,
+  pub related: Option<Related>,
+  pub version: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Related {
+  pub source_map: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum FromType {
+  Dir,
+  File,
+  Glob,
+}
+
+#[derive(Debug, Clone)]
+pub enum ToType {
+  Dir,
+  File,
+  Template,
+}
+
+impl Display for ToType {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.write_str(match self {
+      ToType::Dir => "dir",
+      ToType::File => "file",
+      ToType::Template => "template",
+    })
   }
+}
 
-  pub fn debug(&self, msg: &str) {
-    tracing::event!(Level::DEBUG, msg);
-  }
+#[derive(Debug, Clone)]
+pub struct CopyPattern {
+  pub from: String,
+  pub to: Option<String>,
+  pub context: Option<PathBuf>,
+  pub to_type: Option<ToType>,
+  pub no_error_on_missing: bool,
+  pub info: Option<Info>,
+  pub force: bool,
+  pub priority: i32,
+  pub glob_options: CopyGlobOptions,
+}
+
+#[derive(Debug, Clone)]
+pub struct CopyGlobOptions {
+  pub case_sensitive_match: Option<bool>,
+  pub dot: Option<bool>,
+  pub ignore: Option<Vec<GlobPattern>>,
 }
 
 #[derive(Debug, Clone)]
@@ -38,16 +91,14 @@ pub struct RunPatternResult {
   pub absolute_filename: PathBuf,
   pub filename: String,
   pub source: RawSource,
-  pub info: Option<AssetInfo>,
+  pub info: Option<Info>,
   pub force: bool,
   pub priority: i32,
 }
 
-static LOGGER: Logger = Logger("copy-rspack-plugin");
-
 #[derive(Debug)]
-pub struct CopyPlugin {
-  pub patterns: Vec<Pattern>,
+pub struct CopyRspackPlugin {
+  pub patterns: Vec<CopyPattern>,
 }
 
 lazy_static::lazy_static! {
@@ -55,8 +106,8 @@ lazy_static::lazy_static! {
   static ref TEMPLATE_RE: Regex = Regex::new(r"\[\\*([\w:]+)\\*\]").expect("This never fail");
 }
 
-impl CopyPlugin {
-  pub fn new(patterns: Vec<Pattern>) -> Self {
+impl CopyRspackPlugin {
+  pub fn new(patterns: Vec<CopyPattern>) -> Self {
     Self { patterns }
   }
 
@@ -81,27 +132,30 @@ impl CopyPlugin {
   #[allow(clippy::too_many_arguments)]
   async fn analyze_every_entry(
     entry: PathBuf,
-    pattern: &Pattern,
+    pattern: &CopyPattern,
     context: &Path,
     output_path: &Path,
     from_type: FromType,
     file_dependencies: &DashSet<PathBuf>,
     diagnostics: &DashSet<Diagnostic>,
     compilation: &Compilation,
+    logger: &CompilationLogger,
   ) -> Option<RunPatternResult> {
     // Exclude directories
     if entry.is_dir() {
       return None;
     }
-    if let Some(ignore) = &pattern.glob_options.ignore && ignore.iter().any(|ignore| {
-      ignore.matches(&entry.to_string_lossy())
-    }) {
-      return None
+    if let Some(ignore) = &pattern.glob_options.ignore
+      && ignore
+        .iter()
+        .any(|ignore| ignore.matches(&entry.to_string_lossy()))
+    {
+      return None;
     }
 
     let from = entry.as_path().to_path_buf();
 
-    LOGGER.debug(&format!("found '{}'", from.display()));
+    logger.debug(format!("found '{}'", from.display()));
 
     let absolute_filename = if from.is_absolute() {
       from.clone()
@@ -129,7 +183,7 @@ impl CopyPlugin {
       ToType::File
     };
 
-    LOGGER.log(&format!("'to' option '{to}' determined as '{to_type}'"));
+    logger.log(format!("'to' option '{to}' determined as '{to_type}'"));
 
     let relative = pathdiff::diff_paths(&absolute_filename, context);
     let filename = if matches!(to_type, ToType::Dir) {
@@ -148,7 +202,7 @@ impl CopyPlugin {
       filename
     };
 
-    LOGGER.log(&format!(
+    logger.log(format!(
       "determined that '{}' should write to '{}'",
       from.display(),
       filename.display()
@@ -158,7 +212,7 @@ impl CopyPlugin {
 
     // If this came from a glob or dir, add it to the file dependencies
     if matches!(from_type, FromType::Dir | FromType::Glob) {
-      LOGGER.debug(&format!(
+      logger.debug(format!(
         "added '{}' as a file dependency",
         absolute_filename.display()
       ));
@@ -168,12 +222,12 @@ impl CopyPlugin {
 
     // TODO cache
 
-    LOGGER.debug(&format!("reading '{}'...", absolute_filename.display()));
+    logger.debug(format!("reading '{}'...", absolute_filename.display()));
     // TODO inputFileSystem
 
     let source = match tokio::fs::read(absolute_filename.clone()).await {
       Ok(data) => {
-        LOGGER.debug(&format!("read '{}'...", absolute_filename.display()));
+        logger.debug(format!("read '{}'...", absolute_filename.display()));
 
         RawSource::Buffer(data)
       }
@@ -187,7 +241,7 @@ impl CopyPlugin {
     };
 
     let filename = if matches!(&to_type, ToType::Template) {
-      LOGGER.log(&format!(
+      logger.log(format!(
         "interpolating template '{}' for '${}'...`",
         filename.display(),
         source_filename.display()
@@ -208,7 +262,7 @@ impl CopyPlugin {
           .hash_optional(compilation.get_hash()),
       );
 
-      LOGGER.log(&format!(
+      logger.log(format!(
         "interpolated template '{template_str}' for '{}'",
         filename.display()
       ));
@@ -223,7 +277,7 @@ impl CopyPlugin {
       absolute_filename,
       filename,
       source,
-      info: None,
+      info: pattern.info.clone(),
       force: pattern.force,
       priority: pattern.priority,
     })
@@ -231,11 +285,12 @@ impl CopyPlugin {
 
   fn run_patter(
     compilation: &Compilation,
-    pattern: &Pattern,
+    pattern: &CopyPattern,
     _index: usize,
     file_dependencies: &DashSet<PathBuf>,
     context_dependencies: &DashSet<PathBuf>,
     diagnostics: &DashSet<Diagnostic>,
+    logger: &CompilationLogger,
   ) -> Option<Vec<Option<RunPatternResult>>> {
     let orig_from = &pattern.from;
     let normalized_orig_from = PathBuf::from(orig_from);
@@ -244,7 +299,7 @@ impl CopyPlugin {
       .clone()
       .unwrap_or(compilation.options.context.as_path().to_path_buf());
 
-    LOGGER.log(&format!(
+    logger.log(format!(
       "starting to process a pattern from '{}' using '{:?}' context",
       normalized_orig_from.display(),
       pattern.context.as_ref().map(|p| p.display())
@@ -256,24 +311,24 @@ impl CopyPlugin {
       context.join(&normalized_orig_from)
     };
 
-    LOGGER.debug(&format!("getting stats for '{}'...", abs_from.display()));
+    logger.debug(format!("getting stats for '{}'...", abs_from.display()));
 
     let from_type = if let Ok(meta) = fs::metadata(&abs_from) {
       if meta.is_dir() {
-        LOGGER.debug(&format!(
+        logger.debug(format!(
           "determined '{}' is a directory",
           abs_from.display()
         ));
         FromType::Dir
       } else if meta.is_file() {
-        LOGGER.debug(&format!("determined '{}' is a file", abs_from.display()));
+        logger.debug(format!("determined '{}' is a file", abs_from.display()));
         FromType::File
       } else {
-        LOGGER.debug(&format!("determined '{}' is a unknown", abs_from.display()));
+        logger.debug(format!("determined '{}' is a unknown", abs_from.display()));
         FromType::Glob
       }
     } else {
-      LOGGER.debug(&format!("determined '{}' is a glob", abs_from.display()));
+      logger.debug(format!("determined '{}' is a glob", abs_from.display()));
       FromType::Glob
     };
 
@@ -287,7 +342,7 @@ impl CopyPlugin {
     let mut need_add_context_to_dependency = false;
     let glob_query = match from_type {
       FromType::Dir => {
-        LOGGER.debug(&format!(
+        logger.debug(format!(
           "added '{}' as a context dependency",
           abs_from.display()
         ));
@@ -303,7 +358,7 @@ impl CopyPlugin {
         escaped.to_string_lossy().to_string()
       }
       FromType::File => {
-        LOGGER.debug(&format!(
+        logger.debug(format!(
           "added '{}' as a file dependency",
           abs_from.display()
         ));
@@ -329,7 +384,7 @@ impl CopyPlugin {
       }
     };
 
-    LOGGER.log(&format!("begin globbing '{glob_query}'..."));
+    logger.log(format!("begin globbing '{glob_query}'..."));
 
     let glob_entries = glob::glob_with(
       &glob_query,
@@ -360,16 +415,16 @@ impl CopyPlugin {
           })
           .collect();
 
-        if need_add_context_to_dependency &&
-        let Some(common_dir) = get_closest_common_parent_dir(
-          &entries.iter().map(|it| it.as_path()).collect(),
-        ) {
+        if need_add_context_to_dependency
+          && let Some(common_dir) =
+            get_closest_common_parent_dir(&entries.iter().map(|it| it.as_path()).collect())
+        {
           context_dependencies.insert(common_dir);
         }
 
         if entries.is_empty() {
           if pattern.no_error_on_missing {
-            LOGGER.log(
+            logger.log(
               "finished to process a pattern from '${normalizedOriginalFrom}' using '${pattern.context}' context to '${pattern.to}'"
             );
             return None;
@@ -397,6 +452,7 @@ impl CopyPlugin {
               file_dependencies,
               diagnostics,
               compilation,
+              logger,
             )
             .await
           })
@@ -421,7 +477,7 @@ impl CopyPlugin {
       }
       Err(e) => {
         if pattern.no_error_on_missing {
-          LOGGER.log(&format!(
+          logger.log(format!(
             "finished to process a pattern from '{}' using '{}' context to '{:?}'",
             PathBuf::from(orig_from).display(),
             context.display(),
@@ -445,9 +501,9 @@ impl CopyPlugin {
 }
 
 #[async_trait]
-impl Plugin for CopyPlugin {
+impl Plugin for CopyRspackPlugin {
   fn name(&self) -> &'static str {
-    "copy-rspack-plugin"
+    "rspack.CopyRspackPlugin"
   }
 
   async fn process_assets_stage_additional(
@@ -455,6 +511,8 @@ impl Plugin for CopyPlugin {
     _ctx: rspack_core::PluginContext,
     mut args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsOutput {
+    let logger = args.compilation.get_logger(self.name());
+    let start = logger.time("run pattern");
     let file_dependencies = DashSet::default();
     let context_dependencies = DashSet::default();
     let diagnostics = DashSet::default();
@@ -467,7 +525,9 @@ impl Plugin for CopyPlugin {
         let mut pattern = pattern.clone();
         if pattern.context.is_none() {
           pattern.context = Some(args.compilation.options.context.as_path().into());
-        } else if let Some(ctx) = pattern.context.clone() && !ctx.is_absolute() {
+        } else if let Some(ctx) = pattern.context.clone()
+          && !ctx.is_absolute()
+        {
           pattern.context = Some(args.compilation.options.context.as_path().join(ctx))
         };
 
@@ -478,6 +538,7 @@ impl Plugin for CopyPlugin {
           &file_dependencies,
           &context_dependencies,
           &diagnostics,
+          &logger,
         )
       })
       .collect::<Vec<_>>()
@@ -491,7 +552,9 @@ impl Plugin for CopyPlugin {
           .collect::<Vec<_>>()
       })
       .collect();
+    logger.time_end(start);
 
+    let start = logger.time("emit assets");
     let compilation = &mut args.compilation;
     compilation.file_dependencies.extend(file_dependencies);
     compilation
@@ -506,17 +569,26 @@ impl Plugin for CopyPlugin {
           return;
         }
         exist_asset.set_source(Some(Arc::new(result.source)));
+        if let Some(info) = result.info {
+          set_info(&mut exist_asset.info, info);
+        }
         // TODO set info { copied: true, sourceFilename }
       } else {
+        let mut asset_info = Default::default();
+        if let Some(info) = result.info {
+          set_info(&mut asset_info, info);
+        }
+
         args.compilation.emit_asset(
           result.filename,
           CompilationAsset {
             source: Some(Arc::new(result.source)),
-            info: AssetInfo::default(),
+            info: asset_info,
           },
         )
       }
     });
+    logger.time_end(start);
 
     Ok(())
   }
@@ -554,8 +626,65 @@ fn escape_glob_chars(s: &str) -> String {
   escaped
 }
 
+fn set_info(target: &mut AssetInfo, info: Info) {
+  if let Some(minimized) = info.minimized {
+    target.minimized = minimized;
+  }
+
+  if let Some(immutable) = info.immutable {
+    target.immutable = immutable;
+  }
+
+  if let Some(chunk_hash) = info.chunk_hash {
+    target.chunk_hash = rustc_hash::FxHashSet::from_iter(chunk_hash);
+  }
+
+  if let Some(content_hash) = info.content_hash {
+    target.content_hash = rustc_hash::FxHashSet::from_iter(content_hash);
+  }
+
+  if let Some(development) = info.development {
+    target.development = development;
+  }
+
+  if let Some(hot_module_replacement) = info.hot_module_replacement {
+    target.hot_module_replacement = hot_module_replacement;
+  }
+
+  if let Some(related) = info.related {
+    target.related = AssetInfoRelated {
+      source_map: related.source_map,
+    };
+  }
+
+  if let Some(version) = info.version {
+    target.version = version;
+  }
+}
+
 #[test]
 fn test_escape() {
   assert_eq!(escape_glob_chars("a/b/**/*.js"), r#"a/b/\*\*/\*.js"#);
   assert_eq!(escape_glob_chars("a/b/c"), r#"a/b/c"#);
+}
+
+// If this test fails, you should modify `set_info` function, according to your changes about AssetInfo
+// Make sure every field of AssetInfo is considered
+#[test]
+fn ensure_info_fields() {
+  let info = AssetInfo {
+    immutable: Default::default(),
+    minimized: Default::default(),
+    chunk_hash: Default::default(),
+    content_hash: Default::default(),
+    development: Default::default(),
+    hot_module_replacement: Default::default(),
+    related: AssetInfoRelated {
+      source_map: Default::default(),
+    },
+    version: Default::default(),
+    source_filename: Default::default(),
+  };
+
+  std::hint::black_box(info);
 }

@@ -1,16 +1,14 @@
-use std::{
-  fmt::{self, Debug},
-  future::Future,
-};
+use std::fmt::{self, Debug};
 
 use async_recursion::async_recursion;
 use derivative::Derivative;
 use futures::future::BoxFuture;
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
+use rspack_util::{try_all, try_any};
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{BoxLoader, Filename, ModuleType, PublicPath, Resolve};
+use crate::{Filename, ModuleType, PublicPath, Resolve};
 
 #[derive(Debug)]
 pub struct ParserOptionsByModuleType(HashMap<ModuleType, ParserOptions>);
@@ -22,7 +20,7 @@ impl FromIterator<(ModuleType, ParserOptions)> for ParserOptionsByModuleType {
 }
 
 impl ParserOptionsByModuleType {
-  pub fn get(&self, module_type: &ModuleType) -> Option<&ParserOptions> {
+  pub fn get<'a>(&'a self, module_type: &'a ModuleType) -> Option<&'a ParserOptions> {
     self.0.get(module_type)
   }
 }
@@ -30,17 +28,53 @@ impl ParserOptionsByModuleType {
 #[derive(Debug, Clone)]
 pub enum ParserOptions {
   Asset(AssetParserOptions),
+  Javascript(JavascriptParserOptions),
   Unknown,
 }
 
+macro_rules! get_parser_option {
+  ($fn_name:ident, $variant:ident, $module_variant:ident, $ret_ty:ident) => {
+    pub fn $fn_name(&self, module_type: &ModuleType) -> Option<&$ret_ty> {
+      match self {
+        Self::$variant(value) if *module_type == ModuleType::$module_variant => Some(value),
+        _ => None,
+      }
+    }
+  };
+}
+
 impl ParserOptions {
-  pub fn get_asset(&self, module_type: &ModuleType) -> Option<&AssetParserOptions> {
-    let maybe = match self {
-      ParserOptions::Asset(i) => Some(i),
-      _ => None,
-    };
-    maybe.filter(|_| matches!(module_type, ModuleType::Asset))
+  get_parser_option!(get_asset, Asset, Asset, AssetParserOptions);
+  get_parser_option!(get_javascript, Javascript, Js, JavascriptParserOptions);
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub enum DynamicImportMode {
+  #[default]
+  Lazy,
+  Weak,
+  Eager,
+  LazyOnce,
+}
+
+impl From<&str> for DynamicImportMode {
+  fn from(value: &str) -> Self {
+    match value {
+      "weak" => DynamicImportMode::Weak,
+      "eager" => DynamicImportMode::Eager,
+      "lazy" => DynamicImportMode::Lazy,
+      "lazyOnce" => DynamicImportMode::LazyOnce,
+      _ => {
+        // TODO: warning
+        DynamicImportMode::default()
+      }
+    }
   }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct JavascriptParserOptions {
+  pub dynamic_import_mode: DynamicImportMode,
 }
 
 #[derive(Debug, Clone)]
@@ -91,7 +125,7 @@ impl GeneratorOptions {
     maybe.filter(|_| matches!(module_type, ModuleType::Asset))
   }
 
-  pub fn get_asset_inline(&self, module_type: &ModuleType) -> Option<&AssetInlineGeneratorOptions> {
+  fn get_asset_inline(&self, module_type: &ModuleType) -> Option<&AssetInlineGeneratorOptions> {
     let maybe = match self {
       Self::AssetInline(i) => Some(i),
       _ => None,
@@ -99,10 +133,7 @@ impl GeneratorOptions {
     maybe.filter(|_| matches!(module_type, ModuleType::AssetInline))
   }
 
-  pub fn get_asset_resource(
-    &self,
-    module_type: &ModuleType,
-  ) -> Option<&AssetResourceGeneratorOptions> {
+  fn get_asset_resource(&self, module_type: &ModuleType) -> Option<&AssetResourceGeneratorOptions> {
     let maybe = match self {
       Self::AssetResource(i) => Some(i),
       _ => None,
@@ -247,59 +278,51 @@ pub struct RuleSetLogicalConditions {
 impl RuleSetLogicalConditions {
   #[async_recursion]
   pub async fn try_match(&self, data: &str) -> Result<bool> {
-    if let Some(and) = &self.and && try_any(and, |i| async { i.try_match(data).await.map(|i| !i) }).await? {
-      return Ok(false)
+    if let Some(and) = &self.and
+      && try_any(and, |i| async { i.try_match(data).await.map(|i| !i) }).await?
+    {
+      return Ok(false);
     }
-    if let Some(or) = &self.or && try_all(or, |i| async { i.try_match(data).await.map(|i| !i) }).await? {
-      return Ok(false)
+    if let Some(or) = &self.or
+      && try_all(or, |i| async { i.try_match(data).await.map(|i| !i) }).await?
+    {
+      return Ok(false);
     }
-    if let Some(not) = &self.not && not.try_match(data).await? {
-      return Ok(false)
+    if let Some(not) = &self.not
+      && not.try_match(data).await?
+    {
+      return Ok(false);
     }
     Ok(true)
   }
 }
 
-pub async fn try_any<T, Fut, F>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool>
-where
-  Fut: Future<Output = Result<bool>>,
-  F: Fn(T) -> Fut,
-{
-  let it = it.into_iter();
-  for i in it {
-    if f(i).await? {
-      return Ok(true);
-    }
-  }
-  Ok(false)
-}
-
-async fn try_all<T, Fut, F>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool>
-where
-  Fut: Future<Output = Result<bool>>,
-  F: Fn(T) -> Fut,
-{
-  let it = it.into_iter();
-  for i in it {
-    if !(f(i).await?) {
-      return Ok(false);
-    }
-  }
-  Ok(true)
-}
 pub struct FuncUseCtx {
   pub resource: Option<String>,
   pub real_resource: Option<String>,
   pub resource_query: Option<String>,
-  pub issuer: Option<String>,
+  pub issuer: Option<Box<str>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ModuleRuleUseLoader {
+  /// Loader identifier with query and fragments
+  pub loader: String,
+  /// Loader options
+  pub options: Option<String>,
 }
 
 pub type FnUse =
-  Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<BoxLoader>>> + Sync + Send>;
+  Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<ModuleRuleUseLoader>>> + Sync + Send>;
 
 #[derive(Derivative, Default)]
 #[derivative(Debug)]
 pub struct ModuleRule {
+  /// A conditional match matching an absolute path + query + fragment.
+  /// Note:
+  ///   This is a custom matching rule not initially designed by webpack.
+  ///   Only for single-threaded environment interoperation purpose.
+  pub rspack_resource: Option<RuleSetCondition>,
   /// A condition matcher matching an absolute path.
   pub test: Option<RuleSetCondition>,
   pub include: Option<RuleSetCondition>,
@@ -328,7 +351,7 @@ pub struct ModuleRule {
 }
 
 pub enum ModuleRuleUse {
-  Array(Vec<BoxLoader>),
+  Array(Vec<ModuleRuleUseLoader>),
   Func(FnUse),
 }
 
@@ -348,7 +371,7 @@ fn fmt_use(
       "{}",
       array_use
         .iter()
-        .map(|l| l.identifier().to_string())
+        .map(|l| &*l.loader)
         .collect::<Vec<_>>()
         .join("!")
     ),

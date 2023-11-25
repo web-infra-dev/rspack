@@ -1,6 +1,5 @@
 use rspack_core::{
-  import_statement, DependencyId, DependencyTemplate, ModuleDependency, TemplateContext,
-  TemplateReplaceSource,
+  import_statement, DependencyId, DependencyTemplate, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -33,8 +32,16 @@ impl DependencyTemplate for HarmonyAcceptDependency {
     let mut content = String::default();
 
     self.dependency_ids.iter().for_each(|id| {
-      if let Some(dependency) = compilation.module_graph.dependency_by_id(id) {
-        let stmts = import_statement(code_generatable_context, id, dependency.request(), true);
+      let dependency = compilation.module_graph.dependency_by_id(id);
+      let request = if let Some(dependency) = dependency.and_then(|d| d.as_module_dependency()) {
+        Some(dependency.request())
+      } else {
+        dependency
+          .and_then(|d| d.as_context_dependency())
+          .map(|d| d.request())
+      };
+      if let Some(request) = request {
+        let stmts = import_statement(code_generatable_context, id, request, true);
         content.push_str(stmts.0.as_str());
         content.push_str(stmts.1.as_str());
       }

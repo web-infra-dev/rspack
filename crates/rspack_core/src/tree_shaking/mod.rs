@@ -6,7 +6,7 @@ use swc_core::ecma::ast::ModuleItem;
 
 use self::visitor::{OptimizeAnalyzeResult, SymbolRef};
 
-pub(crate) mod analyzer;
+pub mod analyzer;
 pub mod asset_module;
 pub mod debug_helper;
 pub mod js_module;
@@ -67,6 +67,7 @@ bitflags::bitflags! {
       const COMMONJS_EXPORTS = 1 << 2;
       const DYNAMIC_IMPORT = 1 << 3;
       const CONTEXT_MODULE = 1 << 4;
+      const CONTAINER_EXPOSED = 1 << 5;
   }
 }
 

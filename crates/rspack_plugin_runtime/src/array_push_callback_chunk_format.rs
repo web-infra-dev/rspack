@@ -8,7 +8,7 @@ use rspack_core::{
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRenderChunkHookOutput, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
-use rspack_error::Result;
+use rspack_error::internal_error;
 use rspack_plugin_javascript::runtime::{render_chunk_runtime_modules, render_runtime_modules};
 
 use super::{generate_entry_startup, update_hash_for_entry_startup};
@@ -20,10 +20,6 @@ pub struct ArrayPushCallbackChunkFormatPlugin;
 impl Plugin for ArrayPushCallbackChunkFormatPlugin {
   fn name(&self) -> &'static str {
     "ArrayPushCallbackChunkFormatPlugin"
-  }
-
-  fn apply(&self, _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
-    Ok(())
   }
 
   fn additional_chunk_runtime_requirements(
@@ -72,6 +68,7 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
     let output = &args.compilation.options.output;
     output.global_object.hash(&mut args.hasher);
     output.chunk_loading_global.hash(&mut args.hasher);
+    output.hot_update_global.hash(&mut args.hasher);
 
     update_hash_for_entry_startup(
       args.hasher,
@@ -96,13 +93,15 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
       .compilation
       .chunk_graph
       .get_chunk_runtime_modules_in_order(args.chunk_ukey);
-    let global_object: &String = &args.compilation.options.output.global_object;
+    let global_object = &args.compilation.options.output.global_object;
+    let hot_update_global = &args.compilation.options.output.hot_update_global;
     let mut source = ConcatSource::default();
 
     if matches!(chunk.kind, ChunkKind::HotUpdate) {
       source.add(RawSource::Source(format!(
-        "{}['hotUpdate']('{}', ",
+        "{}[{}]('{}', ",
         global_object,
+        serde_json::to_string(hot_update_global).map_err(|e| internal_error!(e.to_string()))?,
         chunk.expect_id()
       )));
       source.add(args.module_source.clone());

@@ -1,13 +1,35 @@
+use rustc_hash::FxHashSet as HashSet;
 use swc_core::{
-  common::{pass::AstNodePath, SyntaxContext},
+  common::SyntaxContext,
   ecma::{
-    ast::{CallExpr, Expr, MemberExpr},
-    visit::{AstParentKind, AstParentNodeRef},
+    ast::{CallExpr, Expr, MemberExpr, ObjectPat, ObjectPatProp, PropName},
+    atoms::JsWord,
   },
 };
 
-pub fn as_parent_path(ast_path: &AstNodePath<AstParentNodeRef<'_>>) -> Vec<AstParentKind> {
-  ast_path.iter().map(|n| n.kind()).collect()
+pub fn collect_destructuring_assignment_properties(
+  object_pat: &ObjectPat,
+) -> Option<HashSet<JsWord>> {
+  let mut properties = HashSet::default();
+
+  for property in &object_pat.props {
+    match property {
+      ObjectPatProp::Assign(assign) => {
+        properties.insert(assign.key.sym.clone());
+      }
+      ObjectPatProp::KeyValue(key_value) => {
+        if let PropName::Ident(ident) = &key_value.key {
+          properties.insert(ident.sym.clone());
+        }
+      }
+      ObjectPatProp::Rest(_) => {}
+    }
+  }
+
+  if properties.is_empty() {
+    return None;
+  }
+  Some(properties)
 }
 
 pub(crate) mod expr_matcher {
@@ -72,9 +94,23 @@ pub(crate) mod expr_matcher {
     is_import_meta_webpack_hot: "import.meta.webpackHot",
     is_import_meta_webpack_hot_accept: "import.meta.webpackHot.accept",
     is_import_meta_webpack_hot_decline: "import.meta.webpackHot.decline",
+    is_import_meta_webpack_context: "import.meta.webpackContext",
     is_import_meta_url: "import.meta.url",
     is_import_meta: "import.meta",
+    is_object_define_property: "Object.defineProperty",
   });
+}
+
+pub fn is_require_call_expr(expr: &Expr, ctxt: SyntaxContext) -> bool {
+  matches!(expr, Expr::Call(call_expr) if is_require_call(call_expr, ctxt))
+}
+
+pub fn is_require_call(node: &CallExpr, ctxt: SyntaxContext) -> bool {
+  node
+    .callee
+    .as_expr()
+    .map(|expr| matches!(expr, box Expr::Ident(ident) if &ident.sym == "require" && ident.span.ctxt == ctxt))
+    .unwrap_or_default()
 }
 
 pub fn is_require_context_call(node: &CallExpr) -> bool {
@@ -130,6 +166,14 @@ pub fn is_import_meta_hot_decline_call(node: &CallExpr) -> bool {
     .callee
     .as_expr()
     .map(|expr| expr_matcher::is_import_meta_webpack_hot_decline(expr))
+    .unwrap_or_default()
+}
+
+pub fn is_import_meta_context_call(node: &CallExpr) -> bool {
+  node
+    .callee
+    .as_expr()
+    .map(|expr| expr_matcher::is_import_meta_webpack_context(expr))
     .unwrap_or_default()
 }
 
@@ -208,11 +252,24 @@ fn test() {
   }));
 }
 
-pub fn is_unresolved_member_object_ident(expr: &Expr, unresolved_ctxt: &SyntaxContext) -> bool {
+pub fn is_unresolved_member_object_ident(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
   if let Expr::Member(member) = expr {
     if let Expr::Ident(ident) = &*member.obj {
-      return ident.span.ctxt == *unresolved_ctxt;
+      return ident.span.ctxt == unresolved_ctxt;
     };
   }
   false
+}
+
+pub fn is_unresolved_require(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
+  let ident = match expr {
+    Expr::Ident(ident) => Some(ident),
+    Expr::Member(mem) => mem.obj.as_ident(),
+    _ => None,
+  };
+  let Some(ident) = ident else {
+    unreachable!("please don't use this fn in other case");
+  };
+  assert!(ident.sym.eq("require"));
+  ident.span.ctxt == unresolved_ctxt
 }

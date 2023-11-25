@@ -1,6 +1,6 @@
 use rspack_core::{
-  module_id, Dependency, DependencyCategory, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -10,9 +10,6 @@ pub struct ModuleHotDeclineDependency {
   request: JsWord,
   start: u32,
   end: u32,
-  category: &'static DependencyCategory,
-  dependency_type: &'static DependencyType,
-
   span: Option<ErrorSpan>,
 }
 
@@ -21,8 +18,6 @@ impl ModuleHotDeclineDependency {
     Self {
       id: DependencyId::new(),
       request,
-      category: &DependencyCategory::CommonJS,
-      dependency_type: &DependencyType::ModuleHotDecline,
       span,
       start,
       end,
@@ -31,34 +26,34 @@ impl ModuleHotDeclineDependency {
 }
 
 impl Dependency for ModuleHotDeclineDependency {
-  fn category(&self) -> &DependencyCategory {
-    self.category
-  }
-
-  fn dependency_type(&self) -> &DependencyType {
-    self.dependency_type
-  }
-}
-
-impl ModuleDependency for ModuleHotDeclineDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
 
+  fn category(&self) -> &DependencyCategory {
+    &DependencyCategory::CommonJS
+  }
+
+  fn dependency_type(&self) -> &DependencyType {
+    &DependencyType::ModuleHotDecline
+  }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "ModuleHotDeclineDependency"
+  }
+}
+
+impl ModuleDependency for ModuleHotDeclineDependency {
   fn request(&self) -> &str {
     &self.request
   }
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
   }
 
   fn set_request(&mut self, request: String) {
@@ -86,3 +81,5 @@ impl DependencyTemplate for ModuleHotDeclineDependency {
     );
   }
 }
+
+impl AsContextDependency for ModuleHotDeclineDependency {}

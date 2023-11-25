@@ -1,6 +1,4 @@
-use rspack_core::{
-  BoxModuleDependency, BuildMeta, DependencyTemplate, ErrorSpan, ModuleDependency, SpanExt,
-};
+use rspack_core::{BoxDependency, BoxDependencyTemplate, BuildMeta, ErrorSpan, SpanExt};
 use swc_core::{
   common::Spanned,
   ecma::{
@@ -20,17 +18,17 @@ use crate::{
 };
 
 pub struct HotModuleReplacementScanner<'a> {
-  pub dependencies: &'a mut Vec<BoxModuleDependency>,
-  pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
+  pub dependencies: &'a mut Vec<BoxDependency>,
+  pub presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
   pub build_meta: &'a BuildMeta,
 }
 
-type CreateDependency = fn(u32, u32, JsWord, Option<ErrorSpan>) -> BoxModuleDependency;
+type CreateDependency = fn(u32, u32, JsWord, Option<ErrorSpan>) -> BoxDependency;
 
 impl<'a> HotModuleReplacementScanner<'a> {
   pub fn new(
-    dependencies: &'a mut Vec<BoxModuleDependency>,
-    presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
+    dependencies: &'a mut Vec<BoxDependency>,
+    presentational_dependencies: &'a mut Vec<BoxDependencyTemplate>,
     build_meta: &'a BuildMeta,
   ) -> Self {
     Self {
@@ -46,9 +44,9 @@ impl<'a> HotModuleReplacementScanner<'a> {
     kind: &str,
     create_dependency: CreateDependency,
   ) {
-    let mut dependencies: Vec<Box<dyn ModuleDependency>> = vec![];
+    let mut dependencies: Vec<BoxDependency> = vec![];
 
-    if let Some(first_arg) = call_expr.args.get(0) {
+    if let Some(first_arg) = call_expr.args.first() {
       match &*first_arg.expr {
         Expr::Lit(Lit::Str(s)) => {
           dependencies.push(create_dependency(

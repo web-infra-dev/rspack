@@ -1,31 +1,39 @@
-use rspack_core::{
-  module_id_expr, ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource,
-};
+use rspack_core::{module_id_expr, AsModuleDependency, ContextDependency};
+use rspack_core::{ContextOptions, Dependency, DependencyCategory, DependencyId};
+use rspack_core::{DependencyTemplate, DependencyType, ErrorSpan, RuntimeGlobals};
+use rspack_core::{TemplateContext, TemplateReplaceSource};
+
+use super::create_resource_identifier_for_context_dependency;
 
 #[derive(Debug, Clone)]
 pub struct RequireContextDependency {
   start: u32,
   end: u32,
-  pub id: DependencyId,
-  pub options: ContextOptions,
+  id: DependencyId,
+  options: ContextOptions,
   span: Option<ErrorSpan>,
+  resource_identifier: String,
 }
 
 impl RequireContextDependency {
   pub fn new(start: u32, end: u32, options: ContextOptions, span: Option<ErrorSpan>) -> Self {
+    let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
       start,
       end,
       options,
       span,
       id: DependencyId::new(),
+      resource_identifier,
     }
   }
 }
 
 impl Dependency for RequireContextDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CommonJS
   }
@@ -33,31 +41,31 @@ impl Dependency for RequireContextDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::RequireContext
   }
-}
 
-impl ModuleDependency for RequireContextDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
   }
 
+  fn dependency_debug_name(&self) -> &'static str {
+    "RequireContextDependency"
+  }
+}
+
+impl ContextDependency for RequireContextDependency {
   fn request(&self) -> &str {
     &self.options.request
   }
 
-  fn user_request(&self) -> &str {
-    &self.options.request
+  fn options(&self) -> &ContextOptions {
+    &self.options
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
+  fn get_context(&self) -> Option<&str> {
+    None
   }
 
-  fn options(&self) -> Option<&ContextOptions> {
-    Some(&self.options)
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
+  fn resource_identifier(&self) -> &str {
+    &self.resource_identifier
   }
 
   fn set_request(&mut self, request: String) {
@@ -84,8 +92,10 @@ impl DependencyTemplate for RequireContextDependency {
     source.replace(
       self.start,
       self.end,
-      format!("{}({module_id_str})", RuntimeGlobals::REQUIRE,).as_str(),
+      format!("{}({module_id_str})", RuntimeGlobals::REQUIRE).as_str(),
       None,
     );
   }
 }
+
+impl AsModuleDependency for RequireContextDependency {}

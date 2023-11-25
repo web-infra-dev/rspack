@@ -1,11 +1,13 @@
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  ChunkInitFragments, ChunkUkey, Compilation, InitFragment, ModuleGraphModule,
-  RenderModuleContentArgs, RuntimeGlobals, SourceType,
+  ChunkInitFragments, ChunkUkey, Compilation, ModuleGraphModule, RenderModuleContentArgs,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::{internal_error, Result};
 use rustc_hash::FxHashSet as HashSet;
+
+use crate::utils::is_diff_mode;
 
 pub fn render_chunk_modules(
   compilation: &Compilation,
@@ -34,23 +36,15 @@ pub fn render_chunk_modules(
         .code_generation_results
         .get(&mgm.module_identifier, Some(&chunk.runtime))
         .expect("should have code generation result");
-      if let Some(result) = code_gen_result.get(&SourceType::JavaScript) {
-        let origin_source = result
-          .ast_or_source
-          .clone()
-          .try_into_source()
-          .expect("should be source");
-        let module_source = if let Some(source) = plugin_driver
+      if let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) {
+        let render_module_result = plugin_driver
           .render_module_content(RenderModuleContentArgs {
             compilation,
-            module_source: &origin_source,
+            module_graph_module: mgm,
+            module_source: origin_source.clone(),
+            chunk_init_fragments: ChunkInitFragments::default(),
           })
-          .expect("render_module_content failed")
-        {
-          source
-        } else {
-          origin_source
-        };
+          .expect("render_module_content failed");
 
         let runtime_requirements = compilation
           .chunk_graph
@@ -59,12 +53,13 @@ pub fn render_chunk_modules(
         Some((
           mgm.module_identifier,
           render_module(
-            module_source,
+            render_module_result.module_source,
             mgm,
             runtime_requirements,
             mgm.id(&compilation.chunk_graph),
           ),
           &code_gen_result.chunk_init_fragments,
+          render_module_result.chunk_init_fragments,
         ))
       } else {
         None
@@ -72,21 +67,20 @@ pub fn render_chunk_modules(
     })
     .collect::<Vec<_>>();
 
-  module_code_array.sort_unstable_by_key(|(module_identifier, _, _)| *module_identifier);
+  module_code_array.sort_unstable_by_key(|(module_identifier, _, _, _)| *module_identifier);
 
   let chunk_init_fragments = module_code_array.iter().fold(
     ChunkInitFragments::default(),
-    |mut chunk_init_fragments, (_, _, fragments)| {
-      for (k, v) in fragments.iter() {
-        chunk_init_fragments.insert(k.to_string(), v.clone());
-      }
+    |mut chunk_init_fragments, (_, _, fragments, additional_fragments)| {
+      chunk_init_fragments.extend((*fragments).clone());
+      chunk_init_fragments.extend(additional_fragments.clone());
       chunk_init_fragments
     },
   );
 
   let module_sources: Vec<_> = module_code_array
     .into_iter()
-    .map(|(_, source, _)| source)
+    .map(|(_, source, _, _)| source)
     .collect::<Result<_>>()?;
   let module_sources = module_sources
     .into_par_iter()
@@ -104,36 +98,63 @@ pub fn render_chunk_modules(
   Ok((sources.boxed(), chunk_init_fragments))
 }
 
-/* remove `strict` parameter for now, let SWC manage `use strict` annotation directly */
 fn render_module(
   source: BoxSource,
   mgm: &ModuleGraphModule,
   runtime_requirements: Option<&RuntimeGlobals>,
   module_id: &str,
 ) -> Result<BoxSource> {
-  // TODO unused exports_argument
-  let module_argument = {
+  let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
+  // TODO: determine arguments by runtime requirements after aligning commonjs dependencies with webpack
+  // let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
+  // let need_require = runtime_requirements.is_some_and(|r| {
+  //   r.contains(RuntimeGlobals::REQUIRE) || r.contains(RuntimeGlobals::REQUIRE_SCOPE)
+  // });
+  let need_exports = true;
+  let need_require = true;
+
+  let mut args = Vec::new();
+  if need_module || need_exports || need_require {
     let module_argument = mgm.get_module_argument();
-    if let Some(runtime_requirements) = runtime_requirements && runtime_requirements.contains(RuntimeGlobals::MODULE) {
+    args.push(if need_module {
       module_argument.to_string()
     } else {
-     format!("__unused_webpack_{module_argument}")
-    }
-  };
-  let exports_argument = mgm.get_exports_argument();
+      format!("__unused_webpack_{module_argument}")
+    });
+  }
+  if need_exports || need_require {
+    let exports_argument = mgm.get_exports_argument();
+    args.push(if need_exports {
+      exports_argument.to_string()
+    } else {
+      format!("__unused_webpack_{exports_argument}")
+    });
+  }
+  if need_require {
+    args.push(RuntimeGlobals::REQUIRE.to_string());
+  }
   let mut sources = ConcatSource::new([
     RawSource::from(serde_json::to_string(module_id).map_err(|e| internal_error!(e.to_string()))?),
     RawSource::from(": "),
-    RawSource::from(format!(
-      "function ({module_argument}, {exports_argument}, {}) {{\n",
-      RuntimeGlobals::REQUIRE
-    )),
   ]);
-  // if strict {
-  //   sources.add(RawSource::from("\"use strict\";\n"));
-  // }
+  if is_diff_mode() {
+    sources.add(RawSource::from(format!("\n/* start::{} */\n", module_id)));
+  }
+  sources.add(RawSource::from(format!(
+    "(function ({}) {{\n",
+    args.join(", ")
+  )));
+  if let Some(build_info) = &mgm.build_info
+    && build_info.strict
+  {
+    sources.add(RawSource::from("\"use strict\";\n"));
+  }
   sources.add(source);
-  sources.add(RawSource::from("},\n"));
+  sources.add(RawSource::from("})"));
+  if is_diff_mode() {
+    sources.add(RawSource::from(format!("\n/* end::{} */\n", module_id)));
+  }
+  sources.add(RawSource::from(",\n"));
 
   Ok(sources.boxed())
 }
@@ -181,9 +202,16 @@ pub fn render_runtime_modules(
     .collect::<Vec<_>>();
   runtime_modules.sort_unstable_by_key(|(_, m)| m.stage());
   runtime_modules.iter().for_each(|((_, source), module)| {
-    sources.add(RawSource::from(format!("// {}\n", module.identifier())));
+    if is_diff_mode() {
+      sources.add(RawSource::from(format!(
+        "/* start::{} */\n",
+        module.identifier()
+      )));
+    } else {
+      sources.add(RawSource::from(format!("// {}\n", module.identifier())));
+    }
     if !module.should_isolate() {
-      sources.add(RawSource::from("(function() {\n"));
+      sources.add(RawSource::from("!function() {\n"));
     }
     if module.cacheable() {
       sources.add(source.clone());
@@ -191,39 +219,16 @@ pub fn render_runtime_modules(
       sources.add(module.generate(compilation));
     }
     if !module.should_isolate() {
-      sources.add(RawSource::from("\n})();\n"));
+      sources.add(RawSource::from("\n}();\n"));
+    }
+    if is_diff_mode() {
+      sources.add(RawSource::from(format!(
+        "/* end::{} */\n",
+        module.identifier()
+      )));
     }
   });
   Ok(sources.boxed())
-}
-
-pub fn render_chunk_init_fragments(
-  source: BoxSource,
-  chunk_init_fragments: ChunkInitFragments,
-) -> BoxSource {
-  let mut fragments = chunk_init_fragments.into_values().collect::<Vec<_>>();
-  render_init_fragments(source, &mut fragments)
-}
-
-pub fn render_init_fragments(source: BoxSource, fragments: &mut [InitFragment]) -> BoxSource {
-  // here use sort_by_key because need keep order equal stage fragments
-  fragments.sort_by_key(|m| m.stage);
-
-  let mut sources = ConcatSource::default();
-
-  fragments.iter_mut().for_each(|f| {
-    sources.add(RawSource::from(std::mem::take(&mut f.content)));
-  });
-
-  sources.add(source);
-
-  fragments.iter_mut().rev().for_each(|f| {
-    if let Some(end_content) = std::mem::take(&mut f.end_content) {
-      sources.add(RawSource::from(end_content));
-    }
-  });
-
-  sources.boxed()
 }
 
 pub fn stringify_chunks_to_array(chunks: &HashSet<String>) -> String {
@@ -241,8 +246,18 @@ pub fn stringify_chunks_to_array(chunks: &HashSet<String>) -> String {
 pub fn stringify_array(vec: &[String]) -> String {
   format!(
     r#"[{}]"#,
-    vec.iter().fold(String::new(), |prev, cur| {
-      prev + format!(r#""{cur}","#).as_str()
-    })
+    vec
+      .iter()
+      .map(|item| format!("\"{item}\""))
+      .collect::<Vec<_>>()
+      .join(", ")
   )
+}
+
+pub fn render_iife(content: BoxSource) -> BoxSource {
+  let mut sources = ConcatSource::default();
+  sources.add(RawSource::from("(function() {\n"));
+  sources.add(content);
+  sources.add(RawSource::from("\n})()\n"));
+  sources.boxed()
 }

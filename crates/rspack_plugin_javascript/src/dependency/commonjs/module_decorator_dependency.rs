@@ -1,6 +1,6 @@
 use rspack_core::{
-  DependencyTemplate, InitFragment, InitFragmentStage, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource,
+  DependencyTemplate, InitFragmentKey, InitFragmentStage, NormalInitFragment, RuntimeGlobals,
+  TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -33,21 +33,29 @@ impl DependencyTemplate for ModuleDecoratorDependency {
     runtime_requirements.insert(RuntimeGlobals::MODULE);
     runtime_requirements.insert(self.decorator);
 
-    let module_argument = compilation
+    let mgm = compilation
       .module_graph
       .module_graph_module_by_identifier(&module.identifier())
-      .expect("should have mgm")
-      .get_module_argument();
+      .expect("should have mgm");
+    let module_argument = mgm.get_module_argument();
 
-    init_fragments.push(InitFragment::new(
+    let module_id = compilation
+      .chunk_graph
+      .get_module_id(module.identifier())
+      .clone()
+      .expect("should have module_id in <ModuleDecoratorDependency as DependencyTemplate>::apply");
+
+    init_fragments.push(Box::new(NormalInitFragment::new(
       format!(
         "/* module decorator */ {} = {}({});\n",
         module_argument,
         self.decorator.name(),
         module_argument
       ),
-      InitFragmentStage::STAGE_PROVIDES,
+      InitFragmentStage::StageProvides,
+      0,
+      InitFragmentKey::ModuleDecorator(module_id),
       None,
-    ));
+    )));
   }
 }

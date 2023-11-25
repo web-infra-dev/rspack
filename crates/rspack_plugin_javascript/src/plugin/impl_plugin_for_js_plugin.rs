@@ -1,35 +1,54 @@
-use std::collections::HashMap;
 use std::hash::Hash;
-use std::sync::{mpsc, Mutex};
 
 use async_trait::async_trait;
-use rspack_core::rspack_sources::{
-  BoxSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
-  SourceMapSourceOptions,
-};
+use rspack_core::rspack_sources::BoxSource;
 use rspack_core::{
-  get_js_chunk_filename_template, AdditionalChunkRuntimeRequirementsArgs, AssetInfo, ChunkHashArgs,
-  ChunkKind, CompilationAsset, JsChunkHashArgs, ModuleType, ParserAndGenerator, PathData, Plugin,
+  get_js_chunk_filename_template, AdditionalChunkRuntimeRequirementsArgs, ChunkHashArgs, ChunkKind,
+  CompilerOptions, ModuleType, ParserAndGenerator, PathData, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginChunkHashHookOutput, PluginContext,
-  PluginJsChunkHashHookOutput, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
-  ProcessAssetsArgs, RenderManifestEntry, RuntimeGlobals, SourceType,
+  PluginRenderManifestHookOutput, RenderManifestEntry, RuntimeGlobals, SourceType,
 };
-use rspack_error::{internal_error, Diagnostic, Result};
+use rspack_error::Result;
 use rspack_hash::RspackHash;
-use swc_config::config_types::BoolOrDataConfig;
-use swc_ecma_minifier::option::terser::TerserCompressorOptions;
 
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
-use crate::{JsMinifyOptions, JsPlugin};
+use crate::JsPlugin;
 
 #[async_trait]
 impl Plugin for JsPlugin {
   fn name(&self) -> &'static str {
     "javascript"
   }
-  fn apply(&self, ctx: PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
+  fn apply(
+    &self,
+    ctx: PluginContext<&mut rspack_core::ApplyContext>,
+    options: &mut CompilerOptions,
+  ) -> Result<()> {
     let create_parser_and_generator =
       move || Box::new(JavaScriptParserAndGenerator::new()) as Box<dyn ParserAndGenerator>;
+
+    if options.should_transform_by_default() {
+      ctx.context.register_parser_and_generator_builder(
+        ModuleType::Ts,
+        Box::new(create_parser_and_generator),
+      );
+      ctx.context.register_parser_and_generator_builder(
+        ModuleType::Tsx,
+        Box::new(create_parser_and_generator),
+      );
+      ctx.context.register_parser_and_generator_builder(
+        ModuleType::Jsx,
+        Box::new(create_parser_and_generator),
+      );
+      ctx.context.register_parser_and_generator_builder(
+        ModuleType::JsxEsm,
+        Box::new(create_parser_and_generator),
+      );
+      ctx.context.register_parser_and_generator_builder(
+        ModuleType::JsxDynamic,
+        Box::new(create_parser_and_generator),
+      );
+    }
 
     ctx
       .context
@@ -40,25 +59,6 @@ impl Plugin for JsPlugin {
     );
     ctx.context.register_parser_and_generator_builder(
       ModuleType::JsDynamic,
-      Box::new(create_parser_and_generator),
-    );
-    ctx
-      .context
-      .register_parser_and_generator_builder(ModuleType::Ts, Box::new(create_parser_and_generator));
-    ctx.context.register_parser_and_generator_builder(
-      ModuleType::Tsx,
-      Box::new(create_parser_and_generator),
-    );
-    ctx.context.register_parser_and_generator_builder(
-      ModuleType::Jsx,
-      Box::new(create_parser_and_generator),
-    );
-    ctx.context.register_parser_and_generator_builder(
-      ModuleType::JsxEsm,
-      Box::new(create_parser_and_generator),
-    );
-    ctx.context.register_parser_and_generator_builder(
-      ModuleType::JsxDynamic,
       Box::new(create_parser_and_generator),
     );
 
@@ -181,22 +181,9 @@ impl Plugin for JsPlugin {
       source,
       output_path,
       asset_info,
+      false,
+      false,
     )])
-  }
-
-  fn js_chunk_hash(
-    &self,
-    _ctx: PluginContext,
-    args: &mut JsChunkHashArgs,
-  ) -> PluginJsChunkHashHookOutput {
-    self.name().hash(&mut args.hasher);
-    args
-      .compilation
-      .options
-      .builtins
-      .minify_options
-      .hash(&mut args.hasher);
-    Ok(())
   }
 
   fn additional_tree_runtime_requirements(
@@ -214,117 +201,6 @@ impl Plugin for JsPlugin {
       runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
       runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     }
-    Ok(())
-  }
-
-  async fn process_assets_stage_optimize_size(
-    &self,
-    _ctx: PluginContext,
-    args: ProcessAssetsArgs<'_>,
-  ) -> PluginProcessAssetsOutput {
-    let compilation = args.compilation;
-    let minify_options = &compilation.options.builtins.minify_options.clone();
-    let is_module = compilation
-      .options
-      .output
-      .library
-      .as_ref()
-      .is_some_and(|library| library.library_type == "module");
-
-    if let Some(minify_options) = minify_options {
-      let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
-      // collect all extracted comments info
-      let all_extracted_comments = Mutex::new(HashMap::new());
-      let extract_comments_option = &minify_options.extract_comments.clone();
-      let emit_source_map_columns = !compilation.options.devtool.cheap();
-      let compress = TerserCompressorOptions {
-        passes: minify_options.passes,
-        drop_console: minify_options.drop_console,
-        pure_funcs: minify_options.pure_funcs.clone(),
-        ..Default::default()
-      };
-
-      for (filename, original) in compilation.assets_mut() {
-        if !(filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs"))
-        {
-          continue;
-        }
-
-        let is_matched = crate::ast::match_object(minify_options, filename)
-          .await
-          .unwrap_or(false);
-
-        if !is_matched || original.get_info().minimized {
-          continue;
-        }
-
-        if let Some(original_source) = original.get_source() {
-          let input = original_source.source().to_string();
-          let input_source_map = original_source.map(&MapOptions::default());
-          let js_minify_options = JsMinifyOptions {
-            compress: BoolOrDataConfig::from_obj(compress.clone()),
-            source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
-            inline_sources_content: true, /* Using true so original_source can be None in SourceMapSource */
-            emit_source_map_columns,
-            module: is_module,
-            ..Default::default()
-          };
-          let output = match crate::ast::minify(
-            &js_minify_options,
-            input,
-            filename,
-            &all_extracted_comments,
-            extract_comments_option,
-          ) {
-            Ok(r) => r,
-            Err(e) => {
-              tx.send(e.into())
-                .map_err(|e| internal_error!(e.to_string()))?;
-              continue;
-            }
-          };
-          let source = if let Some(map) = &output.map {
-            SourceMapSource::new(SourceMapSourceOptions {
-              value: output.code,
-              name: filename,
-              source_map: SourceMap::from_json(map).map_err(|e| internal_error!(e.to_string()))?,
-              original_source: None,
-              inner_source_map: input_source_map,
-              remove_original_source: true,
-            })
-            .boxed()
-          } else {
-            RawSource::from(output.code).boxed()
-          };
-          original.set_source(Some(source));
-          original.get_info_mut().minimized = true;
-        }
-      }
-
-      drop(tx);
-
-      compilation.push_batch_diagnostic(rx.into_iter().flatten().collect::<Vec<_>>());
-
-      // write all extracted comments to assets
-      all_extracted_comments
-        .lock()
-        .expect("all_extracted_comments lock failed")
-        .clone()
-        .into_iter()
-        .for_each(|(_, comments)| {
-          compilation.emit_asset(
-            comments.comments_file_name,
-            CompilationAsset {
-              source: Some(comments.source),
-              info: AssetInfo {
-                minimized: true,
-                ..Default::default()
-              },
-            },
-          )
-        });
-    }
-
     Ok(())
   }
 }

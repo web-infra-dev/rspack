@@ -1,11 +1,11 @@
 use rspack_core::{
+  impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH,
+  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
 
 use super::utils::{chunk_has_js, get_output_dir};
-use crate::impl_runtime_module;
 use crate::runtime_module::utils::{get_initial_chunk_ids, stringify_chunks};
 
 #[derive(Debug, Default, Eq)]
@@ -137,8 +137,8 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     self.chunk = Some(chunk);
   }
 
-  fn stage(&self) -> u8 {
-    RUNTIME_MODULE_STAGE_ATTACH
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
   }
 }
 

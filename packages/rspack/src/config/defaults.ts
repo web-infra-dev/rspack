@@ -13,39 +13,43 @@ import fs from "fs";
 import path from "path";
 import { isNil } from "../util";
 import { cleverMerge } from "../util/cleverMerge";
-import * as oldBuiltins from "./builtins";
 import {
 	getDefaultTarget,
 	getTargetProperties,
 	getTargetsProperties
 } from "./target";
 import type {
-	AvailableTarget,
 	Context,
-	Entry,
-	EntryDescription,
-	EntryDescriptionNormalized,
-	EntryNormalized,
-	ExperimentsNormalized,
 	ExternalsPresets,
 	InfrastructureLogging,
+	JavascriptParserOptions,
+	Library,
+	LibraryOptions,
 	Mode,
 	ModuleOptions,
 	Node,
 	Optimization,
-	OutputNormalized,
 	ResolveOptions,
-	RspackOptionsNormalized,
 	RuleSetRules,
 	SnapshotOptions
-} from "./types";
+} from "./zod";
+import {
+	EntryDescriptionNormalized,
+	EntryNormalized,
+	ExperimentsNormalized,
+	OutputNormalized,
+	RspackOptionsNormalized
+} from "./normalization";
+import Template from "../Template";
+import { assertNotNill } from "../util/assertNotNil";
+import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized
 ) => {
 	F(options, "context", () => process.cwd());
 	F(options, "target", () => {
-		return getDefaultTarget(options.context!) as AvailableTarget;
+		return getDefaultTarget(options.context!);
 	});
 
 	const { mode, target } = options;
@@ -69,17 +73,22 @@ export const applyRspackOptionsDefaults = (
 
 	F(options, "devtool", () => false as const);
 	D(options, "watch", false);
+	D(options, "profile", false);
 
 	const futureDefaults = options.experiments.futureDefaults ?? false;
 	F(options, "cache", () => development);
 
-	applyExperimentsDefaults(options.experiments, { cache: options.cache! });
+	applyExperimentsDefaults(options.experiments, {
+		cache: options.cache!
+	});
 
 	applySnapshotDefaults(options.snapshot, { production });
 
 	applyModuleDefaults(options.module, {
 		// syncWebAssembly: options.experiments.syncWebAssembly,
 		asyncWebAssembly: options.experiments.asyncWebAssembly!,
+		disableTransformByDefault:
+			options.experiments.rspackFuture!.disableTransformByDefault!,
 		css: options.experiments.css!
 	});
 
@@ -121,12 +130,10 @@ export const applyRspackOptionsDefaults = (
 		options.resolve
 	);
 
-	// TODO: refactor builtins
-	options.builtins = oldBuiltins.resolveBuiltinsOptions(options.builtins, {
-		contextPath: options.context!,
-		optimization: options.optimization,
-		production
-	}) as any;
+	options.resolveLoader = cleverMerge(
+		getResolveLoaderDefaults(),
+		options.resolveLoader
+	);
 };
 
 export const applyRspackOptionsBaseDefaults = (
@@ -152,17 +159,17 @@ const applyExperimentsDefaults = (
 	experiments: ExperimentsNormalized,
 	{ cache }: { cache: boolean }
 ) => {
-	D(experiments, "incrementalRebuild", {});
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", false);
 	D(experiments, "newSplitChunks", true);
 	D(experiments, "css", true); // we not align with webpack about the default value for better DX
+	D(experiments, "topLevelAwait", true);
 
+	D(experiments, "incrementalRebuild", {});
 	if (typeof experiments.incrementalRebuild === "object") {
 		D(experiments.incrementalRebuild, "make", true);
 		D(experiments.incrementalRebuild, "emitAsset", true);
 	}
-
 	if (
 		cache === false &&
 		experiments.incrementalRebuild &&
@@ -170,6 +177,13 @@ const applyExperimentsDefaults = (
 	) {
 		experiments.incrementalRebuild.make = false;
 		// TODO: use logger to warn user enable cache for incrementalRebuild.make
+	}
+
+	D(experiments, "rspackFuture", {});
+	if (typeof experiments.rspackFuture === "object") {
+		D(experiments.rspackFuture, "newResolver", true);
+		D(experiments.rspackFuture, "newTreeshaking", false);
+		D(experiments.rspackFuture, "disableTransformByDefault", true);
 	}
 };
 
@@ -189,15 +203,37 @@ const applySnapshotDefaults = (
 	);
 };
 
+const applyJavascriptParserOptionsDefaults = (
+	parserOptions: JavascriptParserOptions
+) => {
+	D(parserOptions, "dynamicImportMode", "lazy");
+};
+
 const applyModuleDefaults = (
 	module: ModuleOptions,
-	{ asyncWebAssembly, css }: { asyncWebAssembly: boolean; css: boolean }
-) => {
-	F(module.parser!, "asset", () => ({}));
-	F(module.parser!.asset!, "dataUrlCondition", () => ({}));
-	if (typeof module.parser!.asset!.dataUrlCondition === "object") {
-		D(module.parser!.asset!.dataUrlCondition, "maxSize", 8096);
+	{
+		asyncWebAssembly,
+		css,
+		disableTransformByDefault
+	}: {
+		asyncWebAssembly: boolean;
+		css: boolean;
+		disableTransformByDefault: boolean;
 	}
+) => {
+	assertNotNill(module.parser);
+
+	F(module.parser, ASSET_MODULE_TYPE, () => ({}));
+	assertNotNill(module.parser.asset);
+
+	F(module.parser.asset, "dataUrlCondition", () => ({}));
+	if (typeof module.parser.asset.dataUrlCondition === "object") {
+		D(module.parser.asset.dataUrlCondition, "maxSize", 8096);
+	}
+
+	F(module.parser, "javascript", () => ({}));
+	assertNotNill(module.parser.javascript);
+	applyJavascriptParserOptionsDefaults(module.parser.javascript);
 
 	A(module, "defaultRules", () => {
 		const esm = {
@@ -253,20 +289,26 @@ const applyModuleDefaults = (
 					or: ["text/javascript", "application/javascript"]
 				},
 				...esm
-			},
-			{
-				test: /\.jsx$/i,
-				type: "jsx"
-			},
-			{
-				test: /\.ts$/i,
-				type: "ts"
-			},
-			{
-				test: /\.tsx$/i,
-				type: "tsx"
 			}
 		];
+
+		// TODO: remove in 0.5.0
+		if (!disableTransformByDefault) {
+			rules.push(
+				{
+					test: /\.jsx$/i,
+					type: "jsx"
+				},
+				{
+					test: /\.ts$/i,
+					type: "ts"
+				},
+				{
+					test: /\.tsx$/i,
+					type: "tsx"
+				}
+			);
+		}
 
 		if (asyncWebAssembly) {
 			const wasm = {
@@ -363,7 +405,34 @@ const applyOutputDefaults = (
 		futureDefaults: boolean;
 	}
 ) => {
+	const getLibraryName = (library: Library): string => {
+		const libraryName =
+			typeof library === "object" &&
+			library &&
+			!Array.isArray(library) &&
+			"type" in library
+				? library.name
+				: library;
+		if (Array.isArray(libraryName)) {
+			return libraryName.join(".");
+		} else if (typeof libraryName === "object") {
+			return getLibraryName(libraryName.root);
+		} else if (typeof libraryName === "string") {
+			return libraryName;
+		}
+		return "";
+	};
 	F(output, "uniqueName", () => {
+		const libraryName = getLibraryName(output.library).replace(
+			/^\[(\\*[\w:]+\\*)\](\.)|(\.)\[(\\*[\w:]+\\*)\](?=\.|$)|\[(\\*[\w:]+\\*)\]/g,
+			(m, a, d1, d2, b, c) => {
+				const content = a || b || c;
+				return content.startsWith("\\") && content.endsWith("\\")
+					? `${d2 || ""}[${content.slice(1, -1)}]${d1 || ""}`
+					: "";
+			}
+		);
+		if (libraryName) return libraryName;
 		const pkgPath = path.resolve(context, "package.json");
 		try {
 			const packageInfo = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
@@ -377,7 +446,11 @@ const applyOutputDefaults = (
 		}
 	});
 
-	F(output, "chunkLoadingGlobal", () => "webpackChunk" + output.uniqueName);
+	F(output, "chunkLoadingGlobal", () =>
+		Template.toIdentifier(
+			"webpackChunk" + Template.toIdentifier(output.uniqueName)
+		)
+	);
 	F(output, "module", () => !!outputModule);
 	D(output, "filename", output.module ? "[name].mjs" : "[name].js");
 	F(output, "iife", () => !output.module);
@@ -416,6 +489,11 @@ const applyOutputDefaults = (
 		`[id].[fullhash].hot-update.${output.module ? "mjs" : "js"}`
 	);
 	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
+	F(output, "hotUpdateGlobal", () =>
+		Template.toIdentifier(
+			"webpackHotUpdate" + Template.toIdentifier(output.uniqueName)
+		)
+	);
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	F(output, "path", () => path.join(process.cwd(), "dist"));
@@ -561,7 +639,11 @@ const applyOutputDefaults = (
 		if (output.library) {
 			enabledLibraryTypes.push(output.library.type);
 		}
-		// TODO respect entryOptions.library
+		forEachEntry(desc => {
+			if (desc.library) {
+				enabledLibraryTypes.push(desc.library.type);
+			}
+		});
 		return enabledLibraryTypes;
 	});
 	A(output, "enabledChunkLoadingTypes", () => {
@@ -656,15 +738,29 @@ const applyOptimizationDefaults = (
 ) => {
 	D(optimization, "removeAvailableModules", true);
 	D(optimization, "removeEmptyChunks", true);
+	D(optimization, "mergeDuplicateChunks", true);
 	F(optimization, "moduleIds", (): "named" | "deterministic" => {
 		if (production) return "deterministic";
 		return "named";
 	});
+	F(optimization, "chunkIds", (): "named" | "deterministic" => "named");
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
+	D(optimization, "providedExports", true);
+	D(optimization, "usedExports", production);
+	D(optimization, "innerGraph", production);
 	D(optimization, "runtimeChunk", false);
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
-	A(optimization, "minimizer", () => []);
+	A(optimization, "minimizer", () => [
+		// TODO: enable this when drop support for builtins options
+		// new SwcJsMinimizerPlugin(),
+		// new SwcCssMinimizerPlugin()
+	]);
+	F(optimization, "nodeEnv", () => {
+		if (production) return "production";
+		if (development) return "development";
+		return false;
+	});
 	const { splitChunks } = optimization;
 	if (splitChunks) {
 		// A(splitChunks, "defaultSizeTypes", () =>
@@ -696,6 +792,18 @@ const applyOptimizationDefaults = (
 			}));
 		}
 	}
+};
+
+const getResolveLoaderDefaults = () => {
+	const resolveOptions: ResolveOptions = {
+		conditionNames: ["loader", "require", "node"],
+		exportsFields: ["exports"],
+		mainFields: ["loader", "main"],
+		extensions: [".js"],
+		mainFiles: ["index"]
+	};
+
+	return resolveOptions;
 };
 
 const getResolveDefaults = ({

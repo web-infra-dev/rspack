@@ -1,5 +1,6 @@
 #![feature(let_chains)]
 
+use std::collections::HashSet;
 use std::{hash::Hash, path::Path};
 
 use dashmap::DashMap;
@@ -7,6 +8,7 @@ use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rayon::prelude::*;
 use regex::Regex;
+use rspack_core::Logger;
 use rspack_core::{
   contextify,
   rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap},
@@ -63,25 +65,28 @@ static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(Dash
 #[async_trait::async_trait]
 impl Plugin for DevtoolPlugin {
   fn name(&self) -> &'static str {
-    "devtool"
+    "rspack.DevtoolPlugin"
   }
-  fn render_module_content(
-    &self,
+
+  fn render_module_content<'a>(
+    &'a self,
     _ctx: PluginContext,
-    args: &RenderModuleContentArgs,
-  ) -> PluginRenderModuleContentOutput {
+    mut args: RenderModuleContentArgs<'a>,
+  ) -> PluginRenderModuleContentOutput<'a> {
     let devtool = &args.compilation.options.devtool;
     let origin_source = args.module_source.clone();
     if devtool.eval() && devtool.source_map() {
       if let Some(cached) = MODULE_RENDER_CACHE.get(&origin_source) {
-        return Ok(Some(cached.value().clone()));
+        args.module_source = cached.value().clone();
+        return Ok(args);
       } else if let Some(map) = origin_source.map(&MapOptions::new(devtool.cheap())) {
         let source = wrap_eval_source_map(&origin_source.source(), map, args.compilation)?;
         MODULE_RENDER_CACHE.insert(origin_source, source.clone());
-        return Ok(Some(source));
+        args.module_source = source;
+        return Ok(args);
       }
     }
-    Ok(Some(origin_source))
+    Ok(args)
   }
 
   fn js_chunk_hash(
@@ -99,6 +104,8 @@ impl Plugin for DevtoolPlugin {
     _ctx: PluginContext,
     args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
+    let logger = args.compilation.get_logger(self.name());
+    let start = logger.time("collect source maps");
     let no_map =
       !args.compilation.options.devtool.source_map() || args.compilation.options.devtool.eval();
     let context = args.compilation.options.context.clone();
@@ -138,6 +145,9 @@ impl Plugin for DevtoolPlugin {
         Ok((filename.to_owned(), (code_buffer, map)))
       })
       .collect::<Result<_>>()?;
+    logger.time_end(start);
+
+    let start = logger.time("emit source map assets");
     for (filename, (code_buffer, map_buffer)) in maps {
       let mut asset = args
         .compilation
@@ -176,6 +186,8 @@ impl Plugin for DevtoolPlugin {
           .boxed(),
         );
         args.compilation.emit_asset(filename, asset);
+        // TODO
+        // chunk.auxiliary_files.add(filename);
       } else {
         let mut source_map_filename = filename.to_owned() + ".map";
         // TODO(ahabhgk): refactor remove the for loop
@@ -183,7 +195,10 @@ impl Plugin for DevtoolPlugin {
         if args.compilation.options.devtool.source_map() {
           let source_map_filename_config = &args.compilation.options.output.source_map_filename;
           for chunk in args.compilation.chunk_by_ukey.values() {
-            for file in &chunk.files {
+            let files: HashSet<String> =
+              chunk.files.union(&chunk.auxiliary_files).cloned().collect();
+
+            for file in &files {
               if file == &filename {
                 let source_type = if is_css {
                   &SourceType::Css
@@ -211,7 +226,9 @@ impl Plugin for DevtoolPlugin {
         if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
           let source_map_url = if let Some(public_path) = &self.public_path {
             format!("{public_path}{source_map_filename}")
-          } else if let Some(dirname) = Path::new(&filename).parent() && let Some(relative) = diff_paths(&source_map_filename, dirname) {
+          } else if let Some(dirname) = Path::new(&filename).parent()
+            && let Some(relative) = diff_paths(&source_map_filename, dirname)
+          {
             relative.to_string_lossy().into_owned()
           } else {
             source_map_filename.clone()
@@ -243,6 +260,7 @@ impl Plugin for DevtoolPlugin {
         );
       }
     }
+    logger.time_end(start);
     Ok(())
   }
 }

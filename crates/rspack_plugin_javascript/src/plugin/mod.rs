@@ -1,19 +1,25 @@
+pub mod api_plugin;
+mod flag_dependency_exports_plugin;
+mod flag_dependency_usage_plugin;
 pub mod impl_plugin_for_js_plugin;
 pub mod infer_async_modules_plugin;
-
+pub mod inner_graph_plugin;
+mod side_effects_flag_plugin;
 use std::hash::Hash;
 
+pub use flag_dependency_exports_plugin::*;
+pub use flag_dependency_usage_plugin::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  ChunkUkey, Compilation, JsChunkHashArgs, PluginJsChunkHashHookOutput, RenderArgs,
-  RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
+  render_init_fragments, ChunkRenderContext, ChunkUkey, Compilation, JsChunkHashArgs,
+  PluginJsChunkHashHookOutput, RenderArgs, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
+pub use side_effects_flag_plugin::*;
 
-use crate::runtime::{
-  render_chunk_init_fragments, render_chunk_modules, render_runtime_modules, stringify_array,
-};
+use crate::runtime::{render_chunk_modules, render_iife, render_runtime_modules, stringify_array};
+use crate::utils::is_diff_mode;
 
 #[derive(Debug)]
 pub struct JsPlugin;
@@ -80,9 +86,17 @@ impl JsPlugin {
             execOptions.factory.call(module.exports, module, module.exports, execOptions.require);
             "#,
       ),
-      false => RawSource::from(
-        "__webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n",
-      ),
+      false => {
+        if runtime_requirements.contains(RuntimeGlobals::THIS_AS_EXPORTS) {
+          RawSource::from(
+            "__webpack_modules__[moduleId].call(module.exports, module, module.exports, __webpack_require__);\n",
+          )
+        } else {
+          RawSource::from(
+            "__webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n",
+          )
+        }
+      }
     };
 
     if strict_module_error_handling {
@@ -131,6 +145,12 @@ impl JsPlugin {
     // let module_used = runtime_requirements.contains(RuntimeGlobals::MODULE);
     // let use_require = require_function || intercept_module_execution || module_used;
     let mut header = ConcatSource::default();
+
+    if is_diff_mode() {
+      header.add(RawSource::from(
+        "\n/************************************************************************/\n",
+      ));
+    }
 
     header.add(RawSource::from(
       "// The module cache\n var __webpack_module_cache__ = {};\n",
@@ -267,7 +287,11 @@ impl JsPlugin {
         RuntimeGlobals::STARTUP
       ));
     }
-
+    if is_diff_mode() {
+      header.add(RawSource::from(
+        "\n/************************************************************************/\n",
+      ));
+    }
     (header.boxed(), RawSource::from(startup.join("\n")).boxed())
   }
 
@@ -309,11 +333,15 @@ impl JsPlugin {
       }
     }
     let mut final_source = if compilation.options.output.iife {
-      self.render_iife(sources.boxed())
+      render_iife(sources.boxed())
     } else {
       sources.boxed()
     };
-    final_source = render_chunk_init_fragments(final_source, chunk_init_fragments);
+    final_source = render_init_fragments(
+      final_source,
+      chunk_init_fragments,
+      &mut ChunkRenderContext {},
+    )?;
     if let Some(source) = compilation.plugin_driver.render(RenderArgs {
       compilation,
       chunk: &args.chunk_ukey,
@@ -329,12 +357,12 @@ impl JsPlugin {
     &self,
     args: &rspack_core::RenderManifestArgs<'_>,
   ) -> Result<BoxSource> {
+    let compilation = args.compilation;
     let (module_source, chunk_init_fragments) =
-      render_chunk_modules(args.compilation, &args.chunk_ukey)?;
+      render_chunk_modules(compilation, &args.chunk_ukey)?;
     let source = args
       .compilation
       .plugin_driver
-      .clone()
       .render_chunk(RenderChunkArgs {
         compilation: args.compilation,
         chunk_ukey: &args.chunk_ukey,
@@ -342,7 +370,16 @@ impl JsPlugin {
       })
       .await?
       .expect("should run render_chunk hook");
-    Ok(render_chunk_init_fragments(source, chunk_init_fragments))
+    let final_source =
+      render_init_fragments(source, chunk_init_fragments, &mut ChunkRenderContext {})?;
+    if let Some(source) = compilation.plugin_driver.render(RenderArgs {
+      compilation,
+      chunk: &args.chunk_ukey,
+      source: &final_source,
+    })? {
+      return Ok(source);
+    }
+    Ok(final_source)
   }
 
   #[inline]
@@ -374,14 +411,6 @@ impl JsPlugin {
     header.hash(hasher);
     startup.hash(hasher);
   }
-
-  pub fn render_iife(&self, content: BoxSource) -> BoxSource {
-    let mut sources = ConcatSource::default();
-    sources.add(RawSource::from("(function() {\n"));
-    sources.add(content);
-    sources.add(RawSource::from("\n})()\n"));
-    sources.boxed()
-  }
 }
 
 impl Default for JsPlugin {
@@ -389,6 +418,7 @@ impl Default for JsPlugin {
     Self::new()
   }
 }
+
 #[derive(Debug, Clone)]
 pub struct ExtractedCommentsInfo {
   pub source: BoxSource,

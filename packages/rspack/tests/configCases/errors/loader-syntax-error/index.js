@@ -1,10 +1,10 @@
 it("should report syntax error", () => {
-  let errored = false;
+	let errored = false;
 	try {
 		require("./lib");
 	} catch (e) {
-    errored = true;
-		// expect(e.message).toContain("SyntaxError");
+		errored = true;
+		expect(e.message).toContain("Syntax Error");
 	}
-  expect(errored).toBeTruthy()
+	expect(errored).toBeTruthy()
 });

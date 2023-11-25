@@ -3,7 +3,7 @@ use std::{fmt, io, path::Path};
 use rspack_util::swc::normalize_custom_filename;
 use swc_core::common::SourceFile;
 
-use crate::Severity;
+use crate::{internal_error, Severity};
 
 #[derive(Debug, Default)]
 pub struct InternalError {
@@ -182,6 +182,12 @@ impl fmt::Display for Error {
   }
 }
 
+impl From<serde_json::Error> for Error {
+  fn from(value: serde_json::Error) -> Self {
+    Error::InternalError(InternalError::new(value.to_string(), Severity::Error))
+  }
+}
+
 impl From<io::Error> for Error {
   fn from(source: io::Error) -> Self {
     Error::Io { source }
@@ -191,6 +197,12 @@ impl From<io::Error> for Error {
 impl From<anyhow::Error> for Error {
   fn from(source: anyhow::Error) -> Self {
     Error::Anyhow { source }
+  }
+}
+
+impl From<rspack_sources::Error> for Error {
+  fn from(value: rspack_sources::Error) -> Self {
+    internal_error!(value.to_string())
   }
 }
 

@@ -1,13 +1,13 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
-use dashmap::DashMap;
-use rspack_core::rspack_sources::{RawSource, Source, SourceExt};
+use indexmap::IndexMap;
+use rspack_core::rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
-  AssetInfo, AstOrSource, BuildMetaExportsType, Compilation, Dependency, Filename, GenerateContext,
-  GenerationResult, Module, ModuleDependency, ModuleIdentifier, NormalModule, ParseContext,
-  ParseResult, ParserAndGenerator, PathData, RuntimeGlobals, SourceType,
+  AssetInfo, BoxDependency, BuildMetaExportsType, Compilation, Filename, GenerateContext, Module,
+  ModuleDependency, ModuleIdentifier, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
+  PathData, RuntimeGlobals, SourceType,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
@@ -30,13 +30,13 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     parse_context.build_info.strict = true;
-    parse_context.build_meta.is_async = true;
+    parse_context.build_meta.has_top_level_await = true;
     parse_context.build_meta.exports_type = BuildMetaExportsType::Namespace;
 
     let source = parse_context.source;
 
     let mut exports = Vec::with_capacity(1);
-    let mut dependencies = Vec::with_capacity(1);
+    let mut dependencies: Vec<BoxDependency> = Vec::with_capacity(1);
     let mut diagnostic = Vec::with_capacity(1);
 
     for payload in Parser::new(0).parse_all(&source.buffer()) {
@@ -59,10 +59,11 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             for import in s {
               match import {
                 Ok(Import { module, name, ty }) => {
-                  let dep = Box::new(WasmImportDependency::new(module.into(), name.into(), ty))
-                    as Box<dyn ModuleDependency>;
-
-                  dependencies.push(dep);
+                  dependencies.push(Box::new(WasmImportDependency::new(
+                    module.into(),
+                    name.into(),
+                    ty,
+                  )));
                 }
                 Err(err) => diagnostic.push(Diagnostic::error(
                   "Wasm Import Parse Error".into(),
@@ -93,8 +94,10 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     Ok(
       ParseResult {
         dependencies,
+        blocks: vec![],
         presentational_dependencies: vec![],
-        ast_or_source: source.into(),
+        source,
+        analyze_result: Default::default(),
       }
       .with_diagnostic(diagnostic),
     )
@@ -116,13 +119,13 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
-    ast_or_source: &AstOrSource,
+    source: &BoxSource,
     module: &dyn Module,
     generate_context: &mut GenerateContext,
-  ) -> Result<GenerationResult> {
+  ) -> Result<BoxSource> {
     let compilation = generate_context.compilation;
     let wasm_filename_template = &compilation.options.output.webassembly_module_filename;
-    let hash = hash_for_ast_or_source(ast_or_source);
+    let hash = hash_for_source(source);
     let normal_module = module
       .as_normal_module()
       .expect("module should be a NormalModule in AsyncWasmParserAndGenerator::generate");
@@ -140,59 +143,55 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
         runtime_requirements.insert(RuntimeGlobals::INSTANTIATE_WASM);
 
-        let dep_modules = DashMap::<ModuleIdentifier, (String, &str)>::new();
-        let wasm_deps_by_request = DashMap::<&str, Vec<(Identifier, String)>>::new();
+        let mut dep_modules = IndexMap::<ModuleIdentifier, (String, &str)>::new();
+        let mut wasm_deps_by_request = IndexMap::<&str, Vec<(Identifier, String)>>::new();
         let mut promises: Vec<String> = vec![];
 
         let module_graph = &compilation.module_graph;
         let chunk_graph = &compilation.chunk_graph;
 
-        if let Some(dependencies) = module_graph
-          .module_graph_module_by_identifier(&module.identifier())
-          .map(|mgm| &mgm.dependencies)
-        {
-          dependencies
-            .iter()
-            .map(|id| module_graph.dependency_by_id(id).expect("should be ok"))
-            .filter(|dep| dep.dependency_type() == &WasmImport)
-            .map(|dep| {
-              (
-                dep,
-                module_graph.module_graph_module_by_dependency_id(dep.id()),
-              )
-            })
-            .for_each(|(dep, mgm)| {
-              if let Some(mgm) = mgm {
-                if !dep_modules.contains_key(&mgm.module_identifier) {
-                  let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", dep_modules.len());
-                  let val = (import_var.clone(), mgm.id(chunk_graph));
+        module
+          .get_dependencies()
+          .iter()
+          .map(|id| module_graph.dependency_by_id(id).expect("should be ok"))
+          .filter(|dep| dep.dependency_type() == &WasmImport)
+          .map(|dep| {
+            (
+              dep,
+              module_graph.module_graph_module_by_dependency_id(dep.id()),
+            )
+          })
+          .for_each(|(dep, mgm)| {
+            if let Some(mgm) = mgm {
+              if !dep_modules.contains_key(&mgm.module_identifier) {
+                let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", dep_modules.len());
+                let val = (import_var.clone(), mgm.id(chunk_graph));
 
-                  if let Some(meta)=&mgm.build_meta&&meta.is_async{
-                    promises.push(import_var);
-                  }
-                  dep_modules.insert(mgm.module_identifier, val);
+                if matches!(module_graph.is_async(&mgm.module_identifier), Some(true)) {
+                  promises.push(import_var);
                 }
-
-                let dep = dep
-                  .as_any()
-                  .downcast_ref::<WasmImportDependency>()
-                  .expect("should be wasm import dependency");
-
-                let dep_name = serde_json::to_string(dep.name()).expect("should be ok.");
-                let request = dep.request();
-                let val = (mgm.module_identifier, dep_name);
-                if let Some(deps) = &mut wasm_deps_by_request.get_mut(&request) {
-                  deps.value_mut().push(val);
-                } else {
-                  wasm_deps_by_request.insert(request, vec![val]);
-                }
+                dep_modules.insert(mgm.module_identifier, val);
               }
-            })
-        }
+
+              let dep = dep
+                .as_any()
+                .downcast_ref::<WasmImportDependency>()
+                .expect("should be wasm import dependency");
+
+              let dep_name = serde_json::to_string(dep.name()).expect("should be ok.");
+              let request = dep.request();
+              let val = (mgm.module_identifier, dep_name);
+              if let Some(deps) = wasm_deps_by_request.get_mut(&request) {
+                deps.push(val);
+              } else {
+                wasm_deps_by_request.insert(request, vec![val]);
+              }
+            }
+          });
 
         let imports_code = dep_modules
           .iter()
-          .map(|val| render_import_stmt(&val.value().0, val.value().1))
+          .map(|(_, val)| render_import_stmt(&val.0, val.1))
           .collect::<Vec<_>>()
           .join("");
 
@@ -203,7 +202,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               .into_iter()
               .map(|(id, name)| {
                 let import_var = dep_modules.get(&id).expect("should be ok");
-                let import_var = &import_var.value().0;
+                let import_var = &import_var.0;
                 format!("{name}: {import_var}[{name}]")
               })
               .collect::<Vec<_>>()
@@ -263,11 +262,9 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           ))
         };
 
-        Ok(GenerationResult {
-          ast_or_source: source.boxed().into(),
-        })
+        Ok(source.boxed())
       }
-      _ => Ok(ast_or_source.clone().into()),
+      _ => Ok(source.clone()),
     }
   }
 }
@@ -292,8 +289,8 @@ fn render_import_stmt(import_var: &str, module_id: &str) -> String {
   format!("var {import_var} = __webpack_require__({module_id});\n",)
 }
 
-fn hash_for_ast_or_source(ast_or_source: &AstOrSource) -> String {
+fn hash_for_source(source: &BoxSource) -> String {
   let mut hasher = DefaultHasher::new();
-  ast_or_source.hash(&mut hasher);
+  source.hash(&mut hasher);
   format!("{:016x}", hasher.finish())
 }

@@ -1,23 +1,22 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  ChunkGroupOptions, ConstDependency, DependencyTemplate, EntryOptions, ModuleDependency,
-  ModuleIdentifier, OutputOptions, SpanExt,
+  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, ConstDependency, EntryOptions,
+  ErrorSpan, GroupOptions, ModuleIdentifier, OutputOptions, SpanExt,
 };
 use rspack_hash::RspackHash;
 use swc_core::common::Spanned;
-use swc_core::ecma::ast::ObjectLit;
-use swc_core::ecma::{
-  ast::{Expr, ExprOrSpread, Lit, NewExpr},
-  visit::{noop_visit_type, Visit, VisitWith},
-};
+use swc_core::ecma::ast::{Expr, ExprOrSpread, NewExpr};
+use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use crate::dependency::WorkerDependency;
+use crate::utils::get_literal_str_by_obj_prop;
 
 // TODO: should created by WorkerPlugin
 pub struct WorkerScanner<'a> {
-  pub presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
-  pub dependencies: Vec<Box<dyn ModuleDependency>>,
+  pub presentational_dependencies: Vec<BoxDependencyTemplate>,
+  pub dependencies: Vec<BoxDependency>,
+  pub blocks: Vec<AsyncDependenciesBlock>,
   index: usize,
   module_identifier: &'a ModuleIdentifier,
   output_options: &'a OutputOptions,
@@ -34,6 +33,7 @@ impl<'a> WorkerScanner<'a> {
     Self {
       presentational_dependencies: Vec::new(),
       dependencies: Vec::new(),
+      blocks: Vec::new(),
       index: 0,
       module_identifier,
       output_options,
@@ -58,24 +58,31 @@ impl<'a> WorkerScanner<'a> {
     let range = parsed_options.as_ref().map(|options| options.range);
     let name = parsed_options.and_then(|options| options.name);
     let output_module = self.output_options.module;
-    self.dependencies.push(Box::new(WorkerDependency::new(
+    let span = ErrorSpan::from(new_expr.span);
+    let dep = Box::new(WorkerDependency::new(
       parsed_path.range.0,
       parsed_path.range.1,
       parsed_path.value,
       self.output_options.worker_public_path.clone(),
-      Some(new_expr.span.into()),
-      ChunkGroupOptions {
-        name,
-        entry_options: Some(EntryOptions {
-          runtime: Some(runtime),
-          chunk_loading: Some(self.output_options.worker_chunk_loading.clone()),
-          async_chunks: None,
-          public_path: None,
-          base_uri: None,
-          filename: None,
-        }),
-      },
-    )));
+      Some(span),
+    ));
+    let mut block = AsyncDependenciesBlock::new(
+      *self.module_identifier,
+      format!("{}:{}", span.start, span.end),
+    );
+    block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
+      name,
+      runtime: Some(runtime),
+      chunk_loading: Some(self.output_options.worker_chunk_loading.clone()),
+      async_chunks: None,
+      public_path: None,
+      base_uri: None,
+      filename: None,
+      library: None,
+    })));
+    block.add_dependency(dep);
+    self.blocks.push(block);
+
     if let Some(range) = range {
       self
         .presentational_dependencies
@@ -109,10 +116,14 @@ impl<'a> WorkerScanner<'a> {
     new_expr: &NewExpr,
   ) -> Option<(ParsedNewWorkerPath, Option<ParsedNewWorkerOptions>)> {
     if self.syntax_list.match_new_worker(new_expr)
-    && let Some(args) = &new_expr.args
-    && let Some(expr_or_spread) = args.first()
-    && let ExprOrSpread { spread: None, expr: box Expr::New(new_url_expr) } = expr_or_spread
-    && let Some((start, end, request)) = rspack_core::needs_refactor::match_new_url(new_url_expr) {
+      && let Some(args) = &new_expr.args
+      && let Some(expr_or_spread) = args.first()
+      && let ExprOrSpread {
+        spread: None,
+        expr: box Expr::New(new_url_expr),
+      } = expr_or_spread
+      && let Some((start, end, request)) = rspack_core::needs_refactor::match_new_url(new_url_expr)
+    {
       let path = ParsedNewWorkerPath {
         range: (start, end),
         value: request,
@@ -150,28 +161,10 @@ struct ParsedNewWorkerOptions {
 }
 
 fn parse_new_worker_options(arg: &ExprOrSpread) -> ParsedNewWorkerOptions {
-  fn get_prop_literal_str(obj: &ObjectLit, key: &str) -> Option<String> {
-    obj
-      .props
-      .iter()
-      .filter_map(|p| {
-        p.as_prop()
-          .and_then(|p| p.as_key_value())
-          .filter(|kv| {
-            kv.key.as_str().filter(|k| &*k.value == key).is_some()
-              || kv.key.as_ident().filter(|k| &*k.sym == key).is_some()
-          })
-          .and_then(|name| name.value.as_lit())
-          .and_then(|lit| match lit {
-            Lit::Str(s) => Some(s.value.to_string()),
-            _ => None,
-          })
-      })
-      .next()
-  }
-
   let obj = arg.expr.as_object();
-  let name = obj.and_then(|obj| get_prop_literal_str(obj, "name"));
+  let name = obj
+    .and_then(|obj| get_literal_str_by_obj_prop(obj, "name"))
+    .map(|str| str.value.to_string());
   let span = arg.span();
   ParsedNewWorkerOptions {
     range: (span.real_lo(), span.real_hi()),

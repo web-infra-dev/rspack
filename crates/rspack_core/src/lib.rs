@@ -1,20 +1,34 @@
 #![feature(let_chains)]
+#![feature(if_let_guard)]
 #![feature(iter_intersperse)]
 #![feature(box_patterns)]
 #![feature(anonymous_lifetime_in_impl_trait)]
+#![feature(hash_raw_entry)]
 
+use std::sync::atomic::AtomicBool;
 use std::{fmt, sync::Arc};
-
+mod dependencies_block;
+pub mod mf;
+pub use dependencies_block::{
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock,
+};
+mod fake_namespace_object;
+pub use fake_namespace_object::*;
+mod module_profile;
+pub use module_profile::*;
 use rspack_database::Database;
 pub mod external_module;
 pub use external_module::*;
-pub mod ast;
+mod logger;
+pub use logger::*;
 pub mod cache;
 mod missing_module;
 pub use missing_module::*;
 mod normal_module;
 mod raw_module;
 pub use raw_module::*;
+mod exports_info;
+pub use exports_info::*;
 pub mod module;
 pub mod parser_and_generator;
 pub use module::*;
@@ -69,9 +83,11 @@ mod ukey;
 pub use ukey::*;
 mod module_graph_module;
 pub use module_graph_module::*;
+pub mod resolver;
+pub use resolver::*;
 pub mod tree_shaking;
 
-pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme};
+pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme, BUILTIN_LOADER_PREFIX};
 pub use rspack_sources;
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -80,8 +96,24 @@ pub enum SourceType {
   Css,
   Wasm,
   Asset,
+  Remote,
+  ShareInit,
   #[default]
   Unknown,
+}
+
+impl std::fmt::Display for SourceType {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      SourceType::JavaScript => write!(f, "javascript"),
+      SourceType::Css => write!(f, "css"),
+      SourceType::Wasm => write!(f, "wasm"),
+      SourceType::Asset => write!(f, "asset"),
+      SourceType::Remote => write!(f, "remote"),
+      SourceType::ShareInit => write!(f, "share-init"),
+      SourceType::Unknown => write!(f, "unknown"),
+    }
+  }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -104,6 +136,8 @@ pub enum ModuleType {
   AssetResource,
   AssetSource,
   Asset,
+  Runtime,
+  Remote,
 }
 
 impl ModuleType {
@@ -187,6 +221,8 @@ impl ModuleType {
       ModuleType::AssetSource => "asset/source",
       ModuleType::AssetResource => "asset/resource",
       ModuleType::AssetInline => "asset/inline",
+      ModuleType::Runtime => "runtime",
+      ModuleType::Remote => "remote-module",
     }
   }
 }
@@ -208,10 +244,12 @@ impl TryFrom<&str> for ModuleType {
       "js/dynamic" | "javascript/dynamic" => Ok(Self::JsDynamic),
       "js/esm" | "javascript/esm" => Ok(Self::JsEsm),
 
+      // TODO: remove in 0.5.0
       "jsx" | "javascriptx" | "jsx/auto" | "javascriptx/auto" => Ok(Self::Jsx),
       "jsx/dynamic" | "javascriptx/dynamic" => Ok(Self::JsxDynamic),
       "jsx/esm" | "javascriptx/esm" => Ok(Self::JsxEsm),
 
+      // TODO: remove in 0.5.0
       "ts" | "typescript" => Ok(Self::Ts),
       "tsx" | "typescriptx" => Ok(Self::Tsx),
 
@@ -240,3 +278,5 @@ impl TryFrom<&str> for ModuleType {
 pub type ChunkByUkey = Database<Chunk>;
 pub type ChunkGroupByUkey = Database<ChunkGroup>;
 pub(crate) type SharedPluginDriver = Arc<PluginDriver>;
+
+pub static IS_NEW_TREESHAKING: AtomicBool = AtomicBool::new(false);

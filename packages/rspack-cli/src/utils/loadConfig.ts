@@ -5,7 +5,6 @@ import { RspackOptions, MultiRspackOptions } from "@rspack/core";
 import findConfig from "./findConfig";
 import rechoir from "rechoir";
 import interpret from "interpret";
-import { pathToFileURL } from "url";
 import isEsmFile from "./isEsmFile";
 import isTsFile from "./isTsFile";
 import crossImport from "./crossImport";
@@ -49,7 +48,7 @@ export type LoadedRspackConfig =
 	| MultiRspackOptions
 	| ((
 			env: Record<string, any>,
-			argv: Record<string, any>
+			argv?: Record<string, any>
 	  ) => RspackOptions | MultiRspackOptions);
 
 export async function loadRspackConfig(

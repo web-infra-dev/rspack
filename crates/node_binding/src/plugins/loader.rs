@@ -1,7 +1,9 @@
 use std::{fmt::Debug, path::Path, sync::Arc};
 
-use rspack_binding_options::{JsLoaderAdapter, JsLoaderRunner};
-use rspack_core::{BoxLoader, CompilerOptions, NormalModule, Plugin, ResolveResult, Resolver};
+use rspack_binding_options::{get_builtin_loader, JsLoaderAdapter, JsLoaderRunner};
+use rspack_core::{
+  BoxLoader, CompilerOptions, NormalModule, Plugin, ResolveResult, Resolver, BUILTIN_LOADER_PREFIX,
+};
 use rspack_error::{internal_error, Result};
 
 pub struct JsLoaderResolver {
@@ -19,44 +21,28 @@ impl Debug for JsLoaderResolver {
 #[async_trait::async_trait]
 impl Plugin for JsLoaderResolver {
   async fn before_loaders(&self, module: &mut NormalModule) -> Result<()> {
-    let old_loaders = module.loaders_mut_vec();
-    if old_loaders.is_empty() || old_loaders.len() == 1 {
-      return Ok(());
-    }
+    let contains_inline = module.contains_inline_loader();
+    let contains_js_loader = module
+      .loaders()
+      .iter()
+      .any(|l| !l.identifier().starts_with(BUILTIN_LOADER_PREFIX));
 
-    let mut loaders: Vec<BoxLoader> = vec![];
-
-    let mut starting_point = 0;
-    for (idx, l) in old_loaders.iter().enumerate() {
-      if l.identifier().starts_with("builtin:") {
-        // Compose JS loaders
-        let composed = old_loaders[starting_point..idx]
+    // If there's any JS loader, then we switch to the JS loader runner.
+    // Else, we run loader on the Rust side using the Rust loader runner.
+    // Note: If the loaders list contains inline loaders,
+    // fallback to JS loader runner for passing builtin options(reuse `Compiler.ruleSet`).
+    if contains_inline || contains_js_loader {
+      *module.loaders_mut_vec() = vec![Arc::new(JsLoaderAdapter {
+        runner: self.js_loader_runner.clone(),
+        identifier: module
+          .loaders()
           .iter()
           .map(|l| l.identifier().as_str())
           .collect::<Vec<_>>()
-          .join("$");
-        loaders.push(Arc::new(JsLoaderAdapter {
-          runner: self.js_loader_runner.clone(),
-          identifier: composed.into(),
-        }));
-        loaders.push(l.clone());
-        starting_point = idx + 1;
-      }
+          .join("$")
+          .into(),
+      })];
     }
-    // Compose the rest of JS loaders
-    if starting_point < old_loaders.len() {
-      let composed = old_loaders[starting_point..]
-        .iter()
-        .map(|l| l.identifier().as_str())
-        .collect::<Vec<_>>()
-        .join("$");
-      loaders.push(Arc::new(JsLoaderAdapter {
-        runner: self.js_loader_runner.clone(),
-        identifier: composed.into(),
-      }));
-    }
-
-    *module.loaders_mut_vec() = loaders;
 
     Ok(())
   }
@@ -67,30 +53,31 @@ impl Plugin for JsLoaderResolver {
     context: &Path,
     resolver: &Resolver,
     loader_request: &str,
+    loader_options: Option<&str>,
   ) -> Result<Option<BoxLoader>> {
-    if loader_request.starts_with("builtin:") {
-      // builtin loaders are not supported.
-      // TODO: Options have to be serializable.
-      return Ok(None);
-    }
-
     let mut rest = None;
-    let loader_request = if let Some(index) = loader_request.find('?') {
+    let prev = if let Some(index) = loader_request.find('?') {
       rest = Some(&loader_request[index..]);
       Path::new(&loader_request[0..index])
     } else {
       Path::new(loader_request)
     };
+
+    if loader_request.starts_with(BUILTIN_LOADER_PREFIX) {
+      return Ok(Some(get_builtin_loader(loader_request, loader_options)));
+    }
+
     let resolve_result = resolver
-      .resolve(context, &loader_request.to_string_lossy())
+      .resolve(context, &prev.to_string_lossy())
       .map_err(|err| {
-        let loader_request = loader_request.display();
+        let loader_request = prev.display();
         let context = context.display();
         internal_error!("Failed to resolve loader: {loader_request} in {context} {err:?}")
       })?;
 
     match resolve_result {
       ResolveResult::Resource(resource) => {
+        // TODO: Should move this logic to `resolver`, since `resolve.alias` may contain query or fragment too. @Boshen
         let resource = resource.path.to_string_lossy().to_string() + rest.unwrap_or_default();
         Ok(Some(Arc::new(JsLoaderAdapter {
           identifier: resource.into(),
@@ -98,7 +85,7 @@ impl Plugin for JsLoaderResolver {
         })))
       }
       ResolveResult::Ignored => {
-        let loader_request = loader_request.display();
+        let loader_request = prev.display();
         Err(internal_error!(
           "Failed to resolve loader: {loader_request}"
         ))

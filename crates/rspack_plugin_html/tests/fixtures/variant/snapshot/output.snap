@@ -1,0 +1,17 @@
+---
+source: crates/rspack_testing/src/run_fixture.rs
+---
+```html title=output.html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Rspack App</title>
+<script src="/runtime.js" crossorigin="anonymous" integrity="sha512-ceMjE+yZG4n/QqA6l46MTf9/ULdm3Jdh23YAibtqBR0VxROsDAo00vxahM2XRScTmrbhLq53YlNMwi76CvK1lQ=="></script><script src="/index.js" crossorigin="anonymous" integrity="sha512-TxcUWIVMT5+BlCyTLlXvvIpHYNKgA1vupjvph1rLdThlssryIJsYdrTCQQStj++A/JNgVnNDmfhBAsnQg+GJBg=="></script><link href="/index.css" rel="stylesheet" crossorigin="anonymous" integrity="sha512-vjhejkvTX8D8jzzC5Lc9ToCtcEDb0/NqtYmEHOid+ycq64hvW+JTG7Dw/ACFP6rApgiYwVMbEt6Zfb8j4EoZTA==" /></head>
+
+<body>
+
+
+
+</body></html>
+```

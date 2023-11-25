@@ -2,7 +2,19 @@
 module.exports = {
 	context: __dirname,
 	mode: "development",
-	entry: ["@rspack/dev-client/react-refresh-entry", "./src/index.jsx"],
+	module: {
+		// add this to test react refresh runtime shouldn't inject runtime,see #3984
+		rules: [
+			{
+				test: /\.js$/,
+				type: "jsx"
+			}
+		]
+	},
+	entry: [
+		"@rspack/plugin-react-refresh/react-refresh-entry",
+		"./src/index.jsx"
+	],
 	devServer: {
 		hot: true
 	},
@@ -10,6 +22,11 @@ module.exports = {
 	stats: "none",
 	infrastructureLogging: {
 		debug: false
+	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: false
+		}
 	},
 	builtins: {
 		provide: {

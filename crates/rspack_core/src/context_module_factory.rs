@@ -4,10 +4,10 @@ use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, MissingModule,
-  ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleIdentifier, NormalModuleBeforeResolveArgs, RawModule, ResolveArgs, ResolveError,
-  ResolveResult, SharedPluginDriver,
+  cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, MissingModule, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
+  NormalModuleBeforeResolveArgs, RawModule, ResolveArgs, ResolveError, ResolveResult,
+  SharedPluginDriver,
 };
 
 pub struct ContextModuleFactory {
@@ -37,12 +37,16 @@ impl ContextModuleFactory {
     }
   }
 
-  pub async fn before_resolve(
+  async fn before_resolve(
     &mut self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
+    let dependency = data
+      .dependency
+      .as_context_dependency_mut()
+      .expect("should be module dependency");
     let mut before_resolve_args = NormalModuleBeforeResolveArgs {
-      request: data.dependency.request().to_string(),
+      request: dependency.request().to_string(),
       context: data.context.to_string(),
     };
     if let Ok(Some(false)) = self
@@ -50,7 +54,7 @@ impl ContextModuleFactory {
       .context_module_before_resolve(&mut before_resolve_args)
       .await
     {
-      let specifier = data.dependency.request();
+      let specifier = dependency.request();
       let ident = format!("{}{specifier}", data.context);
 
       let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
@@ -66,26 +70,30 @@ impl ContextModuleFactory {
       ));
     }
     data.context = before_resolve_args.context.into();
-    data.dependency.set_request(before_resolve_args.request);
+    dependency.set_request(before_resolve_args.request);
     Ok(None)
   }
 
-  pub async fn resolve(
+  async fn resolve(
     &self,
     data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
+    let dependency = data
+      .dependency
+      .as_context_dependency()
+      .expect("should be context dependency");
     let factory_meta = Default::default();
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
     let context_dependencies = Default::default();
-    let specifier = data.dependency.request();
+    let specifier = dependency.request();
     let resolve_args = ResolveArgs {
       context: data.context.clone(),
       importer: None,
       specifier,
-      dependency_type: data.dependency.dependency_type(),
-      dependency_category: data.dependency.category(),
-      span: data.dependency.span().cloned(),
+      dependency_type: dependency.dependency_type(),
+      dependency_category: dependency.category(),
+      span: dependency.span(),
       resolve_options: data.resolve_options.clone(),
       resolve_to_context: true,
       optional: false,
@@ -94,11 +102,16 @@ impl ContextModuleFactory {
     };
     let plugin_driver = &self.plugin_driver;
 
-    let resource_data = self
+    let (resource_data, from_cache) = match self
       .cache
       .resolve_module_occasion
       .use_cache(resolve_args, |args| resolve(args, plugin_driver))
-      .await;
+      .await
+    {
+      Ok(result) => result,
+      Err(err) => (Err(err), false),
+    };
+
     let module = match resource_data {
       Ok(ResolveResult::Resource(resource)) => Box::new(ContextModule::new(
         ContextModuleOptions {
@@ -106,18 +119,13 @@ impl ContextModuleFactory {
           resource_query: resource.query,
           resource_fragment: resource.fragment,
           resolve_options: data.resolve_options,
-          context_options: data
-            .dependency
-            .options()
-            .expect("should has options")
-            .clone(),
+          context_options: dependency.options().clone(),
         },
         plugin_driver.resolver_factory.clone(),
       )) as BoxModule,
       Ok(ResolveResult::Ignored) => {
         let ident = format!("{}/{}", data.context, specifier);
         let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
-
         let raw_module = RawModule::new(
           "/* (ignored) */".to_owned(),
           module_identifier,
@@ -125,7 +133,6 @@ impl ContextModuleFactory {
           Default::default(),
         )
         .boxed();
-
         return Ok(ModuleFactoryResult::new(raw_module).with_empty_diagnostic());
       }
       Err(ResolveError(runtime_error, internal_error)) => {
@@ -150,6 +157,7 @@ impl ContextModuleFactory {
         missing_dependencies,
         context_dependencies,
         factory_meta,
+        from_cache,
       }
       .with_empty_diagnostic(),
     )

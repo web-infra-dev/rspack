@@ -16,7 +16,9 @@ async-scoped = { workspace = true, features = ["use-tokio"] }
 async-trait  = { workspace = true }
 dashmap      = { workspace = true }
 derivative   = { workspace = true }
+futures      = { workspace = true }
 futures-util = { workspace = true }
+num-bigint   = "0.4.4"
 rayon        = { workspace = true }
 rspack_util  = { path = "../rspack_util" }
 rustc-hash   = { workspace = true }

@@ -18,22 +18,23 @@ use serde::Deserialize;
 use swc_html::visit::VisitMutWith;
 
 use crate::{
-  config::{HtmlPluginConfig, HtmlPluginConfigInject},
+  config::{HtmlInject, HtmlRspackPluginOptions},
   parser::HtmlCompiler,
   sri::{add_sri, create_digest_from_asset},
   visitors::asset::{AssetWriter, HTMLPluginTag},
 };
 
 #[derive(Deserialize, Debug, Default)]
-pub struct HtmlPlugin {
-  config: HtmlPluginConfig,
+pub struct HtmlRspackPlugin {
+  config: HtmlRspackPluginOptions,
 }
 
-impl HtmlPlugin {
-  pub fn new(config: HtmlPluginConfig) -> HtmlPlugin {
-    HtmlPlugin { config }
+impl HtmlRspackPlugin {
+  pub fn new(config: HtmlRspackPluginOptions) -> HtmlRspackPlugin {
+    HtmlRspackPlugin { config }
   }
 }
+
 fn default_template() -> &'static str {
   r#"<!DOCTYPE html>
 <html>
@@ -47,9 +48,9 @@ fn default_template() -> &'static str {
 }
 
 #[async_trait]
-impl Plugin for HtmlPlugin {
+impl Plugin for HtmlRspackPlugin {
   fn name(&self) -> &'static str {
-    "html"
+    "rspack.HtmlRspackPlugin"
   }
 
   async fn process_assets_stage_optimize_inline(
@@ -69,19 +70,20 @@ impl Plugin for HtmlPlugin {
       )
     } else if let Some(template) = &config.template {
       // TODO: support loader query form
-      let resolved_template =
-        AsRef::<Path>::as_ref(&compilation.options.context).join(template.as_str());
+      let resolved_template = path_clean::clean(
+        AsRef::<Path>::as_ref(&compilation.options.context).join(template.as_str()),
+      );
 
       let content = fs::read_to_string(&resolved_template).context(format!(
         "failed to read `{}` from `{}`",
         resolved_template.display(),
         &compilation.options.context
       ))?;
-      (
-        content,
-        resolved_template.to_string_lossy().to_string(),
-        template.clone(),
-      )
+
+      let url = resolved_template.to_string_lossy().to_string();
+      compilation.file_dependencies.insert(resolved_template);
+
+      (content, url, template.clone())
     } else {
       (
         default_template().to_owned(),
@@ -132,36 +134,28 @@ impl Plugin for HtmlPlugin {
       .collect::<Vec<_>>();
 
     let mut tags = vec![];
-    for (asset_name, asset) in included_assets {
-      if let Some(extension) = Path::new(&asset_name).extension() {
-        let asset_uri = format!(
-          "{}{asset_name}",
-          config.get_public_path(compilation, &self.config.filename),
-        );
-        let mut tag: Option<HTMLPluginTag> = None;
-        if extension.eq_ignore_ascii_case("css") {
-          tag = Some(HTMLPluginTag::create_style(
-            &asset_uri,
-            Some(if let Some(inject) = &config.inject {
-              *inject
-            } else {
-              HtmlPluginConfigInject::Head
-            }),
-          ));
-        } else if extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("mjs") {
-          tag = Some(HTMLPluginTag::create_script(
-            &asset_uri,
-            Some(if let Some(inject) = &config.inject {
-              *inject
-            } else {
-              HtmlPluginConfigInject::Head
-            }),
-            &config.script_loading,
-          ))
-        }
+    // if inject is 'false', don't do anything
+    if !matches!(config.inject, HtmlInject::False) {
+      for (asset_name, asset) in included_assets {
+        if let Some(extension) = Path::new(&asset_name).extension() {
+          let asset_uri = format!(
+            "{}{asset_name}",
+            config.get_public_path(compilation, &self.config.filename),
+          );
+          let mut tag: Option<HTMLPluginTag> = None;
+          if extension.eq_ignore_ascii_case("css") {
+            tag = Some(HTMLPluginTag::create_style(&asset_uri, config.inject));
+          } else if extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("mjs") {
+            tag = Some(HTMLPluginTag::create_script(
+              &asset_uri,
+              config.inject,
+              &config.script_loading,
+            ))
+          }
 
-        if let Some(tag) = tag {
-          tags.push((tag, asset));
+          if let Some(tag) = tag {
+            tags.push((tag, asset));
+          }
         }
       }
     }
@@ -183,7 +177,7 @@ impl Plugin for HtmlPlugin {
     current_ast.visit_mut_with(&mut visitor);
 
     let source = parser.codegen(&mut current_ast)?;
-    let hash = hash_for_ast_or_source(&source);
+    let hash = hash_for_source(&source);
     let html_file_name = Filename::from(config.filename.clone());
     // Use the same filename as template
     let output_path = compilation
@@ -222,8 +216,8 @@ impl Plugin for HtmlPlugin {
   }
 }
 
-fn hash_for_ast_or_source(ast_or_source: &str) -> String {
+fn hash_for_source(source: &str) -> String {
   let mut hasher = DefaultHasher::new();
-  ast_or_source.hash(&mut hasher);
+  source.hash(&mut hasher);
   format!("{:016x}", hasher.finish())
 }

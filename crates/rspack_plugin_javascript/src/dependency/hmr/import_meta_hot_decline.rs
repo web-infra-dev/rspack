@@ -1,6 +1,6 @@
 use rspack_core::{
-  module_id, Dependency, DependencyCategory, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -10,9 +10,6 @@ pub struct ImportMetaHotDeclineDependency {
   request: JsWord,
   start: u32,
   end: u32,
-  category: &'static DependencyCategory,
-  dependency_type: &'static DependencyType,
-
   span: Option<ErrorSpan>,
 }
 
@@ -22,8 +19,6 @@ impl ImportMetaHotDeclineDependency {
       start,
       end,
       request,
-      category: &DependencyCategory::Esm,
-      dependency_type: &DependencyType::ImportMetaHotDecline,
       span,
       id: DependencyId::new(),
     }
@@ -31,34 +26,34 @@ impl ImportMetaHotDeclineDependency {
 }
 
 impl Dependency for ImportMetaHotDeclineDependency {
-  fn category(&self) -> &DependencyCategory {
-    self.category
+  fn dependency_debug_name(&self) -> &'static str {
+    "ImportMetaHotDeclineDependency"
   }
 
-  fn dependency_type(&self) -> &DependencyType {
-    self.dependency_type
-  }
-}
-
-impl ModuleDependency for ImportMetaHotDeclineDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
 
+  fn category(&self) -> &DependencyCategory {
+    &DependencyCategory::Esm
+  }
+
+  fn dependency_type(&self) -> &DependencyType {
+    &DependencyType::ImportMetaHotDecline
+  }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
+}
+
+impl ModuleDependency for ImportMetaHotDeclineDependency {
   fn request(&self) -> &str {
     &self.request
   }
 
   fn user_request(&self) -> &str {
     &self.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
   }
 
   fn set_request(&mut self, request: String) {
@@ -86,3 +81,5 @@ impl DependencyTemplate for ImportMetaHotDeclineDependency {
     );
   }
 }
+
+impl AsContextDependency for ImportMetaHotDeclineDependency {}

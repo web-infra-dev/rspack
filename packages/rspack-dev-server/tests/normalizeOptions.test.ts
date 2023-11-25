@@ -1,6 +1,7 @@
 import { RspackOptions, rspack } from "@rspack/core";
 import { RspackDevServer, Configuration } from "@rspack/dev-server";
-import { createCompiler } from "@rspack/core";
+import ReactRefreshPlugin from "@rspack/plugin-react-refresh";
+// @ts-expect-error
 import serializer from "jest-serializer-path";
 expect.addSnapshotSerializer(serializer);
 
@@ -24,32 +25,82 @@ describe("normalize options snapshot", () => {
 	});
 
 	it("additional entires should added", async () => {
-		await matchAdditionEntries(
-			{},
-			{
-				entry: ["something"]
-			}
-		);
+		expect(
+			await getAdditionEntries({}, { entry: ["something"] })
+		).toMatchSnapshot();
 	});
 
 	it("react-refresh client added when react/refresh enabled", async () => {
-		await matchAdditionEntries(
+		expect(
+			await getAdditionEntries(
+				{},
+				{
+					entry: ["something"],
+					builtins: {
+						react: {
+							refresh: true
+						}
+					}
+				}
+			)
+		).toMatchSnapshot();
+	});
+
+	it("shouldn't have reactRefreshEntry.js when react.refresh is false", async () => {
+		expect(
+			await getAdditionEntries(
+				{},
+				{
+					entry: ["something"],
+					builtins: {
+						react: {
+							refresh: false
+						}
+					}
+				}
+			)
+		).toMatchSnapshot();
+	});
+
+	it("shouldn't have reactRefreshEntry.js by default when rspackFuture.disableReactRefreshByDefault is enabled", async () => {
+		const reactRefreshEntry =
+			"<prefix>/rspack-plugin-react-refresh/client/reactRefreshEntry.js";
+		const entries1 = await getAdditionEntries(
 			{},
 			{
 				entry: ["something"],
-				builtins: {
-					react: {
-						refresh: true
+				experiments: {
+					rspackFuture: {
+						disableTransformByDefault: true
 					}
 				}
 			}
 		);
+		expect(entries1["undefined"]).not.toContain(reactRefreshEntry);
+		const entries2 = await getAdditionEntries(
+			{},
+			{
+				entry: ["something"],
+				plugins: [new ReactRefreshPlugin()],
+				experiments: {
+					rspackFuture: {
+						disableTransformByDefault: true
+					}
+				}
+			}
+		);
+		expect(entries2["undefined"]).toContain(reactRefreshEntry);
 	});
 
 	it("react.development and react.refresh should be true by default when hot enabled", async () => {
-		const compiler = createCompiler({
+		const compiler = rspack({
 			entry: ENTRY,
-			stats: "none"
+			stats: "none",
+			experiments: {
+				rspackFuture: {
+					disableTransformByDefault: false
+				}
+			}
 		});
 		const server = new RspackDevServer(
 			{
@@ -64,7 +115,7 @@ describe("normalize options snapshot", () => {
 	});
 
 	it("hot should be true by default", async () => {
-		const compiler = createCompiler({
+		const compiler = rspack({
 			entry: ENTRY,
 			stats: "none"
 		});
@@ -93,16 +144,10 @@ describe("normalize options snapshot", () => {
 });
 
 async function match(config: RspackOptions) {
-	const compiler = createCompiler({
+	const compiler = rspack({
 		...config,
 		entry: ENTRY,
-		stats: "none",
-		infrastructureLogging: {
-			level: "info",
-			stream: {
-				write: () => {}
-			}
-		}
+		stats: "none"
 	});
 	const server = new RspackDevServer(
 		compiler.options.devServer ?? {},
@@ -116,27 +161,38 @@ async function match(config: RspackOptions) {
 	await server.stop();
 }
 
-async function matchAdditionEntries(
+async function getAdditionEntries(
 	serverConfig: Configuration,
 	config: RspackOptions
 ) {
-	const compiler = createCompiler({
+	const compiler = rspack({
 		...config,
 		stats: "none",
-		entry: ENTRY,
-		infrastructureLogging: {
-			stream: {
-				write: () => {}
-			}
-		}
+		entry: ENTRY
 	});
 
 	const server = new RspackDevServer(serverConfig, compiler);
 	await server.start();
-	const entires = Object.entries(compiler.options.entry);
+	const entries = compiler.builtinPlugins
+		.filter(p => p.name === "EntryPlugin")
+		.map(p => p.options)
+		.reduce<Object>((acc, cur: any) => {
+			const name = cur.options.name;
+			const request = cur.entry;
+			// @ts-expect-error
+			if (acc[name]) {
+				// @ts-expect-error
+				acc[name].import.push(request);
+			} else {
+				// @ts-expect-error
+				acc[name] = { import: [request] };
+			}
+			return acc;
+		}, {});
 	// some hack for snapshot
 	const value = Object.fromEntries(
-		entires.map(([key, item]) => {
+		Object.entries(entries).map(([key, item]) => {
+			// @ts-expect-error
 			const replaced = item.import?.map(entry => {
 				const array = entry
 					.replace(/\\/g, "/")
@@ -147,6 +203,6 @@ async function matchAdditionEntries(
 			return [key, replaced];
 		})
 	);
-	expect(value).toMatchSnapshot();
 	await server.stop();
+	return value;
 }

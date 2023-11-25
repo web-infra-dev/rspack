@@ -1,0 +1,37 @@
+[package]
+edition    = "2021"
+license    = "MIT"
+name       = "rspack_plugin_swc_js_minimizer"
+repository = "https://github.com/web-infra-dev/rspack"
+version    = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rayon                    = { workspace = true }
+rspack_core              = { path = "../rspack_core" }
+rspack_error             = { path = "../rspack_error" }
+rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
+rspack_regex             = { path = "../rspack_regex" }
+rspack_util              = { path = "../rspack_util" }
+
+
+async-recursion = { workspace = true }
+async-trait = { workspace = true }
+once_cell = { workspace = true }
+regex = { workspace = true }
+serde_json = { workspace = true }
+swc_config = { workspace = true }
+swc_core = { workspace = true, features = [
+  "__parser",
+  "__utils",
+  "common_sourcemap",
+  "ecma_preset_env",
+  "ecma_transforms_optimization",
+  "ecma_transforms_module",
+  "ecma_transforms_compat",
+  "ecma_transforms_proposal",
+  "ecma_transforms_typescript",
+  "ecma_quote",
+] }
+swc_ecma_minifier = { workspace = true, features = ["concurrent"] }

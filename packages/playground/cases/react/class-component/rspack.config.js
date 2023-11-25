@@ -2,7 +2,10 @@
 module.exports = {
 	context: __dirname,
 	mode: "development",
-	entry: ["@rspack/dev-client/react-refresh-entry", "./src/index.jsx"],
+	entry: [
+		"@rspack/plugin-react-refresh/react-refresh-entry",
+		"./src/index.jsx"
+	],
 	devServer: {
 		hot: true
 	},
@@ -20,6 +23,11 @@ module.exports = {
 				template: "./src/index.html"
 			}
 		]
+	},
+	experiments: {
+		rspackFuture: {
+			disableTransformByDefault: false
+		}
 	},
 	watchOptions: {
 		poll: 1000

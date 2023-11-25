@@ -3,30 +3,22 @@ use std::fmt::Debug;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  ApplyContext, ExternalItem, ExternalItemFnCtx, ExternalItemValue, ExternalModule, ExternalType,
-  FactorizeArgs, ModuleDependency, ModuleExt, ModuleFactoryResult, NormalModuleFactoryContext,
-  Plugin, PluginContext, PluginFactorizeHookOutput,
+  ExternalItem, ExternalItemFnCtx, ExternalItemValue, ExternalModule, ExternalRequest,
+  ExternalRequestValue, ExternalType, FactorizeArgs, ModuleDependency, ModuleExt,
+  ModuleFactoryResult, NormalModuleFactoryContext, Plugin, PluginContext,
+  PluginFactorizeHookOutput,
 };
-use rspack_error::Result;
 
 static UNSPECIFIED_EXTERNAL_TYPE_REGEXP: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^[a-z0-9-]+ ").expect("Invalid regex"));
 
-pub struct ExternalPlugin {
+#[derive(Debug)]
+pub struct ExternalsPlugin {
   externals: Vec<ExternalItem>,
   r#type: ExternalType,
 }
 
-impl Debug for ExternalPlugin {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("ExternalPlugin")
-      .field("externals", &"Function")
-      .field("r#type", &self.r#type)
-      .finish()
-  }
-}
-
-impl ExternalPlugin {
+impl ExternalsPlugin {
   pub fn new(r#type: ExternalType, externals: Vec<ExternalItem>) -> Self {
     Self { externals, r#type }
   }
@@ -37,45 +29,87 @@ impl ExternalPlugin {
     r#type: Option<String>,
     dependency: &dyn ModuleDependency,
   ) -> Option<ExternalModule> {
-    let mut external_module_config: Vec<String> = match config {
-      ExternalItemValue::String(config) => vec![config.clone()],
+    let (external_module_config, external_module_type) = match config {
+      ExternalItemValue::String(config) => {
+        let (external_type, config) =
+          if let Some((external_type, new_config)) = parse_external_type_from_str(config) {
+            (external_type, new_config)
+          } else {
+            (self.r#type.clone(), config.to_owned())
+          };
+        (
+          ExternalRequest::Single(ExternalRequestValue::new(config, None)),
+          external_type,
+        )
+      }
+      ExternalItemValue::Array(arr) => {
+        let mut iter = arr.iter().peekable();
+        let primary = iter.next()?;
+        let (external_type, primary) =
+          if let Some((external_type, new_primary)) = parse_external_type_from_str(primary) {
+            (external_type, new_primary)
+          } else {
+            (self.r#type.clone(), primary.to_owned())
+          };
+        let rest = iter.peek().is_some().then(|| iter.cloned().collect());
+        (
+          ExternalRequest::Single(ExternalRequestValue::new(primary, rest)),
+          external_type,
+        )
+      }
       ExternalItemValue::Bool(config) => {
         if *config {
-          vec![dependency.request().to_string()]
+          (
+            ExternalRequest::Single(ExternalRequestValue::new(
+              dependency.request().to_string(),
+              None,
+            )),
+            self.r#type.clone(),
+          )
         } else {
           return None;
         }
       }
-      ExternalItemValue::Array(config) => config.to_vec(),
+      ExternalItemValue::Object(map) => (
+        ExternalRequest::Map(
+          map
+            .iter()
+            .map(|(k, v)| {
+              let mut iter = v.iter().peekable();
+              let primary = iter.next().expect("should have at least one value");
+              let rest = iter.peek().is_some().then(|| iter.cloned().collect());
+              (
+                k.clone(),
+                ExternalRequestValue::new(primary.to_owned(), rest),
+              )
+            })
+            .collect(),
+        ),
+        self.r#type.clone(),
+      ),
     };
 
-    let external_module_type = r#type.unwrap_or_else(|| {
-      let head = external_module_config
-        .get_mut(0)
-        .expect("should have at least one element");
-      if UNSPECIFIED_EXTERNAL_TYPE_REGEXP.is_match(head.as_str())
-        && let Some((t, c)) = head.clone().as_str().split_once(' ') {
-        *head = c.to_string();
-        return t.to_owned();
+    fn parse_external_type_from_str(v: &str) -> Option<(ExternalType, String)> {
+      if UNSPECIFIED_EXTERNAL_TYPE_REGEXP.is_match(v)
+        && let Some((t, c)) = v.split_once(' ')
+      {
+        return Some((t.to_owned(), c.to_owned()));
       }
-      self.r#type.clone()
-    });
+      None
+    }
+
     Some(ExternalModule::new(
       external_module_config,
-      external_module_type,
+      r#type.unwrap_or(external_module_type),
       dependency.request().to_owned(),
     ))
   }
 }
 
 #[async_trait::async_trait]
-impl Plugin for ExternalPlugin {
+impl Plugin for ExternalsPlugin {
   fn name(&self) -> &'static str {
     "external"
-  }
-
-  fn apply(&self, _ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
-    Ok(())
   }
 
   async fn factorize(

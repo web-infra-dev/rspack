@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import type { Compiler } from "../compiler";
+import type { Compiler } from "../Compiler";
 import type { StatsPrinter, StatsPrinterContext } from "./StatsPrinter";
 import { formatSize } from "../util/SizeFormatHelpers";
 import { StatsChunkGroup, StatsCompilation } from "./statsFactoryUtils";
@@ -105,7 +105,7 @@ const SIMPLE_PRINTERS: Record<
 		const builtAtMessage =
 			root && builtAt ? `${formatDateTime(builtAt)}: ` : "";
 		const versionMessage =
-			root && rspackVersion ? `rspack ${rspackVersion}` : "";
+			root && rspackVersion ? `Rspack ${rspackVersion}` : "";
 		const nameMessage =
 			root && name
 				? bold(name)
@@ -117,7 +117,7 @@ const SIMPLE_PRINTERS: Record<
 		const subjectMessage =
 			nameMessage && versionMessage
 				? `${nameMessage} (${versionMessage})`
-				: versionMessage || nameMessage || "rspack";
+				: versionMessage || nameMessage || "Rspack";
 		let statusMessage;
 		if (errorsMessage && warningsMessage) {
 			statusMessage = `compiled with ${errorsMessage} and ${warningsMessage}`;
@@ -215,14 +215,17 @@ const SIMPLE_PRINTERS: Record<
 					"assets"
 			  )}`
 			: undefined,
-	// "compilation.logging": (logging, context, printer) =>
-	// 	Array.isArray(logging)
-	// 		? undefined
-	// 		: printer.print(
-	// 				context.type,
-	// 				Object.entries(logging).map(([name, value]) => ({ ...value, name })),
-	// 				context
-	// 		  ),
+	"compilation.logging": (logging, context, printer) =>
+		Array.isArray(logging)
+			? undefined
+			: printer.print(
+					context.type,
+					Object.entries(logging).map(([name, value]) => ({
+						...(value as any),
+						name
+					})),
+					context
+			  ),
 	"compilation.warningsInChildren!": (_, { yellow, compilation }) => {
 		if (
 			!compilation.children &&
@@ -606,6 +609,8 @@ const SIMPLE_PRINTERS: Record<
 		mapLines(message, x => `</p> ${magenta(x)}`),
 	"loggingEntry(time).loggingEntry.message": (message, { magenta }) =>
 		mapLines(message, x => `<t> ${magenta(x)}`),
+	"loggingEntry(cache).loggingEntry.message": (message, { magenta }) =>
+		mapLines(message, x => `<c> ${magenta(x)}`),
 	"loggingEntry(group).loggingEntry.message": (message, { cyan }) =>
 		mapLines(message, x => `<-> ${cyan(x)}`),
 	"loggingEntry(groupCollapsed).loggingEntry.message": (message, { cyan }) =>
@@ -1225,7 +1230,7 @@ const AVAILABLE_FORMATS: Pick_FORMAT<
 		{ timeReference, bold, green, yellow, red },
 		boldQuantity
 	) => {
-		const unit = " ms";
+		let unit = " ms";
 		if (timeReference && time !== timeReference) {
 			const times = [
 				timeReference / 2,
@@ -1239,7 +1244,12 @@ const AVAILABLE_FORMATS: Pick_FORMAT<
 			else if (time < times[0]) return yellow(`${time}${unit}`);
 			else return red(`${time}${unit}`);
 		} else {
-			return `${boldQuantity ? bold(time.toString()) : time}${unit}`;
+			let timeStr = time.toString();
+			if (time > 1000) {
+				timeStr = `${(time / 1000).toFixed(2)}`;
+				unit = " s";
+			}
+			return `${boldQuantity ? bold(timeStr) : timeStr}${unit}`;
 		}
 	},
 	formatError: (msg, { green, yellow, red }) => {

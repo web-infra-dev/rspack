@@ -1,17 +1,19 @@
-use rspack_core::{
-  module_id_expr, normalize_context, ContextOptions, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource,
-};
+use rspack_core::{module_id_expr, AsModuleDependency, ContextDependency};
+use rspack_core::{normalize_context, DependencyCategory, DependencyId, DependencyTemplate};
+use rspack_core::{ContextOptions, Dependency, TemplateReplaceSource};
+use rspack_core::{DependencyType, ErrorSpan, RuntimeGlobals, TemplateContext};
+
+use super::create_resource_identifier_for_context_dependency;
 
 #[derive(Debug, Clone)]
 pub struct ImportContextDependency {
   callee_start: u32,
   callee_end: u32,
   args_end: u32,
-  pub id: DependencyId,
-  pub options: ContextOptions,
+  id: DependencyId,
+  options: ContextOptions,
   span: Option<ErrorSpan>,
+  resource_identifier: String,
 }
 
 impl ImportContextDependency {
@@ -22,6 +24,7 @@ impl ImportContextDependency {
     options: ContextOptions,
     span: Option<ErrorSpan>,
   ) -> Self {
+    let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
       callee_start,
       callee_end,
@@ -29,11 +32,16 @@ impl ImportContextDependency {
       options,
       span,
       id: DependencyId::new(),
+      resource_identifier,
     }
   }
 }
 
 impl Dependency for ImportContextDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -41,31 +49,31 @@ impl Dependency for ImportContextDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::ImportContext
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "ImportContextDependency"
+  }
 }
 
-impl ModuleDependency for ImportContextDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
+impl ContextDependency for ImportContextDependency {
+  fn options(&self) -> &ContextOptions {
+    &self.options
   }
 
   fn request(&self) -> &str {
     &self.options.request
   }
 
-  fn user_request(&self) -> &str {
-    &self.options.request
+  fn get_context(&self) -> Option<&str> {
+    None
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
-  }
-
-  fn options(&self) -> Option<&ContextOptions> {
-    Some(&self.options)
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
+  fn resource_identifier(&self) -> &str {
+    &self.resource_identifier
   }
 
   fn set_request(&mut self, request: String) {
@@ -92,7 +100,7 @@ impl DependencyTemplate for ImportContextDependency {
     source.replace(
       self.callee_start,
       self.callee_end,
-      format!("{}({module_id_str})", RuntimeGlobals::REQUIRE,).as_str(),
+      format!("{}({module_id_str})", RuntimeGlobals::REQUIRE).as_str(),
       None,
     );
 
@@ -108,3 +116,5 @@ impl DependencyTemplate for ImportContextDependency {
     }
   }
 }
+
+impl AsModuleDependency for ImportContextDependency {}

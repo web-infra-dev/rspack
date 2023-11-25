@@ -1,5 +1,7 @@
 import type { JsAssetInfo, JsStatsError } from "@rspack/binding";
-import { AssetInfo } from "../compilation";
+import { AssetInfo } from "../Compilation";
+import terminalLink from "terminal-link";
+import { LoaderObject } from "../config/adapterRuleUse";
 
 export function mapValues(
 	record: Record<string, string>,
@@ -39,6 +41,23 @@ export const toObject = (input: string | Buffer | object): object => {
 	return JSON.parse(s);
 };
 
+export function serializeObject(
+	map: string | object | undefined | null
+): Buffer | undefined {
+	if (isNil(map)) {
+		return undefined;
+	}
+
+	if (typeof map === "string") {
+		if (map) {
+			return toBuffer(map);
+		}
+		return undefined;
+	}
+
+	return toBuffer(JSON.stringify(map));
+}
+
 export function isPromiseLike(value: unknown): value is Promise<any> {
 	return (
 		typeof value === "object" &&
@@ -69,6 +88,10 @@ export function indent(str: string, prefix: string) {
 	return prefix + rem;
 }
 
+export function stringifyLoaderObject(o: LoaderObject): string {
+	return o.path + o.query + o.fragment;
+}
+
 export function asArray<T>(item: T[]): T[];
 export function asArray<T>(item: readonly T[]): readonly T[];
 export function asArray<T>(item: T): T[];
@@ -89,3 +112,33 @@ export function toJsAssetInfo(info?: AssetInfo): JsAssetInfo {
 		...info
 	};
 }
+const getDeprecationStatus = () => {
+	const defaultEnableDeprecatedWarning = true;
+	if (
+		process.env.RSPACK_DEP_WARNINGS === "false" ||
+		process.env.RSPACK_DEP_WARNINGS === "0"
+	) {
+		return false;
+	}
+	return (
+		(process.env.RSPACK_DEP_WARNINGS ?? `${defaultEnableDeprecatedWarning}`) !==
+		"false"
+	);
+};
+const yellow = (content: string) =>
+	`\u001b[1m\u001b[33m${content}\u001b[39m\u001b[22m`;
+export const deprecatedWarn = (
+	content: string,
+	enable = getDeprecationStatus()
+) => {
+	if (enable) {
+		console.warn(yellow(content));
+		console.warn(
+			indent(
+				"Set env `RSPACK_DEP_WARNINGS` to 'false' to temporarily disable deprecation warnings.\n",
+				"    "
+			)
+		);
+	}
+};
+export const termlink = terminalLink;

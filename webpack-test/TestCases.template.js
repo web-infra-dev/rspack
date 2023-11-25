@@ -12,7 +12,7 @@ const deprecationTracking = require("./helpers/deprecationTracking");
 const captureStdio = require("./helpers/captureStdio");
 const asModule = require("./helpers/asModule");
 const filterInfraStructureErrors = require("./helpers/infrastructureLogErrors");
-const { getNormalizedFilterName } = require('./lib/util/filterUtil')
+const { normalizeFilteredTestName } = require('./lib/util/filterUtil')
 
 const casesPath = path.join(__dirname, "cases");
 let categories = fs.readdirSync(casesPath);
@@ -63,10 +63,10 @@ const describeCases = config => {
 						const filterPath = path.join(testDirectory, "test.filter.js");
 						if (fs.existsSync(filterPath)) {
 							let flag = require(filterPath)(config)
-							let normalizedName = getNormalizedFilterName(flag, test);
-							if (normalizedName.length > 0) {
-								describe.skip(normalizedName, () => {
-									it("filtered", () => {});
+							if (flag !== true) {
+								let filteredName = normalizeFilteredTestName(flag, test);
+								describe.skip(test, () => {
+									it(filteredName, () => {});
 								});
 								return false;
 							}
@@ -220,7 +220,7 @@ const describeCases = config => {
                   // RSPACK exclusive: Rspack enables `css` by default.
                   // Turning off here to fallback to webpack's default css processing logic.
                   css: false,
-									...(config.module ? { outputModule: true } : {})
+									...(config.module ? { outputModule: true } : {}),
 								},
 								infrastructureLogging: config.cache && {
 									debug: true,

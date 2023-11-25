@@ -10,7 +10,6 @@ use petgraph::{
   visit::{Bfs, Dfs, EdgeRef},
   Directed,
 };
-use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use rspack_error::{
   errors_to_diagnostics, Error, InternalError, IntoTWithDiagnosticArray, Result, Severity,
   TWithDiagnosticArray,
@@ -19,21 +18,23 @@ use rspack_identifier::{Identifier, IdentifierLinkedSet, IdentifierMap, Identifi
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{common::SyntaxContext, ecma::atoms::JsWord};
 
-use super::symbol::{
-  BetterId, IndirectTopLevelSymbol, IndirectType, SerdeSymbol, StarSymbol, StarSymbolKind, Symbol,
-  SymbolType,
+use super::{
+  symbol::{
+    BetterId, IndirectTopLevelSymbol, IndirectType, SerdeSymbol, StarSymbol, StarSymbolKind,
+    Symbol, SymbolType,
+  },
+  visitor::ModuleIdOrDepId,
 };
 use super::{
-  analyzer::OptimizeAnalyzer,
-  asset_module::AssetModule,
-  js_module::JsModule,
   symbol_graph::SymbolGraph,
   visitor::{OptimizeAnalyzeResult, SymbolRef},
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
-  contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
-  DependencyId, DependencyType, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
+  contextify, join_string_component,
+  tree_shaking::{utils::ConvertModulePath, visitor::ModuleRefAnalyze},
+  Compilation, DependencyId, DependencyType, ModuleGraph, ModuleIdentifier, ModuleType,
+  NormalModuleSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -83,29 +84,45 @@ impl<'a> CodeSizeOptimizer<'a> {
   }
 
   pub async fn run(&mut self) -> Result<TWithDiagnosticArray<OptimizeDependencyResult>> {
-    let is_incremental_rebuild = self
-      .compilation
-      .options
-      .is_incremental_rebuild_make_enabled();
-    let is_first_time_analyze = self.compilation.optimize_analyze_result_map.is_empty();
-    let analyze_result_map = par_analyze_module(self.compilation).await;
-    let mut finalized_result_map = if is_incremental_rebuild {
-      if is_first_time_analyze {
-        analyze_result_map
-      } else {
-        for (ident, result) in analyze_result_map.into_iter() {
-          self
-            .compilation
-            .optimize_analyze_result_map
-            .insert(ident, result);
-        }
-        // Merge new analyze result with previous in incremental_rebuild mode
-        std::mem::take(&mut self.compilation.optimize_analyze_result_map)
-      }
-    } else {
-      analyze_result_map
-    };
+    // let is_incremental_rebuild = self
+    //   .compilation
+    //   .options
+    //   .is_incremental_rebuild_make_enabled();
+    // let mut analyze_result_map = par_analyze_module(self.compilation).await;
+    // let mut finalized_result_map = if is_incremental_rebuild {
+    //   if is_first_time_analyze {
+    //     analyze_result_map
+    //   } else {
+    //     for (ident, result) in analyze_result_map.into_iter() {
+    //       self
+    //         .compilation
+    //         .optimize_analyze_result_map
+    //         .insert(ident, result);
+    //     }
+    //     // Merge new analyze result with previous in incremental_rebuild mode
+    //     std::mem::take(&mut self.compilation.optimize_analyze_result_map)
+    //   }
+    // } else {
+    //   analyze_result_map
+    // };
 
+    self
+      .compilation
+      .optimize_analyze_result_map
+      .iter_mut()
+      .for_each(|(module_identifier, optimize_analyze_result)| {
+        if let Some(factory_meta_side_effects) = self
+          .compilation
+          .module_graph
+          .module_graph_module_by_identifier(module_identifier)
+          .and_then(|mgm| ModuleRefAnalyze::get_side_effects_from_config(&mgm.factory_meta))
+        {
+          optimize_analyze_result.side_effects = factory_meta_side_effects;
+        }
+      });
+    // We will set it back and return the analyze result, take is safe here.
+    let mut finalized_result_map =
+      std::mem::take(&mut self.compilation.optimize_analyze_result_map);
     let mut evaluated_used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut evaluated_module_identifiers = IdentifierSet::default();
     let side_effects_options = self
@@ -145,7 +162,8 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     self.side_effects_free_modules = self.get_side_effects_free_modules(side_effect_map);
 
-    let inherit_export_ref_graph = get_inherit_export_ref_graph(&mut finalized_result_map);
+    let inherit_export_ref_graph =
+      get_inherit_export_ref_graph(&mut finalized_result_map, &self.compilation.module_graph);
     let mut errors = vec![];
     let mut used_symbol_ref = HashSet::default();
     let mut used_export_module_identifiers: IdentifierMap<ModuleUsedType> =
@@ -153,7 +171,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     let mut traced_tuple = HashMap::default();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
 
-    // dbg!(&used_symbol_ref);
     let mut visited_symbol_ref: HashSet<SymbolRefWithMemberChain> = HashSet::default();
 
     self.mark_used_symbol_with(
@@ -224,8 +241,19 @@ impl<'a> CodeSizeOptimizer<'a> {
     )
   }
 
-  fn merge_bailout_modules_reason(&mut self, k: &Identifier, v: BailoutFlag) {
-    match self.bailout_modules.entry(*k) {
+  fn merge_bailout_modules_reason(&mut self, k: &ModuleIdOrDepId, v: BailoutFlag) {
+    let mg = &self.compilation.module_graph;
+    let normalized_module_id = match k {
+      ModuleIdOrDepId::ModuleId(module_id) => *module_id,
+      ModuleIdOrDepId::DepId(dep_id) => {
+        if let Some(module_id) = mg.module_identifier_by_dependency_id(dep_id) {
+          *module_id
+        } else {
+          return;
+        }
+      }
+    };
+    match self.bailout_modules.entry(normalized_module_id) {
       Entry::Occupied(mut occ) => {
         *occ.get_mut() |= v;
       }
@@ -404,7 +432,6 @@ impl<'a> CodeSizeOptimizer<'a> {
 
         if eliminator.could_be_skipped() {
           continue;
-        } else {
         }
 
         let mut reachable_dependency_identifier = IdentifierSet::default();
@@ -434,15 +461,24 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
         }
 
-        let mgm = self
+        // reachable_dependency_identifier.extend(analyze_result.inherit_export_maps.keys());
+        for dependency_id in self
           .compilation
           .module_graph
-          .module_graph_module_by_identifier(&module_identifier)
+          .get_module_all_dependencies(&module_identifier)
           .unwrap_or_else(|| {
             panic!("Failed to get ModuleGraphModule by module identifier {module_identifier}")
-          });
-        // reachable_dependency_identifier.extend(analyze_result.inherit_export_maps.keys());
-        for dependency_id in mgm.dependencies.iter() {
+          })
+          .iter()
+        {
+          let dep = self
+            .compilation
+            .module_graph
+            .dependency_by_id(dependency_id)
+            .expect("should have dependency");
+          if dep.as_module_dependency().is_none() && dep.as_context_dependency().is_none() {
+            continue;
+          }
           let module_identifier = match self
             .compilation
             .module_graph
@@ -453,11 +489,11 @@ impl<'a> CodeSizeOptimizer<'a> {
               match self
                 .compilation
                 .module_graph
-                .module_by_identifier(&mgm.module_identifier)
+                .module_by_identifier(&module_identifier)
                 .and_then(|module| module.as_normal_module())
-                .map(|normal_module| normal_module.ast_or_source())
+                .map(|normal_module| normal_module.source())
               {
-                Some(NormalModuleAstOrSource::BuiltFailed(_)) => {
+                Some(NormalModuleSource::BuiltFailed(_)) => {
                   // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
                   continue;
                 }
@@ -488,6 +524,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               | DependencyType::DynamicImport
               | DependencyType::CjsRequire
               | DependencyType::ImportContext
+              | DependencyType::ContainerExposed
           );
 
           if self.side_effects_free_modules.contains(module_identifier)
@@ -508,7 +545,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             let deps_module_id_of_context_module = self
               .compilation
               .module_graph
-              .dependencies_by_module_identifier(module_identifier)
+              .get_module_all_dependencies(module_identifier)
               .map(|deps| {
                 deps
                   .iter()
@@ -584,18 +621,26 @@ impl<'a> CodeSizeOptimizer<'a> {
       return;
     }
     visited_module.insert(cur);
-    let mgm = module_graph
-      .module_graph_module_by_identifier(&cur)
-      .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {cur}"));
     let mut module_ident_list = vec![];
-    for dep in mgm.dependencies.iter() {
+    for dep in module_graph
+      .get_module_all_dependencies(&cur)
+      .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {cur}"))
+      .iter()
+    {
+      let dependency = module_graph
+        .dependency_by_id(dep)
+        .expect("should have dependency");
+      if dependency.as_module_dependency().is_none() && dependency.as_context_dependency().is_none()
+      {
+        continue;
+      }
       let Some(&module_ident) = module_graph.module_identifier_by_dependency_id(dep) else {
         let ast_or_source = module_graph
-          .module_by_identifier(&mgm.module_identifier)
+          .module_by_identifier(&cur)
           .and_then(|module| module.as_normal_module())
-          .map(|normal_module| normal_module.ast_or_source())
-          .unwrap_or_else(|| panic!("Failed to get normal module of {}", mgm.module_identifier));
-        if matches!(ast_or_source, NormalModuleAstOrSource::BuiltFailed(_)) {
+          .map(|normal_module| normal_module.source())
+          .unwrap_or_else(|| panic!("Failed to get normal module of {}", cur));
+        if matches!(ast_or_source, NormalModuleSource::BuiltFailed(_)) {
           // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
           continue;
         } else {
@@ -663,7 +708,7 @@ impl<'a> CodeSizeOptimizer<'a> {
   #[allow(clippy::too_many_arguments)]
   fn mark_symbol(
     &mut self,
-    current_symbol_ref_with_member_chain: SymbolRefWithMemberChain,
+    mut current_symbol_ref_with_member_chain: SymbolRefWithMemberChain,
     analyze_map: &IdentifierMap<OptimizeAnalyzeResult>,
     symbol_queue: &mut VecDeque<SymbolRefWithMemberChain>,
     evaluated_module_identifiers: &mut IdentifierSet,
@@ -673,6 +718,9 @@ impl<'a> CodeSizeOptimizer<'a> {
     visited_symbol_ref: &mut HashSet<SymbolRefWithMemberChain>,
     errors: &mut Vec<Error>,
   ) {
+    current_symbol_ref_with_member_chain.0 = current_symbol_ref_with_member_chain
+      .0
+      .update_src_from_dep_id(&self.compilation.module_graph);
     if visited_symbol_ref.contains(&current_symbol_ref_with_member_chain) {
       return;
     } else {
@@ -755,7 +803,20 @@ impl<'a> CodeSizeOptimizer<'a> {
             self
               .symbol_graph
               .add_edge(&current_symbol_ref, symbol_ref_ele);
-            symbol_queue.push_back((symbol_ref_ele.clone(), vec![]));
+            let is_imported = module_result.import_map.get(&symbol.id().atom).is_some();
+            let next_member_chain = if is_imported {
+              // Considering following scenario, so we need to replace first name with local id
+              // instead of exported name
+              // import * as _Lib from "./lib";
+              // export { _Lib as Lib };
+              let mut normalized_member_chain = vec![symbol.id().atom.clone()];
+              normalized_member_chain.extend(member_chain.iter().skip(1).cloned());
+              normalized_member_chain
+            } else {
+              vec![]
+            };
+
+            symbol_queue.push_back((symbol_ref_ele.clone(), next_member_chain));
           }
         };
 
@@ -768,15 +829,20 @@ impl<'a> CodeSizeOptimizer<'a> {
         // one for `app.js`, one for `lib.js`
         // the binding in `app.js` used for shake the `export {xxx}`
         // In other words, we need two binding for supporting indirect redirect.
-        if let Some(import_symbol_ref) = module_result.import_map.get(symbol.id()) {
-          self
-            .symbol_graph
-            .add_edge(&current_symbol_ref, import_symbol_ref);
-          symbol_queue.push_back((import_symbol_ref.clone(), member_chain));
-        }
+        // if let Some(import_symbol_ref) = module_result.import_map.get(&symbol.id().atom) {
+        //   dbg!(&symbol);
+        //   dbg!(&member_chain);
+        //   dbg!(&import_symbol_ref);
+        //   self
+        //     .symbol_graph
+        //     .add_edge(&current_symbol_ref, import_symbol_ref);
+        //
+        //   symbol_queue.push_back((import_symbol_ref.clone(), member_chain));
+        //
+        //   dbg!(&symbol_queue);
+        // }
       }
       SymbolRef::Indirect(ref indirect_symbol) => {
-        // dbg!(&current_symbol_ref);
         let _importer = indirect_symbol.importer();
         let module_result = match analyze_map.get(&indirect_symbol.src) {
           Some(module_result) => module_result,
@@ -876,7 +942,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                       }
                       let first_reexport_of_each_path = reexport_paths
                         .iter()
-                        .filter_map(|path| path.get(0).cloned())
+                        .filter_map(|path| path.first().cloned())
                         .collect::<Vec<_>>();
                       vac.insert(first_reexport_of_each_path);
                       ReExportConnectionStatus::Vacant(reexport_paths)
@@ -1024,7 +1090,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         // export defined in `test.js` and all related
         // reexport should be marked as used
         let src_module_identifier: Identifier = star_symbol.src();
-        let analyze_refsult = match analyze_map.get(&src_module_identifier) {
+        let analyze_result = match analyze_map.get(&src_module_identifier) {
           Some(analyze_result) => analyze_result,
           None => {
             if is_js_like_uri(&src_module_identifier) {
@@ -1046,7 +1112,9 @@ impl<'a> CodeSizeOptimizer<'a> {
 
         let (include_default_export, next_member_chain) = match star_symbol.ty() {
           StarSymbolKind::ReExportAllAs => {
-            let next_member_chain = if let Some(name) = member_chain.get(0) && name == star_symbol.binding() {
+            let next_member_chain = if let Some(name) = member_chain.first()
+              && name == star_symbol.binding()
+            {
               member_chain[1..].to_vec()
             } else {
               vec![]
@@ -1054,7 +1122,9 @@ impl<'a> CodeSizeOptimizer<'a> {
             (true, next_member_chain)
           }
           StarSymbolKind::ImportAllAs => {
-            let next_member_chain = if let Some(name) = member_chain.get(0) && name == star_symbol.binding() {
+            let next_member_chain = if let Some(name) = member_chain.first()
+              && name == star_symbol.binding()
+            {
               member_chain[1..].to_vec()
             } else {
               vec![]
@@ -1063,18 +1133,19 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
           StarSymbolKind::ReExportAll => (false, vec![]),
         };
+
         // try to access first member expr element
-        if let Some(name) = next_member_chain.get(0) {
-          if let Some(export_symbol_ref) = analyze_refsult.export_map.get(name) {
+        if let Some(name) = next_member_chain.first() {
+          if let Some(export_symbol_ref) = analyze_result.export_map.get(name) {
             self
               .symbol_graph
               .add_edge(&current_symbol_ref, export_symbol_ref);
-            symbol_queue.push_back((export_symbol_ref.clone(), next_member_chain[1..].to_vec()));
+            symbol_queue.push_back((export_symbol_ref.clone(), next_member_chain.to_vec()));
             return;
           }
 
           for (inherit_module_identifier, extends_export_map) in
-            analyze_refsult.inherit_export_maps.iter()
+            analyze_result.inherit_export_maps.iter()
           {
             if let Some(value) = extends_export_map.get(name) {
               let tuple = (star_symbol.src, *inherit_module_identifier);
@@ -1110,7 +1181,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                   }
                   let first_reexport_of_each_path = reexport_paths
                     .iter()
-                    .filter_map(|path| path.get(0).cloned())
+                    .filter_map(|path| path.first().cloned())
                     .collect::<Vec<_>>();
                   vac.insert(first_reexport_of_each_path);
                   ReExportConnectionStatus::Vacant(reexport_paths)
@@ -1146,14 +1217,27 @@ impl<'a> CodeSizeOptimizer<'a> {
                   }
                 }
               }
+
+              symbol_queue.push_back((value.clone(), next_member_chain));
+              return;
             }
             // has_bailout_module_identifiers = has_bailout_module_identifiers
             //   || self.bailout_modules.contains_key(module_identifier);
           }
         }
 
+        if !matches!(star_symbol.ty(), StarSymbolKind::ReExportAll) {
+          // It means the module has not export or reexport target reference, maybe the src module
+          // is a empty module, we should avoid to eliminate the module even it is a sideEffects
+          // free module
+          merge_used_export_type(
+            used_export_module_identifiers,
+            src_module_identifier,
+            ModuleUsedType::EXPORT_ALL,
+          );
+        }
         // Failed to look up a specific element, connect all
-        for (key, export_symbol_ref) in analyze_refsult.export_map.iter() {
+        for (key, export_symbol_ref) in analyze_result.export_map.iter() {
           if !include_default_export && key == "default" {
           } else {
             self
@@ -1163,7 +1247,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
         }
 
-        for (key, _) in analyze_refsult.inherit_export_maps.iter() {
+        for (key, _) in analyze_result.inherit_export_maps.iter() {
           let export_all = SymbolRef::Star(StarSymbol::new(
             *key,
             Default::default(),
@@ -1182,7 +1266,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           self
             .symbol_graph
             .add_edge(&current_symbol_ref, import_symbol_ref);
-          let mut next_member_chain = vec![binding.atom.clone()];
+          let mut next_member_chain = vec![binding.clone()];
           next_member_chain.extend(member_chain.iter().cloned());
           symbol_queue.push_back((import_symbol_ref.clone(), next_member_chain));
         }
@@ -1215,6 +1299,21 @@ impl<'a> CodeSizeOptimizer<'a> {
     // by default webpack will not mark the `export *` as used in entry module
     if matches!(entry_type, EntryLikeType::Bailout) {
       let inherit_export_symbols = get_inherit_export_symbol_ref(entry_module_result);
+      if !inherit_export_symbols.is_empty() {
+        // transitive bailout
+        inherit_export_symbols.iter().for_each(|item| {
+          q.push_back((
+            SymbolRef::Star(StarSymbol::new(
+              item.src(),
+              Default::default(),
+              entry_identifier,
+              StarSymbolKind::ReExportAll,
+              DependencyId::default(),
+            )),
+            vec![],
+          ));
+        });
+      }
       q.extend(
         inherit_export_symbols
           .into_iter()
@@ -1291,14 +1390,11 @@ impl<'a> CodeSizeOptimizer<'a> {
 // }
 
 fn get_inherit_export_ref_graph(
-  analyze_result_map: &mut std::collections::HashMap<
-    Identifier,
-    OptimizeAnalyzeResult,
-    std::hash::BuildHasherDefault<ustr::IdentityHasher>,
-  >,
+  analyze_result_map: &mut IdentifierMap<OptimizeAnalyzeResult>,
+  mg: &ModuleGraph,
 ) -> GraphMap<Identifier, (), Directed> {
   // calculate relation of module that has `export * from 'xxxx'`
-  let inherit_export_ref_graph = create_inherit_graph(&*analyze_result_map);
+  let inherit_export_ref_graph = create_inherit_graph(&*analyze_result_map, mg);
   // key is the module_id of module that potential have reexport all symbol from other module
   // value is the set which contains several module_id the key related module need to inherit
   let map_of_inherit_map = get_extends_map(&inherit_export_ref_graph);
@@ -1350,45 +1446,55 @@ fn get_inherit_export_ref_graph(
   inherit_export_ref_graph
 }
 
-async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<OptimizeAnalyzeResult> {
-  let analyze_results = {
-    compilation
-      .module_graph
-      .module_graph_modules()
-      .par_iter()
-      .filter_map(|(module_identifier, mgm)| {
-        let optimize_analyze_result = if mgm.module_type.is_js_like() {
-          match compilation
-            .module_graph
-            .module_by_identifier(&mgm.module_identifier)
-            .and_then(|module| module.as_normal_module().and_then(|m| m.ast()))
-            // A module can missing its AST if the module is failed to build
-            .and_then(|ast| ast.as_javascript())
-          {
-            Some(ast) => JsModule::new(ast, *module_identifier).analyze(compilation),
-            None => {
-              return None;
-            }
-          }
-        } else {
-          AssetModule::new(*module_identifier).analyze(compilation)
-        };
+// async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<OptimizeAnalyzeResult> {
+//   let analyze_results = {
+//     compilation
+//       .module_graph
+//       .module_graph_modules()
+//       .par_iter()
+//       .filter_map(|(module_identifier, mgm)| {
+//         let optimize_analyze_result = if mgm.module_type.is_js_like() {
+//           match compilation
+//             .module_graph
+//             .module_by_identifier(&mgm.module_identifier)
+//             .and_then(|module| module.as_normal_module().and_then(|m| m.ast()))
+//             // A module can missing its AST if the module is failed to build
+//             .and_then(|ast| ast.as_javascript())
+//           {
+//             Some(ast) => JsModule::new(
+//               ast,
+//               &mgm
+//                 .dependencies
+//                 .iter()
+//                 .filter_map(|id| compilation.module_graph.dependency_by_id(id).cloned())
+//                 .collect::<Vec<_>>(),
+//               *module_identifier,
+//               &compilation.options,
+//             )
+//             .analyze(),
+//             None => {
+//               return None;
+//             }
+//           }
+//         } else {
+//           AssetModule::new(*module_identifier).analyze()
+//         };
 
-        // dbg_matches!(
-        //   &module_identifier.as_str(),
-        //   &optimize_analyze_result.reachable_import_of_export,
-        //   &optimize_analyze_result.used_symbol_refs,
-        //   &optimize_analyze_result.export_map,
-        //   &optimize_analyze_result.import_map,
-        //   &optimize_analyze_result.side_effects
-        // );
+//         // dbg_matches!(
+//         //   &module_identifier.as_str(),
+//         //   &optimize_analyze_result.reachable_import_of_export,
+//         //   &optimize_analyze_result.used_symbol_refs,
+//         //   &optimize_analyze_result.export_map,
+//         //   &optimize_analyze_result.import_map,
+//         //   &optimize_analyze_result.side_effects
+//         // );
 
-        Some((*module_identifier, optimize_analyze_result))
-      })
-      .collect::<IdentifierMap<OptimizeAnalyzeResult>>()
-  };
-  analyze_results
-}
+//         Some((*module_identifier, optimize_analyze_result))
+//       })
+//       .collect::<IdentifierMap<OptimizeAnalyzeResult>>()
+//   };
+//   analyze_results
+// }
 
 fn update_reachable_dependency(
   symbol_ref: &SymbolRef,
@@ -1490,11 +1596,14 @@ fn get_reachable(
 
 fn create_inherit_graph(
   analyze_map: &IdentifierMap<OptimizeAnalyzeResult>,
+  mg: &ModuleGraph,
 ) -> GraphMap<ModuleIdentifier, (), petgraph::Directed> {
   let mut g = DiGraphMap::new();
   for (module_id, result) in analyze_map.iter() {
-    for export_all_module_id in result.inherit_export_maps.keys().rev() {
-      g.add_edge(*module_id, *export_all_module_id, ());
+    for export_all_dep_id in result.export_all_dep_id.iter().rev() {
+      if let Some(export_all_module_id) = mg.module_identifier_by_dependency_id(export_all_dep_id) {
+        g.add_edge(*module_id, *export_all_module_id, ());
+      }
     }
   }
   g

@@ -6,15 +6,19 @@
   "private": true,
   "scripts": {
     "dev": "rspack serve ",
-    "build": "rspack build"
+    "build": "cross-env NODE_ENV=production rspack build"
   },
   "keywords": [],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@rspack/cli": "workspace:*",
     "react": "18.0.0",
-    "react-dom": "18.0.0",
+    "react-dom": "18.0.0"
+  },
+  "devDependencies": {
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*",
+    "@rspack/plugin-react-refresh": "workspace:*",
     "react-refresh": "0.13.0"
   }
 }

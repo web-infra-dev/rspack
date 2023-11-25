@@ -1,9 +1,9 @@
 const BundleAnalyzerPlugin =
 	require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
 const CopyPlugin = require("copy-webpack-plugin");
-const HtmlPlugin = require("@rspack/plugin-html").default;
+const HtmlPlugin = require("html-webpack-plugin")
 const { StatsWriterPlugin } = require("webpack-stats-plugin");
-const minifyPlugin = require("@rspack/plugin-minify");
+// const minifyPlugin = require("@rspack/plugin-minify");
 const manifestPlugin = require("rspack-manifest-plugin").WebpackManifestPlugin;
 const GeneratePackageJsonPlugin = require("generate-package-json-webpack-plugin");
 const licensePlugin = require("license-webpack-plugin");
@@ -19,14 +19,14 @@ const config = {
 		filename: "[contenthash:8].js"
 	},
 	optimization: {
-		minimize: true,
-		minimizer: [
-			new minifyPlugin({
-				minifier: "terser",
-				target: "es6",
-				css: true
-			})
-		]
+		minimize: false, // Disabling minification because it takes too long on CI
+		// minimizer: [
+			// new minifyPlugin({
+				// minifier: "terser",
+				// target: "es6",
+				// css: true
+			// })
+		// ]
 	},
 	plugins: [
 		new BundleAnalyzerPlugin({

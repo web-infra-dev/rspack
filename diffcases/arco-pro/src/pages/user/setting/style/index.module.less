@@ -1,0 +1,74 @@
+.wrapper {
+  display: flex;
+  background-color: var(--color-bg-2);
+
+  .sidebar {
+    width: 200px;
+    border-right: 1px solid var(--color-border);
+  }
+
+  .content {
+    flex: 1;
+    padding: 20px 24px;
+  }
+}
+
+.info {
+  &-form {
+    width: 375px;
+  }
+
+  &-avatar {
+    :global(.arco-avatar-trigger-icon-button) {
+      color: rgb(var(--arcoblue-6));
+    }
+  }
+}
+
+.security {
+  padding: 0 16px;
+
+  &-item {
+    display: flex;
+
+    &-title {
+      margin-right: 16px;
+      font-weight: 500;
+      color: var(--color-text-2);
+      padding-top: 30px;
+      padding-bottom: 20px;
+    }
+
+    &-content {
+      display: flex;
+      width: 0;
+      flex: 1;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--color-border-2);
+      padding-top: 30px;
+      padding-bottom: 20px;
+    }
+
+    &-placeholder {
+      color: var(--color-text-3);
+    }
+  }
+}
+
+.verified {
+  padding: 0 16px;
+
+  > h6 {
+    font-size: 14px;
+    margin-top: 16px;
+  }
+
+  &-enterprise {
+    padding: 16px;
+    background-color: var(--color-fill-1);
+
+    td {
+      width: 30%;
+    }
+  }
+}

@@ -14,6 +14,10 @@ const getBrowserslistTargetHandler = memoize(() =>
 	require("./browserslistTargetHandler")
 );
 
+/**
+ * @param {string} context the context directory
+ * @returns {import("..").Target} target properties
+ */
 const getDefaultTarget = context => {
 	// TODO: align with webpack
 	// const browsers = getBrowserslistTargetHandler().load(null, context);
@@ -69,10 +73,12 @@ const getDefaultTarget = context => {
 /** @template A @template B @typedef {(A & Never<B>) | (Never<A> & B) | (A & B)} Mix<A,B> */
 /** @typedef {Mix<Mix<PlatformTargetProperties, ElectronContextTargetProperties>, Mix<ApiTargetProperties, EcmaTargetProperties>>} TargetProperties */
 
+// @ts-expect-error
 const versionDependent = (major, minor) => {
 	if (!major) return () => /** @type {undefined} */ (undefined);
 	major = +major;
 	minor = minor ? +minor : 0;
+	// @ts-expect-error
 	return (vMajor, vMinor = 0) => {
 		return major > vMajor || (major === vMajor && minor >= vMinor);
 	};
@@ -87,6 +93,7 @@ const TARGETS = [
 		(rest, context) => {
 			const browserslistTargetHandler = getBrowserslistTargetHandler();
 			const browsers = browserslistTargetHandler.load(
+				// @ts-expect-error
 				rest ? rest.trim() : null,
 				context
 			);
@@ -149,6 +156,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
 		"[async-]node[X[.Y]]",
 		"Node.js in version X.Y. The 'async-' prefix will load chunks asynchronously via 'fs' and 'vm' instead of 'require()'. Examples: node14.5, async-node10.",
 		/^(async-)?node(\d+(?:\.(\d+))?)?$/,
+		// @ts-expect-error
 		(asyncFlag, major, minor) => {
 			const v = versionDependent(major, minor);
 			// see https://node.green/
@@ -186,6 +194,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
 		"electron[X[.Y]]-main/preload/renderer",
 		"Electron in version X.Y. Script is running in main, preload resp. renderer context.",
 		/^electron(\d+(?:\.(\d+))?)?-(main|preload|renderer)$/,
+		// @ts-expect-error
 		(major, minor, context) => {
 			const v = versionDependent(major, minor);
 			// see https://node.green/ + https://github.com/electron/releases
@@ -227,6 +236,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
 		"nwjs[X[.Y]] / node-webkit[X[.Y]]",
 		"NW.js in version X.Y.",
 		/^(?:nwjs|node-webkit)(\d+(?:\.(\d+))?)?$/,
+		// @ts-expect-error
 		(major, minor) => {
 			const v = versionDependent(major, minor);
 			// see https://node.green/ + https://github.com/nwjs/nw.js/blob/nw48/CHANGELOG.md
@@ -304,7 +314,7 @@ const getTargetProperties = (target, context) => {
 		).join("\n")}`
 	);
 };
-
+// @ts-expect-error
 const mergeTargetProperties = targetProperties => {
 	const keys = new Set();
 	for (const tp of targetProperties) {
@@ -328,6 +338,7 @@ const mergeTargetProperties = targetProperties => {
 			}
 		}
 		if (hasTrue || hasFalse)
+			// @ts-expect-error
 			result[key] = hasFalse && hasTrue ? null : hasTrue ? true : false;
 	}
 	return /** @type {TargetProperties} */ (result);

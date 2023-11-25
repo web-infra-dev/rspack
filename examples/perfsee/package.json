@@ -11,7 +11,8 @@
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
-    "@perfsee/webpack": "1.6.0"
+    "@perfsee/webpack": "1.6.0",
+    "@rspack/core": "workspace:*"
   },
   "sideEffects": false,
   "keywords": [],

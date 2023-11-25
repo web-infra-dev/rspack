@@ -1,9 +1,15 @@
 {
   "name": "@rspack/plugin-node-polyfill",
-  "version": "0.2.9",
+  "version": "0.4.0",
   "license": "MIT",
   "description": "Node polyfill plugin for rspack",
   "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "test": "echo success"
   },

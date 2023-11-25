@@ -2,40 +2,7 @@
 
 exports[`snapshots should have the correct base config 1`] = `
 {
-  "builtins": {
-    "banner": undefined,
-    "codeGeneration": {
-      "keepComments": false,
-    },
-    "copy": undefined,
-    "css": {
-      "modules": {
-        "exportsOnly": false,
-        "localIdentName": "[path][name][ext]__[local]",
-        "localsConvention": "asIs",
-      },
-    },
-    "decorator": {
-      "emitMetadata": true,
-      "legacy": true,
-    },
-    "define": {},
-    "devFriendlySplitChunks": false,
-    "emotion": undefined,
-    "html": [],
-    "minifyOptions": undefined,
-    "noEmitAssets": false,
-    "pluginImport": undefined,
-    "postcss": {
-      "pxtorem": undefined,
-    },
-    "presetEnv": undefined,
-    "progress": undefined,
-    "provide": {},
-    "react": {},
-    "relay": undefined,
-    "treeShaking": "false",
-  },
+  "builtins": {},
   "cache": false,
   "context": "<cwd>",
   "dependencies": undefined,
@@ -57,6 +24,12 @@ exports[`snapshots should have the correct base config 1`] = `
     },
     "lazyCompilation": false,
     "newSplitChunks": true,
+    "rspackFuture": {
+      "disableTransformByDefault": true,
+      "newResolver": true,
+      "newTreeshaking": false,
+    },
+    "topLevelAwait": true,
   },
   "externals": undefined,
   "externalsPresets": {
@@ -138,18 +111,6 @@ exports[`snapshots should have the correct base config 1`] = `
         "type": "javascript/esm",
       },
       {
-        "test": /\\\\\\.jsx\\$/i,
-        "type": "jsx",
-      },
-      {
-        "test": /\\\\\\.ts\\$/i,
-        "type": "ts",
-      },
-      {
-        "test": /\\\\\\.tsx\\$/i,
-        "type": "tsx",
-      },
-      {
         "oneOf": [
           {
             "resolve": {
@@ -203,6 +164,9 @@ exports[`snapshots should have the correct base config 1`] = `
           "maxSize": 8096,
         },
       },
+      "javascript": {
+        "dynamicImportMode": "lazy",
+      },
     },
     "rules": [],
   },
@@ -213,9 +177,14 @@ exports[`snapshots should have the correct base config 1`] = `
     "global": "warn",
   },
   "optimization": {
+    "chunkIds": "named",
+    "innerGraph": false,
+    "mergeDuplicateChunks": true,
     "minimize": false,
     "minimizer": [],
     "moduleIds": "named",
+    "nodeEnv": false,
+    "providedExports": true,
     "realContentHash": false,
     "removeAvailableModules": true,
     "removeEmptyChunks": true,
@@ -242,6 +211,7 @@ exports[`snapshots should have the correct base config 1`] = `
       "minChunks": 1,
       "minSize": 10000,
     },
+    "usedExports": false,
   },
   "output": {
     "assetModuleFilename": "[hash][ext][query]",
@@ -249,7 +219,7 @@ exports[`snapshots should have the correct base config 1`] = `
     "chunkFilename": "[name].js",
     "chunkFormat": "array-push",
     "chunkLoading": "jsonp",
-    "chunkLoadingGlobal": "webpackChunk@rspack/core",
+    "chunkLoadingGlobal": "webpackChunk_rspack_core",
     "clean": false,
     "crossOriginLoading": false,
     "cssChunkFilename": "[name].css",
@@ -269,6 +239,7 @@ exports[`snapshots should have the correct base config 1`] = `
     "hashFunction": "md4",
     "hashSalt": undefined,
     "hotUpdateChunkFilename": "[id].[fullhash].hot-update.js",
+    "hotUpdateGlobal": "webpackHotUpdate_rspack_core",
     "hotUpdateMainFilename": "[runtime].[fullhash].hot-update.json",
     "iife": true,
     "importFunctionName": "import",
@@ -287,6 +258,7 @@ exports[`snapshots should have the correct base config 1`] = `
     "workerWasmLoading": "fetch",
   },
   "plugins": [],
+  "profile": false,
   "resolve": {
     "browserField": true,
     "byDependency": {
@@ -417,6 +389,26 @@ exports[`snapshots should have the correct base config 1`] = `
     ],
     "modules": [
       "node_modules",
+    ],
+  },
+  "resolveLoader": {
+    "conditionNames": [
+      "loader",
+      "require",
+      "node",
+    ],
+    "exportsFields": [
+      "exports",
+    ],
+    "extensions": [
+      ".js",
+    ],
+    "mainFields": [
+      "loader",
+      "main",
+    ],
+    "mainFiles": [
+      "index",
     ],
   },
   "snapshot": {

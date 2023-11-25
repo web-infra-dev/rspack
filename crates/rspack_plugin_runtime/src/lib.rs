@@ -8,8 +8,6 @@ pub use common_js_chunk_format::CommonJsChunkFormatPlugin;
 mod runtime_plugin;
 use rspack_core::{BoxPlugin, ChunkLoading, ChunkLoadingType, PluginExt};
 pub use runtime_plugin::RuntimePlugin;
-mod hot_module_replacement;
-pub use hot_module_replacement::HotModuleReplacementPlugin;
 mod css_modules;
 pub use css_modules::CssModulesPlugin;
 mod array_push_callback_chunk_format;
@@ -45,7 +43,7 @@ pub fn enable_chunk_loading_plugin(loading_type: ChunkLoadingType, plugins: &mut
       plugins.push(
         StartupChunkDependenciesPlugin::new(
           ChunkLoading::Enable(ChunkLoadingType::AsyncNode),
-          false,
+          true,
         )
         .boxed(),
       );

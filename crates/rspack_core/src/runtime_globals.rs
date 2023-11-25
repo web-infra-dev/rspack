@@ -1,7 +1,7 @@
 use std::fmt;
 
 use bitflags::bitflags;
-use swc_core::ecma::atoms::JsWordStaticSet;
+use swc_core::ecma::atoms::JsWord;
 
 bitflags! {
   pub struct RuntimeGlobals: u64 {
@@ -12,7 +12,7 @@ bitflags! {
      * rspack
      * load chunk with module, let module code generation result can be cached at hmr
      */
-    const LOAD_CHUNK_WITH_MODULE = 1 << 2;
+    const LOAD_CHUNK_WITH_BLOCK = 1 << 2;
     // port from webpack RuntimeGlobals
 
     /**
@@ -215,6 +215,19 @@ bitflags! {
     const NODE_MODULE_DECORATOR = 1 << 47;
 
     const HARMONY_MODULE_DECORATOR = 1 << 48;
+
+    /**
+     * the System.register context object
+     */
+    const SYSTEM_CONTEXT = 1 << 49;
+
+    const THIS_AS_EXPORTS = 1 << 50;
+
+    const CURRENT_REMOTE_GET_SCOPE = 1 << 51;
+
+    const SHARE_SCOPE_MAP = 1 << 52;
+
+    const INITIALIZE_SHARING = 1 << 53;
   }
 }
 
@@ -237,7 +250,7 @@ impl RuntimeGlobals {
     match *self {
       R::REQUIRE_SCOPE => "__webpack_require__.*",
       R::EXPORT_STAR => "es",
-      R::LOAD_CHUNK_WITH_MODULE => "__webpack_require__.el",
+      R::LOAD_CHUNK_WITH_BLOCK => "__webpack_require__.el",
       R::MODULE => "module",
       R::MODULE_ID => "module.id",
       R::MODULE_LOADED => "module.loaded",
@@ -284,6 +297,11 @@ impl RuntimeGlobals {
       R::CREATE_FAKE_NAMESPACE_OBJECT => "__webpack_require__.t",
       R::HARMONY_MODULE_DECORATOR => "__webpack_require__.hmd",
       R::NODE_MODULE_DECORATOR => "__webpack_require__.nmd",
+      R::SYSTEM_CONTEXT => "__webpack_require__.y",
+      R::THIS_AS_EXPORTS => "top-level-this-exports",
+      R::CURRENT_REMOTE_GET_SCOPE => "__webpack_require__.R",
+      R::SHARE_SCOPE_MAP => "__webpack_require__.S",
+      R::INITIALIZE_SHARING => "__webpack_require__.I",
       r => panic!(
         "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
       ),
@@ -307,7 +325,7 @@ impl RuntimeGlobals {
   }
 }
 
-impl From<RuntimeGlobals> for string_cache::Atom<JsWordStaticSet> {
+impl From<RuntimeGlobals> for JsWord {
   fn from(value: RuntimeGlobals) -> Self {
     value.name().into()
   }

@@ -1,5 +1,5 @@
 "use strict";
-import { rspack, RspackOptions } from "../src";
+import { rspack } from "../src";
 import assert from "assert";
 
 const path = require("path");
@@ -72,10 +72,18 @@ export const describeCases = config => {
 			describe(category.name, () => {
 				for (const testName of category.tests) {
 					// eslint-disable-next-line no-loop-func
+					const testDirectory = path.join(casesPath, category.name, testName);
+					const configFile = path.join(testDirectory, "webpack.config.js");
+					if (!fs.existsSync(configFile)) {
+						continue;
+					}
 					describe(testName, function () {
-						const testDirectory = path.join(casesPath, category.name, testName);
 						const filterPath = path.join(testDirectory, "test.filter.js");
-						if (fs.existsSync(filterPath) && !require(filterPath)()) {
+						if (
+							fs.existsSync(filterPath) &&
+							(typeof require(filterPath)() === "string" ||
+								!require(filterPath)())
+						) {
 							describe.skip(testName, () => {
 								it("filtered", () => {});
 							});
@@ -87,9 +95,9 @@ export const describeCases = config => {
 						// const outputDirectory = path.join(outBaseDir, testSubPath);
 						const outputDirectory = path.join(testDirectory, "dist");
 						const cacheDirectory = path.join(outBaseDir, ".cache", testSubPath);
-						let options, optionsArr, testConfig, configFile;
+						let options, optionsArr, testConfig;
+
 						beforeAll(() => {
-							configFile = path.join(testDirectory, "webpack.config.js");
 							options = {};
 							if (fs.existsSync(configFile)) {
 								options = prepareOptions(require(configFile), {
@@ -204,117 +212,13 @@ export const describeCases = config => {
 							setTimeout(done, 200);
 							return;
 						};
-						// if (config.cache) {
-						//     it(`${testName} should pre-compile to fill disk cache (1st)`, done => {
-						//         rimraf.sync(outputDirectory);
-						//         fs.mkdirSync(outputDirectory, { recursive: true });
-						//         infraStructureLog.length = 0;
-						//         const deprecationTracker = deprecationTracking.start();
-						//         require("..")(options, err => {
-						//             deprecationTracker();
-						//             const infrastructureLogging = stderr.toString();
-						//             if (infrastructureLogging) {
-						//                 return done(
-						//                     new Error(
-						//                         "Errors/Warnings during build:\n" +
-						//                         infrastructureLogging
-						//                     )
-						//                 );
-						//             }
-						//             const infrastructureLogErrors = filterInfraStructureErrors(
-						//                 infraStructureLog,
-						//                 {
-						//                     run: 1,
-						//                     options
-						//                 }
-						//             );
-						//             if (
-						//                 infrastructureLogErrors.length &&
-						//                 checkArrayExpectation(
-						//                     testDirectory,
-						//                     { infrastructureLogs: infrastructureLogErrors },
-						//                     "infrastructureLog",
-						//                     "infrastructure-log",
-						//                     "InfrastructureLog",
-						//                     done
-						//                 )
-						//             ) {
-						//                 return;
-						//             }
-						//             if (err) return handleFatalError(err, done);
-						//             done();
-						//         });
-						//     }, 60000);
-						//     it(`${testName} should pre-compile to fill disk cache (2nd)`, done => {
-						//         rimraf.sync(outputDirectory);
-						//         fs.mkdirSync(outputDirectory, { recursive: true });
-						//         infraStructureLog.length = 0;
-						//         const deprecationTracker = deprecationTracking.start();
-						//         require("..")(options, (err, stats) => {
-						//             deprecationTracker();
-						//             if (err) return handleFatalError(err, done);
-						//             const { modules, children, errorsCount } = stats.toJson({
-						//                 all: false,
-						//                 modules: true,
-						//                 errorsCount: true
-						//             });
-						//             if (errorsCount === 0) {
-						//                 const infrastructureLogging = stderr.toString();
-						//                 if (infrastructureLogging) {
-						//                     return done(
-						//                         new Error(
-						//                             "Errors/Warnings during build:\n" +
-						//                             infrastructureLogging
-						//                         )
-						//                     );
-						//                 }
-						//                 const allModules = children
-						//                     ? children.reduce(
-						//                         (all, { modules }) => all.concat(modules),
-						//                         modules || []
-						//                     )
-						//                     : modules;
-						//                 if (
-						//                     allModules.some(
-						//                         m => m.type !== "cached modules" && !m.cached
-						//                     )
-						//                 ) {
-						//                     return done(
-						//                         new Error(
-						//                             `Some modules were not cached:\n${stats.toString({
-						//                                 all: false,
-						//                                 modules: true,
-						//                                 modulesSpace: 100
-						//                             })}`
-						//                         )
-						//                     );
-						//                 }
-						//             }
-						//             const infrastructureLogErrors = filterInfraStructureErrors(
-						//                 infraStructureLog,
-						//                 {
-						//                     run: 2,
-						//                     options
-						//                 }
-						//             );
-						//             if (
-						//                 infrastructureLogErrors.length &&
-						//                 checkArrayExpectation(
-						//                     testDirectory,
-						//                     { infrastructureLogs: infrastructureLogErrors },
-						//                     "infrastructureLog",
-						//                     "infrastructure-log",
-						//                     "InfrastructureLog",
-						//                     done
-						//                 )
-						//             ) {
-						//                 return;
-						//             }
-						//             done();
-						//         });
-						//     }, 40000);
-						// }
-						it(`${testName} should compile`, done => {
+						it(`${testName} should compile`, _done => {
+							// console.info("running:", testName);
+							// console.time(testName);
+							const done = (...args: any[]) => {
+								// console.timeEnd(testName);
+								return _done(...args);
+							};
 							rimraf.sync(outputDirectory);
 							fs.mkdirSync(outputDirectory, { recursive: true });
 							infraStructureLog.length = 0;
@@ -638,13 +542,7 @@ export const describeCases = config => {
 														__dirname: path.dirname(p),
 														__filename: p,
 														_globalAssign: { expect },
-														define,
-														// TODO support __non_webpack_require__
-														__non_webpack_require__: _require.bind(
-															null,
-															path.dirname(p),
-															options
-														)
+														define
 													};
 													if (testConfig.moduleScope) {
 														testConfig.moduleScope(moduleScope);
@@ -725,24 +623,6 @@ export const describeCases = config => {
 									})
 									.catch(done);
 							};
-							// if (config.cache) {
-							//     try {
-							//         const compiler = require("..")(options);
-							//         compiler.run(err => {
-							//             if (err) return handleFatalError(err, done);
-							//             compiler.run((error, stats) => {
-							//                 compiler.close(err => {
-							//                     if (err) return handleFatalError(err, done);
-							//                     onCompiled(error, stats);
-							//                 });
-							//             });
-							//         });
-							//     } catch (e) {
-							//         handleFatalError(e, done);
-							//     }
-							// } else {
-							//     require("..")(options, onCompiled);
-							// }
 							rspack(optionsArr, onCompiled);
 						} /* 30000 */);
 

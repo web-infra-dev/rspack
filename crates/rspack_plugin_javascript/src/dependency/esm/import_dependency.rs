@@ -1,8 +1,7 @@
-use rspack_core::{
-  module_namespace_promise, ChunkGroupOptions, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, TemplateContext,
-  TemplateReplaceSource,
-};
+use rspack_core::{module_namespace_promise, DependencyType, ErrorSpan, ImportDependencyTrait};
+use rspack_core::{AsContextDependency, Dependency};
+use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
+use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
 use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
@@ -12,9 +11,7 @@ pub struct ImportDependency {
   id: DependencyId,
   request: JsWord,
   span: Option<ErrorSpan>,
-  /// This is used to implement `webpackChunkName`, `webpackPrefetch` etc.
-  /// for example: `import(/* webpackChunkName: "my-chunk-name", webpackPrefetch: true */ './module')`
-  pub group_options: ChunkGroupOptions,
+  referenced_exports: Option<Vec<JsWord>>,
 }
 
 impl ImportDependency {
@@ -23,7 +20,7 @@ impl ImportDependency {
     end: u32,
     request: JsWord,
     span: Option<ErrorSpan>,
-    group_options: ChunkGroupOptions,
+    referenced_exports: Option<Vec<JsWord>>,
   ) -> Self {
     Self {
       start,
@@ -31,12 +28,16 @@ impl ImportDependency {
       request,
       span,
       id: DependencyId::new(),
-      group_options,
+      referenced_exports,
     }
   }
 }
 
 impl Dependency for ImportDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -44,13 +45,17 @@ impl Dependency for ImportDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::DynamicImport
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "ImportDependency"
+  }
 }
 
 impl ModuleDependency for ImportDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -59,20 +64,14 @@ impl ModuleDependency for ImportDependency {
     &self.request
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
-  }
-
-  fn group_options(&self) -> Option<&ChunkGroupOptions> {
-    Some(&self.group_options)
-  }
-
   fn set_request(&mut self, request: String) {
     self.request = request.into();
+  }
+}
+
+impl ImportDependencyTrait for ImportDependency {
+  fn referenced_exports(&self) -> Option<&Vec<JsWord>> {
+    self.referenced_exports.as_ref()
   }
 }
 
@@ -82,11 +81,25 @@ impl DependencyTemplate for ImportDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let block = code_generatable_context
+      .compilation
+      .module_graph
+      .get_parent_block(&self.id);
     source.replace(
       self.start,
       self.end,
-      module_namespace_promise(code_generatable_context, &self.id, &self.request, false).as_str(),
+      module_namespace_promise(
+        code_generatable_context,
+        &self.id,
+        block,
+        &self.request,
+        self.dependency_type().as_str().as_ref(),
+        false,
+      )
+      .as_str(),
       None,
     );
   }
 }
+
+impl AsContextDependency for ImportDependency {}

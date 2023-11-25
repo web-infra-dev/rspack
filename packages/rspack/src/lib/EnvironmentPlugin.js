@@ -5,12 +5,17 @@
 
 "use strict";
 
+import { DefinePlugin } from "../builtin-plugin";
+
 const WebpackError = require("./WebpackError");
 
-/** @typedef {import("./Compiler")} Compiler */
-/** @typedef {import("./DefinePlugin").CodeValue} CodeValue */
+// /** @typedef {import("./Compiler")} Compiler */
+// /** @typedef {import("./DefinePlugin").CodeValue} CodeValue */
+/** @typedef {any} Compiler */
+/** @typedef {any} CodeValue */
 
 class EnvironmentPlugin {
+	// @ts-expect-error
 	constructor(...keys) {
 		if (keys.length === 1 && Array.isArray(keys[0])) {
 			this.keys = keys[0];
@@ -39,6 +44,7 @@ class EnvironmentPlugin {
 					: this.defaultValues[key];
 
 			if (value === undefined) {
+				// @ts-expect-error
 				compiler.hooks.thisCompilation.tap("EnvironmentPlugin", compilation => {
 					const error = new WebpackError(
 						`EnvironmentPlugin - ${key} environment variable is undefined.\n\n` +
@@ -54,13 +60,7 @@ class EnvironmentPlugin {
 			definitions[`process.env.${key}`] =
 				value === undefined ? "undefined" : JSON.stringify(value);
 		}
-		compiler.hooks.initialize.tap("EnvironmentPlugin", () => {
-			let define = compiler.options.builtins.define;
-			compiler.options.builtins.define = {
-				...define,
-				...definitions
-			};
-		});
+		new DefinePlugin(definitions).apply(compiler);
 	}
 }
 

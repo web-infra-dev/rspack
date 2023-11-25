@@ -1,4 +1,4 @@
-import { Compiler } from "../compiler";
+import { Compiler } from "../Compiler";
 import path from "path";
 import { compareVersions } from "compare-versions";
 
@@ -13,6 +13,8 @@ export class ResolveSwcPlugin {
 		// redirect @swc/helpers to rspack, so user don't have to manual install it
 		compiler.options.resolve.alias = {
 			"@swc/helpers": swcPath,
+			// TODO: DEPRECATED: remove in v0.5.0.
+			// it's moved to `@rspack/plugin-react-refresh`, but it still required for `builtins.react` for now.
 			"react-refresh": refreshPath,
 			...compiler.options.resolve.alias
 		};

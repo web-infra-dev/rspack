@@ -1,7 +1,7 @@
 use rspack_core::{CompilerOptions, ConstDependency, DependencyTemplate, ResourceData, SpanExt};
+use rspack_error::Diagnostic;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{Expr, Ident, NewExpr, UnaryExpr, UnaryOp};
-use swc_core::ecma::atoms::js_word;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use url::Url;
 
@@ -20,6 +20,7 @@ pub struct ImportMetaScanner<'a> {
   pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   pub compiler_options: &'a CompilerOptions,
   pub resource_data: &'a ResourceData,
+  pub warning_diagnostics: &'a mut Vec<Diagnostic>,
 }
 
 impl<'a> ImportMetaScanner<'a> {
@@ -27,11 +28,13 @@ impl<'a> ImportMetaScanner<'a> {
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     resource_data: &'a ResourceData,
     compiler_options: &'a CompilerOptions,
+    warning_diagnostics: &'a mut Vec<Diagnostic>,
   ) -> Self {
     Self {
       presentational_dependencies,
       resource_data,
       compiler_options,
+      warning_diagnostics,
     }
   }
 }
@@ -87,7 +90,14 @@ impl Visit for ImportMetaScanner<'_> {
 
     // import.meta
     if expr_matcher::is_import_meta(expr) {
-      // TODO(underfin): add warning
+      // warn when access import.meta directly
+      self.warning_diagnostics.push(Diagnostic::warn(
+        String::from("import.meta warning"), 
+        String::from(
+          "Critical dependency: Accessing import.meta directly is unsupported (only property access or destructuring is supported)"), 
+          expr.span().real_lo() as usize,
+           expr.span().real_hi()as usize)
+          );
       self
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
@@ -107,6 +117,8 @@ impl Visit for ImportMetaScanner<'_> {
           format!("'{url}'").into(),
           None,
         )));
+    } else if expr_matcher::is_import_meta_webpack_context(expr) {
+      // nothing
     } else if is_member_expr_starts_with_import_meta(expr) {
       self
         .presentational_dependencies
@@ -123,11 +135,7 @@ impl Visit for ImportMetaScanner<'_> {
 
   fn visit_new_expr(&mut self, new_expr: &NewExpr) {
     // exclude new URL("", import.meta.url)
-    if let Expr::Ident(Ident {
-      sym: js_word!("URL"),
-      ..
-    }) = &*new_expr.callee
-    {
+    if matches!(&*new_expr.callee, Expr::Ident(Ident { sym, .. }) if sym == "URL") {
       return;
     }
     new_expr.visit_children_with(self);

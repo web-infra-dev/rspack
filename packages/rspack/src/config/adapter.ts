@@ -1,7 +1,5 @@
 import type {
 	RawCacheGroupOptions,
-	RawExternalItem,
-	RawExternalItemValue,
 	RawModuleRule,
 	RawOptions,
 	RawRuleSetCondition,
@@ -16,31 +14,30 @@ import type {
 	RawAssetResourceGeneratorOptions,
 	RawIncrementalRebuild,
 	RawModuleRuleUses,
-	RawFuncUseCtx
+	RawFuncUseCtx,
+	RawRspackFuture,
+	RawLibraryName,
+	RawLibraryOptions,
+	JsModule
 } from "@rspack/binding";
 import assert from "assert";
-import { Compiler } from "../compiler";
-import { normalizeStatsPreset } from "../stats";
-import { isNil } from "../util";
+import { Compiler } from "../Compiler";
+import { normalizeStatsPreset } from "../Stats";
+import { deprecatedWarn, isNil } from "../util";
+import { parseResource } from "../util/identifier";
 import {
 	ComposeJsUseOptions,
 	LoaderContext,
-	createRawModuleRuleUses
-} from "./adapter-rule-use";
+	createRawModuleRuleUses,
+	LoaderDefinition,
+	LoaderDefinitionFunction
+} from "./adapterRuleUse";
 import {
 	CrossOriginLoading,
-	EntryNormalized,
-	ExternalItem,
-	ExternalItemValue,
-	Externals,
-	ExternalsPresets,
 	LibraryOptions,
-	ModuleOptionsNormalized,
 	Node,
 	Optimization,
-	OutputNormalized,
 	Resolve,
-	RspackOptionsNormalized,
 	RuleSetCondition,
 	RuleSetLogicalConditions,
 	RuleSetRule,
@@ -55,10 +52,23 @@ import {
 	AssetParserOptions,
 	ParserOptionsByModuleType,
 	GeneratorOptionsByModuleType,
+	IncrementalRebuildOptions,
+	OptimizationSplitChunksOptions,
+	RspackFutureOptions,
+	JavascriptParserOptions,
+	LibraryName,
+	EntryRuntime,
+	ChunkLoading
+} from "./zod";
+import {
 	ExperimentsNormalized,
-	IncrementalRebuildOptions
-} from "./types";
-import { SplitChunksConfig } from "./zod/optimization/split-chunks";
+	ModuleOptionsNormalized,
+	OutputNormalized,
+	RspackOptionsNormalized
+} from "./normalization";
+import { Module } from "../Module";
+
+export type { LoaderContext, LoaderDefinition, LoaderDefinitionFunction };
 
 export const getRawOptions = (
 	options: RspackOptionsNormalized,
@@ -74,26 +84,22 @@ export const getRawOptions = (
 		"context, devtool, cache should not be nil after defaults"
 	);
 	const devtool = options.devtool === false ? "" : options.devtool;
-	let rawEntry = getRawEntry(options.entry);
+	const mode = options.mode;
+	const experiments = getRawExperiments(options.experiments);
 	return {
-		entry: rawEntry,
-		entryOrder: Object.keys(rawEntry),
-		mode: options.mode,
+		mode,
 		target: getRawTarget(options.target),
 		context: options.context,
 		output: getRawOutput(options.output),
 		resolve: getRawResolve(options.resolve),
+		resolveLoader: getRawResolve(options.resolveLoader),
 		module: getRawModule(options.module, {
 			compiler,
 			devtool,
-			context: options.context
+			mode,
+			context: options.context,
+			experiments
 		}),
-		externals: options.externals
-			? getRawExternals(options.externals)
-			: undefined,
-		externalsType:
-			options.externalsType === undefined ? "" : options.externalsType,
-		externalsPresets: getRawExternalsPresets(options.externalsPresets),
 		devtool,
 		optimization: getRawOptimization(options.optimization),
 		stats: getRawStats(options.stats),
@@ -113,30 +119,13 @@ export const getRawOptions = (
 			name: "",
 			version: ""
 		},
-		experiments: getRawExperiments(options.experiments),
+		experiments,
 		node: getRawNode(options.node),
-		// TODO: refactor builtins
+		profile: options.profile!,
+		// TODO: remove this
 		builtins: options.builtins as any
 	};
 };
-
-function getRawEntry(entry: EntryNormalized): RawOptions["entry"] {
-	const raw: RawOptions["entry"] = {};
-	for (const key of Object.keys(entry)) {
-		const runtime = entry[key].runtime;
-		const chunkLoading = entry[key].chunkLoading;
-		raw[key] = {
-			import: entry[key].import!,
-			publicPath: entry[key].publicPath,
-			baseUri: entry[key].baseUri,
-			runtime: runtime === false ? undefined : runtime,
-			chunkLoading: chunkLoading === false ? "false" : chunkLoading,
-			asyncChunks: entry[key].asyncChunks,
-			filename: entry[key].filename
-		};
-	}
-	return raw;
-}
 
 function getRawTarget(target: Target | undefined): RawOptions["target"] {
 	if (!target) {
@@ -171,6 +160,8 @@ function getRawResolveByDependency(
 }
 
 function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
+	let references = resolve.tsConfig?.references;
+	let tsconfigConfigFile = resolve.tsConfigPath ?? resolve.tsConfig?.configFile;
 	return {
 		...resolve,
 		alias: getRawAlias(resolve.alias),
@@ -179,6 +170,14 @@ function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 			string,
 			Array<string>
 		>,
+		tsconfig: tsconfigConfigFile
+			? {
+					configFile: tsconfigConfigFile,
+					referencesType:
+						references == "auto" ? "auto" : references ? "manual" : "disabled",
+					references: references == "auto" ? undefined : references
+			  }
+			: undefined,
 		byDependency: getRawResolveByDependency(resolve.byDependency)
 	};
 }
@@ -203,14 +202,14 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		clean: output.clean!,
 		assetModuleFilename: output.assetModuleFilename!,
 		filename: output.filename!,
-		chunkFormat: output.chunkFormat === false ? "false" : output.chunkFormat!,
 		chunkFilename: output.chunkFilename!,
-		chunkLoading: chunkLoading === false ? "false" : chunkLoading,
+		chunkLoading: getRawChunkLoading(chunkLoading),
 		crossOriginLoading: getRawCrossOriginLoading(output.crossOriginLoading!),
 		cssFilename: output.cssFilename!,
 		cssChunkFilename: output.cssChunkFilename!,
 		hotUpdateChunkFilename: output.hotUpdateChunkFilename!,
 		hotUpdateMainFilename: output.hotUpdateMainFilename!,
+		hotUpdateGlobal: output.hotUpdateGlobal!,
 		uniqueName: output.uniqueName!,
 		chunkLoadingGlobal: output.chunkLoadingGlobal!,
 		enabledLibraryTypes: output.enabledLibraryTypes,
@@ -239,30 +238,17 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 	};
 }
 
-function getRawExternalsPresets(
-	presets: ExternalsPresets
-): RawOptions["externalsPresets"] {
-	return {
-		web: presets.web ?? false,
-		node: presets.node ?? false,
-		electron: presets.electron ?? false,
-		electronMain: presets.electronMain ?? false,
-		electronPreload: presets.electronPreload ?? false,
-		electronRenderer: presets.electronRenderer ?? false
-	};
-}
-
-function getRawLibrary(
-	library: LibraryOptions
-): RawOptions["output"]["library"] {
+export function getRawLibrary(library: LibraryOptions): RawLibraryOptions {
 	const {
 		type,
 		name,
 		export: libraryExport,
 		umdNamedDefine,
-		auxiliaryComment
+		auxiliaryComment,
+		amdContainer
 	} = library;
 	return {
+		amdContainer,
 		auxiliaryComment:
 			typeof auxiliaryComment === "string"
 				? {
@@ -273,29 +259,42 @@ function getRawLibrary(
 				  }
 				: auxiliaryComment,
 		libraryType: type,
-		name:
-			name == null
-				? name
-				: typeof name === "object" && !Array.isArray(name)
-				? {
-						amd: name.amd,
-						commonjs: name.commonjs,
-						root:
-							Array.isArray(name.root) || name.root == null
-								? name.root
-								: [name.root]
-				  }
-				: {
-						amd: Array.isArray(name) ? name[0] : name,
-						commonjs: Array.isArray(name) ? name[0] : name,
-						root: Array.isArray(name) || name == null ? name : [name]
-				  },
+		name: isNil(name) ? name : getRawLibraryName(name),
 		export:
 			Array.isArray(libraryExport) || libraryExport == null
 				? libraryExport
 				: [libraryExport],
 		umdNamedDefine
 	};
+}
+
+function getRawLibraryName(name: LibraryName): RawLibraryName {
+	if (typeof name === "string") {
+		return {
+			type: "string",
+			stringPayload: name
+		};
+	}
+	if (Array.isArray(name)) {
+		return {
+			type: "array",
+			arrayPayload: name
+		};
+	}
+	if (typeof name === "object" && !Array.isArray(name)) {
+		return {
+			type: "umdObject",
+			umdObjectPayload: {
+				commonjs: name.commonjs,
+				root:
+					Array.isArray(name.root) || isNil(name.root)
+						? name.root
+						: [name.root],
+				amd: name.amd
+			}
+		};
+	}
+	throw new Error("unreachable");
 }
 
 function getRawModule(
@@ -320,6 +319,49 @@ function getRawModule(
 		generator: getRawGeneratorOptionsByModuleType(module.generator)
 	};
 }
+
+function tryMatch(payload: string, condition: RuleSetCondition): boolean {
+	if (typeof condition === "string") {
+		return payload.startsWith(condition);
+	}
+
+	if (condition instanceof RegExp) {
+		return condition.test(payload);
+	}
+
+	if (typeof condition === "function") {
+		return condition(payload);
+	}
+
+	if (Array.isArray(condition)) {
+		return condition.some(c => tryMatch(payload, c));
+	}
+
+	if (condition && typeof condition === "object") {
+		if (condition.and) {
+			return condition.and.every(c => tryMatch(payload, c));
+		}
+
+		if (condition.or) {
+			return condition.or.some(c => tryMatch(payload, c));
+		}
+
+		if (condition.not) {
+			return condition.not.every(c => !tryMatch(payload, c));
+		}
+	}
+
+	return false;
+}
+
+const deprecatedRuleType = (type?: string) => {
+	type ??= "javascript/auto";
+	if (/ts|typescript|tsx|typescriptx|jsx|javascriptx/.test(type)) {
+		deprecatedWarn(
+			`'Rule.type: ${type}' has been deprecated, please migrate to builtin:swc-loader with type 'javascript/auto'`
+		);
+	}
+};
 
 const getRawModuleRule = (
 	rule: RuleSetRule,
@@ -351,7 +393,7 @@ const getRawModuleRule = (
 		};
 	}
 
-	return {
+	let rawModuleRule: RawModuleRule = {
 		test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
 		include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
 		exclude: rule.exclude ? getRawRuleSetCondition(rule.exclude) : undefined,
@@ -408,6 +450,47 @@ const getRawModuleRule = (
 			: undefined,
 		enforce: rule.enforce
 	};
+
+	// Function calls may contain side-effects when interoperating with single-threaded environment.
+	// In order to mitigate the issue, Rspack tries to merge these calls together.
+	// See: https://github.com/web-infra-dev/rspack/issues/4003#issuecomment-1689662380
+	if (
+		typeof rule.test === "function" ||
+		typeof rule.resource === "function" ||
+		typeof rule.resourceQuery === "function" ||
+		typeof rule.resourceFragment === "function"
+	) {
+		delete rawModuleRule.test;
+		delete rawModuleRule.resource;
+		delete rawModuleRule.resourceQuery;
+		delete rawModuleRule.resourceFragment;
+
+		rawModuleRule.rspackResource = getRawRuleSetCondition(function (
+			resourceQueryFragment
+		) {
+			const { path, query, fragment } = parseResource(resourceQueryFragment);
+
+			if (rule.test && !tryMatch(path, rule.test)) {
+				return false;
+			} else if (rule.resource && !tryMatch(path, rule.resource)) {
+				return false;
+			}
+
+			if (rule.resourceQuery && !tryMatch(query, rule.resourceQuery)) {
+				return false;
+			}
+
+			if (rule.resourceFragment && !tryMatch(fragment, rule.resourceFragment)) {
+				return false;
+			}
+
+			return true;
+		});
+	}
+	if (options.experiments.rspackFuture.disableTransformByDefault) {
+		deprecatedRuleType(rule.type);
+	}
+	return rawModuleRule;
 };
 
 function getRawRuleSetCondition(
@@ -485,9 +568,20 @@ function getRawParserOptions(
 			type: "asset",
 			asset: getRawAssetParserOptions(parser)
 		};
+	} else if (type === "javascript") {
+		return {
+			type: "javascript",
+			javascript: getRawJavascriptParserOptions(parser)
+		};
 	}
 	return {
 		type: "unknown"
+	};
+}
+
+function getRawJavascriptParserOptions(parser: JavascriptParserOptions) {
+	return {
+		dynamicImportMode: parser.dynamicImportMode ?? "lazy"
 	};
 }
 
@@ -593,116 +687,96 @@ function getRawAssetGeneratorDaraUrl(
 	);
 }
 
-function getRawExternals(externals: Externals): RawOptions["externals"] {
-	function getRawExternalItem(item: ExternalItem): RawExternalItem {
-		if (typeof item === "string") {
-			return { type: "string", stringPayload: item };
-		} else if (item instanceof RegExp) {
-			return { type: "regexp", regexpPayload: item.source };
-		} else if (typeof item === "function") {
-			return {
-				type: "function",
-				fnPayload: async ctx => {
-					return await new Promise((resolve, reject) => {
-						const promise = item(ctx, (err, result, type) => {
-							if (err) reject(err);
-							resolve({
-								result: getRawExternalItemValueFormFnResult(result),
-								external_type: type
-							});
-						});
-						if (promise && promise.then) {
-							promise.then(
-								result =>
-									resolve({
-										result: getRawExternalItemValueFormFnResult(result),
-										external_type: undefined
-									}),
-								e => reject(e)
-							);
-						}
-					});
-				}
-			};
-		}
-		return {
-			type: "object",
-			objectPayload: Object.fromEntries(
-				Object.entries(item).map(([k, v]) => [k, getRawExternalItemValue(v)])
-			)
-		};
-	}
-	function getRawExternalItemValueFormFnResult(result?: ExternalItemValue) {
-		return result === undefined ? result : getRawExternalItemValue(result);
-	}
-	function getRawExternalItemValue(
-		value: ExternalItemValue
-	): RawExternalItemValue {
-		if (typeof value === "string") {
-			return { type: "string", stringPayload: value };
-		} else if (typeof value === "boolean") {
-			return { type: "bool", boolPayload: value };
-		} else if (Array.isArray(value)) {
-			return {
-				type: "array",
-				arrayPayload: value
-			};
-		}
-		throw new Error("unreachable");
-	}
-
-	if (Array.isArray(externals)) {
-		return externals.map(i => getRawExternalItem(i));
-	}
-	return [getRawExternalItem(externals)];
-}
-
 function getRawOptimization(
 	optimization: Optimization
 ): RawOptions["optimization"] {
 	assert(
 		!isNil(optimization.moduleIds) &&
+			!isNil(optimization.chunkIds) &&
 			!isNil(optimization.removeAvailableModules) &&
 			!isNil(optimization.removeEmptyChunks) &&
 			!isNil(optimization.sideEffects) &&
-			!isNil(optimization.realContentHash),
-		"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash should not be nil after defaults"
+			!isNil(optimization.realContentHash) &&
+			!isNil(optimization.providedExports) &&
+			!isNil(optimization.usedExports) &&
+			!isNil(optimization.innerGraph),
+		"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash, optimization.providedExports, optimization.usedExports, optimization.innerGraph should not be nil after defaults"
 	);
 	return {
+		chunkIds: optimization.chunkIds,
 		splitChunks: toRawSplitChunksOptions(optimization.splitChunks),
 		moduleIds: optimization.moduleIds,
 		removeAvailableModules: optimization.removeAvailableModules,
 		removeEmptyChunks: optimization.removeEmptyChunks,
 		sideEffects: String(optimization.sideEffects),
-		realContentHash: optimization.realContentHash
+		realContentHash: optimization.realContentHash,
+		usedExports: String(optimization.usedExports),
+		providedExports: optimization.providedExports,
+		innerGraph: optimization.innerGraph
 	};
 }
 
-function toRawSplitChunksOptions(
-	sc?: SplitChunksConfig
+export function toRawSplitChunksOptions(
+	sc?: OptimizationSplitChunksOptions
 ): RawOptions["optimization"]["splitChunks"] | undefined {
 	if (!sc) {
 		return;
 	}
 
-	const { name, cacheGroups = {}, ...passThrough } = sc;
-	return {
-		name: name === false ? undefined : name,
-		cacheGroups: Object.fromEntries(
-			Object.entries(cacheGroups)
-				.filter(([_key, group]) => group !== false)
-				.map(([key, group]) => {
-					group = group as Exclude<typeof group, false>;
+	function getName(name: any) {
+		interface Context {
+			module: JsModule;
+		}
 
-					const { test, name, ...passThrough } = group;
-					const rawGroup: RawCacheGroupOptions = {
-						test: test?.source,
-						name: name === false ? undefined : name,
-						...passThrough
-					};
-					return [key, rawGroup];
-				})
-		),
+		if (typeof name === "function") {
+			return (ctx: Context) => {
+				if (typeof ctx.module === "undefined") {
+					return name(undefined);
+				} else {
+					return name(Module.__from_binding(ctx.module));
+				}
+			};
+		} else {
+			return name;
+		}
+	}
+
+	function getTest(test: any) {
+		interface Context {
+			module: JsModule;
+		}
+
+		if (typeof test === "function") {
+			return (ctx: Context) => {
+				if (typeof ctx.module === "undefined") {
+					return test(undefined);
+				} else {
+					return test(Module.__from_binding(ctx.module));
+				}
+			};
+		} else {
+			return test;
+		}
+	}
+
+	const { name, cacheGroups = {}, ...passThrough } = sc;
+
+	return {
+		name: getName(name),
+		cacheGroups: Object.entries(cacheGroups)
+			.filter(([_key, group]) => group !== false)
+			.map(([key, group]) => {
+				group = group as Exclude<typeof group, false>;
+
+				const { test, name, ...passThrough } = group;
+				const rawGroup: RawCacheGroupOptions = {
+					key,
+					test: getTest(test),
+					name: getName(name),
+					...passThrough
+				};
+				return rawGroup;
+			}),
 		...passThrough
 	};
 }
@@ -740,14 +814,18 @@ function getRawExperiments(
 		incrementalRebuild,
 		asyncWebAssembly,
 		newSplitChunks,
-		css
+		topLevelAwait,
+		css,
+		rspackFuture
 	} = experiments;
 	assert(
 		!isNil(lazyCompilation) &&
 			!isNil(incrementalRebuild) &&
 			!isNil(asyncWebAssembly) &&
 			!isNil(newSplitChunks) &&
-			!isNil(css)
+			!isNil(topLevelAwait) &&
+			!isNil(css) &&
+			!isNil(rspackFuture)
 	);
 
 	return {
@@ -755,7 +833,22 @@ function getRawExperiments(
 		incrementalRebuild: getRawIncrementalRebuild(incrementalRebuild),
 		asyncWebAssembly,
 		newSplitChunks,
-		css
+		topLevelAwait,
+		css,
+		rspackFuture: getRawRspackFutureOptions(rspackFuture)
+	};
+}
+
+function getRawRspackFutureOptions(
+	future: RspackFutureOptions
+): RawRspackFuture {
+	assert(!isNil(future.newResolver));
+	assert(!isNil(future.newTreeshaking));
+	assert(!isNil(future.disableTransformByDefault));
+	return {
+		newResolver: future.newResolver,
+		newTreeshaking: future.newTreeshaking,
+		disableTransformByDefault: future.disableTransformByDefault
 	};
 }
 
@@ -795,4 +888,12 @@ function getRawStats(stats: StatsValue): RawOptions["stats"] {
 	return {
 		colors: statsOptions.colors ?? false
 	};
+}
+
+export function getRawEntryRuntime(runtime: EntryRuntime) {
+	return runtime === false ? undefined : runtime;
+}
+
+export function getRawChunkLoading(chunkLoading: ChunkLoading) {
+	return chunkLoading === false ? "false" : chunkLoading;
 }

@@ -8,8 +8,7 @@ use rspack_core::{
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRenderChunkHookOutput, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
-use rspack_error::Result;
-use rspack_plugin_javascript::runtime::render_chunk_runtime_modules;
+use rspack_plugin_javascript::runtime::{render_chunk_runtime_modules, render_iife};
 
 use crate::{
   generate_entry_startup, get_chunk_output_name, get_relative_path, get_runtime_chunk_output_name,
@@ -22,11 +21,7 @@ pub struct CommonJsChunkFormatPlugin;
 #[async_trait]
 impl Plugin for CommonJsChunkFormatPlugin {
   fn name(&self) -> &'static str {
-    "CommonJsChunkFormatPlugin"
-  }
-
-  fn apply(&self, _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
-    Ok(())
+    "rspack.CommonJsChunkFormatPlugin"
   }
 
   fn additional_chunk_runtime_requirements(
@@ -149,6 +144,7 @@ impl Plugin for CommonJsChunkFormatPlugin {
       {
         sources.add(s);
       }
+      return Ok(Some(render_iife(sources.boxed())));
     }
     Ok(Some(sources.boxed()))
   }

@@ -7,6 +7,10 @@ inputs:
     default: '16'
     required: false
     type: string
+  frozen-lockfile:
+    default: false
+    required: false
+    type: boolean
   save-if:
     default: false
     required: false
@@ -24,14 +28,21 @@ runs:
     # Uses `packageManagement` field from package.json
     - name: Install pnpm
       uses: pnpm/action-setup@v2
+      with:
+        dest: ${{ runner.tool_cache }}/pnpm
 
     - name: Get pnpm store directory
       id: pnpm-cache
       shell: bash
-      run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+      run: |
+        # set cache-dir to .cache
+        pnpm config set store-dir ~/.cache/pnpm/$(pnpm -v) --location project
+        echo "STORE_PATH is $(pnpm store path)"
+        echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
     - name: Restore pnpm cache
       id: restore
+      if: ${{ startsWith(runner.name, 'GitHub Actions') }}
       uses: actions/cache/restore@v3
       with:
         path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
@@ -41,11 +52,16 @@ runs:
 
     - name: Install dependencies
       shell: bash
-      run: pnpm install --no-frozen-lockfile
+      run: |
+        if [[ "${{ inputs.frozen-lockfile}}" == 'true' ]]; then
+          pnpm install --frozen-lockfile
+        else
+          pnpm install --no-frozen-lockfile
+        fi
 
     - name: Save pnpm cache
       uses: actions/cache/save@v3
-      if: ${{ inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
+      if: ${{ startsWith(runner.name, 'GitHub Actions') && inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
       with:
         path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
         key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}

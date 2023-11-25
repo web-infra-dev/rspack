@@ -5,11 +5,12 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "dev": "rspack build --watch",
+    "dev": "rspack serve",
     "start": "node dist/main.js",
-    "build": "rspack build"
+    "build": "cross-env BUILD=true rspack build"
   },
   "dependencies": {
+    "run-script-webpack-plugin": "0.2.0",
     "@nestjs/common": "^9.0.0",
     "@nestjs/core": "^9.0.5",
     "@nestjs/platform-express": "^9.0.0",
@@ -17,7 +18,8 @@
     "rxjs": "^7.5.5"
   },
   "devDependencies": {
-    "@rspack/cli": "workspace:*"
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*"
   },
   "sideEffects": false,
   "keywords": [],

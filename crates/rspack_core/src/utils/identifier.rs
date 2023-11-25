@@ -7,7 +7,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_util::identifier::absolute_to_request;
 
-use crate::BoxLoader;
+use crate::ModuleRuleUseLoader;
 
 pub fn contextify(context: impl AsRef<Path>, request: &str) -> String {
   let context = context.as_ref();
@@ -52,13 +52,13 @@ pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
 }
 
 pub fn stringify_loaders_and_resource<'a>(
-  loaders: &'a [BoxLoader],
+  loaders: &'a [ModuleRuleUseLoader],
   resource: &'a str,
 ) -> Cow<'a, str> {
   if !loaders.is_empty() {
     let s = loaders
       .iter()
-      .map(|i| i.identifier().as_str())
+      .map(|i| &*i.loader)
       .collect::<Vec<_>>()
       .join("!");
     Cow::Owned(format!("{s}!{}", resource))

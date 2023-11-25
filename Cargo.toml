@@ -26,14 +26,15 @@ json               = { version = "0.12.4" }
 linked_hash_set    = { version = "0.1.4" }
 mimalloc-rust      = { version = "0.2" }
 mime_guess         = { version = "2.0.4" }
-nodejs-resolver    = { version = "0.0.88" }
 once_cell          = { version = "1.18.0" }
 paste              = { version = "1.0" }
+path-clean         = { version = "1.0.1" }
 pathdiff           = { version = "0.2.1" }
-preset_env_base    = { version = "0.4.5" }
+preset_env_base    = { version = "0.4.6" }
 rayon              = { version = "1.7.0" }
 regex              = { version = "1.9.1" }
-rspack_sources     = { version = "0.2.6" }
+rkyv               = { version = "0.7.42" }
+rspack_sources     = { version = "0.2.7" }
 rustc-hash         = { version = "1.1.0" }
 schemars           = { version = "0.8.12" }
 serde              = { version = "1.0.171" }
@@ -47,26 +48,29 @@ tracing-subscriber = { version = "0.3.17" }
 url                = { version = "2.4.0" }
 urlencoding        = { version = "2.1.2" }
 ustr               = { version = "0.9.0" }
+xxhash-rust        = { version = "0.8.6" }
 
 # Pinned
-napi                = { version = "=2.12.5" }
+napi                = { version = "=2.13.3" }
 napi-build          = { version = "=2.0.1" }
-napi-derive         = { version = "=2.12.3" }
+napi-derive         = { version = "=2.13.0" }
 napi-sys            = { version = "=2.2.3" }
+styled_components   = { version = "0.77.0" }
 swc_config          = { version = "=0.1.7" }
-swc_core            = { version = "=0.79.19", default-features = false }
-swc_css             = { version = "=0.153.24" }
-swc_ecma_minifier   = { version = "=0.184.16", default-features = false }
-swc_emotion         = { version = "=0.35.0" }
-swc_error_reporters = { version = "=0.15.17" }
-swc_html            = { version = "=0.127.16" }
-swc_html_minifier   = { version = "=0.124.16" }
-swc_node_comments   = { version = "=0.18.17" }
-tikv-jemallocator   = { version = "=0.4.3", features = ["disable_initial_exec_tls"] }
+swc_core            = { version = "0.86.33", default-features = false }
+swc_css             = { version = "0.157.6" }
+swc_ecma_minifier   = { version = "0.189.28", default-features = false }
+swc_emotion         = { version = "=0.58.0" }
+swc_error_reporters = { version = "=0.17.2" }
+swc_html            = { version = "=0.134.29" }
+swc_html_minifier   = { version = "=0.131.29" }
+swc_node_comments   = { version = "=0.20.2" }
+tikv-jemallocator   = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
 
 [profile.dev]
-debug       = 2
-incremental = true
+codegen-units = 16   # debug build will cause runtime panic if codegen-unints is default
+debug         = 2
+incremental   = true
 
 [profile.release]
 codegen-units = 1

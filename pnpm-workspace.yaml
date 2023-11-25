@@ -2,6 +2,7 @@ packages:
   - "packages/*"
   - "scripts"
   - "packages/playground/fixtures/**"
+  - "packages/create-rspack/**"
   - "npm/*"
   - "crates/node_binding"
   - "crates/rspack_fs_node"
@@ -10,3 +11,4 @@ packages:
   - "webpack-examples"
   - "benchcases/react-refresh"
   - "webpack-test"
+  - "diffcases/*"

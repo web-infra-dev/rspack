@@ -1,18 +1,13 @@
-export * from "./compiler";
-export * from "./multiCompiler";
-export * from "./compilation";
-export * from "./config";
-export * from "./rspack";
-export * from "./stats";
-export * from "./multiStats";
-export * from "./chunk_group";
-export * from "./normalModuleFactory";
-export { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
-export { BannerPlugin } from "./lib/BannerPlugin";
-export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
-export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
-import { Configuration } from "./config";
-// TODO(hyf0): should remove this re-export when we cleanup the exports of `@rspack/core`
-export type OptimizationSplitChunksOptions = NonNullable<
-	Configuration["optimization"]
->["splitChunks"];
+import { rspack as rspackFn } from "./rspack";
+import * as rspackExports from "./exports";
+// add exports on rspack() function
+type Rspack = typeof rspackFn &
+	typeof rspackExports & { rspack: Rspack; webpack: Rspack };
+const fn: any = Object.assign(rspackFn, rspackExports);
+fn.rspack = fn;
+fn.webpack = fn;
+const rspack: Rspack = fn;
+
+export * from "./exports";
+export { rspack };
+module.exports = rspack;

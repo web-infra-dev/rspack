@@ -9,7 +9,8 @@
  */
 import { compareSelect, compareIds as _compareIds } from "../util/comparators";
 import { makePathsRelative } from "../util/identifier";
-import type { Compiler } from "../compiler";
+import * as util from "node:util";
+import type { Compiler } from "../Compiler";
 import type { StatsOptions } from "../config";
 import type { GroupConfig } from "../util/smartGrouping";
 
@@ -20,7 +21,8 @@ import {
 	moduleGroup,
 	countWithChildren,
 	sortByField,
-	assetGroup
+	assetGroup,
+	resolveStatsMillisecond
 } from "./statsFactoryUtils";
 import type {
 	KnownStatsAsset,
@@ -29,8 +31,16 @@ import type {
 	SimpleExtractors,
 	StatsAsset,
 	StatsChunk,
-	NormalizedStatsOptions
+	NormalizedStatsOptions,
+	KnownStatsLoggingEntry,
+	StatsProfile
 } from "./statsFactoryUtils";
+import {
+	LogType,
+	getLogTypesBitFlag,
+	getLogTypeBitFlag,
+	LogTypeEnum
+} from "../logging/Logger";
 
 const compareIds = _compareIds as <T>(a: T, b: T) => -1 | 0 | 1;
 const GROUP_EXTENSION_REGEXP = /(\.[^.]+?)(?:\?|(?: \+ \d+ modules?)?$)/;
@@ -206,11 +216,8 @@ const MODULES_GROUPERS = (
 		};
 		const {
 			groupModulesByCacheStatus,
-			groupModulesByLayer,
 			groupModulesByAttributes,
-			groupModulesByType,
-			groupModulesByPath,
-			groupModulesByExtension
+			groupModulesByType
 		} = options;
 		if (groupModulesByAttributes) {
 			groupByFlag("errors", "modules with errors");
@@ -360,7 +367,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			object,
 			compilation,
 			context: KnownStatsFactoryContext,
-			_options: StatsOptions
+			options: StatsOptions
 		) => {
 			if (!context.makePathsRelative) {
 				context.makePathsRelative = makePathsRelative.bindContextCache(
@@ -375,17 +382,154 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 			}
 			if (!context.cachedGetWarnings) {
 				context.cachedGetWarnings = _compilation => {
-					return context._inner.getWarnings();
+					const warnings = context._inner.getWarnings();
+
+					return compilation.hooks.processWarnings.call(
+						warnings as any
+					) as unknown as typeof warnings;
 				};
 			}
 			if (compilation.name) {
 				object.name = compilation.name;
 			}
 			// TODO: support compilation.needAdditionalPass
-			// TODO: support compilation.logging
+			const logging = options.logging!;
+			const loggingDebug = options.loggingDebug as ((
+				value: string
+			) => boolean)[];
+			const loggingTrace = options.loggingTrace!;
+			if (logging || (loggingDebug && loggingDebug.length > 0)) {
+				let collapsedGroups = false;
+				let acceptedTypes: number;
+				if (
+					logging === "verbose" ||
+					(loggingDebug && loggingDebug.length > 0)
+				) {
+					acceptedTypes = getLogTypesBitFlag([
+						LogType.error,
+						LogType.warn,
+						LogType.info,
+						LogType.log,
+						LogType.group,
+						LogType.groupEnd,
+						LogType.groupCollapsed,
+						LogType.profile,
+						LogType.profileEnd,
+						LogType.time,
+						LogType.status,
+						LogType.clear,
+						LogType.cache
+					]);
+					collapsedGroups = true;
+				} else if (logging === "log" || logging === true) {
+					acceptedTypes = getLogTypesBitFlag([
+						LogType.error,
+						LogType.warn,
+						LogType.info,
+						LogType.log,
+						LogType.group,
+						LogType.groupEnd,
+						LogType.groupCollapsed,
+						LogType.clear
+					]);
+				} else if (logging === "info") {
+					acceptedTypes = getLogTypesBitFlag([
+						LogType.error,
+						LogType.warn,
+						LogType.info
+					]);
+				} else if (logging === "warn") {
+					acceptedTypes = getLogTypesBitFlag([LogType.error, LogType.warn]);
+				} else if (logging === "error") {
+					acceptedTypes = getLogTypesBitFlag([LogType.error]);
+				} else {
+					acceptedTypes = getLogTypesBitFlag([]);
+				}
+				object.logging = {};
+				const compilationLogging = compilation.logging;
+				for (const { name, ...rest } of context._inner.getLogging(
+					acceptedTypes
+				)) {
+					const value = compilationLogging.get(name);
+					const entry = {
+						type: rest.type,
+						trace: rest.trace,
+						args: rest.args ?? []
+					};
+					if (value) {
+						value.push(entry);
+					} else {
+						compilationLogging.set(name, [entry]);
+					}
+				}
+				let depthInCollapsedGroup = 0;
+				for (const [origin, logEntries] of compilationLogging) {
+					const debugMode = loggingDebug.some(fn => fn(origin));
+					if (logging === false && !debugMode) continue;
+					const groupStack: KnownStatsLoggingEntry[] = [];
+					const rootList: KnownStatsLoggingEntry[] = [];
+					let currentList = rootList;
+					let processedLogEntries = 0;
+					for (const entry of logEntries) {
+						let type = entry.type;
+						const typeBitFlag = getLogTypeBitFlag(type as LogTypeEnum);
+						if (!debugMode && (acceptedTypes & typeBitFlag) !== typeBitFlag)
+							continue;
+						// Expand groups in verbose and debug modes
+						if (
+							type === LogType.groupCollapsed &&
+							(debugMode || collapsedGroups)
+						)
+							type = LogType.group;
+
+						if (depthInCollapsedGroup === 0) {
+							processedLogEntries++;
+						}
+
+						if (type === LogType.groupEnd) {
+							groupStack.pop();
+							if (groupStack.length > 0) {
+								currentList = groupStack[groupStack.length - 1].children!;
+							} else {
+								currentList = rootList;
+							}
+							if (depthInCollapsedGroup > 0) depthInCollapsedGroup--;
+							continue;
+						}
+						const message =
+							entry.args && entry.args.length > 0
+								? util.format(entry.args[0], ...entry.args.slice(1))
+								: "";
+						const newEntry: KnownStatsLoggingEntry = {
+							type,
+							message,
+							trace: loggingTrace ? entry.trace : undefined,
+							children:
+								type === LogType.group || type === LogType.groupCollapsed
+									? []
+									: undefined
+						};
+						currentList.push(newEntry);
+						if (newEntry.children) {
+							groupStack.push(newEntry);
+							currentList = newEntry.children;
+							if (depthInCollapsedGroup > 0) {
+								depthInCollapsedGroup++;
+							} else if (type === LogType.groupCollapsed) {
+								depthInCollapsedGroup = 1;
+							}
+						}
+					}
+					object.logging[origin] = {
+						entries: rootList,
+						filteredEntries: logEntries.length - processedLogEntries,
+						debug: debugMode
+					};
+				}
+			}
 		},
 		hash: (object, _compilation, context: KnownStatsFactoryContext) => {
-			object.hash = context._inner.getHash();
+			object.hash = context._inner.getHash() || undefined;
 		},
 		version: object => {
 			const { version, webpackVersion } = require("../../package.json");
@@ -458,29 +602,22 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 		},
 		modules: (
 			object,
-			_compilation,
+			compilation,
 			context: KnownStatsFactoryContext,
 			options: StatsOptions,
-			_factory
+			factory
 		) => {
-			const modules = context._inner.getModules(
+			const { type } = context;
+			const array = context._inner.getModules(
 				options.reasons!,
 				options.moduleAssets!,
 				options.nestedModules!,
 				options.source!
 			);
-			// const array = Array.from(modules);
-			// const groupedModules = factory.create(`${type}.modules`, array, context);
-			// // options.modulesSpace
-			// const limited = spaceLimited(groupedModules, 15);
-			// object.modules = limited.children;
-			// object.filteredModules = limited.filteredChildren;
-
-			object.modules = modules;
-			if (options.modules && modules.length > 15) {
-				object.modules = modules.slice(0, 15);
-				object.filteredModules = modules.length - 15;
-			}
+			const groupedModules = factory.create(`${type}.modules`, array, context);
+			const limited = spaceLimited(groupedModules, options.modulesSpace!);
+			object.modules = limited.children;
+			object.filteredModules = limited.filteredChildren;
 		},
 		entrypoints: (
 			object,
@@ -573,12 +710,137 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
 	},
 	asset: {
 		_: (object, asset, context: KnownStatsFactoryContext, options, factory) => {
-			Object.assign(object, asset);
+			object.type = asset.type;
+			object.name = asset.name;
+			object.size = asset.size;
+			object.emitted = asset.emitted;
+			object.info = asset.info;
+			Object.assign(
+				object,
+				factory.create(`${context.type}$visible`, asset, context)
+			);
+		}
+	},
+	asset$visible: {
+		_: (object, asset) => {
+			object.chunkNames = asset.chunkNames;
+		},
+		ids: (object, asset) => {
+			object.chunks = asset.chunks;
+		}
+	},
+	module: {
+		_: (
+			object,
+			module,
+			context: KnownStatsFactoryContext,
+			options,
+			factory
+		) => {
+			const { type } = context;
+			object.type = module.type;
+			object.moduleType = module.moduleType;
+			object.size = module.size;
+			Object.assign(object, factory.create(`${type}$visible`, module, context));
+		}
+	},
+	module$visible: {
+		_: (object, module, context, options, factory) => {
+			const { type } = context;
+			object.identifier = module.identifier;
+			object.name = module.name;
+			object.nameForCondition = module.nameForCondition;
+			object.issuer = module.issuer;
+			object.issuerName = module.issuerName;
+			object.issuerPath = factory.create(
+				`${type.slice(0, -8)}.issuerPath`,
+				module.issuerPath,
+				context
+			);
+			const profile = module.profile;
+			if (profile) {
+				object.profile = factory.create(`${type}.profile`, profile, context);
+			}
+		},
+		ids: (object, module) => {
+			object.id = module.id;
+			object.issuerId = module.issuerId;
+			object.chunks = module.chunks;
+		},
+		moduleAssets: (object, module) => {
+			object.assets = module.assets;
+		},
+		reasons: (object, module, context, options, factory) => {
+			const { type } = context;
+			object.reasons = factory.create(
+				`${type.slice(0, -8)}.reasons`,
+				module.reasons,
+				context
+			);
+		},
+		source: (object, module) => {
+			object.source = module.source;
+		}
+	},
+	profile: {
+		_: (object, profile) => {
+			const factory = resolveStatsMillisecond(profile.factory);
+			const integration = resolveStatsMillisecond(profile.integration);
+			const building = resolveStatsMillisecond(profile.building);
+			const statsProfile: StatsProfile = {
+				total: factory + integration + building,
+				resolving: factory,
+				integration,
+				building
+			};
+			Object.assign(object, statsProfile);
+		}
+	},
+	moduleIssuer: {
+		_: (object, module, context, options, factory) => {
+			object.identifier = module.identifier;
+			object.name = module.name;
+		},
+		ids: (object, module) => {
+			object.id = module.id;
+		}
+	},
+	moduleReason: {
+		_: (object, reason) => {
+			object.moduleIdentifier = reason.moduleIdentifier;
+			object.moduleName = reason.moduleName;
+			object.type = reason.type;
+			object.userRequest = reason.userRequest;
+		},
+		ids: (object, reason) => {
+			object.moduleId = reason.moduleId;
 		}
 	},
 	chunk: {
 		_: (object, chunk) => {
-			Object.assign(object, chunk);
+			object.type = chunk.type;
+			object.initial = chunk.initial;
+			object.entry = chunk.entry;
+			object.size = chunk.size;
+			object.names = chunk.names;
+			object.files = chunk.files;
+			object.auxiliaryFiles = chunk.auxiliaryFiles;
+		},
+		ids: (object, chunk) => {
+			object.id = chunk.id;
+		},
+		chunkRelations: (object, chunk) => {
+			object.siblings = chunk.siblings;
+			object.parents = chunk.parents;
+			object.children = chunk.children;
+		},
+		chunkModules: (object, chunk, context, options, factory) => {
+			const { type } = context;
+			object.modules = factory.create(
+				`${type}.modules`,
+				chunk.modules,
+				context
+			);
 		}
 	}
 };
@@ -590,6 +852,8 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
  * - compilation.assets[].asset
  * - compilation.chunks
  * - compilation.chunks[].chunk
+ * - compilation.modules
+ * - compilation.modules[].module
  */
 export class DefaultStatsFactoryPlugin {
 	apply(compiler: Compiler) {

@@ -2,13 +2,15 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
-    "allowJs": true,
-    "strict": true
+    "rootDir": "src"
   },
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/config/schema.check.js"
+  ],
   "ts-node": {
     "transpileOnly": true
   },
-  "references": []
 }

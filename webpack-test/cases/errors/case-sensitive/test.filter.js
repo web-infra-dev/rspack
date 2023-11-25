@@ -6,5 +6,5 @@ module.exports = function(config) {
 	return fs.existsSync(path.join(__dirname, "TEST.FILTER.JS"));
 };
 */
-module.exports = () => {return false}
+module.exports = () => true
 							

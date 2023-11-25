@@ -1,0 +1,11 @@
+--- expected
++++ actual
+@@ -8,7 +8,7 @@
+ __webpack_require__.r(__webpack_exports__);
+ 
+ function test() {
+-    /* "./lib.js" unused */null;
++    a;
+ }
+ }),
+ 

@@ -7,12 +7,15 @@ use rspack_identifier::Identifiable;
 use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 
 use crate::{
-  AstOrSource, BuildContext, BuildInfo, BuildResult, CodeGenerationResult, Context, Module,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, SourceType,
+  dependencies_block::AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildResult,
+  CodeGenerationResult, Context, DependenciesBlock, DependencyId, Module, ModuleIdentifier,
+  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
 pub struct RawModule {
+  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  dependencies: Vec<DependencyId>,
   source: BoxSource,
   identifier: ModuleIdentifier,
   readable_identifier: String,
@@ -29,6 +32,8 @@ impl RawModule {
     runtime_requirements: RuntimeGlobals,
   ) -> Self {
     Self {
+      blocks: Default::default(),
+      dependencies: Default::default(),
       // TODO: useSourceMap, etc...
       source: RawSource::from(source).boxed(),
       identifier,
@@ -41,6 +46,24 @@ impl RawModule {
 impl Identifiable for RawModule {
   fn identifier(&self) -> ModuleIdentifier {
     self.identifier
+  }
+}
+
+impl DependenciesBlock for RawModule {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+    self.blocks.push(block)
+  }
+
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+    &self.blocks
+  }
+
+  fn add_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.push(dependency)
+  }
+
+  fn get_dependencies(&self) -> &[DependencyId] {
+    &self.dependencies
   }
 }
 
@@ -86,11 +109,14 @@ impl Module for RawModule {
     )
   }
 
-  fn code_generation(&self, compilation: &crate::Compilation) -> Result<CodeGenerationResult> {
+  fn code_generation(
+    &self,
+    compilation: &crate::Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
-    let ast_or_source: AstOrSource = self.source.clone().into();
     cgr.runtime_requirements.insert(self.runtime_requirements);
-    cgr.add(SourceType::JavaScript, ast_or_source);
+    cgr.add(SourceType::JavaScript, self.source.clone());
     cgr.set_hash(
       &compilation.options.output.hash_function,
       &compilation.options.output.hash_digest,

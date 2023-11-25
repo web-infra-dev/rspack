@@ -1,12 +1,13 @@
 use better_scoped_tls::scoped_tls;
 use napi_derive::napi;
-use rspack_core::{Optimization, PluginExt, SideEffectOption};
+use rspack_core::{Optimization, PluginExt, SideEffectOption, UsedExportsOption};
 use rspack_error::internal_error;
-use rspack_ids::{DeterministicModuleIdsPlugin, NamedModuleIdsPlugin};
-use rspack_plugin_split_chunks::SplitChunksPlugin;
+use rspack_ids::{
+  DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
+  NamedModuleIdsPlugin,
+};
 use serde::Deserialize;
 
-use crate::JsLoaderRunner;
 use crate::{RawOptionsApply, RawSplitChunksOptions};
 
 scoped_tls!(pub(crate) static IS_ENABLE_NEW_SPLIT_CHUNKS: bool);
@@ -17,9 +18,13 @@ scoped_tls!(pub(crate) static IS_ENABLE_NEW_SPLIT_CHUNKS: bool);
 pub struct RawOptimizationOptions {
   pub split_chunks: Option<RawSplitChunksOptions>,
   pub module_ids: String,
+  pub chunk_ids: String,
   pub remove_available_modules: bool,
   pub remove_empty_chunks: bool,
   pub side_effects: String,
+  pub used_exports: String,
+  pub provided_exports: bool,
+  pub inner_graph: bool,
   pub real_content_hash: bool,
 }
 
@@ -29,19 +34,17 @@ impl RawOptionsApply for RawOptimizationOptions {
   fn apply(
     self,
     plugins: &mut Vec<Box<dyn rspack_core::Plugin>>,
-    _: &JsLoaderRunner,
   ) -> Result<Self::Options, rspack_error::Error> {
-    if let Some(options) = self.split_chunks {
-      let split_chunks_plugin = IS_ENABLE_NEW_SPLIT_CHUNKS.with(|is_enable_new_split_chunks| {
-        if *is_enable_new_split_chunks {
-          rspack_plugin_split_chunks_new::SplitChunksPlugin::new(options.into()).boxed()
-        } else {
-          SplitChunksPlugin::new(options.into()).boxed()
-        }
-      });
-
-      plugins.push(split_chunks_plugin);
-    }
+    let chunk_ids_plugin = match self.chunk_ids.as_ref() {
+      "named" => NamedChunkIdsPlugin::new(None, None).boxed(),
+      "deterministic" => DeterministicChunkIdsPlugin::default().boxed(),
+      _ => {
+        return Err(internal_error!(
+          "'chunk_ids' should be 'named' or 'deterministic'."
+        ))
+      }
+    };
+    plugins.push(chunk_ids_plugin);
     let module_ids_plugin = match self.module_ids.as_ref() {
       "named" => NamedModuleIdsPlugin::default().boxed(),
       "deterministic" => DeterministicModuleIdsPlugin::default().boxed(),
@@ -59,6 +62,9 @@ impl RawOptionsApply for RawOptimizationOptions {
       remove_available_modules: self.remove_available_modules,
       remove_empty_chunks: self.remove_empty_chunks,
       side_effects: SideEffectOption::from(self.side_effects.as_str()),
+      provided_exports: self.provided_exports,
+      used_exports: UsedExportsOption::from(self.used_exports.as_str()),
+      inner_graph: self.inner_graph,
     })
   }
 }

@@ -1,25 +1,15 @@
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 
-use rspack_error::{internal_error, Result};
 use rspack_hash::RspackHash;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::ast::css::Ast as CssAst;
-use crate::ast::javascript::Ast as JsAst;
 use crate::{
-  Chunk, ChunkUkey, Compilation, Context, DependencyCategory, DependencyType, ErrorSpan,
-  FactoryMeta, ModuleDependency, ModuleIdentifier, Resolve, RuntimeGlobals, SharedPluginDriver,
-  Stats,
+  Chunk, ChunkInitFragments, ChunkUkey, Compilation, Context, DependencyCategory, DependencyType,
+  ErrorSpan, FactoryMeta, ModuleDependency, ModuleGraphModule, ModuleIdentifier, Resolve,
+  RuntimeGlobals, SharedPluginDriver, Stats,
 };
-// #[derive(Debug)]
-// pub struct ParseModuleArgs<'a> {
-//   pub uri: &'a str,
-//   pub options: Arc<CompilerOptions>,
-//   pub source: BoxSource,
-//   pub meta: Option<String>, // pub ast: Option<ModuleAst>,
-// }
 
 #[derive(Debug)]
 pub struct ProcessAssetsArgs<'me> {
@@ -92,11 +82,8 @@ pub struct FactorizeArgs<'me> {
 }
 
 #[derive(Debug, Clone)]
-pub struct ModuleArgs {
-  pub indentfiler: ModuleIdentifier,
+pub struct NormalModuleCreateData {
   pub dependency_type: DependencyType,
-  // lazy compilation visit module
-  pub lazy_visit_modules: std::collections::HashSet<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -122,7 +109,7 @@ pub struct ResolveArgs<'a> {
   pub dependency_type: &'a DependencyType,
   pub dependency_category: &'a DependencyCategory,
   pub span: Option<ErrorSpan>,
-  pub resolve_options: Option<Resolve>,
+  pub resolve_options: Option<Box<Resolve>>,
   pub resolve_to_context: bool,
   pub optional: bool,
   pub file_dependencies: &'a mut HashSet<PathBuf>,
@@ -132,45 +119,6 @@ pub struct ResolveArgs<'a> {
 #[derive(Debug, Clone)]
 pub struct LoadArgs<'a> {
   pub uri: &'a str,
-}
-
-/**
- *  AST used in first class Module
- */
-#[derive(Debug, Clone, Hash)]
-pub enum ModuleAst {
-  JavaScript(JsAst),
-  Css(CssAst),
-}
-
-impl ModuleAst {
-  pub fn try_into_javascript(self) -> Result<JsAst> {
-    match self {
-      ModuleAst::JavaScript(program) => Ok(program),
-      ModuleAst::Css(_) => Err(internal_error!("Failed")),
-    }
-  }
-
-  pub fn try_into_css(self) -> Result<CssAst> {
-    match self {
-      ModuleAst::Css(stylesheet) => Ok(stylesheet),
-      ModuleAst::JavaScript(_) => Err(internal_error!("Failed")),
-    }
-  }
-
-  pub fn as_javascript(&self) -> Option<&JsAst> {
-    match self {
-      ModuleAst::JavaScript(program) => Some(program),
-      ModuleAst::Css(_) => None,
-    }
-  }
-
-  pub fn as_css(&self) -> Option<&CssAst> {
-    match self {
-      ModuleAst::Css(stylesheet) => Some(stylesheet),
-      ModuleAst::JavaScript(_) => None,
-    }
-  }
 }
 
 #[derive(Debug)]
@@ -197,6 +145,13 @@ pub struct ThisCompilationArgs<'c> {
 pub struct AdditionalChunkRuntimeRequirementsArgs<'a> {
   pub compilation: &'a mut Compilation,
   pub chunk: &'a ChunkUkey,
+  pub runtime_requirements: &'a mut RuntimeGlobals,
+}
+
+#[derive(Debug)]
+pub struct AdditionalModuleRequirementsArgs<'a> {
+  pub compilation: &'a mut Compilation,
+  pub module_identifier: &'a ModuleIdentifier,
   pub runtime_requirements: &'a mut RuntimeGlobals,
 }
 
@@ -235,8 +190,10 @@ impl<'me> RenderChunkArgs<'me> {
 
 #[derive(Debug)]
 pub struct RenderModuleContentArgs<'a> {
-  pub module_source: &'a BoxSource,
+  pub module_source: BoxSource,
+  pub chunk_init_fragments: ChunkInitFragments,
   pub compilation: &'a Compilation,
+  pub module_graph_module: &'a ModuleGraphModule,
 }
 
 #[derive(Debug)]

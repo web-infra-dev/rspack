@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{borrow::Cow, path::PathBuf};
 
 use hashlink::LinkedHashMap;
 
@@ -34,7 +34,7 @@ pub struct Resolve {
   /// fields are written.
   pub condition_names: Option<Vec<String>>,
   /// the path of tsconfig.
-  pub tsconfig: Option<PathBuf>,
+  pub tsconfig: Option<TsconfigOptions>,
   /// A list of directories to resolve modules from, can be absolute path or folder name.
   /// Default is `["node_modules"]`
   pub modules: Option<Vec<String>>,
@@ -54,71 +54,51 @@ pub struct Resolve {
   pub by_dependency: Option<ByDependency>,
 }
 
-impl Resolve {
-  pub fn to_inner_options(
-    self,
-    cache: Arc<nodejs_resolver::Cache>,
-    resolve_to_context: bool,
-    dependency_type: DependencyCategory,
-  ) -> nodejs_resolver::Options {
-    let options = self.merge_by_dependency(dependency_type);
-    let tsconfig = options.tsconfig;
-    let enforce_extension = nodejs_resolver::EnforceExtension::Auto;
-    let external_cache = Some(cache);
-    let description_file = String::from("package.json");
-    let extensions = options.extensions.unwrap_or_else(|| {
-      vec![".tsx", ".ts", ".jsx", ".js", ".mjs", ".json"]
-        .into_iter()
-        .map(|s| s.to_string())
-        .collect()
-    });
-    let alias = options.alias.unwrap_or_default();
-    let prefer_relative = options.prefer_relative.unwrap_or(false);
-    let symlinks = options.symlinks.unwrap_or(true);
-    let main_files = options
-      .main_files
-      .unwrap_or_else(|| vec![String::from("index")]);
-    let main_fields = options
-      .main_fields
-      .unwrap_or_else(|| vec![String::from("module"), String::from("main")]);
-    let browser_field = options.browser_field.unwrap_or(true);
-    let condition_names = std::collections::HashSet::from_iter(
-      options
-        .condition_names
-        .unwrap_or_else(|| vec!["module".to_string(), "import".to_string()]),
-    );
-    let modules = options
-      .modules
-      .unwrap_or_else(|| vec!["node_modules".to_string()]);
-    let fallback = options.fallback.unwrap_or_default();
-    let fully_specified = options.fully_specified.unwrap_or_default();
-    let exports_field = options
-      .exports_field
-      .unwrap_or_else(|| vec![vec!["exports".to_string()]]);
-    let extension_alias = options.extension_alias.unwrap_or_default();
-    nodejs_resolver::Options {
-      fallback,
-      modules,
-      extensions,
-      enforce_extension,
-      alias,
-      prefer_relative,
-      external_cache,
-      symlinks,
-      description_file,
-      main_files,
-      main_fields,
-      browser_field,
-      condition_names,
-      tsconfig,
-      resolve_to_context,
-      fully_specified,
-      exports_field,
-      extension_alias,
+/// Tsconfig Options
+///
+/// Derived from [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin#options)
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct TsconfigOptions {
+  /// Allows you to specify where to find the TypeScript configuration file.
+  /// You may provide
+  /// * a relative path to the configuration file. It will be resolved relative to cwd.
+  /// * an absolute path to the configuration file.
+  pub config_file: PathBuf,
+
+  /// Support for Typescript Project References.
+  pub references: TsconfigReferences,
+}
+
+impl From<TsconfigOptions> for oxc_resolver::TsconfigOptions {
+  fn from(val: TsconfigOptions) -> Self {
+    oxc_resolver::TsconfigOptions {
+      config_file: val.config_file,
+      references: val.references.into(),
     }
   }
+}
 
-  fn merge_by_dependency(mut self, dependency_type: DependencyCategory) -> Self {
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum TsconfigReferences {
+  Disabled,
+  /// Use the `references` field from tsconfig read from `config_file`.
+  Auto,
+  /// Manually provided relative or absolute path.
+  Paths(Vec<PathBuf>),
+}
+
+impl From<TsconfigReferences> for oxc_resolver::TsconfigReferences {
+  fn from(val: TsconfigReferences) -> Self {
+    match val {
+      TsconfigReferences::Disabled => oxc_resolver::TsconfigReferences::Disabled,
+      TsconfigReferences::Auto => oxc_resolver::TsconfigReferences::Auto,
+      TsconfigReferences::Paths(paths) => oxc_resolver::TsconfigReferences::Paths(paths),
+    }
+  }
+}
+
+impl Resolve {
+  pub fn merge_by_dependency(mut self, dependency_type: DependencyCategory) -> Self {
     let by_dependency = self
       .by_dependency
       .as_ref()
@@ -135,12 +115,14 @@ impl Resolve {
   }
 }
 
-#[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
-pub struct ByDependency(LinkedHashMap<DependencyCategory, Resolve>);
+type DependencyCategoryStr = Cow<'static, str>;
 
-impl FromIterator<(DependencyCategory, Resolve)> for ByDependency {
-  fn from_iter<I: IntoIterator<Item = (DependencyCategory, Resolve)>>(i: I) -> Self {
-    Self(LinkedHashMap::from_iter(i.into_iter()))
+#[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
+pub struct ByDependency(LinkedHashMap<DependencyCategoryStr, Resolve>);
+
+impl FromIterator<(DependencyCategoryStr, Resolve)> for ByDependency {
+  fn from_iter<I: IntoIterator<Item = (DependencyCategoryStr, Resolve)>>(i: I) -> Self {
+    Self(LinkedHashMap::from_iter(i))
   }
 }
 
@@ -159,7 +141,7 @@ impl ByDependency {
   }
 
   pub fn get(&self, k: &DependencyCategory) -> Option<&Resolve> {
-    self.0.get(k)
+    self.0.get(k.as_str()).or_else(|| self.0.get("default"))
   }
 }
 
@@ -178,12 +160,12 @@ fn merge_resolver_options(base: Resolve, other: Resolve) -> Resolve {
   }
 
   let alias = overwrite(base.alias, other.alias, |pre, mut now| {
-    now.extend(pre.into_iter());
+    now.extend(pre);
     now.dedup();
     now
   });
   let fallback = overwrite(base.fallback, other.fallback, |pre, mut now| {
-    now.extend(pre.into_iter());
+    now.extend(pre);
     now.dedup();
     now
   });
@@ -221,7 +203,7 @@ fn merge_resolver_options(base: Resolve, other: Resolve) -> Resolve {
     base.extension_alias,
     other.extension_alias,
     |pre, mut now| {
-      now.extend(pre.into_iter());
+      now.extend(pre);
       now.dedup();
       now
     },

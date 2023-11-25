@@ -25,7 +25,7 @@ impl Plugin for InferAsyncModulesPlugin {
       .values()
       .filter(|m| {
         if let Some(meta) = &m.build_meta {
-          meta.is_async
+          meta.has_top_level_await
         } else {
           false
         }
@@ -44,8 +44,10 @@ impl Plugin for InferAsyncModulesPlugin {
           .incoming_connections_unordered(module_graph)?
           .filter(|con| {
             if let Some(dep) = module_graph.dependency_by_id(&con.dependency_id) {
-              *dep.dependency_type() == DependencyType::EsmImport
-                || *dep.dependency_type() == DependencyType::EsmExport
+              matches!(
+                dep.dependency_type(),
+                DependencyType::EsmImport(_) | DependencyType::EsmExport(_)
+              )
             } else {
               false
             }

@@ -1,10 +1,9 @@
 use rspack_core::{
+  impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
-
-use crate::impl_runtime_module;
 
 #[derive(Debug, Eq)]
 pub struct GetMainFilenameRuntimeModule {
@@ -15,10 +14,10 @@ pub struct GetMainFilenameRuntimeModule {
 }
 
 impl GetMainFilenameRuntimeModule {
-  pub fn new(global: RuntimeGlobals, filename: String) -> Self {
+  pub fn new(content_type: &'static str, global: RuntimeGlobals, filename: String) -> Self {
     Self {
       chunk: None,
-      id: Identifier::from(format!("webpack/runtime/get_main_filename/{global}")),
+      id: Identifier::from(format!("webpack/runtime/get_main_filename/{content_type}")),
       global,
       filename,
     }
@@ -40,12 +39,12 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
         &self.filename.clone().into(),
         PathData::default()
           .chunk(chunk)
-          .hash(format!("' + {}() + '", RuntimeGlobals::GET_FULL_HASH).as_str())
+          .hash(format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH).as_str())
           .runtime(&chunk.runtime),
       );
       RawSource::from(format!(
         "{} = function () {{
-            return '{}';
+            return \"{}\";
          }};
         ",
         self.global, filename

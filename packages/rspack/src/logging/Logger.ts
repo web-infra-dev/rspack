@@ -27,10 +27,19 @@ export const LogType = Object.freeze({
 	time: /** @type {"time"} */ "time", // name, time as [seconds, nanoseconds]
 
 	clear: /** @type {"clear"} */ "clear", // no arguments
-	status: /** @type {"status"} */ "status" // message, arguments
+	status: /** @type {"status"} */ "status", // message, arguments
+	cache: /** @type {"cache"} */ "cache" // [hit, total]
 });
 
-export type LogTypeEnum = typeof LogType[keyof typeof LogType];
+export function getLogTypeBitFlag(type: LogTypeEnum) {
+	return 1 << Object.values(LogType).findIndex(i => i === type);
+}
+
+export function getLogTypesBitFlag(types: LogTypeEnum[]) {
+	return types.reduce((acc, cur) => acc | getLogTypeBitFlag(cur), 0);
+}
+
+export type LogTypeEnum = (typeof LogType)[keyof typeof LogType];
 
 const LOG_SYMBOL = Symbol("webpack logger raw log method");
 const TIMERS_SYMBOL = Symbol("webpack logger times");

@@ -1,7 +1,10 @@
-use crate::{
-  Context, ContextMode, ContextOptions, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ModuleDependency,
-};
+use swc_core::ecma::atoms::JsWord;
+
+use crate::{AsContextDependency, AsDependencyTemplate, Context};
+use crate::{ContextMode, ContextOptions, Dependency};
+use crate::{DependencyCategory, DependencyId, DependencyType};
+use crate::{ExtendedReferencedExport, ModuleDependency};
+use crate::{ModuleGraph, ReferencedExport, RuntimeSpec};
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub struct ContextElementDependency {
@@ -12,9 +15,19 @@ pub struct ContextElementDependency {
   pub user_request: String,
   pub category: DependencyCategory,
   pub context: Context,
+  pub resource_identifier: String,
+  pub referenced_exports: Option<Vec<JsWord>>,
 }
 
 impl Dependency for ContextElementDependency {
+  fn dependency_debug_name(&self) -> &'static str {
+    "ContextElementDependency"
+  }
+
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &self.category
   }
@@ -26,23 +39,19 @@ impl Dependency for ContextElementDependency {
   fn get_context(&self) -> Option<&Context> {
     Some(&self.context)
   }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
+  }
 }
 
 impl ModuleDependency for ContextElementDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
 
   fn user_request(&self) -> &str {
     &self.user_request
-  }
-
-  fn span(&self) -> Option<&crate::ErrorSpan> {
-    None
   }
 
   fn weak(&self) -> bool {
@@ -52,11 +61,22 @@ impl ModuleDependency for ContextElementDependency {
     )
   }
 
-  fn options(&self) -> Option<&ContextOptions> {
-    Some(&self.options)
-  }
-
   fn set_request(&mut self, request: String) {
     self.request = request;
   }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    if let Some(referenced_exports) = &self.referenced_exports {
+      vec![ReferencedExport::new(referenced_exports.clone(), false).into()]
+    } else {
+      vec![ExtendedReferencedExport::Array(vec![])]
+    }
+  }
 }
+
+impl AsDependencyTemplate for ContextElementDependency {}
+impl AsContextDependency for ContextElementDependency {}

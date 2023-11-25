@@ -1,37 +1,30 @@
-use rspack_core::{
-  ConstDependency, ContextMode, ContextOptions, DependencyCategory, DependencyTemplate,
-  ModuleDependency, RuntimeGlobals, SpanExt,
-};
-use rspack_regex::RspackRegex;
-use swc_core::{
-  common::{Spanned, SyntaxContext},
-  ecma::{
-    ast::{BinExpr, CallExpr, Callee, Expr, IfStmt, Lit, TryStmt, UnaryExpr, UnaryOp},
-    atoms::JsWord,
-    visit::{noop_visit_type, Visit, VisitWith},
-  },
-};
+use rspack_core::{context_reg_exp, ContextOptions, DependencyCategory};
+use rspack_core::{BoxDependency, ConstDependency, ContextMode, ContextNameSpaceObject};
+use rspack_core::{DependencyTemplate, RuntimeGlobals, SpanExt};
+use swc_core::common::{Spanned, SyntaxContext};
+use swc_core::ecma::ast::{BinExpr, CallExpr, Callee, Expr, IfStmt};
+use swc_core::ecma::ast::{Lit, TryStmt, UnaryExpr, UnaryOp};
+use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
-use super::{
-  context_helper::scanner_context_module, expr_matcher, is_unresolved_member_object_ident,
-};
-use crate::dependency::{
-  CommonJsRequireContextDependency, CommonJsRequireDependency, RequireResolveDependency,
-};
+use super::context_helper::scanner_context_module;
+use super::{expr_matcher, is_unresolved_member_object_ident, is_unresolved_require};
+use crate::dependency::CommonJsRequireContextDependency;
+use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
 
 pub struct CommonJsImportDependencyScanner<'a> {
-  dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+  dependencies: &'a mut Vec<BoxDependency>,
   presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-  unresolved_ctxt: &'a SyntaxContext,
+  unresolved_ctxt: SyntaxContext,
   in_try: bool,
   in_if: bool,
 }
 
 impl<'a> CommonJsImportDependencyScanner<'a> {
   pub fn new(
-    dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+    dependencies: &'a mut Vec<BoxDependency>,
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-    unresolved_ctxt: &'a SyntaxContext,
+    unresolved_ctxt: SyntaxContext,
   ) -> Self {
     Self {
       dependencies,
@@ -44,7 +37,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
 
   fn add_require_resolve(&mut self, node: &CallExpr, weak: bool) {
     if !node.args.is_empty() {
-      if let Some(Lit::Str(str)) = node.args.get(0).and_then(|x| x.expr.as_lit()) {
+      if let Some(Lit::Str(str)) = node.args.first().and_then(|x| x.expr.as_lit()) {
         self
           .dependencies
           .push(Box::new(RequireResolveDependency::new(
@@ -60,9 +53,10 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
   }
 
   fn replace_require_resolve(&mut self, expr: &Expr, value: &'static str) {
-    if expr_matcher::is_require(expr)
+    if (expr_matcher::is_require(expr)
       || expr_matcher::is_require_resolve(expr)
-      || expr_matcher::is_require_resolve_weak(expr)
+      || expr_matcher::is_require_resolve_weak(expr))
+      && is_unresolved_require(expr, self.unresolved_ctxt)
     {
       self
         .presentational_dependencies
@@ -88,20 +82,32 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
     if let Callee::Expr(expr) = &call_expr.callee {
       if let Expr::Ident(ident) = &**expr {
-        if "require".eq(&ident.sym) && ident.span.ctxt == *self.unresolved_ctxt {
+        if "require".eq(&ident.sym) && ident.span.ctxt == self.unresolved_ctxt {
           {
-            if let Some(expr) = call_expr.args.get(0) && call_expr.args.len() == 1 && expr.spread.is_none() {
+            if let Some(expr) = call_expr.args.first()
+              && call_expr.args.len() == 1
+              && expr.spread.is_none()
+            {
               // TemplateLiteral String
-              if let Expr::Tpl(tpl) = expr.expr.as_ref()  && tpl.exprs.is_empty(){
-                let s = tpl.quasis.first().expect("should have one quasis").raw.as_ref();
+              if let Expr::Tpl(tpl) = expr.expr.as_ref()
+                && tpl.exprs.is_empty()
+              {
+                let s = tpl
+                  .quasis
+                  .first()
+                  .expect("should have one quasis")
+                  .raw
+                  .as_ref();
                 let request = JsWord::from(s);
-                  self.dependencies.push(Box::new(CommonJsRequireDependency::new(
-                  request,
-                  Some(call_expr.span.into()),
-                  call_expr.span.real_lo(),
-                  call_expr.span.real_hi(),
-                  self.in_try
-                )));
+                self
+                  .dependencies
+                  .push(Box::new(CommonJsRequireDependency::new(
+                    request,
+                    Some(call_expr.span.into()),
+                    call_expr.span.real_lo(),
+                    call_expr.span.real_hi(),
+                    self.in_try,
+                  )));
                 return;
               }
               if let Expr::Lit(Lit::Str(s)) = expr.expr.as_ref() {
@@ -124,14 +130,16 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
                     call_expr.callee.span().real_hi(),
                     call_expr.span.real_hi(),
                     ContextOptions {
+                      chunk_name: None,
                       mode: ContextMode::Sync,
                       recursive: true,
-                      reg_exp: RspackRegex::new(&reg).expect("reg failed"),
+                      reg_exp: context_reg_exp(&reg, ""),
                       reg_str: reg,
                       include: None,
                       exclude: None,
                       category: DependencyCategory::CommonJS,
                       request: context,
+                      namespace_object: ContextNameSpaceObject::Unset,
                     },
                     Some(call_expr.span.into()),
                   )));

@@ -16,9 +16,6 @@ function config(subpath, realContentHash = false) {
 			runtimeChunk: {
 				name: "runtime"
 			}
-		},
-		experiments: {
-			newSplitChunks: true
 		}
 	};
 }

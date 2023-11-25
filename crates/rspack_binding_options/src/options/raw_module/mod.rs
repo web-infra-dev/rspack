@@ -10,11 +10,15 @@ use napi_derive::napi;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlOptions, AssetGeneratorOptions,
   AssetInlineGeneratorOptions, AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions,
-  AssetResourceGeneratorOptions, BoxLoader, DescriptionData, FuncUseCtx, GeneratorOptions,
-  GeneratorOptionsByModuleType, ModuleOptions, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
-  ModuleType, ParserOptions, ParserOptionsByModuleType,
+  AssetResourceGeneratorOptions, BoxLoader, DescriptionData, DynamicImportMode, FuncUseCtx,
+  GeneratorOptions, GeneratorOptionsByModuleType, JavascriptParserOptions, ModuleOptions,
+  ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, ParserOptions,
+  ParserOptionsByModuleType,
 };
 use rspack_error::internal_error;
+use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
+use rspack_loader_sass::SASS_LOADER_IDENTIFIER;
+use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
 use serde::Deserialize;
 use {
   rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
@@ -23,25 +27,35 @@ use {
 
 use crate::{RawOptionsApply, RawResolveOptions};
 
-fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
-  match builtin {
-    "builtin:sass-loader" => Arc::new(rspack_loader_sass::SassLoader::new(
+pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
+  if builtin.starts_with(SASS_LOADER_IDENTIFIER) {
+    return Arc::new(rspack_loader_sass::SassLoader::new(
       serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
         panic!("Could not parse builtin:sass-loader options: {options:?}, error: {e:?}")
       }),
-    )),
-    "builtin:swc-loader" => Arc::new(rspack_loader_swc::SwcLoader::new(
-      serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
-        panic!("Could not parse builtin:swc-loader options:{options:?},error: {e:?}")
-      }),
-    )),
-    loader => panic!("{loader} is not supported yet."),
+    ));
   }
+
+  if builtin.starts_with(SWC_LOADER_IDENTIFIER) {
+    return Arc::new(
+      rspack_loader_swc::SwcLoader::new(
+        serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
+          panic!("Could not parse builtin:swc-loader options:{options:?},error: {e:?}")
+        }),
+      )
+      .with_identifier(builtin.into()),
+    );
+  }
+  if builtin.starts_with(REACT_REFRESH_LOADER_IDENTIFIER) {
+    return Arc::new(
+      rspack_loader_react_refresh::ReactRefreshLoader::default().with_identifier(builtin.into()),
+    );
+  }
+
+  unreachable!("Unexpected builtin loader: {builtin}")
 }
 
-/// `loader` is for js side loader, `builtin_loader` is for rust side loader,
-/// which is mapped to real rust side loader by [get_builtin_loader].
-///
+/// `loader` is for both JS and Rust loaders.
 /// `options` is
 ///   - a `None` on rust side and handled by js side `getOptions` when
 /// using with `loader`.
@@ -52,17 +66,14 @@ fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawModuleRuleUse {
-  #[serde(skip_deserializing)]
-  pub js_loader: Option<JsLoader>,
-  pub builtin_loader: Option<String>,
+  pub loader: String,
   pub options: Option<String>,
 }
 
 impl Debug for RawModuleRuleUse {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("RawModuleRuleUse")
-      .field("loader", &self.js_loader.as_ref().map(|i| &i.identifier))
-      .field("builtin_loader", &self.builtin_loader)
+      .field("loader", &self.loader)
       .field("options", &self.options)
       .finish()
   }
@@ -244,6 +255,11 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawModuleRule {
+  /// A conditional match matching an absolute path + query + fragment.
+  /// Note:
+  ///   This is a custom matching rule not initially designed by webpack.
+  ///   Only for single-threaded environment interoperation purpose.
+  pub rspack_resource: Option<RawRuleSetCondition>,
   /// A condition matcher matching an absolute path.
   pub test: Option<RawRuleSetCondition>,
   pub include: Option<RawRuleSetCondition>,
@@ -275,9 +291,10 @@ pub struct RawModuleRule {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawParserOptions {
-  #[napi(ts_type = r#""asset" | "unknown""#)]
+  #[napi(ts_type = r#""asset" | "javascript" | "unknown""#)]
   pub r#type: String,
   pub asset: Option<RawAssetParserOptions>,
+  pub javascript: Option<RawJavascriptParserOptions>,
 }
 
 impl From<RawParserOptions> for ParserOptions {
@@ -289,11 +306,29 @@ impl From<RawParserOptions> for ParserOptions {
           .expect("should have an \"asset\" when RawParserOptions.type is \"asset\"")
           .into(),
       ),
+      "javascript" => Self::Javascript(
+        value.javascript.expect("should have an \"javascript\" when RawParserOptions.type is \"javascript\"").into()
+      ),
       "unknown" => Self::Unknown,
       _ => panic!(
-        "Failed to resolve the RawParserOptions.type {}. Expected type is \"asset\", \"unknown\".",
+        "Failed to resolve the RawParserOptions.type {}. Expected type is \"asset\", \"javascript\",  \"unknown\".",
         value.r#type
       ),
+    }
+  }
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawJavascriptParserOptions {
+  pub dynamic_import_mode: String,
+}
+
+impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
+  fn from(value: RawJavascriptParserOptions) -> Self {
+    Self {
+      dynamic_import_mode: DynamicImportMode::from(value.dynamic_import_mode.as_str()),
     }
   }
 }
@@ -393,7 +428,7 @@ impl From<RawGeneratorOptions> for GeneratorOptions {
       ),
       "unknown" => Self::Unknown,
       _ => panic!(
-        "Failed to resolve the RawGeneratorOptions.type {}. Expected type is \"asset\", \"asset/inline\", \"asset/resource\", \"unknown\".",
+        r#"Failed to resolve the RawGeneratorOptions.type {}. Expected type is "asset", "asset/inline", "asset/resource", "unknown"."#,
         value.r#type
       ),
     }
@@ -521,7 +556,7 @@ impl From<FuncUseCtx> for RawFuncUseCtx {
       resource: value.resource,
       real_resource: value.real_resource,
       resource_query: value.resource_query,
-      issuer: value.issuer,
+      issuer: value.issuer.map(|s| s.to_string()),
     }
   }
 }
@@ -532,79 +567,61 @@ impl RawOptionsApply for RawModuleRule {
   fn apply(
     self,
     _plugins: &mut Vec<rspack_core::BoxPlugin>,
-    loader_runner: &JsLoaderRunner,
   ) -> std::result::Result<Self::Options, rspack_error::Error> {
     // Even this part is using the plural version of loader, it's recommended to use singular version from js side to reduce overhead (This behavior maybe changed later for advanced usage).
-    let uses = self.r#use.map(|raw| {
-      match raw.r#type.as_str() {
-        "array" => {
-          let uses = raw
+    let uses = self.r#use.map(|raw| match raw.r#type.as_str() {
+      "array" => {
+        let uses = raw
           .array_use
           .map(|uses| {
             uses
               .into_iter()
-              .map(|rule_use| {
-                {
-                  if let Some(raw_js_loader) = rule_use.js_loader {
-                    return Ok(Arc::new(JsLoaderAdapter {runner: loader_runner.clone(), identifier: raw_js_loader.identifier.into()}) as BoxLoader);
-                  }
-                }
-                if let Some(builtin_loader) = rule_use.builtin_loader {
-                  return Ok(get_builtin_loader(&builtin_loader, rule_use.options.as_deref()));
-                }
-                panic!("`loader` field or `builtin_loader` field in `use` must not be `None` at the same time.");
+              .map(|rule_use| ModuleRuleUseLoader {
+                loader: rule_use.loader,
+                options: rule_use.options,
               })
-              .collect::<anyhow::Result<Vec<_>>>()
+              .collect::<Vec<_>>()
           })
-          .transpose()?
           .unwrap_or_default();
-          Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
-        },
-        "function" =>  {
-          let func_use = raw.func_use.ok_or_else(|| {
-            internal_error!(
-              "should have a func_matcher when RawRuleSetCondition.type is \"function\""
-            )
-          })?;
-          let func_use: ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>> =
+        Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
+      }
+      "function" => {
+        let func_use = raw.func_use.ok_or_else(|| {
+          internal_error!(
+            "should have a func_matcher when RawRuleSetCondition.type is \"function\""
+          )
+        })?;
+        let func_use: ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>> =
           NAPI_ENV.with(|env| -> anyhow::Result<_> {
             let env = env.borrow().expect("Failed to get env with external");
-            let func_use = rspack_binding_macros::js_fn_into_threadsafe_fn!(func_use, &Env::from(env));
+            let func_use =
+              rspack_binding_macros::js_fn_into_threadsafe_fn!(func_use, &Env::from(env));
             Ok(func_use)
           })?;
-          let func_use = Arc::new(func_use);
-          let loader_runner = Arc::new(loader_runner.clone());
-          Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Func(Box::new(move |ctx: FuncUseCtx| {
+        let func_use = Arc::new(func_use);
+        Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Func(Box::new(
+          move |ctx: FuncUseCtx| {
             let func_use = func_use.clone();
-            let loader_runner = Arc::clone(&loader_runner);
             Box::pin(async move {
-              let loader_runner = loader_runner;
               func_use
-              .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
-              .into_rspack_result()?
-              .await
-              .map_err(|err| internal_error!("Failed to call rule.use function: {err}"))?
-              .map(|uses|
-                uses
-                .into_iter()
-                .map(|rule_use| {
-                  {
-                    if let Some(raw_js_loader) = rule_use.js_loader {
-                      return Ok(Arc::new(JsLoaderAdapter {runner:(*loader_runner).clone(), identifier: raw_js_loader.identifier.into()}) as BoxLoader);
-                    }
-                  }
-                  if let Some(builtin_loader) = rule_use.builtin_loader {
-                    return Ok(get_builtin_loader(&builtin_loader, rule_use.options.as_deref()));
-                  }
-                  panic!("`loader` field or `builtin_loader` field in `use` must not be `None` at the same time.");
-              }).collect::<rspack_error::Result<Vec<_>>>())?
+                .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
+                .into_rspack_result()?
+                .await
+                .map_err(|err| internal_error!("Failed to call rule.use function: {err}"))?
+                .map(|uses| {
+                  uses
+                    .into_iter()
+                    .map(|rule_use| ModuleRuleUseLoader {
+                      loader: rule_use.loader,
+                      options: rule_use.options,
+                    })
+                    .collect::<Vec<_>>()
+                })
             })
-          })))
-        },
-        _ => {
-          Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(vec![]))
-        }
+          },
+        )))
       }
+      _ => Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(vec![])),
     });
 
     let module_type = self.r#type.map(|t| (&*t).try_into()).transpose()?;
@@ -614,7 +631,7 @@ impl RawOptionsApply for RawModuleRule {
       .map(|one_of| {
         one_of
           .into_iter()
-          .map(|raw| raw.apply(_plugins, loader_runner))
+          .map(|raw| raw.apply(_plugins))
           .collect::<rspack_error::Result<Vec<_>>>()
       })
       .transpose()?;
@@ -624,7 +641,7 @@ impl RawOptionsApply for RawModuleRule {
       .map(|rule| {
         rule
           .into_iter()
-          .map(|raw| raw.apply(_plugins, loader_runner))
+          .map(|raw| raw.apply(_plugins))
           .collect::<rspack_error::Result<Vec<_>>>()
       })
       .transpose()?;
@@ -652,6 +669,7 @@ impl RawOptionsApply for RawModuleRule {
       .unwrap_or_default();
 
     Ok(ModuleRule {
+      rspack_resource: self.rspack_resource.map(|raw| raw.try_into()).transpose()?,
       test: self.test.map(|raw| raw.try_into()).transpose()?,
       include: self.include.map(|raw| raw.try_into()).transpose()?,
       exclude: self.exclude.map(|raw| raw.try_into()).transpose()?,
@@ -685,12 +703,11 @@ impl RawOptionsApply for RawModuleOptions {
   fn apply(
     self,
     plugins: &mut Vec<rspack_core::BoxPlugin>,
-    loader_runner: &JsLoaderRunner,
   ) -> std::result::Result<Self::Options, rspack_error::Error> {
     let rules = self
       .rules
       .into_iter()
-      .map(|rule| rule.apply(plugins, loader_runner))
+      .map(|rule| rule.apply(plugins))
       .collect::<rspack_error::Result<Vec<ModuleRule>>>()?;
     Ok(ModuleOptions {
       rules,

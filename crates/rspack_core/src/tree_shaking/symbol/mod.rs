@@ -1,4 +1,5 @@
 use bitflags::bitflags;
+use once_cell::sync::Lazy;
 use rspack_identifier::Identifier;
 use serde::{Deserialize, Serialize};
 use swc_core::ecma::ast::Id;
@@ -80,7 +81,7 @@ pub enum IndirectType {
   ///
   ImportDefault(JsWord),
 }
-pub static DEFAULT_JS_WORD: JsWord = js_word!("default");
+pub static DEFAULT_JS_WORD: Lazy<JsWord> = Lazy::new(|| js_word!("default"));
 /// We have three kind of star symbol
 /// ## import with namespace
 /// ```js
@@ -292,7 +293,7 @@ impl From<Id> for BetterId {
 
 #[derive(Debug, Eq, Clone)]
 pub struct SymbolExt {
-  pub id: BetterId,
+  pub id: JsWord,
   pub flag: SymbolFlag,
 }
 
@@ -301,15 +302,15 @@ impl SymbolExt {
     self.flag
   }
 
-  pub fn id(&self) -> &BetterId {
+  pub fn id(&self) -> &JsWord {
     &self.id
   }
 
-  pub fn new(id: BetterId, flag: SymbolFlag) -> SymbolExt {
+  pub fn new(id: JsWord, flag: SymbolFlag) -> SymbolExt {
     SymbolExt { id, flag }
   }
 
-  pub fn set_id(&mut self, id: BetterId) {
+  pub fn set_id(&mut self, id: JsWord) {
     self.id = id;
   }
 
@@ -326,8 +327,8 @@ impl std::hash::Hash for SymbolExt {
   }
 }
 
-impl From<BetterId> for SymbolExt {
-  fn from(id: BetterId) -> Self {
+impl From<JsWord> for SymbolExt {
+  fn from(id: JsWord) -> Self {
     Self {
       id,
       flag: SymbolFlag::empty(),
@@ -360,8 +361,8 @@ impl PartialEq for SymbolExt {
 /// We use [Part::MemberExpr] to represent namespace access
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Part {
-  Id(BetterId),
-  MemberExpr { object: BetterId, property: JsWord },
+  TopLevelId(JsWord),
+  MemberExpr { first: JsWord, rest: Vec<JsWord> },
   Url(JsWord),
   Worker(JsWord),
 }
@@ -372,7 +373,7 @@ impl Part {
   /// [`Id`]: BetterIdOrMemExpr::Id
   #[must_use]
   pub fn is_id(&self) -> bool {
-    matches!(self, Self::Id(..))
+    matches!(self, Self::TopLevelId(..))
   }
 
   /// Returns `true` if the better id or mem expr is [`MemberExpr`].
@@ -383,10 +384,10 @@ impl Part {
     matches!(self, Self::MemberExpr { .. })
   }
 
-  pub fn get_id(&self) -> Option<&BetterId> {
+  pub fn get_id(&self) -> Option<&JsWord> {
     match self {
-      Part::Id(id) => Some(id),
-      Part::MemberExpr { object, .. } => Some(object),
+      Part::TopLevelId(id) => Some(id),
+      Part::MemberExpr { first: object, .. } => Some(object),
       Part::Url(_) | Part::Worker(_) => None,
     }
   }

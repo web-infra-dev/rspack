@@ -14,17 +14,17 @@ import { PreviewCommand } from "./commands/preview";
 import {
 	RspackOptions,
 	MultiCompiler,
-	Compiler,
 	rspack,
 	MultiRspackOptions,
 	Stats,
-	MultiStats
+	MultiStats,
+	Compiler
 } from "@rspack/core";
 import { normalizeEnv } from "./utils/options";
-import { loadRspackConfig } from "./utils/loadConfig";
+import { LoadedRspackConfig, loadRspackConfig } from "./utils/loadConfig";
 import findConfig from "./utils/findConfig";
-import { Mode } from "@rspack/core/src/config";
-import { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
+import type { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
+import * as rspackCore from "@rspack/core";
 import path from "path";
 
 type Command = "serve" | "build";
@@ -32,7 +32,7 @@ type Command = "serve" | "build";
 const defaultEntry = "src/index";
 export class RspackCLI {
 	colors: RspackCLIColors;
-	program: yargs.Argv<{}>;
+	program: yargs.Argv;
 	constructor() {
 		this.colors = this.createColors();
 		this.program = yargs();
@@ -40,7 +40,7 @@ export class RspackCLI {
 	async createCompiler(
 		options: RspackBuildCLIOptions,
 		rspackCommand: Command,
-		callback?: (e: Error, res?: Stats | MultiStats) => void
+		callback?: (e: Error | null, res?: Stats | MultiStats) => void
 	) {
 		process.env.RSPACK_CONFIG_VALIDATE = "loose";
 		let nodeEnv = process?.env?.NODE_ENV;
@@ -88,13 +88,13 @@ export class RspackCLI {
 		};
 	}
 	async run(argv: string[]) {
-		// @ts-expect-error
-		if (semver.lt(semver.clean(process.version), "14.0.0")) {
+		if (semver.lt(semver.clean(process.version)!, "14.0.0")) {
 			this.getLogger().warn(
 				`Minimum recommended Node.js version is 14.0.0, current version is ${process.version}`
 			);
 		}
 
+		this.program.showHelpOnFail(false);
 		this.program.usage("[options]");
 		this.program.scriptName("rspack");
 		this.program.strictCommands(true).strict(true);
@@ -147,6 +147,10 @@ export class RspackCLI {
 					}
 				});
 			}
+			if (process.env.RSPACK_PROFILE) {
+				const { applyProfile } = await import("./utils/profile.js");
+				await applyProfile(process.env.RSPACK_PROFILE, item);
+			}
 			// cli --watch overrides the watch config
 			if (options.watch) {
 				item.watch = options.watch;
@@ -157,7 +161,7 @@ export class RspackCLI {
 			}
 			// user parameters always has highest priority than default mode and config mode
 			if (options.mode) {
-				item.mode = options.mode as Mode;
+				item.mode = options.mode as RspackOptions["mode"];
 			}
 
 			// false is also a valid value for sourcemap, so don't override it
@@ -166,7 +170,22 @@ export class RspackCLI {
 			}
 			item.builtins = item.builtins || {};
 			if (isServe) {
-				item.builtins.progress = item.builtins.progress ?? true;
+				let installed = (item.plugins ||= []).find(
+					item => item instanceof rspackCore.ProgressPlugin
+				);
+				let o: rspackCore.ProgressPluginArgument | undefined;
+				if (
+					!installed &&
+					(o =
+						item.builtins.progress && typeof item.builtins.progress === "object"
+							? item.builtins.progress
+							: item.builtins.progress === true
+							? {}
+							: undefined)
+				) {
+					(item.plugins ||= []).push(new rspackCore.ProgressPlugin(o));
+				}
+				delete item.builtins.progress;
 			}
 
 			// no emit assets when run dev server, it will use node_binding api get file content
@@ -182,11 +201,14 @@ export class RspackCLI {
 
 			// When mode is set to 'none', optimization.nodeEnv defaults to false.
 			if (item.mode !== "none") {
-				item.builtins.define = {
-					// User defined `process.env.NODE_ENV` always has highest priority than default define
-					"process.env.NODE_ENV": JSON.stringify(item.mode),
-					...item.builtins.define
-				};
+				(item.plugins ||= []).push(
+					new rspackCore.DefinePlugin({
+						// User defined `process.env.NODE_ENV` always has highest priority than default define
+						"process.env.NODE_ENV": JSON.stringify(item.mode),
+						...item.builtins.define
+					})
+				);
+				delete item.builtins.define;
 			}
 
 			if (typeof item.stats === "undefined") {
@@ -222,13 +244,14 @@ export class RspackCLI {
 	async loadConfig(
 		options: RspackCLIOptions
 	): Promise<RspackOptions | MultiRspackOptions> {
-		let loadedConfig = await loadRspackConfig(options);
+		let loadedConfig = (await loadRspackConfig(
+			options
+		)) as NonNullable<LoadedRspackConfig>;
 		if (options.configName) {
 			const notFoundConfigNames: string[] = [];
 
-			// @ts-expect-error
 			loadedConfig = options.configName.map((configName: string) => {
-				let found: RspackOptions | MultiRspackOptions | undefined;
+				let found: RspackOptions | undefined;
 
 				if (Array.isArray(loadedConfig)) {
 					found = loadedConfig.find(options => options.name === configName);
@@ -243,7 +266,9 @@ export class RspackCLI {
 					notFoundConfigNames.push(configName);
 				}
 
-				return found;
+				// WARNING: if config is not found, the program will exit
+				// so assert here is okay to avoid runtime filtering
+				return found!;
 			});
 
 			if (notFoundConfigNames.length > 0) {
@@ -260,7 +285,6 @@ export class RspackCLI {
 		}
 
 		if (typeof loadedConfig === "function") {
-			// @ts-expect-error
 			loadedConfig = loadedConfig(options.argv?.env, options.argv);
 			// if return promise we should await its result
 			if (
@@ -269,7 +293,6 @@ export class RspackCLI {
 				loadedConfig = await loadedConfig;
 			}
 		}
-		// @ts-expect-error
 		return loadedConfig;
 	}
 

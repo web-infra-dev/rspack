@@ -1,0 +1,37 @@
+name: Run Script In Docker
+
+description: run script in docker
+
+inputs:
+  image:
+    required: true
+    type: string
+  options:
+    description: 'Options for docker'
+    default: ""
+    required: false
+    type: string
+  script:
+    required: true
+    type: string
+
+runs:
+  using: composite
+  steps:
+    - name: Docker Build ${{ inputs.target }}
+      shell: bash
+      run: |
+        code='${{ inputs.script }}'
+        docker run \
+          --rm \
+          --privileged \
+          --user 0:0 \
+          ${{ inputs.options }} \
+          -e CI=1 \
+          -e HOME=$HOME \
+          -v $HOME/.cache:$HOME/.cache \
+          -v ${{ github.workspace }}:/rspack \
+          -w /rspack \
+          -i \
+          ${{ inputs.image }} \
+          bash -c "$code"

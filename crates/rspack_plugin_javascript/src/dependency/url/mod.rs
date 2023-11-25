@@ -1,6 +1,8 @@
 use rspack_core::{
-  module_id, Dependency, DependencyCategory, DependencyId, DependencyTemplate, DependencyType,
+  get_dependency_used_by_exports_condition, module_id, AsContextDependency, Dependency,
+  DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate, DependencyType,
   ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  UsedByExports,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -11,6 +13,7 @@ pub struct URLDependency {
   id: DependencyId,
   request: JsWord,
   span: Option<ErrorSpan>,
+  used_by_exports: Option<UsedByExports>,
 }
 
 impl URLDependency {
@@ -21,11 +24,20 @@ impl URLDependency {
       id: DependencyId::new(),
       request,
       span,
+      used_by_exports: None,
     }
   }
 }
 
 impl Dependency for URLDependency {
+  fn dependency_debug_name(&self) -> &'static str {
+    "URLDependency"
+  }
+
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Url
   }
@@ -33,13 +45,13 @@ impl Dependency for URLDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::NewUrl
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
 }
 
 impl ModuleDependency for URLDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -48,16 +60,12 @@ impl ModuleDependency for URLDependency {
     &self.request
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
-  }
-
   fn set_request(&mut self, request: String) {
     self.request = request.into();
+  }
+
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
   }
 }
 
@@ -90,3 +98,5 @@ impl DependencyTemplate for URLDependency {
     );
   }
 }
+
+impl AsContextDependency for URLDependency {}

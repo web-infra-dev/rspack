@@ -1,40 +1,34 @@
 {
   "name": "monorepo",
-  "version": "0.2.9",
+  "version": "0.4.0",
   "license": "MIT",
   "description": "A Fast Rust-based web bundler",
   "private": true,
+  "main": "./packages/rspack/dist/index.js",
   "scripts": {
     "x": "zx x.mjs",
     "dev": "pnpm --filter @rspack/cli run dev",
     "clean": "pnpm --filter @rspack/cli run clean",
     "build:js": "pnpm --filter \"@rspack/*\" build",
-    "build:cli:debug": "pnpm --filter @rspack/binding build:debug && pnpm --filter \"@rspack/*\" build",
-    "build:cli:release": "pnpm --filter @rspack/binding build:release && pnpm --filter \"@rspack/*\" build",
-    "build:cli:release:all": "pnpm --filter @rspack/binding build:release:all && pnpm --filter \"@rspack/*\" build",
+    "build:cli:debug": "npm run build:binding:debug && npm run build:js",
+    "build:cli:release": "npm run build:binding:release && npm run build:js",
+    "build:cli:release:all": "pnpm --filter @rspack/binding build:release:all && npm run build:js",
     "test:js": "pnpm -r run test",
     "format:rs": "pnpm --filter @rspack/core... build",
     "format:js": "npx prettier \"packages/**/*.{ts,js}\" \"crates/rspack_plugin_runtime/**/*.{ts,js}\" --check --write",
     "format-ci:toml": "npx @taplo/cli format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
     "format:toml": "npx @taplo/cli format '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
-    "lint:js": "npx prettier \"packages/**/*.{ts,js}\" --check",
+    "lint:js": "oxlint .",
     "lint:rs": "node ./scripts/check_rust_dependency.cjs",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
     "build:binding:release": "pnpm --filter @rspack/binding run build:release",
     "prepare": "is-ci || husky install",
-    "pnpm:devPreinstall": "is-ci || node ./scripts/doctor.js",
     "test:example": "pnpm --filter \"example-*\" build",
+    "test:diff": "pnpm --filter \"@rspack/*\" test:diff",
     "test:unit": "pnpm --filter \"@rspack/*\" test",
     "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
     "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:example && pnpm run test:unit && pnpm test:webpack",
     "test:webpack": "pnpm --filter \"webpack-test\" test:metric"
-  },
-  "lint-staged": {
-    "*.rs": "rustfmt --edition 2021",
-    "packages/**/*.{ts,js}": "prettier --write",
-    "x.mjs": "prettier --write",
-    "crates/rspack_plugin_runtime/**/*.{ts,js}": "prettier --write",
-    "*.toml": "npx @taplo/cli format"
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -42,11 +36,14 @@
     "type": "git",
     "url": "https://github.com/web-infra-dev/rspack"
   },
+  "engines": {
+    "pnpm": "8.10.5"
+  },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@taplo/cli": "^0.5.2",
     "@types/jest": "29.1.0",
-    "@types/node": "16",
+    "@types/node": "^20.9.4",
     "@types/rimraf": "3.0.2",
     "commander": "10.0.1",
     "cross-env": "^7.0.3",
@@ -56,11 +53,12 @@
     "jest-environment-node": "29.5.0",
     "lint-staged": "^12.5.0",
     "npm-run-all": "4.1.5",
-    "prettier": "2.5.1",
+    "oxlint": "0.0.10",
+    "prettier": "2.8",
     "rimraf": "3.0.2",
     "ts-jest": "29.1.0",
     "typescript": "5.0.2",
-    "webpack": "5.76.0",
+    "webpack": "5.89.0",
     "webpack-cli": "4.10.0",
     "why-is-node-running": "2.2.1"
   },
@@ -73,5 +71,5 @@
     "sass-embedded-win32-ia32": "1.58.3",
     "sass-embedded-win32-x64": "1.58.3"
   },
-  "packageManager": "pnpm@7.32.0"
+  "packageManager": "pnpm@8.10.5"
 }

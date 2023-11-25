@@ -1,29 +1,61 @@
 use std::fmt::Debug;
-use std::hash::Hash;
-use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
-use async_recursion::async_recursion;
-use glob::Pattern as GlobPattern;
-use rspack_regex::RspackRegex;
-use swc_core::ecma::transforms::react::Runtime;
-use swc_plugin_import::PluginImportConfig;
+use rspack_error::Result;
+pub use rspack_swc_visitors::{Define, Provide};
+use rspack_swc_visitors::{EmotionOptions, ImportOptions, ReactOptions, RelayOptions};
 
-use crate::{try_any, AssetInfo};
+use crate::{ApplyContext, CompilerOptions, Plugin, PluginContext};
 
-pub type Define = HashMap<String, String>;
-pub type Provide = HashMap<String, Vec<String>>;
+#[derive(Debug)]
+pub struct DefinePlugin {
+  options: Define,
+}
 
-#[derive(Debug, Clone, Default)]
-pub struct ReactOptions {
-  pub runtime: Option<Runtime>,
-  pub import_source: Option<String>,
-  pub pragma: Option<String>,
-  pub pragma_frag: Option<String>,
-  pub throw_if_namespace: Option<bool>,
-  pub development: Option<bool>,
-  pub use_builtins: Option<bool>,
-  pub use_spread: Option<bool>,
-  pub refresh: Option<bool>,
+impl DefinePlugin {
+  pub fn new(options: Define) -> Self {
+    Self { options }
+  }
+}
+
+impl Plugin for DefinePlugin {
+  fn name(&self) -> &'static str {
+    "rspack.DefinePlugin"
+  }
+
+  fn apply(
+    &self,
+    _ctx: PluginContext<&mut ApplyContext>,
+    options: &mut CompilerOptions,
+  ) -> Result<()> {
+    options.builtins.define.extend(self.options.clone());
+    Ok(())
+  }
+}
+
+#[derive(Debug)]
+pub struct ProvidePlugin {
+  options: Provide,
+}
+
+impl ProvidePlugin {
+  pub fn new(options: Provide) -> Self {
+    Self { options }
+  }
+}
+
+impl Plugin for ProvidePlugin {
+  fn name(&self) -> &'static str {
+    "rspack.ProvidePlugin"
+  }
+
+  fn apply(
+    &self,
+    _ctx: PluginContext<&mut ApplyContext>,
+    options: &mut CompilerOptions,
+  ) -> Result<()> {
+    options.builtins.provide.extend(self.options.clone());
+    Ok(())
+  }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -85,141 +117,31 @@ impl From<String> for TreeShaking {
 
 #[derive(Debug, Clone, Default)]
 pub struct Builtins {
-  pub minify_options: Option<Minification>,
-  pub preset_env: Option<PresetEnv>,
+  // TODO: refactor to string-replacement based
   pub define: Define,
+  // TODO: refactor to string-replacement based
   pub provide: Provide,
+  // TODO: migrate to builtin:swc-loader
+  pub preset_env: Option<PresetEnv>,
+  // TODO: refactoring
   pub tree_shaking: TreeShaking,
+  // TODO: migrate to builtin:swc-loader
   pub react: ReactOptions,
+  // TODO: migrate to builtin:swc-loader
   pub decorator: Option<DecoratorOptions>,
+  // TODO: remove this when drop support for builtin options (0.6.0)
   pub no_emit_assets: bool,
-  pub emotion: Option<swc_emotion::EmotionOptions>,
-  pub dev_friendly_split_chunks: bool,
-  pub plugin_import: Option<Vec<PluginImportConfig>>,
-  pub relay: Option<RelayConfig>,
-  pub code_generation: Option<CodeGeneration>,
+  // TODO: migrate to builtin:swc-loader
+  pub emotion: Option<EmotionOptions>,
+  // TODO: migrate to builtin:swc-loader
+  pub plugin_import: Option<Vec<ImportOptions>>,
+  // TODO: migrate to builtin:swc-loader
+  pub relay: Option<RelayOptions>,
 }
 
-#[derive(Debug, Clone, Default, Hash)]
-pub struct Minification {
-  pub passes: usize,
-  pub drop_console: bool,
-  pub pure_funcs: Vec<String>,
-  pub extract_comments: Option<String>,
-  pub test: Option<MinificationConditions>,
-  pub include: Option<MinificationConditions>,
-  pub exclude: Option<MinificationConditions>,
-}
-
-#[derive(Debug, Clone, Hash)]
-pub enum MinificationCondition {
-  String(String),
-  Regexp(RspackRegex),
-}
-
-impl MinificationCondition {
-  #[async_recursion]
-  pub async fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
-    match self {
-      Self::String(s) => Ok(data.starts_with(s)),
-      Self::Regexp(r) => Ok(r.test(data)),
-    }
-  }
-}
-
-#[derive(Debug, Clone, Hash)]
-pub enum MinificationConditions {
-  String(String),
-  Regexp(rspack_regex::RspackRegex),
-  Array(Vec<MinificationCondition>),
-}
-
-impl MinificationConditions {
-  #[async_recursion]
-  pub async fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
-    match self {
-      Self::String(s) => Ok(data.starts_with(s)),
-      Self::Regexp(r) => Ok(r.test(data)),
-      Self::Array(l) => try_any(l, |i| async { i.try_match(data).await }).await,
-    }
-  }
-}
-
-#[derive(Debug, Copy, Clone, Default)]
-pub struct CodeGeneration {
-  pub keep_comments: bool,
-}
-
-#[derive(Debug, Clone)]
-pub struct CopyPluginConfig {
-  pub patterns: Vec<Pattern>,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum FromType {
-  Dir,
-  File,
-  Glob,
-}
-
-#[derive(Debug, Clone)]
-pub enum ToType {
-  Dir,
-  File,
-  Template,
-}
-
-impl Display for ToType {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.write_str(match self {
-      ToType::Dir => "dir",
-      ToType::File => "file",
-      ToType::Template => "template",
-    })
-  }
-}
-
-#[derive(Debug, Clone)]
-pub struct Pattern {
-  pub from: String,
-  pub to: Option<String>,
-  pub context: Option<PathBuf>,
-  pub to_type: Option<ToType>,
-  pub no_error_on_missing: bool,
-  pub info: Option<AssetInfo>,
-  pub force: bool,
-  pub priority: i32,
-  pub glob_options: GlobOptions,
-}
-
-#[derive(Debug, Clone)]
-pub struct GlobOptions {
-  pub case_sensitive_match: Option<bool>,
-  pub dot: Option<bool>,
-  pub ignore: Option<Vec<GlobPattern>>,
-}
 #[derive(Debug, Clone, Default)]
 pub struct PresetEnv {
   pub targets: Vec<String>,
   pub mode: Option<swc_core::ecma::preset_env::Mode>,
   pub core_js: Option<String>,
-}
-
-#[derive(Debug, Default, Clone)]
-pub struct RelayConfig {
-  pub artifact_directory: Option<PathBuf>,
-  pub language: RelayLanguageConfig,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum RelayLanguageConfig {
-  JavaScript,
-  TypeScript,
-  Flow,
-}
-
-impl Default for RelayLanguageConfig {
-  fn default() -> Self {
-    Self::Flow
-  }
 }

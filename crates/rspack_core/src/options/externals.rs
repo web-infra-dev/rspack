@@ -10,8 +10,9 @@ pub type Externals = Vec<ExternalItem>;
 #[derive(Debug)]
 pub enum ExternalItemValue {
   String(String),
+  Array(Vec<String>),
   Bool(bool),
-  Array(Vec<String>), // TODO: string[] | Record<string, string|string[]>
+  Object(HashMap<String, Vec<String>>),
 }
 
 pub type ExternalItemObject = HashMap<String, ExternalItemValue>;
@@ -27,7 +28,7 @@ pub struct ExternalItemFnResult {
   pub result: Option<ExternalItemValue>,
 }
 
-pub type ExternalItemFn =
+type ExternalItemFn =
   Box<dyn Fn(ExternalItemFnCtx) -> BoxFuture<'static, Result<ExternalItemFnResult>> + Sync + Send>;
 
 pub enum ExternalItem {
@@ -35,6 +36,17 @@ pub enum ExternalItem {
   String(String),
   RegExp(RspackRegex),
   Fn(ExternalItemFn),
+}
+
+impl std::fmt::Debug for ExternalItem {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Self::Object(v) => f.debug_tuple("Object").field(v).finish(),
+      Self::String(v) => f.debug_tuple("String").field(v).finish(),
+      Self::RegExp(v) => f.debug_tuple("RegExp").field(v).finish(),
+      Self::Fn(_) => f.debug_tuple("Fn").field(&"...").finish(),
+    }
+  }
 }
 
 impl From<ExternalItemObject> for ExternalItem {

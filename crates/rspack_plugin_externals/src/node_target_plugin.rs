@@ -1,8 +1,10 @@
 use rspack_core::{BoxPlugin, ExternalItem, PluginExt};
 use rspack_regex::RspackRegex;
 
+use crate::ExternalsPlugin;
+
 pub fn node_target_plugin() -> BoxPlugin {
-  crate::ExternalPlugin::new(
+  ExternalsPlugin::new(
     "node-commonjs".to_string(),
     vec![
       ExternalItem::from("assert".to_string()),

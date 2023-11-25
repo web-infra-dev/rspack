@@ -27,12 +27,16 @@ export function getRspackMemoryAssets(
 		}
 
 		// css hmr will append query string, so here need to remove query string
+		// @ts-expect-error
 		const path = parse(url).pathname;
 		// asset name is not start with /, so path need to slice 1
+		// @ts-expect-error
 		const filename = path.startsWith(publicPath)
-			? path.slice(publicPath.length)
-			: path.slice(1);
-		let buffer =
+			? // @ts-expect-error
+			  path.slice(publicPath.length)
+			: // @ts-expect-error
+			  path.slice(1);
+		const buffer =
 			compiler.getAsset(filename) ??
 			(() => {
 				const { index } = rdm.context.options;
@@ -50,6 +54,7 @@ export function getRspackMemoryAssets(
 			contentType = "text/html; charset=utf-8";
 		} else {
 			contentType =
+				// @ts-expect-error
 				mime.contentType(extname(path)) || "text/plain; charset=utf-8";
 		}
 

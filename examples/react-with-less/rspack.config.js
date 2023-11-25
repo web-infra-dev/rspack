@@ -1,3 +1,4 @@
+const rspack = require("@rspack/core");
 const path = require("path");
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
@@ -6,21 +7,48 @@ const config = {
 	entry: {
 		main: ["./src/index.jsx"]
 	},
-	builtins: {
-		html: [{}],
-		define: {
-			"process.env.NODE_ENV": "'development'"
-		}
-	},
 	module: {
 		rules: [
 			{
+				test: /\.jsx$/,
+				use: {
+					loader: "builtin:swc-loader",
+					options: {
+						sourceMap: true,
+						jsc: {
+							parser: {
+								syntax: "ecmascript",
+								jsx: true
+							},
+							externalHelpers: true,
+							preserveAllComments: false,
+							transform: {
+								react: {
+									runtime: "automatic",
+									throwIfNamespace: true,
+									useBuiltins: false
+								}
+							}
+						}
+					}
+				},
+				type: "javascript/auto"
+			},
+			{
 				test: /.less$/,
-				use: ["less-loader"],
+				loader: "less-loader",
 				type: "css"
 			}
 		]
 	},
+	optimization: {
+		minimize: false // Disabling minification because it takes too long on CI
+	},
+	plugins: [
+		new rspack.HtmlRspackPlugin({
+			template: "./index.html"
+		})
+	],
 	output: {
 		path: path.resolve(__dirname, "dist")
 	}

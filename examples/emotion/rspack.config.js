@@ -1,19 +1,42 @@
+const rspack = require("@rspack/core");
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
 	entry: {
 		main: "./src/index.jsx"
 	},
-	builtins: {
-		html: [
+	optimization: {
+		minimize: false, // Disabling minification because it takes too long on CI
+	},
+	plugins: [
+		new rspack.HtmlRspackPlugin({
+			template: "./index.html"
+		})
+	],
+	module: {
+		rules: [
 			{
-				template: "./index.html"
+				test: /\.jsx$/,
+				loader: "builtin:swc-loader",
+				options: {
+					jsc: {
+						parser: {
+							syntax: "ecmascript",
+							jsx: true
+						},
+						transform: {
+							react: {
+								importSource: "@emotion/react",
+								runtime: "automatic"
+							}
+						}
+					},
+					rspackExperiments: {
+						emotion: true
+					}
+				},
+				type: "javascript/auto"
 			}
-		],
-		emotion: true,
-		react: {
-			importSource: "@emotion/react",
-			runtime: "automatic"
-		}
+		]
 	}
 };
 module.exports = config;

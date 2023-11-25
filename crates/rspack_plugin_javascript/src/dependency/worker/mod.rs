@@ -1,7 +1,7 @@
 use rspack_core::{
-  ChunkGroupOptions, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource,
+  AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -11,7 +11,6 @@ pub struct WorkerDependency {
   id: DependencyId,
   request: String,
   span: Option<ErrorSpan>,
-  group_options: ChunkGroupOptions,
   public_path: String,
 }
 
@@ -22,7 +21,6 @@ impl WorkerDependency {
     request: String,
     public_path: String,
     span: Option<ErrorSpan>,
-    group_options: ChunkGroupOptions,
   ) -> Self {
     Self {
       start,
@@ -30,13 +28,16 @@ impl WorkerDependency {
       id: DependencyId::new(),
       request,
       span,
-      group_options,
       public_path,
     }
   }
 }
 
 impl Dependency for WorkerDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Worker
   }
@@ -44,13 +45,17 @@ impl Dependency for WorkerDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::NewWorker
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "WorkerDependency"
+  }
 }
 
 impl ModuleDependency for WorkerDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -59,20 +64,16 @@ impl ModuleDependency for WorkerDependency {
     &self.request
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
-  }
-
   fn set_request(&mut self, request: String) {
     self.request = request;
   }
 
-  fn group_options(&self) -> Option<&ChunkGroupOptions> {
-    Some(&self.group_options)
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    vec![]
   }
 }
 
@@ -89,11 +90,11 @@ impl DependencyTemplate for WorkerDependency {
     } = code_generatable_context;
     let chunk_id = compilation
       .module_graph
-      .module_identifier_by_dependency_id(&self.id)
-      .map(|module| {
+      .get_parent_block(&self.id)
+      .and_then(|block| {
         compilation
           .chunk_graph
-          .get_block_chunk_group(module, &compilation.chunk_group_by_ukey)
+          .get_block_chunk_group(block, &compilation.chunk_group_by_ukey)
       })
       .map(|entrypoint| entrypoint.get_entry_point_chunk())
       .and_then(|ukey| compilation.chunk_by_ukey.get(&ukey))
@@ -125,3 +126,5 @@ impl DependencyTemplate for WorkerDependency {
     );
   }
 }
+
+impl AsContextDependency for WorkerDependency {}

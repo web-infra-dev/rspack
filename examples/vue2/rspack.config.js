@@ -1,3 +1,4 @@
+const rspack = require("@rspack/core");
 const { VueLoaderPlugin } = require("vue-loader");
 
 /** @type {import('@rspack/cli').Configuration} */
@@ -6,33 +7,33 @@ const config = {
 	entry: {
 		main: "./src/main.js"
 	},
-	builtins: {
-		html: [
-			{
-				template: "./index.html"
-			}
-		]
-	},
 	devServer: {
 		historyApiFallback: true
 	},
 	devtool: false,
-	plugins: [new VueLoaderPlugin()],
+	plugins: [
+		new VueLoaderPlugin(),
+		new rspack.HtmlRspackPlugin({
+			template: "./index.html"
+		})
+	],
 	module: {
 		rules: [
 			{
 				test: /\.vue$/,
-				use: ["vue-loader"]
+				use: [
+					{
+						loader: "vue-loader",
+						options: {
+							experimentalInlineMatchResource: true
+						}
+					}
+				]
 			},
 			{
 				test: /\.less$/,
-				use: ["vue-style-loader", "css-loader", "less-loader"],
-				type: "javascript/auto"
-			},
-			{
-				test: /\.css$/,
-				use: ["vue-style-loader", "css-loader"],
-				type: "javascript/auto"
+				loader: "less-loader",
+				type: "css"
 			},
 			{
 				test: /\.svg$/,

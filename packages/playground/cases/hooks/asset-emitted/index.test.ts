@@ -5,7 +5,7 @@ test("asset emitted hook should only emit modified assets", async ({
 	fileAction,
 	rspack
 }) => {
-	let assets: string[] = [];
+	const assets: string[] = [];
 	rspack.compiler.hooks.assetEmitted.tap("test", function (name) {
 		if (name.includes(".hot-update.")) {
 			return;
@@ -55,7 +55,7 @@ test("asset emitted should not emit removed assets", async ({
 	rspack,
 	fileAction
 }) => {
-	let assets: string[] = [];
+	const assets: string[] = [];
 	rspack.compiler.hooks.assetEmitted.tap("test", function (name) {
 		if (name.includes(".hot-update.")) {
 			return;

@@ -1,6 +1,7 @@
 use rspack_core::{
-  module_id, ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
-  DependencyType, ErrorSpan, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  module_id, AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, ExtendedReferencedExport, ModuleDependency, ModuleGraph, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -36,6 +37,10 @@ impl RequireResolveDependency {
 }
 
 impl Dependency for RequireResolveDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CommonJS
   }
@@ -43,13 +48,17 @@ impl Dependency for RequireResolveDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::RequireResolve
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    Some(self.span)
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "RequireResolveDependency"
+  }
 }
 
 impl ModuleDependency for RequireResolveDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -58,28 +67,24 @@ impl ModuleDependency for RequireResolveDependency {
     &self.request
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    Some(&self.span)
-  }
-
   fn weak(&self) -> bool {
     self.weak
-  }
-
-  fn options(&self) -> Option<&ContextOptions> {
-    None
   }
 
   fn get_optional(&self) -> bool {
     self.optional
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
-  }
-
   fn set_request(&mut self, request: String) {
     self.request = request;
+  }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    vec![]
   }
 }
 
@@ -103,3 +108,5 @@ impl DependencyTemplate for RequireResolveDependency {
     );
   }
 }
+
+impl AsContextDependency for RequireResolveDependency {}

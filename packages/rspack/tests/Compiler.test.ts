@@ -1,12 +1,7 @@
 // @ts-nocheck
 import { RawSource } from "webpack-sources";
-import {
-	Compiler,
-	getNormalizedRspackOptions,
-	rspack,
-	RspackOptions
-} from "../src";
-import { Stats } from "../src/stats";
+import { Compiler, rspack } from "../src";
+import { Stats } from "../src/Stats";
 const path = require("path");
 import { createFsFromVolume, Volume } from "memfs";
 const captureStdio = require("./helpers/captureStdio");
@@ -16,7 +11,7 @@ describe("Compiler", () => {
 	function compile(entry: string, options, callback) {
 		const noOutputPath = !options.output || !options.output.path;
 
-		options = getNormalizedRspackOptions(options);
+		options = rspack.config.getNormalizedRspackOptions(options);
 
 		if (!options.mode) options.mode = "production";
 		options.entry = entry;
@@ -1059,6 +1054,32 @@ describe("Compiler", () => {
 			});
 		});
 
+		it("should work with `namedChunks`", done => {
+			const mockFn = jest.fn();
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.afterCompile.tap("Plugin", compilation => {
+						let c = compilation.namedChunks.get("d");
+						expect(c.name).toBe("d");
+						mockFn();
+					});
+				}
+			}
+			const compiler = rspack({
+				entry: {
+					d: "./d"
+				},
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build(error => {
+				expect(error).toBeFalsy();
+				expect(mockFn).toBeCalled();
+				done();
+			});
+		});
+
 		it("should get assets with both `getAssets` and `assets`(getter)", done => {
 			class MyPlugin {
 				apply(compiler: Compiler) {
@@ -1268,8 +1289,8 @@ describe("Compiler", () => {
 
 			compiler.build(err => {
 				const stats = new Stats(compiler.compilation);
-				expect(stats.toJson().errors[0].message).toBe(
-					"error[internal]: Conflict: Multiple assets emit different content to the same filename main.js\n"
+				expect(stats.toJson().errors[0].message).toMatchInlineSnapshot(
+					`"Conflict: Multiple assets emit different content to the same filename main.js"`
 				);
 				done();
 			});

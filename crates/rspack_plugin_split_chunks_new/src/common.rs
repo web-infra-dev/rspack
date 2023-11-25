@@ -1,12 +1,7 @@
-use std::{
-  future::{self, Future},
-  ops::{Deref, DerefMut},
-  pin::Pin,
-  sync::Arc,
-};
+use std::ops::{Deref, DerefMut};
+use std::sync::Arc;
 
 use derivative::Derivative;
-use futures_util::FutureExt;
 use rspack_core::{Chunk, ChunkGroupByUkey, Module, SourceType};
 use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -41,29 +36,6 @@ pub fn create_chunk_filter_from_str(chunks: &str) -> ChunkFilter {
 
 pub fn create_regex_chunk_filter_from_str(re: RspackRegex) -> ChunkFilter {
   Arc::new(move |chunk, _| chunk.name.as_ref().map_or(false, |name| re.test(name)))
-}
-
-pub type ModuleFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
-
-fn create_default_module_filter() -> ModuleFilter {
-  Arc::new(|_| true)
-}
-
-pub fn create_module_filter_from_rspack_regex(re: rspack_regex::RspackRegex) -> ModuleFilter {
-  Arc::new(move |module| {
-    module
-      .name_for_condition()
-      .map_or(false, |name| re.test(&name))
-  })
-}
-
-pub fn create_module_filter(re: Option<String>) -> ModuleFilter {
-  re.map(|test| {
-    let re =
-      rspack_regex::RspackRegex::new(&test).unwrap_or_else(|_| panic!("Invalid regex: {}", &test));
-    create_module_filter_from_rspack_regex(re)
-  })
-  .unwrap_or_else(create_default_module_filter)
 }
 
 #[derive(Debug, Default, Clone)]
@@ -154,18 +126,6 @@ impl DerefMut for SplitChunkSizes {
   fn deref_mut(&mut self) -> &mut Self::Target {
     &mut self.0
   }
-}
-
-type PinFutureBox<T> = Pin<Box<dyn Future<Output = T> + Send>>;
-
-pub type ChunkNameGetter = Arc<dyn Fn(&dyn Module) -> PinFutureBox<Option<String>> + Send + Sync>;
-
-pub fn create_chunk_name_getter_by_const_name(name: String) -> ChunkNameGetter {
-  Arc::new(move |_module| future::ready(Some(name.clone())).boxed())
-}
-
-pub fn create_empty_chunk_name_getter() -> ChunkNameGetter {
-  Arc::new(move |_module| future::ready(None).boxed())
 }
 
 #[derive(Derivative)]

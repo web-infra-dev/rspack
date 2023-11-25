@@ -13,6 +13,11 @@ inputs:
     default: 'release'
     required: false
     type: string
+  options:
+    description: 'Options for docker'
+    default: ""
+    required: false
+    type: string
   pre:
     required: false
     default: ""
@@ -26,21 +31,31 @@ runs:
   using: composite
   steps:
     - name: Docker Build ${{ inputs.target }}
-      uses: addnab/docker-run-action@v3
-      with:
-        image: ${{ inputs.image }}
-        options: >
-          --privileged
-          --user 0:0
-          -v ${{ github.workspace }}/.cargo/git/db:/usr/local/cargo/git/db
-          -v ${{ github.workspace }}/.cargo/registry/cache:/usr/local/cargo/registry/cache
-          -v ${{ github.workspace }}/.cargo/registry/index:/usr/local/cargo/registry/index
-          -v ${{ github.workspace }}:/build
-          -w /build
-        run: |
+      shell: bash
+      run: |
+        code='
           set -e
+          if [ -x "$(command -v sccache)" ]; then
+            export RUSTC_WRAPPER=sccache
+            echo "enable sccache"
+          fi
           ${{ inputs.pre }}
           rustup target add ${{ inputs.target }}
           corepack enable
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
           ${{ inputs.post }}
+        '
+
+        docker run \
+          --rm \
+          --privileged \
+          --user 0:0 \
+          ${{ inputs.options }} \
+          -e CI=1 \
+          -e HOME=$HOME \
+          -v $HOME/.cache:$HOME/.cache \
+          -v ${{ github.workspace }}:/build \
+          -w /build \
+          -i \
+          ${{ inputs.image }} \
+          bash -c "$code"

@@ -1,6 +1,6 @@
 use rspack_core::{
-  Dependency, DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ModuleDependency, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, Dependency, DependencyCategory, DependencyId, DependencyTemplate,
+  DependencyType, ErrorSpan, ModuleDependency, TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
@@ -25,6 +25,14 @@ impl CssImportDependency {
 }
 
 impl Dependency for CssImportDependency {
+  fn dependency_debug_name(&self) -> &'static str {
+    "CssImportDependency"
+  }
+
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CssImport
   }
@@ -32,13 +40,13 @@ impl Dependency for CssImportDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::CssImport
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
 }
 
 impl ModuleDependency for CssImportDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -47,16 +55,8 @@ impl ModuleDependency for CssImportDependency {
     &self.request
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
-  }
-
   fn set_request(&mut self, request: String) {
     self.request = request;
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
   }
 }
 
@@ -66,12 +66,8 @@ impl DependencyTemplate for CssImportDependency {
     source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {
-    source.replace(
-      self.start - 8, /* @import */
-      // Semicolon should be available and guarantee, or it's a syntax error.
-      self.end + 1, /* ; */
-      "",
-      None,
-    );
+    source.replace(self.start, self.end, "", None);
   }
 }
+
+impl AsContextDependency for CssImportDependency {}

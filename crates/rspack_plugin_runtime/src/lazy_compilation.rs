@@ -4,8 +4,9 @@ use std::hash::Hash;
 use async_trait::async_trait;
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
-  ApplyContext, AstOrSource, Compilation, DependencyType, Module, ModuleArgs, ModuleType, Plugin,
-  PluginContext, PluginModuleHookOutput, RuntimeGlobals, SourceType,
+  AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock, DependencyId, Module,
+  ModuleType, NormalModuleCreateData, Plugin, PluginContext, PluginModuleHookOutput,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_core::{CodeGenerationResult, Context, ModuleIdentifier};
 use rspack_error::Result;
@@ -13,7 +14,27 @@ use rspack_identifier::Identifiable;
 
 #[derive(Debug)]
 pub struct LazyCompilationProxyModule {
+  dependencies: Vec<DependencyId>,
+  blocks: Vec<AsyncDependenciesBlockIdentifier>,
   pub module_identifier: ModuleIdentifier,
+}
+
+impl DependenciesBlock for LazyCompilationProxyModule {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+    self.blocks.push(block)
+  }
+
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+    &self.blocks
+  }
+
+  fn add_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.push(dependency)
+  }
+
+  fn get_dependencies(&self) -> &[DependencyId] {
+    &self.dependencies
+  }
 }
 
 impl Module for LazyCompilationProxyModule {
@@ -37,24 +58,23 @@ impl Module for LazyCompilationProxyModule {
     200.0
   }
 
-  fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
+  fn code_generation(
+    &self,
+    compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     cgr.runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
     cgr.runtime_requirements.insert(RuntimeGlobals::MODULE);
     cgr.add(
       SourceType::JavaScript,
-      AstOrSource::new(
-        None,
-        Some(
-          RawSource::from(
-            include_str!("runtime/lazy_compilation.js")
-              // TODO
-              .replace("$CHUNK_ID$", self.module_identifier.to_string().as_str())
-              .replace("$MODULE_ID$", self.module_identifier.to_string().as_str()),
-          )
-          .boxed(),
-        ),
-      ),
+      RawSource::from(
+        include_str!("runtime/lazy_compilation.js")
+          // TODO
+          .replace("$CHUNK_ID$", self.module_identifier.to_string().as_str())
+          .replace("$MODULE_ID$", self.module_identifier.to_string().as_str()),
+      )
+      .boxed(),
     );
     cgr.set_hash(
       &compilation.options.output.hash_function,
@@ -95,24 +115,26 @@ impl Plugin for LazyCompilationPlugin {
     "LazyCompilationPlugin"
   }
 
-  fn apply(&self, _ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
-    Ok(())
-  }
-
-  async fn module(&self, _ctx: PluginContext, args: &ModuleArgs) -> PluginModuleHookOutput {
-    if args.indentfiler.contains("rspack-dev-client")
-      || args.lazy_visit_modules.contains(args.indentfiler.as_str())
-    {
-      return Ok(None);
-    }
-    if matches!(
-      args.dependency_type,
-      DependencyType::DynamicImport | DependencyType::Entry
-    ) {
-      return Ok(Some(Box::new(LazyCompilationProxyModule {
-        module_identifier: args.indentfiler,
-      })));
-    }
+  async fn create_module(
+    &self,
+    _ctx: PluginContext,
+    _args: &NormalModuleCreateData,
+  ) -> PluginModuleHookOutput {
+    // if args.indentfiler.contains("rspack-dev-client")
+    //   || args.lazy_visit_modules.contains(args.indentfiler.as_str())
+    // {
+    //   return Ok(None);
+    // }
+    // if matches!(
+    //   args.dependency_type,
+    //   DependencyType::DynamicImport | DependencyType::Entry
+    // ) {
+    //   return Ok(Some(Box::new(LazyCompilationProxyModule {
+    //     module_identifier: args.indentfiler,
+    //     dependencies: Vec::new(),
+    //     blocks: Vec::new(),
+    //   })));
+    // }
 
     Ok(None)
   }

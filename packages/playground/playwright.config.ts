@@ -15,6 +15,9 @@ export default defineConfig<RspackOptions>({
 
 	retries: 0,
 
+	// timeout 30s
+	timeout: 30 * 1000,
+
 	// Opt out of parallel tests on CI.
 	workers: process.env.CI ? 1 : undefined,
 

@@ -1,1 +1,1 @@
-module.exports = () => {return false}
+module.exports = () => 'no js splitChunks plugin'

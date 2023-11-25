@@ -1,6 +1,4 @@
-
-/*
-module.exports = function(config) {
+module.exports = function (config) {
 	// terser doesn't support static {}
 	if (config.mode === "production") return false;
 
@@ -11,8 +9,3 @@ module.exports = function(config) {
 		return false;
 	}
 };
-
-*/
-module.exports = () => {return false}
-
-							

@@ -4,6 +4,11 @@ import "zx/globals";
 import { Command } from "commander";
 import { version_handler } from "./scripts/release/version.mjs";
 import { publish_handler } from "./scripts/release/publish.mjs";
+import {
+	launchRspackCli,
+	launchJestWithArgs
+} from "./scripts/debug/launch.mjs";
+
 process.env.FORCE_COLOR = 3; // Fix zx losing color output in subprocesses
 
 const program = new Command();
@@ -59,6 +64,7 @@ cleanCommand
 
 // x build
 const buildCommand = program.command("build").alias("b").description("build");
+const watchCommand = program.command("watch").alias("w").description("watch");
 
 buildCommand
 	.option("-a", "build all")
@@ -69,6 +75,17 @@ buildCommand
 		let mode = r ? "release" : "debug";
 		b && (await $`pnpm --filter @rspack/binding build:${mode}`);
 		j && (await $`pnpm --filter "@rspack/*" build`);
+	});
+
+watchCommand
+	.option("-a", "watch all")
+	.option("-b", "watch rust binding")
+	.option("-j", "watch js packages")
+	.option("-r", "release")
+	.action(async function ({ a, b = a, j = a, r }) {
+		let mode = r ? "release" : "debug";
+		b && (await $`pnpm --filter @rspack/binding watch:${mode}`);
+		j && (await $`pnpm --filter "@rspack/*" watch`);
 	});
 
 // x build binding
@@ -123,13 +140,75 @@ testCommand
 		await $`./x test example`;
 		await $`./x test unit`;
 	});
+// x test webpack
+testCommand
+	.command("webpack")
+	.description("run webpack test suites")
+	.action(async function () {
+		await $`pnpm --filter "webpack-test" test`;
+	});
 
-let versionCommand = program
+// x rspack / x rs
+const rspackCommand = program.command("rspack").alias("rs").description(`
+  $ x rspack -- [your-rspack-cli-args...]
+  $ x rspack --debug -- build
+  $ x rs -d -- build
+  $ x rsd -- build
+`);
+
+rspackCommand
+	.option("-d, --debug", "Launch debugger in VSCode")
+	.action(async function ({ debug }) {
+		if (!debug) {
+			await $`npx rspack ${getVariadicArgs()}`;
+			return;
+		}
+		await launchRspackCli(getVariadicArgs());
+	});
+
+// x rsd
+program
+	.command("rspack-debug")
+	.alias("rsd")
+	.description("Alias for `x rspack --debug`")
+	.action(async function () {
+		await launchRspackCli(getVariadicArgs());
+	});
+
+// x jest / x j
+const jestCommand = program.command("jest").alias("j").description(`
+  $ x jest -- [your-jest-args...]
+  $ x jest --debug -- -t <test-name-pattern>
+  $ x j -d -- [test-path-pattern]
+  $ x jd -- [your-jest-args...]
+`);
+
+jestCommand
+	.option("-d, --debug", "Launch debugger in VSCode")
+	.action(async ({ debug }) => {
+		if (!debug) {
+			await $`npx jest ${getVariadicArgs()}`;
+			return;
+		}
+		await launchJestWithArgs(getVariadicArgs());
+	});
+
+// x jd
+program
+	.command("jest-debug")
+	.alias("jd")
+	.description("Alias for `x jest --debug`")
+	.action(async function () {
+		await launchJestWithArgs(getVariadicArgs());
+	});
+
+program
 	.command("version")
 	.argument("<bump_version>", "bump version to (major|minor|patch|snapshot)")
 	.description("bump version")
 	.action(version_handler);
-let releaseCommand = program
+
+program
 	.command("publish")
 	.argument("<mode>", "publish mode (snapshot|stable)")
 	.requiredOption("--tag <char>", "publish tag")
@@ -148,3 +227,9 @@ if (argv[0] && /x.mjs/.test(argv[0])) {
 	argv = argv.slice(1);
 }
 program.parse(argv, { from: "user" });
+
+// Get args after `--`
+function getVariadicArgs() {
+	let idx = argv.findIndex(c => c === "--");
+	return idx === -1 ? [] : argv.slice(idx + 1);
+}

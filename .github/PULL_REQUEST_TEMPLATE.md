@@ -17,3 +17,10 @@
 ## Test Plan
 
 <!-- Can you please describe how you tested the changes you made to the code? -->
+
+## Require Documentation?
+
+<!-- Does this PR require documentation? -->
+
+- [ ] No
+- [ ] Yes, the corresponding rspack-website PR is \_\_

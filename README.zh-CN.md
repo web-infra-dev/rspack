@@ -78,6 +78,6 @@ Rspack 项目基于 [MIT 协议](https://github.com/web-infra-dev/rspack/blob/ma
 
 ## Community
 
-- Rspack 飞书交流群
+- 可以在 [Discord](https://discord.gg/79ZZ66GH9E) 上和 Rspack Team 以及 Rspack 用户交流
 
-<img alt="飞书群" src="https://user-images.githubusercontent.com/8898718/226320091-e817106f-4a22-4e89-bdcd-f67e93bb960c.png" width="360" >
+- 也可以在 [飞书](https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=3c3vca77-bfc0-4ef5-b62b-9c5c9c92f1b4) 上和我们交流

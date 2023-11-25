@@ -1,13 +1,23 @@
 //!  There are methods whose verb is `ChunkGraphChunk`
 
+use rspack_database::Database;
 use rspack_identifier::{IdentifierLinkedMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::ChunkGraph;
 use crate::{
-  find_graph_roots, BoxModule, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey,
-  Module, ModuleGraph, ModuleGraphModule, ModuleIdentifier, RuntimeGlobals, SourceType,
+  find_graph_roots, BoxModule, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkUkey, Module, ModuleGraph, ModuleGraphModule, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
+  SourceType,
 };
+use crate::{ChunkGraph, Compilation};
+
+#[derive(Debug, Clone, Default)]
+pub struct ChunkSizeOptions {
+  // constant overhead for a chunk
+  pub chunk_overhead: Option<f64>,
+  // multiplicator for initial chunks
+  pub entry_chunk_multiplicator: Option<f64>,
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraphChunk {
@@ -31,12 +41,34 @@ impl ChunkGraphChunk {
   }
 }
 
+fn get_modules_size(modules: &[&BoxModule]) -> f64 {
+  let mut size = 0f64;
+  for module in modules {
+    for source_type in module.source_types() {
+      size += module.size(source_type);
+    }
+  }
+  size
+}
+
+// TODO: we should remove this function to crate rspack_util
+fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
+  let mut set: RuntimeSpec = Default::default();
+  for r in a {
+    set.insert(r.clone());
+  }
+  for r in b {
+    set.insert(r.clone());
+  }
+  set
+}
+
 impl ChunkGraph {
   pub fn add_chunk(&mut self, chunk_ukey: ChunkUkey) {
     self
       .chunk_graph_chunk_by_chunk_ukey
       .entry(chunk_ukey)
-      .or_insert_with(ChunkGraphChunk::new);
+      .or_default();
   }
   pub fn add_chunk_wit_chunk_graph_chunk(&mut self, chunk_ukey: ChunkUkey, cgc: ChunkGraphChunk) {
     debug_assert!(!self
@@ -59,33 +91,36 @@ impl ChunkGraph {
     &cgc.entry_modules
   }
 
-  pub(crate) fn get_chunk_graph_chunk_mut(
-    &mut self,
-    chunk_ukey: ChunkUkey,
-  ) -> &mut ChunkGraphChunk {
+  pub fn get_chunk_graph_chunk_mut(&mut self, chunk_ukey: ChunkUkey) -> &mut ChunkGraphChunk {
     self
       .chunk_graph_chunk_by_chunk_ukey
       .get_mut(&chunk_ukey)
       .expect("Chunk should be added before")
   }
 
-  pub(crate) fn get_chunk_graph_chunk(&self, chunk_ukey: &ChunkUkey) -> &ChunkGraphChunk {
+  pub fn get_chunk_graph_chunk(&self, chunk_ukey: &ChunkUkey) -> &ChunkGraphChunk {
     self
       .chunk_graph_chunk_by_chunk_ukey
       .get(chunk_ukey)
       .expect("Chunk should be added before")
   }
 
-  pub(crate) fn connect_chunk_and_entry_module(
+  pub fn connect_chunk_and_entry_module(
     &mut self,
     chunk: ChunkUkey,
     module_identifier: ModuleIdentifier,
     entrypoint: ChunkGroupUkey,
   ) {
-    let chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
+    let chunk_graph_module = self
+      .chunk_graph_module_by_module_identifier
+      .entry(module_identifier)
+      .or_default();
     chunk_graph_module.entry_in_chunks.insert(chunk);
 
-    let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk);
+    let chunk_graph_chunk = self
+      .chunk_graph_chunk_by_chunk_ukey
+      .entry(chunk)
+      .or_default();
     chunk_graph_chunk
       .entry_modules
       .insert(module_identifier, entrypoint);
@@ -108,24 +143,38 @@ impl ChunkGraph {
     chunk: ChunkUkey,
     module_identifier: ModuleIdentifier,
   ) {
-    let chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
+    let chunk_graph_module = self
+      .chunk_graph_module_by_module_identifier
+      .entry(module_identifier)
+      .or_default();
     chunk_graph_module.chunks.insert(chunk);
 
-    let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk);
+    let chunk_graph_chunk = self
+      .chunk_graph_chunk_by_chunk_ukey
+      .entry(chunk)
+      .or_default();
     chunk_graph_chunk.modules.insert(module_identifier);
   }
 
   pub fn connect_chunk_and_runtime_module(
     &mut self,
     chunk: ChunkUkey,
-    identifier: ModuleIdentifier,
+    module_identifier: ModuleIdentifier,
   ) {
-    let cgm = self.get_chunk_graph_module_mut(identifier);
+    self
+      .chunk_graph_module_by_module_identifier
+      .entry(module_identifier)
+      .or_default();
+    let cgm = self.get_chunk_graph_module_mut(module_identifier);
     cgm.runtime_in_chunks.insert(chunk);
 
+    self
+      .chunk_graph_chunk_by_chunk_ukey
+      .entry(chunk)
+      .or_default();
     let cgc = self.get_chunk_graph_chunk_mut(chunk);
-    if !cgc.runtime_modules.contains(&identifier) {
-      cgc.runtime_modules.push(identifier);
+    if !cgc.runtime_modules.contains(&module_identifier) {
+      cgc.runtime_modules.push(module_identifier);
     }
   }
 
@@ -255,20 +304,27 @@ impl ChunkGraph {
     cgc.runtime_modules.iter()
   }
 
-  pub fn get_chunk_condition_map<F: Fn(&ChunkUkey, &ChunkGraph, &ModuleGraph) -> bool>(
+  pub fn get_chunk_condition_map<F: Fn(&ChunkUkey, &Compilation) -> bool>(
     &self,
     chunk_ukey: &ChunkUkey,
-    chunk_by_ukey: &ChunkByUkey,
-    chunk_group_by_ukey: &ChunkGroupByUkey,
-    module_graph: &ModuleGraph,
+    compilation: &Compilation,
     filter: F,
   ) -> HashMap<String, bool> {
     let mut map = HashMap::default();
 
-    let chunk = chunk_by_ukey.get(chunk_ukey).expect("Chunk should exist");
-    for c in chunk.get_all_referenced_chunks(chunk_group_by_ukey).iter() {
-      let chunk = chunk_by_ukey.get(c).expect("Chunk should exist");
-      map.insert(chunk.expect_id().to_string(), filter(c, self, module_graph));
+    let chunk = compilation
+      .chunk_by_ukey
+      .get(chunk_ukey)
+      .expect("Chunk should exist");
+    for c in chunk
+      .get_all_referenced_chunks(&compilation.chunk_group_by_ukey)
+      .iter()
+    {
+      let chunk = compilation
+        .chunk_by_ukey
+        .get(c)
+        .expect("Chunk should exist");
+      map.insert(chunk.expect_id().to_string(), filter(c, compilation));
     }
 
     map
@@ -293,11 +349,18 @@ impl ChunkGraph {
           .module_by_identifier(&module)
           .expect("should exist");
         for connection in module_graph.get_outgoing_connections(module) {
-          // TODO: consider activeState
-          // if (activeState === ModuleGraphConnection.TRANSITIVE_ONLY) {
-          //   add_dependencies(connection.module_identifier, set, module_graph);
-          //   continue;
-          // }
+          // TODO: add runtime after runtime opt
+          let active_state = connection.get_active_state(module_graph, None);
+          match active_state {
+            crate::ConnectionState::Bool(false) => {
+              continue;
+            }
+            crate::ConnectionState::TransitiveOnly => {
+              add_dependencies(connection.module_identifier, set, module_graph);
+              continue;
+            }
+            _ => {}
+          }
           set.insert(connection.module_identifier);
         }
       }
@@ -374,5 +437,209 @@ impl ChunkGraph {
       }
     }
     set.into_iter()
+  }
+
+  pub fn disconnect_chunk_and_entry_module(
+    &mut self,
+    chunk: &ChunkUkey,
+    module_identifier: ModuleIdentifier,
+  ) {
+    let chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
+    chunk_graph_module.chunks.remove(chunk);
+
+    let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(*chunk);
+    chunk_graph_chunk.entry_modules.remove(&module_identifier);
+  }
+
+  pub fn can_chunks_be_integrated(
+    &self,
+    chunk_a_ukey: &ChunkUkey,
+    chunk_b_ukey: &ChunkUkey,
+    chunk_by_ukey: &ChunkByUkey,
+    chunk_group_by_ukey: &ChunkGroupByUkey,
+  ) -> bool {
+    let chunk_a = chunk_by_ukey.get(chunk_a_ukey).expect("should have chunk");
+    let chunk_b = chunk_by_ukey.get(chunk_b_ukey).expect("should have chunk");
+    if chunk_a.prevent_integration || chunk_b.prevent_integration {
+      return false;
+    }
+
+    let has_runtime_a = chunk_a.has_runtime(chunk_group_by_ukey);
+    let has_runtime_b = chunk_b.has_runtime(chunk_group_by_ukey);
+
+    // true, if a is always a parent of b
+    let is_available_chunk = |a: &Chunk, b: &Chunk| {
+      let mut queue = b.groups.clone().into_iter().collect::<Vec<_>>();
+      while let Some(chunk_group_ukey) = queue.pop() {
+        if a.is_in_group(&chunk_group_ukey) {
+          continue;
+        }
+        let chunk_group = chunk_group_by_ukey.expect_get(&chunk_group_ukey);
+        if chunk_group.is_initial() {
+          return false;
+        }
+        for parent in chunk_group.parents_iterable() {
+          queue.push(*parent);
+        }
+      }
+      true
+    };
+
+    if has_runtime_a != has_runtime_b {
+      if has_runtime_a {
+        return is_available_chunk(chunk_a, chunk_b);
+      } else if has_runtime_b {
+        return is_available_chunk(chunk_b, chunk_a);
+      } else {
+        return false;
+      }
+    }
+
+    if self.get_number_of_entry_modules(&chunk_a.ukey) > 0
+      || self.get_number_of_entry_modules(&chunk_b.ukey) > 0
+    {
+      return false;
+    }
+
+    true
+  }
+
+  pub fn get_chunk_size(
+    &self,
+    chunk_ukey: &ChunkUkey,
+    options: &ChunkSizeOptions,
+    chunk_by_ukey: &Database<Chunk>,
+    chunk_group_by_ukey: &Database<ChunkGroup>,
+    module_graph: &ModuleGraph,
+  ) -> f64 {
+    let cgc = self.get_chunk_graph_chunk(chunk_ukey);
+    let modules: Vec<&BoxModule> = cgc
+      .modules
+      .iter()
+      .filter_map(|id| module_graph.module_by_identifier(id))
+      .collect::<Vec<_>>();
+    let modules_size = get_modules_size(&modules);
+    let chunk_overhead = options.chunk_overhead.unwrap_or(10000f64);
+    let entry_chunk_multiplicator = options.entry_chunk_multiplicator.unwrap_or(10f64);
+    let chunk = chunk_by_ukey.get(chunk_ukey).expect("chunk not found");
+    chunk_overhead
+      + modules_size
+        * (if chunk.can_be_initial(chunk_group_by_ukey) {
+          entry_chunk_multiplicator
+        } else {
+          1f64
+        })
+  }
+
+  pub fn get_integrated_chunks_size(
+    &self,
+    chunk_a_ukey: &ChunkUkey,
+    chunk_b_ukey: &ChunkUkey,
+    options: &ChunkSizeOptions,
+    chunk_by_ukey: &Database<Chunk>,
+    chunk_group_by_ukey: &Database<ChunkGroup>,
+    module_graph: &ModuleGraph,
+  ) -> f64 {
+    let cgc_a = self.get_chunk_graph_chunk(chunk_a_ukey);
+    let cgc_b = self.get_chunk_graph_chunk(chunk_b_ukey);
+    let mut all_modules: Vec<&BoxModule> = cgc_a
+      .modules
+      .iter()
+      .filter_map(|id| module_graph.module_by_identifier(id))
+      .collect::<Vec<_>>();
+    for id in &cgc_b.modules {
+      let module = module_graph.module_by_identifier(id);
+      if let Some(module) = module {
+        all_modules.push(module);
+      }
+    }
+    let modules_size = get_modules_size(&all_modules);
+    let chunk_overhead = options.chunk_overhead.unwrap_or(10000f64);
+    let entry_chunk_multiplicator = options.entry_chunk_multiplicator.unwrap_or(10f64);
+
+    let chunk_a = chunk_by_ukey.get(chunk_a_ukey).expect("chunk not found");
+    let chunk_b = chunk_by_ukey.get(chunk_b_ukey).expect("chunk not found");
+
+    chunk_overhead
+      + modules_size
+        * (if chunk_a.can_be_initial(chunk_group_by_ukey)
+          || chunk_b.can_be_initial(chunk_group_by_ukey)
+        {
+          entry_chunk_multiplicator
+        } else {
+          1f64
+        })
+  }
+
+  pub fn integrate_chunks(
+    &mut self,
+    a: &ChunkUkey,
+    b: &ChunkUkey,
+    chunk_by_ukey: &mut Database<Chunk>,
+    chunk_group_by_ukey: &mut Database<ChunkGroup>,
+    module_graph: &ModuleGraph,
+  ) {
+    let chunk_b = chunk_by_ukey.expect_get(b).clone();
+    let chunk_a = chunk_by_ukey.expect_get_mut(a);
+
+    // Decide for one name (deterministic)
+    if let (Some(_), Some(_)) = (&chunk_a.name, &chunk_b.name) {
+      if (self.get_number_of_entry_modules(a) > 0) == (self.get_number_of_entry_modules(b) > 0) {
+        // When both chunks have entry modules or none have one, use
+        // shortest name
+        match (chunk_a.name.clone(), chunk_b.name.clone()) {
+          (Some(a), Some(b)) => {
+            if a.len() != b.len() {
+              chunk_a.name = if a.len() < b.len() { Some(a) } else { Some(b) };
+            }
+          }
+          (None, Some(b)) => {
+            chunk_a.name = Some(b);
+          }
+          _ => {}
+        }
+      } else if self.get_number_of_entry_modules(b) > 0 {
+        // Pick the name of the chunk with the entry module
+        chunk_a.name = chunk_b.name.clone();
+      }
+    } else if chunk_b.name.is_some() {
+      chunk_a.name = chunk_b.name.clone();
+    }
+
+    // Merge id name hints
+    for hint in &chunk_b.id_name_hints {
+      chunk_a.id_name_hints.insert(hint.clone());
+    }
+
+    // Merge runtime
+    chunk_a.runtime = merge_runtime(&chunk_a.runtime, &chunk_b.runtime);
+
+    // get_chunk_modules is used here to create a clone, because disconnect_chunk_and_module modifies
+    for module in self.get_chunk_modules(b, module_graph) {
+      self.disconnect_chunk_and_module(b, module.identifier());
+      self.connect_chunk_and_module(*a, module.identifier());
+    }
+
+    for (module, chunk_group) in self
+      .clone()
+      .get_chunk_entry_modules_with_chunk_group_iterable(b)
+      .iter()
+    {
+      self.disconnect_chunk_and_entry_module(b, *module);
+      self.connect_chunk_and_entry_module(*a, *module, *chunk_group);
+    }
+
+    let mut remove_group_ukeys = vec![];
+    for chunk_group_ukey in chunk_b.groups {
+      let chunk_group = chunk_group_by_ukey.expect_get_mut(&chunk_group_ukey);
+      chunk_group.replace_chunk(b, a);
+      chunk_a.add_group(chunk_group_ukey);
+      remove_group_ukeys.push(chunk_group_ukey);
+    }
+
+    let chunk_b = chunk_by_ukey.expect_get_mut(b);
+    for group_ukey in remove_group_ukeys {
+      chunk_b.remove_group(&group_ukey);
+    }
   }
 }

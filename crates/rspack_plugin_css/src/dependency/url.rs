@@ -1,9 +1,9 @@
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rspack_core::{
-  CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
-  PublicPath, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
+  DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ModuleDependency, ModuleIdentifier, PublicPath, TemplateContext, TemplateReplaceSource,
 };
 
 use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER;
@@ -33,10 +33,8 @@ impl CssUrlDependency {
     identifier: &ModuleIdentifier,
     compilation: &Compilation,
   ) -> Option<String> {
-    let code_gen_result = compilation
-      .code_generation_results
-      .module_generation_result_map
-      .get(identifier);
+    // TODO: how to handle if module related to multi runtime codegen
+    let code_gen_result = compilation.code_generation_results.get_one(identifier);
     if let Some(code_gen_result) = code_gen_result {
       if let Some(url) = code_gen_result.data.get::<CodeGenerationDataUrl>() {
         Some(url.inner().to_string())
@@ -57,6 +55,10 @@ impl CssUrlDependency {
 }
 
 impl Dependency for CssUrlDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Url
   }
@@ -64,13 +66,17 @@ impl Dependency for CssUrlDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::CssUrl
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "CssUrlDependency"
+  }
 }
 
 impl ModuleDependency for CssUrlDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -79,16 +85,8 @@ impl ModuleDependency for CssUrlDependency {
     &self.request
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
-  }
-
   fn set_request(&mut self, request: String) {
     self.request = request;
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
   }
 }
 
@@ -100,8 +98,8 @@ impl DependencyTemplate for CssUrlDependency {
   ) {
     let TemplateContext { compilation, .. } = code_generatable_context;
     if let Some(mgm) = compilation
-        .module_graph
-        .module_graph_module_by_dependency_id(self.id())
+      .module_graph
+      .module_graph_module_by_dependency_id(self.id())
       && let Some(target_url) = self.get_target_url(&mgm.module_identifier, compilation)
     {
       let content = format!("url({})", css_escape_string(&target_url));
@@ -109,6 +107,8 @@ impl DependencyTemplate for CssUrlDependency {
     }
   }
 }
+
+impl AsContextDependency for CssUrlDependency {}
 
 static WHITE_OR_BRACKET_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"[\n\t ()'"\\]"#).expect("Invalid Regexp"));

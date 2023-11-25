@@ -1,7 +1,7 @@
-use rspack_core::{
-  module_id, Dependency, DependencyCategory, DependencyId, DependencyTemplate, DependencyType,
-  ErrorSpan, ModuleDependency, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
-};
+use rspack_core::{module_id, AsContextDependency, Dependency, DependencyCategory};
+use rspack_core::{DependencyId, DependencyTemplate};
+use rspack_core::{DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals};
+use rspack_core::{TemplateContext, TemplateReplaceSource};
 use swc_core::ecma::atoms::JsWord;
 
 // Webpack RequireHeaderDependency + CommonJsRequireDependency
@@ -35,6 +35,10 @@ impl CommonJsRequireDependency {
 }
 
 impl Dependency for CommonJsRequireDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CommonJS
   }
@@ -42,13 +46,17 @@ impl Dependency for CommonJsRequireDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::CjsRequire
   }
+
+  fn span(&self) -> Option<ErrorSpan> {
+    self.span
+  }
+
+  fn dependency_debug_name(&self) -> &'static str {
+    "CommonJsRequireDependency"
+  }
 }
 
 impl ModuleDependency for CommonJsRequireDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
-  }
-
   fn request(&self) -> &str {
     &self.request
   }
@@ -57,16 +65,8 @@ impl ModuleDependency for CommonJsRequireDependency {
     &self.request
   }
 
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
-  }
-
   fn get_optional(&self) -> bool {
     self.optional
-  }
-
-  fn as_code_generatable_dependency(&self) -> Option<&dyn DependencyTemplate> {
-    Some(self)
   }
 
   fn set_request(&mut self, request: String) {
@@ -100,3 +100,5 @@ impl DependencyTemplate for CommonJsRequireDependency {
     );
   }
 }
+
+impl AsContextDependency for CommonJsRequireDependency {}

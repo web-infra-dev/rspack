@@ -2,7 +2,6 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "strict": true,
-    "skipLibCheck": true,
     "jsx": "react-jsx",
     "moduleResolution": "node"
   },

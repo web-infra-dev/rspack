@@ -1,12 +1,17 @@
 ---
 source: crates/rspack_error/tests/fixtures.rs
-assertion_line: 41
 expression: char-based-offset-error-span
 ---
 error[scss]: Sass Error
   ┌─ tests/fixtures/char-based-offset-error-span/index.scss:5:10
   │
+1 │ // 一些中文注释
+2 │ // 一些 emoji：👏 👏 👏
+3 │ // a̐éö̲
+4 │ .wrong {
 5 │   wrong: $wrong;
   │          ^^^^^^ Undefined variable.
+6 │ }
+7 │ 
 
 

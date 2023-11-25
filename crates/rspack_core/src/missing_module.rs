@@ -7,11 +7,14 @@ use rspack_sources::{RawSource, Source, SourceExt};
 use serde_json::json;
 
 use crate::{
-  AstOrSource, CodeGenerationResult, Compilation, Module, ModuleIdentifier, ModuleType, SourceType,
+  AsyncDependenciesBlockIdentifier, CodeGenerationResult, Compilation, DependenciesBlock,
+  DependencyId, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
 };
 
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct MissingModule {
+  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
   readable_identifier: String,
   error_message: String,
@@ -24,10 +27,30 @@ impl MissingModule {
     error_message: String,
   ) -> Self {
     Self {
+      dependencies: Vec::new(),
+      blocks: Vec::new(),
       identifier,
       readable_identifier,
       error_message,
     }
+  }
+}
+
+impl DependenciesBlock for MissingModule {
+  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+    self.blocks.push(block)
+  }
+
+  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+    &self.blocks
+  }
+
+  fn add_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.push(dependency)
+  }
+
+  fn get_dependencies(&self) -> &[DependencyId] {
+    &self.dependencies
   }
 }
 
@@ -54,17 +77,18 @@ impl Module for MissingModule {
     160.0
   }
 
-  fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
-    let mut code_gen = CodeGenerationResult::default().with_javascript(AstOrSource::new(
-      None,
-      Some(
-        RawSource::from(format!(
-          "throw new Error({});\n",
-          json!(&self.error_message)
-        ))
-        .boxed(),
-      ),
-    ));
+  fn code_generation(
+    &self,
+    compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Result<CodeGenerationResult> {
+    let mut code_gen = CodeGenerationResult::default().with_javascript(
+      RawSource::from(format!(
+        "throw new Error({});\n",
+        json!(&self.error_message)
+      ))
+      .boxed(),
+    );
     code_gen.set_hash(
       &compilation.options.output.hash_function,
       &compilation.options.output.hash_digest,
@@ -85,6 +109,8 @@ impl PartialEq for MissingModule {
     self.identifier == other.identifier
   }
 }
+
+impl Eq for MissingModule {}
 
 impl Hash for MissingModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

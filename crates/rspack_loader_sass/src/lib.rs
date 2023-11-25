@@ -114,7 +114,7 @@ struct RspackImporter {
 impl RspackImporter {
   pub fn new(include_paths: Vec<PathBuf>, factory: Arc<ResolverFactory>) -> Self {
     let sass_module_resolve = factory.get(ResolveOptionsWithDependencyType {
-      resolve_options: Some(Resolve {
+      resolve_options: Some(Box::new(Resolve {
         extensions: Some(vec![
           ".sass".to_owned(),
           ".scss".to_owned(),
@@ -126,13 +126,13 @@ impl RspackImporter {
         main_fields: Some(Vec::new()),
         // TODO: add restrictions field when resolver supports it.
         ..Default::default()
-      }),
+      })),
       resolve_to_context: false,
       dependency_type: DependencyType::Unknown,
       dependency_category: DependencyCategory::Unknown,
     });
     let sass_import_resolve = factory.get(ResolveOptionsWithDependencyType {
-      resolve_options: Some(Resolve {
+      resolve_options: Some(Box::new(Resolve {
         extensions: Some(vec![
           ".sass".to_owned(),
           ".scss".to_owned(),
@@ -148,13 +148,13 @@ impl RspackImporter {
         ]),
         main_fields: Some(Vec::new()),
         ..Default::default()
-      }),
+      })),
       resolve_to_context: false,
       dependency_type: DependencyType::Unknown,
       dependency_category: DependencyCategory::Unknown,
     });
     let rspack_module_resolve = factory.get(ResolveOptionsWithDependencyType {
-      resolve_options: Some(Resolve {
+      resolve_options: Some(Box::new(Resolve {
         // TODO: add dependencyType.
         condition_names: Some(vec!["sass".to_owned(), "style".to_owned()]),
         main_fields: Some(vec![
@@ -175,13 +175,13 @@ impl RspackImporter {
         ]),
         prefer_relative: Some(true),
         ..Default::default()
-      }),
+      })),
       resolve_to_context: false,
       dependency_type: DependencyType::Unknown,
       dependency_category: DependencyCategory::Unknown,
     });
     let rspack_import_resolve = factory.get(ResolveOptionsWithDependencyType {
-      resolve_options: Some(Resolve {
+      resolve_options: Some(Box::new(Resolve {
         condition_names: Some(vec!["sass".to_owned(), "style".to_owned()]),
         main_fields: Some(vec![
           "sass".to_owned(),
@@ -203,7 +203,7 @@ impl RspackImporter {
         ]),
         prefer_relative: Some(true),
         ..Default::default()
-      }),
+      })),
       resolve_to_context: false,
       dependency_type: DependencyType::Unknown,
       dependency_category: DependencyCategory::Unknown,
@@ -248,7 +248,7 @@ fn get_possible_requests(
   };
 
   let dirname = request_path.parent();
-  let dirname = if matches!(dirname, None)
+  let dirname = if dirname.is_none()
     || matches!(
       dirname,
       Some(p) if p == Path::new("") || p == Path::new(".")
@@ -369,6 +369,8 @@ impl Logger for RspackLogger {
 pub struct SassLoader {
   options: SassLoaderOptions,
 }
+
+pub const SASS_LOADER_IDENTIFIER: &str = "builtin:sass-loader";
 
 impl SassLoader {
   pub fn new(options: SassLoaderOptions) -> Self {
@@ -504,9 +506,9 @@ impl Loader<LoaderRunnerContext> for SassLoader {
 
     loader_context.content = Some(result.css.into());
     loader_context.source_map = source_map;
-    loader_context
-      .diagnostic
-      .append(&mut rx.into_iter().flatten().collect_vec());
+    rx.into_iter().flatten().for_each(|d| {
+      loader_context.emit_diagnostic(d);
+    });
     Ok(())
   }
 }
@@ -520,7 +522,8 @@ impl Identifiable for SassLoader {
 fn sass_exception_to_error(e: Box<Exception>) -> Error {
   if let Some(span) = e.span()
     && let Some(message) = e.sass_message()
-    && let Some(e) = make_traceable_error("Sass Error", message, span) {
+    && let Some(e) = make_traceable_error("Sass Error", message, span)
+  {
     Error::TraceableError(e.with_kind(DiagnosticKind::Scss))
   } else {
     internal_error!(e.message().to_string())
@@ -536,7 +539,9 @@ fn sass_log_to_diagnostics(
     Severity::Error => "Sass Error",
     Severity::Warn => "Sass Warning",
   };
-  if let Some(span) = span && let Some(e) = make_traceable_error(title, message, span) {
+  if let Some(span) = span
+    && let Some(e) = make_traceable_error(title, message, span)
+  {
     Error::TraceableError(e.with_kind(DiagnosticKind::Scss).with_severity(severity)).into()
   } else {
     let f = match severity {

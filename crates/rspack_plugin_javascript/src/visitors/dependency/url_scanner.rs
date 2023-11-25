@@ -1,4 +1,4 @@
-use rspack_core::ModuleDependency;
+use rspack_core::BoxDependency;
 use swc_core::ecma::{
   ast::NewExpr,
   visit::{noop_visit_type, Visit, VisitWith},
@@ -7,14 +7,14 @@ use swc_core::ecma::{
 use crate::dependency::URLDependency;
 
 pub struct UrlScanner<'a> {
-  pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+  pub dependencies: &'a mut Vec<BoxDependency>,
   worker_syntax_list: &'a rspack_core::needs_refactor::WorkerSyntaxList,
 }
 
 // new URL("./foo.png", import.meta.url);
 impl<'a> UrlScanner<'a> {
   pub fn new(
-    dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+    dependencies: &'a mut Vec<BoxDependency>,
     worker_syntax_list: &'a rspack_core::needs_refactor::WorkerSyntaxList,
   ) -> Self {
     Self {
@@ -29,7 +29,9 @@ impl Visit for UrlScanner<'_> {
 
   fn visit_new_expr(&mut self, new_expr: &NewExpr) {
     // TODO: https://github.com/web-infra-dev/rspack/discussions/3619
-    if self.worker_syntax_list.match_new_worker(new_expr) && let Some(args) = &new_expr.args {
+    if self.worker_syntax_list.match_new_worker(new_expr)
+      && let Some(args) = &new_expr.args
+    {
       for arg in args.iter().skip(1) {
         arg.visit_with(self);
       }

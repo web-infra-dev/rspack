@@ -1,30 +1,20 @@
-use rspack_core::{to_identifier, Compilation, ExternalModule, LibraryName, LibraryOptions};
-use rspack_error::Result;
+use rspack_core::{
+  to_identifier, ChunkUkey, Compilation, ExternalModule, ExternalRequest, LibraryOptions,
+};
+use rspack_error::{internal_error, Result};
 use rspack_identifier::Identifiable;
 
-pub fn external_dep_array(modules: &[&ExternalModule]) -> String {
-  let value = modules
-    .iter()
-    .map(|m| serde_json::to_string(&m.request.as_str()).expect("invalid json to_string"))
-    .collect::<Vec<_>>()
-    .join(", ");
-  format!("[{value}]")
-}
-
-pub fn external_system_dep_array(modules: &[&ExternalModule]) -> String {
+pub fn externals_dep_array(modules: &[&ExternalModule]) -> Result<String> {
   let value = modules
     .iter()
     .map(|m| {
-      m.request
-        .0
-        .iter()
-        .map(|r| format!("\"{r}\""))
-        .collect::<Vec<_>>()
-        .join(",")
+      Ok(match &m.request {
+        ExternalRequest::Single(s) => Some(s.primary()),
+        ExternalRequest::Map(map) => map.get("amd").map(|r| r.primary()),
+      })
     })
-    .collect::<Vec<_>>()
-    .join(", ");
-  format!("[{value}]")
+    .collect::<Result<Vec<_>>>()?;
+  serde_json::to_string(&value).map_err(|e| internal_error!(e.to_string()))
 }
 
 fn inner_external_arguments(modules: &[&ExternalModule], compilation: &Compilation) -> Vec<String> {
@@ -56,26 +46,25 @@ pub fn external_module_names(
   inner_external_arguments(modules, compilation)
 }
 
-pub fn normalize_name(o: &Option<LibraryOptions>) -> Result<Option<String>> {
-  if let Some(LibraryOptions {
-    name: Some(LibraryName {
-      root: Some(root), ..
-    }),
-    ..
-  }) = o
+pub fn get_options_for_chunk<'a>(
+  compilation: &'a Compilation,
+  chunk_ukey: &'a ChunkUkey,
+) -> Option<&'a LibraryOptions> {
+  if compilation
+    .chunk_graph
+    .get_number_of_entry_modules(chunk_ukey)
+    == 0
   {
-    // TODO error "AMD library name must be a simple string or unset."
-    if let Some(name) = root.get(0) {
-      return Ok(Some(name.to_string()));
-    }
+    return None;
   }
-  Ok(None)
+  let chunk = compilation
+    .chunk_by_ukey
+    .get(chunk_ukey)
+    .expect("chunk not found");
+  chunk
+    .get_entry_options(&compilation.chunk_group_by_ukey)
+    .and_then(|options| options.library.as_ref())
+    .or(compilation.options.output.library.as_ref())
 }
 
-pub fn property_access(o: &Vec<String>) -> String {
-  let mut str = String::default();
-  for property in o {
-    str.push_str(format!(r#"["{property}"]"#).as_str());
-  }
-  str
-}
+pub const COMMON_LIBRARY_NAME_MESSAGE: &str = "Common configuration options that specific library names are 'output.library[.name]', 'entry.xyz.library[.name]', 'ModuleFederationPlugin.name' and 'ModuleFederationPlugin.library[.name]'.";

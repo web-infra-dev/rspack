@@ -1,4 +1,5 @@
-use std::{fmt::Debug, sync::Arc};
+use std::collections::hash_map::IntoValues;
+use std::{cmp::Ordering, fmt::Debug, sync::Arc};
 
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -6,7 +7,7 @@ pub type RuntimeSpec = HashSet<Arc<str>>;
 pub type RuntimeKey = String;
 
 #[derive(Default, Clone, Copy, Debug)]
-enum RuntimeMode {
+pub enum RuntimeMode {
   #[default]
   Empty = 0,
   SingleEntry = 1,
@@ -24,22 +25,37 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
   a.sort_unstable();
   b.sort_unstable();
 
-  a.into_iter().zip(b.into_iter()).all(|(a, b)| a == b)
+  a.into_iter().zip(b).all(|(a, b)| a == b)
 }
 
 pub fn get_runtime_key(runtime: RuntimeSpec) -> String {
-  let mut runtime: Vec<Arc<str>> = Vec::from_iter(runtime.into_iter());
+  let mut runtime: Vec<Arc<str>> = Vec::from_iter(runtime);
   runtime.sort_unstable();
   runtime.join("\n")
 }
 
+pub fn compare_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> Ordering {
+  if a == b {
+    return Ordering::Equal;
+  }
+  let a_key = get_runtime_key(a.clone());
+  let b_key = get_runtime_key(b.clone());
+  if a_key < b_key {
+    return Ordering::Less;
+  }
+  if a_key > b_key {
+    return Ordering::Greater;
+  }
+  Ordering::Equal
+}
+
 #[derive(Default, Clone, Debug)]
 pub struct RuntimeSpecMap<T> {
-  mode: RuntimeMode,
-  map: HashMap<RuntimeKey, T>,
+  pub mode: RuntimeMode,
+  pub map: HashMap<RuntimeKey, T>,
 
-  single_runtime: Option<RuntimeSpec>,
-  single_value: Option<T>,
+  pub single_runtime: Option<RuntimeSpec>,
+  pub single_value: Option<T>,
 }
 
 impl<T> RuntimeSpecMap<T> {
@@ -57,7 +73,9 @@ impl<T> RuntimeSpecMap<T> {
     match self.mode {
       RuntimeMode::Empty => None,
       RuntimeMode::SingleEntry => {
-        if let Some(single_runtime) = self.single_runtime.as_ref() && is_runtime_equal(single_runtime, runtime) {
+        if let Some(single_runtime) = self.single_runtime.as_ref()
+          && is_runtime_equal(single_runtime, runtime)
+        {
           self.single_value.as_ref()
         } else {
           None
@@ -71,7 +89,9 @@ impl<T> RuntimeSpecMap<T> {
     match self.mode {
       RuntimeMode::Empty => None,
       RuntimeMode::SingleEntry => {
-        if let Some(single_runtime) = self.single_runtime.as_ref() && is_runtime_equal(single_runtime, runtime) {
+        if let Some(single_runtime) = self.single_runtime.as_ref()
+          && is_runtime_equal(single_runtime, runtime)
+        {
           self.single_value.as_mut()
         } else {
           None
@@ -89,15 +109,25 @@ impl<T> RuntimeSpecMap<T> {
         self.single_value = Some(value);
       }
       RuntimeMode::SingleEntry => {
-        if let Some(single_runtime) = self.single_runtime.as_ref() && is_runtime_equal(single_runtime, &runtime) {
+        if let Some(single_runtime) = self.single_runtime.as_ref()
+          && is_runtime_equal(single_runtime, &runtime)
+        {
           self.single_value = Some(value);
         } else {
           self.mode = RuntimeMode::Map;
 
-          let single_runtime = self.single_runtime.take().expect("Expected single runtime exists");
-          let single_value = self.single_value.take().expect("Expected single value exists");
+          let single_runtime = self
+            .single_runtime
+            .take()
+            .expect("Expected single runtime exists");
+          let single_value = self
+            .single_value
+            .take()
+            .expect("Expected single value exists");
 
-          self.map.insert(get_runtime_key(single_runtime), single_value);
+          self
+            .map
+            .insert(get_runtime_key(single_runtime), single_value);
           self.map.insert(get_runtime_key(runtime), value);
         }
       }
@@ -135,6 +165,10 @@ impl RuntimeSpecSet {
 
   pub fn values(&self) -> Vec<&RuntimeSpec> {
     self.map.values().collect()
+  }
+
+  pub fn into_values(self) -> IntoValues<String, RuntimeSpec> {
+    self.map.into_values()
   }
 
   pub fn len(&self) -> usize {

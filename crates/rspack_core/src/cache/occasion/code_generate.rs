@@ -1,8 +1,10 @@
 use rspack_error::Result;
+use rspack_identifier::Identifier;
 
-use crate::{cache::storage, BoxModule, CodeGenerationResult, NormalModuleAstOrSource};
+use crate::{cache::storage, BoxModule, CodeGenerationResult, Compilation, NormalModuleSource};
+use crate::{RuntimeSpec, RuntimeSpecSet};
 
-type Storage = dyn storage::Storage<CodeGenerationResult>;
+type Storage = dyn storage::Storage<Vec<(CodeGenerationResult, RuntimeSpec)>>;
 
 #[derive(Debug)]
 pub struct CodeGenerateOccasion {
@@ -18,37 +20,47 @@ impl CodeGenerateOccasion {
   pub fn use_cache<'a, G>(
     &self,
     module: &'a BoxModule,
+    runtimes: RuntimeSpecSet,
+    compilation: &Compilation,
     generator: G,
-  ) -> Result<CodeGenerationResult>
+  ) -> Result<(Vec<(CodeGenerationResult, RuntimeSpec)>, bool)>
   where
-    G: Fn(&'a BoxModule) -> Result<CodeGenerationResult>,
+    G: Fn(&'a BoxModule, RuntimeSpecSet) -> Result<Vec<(CodeGenerationResult, RuntimeSpec)>>,
   {
     let storage = match &self.storage {
       Some(s) => s,
       // no cache return directly
-      None => return generator(module),
+      None => return Ok((generator(module, runtimes)?, false)),
     };
 
-    let mut need_cache = false;
-    let id = module.identifier();
-    if let Some(module) = module.as_normal_module() {
+    let mut cache_id = None;
+
+    if let Some(normal_module) = module.as_normal_module() {
       // only cache normal module
-      // TODO cache all module type
-      if matches!(module.ast_or_source(), NormalModuleAstOrSource::Unbuild) {
-        if let Some(data) = storage.get(&id) {
-          return Ok(data);
-        }
+      // TODO: cache all module type
+      let id = Identifier::from(compilation.chunk_graph.get_module_graph_hash(
+        module,
+        &compilation.module_graph,
+        true,
+      ));
+
+      // currently no need to separate module hash by runtime
+      if let Some(data) = storage.get(&id) {
+        return Ok((data, true));
+      }
+
+      if matches!(normal_module.source(), NormalModuleSource::Unbuild) {
         // unbuild and no cache is unexpected
         panic!("unexpected unbuild module");
       }
-      need_cache = true;
+      cache_id = Some(id);
     }
 
     // run generator and save to cache
-    let data = generator(module)?;
-    if need_cache {
+    let data = generator(module, runtimes)?;
+    if let Some(id) = cache_id {
       storage.set(id, data.clone());
     }
-    Ok(data)
+    Ok((data, false))
   }
 }

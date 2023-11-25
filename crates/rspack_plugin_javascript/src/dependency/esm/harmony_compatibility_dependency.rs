@@ -1,11 +1,11 @@
 use rspack_core::{
-  DependencyTemplate, InitFragment, InitFragmentStage, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource,
+  DependencyTemplate, InitFragmentKey, InitFragmentStage, NormalInitFragment, RuntimeGlobals,
+  TemplateContext, TemplateReplaceSource,
 };
 
 // Mark module `__esModule`.
 // Add `__webpack_require__.r(__webpack_exports__);`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HarmonyCompatibilityDependency;
 
 impl DependencyTemplate for HarmonyCompatibilityDependency {
@@ -21,27 +21,32 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
       module,
       ..
     } = code_generatable_context;
+    let mgm = compilation
+      .module_graph
+      .module_graph_module_by_identifier(&module.identifier())
+      .expect("should have mgm");
     // TODO __esModule is used
     runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
     runtime_requirements.insert(RuntimeGlobals::EXPORTS);
-    init_fragments.push(InitFragment::new(
+    init_fragments.push(Box::new(NormalInitFragment::new(
       format!(
-        "'use strict';\n{}({});\n", // todo remove strict
+        "{}({});\n",
         RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
-        compilation
-          .module_graph
-          .module_graph_module_by_identifier(&module.identifier())
-          .expect("should have mgm")
-          .get_exports_argument()
+        mgm.get_exports_argument()
       ),
-      InitFragmentStage::STAGE_HARMONY_EXPORTS,
+      InitFragmentStage::StageHarmonyExports,
+      0,
+      InitFragmentKey::HarmonyCompatibility,
       None,
-    ));
+    )));
 
-    if compilation.module_graph.is_async(&module.identifier()) {
+    if matches!(
+      compilation.module_graph.is_async(&module.identifier()),
+      Some(true)
+    ) {
       runtime_requirements.insert(RuntimeGlobals::MODULE);
       runtime_requirements.insert(RuntimeGlobals::ASYNC_MODULE);
-      init_fragments.push(InitFragment::new(
+      init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
           "{}({}, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) {{ try {{\n",
           RuntimeGlobals::ASYNC_MODULE,
@@ -51,9 +56,11 @@ impl DependencyTemplate for HarmonyCompatibilityDependency {
             .expect("should have mgm")
             .get_module_argument()
         ),
-        InitFragmentStage::STAGE_ASYNC_BOUNDARY,
-        Some("\n__webpack_async_result__();\n} catch(e) { __webpack_async_result__(e); } });".to_string()),
-      ));
+        InitFragmentStage::StageAsyncBoundary,
+        0,
+        InitFragmentKey::unique(),
+        Some(format!("\n__webpack_async_result__();\n}} catch(e) {{ __webpack_async_result__(e); }} }}{});", if matches!(mgm.build_meta.as_ref().map(|meta| meta.has_top_level_await), Some(true)) { ", 1" } else { "" })),
+      )));
     }
   }
 }
