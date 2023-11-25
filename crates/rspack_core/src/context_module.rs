@@ -74,6 +74,9 @@ impl ContextNameSpaceObject {
 }
 
 pub fn context_reg_exp(expr: &str, flags: &str) -> Option<RspackRegex> {
+  if expr.is_empty() {
+    return None;
+  }
   let regexp = RspackRegex::with_flags(expr, flags).expect("reg failed");
   clean_regexp_in_context_module(regexp)
 }

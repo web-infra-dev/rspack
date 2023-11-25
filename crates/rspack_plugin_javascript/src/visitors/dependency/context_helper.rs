@@ -179,7 +179,7 @@ fn scan_context_module_tagged_tpl(tpl: &TaggedTpl) -> (String, String) {
     {
       scan_context_module_tpl(tpl.tpl.as_ref(), TemplateStringKind::Raw)
     }
-    _ => scan_context_module_tpl(tpl.tpl.as_ref(), TemplateStringKind::Cooked),
+    _ => (String::from("."), String::new()),
   }
 }
 
