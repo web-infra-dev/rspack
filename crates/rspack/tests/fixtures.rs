@@ -3,7 +3,9 @@ use std::sync::atomic::Ordering;
 
 use cargo_rst::git_diff;
 use rspack_core::{BoxPlugin, CompilerOptions, TreeShaking, UsedExportsOption, IS_NEW_TREESHAKING};
-use rspack_plugin_javascript::{FlagDependencyExportsPlugin, FlagDependencyUsagePlugin};
+use rspack_plugin_javascript::{
+  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, SideEffectsFlagPlugin,
+};
 use rspack_testing::test_fixture;
 use testing_macros::fixture;
 
@@ -38,9 +40,9 @@ fn tree_shaking(fixture_path: PathBuf) {
         options.optimization.used_exports = UsedExportsOption::True;
         options.builtins.tree_shaking = TreeShaking::False;
 
-        // if options.optimization.side_effects.is_enable() {
-        //   plugins.push(Box::<SideEffectsFlagPlugin>::default());
-        // }
+        if options.optimization.side_effects.is_enable() {
+          plugins.push(Box::<SideEffectsFlagPlugin>::default());
+        }
         plugins.push(Box::<FlagDependencyExportsPlugin>::default());
         plugins.push(Box::<FlagDependencyUsagePlugin>::default());
       },

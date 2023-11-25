@@ -1,0 +1,57 @@
+.shortcuts {
+  display: grid;
+  grid-template-columns: 33.33% 33.33% 33.33%;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  box-sizing: border-box;
+  cursor: pointer;
+
+  &:hover {
+    .icon {
+      background-color: var(--color-primary-light-1);
+
+      svg {
+        color: rgb(var(--primary-6));
+      }
+    }
+
+    .title {
+      color: rgb(var(--primary-6));
+    }
+  }
+}
+
+.icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background-color: var(--color-fill-2);
+  margin-bottom: 4px;
+
+  svg {
+    font-size: 18px;
+  }
+}
+
+.title {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--color-text-1);
+}
+
+.recent {
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--color-text-1);
+  margin-bottom: 16px;
+}

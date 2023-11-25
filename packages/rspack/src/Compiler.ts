@@ -122,6 +122,7 @@ class Compiler {
 	options: RspackOptionsNormalized;
 	#disabledHooks: string[];
 	parentCompilation?: Compilation;
+
 	constructor(context: string, options: RspackOptionsNormalized) {
 		this.outputFileSystem = fs;
 		this.options = options;
@@ -194,6 +195,7 @@ class Compiler {
 			this.options.output.hashFunction
 		);
 	}
+
 	/**
 	 * Lazy initialize instance so it could access the changed options
 	 */
@@ -424,11 +426,11 @@ class Compiler {
 			}
 		}
 
-		// compilation.hooks.childCompiler.call(
-		// 	childCompiler,
-		// 	compilerName,
-		// 	compilerIndex
-		// );
+		compilation.hooks.childCompiler.call(
+			childCompiler,
+			compilerName,
+			compilerIndex
+		);
 
 		return childCompiler;
 	}
@@ -650,7 +652,7 @@ class Compiler {
 			stillValidModule: this.compilation.hooks.stillValidModule,
 			buildModule: this.compilation.hooks.buildModule,
 			thisCompilation: undefined,
-			optimizeChunkModules: undefined,
+			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
 			contextModuleBeforeResolve: undefined,
 			normalModuleFactoryResolveForScheme: undefined,
 			executeModule: undefined

@@ -1,9 +1,9 @@
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  property_access, AsyncDependenciesBlockIdentifier, Compilation, DependencyId, ExportsType,
-  FakeNamespaceObjectMode, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph,
-  ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext,
+  get_import_var, property_access, AsyncDependenciesBlockIdentifier, Compilation, DependencyId,
+  ExportsType, FakeNamespaceObjectMode, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext,
 };
 
 pub fn export_from_import(
@@ -166,9 +166,7 @@ pub fn import_statement(
 
   runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
-  let import_var = compilation
-    .module_graph
-    .get_import_var(&module.identifier(), request);
+  let import_var = get_import_var(&compilation.module_graph, *id);
 
   let opt_declaration = if update { "" } else { "var " };
 
@@ -247,7 +245,12 @@ pub fn module_namespace_promise(
       }
       runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
       if matches!(
-        compilation.module_graph.is_async(&module.identifier()),
+        compilation.module_graph.is_async(
+          compilation
+            .module_graph
+            .module_identifier_by_dependency_id(dep_id)
+            .expect("should have module")
+        ),
         Some(true)
       ) {
         if let Some(header) = header {

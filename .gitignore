@@ -222,4 +222,5 @@ justfile
 /webpack-examples/**/dist
 
 smoke-example
+diff_output
 

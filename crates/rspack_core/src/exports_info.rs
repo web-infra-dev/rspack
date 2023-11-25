@@ -682,7 +682,7 @@ impl ExportInfoId {
   pub fn set_used_conditionally(
     &self,
     mg: &mut ModuleGraph,
-    condition: UsageFilterFnTy,
+    condition: UsageFilterFnTy<UsageState>,
     new_value: UsageState,
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
@@ -821,54 +821,18 @@ struct UnResolvedExportInfoTarget {
   export: Option<Vec<JsWord>>,
 }
 
+#[derive(Debug)]
 pub enum ResolvedExportInfoTargetWithCircular {
   Target(ResolvedExportInfoTarget),
   Circular,
 }
 
-pub type UpdateOriginalFunctionTy = Box<dyn UpdateOriginalFunction>;
-
-pub trait UpdateOriginalFunction:
-  Fn(&ResolvedExportInfoTarget, &mut ModuleGraph) -> Option<ModuleGraphConnection>
-{
-  fn clone_boxed(&self) -> Box<dyn UpdateOriginalFunction>;
-}
-
-impl<T> UpdateOriginalFunction for T
-where
-  T: 'static
-    + Fn(&ResolvedExportInfoTarget, &mut ModuleGraph) -> Option<ModuleGraphConnection>
-    + Clone,
-{
-  fn clone_boxed(&self) -> Box<dyn UpdateOriginalFunction> {
-    Box::new(self.clone())
-  }
-}
+pub type UpdateOriginalFunctionTy =
+  Arc<dyn Fn(&ResolvedExportInfoTarget, &mut ModuleGraph) -> Option<ModuleGraphConnection>>;
 
 pub type ResolveFilterFnTy = Arc<dyn Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool>;
 
-pub type UsageFilterFnTy = Box<dyn FilterFn<UsageState>>;
-
-pub trait FilterFn<T>: Fn(&T) -> bool + Send + Sync {
-  fn clone_boxed(&self) -> Box<dyn FilterFn<T>>;
-}
-
-/// Copy from https://github.com/rust-lang/rust/issues/24000#issuecomment-479425396
-impl<T, F> FilterFn<F> for T
-where
-  T: 'static + Fn(&F) -> bool + Send + Sync + Clone,
-  F: 'static,
-{
-  fn clone_boxed(&self) -> Box<dyn FilterFn<F>> {
-    Box::new(self.clone())
-  }
-}
-
-impl<T: 'static> Clone for Box<dyn FilterFn<T>> {
-  fn clone(&self) -> Self {
-    self.clone_boxed()
-  }
-}
+pub type UsageFilterFnTy<T> = Box<dyn Fn(&T) -> bool>;
 
 impl ExportInfo {
   // TODO: remove usage_state after new tree shaking is landing
@@ -1046,93 +1010,95 @@ impl ExportInfo {
     }
   }
 
+  #[allow(clippy::unwrap_in_result)]
+  fn resolve_target(
+    input_target: Option<UnResolvedExportInfoTarget>,
+    already_visited: &mut HashSet<ExportInfoId>,
+    resolve_filter: ResolveFilterFnTy,
+    mg: &mut ModuleGraph,
+  ) -> Option<ResolvedExportInfoTargetWithCircular> {
+    if let Some(input_target) = input_target {
+      let mut target = ResolvedExportInfoTarget {
+        module: input_target
+          .connection
+          .as_ref()
+          .expect("should have connection")
+          .module_identifier,
+        export: input_target.export,
+        connection: input_target.connection.expect("should have connection"),
+      };
+      if target.export.is_none() {
+        return Some(ResolvedExportInfoTargetWithCircular::Target(target));
+      }
+      if !resolve_filter(&target, mg) {
+        return Some(ResolvedExportInfoTargetWithCircular::Target(target));
+      }
+      loop {
+        let name = if let Some(export) = target.export.as_ref().and_then(|exports| exports.first())
+        {
+          export
+        } else {
+          return Some(ResolvedExportInfoTargetWithCircular::Target(target));
+        };
+
+        let export_info_id = {
+          let id = mg
+            .module_graph_module_by_identifier(&target.module)
+            .expect("should have mgm")
+            .exports;
+          id.get_export_info(name, mg)
+        };
+        if already_visited.contains(&export_info_id) {
+          return Some(ResolvedExportInfoTargetWithCircular::Circular);
+        }
+        let mut export_info = mg.get_export_info_by_id(&export_info_id).clone();
+        // dbg!(&export_info);
+
+        let export_info_id = export_info.id;
+        let new_target = export_info._get_target(mg, resolve_filter.clone(), already_visited);
+        _ = std::mem::replace(mg.get_export_info_mut_by_id(&export_info_id), export_info);
+
+        match new_target {
+          Some(ResolvedExportInfoTargetWithCircular::Circular) => {
+            return Some(ResolvedExportInfoTargetWithCircular::Circular);
+          }
+          None => return Some(ResolvedExportInfoTargetWithCircular::Target(target)),
+          Some(ResolvedExportInfoTargetWithCircular::Target(t)) => {
+            // SAFETY: if the target.exports is None, program will not reach here
+            let target_exports = target.export.as_ref().expect("should have exports");
+            if target_exports.len() == 1 {
+              target = t;
+              if target.export.is_none() {
+                return Some(ResolvedExportInfoTargetWithCircular::Target(target));
+              }
+            } else {
+              target.module = t.module;
+              target.connection = t.connection;
+              target.export = if let Some(mut exports) = t.export {
+                exports.extend_from_slice(&target_exports[1..]);
+                Some(exports)
+              } else {
+                Some(target_exports[1..].to_vec())
+              }
+            }
+          }
+        }
+        if !resolve_filter(&target, mg) {
+          return Some(ResolvedExportInfoTargetWithCircular::Target(target));
+        }
+        already_visited.insert(export_info_id);
+      }
+    } else {
+      None
+    }
+  }
+
   pub fn _get_target(
     &mut self,
     mg: &mut ModuleGraph,
     resolve_filter: ResolveFilterFnTy,
     already_visited: &mut HashSet<ExportInfoId>,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
-    fn resolve_target(
-      input_target: Option<UnResolvedExportInfoTarget>,
-      already_visited: &mut HashSet<ExportInfoId>,
-      resolve_filter: ResolveFilterFnTy,
-      mg: &mut ModuleGraph,
-    ) -> Option<ResolvedExportInfoTargetWithCircular> {
-      if let Some(input_target) = input_target {
-        let mut target = ResolvedExportInfoTarget {
-          module: input_target
-            .connection
-            .as_ref()
-            .expect("should have connection")
-            .module_identifier,
-          export: input_target.export,
-          connection: input_target.connection.expect("should have connection"),
-        };
-        if target.export.is_none() {
-          return Some(ResolvedExportInfoTargetWithCircular::Target(target));
-        }
-        if !resolve_filter(&target, mg) {
-          return Some(ResolvedExportInfoTargetWithCircular::Target(target));
-        }
-        loop {
-          let name =
-            if let Some(export) = target.export.as_ref().and_then(|exports| exports.first()) {
-              export
-            } else {
-              return Some(ResolvedExportInfoTargetWithCircular::Target(target));
-            };
-
-          let export_info_id = {
-            let id = mg
-              .module_graph_module_by_identifier(&target.module)
-              .expect("should have mgm")
-              .exports;
-            id.get_export_info(name, mg)
-          };
-          if already_visited.contains(&export_info_id) {
-            return Some(ResolvedExportInfoTargetWithCircular::Circular);
-          }
-          let mut export_info = mg.get_export_info_by_id(&export_info_id).clone();
-
-          let export_info_id = export_info.id;
-          let new_target = export_info._get_target(mg, resolve_filter.clone(), already_visited);
-          _ = std::mem::replace(mg.get_export_info_mut_by_id(&export_info_id), export_info);
-
-          match new_target {
-            Some(ResolvedExportInfoTargetWithCircular::Circular) => {
-              return Some(ResolvedExportInfoTargetWithCircular::Circular);
-            }
-            None => return None,
-            Some(ResolvedExportInfoTargetWithCircular::Target(t)) => {
-              // SAFETY: if the target.exports is None, program will not reach here
-              let target_exports = target.export.as_ref().expect("should have exports");
-              if target_exports.len() == 1 {
-                target = t;
-                if target.export.is_none() {
-                  return Some(ResolvedExportInfoTargetWithCircular::Target(target));
-                }
-              } else {
-                target.module = t.module;
-                target.connection = t.connection;
-                target.export = if let Some(mut exports) = t.export {
-                  exports.extend_from_slice(&target_exports[1..]);
-                  Some(exports)
-                } else {
-                  Some(target_exports[1..].to_vec())
-                }
-              }
-            }
-          }
-          if !resolve_filter(&target, mg) {
-            return Some(ResolvedExportInfoTargetWithCircular::Target(target));
-          }
-          already_visited.insert(export_info_id);
-        }
-      } else {
-        None
-      }
-    }
-
     if self.target.is_empty() {
       return None;
     }
@@ -1149,7 +1115,7 @@ impl ExportInfo {
         export: item.exports.clone(),
       })
       .collect::<Vec<_>>();
-    let target = resolve_target(
+    let target = Self::resolve_target(
       values.first().cloned(),
       already_visited,
       resolve_filter.clone(),
@@ -1164,7 +1130,7 @@ impl ExportInfo {
       Some(ResolvedExportInfoTargetWithCircular::Target(target)) => {
         for val in values.into_iter().skip(1) {
           let resolved_target =
-            resolve_target(Some(val), already_visited, resolve_filter.clone(), mg);
+            Self::resolve_target(Some(val), already_visited, resolve_filter.clone(), mg);
           match resolved_target {
             Some(ResolvedExportInfoTargetWithCircular::Circular) => {
               return Some(ResolvedExportInfoTargetWithCircular::Circular);
@@ -1306,7 +1272,7 @@ pub fn get_dependency_used_by_exports_condition(
   match used_by_exports {
     Some(UsedByExports::Set(used_by_exports)) => {
       let used_by_exports = Arc::new(used_by_exports.clone());
-      Some(DependencyCondition::Fn(Box::new(
+      Some(DependencyCondition::Fn(Arc::new(
         move |_, runtime, module_graph: &ModuleGraph| {
           let module_identifier = module_graph
             .parent_module_by_dependency_id(&dependency_id)
@@ -1462,17 +1428,24 @@ pub fn process_export_info(
 }
 
 #[macro_export]
-macro_rules! debug_exports_info {
+macro_rules! debug_all_exports_info {
   ($mg:expr) => {
     for mgm in $mg.module_graph_modules().values() {
-      dbg!(&mgm.module_identifier);
-      let exports_info_id = mgm.exports;
-      let exports_info = $mg.get_exports_info_by_id(&exports_info_id);
-      dbg!(&exports_info);
-      for id in exports_info.exports.values() {
-        let export_info = $mg.get_export_info_by_id(id);
-        dbg!(&export_info);
-      }
+      $crate::debug_exports_info!(mgm, $mg);
+    }
+  };
+}
+
+#[macro_export]
+macro_rules! debug_exports_info {
+  ($mgm:expr, $mg:expr) => {
+    dbg!(&$mgm.module_identifier);
+    let exports_info_id = $mgm.exports;
+    let exports_info = $mg.get_exports_info_by_id(&exports_info_id);
+    dbg!(&exports_info);
+    for id in exports_info.exports.values() {
+      let export_info = $mg.get_export_info_by_id(id);
+      dbg!(&export_info);
     }
   };
 }

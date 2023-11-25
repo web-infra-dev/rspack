@@ -13,7 +13,11 @@ use napi::{
 };
 use napi_derive::napi;
 use rspack_core::{
-  mf::ContainerPlugin, BoxPlugin, Define, DefinePlugin, PluginExt, Provide, ProvidePlugin,
+  mf::{
+    container_plugin::ContainerPlugin, container_reference_plugin::ContainerReferencePlugin,
+    module_federation_runtime_plugin::ModuleFederationRuntimePlugin,
+  },
+  BoxPlugin, Define, DefinePlugin, PluginExt, Provide, ProvidePlugin,
 };
 use rspack_error::Result;
 use rspack_napi_shared::NapiResultExt;
@@ -38,6 +42,7 @@ use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 use rspack_plugin_wasm::enable_wasm_loading_plugin;
 use rspack_plugin_web_worker_template::web_worker_template_plugin;
 
+use self::raw_mf::RawContainerReferencePluginOptions;
 pub use self::{
   raw_banner::RawBannerPluginOptions, raw_copy::RawCopyRspackPluginOptions,
   raw_html::RawHtmlRspackPluginOptions, raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
@@ -46,7 +51,7 @@ pub use self::{
 };
 use crate::{
   RawEntryPluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
-  RawHttpExternalsRspackPluginOptions, RawOptionsApply,
+  RawHttpExternalsRspackPluginOptions, RawOptionsApply, RawSplitChunksOptions,
 };
 
 #[napi(string_enum)]
@@ -71,7 +76,11 @@ pub enum BuiltinPluginName {
   LimitChunkCountPlugin,
   WebWorkerTemplatePlugin,
   MergeDuplicateChunksPlugin,
+  SplitChunksPlugin,
+  OldSplitChunksPlugin,
   ContainerPlugin,
+  ContainerReferencePlugin,
+  ModuleFederationRuntimePlugin,
 
   // rspack specific plugins
   HttpExternalsRspackPlugin,
@@ -178,11 +187,32 @@ impl RawOptionsApply for BuiltinPlugin {
       BuiltinPluginName::MergeDuplicateChunksPlugin => {
         plugins.push(MergeDuplicateChunksPlugin.boxed());
       }
+      BuiltinPluginName::SplitChunksPlugin => {
+        use rspack_plugin_split_chunks_new::SplitChunksPlugin;
+        let options = downcast_into::<RawSplitChunksOptions>(self.options)?.into();
+        plugins.push(SplitChunksPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::OldSplitChunksPlugin => {
+        use rspack_plugin_split_chunks::SplitChunksPlugin;
+        let options = downcast_into::<RawSplitChunksOptions>(self.options)?.into();
+        plugins.push(SplitChunksPlugin::new(options).boxed());
+      }
       BuiltinPluginName::ContainerPlugin => {
         plugins.push(
           ContainerPlugin::new(downcast_into::<RawContainerPluginOptions>(self.options)?.into())
             .boxed(),
         );
+      }
+      BuiltinPluginName::ContainerReferencePlugin => {
+        plugins.push(
+          ContainerReferencePlugin::new(
+            downcast_into::<RawContainerReferencePluginOptions>(self.options)?.into(),
+          )
+          .boxed(),
+        );
+      }
+      BuiltinPluginName::ModuleFederationRuntimePlugin => {
+        plugins.push(ModuleFederationRuntimePlugin::default().boxed())
       }
 
       // rspack specific plugins

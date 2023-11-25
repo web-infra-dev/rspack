@@ -124,6 +124,9 @@ const libraryOptions = z.strictObject({
 });
 export type LibraryOptions = z.infer<typeof libraryOptions>;
 
+const library = libraryName.or(libraryOptions).optional();
+export type Library = z.infer<typeof library>;
+
 const filenameTemplate = z.string();
 export type FilenameTemplate = z.infer<typeof filenameTemplate>;
 
@@ -215,6 +218,11 @@ export type Clean = z.infer<typeof clean>;
 const outputModule = z.boolean();
 export type OutputModule = z.infer<typeof outputModule>;
 
+const strictModuleExceptionHandling = z.boolean();
+export type StrictModuleExceptionHandling = z.infer<
+	typeof strictModuleExceptionHandling
+>;
+
 const strictModuleErrorHandling = z.boolean();
 export type StrictModuleErrorHandling = z.infer<
 	typeof strictModuleErrorHandling
@@ -277,13 +285,14 @@ const output = z.strictObject({
 	uniqueName: uniqueName.optional(),
 	chunkLoadingGlobal: chunkLoadingGlobal.optional(),
 	enabledLibraryTypes: enabledLibraryTypes.optional(),
-	library: libraryName.or(libraryOptions).optional(),
+	library: library.optional(),
 	libraryExport: libraryExport.optional(),
 	libraryTarget: libraryType.optional(),
 	umdNamedDefine: umdNamedDefine.optional(),
 	amdContainer: amdContainer.optional(),
 	auxiliaryComment: auxiliaryComment.optional(),
 	module: outputModule.optional(),
+	strictModuleExceptionHandling: strictModuleExceptionHandling.optional(),
 	strictModuleErrorHandling: strictModuleErrorHandling.optional(),
 	globalObject: globalObject.optional(),
 	importFunctionName: importFunctionName.optional(),
@@ -634,7 +643,7 @@ export type Target = z.infer<typeof target>;
 //#endregion
 
 //#region ExternalsType
-const externalsType = z.enum([
+export const externalsType = z.enum([
 	"var",
 	"module",
 	"assign",

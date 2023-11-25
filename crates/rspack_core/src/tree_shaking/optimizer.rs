@@ -524,6 +524,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               | DependencyType::DynamicImport
               | DependencyType::CjsRequire
               | DependencyType::ImportContext
+              | DependencyType::ContainerExposed
           );
 
           if self.side_effects_free_modules.contains(module_identifier)

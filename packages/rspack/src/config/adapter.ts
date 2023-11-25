@@ -18,7 +18,7 @@ import type {
 	RawRspackFuture,
 	RawLibraryName,
 	RawLibraryOptions,
-	JsModule,
+	JsModule
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../Compiler";
@@ -716,7 +716,7 @@ function getRawOptimization(
 	};
 }
 
-function toRawSplitChunksOptions(
+export function toRawSplitChunksOptions(
 	sc?: OptimizationSplitChunksOptions
 ): RawOptions["optimization"]["splitChunks"] | undefined {
 	if (!sc) {

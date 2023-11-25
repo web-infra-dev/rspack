@@ -6,7 +6,6 @@ use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
   NamedModuleIdsPlugin,
 };
-use rspack_plugin_split_chunks::SplitChunksPlugin;
 use serde::Deserialize;
 
 use crate::{RawOptionsApply, RawSplitChunksOptions};
@@ -36,17 +35,6 @@ impl RawOptionsApply for RawOptimizationOptions {
     self,
     plugins: &mut Vec<Box<dyn rspack_core::Plugin>>,
   ) -> Result<Self::Options, rspack_error::Error> {
-    if let Some(options) = self.split_chunks {
-      let split_chunks_plugin = IS_ENABLE_NEW_SPLIT_CHUNKS.with(|is_enable_new_split_chunks| {
-        if *is_enable_new_split_chunks {
-          rspack_plugin_split_chunks_new::SplitChunksPlugin::new(options.into()).boxed()
-        } else {
-          SplitChunksPlugin::new(options.into()).boxed()
-        }
-      });
-
-      plugins.push(split_chunks_plugin);
-    }
     let chunk_ids_plugin = match self.chunk_ids.as_ref() {
       "named" => NamedChunkIdsPlugin::new(None, None).boxed(),
       "deterministic" => DeterministicChunkIdsPlugin::default().boxed(),

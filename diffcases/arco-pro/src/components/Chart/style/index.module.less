@@ -1,0 +1,36 @@
+.customer-tooltip {
+  &-title {
+    margin-bottom: 4px;
+  }
+
+  &-item {
+    height: 32px;
+    line-height: 32px;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 8px;
+    background: rgb(255 255 255 / 90%);
+    box-shadow: 6px 0 20px rgb(34 87 188 / 10%);
+    border-radius: 4px;
+    color: var(--color-text-2);
+
+    :global(.arco-badge-status-dot) {
+      width: 10px;
+      height: 10px;
+      margin-right: 8px;
+    }
+  }
+
+  &-item:not(:last-child) {
+    margin-bottom: 8px;
+  }
+}
+
+body[arco-theme='dark'] {
+  .customer-tooltip {
+    &-item {
+      background: #2a2a2b;
+      box-shadow: 6px 0px 20px rgba(34, 87, 188, 0.1);
+    }
+  }
+}

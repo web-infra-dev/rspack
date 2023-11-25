@@ -363,7 +363,6 @@ impl JsPlugin {
     let source = args
       .compilation
       .plugin_driver
-      .clone()
       .render_chunk(RenderChunkArgs {
         compilation: args.compilation,
         chunk_ukey: &args.chunk_ukey,

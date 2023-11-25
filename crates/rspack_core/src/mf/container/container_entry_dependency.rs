@@ -1,4 +1,4 @@
-use super::ExposeOptions;
+use super::container_plugin::ExposeOptions;
 use crate::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency,
@@ -52,12 +52,6 @@ impl ModuleDependency for ContainerEntryDependency {
   fn request(&self) -> &str {
     &self.resource_identifier
   }
-
-  fn user_request(&self) -> &str {
-    &self.resource_identifier
-  }
-
-  fn set_request(&mut self, _request: String) {}
 }
 
 impl AsContextDependency for ContainerEntryDependency {}

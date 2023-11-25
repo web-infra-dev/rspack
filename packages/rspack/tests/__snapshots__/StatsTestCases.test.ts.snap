@@ -190,7 +190,7 @@ import rawModule from './raw.png';
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "fbfdd615b948d480bcd1",
+  "hash": "e39918359c4433621683",
   "logging": {},
   "modules": [
     {
@@ -380,7 +380,7 @@ chunk {main} bundle.js (main) [entry]
   esm import ./stringModule [10]
 webpack/runtime/public_path {main}
 webpack/runtime/make_namespace_object {main}
-Rspack compiled successfully (fbfdd615b948d480bcd1)"
+Rspack compiled successfully (e39918359c4433621683)"
 `;
 
 exports[`StatsTestCases should print correct stats for filename 1`] = `
@@ -6119,7 +6119,7 @@ import rawModule from './raw.png';
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "272d9a92b8ecd819a332",
+  "hash": "22f9734c6c6aa6e0afd5",
   "logging": {},
   "modules": [
     {
@@ -6325,7 +6325,7 @@ runtime modules 4 modules
 ./raw.png
 ./index.js
 ./stringModule.js
-Rspack compiled successfully (272d9a92b8ecd819a332)"
+Rspack compiled successfully (22f9734c6c6aa6e0afd5)"
 `;
 
 exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `

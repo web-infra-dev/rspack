@@ -66,6 +66,8 @@ pub enum DependencyType {
   ContainerExposed,
   /// container entry,
   ContainerEntry,
+  /// remote to external,
+  RemoteToExternal,
   Custom(Box<str>), // TODO it will increase large layout size
 }
 
@@ -107,6 +109,7 @@ impl DependencyType {
       DependencyType::ImportMetaContext => Cow::Borrowed("import.meta context"),
       DependencyType::ContainerExposed => Cow::Borrowed("container exposed"),
       DependencyType::ContainerEntry => Cow::Borrowed("container entry"),
+      DependencyType::RemoteToExternal => Cow::Borrowed("remote to external"),
     }
   }
 }

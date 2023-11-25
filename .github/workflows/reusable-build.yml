@@ -46,6 +46,10 @@ on:
         type: boolean
         required: false
         default: true
+      test-diff: # Run Diff Test
+        type: boolean
+        required: false
+        default: false
       ref: # Git reference to checkout
         required: false
         type: string
@@ -261,6 +265,11 @@ jobs:
         timeout-minutes: 20 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc'  &&  matrix.node  != '14' }}
         run: pnpm run test:ci
+
+      - name: Diff test
+        timeout-minutes: 15
+        if: ${{ inputs.test-diff }}
+        run: pnpm run test:diff
 
       ### write the latest metric into branch gh-pages
       ### Note that, We can't merge this script, because this script only runs on main branch

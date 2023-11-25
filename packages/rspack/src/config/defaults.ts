@@ -23,6 +23,8 @@ import type {
 	ExternalsPresets,
 	InfrastructureLogging,
 	JavascriptParserOptions,
+	Library,
+	LibraryOptions,
 	Mode,
 	ModuleOptions,
 	Node,
@@ -403,7 +405,34 @@ const applyOutputDefaults = (
 		futureDefaults: boolean;
 	}
 ) => {
+	const getLibraryName = (library: Library): string => {
+		const libraryName =
+			typeof library === "object" &&
+			library &&
+			!Array.isArray(library) &&
+			"type" in library
+				? library.name
+				: library;
+		if (Array.isArray(libraryName)) {
+			return libraryName.join(".");
+		} else if (typeof libraryName === "object") {
+			return getLibraryName(libraryName.root);
+		} else if (typeof libraryName === "string") {
+			return libraryName;
+		}
+		return "";
+	};
 	F(output, "uniqueName", () => {
+		const libraryName = getLibraryName(output.library).replace(
+			/^\[(\\*[\w:]+\\*)\](\.)|(\.)\[(\\*[\w:]+\\*)\](?=\.|$)|\[(\\*[\w:]+\\*)\]/g,
+			(m, a, d1, d2, b, c) => {
+				const content = a || b || c;
+				return content.startsWith("\\") && content.endsWith("\\")
+					? `${d2 || ""}[${content.slice(1, -1)}]${d1 || ""}`
+					: "";
+			}
+		);
+		if (libraryName) return libraryName;
 		const pkgPath = path.resolve(context, "package.json");
 		try {
 			const packageInfo = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));

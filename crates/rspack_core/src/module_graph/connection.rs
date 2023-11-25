@@ -19,7 +19,7 @@ impl From<usize> for ConnectionId {
   }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq)]
 pub struct ModuleGraphConnection {
   /// The referencing module identifier
   pub original_module_identifier: Option<ModuleIdentifier>,
@@ -33,30 +33,21 @@ pub struct ModuleGraphConnection {
   conditional: bool,
 }
 
-/// implementing hash by hand because condition maybe a function, which can't be hash
 impl Hash for ModuleGraphConnection {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.original_module_identifier.hash(state);
     self.module_identifier.hash(state);
     self.dependency_id.hash(state);
-    self.active.hash(state);
     self.conditional.hash(state);
   }
 }
-/// implementing hash by hand because condition maybe a function, which can't be hash
 impl PartialEq for ModuleGraphConnection {
   fn eq(&self, other: &Self) -> bool {
     self.original_module_identifier == other.original_module_identifier
       && self.module_identifier == other.module_identifier
       && self.dependency_id == other.dependency_id
-      && self.active == other.active
       && self.conditional == other.conditional
   }
-}
-
-/// implementing eq
-impl Eq for ModuleGraphConnection {
-  fn assert_receiver_is_total_eq(&self) {}
 }
 
 impl ModuleGraphConnection {
@@ -124,7 +115,7 @@ impl ModuleGraphConnection {
     match module_graph
       .connection_to_condition
       .get(self)
-      .expect("should have condition")
+      .unwrap_or_else(|| panic!("{:#?}", self))
     {
       DependencyCondition::False => ConnectionState::Bool(false),
       DependencyCondition::Fn(f) => f(self, runtime, module_graph),

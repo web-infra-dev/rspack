@@ -1,3 +1,4 @@
+use rspack_core::get_import_var;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
   get_dependency_used_by_exports_condition, get_exports_type,
@@ -138,8 +139,8 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       .module_graph_module_by_dependency_id(&self.id)
       .expect("should have ref module");
 
-    let compilation = &code_generatable_context.compilation;
-    if compilation.options.is_new_tree_shaking() {
+    let is_new_tree_shaking = compilation.options.is_new_tree_shaking();
+    if is_new_tree_shaking {
       let connection = compilation.module_graph.connection_by_dependency(&self.id);
       let is_target_active = if let Some(con) = connection {
         // TODO: runtime opt
@@ -165,13 +166,14 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       return;
     }
 
-    let import_var = code_generatable_context
-      .compilation
+    let ids = self.get_ids(&compilation.module_graph);
+    compilation
       .module_graph
-      .get_import_var(&code_generatable_context.module.identifier(), &self.request);
+      .module_identifier_by_dependency_id(&self.id);
+    let import_var = get_import_var(&compilation.module_graph, self.id);
 
     // TODO: scope hoist
-    if compilation.options.is_new_tree_shaking() {
+    if is_new_tree_shaking {
       harmony_import_dependency_apply(
         self,
         self.source_order,
@@ -182,12 +184,13 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     let export_expr = export_from_import(
       code_generatable_context,
       true,
-      import_var,
-      self.ids.clone(),
+      &import_var,
+      ids,
       &self.id,
       self.call,
       !self.direct_import,
     );
+    // dbg!(&export_expr);
     if self.shorthand {
       source.insert(self.end, format!(": {export_expr}").as_str(), None);
     } else {
@@ -206,6 +209,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
       end: self.end,
     })
   }
+
   fn span_for_on_usage_search(&self) -> Option<rspack_core::ErrorSpan> {
     Some(self.span_for_on_usage_search.into())
   }
@@ -264,6 +268,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     //   self.used_by_exports.as_ref()
     // );
     let ret = get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref());
+    // dbg!(&ret);
     ret
   }
 

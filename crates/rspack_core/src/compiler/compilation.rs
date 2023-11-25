@@ -767,13 +767,6 @@ impl Compilation {
                  module_graph: &mut ModuleGraph,
                  current_block: Option<AsyncDependenciesBlock>| {
                   for dependency in dependencies {
-                    if let Some(dependency) = dependency.as_module_dependency() {
-                      module_graph
-                        .set_dependency_import_var(module.identifier(), dependency.request());
-                    } else if let Some(dependency) = dependency.as_context_dependency() {
-                      module_graph
-                        .set_dependency_import_var(module.identifier(), dependency.request());
-                    }
                     let dependency_id = *dependency.id();
                     if current_block.is_none() {
                       module.add_dependency_id(dependency_id);
@@ -1263,7 +1256,7 @@ impl Compilation {
     while plugin_driver.optimize_dependencies(self).await?.is_some() {}
     logger.time_end(start);
     // if self.options.is_new_tree_shaking() {
-    //   debug_exports_info!(&self.module_graph);
+    //   // debug_all_exports_info!(&self.module_graph);
     // }
 
     let start = logger.time("create chunks");
