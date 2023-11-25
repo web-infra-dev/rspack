@@ -668,6 +668,7 @@ fn test_escape() {
   assert_eq!(escape_glob_chars("a/b/c"), r#"a/b/c"#);
 }
 
+// FIXME: @suica decide whether to remove this test case
 // If this test fails, you should modify `set_info` function, according to your changes about AssetInfo
 // Make sure every field of AssetInfo is considered
 #[test]
@@ -684,6 +685,7 @@ fn ensure_info_fields() {
     },
     version: Default::default(),
     source_filename: Default::default(),
+    all_map: None,
   };
 
   std::hint::black_box(info);
