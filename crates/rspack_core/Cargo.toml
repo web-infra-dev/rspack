@@ -42,6 +42,7 @@ rspack_sources = { workspace = true }
 rspack_swc_visitors = { path = "../rspack_swc_visitors" }
 rspack_util = { path = "../rspack_util" }
 rustc-hash = { workspace = true }
+semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 string_cache = "0.8.7"

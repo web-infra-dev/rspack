@@ -1,0 +1,46 @@
+use crate::{
+  AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
+  DependencyType, ModuleDependency,
+};
+
+#[derive(Debug, Clone)]
+pub struct ConsumeSharedFallbackDependency {
+  id: DependencyId,
+  request: String,
+}
+
+impl ConsumeSharedFallbackDependency {
+  pub fn new(request: String) -> Self {
+    Self {
+      id: DependencyId::new(),
+      request,
+    }
+  }
+}
+
+impl Dependency for ConsumeSharedFallbackDependency {
+  fn dependency_debug_name(&self) -> &'static str {
+    "ConsumeSharedFallbackDependency"
+  }
+
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
+  fn dependency_type(&self) -> &DependencyType {
+    &DependencyType::ProvideModuleForShared
+  }
+
+  fn category(&self) -> &DependencyCategory {
+    &DependencyCategory::Esm
+  }
+}
+
+impl ModuleDependency for ConsumeSharedFallbackDependency {
+  fn request(&self) -> &str {
+    &self.request
+  }
+}
+
+impl AsContextDependency for ConsumeSharedFallbackDependency {}
+impl AsDependencyTemplate for ConsumeSharedFallbackDependency {}

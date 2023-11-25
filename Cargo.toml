@@ -37,6 +37,7 @@ rkyv               = { version = "0.7.42" }
 rspack_sources     = { version = "0.2.7" }
 rustc-hash         = { version = "1.1.0" }
 schemars           = { version = "0.8.12" }
+semver             = { version = "1.0.20" }
 serde              = { version = "1.0.171" }
 serde_json         = { version = "1.0.100" }
 similar            = { version = "2.2.1" }
