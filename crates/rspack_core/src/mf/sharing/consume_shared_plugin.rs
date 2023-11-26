@@ -1,22 +1,21 @@
+use std::sync::Mutex;
 use std::{fmt, path::Path, sync::Arc};
 
 use async_trait::async_trait;
-use once_cell::sync::{Lazy, OnceCell};
+use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::internal_error;
 use rustc_hash::FxHashMap;
-use semver::VersionReq;
 
-use super::{
-  consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
-  provide_for_shared_dependency::ProvideForSharedDependency,
-};
+use super::consume_shared_module::ConsumeSharedModule;
+use super::consume_shared_runtime_module::ConsumeSharedRuntimeModule;
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, BoxModule, Compilation, Context, DependencyCategory,
-  DependencyType, FactorizeArgs, NormalModuleCreateData, NormalModuleFactoryContext, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginFactorizeHookOutput,
-  PluginNormalModuleFactoryCreateModuleHookOutput, PluginThisCompilationHookOutput,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, RuntimeGlobals, ThisCompilationArgs,
+  AdditionalChunkRuntimeRequirementsArgs, Compilation, Context, DependencyCategory, DependencyType,
+  FactorizeArgs, ModuleExt, ModuleFactoryResult, NormalModuleCreateData,
+  NormalModuleFactoryContext, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  PluginContext, PluginFactorizeHookOutput, PluginNormalModuleFactoryCreateModuleHookOutput,
+  PluginThisCompilationHookOutput, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
+  RuntimeGlobals, ThisCompilationArgs,
 };
 
 #[derive(Debug, Clone)]
@@ -34,7 +33,7 @@ pub struct ConsumeOptions {
 
 #[derive(Debug, Clone)]
 pub enum ConsumeVersion {
-  Version(VersionReq),
+  Version(String),
   False,
 }
 
@@ -63,7 +62,7 @@ struct MatchedConsumes {
 
 fn resolve_matched_configs(
   compilation: &mut Compilation,
-  resolver: &Resolver,
+  resolver: Arc<Resolver>,
   configs: &[(String, Arc<ConsumeOptions>)],
 ) -> MatchedConsumes {
   let mut resolved = FxHashMap::default();
@@ -95,31 +94,78 @@ fn resolve_matched_configs(
   }
 }
 
-fn get_description_file(dir: &Path) -> serde_json::Value {
-  todo!()
+async fn get_description_file(mut dir: &Path) -> Option<serde_json::Value> {
+  let description_filename = "package.json";
+  loop {
+    let description_file = dir.join(description_filename);
+    if let Ok(data) = tokio::fs::read(description_file).await
+      && let Ok(data) = serde_json::from_slice::<serde_json::Value>(&data)
+    {
+      return Some(data);
+    }
+    if let Some(parent) = dir.parent() {
+      dir = parent;
+    } else {
+      return None;
+    }
+  }
+}
+
+fn get_required_version_from_description_file(
+  data: serde_json::Value,
+  package_name: &str,
+) -> Option<ConsumeVersion> {
+  let Some(data) = data.as_object() else {
+    return None;
+  };
+  let get_version_from_dependencies = |dependencies: &str| {
+    data
+      .get(dependencies)
+      .and_then(|d| d.as_object())
+      .and_then(|deps| deps.get(package_name))
+      .and_then(|v| v.as_str())
+      .map(|v| ConsumeVersion::Version(v.to_string()))
+  };
+  get_version_from_dependencies("optionalDependencies")
+    .or_else(|| get_version_from_dependencies("dependencies"))
+    .or_else(|| get_version_from_dependencies("peerDependencies"))
+    .or_else(|| get_version_from_dependencies("devDependencies"))
 }
 
 #[derive(Debug)]
 pub struct ConsumeSharedPlugin {
   consumes: Vec<(String, Arc<ConsumeOptions>)>,
-  resolver: OnceCell<Arc<Resolver>>,
-  compiler_context: OnceCell<Context>,
-  matched_consumes: OnceCell<MatchedConsumes>,
+  resolver: Mutex<Option<Arc<Resolver>>>,
+  compiler_context: Mutex<Option<Context>>,
+  matched_consumes: Mutex<Option<Arc<MatchedConsumes>>>,
 }
 
 impl ConsumeSharedPlugin {
-  fn init_context(&self, compilation: &Compilation) {
-    self
-      .compiler_context
-      .set(compilation.options.context.clone());
+  pub fn new(consumes: Vec<(String, ConsumeOptions)>) -> Self {
+    Self {
+      consumes: consumes
+        .into_iter()
+        .map(|(k, v)| (k, Arc::new(v)))
+        .collect(),
+      resolver: Default::default(),
+      compiler_context: Default::default(),
+      matched_consumes: Default::default(),
+    }
   }
 
-  fn get_context(&self) -> &Context {
-    &self.compiler_context.get().expect("init_context first")
+  fn init_context(&self, compilation: &Compilation) {
+    let mut lock = self.compiler_context.lock().expect("shuold lock");
+    *lock = Some(compilation.options.context.clone());
+  }
+
+  fn get_context(&self) -> Context {
+    let lock = self.compiler_context.lock().expect("shuold lock");
+    lock.clone().expect("init_context first")
   }
 
   fn init_resolver(&self, compilation: &Compilation) {
-    self.resolver.set(
+    let mut lock = self.resolver.lock().expect("shuold lock");
+    *lock = Some(
       compilation
         .resolver_factory
         .get(ResolveOptionsWithDependencyType {
@@ -131,64 +177,89 @@ impl ConsumeSharedPlugin {
     );
   }
 
-  fn get_resolver(&self) -> &Resolver {
-    &self.resolver.get().expect("init_resolver first")
+  fn get_resolver(&self) -> Arc<Resolver> {
+    let lock = self.resolver.lock().expect("shuold lock");
+    lock.clone().expect("init_resolver first")
   }
 
-  fn init_matched_consumes(&self, compilation: &mut Compilation, resolver: &Resolver) {
-    self.matched_consumes.set(resolve_matched_configs(
+  fn init_matched_consumes(&self, compilation: &mut Compilation, resolver: Arc<Resolver>) {
+    let mut lock = self.matched_consumes.lock().expect("shuold lock");
+    *lock = Some(Arc::new(resolve_matched_configs(
       compilation,
       resolver,
       &self.consumes,
-    ));
+    )));
   }
 
-  fn get_matched_consumes(&self) -> &MatchedConsumes {
-    &self
-      .matched_consumes
-      .get()
-      .expect("init_matched_consumes first")
+  fn get_matched_consumes(&self) -> Arc<MatchedConsumes> {
+    let lock = self.matched_consumes.lock().expect("shuold lock");
+    lock.clone().expect("init_matched_consumes first")
   }
 
-  fn create_consume_shared_module(
+  async fn create_consume_shared_module(
     &self,
     context: &Context,
     request: &str,
     config: Arc<ConsumeOptions>,
-  ) -> BoxModule {
+  ) -> ConsumeSharedModule {
     let direct_fallback = matches!(&config.import, Some(i) if RELATIVE_REQUEST.is_match(i) | ABSOLUTE_REQUEST.is_match(i));
-    let import_resolved = config.import.as_ref().and_then(|import| {
-      let resolver = self.get_resolver();
-      resolver
-        .resolve(
-          if direct_fallback {
-            self.get_context()
-          } else {
-            context
-          }
-          .as_ref(),
-          &import,
-        )
-        .ok()
-    });
-    let required_version = config.required_version.as_ref().or_else(|| {
+    let import_resolved = config
+      .import
+      .as_ref()
+      .and_then(|import| {
+        let resolver = self.get_resolver();
+        resolver
+          .resolve(
+            if direct_fallback {
+              self.get_context()
+            } else {
+              context.clone()
+            }
+            .as_ref(),
+            &import,
+          )
+          .ok()
+      })
+      .and_then(|i| match i {
+        ResolveResult::Resource(r) => Some(r.path.to_string_lossy().into_owned()),
+        ResolveResult::Ignored => None,
+      });
+    let required_version = if let Some(version) = config.required_version.as_ref() {
+      Some(version.clone())
+    } else {
       let package_name = if let Some(name) = &config.package_name {
-        name
+        Some(name.as_str())
+      } else if ABSOLUTE_REQUEST.is_match(request) {
+        None
+      } else if let Some(caps) = PACKAGE_NAME.captures(request)
+        && let Some(mat) = caps.get(0)
+      {
+        Some(mat.as_str())
       } else {
-        if ABSOLUTE_REQUEST.is_match(request) {
-          return None;
-        }
-        if let Some(caps) = PACKAGE_NAME.captures(request)
-          && let Some(mat) = caps.get(0)
-        {
-          mat.as_str()
-        } else {
-          return None;
-        }
+        None
       };
-      todo!()
-    });
-    todo!()
+      if let Some(package_name) = package_name
+        && let Some(data) = get_description_file(context.as_ref()).await
+      {
+        get_required_version_from_description_file(data, package_name)
+      } else {
+        None
+      }
+    };
+    ConsumeSharedModule::new(ConsumeOptions {
+      import: import_resolved
+        .is_some()
+        .then(|| config.import.clone())
+        .and_then(|i| i),
+      import_resolved,
+      share_key: config.share_key.clone(),
+      share_scope: config.share_scope.clone(),
+      required_version,
+      package_name: config.package_name.clone(),
+      strict_version: config.strict_version,
+      singleton: config.singleton,
+      eager: config.eager,
+    })
   }
 }
 
@@ -223,10 +294,33 @@ impl Plugin for ConsumeSharedPlugin {
     }
     let request = dep.request();
     let consumes = self.get_matched_consumes();
-    if let Some(matched) = consumes.unresolved.get(request) {}
+    if let Some(matched) = consumes.unresolved.get(request) {
+      let module = self
+        .create_consume_shared_module(args.context, request, matched.clone())
+        .await;
+      return Ok(Some(ModuleFactoryResult::new(module.boxed())));
+    }
     for (prefix, options) in &consumes.prefixed {
       if request.starts_with(prefix) {
         let remainder = &request[prefix.len()..];
+        let module = self
+          .create_consume_shared_module(
+            args.context,
+            request,
+            Arc::new(ConsumeOptions {
+              import: options.import.as_ref().map(|i| i.to_owned() + remainder),
+              import_resolved: options.import_resolved.clone(),
+              share_key: options.share_key.clone() + remainder,
+              share_scope: options.share_scope.clone(),
+              required_version: options.required_version.clone(),
+              package_name: options.package_name.clone(),
+              strict_version: options.strict_version,
+              singleton: options.singleton,
+              eager: options.eager,
+            }),
+          )
+          .await;
+        return Ok(Some(ModuleFactoryResult::new(module.boxed())));
       }
     }
     Ok(None)
@@ -245,7 +339,12 @@ impl Plugin for ConsumeSharedPlugin {
     }
     let resource = &args.resource_resolve_data.resource;
     let consumes = self.get_matched_consumes();
-    if let Some(options) = consumes.resolved.get(resource) {}
+    if let Some(options) = consumes.resolved.get(resource) {
+      let module = self
+        .create_consume_shared_module(&args.context, &resource, options.clone())
+        .await;
+      return Ok(Some(module.boxed()));
+    }
     Ok(None)
   }
 
@@ -270,7 +369,9 @@ impl Plugin for ConsumeSharedPlugin {
     args
       .runtime_requirements
       .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-    args.compilation.add_runtime_module(args.chunk, todo!());
+    args
+      .compilation
+      .add_runtime_module(args.chunk, Box::<ConsumeSharedRuntimeModule>::default());
     Ok(())
   }
 }

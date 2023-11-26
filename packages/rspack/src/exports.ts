@@ -146,6 +146,7 @@ export const container = {
 };
 
 import { ProvideSharedPlugin } from "./sharing/ProvideSharedPlugin";
+import { ConsumeSharedPlugin } from "./sharing/ConsumeSharedPlugin";
 import { SharePlugin } from "./sharing/SharePlugin";
 export type {
 	ProvideSharedPluginOptions,
@@ -155,6 +156,13 @@ export type {
 	ProvidesObject
 } from "./sharing/ProvideSharedPlugin";
 export type {
+	ConsumeSharedPluginOptions,
+	Consumes,
+	ConsumesConfig,
+	ConsumesItem,
+	ConsumesObject
+} from "./sharing/ConsumeSharedPlugin";
+export type {
 	SharePluginOptions,
 	Shared,
 	SharedConfig,
@@ -163,6 +171,7 @@ export type {
 } from "./sharing/SharePlugin";
 export const sharing = {
 	ProvideSharedPlugin,
+	ConsumeSharedPlugin,
 	SharePlugin
 };
 

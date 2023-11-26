@@ -31,7 +31,8 @@ export enum BuiltinPluginName {
 	ContainerPlugin = "ContainerPlugin",
 	ContainerReferencePlugin = "ContainerReferencePlugin",
 	ModuleFederationRuntimePlugin = "ModuleFederationRuntimePlugin",
-	ProvideSharedPlugin = "ProvideSharedPlugin"
+	ProvideSharedPlugin = "ProvideSharedPlugin",
+	ConsumeSharedPlugin = "ConsumeSharedPlugin"
 }
 
 export abstract class RspackBuiltinPlugin implements RspackPluginInstance {

@@ -2549,7 +2549,6 @@ dependencies = [
  "rspack_swc_visitors",
  "rspack_util",
  "rustc-hash",
- "semver 1.0.20",
  "serde",
  "serde_json",
  "string_cache",

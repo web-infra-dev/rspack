@@ -1,9 +1,5 @@
 import { BuiltinPlugin, RawProvideOptions } from "@rspack/binding";
-import {
-	BuiltinPluginName,
-	RspackBuiltinPlugin,
-	create
-} from "../builtin-plugin/base";
+import { BuiltinPluginName, RspackBuiltinPlugin } from "../builtin-plugin/base";
 import { parseOptions } from "../container/options";
 import { Compiler } from "../Compiler";
 import { ModuleFederationRuntimePlugin } from "../container/ModuleFederationRuntimePlugin";

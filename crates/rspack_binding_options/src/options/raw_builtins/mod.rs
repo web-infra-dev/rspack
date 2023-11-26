@@ -14,7 +14,8 @@ use napi::{
 use napi_derive::napi;
 use rspack_core::{
   mf::{
-    container_plugin::ContainerPlugin, container_reference_plugin::ContainerReferencePlugin,
+    consume_shared_plugin::ConsumeSharedPlugin, container_plugin::ContainerPlugin,
+    container_reference_plugin::ContainerReferencePlugin,
     module_federation_runtime_plugin::ModuleFederationRuntimePlugin,
     provide_shared_plugin::ProvideSharedPlugin,
   },
@@ -43,7 +44,7 @@ use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 use rspack_plugin_wasm::enable_wasm_loading_plugin;
 use rspack_plugin_web_worker_template::web_worker_template_plugin;
 
-use self::raw_mf::{RawContainerReferencePluginOptions, RawProvideOptions};
+use self::raw_mf::{RawConsumeOptions, RawContainerReferencePluginOptions, RawProvideOptions};
 pub use self::{
   raw_banner::RawBannerPluginOptions, raw_copy::RawCopyRspackPluginOptions,
   raw_html::RawHtmlRspackPluginOptions, raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
@@ -83,6 +84,7 @@ pub enum BuiltinPluginName {
   ContainerReferencePlugin,
   ModuleFederationRuntimePlugin,
   ProvideSharedPlugin,
+  ConsumeSharedPlugin,
 
   // rspack specific plugins
   HttpExternalsRspackPlugin,
@@ -223,6 +225,13 @@ impl RawOptionsApply for BuiltinPlugin {
           .collect();
         provides.sort_unstable_by_key(|(k, _)| k.to_string());
         plugins.push(ProvideSharedPlugin::new(provides).boxed())
+      }
+      BuiltinPluginName::ConsumeSharedPlugin => {
+        let consumes: Vec<_> = downcast_into::<Vec<RawConsumeOptions>>(self.options)?
+          .into_iter()
+          .map(Into::into)
+          .collect();
+        plugins.push(ConsumeSharedPlugin::new(consumes).boxed())
       }
 
       // rspack specific plugins
