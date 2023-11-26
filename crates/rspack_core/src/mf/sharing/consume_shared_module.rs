@@ -24,11 +24,12 @@ pub struct ConsumeSharedModule {
   identifier: ModuleIdentifier,
   lib_ident: String,
   readable_identifier: String,
+  context: Context,
   options: ConsumeOptions,
 }
 
 impl ConsumeSharedModule {
-  pub fn new(options: ConsumeOptions) -> Self {
+  pub fn new(context: Context, options: ConsumeOptions) -> Self {
     let identifier = format!(
       "consume shared module ({}) {}@{}{}{}{}{}",
       &options.share_scope,
@@ -65,6 +66,7 @@ impl ConsumeSharedModule {
           .unwrap_or_default()
       ),
       readable_identifier: identifier,
+      context,
       options,
     }
   }
@@ -118,6 +120,10 @@ impl Module for ConsumeSharedModule {
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
     Some(self.lib_ident.as_str().into())
+  }
+
+  fn get_context(&self) -> Option<Box<Context>> {
+    Some(Box::new(self.context.clone()))
   }
 
   async fn build(
@@ -180,10 +186,9 @@ impl Module for ConsumeSharedModule {
       if self.options.singleton {
         function += "Singleton";
       }
-      args.push(
-        serde_json::to_string(&version.to_string())
-          .expect("ConsumeVersion should able to json to_string"),
-      );
+      let version = serde_json::to_string(&version.to_string())
+        .expect("ConsumeVersion should able to json to_string");
+      args.push(format!("loaders.parseRange({})", version));
       function += "VersionCheck";
     } else {
       if self.options.singleton {

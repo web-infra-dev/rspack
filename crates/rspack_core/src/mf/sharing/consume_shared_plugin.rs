@@ -246,20 +246,23 @@ impl ConsumeSharedPlugin {
         None
       }
     };
-    ConsumeSharedModule::new(ConsumeOptions {
-      import: import_resolved
-        .is_some()
-        .then(|| config.import.clone())
-        .and_then(|i| i),
-      import_resolved,
-      share_key: config.share_key.clone(),
-      share_scope: config.share_scope.clone(),
-      required_version,
-      package_name: config.package_name.clone(),
-      strict_version: config.strict_version,
-      singleton: config.singleton,
-      eager: config.eager,
-    })
+    ConsumeSharedModule::new(
+      context.clone(),
+      ConsumeOptions {
+        import: import_resolved
+          .is_some()
+          .then(|| config.import.clone())
+          .and_then(|i| i),
+        import_resolved,
+        share_key: config.share_key.clone(),
+        share_scope: config.share_scope.clone(),
+        required_version,
+        package_name: config.package_name.clone(),
+        strict_version: config.strict_version,
+        singleton: config.singleton,
+        eager: config.eager,
+      },
+    )
   }
 }
 

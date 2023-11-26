@@ -1,1 +1,3 @@
-module.exports = [[/prefix\/deep\/c/]];
+module.exports = [
+  // [/prefix\/deep\/c/]
+];

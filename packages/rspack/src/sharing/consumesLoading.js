@@ -281,7 +281,7 @@ if (__webpack_require__.MF) {
 			" of shared singleton module " +
 			key +
 			" (required " +
-			requiredVersion +
+			rangeToString(requiredVersion) +
 			")"
 		);
 	};
@@ -291,8 +291,7 @@ if (__webpack_require__.MF) {
 	};
 	var getSingletonVersion = function (scope, scopeName, key, requiredVersion) {
 		var version = findSingletonVersionKey(scope, key);
-		var requiredVersionRange = parseRange(requiredVersion);
-		if (!satisfy(requiredVersionRange, version))
+		if (!satisfy(requiredVersion, version))
 			warn(
 				getInvalidSingletonVersionMessage(scope, key, version, requiredVersion)
 			);
@@ -305,8 +304,7 @@ if (__webpack_require__.MF) {
 		requiredVersion
 	) {
 		var version = findSingletonVersionKey(scope, key);
-		var requiredVersionRange = parseRange(requiredVersion);
-		if (!satisfy(requiredVersionRange, version))
+		if (!satisfy(requiredVersion, version))
 			throw new Error(
 				getInvalidSingletonVersionMessage(scope, key, version, requiredVersion)
 			);
@@ -314,9 +312,8 @@ if (__webpack_require__.MF) {
 	};
 	var findValidVersion = function (scope, key, requiredVersion) {
 		var versions = scope[key];
-		var requiredVersionRange = parseRange(requiredVersion);
 		var key = Object.keys(versions).reduce(function (a, b) {
-			if (!satisfy(requiredVersionRange, b)) return a;
+			if (!satisfy(requiredVersion, b)) return a;
 			return !a || versionLt(a, b) ? b : a;
 		}, 0);
 		return key && versions[key];
@@ -487,6 +484,7 @@ if (__webpack_require__.MF) {
 		return getStrictSingletonVersion(scope, scopeName, key, version);
 	});
 	var loaders = {
+		parseRange: parseRange,
 		load: load,
 		loadFallback: loadFallback,
 		loadVersionCheck: loadVersionCheck,
@@ -558,6 +556,6 @@ if (__webpack_require__.MF) {
 		}
 	};
 	__webpack_require__.MF.initialConsumes(
-		__webpack_require__.f.consumes.initial
+		__webpack_require__.MF.initialConsumesData
 	);
 }

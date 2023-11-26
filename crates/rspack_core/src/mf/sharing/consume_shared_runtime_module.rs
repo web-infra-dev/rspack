@@ -103,21 +103,31 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       })
       .collect::<Vec<_>>()
       .join(", ");
-    RawSource::from(format!(
+    let mut source = format!(
       r#"
 var chunkMapping = {chunk_mapping};
 var moduleToHandlerMapping = {{ {module_to_handler_mapping} }};
 var initialConsumes = {initial_consumes};
-{ensure_chunk_handlers}.consumes = function(chunkId, promises) {{ return {consumes_loading_fn}({{ chunkId: chunkId, promises: promises, chunkMapping: chunkMapping, moduleToHandlerMapping: moduleToHandlerMapping }}); }};
-{ensure_chunk_handlers}.consumes.initial = {{ initialConsumes: initialConsumes, moduleToHandlerMapping: moduleToHandlerMapping }};
+__webpack_require__.MF.initialConsumesData = {{ initialConsumes: initialConsumes, moduleToHandlerMapping: moduleToHandlerMapping }};
 "#,
-      chunk_mapping = serde_json::to_string(&chunk_to_module_mapping).expect("chunk_to_module_mapping should able to json to_string"),
+      chunk_mapping = serde_json::to_string(&chunk_to_module_mapping)
+        .expect("chunk_to_module_mapping should able to json to_string"),
       module_to_handler_mapping = module_to_handler_mapping,
-      initial_consumes = serde_json::to_string(&initial_consumes).expect("initial_consumes should able to json to_string"),
-      ensure_chunk_handlers = RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
-      consumes_loading_fn = "__webpack_require__.MF.consumes"
-    ))
-    .boxed()
+      initial_consumes = serde_json::to_string(&initial_consumes)
+        .expect("initial_consumes should able to json to_string"),
+    );
+    if compilation
+      .chunk_graph
+      .get_chunk_graph_chunk(&chunk_ukey)
+      .runtime_requirements
+      .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+    {
+      source += &format!("{ensure_chunk_handlers}.consumes = function(chunkId, promises) {{ return {consumes_loading_fn}({{ chunkId: chunkId, promises: promises, chunkMapping: chunkMapping, moduleToHandlerMapping: moduleToHandlerMapping }}); }};",
+        ensure_chunk_handlers = RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+        consumes_loading_fn = "__webpack_require__.MF.consumes",
+      );
+    }
+    RawSource::from(source).boxed()
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

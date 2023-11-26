@@ -35,7 +35,6 @@ export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
 			options.consumes,
 			(item, key) => {
 				if (Array.isArray(item)) throw new Error("Unexpected array in options");
-				/** @type {ConsumeOptions} */
 				let result =
 					item === key || !isRequiredVersion(item)
 						? // item is a request/key
@@ -80,6 +79,10 @@ export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin {
+		ModuleFederationRuntimePlugin.addPlugin(
+			compiler,
+			require.resolve("../sharing/initializeSharing.js")
+		);
 		ModuleFederationRuntimePlugin.addPlugin(
 			compiler,
 			require.resolve("../sharing/consumesLoading.js")

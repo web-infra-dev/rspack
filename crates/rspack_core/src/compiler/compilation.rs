@@ -983,8 +983,10 @@ impl Compilation {
             }
 
             Some(values)
-          } else if matches!(dep.dependency_type(), DependencyType::ContainerExposed)
-            && let Some(module) = self.module_graph.get_module(dep.id())
+          } else if matches!(
+            dep.dependency_type(),
+            DependencyType::ContainerExposed | DependencyType::ProvideModuleForShared
+          ) && let Some(module) = self.module_graph.get_module(dep.id())
           {
             Some(vec![(module.identifier(), BailoutFlag::CONTAINER_EXPOSED)])
           } else {
