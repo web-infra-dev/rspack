@@ -2,14 +2,14 @@
 const config = {
 	experiments: {
 		rspackFuture: {
-			newTreeshaking: true
-		}
+			newTreeshaking: true,
+		},
 	},
 	builtins: {
-		treeShaking: false
+		treeShaking: false,
 	},
 	optimization: {
-		sideEffects: true
-	}
+		sideEffects: true,
+	},
 };
 module.exports = config;

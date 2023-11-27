@@ -2,11 +2,11 @@
 const config = {
 	experiments: {
 		rspackFuture: {
-			newTreeshaking: true
-		}
+			newTreeshaking: true,
+		},
 	},
 	builtins: {
-		treeShaking: false
-	}
+		treeShaking: false,
+	},
 };
 module.exports = config;
