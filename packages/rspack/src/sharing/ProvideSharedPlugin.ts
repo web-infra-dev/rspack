@@ -51,7 +51,7 @@ export class ProvideSharedPlugin extends RspackBuiltinPlugin {
 	raw(compiler: Compiler): BuiltinPlugin {
 		ModuleFederationRuntimePlugin.addPlugin(
 			compiler,
-			require.resolve("../sharing/initializeSharing.js")
+			require.resolve("./initializeSharing.js")
 		);
 		return {
 			name: this.name as any,

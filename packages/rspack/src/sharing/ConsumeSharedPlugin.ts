@@ -81,11 +81,11 @@ export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
 	raw(compiler: Compiler): BuiltinPlugin {
 		ModuleFederationRuntimePlugin.addPlugin(
 			compiler,
-			require.resolve("../sharing/initializeSharing.js")
+			require.resolve("./initializeSharing.js")
 		);
 		ModuleFederationRuntimePlugin.addPlugin(
 			compiler,
-			require.resolve("../sharing/consumesLoading.js")
+			require.resolve("./consumesLoading.js")
 		);
 		return {
 			name: this.name as any,
