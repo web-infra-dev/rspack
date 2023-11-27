@@ -3,6 +3,7 @@ use std::sync::Arc;
 use rspack_ast::javascript::Ast;
 use rspack_core::Devtool;
 use rspack_error::{internal_error, Result};
+use swc_core::base::config::JsMinifyFormatOptions;
 use swc_core::{
   common::{
     collections::AHashMap, comments::Comments, source_map::SourceMapGenConfig, BytePos, FileName,
@@ -28,6 +29,7 @@ pub struct CodegenOptions {
   pub keep_comments: Option<bool>,
   pub minify: Option<bool>,
   pub ascii_only: Option<bool>,
+  pub inline_script: Option<bool>,
 }
 
 impl CodegenOptions {
@@ -40,6 +42,7 @@ impl CodegenOptions {
         names: Default::default(),
       },
       keep_comments,
+      inline_script: Some(false),
       ..Default::default()
     }
   }
@@ -51,7 +54,11 @@ pub fn stringify(ast: &Ast, options: CodegenOptions) -> Result<TransformOutput> 
     let target = options.target.unwrap_or(EsVersion::latest());
     let source_map_options = options.source_map_config;
     let minify = options.minify.unwrap_or_default();
-    let ascii_only = options.ascii_only.unwrap_or_default();
+    let format_opt = JsMinifyFormatOptions {
+      inline_script: options.inline_script.unwrap_or(true),
+      ascii_only: options.ascii_only.unwrap_or_default(),
+      ..Default::default()
+    };
     print(
       program.get_inner_program(),
       context.source_map.clone(),
@@ -62,7 +69,7 @@ pub fn stringify(ast: &Ast, options: CodegenOptions) -> Result<TransformOutput> 
         .unwrap_or_default()
         .then(|| program.comments.as_ref().map(|c| c as &dyn Comments))
         .flatten(),
-      ascii_only,
+      &format_opt,
     )
   })
 }
@@ -74,7 +81,7 @@ pub fn print(
   source_map_config: SourceMapConfig,
   minify: bool,
   comments: Option<&dyn Comments>,
-  ascii_only: bool,
+  format: &JsMinifyFormatOptions,
 ) -> Result<TransformOutput> {
   let mut src_map_buf = vec![];
 
@@ -100,7 +107,8 @@ pub fn print(
         cfg: codegen::Config::default()
           .with_minify(minify)
           .with_target(target)
-          .with_ascii_only(ascii_only),
+          .with_ascii_only(format.ascii_only)
+          .with_inline_script(format.inline_script),
         comments,
         cm: source_map.clone(),
         wr,

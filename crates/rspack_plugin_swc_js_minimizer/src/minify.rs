@@ -294,7 +294,7 @@ pub fn minify(
           },
           true,
           Some(&comments),
-          opts.format.ascii_only,
+          &opts.format,
         )
       },
     )
