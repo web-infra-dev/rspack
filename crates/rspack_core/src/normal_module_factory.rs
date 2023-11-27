@@ -636,6 +636,7 @@ impl NormalModuleFactory {
       dependency_type: data.dependency.dependency_type().clone(),
       resolve_data_request: dependency.request(),
       resource_resolve_data: resource_data.clone(),
+      context: data.context.clone(),
     };
     let module = if let Some(module) = self
       .plugin_driver

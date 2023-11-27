@@ -148,6 +148,7 @@ export const enum BuiltinPluginName {
   ContainerReferencePlugin = 'ContainerReferencePlugin',
   ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
   ProvideSharedPlugin = 'ProvideSharedPlugin',
+  ConsumeSharedPlugin = 'ConsumeSharedPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -616,6 +617,19 @@ export interface RawCacheOptions {
 
 export interface RawChunkOptionNameCtx {
   module: JsModule
+}
+
+export interface RawConsumeOptions {
+  key: string
+  import?: string
+  importResolved?: string
+  shareKey: string
+  shareScope: string
+  requiredVersion?: string | false | undefined
+  packageName?: string
+  strictVersion: boolean
+  singleton: boolean
+  eager: boolean
 }
 
 export interface RawContainerPluginOptions {

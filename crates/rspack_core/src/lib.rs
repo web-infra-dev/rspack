@@ -98,6 +98,7 @@ pub enum SourceType {
   Asset,
   Remote,
   ShareInit,
+  ConsumeShared,
   #[default]
   Unknown,
 }
@@ -111,6 +112,7 @@ impl std::fmt::Display for SourceType {
       SourceType::Asset => write!(f, "asset"),
       SourceType::Remote => write!(f, "remote"),
       SourceType::ShareInit => write!(f, "share-init"),
+      SourceType::ConsumeShared => write!(f, "consume-shared"),
       SourceType::Unknown => write!(f, "unknown"),
     }
   }
@@ -138,7 +140,8 @@ pub enum ModuleType {
   Asset,
   Runtime,
   Remote,
-  Provide,
+  ProvideShared,
+  ConsumeShared,
 }
 
 impl ModuleType {
@@ -224,7 +227,8 @@ impl ModuleType {
       ModuleType::AssetInline => "asset/inline",
       ModuleType::Runtime => "runtime",
       ModuleType::Remote => "remote-module",
-      ModuleType::Provide => "provide-module",
+      ModuleType::ProvideShared => "provide-module",
+      ModuleType::ConsumeShared => "consume-shared-module",
     }
   }
 }

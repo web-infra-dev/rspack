@@ -1,5 +1,6 @@
 import { Compiler } from "../Compiler";
 import { parseOptions } from "../container/options";
+import { ConsumeSharedPlugin } from "./ConsumeSharedPlugin";
 import { ProvideSharedPlugin } from "./ProvideSharedPlugin";
 import { isRequiredVersion } from "./utils";
 
@@ -76,10 +77,10 @@ export class SharePlugin {
 	}
 
 	apply(compiler: Compiler) {
-		// new ConsumeSharedPlugin({
-		// 	shareScope: this._shareScope,
-		// 	consumes: this._consumes
-		// }).apply(compiler);
+		new ConsumeSharedPlugin({
+			shareScope: this._shareScope,
+			consumes: this._consumes
+		}).apply(compiler);
 		new ProvideSharedPlugin({
 			shareScope: this._shareScope,
 			provides: this._provides

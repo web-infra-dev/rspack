@@ -3,7 +3,7 @@ use std::fmt;
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_error::{Error, InternalError, Result, Severity};
+use rspack_error::Result;
 use rspack_loader_runner::ResourceData;
 use rustc_hash::FxHashMap;
 use tokio::sync::RwLock;
@@ -83,7 +83,7 @@ impl ProvideSharedPlugin {
   #[allow(clippy::too_many_arguments)]
   pub async fn provide_shared_module(
     &self,
-    key: &str,
+    _key: &str,
     share_key: &str,
     share_scope: &str,
     version: Option<&ProvideVersion>,
@@ -91,7 +91,8 @@ impl ProvideSharedPlugin {
     resource: &str,
     resource_data: &ResourceData,
   ) -> Result<()> {
-    let error_header = "No version specified and unable to automatically determine one.";
+    // TODO: emit warning
+    // let error_header = "No version specified and unable to automatically determine one.";
     if let Some(version) = version {
       self.resolved_provide_map.write().await.insert(
         resource.to_string(),
@@ -117,10 +118,10 @@ impl ProvideSharedPlugin {
           },
         );
       } else {
-        return Err(Error::InternalError(InternalError::new(format!("{error_header} No version in description file (usually package.json). Add version to description file {}, or manually specify version in shared config. shared module {key} -> {resource}", description.path().display()), Severity::Warn)));
+        // return Err(Error::InternalError(InternalError::new(format!("{error_header} No version in description file (usually package.json). Add version to description file {}, or manually specify version in shared config. shared module {key} -> {resource}", description.path().display()), Severity::Warn)));
       }
     } else {
-      return Err(Error::InternalError(InternalError::new(format!("{error_header} No description file (usually package.json) found. Add description file with name and version, or manually specify version in shared config. shared module {key} -> {resource}"), Severity::Warn)));
+      // return Err(Error::InternalError(InternalError::new(format!("{error_header} No description file (usually package.json) found. Add description file with name and version, or manually specify version in shared config. shared module {key} -> {resource}"), Severity::Warn)));
     }
     Ok(())
   }

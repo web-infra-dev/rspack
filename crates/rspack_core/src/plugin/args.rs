@@ -87,6 +87,7 @@ pub struct NormalModuleCreateData<'a> {
   pub dependency_type: DependencyType,
   pub resolve_data_request: &'a str,
   pub resource_resolve_data: ResourceData,
+  pub context: Context,
 }
 
 #[derive(Debug, Clone)]

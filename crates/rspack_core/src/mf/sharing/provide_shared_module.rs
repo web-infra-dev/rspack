@@ -40,18 +40,16 @@ impl ProvideSharedModule {
     request: String,
     eager: bool,
   ) -> Self {
+    let identifier = format!(
+      "provide shared module ({}) {}@{} = {}",
+      &share_scope, &name, &version, &request
+    );
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
-      identifier: ModuleIdentifier::from(format!(
-        "provide shared module ({}) {}@{} = {}",
-        &share_scope, &name, &version, &request
-      )),
+      identifier: ModuleIdentifier::from(identifier.clone()),
       lib_ident: format!("webpack/sharing/provide/{}/{}", &share_scope, &name),
-      readable_identifier: format!(
-        "provide shared module ({}) {}@{} = {}",
-        &share_scope, &name, &version, &request
-      ),
+      readable_identifier: identifier,
       name,
       share_scope,
       version,
@@ -92,7 +90,7 @@ impl Module for ProvideSharedModule {
   }
 
   fn module_type(&self) -> &ModuleType {
-    &ModuleType::Provide
+    &ModuleType::ProvideShared
   }
 
   fn source_types(&self) -> &[SourceType] {

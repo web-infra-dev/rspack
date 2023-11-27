@@ -7,7 +7,7 @@ const ModuleFederationRuntimePlugin2 = create(
 	() => undefined
 );
 
-const compilerToPlugins = new WeakMap<Compiler, string[]>();
+const compilerToPlugins = new WeakMap<Compiler, Set<string>>();
 
 export class ModuleFederationRuntimePlugin {
 	apply(compiler: Compiler) {
@@ -19,7 +19,7 @@ export class ModuleFederationRuntimePlugin {
 				const plugins = compilerToPlugins.get(compiler);
 				if (plugins) {
 					// TODO: move to rust side so don't depend on dataUrl?
-					const entry = plugins.map(p => `import "${p}";`).join("\n");
+					const entry = [...plugins].map(p => `import "${p}";`).join("\n");
 					new EntryPlugin(compiler.context, `data:text/javascript,${entry}`, {
 						name: undefined
 					}).apply(compiler);
@@ -32,8 +32,8 @@ export class ModuleFederationRuntimePlugin {
 	static addPlugin(compiler: Compiler, plugin: string) {
 		let plugins = compilerToPlugins.get(compiler);
 		if (!plugins) {
-			compilerToPlugins.set(compiler, (plugins = []));
+			compilerToPlugins.set(compiler, (plugins = new Set()));
 		}
-		plugins.push(plugin);
+		plugins.add(plugin);
 	}
 }

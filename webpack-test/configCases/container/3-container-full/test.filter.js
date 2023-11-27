@@ -1,1 +1,3 @@
-module.exports = () => {return false}
+const { FilteredStatus } = require("../../../lib/util/filterUtil")
+
+module.exports = () => {return [FilteredStatus.PARTIAL_PASS, "Emit detect version warning"]}
