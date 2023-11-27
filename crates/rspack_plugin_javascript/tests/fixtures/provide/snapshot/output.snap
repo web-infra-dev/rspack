@@ -5,8 +5,8 @@ source: crates/rspack_testing/src/run_fixture.rs
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 // var process = {};
-var process = __webpack_require__(/* ./process.js */"./process.js");
-var name = __webpack_require__(/* ./name.js */"./name.js");
+var process = __webpack_require__(/*! ./process.js */"./process.js");
+var name = __webpack_require__(/*! ./name.js */"./name.js");
 console.log(process.env);
 (function(process) {
     console.log(process, process[0], process.env);
