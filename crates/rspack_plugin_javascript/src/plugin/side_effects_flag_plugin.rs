@@ -1,10 +1,14 @@
+use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
-use rspack_core::{Compilation, ConnectionState, ModuleGraph, Plugin, ResolvedExportInfoTarget};
+use rspack_core::{
+  Compilation, ConnectionState, ModuleGraph, ModuleIdentifier, Plugin, ResolvedExportInfoTarget,
+};
 use rspack_error::Result;
+use rspack_identifier::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 // use rspack_core::Plugin;
 // use rspack_error::Result;
@@ -415,14 +419,18 @@ impl Plugin for SideEffectsFlagPlugin {
   async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
     // SAFETY: this method will not modify the map, and we can guarantee there is no other
     // thread access the map at the same time.
+    let mut entries = compilation.entry_modules().collect::<Vec<_>>();
     let mg = &mut compilation.module_graph;
-    let module_id_list = mg
-      .module_identifier_to_module
-      .keys()
-      .cloned()
-      .collect::<Vec<_>>();
-    for module_identifier in module_id_list {
+    let level_id = level_order(mg, entries);
+    dbg!(&level_id);
+    // let module_id_list = mg
+    //   .module_identifier_to_module
+    //   .keys()
+    //   .cloned()
+    //   .collect::<Vec<_>>();
+    for module_identifier in level_id {
       let mut module_chain = HashSet::default();
+      dbg!(&module_identifier);
       let Some(module) = mg.module_by_identifier(&module_identifier) else {
         continue;
       };
@@ -438,6 +446,7 @@ impl Plugin for SideEffectsFlagPlugin {
           continue;
         };
         let dep_id = *dep.id();
+        dbg!(&dep_id.get_dependency(mg).dependency_debug_name());
         let is_reexport = dep
           .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
           .is_some();
@@ -489,6 +498,7 @@ impl Plugin for SideEffectsFlagPlugin {
         }
 
         let ids = dep_id.get_ids(mg);
+        dbg!(&ids);
 
         if !ids.is_empty() {
           let export_info_id = cur_exports_info_id.get_export_info(&ids[0], mg);
@@ -526,4 +536,28 @@ impl Plugin for SideEffectsFlagPlugin {
     }
     Ok(None)
   }
+}
+
+fn level_order(mg: &ModuleGraph, entries: Vec<ModuleIdentifier>) -> Vec<ModuleIdentifier> {
+  let mut res = vec![];
+  let mut visited = IdentifierSet::default();
+  for entry in entries {
+    let mut q = VecDeque::from_iter([entry]);
+    while let Some(mi) = q.pop_front() {
+      if visited.contains(&mi) {
+        continue;
+      } else {
+        visited.insert(mi);
+        res.push(mi);
+      }
+      let Some(m) = mg.module_by_identifier(&mi) else {
+        continue;
+      };
+      for con in mg.get_outgoing_connections(m) {
+        let mi = con.module_identifier;
+        q.push_back(mi);
+      }
+    }
+  }
+  res
 }

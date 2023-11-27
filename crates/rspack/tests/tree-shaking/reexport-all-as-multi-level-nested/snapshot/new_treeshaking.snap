@@ -7,10 +7,8 @@ source: crates/rspack_testing/src/run_fixture.rs
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  a: function() { return a; },
-  aa: function() { return _aa__WEBPACK_IMPORTED_MODULE_0__; }
+  a: function() { return a; }
 });
-/* harmony import */var _aa__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./aa */"./package/autogen/aa.js");
 
  function a() {}
  function dddd() {}
@@ -29,9 +27,10 @@ __webpack_require__.d(__webpack_exports__, {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _package_src_index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ../package/src/index.js */"./package/autogen/a.js");
+/* harmony import */var _package_src_index_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/* ../package/src/index.js */"./package/autogen/aa.js");
 
 _package_src_index_js__WEBPACK_IMPORTED_MODULE_0__.a;
-_package_src_index_js__WEBPACK_IMPORTED_MODULE_0__.aa.aa;
+_package_src_index_js__WEBPACK_IMPORTED_MODULE_1__.aa;
 }),
 
 },function(__webpack_require__) {
