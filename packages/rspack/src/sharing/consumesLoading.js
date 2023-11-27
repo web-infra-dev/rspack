@@ -555,7 +555,9 @@ if (__webpack_require__.MF) {
 			});
 		}
 	};
-	__webpack_require__.MF.initialConsumes(
-		__webpack_require__.MF.initialConsumesData
-	);
+	if (__webpack_require__.MF.initialConsumesData) {
+		__webpack_require__.MF.initialConsumes(
+			__webpack_require__.MF.initialConsumesData
+		);
+	}
 }

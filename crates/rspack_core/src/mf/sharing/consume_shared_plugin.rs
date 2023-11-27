@@ -241,6 +241,7 @@ impl ConsumeSharedPlugin {
       if let Some(package_name) = package_name
         && let Some(data) = get_description_file(context.as_ref()).await
       {
+        // TODO: emit warning
         get_required_version_from_description_file(data, package_name)
       } else {
         None
