@@ -2,7 +2,7 @@
 +++ actual
 @@ -11,11 +11,11 @@
  });
- /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./lib */"./lib.js");
+ /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
  
 - class Lib extends /* "./lib" unused */null {
 + class Lib extends (/* unused pure expression or super */ null && (OriginLib)) {

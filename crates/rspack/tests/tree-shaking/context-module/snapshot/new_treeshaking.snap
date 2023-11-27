@@ -47,7 +47,7 @@ webpackContext.id = '"./child Sync  recursive ^\\.\\/.*\\.js$"';
       }),
 "./index.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 let a = "index";
-__webpack_require__(/* ./child */"./child Sync  recursive ^\\.\\/.*\\.js$")((`./child/${a}.js`).replace('./child/', './'));
+__webpack_require__(/*! ./child */"./child Sync  recursive ^\\.\\/.*\\.js$")((`./child/${a}.js`).replace('./child/', './'));
 }),
 
 },function(__webpack_require__) {
