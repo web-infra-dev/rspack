@@ -145,6 +145,27 @@ export const container = {
 	ModuleFederationPlugin
 };
 
+import { ProvideSharedPlugin } from "./sharing/ProvideSharedPlugin";
+import { SharePlugin } from "./sharing/SharePlugin";
+export type {
+	ProvideSharedPluginOptions,
+	Provides,
+	ProvidesConfig,
+	ProvidesItem,
+	ProvidesObject
+} from "./sharing/ProvideSharedPlugin";
+export type {
+	SharePluginOptions,
+	Shared,
+	SharedConfig,
+	SharedItem,
+	SharedObject
+} from "./sharing/SharePlugin";
+export const sharing = {
+	ProvideSharedPlugin,
+	SharePlugin
+};
+
 ///// Rspack Postfixed Internal Plugins /////
 export { HtmlRspackPlugin } from "./builtin-plugin";
 export type { HtmlRspackPluginOptions } from "./builtin-plugin";

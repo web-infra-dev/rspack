@@ -81,8 +81,14 @@ static TREE_DEPENDENCIES: Lazy<Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>> = Laz
       RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
       vec![RuntimeGlobals::HAS_OWN_PROPERTY],
     ),
-    // (RuntimeGlobals::INITIALIZE_SHARING, [RuntimeGlobals::SHARE_SCOPE_MAP]),
-    // (RuntimeGlobals::SHARE_SCOPE_MAP, [RuntimeGlobals::HAS_OWN_PROPERTY]),
+    (
+      RuntimeGlobals::INITIALIZE_SHARING,
+      vec![RuntimeGlobals::SHARE_SCOPE_MAP],
+    ),
+    (
+      RuntimeGlobals::SHARE_SCOPE_MAP,
+      vec![RuntimeGlobals::HAS_OWN_PROPERTY],
+    ),
     (
       RuntimeGlobals::HARMONY_MODULE_DECORATOR,
       vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],

@@ -2,6 +2,7 @@ use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 
 use rspack_hash::RspackHash;
+use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -82,8 +83,10 @@ pub struct FactorizeArgs<'me> {
 }
 
 #[derive(Debug, Clone)]
-pub struct NormalModuleCreateData {
+pub struct NormalModuleCreateData<'a> {
   pub dependency_type: DependencyType,
+  pub resolve_data_request: &'a str,
+  pub resource_resolve_data: ResourceData,
 }
 
 #[derive(Debug, Clone)]

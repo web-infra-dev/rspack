@@ -147,6 +147,7 @@ export const enum BuiltinPluginName {
   ContainerPlugin = 'ContainerPlugin',
   ContainerReferencePlugin = 'ContainerReferencePlugin',
   ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
+  ProvideSharedPlugin = 'ProvideSharedPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -1007,6 +1008,14 @@ export interface RawPresetEnv {
 export interface RawProgressPluginOptions {
   prefix: string
   profile: boolean
+}
+
+export interface RawProvideOptions {
+  key: string
+  shareKey: string
+  shareScope: string
+  version?: string | false | undefined
+  eager: boolean
 }
 
 export interface RawReactOptions {

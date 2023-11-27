@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use itertools::Itertools;
 use rspack_error::{internal_error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -145,6 +146,33 @@ impl<'me> CodeSplitter<'me> {
           entrypoint.ukey,
         );
       }
+
+      let global_included_modules = compilation
+        .global_entry
+        .include_dependencies
+        .iter()
+        .filter_map(|dep| {
+          compilation
+            .module_graph
+            .module_identifier_by_dependency_id(dep)
+        })
+        .copied()
+        .sorted_unstable();
+      let included_modules = entry_data
+        .include_dependencies
+        .iter()
+        .filter_map(|dep| {
+          compilation
+            .module_graph
+            .module_identifier_by_dependency_id(dep)
+        })
+        .copied()
+        .sorted_unstable();
+      let included_modules = global_included_modules.chain(included_modules);
+      input_entrypoints_and_modules
+        .entry(entrypoint.ukey)
+        .or_default()
+        .extend(included_modules);
     }
 
     let mut runtime_chunks = HashSet::default();

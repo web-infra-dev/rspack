@@ -632,11 +632,14 @@ impl NormalModuleFactory {
 
     self.context.module_type = Some(resolved_module_type);
 
+    let create_data = NormalModuleCreateData {
+      dependency_type: data.dependency.dependency_type().clone(),
+      resolve_data_request: dependency.request(),
+      resource_resolve_data: resource_data.clone(),
+    };
     let module = if let Some(module) = self
       .plugin_driver
-      .create_module(NormalModuleCreateData {
-        dependency_type: data.dependency.dependency_type().clone(),
-      })
+      .normal_module_factory_create_module(&create_data)
       .await?
     {
       module
@@ -658,6 +661,11 @@ impl NormalModuleFactory {
       );
       Box::new(normal_module)
     };
+
+    let module = self
+      .plugin_driver
+      .normal_module_factory_module(module, &create_data)
+      .await?;
 
     Ok(Some(
       ModuleFactoryResult::new(module)
