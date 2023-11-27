@@ -129,6 +129,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
         emit_columns: !devtool.cheap(),
         names: Default::default(),
       },
+      inline_script: Some(false),
       keep_comments: Some(true),
     };
     let program = c.transform(built)?;
