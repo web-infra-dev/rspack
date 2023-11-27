@@ -417,20 +417,12 @@ pub struct SideEffectsFlagPlugin;
 #[async_trait]
 impl Plugin for SideEffectsFlagPlugin {
   async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
-    // SAFETY: this method will not modify the map, and we can guarantee there is no other
-    // thread access the map at the same time.
-    let mut entries = compilation.entry_modules().collect::<Vec<_>>();
+    let entries = compilation.entry_modules().collect::<Vec<_>>();
     let mg = &mut compilation.module_graph;
-    let level_id = level_order(mg, entries);
-    dbg!(&level_id);
-    // let module_id_list = mg
-    //   .module_identifier_to_module
-    //   .keys()
-    //   .cloned()
-    //   .collect::<Vec<_>>();
-    for module_identifier in level_id {
+    let level_order_module_identifier = get_level_order_module_ids(mg, entries);
+    for module_identifier in level_order_module_identifier {
       let mut module_chain = HashSet::default();
-      dbg!(&module_identifier);
+      // dbg!(&module_identifier);
       let Some(module) = mg.module_by_identifier(&module_identifier) else {
         continue;
       };
@@ -446,7 +438,6 @@ impl Plugin for SideEffectsFlagPlugin {
           continue;
         };
         let dep_id = *dep.id();
-        dbg!(&dep_id.get_dependency(mg).dependency_debug_name());
         let is_reexport = dep
           .downcast_ref::<HarmonyExportImportedSpecifierDependency>()
           .is_some();
@@ -498,7 +489,7 @@ impl Plugin for SideEffectsFlagPlugin {
         }
 
         let ids = dep_id.get_ids(mg);
-        dbg!(&ids);
+        // dbg!(&ids);
 
         if !ids.is_empty() {
           let export_info_id = cur_exports_info_id.get_export_info(&ids[0], mg);
@@ -538,7 +529,10 @@ impl Plugin for SideEffectsFlagPlugin {
   }
 }
 
-fn level_order(mg: &ModuleGraph, entries: Vec<ModuleIdentifier>) -> Vec<ModuleIdentifier> {
+fn get_level_order_module_ids(
+  mg: &ModuleGraph,
+  entries: Vec<ModuleIdentifier>,
+) -> Vec<ModuleIdentifier> {
   let mut res = vec![];
   let mut visited = IdentifierSet::default();
   for entry in entries {

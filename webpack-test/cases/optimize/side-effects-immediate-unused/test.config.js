@@ -5,6 +5,9 @@ const config = {
 		rspackFuture: {
 			newTreeshaking: true
 		}
-	}
+	},
+        builtins: {
+             treeShaking: false
+         }
 }
 module.exports = config
