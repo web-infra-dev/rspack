@@ -636,7 +636,6 @@ impl ModuleGraph {
     mut connection: ModuleGraphConnection,
     module_identifier: ModuleIdentifier,
   ) -> ModuleGraphConnection {
-    let old_connection_module_id = connection.module_identifier;
     let old_connection_original_module_id = connection.original_module_identifier;
     let old_connection_dependency_id = connection.dependency_id;
     let new_connection_id = ConnectionId::from(mg.connections.len());
@@ -655,7 +654,7 @@ impl ModuleGraph {
       .insert(new_connection_id, old_connection_dependency_id);
 
     let mgm = mg
-      .module_graph_module_by_identifier_mut(&old_connection_module_id)
+      .module_graph_module_by_identifier_mut(&module_identifier)
       .expect("should have mgm");
 
     mgm.add_incoming_connection(new_connection_id);
