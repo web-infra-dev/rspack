@@ -129,7 +129,7 @@ const describeCases = config => {
 											mangleExports: true,
 											emitOnErrors: true,
 											concatenateModules: false,
-										innerGraph: true,
+											innerGraph: true,
 											// TODO: size is not supported yet
 											// moduleIds: "size",
 											// chunkIds: "size",

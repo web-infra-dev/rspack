@@ -224,10 +224,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           SyntaxContextInfo::new(unresolved_ctxt),
           program.comments.as_ref(),
         );
-        // dbg!(&module_identifier);
         program.visit_with(&mut visitor);
         build_meta.side_effect_free = Some(visitor.side_effects_span.is_none());
-        // dbg!(&build_meta.side_effect_free);
       });
     }
 
