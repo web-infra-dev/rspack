@@ -41,15 +41,15 @@ impl ConsumeSharedModule {
         .unwrap_or_else(|| "*".to_string()),
       options
         .strict_version
-        .then(|| " (strict)")
+        .then_some(" (strict)")
         .unwrap_or_default(),
-      options.singleton.then(|| " (strict)").unwrap_or_default(),
+      options.singleton.then_some(" (strict)").unwrap_or_default(),
       options
         .import_resolved
         .as_ref()
         .map(|f| format!(" (fallback: {f})"))
         .unwrap_or_default(),
-      options.eager.then(|| " (eager)").unwrap_or_default(),
+      options.eager.then_some(" (eager)").unwrap_or_default(),
     );
     Self {
       blocks: Vec::new(),
@@ -177,7 +177,7 @@ impl Module for ConsumeSharedModule {
       serde_json::to_string(&self.options.share_scope)
         .expect("share_scope should able to json to_string"),
       serde_json::to_string(&self.options.share_key)
-        .expect("share_key shuold able to json to_string"),
+        .expect("share_key should able to json to_string"),
     ];
     if let Some(version) = &self.options.required_version {
       if self.options.strict_version {
@@ -190,10 +190,8 @@ impl Module for ConsumeSharedModule {
         .expect("ConsumeVersion should able to json to_string");
       args.push(format!("loaders.parseRange({})", version));
       function += "VersionCheck";
-    } else {
-      if self.options.singleton {
-        function += "Singleton";
-      }
+    } else if self.options.singleton {
+      function += "Singleton";
     }
     if let Some(fallback) = &self.options.import {
       let code = if self.options.eager {

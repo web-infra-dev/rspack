@@ -69,9 +69,9 @@ fn resolve_matched_configs(
   let mut unresolved = FxHashMap::default();
   let mut prefixed = FxHashMap::default();
   for (request, config) in configs {
-    if RELATIVE_REQUEST.is_match(&request) {
+    if RELATIVE_REQUEST.is_match(request) {
       let Ok(ResolveResult::Resource(resource)) =
-        resolver.resolve(compilation.options.context.as_ref(), &request)
+        resolver.resolve(compilation.options.context.as_ref(), request)
       else {
         compilation
           .push_batch_diagnostic(internal_error!("Can't resolve shared module {request}").into());
@@ -79,7 +79,7 @@ fn resolve_matched_configs(
       };
       resolved.insert(resource.path.to_string_lossy().into_owned(), config.clone());
       compilation.file_dependencies.insert(resource.path);
-    } else if ABSOLUTE_REQUEST.is_match(&request) {
+    } else if ABSOLUTE_REQUEST.is_match(request) {
       resolved.insert(request.to_owned(), config.clone());
     } else if request.ends_with('/') {
       prefixed.insert(request.to_owned(), config.clone());
@@ -154,17 +154,17 @@ impl ConsumeSharedPlugin {
   }
 
   fn init_context(&self, compilation: &Compilation) {
-    let mut lock = self.compiler_context.lock().expect("shuold lock");
+    let mut lock = self.compiler_context.lock().expect("should lock");
     *lock = Some(compilation.options.context.clone());
   }
 
   fn get_context(&self) -> Context {
-    let lock = self.compiler_context.lock().expect("shuold lock");
+    let lock = self.compiler_context.lock().expect("should lock");
     lock.clone().expect("init_context first")
   }
 
   fn init_resolver(&self, compilation: &Compilation) {
-    let mut lock = self.resolver.lock().expect("shuold lock");
+    let mut lock = self.resolver.lock().expect("should lock");
     *lock = Some(
       compilation
         .resolver_factory
@@ -178,12 +178,12 @@ impl ConsumeSharedPlugin {
   }
 
   fn get_resolver(&self) -> Arc<Resolver> {
-    let lock = self.resolver.lock().expect("shuold lock");
+    let lock = self.resolver.lock().expect("should lock");
     lock.clone().expect("init_resolver first")
   }
 
   fn init_matched_consumes(&self, compilation: &mut Compilation, resolver: Arc<Resolver>) {
-    let mut lock = self.matched_consumes.lock().expect("shuold lock");
+    let mut lock = self.matched_consumes.lock().expect("should lock");
     *lock = Some(Arc::new(resolve_matched_configs(
       compilation,
       resolver,
@@ -192,7 +192,7 @@ impl ConsumeSharedPlugin {
   }
 
   fn get_matched_consumes(&self) -> Arc<MatchedConsumes> {
-    let lock = self.matched_consumes.lock().expect("shuold lock");
+    let lock = self.matched_consumes.lock().expect("should lock");
     lock.clone().expect("init_matched_consumes first")
   }
 
@@ -216,7 +216,7 @@ impl ConsumeSharedPlugin {
               context.clone()
             }
             .as_ref(),
-            &import,
+            import,
           )
           .ok()
       })
@@ -277,8 +277,8 @@ impl Plugin for ConsumeSharedPlugin {
     &self,
     args: ThisCompilationArgs<'_>,
   ) -> PluginThisCompilationHookOutput {
-    self.init_context(&args.this_compilation);
-    self.init_resolver(&args.this_compilation);
+    self.init_context(args.this_compilation);
+    self.init_resolver(args.this_compilation);
     self.init_matched_consumes(args.this_compilation, self.get_resolver());
     Ok(())
   }
@@ -345,7 +345,7 @@ impl Plugin for ConsumeSharedPlugin {
     let consumes = self.get_matched_consumes();
     if let Some(options) = consumes.resolved.get(resource) {
       let module = self
-        .create_consume_shared_module(&args.context, &resource, options.clone())
+        .create_consume_shared_module(&args.context, resource, options.clone())
         .await;
       return Ok(Some(module.boxed()));
     }
