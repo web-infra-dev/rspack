@@ -1,7 +1,7 @@
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  get_import_var, property_access, AsyncDependenciesBlockIdentifier, Compilation,
+  get_import_var, property_access, to_comment, AsyncDependenciesBlockIdentifier, Compilation,
   DependenciesBlock, DependencyId, ExportsType, FakeNamespaceObjectMode, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier, NormalInitFragment,
   RuntimeGlobals, TemplateContext,
@@ -125,8 +125,8 @@ pub fn get_exports_type_with_strict(
 
 pub fn module_id_expr(request: &str, module_id: &str) -> String {
   format!(
-    "/* {} */{}",
-    request,
+    "{}{}",
+    to_comment(request),
     serde_json::to_string(module_id).expect("should render module id")
   )
 }
