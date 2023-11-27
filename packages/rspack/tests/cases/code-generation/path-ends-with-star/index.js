@@ -1,6 +1,6 @@
-import { a } from "./star*/a";
-
-it("should generate valid code", async () => {
-	expect(a).toBe(1);
-	expect((await import("./star*/a")).a).toBe(1);
+it("skip windows", async () => {
+	if (process.platform !== "win32") {
+		await import("./entry");
+	}
+	expect("ok").toBe("ok");
 });
