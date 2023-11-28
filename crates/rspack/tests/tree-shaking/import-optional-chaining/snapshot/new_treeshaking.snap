@@ -1,6 +1,5 @@
 ---
 source: crates/rspack_testing/src/run_fixture.rs
-assertion_line: 146
 ---
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
@@ -15,7 +14,7 @@ __webpack_require__.d(__webpack_exports__, {
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./app */"./app.js");
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./app */"./app.js");
 
 function a() {
     _app__WEBPACK_IMPORTED_MODULE_0__.app.app?.a;

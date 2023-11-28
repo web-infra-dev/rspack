@@ -190,7 +190,7 @@ import rawModule from './raw.png';
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "d039dac81f5ffc79248d",
+  "hash": "62ac3b1146fb1565fbd4",
   "logging": {},
   "modules": [
     {
@@ -380,7 +380,7 @@ chunk {main} bundle.js (main) [entry]
   esm import ./stringModule [10]
 webpack/runtime/public_path {main}
 webpack/runtime/make_namespace_object {main}
-Rspack compiled successfully (d039dac81f5ffc79248d)"
+Rspack compiled successfully (62ac3b1146fb1565fbd4)"
 `;
 
 exports[`StatsTestCases should print correct stats for filename 1`] = `
@@ -544,7 +544,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "73d6dbf085ec9e712627",
+  "hash": "d11c74c648d060ebcdfd",
   "logging": {},
   "modules": [
     {
@@ -787,7 +787,7 @@ webpack/runtime/make_namespace_object {main}
 webpack/runtime/require_chunk_loading {main}
 webpack/runtime/define_property_getters {main}
 webpack/runtime/get_chunk_filename/__webpack_require__.u {main}
-Rspack compiled successfully (73d6dbf085ec9e712627)"
+Rspack compiled successfully (d11c74c648d060ebcdfd)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -1516,7 +1516,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "5a43126faa8aa34180ae",
+      "hash": "4da06cdbffcc858493d3",
       "logging": {},
       "modules": [
         {
@@ -2132,7 +2132,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "654182725b3a269e85d7",
+      "hash": "b7c4a03979d24b362924",
       "logging": {},
       "modules": [
         {
@@ -2818,7 +2818,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "c31e69fff0635b11a4a2",
+      "hash": "64096f05f9e44ebb2bba",
       "logging": {},
       "modules": [
         {
@@ -3538,7 +3538,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "614a08891b55fa664bf1",
+      "hash": "2a2f992ca23e8aee62a6",
       "logging": {},
       "modules": [
         {
@@ -3909,7 +3909,7 @@ import(/* webpackChunkName: "c" */ "./c");
   ],
   "errors": [],
   "errorsCount": 0,
-  "hash": "5a43126faa8aa34180ae654182725b3a269e85d7c31e69fff0635b11a4a2614a08891b55fa664bf1",
+  "hash": "4da06cdbffcc858493d3b7c4a03979d24b36292464096f05f9e44ebb2bba2a2f992ca23e8aee62a6",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -3948,7 +3948,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/make_namespace_object {main}
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
-  1 chunks compiled successfully (5a43126faa8aa34180ae)
+  1 chunks compiled successfully (4da06cdbffcc858493d3)
 
 2 chunks:
   PublicPath: (none)
@@ -3986,7 +3986,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/__webpack_require__.u {main}
-  2 chunks compiled successfully (654182725b3a269e85d7)
+  2 chunks compiled successfully (b7c4a03979d24b362924)
 
 3 chunks:
   PublicPath: (none)
@@ -4026,7 +4026,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/__webpack_require__.u {main}
-  3 chunks compiled successfully (c31e69fff0635b11a4a2)
+  3 chunks compiled successfully (64096f05f9e44ebb2bba)
 
 4 chunks:
   PublicPath: (none)
@@ -4068,7 +4068,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/__webpack_require__.u {main}
-  4 chunks compiled successfully (614a08891b55fa664bf1)"
+  4 chunks compiled successfully (2a2f992ca23e8aee62a6)"
 `;
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 1`] = `
@@ -5139,7 +5139,7 @@ console.log(a);
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "b6cb152656035d1a4dd0",
+  "hash": "26912d71518dd751cffb",
   "logging": {},
   "modules": [
     {
@@ -5340,7 +5340,7 @@ error[internal]: Resolve error
 
 
 
-Rspack compiled with 1 error (b6cb152656035d1a4dd0)"
+Rspack compiled with 1 error (26912d71518dd751cffb)"
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 1`] = `
@@ -5484,7 +5484,7 @@ console.log(a);
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "fa95ef35702693fe1d8e",
+  "hash": "a4659b8ec3c289e07669",
   "logging": {},
   "modules": [
     {
@@ -5679,7 +5679,7 @@ error[internal]: Export should be relative path and start with "./", but got ../
 
 
 
-Rspack compiled with 1 error (fa95ef35702693fe1d8e)"
+Rspack compiled with 1 error (a4659b8ec3c289e07669)"
 `;
 
 exports[`StatsTestCases should print correct stats for runtime-modules 1`] = `
@@ -6119,7 +6119,7 @@ import rawModule from './raw.png';
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "e5e69c13c4066c103b61",
+  "hash": "7a6e65b1aedebf8e24aa",
   "logging": {},
   "modules": [
     {
@@ -6325,7 +6325,7 @@ runtime modules 4 modules
 ./raw.png
 ./index.js
 ./stringModule.js
-Rspack compiled successfully (e5e69c13c4066c103b61)"
+Rspack compiled successfully (7a6e65b1aedebf8e24aa)"
 `;
 
 exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
