@@ -483,28 +483,76 @@ if (__webpack_require__.MF) {
 		if (!scope || !__webpack_require__.o(scope, key)) return fallback();
 		return getStrictSingletonVersion(scope, scopeName, key, version);
 	});
-	var loaders = {
-		parseRange: parseRange,
-		load: load,
-		loadFallback: loadFallback,
-		loadVersionCheck: loadVersionCheck,
-		loadSingleton: loadSingleton,
-		loadSingletonVersionCheck: loadSingletonVersionCheck,
-		loadStrictVersionCheck: loadStrictVersionCheck,
-		loadStrictSingletonVersionCheck: loadStrictSingletonVersionCheck,
-		loadVersionCheckFallback: loadVersionCheckFallback,
-		loadSingletonFallback: loadSingletonFallback,
-		loadSingletonVersionCheckFallback: loadSingletonVersionCheckFallback,
-		loadStrictVersionCheckFallback: loadStrictVersionCheckFallback,
-		loadStrictSingletonVersionCheckFallback:
-			loadStrictSingletonVersionCheckFallback
+	var resolveHandler = function (data) {
+		var strict = false;
+		var singleton = false;
+		var versionCheck = false;
+		var fallback = false;
+		var args = [data.shareScope, data.shareKey];
+		if (data.requiredVersion) {
+			if (data.strictVersion) strict = true;
+			if (data.singleton) singleton = true;
+			args.push(parseRange(data.requiredVersion));
+			versionCheck = true;
+		} else if (data.singleton) singleton = true;
+		if (data.fallback) {
+			fallback = true;
+			args.push(data.fallback);
+		}
+		if (strict && singleton && versionCheck && fallback)
+			return function () {
+				return loadStrictSingletonVersionCheckFallback.apply(null, args);
+			};
+		if (strict && versionCheck && fallback)
+			return function () {
+				return loadStrictVersionCheckFallback.apply(null, args);
+			};
+		if (singleton && versionCheck && fallback)
+			return function () {
+				return loadSingletonVersionCheckFallback.apply(null, args);
+			};
+		if (strict && singleton && versionCheck)
+			return function () {
+				return loadStrictSingletonVersionCheck.apply(null, args);
+			};
+		if (singleton && fallback)
+			return function () {
+				return loadSingletonFallback.apply(null, args);
+			};
+		if (versionCheck && fallback)
+			return function () {
+				return loadVersionCheckFallback.apply(null, args);
+			};
+		if (strict && versionCheck)
+			return function () {
+				return loadStrictVersionCheck.apply(null, args);
+			};
+		if (singleton && versionCheck)
+			return function () {
+				return loadSingletonVersionCheck.apply(null, args);
+			};
+		if (singleton)
+			return function () {
+				return loadSingleton.apply(null, args);
+			};
+		if (versionCheck)
+			return function () {
+				return loadVersionCheck.apply(null, args);
+			};
+		if (fallback)
+			return function () {
+				return loadFallback.apply(null, args);
+			};
+		return function () {
+			return load.apply(null, args);
+		};
 	};
 	var installedModules = {};
 	__webpack_require__.MF.consumes = function (data) {
 		var chunkId = data.chunkId,
 			promises = data.promises,
 			chunkMapping = data.chunkMapping,
-			moduleToHandlerMapping = data.moduleToHandlerMapping;
+			moduleToConsumeDataMapping = data.moduleToConsumeDataMapping;
 		if (__webpack_require__.o(chunkMapping, chunkId)) {
 			chunkMapping[chunkId].forEach(function (id) {
 				if (__webpack_require__.o(installedModules, id))
@@ -524,7 +572,7 @@ if (__webpack_require__.MF) {
 					};
 				};
 				try {
-					var promise = moduleToHandlerMapping[id](loaders);
+					var promise = resolveHandler(moduleToConsumeDataMapping[id])();
 					if (promise.then) {
 						promises.push(
 							(installedModules[id] = promise.then(onFactory)["catch"](onError))
@@ -538,14 +586,14 @@ if (__webpack_require__.MF) {
 	};
 	__webpack_require__.MF.initialConsumes = function (data) {
 		var initialConsumes = data.initialConsumes,
-			moduleToHandlerMapping = data.moduleToHandlerMapping;
+			moduleToConsumeDataMapping = data.moduleToConsumeDataMapping;
 		if (initialConsumes) {
 			initialConsumes.forEach(function (id) {
 				__webpack_require__.m[id] = function (module) {
 					// Handle case when module is used sync
 					installedModules[id] = 0;
 					delete __webpack_require__.c[id];
-					var factory = moduleToHandlerMapping[id](loaders);
+					var factory = resolveHandler(moduleToConsumeDataMapping[id])();
 					if (typeof factory !== "function")
 						throw new Error(
 							"Shared module is not available for eager consumption: " + id

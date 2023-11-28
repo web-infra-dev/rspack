@@ -9,7 +9,9 @@ use rspack_sources::Source;
 use super::{
   provide_for_shared_dependency::ProvideForSharedDependency,
   provide_shared_plugin::ProvideVersion,
-  share_runtime_module::{CodeGenerationDataShareInit, ShareInitData},
+  share_runtime_module::{
+    CodeGenerationDataShareInit, DataInitInfo, ProvideSharedInfo, ShareInitData,
+  },
 };
 use crate::{
   async_module_factory, sync_module_factory, AsyncDependenciesBlock,
@@ -154,34 +156,33 @@ impl Module for ProvideSharedModule {
     code_generation_result
       .runtime_requirements
       .insert(RuntimeGlobals::INITIALIZE_SHARING);
-    let init = format!(
-      "register({}, {}, {}{})",
-      serde_json::to_string(&self.name).expect("ProvideSharedModule name should able to json to_string"),
-      serde_json::to_string(&self.version.to_string()).expect("ProvideVersion::Version should able to json to_string in ProvideSharedModule::code_generation"),
-      if self.eager {
-        sync_module_factory(
-          &self.get_dependencies()[0],
-          &self.request,
-          compilation,
-          &mut code_generation_result.runtime_requirements,
-        )
-      } else {
-        async_module_factory(
-          &self.get_blocks()[0],
-          &self.request,
-          compilation,
-          &mut code_generation_result.runtime_requirements,
-        )
-      },
-      if self.eager { ", 1" } else { "" },
-    );
+    let factory = if self.eager {
+      sync_module_factory(
+        &self.get_dependencies()[0],
+        &self.request,
+        compilation,
+        &mut code_generation_result.runtime_requirements,
+      )
+    } else {
+      async_module_factory(
+        &self.get_blocks()[0],
+        &self.request,
+        compilation,
+        &mut code_generation_result.runtime_requirements,
+      )
+    };
     code_generation_result
       .data
       .insert(CodeGenerationDataShareInit {
         items: vec![ShareInitData {
           share_scope: self.share_scope.clone(),
           init_stage: 10,
-          init,
+          init: DataInitInfo::ProvideSharedInfo(ProvideSharedInfo {
+            name: self.name.clone(),
+            version: self.version.clone(),
+            factory,
+            eager: self.eager,
+          }),
         }],
       });
     Ok(code_generation_result)

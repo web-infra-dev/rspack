@@ -9,7 +9,7 @@ use rspack_sources::{RawSource, Source, SourceExt};
 
 use super::remote_to_external_dependency::RemoteToExternalDependency;
 use crate::{
-  mf::share_runtime_module::{CodeGenerationDataShareInit, ShareInitData},
+  mf::share_runtime_module::{CodeGenerationDataShareInit, DataInitInfo, ShareInitData},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildResult,
   CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
   Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
@@ -160,10 +160,7 @@ impl Module for RemoteModule {
       items: vec![ShareInitData {
         share_scope: self.share_scope.clone(),
         init_stage: 20,
-        init: format!(
-          "initExternal({});",
-          serde_json::to_string(&id).expect("module_id should able to json to_string")
-        ),
+        init: DataInitInfo::ExternalModuleId(id.map(|i| i.to_owned())),
       }],
     });
     Ok(codegen)

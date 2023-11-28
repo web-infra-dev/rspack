@@ -46,7 +46,7 @@ impl ProvideOptions {
   }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub enum ProvideVersion {
   Version(String),
   #[default]

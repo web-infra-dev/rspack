@@ -4,14 +4,15 @@ use async_trait::async_trait;
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
-use rspack_sources::{RawSource, Source, SourceExt};
+use rspack_sources::Source;
 
 use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
   consume_shared_plugin::ConsumeOptions,
+  consume_shared_runtime_module::CodeGenerationDataConsumeShared,
 };
 use crate::{
-  async_module_factory, returning_function, sync_module_factory, AsyncDependenciesBlock,
+  async_module_factory, sync_module_factory, AsyncDependenciesBlock,
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildResult,
   CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
   Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
@@ -193,8 +194,8 @@ impl Module for ConsumeSharedModule {
     } else if self.options.singleton {
       function += "Singleton";
     }
-    if let Some(fallback) = &self.options.import {
-      let code = if self.options.eager {
+    let factory = self.options.import.as_ref().map(|fallback| {
+      if self.options.eager {
         sync_module_factory(
           &self.get_dependencies()[0],
           fallback,
@@ -208,15 +209,20 @@ impl Module for ConsumeSharedModule {
           compilation,
           &mut code_generation_result.runtime_requirements,
         )
-      };
-      function += "Fallback";
-      args.push(code);
-    };
-    function += "(";
-    function += &args.join(", ");
-    function += ")";
-    let code = returning_function(&function, "loaders");
-    code_generation_result.add(SourceType::ConsumeShared, RawSource::from(code).boxed());
+      }
+    });
+    code_generation_result
+      .data
+      .insert(CodeGenerationDataConsumeShared {
+        share_scope: self.options.share_scope.clone(),
+        share_key: self.options.share_key.clone(),
+        import: self.options.import.clone(),
+        required_version: self.options.required_version.clone(),
+        strict_version: self.options.strict_version,
+        singleton: self.options.singleton,
+        eager: self.options.eager,
+        fallback: factory,
+      });
     Ok(code_generation_result)
   }
 }
