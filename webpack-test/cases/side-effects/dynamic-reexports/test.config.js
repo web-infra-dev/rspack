@@ -8,5 +8,8 @@ const config = {
 	builtins: {
 		treeShaking: false,
 	},
+	optimization: {
+		sideEffects: true,
+	},
 };
 module.exports = config;
