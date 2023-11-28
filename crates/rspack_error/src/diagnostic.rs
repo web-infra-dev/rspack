@@ -158,6 +158,9 @@ impl From<Error> for Vec<Diagnostic> {
     vec![diagnostic]
   }
 }
+
 pub fn errors_to_diagnostics(errs: Vec<Error>) -> Vec<Diagnostic> {
   errs.into_iter().flat_map(Vec::<Diagnostic>::from).collect()
 }
+
+pub const DIAGNOSTIC_POS_DUMMY: usize = 0;

@@ -1,8 +1,21 @@
+const isWindows = process.platform === "win32";
+
+const entry = `
+it("should generate valid code", async () => {
+  ${
+		isWindows
+			? `expect("skip windows").toBe("skip windows");`
+			: `const { staticA, dynamicA } = await import("./entry.mjs"); expect(staticA.a).toBe(1); expect(dynamicA.a).toBe(1);`
+	}
+});
+`;
+
 module.exports = {
+	entry: `data:text/javascript,${entry}`,
 	plugins: [
 		function skipWindows(compiler) {
 			// windows' path can't include *
-			if (process.platform !== "win32") {
+			if (!isWindows) {
 				const fs = require("fs");
 				const path = require("path");
 				const dir = path.resolve(__dirname, "star*");

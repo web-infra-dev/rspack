@@ -123,7 +123,7 @@ impl Module for ProvideSharedModule {
     if self.eager {
       dependencies.push(dep as BoxDependency);
     } else {
-      let mut block = AsyncDependenciesBlock::new(self.identifier, "");
+      let mut block = AsyncDependenciesBlock::new(self.identifier, "", None);
       block.add_dependency(dep);
       blocks.push(block);
     }
