@@ -567,6 +567,10 @@ impl ExportInfoId {
     mg.get_export_info_by_id(self)
   }
 
+  pub fn get_export_info_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ExportInfo {
+    mg.get_export_info_mut_by_id(self)
+  }
+
   fn set_has_use_info(&self, mg: &mut ModuleGraph) {
     let export_info = mg.get_export_info_mut_by_id(self);
     if !export_info.has_use_in_runtime_info {
@@ -889,6 +893,19 @@ impl ExportInfo {
     }
   }
 
+  pub fn can_mangle(&self) -> Option<bool> {
+    match self.can_mangle_provide {
+      Some(true) => self.can_mangle_use,
+      Some(false) => Some(false),
+      None => {
+        if self.can_mangle_use == Some(false) {
+          Some(false)
+        } else {
+          None
+        }
+      }
+    }
+  }
   pub fn get_used(&self, _runtime: Option<&RuntimeSpec>) -> UsageState {
     if !self.has_use_in_runtime_info {
       return UsageState::NoInfo;
@@ -1224,6 +1241,14 @@ impl ExportInfo {
       exports_info.set_redirect_name_to(mg, Some(new_exports_info_id));
     }
     new_exports_info_id
+  }
+
+  pub fn has_used_name(&self) -> bool {
+    self.used_name.is_some()
+  }
+
+  pub fn set_used_name(&mut self, name: JsWord) {
+    self.used_name = Some(name);
   }
 }
 

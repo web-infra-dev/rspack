@@ -1288,6 +1288,10 @@ impl Compilation {
     plugin_driver.chunk_ids(self)?;
     logger.time_end(start);
 
+    let start = logger.time("optimize code generation");
+    plugin_driver.optimize_code_generation(self).await?;
+    logger.time_end(start);
+
     let start = logger.time("code generation");
     self.code_generation().await?;
     logger.time_end(start);
