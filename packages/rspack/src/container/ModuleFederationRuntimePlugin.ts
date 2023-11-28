@@ -19,7 +19,9 @@ export class ModuleFederationRuntimePlugin {
 				const plugins = compilerToPlugins.get(compiler);
 				if (plugins) {
 					// TODO: move to rust side so don't depend on dataUrl?
-					const entry = [...plugins].map(p => `import "${p}";`).join("\n");
+					const entry = [...plugins]
+						.map(p => `import ${JSON.stringify(p)};`)
+						.join("\n");
 					new EntryPlugin(compiler.context, `data:text/javascript,${entry}`, {
 						name: undefined
 					}).apply(compiler);

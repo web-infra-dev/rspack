@@ -1565,15 +1565,15 @@ checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 
 [[package]]
 name = "nodejs-resolver"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfd06bcc5adab8de32fbbc8e975b364b537fd91e7ae5dfb9ae88fd15980c334b"
+checksum = "517c9a4e74fdd7a26d38b1dca0cfff40af33ee3b1d5f379f7c9d711ba5a5d10d"
 dependencies = [
  "daachorse",
  "dashmap",
  "dunce",
- "indexmap 1.9.3",
- "jsonc-parser 0.21.1",
+ "indexmap 2.1.0",
+ "jsonc-parser 0.22.1",
  "once_cell",
  "path-absolutize",
  "rustc-hash",

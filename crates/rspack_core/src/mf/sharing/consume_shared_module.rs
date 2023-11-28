@@ -141,7 +141,7 @@ impl Module for ConsumeSharedModule {
       if self.options.eager {
         dependencies.push(dep as BoxDependency);
       } else {
-        let mut block = AsyncDependenciesBlock::new(self.identifier, "");
+        let mut block = AsyncDependenciesBlock::new(self.identifier, "", None);
         block.add_dependency(dep);
         blocks.push(block);
       }

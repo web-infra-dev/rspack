@@ -4,6 +4,7 @@ use rspack_error::{internal_error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
+use crate::dependencies_block::AsyncDependenciesToInitialChunkError;
 use crate::{
   get_entry_runtime, AsyncDependenciesBlockIdentifier, BoxDependency, ChunkGroup, ChunkGroupInfo,
   ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
@@ -77,11 +78,12 @@ impl<'me> CodeSplitter<'me> {
         .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
         .collect::<Vec<_>>();
 
-      let chunk = Compilation::add_named_chunk(
+      let chunk_ukey = Compilation::add_named_chunk(
         name.to_string(),
         &mut compilation.chunk_by_ukey,
         &mut compilation.named_chunks,
       );
+      let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
       if let Some(filename) = &entry_data.options.filename {
         chunk.filename_template = Some(filename.clone());
       }
@@ -173,6 +175,12 @@ impl<'me> CodeSplitter<'me> {
         .entry(entrypoint.ukey)
         .or_default()
         .extend(included_modules);
+
+      if let Some(name) = entrypoint.name() {
+        self
+          .named_chunk_groups
+          .insert(name.to_string(), entrypoint.ukey);
+      }
     }
 
     let mut runtime_chunks = HashSet::default();
@@ -211,11 +219,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
               .ok_or_else(|| anyhow!("no chunk found"))?
           }
           None => {
-            let chunk = Compilation::add_named_chunk(
+            let chunk_ukey = Compilation::add_named_chunk(
               runtime.to_string(),
               &mut compilation.chunk_by_ukey,
               &mut compilation.named_chunks,
             );
+            let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
             chunk.prevent_integration = true;
             chunk.chunk_reasons.push(format!("RuntimeChunk({name})",));
             compilation.chunk_graph.add_chunk(chunk.ukey);
@@ -524,7 +533,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .chunk_group_by_ukey
       .expect_get(&item_chunk_group_ukey);
 
-    let chunk = if let Some(chunk_name) = block.get_group_options().and_then(|x| x.name()) {
+    let chunk_ukey = if let Some(chunk_name) = block.get_group_options().and_then(|x| x.name()) {
       Compilation::add_named_chunk(
         chunk_name.to_string(),
         &mut self.compilation.chunk_by_ukey,
@@ -535,8 +544,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     };
     self
       .remove_parent_modules_context
-      .add_chunk_relation(item_chunk_ukey, chunk.ukey);
-    self.compilation.chunk_graph.add_chunk(chunk.ukey);
+      .add_chunk_relation(item_chunk_ukey, chunk_ukey);
+    self.compilation.chunk_graph.add_chunk(chunk_ukey);
 
     let entry_options = block.get_group_options().and_then(|o| o.entry_options());
     if let Some(cgi) = cgi {
@@ -556,6 +565,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
               .connect_block_and_chunk_group(block_id, *cgi);
             *cgi
           } else {
+            let chunk = self.compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
             if let Some(filename) = &entry_options.filename {
               chunk.filename_template = Some(filename.clone());
             }
@@ -617,7 +627,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .push(QueueAction::ProcessEntryBlock(ProcessEntryBlock {
             block: block_id,
             chunk_group: cgi,
-            chunk: chunk.ukey,
+            chunk: chunk_ukey,
           }));
         cgi
       } else if !item_chunk_group.info.async_chunks || !item_chunk_group.info.chunk_loading {
@@ -628,14 +638,31 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         }));
         return;
       } else {
-        let cgi = if let Some(cgi) = chunk_name.and_then(|name| self.named_chunk_groups.get(name)) {
-          // TODO: AsyncDependencyToInitialChunkError
+        let cgi = if let Some(chunk_name) = chunk_name
+          && let Some(cgi) = self.named_chunk_groups.get(chunk_name)
+        {
+          let mut res = *cgi;
+          if self
+            .compilation
+            .chunk_group_by_ukey
+            .expect_get(cgi)
+            .is_initial()
+          {
+            let error = AsyncDependenciesToInitialChunkError {
+              chunk_name,
+              loc: block.loc(),
+            };
+            self.compilation.push_diagnostic(error.into());
+            res = item_chunk_group_ukey;
+          }
+
           self
             .compilation
             .chunk_graph
             .connect_block_and_chunk_group(block_id, *cgi);
-          *cgi
+          res
         } else {
+          let chunk = self.compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
           chunk
             .chunk_reasons
             .push(format!("DynamicImport({:?})", block_id));
@@ -690,7 +717,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .push(QueueAction::ProcessBlock(ProcessBlock {
           block: block_id.into(),
           chunk_group: c,
-          chunk: chunk.ukey,
+          chunk: chunk_ukey,
         }));
     } else if let Some(entrypoint) = entrypoint {
       let item_chunk_group = self

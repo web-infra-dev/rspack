@@ -6,7 +6,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 "./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./shared */"./shared.js");
+/* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./shared */"./shared.js");
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
 
 console.log('a');
@@ -20,10 +20,10 @@ console.log('a');
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./shared */"./shared.js");
+/* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./shared */"./shared.js");
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
 
-__webpack_require__.el("./index.js@19:32").then(__webpack_require__.bind(__webpack_require__, /* ./a */"./a.js"));
+__webpack_require__.el("./index.js@19:32").then(__webpack_require__.bind(__webpack_require__, /*! ./a */"./a.js"));
 console.log('index');
 }),
 "./shared.js": (function (__unused_webpack_module, exports, __webpack_require__) {

@@ -346,30 +346,29 @@ impl Compilation {
     Stats::new(self)
   }
 
-  pub fn add_named_chunk<'chunk>(
+  pub fn add_named_chunk(
     name: String,
-    chunk_by_ukey: &'chunk mut ChunkByUkey,
+    chunk_by_ukey: &mut ChunkByUkey,
     named_chunks: &mut HashMap<String, ChunkUkey>,
-  ) -> &'chunk mut Chunk {
+  ) -> ChunkUkey {
     let existed_chunk_ukey = named_chunks.get(&name);
     if let Some(chunk_ukey) = existed_chunk_ukey {
-      let chunk = chunk_by_ukey
-        .get_mut(chunk_ukey)
-        .expect("This should not happen");
-      chunk
+      assert!(chunk_by_ukey.contains(chunk_ukey));
+      *chunk_ukey
     } else {
       let chunk = Chunk::new(Some(name.clone()), ChunkKind::Normal);
       let ukey = chunk.ukey;
       named_chunks.insert(name, chunk.ukey);
-      chunk_by_ukey.entry(ukey).or_insert_with(|| chunk)
+      chunk_by_ukey.entry(ukey).or_insert_with(|| chunk);
+      ukey
     }
   }
 
-  pub fn add_chunk(chunk_by_ukey: &mut ChunkByUkey) -> &mut Chunk {
+  pub fn add_chunk(chunk_by_ukey: &mut ChunkByUkey) -> ChunkUkey {
     let chunk = Chunk::new(None, ChunkKind::Normal);
     let ukey = chunk.ukey;
     chunk_by_ukey.add(chunk);
-    chunk_by_ukey.get_mut(&ukey).expect("chunk not found")
+    ukey
   }
 
   #[instrument(name = "compilation:make", skip_all)]

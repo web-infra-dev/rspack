@@ -16,7 +16,7 @@ var __WEBPACK_DEFAULT_EXPORT__ = (/* unused pure expression or super */ null && 
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./app */"./app.js");
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./app */"./app.js");
 
 _app__WEBPACK_IMPORTED_MODULE_0__.b;
 }),

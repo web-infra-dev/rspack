@@ -6,7 +6,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 "./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./b */"./b.js");
+/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./b */"./b.js");
 /* harmony import */var _b__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_b__WEBPACK_IMPORTED_MODULE_0__);
 
 console.log('a');
@@ -17,7 +17,7 @@ console.log('b');
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./a */"./a.js");
+/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a */"./a.js");
 
 console.log('hello, world');
 }),

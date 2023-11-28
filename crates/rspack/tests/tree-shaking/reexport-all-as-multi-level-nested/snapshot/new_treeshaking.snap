@@ -10,6 +10,7 @@ __webpack_require__.d(__webpack_exports__, {
   a: function() { return a; }
 });
 
+
  function a() {}
  function dddd() {}
 
@@ -26,8 +27,10 @@ __webpack_require__.d(__webpack_exports__, {
 "./src/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+
 /* harmony import */var _package_src_index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ../package/src/index.js */"./package/autogen/a.js");
 /* harmony import */var _package_src_index_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/* ../package/src/index.js */"./package/autogen/aa.js");
+
 
 _package_src_index_js__WEBPACK_IMPORTED_MODULE_0__.a;
 _package_src_index_js__WEBPACK_IMPORTED_MODULE_1__.aa;

@@ -79,7 +79,7 @@ describe("Stats", () => {
 
 
 
-		Rspack compiled with 1 error (a57d43d912c94f9cf5f2)"
+		Rspack compiled with 1 error (9bed7a0c293db88bb175)"
 	`);
 	});
 
