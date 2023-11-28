@@ -31,7 +31,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _style_module_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./style.module.css */"./style.module.css");
+/* harmony import */var _style_module_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./style.module.css */"./style.module.css");
 
 }),
 "./b.module.css": (function (module, exports, __webpack_require__) {
