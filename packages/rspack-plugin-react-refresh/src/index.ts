@@ -1,6 +1,5 @@
 import path from "path";
 import type { Compiler } from "@rspack/core";
-import { DefinePlugin } from "@rspack/core";
 import { normalizeOptions, type PluginOptions } from "./options";
 
 export type { PluginOptions };
@@ -68,7 +67,7 @@ class ReactRefreshRspackPlugin {
 				)
 			)
 		};
-		new DefinePlugin(definedModules).apply(compiler);
+		new compiler.webpack.DefinePlugin(definedModules).apply(compiler);
 
 		const refreshPath = path.dirname(require.resolve("react-refresh"));
 		compiler.options.resolve.alias = {
