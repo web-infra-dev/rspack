@@ -274,7 +274,7 @@ impl SplitChunksPlugin {
 
         if index != last_index {
           let old_chunk = chunk.ukey;
-          let new_chunk = if let Some(name) = name {
+          let new_chunk_ukey = if let Some(name) = name {
             Compilation::add_named_chunk(
               name,
               &mut compilation.chunk_by_ukey,
@@ -283,8 +283,6 @@ impl SplitChunksPlugin {
           } else {
             Compilation::add_chunk(&mut compilation.chunk_by_ukey)
           };
-
-          let new_chunk_ukey = new_chunk.ukey;
 
           let [new_part, chunk] = compilation
             .chunk_by_ukey

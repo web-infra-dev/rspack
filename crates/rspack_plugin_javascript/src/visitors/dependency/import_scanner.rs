@@ -1,7 +1,7 @@
 use once_cell::sync::Lazy;
 use rspack_core::{
-  clean_regexp_in_context_module, context_reg_exp, AsyncDependenciesBlock, DynamicImportMode,
-  ErrorSpan, GroupOptions, JavascriptParserOptions, ModuleIdentifier,
+  clean_regexp_in_context_module, context_reg_exp, AsyncDependenciesBlock, DependencyLocation,
+  DynamicImportMode, ErrorSpan, GroupOptions, JavascriptParserOptions, ModuleIdentifier,
 };
 use rspack_core::{BoxDependency, BuildMeta, ChunkGroupOptions, ContextMode};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
@@ -211,6 +211,7 @@ impl Visit for ImportScanner<'_> {
         let mut block = AsyncDependenciesBlock::new(
           self.module_identifier,
           format!("{}:{}", span.start, span.end),
+          Some(DependencyLocation::new(span.start, span.end)),
         );
         block.set_group_options(GroupOptions::ChunkGroup(
           ChunkGroupOptions::default().name_optional(chunk_name),
@@ -239,6 +240,7 @@ impl Visit for ImportScanner<'_> {
         let mut block = AsyncDependenciesBlock::new(
           self.module_identifier,
           format!("{}:{}", span.start, span.end),
+          Some(DependencyLocation::new(span.start, span.end)),
         );
         block.set_group_options(GroupOptions::ChunkGroup(
           ChunkGroupOptions::default().name_optional(chunk_name),
