@@ -6,7 +6,12 @@ use rspack_core::{
   Plugin, UsageState,
 };
 use rspack_error::Result;
-use rustc_hash::FxHashSet;
+use rspack_ids::id_helpers::assign_deterministic_ids;
+use rustc_hash::{FxHashMap, FxHashSet};
+
+use crate::utils::mangle_exports::{
+  number_to_identifier, NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS, NUMBER_OF_IDENTIFIER_START_CHARS,
+};
 
 fn can_mangle(exports_info_id: ExportsInfoId, mg: &ModuleGraph) -> bool {
   let exports_info = exports_info_id.get_exports_info(mg);
@@ -29,13 +34,20 @@ fn can_mangle(exports_info_id: ExportsInfoId, mg: &ModuleGraph) -> bool {
 
 /// Struct to represent the mangle exports plugin.
 #[derive(Debug)]
-struct MangleExportsPlugin {
+pub struct MangleExportsPlugin {
   deterministic: bool,
+}
+
+impl MangleExportsPlugin {
+  pub fn new(deterministic: bool) -> Self {
+    Self { deterministic }
+  }
 }
 
 #[async_trait]
 impl Plugin for MangleExportsPlugin {
   async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Result<Option<()>> {
+    dbg!("optimize optimize_code_generation");
     // TODO: should bailout if compilation.moduleMemCache is enable, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/MangleExportsPlugin.js#L160-L164
     // We don't do that cause we don't have this option
     let mg = &mut compilation.module_graph;
@@ -50,9 +62,11 @@ impl Plugin for MangleExportsPlugin {
       };
       let is_namespace = module
         .build_meta
+        .as_ref()
         .map(|meta| matches!(meta.exports_type, BuildMetaExportsType::Namespace))
         .unwrap_or_default();
       let exports_info_id = module.exports;
+      mangle_exports_info(mg, self.deterministic, exports_info_id, is_namespace);
     }
     Ok(None)
   }
@@ -86,125 +100,131 @@ fn mangle_exports_info(
     let exports_info = exports_info_id.get_exports_info(mg);
     for export_info_id in exports_info.exports.values() {
       let export_info = export_info_id.get_export_info(mg);
-      if export_info.provided != Some(ExportInfoProvided::False) {
+      if !matches!(export_info.provided, Some(ExportInfoProvided::False)) {
         avoid_mangle_non_provided = true;
         break;
       }
     }
   }
 
-  let exports_info = exports_info_id.get_exports_info(mg);
-  for export_info_id in exports_info.exports.values() {
+  let export_info_id_list = exports_info_id
+    .get_exports_info(mg)
+    .exports
+    .values()
+    .cloned()
+    .collect::<Vec<_>>();
+  for export_info_id in export_info_id_list {
     let export_info = export_info_id.get_export_info(mg);
     if !export_info.has_used_name() {
       let name = export_info
         .name
+        .as_ref()
         .expect("the name of export_info inserted in exprots_info can not be `None`")
         .clone();
       let can_not_mangle = export_info.can_mangle_use != Some(true)
         || (name.len() == 1 && MANGLE_NAME_NORMAL_REG.is_match(name.as_str()))
-        || (avoid_mangle_non_provided && export_info.provided != Some(ExportInfoProvided::True));
+        || (deterministic
+          && name.len() == 2
+          && MANGLE_NAME_DETERMINSTIC_REG.is_match(name.as_str()))
+        || (avoid_mangle_non_provided
+          && !matches!(export_info.provided, Some(ExportInfoProvided::True)));
 
       let export_info_mut = export_info_id.get_export_info_mut(mg);
       if can_not_mangle {
-        export_info_mut.set_used_name(name);
+        export_info_mut.set_used_name(name.clone());
+        used_names.insert(name.to_string());
       } else {
         mangleable_exports.push(export_info_mut.id);
       };
     }
-    // if let Some(exports_info_owned) = &export_info.exports_info_owned {
-    //   let used = export_info.get_used(None);
-    //   if used == UsageState::OnlyPropertiesUsed || used == UsageState::Unused {
-    //     mangle_exports_info(deterministic, exports_info_owned, false);
+
+    // we need to re get export info to avoid extending immutable borrow lifetime
+    let export_info = export_info_id.get_export_info(mg);
+    if export_info.exports_info_owned {
+      let used = export_info.get_used(None);
+      if used == UsageState::OnlyPropertiesUsed || used == UsageState::Unused {
+        mangle_exports_info(
+          mg,
+          deterministic,
+          export_info
+            .exports_info
+            .expect("should have exports info id"),
+          false,
+        );
+      }
+    }
+  }
+
+  if deterministic {
+    let used_names_len = used_names.len();
+    let mut export_info_id_used_name = FxHashMap::default();
+    assign_deterministic_ids(
+      mangleable_exports,
+      |e| {
+        let export_info = e.get_export_info(mg);
+        export_info
+          .name
+          .as_ref()
+          .expect("should have name")
+          .to_string()
+      },
+      |a, b| {
+        let a_info = a.get_export_info(mg);
+        let b_info = b.get_export_info(mg);
+        compare_strings_numeric(a_info, b_info)
+      },
+      |e, id| {
+        let name = number_to_identifier(id as u32);
+        let size = used_names.len();
+        used_names.insert(name.clone());
+        if size == used_names.len() {
+          false
+        } else {
+          export_info_id_used_name.insert(e, name);
+          true
+        }
+      },
+      &[
+        NUMBER_OF_IDENTIFIER_START_CHARS as usize,
+        (NUMBER_OF_IDENTIFIER_START_CHARS * NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS) as usize,
+      ],
+      NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS as usize,
+      used_names_len,
+      0,
+    );
+    for (export_info_id, name) in export_info_id_used_name {
+      export_info_id
+        .get_export_info_mut(mg)
+        .set_used_name(name.into());
+    }
+  } else {
+    // let mut used_exports = Vec::new();
+    // let mut unused_exports = Vec::new();
+    //
+    // for export_info in mangleable_exports {
+    //   if export_info.get_used(None) == UsageState::Unused {
+    //     unused_exports.push(export_info);
+    //   } else {
+    //     used_exports.push(export_info);
+    //   }
+    // }
+    //
+    // used_exports.sort_by(compare_strings_numeric);
+    // unused_exports.sort_by(compare_strings_numeric);
+    //
+    // let mut i = 0;
+    // for list in vec![used_exports, unused_exports] {
+    //   for mut export_info in list {
+    //     let name;
+    //     loop {
+    //       name = number_to_identifier(i);
+    //       if !used_names.contains(name) {
+    //         break;
+    //       }
+    //       i += 1;
+    //     }
+    //     export_info.set_used_name(Some(name));
     //   }
     // }
   }
-
-  // if deterministic {
-  //   assign_deterministic_ids(
-  //     &mut mangleable_exports,
-  //     |e| &e.name,
-  //     compare_strings_numeric,
-  //     |e, id| {
-  //       let name = number_to_identifier(id);
-  //       let size = used_names.len();
-  //       used_names.insert(name.clone());
-  //       if size == used_names.len() {
-  //         false
-  //       } else {
-  //         e.set_used_name(Some(name));
-  //         true
-  //       }
-  //     },
-  //     [
-  //       NUMBER_OF_IDENTIFIER_START_CHARS,
-  //       NUMBER_OF_IDENTIFIER_START_CHARS * NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS,
-  //     ],
-  //     NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS,
-  //     used_names.len(),
-  //   );
-  // } else {
-  //   let mut used_exports = Vec::new();
-  //   let mut unused_exports = Vec::new();
-  //
-  //   for export_info in mangleable_exports {
-  //     if export_info.get_used(None) == UsageState::Unused {
-  //       unused_exports.push(export_info);
-  //     } else {
-  //       used_exports.push(export_info);
-  //     }
-  //   }
-  //
-  //   used_exports.sort_by(compare_strings_numeric);
-  //   unused_exports.sort_by(compare_strings_numeric);
-  //
-  //   let mut i = 0;
-  //   for list in vec![used_exports, unused_exports] {
-  //     for mut export_info in list {
-  //       let name;
-  //       loop {
-  //         name = number_to_identifier(i);
-  //         if !used_names.contains(name) {
-  //           break;
-  //         }
-  //         i += 1;
-  //       }
-  //       export_info.set_used_name(Some(name));
-  //     }
-  //   }
-  // }
 }
-
-// Function to assign deterministic IDs.
-// fn assign_deterministic_ids<T, F, C>(
-//   list: &mut [T],
-//   get_name: F,
-//   comparator: C,
-//   assign_name: impl Fn(&mut T, usize) -> bool,
-//   identifier_ranges: [usize; 2],
-//   continuation_chars: usize,
-//   used_names_size: usize,
-// ) where
-//   F: Fn(&T) -> &str,
-//   C: Fn(&T, &T) -> std::cmp::Ordering,
-// {
-//   // Implement the assign_deterministic_ids function based on the original JavaScript code.
-//   // ...
-// }
-//
-// fn number_to_identifier(number: usize) -> String {
-//   // Implement the number_to_identifier function based on the original JavaScript code.
-//   // ...
-// }
-//
-// fn compare_select<F, T, K>(selector: F, compare_fn: K) -> impl Fn(&T, &T) -> std::cmp::Ordering
-// where
-//   F: Fn(&T) -> &K,
-//   K: Ord,
-// {
-//   move |a, b| compare_fn(selector(a), selector(b))
-// }
-//
-// fn main() {
-//   // Entry point
-// }

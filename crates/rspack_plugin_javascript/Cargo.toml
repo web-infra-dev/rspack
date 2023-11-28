@@ -25,6 +25,7 @@ rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_hash = { path = "../rspack_hash" }
 rspack_identifier = { path = "../rspack_identifier" }
+rspack_ids = { path = "../rspack_ids/" }
 rspack_regex = { path = "../rspack_regex" }
 rspack_swc_visitors = { path = "../rspack_swc_visitors" }
 rustc-hash = { workspace = true }

@@ -2983,6 +2983,7 @@ dependencies = [
  "rspack_error",
  "rspack_hash",
  "rspack_identifier",
+ "rspack_ids",
  "rspack_regex",
  "rspack_swc_visitors",
  "rspack_testing",

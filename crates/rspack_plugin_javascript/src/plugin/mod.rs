@@ -10,6 +10,7 @@ use std::hash::Hash;
 
 pub use flag_dependency_exports_plugin::*;
 pub use flag_dependency_usage_plugin::*;
+pub use mangle_exports_plugin::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
   render_init_fragments, ChunkRenderContext, ChunkUkey, Compilation, JsChunkHashArgs,

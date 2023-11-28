@@ -79,7 +79,10 @@ pub fn export_from_import(
   }
 
   if !export_name.is_empty() {
-    // TODO check used
+    let used = if is_new_treeshaking {
+    } else {
+      export_name
+    };
     let property = property_access(&export_name, 0);
     if is_call && !call_context {
       format!("(0, {import_var}{property})")

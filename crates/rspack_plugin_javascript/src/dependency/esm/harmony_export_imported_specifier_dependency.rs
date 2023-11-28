@@ -71,7 +71,6 @@ impl HarmonyExportImportedSpecifierDependency {
     &build_info.harmony_named_exports
   }
 
-  /// FIXME: this should use parent module id
   pub fn all_star_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a Vec<DependencyId> {
     let build_info = module_graph
       .parent_module_by_dependency_id(&self.id)
@@ -475,9 +474,9 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       .expect("should have module graph module");
 
     let import_var = get_import_var(&compilation.module_graph, self.id);
-    let is_new_tree_shaking = compilation.options.is_new_tree_shaking();
+    let is_new_treeshaking = compilation.options.is_new_tree_shaking();
 
-    let used_exports = if is_new_tree_shaking {
+    let used_exports = if is_new_treeshaking {
       let exports_info_id = compilation
         .module_graph
         .get_exports_info(&module.identifier())
@@ -510,14 +509,13 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       None
     };
 
-    if is_new_tree_shaking {
+    if is_new_treeshaking {
       // TODO: runtime opt
       let mode = self.get_mode(self.name.clone(), &compilation.module_graph, &self.id, None);
       if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
         harmony_import_dependency_apply(self, self.source_order, code_generatable_context, &[]);
-      } else {
-        return;
       }
+      return;
     }
 
     let mut exports = vec![];

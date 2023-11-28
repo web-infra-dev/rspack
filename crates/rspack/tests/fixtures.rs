@@ -1,10 +1,12 @@
+use std::default;
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 
 use cargo_rst::git_diff;
 use rspack_core::{BoxPlugin, CompilerOptions, TreeShaking, UsedExportsOption, IS_NEW_TREESHAKING};
 use rspack_plugin_javascript::{
-  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, SideEffectsFlagPlugin,
+  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, MangleExportsPlugin,
+  SideEffectsFlagPlugin,
 };
 use rspack_testing::test_fixture;
 use testing_macros::fixture;
@@ -45,6 +47,7 @@ fn tree_shaking(fixture_path: PathBuf) {
         }
         plugins.push(Box::<FlagDependencyExportsPlugin>::default());
         plugins.push(Box::<FlagDependencyUsagePlugin>::default());
+        plugins.push(Box::new(MangleExportsPlugin::new(true)));
       },
     ),
     Some("new_treeshaking".to_string()),
