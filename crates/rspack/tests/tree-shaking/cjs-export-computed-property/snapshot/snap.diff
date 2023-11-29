@@ -1,6 +1,6 @@
 --- expected
 +++ actual
-@@ -4,10 +4,11 @@
+@@ -4,47 +4,45 @@
  ```js title=main.js
  (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
  "./zh_locale.js": (function (__unused_webpack_module, exports, __webpack_require__) {
@@ -10,11 +10,28 @@
 +__webpack_unused_export__ = ({
      value: true
 -}));
+-exports["default"] = void 0;
 +});
- exports["default"] = void 0;
++exports.Z = void 0;
  /* eslint-disable no-template-curly-in-string */ var _default = {};
- exports["default"] = _default;
-@@ -28,9 +29,6 @@
+-exports["default"] = _default;
++exports.Z = _default;
+ }),
+ "./antd/index.ts": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  locales: function() { return locales; }
++  k: function() { return locales; }
+ });
+ /* harmony import */var _locale_zh__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../locale_zh */"./locale_zh.ts");
+ 
+ const locales = {
+-    zh_CN: _locale_zh__WEBPACK_IMPORTED_MODULE_0__["default"]
++    zh_CN: _locale_zh__WEBPACK_IMPORTED_MODULE_0__.Z
+ };
+ 
+ }),
  "./index.ts": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
  __webpack_require__.r(__webpack_exports__);
@@ -23,4 +40,21 @@
 -});
  /* harmony import */var _antd_index__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./antd/index */"./antd/index.ts");
  
- _antd_index__WEBPACK_IMPORTED_MODULE_0__.locales.zh_CN;
+-_antd_index__WEBPACK_IMPORTED_MODULE_0__.locales.zh_CN;
++_antd_index__WEBPACK_IMPORTED_MODULE_0__.k.zh_CN;
+  function test() {}
+ }),
+ "./locale_zh.ts": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
++  Z: function() { return __WEBPACK_DEFAULT_EXPORT__; }
+ });
+ /* harmony import */var _zh_locale__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./zh_locale */"./zh_locale.js");
+ 
+-var __WEBPACK_DEFAULT_EXPORT__ = _zh_locale__WEBPACK_IMPORTED_MODULE_0__["default"];
++var __WEBPACK_DEFAULT_EXPORT__ = _zh_locale__WEBPACK_IMPORTED_MODULE_0__.Z;
+ }),
+ 
+ },function(__webpack_require__) {

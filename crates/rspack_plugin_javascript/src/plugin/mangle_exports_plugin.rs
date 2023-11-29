@@ -24,12 +24,12 @@ fn can_mangle(exports_info_id: ExportsInfoId, mg: &ModuleGraph) -> bool {
     return false;
   }
   let mut has_something_to_mangle = false;
-  for (atom, export_info_id) in exports_info.exports.iter() {
+  for export_info_id in exports_info.exports.values() {
     if export_info_id.get_export_info(mg).can_mangle_use == Some(true) {
       has_something_to_mangle = true;
     }
   }
-  return has_something_to_mangle;
+  has_something_to_mangle
 }
 
 /// Struct to represent the mangle exports plugin.
@@ -47,7 +47,6 @@ impl MangleExportsPlugin {
 #[async_trait]
 impl Plugin for MangleExportsPlugin {
   async fn optimize_code_generation(&self, compilation: &mut Compilation) -> Result<Option<()>> {
-    dbg!("optimize optimize_code_generation");
     // TODO: should bailout if compilation.moduleMemCache is enable, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/MangleExportsPlugin.js#L160-L164
     // We don't do that cause we don't have this option
     let mg = &mut compilation.module_graph;

@@ -41,7 +41,7 @@ function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  __generator: function() { return __generator; }
+  AC: function() { return __generator; }
 });
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
@@ -482,7 +482,7 @@ __webpack_require__.r(__webpack_exports__);
 }
 function _test() {
     _test = (0, _swc_helpers_async_to_generator__WEBPACK_IMPORTED_MODULE_0__._)(function() {
-        return (0, _swc_helpers_ts_generator__WEBPACK_IMPORTED_MODULE_1__.__generator)(this, function(_state) {
+        return (0, _swc_helpers_ts_generator__WEBPACK_IMPORTED_MODULE_1__.AC)(this, function(_state) {
             return [
                 2
             ];

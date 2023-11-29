@@ -1,5 +1,31 @@
 --- expected
 +++ actual
+@@ -24,9 +24,9 @@
+ 
+ it("export should be unused when only unused functions use it", ()=>{
+     expect((0, _module__WEBPACK_IMPORTED_MODULE_1__.y)("a")).toBe("okBAA");
+-    expect(_inner__WEBPACK_IMPORTED_MODULE_0__.exportAUsed).toBe(true);
+-    expect(_inner__WEBPACK_IMPORTED_MODULE_0__.exportBUsed).toBe(true);
+-    expect(_inner__WEBPACK_IMPORTED_MODULE_0__.exportCUsed).toBe(false);
++    expect(_inner__WEBPACK_IMPORTED_MODULE_0__.NO).toBe(true);
++    expect(_inner__WEBPACK_IMPORTED_MODULE_0__.WW).toBe(true);
++    expect(_inner__WEBPACK_IMPORTED_MODULE_0__.ow).toBe(false);
+     return __webpack_require__.el("./index.js@319:336").then(__webpack_require__.bind(__webpack_require__, /*! ./chunk */"./chunk.js"));
+ });
+ }),
+@@ -36,9 +36,9 @@
+ __webpack_require__.d(__webpack_exports__, {
+   A: function() { return A; },
+   B: function() { return B; },
+-  exportAUsed: function() { return exportAUsed; },
+-  exportBUsed: function() { return exportBUsed; },
+-  exportCUsed: function() { return exportCUsed; }
++  NO: function() { return exportAUsed; },
++  WW: function() { return exportBUsed; },
++  ow: function() { return exportCUsed; }
+ });
+  function A(s) {
+     return s + "A";
 @@ -84,7 +84,7 @@
  }
  function withC(v) {

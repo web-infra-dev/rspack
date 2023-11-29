@@ -1,0 +1,31 @@
+--- expected
++++ actual
+@@ -8,15 +8,15 @@
+ __webpack_require__.r(__webpack_exports__);
+ /* harmony import */var _maths_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./maths.js */"./maths.js");
+ /* TREE-SHAKING */ 
+-console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0__.xxx.test);
+-console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0__.square);
++console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0__.BR.B);
++console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0__["h\u0006"]);
+ }),
+ "./maths.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  xxx: function() { return _test_js__WEBPACK_IMPORTED_MODULE_0__; },
+-  square: function() { return square; }
++  BR: function() { return _test_js__WEBPACK_IMPORTED_MODULE_0__; },
++  "h\u0006": function() { return square; }
+ });
+ /* harmony import */var _test_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./test.js */"./test.js");
+ // maths.js
+@@ -37,7 +37,7 @@
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  test: function() { return test; }
++  B: function() { return test; }
+ });
+  function test() {}
+  function ccc() {}

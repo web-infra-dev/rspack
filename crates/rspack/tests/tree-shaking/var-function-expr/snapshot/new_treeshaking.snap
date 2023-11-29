@@ -7,32 +7,32 @@ source: crates/rspack_testing/src/run_fixture.rs
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  app: function() { return app; }
+  "l\u0002": function() { return app; }
 });
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
 
  var app = function() {
-    _lib__WEBPACK_IMPORTED_MODULE_0__.result;
+    _lib__WEBPACK_IMPORTED_MODULE_0__["q\u0006"];
 };
  var app2 = ()=>{
     secret;
 };
- var app4 = (0, _lib__WEBPACK_IMPORTED_MODULE_0__.something)('app4'), app5 = 10000;
- var app3 = (0, _lib__WEBPACK_IMPORTED_MODULE_0__.something)('app3');
+ var app4 = (0, _lib__WEBPACK_IMPORTED_MODULE_0__.EQ)('app4'), app5 = 10000;
+ var app3 = (0, _lib__WEBPACK_IMPORTED_MODULE_0__.EQ)('app3');
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./app */"./app.js");
 
-(0, _app__WEBPACK_IMPORTED_MODULE_0__.app)();
+(0, _app__WEBPACK_IMPORTED_MODULE_0__["l\u0002"])();
 }),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  result: function() { return result; },
-  something: function() { return something; }
+  "q\u0006": function() { return result; },
+  EQ: function() { return something; }
 });
  const secret = "888";
  const result = 20000;

@@ -9,7 +9,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./module */"./module.js");
 
 expect(_module__WEBPACK_IMPORTED_MODULE_0__.ok).toBe(true);
-expect(_module__WEBPACK_IMPORTED_MODULE_0__.ok2).toBe(true);
+expect(_module__WEBPACK_IMPORTED_MODULE_0__.S).toBe(true);
 }),
 "./index.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 it("should not threat globals as pure", ()=>{
@@ -21,7 +21,7 @@ it("should not threat globals as pure", ()=>{
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   ok: function() { return ok; },
-  ok2: function() { return ok2; }
+  S: function() { return ok2; }
 });
 try {
     var x = NOT_DEFINED;

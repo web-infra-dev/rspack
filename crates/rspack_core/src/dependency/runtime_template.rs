@@ -95,7 +95,6 @@ pub fn export_from_import(
         None,
         crate::UsedName::Vec(export_name),
       );
-      dbg!(&module_identifier);
       if let Some(used) = used {
         match used {
           crate::UsedName::Str(str) => vec![str],
@@ -125,7 +124,6 @@ pub fn export_from_import(
     } else {
       export_name
     };
-    dbg!(&used_name);
     let property = property_access(&used_name, 0);
     if is_call && !call_context {
       format!("(0, {import_var}{property})")

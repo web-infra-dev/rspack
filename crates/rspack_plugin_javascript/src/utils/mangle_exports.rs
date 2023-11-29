@@ -5,7 +5,7 @@ pub const NUMBER_OF_IDENTIFIER_START_CHARS: u32 = DELTA_A_TO_Z * 2u32 + 2u32; //
 pub const NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS: u32 = NUMBER_OF_IDENTIFIER_START_CHARS + 10u32; // a-z A-Z _ $ 0-9
 
 pub fn number_to_identifier(mut n: u32) -> String {
-  if (n >= NUMBER_OF_IDENTIFIER_START_CHARS) {
+  if n >= NUMBER_OF_IDENTIFIER_START_CHARS {
     // use multiple letters
     return number_to_identifier(n % NUMBER_OF_IDENTIFIER_START_CHARS)
       + number_to_identifier_continuation(n / NUMBER_OF_IDENTIFIER_START_CHARS).as_str();
@@ -14,7 +14,7 @@ pub fn number_to_identifier(mut n: u32) -> String {
   // lower case
   if n < DELTA_A_TO_Z {
     return char::from_u32(START_LOWERCASE_ALPHABET_CODE + n)
-      .unwrap()
+      .expect("should convert successfully")
       .to_string();
   }
 
@@ -23,21 +23,22 @@ pub fn number_to_identifier(mut n: u32) -> String {
   // upper case
   if n < DELTA_A_TO_Z {
     return char::from_u32(START_UPPERCASE_ALPHABET_CODE + n)
-      .unwrap()
+      .expect("should convert successfully")
       .to_string();
   }
 
   if n == DELTA_A_TO_Z {
-    return '_'.to_string();
-  };
-  return '$'.to_string();
+    '_'.to_string()
+  } else {
+    '$'.to_string()
+  }
 }
 
 pub fn number_to_identifier_continuation(mut n: u32) -> String {
   if n >= NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS {
     // use multiple letters
-    return (number_to_identifier_continuation(n % NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS)
-      + number_to_identifier_continuation(n / NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS).as_str());
+    return number_to_identifier_continuation(n % NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS)
+      + number_to_identifier_continuation(n / NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS).as_str();
   }
 
   // lower case
@@ -49,7 +50,7 @@ pub fn number_to_identifier_continuation(mut n: u32) -> String {
   n -= DELTA_A_TO_Z;
 
   // upper case
-  if (n < DELTA_A_TO_Z) {
+  if n < DELTA_A_TO_Z {
     return char::from_u32(START_UPPERCASE_ALPHABET_CODE + n)
       .expect("should convert successfully")
       .to_string();
@@ -65,7 +66,8 @@ pub fn number_to_identifier_continuation(mut n: u32) -> String {
   }
 
   if n == 10 {
-    return '_'.to_string();
-  };
-  return '$'.to_string();
+    '_'.to_string()
+  } else {
+    '$'.to_string()
+  }
 }

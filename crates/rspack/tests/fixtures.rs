@@ -1,4 +1,3 @@
-use std::default;
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 
@@ -47,9 +46,9 @@ fn tree_shaking(fixture_path: PathBuf) {
         }
         plugins.push(Box::<FlagDependencyExportsPlugin>::default());
         plugins.push(Box::<FlagDependencyUsagePlugin>::default());
-        if options.optimization.mangle_exports {
-          plugins.push(Box::new(MangleExportsPlugin::new(true)));
-        }
+        // if options.optimization.mangle_exports {
+        plugins.push(Box::new(MangleExportsPlugin::new(true)));
+        // }
       },
     ),
     Some("new_treeshaking".to_string()),

@@ -1,6 +1,6 @@
 --- expected
 +++ actual
-@@ -23,25 +23,6 @@
+@@ -23,39 +23,21 @@
      b: ""
  };
  }),
@@ -26,9 +26,17 @@
  "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
  __webpack_require__.r(__webpack_exports__);
-@@ -55,7 +36,8 @@
+ /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
+ 
+-console.log(_lib__WEBPACK_IMPORTED_MODULE_0__.getDocPermissionTextSendMe);
++console.log(_lib__WEBPACK_IMPORTED_MODULE_0__.IO);
+ }),
+ "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);
  __webpack_require__.d(__webpack_exports__, {
-   getDocPermissionTextSendMe: function() { return getDocPermissionTextSendMe; }
+-  getDocPermissionTextSendMe: function() { return getDocPermissionTextSendMe; }
++  IO: function() { return getDocPermissionTextSendMe; }
  });
 -/* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./enum.js */"./enum.js");
 +/* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./enum.js */"./a.js");

@@ -1,0 +1,24 @@
+--- expected
++++ actual
+@@ -7,8 +7,8 @@
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; },
+-  bar: function() { return bar; }
++  Z: function() { return __WEBPACK_DEFAULT_EXPORT__; },
++  K: function() { return bar; }
+ });
+ var foo = function() {
+     return 42;
+@@ -23,8 +23,8 @@
+ __webpack_require__.r(__webpack_exports__);
+ /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./foo */"./foo.js");
+ 
+-var answer = (0, _foo__WEBPACK_IMPORTED_MODULE_0__["default"])();
+-var somethingElse = (0, _foo__WEBPACK_IMPORTED_MODULE_0__.bar)();
++var answer = (0, _foo__WEBPACK_IMPORTED_MODULE_0__.Z)();
++var somethingElse = (0, _foo__WEBPACK_IMPORTED_MODULE_0__.K)();
+ console.log(answer);
+ }),
+ 

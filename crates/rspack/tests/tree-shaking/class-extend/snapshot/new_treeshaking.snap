@@ -18,7 +18,7 @@ function foo() {
         OriginLib
     };
 }
- const v = _lib__WEBPACK_IMPORTED_MODULE_0__.value;
+ const v = _lib__WEBPACK_IMPORTED_MODULE_0__.S;
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
@@ -31,7 +31,7 @@ _app__WEBPACK_IMPORTED_MODULE_0__.v;
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  value: function() { return value; }
+  S: function() { return value; }
 });
  class Lib {
 }

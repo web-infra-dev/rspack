@@ -1,6 +1,6 @@
 --- expected
 +++ actual
-@@ -3,35 +3,14 @@
+@@ -3,41 +3,20 @@
  ---
  ```js title=main.js
  (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
@@ -35,8 +35,24 @@
  
 -_foo__WEBPACK_IMPORTED_MODULE_0__.Provider;
 -_foo__WEBPACK_IMPORTED_MODULE_0__.useSelector;
-+_foo__WEBPACK_IMPORTED_MODULE_0__["default"];
-+_foo__WEBPACK_IMPORTED_MODULE_1__["default"];
++_foo__WEBPACK_IMPORTED_MODULE_0__.Z;
++_foo__WEBPACK_IMPORTED_MODULE_1__.Z;
  }),
  "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
++  Z: function() { return __WEBPACK_DEFAULT_EXPORT__; }
+ });
+ function Provider() {}
+ var __WEBPACK_DEFAULT_EXPORT__ = Provider;
+@@ -46,7 +25,7 @@
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  "default": function() { return useSelector; }
++  Z: function() { return useSelector; }
+ });
+ function useSelector() {
+     return "";

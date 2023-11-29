@@ -1,0 +1,24 @@
+--- expected
++++ actual
+@@ -8,8 +8,8 @@
+ __webpack_require__.r(__webpack_exports__);
+ /* harmony import */var _stuff__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./stuff */"./stuff.js");
+ 
+-(0, _stuff__WEBPACK_IMPORTED_MODULE_0__.bar)();
+-var f = (0, _stuff__WEBPACK_IMPORTED_MODULE_0__.baz)();
++(0, _stuff__WEBPACK_IMPORTED_MODULE_0__.Kb)();
++var f = (0, _stuff__WEBPACK_IMPORTED_MODULE_0__.Wx)();
+ f();
+ function getClass() {
+     class MyClass {
+@@ -26,8 +26,8 @@
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  bar: function() { return bar; },
+-  baz: function() { return Baz; }
++  Kb: function() { return bar; },
++  Wx: function() { return Baz; }
+ });
+  function foo() {
+     console.log("outer foo");

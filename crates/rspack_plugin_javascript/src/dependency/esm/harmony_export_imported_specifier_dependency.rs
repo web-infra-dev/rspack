@@ -467,7 +467,6 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
   ) {
     let compilation = &code_generatable_context.compilation;
     let module = &code_generatable_context.module;
-    dbg!(&module.identifier());
 
     let mgm = compilation
       .module_graph
@@ -568,7 +567,6 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       }
     }
 
-    dbg!(&exports);
     if !exports.is_empty() {
       code_generatable_context
         .init_fragments

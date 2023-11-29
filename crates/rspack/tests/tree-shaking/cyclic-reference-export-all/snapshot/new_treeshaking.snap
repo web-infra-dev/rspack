@@ -7,7 +7,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  Z: function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
 /* harmony import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./containers */"./src/containers/containers.js");
 
@@ -30,8 +30,8 @@ __webpack_require__.es(_platform_container__WEBPACK_IMPORTED_MODULE_0__, __webpa
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  usePlatform: function() { return usePlatform; },
-  PlatformProvider: function() { return PlatformProvider; }
+  x: function() { return usePlatform; },
+  P: function() { return PlatformProvider; }
 });
  const usePlatform = 3;
  const PlatformProvider = 1000;
@@ -41,7 +41,7 @@ __webpack_require__.d(__webpack_exports__, {
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _App__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./App */"./src/App.js");
 
-(0, _App__WEBPACK_IMPORTED_MODULE_0__["default"])();
+(0, _App__WEBPACK_IMPORTED_MODULE_0__.Z)();
 }),
 
 },function(__webpack_require__) {

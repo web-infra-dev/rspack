@@ -7,25 +7,25 @@ source: crates/rspack_testing/src/run_fixture.rs
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  app: function() { return app; }
+  l: function() { return app; }
 });
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
 
  function app() {}
-app.prototype.result = _lib__WEBPACK_IMPORTED_MODULE_0__.result;
+app.prototype.result = _lib__WEBPACK_IMPORTED_MODULE_0__["q\u0006"];
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./app */"./app.js");
 
-(0, _app__WEBPACK_IMPORTED_MODULE_0__.app)();
+(0, _app__WEBPACK_IMPORTED_MODULE_0__.l)();
 }),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  result: function() { return result; }
+  "q\u0006": function() { return result; }
 });
  const secret = "888";
  const result = 20000;

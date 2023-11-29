@@ -1,0 +1,35 @@
+--- expected
++++ actual
+@@ -7,7 +7,7 @@
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  defaults: function() { return defaults; }
++  c: function() { return defaults; }
+ });
+  const defaults = {
+     test: 1000
+@@ -17,12 +17,12 @@
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  Something: function() { return Something; }
++  c: function() { return Something; }
+ });
+ /* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Layout */"./Layout.js");
+ 
+ class Test {
+-    test = _Layout__WEBPACK_IMPORTED_MODULE_0__.defaults.test + 20000;
++    test = _Layout__WEBPACK_IMPORTED_MODULE_0__.c.test + 20000;
+ }
+  var Sider = new Test();
+  var Something = 333;
+@@ -32,7 +32,7 @@
+ __webpack_require__.r(__webpack_exports__);
+ /* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./export */"./export.js");
+ 
+-(0, _export__WEBPACK_IMPORTED_MODULE_0__.Something)();
++(0, _export__WEBPACK_IMPORTED_MODULE_0__.c)();
+ }),
+ 
+ },function(__webpack_require__) {

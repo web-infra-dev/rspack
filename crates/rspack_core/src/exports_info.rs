@@ -356,7 +356,7 @@ impl ExportsInfoId {
         info.get_used_name(&name, runtime).map(UsedName::Str)
       }
       UsedName::Vec(names) => {
-        if names.len() == 0 {
+        if names.is_empty() {
           if !self.is_used(runtime, mg) {
             return None;
           }
@@ -368,7 +368,7 @@ impl ExportsInfoId {
           return None;
         };
         let names_len = names.len();
-        let mut arr = if &x == &names[0] && names.len() == 1 {
+        let mut arr = if x == names[0] && names.len() == 1 {
           names.clone()
         } else {
           vec![x]
@@ -390,32 +390,8 @@ impl ExportsInfoId {
           return Some(UsedName::Vec(arr));
         }
         arr.extend(names.into_iter().skip(1));
-        return Some(UsedName::Vec(arr));
-      } // TODO
-        // TODO improve this
-        // if (name.length === 0) {
-        // 	if (!this.isUsed(runtime)) return false;
-        // 	return name;
-        // }
-        // let info = this.getReadOnlyExportInfo(name[0]);
-        // const x = info.getUsedName(name[0], runtime);
-        // if (x === false) return false;
-        // const arr = x === name[0] && name.length === 1 ? name : [x];
-        // if (name.length === 1) {
-        // 	return arr;
-        // }
-        // if (
-        // 	info.exportsInfo &&
-        // 	info.getUsed(runtime) === UsageState.OnlyPropertiesUsed
-        // ) {
-        // 	const nested = info.exportsInfo.getUsedName(name.slice(1), runtime);
-        // 	if (!nested) return false;
-        // 	return arr.concat(nested);
-        // } else {
-        // 	return arr.concat(name.slice(1));
-        // }
-        //   Some(name.clone())
-        // }
+        Some(UsedName::Vec(arr))
+      }
     }
   }
 
