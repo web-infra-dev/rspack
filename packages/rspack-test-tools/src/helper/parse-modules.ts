@@ -44,7 +44,7 @@ export function parseModules(content: string) {
 		BOOTSTRAP_SPLIT_LINE
 	);
 	if (bootstrap.result) {
-		runtimeModules.set("webpack/bootstrap", bootstrap.result);
+		runtimeModules.set("webpack/runtime/bootstrap", bootstrap.result);
 	}
 	// parse module & runtime module code
 	let moduleName = getStringBetween(

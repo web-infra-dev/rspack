@@ -2026,6 +2026,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
+      csv-to-markdown-table:
+        specifier: ^1.3.0
+        version: 1.3.0
       deepmerge:
         specifier: ^4.3.1
         version: 4.3.1
@@ -16442,7 +16445,6 @@ packages:
 
   /csv-to-markdown-table@1.3.0:
     resolution: {integrity: sha512-Vu9egsDU4kgfWy2mcw6q+2jJKsY4hB8XdbtyivEaWUvejhGtmUwSyLBbzb1nTi2o7Um+vhhRU4DBZr+ByCwLgQ==}
-    dev: true
 
   /cwebp-bin@7.0.1:
     resolution: {integrity: sha512-Ko5ADY74/dbfd8xG0+f+MUP9UKjCe1TG4ehpW0E5y4YlPdwDJlGrSzSR4/Yonxpm9QmZE1RratkIxFlKeyo3FA==}
