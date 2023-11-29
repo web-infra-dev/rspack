@@ -32,9 +32,6 @@
     "url": "https://github.com/web-infra-dev/rspack",
     "directory": "packages/rspack-plugin-react-refresh"
   },
-  "dependencies": {
-    "@pmmmwh/react-refresh-webpack-plugin": "0.5.10"
-  },
   "devDependencies": {
     "@rspack/core": "workspace:*",
     "@rspack/plugin-react-refresh": "workspace:*",
