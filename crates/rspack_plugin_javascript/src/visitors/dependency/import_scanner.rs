@@ -14,9 +14,8 @@ use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use super::context_helper::scanner_context_module;
 use super::is_import_meta_context_call;
-use crate::dependency::{
-  ImportContextDependency, ImportDependency, ImportEagerDependency, ImportMetaContextDependency,
-};
+use crate::dependency::{ImportContextDependency, ImportDependency};
+use crate::dependency::{ImportEagerDependency, ImportMetaContextDependency};
 use crate::utils::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop};
 
 pub struct ImportScanner<'a> {
