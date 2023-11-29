@@ -61,6 +61,7 @@ const OUTPUT_DIR = path.join(__dirname, '../diff_output');
       } while (tester.next());
       await tester.resume();
     } catch (e) {
+      htmlReporter.failure(name)
       statsReporter.failure(name);
     }
   }
