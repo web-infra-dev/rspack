@@ -13,6 +13,8 @@
   },
   "scripts": {
     "build": "rimraf dist/ && tsc -b ./tsconfig.build.json --force",
+    "build:viewer": "rspack build",
+    "dev:viewer": "rspack serve",
     "dev": "tsc -b -w"
   },
   "files": [
@@ -44,8 +46,22 @@
     "webpack-sources": "3.2.3"
   },
   "devDependencies": {
+    "@arco-design/web-react": "^2.56.1",
+    "@monaco-editor/react": "^4.6.0",
+    "@rspack/cli": "workspace:*",
     "@types/webpack": "5.28.3",
     "@types/webpack-sources": "3.2.0",
+    "@types/prettier": "^2.7.2",
+    "@types/react": "^18.0.25",
+    "@types/react-dom": "^18.0.8",
+    "core-js": "3.25.0",
+    "monaco-editor": "^0.34.1",
+    "normalize.css": "^8.0.0",
+    "prettier": "^2.8.3",
+    "react": "18.0.0",
+    "react-dom": "18.0.0",
+    "react-refresh": "0.13.0",
+    "typescript": "5.1.6",
     "webpack": "5.89.0"
   },
   "peerDependenciesMeta": {},

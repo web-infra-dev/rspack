@@ -13,6 +13,7 @@
     "build:cli:debug": "npm run build:binding:debug && npm run build:js",
     "build:cli:release": "npm run build:binding:release && npm run build:js",
     "build:cli:release:all": "pnpm --filter @rspack/binding build:release:all && npm run build:js",
+    "build:viewer": "pnpm --filter \"@rspack/*\" build:viewer",
     "test:js": "pnpm -r run test",
     "format:rs": "pnpm --filter @rspack/core... build",
     "format:js": "npx prettier \"packages/**/*.{ts,js}\" \"crates/rspack_plugin_runtime/**/*.{ts,js}\" --check --write",

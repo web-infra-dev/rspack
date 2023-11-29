@@ -119,6 +119,8 @@ export function compareContent(
 				const lines = sourceContent.trim().split("\n").length;
 				return {
 					type: ECompareResultType.Same,
+					source: sourceContent,
+					dist: distContent,
 					lines: {
 						source: lines,
 						common: lines,
@@ -137,6 +139,8 @@ export function compareContent(
 				return {
 					type: ECompareResultType.Different,
 					detail: difference,
+					source: sourceContent,
+					dist: distContent,
 					lines: {
 						source: diffLines.filter(l => l[0] < 0).length,
 						common: diffLines.filter(l => l[0] === 0).length,
@@ -147,6 +151,7 @@ export function compareContent(
 		} else {
 			return {
 				type: ECompareResultType.OnlySource,
+				source: sourceContent,
 				lines: {
 					source: sourceContent.trim().split("\n").length,
 					common: 0,
@@ -158,6 +163,7 @@ export function compareContent(
 		if (distContent) {
 			return {
 				type: ECompareResultType.OnlyDist,
+				dist: distContent,
 				lines: {
 					source: 0,
 					common: 0,

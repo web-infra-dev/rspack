@@ -53,6 +53,9 @@ jobs:
       - name: Move artifacts
         run: node scripts/build-npm.cjs
 
+      - name: Build Viewer
+        run: pnpm run build:viewer
+
       - name: Run Diff
         run: node scripts/diff.cjs
 

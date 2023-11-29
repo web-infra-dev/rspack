@@ -7,6 +7,9 @@
   "include": [
     "src"
   ],
+  "exclude": [
+    "viewer"
+  ],
   "references": [
     {
       "path": "../rspack"
