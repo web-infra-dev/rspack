@@ -100,4 +100,5 @@ pub struct Optimization {
   pub provided_exports: bool,
   pub used_exports: UsedExportsOption,
   pub inner_graph: bool,
+  pub mangle_exports: bool,
 }

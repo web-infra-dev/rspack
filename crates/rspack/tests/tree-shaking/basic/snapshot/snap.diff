@@ -1,22 +1,27 @@
 --- expected
 +++ actual
-@@ -14,18 +14,9 @@
- "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+@@ -7,7 +7,7 @@
  "use strict";
  __webpack_require__.r(__webpack_exports__);
--/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
-+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./answer.js");
- 
- _lib__WEBPACK_IMPORTED_MODULE_0__.answer;
--}),
--"./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
--"use strict";
--__webpack_require__.r(__webpack_exports__);
--__webpack_require__.d(__webpack_exports__, {
--  answer: function() { return _answer__WEBPACK_IMPORTED_MODULE_0__.answer; }
--});
--/* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./answer */"./answer.js");
--
+ __webpack_require__.d(__webpack_exports__, {
+-  answer: function() { return answer; }
++  K: function() { return answer; }
+ });
+  const answer = 103330;
  }),
+@@ -16,13 +16,13 @@
+ __webpack_require__.r(__webpack_exports__);
+ /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
  
- },function(__webpack_require__) {
+-_lib__WEBPACK_IMPORTED_MODULE_0__.answer;
++_lib__WEBPACK_IMPORTED_MODULE_0__.K;
+ }),
+ "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+ "use strict";
+ __webpack_require__.r(__webpack_exports__);
+ __webpack_require__.d(__webpack_exports__, {
+-  answer: function() { return _answer__WEBPACK_IMPORTED_MODULE_0__.answer; }
++  K: function() { return _answer__WEBPACK_IMPORTED_MODULE_0__.K; }
+ });
+ /* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./answer */"./answer.js");
+ 

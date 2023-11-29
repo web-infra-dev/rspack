@@ -343,6 +343,7 @@ impl ExportsInfoId {
     )
   }
 
+  /// `Option<UsedName>` correspond to webpack `string | string[] | false`
   pub fn get_used_name(
     &self,
     mg: &ModuleGraph,
@@ -354,10 +355,67 @@ impl ExportsInfoId {
         let info = self.get_read_only_export_info(&name, mg);
         info.get_used_name(&name, runtime).map(UsedName::Str)
       }
-      UsedName::Vec(_) => {
-        // TODO
-        Some(name.clone())
-      }
+      UsedName::Vec(names) => {
+        if names.len() == 0 {
+          if !self.is_used(runtime, mg) {
+            return None;
+          }
+          return Some(UsedName::Vec(names));
+        }
+        let export_info = self.get_read_only_export_info(&names[0], mg);
+        let x = export_info.get_used_name(&names[0], runtime);
+        let Some(x) = x else {
+          return None;
+        };
+        let names_len = names.len();
+        let mut arr = if &x == &names[0] && names.len() == 1 {
+          names.clone()
+        } else {
+          vec![x]
+        };
+        if names_len == 1 {
+          return Some(UsedName::Vec(arr));
+        }
+        if let Some(exports_info) = export_info.exports_info
+          && export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed
+        {
+          let nested = exports_info.get_used_name(mg, runtime, UsedName::Vec(names[1..].to_vec()));
+          let Some(nested) = nested else {
+            return None;
+          };
+          arr.extend(match nested {
+            UsedName::Str(name) => vec![name],
+            UsedName::Vec(names) => names,
+          });
+          return Some(UsedName::Vec(arr));
+        }
+        arr.extend(names.into_iter().skip(1));
+        return Some(UsedName::Vec(arr));
+      } // TODO
+        // TODO improve this
+        // if (name.length === 0) {
+        // 	if (!this.isUsed(runtime)) return false;
+        // 	return name;
+        // }
+        // let info = this.getReadOnlyExportInfo(name[0]);
+        // const x = info.getUsedName(name[0], runtime);
+        // if (x === false) return false;
+        // const arr = x === name[0] && name.length === 1 ? name : [x];
+        // if (name.length === 1) {
+        // 	return arr;
+        // }
+        // if (
+        // 	info.exportsInfo &&
+        // 	info.getUsed(runtime) === UsageState.OnlyPropertiesUsed
+        // ) {
+        // 	const nested = info.exportsInfo.getUsedName(name.slice(1), runtime);
+        // 	if (!nested) return false;
+        // 	return arr.concat(nested);
+        // } else {
+        // 	return arr.concat(name.slice(1));
+        // }
+        //   Some(name.clone())
+        // }
     }
   }
 
