@@ -2023,6 +2023,9 @@ importers:
       '@babel/types':
         specifier: 7.23.0
         version: 7.23.0
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../rspack-cli
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
@@ -2048,9 +2051,6 @@ importers:
       '@monaco-editor/react':
         specifier: ^4.6.0
         version: 4.6.0(monaco-editor@0.34.1)(react-dom@18.0.0)(react@18.0.0)
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../rspack-cli
       '@types/prettier':
         specifier: ^2.7.2
         version: 2.7.3
