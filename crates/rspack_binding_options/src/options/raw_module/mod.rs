@@ -100,6 +100,14 @@ impl Debug for RawModuleRuleUses {
   }
 }
 
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawRegexMatcher {
+  pub source: String,
+  pub flags: String,
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
@@ -107,7 +115,7 @@ pub struct RawRuleSetCondition {
   #[napi(ts_type = r#""string" | "regexp" | "logical" | "array" | "function""#)]
   pub r#type: String,
   pub string_matcher: Option<String>,
-  pub regexp_matcher: Option<String>,
+  pub regexp_matcher: Option<RawRegexMatcher>,
   pub logical_matcher: Option<Vec<RawRuleSetLogicalConditions>>,
   pub array_matcher: Option<Vec<RawRuleSetCondition>>,
   #[serde(skip_deserializing)]
@@ -172,13 +180,12 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
         internal_error!("should have a string_matcher when RawRuleSetCondition.type is \"string\"")
       })?),
       "regexp" => {
-        let reg = rspack_regex::RspackRegex::new(
-            x.regexp_matcher.as_ref().ok_or_else(|| {
-              internal_error!(
-                "should have a regexp_matcher when RawRuleSetCondition.type is \"regexp\""
-              )
-            })?,
-        )?;
+        let reg_matcher = x.regexp_matcher.as_ref().ok_or_else(|| {
+          internal_error!(
+            "should have a regexp_matcher when RawRuleSetCondition.type is \"regexp\""
+          )
+        })?;
+        let reg = rspack_regex::RspackRegex::with_flags(&reg_matcher.source, &reg_matcher.flags)?;
         tracing::debug!(regex_matcher = ?x.regexp_matcher, algo_type = ?reg.algo);
         Self::Regexp(reg)
       },

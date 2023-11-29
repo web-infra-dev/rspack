@@ -7,6 +7,7 @@ module.exports = {
 		a: "./a",
 		a2: "./a2",
 		b: "./b",
+		c: "./c",
 		main: "./index"
 	},
 	optimization: {
@@ -15,6 +16,9 @@ module.exports = {
 			new rspack.SwcJsMinimizerRspackPlugin({
 				test: [/a\d?\.js/],
 				exclude: [/a\.js/]
+			}),
+			new rspack.SwcJsMinimizerRspackPlugin({
+				test: [/c\.js/]
 			})
 		]
 	}

@@ -105,7 +105,7 @@ impl Module for ContainerEntryModule {
 
     let mut blocks = vec![];
     for (name, options) in &self.exposes {
-      let mut block = AsyncDependenciesBlock::new(self.identifier, name);
+      let mut block = AsyncDependenciesBlock::new(self.identifier, name, None);
       block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions {
         name: options.name.clone(),
       }));

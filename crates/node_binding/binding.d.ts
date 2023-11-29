@@ -147,6 +147,8 @@ export const enum BuiltinPluginName {
   ContainerPlugin = 'ContainerPlugin',
   ContainerReferencePlugin = 'ContainerReferencePlugin',
   ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
+  ProvideSharedPlugin = 'ProvideSharedPlugin',
+  ConsumeSharedPlugin = 'ConsumeSharedPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -617,6 +619,19 @@ export interface RawChunkOptionNameCtx {
   module: JsModule
 }
 
+export interface RawConsumeOptions {
+  key: string
+  import?: string
+  importResolved?: string
+  shareKey: string
+  shareScope: string
+  requiredVersion?: string | false | undefined
+  packageName?: string
+  strictVersion: boolean
+  singleton: boolean
+  eager: boolean
+}
+
 export interface RawContainerPluginOptions {
   name: string
   shareScope: string
@@ -1009,6 +1024,14 @@ export interface RawProgressPluginOptions {
   profile: boolean
 }
 
+export interface RawProvideOptions {
+  key: string
+  shareKey: string
+  shareScope: string
+  version?: string | false | undefined
+  eager: boolean
+}
+
 export interface RawReactOptions {
   runtime?: "automatic" | "classic"
   importSource?: string
@@ -1019,6 +1042,11 @@ export interface RawReactOptions {
   useBuiltins?: boolean
   useSpread?: boolean
   refresh?: boolean
+}
+
+export interface RawRegexMatcher {
+  source: string
+  flags: string
 }
 
 export interface RawRelated {
@@ -1069,7 +1097,7 @@ export interface RawRspackFuture {
 export interface RawRuleSetCondition {
   type: "string" | "regexp" | "logical" | "array" | "function"
   stringMatcher?: string
-  regexpMatcher?: string
+  regexpMatcher?: RawRegexMatcher
   logicalMatcher?: Array<RawRuleSetLogicalConditions>
   arrayMatcher?: Array<RawRuleSetCondition>
   funcMatcher?: (value: string) => boolean

@@ -10,6 +10,7 @@ import {
 import { isNil } from "../util";
 import { parseOptions } from "../container/options";
 import { Compiler } from "../Compiler";
+import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";
 
 export type ContainerPluginOptions = {
 	exposes: Exposes;
@@ -67,6 +68,10 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
 		if (!compiler.options.output.enabledLibraryTypes!.includes(library.type)) {
 			compiler.options.output.enabledLibraryTypes!.push(library.type);
 		}
+		ModuleFederationRuntimePlugin.addPlugin(
+			compiler,
+			require.resolve("../sharing/initializeSharing.js")
+		);
 		return {
 			name: this.name as any,
 			options: this._options

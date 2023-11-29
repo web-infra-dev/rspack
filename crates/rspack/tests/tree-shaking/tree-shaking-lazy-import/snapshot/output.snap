@@ -9,7 +9,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
-/* harmony import */var _test__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./test */"./test.js");
+/* harmony import */var _test__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./test */"./test.js");
 
 function myanswer() {
     _test__WEBPACK_IMPORTED_MODULE_0__["default"];
@@ -42,9 +42,9 @@ __webpack_require__.d(__webpack_exports__, {
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./app */"./app.js");
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./app */"./app.js");
 
-const a = test(()=>__webpack_require__.el("./index.js@51:66").then(__webpack_require__.bind(__webpack_require__, /* ./lib */"./lib.js")));
+const a = test(()=>__webpack_require__.el("./index.js@51:66").then(__webpack_require__.bind(__webpack_require__, /*! ./lib */"./lib.js")));
 (0, _app__WEBPACK_IMPORTED_MODULE_0__.answer)();
 a;
 }),

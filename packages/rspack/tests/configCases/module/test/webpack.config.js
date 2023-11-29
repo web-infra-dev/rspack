@@ -31,6 +31,10 @@ module.exports = {
 			{
 				test: /(?<!module).less$/,
 				type: "css"
+			},
+			{
+				test: /\.svg$/i,
+				type: "asset"
 			}
 		]
 	}

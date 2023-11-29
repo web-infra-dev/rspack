@@ -18,7 +18,8 @@ import type {
 	RawRspackFuture,
 	RawLibraryName,
 	RawLibraryOptions,
-	JsModule
+	JsModule,
+	RawModuleRuleUse
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../Compiler";
@@ -378,7 +379,7 @@ const getRawModuleRule = (
 			}
 		];
 	}
-	let funcUse;
+	let funcUse: undefined | ((rawContext: RawFuncUseCtx) => RawModuleRuleUse[]);
 	if (typeof rule.use === "function") {
 		funcUse = (rawContext: RawFuncUseCtx) => {
 			const context = {
@@ -505,7 +506,10 @@ function getRawRuleSetCondition(
 	if (condition instanceof RegExp) {
 		return {
 			type: "regexp",
-			regexpMatcher: condition.source
+			regexpMatcher: {
+				source: condition.source,
+				flags: condition.flags
+			}
 		};
 	}
 	if (typeof condition === "function") {

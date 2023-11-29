@@ -5,8 +5,8 @@ use async_trait::async_trait;
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
   AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock, DependencyId, Module,
-  ModuleType, NormalModuleCreateData, Plugin, PluginContext, PluginModuleHookOutput,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  ModuleType, NormalModuleCreateData, Plugin, PluginContext,
+  PluginNormalModuleFactoryCreateModuleHookOutput, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_core::{CodeGenerationResult, Context, ModuleIdentifier};
 use rspack_error::Result;
@@ -115,11 +115,11 @@ impl Plugin for LazyCompilationPlugin {
     "LazyCompilationPlugin"
   }
 
-  async fn create_module(
+  async fn normal_module_factory_create_module(
     &self,
     _ctx: PluginContext,
     _args: &NormalModuleCreateData,
-  ) -> PluginModuleHookOutput {
+  ) -> PluginNormalModuleFactoryCreateModuleHookOutput {
     // if args.indentfiler.contains("rspack-dev-client")
     //   || args.lazy_visit_modules.contains(args.indentfiler.as_str())
     // {

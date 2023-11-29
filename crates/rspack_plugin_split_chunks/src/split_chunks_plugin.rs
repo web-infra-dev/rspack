@@ -790,13 +790,12 @@ impl Plugin for SplitChunksPlugin {
               &mut compilation.chunk_by_ukey,
               &mut compilation.named_chunks,
             )
-            .ukey
           } else {
             tracing::debug!(
               "create a non-named chunk for cache group {}",
               item_cache_group.key
             );
-            Compilation::add_chunk(&mut compilation.chunk_by_ukey).ukey
+            Compilation::add_chunk(&mut compilation.chunk_by_ukey)
           }
         };
 

@@ -94,10 +94,6 @@ export interface JsFormatOptions {
 	 * @alias indent_start
 	 */
 	indentStart?: number;
-	/**
-	 * Currently noop.
-	 * @alias inline_script
-	 */
 	inlineScript?: number;
 	/**
 	 * Currently noop.

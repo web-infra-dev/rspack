@@ -93,6 +93,9 @@ impl ContextNameSpaceObject {
 }
 
 pub fn context_reg_exp(expr: &str, flags: &str) -> Option<RspackRegex> {
+  if expr.is_empty() {
+    return None;
+  }
   let regexp = RspackRegex::with_flags(expr, flags).expect("reg failed");
   clean_regexp_in_context_module(regexp)
 }
@@ -780,7 +783,7 @@ impl ContextModule {
       && !context_element_dependencies.is_empty()
     {
       let name = self.options.context_options.chunk_name.clone();
-      let mut block = AsyncDependenciesBlock::new(self.identifier, "");
+      let mut block = AsyncDependenciesBlock::new(self.identifier, "", None);
       block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions { name }));
       for context_element_dependency in context_element_dependencies {
         block.add_dependency(Box::new(context_element_dependency));
@@ -808,8 +811,11 @@ impl ContextModule {
             });
             name.into_owned()
           });
-        let mut block =
-          AsyncDependenciesBlock::new(self.identifier, &context_element_dependency.user_request);
+        let mut block = AsyncDependenciesBlock::new(
+          self.identifier,
+          &context_element_dependency.user_request,
+          None,
+        );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions { name }));
         block.add_dependency(Box::new(context_element_dependency));
         blocks.push(block);

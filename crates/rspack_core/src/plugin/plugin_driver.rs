@@ -10,7 +10,7 @@ use tracing::instrument;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
-  AssetEmittedArgs, BoxLoader, BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs,
+  AssetEmittedArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs,
   ChunkContentHash, ChunkHashArgs, CodeGenerationResults, Compilation, CompilationArgs,
   CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, MakeParam,
   Module, ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
@@ -18,13 +18,13 @@ use crate::{
   OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
   PluginAdditionalModuleRequirementsOutput, PluginBuildEndHookOutput, PluginChunkHashHookOutput,
   PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
-  PluginJsChunkHashHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,
-  PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
-  PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
-  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
-  PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
-  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory, Stats,
-  ThisCompilationArgs,
+  PluginJsChunkHashHookOutput, PluginMakeHookOutput, PluginNormalModuleFactoryAfterResolveOutput,
+  PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryCreateModuleHookOutput,
+  PluginNormalModuleFactoryModuleHookOutput, PluginProcessAssetsOutput,
+  PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
+  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput, PluginThisCompilationHookOutput,
+  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
+  RenderStartupArgs, Resolver, ResolverFactory, Stats, ThisCompilationArgs,
 };
 
 pub struct PluginDriver {
@@ -322,14 +322,37 @@ impl PluginDriver {
     Ok(None)
   }
 
-  pub async fn create_module(&self, args: NormalModuleCreateData) -> PluginModuleHookOutput {
+  pub async fn normal_module_factory_create_module(
+    &self,
+    args: &NormalModuleCreateData<'_>,
+  ) -> PluginNormalModuleFactoryCreateModuleHookOutput {
     for plugin in &self.plugins {
-      tracing::trace!("running render runtime:{}", plugin.name());
-      if let Some(module) = plugin.create_module(PluginContext::new(), &args).await? {
+      tracing::trace!(
+        "running normal_module_factory_create_module:{}",
+        plugin.name()
+      );
+      if let Some(module) = plugin
+        .normal_module_factory_create_module(PluginContext::new(), args)
+        .await?
+      {
         return Ok(Some(module));
       }
     }
     Ok(None)
+  }
+
+  pub async fn normal_module_factory_module(
+    &self,
+    mut module: BoxModule,
+    args: &NormalModuleCreateData<'_>,
+  ) -> PluginNormalModuleFactoryModuleHookOutput {
+    for plugin in &self.plugins {
+      tracing::trace!("running normal_module_factory_module:{}", plugin.name());
+      module = plugin
+        .normal_module_factory_module(PluginContext::new(), module, args)
+        .await?;
+    }
+    Ok(module)
   }
 
   pub async fn before_resolve(

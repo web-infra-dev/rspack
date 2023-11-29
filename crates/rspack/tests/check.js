@@ -69,6 +69,7 @@ const falsePositiveMap = {
 	"react-redux-like": "update dep",
 	"webpack-side-effects-all-used": "update dep",
 	"webpack-side-effects-simple-unused": "update dep",
+	"reexport-all-as-multi-level-nested": "update dep"
 };
 
 const normalizedList = filteredList.map((item) => {

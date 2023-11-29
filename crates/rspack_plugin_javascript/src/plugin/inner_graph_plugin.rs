@@ -347,7 +347,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
           if is_pure {
             self.set_symbol_if_is_top_level(symbol);
           }
-          class.class.visit_with(self);
+          class.visit_with(self);
           self.clear_symbol_if_is_top_level();
         }
         _ => {

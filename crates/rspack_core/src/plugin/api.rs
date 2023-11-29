@@ -25,7 +25,8 @@ pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
 pub type PluginFactorizeHookOutput = Result<Option<ModuleFactoryResult>>;
-pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
+pub type PluginNormalModuleFactoryCreateModuleHookOutput = Result<Option<BoxModule>>;
+pub type PluginNormalModuleFactoryModuleHookOutput = Result<BoxModule>;
 pub type PluginNormalModuleFactoryResolveForSchemeOutput = Result<(ResourceData, bool)>;
 pub type PluginNormalModuleFactoryBeforeResolveOutput = Result<Option<bool>>;
 pub type PluginNormalModuleFactoryAfterResolveOutput = Result<Option<bool>>;
@@ -127,12 +128,21 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
-  async fn create_module(
+  async fn normal_module_factory_create_module(
     &self,
     _ctx: PluginContext,
     _args: &NormalModuleCreateData,
-  ) -> PluginModuleHookOutput {
+  ) -> PluginNormalModuleFactoryCreateModuleHookOutput {
     Ok(None)
+  }
+
+  async fn normal_module_factory_module(
+    &self,
+    _ctx: PluginContext,
+    module: BoxModule,
+    _args: &NormalModuleCreateData,
+  ) -> PluginNormalModuleFactoryModuleHookOutput {
+    Ok(module)
   }
 
   async fn normal_module_factory_resolve_for_scheme(
