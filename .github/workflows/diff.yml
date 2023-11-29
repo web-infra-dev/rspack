@@ -3,9 +3,6 @@
 name: Diff Assets
 
 on:
-  push:
-    branches:
-      - "ci/diff-html-reporter"
   workflow_dispatch:
   issue_comment:
     types: [created]
