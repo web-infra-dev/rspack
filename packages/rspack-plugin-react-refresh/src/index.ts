@@ -6,10 +6,7 @@ export type { PluginOptions };
 
 const reactRefreshPath = require.resolve("../client/reactRefresh.js");
 const reactRefreshEntryPath = require.resolve("../client/reactRefreshEntry.js");
-
-const refreshUtilsPath = require.resolve("../client/refreshUtils.js", {
-	paths: [reactRefreshPath]
-});
+const refreshUtilsPath = require.resolve("../client/refreshUtils.js");
 const refreshRuntimeDirPath = path.dirname(
 	require.resolve("react-refresh", {
 		paths: [reactRefreshPath]
