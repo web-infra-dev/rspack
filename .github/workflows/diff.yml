@@ -59,6 +59,15 @@ jobs:
       - name: Run Diff
         run: node scripts/diff.cjs
 
+      - name: Upload Diff Report
+        id: upload-artifact
+        uses: ./.github/actions/upload-artifact
+        with:
+          name: diff-report
+          path: diff_output
+          try-local-cache: false
+          mv-when-local: false
+      
       - name: Write a new comment
         uses: peter-evans/create-or-update-comment@v3
         continue-on-error: true
