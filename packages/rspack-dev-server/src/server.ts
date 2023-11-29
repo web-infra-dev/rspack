@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * The following code is modified based on
  * https://github.com/webpack/webpack-dev-server/blob/b0f15ace0123c125d5870609ef4691c141a6d187/lib/Server.js

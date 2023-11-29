@@ -4,7 +4,8 @@ use rspack_core::{
   IncrementalRebuildMakeState, ModuleOptions, ModuleType, OutputOptions, PluginExt,
 };
 use rspack_plugin_javascript::{
-  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, SideEffectsFlagPlugin,
+  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, MangleExportsPlugin,
+  SideEffectsFlagPlugin,
 };
 use serde::Deserialize;
 
@@ -167,6 +168,9 @@ impl RawOptionsApply for RawOptions {
       if optimization.used_exports.is_enable() {
         plugins.push(FlagDependencyUsagePlugin::default().boxed());
       }
+    }
+    if optimization.mangle_exports {
+      plugins.push(MangleExportsPlugin::new(true).boxed());
     }
 
     // Notice the plugin need to be placed after SplitChunksPlugin
