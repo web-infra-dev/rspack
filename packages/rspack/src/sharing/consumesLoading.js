@@ -548,11 +548,10 @@ if (__webpack_require__.MF) {
 		};
 	};
 	var installedModules = {};
-	__webpack_require__.MF.consumes = function (data) {
-		var chunkId = data.chunkId,
-			promises = data.promises,
-			chunkMapping = data.chunkMapping,
-			moduleToConsumeDataMapping = data.moduleToConsumeDataMapping;
+	__webpack_require__.MF.consumesLoading = function (chunkId, promises) {
+		var chunkMapping = __webpack_require__.MF.consumesLoadingData.chunkMapping;
+		var moduleIdToConsumeDataMapping =
+			__webpack_require__.MF.consumesLoadingData.moduleIdToConsumeDataMapping;
 		if (__webpack_require__.o(chunkMapping, chunkId)) {
 			chunkMapping[chunkId].forEach(function (id) {
 				if (__webpack_require__.o(installedModules, id))
@@ -572,7 +571,7 @@ if (__webpack_require__.MF) {
 					};
 				};
 				try {
-					var promise = resolveHandler(moduleToConsumeDataMapping[id])();
+					var promise = resolveHandler(moduleIdToConsumeDataMapping[id])();
 					if (promise.then) {
 						promises.push(
 							(installedModules[id] = promise.then(onFactory)["catch"](onError))
@@ -584,16 +583,18 @@ if (__webpack_require__.MF) {
 			});
 		}
 	};
-	__webpack_require__.MF.initialConsumes = function (data) {
-		var initialConsumes = data.initialConsumesData,
-			moduleToConsumeDataMapping = data.moduleToConsumeDataMapping;
-		if (initialConsumes) {
-			initialConsumes.forEach(function (id) {
+	__webpack_require__.MF.initialConsumes = function () {
+		var initialConsumeModuleIds =
+			__webpack_require__.MF.consumesLoadingData.initialConsumeModuleIds;
+		var moduleIdToConsumeDataMapping =
+			__webpack_require__.MF.consumesLoadingData.moduleIdToConsumeDataMapping;
+		if (initialConsumeModuleIds) {
+			initialConsumeModuleIds.forEach(function (id) {
 				__webpack_require__.m[id] = function (module) {
 					// Handle case when module is used sync
 					installedModules[id] = 0;
 					delete __webpack_require__.c[id];
-					var factory = resolveHandler(moduleToConsumeDataMapping[id])();
+					var factory = resolveHandler(moduleIdToConsumeDataMapping[id])();
 					if (typeof factory !== "function")
 						throw new Error(
 							"Shared module is not available for eager consumption: " + id
@@ -603,11 +604,7 @@ if (__webpack_require__.MF) {
 			});
 		}
 	};
-	if (__webpack_require__.MF.initialConsumesData) {
-		__webpack_require__.MF.initialConsumes({
-			initialConsumesData: __webpack_require__.MF.initialConsumesData,
-			moduleToConsumeDataMapping:
-				__webpack_require__.MF.moduleToConsumeDataMapping
-		});
+	if (__webpack_require__.MF.consumesLoadingData?.initialConsumeModuleIds) {
+		__webpack_require__.MF.initialConsumes();
 	}
 }
