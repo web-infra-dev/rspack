@@ -100,7 +100,7 @@ export class DiffStatsReporter
 		fs.writeFileSync(this.options.file, output);
 	}
 	private stringifySummary(id: string, summary: TCaseSummary) {
-		let output = `### ${id}`;
+		let output = `### ${id}\n\n`;
 		for (let moduleType of ["runtime", "normal"] as TModuleTypeId[]) {
 			const csv: string[] = [];
 			csv.push(
