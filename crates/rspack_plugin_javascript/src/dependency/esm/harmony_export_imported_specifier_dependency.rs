@@ -3,12 +3,14 @@ use std::{collections::HashMap, sync::Arc};
 use linked_hash_set::LinkedHashSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
-  get_exports_type, get_import_var, process_export_info, AsContextDependency, ConnectionState,
-  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
-  DependencyType, ExportInfoId, ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsInfoId,
-  ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
-  HarmonyExportInitFragment, ModuleDependency, ModuleGraph, ModuleIdentifier, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  get_exports_type, get_import_var, process_export_info, property_access, string_of_used_name,
+  AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
+  DependencyId, DependencyTemplate, DependencyType, ExportInfoId, ExportInfoProvided,
+  ExportNameOrSpec, ExportSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  ExtendedReferencedExport, HarmonyExportInitFragment, InitFragment, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  NormalInitFragment, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::atoms::JsWord;
@@ -116,10 +118,8 @@ impl HarmonyExportImportedSpecifierDependency {
       return mode;
     }
     let imported_exports_type = get_exports_type(module_graph, id, &parent_module);
-    // dbg!(&imported_exports_type);
     let ids = self.get_ids(module_graph);
 
-    // dbg!(&ids, &self.mode_ids);
     // Special handling for reexporting the default export
     // from non-namespace modules
     if let Some(name) = name.as_ref()
@@ -449,6 +449,197 @@ impl HarmonyExportImportedSpecifierDependency {
     }
     None
   }
+
+  fn add_export_fragments(&self, ctxt: &mut TemplateContext, mode: ExportMode) {
+    let TemplateContext {
+      compilation,
+      module,
+      ..
+    } = ctxt;
+    let mut fragments = vec![];
+    let mut mg = &compilation.module_graph;
+    let imported_module = mg
+      .module_identifier_by_dependency_id(&self.id)
+      .expect("should have imported module identifier");
+    let import_var = get_import_var(mg, self.id);
+    match mode.ty {
+      ExportModeType::Missing | ExportModeType::EmptyStar => {
+        fragments.push(
+          NormalInitFragment::new(
+            "/* empty/unused harmony star reexport */\n".to_string(),
+            InitFragmentStage::StageHarmonyExports,
+            1,
+            InitFragmentKey::HarmonyExports,
+            None,
+          )
+          .boxed(),
+        );
+      }
+      ExportModeType::Unused => fragments.push(
+        NormalInitFragment::new(
+          Template::to_comment(&format!(
+            "unused harmony reexport {}",
+            mode.name.unwrap_or_default()
+          )),
+          InitFragmentStage::StageHarmonyExports,
+          1,
+          InitFragmentKey::HarmonyExports,
+          None,
+        )
+        .boxed(),
+      ),
+      ExportModeType::ReexportDynamicDefault => {
+        let used_name = mg.get_exports_info(&module.identifier()).id.get_used_name(
+          mg,
+          None,
+          UsedName::Str(mode.name.expect("should have name")),
+        );
+        let key = string_of_used_name(used_name.as_ref());
+
+        let init_fragment = self
+          .get_reexport_fragment(
+            ctxt,
+            "reexport default from dynamic".to_string(),
+            key,
+            &import_var,
+            ValueKey::Null,
+          )
+          .boxed();
+        fragments.push(init_fragment);
+      }
+      ExportModeType::ReexportNamedDefault => {
+        let used_name = mg.get_exports_info(&module.identifier()).id.get_used_name(
+          mg,
+          None,
+          UsedName::Str(mode.name.expect("should have name")),
+        );
+        let key = string_of_used_name(used_name.as_ref());
+        let init_fragment = self
+          .get_reexport_fragment(
+            ctxt,
+            "reexport default export from named module".to_string(),
+            key,
+            &import_var,
+            ValueKey::Str("".to_string()),
+          )
+          .boxed();
+        fragments.push(init_fragment);
+      }
+      ExportModeType::ReexportNamespaceObject => {
+        let used_name = mg.get_exports_info(&module.identifier()).id.get_used_name(
+          mg,
+          None,
+          UsedName::Str(mode.name.expect("should have name")),
+        );
+        let key = string_of_used_name(used_name.as_ref());
+
+        let init_fragment = self
+          .get_reexport_fragment(
+            ctxt,
+            "reexport module object".to_string(),
+            key,
+            &import_var,
+            ValueKey::Str("".to_string()),
+          )
+          .boxed();
+        fragments.push(init_fragment);
+      }
+      ExportModeType::ReexportFakeNamespaceObject => {}
+      ExportModeType::ReexportUndefined => {
+        let used_name = mg.get_exports_info(&module.identifier()).id.get_used_name(
+          mg,
+          None,
+          UsedName::Str(mode.name.expect("should have name")),
+        );
+        let key = string_of_used_name(used_name.as_ref());
+
+        let init_fragment = self
+          .get_reexport_fragment(
+            ctxt,
+            "reexport non-default export from non-harmony".to_string(),
+            key,
+            "undefined",
+            ValueKey::Str("".to_string()),
+          )
+          .boxed();
+        fragments.push(init_fragment);
+      }
+      ExportModeType::NormalReexport => todo!(),
+      ExportModeType::DynamicReexport => todo!(),
+    }
+    ctxt.init_fragments.extend(fragments);
+  }
+
+  fn get_reexport_fragment(
+    &self,
+    ctxt: &mut TemplateContext,
+    comment: String,
+    key: String,
+    name: &str,
+    value_key: ValueKey,
+  ) -> HarmonyExportInitFragment {
+    let TemplateContext {
+      runtime_requirements,
+      module,
+      compilation,
+      ..
+    } = ctxt;
+    let return_value = Self::get_return_value(name.to_owned(), value_key);
+    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
+    runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    let mut export_map = vec![];
+    export_map.push((
+      key.into(),
+      format!("/* {} */ {}", comment, return_value).into(),
+    ));
+    let mgm = compilation
+      .module_graph
+      .module_graph_module_by_identifier(&module.identifier())
+      .expect("should have module graph module");
+    HarmonyExportInitFragment::new(mgm.get_exports_argument(), export_map)
+  }
+
+  fn get_reexport_fake_namespace_object_fragments(
+    &self,
+    ctxt: &mut TemplateContext,
+    key: String,
+    name: &str,
+    fake_type: u8,
+  ) {
+    let TemplateContext {
+      runtime_requirements,
+      ..
+    } = ctxt;
+    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
+    runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+    let mut export_map = vec![];
+    return vec![
+      NormalInitFragment::new(
+        format!("var {}_namespace_cache;\n"),
+        InitFragmentStage::StageConstants,
+        -1,
+        InitFragmentKey::HarmonyExports,
+        None,
+      ),
+      // new InitFragment(
+      // 	`var ${name}_namespace_cache;\n`,
+      // 	InitFragment.STAGE_CONSTANTS,
+      // 	-1,
+      // 	`${name}_namespace_cache`
+      // ),
+      // new HarmonyExportInitFragment(module.exportsArgument, map)
+    ];
+  }
+
+  fn get_return_value(name: String, value_key: ValueKey) -> String {
+    match value_key {
+      ValueKey::False => "/* unused export */ undefined".to_string(),
+      ValueKey::Null => format!("{}_default.a", name),
+      ValueKey::Str(str) if str.is_empty() => name,
+      ValueKey::Str(str) => format!("{}{}", name, property_access(vec![str], 0)),
+    }
+  }
 }
 
 #[derive(Debug)]
@@ -522,9 +713,9 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       );
       if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
         harmony_import_dependency_apply(self, self.source_order, code_generatable_context, &[]);
-      } else {
-        return;
+        self.add_export_fragments(code_generatable_context, mode);
       }
+      // return;
     }
 
     let mut exports = vec![];
@@ -598,7 +789,6 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
   #[allow(clippy::unwrap_in_result)]
   fn get_exports(&self, mg: &ModuleGraph) -> Option<ExportsSpec> {
     let mode = self.get_mode(self.name.clone(), mg, &self.id, None);
-    // dbg!(&mode);
     match mode.ty {
       ExportModeType::Missing => None,
       ExportModeType::Unused => {
@@ -882,6 +1072,12 @@ impl ModuleDependency for HarmonyExportImportedSpecifierDependency {
       }
     }
   }
+}
+
+enum ValueKey {
+  False,
+  Null,
+  Str(String),
 }
 
 impl AsContextDependency for HarmonyExportImportedSpecifierDependency {}

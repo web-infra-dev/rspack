@@ -9,6 +9,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_identifier::IdentifierMap;
+use rspack_util::swc::join_jsword;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::utils::join_jsword;

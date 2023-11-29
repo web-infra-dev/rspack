@@ -32,6 +32,7 @@ pub enum InitFragmentKey {
   HarmonyCompatibility,
   ModuleDecorator(String /* module_id */),
   Unique(InitFragmentKeyUKey),
+  HarmonyFakeNamespaceObjectFragment(String),
 }
 
 impl InitFragmentKey {
@@ -76,6 +77,7 @@ impl InitFragmentKey {
         AwaitDependenciesInitFragment::new(promises).boxed()
       }
       InitFragmentKey::HarmonyImport(_)
+      | InitFragmentKey::HarmonyFakeNamespaceObjectFragment(_)
       | InitFragmentKey::HarmonyExportStar(_)
       | InitFragmentKey::ExternalModule(_)
       | InitFragmentKey::ModuleDecorator(_) => first(fragments),

@@ -3023,6 +3023,7 @@ dependencies = [
  "rspack_regex",
  "rspack_swc_visitors",
  "rspack_testing",
+ "rspack_util",
  "rustc-hash",
  "serde_json",
  "sourcemap",
@@ -3380,6 +3381,7 @@ dependencies = [
  "once_cell",
  "regex",
  "sugar_path",
+ "swc_core",
 ]
 
 [[package]]

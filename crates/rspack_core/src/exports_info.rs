@@ -575,6 +575,14 @@ pub enum UsedName {
   Vec(Vec<JsWord>),
 }
 
+pub fn string_of_used_name(used: Option<&UsedName>) -> String {
+  match used {
+    Some(UsedName::Str(str)) => str.to_string(),
+    Some(UsedName::Vec(strs)) => format!("[{}]", (",")),
+    None => "false".to_string(),
+  }
+}
+
 #[derive(Debug, Clone, Hash)]
 pub struct ExportInfoTargetValue {
   connection: Option<ModuleGraphConnection>,

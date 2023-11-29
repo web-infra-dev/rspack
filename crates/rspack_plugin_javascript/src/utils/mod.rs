@@ -157,18 +157,6 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
   traceable_error.into()
 }
 
-pub fn join_jsword(arr: &[JsWord], separator: &str) -> String {
-  let mut ret = String::new();
-  if let Some(item) = arr.first() {
-    ret.push_str(item);
-  }
-  for item in arr.iter().skip(1) {
-    ret.push_str(separator);
-    ret.push_str(item);
-  }
-  ret
-}
-
 pub fn is_diff_mode() -> bool {
   let is_diff_mode = std::env::var("RSPACK_DIFF").ok().unwrap_or_default();
   is_diff_mode == "true"

@@ -11,7 +11,9 @@ pub use dependencies_block::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock, DependencyLocation,
 };
 mod fake_namespace_object;
+mod template;
 pub use fake_namespace_object::*;
+pub use template::Template;
 mod module_profile;
 pub use module_profile::*;
 use rspack_database::Database;
