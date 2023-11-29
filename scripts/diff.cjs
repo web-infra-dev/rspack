@@ -3,19 +3,16 @@ const { Tester, DiffProcessor, DiffStatsReporter } = require("../packages/rspack
 const rimraf = require("rimraf");
 const path = require("path");
 const fs = require("fs-extra");
-const csvToMarkdown = require("csv-to-markdown-table");
 
 process.env['RSPACK_DIFF'] = "true"; // 开启DIFF
 
 const CASE_DIR = path.resolve(__dirname, '../diffcases');
-const toPercent = d => (d * 100).toFixed(2) + '%';
 
 (async () => {
   const cases = fs
     .readdirSync(CASE_DIR)
     .filter(testName => !testName.startsWith("."));
 
-  const result = [];
   const reporter = new DiffStatsReporter({
     file: path.join(__dirname, '../diff_output')
   });
