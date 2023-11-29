@@ -138,6 +138,8 @@ export type TCompareModules = string[] | true;
 export type TCompareResult = {
 	type: ECompareResultType;
 	detail?: unknown;
+	source?: string;
+	dist?: string;
 	lines?: {
 		common: number;
 		source: number;
@@ -158,3 +160,14 @@ export type TFileCompareResult = TCompareResult & {
 	>;
 };
 
+export type TDiffStatsItem = {
+	name: string;
+	source: string;
+	dist: string;
+	type: ECompareResultType;
+};
+
+export type TDiffStats = {
+	root: string;
+	data: Array<TDiffStatsItem>
+};
