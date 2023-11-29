@@ -6,7 +6,11 @@ use once_cell::sync::Lazy;
 use rspack_core::CompilerOptions;
 use rspack_swc_visitors::{styled_components, StyledComponentsOptions};
 use swc_core::common::FileName;
-use swc_core::common::{chain, comments::Comments, Mark, SourceMap};
+use swc_core::common::{
+  chain,
+  comments::{Comments, NoopComments},
+  Mark, SourceMap,
+};
 use swc_core::ecma::{transforms::base::pass::noop, visit::Fold};
 use xxhash_rust::xxh32::xxh32;
 
@@ -61,6 +65,7 @@ pub(crate) fn transform<'a>(
           FileName::Real(resource_path.into()),
           (*content_hash).into(),
           options.clone(),
+          NoopComments,
         )
       }
     ),
