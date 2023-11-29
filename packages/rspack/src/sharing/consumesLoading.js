@@ -585,7 +585,7 @@ if (__webpack_require__.MF) {
 		}
 	};
 	__webpack_require__.MF.initialConsumes = function (data) {
-		var initialConsumes = data.initialConsumes,
+		var initialConsumes = data.initialConsumesData,
 			moduleToConsumeDataMapping = data.moduleToConsumeDataMapping;
 		if (initialConsumes) {
 			initialConsumes.forEach(function (id) {
@@ -604,8 +604,10 @@ if (__webpack_require__.MF) {
 		}
 	};
 	if (__webpack_require__.MF.initialConsumesData) {
-		__webpack_require__.MF.initialConsumes(
-			__webpack_require__.MF.initialConsumesData
-		);
+		__webpack_require__.MF.initialConsumes({
+			initialConsumesData: __webpack_require__.MF.initialConsumesData,
+			moduleToConsumeDataMapping:
+				__webpack_require__.MF.moduleToConsumeDataMapping
+		});
 	}
 }

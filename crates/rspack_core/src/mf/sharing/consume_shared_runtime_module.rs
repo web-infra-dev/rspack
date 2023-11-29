@@ -53,7 +53,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         && let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>()
       {
         module_id_to_consume_data_mapping.insert(id, format!(
-          "{{ \"shareScope\": {}, \"shareKey\": {}, \"import\": {}, \"requiredVersion\": {}, \"strictVersion\": {}, \"singleton\": {}, \"eager\": {}, \"factory\": {} }}",
+          "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, fallback: {} }}",
           json_stringify(&data.share_scope),
           json_stringify(&data.share_key),
           json_stringify(&data.import),
@@ -61,7 +61,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
           json_stringify(&data.strict_version),
           json_stringify(&data.singleton),
           json_stringify(&data.eager),
-          data.fallback.as_deref().unwrap_or("\"undefined\""),
+          data.fallback.as_deref().unwrap_or("undefined"),
         ));
       }
     };
@@ -117,9 +117,8 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     let mut source = format!(
       r#"
 var chunkMapping = {chunk_mapping};
-var moduleToConsumeDataMapping = {{ {module_to_consume_data_mapping} }};
-var initialConsumes = {initial_consumes};
-__webpack_require__.MF.initialConsumesData = {{ initialConsumes: initialConsumes, moduleToConsumeDataMapping: moduleToConsumeDataMapping }};
+__webpack_require__.MF.moduleToConsumeDataMapping = {{ {module_to_consume_data_mapping} }};
+__webpack_require__.MF.initialConsumesData = {initial_consumes};
 "#,
       chunk_mapping = serde_json::to_string(&chunk_to_module_mapping)
         .expect("chunk_to_module_mapping should able to json to_string"),
@@ -133,7 +132,7 @@ __webpack_require__.MF.initialConsumesData = {{ initialConsumes: initialConsumes
       .runtime_requirements
       .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
     {
-      source += &format!("{ensure_chunk_handlers}.consumes = function(chunkId, promises) {{ return {consumes_loading_fn}({{ chunkId: chunkId, promises: promises, chunkMapping: chunkMapping, moduleToConsumeDataMapping: moduleToConsumeDataMapping }}); }};",
+      source += &format!("{ensure_chunk_handlers}.consumes = function(chunkId, promises) {{ return {consumes_loading_fn}({{ chunkId: chunkId, promises: promises, chunkMapping: chunkMapping, moduleToConsumeDataMapping: __webpack_require__.MF.moduleToConsumeDataMapping }}); }};",
         ensure_chunk_handlers = RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
         consumes_loading_fn = "__webpack_require__.MF.consumes",
       );

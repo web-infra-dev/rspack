@@ -99,8 +99,8 @@ impl RuntimeModule for ShareRuntimeModule {
 {share_scope_map} = {{}};
 var initPromises = {{}};
 var initTokens = {{}};
-var scopeToInitDataMapping = {{ {scope_to_data_init} }};
-{initialize_sharing} = function(name, initScope) {{ return {initialize_sharing_fn}({{ name: name, initScope: initScope, scopeToInitDataMapping: scopeToInitDataMapping, uniqueName: {unique_name}, initTokens: initTokens, initPromises: initPromises }}); }};
+__webpack_require__.MF.scopeToInitDataMapping = {{ {scope_to_data_init} }};
+{initialize_sharing} = function(name, initScope) {{ return {initialize_sharing_fn}({{ name: name, initScope: initScope, scopeToInitDataMapping: __webpack_require__.MF.scopeToInitDataMapping, uniqueName: {unique_name}, initTokens: initTokens, initPromises: initPromises }}); }};
 "#,
       share_scope_map = RuntimeGlobals::SHARE_SCOPE_MAP,
       scope_to_data_init = scope_to_data_init,
