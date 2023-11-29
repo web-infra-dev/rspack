@@ -3,6 +3,7 @@
 name: Diff Assets
 
 on:
+  workflow_dispatch:
   issue_comment:
     types: [created]
 
