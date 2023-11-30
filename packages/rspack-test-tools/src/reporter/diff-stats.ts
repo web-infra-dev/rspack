@@ -11,6 +11,7 @@ export interface IDiffStatsReporterOptions {
 	header?: string[];
 	footer?: string[];
 	file: string;
+	report?: boolean;
 }
 
 export type TCompilerTypeId =
@@ -26,6 +27,7 @@ export type TCaseSummary = Record<TCaseSummaryId, number>;
 const toPercent = (d: number) => (d * 100).toFixed(2) + "%";
 const toFirstLetterUpperCase = (s: string) =>
 	(s.charAt(0).toUpperCase() + s.slice(1)).split("-").join(" ");
+const GITHUB_RUN_ID = process.env.GITHUB_RUN_ID;
 
 export class DiffStatsReporter
 	implements ITestReporter<TModuleCompareResult[]>
@@ -131,6 +133,10 @@ export class DiffStatsReporter
 				);
 			}
 			output += csvToMarkdown(csv.join("\n"), ",", true);
+			if (this.options.report && GITHUB_RUN_ID) {
+				output += "\n\n";
+				output += `> [View diff report](https://web-infra-dev.github.io/rspack-report-website/diff/${GITHUB_RUN_ID}/diff_${id}.html)`;
+			}
 			output += "\n\n";
 		}
 		return output;

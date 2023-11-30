@@ -59,6 +59,18 @@ jobs:
       - name: Run Diff
         run: node scripts/diff.cjs
 
+      - name: Upload Report
+        uses: dmnemec/copy_file_to_another_repo_action@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.RSPACK_REPORT_ACCESS_TOKEN }}
+        with:
+          source_file: diff_output/.
+          destination_repo: web-infra-dev/rspack-report-website
+          destination_folder: diff/${{ github.run_id }}/
+          user_email: lingyucoder@gmail.com
+          user_name: LingyuCoder
+          commit_message: Auto upload diff report
+      
       - name: Write a new comment
         uses: peter-evans/create-or-update-comment@v3
         continue-on-error: true
