@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   team-labeler:
-    runs-on: ubuntu-latest
+    runs-on: [cross-platform]
     steps:
       - uses: JulienKode/team-labeler-action@v1.1.0
         with:
