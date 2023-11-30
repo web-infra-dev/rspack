@@ -473,7 +473,7 @@ where
     let s: &str = self.as_ref();
     let mut output = String::with_capacity(s.len());
 
-    s.chars().enumerate().for_each(|(idx, c)| {
+    s.char_indices().for_each(|(idx, c)| {
       if c.is_uppercase() {
         if idx > 0 {
           output.push('-');

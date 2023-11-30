@@ -68,7 +68,7 @@ const HASH: char = '#';
 const QUERY: char = '?';
 
 pub fn get_scheme(specifier: &str) -> Scheme {
-  let mut chars = specifier.chars().enumerate().peekable();
+  let mut chars = specifier.char_indices().peekable();
 
   // First char maybe only a letter
   let start = chars.next();
