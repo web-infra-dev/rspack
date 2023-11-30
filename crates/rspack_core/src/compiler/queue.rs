@@ -11,7 +11,7 @@ use crate::{
   ModuleGraph, ModuleGraphModule, ModuleIdentifier, ModuleProfile, Resolve, ResolverFactory,
   SharedPluginDriver, WorkerQueue,
 };
-use crate::{DependencyId, ExportInfo, ExportsInfo, UsageState};
+use crate::{BoxModule, DependencyId, ExportInfo, ExportsInfo, UsageState};
 
 #[derive(Debug)]
 pub enum TaskResult {
@@ -43,6 +43,7 @@ pub struct FactorizeTask {
   pub plugin_driver: SharedPluginDriver,
   pub cache: Arc<Cache>,
   pub current_profile: Option<Box<ModuleProfile>>,
+  pub callback: Option<ModuleCreationCallback>,
 }
 
 /// a struct temporarily used creating ExportsInfo
@@ -52,7 +53,7 @@ pub struct ExportsInfoRelated {
   pub other_exports_info: ExportInfo,
   pub side_effects_info: ExportInfo,
 }
-#[derive(Debug)]
+
 pub struct FactorizeTaskResult {
   pub original_module_identifier: Option<ModuleIdentifier>,
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
@@ -66,6 +67,28 @@ pub struct FactorizeTaskResult {
   pub context_dependencies: HashSet<PathBuf>,
   pub missing_dependencies: HashSet<PathBuf>,
   pub diagnostics: Vec<Diagnostic>,
+  pub callback: Option<ModuleCreationCallback>,
+}
+
+impl std::fmt::Debug for FactorizeTaskResult {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("FactorizeTaskResult")
+      .field(
+        "original_module_identifier",
+        &self.original_module_identifier,
+      )
+      .field("factory_result", &self.factory_result)
+      .field("dependencies", &self.dependencies)
+      .field("diagnostics", &self.diagnostics)
+      .field("is_entry", &self.is_entry)
+      .field("current_profile", &self.current_profile)
+      .field("exports_info_related", &self.exports_info_related)
+      .field("file_dependencies", &self.file_dependencies)
+      .field("context_dependencies", &self.context_dependencies)
+      .field("missing_dependencies", &self.missing_dependencies)
+      .field("diagnostics", &self.diagnostics)
+      .finish()
+  }
 }
 
 impl FactorizeTaskResult {
@@ -134,6 +157,7 @@ impl WorkerTask for FactorizeTask {
       context_dependencies: Default::default(),
       missing_dependencies: Default::default(),
       diagnostics: Default::default(),
+      callback: self.callback,
     };
 
     // Error and result are not mutually exclusive in webpack module factorization.
@@ -204,6 +228,7 @@ pub struct AddTask {
   pub dependencies: Vec<DependencyId>,
   pub is_entry: bool,
   pub current_profile: Option<Box<ModuleProfile>>,
+  pub callback: Option<ModuleCreationCallback>,
 }
 
 #[derive(Debug)]
@@ -256,6 +281,10 @@ impl AddTask {
         module_identifier,
       )?;
 
+      if let Some(callback) = self.callback {
+        callback(&self.module);
+      }
+
       return Ok(TaskResult::Add(Box::new(AddTaskResult::ModuleReused {
         module: self.module,
       })));
@@ -280,6 +309,10 @@ impl AddTask {
 
     if let Some(current_profile) = &self.current_profile {
       current_profile.mark_integration_end();
+    }
+
+    if let Some(callback) = self.callback {
+      callback(&self.module);
     }
 
     Ok(TaskResult::Add(Box::new(AddTaskResult::ModuleAdded {
@@ -463,3 +496,5 @@ impl CleanTask {
 }
 
 pub type CleanQueue = WorkerQueue<CleanTask>;
+
+pub type ModuleCreationCallback = Box<dyn FnOnce(&BoxModule) + Send>;
