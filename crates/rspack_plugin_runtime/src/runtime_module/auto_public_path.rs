@@ -76,9 +76,16 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
     )
   };
   let global = RuntimeGlobals::GLOBAL.name();
-  format!(
-    r#"
-    var scriptUrl;
+
+  // TODO: replace import.meta with importMetaName
+  let script_url_template = match &output.script_type {
+    Some(script_type) if script_type.eq("module") => format!(
+      r#"var scriptUrl;
+    if (typeof import.meta.url === "string") scriptUrl = import.meta.url
+    "#
+    ),
+    _ => format!(
+      r#"var scriptUrl;
     if ({global}.importScripts) scriptUrl = {global}.location + "";
     var document = {global}.document;
     if (!scriptUrl && document) {{
@@ -91,6 +98,12 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
               }}
         }}
       }}
+    "#
+    ),
+  };
+  format!(
+    r#"
+    {script_url_template}
     // When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
     // or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.',
     if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");

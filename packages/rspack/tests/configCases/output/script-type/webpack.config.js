@@ -5,7 +5,16 @@ module.exports = [
 		target: "web",
 		output: {
 			filename: "a.js",
-			scriptType: "module"
+			scriptType: "module",
+			publicPath: "auto"
+		},
+		module: {
+			rules: [
+				{
+					test: /\.png$/,
+					type: "asset/resource"
+				}
+			]
 		}
 	},
 	{

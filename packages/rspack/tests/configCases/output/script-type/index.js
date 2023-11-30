@@ -8,4 +8,7 @@ it("script type should be module", async function () {
 	);
 
 	expect(content).toContain("script.type = 'module'");
+	expect(content).toContain(
+		'if (typeof import.meta.url === "string") scriptUrl = import.meta.url'
+	);
 });

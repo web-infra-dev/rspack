@@ -1,1 +1,1 @@
-import("./two");
+import("./b.png");
