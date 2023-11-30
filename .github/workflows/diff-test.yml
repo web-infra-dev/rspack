@@ -66,14 +66,7 @@ jobs:
         with:
           source_file: 'diff_output'
           destination_repo: 'web-infra-dev/rspack-report-website'
-          destination_folder: 'diff/$GITHUB_RUN_ID'
+          destination_folder: 'diff/${{ vars.GITHUB_RUN_ID }}'
           user_email: 'lingyucoder@gmail.com'
           user_name: 'LingyuCoder'
           commit_message: 'Auto upload diff report'
-      
-      - name: Write a new comment
-        uses: peter-evans/create-or-update-comment@v3
-        continue-on-error: true
-        with:
-          issue-number: ${{ github.event.issue.number }}
-          body-path: 'diff_output/stats.md'
