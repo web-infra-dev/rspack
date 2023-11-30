@@ -17,7 +17,8 @@ const OUTPUT_DIR = path.join(__dirname, '../diff_output');
   rimraf.sync(OUTPUT_DIR);
 
   const statsReporter = new DiffStatsReporter({
-    file: path.join(OUTPUT_DIR, 'stats.md')
+    file: path.join(OUTPUT_DIR, 'stats.md'),
+    report: true,
   });
   const htmlReporter = new DiffHtmlReporter({
     dist: OUTPUT_DIR
