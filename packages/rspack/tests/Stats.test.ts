@@ -50,6 +50,68 @@ describe("Stats", () => {
 		).toEqual({});
 	});
 
+	it("should have stats info", async () => {
+		class TestPlugin {
+			apply(compiler) {
+				compiler.hooks.thisCompilation.tap("testPlugin", compilation => {
+					compilation.emitAsset(
+						"test.txt",
+						new compiler.webpack.sources.RawSource("test"),
+						{
+							str: "test",
+							bool: true,
+							arr: [
+								{
+									nested: {}
+								}
+							]
+						}
+					);
+				});
+			}
+		}
+
+		const stats = await compile({
+			context: __dirname,
+			entry: {
+				main: "./fixtures/a"
+			},
+			plugins: [new TestPlugin()]
+		});
+		const assetStats = stats
+			?.toJson()
+			?.assets?.find(x => x.name === "test.txt");
+		expect(assetStats).toMatchInlineSnapshot(`
+		{
+		  "chunkNames": [],
+		  "chunks": [],
+		  "emitted": true,
+		  "info": {
+		    "arr": [
+		      {
+		        "nested": {},
+		      },
+		    ],
+		    "bool": true,
+		    "chunkHash": [],
+		    "contentHash": [],
+		    "development": false,
+		    "hotModuleReplacement": false,
+		    "immutable": false,
+		    "minimized": false,
+		    "related": {
+		      "sourceMap": null,
+		    },
+		    "str": "test",
+		    "version": "",
+		  },
+		  "name": "test.txt",
+		  "size": 4,
+		  "type": "asset",
+		}
+	`);
+	});
+
 	it("should look not bad for default stats toString", async () => {
 		const stats = await compile({
 			context: __dirname,
@@ -71,11 +133,11 @@ describe("Stats", () => {
 		  │
 		2 │     return "This is b";
 		3 │ };
-		4 │ 
+		4 │
 		5 │ // Test CJS top-level return
 		6 │ return;
 		  │ ^^^^^^^ Return statement is not allowed here
-		7 │ 
+		7 │
 
 
 

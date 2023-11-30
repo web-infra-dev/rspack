@@ -41,6 +41,9 @@ impl From<rspack_core::StatsWarning> for JsStatsWarning {
   }
 }
 
+// TODO 裁剪字段
+type JsStatsAssetInfo = serde_json::Map<String, serde_json::Value>;
+
 #[napi(object)]
 pub struct JsStatsLogging {
   pub name: String,
@@ -171,6 +174,7 @@ pub struct JsStatsAsset {
   pub size: f64,
   pub chunks: Vec<Option<String>>,
   pub chunk_names: Vec<String>,
+  #[napi(ts_type = "Partial<JsAssetInfo> & Record<string, any>")]
   pub info: JsStatsAssetInfo,
   pub emitted: bool,
 }
@@ -189,22 +193,22 @@ impl From<rspack_core::StatsAsset> for JsStatsAsset {
   }
 }
 
-#[napi(object)]
-pub struct JsStatsAssetInfo {
-  pub development: bool,
-  pub hot_module_replacement: bool,
-  pub source_filename: Option<String>,
-}
+// #[napi(object)]
+// pub struct JsStatsAssetInfo {
+//   pub development: bool,
+//   pub hot_module_replacement: bool,
+//   pub source_filename: Option<String>,
+// }
 
-impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
-  fn from(stats: rspack_core::StatsAssetInfo) -> Self {
-    Self {
-      development: stats.development,
-      hot_module_replacement: stats.hot_module_replacement,
-      source_filename: stats.source_filename,
-    }
-  }
-}
+// impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
+//   fn from(stats: rspack_core::StatsAssetInfo) -> Self {
+//     Self {
+//       development: stats.development,
+//       hot_module_replacement: stats.hot_module_replacement,
+//       source_filename: stats.source_filename,
+//     }
+//   }
+// }
 
 type JsStatsModuleSource = Either<String, Buffer>;
 #[napi(object)]

@@ -8,6 +8,7 @@ use rspack_binding_macros::call_js_function_with_napi_objects;
 use rspack_binding_macros::convert_raw_napi_value_to_napi_value;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
+use rspack_core::AssetInfoMap;
 use rspack_core::ModuleIdentifier;
 use rspack_core::{rspack_sources::SourceExt, NormalModuleSource};
 use rspack_error::Diagnostic;
@@ -18,8 +19,8 @@ use super::module::ToJsModule;
 use super::PathWithInfo;
 use crate::utils::callbackify;
 use crate::{
-  chunk::JsChunk, module::JsModule, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup,
-  JsCompatSource, JsStats, PathData, ToJsCompatSource,
+  chunk::JsChunk, module::JsModule, CompatSource, JsAsset, JsChunkGroup, JsCompatSource, JsStats,
+  PathData, ToJsCompatSource,
 };
 
 #[napi]
@@ -37,7 +38,7 @@ impl JsCompilation {
     env: Env,
     filename: String,
     new_source_or_function: Either<JsCompatSource, JsFunction>,
-    asset_info_update_or_function: Option<Either<JsAssetInfo, JsFunction>>,
+    asset_info_update_or_function: Option<Either<crate::JsAssetInfo, JsFunction>>,
   ) -> Result<()> {
     self
       .inner
@@ -75,12 +76,12 @@ impl JsCompilation {
                   call_js_function_with_napi_objects!(
                     env,
                     asset_info_fn,
-                    Into::<JsAssetInfo>::into(original_info.clone())
+                    Into::<AssetInfoMap>::into(original_info.clone())
                   )
                 }?;
 
                 let js_asset_info = unsafe {
-                  convert_raw_napi_value_to_napi_value!(env, JsAssetInfo, asset_info.raw())
+                  convert_raw_napi_value_to_napi_value!(env, AssetInfoMap, asset_info.raw())
                 }?;
                 Ok(js_asset_info.into())
               }
@@ -236,7 +237,8 @@ impl JsCompilation {
     &mut self,
     filename: String,
     source: JsCompatSource,
-    asset_info: JsAssetInfo,
+    #[napi(ts_arg_type = "Partial<JsAssetInfo> & Record<string, any>")]
+    asset_info: rspack_core::AssetInfoMap,
   ) -> Result<()> {
     let compat_source: CompatSource = source.into();
 

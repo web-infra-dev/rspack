@@ -2767,6 +2767,8 @@ dependencies = [
  "rspack_napi_shared",
  "rspack_tracing",
  "rustc-hash",
+ "serde",
+ "serde_json",
  "testing_macros",
  "tikv-jemallocator",
  "tracing",

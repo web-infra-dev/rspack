@@ -25,7 +25,7 @@ export class JsCompilation {
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
   hasAsset(name: string): boolean
-  emitAsset(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
+  emitAsset(filename: string, source: JsCompatSource, assetInfo: Partial<JsAssetInfo> & Record<string, any>): void
   deleteAsset(filename: string): void
   get entrypoints(): Record<string, JsChunkGroup>
   get hash(): string | null
@@ -165,7 +165,7 @@ export interface FactoryMeta {
 export interface JsAsset {
   name: string
   source?: JsCompatSource
-  info: JsAssetInfo
+  info: Partial<JsAssetInfo> & Record<string, any>
 }
 
 export interface JsAssetEmittedArgs {
@@ -175,38 +175,6 @@ export interface JsAssetEmittedArgs {
 }
 
 export interface JsAssetInfo {
-  /** if the asset can be long term cached forever (contains a hash) */
-  immutable: boolean
-  /** whether the asset is minimized */
-  minimized: boolean
-  /**
-   * the value(s) of the full hash used for this asset
-   * the value(s) of the chunk hash used for this asset
-   */
-  chunkHash: Array<string>
-  /**
-   * the value(s) of the module hash used for this asset
-   * the value(s) of the content hash used for this asset
-   */
-  contentHash: Array<string>
-  sourceFilename?: string
-  /**
-   * size in bytes, only set after asset has been emitted
-   * when asset is only used for development and doesn't count towards user-facing assets
-   */
-  development: boolean
-  /** when asset ships data for updating an existing application (HMR) */
-  hotModuleReplacement: boolean
-  /**
-   * when asset is javascript and an ESM
-   * related object to other assets, keyed by type of relation (only points from parent to child)
-   */
-  related: JsAssetInfoRelated
-  /**
-   * the asset version, emit can be skipped when both filename and version are the same
-   * An empty string means no version, it will always emit
-   */
-  version: string
 }
 
 export interface JsAssetInfoRelated {
@@ -384,14 +352,8 @@ export interface JsStatsAsset {
   size: number
   chunks: Array<string | undefined | null>
   chunkNames: Array<string>
-  info: JsStatsAssetInfo
+  info: Partial<JsAssetInfo> & Record<string, any>
   emitted: boolean
-}
-
-export interface JsStatsAssetInfo {
-  development: boolean
-  hotModuleReplacement: boolean
-  sourceFilename?: string
 }
 
 export interface JsStatsAssetsByChunkName {
@@ -511,7 +473,7 @@ export interface PathData {
 
 export interface PathWithInfo {
   path: string
-  info: JsAssetInfo
+  info: AssetInfoMap
 }
 
 export interface RawAssetGeneratorDataUrl {

@@ -62,7 +62,7 @@ export type Assets = Record<string, Source>;
 export interface Asset {
 	name: string;
 	source?: Source;
-	info: JsAssetInfo;
+	info: AssetInfo;
 }
 export interface LogEntry {
 	type: string;

@@ -22,6 +22,8 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 use swc_core::ecma::ast::ModuleItem;
 use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
@@ -1736,6 +1738,26 @@ impl Compilation {
 }
 
 pub type CompilationAssets = HashMap<String, CompilationAsset>;
+pub type AssetInfoMap = serde_json::Map<String, serde_json::Value>;
+
+impl From<AssetInfo> for AssetInfoMap {
+  fn from(info: AssetInfo) -> Self {
+    let mut m: AssetInfoMap = serde_json::from_value(json!(info)).unwrap();
+    m.remove("allMap");
+    let mut base = info.all_map.unwrap_or_default().clone();
+    base.append(&mut m);
+    base
+  }
+}
+
+impl From<AssetInfoMap> for AssetInfo {
+  fn from(value: AssetInfoMap) -> Self {
+    let cloned_map = value.clone();
+    let mut res: AssetInfo = serde_json::from_value(value.into()).unwrap();
+    res.set_all_map(cloned_map);
+    res
+  }
+}
 
 #[derive(Debug, Clone)]
 pub struct CompilationAsset {
@@ -1779,7 +1801,8 @@ impl CompilationAsset {
   }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
   pub immutable: bool,
@@ -1808,6 +1831,9 @@ pub struct AssetInfo {
   /// the asset version, emit can be skipped when both filename and version are the same
   /// An empty string means no version, it will always emit
   pub version: String,
+
+  pub all_map: Option<AssetInfoMap>,
+
   pub source_filename: Option<String>,
 }
 
@@ -1854,12 +1880,17 @@ impl AssetInfo {
     self.immutable = v;
   }
 
+  fn set_all_map(&mut self, all_map: AssetInfoMap) {
+    self.all_map = Some(all_map);
+  }
+
   pub fn set_source_filename(&mut self, v: String) {
     self.source_filename = Some(v);
   }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AssetInfoRelated {
   pub source_map: Option<String>,
 }
