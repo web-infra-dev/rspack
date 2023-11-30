@@ -1,10 +1,13 @@
-# Diff assets comment with "!diff"
+## This file is just for test, should be delete before review
 
-name: Diff Assets
+name: Diff Assets Test
 
 on:
   issue_comment:
     types: [created]
+  push:
+    branches:
+      - "ci/diff-html-reporter"
 
 jobs:
   get-runner-labels:
@@ -14,7 +17,6 @@ jobs:
   build:
     name: Build
     needs: [get-runner-labels]
-    if: github.event.issue.pull_request && contains(github.event.comment.body, '!diff')
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
@@ -23,7 +25,6 @@ jobs:
             runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
     uses: ./.github/workflows/reusable-build.yml
     with:
-      ref: refs/pull/${{ github.event.issue.number }}/head
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
       test: false
@@ -37,7 +38,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 1
-          ref: refs/pull/${{ github.event.issue.number }}/head
 
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
