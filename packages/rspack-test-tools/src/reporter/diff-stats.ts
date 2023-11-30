@@ -133,10 +133,10 @@ export class DiffStatsReporter
 				);
 			}
 			output += csvToMarkdown(csv.join("\n"), ",", true);
-			if (this.options.report && GITHUB_RUN_ID) {
-				output += "\n\n";
-				output += `> [View diff report](https://web-infra-dev.github.io/rspack-report-website/diff/${GITHUB_RUN_ID}/diff_${id}.html)`;
-			}
+			output += "\n\n";
+		}
+		if (this.options.report && GITHUB_RUN_ID) {
+			output += `> [View diff report](https://web-infra-dev.github.io/rspack-report-website/diff/${GITHUB_RUN_ID}/diff_${id}.html)`;
 			output += "\n\n";
 		}
 		return output;
