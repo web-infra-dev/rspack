@@ -1,6 +1,7 @@
 "use strict";
 import { rspack } from "../src";
 import assert from "assert";
+import { ensureRspackConfigNotExist, ensureWebpackConfigExist } from "./utils";
 
 const path = require("path");
 const fs = require("graceful-fs");
@@ -73,10 +74,11 @@ export const describeCases = config => {
 				for (const testName of category.tests) {
 					// eslint-disable-next-line no-loop-func
 					const testDirectory = path.join(casesPath, category.name, testName);
+
+					ensureRspackConfigNotExist(testDirectory);
+					ensureWebpackConfigExist(testDirectory);
+
 					const configFile = path.join(testDirectory, "webpack.config.js");
-					if (!fs.existsSync(configFile)) {
-						continue;
-					}
 					describe(testName, function () {
 						const filterPath = path.join(testDirectory, "test.filter.js");
 						if (
