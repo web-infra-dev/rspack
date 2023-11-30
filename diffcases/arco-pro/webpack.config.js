@@ -20,12 +20,13 @@ const config = {
 		rules: [
 			{
 				test: /\.less$/,
-				use: ["less-loader"],
-				exclude: /\.module\.less$/
+				use: "less-loader",
+				type: "css"
 			},
 			{
 				test: /\.module\.less$/,
-				use: ["less-loader"],
+				use: "less-loader",
+				type: "css/module"
 			},
 			{
 				test: /\.svg$/,
