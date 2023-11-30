@@ -1,5 +1,6 @@
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum SideEffectOption {
+  #[default]
   False,
   True,
   Flag,

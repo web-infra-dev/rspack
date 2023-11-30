@@ -7,7 +7,6 @@ use std::{
 
 use rspack_core::{
   run_loaders, CompilerContext, CompilerOptions, Loader, LoaderRunnerContext, ResourceData,
-  SideEffectOption,
 };
 use rspack_loader_sass::{SassLoader, SassLoaderOptions};
 use rspack_testing::{fixture, test_fixture_css};
@@ -87,11 +86,11 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
         optimization: rspack_core::Optimization {
           remove_available_modules: false,
           remove_empty_chunks: true,
-          side_effects: SideEffectOption::False,
+          side_effects: Default::default(),
           provided_exports: Default::default(),
           used_exports: Default::default(),
           inner_graph: Default::default(),
-          mangle_exports: false,
+          mangle_exports: Default::default(),
         },
         profile: false,
       }),
