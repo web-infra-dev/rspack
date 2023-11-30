@@ -64,4 +64,4 @@ jobs:
         continue-on-error: true
         with:
           issue-number: ${{ github.event.issue.number }}
-          body-path: 'diff_output'
+          body-path: 'diff_output/stats.md'

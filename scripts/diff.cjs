@@ -1,20 +1,26 @@
 // @ts-nocheck
-const { Tester, DiffProcessor, DiffStatsReporter } = require("../packages/rspack-test-tools/dist");
+const { Tester, DiffProcessor, DiffStatsReporter, DiffHtmlReporter } = require("../packages/rspack-test-tools/dist");
 const rimraf = require("rimraf");
 const path = require("path");
 const fs = require("fs-extra");
 
-process.env['RSPACK_DIFF'] = "true"; // 开启DIFF
+process.env['RSPACK_DIFF'] = "true"; // enable rspack diff injection
 
 const CASE_DIR = path.resolve(__dirname, '../diffcases');
+const OUTPUT_DIR = path.join(__dirname, '../diff_output');
 
 (async () => {
   const cases = fs
     .readdirSync(CASE_DIR)
     .filter(testName => !testName.startsWith("."));
 
-  const reporter = new DiffStatsReporter({
-    file: path.join(__dirname, '../diff_output')
+  rimraf.sync(OUTPUT_DIR);
+
+  const statsReporter = new DiffStatsReporter({
+    file: path.join(OUTPUT_DIR, 'stats.md')
+  });
+  const htmlReporter = new DiffHtmlReporter({
+    dist: OUTPUT_DIR
   });
 
   while (cases.length) {
@@ -31,10 +37,12 @@ const CASE_DIR = path.resolve(__dirname, '../diffcases');
         ignoreModuleArguments: true,
         ignorePropertyQuotationMark: true,
         onCompareModules: function (file, results) {
-          reporter.increment(name, results);
+          htmlReporter.increment(name, results);
+          statsReporter.increment(name, results);
         },
         onCompareRuntimeModules: function (file, results) {
-          reporter.increment(name, results);
+          htmlReporter.increment(name, results);
+          statsReporter.increment(name, results);
         },
       });
 
@@ -53,9 +61,11 @@ const CASE_DIR = path.resolve(__dirname, '../diffcases');
       } while (tester.next());
       await tester.resume();
     } catch (e) {
-      reporter.failure(name);
+      htmlReporter.failure(name)
+      statsReporter.failure(name);
     }
   }
-  await reporter.output();
+  await htmlReporter.output();
+  await statsReporter.output();
 })();
 
