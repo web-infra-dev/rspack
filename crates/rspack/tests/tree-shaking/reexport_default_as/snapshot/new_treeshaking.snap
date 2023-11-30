@@ -7,7 +7,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  Z: function() { return test; }
+  "default": function() { return test; }
 });
 function test() {}
 }),
@@ -15,7 +15,7 @@ function test() {}
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  P: function() { return _bar__WEBPACK_IMPORTED_MODULE_0__.Z; }
+  Select: function() { return _bar__WEBPACK_IMPORTED_MODULE_0__["default"]; }
 });
 /* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./bar */"./bar.js");
 
@@ -25,7 +25,7 @@ __webpack_require__.d(__webpack_exports__, {
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./foo */"./foo.js");
 
-(0, _foo__WEBPACK_IMPORTED_MODULE_0__.P)();
+(0, _foo__WEBPACK_IMPORTED_MODULE_0__.Select)();
 }),
 
 },function(__webpack_require__) {

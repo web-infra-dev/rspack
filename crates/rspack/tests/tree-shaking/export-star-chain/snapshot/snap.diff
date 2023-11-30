@@ -1,6 +1,6 @@
 --- expected
 +++ actual
-@@ -3,19 +3,11 @@
+@@ -3,14 +3,6 @@
  ---
  ```js title=main.js
  (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
@@ -15,37 +15,18 @@
  "./colors/a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
  __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
--  red: function() { return red; }
-+  Q: function() { return red; }
- });
-  const red = 'red';
- }),
-@@ -23,7 +15,7 @@
- "use strict";
- __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
--  blue: function() { return blue; }
-+  i: function() { return blue; }
- });
-  const blue = 'blue';
- }),
-@@ -51,46 +43,27 @@
- "use strict";
- __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
--  result: function() { return result; }
-+  q: function() { return result; }
+@@ -54,21 +46,15 @@
+   result: function() { return result; }
  });
   const result = 'ssss';
- }),
+-}),
 -"./export.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 -"use strict";
 -__webpack_require__.r(__webpack_exports__);
 -/* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Layout */"./Layout.js");
 -__webpack_require__.es(_Layout__WEBPACK_IMPORTED_MODULE_0__, __webpack_exports__);
 -
--}),
+ }),
  "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
  __webpack_require__.r(__webpack_exports__);
@@ -56,14 +37,11 @@
 -_export__WEBPACK_IMPORTED_MODULE_0__.Colors;
 -_export__WEBPACK_IMPORTED_MODULE_0__.Something;
 +_export__WEBPACK_IMPORTED_MODULE_0__;
-+_export__WEBPACK_IMPORTED_MODULE_1__.c;
++_export__WEBPACK_IMPORTED_MODULE_1__.Something;
  }),
  "./something/Something.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
- __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
--  Something: function() { return Something; }
-+  c: function() { return Something; }
+@@ -78,19 +64,6 @@
  });
   class Something {
  }

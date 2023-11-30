@@ -2,7 +2,9 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 
 use cargo_rst::git_diff;
-use rspack_core::{BoxPlugin, CompilerOptions, TreeShaking, UsedExportsOption, IS_NEW_TREESHAKING};
+use rspack_core::{
+  BoxPlugin, CompilerOptions, PluginExt, TreeShaking, UsedExportsOption, IS_NEW_TREESHAKING,
+};
 use rspack_plugin_javascript::{
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, MangleExportsPlugin,
   SideEffectsFlagPlugin,
@@ -19,7 +21,13 @@ fn rspack(fixture_path: PathBuf) {
 fn samples(fixture_path: PathBuf) {
   test_fixture(
     fixture_path.parent().expect("should exist"),
-    Box::new(|_, _| {}),
+    Box::new(
+      |plugins: &mut Vec<BoxPlugin>, options: &mut CompilerOptions| {
+        if options.optimization.mangle_exports {
+          plugins.push(MangleExportsPlugin::new(true).boxed());
+        }
+      },
+    ),
     None,
   );
 }
@@ -46,9 +54,6 @@ fn tree_shaking(fixture_path: PathBuf) {
         }
         plugins.push(Box::<FlagDependencyExportsPlugin>::default());
         plugins.push(Box::<FlagDependencyUsagePlugin>::default());
-        // if options.optimization.mangle_exports {
-        plugins.push(Box::new(MangleExportsPlugin::new(true)));
-        // }
       },
     ),
     Some("new_treeshaking".to_string()),

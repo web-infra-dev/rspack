@@ -7,7 +7,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  c: function() { return defaults; }
+  defaults: function() { return defaults; }
 });
  const defaults = {
     test: 1000
@@ -17,12 +17,12 @@ __webpack_require__.d(__webpack_exports__, {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  c: function() { return Something; }
+  Something: function() { return Something; }
 });
 /* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Layout */"./Layout.js");
 
 class Test {
-    test = _Layout__WEBPACK_IMPORTED_MODULE_0__.c.test + 20000;
+    test = _Layout__WEBPACK_IMPORTED_MODULE_0__.defaults.test + 20000;
 }
  var Sider = new Test();
  var Something = 333;
@@ -32,7 +32,7 @@ class Test {
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./export */"./export.js");
 
-(0, _export__WEBPACK_IMPORTED_MODULE_0__.c)();
+(0, _export__WEBPACK_IMPORTED_MODULE_0__.Something)();
 }),
 
 },function(__webpack_require__) {

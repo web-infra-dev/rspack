@@ -28,13 +28,13 @@ __webpack_require__.d(__webpack_exports__, {
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
 
-console.log(_lib__WEBPACK_IMPORTED_MODULE_0__.IO);
+console.log(_lib__WEBPACK_IMPORTED_MODULE_0__.getDocPermissionTextSendMe);
 }),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  IO: function() { return getDocPermissionTextSendMe; }
+  getDocPermissionTextSendMe: function() { return getDocPermissionTextSendMe; }
 });
 /* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./enum.js */"./a.js");
 /* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./enum.js */"./b.js");

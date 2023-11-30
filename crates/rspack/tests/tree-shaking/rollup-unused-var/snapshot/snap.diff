@@ -1,11 +1,6 @@
 --- expected
 +++ actual
-@@ -7,11 +7,11 @@
- "use strict";
- __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
--  foo: function() { return foo; }
-+  R: function() { return foo; }
+@@ -11,7 +11,7 @@
  });
  var foo = "lol";
  var bar = "wut";
@@ -14,12 +9,3 @@
  
  }),
  "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-@@ -19,7 +19,7 @@
- __webpack_require__.r(__webpack_exports__);
- /* harmony import */var _foo_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./foo.js */"./foo.js");
- 
--console.log(_foo_js__WEBPACK_IMPORTED_MODULE_0__.foo);
-+console.log(_foo_js__WEBPACK_IMPORTED_MODULE_0__.R);
- }),
- 
- },function(__webpack_require__) {

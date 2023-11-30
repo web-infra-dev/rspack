@@ -7,7 +7,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  formatNumber: function() { return _plugin_formatNumber__WEBPACK_IMPORTED_MODULE_0__.Z; }
+  formatNumber: function() { return _plugin_formatNumber__WEBPACK_IMPORTED_MODULE_0__["default"]; }
 });
 /* harmony import */var _plugin_formatNumber__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./plugin/formatNumber */"./src/plugin/formatNumber.js");
 
@@ -24,7 +24,7 @@ console.log(_answer__WEBPACK_IMPORTED_MODULE_0__);
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  Z: function() { return formatNumber_default; }
+  "default": function() { return formatNumber_default; }
 });
 function formatNumber(config) {}
 const plugin = (cls)=>{

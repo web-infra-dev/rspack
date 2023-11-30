@@ -1,6 +1,6 @@
 --- expected
 +++ actual
-@@ -3,52 +3,20 @@
+@@ -3,22 +3,6 @@
  ---
  ```js title=main.js
  (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
@@ -23,9 +23,8 @@
  "./c.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
  __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
--  cccc: function() { return cccc; }
-+  F: function() { return cccc; }
+@@ -26,27 +10,11 @@
+   cccc: function() { return cccc; }
  });
   function cccc() {}
 -}),
@@ -51,8 +50,5 @@
 -/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./export */"./export.js");
 +/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./export */"./c.js");
  
--(0, _export__WEBPACK_IMPORTED_MODULE_0__.cccc)();
-+(0, _export__WEBPACK_IMPORTED_MODULE_0__.F)();
+ (0, _export__WEBPACK_IMPORTED_MODULE_0__.cccc)();
  }),
- 
- },function(__webpack_require__) {

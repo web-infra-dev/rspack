@@ -8,8 +8,8 @@ source: crates/rspack_testing/src/run_fixture.rs
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _stuff__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./stuff */"./stuff.js");
 
-(0, _stuff__WEBPACK_IMPORTED_MODULE_0__.Kb)();
-var f = (0, _stuff__WEBPACK_IMPORTED_MODULE_0__.Wx)();
+(0, _stuff__WEBPACK_IMPORTED_MODULE_0__.bar)();
+var f = (0, _stuff__WEBPACK_IMPORTED_MODULE_0__.baz)();
 f();
 function getClass() {
     class MyClass {
@@ -26,8 +26,8 @@ console.log(getClass().name);
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  Kb: function() { return bar; },
-  Wx: function() { return Baz; }
+  bar: function() { return bar; },
+  baz: function() { return Baz; }
 });
  function foo() {
     console.log("outer foo");

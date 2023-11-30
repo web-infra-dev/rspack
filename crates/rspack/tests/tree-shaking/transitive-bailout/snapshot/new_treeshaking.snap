@@ -15,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {
 }),
 "./answer.js": (function (__unused_webpack_module, exports, __webpack_require__) {
 const res = __webpack_require__(/*! ./lib.js */"./lib.js");
-exports.B = function() {
+exports.test = function() {
     res;
 };
 }),
@@ -24,7 +24,7 @@ exports.B = function() {
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./answer */"./answer.js");
 
-_answer__WEBPACK_IMPORTED_MODULE_0__.B;
+_answer__WEBPACK_IMPORTED_MODULE_0__.test;
 }),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";

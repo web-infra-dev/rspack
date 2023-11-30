@@ -7,7 +7,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  F: function() { return cccc; }
+  cccc: function() { return cccc; }
 });
  function cccc() {}
 }),
@@ -16,7 +16,7 @@ __webpack_require__.d(__webpack_exports__, {
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./export */"./c.js");
 
-(0, _export__WEBPACK_IMPORTED_MODULE_0__.F)();
+(0, _export__WEBPACK_IMPORTED_MODULE_0__.cccc)();
 }),
 
 },function(__webpack_require__) {

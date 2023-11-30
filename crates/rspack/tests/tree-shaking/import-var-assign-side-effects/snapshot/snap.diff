@@ -1,12 +1,6 @@
 --- expected
 +++ actual
-@@ -7,28 +7,17 @@
- "use strict";
- __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
--  "default": function() { return Something; }
-+  Z: function() { return Something; }
- });
+@@ -12,23 +12,12 @@
  class Something {
  }
  }),
@@ -28,7 +22,7 @@
 +/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./export */"./Something.js");
  
 -(0, _export__WEBPACK_IMPORTED_MODULE_0__.Sider)();
-+(0, _export__WEBPACK_IMPORTED_MODULE_0__.Z)();
++(0, _export__WEBPACK_IMPORTED_MODULE_0__["default"])();
  }),
  
  },function(__webpack_require__) {

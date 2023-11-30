@@ -1,6 +1,6 @@
 --- expected
 +++ actual
-@@ -11,14 +11,14 @@
+@@ -11,11 +11,11 @@
  });
  /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
  
@@ -13,17 +13,4 @@
 +        OriginLib
      };
  }
-- const v = _lib__WEBPACK_IMPORTED_MODULE_0__.value;
-+ const v = _lib__WEBPACK_IMPORTED_MODULE_0__.S;
- }),
- "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
- "use strict";
-@@ -31,7 +31,7 @@
- "use strict";
- __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
--  value: function() { return value; }
-+  S: function() { return value; }
- });
-  class Lib {
- }
+  const v = _lib__WEBPACK_IMPORTED_MODULE_0__.value;

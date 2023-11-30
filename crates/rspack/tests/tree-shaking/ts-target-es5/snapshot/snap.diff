@@ -1,6 +1,6 @@
 --- expected
 +++ actual
-@@ -37,20 +37,11 @@
+@@ -37,15 +37,6 @@
  }
  
  }),
@@ -16,12 +16,6 @@
  "../../../../../node_modules/tslib/tslib.es6.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
  __webpack_require__.r(__webpack_exports__);
- __webpack_require__.d(__webpack_exports__, {
--  __generator: function() { return __generator; }
-+  AC: function() { return __generator; }
- });
- /******************************************************************************
- Copyright (c) Microsoft Corporation.
 @@ -482,11 +473,8 @@
  "./index.ts": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
@@ -40,7 +34,7 @@
  function _test() {
      _test = (0, _swc_helpers_async_to_generator__WEBPACK_IMPORTED_MODULE_0__._)(function() {
 -        return (0, _swc_helpers_ts_generator__WEBPACK_IMPORTED_MODULE_1__._)(this, function(_state) {
-+        return (0, _swc_helpers_ts_generator__WEBPACK_IMPORTED_MODULE_1__.AC)(this, function(_state) {
++        return (0, _swc_helpers_ts_generator__WEBPACK_IMPORTED_MODULE_1__.__generator)(this, function(_state) {
              return [
                  2
              ];

@@ -7,7 +7,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  Z: function() { return abc; }
+  "default": function() { return abc; }
 });
 /* harmony import */var _dep_a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./dep?a */"./dep.js?a");
 
@@ -38,7 +38,7 @@ abc();
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  Z: function() { return def; }
+  "default": function() { return def; }
 });
 /* harmony import */var _dep_d__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./dep?d */"./dep.js?d");
 
@@ -53,7 +53,7 @@ class def {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   x: function() { return x; },
-  Z: function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = true;
@@ -62,7 +62,7 @@ var __WEBPACK_DEFAULT_EXPORT__ = true;
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  Z: function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = false;
@@ -72,7 +72,7 @@ var __WEBPACK_DEFAULT_EXPORT__ = false;
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   x: function() { return x; },
-  Z: function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = true;
@@ -82,7 +82,7 @@ var __WEBPACK_DEFAULT_EXPORT__ = true;
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   x: function() { return x; },
-  Z: function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = true;
@@ -91,7 +91,7 @@ var __WEBPACK_DEFAULT_EXPORT__ = true;
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  Z: function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = false;
@@ -101,7 +101,7 @@ var __WEBPACK_DEFAULT_EXPORT__ = false;
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   x: function() { return x; },
-  Z: function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
 });
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = true;
@@ -157,26 +157,26 @@ __webpack_require__.r(__webpack_exports__);
 
 
 it("should generate valid code", ()=>{
-    expect((0, _a__WEBPACK_IMPORTED_MODULE_0__.Z)()).toBe("x");
-    expect(new _d__WEBPACK_IMPORTED_MODULE_3__.Z().method()).toBe("x");
+    expect((0, _a__WEBPACK_IMPORTED_MODULE_0__["default"])()).toBe("x");
+    expect(new _d__WEBPACK_IMPORTED_MODULE_3__["default"]().method()).toBe("x");
 });
 it("a should be used", ()=>{
-    expect(_dep_a__WEBPACK_IMPORTED_MODULE_6__.Z).toBe(true);
+    expect(_dep_a__WEBPACK_IMPORTED_MODULE_6__["default"]).toBe(true);
 });
 it("b should be unused", ()=>{
-    expect(_dep_b__WEBPACK_IMPORTED_MODULE_7__.Z).toBe(false);
+    expect(_dep_b__WEBPACK_IMPORTED_MODULE_7__["default"]).toBe(false);
 });
 it("c should be used", ()=>{
-    expect(_dep_c__WEBPACK_IMPORTED_MODULE_8__.Z).toBe(true);
+    expect(_dep_c__WEBPACK_IMPORTED_MODULE_8__["default"]).toBe(true);
 });
 it("d should be used", ()=>{
-    expect(_dep_d__WEBPACK_IMPORTED_MODULE_9__.Z).toBe(true);
+    expect(_dep_d__WEBPACK_IMPORTED_MODULE_9__["default"]).toBe(true);
 });
 it("e should be unused", ()=>{
-    expect(_dep_e__WEBPACK_IMPORTED_MODULE_10__.Z).toBe(false);
+    expect(_dep_e__WEBPACK_IMPORTED_MODULE_10__["default"]).toBe(false);
 });
 it("f should be used", ()=>{
-    expect(_dep_f__WEBPACK_IMPORTED_MODULE_11__.Z).toBe(true);
+    expect(_dep_f__WEBPACK_IMPORTED_MODULE_11__["default"]).toBe(true);
 });
 }),
 
