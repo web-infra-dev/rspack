@@ -55,7 +55,7 @@ napi                = { version = "=2.13.3" }
 napi-build          = { version = "=2.0.1" }
 napi-derive         = { version = "=2.13.0" }
 napi-sys            = { version = "=2.2.3" }
-styled_components   = { version = "0.77.0" }
+styled_components   = { version = "0.90.0" }
 swc_config          = { version = "=0.1.7" }
 swc_core            = { version = "0.86.82", default-features = false }
 swc_css             = { version = "0.157.6" }
