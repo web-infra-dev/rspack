@@ -23,6 +23,9 @@ fn samples(fixture_path: PathBuf) {
     fixture_path.parent().expect("should exist"),
     Box::new(
       |plugins: &mut Vec<BoxPlugin>, options: &mut CompilerOptions| {
+        options.experiments.rspack_future.new_treeshaking = true;
+        plugins.push(Box::<FlagDependencyExportsPlugin>::default());
+        plugins.push(Box::<FlagDependencyUsagePlugin>::default());
         if options.optimization.mangle_exports {
           plugins.push(MangleExportsPlugin::new(true).boxed());
         }
