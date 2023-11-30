@@ -57,7 +57,7 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: ${{ fromJSON(inputs.runner) }}
+    runs-on: [cross-platform]
     defaults:
       run:
         shell: bash
