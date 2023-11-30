@@ -77,7 +77,7 @@ fn compare_strings_numeric(a: &ExportInfo, b: &ExportInfo) -> std::cmp::Ordering
 }
 static MANGLE_NAME_NORMAL_REG: Lazy<Regex> =
   Lazy::new(|| Regex::new("^[a-zA-Z0-9_$]").expect("should construct regex"));
-static MANGLE_NAME_DETERMINSTIC_REG: Lazy<Regex> =
+static MANGLE_NAME_DETERMINISTIC_REG: Lazy<Regex> =
   Lazy::new(|| Regex::new("^[a-zA-Z_$][a-zA-Z0-9_$]|^[1-9][0-9]").expect("should construct regex"));
 
 /// Function to mangle exports information.
@@ -118,13 +118,13 @@ fn mangle_exports_info(
       let name = export_info
         .name
         .as_ref()
-        .expect("the name of export_info inserted in exprots_info can not be `None`")
+        .expect("the name of export_info inserted in exports_info can not be `None`")
         .clone();
       let can_not_mangle = export_info.can_mangle_use != Some(true)
         || (name.len() == 1 && MANGLE_NAME_NORMAL_REG.is_match(name.as_str()))
         || (deterministic
           && name.len() == 2
-          && MANGLE_NAME_DETERMINSTIC_REG.is_match(name.as_str()))
+          && MANGLE_NAME_DETERMINISTIC_REG.is_match(name.as_str()))
         || (avoid_mangle_non_provided
           && !matches!(export_info.provided, Some(ExportInfoProvided::True)));
 
