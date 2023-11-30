@@ -69,7 +69,7 @@ const config = {
 							react: {
 								runtime: "automatic",
 								development: !prod,
-								refresh: !prod
+								refresh: false
 							}
 						},
 						externalHelpers: true
@@ -119,7 +119,7 @@ const config = {
 			template: path.join(__dirname, "index.html"),
 			favicon: path.join(__dirname, "public", "favicon.ico")
 		}),
-		new ReactRefreshPlugin(),
+		// new ReactRefreshPlugin(),
 		new webpack.ProgressPlugin()
 	],
 	infrastructureLogging: {
