@@ -1,2 +1,2 @@
-import * as rspack from './rspack.wasi.mjs';
+import * as rspack from './rspack.wasi.cjs';
 console.log('rspack:',rspack);

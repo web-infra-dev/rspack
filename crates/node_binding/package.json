@@ -3,7 +3,7 @@
   "version": "0.4.1",
   "license": "MIT",
   "description": "Node binding for rspack",
-  "main": "binding.js",
+  "main": "rspack.wasi.cjs",
   "types": "binding.d.ts",
   "publishConfig": {
     "access": "public"
