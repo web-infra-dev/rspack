@@ -33,7 +33,7 @@ use super::{
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
-  debug_all_exports_info, is_source_equal,
+  is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs,
   AdditionalModuleRequirementsArgs, AsyncDependenciesBlock, BoxDependency, BoxModule, BuildQueue,
@@ -1311,9 +1311,6 @@ impl Compilation {
     let start = logger.time("code generation");
     self.code_generation().await?;
     logger.time_end(start);
-    // if self.options.is_new_tree_shaking() {
-    //   debug_all_exports_info!(&self.module_graph);
-    // }
 
     let start = logger.time("runtime requirements");
     self

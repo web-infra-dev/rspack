@@ -9,10 +9,7 @@ use rspack_identifier::{Identifiable, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
 
-use crate::{
-  debug_all_exports_info, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
-  IS_NEW_TREESHAKING,
-};
+use crate::{AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, IS_NEW_TREESHAKING};
 mod connection;
 pub use connection::*;
 
@@ -709,13 +706,10 @@ impl ModuleGraph {
   // }
 
   pub fn get_exports_info_by_id(&self, id: &ExportsInfoId) -> &ExportsInfo {
-    let exports_info = self.exports_info_map.get(id).unwrap_or_else(|| {
-      debug_all_exports_info!(self);
-      panic!(
-        "should have exports_info {:#?}, {:?}",
-        self.exports_info_map, id
-      );
-    });
+    let exports_info = self
+      .exports_info_map
+      .get(id)
+      .expect("should have exports_info");
     exports_info
   }
 
@@ -875,7 +869,6 @@ mod test {
       None,
     );
     let exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
-    dbg!(&exports_info.id);
     let mgm = ModuleGraphModule::new(m.identifier(), ModuleType::Js, exports_info.id);
     mg.add_module_graph_module(mgm);
     mg.add_module(m);
