@@ -1,3 +1,4 @@
-import { answer } from "./lib";
-answer
+import a from "./a.json";
+a[2].a
+
 

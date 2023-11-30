@@ -2580,6 +2580,7 @@ dependencies = [
  "hashlink",
  "indexmap 1.9.3",
  "itertools",
+ "json",
  "mime_guess",
  "nodejs-resolver",
  "once_cell",

@@ -1,22 +1,41 @@
 --- expected
 +++ actual
-@@ -14,18 +14,9 @@
+@@ -3,30 +3,20 @@
+ ---
+ ```js title=main.js
+ (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+-"./answer.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+-"use strict";
+-__webpack_require__.r(__webpack_exports__);
+-__webpack_require__.d(__webpack_exports__, {
+-  answer: function() { return answer; }
+-});
+- const answer = 103330;
+-}),
  "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
  "use strict";
  __webpack_require__.r(__webpack_exports__);
 -/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
-+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./answer.js");
++/* harmony import */var _a_json__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a.json */"./a.json");
  
- _lib__WEBPACK_IMPORTED_MODULE_0__.answer;
--}),
+-_lib__WEBPACK_IMPORTED_MODULE_0__.answer;
++_a_json__WEBPACK_IMPORTED_MODULE_0__.a;
+ }),
 -"./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
--"use strict";
++"./a.json": (function (module, exports, __webpack_require__) {
+ "use strict";
 -__webpack_require__.r(__webpack_exports__);
 -__webpack_require__.d(__webpack_exports__, {
 -  answer: function() { return _answer__WEBPACK_IMPORTED_MODULE_0__.answer; }
 -});
 -/* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./answer */"./answer.js");
 -
- }),
+-}),
++module.exports = {
++  "a": "soemthing",
++  "b": "bbbb"
++}
++;}),
  
  },function(__webpack_require__) {
+ var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
