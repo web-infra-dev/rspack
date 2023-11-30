@@ -66,7 +66,7 @@ jobs:
         with:
           source_file: 'diff_output'
           destination_repo: 'web-infra-dev/rspack-report-website'
-          destination_folder: 'diff/${{ vars.GITHUB_RUN_ID }}'
+          destination_folder: 'diff/${GITHUB_RUN_ID}/'
           user_email: 'lingyucoder@gmail.com'
           user_name: 'LingyuCoder'
           commit_message: 'Auto upload diff report'
