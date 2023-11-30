@@ -1,11 +1,10 @@
 use rspack_core::get_import_var;
 use rspack_core::{
-  create_exports_object_referenced, create_no_exports_referenced, export_from_import,
-  get_dependency_used_by_exports_condition, get_exports_type,
-  tree_shaking::symbol::DEFAULT_JS_WORD, AsContextDependency, Compilation, ConnectionState,
-  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
-  DependencyType, ExportsType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
-  ModuleGraphModule, ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext,
+  create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
+  get_exports_type, tree_shaking::symbol::DEFAULT_JS_WORD, AsContextDependency, Compilation,
+  ConnectionState, Dependency, DependencyCategory, DependencyCondition, DependencyId,
+  DependencyTemplate, DependencyType, ExportsType, ExtendedReferencedExport, ModuleDependency,
+  ModuleGraph, ModuleGraphModule, ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, UsedByExports,
 };
 use rustc_hash::FxHashSet as HashSet;
@@ -278,7 +277,6 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     let mut ids = self.get_ids(module_graph);
-    // dbg!(&ids);
     // namespace import
     if ids.is_empty() {
       return self.get_referenced_exports_in_destructuring(None);
@@ -292,7 +290,6 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
         .parent_module_by_dependency_id(&self.id)
         .expect("should have parent module");
       let exports_type = get_exports_type(module_graph, &self.id, &parent_module);
-      // dbg!(&parent_module, &exports_type);
       match exports_type {
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
           if ids.len() == 1 {

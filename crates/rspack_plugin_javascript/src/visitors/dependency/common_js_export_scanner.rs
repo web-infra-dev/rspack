@@ -1,6 +1,6 @@
 use rspack_core::{
   extract_member_expression_chain, BoxDependency, BuildMeta, BuildMetaDefaultObject,
-  BuildMetaExportsType, DependencyTemplate, ModuleType, RuntimeGlobals, SpanExt, UsedName,
+  BuildMetaExportsType, DependencyTemplate, ModuleType, RuntimeGlobals, SpanExt,
 };
 use swc_core::{
   common::{Spanned, SyntaxContext},

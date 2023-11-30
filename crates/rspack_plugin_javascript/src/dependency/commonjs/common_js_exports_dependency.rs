@@ -1,11 +1,9 @@
-use std::task::Wake;
-
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportSpec,
-  ExportsOfExportsSpec, ExportsSpec, ExtendedReferencedExport, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, ModuleDependency, ModuleGraph, NormalInitFragment, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource, UsedName,
+  ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  ModuleGraph, NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  UsedName,
 };
 use swc_core::atoms::Atom;
 

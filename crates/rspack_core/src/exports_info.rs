@@ -32,6 +32,12 @@ impl ExportsHash for ExportsInfoId {
   }
 }
 
+impl Default for ExportsInfoId {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl ExportsInfoId {
   pub fn new() -> Self {
     Self(EXPORTS_INFO_ID.fetch_add(1, Relaxed))
