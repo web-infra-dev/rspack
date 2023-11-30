@@ -20,18 +20,12 @@ const config = {
 		rules: [
 			{
 				test: /\.less$/,
-				use: ["style-loader", "css-loader", "less-loader"],
+				use: ["less-loader"],
 				exclude: /\.module\.less$/
 			},
 			{
 				test: /\.module\.less$/,
-				use: ["style-loader", {
-					loader: "css-loader",
-					options: {
-						modules: true,
-						importLoaders: 1,
-					},
-				}, "less-loader"],
+				use: ["less-loader"],
 			},
 			{
 				test: /\.svg$/,
@@ -112,6 +106,9 @@ const config = {
 				}
 			}
 		}
+	},
+	experiments: {
+		css: true
 	},
 	plugins: [
 		new HtmlWebpackPlugin({
