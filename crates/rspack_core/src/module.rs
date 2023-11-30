@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
+use json::JsonValue;
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, Identifier};
@@ -47,6 +48,7 @@ pub struct BuildInfo {
   pub harmony_named_exports: HashSet<JsWord>,
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
+  pub json_data: Option<JsonValue>,
 }
 
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]

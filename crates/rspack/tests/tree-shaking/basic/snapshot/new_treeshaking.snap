@@ -3,21 +3,16 @@ source: crates/rspack_testing/src/run_fixture.rs
 ---
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./answer.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  answer: function() { return answer; }
-});
- const answer = 103330;
-}),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./answer.js");
+/* harmony import */var _a_json__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a.json */"./a.json");
 
-_lib__WEBPACK_IMPORTED_MODULE_0__.answer;
+_a_json__WEBPACK_IMPORTED_MODULE_0__["2"].a;
 }),
+"./a.json": (function (module, exports, __webpack_require__) {
+"use strict";
+module.exports = [{"a":1}]}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

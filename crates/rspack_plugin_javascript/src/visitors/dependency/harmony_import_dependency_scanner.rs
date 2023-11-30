@@ -510,7 +510,6 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
             .map(|item| item.0.clone())
             .collect::<Vec<_>>(),
         );
-        // dbg!(&ids);
         self
           .rewrite_usage_span
           .insert(member_expr.span, ExtraSpanInfo::ReWriteUsedByExports);

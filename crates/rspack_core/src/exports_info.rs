@@ -182,6 +182,8 @@ impl ExportsInfoId {
     changed
   }
 
+  /// # Panic
+  /// this function would panic if name doesn't exists in current exportsInfo
   pub fn get_read_only_export_info<'a>(
     &self,
     name: &JsWord,
@@ -817,6 +819,11 @@ impl ExportInfoId {
     changed
   }
 
+  pub fn get_used(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> UsageState {
+    let export_info = mg.get_export_info_by_id(self);
+    export_info.get_used(runtime)
+  }
+
   pub fn set_used_name(&self, mg: &mut ModuleGraph, name: JsWord) {
     mg.get_export_info_mut_by_id(self).set_used_name(name)
   }
@@ -1364,7 +1371,6 @@ impl ExportInfo {
     );
     let new_exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
     let new_exports_info_id = new_exports_info.id;
-
     mg.exports_info_map
       .insert(new_exports_info_id, new_exports_info);
     mg.export_info_map
