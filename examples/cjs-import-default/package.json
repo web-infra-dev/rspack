@@ -1,0 +1,19 @@
+{
+  "name": "example-basic",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.mjs",
+  "private": true,
+  "scripts": {
+    "dev": "rspack serve",
+    "build": "rspack build"
+  },
+  "devDependencies": {
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT"
+}
+

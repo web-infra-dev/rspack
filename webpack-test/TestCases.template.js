@@ -126,7 +126,7 @@ const describeCases = config => {
 											sideEffects: true,
 											providedExports: true,
 											usedExports: true,
-											mangleExports: true,
+											mangleExports: false,
 											emitOnErrors: true,
 											concatenateModules: false,
 											innerGraph: true,

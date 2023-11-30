@@ -151,6 +151,7 @@ impl WorkerTask for FactorizeTask {
       None,
     );
     let exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
+    // dbg!(&exports_info.id);
     let mgm = ModuleGraphModule::new(
       result.module.identifier(),
       *result.module.module_type(),
