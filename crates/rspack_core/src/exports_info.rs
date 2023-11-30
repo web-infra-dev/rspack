@@ -361,26 +361,6 @@ impl ExportsInfoId {
   }
 }
 
-impl Default for ExportsInfoId {
-  fn default() -> Self {
-    Self::new()
-  }
-}
-
-impl std::ops::Deref for ExportsInfoId {
-  type Target = u32;
-
-  fn deref(&self) -> &Self::Target {
-    &self.0
-  }
-}
-
-impl From<u32> for ExportsInfoId {
-  fn from(id: u32) -> Self {
-    Self(id)
-  }
-}
-
 #[derive(Debug)]
 pub struct ExportsInfo {
   pub exports: HashMap<JsWord, ExportInfoId>,
@@ -1222,20 +1202,22 @@ impl ExportInfo {
     );
     let new_exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
     let new_exports_info_id = new_exports_info.id;
+    // dbg!(&new_exports_info_id);
 
-    let old_exports_info = self.exports_info;
-    new_exports_info.id.set_has_provide_info(mg);
-    self.exports_info_owned = true;
-    self.exports_info = Some(new_exports_info.id);
-    if let Some(exports_info) = old_exports_info {
-      exports_info.set_redirect_name_to(mg, Some(new_exports_info_id));
-    }
     mg.exports_info_map
       .insert(new_exports_info_id, new_exports_info);
     mg.export_info_map
       .insert(other_exports_info.id, other_exports_info);
     mg.export_info_map
       .insert(side_effects_only_info.id, side_effects_only_info);
+
+    let old_exports_info = self.exports_info;
+    new_exports_info_id.set_has_provide_info(mg);
+    self.exports_info_owned = true;
+    self.exports_info = Some(new_exports_info_id);
+    if let Some(exports_info) = old_exports_info {
+      exports_info.set_redirect_name_to(mg, Some(new_exports_info_id));
+    }
     new_exports_info_id
   }
 }

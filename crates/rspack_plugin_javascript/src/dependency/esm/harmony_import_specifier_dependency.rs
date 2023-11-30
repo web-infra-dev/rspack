@@ -119,7 +119,7 @@ impl HarmonyImportSpecifierDependency {
         .map(ExtendedReferencedExport::Export)
         .collect::<Vec<_>>()
     } else if let Some(v) = ids {
-      vec![ReferencedExport::new(v.clone(), true).into()]
+      vec![ExtendedReferencedExport::Array(v.clone())]
     } else {
       create_exports_object_referenced()
     }
@@ -278,6 +278,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     let mut ids = self.get_ids(module_graph);
+    // dbg!(&ids);
     // namespace import
     if ids.is_empty() {
       return self.get_referenced_exports_in_destructuring(None);
@@ -291,6 +292,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
         .parent_module_by_dependency_id(&self.id)
         .expect("should have parent module");
       let exports_type = get_exports_type(module_graph, &self.id, &parent_module);
+      // dbg!(&parent_module, &exports_type);
       match exports_type {
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
           if ids.len() == 1 {
@@ -300,7 +302,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
           namespace_object_as_context = true;
         }
         ExportsType::Dynamic => {
-          return create_no_exports_referenced();
+          return create_exports_object_referenced();
         }
         _ => {}
       }

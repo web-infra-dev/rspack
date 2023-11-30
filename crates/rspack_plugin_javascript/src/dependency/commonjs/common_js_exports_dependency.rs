@@ -1,9 +1,13 @@
+use std::task::Wake;
+
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportsOfExportsSpec,
-  ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph,
-  NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource, UsedName,
+  ExportsSpec, ExtendedReferencedExport, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  ModuleDependency, ModuleGraph, NormalInitFragment, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource, UsedName,
 };
+use swc_core::atoms::Atom;
 
 #[derive(Debug, Clone)]
 pub enum ExportsBase {
@@ -49,7 +53,7 @@ pub struct CommonJsExportsDependency {
   range: (u32, u32),
   value_range: Option<(u32, u32)>,
   base: ExportsBase,
-  names: UsedName,
+  names: Vec<Atom>,
 }
 
 impl CommonJsExportsDependency {
@@ -57,7 +61,7 @@ impl CommonJsExportsDependency {
     range: (u32, u32),
     value_range: Option<(u32, u32)>,
     base: ExportsBase,
-    names: UsedName,
+    names: Vec<Atom>,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -87,27 +91,15 @@ impl Dependency for CommonJsExportsDependency {
   }
 
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
-    Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Array(vec![ExportNameOrSpec::String(match &self.names {
-        UsedName::Str(name) => name.clone(),
-        UsedName::Vec(names) => names[0].clone(),
-      })]),
-      priority: None,
+    let vec = vec![ExportNameOrSpec::ExportSpec(rspack_core::ExportSpec {
+      name: self.names[0].clone(),
       can_mangle: Some(false), // in webpack, object own property may not be mangled
-      terminal_binding: None,
-      from: None,
-      dependencies: None,
-      hide_export: None,
-      exclude_exports: None,
+      ..Default::default()
+    })];
+    Some(ExportsSpec {
+      exports: ExportsOfExportsSpec::Array(vec),
+      ..Default::default()
     })
-  }
-
-  fn get_module_evaluation_side_effects_state(
-    &self,
-    _module_graph: &rspack_core::ModuleGraph,
-    _module_chain: &mut rustc_hash::FxHashSet<rspack_core::ModuleIdentifier>,
-  ) -> rspack_core::ConnectionState {
-    rspack_core::ConnectionState::Bool(false)
   }
 }
 
@@ -137,7 +129,11 @@ impl DependencyTemplate for CommonJsExportsDependency {
       .module_graph
       .get_exports_info(&module.identifier())
       .id
-      .get_used_name(&compilation.module_graph, *runtime, self.names.clone());
+      .get_used_name(
+        &compilation.module_graph,
+        *runtime,
+        UsedName::Vec(self.names.clone()),
+      );
 
     let exports_argument = mgm.get_exports_argument();
     let module_argument = mgm.get_module_argument();

@@ -169,7 +169,7 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
               } else {
                 panic!("Unexpected expr type");
               },
-              UsedName::Vec(remaining_members),
+              remaining_members,
             )));
         }
 
@@ -239,7 +239,7 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
               } else {
                 panic!("Unexpected expr type");
               },
-              UsedName::Vec(vec![str.value.clone()]),
+              vec![str.value.clone()],
             )));
         }
 
