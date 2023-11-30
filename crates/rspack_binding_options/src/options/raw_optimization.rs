@@ -1,6 +1,8 @@
 use better_scoped_tls::scoped_tls;
 use napi_derive::napi;
-use rspack_core::{Optimization, PluginExt, SideEffectOption, UsedExportsOption};
+use rspack_core::{
+  MangleExportsOption, Optimization, PluginExt, SideEffectOption, UsedExportsOption,
+};
 use rspack_error::internal_error;
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
@@ -26,7 +28,7 @@ pub struct RawOptimizationOptions {
   pub provided_exports: bool,
   pub inner_graph: bool,
   pub real_content_hash: bool,
-  pub mangle_exports: bool,
+  pub mangle_exports: String,
 }
 
 impl RawOptionsApply for RawOptimizationOptions {
@@ -66,7 +68,7 @@ impl RawOptionsApply for RawOptimizationOptions {
       provided_exports: self.provided_exports,
       used_exports: UsedExportsOption::from(self.used_exports.as_str()),
       inner_graph: self.inner_graph,
-      mangle_exports: self.mangle_exports,
+      mangle_exports: MangleExportsOption::from(self.mangle_exports.as_str()),
     })
   }
 }

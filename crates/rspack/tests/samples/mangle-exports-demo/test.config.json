@@ -1,6 +1,6 @@
 {
 	"optimization": {
-    "mangleExports": true
+    "mangleExports": "deterministic"
 	},
 	"builtins": {
 		"define": {

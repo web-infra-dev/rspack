@@ -3,7 +3,8 @@ use std::sync::atomic::Ordering;
 
 use cargo_rst::git_diff;
 use rspack_core::{
-  BoxPlugin, CompilerOptions, PluginExt, TreeShaking, UsedExportsOption, IS_NEW_TREESHAKING,
+  BoxPlugin, CompilerOptions, MangleExportsOption, PluginExt, TreeShaking, UsedExportsOption,
+  IS_NEW_TREESHAKING,
 };
 use rspack_plugin_javascript::{
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, MangleExportsPlugin,
@@ -26,8 +27,14 @@ fn samples(fixture_path: PathBuf) {
         options.experiments.rspack_future.new_treeshaking = true;
         plugins.push(Box::<FlagDependencyExportsPlugin>::default());
         plugins.push(Box::<FlagDependencyUsagePlugin>::default());
-        if options.optimization.mangle_exports {
-          plugins.push(MangleExportsPlugin::new(true).boxed());
+        if options.optimization.mangle_exports.is_enable() {
+          plugins.push(
+            MangleExportsPlugin::new(!matches!(
+              options.optimization.mangle_exports,
+              MangleExportsOption::Size
+            ))
+            .boxed(),
+          );
         }
       },
     ),

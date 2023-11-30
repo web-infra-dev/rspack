@@ -745,8 +745,7 @@ const applyOptimizationDefaults = (
 	});
 	F(optimization, "chunkIds", (): "named" | "deterministic" => "named");
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
-	// TODO: should be something
-	F(optimization, "mangleExports", () => false);
+	D(optimization, "mangleExports", production);
 	D(optimization, "providedExports", true);
 	D(optimization, "usedExports", production);
 	D(optimization, "innerGraph", production);

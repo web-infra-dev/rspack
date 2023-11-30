@@ -717,8 +717,7 @@ function getRawOptimization(
 		usedExports: String(optimization.usedExports),
 		providedExports: optimization.providedExports,
 		innerGraph: optimization.innerGraph,
-		// TODO: more options
-		mangleExports: Boolean(optimization.mangleExports)
+		mangleExports: String(optimization.mangleExports)
 	};
 }
 

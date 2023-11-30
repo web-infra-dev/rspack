@@ -988,10 +988,7 @@ const optimization = z.strictObject({
 	providedExports: z.boolean().optional(),
 	innerGraph: z.boolean().optional(),
 	usedExports: z.enum(["global"]).or(z.boolean()).optional(),
-	mangleExports: z
-		.enum(["natural", "named", "size", "total-size", "deterministic"])
-		.or(z.boolean())
-		.optional(),
+	mangleExports: z.enum(["size", "deterministic"]).or(z.boolean()).optional(),
 	nodeEnv: z.union([z.string(), z.literal(false)]).optional()
 });
 export type Optimization = z.infer<typeof optimization>;

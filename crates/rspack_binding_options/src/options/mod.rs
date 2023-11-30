@@ -1,7 +1,8 @@
 use napi_derive::napi;
 use rspack_core::{
   BoxPlugin, CompilerOptions, Context, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
-  IncrementalRebuildMakeState, ModuleOptions, ModuleType, OutputOptions, PluginExt,
+  IncrementalRebuildMakeState, MangleExportsOption, ModuleOptions, ModuleType, OutputOptions,
+  PluginExt,
 };
 use rspack_plugin_javascript::{
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, MangleExportsPlugin,
@@ -169,8 +170,15 @@ impl RawOptionsApply for RawOptions {
         plugins.push(FlagDependencyUsagePlugin::default().boxed());
       }
     }
-    if optimization.mangle_exports {
-      plugins.push(MangleExportsPlugin::new(true).boxed());
+    if optimization.mangle_exports.is_enable() {
+      // We already know mangle_exports != false
+      plugins.push(
+        MangleExportsPlugin::new(!matches!(
+          optimization.mangle_exports,
+          MangleExportsOption::Size
+        ))
+        .boxed(),
+      );
     }
 
     // Notice the plugin need to be placed after SplitChunksPlugin

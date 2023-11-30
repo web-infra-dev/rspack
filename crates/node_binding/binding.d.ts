@@ -932,7 +932,7 @@ export interface RawOptimizationOptions {
   providedExports: boolean
   innerGraph: boolean
   realContentHash: boolean
-  mangleExports: boolean
+  mangleExports: string
 }
 
 export interface RawOptions {

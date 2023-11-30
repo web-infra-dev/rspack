@@ -101,26 +101,9 @@ pub fn export_from_import(
           crate::UsedName::Vec(strs) => strs,
         }
       } else {
+        // TODO: add some unused comments, part of runtime alignments
         return "".to_string();
       }
-      // if (!used) {
-      // 	const comment = Template.toNormalComment(
-      // 		`unused export ${propertyAccess(exportName)}`
-      // 	);
-      // 	return `${comment} undefined`;
-      // }
-      // const comment = equals(used, exportName)
-      // 	? ""
-      // 	: Template.toNormalComment(propertyAccess(exportName)) + " ";
-      // const access = `${importVar}${comment}${propertyAccess(used)}`;
-      // if (isCall && callContext === false) {
-      // 	return asiSafe
-      // 		? `(0,${access})`
-      // 		: asiSafe === false
-      // 		? `;(0,${access})`
-      // 		: `/*#__PURE__*/Object(${access})`;
-      // }
-      // return access;
     } else {
       export_name
     };
