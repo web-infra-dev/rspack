@@ -5,6 +5,12 @@ const config = {
 			newTreeshaking: true,
 		},
 	},
+	optimization: {
+		sideEffects: true,
+		innerGraph: true,
+		usedExports: true,
+		providedExports: true
+	},
 	builtins: {
 		treeShaking: false,
 	},
