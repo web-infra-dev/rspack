@@ -63,7 +63,7 @@ const config = {
 						transform: {
 							react: {
 								runtime: "automatic",
-								development: !prod,
+								development: false,
 								refresh: false
 							}
 						},
