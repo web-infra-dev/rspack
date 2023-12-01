@@ -1,11 +1,10 @@
 use rspack_core::get_import_var;
 use rspack_core::{
-  create_exports_object_referenced, create_no_exports_referenced, export_from_import,
-  get_dependency_used_by_exports_condition, get_exports_type,
-  tree_shaking::symbol::DEFAULT_JS_WORD, AsContextDependency, Compilation, ConnectionState,
-  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
-  DependencyType, ExportsType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
-  ModuleGraphModule, ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext,
+  create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
+  get_exports_type, tree_shaking::symbol::DEFAULT_JS_WORD, AsContextDependency, Compilation,
+  ConnectionState, Dependency, DependencyCategory, DependencyCondition, DependencyId,
+  DependencyTemplate, DependencyType, ExportsType, ExtendedReferencedExport, ModuleDependency,
+  ModuleGraph, ModuleGraphModule, ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, UsedByExports,
 };
 use rustc_hash::FxHashSet as HashSet;
@@ -119,7 +118,7 @@ impl HarmonyImportSpecifierDependency {
         .map(ExtendedReferencedExport::Export)
         .collect::<Vec<_>>()
     } else if let Some(v) = ids {
-      vec![ReferencedExport::new(v.clone(), true).into()]
+      vec![ExtendedReferencedExport::Array(v.clone())]
     } else {
       create_exports_object_referenced()
     }
@@ -300,7 +299,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
           namespace_object_as_context = true;
         }
         ExportsType::Dynamic => {
-          return create_no_exports_referenced();
+          return create_exports_object_referenced();
         }
         _ => {}
       }

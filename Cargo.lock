@@ -3001,6 +3001,7 @@ dependencies = [
 name = "rspack_plugin_library"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "once_cell",
  "regex",
  "rspack_core",

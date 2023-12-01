@@ -59,7 +59,7 @@ pub enum BuildMetaExportsType {
   Dynamic,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Copy, Hash)]
 pub enum ExportsType {
   DefaultOnly,
   Namespace,

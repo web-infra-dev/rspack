@@ -177,7 +177,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         ClassMember::PrivateProp(prop) => prop.value.as_ref().map(|item| item.span()),
         ClassMember::TsIndexSignature(_) => unreachable!(),
         ClassMember::Empty(_) => None,
-        ClassMember::StaticBlock(_) => todo!(),
+        ClassMember::StaticBlock(block) => Some(block.span()),
         ClassMember::AutoAccessor(_) => todo!(),
       };
       if let Some(span) = span {
