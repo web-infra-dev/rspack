@@ -89,6 +89,7 @@ jobs:
         if: inputs.profile == 'debug'
         shell: bash
         run: |
+          git --no-pager log --decorate=short --pretty=oneline -n10
           echo '[profile.release.package."*"]' >> Cargo.toml
           echo 'opt-level = 3' >> Cargo.toml
           echo 'codegen-units = 64' >> Cargo.toml
