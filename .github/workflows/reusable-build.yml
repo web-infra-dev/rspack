@@ -100,7 +100,8 @@ jobs:
         shell: bash
         run: |
           set -e
-          cache_dir=$HOME/.cache/runner/${{ github.repository_id }}-${{ github.sha }}-bindings-${{ inputs.target }}
+          commit_id=`git rev-parse HEAD`
+          cache_dir=$HOME/.cache/runner/${{ github.repository_id }}-$commit_id-bindings-${{ inputs.target }}
           if [[ -d "$cache_dir" ]]; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
@@ -113,6 +114,8 @@ jobs:
         env:
           OUTPUT: ${{ steps.check_cache.outputs.exists }}
         run: |
+          commit_id=`git rev-parse HEAD`
+          echo $commit_id
           echo "${{ github.ref_name }}"
           echo "${{ github.head_ref }}"
           echo "${{ github.sha }}"

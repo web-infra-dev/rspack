@@ -42,6 +42,7 @@ runs:
       run: |
         set -e
         cache_dir=$HOME/.cache/runner
+        commit_id=`git rev-parse HEAD`
         if [[ ! -d "$cache_dir" ]]; then
           mkdir -p "$cache_dir"
         fi
@@ -49,7 +50,7 @@ runs:
         find $cache_dir -type d -maxdepth 1 -mindepth 1 -cmin +180 | xargs rm -rf
 
         # save file
-        save_dir="$cache_dir/${{ github.repository_id }}-${{ github.sha }}-${{ inputs.name }}"
+        save_dir="$cache_dir/${{ github.repository_id }}-$commit_id-${{ inputs.name }}"
         rm -rf $save_dir
         mkdir $save_dir
         if [ "${{ inputs.mv-when-local }}" = "true" ]; then

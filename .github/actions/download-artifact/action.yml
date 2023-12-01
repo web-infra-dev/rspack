@@ -34,7 +34,8 @@ runs:
       shell: bash
       run: |
         set -e
-        save_dir=$HOME/.cache/runner/${{ github.repository_id }}-${{ github.sha }}-${{ inputs.name }}
+        commit_id=`git rev-parse HEAD`
+        save_dir=$HOME/.cache/runner/${{ github.repository_id }}-$commit_id-${{ inputs.name }}
         # download file
         if [ "${{ inputs.link-when-local }}" = "true" ]; then
           ln -sf $save_dir/* ${{ inputs.path }}
