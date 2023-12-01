@@ -113,7 +113,9 @@ jobs:
         env:
           OUTPUT: ${{ steps.check_cache.outputs.exists }}
         run: |
-          echo $OUTPUT
+          echo "${{ github.ref_name }}"
+          echo "${{ github.head_ref }}"
+          echo "${{ github.sha }}"
 
       # Linux
       - name: Build x86_64-unknown-linux-gnu in Docker
