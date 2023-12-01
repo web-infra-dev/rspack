@@ -23,6 +23,7 @@ jobs:
             runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
     uses: ./.github/workflows/reusable-build.yml
     with:
+      profile: "debug"
       ref: refs/pull/${{ github.event.issue.number }}/head
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}

@@ -99,7 +99,7 @@ jobs:
         if: ${{ inputs.profile == 'debug' && !startsWith(runner.name, 'GitHub Actions') }}
         shell: bash
         run: |
-          if test -d "$HOME/.cache/runner/${{ github.repository_id }}-${{ github.sha }}-${{ inputs.name }}"; then
+          if test -d "$HOME/.cache/runner/${{ github.repository_id }}-${{ github.sha }}-bindings-${{ inputs.target }}"; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
