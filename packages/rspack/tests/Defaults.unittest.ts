@@ -249,6 +249,9 @@ describe("snapshots", () => {
 		@@ ... @@
 		-     "module": false,
 		+     "module": true,
+		@@ ... @@
+		-     "scriptType": false,
+		+     "scriptType": "module",
 	`)
 	);
 

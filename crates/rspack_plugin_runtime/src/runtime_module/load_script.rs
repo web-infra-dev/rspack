@@ -42,9 +42,13 @@ impl RuntimeModule for LoadScriptRuntimeModule {
       ),
     };
 
-    let script_type = match &compilation.options.output.script_type {
-      Some(script_type) => format!("script.type = '{}';", script_type),
-      None => "".to_string(),
+    let script_type = if compilation.options.output.script_type.eq("false") {
+      String::new()
+    } else {
+      format!(
+        "script.type = '{}';",
+        compilation.options.output.script_type
+      )
     };
 
     RawSource::from(

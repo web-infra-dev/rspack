@@ -188,8 +188,8 @@ pub struct RawOutputOptions {
   pub worker_chunk_loading: String,
   pub worker_wasm_loading: String,
   pub worker_public_path: String,
-  #[napi(ts_type = r#""module" | "text/javascript""#)]
-  pub script_type: Option<String>,
+  #[napi(ts_type = r#""module" | "text/javascript" | "false""#)]
+  pub script_type: String,
 }
 
 impl RawOptionsApply for RawOutputOptions {

@@ -215,7 +215,7 @@ export const getNormalizedRspackOptions = (
 				workerChunkLoading: output.workerChunkLoading,
 				workerWasmLoading: output.workerWasmLoading,
 				workerPublicPath: output.workerPublicPath,
-				scriptType: output.scriptType || undefined
+				scriptType: output.scriptType
 			};
 		}),
 		resolve: nestedConfig(config.resolve, resolve => ({
@@ -478,7 +478,7 @@ export interface OutputNormalized {
 	workerChunkLoading?: ChunkLoading;
 	workerWasmLoading?: WasmLoading;
 	workerPublicPath?: WorkerPublicPath;
-	scriptType?: "module" | "text/javascript";
+	scriptType?: "module" | "text/javascript" | false;
 }
 
 export interface ModuleOptionsNormalized {

@@ -236,7 +236,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		workerWasmLoading:
 			workerWasmLoading === false ? "false" : workerWasmLoading,
 		workerPublicPath: output.workerPublicPath!,
-		scriptType: output.scriptType!
+		scriptType: output.scriptType === false ? "false" : output.scriptType!
 	};
 }
 

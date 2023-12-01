@@ -988,7 +988,7 @@ export interface RawOutputOptions {
   workerChunkLoading: string
   workerWasmLoading: string
   workerPublicPath: string
-  scriptType?: "module" | "text/javascript"
+  scriptType: "module" | "text/javascript" | "false"
 }
 
 export interface RawParserOptions {

@@ -78,13 +78,14 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
   let global = RuntimeGlobals::GLOBAL.name();
 
   // TODO: replace import.meta with importMetaName
-  let script_url_template = match &output.script_type {
-    Some(script_type) if script_type.eq("module") => format!(
+  let script_url_template = if output.script_type.eq("module") {
+    format!(
       r#"var scriptUrl;
     if (typeof import.meta.url === "string") scriptUrl = import.meta.url
     "#
-    ),
-    _ => format!(
+    )
+  } else {
+    format!(
       r#"var scriptUrl;
     if ({global}.importScripts) scriptUrl = {global}.location + "";
     var document = {global}.document;
@@ -99,7 +100,7 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
         }}
       }}
     "#
-    ),
+    )
   };
   format!(
     r#"
