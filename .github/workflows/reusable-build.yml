@@ -89,7 +89,6 @@ jobs:
         if: inputs.profile == 'debug'
         shell: bash
         run: |
-          git --no-pager log --decorate=short --pretty=oneline -n10
           echo '[profile.release.package."*"]' >> Cargo.toml
           echo 'opt-level = 3' >> Cargo.toml
           echo 'codegen-units = 64' >> Cargo.toml
@@ -101,25 +100,12 @@ jobs:
         shell: bash
         run: |
           set -e
-          commit_id=`git rev-parse HEAD`
-          cache_dir=$HOME/.cache/runner/${{ github.repository_id }}-$commit_id-bindings-${{ inputs.target }}
+          cache_dir=$HOME/.cache/runner/${{ github.repository_id }}-${{ github.sha }}-bindings-${{ inputs.target }}
           if [[ -d "$cache_dir" ]]; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
-
-      - name: Echo output
-        shell: bash
-        if: ${{ steps.aaa.outputs.exists != 'true' }}
-        env:
-          OUTPUT: ${{ steps.check_cache.outputs.exists }}
-        run: |
-          commit_id=`git rev-parse HEAD`
-          echo $commit_id
-          echo "${{ github.ref_name }}"
-          echo "${{ github.head_ref }}"
-          echo "${{ github.sha }}"
 
       # Linux
       - name: Build x86_64-unknown-linux-gnu in Docker
