@@ -607,7 +607,7 @@ impl ExportInfoId {
     changed
   }
 
-  fn set_used(
+  pub fn set_used(
     &self,
     mg: &mut ModuleGraph,
     new_value: UsageState,
