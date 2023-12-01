@@ -94,10 +94,20 @@ jobs:
           echo 'codegen-units = 64' >> Cargo.toml
           echo 'incremental = false' >> Cargo.toml
 
-      # Linux
+      - name: Check local cache
+        id: check_cache
+        if: ${{ inputs.profile == 'debug' && !startsWith(runner.name, 'GitHub Actions') }}
+        shell: bash
+        run: |
+          if test -d "$HOME/.cache/runner/${{ github.repository_id }}-${{ github.sha }}-${{ inputs.name }}"; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
 
+      # Linux
       - name: Build x86_64-unknown-linux-gnu in Docker
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' }}
         uses: ./.github/actions/docker-build
         with:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
@@ -107,7 +117,7 @@ jobs:
           options: -v $HOME/.cargo:/usr/local/cargo -v $HOME/.rustup:/usr/local/rustup
 
       - name: Build aarch64-unknown-linux-gnu in Docker
-        if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
+        if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' && steps.check_cache.outputs.files_exists != 'true' }}
         uses: ./.github/actions/docker-build
         with:
           target: ${{ inputs.target }}
@@ -116,7 +126,7 @@ jobs:
           pre: export JEMALLOC_SYS_WITH_LG_PAGE=16 && export CC_aarch64_unknown_linux_gnu=/usr/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gcc # for jemallocator to compile
 
       - name: Build x86_64-unknown-linux-musl in Docker
-        if: ${{ inputs.target == 'x86_64-unknown-linux-musl' }}
+        if: ${{ inputs.target == 'x86_64-unknown-linux-musl' && steps.check_cache.outputs.files_exists != 'true' }}
         uses: ./.github/actions/docker-build
         with:
           target: ${{ inputs.target }}
@@ -124,7 +134,7 @@ jobs:
           profile: ${{ inputs.profile }}
 
       - name: Build aarch64-unknown-linux-musl in Docker
-        if: ${{ inputs.target == 'aarch64-unknown-linux-musl' }}
+        if: ${{ inputs.target == 'aarch64-unknown-linux-musl' && steps.check_cache.outputs.files_exists != 'true' }}
         uses: ./.github/actions/docker-build
         with:
           target: ${{ inputs.target }}
@@ -141,25 +151,25 @@ jobs:
       # Windows
 
       - name: Build i686-pc-windows-msvc
-        if: ${{ inputs.target == 'i686-pc-windows-msvc' }}
+        if: ${{ inputs.target == 'i686-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' }}
         run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       - name: Build x86_64-pc-windows-msvc
-        if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
+        if: ${{ inputs.target == 'x86_64-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' }}
         run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       - name: Build aarch64-pc-windows-msvc
-        if: ${{ inputs.target == 'aarch64-pc-windows-msvc' }}
+        if: ${{ inputs.target == 'aarch64-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' }}
         run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       # Mac
       - name: Build x86_64-apple-darwin
-        if: ${{ inputs.target == 'x86_64-apple-darwin' }}
+        if: ${{ inputs.target == 'x86_64-apple-darwin' && steps.check_cache.outputs.files_exists != 'true' }}
         run: |
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       - name: Build aarch64-apple-darwin
-        if: ${{ inputs.target == 'aarch64-apple-darwin' }}
+        if: ${{ inputs.target == 'aarch64-apple-darwin' && steps.check_cache.outputs.files_exists != 'true' }}
         run: |
           if [[ "${{ startsWith(runner.name, 'GitHub Actions') }}" == "true" ]]; then
             # Github runner
