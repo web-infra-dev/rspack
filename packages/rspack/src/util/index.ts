@@ -108,7 +108,6 @@ export function toJsAssetInfo(info?: AssetInfo): JsAssetInfo {
 		related: {},
 		chunkHash: [],
 		contentHash: [],
-		version: "",
 		...info
 	};
 }
