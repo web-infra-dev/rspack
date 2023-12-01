@@ -109,6 +109,7 @@ jobs:
 
       - name: Echo output
         shell: bash
+        if: ${{ steps.aaa.outputs.exists != 'true' }}
         env:
           OUTPUT: ${{ steps.check_cache.outputs.exists }}
         run: |
@@ -192,6 +193,7 @@ jobs:
       - name: Upload artifact
         id: upload-artifact
         uses: ./.github/actions/upload-artifact
+        if: ${{ steps.check_cache.outputs.exists != 'true' }}
         with:
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/*.node
