@@ -100,7 +100,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          cache_dir=$HOME/.cache/runner/${{ github.repository_id }}-${{ github.sha }}-${{ inputs.target }}
+          cache_dir=$HOME/.cache/runner/${{ github.repository_id }}-${{ github.sha }}-bindings-${{ inputs.target }}
           if [[ -d "$cache_dir" ]]; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
