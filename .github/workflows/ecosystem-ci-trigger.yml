@@ -75,6 +75,18 @@ jobs:
             const [suite, suiteRefType, suiteRef] = command.replace(/^!eco-ci/, '').trim().split(' ')
             const allSuites = suite === '' || suite === '-'
 
+            function normalizeSuiteRefType(suiteRefType) {
+              const prefix = '--suite-'
+              if (allSuites || suiteRefType === undefined || !suiteRefType.startsWith(prefix)) {
+                return 'precoded'
+              }
+              return suiteRefType.slice(prefix.length)
+            }
+
+            function normalizeSuiteRef(suiteRef) {
+              return (allSuites || suiteRef === undefined) ? 'precoded' : suiteRef
+            }
+
             await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: 'rspack-ecosystem-ci',
@@ -85,7 +97,7 @@ jobs:
                 branchName: prData.branchName,
                 repo: prData.repo,
                 suite: allSuites ? '-' : suite,
-                suiteRefType: (allSuites || suiteRefType === undefined) ? 'precoded' : suiteRefType,
-                suiteRef: (allSuites || suiteRef === undefined) ? 'precoded' : suiteRef,
+                suiteRefType: normalizeSuiteRefType(suiteRefType),
+                suiteRef: normalizeSuiteRef(suiteRef),
               }
             })
