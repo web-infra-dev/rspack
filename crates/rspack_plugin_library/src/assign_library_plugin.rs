@@ -4,8 +4,8 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::tree_shaking::webpack_ext::ExportInfoExt;
 use rspack_core::{
-  property_access, ChunkUkey, EntryData, EntryOptions, LibraryExport, LibraryName,
-  LibraryNonUmdObject, UsageState,
+  property_access, ChunkUkey, EntryData, LibraryExport, LibraryName, LibraryNonUmdObject,
+  UsageState,
 };
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
@@ -193,13 +193,13 @@ impl Plugin for AssignLibraryPlugin {
 
   async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     let mg = &mut compilation.module_graph;
-    for (k, entry) in compilation.entries.iter() {
+    for (_, entry) in compilation.entries.iter() {
       let EntryData {
         dependencies,
-        include_dependencies,
         options,
+        ..
       } = entry;
-      let module_of_last_dep = entry.dependencies.last().and_then(|dep| mg.get_module(dep));
+      let module_of_last_dep = dependencies.last().and_then(|dep| mg.get_module(dep));
       if let Some(module_of_last_dep) = module_of_last_dep {
         if let Some(export) = options
           .library
