@@ -422,6 +422,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "color-backtrace"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "150fd80a270c0671379f388c8204deb6a746bb4eac8a6c03fe2460b2c0127ea0"
+dependencies = [
+ "backtrace",
+ "termcolor",
+]
+
+[[package]]
 name = "colored"
 version = "2.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2749,6 +2759,7 @@ name = "rspack_node"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "color-backtrace",
  "dashmap",
  "futures",
  "mimalloc-rust",
