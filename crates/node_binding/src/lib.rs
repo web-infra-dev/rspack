@@ -104,7 +104,6 @@ impl Rspack {
 
   #[allow(clippy::unwrap_in_result, clippy::unwrap_used)]
   #[napi(
-    catch_unwind,
     js_name = "unsafe_set_disabled_hooks",
     ts_args_type = "hooks: Array<string>"
   )]
@@ -119,7 +118,6 @@ impl Rspack {
   /// Warning:
   /// Calling this method recursively might cause a deadlock.
   #[napi(
-    catch_unwind,
     js_name = "unsafe_build",
     ts_args_type = "callback: (err: null | Error) => void"
   )]
@@ -146,7 +144,6 @@ impl Rspack {
   /// Warning:
   /// Calling this method recursively will cause a deadlock.
   #[napi(
-    catch_unwind,
     js_name = "unsafe_rebuild",
     ts_args_type = "changed_files: string[], removed_files: string[], callback: (err: null | Error) => void"
   )]
@@ -188,7 +185,7 @@ impl Rspack {
   /// Calling this method under the build or rebuild method might cause a deadlock.
   ///
   /// **Note** that this method is not safe if you cache the _JsCompilation_ on the Node side, as it will be invalidated by the next build and accessing a dangling ptr is a UB.
-  #[napi(catch_unwind, js_name = "unsafe_last_compilation")]
+  #[napi(js_name = "unsafe_last_compilation")]
   pub fn unsafe_last_compilation<F: Fn(JsCompilation) -> Result<()>>(&self, f: F) -> Result<()> {
     let handle_last_compilation = |compiler: &mut Pin<Box<rspack_core::Compiler<_>>>| {
       // Safety: compiler is stored in a global hashmap, and compilation is only available in the callback of this function, so it is safe to cast to a static lifetime. See more in the warning part of this method.
@@ -208,7 +205,7 @@ impl Rspack {
   /// Warning:
   ///
   /// Anything related to this compiler will be invalidated after this method is called.
-  #[napi(catch_unwind, js_name = "unsafe_drop")]
+  #[napi(js_name = "unsafe_drop")]
   pub fn drop(&self) -> Result<()> {
     unsafe { COMPILERS.remove(&self.id) };
 
@@ -236,8 +233,7 @@ enum TraceState {
   Off,
 }
 
-static GLOBAL_TRACE_STATE: Lazy<Mutex<TraceState>> =
-  Lazy::new(|| Mutex::new(TraceState::default()));
+static GLOBAL_TRACE_STATE: Mutex<TraceState> = Mutex::new(TraceState::Off);
 
 /**
  * Some code is modified based on
@@ -246,7 +242,7 @@ static GLOBAL_TRACE_STATE: Lazy<Mutex<TraceState>> =
  * Author Donny/강동윤
  * Copyright (c)
  */
-#[napi(catch_unwind)]
+#[napi]
 pub fn register_global_trace(
   filter: String,
   #[napi(ts_arg_type = "\"chrome\" | \"logger\"")] layer: String,
@@ -269,7 +265,7 @@ pub fn register_global_trace(
   }
 }
 
-#[napi(catch_unwind)]
+#[napi]
 pub fn cleanup_global_trace() {
   let mut state = GLOBAL_TRACE_STATE
     .lock()
