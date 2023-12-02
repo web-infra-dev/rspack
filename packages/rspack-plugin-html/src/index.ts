@@ -254,8 +254,7 @@ export default class HtmlRspackPlugin implements RspackPluginInstance {
 	name = "HtmlRspackPlugin";
 
 	userOptions: Options;
-	// @ts-expect-error
-	options: ProcessedOptions;
+	options?: ProcessedOptions;
 
 	constructor(options?: Options) {
 		this.userOptions = options || {};
@@ -396,8 +395,8 @@ function hookIntoCompiler(
 	// generate it at correct location
 	const filename = options.filename;
 	if (path.resolve(filename) === path.normalize(filename)) {
-		const outputPath = compiler.options.output.path;
-		// @ts-expect-error
+		// options.output.path must have value after `applyRspackOptionsDefaults`
+		const outputPath = compiler.options.output.path!;
 		options.filename = path.relative(outputPath, filename);
 	}
 
@@ -631,17 +630,18 @@ function hookIntoCompiler(
 		filename: string,
 		customPublicPath: string | "auto"
 	): string {
-		const compilationHash = compilation.hash;
+		// compilation should have hash/publicPath
+		const compilationHash = compilation.hash!;
 
 		const rspackPublicPath = compilation.getAssetPath(
-			// @ts-expect-error
-			compilation.outputOptions.publicPath,
+			compilation.outputOptions.publicPath!,
 			{ hash: compilationHash }
 		);
 
 		// Webpack 5 introduced "auto" as default value
 		const isPublicPathDefined = rspackPublicPath !== "auto";
 
+		const outputPath = compilation.options.output.path!;
 		let publicPath =
 			// If the html-webpack-plugin options contain a custom public path uset it
 			customPublicPath !== "auto"
@@ -652,13 +652,8 @@ function hookIntoCompiler(
 				: // If no public path was set get a relative url path
 				  path
 						.relative(
-							path.resolve(
-								// @ts-expect-error
-								compilation.options.output.path,
-								path.dirname(filename)
-							),
-							// @ts-expect-error
-							compilation.options.output.path
+							path.resolve(outputPath, path.dirname(filename)),
+							outputPath
 						)
 						.split(path.sep)
 						.join("/");
@@ -675,7 +670,7 @@ function hookIntoCompiler(
 		entryNames: string[],
 		publicPath: string | "auto"
 	): Assets {
-		const compilationHash = compilation.hash;
+		const compilationHash = compilation.hash!;
 		const assets: Assets = {
 			// The public path
 			publicPath,
@@ -693,19 +688,17 @@ function hookIntoCompiler(
 
 		// Append a hash for cache busting
 		if (options.hash && assets.manifest) {
-			// @ts-expect-error
 			assets.manifest = appendHash(assets.manifest, compilationHash);
 		}
 
 		// Extract paths to .js, .mjs and .css files from the current compilation
-		const entryPointPublicPathMap = {};
+		const entryPointPublicPathMap = {} as Record<string, boolean>;
 		const extensionRegexp = /\.(css|js|mjs)(\?|$)/;
 		for (let i = 0; i < entryNames.length; i++) {
 			const entryName = entryNames[i];
 			/** entryPointUnfilteredFiles - also includes hot module update files */
-			// @ts-expect-error
 			const entryPointUnfilteredFiles = compilation.entrypoints
-				.get(entryName)
+				.get(entryName)!
 				.getFiles();
 
 			const entryPointFiles = entryPointUnfilteredFiles.filter(chunkFile => {
@@ -727,8 +720,7 @@ function hookIntoCompiler(
 			const entryPointPublicPaths = entryPointFiles.map(chunkFile => {
 				const entryPointPublicPath = publicPath + urlencodePath(chunkFile);
 				return options.hash
-					? // @ts-expect-error
-					  appendHash(entryPointPublicPath, compilationHash)
+					? appendHash(entryPointPublicPath, compilationHash)
 					: entryPointPublicPath;
 			});
 
@@ -740,15 +732,13 @@ function hookIntoCompiler(
 				}
 				// Skip if this file is already known
 				// (e.g. because of common chunk optimizations)
-				// @ts-expect-error
 				if (entryPointPublicPathMap[entryPointPublicPath]) {
 					return;
 				}
-				// @ts-expect-error
 				entryPointPublicPathMap[entryPointPublicPath] = true;
 				// ext will contain .js or .css, because .mjs recognizes as .js
-				const ext = extMatch[1] === "mjs" ? "js" : extMatch[1];
-				// @ts-expect-error
+				const ext =
+					extMatch[1] === "mjs" ? "js" : (extMatch[1] as "js" | "css");
 				assets[ext].push(entryPointPublicPath);
 			});
 		}
@@ -765,17 +755,18 @@ function hookIntoCompiler(
 
 	function sortEntryChunks(
 		entryNames: string[],
-		sortMode: string | ((entryNameA: string, entryNameB: string) => number),
+		sortMode:
+			| "auto"
+			| "manual"
+			| ((entryNameA: string, entryNameB: string) => number),
 		compilation: Compilation
 	): string[] {
 		// Custom function
 		if (typeof sortMode === "function") {
 			return entryNames.sort(sortMode);
-		}
-		// Check if the given sort mode is a valid chunkSorter sort mode
-		// @ts-expect-error
-		if (typeof chunkSorter[sortMode] !== "undefined") {
-			// @ts-expect-error
+		} else if (typeof chunkSorter[sortMode] !== "undefined") {
+			// Check if the given sort mode is a valid chunkSorter sort mode
+			// N.B. sortMode is a user input and may be unsafe to call object method
 			return chunkSorter[sortMode](entryNames, compilation, options);
 		}
 		throw new Error('"' + sortMode + '" is not a valid chunk sort mode');
@@ -856,8 +847,7 @@ function hookIntoCompiler(
 		return addFileToAssets(faviconFilePath, compilation).then(faviconName => {
 			const faviconPath = publicPath + faviconName;
 			if (options.hash) {
-				// @ts-expect-error
-				return appendHash(faviconPath, compilation.hash);
+				return appendHash(faviconPath, compilation.hash!);
 			}
 			return faviconPath;
 		});
@@ -1024,12 +1014,11 @@ function hookIntoCompiler(
 	): AssetTags {
 		const result = {
 			headTags: [...assetTags.meta, ...assetTags.styles],
-			bodyTags: []
+			bodyTags: [] as HtmlTagObject[]
 		};
 		// Add script tags to head or body depending on
 		// the htmlPluginOptions
 		if (scriptTarget === "body") {
-			// @ts-expect-error
 			result.bodyTags.push(...assetTags.scripts);
 		} else {
 			// If script loading is blocking add the scripts to the end of the head
@@ -1220,13 +1209,12 @@ function hookIntoCompiler(
 		try {
 			return require("html-minifier-terser").minify(html, options.minify);
 		} catch (e) {
-			// @ts-expect-error
+			if (!(e instanceof Error)) {
+				throw e;
+			}
 			const isParseError = String(e.message).indexOf("Parse Error") === 0;
 			if (isParseError) {
-				// @ts-expect-error
-				e.message = "html-minifier-terser error:";
-				// @ts-expect-error
-				"\n" + e.message;
+				e.message = "html-minifier-terser error:\n" + e.message;
 			}
 			throw e;
 		}
