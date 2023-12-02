@@ -2501,6 +2501,7 @@ dependencies = [
  "rspack_plugin_worker",
  "rspack_regex",
  "rspack_swc_visitors",
+ "rspack_util",
  "rustc-hash",
  "serde",
  "serde_json",

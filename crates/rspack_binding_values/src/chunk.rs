@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use napi_derive::napi;
 use rspack_core::{Chunk, ChunkAssetArgs, ChunkUkey, Compilation};
+use rspack_util::comparators::compare_ids;
 
-use crate::JsCompilation;
+use crate::{JsCompilation, JsModule, ToJsModule};
 
 #[napi(object)]
 pub struct JsChunk {
@@ -115,6 +116,27 @@ pub fn has_runtime(js_chunk_ukey: u32, compilation: &JsCompilation) -> bool {
   let compilation = &compilation.inner;
   let chunk = chunk(js_chunk_ukey, compilation);
   chunk.has_runtime(&compilation.chunk_group_by_ukey)
+}
+
+#[napi(js_name = "__chunk_inner_get_chunk_modules")]
+pub fn get_chunk_modules(
+  js_chunk_ukey: u32,
+  compilation: &JsCompilation,
+  sort_by_id: bool,
+) -> Vec<JsModule> {
+  let compilation = &compilation.inner;
+  let mut modules = compilation.chunk_graph.get_chunk_modules(
+    &ChunkUkey::from(js_chunk_ukey as usize),
+    &compilation.module_graph,
+  );
+  if sort_by_id {
+    modules.sort_unstable_by(|a, b| compare_ids(&a.identifier(), &b.identifier()));
+  }
+
+  return modules
+    .iter()
+    .filter_map(|module| module.to_js_module().ok())
+    .collect::<Vec<_>>();
 }
 
 #[napi(object)]

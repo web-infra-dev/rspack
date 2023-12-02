@@ -1,6 +1,7 @@
 import {
 	__chunk_group_inner_get_chunk_group,
 	__chunk_inner_can_be_initial,
+	__chunk_inner_get_chunk_modules,
 	__chunk_inner_has_runtime,
 	__chunk_inner_is_only_initial,
 	type JsChunk,
@@ -68,6 +69,24 @@ export class Chunk {
 		return __chunk_inner_has_runtime(
 			this.#inner.__inner_ukey,
 			this.#inner_compilation
+		);
+	}
+
+	getModules() {
+		return __chunk_inner_get_chunk_modules(
+			this.#inner.__inner_ukey,
+			this.#inner_compilation,
+			false
+		);
+	}
+
+	get modulesIterable() {
+		return new Set(
+			__chunk_inner_get_chunk_modules(
+				this.#inner.__inner_ukey,
+				this.#inner_compilation,
+				true
+			)
 		);
 	}
 
