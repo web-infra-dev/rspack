@@ -138,12 +138,13 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
   ) -> PluginProcessAssetsOutput {
     let compilation = args.compilation;
     let minify_options = &self.options;
-    let is_module = compilation
+    let is_module_compilation = compilation
       .options
       .output
       .library
       .as_ref()
-      .is_some_and(|library| library.library_type == "module");
+      .is_some_and(|library| library.library_type == "module")
+      || compilation.options.output.module;
 
     let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
     // collect all extracted comments info
@@ -180,6 +181,9 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
         if let Some(original_source) = original.get_source() {
           let input = original_source.source().to_string();
           let input_source_map = original_source.map(&MapOptions::default());
+
+          let is_module = if input.ends_with(".mjs") { true } else if input.ends_with(".cjs") { false } else { is_module_compilation };
+
           let js_minify_options = JsMinifyOptions {
             compress: minify_options.compress.clone(),
             mangle: minify_options.mangle.clone(),
