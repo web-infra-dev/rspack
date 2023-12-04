@@ -139,7 +139,7 @@ impl SplitChunksPlugin {
             .map_or(false, |name| regexp.test(&name)),
           CacheGroupTest::Fn(f) => {
             let ctx = CacheGroupTestFnCtx { module };
-            f(ctx).await.unwrap_or_default()
+            f(ctx).unwrap_or_default()
           }
           CacheGroupTest::Enabled => true,
         };
@@ -177,12 +177,12 @@ impl SplitChunksPlugin {
               // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
               if chunk_combination.len() < cache_group.min_chunks as usize {
                 tracing::trace!(
-                      "Module({:?}) is ignored by CacheGroup({:?}). Reason: chunk_combination.len({:?}) < cache_group.min_chunks({:?})",
-                      module.identifier(),
-                      cache_group.key,
-                      chunk_combination.len(),
-                      cache_group.min_chunks,
-                    );
+									"Module({:?}) is ignored by CacheGroup({:?}). Reason: chunk_combination.len({:?}) < cache_group.min_chunks({:?})",
+									module.identifier(),
+									cache_group.key,
+									chunk_combination.len(),
+									cache_group.min_chunks,
+								);
                 continue;
               }
 
@@ -200,12 +200,12 @@ impl SplitChunksPlugin {
               // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
               if selected_chunks.len() < cache_group.min_chunks as usize {
                 tracing::trace!(
-                      "Module({:?}) is ignored by CacheGroup({:?}). Reason: selected_chunks.len({:?}) < cache_group.min_chunks({:?})",
-                      module.identifier(),
-                      cache_group.key,
-                      selected_chunks.len(),
-                      cache_group.min_chunks,
-                    );
+									"Module({:?}) is ignored by CacheGroup({:?}). Reason: selected_chunks.len({:?}) < cache_group.min_chunks({:?})",
+									module.identifier(),
+									cache_group.key,
+									selected_chunks.len(),
+									cache_group.min_chunks,
+								);
                 continue;
               }
               let selected_chunks_key = Self::get_key(
@@ -223,10 +223,10 @@ impl SplitChunksPlugin {
                   selected_chunks_key,
                 },
                 module_group_map,
-              ).await;
+              );
 
               #[tracing::instrument(skip_all)]
-              async fn merge_matched_item_into_module_group_map(
+              fn merge_matched_item_into_module_group_map(
                 matched_item: MatchedItem<'_>,
                 module_group_map: &DashMap<String, ModuleGroup>,
               ) {
@@ -246,7 +246,7 @@ impl SplitChunksPlugin {
                   ChunkNameGetter::Disabled => None,
                   ChunkNameGetter::Fn(f) => {
                     let ctx = ChunkNameGetterFnCtx { module };
-                    f(ctx).await
+                    f(ctx)
                   }
                 };
                 let key: String = if let Some(cache_group_name) = &chunk_name {

@@ -42,20 +42,20 @@ pub(super) fn normalize_raw_cache_group_test(raw: RawCacheGroupTest) -> CacheGro
       let fn_payload = Arc::new(fn_payload);
       CacheGroupTest::Fn(Arc::new(move |ctx| {
         let fn_payload = fn_payload.clone();
-        Box::pin(async move {
-          fn_payload
-            .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
-            .into_rspack_result()
-            .expect("into rspack result failed")
-            .await
-            .unwrap_or_else(|err| {
-              panic!(
-                "{}",
-                internal_error!("Failed to call external function: {err}")
-              )
-            })
-            .expect("failed")
-        })
+        let res = fn_payload
+          .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
+          .into_rspack_result()
+          .expect("into rspack result failed");
+
+        res
+          .blocking_recv()
+          .unwrap_or_else(|err| {
+            panic!(
+              "{}",
+              internal_error!("Failed to call external function: {err}")
+            )
+          })
+          .expect("failed")
       }))
     }
   }
