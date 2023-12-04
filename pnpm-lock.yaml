@@ -1544,9 +1544,6 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
-      '@rspack/dev-client':
-        specifier: workspace:*
-        version: link:../rspack-dev-client
       '@rspack/dev-server':
         specifier: workspace:*
         version: link:../rspack-dev-server
@@ -1792,16 +1789,6 @@ importers:
       ts-node:
         specifier: 10.9.1
         version: 10.9.1
-
-  packages/rspack-dev-client:
-    dependencies:
-      '@rspack/plugin-react-refresh':
-        specifier: workspace:*
-        version: link:../rspack-plugin-react-refresh
-    devDependencies:
-      react-refresh:
-        specifier: 0.14.0
-        version: 0.14.0
 
   packages/rspack-dev-server:
     dependencies:
