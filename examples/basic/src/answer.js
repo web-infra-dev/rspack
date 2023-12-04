@@ -1,1 +1,1 @@
-export * from './lib.js'
+export const answer = 42;
