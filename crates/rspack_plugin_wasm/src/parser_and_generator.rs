@@ -273,7 +273,7 @@ fn render_wasm_name(
   compilation: &Compilation,
   normal_module: &NormalModule,
   wasm_filename_template: &Filename,
-  hash: &String,
+  hash: &str,
 ) -> (String, AssetInfo) {
   compilation.get_asset_path_with_info(
     wasm_filename_template,
