@@ -68,11 +68,11 @@ impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
   }
 }
 
-pub fn stringify_css_modules_exports_key(
+pub(crate) fn export_locals_convention(
   key: &JsWord,
   locals_convention: &LocalsConvention,
 ) -> Vec<String> {
-  let mut res = Vec::new();
+  let mut res = Vec::with_capacity(3);
   if locals_convention.as_is() {
     res.push(
       serde_json::to_string(&key)
