@@ -19,6 +19,7 @@ use rspack_napi_shared::NAPI_ENV;
 
 mod hook;
 mod loader;
+mod panic;
 mod plugins;
 
 use hook::*;
@@ -231,6 +232,11 @@ enum TraceState {
   On(Option<FlushGuard>),
   #[default]
   Off,
+}
+
+#[ctor]
+fn init() {
+  panic::install_panic_handler();
 }
 
 static GLOBAL_TRACE_STATE: Mutex<TraceState> = Mutex::new(TraceState::Off);

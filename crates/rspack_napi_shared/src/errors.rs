@@ -39,9 +39,8 @@ impl<T: 'static> NapiResultExt<T> for Result<T> {
   }
 }
 
-#[inline(always)]
-fn get_backtrace() -> String {
-  format!("{}", std::backtrace::Backtrace::force_capture())
+const fn get_backtrace() -> Option<String> {
+  None
 }
 
 /// Extract stack or message from a native Node error object,
@@ -55,14 +54,14 @@ fn extract_stack_or_message_from_napi_error(env: &Env, err: Error) -> (String, O
   match unsafe { ToNapiValue::to_napi_value(env.raw(), err) } {
     Ok(napi_error) => match try_extract_string_value_from_property(env, napi_error, "stack") {
       Err(_) => match try_extract_string_value_from_property(env, napi_error, "message") {
-        Err(e) => (format!("Unknown NAPI error {e}"), Some(get_backtrace())),
-        Ok(message) => (message, Some(get_backtrace())),
+        Err(e) => (format!("Unknown NAPI error {e}"), get_backtrace()),
+        Ok(message) => (message, get_backtrace()),
       },
-      Ok(message) => (message, Some(get_backtrace())),
+      Ok(message) => (message, get_backtrace()),
     },
     Err(e) => (
       format!("Failed to extract NAPI error stack or message: {e}"),
-      Some(get_backtrace()),
+      get_backtrace(),
     ),
   }
 }
