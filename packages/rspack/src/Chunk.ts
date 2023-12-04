@@ -72,24 +72,6 @@ export class Chunk {
 		);
 	}
 
-	getModules() {
-		return __chunk_inner_get_chunk_modules(
-			this.#inner.__inner_ukey,
-			this.#inner_compilation,
-			false
-		);
-	}
-
-	get modulesIterable() {
-		return new Set(
-			__chunk_inner_get_chunk_modules(
-				this.#inner.__inner_ukey,
-				this.#inner_compilation,
-				true
-			)
-		);
-	}
-
 	get groupsIterable(): Set<ChunkGroup> {
 		const chunk_groups = this.#inner.__inner_groups.map(ukey => {
 			const cg = __chunk_group_inner_get_chunk_group(
@@ -100,5 +82,9 @@ export class Chunk {
 		});
 		chunk_groups.sort(compareChunkGroupsByIndex);
 		return new Set(chunk_groups);
+	}
+
+	__internal_inner_ukey() {
+		return this.#inner.__inner_ukey;
 	}
 }

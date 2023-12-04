@@ -100,7 +100,9 @@ export function __chunk_group_inner_get_chunk_group(ukey: number, compilation: J
 
 export function __chunk_inner_can_be_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
 
-export function __chunk_inner_get_chunk_modules(jsChunkUkey: number, compilation: JsCompilation, sortById: boolean): Array<JsModule>
+export function __chunk_inner_get_chunk_entry_modules(jsChunkUkey: number, compilation: JsCompilation): Array<JsModule>
+
+export function __chunk_inner_get_chunk_modules(jsChunkUkey: number, compilation: JsCompilation): Array<JsModule>
 
 export function __chunk_inner_has_runtime(jsChunkUkey: number, compilation: JsCompilation): boolean
 
