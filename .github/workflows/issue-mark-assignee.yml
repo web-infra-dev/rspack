@@ -1,8 +1,8 @@
 name: Issue Mark Assignee
 
 on:
-  schedule:
-    - cron: "0 0 * * *"
+  issue_comment:
+    types: [created, edited]
 
 permissions:
   contents: read
@@ -17,6 +17,6 @@ jobs:
       - name: mark assignee
         uses: actions-cool/issues-helper@v3
         with:
-          actions: "mark-assignees"
+          actions: 'mark-assignees'
           token: ${{ secrets.GITHUB_TOKEN }}
           assign-command: "/claim"
