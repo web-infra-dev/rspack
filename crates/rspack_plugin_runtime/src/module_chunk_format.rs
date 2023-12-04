@@ -7,7 +7,6 @@ use rspack_core::{
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRenderChunkHookOutput, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
-use rspack_error::internal_error;
 use rspack_plugin_javascript::runtime::render_chunk_runtime_modules;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -91,9 +90,7 @@ impl Plugin for ModuleChunkFormatPlugin {
     let chunk = args.chunk();
     let base_chunk_output_name = get_chunk_output_name(chunk, compilation);
     if matches!(chunk.kind, ChunkKind::HotUpdate) {
-      return Err(internal_error!(
-        "HMR is not implemented for module chunk format yet"
-      ));
+      unreachable!("HMR is not implemented for module chunk format yet");
     }
 
     let mut sources = ConcatSource::default();

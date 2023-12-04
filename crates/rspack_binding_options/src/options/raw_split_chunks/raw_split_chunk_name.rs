@@ -4,7 +4,6 @@ use napi::bindgen_prelude::Either3;
 use napi::{Env, JsFunction};
 use napi_derive::napi;
 use rspack_binding_values::{JsModule, ToJsModule};
-use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::{get_napi_env, NapiResultExt};
 use rspack_plugin_split_chunks_new::{ChunkNameGetter, ChunkNameGetterFnCtx};

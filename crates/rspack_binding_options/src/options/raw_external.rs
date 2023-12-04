@@ -106,7 +106,7 @@ impl TryFrom<RawExternalItemWrapper> for ExternalItem {
               .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
               .into_rspack_result()?
               .await
-              .map_err(|err| internal_error!("Failed to call external function: {err}"))?
+              .unwrap_or_else(|err| panic!("Failed to call external function: {err}"))
               .map(|r| r.into())
           })
         })))

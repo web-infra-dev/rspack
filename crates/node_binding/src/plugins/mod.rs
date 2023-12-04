@@ -13,7 +13,6 @@ use rspack_core::{ChunkAssetArgs, ModuleIdentifier, NormalModuleAfterResolveArgs
 use rspack_core::{NormalModuleBeforeResolveArgs, PluginNormalModuleFactoryAfterResolveOutput};
 use rspack_core::{PluginNormalModuleFactoryBeforeResolveOutput, ResourceData};
 use rspack_core::{PluginNormalModuleFactoryResolveForSchemeOutput, PluginShouldEmitHookOutput};
-use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::NapiResultExt;
 
@@ -96,7 +95,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call compilation: {err}"))?
+      .unwrap_or_else(|err| panic!("Failed to call compilation: {err}"))
   }
 
   async fn this_compilation(
@@ -119,7 +118,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?
+      .unwrap_or_else(|err| panic!("Failed to call this_compilation: {err}"))
   }
 
   async fn chunk_asset(&self, args: &ChunkAssetArgs) -> rspack_error::Result<()> {
@@ -135,7 +134,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       )
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to chunk asset: {err}"))?
+      .unwrap_or_else(|err| panic!("Failed to chunk asset: {err}"))
   }
 
   #[tracing::instrument(name = "js_hooks_adapter::make", skip_all)]
@@ -155,7 +154,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call make: {err}",))?
+      .unwrap_or_else(|err| panic!("Failed to call make: {err}"))
   }
 
   async fn before_resolve(
@@ -171,7 +170,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?
+      .unwrap_or_else(|err| panic!("Failed to call this_compilation: {err}"))
     {
       Ok((ret, resolve_data)) => {
         args.request = resolve_data.request;
@@ -195,7 +194,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?
+      .unwrap_or_else(|err| panic!("Failed to call this_compilation: {err}"))
   }
   async fn context_module_before_resolve(
     &self,
@@ -207,7 +206,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?
+      .unwrap_or_else(|err| panic!("Failed to call this_compilation: {err}"))
   }
   async fn normal_module_factory_resolve_for_scheme(
     &self,
@@ -222,7 +221,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(args.into(), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?;
+      .unwrap_or_else(|err| panic!("Failed to call this_compilation: {err}"));
     res.map(|res| {
       let JsResolveForSchemeResult {
         resource_data,
@@ -251,7 +250,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call process assets stage additional: {err}",))?
+      .unwrap_or_else(|err| panic!("Failed to call process assets stage additional: {err}"))
   }
 
   async fn process_assets_stage_pre_process(
@@ -268,7 +267,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call process assets stage pre-process: {err}",))?
+      .unwrap_or_else(|err| panic!("Failed to call process assets stage pre-process: {err}"))
   }
 
   async fn process_assets_stage_derived(
@@ -285,7 +284,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call process assets stage derived: {err}",))?
+      .unwrap_or_else(|err| panic!("Failed to call process assets stage derived: {err}"))
   }
 
   async fn process_assets_stage_additions(
@@ -302,7 +301,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call process assets stage additions: {err}",))?
+      .unwrap_or_else(|err| panic!("Failed to call process assets stage additions: {err}"))
   }
 
   async fn process_assets_stage_none(
@@ -319,7 +318,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call process assets: {err}",))?
+      .unwrap_or_else(|err| panic!("Failed to call process assets: {err}"))
   }
 
   async fn process_assets_stage_optimize(
@@ -336,7 +335,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call process assets stage optimize: {err}",))?
+      .unwrap_or_else(|err| panic!("Failed to call process assets stage optimize: {err}"))
   }
 
   async fn process_assets_stage_optimize_count(
@@ -353,9 +352,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(
-        |err| internal_error!("Failed to call process assets stage optimize count: {err}",),
-      )?
+      .unwrap_or_else(|err| panic!("Failed to call process assets stage optimize count: {err}"))
   }
 
   async fn process_assets_stage_optimize_compatibility(
@@ -372,9 +369,9 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| {
-        internal_error!("Failed to call process assets stage optimize compatibility: {err}",)
-      })?
+      .unwrap_or_else(|err| {
+        panic!("Failed to call process assets stage optimize compatibility: {err}")
+      })
   }
 
   async fn process_assets_stage_optimize_size(
@@ -391,7 +388,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call process assets stage optimize size: {err}",))?
+      .unwrap_or_else(|err| panic!("Failed to call process assets stage optimize size: {err}"))
   }
 
   async fn process_assets_stage_dev_tooling(
@@ -408,7 +405,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call process assets stage dev tooling: {err}",))?
+      .unwrap_or_else(|err| panic!("Failed to call process assets stage dev tooling: {err}"))
   }
 
   async fn process_assets_stage_optimize_inline(
@@ -425,9 +422,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| {
-        internal_error!("Failed to call process assets stage optimize inline: {err}",)
-      })?
+      .unwrap_or_else(|err| panic!("Failed to call process assets stage optimize inline: {err}"))
   }
 
   async fn process_assets_stage_summarize(
@@ -445,7 +440,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call process assets stage summarize: {err}",))?
+      .unwrap_or_else(|err| panic!("Failed to call process assets stage summarize: {err}"))
   }
 
   async fn process_assets_stage_optimize_hash(
@@ -462,7 +457,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call process assets stage summarize: {err}",))?
+      .unwrap_or_else(|err| panic!("Failed to call process assets stage summarize: {err}"))
   }
 
   async fn process_assets_stage_optimize_transfer(
@@ -479,9 +474,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| {
-        internal_error!("Failed to call process assets stage optimize transfer: {err}",)
-      })?
+      .unwrap_or_else(|err| panic!("Failed to call process assets stage optimize transfer: {err}"))
   }
 
   async fn process_assets_stage_analyse(
@@ -498,7 +491,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call process assets stage analyse: {err}",))?
+      .unwrap_or_else(|err| panic!("Failed to call process assets stage analyse: {err}"))
   }
 
   async fn process_assets_stage_report(
@@ -515,7 +508,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call process assets stage report: {err}",))?
+      .unwrap_or_else(|err| panic!("Failed to call process assets stage report: {err}"))
   }
 
   async fn optimize_modules(
@@ -535,7 +528,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(compilation, ThreadsafeFunctionCallMode::Blocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call optimize modules: {err}"))?
+      .unwrap_or_else(|err| panic!("Failed to call optimize modules: {err}"))
   }
 
   async fn optimize_tree(
@@ -550,7 +543,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call optimize tree: {err}",))?
+      .unwrap_or_else(|err| panic!("Failed to call optimize tree: {err}"))
   }
 
   async fn optimize_chunk_modules(
@@ -572,7 +565,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to compilation: {err}"))?
+      .unwrap_or_else(|err| panic!("Failed to compilation: {err}"))
   }
 
   async fn before_compile(
@@ -588,7 +581,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call({}, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call before compile: {err}",))?
+      .unwrap_or_else(|err| panic!("Failed to call before compile: {err}"))
   }
 
   async fn after_compile(
@@ -610,7 +603,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call after compile: {err}"))?
+      .unwrap_or_else(|err| panic!("Failed to call after compile: {err}"))
   }
 
   async fn finish_make(
@@ -632,7 +625,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call finish make: {err}"))?
+      .unwrap_or_else(|err| panic!("Failed to call finish make: {err}"))
   }
 
   async fn build_module(&self, module: &mut dyn rspack_core::Module) -> rspack_error::Result<()> {
@@ -648,7 +641,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       )
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call build module: {err}"))?
+      .unwrap_or_else(|err| panic!("Failed to call build module: {err}"))
   }
 
   async fn finish_modules(
@@ -670,7 +663,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to finish modules: {err}"))?
+      .unwrap_or_else(|err| panic!("Failed to finish modules: {err}"))
   }
 
   async fn emit(&self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
@@ -683,7 +676,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call emit: {err}"))?
+      .unwrap_or_else(|err| panic!("Failed to call emit: {err}"))
   }
 
   async fn asset_emitted(&self, args: &rspack_core::AssetEmittedArgs) -> rspack_error::Result<()> {
@@ -697,7 +690,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(args, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call asset emitted: {err}"))?
+      .unwrap_or_else(|err| panic!("Failed to call asset emitted: {err}"))
   }
 
   async fn should_emit(
@@ -719,7 +712,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await;
-    res.map_err(|err| internal_error!("Failed to call should emit: {err}"))?
+    res.unwrap_or_else(|err| panic!("Failed to call should emit: {err}"))
   }
 
   async fn after_emit(&self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
@@ -732,7 +725,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call after emit: {err}"))?
+      .unwrap_or_else(|err| panic!("Failed to call after emit: {err}"))
   }
 
   async fn succeed_module(&self, args: &dyn rspack_core::Module) -> rspack_error::Result<()> {
@@ -747,7 +740,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(js_module, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call succeed_module hook: {err}"))?
+      .unwrap_or_else(|err| panic!("Failed to call succeed_module hook: {err}"))
   }
 
   async fn still_valid_module(&self, args: &dyn rspack_core::Module) -> rspack_error::Result<()> {
@@ -763,7 +756,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       )
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call still_valid_module hook: {err}"))?
+      .unwrap_or_else(|err| panic!("Failed to call still_valid_module hook: {err}"))
   }
 
   fn execute_module(
@@ -791,7 +784,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       )
       .into_rspack_result()?
       .blocking_recv()
-      .map_err(|recv_err| rspack_error::internal_error!(recv_err.to_string()))?
+      .unwrap_or_else(|recv_err| panic!("{}", recv_err.to_string()))
   }
 }
 

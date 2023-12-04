@@ -239,9 +239,9 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
               .call(data, ThreadsafeFunctionCallMode::NonBlocking)
               .into_rspack_result()?
               .await
-              .map_err(|err| {
-                internal_error!("Failed to call RuleSetCondition func_matcher: {err}")
-              })?
+              .unwrap_or_else(|err| {
+                panic!("Failed to call RuleSetCondition func_matcher: {err}")
+              })
           })
         }))
       }
@@ -609,7 +609,7 @@ impl RawOptionsApply for RawModuleRule {
                 .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
                 .into_rspack_result()?
                 .await
-                .map_err(|err| internal_error!("Failed to call rule.use function: {err}"))?
+                .unwrap_or_else(|err| panic!("Failed to call rule.use function: {err}"))
                 .map(|uses| {
                   uses
                     .into_iter()

@@ -94,7 +94,7 @@ impl SwcCssCompiler {
         value: code,
         name: filename,
         source_map: rspack_sources::SourceMap::from_slice(&source_map)
-          .map_err(|e| internal_error!(e.to_string()))?,
+          .expect("should be able to generate source-map"),
         original_source: Some(input_source),
         inner_source_map: input_source_map,
         remove_original_source: true,
