@@ -26,4 +26,9 @@ rspack_core            = { path = "../rspack_core" }
 rspack_fs              = { path = "../rspack_fs", features = ["async"] }
 rspack_testing         = { path = "../rspack_testing" }
 rspack_tracing         = { path = "../rspack_tracing" }
-tokio                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
+
+[target.'cfg(not(target_os = "wasi"))'.dev-dependencies]
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
+
+[target.'cfg(target_os = "wasi")'.dev-dependencies]
+tokio = { workspace = true, features = ["rt", "macros", "test-util"] }

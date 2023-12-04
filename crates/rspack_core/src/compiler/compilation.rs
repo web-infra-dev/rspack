@@ -512,7 +512,9 @@ impl Compilation {
       factorize_cache_counter = Some(logger.cache("module factorize cache"));
     }
 
-    tokio::task::block_in_place(|| loop {
+    // need to be mutable for wasi target
+    #[allow(unused_mut)]
+    let mut task_queue_runner = || loop {
       let start = factorize_time.start();
       while let Some(task) = factorize_queue.get_task() {
         tokio::spawn({
@@ -881,7 +883,12 @@ impl Compilation {
           }
         }
       }
-    });
+    };
+
+    #[cfg(not(target_os = "wasi"))]
+    tokio::task::block_in_place(task_queue_runner);
+    #[cfg(target_os = "wasi")]
+    task_queue_runner();
     logger.time_aggregate_end(add_time);
     logger.time_aggregate_end(process_deps_time);
     logger.time_aggregate_end(factorize_time);

@@ -225,7 +225,12 @@ impl CopyRspackPlugin {
     logger.debug(format!("reading '{}'...", absolute_filename.display()));
     // TODO inputFileSystem
 
-    let source = match tokio::fs::read(absolute_filename.clone()).await {
+    #[cfg(not(target_os = "wasi"))]
+    let read_result = tokio::fs::read(absolute_filename.clone()).await;
+    #[cfg(target_os = "wasi")]
+    let read_result = std::fs::read(absolute_filename.clone());
+
+    let source = match read_result {
       Ok(data) => {
         logger.debug(format!("read '{}'...", absolute_filename.display()));
 

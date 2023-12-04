@@ -98,8 +98,16 @@ async fn get_description_file(mut dir: &Path) -> Option<serde_json::Value> {
   let description_filename = "package.json";
   loop {
     let description_file = dir.join(description_filename);
-    if let Ok(data) = tokio::fs::read(description_file).await
-      && let Ok(data) = serde_json::from_slice::<serde_json::Value>(&data)
+    if let Ok(data) = {
+      #[cfg(target_os = "wasi")]
+      {
+        std::fs::read(description_file)
+      }
+      #[cfg(not(target_os = "wasi"))]
+      {
+        tokio::fs::read(description_file).await
+      }
+    } && let Ok(data) = serde_json::from_slice::<serde_json::Value>(&data)
     {
       return Some(data);
     }

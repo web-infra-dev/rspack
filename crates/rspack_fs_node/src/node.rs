@@ -1,4 +1,6 @@
-use napi::{Env, JsFunction, NapiRaw, Ref};
+#[cfg(feature = "async")]
+use napi::NapiRaw;
+use napi::{Env, JsFunction, Ref};
 use napi_derive::napi;
 use rspack_fs::cfg_async;
 

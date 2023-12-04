@@ -37,13 +37,19 @@ cfg_async! {
   impl AsyncWritableFileSystem for AsyncNativeFileSystem {
     fn create_dir<P: AsRef<Path>>(&self, dir: P) -> BoxFuture<'_, Result<()>> {
       let dir = dir.as_ref().to_string_lossy().to_string();
+      #[cfg(not(target_os = "wasi"))]
       let fut = async move { tokio::fs::create_dir(dir).await.map_err(Error::from) };
+      #[cfg(target_os = "wasi")]
+      let fut = async move { std::fs::create_dir(dir).map_err(Error::from) };
       Box::pin(fut)
     }
 
     fn create_dir_all<P: AsRef<std::path::Path>>(&self, dir: P) -> BoxFuture<'_, Result<()>> {
       let dir = dir.as_ref().to_string_lossy().to_string();
+      #[cfg(not(target_os = "wasi"))]
       let fut = async move { tokio::fs::create_dir_all(dir).await.map_err(Error::from) };
+      #[cfg(target_os = "wasi")]
+      let fut = async move { std::fs::create_dir_all(dir).map_err(Error::from) };
       Box::pin(fut)
     }
 
@@ -54,19 +60,28 @@ cfg_async! {
     ) -> BoxFuture<'_, Result<()>> {
       let file = file.as_ref().to_string_lossy().to_string();
       let data = data.as_ref().to_vec();
+      #[cfg(not(target_os = "wasi"))]
       let fut = async move { tokio::fs::write(file, data).await.map_err(Error::from) };
+      #[cfg(target_os = "wasi")]
+      let fut = async move { std::fs::write(file, data).map_err(Error::from) };
       Box::pin(fut)
     }
 
     fn remove_file<P: AsRef<Path>>(&self, file: P) -> BoxFuture<'_, Result<()>> {
       let file = file.as_ref().to_string_lossy().to_string();
+      #[cfg(not(target_os = "wasi"))]
       let fut = async move { tokio::fs::remove_file(file).await.map_err(Error::from) };
+      #[cfg(target_os = "wasi")]
+      let fut = async move { std::fs::remove_file(file).map_err(Error::from) };
       Box::pin(fut)
     }
 
     fn remove_dir_all<P: AsRef<Path>>(&self, dir: P) -> BoxFuture<'_, Result<()>> {
       let dir = dir.as_ref().to_string_lossy().to_string();
+      #[cfg(not(target_os = "wasi"))]
       let fut = async move { tokio::fs::remove_dir_all(dir).await.map_err(Error::from) };
+      #[cfg(target_os = "wasi")]
+      let fut = async move { std::fs::remove_dir_all(dir).map_err(Error::from) };
       Box::pin(fut)
     }
   }
@@ -74,7 +89,10 @@ cfg_async! {
   impl AsyncReadableFileSystem for AsyncNativeFileSystem {
     fn read<P: AsRef<Path>>(&self, file: P) -> BoxFuture<'_, Result<Vec<u8>>> {
       let file = file.as_ref().to_string_lossy().to_string();
+      #[cfg(not(target_os = "wasi"))]
       let fut = async move { tokio::fs::read(file).await.map_err(Error::from) };
+      #[cfg(target_os = "wasi")]
+      let fut = async move { std::fs::read(file).map_err(Error::from) };
       Box::pin(fut)
     }
   }

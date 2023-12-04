@@ -21,7 +21,7 @@ hashlink = { workspace = true }
 indexmap = { workspace = true }
 itertools = { workspace = true }
 mime_guess = { workspace = true }
-nodejs-resolver = { version = "0.1.1" }
+nodejs-resolver = { version = "0.1.1", git = "https://github.com/Brooooooklyn/nodejs_resolver.git", rev = "3173520" }
 once_cell = { workspace = true }
 oxc_resolver = { version = "0.5.5" }
 paste = { workspace = true }
@@ -75,7 +75,14 @@ swc_emotion = { workspace = true }
 swc_error_reporters = { workspace = true }
 swc_node_comments = { workspace = true }
 swc_plugin_import = { path = "../swc_plugin_import" }
-tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
 tracing = { workspace = true }
 url = { workspace = true }
 ustr = { workspace = true }
+
+[target.'cfg(not(target_os = "wasi"))'.dependencies]
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
+
+[target.'cfg(target_os = "wasi")'.dependencies]
+path-absolutize = { version = "3.1.1", features = ["use_unix_paths_on_wasm"] }
+path-dedot      = { version = "3.1.1", features = ["use_unix_paths_on_wasm"] }
+tokio           = { workspace = true, features = ["rt", "macros", "test-util"] }

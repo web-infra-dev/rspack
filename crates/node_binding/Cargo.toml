@@ -31,7 +31,7 @@ napi        = { workspace = true }
 napi-derive = { workspace = true }
 napi-sys    = { workspace = true }
 
-[target.'cfg(not(target_os = "linux"))'.dependencies]
+[target.'cfg(all(not(target_os = "linux"), not(target_os = "wasi")))'.dependencies]
 mimalloc-rust = { workspace = true }
 
 [target.'cfg(all(target_os = "linux", target_env = "gnu", any(target_arch = "x86_64", target_arch = "aarch64")))'.dependencies]

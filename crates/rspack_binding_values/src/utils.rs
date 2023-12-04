@@ -101,7 +101,7 @@ where
     Ok(())
   })?;
 
-  napi::bindgen_prelude::spawn(async move {
+  let callback_fut = async move {
     let fut = CatchUnwindFuture::create(fut);
     let res = fut.await;
     match res {
@@ -119,7 +119,17 @@ where
           .expect("Failed to send panic info");
       }
     }
-  });
+  };
+
+  #[cfg(not(target_os = "wasi"))]
+  napi::bindgen_prelude::spawn(callback_fut);
+
+  #[cfg(target_os = "wasi")]
+  {
+    std::thread::spawn(move || {
+      napi::bindgen_prelude::block_on(callback_fut);
+    });
+  }
 
   Ok(())
 }

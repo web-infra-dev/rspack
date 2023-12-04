@@ -35,4 +35,9 @@ swc_core = { workspace = true, features = [
 ] }
 swc_error_reporters = { workspace = true }
 swc_node_comments = { workspace = true }
+
+[target.'cfg(not(target_os = "wasi"))'.dependencies]
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
+
+[target.'cfg(target_os = "wasi")'.dependencies]
+tokio = { workspace = true, features = ["rt", "macros", "test-util"] }
