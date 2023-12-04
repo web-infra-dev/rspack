@@ -1,6 +1,6 @@
 --- expected
 +++ actual
-@@ -3,30 +3,20 @@
+@@ -3,30 +3,16 @@
  ---
  ```js title=main.js
  (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
@@ -19,7 +19,7 @@
 +/* harmony import */var _a_json__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a.json */"./a.json");
  
 -_lib__WEBPACK_IMPORTED_MODULE_0__.answer;
-+_a_json__WEBPACK_IMPORTED_MODULE_0__.a;
++_a_json__WEBPACK_IMPORTED_MODULE_0__["2"].a;
  }),
 -"./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 +"./a.json": (function (module, exports, __webpack_require__) {
@@ -31,11 +31,7 @@
 -/* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./answer */"./answer.js");
 -
 -}),
-+module.exports = {
-+  "a": "soemthing",
-+  "b": "bbbb"
-+}
-+;}),
++module.exports = [{"a":1}]}),
  
  },function(__webpack_require__) {
  var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
