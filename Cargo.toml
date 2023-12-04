@@ -68,13 +68,15 @@ swc_node_comments   = { version = "=0.20.9" }
 tikv-jemallocator   = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
 
 [profile.dev]
-codegen-units = 16   # debug build will cause runtime panic if codegen-unints is default
+codegen-units = 16      # debug build will cause runtime panic if codegen-unints is default
 debug         = 2
 incremental   = true
+panic         = "abort"
 
 [profile.release]
 codegen-units = 1
 debug         = false
-lto           = false # disabled by now, because it will significantly increase our compile time.
+lto           = false   # disabled by now, because it will significantly increase our compile time.
 opt-level     = 3
+panic         = "abort"
 strip         = true

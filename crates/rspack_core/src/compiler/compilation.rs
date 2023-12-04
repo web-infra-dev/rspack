@@ -14,9 +14,7 @@ use itertools::Itertools;
 use rayon::prelude::{
   IntoParallelIterator, IntoParallelRefIterator, ParallelBridge, ParallelIterator,
 };
-use rspack_error::{
-  internal_error, CatchUnwindFuture, Diagnostic, Result, Severity, TWithDiagnosticArray,
-};
+use rspack_error::{internal_error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, IdentifierMap, IdentifierSet};
@@ -525,20 +523,11 @@ impl Compilation {
               return;
             }
 
-            let result = CatchUnwindFuture::create(task.run()).await;
-
-            match result {
-              Ok(result) => {
-                if !is_expected_shutdown.load(Ordering::SeqCst) {
-                  result_tx
-                    .send(result)
-                    .expect("Failed to send factorize result");
-                }
-              }
-              Err(e) => {
-                // panic on the tokio worker thread
-                result_tx.send(Err(e)).expect("Failed to send panic info");
-              }
+            let result = task.run().await;
+            if !is_expected_shutdown.load(Ordering::SeqCst) {
+              result_tx
+                .send(result)
+                .expect("Failed to send factorize result");
             }
           }
         });
@@ -557,18 +546,9 @@ impl Compilation {
               return;
             }
 
-            let result = CatchUnwindFuture::create(task.run()).await;
-
-            match result {
-              Ok(result) => {
-                if !is_expected_shutdown.load(Ordering::SeqCst) {
-                  result_tx.send(result).expect("Failed to send build result");
-                }
-              }
-              Err(e) => {
-                // panic on the tokio worker thread
-                result_tx.send(Err(e)).expect("Failed to send panic info");
-              }
+            let result = task.run().await;
+            if !is_expected_shutdown.load(Ordering::SeqCst) {
+              result_tx.send(result).expect("Failed to send build result");
             }
           }
         });
