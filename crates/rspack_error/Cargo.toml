@@ -11,12 +11,14 @@ version    = "0.1.0"
 anyhow             = { workspace = true, features = ["backtrace"] }
 codespan-reporting = { version = "=0.11.2", package = "rspack-codespan-reporting" }
 futures            = { workspace = true }
+miette             = { version = "5", features = ["fancy"] }
 rspack_sources     = { workspace = true }
 rspack_util        = { path = "../rspack_util" }
 serde_json         = { workspace = true }
 sugar_path         = { workspace = true }
 swc_core           = { workspace = true, features = ["common"] }
 termcolor          = "1.2"
+thiserror          = "1"
 
 [dev-dependencies]
 insta = { workspace = true }

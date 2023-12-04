@@ -1,33 +1,48 @@
 use std::{fmt, io, path::Path};
 
+use miette::MietteDiagnostic;
 use rspack_util::swc::normalize_custom_filename;
 use swc_core::common::SourceFile;
 
 use crate::{internal_error, Severity};
 
-#[derive(Debug, Default)]
-pub struct InternalError {
-  pub error_message: String,
-  pub severity: Severity,
-}
+#[derive(Debug)]
+pub struct InternalError(miette::Report);
 
 impl InternalError {
   pub fn new(error_message: String, severity: Severity) -> Self {
-    Self {
-      error_message,
-      severity,
+    Self(miette::Report::new(
+      MietteDiagnostic::new(error_message.clone()).with_severity(severity.into()),
+    ))
+  }
+
+  fn cast_to_miette(&self) -> &MietteDiagnostic {
+    match self.0.downcast_ref::<MietteDiagnostic>() {
+      Some(e) => e,
+      None => unreachable!(),
     }
   }
 
-  pub fn with_severity(mut self, severity: Severity) -> Self {
-    self.severity = severity;
-    self
+  pub fn error_message(&self) -> &str {
+    match self.0.downcast_ref::<MietteDiagnostic>() {
+      Some(e) => &e.message,
+      None => unreachable!(),
+    }
+  }
+
+  pub fn severity(&self) -> Severity {
+    let severity = self.cast_to_miette().severity.as_ref();
+    match severity.expect("severity should available") {
+      miette::Severity::Advice => unreachable!(),
+      miette::Severity::Warning => Severity::Warn,
+      miette::Severity::Error => Severity::Error,
+    }
   }
 }
 
 impl fmt::Display for InternalError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    writeln!(f, "{}[internal]: {}", self.severity, self.error_message)
+    writeln!(f, "{}[internal]: {}", self.severity(), self.error_message())
   }
 }
 
