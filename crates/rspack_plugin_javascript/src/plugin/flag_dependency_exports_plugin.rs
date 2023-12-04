@@ -35,34 +35,39 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     let module_graph_modules =
       std::mem::take(&mut self.mg.module_identifier_to_module_graph_module);
     for mgm in module_graph_modules.values() {
-      let exports_id = mgm.exports;
-      let is_module_without_exports = if let Some(ref build_meta) = mgm.build_meta {
-        build_meta.exports_type == BuildMetaExportsType::Unset
-      } else {
-        true
-      } && {
-        let exports_info = self.mg.get_exports_info_by_id(&exports_id);
-        let other_exports_info_id = exports_info.other_exports_info;
-        let other_exports_info = self.mg.get_export_info_by_id(&other_exports_info_id);
-        other_exports_info.provided.is_some()
-      };
-
-      // TODO: mem cache
-      exports_id.set_has_provide_info(self.mg);
-      q.push_back(mgm.module_identifier);
-      if is_module_without_exports {
-        exports_id.set_unknown_exports_provided(self.mg, false, None, None, None, None);
+      let exports_info_id = mgm.exports;
+      let is_module_without_exports = mgm
+        .build_meta
+        .as_ref()
+        .map(|build_meta| build_meta.exports_type == BuildMetaExportsType::Unset)
+        .unwrap_or(true);
+      if is_module_without_exports
+        && !matches!(
+          exports_info_id
+            .get_exports_info(self.mg)
+            .other_exports_info
+            .get_export_info(self.mg)
+            .provided,
+          Some(ExportInfoProvided::Null)
+        )
+      {
+        exports_info_id.set_has_provide_info(self.mg);
+        exports_info_id.set_unknown_exports_provided(self.mg, false, None, None, None, None);
+        continue;
       }
+      q.push_back(mgm.module_identifier);
+      exports_info_id.set_has_provide_info(self.mg);
+      // TODO: mem cache
     }
     self.mg.module_identifier_to_module_graph_module = module_graph_modules;
     while let Some(module_id) = q.pop_back() {
       self.changed = false;
       self.current_module_id = module_id;
-      let mut exports_specs_from_dependencies: HashMap<DependencyId, ExportsSpec> =
+      let mut exports_specs_of_dependencies: HashMap<DependencyId, ExportsSpec> =
         HashMap::default();
-      self.process_dependencies_block(&module_id, &mut exports_specs_from_dependencies);
+      self.process_dependencies_block(&module_id, &mut exports_specs_of_dependencies);
       let exports_info_id = self.mg.get_exports_info(&module_id).id;
-      for (dep_id, exports_spec) in exports_specs_from_dependencies.into_iter() {
+      for (dep_id, exports_spec) in exports_specs_of_dependencies.into_iter() {
         self.process_exports_spec(dep_id, exports_spec, exports_info_id);
       }
       if self.changed {
@@ -72,8 +77,8 @@ impl<'a> FlagDependencyExportsProxy<'a> {
   }
 
   pub fn notify_dependencies(&mut self, q: &mut VecDeque<ModuleIdentifier>) {
-    if let Some(set) = self.dependencies.get(&self.current_module_id) {
-      for mi in set.iter() {
+    if let Some(deps) = self.dependencies.get(&self.current_module_id) {
+      for mi in deps.iter() {
         q.push_back(*mi);
       }
     }
