@@ -83,8 +83,20 @@ jobs:
           dest_dir="$clone_dir/diff/${{ github.run_id }}"
           cp -R diff_output/. $dest_dir
 
-          # Commiting and pushing
+          # Committing and pushing
           cd $clone_dir
+
+          current_time=$(date +%s)
+          gap=$((30 * 24 * 60 * 60))
+          for cur_dir in ./diff/* ; do
+            create_time=$(git log --follow --format="%at" --date default $cur_dir | tail -1)
+            diff=$(($current_time - $create_time))
+            if [ $diff -gt $gap ]; then
+              echo "Remove $cur_dir because it is older than a month"
+              rm -rf $cur_dir 
+            fi
+          done
+
           commit_message="Update from https://github.com/web-infra-dev/rspack/commit/${{ github.sha }}"
           git add .
           if LC_ALL=C git status | grep -q "Changes to be committed"
