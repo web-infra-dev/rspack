@@ -9,7 +9,11 @@ module.exports = {
 			}
 		]
 	},
+	optimization: {
+		chunkIds: "named"
+	},
 	output: { clean: true },
+
 	experiments: {
 		incrementalRebuild: {
 			emitAsset: true
