@@ -76,7 +76,7 @@ impl_runtime_module!(AsyncWasmLoadingRuntimeModule);
 fn get_async_wasm_loading(req: &str, supports_streaming: bool) -> String {
   let streaming_code = if supports_streaming {
     r#"
-    if (typeof WebAssembly.instantiateStreaming === "function") {
+    if (typeof WebAssembly.instantiateStreaming === 'function') {
       return WebAssembly.instantiateStreaming(req, importsObj).then(function(res) {
         return Object.assign(exports, res.instance.exports);
       });
