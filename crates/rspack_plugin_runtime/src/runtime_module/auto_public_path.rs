@@ -79,11 +79,10 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
 
   // TODO: replace import.meta with importMetaName
   let script_url_template = if output.script_type.eq("module") {
-    format!(
-      r#"var scriptUrl;
+    r#"var scriptUrl;
     if (typeof import.meta.url === "string") scriptUrl = import.meta.url
     "#
-    )
+    .to_string()
   } else {
     format!(
       r#"var scriptUrl;
