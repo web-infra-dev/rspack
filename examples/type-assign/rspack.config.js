@@ -17,7 +17,8 @@ module.exports = {
 		innerGraph: true,
 		providedExports: true,
 		usedExports: true,
-		moduleIds: 'named'
+		moduleIds: 'named',
+		minimize: false
 	},
 	builtins: {
 		treeShaking: false,

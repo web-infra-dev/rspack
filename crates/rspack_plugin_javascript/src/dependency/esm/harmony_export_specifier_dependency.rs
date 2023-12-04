@@ -88,6 +88,7 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
         .module_graph
         .get_exports_info(&module.identifier())
         .id;
+      dbg!(&self.name);
       let used_name = exports_info_id.get_used_name(
         &compilation.module_graph,
         *runtime,
