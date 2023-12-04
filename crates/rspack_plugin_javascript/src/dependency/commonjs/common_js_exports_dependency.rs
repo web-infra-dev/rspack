@@ -1,5 +1,3 @@
-use std::task::Wake;
-
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec, ExportSpec,

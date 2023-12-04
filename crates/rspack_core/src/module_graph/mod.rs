@@ -875,7 +875,6 @@ mod test {
       None,
     );
     let exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
-    dbg!(&exports_info.id);
     let mgm = ModuleGraphModule::new(m.identifier(), ModuleType::Js, exports_info.id);
     mg.add_module_graph_module(mgm);
     mg.add_module(m);

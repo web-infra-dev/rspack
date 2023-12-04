@@ -529,15 +529,15 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         let Some(item) = used_exports.remove(&id.0) else {
           continue;
         };
-        // in webpack, id.0 which is local binding doesn't always equal to used name, since it can
-        // be mangled
+        // in webpack, id.0 is local binding and it doesn't always equal to used name, because it
+        // maybe mangled
         let key = if is_new_treeshaking {
           item[0].clone()
         } else {
           id.0.clone()
         };
         // __webpack_require__.d({
-        //  'K' / *key maybe mangled**/: ${export_expr} /**value*/
+        //  'key' / *key maybe mangled**/: ${export_expr} /**value*/
         // })
         exports.push((
           key,

@@ -1259,7 +1259,6 @@ impl ExportInfo {
     );
     let new_exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
     let new_exports_info_id = new_exports_info.id;
-    // dbg!(&new_exports_info_id);
 
     mg.exports_info_map
       .insert(new_exports_info_id, new_exports_info);
