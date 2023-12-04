@@ -1,16 +1,16 @@
 use rspack_core::{context_reg_exp, ContextOptions, DependencyCategory};
 use rspack_core::{BoxDependency, ConstDependency, ContextMode, ContextNameSpaceObject};
-use rspack_core::{DependencyTemplate, RuntimeGlobals, SpanExt};
+use rspack_core::{DependencyTemplate, SpanExt};
 use swc_core::common::{Spanned, SyntaxContext};
 use swc_core::ecma::ast::{BinExpr, CallExpr, Callee, Expr, IfStmt};
 use swc_core::ecma::ast::{Lit, TryStmt, UnaryExpr, UnaryOp};
-use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use super::context_helper::scanner_context_module;
 use super::{expr_matcher, is_unresolved_member_object_ident, is_unresolved_require};
-use crate::dependency::CommonJsRequireContextDependency;
+use crate::dependency::{CommonJsRequireContextDependency, RequireHeaderDependency};
 use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
+use crate::utils::{evaluate_expression, BasicEvaluatedExpression};
 
 pub struct CommonJsImportDependencyScanner<'a> {
   dependencies: &'a mut Vec<BoxDependency>,
@@ -68,6 +68,61 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
         )));
     }
   }
+
+  fn require_handler(&mut self, call_expr: &CallExpr) {
+    if call_expr.args.len() != 1 {
+      return;
+    }
+    let Some(ident) = call_expr.callee.as_expr().and_then(|expr| expr.as_ident()) else {
+      return;
+    };
+    if !("require".eq(&ident.sym) && ident.span.ctxt == self.unresolved_ctxt) {
+      return;
+    }
+    let Some(argument_expr) = call_expr.args.first().map(|arg| &arg.expr) else {
+      return;
+    };
+
+    let mut process_require_item = |p: &BasicEvaluatedExpression| {
+      p.is_string().then(|| {
+        let dep = CommonJsRequireDependency::new(
+          p.string().to_string(),
+          Some(call_expr.span.into()),
+          p.range().0,
+          p.range().1,
+          self.in_try,
+        );
+        self.dependencies.push(Box::new(dep));
+        Some(())
+      })
+    };
+    let param = evaluate_expression(argument_expr);
+    if param.is_conditional() {
+      let mut is_expression = false;
+      for p in param.options() {
+        if process_require_item(p).is_none() {
+          is_expression = true;
+        }
+      }
+      if !is_expression {
+        self
+          .presentational_dependencies
+          .push(Box::new(RequireHeaderDependency::new(
+            call_expr.callee.span().real_lo(),
+            call_expr.callee.span().hi().0,
+          )));
+      }
+    }
+
+    if process_require_item(&param).is_some() {
+      self
+        .presentational_dependencies
+        .push(Box::new(RequireHeaderDependency::new(
+          call_expr.callee.span().real_lo(),
+          call_expr.callee.span_hi().0,
+        )));
+    }
+  }
 }
 
 impl Visit for CommonJsImportDependencyScanner<'_> {
@@ -80,92 +135,53 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
   }
 
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
-    if let Callee::Expr(expr) = &call_expr.callee {
-      if let Expr::Ident(ident) = &**expr {
-        if "require".eq(&ident.sym) && ident.span.ctxt == self.unresolved_ctxt {
-          {
-            if let Some(expr) = call_expr.args.first()
-              && call_expr.args.len() == 1
-              && expr.spread.is_none()
-            {
-              // TemplateLiteral String
-              if let Expr::Tpl(tpl) = expr.expr.as_ref()
-                && tpl.exprs.is_empty()
-              {
-                let s = tpl
-                  .quasis
-                  .first()
-                  .expect("should have one quasis")
-                  .raw
-                  .as_ref();
-                let request = JsWord::from(s);
-                self
-                  .dependencies
-                  .push(Box::new(CommonJsRequireDependency::new(
-                    request,
-                    Some(call_expr.span.into()),
-                    call_expr.span.real_lo(),
-                    call_expr.span.real_hi(),
-                    self.in_try,
-                  )));
-                return;
-              }
-              if let Expr::Lit(Lit::Str(s)) = expr.expr.as_ref() {
-                self
-                  .dependencies
-                  .push(Box::new(CommonJsRequireDependency::new(
-                    s.value.clone(),
-                    Some(call_expr.span.into()),
-                    call_expr.span.real_lo(),
-                    call_expr.span.real_hi(),
-                    self.in_try,
-                  )));
-                return;
-              }
-              if let Some((context, reg)) = scanner_context_module(expr.expr.as_ref()) {
-                self
-                  .dependencies
-                  .push(Box::new(CommonJsRequireContextDependency::new(
-                    call_expr.callee.span().real_lo(),
-                    call_expr.callee.span().real_hi(),
-                    call_expr.span.real_hi(),
-                    ContextOptions {
-                      chunk_name: None,
-                      mode: ContextMode::Sync,
-                      recursive: true,
-                      reg_exp: context_reg_exp(&reg, ""),
-                      reg_str: reg,
-                      include: None,
-                      exclude: None,
-                      category: DependencyCategory::CommonJS,
-                      request: context,
-                      namespace_object: ContextNameSpaceObject::Unset,
-                    },
-                    Some(call_expr.span.into()),
-                  )));
-                return;
-              }
-            }
-            self
-              .presentational_dependencies
-              .push(Box::new(ConstDependency::new(
-                ident.span().real_lo(),
-                ident.span().real_hi(),
-                RuntimeGlobals::REQUIRE.name().into(),
-                None,
-              )));
-          }
-        }
+    let Callee::Expr(expr) = &call_expr.callee else {
+      call_expr.visit_children_with(self);
+      return;
+    };
+
+    self.require_handler(call_expr);
+
+    if let Expr::Ident(ident) = &**expr
+      && "require".eq(&ident.sym)
+      && ident.span.ctxt == self.unresolved_ctxt
+      && let Some(expr) = call_expr.args.first()
+      && call_expr.args.len() == 1
+      && expr.spread.is_none()
+      && let Some((context, reg)) = scanner_context_module(expr.expr.as_ref())
+    {
+      // `require.resolve`
+      self
+        .dependencies
+        .push(Box::new(CommonJsRequireContextDependency::new(
+          call_expr.callee.span().real_lo(),
+          call_expr.callee.span().real_hi(),
+          call_expr.span.real_hi(),
+          ContextOptions {
+            chunk_name: None,
+            mode: ContextMode::Sync,
+            recursive: true,
+            reg_exp: context_reg_exp(&reg, ""),
+            reg_str: reg,
+            include: None,
+            exclude: None,
+            category: DependencyCategory::CommonJS,
+            request: context,
+            namespace_object: ContextNameSpaceObject::Unset,
+          },
+          Some(call_expr.span.into()),
+        )));
+      return;
+    }
+
+    if is_unresolved_member_object_ident(expr, self.unresolved_ctxt) {
+      if expr_matcher::is_require_resolve(expr) {
+        self.add_require_resolve(call_expr, false);
+        return;
       }
-      if is_unresolved_member_object_ident(expr, self.unresolved_ctxt) {
-        if expr_matcher::is_require_resolve(expr) {
-          self.add_require_resolve(call_expr, false);
-          return;
-        }
-        if expr_matcher::is_require_resolve_weak(expr) {
-          self.add_require_resolve(call_expr, true);
-          return;
-        }
+      if expr_matcher::is_require_resolve_weak(expr) {
+        self.add_require_resolve(call_expr, true);
+        return;
       }
     }
     call_expr.visit_children_with(self);

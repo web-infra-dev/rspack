@@ -1,15 +1,17 @@
+mod basic_evaluated_expression;
 mod get_prop_from_obj;
 
 use std::path::Path;
 
-pub use get_prop_from_obj::*;
 use rspack_core::{ErrorSpan, ModuleType};
 use rspack_error::{DiagnosticKind, Error};
-use swc_core::common::{SourceFile, Span, Spanned, SyntaxContext, DUMMY_SP};
-use swc_core::ecma::ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit, Str};
+use swc_core::common::{SourceFile, Spanned};
 use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::parser::{EsConfig, TsConfig};
+
+pub use self::basic_evaluated_expression::{evaluate_expression, BasicEvaluatedExpression};
+pub use self::get_prop_from_obj::*;
 
 fn syntax_by_ext(
   filename: &Path,
@@ -83,68 +85,6 @@ pub fn syntax_by_module_type(
   }
 
   js_syntax
-}
-
-pub fn set_require_literal_args(e: &mut CallExpr, arg_value: &str) {
-  match e.args.first().expect("this should never happen") {
-    ExprOrSpread { spread: None, expr } => match &**expr {
-      Expr::Lit(Lit::Str(str)) => str.clone(),
-      _ => panic!("should never be here"),
-    },
-    _ => panic!("should never be here"),
-  };
-
-  e.args = vec![ExprOrSpread {
-    spread: None,
-    expr: Box::new(Expr::Lit(Lit::Str(Str {
-      span: DUMMY_SP,
-      value: arg_value.into(),
-      raw: None,
-    }))),
-  }];
-}
-
-pub fn get_callexpr_literal_args(e: &CallExpr) -> String {
-  match e.args.first().expect("this should never happen") {
-    ExprOrSpread { spread: None, expr } => match &**expr {
-      Expr::Lit(Lit::Str(str)) => str.value.to_string(),
-      _ => String::new(),
-    },
-    _ => String::new(),
-  }
-}
-
-pub fn is_require_literal_expr(e: &CallExpr, unresolved_ctxt: SyntaxContext) -> bool {
-  if e.args.len() == 1 {
-    let res = !get_callexpr_literal_args(e).is_empty();
-
-    res
-      && match &e.callee {
-        Callee::Expr(callee) => {
-          matches!(
-            &**callee,
-            Expr::Ident(Ident {
-              sym,
-              span: Span { ctxt, .. },
-              ..
-            }) if sym == "require" && *ctxt == unresolved_ctxt
-          )
-        }
-        _ => false,
-      }
-  } else {
-    false
-  }
-}
-
-pub fn is_dynamic_import_literal_expr(e: &CallExpr) -> bool {
-  if e.args.len() == 1 {
-    let res = !get_callexpr_literal_args(e).is_empty();
-
-    res && matches!(&e.callee, Callee::Import(_))
-  } else {
-    false
-  }
 }
 
 pub fn ecma_parse_error_to_rspack_error(

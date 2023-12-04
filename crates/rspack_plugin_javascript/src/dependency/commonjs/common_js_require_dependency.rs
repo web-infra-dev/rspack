@@ -1,34 +1,32 @@
-use rspack_core::{module_id, AsContextDependency, Dependency, DependencyCategory};
+use rspack_core::module_id;
+use rspack_core::{AsContextDependency, Dependency, DependencyCategory, DependencyLocation};
 use rspack_core::{DependencyId, DependencyTemplate};
-use rspack_core::{DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals};
+use rspack_core::{DependencyType, ErrorSpan, ModuleDependency};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
-use swc_core::ecma::atoms::JsWord;
 
-// Webpack RequireHeaderDependency + CommonJsRequireDependency
 #[derive(Debug, Clone)]
 pub struct CommonJsRequireDependency {
   id: DependencyId,
-  request: JsWord,
+  request: String,
   optional: bool,
-  start: u32,
-  end: u32,
+  loc: DependencyLocation,
   span: Option<ErrorSpan>,
 }
 
 impl CommonJsRequireDependency {
   pub fn new(
-    request: JsWord,
+    request: String,
     span: Option<ErrorSpan>,
     start: u32,
     end: u32,
     optional: bool,
   ) -> Self {
+    let loc = DependencyLocation::new(start, end);
     Self {
       id: DependencyId::new(),
       request,
       optional,
-      start,
-      end,
+      loc,
       span,
     }
   }
@@ -70,7 +68,7 @@ impl ModuleDependency for CommonJsRequireDependency {
   }
 
   fn set_request(&mut self, request: String) {
-    self.request = request.into();
+    self.request = request;
   }
 }
 
@@ -80,20 +78,14 @@ impl DependencyTemplate for CommonJsRequireDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let TemplateContext {
-      runtime_requirements,
-      compilation,
-      ..
-    } = code_generatable_context;
-
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     source.replace(
-      self.start,
-      self.end,
-      format!(
-        "{}({})",
-        RuntimeGlobals::REQUIRE,
-        module_id(compilation, &self.id, &self.request, false).as_str()
+      self.loc.start(),
+      self.loc.end() - 1,
+      module_id(
+        code_generatable_context.compilation,
+        &self.id,
+        &self.request,
+        false,
       )
       .as_str(),
       None,
