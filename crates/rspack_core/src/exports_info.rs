@@ -874,15 +874,20 @@ impl ExportInfo {
     usage_state: UsageState,
     init_from: Option<&ExportInfo>,
   ) -> Self {
-    let has_use_in_runtime_info = if let Some(init_from) = init_from {
-      init_from.has_use_in_runtime_info
-    } else {
-      false
-    };
-
-    let can_mangle_use = init_from.and_then(|init_from| init_from.can_mangle_use);
+    let used_name = init_from.and_then(|init_from| init_from.used_name.clone());
+    let global_used = init_from.and_then(|init_from| init_from.global_used);
     let used_in_runtime = init_from.and_then(|init_from| init_from.used_in_runtime.clone());
+    let has_use_in_runtime_info = init_from
+      .map(|init_from| init_from.has_use_in_runtime_info)
+      .unwrap_or(false);
+
     let provided = init_from.and_then(|init_from| init_from.provided);
+    let terminal_binding = init_from
+      .map(|init_from| init_from.terminal_binding)
+      .unwrap_or(false);
+    let can_mangle_provide = init_from.and_then(|init_from| init_from.can_mangle_provide);
+    let can_mangle_use = init_from.and_then(|init_from| init_from.can_mangle_use);
+
     let target = init_from
       .and_then(|item| {
         if item.target_is_set {
@@ -918,12 +923,12 @@ impl ExportInfo {
       name,
       module_identifier: None,
       usage_state,
-      used_name: None,
+      used_name,
       used_in_runtime,
       target,
       provided,
-      can_mangle_provide: None,
-      terminal_binding: false,
+      can_mangle_provide,
+      terminal_binding,
       target_is_set,
       max_target_is_set: false,
       id: ExportInfoId::new(),
@@ -932,7 +937,7 @@ impl ExportInfo {
       exports_info_owned: false,
       has_use_in_runtime_info,
       can_mangle_use,
-      global_used: None,
+      global_used,
     }
   }
 
