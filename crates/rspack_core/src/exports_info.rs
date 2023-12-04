@@ -1,3 +1,4 @@
+use std::collections::hash_map::Entry;
 use std::hash::Hasher;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
@@ -656,9 +657,38 @@ impl ExportInfoId {
     new_value: UsageState,
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
-    if runtime.is_some() {
-      // TODO: runtime optimization
-      todo!()
+    if let Some(runtime) = runtime {
+      let export_info_mut = mg.get_export_info_mut_by_id(self);
+      let used_in_runtime = export_info_mut
+        .used_in_runtime
+        .get_or_insert(HashMap::default());
+      let mut changed = false;
+      for k in runtime.iter() {
+        match used_in_runtime.entry(k.to_string()) {
+          Entry::Occupied(mut occ) => match (&new_value, occ.get()) {
+            (new, old) if new == &UsageState::Unused => {
+              occ.remove();
+              changed = true;
+            }
+            (new, old) if new != old => {
+              occ.insert(new_value);
+              changed = true;
+            }
+            (new, old) => {}
+          },
+          Entry::Vacant(mut vac) => {
+            if new_value != UsageState::Unused {
+              vac.insert(new_value);
+              changed = true;
+            }
+          }
+        }
+      }
+      if used_in_runtime.len() == 0 {
+        export_info_mut.used_in_runtime = None;
+        changed = true;
+      }
+      return changed;
     } else {
       let export_info = mg.get_export_info_mut_by_id(self);
       if export_info.global_used != Some(new_value) {
@@ -715,9 +745,39 @@ impl ExportInfoId {
     new_value: UsageState,
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
-    if runtime.is_some() {
-      // TODO: runtime optimization
-      todo!()
+    if let Some(runtime) = runtime {
+      let export_info_mut = mg.get_export_info_mut_by_id(self);
+      let used_in_runtime = export_info_mut
+        .used_in_runtime
+        .get_or_insert(HashMap::default());
+      let mut changed = false;
+
+      for k in runtime.iter() {
+        match used_in_runtime.entry(k.to_string()) {
+          Entry::Occupied(mut occ) => match (&new_value, occ.get()) {
+            (new, old) if condition(old) && new == &UsageState::Unused => {
+              occ.remove();
+              changed = true;
+            }
+            (new, old) if condition(old) && new != old => {
+              occ.insert(new_value);
+              changed = true;
+            }
+            _ => {}
+          },
+          Entry::Vacant(mut vac) => {
+            if new_value != UsageState::Unused && condition(&UsageState::Unused) {
+              vac.insert(new_value);
+              changed = true;
+            }
+          }
+        }
+      }
+      if used_in_runtime.len() == 0 {
+        export_info_mut.used_in_runtime = None;
+        changed = true;
+      }
+      return changed;
     } else {
       let export_info = mg.get_export_info_mut_by_id(self);
       if let Some(global_used) = export_info.global_used {
@@ -961,11 +1021,33 @@ impl ExportInfo {
     if let Some(global_used) = self.global_used {
       return global_used;
     }
-    if self.used_in_runtime.is_none() {
-      UsageState::Unused
+    if let Some(used_in_runtime) = self.used_in_runtime.as_ref() {
+      let mut max = UsageState::Unused;
+      if let Some(runtime) = runtime {
+        for item in runtime {
+          let Some(usage) = used_in_runtime.get(item.as_ref()) else {
+            continue;
+          };
+          match usage {
+            UsageState::Used => return UsageState::Used,
+            _ => {
+              max = std::cmp::max(max, *usage);
+            }
+          }
+        }
+      } else {
+        for usage in used_in_runtime.values() {
+          match usage {
+            UsageState::Used => return UsageState::Used,
+            _ => {
+              max = std::cmp::max(max, *usage);
+            }
+          }
+        }
+      }
+      max
     } else {
-      // TODO: runtime optimization
-      todo!()
+      UsageState::Unused
     }
   }
 
@@ -974,7 +1056,7 @@ impl ExportInfo {
   pub fn get_used_name(
     &self,
     fallback_name: &JsWord,
-    _runtime: Option<&RuntimeSpec>,
+    runtime: Option<&RuntimeSpec>,
   ) -> Option<JsWord> {
     if self.has_use_in_runtime_info {
       if let Some(usage) = self.global_used {
@@ -982,8 +1064,18 @@ impl ExportInfo {
           return None;
         }
       } else {
-        self.used_in_runtime.as_ref()?;
-        // TODO: runtime optimization
+        if let Some(used_in_runtime) = self.used_in_runtime.as_ref() {
+          if let Some(runtime) = runtime {
+            if runtime
+              .iter()
+              .all(|item| !used_in_runtime.contains_key(item.as_ref()))
+            {
+              return None;
+            }
+          }
+        } else {
+          return None;
+        }
       }
     }
     if let Some(used_name) = self.used_name.as_ref() {
@@ -1300,7 +1392,7 @@ impl ExportInfo {
   }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone, Default, Hash, PartialOrd)]
+#[derive(Debug, PartialEq, Copy, Clone, Default, Hash, PartialOrd, Ord, Eq)]
 pub enum UsageState {
   Unused = 0,
   OnlyPropertiesUsed = 1,

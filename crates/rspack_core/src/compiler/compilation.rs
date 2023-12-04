@@ -173,6 +173,22 @@ impl Compilation {
     }
   }
 
+  pub fn get_entry_runtime(&self, name: &String, options: Option<&EntryOptions>) -> RuntimeSpec {
+    let (depend_on, runtime) = if let Some(options) = options {
+      ((), options.runtime.as_ref())
+    } else {
+      match self.entries.get(name) {
+        Some(entry) => ((), entry.options.runtime.as_ref()),
+        None => return RuntimeSpec::from_iter([Arc::from(name.as_str())]),
+      }
+    };
+    // TODO: depend on
+    runtime
+      .or_else(|| Some(name))
+      .map(|runtime| RuntimeSpec::from_iter([Arc::from(runtime.as_ref())]))
+      .unwrap_or_default()
+  }
+
   pub fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) {
     let entry_id = *entry.id();
     self.module_graph.add_dependency(entry);
@@ -1258,6 +1274,9 @@ impl Compilation {
     while plugin_driver.optimize_dependencies(self).await?.is_some() {}
     logger.time_end(start);
 
+    if self.options.is_new_tree_shaking() {
+      debug_all_exports_info!(&self.module_graph);
+    }
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;
