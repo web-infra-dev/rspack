@@ -180,12 +180,8 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
             module
           } else if let Some(module) = original.info.javascript_module {
             module
-          } else if filename.ends_with(".mjs") {
-            true
-          } else if filename.ends_with(".cjs") {
-            false
           } else {
-            false
+            filename.ends_with(".mjs")
           };
 
           let js_minify_options = JsMinifyOptions {
