@@ -721,7 +721,7 @@ function getRawOptimization(
 }
 
 export function toRawSplitChunksOptions(
-	sc?: OptimizationSplitChunksOptions
+	sc?: false | OptimizationSplitChunksOptions
 ): RawOptions["optimization"]["splitChunks"] | undefined {
 	if (!sc) {
 		return;
