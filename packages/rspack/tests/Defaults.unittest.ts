@@ -108,7 +108,9 @@ describe("snapshots", () => {
 		-   "mode": "none",
 		+   "mode": undefined,
 		@@ ... @@
+		-     "chunkIds": "named",
 		-     "innerGraph": false,
+		+     "chunkIds": "deterministic",
 		+     "innerGraph": true,
 		@@ ... @@
 		-     "minimize": false,
@@ -152,7 +154,9 @@ describe("snapshots", () => {
 		-   "mode": "none",
 		+   "mode": "production",
 		@@ ... @@
+		-     "chunkIds": "named",
 		-     "innerGraph": false,
+		+     "chunkIds": "deterministic",
 		+     "innerGraph": true,
 		@@ ... @@
 		-     "minimize": false,
