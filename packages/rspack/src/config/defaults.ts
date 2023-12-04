@@ -744,7 +744,11 @@ const applyOptimizationDefaults = (
 		if (production) return "deterministic";
 		return "named";
 	});
-	F(optimization, "chunkIds", (): "named" | "deterministic" => "named");
+	F(optimization, "chunkIds", (): "named" | "deterministic" => {
+		if (production) return "deterministic";
+		if (development) return "named";
+		return "named"; // we have not implemented 'natural' so use 'named' now
+	});
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
 	D(optimization, "mangleExports", production);
 	D(optimization, "providedExports", true);

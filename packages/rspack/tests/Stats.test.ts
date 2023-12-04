@@ -27,15 +27,15 @@ describe("Stats", () => {
 		expect(stats?.toJson(statsOptions)).toMatchSnapshot();
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 211 bytes {main} [emitted] (name: main)
+		asset main.js 211 bytes {909} [emitted] (name: main)
 		Entrypoint main 211 bytes = main.js
-		chunk {main} main.js (main) [entry]
-		  ./fixtures/a.js [585] {main}
+		chunk {909} main.js (main) [entry]
+		  ./fixtures/a.js [585] {909}
 		    entry ./fixtures/a
-		./fixtures/a.js [585] {main}
+		./fixtures/a.js [585] {909}
 		  entry ./fixtures/a
 		  
-		Rspack compiled successfully (a62f45ec3d75aa689fa1)"
+		Rspack compiled successfully (57e46af248a1c1fe076f)"
 	`);
 	});
 
@@ -82,7 +82,7 @@ describe("Stats", () => {
 		  help: 
 		        You may need an appropriate loader to handle this file type.
 
-		Rspack compiled with 1 error (79a430f2fdbcdc199916)"
+		Rspack compiled with 1 error (d26fd8b8f7a3bc36f9b5)"
 	`);
 	});
 
@@ -353,9 +353,9 @@ describe("Stats", () => {
 		};
 		expect(stats?.toJson(options)).toMatchSnapshot();
 		expect(stats?.toString(options).replace(/\\/g, "/")).toMatchInlineSnapshot(`
-		"asset main.js 211 bytes {main} [emitted] (name: main)
-		chunk {main} main.js (main) [entry]
-		./fixtures/a.js [585] {main}"
+		"asset main.js 211 bytes {909} [emitted] (name: main)
+		chunk {909} main.js (main) [entry]
+		./fixtures/a.js [585] {909}"
 	`);
 	});
 
