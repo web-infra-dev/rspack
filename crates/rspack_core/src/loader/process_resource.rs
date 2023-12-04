@@ -28,7 +28,7 @@ impl LoaderRunnerPlugin for LoaderRunnerPluginProcessResource {
     Err(internal_error!(
       r#"Reading from "{}" is not handled by plugins (Unhandled scheme).
 Rspack supports "data:" and "file:" URIs by default.
-You may need an additional plugin to handle "${}:" URIs."#,
+You may need an additional plugin to handle "{}:" URIs."#,
       resource_data.resource,
       resource_data.get_scheme()
     ))
