@@ -17,7 +17,7 @@ use rspack_core::{
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, ResourceData,
   RuntimeGlobals, SourceType,
 };
-use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result};
+use rspack_error::{internal_error, IntoTWithRspackDiagnosticArray, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::identifier::make_paths_relative;
 

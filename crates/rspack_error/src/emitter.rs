@@ -9,7 +9,7 @@ use codespan_reporting::term::{self, Config};
 use sugar_path::SugarPath;
 use termcolor::{Buffer, ColorSpec, StandardStreamLock, WriteColor};
 
-use crate::Diagnostic as RspackDiagnostic;
+use crate::RspackDiagnostic;
 
 pub trait FlushDiagnostic {
   fn flush_diagnostic(&mut self) {}

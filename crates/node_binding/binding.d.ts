@@ -34,7 +34,7 @@ export class JsCompilation {
   getMissingDependencies(): Array<string>
   getBuildDependencies(): Array<string>
   pushDiagnostic(severity: "error" | "warning", title: string, message: string): void
-  pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
+  pushNativeDiagnostics(diagnostics: ExternalObject<'RspackDiagnostic[]'>): void
   getStats(): JsStats
   getAssetPath(filename: string, data: PathData): string
   getAssetPathWithInfo(filename: string, data: PathData): PathWithInfo
@@ -345,7 +345,7 @@ export interface JsLoaderContext {
    * Internal loader diagnostic
    * @internal
    */
-  diagnosticsExternal: ExternalObject<'Diagnostic[]'>
+  diagnosticsExternal: ExternalObject<'RspackDiagnostic[]'>
 }
 
 export interface JsModule {

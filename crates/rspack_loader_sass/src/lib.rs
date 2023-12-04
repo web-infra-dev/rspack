@@ -15,7 +15,7 @@ use rspack_core::{
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
 };
 use rspack_error::{
-  internal_error, Diagnostic, DiagnosticKind, Error, InternalError, Result, Severity,
+  internal_error, RspackDiagnostic, DiagnosticKind, Error, InternalError, Result, Severity,
   TraceableRspackError,
 };
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
@@ -349,7 +349,7 @@ impl LegacyImporter for RspackImporter {
 #[derive(Debug)]
 struct RspackLogger {
   // `Sync` is required by the `Logger` trait
-  tx: mpsc::SyncSender<Vec<Diagnostic>>,
+  tx: mpsc::SyncSender<Vec<RspackDiagnostic>>,
 }
 
 impl Logger for RspackLogger {
@@ -531,7 +531,7 @@ fn sass_log_to_diagnostics(
   severity: Severity,
   message: &str,
   span: Option<&SourceSpan>,
-) -> Vec<Diagnostic> {
+) -> Vec<RspackDiagnostic> {
   let title = match severity {
     Severity::Error => "Sass Error",
     Severity::Warn => "Sass Warning",
@@ -542,8 +542,8 @@ fn sass_log_to_diagnostics(
     Error::TraceableRspackError(e.with_kind(DiagnosticKind::Scss).with_severity(severity)).into()
   } else {
     let f = match severity {
-      Severity::Error => Diagnostic::error,
-      Severity::Warn => Diagnostic::warn,
+      Severity::Error => RspackDiagnostic::error,
+      Severity::Warn => RspackDiagnostic::warn,
     };
     vec![f(title.to_string(), message.to_string(), 0, 0).with_kind(DiagnosticKind::Scss)]
   }

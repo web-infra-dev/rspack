@@ -15,7 +15,7 @@ use rspack_core::{
   ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{IntoTWithRspackDiagnosticArray, Result, TWithDiagnosticArray};
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
 use swc_core::{css::parser::parser::ParserConfig, ecma::atoms::JsWord};

@@ -15,7 +15,7 @@ use rspack_core::{
   rspack_sources::RawSource, AssetInfo, AssetInfoRelated, Compilation, CompilationAsset,
   CompilationLogger, Filename, Logger, PathData, Plugin,
 };
-use rspack_error::Diagnostic;
+use rspack_error::RspackDiagnostic;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use sugar_path::{AsPath, SugarPath};
 
@@ -137,7 +137,7 @@ impl CopyRspackPlugin {
     output_path: &Path,
     from_type: FromType,
     file_dependencies: &DashSet<PathBuf>,
-    diagnostics: &DashSet<Diagnostic>,
+    diagnostics: &DashSet<RspackDiagnostic>,
     compilation: &Compilation,
     logger: &CompilationLogger,
   ) -> Option<RunPatternResult> {
@@ -232,7 +232,7 @@ impl CopyRspackPlugin {
         RawSource::Buffer(data)
       }
       Err(e) => {
-        let rspack_err: Vec<Diagnostic> = rspack_error::Error::from(e).into();
+        let rspack_err: Vec<RspackDiagnostic> = rspack_error::Error::from(e).into();
         for err in rspack_err {
           diagnostics.insert(err);
         }
@@ -289,7 +289,7 @@ impl CopyRspackPlugin {
     _index: usize,
     file_dependencies: &DashSet<PathBuf>,
     context_dependencies: &DashSet<PathBuf>,
-    diagnostics: &DashSet<Diagnostic>,
+    diagnostics: &DashSet<RspackDiagnostic>,
     logger: &CompilationLogger,
   ) -> Option<Vec<Option<RunPatternResult>>> {
     let orig_from = &pattern.from;
@@ -430,7 +430,7 @@ impl CopyRspackPlugin {
             return None;
           }
 
-          diagnostics.insert(Diagnostic::error(
+          diagnostics.insert(RspackDiagnostic::error(
             "CopyRspackPlugin Error".into(),
             format!("unable to locate '{glob_query}' glob"),
             0,
@@ -464,7 +464,7 @@ impl CopyRspackPlugin {
           }
 
           // TODO err handler
-          diagnostics.insert(Diagnostic::error(
+          diagnostics.insert(RspackDiagnostic::error(
             "CopyRspackPlugin Error".into(),
             format!("unable to locate '{glob_query}' glob"),
             0,
@@ -487,7 +487,7 @@ impl CopyRspackPlugin {
           return None;
         }
 
-        diagnostics.insert(Diagnostic::error(
+        diagnostics.insert(RspackDiagnostic::error(
           "Glob Error".into(),
           e.msg.to_string(),
           0,

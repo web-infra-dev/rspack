@@ -10,7 +10,7 @@ use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
 use rspack_core::ModuleIdentifier;
 use rspack_core::{rspack_sources::SourceExt, NormalModuleSource};
-use rspack_error::Diagnostic;
+use rspack_error::RspackDiagnostic;
 use rspack_identifier::Identifier;
 use rspack_napi_shared::NapiResultExt;
 
@@ -315,14 +315,14 @@ impl JsCompilation {
   #[napi(ts_args_type = r#"severity: "error" | "warning", title: string, message: string"#)]
   pub fn push_diagnostic(&mut self, severity: String, title: String, message: String) {
     let diagnostic = match severity.as_str() {
-      "warning" => rspack_error::Diagnostic::warn(title, message, 0, 0),
-      _ => rspack_error::Diagnostic::error(title, message, 0, 0),
+      "warning" => rspack_error::RspackDiagnostic::warn(title, message, 0, 0),
+      _ => rspack_error::RspackDiagnostic::error(title, message, 0, 0),
     };
     self.inner.push_diagnostic(diagnostic);
   }
 
-  #[napi(ts_args_type = r#"diagnostics: ExternalObject<'Diagnostic[]'>"#)]
-  pub fn push_native_diagnostics(&mut self, mut diagnostics: External<Vec<Diagnostic>>) {
+  #[napi(ts_args_type = r#"diagnostics: ExternalObject<'RspackDiagnostic[]'>"#)]
+  pub fn push_native_diagnostics(&mut self, mut diagnostics: External<Vec<RspackDiagnostic>>) {
     while let Some(diagnostic) = diagnostics.pop() {
       self.inner.push_diagnostic(diagnostic);
     }

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{IntoTWithRspackDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
 
 use crate::{

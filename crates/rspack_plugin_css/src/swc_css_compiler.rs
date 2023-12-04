@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rspack_core::rspack_sources::{self, SourceExt};
-use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{internal_error, IntoTWithRspackDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::common::{input::SourceFileInput, source_map::SourceMapGenConfig, FileName};
 use swc_core::common::{Globals, GLOBALS};
 use swc_core::css::codegen::{

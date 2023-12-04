@@ -21,15 +21,15 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug)]
 pub struct TWithDiagnosticArray<T: std::fmt::Debug> {
   pub inner: T,
-  pub diagnostic: Vec<Diagnostic>,
+  pub diagnostic: Vec<RspackDiagnostic>,
 }
 
 impl<T: std::fmt::Debug> TWithDiagnosticArray<T> {
-  pub fn new(inner: T, diagnostic: Vec<Diagnostic>) -> Self {
+  pub fn new(inner: T, diagnostic: Vec<RspackDiagnostic>) -> Self {
     Self { inner, diagnostic }
   }
 
-  pub fn diagnostics(&self) -> &Vec<Diagnostic> {
+  pub fn diagnostics(&self) -> &Vec<RspackDiagnostic> {
     &self.diagnostic
   }
 
@@ -37,7 +37,7 @@ impl<T: std::fmt::Debug> TWithDiagnosticArray<T> {
     self.inner
   }
 
-  pub fn split_into_parts(self) -> (T, Vec<Diagnostic>) {
+  pub fn split_into_parts(self) -> (T, Vec<RspackDiagnostic>) {
     (self.inner, self.diagnostic)
   }
 }
@@ -52,8 +52,8 @@ impl<T: Clone + std::fmt::Debug> Clone for TWithDiagnosticArray<T> {
 }
 
 // Helper trait to make `TWithDiagnosticArray` conversion more easily.
-pub trait IntoTWithDiagnosticArray {
-  fn with_diagnostic(self, diagnostic: Vec<Diagnostic>) -> TWithDiagnosticArray<Self>
+pub trait IntoTWithRspackDiagnosticArray {
+  fn with_diagnostic(self, diagnostic: Vec<RspackDiagnostic>) -> TWithDiagnosticArray<Self>
   where
     Self: Sized + std::fmt::Debug;
 
@@ -68,8 +68,8 @@ pub trait IntoTWithDiagnosticArray {
   }
 }
 
-impl<T: Sized + std::fmt::Debug> IntoTWithDiagnosticArray for T {
-  fn with_diagnostic(self, diagnostic: Vec<Diagnostic>) -> TWithDiagnosticArray<Self>
+impl<T: Sized + std::fmt::Debug> IntoTWithRspackDiagnosticArray for T {
+  fn with_diagnostic(self, diagnostic: Vec<RspackDiagnostic>) -> TWithDiagnosticArray<Self>
   where
     Self: Sized + std::fmt::Debug,
   {

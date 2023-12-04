@@ -1,7 +1,7 @@
 use std::{borrow::Cow, hash::Hash};
 
 use async_trait::async_trait;
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{IntoTWithRspackDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::{RawSource, Source, SourceExt};

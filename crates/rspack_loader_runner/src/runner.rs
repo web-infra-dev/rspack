@@ -8,7 +8,7 @@ use anymap::CloneAny;
 use derivative::Derivative;
 use once_cell::sync::OnceCell;
 use rspack_error::{
-  internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+  internal_error, IntoTWithRspackDiagnosticArray, Result, RspackDiagnostic, TWithDiagnosticArray,
 };
 use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
@@ -185,7 +185,7 @@ pub struct LoaderContext<'c, C> {
   pub __resource_data: &'c ResourceData,
   // Only used for cross-crate accessing.
   // This field should not be accessed in builtin loaders.
-  pub __diagnostics: Vec<Diagnostic>,
+  pub __diagnostics: Vec<RspackDiagnostic>,
 }
 
 impl<'c, C> LoaderContext<'c, C> {
@@ -217,7 +217,7 @@ impl<'c, C> LoaderContext<'c, C> {
   }
 
   /// Emit a diagnostic, it can be a `warning` or `error`.
-  pub fn emit_diagnostic(&mut self, diagnostic: Diagnostic) {
+  pub fn emit_diagnostic(&mut self, diagnostic: RspackDiagnostic) {
     self.__diagnostics.push(diagnostic)
   }
 }

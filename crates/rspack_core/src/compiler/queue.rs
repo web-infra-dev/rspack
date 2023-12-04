@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_error::{Diagnostic, Result};
+use rspack_error::{Result, RspackDiagnostic};
 
 use crate::{
   cache::Cache, BoxDependency, BuildContext, BuildResult, Compilation, CompilerContext,
@@ -56,7 +56,7 @@ pub struct FactorizeTaskResult {
   pub factory_result: ModuleFactoryResult,
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<DependencyId>,
-  pub diagnostics: Vec<Diagnostic>,
+  pub diagnostics: Vec<RspackDiagnostic>,
   pub is_entry: bool,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub exports_info_related: ExportsInfoRelated,
@@ -280,7 +280,7 @@ pub struct BuildTask {
 pub struct BuildTaskResult {
   pub module: Box<dyn Module>,
   pub build_result: Box<BuildResult>,
-  pub diagnostics: Vec<Diagnostic>,
+  pub diagnostics: Vec<RspackDiagnostic>,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub from_cache: bool,
 }

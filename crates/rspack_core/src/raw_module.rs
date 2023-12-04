@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::hash::Hash;
 
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{IntoTWithRspackDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_sources::{BoxSource, RawSource, Source, SourceExt};

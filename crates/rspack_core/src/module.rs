@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{IntoTWithRspackDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;

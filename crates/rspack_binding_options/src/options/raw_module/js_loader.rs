@@ -5,7 +5,7 @@ use std::{
 
 use napi_derive::napi;
 use rspack_core::{rspack_sources::SourceMap, Content, ResourceData};
-use rspack_error::Diagnostic;
+use rspack_error::RspackDiagnostic;
 use rspack_loader_runner::AdditionalData;
 use rustc_hash::FxHashSet as HashSet;
 use tracing::{span_enabled, Level};
@@ -261,8 +261,8 @@ pub struct JsLoaderContext {
   pub context_external: External<rspack_core::LoaderRunnerContext>,
   /// Internal loader diagnostic
   /// @internal
-  #[napi(ts_type = "ExternalObject<'Diagnostic[]'>")]
-  pub diagnostics_external: External<Vec<Diagnostic>>,
+  #[napi(ts_type = "ExternalObject<'RspackDiagnostic[]'>")]
+  pub diagnostics_external: External<Vec<RspackDiagnostic>>,
 }
 
 impl TryFrom<&rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>

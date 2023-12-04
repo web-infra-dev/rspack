@@ -11,7 +11,7 @@ use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 use rspack_ast::RspackAst;
 use rspack_core::{rspack_sources::SourceMap, LoaderRunnerContext, Mode};
-use rspack_error::{Diagnostic, Result};
+use rspack_error::{Result, RspackDiagnostic};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use rspack_plugin_javascript::ast::{self, SourceMapConfig};
 use rspack_plugin_javascript::TransformOutput;
@@ -68,7 +68,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       }
 
       if swc_options.config.jsc.experimental.plugins.is_some() {
-        loader_context.emit_diagnostic(Diagnostic::warn(
+        loader_context.emit_diagnostic(RspackDiagnostic::warn(
           SWC_LOADER_IDENTIFIER.to_string(),
           "Experimental plugins are not currently supported.".to_string(),
           0,
@@ -77,7 +77,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       }
 
       if swc_options.config.jsc.target.is_some() && swc_options.config.env.is_some() {
-        loader_context.emit_diagnostic(Diagnostic::warn(
+        loader_context.emit_diagnostic(RspackDiagnostic::warn(
           SWC_LOADER_IDENTIFIER.to_string(),
           "`env` and `jsc.target` cannot be used together".to_string(),
           0,

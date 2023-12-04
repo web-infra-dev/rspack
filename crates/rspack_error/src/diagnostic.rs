@@ -38,7 +38,7 @@ pub struct DiagnosticSourceInfo {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
-pub struct Diagnostic {
+pub struct RspackDiagnostic {
   pub(crate) severity: Severity,
   pub(crate) message: String,
   pub(crate) title: String,
@@ -50,7 +50,7 @@ pub struct Diagnostic {
   pub(crate) notes: Vec<String>,
 }
 
-impl Diagnostic {
+impl RspackDiagnostic {
   pub fn warn(title: String, message: String, start: usize, end: usize) -> Self {
     Self {
       severity: Severity::Warn,
@@ -102,10 +102,10 @@ impl Diagnostic {
   }
 }
 
-impl From<Error> for Vec<Diagnostic> {
+impl From<Error> for Vec<RspackDiagnostic> {
   fn from(err: Error) -> Self {
     let diagnostic = match err {
-      Error::InternalError(err) => Diagnostic {
+      Error::InternalError(err) => RspackDiagnostic {
         message: err.error_message().to_string(),
         source_info: None,
         start: 0,
@@ -122,7 +122,7 @@ impl From<Error> for Vec<Diagnostic> {
         severity,
         file_path,
         file_src,
-      }) => Diagnostic {
+      }) => RspackDiagnostic {
         message: error_message,
         source_info: Some(DiagnosticSourceInfo {
           source: file_src,
@@ -138,7 +138,7 @@ impl From<Error> for Vec<Diagnostic> {
       Error::BatchErrors(diagnostics) => {
         return diagnostics
           .into_iter()
-          .flat_map(Vec::<Diagnostic>::from)
+          .flat_map(Vec::<RspackDiagnostic>::from)
           .collect::<Vec<_>>()
       }
     };
@@ -146,8 +146,11 @@ impl From<Error> for Vec<Diagnostic> {
   }
 }
 
-pub fn errors_to_diagnostics(errs: Vec<Error>) -> Vec<Diagnostic> {
-  errs.into_iter().flat_map(Vec::<Diagnostic>::from).collect()
+pub fn errors_to_diagnostics(errs: Vec<Error>) -> Vec<RspackDiagnostic> {
+  errs
+    .into_iter()
+    .flat_map(Vec::<RspackDiagnostic>::from)
+    .collect()
 }
 
 pub const DIAGNOSTIC_POS_DUMMY: usize = 0;

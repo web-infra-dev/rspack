@@ -1,7 +1,7 @@
 // TODO: move to rspack_plugin_mf
 
 use async_trait::async_trait;
-use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{internal_error, IntoTWithRspackDiagnosticArray, Result, TWithDiagnosticArray};
 
 use super::{
   container_entry_dependency::ContainerEntryDependency,

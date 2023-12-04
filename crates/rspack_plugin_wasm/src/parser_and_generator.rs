@@ -9,7 +9,9 @@ use rspack_core::{
   ModuleDependency, ModuleIdentifier, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
   PathData, RuntimeGlobals, SourceType, UsedName,
 };
-use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{
+  IntoTWithRspackDiagnosticArray, Result, RspackDiagnostic, TWithDiagnosticArray,
+};
 use rspack_identifier::Identifier;
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
@@ -47,7 +49,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             for export in s {
               match export {
                 Ok(export) => exports.push(export.name.to_string()),
-                Err(err) => diagnostic.push(Diagnostic::error(
+                Err(err) => diagnostic.push(RspackDiagnostic::error(
                   "Wasm Export Parse Error".into(),
                   err.to_string(),
                   0,
@@ -66,7 +68,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                     ty,
                   )));
                 }
-                Err(err) => diagnostic.push(Diagnostic::error(
+                Err(err) => diagnostic.push(RspackDiagnostic::error(
                   "Wasm Import Parse Error".into(),
                   err.to_string(),
                   0,
@@ -78,7 +80,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           _ => {}
         },
         Err(err) => {
-          diagnostic.push(Diagnostic::error(
+          diagnostic.push(RspackDiagnostic::error(
             "Wasm Parse Error".into(),
             err.to_string(),
             0,

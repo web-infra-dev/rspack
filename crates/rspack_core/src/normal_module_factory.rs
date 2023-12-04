@@ -3,7 +3,7 @@ use std::{path::Path, sync::Arc};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{
-  internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+  internal_error, IntoTWithRspackDiagnosticArray, Result, RspackDiagnostic, TWithDiagnosticArray,
 };
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
 use sugar_path::{AsPath, SugarPath};
@@ -361,7 +361,7 @@ impl NormalModuleFactory {
           let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
           let mut file_dependencies = Default::default();
           let mut missing_dependencies = Default::default();
-          let diagnostics: Vec<Diagnostic> = internal_error.into();
+          let diagnostics: Vec<RspackDiagnostic> = internal_error.into();
           let mut diagnostic = diagnostics[0].clone();
           let mut from_cache_result = from_cache;
           if !data

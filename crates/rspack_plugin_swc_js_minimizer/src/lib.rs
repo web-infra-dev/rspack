@@ -18,7 +18,7 @@ use rspack_core::{
   AssetInfo, CompilationAsset, JsChunkHashArgs, Plugin, PluginContext, PluginJsChunkHashHookOutput,
   PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
-use rspack_error::{Diagnostic, Result};
+use rspack_error::{Result, RspackDiagnostic};
 use rspack_regex::RspackRegex;
 use rspack_util::try_any_sync;
 use swc_config::config_types::BoolOrDataConfig;
@@ -140,7 +140,7 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
     let compilation = args.compilation;
     let minify_options = &self.options;
 
-    let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
+    let (tx, rx) = mpsc::channel::<Vec<RspackDiagnostic>>();
     // collect all extracted comments info
     let all_extracted_comments = Mutex::new(HashMap::new());
     let extract_comments_condition = minify_options.extract_comments.as_ref().map(|condition| {

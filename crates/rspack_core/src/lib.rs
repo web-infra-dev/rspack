@@ -8,6 +8,7 @@
 use std::sync::atomic::AtomicBool;
 use std::{fmt, sync::Arc};
 mod dependencies_block;
+mod diagnostics;
 pub mod mf;
 pub use dependencies_block::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock, DependencyLocation,

@@ -12,7 +12,7 @@ use rspack_core::{
   TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::{
-  internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+  internal_error, IntoTWithRspackDiagnosticArray, Result, RspackDiagnostic, TWithDiagnosticArray,
 };
 use swc_core::common::SyntaxContext;
 
@@ -93,7 +93,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ..
     } = parse_context;
 
-    let mut diagnostics: Vec<Diagnostic> = vec![];
+    let mut diagnostics: Vec<RspackDiagnostic> = vec![];
     let syntax = syntax_by_module_type(
       &resource_data.resource_path,
       module_type,
@@ -105,7 +105,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let original_map = source.map(&MapOptions::new(!compiler_options.devtool.cheap()));
     let source = source.source();
 
-    let gen_terminate_res = |diagnostics: Vec<Diagnostic>| {
+    let gen_terminate_res = |diagnostics: Vec<RspackDiagnostic>| {
       Ok(
         ParseResult {
           source: create_source(

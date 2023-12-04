@@ -11,7 +11,7 @@ use petgraph::{
   Directed,
 };
 use rspack_error::{
-  errors_to_diagnostics, Error, InternalError, IntoTWithDiagnosticArray, Result, Severity,
+  errors_to_diagnostics, Error, InternalError, IntoTWithRspackDiagnosticArray, Result, Severity,
   TWithDiagnosticArray,
 };
 use rspack_identifier::{Identifier, IdentifierLinkedSet, IdentifierMap, IdentifierSet};

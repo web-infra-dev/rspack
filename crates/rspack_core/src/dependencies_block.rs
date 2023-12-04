@@ -1,4 +1,4 @@
-use rspack_error::{Diagnostic, DIAGNOSTIC_POS_DUMMY};
+use rspack_error::{RspackDiagnostic, DIAGNOSTIC_POS_DUMMY};
 use serde::Serialize;
 use ustr::Ustr;
 
@@ -163,7 +163,7 @@ pub struct AsyncDependenciesToInitialChunkError<'a> {
   pub loc: Option<&'a DependencyLocation>,
 }
 
-impl<'a> From<AsyncDependenciesToInitialChunkError<'a>> for Diagnostic {
+impl<'a> From<AsyncDependenciesToInitialChunkError<'a>> for RspackDiagnostic {
   fn from(value: AsyncDependenciesToInitialChunkError<'a>) -> Self {
     let title = "AsyncDependencyToInitialChunkError".to_string();
     let message = format!("It's not allowed to load an initial chunk on demand. The chunk name \"{}\" is already used by an entrypoint.", value.chunk_name);
@@ -171,6 +171,6 @@ impl<'a> From<AsyncDependenciesToInitialChunkError<'a>> for Diagnostic {
       .loc
       .map(|loc| (loc.start as usize, loc.end as usize))
       .unwrap_or((DIAGNOSTIC_POS_DUMMY, DIAGNOSTIC_POS_DUMMY));
-    Diagnostic::error(title, message, start, end)
+    RspackDiagnostic::error(title, message, start, end)
   }
 }

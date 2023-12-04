@@ -12,7 +12,8 @@ use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
 use rspack_error::{
-  internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
+  internal_error, IntoTWithRspackDiagnosticArray, Result, RspackDiagnostic, Severity,
+  TWithDiagnosticArray,
 };
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
@@ -133,7 +134,7 @@ pub enum NormalModuleSource {
 }
 
 impl NormalModuleSource {
-  pub fn new_built(source: BoxSource, diagnostics: &[Diagnostic]) -> Self {
+  pub fn new_built(source: BoxSource, diagnostics: &[RspackDiagnostic]) -> Self {
     if diagnostics.iter().any(|d| d.severity() == Severity::Error) {
       NormalModuleSource::BuiltFailed(
         diagnostics

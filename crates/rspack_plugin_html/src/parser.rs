@@ -1,6 +1,6 @@
 use rspack_core::ErrorSpan;
 use rspack_error::{
-  Diagnostic, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+  DiagnosticKind, IntoTWithRspackDiagnosticArray, Result, RspackDiagnostic, TWithDiagnosticArray,
 };
 use swc_core::common::{sync::Lrc, FileName, FilePathMapping, SourceFile, SourceMap, GLOBALS};
 use swc_html::{
@@ -31,9 +31,11 @@ impl<'a> HtmlCompiler<'a> {
 
     let mut errors = vec![];
     let document = parse_file_as_document(fm.as_ref(), ParserConfig::default(), &mut errors);
-    let diagnostics: Vec<rspack_error::Diagnostic> = errors
+    let diagnostics: Vec<rspack_error::RspackDiagnostic> = errors
       .into_iter()
-      .flat_map(|error| <Vec<Diagnostic>>::from(html_parse_error_to_traceable_error(error, &fm)))
+      .flat_map(|error| {
+        <Vec<RspackDiagnostic>>::from(html_parse_error_to_traceable_error(error, &fm))
+      })
       .collect();
     document
       .map(|doc| doc.with_diagnostic(diagnostics))

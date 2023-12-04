@@ -14,7 +14,7 @@ use itertools::Itertools;
 use rayon::prelude::{
   IntoParallelIterator, IntoParallelRefIterator, ParallelBridge, ParallelIterator,
 };
-use rspack_error::{internal_error, Diagnostic, Result, Severity, TWithDiagnosticArray};
+use rspack_error::{internal_error, Result, RspackDiagnostic, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, IdentifierMap, IdentifierSet};
@@ -78,7 +78,7 @@ pub struct Compilation {
   pub async_entrypoints: Vec<ChunkGroupUkey>,
   assets: CompilationAssets,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
-  diagnostics: IndexSet<Diagnostic, BuildHasherDefault<FxHasher>>,
+  diagnostics: IndexSet<RspackDiagnostic, BuildHasherDefault<FxHasher>>,
   logging: CompilationLogging,
   pub plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -314,22 +314,22 @@ impl Compilation {
     &self.entrypoints
   }
 
-  pub fn push_diagnostic(&mut self, diagnostic: Diagnostic) {
+  pub fn push_diagnostic(&mut self, diagnostic: RspackDiagnostic) {
     self.diagnostics.insert(diagnostic);
   }
 
-  pub fn push_batch_diagnostic(&mut self, diagnostics: Vec<Diagnostic>) {
+  pub fn push_batch_diagnostic(&mut self, diagnostics: Vec<RspackDiagnostic>) {
     self.diagnostics.extend(diagnostics);
   }
 
-  pub fn get_errors(&self) -> impl Iterator<Item = &Diagnostic> {
+  pub fn get_errors(&self) -> impl Iterator<Item = &RspackDiagnostic> {
     self
       .diagnostics
       .iter()
       .filter(|d| matches!(d.severity(), Severity::Error))
   }
 
-  pub fn get_warnings(&self) -> impl Iterator<Item = &Diagnostic> {
+  pub fn get_warnings(&self) -> impl Iterator<Item = &RspackDiagnostic> {
     self
       .diagnostics
       .iter()

@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use rspack_core::{Compilation, Logger, Module, ModuleGraph, Plugin};
-use rspack_error::Diagnostic;
+use rspack_error::RspackDiagnostic;
 
 #[derive(Debug, Default)]
 pub struct WarnCaseSensitiveModulesPlugin;
@@ -52,7 +52,7 @@ impl Plugin for WarnCaseSensitiveModulesPlugin {
   fn seal(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
     let logger = compilation.get_logger(self.name());
     let start = logger.time("check case sensitive modules");
-    let mut diagnostics: Vec<Diagnostic> = vec![];
+    let mut diagnostics: Vec<RspackDiagnostic> = vec![];
     let modules = compilation
       .module_graph
       .modules()
@@ -87,7 +87,7 @@ impl Plugin for WarnCaseSensitiveModulesPlugin {
       if lower_map.values().len() > 1 {
         let mut case_modules = lower_map.values().map(|m| m.as_ref()).collect::<Vec<_>>();
         case_modules.sort_by_key(|m| m.identifier());
-        diagnostics.push(Diagnostic::warn(
+        diagnostics.push(RspackDiagnostic::warn(
           "Sensitive Modules Warn".to_string(),
           self.create_sensitive_modules_warning(&case_modules, &compilation.module_graph),
           0,
