@@ -11,9 +11,10 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
+use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
-use crate::dependency::WasmImportDependency;
+use crate::dependency::{StaticExportsDependency, WasmImportDependency};
 use crate::ModuleIdToFileName;
 
 #[derive(Debug)]
@@ -87,9 +88,10 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       }
     }
 
-    // FIXME: marking StatsExportDependency as a ModuleDependency is not correct
-    // dependencies
-    //   .push(box StaticExportsDependency::new(exports, false) as Box<dyn ModuleDependency>);
+    dependencies.push(Box::new(StaticExportsDependency::new(
+      exports.iter().cloned().map(Atom::from).collect::<Vec<_>>(),
+      false,
+    )));
 
     Ok(
       ParseResult {

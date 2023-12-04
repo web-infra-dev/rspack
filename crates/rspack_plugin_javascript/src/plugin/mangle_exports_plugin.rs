@@ -25,7 +25,7 @@ fn can_mangle(exports_info_id: ExportsInfoId, mg: &ModuleGraph) -> bool {
   }
   let mut has_something_to_mangle = false;
   for export_info_id in exports_info.exports.values() {
-    if export_info_id.get_export_info(mg).can_mangle_use == Some(true) {
+    if export_info_id.get_export_info(mg).can_mangle() == Some(true) {
       has_something_to_mangle = true;
     }
   }
