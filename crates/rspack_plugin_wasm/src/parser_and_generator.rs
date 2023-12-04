@@ -130,7 +130,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       .as_normal_module()
       .expect("module should be a NormalModule in AsyncWasmParserAndGenerator::generate");
     let wasm_path_with_info =
-      render_wasm_name(compilation, normal_module, wasm_filename_template, hash);
+      render_wasm_name(compilation, normal_module, wasm_filename_template, &hash);
 
     self
       .module_id_to_filename
@@ -227,7 +227,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let instantiate_call = format!(
           "{}(exports, module.id, {} {})",
           RuntimeGlobals::INSTANTIATE_WASM,
-          serde_json::to_string(&wasm_path_with_info.0).expect("should be ok"),
+          serde_json::to_string(&hash).expect("should be ok"),
           imports_obj.unwrap_or_default()
         );
 
@@ -273,14 +273,14 @@ fn render_wasm_name(
   compilation: &Compilation,
   normal_module: &NormalModule,
   wasm_filename_template: &Filename,
-  hash: String,
+  hash: &str,
 ) -> (String, AssetInfo) {
   compilation.get_asset_path_with_info(
     wasm_filename_template,
     PathData::default()
       .filename(&normal_module.resource_resolved_data().resource)
-      .content_hash(&hash)
-      .hash(&hash),
+      .content_hash(hash)
+      .hash(hash),
   )
 }
 
