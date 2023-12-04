@@ -48,7 +48,7 @@ impl RuntimeModule for ShareRuntimeModule {
       for m in modules {
         let code_gen = compilation
           .code_generation_results
-          .get(&m.identifier(), Some(&chunk.runtime)).expect("should have code_generation_result of share-init sourceType module at <ShareRuntimeModule as RuntimeModule>::generate");
+          .get(&m.identifier(), Some(&chunk.runtime));
         let Some(data) = code_gen.data.get::<CodeGenerationDataShareInit>() else {
           continue;
         };

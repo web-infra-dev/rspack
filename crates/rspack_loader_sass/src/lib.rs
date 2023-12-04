@@ -486,23 +486,20 @@ impl Loader<LoaderRunnerContext> for SassLoader {
       })?
       .render(sass_options)
       .map_err(sass_exception_to_error)?;
-    let source_map = result
-      .map
-      .map(|map| -> Result<SourceMap> {
-        let mut map = SourceMap::from_slice(&map).map_err(|e| internal_error!(e.to_string()))?;
-        for source in map.sources_mut() {
-          if source.starts_with("file:") {
-            *source = Url::parse(source)
-              .expect("TODO:")
-              .to_file_path()
-              .expect("TODO:")
-              .display()
-              .to_string();
-          }
+    let source_map = result.map.map(|map| {
+      let mut map = SourceMap::from_slice(&map).expect("should be able to generate source-map");
+      for source in map.sources_mut() {
+        if source.starts_with("file:") {
+          *source = Url::parse(source)
+            .expect("TODO:")
+            .to_file_path()
+            .expect("TODO:")
+            .display()
+            .to_string();
         }
-        Ok(map)
-      })
-      .transpose()?;
+      }
+      map
+    });
 
     loader_context.content = Some(result.css.into());
     loader_context.source_map = source_map;

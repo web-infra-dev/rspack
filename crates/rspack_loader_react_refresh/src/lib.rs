@@ -1,5 +1,5 @@
 use rspack_core::LoaderRunnerContext;
-use rspack_error::{internal_error, Result};
+use rspack_error::Result;
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 
 pub struct ReactRefreshLoader {
@@ -27,9 +27,7 @@ impl ReactRefreshLoader {
 #[async_trait::async_trait]
 impl Loader<LoaderRunnerContext> for ReactRefreshLoader {
   async fn run(&self, loader_context: &mut LoaderContext<'_, LoaderRunnerContext>) -> Result<()> {
-    let Some(content) = std::mem::take(&mut loader_context.content) else {
-      return Err(internal_error!("Content should be available"));
-    };
+    let content = std::mem::take(&mut loader_context.content).expect("Content should be available");
     let mut source = content.try_into_string()?;
     source += r#"
 function $RefreshSig$() {

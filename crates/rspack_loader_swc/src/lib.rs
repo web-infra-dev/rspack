@@ -11,7 +11,7 @@ use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 use rspack_ast::RspackAst;
 use rspack_core::{rspack_sources::SourceMap, LoaderRunnerContext, Mode};
-use rspack_error::{internal_error, Diagnostic, Result};
+use rspack_error::{Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use rspack_plugin_javascript::ast::{self, SourceMapConfig};
 use rspack_plugin_javascript::TransformOutput;
@@ -47,9 +47,7 @@ pub const SWC_LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 impl Loader<LoaderRunnerContext> for SwcLoader {
   async fn run(&self, loader_context: &mut LoaderContext<'_, LoaderRunnerContext>) -> Result<()> {
     let resource_path = loader_context.resource_path.to_path_buf();
-    let Some(content) = std::mem::take(&mut loader_context.content) else {
-      return Err(internal_error!("Content should be available"));
-    };
+    let content = std::mem::take(&mut loader_context.content).expect("content should be available");
 
     let swc_options = {
       let mut swc_options = self.options_with_additional.swc_options.clone();

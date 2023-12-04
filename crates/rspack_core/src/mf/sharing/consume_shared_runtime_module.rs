@@ -46,10 +46,10 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .clone()
         .expect("should have moduleId at <ConsumeSharedRuntimeModule as RuntimeModule>::generate");
       ids.push(id.clone());
-      if let Ok(code_gen) = compilation
+      if let Some(source) = compilation
         .code_generation_results
         .get(&module, Some(&chunk.runtime))
-        && let Some(source) = code_gen.get(&SourceType::ConsumeShared)
+        .get(&SourceType::ConsumeShared)
       {
         module_id_to_source_mapping.insert(id, source.clone());
       }

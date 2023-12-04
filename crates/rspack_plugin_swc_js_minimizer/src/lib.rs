@@ -18,7 +18,7 @@ use rspack_core::{
   AssetInfo, CompilationAsset, JsChunkHashArgs, Plugin, PluginContext, PluginJsChunkHashHookOutput,
   PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
-use rspack_error::{internal_error, Diagnostic, Result};
+use rspack_error::{Diagnostic, Result};
 use rspack_regex::RspackRegex;
 use rspack_util::try_any_sync;
 use swc_config::config_types::BoolOrDataConfig;
@@ -215,7 +215,7 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
             Ok(r) => r,
             Err(e) => {
               tx.send(e.into())
-                .map_err(|e| internal_error!(e.to_string()))?;
+                .unwrap_or_else(|e| panic!("{}",e.to_string()));
               return Ok(())
             }
           };
@@ -223,7 +223,7 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
             SourceMapSource::new(SourceMapSourceOptions {
               value: output.code,
               name: filename,
-              source_map: SourceMap::from_json(map).map_err(|e| internal_error!(e.to_string()))?,
+              source_map: SourceMap::from_json(map).expect("should be able to generate source-map"),
               original_source: None,
               inner_source_map: input_source_map,
               remove_original_source: true,

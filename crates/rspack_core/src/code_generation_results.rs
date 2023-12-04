@@ -4,7 +4,6 @@ use std::ops::{Deref, DerefMut};
 use std::sync::atomic::AtomicU32;
 
 use anymap::CloneAny;
-use rspack_error::{internal_error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_identifier::IdentifierMap;
 use rspack_sources::BoxSource;
@@ -182,7 +181,7 @@ impl CodeGenerationResults {
     &self,
     module_identifier: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-  ) -> Result<&CodeGenerationResult> {
+  ) -> &CodeGenerationResult {
     if let Some(entry) = self.map.get(module_identifier) {
       if let Some(runtime) = runtime {
         entry
@@ -190,8 +189,8 @@ impl CodeGenerationResults {
           .and_then(|m| {
             self.module_generation_result_map.get(m)
           })
-          .ok_or_else(|| {
-            internal_error!(
+          .unwrap_or_else(|| {
+            panic!(
               "Failed to code generation result for {module_identifier} with runtime {runtime:?} \n {entry:?}"
             )
           })
@@ -199,16 +198,16 @@ impl CodeGenerationResults {
         if entry.size() > 1 {
           let results = entry.get_values();
           if results.len() != 1 {
-            return Err(internal_error!(
+            panic!(
               "No unique code generation entry for unspecified runtime for {module_identifier} ",
-            ));
+            );
           }
 
           return results
             .first()
             .copied()
             .and_then(|m| self.module_generation_result_map.get(m))
-            .ok_or_else(|| internal_error!("Expected value exists"));
+            .unwrap_or_else(|| panic!("Expected value exists"));
         }
 
         entry
@@ -216,14 +215,14 @@ impl CodeGenerationResults {
           .first()
           .copied()
           .and_then(|m| self.module_generation_result_map.get(m))
-          .ok_or_else(|| internal_error!("Expected value exists"))
+          .unwrap_or_else(|| panic!("Expected value exists"))
       }
     } else {
-      Err(internal_error!(
+      panic!(
         "No code generation entry for {} (existing entries: {:?})",
         module_identifier,
         self.map.keys().collect::<Vec<_>>()
-      ))
+      )
     }
   }
 
@@ -250,13 +249,7 @@ impl CodeGenerationResults {
     module_identifier: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
   ) -> RuntimeGlobals {
-    match self.get(module_identifier, runtime) {
-      Ok(result) => result.runtime_requirements,
-      Err(_) => {
-        eprintln!("Failed to get runtime requirements for {module_identifier}");
-        Default::default()
-      }
-    }
+    self.get(module_identifier, runtime).runtime_requirements
   }
 
   #[allow(clippy::unwrap_in_result)]
@@ -265,9 +258,7 @@ impl CodeGenerationResults {
     module_identifier: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
   ) -> Option<&RspackHashDigest> {
-    let code_generation_result = self
-      .get(module_identifier, runtime)
-      .expect("should have code generation result");
+    let code_generation_result = self.get(module_identifier, runtime);
 
     code_generation_result.hash.as_ref()
   }

@@ -140,7 +140,7 @@ impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
       .call(js_loader_context, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call loader: {err}"))??;
+      .unwrap_or_else(|err| panic!("Failed to call loader: {err}"))?;
 
     if let Some(loader_result) = loader_result {
       // This indicate that the JS loaders pitched(return something) successfully
@@ -170,7 +170,7 @@ impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
       .call(js_loader_context, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call loader: {err}"))??;
+      .unwrap_or_else(|err| panic!("Failed to call loader: {err}"))?;
 
     if let Some(loader_result) = loader_result {
       sync_loader_context(loader_result, loader_context)?;

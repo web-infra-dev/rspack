@@ -34,7 +34,7 @@ impl CssPlugin {
         let module_id = &module.identifier();
         let code_gen_result = compilation
           .code_generation_results
-          .get(module_id, Some(&chunk.runtime))?;
+          .get(module_id, Some(&chunk.runtime));
 
         Ok(
           code_gen_result

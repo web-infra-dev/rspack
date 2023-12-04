@@ -131,10 +131,10 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           .boxed(),
         )
       }
-      _ => Err(internal_error!(format!(
+      _ => unreachable!(
         "Unsupported source type {:?} for plugin Json",
         generate_context.requested_source_type,
-      ))),
+      ),
     }
   }
 }
