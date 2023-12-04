@@ -19,4 +19,4 @@ jobs:
         with:
           actions: 'mark-assignees'
           token: ${{ secrets.GITHUB_TOKEN }}
-          assign-command: "/claim"
+          require-permission: "none"
