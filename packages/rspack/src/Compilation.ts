@@ -56,6 +56,7 @@ import { NormalizedJsModule, normalizeJsModule } from "./util/normalization";
 import MergeCaller from "./util/MergeCaller";
 import { Chunk } from "./Chunk";
 import { CodeGenerationResult, Module } from "./Module";
+import { ChunkGraph } from "./ChunkGraph";
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
@@ -138,6 +139,7 @@ export class Compilation {
 	normalModuleFactory?: NormalModuleFactory;
 	children: Compilation[] = [];
 	contextModuleFactory?: ContextModuleFactory;
+	chunkGraph: ChunkGraph;
 	fileSystemInfo = {
 		createSnapshot() {
 			// fake implement to support html-webpack-plugin
@@ -188,6 +190,7 @@ export class Compilation {
 		this.options = compiler.options;
 		this.outputOptions = compiler.options.output;
 		this.logging = new Map();
+		this.chunkGraph = new ChunkGraph(this);
 		this.#inner = inner;
 		// Cache the current NormalModuleHooks
 	}
