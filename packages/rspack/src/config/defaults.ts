@@ -78,7 +78,7 @@ export const applyRspackOptionsDefaults = (
 	const futureDefaults = options.experiments.futureDefaults ?? false;
 	F(options, "cache", () => development);
 
-	applyExperimentsDefaults(options.experiments, {
+	applyExperimentsDefaults(options.experiments, production, {
 		cache: options.cache!
 	});
 
@@ -157,6 +157,7 @@ const applyInfrastructureLoggingDefaults = (
 
 const applyExperimentsDefaults = (
 	experiments: ExperimentsNormalized,
+	production: boolean,
 	{ cache }: { cache: boolean }
 ) => {
 	D(experiments, "lazyCompilation", false);
@@ -182,7 +183,7 @@ const applyExperimentsDefaults = (
 	D(experiments, "rspackFuture", {});
 	if (typeof experiments.rspackFuture === "object") {
 		D(experiments.rspackFuture, "newResolver", true);
-		D(experiments.rspackFuture, "newTreeshaking", false);
+		D(experiments.rspackFuture, "newTreeshaking", production);
 		D(experiments.rspackFuture, "disableTransformByDefault", true);
 	}
 };
