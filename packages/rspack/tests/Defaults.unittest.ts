@@ -105,6 +105,9 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
+		-       "newTreeshaking": false,
+		+       "newTreeshaking": true,
+		@@ ... @@
 		-   "mode": "none",
 		+   "mode": undefined,
 		@@ ... @@
@@ -150,6 +153,9 @@ describe("snapshots", () => {
 		- Expected
 		+ Received
 
+		@@ ... @@
+		-       "newTreeshaking": false,
+		+       "newTreeshaking": true,
 		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "production",
