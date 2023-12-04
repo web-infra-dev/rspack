@@ -1802,7 +1802,7 @@ pub struct AssetInfo {
   /// when asset ships data for updating an existing application (HMR)
   pub hot_module_replacement: bool,
   /// when asset is javascript and an ESM
-  // pub javascript_module:
+  pub javascript_module: Option<bool>,
   /// related object to other assets, keyed by type of relation (only points from parent to child)
   pub related: AssetInfoRelated,
   /// the asset version, emit can be skipped when both filename and version are the same
@@ -1856,6 +1856,10 @@ impl AssetInfo {
 
   pub fn set_source_filename(&mut self, v: String) {
     self.source_filename = Some(v);
+  }
+
+  pub fn set_javascript_module(&mut self, v: bool) {
+    self.javascript_module = Some(v);
   }
 }
 

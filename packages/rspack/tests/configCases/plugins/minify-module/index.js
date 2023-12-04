@@ -1,11 +1,12 @@
-const nodeRequire = require;
-const fs = nodeRequire("node:fs/promises");
-const path = nodeRequire("node:path");
+const fs = require("fs");
+const path = require("path");
 
-["a", "b", "c-cjs", "c-mjs"].forEach(fn => {
-	it(`[${fn}] should minified as module`, async () => {
-		await expect(
-			fs.readFile(path.resolve(__dirname, `./${fn}.js`), "utf8")
-		).resolves.not.toMatch("__webpack_modules__");
-	});
+it("should minify outputModule", async () => {
+	const out = await fs.promises.readFile(
+		path.join(__dirname, "./module.mjs"),
+		"utf-8"
+	);
+	expect(
+		out.startsWith('import*as t from"https://test.rspack.dev/test.js"')
+	).toBe(true);
 });

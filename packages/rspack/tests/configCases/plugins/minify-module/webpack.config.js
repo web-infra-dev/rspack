@@ -1,27 +1,27 @@
 const rspack = require("@rspack/core");
-module.exports = {
-	mode: "production",
-	output: {
-		filename: "[name].js",
-		chunkFormat: "module",
-		chunkLoading: "import"
+module.exports = [
+	{
+		entry: "./index.js",
+		externalsPresets: {
+			node: true
+		}
 	},
-	experiments: { outputModule: true },
-
-	entry: {
-		a: "./a.mjs",
-		b: "./b.cjs",
-		"c-cjs": "./c-cjs.js",
-		"c-mjs": "./c-mjs.js",
-		main: "./index"
-	},
-
-	optimization: {
-		minimize: true,
-		minimizer: [
-			new rspack.SwcJsMinimizerRspackPlugin({
-				exclude: [/(main|index)/]
-			})
-		]
+	{
+		entry: {
+			main: "./module-entry.js",
+			module: "./module.js"
+		},
+		output: {
+			module: true
+		},
+		experiments: {
+			outputModule: true
+		},
+		target: "es2022",
+		externalsPresets: { web: true },
+		optimization: {
+			minimize: true,
+			minimizer: [new rspack.SwcJsMinimizerRspackPlugin()]
+		}
 	}
-};
+];

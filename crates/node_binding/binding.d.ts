@@ -197,10 +197,9 @@ export interface JsAssetInfo {
   development: boolean
   /** when asset ships data for updating an existing application (HMR) */
   hotModuleReplacement: boolean
-  /**
-   * when asset is javascript and an ESM
-   * related object to other assets, keyed by type of relation (only points from parent to child)
-   */
+  /** when asset is javascript and an ESM */
+  javascriptModule?: boolean
+  /** related object to other assets, keyed by type of relation (only points from parent to child) */
   related: JsAssetInfoRelated
 }
 
@@ -1147,6 +1146,7 @@ export interface RawSwcJsMinimizerRspackPluginOptions {
   compress: boolean | string
   mangle: boolean | string
   format: string
+  module?: boolean
   test?: string | RegExp | (string | RegExp)[]
   include?: string | RegExp | (string | RegExp)[]
   exclude?: string | RegExp | (string | RegExp)[]
