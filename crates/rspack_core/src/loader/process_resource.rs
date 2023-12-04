@@ -1,4 +1,4 @@
-use rspack_error::Result;
+use rspack_error::{internal_error, Result};
 use rspack_loader_runner::{Content, LoaderRunnerPlugin, ResourceData};
 
 use crate::SharedPluginDriver;
@@ -25,6 +25,12 @@ impl LoaderRunnerPlugin for LoaderRunnerPluginProcessResource {
       return Ok(result);
     }
 
-    Ok(None)
+    Err(internal_error!(
+      r#"Reading from "{}" is not handled by plugins (Unhandled scheme).
+Rspack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "${}:" URIs."#,
+      resource_data.resource,
+      resource_data.get_scheme()
+    ))
   }
 }

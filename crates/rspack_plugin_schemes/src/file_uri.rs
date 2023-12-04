@@ -1,5 +1,6 @@
 use rspack_core::{
-  Plugin, PluginContext, PluginNormalModuleFactoryResolveForSchemeOutput, ResourceData,
+  Content, Plugin, PluginContext, PluginNormalModuleFactoryResolveForSchemeOutput,
+  PluginReadResourceOutput, ResourceData,
 };
 use rspack_error::internal_error;
 use url::Url;
@@ -37,5 +38,13 @@ impl Plugin for FileUriPlugin {
       ));
     }
     Ok((resource_data, false))
+  }
+
+  async fn read_resource(&self, resource_data: &ResourceData) -> PluginReadResourceOutput {
+    if resource_data.get_scheme().is_none() {
+      let result = tokio::fs::read(&resource_data.resource_path).await?;
+      return Ok(Some(Content::from(result)));
+    }
+    Ok(None)
   }
 }

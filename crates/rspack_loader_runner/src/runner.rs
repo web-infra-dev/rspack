@@ -231,20 +231,7 @@ async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) ->
       loader_context.content = Some(processed_resource);
     }
   }
-
-  if loader_context.content.is_none() {
-    let result = tokio::fs::read(&loader_context.__resource_data.resource_path)
-      .await
-      .map_err(|e| {
-        let r = loader_context
-          .__resource_data
-          .resource_path
-          .to_string_lossy()
-          .to_string();
-        internal_error!("{e}, failed to read {r}")
-      })?;
-    loader_context.content = Some(Content::from(result));
-  }
+  assert!(loader_context.content.is_some());
 
   // Bail out if loader does not exist,
   // or the last loader has been executed.

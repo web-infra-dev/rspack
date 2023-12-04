@@ -3104,6 +3104,7 @@ dependencies = [
  "rspack_base64",
  "rspack_core",
  "rspack_error",
+ "tokio",
  "url",
  "urlencoding",
 ]
