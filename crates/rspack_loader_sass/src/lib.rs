@@ -473,16 +473,16 @@ impl Loader<LoaderRunnerContext> for SassLoader {
     let sass_options = self.get_sass_options(loader_context, content.try_into_string()?, logger);
     let result = Sass::new(&self.options.__exe_path)
       .map_err(|e| {
-        rspack_error::Error::InternalError(InternalError {
-          severity: Severity::Error,
-          error_message: format!(
+        rspack_error::Error::InternalError(InternalError::new(
+          format!(
             "{}: The dart-sass-embedded path is {}, your OS is {}, your Arch is {}",
             e.message(),
             &self.options.__exe_path.display(),
             get_os(),
             get_arch(),
           ),
-        })
+          Severity::Error,
+        ))
       })?
       .render(sass_options)
       .map_err(sass_exception_to_error)?;
