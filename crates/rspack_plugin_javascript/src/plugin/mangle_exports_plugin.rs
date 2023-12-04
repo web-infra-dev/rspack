@@ -197,33 +197,42 @@ fn mangle_exports_info(
         .set_used_name(name.into());
     }
   } else {
-    // let mut used_exports = Vec::new();
-    // let mut unused_exports = Vec::new();
-    //
-    // for export_info in mangleable_exports {
-    //   if export_info.get_used(None) == UsageState::Unused {
-    //     unused_exports.push(export_info);
-    //   } else {
-    //     used_exports.push(export_info);
-    //   }
-    // }
-    //
-    // used_exports.sort_by(compare_strings_numeric);
-    // unused_exports.sort_by(compare_strings_numeric);
-    //
-    // let mut i = 0;
-    // for list in vec![used_exports, unused_exports] {
-    //   for mut export_info in list {
-    //     let name;
-    //     loop {
-    //       name = number_to_identifier(i);
-    //       if !used_names.contains(name) {
-    //         break;
-    //       }
-    //       i += 1;
-    //     }
-    //     export_info.set_used_name(Some(name));
-    //   }
-    // }
+    let mut used_exports = Vec::new();
+    let mut unused_exports = Vec::new();
+
+    for export_info in mangleable_exports {
+      // TODO: runtime opt
+      if export_info.get_used(mg, None) == UsageState::Unused {
+        unused_exports.push(export_info);
+      } else {
+        used_exports.push(export_info);
+      }
+    }
+
+    used_exports.sort_by(|a, b| {
+      let export_info_a = a.get_export_info(mg);
+      let export_info_b = b.get_export_info(mg);
+      compare_strings_numeric(export_info_a, export_info_b)
+    });
+    unused_exports.sort_by(|a, b| {
+      let export_info_a = a.get_export_info(mg);
+      let export_info_b = b.get_export_info(mg);
+      compare_strings_numeric(export_info_a, export_info_b)
+    });
+
+    let mut i = 0;
+    for list in [used_exports, unused_exports] {
+      for export_info_id in list {
+        let mut name;
+        loop {
+          name = number_to_identifier(i);
+          if !used_names.contains(&name) {
+            break;
+          }
+          i += 1;
+        }
+        export_info_id.set_used_name(mg, name.into());
+      }
+    }
   }
 }

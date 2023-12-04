@@ -1,11 +1,8 @@
 use rspack_core::{
-  AsContextDependency, AsDependencyTemplate, AsModuleDependency, Dependency, DependencyCategory,
-  DependencyId, DependencyType, ErrorSpan, ExportNameOrSpec, ExportsOfExportsSpec,
-  ExtendedReferencedExport, ModuleDependency, ModuleGraph, RuntimeSpec,
+  AsContextDependency, AsDependencyTemplate, AsModuleDependency, Dependency, DependencyId,
+  DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ModuleGraph,
 };
 use swc_core::ecma::atoms::JsWord;
-
-use crate::WasmNode;
 
 #[derive(Debug, Clone)]
 pub struct StaticExportsDependency {

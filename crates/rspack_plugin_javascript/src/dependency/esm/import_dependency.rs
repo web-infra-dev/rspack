@@ -1,7 +1,4 @@
-use rspack_core::{
-  create_exports_object_referenced, create_no_exports_referenced, module_namespace_promise,
-  DependencyType, ErrorSpan, ImportDependencyTrait,
-};
+use rspack_core::{module_namespace_promise, DependencyType, ErrorSpan, ImportDependencyTrait};
 use rspack_core::{AsContextDependency, Dependency};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
 use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
