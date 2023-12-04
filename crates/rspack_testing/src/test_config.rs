@@ -530,6 +530,8 @@ impl TestConfig {
       );
     }
 
+    plugins.push(rspack_plugin_schemes::FileUriPlugin.boxed());
+
     if self.optimization.module_ids == "named" {
       plugins.push(rspack_ids::NamedModuleIdsPlugin::default().boxed());
     } else {
