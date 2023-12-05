@@ -1,0 +1,10 @@
+require("./cjs");
+require("./cjs1");
+require("./cjs2");
+require("./cjs3");
+require("./cjs4");
+require("./esm1");
+require("./esm2");
+require("./esm3");
+require("./esm4");
+require("./esm5");

@@ -173,23 +173,24 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
             )));
         }
 
-        assign_expr.right.visit_children_with(self);
-        return;
-      }
-      if self.is_exports_or_module_exports_or_this_expr(expr) {
-        self.enable();
+        if self.is_exports_or_module_exports_or_this_expr(expr) {
+          self.enable();
 
-        if is_require_call_expr(&assign_expr.right, self.unresolved_ctxt) {
-          // exports = require('xx');
-          // module.exports = require('xx');
-          // this = require('xx');
-          // It's possible to reexport __esModule, so we must convert to a dynamic module
-          self.set_dynamic();
-        } else {
-          // exports = {};
-          // module.exports = {};
-          // this = {};
-          self.bailout();
+          if is_require_call_expr(&assign_expr.right, self.unresolved_ctxt) {
+            // exports = require('xx');
+            // module.exports = require('xx');
+            // this = require('xx');
+            // It's possible to reexport __esModule, so we must convert to a dynamic module
+            self.set_dynamic();
+          } else {
+            // exports = {};
+            // module.exports = {};
+            // this = {};
+            self.bailout();
+            if expr_matcher::is_module_exports(expr) {
+              assign_expr.left.visit_children_with(self);
+            }
+          }
         }
         assign_expr.right.visit_children_with(self);
         return;
