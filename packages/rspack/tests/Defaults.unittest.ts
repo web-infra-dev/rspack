@@ -109,7 +109,9 @@ describe("snapshots", () => {
 		+   "mode": undefined,
 		@@ ... @@
 		-     "innerGraph": false,
+		-     "mangleExports": false,
 		+     "innerGraph": true,
+		+     "mangleExports": true,
 		@@ ... @@
 		-     "minimize": false,
 		+     "minimize": true,
@@ -153,7 +155,9 @@ describe("snapshots", () => {
 		+   "mode": "production",
 		@@ ... @@
 		-     "innerGraph": false,
+		-     "mangleExports": false,
 		+     "innerGraph": true,
+		+     "mangleExports": true,
 		@@ ... @@
 		-     "minimize": false,
 		+     "minimize": true,

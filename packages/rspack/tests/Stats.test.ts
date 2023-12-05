@@ -149,6 +149,7 @@ describe("Stats", () => {
 		<t> optimize: X ms
 		<t> module ids: X ms
 		<t> chunk ids: X ms
+		<t> optimize code generation: X ms
 		<t> code generation: X ms
 		<t> runtime requirements.modules: X ms
 		<t> runtime requirements.chunks: X ms

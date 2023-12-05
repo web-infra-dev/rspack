@@ -138,8 +138,8 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       .module_graph_module_by_dependency_id(&self.id)
       .expect("should have ref module");
 
-    let is_new_tree_shaking = compilation.options.is_new_tree_shaking();
-    if is_new_tree_shaking {
+    let is_new_treeshaking = compilation.options.is_new_tree_shaking();
+    if is_new_treeshaking {
       let connection = compilation.module_graph.connection_by_dependency(&self.id);
       let is_target_active = if let Some(con) = connection {
         // TODO: runtime opt
@@ -172,7 +172,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     let import_var = get_import_var(&compilation.module_graph, self.id);
 
     // TODO: scope hoist
-    if is_new_tree_shaking {
+    if is_new_treeshaking {
       harmony_import_dependency_apply(
         self,
         self.source_order,
@@ -189,7 +189,6 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       self.call,
       !self.direct_import,
     );
-    // dbg!(&export_expr);
     if self.shorthand {
       source.insert(self.end, format!(": {export_expr}").as_str(), None);
     } else {

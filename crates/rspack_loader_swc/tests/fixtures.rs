@@ -91,6 +91,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           provided_exports: Default::default(),
           used_exports: Default::default(),
           inner_graph: Default::default(),
+          mangle_exports: Default::default(),
         },
         profile: false,
       }),

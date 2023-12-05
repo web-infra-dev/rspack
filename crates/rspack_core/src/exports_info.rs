@@ -343,6 +343,7 @@ impl ExportsInfoId {
     )
   }
 
+  /// `Option<UsedName>` correspond to webpack `string | string[] | false`
   pub fn get_used_name(
     &self,
     mg: &ModuleGraph,
@@ -354,9 +355,42 @@ impl ExportsInfoId {
         let info = self.get_read_only_export_info(&name, mg);
         info.get_used_name(&name, runtime).map(UsedName::Str)
       }
-      UsedName::Vec(_) => {
-        // TODO
-        Some(name.clone())
+      UsedName::Vec(names) => {
+        if names.is_empty() {
+          if !self.is_used(runtime, mg) {
+            return None;
+          }
+          return Some(UsedName::Vec(names));
+        }
+        let export_info = self.get_read_only_export_info(&names[0], mg);
+        let x = export_info.get_used_name(&names[0], runtime);
+        let Some(x) = x else {
+          return None;
+        };
+        let names_len = names.len();
+        let mut arr = if x == names[0] && names.len() == 1 {
+          names.clone()
+        } else {
+          vec![x]
+        };
+        if names_len == 1 {
+          return Some(UsedName::Vec(arr));
+        }
+        if let Some(exports_info) = export_info.exports_info
+          && export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed
+        {
+          let nested = exports_info.get_used_name(mg, runtime, UsedName::Vec(names[1..].to_vec()));
+          let Some(nested) = nested else {
+            return None;
+          };
+          arr.extend(match nested {
+            UsedName::Str(name) => vec![name],
+            UsedName::Vec(names) => names,
+          });
+          return Some(UsedName::Vec(arr));
+        }
+        arr.extend(names.into_iter().skip(1));
+        Some(UsedName::Vec(arr))
       }
     }
   }
@@ -567,6 +601,15 @@ impl ExportInfoId {
     mg.get_export_info_by_id(self)
   }
 
+  pub fn get_export_info_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ExportInfo {
+    mg.get_export_info_mut_by_id(self)
+  }
+
+  // facade of `ExportInfo.get_used`
+  pub fn get_used(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> UsageState {
+    self.get_export_info(mg).get_used(runtime)
+  }
+
   fn set_has_use_info(&self, mg: &mut ModuleGraph) {
     let export_info = mg.get_export_info_mut_by_id(self);
     if !export_info.has_use_in_runtime_info {
@@ -713,6 +756,10 @@ impl ExportInfoId {
     }
     changed
   }
+
+  pub fn set_used_name(&self, mg: &mut ModuleGraph, name: JsWord) {
+    mg.get_export_info_mut_by_id(self).set_used_name(name)
+  }
 }
 impl Default for ExportInfoId {
   fn default() -> Self {
@@ -737,11 +784,11 @@ impl From<u32> for ExportInfoId {
 #[derive(Debug, Clone, Default)]
 #[allow(unused)]
 pub struct ExportInfo {
-  // the name could be `null` you could refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ExportsInfo.js#L78
+  // the name could be `null` you could refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad4153d/lib/ExportsInfo.js#L78
   pub name: Option<JsWord>,
   module_identifier: Option<ModuleIdentifier>,
   pub usage_state: UsageState,
-  /// this is mangled name,https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ExportsInfo.js#L1181-L1188
+  /// this is mangled name, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ExportsInfo.js#L1181-L1188
   used_name: Option<JsWord>,
   pub target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
   max_target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
@@ -827,15 +874,20 @@ impl ExportInfo {
     usage_state: UsageState,
     init_from: Option<&ExportInfo>,
   ) -> Self {
-    let has_use_in_runtime_info = if let Some(init_from) = init_from {
-      init_from.has_use_in_runtime_info
-    } else {
-      false
-    };
-
-    let can_mangle_use = init_from.and_then(|init_from| init_from.can_mangle_use);
+    let used_name = init_from.and_then(|init_from| init_from.used_name.clone());
+    let global_used = init_from.and_then(|init_from| init_from.global_used);
     let used_in_runtime = init_from.and_then(|init_from| init_from.used_in_runtime.clone());
+    let has_use_in_runtime_info = init_from
+      .map(|init_from| init_from.has_use_in_runtime_info)
+      .unwrap_or(false);
+
     let provided = init_from.and_then(|init_from| init_from.provided);
+    let terminal_binding = init_from
+      .map(|init_from| init_from.terminal_binding)
+      .unwrap_or(false);
+    let can_mangle_provide = init_from.and_then(|init_from| init_from.can_mangle_provide);
+    let can_mangle_use = init_from.and_then(|init_from| init_from.can_mangle_use);
+
     let target = init_from
       .and_then(|item| {
         if item.target_is_set {
@@ -871,12 +923,12 @@ impl ExportInfo {
       name,
       module_identifier: None,
       usage_state,
-      used_name: None,
+      used_name,
       used_in_runtime,
       target,
       provided,
-      can_mangle_provide: None,
-      terminal_binding: false,
+      can_mangle_provide,
+      terminal_binding,
       target_is_set,
       max_target_is_set: false,
       id: ExportInfoId::new(),
@@ -885,10 +937,23 @@ impl ExportInfo {
       exports_info_owned: false,
       has_use_in_runtime_info,
       can_mangle_use,
-      global_used: None,
+      global_used,
     }
   }
 
+  pub fn can_mangle(&self) -> Option<bool> {
+    match self.can_mangle_provide {
+      Some(true) => self.can_mangle_use,
+      Some(false) => Some(false),
+      None => {
+        if self.can_mangle_use == Some(false) {
+          Some(false)
+        } else {
+          None
+        }
+      }
+    }
+  }
   pub fn get_used(&self, _runtime: Option<&RuntimeSpec>) -> UsageState {
     if !self.has_use_in_runtime_info {
       return UsageState::NoInfo;
@@ -1224,6 +1289,14 @@ impl ExportInfo {
       exports_info.set_redirect_name_to(mg, Some(new_exports_info_id));
     }
     new_exports_info_id
+  }
+
+  pub fn has_used_name(&self) -> bool {
+    self.used_name.is_some()
+  }
+
+  pub fn set_used_name(&mut self, name: JsWord) {
+    self.used_name = Some(name);
   }
 }
 

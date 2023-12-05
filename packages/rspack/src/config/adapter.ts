@@ -716,7 +716,8 @@ function getRawOptimization(
 		realContentHash: optimization.realContentHash,
 		usedExports: String(optimization.usedExports),
 		providedExports: optimization.providedExports,
-		innerGraph: optimization.innerGraph
+		innerGraph: optimization.innerGraph,
+		mangleExports: String(optimization.mangleExports)
 	};
 }
 

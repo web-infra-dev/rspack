@@ -23,6 +23,11 @@ pub fn export_from_import(
     module,
     ..
   } = code_generatable_context;
+  let module_identifier = *compilation
+    .module_graph
+    .module_identifier_by_dependency_id(id)
+    .expect("should have module identifier");
+  let is_new_treeshaking = compilation.options.is_new_tree_shaking();
 
   let exports_type = get_exports_type(&compilation.module_graph, id, &module.identifier());
 
@@ -79,8 +84,30 @@ pub fn export_from_import(
   }
 
   if !export_name.is_empty() {
-    // TODO check used
-    let property = property_access(&export_name, 0);
+    let used_name = if is_new_treeshaking {
+      let exports_info_id = compilation
+        .module_graph
+        .get_exports_info(&module_identifier)
+        .id;
+      // TODO: runtime opt
+      let used = exports_info_id.get_used_name(
+        &compilation.module_graph,
+        None,
+        crate::UsedName::Vec(export_name),
+      );
+      if let Some(used) = used {
+        match used {
+          crate::UsedName::Str(str) => vec![str],
+          crate::UsedName::Vec(strs) => strs,
+        }
+      } else {
+        // TODO: add some unused comments, part of runtime alignments
+        return "".to_string();
+      }
+    } else {
+      export_name
+    };
+    let property = property_access(&used_name, 0);
     if is_call && !call_context {
       format!("(0, {import_var}{property})")
     } else {

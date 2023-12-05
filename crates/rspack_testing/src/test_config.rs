@@ -128,6 +128,8 @@ pub struct Optimization {
   #[serde(default = "true_by_default")]
   pub inner_graph: bool,
   #[serde(default = "default_optimization_false_string_lit")]
+  pub mangle_exports: String,
+  #[serde(default = "default_optimization_false_string_lit")]
   pub used_exports: String,
 }
 
@@ -447,6 +449,7 @@ impl TestConfig {
         provided_exports: self.optimization.provided_exports,
         inner_graph: self.optimization.inner_graph,
         used_exports: c::UsedExportsOption::from(self.optimization.used_exports.as_str()),
+        mangle_exports: c::MangleExportsOption::from(self.optimization.mangle_exports.as_str()),
       },
       profile: false,
     };
