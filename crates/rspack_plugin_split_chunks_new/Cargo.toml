@@ -11,6 +11,7 @@ version    = "0.1.0"
 rspack_core       = { path = "../rspack_core" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_regex      = { path = "../rspack_regex" }
+rspack_util       = { path = "../rspack_util" }
 
 async-scoped = { workspace = true, features = ["use-tokio"] }
 async-trait  = { workspace = true }
@@ -18,8 +19,6 @@ dashmap      = { workspace = true }
 derivative   = { workspace = true }
 futures      = { workspace = true }
 futures-util = { workspace = true }
-num-bigint   = "0.4.4"
 rayon        = { workspace = true }
-rspack_util  = { path = "../rspack_util" }
 rustc-hash   = { workspace = true }
 tracing      = { workspace = true }

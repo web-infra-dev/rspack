@@ -3132,7 +3132,6 @@ dependencies = [
  "derivative",
  "futures",
  "futures-util",
- "num-bigint",
  "rayon",
  "rspack_core",
  "rspack_identifier",
