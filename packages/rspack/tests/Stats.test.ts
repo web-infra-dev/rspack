@@ -59,27 +59,23 @@ describe("Stats", () => {
 			stats?.toString({ timings: false, version: false }).replace(/\\/g, "/")
 		).toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 419 bytes [emitted] (name: main)
-		Entrypoint main 419 bytes = main.js
+		asset main.js 464 bytes [emitted] (name: main)
+		Entrypoint main 464 bytes = main.js
 		./fixtures/a.js
 		./fixtures/b.js
 		./fixtures/c.js
 		./fixtures/abc.js
 
-		error[javascript]: JavaScript parsing error
-		  ┌─ tests/fixtures/b.js:6:1
-		  │
-		2 │     return "This is b";
-		3 │ };
-		4 │ 
-		5 │ // Test CJS top-level return
-		6 │ return;
-		  │ ^^^^^^^ Return statement is not allowed here
-		7 │ 
+		  × Error[javascript]: JavaScript parsing error
+		   ╭─[tests/fixtures/b.js:5:1]
+		 5 │ // Test CJS top-level return
+		 6 │ return;
+		   · ───┬───
+		   ·    ╰── Return statement is not allowed here
+		   ╰────
 
 
-
-		Rspack compiled with 1 error (b5e049b7786f599663d7)"
+		Rspack compiled with 1 error (2c44ec5d4a90e5735903)"
 	`);
 	});
 
@@ -254,7 +250,8 @@ describe("Stats", () => {
 				}
 			);
 		});
-		expect(stats).toContain("module build cache: 100.0% (4/4)");
+		// Module cache has been disabled, see https://github.com/web-infra-dev/rspack/pull/4892
+		// expect(stats).toContain("module build cache: 100.0% (4/4)");
 		expect(stats).toContain("module factorize cache: 100.0% (5/5)");
 		expect(stats).toContain("module code generation cache: 100.0% (4/4)");
 	});
@@ -330,7 +327,8 @@ describe("Stats", () => {
 				}
 			);
 		});
-		expect(stats).toContain("module build cache: 100.0% (1/1)");
+		// Module cache has been disabled, see https://github.com/web-infra-dev/rspack/pull/4892
+		// expect(stats).toContain("module build cache: 100.0% (1/1)");
 		expect(stats).toContain("module factorize cache: 100.0% (1/1)");
 		expect(stats).toContain("module code generation cache: 100.0% (4/4)");
 	});

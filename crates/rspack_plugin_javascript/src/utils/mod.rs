@@ -117,7 +117,7 @@ pub fn ecma_parse_error_to_rspack_error(
     message,
   )
   .with_kind(diagnostic_kind);
-  Error::TraceableError(traceable_error)
+  traceable_error.into()
 }
 
 pub fn join_jsword(arr: &[JsWord], separator: &str) -> String {

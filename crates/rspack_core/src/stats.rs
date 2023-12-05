@@ -302,9 +302,15 @@ impl Stats<'_> {
       .compilation
       .get_errors()
       .map(|d| StatsError {
-        title: d.title.clone(),
-        message: d.message.clone(),
-        formatted: diagnostic_displayer.emit_diagnostic(d).expect("TODO:"),
+        title: d.title().to_string(),
+        message: format!(
+          "{message}\n{labels}",
+          message = d.message(),
+          labels = d.labels_string().unwrap_or_default()
+        ),
+        formatted: diagnostic_displayer
+          .emit_diagnostic(d)
+          .expect("should print diagnostics"),
       })
       .collect()
   }
@@ -315,8 +321,14 @@ impl Stats<'_> {
       .compilation
       .get_warnings()
       .map(|d| StatsWarning {
-        message: d.message.clone(),
-        formatted: diagnostic_displayer.emit_diagnostic(d).expect("TODO:"),
+        message: format!(
+          "{message}\n{labels}",
+          message = d.message(),
+          labels = d.labels_string().unwrap_or_default()
+        ),
+        formatted: diagnostic_displayer
+          .emit_diagnostic(d)
+          .expect("should print diagnostics"),
       })
       .collect()
   }

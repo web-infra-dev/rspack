@@ -1067,10 +1067,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                   })
                   .collect::<Vec<_>>();
                 error_message += &join_string_component(module_identifier_list);
-                errors.push(Error::InternalError(InternalError::new(
-                  error_message,
-                  Severity::Warn,
-                )));
+                errors.push(InternalError::new(error_message, Severity::Warn).into());
                 ret[0].1.clone()
               }
             };
@@ -1101,10 +1098,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                 .normal_module_source_path_by_identifier(&star_symbol.src());
               if let Some(module_path) = module_path {
                 let error_message = format!("Can't get analyze result of {module_path}");
-                errors.push(Error::InternalError(InternalError::new(
-                  error_message,
-                  Severity::Warn,
-                )));
+                errors.push(InternalError::new(error_message, Severity::Warn).into());
               }
             }
             return;

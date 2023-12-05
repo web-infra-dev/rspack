@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
-use anyhow::anyhow;
 use itertools::Itertools;
-use rspack_error::{internal_error, Result};
+use rspack_error::{internal_error, Error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
@@ -145,7 +144,7 @@ impl<'me> CodeSplitter<'me> {
         compilation
           .chunk_group_by_ukey
           .get(&ukey)
-          .ok_or_else(|| anyhow::format_err!("no chunk group found"))?
+          .ok_or_else(|| internal_error!("no chunk group found"))?
       };
 
       for module_identifier in module_identifiers {
@@ -206,12 +205,12 @@ impl<'me> CodeSplitter<'me> {
         let ukey = compilation
           .entrypoints
           .get(name)
-          .ok_or_else(|| anyhow!("no entrypoints found"))?;
+          .ok_or_else(|| internal_error!("no entrypoints found"))?;
 
         let entry_point = compilation
           .chunk_group_by_ukey
           .get_mut(ukey)
-          .ok_or_else(|| anyhow!("no chunk group found"))?;
+          .ok_or_else(|| internal_error!("no chunk group found"))?;
 
         let chunk = match compilation.named_chunks.get(runtime) {
           Some(ukey) => {
@@ -230,7 +229,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             compilation
               .chunk_by_ukey
               .get_mut(ukey)
-              .ok_or_else(|| anyhow!("no chunk found"))?
+              .ok_or_else(|| internal_error!("no chunk found"))?
           }
           None => {
             let chunk_ukey = Compilation::add_named_chunk(
@@ -254,7 +253,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     if let Some(err) = runtime_error {
-      compilation.push_batch_diagnostic(err.into());
+      compilation.push_diagnostic(err.into());
     }
     Ok(input_entrypoints_and_modules)
   }
@@ -271,7 +270,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .compilation
         .chunk_group_by_ukey
         .get_mut(&chunk_group)
-        .ok_or_else(|| anyhow::format_err!("no chunk group found"))?;
+        .ok_or_else(|| internal_error!("no chunk group found"))?;
 
       self.next_chunk_group_index += 1;
       chunk_group.index = Some(self.next_chunk_group_index);
@@ -673,11 +672,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             .expect_get(cgi)
             .is_initial()
           {
-            let error = AsyncDependenciesToInitialChunkError {
-              chunk_name,
-              loc: block.loc(),
-            };
-            self.compilation.push_diagnostic(error.into());
+            let error = AsyncDependenciesToInitialChunkError(
+              chunk_name.to_string(),
+              block.loc().map(ToOwned::to_owned),
+            );
+            self.compilation.push_diagnostic(Error::from(error).into());
             res = item_chunk_group_ukey;
           }
 

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_ast::javascript::Ast;
 use rspack_core::ModuleType;
-use rspack_error::Error;
+use rspack_error::BatchErrors;
 use swc_core::common::comments::Comments;
 use swc_core::common::{FileName, SourceFile};
 use swc_core::ecma::ast::{self, EsVersion, Program};
@@ -68,7 +68,7 @@ pub fn parse(
   syntax: Syntax,
   filename: &str,
   module_type: &ModuleType,
-) -> Result<Ast, Error> {
+) -> Result<Ast, BatchErrors> {
   let source_code = if syntax.dts() {
     // dts build result must be empty
     "".to_string()
@@ -88,7 +88,7 @@ pub fn parse(
     Some(&comments),
   ) {
     Ok(program) => Ok(Ast::new(program, cm, Some(comments))),
-    Err(errs) => Err(Error::BatchErrors(
+    Err(errs) => Err(BatchErrors(
       errs
         .into_iter()
         .map(|err| ecma_parse_error_to_rspack_error(err, &fm, module_type))

@@ -315,8 +315,8 @@ impl JsCompilation {
   #[napi(ts_args_type = r#"severity: "error" | "warning", title: string, message: string"#)]
   pub fn push_diagnostic(&mut self, severity: String, title: String, message: String) {
     let diagnostic = match severity.as_str() {
-      "warning" => rspack_error::Diagnostic::warn(title, message, 0, 0),
-      _ => rspack_error::Diagnostic::error(title, message, 0, 0),
+      "warning" => rspack_error::Diagnostic::warn(title, message),
+      _ => rspack_error::Diagnostic::error(title, message),
     };
     self.inner.push_diagnostic(diagnostic);
   }

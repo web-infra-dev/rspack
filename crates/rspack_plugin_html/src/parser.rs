@@ -1,6 +1,6 @@
 use rspack_core::ErrorSpan;
 use rspack_error::{
-  Diagnostic, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+  internal_error, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
 use swc_core::common::{sync::Lrc, FileName, FilePathMapping, SourceFile, SourceMap, GLOBALS};
 use swc_html::{
@@ -33,14 +33,14 @@ impl<'a> HtmlCompiler<'a> {
     let document = parse_file_as_document(fm.as_ref(), ParserConfig::default(), &mut errors);
     let diagnostics: Vec<rspack_error::Diagnostic> = errors
       .into_iter()
-      .flat_map(|error| <Vec<Diagnostic>>::from(html_parse_error_to_traceable_error(error, &fm)))
+      .flat_map(|error| vec![html_parse_error_to_traceable_error(error, &fm).into()])
       .collect();
     document
       .map(|doc| doc.with_diagnostic(diagnostics))
       .map_err(|e| html_parse_error_to_traceable_error(e, &fm))
   }
 
-  pub fn codegen(&self, ast: &mut Document) -> anyhow::Result<String> {
+  pub fn codegen(&self, ast: &mut Document) -> Result<String> {
     let writer_config = BasicHtmlWriterConfig::default();
     let codegen_config = CodegenConfig {
       minify: self.config.minify,
@@ -57,7 +57,7 @@ impl<'a> HtmlCompiler<'a> {
     let wr = BasicHtmlWriter::new(&mut output, None, writer_config);
     let mut gen = CodeGenerator::new(wr, codegen_config);
 
-    gen.emit(ast).map_err(|e| anyhow::format_err!(e))?;
+    gen.emit(ast).map_err(|e| internal_error!(e.to_string()))?;
     Ok(output)
   }
 }
@@ -75,5 +75,5 @@ pub fn html_parse_error_to_traceable_error(error: Error, fm: &SourceFile) -> rsp
   )
   .with_kind(DiagnosticKind::Html);
   //Use this `Error` conversion could avoid eagerly clone source file.
-  rspack_error::Error::TraceableError(traceable_error)
+  traceable_error.into()
 }

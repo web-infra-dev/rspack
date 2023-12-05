@@ -4,12 +4,12 @@ use std::cmp::{self, Reverse};
 use std::hash::Hash;
 use std::str::FromStr;
 
-use anyhow::bail;
 use bitflags::bitflags;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::Filename;
 use rspack_core::{Chunk, ChunkGraph, Compilation, Module, ModuleGraph, PathData, SourceType};
+use rspack_error::internal_error_bail;
 use rspack_identifier::IdentifierSet;
 
 static ESCAPE_LOCAL_IDENT_REGEX: Lazy<Regex> =
@@ -78,7 +78,7 @@ impl LocalsConvention {
 }
 
 impl FromStr for LocalsConvention {
-  type Err = anyhow::Error;
+  type Err = rspack_error::Error;
 
   fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
     Ok(match s {
@@ -87,7 +87,7 @@ impl FromStr for LocalsConvention {
       "camelCaseOnly" => Self(LocalsConventionFlags::CAMELCASE),
       "dashes" => Self(LocalsConventionFlags::ASIS | LocalsConventionFlags::DASHES),
       "dashesOnly" => Self(LocalsConventionFlags::DASHES),
-      _ => bail!("css modules exportsLocalsConvention error"),
+      _ => internal_error_bail!("css modules exportsLocalsConvention error"),
     })
   }
 }

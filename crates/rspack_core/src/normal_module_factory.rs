@@ -357,8 +357,7 @@ impl NormalModuleFactory {
           let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
           let mut file_dependencies = Default::default();
           let mut missing_dependencies = Default::default();
-          let diagnostics: Vec<Diagnostic> = internal_error.into();
-          let mut diagnostic = diagnostics[0].clone();
+          let diagnostics: Vec<Diagnostic> = vec![internal_error.into()];
           let mut from_cache_result = from_cache;
           if !data
             .resolve_options
@@ -396,16 +395,16 @@ impl NormalModuleFactory {
             if let Ok(ResolveResult::Resource(resource)) = resource_data {
               // TODO: Here windows resolver will return normalized path.
               // eg. D:\a\rspack\rspack\packages\rspack\tests\fixtures\errors\resolve-fail-esm\answer.js
-              if let Some(extension) = resource.path.extension() {
-                let resource = format!(
-                  "{request_without_match_resource}.{}",
-                  extension.to_string_lossy()
-                );
-                diagnostic = diagnostic.with_notes(vec![format!("Did you mean '{resource}'?
-  BREAKING CHANGE: The request '{request_without_match_resource}' failed to resolve only because it was resolved as fully specified
-  (probably because the origin is strict EcmaScript Module, e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\"type\": \"module\"').
-  The extension in the request is mandatory for it to be fully specified.
-  Add the extension to the request.")]);
+              if let Some(_extension) = resource.path.extension() {
+                // let resource = format!(
+                //   "{request_without_match_resource}.{}",
+                //   extension.to_string_lossy()
+                // );
+                // diagnostics[0].add_notes(vec![format!("Did you mean '{resource}'?
+                // BREAKING CHANGE: The request '{request_without_match_resource}' failed to resolve only because it was resolved as fully specified
+                // (probably because the origin is strict EcmaScript Module, e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\"type\": \"module\"').
+                // The extension in the request is mandatory for it to be fully specified.
+                // Add the extension to the request.")]);
               }
             }
           }
@@ -418,7 +417,7 @@ impl NormalModuleFactory {
           return Ok(Some(
             ModuleFactoryResult::new(missing_module)
               .from_cache(from_cache_result)
-              .with_diagnostic(vec![diagnostic]),
+              .with_diagnostic(diagnostics),
           ));
         }
       }

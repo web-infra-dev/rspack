@@ -9,7 +9,7 @@ use rspack_core::ExternalItemFnCtx;
 use rspack_core::{ExternalItem, ExternalItemFnResult, ExternalItemValue};
 use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use rspack_napi_shared::{JsRegExp, JsRegExpExt, NapiResultExt, NAPI_ENV};
+use rspack_napi_shared::{get_napi_env, JsRegExp, JsRegExpExt, NapiResultExt};
 
 #[napi(object)]
 pub struct RawHttpExternalsRspackPluginOptions {
@@ -92,13 +92,13 @@ impl TryFrom<RawExternalItemWrapper> for ExternalItem {
           .collect(),
       )),
       Either4::D(v) => {
-        let fn_payload: ThreadsafeFunction<RawExternalItemFnCtx, RawExternalItemFnResult> =
-          NAPI_ENV.with(|env| -> anyhow::Result<_> {
-            let env = env.borrow().expect("Failed to get env with external");
-            let fn_payload = rspack_binding_macros::js_fn_into_threadsafe_fn!(v, &Env::from(env));
-            Ok(fn_payload)
-          })?;
-        let fn_payload = Arc::new(fn_payload);
+        let fn_payload: napi::Result<
+          ThreadsafeFunction<RawExternalItemFnCtx, RawExternalItemFnResult>,
+        > = try {
+          let env = get_napi_env();
+          rspack_binding_macros::js_fn_into_threadsafe_fn!(v, &Env::from(env))
+        };
+        let fn_payload = Arc::new(fn_payload.expect("convert to threadsafe function failed"));
         Ok(Self::Fn(Box::new(move |ctx: ExternalItemFnCtx| {
           let fn_payload = fn_payload.clone();
           Box::pin(async move {

@@ -4,9 +4,11 @@
 mod catch_unwind;
 mod diagnostic;
 mod error;
+mod ext;
 pub use catch_unwind::*;
 pub use diagnostic::*;
 pub use error::*;
+pub use ext::*;
 pub mod emitter;
 
 mod macros;
@@ -14,7 +16,9 @@ mod macros;
 pub use miette;
 pub use thiserror;
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Error = miette::Error;
+
+pub type Result<T> = std::result::Result<T, miette::Error>;
 
 /// A helper struct for change logic from
 /// return something to something with diagnostics array
@@ -84,7 +88,9 @@ impl<T: Sized + std::fmt::Debug> IntoTWithDiagnosticArray for T {
 pub mod __private {
   pub use core::result::Result::Err;
 
+  pub use miette::miette;
+
   pub use crate::diagnostic::Severity;
-  pub use crate::error::{Error, InternalError};
+  pub use crate::error::InternalError;
   pub use crate::internal_error;
 }

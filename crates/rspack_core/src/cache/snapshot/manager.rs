@@ -5,7 +5,7 @@ use std::{
 };
 
 use dashmap::{DashMap, DashSet};
-use rspack_error::Result;
+use rspack_error::{miette::IntoDiagnostic, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHasher};
 
 use super::Snapshot;
@@ -59,15 +59,15 @@ impl SnapshotManager {
           Some(hash) => *hash,
           None => {
             let res = if path.is_dir() {
-              let dir = &mut tokio::fs::read_dir(path).await?;
+              let dir = &mut tokio::fs::read_dir(path).await.into_diagnostic()?;
               let mut sub_files = vec![];
-              while let Some(entry) = dir.next_entry().await? {
+              while let Some(entry) = dir.next_entry().await.into_diagnostic()? {
                 let dir_u8 = entry.path().as_os_str().to_string_lossy().to_string();
                 sub_files.push(dir_u8);
               }
               calc_hash(&sub_files)
             } else {
-              calc_hash(&tokio::fs::read(path).await?)
+              calc_hash(&tokio::fs::read(path).await.into_diagnostic()?)
             };
             hash_cache.insert(path.to_owned(), res);
             res
@@ -100,7 +100,11 @@ impl SnapshotManager {
         let update_time = match update_time_cache.get(path) {
           Some(t) => *t,
           None => {
-            let t = tokio::fs::metadata(path).await?.modified()?;
+            let t = tokio::fs::metadata(path)
+              .await
+              .into_diagnostic()?
+              .modified()
+              .into_diagnostic()?;
             update_time_cache.insert(path.clone(), t);
             t
           }
@@ -123,7 +127,7 @@ impl SnapshotManager {
         let current_hash = match hash_cache.get(path) {
           Some(h) => *h,
           None => {
-            let res = calc_hash(&tokio::fs::read(path).await?);
+            let res = calc_hash(&tokio::fs::read(path).await.into_diagnostic()?);
             hash_cache.insert(path.clone(), res);
             res
           }

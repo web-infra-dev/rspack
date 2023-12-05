@@ -1170,10 +1170,9 @@ describe("Compiler", () => {
 								);
 							} catch (err) {
 								mockFn();
-								expect(err).toMatchInlineSnapshot(`
-[Error: error[internal]: Called Compilation.updateAsset for not existing filename something-else.js
-]
-`);
+								expect(err).toMatchInlineSnapshot(
+									`[Error: Called Compilation.updateAsset for not existing filename something-else.js]`
+								);
 							}
 						});
 					});
@@ -1272,9 +1271,10 @@ describe("Compiler", () => {
 
 			compiler.build(err => {
 				const stats = new Stats(compiler.compilation);
-				expect(stats.toJson().errors[0].message).toMatchInlineSnapshot(
-					`"Conflict: Multiple assets emit different content to the same filename main.js"`
-				);
+				expect(stats.toJson().errors[0].message).toMatchInlineSnapshot(`
+			"Conflict: Multiple assets emit different content to the same filename main.js
+			"
+		`);
 				done();
 			});
 		});

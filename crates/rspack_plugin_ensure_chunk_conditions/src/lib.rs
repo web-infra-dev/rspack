@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
 use rspack_core::{Logger, OptimizeChunksArgs, Plugin, PluginContext, PluginOptimizeChunksOutput};
-use rspack_error::Error;
 
 #[derive(Debug)]
 pub struct EnsureChunkConditionsPlugin;
@@ -66,10 +65,13 @@ impl Plugin for EnsureChunkConditionsPlugin {
                 }
               }
               if chunk_group.is_initial() {
-                return Err(Error::InternalError(rspack_error::InternalError::new(
-                  format!("Cannot fulfil chunk condition of {}", module_id),
-                  Default::default(),
-                )));
+                return Err(
+                  rspack_error::InternalError::new(
+                    format!("Cannot fulfil chunk condition of {}", module_id),
+                    Default::default(),
+                  )
+                  .into(),
+                );
               }
               let parent_chunks = chunk_group.parents_iterable();
 

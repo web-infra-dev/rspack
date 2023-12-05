@@ -18,7 +18,9 @@ rustflags = [
 
   # restriction
   "-Wclippy::dbg_macro",
-  "-Wclippy::unwrap_in_result",
+  # Disable this as semantics of `expect` and `Result` are different.
+  # See: `https://github.com/web-infra-dev/rspack/pull/4848`
+  # "-Wclippy::unwrap_in_result",
   "-Wclippy::unwrap_used",
   "-Wclippy::empty_drop",
   "-Wclippy::exit",

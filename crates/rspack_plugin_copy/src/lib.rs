@@ -15,7 +15,7 @@ use rspack_core::{
   rspack_sources::RawSource, AssetInfo, AssetInfoRelated, Compilation, CompilationAsset,
   CompilationLogger, Filename, Logger, PathData, Plugin,
 };
-use rspack_error::Diagnostic;
+use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use sugar_path::{AsPath, SugarPath};
 
@@ -232,7 +232,8 @@ impl CopyRspackPlugin {
         RawSource::Buffer(data)
       }
       Err(e) => {
-        let rspack_err: Vec<Diagnostic> = rspack_error::Error::from(e).into();
+        let e: Error = DiagnosticError::from(e.boxed()).into();
+        let rspack_err: Vec<Diagnostic> = vec![e.into()];
         for err in rspack_err {
           diagnostics.insert(err);
         }
@@ -433,8 +434,6 @@ impl CopyRspackPlugin {
           diagnostics.insert(Diagnostic::error(
             "CopyRspackPlugin Error".into(),
             format!("unable to locate '{glob_query}' glob"),
-            0,
-            0,
           ));
         }
 
@@ -467,8 +466,6 @@ impl CopyRspackPlugin {
           diagnostics.insert(Diagnostic::error(
             "CopyRspackPlugin Error".into(),
             format!("unable to locate '{glob_query}' glob"),
-            0,
-            0,
           ));
           return None;
         }
@@ -487,12 +484,7 @@ impl CopyRspackPlugin {
           return None;
         }
 
-        diagnostics.insert(Diagnostic::error(
-          "Glob Error".into(),
-          e.msg.to_string(),
-          0,
-          0,
-        ));
+        diagnostics.insert(Diagnostic::error("Glob Error".into(), e.msg.to_string()));
 
         None
       }
