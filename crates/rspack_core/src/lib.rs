@@ -140,6 +140,7 @@ pub enum ModuleType {
   Asset,
   Runtime,
   Remote,
+  Fallback,
   ProvideShared,
   ConsumeShared,
 }
@@ -227,6 +228,7 @@ impl ModuleType {
       ModuleType::AssetInline => "asset/inline",
       ModuleType::Runtime => "runtime",
       ModuleType::Remote => "remote-module",
+      ModuleType::Fallback => "fallback-module",
       ModuleType::ProvideShared => "provide-module",
       ModuleType::ConsumeShared => "consume-shared-module",
     }

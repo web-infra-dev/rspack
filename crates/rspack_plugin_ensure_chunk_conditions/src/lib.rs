@@ -27,18 +27,18 @@ impl Plugin for EnsureChunkConditionsPlugin {
       .modules()
       .iter()
       .for_each(|(module_id, module)| {
-        if module.has_chunk_condition() {
-          let source_chunks = compilation
-            .chunk_graph
-            .get_module_chunks(module.identifier())
-            .iter()
-            .flat_map(|chunk| {
-              if !module.chunk_condition(chunk, compilation) {
-                return Some(chunk.to_owned());
-              }
-              None
-            })
-            .collect::<Vec<_>>();
+        let source_chunks = compilation
+          .chunk_graph
+          .get_module_chunks(module.identifier())
+          .iter()
+          .flat_map(|chunk| {
+            if matches!(module.chunk_condition(chunk, compilation), Some(false)) {
+              return Some(chunk.to_owned());
+            }
+            None
+          })
+          .collect::<Vec<_>>();
+        if !source_chunks.is_empty() {
           source_module_chunks.insert(module_id, source_chunks);
         }
       });
@@ -59,7 +59,7 @@ impl Plugin for EnsureChunkConditionsPlugin {
             if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group_key) {
               for chunk in &chunk_group.chunks {
                 if let Some(module) = compilation.module_graph.module_by_identifier(module_id) {
-                  if module.chunk_condition(chunk, compilation) {
+                  if matches!(module.chunk_condition(chunk, compilation), Some(true)) {
                     target_chunks.insert(chunk);
                     continue 'out;
                   }
