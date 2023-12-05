@@ -1,13 +1,18 @@
+const rspack = require("@rspack/core");
 /**@type {import("@rspack/cli").Configuration} */
-console.log(process.env.NODE_ENV)
 const config = {
 	experiments: {
 		rspackFuture: {
-			newTreeshaking: true, // related to dead branch remover
-		},
+			newTreeshaking: true 
+		}
 	},
 	builtins: {
-		treeShaking: false,
+		treeShaking: false
 	},
+	plugins: [
+		new rspack.DefinePlugin({
+      'process.env.NODE_ENV': "'development'",
+		})
+	]
 };
 module.exports = config;
