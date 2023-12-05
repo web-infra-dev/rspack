@@ -173,10 +173,12 @@ impl Compilation {
 
   pub fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) {
     let entry_id = *entry.id();
+    dbg!(&entry.dependency_debug_name());
     self.module_graph.add_dependency(entry);
     if let Some(name) = options.name.clone() {
       if let Some(data) = self.entries.get_mut(&name) {
         data.dependencies.push(entry_id);
+        dbg!(&data.dependencies);
       } else {
         let data = EntryData {
           dependencies: vec![entry_id],

@@ -1,1 +1,1 @@
-module.exports = () => {return "FallbackModule"}
+module.exports = () => {return true}

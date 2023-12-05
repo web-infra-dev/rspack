@@ -7,65 +7,51 @@ use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::{RawSource, Source, SourceExt};
 
-use super::{
-  fallback_dependency::FallbackDependency,
-  remote_to_external_dependency::RemoteToExternalDependency,
-};
+use super::fallback_item_dependency::FallbackItemDependency;
 use crate::{
-  mf::share_runtime_module::{CodeGenerationDataShareInit, DataInitInfo, ShareInitData},
-  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildResult,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildResult, ChunkUkey,
   CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
-  Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
-pub struct RemoteModule {
+pub struct FallbackModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,
   readable_identifier: String,
   lib_ident: String,
-  request: String,
-  external_requests: Vec<String>,
-  pub internal_request: String,
-  pub share_scope: String,
+  requests: Vec<String>,
 }
 
-impl RemoteModule {
-  pub fn new(
-    request: String,
-    external_requests: Vec<String>,
-    internal_request: String,
-    share_scope: String,
-  ) -> Self {
-    let readable_identifier = format!("remote {}", &request);
-    let lib_ident = format!("webpack/container/remote/{}", &request);
+impl FallbackModule {
+  pub fn new(requests: Vec<String>) -> Self {
+    let identifier = format!("fallback {}", requests.join(" "));
+    let lib_ident = format!(
+      "webpack/container/fallback/{}/and {} more",
+      requests
+        .first()
+        .expect("shuold have at one more requests in FallbackModule"),
+      requests.len() - 1
+    );
     Self {
       blocks: Default::default(),
       dependencies: Default::default(),
-      identifier: ModuleIdentifier::from(format!(
-        "remote ({}) {} {}",
-        share_scope,
-        external_requests.join(" "),
-        internal_request
-      )),
-      readable_identifier,
+      identifier: ModuleIdentifier::from(identifier.as_str()),
+      readable_identifier: identifier,
       lib_ident,
-      request,
-      external_requests,
-      internal_request,
-      share_scope,
+      requests,
     }
   }
 }
 
-impl Identifiable for RemoteModule {
+impl Identifiable for FallbackModule {
   fn identifier(&self) -> Identifier {
     self.identifier
   }
 }
 
-impl DependenciesBlock for RemoteModule {
+impl DependenciesBlock for FallbackModule {
   fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
     self.blocks.push(block)
   }
@@ -84,17 +70,17 @@ impl DependenciesBlock for RemoteModule {
 }
 
 #[async_trait]
-impl Module for RemoteModule {
+impl Module for FallbackModule {
   fn size(&self, _source_type: &SourceType) -> f64 {
-    6.0
+    self.requests.len() as f64 * 5.0 + 42.0
   }
 
   fn module_type(&self) -> &ModuleType {
-    &ModuleType::Remote
+    &ModuleType::Fallback
   }
 
   fn source_types(&self) -> &[SourceType] {
-    &[SourceType::Remote, SourceType::ShareInit]
+    &[SourceType::JavaScript]
   }
 
   fn original_source(&self) -> Option<&dyn Source> {
@@ -109,8 +95,8 @@ impl Module for RemoteModule {
     Some(self.lib_ident.as_str().into())
   }
 
-  fn name_for_condition(&self) -> Option<Box<str>> {
-    Some(self.request.as_str().into())
+  fn chunk_condition(&self, chunk: &ChunkUkey, compilation: &Compilation) -> Option<bool> {
+    Some(compilation.chunk_graph.get_number_of_entry_modules(chunk) > 0)
   }
 
   async fn build(
@@ -127,12 +113,8 @@ impl Module for RemoteModule {
     };
 
     let mut dependencies: Vec<BoxDependency> = Vec::new();
-    if self.external_requests.len() == 1 {
-      let dep = RemoteToExternalDependency::new(self.external_requests[0].clone());
-      dependencies.push(Box::new(dep));
-    } else {
-      let dep = FallbackDependency::new(self.external_requests.clone());
-      dependencies.push(Box::new(dep));
+    for request in &self.requests {
+      dependencies.push(Box::new(FallbackItemDependency::new(request.clone())))
     }
 
     Ok(
@@ -154,36 +136,58 @@ impl Module for RemoteModule {
     _runtime: Option<&RuntimeSpec>,
   ) -> Result<CodeGenerationResult> {
     let mut codegen = CodeGenerationResult::default();
-    let module = compilation.module_graph.get_module(&self.dependencies[0]);
-    let id = module.and_then(|m| {
-      compilation
-        .chunk_graph
-        .get_module_id(m.identifier())
-        .as_deref()
-    });
-    codegen.add(SourceType::Remote, RawSource::from("").boxed());
-    codegen.data.insert(CodeGenerationDataShareInit {
-      items: vec![ShareInitData {
-        share_scope: self.share_scope.clone(),
-        init_stage: 20,
-        init: DataInitInfo::ExternalModuleId(id.map(|i| i.to_owned())),
-      }],
-    });
+    codegen.runtime_requirements.insert(RuntimeGlobals::MODULE);
+    let ids: Vec<_> = self
+      .get_dependencies()
+      .iter()
+      .filter_map(|dep| compilation.module_graph.get_module(dep))
+      .filter_map(|module| {
+        compilation
+          .chunk_graph
+          .get_module_id(module.identifier())
+          .as_deref()
+      })
+      .collect();
+    let code = format!(
+      r#"
+var ids = {ids};
+var error, result, i = 0;
+var loop = function(next) {{
+  while(i < ids.length) {{
+    try {{ next = {require}(ids[i++]); }} catch(e) {{ return handleError(e); }}
+    if(next) return next.then ? next.then(handleResult, handleError) : handleResult(next);
+  }}
+  if(error) throw error;
+}};
+var handleResult = function(result) {{
+  if(result) return result;
+  return loop();
+}};
+var handleError = function(e) {{
+  error = e;
+  return loop();
+}};
+module.exports = loop();
+"#,
+      ids = serde_json::to_string(&ids).expect("should able to json to_string"),
+      require = RuntimeGlobals::REQUIRE,
+    );
+    codegen = codegen.with_javascript(RawSource::from(code).boxed());
     Ok(codegen)
   }
 }
 
-impl Hash for RemoteModule {
+impl Hash for FallbackModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    "__rspack_internal__RemoteModule".hash(state);
+    "__rspack_internal__FallbackModule".hash(state);
     self.identifier().hash(state);
   }
 }
 
-impl PartialEq for RemoteModule {
+impl PartialEq for FallbackModule {
   fn eq(&self, other: &Self) -> bool {
     self.identifier() == other.identifier()
   }
 }
 
-impl Eq for RemoteModule {}
+impl Eq for FallbackModule {}

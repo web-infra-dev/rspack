@@ -234,12 +234,8 @@ pub trait Module:
     None
   }
 
-  fn has_chunk_condition(&self) -> bool {
-    false
-  }
-
-  fn chunk_condition(&self, _chunk_key: &ChunkUkey, _compilation: &Compilation) -> bool {
-    true
+  fn chunk_condition(&self, _chunk_key: &ChunkUkey, _compilation: &Compilation) -> Option<bool> {
+    None
   }
 
   fn get_side_effects_connection_state(
