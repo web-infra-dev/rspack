@@ -105,7 +105,9 @@ jobs:
                 refType: 'release',
                 ref: '${{ needs.release.outputs.version }}',
                 repo: 'web-infra-dev/rspack',
-                suite: '-'
+                suite: '-',
+                suiteRefType: 'precoded',
+                suiteRef: 'precoded',
               }
             });
             console.log(result);
