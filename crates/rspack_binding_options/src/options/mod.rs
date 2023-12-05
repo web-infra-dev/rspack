@@ -2,7 +2,7 @@ use napi_derive::napi;
 use rspack_core::{
   BoxPlugin, CompilerOptions, Context, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
   IncrementalRebuildMakeState, MangleExportsOption, ModuleOptions, ModuleType, OutputOptions,
-  PluginExt,
+  PluginExt, TreeShaking,
 };
 use rspack_plugin_javascript::{
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, MangleExportsPlugin,
@@ -189,6 +189,10 @@ impl RawOptionsApply for RawOptions {
     plugins.push(rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin.boxed());
 
     plugins.push(rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin.boxed());
+    let mut builtins = self.builtins.apply(plugins)?;
+    if experiments.rspack_future.new_treeshaking {
+      builtins.tree_shaking = TreeShaking::False;
+    }
 
     Ok(Self::Options {
       context,
@@ -207,7 +211,7 @@ impl RawOptionsApply for RawOptions {
       node,
       dev_server,
       profile: self.profile,
-      builtins: self.builtins.apply(plugins)?,
+      builtins,
     })
   }
 }
