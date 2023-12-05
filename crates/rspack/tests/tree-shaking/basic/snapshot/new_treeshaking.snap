@@ -2,7 +2,8 @@
 source: crates/rspack_testing/src/run_fixture.rs
 ---
 ```js title=main.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+(function() {
+var __webpack_modules__ = {
 "./answer.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -10,6 +11,7 @@ __webpack_require__.d(__webpack_exports__, {
   answer: function() { return answer; }
 });
  const answer = 103330;
+ const bbb = 1000;
 }),
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
@@ -19,10 +21,126 @@ __webpack_require__.r(__webpack_exports__);
 _lib__WEBPACK_IMPORTED_MODULE_0__.answer;
 }),
 
-},function(__webpack_require__) {
-var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
-var __webpack_exports__ = (__webpack_exec__("./index.js"));
+}
+// The module cache
+ var __webpack_module_cache__ = {};
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+        var cachedModule = __webpack_module_cache__[moduleId];
+        if (cachedModule !== undefined) {
+      return cachedModule.exports;
+      }
+      // Create a new module (and put it into the cache)
+      var module = (__webpack_module_cache__[moduleId] = {
+       exports: {}
+      });
+      // Execute the module function
+      __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+// Return the exports of the module
+ return module.exports;
 
 }
-]);
+// webpack/runtime/has_own_property
+!function() {
+__webpack_require__.o = function (obj, prop) {
+	return Object.prototype.hasOwnProperty.call(obj, prop);
+};
+
+}();
+// webpack/runtime/define_property_getters
+!function() {
+__webpack_require__.d = function(exports, definition) {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+}();
+// webpack/runtime/make_namespace_object
+!function() {
+// define __esModule on exports
+__webpack_require__.r = function(exports) {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+
+}();
+var __webpack_exports__ = __webpack_require__("./index.js");
+})()
+
+```
+
+```js title=sub.js
+(function() {
+var __webpack_modules__ = {
+"./answer.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  bbb: function() { return bbb; }
+});
+ const answer = 103330;
+ const bbb = 1000;
+}),
+"./sub.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./answer */"./answer.js");
+
+_answer__WEBPACK_IMPORTED_MODULE_0__.bbb;
+}),
+
+}
+// The module cache
+ var __webpack_module_cache__ = {};
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+        var cachedModule = __webpack_module_cache__[moduleId];
+        if (cachedModule !== undefined) {
+      return cachedModule.exports;
+      }
+      // Create a new module (and put it into the cache)
+      var module = (__webpack_module_cache__[moduleId] = {
+       exports: {}
+      });
+      // Execute the module function
+      __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+// Return the exports of the module
+ return module.exports;
+
+}
+// webpack/runtime/has_own_property
+!function() {
+__webpack_require__.o = function (obj, prop) {
+	return Object.prototype.hasOwnProperty.call(obj, prop);
+};
+
+}();
+// webpack/runtime/define_property_getters
+!function() {
+__webpack_require__.d = function(exports, definition) {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+}();
+// webpack/runtime/make_namespace_object
+!function() {
+// define __esModule on exports
+__webpack_require__.r = function(exports) {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+
+}();
+var __webpack_exports__ = __webpack_require__("./sub.js");
+})()
+
 ```

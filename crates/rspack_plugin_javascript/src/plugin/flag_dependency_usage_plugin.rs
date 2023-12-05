@@ -71,6 +71,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         let tem_global_runtime = global_runtime.get_or_insert_default();
         global_runtime = Some(merge_runtime(&tem_global_runtime, runtime));
       }
+      dbg!(&runtime);
       for &dep in entry.dependencies.iter() {
         self.process_entry_dependency(dep, runtime.clone(), &mut q);
       }

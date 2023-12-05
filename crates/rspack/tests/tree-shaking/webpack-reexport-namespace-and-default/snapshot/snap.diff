@@ -18,7 +18,7 @@
  }
  
   const exportDefaultUsed = false;
-@@ -79,11 +79,10 @@
+@@ -79,7 +79,6 @@
    exportDefaultUsed: function() { return exportDefaultUsed; }
  });
  /* harmony import */var _script1__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./script1 */"./package2/script1.js");
@@ -26,8 +26,3 @@
  
  var __WEBPACK_DEFAULT_EXPORT__ = _script1__WEBPACK_IMPORTED_MODULE_0__["default"];
  
-- const exportDefaultUsed = true;
-+ const exportDefaultUsed = false;
- }),
- "./package2/script1.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
- "use strict";

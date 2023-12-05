@@ -29,6 +29,7 @@ pub struct RawEntryOptions {
 
 impl From<RawEntryOptions> for EntryOptions {
   fn from(value: RawEntryOptions) -> Self {
+    dbg!(&value);
     Self {
       name: value.name,
       runtime: value.runtime,

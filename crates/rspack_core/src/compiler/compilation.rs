@@ -1071,6 +1071,7 @@ impl Compilation {
                 1
               };
               let mut codegen_list = vec![];
+              dbg!(&runtimes, module.identifier());
               for runtime in runtimes.into_values().take(take_length) {
                 codegen_list.push((
                   module.code_generation(compilation, Some(&runtime))?,
