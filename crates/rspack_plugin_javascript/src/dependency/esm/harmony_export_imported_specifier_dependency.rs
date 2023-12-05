@@ -11,7 +11,7 @@ use rspack_core::{
   TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::{css::codegen, ecma::atoms::JsWord};
 
 use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};
 
@@ -467,6 +467,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
   ) {
     let compilation = &code_generatable_context.compilation;
     let module = &code_generatable_context.module;
+    let runtime = code_generatable_context.runtime;
 
     let mgm = compilation
       .module_graph
@@ -485,11 +486,10 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         .ids
         .iter()
         .filter_map(|(local, _)| {
-          // TODO: runtime opt
           exports_info_id
             .get_used_name(
               &compilation.module_graph,
-              None,
+              runtime,
               UsedName::Str(local.clone()),
             )
             .map(|item| match item {
@@ -514,8 +514,12 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
     };
 
     if is_new_treeshaking {
-      // TODO: runtime opt
-      let mode = self.get_mode(self.name.clone(), &compilation.module_graph, &self.id, None);
+      let mode = self.get_mode(
+        self.name.clone(),
+        &compilation.module_graph,
+        &self.id,
+        runtime,
+      );
       if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
         harmony_import_dependency_apply(self, self.source_order, code_generatable_context, &[]);
       } else {

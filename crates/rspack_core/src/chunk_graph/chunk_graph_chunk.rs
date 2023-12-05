@@ -5,9 +5,9 @@ use rspack_identifier::{IdentifierLinkedMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  find_graph_roots, BoxModule, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkUkey, Module, ModuleGraph, ModuleGraphModule, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
-  SourceType,
+  find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupByUkey,
+  ChunkGroupUkey, ChunkUkey, Module, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use crate::{ChunkGraph, Compilation};
 
@@ -49,18 +49,6 @@ fn get_modules_size(modules: &[&BoxModule]) -> f64 {
     }
   }
   size
-}
-
-// TODO: we should remove this function to crate rspack_util
-fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
-  let mut set: RuntimeSpec = Default::default();
-  for r in a {
-    set.insert(r.clone());
-  }
-  for r in b {
-    set.insert(r.clone());
-  }
-  set
 }
 
 impl ChunkGraph {

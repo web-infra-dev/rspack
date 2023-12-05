@@ -1,4 +1,5 @@
 #![feature(result_option_inspect)]
+#![feature(option_get_or_insert_default)]
 #![feature(if_let_guard)]
 #![feature(let_chains)]
 #![feature(box_patterns)]

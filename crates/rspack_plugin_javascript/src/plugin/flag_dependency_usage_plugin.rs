@@ -2,10 +2,10 @@ use std::collections::hash_map::Entry;
 use std::collections::VecDeque;
 
 use rspack_core::{
-  is_exports_object_referenced, is_no_exports_referenced, AsyncDependenciesBlockIdentifier,
-  BuildMetaExportsType, Compilation, ConnectionState, DependenciesBlock, DependencyId,
-  ExportsInfoId, ExtendedReferencedExport, GroupOptions, ModuleIdentifier, Plugin,
-  ReferencedExport, RuntimeSpec, UsageState,
+  is_exports_object_referenced, is_no_exports_referenced, merge_runtime,
+  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation, ConnectionState,
+  DependenciesBlock, DependencyId, ExportsInfoId, ExtendedReferencedExport, GroupOptions,
+  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState, UsedExportsOption,
 };
 use rspack_error::Result;
 use rspack_identifier::IdentifierMap;
@@ -55,15 +55,34 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     }
     // SAFETY: we can make sure that entries will not be used other place at the same time,
     // this take is aiming to avoid use self ref and mut ref at the same time;
+    let mut global_runtime: Option<RuntimeSpec> = None;
     let entries = std::mem::take(&mut self.compilation.entries);
-    for entry in entries.values() {
+    for (entry_name, entry) in entries.iter() {
+      let runtime = if self.global {
+        None
+      } else {
+        Some(
+          self
+            .compilation
+            .get_entry_runtime(entry_name, Some(&entry.options)),
+        )
+      };
+      if let Some(runtime) = runtime.as_ref() {
+        let tem_global_runtime = global_runtime.get_or_insert_default();
+        global_runtime = Some(merge_runtime(&tem_global_runtime, runtime));
+      }
       for &dep in entry.dependencies.iter() {
-        self.process_entry_dependency(dep, None, &mut q);
+        self.process_entry_dependency(dep, runtime.clone(), &mut q);
+      }
+      for &dep in entry.include_dependencies.iter() {
+        self.process_entry_dependency(dep, runtime.clone(), &mut q);
       }
     }
-    let global_entry_dep_id_list = self.compilation.global_entry.dependencies.clone();
-    for dep in global_entry_dep_id_list {
-      self.process_entry_dependency(dep, None, &mut q);
+    for dep in self.compilation.global_entry.dependencies.clone() {
+      self.process_entry_dependency(dep, global_runtime.clone(), &mut q);
+    }
+    for dep in self.compilation.global_entry.include_dependencies.clone() {
+      self.process_entry_dependency(dep, global_runtime.clone(), &mut q);
     }
     self.compilation.entries = entries;
 
@@ -286,7 +305,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
   fn process_entry_dependency(
     &mut self,
     dep: DependencyId,
-    _runtime: Option<RuntimeSpec>,
+    runtime: Option<RuntimeSpec>,
     queue: &mut VecDeque<(ModuleIdentifier, Option<RuntimeSpec>)>,
   ) {
     if let Some(module) = self
@@ -294,11 +313,10 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       .module_graph
       .module_graph_module_by_dependency_id(&dep)
     {
-      self.process_referenced_module(module.module_identifier, vec![], None, true, queue);
+      self.process_referenced_module(module.module_identifier, vec![], runtime, true, queue);
     }
   }
 
-  /// TODO: currently we don't impl runtime optimization, runtime is always none
   fn process_referenced_module(
     &mut self,
     module_id: ModuleIdentifier,
@@ -434,8 +452,9 @@ pub struct FlagDependencyUsagePlugin;
 #[async_trait::async_trait]
 impl Plugin for FlagDependencyUsagePlugin {
   async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
-    // TODO: `global` is always `true`, until we finished runtime optimization.
-    let mut proxy = FlagDependencyUsagePluginProxy::new(true, compilation);
+    assert!(compilation.options.optimization.used_exports != UsedExportsOption::False);
+    let global = compilation.options.optimization.used_exports == UsedExportsOption::Global;
+    let mut proxy = FlagDependencyUsagePluginProxy::new(global, compilation);
     proxy.apply();
     Ok(None)
   }

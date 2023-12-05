@@ -131,7 +131,11 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let TemplateContext { compilation, .. } = code_generatable_context;
+    let TemplateContext {
+      compilation,
+      runtime,
+      ..
+    } = code_generatable_context;
 
     let reference_mgm = compilation
       .module_graph
@@ -142,8 +146,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     if is_new_treeshaking {
       let connection = compilation.module_graph.connection_by_dependency(&self.id);
       let is_target_active = if let Some(con) = connection {
-        // TODO: runtime opt
-        con.is_target_active(&compilation.module_graph, None)
+        con.is_target_active(&compilation.module_graph, *runtime)
       } else {
         true
       };

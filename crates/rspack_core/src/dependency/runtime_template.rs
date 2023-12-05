@@ -21,6 +21,7 @@ pub fn export_from_import(
     compilation,
     init_fragments,
     module,
+    runtime,
     ..
   } = code_generatable_context;
   let module_identifier = *compilation
@@ -89,10 +90,9 @@ pub fn export_from_import(
         .module_graph
         .get_exports_info(&module_identifier)
         .id;
-      // TODO: runtime opt
       let used = exports_info_id.get_used_name(
         &compilation.module_graph,
-        None,
+        *runtime,
         crate::UsedName::Vec(export_name),
       );
       if let Some(used) = used {

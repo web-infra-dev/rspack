@@ -1,5 +1,16 @@
 --- expected
 +++ actual
+@@ -49,8 +49,8 @@
+  function C(s) {
+     return s + "C";
+ }
+- const exportAUsed = true;
+- const exportBUsed = true;
++ const exportAUsed = false;
++ const exportBUsed = false;
+  const exportCUsed = false;
+ }),
+ "./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 @@ -84,7 +84,7 @@
  }
  function withC(v) {

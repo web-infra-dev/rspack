@@ -45,7 +45,7 @@ impl SideEffectOption {
   }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
 pub enum UsedExportsOption {
   #[default]
   False,

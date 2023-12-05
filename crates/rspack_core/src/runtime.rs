@@ -28,6 +28,56 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
   a.into_iter().zip(b).all(|(a, b)| a == b)
 }
 
+#[derive(Debug)]
+pub enum RuntimeCondition {
+  Boolean(bool),
+  Spec(RuntimeSpec),
+}
+
+pub fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
+  let mut set: RuntimeSpec = Default::default();
+  for r in a {
+    set.insert(r.clone());
+  }
+  for r in b {
+    set.insert(r.clone());
+  }
+  set
+}
+
+pub fn filter_runtime(
+  runtime: Option<&RuntimeSpec>,
+  filter: impl Fn(Option<&RuntimeSpec>) -> bool,
+) -> RuntimeCondition {
+  match runtime {
+    None => RuntimeCondition::Boolean(filter(None)),
+    Some(runtime) => {
+      let mut some = false;
+      let mut every = true;
+      let mut result = RuntimeSpec::default();
+
+      for r in runtime {
+        let cur = RuntimeSpec::from_iter([r.clone()]);
+        let v = filter(Some(&cur));
+        if v {
+          some = true;
+          result = merge_runtime(&result, &cur);
+        } else {
+          every = false;
+        }
+      }
+
+      if !some {
+        RuntimeCondition::Boolean(false)
+      } else if every {
+        RuntimeCondition::Boolean(true)
+      } else {
+        RuntimeCondition::Spec(result)
+      }
+    }
+  }
+}
+
 pub fn get_runtime_key(runtime: RuntimeSpec) -> String {
   let mut runtime: Vec<Arc<str>> = Vec::from_iter(runtime);
   runtime.sort_unstable();
