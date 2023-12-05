@@ -32,7 +32,7 @@ impl FallbackModule {
       "webpack/container/fallback/{}/and {} more",
       requests
         .first()
-        .expect("shuold have at one more requests in FallbackModule"),
+        .expect("should have at one more requests in FallbackModule"),
       requests.len() - 1
     );
     Self {
