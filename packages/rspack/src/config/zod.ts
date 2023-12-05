@@ -979,7 +979,7 @@ const optimization = z.strictObject({
 	minimize: z.boolean().optional(),
 	minimizer: z.literal("...").or(plugin).array().optional(),
 	mergeDuplicateChunks: z.boolean().optional(),
-	splitChunks: optimizationSplitChunksOptions.optional(),
+	splitChunks: z.literal(false).or(optimizationSplitChunksOptions).optional(),
 	runtimeChunk: optimizationRuntimeChunk.optional(),
 	removeAvailableModules: z.boolean().optional(),
 	removeEmptyChunks: z.boolean().optional(),
