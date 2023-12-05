@@ -261,17 +261,17 @@ impl SplitChunksPlugin {
             };
             let key: String = if let Some(cache_group_name) = &chunk_name {
               let mut key =
-                String::with_capacity(cache_group.key.len() + 1 + cache_group_name.len());
+                String::with_capacity(cache_group.key.len() + " name:".len() + cache_group_name.len());
               key.push_str(&cache_group.key);
-              key.push('_');
+              key.push_str(" name:");
               key.push_str(cache_group_name);
               key
             } else {
               let selected_chunks_key = selected_chunks_key.to_string();
               let mut key =
-                String::with_capacity(cache_group.key.len() + 1 + selected_chunks_key.len());
+                String::with_capacity(cache_group.key.len() + " chunks:".len() + selected_chunks_key.len());
               key.push_str(&cache_group.key);
-              key.push('_');
+              key.push_str(" chunks:");
               key.push_str(&selected_chunks_key);
               key
             };
