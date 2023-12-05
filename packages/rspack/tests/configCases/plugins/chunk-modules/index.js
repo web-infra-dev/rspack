@@ -7,8 +7,8 @@ it("chunk-modules", async () => {
 	const data = JSON.parse(
 		await fs.promises.readFile(path.join(__dirname, "data.json"), "utf-8")
 	);
-	expect(data.main.modules).toContain("/index.js");
-	expect(data.main.entryModules).toContain("/index.js");
-	expect(data.async.modules).toContain("/async.js");
+	expect(data.main.modules.length).toBe(3);
+	expect(data.main.entryModules.length).toBe(1);
+	expect(data.async.modules.length).toBe(1);
 	expect(data.async.entryModules.length).toBe(0);
 });
