@@ -102,10 +102,7 @@ fn builtins_webpack_plugin(options: &CompilerOptions, unresolved_mark: Mark) -> 
       rspack_swc_visitors::define(&options.builtins.define),
       !options.builtins.define.is_empty()
     ),
-    Optional::new(
-      builtins_webpack_plugin_define_optimizer(unresolved_mark),
-      !options.builtins.define.is_empty()
-    ),
+    builtins_webpack_plugin_define_optimizer(unresolved_mark),
     Optional::new(
       rspack_swc_visitors::provide(&options.builtins.provide, unresolved_mark),
       !options.builtins.provide.is_empty()

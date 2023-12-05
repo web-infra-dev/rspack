@@ -1,8 +1,9 @@
 /**@type {import("@rspack/cli").Configuration} */
+console.log(process.env.NODE_ENV)
 const config = {
 	experiments: {
 		rspackFuture: {
-			newTreeshaking: false, // related to dead branch remover
+			newTreeshaking: true, // related to dead branch remover
 		},
 	},
 	builtins: {
