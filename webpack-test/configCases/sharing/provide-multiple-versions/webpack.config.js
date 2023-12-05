@@ -7,5 +7,8 @@ module.exports = {
 		new ProvideSharedPlugin({
 			provides: ["shared"]
 		})
-	]
+	],
+	optimization: {
+		mangleExports: false
+	}
 };

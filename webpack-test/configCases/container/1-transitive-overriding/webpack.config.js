@@ -4,7 +4,8 @@ const { ModuleFederationPlugin } = require("../../../../").container;
 module.exports = {
 	optimization: {
 		chunkIds: "named",
-		moduleIds: "named"
+		moduleIds: "named",
+		mangleExports: false
 	},
 	plugins: [
 		new ModuleFederationPlugin({
