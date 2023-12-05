@@ -198,7 +198,7 @@ const describeCases = config => {
 										}
 									]
 								},
-								plugins: (config.plugins || []).concat(function () {
+								plugins: (config.plugins || []).concat(testConfig.plugins || []).concat(function () {
 									this.hooks.compilation.tap("TestCasesTest", compilation => {
 										[
 											// TODO: the follwing hooks are not supported yet, so comment it out
