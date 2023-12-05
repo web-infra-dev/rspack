@@ -9,9 +9,10 @@ use rspack_sources::{RawSource, Source, SourceExt};
 
 use super::fallback_item_dependency::FallbackItemDependency;
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildResult, ChunkUkey,
-  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
-  Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  mf::utils::json_stringify, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext,
+  BuildInfo, BuildResult, ChunkUkey, CodeGenerationResult, Compilation, Context, DependenciesBlock,
+  DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec,
+  SourceType,
 };
 
 #[derive(Debug)]
@@ -169,7 +170,7 @@ var handleError = function(e) {{
 }};
 module.exports = loop();
 "#,
-      ids = serde_json::to_string(&ids).expect("should able to json to_string"),
+      ids = json_stringify(&ids),
       require = RuntimeGlobals::REQUIRE,
     );
     codegen = codegen.with_javascript(RawSource::from(code).boxed());
