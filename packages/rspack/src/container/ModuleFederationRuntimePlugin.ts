@@ -12,7 +12,7 @@ const compilerToPlugins = new WeakMap<Compiler, Set<string>>();
 export class ModuleFederationRuntimePlugin {
 	apply(compiler: Compiler) {
 		// TODO: a hack to make sure this runtime is added after ContainerReferencePlugin
-		// remove afterPlugin once we make rust side runtime_requirements_in_tree "tapable"
+		// remove afterPlugin once we make rust side runtime_requirements_in_tree "tapable".
 		compiler.hooks.afterPlugins.tap(
 			{ name: ModuleFederationRuntimePlugin.name, stage: 10 },
 			() => {
