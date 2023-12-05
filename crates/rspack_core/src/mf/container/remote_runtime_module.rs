@@ -83,16 +83,15 @@ impl RuntimeModule for RemoteRuntimeModule {
     }
     RawSource::from(format!(
       r#"
-var chunkMapping = {chunk_mapping};
-var idToExternalAndNameMapping = {id_to_external_and_name_mapping};
-{ensure_chunk_handlers}.remotes = function(chunkId, promises) {{ return {remotes_fn}({{ chunkId: chunkId, promises: promises, chunkMapping: chunkMapping, idToExternalAndNameMapping: idToExternalAndNameMapping }}); }};
+__webpack_require__.MF.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_external_and_name_mapping} }};
+{ensure_chunk_handlers}.remotes = function(chunkId, promises) {{ return {remotes_fn}(chunkId, promises); }};
 "#,
       chunk_mapping = serde_json::to_string(&chunk_to_remotes_mapping)
         .expect("chunk_to_remotes_mapping should able to json to_string"),
       id_to_external_and_name_mapping = serde_json::to_string(&id_to_external_and_name_mapping)
         .expect("id_to_external_and_name_mapping should able to json to_string"),
       ensure_chunk_handlers = RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
-      remotes_fn = "__webpack_require__.MF.remotes",
+      remotes_fn = "__webpack_require__.MF.remotesLoading",
     ))
     .boxed()
   }
