@@ -8,7 +8,7 @@ use rspack_core::{
 };
 use rspack_error::{
   internal_error, DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-  TraceableError,
+  TraceableRspackError,
 };
 
 mod utils;
@@ -58,8 +58,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           } else {
             start_offset
           };
-          Error::TraceableError(
-            TraceableError::from_file(
+          Error::TraceableRspackError(
+            TraceableRspackError::from_file(
               resource_data.resource_path.to_string_lossy().to_string(),
               source.into_owned(),
               // one character offset
@@ -77,8 +77,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         UnexpectedEndOfJson => {
           // End offset of json file
           let offset = source.len();
-          Error::TraceableError(
-            TraceableError::from_file(
+          Error::TraceableRspackError(
+            TraceableRspackError::from_file(
               resource_data.resource_path.to_string_lossy().to_string(),
               source.into_owned(),
               offset,

@@ -1,6 +1,6 @@
-use std::{backtrace::Backtrace, fmt};
+use std::fmt;
 
-use crate::{DiagnosticKind, Error, TraceableError};
+use crate::{DiagnosticKind, Error, TraceableRspackError};
 
 #[derive(Debug, Clone, Default, Copy, PartialEq, Eq, Hash)]
 pub enum Severity {
@@ -39,15 +39,15 @@ pub struct DiagnosticSourceInfo {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct Diagnostic {
-  pub severity: Severity,
-  pub message: String,
-  pub title: String,
+  pub(crate) severity: Severity,
+  pub(crate) message: String,
+  pub(crate) title: String,
   /// Source code and path of current Diagnostic
-  pub source_info: Option<DiagnosticSourceInfo>,
-  pub start: usize,
-  pub end: usize,
-  pub kind: DiagnosticKind,
-  pub notes: Vec<String>,
+  pub(crate) source_info: Option<DiagnosticSourceInfo>,
+  pub(crate) start: usize,
+  pub(crate) end: usize,
+  pub(crate) kind: DiagnosticKind,
+  pub(crate) notes: Vec<String>,
 }
 
 impl Diagnostic {
@@ -75,6 +75,18 @@ impl Diagnostic {
     }
   }
 
+  pub fn title(&self) -> &str {
+    &self.title
+  }
+
+  pub fn message(&self) -> &str {
+    &self.message
+  }
+
+  pub fn severity(&self) -> Severity {
+    self.severity
+  }
+
   pub fn with_kind(mut self, kind: DiagnosticKind) -> Self {
     self.kind = kind;
     self
@@ -92,8 +104,6 @@ impl Diagnostic {
 
 impl From<Error> for Vec<Diagnostic> {
   fn from(err: Error) -> Self {
-    let kind = err.kind();
-    let severity = err.severity();
     let diagnostic = match err {
       Error::InternalError(err) => Diagnostic {
         message: err.error_message().to_string(),
@@ -103,19 +113,7 @@ impl From<Error> for Vec<Diagnostic> {
         severity: err.severity(),
         ..Default::default()
       },
-      Error::Napi {
-        status,
-        reason,
-        backtrace,
-      } => Diagnostic {
-        message: format!("Napi Error: {status} - {reason}\n{backtrace}"),
-        source_info: None,
-        start: 0,
-        end: 0,
-        severity: Severity::Error,
-        ..Default::default()
-      },
-      Error::TraceableError(TraceableError {
+      Error::TraceableRspackError(TraceableRspackError {
         start,
         end,
         error_message,
@@ -135,26 +133,6 @@ impl From<Error> for Vec<Diagnostic> {
         title,
         kind,
         severity,
-        ..Default::default()
-      },
-      Error::Io { source } => Diagnostic {
-        message: source.to_string(),
-        kind,
-        severity,
-        ..Default::default()
-      },
-      Error::Anyhow { source } => Diagnostic {
-        kind,
-        severity,
-        message: {
-          let backtrace = match Backtrace::capture().status() {
-            std::backtrace::BacktraceStatus::Captured => {
-              format!("\nbacktrace:\n{}", source.backtrace())
-            }
-            _ => "".to_string(),
-          };
-          format!("{source}{backtrace}")
-        },
         ..Default::default()
       },
       Error::BatchErrors(diagnostics) => {

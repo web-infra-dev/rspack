@@ -134,12 +134,12 @@ pub enum NormalModuleSource {
 
 impl NormalModuleSource {
   pub fn new_built(source: BoxSource, diagnostics: &[Diagnostic]) -> Self {
-    if diagnostics.iter().any(|d| d.severity == Severity::Error) {
+    if diagnostics.iter().any(|d| d.severity() == Severity::Error) {
       NormalModuleSource::BuiltFailed(
         diagnostics
           .iter()
-          .filter(|d| d.severity == Severity::Error)
-          .map(|d| d.message.clone())
+          .filter(|d| d.severity() == Severity::Error)
+          .map(|d| d.message().to_string())
           .collect::<Vec<String>>()
           .join("\n"),
       )

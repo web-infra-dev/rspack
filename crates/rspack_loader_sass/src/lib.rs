@@ -16,7 +16,7 @@ use rspack_core::{
 };
 use rspack_error::{
   internal_error, Diagnostic, DiagnosticKind, Error, InternalError, Result, Severity,
-  TraceableError,
+  TraceableRspackError,
 };
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use sass_embedded::{
@@ -524,7 +524,7 @@ fn sass_exception_to_error(e: Box<Exception>) -> Error {
     && let Some(message) = e.sass_message()
     && let Some(e) = make_traceable_error("Sass Error", message, span)
   {
-    Error::TraceableError(e.with_kind(DiagnosticKind::Scss))
+    Error::TraceableRspackError(e.with_kind(DiagnosticKind::Scss))
   } else {
     internal_error!(e.message().to_string())
   }
@@ -542,7 +542,7 @@ fn sass_log_to_diagnostics(
   if let Some(span) = span
     && let Some(e) = make_traceable_error(title, message, span)
   {
-    Error::TraceableError(e.with_kind(DiagnosticKind::Scss).with_severity(severity)).into()
+    Error::TraceableRspackError(e.with_kind(DiagnosticKind::Scss).with_severity(severity)).into()
   } else {
     let f = match severity {
       Severity::Error => Diagnostic::error,
@@ -552,7 +552,11 @@ fn sass_log_to_diagnostics(
   }
 }
 
-fn make_traceable_error(title: &str, message: &str, span: &SourceSpan) -> Option<TraceableError> {
+fn make_traceable_error(
+  title: &str,
+  message: &str,
+  span: &SourceSpan,
+) -> Option<TraceableRspackError> {
   span
     .url
     .as_ref()
@@ -571,7 +575,7 @@ fn make_traceable_error(title: &str, message: &str, span: &SourceSpan) -> Option
     .map(|(path, source)| {
       let start = utf16::to_byte_idx(&source, span.start.offset);
       let end = utf16::to_byte_idx(&source, span.end.offset);
-      TraceableError::from_file(
+      TraceableRspackError::from_file(
         path,
         source,
         start,

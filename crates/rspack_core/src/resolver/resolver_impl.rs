@@ -4,7 +4,9 @@ use std::{
   sync::Arc,
 };
 
-use rspack_error::{internal_error, Error, InternalError, Severity, TraceableError};
+use rspack_error::{
+  internal_error, DiagnosticError, Error, InternalError, Severity, TraceableRspackError,
+};
 use rspack_loader_runner::DescriptionData;
 use sugar_path::SugarPath;
 
@@ -374,24 +376,17 @@ fn map_nodejs_resolver_error(
   plugin_driver: &SharedPluginDriver,
 ) -> ResolveError {
   match error {
-    nodejs_resolver::Error::Io(error) => {
-      ResolveError(error.to_string(), Error::Io { source: error })
-    }
+    nodejs_resolver::Error::Io(error) => ResolveError(error.to_string(), Error::from(error)),
     nodejs_resolver::Error::UnexpectedJson((json_path, error)) => ResolveError(
       format!(
         "{error:?} in {}",
         json_path.relative(&plugin_driver.options.context).display()
       ),
-      Error::Anyhow {
-        source: anyhow::Error::msg(format!("{error:?} in {json_path:?}")),
-      },
+      internal_error!("{error:?} in {json_path:?}"),
     ),
-    nodejs_resolver::Error::UnexpectedValue(error) => ResolveError(
-      error.clone(),
-      Error::Anyhow {
-        source: anyhow::Error::msg(error),
-      },
-    ),
+    nodejs_resolver::Error::UnexpectedValue(error) => {
+      ResolveError(error.clone(), internal_error!(error))
+    }
     nodejs_resolver::Error::CantFindTsConfig(path) => ResolveError(
       format!("{} is not a tsconfig", path.display()),
       internal_error!("{} is not a tsconfig", path.display()),
@@ -414,18 +409,11 @@ fn map_oxc_resolver_error(
         "Export should be relative path and start with \"./\", but got {}",
         specifier
       );
-      ResolveError(
-        message.clone(),
-        Error::Anyhow {
-          source: anyhow::Error::msg(message),
-        },
-      )
+      ResolveError(message.clone(), internal_error!(message))
     }
     oxc_resolver::ResolveError::IOError(error) => ResolveError(
       "IOError".to_string(),
-      Error::Io {
-        source: error.into(),
-      },
+      Error::InternalError(DiagnosticError(error.into()).into()),
     ),
     oxc_resolver::ResolveError::Builtin(error) => ResolveError(
       format!("Builtin module: {}", error),
@@ -535,7 +523,7 @@ fn map_resolver_error(
     };
     ResolveError(
       runtime_message,
-      TraceableError::from_real_file_path(
+      TraceableRspackError::from_real_file_path(
         Path::new(
           importer
             .split_once('|')
@@ -549,9 +537,9 @@ fn map_resolver_error(
       )
       .map(|e| {
         if args.optional {
-          Error::TraceableError(e.with_severity(Severity::Warn))
+          Error::TraceableRspackError(e.with_severity(Severity::Warn))
         } else {
-          Error::TraceableError(e)
+          Error::TraceableRspackError(e)
         }
       })
       .unwrap_or_else(|_| {

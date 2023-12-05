@@ -16,7 +16,7 @@ impl From<std::io::Error> for Error {
 impl From<Error> for rspack_error::Error {
   fn from(value: Error) -> Self {
     match value {
-      Error::Io(err) => Self::Io { source: err },
+      Error::Io(err) => rspack_error::Error::from(err),
     }
   }
 }

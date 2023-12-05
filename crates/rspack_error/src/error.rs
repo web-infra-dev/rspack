@@ -1,13 +1,20 @@
 use std::{fmt, io, path::Path};
 
-use miette::MietteDiagnostic;
+use miette::{Diagnostic, IntoDiagnostic, MietteDiagnostic, NamedSource, SourceSpan};
 use rspack_util::swc::normalize_custom_filename;
 use swc_core::common::SourceFile;
+use thiserror::Error;
 
-use crate::{internal_error, Severity};
+use crate::Severity;
 
 #[derive(Debug)]
 pub struct InternalError(miette::Report);
+
+impl<T: Diagnostic + Send + Sync + 'static> From<T> for InternalError {
+  fn from(value: T) -> Self {
+    InternalError(value.into())
+  }
+}
 
 impl InternalError {
   pub fn new(error_message: String, severity: Severity) -> Self {
@@ -46,25 +53,94 @@ impl fmt::Display for InternalError {
   }
 }
 
-#[derive(Debug)]
-/// ## Warning
-/// For a [TraceableError], the path is required.
-/// Because if the source code is missing when you construct a [TraceableError], we could read it from file system later
-/// when convert it into [crate::Diagnostic], but the reverse will not working.
+#[derive(Debug, Error, Diagnostic)]
+#[diagnostic(code(TraceableError))]
+#[error("error[{kind}]: {title}")]
 pub struct TraceableError {
-  /// path of a file (real file or virtual file)
-  pub file_path: String,
-  /// source content of a file (real file or virtual file)
-  pub file_src: String,
-  pub start: usize,
-  pub end: usize,
-  pub error_message: String,
-  pub title: String,
-  pub kind: DiagnosticKind,
-  pub severity: Severity,
+  title: String,
+  kind: DiagnosticKind,
+  message: String,
+  // file_path: String,
+  #[source_code]
+  src: NamedSource,
+  #[label("{message}")]
+  label: SourceSpan,
 }
 
 impl TraceableError {
+  pub fn from_source_file(
+    source_file: &SourceFile,
+    start: usize,
+    end: usize,
+    title: String,
+    message: String,
+  ) -> Self {
+    let file_path = normalize_custom_filename(&source_file.name.to_string()).to_string();
+    let file_src = source_file.src.to_string();
+    Self {
+      title,
+      kind: Default::default(),
+      message,
+      src: NamedSource::new(file_path, file_src),
+      label: SourceSpan::new(start.into(), (end - start).into()),
+    }
+  }
+
+  pub fn from_file(
+    file_path: String,
+    file_src: String,
+    start: usize,
+    end: usize,
+    title: String,
+    message: String,
+  ) -> Self {
+    Self {
+      title,
+      kind: Default::default(),
+      message,
+      src: NamedSource::new(file_path, file_src),
+      label: SourceSpan::new(start.into(), (end - start).into()),
+    }
+  }
+
+  pub fn from_real_file_path(
+    path: &Path,
+    start: usize,
+    end: usize,
+    title: String,
+    message: String,
+  ) -> Result<Self, Error> {
+    let file_src = std::fs::read_to_string(path).into_diagnostic()?;
+    Ok(Self::from_file(
+      path.to_string_lossy().into_owned(),
+      file_src,
+      start,
+      end,
+      title,
+      message,
+    ))
+  }
+}
+
+#[derive(Debug)]
+/// ## Warning
+/// For a [TraceableRspackError], the path is required.
+/// Because if the source code is missing when you construct a [TraceableRspackError], we could read it from file system later
+/// when convert it into [crate::Diagnostic], but the reverse will not working.
+pub struct TraceableRspackError {
+  /// path of a file (real file or virtual file)
+  pub(crate) file_path: String,
+  /// source content of a file (real file or virtual file)
+  pub(crate) file_src: String,
+  pub(crate) start: usize,
+  pub(crate) end: usize,
+  pub(crate) error_message: String,
+  pub(crate) title: String,
+  pub(crate) kind: DiagnosticKind,
+  pub(crate) severity: Severity,
+}
+
+impl TraceableRspackError {
   pub fn from_source_file(
     source_file: &SourceFile,
     start: usize,
@@ -135,7 +211,7 @@ impl TraceableError {
   }
 }
 
-impl fmt::Display for TraceableError {
+impl fmt::Display for TraceableRspackError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     writeln!(f, "{}[{}]: {}", self.severity, self.kind, self.title)?;
     writeln!(f, "{}", self.error_message)?;
@@ -146,27 +222,20 @@ impl fmt::Display for TraceableError {
 #[derive(Debug)]
 pub enum Error {
   InternalError(InternalError),
-  TraceableError(TraceableError),
-  Io {
-    source: io::Error,
-  },
-  Anyhow {
-    source: anyhow::Error,
-  },
+  TraceableRspackError(TraceableRspackError),
   BatchErrors(Vec<Error>),
-  // for some reason, We could not just use `napi:Error` here
-  Napi {
-    status: String,
-    reason: String,
-    backtrace: String,
-  },
+}
+
+impl From<miette::Error> for Error {
+  fn from(value: miette::Error) -> Self {
+    Self::InternalError(InternalError(value))
+  }
 }
 
 impl std::error::Error for Error {
   fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
     match self {
-      Error::Io { source, .. } => Some(source as &(dyn std::error::Error + 'static)),
-      Error::Anyhow { source, .. } => Some(source.as_ref()),
+      Error::InternalError(InternalError(i)) => i.source(),
       _ => None,
     }
   }
@@ -176,9 +245,7 @@ impl fmt::Display for Error {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self {
       Error::InternalError(e) => write!(f, "{e}"),
-      Error::TraceableError(v) => write!(f, "{v}"),
-      Error::Io { source } => write!(f, "{source}"),
-      Error::Anyhow { source } => write!(f, "{source}"),
+      Error::TraceableRspackError(v) => write!(f, "{v}"),
       Error::BatchErrors(errs) => write!(
         f,
         "{}",
@@ -188,11 +255,6 @@ impl fmt::Display for Error {
           .collect::<Vec<String>>()
           .join("\n")
       ),
-      Error::Napi {
-        status,
-        reason,
-        backtrace,
-      } => write!(f, "napi error: {status} - {reason}\n{backtrace}"),
     }
   }
 }
@@ -205,19 +267,19 @@ impl From<serde_json::Error> for Error {
 
 impl From<io::Error> for Error {
   fn from(source: io::Error) -> Self {
-    Error::Io { source }
+    Error::InternalError(DiagnosticError(source.into()).into())
   }
 }
 
 impl From<anyhow::Error> for Error {
   fn from(source: anyhow::Error) -> Self {
-    Error::Anyhow { source }
+    Error::InternalError(DiagnosticError(source.into()).into())
   }
 }
 
 impl From<rspack_sources::Error> for Error {
   fn from(value: rspack_sources::Error) -> Self {
-    internal_error!(value.to_string())
+    Error::InternalError(DiagnosticError(value.into()).into())
   }
 }
 
@@ -225,21 +287,15 @@ impl Error {
   pub fn kind(&self) -> DiagnosticKind {
     match self {
       Error::InternalError(_) => DiagnosticKind::Internal,
-      Error::TraceableError(TraceableError { kind, .. }) => *kind,
-      Error::Io { .. } => DiagnosticKind::Io,
-      Error::Anyhow { .. } => DiagnosticKind::Internal,
+      Error::TraceableRspackError(TraceableRspackError { kind, .. }) => *kind,
       Error::BatchErrors(_) => DiagnosticKind::Internal,
-      Error::Napi { .. } => DiagnosticKind::Internal,
     }
   }
   pub fn severity(&self) -> Severity {
     match self {
       Error::InternalError(_) => Severity::Error,
-      Error::TraceableError(TraceableError { severity, .. }) => *severity,
-      Error::Io { .. } => Severity::Error,
-      Error::Anyhow { .. } => Severity::Error,
+      Error::TraceableRspackError(TraceableRspackError { severity, .. }) => *severity,
       Error::BatchErrors(_) => Severity::Error,
-      Error::Napi { .. } => Severity::Error,
     }
   }
 }
@@ -277,3 +333,10 @@ impl std::fmt::Display for DiagnosticKind {
     }
   }
 }
+
+/// Convenience [`Diagnostic`] that can be used as an "anonymous" wrapper for
+/// Errors. This is intended to be paired with [`IntoDiagnostic`].
+#[derive(Debug, Error)]
+#[error(transparent)]
+pub struct DiagnosticError(pub Box<dyn std::error::Error + Send + Sync + 'static>);
+impl Diagnostic for DiagnosticError {}

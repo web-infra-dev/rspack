@@ -104,7 +104,7 @@ pub fn ecma_parse_error_to_rspack_error(
   };
   let message = error.kind().msg().to_string();
   let span: ErrorSpan = error.span().into();
-  let traceable_error = rspack_error::TraceableError::from_source_file(
+  let traceable_error = rspack_error::TraceableRspackError::from_source_file(
     fm,
     span.start as usize,
     span.end as usize,
@@ -112,7 +112,7 @@ pub fn ecma_parse_error_to_rspack_error(
     message,
   )
   .with_kind(diagnostic_kind);
-  Error::TraceableError(traceable_error)
+  Error::TraceableRspackError(traceable_error)
 }
 
 pub fn join_jsword(arr: &[JsWord], separator: &str) -> String {

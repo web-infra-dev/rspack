@@ -66,7 +66,7 @@ pub fn html_parse_error_to_traceable_error(error: Error, fm: &SourceFile) -> rsp
   let message = error.message();
   let error = error.into_inner();
   let span: ErrorSpan = error.0.into();
-  let traceable_error = rspack_error::TraceableError::from_source_file(
+  let traceable_error = rspack_error::TraceableRspackError::from_source_file(
     fm,
     span.start as usize,
     span.end as usize,
@@ -75,5 +75,5 @@ pub fn html_parse_error_to_traceable_error(error: Error, fm: &SourceFile) -> rsp
   )
   .with_kind(DiagnosticKind::Html);
   //Use this `Error` conversion could avoid eagerly clone source file.
-  rspack_error::Error::TraceableError(traceable_error)
+  rspack_error::Error::TraceableRspackError(traceable_error)
 }

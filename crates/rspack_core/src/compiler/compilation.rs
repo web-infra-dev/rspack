@@ -326,14 +326,14 @@ impl Compilation {
     self
       .diagnostics
       .iter()
-      .filter(|d| matches!(d.severity, Severity::Error))
+      .filter(|d| matches!(d.severity(), Severity::Error))
   }
 
   pub fn get_warnings(&self) -> impl Iterator<Item = &Diagnostic> {
     self
       .diagnostics
       .iter()
-      .filter(|d| matches!(d.severity, Severity::Warn))
+      .filter(|d| matches!(d.severity(), Severity::Warn))
   }
 
   pub fn get_logging(&self) -> &CompilationLogging {

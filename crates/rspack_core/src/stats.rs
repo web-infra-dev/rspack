@@ -302,8 +302,8 @@ impl Stats<'_> {
       .compilation
       .get_errors()
       .map(|d| StatsError {
-        title: d.title.clone(),
-        message: d.message.clone(),
+        title: d.title().to_string(),
+        message: d.message().to_string(),
         formatted: diagnostic_displayer.emit_diagnostic(d).expect("TODO:"),
       })
       .collect()
@@ -315,7 +315,7 @@ impl Stats<'_> {
       .compilation
       .get_warnings()
       .map(|d| StatsWarning {
-        message: d.message.clone(),
+        message: d.message().to_string(),
         formatted: diagnostic_displayer.emit_diagnostic(d).expect("TODO:"),
       })
       .collect()

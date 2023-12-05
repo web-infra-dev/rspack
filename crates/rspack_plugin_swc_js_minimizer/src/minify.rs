@@ -7,7 +7,7 @@ use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
   ModuleType,
 };
-use rspack_error::{internal_error, DiagnosticKind, Error, Result, TraceableError};
+use rspack_error::{internal_error, DiagnosticKind, Error, Result, TraceableRspackError};
 use rspack_plugin_javascript::ast::parse_js;
 use rspack_plugin_javascript::ast::{print, SourceMapConfig};
 use rspack_plugin_javascript::{
@@ -330,8 +330,8 @@ impl Emitter for RspackErrorEmitter {
     if let Some(source_file_and_byte_pos) = source_file_and_byte_pos {
       self
         .tx
-        .send(Error::TraceableError(
-          TraceableError::from_source_file(
+        .send(Error::TraceableRspackError(
+          TraceableRspackError::from_source_file(
             &source_file_and_byte_pos.sf,
             source_file_and_byte_pos.pos.0 as usize,
             source_file_and_byte_pos.pos.0 as usize,
