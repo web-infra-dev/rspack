@@ -1,12 +1,9 @@
 use std::hash::Hash;
 
+use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  property_access,
-  rspack_sources::{ConcatSource, RawSource, SourceExt},
-  to_identifier,
-  tree_shaking::webpack_ext::ExportInfoExt,
-  ChunkUkey, Compilation, JsChunkHashArgs, LibraryOptions, Plugin, PluginContext,
-  PluginJsChunkHashHookOutput, PluginRenderStartupHookOutput, RenderStartupArgs,
+  property_access, to_identifier, ChunkUkey, Compilation, JsChunkHashArgs, LibraryOptions, Plugin,
+  PluginContext, PluginJsChunkHashHookOutput, PluginRenderStartupHookOutput, RenderStartupArgs,
 };
 use rspack_error::{internal_error_bail, Result};
 
@@ -50,21 +47,18 @@ impl Plugin for ModuleLibraryPlugin {
     };
     let mut source = ConcatSource::default();
     source.add(args.source.clone());
+    let exports_info = args.compilation.module_graph.get_exports_info(&args.module);
     let mut exports = vec![];
-    if let Some(analyze_results) = args
-      .compilation
-      .optimize_analyze_result_map
-      .get(&args.module)
-    {
-      for info in analyze_results.ordered_exports() {
-        let name = to_identifier(info.name.as_ref());
-        let var_name = format!("__webpack_exports__{}", name);
-        source.add(RawSource::from(format!(
-          "var {var_name} = __webpack_exports__{};\n",
-          property_access(&vec![&info.name], 0)
-        )));
-        exports.push(format!("{var_name} as {}", info.name));
-      }
+    for id in exports_info.get_ordered_exports() {
+      let info = id.get_export_info(&args.compilation.module_graph);
+      let info_name = info.name.as_ref().expect("name can't be empty").as_str();
+      let name = to_identifier(info_name);
+      let var_name = format!("__webpack_exports__{name}");
+      source.add(RawSource::from(format!(
+        "var {var_name} = __webpack_exports__{};\n",
+        property_access(&vec![info_name], 0)
+      )));
+      exports.push(format!("{var_name} as {}", info_name));
     }
     if !exports.is_empty() {
       source.add(RawSource::from(format!(
