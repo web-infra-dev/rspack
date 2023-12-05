@@ -405,6 +405,7 @@ impl TestConfig {
         worker_chunk_loading: c::ChunkLoading::Enable(c::ChunkLoadingType::ImportScripts),
         worker_wasm_loading: c::WasmLoading::Enable(c::WasmLoadingType::from("fetch")),
         worker_public_path: String::new(),
+        script_type: String::from("false"),
       },
       mode: c::Mode::from(self.mode),
       target: c::Target::new(&self.target).expect("Can't construct target"),

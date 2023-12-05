@@ -24,7 +24,7 @@ __webpack_require__.l = function (url, done, key, chunkId) {
 	if (!script) {
 		needAttach = true;
 		script = document.createElement('script');
-
+		$SCRIPT_TYPE$
 		script.charset = 'utf-8';
 		script.timeout = 120;
 		// script.setAttribute("data-webpack", dataWebpackPrefix + key);

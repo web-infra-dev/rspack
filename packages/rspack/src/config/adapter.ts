@@ -235,7 +235,8 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 			workerChunkLoading === false ? "false" : workerChunkLoading,
 		workerWasmLoading:
 			workerWasmLoading === false ? "false" : workerWasmLoading,
-		workerPublicPath: output.workerPublicPath!
+		workerPublicPath: output.workerPublicPath!,
+		scriptType: output.scriptType === false ? "false" : output.scriptType!
 	};
 }
 

@@ -618,6 +618,7 @@ const applyOutputDefaults = (
 	F(output, "sourceMapFilename", () => {
 		return "[file].map";
 	});
+	F(output, "scriptType", () => (output.module ? "module" : false));
 
 	const { trustedTypes } = output;
 	if (trustedTypes) {
