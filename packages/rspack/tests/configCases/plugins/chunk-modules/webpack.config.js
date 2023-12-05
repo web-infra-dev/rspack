@@ -5,12 +5,10 @@ module.exports = {
 				compilation.hooks.processAssets.tap("plugin", () => {
 					const chunkModules = {};
 					for (let chunk of compilation.chunks) {
-						const modules = compilation.chunkGraph
-							.getChunkModulesIterable(chunk)
-							.map(m => m.identifier().slice(compiler.context.length));
-						const entryModules = compilation.chunkGraph
-							.getChunkEntryModulesIterable(chunk)
-							.map(m => m.identifier().slice(compiler.context.length));
+						const modules =
+							compilation.chunkGraph.getChunkModulesIterable(chunk);
+						const entryModules =
+							compilation.chunkGraph.getChunkEntryModulesIterable(chunk);
 						chunkModules[chunk.id] = { modules, entryModules };
 					}
 					compilation.emitAsset(
