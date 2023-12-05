@@ -36,6 +36,7 @@ export type SwcJsMinimizerRspackPluginOptions = {
 	compress?: TerserCompressOptions | boolean;
 	mangle?: TerserMangleOptions | boolean;
 	format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
+	module?: boolean;
 
 	test?: MinifyConditions;
 	exclude?: MinifyConditions;
@@ -324,6 +325,7 @@ export const SwcJsMinimizerRspackPlugin = create(
 			compress: getRawCompressOptions(options),
 			mangle: getRawMangleOptions(options),
 			format: getRawFormatOptions(options),
+			module: options?.module,
 			test: options?.test,
 			include: options?.include,
 			exclude: options?.exclude

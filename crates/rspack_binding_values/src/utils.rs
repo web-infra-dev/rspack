@@ -6,7 +6,6 @@ use dashmap::DashMap;
 use futures::Future;
 use napi::bindgen_prelude::*;
 use napi::{check_status, Env, Error, JsFunction, JsUnknown, NapiRaw, Result};
-use rspack_error::CatchUnwindFuture;
 use rspack_napi_shared::threadsafe_function::{
   ThreadSafeContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
 };
@@ -102,23 +101,10 @@ where
   })?;
 
   napi::bindgen_prelude::spawn(async move {
-    let fut = CatchUnwindFuture::create(fut);
     let res = fut.await;
-    match res {
-      Ok(result) => {
-        tsfn
-          .call(result, ThreadsafeFunctionCallMode::NonBlocking)
-          .expect("Failed to call JS callback");
-      }
-      Err(e) => {
-        tsfn
-          .call(
-            Err(Error::from_reason(format!("{e}"))),
-            ThreadsafeFunctionCallMode::NonBlocking,
-          )
-          .expect("Failed to send panic info");
-      }
-    }
+    tsfn
+      .call(res, ThreadsafeFunctionCallMode::NonBlocking)
+      .expect("Failed to call JS callback");
   });
 
   Ok(())

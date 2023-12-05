@@ -3,7 +3,10 @@ use std::hash::Hash;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::tree_shaking::webpack_ext::ExportInfoExt;
-use rspack_core::{property_access, ChunkUkey, LibraryExport, LibraryName, LibraryNonUmdObject};
+use rspack_core::{
+  property_access, ChunkUkey, EntryData, LibraryExport, LibraryName, LibraryNonUmdObject,
+  UsageState,
+};
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
   to_identifier, Chunk, Compilation, Filename, JsChunkHashArgs, LibraryOptions, PathData, Plugin,
@@ -163,11 +166,11 @@ impl AssignLibraryPlugin {
   }
 }
 
+#[async_trait::async_trait]
 impl Plugin for AssignLibraryPlugin {
   fn name(&self) -> &'static str {
     "rspack.AssignLibraryPlugin"
   }
-
   fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
     let Some(options) = self.get_options_for_chunk(args.compilation, args.chunk)? else {
       return Ok(None);
@@ -186,6 +189,36 @@ impl Plugin for AssignLibraryPlugin {
       return Ok(Some(source.boxed()));
     }
     Ok(Some(args.source.clone()))
+  }
+
+  async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+    let mg = &mut compilation.module_graph;
+    for (_, entry) in compilation.entries.iter() {
+      let EntryData {
+        dependencies,
+        options,
+        ..
+      } = entry;
+      let module_of_last_dep = dependencies.last().and_then(|dep| mg.get_module(dep));
+      if let Some(module_of_last_dep) = module_of_last_dep {
+        if let Some(export) = options
+          .library
+          .as_ref()
+          .and_then(|lib| lib.export.as_ref())
+          .and_then(|item| item.first())
+        {
+          let exports_info =
+            mg.get_export_info(module_of_last_dep.identifier(), &(export.as_str()).into());
+          // TODO: runtime opt
+          exports_info.set_used(mg, UsageState::Used, None);
+        } else {
+          let exports_info_id = mg.get_exports_info(&module_of_last_dep.identifier()).id;
+          // TODO: runtime opt
+          exports_info_id.set_used_in_unknown_way(mg, None);
+        }
+      }
+    }
+    Ok(())
   }
 
   fn render_startup(

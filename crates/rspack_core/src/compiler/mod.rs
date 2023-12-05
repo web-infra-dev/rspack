@@ -65,6 +65,7 @@ where
     if options.is_new_tree_shaking() {
       IS_NEW_TREESHAKING.store(true, std::sync::atomic::Ordering::SeqCst);
     }
+    assert!(!(options.is_new_tree_shaking() && options.builtins.tree_shaking.enable()), "Can't enable builtins.tree_shaking and `experiments.rspack_future.new_treeshaking` at the same time");
     Self {
       options: options.clone(),
       compilation: Compilation::new(

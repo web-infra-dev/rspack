@@ -79,7 +79,7 @@ describe("Stats", () => {
 
 
 
-		Rspack compiled with 1 error (9bed7a0c293db88bb175)"
+		Rspack compiled with 1 error (b5e049b7786f599663d7)"
 	`);
 	});
 
@@ -149,6 +149,7 @@ describe("Stats", () => {
 		<t> optimize: X ms
 		<t> module ids: X ms
 		<t> chunk ids: X ms
+		<t> optimize code generation: X ms
 		<t> code generation: X ms
 		<t> runtime requirements.modules: X ms
 		<t> runtime requirements.chunks: X ms

@@ -37,7 +37,7 @@ pub struct JsAssetInfo {
   /// when asset ships data for updating an existing application (HMR)
   pub hot_module_replacement: bool,
   /// when asset is javascript and an ESM
-  // pub javascript_module:
+  pub javascript_module: Option<bool>,
   /// related object to other assets, keyed by type of relation (only points from parent to child)
   pub related: JsAssetInfoRelated,
 }
@@ -54,6 +54,7 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
       content_hash: i.content_hash.into_iter().collect(),
       version: String::from(""),
       source_filename: i.source_filename,
+      javascript_module: i.javascript_module,
     }
   }
 }
@@ -84,6 +85,7 @@ impl From<rspack_core::AssetInfo> for JsAssetInfo {
       chunk_hash: info.chunk_hash.into_iter().collect(),
       content_hash: info.content_hash.into_iter().collect(),
       source_filename: info.source_filename,
+      javascript_module: info.javascript_module,
     }
   }
 }

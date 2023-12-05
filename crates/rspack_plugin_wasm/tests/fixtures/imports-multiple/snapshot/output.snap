@@ -58,7 +58,7 @@ __webpack_async_result__();
 "./wasm.wasm": (function (module, exports, __webpack_require__) {
 "use strict";
 var __webpack_instantiate__ = function ([WEBPACK_IMPORTED_MODULE_0, WEBPACK_IMPORTED_MODULE_1]) {
-return __webpack_require__.v(exports, module.id, "1bcb32989c290fbc.module.wasm" , {
+return __webpack_require__.v(exports, module.id, "1bcb32989c290fbc" , {
 "./module": {
 "getNumber": WEBPACK_IMPORTED_MODULE_0["getNumber"]
 },
@@ -74,7 +74,7 @@ var WEBPACK_IMPORTED_MODULE_1 = __webpack_require__("./module2.js");
 
     var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([WEBPACK_IMPORTED_MODULE_0, WEBPACK_IMPORTED_MODULE_1]);
     var [WEBPACK_IMPORTED_MODULE_0, WEBPACK_IMPORTED_MODULE_1] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__;
-    await __webpack_require__.v(exports, module.id, "1bcb32989c290fbc.module.wasm" , {
+    await __webpack_require__.v(exports, module.id, "1bcb32989c290fbc" , {
 "./module": {
 "getNumber": WEBPACK_IMPORTED_MODULE_0["getNumber"]
 },

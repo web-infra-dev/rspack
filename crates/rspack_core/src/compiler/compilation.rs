@@ -14,9 +14,7 @@ use itertools::Itertools;
 use rayon::prelude::{
   IntoParallelIterator, IntoParallelRefIterator, ParallelBridge, ParallelIterator,
 };
-use rspack_error::{
-  internal_error, CatchUnwindFuture, Diagnostic, Result, Severity, TWithDiagnosticArray,
-};
+use rspack_error::{internal_error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, IdentifierMap, IdentifierSet};
@@ -525,20 +523,11 @@ impl Compilation {
               return;
             }
 
-            let result = CatchUnwindFuture::create(task.run()).await;
-
-            match result {
-              Ok(result) => {
-                if !is_expected_shutdown.load(Ordering::SeqCst) {
-                  result_tx
-                    .send(result)
-                    .expect("Failed to send factorize result");
-                }
-              }
-              Err(e) => {
-                // panic on the tokio worker thread
-                result_tx.send(Err(e)).expect("Failed to send panic info");
-              }
+            let result = task.run().await;
+            if !is_expected_shutdown.load(Ordering::SeqCst) {
+              result_tx
+                .send(result)
+                .expect("Failed to send factorize result");
             }
           }
         });
@@ -557,18 +546,9 @@ impl Compilation {
               return;
             }
 
-            let result = CatchUnwindFuture::create(task.run()).await;
-
-            match result {
-              Ok(result) => {
-                if !is_expected_shutdown.load(Ordering::SeqCst) {
-                  result_tx.send(result).expect("Failed to send build result");
-                }
-              }
-              Err(e) => {
-                // panic on the tokio worker thread
-                result_tx.send(Err(e)).expect("Failed to send panic info");
-              }
+            let result = task.run().await;
+            if !is_expected_shutdown.load(Ordering::SeqCst) {
+              result_tx.send(result).expect("Failed to send build result");
             }
           }
         });
@@ -1281,9 +1261,6 @@ impl Compilation {
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
     while plugin_driver.optimize_dependencies(self).await?.is_some() {}
     logger.time_end(start);
-    // if self.options.is_new_tree_shaking() {
-    //   // debug_all_exports_info!(&self.module_graph);
-    // }
 
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
@@ -1308,9 +1285,16 @@ impl Compilation {
     plugin_driver.chunk_ids(self)?;
     logger.time_end(start);
 
+    let start = logger.time("optimize code generation");
+    plugin_driver.optimize_code_generation(self).await?;
+    logger.time_end(start);
+
     let start = logger.time("code generation");
     self.code_generation().await?;
     logger.time_end(start);
+    // if self.options.is_new_tree_shaking() {
+    //   debug_all_exports_info!(&self.module_graph);
+    // }
 
     let start = logger.time("runtime requirements");
     self
@@ -1802,7 +1786,7 @@ pub struct AssetInfo {
   /// when asset ships data for updating an existing application (HMR)
   pub hot_module_replacement: bool,
   /// when asset is javascript and an ESM
-  // pub javascript_module:
+  pub javascript_module: Option<bool>,
   /// related object to other assets, keyed by type of relation (only points from parent to child)
   pub related: AssetInfoRelated,
   /// the asset version, emit can be skipped when both filename and version are the same
@@ -1856,6 +1840,10 @@ impl AssetInfo {
 
   pub fn set_source_filename(&mut self, v: String) {
     self.source_filename = Some(v);
+  }
+
+  pub fn set_javascript_module(&mut self, v: bool) {
+    self.javascript_module = Some(v);
   }
 }
 

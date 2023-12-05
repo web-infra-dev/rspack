@@ -476,10 +476,10 @@ impl Plugin for SideEffectsFlagPlugin {
                   .as_ref()
                   .map(|item| {
                     let mut ret = Vec::from_iter(item.iter().cloned());
-                    ret.extend_from_slice(&ids[1..]);
+                    ret.extend_from_slice(ids.get(1..).unwrap_or_default());
                     ret
                   })
-                  .unwrap_or_else(|| ids[1..].to_vec());
+                  .unwrap_or_else(|| ids.get(1..).unwrap_or_default().to_vec());
                 dep_id.set_ids(processed_ids, mg);
                 mg.connection_by_dependency(&dep_id).cloned()
               },

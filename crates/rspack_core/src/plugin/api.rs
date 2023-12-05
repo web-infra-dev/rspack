@@ -399,6 +399,10 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
+  async fn optimize_code_generation(&self, _compilation: &mut Compilation) -> Result<Option<()>> {
+    Ok(None)
+  }
+
   async fn optimize_tree(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }

@@ -42,13 +42,23 @@ impl RuntimeModule for LoadScriptRuntimeModule {
       ),
     };
 
+    let script_type = if compilation.options.output.script_type.eq("false") {
+      String::new()
+    } else {
+      format!(
+        "script.type = '{}';",
+        compilation.options.output.script_type
+      )
+    };
+
     RawSource::from(
       include_str!("runtime/load_script.js")
         .replace(
           "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
           &cross_origin_loading,
         )
-        .replace("$URL$", &url),
+        .replace("$URL$", &url)
+        .replace("$SCRIPT_TYPE$", &script_type),
     )
     .boxed()
   }

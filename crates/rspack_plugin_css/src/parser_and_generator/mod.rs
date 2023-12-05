@@ -29,7 +29,7 @@ use crate::{
   utils::{css_modules_exports_to_string, ModulesTransformConfig},
 };
 use crate::{
-  utils::{stringify_css_modules_exports_elements, stringify_css_modules_exports_key},
+  utils::{export_locals_convention, stringify_css_modules_exports_elements},
   visitors::analyze_dependencies,
 };
 
@@ -132,11 +132,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
       self.exports = Some(IndexMap::from_iter(
         exports
           .iter()
-          .map(|(key, elements)| {
-            (
-              stringify_css_modules_exports_key(key, &self.config.modules.locals_convention),
-              stringify_css_modules_exports_elements(elements),
-            )
+          .map(|(name, elements)| {
+            let mut names = export_locals_convention(name, &self.config.modules.locals_convention);
+            names.sort_unstable();
+            names.dedup();
+            (names, stringify_css_modules_exports_elements(elements))
           })
           .collect::<Vec<_>>(),
       ));

@@ -13,6 +13,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::utils::join_jsword;
 
+#[derive(Debug)]
 enum ModuleOrAsyncDependenciesBlock {
   Module(ModuleIdentifier),
   AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
@@ -93,6 +94,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     let mut queue = VecDeque::new();
     queue.push_back(block_id);
     while let Some(module_id) = queue.pop_front() {
+      // dbg!(&module_id);
       let (blocks, dependencies) = match module_id {
         ModuleOrAsyncDependenciesBlock::Module(module) => {
           let block = self
@@ -154,8 +156,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         // dbg!(
         //   &connection,
         //   dep_id
-        //     .get_dep(&self.compilation.module_graph)
-        //     .map(|dep| dep.dependency_debug_name()),
+        //     .get_dependency(&self.compilation.module_graph)
+        //     .dependency_debug_name(),
         //   active_state
         // );
         match active_state {

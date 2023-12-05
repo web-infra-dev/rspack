@@ -20,6 +20,7 @@ pub struct RawSwcJsMinimizerRspackPluginOptions {
   pub compress: Either<bool, String>,
   pub mangle: Either<bool, String>,
   pub format: String,
+  pub module: Option<bool>,
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
   pub test: Option<RawSwcJsMinimizerRules>,
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
@@ -50,6 +51,7 @@ impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for SwcJsMinimizerRspackPlugi
       compress: try_deserialize_into(&value.compress)?,
       mangle: try_deserialize_into(&value.mangle)?,
       format: serde_json::from_str(&value.format)?,
+      module: value.module,
       test: into_condition(value.test),
       include: into_condition(value.include),
       exclude: into_condition(value.exclude),

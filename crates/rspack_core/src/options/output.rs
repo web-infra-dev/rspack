@@ -52,6 +52,7 @@ pub struct OutputOptions {
   pub worker_chunk_loading: ChunkLoading,
   pub worker_wasm_loading: WasmLoading,
   pub worker_public_path: String,
+  pub script_type: String,
 }
 
 impl From<&OutputOptions> for RspackHash {

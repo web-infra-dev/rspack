@@ -235,7 +235,8 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 			workerChunkLoading === false ? "false" : workerChunkLoading,
 		workerWasmLoading:
 			workerWasmLoading === false ? "false" : workerWasmLoading,
-		workerPublicPath: output.workerPublicPath!
+		workerPublicPath: output.workerPublicPath!,
+		scriptType: output.scriptType === false ? "false" : output.scriptType!
 	};
 }
 
@@ -716,12 +717,13 @@ function getRawOptimization(
 		realContentHash: optimization.realContentHash,
 		usedExports: String(optimization.usedExports),
 		providedExports: optimization.providedExports,
-		innerGraph: optimization.innerGraph
+		innerGraph: optimization.innerGraph,
+		mangleExports: String(optimization.mangleExports)
 	};
 }
 
 export function toRawSplitChunksOptions(
-	sc?: OptimizationSplitChunksOptions
+	sc?: false | OptimizationSplitChunksOptions
 ): RawOptions["optimization"]["splitChunks"] | undefined {
 	if (!sc) {
 		return;

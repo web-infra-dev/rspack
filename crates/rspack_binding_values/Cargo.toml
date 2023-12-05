@@ -43,6 +43,7 @@ rspack_plugin_wasm                      = { path = "../rspack_plugin_wasm" }
 rspack_plugin_worker                    = { path = "../rspack_plugin_worker" }
 rspack_regex                            = { path = "../rspack_regex" }
 rspack_swc_visitors                     = { path = "../rspack_swc_visitors" }
+rspack_util                             = { path = "../rspack_util" }
 
 anyhow            = { workspace = true, features = ["backtrace"] }
 async-trait       = { workspace = true }

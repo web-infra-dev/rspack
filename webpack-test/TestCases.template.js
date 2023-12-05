@@ -221,7 +221,9 @@ const describeCases = config => {
                   // RSPACK exclusive: Rspack enables `css` by default.
                   // Turning off here to fallback to webpack's default css processing logic.
 
-									rspackFuture: testConfig?.experiments?.rspackFuture ?? {},
+									rspackFuture: testConfig?.experiments?.rspackFuture ?? {
+										newTreeshaking: true
+									},
                   css: false,
 									...(config.module ? { outputModule: true } : {}),
 								},

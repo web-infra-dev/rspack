@@ -21,6 +21,8 @@ export interface ModuleFederationPluginOptions {
 	runtime?: EntryRuntime;
 	shareScope?: string;
 	shared?: Shared;
+
+	runtimePlugins?: string[];
 }
 
 export class ModuleFederationPlugin {
@@ -73,6 +75,10 @@ export class ModuleFederationPlugin {
 					shared: options.shared,
 					shareScope: options.shareScope
 				}).apply(compiler);
+			}
+			const runtimePlugins = options.runtimePlugins ?? [];
+			for (let plugin of runtimePlugins) {
+				ModuleFederationRuntimePlugin.addPlugin(compiler, plugin);
 			}
 		});
 	}
