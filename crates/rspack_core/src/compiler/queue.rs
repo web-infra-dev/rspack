@@ -107,6 +107,17 @@ impl WorkerTask for FactorizeTask {
           .await?
           .split_into_parts()
       }
+      DependencyType::RemoteToFallback => {
+        let factory = crate::mf::fallback_module_factory::FallbackModuleFactory;
+        factory
+          .create(ModuleFactoryCreateData {
+            resolve_options: self.resolve_options,
+            context,
+            dependency,
+          })
+          .await?
+          .split_into_parts()
+      }
       DependencyType::ProvideSharedModule => {
         let factory = crate::mf::provide_shared_module_factory::ProvideSharedModuleFactory;
         factory
