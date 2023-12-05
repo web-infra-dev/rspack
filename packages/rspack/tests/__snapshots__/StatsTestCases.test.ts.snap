@@ -806,7 +806,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 9105,
+      "size": 9106,
       "type": "asset",
     },
   ],
@@ -869,10 +869,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 9105,
+          "size": 9106,
         },
       ],
-      "assetsSize": 9105,
+      "assetsSize": 9106,
       "chunks": [
         "main",
       ],
@@ -882,7 +882,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "c5f155fccdd4c17db5b4",
+  "hash": "a0e8b8e7a12183967b4c",
   "logging": {},
   "modules": [
     {
@@ -1033,10 +1033,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 9105,
+          "size": 9106,
         },
       ],
-      "assetsSize": 9105,
+      "assetsSize": 9106,
       "chunks": [
         "main",
       ],
@@ -1065,7 +1065,7 @@ webpack/runtime/require_chunk_loading {main}
 webpack/runtime/hot_module_replacement {main}
 webpack/runtime/get_chunk_update_filename {main}
 webpack/runtime/get_main_filename/update manifest {main}
-Rspack compiled successfully (c5f155fccdd4c17db5b4)"
+Rspack compiled successfully (a0e8b8e7a12183967b4c)"
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 1`] = `
