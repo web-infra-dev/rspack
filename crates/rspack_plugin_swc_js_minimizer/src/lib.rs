@@ -36,6 +36,7 @@ pub struct SwcJsMinimizerRspackPluginOptions {
   pub test: Option<SwcJsMinimizerRules>,
   pub include: Option<SwcJsMinimizerRules>,
   pub exclude: Option<SwcJsMinimizerRules>,
+  pub module: Option<bool>,
 
   /// Internal fields for hashing only.
   /// This guaranteed these field should only be readonly.
@@ -138,12 +139,6 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
   ) -> PluginProcessAssetsOutput {
     let compilation = args.compilation;
     let minify_options = &self.options;
-    let is_module = compilation
-      .options
-      .output
-      .library
-      .as_ref()
-      .is_some_and(|library| library.library_type == "module");
 
     let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
     // collect all extracted comments info
@@ -180,6 +175,15 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
         if let Some(original_source) = original.get_source() {
           let input = original_source.source().to_string();
           let input_source_map = original_source.map(&MapOptions::default());
+
+          let is_module = if let Some(module) = self.options.module {
+            module
+          } else if let Some(module) = original.info.javascript_module {
+            module
+          } else {
+            filename.ends_with(".mjs")
+          };
+
           let js_minify_options = JsMinifyOptions {
             compress: minify_options.compress.clone(),
             mangle: minify_options.mangle.clone(),

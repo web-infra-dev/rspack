@@ -48,10 +48,12 @@ impl DependencyLocation {
     Self { start, end }
   }
 
+  #[inline]
   pub fn start(&self) -> u32 {
     self.start
   }
 
+  #[inline]
   pub fn end(&self) -> u32 {
     self.end
   }

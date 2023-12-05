@@ -165,7 +165,7 @@ impl Plugin for JsPlugin {
       &compilation.options.output,
       &compilation.chunk_group_by_ukey,
     );
-    let (output_path, asset_info) = compilation.get_path_with_info(
+    let (output_path, mut asset_info) = compilation.get_path_with_info(
       filename_template,
       PathData::default()
         .chunk(chunk)
@@ -177,6 +177,7 @@ impl Plugin for JsPlugin {
         )
         .runtime(&chunk.runtime),
     );
+    asset_info.set_javascript_module(compilation.options.output.module);
     Ok(vec![RenderManifestEntry::new(
       source,
       output_path,

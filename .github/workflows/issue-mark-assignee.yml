@@ -1,0 +1,22 @@
+name: Issue Mark Assignee
+
+on:
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  issue-mark-assign:
+    permissions:
+      issues: write
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'web-infra-dev'
+    steps:
+      - name: mark assignee
+        uses: actions-cool/issues-helper@v3
+        with:
+          actions: 'mark-assignees'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          require-permission: "none"

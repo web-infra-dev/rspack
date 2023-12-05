@@ -336,11 +336,11 @@ pub fn module_raw(
   }
 }
 
-pub fn miss_module(request: &str) -> String {
+fn miss_module(request: &str) -> String {
   format!("Object({}())", throw_missing_module_error_function(request))
 }
 
-pub fn throw_missing_module_error_function(request: &str) -> String {
+fn throw_missing_module_error_function(request: &str) -> String {
   format!(
     "function webpackMissingModule() {{ {} }}",
     throw_missing_module_error_block(request)
@@ -353,9 +353,8 @@ pub fn throw_missing_module_error_block(request: &str) -> String {
   )
 }
 
-pub fn weak_error(request: &str) -> String {
-  let msg = format!("Module is not available (weak dependency), request is {request}.");
-  format!("var e = new Error('{msg}'); e.code = 'MODULE_NOT_FOUND'; throw e;")
+fn weak_error(request: &str) -> String {
+  format!("var e = new Error('Module is not available (weak dependency), request is {request}'); e.code = 'MODULE_NOT_FOUND'; throw e;")
 }
 
 pub fn returning_function(return_value: &str, args: &str) -> String {

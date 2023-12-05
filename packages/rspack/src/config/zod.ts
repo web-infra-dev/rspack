@@ -983,7 +983,7 @@ const optimization = z.strictObject({
 	minimize: z.boolean().optional(),
 	minimizer: z.literal("...").or(plugin).array().optional(),
 	mergeDuplicateChunks: z.boolean().optional(),
-	splitChunks: optimizationSplitChunksOptions.optional(),
+	splitChunks: z.literal(false).or(optimizationSplitChunksOptions).optional(),
 	runtimeChunk: optimizationRuntimeChunk.optional(),
 	removeAvailableModules: z.boolean().optional(),
 	removeEmptyChunks: z.boolean().optional(),
@@ -1007,7 +1007,22 @@ export type IncrementalRebuildOptions = z.infer<
 >;
 
 const rspackFutureOptions = z.strictObject({
-	newResolver: z.boolean().optional(),
+	newResolver: z
+		.boolean()
+		.optional()
+		.refine(val => {
+			if (val === false) {
+				deprecatedWarn(
+					`'experiments.rspackFuture.newResolver = ${JSON.stringify(
+						val
+					)}' has been deprecated, and will be drop support in 0.5.0, please switch 'experiments.rspackFuture.newResolver = true' to use new resolver, See the discussion ${termlink(
+						"here",
+						"https://github.com/web-infra-dev/rspack/issues/4825"
+					)}`
+				);
+			}
+			return true;
+		}),
 	newTreeshaking: z.boolean().optional(),
 	disableTransformByDefault: z.boolean().optional()
 });

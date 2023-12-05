@@ -672,19 +672,6 @@ fn test_escape() {
 // Make sure every field of AssetInfo is considered
 #[test]
 fn ensure_info_fields() {
-  let info = AssetInfo {
-    immutable: Default::default(),
-    minimized: Default::default(),
-    chunk_hash: Default::default(),
-    content_hash: Default::default(),
-    development: Default::default(),
-    hot_module_replacement: Default::default(),
-    related: AssetInfoRelated {
-      source_map: Default::default(),
-    },
-    version: Default::default(),
-    source_filename: Default::default(),
-  };
-
+  let info = AssetInfo::default();
   std::hint::black_box(info);
 }

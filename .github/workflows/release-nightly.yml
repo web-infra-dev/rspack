@@ -90,7 +90,7 @@ jobs:
     name: Trigger Ecosystem CI if successed
     needs: [release]
     runs-on: ubuntu-latest
-    if: github.repository_owner == 'web-infra-dev' && ${{ always() && !contains(needs.*.result, 'failure') }}
+    if: ${{ github.repository_owner == 'web-infra-dev' && !contains(needs.*.result, 'failure') }}
     steps:
       - uses: actions/github-script@v6
         with:
@@ -114,7 +114,7 @@ jobs:
     name: Notify if failed
     needs: [release]
     runs-on: ubuntu-latest
-    if: github.repository_owner == 'web-infra-dev' && ${{ always() && contains(needs.*.result, 'failure') }}
+    if: ${{ github.repository_owner == 'web-infra-dev' && contains(needs.*.result, 'failure') }}
     steps:
       - uses: actions/github-script@v6
         with:
