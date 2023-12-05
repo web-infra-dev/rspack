@@ -1,7 +1,14 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`cases exported tests data imports 1`] = `
-"/* #region "data:text/css;base64,LmJ7Y29sb3I6IGdyZWVufQ==" */
+"/* #region "data:text/css,.red{color: red;}" */
+/*
+- type: css
+*/
+.red{color: red;}
+/* #endregion "data:text/css,.red{color: red;}" */
+
+/* #region "data:text/css;base64,LmJ7Y29sb3I6IGdyZWVufQ==" */
 /*
 - type: css
 */
@@ -43,13 +50,6 @@ exports[`cases exported tests data imports 1`] = `
 }
 
 /* #endregion "./index.css" */
-
-/* #region "data:text/css,.red{color: red;}" */
-/*
-- type: css
-*/
-.red{color: red;}
-/* #endregion "data:text/css,.red{color: red;}" */
 
 "
 `;
