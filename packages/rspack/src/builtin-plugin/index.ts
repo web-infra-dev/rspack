@@ -281,10 +281,12 @@ export function deprecated_resolveBuiltins(
 				)}' has been deprecated, please switch to 'builtins.devFriendlySplitChunks = false' to use webpack's behavior.`
 			);
 	}
-	const disableMinify =
-		!options.optimization.minimize ||
-		options.optimization.minimizer!.some(item => item !== "...");
-	if (!disableMinify) {
+	const shouldApplyBuiltinMinify =
+		options.optimization.minimize &&
+		// only when `...` has not been replaced by factory plugin instance
+		options.optimization.minimizer!.some(item => item === "...");
+
+	if (shouldApplyBuiltinMinify) {
 		new SwcJsMinimizerRspackPlugin(builtins.minifyOptions).apply(compiler);
 		new SwcCssMinimizerRspackPlugin().apply(compiler);
 	}

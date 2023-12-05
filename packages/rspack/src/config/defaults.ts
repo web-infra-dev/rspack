@@ -43,6 +43,10 @@ import {
 import Template from "../Template";
 import { assertNotNill } from "../util/assertNotNil";
 import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
+import {
+	SwcCssMinimizerRspackPlugin,
+	SwcJsMinimizerRspackPlugin
+} from "../builtin-plugin";
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized
@@ -757,6 +761,22 @@ const applyOptimizationDefaults = (
 		// TODO: enable this when drop support for builtins options
 		// new SwcJsMinimizerPlugin(),
 		// new SwcCssMinimizerPlugin()
+		{
+			apply(compiler) {
+				const {
+					SwcJsMinimizerRspackPlugin
+				} = require("../builtin-plugin/SwcJsMinimizerPlugin");
+				const {
+					SwcCssMinimizerRspackPlugin
+				} = require("../builtin-plugin/SwcCssMinimizerPlugin");
+
+				new SwcJsMinimizerRspackPlugin(
+					/** @deprecated when drop support for `builtins.minifyOptions` */
+					compiler.options.builtins.minifyOptions
+				).apply(compiler);
+				new SwcCssMinimizerRspackPlugin().apply(compiler);
+			}
+		}
 	]);
 	F(optimization, "nodeEnv", () => {
 		if (production) return "production";
