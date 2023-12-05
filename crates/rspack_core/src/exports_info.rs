@@ -1014,7 +1014,7 @@ impl ExportInfo {
       }
     }
   }
-  pub fn get_used(&self, _runtime: Option<&RuntimeSpec>) -> UsageState {
+  pub fn get_used(&self, runtime: Option<&RuntimeSpec>) -> UsageState {
     if !self.has_use_in_runtime_info {
       return UsageState::NoInfo;
     }
