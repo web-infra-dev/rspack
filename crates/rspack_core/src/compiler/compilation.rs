@@ -1716,12 +1716,12 @@ impl Compilation {
 
   pub fn set_dependency_factory(
     &mut self,
-    dependnecy_type: DependencyType,
+    dependency_type: DependencyType,
     module_factory: Arc<dyn ModuleFactory>,
   ) {
     self
       .dependency_factories
-      .insert(dependnecy_type, module_factory);
+      .insert(dependency_type, module_factory);
   }
 
   pub fn get_dependency_factory(&self, dependency_type: &DependencyType) -> Arc<dyn ModuleFactory> {
