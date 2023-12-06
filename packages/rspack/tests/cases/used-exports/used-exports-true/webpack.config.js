@@ -16,6 +16,6 @@ module.exports = {
 		minimize: false,
 		mangleExports: false,
 		moduleIds: "named",
-		usedExports: "global"
+		usedExports: true
 	}
 };
