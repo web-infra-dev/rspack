@@ -1,11 +1,10 @@
 use rspack_core::get_import_var;
 use rspack_core::{
-  create_exports_object_referenced, create_no_exports_referenced, export_from_import,
-  get_dependency_used_by_exports_condition, get_exports_type,
-  tree_shaking::symbol::DEFAULT_JS_WORD, AsContextDependency, Compilation, ConnectionState,
-  Dependency, DependencyCategory, DependencyCondition, DependencyId, DependencyTemplate,
-  DependencyType, ExportsType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
-  ModuleGraphModule, ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext,
+  create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
+  get_exports_type, tree_shaking::symbol::DEFAULT_JS_WORD, AsContextDependency, Compilation,
+  ConnectionState, Dependency, DependencyCategory, DependencyCondition, DependencyId,
+  DependencyTemplate, DependencyType, ExportsType, ExtendedReferencedExport, ModuleDependency,
+  ModuleGraph, ModuleGraphModule, ModuleIdentifier, ReferencedExport, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, UsedByExports,
 };
 use rustc_hash::FxHashSet as HashSet;
@@ -119,7 +118,7 @@ impl HarmonyImportSpecifierDependency {
         .map(ExtendedReferencedExport::Export)
         .collect::<Vec<_>>()
     } else if let Some(v) = ids {
-      vec![ReferencedExport::new(v.clone(), true).into()]
+      vec![ExtendedReferencedExport::Array(v.clone())]
     } else {
       create_exports_object_referenced()
     }
@@ -139,8 +138,8 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       .module_graph_module_by_dependency_id(&self.id)
       .expect("should have ref module");
 
-    let is_new_tree_shaking = compilation.options.is_new_tree_shaking();
-    if is_new_tree_shaking {
+    let is_new_treeshaking = compilation.options.is_new_tree_shaking();
+    if is_new_treeshaking {
       let connection = compilation.module_graph.connection_by_dependency(&self.id);
       let is_target_active = if let Some(con) = connection {
         // TODO: runtime opt
@@ -173,7 +172,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     let import_var = get_import_var(&compilation.module_graph, self.id);
 
     // TODO: scope hoist
-    if is_new_tree_shaking {
+    if is_new_treeshaking {
       harmony_import_dependency_apply(
         self,
         self.source_order,
@@ -190,7 +189,6 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       self.call,
       !self.direct_import,
     );
-    // dbg!(&export_expr);
     if self.shorthand {
       source.insert(self.end, format!(": {export_expr}").as_str(), None);
     } else {
@@ -300,7 +298,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
           namespace_object_as_context = true;
         }
         ExportsType::Dynamic => {
-          return create_no_exports_referenced();
+          return create_exports_object_referenced();
         }
         _ => {}
       }

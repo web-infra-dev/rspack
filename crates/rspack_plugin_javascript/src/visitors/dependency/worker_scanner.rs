@@ -1,8 +1,9 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, ConstDependency, EntryOptions,
-  ErrorSpan, GroupOptions, ModuleIdentifier, OutputOptions, SpanExt,
+  AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, ConstDependency,
+  DependencyLocation, EntryOptions, ErrorSpan, GroupOptions, ModuleIdentifier, OutputOptions,
+  SpanExt,
 };
 use rspack_hash::RspackHash;
 use swc_core::common::Spanned;
@@ -69,6 +70,7 @@ impl<'a> WorkerScanner<'a> {
     let mut block = AsyncDependenciesBlock::new(
       *self.module_identifier,
       format!("{}:{}", span.start, span.end),
+      Some(DependencyLocation::new(span.start, span.end)),
     );
     block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
       name,

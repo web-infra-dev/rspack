@@ -218,6 +218,7 @@ justfile
 /webpack-test/ChangesAndRemovals
 /webpack-test/**/dev-defaults.webpack.lock
 !/webpack-test/**/target
+!/webpack-test/cases/**/node_modules
 
 /webpack-examples/**/dist
 

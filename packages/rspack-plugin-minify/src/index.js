@@ -60,8 +60,10 @@ module.exports = class RspackMinifyPlugin {
 					const sourcemap = !!devtool;
 					const assets = compilation.getAssets().filter(asset => {
 						return (
-							isJsFile.test(asset.name) ||
-							(this.options.css && isCssFile.test(asset.name))
+							// Don't double minimize assets
+							!asset.info.minimized &&
+							(isJsFile.test(asset.name) ||
+								(this.options.css && isCssFile.test(asset.name)))
 						);
 					});
 

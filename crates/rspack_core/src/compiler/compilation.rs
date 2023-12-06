@@ -14,9 +14,7 @@ use itertools::Itertools;
 use rayon::prelude::{
   IntoParallelIterator, IntoParallelRefIterator, ParallelBridge, ParallelIterator,
 };
-use rspack_error::{
-  internal_error, CatchUnwindFuture, Diagnostic, Result, Severity, TWithDiagnosticArray,
-};
+use rspack_error::{internal_error, Diagnostic, Result, Severity, TWithDiagnosticArray};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, IdentifierMap, IdentifierSet};
@@ -182,6 +180,7 @@ impl Compilation {
       } else {
         let data = EntryData {
           dependencies: vec![entry_id],
+          include_dependencies: vec![],
           options,
         };
         self.entries.insert(name, data);
@@ -189,6 +188,30 @@ impl Compilation {
     } else {
       self.global_entry.dependencies.push(entry_id);
     }
+  }
+
+  pub async fn add_include(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
+    let entry_id = *entry.id();
+    self.module_graph.add_dependency(entry);
+    if let Some(name) = options.name.clone() {
+      if let Some(data) = self.entries.get_mut(&name) {
+        data.include_dependencies.push(entry_id);
+      } else {
+        let data = EntryData {
+          dependencies: vec![],
+          include_dependencies: vec![entry_id],
+          options,
+        };
+        self.entries.insert(name, data);
+      }
+    } else {
+      self.global_entry.include_dependencies.push(entry_id);
+    }
+    self
+      .update_module_graph(vec![MakeParam::ForceBuildDeps(HashSet::from_iter([(
+        entry_id, None,
+      )]))])
+      .await
   }
 
   pub fn update_asset(
@@ -321,30 +344,29 @@ impl Compilation {
     Stats::new(self)
   }
 
-  pub fn add_named_chunk<'chunk>(
+  pub fn add_named_chunk(
     name: String,
-    chunk_by_ukey: &'chunk mut ChunkByUkey,
+    chunk_by_ukey: &mut ChunkByUkey,
     named_chunks: &mut HashMap<String, ChunkUkey>,
-  ) -> &'chunk mut Chunk {
+  ) -> ChunkUkey {
     let existed_chunk_ukey = named_chunks.get(&name);
     if let Some(chunk_ukey) = existed_chunk_ukey {
-      let chunk = chunk_by_ukey
-        .get_mut(chunk_ukey)
-        .expect("This should not happen");
-      chunk
+      assert!(chunk_by_ukey.contains(chunk_ukey));
+      *chunk_ukey
     } else {
       let chunk = Chunk::new(Some(name.clone()), ChunkKind::Normal);
       let ukey = chunk.ukey;
       named_chunks.insert(name, chunk.ukey);
-      chunk_by_ukey.entry(ukey).or_insert_with(|| chunk)
+      chunk_by_ukey.entry(ukey).or_insert_with(|| chunk);
+      ukey
     }
   }
 
-  pub fn add_chunk(chunk_by_ukey: &mut ChunkByUkey) -> &mut Chunk {
+  pub fn add_chunk(chunk_by_ukey: &mut ChunkByUkey) -> ChunkUkey {
     let chunk = Chunk::new(None, ChunkKind::Normal);
     let ukey = chunk.ukey;
     chunk_by_ukey.add(chunk);
-    chunk_by_ukey.get_mut(&ukey).expect("chunk not found")
+    ukey
   }
 
   #[instrument(name = "compilation:make", skip_all)]
@@ -501,20 +523,11 @@ impl Compilation {
               return;
             }
 
-            let result = CatchUnwindFuture::create(task.run()).await;
-
-            match result {
-              Ok(result) => {
-                if !is_expected_shutdown.load(Ordering::SeqCst) {
-                  result_tx
-                    .send(result)
-                    .expect("Failed to send factorize result");
-                }
-              }
-              Err(e) => {
-                // panic on the tokio worker thread
-                result_tx.send(Err(e)).expect("Failed to send panic info");
-              }
+            let result = task.run().await;
+            if !is_expected_shutdown.load(Ordering::SeqCst) {
+              result_tx
+                .send(result)
+                .expect("Failed to send factorize result");
             }
           }
         });
@@ -533,18 +546,9 @@ impl Compilation {
               return;
             }
 
-            let result = CatchUnwindFuture::create(task.run()).await;
-
-            match result {
-              Ok(result) => {
-                if !is_expected_shutdown.load(Ordering::SeqCst) {
-                  result_tx.send(result).expect("Failed to send build result");
-                }
-              }
-              Err(e) => {
-                // panic on the tokio worker thread
-                result_tx.send(Err(e)).expect("Failed to send panic info");
-              }
+            let result = task.run().await;
+            if !is_expected_shutdown.load(Ordering::SeqCst) {
+              result_tx.send(result).expect("Failed to send build result");
             }
           }
         });
@@ -958,8 +962,10 @@ impl Compilation {
             }
 
             Some(values)
-          } else if matches!(dep.dependency_type(), DependencyType::ContainerExposed)
-            && let Some(module) = self.module_graph.get_module(dep.id())
+          } else if matches!(
+            dep.dependency_type(),
+            DependencyType::ContainerExposed | DependencyType::ProvideModuleForShared
+          ) && let Some(module) = self.module_graph.get_module(dep.id())
           {
             Some(vec![(module.identifier(), BailoutFlag::CONTAINER_EXPOSED)])
           } else {
@@ -1255,9 +1261,6 @@ impl Compilation {
     // https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/Compilation.js#L2812-L2814
     while plugin_driver.optimize_dependencies(self).await?.is_some() {}
     logger.time_end(start);
-    // if self.options.is_new_tree_shaking() {
-    //   // debug_all_exports_info!(&self.module_graph);
-    // }
 
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
@@ -1282,9 +1285,16 @@ impl Compilation {
     plugin_driver.chunk_ids(self)?;
     logger.time_end(start);
 
+    let start = logger.time("optimize code generation");
+    plugin_driver.optimize_code_generation(self).await?;
+    logger.time_end(start);
+
     let start = logger.time("code generation");
     self.code_generation().await?;
     logger.time_end(start);
+    // if self.options.is_new_tree_shaking() {
+    //   debug_all_exports_info!(&self.module_graph);
+    // }
 
     let start = logger.time("runtime requirements");
     self
@@ -1776,7 +1786,7 @@ pub struct AssetInfo {
   /// when asset ships data for updating an existing application (HMR)
   pub hot_module_replacement: bool,
   /// when asset is javascript and an ESM
-  // pub javascript_module:
+  pub javascript_module: Option<bool>,
   /// related object to other assets, keyed by type of relation (only points from parent to child)
   pub related: AssetInfoRelated,
   /// the asset version, emit can be skipped when both filename and version are the same
@@ -1830,6 +1840,10 @@ impl AssetInfo {
 
   pub fn set_source_filename(&mut self, v: String) {
     self.source_filename = Some(v);
+  }
+
+  pub fn set_javascript_module(&mut self, v: bool) {
+    self.javascript_module = Some(v);
   }
 }
 

@@ -1,12 +1,11 @@
 // @ts-nocheck
 
 if (__webpack_require__.MF) {
-	__webpack_require__.MF.initializeSharing = function (data) {
-		var name = data.name,
-			initScope = data.initScope,
-			initPerScope = data.initPerScope,
-			initTokens = data.initTokens,
-			initPromises = data.initPromises;
+	var initPromises = {};
+	var initTokens = {};
+	__webpack_require__.MF.initializeSharing = function (name, initScope) {
+		var scopeToSharingDataMapping =
+			__webpack_require__.MF.initializeSharingData.scopeToSharingDataMapping;
 		if (!initScope) initScope = [];
 		// handling circular init calls
 		var initToken = initTokens[name];
@@ -23,7 +22,7 @@ if (__webpack_require__.MF) {
 		var warn = function (msg) {
 			if (typeof console !== "undefined" && console.warn) console.warn(msg);
 		};
-		var uniqueName = "app";
+		var uniqueName = __webpack_require__.MF.initializeSharingData.uniqueName;
 		var register = function (name, version, factory, eager) {
 			var versions = (scope[name] = scope[name] || {});
 			var activeVersion = versions[version];
@@ -59,7 +58,13 @@ if (__webpack_require__.MF) {
 			}
 		};
 		var promises = [];
-		initPerScope(name, register, initExternal);
+		if (scopeToSharingDataMapping[name]) {
+			scopeToSharingDataMapping[name].forEach(function (stage) {
+				if (typeof stage === "string" && stage) initExternal(stage);
+				else if (Array.isArray(stage))
+					register(stage[0], stage[1], stage[2], stage[3]);
+			});
+		}
 		if (!promises.length) return (initPromises[name] = 1);
 		return (initPromises[name] = Promise.all(promises).then(function () {
 			return (initPromises[name] = 1);

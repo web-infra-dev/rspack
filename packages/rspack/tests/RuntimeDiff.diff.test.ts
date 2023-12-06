@@ -8,6 +8,7 @@ import {
 	TModuleCompareResult
 } from "@rspack/test-tools";
 import rimraf from "rimraf";
+import { isValidTestCaseDir } from "./utils";
 
 const DEFAULT_CASE_CONFIG: IDiffProcessorOptions = {
 	webpackPath: require.resolve("webpack"),
@@ -182,9 +183,7 @@ function checkCompareResults(
 
 const caseDir: string = path.resolve(__dirname, "runtimeDiffCases");
 const tempDir: string = path.resolve(__dirname, "js");
-const cases: string[] = fs
-	.readdirSync(caseDir)
-	.filter(testName => !testName.startsWith("."));
+const cases: string[] = fs.readdirSync(caseDir).filter(isValidTestCaseDir);
 
 describe(`RuntimeDiffCases`, () => {
 	for (let name of cases) {

@@ -177,7 +177,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         ClassMember::PrivateProp(prop) => prop.value.as_ref().map(|item| item.span()),
         ClassMember::TsIndexSignature(_) => unreachable!(),
         ClassMember::Empty(_) => None,
-        ClassMember::StaticBlock(_) => todo!(),
+        ClassMember::StaticBlock(block) => Some(block.span()),
         ClassMember::AutoAccessor(_) => todo!(),
       };
       if let Some(span) = span {
@@ -347,7 +347,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
           if is_pure {
             self.set_symbol_if_is_top_level(symbol);
           }
-          class.class.visit_with(self);
+          class.visit_with(self);
           self.clear_symbol_if_is_top_level();
         }
         _ => {

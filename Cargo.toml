@@ -55,26 +55,28 @@ napi                = { version = "=2.13.3" }
 napi-build          = { version = "=2.0.1" }
 napi-derive         = { version = "=2.13.0" }
 napi-sys            = { version = "=2.2.3" }
-styled_components   = { version = "0.77.0" }
+styled_components   = { version = "0.90.0" }
 swc_config          = { version = "=0.1.7" }
-swc_core            = { version = "0.86.33", default-features = false }
+swc_core            = { version = "0.86.82", default-features = false }
 swc_css             = { version = "0.157.6" }
-swc_ecma_minifier   = { version = "0.189.28", default-features = false }
+swc_ecma_minifier   = { version = "0.189.73", default-features = false }
 swc_emotion         = { version = "=0.58.0" }
-swc_error_reporters = { version = "=0.17.2" }
+swc_error_reporters = { version = "=0.17.9" }
 swc_html            = { version = "=0.134.29" }
 swc_html_minifier   = { version = "=0.131.29" }
-swc_node_comments   = { version = "=0.20.2" }
+swc_node_comments   = { version = "=0.20.9" }
 tikv-jemallocator   = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
 
 [profile.dev]
-codegen-units = 16   # debug build will cause runtime panic if codegen-unints is default
+codegen-units = 16      # debug build will cause runtime panic if codegen-unints is default
 debug         = 2
 incremental   = true
+panic         = "abort"
 
 [profile.release]
 codegen-units = 1
 debug         = false
-lto           = false # disabled by now, because it will significantly increase our compile time.
+lto           = false   # disabled by now, because it will significantly increase our compile time.
 opt-level     = 3
+panic         = "abort"
 strip         = true

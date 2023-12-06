@@ -7,13 +7,14 @@ use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
   AssetInfo, BoxDependency, BuildMetaExportsType, Compilation, Filename, GenerateContext, Module,
   ModuleDependency, ModuleIdentifier, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
-  PathData, RuntimeGlobals, SourceType,
+  PathData, RuntimeGlobals, SourceType, UsedName,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
+use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
-use crate::dependency::WasmImportDependency;
+use crate::dependency::{StaticExportsDependency, WasmImportDependency};
 use crate::ModuleIdToFileName;
 
 #[derive(Debug)]
@@ -87,9 +88,10 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       }
     }
 
-    // FIXME: marking StatsExportDependency as a ModuleDependency is not correct
-    // dependencies
-    //   .push(box StaticExportsDependency::new(exports, false) as Box<dyn ModuleDependency>);
+    dependencies.push(Box::new(StaticExportsDependency::new(
+      exports.iter().cloned().map(Atom::from).collect::<Vec<_>>(),
+      false,
+    )));
 
     Ok(
       ParseResult {
@@ -130,7 +132,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       .as_normal_module()
       .expect("module should be a NormalModule in AsyncWasmParserAndGenerator::generate");
     let wasm_path_with_info =
-      render_wasm_name(compilation, normal_module, wasm_filename_template, hash);
+      render_wasm_name(compilation, normal_module, wasm_filename_template, &hash);
 
     self
       .module_id_to_filename
@@ -144,7 +146,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         runtime_requirements.insert(RuntimeGlobals::INSTANTIATE_WASM);
 
         let mut dep_modules = IndexMap::<ModuleIdentifier, (String, &str)>::new();
-        let mut wasm_deps_by_request = IndexMap::<&str, Vec<(Identifier, String)>>::new();
+        let mut wasm_deps_by_request = IndexMap::<&str, Vec<(Identifier, String, String)>>::new();
         let mut promises: Vec<String> = vec![];
 
         let module_graph = &compilation.module_graph;
@@ -179,8 +181,20 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                 .expect("should be wasm import dependency");
 
               let dep_name = serde_json::to_string(dep.name()).expect("should be ok.");
+              let used_name = module_graph
+                .get_exports_info(&mgm.module_identifier)
+                .id
+                // TODO: runtime opt
+                .get_used_name(module_graph, None, UsedName::Str(dep.name().into()));
+              let Some(UsedName::Str(used_name)) = used_name else {
+                return;
+              };
               let request = dep.request();
-              let val = (mgm.module_identifier, dep_name);
+              let val = (
+                mgm.module_identifier,
+                dep_name,
+                serde_json::to_string(&used_name).expect("should convert to json string"),
+              );
               if let Some(deps) = wasm_deps_by_request.get_mut(&request) {
                 deps.push(val);
               } else {
@@ -200,10 +214,10 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           .map(|(request, deps)| {
             let deps = deps
               .into_iter()
-              .map(|(id, name)| {
+              .map(|(id, name, used_name)| {
                 let import_var = dep_modules.get(&id).expect("should be ok");
                 let import_var = &import_var.0;
-                format!("{name}: {import_var}[{name}]")
+                format!("{name}: {import_var}[{used_name}]")
               })
               .collect::<Vec<_>>()
               .join(",\n");
@@ -227,7 +241,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let instantiate_call = format!(
           "{}(exports, module.id, {} {})",
           RuntimeGlobals::INSTANTIATE_WASM,
-          serde_json::to_string(&wasm_path_with_info.0).expect("should be ok"),
+          serde_json::to_string(&hash).expect("should be ok"),
           imports_obj.unwrap_or_default()
         );
 
@@ -273,14 +287,14 @@ fn render_wasm_name(
   compilation: &Compilation,
   normal_module: &NormalModule,
   wasm_filename_template: &Filename,
-  hash: String,
+  hash: &str,
 ) -> (String, AssetInfo) {
   compilation.get_asset_path_with_info(
     wasm_filename_template,
     PathData::default()
       .filename(&normal_module.resource_resolved_data().resource)
-      .content_hash(&hash)
-      .hash(&hash),
+      .content_hash(hash)
+      .hash(hash),
   )
 }
 

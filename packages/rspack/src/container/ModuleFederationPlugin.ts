@@ -5,6 +5,7 @@ import {
 	ExternalsType,
 	externalsType
 } from "../config";
+import { SharePlugin, Shared } from "../sharing/SharePlugin";
 import { isValidate } from "../util/validate";
 import { ContainerPlugin, Exposes } from "./ContainerPlugin";
 import { ContainerReferencePlugin, Remotes } from "./ContainerReferencePlugin";
@@ -19,7 +20,9 @@ export interface ModuleFederationPluginOptions {
 	remotes?: Remotes;
 	runtime?: EntryRuntime;
 	shareScope?: string;
-	// shared?: Shared;
+	shared?: Shared;
+
+	runtimePlugins?: string[];
 }
 
 export class ModuleFederationPlugin {
@@ -39,8 +42,6 @@ export class ModuleFederationPlugin {
 		) {
 			compiler.options.output.enabledLibraryTypes!.push(library.type);
 		}
-		const mfRuntimePlugin = new ModuleFederationRuntimePlugin();
-		mfRuntimePlugin.apply(compiler);
 		compiler.hooks.afterPlugins.tap("ModuleFederationPlugin", () => {
 			if (
 				options.exposes &&
@@ -63,21 +64,22 @@ export class ModuleFederationPlugin {
 					? options.remotes.length > 0
 					: Object.keys(options.remotes).length > 0)
 			) {
-				new ContainerReferencePlugin(
-					{
-						remoteType,
-						shareScope: options.shareScope,
-						remotes: options.remotes
-					},
-					mfRuntimePlugin
-				).apply(compiler);
+				new ContainerReferencePlugin({
+					remoteType,
+					shareScope: options.shareScope,
+					remotes: options.remotes
+				}).apply(compiler);
 			}
-			// if (options.shared) {
-			// 	new SharePlugin({
-			// 		shared: options.shared,
-			// 		shareScope: options.shareScope
-			// 	}).apply(compiler);
-			// }
+			if (options.shared) {
+				new SharePlugin({
+					shared: options.shared,
+					shareScope: options.shareScope
+				}).apply(compiler);
+			}
+			const runtimePlugins = options.runtimePlugins ?? [];
+			for (let plugin of runtimePlugins) {
+				ModuleFederationRuntimePlugin.addPlugin(compiler, plugin);
+			}
 		});
 	}
 }

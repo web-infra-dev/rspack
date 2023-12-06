@@ -4,8 +4,10 @@ use rspack_identifier::Identifier;
 use rspack_sources::{BoxSource, RawSource, SourceExt};
 use rustc_hash::FxHashMap;
 
+use super::provide_shared_plugin::ProvideVersion;
 use crate::{
-  impl_runtime_module, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, SourceType,
+  impl_runtime_module, mf::utils::json_stringify, ChunkUkey, Compilation, RuntimeGlobals,
+  RuntimeModule, SourceType,
 };
 
 #[derive(Debug, Eq)]
@@ -35,7 +37,7 @@ impl RuntimeModule for ShareRuntimeModule {
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
     let mut init_per_scope: FxHashMap<
       String,
-      LinkedHashMap<DataInitStage, LinkedHashSet<DataInit>>,
+      LinkedHashMap<DataInitStage, LinkedHashSet<DataInitInfo>>,
     > = FxHashMap::default();
     for c in chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey) {
       let chunk = compilation.chunk_by_ukey.expect_get(&c);
@@ -66,49 +68,41 @@ impl RuntimeModule for ShareRuntimeModule {
         }
       }
     }
-    let init_per_scope_body = init_per_scope
+    let scope_to_data_init = init_per_scope
       .into_iter()
       .sorted_unstable_by_key(|(scope, _)| scope.to_string())
       .map(|(scope, stages)| {
-        let stages = stages
+        let stages: Vec<String> = stages
           .into_iter()
           .sorted_unstable_by_key(|(stage, _)| *stage)
-          .flat_map(|(_, inits)| {
-            inits.into_iter().filter_map(|init| match init {
-              DataInit::ExternalModuleId(Some(id)) => Some(format!(
-                "initExternal({});",
-                serde_json::to_string(&id).expect("module_id should able to json to_string")
-              )),
-              _ => None,
-            })
+          .flat_map(|(_, inits)| inits)
+          .map(|info| match info {
+            DataInitInfo::ExternalModuleId(Some(id)) => json_stringify(&id),
+            DataInitInfo::ProvideSharedInfo(info) => {
+              format!(
+                "[{}, {}, {}, {}]",
+                json_stringify(&info.name),
+                json_stringify(&info.version.to_string()),
+                info.factory,
+                if info.eager { "1" } else { "0" }
+              )
+            }
+            _ => "".to_string(),
           })
-          .collect::<Vec<_>>()
-          .join("\n");
-        format!(
-          r#"case {}: {{
-{}
-}}
-break;"#,
-          serde_json::to_string(&scope).expect("should able to json to_string"),
-          stages
-        )
+          .collect();
+        format!("{}: [{}]", json_stringify(&scope), stages.join(", "))
       })
       .collect::<Vec<_>>()
-      .join("\n");
+      .join(", ");
     RawSource::from(format!(
       r#"
 {share_scope_map} = {{}};
-var initPromises = {{}};
-var initTokens = {{}};
-var initPerScope = function(name, register, initExternal) {{
-  switch(name) {{
-{init_per_scope_body}
-  }}
-}};
-{initialize_sharing} = function(name, initScope) {{ return {initialize_sharing_fn}({{ name: name, initScope: initScope, initPerScope: initPerScope, initTokens: initTokens, initPromises: initPromises }}); }};
+__webpack_require__.MF.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name} }};
+{initialize_sharing} = function(name, initScope) {{ return {initialize_sharing_fn}(name, initScope); }};
 "#,
       share_scope_map = RuntimeGlobals::SHARE_SCOPE_MAP,
-      init_per_scope_body = init_per_scope_body,
+      scope_to_data_init = scope_to_data_init,
+      unique_name = json_stringify(&compilation.options.output.unique_name),
       initialize_sharing = RuntimeGlobals::INITIALIZE_SHARING,
       initialize_sharing_fn = "__webpack_require__.MF.initializeSharing"
     ))
@@ -131,12 +125,21 @@ pub struct CodeGenerationDataShareInit {
 pub struct ShareInitData {
   pub share_scope: String,
   pub init_stage: DataInitStage,
-  pub init: DataInit,
+  pub init: DataInitInfo,
 }
 
 pub type DataInitStage = i8;
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub enum DataInit {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum DataInitInfo {
   ExternalModuleId(Option<String>),
+  ProvideSharedInfo(ProvideSharedInfo),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ProvideSharedInfo {
+  pub name: String,
+  pub version: ProvideVersion,
+  pub factory: String,
+  pub eager: bool,
 }

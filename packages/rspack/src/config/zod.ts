@@ -55,6 +55,9 @@ export type WasmLoadingType = z.infer<typeof wasmLoadingType>;
 const wasmLoading = z.literal(false).or(wasmLoadingType);
 export type WasmLoading = z.infer<typeof wasmLoading>;
 
+const scriptType = z.enum(["text/javascript", "module"]).or(z.literal(false));
+export type ScriptType = z.infer<typeof scriptType>;
+
 const libraryCustomUmdObject = z.strictObject({
 	amd: z.string().optional(),
 	commonjs: z.string().optional(),
@@ -312,7 +315,8 @@ const output = z.strictObject({
 	asyncChunks: asyncChunks.optional(),
 	workerChunkLoading: chunkLoading.optional(),
 	workerWasmLoading: wasmLoading.optional(),
-	workerPublicPath: workerPublicPath.optional()
+	workerPublicPath: workerPublicPath.optional(),
+	scriptType: scriptType.optional()
 });
 export type Output = z.infer<typeof output>;
 //#endregion
@@ -979,7 +983,7 @@ const optimization = z.strictObject({
 	minimize: z.boolean().optional(),
 	minimizer: z.literal("...").or(plugin).array().optional(),
 	mergeDuplicateChunks: z.boolean().optional(),
-	splitChunks: optimizationSplitChunksOptions.optional(),
+	splitChunks: z.literal(false).or(optimizationSplitChunksOptions).optional(),
 	runtimeChunk: optimizationRuntimeChunk.optional(),
 	removeAvailableModules: z.boolean().optional(),
 	removeEmptyChunks: z.boolean().optional(),
@@ -988,6 +992,7 @@ const optimization = z.strictObject({
 	providedExports: z.boolean().optional(),
 	innerGraph: z.boolean().optional(),
 	usedExports: z.enum(["global"]).or(z.boolean()).optional(),
+	mangleExports: z.enum(["size", "deterministic"]).or(z.boolean()).optional(),
 	nodeEnv: z.union([z.string(), z.literal(false)]).optional()
 });
 export type Optimization = z.infer<typeof optimization>;
@@ -1003,7 +1008,22 @@ export type IncrementalRebuildOptions = z.infer<
 >;
 
 const rspackFutureOptions = z.strictObject({
-	newResolver: z.boolean().optional(),
+	newResolver: z
+		.boolean()
+		.optional()
+		.refine(val => {
+			if (val === false) {
+				deprecatedWarn(
+					`'experiments.rspackFuture.newResolver = ${JSON.stringify(
+						val
+					)}' has been deprecated, and will be drop support in 0.5.0, please switch 'experiments.rspackFuture.newResolver = true' to use new resolver, See the discussion ${termlink(
+						"here",
+						"https://github.com/web-infra-dev/rspack/issues/4825"
+					)}`
+				);
+			}
+			return true;
+		}),
 	newTreeshaking: z.boolean().optional(),
 	disableTransformByDefault: z.boolean().optional()
 });

@@ -1,9 +1,10 @@
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  get_import_var, property_access, AsyncDependenciesBlockIdentifier, Compilation, DependencyId,
-  ExportsType, FakeNamespaceObjectMode, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleGraph, ModuleIdentifier, NormalInitFragment, RuntimeGlobals, TemplateContext,
+  get_import_var, property_access, to_comment, AsyncDependenciesBlockIdentifier, Compilation,
+  DependenciesBlock, DependencyId, ExportsType, FakeNamespaceObjectMode, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier, NormalInitFragment,
+  RuntimeGlobals, TemplateContext,
 };
 
 pub fn export_from_import(
@@ -22,6 +23,11 @@ pub fn export_from_import(
     module,
     ..
   } = code_generatable_context;
+  let module_identifier = *compilation
+    .module_graph
+    .module_identifier_by_dependency_id(id)
+    .expect("should have module identifier");
+  let is_new_treeshaking = compilation.options.is_new_tree_shaking();
 
   let exports_type = get_exports_type(&compilation.module_graph, id, &module.identifier());
 
@@ -78,8 +84,30 @@ pub fn export_from_import(
   }
 
   if !export_name.is_empty() {
-    // TODO check used
-    let property = property_access(&export_name, 0);
+    let used_name = if is_new_treeshaking {
+      let exports_info_id = compilation
+        .module_graph
+        .get_exports_info(&module_identifier)
+        .id;
+      // TODO: runtime opt
+      let used = exports_info_id.get_used_name(
+        &compilation.module_graph,
+        None,
+        crate::UsedName::Vec(export_name),
+      );
+      if let Some(used) = used {
+        match used {
+          crate::UsedName::Str(str) => vec![str],
+          crate::UsedName::Vec(strs) => strs,
+        }
+      } else {
+        // TODO: add some unused comments, part of runtime alignments
+        return "".to_string();
+      }
+    } else {
+      export_name
+    };
+    let property = property_access(&used_name, 0);
     if is_call && !call_context {
       format!("(0, {import_var}{property})")
     } else {
@@ -124,8 +152,8 @@ pub fn get_exports_type_with_strict(
 
 pub fn module_id_expr(request: &str, module_id: &str) -> String {
   format!(
-    "/* {} */{}",
-    request,
+    "{}{}",
+    to_comment(request),
     serde_json::to_string(module_id).expect("should render module id")
   )
 }
@@ -335,11 +363,11 @@ pub fn module_raw(
   }
 }
 
-pub fn miss_module(request: &str) -> String {
+fn miss_module(request: &str) -> String {
   format!("Object({}())", throw_missing_module_error_function(request))
 }
 
-pub fn throw_missing_module_error_function(request: &str) -> String {
+fn throw_missing_module_error_function(request: &str) -> String {
   format!(
     "function webpackMissingModule() {{ {} }}",
     throw_missing_module_error_block(request)
@@ -352,9 +380,8 @@ pub fn throw_missing_module_error_block(request: &str) -> String {
   )
 }
 
-pub fn weak_error(request: &str) -> String {
-  let msg = format!("Module is not available (weak dependency), request is {request}.");
-  format!("var e = new Error('{msg}'); e.code = 'MODULE_NOT_FOUND'; throw e;")
+fn weak_error(request: &str) -> String {
+  format!("var e = new Error('Module is not available (weak dependency), request is {request}'); e.code = 'MODULE_NOT_FOUND'; throw e;")
 }
 
 pub fn returning_function(return_value: &str, args: &str) -> String {
@@ -363,4 +390,43 @@ pub fn returning_function(return_value: &str, args: &str) -> String {
 
 pub fn basic_function(args: &str, body: &str) -> String {
   format!("function({args}) {{\n{body}\n}}")
+}
+
+pub fn sync_module_factory(
+  dep: &DependencyId,
+  request: &str,
+  compilation: &Compilation,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> String {
+  let factory = returning_function(
+    &module_raw(compilation, runtime_requirements, dep, request, false),
+    "",
+  );
+  returning_function(&factory, "")
+}
+
+pub fn async_module_factory(
+  block_id: &AsyncDependenciesBlockIdentifier,
+  request: &str,
+  compilation: &Compilation,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> String {
+  let block = compilation
+    .module_graph
+    .block_by_id(block_id)
+    .expect("should have block");
+  let dep = block.get_dependencies()[0];
+  let ensure_chunk = block_promise(Some(block_id), runtime_requirements, compilation);
+  let factory = returning_function(
+    &module_raw(compilation, runtime_requirements, &dep, request, false),
+    "",
+  );
+  returning_function(
+    &if ensure_chunk.starts_with("Promise.resolve(") {
+      factory
+    } else {
+      format!("{ensure_chunk}.then({})", returning_function(&factory, ""))
+    },
+    "",
+  )
 }

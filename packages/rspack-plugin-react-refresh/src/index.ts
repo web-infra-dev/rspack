@@ -1,19 +1,12 @@
 import path from "path";
 import type { Compiler } from "@rspack/core";
-import { DefinePlugin } from "@rspack/core";
 import { normalizeOptions, type PluginOptions } from "./options";
 
 export type { PluginOptions };
 
 const reactRefreshPath = require.resolve("../client/reactRefresh.js");
 const reactRefreshEntryPath = require.resolve("../client/reactRefreshEntry.js");
-
-const refreshUtilsPath = require.resolve(
-	"@pmmmwh/react-refresh-webpack-plugin/lib/runtime/RefreshUtils",
-	{
-		paths: [reactRefreshPath]
-	}
-);
+const refreshUtilsPath = require.resolve("../client/refreshUtils.js");
 const refreshRuntimeDirPath = path.dirname(
 	require.resolve("react-refresh", {
 		paths: [reactRefreshPath]
@@ -68,7 +61,7 @@ class ReactRefreshRspackPlugin {
 				)
 			)
 		};
-		new DefinePlugin(definedModules).apply(compiler);
+		new compiler.webpack.DefinePlugin(definedModules).apply(compiler);
 
 		const refreshPath = path.dirname(require.resolve("react-refresh"));
 		compiler.options.resolve.alias = {

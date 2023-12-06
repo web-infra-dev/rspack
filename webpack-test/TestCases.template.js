@@ -129,6 +129,7 @@ const describeCases = config => {
 											mangleExports: true,
 											emitOnErrors: true,
 											concatenateModules: false,
+											innerGraph: true,
 											// TODO: size is not supported yet
 											// moduleIds: "size",
 											// chunkIds: "size",
@@ -197,7 +198,7 @@ const describeCases = config => {
 										}
 									]
 								},
-								plugins: (config.plugins || []).concat(function () {
+								plugins: (config.plugins || []).concat(testConfig.plugins || []).concat(function () {
 									this.hooks.compilation.tap("TestCasesTest", compilation => {
 										[
 											// TODO: the follwing hooks are not supported yet, so comment it out
@@ -219,6 +220,10 @@ const describeCases = config => {
 									backCompat: false,
                   // RSPACK exclusive: Rspack enables `css` by default.
                   // Turning off here to fallback to webpack's default css processing logic.
+
+									rspackFuture: testConfig?.experiments?.rspackFuture ?? {
+										newTreeshaking: true
+									},
                   css: false,
 									...(config.module ? { outputModule: true } : {}),
 								},
@@ -285,6 +290,7 @@ const describeCases = config => {
 										);
 										infraStructureLog.length = 0;
 										const deprecationTracker = deprecationTracking.start();
+										console.log(options.experiments)
 										const webpack = require("@rspack/core").rspack;
 										webpack(options, err => {
 											deprecationTracker();

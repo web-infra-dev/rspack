@@ -94,11 +94,12 @@ impl SplitChunksPlugin {
         *is_reuse_existing_chunk = true;
         *chunk
       } else {
-        let new_chunk = Compilation::add_named_chunk(
+        let new_chunk_ukey = Compilation::add_named_chunk(
           chunk_name.clone(),
           &mut compilation.chunk_by_ukey,
           &mut compilation.named_chunks,
         );
+        let new_chunk = compilation.chunk_by_ukey.expect_get_mut(&new_chunk_ukey);
         new_chunk
           .chunk_reasons
           .push("Create by split chunks".to_string());
@@ -113,7 +114,8 @@ impl SplitChunksPlugin {
       *is_reuse_existing_chunk_with_all_modules = true;
       reusable_chunk
     } else {
-      let new_chunk = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
+      let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
+      let new_chunk = compilation.chunk_by_ukey.expect_get_mut(&new_chunk_ukey);
       new_chunk
         .chunk_reasons
         .push("Create by split chunks".to_string());

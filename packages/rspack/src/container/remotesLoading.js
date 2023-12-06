@@ -1,16 +1,15 @@
 // @ts-nocheck
 
 if (__webpack_require__.MF) {
-	__webpack_require__.MF.remotes = function (data) {
-		var chunkId = data.chunkId,
-			promises = data.promises,
-			chunkMapping = data.chunkMapping,
-			idToExternalAndNameMapping = data.idToExternalAndNameMapping;
+	__webpack_require__.MF.remotesLoading = function (chunkId, promises) {
+		var chunkMapping = __webpack_require__.MF.remotesLoadingData.chunkMapping;
+		var moduleIdToRemoteDataMapping =
+			__webpack_require__.MF.remotesLoadingData.moduleIdToRemoteDataMapping;
 		if (__webpack_require__.o(chunkMapping, chunkId)) {
 			chunkMapping[chunkId].forEach(function (id) {
 				var getScope = __webpack_require__.R;
 				if (!getScope) getScope = [];
-				var data = idToExternalAndNameMapping[id];
+				var data = moduleIdToRemoteDataMapping[id];
 				if (getScope.indexOf(data) >= 0) return;
 				getScope.push(data);
 				if (data.p) return promises.push(data.p);

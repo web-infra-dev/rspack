@@ -2,7 +2,7 @@ use napi::Result;
 use rspack_binding_options::JsLoaderContext;
 
 /// Builtin loader runner
-#[napi(catch_unwind)]
+#[napi]
 #[allow(unused)]
 pub async fn run_builtin_loader(
   builtin: String,

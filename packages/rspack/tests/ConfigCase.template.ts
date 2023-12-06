@@ -1,6 +1,11 @@
 "use strict";
 import { rspack } from "../src";
 import assert from "assert";
+import {
+	ensureRspackConfigNotExist,
+	ensureWebpackConfigExist,
+	isValidTestCaseDir
+} from "./utils";
 
 const path = require("path");
 const fs = require("graceful-fs");
@@ -25,18 +30,21 @@ const define = function (...args) {
 };
 
 const casesPath = path.join(__dirname, "configCases");
-const categories = fs.readdirSync(casesPath).map(cat => {
-	return {
-		name: cat,
-		tests: fs
-			.readdirSync(path.join(casesPath, cat))
-			.filter(folder => !folder.startsWith("_"))
-			.filter(folder =>
-				fs.lstatSync(path.join(casesPath, cat, folder)).isDirectory()
-			)
-			.sort()
-	};
-});
+const categories = fs
+	.readdirSync(casesPath)
+	.filter(isValidTestCaseDir)
+	.map(cat => {
+		return {
+			name: cat,
+			tests: fs
+				.readdirSync(path.join(casesPath, cat))
+				.filter(isValidTestCaseDir)
+				.filter(folder =>
+					fs.lstatSync(path.join(casesPath, cat, folder)).isDirectory()
+				)
+				.sort()
+		};
+	});
 
 const createLogger = appendTarget => {
 	return {
@@ -73,10 +81,11 @@ export const describeCases = config => {
 				for (const testName of category.tests) {
 					// eslint-disable-next-line no-loop-func
 					const testDirectory = path.join(casesPath, category.name, testName);
+
+					ensureRspackConfigNotExist(testDirectory);
+					ensureWebpackConfigExist(testDirectory);
+
 					const configFile = path.join(testDirectory, "webpack.config.js");
-					if (!fs.existsSync(configFile)) {
-						continue;
-					}
 					describe(testName, function () {
 						const filterPath = path.join(testDirectory, "test.filter.js");
 						if (

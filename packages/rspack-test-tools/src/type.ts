@@ -120,6 +120,13 @@ export interface ITestProcessor {
 	check?(context: ITestContext): Promise<unknown>;
 }
 
+export interface ITestReporter<T> {
+	init(data?: T): Promise<void>;
+	increment(id: string, data: T): Promise<void>;
+	failure(id: string): Promise<void>;
+	output(): Promise<void>;
+}
+
 export enum ECompareResultType {
 	Same = "same",
 	Missing = "missing",
@@ -131,6 +138,8 @@ export type TCompareModules = string[] | true;
 export type TCompareResult = {
 	type: ECompareResultType;
 	detail?: unknown;
+	source?: string;
+	dist?: string;
 	lines?: {
 		common: number;
 		source: number;
@@ -149,4 +158,16 @@ export type TFileCompareResult = TCompareResult & {
 	modules: Partial<
 		Record<"modules" | "runtimeModules", TModuleCompareResult[]>
 	>;
+};
+
+export type TDiffStatsItem = {
+	name: string;
+	source: string;
+	dist: string;
+	type: ECompareResultType;
+};
+
+export type TDiffStats = {
+	root: string;
+	data: Array<TDiffStatsItem>;
 };

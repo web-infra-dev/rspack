@@ -7,9 +7,12 @@ use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::{RawSource, Source, SourceExt};
 
-use super::remote_to_external_dependency::RemoteToExternalDependency;
+use super::{
+  fallback_dependency::FallbackDependency,
+  remote_to_external_dependency::RemoteToExternalDependency,
+};
 use crate::{
-  mf::share_runtime_module::{CodeGenerationDataShareInit, DataInit, ShareInitData},
+  mf::share_runtime_module::{CodeGenerationDataShareInit, DataInitInfo, ShareInitData},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildResult,
   CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
   Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
@@ -123,10 +126,13 @@ impl Module for RemoteModule {
       ..Default::default()
     };
 
-    let mut dependencies = Vec::new();
+    let mut dependencies: Vec<BoxDependency> = Vec::new();
     if self.external_requests.len() == 1 {
       let dep = RemoteToExternalDependency::new(self.external_requests[0].clone());
-      dependencies.push(Box::new(dep) as BoxDependency);
+      dependencies.push(Box::new(dep));
+    } else {
+      let dep = FallbackDependency::new(self.external_requests.clone());
+      dependencies.push(Box::new(dep));
     }
 
     Ok(
@@ -160,7 +166,7 @@ impl Module for RemoteModule {
       items: vec![ShareInitData {
         share_scope: self.share_scope.clone(),
         init_stage: 20,
-        init: DataInit::ExternalModuleId(id.map(|id| id.to_string())),
+        init: DataInitInfo::ExternalModuleId(id.map(|i| i.to_owned())),
       }],
     });
     Ok(codegen)

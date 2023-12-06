@@ -6,10 +6,10 @@ source: crates/rspack_testing/src/run_fixture.rs
 "./dynamic-1.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./shared */"./shared.js");
+/* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./shared */"./shared.js");
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
 
-__webpack_require__.el("./dynamic-1.js@19:40").then(__webpack_require__.bind(__webpack_require__, /* ./dynamic-2 */"./dynamic-2.js"));
+__webpack_require__.el("./dynamic-1.js@19:40").then(__webpack_require__.bind(__webpack_require__, /*! ./dynamic-2 */"./dynamic-2.js"));
 console.log('dynamic-1');
 }),
 
@@ -21,10 +21,10 @@ console.log('dynamic-1');
 "./dynamic-1.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./shared */"./shared.js");
+/* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./shared */"./shared.js");
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
 
-__webpack_require__.el("./dynamic-1.js@19:40").then(__webpack_require__.bind(__webpack_require__, /* ./dynamic-2 */"./dynamic-2.js"));
+__webpack_require__.el("./dynamic-1.js@19:40").then(__webpack_require__.bind(__webpack_require__, /*! ./dynamic-2 */"./dynamic-2.js"));
 console.log('dynamic-1');
 }),
 "./shared.js": (function (__unused_webpack_module, exports, __webpack_require__) {
@@ -39,10 +39,10 @@ console.log('shared');
 "./dynamic-2.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./shared */"./shared.js");
+/* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./shared */"./shared.js");
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
 
-__webpack_require__.el("./dynamic-2.js@19:40").then(__webpack_require__.bind(__webpack_require__, /* ./dynamic-1 */"./dynamic-1.js"));
+__webpack_require__.el("./dynamic-2.js@19:40").then(__webpack_require__.bind(__webpack_require__, /*! ./dynamic-1 */"./dynamic-1.js"));
 console.log('dynamic-2');
 }),
 
@@ -54,10 +54,10 @@ console.log('dynamic-2');
 "./dynamic-2.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/* ./shared */"./shared.js");
+/* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./shared */"./shared.js");
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_shared__WEBPACK_IMPORTED_MODULE_0__);
 
-__webpack_require__.el("./dynamic-2.js@19:40").then(__webpack_require__.bind(__webpack_require__, /* ./dynamic-1 */"./dynamic-1.js"));
+__webpack_require__.el("./dynamic-2.js@19:40").then(__webpack_require__.bind(__webpack_require__, /*! ./dynamic-1 */"./dynamic-1.js"));
 console.log('dynamic-2');
 }),
 "./shared.js": (function (__unused_webpack_module, exports, __webpack_require__) {
@@ -70,8 +70,8 @@ console.log('shared');
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, exports, __webpack_require__) {
-__webpack_require__.el("./index.js@0:21").then(__webpack_require__.bind(__webpack_require__, /* ./dynamic-1 */"./dynamic-1.js"));
-__webpack_require__.el("./index.js@23:44").then(__webpack_require__.bind(__webpack_require__, /* ./dynamic-2 */"./dynamic-2.js"));
+__webpack_require__.el("./index.js@0:21").then(__webpack_require__.bind(__webpack_require__, /*! ./dynamic-1 */"./dynamic-1.js"));
+__webpack_require__.el("./index.js@23:44").then(__webpack_require__.bind(__webpack_require__, /*! ./dynamic-2 */"./dynamic-2.js"));
 console.log('index');
 }),
 

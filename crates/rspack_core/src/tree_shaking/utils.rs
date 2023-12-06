@@ -1,19 +1,31 @@
 use swc_core::common::SyntaxContext;
-use swc_core::ecma::ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit};
+use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, Lit};
 use swc_core::ecma::atoms::JsWord;
 
 use super::symbol::{IndirectTopLevelSymbol, StarSymbol, Symbol};
 use super::visitor::SymbolRef;
 use crate::{ModuleGraph, ModuleIdentifier};
 
-pub fn get_first_string_lit_arg(e: &CallExpr) -> Option<JsWord> {
+fn get_first_string(e: &CallExpr) -> Option<JsWord> {
   // we check the length at the begin of [is_require_literal_expr]
-  e.args.first().and_then(|arg| match arg {
-    ExprOrSpread {
-      spread: None,
-      expr: box Expr::Lit(Lit::Str(str)),
-    } => Some(str.value.clone()),
-    _ => None,
+  e.args.first().and_then(|arg| {
+    if arg.spread.is_some() {
+      None
+    } else if let Some(str) = arg.expr.as_lit().and_then(|lit| match lit {
+      Lit::Str(str) => Some(str),
+      _ => None,
+    }) {
+      Some(str.value.clone())
+    } else if let Some(tpl) = arg.expr.as_tpl()
+      && tpl.exprs.is_empty()
+      && tpl.quasis.len() == 1
+      && let Some(quasis) = tpl.quasis.first()
+      && let Some(cooked) = &quasis.cooked
+    {
+      Some(cooked.clone())
+    } else {
+      None
+    }
   })
 }
 
@@ -30,7 +42,7 @@ pub fn get_require_literal(e: &CallExpr, unresolved_ctxt: SyntaxContext) -> Opti
       }
       _ => false,
     } {
-      get_first_string_lit_arg(e)
+      get_first_string(e)
     } else {
       None
     }
@@ -41,7 +53,7 @@ pub fn get_require_literal(e: &CallExpr, unresolved_ctxt: SyntaxContext) -> Opti
 
 pub fn get_dynamic_import_string_literal(e: &CallExpr) -> Option<JsWord> {
   if e.args.len() == 1 && matches!(&e.callee, Callee::Import(_)) {
-    get_first_string_lit_arg(e)
+    get_first_string(e)
   } else {
     None
   }

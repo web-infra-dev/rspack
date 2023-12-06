@@ -82,7 +82,7 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
       .module_graph_module_by_identifier(&module.identifier())
       .expect("should have module graph module");
 
-    let used = if compilation.options.is_new_tree_shaking() {
+    let used_name = if compilation.options.is_new_tree_shaking() {
       let exports_info_id = compilation
         .module_graph
         .get_exports_info(&module.identifier())
@@ -92,26 +92,28 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
         None,
         UsedName::Str(self.name.clone()),
       );
-      // dbg!(&used_name);
-      used_name
-        .map(|item| match item {
-          UsedName::Str(name) => name == self.name,
-          UsedName::Vec(vec) => vec.contains(&self.name),
-        })
-        .unwrap_or_default()
+      used_name.map(|item| match item {
+        UsedName::Str(name) => name,
+        UsedName::Vec(vec) => {
+          // vec.contains(&self.name)
+          // TODO: should align webpack
+          vec[0].clone()
+        }
+      })
     } else if compilation.options.builtins.tree_shaking.is_true() {
       compilation
         .module_graph
         .get_exports_info(&module.identifier())
         .old_get_used_exports()
         .contains(&self.name)
+        .then(|| self.name.clone())
     } else {
-      true
+      Some(self.name.clone())
     };
-    if used {
+    if let Some(used_name) = used_name {
       init_fragments.push(Box::new(HarmonyExportInitFragment::new(
         mgm.get_exports_argument(),
-        vec![(self.name.clone(), self.value.clone())],
+        vec![(used_name, self.value.clone())],
       )));
     }
   }

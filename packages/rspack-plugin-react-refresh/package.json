@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-react-refresh",
-  "version": "0.4.0",
+  "version": "0.4.2",
   "license": "MIT",
   "description": "React refresh plugin for rspack",
   "main": "dist/index.js",
@@ -31,9 +31,6 @@
     "type": "git",
     "url": "https://github.com/web-infra-dev/rspack",
     "directory": "packages/rspack-plugin-react-refresh"
-  },
-  "dependencies": {
-    "@pmmmwh/react-refresh-webpack-plugin": "0.5.10"
   },
   "devDependencies": {
     "@rspack/core": "workspace:*",

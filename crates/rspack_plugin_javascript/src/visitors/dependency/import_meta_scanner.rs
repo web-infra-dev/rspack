@@ -1,7 +1,7 @@
 use rspack_core::{CompilerOptions, ConstDependency, DependencyTemplate, ResourceData, SpanExt};
 use rspack_error::Diagnostic;
 use swc_core::common::Spanned;
-use swc_core::ecma::ast::{Expr, Ident, NewExpr, UnaryExpr, UnaryOp};
+use swc_core::ecma::ast::{Expr, NewExpr, UnaryExpr, UnaryOp};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use url::Url;
 
@@ -135,7 +135,7 @@ impl Visit for ImportMetaScanner<'_> {
 
   fn visit_new_expr(&mut self, new_expr: &NewExpr) {
     // exclude new URL("", import.meta.url)
-    if matches!(&*new_expr.callee, Expr::Ident(Ident { sym, .. }) if sym == "URL") {
+    if rspack_core::needs_refactor::match_new_url(new_expr).is_some() {
       return;
     }
     new_expr.visit_children_with(self);

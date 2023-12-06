@@ -100,6 +100,10 @@ export function __chunk_group_inner_get_chunk_group(ukey: number, compilation: J
 
 export function __chunk_inner_can_be_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
 
+export function __chunk_inner_get_chunk_entry_modules(jsChunkUkey: number, compilation: JsCompilation): Array<JsModule>
+
+export function __chunk_inner_get_chunk_modules(jsChunkUkey: number, compilation: JsCompilation): Array<JsModule>
+
 export function __chunk_inner_has_runtime(jsChunkUkey: number, compilation: JsCompilation): boolean
 
 export function __chunk_inner_is_only_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
@@ -147,6 +151,8 @@ export const enum BuiltinPluginName {
   ContainerPlugin = 'ContainerPlugin',
   ContainerReferencePlugin = 'ContainerReferencePlugin',
   ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
+  ProvideSharedPlugin = 'ProvideSharedPlugin',
+  ConsumeSharedPlugin = 'ConsumeSharedPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -195,16 +201,10 @@ export interface JsAssetInfo {
   development: boolean
   /** when asset ships data for updating an existing application (HMR) */
   hotModuleReplacement: boolean
-  /**
-   * when asset is javascript and an ESM
-   * related object to other assets, keyed by type of relation (only points from parent to child)
-   */
+  /** when asset is javascript and an ESM */
+  javascriptModule?: boolean
+  /** related object to other assets, keyed by type of relation (only points from parent to child) */
   related: JsAssetInfoRelated
-  /**
-   * the asset version, emit can be skipped when both filename and version are the same
-   * An empty string means no version, it will always emit
-   */
-  version: string
 }
 
 export interface JsAssetInfoRelated {
@@ -617,6 +617,19 @@ export interface RawChunkOptionNameCtx {
   module: JsModule
 }
 
+export interface RawConsumeOptions {
+  key: string
+  import?: string
+  importResolved?: string
+  shareKey: string
+  shareScope: string
+  requiredVersion?: string | false | undefined
+  packageName?: string
+  strictVersion: boolean
+  singleton: boolean
+  eager: boolean
+}
+
 export interface RawContainerPluginOptions {
   name: string
   shareScope: string
@@ -919,6 +932,7 @@ export interface RawOptimizationOptions {
   providedExports: boolean
   innerGraph: boolean
   realContentHash: boolean
+  mangleExports: string
 }
 
 export interface RawOptions {
@@ -978,6 +992,7 @@ export interface RawOutputOptions {
   workerChunkLoading: string
   workerWasmLoading: string
   workerPublicPath: string
+  scriptType: "module" | "text/javascript" | "false"
 }
 
 export interface RawParserOptions {
@@ -1009,6 +1024,14 @@ export interface RawProgressPluginOptions {
   profile: boolean
 }
 
+export interface RawProvideOptions {
+  key: string
+  shareKey: string
+  shareScope: string
+  version?: string | false | undefined
+  eager: boolean
+}
+
 export interface RawReactOptions {
   runtime?: "automatic" | "classic"
   importSource?: string
@@ -1019,6 +1042,11 @@ export interface RawReactOptions {
   useBuiltins?: boolean
   useSpread?: boolean
   refresh?: boolean
+}
+
+export interface RawRegexMatcher {
+  source: string
+  flags: string
 }
 
 export interface RawRelated {
@@ -1069,7 +1097,7 @@ export interface RawRspackFuture {
 export interface RawRuleSetCondition {
   type: "string" | "regexp" | "logical" | "array" | "function"
   stringMatcher?: string
-  regexpMatcher?: string
+  regexpMatcher?: RawRegexMatcher
   logicalMatcher?: Array<RawRuleSetLogicalConditions>
   arrayMatcher?: Array<RawRuleSetCondition>
   funcMatcher?: (value: string) => boolean
@@ -1124,6 +1152,7 @@ export interface RawSwcJsMinimizerRspackPluginOptions {
   compress: boolean | string
   mangle: boolean | string
   format: string
+  module?: boolean
   test?: string | RegExp | (string | RegExp)[]
   include?: string | RegExp | (string | RegExp)[]
   exclude?: string | RegExp | (string | RegExp)[]

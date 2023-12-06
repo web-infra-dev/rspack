@@ -1,7 +1,7 @@
 use once_cell::sync::Lazy;
 use rspack_core::{
-  clean_regexp_in_context_module, context_reg_exp, AsyncDependenciesBlock, DynamicImportMode,
-  ErrorSpan, GroupOptions, JavascriptParserOptions, ModuleIdentifier,
+  clean_regexp_in_context_module, context_reg_exp, AsyncDependenciesBlock, DependencyLocation,
+  DynamicImportMode, ErrorSpan, GroupOptions, JavascriptParserOptions, ModuleIdentifier,
 };
 use rspack_core::{BoxDependency, BuildMeta, ChunkGroupOptions, ContextMode};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
@@ -14,9 +14,8 @@ use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use super::context_helper::scanner_context_module;
 use super::is_import_meta_context_call;
-use crate::dependency::{
-  ImportContextDependency, ImportDependency, ImportEagerDependency, ImportMetaContextDependency,
-};
+use crate::dependency::{ImportContextDependency, ImportDependency};
+use crate::dependency::{ImportEagerDependency, ImportMetaContextDependency};
 use crate::utils::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop};
 
 pub struct ImportScanner<'a> {
@@ -211,6 +210,7 @@ impl Visit for ImportScanner<'_> {
         let mut block = AsyncDependenciesBlock::new(
           self.module_identifier,
           format!("{}:{}", span.start, span.end),
+          Some(DependencyLocation::new(span.start, span.end)),
         );
         block.set_group_options(GroupOptions::ChunkGroup(
           ChunkGroupOptions::default().name_optional(chunk_name),
@@ -239,6 +239,7 @@ impl Visit for ImportScanner<'_> {
         let mut block = AsyncDependenciesBlock::new(
           self.module_identifier,
           format!("{}:{}", span.start, span.end),
+          Some(DependencyLocation::new(span.start, span.end)),
         );
         block.set_group_options(GroupOptions::ChunkGroup(
           ChunkGroupOptions::default().name_optional(chunk_name),

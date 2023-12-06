@@ -47,20 +47,18 @@ pub(super) fn normalize_raw_chunk_name(raw: RawChunkOptionName) -> ChunkNameGett
       let fn_payload = Arc::new(fn_payload);
       ChunkNameGetter::Fn(Arc::new(move |ctx| {
         let fn_payload = fn_payload.clone();
-        Box::pin(async move {
-          fn_payload
-            .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
-            .into_rspack_result()
-            .expect("into rspack result failed")
-            .await
-            .unwrap_or_else(|err| {
-              panic!(
-                "{}",
-                internal_error!("Failed to call external function: {err}")
-              )
-            })
-            .expect("failed")
-        })
+        fn_payload
+          .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
+          .into_rspack_result()
+          .expect("into rspack result failed")
+          .blocking_recv()
+          .unwrap_or_else(|err| {
+            panic!(
+              "{}",
+              internal_error!("Failed to call external function: {err}")
+            )
+          })
+          .expect("failed")
       }))
     }
   }

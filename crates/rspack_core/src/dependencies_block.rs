@@ -1,3 +1,4 @@
+use rspack_error::{Diagnostic, DIAGNOSTIC_POS_DUMMY};
 use serde::Serialize;
 use ustr::Ustr;
 
@@ -36,6 +37,28 @@ impl AsyncDependenciesBlockIdentifier {
   }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct DependencyLocation {
+  start: u32,
+  end: u32,
+}
+
+impl DependencyLocation {
+  pub fn new(start: u32, end: u32) -> Self {
+    Self { start, end }
+  }
+
+  #[inline]
+  pub fn start(&self) -> u32 {
+    self.start
+  }
+
+  #[inline]
+  pub fn end(&self) -> u32 {
+    self.end
+  }
+}
+
 #[derive(Debug, Clone)]
 pub struct AsyncDependenciesBlock {
   id: AsyncDependenciesBlockIdentifier,
@@ -44,11 +67,16 @@ pub struct AsyncDependenciesBlock {
   block_ids: Vec<AsyncDependenciesBlockIdentifier>,
   dependency_ids: Vec<DependencyId>,
   dependencies: Vec<BoxDependency>,
+  loc: Option<DependencyLocation>,
 }
 
 impl AsyncDependenciesBlock {
   /// modifier should be Dependency.span in most of time
-  pub fn new(from: ModuleIdentifier, modifier: impl AsRef<str>) -> Self {
+  pub fn new(
+    from: ModuleIdentifier,
+    modifier: impl AsRef<str>,
+    loc: Option<DependencyLocation>,
+  ) -> Self {
     Self {
       id: AsyncDependenciesBlockIdentifier::new(from, modifier.as_ref().into()),
       group_options: Default::default(),
@@ -56,6 +84,7 @@ impl AsyncDependenciesBlock {
       block_ids: Default::default(),
       dependency_ids: Default::default(),
       dependencies: Default::default(),
+      loc,
     }
   }
 }
@@ -104,6 +133,10 @@ impl AsyncDependenciesBlock {
   pub fn take_blocks(&mut self) -> Vec<AsyncDependenciesBlock> {
     std::mem::take(&mut self.blocks)
   }
+
+  pub fn loc(&self) -> Option<&DependencyLocation> {
+    self.loc.as_ref()
+  }
 }
 
 impl DependenciesBlock for AsyncDependenciesBlock {
@@ -122,5 +155,22 @@ impl DependenciesBlock for AsyncDependenciesBlock {
 
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependency_ids
+  }
+}
+
+pub struct AsyncDependenciesToInitialChunkError<'a> {
+  pub chunk_name: &'a str,
+  pub loc: Option<&'a DependencyLocation>,
+}
+
+impl<'a> From<AsyncDependenciesToInitialChunkError<'a>> for Diagnostic {
+  fn from(value: AsyncDependenciesToInitialChunkError<'a>) -> Self {
+    let title = "AsyncDependencyToInitialChunkError".to_string();
+    let message = format!("It's not allowed to load an initial chunk on demand. The chunk name \"{}\" is already used by an entrypoint.", value.chunk_name);
+    let (start, end) = value
+      .loc
+      .map(|loc| (loc.start as usize, loc.end as usize))
+      .unwrap_or((DIAGNOSTIC_POS_DUMMY, DIAGNOSTIC_POS_DUMMY));
+    Diagnostic::error(title, message, start, end)
   }
 }

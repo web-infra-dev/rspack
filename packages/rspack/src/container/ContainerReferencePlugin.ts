@@ -30,12 +30,8 @@ export class ContainerReferencePlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.ContainerReferencePlugin;
 	_options: RawContainerReferencePluginOptions;
 	_remotes;
-	_mfRuntimePlugin: [boolean, ModuleFederationRuntimePlugin];
 
-	constructor(
-		options: ContainerReferencePluginOptions,
-		mfRuntimePlugin?: ModuleFederationRuntimePlugin
-	) {
+	constructor(options: ContainerReferencePluginOptions) {
 		super();
 		this._remotes = parseOptions(
 			options.remotes,
@@ -54,10 +50,6 @@ export class ContainerReferencePlugin extends RspackBuiltinPlugin {
 			remoteType: options.remoteType,
 			remotes: this._remotes.map(([key, r]) => ({ key, ...r }))
 		};
-		this._mfRuntimePlugin = [
-			!isNil(mfRuntimePlugin),
-			mfRuntimePlugin ?? new ModuleFederationRuntimePlugin()
-		];
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin {
@@ -74,14 +66,14 @@ export class ContainerReferencePlugin extends RspackBuiltinPlugin {
 			}
 		}
 		new ExternalsPlugin(remoteType, remoteExternals).apply(compiler);
-		const [injected, mfRuntimePlugin] = this._mfRuntimePlugin;
-		mfRuntimePlugin.addPlugin(
+		ModuleFederationRuntimePlugin.addPlugin(
+			compiler,
 			require.resolve("../sharing/initializeSharing.js")
 		);
-		mfRuntimePlugin.addPlugin(require.resolve("./remotesLoading.js"));
-		if (!injected) {
-			mfRuntimePlugin.apply(compiler);
-		}
+		ModuleFederationRuntimePlugin.addPlugin(
+			compiler,
+			require.resolve("./remotesLoading.js")
+		);
 
 		return {
 			name: this.name as any,

@@ -18,7 +18,8 @@ import type {
 	RawRspackFuture,
 	RawLibraryName,
 	RawLibraryOptions,
-	JsModule
+	JsModule,
+	RawModuleRuleUse
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../Compiler";
@@ -234,7 +235,8 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 			workerChunkLoading === false ? "false" : workerChunkLoading,
 		workerWasmLoading:
 			workerWasmLoading === false ? "false" : workerWasmLoading,
-		workerPublicPath: output.workerPublicPath!
+		workerPublicPath: output.workerPublicPath!,
+		scriptType: output.scriptType === false ? "false" : output.scriptType!
 	};
 }
 
@@ -378,7 +380,7 @@ const getRawModuleRule = (
 			}
 		];
 	}
-	let funcUse;
+	let funcUse: undefined | ((rawContext: RawFuncUseCtx) => RawModuleRuleUse[]);
 	if (typeof rule.use === "function") {
 		funcUse = (rawContext: RawFuncUseCtx) => {
 			const context = {
@@ -505,7 +507,10 @@ function getRawRuleSetCondition(
 	if (condition instanceof RegExp) {
 		return {
 			type: "regexp",
-			regexpMatcher: condition.source
+			regexpMatcher: {
+				source: condition.source,
+				flags: condition.flags
+			}
 		};
 	}
 	if (typeof condition === "function") {
@@ -712,12 +717,13 @@ function getRawOptimization(
 		realContentHash: optimization.realContentHash,
 		usedExports: String(optimization.usedExports),
 		providedExports: optimization.providedExports,
-		innerGraph: optimization.innerGraph
+		innerGraph: optimization.innerGraph,
+		mangleExports: String(optimization.mangleExports)
 	};
 }
 
 export function toRawSplitChunksOptions(
-	sc?: OptimizationSplitChunksOptions
+	sc?: false | OptimizationSplitChunksOptions
 ): RawOptions["optimization"]["splitChunks"] | undefined {
 	if (!sc) {
 		return;

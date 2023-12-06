@@ -9,7 +9,10 @@ use rspack_identifier::{Identifiable, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
 
-use crate::{AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, IS_NEW_TREESHAKING};
+use crate::{
+  debug_all_exports_info, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
+  IS_NEW_TREESHAKING,
+};
 mod connection;
 pub use connection::*;
 
@@ -636,7 +639,6 @@ impl ModuleGraph {
     mut connection: ModuleGraphConnection,
     module_identifier: ModuleIdentifier,
   ) -> ModuleGraphConnection {
-    let old_connection_module_id = connection.module_identifier;
     let old_connection_original_module_id = connection.original_module_identifier;
     let old_connection_dependency_id = connection.dependency_id;
     let new_connection_id = ConnectionId::from(mg.connections.len());
@@ -655,7 +657,7 @@ impl ModuleGraph {
       .insert(new_connection_id, old_connection_dependency_id);
 
     let mgm = mg
-      .module_graph_module_by_identifier_mut(&old_connection_module_id)
+      .module_graph_module_by_identifier_mut(&module_identifier)
       .expect("should have mgm");
 
     mgm.add_incoming_connection(new_connection_id);
@@ -707,10 +709,13 @@ impl ModuleGraph {
   // }
 
   pub fn get_exports_info_by_id(&self, id: &ExportsInfoId) -> &ExportsInfo {
-    let exports_info = self
-      .exports_info_map
-      .get(id)
-      .expect("should have exports_info");
+    let exports_info = self.exports_info_map.get(id).unwrap_or_else(|| {
+      debug_all_exports_info!(self);
+      panic!(
+        "should have exports_info {:#?}, {:?}",
+        self.exports_info_map, id
+      );
+    });
     exports_info
   }
 

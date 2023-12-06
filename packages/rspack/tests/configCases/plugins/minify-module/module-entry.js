@@ -1,0 +1,3 @@
+it("pass", () => {
+	expect(true);
+});

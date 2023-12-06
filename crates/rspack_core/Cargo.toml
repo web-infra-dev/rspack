@@ -21,9 +21,9 @@ hashlink = { workspace = true }
 indexmap = { workspace = true }
 itertools = { workspace = true }
 mime_guess = { workspace = true }
-nodejs-resolver = { version = "0.1.0" }
+nodejs-resolver = { version = "0.1.1" }
 once_cell = { workspace = true }
-oxc_resolver = { version = "0.5.4" }
+oxc_resolver = { version = "0.5.5" }
 paste = { workspace = true }
 petgraph = { version = "0.6.3", features = ["serde-1"] }
 rayon = { workspace = true }

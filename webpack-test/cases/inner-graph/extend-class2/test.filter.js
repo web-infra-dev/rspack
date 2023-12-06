@@ -1,4 +1,4 @@
 
-module.exports = () => {return "need pure dependency"}
+module.exports = () => {return true}
 
 

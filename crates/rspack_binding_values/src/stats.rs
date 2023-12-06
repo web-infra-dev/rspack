@@ -553,7 +553,7 @@ impl JsStats {
       .collect()
   }
 
-  #[napi(catch_unwind)]
+  #[napi]
   pub fn get_hash(&self) -> Option<String> {
     self.inner.get_hash().map(|hash| hash.to_string())
   }

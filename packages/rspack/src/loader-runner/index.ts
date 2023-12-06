@@ -110,8 +110,8 @@ function createLoaderObject(loader: any, compiler: Compiler): LoaderObject {
 				obj.type = value.type;
 				obj.options = value.options;
 				obj.ident = value.ident;
-				if (obj.options === null) obj.query = "";
-				else if (obj.options === undefined) obj.query = "";
+				if (obj.options === null) obj.query = value.query;
+				else if (obj.options === undefined) obj.query = value.query;
 				else if (typeof obj.options === "string") obj.query = "?" + obj.options;
 				else if (obj.ident) obj.query = "??" + obj.ident;
 				else if (typeof obj.options === "object" && obj.options.ident)
@@ -187,7 +187,9 @@ export async function runLoaders(
 			}
 			obj.options = compiler.ruleSet.references.get(ident);
 			if (obj.options === undefined) {
-				throw new Error("Invalid ident is provided by referenced loader");
+				throw new Error(
+					`Invalid ident("${ident}") is provided by referenced loader`
+				);
 			}
 			obj.ident = ident;
 		}

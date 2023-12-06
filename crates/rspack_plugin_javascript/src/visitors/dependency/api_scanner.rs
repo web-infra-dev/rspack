@@ -12,6 +12,7 @@ use swc_core::{
 
 use super::expr_matcher;
 use crate::dependency::ModuleArgumentDependency;
+
 pub const WEBPACK_HASH: &str = "__webpack_hash__";
 pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
 pub const WEBPACK_MODULES: &str = "__webpack_modules__";
@@ -21,6 +22,8 @@ pub const WEBPACK_CHUNK_LOAD: &str = "__webpack_chunk_load__";
 pub const WEBPACK_BASE_URI: &str = "__webpack_base_uri__";
 pub const NON_WEBPACK_REQUIRE: &str = "__non_webpack_require__";
 pub const SYSTEM_CONTEXT: &str = "__system_context__";
+pub const WEBPACK_SHARE_SCOPES: &str = "__webpack_share_scopes__";
+pub const WEBPACK_INIT_SHARING: &str = "__webpack_init_sharing__";
 
 pub struct ApiScanner<'a> {
   pub unresolved_ctxt: SyntaxContext,
@@ -182,6 +185,26 @@ impl Visit for ApiScanner<'_> {
           RuntimeGlobals::SYSTEM_CONTEXT.name().into(),
           Some(RuntimeGlobals::SYSTEM_CONTEXT),
         ))),
+      WEBPACK_SHARE_SCOPES => {
+        self
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            RuntimeGlobals::SHARE_SCOPE_MAP.name().into(),
+            Some(RuntimeGlobals::SHARE_SCOPE_MAP),
+          )))
+      }
+      WEBPACK_INIT_SHARING => {
+        self
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            RuntimeGlobals::INITIALIZE_SHARING.name().into(),
+            Some(RuntimeGlobals::INITIALIZE_SHARING),
+          )))
+      }
       _ => {}
     }
   }

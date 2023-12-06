@@ -24,15 +24,15 @@ export class RspackDevServer extends WebpackDevServer {
 	/**
 	 * resolved after `normalizedOptions`
 	 */
-	// @ts-expect-error
-	options: ResolvedDevServer;
-	// @ts-expect-error
-	staticWatchers: FSWatcher[];
-	// @ts-expect-error
-	sockets: Socket[];
-	// @ts-expect-error
-	server: Server;
-	// @ts-expect-error
+	declare options: ResolvedDevServer;
+
+	declare staticWatchers: FSWatcher[];
+
+	declare sockets: Socket[];
+
+	declare server: Server;
+	// TODO: remove @ts-ignore here
+	/** @ts-ignore */
 	public compiler: Compiler | MultiCompiler;
 	webSocketServer: WebpackDevServer.WebSocketServerImplementation | undefined;
 

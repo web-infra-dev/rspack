@@ -3,6 +3,7 @@ import fs from "fs";
 import util from "util";
 import { rspack, RspackOptions } from "../src";
 import serializer from "jest-serializer-path";
+import { isValidTestCaseDir } from "./utils";
 
 expect.addSnapshotSerializer(serializer);
 
@@ -14,7 +15,7 @@ const project_dir_reg = new RegExp(
 const base = path.resolve(__dirname, "statsCases");
 const tests = fs.readdirSync(base).filter(testName => {
 	return (
-		!testName.startsWith(".") &&
+		isValidTestCaseDir(testName) &&
 		(fs.existsSync(path.resolve(base, testName, "index.js")) ||
 			fs.existsSync(path.resolve(base, testName, "webpack.config.js")))
 	);
