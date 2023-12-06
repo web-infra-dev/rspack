@@ -43,10 +43,6 @@ import {
 import Template from "../Template";
 import { assertNotNill } from "../util/assertNotNil";
 import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
-import {
-	SwcCssMinimizerRspackPlugin,
-	SwcJsMinimizerRspackPlugin
-} from "../builtin-plugin";
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized
