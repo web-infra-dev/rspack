@@ -355,8 +355,10 @@ pub fn get_short_chunk_name(
   id_name_hints.sort_unstable();
 
   id_name_hints.extend(short_module_names);
-
-  let chunk_name = id_name_hints.join(delimiter);
+  let chunk_name = id_name_hints
+    .iter()
+    .filter(|id| !id.is_empty())
+    .join(delimiter);
 
   shorten_long_string(chunk_name, delimiter)
 }

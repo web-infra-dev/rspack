@@ -1,8 +1,8 @@
 ---
 source: crates/rspack_testing/src/run_fixture.rs
 ---
-```js title=a_js~_9b1b0.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["a_js~_9b1b0"], {
+```js title=a_js-_9b1b0.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["a_js-_9b1b0"], {
 "./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -24,8 +24,8 @@ console.log('i-1');
 }]);
 ```
 
-```js title=a_js~_9b1b1.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["a_js~_9b1b1"], {
+```js title=a_js-_9b1b1.js
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["a_js-_9b1b1"], {
 "./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);

@@ -777,7 +777,7 @@ const applyOptimizationDefaults = (
 		// F(splitChunks, "enforceSizeThreshold", () => (production ? 50000 : 30000));
 		F(splitChunks, "maxAsyncRequests", () => (production ? 30 : Infinity));
 		F(splitChunks, "maxInitialRequests", () => (production ? 30 : Infinity));
-		// D(splitChunks, "automaticNameDelimiter", "-");
+		D(splitChunks, "automaticNameDelimiter", "-");
 		const { cacheGroups } = splitChunks;
 		if (cacheGroups) {
 			F(cacheGroups, "default", () => ({

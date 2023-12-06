@@ -16,7 +16,7 @@ pub struct NamedChunkIdsPlugin {
 impl NamedChunkIdsPlugin {
   pub fn new(delimiter: Option<String>, context: Option<String>) -> Self {
     Self {
-      delimiter: delimiter.unwrap_or_else(|| "~".to_string()),
+      delimiter: delimiter.unwrap_or_else(|| "-".to_string()),
       context,
     }
   }

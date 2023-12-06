@@ -2537,14 +2537,14 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "chunkNames": [],
           "chunks": [
-            "d_js~e_js",
+            "d_js-e_js",
           ],
           "emitted": true,
           "info": {
             "development": false,
             "hotModuleReplacement": false,
           },
-          "name": "d_js~e_js.bundle3.js",
+          "name": "d_js-e_js.bundle3.js",
           "size": 114,
           "type": "asset",
         },
@@ -2561,7 +2561,7 @@ import(/* webpackChunkName: "c" */ "./c");
         {
           "auxiliaryFiles": [],
           "children": [
-            "d_js~e_js",
+            "d_js-e_js",
           ],
           "entry": false,
           "files": [
@@ -2621,15 +2621,15 @@ import("./e");
           "children": [],
           "entry": false,
           "files": [
-            "d_js~e_js.bundle3.js",
+            "d_js-e_js.bundle3.js",
           ],
-          "id": "d_js~e_js",
+          "id": "d_js-e_js",
           "initial": false,
           "modules": [
             {
               "assets": [],
               "chunks": [
-                "d_js~e_js",
+                "d_js-e_js",
               ],
               "id": "767",
               "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
@@ -2668,7 +2668,7 @@ import("./e");
             {
               "assets": [],
               "chunks": [
-                "d_js~e_js",
+                "d_js-e_js",
               ],
               "id": "390",
               "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
@@ -2818,7 +2818,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "0627cca023f3570cd858",
+      "hash": "f544e2da3f19baafdd67",
       "logging": {},
       "modules": [
         {
@@ -2893,7 +2893,7 @@ import("./e");
         {
           "assets": [],
           "chunks": [
-            "d_js~e_js",
+            "d_js-e_js",
           ],
           "id": "767",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/d.js",
@@ -2932,7 +2932,7 @@ import("./e");
         {
           "assets": [],
           "chunks": [
-            "d_js~e_js",
+            "d_js-e_js",
           ],
           "id": "390",
           "identifier": "<PROJECT_ROOT>/tests/statsCases/limit-chunk-count-plugin/e.js",
@@ -3909,7 +3909,7 @@ import(/* webpackChunkName: "c" */ "./c");
   ],
   "errors": [],
   "errorsCount": 0,
-  "hash": "c6559f6e73dc156f845f86986b7c6dbbb1f6ba210627cca023f3570cd85833c0b9a14121f0416de0",
+  "hash": "c6559f6e73dc156f845f86986b7c6dbbb1f6ba21f544e2da3f19baafdd6733c0b9a14121f0416de0",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -3992,16 +3992,16 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   PublicPath: (none)
   asset bundle3.js 1.66 KiB {main} [emitted] (name: main)
   asset c.bundle3.js 146 bytes {c} [emitted] (name: c)
-  asset d_js~e_js.bundle3.js 114 bytes {d_js~e_js} [emitted]
+  asset d_js-e_js.bundle3.js 114 bytes {d_js-e_js} [emitted]
   Entrypoint main 1.66 KiB = bundle3.js
   Chunk Group c 146 bytes = c.bundle3.js
-  chunk {c} c.bundle3.js (c) <{main}> >{d_js~e_js}<
+  chunk {c} c.bundle3.js (c) <{main}> >{d_js-e_js}<
     ./c.js [460] {c}
       dynamic import ./c [10]
-  chunk {d_js~e_js} d_js~e_js.bundle3.js <{c}>
-    ./d.js [767] {d_js~e_js}
+  chunk {d_js-e_js} d_js-e_js.bundle3.js <{c}>
+    ./d.js [767] {d_js-e_js}
       dynamic import ./d [460]
-    ./e.js [390] {d_js~e_js}
+    ./e.js [390] {d_js-e_js}
       dynamic import ./e [460]
   chunk {main} bundle3.js (main) >{c}< [entry]
     ./b.js [996] {main}
@@ -4012,9 +4012,9 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
     cjs require ./b [10]
   ./c.js [460] {c}
     dynamic import ./c [10]
-  ./d.js [767] {d_js~e_js}
+  ./d.js [767] {d_js-e_js}
     dynamic import ./d [460]
-  ./e.js [390] {d_js~e_js}
+  ./e.js [390] {d_js-e_js}
     dynamic import ./e [460]
   ./index.js [10] {main}
     entry ./index
@@ -4026,7 +4026,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/__webpack_require__.u {main}
-  3 chunks compiled successfully (0627cca023f3570cd858)
+  3 chunks compiled successfully (f544e2da3f19baafdd67)
 
 4 chunks:
   PublicPath: (none)

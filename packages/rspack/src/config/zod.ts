@@ -933,7 +933,8 @@ const sharedOptimizationSplitChunksCacheGroup = {
 	minSize: optimizationSplitChunksSizes.optional(),
 	maxSize: optimizationSplitChunksSizes.optional(),
 	maxAsyncSize: optimizationSplitChunksSizes.optional(),
-	maxInitialSize: optimizationSplitChunksSizes.optional()
+	maxInitialSize: optimizationSplitChunksSizes.optional(),
+	automaticNameDelimiter: z.string().optional()
 };
 const optimizationSplitChunksCacheGroup = z.strictObject({
 	test: z
@@ -947,6 +948,7 @@ const optimizationSplitChunksCacheGroup = z.strictObject({
 		.optional(),
 	priority: z.number().optional(),
 	enforce: z.boolean().optional(),
+	filename: z.string().optional(),
 	reuseExistingChunk: z.boolean().optional(),
 	type: z.string().or(z.instanceof(RegExp)).optional(),
 	idHint: z.string().optional(),
@@ -968,7 +970,8 @@ const optimizationSplitChunksOptions = z.strictObject({
 			minSize: z.number().optional(),
 			maxSize: z.number().optional(),
 			maxAsyncSize: z.number().optional(),
-			maxInitialSize: z.number().optional()
+			maxInitialSize: z.number().optional(),
+			automaticNameDelimiter: z.string().optional()
 		})
 		.optional(),
 	...sharedOptimizationSplitChunksCacheGroup
