@@ -2,7 +2,8 @@ use std::fmt::Debug;
 
 use rayon::prelude::*;
 use rspack_core::{
-  ApplyContext, CompilerOptions, ModuleType, ParserAndGenerator, Plugin, PluginContext,
+  ApplyContext, CompilationArgs, CompilationParams, CompilerOptions, DependencyType, ModuleType,
+  ParserAndGenerator, Plugin, PluginCompilationHookOutput, PluginContext,
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 use rspack_error::Result;
@@ -27,7 +28,23 @@ impl AsyncWasmPlugin {
 #[async_trait::async_trait]
 impl Plugin for AsyncWasmPlugin {
   fn name(&self) -> &'static str {
-    "AsyncWebAssemblyModulesPlugin"
+    "rspack.AsyncWebAssemblyModulesPlugin"
+  }
+
+  async fn compilation(
+    &self,
+    args: CompilationArgs<'_>,
+    params: &CompilationParams,
+  ) -> PluginCompilationHookOutput {
+    args.compilation.set_dependency_factory(
+      DependencyType::WasmImport,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::WasmExportImported,
+      params.normal_module_factory.clone(),
+    );
+    Ok(())
   }
 
   fn apply(

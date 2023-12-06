@@ -1,17 +1,21 @@
-use std::fmt;
+use std::{fmt, sync::Arc};
 
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use rspack_core::{
+  BoxModule, Compilation, CompilationArgs, CompilationParams, DependencyType, EntryOptions,
+  NormalModuleCreateData, Plugin, PluginCompilationHookOutput, PluginContext,
+  PluginNormalModuleFactoryModuleHookOutput,
+};
 use rspack_error::Result;
 use rspack_loader_runner::ResourceData;
 use rustc_hash::FxHashMap;
 use tokio::sync::RwLock;
 
-use super::provide_shared_dependency::ProvideSharedDependency;
-use crate::{
-  BoxModule, Compilation, CompilationArgs, EntryOptions, NormalModuleCreateData, Plugin,
-  PluginCompilationHookOutput, PluginContext, PluginNormalModuleFactoryModuleHookOutput,
+use super::{
+  provide_shared_dependency::ProvideSharedDependency,
+  provide_shared_module_factory::ProvideSharedModuleFactory,
 };
 
 static RELATIVE_REQUEST: Lazy<Regex> =
@@ -133,7 +137,20 @@ impl Plugin for ProvideSharedPlugin {
     "rspack.ProvideSharedPlugin"
   }
 
-  async fn compilation(&self, _args: CompilationArgs<'_>) -> PluginCompilationHookOutput {
+  async fn compilation(
+    &self,
+    args: CompilationArgs<'_>,
+    params: &CompilationParams,
+  ) -> PluginCompilationHookOutput {
+    args.compilation.set_dependency_factory(
+      DependencyType::ProvideModuleForShared,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::ProvideSharedModule,
+      Arc::new(ProvideSharedModuleFactory),
+    );
+
     let mut resolved_provide_map = self.resolved_provide_map.write().await;
     let mut match_provides = self.match_provides.write().await;
     let mut prefix_match_provides = self.prefix_match_provides.write().await;

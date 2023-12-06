@@ -1,12 +1,14 @@
+use rspack_core::{
+  impl_runtime_module,
+  rspack_sources::{BoxSource, RawSource, SourceExt},
+  ChunkUkey, Compilation, DependenciesBlock, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  SourceType,
+};
 use rspack_identifier::{Identifiable, Identifier};
-use rspack_sources::{BoxSource, RawSource, SourceExt};
 use rustc_hash::FxHashMap;
 
 use super::remote_module::RemoteModule;
-use crate::{
-  impl_runtime_module, ChunkUkey, Compilation, DependenciesBlock, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, SourceType,
-};
+use crate::utils::json_stringify;
 
 #[derive(Debug, Eq)]
 pub struct RemoteRuntimeModule {
@@ -86,10 +88,8 @@ impl RuntimeModule for RemoteRuntimeModule {
 __webpack_require__.MF.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_external_and_name_mapping} }};
 {ensure_chunk_handlers}.remotes = function(chunkId, promises) {{ return {remotes_fn}(chunkId, promises); }};
 "#,
-      chunk_mapping = serde_json::to_string(&chunk_to_remotes_mapping)
-        .expect("chunk_to_remotes_mapping should able to json to_string"),
-      id_to_external_and_name_mapping = serde_json::to_string(&id_to_external_and_name_mapping)
-        .expect("id_to_external_and_name_mapping should able to json to_string"),
+      chunk_mapping = json_stringify(&chunk_to_remotes_mapping),
+      id_to_external_and_name_mapping = json_stringify(&id_to_external_and_name_mapping),
       ensure_chunk_handlers = RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
       remotes_fn = "__webpack_require__.MF.remotesLoading",
     ))

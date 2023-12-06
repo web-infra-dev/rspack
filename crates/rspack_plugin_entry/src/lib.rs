@@ -1,8 +1,9 @@
 #![feature(let_chains)]
 
 use rspack_core::{
-  BoxDependency, Compilation, Context, EntryDependency, EntryOptions, MakeParam, Plugin,
-  PluginContext, PluginMakeHookOutput,
+  BoxDependency, Compilation, CompilationArgs, CompilationParams, Context, DependencyType,
+  EntryDependency, EntryOptions, MakeParam, Plugin, PluginCompilationHookOutput, PluginContext,
+  PluginMakeHookOutput,
 };
 
 #[derive(Debug)]
@@ -24,6 +25,17 @@ impl EntryPlugin {
 
 #[async_trait::async_trait]
 impl Plugin for EntryPlugin {
+  async fn compilation(
+    &self,
+    args: CompilationArgs<'_>,
+    params: &CompilationParams,
+  ) -> PluginCompilationHookOutput {
+    args
+      .compilation
+      .set_dependency_factory(DependencyType::Entry, params.normal_module_factory.clone());
+    Ok(())
+  }
+
   async fn make(
     &self,
     _ctx: PluginContext,

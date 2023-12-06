@@ -7,10 +7,11 @@ use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_core::{
   collect_changed_modules,
   rspack_sources::{RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, AssetInfo, Chunk, ChunkKind, CompilationAsset,
-  CompilationRecords, ModuleIdentifier, PathData, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginProcessAssetsOutput,
-  ProcessAssetsArgs, RenderManifestArgs, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, AssetInfo, Chunk, ChunkKind, CompilationArgs,
+  CompilationAsset, CompilationParams, CompilationRecords, DependencyType, ModuleIdentifier,
+  PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginCompilationHookOutput,
+  PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs, RenderManifestArgs, RuntimeGlobals,
+  RuntimeModuleExt, RuntimeSpec, SourceType,
 };
 use rspack_hash::RspackHash;
 use rspack_identifier::IdentifierSet;
@@ -23,6 +24,30 @@ pub struct HotModuleReplacementPlugin;
 impl Plugin for HotModuleReplacementPlugin {
   fn name(&self) -> &'static str {
     "rspack.HotModuleReplacementPlugin"
+  }
+
+  async fn compilation(
+    &self,
+    args: CompilationArgs<'_>,
+    params: &CompilationParams,
+  ) -> PluginCompilationHookOutput {
+    args.compilation.set_dependency_factory(
+      DependencyType::ImportMetaHotAccept,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::ImportMetaHotDecline,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::ModuleHotAccept,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::ModuleHotDecline,
+      params.normal_module_factory.clone(),
+    );
+    Ok(())
   }
 
   fn additional_tree_runtime_requirements(

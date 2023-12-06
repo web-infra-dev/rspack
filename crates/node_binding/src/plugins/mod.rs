@@ -79,6 +79,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   async fn compilation(
     &self,
     args: rspack_core::CompilationArgs<'_>,
+    _params: &rspack_core::CompilationParams,
   ) -> rspack_core::PluginCompilationHookOutput {
     if self.is_hook_disabled(&Hook::Compilation) {
       return Ok(());
@@ -101,6 +102,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   async fn this_compilation(
     &self,
     args: rspack_core::ThisCompilationArgs<'_>,
+    _params: &rspack_core::CompilationParams,
   ) -> rspack_core::PluginThisCompilationHookOutput {
     if self.is_hook_disabled(&Hook::ThisCompilation) {
       return Ok(());
@@ -575,7 +577,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
 
   async fn before_compile(
     &self,
-    // args: &mut rspack_core::CompilationArgs<'_>
+    _params: &rspack_core::CompilationParams,
   ) -> rspack_error::Result<()> {
     if self.is_hook_disabled(&Hook::BeforeCompile) {
       return Ok(());

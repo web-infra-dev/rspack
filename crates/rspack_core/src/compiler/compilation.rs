@@ -39,12 +39,12 @@ use crate::{
   ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue,
   CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, ContentHashArgs, ContextDependency, DependencyId,
-  DependencyParents, DependencyType, Entry, EntryData, EntryOptions, Entrypoint, FactorizeQueue,
-  FactorizeTask, FactorizeTaskResult, Filename, Logger, Module, ModuleGraph, ModuleIdentifier,
-  ModuleProfile, ModuleType, PathData, ProcessAssetsArgs, ProcessDependenciesQueue,
-  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory,
-  RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult,
-  WorkerTask,
+  DependencyParents, DependencyType, Entry, EntryData, EntryOptions, Entrypoint, ErrorSpan,
+  FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger, Module, ModuleFactory,
+  ModuleGraph, ModuleIdentifier, ModuleProfile, PathData, ProcessAssetsArgs,
+  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
+  Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver,
+  SourceType, Stats, TaskResult, WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
@@ -66,6 +66,7 @@ pub struct Compilation {
   pub entries: Entry,
   pub global_entry: EntryData,
   pub module_graph: ModuleGraph,
+  dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub make_failed_dependencies: HashSet<BuildDependency>,
   pub make_failed_module: HashSet<ModuleIdentifier>,
   pub has_module_import_export_change: bool,
@@ -126,6 +127,7 @@ impl Compilation {
       records,
       options,
       module_graph,
+      dependency_factories: Default::default(),
       make_failed_dependencies: HashSet::default(),
       make_failed_module: HashSet::default(),
       has_module_import_export_change: true,
@@ -487,8 +489,6 @@ impl Compilation {
           parent_module.and_then(|m| m.get_context()),
           vec![id],
           parent_module_identifier.is_none(),
-          None,
-          None,
           parent_module.and_then(|module| module.get_resolve_options()),
           self.lazy_visit_modules.clone(),
           parent_module
@@ -610,12 +610,10 @@ impl Compilation {
         for dependencies in sorted_dependencies.into_values() {
           self.handle_module_creation(
             &mut factorize_queue,
-            Some(task.original_module_identifier),
+            Some(module.identifier()),
             module.get_context(),
             dependencies,
             false,
-            None,
-            None,
             task.resolve_options.clone(),
             self.lazy_visit_modules.clone(),
             module
@@ -991,22 +989,20 @@ impl Compilation {
     original_module_context: Option<Box<Context>>,
     dependencies: Vec<DependencyId>,
     is_entry: bool,
-    module_type: Option<ModuleType>,
-    side_effects: Option<bool>,
     resolve_options: Option<Box<Resolve>>,
     lazy_visit_modules: std::collections::HashSet<String>,
     issuer: Option<Box<str>>,
   ) {
     let current_profile = self.options.profile.then(Box::<ModuleProfile>::default);
+    let dependency = dependencies[0].get_dependency(&self.module_graph).clone();
     queue.add_task(FactorizeTask {
+      module_factory: self.get_dependency_factory(dependency.dependency_type()),
       original_module_identifier,
       issuer,
       original_module_context,
-      dependency: dependencies[0].get_dependency(&self.module_graph).clone(),
+      dependency,
       dependencies,
       is_entry,
-      module_type,
-      side_effects,
       resolve_options,
       lazy_visit_modules,
       resolver_factory: self.resolver_factory.clone(),
@@ -1716,6 +1712,33 @@ impl Compilation {
     self
       .plugin_driver
       .execute_module(entry, vec![], &codegen_result)
+  }
+
+  pub fn set_dependency_factory(
+    &mut self,
+    dependency_type: DependencyType,
+    module_factory: Arc<dyn ModuleFactory>,
+  ) {
+    self
+      .dependency_factories
+      .insert(dependency_type, module_factory);
+  }
+
+  pub fn get_dependency_factory(&self, dependency_type: &DependencyType) -> Arc<dyn ModuleFactory> {
+    self
+      .dependency_factories
+      .get(&match dependency_type {
+        DependencyType::EsmImport(_) => DependencyType::EsmImport(ErrorSpan::default()),
+        DependencyType::EsmExport(_) => DependencyType::EsmExport(ErrorSpan::default()),
+        _ => dependency_type.clone(),
+      })
+      .unwrap_or_else(|| {
+        panic!(
+          "No module factory available for dependency type: {}",
+          dependency_type
+        )
+      })
+      .clone()
   }
 }
 

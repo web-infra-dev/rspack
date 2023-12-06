@@ -1,17 +1,16 @@
-// TODO: move to rspack_plugin_mf
-
 use async_trait::async_trait;
+use rspack_core::{ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult};
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
 use super::{fallback_dependency::FallbackDependency, fallback_module::FallbackModule};
-use crate::{ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult};
 
+#[derive(Debug)]
 pub struct FallbackModuleFactory;
 
 #[async_trait]
 impl ModuleFactory for FallbackModuleFactory {
   async fn create(
-    mut self,
+    &self,
     data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
     let dep = data

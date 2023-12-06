@@ -25,7 +25,10 @@ use crate::{
   cache::Cache, fast_set, AssetEmittedArgs, CompilerOptions, Logger, Plugin, PluginDriver,
   ResolverFactory, SharedPluginDriver,
 };
-use crate::{ExportInfo, UsageState, IS_NEW_TREESHAKING};
+use crate::{
+  CompilationParams, ContextModuleFactory, ExportInfo, NormalModuleFactory, UsageState,
+  IS_NEW_TREESHAKING,
+};
 
 #[derive(Debug)]
 pub struct Compiler<T>
@@ -111,19 +114,6 @@ where
       ),
     );
 
-    self.plugin_driver.before_compile().await?;
-
-    // Fake this compilation as *currently* rebuilding does not create a new compilation
-    self
-      .plugin_driver
-      .this_compilation(&mut self.compilation)
-      .await?;
-
-    self
-      .plugin_driver
-      .compilation(&mut self.compilation)
-      .await?;
-
     self
       .compile(MakeParam::ForceBuildDeps(Default::default()))
       .await?;
@@ -134,6 +124,21 @@ where
 
   #[instrument(name = "compile", skip_all)]
   async fn compile(&mut self, params: MakeParam) -> Result<()> {
+    let compilation_params = self.new_compilation_params();
+    self
+      .plugin_driver
+      .before_compile(&compilation_params)
+      .await?;
+    // Fake this compilation as *currently* rebuilding does not create a new compilation
+    self
+      .plugin_driver
+      .this_compilation(&mut self.compilation, &compilation_params)
+      .await?;
+    self
+      .plugin_driver
+      .compilation(&mut self.compilation, &compilation_params)
+      .await?;
+
     let logger = self.compilation.get_logger("rspack.Compiler");
     let option = self.options.clone();
     let start = logger.time("make");
@@ -395,5 +400,20 @@ where
         .await?;
     }
     Ok(())
+  }
+
+  fn new_compilation_params(&self) -> CompilationParams {
+    CompilationParams {
+      normal_module_factory: Arc::new(NormalModuleFactory::new(
+        self.options.clone(),
+        self.loader_resolver_factory.clone(),
+        self.plugin_driver.clone(),
+        self.cache.clone(),
+      )),
+      context_module_factory: Arc::new(ContextModuleFactory::new(
+        self.plugin_driver.clone(),
+        self.cache.clone(),
+      )),
+    }
   }
 }

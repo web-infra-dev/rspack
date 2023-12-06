@@ -2,20 +2,22 @@ use std::borrow::Cow;
 use std::hash::Hash;
 
 use async_trait::async_trait;
+use rspack_core::{
+  rspack_sources::{RawSource, Source, SourceExt},
+  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildResult,
+  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
+  Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
-use rspack_sources::{RawSource, Source, SourceExt};
 
 use super::{
   fallback_dependency::FallbackDependency,
   remote_to_external_dependency::RemoteToExternalDependency,
 };
 use crate::{
-  mf::share_runtime_module::{CodeGenerationDataShareInit, DataInitInfo, ShareInitData},
-  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildResult,
-  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
-  Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  sharing::share_runtime_module::DataInitInfo, CodeGenerationDataShareInit, ShareInitData,
 };
 
 #[derive(Debug)]

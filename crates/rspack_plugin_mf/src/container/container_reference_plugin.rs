@@ -1,11 +1,16 @@
-use async_trait::async_trait;
+use std::sync::Arc;
 
-use super::{remote_module::RemoteModule, remote_runtime_module::RemoteRuntimeModule};
-use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, ExternalType, FactorizeArgs, ModuleExt,
-  ModuleFactoryResult, NormalModuleFactoryContext, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginFactorizeHookOutput,
-  RuntimeGlobals,
+use async_trait::async_trait;
+use rspack_core::{
+  AdditionalChunkRuntimeRequirementsArgs, CompilationArgs, CompilationParams, DependencyType,
+  ExternalType, FactorizeArgs, ModuleExt, ModuleFactoryResult, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginCompilationHookOutput, PluginContext,
+  PluginFactorizeHookOutput, RuntimeGlobals,
+};
+
+use super::{
+  fallback_module_factory::FallbackModuleFactory, remote_module::RemoteModule,
+  remote_runtime_module::RemoteRuntimeModule,
 };
 
 #[derive(Debug)]
@@ -38,11 +43,30 @@ impl Plugin for ContainerReferencePlugin {
     "rspack.ContainerReferencePlugin"
   }
 
+  async fn compilation(
+    &self,
+    args: CompilationArgs<'_>,
+    params: &CompilationParams,
+  ) -> PluginCompilationHookOutput {
+    args.compilation.set_dependency_factory(
+      DependencyType::RemoteToExternal,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::RemoteToFallbackItem,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::RemoteToFallback,
+      Arc::new(FallbackModuleFactory),
+    );
+    Ok(())
+  }
+
   async fn factorize(
     &self,
     _ctx: PluginContext,
     args: FactorizeArgs<'_>,
-    _job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeHookOutput {
     let request = args.dependency.request();
     if !request.contains('!') {

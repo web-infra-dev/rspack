@@ -1,11 +1,12 @@
-use rspack_identifier::Identifier;
-use rspack_sources::{BoxSource, RawSource, SourceExt};
-
-use crate::{
-  impl_runtime_module, mf::share_runtime_module::ShareRuntimeModule,
+use rspack_core::{
+  impl_runtime_module,
+  rspack_sources::{BoxSource, RawSource, SourceExt},
   AdditionalChunkRuntimeRequirementsArgs, ChunkUkey, Compilation, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeGlobals, RuntimeModule,
 };
+use rspack_identifier::Identifier;
+
+use crate::ShareRuntimeModule;
 
 #[derive(Debug, Default)]
 pub struct ModuleFederationRuntimePlugin;

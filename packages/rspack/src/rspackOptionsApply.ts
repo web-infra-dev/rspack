@@ -39,6 +39,7 @@ import {
 	OldSplitChunksPlugin
 } from "./builtin-plugin";
 import { ModuleFederationRuntimePlugin } from "./container/ModuleFederationRuntimePlugin";
+import { WorkerPlugin } from "./builtin-plugin/WorkerPlugin";
 
 export function optionsApply_compat(
 	compiler: Compiler,
@@ -215,6 +216,12 @@ export class RspackOptionsApply {
 			options.output.strictModuleErrorHandling = true;
 		}
 		new ResolveSwcPlugin().apply(compiler);
+		new WorkerPlugin(
+			options.output.workerChunkLoading!,
+			options.output.workerWasmLoading!,
+			options.output.module!,
+			options.output.workerPublicPath!
+		).apply(compiler);
 
 		new DefaultStatsFactoryPlugin().apply(compiler);
 		new DefaultStatsPrinterPlugin().apply(compiler);

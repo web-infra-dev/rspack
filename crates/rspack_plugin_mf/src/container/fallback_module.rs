@@ -2,18 +2,18 @@ use std::borrow::Cow;
 use std::hash::Hash;
 
 use async_trait::async_trait;
+use rspack_core::{
+  rspack_sources::{RawSource, Source, SourceExt},
+  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildResult, ChunkUkey,
+  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
+  Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
-use rspack_sources::{RawSource, Source, SourceExt};
 
 use super::fallback_item_dependency::FallbackItemDependency;
-use crate::{
-  mf::utils::json_stringify, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext,
-  BuildInfo, BuildResult, ChunkUkey, CodeGenerationResult, Compilation, Context, DependenciesBlock,
-  DependencyId, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec,
-  SourceType,
-};
+use crate::utils::json_stringify;
 
 #[derive(Debug)]
 pub struct FallbackModule {

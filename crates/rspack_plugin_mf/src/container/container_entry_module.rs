@@ -1,21 +1,23 @@
 use std::{borrow::Cow, hash::Hash};
 
 use async_trait::async_trait;
+use rspack_core::{
+  basic_function, block_promise, module_raw, returning_function,
+  rspack_sources::{RawSource, Source, SourceExt},
+  throw_missing_module_error_block, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
+  BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions,
+  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, GroupOptions,
+  LibIdentOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType, RuntimeGlobals,
+  RuntimeSpec, SourceType,
+};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
-use rspack_sources::{RawSource, Source, SourceExt};
 
 use super::{
   container_exposed_dependency::ContainerExposedDependency, container_plugin::ExposeOptions,
 };
-use crate::{
-  basic_function, block_promise, module_raw, returning_function, throw_missing_module_error_block,
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
-  BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationResult, Compilation, Context,
-  DependenciesBlock, DependencyId, GroupOptions, LibIdentOptions, Module, ModuleDependency,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-};
+use crate::utils::json_stringify;
 
 #[derive(Debug)]
 pub struct ContainerEntryModule {
@@ -36,7 +38,7 @@ impl ContainerEntryModule {
       identifier: ModuleIdentifier::from(format!(
         "container entry ({}) {}",
         share_scope,
-        serde_json::to_string(&exposes).expect("should able to json to_string")
+        json_stringify(&exposes),
       )),
       lib_ident,
       exposes,
@@ -206,7 +208,7 @@ impl Module for ContainerEntryModule {
       };
       getters.push(format!(
         "{}: {}",
-        serde_json::to_string(name).expect("should able to json to_string"),
+        json_stringify(name),
         basic_function("", &str)
       ))
     }
@@ -244,8 +246,7 @@ var init = (shareScope, initScope) => {{
       current_remote_get_scope = RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
       share_scope_map = RuntimeGlobals::SHARE_SCOPE_MAP,
-      share_scope =
-        serde_json::to_string(&self.share_scope).expect("should able to json to_string"),
+      share_scope = json_stringify(&self.share_scope),
       initialize_sharing = RuntimeGlobals::INITIALIZE_SHARING,
       define_property_getters = RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
     );
