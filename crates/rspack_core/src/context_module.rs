@@ -11,7 +11,7 @@ use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rspack_error::{
-  miette::IntoDiagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+  miette::IntoDiagnostic, Diagnosable, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
@@ -653,6 +653,8 @@ impl Module for ContextModule {
     Ok(code_generation_result)
   }
 }
+
+impl Diagnosable for ContextModule {}
 
 impl Identifiable for ContextModule {
   fn identifier(&self) -> Identifier {

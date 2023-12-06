@@ -2,7 +2,9 @@ use std::borrow::Cow;
 use std::hash::Hash;
 use std::iter;
 
-use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{
+  internal_error, Diagnosable, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rustc_hash::FxHashMap as HashMap;
@@ -431,6 +433,8 @@ impl Module for ExternalModule {
     Some(Cow::Borrowed(self.user_request.as_str()))
   }
 }
+
+impl Diagnosable for ExternalModule {}
 
 impl Hash for ExternalModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

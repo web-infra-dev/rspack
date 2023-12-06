@@ -9,7 +9,7 @@ use rspack_core::{
   PluginNormalModuleFactoryCreateModuleHookOutput, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_core::{CodeGenerationResult, Context, ModuleIdentifier};
-use rspack_error::Result;
+use rspack_error::{Diagnosable, Result};
 use rspack_identifier::Identifiable;
 
 #[derive(Debug)]
@@ -90,6 +90,8 @@ impl Identifiable for LazyCompilationProxyModule {
     self.module_identifier
   }
 }
+
+impl Diagnosable for LazyCompilationProxyModule {}
 
 impl Hash for LazyCompilationProxyModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

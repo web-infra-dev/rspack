@@ -7,7 +7,7 @@ use rspack_core::{
   CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
   Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{Diagnosable, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 
@@ -187,6 +187,8 @@ impl Module for ProvideSharedModule {
     Ok(code_generation_result)
   }
 }
+
+impl Diagnosable for ProvideSharedModule {}
 
 impl Hash for ProvideSharedModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

@@ -5,7 +5,7 @@ use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
 use json::JsonValue;
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{Diagnosable, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
@@ -141,7 +141,7 @@ pub type ModuleIdentifier = Identifier;
 
 #[async_trait]
 pub trait Module:
-  Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable + DependenciesBlock
+  Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable + DependenciesBlock + Diagnosable
 {
   /// Defines what kind of module this is.
   fn module_type(&self) -> &ModuleType;
@@ -181,7 +181,7 @@ pub trait Module:
         blocks: Vec::new(),
         analyze_result: Default::default(),
       }
-      .with_empty_diagnostic(),
+      .with_diagnostic(self.take_diagnostics()),
     )
   }
 

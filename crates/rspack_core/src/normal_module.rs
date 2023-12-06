@@ -4,7 +4,7 @@ use std::{
   hash::{BuildHasherDefault, Hash},
   sync::{
     atomic::{AtomicUsize, Ordering},
-    Arc,
+    Arc, Mutex,
   },
 };
 
@@ -12,7 +12,8 @@ use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
 use rspack_error::{
-  internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
+  internal_error, Diagnosable, Diagnostic, IntoTWithDiagnosticArray, Result, Severity,
+  TWithDiagnosticArray,
 };
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
@@ -120,6 +121,7 @@ pub struct NormalModule {
   #[allow(unused)]
   debug_id: usize,
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
+  diagnostics: Mutex<Vec<Diagnostic>>,
 
   code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
   presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
@@ -207,6 +209,7 @@ impl NormalModule {
 
       options,
       cached_source_sizes: DashMap::default(),
+      diagnostics: Mutex::new(Default::default()),
       code_generation_dependencies: None,
       presentational_dependencies: None,
     }
@@ -578,6 +581,20 @@ impl Module for NormalModule {
       }
     }
     ConnectionState::Bool(true)
+  }
+}
+
+impl Diagnosable for NormalModule {
+  fn add_diagnostic(&self, diagnostic: Diagnostic) {
+    self.diagnostics.lock().unwrap().push(diagnostic);
+  }
+
+  fn add_diagnostics(&self, mut diagnostics: Vec<Diagnostic>) {
+    self.diagnostics.lock().unwrap().append(&mut diagnostics);
+  }
+
+  fn take_diagnostics(&self) -> Vec<Diagnostic> {
+    self.diagnostics.lock().unwrap().drain(..).collect()
   }
 }
 

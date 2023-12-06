@@ -10,7 +10,7 @@ use rspack_core::{
   LibIdentOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType, RuntimeGlobals,
   RuntimeSpec, SourceType,
 };
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{Diagnosable, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 
@@ -229,6 +229,8 @@ impl Module for ContainerEntryModule {
     Ok(code_generation_result)
   }
 }
+
+impl Diagnosable for ContainerEntryModule {}
 
 impl Hash for ContainerEntryModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

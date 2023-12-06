@@ -8,7 +8,7 @@ use rspack_core::{
   CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
   Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{Diagnosable, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 
@@ -177,6 +177,8 @@ module.exports = loop();
     Ok(codegen)
   }
 }
+
+impl Diagnosable for FallbackModule {}
 
 impl Hash for FallbackModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

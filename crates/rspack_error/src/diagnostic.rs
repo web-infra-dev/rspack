@@ -106,6 +106,14 @@ impl Diagnostic {
   }
 }
 
+pub trait Diagnosable {
+  fn add_diagnostic(&self, _diagnostic: Diagnostic) {}
+  fn add_diagnostics(&self, _diagnostics: Vec<Diagnostic>) {}
+  fn take_diagnostics(&self) -> Vec<Diagnostic> {
+    vec![]
+  }
+}
+
 pub fn errors_to_diagnostics(errs: Vec<Error>) -> Vec<Diagnostic> {
   errs.into_iter().map(Diagnostic::from).collect()
 }

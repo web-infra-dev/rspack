@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::hash::Hash;
 
-use rspack_error::Result;
+use rspack_error::{Diagnosable, Result};
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::{RawSource, Source, SourceExt};
 use serde_json::json;
@@ -103,6 +103,8 @@ impl Identifiable for MissingModule {
     self.identifier
   }
 }
+
+impl Diagnosable for MissingModule {}
 
 impl PartialEq for MissingModule {
   fn eq(&self, other: &Self) -> bool {
