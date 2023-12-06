@@ -290,7 +290,7 @@ pub fn evaluate_expression(expr: &Expr) -> BasicEvaluatedExpression<'_> {
     Some(evaluated) => evaluated,
     None => {
       let mut evaluated = BasicEvaluatedExpression::new();
-      evaluated.set_range(expr.span_lo().0, expr.span_hi().0);
+      evaluated.set_range(expr.span().real_lo(), expr.span_hi().0);
       evaluated
     }
   }

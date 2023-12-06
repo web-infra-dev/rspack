@@ -1,6 +1,6 @@
 mod api_scanner;
 mod common_js_export_scanner;
-mod common_js_import_dependency_scanner;
+pub(crate) mod common_js_import_dependency_scanner;
 mod common_js_scanner;
 mod compatibility_scanner;
 mod context_helper;
