@@ -820,11 +820,6 @@ impl ExportInfoId {
     changed
   }
 
-  pub fn get_used(&self, mg: &ModuleGraph, runtime: Option<&RuntimeSpec>) -> UsageState {
-    let export_info = mg.get_export_info_by_id(self);
-    export_info.get_used(runtime)
-  }
-
   pub fn set_used_name(&self, mg: &mut ModuleGraph, name: JsWord) {
     mg.get_export_info_mut_by_id(self).set_used_name(name)
   }
