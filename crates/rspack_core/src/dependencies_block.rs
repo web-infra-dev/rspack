@@ -16,7 +16,7 @@ pub trait DependenciesBlock {
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 pub struct AsyncDependenciesBlockIdentifier {
-  from: ModuleIdentifier,
+  pub from: ModuleIdentifier,
   modifier: Ustr,
 }
 
