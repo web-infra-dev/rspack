@@ -37,6 +37,7 @@ import { absolutify, contextify, makePathsRelative } from "../util/identifier";
 import { memoize } from "../util/memoize";
 import { createHash } from "../util/createHash";
 import loadLoader = require("./loadLoader");
+const querystring = require("node:querystring");
 
 const PATH_QUERY_FRAGMENT_REGEXP =
 	/^((?:\0.|[^?#\0])*)(\?(?:\0.|[^#\0])*)?(#.*)?$/;
@@ -523,7 +524,6 @@ export async function runLoaders(
 					throw new Error(`Cannot parse string options: ${e.message}`);
 				}
 			} else {
-				const querystring = require("node:querystring");
 				options = querystring.parse(options);
 			}
 		}
