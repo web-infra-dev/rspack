@@ -69,7 +69,14 @@ impl ContextModuleFactory {
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
     // let context_dependencies = Default::default();
-    let specifier = dependency.request();
+    let mut specifier = dependency.request();
+    let idx = specifier.to_string().find("!");
+    let mut loader = None;
+    if let Some(idx) = idx {
+      loader = Some(specifier.get(0..idx).unwrap().to_string());
+      specifier = specifier.get(idx + 1..).unwrap();
+    }
+
     let resolve_args = ResolveArgs {
       context: data.context.clone(),
       importer: None,
@@ -99,6 +106,7 @@ impl ContextModuleFactory {
     let module = match resource_data {
       Ok(ResolveResult::Resource(resource)) => Box::new(ContextModule::new(
         ContextModuleOptions {
+          loader: loader,
           resource: resource.path.to_string_lossy().to_string(),
           resource_query: resource.query,
           resource_fragment: resource.fragment,

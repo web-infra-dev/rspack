@@ -162,6 +162,7 @@ impl Hash for ContextOptions {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ContextModuleOptions {
+  pub loader: Option<String>,
   pub resource: String,
   pub resource_query: Option<String>,
   pub resource_fragment: Option<String>,
@@ -729,6 +730,12 @@ impl ContextModule {
           vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
         );
 
+        let inline_loader = if let Some(loader) = options.loader.clone() {
+          format!("{}!", loader)
+        } else {
+          "".to_string()
+        };
+
         let Some(reg_exp) = &options.context_options.reg_exp else {
           return Ok(());
         };
@@ -740,7 +747,8 @@ impl ContextModule {
           dependencies.push(ContextElementDependency {
             id: DependencyId::new(),
             request: format!(
-              "{}{}{}",
+              "{}{}{}{}",
+              inline_loader,
               r.request,
               options.resource_query.clone().unwrap_or_default(),
               options.resource_fragment.clone().unwrap_or_default()
@@ -766,7 +774,7 @@ impl ContextModule {
       resolve_to_context: false,
       dependency_category: self.options.context_options.category,
     });
-
+    println!("ctx:{}", &self.options.resource);
     let mut context_element_dependencies = vec![];
     Self::visit_dirs(
       &self.options.resource,
