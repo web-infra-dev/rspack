@@ -666,7 +666,7 @@ impl ExportInfoId {
       for k in runtime.iter() {
         match used_in_runtime.entry(k.to_string()) {
           Entry::Occupied(mut occ) => match (&new_value, occ.get()) {
-            (new, old) if new == &UsageState::Unused => {
+            (new, _) if new == &UsageState::Unused => {
               occ.remove();
               changed = true;
             }
@@ -674,9 +674,9 @@ impl ExportInfoId {
               occ.insert(new_value);
               changed = true;
             }
-            (new, old) => {}
+            (_new, _old) => {}
           },
-          Entry::Vacant(mut vac) => {
+          Entry::Vacant(vac) => {
             if new_value != UsageState::Unused {
               vac.insert(new_value);
               changed = true;
@@ -684,7 +684,7 @@ impl ExportInfoId {
           }
         }
       }
-      if used_in_runtime.len() == 0 {
+      if used_in_runtime.is_empty() {
         export_info_mut.used_in_runtime = None;
         changed = true;
       }
@@ -765,7 +765,7 @@ impl ExportInfoId {
             }
             _ => {}
           },
-          Entry::Vacant(mut vac) => {
+          Entry::Vacant(vac) => {
             if new_value != UsageState::Unused && condition(&UsageState::Unused) {
               vac.insert(new_value);
               changed = true;
@@ -773,7 +773,7 @@ impl ExportInfoId {
           }
         }
       }
-      if used_in_runtime.len() == 0 {
+      if used_in_runtime.is_empty() {
         export_info_mut.used_in_runtime = None;
         changed = true;
       }
@@ -1064,19 +1064,17 @@ impl ExportInfo {
         if matches!(usage, UsageState::Unused) {
           return None;
         }
-      } else {
-        if let Some(used_in_runtime) = self.used_in_runtime.as_ref() {
-          if let Some(runtime) = runtime {
-            if runtime
-              .iter()
-              .all(|item| !used_in_runtime.contains_key(item.as_ref()))
-            {
-              return None;
-            }
+      } else if let Some(used_in_runtime) = self.used_in_runtime.as_ref() {
+        if let Some(runtime) = runtime {
+          if runtime
+            .iter()
+            .all(|item| !used_in_runtime.contains_key(item.as_ref()))
+          {
+            return None;
           }
-        } else {
-          return None;
         }
+      } else {
+        return None;
       }
     }
     if let Some(used_name) = self.used_name.as_ref() {

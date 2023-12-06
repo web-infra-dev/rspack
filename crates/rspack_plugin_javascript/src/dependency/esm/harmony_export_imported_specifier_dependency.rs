@@ -11,7 +11,7 @@ use rspack_core::{
   TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::{css::codegen, ecma::atoms::JsWord};
+use swc_core::ecma::atoms::JsWord;
 
 use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};
 

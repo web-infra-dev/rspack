@@ -69,9 +69,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       };
       if let Some(runtime) = runtime.as_ref() {
         let tem_global_runtime = global_runtime.get_or_insert_default();
-        global_runtime = Some(merge_runtime(&tem_global_runtime, runtime));
+        global_runtime = Some(merge_runtime(tem_global_runtime, runtime));
       }
-      dbg!(&runtime);
       for &dep in entry.dependencies.iter() {
         self.process_entry_dependency(dep, runtime.clone(), &mut q);
       }

@@ -11,7 +11,6 @@ use rspack_core::{
 };
 use rspack_core::{ModuleGraph, RuntimeSpec};
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::css::codegen;
 use swc_core::ecma::atoms::JsWord;
 
 use super::create_resource_identifier_for_esm_dependency;

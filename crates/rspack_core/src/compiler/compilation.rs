@@ -174,7 +174,7 @@ impl Compilation {
   }
 
   pub fn get_entry_runtime(&self, name: &String, options: Option<&EntryOptions>) -> RuntimeSpec {
-    let (depend_on, runtime) = if let Some(options) = options {
+    let (_, runtime) = if let Some(options) = options {
       ((), options.runtime.as_ref())
     } else {
       match self.entries.get(name) {
@@ -184,7 +184,7 @@ impl Compilation {
     };
     // TODO: depend on
     runtime
-      .or_else(|| Some(name))
+      .or(Some(name))
       .map(|runtime| RuntimeSpec::from_iter([Arc::from(runtime.as_ref())]))
       .unwrap_or_default()
   }
@@ -1071,7 +1071,6 @@ impl Compilation {
                 1
               };
               let mut codegen_list = vec![];
-              dbg!(&runtimes, module.identifier());
               for runtime in runtimes.into_values().take(take_length) {
                 codegen_list.push((
                   module.code_generation(compilation, Some(&runtime))?,

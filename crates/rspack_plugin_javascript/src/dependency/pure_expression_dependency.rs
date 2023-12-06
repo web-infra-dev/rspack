@@ -1,6 +1,6 @@
 use rspack_core::{
   filter_runtime, AsContextDependency, AsModuleDependency, ConnectionState, Dependency,
-  DependencyId, DependencyTemplate, ModuleGraph, ModuleIdentifier, RuntimeSpec, TemplateContext,
+  DependencyId, DependencyTemplate, ModuleGraph, ModuleIdentifier, TemplateContext,
   TemplateReplaceSource, UsageState, UsedByExports, UsedName,
 };
 use rustc_hash::FxHashSet as HashSet;
@@ -59,7 +59,6 @@ impl DependencyTemplate for PureExpressionDependency {
           .compilation
           .module_graph
           .get_exports_info(&self.module_identifier);
-        let self_module = self.module_identifier;
         let runtime = ctx.runtime;
         let runtime_condition = filter_runtime(runtime, |cur_runtime| {
           set.iter().any(|id| {
@@ -73,7 +72,7 @@ impl DependencyTemplate for PureExpressionDependency {
         match runtime_condition {
           rspack_core::RuntimeCondition::Boolean(true) => return,
           rspack_core::RuntimeCondition::Boolean(false) => {}
-          rspack_core::RuntimeCondition::Spec(spec) => {
+          rspack_core::RuntimeCondition::Spec(_spec) => {
             // TODO: need chunks Graph in gen context, we tread it as used if it only used in some
 
             return;
