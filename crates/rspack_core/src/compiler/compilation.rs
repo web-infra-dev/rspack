@@ -182,7 +182,7 @@ impl Compilation {
         None => return RuntimeSpec::from_iter([Arc::from(name.as_str())]),
       }
     };
-    // TODO: depend on
+    // TODO: depend on https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/util/runtime.js#L33, we don't have that field now
     runtime
       .or(Some(name))
       .map(|runtime| RuntimeSpec::from_iter([Arc::from(runtime.as_ref())]))

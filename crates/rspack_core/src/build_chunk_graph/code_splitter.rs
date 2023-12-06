@@ -450,7 +450,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn process_entry_block(&mut self, item: &ProcessEntryBlock) {
     tracing::trace!("process_entry_block {:?}", item);
-    let modules = self.get_block_modules(item.block.into());
+    let chunk_group = self
+      .compilation
+      .chunk_group_by_ukey
+      .expect_get(&item.chunk_group);
+    let runtime = chunk_group.info.runtime.clone();
+    let modules = self.get_block_modules(item.block.into(), Some(&runtime));
     for module in modules {
       self.queue.push(QueueAction::AddAndEnterEntryModule(
         AddAndEnterEntryModule {
@@ -474,7 +479,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn process_block(&mut self, item: &ProcessBlock) {
     tracing::trace!("process_block {:?}", item);
-    let modules = self.get_block_modules(item.block);
+    let item_chunk_group = self
+      .compilation
+      .chunk_group_by_ukey
+      .expect_get(&item.chunk_group);
+    let runtime = item_chunk_group.info.runtime.clone();
+    let modules = self.get_block_modules(item.block, Some(&runtime));
     for module in modules.into_iter().rev() {
       if self
         .compilation
@@ -728,13 +738,20 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
   }
 
-  fn get_block_modules(&mut self, module: DependenciesBlockIdentifier) -> Vec<ModuleIdentifier> {
+  fn get_block_modules(
+    &mut self,
+    module: DependenciesBlockIdentifier,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ModuleIdentifier> {
     if let Some(modules) = self.block_modules_map.get(&module) {
       return modules.clone();
     }
-    self.extract_block_modules(*module.as_module().expect(
-      "block_modules_map must not empty when calling get_block_modules(AsyncDependenciesBlock)",
-    ));
+    self.extract_block_modules(
+      *module.as_module().expect(
+        "block_modules_map must not empty when calling get_block_modules(AsyncDependenciesBlock)",
+      ),
+      runtime,
+    );
     self
       .block_modules_map
       .get(&module)
@@ -742,7 +759,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .clone()
   }
 
-  fn extract_block_modules(&mut self, module: ModuleIdentifier) {
+  fn extract_block_modules(&mut self, module: ModuleIdentifier, runtime: Option<&RuntimeSpec>) {
     self.block_modules_map.insert(module.into(), Vec::new());
     let dependencies: Vec<&BoxDependency> =
       if IS_NEW_TREESHAKING.load(std::sync::atomic::Ordering::Relaxed) {
@@ -755,8 +772,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .outgoing_connections_unordered(&self.compilation.module_graph)
           .expect("should have outgoing connections")
           .filter_map(|con: &ModuleGraphConnection| {
-            // TODO: runtime opt
-            let active_state = con.get_active_state(&self.compilation.module_graph, None);
+            let active_state = con.get_active_state(&self.compilation.module_graph, runtime);
             match active_state {
               crate::ConnectionState::Bool(false) => None,
               _ => Some(con.dependency_id),
