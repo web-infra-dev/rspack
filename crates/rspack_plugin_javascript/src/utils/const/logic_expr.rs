@@ -2,21 +2,31 @@ use rspack_core::ConstDependency;
 use rspack_core::SpanExt;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{BinExpr, BinaryOp};
-use swc_core::ecma::visit::VisitWith;
 
-use super::evaluate_expression;
 use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
 
+// FIXME: a temp hack to avoid bwchecker.
+bitflags::bitflags! {
+  pub struct Continue: u8 {
+    const NO = 1 << 0;
+    const LEFT = 1 << 1;
+    const RIGHT = 1 << 2;
+    const LEFT_AND_RIGHT = 1 << 3;
+  }
+}
+
 pub fn expression_logic_operator(
-  scanner: &mut CommonJsImportDependencyScanner,
+  scanner: &CommonJsImportDependencyScanner<'_>,
   expr: &BinExpr,
-) -> Option<bool> {
+) -> (Option<Vec<ConstDependency>>, Continue) {
   if expr.op == BinaryOp::LogicalAnd || expr.op == BinaryOp::LogicalOr {
-    let param = evaluate_expression(&expr.left);
+    let param = scanner.evaluate_expression(&expr.left);
     let boolean = param.as_bool();
     let Some(bool) = boolean else {
-      return None;
+      return (None, Continue::NO);
     };
+    let mut deps = vec![];
+    let mut c = Continue::empty();
     let keep_right = if bool {
       expr.op == BinaryOp::LogicalAnd
     } else {
@@ -25,27 +35,29 @@ pub fn expression_logic_operator(
     if !param.could_have_side_effects() && (keep_right || param.is_bool()) {
       let dep = ConstDependency::new(
         param.range().0,
-        param.range().1,
+        param.range().1 - 1,
         format!(" {bool}").into(),
         None,
       );
-      scanner.presentational_dependencies.push(Box::new(dep));
+      deps.push(dep);
     } else {
-      expr.left.visit_children_with(scanner);
+      c.insert(Continue::LEFT);
     }
+
     if !keep_right {
       let dep = ConstDependency::new(
         expr.right.span().real_lo(),
-        expr.right.span().hi().0,
+        expr.right.span().hi().0 - 1,
         "0".into(),
         None,
       );
-      scanner.presentational_dependencies.push(Box::new(dep));
+      deps.push(dep);
+    } else {
+      c.insert(Continue::RIGHT)
     }
-    Some(keep_right)
+    (Some(deps), c)
   } else {
-    expr.visit_children_with(scanner);
-    None
+    (None, Continue::LEFT_AND_RIGHT)
   }
   // else if expr.op == BinaryOp::NullishCoalescing {
   //   // TODO: support `??`

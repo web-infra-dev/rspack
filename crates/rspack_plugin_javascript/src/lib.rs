@@ -7,6 +7,7 @@
 pub mod ast;
 pub mod dependency;
 pub mod parser_and_generator;
+mod parser_plugin;
 mod plugin;
 pub mod runtime;
 pub mod utils;
