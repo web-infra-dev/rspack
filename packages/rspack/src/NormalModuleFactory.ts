@@ -11,13 +11,14 @@ type ResourceData = {
 // resource_query: (!info.query.is_empty()).then_some(info.query),
 // resource_fragment: (!info.fragment.is_empty()).then_some(info.fragment),
 type ResourceDataWithData = ResourceData & { data?: Record<string, any> };
+// type CreateData = Partial<NormalModuleCreateData & {settings: ModuleSettings}>;
 type ResolveData = {
 	context?: string;
 	request: string;
 	fileDependencies: string[];
 	missingDependencies: string[];
 	contextDependencies: string[];
-
+	// createData: CreateData;
 	// assertions: Record<string, any> | undefined;
 	// dependencies: ModuleDependency[];
 };
@@ -30,6 +31,7 @@ export class NormalModuleFactory {
 		>;
 		beforeResolve: AsyncSeriesBailHook<[ResolveData], boolean | void>;
 		afterResolve: AsyncSeriesBailHook<[ResolveData], boolean | void>;
+		// createModule: AsyncSeriesBailHook<[ResolveData["createData"], ResolveData], Module | void>;
 	};
 	constructor() {
 		this.hooks = {
