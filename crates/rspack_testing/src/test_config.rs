@@ -463,7 +463,7 @@ impl TestConfig {
             request.to_owned(),
             rspack_core::EntryOptions {
               name: Some(name.clone()),
-              runtime: None,
+              runtime: Some("runtime".to_string()),
               chunk_loading: None,
               async_chunks: Some(true),
               public_path: None,

@@ -1,12 +1,4 @@
 {
-  "entry": {
-    "main": {
-      "import": ["./index.js"]
-    },
-    "sub": {
-      "import": ["./sub.js"]
-    }
-  },
 	"optimization": {
 		"sideEffects": "true"
 	},

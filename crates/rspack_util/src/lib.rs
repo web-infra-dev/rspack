@@ -5,7 +5,6 @@ pub mod comparators;
 pub mod ext;
 pub mod identifier;
 pub mod number_hash;
-pub mod runtime;
 pub mod swc;
 
 pub async fn try_any<T, Fut, F, E>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool, E>
