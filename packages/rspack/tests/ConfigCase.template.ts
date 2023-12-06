@@ -31,7 +31,7 @@ const categories = fs.readdirSync(casesPath).map(cat => {
 		name: cat,
 		tests: fs
 			.readdirSync(path.join(casesPath, cat))
-			.filter(folder => !folder.startsWith("_"))
+			.filter(folder => !folder.startsWith("_") && !folder.startsWith("."))
 			.filter(folder =>
 				fs.lstatSync(path.join(casesPath, cat, folder)).isDirectory()
 			)
