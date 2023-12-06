@@ -10,6 +10,7 @@ import {
 	Stats,
 	HotModuleReplacementPlugin
 } from "@rspack/core";
+import { isValidTestCaseDir } from "./utils";
 
 export function describeCases(config: {
 	name: string;
@@ -22,11 +23,12 @@ export function describeCases(config: {
 	const categories = fs
 		.readdirSync(casesPath)
 		.filter(dir => fs.statSync(path.join(casesPath, dir)).isDirectory())
+		.filter(isValidTestCaseDir)
 		.map(cat => ({
 			name: cat,
 			tests: fs
 				.readdirSync(path.join(casesPath, cat))
-				.filter(folder => folder.indexOf("_") < 0)
+				.filter(isValidTestCaseDir)
 		}));
 	describe(config.name, () => {
 		categories.forEach(category => {
