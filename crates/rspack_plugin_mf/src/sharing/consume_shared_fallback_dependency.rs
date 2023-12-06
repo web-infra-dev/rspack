@@ -1,15 +1,15 @@
-use crate::{
+use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency,
 };
 
 #[derive(Debug, Clone)]
-pub struct RemoteToExternalDependency {
+pub struct ConsumeSharedFallbackDependency {
   id: DependencyId,
   request: String,
 }
 
-impl RemoteToExternalDependency {
+impl ConsumeSharedFallbackDependency {
   pub fn new(request: String) -> Self {
     Self {
       id: DependencyId::new(),
@@ -18,9 +18,9 @@ impl RemoteToExternalDependency {
   }
 }
 
-impl Dependency for RemoteToExternalDependency {
+impl Dependency for ConsumeSharedFallbackDependency {
   fn dependency_debug_name(&self) -> &'static str {
-    "RemoteToExternalDependency"
+    "ConsumeSharedFallbackDependency"
   }
 
   fn id(&self) -> &DependencyId {
@@ -28,7 +28,7 @@ impl Dependency for RemoteToExternalDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::RemoteToExternal
+    &DependencyType::ProvideModuleForShared
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -36,11 +36,11 @@ impl Dependency for RemoteToExternalDependency {
   }
 }
 
-impl ModuleDependency for RemoteToExternalDependency {
+impl ModuleDependency for ConsumeSharedFallbackDependency {
   fn request(&self) -> &str {
     &self.request
   }
 }
 
-impl AsContextDependency for RemoteToExternalDependency {}
-impl AsDependencyTemplate for RemoteToExternalDependency {}
+impl AsContextDependency for ConsumeSharedFallbackDependency {}
+impl AsDependencyTemplate for ConsumeSharedFallbackDependency {}

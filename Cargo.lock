@@ -2436,6 +2436,7 @@ dependencies = [
  "rspack_plugin_library",
  "rspack_plugin_limit_chunk_count",
  "rspack_plugin_merge_duplicate_chunks",
+ "rspack_plugin_mf",
  "rspack_plugin_progress",
  "rspack_plugin_real_content_hash",
  "rspack_plugin_remove_empty_chunks",
@@ -3045,6 +3046,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_mf"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "hashlink",
+ "itertools",
+ "once_cell",
+ "regex",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hash",
+ "rspack_identifier",
+ "rspack_loader_runner",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "rspack_plugin_progress"
 version = "0.1.0"
 dependencies = [
@@ -3211,6 +3232,7 @@ dependencies = [
 name = "rspack_plugin_worker"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "rspack_core",
  "rspack_plugin_runtime",
  "rspack_plugin_wasm",

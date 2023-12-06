@@ -4,18 +4,20 @@ use std::{fmt, path::Path, sync::Arc};
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use rspack_core::{
+  AdditionalChunkRuntimeRequirementsArgs, Compilation, CompilationParams, Context,
+  DependencyCategory, DependencyType, FactorizeArgs, ModuleExt, ModuleFactoryResult,
+  NormalModuleCreateData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
+  PluginFactorizeHookOutput, PluginNormalModuleFactoryCreateModuleHookOutput,
+  PluginThisCompilationHookOutput, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
+  RuntimeGlobals, ThisCompilationArgs,
+};
 use rspack_error::internal_error;
 use rustc_hash::FxHashMap;
 
-use super::consume_shared_module::ConsumeSharedModule;
-use super::consume_shared_runtime_module::ConsumeSharedRuntimeModule;
-use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, Compilation, Context, DependencyCategory, DependencyType,
-  FactorizeArgs, ModuleExt, ModuleFactoryResult, NormalModuleCreateData,
-  NormalModuleFactoryContext, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginContext, PluginFactorizeHookOutput, PluginNormalModuleFactoryCreateModuleHookOutput,
-  PluginThisCompilationHookOutput, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  RuntimeGlobals, ThisCompilationArgs,
+use super::{
+  consume_shared_module::ConsumeSharedModule,
+  consume_shared_runtime_module::ConsumeSharedRuntimeModule,
 };
 
 #[derive(Debug, Clone)]
@@ -276,7 +278,12 @@ impl Plugin for ConsumeSharedPlugin {
   async fn this_compilation(
     &self,
     args: ThisCompilationArgs<'_>,
+    params: &CompilationParams,
   ) -> PluginThisCompilationHookOutput {
+    args.this_compilation.set_dependency_factory(
+      DependencyType::ConsumeSharedFallback,
+      params.normal_module_factory.clone(),
+    );
     self.init_context(args.this_compilation);
     self.init_resolver(args.this_compilation);
     self.init_matched_consumes(args.this_compilation, self.get_resolver());
@@ -287,7 +294,6 @@ impl Plugin for ConsumeSharedPlugin {
     &self,
     _ctx: PluginContext,
     args: FactorizeArgs<'_>,
-    _job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeHookOutput {
     let dep = args.dependency;
     if matches!(

@@ -24,7 +24,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct NormalModuleFactory {
-  context: NormalModuleFactoryContext,
+  options: Arc<CompilerOptions>,
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
   cache: Arc<Cache>,
@@ -33,7 +33,7 @@ pub struct NormalModuleFactory {
 #[async_trait::async_trait]
 impl ModuleFactory for NormalModuleFactory {
   async fn create(
-    mut self,
+    &self,
     mut data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
     if let Ok(Some(before_resolve_data)) = self.before_resolve(&mut data).await {
@@ -53,13 +53,13 @@ static MATCH_RESOURCE_REGEX: Lazy<Regex> =
 
 impl NormalModuleFactory {
   pub fn new(
-    context: NormalModuleFactoryContext,
+    options: Arc<CompilerOptions>,
     loader_resolver_factory: Arc<ResolverFactory>,
     plugin_driver: SharedPluginDriver,
     cache: Arc<Cache>,
   ) -> Self {
     Self {
-      context,
+      options,
       loader_resolver_factory,
       plugin_driver,
       cache,
@@ -67,7 +67,7 @@ impl NormalModuleFactory {
   }
 
   async fn before_resolve(
-    &mut self,
+    &self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
     let dependency = data
@@ -94,7 +94,6 @@ impl NormalModuleFactory {
         format!("Failed to resolve {request_without_match_resource}"),
       )
       .boxed();
-      self.context.module_type = Some(*missing_module.module_type());
       return Ok(Some(
         ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
       ));
@@ -106,7 +105,7 @@ impl NormalModuleFactory {
   }
 
   async fn after_resolve(
-    &mut self,
+    &self,
     data: &ModuleFactoryCreateData,
     factory_result: &ModuleFactoryResult,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
@@ -136,7 +135,6 @@ impl NormalModuleFactory {
         format!("Failed to resolve {request_without_match_resource}"),
       )
       .boxed();
-      self.context.module_type = Some(*missing_module.module_type());
       return Ok(Some(
         ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
       ));
@@ -156,14 +154,14 @@ impl NormalModuleFactory {
   }
 
   pub async fn factorize_normal_module(
-    &mut self,
+    &self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
     let dependency = data
       .dependency
       .as_module_dependency()
       .expect("should be module dependency");
-    let importer = self.context.original_module_identifier.as_ref();
+    let importer = data.issuer_identifier.as_ref();
     let mut request_without_match_resource = dependency.request();
 
     let mut file_dependencies = Default::default();
@@ -299,7 +297,7 @@ impl NormalModuleFactory {
       let resolve_args = ResolveArgs {
         importer,
         context: if context_scheme != Scheme::None {
-          self.context.options.context.clone()
+          self.options.context.clone()
         } else {
           data.context.clone()
         },
@@ -348,7 +346,6 @@ impl NormalModuleFactory {
             Default::default(),
           )
           .boxed();
-          self.context.module_type = Some(*raw_module.module_type());
 
           return Ok(Some(
             ModuleFactoryResult::new(raw_module)
@@ -373,7 +370,7 @@ impl NormalModuleFactory {
             let new_args = ResolveArgs {
               importer,
               context: if context_scheme != Scheme::None {
-                self.context.options.context.clone()
+                self.options.context.clone()
               } else {
                 data.context.clone()
               },
@@ -419,7 +416,6 @@ impl NormalModuleFactory {
             runtime_error,
           )
           .boxed();
-          self.context.module_type = Some(*missing_module.module_type());
           return Ok(Some(
             ModuleFactoryResult::new(missing_module)
               .from_cache(from_cache_result)
@@ -438,6 +434,7 @@ impl NormalModuleFactory {
           &resource_data
         },
         data.dependency.category(),
+        data.issuer.as_deref(),
       )
       .await?;
 
@@ -482,7 +479,7 @@ impl NormalModuleFactory {
             let context = FuncUseCtx {
               resource: Some(resource_data.resource.clone()),
               real_resource: Some(user_request.clone()),
-              issuer: self.context.issuer.clone(),
+              issuer: data.issuer.clone(),
               resource_query: resource_data.resource_query.clone(),
             };
             let loaders = func_use(context).await?;
@@ -500,8 +497,8 @@ impl NormalModuleFactory {
         all_loaders.push(
           resolve_each(
             plugin_driver,
-            &self.context.options,
-            self.context.options.context.as_ref(),
+            &self.options,
+            self.options.context.as_ref(),
             &loader_resolver,
             &l.loader,
             l.options.as_deref(),
@@ -517,7 +514,7 @@ impl NormalModuleFactory {
         resolved_inline_loaders.push(
           resolve_each(
             plugin_driver,
-            &self.context.options,
+            &self.options,
             context,
             &loader_resolver,
             &l.loader,
@@ -531,8 +528,8 @@ impl NormalModuleFactory {
         resolved_normal_loaders.push(
           resolve_each(
             plugin_driver,
-            &self.context.options,
-            self.context.options.context.as_ref(),
+            &self.options,
+            self.options.context.as_ref(),
             &loader_resolver,
             &l.loader,
             l.options.as_deref(),
@@ -553,8 +550,8 @@ impl NormalModuleFactory {
         all_loaders.push(
           resolve_each(
             plugin_driver,
-            &self.context.options,
-            self.context.options.context.as_ref(),
+            &self.options,
+            self.options.context.as_ref(),
             &loader_resolver,
             &l.loader,
             l.options.as_deref(),
@@ -600,8 +597,7 @@ impl NormalModuleFactory {
 
     let file_dependency = resource_data.resource_path.clone();
 
-    let resolved_module_type =
-      self.calculate_module_type(&resolved_module_rules, self.context.module_type);
+    let resolved_module_type = self.calculate_module_type(&resolved_module_rules);
     let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) =
       self.calculate_parser_and_generator_options(&resolved_module_rules);
@@ -630,8 +626,6 @@ impl NormalModuleFactory {
         internal_error!(e)
       })?();
 
-    self.context.module_type = Some(resolved_module_type);
-
     let create_data = NormalModuleCreateData {
       dependency_type: data.dependency.dependency_type().clone(),
       resolve_data_request: dependency.request(),
@@ -657,7 +651,7 @@ impl NormalModuleFactory {
         resource_data,
         resolved_resolve_options,
         loaders,
-        self.context.options.clone(),
+        self.options.clone(),
         contains_inline,
       );
       Box::new(normal_module)
@@ -679,16 +673,17 @@ impl NormalModuleFactory {
     ))
   }
 
-  async fn calculate_module_rules(
-    &self,
+  async fn calculate_module_rules<'a>(
+    &'a self,
     resource_data: &ResourceData,
     dependency: &DependencyCategory,
-  ) -> Result<Vec<&ModuleRule>> {
+    issuer: Option<&'a str>,
+  ) -> Result<Vec<&'a ModuleRule>> {
     let mut rules = Vec::new();
     module_rules_matcher(
-      &self.context.options.module.rules,
+      &self.options.module.rules,
       resource_data,
-      self.context.issuer.as_deref(),
+      issuer,
       dependency,
       &mut rules,
     )
@@ -755,12 +750,8 @@ impl NormalModuleFactory {
     (resolved_parser, resolved_generator)
   }
 
-  fn calculate_module_type(
-    &self,
-    module_rules: &[&ModuleRule],
-    default_module_type: Option<ModuleType>,
-  ) -> ModuleType {
-    let mut resolved_module_type = default_module_type.unwrap_or(ModuleType::Js);
+  fn calculate_module_type(&self, module_rules: &[&ModuleRule]) -> ModuleType {
+    let mut resolved_module_type = ModuleType::Js;
 
     module_rules.iter().for_each(|module_rule| {
       if let Some(module_type) = module_rule.r#type {
@@ -772,7 +763,7 @@ impl NormalModuleFactory {
   }
 
   async fn factorize(
-    &mut self,
+    &self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
     let dependency = data
@@ -781,18 +772,14 @@ impl NormalModuleFactory {
       .expect("should be module dependency");
     let result = self
       .plugin_driver
-      .factorize(
-        FactorizeArgs {
-          context: &data.context,
-          dependency,
-          plugin_driver: &self.plugin_driver,
-        },
-        &mut self.context,
-      )
+      .factorize(FactorizeArgs {
+        context: &data.context,
+        dependency,
+        plugin_driver: &self.plugin_driver,
+      })
       .await?;
 
     if let Some(result) = result {
-      self.context.module_type = Some(*result.module.module_type());
       return Ok(result.with_empty_diagnostic());
     }
 
@@ -804,16 +791,6 @@ impl NormalModuleFactory {
       "Failed to factorize module, neither hook nor factorize method returns"
     ))
   }
-}
-
-#[derive(Debug, Clone)]
-pub struct NormalModuleFactoryContext {
-  pub original_module_identifier: Option<ModuleIdentifier>,
-  pub module_type: Option<ModuleType>,
-  pub side_effects: Option<bool>,
-  pub options: Arc<CompilerOptions>,
-  pub lazy_visit_modules: std::collections::HashSet<String>,
-  pub issuer: Option<Box<str>>,
 }
 
 /// Using `u32` instead of `usize` to reduce memory usage,

@@ -24,6 +24,7 @@ export enum BuiltinPluginName {
 	SwcJsMinimizerRspackPlugin = "SwcJsMinimizerRspackPlugin",
 	SwcCssMinimizerRspackPlugin = "SwcCssMinimizerRspackPlugin",
 	LimitChunkCountPlugin = "LimitChunkCountPlugin",
+	WorkerPlugin = "WorkerPlugin",
 	WebWorkerTemplatePlugin = "WebWorkerTemplatePlugin",
 	MergeDuplicateChunksPlugin = "MergeDuplicateChunksPlugin",
 	SplitChunksPlugin = "SplitChunksPlugin",

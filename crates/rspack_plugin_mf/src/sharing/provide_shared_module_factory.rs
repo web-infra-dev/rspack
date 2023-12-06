@@ -1,19 +1,18 @@
-// TODO: move to rspack_plugin_mf
-
 use async_trait::async_trait;
+use rspack_core::{ModuleDependency, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult};
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
 use super::{
   provide_shared_dependency::ProvideSharedDependency, provide_shared_module::ProvideSharedModule,
 };
-use crate::{ModuleDependency, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult};
 
+#[derive(Debug)]
 pub struct ProvideSharedModuleFactory;
 
 #[async_trait]
 impl ModuleFactory for ProvideSharedModuleFactory {
   async fn create(
-    mut self,
+    &self,
     data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
     let dep = data

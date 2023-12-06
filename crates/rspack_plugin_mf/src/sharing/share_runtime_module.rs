@@ -1,14 +1,15 @@
 use hashlink::{LinkedHashMap, LinkedHashSet};
 use itertools::Itertools;
+use rspack_core::{
+  impl_runtime_module,
+  rspack_sources::{BoxSource, RawSource, SourceExt},
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, SourceType,
+};
 use rspack_identifier::Identifier;
-use rspack_sources::{BoxSource, RawSource, SourceExt};
 use rustc_hash::FxHashMap;
 
 use super::provide_shared_plugin::ProvideVersion;
-use crate::{
-  impl_runtime_module, mf::utils::json_stringify, ChunkUkey, Compilation, RuntimeGlobals,
-  RuntimeModule, SourceType,
-};
+use crate::utils::json_stringify;
 
 #[derive(Debug, Eq)]
 pub struct ShareRuntimeModule {

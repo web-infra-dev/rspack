@@ -122,17 +122,6 @@ where
 
       self.compilation.lazy_visit_modules = changed_files.clone();
 
-      // Fake this compilation as *currently* rebuilding does not create a new compilation
-      self
-        .plugin_driver
-        .this_compilation(&mut self.compilation)
-        .await?;
-
-      self
-        .plugin_driver
-        .compilation(&mut self.compilation)
-        .await?;
-
       let setup_make_params = if is_incremental_rebuild_make {
         MakeParam::ModifiedFiles(modified_files)
       } else {

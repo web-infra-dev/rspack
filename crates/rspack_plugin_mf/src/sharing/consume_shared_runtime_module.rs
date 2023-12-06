@@ -1,12 +1,14 @@
+use rspack_core::{
+  impl_runtime_module,
+  rspack_sources::{BoxSource, RawSource, SourceExt},
+  Chunk, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage, SourceType,
+};
 use rspack_identifier::Identifier;
-use rspack_sources::{BoxSource, RawSource, SourceExt};
 use rustc_hash::FxHashMap;
 
 use super::consume_shared_plugin::ConsumeVersion;
-use crate::{
-  impl_runtime_module, mf::utils::json_stringify, Chunk, ChunkUkey, Compilation, ModuleIdentifier,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleStage, SourceType,
-};
+use crate::utils::json_stringify;
 
 #[derive(Debug, Eq)]
 pub struct ConsumeSharedRuntimeModule {
@@ -104,25 +106,16 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     }
     let module_id_to_consume_data_mapping = module_id_to_consume_data_mapping
       .into_iter()
-      .map(|(k, v)| {
-        format!(
-          "{}: {}",
-          serde_json::to_string(&k)
-            .expect("module_id_to_source_mapping key should able to json to_string"),
-          v
-        )
-      })
+      .map(|(k, v)| format!("{}: {}", json_stringify(&k), v))
       .collect::<Vec<_>>()
       .join(", ");
     let mut source = format!(
       r#"
 __webpack_require__.MF.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {{ {module_to_consume_data_mapping} }}, initialConsumeModuleIds: {initial_consumes} }};
 "#,
-      chunk_mapping = serde_json::to_string(&chunk_to_module_mapping)
-        .expect("chunk_to_module_mapping should able to json to_string"),
+      chunk_mapping = json_stringify(&chunk_to_module_mapping),
       module_to_consume_data_mapping = module_id_to_consume_data_mapping,
-      initial_consumes = serde_json::to_string(&initial_consumes)
-        .expect("initial_consumes should able to json to_string"),
+      initial_consumes = json_stringify(&initial_consumes),
     );
     if compilation
       .chunk_graph

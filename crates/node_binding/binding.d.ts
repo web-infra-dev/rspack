@@ -144,6 +144,7 @@ export const enum BuiltinPluginName {
   ModuleChunkFormatPlugin = 'ModuleChunkFormatPlugin',
   HotModuleReplacementPlugin = 'HotModuleReplacementPlugin',
   LimitChunkCountPlugin = 'LimitChunkCountPlugin',
+  WorkerPlugin = 'WorkerPlugin',
   WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
   MergeDuplicateChunksPlugin = 'MergeDuplicateChunksPlugin',
   SplitChunksPlugin = 'SplitChunksPlugin',

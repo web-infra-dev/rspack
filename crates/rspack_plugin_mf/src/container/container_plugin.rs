@@ -1,10 +1,16 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
+use rspack_core::{
+  Compilation, CompilationArgs, CompilationParams, Dependency, DependencyType, EntryOptions,
+  EntryRuntime, Filename, LibraryOptions, MakeParam, Plugin, PluginCompilationHookOutput,
+  PluginContext, PluginMakeHookOutput,
+};
 use serde::Serialize;
 
-use super::container_entry_dependency::ContainerEntryDependency;
-use crate::{
-  Compilation, Dependency, EntryOptions, EntryRuntime, Filename, LibraryOptions, MakeParam, Plugin,
-  PluginContext, PluginMakeHookOutput,
+use super::{
+  container_entry_dependency::ContainerEntryDependency,
+  container_entry_module_factory::ContainerEntryModuleFactory,
 };
 
 #[derive(Debug)]
@@ -38,6 +44,22 @@ impl ContainerPlugin {
 impl Plugin for ContainerPlugin {
   fn name(&self) -> &'static str {
     "rspack.ContainerPlugin"
+  }
+
+  async fn compilation(
+    &self,
+    args: CompilationArgs<'_>,
+    params: &CompilationParams,
+  ) -> PluginCompilationHookOutput {
+    args.compilation.set_dependency_factory(
+      DependencyType::ContainerEntry,
+      Arc::new(ContainerEntryModuleFactory),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::ContainerExposed,
+      params.normal_module_factory.clone(),
+    );
+    Ok(())
   }
 
   async fn make(

@@ -1,8 +1,9 @@
-use super::provide_shared_plugin::ProvideVersion;
-use crate::{
+use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency,
 };
+
+use super::provide_shared_plugin::ProvideVersion;
 
 #[derive(Debug, Clone)]
 pub struct ProvideSharedDependency {

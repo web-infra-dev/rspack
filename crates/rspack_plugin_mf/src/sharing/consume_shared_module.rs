@@ -1,22 +1,21 @@
 use std::{borrow::Cow, hash::Hash};
 
 use async_trait::async_trait;
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_hash::RspackHash;
-use rspack_identifier::{Identifiable, Identifier};
-use rspack_sources::Source;
-
-use super::{
-  consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
-  consume_shared_plugin::ConsumeOptions,
-  consume_shared_runtime_module::CodeGenerationDataConsumeShared,
-};
-use crate::{
-  async_module_factory, sync_module_factory, AsyncDependenciesBlock,
+use rspack_core::{
+  async_module_factory, rspack_sources::Source, sync_module_factory, AsyncDependenciesBlock,
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildResult,
   CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
   Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
+use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_hash::RspackHash;
+use rspack_identifier::{Identifiable, Identifier};
+
+use super::{
+  consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
+  consume_shared_runtime_module::CodeGenerationDataConsumeShared,
+};
+use crate::{utils::json_stringify, ConsumeOptions};
 
 #[derive(Debug)]
 pub struct ConsumeSharedModule {
@@ -175,10 +174,8 @@ impl Module for ConsumeSharedModule {
       .insert(RuntimeGlobals::SHARE_SCOPE_MAP);
     let mut function = String::from("loaders.load");
     let mut args = vec![
-      serde_json::to_string(&self.options.share_scope)
-        .expect("share_scope should able to json to_string"),
-      serde_json::to_string(&self.options.share_key)
-        .expect("share_key should able to json to_string"),
+      json_stringify(&self.options.share_scope),
+      json_stringify(&self.options.share_key),
     ];
     if let Some(version) = &self.options.required_version {
       if self.options.strict_version {
@@ -187,8 +184,7 @@ impl Module for ConsumeSharedModule {
       if self.options.singleton {
         function += "Singleton";
       }
-      let version = serde_json::to_string(&version.to_string())
-        .expect("ConsumeVersion should able to json to_string");
+      let version = json_stringify(&version.to_string());
       args.push(format!("loaders.parseRange({})", version));
       function += "VersionCheck";
     } else if self.options.singleton {

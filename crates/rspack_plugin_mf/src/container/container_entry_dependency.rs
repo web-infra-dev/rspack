@@ -1,8 +1,9 @@
-use super::container_plugin::ExposeOptions;
-use crate::{
+use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency,
 };
+
+use crate::ExposeOptions;
 
 #[derive(Debug, Clone)]
 pub struct ContainerEntryDependency {

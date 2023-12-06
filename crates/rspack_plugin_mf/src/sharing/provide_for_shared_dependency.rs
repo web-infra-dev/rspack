@@ -1,15 +1,15 @@
-use crate::{
+use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency,
 };
 
 #[derive(Debug, Clone)]
-pub struct ConsumeSharedFallbackDependency {
+pub struct ProvideForSharedDependency {
   id: DependencyId,
   request: String,
 }
 
-impl ConsumeSharedFallbackDependency {
+impl ProvideForSharedDependency {
   pub fn new(request: String) -> Self {
     Self {
       id: DependencyId::new(),
@@ -18,9 +18,9 @@ impl ConsumeSharedFallbackDependency {
   }
 }
 
-impl Dependency for ConsumeSharedFallbackDependency {
+impl Dependency for ProvideForSharedDependency {
   fn dependency_debug_name(&self) -> &'static str {
-    "ConsumeSharedFallbackDependency"
+    "ProvideForSharedDependency"
   }
 
   fn id(&self) -> &DependencyId {
@@ -36,11 +36,11 @@ impl Dependency for ConsumeSharedFallbackDependency {
   }
 }
 
-impl ModuleDependency for ConsumeSharedFallbackDependency {
+impl ModuleDependency for ProvideForSharedDependency {
   fn request(&self) -> &str {
     &self.request
   }
 }
 
-impl AsContextDependency for ConsumeSharedFallbackDependency {}
-impl AsDependencyTemplate for ConsumeSharedFallbackDependency {}
+impl AsContextDependency for ProvideForSharedDependency {}
+impl AsDependencyTemplate for ProvideForSharedDependency {}

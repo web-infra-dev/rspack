@@ -1,15 +1,15 @@
-use crate::{
+use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency,
 };
 
 #[derive(Debug, Clone)]
-pub struct ProvideForSharedDependency {
+pub struct RemoteToExternalDependency {
   id: DependencyId,
   request: String,
 }
 
-impl ProvideForSharedDependency {
+impl RemoteToExternalDependency {
   pub fn new(request: String) -> Self {
     Self {
       id: DependencyId::new(),
@@ -18,9 +18,9 @@ impl ProvideForSharedDependency {
   }
 }
 
-impl Dependency for ProvideForSharedDependency {
+impl Dependency for RemoteToExternalDependency {
   fn dependency_debug_name(&self) -> &'static str {
-    "ProvideForSharedDependency"
+    "RemoteToExternalDependency"
   }
 
   fn id(&self) -> &DependencyId {
@@ -28,7 +28,7 @@ impl Dependency for ProvideForSharedDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::ProvideModuleForShared
+    &DependencyType::RemoteToExternal
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -36,11 +36,11 @@ impl Dependency for ProvideForSharedDependency {
   }
 }
 
-impl ModuleDependency for ProvideForSharedDependency {
+impl ModuleDependency for RemoteToExternalDependency {
   fn request(&self) -> &str {
     &self.request
   }
 }
 
-impl AsContextDependency for ProvideForSharedDependency {}
-impl AsDependencyTemplate for ProvideForSharedDependency {}
+impl AsContextDependency for RemoteToExternalDependency {}
+impl AsDependencyTemplate for RemoteToExternalDependency {}
