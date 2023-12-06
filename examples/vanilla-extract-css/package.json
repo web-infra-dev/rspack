@@ -14,8 +14,10 @@
   "main": "src/index.ts",
   "author": "SEEK",
   "scripts": {
-    "start": "webpack serve",
-    "build": "webpack"
+    "webpack:start": "webpack serve",
+    "webpack:build": "webpack",
+    "start": "rspack serve",
+    "build": "rspack"
   },
   "private": true,
   "dependencies": {
@@ -33,6 +35,8 @@
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "tailwindcss": "3.3.1",
+    "@rspack/core": "workspace:*",
+    "@rspack/cli": "workspace:*",
     "webpack": "5.76.0",
     "webpack-cli": "4.10.0",
     "webpack-dev-server": "4.13.1"
