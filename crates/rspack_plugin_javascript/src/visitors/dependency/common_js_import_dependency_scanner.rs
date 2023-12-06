@@ -10,14 +10,14 @@ use super::context_helper::scanner_context_module;
 use super::{expr_matcher, is_unresolved_member_object_ident, is_unresolved_require};
 use crate::dependency::{CommonJsRequireContextDependency, RequireHeaderDependency};
 use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
-use crate::utils::{evaluate_expression, BasicEvaluatedExpression};
+use crate::utils::{evaluate_expression, expression_logic_operator, BasicEvaluatedExpression};
 
 pub struct CommonJsImportDependencyScanner<'a> {
-  dependencies: &'a mut Vec<BoxDependency>,
-  presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
-  unresolved_ctxt: SyntaxContext,
-  in_try: bool,
-  in_if: bool,
+  pub(crate) dependencies: &'a mut Vec<BoxDependency>,
+  pub(crate) presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
+  pub(crate) unresolved_ctxt: SyntaxContext,
+  pub(crate) in_try: bool,
+  pub(crate) in_if: bool,
 }
 
 impl<'a> CommonJsImportDependencyScanner<'a> {
@@ -222,6 +222,9 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
     let value = if self.in_if { "true" } else { "undefined" };
     self.replace_require_resolve(&bin_expr.left, value);
     self.replace_require_resolve(&bin_expr.right, value);
-    bin_expr.visit_children_with(self);
+
+    if let Some(true) = expression_logic_operator(self, bin_expr) {
+      bin_expr.right.visit_children_with(self)
+    }
   }
 }

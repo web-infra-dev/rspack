@@ -1,4 +1,5 @@
 mod basic_evaluated_expression;
+mod r#const;
 mod get_prop_from_obj;
 pub mod mangle_exports;
 
@@ -13,6 +14,7 @@ use swc_core::ecma::parser::{EsConfig, TsConfig};
 
 pub use self::basic_evaluated_expression::{evaluate_expression, BasicEvaluatedExpression};
 pub use self::get_prop_from_obj::*;
+pub use self::r#const::*;
 
 fn syntax_by_ext(
   filename: &Path,
