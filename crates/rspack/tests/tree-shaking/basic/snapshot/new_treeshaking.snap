@@ -3,42 +3,20 @@ source: crates/rspack_testing/src/run_fixture.rs
 ---
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./lib.js");
-
-_lib__WEBPACK_IMPORTED_MODULE_0__["default"];
-}),
-"./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./answer.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  answer: function() { return answer; }
 });
-var __WEBPACK_DEFAULT_EXPORT__ = /*#__PURE__*/ _defineComponent({
-    __name: "App",
-    props: {
-        foo: {
-            type: String,
-            required: true
-        }
-    },
-    setup (__props, { expose: __expose }) {
-        __expose();
-        const props = __props;
-        const count = ref < number > 0;
-        const __returned__ = {
-            props,
-            count
-        };
-        Object.defineProperty(__returned__, "__isScriptSetup", {
-            enumerable: false,
-            value: true
-        });
-        return __returned__;
-    }
-});
+ const answer = 103330;
+}),
+"./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./lib */"./answer.js");
+
+_lib__WEBPACK_IMPORTED_MODULE_0__.answer;
 }),
 
 },function(__webpack_require__) {

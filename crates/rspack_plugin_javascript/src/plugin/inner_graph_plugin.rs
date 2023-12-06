@@ -8,8 +8,7 @@ use swc_core::{
     ast::{
       ArrowExpr, CallExpr, Callee, Class, ClassDecl, ClassExpr, ClassMember, DefaultDecl,
       ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr, FnDecl, FnExpr, Function, Ident, Key,
-      MemberExpr, MethodProp, NamedExport, OptChainExpr, Pat, Program, Prop, PropName,
-      VarDeclarator,
+      MemberExpr, NamedExport, OptChainExpr, Pat, Program, Prop, PropName, VarDeclarator,
     },
     atoms::JsWord,
     visit::{noop_visit_type, Visit, VisitWith},
