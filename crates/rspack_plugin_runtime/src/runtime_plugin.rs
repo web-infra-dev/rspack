@@ -6,7 +6,7 @@ use rspack_core::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ChunkLoading,
   JsChunkHashArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
   PluginAdditionalModuleRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput, PublicPath,
-  RuntimeGlobals, RuntimeModuleExt, SourceType,
+  RuntimeGlobals, RuntimeModuleExt, SourceType, FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
 };
 
 use crate::runtime_module::{
@@ -236,6 +236,22 @@ impl Plugin for RuntimePlugin {
       runtime_requirements.insert(RuntimeGlobals::GLOBAL);
     }
 
+    if runtime_requirements.contains(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME) {
+      let chunk_filename = compilation.options.output.chunk_filename.template();
+      if FULL_HASH_PLACEHOLDER.is_match(chunk_filename) || HASH_PLACEHOLDER.is_match(chunk_filename)
+      {
+        runtime_requirements.insert(RuntimeGlobals::GET_FULL_HASH);
+      }
+    }
+
+    if runtime_requirements.contains(RuntimeGlobals::GET_CHUNK_CSS_FILENAME) {
+      let chunk_filename = compilation.options.output.css_chunk_filename.template();
+      if FULL_HASH_PLACEHOLDER.is_match(chunk_filename) || HASH_PLACEHOLDER.is_match(chunk_filename)
+      {
+        runtime_requirements.insert(RuntimeGlobals::GET_FULL_HASH);
+      }
+    }
+
     let library_type = {
       let chunk = compilation
         .chunk_by_ukey
@@ -276,7 +292,7 @@ impl Plugin for RuntimePlugin {
         RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME => compilation.add_runtime_module(
           chunk,
           GetChunkFilenameRuntimeModule::new(
-            "js",
+            "javascript",
             SourceType::JavaScript,
             RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
             false,
