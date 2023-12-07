@@ -17,19 +17,6 @@ use crate::{
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 struct OptionalRuntimeSpec(pub Vec<Arc<str>>);
 
-// impl std::hash::Hash for OptionalRuntimeSpec {
-//   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-//     match self.0 {
-//       Some(ref spec) => {
-//         for item in spec {
-//           dbg!(&item);
-//           item.hash(state);
-//         }
-//       }
-//       None => todo!(),
-//     }
-//   }
-// }
 impl From<Option<RuntimeSpec>> for OptionalRuntimeSpec {
   fn from(value: Option<RuntimeSpec>) -> Self {
     let mut vec = value.unwrap_or_default().into_iter().collect::<Vec<_>>();
@@ -483,7 +470,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .expect_get(&item.chunk_group);
 
     let runtime = chunk_group.info.runtime.clone();
-    // dbg!(&item, &runtime);
     let modules = self.get_block_modules(item.block.into(), Some(&runtime));
     for module in modules {
       self.queue.push(QueueAction::AddAndEnterEntryModule(
@@ -514,7 +500,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .expect_get(&item.chunk_group);
     let runtime = item_chunk_group.info.runtime.clone();
     let modules = self.get_block_modules(item.block, Some(&runtime));
-    // dbg!(&item.block, &runtime, &modules);
     for module in modules.into_iter().rev() {
       if self
         .compilation
@@ -813,7 +798,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .expect("should have outgoing connections")
           .filter_map(|con: &ModuleGraphConnection| {
             let active_state = con.get_active_state(&self.compilation.module_graph, runtime);
-            // dbg!(&con, &active_state);
             match active_state {
               crate::ConnectionState::Bool(false) => None,
               _ => Some(con.dependency_id),
@@ -831,13 +815,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(dep_id))
           .collect()
       };
-    // dbg!(module, &runtime);
     for dep in dependencies {
-      // dbg!(self
-      //   .compilation
-      //   .module_graph
-      //   .get_module(dep.id())
-      // .map(|item| item.identifier()));
       if dep.as_module_dependency().is_none() && dep.as_context_dependency().is_none() {
         continue;
       }
