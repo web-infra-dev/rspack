@@ -356,7 +356,6 @@ impl ExportsInfoId {
     match name {
       UsedName::Str(name) => {
         let info = self.get_read_only_export_info(&name, mg);
-        dbg!(&info, &name);
         info.get_used_name(&name, runtime).map(UsedName::Str)
       }
       UsedName::Vec(names) => {

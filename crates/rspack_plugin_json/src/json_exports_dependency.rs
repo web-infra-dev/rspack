@@ -1,8 +1,8 @@
 use json::JsonValue;
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, ConnectionState, Dependency, DependencyId,
-  DependencyTemplate, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
-  ModuleIdentifier, TemplateContext, TemplateReplaceSource, UsageState, UsedByExports, UsedName,
+  AsContextDependency, AsModuleDependency, Dependency, DependencyId, DependencyTemplate,
+  ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, TemplateContext,
+  TemplateReplaceSource,
 };
 #[derive(Debug, Clone)]
 pub struct JsonExportsDependency {
@@ -42,14 +42,13 @@ impl AsContextDependency for JsonExportsDependency {}
 impl DependencyTemplate for JsonExportsDependency {
   fn apply(
     &self,
-    source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
+    _source: &mut TemplateReplaceSource,
+    _code_generatable_context: &mut TemplateContext,
   ) {
   }
 }
 
 fn get_exports_from_data(data: &JsonValue) -> Option<ExportsOfExportsSpec> {
-  let data = data;
   let ret = match data {
     JsonValue::Null
     | JsonValue::Short(_)

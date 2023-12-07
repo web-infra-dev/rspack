@@ -595,6 +595,7 @@ mod test {
       harmony_named_exports: Default::default(),
       all_star_exports: Default::default(),
       need_create_require: false,
+      json_data: None,
     };
     let mut import_map = Default::default();
     let mut deps = vec![];

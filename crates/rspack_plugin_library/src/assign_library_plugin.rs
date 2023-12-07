@@ -4,8 +4,8 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::tree_shaking::webpack_ext::ExportInfoExt;
 use rspack_core::{
-  debug_all_exports_info, debug_exports_info, property_access, ChunkUkey, EntryData, LibraryExport,
-  LibraryName, LibraryNonUmdObject, UsageState,
+  debug_all_exports_info, property_access, ChunkUkey, EntryData, LibraryExport, LibraryName,
+  LibraryNonUmdObject, UsageState,
 };
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
@@ -234,7 +234,6 @@ impl Plugin for AssignLibraryPlugin {
       }
     }
 
-    debug_all_exports_info!(&compilation.module_graph);
     Ok(())
   }
 
