@@ -111,11 +111,6 @@ const describeCases = config => {
 										newTreeshaking: true
 									}
 								}
-
-								if (options?.experiments?.rspackFuture?.newTreeshaking) {
-									options.builtins = options.builtins || {}
-									options.builtins.treeShaking = false;
-								}
 								// if (options.optimization.minimizer === undefined) {
 								// 	options.optimization.minimizer = [
 								// 		new (require("terser-webpack-plugin"))({
