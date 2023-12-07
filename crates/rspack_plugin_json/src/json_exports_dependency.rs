@@ -99,30 +99,3 @@ fn get_exports_from_data(data: &JsonValue) -> Option<ExportsOfExportsSpec> {
   };
   Some(ret)
 }
-
-// const getExportsFromData = data => {
-// 	if (data && typeof data === "object") {
-// 		if (Array.isArray(data)) {
-// 			return data.length < 100
-// 				? data.map((item, idx) => {
-// 						return {
-// 							name: `${idx}`,
-// 							canMangle: true,
-// 							exports: getExportsFromData(item)
-// 						};
-// 				  })
-// 				: undefined;
-// 		} else {
-// 			const exports = [];
-// 			for (const key of Object.keys(data)) {
-// 				exports.push({
-// 					name: key,
-// 					canMangle: true,
-// 					exports: getExportsFromData(data[key])
-// 				});
-// 			}
-// 			return exports;
-// 		}
-// 	}
-// 	return undefined;
-// };

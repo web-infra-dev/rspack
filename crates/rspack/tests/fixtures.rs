@@ -48,8 +48,7 @@ fn samples(fixture_path: PathBuf) {
 fn tree_shaking(fixture_path: PathBuf) {
   // For each test case
   // First test is old version tree shaking snapshot test
-  // TODO: recover
-  // test_fixture(&fixture_path, Box::new(|_, _| {}), None);
+  test_fixture(&fixture_path, Box::new(|_, _| {}), None);
   // second test is webpack based tree shaking
   IS_NEW_TREESHAKING.store(true, Ordering::SeqCst);
   test_fixture(
@@ -76,15 +75,6 @@ fn tree_shaking(fixture_path: PathBuf) {
         }
         plugins.push(Box::<FlagDependencyExportsPlugin>::default());
         plugins.push(Box::<FlagDependencyUsagePlugin>::default());
-        if options.optimization.mangle_exports.is_enable() {
-          plugins.push(
-            MangleExportsPlugin::new(!matches!(
-              options.optimization.mangle_exports,
-              MangleExportsOption::Size
-            ))
-            .boxed(),
-          );
-        }
       },
     ),
     Some("new_treeshaking".to_string()),
