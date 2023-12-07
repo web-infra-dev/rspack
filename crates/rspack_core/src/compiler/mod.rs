@@ -20,7 +20,6 @@ use swc_core::ecma::atoms::JsWord;
 use tracing::instrument;
 
 use crate::cache::Cache;
-use crate::debug_info::DEBUG_INFO;
 use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
 use crate::tree_shaking::visitor::SymbolRef;
 use crate::{
@@ -55,7 +54,7 @@ where
   pub fn new(options: CompilerOptions, plugins: Vec<BoxPlugin>, output_filesystem: T) -> Self {
     #[cfg(debug_assertions)]
     {
-      DEBUG_INFO
+      crate::debug_info::DEBUG_INFO
         .lock()
         .unwrap()
         .with_context(options.context.to_string());
