@@ -1,5 +1,6 @@
 #![feature(let_chains)]
 use json::{
+  object::Object,
   Error::{
     ExceededDepthLimit, FailedUtf8Parsing, UnexpectedCharacter, UnexpectedEndOfJson, WrongType,
   },
@@ -232,28 +233,34 @@ fn create_object_for_exports_info(
     | JsonValue::Number(_)
     | JsonValue::Boolean(_) => unreachable!(),
     JsonValue::Object(mut obj) => {
-      let mut unused_key = vec![];
+      let mut used_pair = vec![];
       for (key, value) in obj.iter_mut() {
         let export_info = exports_info.id.get_read_only_export_info(&key.into(), mg);
         let used = export_info.get_used(runtime);
         if used == UsageState::Unused {
-          unused_key.push(key.to_string());
           continue;
         }
-        if used == UsageState::OnlyPropertiesUsed
+        let new_value = if used == UsageState::OnlyPropertiesUsed
           && let Some(exports_info_id) = export_info.exports_info
         {
           let exports_info = mg.get_exports_info_by_id(&exports_info_id);
           // avoid clone
           let temp = std::mem::replace(value, JsonValue::Null);
           let ret = create_object_for_exports_info(temp, exports_info, runtime, mg);
-          *value = ret;
-        }
+          ret
+        } else {
+          std::mem::replace(value, JsonValue::Null)
+        };
+        let used_name = export_info
+          .get_used_name(&key.into(), runtime)
+          .expect("should have used name");
+        used_pair.push((used_name, new_value));
       }
-      for k in unused_key {
-        obj.remove(&k);
+      let mut new_obj = Object::new();
+      for (k, v) in used_pair {
+        new_obj.insert(&k, v);
       }
-      JsonValue::Object(obj)
+      JsonValue::Object(new_obj)
     }
     JsonValue::Array(arr) => JsonValue::Array(
       arr

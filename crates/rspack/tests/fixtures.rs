@@ -67,6 +67,15 @@ fn tree_shaking(fixture_path: PathBuf) {
         }
         plugins.push(Box::<FlagDependencyExportsPlugin>::default());
         plugins.push(Box::<FlagDependencyUsagePlugin>::default());
+        if options.optimization.mangle_exports.is_enable() {
+          plugins.push(
+            MangleExportsPlugin::new(!matches!(
+              options.optimization.mangle_exports,
+              MangleExportsOption::Size
+            ))
+            .boxed(),
+          );
+        }
       },
     ),
     Some("new_treeshaking".to_string()),

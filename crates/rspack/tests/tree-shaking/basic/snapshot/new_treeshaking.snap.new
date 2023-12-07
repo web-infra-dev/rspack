@@ -1,5 +1,6 @@
 ---
 source: crates/rspack_testing/src/run_fixture.rs
+assertion_line: 146
 ---
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
@@ -8,11 +9,11 @@ source: crates/rspack_testing/src/run_fixture.rs
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _a_json__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a.json */"./a.json");
 
-_a_json__WEBPACK_IMPORTED_MODULE_0__["default"];
+_a_json__WEBPACK_IMPORTED_MODULE_0__["13"];
 }),
 "./a.json": (function (module, exports, __webpack_require__) {
 "use strict";
-module.exports = {}}),
+module.exports = [12]}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
