@@ -1,4 +1,4 @@
-use std::io::{IsTerminal, Write};
+use std::io::Write;
 
 use anyhow::Context;
 use miette::{GraphicalReportHandler, GraphicalTheme, IntoDiagnostic};

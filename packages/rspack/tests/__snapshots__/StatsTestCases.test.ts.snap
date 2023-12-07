@@ -1075,6 +1075,17 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
       "formatted": "  × Error[javascript]: JavaScript parsing error
    ╭─[tests/statsCases/identifier-let-strict-mode/index.js:1:1]
  1 │ let let = let;
+   ·           ─┬─
+   ·            ╰── \`let\` cannot be used as an identifier in strict mode
+   ╰────
+",
+      "message": "Error[javascript]: JavaScript parsing error
+\`let\` cannot be used as an identifier in strict mode",
+    },
+    {
+      "formatted": "  × Error[javascript]: JavaScript parsing error
+   ╭─[tests/statsCases/identifier-let-strict-mode/index.js:1:1]
+ 1 │ let let = let;
    ·     ─┬─
    ·      ╰── \`let\` cannot be used as an identifier in strict mode
    ╰────
@@ -1083,7 +1094,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
 \`let\` cannot be used as an identifier in strict mode",
     },
   ],
-  "errorsCount": 1,
+  "errorsCount": 2,
   "logging": {},
   "warnings": [],
   "warningsCount": 0,
@@ -1094,12 +1105,20 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
 "  × Error[javascript]: JavaScript parsing error
    ╭─[tests/statsCases/identifier-let-strict-mode/index.js:1:1]
  1 │ let let = let;
+   ·           ─┬─
+   ·            ╰── \`let\` cannot be used as an identifier in strict mode
+   ╰────
+
+
+  × Error[javascript]: JavaScript parsing error
+   ╭─[tests/statsCases/identifier-let-strict-mode/index.js:1:1]
+ 1 │ let let = let;
    ·     ─┬─
    ·      ╰── \`let\` cannot be used as an identifier in strict mode
    ╰────
 
 
-Rspack compiled with 1 error"
+Rspack compiled with 2 errors"
 `;
 
 exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `

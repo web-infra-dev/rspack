@@ -8,11 +8,13 @@ use rspack_core::{
   ModuleType,
 };
 use rspack_error::{internal_error, BatchErrors, DiagnosticKind, Result, TraceableError};
-use rspack_plugin_javascript::ast::parse_js;
-use rspack_plugin_javascript::ast::{print, SourceMapConfig};
+use rspack_plugin_javascript::{ast::parse_js, utils::DedupEcmaErrors};
 use rspack_plugin_javascript::{
-  utils::ecma_parse_error_to_rspack_error, ExtractedCommentsInfo, IsModule, SourceMapsConfig,
-  TransformOutput,
+  ast::{print, SourceMapConfig},
+  utils::ecma_parse_error_deduped_to_rspack_error,
+};
+use rspack_plugin_javascript::{
+  ExtractedCommentsInfo, IsModule, SourceMapsConfig, TransformOutput,
 };
 use swc_config::config_types::BoolOr;
 use swc_core::{
@@ -178,8 +180,9 @@ pub fn minify(
           .map_err(|errs| {
             BatchErrors(
               errs
+                .dedup_ecma_errors()
                 .into_iter()
-                .map(|err| ecma_parse_error_to_rspack_error(err, &fm, &ModuleType::Js))
+                .map(|err| ecma_parse_error_deduped_to_rspack_error(err, &fm, &ModuleType::Js))
                 .collect::<Vec<_>>(),
             )
           })?;

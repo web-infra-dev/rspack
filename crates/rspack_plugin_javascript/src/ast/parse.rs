@@ -11,7 +11,7 @@ use swc_core::ecma::parser::{
 };
 use swc_node_comments::SwcComments;
 
-use crate::utils::ecma_parse_error_to_rspack_error;
+use crate::utils::{ecma_parse_error_deduped_to_rspack_error, DedupEcmaErrors};
 use crate::IsModule;
 
 fn module_type_to_is_module(value: &ModuleType) -> IsModule {
@@ -90,8 +90,9 @@ pub fn parse(
     Ok(program) => Ok(Ast::new(program, cm, Some(comments))),
     Err(errs) => Err(BatchErrors(
       errs
+        .dedup_ecma_errors()
         .into_iter()
-        .map(|err| ecma_parse_error_to_rspack_error(err, &fm, module_type))
+        .map(|err| ecma_parse_error_deduped_to_rspack_error(err, &fm, module_type))
         .collect::<Vec<_>>(),
     )),
   }
