@@ -155,6 +155,15 @@ impl PluginDriver {
     Ok(())
   }
 
+  #[instrument(name = "plugin:module_asset", skip_all)]
+  pub async fn module_asset(&self, module: ModuleIdentifier, asset_name: String) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin.module_asset(module, asset_name.clone()).await?;
+    }
+
+    Ok(())
+  }
+
   #[instrument(name = "plugin:chunk_asset", skip_all)]
   pub async fn chunk_asset(&self, chunk: &Chunk, filename: String) -> PluginCompilationHookOutput {
     for plugin in &self.plugins {

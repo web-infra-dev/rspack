@@ -1129,6 +1129,29 @@ impl Compilation {
     Ok(())
   }
 
+  #[instrument(name = "compilation::create_module_assets")]
+  async fn create_module_assets(&mut self, plugin_driver: SharedPluginDriver) {
+    for (module_identifier, mgm) in self.module_graph.module_graph_modules() {
+      if let Some(ref build_info) = mgm.build_info {
+        for asset in build_info.asset_filenames.iter() {
+          for chunk in self
+            .chunk_graph
+            .get_module_chunks(*module_identifier)
+            .iter()
+          {
+            let chunk = self
+              .chunk_by_ukey
+              .get_mut(chunk)
+              .expect("should have chunk");
+
+            chunk.auxiliary_files.insert(asset.clone());
+          }
+          // already emitted asset by loader, so no need to re emit here
+        }
+      }
+    }
+  }
+
   #[instrument(skip_all)]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) {
     let results = self
@@ -1319,6 +1342,10 @@ impl Compilation {
 
     let start = logger.time("hashing");
     self.create_hash(plugin_driver.clone()).await?;
+    logger.time_end(start);
+
+    let start = logger.time("create module assets");
+    self.create_module_assets(plugin_driver.clone()).await;
     logger.time_end(start);
 
     let start = logger.time("create chunk assets");
