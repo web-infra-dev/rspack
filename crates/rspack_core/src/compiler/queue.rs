@@ -244,35 +244,6 @@ impl WorkerTask for BuildTask {
     let cache = self.cache;
     let plugin_driver = self.plugin_driver;
 
-    // match cache
-    // .build_module_occasion
-    // .use_cache(&mut module, |module| async {
-    //   plugin_driver
-    //     .build_module(module.as_mut())
-    //     .await
-    //     .unwrap_or_else(|e| panic!("Run build_module hook failed: {}", e));
-
-    //   let result = module
-    //     .build(BuildContext {
-    //       compiler_context: CompilerContext {
-    //         options: compiler_options.clone(),
-    //         resolver_factory: resolver_factory.clone(),
-    //         module: Some(module.identifier()),
-    //         module_context: module.as_normal_module().and_then(|m| m.get_context()),
-    //       },
-    //       plugin_driver: plugin_driver.clone(),
-    //       compiler_options: &compiler_options,
-    //     })
-    //     .await;
-
-    //   plugin_driver
-    //     .succeed_module(&**module)
-    //     .await
-    //     .unwrap_or_else(|e| panic!("Run succeed_module hook failed: {}", e));
-
-    //   result.map(|t| (t, module))
-    // })
-    // .await
     let (build_result, is_cache_valid) = match cache
       .build_module_occasion
       .use_cache(&mut module, |module| async {

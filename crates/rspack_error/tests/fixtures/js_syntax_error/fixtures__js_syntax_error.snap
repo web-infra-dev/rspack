@@ -10,4 +10,11 @@ expression: js_syntax_error
    ·          ╰── Expected a semicolon
  3 │     // Comma is required, but parser can recover because of the newline.
    ╰────
+  × Error[javascript]: JavaScript parsing error
+   ╭─[tests/fixtures/js_syntax_error/index.js:5:1]
+ 5 │     g = CONST
+ 6 │ }
+   · ┬
+   · ╰── Expression expected
+   ╰────
 

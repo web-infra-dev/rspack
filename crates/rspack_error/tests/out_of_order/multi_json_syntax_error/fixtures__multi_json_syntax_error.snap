@@ -9,4 +9,8 @@ expression: multi_json_syntax_error
    · ┬
    · ╰── Unexpected character }
    ╰────
+  × Error[json]: Json parsing error
+   ╭─[tests/out_of_order/multi_json_syntax_error/b.json:1:1]
+ 1 │ "测试utf8\"
+   ╰────
 

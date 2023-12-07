@@ -62,37 +62,7 @@ impl Deref for Diagnostic {
   }
 }
 
-/// Shouldn't rely on this in deduping.
-/// Have to make sure everything is deduped in the first place.
-impl std::hash::Hash for Diagnostic {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.0.to_string().hash(state);
-    self.0.code().map(|c| c.to_string()).hash(state);
-    self.0.help().map(|h| h.to_string()).hash(state);
-    self.0.url().map(|u| u.to_string()).hash(state);
-    self.0.severity().map(Severity::from).hash(state);
-  }
-}
-
-/// Shouldn't rely on this in deduping.
-/// Have to make sure everything is deduped in the first place.
-impl PartialEq for Diagnostic {
-  fn eq(&self, other: &Self) -> bool {
-    self.0.to_string() == other.0.to_string()
-      && self.0.code().map(|c| c.to_string()) == other.0.code().map(|c| c.to_string())
-      && self.0.help().map(|h| h.to_string()) == other.0.help().map(|h| h.to_string())
-      && self.0.url().map(|u| u.to_string()) == other.0.url().map(|u| u.to_string())
-      && self.0.severity() == other.0.severity()
-  }
-}
-
-impl Eq for Diagnostic {}
-
 impl Diagnostic {
-  pub fn title(&self) -> String {
-    self.0.code().map(|v| v.to_string()).unwrap_or_default()
-  }
-
   pub fn message(&self) -> String {
     self.0.to_string()
   }

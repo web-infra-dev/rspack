@@ -7,11 +7,6 @@ use termcolor::{ColorChoice, StandardStream};
 
 use crate::Diagnostic;
 
-/// Detects if's in a terminal.
-fn is_terminal() -> bool {
-  std::io::stdout().is_terminal() && std::io::stderr().is_terminal()
-}
-
 pub trait FlushDiagnostic {
   fn flush_diagnostic(&mut self) {}
 }
@@ -162,9 +157,7 @@ fn emit_diagnostic<T: Write + WriteColor>(
   diagnostic: &Diagnostic,
   writer: &mut T,
 ) -> crate::Result<()> {
-  let h = GraphicalReportHandler::new().with_theme(if !is_terminal() {
-    GraphicalTheme::ascii()
-  } else if writer.supports_color() {
+  let h = GraphicalReportHandler::new().with_theme(if writer.supports_color() {
     GraphicalTheme::unicode()
   } else {
     GraphicalTheme::unicode_nocolor()

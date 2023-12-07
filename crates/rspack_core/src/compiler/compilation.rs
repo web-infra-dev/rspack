@@ -79,7 +79,7 @@ pub struct Compilation {
   pub async_entrypoints: Vec<ChunkGroupUkey>,
   assets: CompilationAssets,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
-  diagnostics: IndexSet<Diagnostic, BuildHasherDefault<FxHasher>>,
+  diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   pub plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -333,7 +333,7 @@ impl Compilation {
   }
 
   pub fn push_diagnostic(&mut self, diagnostic: Diagnostic) {
-    self.diagnostics.insert(diagnostic);
+    self.diagnostics.push(diagnostic);
   }
 
   pub fn push_batch_diagnostic(&mut self, diagnostics: Vec<Diagnostic>) {

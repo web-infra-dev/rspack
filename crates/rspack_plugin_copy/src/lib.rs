@@ -4,7 +4,7 @@ use std::{
   fs,
   hash::Hash,
   path::{Path, PathBuf, MAIN_SEPARATOR},
-  sync::Arc,
+  sync::{Arc, Mutex},
 };
 
 use async_trait::async_trait;
@@ -137,7 +137,7 @@ impl CopyRspackPlugin {
     output_path: &Path,
     from_type: FromType,
     file_dependencies: &DashSet<PathBuf>,
-    diagnostics: &DashSet<Diagnostic>,
+    diagnostics: &Mutex<Vec<Diagnostic>>,
     compilation: &Compilation,
     logger: &CompilationLogger,
   ) -> Option<RunPatternResult> {
@@ -234,9 +234,10 @@ impl CopyRspackPlugin {
       Err(e) => {
         let e: Error = DiagnosticError::from(e.boxed()).into();
         let rspack_err: Vec<Diagnostic> = vec![e.into()];
-        for err in rspack_err {
-          diagnostics.insert(err);
-        }
+        diagnostics
+          .lock()
+          .expect("failed to obtain lock of `diagnostics`")
+          .extend(rspack_err);
         return None;
       }
     };
@@ -290,7 +291,7 @@ impl CopyRspackPlugin {
     _index: usize,
     file_dependencies: &DashSet<PathBuf>,
     context_dependencies: &DashSet<PathBuf>,
-    diagnostics: &DashSet<Diagnostic>,
+    diagnostics: &Mutex<Vec<Diagnostic>>,
     logger: &CompilationLogger,
   ) -> Option<Vec<Option<RunPatternResult>>> {
     let orig_from = &pattern.from;
@@ -431,10 +432,13 @@ impl CopyRspackPlugin {
             return None;
           }
 
-          diagnostics.insert(Diagnostic::error(
-            "CopyRspackPlugin Error".into(),
-            format!("unable to locate '{glob_query}' glob"),
-          ));
+          diagnostics
+            .lock()
+            .expect("failed to obtain lock of `diagnostics`")
+            .push(Diagnostic::error(
+              "CopyRspackPlugin Error".into(),
+              format!("unable to locate '{glob_query}' glob"),
+            ));
         }
 
         let output_path = &compilation.options.output.path;
@@ -463,10 +467,13 @@ impl CopyRspackPlugin {
           }
 
           // TODO err handler
-          diagnostics.insert(Diagnostic::error(
-            "CopyRspackPlugin Error".into(),
-            format!("unable to locate '{glob_query}' glob"),
-          ));
+          diagnostics
+            .lock()
+            .expect("failed to obtain lock of `diagnostics`")
+            .push(Diagnostic::error(
+              "CopyRspackPlugin Error".into(),
+              format!("unable to locate '{glob_query}' glob"),
+            ));
           return None;
         }
 
@@ -484,7 +491,10 @@ impl CopyRspackPlugin {
           return None;
         }
 
-        diagnostics.insert(Diagnostic::error("Glob Error".into(), e.msg.to_string()));
+        diagnostics
+          .lock()
+          .expect("failed to obtain lock of `diagnostics`")
+          .push(Diagnostic::error("Glob Error".into(), e.msg.to_string()));
 
         None
       }
@@ -507,7 +517,7 @@ impl Plugin for CopyRspackPlugin {
     let start = logger.time("run pattern");
     let file_dependencies = DashSet::default();
     let context_dependencies = DashSet::default();
-    let diagnostics = DashSet::default();
+    let diagnostics = Mutex::new(Vec::new());
 
     let mut copied_result: Vec<(i32, RunPatternResult)> = self
       .patterns
@@ -552,7 +562,13 @@ impl Plugin for CopyRspackPlugin {
     compilation
       .context_dependencies
       .extend(context_dependencies);
-    compilation.push_batch_diagnostic(diagnostics.into_iter().collect());
+    compilation.push_batch_diagnostic(
+      diagnostics
+        .lock()
+        .expect("failed to obtain lock of `diagnostics`")
+        .drain(..)
+        .collect(),
+    );
 
     copied_result.sort_unstable_by(|a, b| a.0.cmp(&b.0));
     copied_result.into_iter().for_each(|(_priority, result)| {
