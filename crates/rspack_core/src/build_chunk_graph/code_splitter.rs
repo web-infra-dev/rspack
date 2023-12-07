@@ -767,7 +767,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
     // dbg!(&module, &runtime);
     self.extract_block_modules(
-      *module.as_module().expect(
+      *module.get_root_block().expect(
         "block_modules_map must not empty when calling get_block_modules(AsyncDependenciesBlock)",
       ),
       runtime,
@@ -937,7 +937,8 @@ enum DependenciesBlockIdentifier {
 }
 
 impl DependenciesBlockIdentifier {
-  pub fn as_module(&self) -> Option<&ModuleIdentifier> {
+  // hack for webpack get_root_block, refer TODO: https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/buildChunkGraph.js#L222
+  pub fn get_root_block(&self) -> Option<&ModuleIdentifier> {
     match self {
       DependenciesBlockIdentifier::Module(m) => Some(m),
       DependenciesBlockIdentifier::AsyncDependenciesBlock(ident) => Some(&ident.from),
