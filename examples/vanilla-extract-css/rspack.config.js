@@ -21,7 +21,19 @@ module.exports = {
 					sourceMap: true,
 					jsc: {
 						parser: {
-							syntax: "typescript"
+							syntax: "typescript",
+							jsx: true
+						},
+						externalHelpers: true,
+						preserveAllComments: false,
+						transform: {
+							react: {
+								runtime: "automatic",
+								pragma: "React.createElement",
+								pragmaFrag: "React.Fragment",
+								throwIfNamespace: true,
+								useBuiltins: false
+							}
 						}
 					}
 				},
