@@ -89,6 +89,9 @@ pub mod tree_shaking;
 pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme, BUILTIN_LOADER_PREFIX};
 pub use rspack_sources;
 
+#[cfg(debug_assertions)]
+pub mod debug_info;
+
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SourceType {
   JavaScript,

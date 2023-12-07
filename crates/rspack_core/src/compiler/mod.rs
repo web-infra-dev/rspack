@@ -52,6 +52,12 @@ where
 {
   #[instrument(skip_all)]
   pub fn new(options: CompilerOptions, plugins: Vec<BoxPlugin>, output_filesystem: T) -> Self {
+    #[cfg(debug_assertions)]
+    {
+      if let Ok(mut debug_info) = crate::debug_info::DEBUG_INFO.lock() {
+        debug_info.with_context(options.context.to_string());
+      }
+    }
     let new_resolver = options.experiments.rspack_future.new_resolver;
     let resolver_factory = Arc::new(ResolverFactory::new(new_resolver, options.resolve.clone()));
     let loader_resolver_factory = Arc::new(ResolverFactory::new(
