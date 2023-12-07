@@ -3,7 +3,10 @@ use std::hash::Hash;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::tree_shaking::webpack_ext::ExportInfoExt;
-use rspack_core::{property_access, ChunkUkey, LibraryExport, LibraryName, LibraryNonUmdObject};
+use rspack_core::{
+  property_access, ChunkUkey, EntryData, LibraryExport, LibraryName, LibraryNonUmdObject,
+  UsageState,
+};
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
   to_identifier, Chunk, Compilation, Filename, JsChunkHashArgs, LibraryOptions, PathData, Plugin,
@@ -163,11 +166,11 @@ impl AssignLibraryPlugin {
   }
 }
 
+#[async_trait::async_trait]
 impl Plugin for AssignLibraryPlugin {
   fn name(&self) -> &'static str {
     "rspack.AssignLibraryPlugin"
   }
-
   fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
     let Some(options) = self.get_options_for_chunk(args.compilation, args.chunk)? else {
       return Ok(None);
@@ -186,6 +189,51 @@ impl Plugin for AssignLibraryPlugin {
       return Ok(Some(source.boxed()));
     }
     Ok(Some(args.source.clone()))
+  }
+
+  async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+    for (entry_name, entry) in compilation.entries.iter() {
+      let EntryData {
+        dependencies,
+        options,
+        ..
+      } = entry;
+      let runtime = compilation.get_entry_runtime(entry_name, Some(options));
+      let library_options = options
+        .library
+        .as_ref()
+        .or_else(|| compilation.options.output.library.as_ref());
+      let module_of_last_dep = dependencies
+        .last()
+        .and_then(|dep| compilation.module_graph.get_module(dep));
+      let Some(module_of_last_dep) = module_of_last_dep else {
+        continue;
+      };
+      let Some(library_options) = library_options else {
+        continue;
+      };
+      if let Some(export) = library_options
+        .export
+        .as_ref()
+        .and_then(|item| item.first())
+      {
+        let exports_info = compilation
+          .module_graph
+          .get_export_info(module_of_last_dep.identifier(), &(export.as_str()).into());
+        exports_info.set_used(
+          &mut compilation.module_graph,
+          UsageState::Used,
+          Some(&runtime),
+        );
+      } else {
+        let exports_info_id = compilation
+          .module_graph
+          .get_exports_info(&module_of_last_dep.identifier())
+          .id;
+        exports_info_id.set_used_in_unknown_way(&mut compilation.module_graph, Some(&runtime));
+      }
+    }
+    Ok(())
   }
 
   fn render_startup(

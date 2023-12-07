@@ -103,6 +103,14 @@ const describeCases = config => {
 								if (!options.optimization) options.optimization = {};
 								if (options.optimization.minimize === undefined)
 									options.optimization.minimize = false;
+								if (!options.experiments) {
+									options.experiments = {}
+								}
+								if (!options.experiments.rspackFuture) {
+									options.experiments.rspackFuture = {
+										newTreeshaking: true
+									}
+								}
 								// if (options.optimization.minimizer === undefined) {
 								// 	options.optimization.minimizer = [
 								// 		new (require("terser-webpack-plugin"))({

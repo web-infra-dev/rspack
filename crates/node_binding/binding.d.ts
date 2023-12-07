@@ -100,6 +100,10 @@ export function __chunk_group_inner_get_chunk_group(ukey: number, compilation: J
 
 export function __chunk_inner_can_be_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
 
+export function __chunk_inner_get_chunk_entry_modules(jsChunkUkey: number, compilation: JsCompilation): Array<JsModule>
+
+export function __chunk_inner_get_chunk_modules(jsChunkUkey: number, compilation: JsCompilation): Array<JsModule>
+
 export function __chunk_inner_has_runtime(jsChunkUkey: number, compilation: JsCompilation): boolean
 
 export function __chunk_inner_is_only_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
@@ -140,6 +144,7 @@ export const enum BuiltinPluginName {
   ModuleChunkFormatPlugin = 'ModuleChunkFormatPlugin',
   HotModuleReplacementPlugin = 'HotModuleReplacementPlugin',
   LimitChunkCountPlugin = 'LimitChunkCountPlugin',
+  WorkerPlugin = 'WorkerPlugin',
   WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
   MergeDuplicateChunksPlugin = 'MergeDuplicateChunksPlugin',
   SplitChunksPlugin = 'SplitChunksPlugin',
@@ -197,16 +202,10 @@ export interface JsAssetInfo {
   development: boolean
   /** when asset ships data for updating an existing application (HMR) */
   hotModuleReplacement: boolean
-  /**
-   * when asset is javascript and an ESM
-   * related object to other assets, keyed by type of relation (only points from parent to child)
-   */
+  /** when asset is javascript and an ESM */
+  javascriptModule?: boolean
+  /** related object to other assets, keyed by type of relation (only points from parent to child) */
   related: JsAssetInfoRelated
-  /**
-   * the asset version, emit can be skipped when both filename and version are the same
-   * An empty string means no version, it will always emit
-   */
-  version: string
 }
 
 export interface JsAssetInfoRelated {
@@ -585,10 +584,12 @@ export interface RawCacheGroupOptions {
   key: string
   priority?: number
   test?: RegExp | string | Function
+  filename?: string
   idHint?: string
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
   type?: RegExp | string
+  automaticNameDelimiter?: string
   minChunks?: number
   minSize?: number
   maxSize?: number
@@ -758,6 +759,7 @@ export interface RawFallbackCacheGroupOptions {
   maxSize?: number
   maxAsyncSize?: number
   maxInitialSize?: number
+  automaticNameDelimiter?: string
 }
 
 export interface RawFuncUseCtx {
@@ -934,6 +936,7 @@ export interface RawOptimizationOptions {
   providedExports: boolean
   innerGraph: boolean
   realContentHash: boolean
+  mangleExports: string
 }
 
 export interface RawOptions {
@@ -993,6 +996,7 @@ export interface RawOutputOptions {
   workerChunkLoading: string
   workerWasmLoading: string
   workerPublicPath: string
+  scriptType: "module" | "text/javascript" | "false"
 }
 
 export interface RawParserOptions {
@@ -1125,6 +1129,7 @@ export interface RawSplitChunksOptions {
   cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
+  automaticNameDelimiter?: string
   maxAsyncRequests?: number
   maxInitialRequests?: number
   minChunks?: number
@@ -1152,6 +1157,7 @@ export interface RawSwcJsMinimizerRspackPluginOptions {
   compress: boolean | string
   mangle: boolean | string
   format: string
+  module?: boolean
   test?: string | RegExp | (string | RegExp)[]
   include?: string | RegExp | (string | RegExp)[]
   exclude?: string | RegExp | (string | RegExp)[]

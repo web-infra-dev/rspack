@@ -5,19 +5,20 @@ import util from "util";
 import { rspack, RspackOptions } from "../src";
 import assert from "assert";
 import createLazyTestEnv from "./helpers/createLazyTestEnv";
+import { isValidTestCaseDir } from "./utils";
 
 // most of these could be removed when we support external builtins by default
 export function describeCases(config: { name: string; casePath: string }) {
 	const casesPath = path.resolve(__dirname, config.casePath);
 	let categoriesDir = fs.readdirSync(casesPath);
 	let categories = categoriesDir
-		.filter(x => x !== "dist" && !x.startsWith("."))
+		.filter(x => isValidTestCaseDir(x) && x !== "dist")
 		.map(cat => {
 			return {
 				name: cat,
 				tests: fs
 					.readdirSync(path.resolve(casesPath, cat))
-					.filter(folder => !folder.includes("_") && !folder.startsWith("."))
+					.filter(isValidTestCaseDir)
 			};
 		});
 	describe(config.name, () => {

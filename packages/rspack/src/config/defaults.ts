@@ -618,6 +618,7 @@ const applyOutputDefaults = (
 	F(output, "sourceMapFilename", () => {
 		return "[file].map";
 	});
+	F(output, "scriptType", () => (output.module ? "module" : false));
 
 	const { trustedTypes } = output;
 	if (trustedTypes) {
@@ -745,6 +746,7 @@ const applyOptimizationDefaults = (
 	});
 	F(optimization, "chunkIds", (): "named" | "deterministic" => "named");
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
+	D(optimization, "mangleExports", production);
 	D(optimization, "providedExports", true);
 	D(optimization, "usedExports", production);
 	D(optimization, "innerGraph", production);
@@ -775,7 +777,7 @@ const applyOptimizationDefaults = (
 		// F(splitChunks, "enforceSizeThreshold", () => (production ? 50000 : 30000));
 		F(splitChunks, "maxAsyncRequests", () => (production ? 30 : Infinity));
 		F(splitChunks, "maxInitialRequests", () => (production ? 30 : Infinity));
-		// D(splitChunks, "automaticNameDelimiter", "-");
+		D(splitChunks, "automaticNameDelimiter", "-");
 		const { cacheGroups } = splitChunks;
 		if (cacheGroups) {
 			F(cacheGroups, "default", () => ({

@@ -9,12 +9,12 @@ use rspack_sources::BoxSource;
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, AssetEmittedArgs,
   AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs, ChunkHashArgs, CodeGenerationResults,
-  Compilation, CompilationArgs, CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs,
-  JsChunkHashArgs, MakeParam, Module, ModuleFactoryResult, ModuleIdentifier, ModuleType,
-  NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
-  NormalModuleCreateData, NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator,
-  PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs,
-  RenderModuleContentArgs, RenderStartupArgs, Resolver, SourceType, ThisCompilationArgs,
+  Compilation, CompilationArgs, CompilationParams, CompilerOptions, ContentHashArgs, DoneArgs,
+  FactorizeArgs, JsChunkHashArgs, MakeParam, Module, ModuleFactoryResult, ModuleIdentifier,
+  ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  NormalModuleCreateData, OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs,
+  RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs,
+  Resolver, SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -58,13 +58,18 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn compilation(&self, _args: CompilationArgs<'_>) -> PluginCompilationHookOutput {
+  async fn compilation(
+    &self,
+    _args: CompilationArgs<'_>,
+    _params: &CompilationParams,
+  ) -> PluginCompilationHookOutput {
     Ok(())
   }
 
   async fn this_compilation(
     &self,
     _args: ThisCompilationArgs<'_>,
+    _params: &CompilationParams,
   ) -> PluginThisCompilationHookOutput {
     Ok(())
   }
@@ -99,7 +104,6 @@ pub trait Plugin: Debug + Send + Sync {
     &self,
     _ctx: PluginContext,
     _args: FactorizeArgs<'_>,
-    _job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeHookOutput {
     Ok(None)
   }
@@ -399,6 +403,10 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
+  async fn optimize_code_generation(&self, _compilation: &mut Compilation) -> Result<Option<()>> {
+    Ok(None)
+  }
+
   async fn optimize_tree(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
@@ -407,7 +415,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn before_compile(&self) -> Result<()> {
+  async fn before_compile(&self, _params: &CompilationParams) -> Result<()> {
     Ok(())
   }
 

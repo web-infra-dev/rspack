@@ -34,12 +34,12 @@ runs:
       shell: bash
       run: |
         set -e
-        save_dir=$HOME/.cache/runner/${{ github.repository_id }}-${{ github.run_id }}-${{ inputs.name }}
+        save_dir=$HOME/.cache/runner/${{ github.repository_id }}-${{ github.sha }}-${{ inputs.name }}
         # download file
         if [ "${{ inputs.link-when-local }}" = "true" ]; then
-          ln -s $save_dir/* ${{ inputs.path }}
-          echo "ln -s $save_dir/* ${{ inputs.path }}"
+          ln -sf $save_dir/* ${{ inputs.path }}
+          echo "ln -sf $save_dir/* ${{ inputs.path }}"
         else
-          cp -r $save_dir/* ${{ inputs.path }}
-          echo "cp -r $save_dir/* ${{ inputs.path }}"
+          cp -rf $save_dir/* ${{ inputs.path }}
+          echo "cp -rf $save_dir/* ${{ inputs.path }}"
         fi

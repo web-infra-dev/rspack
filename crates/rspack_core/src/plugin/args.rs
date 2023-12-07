@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use rspack_hash::RspackHash;
 use rspack_loader_runner::ResourceData;
@@ -7,9 +8,9 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  Chunk, ChunkInitFragments, ChunkUkey, Compilation, Context, DependencyCategory, DependencyType,
-  ErrorSpan, FactoryMeta, ModuleDependency, ModuleGraphModule, ModuleIdentifier, Resolve,
-  RuntimeGlobals, SharedPluginDriver, Stats,
+  Chunk, ChunkInitFragments, ChunkUkey, Compilation, Context, ContextModuleFactory,
+  DependencyCategory, DependencyType, ErrorSpan, FactoryMeta, ModuleDependency, ModuleGraphModule,
+  ModuleIdentifier, NormalModuleFactory, Resolve, RuntimeGlobals, SharedPluginDriver, Stats,
 };
 
 #[derive(Debug)]
@@ -250,4 +251,9 @@ impl<'me> JsChunkHashArgs<'me> {
       .get(self.chunk_ukey)
       .expect("chunk should exist in chunk_by_ukey")
   }
+}
+
+pub struct CompilationParams {
+  pub normal_module_factory: Arc<NormalModuleFactory>,
+  pub context_module_factory: Arc<ContextModuleFactory>,
 }

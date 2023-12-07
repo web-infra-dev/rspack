@@ -198,7 +198,7 @@ const describeCases = config => {
 										}
 									]
 								},
-								plugins: (config.plugins || []).concat(function () {
+								plugins: (config.plugins || []).concat(testConfig.plugins || []).concat(function () {
 									this.hooks.compilation.tap("TestCasesTest", compilation => {
 										[
 											// TODO: the follwing hooks are not supported yet, so comment it out
@@ -221,7 +221,9 @@ const describeCases = config => {
                   // RSPACK exclusive: Rspack enables `css` by default.
                   // Turning off here to fallback to webpack's default css processing logic.
 
-									rspackFuture: testConfig?.experiments?.rspackFuture ?? {},
+									rspackFuture: testConfig?.experiments?.rspackFuture ?? {
+										newTreeshaking: true
+									},
                   css: false,
 									...(config.module ? { outputModule: true } : {}),
 								},

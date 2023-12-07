@@ -37,6 +37,7 @@ impl Plugin for FetchCompileAsyncWasmPlugin {
         AsyncWasmLoadingRuntimeModule::new(
           format!("fetch({} + $PATH)", RuntimeGlobals::PUBLIC_PATH),
           true,
+          *args.chunk,
         )
         .boxed(),
       );
@@ -81,6 +82,7 @@ impl Plugin for ReadFileCompileAsyncWasmPlugin {
             include_str!("runtime/read_file_compile_async_wasm.js").to_string()
           },
           false,
+          *args.chunk,
         )
         .boxed(),
       );

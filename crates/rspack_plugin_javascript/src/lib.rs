@@ -1,19 +1,21 @@
 #![feature(result_option_inspect)]
+#![feature(option_get_or_insert_default)]
 #![feature(if_let_guard)]
 #![feature(let_chains)]
 #![feature(box_patterns)]
 #![recursion_limit = "256"]
 
-pub(crate) mod dependency;
-mod plugin;
-pub use plugin::*;
 pub mod ast;
-pub(crate) mod parser_and_generator;
+pub mod dependency;
+pub mod parser_and_generator;
+mod parser_plugin;
+mod plugin;
 pub mod runtime;
 pub mod utils;
 pub mod visitors;
 
 pub use crate::plugin::infer_async_modules_plugin::InferAsyncModulesPlugin;
+pub use crate::plugin::*;
 
 #[derive(Debug)]
 pub struct TransformOutput {

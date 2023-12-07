@@ -4,10 +4,9 @@ use rspack_error::{Diagnostic, Result};
 
 use crate::{
   cache::Cache, BoxDependency, BuildContext, BuildResult, Compilation, CompilerContext,
-  CompilerOptions, Context, ContextModuleFactory, DependencyType, Module, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
-  ModuleProfile, ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve,
-  ResolverFactory, SharedPluginDriver, WorkerQueue,
+  CompilerOptions, Context, Module, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
+  ModuleGraph, ModuleGraphModule, ModuleIdentifier, ModuleProfile, Resolve, ResolverFactory,
+  SharedPluginDriver, WorkerQueue,
 };
 use crate::{DependencyId, ExportInfo, ExportsInfo, UsageState};
 
@@ -25,14 +24,13 @@ pub trait WorkerTask {
 }
 
 pub struct FactorizeTask {
+  pub module_factory: Arc<dyn ModuleFactory>,
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub original_module_context: Option<Box<Context>>,
   pub issuer: Option<Box<str>>,
   pub dependency: BoxDependency,
   pub dependencies: Vec<DependencyId>,
   pub is_entry: bool,
-  pub module_type: Option<ModuleType>,
-  pub side_effects: Option<bool>,
   pub resolve_options: Option<Box<Resolve>>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
@@ -80,69 +78,17 @@ impl WorkerTask for FactorizeTask {
     }
     .clone();
 
-    let (result, diagnostics) = match *dependency.dependency_type() {
-      DependencyType::ImportContext
-      | DependencyType::CommonJSRequireContext
-      | DependencyType::RequireContext
-      | DependencyType::ImportMetaContext => {
-        assert!(dependency.as_module_dependency().is_none());
-        let factory = ContextModuleFactory::new(self.plugin_driver, self.cache);
-        factory
-          .create(ModuleFactoryCreateData {
-            resolve_options: self.resolve_options,
-            context,
-            dependency,
-          })
-          .await?
-          .split_into_parts()
-      }
-      DependencyType::ContainerEntry => {
-        let factory = crate::mf::container_entry_module_factory::ContainerEntryModuleFactory;
-        factory
-          .create(ModuleFactoryCreateData {
-            resolve_options: self.resolve_options,
-            context,
-            dependency,
-          })
-          .await?
-          .split_into_parts()
-      }
-      DependencyType::ProvideSharedModule => {
-        let factory = crate::mf::provide_shared_module_factory::ProvideSharedModuleFactory;
-        factory
-          .create(ModuleFactoryCreateData {
-            resolve_options: self.resolve_options,
-            context,
-            dependency,
-          })
-          .await?
-          .split_into_parts()
-      }
-      _ => {
-        assert!(dependency.as_context_dependency().is_none());
-        let factory = NormalModuleFactory::new(
-          NormalModuleFactoryContext {
-            original_module_identifier: self.original_module_identifier,
-            module_type: self.module_type,
-            side_effects: self.side_effects,
-            options: self.options.clone(),
-            lazy_visit_modules: self.lazy_visit_modules,
-            issuer: self.issuer,
-          },
-          self.loader_resolver_factory,
-          self.plugin_driver,
-          self.cache,
-        );
-        factory
-          .create(ModuleFactoryCreateData {
-            resolve_options: self.resolve_options,
-            context,
-            dependency,
-          })
-          .await?
-          .split_into_parts()
-      }
-    };
+    let (result, diagnostics) = self
+      .module_factory
+      .create(ModuleFactoryCreateData {
+        resolve_options: self.resolve_options,
+        context,
+        dependency,
+        issuer: self.issuer,
+        issuer_identifier: self.original_module_identifier,
+      })
+      .await?
+      .split_into_parts();
 
     let other_exports_info = ExportInfo::new(None, UsageState::Unknown, None);
     let side_effects_only_info = ExportInfo::new(

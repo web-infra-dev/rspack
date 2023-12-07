@@ -1,10 +1,12 @@
 use napi_derive::napi;
 use rspack_core::{
   BoxPlugin, CompilerOptions, Context, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
-  IncrementalRebuildMakeState, ModuleOptions, ModuleType, OutputOptions, PluginExt,
+  IncrementalRebuildMakeState, MangleExportsOption, ModuleOptions, ModuleType, OutputOptions,
+  PluginExt, TreeShaking,
 };
 use rspack_plugin_javascript::{
-  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, SideEffectsFlagPlugin,
+  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, MangleExportsPlugin,
+  SideEffectsFlagPlugin,
 };
 use serde::Deserialize;
 
@@ -135,11 +137,6 @@ impl RawOptionsApply for RawOptions {
     if experiments.async_web_assembly {
       plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
     }
-    rspack_plugin_worker::worker_plugin(
-      output.worker_chunk_loading.clone(),
-      output.worker_wasm_loading.clone(),
-      plugins,
-    );
     plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
     plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin {}.boxed());
 
@@ -168,6 +165,16 @@ impl RawOptionsApply for RawOptions {
         plugins.push(FlagDependencyUsagePlugin::default().boxed());
       }
     }
+    if optimization.mangle_exports.is_enable() {
+      // We already know mangle_exports != false
+      plugins.push(
+        MangleExportsPlugin::new(!matches!(
+          optimization.mangle_exports,
+          MangleExportsOption::Size
+        ))
+        .boxed(),
+      );
+    }
 
     // Notice the plugin need to be placed after SplitChunksPlugin
     if optimization.remove_empty_chunks {
@@ -177,6 +184,10 @@ impl RawOptionsApply for RawOptions {
     plugins.push(rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin.boxed());
 
     plugins.push(rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin.boxed());
+    let mut builtins = self.builtins.apply(plugins)?;
+    if experiments.rspack_future.new_treeshaking {
+      builtins.tree_shaking = TreeShaking::False;
+    }
 
     Ok(Self::Options {
       context,
@@ -195,7 +206,7 @@ impl RawOptionsApply for RawOptions {
       node,
       dev_server,
       profile: self.profile,
-      builtins: self.builtins.apply(plugins)?,
+      builtins,
     })
   }
 }

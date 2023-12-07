@@ -4,8 +4,9 @@ use async_trait::async_trait;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::{
   get_js_chunk_filename_template, AdditionalChunkRuntimeRequirementsArgs, ChunkHashArgs, ChunkKind,
-  CompilerOptions, ModuleType, ParserAndGenerator, PathData, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginChunkHashHookOutput, PluginContext,
+  CompilationArgs, CompilationParams, CompilerOptions, DependencyType, ErrorSpan, ModuleType,
+  ParserAndGenerator, PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
   PluginRenderManifestHookOutput, RenderManifestEntry, RuntimeGlobals, SourceType,
 };
 use rspack_error::Result;
@@ -62,6 +63,87 @@ impl Plugin for JsPlugin {
       Box::new(create_parser_and_generator),
     );
 
+    Ok(())
+  }
+
+  async fn compilation(
+    &self,
+    args: CompilationArgs<'_>,
+    params: &CompilationParams,
+  ) -> PluginCompilationHookOutput {
+    // HarmonyModulesPlugin
+    args.compilation.set_dependency_factory(
+      DependencyType::EsmImport(ErrorSpan::default()),
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::EsmImportSpecifier,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::EsmExport(ErrorSpan::default()),
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::EsmExportImportedSpecifier,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::EsmExportSpecifier,
+      params.normal_module_factory.clone(),
+    );
+    // CommonJsPlugin
+    args.compilation.set_dependency_factory(
+      DependencyType::CjsRequire,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::CjsExports,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::CommonJSRequireContext,
+      params.context_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::RequireResolve,
+      params.normal_module_factory.clone(),
+    );
+    // RequireContextPlugin
+    args.compilation.set_dependency_factory(
+      DependencyType::RequireContext,
+      params.context_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::ContextElement,
+      params.normal_module_factory.clone(),
+    );
+    // ImportMetaContextPlugin
+    args.compilation.set_dependency_factory(
+      DependencyType::ImportMetaContext,
+      params.context_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::ContextElement,
+      params.normal_module_factory.clone(),
+    );
+    // ImportPlugin
+    args.compilation.set_dependency_factory(
+      DependencyType::DynamicImport,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::DynamicImportEager,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::ImportContext,
+      params.context_module_factory.clone(),
+    );
+    // URLPlugin
+    args
+      .compilation
+      .set_dependency_factory(DependencyType::NewUrl, params.normal_module_factory.clone());
     Ok(())
   }
 
@@ -165,7 +247,7 @@ impl Plugin for JsPlugin {
       &compilation.options.output,
       &compilation.chunk_group_by_ukey,
     );
-    let (output_path, asset_info) = compilation.get_path_with_info(
+    let (output_path, mut asset_info) = compilation.get_path_with_info(
       filename_template,
       PathData::default()
         .chunk(chunk)
@@ -177,6 +259,7 @@ impl Plugin for JsPlugin {
         )
         .runtime(&chunk.runtime),
     );
+    asset_info.set_javascript_module(compilation.options.output.module);
     Ok(vec![RenderManifestEntry::new(
       source,
       output_path,

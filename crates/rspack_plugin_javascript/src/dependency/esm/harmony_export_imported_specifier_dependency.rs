@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use linked_hash_set::LinkedHashSet;
 use rspack_core::{
@@ -71,7 +71,6 @@ impl HarmonyExportImportedSpecifierDependency {
     &build_info.harmony_named_exports
   }
 
-  /// FIXME: this should use parent module id
   pub fn all_star_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a Vec<DependencyId> {
     let build_info = module_graph
       .parent_module_by_dependency_id(&self.id)
@@ -468,6 +467,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
   ) {
     let compilation = &code_generatable_context.compilation;
     let module = &code_generatable_context.module;
+    let runtime = code_generatable_context.runtime;
 
     let mgm = compilation
       .module_graph
@@ -475,9 +475,9 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
       .expect("should have module graph module");
 
     let import_var = get_import_var(&compilation.module_graph, self.id);
-    let is_new_tree_shaking = compilation.options.is_new_tree_shaking();
+    let is_new_treeshaking = compilation.options.is_new_tree_shaking();
 
-    let used_exports = if is_new_tree_shaking {
+    let mut used_exports = if is_new_treeshaking {
       let exports_info_id = compilation
         .module_graph
         .get_exports_info(&module.identifier())
@@ -486,33 +486,40 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         .ids
         .iter()
         .filter_map(|(local, _)| {
-          // TODO: runtime opt
-          exports_info_id.get_used_name(
-            &compilation.module_graph,
-            None,
-            UsedName::Str(local.clone()),
-          )
+          exports_info_id
+            .get_used_name(
+              &compilation.module_graph,
+              runtime,
+              UsedName::Str(local.clone()),
+            )
+            .map(|item| match item {
+              UsedName::Str(str) => (local.clone(), vec![str]),
+              UsedName::Vec(strs) => (local.clone(), strs),
+            })
         })
-        .map(|item| match item {
-          UsedName::Str(name) => name,
-          UsedName::Vec(_) => todo!(),
-        })
-        .collect::<HashSet<_>>();
+        .collect::<HashMap<_, _>>();
       Some(res)
     } else if compilation.options.builtins.tree_shaking.is_true() {
       Some(
         compilation
           .module_graph
           .get_exports_info(&module.identifier())
-          .old_get_used_exports(),
+          .old_get_used_exports()
+          .into_iter()
+          .map(|item| (item.clone(), vec![item]))
+          .collect::<HashMap<_, _>>(),
       )
     } else {
       None
     };
 
-    if is_new_tree_shaking {
-      // TODO: runtime opt
-      let mode = self.get_mode(self.name.clone(), &compilation.module_graph, &self.id, None);
+    if is_new_treeshaking {
+      let mode = self.get_mode(
+        self.name.clone(),
+        &compilation.module_graph,
+        &self.id,
+        runtime,
+      );
       if !matches!(mode.ty, ExportModeType::Unused | ExportModeType::EmptyStar) {
         harmony_import_dependency_apply(self, self.source_order, code_generatable_context, &[]);
       } else {
@@ -522,7 +529,33 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
 
     let mut exports = vec![];
     for id in &self.ids {
-      if used_exports.is_none() || matches!(used_exports.as_ref(), Some(x) if x.contains(&id.0)) {
+      if let Some(used_exports) = used_exports.as_mut() {
+        let Some(item) = used_exports.remove(&id.0) else {
+          continue;
+        };
+        // in webpack, id.0 is local binding and it doesn't always equal to used name, because it
+        // maybe mangled
+        let key = if is_new_treeshaking {
+          item[0].clone()
+        } else {
+          id.0.clone()
+        };
+        // __webpack_require__.d({
+        //  'key' / *key maybe mangled**/: ${export_expr} /**value*/
+        // })
+        exports.push((
+          key,
+          JsWord::from(export_from_import(
+            code_generatable_context,
+            true,
+            &import_var,
+            id.1.clone().map(|i| vec![i]).unwrap_or_default(),
+            &self.id,
+            false,
+            false,
+          )),
+        ));
+      } else {
         exports.push((
           id.0.clone(),
           JsWord::from(export_from_import(

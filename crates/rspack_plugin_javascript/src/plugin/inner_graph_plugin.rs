@@ -7,7 +7,7 @@ use swc_core::{
   ecma::{
     ast::{
       ArrowExpr, CallExpr, Callee, Class, ClassDecl, ClassExpr, ClassMember, DefaultDecl,
-      ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr, FnDecl, FnExpr, Ident, Key,
+      ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr, FnDecl, FnExpr, Function, Ident, Key,
       MemberExpr, NamedExport, OptChainExpr, Pat, Program, Prop, PropName, VarDeclarator,
     },
     atoms::JsWord,
@@ -177,7 +177,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
         ClassMember::PrivateProp(prop) => prop.value.as_ref().map(|item| item.span()),
         ClassMember::TsIndexSignature(_) => unreachable!(),
         ClassMember::Empty(_) => None,
-        ClassMember::StaticBlock(_) => todo!(),
+        ClassMember::StaticBlock(block) => Some(block.span()),
         ClassMember::AutoAccessor(_) => todo!(),
       };
       if let Some(span) = span {
@@ -245,18 +245,19 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
 
   fn visit_fn_decl(&mut self, node: &FnDecl) {
     self.set_symbol_if_is_top_level(node.ident.sym.clone());
-    let scope_level = self.scope_level;
-    self.scope_level += 1;
-    node.function.visit_children_with(self);
-    self.scope_level = scope_level;
+    node.function.visit_with(self);
     self.clear_symbol_if_is_top_level();
   }
 
-  fn visit_fn_expr(&mut self, node: &FnExpr) {
+  fn visit_function(&mut self, node: &Function) {
     let scope_level = self.scope_level;
     self.scope_level += 1;
-    node.function.visit_children_with(self);
+    node.visit_children_with(self);
     self.scope_level = scope_level;
+  }
+
+  fn visit_fn_expr(&mut self, node: &FnExpr) {
+    node.function.visit_with(self);
   }
 
   fn visit_arrow_expr(&mut self, node: &ArrowExpr) {
@@ -392,6 +393,7 @@ impl<'a> Visit for InnerGraphPlugin<'a> {
     }
     n.visit_children_with(self)
   }
+
   fn visit_export_decl(&mut self, export_decl: &ExportDecl) {
     let rewrite_usage_span = std::mem::take(self.rewrite_usage_span);
     if let Some(ExtraSpanInfo::AddVariableUsage(usages)) = rewrite_usage_span.get(&export_decl.span)

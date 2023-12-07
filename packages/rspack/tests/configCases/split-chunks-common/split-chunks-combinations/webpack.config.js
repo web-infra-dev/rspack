@@ -10,7 +10,7 @@ module.exports = {
 	},
 	externalsType: "commonjs",
 	externals: [
-		"./~x_js~y_js.js",
+		"./x_js-y_js.js",
 		"./async-a.js",
 		"./async-b.js",
 		"./async-c.js",

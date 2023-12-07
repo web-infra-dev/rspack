@@ -14,8 +14,8 @@ function existForModule(chunk, module) {
 }
 
 it("worked", done => {
-	expect(existForModule(require("./~x_js~y_js.js"), "./x.js")).toBe(true);
-	expect(existForModule(require("./~x_js~y_js.js"), "./y.js")).toBe(true);
+	expect(existForModule(require("./x_js-y_js.js"), "./x.js")).toBe(true);
+	expect(existForModule(require("./x_js-y_js.js"), "./y.js")).toBe(true);
 
 	expect(existForModule(require("./async-a.js"), "./x.js")).toBe(false);
 	expect(existForModule(require("./async-a.js"), "./y.js")).toBe(false);

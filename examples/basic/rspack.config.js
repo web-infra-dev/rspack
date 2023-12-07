@@ -6,6 +6,9 @@ const config = {
 		new rspack.HtmlRspackPlugin({
 			template: "./index.html"
 		})
-	]
+	],
+	builtins: {
+		noEmitAssets: true
+	}
 };
 module.exports = config;

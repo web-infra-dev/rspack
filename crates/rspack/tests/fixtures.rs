@@ -2,9 +2,13 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 
 use cargo_rst::git_diff;
-use rspack_core::{BoxPlugin, CompilerOptions, TreeShaking, UsedExportsOption, IS_NEW_TREESHAKING};
+use rspack_core::{
+  BoxPlugin, CompilerOptions, MangleExportsOption, PluginExt, TreeShaking, UsedExportsOption,
+  IS_NEW_TREESHAKING,
+};
 use rspack_plugin_javascript::{
-  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, SideEffectsFlagPlugin,
+  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, MangleExportsPlugin,
+  SideEffectsFlagPlugin,
 };
 use rspack_testing::test_fixture;
 use testing_macros::fixture;
@@ -18,7 +22,24 @@ fn rspack(fixture_path: PathBuf) {
 fn samples(fixture_path: PathBuf) {
   test_fixture(
     fixture_path.parent().expect("should exist"),
-    Box::new(|_, _| {}),
+    Box::new(
+      |plugins: &mut Vec<BoxPlugin>, options: &mut CompilerOptions| {
+        options.experiments.rspack_future.new_treeshaking = true;
+        options.optimization.provided_exports = true;
+        options.optimization.used_exports = UsedExportsOption::Global;
+        plugins.push(Box::<FlagDependencyExportsPlugin>::default());
+        plugins.push(Box::<FlagDependencyUsagePlugin>::default());
+        if options.optimization.mangle_exports.is_enable() {
+          plugins.push(
+            MangleExportsPlugin::new(!matches!(
+              options.optimization.mangle_exports,
+              MangleExportsOption::Size
+            ))
+            .boxed(),
+          );
+        }
+      },
+    ),
     None,
   );
 }

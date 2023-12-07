@@ -49,15 +49,15 @@ runs:
         find $cache_dir -type d -maxdepth 1 -mindepth 1 -cmin +180 | xargs rm -rf
 
         # save file
-        save_dir="$cache_dir/${{ github.repository_id }}-${{ github.run_id }}-${{ inputs.name }}"
+        save_dir="$cache_dir/${{ github.repository_id }}-${{ github.sha }}-${{ inputs.name }}"
         rm -rf $save_dir
         mkdir $save_dir
         if [ "${{ inputs.mv-when-local }}" = "true" ]; then
-          mv ${{ inputs.path }} $save_dir
-          echo "mv ${{ inputs.path }} $save_dir"
+          mv -f ${{ inputs.path }} $save_dir
+          echo "mv -f ${{ inputs.path }} $save_dir"
         else
-          cp -r ${{ inputs.path }} $save_dir
-          echo "cp -r ${{ inputs.path }} $save_dir"
+          cp -rf ${{ inputs.path }} $save_dir
+          echo "cp -rf ${{ inputs.path }} $save_dir"
         fi
 
         # TODO echo machine name as runner labels

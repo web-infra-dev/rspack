@@ -1,15 +1,17 @@
-use std::path::PathBuf;
+use std::{fmt::Debug, path::PathBuf};
 
 use rspack_error::{Result, TWithDiagnosticArray};
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{BoxDependency, BoxModule, Context, FactoryMeta, Resolve};
+use crate::{BoxDependency, BoxModule, Context, FactoryMeta, ModuleIdentifier, Resolve};
 
 #[derive(Debug)]
 pub struct ModuleFactoryCreateData {
   pub resolve_options: Option<Box<Resolve>>,
   pub context: Context,
   pub dependency: BoxDependency,
+  pub issuer: Option<Box<str>>,
+  pub issuer_identifier: Option<ModuleIdentifier>,
 }
 
 #[derive(Debug)]
@@ -78,9 +80,9 @@ impl ModuleFactoryResult {
 }
 
 #[async_trait::async_trait]
-pub trait ModuleFactory {
+pub trait ModuleFactory: Debug + Sync + Send {
   async fn create(
-    mut self,
+    &self,
     data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>>;
 }

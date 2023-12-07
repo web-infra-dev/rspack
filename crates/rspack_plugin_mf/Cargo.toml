@@ -1,0 +1,25 @@
+[package]
+edition    = "2021"
+license    = "MIT"
+name       = "rspack_plugin_mf"
+repository = "https://github.com/web-infra-dev/rspack"
+version    = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rspack_core          = { path = "../rspack_core" }
+rspack_error         = { path = "../rspack_error" }
+rspack_hash          = { path = "../rspack_hash" }
+rspack_identifier    = { path = "../rspack_identifier" }
+rspack_loader_runner = { path = "../rspack_loader_runner" }
+
+async-trait = { workspace = true }
+hashlink    = { workspace = true }
+itertools   = { workspace = true }
+once_cell   = { workspace = true }
+regex       = { workspace = true }
+rustc-hash  = { workspace = true }
+serde       = { workspace = true }
+serde_json  = { workspace = true }
+tokio       = { workspace = true, features = ["rt"] }

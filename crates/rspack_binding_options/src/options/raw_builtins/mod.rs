@@ -12,15 +12,7 @@ use napi::{
   JsUnknown,
 };
 use napi_derive::napi;
-use rspack_core::{
-  mf::{
-    consume_shared_plugin::ConsumeSharedPlugin, container_plugin::ContainerPlugin,
-    container_reference_plugin::ContainerReferencePlugin,
-    module_federation_runtime_plugin::ModuleFederationRuntimePlugin,
-    provide_shared_plugin::ProvideSharedPlugin,
-  },
-  BoxPlugin, Define, DefinePlugin, PluginExt, Provide, ProvidePlugin,
-};
+use rspack_core::{BoxPlugin, Define, DefinePlugin, PluginExt, Provide, ProvidePlugin};
 use rspack_error::Result;
 use rspack_napi_shared::NapiResultExt;
 use rspack_plugin_banner::BannerPlugin;
@@ -34,6 +26,10 @@ use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_library::enable_library_plugin;
 use rspack_plugin_limit_chunk_count::LimitChunkCountPlugin;
 use rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin;
+use rspack_plugin_mf::{
+  ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ModuleFederationRuntimePlugin,
+  ProvideSharedPlugin,
+};
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_runtime::{
   enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, CommonJsChunkFormatPlugin,
@@ -43,6 +39,7 @@ use rspack_plugin_swc_css_minimizer::SwcCssMinimizerRspackPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 use rspack_plugin_wasm::enable_wasm_loading_plugin;
 use rspack_plugin_web_worker_template::web_worker_template_plugin;
+use rspack_plugin_worker::WorkerPlugin;
 
 use self::raw_mf::{RawConsumeOptions, RawContainerReferencePluginOptions, RawProvideOptions};
 pub use self::{
@@ -76,6 +73,7 @@ pub enum BuiltinPluginName {
   ModuleChunkFormatPlugin,
   HotModuleReplacementPlugin,
   LimitChunkCountPlugin,
+  WorkerPlugin,
   WebWorkerTemplatePlugin,
   MergeDuplicateChunksPlugin,
   SplitChunksPlugin,
@@ -184,6 +182,9 @@ impl RawOptionsApply for BuiltinPlugin {
         )
         .boxed();
         plugins.push(plugin);
+      }
+      BuiltinPluginName::WorkerPlugin => {
+        plugins.push(WorkerPlugin.boxed());
       }
       BuiltinPluginName::WebWorkerTemplatePlugin => {
         web_worker_template_plugin(plugins);

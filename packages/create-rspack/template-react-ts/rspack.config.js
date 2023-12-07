@@ -57,6 +57,6 @@ module.exports = {
 		new rspack.HtmlRspackPlugin({
 			template: "./index.html"
 		}),
-		new refreshPlugin()
-	]
+		isDev ? new refreshPlugin() : null
+	].filter(Boolean)
 };
