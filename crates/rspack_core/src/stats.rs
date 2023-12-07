@@ -302,7 +302,6 @@ impl Stats<'_> {
       .compilation
       .get_errors()
       .map(|d| StatsError {
-        title: d.title().to_string(),
         message: format!(
           "{message}\n{labels}",
           message = d.message(),
@@ -618,7 +617,6 @@ fn get_stats_module_name_and_id(
 pub struct StatsError {
   pub message: String,
   pub formatted: String,
-  pub title: String,
 }
 
 #[derive(Debug)]

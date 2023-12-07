@@ -3,7 +3,7 @@ source: crates/rspack_error/tests/fixtures.rs
 expression: multiple_file_syntax_error
 ---
   × Error[javascript]: JavaScript parsing error
-   ╭─[tests/out_of_order/multiple_file_syntax_error/g.js:1:1]
+   ╭─[tests/out_of_order/multiple_file_syntax_error/a.js:1:1]
  1 │ const CONST = 9000 % 2;
  2 │ const  D {
    ·          ┬
