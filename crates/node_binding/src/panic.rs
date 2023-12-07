@@ -55,7 +55,9 @@ pub fn install_panic_handler() {
     #[cfg(debug_assertions)]
     {
       use rspack_core::debug_info::DEBUG_INFO;
-      eprintln!("{}", DEBUG_INFO.lock().unwrap());
+      if let Ok(info) = DEBUG_INFO.lock() {
+        eprintln!("{}", info);
+      }
     }
     panic_handler(panic);
   }))

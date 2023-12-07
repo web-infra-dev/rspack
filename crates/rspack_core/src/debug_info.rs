@@ -26,7 +26,7 @@ macro_rules! write_debug_info {
       let e = format!("\u{001b}[1m\u{001b}[33m{tt}\u{001b}[0m: {e}");
       writeln!($f, "{}", e)?;
     } else {
-      let e = format!("{tt}: <empty>");
+      let e = format!("\u{001b}[1m\u{001b}[33m{tt}\u{001b}[0m: <empty>");
       writeln!($f, "{}", e)?;
     }
   };
