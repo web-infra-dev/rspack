@@ -768,6 +768,7 @@ impl ContextModule {
       resolve_to_context: false,
       dependency_category: self.options.context_options.category,
     });
+
     let mut context_element_dependencies = vec![];
     Self::visit_dirs(
       &self.options.resource,
