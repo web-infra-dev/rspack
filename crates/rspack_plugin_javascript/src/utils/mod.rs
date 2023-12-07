@@ -111,7 +111,7 @@ impl From<Vec<swc_core::ecma::parser::error::Error>> for EcmaErrorsDeduped {
     Self(
       value
         .into_iter()
-        .map(|v| EcmaError(v.kind().msg().to_string(), v.span().into()))
+        .map(|v| EcmaError(v.kind().msg().to_string(), v.span()))
         .collect::<HashSet<_>>()
         .into_iter()
         .collect::<Vec<_>>(),
