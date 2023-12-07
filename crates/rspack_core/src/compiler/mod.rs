@@ -19,16 +19,15 @@ use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::JsWord;
 use tracing::instrument;
 
+use crate::cache::Cache;
 use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
 use crate::tree_shaking::visitor::SymbolRef;
 use crate::{
-  cache::Cache, fast_set, AssetEmittedArgs, CompilerOptions, Logger, Plugin, PluginDriver,
-  ResolverFactory, SharedPluginDriver,
+  fast_set, AssetEmittedArgs, CompilerOptions, Logger, PluginDriver, ResolverFactory,
+  SharedPluginDriver,
 };
-use crate::{
-  CompilationParams, ContextModuleFactory, ExportInfo, NormalModuleFactory, UsageState,
-  IS_NEW_TREESHAKING,
-};
+use crate::{BoxPlugin, ExportInfo, UsageState, IS_NEW_TREESHAKING};
+use crate::{CompilationParams, ContextModuleFactory, NormalModuleFactory};
 
 #[derive(Debug)]
 pub struct Compiler<T>
@@ -52,11 +51,7 @@ where
   T: AsyncWritableFileSystem + Send + Sync,
 {
   #[instrument(skip_all)]
-  pub fn new(
-    options: CompilerOptions,
-    plugins: Vec<Box<dyn Plugin>>,
-    output_filesystem: T,
-  ) -> Self {
+  pub fn new(options: CompilerOptions, plugins: Vec<BoxPlugin>, output_filesystem: T) -> Self {
     let new_resolver = options.experiments.rspack_future.new_resolver;
     let resolver_factory = Arc::new(ResolverFactory::new(new_resolver, options.resolve.clone()));
     let loader_resolver_factory = Arc::new(ResolverFactory::new(
