@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::anyhow;
 use itertools::Itertools;
 use rspack_error::{internal_error, Result};
@@ -12,6 +14,17 @@ use crate::{
   IS_NEW_TREESHAKING,
 };
 
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+struct OptionalRuntimeSpec(pub Vec<Arc<str>>);
+
+impl From<Option<RuntimeSpec>> for OptionalRuntimeSpec {
+  fn from(value: Option<RuntimeSpec>) -> Self {
+    let mut vec = value.unwrap_or_default().into_iter().collect::<Vec<_>>();
+    vec.sort();
+    Self(vec)
+  }
+}
+
 pub(super) struct CodeSplitter<'me> {
   pub(super) compilation: &'me mut Compilation,
   next_free_module_pre_order_index: u32,
@@ -24,7 +37,8 @@ pub(super) struct CodeSplitter<'me> {
   block_chunk_groups: HashMap<AsyncDependenciesBlockIdentifier, ChunkGroupUkey>,
   named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   named_async_entrypoints: HashMap<String, ChunkGroupUkey>,
-  block_modules_map: HashMap<DependenciesBlockIdentifier, Vec<ModuleIdentifier>>,
+  block_modules_runtime_map:
+    HashMap<OptionalRuntimeSpec, HashMap<DependenciesBlockIdentifier, Vec<ModuleIdentifier>>>,
   pub(super) remove_parent_modules_context: RemoveParentModulesContext,
 }
 
@@ -52,7 +66,7 @@ impl<'me> CodeSplitter<'me> {
       block_chunk_groups: Default::default(),
       named_chunk_groups: Default::default(),
       named_async_entrypoints: Default::default(),
-      block_modules_map: Default::default(),
+      block_modules_runtime_map: Default::default(),
       remove_parent_modules_context: Default::default(),
     }
   }
@@ -450,7 +464,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn process_entry_block(&mut self, item: &ProcessEntryBlock) {
     tracing::trace!("process_entry_block {:?}", item);
-    let modules = self.get_block_modules(item.block.into());
+    let chunk_group = self
+      .compilation
+      .chunk_group_by_ukey
+      .expect_get(&item.chunk_group);
+
+    let runtime = chunk_group.info.runtime.clone();
+    let modules = self.get_block_modules(item.block.into(), Some(&runtime));
     for module in modules {
       self.queue.push(QueueAction::AddAndEnterEntryModule(
         AddAndEnterEntryModule {
@@ -474,7 +494,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn process_block(&mut self, item: &ProcessBlock) {
     tracing::trace!("process_block {:?}", item);
-    let modules = self.get_block_modules(item.block);
+    let item_chunk_group = self
+      .compilation
+      .chunk_group_by_ukey
+      .expect_get(&item.chunk_group);
+    let runtime = item_chunk_group.info.runtime.clone();
+    let modules = self.get_block_modules(item.block, Some(&runtime));
     for module in modules.into_iter().rev() {
       if self
         .compilation
@@ -728,22 +753,39 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
   }
 
-  fn get_block_modules(&mut self, module: DependenciesBlockIdentifier) -> Vec<ModuleIdentifier> {
-    if let Some(modules) = self.block_modules_map.get(&module) {
+  fn get_block_modules(
+    &mut self,
+    module: DependenciesBlockIdentifier,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ModuleIdentifier> {
+    if let Some(modules) = self
+      .block_modules_runtime_map
+      .get(&runtime.cloned().into())
+      .and_then(|map| map.get(&module))
+    {
       return modules.clone();
     }
-    self.extract_block_modules(*module.as_module().expect(
-      "block_modules_map must not empty when calling get_block_modules(AsyncDependenciesBlock)",
-    ));
+    // dbg!(&module, &runtime);
+    self.extract_block_modules(
+      *module.get_root_block().expect(
+        "block_modules_map must not empty when calling get_block_modules(AsyncDependenciesBlock)",
+      ),
+      runtime,
+    );
     self
-      .block_modules_map
-      .get(&module)
+      .block_modules_runtime_map
+      .get(&runtime.cloned().into())
+      .and_then(|map| map.get(&module))
       .expect("block_modules_map.get(module) must not empty after extract_block_modules")
       .clone()
   }
 
-  fn extract_block_modules(&mut self, module: ModuleIdentifier) {
-    self.block_modules_map.insert(module.into(), Vec::new());
+  fn extract_block_modules(&mut self, module: ModuleIdentifier, runtime: Option<&RuntimeSpec>) {
+    self
+      .block_modules_runtime_map
+      .entry(runtime.cloned().into())
+      .or_default()
+      .insert(module.into(), Vec::new());
     let dependencies: Vec<&BoxDependency> =
       if IS_NEW_TREESHAKING.load(std::sync::atomic::Ordering::Relaxed) {
         let mgm = self
@@ -755,8 +797,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .outgoing_connections_unordered(&self.compilation.module_graph)
           .expect("should have outgoing connections")
           .filter_map(|con: &ModuleGraphConnection| {
-            // TODO: runtime opt
-            let active_state = con.get_active_state(&self.compilation.module_graph, None);
+            let active_state = con.get_active_state(&self.compilation.module_graph, runtime);
             match active_state {
               crate::ConnectionState::Bool(false) => None,
               _ => Some(con.dependency_id),
@@ -787,7 +828,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       } else {
         module.into()
       };
-      let modules = self.block_modules_map.entry(block_id).or_default();
+      let modules = self
+        .block_modules_runtime_map
+        .entry(runtime.cloned().into())
+        .or_default()
+        .entry(block_id)
+        .or_default();
       modules.push(
         *self
           .compilation
@@ -891,10 +937,11 @@ enum DependenciesBlockIdentifier {
 }
 
 impl DependenciesBlockIdentifier {
-  pub fn as_module(&self) -> Option<&ModuleIdentifier> {
+  // hack for webpack get_root_block, refer TODO: https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/buildChunkGraph.js#L222
+  pub fn get_root_block(&self) -> Option<&ModuleIdentifier> {
     match self {
       DependenciesBlockIdentifier::Module(m) => Some(m),
-      DependenciesBlockIdentifier::AsyncDependenciesBlock(_) => None,
+      DependenciesBlockIdentifier::AsyncDependenciesBlock(ident) => Some(&ident.from),
     }
   }
 }

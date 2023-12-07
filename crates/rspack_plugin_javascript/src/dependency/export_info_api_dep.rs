@@ -42,6 +42,7 @@ impl ExportInfoApiDependency {
     let TemplateContext {
       compilation,
       module,
+      runtime,
       ..
     } = context;
     let export_name = &self.export_name;
@@ -61,7 +62,11 @@ impl ExportInfoApiDependency {
           let info_id = exports_info.exports.get(export_name)?;
           let export_info = compilation.module_graph.export_info_map.get(info_id)?;
           if compilation.options.is_new_tree_shaking() {
-            export_info.global_used
+            Some(exports_info.get_used(
+              rspack_core::UsedName::Str(export_name.clone()),
+              *runtime,
+              &compilation.module_graph,
+            ))
           } else {
             Some(export_info.usage_state)
           }

@@ -66,6 +66,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
 ) {
   let compilation = &code_generatable_context.compilation;
   let module = &code_generatable_context.module;
+  let runtime = code_generatable_context.runtime;
   let ref_mgm = compilation
     .module_graph
     .module_graph_module_by_dependency_id(module_dependency.id())
@@ -75,17 +76,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
       .module_graph
       .connection_by_dependency(module_dependency.id());
     if let Some(con) = connection {
-      // TODO: runtime opt
-      // dbg!(
-      //   &con,
-      //   &ret,
-      //   &compilation
-      //     .module_graph
-      //     .dependency_by_id(&con.dependency_id)
-      //     .and_then(|item| item.as_module_dependency())
-      //     .map(|item| item.dependency_debug_name())
-      // );
-      con.is_target_active(&compilation.module_graph, None)
+      con.is_target_active(&compilation.module_graph, runtime)
     } else {
       true
     }

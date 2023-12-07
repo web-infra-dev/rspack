@@ -26,7 +26,7 @@ fn samples(fixture_path: PathBuf) {
       |plugins: &mut Vec<BoxPlugin>, options: &mut CompilerOptions| {
         options.experiments.rspack_future.new_treeshaking = true;
         options.optimization.provided_exports = true;
-        options.optimization.used_exports = UsedExportsOption::True;
+        options.optimization.used_exports = UsedExportsOption::Global;
         plugins.push(Box::<FlagDependencyExportsPlugin>::default());
         plugins.push(Box::<FlagDependencyUsagePlugin>::default());
         if options.optimization.mangle_exports.is_enable() {
