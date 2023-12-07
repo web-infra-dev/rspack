@@ -4,14 +4,12 @@ use dashmap::DashMap;
 use rustc_hash::FxHasher;
 
 use super::resolver_impl::Resolver;
-use crate::DependencyType;
 use crate::{DependencyCategory, Resolve};
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub struct ResolveOptionsWithDependencyType {
   pub resolve_options: Option<Box<Resolve>>,
   pub resolve_to_context: bool,
-  pub dependency_type: DependencyType,
   pub dependency_category: DependencyCategory,
 }
 
