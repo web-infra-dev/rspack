@@ -1,5 +1,6 @@
 #![feature(let_chains)]
 use json::{
+  number::Number,
   object::Object,
   Error::{
     ExceededDepthLimit, FailedUtf8Parsing, UnexpectedCharacter, UnexpectedEndOfJson, WrongType,
@@ -7,7 +8,6 @@ use json::{
   JsonValue,
 };
 use rspack_core::{
-  async_module_factory,
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
   BuildMetaDefaultObject, BuildMetaExportsType, CompilerOptions, ExportsInfo, GenerateContext,
   Module, ModuleGraph, ParserAndGenerator, Plugin, RuntimeGlobals, RuntimeSpec, SourceType,
@@ -128,17 +128,14 @@ impl ParserAndGenerator for JsonParserAndGenerator {
   #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
-    source: &BoxSource,
+    _source: &BoxSource,
     module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource> {
     let GenerateContext {
       compilation,
-      module_generator_options,
-      runtime_requirements,
-      data,
-      requested_source_type,
       runtime,
+      ..
     } = generate_context;
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
@@ -162,7 +159,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           json::JsonValue::Object(_) | json::JsonValue::Array(_)
             if exports_info
               .other_exports_info
-              // TODO: runtime opt
               .get_export_info(&compilation.module_graph)
               .get_used(*runtime)
               == UsageState::Unused =>
@@ -246,8 +242,7 @@ fn create_object_for_exports_info(
           let exports_info = mg.get_exports_info_by_id(&exports_info_id);
           // avoid clone
           let temp = std::mem::replace(value, JsonValue::Null);
-          let ret = create_object_for_exports_info(temp, exports_info, runtime, mg);
-          ret
+          create_object_for_exports_info(temp, exports_info, runtime, mg)
         } else {
           std::mem::replace(value, JsonValue::Null)
         };
@@ -262,11 +257,13 @@ fn create_object_for_exports_info(
       }
       JsonValue::Object(new_obj)
     }
-    JsonValue::Array(arr) => JsonValue::Array(
-      arr
+    JsonValue::Array(arr) => {
+      let original_len = arr.len();
+      let mut max_used_index = 0;
+      let mut ret = arr
         .into_iter()
         .enumerate()
-        .filter_map(|(i, item)| {
+        .map(|(i, item)| {
           let export_info = exports_info
             .id
             .get_read_only_export_info(&format!("{i}").into(), mg);
@@ -274,6 +271,7 @@ fn create_object_for_exports_info(
           if used == UsageState::Unused {
             return None;
           }
+          max_used_index = max_used_index.max(i);
           if used == UsageState::OnlyPropertiesUsed
             && let Some(exports_info_id) = export_info.exports_info
           {
@@ -288,7 +286,26 @@ fn create_object_for_exports_info(
             Some(item)
           }
         })
-        .collect::<Vec<_>>(),
-    ),
+        .collect::<Vec<_>>();
+      let arr_length_used = exports_info
+        .id
+        .get_read_only_export_info(&"length".into(), mg)
+        .get_used(runtime);
+      let array_length_when_used = match arr_length_used {
+        UsageState::Unused => None,
+        _ => Some(original_len),
+      };
+      let used_length = if let Some(array_length_when_used) = array_length_when_used {
+        array_length_when_used
+      } else {
+        max_used_index + 1
+      };
+      ret.drain(used_length..);
+      let normalized_ret = ret
+        .into_iter()
+        .map(|item| item.unwrap_or(JsonValue::Number(Number::from(0))))
+        .collect::<Vec<_>>();
+      JsonValue::Array(normalized_ret)
+    }
   }
 }
