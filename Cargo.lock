@@ -3106,9 +3106,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "indexmap 1.9.3",
  "itertools",
  "once_cell",
  "rayon",
+ "regex",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
