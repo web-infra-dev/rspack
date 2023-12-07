@@ -77,6 +77,10 @@ impl SplitChunksPlugin {
         .chunk_reasons
         .push(["(cache group: ", cache_group.key.as_str(), ")"].join(""));
 
+      if let Some(filename) = &cache_group.filename {
+        new_chunk_mut.filename_template = Some(filename.clone());
+      }
+
       new_chunk_mut
         .id_name_hints
         .insert(cache_group.id_hint.clone());
@@ -113,6 +117,7 @@ impl SplitChunksPlugin {
             min_size: cache_group.min_size.clone(),
             max_async_size: cache_group.max_async_size.clone(),
             max_initial_size: cache_group.max_initial_size.clone(),
+            automatic_name_delimiter: cache_group.automatic_name_delimiter.clone(),
           },
         );
       }
@@ -170,4 +175,5 @@ struct MaxSizeSetting {
   pub min_size: SplitChunkSizes,
   pub max_async_size: SplitChunkSizes,
   pub max_initial_size: SplitChunkSizes,
+  pub automatic_name_delimiter: String,
 }

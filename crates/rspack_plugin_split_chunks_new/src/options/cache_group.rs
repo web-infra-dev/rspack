@@ -1,4 +1,5 @@
 use derivative::Derivative;
+use rspack_core::Filename;
 
 use super::cache_group_test::CacheGroupTest;
 use super::chunk_name::ChunkNameGetter;
@@ -37,4 +38,6 @@ pub struct CacheGroup {
   pub max_async_requests: u32,
   pub max_async_size: SplitChunkSizes,
   pub max_initial_size: SplitChunkSizes,
+  pub filename: Option<Filename>,
+  pub automatic_name_delimiter: String,
 }

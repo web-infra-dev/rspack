@@ -584,10 +584,12 @@ export interface RawCacheGroupOptions {
   key: string
   priority?: number
   test?: RegExp | string | Function
+  filename?: string
   idHint?: string
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
   type?: RegExp | string
+  automaticNameDelimiter?: string
   minChunks?: number
   minSize?: number
   maxSize?: number
@@ -757,6 +759,7 @@ export interface RawFallbackCacheGroupOptions {
   maxSize?: number
   maxAsyncSize?: number
   maxInitialSize?: number
+  automaticNameDelimiter?: string
 }
 
 export interface RawFuncUseCtx {
@@ -1126,6 +1129,7 @@ export interface RawSplitChunksOptions {
   cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
+  automaticNameDelimiter?: string
   maxAsyncRequests?: number
   maxInitialRequests?: number
   minChunks?: number
