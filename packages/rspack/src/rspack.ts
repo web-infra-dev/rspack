@@ -70,11 +70,9 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 		for (const plugin of options.plugins) {
 			if (typeof plugin === "function") {
 				(plugin as RspackPluginFunction).call(compiler, compiler);
-			}
-			else if (typeof plugin === 'boolean') {
+			} else if (typeof plugin === "boolean") {
 				continue;
-			}
-			else {
+			} else {
 				plugin.apply(compiler);
 			}
 		}
@@ -152,8 +150,10 @@ function rspack(
 	} else {
 		const { compiler, watch } = create();
 		if (watch) {
-			util.deprecate(() => { },
-				"A 'callback' argument needs to be provided to the 'rspack(options, callback)' function when the 'watch' option is set. There is no way to handle the 'watch' option without a callback.")();
+			util.deprecate(
+				() => {},
+				"A 'callback' argument needs to be provided to the 'rspack(options, callback)' function when the 'watch' option is set. There is no way to handle the 'watch' option without a callback."
+			)();
 		}
 		return compiler;
 	}
