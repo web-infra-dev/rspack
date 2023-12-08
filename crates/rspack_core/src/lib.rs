@@ -120,6 +120,28 @@ impl std::fmt::Display for SourceType {
   }
 }
 
+impl TryFrom<&str> for SourceType {
+  type Error = rspack_error::Error;
+
+  fn try_from(value: &str) -> Result<Self, Self::Error> {
+    match value {
+      "javascript" => Ok(Self::JavaScript),
+      "css" => Ok(Self::Css),
+      "wasm" => Ok(Self::Wasm),
+      "asset" => Ok(Self::Asset),
+      "remote" => Ok(Self::Remote),
+      "share-init" => Ok(Self::ShareInit),
+      "consume-shared" => Ok(Self::ConsumeShared),
+      "unknown" => Ok(Self::Unknown),
+
+      _ => {
+        use rspack_error::internal_error;
+        Err(internal_error!("invalid source type: {value}"))
+      }
+    }
+  }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ModuleType {
   Json,

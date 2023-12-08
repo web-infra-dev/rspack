@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use napi_derive::napi;
 use rspack_core::{Chunk, ChunkAssetArgs, ChunkUkey, Compilation};
 
-use crate::{JsCompilation, JsModule, ToJsModule};
+use crate::JsCompilation;
 
 #[napi(object)]
 pub struct JsChunk {
@@ -117,32 +117,37 @@ pub fn has_runtime(js_chunk_ukey: u32, compilation: &JsCompilation) -> bool {
   chunk.has_runtime(&compilation.chunk_group_by_ukey)
 }
 
-#[napi(js_name = "__chunk_inner_get_chunk_modules")]
-pub fn get_chunk_modules(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<JsModule> {
+#[napi(js_name = "__chunk_inner_get_all_async_chunks")]
+pub fn get_all_async_chunks(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<JsChunk> {
   let compilation = &compilation.inner;
-  let modules = compilation.chunk_graph.get_chunk_modules(
-    &ChunkUkey::from(js_chunk_ukey as usize),
-    &compilation.module_graph,
-  );
-
-  return modules
-    .iter()
-    .filter_map(|module| module.to_js_module().ok())
-    .collect::<Vec<_>>();
+  let chunk = chunk(js_chunk_ukey, compilation);
+  chunk
+    .get_all_async_chunks(&compilation.chunk_group_by_ukey)
+    .into_iter()
+    .map(|c| JsChunk::from(compilation.chunk_by_ukey.expect_get(&c)))
+    .collect()
 }
 
-#[napi(js_name = "__chunk_inner_get_chunk_entry_modules")]
-pub fn get_chunk_entry_modules(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<JsModule> {
+#[napi(js_name = "__chunk_inner_get_all_initial_chunks")]
+pub fn get_all_initial_chunks(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<JsChunk> {
   let compilation = &compilation.inner;
-  let modules = compilation
-    .chunk_graph
-    .get_chunk_entry_modules(&ChunkUkey::from(js_chunk_ukey as usize));
+  let chunk = chunk(js_chunk_ukey, compilation);
+  chunk
+    .get_all_initial_chunks(&compilation.chunk_group_by_ukey)
+    .into_iter()
+    .map(|c| JsChunk::from(compilation.chunk_by_ukey.expect_get(&c)))
+    .collect()
+}
 
-  return modules
-    .iter()
-    .filter_map(|module| compilation.module_graph.module_by_identifier(module))
-    .filter_map(|module| module.to_js_module().ok())
-    .collect::<Vec<_>>();
+#[napi(js_name = "__chunk_inner_get_all_referenced_chunks")]
+pub fn get_all_referenced_chunks(js_chunk_ukey: u32, compilation: &JsCompilation) -> Vec<JsChunk> {
+  let compilation = &compilation.inner;
+  let chunk = chunk(js_chunk_ukey, compilation);
+  chunk
+    .get_all_referenced_chunks(&compilation.chunk_group_by_ukey)
+    .into_iter()
+    .map(|c| JsChunk::from(compilation.chunk_by_ukey.expect_get(&c)))
+    .collect()
 }
 
 #[napi(object)]
