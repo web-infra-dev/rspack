@@ -124,6 +124,7 @@ function createDiffProcessor(config: IDiffProcessorOptions) {
 		ignorePropertyQuotationMark: config.ignorePropertyQuotationMark ?? true,
 		ignoreBlockOnlyStatement: config.ignoreBlockOnlyStatement ?? true,
 		ignoreSwcHelpersPath: config.ignoreSwcHelpersPath ?? true,
+		ignoreObjectPropertySequence: config.ignoreObjectPropertySequence ?? true,
 		onCompareModules: createCompareResultHandler("modules"),
 		onCompareRuntimeModules: createCompareResultHandler("runtimeModules")
 	});

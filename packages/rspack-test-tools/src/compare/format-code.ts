@@ -11,6 +11,7 @@ export interface IFormatCodeOptions {
 	ignoreModuleArguments: boolean;
 	ignoreBlockOnlyStatement: boolean;
 	ignoreSwcHelpersPath: boolean;
+	ignoreObjectPropertySequence: boolean;
 }
 
 const SWC_HELPER_PATH_REG =
@@ -63,6 +64,40 @@ export function formatCode(raw: string, options: IFormatCodeOptions) {
 				if (body.isBlockStatement() && body.node.body.length === 1) {
 					body.replaceWith(body.node.body[0]);
 				}
+			}
+		},
+		ObjectExpression(path) {
+			if (options.ignoreObjectPropertySequence) {
+				let result = [];
+				let safe = [];
+				while (path.node.properties.length || safe.length) {
+					const cur = path.node.properties.shift()!;
+					if (cur && T.isObjectProperty(cur)) {
+						if (T.isIdentifier(cur.key)) {
+							safe.push({
+								name: cur.key.name,
+								node: cur
+							});
+							continue;
+						}
+						if (T.isStringLiteral(cur.key)) {
+							safe.push({
+								name: cur.key.value,
+								node: cur
+							});
+							continue;
+						}
+					}
+					if (safe.length) {
+						safe.sort((a, b) => (a.name > b.name ? 1 : -1));
+						result.push(...safe.map(n => n.node));
+						safe = [];
+					}
+					if (cur) {
+						result.push(cur);
+					}
+				}
+				path.node.properties = result;
 			}
 		}
 	});

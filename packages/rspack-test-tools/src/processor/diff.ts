@@ -202,6 +202,7 @@ export class DiffProcessor implements ITestProcessor {
 			ignorePropertyQuotationMark: this.options.ignorePropertyQuotationMark,
 			ignoreBlockOnlyStatement: this.options.ignoreBlockOnlyStatement,
 			ignoreSwcHelpersPath: this.options.ignoreSwcHelpersPath,
+			ignoreObjectPropertySequence: this.options.ignoreObjectPropertySequence,
 			replacements: this.options.replacements || {}
 		};
 		for (let hash of this.hashes) {
