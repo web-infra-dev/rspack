@@ -12,7 +12,7 @@ console.log(_json_json__WEBPACK_IMPORTED_MODULE_0__);
 }),
 "./json.json": (function (module, exports, __webpack_require__) {
 "use strict";
-module.exports = {"hello":"world"}}),
+module.exports = JSON.parse('{"hello":"world is better \'"}')}),
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

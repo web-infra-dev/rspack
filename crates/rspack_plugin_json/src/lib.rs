@@ -1,4 +1,6 @@
 #![feature(let_chains)]
+use std::borrow::Cow;
+
 use json::{
   number::Number,
   object::Object,
@@ -172,15 +174,15 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           }
           _ => json_data.clone(),
         };
-
-        let json_expr = final_json.to_string();
-        Ok(
-          RawSource::from(format!(
-            r#"module.exports = {}"#,
-            utils::escape_json(&json_expr)
-          ))
-          .boxed(),
-        )
+        let is_js_object = final_json.is_object() || final_json.is_array();
+        let final_json_string = final_json.to_string();
+        let json_str = utils::escape_json(&final_json_string);
+        let json_expr = if is_js_object && json_str.len() > 20 {
+          Cow::Owned(format!("JSON.parse('{}')", json_str.replace("'", r#"\'"#)))
+        } else {
+          json_str
+        };
+        Ok(RawSource::from(format!(r#"module.exports = {}"#, json_expr)).boxed())
       }
       _ => Err(internal_error!(format!(
         "Unsupported source type {:?} for plugin Json",
