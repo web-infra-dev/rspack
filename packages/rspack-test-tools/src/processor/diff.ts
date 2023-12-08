@@ -163,6 +163,10 @@ export class DiffProcessor implements ITestProcessor {
 						},
 						path: dist
 					},
+					optimization: {
+						mangleExports: false,
+						concatenateModules: false
+					},
 					plugins: [createModulePlaceholderPlugin(this.options.webpackPath)]
 				},
 				{
@@ -176,6 +180,9 @@ export class DiffProcessor implements ITestProcessor {
 				{
 					output: {
 						path: dist
+					},
+					optimization: {
+						mangleExports: false
 					},
 					experiments: {
 						rspackFuture: {
@@ -193,6 +200,10 @@ export class DiffProcessor implements ITestProcessor {
 			ignoreModuleArguments: this.options.ignoreModuleArguments,
 			ignoreModuleId: this.options.ignoreModuleId,
 			ignorePropertyQuotationMark: this.options.ignorePropertyQuotationMark,
+			ignoreBlockOnlyStatement: this.options.ignoreBlockOnlyStatement,
+			ignoreSwcHelpersPath: this.options.ignoreSwcHelpersPath,
+			ignoreObjectPropertySequence: this.options.ignoreObjectPropertySequence,
+			ignoreCssFilePath: this.options.ignoreCssFilePath,
 			replacements: this.options.replacements || {}
 		};
 		for (let hash of this.hashes) {

@@ -1,6 +1,14 @@
 import { TreeDataType } from "@arco-design/web-react/es/Tree/interface";
 import { ECompareResultType } from "../../src/type";
 
+const DIFF_TYPE_COLOR = {
+	[ECompareResultType.Same]: "#00B42A",
+	[ECompareResultType.Missing]: "#86909C",
+	[ECompareResultType.OnlyDist]: "#CB272D",
+	[ECompareResultType.OnlySource]: "#CB272D",
+	[ECompareResultType.Different]: "#F77234",
+};
+
 export const generateTreeData = (
 	root: string,
 	rawData: Array<{
@@ -26,7 +34,10 @@ export const generateTreeData = (
 				const fileMeta: TreeDataType = {
 					key: file.name,
 					title: splitPath[i],
-					data: file
+					data: file,
+					style: {
+						color: DIFF_TYPE_COLOR[file.type]
+					},
 				};
 				if (parentDirectory) {
 					if (fileMap.has(fileMeta.key!)) {
