@@ -1,3 +1,5 @@
+const txt = require("./a");
+
 it("pass false to plugins", function () {
-	expect(STRING).toBe(undefined);
+	expect(txt).toBe('');
 });
