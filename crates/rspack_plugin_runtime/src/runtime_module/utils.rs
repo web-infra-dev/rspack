@@ -254,6 +254,7 @@ pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &Vec<&String>) -
   } else {
     let content = chunk_ids
       .iter()
+      .sorted_unstable()
       .map(|chunk_id| {
         format!(
           "{}:1",
