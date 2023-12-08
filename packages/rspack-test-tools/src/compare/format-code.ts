@@ -66,11 +66,19 @@ export function formatCode(
 					consequent.isBlockStatement() &&
 					consequent.node.body.length === 1
 				) {
-					consequent.replaceWith(consequent.node.body[0]);
+					consequent.node.body[0].leadingComments =
+						consequent.node.leadingComments;
+					consequent.replaceWith(
+						T.cloneNode(consequent.node.body[0], true, false)
+					);
 				}
 				const alternate = path.get("alternate");
 				if (alternate.isBlockStatement() && alternate.node.body.length === 1) {
-					alternate.replaceWith(alternate.node.body[0]);
+					alternate.node.body[0].leadingComments =
+						alternate.node.leadingComments;
+					alternate.replaceWith(
+						T.cloneNode(alternate.node.body[0], true, false)
+					);
 				}
 			}
 		},
@@ -78,7 +86,8 @@ export function formatCode(
 			if (options.ignoreBlockOnlyStatement) {
 				const body = path.get("body");
 				if (body.isBlockStatement() && body.node.body.length === 1) {
-					body.replaceWith(body.node.body[0]);
+					body.node.body[0].leadingComments = body.node.leadingComments;
+					body.replaceWith(T.cloneNode(body.node.body[0], true, false));
 				}
 			}
 		},
@@ -119,8 +128,11 @@ export function formatCode(
 	});
 	let result = generate(ast, {
 		comments: false,
-		compact: true,
-		concise: true
+		compact: false,
+		concise: false,
+		jsescOption: {
+			quotes: "double"
+		}
 	}).code;
 
 	if (options.ignoreModuleArguments) {
