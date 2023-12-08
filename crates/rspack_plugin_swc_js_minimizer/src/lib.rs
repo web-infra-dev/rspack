@@ -19,7 +19,7 @@ use rspack_core::{
   PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
 use rspack_error::miette::IntoDiagnostic;
-use rspack_error::{internal_error, Diagnostic, Result};
+use rspack_error::{Diagnostic, Result};
 use rspack_regex::RspackRegex;
 use rspack_util::try_any_sync;
 use swc_config::config_types::BoolOrDataConfig;

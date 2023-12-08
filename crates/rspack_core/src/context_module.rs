@@ -11,7 +11,7 @@ use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rspack_error::{
-  internal_error, miette::IntoDiagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+  miette::IntoDiagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};

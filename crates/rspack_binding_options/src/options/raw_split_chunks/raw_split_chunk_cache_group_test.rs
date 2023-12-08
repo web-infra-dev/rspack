@@ -43,12 +43,7 @@ pub(super) fn normalize_raw_cache_group_test(raw: RawCacheGroupTest) -> CacheGro
           .into_rspack_result()
           .expect("into rspack result failed")
           .blocking_recv()
-          .unwrap_or_else(|err| {
-            panic!(
-              "{}",
-              internal_error!("Failed to call external function: {err}")
-            )
-          })
+          .unwrap_or_else(|err| panic!("Failed to call external function: {err}"))
           .expect("failed")
       }))
     }

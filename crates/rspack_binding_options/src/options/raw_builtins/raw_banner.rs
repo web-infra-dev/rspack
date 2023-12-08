@@ -4,7 +4,7 @@ use derivative::Derivative;
 use napi::{Either, Env, JsFunction};
 use napi_derive::napi;
 use rspack_binding_values::JsChunk;
-use rspack_error::{internal_error, Result};
+use rspack_error::Result;
 use rspack_napi_shared::{
   get_napi_env,
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},

@@ -7,7 +7,6 @@ use napi::{Env, JsFunction};
 use napi_derive::napi;
 use rspack_core::ExternalItemFnCtx;
 use rspack_core::{ExternalItem, ExternalItemFnResult, ExternalItemValue};
-use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::{get_napi_env, JsRegExp, JsRegExpExt, NapiResultExt};
 

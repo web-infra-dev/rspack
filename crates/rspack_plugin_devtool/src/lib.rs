@@ -17,7 +17,7 @@ use rspack_core::{
   ProcessAssetsArgs, RenderModuleContentArgs, SourceType,
 };
 use rspack_error::miette::IntoDiagnostic;
-use rspack_error::{internal_error, Error, Result};
+use rspack_error::{Error, Result};
 use rspack_util::swc::normalize_custom_filename;
 use rustc_hash::FxHashMap as HashMap;
 use serde_json::json;

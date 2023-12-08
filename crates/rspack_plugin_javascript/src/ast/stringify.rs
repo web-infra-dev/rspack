@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_ast::javascript::Ast;
 use rspack_core::Devtool;
-use rspack_error::{internal_error, miette::IntoDiagnostic, Result};
+use rspack_error::{miette::IntoDiagnostic, Result};
 use swc_core::base::config::JsMinifyFormatOptions;
 use swc_core::{
   common::{
