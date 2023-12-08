@@ -329,10 +329,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
       render_init_fragments(source.boxed(), init_fragments, generate_context)
     } else {
-      Err(internal_error!(
-        "Unsupported source type {:?} for plugin JavaScript",
-        generate_context.requested_source_type,
-      ))
+      panic!(
+        "Unsupported source type: {:?}",
+        generate_context.requested_source_type
+      )
     }
   }
 }

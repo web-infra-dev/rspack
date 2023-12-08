@@ -280,7 +280,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           .insert(RuntimeGlobals::MODULE);
         Ok(RawSource::from(locals).boxed())
       }
-      _ => unreachable!(
+      _ => panic!(
         "Unsupported source type: {:?}",
         generate_context.requested_source_type
       ),

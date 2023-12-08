@@ -129,9 +129,9 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           .boxed(),
         )
       }
-      _ => unreachable!(
-        "Unsupported source type {:?} for plugin Json",
-        generate_context.requested_source_type,
+      _ => panic!(
+        "Unsupported source type: {:?}",
+        generate_context.requested_source_type
       ),
     }
   }

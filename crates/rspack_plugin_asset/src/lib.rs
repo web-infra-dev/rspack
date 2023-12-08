@@ -423,9 +423,10 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           Ok(RawSource::from(source.buffer().to_vec()).boxed())
         }
       }
-      t => Err(internal_error!(format!(
-        "Unsupported source type {t:?} for plugin JavaScript"
-      ))),
+      _ => panic!(
+        "Unsupported source type: {:?}",
+        generate_context.requested_source_type
+      ),
     };
 
     result
