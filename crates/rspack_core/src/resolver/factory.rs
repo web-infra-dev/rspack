@@ -7,6 +7,7 @@ use super::resolver_impl::Resolver;
 use crate::{DependencyCategory, Resolve};
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
+// Actually this should be ResolveOptionsWithDependencyCategory, it's a mistake from webpack, but keep the alignment for easily find the code in webpack
 pub struct ResolveOptionsWithDependencyType {
   pub resolve_options: Option<Box<Resolve>>,
   pub resolve_to_context: bool,
