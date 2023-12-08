@@ -162,7 +162,6 @@ export const enum BuiltinPluginName {
   OldSplitChunksPlugin = 'OldSplitChunksPlugin',
   ContainerPlugin = 'ContainerPlugin',
   ContainerReferencePlugin = 'ContainerReferencePlugin',
-  ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
   ProvideSharedPlugin = 'ProvideSharedPlugin',
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',

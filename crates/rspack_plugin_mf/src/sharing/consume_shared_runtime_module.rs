@@ -110,22 +110,23 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       .join(", ");
     let mut source = format!(
       r#"
-__webpack_require__.MF.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {{ {module_to_consume_data_mapping} }}, initialConsumeModuleIds: {initial_consumes} }};
+__webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {{ {module_to_consume_data_mapping} }}, initialConsumes: {initial_consumes} }};
 "#,
       chunk_mapping = json_stringify(&chunk_to_module_mapping),
       module_to_consume_data_mapping = module_id_to_consume_data_mapping,
       initial_consumes = json_stringify(&initial_consumes),
     );
+    source += include_str!("./consumesCommon.js");
+    if !initial_consumes.is_empty() {
+      source += include_str!("./consumesInitial.js");
+    }
     if compilation
       .chunk_graph
       .get_chunk_graph_chunk(&chunk_ukey)
       .runtime_requirements
       .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
     {
-      source += &format!("{ensure_chunk_handlers}.consumes = function(chunkId, promises) {{ return {consumes_loading_fn}(chunkId, promises); }};",
-        ensure_chunk_handlers = RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
-        consumes_loading_fn = "__webpack_require__.MF.consumesLoading",
-      );
+      source += include_str!("./consumesLoading.js");
     }
     RawSource::from(source).boxed()
   }

@@ -8,9 +8,7 @@ import {
 import { SharePlugin, Shared } from "../sharing/SharePlugin";
 import { isValidate } from "../util/validate";
 import { ContainerPlugin, Exposes } from "./ContainerPlugin";
-import { Remotes } from "./ContainerReferencePlugin";
-import { ContainerReferencePlugin } from "./ContainerReferencePlugin";
-import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";
+import { ContainerReferencePlugin, Remotes } from "./ContainerReferencePlugin";
 
 export interface ModuleFederationPluginOptions {
 	exposes?: Exposes;
@@ -76,10 +74,6 @@ export class ModuleFederationPlugin {
 					shared: options.shared,
 					shareScope: options.shareScope
 				}).apply(compiler);
-			}
-			const runtimePlugins = options.runtimePlugins ?? [];
-			for (let plugin of runtimePlugins) {
-				ModuleFederationRuntimePlugin.addPlugin(compiler, plugin);
 			}
 		});
 	}

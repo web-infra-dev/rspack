@@ -11,8 +11,6 @@ import { Compiler } from "../Compiler";
 import { ExternalsPlugin } from "../builtin-plugin/ExternalsPlugin";
 import { ExternalsType } from "../config";
 import { parseOptions } from "./options";
-import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";
-import { isNil } from "../util";
 
 export type ContainerReferencePluginOptions = {
 	remoteType: ExternalsType;
@@ -70,14 +68,6 @@ export class ContainerReferencePlugin extends RspackBuiltinPlugin {
 			}
 		}
 		new ExternalsPlugin(remoteType, remoteExternals).apply(compiler);
-		ModuleFederationRuntimePlugin.addPlugin(
-			compiler,
-			require.resolve("../sharing/initializeSharing.js")
-		);
-		ModuleFederationRuntimePlugin.addPlugin(
-			compiler,
-			require.resolve("./remotesLoading.js")
-		);
 
 		return createBuiltinPlugin(this.name, this._options);
 	}

@@ -1,6 +1,7 @@
 crates/rspack/tests
 crates/rspack_error/tests
 crates/rspack_plugin_css/webpack_css_cases_to_be_migrated
+crates/rspack_plugin_mf
 packages/playground/fixtures
 packages/rspack/src/stats/DefaultStatsPrinterPlugin.ts
 packages/rspack/tests

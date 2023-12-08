@@ -1,7 +1,6 @@
 import { BuiltinPlugin, RawConsumeOptions } from "@rspack/binding";
 import { Compiler } from "../Compiler";
 import { BuiltinPluginName, RspackBuiltinPlugin } from "../builtin-plugin/base";
-import { ModuleFederationRuntimePlugin } from "../container/ModuleFederationRuntimePlugin";
 import { parseOptions } from "../container/options";
 import { isRequiredVersion } from "./utils";
 
@@ -79,14 +78,6 @@ export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin {
-		ModuleFederationRuntimePlugin.addPlugin(
-			compiler,
-			require.resolve("./initializeSharing.js")
-		);
-		ModuleFederationRuntimePlugin.addPlugin(
-			compiler,
-			require.resolve("./consumesLoading.js")
-		);
 		return {
 			name: this.name as any,
 			options: this._options

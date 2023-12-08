@@ -27,8 +27,7 @@ use rspack_plugin_library::enable_library_plugin;
 use rspack_plugin_limit_chunk_count::LimitChunkCountPlugin;
 use rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin;
 use rspack_plugin_mf::{
-  ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ModuleFederationRuntimePlugin,
-  ProvideSharedPlugin,
+  ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ProvideSharedPlugin,
 };
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_runtime::{
@@ -80,7 +79,6 @@ pub enum BuiltinPluginName {
   OldSplitChunksPlugin,
   ContainerPlugin,
   ContainerReferencePlugin,
-  ModuleFederationRuntimePlugin,
   ProvideSharedPlugin,
   ConsumeSharedPlugin,
 
@@ -216,9 +214,6 @@ impl RawOptionsApply for BuiltinPlugin {
           )
           .boxed(),
         );
-      }
-      BuiltinPluginName::ModuleFederationRuntimePlugin => {
-        plugins.push(ModuleFederationRuntimePlugin::default().boxed())
       }
       BuiltinPluginName::ProvideSharedPlugin => {
         let mut provides: Vec<_> = downcast_into::<Vec<RawProvideOptions>>(self.options)?

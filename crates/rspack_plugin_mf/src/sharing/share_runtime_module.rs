@@ -98,14 +98,13 @@ impl RuntimeModule for ShareRuntimeModule {
     RawSource::from(format!(
       r#"
 {share_scope_map} = {{}};
-__webpack_require__.MF.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name} }};
-{initialize_sharing} = function(name, initScope) {{ return {initialize_sharing_fn}(name, initScope); }};
+__webpack_require__.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name} }};
+{initialize_sharing_impl}
 "#,
       share_scope_map = RuntimeGlobals::SHARE_SCOPE_MAP,
       scope_to_data_init = scope_to_data_init,
       unique_name = json_stringify(&compilation.options.output.unique_name),
-      initialize_sharing = RuntimeGlobals::INITIALIZE_SHARING,
-      initialize_sharing_fn = "__webpack_require__.MF.initializeSharing"
+      initialize_sharing_impl = include_str!("./initializeSharing.js"),
     ))
     .boxed()
   }
