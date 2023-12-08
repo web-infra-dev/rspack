@@ -1,6 +1,5 @@
 import { TreeDataType } from "@arco-design/web-react/es/Tree/interface";
 import { ECompareResultType } from "../../src/type";
-import React from "react";
 
 const DIFF_TYPE_COLOR = {
 	[ECompareResultType.Same]: "#00B42A",
