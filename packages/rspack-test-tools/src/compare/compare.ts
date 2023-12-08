@@ -122,9 +122,9 @@ export function compareContent(
 					source: sourceContent,
 					dist: distContent,
 					lines: {
-						source: lines,
+						source: 0,
 						common: lines,
-						dist: lines
+						dist: 0
 					}
 				};
 			} else {

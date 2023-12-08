@@ -1,21 +1,12 @@
 const path = require("path");
-const webpack = require("webpack");
-const ReactRefreshPlugin = require("@pmmmwh/react-refresh-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-
-const prod = process.env.NODE_ENV === "production";
 
 /** @type {import('webpack').Configuration} */
 const config = {
-	mode: 'development',
+	mode: 'production',
 	context: __dirname,
 	entry: "./src/index.tsx",
 	target: ["web", "es5"],
-	devServer: {
-		port: 5555,
-		webSocketServer: "sockjs",
-		historyApiFallback: true
-	},
 	module: {
 		rules: [
 			{
@@ -68,8 +59,8 @@ const config = {
 						transform: {
 							react: {
 								runtime: "automatic",
-								development: !prod,
-								refresh: !prod
+								development: false,
+								refresh: false
 							}
 						},
 						externalHelpers: true
@@ -119,8 +110,6 @@ const config = {
 			template: path.join(__dirname, "index.html"),
 			favicon: path.join(__dirname, "public", "favicon.ico")
 		}),
-		new ReactRefreshPlugin(),
-		new webpack.ProgressPlugin()
 	],
 	infrastructureLogging: {
 		debug: false
