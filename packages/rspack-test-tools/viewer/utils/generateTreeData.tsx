@@ -1,6 +1,5 @@
 import { TreeDataType } from "@arco-design/web-react/es/Tree/interface";
 import { ECompareResultType } from "../../src/type";
-import { IconDriveFile } from "@arco-design/web-react/Icon"
 import React from "react";
 
 const DIFF_TYPE_COLOR = {
@@ -40,7 +39,6 @@ export const generateTreeData = (
 					style: {
 						color: DIFF_TYPE_COLOR[file.type]
 					},
-					icon: <IconDriveFile />
 				};
 				if (parentDirectory) {
 					if (fileMap.has(fileMeta.key!)) {
