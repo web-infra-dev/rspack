@@ -75,7 +75,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         }
         UnexpectedEndOfJson => {
           // End offset of json file
-          let offset = source.len();
+          let offset = source.len() - 1;
           TraceableError::from_file(
             resource_data.resource_path.to_string_lossy().to_string(),
             source.into_owned(),
