@@ -9,6 +9,15 @@ pub enum Severity {
   Warn,
 }
 
+impl From<Severity> for miette::Severity {
+  fn from(value: Severity) -> Self {
+    match value {
+      Severity::Error => miette::Severity::Error,
+      Severity::Warn => miette::Severity::Warning,
+    }
+  }
+}
+
 impl fmt::Display for Severity {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(
@@ -87,11 +96,11 @@ impl From<Error> for Vec<Diagnostic> {
     let severity = err.severity();
     let diagnostic = match err {
       Error::InternalError(err) => Diagnostic {
-        message: err.error_message,
+        message: err.error_message().to_string(),
         source_info: None,
         start: 0,
         end: 0,
-        severity: err.severity,
+        severity: err.severity(),
         ..Default::default()
       },
       Error::Napi {
