@@ -403,7 +403,9 @@ class Compiler {
 		childCompiler.root = this.root;
 		if (Array.isArray(plugins)) {
 			for (const plugin of plugins) {
-				plugin.apply(childCompiler);
+				if (plugin) {
+					plugin.apply(childCompiler);
+				}
 			}
 		}
 		for (const name in this.hooks) {
