@@ -14,7 +14,7 @@ expression: multiple_file_syntax_error
    ╭─[tests/out_of_order/multiple_file_syntax_error/a.js:5:1]
  5 │     g = CONST
  6 │ }
-   · ┬
+   · ▲
    · ╰── Expression expected
    ╰────
   × Error[javascript]: JavaScript parsing error
@@ -29,7 +29,7 @@ expression: multiple_file_syntax_error
    ╭─[tests/out_of_order/multiple_file_syntax_error/b.js:5:1]
  5 │     g = CONST
  6 │ }
-   · ┬
+   · ▲
    · ╰── Expression expected
    ╰────
   × Error[javascript]: JavaScript parsing error
@@ -44,7 +44,7 @@ expression: multiple_file_syntax_error
    ╭─[tests/out_of_order/multiple_file_syntax_error/c.js:5:1]
  5 │     g = CONST
  6 │ }
-   · ┬
+   · ▲
    · ╰── Expression expected
    ╰────
   × Error[javascript]: JavaScript parsing error
@@ -59,7 +59,7 @@ expression: multiple_file_syntax_error
    ╭─[tests/out_of_order/multiple_file_syntax_error/d.js:5:1]
  5 │     g = CONST
  6 │ }
-   · ┬
+   · ▲
    · ╰── Expression expected
    ╰────
   × Error[javascript]: JavaScript parsing error
@@ -74,7 +74,7 @@ expression: multiple_file_syntax_error
    ╭─[tests/out_of_order/multiple_file_syntax_error/e.js:5:1]
  5 │     g = CONST
  6 │ }
-   · ┬
+   · ▲
    · ╰── Expression expected
    ╰────
   × Error[javascript]: JavaScript parsing error
@@ -89,7 +89,7 @@ expression: multiple_file_syntax_error
    ╭─[tests/out_of_order/multiple_file_syntax_error/f.js:5:1]
  5 │     g = CONST
  6 │ }
-   · ┬
+   · ▲
    · ╰── Expression expected
    ╰────
   × Error[javascript]: JavaScript parsing error
@@ -104,7 +104,7 @@ expression: multiple_file_syntax_error
    ╭─[tests/out_of_order/multiple_file_syntax_error/g.js:5:1]
  5 │     g = CONST
  6 │ }
-   · ┬
+   · ▲
    · ╰── Expression expected
    ╰────
 

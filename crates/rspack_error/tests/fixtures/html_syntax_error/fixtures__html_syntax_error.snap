@@ -13,7 +13,7 @@ expression: html_syntax_error
    ╭─[tests/fixtures/html_syntax_error/index.html:1:1]
  1 │ <head>
  2 │   </something>
-   ·   ──────┬─────
-   ·         ╰── Stray end tag "something"
+   ·   ▲
+   ·   ╰── Stray end tag "something"
    ╰────
 

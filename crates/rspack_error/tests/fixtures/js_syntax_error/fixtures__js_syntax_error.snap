@@ -14,7 +14,7 @@ expression: js_syntax_error
    ╭─[tests/fixtures/js_syntax_error/index.js:5:1]
  5 │     g = CONST
  6 │ }
-   · ┬
+   · ▲
    · ╰── Expression expected
    ╰────
 

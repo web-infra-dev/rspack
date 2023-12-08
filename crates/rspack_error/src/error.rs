@@ -101,13 +101,15 @@ impl TraceableError {
     let file_path = normalize_custom_filename(&source_file.name.to_string()).to_string();
     let file_path = relative_to_pwd(PathBuf::from(file_path));
     let file_src = source_file.src.to_string();
+    let start = if start >= file_src.len() { 0 } else { start };
+    let end = if end >= file_src.len() { 0 } else { end };
     Self {
       title,
       kind: Default::default(),
       message,
       severity: Default::default(),
       src: NamedSource::new(file_path.as_os_str().to_string_lossy(), file_src),
-      label: SourceSpan::new(start.into(), (end - start).into()),
+      label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
     }
   }
 
@@ -126,7 +128,7 @@ impl TraceableError {
       message,
       severity: Default::default(),
       src: NamedSource::new(file_path.as_os_str().to_string_lossy(), file_src),
-      label: SourceSpan::new(start.into(), (end - start).into()),
+      label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
     }
   }
 
@@ -138,6 +140,8 @@ impl TraceableError {
     message: String,
   ) -> Result<Self, miette::Error> {
     let file_src = std::fs::read_to_string(path).into_diagnostic()?;
+    let start = if start >= file_src.len() { 0 } else { start };
+    let end = if end >= file_src.len() { 0 } else { end };
     Ok(Self::from_file(
       path.to_string_lossy().into_owned(),
       file_src,

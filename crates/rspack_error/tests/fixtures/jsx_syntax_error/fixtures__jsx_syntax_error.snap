@@ -11,5 +11,7 @@ expression: jsx_syntax_error
   × Error[jsx]: JSX parsing error
    ╭─[tests/fixtures/jsx_syntax_error/index.jsx:1:1]
  1 │ let a = <test>/test>;
+   · ▲
+   · ╰── Unexpected eof
    ╰────
 
