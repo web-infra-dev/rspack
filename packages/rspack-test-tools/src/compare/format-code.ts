@@ -119,8 +119,8 @@ export function formatCode(
 	});
 	let result = generate(ast, {
 		comments: false,
-		compact: false,
-		concise: false
+		compact: true,
+		concise: true
 	}).code;
 
 	if (options.ignoreModuleArguments) {
