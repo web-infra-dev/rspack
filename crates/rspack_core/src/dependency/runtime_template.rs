@@ -110,7 +110,7 @@ pub fn export_from_import(
     } else {
       Cow::Borrowed(&export_name)
     };
-    let comment = if &*used_name != &export_name {
+    let comment = if *used_name != export_name {
       to_normal_comment(&property_access(&export_name, 0))
     } else {
       "".to_string()
