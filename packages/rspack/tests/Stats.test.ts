@@ -250,8 +250,7 @@ describe("Stats", () => {
 				}
 			);
 		});
-		// Module cache has been disabled, see https://github.com/web-infra-dev/rspack/pull/4892
-		// expect(stats).toContain("module build cache: 100.0% (4/4)");
+		expect(stats).toContain("module build cache: 100.0% (4/4)");
 		expect(stats).toContain("module factorize cache: 100.0% (5/5)");
 		expect(stats).toContain("module code generation cache: 100.0% (4/4)");
 	});
@@ -327,8 +326,7 @@ describe("Stats", () => {
 				}
 			);
 		});
-		// Module cache has been disabled, see https://github.com/web-infra-dev/rspack/pull/4892
-		// expect(stats).toContain("module build cache: 100.0% (1/1)");
+		expect(stats).toContain("module build cache: 100.0% (1/1)");
 		expect(stats).toContain("module factorize cache: 100.0% (1/1)");
 		expect(stats).toContain("module code generation cache: 100.0% (4/4)");
 	});
