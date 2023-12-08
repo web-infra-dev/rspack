@@ -12,12 +12,19 @@ export interface IFormatCodeOptions {
 	ignoreBlockOnlyStatement: boolean;
 	ignoreSwcHelpersPath: boolean;
 	ignoreObjectPropertySequence: boolean;
+	ignoreCssFilePath: boolean;
 }
 
 const SWC_HELPER_PATH_REG =
 	/^_swc_helpers_[a-zA-Z\d_-]+__WEBPACK_IMPORTED_MODULE_xxx__$/;
+const CSS_FILE_EXT_REG = /(le|sa|c|sc)ss$/;
+const INVALID_PATH_REG = /[<>:"/\\|?*.]/g;
 
-export function formatCode(raw: string, options: IFormatCodeOptions) {
+export function formatCode(
+	name: string,
+	raw: string,
+	options: IFormatCodeOptions
+) {
 	const ast = parse(raw, {
 		sourceType: "unambiguous"
 	});
@@ -27,6 +34,15 @@ export function formatCode(raw: string, options: IFormatCodeOptions) {
 				const keyPath = path.get("key");
 				if (keyPath.isIdentifier()) {
 					keyPath.replaceWith(T.stringLiteral(keyPath.node.name));
+				}
+			}
+			if (options.ignoreCssFilePath && CSS_FILE_EXT_REG.test(name)) {
+				const valuePath = path.get("value");
+				if (valuePath.isStringLiteral()) {
+					valuePath.node.value = valuePath.node.value.replace(
+						INVALID_PATH_REG,
+						"-"
+					);
 				}
 			}
 		},

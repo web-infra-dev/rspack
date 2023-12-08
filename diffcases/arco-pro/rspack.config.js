@@ -116,6 +116,14 @@ const config = {
 		rspackFuture: {
 			disableTransformByDefault: true
 		}
-	}
+	},
+	builtins: {
+		css: {
+			modules: {
+				exportsOnly: true,
+				localIdentName: "example-arco-design-pro---[path][name][ext]-[local]",
+			},
+		},
+	},
 };
 module.exports = config;

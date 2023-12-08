@@ -203,6 +203,7 @@ export class DiffProcessor implements ITestProcessor {
 			ignoreBlockOnlyStatement: this.options.ignoreBlockOnlyStatement,
 			ignoreSwcHelpersPath: this.options.ignoreSwcHelpersPath,
 			ignoreObjectPropertySequence: this.options.ignoreObjectPropertySequence,
+			ignoreCssFilePath: this.options.ignoreCssFilePath,
 			replacements: this.options.replacements || {}
 		};
 		for (let hash of this.hashes) {

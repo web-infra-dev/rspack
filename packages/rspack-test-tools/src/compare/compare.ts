@@ -96,10 +96,10 @@ export function compareModules(
 		const renamed = replaceRuntimeModuleName(name);
 		const sourceContent =
 			sourceModules.has(renamed) &&
-			formatCode(sourceModules.get(renamed)!, formatOptions);
+			formatCode(name, sourceModules.get(renamed)!, formatOptions);
 		const distContent =
 			distModules.has(renamed) &&
-			formatCode(distModules.get(renamed)!, formatOptions);
+			formatCode(name, distModules.get(renamed)!, formatOptions);
 
 		compareResults.push({
 			...compareContent(sourceContent, distContent),
