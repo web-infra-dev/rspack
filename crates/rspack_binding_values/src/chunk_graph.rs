@@ -68,7 +68,6 @@ pub fn get_chunk_modules_iterable_by_source_type(
           .map_err(|e| napi::Error::from_reason(e.to_string()))?,
         &compilation.module_graph,
       )
-      .into_iter()
       .filter_map(|module| module.to_js_module().ok())
       .collect(),
   )
