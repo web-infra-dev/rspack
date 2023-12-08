@@ -1,7 +1,4 @@
 {
-  "optimization": {
-    "mangleExports": "true"
-  },
 	"builtins": {
 		"treeShaking": "true",
 		"define": {
