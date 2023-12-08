@@ -79,7 +79,8 @@ const config = {
 			// expression, which causes stack overflow for swc parser in debug mode.
 			// Alias to the unminified version mitigates this problem.
 			// See also <https://github.com/search?q=repo%3Aswc-project%2Fswc+parser+stack+overflow&type=issues>
-			mockjs: require.resolve("./patches/mock.js")
+			mockjs: require.resolve("./patches/mock.js"),
+			"@swc/helpers": require.resolve('@swc/helpers'),
 		}
 	},
 	output: {
@@ -90,6 +91,7 @@ const config = {
 	optimization: {
 		minimize: false, // Disabling minification because it takes too long on CI
 		realContentHash: true,
+		usedExports: false,
 		splitChunks: {
 			cacheGroups: {
 				someVendor: {
@@ -110,6 +112,7 @@ const config = {
 		debug: false
 	},
 	experiments: {
+		css: true,
 		rspackFuture: {
 			disableTransformByDefault: true
 		}

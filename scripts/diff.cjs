@@ -37,6 +37,8 @@ const OUTPUT_DIR = path.join(__dirname, '../diff_output');
         ignoreModuleId: true,
         ignoreModuleArguments: true,
         ignorePropertyQuotationMark: true,
+        ignoreBlockOnlyStatement: true,
+        ignoreSwcHelpersPath: true,
         onCompareModules: function (file, results) {
           htmlReporter.increment(name, results);
           statsReporter.increment(name, results);
@@ -64,6 +66,7 @@ const OUTPUT_DIR = path.join(__dirname, '../diff_output');
     } catch (e) {
       htmlReporter.failure(name)
       statsReporter.failure(name);
+      console.error(e);
     }
   }
   await htmlReporter.output();

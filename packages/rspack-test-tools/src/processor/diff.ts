@@ -200,6 +200,8 @@ export class DiffProcessor implements ITestProcessor {
 			ignoreModuleArguments: this.options.ignoreModuleArguments,
 			ignoreModuleId: this.options.ignoreModuleId,
 			ignorePropertyQuotationMark: this.options.ignorePropertyQuotationMark,
+			ignoreBlockOnlyStatement: this.options.ignoreBlockOnlyStatement,
+			ignoreSwcHelpersPath: this.options.ignoreSwcHelpersPath,
 			replacements: this.options.replacements || {}
 		};
 		for (let hash of this.hashes) {
