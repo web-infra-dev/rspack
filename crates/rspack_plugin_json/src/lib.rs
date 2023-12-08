@@ -102,10 +102,9 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       }
     });
 
-
     let (diagnostics, data) = match parse_result {
       Ok(data) => (vec![], Some(data)),
-      Err(err) => (err.into(), None),
+      Err(err) => (vec![err.into()], None),
     };
     build_info.json_data = data.clone();
 
