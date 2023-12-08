@@ -155,6 +155,7 @@ describe("Stats", () => {
 		<t> hashing: hash runtime chunks: X ms
 		<t> hashing: process full hash chunks: X ms
 		<t> hashing: X ms
+		<t> create module assets: X ms
 		<t> create chunk assets: X ms
 		<t> process assets: X ms
 
