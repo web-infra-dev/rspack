@@ -173,7 +173,6 @@ impl ConsumeSharedPlugin {
         .get(ResolveOptionsWithDependencyType {
           resolve_options: None,
           resolve_to_context: false,
-          dependency_type: DependencyType::Unknown,
           dependency_category: DependencyCategory::Esm,
         }),
     );

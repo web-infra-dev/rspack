@@ -13,10 +13,10 @@ use crate::{
   cache::Cache,
   module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
   tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
-  BoxLoader, CompilerContext, CompilerOptions, DependencyCategory, DependencyType, FactorizeArgs,
-  FactoryMeta, FuncUseCtx, GeneratorOptions, MissingModule, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  BoxLoader, CompilerContext, CompilerOptions, DependencyCategory, FactorizeArgs, FactoryMeta,
+  FuncUseCtx, GeneratorOptions, MissingModule, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
+  ModuleRuleUseLoader, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
   NormalModuleBeforeResolveArgs, NormalModuleCreateData, ParserOptions, RawModule, Resolve,
   ResolveArgs, ResolveError, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
   ResolverFactory, ResourceData, ResourceParsedData, SharedPluginDriver,
@@ -148,7 +148,6 @@ impl NormalModuleFactory {
       .get(ResolveOptionsWithDependencyType {
         resolve_options: None,
         resolve_to_context: false,
-        dependency_type: DependencyType::CjsRequire,
         dependency_category: DependencyCategory::CommonJS,
       })
   }

@@ -11,7 +11,7 @@ use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::SourceMap, DependencyCategory, DependencyType, LoaderRunnerContext, Resolve,
+  rspack_sources::SourceMap, DependencyCategory, LoaderRunnerContext, Resolve,
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
 };
 use rspack_error::{
@@ -128,7 +128,6 @@ impl RspackImporter {
         ..Default::default()
       })),
       resolve_to_context: false,
-      dependency_type: DependencyType::Unknown,
       dependency_category: DependencyCategory::Unknown,
     });
     let sass_import_resolve = factory.get(ResolveOptionsWithDependencyType {
@@ -150,7 +149,6 @@ impl RspackImporter {
         ..Default::default()
       })),
       resolve_to_context: false,
-      dependency_type: DependencyType::Unknown,
       dependency_category: DependencyCategory::Unknown,
     });
     let rspack_module_resolve = factory.get(ResolveOptionsWithDependencyType {
@@ -177,7 +175,6 @@ impl RspackImporter {
         ..Default::default()
       })),
       resolve_to_context: false,
-      dependency_type: DependencyType::Unknown,
       dependency_category: DependencyCategory::Unknown,
     });
     let rspack_import_resolve = factory.get(ResolveOptionsWithDependencyType {
@@ -205,7 +202,6 @@ impl RspackImporter {
         ..Default::default()
       })),
       resolve_to_context: false,
-      dependency_type: DependencyType::Unknown,
       dependency_category: DependencyCategory::Unknown,
     });
     Self {
