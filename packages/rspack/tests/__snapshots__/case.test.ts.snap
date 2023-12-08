@@ -8,6 +8,17 @@ exports[`cases exported tests data imports 1`] = `
 .red{color: red;}
 /* #endregion "data:text/css,.red{color: red;}" */
 
+/* #region "./bad-base64.css" */
+/*
+- type: css
+*/
+.bad {
+  a: url(data:text/bad-base64;base64,abcd?#iefix);
+  b: url("data:text/bad-base64;base64,    abcd?#iefix");
+}
+
+/* #endregion "./bad-base64.css" */
+
 /* #region "data:text/css;base64,LmJ7Y29sb3I6IGdyZWVufQ==" */
 /*
 - type: css
@@ -22,17 +33,6 @@ exports[`cases exported tests data imports 1`] = `
 .a { color: palegreen; };;;
 
 /* #endregion "./a.css" */
-
-/* #region "./bad-base64.css" */
-/*
-- type: css
-*/
-.bad {
-  a: url(data:text/bad-base64;base64,abcd?#iefix);
-  b: url("data:text/bad-base64;base64,    abcd?#iefix");
-}
-
-/* #endregion "./bad-base64.css" */
 
 /* #region "./index.css" */
 /*
