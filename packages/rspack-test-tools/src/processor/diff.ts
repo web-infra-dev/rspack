@@ -164,6 +164,7 @@ export class DiffProcessor implements ITestProcessor {
 						path: dist
 					},
 					optimization: {
+						mangleExports: false,
 						concatenateModules: false
 					},
 					plugins: [createModulePlaceholderPlugin(this.options.webpackPath)]
@@ -179,6 +180,9 @@ export class DiffProcessor implements ITestProcessor {
 				{
 					output: {
 						path: dist
+					},
+					optimization: {
+						mangleExports: false
 					},
 					experiments: {
 						rspackFuture: {
