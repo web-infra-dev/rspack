@@ -256,7 +256,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       SourceMapSource::new(SourceMapSourceOptions {
         value: output.code,
         name: resource_data.resource_path.to_string_lossy().to_string(),
-        source_map: SourceMap::from_json(&map).unwrap_or_else(|e| panic!("{}", e.to_string())),
+        source_map: SourceMap::from_json(&map).expect("should be able to generate source-map"),
         inner_source_map: use_source_map.then_some(original_map).flatten(),
         remove_original_source: true,
         ..Default::default()
