@@ -163,6 +163,9 @@ export class DiffProcessor implements ITestProcessor {
 						},
 						path: dist
 					},
+					optimization: {
+						concatenateModules: false
+					},
 					plugins: [createModulePlaceholderPlugin(this.options.webpackPath)]
 				},
 				{
