@@ -50,8 +50,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                 Err(err) => diagnostic.push(Diagnostic::error(
                   "Wasm Export Parse Error".into(),
                   err.to_string(),
-                  0,
-                  0,
                 )),
               };
             }
@@ -69,8 +67,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                 Err(err) => diagnostic.push(Diagnostic::error(
                   "Wasm Import Parse Error".into(),
                   err.to_string(),
-                  0,
-                  0,
                 )),
               }
             }
@@ -81,8 +77,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           diagnostic.push(Diagnostic::error(
             "Wasm Parse Error".into(),
             err.to_string(),
-            0,
-            0,
           ));
         }
       }

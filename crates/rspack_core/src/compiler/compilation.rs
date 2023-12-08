@@ -79,7 +79,7 @@ pub struct Compilation {
   pub async_entrypoints: Vec<ChunkGroupUkey>,
   assets: CompilationAssets,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
-  diagnostics: IndexSet<Diagnostic, BuildHasherDefault<FxHasher>>,
+  diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   pub plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -274,7 +274,7 @@ impl Compilation {
           filename,
           is_source_equal
         );
-        self.push_batch_diagnostic(
+        self.push_diagnostic(
           internal_error!(
             "Conflict: Multiple assets emit different content to the same filename {}{}",
             filename,
@@ -333,7 +333,7 @@ impl Compilation {
   }
 
   pub fn push_diagnostic(&mut self, diagnostic: Diagnostic) {
-    self.diagnostics.insert(diagnostic);
+    self.diagnostics.push(diagnostic);
   }
 
   pub fn push_batch_diagnostic(&mut self, diagnostics: Vec<Diagnostic>) {
@@ -344,14 +344,14 @@ impl Compilation {
     self
       .diagnostics
       .iter()
-      .filter(|d| matches!(d.severity, Severity::Error))
+      .filter(|d| matches!(d.severity(), Severity::Error))
   }
 
   pub fn get_warnings(&self) -> impl Iterator<Item = &Diagnostic> {
     self
       .diagnostics
       .iter()
-      .filter(|d| matches!(d.severity, Severity::Warn))
+      .filter(|d| matches!(d.severity(), Severity::Warn))
   }
 
   pub fn get_logging(&self) -> &CompilationLogging {
@@ -398,7 +398,7 @@ impl Compilation {
       .await
       .err()
     {
-      self.push_batch_diagnostic(e.into());
+      self.push_batch_diagnostic(vec![e.into()]);
     }
     logger.time_end(start);
     let make_failed_module =

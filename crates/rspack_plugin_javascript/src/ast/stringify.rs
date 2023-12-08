@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_ast::javascript::Ast;
 use rspack_core::Devtool;
-use rspack_error::{internal_error, Result};
+use rspack_error::{internal_error, miette::IntoDiagnostic, Result};
 use swc_core::base::config::JsMinifyFormatOptions;
 use swc_core::{
   common::{
@@ -114,7 +114,7 @@ pub fn print(
         wr,
       };
 
-      node.emit_with(&mut emitter)?;
+      node.emit_with(&mut emitter).into_diagnostic()?;
     }
     // SAFETY: SWC will emit valid utf8 for sure
     unsafe { String::from_utf8_unchecked(buf) }

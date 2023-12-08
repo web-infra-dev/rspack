@@ -1,7 +1,7 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{BoxDependency, ModuleDependency, SpanExt};
-use rspack_error::{Diagnostic, DiagnosticKind};
+use rspack_error::Diagnostic;
 use swc_core::common::Span;
 use swc_core::css::ast::{
   AtRule, AtRuleName, Function, ImportHref, ImportPrelude, Stylesheet, Token, TokenAndSpan, Url,
@@ -46,15 +46,10 @@ struct Analyzer<'a> {
 
 fn replace_module_request_prefix(specifier: String, diagnostics: &mut Vec<Diagnostic>) -> String {
   if IS_MODULE_REQUEST.is_match(&specifier) {
-    diagnostics.push(
-      Diagnostic::warn(
-        "Deprecated '~'".to_string(),
-        "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),
-        0,
-        0,
-      )
-      .with_kind(DiagnosticKind::Css),
-    );
+    diagnostics.push(Diagnostic::warn(
+      "css: Deprecated '~'".to_string(),
+      "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),
+    ));
     IS_MODULE_REQUEST.replace(&specifier, "").to_string()
   } else {
     specifier

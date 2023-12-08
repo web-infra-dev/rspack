@@ -90,8 +90,6 @@ impl Plugin for WarnCaseSensitiveModulesPlugin {
         diagnostics.push(Diagnostic::warn(
           "Sensitive Modules Warn".to_string(),
           self.create_sensitive_modules_warning(&case_modules, &compilation.module_graph),
-          0,
-          0,
         ));
       }
     }

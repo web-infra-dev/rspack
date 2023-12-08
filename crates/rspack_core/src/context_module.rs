@@ -10,7 +10,9 @@ use std::{
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
-use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{
+  internal_error, miette::IntoDiagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_regex::RspackRegex;
@@ -687,8 +689,8 @@ impl ContextModule {
     if !dir.is_dir() {
       return Ok(());
     }
-    for entry in fs::read_dir(dir)? {
-      let path = entry?.path();
+    for entry in fs::read_dir(dir).into_diagnostic()? {
+      let path = entry.into_diagnostic()?.path();
       if path.is_dir() {
         if options.context_options.recursive {
           Self::visit_dirs(ctx, &path, dependencies, options, resolve_options)?;

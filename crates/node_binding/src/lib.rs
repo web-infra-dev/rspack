@@ -15,7 +15,6 @@ use rspack_binding_options::BuiltinPlugin;
 use rspack_binding_values::SingleThreadedHashMap;
 use rspack_core::PluginExt;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
-use rspack_napi_shared::NAPI_ENV;
 
 mod hook;
 mod loader;
@@ -29,6 +28,7 @@ use loader::run_builtin_loader;
 use plugins::*;
 use rspack_binding_options::*;
 use rspack_binding_values::*;
+use rspack_napi_shared::set_napi_env;
 use rspack_tracing::chrome::FlushGuard;
 
 #[cfg(not(target_os = "linux"))]
@@ -223,7 +223,7 @@ impl ObjectFinalize for Rspack {
 
 impl Rspack {
   fn prepare_environment(env: &Env) {
-    NAPI_ENV.with(|napi_env| *napi_env.borrow_mut() = Some(env.raw()));
+    set_napi_env(env.raw());
   }
 }
 
