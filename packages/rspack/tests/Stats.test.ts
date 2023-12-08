@@ -30,11 +30,11 @@ describe("Stats", () => {
 		asset main.js 215 bytes {main} [emitted] (name: main)
 		Entrypoint main 215 bytes = main.js
 		chunk {main} main.js (main) [entry]
-		  ./fixtures/a.js [876] {main}
+		  ./fixtures/a.js [585] {main}
 		    entry ./fixtures/a
-		./fixtures/a.js [876] {main}
+		./fixtures/a.js [585] {main}
 		  entry ./fixtures/a
-		Rspack compiled successfully (62928f626241ca4814a5)"
+		Rspack compiled successfully (a62f45ec3d75aa689fa1)"
 	`);
 	});
 
@@ -75,7 +75,7 @@ describe("Stats", () => {
 		   ╰────
 
 
-		Rspack compiled with 1 error (2c44ec5d4a90e5735903)"
+		Rspack compiled with 1 error (d102369880762d1e05db)"
 	`);
 	});
 
@@ -348,7 +348,7 @@ describe("Stats", () => {
 		expect(stats?.toString(options).replace(/\\/g, "/")).toMatchInlineSnapshot(`
 		"asset main.js 215 bytes {main} [emitted] (name: main)
 		chunk {main} main.js (main) [entry]
-		./fixtures/a.js [876] {main}"
+		./fixtures/a.js [585] {main}"
 	`);
 	});
 
