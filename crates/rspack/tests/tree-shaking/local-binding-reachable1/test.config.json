@@ -1,7 +1,6 @@
 {
 	"optimization": {
-		"sideEffects": "false",
-    "mangleExports": "true"
+		"sideEffects": "false"
 	},
 	"builtins": {
 		"treeShaking": "true",
