@@ -178,7 +178,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         let final_json_string = final_json.to_string();
         let json_str = utils::escape_json(&final_json_string);
         let json_expr = if is_js_object && json_str.len() > 20 {
-          Cow::Owned(format!("JSON.parse('{}')", json_str.replace("'", r#"\'"#)))
+          Cow::Owned(format!("JSON.parse('{}')", json_str.replace('\'', r#"\'"#)))
         } else {
           json_str
         };
