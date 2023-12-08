@@ -2394,16 +2394,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack-codespan-reporting"
-version = "0.11.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc53b3a0e58f509a8b55bde278d44c05879f27a66819346e0fef193c6348e9f8"
-dependencies = [
- "termcolor",
- "unicode-width",
-]
-
-[[package]]
 name = "rspack_ast"
 version = "0.1.0"
 dependencies = [
@@ -2636,7 +2626,6 @@ dependencies = [
  "futures",
  "insta",
  "miette 5.10.0",
- "rspack-codespan-reporting",
  "rspack_binding_options",
  "rspack_core",
  "rspack_fs",

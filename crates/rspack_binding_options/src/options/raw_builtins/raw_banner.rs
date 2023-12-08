@@ -6,8 +6,9 @@ use napi_derive::napi;
 use rspack_binding_values::JsChunk;
 use rspack_error::{internal_error, Result};
 use rspack_napi_shared::{
+  get_napi_env,
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  JsRegExp, JsRegExpExt, NapiResultExt, NAPI_ENV,
+  JsRegExp, JsRegExpExt, NapiResultExt,
 };
 use rspack_plugin_banner::{
   BannerContent, BannerContentFnCtx, BannerPluginOptions, BannerRule, BannerRules,
@@ -39,13 +40,11 @@ impl TryFrom<RawBannerContentWrapper> for BannerContent {
     match value.0 {
       Either::A(s) => Ok(Self::String(s)),
       Either::B(f) => {
-        let func: ThreadsafeFunction<RawBannerContentFnCtx, String> =
-          NAPI_ENV.with(|env| -> anyhow::Result<_> {
-            let env = env.borrow().expect("Failed to get env with external");
-            let func_use = rspack_binding_macros::js_fn_into_threadsafe_fn!(f, &Env::from(env));
-            Ok(func_use)
-          })?;
-        let func = Arc::new(func);
+        let func: napi::Result<ThreadsafeFunction<RawBannerContentFnCtx, String>> = try {
+          let env = get_napi_env();
+          rspack_binding_macros::js_fn_into_threadsafe_fn!(f, &Env::from(env))
+        };
+        let func = Arc::new(func.expect("convert to threadsafe function failed"));
         Ok(BannerContent::Fn(Box::new(
           move |ctx: BannerContentFnCtx| {
             let func = func.clone();

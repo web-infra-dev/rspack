@@ -428,7 +428,6 @@ export interface JsStatsChunkGroupAsset {
 export interface JsStatsError {
   message: string
   formatted: string
-  title: string
 }
 
 export interface JsStatsGetAssets {

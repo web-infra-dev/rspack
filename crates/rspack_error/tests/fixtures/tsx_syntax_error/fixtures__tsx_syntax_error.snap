@@ -2,11 +2,10 @@
 source: crates/rspack_error/tests/fixtures.rs
 expression: tsx_syntax_error
 ---
-error[tsx]: TSX parsing error
-  ┌─ tests/fixtures/tsx_syntax_error/index.tsx:1:10
-  │
-1 │ let c = <test>/test>;
-  │          ^^^^ Unexpected token `test`. Expected jsx identifier
-2 │ 
-
+  × Error[tsx]: TSX parsing error
+   ╭─[tests/fixtures/tsx_syntax_error/index.tsx:1:1]
+ 1 │ let c = <test>/test>;
+   ·          ──┬─
+   ·            ╰── Unexpected token `test`. Expected jsx identifier
+   ╰────
 
