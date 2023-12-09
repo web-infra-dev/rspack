@@ -360,6 +360,7 @@ export interface JsLoaderContext {
 }
 
 export interface JsModule {
+  context?: string
   originalSource?: JsCompatSource
   resource?: string
   moduleIdentifier: string
@@ -626,6 +627,7 @@ export interface RawCacheOptions {
 }
 
 export interface RawChunkOptionNameCtx {
+  name: string
   module: JsModule
 }
 
