@@ -5,7 +5,6 @@
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(hash_raw_entry)]
 
-use std::sync::atomic::AtomicBool;
 use std::{fmt, sync::Arc};
 mod dependencies_block;
 pub use dependencies_block::{
@@ -310,5 +309,3 @@ impl TryFrom<&str> for ModuleType {
 pub type ChunkByUkey = Database<Chunk>;
 pub type ChunkGroupByUkey = Database<ChunkGroup>;
 pub(crate) type SharedPluginDriver = Arc<PluginDriver>;
-
-pub static IS_NEW_TREESHAKING: AtomicBool = AtomicBool::new(false);
