@@ -1,4 +1,5 @@
 import { AsyncSeriesBailHook, HookMap } from "tapable";
+import type * as binding from "@rspack/binding";
 
 type ResourceData = {
 	resource: string;
@@ -31,7 +32,7 @@ export class NormalModuleFactory {
 		>;
 		beforeResolve: AsyncSeriesBailHook<[ResolveData], boolean | void>;
 		afterResolve: AsyncSeriesBailHook<[ResolveData], boolean | void>;
-		// createModule: AsyncSeriesBailHook<[ResolveData["createData"], ResolveData], Module | void>;
+		createModule: AsyncSeriesBailHook<[binding.CreateModuleData], void>;
 	};
 	constructor() {
 		this.hooks = {
@@ -50,9 +51,9 @@ export class NormalModuleFactory {
 			// /** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
 			beforeResolve: new AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
-			afterResolve: new AsyncSeriesBailHook(["resolveData"])
+			afterResolve: new AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {AsyncSeriesBailHook<[ResolveData["createData"], ResolveData], Module | void>} */
-			// createModule: new AsyncSeriesBailHook(["createData", "resolveData"]),
+			createModule: new AsyncSeriesBailHook(["createData"])
 			// /** @type {SyncWaterfallHook<[Module, ResolveData["createData"], ResolveData], Module>} */
 			// module: new SyncWaterfallHook(["module", "createData", "resolveData"]),
 			// createParser: new HookMap(() => new SyncBailHook(["parserOptions"])),

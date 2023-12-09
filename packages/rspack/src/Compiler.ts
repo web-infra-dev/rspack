@@ -332,6 +332,8 @@ class Compiler {
 				optimizeTree: this.#optimizeTree.bind(this),
 				optimizeChunkModules: this.#optimizeChunkModules.bind(this),
 				finishModules: this.#finishModules.bind(this),
+				normalModuleFactoryCreateModule:
+					this.#normalModuleFactoryCreateModule.bind(this),
 				normalModuleFactoryResolveForScheme:
 					this.#normalModuleFactoryResolveForScheme.bind(this),
 				chunkAsset: this.#chunkAsset.bind(this),
@@ -654,6 +656,7 @@ class Compiler {
 			thisCompilation: undefined,
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
 			contextModuleBeforeResolve: undefined,
+			normalModuleFactoryCreateModule: undefined,
 			normalModuleFactoryResolveForScheme: undefined,
 			executeModule: undefined
 		};
@@ -751,6 +754,12 @@ class Compiler {
 
 		this.#updateDisabledHooks();
 		return res;
+	}
+
+	async #normalModuleFactoryCreateModule(createData: binding.CreateModuleData) {
+		await this.compilation.normalModuleFactory?.hooks.createModule.promise(
+			createData
+		);
 	}
 
 	async #normalModuleFactoryResolveForScheme(
