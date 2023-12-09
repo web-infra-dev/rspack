@@ -11,7 +11,7 @@ use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 use rspack_ast::RspackAst;
 use rspack_core::{rspack_sources::SourceMap, LoaderRunnerContext, Mode};
-use rspack_error::{internal_error, Diagnostic, Result};
+use rspack_error::{internal_error, AnyhowError, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use rspack_plugin_javascript::ast::{self, SourceMapConfig};
 use rspack_plugin_javascript::TransformOutput;
@@ -73,8 +73,6 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
         loader_context.emit_diagnostic(Diagnostic::warn(
           SWC_LOADER_IDENTIFIER.to_string(),
           "Experimental plugins are not currently supported.".to_string(),
-          0,
-          0,
         ));
       }
 
@@ -82,8 +80,6 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
         loader_context.emit_diagnostic(Diagnostic::warn(
           SWC_LOADER_IDENTIFIER.to_string(),
           "`env` and `jsc.target` cannot be used together".to_string(),
-          0,
-          0,
         ));
       }
       swc_options
@@ -91,7 +87,8 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
 
     let devtool = &loader_context.context.options.devtool;
     let source = content.try_into_string()?;
-    let c = SwcCompiler::new(resource_path.clone(), source.clone(), swc_options)?;
+    let c = SwcCompiler::new(resource_path.clone(), source.clone(), swc_options)
+      .map_err(AnyhowError::from)?;
 
     let rspack_options = &*loader_context.context.options;
     let swc_options = c.options();
@@ -102,18 +99,20 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       .unresolved_mark
       .expect("`unresolved_mark` should be initialized");
 
-    let built = c.parse(None, |_| {
-      transformer::transform(
-        &resource_path,
-        rspack_options,
-        Some(c.comments()),
-        top_level_mark,
-        unresolved_mark,
-        c.cm().clone(),
-        &source,
-        &self.options_with_additional.rspack_experiments,
-      )
-    })?;
+    let built = c
+      .parse(None, |_| {
+        transformer::transform(
+          &resource_path,
+          rspack_options,
+          Some(c.comments()),
+          top_level_mark,
+          unresolved_mark,
+          c.cm().clone(),
+          &source,
+          &self.options_with_additional.rspack_experiments,
+        )
+      })
+      .map_err(AnyhowError::from)?;
 
     let codegen_options = ast::CodegenOptions {
       target: Some(built.target),
@@ -132,7 +131,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       inline_script: Some(false),
       keep_comments: Some(true),
     };
-    let program = c.transform(built)?;
+    let program = c.transform(built).map_err(AnyhowError::from)?;
     let ast = c.into_js_ast(program);
 
     // If swc-loader is the latest loader available,
@@ -152,7 +151,10 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
     } else {
       let TransformOutput { code, map } = ast::stringify(&ast, codegen_options)?;
       loader_context.content = Some(code.into());
-      loader_context.source_map = map.map(|m| SourceMap::from_json(&m)).transpose()?;
+      loader_context.source_map = map
+        .map(|m| SourceMap::from_json(&m))
+        .transpose()
+        .map_err(|e| internal_error!(e.to_string()))?;
     }
 
     Ok(())

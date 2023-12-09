@@ -7,6 +7,7 @@ use crate::JsCodegenerationResults;
 
 #[napi(object)]
 pub struct JsModule {
+  pub context: Option<String>,
   pub original_source: Option<JsCompatSource>,
   pub resource: Option<String>,
   pub module_identifier: String,
@@ -26,10 +27,12 @@ impl ToJsModule for dyn Module + '_ {
     };
     let name_for_condition = || self.name_for_condition().map(|s| s.to_string());
     let module_identifier = || self.identifier().to_string();
+    let context = || self.get_context().map(|c| c.to_string());
 
     self
       .try_as_normal_module()
       .map(|normal_module| JsModule {
+        context: context(),
         original_source: original_source(),
         resource: Some(
           normal_module
@@ -43,6 +46,7 @@ impl ToJsModule for dyn Module + '_ {
       })
       .or_else(|_| {
         self.try_as_raw_module().map(|_| JsModule {
+          context: context(),
           original_source: original_source(),
           resource: None,
           module_identifier: module_identifier(),
@@ -51,6 +55,7 @@ impl ToJsModule for dyn Module + '_ {
       })
       .or_else(|_| {
         self.try_as_context_module().map(|_| JsModule {
+          context: context(),
           original_source: original_source(),
           resource: None,
           module_identifier: module_identifier(),
@@ -59,6 +64,7 @@ impl ToJsModule for dyn Module + '_ {
       })
       .or_else(|_| {
         self.try_as_external_module().map(|_| JsModule {
+          context: context(),
           original_source: original_source(),
           resource: None,
           module_identifier: module_identifier(),

@@ -1,6 +1,5 @@
 use std::hash::Hash;
 
-use anyhow::anyhow;
 use async_trait::async_trait;
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
@@ -37,7 +36,7 @@ impl Plugin for ModuleChunkFormatPlugin {
     let chunk = compilation
       .chunk_by_ukey
       .get(chunk_ukey)
-      .ok_or_else(|| anyhow!("chunk not found"))?;
+      .ok_or_else(|| internal_error!("chunk not found"))?;
 
     if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
       return Ok(());

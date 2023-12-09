@@ -14,7 +14,7 @@ use swc_core::ecma::transforms::base::Assumptions;
 pub mod swc_visitor;
 use rspack_ast::javascript::Ast;
 use rspack_core::{CompilerOptions, ResourceData};
-use rspack_error::Result;
+use rspack_error::{AnyhowError, Result};
 use swc_core::common::{chain, Mark, SourceMap};
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::transforms::base::pass::{noop, Optional};
@@ -189,65 +189,67 @@ pub fn run_before_pass(
   source: &str,
 ) -> Result<()> {
   let cm = ast.get_context().source_map.clone();
-  ast.transform_with_handler(cm.clone(), |_handler, program, context| {
-    let top_level_mark = context.top_level_mark;
-    let unresolved_mark = context.unresolved_mark;
-    let comments: Option<&dyn Comments> = None;
+  ast
+    .transform_with_handler(cm.clone(), |_handler, program, context| {
+      let top_level_mark = context.top_level_mark;
+      let unresolved_mark = context.unresolved_mark;
+      let comments: Option<&dyn Comments> = None;
 
-    let mut assumptions = Assumptions::default();
-    if syntax.typescript() {
-      assumptions.set_class_methods = true;
-      assumptions.set_public_class_fields = true;
-    }
+      let mut assumptions = Assumptions::default();
+      if syntax.typescript() {
+        assumptions.set_class_methods = true;
+        assumptions.set_public_class_fields = true;
+      }
 
-    let mut pass = chain!(
-      swc_visitor::resolver(unresolved_mark, top_level_mark, syntax.typescript()),
-      Optional::new(
-        swc_visitor::decorator(assumptions, &options.builtins.decorator),
-        // Decorator transformation varies from `ModuleType`,
-        // - TypeScript-like: decorators will be transformed by default, with legacy settings and will emit meta data.
-        //      Since this is a default behavior with tsc.
-        // - JavaScript-like: decorators will not be transformed(if `disableTransformByDefault` is on), and the parse will fail.
-        (options.should_transform_by_default() || syntax.typescript()) && syntax.decorators()
-      ),
-      Optional::new(
-        swc_visitor::typescript(top_level_mark, comments, &cm),
-        options.should_transform_by_default() && syntax.typescript()
-      ),
-      Optional::new(
-        builtins_additional_feature_transforms(
-          resource_data,
-          options,
-          module_type,
-          source,
-          top_level_mark,
-          unresolved_mark,
-          cm
+      let mut pass = chain!(
+        swc_visitor::resolver(unresolved_mark, top_level_mark, syntax.typescript()),
+        Optional::new(
+          swc_visitor::decorator(assumptions, &options.builtins.decorator),
+          // Decorator transformation varies from `ModuleType`,
+          // - TypeScript-like: decorators will be transformed by default, with legacy settings and will emit meta data.
+          //      Since this is a default behavior with tsc.
+          // - JavaScript-like: decorators will not be transformed(if `disableTransformByDefault` is on), and the parse will fail.
+          (options.should_transform_by_default() || syntax.typescript()) && syntax.decorators()
         ),
-        options.should_transform_by_default()
-      ),
-      Optional::new(
-        compat_transform(
-          resource_data,
-          options,
-          top_level_mark,
-          unresolved_mark,
-          assumptions,
-          syntax
+        Optional::new(
+          swc_visitor::typescript(top_level_mark, comments, &cm),
+          options.should_transform_by_default() && syntax.typescript()
         ),
-        options.should_transform_by_default()
-      ),
-      builtins_webpack_plugin(options, unresolved_mark),
-      // This will be deprecated in the future when TypeScript support and transform by default is dropped.
-      // These features are coupled with this.
-      swc_visitor::inject_helpers(unresolved_mark),
-      swc_visitor::hygiene(false, top_level_mark),
-      swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
-    );
-    program.fold_with(&mut pass);
+        Optional::new(
+          builtins_additional_feature_transforms(
+            resource_data,
+            options,
+            module_type,
+            source,
+            top_level_mark,
+            unresolved_mark,
+            cm
+          ),
+          options.should_transform_by_default()
+        ),
+        Optional::new(
+          compat_transform(
+            resource_data,
+            options,
+            top_level_mark,
+            unresolved_mark,
+            assumptions,
+            syntax
+          ),
+          options.should_transform_by_default()
+        ),
+        builtins_webpack_plugin(options, unresolved_mark),
+        // This will be deprecated in the future when TypeScript support and transform by default is dropped.
+        // These features are coupled with this.
+        swc_visitor::inject_helpers(unresolved_mark),
+        swc_visitor::hygiene(false, top_level_mark),
+        swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
+      );
+      program.fold_with(&mut pass);
 
-    Ok(())
-  })?;
+      Ok(())
+    })
+    .map_err(AnyhowError::from)?;
 
   Ok(())
 }

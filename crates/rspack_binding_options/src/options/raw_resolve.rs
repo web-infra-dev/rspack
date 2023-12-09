@@ -2,6 +2,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use napi_derive::napi;
 use rspack_core::{Alias, AliasMap, ByDependency, Resolve, TsconfigOptions, TsconfigReferences};
+use rspack_error::internal_error;
 use serde::Deserialize;
 
 pub type AliasValue = serde_json::Value;
@@ -45,7 +46,7 @@ pub struct RawResolveOptions {
   pub extension_alias: Option<HashMap<String, Vec<String>>>,
 }
 
-fn normalize_alias(alias: Option<RawAliasOption>) -> anyhow::Result<Option<Alias>> {
+fn normalize_alias(alias: Option<RawAliasOption>) -> rspack_error::Result<Option<Alias>> {
   alias
     .map(|alias| {
       alias
@@ -58,22 +59,18 @@ fn normalize_alias(alias: Option<RawAliasOption>) -> anyhow::Result<Option<Alias
                 Ok(AliasMap::Target(s.to_string()))
               } else if let Some(b) = value.as_bool() {
                 if b {
-                  Err(anyhow::Error::msg(format!(
-                    "Alias should not be true in {key}"
-                  )))
+                  Err(internal_error!("Alias should not be true in {key}"))
                 } else {
                   Ok(AliasMap::Ignored)
                 }
               } else {
-                Err(anyhow::Error::msg(format!(
-                  "Alias should be false or string in {key}"
-                )))
+                Err(internal_error!("Alias should be false or string in {key}"))
               }
             })
-            .collect::<anyhow::Result<_>>()
+            .collect::<rspack_error::Result<_>>()
             .map(|value| (key, value))
         })
-        .collect::<anyhow::Result<_>>()
+        .collect::<rspack_error::Result<_>>()
     })
     .map_or(Ok(None), |v| v.map(Some))
 }

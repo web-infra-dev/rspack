@@ -1,6 +1,6 @@
 use napi::{bindgen_prelude::Either3, Either};
 use napi_derive::napi;
-use rspack_error::Result;
+use rspack_error::{miette::IntoDiagnostic, Result};
 use rspack_napi_shared::{JsRegExp, JsRegExpExt};
 use rspack_plugin_swc_js_minimizer::{
   SwcJsMinimizerRspackPluginOptions, SwcJsMinimizerRule, SwcJsMinimizerRules,
@@ -34,7 +34,7 @@ fn try_deserialize_into<'de, T: 'de + Deserialize<'de>>(
 ) -> Result<BoolOrDataConfig<T>> {
   Ok(match value {
     Either::A(b) => BoolOrDataConfig::from_bool(*b),
-    Either::B(s) => BoolOrDataConfig::from_obj(serde_json::from_str(s)?),
+    Either::B(s) => BoolOrDataConfig::from_obj(serde_json::from_str(s).into_diagnostic()?),
   })
 }
 
@@ -50,7 +50,7 @@ impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for SwcJsMinimizerRspackPlugi
       extract_comments: value.extract_comments,
       compress: try_deserialize_into(&value.compress)?,
       mangle: try_deserialize_into(&value.mangle)?,
-      format: serde_json::from_str(&value.format)?,
+      format: serde_json::from_str(&value.format).into_diagnostic()?,
       module: value.module,
       test: into_condition(value.test),
       include: into_condition(value.include),

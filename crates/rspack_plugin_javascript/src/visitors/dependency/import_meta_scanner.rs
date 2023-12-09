@@ -95,9 +95,9 @@ impl Visit for ImportMetaScanner<'_> {
         String::from("import.meta warning"), 
         String::from(
           "Critical dependency: Accessing import.meta directly is unsupported (only property access or destructuring is supported)"), 
-          expr.span().real_lo() as usize,
-           expr.span().real_hi()as usize)
-          );
+          // expr.span().real_lo() as usize,
+          //  expr.span().real_hi()as usize
+          ));
       self
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(

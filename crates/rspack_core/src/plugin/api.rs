@@ -190,6 +190,10 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
+  async fn module_asset(&self, _module: ModuleIdentifier, _asset_name: String) -> Result<()> {
+    Ok(())
+  }
+
   /// webpack `compilation.hooks.chunkAsset`
   async fn chunk_asset(&self, _args: &ChunkAssetArgs) -> Result<()> {
     Ok(())

@@ -147,7 +147,9 @@ impl ContextModuleFactory {
         )
         .boxed();
 
-        return Ok(ModuleFactoryResult::new(missing_module).with_diagnostic(internal_error.into()));
+        return Ok(
+          ModuleFactoryResult::new(missing_module).with_diagnostic(vec![internal_error.into()]),
+        );
       }
     };
 

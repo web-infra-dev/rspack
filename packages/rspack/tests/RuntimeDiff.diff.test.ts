@@ -13,10 +13,7 @@ import { isValidTestCaseDir } from "./utils";
 const DEFAULT_CASE_CONFIG: IDiffProcessorOptions = {
 	webpackPath: require.resolve("webpack"),
 	rspackPath: require.resolve("@rspack/core"),
-	files: ["bundle.js"],
-	ignorePropertyQuotationMark: true,
-	ignoreModuleId: true,
-	ignoreModuleArguments: true
+	files: ["bundle.js"]
 };
 
 type TFileCompareResult = {
@@ -122,6 +119,10 @@ function createDiffProcessor(config: IDiffProcessorOptions) {
 		ignoreModuleId: config.ignoreModuleId ?? true,
 		ignoreModuleArguments: config.ignoreModuleArguments ?? true,
 		ignorePropertyQuotationMark: config.ignorePropertyQuotationMark ?? true,
+		ignoreBlockOnlyStatement: config.ignoreBlockOnlyStatement ?? true,
+		ignoreSwcHelpersPath: config.ignoreSwcHelpersPath ?? true,
+		ignoreObjectPropertySequence: config.ignoreObjectPropertySequence ?? true,
+		ignoreCssFilePath: config.ignoreCssFilePath ?? true,
 		onCompareModules: createCompareResultHandler("modules"),
 		onCompareRuntimeModules: createCompareResultHandler("runtimeModules")
 	});

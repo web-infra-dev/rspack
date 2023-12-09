@@ -7,7 +7,7 @@ use rspack_core::{
   ParserAndGenerator, Plugin, RuntimeGlobals, SourceType,
 };
 use rspack_error::{
-  internal_error, DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+  internal_error, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
   TraceableError,
 };
 
@@ -58,42 +58,40 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           } else {
             start_offset
           };
-          Error::TraceableError(
-            TraceableError::from_file(
-              resource_data.resource_path.to_string_lossy().to_string(),
-              source.into_owned(),
-              // one character offset
-              start_offset,
-              start_offset + 1,
-              "Json parsing error".to_string(),
-              format!("Unexpected character {ch}"),
-            )
-            .with_kind(DiagnosticKind::Json),
+          TraceableError::from_file(
+            resource_data.resource_path.to_string_lossy().to_string(),
+            source.into_owned(),
+            // one character offset
+            start_offset,
+            start_offset + 1,
+            "Json parsing error".to_string(),
+            format!("Unexpected character {ch}"),
           )
+          .with_kind(DiagnosticKind::Json)
+          .into()
         }
         ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => {
           internal_error!(format!("{e}"))
         }
         UnexpectedEndOfJson => {
           // End offset of json file
-          let offset = source.len();
-          Error::TraceableError(
-            TraceableError::from_file(
-              resource_data.resource_path.to_string_lossy().to_string(),
-              source.into_owned(),
-              offset,
-              offset,
-              "Json parsing error".to_string(),
-              format!("{e}"),
-            )
-            .with_kind(DiagnosticKind::Json),
+          let offset = source.len() - 1;
+          TraceableError::from_file(
+            resource_data.resource_path.to_string_lossy().to_string(),
+            source.into_owned(),
+            offset,
+            offset,
+            "Json parsing error".to_string(),
+            format!("{e}"),
           )
+          .with_kind(DiagnosticKind::Json)
+          .into()
         }
       }
     });
 
     let diagnostics = if let Err(err) = parse_result {
-      err.into()
+      vec![err.into()]
     } else {
       vec![]
     };

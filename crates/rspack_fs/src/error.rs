@@ -1,5 +1,16 @@
 use std::fmt::Display;
 
+#[cfg(feature = "rspack-error")]
+use rspack_error::{
+  miette::{self, Diagnostic},
+  thiserror::{self, Error},
+};
+
+#[cfg(feature = "rspack-error")]
+#[derive(Debug, Error, Diagnostic)]
+#[error("Rspack FS Error: {0}")]
+struct FsError(#[source] std::io::Error);
+
 #[derive(Debug)]
 pub enum Error {
   /// Generic I/O error
@@ -16,7 +27,7 @@ impl From<std::io::Error> for Error {
 impl From<Error> for rspack_error::Error {
   fn from(value: Error) -> Self {
     match value {
-      Error::Io(err) => Self::Io { source: err },
+      Error::Io(err) => FsError(err).into(),
     }
   }
 }

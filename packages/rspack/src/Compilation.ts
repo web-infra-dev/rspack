@@ -498,7 +498,7 @@ export class Compilation {
 					if (isJsStatsError(error)) {
 						this.#inner.pushDiagnostic(
 							"error",
-							error.title,
+							"Error",
 							concatErrorMsgAndStack(error)
 						);
 					} else if (typeof error === "string") {
@@ -542,7 +542,7 @@ export class Compilation {
 					const warn = warns[i];
 					this.#inner.pushDiagnostic(
 						"warning",
-						isJsStatsError(warn) ? warn.title : warn.name,
+						isJsStatsError(warn) ? "Warning" : warn.name,
 						concatErrorMsgAndStack(warn)
 					);
 				}
