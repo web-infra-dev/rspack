@@ -146,7 +146,6 @@ pub struct RawCacheGroupOptions {
   //   pub max_async_requests: usize,
   //   pub max_initial_requests: usize,
   pub min_chunks: Option<u32>,
-  // hide_path_info: bool,
   pub min_size: Option<f64>,
   //   pub min_size_reduction: usize,
   //   pub enforce_size_threshold: usize,
