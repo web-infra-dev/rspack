@@ -317,6 +317,7 @@ impl SplitChunksPlugin {
       let last_index = results.len() - 1;
       results.into_iter().enumerate().for_each(|(index, group)| {
         let group_key = if let Some(key) = group.key {
+          println!("self.hide_path_info: {:#?}", self.hide_path_info);
           if self.hide_path_info {
             hash_filename(&key, &compilation.options)
           } else {
@@ -337,9 +338,9 @@ impl SplitChunksPlugin {
 
         if let Some(n) = name.clone() {
           if n.len() > 100 {
-            let n = &n[0..100];
-            let k = hash_filename(n, &compilation.options);
-            name = Some(format!("{n}{delimiter}{k}"));
+            let s = &n[0..100];
+            let k = hash_filename(&n, &compilation.options);
+            name = Some(format!("{s}{delimiter}{k}"));
           }
         }
 
