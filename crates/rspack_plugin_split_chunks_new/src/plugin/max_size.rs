@@ -317,7 +317,6 @@ impl SplitChunksPlugin {
       let last_index = results.len() - 1;
       results.into_iter().enumerate().for_each(|(index, group)| {
         let group_key = if let Some(key) = group.key {
-          println!("self.hide_path_info: {:#?}", self.hide_path_info);
           if self.hide_path_info {
             hash_filename(&key, &compilation.options)
           } else {
