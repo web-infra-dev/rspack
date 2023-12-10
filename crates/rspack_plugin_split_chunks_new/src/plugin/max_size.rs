@@ -309,16 +309,20 @@ impl SplitChunksPlugin {
     infos_with_results.into_iter().for_each(|(info, results)| {
       let last_index = results.len() - 1;
       results.into_iter().enumerate().for_each(|(index, group)| {
+        let group_key = if let Some(key) = group.key {
+          if self.hide_path_info {
+            hash_filename(&key, compilation)
+          } else {
+            key
+          }
+        } else {
+          index.to_string()
+        };
         let chunk = info.chunk.as_mut(&mut compilation.chunk_by_ukey);
         let delimiter = max_size_setting_map
           .get(&chunk.ukey)
           .map(|s| s.automatic_name_delimiter.as_str())
           .unwrap_or(DEFAULT_DELIMITER);
-        let group_key = if let Some(key) = group.key {
-          key.to_string()
-        } else {
-          index.to_string()
-        };
         let name = chunk
           .name
           .as_ref()

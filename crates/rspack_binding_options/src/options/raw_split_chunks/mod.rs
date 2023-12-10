@@ -43,7 +43,7 @@ pub struct RawSplitChunksOptions {
   pub max_initial_requests: Option<u32>,
   //   pub default_size_types: Option<Vec<SizeType>>,
   pub min_chunks: Option<u32>,
-  // hide_path_info: bool,
+  pub hide_path_info: Option<bool>,
   pub min_size: Option<f64>,
   //   pub min_size_reduction: usize,
   pub enforce_size_threshold: Option<f64>,
@@ -323,6 +323,7 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks_new::PluginOptio
           .automatic_name_delimiter
           .unwrap_or(overall_automatic_name_delimiter.clone()),
       },
+      hide_path_info: raw_opts.hide_path_info,
     }
   }
 }
