@@ -75,31 +75,27 @@ impl Chunk {
     &self,
     chunk_group_by_ukey: &ChunkGroupByUkey,
   ) -> impl Iterator<Item = &Ukey<ChunkGroup>> {
-    self
-      .groups
-      .iter()
-      .sorted_by(|ukey_a, ukey_b| {
-        let index_a = chunk_group_by_ukey
-          .get(ukey_a)
-          .expect("Group should exists")
-          .index;
-        let index_b = chunk_group_by_ukey
-          .get(ukey_b)
-          .expect("Group should exists")
-          .index;
-        // None should be greater than Some<_> to align with JavaScript
-        match index_a {
-          None => match index_b {
-            None => Ordering::Equal,
-            Some(_) => Ordering::Greater,
-          },
-          Some(index_a) => match index_b {
-            None => Ordering::Less,
-            Some(index_b) => index_a.cmp(&index_b),
-          },
-        }
-      })
-      .into_iter()
+    self.groups.iter().sorted_by(|ukey_a, ukey_b| {
+      let index_a = chunk_group_by_ukey
+        .get(ukey_a)
+        .expect("Group should exists")
+        .index;
+      let index_b = chunk_group_by_ukey
+        .get(ukey_b)
+        .expect("Group should exists")
+        .index;
+      // None should be greater than Some<_> to align with JavaScript
+      match index_a {
+        None => match index_b {
+          None => Ordering::Equal,
+          Some(_) => Ordering::Greater,
+        },
+        Some(index_a) => match index_b {
+          None => Ordering::Less,
+          Some(index_b) => index_a.cmp(&index_b),
+        },
+      }
+    })
   }
 
   pub fn get_entry_options<'a>(

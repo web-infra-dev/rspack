@@ -50,12 +50,12 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
 
       let body = if self.async_chunk_loading {
         match chunk_ids.len() {
-          x if x == 1 => format!(
+          1 => format!(
             r#"return {}("{}").then(next);"#,
             RuntimeGlobals::ENSURE_CHUNK,
             chunk_ids.first().expect("Should has at least one chunk")
           ),
-          x if x <= 2 => format!(
+          2 => format!(
             r#"return Promise.all([{}]).then(next);"#,
             chunk_ids
               .iter()
