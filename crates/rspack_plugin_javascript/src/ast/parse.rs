@@ -72,6 +72,9 @@ pub fn parse(
   let source_code = if syntax.dts() {
     // dts build result must be empty
     "".to_string()
+  } else if source_code.starts_with("#!") {
+    // this is a hashbang comment
+    format!("//{source_code}")
   } else {
     source_code
   };
