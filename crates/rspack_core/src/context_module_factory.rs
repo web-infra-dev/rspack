@@ -69,10 +69,10 @@ impl ContextModuleFactory {
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
     // let context_dependencies = Default::default();
-    let request = dependency.request().to_string();
+    let request = dependency.request();
     let (loader_request, specifier) = match request.rfind('!') {
       Some(idx) => request.split_at(idx + 1),
-      None => ("", request.as_str()),
+      None => ("", request),
     };
 
     let resolve_args = ResolveArgs {
