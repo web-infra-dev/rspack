@@ -1,0 +1,20 @@
+{
+  "module": {
+    "rules": [
+      {
+        "test": {
+          "type": "regexp",
+          "matcher": "\\.js$"
+        },
+        "use": [
+          {
+            "loader": "builtin:swc-loader",
+            "options": "{\"jsc\": {\"target\": \"es2022\"}}"
+          }
+        ],
+        "type": "js"
+      }
+    ]
+  },
+  "devtool": "source-map"
+}
