@@ -10,7 +10,6 @@ use crate::{
   get_entry_runtime, AsyncDependenciesBlockIdentifier, BoxDependency, ChunkGroup, ChunkGroupInfo,
   ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
   DependenciesBlock, GroupOptions, Logger, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
-  IS_NEW_TREESHAKING,
 };
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -785,35 +784,34 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .entry(runtime.cloned().into())
       .or_default()
       .insert(module.into(), Vec::new());
-    let dependencies: Vec<&BoxDependency> =
-      if IS_NEW_TREESHAKING.load(std::sync::atomic::Ordering::Relaxed) {
-        let mgm = self
-          .compilation
-          .module_graph
-          .module_graph_module_by_identifier(&module)
-          .unwrap_or_else(|| panic!("no module found: {:?}", &module));
-        mgm
-          .outgoing_connections_unordered(&self.compilation.module_graph)
-          .expect("should have outgoing connections")
-          .filter_map(|con: &ModuleGraphConnection| {
-            let active_state = con.get_active_state(&self.compilation.module_graph, runtime);
-            match active_state {
-              crate::ConnectionState::Bool(false) => None,
-              _ => Some(con.dependency_id),
-            }
-          })
-          .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(&dep_id))
-          .collect()
-      } else {
-        self
-          .compilation
-          .module_graph
-          .get_module_all_dependencies(&module)
-          .expect("should have module")
-          .iter()
-          .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(dep_id))
-          .collect()
-      };
+    let dependencies: Vec<&BoxDependency> = if self.compilation.options.is_new_tree_shaking() {
+      let mgm = self
+        .compilation
+        .module_graph
+        .module_graph_module_by_identifier(&module)
+        .unwrap_or_else(|| panic!("no module found: {:?}", &module));
+      mgm
+        .outgoing_connections_unordered(&self.compilation.module_graph)
+        .expect("should have outgoing connections")
+        .filter_map(|con: &ModuleGraphConnection| {
+          let active_state = con.get_active_state(&self.compilation.module_graph, runtime);
+          match active_state {
+            crate::ConnectionState::Bool(false) => None,
+            _ => Some(con.dependency_id),
+          }
+        })
+        .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(&dep_id))
+        .collect()
+    } else {
+      self
+        .compilation
+        .module_graph
+        .get_module_all_dependencies(&module)
+        .expect("should have module")
+        .iter()
+        .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(dep_id))
+        .collect()
+    };
     for dep in dependencies {
       if dep.as_module_dependency().is_none() && dep.as_context_dependency().is_none() {
         continue;
