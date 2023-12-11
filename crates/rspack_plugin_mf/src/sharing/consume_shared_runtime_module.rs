@@ -49,11 +49,10 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .clone()
         .expect("should have moduleId at <ConsumeSharedRuntimeModule as RuntimeModule>::generate");
       ids.push(id.clone());
-      if let Ok(code_gen) = compilation
+      let code_gen = compilation
         .code_generation_results
-        .get(&module, Some(&chunk.runtime))
-        && let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>()
-      {
+        .get(&module, Some(&chunk.runtime));
+      if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
         module_id_to_consume_data_mapping.insert(id, format!(
           "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, fallback: {} }}",
           json_stringify(&data.share_scope),

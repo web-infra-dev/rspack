@@ -4,7 +4,6 @@ use napi::bindgen_prelude::Either3;
 use napi::{Env, JsFunction};
 use napi_derive::napi;
 use rspack_binding_values::{JsModule, ToJsModule};
-use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::{get_napi_env, JsRegExp, JsRegExpExt, NapiResultExt};
 use rspack_plugin_split_chunks_new::{CacheGroupTest, CacheGroupTestFnCtx};
@@ -44,12 +43,7 @@ pub(super) fn normalize_raw_cache_group_test(raw: RawCacheGroupTest) -> CacheGro
           .into_rspack_result()
           .expect("into rspack result failed")
           .blocking_recv()
-          .unwrap_or_else(|err| {
-            panic!(
-              "{}",
-              internal_error!("Failed to call external function: {err}")
-            )
-          })
+          .unwrap_or_else(|err| panic!("Failed to call external function: {err}"))
           .expect("failed")
       }))
     }

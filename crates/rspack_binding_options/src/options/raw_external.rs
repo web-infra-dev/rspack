@@ -7,7 +7,6 @@ use napi::{Env, JsFunction};
 use napi_derive::napi;
 use rspack_core::ExternalItemFnCtx;
 use rspack_core::{ExternalItem, ExternalItemFnResult, ExternalItemValue};
-use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::{get_napi_env, JsRegExp, JsRegExpExt, NapiResultExt};
 
@@ -106,7 +105,7 @@ impl TryFrom<RawExternalItemWrapper> for ExternalItem {
               .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
               .into_rspack_result()?
               .await
-              .map_err(|err| internal_error!("Failed to call external function: {err}"))?
+              .unwrap_or_else(|err| panic!("Failed to call external function: {err}"))
               .map(|r| r.into())
           })
         })))

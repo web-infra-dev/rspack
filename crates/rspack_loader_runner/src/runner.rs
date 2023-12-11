@@ -378,7 +378,7 @@ impl<C> TryFrom<LoaderContext<'_, C>> for TWithDiagnosticArray<LoaderResult> {
         let loader = loader_context.__loader_items[0].to_string();
         internal_error!("Final loader({loader}) didn't return a Buffer or String")
       } else {
-        internal_error!("Content is not available, it is a bug")
+        panic!("content should be available");
       }
     })?;
 

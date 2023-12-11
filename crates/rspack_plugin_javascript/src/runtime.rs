@@ -34,8 +34,7 @@ pub fn render_chunk_modules(
     .filter_map(|mgm| {
       let code_gen_result = compilation
         .code_generation_results
-        .get(&mgm.module_identifier, Some(&chunk.runtime))
-        .expect("should have code generation result");
+        .get(&mgm.module_identifier, Some(&chunk.runtime));
       if let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) {
         let render_module_result = plugin_driver
           .render_module_content(RenderModuleContentArgs {

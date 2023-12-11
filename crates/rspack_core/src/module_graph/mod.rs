@@ -3,7 +3,7 @@ use std::collections::hash_map::Entry;
 use std::path::PathBuf;
 
 use dashmap::DashMap;
-use rspack_error::{internal_error, Result};
+use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_identifier::{Identifiable, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -236,11 +236,11 @@ impl ModuleGraph {
     {
       let mgm = self
         .module_graph_module_by_identifier_mut(&module_identifier)
-        .ok_or_else(|| {
-          internal_error!(
+        .unwrap_or_else(|| {
+          panic!(
             "Failed to set resolved module: Module linked to module identifier {module_identifier} cannot be found"
           )
-        })?;
+        });
 
       mgm.add_incoming_connection(connection_id);
     }
