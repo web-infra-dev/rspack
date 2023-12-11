@@ -164,6 +164,7 @@ const describeCases = config => {
 										"main"
 									],
 									aliasFields: ["browser"],
+									browserField: true,
 									extensions: [".webpack.js", ".web.js", ".js", ".json"]
 								},
 								resolveLoader: {
