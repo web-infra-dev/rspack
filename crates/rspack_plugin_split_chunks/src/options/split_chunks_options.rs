@@ -18,7 +18,6 @@ pub struct SplitChunksOptions {
   pub enforce_size_threshold: Option<OptimizationSplitChunksSizes>,
   pub fallback_cache_group: Option<SplitChunksOptionsCacheGroup>,
   pub filename: Option<String>,
-  // TODO: Supports pub hide_path_info: Option<bool>,
   pub max_async_requests: Option<u32>,
   pub max_async_size: Option<f64>,
   pub max_initial_requests: Option<u32>,

@@ -974,6 +974,7 @@ const optimizationSplitChunksOptions = z.strictObject({
 			automaticNameDelimiter: z.string().optional()
 		})
 		.optional(),
+	hidePathInfo: z.boolean().optional(),
 	...sharedOptimizationSplitChunksCacheGroup
 });
 export type OptimizationSplitChunksOptions = z.infer<

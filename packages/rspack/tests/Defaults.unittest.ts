@@ -127,8 +127,10 @@ describe("snapshots", () => {
 		-     "sideEffects": "flag",
 		+     "sideEffects": true,
 		@@ ... @@
+		-       "hidePathInfo": false,
 		-       "maxAsyncRequests": Infinity,
 		-       "maxInitialRequests": Infinity,
+		+       "hidePathInfo": true,
 		+       "maxAsyncRequests": 30,
 		+       "maxInitialRequests": 30,
 		@@ ... @@
@@ -173,8 +175,10 @@ describe("snapshots", () => {
 		-     "sideEffects": "flag",
 		+     "sideEffects": true,
 		@@ ... @@
+		-       "hidePathInfo": false,
 		-       "maxAsyncRequests": Infinity,
 		-       "maxInitialRequests": Infinity,
+		+       "hidePathInfo": true,
 		+       "maxAsyncRequests": 30,
 		+       "maxInitialRequests": 30,
 		@@ ... @@

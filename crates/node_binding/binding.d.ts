@@ -627,7 +627,6 @@ export interface RawCacheOptions {
 }
 
 export interface RawChunkOptionNameCtx {
-  name: string
   module: JsModule
 }
 
@@ -1144,6 +1143,7 @@ export interface RawSplitChunksOptions {
   maxAsyncRequests?: number
   maxInitialRequests?: number
   minChunks?: number
+  hidePathInfo?: boolean
   minSize?: number
   enforceSizeThreshold?: number
   minRemainingSize?: number

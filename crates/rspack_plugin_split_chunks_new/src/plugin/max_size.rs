@@ -3,7 +3,9 @@ use std::borrow::Cow;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_core::{ChunkUkey, Compilation, Module, ModuleIdentifier, DEFAULT_DELIMITER};
+use rspack_core::{
+  ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, DEFAULT_DELIMITER,
+};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::{ext::DynHash, identifier::make_paths_relative};
 use rustc_hash::FxHashMap;
@@ -48,10 +50,10 @@ fn get_size(module: &dyn Module) -> SplitChunkSizes {
   )
 }
 
-fn hash_filename(filename: &str, compilation: &Compilation) -> String {
-  let mut filename_hash = RspackHash::from(&compilation.options.output);
+fn hash_filename(filename: &str, options: &CompilerOptions) -> String {
+  let mut filename_hash = RspackHash::from(&options.output);
   filename.dyn_hash(&mut filename_hash);
-  let hash_digest: RspackHashDigest = filename_hash.digest(&compilation.options.output.hash_digest);
+  let hash_digest: RspackHashDigest = filename_hash.digest(&options.output.hash_digest);
   hash_digest.rendered(8).to_string()
 }
 
@@ -96,7 +98,12 @@ fn deterministic_grouping_for_modules(
           .replace_all(&module.identifier(), "")
           .to_string()
       };
-      let key = format!("{}{}{}", name, delimiter, hash_filename(&name, compilation));
+      let key = format!(
+        "{}{}{}",
+        name,
+        delimiter,
+        hash_filename(&name, &compilation.options)
+      );
       GroupItem {
         module: module.identifier(),
         size: get_size(module),
@@ -309,20 +316,32 @@ impl SplitChunksPlugin {
     infos_with_results.into_iter().for_each(|(info, results)| {
       let last_index = results.len() - 1;
       results.into_iter().enumerate().for_each(|(index, group)| {
+        let group_key = if let Some(key) = group.key {
+          if self.hide_path_info {
+            hash_filename(&key, &compilation.options)
+          } else {
+            key
+          }
+        } else {
+          index.to_string()
+        };
         let chunk = info.chunk.as_mut(&mut compilation.chunk_by_ukey);
         let delimiter = max_size_setting_map
           .get(&chunk.ukey)
           .map(|s| s.automatic_name_delimiter.as_str())
           .unwrap_or(DEFAULT_DELIMITER);
-        let group_key = if let Some(key) = group.key {
-          key.to_string()
-        } else {
-          index.to_string()
-        };
-        let name = chunk
+        let mut name = chunk
           .name
           .as_ref()
           .map(|name| format!("{name}{delimiter}{group_key}"));
+
+        if let Some(n) = name.clone() {
+          if n.len() > 100 {
+            let s = &n[0..100];
+            let k = hash_filename(&n, &compilation.options);
+            name = Some(format!("{s}{delimiter}{k}"));
+          }
+        }
 
         if index != last_index {
           let old_chunk = chunk.ukey;
