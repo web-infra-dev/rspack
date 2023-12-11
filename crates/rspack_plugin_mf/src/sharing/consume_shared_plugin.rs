@@ -76,7 +76,7 @@ fn resolve_matched_configs(
         resolver.resolve(compilation.options.context.as_ref(), request)
       else {
         compilation
-          .push_batch_diagnostic(internal_error!("Can't resolve shared module {request}").into());
+          .push_diagnostic(internal_error!("Can't resolve shared module {request}").into());
         continue;
       };
       resolved.insert(resource.path.to_string_lossy().into_owned(), config.clone());
@@ -173,7 +173,6 @@ impl ConsumeSharedPlugin {
         .get(ResolveOptionsWithDependencyType {
           resolve_options: None,
           resolve_to_context: false,
-          dependency_type: DependencyType::Unknown,
           dependency_category: DependencyCategory::Esm,
         }),
     );

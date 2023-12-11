@@ -16,6 +16,7 @@ use rspack_core::{
   PluginJsChunkHashHookOutput, PluginProcessAssetsOutput, PluginRenderModuleContentOutput,
   ProcessAssetsArgs, RenderModuleContentArgs, SourceType,
 };
+use rspack_error::miette::IntoDiagnostic;
 use rspack_error::{internal_error, Error, Result};
 use rspack_util::swc::normalize_custom_filename;
 use rustc_hash::FxHashMap as HashMap;
@@ -141,7 +142,7 @@ impl Plugin for DevtoolPlugin {
           })
           .transpose()?;
         let mut code_buffer = Vec::new();
-        source.to_writer(&mut code_buffer)?;
+        source.to_writer(&mut code_buffer).into_diagnostic()?;
         Ok((filename.to_owned(), (code_buffer, map)))
       })
       .collect::<Result<_>>()?;

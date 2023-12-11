@@ -1,21 +1,13 @@
 const path = require("path");
 const rspack = require("@rspack/core");
-const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
 const { default: HtmlPlugin } = require("@rspack/plugin-html");
-
-const prod = process.env.NODE_ENV === "production";
 
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
-	mode: 'development',
+	mode: 'production',
 	context: __dirname,
 	entry: "./src/index.tsx",
 	target: ["web", "es5"],
-	devServer: {
-		port: 5555,
-		webSocketServer: "sockjs",
-		historyApiFallback: true
-	},
 	module: {
 		rules: [
 			{
@@ -63,8 +55,8 @@ const config = {
 						transform: {
 							react: {
 								runtime: "automatic",
-								development: !prod,
-								refresh: !prod
+								development: false,
+								refresh: false
 							}
 						},
 						externalHelpers: true
@@ -87,7 +79,8 @@ const config = {
 			// expression, which causes stack overflow for swc parser in debug mode.
 			// Alias to the unminified version mitigates this problem.
 			// See also <https://github.com/search?q=repo%3Aswc-project%2Fswc+parser+stack+overflow&type=issues>
-			mockjs: require.resolve("./patches/mock.js")
+			mockjs: require.resolve("./patches/mock.js"),
+			"@swc/helpers": require.resolve('@swc/helpers'),
 		}
 	},
 	output: {
@@ -98,6 +91,7 @@ const config = {
 	optimization: {
 		minimize: false, // Disabling minification because it takes too long on CI
 		realContentHash: true,
+		usedExports: false,
 		splitChunks: {
 			cacheGroups: {
 				someVendor: {
@@ -113,16 +107,23 @@ const config = {
 			template: path.join(__dirname, "index.html"),
 			favicon: path.join(__dirname, "public", "favicon.ico")
 		}),
-		new ReactRefreshPlugin(),
-		new rspack.ProgressPlugin()
 	],
 	infrastructureLogging: {
 		debug: false
 	},
 	experiments: {
+		css: true,
 		rspackFuture: {
 			disableTransformByDefault: true
 		}
-	}
+	},
+	builtins: {
+		css: {
+			modules: {
+				exportsOnly: true,
+				localIdentName: "example-arco-design-pro---[path][name][ext]-[local]",
+			},
+		},
+	},
 };
 module.exports = config;

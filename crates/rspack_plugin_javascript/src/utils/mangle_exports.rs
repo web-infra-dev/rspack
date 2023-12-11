@@ -60,9 +60,7 @@ pub fn number_to_identifier_continuation(mut n: u32) -> String {
 
   // numbers
   if n < 10 {
-    return char::from_u32(n)
-      .expect("should convert successfully")
-      .to_string();
+    return n.to_string();
   }
 
   if n == 10 {

@@ -1,6 +1,15 @@
 use std::{ffi::CString, ptr};
 
 use napi::{bindgen_prelude::*, sys::napi_value, Env, Error, Result};
+use rspack_error::{
+  miette::{self, Diagnostic},
+  thiserror::{self, Error},
+};
+
+#[derive(Debug, Error, Diagnostic)]
+#[diagnostic(code(NapiError))]
+#[error("Napi Error: {0}\n{1}")]
+struct NodeError(String, String);
 
 pub trait NapiErrorExt {
   fn into_rspack_error(self) -> rspack_error::Error;
@@ -14,19 +23,11 @@ pub trait NapiResultExt<T> {
 
 impl NapiErrorExt for Error {
   fn into_rspack_error(self) -> rspack_error::Error {
-    rspack_error::Error::Napi {
-      status: format!("{}", self.status),
-      reason: self.reason,
-      backtrace: "".to_owned(),
-    }
+    NodeError(self.reason, "".to_string()).into()
   }
   fn into_rspack_error_with_detail(self, env: &Env) -> rspack_error::Error {
     let (reason, backtrace) = extract_stack_or_message_from_napi_error(env, self);
-    rspack_error::Error::Napi {
-      status: Status::GenericFailure.to_string(),
-      reason,
-      backtrace: backtrace.unwrap_or_default(),
-    }
+    NodeError(reason, backtrace.unwrap_or_default()).into()
   }
 }
 

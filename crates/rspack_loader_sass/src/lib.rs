@@ -11,7 +11,7 @@ use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::SourceMap, DependencyCategory, DependencyType, LoaderRunnerContext, Resolve,
+  rspack_sources::SourceMap, DependencyCategory, LoaderRunnerContext, Resolve,
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
 };
 use rspack_error::{
@@ -128,7 +128,6 @@ impl RspackImporter {
         ..Default::default()
       })),
       resolve_to_context: false,
-      dependency_type: DependencyType::Unknown,
       dependency_category: DependencyCategory::Unknown,
     });
     let sass_import_resolve = factory.get(ResolveOptionsWithDependencyType {
@@ -150,7 +149,6 @@ impl RspackImporter {
         ..Default::default()
       })),
       resolve_to_context: false,
-      dependency_type: DependencyType::Unknown,
       dependency_category: DependencyCategory::Unknown,
     });
     let rspack_module_resolve = factory.get(ResolveOptionsWithDependencyType {
@@ -177,7 +175,6 @@ impl RspackImporter {
         ..Default::default()
       })),
       resolve_to_context: false,
-      dependency_type: DependencyType::Unknown,
       dependency_category: DependencyCategory::Unknown,
     });
     let rspack_import_resolve = factory.get(ResolveOptionsWithDependencyType {
@@ -205,7 +202,6 @@ impl RspackImporter {
         ..Default::default()
       })),
       resolve_to_context: false,
-      dependency_type: DependencyType::Unknown,
       dependency_category: DependencyCategory::Unknown,
     });
     Self {
@@ -473,16 +469,16 @@ impl Loader<LoaderRunnerContext> for SassLoader {
     let sass_options = self.get_sass_options(loader_context, content.try_into_string()?, logger);
     let result = Sass::new(&self.options.__exe_path)
       .map_err(|e| {
-        rspack_error::Error::InternalError(InternalError {
-          severity: Severity::Error,
-          error_message: format!(
+        InternalError::new(
+          format!(
             "{}: The dart-sass-embedded path is {}, your OS is {}, your Arch is {}",
             e.message(),
             &self.options.__exe_path.display(),
             get_os(),
             get_arch(),
           ),
-        })
+          Severity::Error,
+        )
       })?
       .render(sass_options)
       .map_err(sass_exception_to_error)?;
@@ -524,7 +520,7 @@ fn sass_exception_to_error(e: Box<Exception>) -> Error {
     && let Some(message) = e.sass_message()
     && let Some(e) = make_traceable_error("Sass Error", message, span)
   {
-    Error::TraceableError(e.with_kind(DiagnosticKind::Scss))
+    e.with_kind(DiagnosticKind::Scss).into()
   } else {
     internal_error!(e.message().to_string())
   }
@@ -542,13 +538,14 @@ fn sass_log_to_diagnostics(
   if let Some(span) = span
     && let Some(e) = make_traceable_error(title, message, span)
   {
-    Error::TraceableError(e.with_kind(DiagnosticKind::Scss).with_severity(severity)).into()
+    vec![Error::from(e.with_kind(DiagnosticKind::Scss).with_severity(severity)).into()]
   } else {
     let f = match severity {
       Severity::Error => Diagnostic::error,
       Severity::Warn => Diagnostic::warn,
     };
-    vec![f(title.to_string(), message.to_string(), 0, 0).with_kind(DiagnosticKind::Scss)]
+    let title = "sass-loader: ".to_string() + title;
+    vec![f(title, message.to_string())]
   }
 }
 

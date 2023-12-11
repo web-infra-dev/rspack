@@ -9,10 +9,7 @@ use rspack_identifier::{Identifiable, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
 
-use crate::{
-  debug_all_exports_info, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
-  IS_NEW_TREESHAKING,
-};
+use crate::{debug_all_exports_info, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier};
 mod connection;
 pub use connection::*;
 
@@ -33,6 +30,9 @@ pub struct DependencyParents {
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
+  // TODO: removed when new treeshaking is stable
+  is_new_treeshaking: bool,
+
   pub dependency_id_to_module_identifier: HashMap<DependencyId, ModuleIdentifier>,
 
   /// Module identifier to its module
@@ -73,6 +73,12 @@ pub struct DependencyExtraMeta {
 }
 
 impl ModuleGraph {
+  // TODO: removed when new treeshaking is stable
+  pub fn with_treeshaking(mut self, new_treeshaking: bool) -> Self {
+    self.is_new_treeshaking = new_treeshaking;
+    self
+  }
+
   /// Return an unordered iterator of modules
   pub fn modules(&self) -> &IdentifierMap<BoxModule> {
     &self.module_identifier_to_module
@@ -178,7 +184,7 @@ impl ModuleGraph {
     let dependency = dependency_id.get_dependency(self);
     let is_module_dependency =
       dependency.as_module_dependency().is_some() || dependency.as_context_dependency().is_some();
-    let condition = if IS_NEW_TREESHAKING.load(std::sync::atomic::Ordering::Relaxed) {
+    let condition = if self.is_new_treeshaking {
       dependency
         .as_module_dependency()
         .and_then(|dep| dep.get_condition())

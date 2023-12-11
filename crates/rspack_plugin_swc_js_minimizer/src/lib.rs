@@ -18,6 +18,7 @@ use rspack_core::{
   AssetInfo, CompilationAsset, JsChunkHashArgs, Plugin, PluginContext, PluginJsChunkHashHookOutput,
   PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
+use rspack_error::miette::IntoDiagnostic;
 use rspack_error::{internal_error, Diagnostic, Result};
 use rspack_regex::RspackRegex;
 use rspack_util::try_any_sync;
@@ -214,8 +215,7 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
           ) {
             Ok(r) => r,
             Err(e) => {
-              tx.send(e.into())
-                .map_err(|e| internal_error!(e.to_string()))?;
+              tx.send(e.into()).into_diagnostic()?;
               return Ok(())
             }
           };

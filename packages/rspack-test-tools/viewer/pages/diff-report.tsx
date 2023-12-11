@@ -9,6 +9,10 @@ import { generateTreeData } from '../utils/generateTreeData';
 const Sider = Layout.Sider;
 const Content = Layout.Content;
 
+declare var window: {
+  $$diff_detail$$: TDiffStats
+};
+
 type TDiffItem = {
   name: string;
   source: string;
@@ -30,10 +34,9 @@ export const DiffReportPage: React.FC<{}> = () => {
   const [current, setCurrent] = useState<TDiffItem>();
 
   useEffect(() => {
-    const data = document.getElementById('DIFF_DETAIL')?.textContent?.trim();
-    if (!data || data === '$$diff_detail$$') return;
     try {
-      const stats: TDiffStats = JSON.parse(data);
+      const stats: TDiffStats = window.$$diff_detail$$;
+      if (!stats) return;
       setTreeData([{
         key: 'summary',
         title: 'Summary',

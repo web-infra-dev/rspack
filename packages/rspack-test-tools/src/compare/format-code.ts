@@ -9,9 +9,22 @@ export interface IFormatCodeOptions {
 	ignorePropertyQuotationMark: boolean;
 	ignoreModuleId: boolean;
 	ignoreModuleArguments: boolean;
+	ignoreBlockOnlyStatement: boolean;
+	ignoreSwcHelpersPath: boolean;
+	ignoreObjectPropertySequence: boolean;
+	ignoreCssFilePath: boolean;
 }
 
-export function formatCode(raw: string, options: IFormatCodeOptions) {
+const SWC_HELPER_PATH_REG =
+	/^_swc_helpers_[a-zA-Z\d_-]+__WEBPACK_IMPORTED_MODULE_xxx__$/;
+const CSS_FILE_EXT_REG = /(le|sa|c|sc)ss$/;
+const INVALID_PATH_REG = /[<>:"/\\|?*.]/g;
+
+export function formatCode(
+	name: string,
+	raw: string,
+	options: IFormatCodeOptions
+) {
 	const ast = parse(raw, {
 		sourceType: "unambiguous"
 	});
@@ -23,6 +36,15 @@ export function formatCode(raw: string, options: IFormatCodeOptions) {
 					keyPath.replaceWith(T.stringLiteral(keyPath.node.name));
 				}
 			}
+			if (options.ignoreCssFilePath && CSS_FILE_EXT_REG.test(name)) {
+				const valuePath = path.get("value");
+				if (valuePath.isStringLiteral()) {
+					valuePath.node.value = valuePath.node.value.replace(
+						INVALID_PATH_REG,
+						"-"
+					);
+				}
+			}
 		},
 		Identifier(path) {
 			if (options.ignoreModuleId) {
@@ -31,12 +53,86 @@ export function formatCode(raw: string, options: IFormatCodeOptions) {
 					"__WEBPACK_IMPORTED_MODULE_xxx__"
 				);
 			}
+			if (options.ignoreSwcHelpersPath) {
+				if (SWC_HELPER_PATH_REG.test(path.node.name)) {
+					path.node.name = `$$SWC_HELPERS$$`;
+				}
+			}
+		},
+		IfStatement(path) {
+			if (options.ignoreBlockOnlyStatement) {
+				const consequent = path.get("consequent");
+				if (
+					consequent.isBlockStatement() &&
+					consequent.node.body.length === 1
+				) {
+					consequent.node.body[0].leadingComments =
+						consequent.node.leadingComments;
+					consequent.replaceWith(
+						T.cloneNode(consequent.node.body[0], true, false)
+					);
+				}
+				const alternate = path.get("alternate");
+				if (alternate.isBlockStatement() && alternate.node.body.length === 1) {
+					alternate.node.body[0].leadingComments =
+						alternate.node.leadingComments;
+					alternate.replaceWith(
+						T.cloneNode(alternate.node.body[0], true, false)
+					);
+				}
+			}
+		},
+		For(path) {
+			if (options.ignoreBlockOnlyStatement) {
+				const body = path.get("body");
+				if (body.isBlockStatement() && body.node.body.length === 1) {
+					body.node.body[0].leadingComments = body.node.leadingComments;
+					body.replaceWith(T.cloneNode(body.node.body[0], true, false));
+				}
+			}
+		},
+		ObjectExpression(path) {
+			if (options.ignoreObjectPropertySequence) {
+				let result = [];
+				let safe = [];
+				while (path.node.properties.length || safe.length) {
+					const cur = path.node.properties.shift()!;
+					if (cur && T.isObjectProperty(cur)) {
+						if (T.isIdentifier(cur.key)) {
+							safe.push({
+								name: cur.key.name,
+								node: cur
+							});
+							continue;
+						}
+						if (T.isStringLiteral(cur.key)) {
+							safe.push({
+								name: cur.key.value,
+								node: cur
+							});
+							continue;
+						}
+					}
+					if (safe.length) {
+						safe.sort((a, b) => (a.name > b.name ? 1 : -1));
+						result.push(...safe.map(n => n.node));
+						safe = [];
+					}
+					if (cur) {
+						result.push(cur);
+					}
+				}
+				path.node.properties = result;
+			}
 		}
 	});
 	let result = generate(ast, {
 		comments: false,
 		compact: false,
-		concise: false
+		concise: false,
+		jsescOption: {
+			quotes: "double"
+		}
 	}).code;
 
 	if (options.ignoreModuleArguments) {

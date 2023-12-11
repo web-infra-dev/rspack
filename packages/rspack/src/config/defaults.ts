@@ -768,7 +768,7 @@ const applyOptimizationDefaults = (
 		// A(splitChunks, "defaultSizeTypes", () =>
 		// 	css ? ["javascript", "css", "unknown"] : ["javascript", "unknown"]
 		// );
-		// D(splitChunks, "hidePathInfo", production);
+		D(splitChunks, "hidePathInfo", production);
 		D(splitChunks, "chunks", "async");
 		// D(splitChunks, "usedExports", optimization.usedExports === true);
 		D(splitChunks, "minChunks", 1);

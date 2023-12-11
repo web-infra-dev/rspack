@@ -32,9 +32,8 @@ function createRenderRuntimeModulesFn(Template) {
 				runtimeSource = codeGenResult.sources.get("runtime");
 			}
 			if (runtimeSource) {
-				source.add(
-					Template.toNormalComment(`start::${module.identifier()}`) + "\n"
-				);
+				let identifier = module.identifier();
+				source.add(Template.toNormalComment(`start::${identifier}`) + "\n");
 				if (!module.shouldIsolate()) {
 					source.add(runtimeSource);
 					source.add("\n\n");
@@ -47,9 +46,7 @@ function createRenderRuntimeModulesFn(Template) {
 					source.add(new PrefixSource("\t", runtimeSource));
 					source.add("\n}();\n\n");
 				}
-				source.add(
-					Template.toNormalComment(`end::${module.identifier()}`) + "\n"
-				);
+				source.add(Template.toNormalComment(`end::${identifier}`) + "\n");
 			}
 		}
 		return source;
@@ -114,7 +111,11 @@ export function createModulePlaceholderPlugin(webpackPath) {
 						let footer = cacheEntry.footer;
 						if (header === undefined) {
 							const req = module.readableIdentifier(requestShortener);
-							const reqStr = req.replace(/\*\//g, "*_/");
+							let reqStr = req.replace(/\*\//g, "*_/");
+							// handle css module identifier
+							if (reqStr.startsWith("css ")) {
+								reqStr = reqStr.replace(/^css[\s]+/, "").trim();
+							}
 							header = new RawSource(`\n/* start::${reqStr} */\n`);
 							footer = new RawSource(`\n/* end::${reqStr} */\n`);
 							cacheEntry.header = header;

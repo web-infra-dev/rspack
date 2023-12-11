@@ -5,7 +5,6 @@
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(hash_raw_entry)]
 
-use std::sync::atomic::AtomicBool;
 use std::{fmt, sync::Arc};
 mod dependencies_block;
 pub use dependencies_block::{
@@ -116,6 +115,28 @@ impl std::fmt::Display for SourceType {
       SourceType::ShareInit => write!(f, "share-init"),
       SourceType::ConsumeShared => write!(f, "consume-shared"),
       SourceType::Unknown => write!(f, "unknown"),
+    }
+  }
+}
+
+impl TryFrom<&str> for SourceType {
+  type Error = rspack_error::Error;
+
+  fn try_from(value: &str) -> Result<Self, Self::Error> {
+    match value {
+      "javascript" => Ok(Self::JavaScript),
+      "css" => Ok(Self::Css),
+      "wasm" => Ok(Self::Wasm),
+      "asset" => Ok(Self::Asset),
+      "remote" => Ok(Self::Remote),
+      "share-init" => Ok(Self::ShareInit),
+      "consume-shared" => Ok(Self::ConsumeShared),
+      "unknown" => Ok(Self::Unknown),
+
+      _ => {
+        use rspack_error::internal_error;
+        Err(internal_error!("invalid source type: {value}"))
+      }
     }
   }
 }
@@ -288,5 +309,3 @@ impl TryFrom<&str> for ModuleType {
 pub type ChunkByUkey = Database<Chunk>;
 pub type ChunkGroupByUkey = Database<ChunkGroup>;
 pub(crate) type SharedPluginDriver = Arc<PluginDriver>;
-
-pub static IS_NEW_TREESHAKING: AtomicBool = AtomicBool::new(false);

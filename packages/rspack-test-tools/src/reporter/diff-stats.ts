@@ -53,8 +53,8 @@ export class DiffStatsReporter
 		for (let item of data) {
 			if (item.type === ECompareResultType.Missing) continue;
 			const moduleType: TModuleTypeId = item.name.startsWith("webpack/runtime")
-				? "normal"
-				: "runtime";
+				? "runtime"
+				: "normal";
 			// handle modules
 			if (item.type === ECompareResultType.OnlySource) {
 				current[`${ECompilerType.Rspack}|${moduleType}|${"modules"}`]++;
