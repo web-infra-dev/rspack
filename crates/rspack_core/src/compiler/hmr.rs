@@ -14,7 +14,6 @@ impl<T> Compiler<T>
 where
   T: AsyncWritableFileSystem + Send + Sync,
 {
-  // TODO: remove this function when we had `record` in compiler.
   pub async fn rebuild(
     &mut self,
     changed_files: std::collections::HashSet<String>,

@@ -303,7 +303,7 @@ impl ChunkGroupKind {
 
 pub type EntryRuntime = String;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<EntryRuntime>,
@@ -315,7 +315,7 @@ pub struct EntryOptions {
   pub library: Option<LibraryOptions>,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ChunkGroupOptions {
   pub name: Option<String>,
 }
@@ -327,7 +327,7 @@ impl ChunkGroupOptions {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum GroupOptions {
   Entrypoint(Box<EntryOptions>),
   ChunkGroup(ChunkGroupOptions),

@@ -385,6 +385,22 @@ impl ModuleGraph {
       })
   }
 
+  pub(crate) fn get_module_dependencies_modules_and_blocks(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> (Vec<&ModuleIdentifier>, &[AsyncDependenciesBlockIdentifier]) {
+    let Some(m) = self.module_by_identifier(module_identifier) else {
+      unreachable!("cannot find the module correspanding to {module_identifier}");
+    };
+    let modules = m
+      .get_dependencies()
+      .iter()
+      .filter_map(|id| self.module_identifier_by_dependency_id(id))
+      .collect();
+    let blocks = m.get_blocks();
+    (modules, blocks)
+  }
+
   pub fn dependency_by_connection_id(
     &self,
     connection_id: &ConnectionId,

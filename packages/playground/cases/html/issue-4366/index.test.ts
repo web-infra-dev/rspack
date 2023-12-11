@@ -1,5 +1,4 @@
 import { test, expect } from "@/fixtures";
-import { sleep } from "@/utils/sleep";
 
 test("html should refresh after reload", async ({
 	page,
