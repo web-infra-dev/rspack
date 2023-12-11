@@ -224,7 +224,7 @@ where
     if let Some(last_key) = last_key {
       if use_id {
         format!(
-          "(chunkId === {} ? {} : chunkId)`",
+          "(chunkId === {} ? {} : chunkId)",
           serde_json::to_string(&last_key).expect("invalid json to_string"),
           result.get(&last_key).expect("cannot find last key value")
         )
