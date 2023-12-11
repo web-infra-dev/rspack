@@ -129,7 +129,8 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       inline_script: Some(false),
       keep_comments: Some(true),
     };
-    let program = c.transform(built).map_err(AnyhowError::from)?;
+    let mut program = c.transform(built).map_err(AnyhowError::from)?;
+    remove_hash_bang(&mut program);
     let ast = c.into_js_ast(program);
 
     // If swc-loader is the latest loader available,
@@ -162,5 +163,16 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
 impl Identifiable for SwcLoader {
   fn identifier(&self) -> Identifier {
     self.identifier
+  }
+}
+
+fn remove_hash_bang(program: &mut swc_core::ecma::ast::Program) {
+  match program {
+    swc_core::ecma::ast::Program::Module(m) => {
+      m.shebang = None;
+    }
+    swc_core::ecma::ast::Program::Script(s) => {
+      s.shebang = None;
+    }
   }
 }
