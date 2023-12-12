@@ -29,8 +29,8 @@ export type Mode = z.infer<typeof mode>;
 //#region Falsy
 const falsy = z.union([
 	z.literal(false),
-	z.number().int().min(0),
-	z.string().min(0),
+	z.literal(0),
+	z.string().trim().max(0).min(0),
 	z.null(),
 	z.undefined()
 ]);
