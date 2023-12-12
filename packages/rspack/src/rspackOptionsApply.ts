@@ -149,7 +149,7 @@ export function optionsApply_compat(
 }
 
 export class RspackOptionsApply {
-	constructor() {}
+	constructor() { }
 	process(options: RspackOptionsNormalized, compiler: Compiler) {
 		assert(
 			options.output.path,
@@ -182,7 +182,7 @@ export class RspackOptionsApply {
 			for (const item of minimizer) {
 				if (typeof item === "function") {
 					(item as RspackPluginFunction).call(compiler, compiler);
-				} else if (item !== "...") {
+				} else if (item !== "..." && item) {
 					item.apply(compiler);
 				}
 			}
