@@ -10,7 +10,9 @@ use compiler::{IntoJsAst, SwcCompiler};
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 use rspack_ast::RspackAst;
-use rspack_core::{rspack_sources::SourceMap, LoaderRunnerContext, Mode};
+use rspack_core::{
+  rspack_sources::SourceMap, LoaderRunnerContext, LoadersShouldAlwaysGiveContent, Mode,
+};
 use rspack_error::{error, AnyhowError, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use rspack_plugin_javascript::ast::{self, SourceMapConfig};
@@ -141,6 +143,9 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
         .composed_index_by_identifier(&self.identifier)
         .map(|idx| idx == 0)
         .unwrap_or(true))
+      && !loader_context
+        .additional_data
+        .contains::<&LoadersShouldAlwaysGiveContent>()
     {
       loader_context
         .additional_data

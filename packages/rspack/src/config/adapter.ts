@@ -307,7 +307,8 @@ function getRawModule(
 	return {
 		rules,
 		parser: getRawParserOptionsByModuleType(module.parser),
-		generator: getRawGeneratorOptionsByModuleType(module.generator)
+		generator: getRawGeneratorOptionsByModuleType(module.generator),
+		noParse: module.noParse
 	};
 }
 
