@@ -17,7 +17,7 @@ use rspack_core::{
   ProcessAssetsArgs, RenderModuleContentArgs, SourceType,
 };
 use rspack_error::miette::IntoDiagnostic;
-use rspack_error::{internal_error, Error, Result};
+use rspack_error::{Error, Result};
 use rspack_util::swc::normalize_custom_filename;
 use rustc_hash::FxHashMap as HashMap;
 use serde_json::json;
@@ -137,7 +137,7 @@ impl Plugin for DevtoolPlugin {
             let mut map_buffer = Vec::new();
             map
               .to_writer(&mut map_buffer)
-              .map_err(|e| internal_error!(e.to_string()))?;
+              .unwrap_or_else(|e| panic!("{}", e.to_string()));
             Ok::<Vec<u8>, Error>(map_buffer)
           })
           .transpose()?;
@@ -284,7 +284,7 @@ pub fn wrap_eval_source_map(
   let mut map_buffer = Vec::new();
   map
     .to_writer(&mut map_buffer)
-    .map_err(|e| internal_error!(e.to_string()))?;
+    .unwrap_or_else(|e| panic!("{}", e.to_string()));
   let base64 = rspack_base64::encode_to_string(&map_buffer);
   let footer =
     format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}");

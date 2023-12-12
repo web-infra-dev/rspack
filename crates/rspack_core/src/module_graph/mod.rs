@@ -3,7 +3,7 @@ use std::collections::hash_map::Entry;
 use std::path::PathBuf;
 
 use dashmap::DashMap;
-use rspack_error::{internal_error, Result};
+use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_identifier::{Identifiable, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -236,11 +236,11 @@ impl ModuleGraph {
     {
       let mgm = self
         .module_graph_module_by_identifier_mut(&module_identifier)
-        .ok_or_else(|| {
-          internal_error!(
+        .unwrap_or_else(|| {
+          panic!(
             "Failed to set resolved module: Module linked to module identifier {module_identifier} cannot be found"
           )
-        })?;
+        });
 
       mgm.add_incoming_connection(connection_id);
     }
@@ -383,6 +383,22 @@ impl ModuleGraph {
           .filter_map(|id| self.module_identifier_by_dependency_id(id))
           .collect()
       })
+  }
+
+  pub(crate) fn get_module_dependencies_modules_and_blocks(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> (Vec<&ModuleIdentifier>, &[AsyncDependenciesBlockIdentifier]) {
+    let Some(m) = self.module_by_identifier(module_identifier) else {
+      unreachable!("cannot find the module correspanding to {module_identifier}");
+    };
+    let modules = m
+      .get_dependencies()
+      .iter()
+      .filter_map(|id| self.module_identifier_by_dependency_id(id))
+      .collect();
+    let blocks = m.get_blocks();
+    (modules, blocks)
   }
 
   pub fn dependency_by_connection_id(

@@ -1,4 +1,4 @@
-use rspack_error::{internal_error, Result};
+use rspack_error::Result;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::ExportsInfoId;
@@ -83,13 +83,11 @@ impl ModuleGraphModule {
       .map(|connection_id| {
         module_graph
           .connection_by_connection_id(connection_id)
-          .ok_or_else(|| {
-            internal_error!(
-              "connection_id_to_connection does not have connection_id: {connection_id:?}"
-            )
+          .unwrap_or_else(|| {
+            panic!("connection_id_to_connection does not have connection_id: {connection_id:?}")
           })
       })
-      .collect::<Result<Vec<_>>>()?
+      .collect::<Vec<_>>()
       .into_iter();
 
     Ok(result)
@@ -105,13 +103,11 @@ impl ModuleGraphModule {
       .map(|connection_id| {
         module_graph
           .connection_by_connection_id(connection_id)
-          .ok_or_else(|| {
-            internal_error!(
-              "connection_id_to_connection does not have connection_id: {connection_id:?}"
-            )
+          .unwrap_or_else(|| {
+            panic!("connection_id_to_connection does not have connection_id: {connection_id:?}")
           })
       })
-      .collect::<Result<Vec<_>>>()?
+      .collect::<Vec<_>>()
       .into_iter();
 
     Ok(result)

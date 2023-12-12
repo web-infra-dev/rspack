@@ -182,10 +182,10 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         };
         Ok(RawSource::from(format!(r#"module.exports = {}"#, json_expr)).boxed())
       }
-      _ => Err(internal_error!(format!(
-        "Unsupported source type {:?} for plugin Json",
-        generate_context.requested_source_type,
-      ))),
+      _ => panic!(
+        "Unsupported source type: {:?}",
+        generate_context.requested_source_type
+      ),
     }
   }
 }

@@ -11,9 +11,7 @@ use rspack_core::{
   DependencyId, GenerateContext, Module, ParseContext, ParseResult, ParserAndGenerator, SourceType,
   TemplateContext, TemplateReplaceSource,
 };
-use rspack_error::{
-  internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-};
+use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::common::SyntaxContext;
 
 use crate::ast::CodegenOptions;
@@ -256,7 +254,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       SourceMapSource::new(SourceMapSourceOptions {
         value: output.code,
         name: resource_data.resource_path.to_string_lossy().to_string(),
-        source_map: SourceMap::from_json(&map).map_err(|e| internal_error!(e.to_string()))?,
+        source_map: SourceMap::from_json(&map).expect("should be able to generate source-map"),
         inner_source_map: use_source_map.then_some(original_map).flatten(),
         remove_original_source: true,
         ..Default::default()
@@ -329,10 +327,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
       render_init_fragments(source.boxed(), init_fragments, generate_context)
     } else {
-      Err(internal_error!(
-        "Unsupported source type {:?} for plugin JavaScript",
-        generate_context.requested_source_type,
-      ))
+      panic!(
+        "Unsupported source type: {:?}",
+        generate_context.requested_source_type
+      )
     }
   }
 }

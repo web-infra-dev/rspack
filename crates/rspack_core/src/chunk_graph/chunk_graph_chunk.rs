@@ -1,8 +1,9 @@
 //!  There are methods whose verb is `ChunkGraphChunk`
 
+use indexmap::IndexSet;
 use rspack_database::Database;
 use rspack_identifier::{IdentifierLinkedMap, IdentifierSet};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupByUkey,
@@ -402,8 +403,8 @@ impl ChunkGraph {
     chunk_group_by_ukey: &ChunkGroupByUkey,
   ) -> impl Iterator<Item = ChunkUkey> {
     let chunk = chunk_by_ukey.get(chunk_ukey).expect("should have chunk");
-    let mut set = HashSet::default();
-    for chunk_group_ukey in chunk.groups.iter() {
+    let mut set = IndexSet::new();
+    for chunk_group_ukey in chunk.get_sorted_groups_iter(chunk_group_by_ukey) {
       let chunk_group = chunk_group_by_ukey
         .get(chunk_group_ukey)
         .expect("should have chunk group");

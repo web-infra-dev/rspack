@@ -436,19 +436,33 @@ impl Compilation {
   async fn update_module_graph(&mut self, params: Vec<MakeParam>) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let deps_builder = RebuildDepsBuilder::new(params, &self.module_graph);
-    let mut origin_module_deps = HashMap::default();
 
-    // collect origin_module_deps
-    for module_id in deps_builder.get_force_build_modules() {
-      let deps = self
+    let module_deps = |compalition: &Compilation, module_identifier: &ModuleIdentifier| {
+      let (deps, blocks) = compalition
         .module_graph
-        .get_module_all_depended_modules(module_id)
-        .expect("module graph module not exist")
-        .into_iter()
-        .cloned()
-        .collect::<Vec<_>>();
-      origin_module_deps.insert(*module_id, deps);
-    }
+        .get_module_dependencies_modules_and_blocks(module_identifier);
+      let deps: Vec<_> = deps.into_iter().cloned().collect();
+      let blocks_with_option: Vec<_> = blocks
+        .iter()
+        .map(|block| {
+          (
+            *block,
+            block
+              .get(compalition)
+              .expect("block muse be exist")
+              .get_group_options()
+              .cloned(),
+          )
+        })
+        .collect();
+      (deps, blocks_with_option)
+    };
+
+    let origin_module_deps: HashMap<_, _> = deps_builder
+      .get_force_build_modules()
+      .iter()
+      .map(|module_identifier| (*module_identifier, module_deps(self, module_identifier)))
+      .collect();
 
     let mut need_check_isolated_module_ids = HashSet::default();
     // rebuild module issuer mappings
@@ -936,13 +950,37 @@ impl Compilation {
     } else {
       self.has_module_import_export_change
         || !origin_module_deps.into_iter().all(|(module_id, deps)| {
-          if let Some(all_depended_modules) = self
-            .module_graph
-            .get_module_all_depended_modules(&module_id)
-          {
-            all_depended_modules == deps.iter().collect::<Vec<_>>()
-          } else {
+          if self.module_graph.module_by_identifier(&module_id).is_none() {
             false
+          } else {
+            let (mut now_deps, mut now_blocks) = module_deps(self, &module_id);
+            let (mut origin_deps, mut origin_blocks) = deps;
+            if now_deps.len() != origin_deps.len() || now_blocks.len() != origin_blocks.len() {
+              false
+            } else {
+              now_deps.sort_unstable();
+              origin_deps.sort_unstable();
+
+              for index in 0..origin_deps.len() {
+                if origin_deps[index] != now_deps[index] {
+                  return false;
+                }
+              }
+
+              now_blocks.sort_unstable();
+              origin_blocks.sort_unstable();
+
+              for index in 0..origin_blocks.len() {
+                if origin_blocks[index].0 != now_blocks[index].0 {
+                  return false;
+                }
+                if origin_blocks[index].1 != now_blocks[index].1 {
+                  return false;
+                }
+              }
+
+              true
+            }
           }
         })
     };
