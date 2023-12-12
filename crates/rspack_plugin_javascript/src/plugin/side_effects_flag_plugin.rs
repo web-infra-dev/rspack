@@ -304,19 +304,19 @@ pub fn is_pure_class_member<'a>(
   }
   let is_static = member.is_static();
   let is_value_pure = match member {
-    ClassMember::Constructor(cons) => true,
+    ClassMember::Constructor(_) => true,
     ClassMember::Method(_) => true,
     ClassMember::PrivateMethod(_) => true,
     ClassMember::ClassProp(prop) => {
       if let Some(ref value) = prop.value {
-        is_pure_expression(&value, unresolved_ctxt, comments)
+        is_pure_expression(value, unresolved_ctxt, comments)
       } else {
         true
       }
     }
     ClassMember::PrivateProp(ref prop) => {
       if let Some(ref value) = prop.value {
-        is_pure_expression(&value, unresolved_ctxt, comments)
+        is_pure_expression(value, unresolved_ctxt, comments)
       } else {
         true
       }
