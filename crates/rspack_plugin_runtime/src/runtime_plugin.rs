@@ -18,7 +18,8 @@ use crate::runtime_module::{
   HarmonyModuleDecoratorRuntimeModule, HasOwnPropertyRuntimeModule,
   LoadChunkWithBlockRuntimeModule, LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule,
   NodeModuleDecoratorRuntimeModule, NonceRuntimeModule, NormalRuntimeModule,
-  OnChunkLoadedRuntimeModule, PublicPathRuntimeModule, SystemContextRuntimeModule,
+  OnChunkLoadedRuntimeModule, PublicPathRuntimeModule, RelativeUrlRuntimeModule,
+  SystemContextRuntimeModule,
 };
 
 static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
@@ -42,7 +43,7 @@ static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
     RuntimeGlobals::INTERCEPT_MODULE_EXECUTION,
     RuntimeGlobals::PUBLIC_PATH,
     RuntimeGlobals::BASE_URI,
-    // RuntimeGlobals::RELATIVE_URL,
+    RuntimeGlobals::RELATIVE_URL,
     RuntimeGlobals::SCRIPT_NONCE,
     // RuntimeGlobals::UNCAUGHT_ERROR_HANDLER,
     RuntimeGlobals::ASYNC_MODULE,
@@ -380,6 +381,9 @@ impl Plugin for RuntimePlugin {
         }
         RuntimeGlobals::SCRIPT_NONCE => {
           compilation.add_runtime_module(chunk, NonceRuntimeModule::default().boxed());
+        }
+        RuntimeGlobals::RELATIVE_URL => {
+          compilation.add_runtime_module(chunk, RelativeUrlRuntimeModule::default().boxed());
         }
         _ => {}
       }

@@ -72,9 +72,28 @@ impl From<&str> for DynamicImportMode {
   }
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+pub enum JavascriptParserUrl {
+  #[default]
+  Enable,
+  Disable,
+  Relative,
+}
+
+impl From<&str> for JavascriptParserUrl {
+  fn from(value: &str) -> Self {
+    match value {
+      "false" => Self::Disable,
+      "relative" => Self::Relative,
+      _ => Self::Enable,
+    }
+  }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct JavascriptParserOptions {
   pub dynamic_import_mode: DynamicImportMode,
+  pub url: JavascriptParserUrl,
 }
 
 #[derive(Debug, Clone)]

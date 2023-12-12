@@ -832,6 +832,7 @@ export interface RawInfo {
 
 export interface RawJavascriptParserOptions {
   dynamicImportMode: string
+  url: string
 }
 
 export interface RawLibraryAuxiliaryComment {
