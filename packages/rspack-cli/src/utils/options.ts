@@ -12,6 +12,10 @@ export const commonOptions = (yargs: yargs.Argv) => {
 			string: true,
 			describe: "entry file"
 		},
+		"output-path": {
+			type: "string",
+			describe: "output path dir"
+		},
 		mode: { type: "string", describe: "mode" },
 		watch: {
 			type: "boolean",
