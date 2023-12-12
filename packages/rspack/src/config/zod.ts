@@ -30,7 +30,7 @@ export type Mode = z.infer<typeof mode>;
 const falsy = z.union([
 	z.literal(false),
 	z.literal(0),
-	z.string().trim().max(0).min(0),
+	z.literal(""),
 	z.null(),
 	z.undefined()
 ]);
