@@ -150,16 +150,20 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
 
     if with_external_install_chunk {
       source.add(RawSource::from(format!(
-        "{} = installChunk;\n",
+        r#"
+        {} = installChunk;
+        "#,
         RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
       )));
     }
 
     if with_on_chunk_load {
       source.add(RawSource::from(format!(
-        r#"{}.j = function(chunkId) {{
+        r#"
+        {}.j = function(chunkId) {{
             return installedChunks[chunkId] === 0;
-        }}"#,
+        }}
+        "#,
         RuntimeGlobals::ON_CHUNKS_LOADED
       )));
     }
