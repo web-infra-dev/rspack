@@ -194,6 +194,12 @@ pub fn extract_member_expression_chain<'e, T: Into<MaybeExpr<'e>>>(
     }) = expr.prop
     {
       members.push_front((val.value.clone(), val.span.ctxt));
+    } else if let MemberProp::Computed(ComputedPropName {
+      expr: box Expr::Lit(Lit::Num(ref val)),
+      ..
+    }) = expr.prop
+    {
+      members.push_front((val.value.to_string().into(), val.span.ctxt));
     } else if let MemberProp::Ident(ref ident) = expr.prop {
       members.push_front((ident.sym.clone(), ident.span.ctxt));
       members_spans.push_front(ident.span);

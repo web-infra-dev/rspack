@@ -182,6 +182,8 @@ impl ExportsInfoId {
     changed
   }
 
+  /// # Panic
+  /// this function would panic if name doesn't exists in current exportsInfo
   pub fn get_read_only_export_info<'a>(
     &self,
     name: &JsWord,
@@ -1364,7 +1366,6 @@ impl ExportInfo {
     );
     let new_exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
     let new_exports_info_id = new_exports_info.id;
-
     mg.exports_info_map
       .insert(new_exports_info_id, new_exports_info);
     mg.export_info_map
