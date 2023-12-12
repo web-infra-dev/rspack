@@ -565,9 +565,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     } else {
       Compilation::add_chunk(&mut self.compilation.chunk_by_ukey)
     };
-    self
-      .remove_parent_modules_context
-      .add_chunk_relation(item_chunk_ukey, chunk_ukey);
     self.compilation.chunk_graph.add_chunk(chunk_ukey);
 
     let entry_options = block.get_group_options().and_then(|o| o.entry_options());
@@ -849,6 +846,34 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .expect_get_mut(&chunk_group_ukey);
       let runtime = chunk_group.info.runtime.clone();
       chunk_group.children.extend(targets.clone());
+
+      let parents = chunk_group
+        .chunks
+        .iter()
+        .map(|c| self.compilation.chunk_by_ukey.expect_get(c))
+        // ignore runtime chunk when try removing
+        .filter(|c| !matches!(chunk_group.runtime_chunk, Some(ref runtime) if runtime == &c.ukey))
+        .map(|c| c.ukey)
+        .collect::<Vec<_>>();
+
+      targets
+        .iter()
+        .flat_map(|child| {
+          self
+            .compilation
+            .chunk_group_by_ukey
+            .expect_get(child)
+            .chunks
+            .clone()
+        })
+        .for_each(|child| {
+          parents.iter().for_each(|parent| {
+            self
+              .remove_parent_modules_context
+              .add_chunk_relation(*parent, child);
+          });
+        });
+
       for target_ukey in targets {
         let target = self
           .compilation
