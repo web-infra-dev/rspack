@@ -36,22 +36,52 @@ export enum BuiltinPluginName {
 	ConsumeSharedPlugin = "ConsumeSharedPlugin"
 }
 
+type AffectedHooks = keyof Compiler["hooks"];
+
+export const HOOKS_CAN_NOT_INHERENT_FROM_PARENT = [
+	"make",
+	"compile",
+	"emit",
+	"afterEmit",
+	"invalid",
+	"done",
+	"thisCompilation"
+];
+
+export function canInherentFromParent(affectedHooks?: AffectedHooks): boolean {
+	if (typeof affectedHooks === "undefined") {
+		// this arm should be removed
+		return false;
+	} else {
+		return !HOOKS_CAN_NOT_INHERENT_FROM_PARENT.includes(affectedHooks);
+	}
+}
+
 export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
 	abstract raw(compiler: Compiler): binding.BuiltinPlugin | null;
 	abstract name: BuiltinPluginName;
+
+	affectedHooks?: AffectedHooks;
 	apply(compiler: Compiler) {
 		let raw = this.raw(compiler);
-		if (raw) compiler.__internal__registerBuiltinPlugin(raw);
+		if (raw) {
+			raw.canInherentFromParent = canInherentFromParent(this.affectedHooks);
+			compiler.__internal__registerBuiltinPlugin(raw);
+		}
 	}
 }
 
 export function create<T extends any[], R>(
 	name: BuiltinPluginName,
-	resolve: (...args: T) => R
+	resolve: (...args: T) => R,
+	// `affectedHooks` is used to inform `createChildCompile` about which builtin plugin can be reversed.
+	// However, this has a drawback as it doesn't represent the actual condition but merely serves as an indicator.
+	affectedHooks?: AffectedHooks
 ) {
 	class Plugin extends RspackBuiltinPlugin {
 		name = name;
 		_options: R;
+		affectedHooks = affectedHooks;
 
 		constructor(...args: T) {
 			super();

@@ -96,6 +96,7 @@ pub enum BuiltinPluginName {
 pub struct BuiltinPlugin {
   pub name: BuiltinPluginName,
   pub options: JsUnknown,
+  pub can_inherent_from_parent: Option<bool>,
 }
 
 impl RawOptionsApply for BuiltinPlugin {
