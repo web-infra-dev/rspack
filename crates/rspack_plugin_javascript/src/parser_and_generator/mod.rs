@@ -90,8 +90,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       mut additional_data,
       ..
     } = parse_context;
-    dbg!(&resource_data.resource_path);
-    println!("{}\n", source.source().to_string());
     let mut diagnostics: Vec<Diagnostic> = vec![];
     let syntax = syntax_by_module_type(
       &resource_data.resource_path,
@@ -155,7 +153,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .remove::<CodegenOptions>()
         .unwrap_or_else(|| CodegenOptions::new(&compiler_options.devtool, Some(true))),
     )?;
-    println!("{}", output.code);
 
     ast = match crate::ast::parse(
       output.code.clone(),

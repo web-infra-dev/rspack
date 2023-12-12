@@ -515,7 +515,6 @@ impl<'a> InnerGraphPlugin<'a> {
     module_identifier: ModuleIdentifier,
     comments: Option<SwcComments>,
   ) -> Self {
-    dbg!("new");
     Self {
       dependencies,
       unresolved_ctxt,
