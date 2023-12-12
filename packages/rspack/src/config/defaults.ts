@@ -43,6 +43,8 @@ import {
 import Template from "../Template";
 import { assertNotNill } from "../util/assertNotNil";
 import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
+import { SwcJsMinimizerRspackPlugin } from "../builtin-plugin/SwcJsMinimizerPlugin";
+import { SwcCssMinimizerRspackPlugin } from "../builtin-plugin/SwcCssMinimizerPlugin";
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized
@@ -754,23 +756,12 @@ const applyOptimizationDefaults = (
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
 	A(optimization, "minimizer", () => [
-		// TODO: enable this when drop support for builtins options
-		// new SwcJsMinimizerPlugin(),
-		// new SwcCssMinimizerPlugin()
 		{
 			apply(compiler) {
-				const {
-					SwcJsMinimizerRspackPlugin
-				} = require("../builtin-plugin/SwcJsMinimizerPlugin");
-				const {
-					SwcCssMinimizerRspackPlugin
-				} = require("../builtin-plugin/SwcCssMinimizerPlugin");
-
-				new SwcJsMinimizerRspackPlugin(
-					/** @deprecated when drop support for `builtins.minifyOptions` */
-					compiler.options.builtins.minifyOptions
-				).apply(compiler);
-				new SwcCssMinimizerRspackPlugin().apply(compiler);
+				if (!compiler.options.builtins.minifyOptions) {
+					new SwcJsMinimizerRspackPlugin().apply(compiler);
+					new SwcCssMinimizerRspackPlugin().apply(compiler);
+				}
 			}
 		}
 	]);

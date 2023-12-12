@@ -272,6 +272,10 @@ export function deprecated_resolveBuiltins(
 					"https://www.rspack.dev/config/plugins.html#SwcCssMinimizerRspackPlugin"
 				)}`
 			);
+		if (options.optimization.minimize) {
+			new SwcJsMinimizerRspackPlugin(builtins.minifyOptions).apply(compiler);
+			new SwcCssMinimizerRspackPlugin().apply(compiler);
+		}
 	}
 	if (builtins.devFriendlySplitChunks) {
 		isRoot &&
@@ -280,15 +284,6 @@ export function deprecated_resolveBuiltins(
 					builtins.devFriendlySplitChunks
 				)}' has been deprecated, please switch to 'builtins.devFriendlySplitChunks = false' to use webpack's behavior.`
 			);
-	}
-	const shouldApplyBuiltinMinify =
-		options.optimization.minimize &&
-		// only when `...` has not been replaced by factory plugin instance
-		options.optimization.minimizer!.some(item => item === "...");
-
-	if (shouldApplyBuiltinMinify) {
-		new SwcJsMinimizerRspackPlugin(builtins.minifyOptions).apply(compiler);
-		new SwcCssMinimizerRspackPlugin().apply(compiler);
 	}
 
 	let noEmitAssets = false;
