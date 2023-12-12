@@ -24,6 +24,7 @@ pub const NON_WEBPACK_REQUIRE: &str = "__non_webpack_require__";
 pub const SYSTEM_CONTEXT: &str = "__system_context__";
 pub const WEBPACK_SHARE_SCOPES: &str = "__webpack_share_scopes__";
 pub const WEBPACK_INIT_SHARING: &str = "__webpack_init_sharing__";
+pub const WEBPACK_NONCE: &str = "__webpack_nonce__";
 
 pub struct ApiScanner<'a> {
   pub unresolved_ctxt: SyntaxContext,
@@ -204,6 +205,16 @@ impl Visit for ApiScanner<'_> {
             RuntimeGlobals::INITIALIZE_SHARING.name().into(),
             Some(RuntimeGlobals::INITIALIZE_SHARING),
           )))
+      }
+      WEBPACK_NONCE => {
+        self
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            RuntimeGlobals::SCRIPT_NONCE.name().into(),
+            Some(RuntimeGlobals::SCRIPT_NONCE),
+          )));
       }
       _ => {}
     }
