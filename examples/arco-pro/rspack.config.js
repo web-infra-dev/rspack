@@ -10,6 +10,7 @@ const config = {
 	context: __dirname,
 	entry: "./src/index.tsx",
 	target: ["web", "es5"],
+	devtool: false,
 	devServer: {
 		port: 5555,
 		webSocketServer: "sockjs",
