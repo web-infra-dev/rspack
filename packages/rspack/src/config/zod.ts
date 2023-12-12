@@ -428,7 +428,7 @@ const ruleSetLoaderWithOptions = z.strictObject({
 });
 export type RuleSetLoaderWithOptions = z.infer<typeof ruleSetLoaderWithOptions>;
 
-const ruleSetUseItem = ruleSetLoader.or(ruleSetLoaderWithOptions).or(falsy);
+const ruleSetUseItem = ruleSetLoader.or(ruleSetLoaderWithOptions);
 export type RuleSetUseItem = z.infer<typeof ruleSetUseItem>;
 
 const ruleSetUse = ruleSetUseItem
@@ -462,8 +462,8 @@ const baseRuleSetRule = z.strictObject({
 });
 
 export type RuleSetRule = z.infer<typeof baseRuleSetRule> & {
-	oneOf?: Falsy | RuleSetRule[];
-	rules?: Falsy | RuleSetRule[];
+	oneOf?: RuleSetRule[];
+	rules?: RuleSetRule[];
 };
 
 const ruleSetRule: z.ZodType<RuleSetRule> = baseRuleSetRule.extend({
