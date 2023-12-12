@@ -116,7 +116,10 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
           .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
       source.add(RawSource::from(
         include_str!("runtime/readfile_chunk_loading_with_loading.js")
-          .replace("JS_MATCHER", &render_condition_map(&condition_map))
+          .replace(
+            "JS_MATCHER",
+            &render_condition_map(&condition_map, "chunkId").to_string(),
+          )
           .replace("$OUTPUT_DIR$", &root_output_dir),
       ));
     }
