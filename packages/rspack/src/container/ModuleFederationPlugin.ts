@@ -20,8 +20,6 @@ export interface ModuleFederationPluginOptions {
 	runtime?: EntryRuntime;
 	shareScope?: string;
 	shared?: Shared;
-
-	runtimePlugins?: string[];
 }
 
 export class ModuleFederationPlugin {
