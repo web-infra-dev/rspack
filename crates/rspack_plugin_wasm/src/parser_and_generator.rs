@@ -50,8 +50,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                 Err(err) => diagnostic.push(Diagnostic::error(
                   "Wasm Export Parse Error".into(),
                   err.to_string(),
-                  0,
-                  0,
                 )),
               };
             }
@@ -69,8 +67,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                 Err(err) => diagnostic.push(Diagnostic::error(
                   "Wasm Import Parse Error".into(),
                   err.to_string(),
-                  0,
-                  0,
                 )),
               }
             }
@@ -81,8 +77,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           diagnostic.push(Diagnostic::error(
             "Wasm Parse Error".into(),
             err.to_string(),
-            0,
-            0,
           ));
         }
       }
@@ -125,7 +119,11 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     module: &dyn Module,
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource> {
-    let compilation = generate_context.compilation;
+    let GenerateContext {
+      compilation,
+      runtime,
+      ..
+    } = generate_context;
     let wasm_filename_template = &compilation.options.output.webassembly_module_filename;
     let hash = hash_for_source(source);
     let normal_module = module
@@ -184,8 +182,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               let used_name = module_graph
                 .get_exports_info(&mgm.module_identifier)
                 .id
-                // TODO: runtime opt
-                .get_used_name(module_graph, None, UsedName::Str(dep.name().into()));
+                .get_used_name(module_graph, *runtime, UsedName::Str(dep.name().into()));
               let Some(UsedName::Str(used_name)) = used_name else {
                 return;
               };

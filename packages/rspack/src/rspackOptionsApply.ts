@@ -39,6 +39,7 @@ import {
 	OldSplitChunksPlugin
 } from "./builtin-plugin";
 import { ModuleFederationRuntimePlugin } from "./container/ModuleFederationRuntimePlugin";
+import { WorkerPlugin } from "./builtin-plugin/WorkerPlugin";
 
 export function optionsApply_compat(
 	compiler: Compiler,
@@ -148,7 +149,7 @@ export function optionsApply_compat(
 }
 
 export class RspackOptionsApply {
-	constructor() {}
+	constructor() { }
 	process(options: RspackOptionsNormalized, compiler: Compiler) {
 		assert(
 			options.output.path,
@@ -181,7 +182,7 @@ export class RspackOptionsApply {
 			for (const item of minimizer) {
 				if (typeof item === "function") {
 					(item as RspackPluginFunction).call(compiler, compiler);
-				} else if (item !== "...") {
+				} else if (item !== "..." && item) {
 					item.apply(compiler);
 				}
 			}
@@ -215,6 +216,12 @@ export class RspackOptionsApply {
 			options.output.strictModuleErrorHandling = true;
 		}
 		new ResolveSwcPlugin().apply(compiler);
+		new WorkerPlugin(
+			options.output.workerChunkLoading!,
+			options.output.workerWasmLoading!,
+			options.output.module!,
+			options.output.workerPublicPath!
+		).apply(compiler);
 
 		new DefaultStatsFactoryPlugin().apply(compiler);
 		new DefaultStatsPrinterPlugin().apply(compiler);

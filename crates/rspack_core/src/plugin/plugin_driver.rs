@@ -12,9 +12,9 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ApplyContext,
   AssetEmittedArgs, BoxLoader, BoxModule, BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs,
   ChunkContentHash, ChunkHashArgs, CodeGenerationResults, Compilation, CompilationArgs,
-  CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, MakeParam,
-  Module, ModuleIdentifier, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleBeforeResolveArgs, NormalModuleCreateData, NormalModuleFactoryContext,
+  CompilationParams, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
+  JsChunkHashArgs, MakeParam, Module, ModuleIdentifier, ModuleType, NormalModule,
+  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, NormalModuleCreateData,
   OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
   PluginAdditionalModuleRequirementsOutput, PluginBuildEndHookOutput, PluginChunkHashHookOutput,
   PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
@@ -147,9 +147,24 @@ impl PluginDriver {
   ///
   /// See: https://webpack.js.org/api/compiler-hooks/#compilation
   #[instrument(name = "plugin:compilation", skip_all)]
-  pub async fn compilation(&self, compilation: &mut Compilation) -> PluginCompilationHookOutput {
+  pub async fn compilation(
+    &self,
+    compilation: &mut Compilation,
+    params: &CompilationParams,
+  ) -> PluginCompilationHookOutput {
     for plugin in &self.plugins {
-      plugin.compilation(CompilationArgs { compilation }).await?;
+      plugin
+        .compilation(CompilationArgs { compilation }, params)
+        .await?;
+    }
+
+    Ok(())
+  }
+
+  #[instrument(name = "plugin:module_asset", skip_all)]
+  pub async fn module_asset(&self, module: ModuleIdentifier, asset_name: String) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin.module_asset(module, asset_name.clone()).await?;
     }
 
     Ok(())
@@ -169,12 +184,9 @@ impl PluginDriver {
     Ok(())
   }
 
-  pub async fn before_compile(
-    &self,
-    // compilationParams: &mut CompilationParams<'_>,
-  ) -> PluginCompilationHookOutput {
+  pub async fn before_compile(&self, params: &CompilationParams) -> PluginCompilationHookOutput {
     for plugin in &self.plugins {
-      plugin.before_compile().await?;
+      plugin.before_compile(params).await?;
     }
 
     Ok(())
@@ -201,12 +213,16 @@ impl PluginDriver {
   pub async fn this_compilation(
     &self,
     compilation: &mut Compilation,
+    params: &CompilationParams,
   ) -> PluginThisCompilationHookOutput {
     for plugin in &self.plugins {
       plugin
-        .this_compilation(ThisCompilationArgs {
-          this_compilation: compilation,
-        })
+        .this_compilation(
+          ThisCompilationArgs {
+            this_compilation: compilation,
+          },
+          params,
+        )
         .await?;
     }
 
@@ -306,16 +322,9 @@ impl PluginDriver {
     Ok(args)
   }
 
-  pub async fn factorize(
-    &self,
-    args: FactorizeArgs<'_>,
-    job_ctx: &mut NormalModuleFactoryContext,
-  ) -> PluginFactorizeHookOutput {
+  pub async fn factorize(&self, args: FactorizeArgs<'_>) -> PluginFactorizeHookOutput {
     for plugin in &self.plugins {
-      if let Some(module) = plugin
-        .factorize(PluginContext::new(), args.clone(), job_ctx)
-        .await?
-      {
+      if let Some(module) = plugin.factorize(PluginContext::new(), args.clone()).await? {
         return Ok(Some(module));
       }
     }

@@ -43,6 +43,8 @@ import {
 import Template from "../Template";
 import { assertNotNill } from "../util/assertNotNil";
 import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
+import { SwcJsMinimizerRspackPlugin } from "../builtin-plugin/SwcJsMinimizerPlugin";
+import { SwcCssMinimizerRspackPlugin } from "../builtin-plugin/SwcCssMinimizerPlugin";
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized
@@ -754,9 +756,14 @@ const applyOptimizationDefaults = (
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
 	A(optimization, "minimizer", () => [
-		// TODO: enable this when drop support for builtins options
-		// new SwcJsMinimizerPlugin(),
-		// new SwcCssMinimizerPlugin()
+		{
+			apply(compiler) {
+				if (!compiler.options.builtins.minifyOptions) {
+					new SwcJsMinimizerRspackPlugin().apply(compiler);
+					new SwcCssMinimizerRspackPlugin().apply(compiler);
+				}
+			}
+		}
 	]);
 	F(optimization, "nodeEnv", () => {
 		if (production) return "production";
@@ -768,7 +775,7 @@ const applyOptimizationDefaults = (
 		// A(splitChunks, "defaultSizeTypes", () =>
 		// 	css ? ["javascript", "css", "unknown"] : ["javascript", "unknown"]
 		// );
-		// D(splitChunks, "hidePathInfo", production);
+		D(splitChunks, "hidePathInfo", production);
 		D(splitChunks, "chunks", "async");
 		// D(splitChunks, "usedExports", optimization.usedExports === true);
 		D(splitChunks, "minChunks", 1);
@@ -777,7 +784,7 @@ const applyOptimizationDefaults = (
 		// F(splitChunks, "enforceSizeThreshold", () => (production ? 50000 : 30000));
 		F(splitChunks, "maxAsyncRequests", () => (production ? 30 : Infinity));
 		F(splitChunks, "maxInitialRequests", () => (production ? 30 : Infinity));
-		// D(splitChunks, "automaticNameDelimiter", "-");
+		D(splitChunks, "automaticNameDelimiter", "-");
 		const { cacheGroups } = splitChunks;
 		if (cacheGroups) {
 			F(cacheGroups, "default", () => ({

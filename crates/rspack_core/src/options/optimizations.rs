@@ -45,7 +45,7 @@ impl SideEffectOption {
   }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
 pub enum UsedExportsOption {
   #[default]
   False,
@@ -129,3 +129,5 @@ pub struct Optimization {
   pub inner_graph: bool,
   pub mangle_exports: MangleExportsOption,
 }
+
+pub static DEFAULT_DELIMITER: &str = "~";

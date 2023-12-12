@@ -3,7 +3,9 @@
 
 use std::{fmt::Debug, sync::Arc};
 
-use rspack_core::{Chunk, ChunkGroupByUkey, ChunkUkey, Compilation, Module, Plugin};
+use rspack_core::{
+  Chunk, ChunkGroupByUkey, ChunkUkey, Compilation, Module, Plugin, DEFAULT_DELIMITER,
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
@@ -98,7 +100,7 @@ impl SplitChunksPlugin {
             options
               .automatic_name_delimiter
               .clone()
-              .unwrap_or_else(|| "~".to_string())
+              .unwrap_or_else(|| DEFAULT_DELIMITER.to_string())
           }),
       },
     };

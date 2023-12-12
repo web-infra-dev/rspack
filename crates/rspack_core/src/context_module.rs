@@ -10,7 +10,9 @@ use std::{
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
-use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{
+  miette::IntoDiagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_regex::RspackRegex;
@@ -22,10 +24,9 @@ use crate::{
   contextify, get_exports_type_with_strict, stringify_map, to_path, AsyncDependenciesBlock,
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkGraph, ChunkGroupOptions, CodeGenerationResult, Compilation, ContextElementDependency,
-  DependenciesBlock, DependencyCategory, DependencyId, DependencyType, ExportsType,
-  FakeNamespaceObjectMode, GroupOptions, LibIdentOptions, Module, ModuleType, Resolve,
-  ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
-  RuntimeSpec, SourceType,
+  DependenciesBlock, DependencyCategory, DependencyId, ExportsType, FakeNamespaceObjectMode,
+  GroupOptions, LibIdentOptions, Module, ModuleType, Resolve, ResolveInnerOptions,
+  ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -358,18 +359,18 @@ impl ContextModule {
   }
 
   #[inline]
-  fn get_source_string(&self, compilation: &Compilation) -> Result<BoxSource> {
+  fn get_source_string(&self, compilation: &Compilation) -> BoxSource {
     match self.options.context_options.mode {
-      ContextMode::Lazy => Ok(self.get_lazy_source(compilation)),
+      ContextMode::Lazy => self.get_lazy_source(compilation),
       ContextMode::LazyOnce => {
         let block = self
           .get_blocks()
           .first()
-          .ok_or_else(|| internal_error!("LazyOnce ContextModule should have first block"))?;
+          .expect("LazyOnce ContextModule should have first block");
         let block = compilation
           .module_graph
           .block_by_id(block)
-          .ok_or_else(|| internal_error!("should have block"))?;
+          .expect("should have block");
         self.generate_source(block.get_dependencies(), compilation)
       }
       _ => self.generate_source(self.get_dependencies(), compilation),
@@ -428,11 +429,7 @@ impl ContextModule {
     source.boxed()
   }
 
-  fn generate_source(
-    &self,
-    dependencies: &[DependencyId],
-    compilation: &Compilation,
-  ) -> Result<BoxSource> {
+  fn generate_source(&self, dependencies: &[DependencyId], compilation: &Compilation) -> BoxSource {
     let map = self.get_user_request_map(dependencies, compilation);
     let fake_map = self.get_fake_map(dependencies, compilation);
     let mode = &self.options.context_options.mode;
@@ -520,7 +517,7 @@ impl ContextModule {
     source.add(RawSource::from(format!(
       "webpackContext.id = '{}';\n",
       serde_json::to_string(self.id(&compilation.chunk_graph))
-        .map_err(|e| internal_error!(e.to_string()))?
+        .unwrap_or_else(|e| panic!("{}", e.to_string()))
     )));
     source.add(RawSource::from(
       r#"
@@ -531,7 +528,7 @@ impl ContextModule {
       module.exports = webpackContext;
       "#,
     ));
-    Ok(source.boxed())
+    source.boxed()
   }
 }
 
@@ -638,7 +635,7 @@ impl Module for ContextModule {
       let block = compilation
         .module_graph
         .block_by_id(block)
-        .ok_or_else(|| internal_error!("should have block in ContextModule code_generation"))?;
+        .expect("should have block in ContextModule code_generation");
       all_deps.extend(block.get_dependencies());
     }
     let fake_map = self.get_fake_map(all_deps.iter(), compilation);
@@ -647,7 +644,7 @@ impl Module for ContextModule {
         .runtime_requirements
         .insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
     }
-    code_generation_result.add(SourceType::JavaScript, self.get_source_string(compilation)?);
+    code_generation_result.add(SourceType::JavaScript, self.get_source_string(compilation));
     code_generation_result.set_hash(
       &compilation.options.output.hash_function,
       &compilation.options.output.hash_digest,
@@ -688,8 +685,8 @@ impl ContextModule {
     if !dir.is_dir() {
       return Ok(());
     }
-    for entry in fs::read_dir(dir)? {
-      let path = entry?.path();
+    for entry in fs::read_dir(dir).into_diagnostic()? {
+      let path = entry.into_diagnostic()?.path();
       if path.is_dir() {
         if options.context_options.recursive {
           Self::visit_dirs(ctx, &path, dependencies, options, resolve_options)?;
@@ -758,7 +755,6 @@ impl ContextModule {
     let resolver = &self.resolve_factory.get(ResolveOptionsWithDependencyType {
       resolve_options: self.options.resolve_options.clone(),
       resolve_to_context: false,
-      dependency_type: DependencyType::ContextElement,
       dependency_category: self.options.context_options.category,
     });
 

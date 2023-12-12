@@ -5,8 +5,7 @@ use regex::Regex;
 use rspack_core::{
   ExternalItem, ExternalItemFnCtx, ExternalItemValue, ExternalModule, ExternalRequest,
   ExternalRequestValue, ExternalType, FactorizeArgs, ModuleDependency, ModuleExt,
-  ModuleFactoryResult, NormalModuleFactoryContext, Plugin, PluginContext,
-  PluginFactorizeHookOutput,
+  ModuleFactoryResult, Plugin, PluginContext, PluginFactorizeHookOutput,
 };
 
 static UNSPECIFIED_EXTERNAL_TYPE_REGEXP: Lazy<Regex> =
@@ -109,14 +108,13 @@ impl ExternalsPlugin {
 #[async_trait::async_trait]
 impl Plugin for ExternalsPlugin {
   fn name(&self) -> &'static str {
-    "external"
+    "rspack.ExternalsPlugin"
   }
 
   async fn factorize(
     &self,
     _ctx: PluginContext,
     args: FactorizeArgs<'_>,
-    _job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeHookOutput {
     for external_item in &self.externals {
       match external_item {

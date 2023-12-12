@@ -124,8 +124,8 @@ fn is_add_op_bin_expr(bin: &BinExpr) -> bool {
   if !matches!(&bin.op, BinaryOp::Add) {
     return false;
   }
-  match &bin.left {
-    box Expr::Bin(bin) => is_add_op_bin_expr(bin),
+  match bin.left.as_ref() {
+    Expr::Bin(bin) => is_add_op_bin_expr(bin),
     _ => true,
   }
 }
@@ -194,7 +194,7 @@ fn is_concat_call(expr: &CallExpr) -> bool {
         return false;
       }
 
-      if let box Expr::Call(call) = &member_expr.obj {
+      if let Expr::Call(call) = member_expr.obj.as_ref() {
         return is_concat_call(call);
       }
       true
@@ -206,13 +206,13 @@ fn is_concat_call(expr: &CallExpr) -> bool {
 fn find_concat_expr_prefix_string(expr: &CallExpr) -> Option<String> {
   match &expr.callee {
     Callee::Expr(box Expr::Member(member_expr)) => {
-      if let box Expr::Lit(Lit::Str(str)) = &member_expr.obj {
+      if let Expr::Lit(Lit::Str(str)) = member_expr.obj.as_ref() {
         return Some(str.value.to_string());
       }
-      if let box Expr::Lit(Lit::Num(num)) = &member_expr.obj {
+      if let Expr::Lit(Lit::Num(num)) = member_expr.obj.as_ref() {
         return Some(num.value.to_string());
       }
-      if let box Expr::Call(call) = &member_expr.obj {
+      if let Expr::Call(call) = member_expr.obj.as_ref() {
         return find_concat_expr_prefix_string(call);
       }
       None
@@ -223,10 +223,10 @@ fn find_concat_expr_prefix_string(expr: &CallExpr) -> Option<String> {
 
 fn find_concat_expr_postfix_string(expr: &CallExpr) -> Option<String> {
   expr.args.last().and_then(|arg| {
-    if let box Expr::Lit(Lit::Str(str)) = &arg.expr {
+    if let Expr::Lit(Lit::Str(str)) = arg.expr.as_ref() {
       return Some(str.value.to_string());
     }
-    if let box Expr::Lit(Lit::Num(num)) = &arg.expr {
+    if let Expr::Lit(Lit::Num(num)) = arg.expr.as_ref() {
       return Some(num.value.to_string());
     }
     None

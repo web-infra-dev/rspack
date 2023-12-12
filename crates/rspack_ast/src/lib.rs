@@ -1,7 +1,5 @@
 mod ast;
 
-use rspack_error::{internal_error, Result};
-
 pub use crate::ast::css;
 use crate::ast::css::Ast as CssAst;
 pub use crate::ast::javascript;
@@ -17,20 +15,6 @@ pub enum RspackAst {
 }
 
 impl RspackAst {
-  pub fn try_into_javascript(self) -> Result<JsAst> {
-    match self {
-      RspackAst::JavaScript(program) => Ok(program),
-      RspackAst::Css(_) => Err(internal_error!("Failed to cast `CSS` AST to `JavaScript`")),
-    }
-  }
-
-  pub fn try_into_css(self) -> Result<CssAst> {
-    match self {
-      RspackAst::Css(stylesheet) => Ok(stylesheet),
-      RspackAst::JavaScript(_) => Err(internal_error!("Failed to cast `JavaScript` AST to `CSS`")),
-    }
-  }
-
   pub fn as_javascript(&self) -> Option<&JsAst> {
     match self {
       RspackAst::JavaScript(program) => Some(program),

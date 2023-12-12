@@ -510,7 +510,6 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
             .map(|item| item.0.clone())
             .collect::<Vec<_>>(),
         );
-        // dbg!(&ids);
         self
           .rewrite_usage_span
           .insert(member_expr.span, ExtraSpanInfo::ReWriteUsedByExports);
@@ -596,6 +595,7 @@ mod test {
       harmony_named_exports: Default::default(),
       all_star_exports: Default::default(),
       need_create_require: false,
+      json_data: None,
     };
     let mut import_map = Default::default();
     let mut deps = vec![];

@@ -1,13 +1,14 @@
 //!  There are methods whose verb is `ChunkGraphChunk`
 
+use indexmap::IndexSet;
 use rspack_database::Database;
 use rspack_identifier::{IdentifierLinkedMap, IdentifierSet};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  find_graph_roots, BoxModule, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkUkey, Module, ModuleGraph, ModuleGraphModule, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
-  SourceType,
+  find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupByUkey,
+  ChunkGroupUkey, ChunkUkey, Module, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
+  RuntimeGlobals, SourceType,
 };
 use crate::{ChunkGraph, Compilation};
 
@@ -26,7 +27,7 @@ pub struct ChunkGraphChunk {
   /// use `LinkedHashMap` to keep the ordered from entry array.
   pub(crate) entry_modules: IdentifierLinkedMap<ChunkGroupUkey>,
   pub modules: IdentifierSet,
-  pub(crate) runtime_requirements: RuntimeGlobals,
+  pub runtime_requirements: RuntimeGlobals,
   pub(crate) runtime_modules: Vec<ModuleIdentifier>,
 }
 
@@ -49,18 +50,6 @@ fn get_modules_size(modules: &[&BoxModule]) -> f64 {
     }
   }
   size
-}
-
-// TODO: we should remove this function to crate rspack_util
-fn merge_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> RuntimeSpec {
-  let mut set: RuntimeSpec = Default::default();
-  for r in a {
-    set.insert(r.clone());
-  }
-  for r in b {
-    set.insert(r.clone());
-  }
-  set
 }
 
 impl ChunkGraph {
@@ -349,7 +338,7 @@ impl ChunkGraph {
           .module_by_identifier(&module)
           .expect("should exist");
         for connection in module_graph.get_outgoing_connections(module) {
-          // TODO: add runtime after runtime opt
+          // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ChunkGraph.js#L290
           let active_state = connection.get_active_state(module_graph, None);
           match active_state {
             crate::ConnectionState::Bool(false) => {
@@ -414,8 +403,8 @@ impl ChunkGraph {
     chunk_group_by_ukey: &ChunkGroupByUkey,
   ) -> impl Iterator<Item = ChunkUkey> {
     let chunk = chunk_by_ukey.get(chunk_ukey).expect("should have chunk");
-    let mut set = HashSet::default();
-    for chunk_group_ukey in chunk.groups.iter() {
+    let mut set = IndexSet::new();
+    for chunk_group_ukey in chunk.get_sorted_groups_iter(chunk_group_by_ukey) {
       let chunk_group = chunk_group_by_ukey
         .get(chunk_group_ukey)
         .expect("should have chunk group");

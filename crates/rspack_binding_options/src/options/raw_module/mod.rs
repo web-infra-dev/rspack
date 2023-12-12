@@ -15,14 +15,15 @@ use rspack_core::{
   ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, ParserOptions,
   ParserOptionsByModuleType,
 };
-use rspack_error::internal_error;
+use rspack_error::{internal_error, miette::IntoDiagnostic};
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_sass::SASS_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
+use rspack_napi_shared::get_napi_env;
 use serde::Deserialize;
 use {
   rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  rspack_napi_shared::{NapiResultExt, NAPI_ENV},
+  rspack_napi_shared::NapiResultExt,
 };
 
 use crate::{RawOptionsApply, RawResolveOptions};
@@ -222,16 +223,13 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
             "should have a func_matcher when RawRuleSetCondition.type is \"function\""
           )
         })?;
-        let func_matcher: ThreadsafeFunction<String, bool> =
-          NAPI_ENV.with(|env| -> anyhow::Result<_> {
-            let env = env
-              .borrow()
-              .expect("Failed to get env, did you forget to call it from node?");
-            let func_matcher =
-              rspack_binding_macros::js_fn_into_threadsafe_fn!(func_matcher, &Env::from(env));
-            Ok(func_matcher)
-          })?;
-        let func_matcher = Arc::new(func_matcher);
+
+        let env = get_napi_env();
+
+        let func_matcher: napi::Result<ThreadsafeFunction<String, bool>> = try {
+            rspack_binding_macros::js_fn_into_threadsafe_fn!(func_matcher, &Env::from(env))
+        };
+        let func_matcher = Arc::new(func_matcher.expect("convert to threadsafe function failed"));
 
         Self::Func(Box::new(move |data: &str| {
           let func_matcher = func_matcher.clone();
@@ -241,9 +239,9 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
               .call(data, ThreadsafeFunctionCallMode::NonBlocking)
               .into_rspack_result()?
               .await
-              .map_err(|err| {
-                internal_error!("Failed to call RuleSetCondition func_matcher: {err}")
-              })?
+              .unwrap_or_else(|err| {
+                panic!("Failed to call RuleSetCondition func_matcher: {err}")
+              })
           })
         }))
       }
@@ -598,14 +596,11 @@ impl RawOptionsApply for RawModuleRule {
             "should have a func_matcher when RawRuleSetCondition.type is \"function\""
           )
         })?;
-        let func_use: ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>> =
-          NAPI_ENV.with(|env| -> anyhow::Result<_> {
-            let env = env.borrow().expect("Failed to get env with external");
-            let func_use =
-              rspack_binding_macros::js_fn_into_threadsafe_fn!(func_use, &Env::from(env));
-            Ok(func_use)
-          })?;
-        let func_use = Arc::new(func_use);
+        let func_use: Result<ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>>> = try {
+          let env = get_napi_env();
+          rspack_binding_macros::js_fn_into_threadsafe_fn!(func_use, &Env::from(env))
+        };
+        let func_use = Arc::new(func_use.into_diagnostic()?);
         Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Func(Box::new(
           move |ctx: FuncUseCtx| {
             let func_use = func_use.clone();
@@ -614,7 +609,7 @@ impl RawOptionsApply for RawModuleRule {
                 .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
                 .into_rspack_result()?
                 .await
-                .map_err(|err| internal_error!("Failed to call rule.use function: {err}"))?
+                .unwrap_or_else(|err| panic!("Failed to call rule.use function: {err}"))
                 .map(|uses| {
                   uses
                     .into_iter()

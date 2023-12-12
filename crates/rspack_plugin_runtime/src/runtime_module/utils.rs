@@ -1,5 +1,8 @@
+use indexmap::{IndexMap, IndexSet};
+use itertools::Itertools;
 use rspack_core::{
-  get_js_chunk_filename_template, Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, SourceType,
+  get_js_chunk_filename_template, stringify_map, Chunk, ChunkKind, ChunkLoading, ChunkUkey,
+  Compilation, PathData, SourceType,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -171,6 +174,109 @@ pub fn is_enabled_for_chunk(
     .and_then(|options| options.chunk_loading.as_ref())
     .unwrap_or(&compilation.options.output.chunk_loading);
   chunk_loading == expected
+}
+
+pub fn unquoted_stringify(chunk: &Chunk, str: &String) -> String {
+  if let Some(chunk_id) = &chunk.id {
+    if str.len() >= 5 && str == chunk_id {
+      return "\" + chunkId + \"".to_string();
+    }
+  }
+  let result = serde_json::to_string(&str).expect("invalid json to_string");
+  result[1..result.len() - 1].to_string()
+}
+
+pub fn stringify_dynamic_chunk_map<F>(
+  f: F,
+  chunks: &IndexSet<&ChunkUkey>,
+  chunk_map: &IndexMap<&ChunkUkey, &Chunk>,
+) -> String
+where
+  F: Fn(&Chunk) -> Option<String>,
+{
+  let mut result = HashMap::default();
+  let mut use_id = false;
+  let mut last_key = None;
+  let mut entries = 0;
+
+  for chunk_ukey in chunks.iter() {
+    if let Some(chunk) = chunk_map.get(chunk_ukey) {
+      if let Some(chunk_id) = &chunk.id {
+        if let Some(value) = f(chunk) {
+          if value == *chunk_id {
+            use_id = true;
+          } else {
+            result.insert(
+              chunk_id.clone(),
+              serde_json::to_string(&value).expect("invalid json to_string"),
+            );
+            last_key = Some(chunk_id.clone());
+            entries += 1;
+          }
+        }
+      }
+    }
+  }
+
+  let content = if entries == 0 {
+    "chunkId".to_string()
+  } else if entries == 1 {
+    if let Some(last_key) = last_key {
+      if use_id {
+        format!(
+          "(chunkId === {} ? {} : chunkId)",
+          serde_json::to_string(&last_key).expect("invalid json to_string"),
+          result.get(&last_key).expect("cannot find last key value")
+        )
+      } else {
+        result
+          .get(&last_key)
+          .expect("cannot find last key value")
+          .clone()
+      }
+    } else {
+      unreachable!();
+    }
+  } else if use_id {
+    format!("({}[chunkId] || chunkId)", stringify_map(&result))
+  } else {
+    format!("{}[chunkId]", stringify_map(&result))
+  };
+  format!("\" + {content} + \"")
+}
+
+pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &Vec<&String>) -> String {
+  let condition = if chunk_ids.len() == 1 {
+    format!(
+      "chunkId === {}",
+      serde_json::to_string(&chunk_ids.first()).expect("invalid json to_string")
+    )
+  } else {
+    let content = chunk_ids
+      .iter()
+      .sorted_unstable()
+      .map(|chunk_id| {
+        format!(
+          "{}:1",
+          serde_json::to_string(chunk_id).expect("invalid json to_string")
+        )
+      })
+      .join(",");
+    format!("{{ {} }}[chunkId]", content)
+  };
+  format!("if ({}) return {};", condition, filename)
+}
+
+pub fn create_fake_chunk(
+  id: Option<String>,
+  name: Option<String>,
+  rendered_hash: Option<String>,
+) -> Chunk {
+  let mut fake_chunk = Chunk::new(None, ChunkKind::Normal);
+  fake_chunk.name = name;
+  fake_chunk.rendered_hash = rendered_hash.map(|h| h.into());
+  fake_chunk.id = id;
+  fake_chunk
 }
 
 #[test]

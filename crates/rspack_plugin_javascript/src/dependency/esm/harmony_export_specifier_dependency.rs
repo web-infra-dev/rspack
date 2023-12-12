@@ -74,6 +74,7 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
       init_fragments,
       compilation,
       module,
+      runtime,
       ..
     } = code_generatable_context;
 
@@ -89,7 +90,7 @@ impl DependencyTemplate for HarmonyExportSpecifierDependency {
         .id;
       let used_name = exports_info_id.get_used_name(
         &compilation.module_graph,
-        None,
+        *runtime,
         UsedName::Str(self.name.clone()),
       );
       used_name.map(|item| match item {

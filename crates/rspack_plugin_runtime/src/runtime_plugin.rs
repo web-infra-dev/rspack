@@ -6,7 +6,7 @@ use rspack_core::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ChunkLoading,
   JsChunkHashArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
   PluginAdditionalModuleRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput, PublicPath,
-  RuntimeGlobals, RuntimeModuleExt, SourceType,
+  RuntimeGlobals, RuntimeModuleExt, SourceType, FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
 };
 
 use crate::runtime_module::{
@@ -17,8 +17,8 @@ use crate::runtime_module::{
   GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
   HarmonyModuleDecoratorRuntimeModule, HasOwnPropertyRuntimeModule,
   LoadChunkWithBlockRuntimeModule, LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule,
-  NodeModuleDecoratorRuntimeModule, NormalRuntimeModule, OnChunkLoadedRuntimeModule,
-  PublicPathRuntimeModule, SystemContextRuntimeModule,
+  NodeModuleDecoratorRuntimeModule, NonceRuntimeModule, NormalRuntimeModule,
+  OnChunkLoadedRuntimeModule, PublicPathRuntimeModule, SystemContextRuntimeModule,
 };
 
 static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
@@ -43,7 +43,7 @@ static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
     RuntimeGlobals::PUBLIC_PATH,
     RuntimeGlobals::BASE_URI,
     // RuntimeGlobals::RELATIVE_URL,
-    // RuntimeGlobals::SCRIPT_NONCE,
+    RuntimeGlobals::SCRIPT_NONCE,
     // RuntimeGlobals::UNCAUGHT_ERROR_HANDLER,
     RuntimeGlobals::ASYNC_MODULE,
     // RuntimeGlobals::WASM_INSTANCES,
@@ -236,6 +236,22 @@ impl Plugin for RuntimePlugin {
       runtime_requirements.insert(RuntimeGlobals::GLOBAL);
     }
 
+    if runtime_requirements.contains(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME) {
+      let chunk_filename = compilation.options.output.chunk_filename.template();
+      if FULL_HASH_PLACEHOLDER.is_match(chunk_filename) || HASH_PLACEHOLDER.is_match(chunk_filename)
+      {
+        runtime_requirements.insert(RuntimeGlobals::GET_FULL_HASH);
+      }
+    }
+
+    if runtime_requirements.contains(RuntimeGlobals::GET_CHUNK_CSS_FILENAME) {
+      let chunk_filename = compilation.options.output.css_chunk_filename.template();
+      if FULL_HASH_PLACEHOLDER.is_match(chunk_filename) || HASH_PLACEHOLDER.is_match(chunk_filename)
+      {
+        runtime_requirements.insert(RuntimeGlobals::GET_FULL_HASH);
+      }
+    }
+
     let library_type = {
       let chunk = compilation
         .chunk_by_ukey
@@ -276,7 +292,7 @@ impl Plugin for RuntimePlugin {
         RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME => compilation.add_runtime_module(
           chunk,
           GetChunkFilenameRuntimeModule::new(
-            "js",
+            "javascript",
             SourceType::JavaScript,
             RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
             false,
@@ -361,6 +377,9 @@ impl Plugin for RuntimePlugin {
         }
         RuntimeGlobals::SYSTEM_CONTEXT if matches!(&library_type, Some(t) if t == "system") => {
           compilation.add_runtime_module(chunk, SystemContextRuntimeModule::default().boxed())
+        }
+        RuntimeGlobals::SCRIPT_NONCE => {
+          compilation.add_runtime_module(chunk, NonceRuntimeModule::default().boxed());
         }
         _ => {}
       }

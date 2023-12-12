@@ -1,5 +1,5 @@
-mod basic_evaluated_expression;
 mod r#const;
+mod eval;
 mod get_prop_from_obj;
 pub mod mangle_exports;
 
@@ -7,12 +7,16 @@ use std::path::Path;
 
 use rspack_core::{ErrorSpan, ModuleType};
 use rspack_error::{DiagnosticKind, Error};
-use swc_core::common::{SourceFile, Spanned};
+use rustc_hash::FxHashSet as HashSet;
+use swc_core::common::{SourceFile, Span, Spanned};
 use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::parser::{EsConfig, TsConfig};
 
-pub use self::basic_evaluated_expression::{evaluate_expression, BasicEvaluatedExpression};
+pub(crate) use self::eval::{
+  eval_binary_expression, eval_cond_expression, eval_lit_expr, eval_tpl_expression,
+  eval_unary_expression, evaluate_to_string, BasicEvaluatedExpression,
+};
 pub use self::get_prop_from_obj::*;
 pub use self::r#const::*;
 
@@ -90,8 +94,45 @@ pub fn syntax_by_module_type(
   js_syntax
 }
 
-pub fn ecma_parse_error_to_rspack_error(
-  error: swc_core::ecma::parser::error::Error,
+#[derive(PartialEq, Eq, Hash)]
+pub struct EcmaError(String, Span);
+pub struct EcmaErrorsDeduped(Vec<EcmaError>);
+
+impl IntoIterator for EcmaErrorsDeduped {
+  type Item = EcmaError;
+  type IntoIter = std::vec::IntoIter<Self::Item>;
+  fn into_iter(self) -> Self::IntoIter {
+    self.0.into_iter()
+  }
+}
+
+impl From<Vec<swc_core::ecma::parser::error::Error>> for EcmaErrorsDeduped {
+  fn from(value: Vec<swc_core::ecma::parser::error::Error>) -> Self {
+    Self(
+      value
+        .into_iter()
+        .map(|v| EcmaError(v.kind().msg().to_string(), v.span()))
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>(),
+    )
+  }
+}
+
+/// Dedup ecma errors against [swc_core::ecma::parser::error::Error]
+/// Returns a wrapper of an iterator that contains deduped errors.
+impl DedupEcmaErrors for Vec<swc_core::ecma::parser::error::Error> {
+  fn dedup_ecma_errors(self) -> EcmaErrorsDeduped {
+    EcmaErrorsDeduped::from(self)
+  }
+}
+
+pub trait DedupEcmaErrors {
+  fn dedup_ecma_errors(self) -> EcmaErrorsDeduped;
+}
+
+pub fn ecma_parse_error_deduped_to_rspack_error(
+  EcmaError(message, span): EcmaError,
   fm: &SourceFile,
   module_type: &ModuleType,
 ) -> Error {
@@ -104,8 +145,7 @@ pub fn ecma_parse_error_to_rspack_error(
     ModuleType::Ts => ("Typescript", DiagnosticKind::Typescript),
     _ => unreachable!(),
   };
-  let message = error.kind().msg().to_string();
-  let span: ErrorSpan = error.span().into();
+  let span: ErrorSpan = span.into();
   let traceable_error = rspack_error::TraceableError::from_source_file(
     fm,
     span.start as usize,
@@ -114,7 +154,7 @@ pub fn ecma_parse_error_to_rspack_error(
     message,
   )
   .with_kind(diagnostic_kind);
-  Error::TraceableError(traceable_error)
+  traceable_error.into()
 }
 
 pub fn join_jsword(arr: &[JsWord], separator: &str) -> String {

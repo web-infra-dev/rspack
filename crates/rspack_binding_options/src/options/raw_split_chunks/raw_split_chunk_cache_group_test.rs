@@ -4,9 +4,8 @@ use napi::bindgen_prelude::Either3;
 use napi::{Env, JsFunction};
 use napi_derive::napi;
 use rspack_binding_values::{JsModule, ToJsModule};
-use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use rspack_napi_shared::{JsRegExp, JsRegExpExt, NapiResultExt, NAPI_ENV};
+use rspack_napi_shared::{get_napi_env, JsRegExp, JsRegExpExt, NapiResultExt};
 use rspack_plugin_split_chunks_new::{CacheGroupTest, CacheGroupTestFnCtx};
 
 pub(super) type RawCacheGroupTest = Either3<String, JsRegExp, JsFunction>;
@@ -32,14 +31,11 @@ pub(super) fn normalize_raw_cache_group_test(raw: RawCacheGroupTest) -> CacheGro
     Either3::A(str) => CacheGroupTest::String(str),
     Either3::B(regexp) => CacheGroupTest::RegExp(regexp.to_rspack_regex()),
     Either3::C(v) => {
-      let fn_payload: ThreadsafeFunction<RawCacheGroupTestCtx, Option<bool>> = NAPI_ENV
-        .with(|env| -> anyhow::Result<_> {
-          let env = env.borrow().expect("Failed to get env with external");
-          let fn_payload = rspack_binding_macros::js_fn_into_threadsafe_fn!(v, &Env::from(env));
-          Ok(fn_payload)
-        })
-        .expect("should generate fn_payload success");
-      let fn_payload = Arc::new(fn_payload);
+      let fn_payload: napi::Result<ThreadsafeFunction<RawCacheGroupTestCtx, Option<bool>>> = try {
+        let env = get_napi_env();
+        rspack_binding_macros::js_fn_into_threadsafe_fn!(v, &Env::from(env))
+      };
+      let fn_payload = Arc::new(fn_payload.expect("convert to threadsafe function failed"));
       CacheGroupTest::Fn(Arc::new(move |ctx| {
         let fn_payload = fn_payload.clone();
         fn_payload
@@ -47,12 +43,7 @@ pub(super) fn normalize_raw_cache_group_test(raw: RawCacheGroupTest) -> CacheGro
           .into_rspack_result()
           .expect("into rspack result failed")
           .blocking_recv()
-          .unwrap_or_else(|err| {
-            panic!(
-              "{}",
-              internal_error!("Failed to call external function: {err}")
-            )
-          })
+          .unwrap_or_else(|err| panic!("Failed to call external function: {err}"))
           .expect("failed")
       }))
     }

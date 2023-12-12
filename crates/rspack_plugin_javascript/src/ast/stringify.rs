@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_ast::javascript::Ast;
 use rspack_core::Devtool;
-use rspack_error::{internal_error, Result};
+use rspack_error::{miette::IntoDiagnostic, Result};
 use swc_core::base::config::JsMinifyFormatOptions;
 use swc_core::{
   common::{
@@ -114,7 +114,7 @@ pub fn print(
         wr,
       };
 
-      node.emit_with(&mut emitter)?;
+      node.emit_with(&mut emitter).into_diagnostic()?;
     }
     // SAFETY: SWC will emit valid utf8 for sure
     unsafe { String::from_utf8_unchecked(buf) }
@@ -126,7 +126,7 @@ pub fn print(
     source_map
       .build_source_map_with_config(&src_map_buf, None, source_map_config)
       .to_writer(&mut buf)
-      .map_err(|e| internal_error!(e.to_string()))?;
+      .unwrap_or_else(|e| panic!("{}", e.to_string()));
     // SAFETY: This buffer is already sanitized
     Some(unsafe { String::from_utf8_unchecked(buf) })
   } else {

@@ -192,30 +192,45 @@ impl Plugin for AssignLibraryPlugin {
   }
 
   async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
-    let mg = &mut compilation.module_graph;
-    for (_, entry) in compilation.entries.iter() {
+    for (entry_name, entry) in compilation.entries.iter() {
       let EntryData {
         dependencies,
         options,
         ..
       } = entry;
-      let module_of_last_dep = dependencies.last().and_then(|dep| mg.get_module(dep));
-      if let Some(module_of_last_dep) = module_of_last_dep {
-        if let Some(export) = options
-          .library
-          .as_ref()
-          .and_then(|lib| lib.export.as_ref())
-          .and_then(|item| item.first())
-        {
-          let exports_info =
-            mg.get_export_info(module_of_last_dep.identifier(), &(export.as_str()).into());
-          // TODO: runtime opt
-          exports_info.set_used(mg, UsageState::Used, None);
-        } else {
-          let exports_info_id = mg.get_exports_info(&module_of_last_dep.identifier()).id;
-          // TODO: runtime opt
-          exports_info_id.set_used_in_unknown_way(mg, None);
-        }
+      let runtime = compilation.get_entry_runtime(entry_name, Some(options));
+      let library_options = options
+        .library
+        .as_ref()
+        .or_else(|| compilation.options.output.library.as_ref());
+      let module_of_last_dep = dependencies
+        .last()
+        .and_then(|dep| compilation.module_graph.get_module(dep));
+      let Some(module_of_last_dep) = module_of_last_dep else {
+        continue;
+      };
+      let Some(library_options) = library_options else {
+        continue;
+      };
+      if let Some(export) = library_options
+        .export
+        .as_ref()
+        .and_then(|item| item.first())
+      {
+        let exports_info = compilation
+          .module_graph
+          .get_export_info(module_of_last_dep.identifier(), &(export.as_str()).into());
+        exports_info.set_used(
+          &mut compilation.module_graph,
+          UsageState::Used,
+          Some(&runtime),
+        );
+      } else {
+        let exports_info_id = compilation
+          .module_graph
+          .get_exports_info(&module_of_last_dep.identifier())
+          .id;
+        exports_info_id.set_used_in_unknown_way(&mut compilation.module_graph, Some(&runtime));
       }
     }
     Ok(())

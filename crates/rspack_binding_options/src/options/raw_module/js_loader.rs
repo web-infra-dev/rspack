@@ -7,6 +7,7 @@ use napi_derive::napi;
 use rspack_core::{rspack_sources::SourceMap, Content, ResourceData};
 use rspack_error::Diagnostic;
 use rspack_loader_runner::AdditionalData;
+use rspack_napi_shared::get_napi_env;
 use rustc_hash::FxHashSet as HashSet;
 use tracing::{span_enabled, Level};
 use {
@@ -17,7 +18,7 @@ use {
   rspack_error::internal_error,
   rspack_identifier::{Identifiable, Identifier},
   rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  rspack_napi_shared::{NapiResultExt, NAPI_ENV},
+  rspack_napi_shared::NapiResultExt,
 };
 
 use crate::get_builtin_loader;
@@ -53,56 +54,48 @@ impl TryFrom<JsFunction> for JsLoaderRunner {
 
   fn try_from(value: JsFunction) -> std::result::Result<Self, Self::Error> {
     let loader_runner = unsafe { value.raw() };
+    let env = get_napi_env();
+    let mut func = ThreadsafeFunction::<JsLoaderContext, LoaderThreadsafeLoaderResult>::create(
+      env,
+      loader_runner,
+      0,
+      |ctx| {
+        let (ctx, resolver) = ctx.split_into_parts();
 
-    let func = NAPI_ENV.with(|env| -> anyhow::Result<_> {
-      let env = env
-        .borrow()
-        .expect("Failed to get env, did you forget to call it from node?");
+        let env = ctx.env;
+        let cb = ctx.callback;
+        let resource = ctx.value.resource.clone();
 
-      let mut func = ThreadsafeFunction::<JsLoaderContext, LoaderThreadsafeLoaderResult>::create(
-        env,
-        loader_runner,
-        0,
-        |ctx| {
-          let (ctx, resolver) = ctx.split_into_parts();
+        let loader_name = if span_enabled!(Level::TRACE) {
+          let loader_path = &ctx.value.current_loader;
+          // try to remove the previous node_modules parts from path for better display
 
-          let env = ctx.env;
-          let cb = ctx.callback;
-          let resource = ctx.value.resource.clone();
+          let parts = loader_path.split("node_modules/");
+          let loader_name: &str = parts.last().unwrap_or(loader_path.as_str());
+          String::from(loader_name)
+        } else {
+          String::from("unknown")
+        };
+        let result = tracing::span!(
+          tracing::Level::INFO,
+          "loader_sync_call",
+          resource = &resource,
+          loader_name = &loader_name
+        )
+        .in_scope(|| unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) });
 
-          let loader_name = if span_enabled!(Level::TRACE) {
-            let loader_path = &ctx.value.current_loader;
-            // try to remove the previous node_modules parts from path for better display
-
-            let parts = loader_path.split("node_modules/");
-            let loader_name: &str = parts.last().unwrap_or(loader_path.as_str());
-            String::from(loader_name)
-          } else {
-            String::from("unknown")
-          };
-          let result = tracing::span!(
-            tracing::Level::INFO,
-            "loader_sync_call",
-            resource = &resource,
-            loader_name = &loader_name
-          )
-          .in_scope(|| unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) });
-
-          let resolve_start = std::time::Instant::now();
-          resolver.resolve::<Option<JsLoaderResult>>(result, move |_, r| {
-            tracing::trace!(
-              "Finish resolving loader result for {}, took {}ms",
-              resource,
-              resolve_start.elapsed().as_millis()
-            );
-            Ok(r)
-          })
-        },
-      )?;
-      func.unref(&Env::from(env))?;
-      Ok(func)
-    })?;
-
+        let resolve_start = std::time::Instant::now();
+        resolver.resolve::<Option<JsLoaderResult>>(result, move |_, r| {
+          tracing::trace!(
+            "Finish resolving loader result for {}, took {}ms",
+            resource,
+            resolve_start.elapsed().as_millis()
+          );
+          Ok(r)
+        })
+      },
+    )?;
+    func.unref(&Env::from(env))?;
     Ok(Self::ThreadsafeFunction(func))
   }
 }
@@ -132,7 +125,7 @@ impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
     &self,
     loader_context: &mut LoaderContext<'_, LoaderRunnerContext>,
   ) -> rspack_error::Result<()> {
-    let mut js_loader_context: JsLoaderContext = (&*loader_context).try_into()?;
+    let mut js_loader_context: JsLoaderContext = loader_context.try_into()?;
     js_loader_context.is_pitching = true;
 
     let loader_result = self
@@ -140,7 +133,7 @@ impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
       .call(js_loader_context, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call loader: {err}"))??;
+      .unwrap_or_else(|err| panic!("Failed to call loader: {err}"))?;
 
     if let Some(loader_result) = loader_result {
       // This indicate that the JS loaders pitched(return something) successfully
@@ -161,7 +154,7 @@ impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
     &self,
     loader_context: &mut LoaderContext<'_, LoaderRunnerContext>,
   ) -> rspack_error::Result<()> {
-    let mut js_loader_context: JsLoaderContext = (&*loader_context).try_into()?;
+    let mut js_loader_context: JsLoaderContext = loader_context.try_into()?;
     // Instruct the JS loader-runner to execute loaders in backwards.
     js_loader_context.is_pitching = false;
 
@@ -170,7 +163,7 @@ impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
       .call(js_loader_context, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call loader: {err}"))??;
+      .unwrap_or_else(|err| panic!("Failed to call loader: {err}"))?;
 
     if let Some(loader_result) = loader_result {
       sync_loader_context(loader_result, loader_context)?;
@@ -265,13 +258,13 @@ pub struct JsLoaderContext {
   pub diagnostics_external: External<Vec<Diagnostic>>,
 }
 
-impl TryFrom<&rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
+impl TryFrom<&mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
   for JsLoaderContext
 {
   type Error = rspack_error::Error;
 
   fn try_from(
-    cx: &rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>,
+    cx: &mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>,
   ) -> std::result::Result<Self, Self::Error> {
     Ok(JsLoaderContext {
       content: cx
@@ -322,7 +315,7 @@ impl TryFrom<&rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
 
       additional_data_external: External::new(cx.additional_data.clone()),
       context_external: External::new(cx.context.clone()),
-      diagnostics_external: External::new(cx.__diagnostics.clone()),
+      diagnostics_external: External::new(cx.__diagnostics.drain(..).collect()),
     })
   }
 }
@@ -410,7 +403,7 @@ pub async fn run_builtin_loader(
     cx.__loader_index = 0;
   }
 
-  JsLoaderContext::try_from(&cx).map_err(|e| Error::from_reason(e.to_string()))
+  JsLoaderContext::try_from(&mut cx).map_err(|e| Error::from_reason(e.to_string()))
 }
 
 // #[napi(object)]

@@ -8,7 +8,9 @@ use napi::{Either, JsString};
 use napi_derive::napi;
 use raw_split_chunk_name::normalize_raw_chunk_name;
 use raw_split_chunk_name::RawChunkOptionName;
+use rspack_core::Filename;
 use rspack_core::SourceType;
+use rspack_core::DEFAULT_DELIMITER;
 use rspack_napi_shared::{JsRegExp, JsRegExpExt, JsStringExt};
 use rspack_plugin_split_chunks_new::ChunkNameGetter;
 use serde::Deserialize;
@@ -36,12 +38,12 @@ pub struct RawSplitChunksOptions {
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
   #[derivative(Debug = "ignore")]
   pub chunks: Option<Chunks>,
-  //   pub automatic_name_delimiter: String,
+  pub automatic_name_delimiter: Option<String>,
   pub max_async_requests: Option<u32>,
   pub max_initial_requests: Option<u32>,
   //   pub default_size_types: Option<Vec<SizeType>>,
   pub min_chunks: Option<u32>,
-  // hide_path_info: bool,
+  pub hide_path_info: Option<bool>,
   pub min_size: Option<f64>,
   //   pub min_size_reduction: usize,
   pub enforce_size_threshold: Option<f64>,
@@ -63,6 +65,7 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::SplitChunksOpti
       min_size: value.min_size,
       enforce_size_threshold: value.enforce_size_threshold,
       min_remaining_size: value.min_remaining_size,
+      automatic_name_delimiter: Some(DEFAULT_DELIMITER.to_string()),
       chunks: value.chunks.map(|chunks| {
         let Either::B(chunks) = chunks else {
           panic!("expected string")
@@ -85,6 +88,7 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::SplitChunksOpti
           v.key,
           CacheGroupOptions {
             // FIXME: since old split chunk will not used so I use `None` here
+            automatic_name_delimiter: Some(DEFAULT_DELIMITER.to_string()),
             name: None,
             priority: v.priority,
             reuse_existing_chunk: Some(false),
@@ -126,7 +130,7 @@ pub struct RawCacheGroupOptions {
   #[napi(ts_type = "RegExp | string | Function")]
   #[derivative(Debug = "ignore")]
   pub test: Option<RawCacheGroupTest>,
-  //   pub filename: String,
+  pub filename: Option<String>,
   //   pub enforce: bool,
   pub id_hint: Option<String>,
   /// What kind of chunks should be selected.
@@ -138,11 +142,10 @@ pub struct RawCacheGroupOptions {
   #[napi(ts_type = "RegExp | string")]
   #[derivative(Debug = "ignore")]
   pub r#type: Option<Either<JsRegExp, JsString>>,
-  //   pub automatic_name_delimiter: String,
+  pub automatic_name_delimiter: Option<String>,
   //   pub max_async_requests: usize,
   //   pub max_initial_requests: usize,
   pub min_chunks: Option<u32>,
-  // hide_path_info: bool,
   pub min_size: Option<f64>,
   //   pub min_size_reduction: usize,
   //   pub enforce_size_threshold: usize,
@@ -200,6 +203,9 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks_new::PluginOptio
     let overall_max_size = create_sizes(raw_opts.max_size);
     let overall_max_async_size = create_sizes(raw_opts.max_async_size).merge(&overall_max_size);
     let overall_max_initial_size = create_sizes(raw_opts.max_initial_size).merge(&overall_max_size);
+    let overall_automatic_name_delimiter = raw_opts
+      .automatic_name_delimiter
+      .unwrap_or(DEFAULT_DELIMITER.to_string());
 
     cache_groups.extend(
       raw_opts
@@ -266,6 +272,10 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks_new::PluginOptio
             }),
             min_chunks,
             min_size,
+            automatic_name_delimiter: v
+              .automatic_name_delimiter
+              .unwrap_or(overall_automatic_name_delimiter.clone()),
+            filename: v.filename.map(Filename::from),
             reuse_existing_chunk: v.reuse_existing_chunk.unwrap_or(true),
             // TODO(hyf0): the non-enforced default value should be 30
             // I would set align default value with Webpack when the options is exposed to users
@@ -308,7 +318,11 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks_new::PluginOptio
         min_size: fallback_min_size,
         max_async_size: fallback_max_async_size,
         max_initial_size: fallback_max_initial_size,
+        automatic_name_delimiter: raw_fallback_cache_group
+          .automatic_name_delimiter
+          .unwrap_or(overall_automatic_name_delimiter.clone()),
       },
+      hide_path_info: raw_opts.hide_path_info,
     }
   }
 }
@@ -326,6 +340,7 @@ pub struct RawFallbackCacheGroupOptions {
   pub max_size: Option<f64>,
   pub max_async_size: Option<f64>,
   pub max_initial_size: Option<f64>,
+  pub automatic_name_delimiter: Option<String>,
 }
 
 fn create_module_type_filter(

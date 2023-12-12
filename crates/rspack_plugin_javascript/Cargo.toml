@@ -9,13 +9,14 @@ version    = "0.1.0"
 rspack_testing = { path = "../rspack_testing" }
 
 [dependencies]
-anyhow          = { workspace = true }
+anyhow = { workspace = true }
 async-recursion = { workspace = true }
-async-trait     = { workspace = true }
-either          = "1"
-indexmap        = { workspace = true }
+async-trait = { workspace = true }
+bitflags = { workspace = true }
+either = "1"
+indexmap = { workspace = true }
 linked_hash_set = { workspace = true }
-# num-bigint = { version = "0.4.4" }
+num-bigint = { version = "0.4.4" }
 once_cell = { workspace = true }
 preset_env_base = { workspace = true }
 rayon = { workspace = true }

@@ -11,6 +11,6 @@ impl RawOptionsApply for RawTarget {
     self,
     _: &mut Vec<rspack_core::BoxPlugin>,
   ) -> Result<Self::Options, rspack_error::Error> {
-    Ok(Target::new(&self)?)
+    Target::new(&self)
   }
 }

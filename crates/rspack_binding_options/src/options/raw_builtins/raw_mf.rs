@@ -1,10 +1,8 @@
 use napi::Either;
 use napi_derive::napi;
-use rspack_core::mf::{
-  consume_shared_plugin::{ConsumeOptions, ConsumeVersion},
-  container_plugin::{ContainerPluginOptions, ExposeOptions},
-  container_reference_plugin::{ContainerReferencePluginOptions, RemoteOptions},
-  provide_shared_plugin::{ProvideOptions, ProvideVersion},
+use rspack_plugin_mf::{
+  ConsumeOptions, ConsumeVersion, ContainerPluginOptions, ContainerReferencePluginOptions,
+  ExposeOptions, ProvideOptions, ProvideVersion, RemoteOptions,
 };
 
 use crate::RawLibraryOptions;

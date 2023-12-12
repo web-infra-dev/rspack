@@ -10,6 +10,7 @@ use crate::{
   SharedPluginDriver,
 };
 
+#[derive(Debug)]
 pub struct ContextModuleFactory {
   plugin_driver: SharedPluginDriver,
   cache: Arc<Cache>,
@@ -19,7 +20,7 @@ pub struct ContextModuleFactory {
 impl ModuleFactory for ContextModuleFactory {
   #[instrument(name = "context_module_factory:create", skip_all)]
   async fn create(
-    mut self,
+    &self,
     mut data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
     if let Ok(Some(before_resolve_result)) = self.before_resolve(&mut data).await {
@@ -38,7 +39,7 @@ impl ContextModuleFactory {
   }
 
   async fn before_resolve(
-    &mut self,
+    &self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
     let dependency = data
@@ -146,7 +147,9 @@ impl ContextModuleFactory {
         )
         .boxed();
 
-        return Ok(ModuleFactoryResult::new(missing_module).with_diagnostic(internal_error.into()));
+        return Ok(
+          ModuleFactoryResult::new(missing_module).with_diagnostic(vec![internal_error.into()]),
+        );
       }
     };
 

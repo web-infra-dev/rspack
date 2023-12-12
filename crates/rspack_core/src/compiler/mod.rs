@@ -19,13 +19,15 @@ use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::JsWord;
 use tracing::instrument;
 
+use crate::cache::Cache;
 use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
 use crate::tree_shaking::visitor::SymbolRef;
 use crate::{
-  cache::Cache, fast_set, AssetEmittedArgs, CompilerOptions, Logger, Plugin, PluginDriver,
-  ResolverFactory, SharedPluginDriver,
+  fast_set, AssetEmittedArgs, CompilerOptions, Logger, ModuleGraph, PluginDriver, ResolverFactory,
+  SharedPluginDriver,
 };
-use crate::{ExportInfo, UsageState, IS_NEW_TREESHAKING};
+use crate::{BoxPlugin, ExportInfo, UsageState};
+use crate::{CompilationParams, ContextModuleFactory, NormalModuleFactory};
 
 #[derive(Debug)]
 pub struct Compiler<T>
@@ -49,11 +51,13 @@ where
   T: AsyncWritableFileSystem + Send + Sync,
 {
   #[instrument(skip_all)]
-  pub fn new(
-    options: CompilerOptions,
-    plugins: Vec<Box<dyn Plugin>>,
-    output_filesystem: T,
-  ) -> Self {
+  pub fn new(options: CompilerOptions, plugins: Vec<BoxPlugin>, output_filesystem: T) -> Self {
+    #[cfg(debug_assertions)]
+    {
+      if let Ok(mut debug_info) = crate::debug_info::DEBUG_INFO.lock() {
+        debug_info.with_context(options.context.to_string());
+      }
+    }
     let new_resolver = options.experiments.rspack_future.new_resolver;
     let resolver_factory = Arc::new(ResolverFactory::new(new_resolver, options.resolve.clone()));
     let loader_resolver_factory = Arc::new(ResolverFactory::new(
@@ -62,15 +66,13 @@ where
     ));
     let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
     let cache = Arc::new(Cache::new(options.clone()));
-    if options.is_new_tree_shaking() {
-      IS_NEW_TREESHAKING.store(true, std::sync::atomic::Ordering::SeqCst);
-    }
+    let is_new_treeshaking = options.is_new_tree_shaking();
     assert!(!(options.is_new_tree_shaking() && options.builtins.tree_shaking.enable()), "Can't enable builtins.tree_shaking and `experiments.rspack_future.new_treeshaking` at the same time");
     Self {
       options: options.clone(),
       compilation: Compilation::new(
         options,
-        Default::default(),
+        ModuleGraph::default().with_treeshaking(is_new_treeshaking),
         plugin_driver.clone(),
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
@@ -102,7 +104,7 @@ where
       &mut self.compilation,
       Compilation::new(
         self.options.clone(),
-        Default::default(),
+        ModuleGraph::default().with_treeshaking(self.options.is_new_tree_shaking()),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
@@ -110,19 +112,6 @@ where
         self.cache.clone(),
       ),
     );
-
-    self.plugin_driver.before_compile().await?;
-
-    // Fake this compilation as *currently* rebuilding does not create a new compilation
-    self
-      .plugin_driver
-      .this_compilation(&mut self.compilation)
-      .await?;
-
-    self
-      .plugin_driver
-      .compilation(&mut self.compilation)
-      .await?;
 
     self
       .compile(MakeParam::ForceBuildDeps(Default::default()))
@@ -134,6 +123,21 @@ where
 
   #[instrument(name = "compile", skip_all)]
   async fn compile(&mut self, params: MakeParam) -> Result<()> {
+    let compilation_params = self.new_compilation_params();
+    self
+      .plugin_driver
+      .before_compile(&compilation_params)
+      .await?;
+    // Fake this compilation as *currently* rebuilding does not create a new compilation
+    self
+      .plugin_driver
+      .this_compilation(&mut self.compilation, &compilation_params)
+      .await?;
+    self
+      .plugin_driver
+      .compilation(&mut self.compilation, &compilation_params)
+      .await?;
+
     let logger = self.compilation.get_logger("rspack.Compiler");
     let option = self.options.clone();
     let start = logger.time("make");
@@ -395,5 +399,20 @@ where
         .await?;
     }
     Ok(())
+  }
+
+  fn new_compilation_params(&self) -> CompilationParams {
+    CompilationParams {
+      normal_module_factory: Arc::new(NormalModuleFactory::new(
+        self.options.clone(),
+        self.loader_resolver_factory.clone(),
+        self.plugin_driver.clone(),
+        self.cache.clone(),
+      )),
+      context_module_factory: Arc::new(ContextModuleFactory::new(
+        self.plugin_driver.clone(),
+        self.cache.clone(),
+      )),
+    }
   }
 }

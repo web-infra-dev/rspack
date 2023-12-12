@@ -1,12 +1,7 @@
 #[macro_export]
 macro_rules! internal_error {
   (@base $expr:expr) => {
-    $crate::__private::Error::InternalError({
-      $crate::__private::InternalError {
-        error_message: $expr,
-        ..Default::default()
-      }
-    })
+    $crate::__private::miette!($expr)
   };
   ($str:literal $(,)?) => {{
     let err = format!($str);

@@ -1,6 +1,7 @@
-use anyhow::anyhow;
+use std::sync::Arc;
+
 use itertools::Itertools;
-use rspack_error::{internal_error, Result};
+use rspack_error::{internal_error, Error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
@@ -9,8 +10,18 @@ use crate::{
   get_entry_runtime, AsyncDependenciesBlockIdentifier, BoxDependency, ChunkGroup, ChunkGroupInfo,
   ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
   DependenciesBlock, GroupOptions, Logger, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
-  IS_NEW_TREESHAKING,
 };
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+struct OptionalRuntimeSpec(pub Vec<Arc<str>>);
+
+impl From<Option<RuntimeSpec>> for OptionalRuntimeSpec {
+  fn from(value: Option<RuntimeSpec>) -> Self {
+    let mut vec = value.unwrap_or_default().into_iter().collect::<Vec<_>>();
+    vec.sort();
+    Self(vec)
+  }
+}
 
 pub(super) struct CodeSplitter<'me> {
   pub(super) compilation: &'me mut Compilation,
@@ -24,7 +35,8 @@ pub(super) struct CodeSplitter<'me> {
   block_chunk_groups: HashMap<AsyncDependenciesBlockIdentifier, ChunkGroupUkey>,
   named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   named_async_entrypoints: HashMap<String, ChunkGroupUkey>,
-  block_modules_map: HashMap<DependenciesBlockIdentifier, Vec<ModuleIdentifier>>,
+  block_modules_runtime_map:
+    HashMap<OptionalRuntimeSpec, HashMap<DependenciesBlockIdentifier, Vec<ModuleIdentifier>>>,
   pub(super) remove_parent_modules_context: RemoveParentModulesContext,
 }
 
@@ -52,7 +64,7 @@ impl<'me> CodeSplitter<'me> {
       block_chunk_groups: Default::default(),
       named_chunk_groups: Default::default(),
       named_async_entrypoints: Default::default(),
-      block_modules_map: Default::default(),
+      block_modules_runtime_map: Default::default(),
       remove_parent_modules_context: Default::default(),
     }
   }
@@ -131,7 +143,7 @@ impl<'me> CodeSplitter<'me> {
         compilation
           .chunk_group_by_ukey
           .get(&ukey)
-          .ok_or_else(|| anyhow::format_err!("no chunk group found"))?
+          .ok_or_else(|| internal_error!("no chunk group found"))?
       };
 
       for module_identifier in module_identifiers {
@@ -192,12 +204,12 @@ impl<'me> CodeSplitter<'me> {
         let ukey = compilation
           .entrypoints
           .get(name)
-          .ok_or_else(|| anyhow!("no entrypoints found"))?;
+          .ok_or_else(|| internal_error!("no entrypoints found"))?;
 
         let entry_point = compilation
           .chunk_group_by_ukey
           .get_mut(ukey)
-          .ok_or_else(|| anyhow!("no chunk group found"))?;
+          .ok_or_else(|| internal_error!("no chunk group found"))?;
 
         let chunk = match compilation.named_chunks.get(runtime) {
           Some(ukey) => {
@@ -216,7 +228,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             compilation
               .chunk_by_ukey
               .get_mut(ukey)
-              .ok_or_else(|| anyhow!("no chunk found"))?
+              .ok_or_else(|| internal_error!("no chunk found"))?
           }
           None => {
             let chunk_ukey = Compilation::add_named_chunk(
@@ -240,7 +252,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     if let Some(err) = runtime_error {
-      compilation.push_batch_diagnostic(err.into());
+      compilation.push_diagnostic(err.into());
     }
     Ok(input_entrypoints_and_modules)
   }
@@ -257,7 +269,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .compilation
         .chunk_group_by_ukey
         .get_mut(&chunk_group)
-        .ok_or_else(|| anyhow::format_err!("no chunk group found"))?;
+        .ok_or_else(|| internal_error!("no chunk group found"))?;
 
       self.next_chunk_group_index += 1;
       chunk_group.index = Some(self.next_chunk_group_index);
@@ -450,7 +462,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn process_entry_block(&mut self, item: &ProcessEntryBlock) {
     tracing::trace!("process_entry_block {:?}", item);
-    let modules = self.get_block_modules(item.block.into());
+    let chunk_group = self
+      .compilation
+      .chunk_group_by_ukey
+      .expect_get(&item.chunk_group);
+
+    let runtime = chunk_group.info.runtime.clone();
+    let modules = self.get_block_modules(item.block.into(), Some(&runtime));
     for module in modules {
       self.queue.push(QueueAction::AddAndEnterEntryModule(
         AddAndEnterEntryModule {
@@ -474,7 +492,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn process_block(&mut self, item: &ProcessBlock) {
     tracing::trace!("process_block {:?}", item);
-    let modules = self.get_block_modules(item.block);
+    let item_chunk_group = self
+      .compilation
+      .chunk_group_by_ukey
+      .expect_get(&item.chunk_group);
+    let runtime = item_chunk_group.info.runtime.clone();
+    let modules = self.get_block_modules(item.block, Some(&runtime));
     for module in modules.into_iter().rev() {
       if self
         .compilation
@@ -648,11 +671,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             .expect_get(cgi)
             .is_initial()
           {
-            let error = AsyncDependenciesToInitialChunkError {
-              chunk_name,
-              loc: block.loc(),
-            };
-            self.compilation.push_diagnostic(error.into());
+            let error = AsyncDependenciesToInitialChunkError(
+              chunk_name.to_string(),
+              block.loc().map(ToOwned::to_owned),
+            );
+            self.compilation.push_diagnostic(Error::from(error).into());
             res = item_chunk_group_ukey;
           }
 
@@ -728,52 +751,67 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
   }
 
-  fn get_block_modules(&mut self, module: DependenciesBlockIdentifier) -> Vec<ModuleIdentifier> {
-    if let Some(modules) = self.block_modules_map.get(&module) {
+  fn get_block_modules(
+    &mut self,
+    module: DependenciesBlockIdentifier,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ModuleIdentifier> {
+    if let Some(modules) = self
+      .block_modules_runtime_map
+      .get(&runtime.cloned().into())
+      .and_then(|map| map.get(&module))
+    {
       return modules.clone();
     }
-    self.extract_block_modules(*module.as_module().expect(
-      "block_modules_map must not empty when calling get_block_modules(AsyncDependenciesBlock)",
-    ));
+    // dbg!(&module, &runtime);
+    self.extract_block_modules(
+      *module.get_root_block().expect(
+        "block_modules_map must not empty when calling get_block_modules(AsyncDependenciesBlock)",
+      ),
+      runtime,
+    );
     self
-      .block_modules_map
-      .get(&module)
+      .block_modules_runtime_map
+      .get(&runtime.cloned().into())
+      .and_then(|map| map.get(&module))
       .expect("block_modules_map.get(module) must not empty after extract_block_modules")
       .clone()
   }
 
-  fn extract_block_modules(&mut self, module: ModuleIdentifier) {
-    self.block_modules_map.insert(module.into(), Vec::new());
-    let dependencies: Vec<&BoxDependency> =
-      if IS_NEW_TREESHAKING.load(std::sync::atomic::Ordering::Relaxed) {
-        let mgm = self
-          .compilation
-          .module_graph
-          .module_graph_module_by_identifier(&module)
-          .unwrap_or_else(|| panic!("no module found: {:?}", &module));
-        mgm
-          .outgoing_connections_unordered(&self.compilation.module_graph)
-          .expect("should have outgoing connections")
-          .filter_map(|con: &ModuleGraphConnection| {
-            // TODO: runtime opt
-            let active_state = con.get_active_state(&self.compilation.module_graph, None);
-            match active_state {
-              crate::ConnectionState::Bool(false) => None,
-              _ => Some(con.dependency_id),
-            }
-          })
-          .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(&dep_id))
-          .collect()
-      } else {
-        self
-          .compilation
-          .module_graph
-          .get_module_all_dependencies(&module)
-          .expect("should have module")
-          .iter()
-          .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(dep_id))
-          .collect()
-      };
+  fn extract_block_modules(&mut self, module: ModuleIdentifier, runtime: Option<&RuntimeSpec>) {
+    self
+      .block_modules_runtime_map
+      .entry(runtime.cloned().into())
+      .or_default()
+      .insert(module.into(), Vec::new());
+    let dependencies: Vec<&BoxDependency> = if self.compilation.options.is_new_tree_shaking() {
+      let mgm = self
+        .compilation
+        .module_graph
+        .module_graph_module_by_identifier(&module)
+        .unwrap_or_else(|| panic!("no module found: {:?}", &module));
+      mgm
+        .outgoing_connections_unordered(&self.compilation.module_graph)
+        .expect("should have outgoing connections")
+        .filter_map(|con: &ModuleGraphConnection| {
+          let active_state = con.get_active_state(&self.compilation.module_graph, runtime);
+          match active_state {
+            crate::ConnectionState::Bool(false) => None,
+            _ => Some(con.dependency_id),
+          }
+        })
+        .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(&dep_id))
+        .collect()
+    } else {
+      self
+        .compilation
+        .module_graph
+        .get_module_all_dependencies(&module)
+        .expect("should have module")
+        .iter()
+        .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(dep_id))
+        .collect()
+    };
     for dep in dependencies {
       if dep.as_module_dependency().is_none() && dep.as_context_dependency().is_none() {
         continue;
@@ -787,7 +825,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       } else {
         module.into()
       };
-      let modules = self.block_modules_map.entry(block_id).or_default();
+      let modules = self
+        .block_modules_runtime_map
+        .entry(runtime.cloned().into())
+        .or_default()
+        .entry(block_id)
+        .or_default();
       modules.push(
         *self
           .compilation
@@ -891,10 +934,11 @@ enum DependenciesBlockIdentifier {
 }
 
 impl DependenciesBlockIdentifier {
-  pub fn as_module(&self) -> Option<&ModuleIdentifier> {
+  // hack for webpack get_root_block, refer TODO: https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/buildChunkGraph.js#L222
+  pub fn get_root_block(&self) -> Option<&ModuleIdentifier> {
     match self {
       DependenciesBlockIdentifier::Module(m) => Some(m),
-      DependenciesBlockIdentifier::AsyncDependenciesBlock(_) => None,
+      DependenciesBlockIdentifier::AsyncDependenciesBlock(ident) => Some(&ident.from),
     }
   }
 }

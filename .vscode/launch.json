@@ -4,7 +4,9 @@
       "name": "debug-js",
       "port": 9229,
       "request": "attach",
-      "skipFiles": ["<node_internals>/**"],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
       "sourceMaps": true,
       "continueOnAttach": true,
       "type": "node",
@@ -15,7 +17,9 @@
     {
       "type": "lldb",
       "request": "launch",
-      "sourceLanguages": ["rust"],
+      "sourceLanguages": [
+        "rust"
+      ],
       "name": "debug-rust-jest",
       "program": "node",
       "args": [
@@ -28,14 +32,18 @@
     {
       "type": "lldb",
       "request": "attach",
-      "sourceLanguages": ["rust"],
+      "sourceLanguages": [
+        "rust"
+      ],
       "pid": "${command:pickMyProcess}",
       "name": "debug-rust-attach"
     },
     {
       "type": "lldb",
       "request": "launch",
-      "sourceLanguages": ["rust"],
+      "sourceLanguages": [
+        "rust"
+      ],
       "name": "debug-rust-basic",
       "program": "node",
       "args": [
@@ -44,7 +52,7 @@
         "-c",
         "rspack.config.js"
       ],
-      "cwd": "${workspaceFolder}/examples/basic",
+      "cwd": "${workspaceFolder}/examples/issue-11673",
       "presentation": {
         "hidden": true
       }
@@ -52,7 +60,9 @@
     {
       "type": "lldb",
       "request": "launch",
-      "sourceLanguages": ["rust"],
+      "sourceLanguages": [
+        "rust"
+      ],
       "name": "debug-rust-angular",
       "program": "node",
       "args": [
@@ -70,7 +80,10 @@
   "compounds": [
     {
       "name": "debug-basic",
-      "configurations": ["debug-js", "debug-rust-basic"],
+      "configurations": [
+        "debug-js",
+        "debug-rust-basic"
+      ],
       "stopAll": true,
       "presentation": {
         "group": "examples",
@@ -79,7 +92,10 @@
     },
     {
       "name": "debug-angular",
-      "configurations": ["debug-js", "debug-rust-angular"],
+      "configurations": [
+        "debug-js",
+        "debug-rust-angular"
+      ],
       "presentation": {
         "group": "examples",
         "order": 2

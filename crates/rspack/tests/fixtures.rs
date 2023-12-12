@@ -1,10 +1,8 @@
 use std::path::PathBuf;
-use std::sync::atomic::Ordering;
 
 use cargo_rst::git_diff;
 use rspack_core::{
   BoxPlugin, CompilerOptions, MangleExportsOption, PluginExt, TreeShaking, UsedExportsOption,
-  IS_NEW_TREESHAKING,
 };
 use rspack_plugin_javascript::{
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, MangleExportsPlugin,
@@ -26,7 +24,7 @@ fn samples(fixture_path: PathBuf) {
       |plugins: &mut Vec<BoxPlugin>, options: &mut CompilerOptions| {
         options.experiments.rspack_future.new_treeshaking = true;
         options.optimization.provided_exports = true;
-        options.optimization.used_exports = UsedExportsOption::True;
+        options.optimization.used_exports = UsedExportsOption::Global;
         plugins.push(Box::<FlagDependencyExportsPlugin>::default());
         plugins.push(Box::<FlagDependencyUsagePlugin>::default());
         if options.optimization.mangle_exports.is_enable() {
@@ -50,7 +48,6 @@ fn tree_shaking(fixture_path: PathBuf) {
   // First test is old version tree shaking snapshot test
   test_fixture(&fixture_path, Box::new(|_, _| {}), None);
   // second test is webpack based tree shaking
-  IS_NEW_TREESHAKING.store(true, Ordering::SeqCst);
   test_fixture(
     &fixture_path,
     Box::new(
@@ -63,6 +60,15 @@ fn tree_shaking(fixture_path: PathBuf) {
 
         if options.optimization.side_effects.is_enable() {
           plugins.push(Box::<SideEffectsFlagPlugin>::default());
+        }
+        if options.optimization.mangle_exports.is_enable() {
+          plugins.push(
+            MangleExportsPlugin::new(!matches!(
+              options.optimization.mangle_exports,
+              MangleExportsOption::Size
+            ))
+            .boxed(),
+          );
         }
         plugins.push(Box::<FlagDependencyExportsPlugin>::default());
         plugins.push(Box::<FlagDependencyUsagePlugin>::default());

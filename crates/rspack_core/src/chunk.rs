@@ -1,10 +1,12 @@
+use std::cmp::Ordering;
 use std::{fmt::Debug, hash::Hash, sync::Arc};
 
-use rspack_database::DatabaseItem;
+use itertools::Itertools;
+use rspack_database::{DatabaseItem, Ukey};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::ChunkGraph;
+use crate::{ChunkGraph, ChunkGroup};
 use crate::{ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, SourceType};
 use crate::{Compilation, EntryOptions, Filename, ModuleGraph, RuntimeSpec};
 
@@ -69,6 +71,33 @@ impl Chunk {
     }
   }
 
+  pub fn get_sorted_groups_iter(
+    &self,
+    chunk_group_by_ukey: &ChunkGroupByUkey,
+  ) -> impl Iterator<Item = &Ukey<ChunkGroup>> {
+    self.groups.iter().sorted_by(|ukey_a, ukey_b| {
+      let index_a = chunk_group_by_ukey
+        .get(ukey_a)
+        .expect("Group should exists")
+        .index;
+      let index_b = chunk_group_by_ukey
+        .get(ukey_b)
+        .expect("Group should exists")
+        .index;
+      // None should be greater than Some<_> to align with JavaScript
+      match index_a {
+        None => match index_b {
+          None => Ordering::Equal,
+          Some(_) => Ordering::Greater,
+        },
+        Some(index_a) => match index_b {
+          None => Ordering::Less,
+          Some(index_b) => index_a.cmp(&index_b),
+        },
+      }
+    })
+  }
+
   pub fn get_entry_options<'a>(
     &self,
     chunk_group_by_ukey: &'a ChunkGroupByUkey,
@@ -88,13 +117,15 @@ impl Chunk {
   }
 
   pub fn split(&mut self, new_chunk: &mut Chunk, chunk_group_by_ukey: &mut ChunkGroupByUkey) {
-    self.groups.iter().for_each(|group| {
-      let group = chunk_group_by_ukey
-        .get_mut(group)
-        .expect("Group should exist");
-      group.insert_chunk(new_chunk.ukey, self.ukey);
-      new_chunk.add_group(group.ukey);
-    });
+    self
+      .get_sorted_groups_iter(chunk_group_by_ukey)
+      .for_each(|group| {
+        let group = chunk_group_by_ukey
+          .get_mut(group)
+          .expect("Group should exist");
+        group.insert_chunk(new_chunk.ukey, self.ukey);
+        new_chunk.add_group(group.ukey);
+      });
     new_chunk.id_name_hints.extend(self.id_name_hints.clone());
     new_chunk.runtime.extend(self.runtime.clone());
   }

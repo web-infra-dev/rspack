@@ -1,12 +1,11 @@
 use std::hash::Hash;
 
-use anyhow::anyhow;
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Chunk, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData, RenderChunkArgs,
   RuntimeGlobals,
 };
-use rspack_error::Result;
+use rspack_error::{internal_error, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::IdentifierLinkedMap;
 use rspack_plugin_javascript::runtime::stringify_chunks_to_array;
@@ -119,20 +118,20 @@ pub fn get_runtime_chunk_output_name(args: &RenderChunkArgs) -> Result<String> {
     let (_, entry_point_ukey) = entry_points
       .iter()
       .next()
-      .ok_or_else(|| anyhow!("should has entry point ukey"))?;
+      .ok_or_else(|| internal_error!("should has entry point ukey"))?;
 
     args
       .compilation
       .chunk_group_by_ukey
       .get(entry_point_ukey)
-      .ok_or_else(|| anyhow!("should has entry point"))?
+      .ok_or_else(|| internal_error!("should has entry point"))?
   };
 
   let runtime_chunk = args
     .compilation
     .chunk_by_ukey
     .get(&entry_point.get_runtime_chunk())
-    .ok_or_else(|| anyhow!("should has runtime chunk"))?;
+    .ok_or_else(|| internal_error!("should has runtime chunk"))?;
 
   Ok(get_chunk_output_name(runtime_chunk, args.compilation))
 }

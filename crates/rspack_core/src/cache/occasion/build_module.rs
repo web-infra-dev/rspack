@@ -104,6 +104,7 @@ impl BuildModuleOccasion {
 
     // run generator and save to cache
     let (mut data, module) = generator(module).await?;
+    // let (data, diagnostics) = data.split_into_parts();
 
     if need_cache {
       let module = module

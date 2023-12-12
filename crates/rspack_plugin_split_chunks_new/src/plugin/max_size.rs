@@ -1,8 +1,13 @@
 use std::borrow::Cow;
 
+use once_cell::sync::Lazy;
 use rayon::prelude::*;
-use rspack_core::{ChunkUkey, Compilation, Module, ModuleIdentifier};
-use rspack_util::identifier::make_paths_relative;
+use regex::Regex;
+use rspack_core::{
+  ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, DEFAULT_DELIMITER,
+};
+use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_util::{ext::DynHash, identifier::make_paths_relative};
 use rustc_hash::FxHashMap;
 
 use super::MaxSizeSetting;
@@ -19,16 +24,18 @@ struct GroupItem {
 struct Group {
   nodes: Vec<GroupItem>,
   pub size: SplitChunkSizes,
+  pub key: Option<String>,
 }
 
 impl Group {
-  fn new(items: Vec<GroupItem>) -> Self {
+  fn new(items: Vec<GroupItem>, key: Option<String>) -> Self {
     let mut summed_size = SplitChunkSizes::empty();
     items.iter().for_each(|item| summed_size.add_by(&item.size));
 
     Self {
       nodes: items,
       size: summed_size,
+      key,
     }
   }
 }
@@ -43,11 +50,34 @@ fn get_size(module: &dyn Module) -> SplitChunkSizes {
   )
 }
 
+fn hash_filename(filename: &str, options: &CompilerOptions) -> String {
+  let mut filename_hash = RspackHash::from(&options.output);
+  filename.dyn_hash(&mut filename_hash);
+  let hash_digest: RspackHashDigest = filename_hash.digest(&options.output.hash_digest);
+  hash_digest.rendered(8).to_string()
+}
+
+static REPALCE_MODULE_IDENTIFIER_REG: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^.*!|\?[^?!]*$").expect("regexp init failed"));
+static REPALCE_RELATIVE_PREFIX_REG: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^(\.\.?\/)+").expect("regexp init failed"));
+static REPLACE_ILLEGEL_LETTER_REG: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("regexp init failed"));
+
+fn request_to_id(req: &str) -> String {
+  let mut res = REPALCE_RELATIVE_PREFIX_REG.replace_all(req, "").to_string();
+  res = REPLACE_ILLEGEL_LETTER_REG
+    .replace_all(&res, "_")
+    .to_string();
+  res
+}
+
 fn deterministic_grouping_for_modules(
   compilation: &Compilation,
   chunk: &ChunkUkey,
   allow_max_size: &SplitChunkSizes,
   min_size: &SplitChunkSizes,
+  delimiter: &str,
 ) -> Vec<Group> {
   let mut results: Vec<Group> = Default::default();
 
@@ -61,11 +91,23 @@ fn deterministic_grouping_for_modules(
     .into_par_iter()
     .map(|module| {
       let module: &dyn Module = &**module;
-      let key: String = make_paths_relative(context, module.identifier().as_str());
+      let name: String = if module.name_for_condition().is_some() {
+        make_paths_relative(context, module.identifier().as_str())
+      } else {
+        REPALCE_MODULE_IDENTIFIER_REG
+          .replace_all(&module.identifier(), "")
+          .to_string()
+      };
+      let key = format!(
+        "{}{}{}",
+        name,
+        delimiter,
+        hash_filename(&name, &compilation.options)
+      );
       GroupItem {
         module: module.identifier(),
         size: get_size(module),
-        key,
+        key: request_to_id(&key),
       }
     })
     .collect::<Vec<_>>();
@@ -82,7 +124,8 @@ fn deterministic_grouping_for_modules(
           node.size,
           allow_max_size
         );
-        results.push(Group::new(vec![node]));
+        let key = node.key.clone();
+        results.push(Group::new(vec![node], Some(key)));
         None
       } else {
         Some(node)
@@ -90,7 +133,7 @@ fn deterministic_grouping_for_modules(
     })
     .collect::<Vec<_>>();
 
-  let initial_group = Group::new(initial_nodes);
+  let initial_group = Group::new(initial_nodes, None);
 
   let mut queue = vec![initial_group];
 
@@ -133,7 +176,7 @@ fn deterministic_grouping_for_modules(
       // because minSize is preferred of maxSize we return
       // the problematic nodes as result here even while it's too big
       // To avoid this make sure maxSize > minSize * 3
-
+      group.key = group.nodes.first().map(|n| n.key.clone());
       results.push(group);
       continue;
     }
@@ -141,8 +184,8 @@ fn deterministic_grouping_for_modules(
     if left < right {
       let right_nodes = group.nodes.split_off(left + 1);
       let left_nodes = group.nodes;
-      queue.push(Group::new(right_nodes));
-      queue.push(Group::new(left_nodes));
+      queue.push(Group::new(right_nodes, None));
+      queue.push(Group::new(left_nodes, None));
     }
   }
 
@@ -156,6 +199,7 @@ struct ChunkWithSizeInfo<'a> {
   pub chunk: ChunkUkey,
   pub allow_max_size: Cow<'a, SplitChunkSizes>,
   pub min_size: &'a SplitChunkSizes,
+  pub automatic_name_delimiter: &'a String,
 }
 
 impl SplitChunksPlugin {
@@ -167,7 +211,6 @@ impl SplitChunksPlugin {
     max_size_setting_map: FxHashMap<ChunkUkey, MaxSizeSetting>,
   ) {
     let fallback_cache_group = &self.fallback_cache_group;
-    let automatic_name_delimiter = "~".to_string();
     let chunk_group_db = &compilation.chunk_group_by_ukey;
     let compilation_ref = &*compilation;
 
@@ -195,7 +238,7 @@ impl SplitChunksPlugin {
       let max_initial_size: &SplitChunkSizes = max_size_setting
         .map(|s| &s.max_initial_size)
         .unwrap_or(&fallback_cache_group.max_initial_size);
-
+      let automatic_name_delimiter = max_size_setting.map(|s| &s.automatic_name_delimiter).unwrap_or(&fallback_cache_group.automatic_name_delimiter);
 
       let mut allow_max_size = if chunk.is_only_initial(chunk_group_db) {
         Cow::Borrowed(max_initial_size)
@@ -238,6 +281,7 @@ impl SplitChunksPlugin {
         allow_max_size,
         min_size,
         chunk: chunk.ukey,
+        automatic_name_delimiter,
       })
     });
 
@@ -247,9 +291,15 @@ impl SplitChunksPlugin {
           chunk,
           allow_max_size,
           min_size,
+          automatic_name_delimiter,
         } = &info;
-        let results =
-          deterministic_grouping_for_modules(compilation_ref, chunk, allow_max_size, min_size);
+        let results = deterministic_grouping_for_modules(
+          compilation_ref,
+          chunk,
+          allow_max_size,
+          min_size,
+          automatic_name_delimiter,
+        );
 
         if results.len() <= 1 {
           tracing::debug!(
@@ -266,11 +316,32 @@ impl SplitChunksPlugin {
     infos_with_results.into_iter().for_each(|(info, results)| {
       let last_index = results.len() - 1;
       results.into_iter().enumerate().for_each(|(index, group)| {
+        let group_key = if let Some(key) = group.key {
+          if self.hide_path_info {
+            hash_filename(&key, &compilation.options)
+          } else {
+            key
+          }
+        } else {
+          index.to_string()
+        };
         let chunk = info.chunk.as_mut(&mut compilation.chunk_by_ukey);
-        let name = chunk
+        let delimiter = max_size_setting_map
+          .get(&chunk.ukey)
+          .map(|s| s.automatic_name_delimiter.as_str())
+          .unwrap_or(DEFAULT_DELIMITER);
+        let mut name = chunk
           .name
           .as_ref()
-          .map(|name| format!("{name}{automatic_name_delimiter}{index:?}",));
+          .map(|name| format!("{name}{delimiter}{group_key}"));
+
+        if let Some(n) = name.clone() {
+          if n.len() > 100 {
+            let s = &n[0..100];
+            let k = hash_filename(&n, &compilation.options);
+            name = Some(format!("{s}{delimiter}{k}"));
+          }
+        }
 
         if index != last_index {
           let old_chunk = chunk.ukey;

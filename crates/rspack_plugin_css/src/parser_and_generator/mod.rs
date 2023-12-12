@@ -15,7 +15,7 @@ use rspack_core::{
   ParseContext, ParseResult, ParserAndGenerator, SourceType, TemplateContext,
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
-use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
 use swc_core::{css::parser::parser::ParserConfig, ecma::atoms::JsWord};
@@ -201,7 +201,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           value: source_code,
           name: module_user_request,
           source_map: SourceMap::from_slice(&source_map)
-            .map_err(|e| internal_error!(e.to_string()))?,
+            .expect("should be able to generate source-map"),
           // Safety: original source exists in code generation
           original_source: Some(source.source().to_string()),
           // Safety: original source exists in code generation
@@ -280,13 +280,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
           .insert(RuntimeGlobals::MODULE);
         Ok(RawSource::from(locals).boxed())
       }
-      _ => Err(internal_error!(
+      _ => panic!(
         "Unsupported source type: {:?}",
         generate_context.requested_source_type
-      )),
-    }?;
+      ),
+    };
 
-    Ok(result)
+    result
   }
   fn store(&self, extra_data: &mut HashMap<BuildExtraDataType, AlignedVec>) {
     let data = self.exports.to_owned();

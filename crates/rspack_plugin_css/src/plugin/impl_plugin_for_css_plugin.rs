@@ -10,7 +10,10 @@ use rspack_core::{
   Chunk, ChunkKind, Module, ModuleType, ParserAndGenerator, PathData, Plugin, RenderManifestEntry,
   SourceType,
 };
-use rspack_core::{Compilation, CompilerOptions, LibIdentOptions};
+use rspack_core::{
+  Compilation, CompilationArgs, CompilationParams, CompilerOptions, DependencyType,
+  LibIdentOptions, PluginCompilationHookOutput,
+};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 
@@ -34,7 +37,7 @@ impl CssPlugin {
         let module_id = &module.identifier();
         let code_gen_result = compilation
           .code_generation_results
-          .get(module_id, Some(&chunk.runtime))?;
+          .get(module_id, Some(&chunk.runtime));
 
         Ok(
           code_gen_result
@@ -134,6 +137,25 @@ impl Plugin for CssPlugin {
       .context
       .register_parser_and_generator_builder(ModuleType::CssAuto, Box::new(builder));
 
+    Ok(())
+  }
+
+  async fn compilation(
+    &self,
+    args: CompilationArgs<'_>,
+    params: &CompilationParams,
+  ) -> PluginCompilationHookOutput {
+    args
+      .compilation
+      .set_dependency_factory(DependencyType::CssUrl, params.normal_module_factory.clone());
+    args.compilation.set_dependency_factory(
+      DependencyType::CssImport,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::CssCompose,
+      params.normal_module_factory.clone(),
+    );
     Ok(())
   }
 

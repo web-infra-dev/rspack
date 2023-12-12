@@ -8,13 +8,12 @@ use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::MakeParam;
-use crate::{fast_set, ChunkKind, Compilation, Compiler, RuntimeSpec};
+use crate::{fast_set, ChunkKind, Compilation, Compiler, ModuleGraph, RuntimeSpec};
 
 impl<T> Compiler<T>
 where
   T: AsyncWritableFileSystem + Send + Sync,
 {
-  // TODO: remove this function when we had `record` in compiler.
   pub async fn rebuild(
     &mut self,
     changed_files: std::collections::HashSet<String>,
@@ -68,7 +67,7 @@ where
 
       let mut new_compilation = Compilation::new(
         self.options.clone(),
-        Default::default(),
+        ModuleGraph::default().with_treeshaking(self.options.is_new_tree_shaking()),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
@@ -121,17 +120,6 @@ where
       fast_set(&mut self.compilation, new_compilation);
 
       self.compilation.lazy_visit_modules = changed_files.clone();
-
-      // Fake this compilation as *currently* rebuilding does not create a new compilation
-      self
-        .plugin_driver
-        .this_compilation(&mut self.compilation)
-        .await?;
-
-      self
-        .plugin_driver
-        .compilation(&mut self.compilation)
-        .await?;
 
       let setup_make_params = if is_incremental_rebuild_make {
         MakeParam::ModifiedFiles(modified_files)

@@ -66,7 +66,7 @@ pub struct TrustedTypes {
   pub policy_name: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkLoading {
   Enable(ChunkLoadingType),
   Disable,
@@ -81,7 +81,7 @@ impl From<&str> for ChunkLoading {
   }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkLoadingType {
   Jsonp,
   ImportScripts,
@@ -252,7 +252,7 @@ impl<'a> PathData<'a> {
   }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Filename {
   template: String,
 }
@@ -418,7 +418,7 @@ fn hash_len(hash: &str, caps: &Captures) -> usize {
     .min(hash_len)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PublicPath {
   // TODO: should be RawPublicPath(Filename)
   String(String),
@@ -515,7 +515,7 @@ pub fn get_js_chunk_filename_template<'filename>(
   }
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct LibraryOptions {
   pub name: Option<LibraryName>,
   pub export: Option<LibraryExport>,
@@ -530,7 +530,7 @@ pub type LibraryType = String;
 
 pub type LibraryExport = Vec<String>;
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct LibraryAuxiliaryComment {
   pub root: Option<String>,
   pub commonjs: Option<String>,
@@ -538,19 +538,19 @@ pub struct LibraryAuxiliaryComment {
   pub amd: Option<String>,
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LibraryName {
   NonUmdObject(LibraryNonUmdObject),
   UmdObject(LibraryCustomUmdObject),
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LibraryNonUmdObject {
   Array(Vec<String>),
   String(String),
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct LibraryCustomUmdObject {
   pub amd: Option<String>,
   pub commonjs: Option<String>,

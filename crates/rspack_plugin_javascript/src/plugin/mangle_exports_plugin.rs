@@ -201,7 +201,6 @@ fn mangle_exports_info(
     let mut unused_exports = Vec::new();
 
     for export_info in mangleable_exports {
-      // TODO: runtime opt
       if export_info.get_used(mg, None) == UsageState::Unused {
         unused_exports.push(export_info);
       } else {
