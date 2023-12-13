@@ -69,7 +69,20 @@ const falsePositiveMap = {
 	"react-redux-like": "update dep",
 	"webpack-side-effects-all-used": "update dep",
 	"webpack-side-effects-simple-unused": "update dep",
-	"reexport-all-as-multi-level-nested": "update dep"
+	"reexport-all-as-multi-level-nested": "update dep",
+	"conflicted_name_by_re_export_all_should_be_hidden": "remove es runtime, align webpack, see #4995",
+  'explicit_named_export_higher_priority_1': 'remove es runtime, align webpack, see #4995',
+  'explicit_named_export_higher_priority_2': 'remove es runtime, align webpack, see #4995',
+	"namespace-access-var-decl-rhs": "update dep",
+  'export-named-decl-as': "remove es runtime, align webpack, see #4995",
+  'export_star2': 'remove es runtime, align webpack, see #4995',
+  'export_star_conflict_export_no_error': 'remove es runtime, align webpack, see #4995',
+  'inherit_export_map_should_lookup_in_dfs_order':'remove es runtime, align webpack, see #4995',
+
+  'reexport_default_as': "remove es runtime, align webpack, see #4995",
+  'rename-export-from-import': 'remove es runtime, align webpack, see #4995',
+  'side-effects-flagged-only': 'remove es runtime, align webpack, see #4995',
+  'simple-namespace-access': 'remove es runtime, align webpack, see #4995'
 };
 
 const normalizedList = filteredList.map((item) => {
