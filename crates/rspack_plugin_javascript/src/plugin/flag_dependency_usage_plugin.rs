@@ -12,8 +12,6 @@ use rspack_identifier::IdentifierMap;
 use rspack_util::swc::join_jsword;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::utils::join_jsword;
-
 #[derive(Debug)]
 enum ModuleOrAsyncDependenciesBlock {
   Module(ModuleIdentifier),
