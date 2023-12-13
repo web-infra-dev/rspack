@@ -76,10 +76,6 @@ fn true_by_default() -> bool {
   true
 }
 
-fn false_by_default() -> bool {
-  false
-}
-
 /// The configuration is used to configure the test in Rust.
 /// The structure should be closed to the webpack configuration.
 #[derive(Debug, JsonSchema, Deserialize)]

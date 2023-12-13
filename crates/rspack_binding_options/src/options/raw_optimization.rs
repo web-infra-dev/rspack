@@ -26,7 +26,6 @@ pub struct RawOptimizationOptions {
   pub used_exports: String,
   pub provided_exports: bool,
   pub inner_graph: bool,
-  pub mangle_exports: bool,
   pub real_content_hash: bool,
   pub mangle_exports: String,
 }
