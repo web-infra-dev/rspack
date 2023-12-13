@@ -11,20 +11,20 @@ use rspack_core::{
 
 use crate::runtime_module::{
   is_enabled_for_chunk, AsyncRuntimeModule, AutoPublicPathRuntimeModule, BaseUriRuntimeModule,
-  CompatGetDefaultExportRuntimeModule, CreateFakeNamespaceObjectRuntimeModule,
-  CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule, EnsureChunkRuntimeModule,
-  GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
-  GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
-  HarmonyModuleDecoratorRuntimeModule, HasOwnPropertyRuntimeModule,
-  LoadChunkWithBlockRuntimeModule, LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule,
-  NodeModuleDecoratorRuntimeModule, NonceRuntimeModule, NormalRuntimeModule,
-  OnChunkLoadedRuntimeModule, PublicPathRuntimeModule, RelativeUrlRuntimeModule,
-  SystemContextRuntimeModule,
+  ChunkNameRuntimeModule, CompatGetDefaultExportRuntimeModule,
+  CreateFakeNamespaceObjectRuntimeModule, CreateScriptUrlRuntimeModule,
+  DefinePropertyGettersRuntimeModule, EnsureChunkRuntimeModule, GetChunkFilenameRuntimeModule,
+  GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule, GetMainFilenameRuntimeModule,
+  GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule, HarmonyModuleDecoratorRuntimeModule,
+  HasOwnPropertyRuntimeModule, LoadChunkWithBlockRuntimeModule, LoadScriptRuntimeModule,
+  MakeNamespaceObjectRuntimeModule, NodeModuleDecoratorRuntimeModule, NonceRuntimeModule,
+  NormalRuntimeModule, OnChunkLoadedRuntimeModule, PublicPathRuntimeModule,
+  RelativeUrlRuntimeModule, SystemContextRuntimeModule,
 };
 
 static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
   vec![
-    // RuntimeGlobals::CHUNK_NAME,
+    RuntimeGlobals::CHUNK_NAME,
     // RuntimeGlobals::RUNTIME_ID,
     RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
     RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
@@ -384,6 +384,9 @@ impl Plugin for RuntimePlugin {
         }
         RuntimeGlobals::RELATIVE_URL => {
           compilation.add_runtime_module(chunk, RelativeUrlRuntimeModule::default().boxed());
+        }
+        RuntimeGlobals::CHUNK_NAME => {
+          compilation.add_runtime_module(chunk, ChunkNameRuntimeModule::default().boxed());
         }
         _ => {}
       }
