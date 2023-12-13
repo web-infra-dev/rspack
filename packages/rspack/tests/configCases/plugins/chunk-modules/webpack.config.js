@@ -21,17 +21,26 @@ module.exports = {
 					.replace(/\\/g, "/");
 			}
 
+			function compareByIdentifier(a, b) {
+				return a.identifier() - b.identifier();
+			}
+
 			compiler.hooks.compilation.tap("plugin", compilation => {
 				compilation.hooks.processAssets.tap("plugin", () => {
 					const chunkModules = {};
 					for (let chunk of compilation.chunks) {
 						const modules = [
 							...compilation.chunkGraph.getChunkModulesIterable(chunk)
-						].map(moduleStringify);
+						];
+						modules.sort(compareByIdentifier);
 						const entryModules = [
 							...compilation.chunkGraph.getChunkEntryModulesIterable(chunk)
-						].map(moduleStringify);
-						chunkModules[chunk.id] = { modules, entryModules };
+						];
+						entryModules.sort(compareByIdentifier);
+						chunkModules[chunk.id] = {
+							modules: modules.map(moduleStringify),
+							entryModules: entryModules.map(moduleStringify)
+						};
 					}
 					compilation.emitAsset(
 						"data.json",
