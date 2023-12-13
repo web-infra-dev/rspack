@@ -20,13 +20,18 @@ export interface ModuleFederationPluginOptions {
 	runtime?: EntryRuntime;
 	shareScope?: string;
 	shared?: Shared;
+	enhanced?: Enhanced;
 }
+export type Enhanced = EnhancedConfig | boolean;
+export interface EnhancedConfig {}
 
 export class ModuleFederationPlugin {
 	constructor(private _options: ModuleFederationPluginOptions) {}
 
 	apply(compiler: Compiler) {
 		const { _options: options } = this;
+		compiler.options.output.enhancedModuleFederation = !!options.enhanced;
+
 		const library = options.library || { type: "var", name: options.name };
 		const remoteType =
 			options.remoteType ||

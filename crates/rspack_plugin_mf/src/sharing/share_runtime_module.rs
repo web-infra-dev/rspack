@@ -95,6 +95,11 @@ impl RuntimeModule for ShareRuntimeModule {
       })
       .collect::<Vec<_>>()
       .join(", ");
+    let initialize_sharing_impl = if compilation.options.output.enhanced_module_federation {
+      "__webpack_require__.I = function() { throw new Error(\"should have __webpack_require__.I\") }"
+    } else {
+      include_str!("./initializeSharing.js")
+    };
     RawSource::from(format!(
       r#"
 {share_scope_map} = {{}};
@@ -104,7 +109,7 @@ __webpack_require__.initializeSharingData = {{ scopeToSharingDataMapping: {{ {sc
       share_scope_map = RuntimeGlobals::SHARE_SCOPE_MAP,
       scope_to_data_init = scope_to_data_init,
       unique_name = json_stringify(&compilation.options.output.unique_name),
-      initialize_sharing_impl = include_str!("./initializeSharing.js"),
+      initialize_sharing_impl = initialize_sharing_impl,
     ))
     .boxed()
   }

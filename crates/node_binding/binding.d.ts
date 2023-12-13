@@ -1007,6 +1007,7 @@ export interface RawOutputOptions {
   workerWasmLoading: string
   workerPublicPath: string
   scriptType: "module" | "text/javascript" | "false"
+  enhancedModuleFederation: boolean
 }
 
 export interface RawParserOptions {

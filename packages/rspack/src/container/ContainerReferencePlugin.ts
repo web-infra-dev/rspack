@@ -30,34 +30,32 @@ export type RemotesConfig = {
 
 export class ContainerReferencePlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.ContainerReferencePlugin;
-	_options: RawContainerReferencePluginOptions;
-	_remotes;
+	_options;
 
 	constructor(options: ContainerReferencePluginOptions) {
 		super();
-		this._remotes = parseOptions(
-			options.remotes,
-			item => ({
-				external: Array.isArray(item) ? item : [item],
-				shareScope: options.shareScope || "default"
-			}),
-			item => ({
-				external: Array.isArray(item.external)
-					? item.external
-					: [item.external],
-				shareScope: item.shareScope || options.shareScope || "default"
-			})
-		);
 		this._options = {
 			remoteType: options.remoteType,
-			remotes: this._remotes.map(([key, r]) => ({ key, ...r }))
+			remotes: parseOptions(
+				options.remotes,
+				item => ({
+					external: Array.isArray(item) ? item : [item],
+					shareScope: options.shareScope || "default"
+				}),
+				item => ({
+					external: Array.isArray(item.external)
+						? item.external
+						: [item.external],
+					shareScope: item.shareScope || options.shareScope || "default"
+				})
+			)
 		};
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin {
-		const { remoteType } = this._options;
+		const { remoteType, remotes } = this._options;
 		const remoteExternals: any = {};
-		for (const [key, config] of this._remotes) {
+		for (const [key, config] of remotes) {
 			let i = 0;
 			for (const external of config.external) {
 				if (external.startsWith("internal ")) continue;
@@ -69,6 +67,10 @@ export class ContainerReferencePlugin extends RspackBuiltinPlugin {
 		}
 		new ExternalsPlugin(remoteType, remoteExternals).apply(compiler);
 
-		return createBuiltinPlugin(this.name, this._options);
+		const rawOptions: RawContainerReferencePluginOptions = {
+			remoteType: this._options.remoteType,
+			remotes: this._options.remotes.map(([key, r]) => ({ key, ...r }))
+		};
+		return createBuiltinPlugin(this.name, rawOptions);
 	}
 }

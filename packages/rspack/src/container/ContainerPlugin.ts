@@ -36,21 +36,18 @@ export type ExposesConfig = {
 
 export class ContainerPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.ContainerPlugin;
-	_options: RawContainerPluginOptions;
-	_library;
+	_options;
 
 	constructor(options: ContainerPluginOptions) {
 		super();
-		const library = (this._library = options.library || {
-			type: "var",
-			name: options.name
-		});
-		const runtime = options.runtime;
 		this._options = {
 			name: options.name,
 			shareScope: options.shareScope || "default",
-			library: getRawLibrary(library),
-			runtime: !isNil(runtime) ? getRawEntryRuntime(runtime) : undefined,
+			library: options.library || {
+				type: "var",
+				name: options.name
+			},
+			runtime: options.runtime,
 			filename: options.filename,
 			exposes: parseOptions(
 				options.exposes,
@@ -62,15 +59,25 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
 					import: Array.isArray(item.import) ? item.import : [item.import],
 					name: item.name || undefined
 				})
-			).map(([key, r]) => ({ key, ...r }))
+			)
 		};
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin {
-		const library = this._library;
+		const { name, shareScope, library, runtime, filename, exposes } =
+			this._options;
 		if (!compiler.options.output.enabledLibraryTypes!.includes(library.type)) {
 			compiler.options.output.enabledLibraryTypes!.push(library.type);
 		}
-		return createBuiltinPlugin(this.name, this._options);
+
+		const rawOptions: RawContainerPluginOptions = {
+			name,
+			shareScope,
+			library: getRawLibrary(library),
+			runtime: !isNil(runtime) ? getRawEntryRuntime(runtime) : undefined,
+			filename,
+			exposes: exposes.map(([key, r]) => ({ key, ...r }))
+		};
+		return createBuiltinPlugin(this.name, rawOptions);
 	}
 }

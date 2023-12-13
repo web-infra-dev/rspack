@@ -53,6 +53,7 @@ pub struct OutputOptions {
   pub worker_wasm_loading: WasmLoading,
   pub worker_public_path: String,
   pub script_type: String,
+  pub enhanced_module_federation: bool,
 }
 
 impl From<&OutputOptions> for RspackHash {

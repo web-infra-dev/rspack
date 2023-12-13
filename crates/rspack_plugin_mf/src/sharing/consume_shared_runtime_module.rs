@@ -116,6 +116,17 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
       module_to_consume_data_mapping = module_id_to_consume_data_mapping,
       initial_consumes = json_stringify(&initial_consumes),
     );
+    if compilation.options.output.enhanced_module_federation {
+      if compilation
+        .chunk_graph
+        .get_chunk_graph_chunk(&chunk_ukey)
+        .runtime_requirements
+        .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+      {
+        source += "__webpack_require__.f.consumes = function() { throw new Error(\"should have __webpack_require__.f.consumes\") }";
+      }
+      return RawSource::from(source).boxed();
+    }
     source += include_str!("./consumesCommon.js");
     if !initial_consumes.is_empty() {
       source += include_str!("./consumesInitial.js");

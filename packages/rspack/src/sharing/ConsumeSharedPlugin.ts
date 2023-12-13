@@ -26,11 +26,11 @@ export type ConsumesConfig = {
 
 export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.ConsumeSharedPlugin;
-	_options: RawConsumeOptions[];
+	_consumes;
 
 	constructor(options: ConsumeSharedPluginOptions) {
 		super();
-		this._options = parseOptions(
+		this._consumes = parseOptions(
 			options.consumes,
 			(item, key) => {
 				if (Array.isArray(item)) throw new Error("Unexpected array in options");
@@ -74,13 +74,17 @@ export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
 				singleton: !!item.singleton,
 				eager: !!item.eager
 			})
-		).map(([key, v]) => ({ key, ...v }));
+		);
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin {
+		const rawOptions: RawConsumeOptions[] = this._consumes.map(([key, v]) => ({
+			key,
+			...v
+		}));
 		return {
 			name: this.name as any,
-			options: this._options
+			options: rawOptions
 		};
 	}
 }

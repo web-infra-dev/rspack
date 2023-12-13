@@ -82,6 +82,11 @@ impl RuntimeModule for RemoteRuntimeModule {
         remotes,
       );
     }
+    let remotes_loading_impl = if compilation.options.output.enhanced_module_federation {
+      "__webpack_require__.f.remotes = function() { throw new Error(\"should have __webpack_require__.f.remotes\"); }"
+    } else {
+      include_str!("./remotesLoading.js")
+    };
     RawSource::from(format!(
       r#"
 __webpack_require__.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_external_and_name_mapping} }};
@@ -89,7 +94,7 @@ __webpack_require__.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, modul
 "#,
       chunk_mapping = json_stringify(&chunk_to_remotes_mapping),
       id_to_external_and_name_mapping = json_stringify(&id_to_external_and_name_mapping),
-      remotes_loading_impl = include_str!("./remotesLoading.js"),
+      remotes_loading_impl = remotes_loading_impl,
     ))
     .boxed()
   }

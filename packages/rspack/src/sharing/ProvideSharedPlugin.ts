@@ -25,11 +25,11 @@ export type ProvidesConfig = {
 
 export class ProvideSharedPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.ProvideSharedPlugin;
-	_options: RawProvideOptions[];
+	_provides;
 
 	constructor(options: ProvideSharedPluginOptions) {
 		super();
-		this._options = parseOptions(
+		this._provides = parseOptions(
 			options.provides,
 			item => {
 				if (Array.isArray(item))
@@ -48,10 +48,14 @@ export class ProvideSharedPlugin extends RspackBuiltinPlugin {
 				shareScope: item.shareScope || options.shareScope || "default",
 				eager: !!item.eager
 			})
-		).map(([key, v]) => ({ key, ...v }));
+		);
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin {
-		return createBuiltinPlugin(this.name, this._options);
+		const rawOptions: RawProvideOptions[] = this._provides.map(([key, v]) => ({
+			key,
+			...v
+		}));
+		return createBuiltinPlugin(this.name, rawOptions);
 	}
 }

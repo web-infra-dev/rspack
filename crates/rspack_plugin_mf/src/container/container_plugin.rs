@@ -2,15 +2,17 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use rspack_core::{
-  Compilation, CompilationArgs, CompilationParams, Dependency, DependencyType, EntryOptions,
-  EntryRuntime, Filename, LibraryOptions, MakeParam, Plugin, PluginCompilationHookOutput,
-  PluginContext, PluginMakeHookOutput,
+  AdditionalChunkRuntimeRequirementsArgs, Compilation, CompilationArgs, CompilationParams,
+  Dependency, DependencyType, EntryOptions, EntryRuntime, Filename, LibraryOptions, MakeParam,
+  Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginCompilationHookOutput,
+  PluginContext, PluginMakeHookOutput, RuntimeGlobals,
 };
 use serde::Serialize;
 
 use super::{
   container_entry_dependency::ContainerEntryDependency,
   container_entry_module_factory::ContainerEntryModuleFactory,
+  expose_runtime_module::ExposeRuntimeModule,
 };
 
 #[derive(Debug)]
@@ -85,6 +87,25 @@ impl Plugin for ContainerPlugin {
       },
     );
     param.add_force_build_dependency(dependency_id, None);
+    Ok(())
+  }
+
+  fn runtime_requirements_in_tree(
+    &self,
+    _ctx: PluginContext,
+    args: &mut AdditionalChunkRuntimeRequirementsArgs,
+  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    if args
+      .runtime_requirements
+      .contains(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE)
+    {
+      args
+        .runtime_requirements
+        .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+      args
+        .compilation
+        .add_runtime_module(args.chunk, Box::<ExposeRuntimeModule>::default());
+    }
     Ok(())
   }
 }

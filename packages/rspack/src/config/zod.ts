@@ -71,6 +71,9 @@ export type WasmLoading = z.infer<typeof wasmLoading>;
 const scriptType = z.enum(["text/javascript", "module"]).or(z.literal(false));
 export type ScriptType = z.infer<typeof scriptType>;
 
+const enhancedModuleFederation = z.boolean();
+export type EnhancedModuleFederation = z.infer<typeof enhancedModuleFederation>;
+
 const libraryCustomUmdObject = z.strictObject({
 	amd: z.string().optional(),
 	commonjs: z.string().optional(),
@@ -329,7 +332,8 @@ const output = z.strictObject({
 	workerChunkLoading: chunkLoading.optional(),
 	workerWasmLoading: wasmLoading.optional(),
 	workerPublicPath: workerPublicPath.optional(),
-	scriptType: scriptType.optional()
+	scriptType: scriptType.optional(),
+	enhancedModuleFederation: enhancedModuleFederation.optional()
 });
 export type Output = z.infer<typeof output>;
 //#endregion
