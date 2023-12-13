@@ -13,14 +13,20 @@ function createThreadsafeNodeFSFromRaw(
 	fs: typeof import("fs")
 ): ThreadsafeWritableNodeFS {
 	return {
-		writeFile: (file, data) =>
-			util.promisify(fs.writeFile.bind(fs))(file, data),
-		removeFile: file => util.promisify(fs.unlink.bind(fs))(file),
-		mkdir: dir => util.promisify(fs.mkdir.bind(fs))(dir),
-		mkdirp: dir =>
-			util.promisify(fs.mkdir.bind(fs))(dir, {
+		writeFile: (file, data) => {
+			return util.promisify(fs.writeFile.bind(fs))(file, data);
+		},
+		removeFile: file => {
+			return util.promisify(fs.unlink.bind(fs))(file);
+		},
+		mkdir: dir => {
+			return util.promisify(fs.mkdir.bind(fs))(dir);
+		},
+		mkdirp: dir => {
+			return util.promisify(fs.mkdir.bind(fs))(dir, {
 				recursive: true
-			}),
+			});
+		},
 		removeDirAll: dir => {
 			// memfs don't support rmSync
 			return rmrfBuild(fs)(dir);
