@@ -586,7 +586,13 @@ function getRawParserOptions(
 
 function getRawJavascriptParserOptions(parser: JavascriptParserOptions) {
 	return {
-		dynamicImportMode: parser.dynamicImportMode ?? "lazy"
+		dynamicImportMode: parser.dynamicImportMode ?? "lazy",
+		url:
+			parser.url === false
+				? "false"
+				: parser.url === "relative"
+				? parser.url
+				: "true"
 	};
 }
 

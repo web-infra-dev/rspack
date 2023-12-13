@@ -10,21 +10,35 @@ use swc_core::ecma::atoms::JsWord;
 pub struct URLDependency {
   start: u32,
   end: u32,
+  outer_start: u32,
+  outer_end: u32,
   id: DependencyId,
   request: JsWord,
   span: Option<ErrorSpan>,
   used_by_exports: Option<UsedByExports>,
+  relative: bool,
 }
 
 impl URLDependency {
-  pub fn new(start: u32, end: u32, request: JsWord, span: Option<ErrorSpan>) -> Self {
+  pub fn new(
+    start: u32,
+    end: u32,
+    outer_start: u32,
+    outer_end: u32,
+    request: JsWord,
+    span: Option<ErrorSpan>,
+    relative: bool,
+  ) -> Self {
     Self {
       start,
       end,
+      outer_start,
+      outer_end,
       id: DependencyId::new(),
       request,
       span,
       used_by_exports: None,
+      relative,
     }
   }
 }
@@ -81,21 +95,37 @@ impl DependencyTemplate for URLDependency {
       ..
     } = code_generatable_context;
 
-    runtime_requirements.insert(RuntimeGlobals::BASE_URI);
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
-    source.replace(
-      self.start,
-      self.end,
-      format!(
-        "/* asset import */{}({}), {}",
-        RuntimeGlobals::REQUIRE,
-        module_id(compilation, &self.id, &self.request, false),
-        RuntimeGlobals::BASE_URI
-      )
-      .as_str(),
-      None,
-    );
+    if self.relative {
+      runtime_requirements.insert(RuntimeGlobals::RELATIVE_URL);
+      source.replace(
+        self.outer_start,
+        self.outer_end,
+        format!(
+          "/* asset import */ new {}({}({}))",
+          RuntimeGlobals::RELATIVE_URL,
+          RuntimeGlobals::REQUIRE,
+          module_id(compilation, &self.id, &self.request, false),
+        )
+        .as_str(),
+        None,
+      );
+    } else {
+      runtime_requirements.insert(RuntimeGlobals::BASE_URI);
+      source.replace(
+        self.start,
+        self.end,
+        format!(
+          "/* asset import */{}({}), {}",
+          RuntimeGlobals::REQUIRE,
+          module_id(compilation, &self.id, &self.request, false),
+          RuntimeGlobals::BASE_URI
+        )
+        .as_str(),
+        None,
+      );
+    }
   }
 }
 

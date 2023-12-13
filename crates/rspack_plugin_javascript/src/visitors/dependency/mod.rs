@@ -21,7 +21,7 @@ mod worker_scanner;
 use rspack_ast::javascript::Program;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, ModuleIdentifier, ModuleType, ResourceData,
+  CompilerOptions, JavascriptParserUrl, ModuleIdentifier, ModuleType, ResourceData,
 };
 use rspack_error::{BatchErrors, Diagnostic};
 use rustc_hash::FxHashMap as HashMap;
@@ -184,7 +184,23 @@ pub fn scan_dependencies(
     blocks.append(&mut worker_scanner.blocks);
     dependencies.append(&mut worker_scanner.dependencies);
     presentational_dependencies.append(&mut worker_scanner.presentational_dependencies);
-    program.visit_with(&mut UrlScanner::new(&mut dependencies, worker_syntax_list));
+
+    let parse_url = &compiler_options
+      .module
+      .parser
+      .as_ref()
+      .and_then(|p| p.get(module_type))
+      .and_then(|p| p.get_javascript(module_type))
+      .map(|p| p.url)
+      .unwrap_or(JavascriptParserUrl::Enable);
+
+    if !matches!(parse_url, JavascriptParserUrl::Disable) {
+      program.visit_with(&mut UrlScanner::new(
+        &mut dependencies,
+        worker_syntax_list,
+        matches!(parse_url, JavascriptParserUrl::Relative),
+      ));
+    }
     program.visit_with(&mut ImportMetaScanner::new(
       &mut presentational_dependencies,
       resource_data,

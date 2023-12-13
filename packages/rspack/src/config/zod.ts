@@ -491,9 +491,11 @@ export type AssetParserOptions = z.infer<typeof assetParserOptions>;
 
 //TODO: "weak", "lazy-once"
 const dynamicImportMode = z.enum(["eager", "lazy"]);
+const javascriptParserUrl = z.union([z.literal("relative"), z.boolean()]);
 
 const javascriptParserOptions = z.strictObject({
-	dynamicImportMode: dynamicImportMode.optional()
+	dynamicImportMode: dynamicImportMode.optional(),
+	url: javascriptParserUrl.optional()
 });
 export type JavascriptParserOptions = z.infer<typeof javascriptParserOptions>;
 
@@ -901,7 +903,7 @@ export type RspackPluginFunction = (this: Compiler, compiler: Compiler) => void;
 const plugin = z.union([
 	z.custom<RspackPluginInstance>(),
 	z.custom<RspackPluginFunction>(),
-	falsy,
+	falsy
 ]);
 const plugins = plugin.array();
 export type Plugins = z.infer<typeof plugins>;
@@ -1076,9 +1078,9 @@ const experiments = z.strictObject({
 						val
 					)}' has been deprecated, please switch to 'experiments.newSplitChunks = true' to use webpack's behavior.
  	See the discussion ${termlink(
-						"here",
-						"https://github.com/web-infra-dev/rspack/discussions/4168"
-					)}`
+		"here",
+		"https://github.com/web-infra-dev/rspack/discussions/4168"
+	)}`
 				);
 			}
 			return true;

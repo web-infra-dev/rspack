@@ -230,6 +230,8 @@ bitflags! {
     const INITIALIZE_SHARING = 1 << 53;
 
     const SCRIPT_NONCE = 1 << 54;
+
+    const RELATIVE_URL = 1 << 55;
   }
 }
 
@@ -305,6 +307,7 @@ impl RuntimeGlobals {
       R::SHARE_SCOPE_MAP => "__webpack_require__.S",
       R::INITIALIZE_SHARING => "__webpack_require__.I",
       R::SCRIPT_NONCE => "__webpack_require__.nc",
+      R::RELATIVE_URL => "__webpack_require__.U",
       r => panic!(
         "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
       ),
