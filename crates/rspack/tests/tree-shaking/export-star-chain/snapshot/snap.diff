@@ -30,8 +30,8 @@
  "use strict";
  __webpack_require__.r(__webpack_exports__);
 +__webpack_require__.d(__webpack_exports__, {
-+  red: function() { return /* reexport safe */ _a__WEBPACK_IMPORTED_MODULE_0__.red; },
 +  blue: function() { return /* reexport safe */ _b__WEBPACK_IMPORTED_MODULE_1__.blue; },
++  red: function() { return /* reexport safe */ _a__WEBPACK_IMPORTED_MODULE_0__.red; },
 +  result: function() { return /* reexport safe */ _c__WEBPACK_IMPORTED_MODULE_2__.result; }
 +});
  /* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a */"./colors/a.js");
