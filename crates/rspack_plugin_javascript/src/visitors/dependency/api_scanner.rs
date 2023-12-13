@@ -25,6 +25,7 @@ pub const SYSTEM_CONTEXT: &str = "__system_context__";
 pub const WEBPACK_SHARE_SCOPES: &str = "__webpack_share_scopes__";
 pub const WEBPACK_INIT_SHARING: &str = "__webpack_init_sharing__";
 pub const WEBPACK_NONCE: &str = "__webpack_nonce__";
+pub const WEBPACK_CHUNK_NAME: &str = "__webpack_chunkname__";
 
 pub struct ApiScanner<'a> {
   pub unresolved_ctxt: SyntaxContext,
@@ -214,6 +215,16 @@ impl Visit for ApiScanner<'_> {
             ident.span.real_hi(),
             RuntimeGlobals::SCRIPT_NONCE.name().into(),
             Some(RuntimeGlobals::SCRIPT_NONCE),
+          )));
+      }
+      WEBPACK_CHUNK_NAME => {
+        self
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            RuntimeGlobals::CHUNK_NAME.name().into(),
+            Some(RuntimeGlobals::CHUNK_NAME),
           )));
       }
       _ => {}
