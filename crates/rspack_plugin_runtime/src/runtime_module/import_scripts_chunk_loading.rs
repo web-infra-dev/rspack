@@ -114,7 +114,10 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       // If chunkId not corresponding chunkName will skip load it.
       source.add(RawSource::from(
         include_str!("runtime/import_scripts_chunk_loading.js")
-          .replace("JS_MATCHER", &render_condition_map(&condition_map))
+          .replace(
+            "JS_MATCHER",
+            &render_condition_map(&condition_map, "chunkId").to_string(),
+          )
           .replace("$URL$", &url)
           .replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr),
       ));

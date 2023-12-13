@@ -5,7 +5,11 @@ use rspack_core::{
 };
 use rspack_identifier::Identifier;
 
-use super::utils::{chunk_has_js, get_output_dir};
+use super::{
+  render_condition_map,
+  utils::{chunk_has_js, get_output_dir},
+  BooleanMatcher,
+};
 use crate::runtime_module::utils::{get_initial_chunk_ids, stringify_chunks};
 
 #[derive(Debug, Default, Eq)]
@@ -54,48 +58,57 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       .chunk_by_ukey
       .get(&self.chunk.expect("The chunk should be attached."))
       .expect("Chunk is not found, make sure you had attach chunkUkey successfully.");
-    let with_hmr = self
-      .runtime_requirements
-      .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+
+    let with_base_uri = self.runtime_requirements.contains(RuntimeGlobals::BASE_URI);
     let with_external_install_chunk = self
       .runtime_requirements
       .contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
-    let mut source = ConcatSource::default();
-    let root_output_dir = get_output_dir(chunk, compilation, true);
-    if self.runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
-      source.add(self.generate_base_uri(chunk, compilation, &root_output_dir));
-    }
-
-    // object to store loaded and loading chunks
-    // undefined = chunk not loaded, null = chunk preloaded/prefetched
-    // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
-    let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
-    if with_hmr {
-      let state_expression = format!("{}_module", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
-      source.add(RawSource::from(format!(
-        "var installedChunks = {} = {} || {};\n",
-        state_expression,
-        state_expression,
-        &stringify_chunks(&initial_chunks, 1)
-      )));
-    } else {
-      source.add(RawSource::from(format!(
-        "var installedChunks = {};\n",
-        &stringify_chunks(&initial_chunks, 0)
-      )));
-    }
-
     let with_loading = self
       .runtime_requirements
       .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     let with_on_chunk_load = self
       .runtime_requirements
       .contains(RuntimeGlobals::ON_CHUNKS_LOADED);
+    let with_hmr = self
+      .runtime_requirements
+      .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+
+    let condition_map =
+      compilation
+        .chunk_graph
+        .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
+    let has_js_matcher = render_condition_map(&condition_map, "chunkId");
+    let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
+
+    let root_output_dir = get_output_dir(chunk, compilation, true);
+
+    let mut source = ConcatSource::default();
+
+    if with_base_uri {
+      source.add(self.generate_base_uri(chunk, compilation, &root_output_dir));
+    }
+
+    source.add(RawSource::from(format!(
+      r#"
+      // object to store loaded and loading chunks
+      // undefined = chunk not loaded, null = chunk preloaded/prefetched
+      // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
+      var installedChunks = {}{};
+      "#,
+      match with_hmr {
+        true => {
+          let state_expression = format!("{}_module", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
+          format!("{} = {} || ", state_expression, state_expression)
+        }
+        false => "".to_string(),
+      },
+      &stringify_chunks(&initial_chunks, 0)
+    )));
 
     if with_loading || with_external_install_chunk {
       source.add(RawSource::from(
         include_str!("runtime/module_chunk_loading.js").replace(
-          "$withOnChunkLoad$",
+          "$WITH_ON_CHUNK_LOAD$",
           match with_on_chunk_load {
             true => "__webpack_require__.O();",
             false => "",
@@ -105,27 +118,52 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     }
 
     if with_loading {
-      source.add(RawSource::from(
+      let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
+        "installedChunks[chunkId] = 0;".to_string()
+      } else {
         include_str!("runtime/module_chunk_loading_with_loading.js")
-          // TODO
-          .replace("JS_MATCHER", "chunkId")
+          .replace("$JS_MATCHER$", has_js_matcher.to_string().as_str())
           .replace(
-            "$importFunctionName$",
+            "$IMPORT_FUNCTION_NAME$",
             &compilation.options.output.import_function_name,
           )
-          .replace("$OUTPUT_DIR$", &root_output_dir),
-      ));
+          .replace("$OUTPUT_DIR$", &root_output_dir)
+          .replace(
+            "$MATCH_FALLBACK$",
+            if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
+              ""
+            } else {
+              "else installedChunks[chunkId] = 0;\n"
+            },
+          )
+      };
+
+      source.add(RawSource::from(format!(
+        r#"
+        {}.j = function (chunkId, promises) {{
+          {body}
+        }}
+        "#,
+        RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+      )));
     }
 
     if with_external_install_chunk {
-      source.add(RawSource::from("__webpack_require__.C = installChunk;\n"));
+      source.add(RawSource::from(format!(
+        r#"
+        {} = installChunk;
+        "#,
+        RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
+      )));
     }
 
     if with_on_chunk_load {
       source.add(RawSource::from(format!(
-        r#"{}.j = function(chunkId) {{
+        r#"
+        {}.j = function(chunkId) {{
             return installedChunks[chunkId] === 0;
-        }}"#,
+        }}
+        "#,
         RuntimeGlobals::ON_CHUNKS_LOADED
       )));
     }

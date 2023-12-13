@@ -74,8 +74,10 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
           .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
       // If chunkId not corresponding chunkName will skip load it.
       source.add(RawSource::from(
-        include_str!("runtime/jsonp_chunk_loading.js")
-          .replace("JS_MATCHER", &render_condition_map(&condition_map)),
+        include_str!("runtime/jsonp_chunk_loading.js").replace(
+          "JS_MATCHER",
+          &render_condition_map(&condition_map, "chunkId").to_string(),
+        ),
       ));
     }
 

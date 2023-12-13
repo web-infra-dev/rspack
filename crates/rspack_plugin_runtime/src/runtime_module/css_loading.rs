@@ -97,7 +97,10 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         source.add(RawSource::from(
           include_str!("runtime/css_loading_with_loading.js")
             .replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
-            .replace("CSS_MATCHER", &render_condition_map(&condition_map)),
+            .replace(
+              "CSS_MATCHER",
+              &render_condition_map(&condition_map, "chunkId").to_string(),
+            ),
         ));
       }
 
