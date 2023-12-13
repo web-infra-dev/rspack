@@ -1429,10 +1429,10 @@ impl Compilation {
         .get_entry_options()
         .and_then(|o| o.name.clone())
         .or(entrypoint.name().map(|n| n.to_string()));
-      if let Some(runtime) = runtime {
-        if let Some(chunk) = chunk_by_ukey.get(&entrypoint.get_runtime_chunk()) {
-          chunk_graph.set_runtime_id(runtime, chunk.id.clone());
-        }
+      if let (Some(runtime), Some(chunk)) =
+        (runtime, chunk_by_ukey.get(&entrypoint.get_runtime_chunk()))
+      {
+        chunk_graph.set_runtime_id(runtime, chunk.id.clone());
       }
     }
     for i in self.entrypoints.iter() {
