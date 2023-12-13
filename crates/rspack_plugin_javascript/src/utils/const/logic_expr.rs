@@ -8,10 +8,8 @@ use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependen
 // FIXME: a temp hack to avoid bwchecker.
 bitflags::bitflags! {
   pub struct Continue: u8 {
-    const NO = 1 << 0;
-    const LEFT = 1 << 1;
-    const RIGHT = 1 << 2;
-    const LEFT_AND_RIGHT = 1 << 3;
+    const LEFT = 1 << 0;
+    const RIGHT = 1 << 1;
   }
 }
 
@@ -23,7 +21,7 @@ pub fn expression_logic_operator(
     let param = scanner.evaluate_expression(&expr.left);
     let boolean = param.as_bool();
     let Some(bool) = boolean else {
-      return (None, Continue::NO);
+      return (None, Continue::all());
     };
     let mut deps = vec![];
     let mut c = Continue::empty();
@@ -57,7 +55,7 @@ pub fn expression_logic_operator(
     }
     (Some(deps), c)
   } else {
-    (None, Continue::LEFT_AND_RIGHT)
+    (None, Continue::all())
   }
   // else if expr.op == BinaryOp::NullishCoalescing {
   //   // TODO: support `??`

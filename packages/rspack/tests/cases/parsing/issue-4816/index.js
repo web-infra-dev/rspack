@@ -27,4 +27,5 @@ it("should build success for logic op", () => {
 	expect(typeof require !== "function" && require("fail")).toBe(false);
 	expect(true && require("./a")).toBe("a");
 	expect(typeof require === "function" && require("./a")).toBe("a");
+	expect(!require("./a") && !require("./b")).toBe(false);
 });

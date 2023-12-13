@@ -267,13 +267,11 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
     self.replace_require_resolve(&bin_expr.right, value);
 
     let (deps, c) = expression_logic_operator(self, bin_expr);
-    if c == Continue::NO {
-    } else if c == Continue::LEFT {
+    if c.contains(Continue::LEFT) {
       bin_expr.left.visit_children_with(self);
-    } else if c == Continue::RIGHT {
+    }
+    if c.contains(Continue::RIGHT) {
       bin_expr.right.visit_children_with(self);
-    } else if c == Continue::LEFT_AND_RIGHT {
-      bin_expr.visit_children_with(self);
     }
     let Some(deps) = deps else {
       return;
