@@ -1,10 +1,12 @@
+use std::borrow::Cow;
+
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  get_import_var, property_access, to_comment, AsyncDependenciesBlockIdentifier, Compilation,
-  DependenciesBlock, DependencyId, ExportsType, FakeNamespaceObjectMode, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier, NormalInitFragment,
-  RuntimeGlobals, TemplateContext,
+  get_import_var, property_access, to_comment, to_normal_comment, AsyncDependenciesBlockIdentifier,
+  Compilation, DependenciesBlock, DependencyId, ExportsType, FakeNamespaceObjectMode,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleIdentifier,
+  NormalInitFragment, RuntimeGlobals, TemplateContext,
 };
 
 pub fn export_from_import(
@@ -93,25 +95,31 @@ pub fn export_from_import(
       let used = exports_info_id.get_used_name(
         &compilation.module_graph,
         *runtime,
-        crate::UsedName::Vec(export_name),
+        crate::UsedName::Vec(export_name.clone()),
       );
       if let Some(used) = used {
-        match used {
+        let used = match used {
           crate::UsedName::Str(str) => vec![str],
           crate::UsedName::Vec(strs) => strs,
-        }
+        };
+        Cow::Owned(used)
       } else {
         // TODO: add some unused comments, part of runtime alignments
         return "".to_string();
       }
     } else {
-      export_name
+      Cow::Borrowed(&export_name)
     };
-    let property = property_access(&used_name, 0);
-    if is_call && !call_context {
-      format!("(0, {import_var}{property})")
+    let comment = if *used_name != export_name {
+      to_normal_comment(&property_access(&export_name, 0))
     } else {
-      format!("{import_var}{property}")
+      "".to_string()
+    };
+    let property = property_access(&*used_name, 0);
+    if is_call && !call_context {
+      format!("(0, {import_var}{comment}{property})")
+    } else {
+      format!("{import_var}{comment}{property}")
     }
   } else {
     import_var.to_string()

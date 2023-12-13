@@ -26,6 +26,18 @@ const mode = z.enum(["development", "production", "none"]);
 export type Mode = z.infer<typeof mode>;
 //#endregion
 
+//#region Falsy
+const falsy = z.union([
+	z.literal(false),
+	z.literal(0),
+	z.literal(""),
+	z.null(),
+	z.undefined()
+]);
+
+export type Falsy = z.infer<typeof falsy>;
+//#endregion
+
 //#region Entry
 const rawPublicPath = z.string();
 export type RawPublicPath = z.infer<typeof rawPublicPath>;
@@ -459,7 +471,7 @@ const ruleSetRule: z.ZodType<RuleSetRule> = baseRuleSetRule.extend({
 	rules: z.lazy(() => ruleSetRule.array()).optional()
 });
 
-const ruleSetRules = z.array(z.literal("...").or(ruleSetRule));
+const ruleSetRules = z.array(z.literal("...").or(ruleSetRule).or(falsy));
 export type RuleSetRules = z.infer<typeof ruleSetRules>;
 
 const assetParserDataUrlOptions = z.strictObject({
@@ -888,7 +900,8 @@ export type RspackPluginFunction = (this: Compiler, compiler: Compiler) => void;
 
 const plugin = z.union([
 	z.custom<RspackPluginInstance>(),
-	z.custom<RspackPluginFunction>()
+	z.custom<RspackPluginFunction>(),
+	falsy,
 ]);
 const plugins = plugin.array();
 export type Plugins = z.infer<typeof plugins>;
@@ -1063,9 +1076,9 @@ const experiments = z.strictObject({
 						val
 					)}' has been deprecated, please switch to 'experiments.newSplitChunks = true' to use webpack's behavior.
  	See the discussion ${termlink(
-		"here",
-		"https://github.com/web-infra-dev/rspack/discussions/4168"
-	)}`
+						"here",
+						"https://github.com/web-infra-dev/rspack/discussions/4168"
+					)}`
 				);
 			}
 			return true;

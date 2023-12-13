@@ -17,8 +17,8 @@ use crate::runtime_module::{
   GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
   HarmonyModuleDecoratorRuntimeModule, HasOwnPropertyRuntimeModule,
   LoadChunkWithBlockRuntimeModule, LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule,
-  NodeModuleDecoratorRuntimeModule, NormalRuntimeModule, OnChunkLoadedRuntimeModule,
-  PublicPathRuntimeModule, SystemContextRuntimeModule,
+  NodeModuleDecoratorRuntimeModule, NonceRuntimeModule, NormalRuntimeModule,
+  OnChunkLoadedRuntimeModule, PublicPathRuntimeModule, SystemContextRuntimeModule,
 };
 
 static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
@@ -43,7 +43,7 @@ static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
     RuntimeGlobals::PUBLIC_PATH,
     RuntimeGlobals::BASE_URI,
     // RuntimeGlobals::RELATIVE_URL,
-    // RuntimeGlobals::SCRIPT_NONCE,
+    RuntimeGlobals::SCRIPT_NONCE,
     // RuntimeGlobals::UNCAUGHT_ERROR_HANDLER,
     RuntimeGlobals::ASYNC_MODULE,
     // RuntimeGlobals::WASM_INSTANCES,
@@ -377,6 +377,9 @@ impl Plugin for RuntimePlugin {
         }
         RuntimeGlobals::SYSTEM_CONTEXT if matches!(&library_type, Some(t) if t == "system") => {
           compilation.add_runtime_module(chunk, SystemContextRuntimeModule::default().boxed())
+        }
+        RuntimeGlobals::SCRIPT_NONCE => {
+          compilation.add_runtime_module(chunk, NonceRuntimeModule::default().boxed());
         }
         _ => {}
       }
