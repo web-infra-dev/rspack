@@ -49,10 +49,10 @@ static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
     RuntimeGlobals::ASYNC_MODULE,
     // RuntimeGlobals::WASM_INSTANCES,
     RuntimeGlobals::INSTANTIATE_WASM,
-    // RuntimeGlobals::SHARE_SCOPE_MAP,
-    // RuntimeGlobals::INITIALIZE_SHARING,
+    RuntimeGlobals::SHARE_SCOPE_MAP,
+    RuntimeGlobals::INITIALIZE_SHARING,
     RuntimeGlobals::LOAD_SCRIPT,
-    // RuntimeGlobals::SYSTEM_CONTEXT,
+    RuntimeGlobals::SYSTEM_CONTEXT,
     RuntimeGlobals::ON_CHUNKS_LOADED,
   ]
 });
