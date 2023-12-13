@@ -21,6 +21,7 @@ type TFileCompareResult = {
 	runtimeModules: TModuleCompareResult[];
 };
 
+// search by glob
 function createDiffCase(name: string, src: string, dist: string) {
 	const caseConfigFile = path.join(src, "test.config.js");
 	if (!fs.existsSync(caseConfigFile)) {
