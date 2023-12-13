@@ -9,14 +9,16 @@ export const SplitChunksPlugin = create(
 		let raw = toRawSplitChunksOptions(options);
 		assert(typeof raw !== "undefined");
 		return raw;
-	}
+	},
+	"thisCompilation"
 );
 
 export const OldSplitChunksPlugin = create(
-	BuiltinPluginName.SplitChunksPlugin,
+	BuiltinPluginName.OldSplitChunksPlugin,
 	(options: OptimizationSplitChunksOptions) => {
 		let raw = toRawSplitChunksOptions(options);
 		assert(typeof raw !== "undefined");
 		return raw;
-	}
+	},
+	"thisCompilation"
 );

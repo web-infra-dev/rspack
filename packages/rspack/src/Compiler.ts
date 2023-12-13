@@ -30,7 +30,6 @@ import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import Cache from "./lib/Cache";
 import CacheFacade from "./lib/CacheFacade";
-import ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
 import { runLoaders } from "./loader-runner";
 import { Logger } from "./logging/Logger";
 import { NormalModuleFactory } from "./NormalModuleFactory";
@@ -40,10 +39,7 @@ import { checkVersion } from "./util/bindingVersionCheck";
 import { Watching } from "./Watching";
 import { NormalModule } from "./NormalModule";
 import { normalizeJsModule } from "./util/normalization";
-import {
-	RspackBuiltinPlugin,
-	deprecated_resolveBuiltins
-} from "./builtin-plugin";
+import { deprecated_resolveBuiltins } from "./builtin-plugin";
 import { optionsApply_compat } from "./rspackOptionsApply";
 import { applyRspackOptionsDefaults } from "./config/defaults";
 import { assertNotNill } from "./util/assertNotNil";
@@ -51,6 +47,10 @@ import { FileSystemInfoEntry } from "./FileSystemInfo";
 import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
 import { CodeGenerationResult } from "./Module";
+import {
+	HOOKS_CAN_NOT_INHERENT_FROM_PARENT,
+	canInherentFromParent
+} from "./builtin-plugin/base";
 
 class Compiler {
 	#_instance?: binding.Rspack;
@@ -408,18 +408,16 @@ class Compiler {
 				}
 			}
 		}
+
+		childCompiler.builtinPlugins = [
+			...childCompiler.builtinPlugins,
+			...this.builtinPlugins.filter(
+				plugin => plugin.canInherentFromParent === true
+			)
+		];
+
 		for (const name in this.hooks) {
-			if (
-				![
-					"make",
-					"compile",
-					"emit",
-					"afterEmit",
-					"invalid",
-					"done",
-					"thisCompilation"
-				].includes(name)
-			) {
+			if (canInherentFromParent(name as keyof Compiler["hooks"])) {
 				//@ts-ignore
 				if (childCompiler.hooks[name]) {
 					//@ts-ignore

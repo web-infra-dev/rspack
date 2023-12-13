@@ -135,6 +135,7 @@ export interface BeforeResolveData {
 export interface BuiltinPlugin {
   name: BuiltinPluginName
   options: unknown
+  canInherentFromParent?: boolean
 }
 
 export const enum BuiltinPluginName {
