@@ -1,6 +1,10 @@
 import { BuiltinPlugin, RawConsumeOptions } from "@rspack/binding";
 import { Compiler } from "../Compiler";
-import { BuiltinPluginName, RspackBuiltinPlugin } from "../builtin-plugin/base";
+import {
+	BuiltinPluginName,
+	RspackBuiltinPlugin,
+	createBuiltinPlugin
+} from "../builtin-plugin/base";
 import { parseOptions } from "../container/options";
 import { isRequiredVersion } from "./utils";
 
@@ -82,9 +86,6 @@ export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
 			key,
 			...v
 		}));
-		return {
-			name: this.name as any,
-			options: rawOptions
-		};
+		return createBuiltinPlugin(this.name, rawOptions);
 	}
 }

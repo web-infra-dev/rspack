@@ -74,6 +74,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           worker_wasm_loading: rspack_core::WasmLoading::Disable,
           worker_public_path: String::new(),
           script_type: String::from("false"),
+          enhanced_module_federation: false,
         },
         target: rspack_core::Target::new(&vec![String::from("web")]).expect("TODO:"),
         resolve: rspack_core::Resolve::default(),

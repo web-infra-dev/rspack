@@ -28,7 +28,7 @@ impl ExposeRuntimeModule {
     chunk_ukey: &ChunkUkey,
     compilation: &'a Compilation,
   ) -> Option<&'a CodeGenerationDataExpose> {
-    let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     for c in chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey) {
       let chunk = compilation.chunk_by_ukey.expect_get(&c);
       let modules = compilation

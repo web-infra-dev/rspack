@@ -406,6 +406,7 @@ impl TestConfig {
         worker_wasm_loading: c::WasmLoading::Enable(c::WasmLoadingType::from("fetch")),
         worker_public_path: String::new(),
         script_type: String::from("false"),
+        enhanced_module_federation: false,
       },
       mode: c::Mode::from(self.mode),
       target: c::Target::new(&self.target).expect("Can't construct target"),
