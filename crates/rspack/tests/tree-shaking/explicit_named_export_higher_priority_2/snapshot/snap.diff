@@ -1,6 +1,6 @@
 --- expected
 +++ actual
-@@ -20,7 +20,7 @@
+@@ -20,11 +20,10 @@
  "use strict";
  __webpack_require__.r(__webpack_exports__);
  __webpack_require__.d(__webpack_exports__, {
@@ -9,3 +9,7 @@
  });
  /* harmony import */var _baz__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./baz */"./baz.js");
  /* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./bar */"./bar.js");
+-__webpack_require__.es(_bar__WEBPACK_IMPORTED_MODULE_1__, __webpack_exports__);
+ 
+ 
+ }),

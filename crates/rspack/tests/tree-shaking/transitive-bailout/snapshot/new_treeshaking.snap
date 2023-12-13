@@ -30,8 +30,8 @@ _answer__WEBPACK_IMPORTED_MODULE_0__.test;
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  a: function() { return /* reexport safe */ _a_js__WEBPACK_IMPORTED_MODULE_0__.a; },
-  b: function() { return /* reexport safe */ _a_js__WEBPACK_IMPORTED_MODULE_0__.b; }
+  b: function() { return /* reexport safe */ _a_js__WEBPACK_IMPORTED_MODULE_0__.b; },
+  a: function() { return /* reexport safe */ _a_js__WEBPACK_IMPORTED_MODULE_0__.a; }
 });
 /* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./a.js */"./a.js");
 
