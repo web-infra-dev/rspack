@@ -631,4 +631,13 @@ impl ChunkGraph {
       chunk_b.remove_group(&group_ukey);
     }
   }
+  pub fn set_runtime_id(&mut self, runtime: String, id: Option<String>) {
+    self.runtime_ids.insert(runtime, id);
+  }
+  pub fn get_runtime_id(&self, runtime: String) -> Option<String> {
+    match self.runtime_ids.get(&runtime) {
+      Some(v) => v.to_owned(),
+      None => None,
+    }
+  }
 }
