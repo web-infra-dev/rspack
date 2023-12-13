@@ -79,7 +79,7 @@ jobs:
           path: artifacts
 
       - name: Build node packages
-        run: pnpm run build:js
+        run: pnpm run build:js && pnpm run build:viewer
 
       - name: Move artifacts
         run: node scripts/build-npm.cjs
