@@ -217,6 +217,7 @@ impl HarmonyExportImportedSpecifierDependency {
         export_mode.hidden = hidden;
         return export_mode;
       }
+      // dbg!(&exports, &checked);
 
       let mut items = exports
         .into_iter()
@@ -224,7 +225,10 @@ impl HarmonyExportImportedSpecifierDependency {
           name: export_name.clone(),
           ids: vec![export_name.clone()],
           hidden: false,
-          checked: checked.as_ref().map(|c| c.contains(&export_name)).is_some(),
+          checked: checked
+            .as_ref()
+            .map(|c| c.contains(&export_name))
+            .unwrap_or_default(),
           export_info: exports_info
             .id
             .get_read_only_export_info(&export_name, module_graph)
@@ -576,6 +580,7 @@ impl HarmonyExportImportedSpecifierDependency {
         fragments.push(init_fragment);
       }
       ExportModeType::NormalReexport => {
+        dbg!(&mode.items);
         for item in mode.items.into_iter().flatten() {
           let NormalReexportItem {
             name,
