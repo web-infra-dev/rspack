@@ -90,7 +90,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       mut additional_data,
       ..
     } = parse_context;
-
     let mut diagnostics: Vec<Diagnostic> = vec![];
     let syntax = syntax_by_module_type(
       &resource_data.resource_path,
