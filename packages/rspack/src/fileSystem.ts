@@ -1,3 +1,4 @@
+import util from "util";
 import { join } from "path";
 
 export interface ThreadsafeWritableNodeFS {
@@ -12,33 +13,42 @@ function createThreadsafeNodeFSFromRaw(
 	fs: typeof import("fs")
 ): ThreadsafeWritableNodeFS {
 	return {
-		writeFile: (file, data) => fs.writeFileSync(file, data),
-		removeFile: file => fs.unlinkSync(file),
-		mkdir: dir => fs.mkdirSync(dir),
+		writeFile: (file, data) =>
+			util.promisify(fs.writeFile.bind(fs))(file, data),
+		removeFile: file => util.promisify(fs.unlink.bind(fs))(file),
+		mkdir: dir => util.promisify(fs.mkdir.bind(fs))(dir),
 		mkdirp: dir =>
-			fs.mkdirSync(dir, {
+			util.promisify(fs.mkdir.bind(fs))(dir, {
 				recursive: true
 			}),
 		removeDirAll: dir => {
 			// memfs don't support rmSync
-			rmrfBuild(fs)(dir);
+			return rmrfBuild(fs)(dir);
 		}
 	};
 }
 
 const rmrfBuild = (fs: typeof import("fs")) => {
-	const rmrf = (dir: string) => {
-		if (fs.existsSync(dir)) {
-			const files = fs.readdirSync(dir);
-			files.forEach(file => {
+	async function exists(path: string) {
+		try {
+			await fs.promises.access(path);
+			return true;
+		} catch {
+			return false;
+		}
+	}
+	const rmrf = async (dir: string) => {
+		if (await exists(dir)) {
+			const files = await fs.promises.readdir(dir);
+			for (const file of files) {
 				const filePath = join(dir, file);
-				if (fs.lstatSync(filePath).isDirectory()) {
-					rmrf(filePath);
+				if ((await fs.promises.lstat(filePath)).isDirectory()) {
+					await rmrf(filePath);
 				} else {
-					fs.unlinkSync(filePath);
+					await fs.promises.unlink(filePath);
 				}
-			});
-			fs.rmdirSync(dir);
+			}
+			await fs.promises.rmdir(dir);
 		}
 	};
 	return rmrf;
