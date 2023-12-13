@@ -1,5 +1,3 @@
-const path = require("path");
-
 module.exports = {
 	plugins: [
 		function plugin(compiler) {
@@ -22,7 +20,7 @@ module.exports = {
 			}
 
 			function compareByIdentifier(a, b) {
-				return a.identifier() - b.identifier();
+				return a.identifier().localeCompare(b.identifier());
 			}
 
 			compiler.hooks.compilation.tap("plugin", compilation => {
@@ -31,12 +29,10 @@ module.exports = {
 					for (let chunk of compilation.chunks) {
 						const modules = [
 							...compilation.chunkGraph.getChunkModulesIterable(chunk)
-						];
-						modules.sort(compareByIdentifier);
+						].sort(compareByIdentifier);
 						const entryModules = [
 							...compilation.chunkGraph.getChunkEntryModulesIterable(chunk)
-						];
-						entryModules.sort(compareByIdentifier);
+						].sort(compareByIdentifier);
 						chunkModules[chunk.id] = {
 							modules: modules.map(moduleStringify),
 							entryModules: entryModules.map(moduleStringify)
