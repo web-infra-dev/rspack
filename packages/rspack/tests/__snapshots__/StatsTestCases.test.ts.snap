@@ -43,6 +43,7 @@ exports[`StatsTestCases should print correct stats for auxiliary-files-test 1`] 
       "bundle.js",
     ],
   },
+  "children": [],
   "chunks": [
     {
       "auxiliaryFiles": [
@@ -380,6 +381,7 @@ chunk {main} bundle.js (main) [entry]
   esm import ./stringModule [10]
 webpack/runtime/public_path {main}
 webpack/runtime/make_namespace_object {main}
+  
 Rspack compiled successfully (f06897c860985a12c8cc)"
 `;
 
@@ -422,6 +424,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "main.xxxx.js",
     ],
   },
+  "children": [],
   "chunks": [
     {
       "auxiliaryFiles": [],
@@ -787,6 +790,7 @@ webpack/runtime/make_namespace_object {main}
 webpack/runtime/require_chunk_loading {main}
 webpack/runtime/define_property_getters {main}
 webpack/runtime/get_chunk_filename/javascript {main}
+  
 Rspack compiled successfully (46f54e617829bfd491ce)"
 `;
 
@@ -815,6 +819,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "bundle.js",
     ],
   },
+  "children": [],
   "chunks": [
     {
       "auxiliaryFiles": [],
@@ -1065,6 +1070,7 @@ webpack/runtime/require_chunk_loading {main}
 webpack/runtime/hot_module_replacement {main}
 webpack/runtime/get_chunk_update_filename {main}
 webpack/runtime/get_main_filename/update manifest {main}
+  
 Rspack compiled successfully (a0e8b8e7a12183967b4c)"
 `;
 
@@ -1291,6 +1297,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
           "bundle1.js",
         ],
       },
+      "children": [],
       "chunks": [
         {
           "auxiliaryFiles": [],
@@ -1885,6 +1892,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "bundle2.js",
         ],
       },
+      "children": [],
       "chunks": [
         {
           "auxiliaryFiles": [],
@@ -2553,6 +2561,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "bundle3.js",
         ],
       },
+      "children": [],
       "chunks": [
         {
           "auxiliaryFiles": [],
@@ -3253,6 +3262,7 @@ import(/* webpackChunkName: "c" */ "./c");
           "bundle4.js",
         ],
       },
+      "children": [],
       "chunks": [
         {
           "auxiliaryFiles": [],
@@ -3944,6 +3954,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/make_namespace_object {main}
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
+    
   1 chunks compiled successfully (c6559f6e73dc156f845f)
 
 2 chunks:
@@ -3982,6 +3993,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/javascript {main}
+    
   2 chunks compiled successfully (2a56f68ffba86871ad13)
 
 3 chunks:
@@ -4022,6 +4034,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/javascript {main}
+    
   3 chunks compiled successfully (f0283a871516efd975ed)
 
 4 chunks:
@@ -4064,6 +4077,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/javascript {main}
+    
   4 chunks compiled successfully (d0461c301e764a97aa87)"
 `;
 
@@ -4996,6 +5010,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "bundle.js",
     ],
   },
+  "children": [],
   "chunks": [
     {
       "auxiliaryFiles": [],
@@ -5307,6 +5322,7 @@ webpack/runtime/compat_get_default_export {main}
 <PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing) [751] {main}
   esm import cycle-alias/a [10]
   esm import specifier cycle-alias/a [10]
+  
 
   × Error[internal]: Resolve error
    ╭─[tests/statsCases/resolve-overflow/index.js:1:1]
@@ -5345,6 +5361,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "bundle.js",
     ],
   },
+  "children": [],
   "chunks": [
     {
       "auxiliaryFiles": [],
@@ -5650,6 +5667,7 @@ webpack/runtime/compat_get_default_export {main}
 <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing) [546] {main}
   esm import pkg-a [10]
   esm import specifier pkg-a [10]
+  
 
   × Export should be relative path and start with "./", but got ../../index.js
 
@@ -5741,6 +5759,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "bundle.js",
     ],
   },
+  "children": [],
   "chunks": [
     {
       "auxiliaryFiles": [],
@@ -5931,6 +5950,7 @@ chunk {main} bundle.js (main) [entry]
 webpack/runtime/has_own_property {main}
 webpack/runtime/make_namespace_object {main}
 webpack/runtime/define_property_getters {main}
+  
 Rspack compiled successfully (ad9a1eac4803b0948f93)"
 `;
 
@@ -5959,6 +5979,7 @@ exports[`StatsTestCases should print correct stats for simple-module-source 1`] 
       "bundle.js",
     ],
   },
+  "children": [],
   "chunks": [
     {
       "auxiliaryFiles": [],
@@ -6329,6 +6350,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "bundle.js",
     ],
   },
+  "children": [],
   "chunks": [
     {
       "auxiliaryFiles": [],

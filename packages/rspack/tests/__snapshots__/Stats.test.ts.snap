@@ -88,6 +88,7 @@ exports[`Stats should have stats 1`] = `
       "main.js",
     ],
   },
+  "children": [],
   "chunks": [
     {
       "auxiliaryFiles": [],
@@ -238,6 +239,7 @@ exports[`Stats should output stats with query 1`] = `
       "main.js",
     ],
   },
+  "children": [],
   "chunks": [
     {
       "auxiliaryFiles": [],

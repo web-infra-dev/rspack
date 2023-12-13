@@ -908,34 +908,6 @@ export class DefaultStatsFactoryPlugin {
 					// 	const merger = MERGER[key];
 					// 	stats.hooks.merge.for(key).tap("DefaultStatsFactoryPlugin", merger);
 					// }
-
-					if (options.children) {
-						if (Array.isArray(options.children)) {
-							stats.hooks.getItemFactory
-								.for("compilation.children[].compilation")
-								// @ts-expect-error
-								.tap("DefaultStatsFactoryPlugin", (_comp, { _index: idx }) => {
-									if (idx < options.children.length) {
-										return compilation.createStatsFactory(
-											compilation.createStatsOptions(
-												options.children[idx],
-												context
-											)
-										);
-									}
-								});
-						} else if (options.children !== true) {
-							const childFactory = compilation.createStatsFactory(
-								compilation.createStatsOptions(options.children, context)
-							);
-							stats.hooks.getItemFactory
-								.for("compilation.children[].compilation")
-								// @ts-expect-error
-								.tap("DefaultStatsFactoryPlugin", () => {
-									return childFactory;
-								});
-						}
-					}
 				}
 			);
 		});
