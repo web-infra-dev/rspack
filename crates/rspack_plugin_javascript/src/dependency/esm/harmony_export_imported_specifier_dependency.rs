@@ -210,7 +210,13 @@ impl HarmonyExportImportedSpecifierDependency {
       Some(exports_info.id),
       imported_module_identifier,
     );
-    // dbg!(&exports, &imported_module_identifier, &checked, &hidden);
+    // dbg!(
+    //   self.request(),
+    //   &exports,
+    //   &imported_module_identifier,
+    //   &checked,
+    //   &hidden
+    // );
     if let Some(exports) = exports {
       if exports.is_empty() {
         let mut export_mode = ExportMode::new(ExportModeType::EmptyStar);
@@ -329,7 +335,6 @@ impl HarmonyExportImportedSpecifierDependency {
     } else {
       None
     };
-    // dbg!(&hidden, &hidden_exports, no_extra_imports);
 
     if no_extra_imports {
       for export_info_id in exports_info.get_ordered_exports() {
@@ -468,6 +473,7 @@ impl HarmonyExportImportedSpecifierDependency {
       .expect("should have imported module identifier");
     let module_identifier = module.identifier();
     let import_var = get_import_var(mg, self.id);
+    dbg!(&mode);
     match mode.ty {
       ExportModeType::Missing | ExportModeType::EmptyStar => {
         fragments.push(
@@ -580,7 +586,6 @@ impl HarmonyExportImportedSpecifierDependency {
         fragments.push(init_fragment);
       }
       ExportModeType::NormalReexport => {
-        dbg!(&mode.items);
         for item in mode.items.into_iter().flatten() {
           let NormalReexportItem {
             name,
@@ -621,7 +626,10 @@ impl HarmonyExportImportedSpecifierDependency {
           }
         }
       }
-      ExportModeType::DynamicReexport => todo!(),
+      ExportModeType::DynamicReexport => {
+
+        // TODO
+      }
     }
     ctxt.init_fragments.extend(fragments);
   }
@@ -859,6 +867,7 @@ impl Dependency for HarmonyExportImportedSpecifierDependency {
   #[allow(clippy::unwrap_in_result)]
   fn get_exports(&self, mg: &ModuleGraph) -> Option<ExportsSpec> {
     let mode = self.get_mode(self.name.clone(), mg, &self.id, None);
+    // dbg!(&self.request(), &mode);
     match mode.ty {
       ExportModeType::Missing => None,
       ExportModeType::Unused => {

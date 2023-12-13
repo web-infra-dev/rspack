@@ -1015,6 +1015,15 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
 
+  examples/share-multiple-versions2:
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
+
   examples/solid:
     dependencies:
       '@babel/core':

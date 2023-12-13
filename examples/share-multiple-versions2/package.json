@@ -13,9 +13,6 @@
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*"
   },
-  "dependencies": {
-    "shared": "1.0.0"
-  },
   "sideEffects": false,
   "keywords": [],
   "author": "",

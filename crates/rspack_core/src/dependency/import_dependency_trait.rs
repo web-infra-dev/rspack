@@ -14,6 +14,7 @@ pub trait ImportDependencyTrait: ModuleDependency {
     if let Some(referenced_exports) = self.referenced_exports() {
       vec![ReferencedExport::new(referenced_exports.clone(), false).into()]
     } else {
+      // vec![ReferencedExport::new(vec!["version".into()], false).into()]
       vec![ExtendedReferencedExport::Array(vec![])]
     }
   }

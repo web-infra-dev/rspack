@@ -40,19 +40,32 @@ impl<'a> FlagDependencyExportsProxy<'a> {
         build_meta.exports_type == BuildMetaExportsType::Unset
       } else {
         true
-      } && {
+      };
+      if is_module_without_exports {
         let exports_info = self.mg.get_exports_info_by_id(&exports_id);
         let other_exports_info_id = exports_info.other_exports_info;
         let other_exports_info = self.mg.get_export_info_by_id(&other_exports_info_id);
-        other_exports_info.provided.is_some()
-      };
+        if !matches!(other_exports_info.provided, Some(ExportInfoProvided::Null)) {
+          exports_id.set_has_provide_info(self.mg);
+          exports_id.set_unknown_exports_provided(self.mg, false, None, None, None, None);
+          continue;
+        }
+      }
 
-      // TODO: mem cache
+      if !mgm
+        .build_info
+        .as_ref()
+        .map(|item| item.hash.is_some())
+        .unwrap_or_default()
+      {
+        exports_id.set_has_provide_info(self.mg);
+        q.push_back(mgm.module_identifier);
+        continue;
+      }
+
       exports_id.set_has_provide_info(self.mg);
       q.push_back(mgm.module_identifier);
-      if is_module_without_exports {
-        exports_id.set_unknown_exports_provided(self.mg, false, None, None, None, None);
-      }
+      // TODO: mem cache
     }
     self.mg.module_identifier_to_module_graph_module = module_graph_modules;
     while let Some(module_id) = q.pop_back() {
@@ -111,6 +124,8 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     let dep = self.mg.dependency_by_id(dep_id)?;
     // this is why we can bubble here. https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/FlagDependencyExportsPlugin.js#L140
     let exports_specs = dep.get_exports(self.mg)?;
+    let module_id = self.mg.parent_module_by_dependency_id(dep.id());
+    // dbg!(&module_id, &exports_specs);
     exports_specs_from_dependencies.insert(*dep_id, exports_specs);
     Some(())
   }
