@@ -31,7 +31,7 @@ function createThreadsafeNodeFSFromRaw(
 const rmrfBuild = (fs: typeof import("fs")) => {
 	async function exists(path: string) {
 		try {
-			await fs.promises.access(path);
+			await util.promisify(fs.access.bind(fs))(path);
 			return true;
 		} catch {
 			return false;
@@ -39,16 +39,16 @@ const rmrfBuild = (fs: typeof import("fs")) => {
 	}
 	const rmrf = async (dir: string) => {
 		if (await exists(dir)) {
-			const files = await fs.promises.readdir(dir);
+			const files = await util.promisify(fs.readdir.bind(fs))(dir);
 			for (const file of files) {
 				const filePath = join(dir, file);
-				if ((await fs.promises.lstat(filePath)).isDirectory()) {
+				if ((await util.promisify(fs.lstat.bind(fs))(filePath)).isDirectory()) {
 					await rmrf(filePath);
 				} else {
-					await fs.promises.unlink(filePath);
+					await util.promisify(fs.unlink.bind(fs))(filePath);
 				}
 			}
-			await fs.promises.rmdir(dir);
+			await util.promisify(fs.rmdir.bind(fs))(dir);
 		}
 	};
 	return rmrf;
