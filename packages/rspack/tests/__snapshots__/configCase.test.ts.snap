@@ -260,3 +260,40 @@ div {
 
 "
 `;
+
+exports[`configCases plugins chunk-modules exported tests chunk-modules 1`] = `
+{
+  "async": {
+    "entryModules": [],
+    "modules": [
+      {
+        "context": "<COMPILER_CONTEXT>",
+        "identifier": "<COMPILER_CONTEXT>/async.js",
+        "resource": "<COMPILER_CONTEXT>/async.js",
+      },
+    ],
+  },
+  "main": {
+    "entryModules": [
+      {
+        "context": "<COMPILER_CONTEXT>",
+        "identifier": "<COMPILER_CONTEXT>/index.js",
+        "resource": "<COMPILER_CONTEXT>/index.js",
+      },
+    ],
+    "modules": [
+      {
+        "context": "<COMPILER_CONTEXT>",
+        "identifier": "<COMPILER_CONTEXT>/index.js",
+        "resource": "<COMPILER_CONTEXT>/index.js",
+      },
+      {
+        "identifier": "external node-commonjs Single(ExternalRequestValue { primary: "path", rest: None })",
+      },
+      {
+        "identifier": "external node-commonjs Single(ExternalRequestValue { primary: "fs", rest: None })",
+      },
+    ],
+  },
+}
+`;
