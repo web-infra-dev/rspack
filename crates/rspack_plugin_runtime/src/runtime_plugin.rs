@@ -19,13 +19,13 @@ use crate::runtime_module::{
   HasOwnPropertyRuntimeModule, LoadChunkWithBlockRuntimeModule, LoadScriptRuntimeModule,
   MakeNamespaceObjectRuntimeModule, NodeModuleDecoratorRuntimeModule, NonceRuntimeModule,
   NormalRuntimeModule, OnChunkLoadedRuntimeModule, PublicPathRuntimeModule,
-  RelativeUrlRuntimeModule, SystemContextRuntimeModule,
+  RelativeUrlRuntimeModule, RuntimeIdRuntimeModule, SystemContextRuntimeModule,
 };
 
 static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
   vec![
     RuntimeGlobals::CHUNK_NAME,
-    // RuntimeGlobals::RUNTIME_ID,
+    RuntimeGlobals::RUNTIME_ID,
     RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
     RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
     RuntimeGlobals::CREATE_SCRIPT,
@@ -387,6 +387,9 @@ impl Plugin for RuntimePlugin {
         }
         RuntimeGlobals::CHUNK_NAME => {
           compilation.add_runtime_module(chunk, ChunkNameRuntimeModule::default().boxed());
+        }
+        RuntimeGlobals::RUNTIME_ID => {
+          compilation.add_runtime_module(chunk, RuntimeIdRuntimeModule::default().boxed());
         }
         _ => {}
       }

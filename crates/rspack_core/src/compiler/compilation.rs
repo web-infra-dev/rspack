@@ -1361,6 +1361,8 @@ impl Compilation {
     plugin_driver.chunk_ids(self)?;
     logger.time_end(start);
 
+    self.assign_runtime_ids();
+
     let start = logger.time("optimize code generation");
     plugin_driver.optimize_code_generation(self).await?;
     logger.time_end(start);
@@ -1410,6 +1412,45 @@ impl Compilation {
     logger.time_end(start);
 
     Ok(())
+  }
+
+  pub fn assign_runtime_ids(&mut self) {
+    fn process_entrypoint(
+      entrypoint_ukey: &ChunkGroupUkey,
+      chunk_group_by_ukey: &ChunkGroupByUkey,
+      chunk_by_ukey: &ChunkByUkey,
+      chunk_graph: &mut ChunkGraph,
+    ) {
+      let entrypoint = chunk_group_by_ukey
+        .get(entrypoint_ukey)
+        .expect("chunk group not found");
+      let runtime = entrypoint
+        .kind
+        .get_entry_options()
+        .and_then(|o| o.name.clone())
+        .or(entrypoint.name().map(|n| n.to_string()));
+      if let (Some(runtime), Some(chunk)) =
+        (runtime, chunk_by_ukey.get(&entrypoint.get_runtime_chunk()))
+      {
+        chunk_graph.set_runtime_id(runtime, chunk.id.clone());
+      }
+    }
+    for i in self.entrypoints.iter() {
+      process_entrypoint(
+        i.1,
+        &self.chunk_group_by_ukey,
+        &self.chunk_by_ukey,
+        &mut self.chunk_graph,
+      )
+    }
+    for i in self.async_entrypoints.iter() {
+      process_entrypoint(
+        i,
+        &self.chunk_group_by_ukey,
+        &self.chunk_by_ukey,
+        &mut self.chunk_graph,
+      )
+    }
   }
 
   pub fn get_chunk_graph_entries(&self) -> HashSet<ChunkUkey> {
