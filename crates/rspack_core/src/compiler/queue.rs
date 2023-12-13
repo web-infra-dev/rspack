@@ -257,7 +257,7 @@ impl WorkerTask for BuildTask {
             compiler_context: CompilerContext {
               options: compiler_options.clone(),
               resolver_factory: resolver_factory.clone(),
-              module: Some(module.identifier()),
+              module: module.identifier(),
               module_context: module.as_normal_module().and_then(|m| m.get_context()),
             },
             plugin_driver: plugin_driver.clone(),

@@ -341,7 +341,7 @@ mod test {
   use std::borrow::Cow;
   use std::hash::Hash;
 
-  use rspack_error::{Result, TWithDiagnosticArray};
+  use rspack_error::{Diagnosable, Result, TWithDiagnosticArray};
   use rspack_identifier::{Identifiable, Identifier};
   use rspack_sources::Source;
 
@@ -388,6 +388,8 @@ mod test {
           (stringify!($ident).to_owned() + self.0).into()
         }
       }
+
+      impl Diagnosable for $ident {}
 
       impl DependenciesBlock for $ident {
         fn add_block_id(&mut self, _: AsyncDependenciesBlockIdentifier) {

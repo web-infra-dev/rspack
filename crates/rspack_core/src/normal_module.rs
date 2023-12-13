@@ -586,15 +586,28 @@ impl Module for NormalModule {
 
 impl Diagnosable for NormalModule {
   fn add_diagnostic(&self, diagnostic: Diagnostic) {
-    self.diagnostics.lock().unwrap().push(diagnostic);
+    self
+      .diagnostics
+      .lock()
+      .expect("failed to lock diagnostics")
+      .push(diagnostic);
   }
 
   fn add_diagnostics(&self, mut diagnostics: Vec<Diagnostic>) {
-    self.diagnostics.lock().unwrap().append(&mut diagnostics);
+    self
+      .diagnostics
+      .lock()
+      .expect("failed to lock diagnostics")
+      .append(&mut diagnostics);
   }
 
   fn take_diagnostics(&self) -> Vec<Diagnostic> {
-    self.diagnostics.lock().unwrap().drain(..).collect()
+    self
+      .diagnostics
+      .lock()
+      .expect("failed to lock diagnostics")
+      .drain(..)
+      .collect()
   }
 }
 
