@@ -5,9 +5,10 @@ use std::{cmp, sync::atomic::AtomicU32, time::Instant};
 
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rspack_core::{
-  Compilation, DoneArgs, MakeParam, Module, OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput,
-  PluginContext, PluginMakeHookOutput, PluginOptimizeChunksOutput, PluginProcessAssetsOutput,
-  ProcessAssetsArgs,
+  BoxModule, Compilation, DoneArgs, FactorizeArgs, MakeParam, Module, NormalModuleCreateData,
+  OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput, PluginContext, PluginFactorizeHookOutput,
+  PluginMakeHookOutput, PluginNormalModuleFactoryModuleHookOutput, PluginOptimizeChunksOutput,
+  PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
 use rspack_error::Result;
 
@@ -22,9 +23,12 @@ pub struct ProgressPluginOptions {
 pub struct ProgressPlugin {
   pub options: ProgressPluginOptions,
   pub progress_bar: ProgressBar,
+  pub dependencies_count: AtomicU32,
+  pub dependencies_done: AtomicU32,
   pub modules_count: AtomicU32,
   pub modules_done: AtomicU32,
   pub last_modules_count: RwLock<Option<u32>>,
+  pub last_dependencies_count: RwLock<Option<u32>>,
   pub last_active_module: RwLock<Option<String>>,
   pub last_state_info: RwLock<Vec<ProgressPluginStateInfo>>,
   pub last_update_time: RwLock<Instant>,
@@ -50,8 +54,11 @@ impl ProgressPlugin {
       options,
       progress_bar,
       modules_count: AtomicU32::new(0),
+      dependencies_count: AtomicU32::new(0),
+      dependencies_done: AtomicU32::new(0),
       modules_done: AtomicU32::new(0),
       last_modules_count: RwLock::new(None),
+      last_dependencies_count: RwLock::new(None),
       last_active_module: RwLock::new(None),
       last_state_info: RwLock::new(vec![]),
       last_update_time: RwLock::new(Instant::now()),
@@ -61,23 +68,50 @@ impl ProgressPlugin {
     if *self.last_update_time.read().expect("TODO:") + Duration::from_millis(50) < Instant::now() {
       self.update();
     }
+    *self.last_update_time.write().expect("TODO:") = Instant::now();
   }
   fn update(&self) {
-    let previous_modules_done = self.modules_done.fetch_add(1, SeqCst);
-    let modules_done = previous_modules_done + 1;
-    let percent = (modules_done as f32)
+    let modules_done = self.modules_done.load(SeqCst);
+    let dependencies_done = self.dependencies_done.load(SeqCst);
+    let percent_by_module = (modules_done as f32)
       / (cmp::max(
         self.last_modules_count.read().expect("TODO:").unwrap_or(1),
         self.modules_count.load(SeqCst),
       ) as f32);
-    let mut state_items = vec![];
+
+    let percent_by_dependencies = (self.dependencies_done.load(SeqCst) as f32)
+      / (cmp::max(
+        self
+          .last_dependencies_count
+          .read()
+          .expect("TODO:")
+          .unwrap_or(1),
+        self.dependencies_count.load(SeqCst),
+      ) as f32);
+
+    let percent = (percent_by_module + percent_by_dependencies) / 2.0;
+
+    let mut items = vec![];
+    let mut stat_items = vec![];
     {
+      stat_items.push(format!(
+        "{}/{} dependencies",
+        dependencies_done,
+        self.dependencies_count.load(SeqCst)
+      ));
+      stat_items.push(format!(
+        "{}/{} modules",
+        modules_done,
+        self.modules_count.load(SeqCst)
+      ));
+      items.push(stat_items.join(" "));
       let last_active_module = self.last_active_module.read().expect("TODO:");
       if let Some(last_active_module) = last_active_module.clone() {
-        state_items.push(last_active_module);
+        items.push(last_active_module);
       }
     }
-    self.handler(0.1 + percent * 0.55, String::from("building"), state_items);
+
+    self.handler(0.1 + percent * 0.55, String::from("building"), items);
     *self.last_update_time.write().expect("TODO:") = Instant::now();
   }
   pub fn handler(&self, percent: f32, msg: String, state_items: Vec<String>) {
@@ -166,18 +200,53 @@ impl Plugin for ProgressPlugin {
     Ok(())
   }
 
+  async fn factorize(
+    &self,
+    _ctx: PluginContext,
+    _args: FactorizeArgs<'_>,
+  ) -> PluginFactorizeHookOutput {
+    self.dependencies_count.fetch_add(1, SeqCst);
+    if self.dependencies_count.load(SeqCst) < 50 || self.dependencies_count.load(SeqCst) % 100 == 0
+    {
+      self.update_throttled()
+    };
+    Ok(None)
+  }
+
+  async fn normal_module_factory_module(
+    &self,
+    _ctx: PluginContext,
+    module: BoxModule,
+    _args: &NormalModuleCreateData,
+  ) -> PluginNormalModuleFactoryModuleHookOutput {
+    if self.dependencies_done.load(SeqCst) < 50 || self.dependencies_done.load(SeqCst) % 100 == 0 {
+      self.update_throttled()
+    };
+    Ok(module)
+  }
+
   async fn build_module(&self, module: &mut dyn Module) -> Result<()> {
     if let Some(module) = module.as_normal_module() {
       self
         .last_active_module
         .write()
         .expect("TODO:")
-        .replace(module.raw_request().to_string());
+        .replace(module.id().to_string());
     }
     self.modules_count.fetch_add(1, SeqCst);
     self.update_throttled();
     Ok(())
   }
+
+  async fn succeed_module(&self, _module: &dyn Module) -> Result<()> {
+    self.modules_done.fetch_add(1, SeqCst);
+    if self.modules_done.load(SeqCst) < 50 || self.modules_done.load(SeqCst) % 100 == 0 {
+      self.update_throttled();
+    }
+    Ok(())
+  }
+
+  // TODO: entries count
 
   async fn optimize_chunks(
     &self,
@@ -208,6 +277,8 @@ impl Plugin for ProgressPlugin {
       self.progress_bar.finish();
     }
     *self.last_modules_count.write().expect("TODO:") = Some(self.modules_count.load(SeqCst));
+    *self.last_dependencies_count.write().expect("TODO:") =
+      Some(self.dependencies_count.load(SeqCst));
     Ok(())
   }
 }
