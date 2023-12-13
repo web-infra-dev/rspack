@@ -173,10 +173,11 @@ impl<'me> CodeSplitter<'me> {
           .into_par_iter()
           .cloned()
           .flat_map(move |module| {
-            let is_all_parents_load_this_module = parents_loaded_modules
-              .clone()
-              .iter()
-              .all(|loaded_modules| loaded_modules.contains(&module));
+            let is_all_parents_load_this_module = !parents_loaded_modules.is_empty()
+              && parents_loaded_modules
+                .clone()
+                .iter()
+                .all(|loaded_modules| loaded_modules.contains(&module));
 
             if is_all_parents_load_this_module {
               Some((chunk.ukey, module))
