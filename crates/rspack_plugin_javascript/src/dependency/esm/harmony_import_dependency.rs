@@ -91,7 +91,6 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   if !is_target_active {
     return;
   }
-  dbg!(&module_dependency.is_export_all());
   if module_dependency.is_export_all() == Some(false) {
     let specifiers = specifiers
       .iter()
