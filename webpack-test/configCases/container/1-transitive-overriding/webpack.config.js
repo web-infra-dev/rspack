@@ -5,7 +5,6 @@ module.exports = {
 	optimization: {
 		chunkIds: "named",
 		moduleIds: "named",
-		mangleExports: false
 	},
 	plugins: [
 		new ModuleFederationPlugin({
