@@ -7,7 +7,6 @@ use rspack_core::{
   ModuleGraphConnection, ModuleIdentifier, Plugin,
 };
 use rspack_error::Result;
-use rspack_identifier::Identifiable;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
 
@@ -102,7 +101,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     self.process_dependencies_block_inner(block, exports_specs_from_dependencies)
   }
 
-  fn process_dependencies_block_inner<B: DependenciesBlock + ?Sized + Identifiable>(
+  fn process_dependencies_block_inner<B: DependenciesBlock + ?Sized>(
     &self,
     block: &B,
     exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,

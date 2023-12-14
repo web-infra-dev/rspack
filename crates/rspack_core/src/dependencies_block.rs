@@ -2,7 +2,6 @@ use rspack_error::{
   miette::{self, Diagnostic},
   thiserror::{self, Error},
 };
-use rspack_identifier::Identifiable;
 use serde::Serialize;
 use ustr::Ustr;
 

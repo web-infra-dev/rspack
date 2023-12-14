@@ -7,6 +7,7 @@ use swc_core::atoms::Atom;
 
 use super::ExportsBase;
 
+#[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct CommonJsExportRequireDependency {
   id: DependencyId,
