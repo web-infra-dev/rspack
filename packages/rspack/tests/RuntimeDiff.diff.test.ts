@@ -9,8 +9,9 @@ import {
 } from "@rspack/test-tools";
 import rimraf from "rimraf";
 import { isValidTestCaseDir } from "./utils";
+import { globSync } from "glob";
 
-const DEFAULT_CASE_CONFIG: IDiffProcessorOptions = {
+const DEFAULT_CASE_CONFIG: Partial<IDiffProcessorOptions> = {
 	webpackPath: require.resolve("webpack"),
 	rspackPath: require.resolve("@rspack/core"),
 	files: ["bundle.js"]
@@ -187,9 +188,13 @@ const tempDir: string = path.resolve(__dirname, "js");
 const cases: string[] = fs.readdirSync(caseDir).filter(isValidTestCaseDir);
 
 describe(`RuntimeDiffCases`, () => {
-	for (let name of cases) {
+	for (let name of globSync("**/test.config.js", {
+		cwd: caseDir
+	})) {
+		name = path.dirname(name);
 		const src = path.join(caseDir, name);
-		const dist = path.join(tempDir, `runtime-diff/${name}`);
+		const dist = path.join(tempDir, "runtime-diff", name);
+		console.log(src, dist);
 		createDiffCase(name, src, dist);
 	}
 });
