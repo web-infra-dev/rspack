@@ -25,7 +25,7 @@ impl CommonJsExportRequireDependency {
     value_range: Option<(u32, u32)>,
     base: ExportsBase,
     names: Vec<Atom>,
-    require_dep: Option<DependencyId>, // requrest: String,
+    require_dep: Option<DependencyId>,
   ) -> Self {
     Self {
       id: DependencyId::new(),
