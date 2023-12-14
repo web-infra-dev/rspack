@@ -13,7 +13,11 @@ source: crates/rspack_testing/src/run_fixture.rs
 </body></html>
 ```
 
+<<<<<<< HEAD
 ```html title=index.c6001e53198b2247.html
+=======
+```html title=index.79e594ca2a184076.html
+>>>>>>> 4cf925bf9 (chore: align jsonp chunk loading runtime module with webpack)
 <!DOCTYPE html>
 <html>
 <head>
