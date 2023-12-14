@@ -16,7 +16,10 @@ use swc_core::{
 
 use super::{expr_matcher, is_require_call_expr};
 use crate::{
-  dependency::{CommonJsExportsDependency, ExportsBase, ModuleDecoratorDependency},
+  dependency::{
+    CommonJsExportRequireDependency, CommonJsExportsDependency, ExportsBase,
+    ModuleDecoratorDependency,
+  },
   ClassExt,
 };
 
@@ -137,7 +140,7 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
             .collect::<Vec<_>>()
         });
 
-        if let Some(remaining_members) = remaining_members
+        if let Some(ref remaining_members) = remaining_members
           && !remaining_members.is_empty()
         {
           // exports.__esModule = true;
@@ -169,7 +172,7 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
               } else {
                 panic!("Unexpected expr type");
               },
-              remaining_members,
+              remaining_members.clone(),
             )));
         }
 
@@ -182,6 +185,32 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
             // this = require('xx');
             // It's possible to reexport __esModule, so we must convert to a dynamic module
             self.set_dynamic();
+            let related_require_dep = self
+              .dependencies
+              .iter()
+              .find(|item| item.is_span_equal(&assign_expr.right.span()))
+              .map(|item| item.id())
+              .cloned();
+            self
+              .dependencies
+              .push(Box::new(CommonJsExportRequireDependency::new(
+                (
+                  assign_expr.right.span().real_lo(),
+                  assign_expr.right.span().real_hi(),
+                ),
+                None,
+                if is_exports_start {
+                  ExportsBase::Exports
+                } else if is_module_exports_start {
+                  ExportsBase::ModuleExports
+                } else if is_this_start {
+                  ExportsBase::This
+                } else {
+                  panic!("Unexpected expr type");
+                },
+                remaining_members.unwrap_or_default(),
+                related_require_dep,
+              )));
           } else {
             // exports = {};
             // module.exports = {};

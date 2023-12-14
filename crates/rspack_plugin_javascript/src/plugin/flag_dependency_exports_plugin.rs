@@ -3,10 +3,11 @@ use std::collections::VecDeque;
 
 use rspack_core::{
   BuildMetaExportsType, Compilation, DependenciesBlock, DependencyId, ExportInfoProvided,
-  ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+  ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, Module, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, Plugin,
 };
 use rspack_error::Result;
+use rspack_identifier::Identifiable;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
 
@@ -101,13 +102,18 @@ impl<'a> FlagDependencyExportsProxy<'a> {
     self.process_dependencies_block_inner(block, exports_specs_from_dependencies)
   }
 
-  fn process_dependencies_block_inner<B: DependenciesBlock + ?Sized>(
+  fn process_dependencies_block_inner<B: DependenciesBlock + ?Sized + Identifiable>(
     &self,
     block: &B,
     exports_specs_from_dependencies: &mut HashMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
+    // dbg!(&block.identifier());
     for ele in block.get_dependencies().iter() {
-      self.process_dependency(ele, exports_specs_from_dependencies);
+      // {
+      //   let d = ele.get_dependency(&self.mg);
+      //   dbg!(&d.dependency_debug_name(), d.as_module_dependency());
+      // }
+      let dep = self.process_dependency(ele, exports_specs_from_dependencies);
     }
     for block_id in block.get_blocks() {
       let block = self.mg.block_by_id(block_id)?;
@@ -123,9 +129,13 @@ impl<'a> FlagDependencyExportsProxy<'a> {
   ) -> Option<()> {
     let dep = self.mg.dependency_by_id(dep_id)?;
     // this is why we can bubble here. https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/FlagDependencyExportsPlugin.js#L140
-    let exports_specs = dep.get_exports(self.mg)?;
     let module_id = self.mg.parent_module_by_dependency_id(dep.id());
-    // dbg!(&module_id, &exports_specs);
+    // dbg!(
+    //   &module_id,
+    //   &dep.get_exports(self.mg),
+    //   dep.dependency_debug_name()
+    // );
+    let exports_specs = dep.get_exports(self.mg)?;
     exports_specs_from_dependencies.insert(*dep_id, exports_specs);
     Some(())
   }

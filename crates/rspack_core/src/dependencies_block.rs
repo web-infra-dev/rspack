@@ -2,6 +2,7 @@ use rspack_error::{
   miette::{self, Diagnostic},
   thiserror::{self, Error},
 };
+use rspack_identifier::Identifiable;
 use serde::Serialize;
 use ustr::Ustr;
 
@@ -71,6 +72,12 @@ pub struct AsyncDependenciesBlock {
   dependency_ids: Vec<DependencyId>,
   dependencies: Vec<BoxDependency>,
   loc: Option<DependencyLocation>,
+}
+
+impl Identifiable for AsyncDependenciesBlock {
+  fn identifier(&self) -> rspack_identifier::Identifier {
+    self.id.from
+  }
 }
 
 impl AsyncDependenciesBlock {
