@@ -353,11 +353,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           let flag = mgm_exports_info_id
             .set_used_in_unknown_way(&mut self.compilation.module_graph, runtime.as_ref());
 
-          dbg!(
-            &mgm_exports_info_id.get_exports_info(&self.compilation.module_graph),
-            module_id,
-            flag
-          );
+          // dbg!(
+          //   &mgm_exports_info_id.get_exports_info(&self.compilation.module_graph),
+          //   module_id,
+          //   flag
+          // );
           if flag {
             queue.push_back((module_id, runtime.clone()));
           }

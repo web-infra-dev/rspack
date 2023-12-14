@@ -3,13 +3,13 @@ use std::{collections::HashMap, sync::Arc};
 use linked_hash_set::LinkedHashSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, export_from_import,
-  get_exports_type, get_import_var, process_export_info, property_access, string_of_used_name,
-  AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCondition,
-  DependencyId, DependencyTemplate, DependencyType, ExportInfoId, ExportInfoProvided,
-  ExportNameOrSpec, ExportSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  ExtendedReferencedExport, HarmonyExportInitFragment, InitFragment, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  NormalInitFragment, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
+  get_exports_type, get_import_var, process_export_info, property_access, property_name,
+  string_of_used_name, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
+  DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ExportInfoId,
+  ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsInfoId, ExportsOfExportsSpec,
+  ExportsSpec, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, InitFragment,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, NormalInitFragment, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
   TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet as HashSet;
@@ -460,10 +460,11 @@ impl HarmonyExportImportedSpecifierDependency {
     None
   }
 
-  fn add_export_fragments(&self, ctxt: &mut TemplateContext, mode: ExportMode) {
+  fn add_export_fragments(&self, ctxt: &mut TemplateContext, mut mode: ExportMode) {
     let TemplateContext {
       compilation,
       module,
+      runtime_requirements,
       ..
     } = ctxt;
     let mut fragments = vec![];
@@ -473,7 +474,6 @@ impl HarmonyExportImportedSpecifierDependency {
       .expect("should have imported module identifier");
     let module_identifier = module.identifier();
     let import_var = get_import_var(mg, self.id);
-    dbg!(&mode);
     match mode.ty {
       ExportModeType::Missing | ExportModeType::EmptyStar => {
         fragments.push(
@@ -558,13 +558,13 @@ impl HarmonyExportImportedSpecifierDependency {
       }
       ExportModeType::ReexportFakeNamespaceObject => {
         // TODO: reexport fake namespace object
-        return todo!("");
-        // let used_name = mg.get_exports_info(&module.identifier()).id.get_used_name(
-        //   mg,
-        //   None,
-        //   UsedName::Str(mode.name.expect("should have name")),
-        // );
-        // self.get_reexport_fake_namespace_object_fragments(ctxt, key, &import_var, mode.fake_type);
+        let used_name = mg.get_exports_info(&module.identifier()).id.get_used_name(
+          mg,
+          None,
+          UsedName::Str(mode.name.expect("should have name")),
+        );
+        let key = string_of_used_name(used_name.as_ref());
+        self.get_reexport_fake_namespace_object_fragments(ctxt, key, &import_var, mode.fake_type);
       }
       ExportModeType::ReexportUndefined => {
         let used_name = mg.get_exports_info(&module.identifier()).id.get_used_name(
@@ -607,7 +607,25 @@ impl HarmonyExportImportedSpecifierDependency {
           let key = string_of_used_name(used_name.as_ref());
 
           if checked {
-            todo!()
+            let is_async = mg.is_async(&module_identifier).unwrap_or_default();
+            let stmt = self.get_conditional_reexport_statement(
+              ctxt,
+              name,
+              &import_var,
+              ids[0].clone(),
+              ValueKey::Vec(ids),
+            );
+            fragments.push(Box::new(NormalInitFragment::new(
+              stmt,
+              if is_async {
+                InitFragmentStage::StageAsyncHarmonyImports
+              } else {
+                InitFragmentStage::StageHarmonyImports
+              },
+              self.source_order,
+              InitFragmentKey::HarmonyImport("NormalInitFragment".to_string()),
+              None,
+            )));
           } else {
             let used_name =
               mg.get_exports_info(imported_module)
@@ -627,8 +645,64 @@ impl HarmonyExportImportedSpecifierDependency {
         }
       }
       ExportModeType::DynamicReexport => {
+        let ignored = match (mode.hidden.take(), mode.ignored.take()) {
+          (None, None) => HashSet::default(),
+          (None, Some(ignored)) => ignored,
+          (Some(hidden), None) => hidden,
+          (Some(hidden), Some(ignore)) => hidden.union(&ignore).cloned().collect(),
+        };
+        // TODO: modern, need runtimeTemplate support https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L1104-L1106
+        let mut content = format!(
+          r"
+/* harmony reexport (unknown) */ var __WEBPACK_REEXPORT_OBJECT__ = {{}};
+/* harmony reexport (unknown) */ for( var __WEBPACK_IMPORT_KEY__ in {import_var}) "
+        );
 
-        // TODO
+        if ignored.len() > 1 {
+          content += &format!(
+            "if({}.indexOf(__WEBPACK_IMPORT_KEY__) < 0) ",
+            serde_json::to_string(&ignored).expect("should serialize to array")
+          );
+        } else if let Some(item) = ignored.iter().next() {
+          content += &format!(
+            "if(__WEBPACK_IMPORT_KEY__ !== {}) ",
+            serde_json::to_string(item).expect("should serialize to string")
+          );
+        }
+        content += "__WEBPACK_REEXPORT_OBJECT__[__WEBPACK_IMPORT_KEY__] =";
+        // TODO should decide if `modern` is true
+        content +=
+          &format!("function(key) {{ return {import_var}[key]; }}.bind(0, __WEBPACK_IMPORT_KEY__)");
+        runtime_requirements.insert(RuntimeGlobals::EXPORTS);
+        runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+
+        let mgm = compilation
+          .module_graph
+          .module_graph_module_by_identifier(&module.identifier())
+          .expect("should have module graph module");
+        let exports_name = mgm.get_exports_argument();
+        let is_async = compilation
+          .module_graph
+          .is_async(&module.identifier())
+          .unwrap_or_default();
+        fragments.push(
+          NormalInitFragment::new(
+            format!(
+              "{content}\n/* harmony reexport (unknown) */ {}({}, __WEBPACK_REEXPORT_OBJECT__);\n",
+              RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+              exports_name.to_string()
+            ),
+            if is_async {
+              InitFragmentStage::StageAsyncHarmonyImports
+            } else {
+              InitFragmentStage::StageHarmonyImports
+            },
+            self.source_order,
+            InitFragmentKey::HarmonyImport("DynamicReexport".to_string()),
+            None,
+          )
+          .boxed(),
+        );
       }
     }
     ctxt.init_fragments.extend(fragments);
@@ -687,11 +761,11 @@ impl HarmonyExportImportedSpecifierDependency {
     let mut export_map = vec![];
     let value = format!(
       r"/* reexport fake namespace object from non-harmony */ {name}_namespace_cache || ({name}_namespace_cache = {}({name}{}))",
-      RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT.to_string(),
+      RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
       if fake_type == 0 {
         "".to_string()
       } else {
-        fake_type.to_string()
+        format!(", {fake_type}")
       }
     );
     export_map.push((key.into(), value.into()));
@@ -717,6 +791,44 @@ impl HarmonyExportImportedSpecifierDependency {
       ValueKey::Str(str) => format!("{}{}", name, property_access(vec![str], 0)),
       ValueKey::Vec(value_key) => format!("{}{}", name, property_access(value_key, 0)),
     }
+  }
+
+  fn get_conditional_reexport_statement(
+    &self,
+    ctxt: &mut TemplateContext<'_, '_>,
+    key: JsWord,
+    name: &String,
+    first_value_key: JsWord,
+    value_key: ValueKey,
+  ) -> String {
+    if matches!(value_key, ValueKey::False) {
+      return "/* unused export */\n".to_string();
+    }
+    let TemplateContext {
+      compilation,
+      module,
+      runtime_requirements,
+      ..
+    } = ctxt;
+    let return_value = Self::get_return_value(key.to_string(), value_key);
+    let mgm = compilation
+      .module_graph
+      .module_graph_module_by_identifier(&module.identifier())
+      .expect("should have mgm");
+    let exports_name = mgm.get_exports_argument();
+    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
+    runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+    format!(
+      "if({}({}, {})) {}({}, {{ {}: function() {{ return {}; }} }});",
+      RuntimeGlobals::HAS_OWN_PROPERTY,
+      key,
+      serde_json::to_string(&first_value_key.to_string()).expect("should serialize to string"),
+      RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+      exports_name,
+      property_name(&key).expect("should have property_name"),
+      return_value
+    )
   }
 }
 
