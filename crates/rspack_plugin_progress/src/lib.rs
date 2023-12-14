@@ -68,7 +68,7 @@ impl ProgressPlugin {
     if *self.last_update_time.read().expect("TODO:") + Duration::from_millis(50) < Instant::now() {
       self.update();
     }
-    *self.last_update_time.write().expect("TODO:") = Instant::now();
+    // *self.last_update_time.write().expect("TODO:") = Instant::now();
   }
   fn update(&self) {
     let modules_done = self.modules_done.load(SeqCst);
@@ -121,12 +121,11 @@ impl ProgressPlugin {
       self.progress_bar_handler(percent, msg, state_items);
     }
   }
-  fn default_handler(&self, _: f32, msg: String, state_items: Vec<String>) {
-    let full_state = [vec![msg], state_items].concat();
+  fn default_handler(&self, percentage: f32, msg: String, items: Vec<String>) {
+    let full_state = [vec![msg.clone()], items.clone()].concat();
     let now = Instant::now();
     {
       let mut last_state_info = self.last_state_info.write().expect("TODO:");
-
       let len = full_state.len().max(last_state_info.len());
       let original_last_state_info_len = last_state_info.len();
       for i in (0..len).rev() {
@@ -169,6 +168,12 @@ impl ProgressPlugin {
           }
         }
       }
+      println!(
+        "{}% {} {}",
+        (percentage * 100.0) as u32,
+        msg,
+        items.join("")
+      );
     }
   }
   fn progress_bar_handler(&self, percent: f32, msg: String, state_items: Vec<String>) {
@@ -219,6 +224,7 @@ impl Plugin for ProgressPlugin {
     module: BoxModule,
     _args: &NormalModuleCreateData,
   ) -> PluginNormalModuleFactoryModuleHookOutput {
+    self.dependencies_done.fetch_add(1, SeqCst);
     if self.dependencies_done.load(SeqCst) < 50 || self.dependencies_done.load(SeqCst) % 100 == 0 {
       self.update_throttled()
     };
@@ -234,13 +240,22 @@ impl Plugin for ProgressPlugin {
         .replace(module.id().to_string());
     }
     self.modules_count.fetch_add(1, SeqCst);
-    self.update_throttled();
+    self.update();
     Ok(())
   }
 
-  async fn succeed_module(&self, _module: &dyn Module) -> Result<()> {
+  async fn succeed_module(&self, module: &dyn Module) -> Result<()> {
+    let id = module.identifier().to_string();
     self.modules_done.fetch_add(1, SeqCst);
-    if self.modules_done.load(SeqCst) < 50 || self.modules_done.load(SeqCst) % 100 == 0 {
+    if self
+      .last_active_module
+      .read()
+      .expect("TODO:")
+      .as_ref()
+      .is_some_and(|module| module.eq(&id))
+    {
+      self.update();
+    } else if self.modules_done.load(SeqCst) < 50 || self.modules_done.load(SeqCst) % 100 == 0 {
       self.update_throttled();
     }
     Ok(())
