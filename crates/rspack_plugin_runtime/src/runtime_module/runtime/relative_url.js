@@ -5,7 +5,9 @@ __webpack_require__.U = function RelativeURL(url) {
   values.href = url;
   values.pathname = url.replace(/[?#].*/, "");
   values.origin = values.protocol = "";
-  values.toString = values.toJSON = () => (url);
+  values.toString = values.toJSON = function () {
+    return url;
+  };
   for (var key in values) Object.defineProperty(this, key, { enumerable: true, configurable: true, value: values[key] });
 };
 __webpack_require__.U.prototype = URL.prototype;
