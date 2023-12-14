@@ -194,7 +194,6 @@ describe(`RuntimeDiffCases`, () => {
 		name = path.dirname(name);
 		const src = path.join(caseDir, name);
 		const dist = path.join(tempDir, "runtime-diff", name);
-		console.log(src, dist);
 		createDiffCase(name, src, dist);
 	}
 });
