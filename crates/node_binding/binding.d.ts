@@ -627,10 +627,6 @@ export interface RawCacheOptions {
   version: string
 }
 
-export interface RawChunkFilterCtx {
-  chunk: JsChunk
-}
-
 export interface RawChunkOptionNameCtx {
   module: JsModule
 }

@@ -2,18 +2,12 @@ use std::sync::Arc;
 
 use napi::Env;
 use napi::{bindgen_prelude::Either3, JsFunction, JsString};
-use napi_derive::napi;
 use rspack_binding_values::JsChunk;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::{get_napi_env, NapiResultExt};
 use rspack_napi_shared::{JsRegExp, JsRegExpExt, JsStringExt};
 
 pub type Chunks = Either3<JsRegExp, JsString, JsFunction>;
-
-#[napi(object)]
-pub struct RawChunkFilterCtx {
-  pub chunk: JsChunk,
-}
 
 pub fn create_chunks_filter(raw: Chunks) -> rspack_plugin_split_chunks_new::ChunkFilter {
   match raw {
