@@ -10,7 +10,7 @@ use rspack_ids::{
 };
 use serde::Deserialize;
 
-use crate::{RawOptionsApply, RawSplitChunksOptions};
+use crate::RawOptionsApply;
 
 scoped_tls!(pub(crate) static IS_ENABLE_NEW_SPLIT_CHUNKS: bool);
 
@@ -18,7 +18,6 @@ scoped_tls!(pub(crate) static IS_ENABLE_NEW_SPLIT_CHUNKS: bool);
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawOptimizationOptions {
-  pub split_chunks: Option<RawSplitChunksOptions>,
   pub module_ids: String,
   pub chunk_ids: String,
   pub remove_available_modules: bool,

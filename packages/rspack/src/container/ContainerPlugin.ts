@@ -1,5 +1,9 @@
 import { RawContainerPluginOptions, BuiltinPlugin } from "@rspack/binding";
-import { BuiltinPluginName, RspackBuiltinPlugin } from "../builtin-plugin/base";
+import {
+	BuiltinPluginName,
+	RspackBuiltinPlugin,
+	createBuiltinPlugin
+} from "../builtin-plugin/base";
 import {
 	EntryRuntime,
 	Filename,
@@ -72,9 +76,6 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
 			compiler,
 			require.resolve("../sharing/initializeSharing.js")
 		);
-		return {
-			name: this.name as any,
-			options: this._options
-		};
+		return createBuiltinPlugin(this.name, this._options);
 	}
 }

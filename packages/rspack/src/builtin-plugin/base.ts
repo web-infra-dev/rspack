@@ -71,6 +71,16 @@ export abstract class RspackBuiltinPlugin implements RspackPluginInstance {
 	}
 }
 
+export function createBuiltinPlugin<R>(
+	name: BuiltinPluginName,
+	options: R
+): binding.BuiltinPlugin {
+	return {
+		name: name as any,
+		options: options ?? false // undefined or null will cause napi error, so false for fallback
+	};
+}
+
 export function create<T extends any[], R>(
 	name: BuiltinPluginName,
 	resolve: (...args: T) => R,
@@ -85,16 +95,11 @@ export function create<T extends any[], R>(
 
 		constructor(...args: T) {
 			super();
-			this._options =
-				resolve(...args) ??
-				(false as R) /* undefined or null will cause napi error, so false for fallback */;
+			this._options = resolve(...args);
 		}
 
 		raw(): binding.BuiltinPlugin {
-			return {
-				name: name as any,
-				options: this._options
-			};
+			return createBuiltinPlugin(name, this._options);
 		}
 	}
 

@@ -2,7 +2,11 @@ import {
 	BuiltinPlugin,
 	RawContainerReferencePluginOptions
 } from "@rspack/binding";
-import { BuiltinPluginName, RspackBuiltinPlugin } from "../builtin-plugin/base";
+import {
+	BuiltinPluginName,
+	RspackBuiltinPlugin,
+	createBuiltinPlugin
+} from "../builtin-plugin/base";
 import { Compiler } from "../Compiler";
 import { ExternalsPlugin } from "../builtin-plugin/ExternalsPlugin";
 import { ExternalsType } from "../config";
@@ -75,9 +79,6 @@ export class ContainerReferencePlugin extends RspackBuiltinPlugin {
 			require.resolve("./remotesLoading.js")
 		);
 
-		return {
-			name: this.name as any,
-			options: this._options
-		};
+		return createBuiltinPlugin(this.name, this._options);
 	}
 }
