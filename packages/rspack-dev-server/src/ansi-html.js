@@ -87,8 +87,8 @@ var _openTagToCloseTag = {
 
 var _closeTags = {
 	0: function (ansiCodes) {
-		if (!ansiCodes.length) return "";
 		if (!ansiCodes) return "</span>";
+		if (!ansiCodes.length) return "";
 		var code,
 			ret = "";
 		while ((code = ansiCodes.pop())) {
