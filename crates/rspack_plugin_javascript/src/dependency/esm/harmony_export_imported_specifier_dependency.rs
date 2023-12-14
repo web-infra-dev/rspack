@@ -481,7 +481,7 @@ impl HarmonyExportImportedSpecifierDependency {
             "/* empty/unused harmony star reexport */\n".to_string(),
             InitFragmentStage::StageHarmonyExports,
             1,
-            InitFragmentKey::HarmonyExports,
+            InitFragmentKey::unique(),
             None,
           )
           .boxed(),
@@ -495,7 +495,7 @@ impl HarmonyExportImportedSpecifierDependency {
           )),
           InitFragmentStage::StageHarmonyExports,
           1,
-          InitFragmentKey::HarmonyExports,
+          InitFragmentKey::unique(),
           None,
         )
         .boxed(),
@@ -623,7 +623,7 @@ impl HarmonyExportImportedSpecifierDependency {
                 InitFragmentStage::StageHarmonyImports
               },
               self.source_order,
-              InitFragmentKey::HarmonyImport("NormalInitFragment".to_string()),
+              InitFragmentKey::unique(),
               None,
             )));
           } else {
@@ -698,7 +698,7 @@ impl HarmonyExportImportedSpecifierDependency {
               InitFragmentStage::StageHarmonyImports
             },
             self.source_order,
-            InitFragmentKey::HarmonyImport("DynamicReexport".to_string()),
+            InitFragmentKey::unique(),
             None,
           )
           .boxed(),
@@ -774,7 +774,7 @@ impl HarmonyExportImportedSpecifierDependency {
         format!("var {name}_namespace_cache;\n"),
         InitFragmentStage::StageConstants,
         -1,
-        InitFragmentKey::HarmonyFakeNamespaceObjectFragment(format!("{name}_namespace_cache")),
+        InitFragmentKey::unique(),
         None,
       )
       .boxed(),
@@ -810,7 +810,7 @@ impl HarmonyExportImportedSpecifierDependency {
       runtime_requirements,
       ..
     } = ctxt;
-    let return_value = Self::get_return_value(key.to_string(), value_key);
+    let return_value = Self::get_return_value(name.to_string(), value_key);
     let mgm = compilation
       .module_graph
       .module_graph_module_by_identifier(&module.identifier())
@@ -820,9 +820,9 @@ impl HarmonyExportImportedSpecifierDependency {
     runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
     format!(
-      "if({}({}, {})) {}({}, {{ {}: function() {{ return {}; }} }});",
+      "if({}({}, {})) {}({}, {{ {}: function() {{ return {}; }} }});\n",
       RuntimeGlobals::HAS_OWN_PROPERTY,
-      key,
+      name,
       serde_json::to_string(&first_value_key.to_string()).expect("should serialize to string"),
       RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
       exports_name,
