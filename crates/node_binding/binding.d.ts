@@ -938,7 +938,6 @@ export interface RawNodeOption {
 }
 
 export interface RawOptimizationOptions {
-  splitChunks?: RawSplitChunksOptions
   moduleIds: string
   chunkIds: string
   removeAvailableModules: boolean
@@ -1140,7 +1139,7 @@ export interface RawSplitChunksOptions {
   name?: string | false | Function
   cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
-  chunks?: RegExp | 'async' | 'initial' | 'all'
+  chunks?: RegExp | 'async' | 'initial' | 'all' | Function
   automaticNameDelimiter?: string
   maxAsyncRequests?: number
   maxInitialRequests?: number

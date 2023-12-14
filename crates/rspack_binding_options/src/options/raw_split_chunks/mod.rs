@@ -1,9 +1,11 @@
 mod raw_split_chunk_cache_group_test;
+mod raw_split_chunk_chunks;
 mod raw_split_chunk_name;
 
 use std::sync::Arc;
 
 use derivative::Derivative;
+use napi::bindgen_prelude::Either3;
 use napi::{Either, JsString};
 use napi_derive::napi;
 use raw_split_chunk_name::normalize_raw_chunk_name;
@@ -18,9 +20,8 @@ use serde::Deserialize;
 use self::raw_split_chunk_cache_group_test::default_cache_group_test;
 use self::raw_split_chunk_cache_group_test::normalize_raw_cache_group_test;
 use self::raw_split_chunk_cache_group_test::RawCacheGroupTest;
+use self::raw_split_chunk_chunks::{create_chunks_filter, Chunks};
 use self::raw_split_chunk_name::default_chunk_option_name;
-
-type Chunks = Either<JsRegExp, JsString>;
 
 #[derive(Derivative, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -35,7 +36,7 @@ pub struct RawSplitChunksOptions {
   pub cache_groups: Option<Vec<RawCacheGroupOptions>>,
   /// What kind of chunks should be selected.
   #[serde(skip_deserializing)]
-  #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
+  #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all' | Function")]
   #[derivative(Debug = "ignore")]
   pub chunks: Option<Chunks>,
   pub automatic_name_delimiter: Option<String>,
@@ -67,7 +68,7 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::SplitChunksOpti
       min_remaining_size: value.min_remaining_size,
       automatic_name_delimiter: Some(DEFAULT_DELIMITER.to_string()),
       chunks: value.chunks.map(|chunks| {
-        let Either::B(chunks) = chunks else {
+        let Either3::B(chunks) = chunks else {
           panic!("expected string")
         };
         let chunks = chunks.into_string();
@@ -97,7 +98,7 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::SplitChunksOpti
               f // FIXME: since old split chunk will not used so I use `|| -> false` here
             }),
             chunks: v.chunks.map(|chunks| {
-              let Either::B(chunks) = chunks else {
+              let Either3::B(chunks) = chunks else {
                 panic!("expected string")
               };
               let chunks = chunks.into_string();
@@ -161,18 +162,6 @@ pub struct RawCacheGroupOptions {
   // used_exports: bool,
   pub reuse_existing_chunk: Option<bool>,
   pub enforce: Option<bool>,
-}
-
-fn create_chunks_filter(raw: Chunks) -> rspack_plugin_split_chunks_new::ChunkFilter {
-  match raw {
-    Either::A(reg) => {
-      rspack_plugin_split_chunks_new::create_regex_chunk_filter_from_str(reg.to_rspack_regex())
-    }
-    Either::B(js_str) => {
-      let js_str = js_str.into_string();
-      rspack_plugin_split_chunks_new::create_chunk_filter_from_str(&js_str)
-    }
-  }
 }
 
 impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks_new::PluginOptions {

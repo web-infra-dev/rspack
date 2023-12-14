@@ -8,7 +8,8 @@ import {
 import { SharePlugin, Shared } from "../sharing/SharePlugin";
 import { isValidate } from "../util/validate";
 import { ContainerPlugin, Exposes } from "./ContainerPlugin";
-import { ContainerReferencePlugin, Remotes } from "./ContainerReferencePlugin";
+import { Remotes } from "./ContainerReferencePlugin";
+import { ContainerReferencePlugin } from "./ContainerReferencePlugin";
 import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";
 
 export interface ModuleFederationPluginOptions {

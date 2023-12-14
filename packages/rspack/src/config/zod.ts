@@ -5,6 +5,7 @@ import type * as oldBuiltins from "../builtin-plugin";
 import type * as webpackDevServer from "webpack-dev-server";
 import { deprecatedWarn, termlink } from "../util";
 import { Module } from "../Module";
+import { Chunk } from "../Chunk";
 
 //#region Name
 const name = z.string();
@@ -940,7 +941,8 @@ const optimizationSplitChunksName = z
 	.or(optimizationSplitChunksNameFunction);
 const optimizationSplitChunksChunks = z
 	.enum(["initial", "async", "all"])
-	.or(z.instanceof(RegExp));
+	.or(z.instanceof(RegExp))
+	.or(z.function().args(z.instanceof(Chunk)).returns(z.boolean()));
 const optimizationSplitChunksSizes = z.number();
 const sharedOptimizationSplitChunksCacheGroup = {
 	chunks: optimizationSplitChunksChunks.optional(),

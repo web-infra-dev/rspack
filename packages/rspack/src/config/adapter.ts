@@ -1,5 +1,4 @@
 import type {
-	RawCacheGroupOptions,
 	RawModuleRule,
 	RawOptions,
 	RawRuleSetCondition,
@@ -18,7 +17,6 @@ import type {
 	RawRspackFuture,
 	RawLibraryName,
 	RawLibraryOptions,
-	JsModule,
 	RawModuleRuleUse
 } from "@rspack/binding";
 import assert from "assert";
@@ -54,7 +52,6 @@ import {
 	ParserOptionsByModuleType,
 	GeneratorOptionsByModuleType,
 	IncrementalRebuildOptions,
-	OptimizationSplitChunksOptions,
 	RspackFutureOptions,
 	JavascriptParserOptions,
 	LibraryName,
@@ -67,7 +64,6 @@ import {
 	OutputNormalized,
 	RspackOptionsNormalized
 } from "./normalization";
-import { Module } from "../Module";
 
 export type { LoaderContext, LoaderDefinition, LoaderDefinitionFunction };
 
@@ -715,7 +711,6 @@ function getRawOptimization(
 	);
 	return {
 		chunkIds: optimization.chunkIds,
-		splitChunks: toRawSplitChunksOptions(optimization.splitChunks),
 		moduleIds: optimization.moduleIds,
 		removeAvailableModules: optimization.removeAvailableModules,
 		removeEmptyChunks: optimization.removeEmptyChunks,
@@ -725,71 +720,6 @@ function getRawOptimization(
 		providedExports: optimization.providedExports,
 		innerGraph: optimization.innerGraph,
 		mangleExports: String(optimization.mangleExports)
-	};
-}
-
-export function toRawSplitChunksOptions(
-	sc?: false | OptimizationSplitChunksOptions
-): RawOptions["optimization"]["splitChunks"] | undefined {
-	if (!sc) {
-		return;
-	}
-
-	function getName(name: any) {
-		interface Context {
-			module: JsModule;
-		}
-
-		if (typeof name === "function") {
-			return (ctx: Context) => {
-				if (typeof ctx.module === "undefined") {
-					return name(undefined);
-				} else {
-					return name(Module.__from_binding(ctx.module));
-				}
-			};
-		} else {
-			return name;
-		}
-	}
-
-	function getTest(test: any) {
-		interface Context {
-			module: JsModule;
-		}
-
-		if (typeof test === "function") {
-			return (ctx: Context) => {
-				if (typeof ctx.module === "undefined") {
-					return test(undefined);
-				} else {
-					return test(Module.__from_binding(ctx.module));
-				}
-			};
-		} else {
-			return test;
-		}
-	}
-
-	const { name, cacheGroups = {}, ...passThrough } = sc;
-
-	return {
-		name: getName(name),
-		cacheGroups: Object.entries(cacheGroups)
-			.filter(([_key, group]) => group !== false)
-			.map(([key, group]) => {
-				group = group as Exclude<typeof group, false>;
-
-				const { test, name, ...passThrough } = group;
-				const rawGroup: RawCacheGroupOptions = {
-					key,
-					test: getTest(test),
-					name: getName(name),
-					...passThrough
-				};
-				return rawGroup;
-			}),
-		...passThrough
 	};
 }
 
