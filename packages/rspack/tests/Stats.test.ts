@@ -385,28 +385,31 @@ describe("Stats", () => {
 	`);
 	});
 
-	it.only("should have children when using childCompiler", async () => {
+	it("should have children when using childCompiler", async () => {
 		let statsJson;
 
 		class TestPlugin {
 			apply(compiler: Compiler) {
-				compiler.hooks.thisCompilation.tap("custom", compilation => {
-					const child = compiler.createChildCompiler(
-						compilation,
-						"TestChild",
-						1,
-						compilation.outputOptions,
-						[
-							new compiler.webpack.EntryPlugin(
-								compiler.context,
-								"./fixtures/b",
-								{ name: "TestChild" }
-							)
-						]
+				compiler.hooks.thisCompilation.tap(TestPlugin.name, compilation => {
+					compilation.hooks.processAssets.tapAsync(
+						TestPlugin.name,
+						async (assets, callback) => {
+							const child = compiler.createChildCompiler(
+								compilation,
+								"TestChild",
+								1,
+								compilation.outputOptions,
+								[
+									new compiler.webpack.EntryPlugin(
+										compiler.context,
+										"./fixtures/abc",
+										{ name: "TestChild" }
+									)
+								]
+							);
+							child.runAsChild(err => callback(err));
+						}
 					);
-					child.runAsChild(err => {
-						if (err) throw err;
-					});
 				});
 				compiler.hooks.done.tap("test plugin", stats => {
 					statsJson = stats.toJson({
