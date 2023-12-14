@@ -185,7 +185,7 @@ impl Chunk {
       }
     }
 
-    for group_ukey in self.get_sorted_groups_iter(&chunk_group_by_ukey) {
+    for group_ukey in self.get_sorted_groups_iter(chunk_group_by_ukey) {
       visit_chunk_groups.insert(*group_ukey);
       add_chunks(
         group_ukey,
