@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::{fmt::Debug, hash::Hash, sync::Arc};
 
+use indexmap::IndexSet;
 use itertools::Itertools;
 use rspack_database::{DatabaseItem, Ukey};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -153,16 +154,13 @@ impl Chunk {
   pub fn get_all_referenced_chunks(
     &self,
     chunk_group_by_ukey: &ChunkGroupByUkey,
-  ) -> HashSet<ChunkUkey> {
-    let mut chunks: std::collections::HashSet<
-      rspack_database::Ukey<Chunk>,
-      std::hash::BuildHasherDefault<rustc_hash::FxHasher>,
-    > = HashSet::default();
+  ) -> IndexSet<ChunkUkey> {
+    let mut chunks: IndexSet<ChunkUkey> = IndexSet::default();
     let mut visit_chunk_groups = HashSet::default();
 
     fn add_chunks(
       chunk_group_ukey: &ChunkGroupUkey,
-      chunks: &mut HashSet<ChunkUkey>,
+      chunks: &mut IndexSet<ChunkUkey>,
       chunk_group_by_ukey: &ChunkGroupByUkey,
       visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
     ) {
@@ -187,7 +185,7 @@ impl Chunk {
       }
     }
 
-    for group_ukey in &self.groups {
+    for group_ukey in self.get_sorted_groups_iter(&chunk_group_by_ukey) {
       visit_chunk_groups.insert(*group_ukey);
       add_chunks(
         group_ukey,
@@ -302,11 +300,14 @@ impl Chunk {
       .any(|group| group.kind.is_entrypoint() && group.get_runtime_chunk() == self.ukey)
   }
 
-  pub fn get_all_async_chunks(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> HashSet<ChunkUkey> {
+  pub fn get_all_async_chunks(
+    &self,
+    chunk_group_by_ukey: &ChunkGroupByUkey,
+  ) -> IndexSet<ChunkUkey> {
     use rustc_hash::FxHashSet;
 
-    let mut queue = HashSet::default();
-    let mut chunks = HashSet::default();
+    let mut queue = IndexSet::default();
+    let mut chunks = IndexSet::default();
 
     let initial_chunks = self
       .groups
@@ -316,12 +317,15 @@ impl Chunk {
       .reduce(|acc, prev| acc.intersection(&prev).copied().collect::<FxHashSet<_>>())
       .unwrap_or_default();
 
-    let mut initial_queue = self.groups.clone();
+    let mut initial_queue = self
+      .get_sorted_groups_iter(chunk_group_by_ukey)
+      .map(|c| c.to_owned())
+      .collect::<FxHashSet<_>>();
     let mut visit_chunk_groups = HashSet::default();
 
     fn add_to_queue(
       chunk_group_by_ukey: &ChunkGroupByUkey,
-      queue: &mut HashSet<ChunkGroupUkey>,
+      queue: &mut IndexSet<ChunkGroupUkey>,
       initial_queue: &mut HashSet<ChunkGroupUkey>,
       chunk_group_ukey: &ChunkGroupUkey,
     ) {
@@ -350,7 +354,7 @@ impl Chunk {
 
     fn add_chunks(
       chunk_group_by_ukey: &ChunkGroupByUkey,
-      chunks: &mut HashSet<ChunkUkey>,
+      chunks: &mut IndexSet<ChunkUkey>,
       initial_chunks: &HashSet<ChunkUkey>,
       chunk_group_ukey: &ChunkGroupUkey,
       visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
