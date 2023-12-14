@@ -34,6 +34,7 @@ describe("Stats", () => {
 		    entry ./fixtures/a
 		./fixtures/a.js [585] {main}
 		  entry ./fixtures/a
+		  
 		Rspack compiled successfully (a62f45ec3d75aa689fa1)"
 	`);
 	});
@@ -380,6 +381,55 @@ describe("Stats", () => {
 		    ],
 		    "name": "main",
 		  },
+		}
+	`);
+	});
+
+	it.only("should have children when using childCompiler", async () => {
+		let statsJson;
+
+		class TestPlugin {
+			apply(compiler: Compiler) {
+				compiler.hooks.thisCompilation.tap("custom", compilation => {
+					const child = compiler.createChildCompiler(
+						compilation,
+						"TestChild",
+						1,
+						compilation.outputOptions,
+						[
+							new compiler.webpack.EntryPlugin(
+								compiler.context,
+								"./fixtures/b",
+								{ name: "TestChild" }
+							)
+						]
+					);
+					child.runAsChild(err => {
+						if (err) throw err;
+					});
+				});
+				compiler.hooks.done.tap("test plugin", stats => {
+					statsJson = stats.toJson({
+						all: false,
+						children: true
+					});
+				});
+			}
+		}
+		await compile({
+			context: __dirname,
+			entry: "./fixtures/a",
+			plugins: [new TestPlugin()]
+		});
+
+		expect(statsJson).toMatchInlineSnapshot(`
+		{
+		  "children": [
+		    {
+		      "children": [],
+		      "name": "TestChild",
+		    },
+		  ],
 		}
 	`);
 	});

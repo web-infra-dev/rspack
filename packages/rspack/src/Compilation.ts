@@ -347,11 +347,13 @@ export class Compilation {
 		options.loggingDebug = []
 			.concat(optionsOrFallback(options.loggingDebug, []))
 			.map(normalizeFilter);
-
 		options.modulesSpace =
 			options.modulesSpace || (context.forToString ? 15 : Infinity);
-
 		options.ids = optionOrLocalFallback(options.ids, !context.forToString);
+		options.children = optionOrLocalFallback(
+			options.children,
+			!context.forToString
+		);
 
 		return options;
 	}
