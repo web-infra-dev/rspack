@@ -1,11 +1,12 @@
 use std::cmp::Ordering;
+use std::hash::BuildHasherDefault;
 use std::{fmt::Debug, hash::Hash, sync::Arc};
 
 use indexmap::IndexSet;
 use itertools::Itertools;
 use rspack_database::{DatabaseItem, Ukey};
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use crate::{ChunkGraph, ChunkGroup};
 use crate::{ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, SourceType};
@@ -154,13 +155,13 @@ impl Chunk {
   pub fn get_all_referenced_chunks(
     &self,
     chunk_group_by_ukey: &ChunkGroupByUkey,
-  ) -> IndexSet<ChunkUkey> {
-    let mut chunks: IndexSet<ChunkUkey> = IndexSet::default();
+  ) -> IndexSet<ChunkUkey, BuildHasherDefault<FxHasher>> {
+    let mut chunks = IndexSet::default();
     let mut visit_chunk_groups = HashSet::default();
 
     fn add_chunks(
       chunk_group_ukey: &ChunkGroupUkey,
-      chunks: &mut IndexSet<ChunkUkey>,
+      chunks: &mut IndexSet<ChunkUkey, BuildHasherDefault<FxHasher>>,
       chunk_group_by_ukey: &ChunkGroupByUkey,
       visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
     ) {
@@ -201,13 +202,13 @@ impl Chunk {
   pub fn get_all_initial_chunks(
     &self,
     chunk_group_by_ukey: &ChunkGroupByUkey,
-  ) -> HashSet<ChunkUkey> {
-    let mut chunks = HashSet::default();
+  ) -> IndexSet<ChunkUkey, BuildHasherDefault<FxHasher>> {
+    let mut chunks = IndexSet::default();
     let mut visit_chunk_groups = HashSet::default();
 
     fn add_chunks(
       chunk_group_ukey: &ChunkGroupUkey,
-      chunks: &mut HashSet<ChunkUkey>,
+      chunks: &mut IndexSet<ChunkUkey, BuildHasherDefault<FxHasher>>,
       chunk_group_by_ukey: &ChunkGroupByUkey,
       visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
     ) {
@@ -234,7 +235,7 @@ impl Chunk {
       }
     }
 
-    for group_ukey in &self.groups {
+    for group_ukey in self.get_sorted_groups_iter(chunk_group_by_ukey) {
       add_chunks(
         group_ukey,
         &mut chunks,
@@ -249,13 +250,13 @@ impl Chunk {
   pub fn get_all_referenced_async_entrypoints(
     &self,
     chunk_group_by_ukey: &ChunkGroupByUkey,
-  ) -> HashSet<ChunkGroupUkey> {
-    let mut async_entrypoints = HashSet::default();
+  ) -> IndexSet<ChunkGroupUkey, BuildHasherDefault<FxHasher>> {
+    let mut async_entrypoints = IndexSet::default();
     let mut visit_chunk_groups = HashSet::default();
 
     fn add_async_entrypoints(
       chunk_group_ukey: &ChunkGroupUkey,
-      async_entrypoints: &mut HashSet<ChunkGroupUkey>,
+      async_entrypoints: &mut IndexSet<ChunkGroupUkey, BuildHasherDefault<FxHasher>>,
       chunk_group_by_ukey: &ChunkGroupByUkey,
       visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
     ) {
@@ -280,7 +281,7 @@ impl Chunk {
       }
     }
 
-    for group_ukey in &self.groups {
+    for group_ukey in self.get_sorted_groups_iter(chunk_group_by_ukey) {
       add_async_entrypoints(
         group_ukey,
         &mut async_entrypoints,
@@ -303,7 +304,7 @@ impl Chunk {
   pub fn get_all_async_chunks(
     &self,
     chunk_group_by_ukey: &ChunkGroupByUkey,
-  ) -> IndexSet<ChunkUkey> {
+  ) -> IndexSet<ChunkUkey, BuildHasherDefault<FxHasher>> {
     use rustc_hash::FxHashSet;
 
     let mut queue = IndexSet::default();
@@ -325,7 +326,7 @@ impl Chunk {
 
     fn add_to_queue(
       chunk_group_by_ukey: &ChunkGroupByUkey,
-      queue: &mut IndexSet<ChunkGroupUkey>,
+      queue: &mut IndexSet<ChunkGroupUkey, BuildHasherDefault<FxHasher>>,
       initial_queue: &mut HashSet<ChunkGroupUkey>,
       chunk_group_ukey: &ChunkGroupUkey,
     ) {
@@ -354,7 +355,7 @@ impl Chunk {
 
     fn add_chunks(
       chunk_group_by_ukey: &ChunkGroupByUkey,
-      chunks: &mut IndexSet<ChunkUkey>,
+      chunks: &mut IndexSet<ChunkUkey, BuildHasherDefault<FxHasher>>,
       initial_chunks: &HashSet<ChunkUkey>,
       chunk_group_ukey: &ChunkGroupUkey,
       visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
