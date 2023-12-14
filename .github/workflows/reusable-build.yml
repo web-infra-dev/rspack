@@ -222,7 +222,7 @@ jobs:
           options: -v ${{ runner.tool_cache }}:$HOME/.tool_cache
           script: |
             export PATH=$HOME/.tool_cache/pnpm/node_modules/.bin:$PATH
-            pnpm run build:js && pnpm run build:viewer
+            pnpm run build:js
             pnpm run test:e2e
 
   test:
