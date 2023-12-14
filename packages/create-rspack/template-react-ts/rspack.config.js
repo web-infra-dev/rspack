@@ -58,5 +58,5 @@ module.exports = {
 			template: "./index.html"
 		}),
 		isDev ? new refreshPlugin() : null
-	].filter(Boolean),
+	].filter(Boolean)
 };

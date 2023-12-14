@@ -169,5 +169,5 @@ export type TDiffStatsItem = {
 
 export type TDiffStats = {
 	root: string;
-	data: Array<TDiffStatsItem>
+	data: Array<TDiffStatsItem>;
 };
