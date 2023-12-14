@@ -185,7 +185,6 @@ function checkCompareResults(
 
 const caseDir: string = path.resolve(__dirname, "runtimeDiffCases");
 const tempDir: string = path.resolve(__dirname, "js");
-const cases: string[] = fs.readdirSync(caseDir).filter(isValidTestCaseDir);
 
 describe(`RuntimeDiffCases`, () => {
 	for (let name of globSync("**/test.config.js", {

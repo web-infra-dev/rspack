@@ -11,11 +11,13 @@ module.exports = {
 					chunks: "all",
 					test: /shared/,
 					filename: "shared-[name].js",
+					priority: 1,
 					enforce: true
 				},
 				common: {
 					chunks: "all",
 					filename: "common-[name].js",
+					priority: 2,
 					test: /common/,
 					enforce: true
 				},
@@ -23,6 +25,7 @@ module.exports = {
 					chunks: "all",
 					test: /other/,
 					filename: "other-[name].js",
+					priority: 3,
 					enforce: true
 				}
 			}
