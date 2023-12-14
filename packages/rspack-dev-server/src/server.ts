@@ -166,7 +166,7 @@ export class RspackDevServer extends WebpackDevServer {
 
 				// Apply modified version of `ansi-html-community`
 				compiler.options.resolve.alias = {
-					"ansi-html-community": path.resolve(__dirname, "./ansi-html"),
+					"ansi-html-community": path.resolve(__dirname, "./ansiHTML"),
 					...compiler.options.resolve.alias
 				};
 
