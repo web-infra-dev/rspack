@@ -8,7 +8,6 @@ use rspack_util::ext::DynHash;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use serde::Serialize;
-use swc_core::ecma::atoms::hstr::Atom;
 use swc_core::ecma::atoms::JsWord;
 
 use crate::property_access;
@@ -581,7 +580,7 @@ pub fn string_of_used_name(used: Option<&UsedName>) -> String {
   match used {
     Some(UsedName::Str(str)) => str.to_string(),
     Some(UsedName::Vec(value_key)) => property_access(value_key, 0)
-      .trim_start_matches(".")
+      .trim_start_matches('.')
       .to_string(),
     None => "/* unused export */ undefined".to_string(),
   }

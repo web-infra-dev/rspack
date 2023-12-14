@@ -7,13 +7,12 @@ use rspack_core::{
   string_of_used_name, AsContextDependency, ConnectionState, Dependency, DependencyCategory,
   DependencyCondition, DependencyId, DependencyTemplate, DependencyType, ExportInfoId,
   ExportInfoProvided, ExportNameOrSpec, ExportSpec, ExportsInfoId, ExportsOfExportsSpec,
-  ExportsSpec, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, InitFragment,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, NormalInitFragment, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
+  ExportsSpec, ExportsType, ExtendedReferencedExport, HarmonyExportInitFragment, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  NormalInitFragment, RuntimeGlobals, RuntimeSpec, Template, TemplateContext,
   TemplateReplaceSource, UsageState, UsedName,
 };
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::ecma::atoms::hstr::Atom;
 use swc_core::ecma::atoms::JsWord;
 
 use super::{create_resource_identifier_for_esm_dependency, harmony_import_dependency_apply};
@@ -468,7 +467,7 @@ impl HarmonyExportImportedSpecifierDependency {
       ..
     } = ctxt;
     let mut fragments = vec![];
-    let mut mg = &compilation.module_graph;
+    let mg = &compilation.module_graph;
     let imported_module = mg
       .module_identifier_by_dependency_id(&self.id)
       .expect("should have imported module identifier");
@@ -592,7 +591,7 @@ impl HarmonyExportImportedSpecifierDependency {
             ids,
             hidden,
             checked,
-            export_info,
+            export_info: _,
           } = item;
 
           if hidden {
@@ -690,7 +689,7 @@ impl HarmonyExportImportedSpecifierDependency {
             format!(
               "{content}\n/* harmony reexport (unknown) */ {}({}, __WEBPACK_REEXPORT_OBJECT__);\n",
               RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-              exports_name.to_string()
+              exports_name
             ),
             if is_async {
               InitFragmentStage::StageAsyncHarmonyImports

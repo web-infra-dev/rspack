@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 
 use rspack_core::{
   BuildMetaExportsType, Compilation, DependenciesBlock, DependencyId, ExportInfoProvided,
-  ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, Module, ModuleGraph,
+  ExportNameOrSpec, ExportsInfoId, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, Plugin,
 };
 use rspack_error::Result;
@@ -113,7 +113,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
       //   let d = ele.get_dependency(&self.mg);
       //   dbg!(&d.dependency_debug_name(), d.as_module_dependency());
       // }
-      let dep = self.process_dependency(ele, exports_specs_from_dependencies);
+      let _dep = self.process_dependency(ele, exports_specs_from_dependencies);
     }
     for block_id in block.get_blocks() {
       let block = self.mg.block_by_id(block_id)?;
@@ -129,7 +129,7 @@ impl<'a> FlagDependencyExportsProxy<'a> {
   ) -> Option<()> {
     let dep = self.mg.dependency_by_id(dep_id)?;
     // this is why we can bubble here. https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/FlagDependencyExportsPlugin.js#L140
-    let module_id = self.mg.parent_module_by_dependency_id(dep.id());
+    let _module_id = self.mg.parent_module_by_dependency_id(dep.id());
     // dbg!(
     //   &module_id,
     //   &dep.get_exports(self.mg),

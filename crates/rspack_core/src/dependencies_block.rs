@@ -74,12 +74,6 @@ pub struct AsyncDependenciesBlock {
   loc: Option<DependencyLocation>,
 }
 
-impl Identifiable for AsyncDependenciesBlock {
-  fn identifier(&self) -> rspack_identifier::Identifier {
-    self.id.from
-  }
-}
-
 impl AsyncDependenciesBlock {
   /// modifier should be Dependency.span in most of time
   pub fn new(

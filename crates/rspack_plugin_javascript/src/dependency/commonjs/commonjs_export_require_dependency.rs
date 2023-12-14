@@ -62,8 +62,8 @@ impl Dependency for CommonJsExportRequireDependency {
     Some(ExportsSpec {
       exports: ExportsOfExportsSpec::True,
       can_mangle: Some(false),
-      from: if self.ids.len() == 0 {
-        Some(con.clone())
+      from: if self.ids.is_empty() {
+        Some(*con)
       } else {
         None
       },

@@ -9,7 +9,6 @@ use rspack_core::{ErrorSpan, ModuleType};
 use rspack_error::{DiagnosticKind, Error};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{SourceFile, Span, Spanned};
-use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::parser::{EsConfig, TsConfig};
 
