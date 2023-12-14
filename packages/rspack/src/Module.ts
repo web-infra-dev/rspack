@@ -19,6 +19,10 @@ export class Module {
 		return this.#inner.context;
 	}
 
+	get resource(): string | undefined {
+		return this.#inner.resource;
+	}
+
 	identifier(): string {
 		return this.#inner.moduleIdentifier;
 	}
