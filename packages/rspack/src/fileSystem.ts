@@ -46,14 +46,19 @@ const rmrfBuild = (fs: typeof import("fs")) => {
 	const rmrf = async (dir: string) => {
 		if (await exists(dir)) {
 			const files = await util.promisify(fs.readdir.bind(fs))(dir);
-			for (const file of files) {
-				const filePath = join(dir, file);
-				if ((await util.promisify(fs.lstat.bind(fs))(filePath)).isDirectory()) {
-					await rmrf(filePath);
-				} else {
-					await util.promisify(fs.unlink.bind(fs))(filePath);
-				}
-			}
+			await Promise.all(
+				files
+					.map(f => join(dir, f))
+					.map(async filePath => {
+						if (
+							(await util.promisify(fs.lstat.bind(fs))(filePath)).isDirectory()
+						) {
+							await rmrf(filePath);
+						} else {
+							await util.promisify(fs.unlink.bind(fs))(filePath);
+						}
+					})
+			);
 			await util.promisify(fs.rmdir.bind(fs))(dir);
 		}
 	};
