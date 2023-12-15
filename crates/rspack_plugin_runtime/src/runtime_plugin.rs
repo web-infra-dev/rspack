@@ -9,7 +9,6 @@ use rspack_core::{
   PluginRuntimeRequirementsInTreeOutput, PublicPath, RuntimeGlobals, RuntimeModuleExt,
   RuntimeRequirementsInTreeArgs, SourceType, FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
 };
-use rspack_plugin_mf::ShareRuntimeModule;
 
 use crate::runtime_module::{
   is_enabled_for_chunk, AsyncRuntimeModule, AutoPublicPathRuntimeModule, BaseUriRuntimeModule,
@@ -200,10 +199,6 @@ impl Plugin for RuntimePlugin {
         )
         .boxed(),
       )
-    }
-
-    if runtime_requirements.contains(RuntimeGlobals::SHARE_SCOPE_MAP) {
-      compilation.add_runtime_module(args.chunk, Box::<ShareRuntimeModule>::default());
     }
 
     if compilation.options.output.trusted_types.is_some() {

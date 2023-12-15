@@ -11,13 +11,15 @@ use crate::utils::json_stringify;
 pub struct ExposeRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
+  enhanced: bool,
 }
 
-impl Default for ExposeRuntimeModule {
-  fn default() -> Self {
+impl ExposeRuntimeModule {
+  pub fn new(enhanced: bool) -> Self {
     Self {
       id: Identifier::from("webpack/runtime/initialize_exposes"),
       chunk: None,
+      enhanced,
     }
   }
 }
@@ -85,7 +87,7 @@ __webpack_require__.initializeExposesData = {{
       module_map,
       json_stringify(&data.share_scope)
     );
-    if compilation.options.output.enhanced_module_federation {
+    if self.enhanced {
       source += "__webpack_require__.getContainer = function() { throw new Error(\"should have __webpack_require__.getContainer\") };";
       source += "__webpack_require__.initContainer = function() { throw new Error(\"should have __webpack_require__.initContainer\") };";
     } else {

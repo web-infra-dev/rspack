@@ -14,13 +14,15 @@ use crate::utils::json_stringify;
 pub struct ConsumeSharedRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
+  enhanced: bool,
 }
 
-impl Default for ConsumeSharedRuntimeModule {
-  fn default() -> Self {
+impl ConsumeSharedRuntimeModule {
+  pub fn new(enhanced: bool) -> Self {
     Self {
       id: Identifier::from("webpack/runtime/consumes_loading"),
       chunk: None,
+      enhanced,
     }
   }
 }
@@ -116,7 +118,7 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
       module_to_consume_data_mapping = module_id_to_consume_data_mapping,
       initial_consumes = json_stringify(&initial_consumes),
     );
-    if compilation.options.output.enhanced_module_federation {
+    if self.enhanced {
       if compilation
         .chunk_graph
         .get_chunk_graph_chunk(&chunk_ukey)

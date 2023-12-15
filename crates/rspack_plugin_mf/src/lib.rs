@@ -8,11 +8,14 @@ pub use container::container_plugin::{ContainerPlugin, ContainerPluginOptions, E
 pub use container::container_reference_plugin::{
   ContainerReferencePlugin, ContainerReferencePluginOptions, RemoteOptions,
 };
-pub use sharing::consume_shared_plugin::{ConsumeOptions, ConsumeSharedPlugin, ConsumeVersion};
+pub use sharing::consume_shared_plugin::{
+  ConsumeOptions, ConsumeSharedPlugin, ConsumeSharedPluginOptions, ConsumeVersion,
+};
 pub use sharing::provide_shared_plugin::{ProvideOptions, ProvideSharedPlugin, ProvideVersion};
 pub use sharing::share_runtime_module::{
   CodeGenerationDataShareInit, DataInitStage, ShareInitData, ShareRuntimeModule,
 };
+pub use sharing::share_runtime_plugin::ShareRuntimePlugin;
 
 mod utils {
   use std::fmt;

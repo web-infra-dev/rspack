@@ -22,15 +22,14 @@ export interface ModuleFederationPluginOptions {
 	shared?: Shared;
 	enhanced?: Enhanced;
 }
-export type Enhanced = EnhancedConfig | boolean;
-export interface EnhancedConfig {}
+export type Enhanced = boolean;
 
 export class ModuleFederationPlugin {
 	constructor(private _options: ModuleFederationPluginOptions) {}
 
 	apply(compiler: Compiler) {
 		const { _options: options } = this;
-		compiler.options.output.enhancedModuleFederation = !!options.enhanced;
+		const enhanced = options.enhanced ?? false;
 
 		const library = options.library || { type: "var", name: options.name };
 		const remoteType =
@@ -57,7 +56,8 @@ export class ModuleFederationPlugin {
 					filename: options.filename,
 					runtime: options.runtime,
 					shareScope: options.shareScope,
-					exposes: options.exposes
+					exposes: options.exposes,
+					enhanced
 				}).apply(compiler);
 			}
 			if (
@@ -69,13 +69,15 @@ export class ModuleFederationPlugin {
 				new ContainerReferencePlugin({
 					remoteType,
 					shareScope: options.shareScope,
-					remotes: options.remotes
+					remotes: options.remotes,
+					enhanced
 				}).apply(compiler);
 			}
 			if (options.shared) {
 				new SharePlugin({
 					shared: options.shared,
-					shareScope: options.shareScope
+					shareScope: options.shareScope,
+					enhanced
 				}).apply(compiler);
 			}
 		});

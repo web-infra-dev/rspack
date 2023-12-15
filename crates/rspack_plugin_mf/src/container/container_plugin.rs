@@ -23,6 +23,7 @@ pub struct ContainerPluginOptions {
   pub runtime: Option<EntryRuntime>,
   pub filename: Option<Filename>,
   pub exposes: Vec<(String, ExposeOptions)>,
+  pub enhanced: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -102,9 +103,10 @@ impl Plugin for ContainerPlugin {
       args
         .runtime_requirements
         .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-      args
-        .compilation
-        .add_runtime_module(args.chunk, Box::<ExposeRuntimeModule>::default());
+      args.compilation.add_runtime_module(
+        args.chunk,
+        Box::new(ExposeRuntimeModule::new(self.options.enhanced)),
+      );
     }
     Ok(())
   }

@@ -13,13 +13,15 @@ use crate::utils::json_stringify;
 pub struct RemoteRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
+  enhanced: bool,
 }
 
-impl Default for RemoteRuntimeModule {
-  fn default() -> Self {
+impl RemoteRuntimeModule {
+  pub fn new(enhanced: bool) -> Self {
     Self {
       id: Identifier::from("webpack/runtime/remotes_loading"),
       chunk: None,
+      enhanced,
     }
   }
 }
@@ -82,7 +84,7 @@ impl RuntimeModule for RemoteRuntimeModule {
         remotes,
       );
     }
-    let remotes_loading_impl = if compilation.options.output.enhanced_module_federation {
+    let remotes_loading_impl = if self.enhanced {
       "__webpack_require__.f.remotes = function() { throw new Error(\"should have __webpack_require__.f.remotes\"); }"
     } else {
       include_str!("./remotesLoading.js")

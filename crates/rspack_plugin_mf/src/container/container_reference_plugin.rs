@@ -18,6 +18,7 @@ pub struct ContainerReferencePluginOptions {
   pub remote_type: ExternalType,
   pub remotes: Vec<(String, RemoteOptions)>,
   pub share_scope: Option<String>,
+  pub enhanced: bool,
 }
 
 #[derive(Debug)]
@@ -129,9 +130,10 @@ impl Plugin for ContainerReferencePlugin {
       args
         .runtime_requirements_mut
         .insert(RuntimeGlobals::SHARE_SCOPE_MAP);
-      args
-        .compilation
-        .add_runtime_module(args.chunk, Box::<RemoteRuntimeModule>::default());
+      args.compilation.add_runtime_module(
+        args.chunk,
+        Box::new(RemoteRuntimeModule::new(self.options.enhanced)),
+      );
     }
     Ok(())
   }

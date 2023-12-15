@@ -74,9 +74,7 @@ import type {
 	GeneratorOptionsByModuleType,
 	IncrementalRebuildOptions,
 	RspackFutureOptions,
-	HotUpdateGlobal,
-	ScriptType,
-	EnhancedModuleFederation
+	HotUpdateGlobal
 } from "./zod";
 
 export const getNormalizedRspackOptions = (
@@ -216,8 +214,7 @@ export const getNormalizedRspackOptions = (
 				workerChunkLoading: output.workerChunkLoading,
 				workerWasmLoading: output.workerWasmLoading,
 				workerPublicPath: output.workerPublicPath,
-				scriptType: output.scriptType,
-				enhancedModuleFederation: output.enhancedModuleFederation
+				scriptType: output.scriptType
 			};
 		}),
 		resolve: nestedConfig(config.resolve, resolve => ({
@@ -481,7 +478,6 @@ export interface OutputNormalized {
 	workerWasmLoading?: WasmLoading;
 	workerPublicPath?: WorkerPublicPath;
 	scriptType?: "module" | "text/javascript" | false;
-	enhancedModuleFederation?: EnhancedModuleFederation;
 }
 
 export interface ModuleOptionsNormalized {

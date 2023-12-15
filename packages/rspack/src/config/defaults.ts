@@ -621,7 +621,6 @@ const applyOutputDefaults = (
 		return "[file].map";
 	});
 	F(output, "scriptType", () => (output.module ? "module" : false));
-	D(output, "enhancedModuleFederation", false);
 
 	const { trustedTypes } = output;
 	if (trustedTypes) {

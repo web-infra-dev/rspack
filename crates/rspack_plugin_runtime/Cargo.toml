@@ -20,6 +20,5 @@ rspack_error             = { path = "../rspack_error" }
 rspack_hash              = { path = "../rspack_hash" }
 rspack_identifier        = { path = "../rspack_identifier" }
 rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
-rspack_plugin_mf         = { path = "../rspack_plugin_mf" }
 rustc-hash               = { workspace = true }
 serde_json               = { workspace = true }

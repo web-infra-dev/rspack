@@ -11,11 +11,13 @@ import { Compiler } from "../Compiler";
 import { ExternalsPlugin } from "../builtin-plugin/ExternalsPlugin";
 import { ExternalsType } from "../config";
 import { parseOptions } from "./options";
+import { ShareRuntimePlugin } from "../sharing/ShareRuntimePlugin";
 
 export type ContainerReferencePluginOptions = {
 	remoteType: ExternalsType;
 	remotes: Remotes;
 	shareScope?: string;
+	enhanced?: boolean;
 };
 export type Remotes = (RemotesItem | RemotesObject)[] | RemotesObject;
 export type RemotesItem = string;
@@ -48,7 +50,8 @@ export class ContainerReferencePlugin extends RspackBuiltinPlugin {
 						: [item.external],
 					shareScope: item.shareScope || options.shareScope || "default"
 				})
-			)
+			),
+			enhanced: options.enhanced ?? false
 		};
 	}
 
@@ -66,10 +69,12 @@ export class ContainerReferencePlugin extends RspackBuiltinPlugin {
 			}
 		}
 		new ExternalsPlugin(remoteType, remoteExternals).apply(compiler);
+		new ShareRuntimePlugin(this._options.enhanced).apply(compiler);
 
 		const rawOptions: RawContainerReferencePluginOptions = {
 			remoteType: this._options.remoteType,
-			remotes: this._options.remotes.map(([key, r]) => ({ key, ...r }))
+			remotes: this._options.remotes.map(([key, r]) => ({ key, ...r })),
+			enhanced: this._options.enhanced
 		};
 		return createBuiltinPlugin(this.name, rawOptions);
 	}

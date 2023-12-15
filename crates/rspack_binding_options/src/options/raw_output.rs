@@ -190,7 +190,6 @@ pub struct RawOutputOptions {
   pub worker_public_path: String,
   #[napi(ts_type = r#""module" | "text/javascript" | "false""#)]
   pub script_type: String,
-  pub enhanced_module_federation: bool,
 }
 
 impl RawOptionsApply for RawOutputOptions {
@@ -232,7 +231,6 @@ impl RawOptionsApply for RawOutputOptions {
       worker_wasm_loading: self.worker_wasm_loading.as_str().into(),
       worker_public_path: self.worker_public_path,
       script_type: self.script_type,
-      enhanced_module_federation: self.enhanced_module_federation,
     })
   }
 }
