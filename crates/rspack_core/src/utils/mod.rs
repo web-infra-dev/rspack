@@ -1,9 +1,12 @@
 use std::{cmp::Ordering, fmt::Display};
 
 use itertools::Itertools;
+use rspack_util::comparators::compare_ids;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{ChunkGroupByUkey, ChunkGroupUkey};
+use crate::{
+  BoxModule, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleGraph,
+};
 
 mod comment;
 mod extract_url_and_global;
@@ -120,4 +123,104 @@ pub fn sort_group_by_index(
       Some(index_b) => index_a.cmp(&index_b),
     },
   }
+}
+
+pub fn compare_chunk_group(
+  ukey_a: &ChunkGroupUkey,
+  ukey_b: &ChunkGroupUkey,
+  compilation: &Compilation,
+) -> Ordering {
+  let chunks_a = &compilation
+    .chunk_group_by_ukey
+    .get(ukey_a)
+    .expect("Group should exists")
+    .chunks;
+  let chunks_b = &compilation
+    .chunk_group_by_ukey
+    .get(ukey_b)
+    .expect("Group should exists")
+    .chunks;
+  match chunks_a.len().cmp(&chunks_b.len()) {
+    Ordering::Less => Ordering::Greater,
+    Ordering::Greater => Ordering::Less,
+    Ordering::Equal => compare_chunks_iterables(
+      &compilation.chunk_graph,
+      &compilation.module_graph,
+      &chunks_a,
+      &chunks_b,
+    ),
+  }
+}
+
+pub fn compare_modules_by_identifier(a: &BoxModule, b: &BoxModule) -> std::cmp::Ordering {
+  compare_ids(&a.identifier(), &b.identifier())
+}
+
+pub fn compare_module_iterables(modules_a: &[&BoxModule], modules_b: &[&BoxModule]) -> Ordering {
+  let mut a_iter = modules_a.iter();
+  let mut b_iter = modules_b.iter();
+  loop {
+    match (a_iter.next(), b_iter.next()) {
+      (None, None) => return Ordering::Equal,
+      (None, Some(_)) => return Ordering::Greater,
+      (Some(_), None) => return Ordering::Less,
+      (Some(a_item), Some(b_item)) => {
+        let res = compare_modules_by_identifier(a_item, b_item);
+        if res != Ordering::Equal {
+          return res;
+        }
+      }
+    }
+  }
+}
+
+pub fn compare_chunks_iterables(
+  chunk_graph: &ChunkGraph,
+  module_graph: &ModuleGraph,
+  a: &Vec<ChunkUkey>,
+  b: &Vec<ChunkUkey>,
+) -> Ordering {
+  let mut a_iter = a.iter();
+  let mut b_iter = b.iter();
+  loop {
+    match (a_iter.next(), b_iter.next()) {
+      (None, None) => return Ordering::Equal,
+      (None, Some(_)) => return Ordering::Greater,
+      (Some(_), None) => return Ordering::Less,
+      (Some(a_item), Some(b_item)) => {
+        let res = compare_chunks_with_graph(chunk_graph, module_graph, a_item, b_item);
+        if res != Ordering::Equal {
+          return res;
+        }
+      }
+    }
+  }
+}
+
+pub fn compare_chunks_with_graph(
+  chunk_graph: &ChunkGraph,
+  module_graph: &ModuleGraph,
+  chunk_a_ukey: &ChunkUkey,
+  chunk_b_ukey: &ChunkUkey,
+) -> Ordering {
+  let cgc_a = chunk_graph.get_chunk_graph_chunk(chunk_a_ukey);
+  let cgc_b = chunk_graph.get_chunk_graph_chunk(chunk_b_ukey);
+  if cgc_a.modules.len() > cgc_b.modules.len() {
+    return Ordering::Less;
+  }
+  if cgc_a.modules.len() < cgc_b.modules.len() {
+    return Ordering::Greater;
+  }
+
+  let modules_a: Vec<&BoxModule> = cgc_a
+    .modules
+    .iter()
+    .filter_map(|module_id| module_graph.module_by_identifier(module_id))
+    .collect();
+  let modules_b: Vec<&BoxModule> = cgc_b
+    .modules
+    .iter()
+    .filter_map(|module_id| module_graph.module_by_identifier(module_id))
+    .collect();
+  compare_module_iterables(&modules_a, &modules_b)
 }

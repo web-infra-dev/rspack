@@ -583,6 +583,8 @@ function getRawParserOptions(
 function getRawJavascriptParserOptions(parser: JavascriptParserOptions) {
 	return {
 		dynamicImportMode: parser.dynamicImportMode ?? "lazy",
+		dynamicImportPreload: parser.dynamicImportPreload?.toString() ?? "false",
+		dynamicImportPrefetch: parser.dynamicImportPrefetch?.toString() ?? "false",
 		url:
 			parser.url === false
 				? "false"

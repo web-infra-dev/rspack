@@ -90,9 +90,43 @@ impl From<&str> for JavascriptParserUrl {
   }
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+pub enum JavascriptParserOrder {
+  #[default]
+  Disable,
+  Order(u32),
+}
+
+impl JavascriptParserOrder {
+  pub fn get_order(&self) -> Option<u32> {
+    match self {
+      Self::Disable => None,
+      Self::Order(o) => Some(*o),
+    }
+  }
+}
+
+impl From<&str> for JavascriptParserOrder {
+  fn from(value: &str) -> Self {
+    match value {
+      "false" => Self::Disable,
+      "true" => Self::Order(0),
+      _ => {
+        if let Ok(order) = value.parse::<u32>() {
+          Self::Order(order)
+        } else {
+          Self::Order(0)
+        }
+      }
+    }
+  }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct JavascriptParserOptions {
   pub dynamic_import_mode: DynamicImportMode,
+  pub dynamic_import_preload: JavascriptParserOrder,
+  pub dynamic_import_prefetch: JavascriptParserOrder,
   pub url: JavascriptParserUrl,
 }
 

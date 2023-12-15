@@ -32,8 +32,8 @@ use rspack_plugin_mf::{
 };
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_runtime::{
-  enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, CommonJsChunkFormatPlugin,
-  ModuleChunkFormatPlugin,
+  enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, ChunkPrefetchPreloadPlugin,
+  CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin,
 };
 use rspack_plugin_swc_css_minimizer::SwcCssMinimizerRspackPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
@@ -70,6 +70,7 @@ pub enum BuiltinPluginName {
   EnableChunkLoadingPlugin,
   EnableLibraryPlugin,
   EnableWasmLoadingPlugin,
+  ChunkPrefetchPreloadPlugin,
   CommonJsChunkFormatPlugin,
   ArrayPushCallbackChunkFormatPlugin,
   ModuleChunkFormatPlugin,
@@ -166,6 +167,9 @@ impl RawOptionsApply for BuiltinPlugin {
         plugins.push(enable_wasm_loading_plugin(
           wasm_loading_type.as_str().into(),
         ));
+      }
+      BuiltinPluginName::ChunkPrefetchPreloadPlugin => {
+        plugins.push(ChunkPrefetchPreloadPlugin.boxed());
       }
       BuiltinPluginName::CommonJsChunkFormatPlugin => {
         plugins.push(CommonJsChunkFormatPlugin.boxed());

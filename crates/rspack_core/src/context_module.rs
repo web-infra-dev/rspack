@@ -780,7 +780,9 @@ impl ContextModule {
     {
       let name = self.options.context_options.chunk_name.clone();
       let mut block = AsyncDependenciesBlock::new(self.identifier, "", None);
-      block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions { name }));
+      block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
+        name, None, None,
+      )));
       for context_element_dependency in context_element_dependencies {
         block.add_dependency(Box::new(context_element_dependency));
       }
@@ -812,7 +814,9 @@ impl ContextModule {
           &context_element_dependency.user_request,
           None,
         );
-        block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions { name }));
+        block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
+          name, None, None,
+        )));
         block.add_dependency(Box::new(context_element_dependency));
         blocks.push(block);
       }

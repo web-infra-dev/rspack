@@ -113,11 +113,6 @@ pub fn get_hash(s: impl Hash, length: usize) -> String {
   hash_str
 }
 
-// TODO: we should remove this function to crate rspack_util
-pub fn compare_modules_by_identifier(a: &BoxModule, b: &BoxModule) -> std::cmp::Ordering {
-  compare_ids(&a.identifier(), &b.identifier())
-}
-
 // pub fn assign_names<T: Copy>(
 //   items: Vec<T>,
 //   get_short_name: impl Fn(T) -> String,

@@ -184,6 +184,16 @@ impl Visit for ImportScanner<'_> {
       .map(|o| o.dynamic_import_mode)
       .unwrap_or_default();
 
+    let dynamic_import_preload = self
+      .options
+      .map(|o| o.dynamic_import_preload)
+      .and_then(|o| o.get_order());
+
+    let dynamic_import_prefetch = self
+      .options
+      .map(|o| o.dynamic_import_prefetch)
+      .and_then(|o| o.get_order());
+
     match dyn_imported.expr.as_ref() {
       Expr::Lit(Lit::Str(imported)) => {
         if matches!(mode, DynamicImportMode::Eager) {
@@ -213,9 +223,11 @@ impl Visit for ImportScanner<'_> {
           format!("{}:{}", span.start, span.end),
           Some(DependencyLocation::new(span.start, span.end)),
         );
-        block.set_group_options(GroupOptions::ChunkGroup(
-          ChunkGroupOptions::default().name_optional(chunk_name),
-        ));
+        block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
+          chunk_name,
+          dynamic_import_preload,
+          dynamic_import_prefetch,
+        )));
         block.add_dependency(dep);
         self.blocks.push(block);
       }
@@ -242,9 +254,11 @@ impl Visit for ImportScanner<'_> {
           format!("{}:{}", span.start, span.end),
           Some(DependencyLocation::new(span.start, span.end)),
         );
-        block.set_group_options(GroupOptions::ChunkGroup(
-          ChunkGroupOptions::default().name_optional(chunk_name),
-        ));
+        block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
+          chunk_name,
+          dynamic_import_preload,
+          dynamic_import_prefetch,
+        )));
         block.add_dependency(dep);
         self.blocks.push(block);
       }

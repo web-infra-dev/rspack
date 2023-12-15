@@ -14,6 +14,7 @@ export enum BuiltinPluginName {
 	EnableChunkLoadingPlugin = "EnableChunkLoadingPlugin",
 	EnableLibraryPlugin = "EnableLibraryPlugin",
 	EnableWasmLoadingPlugin = "EnableWasmLoadingPlugin",
+	ChunkPrefetchPreloadPlugin = "ChunkPrefetchPreloadPlugin",
 	CommonJsChunkFormatPlugin = "CommonJsChunkFormatPlugin",
 	ArrayPushCallbackChunkFormatPlugin = "ArrayPushCallbackChunkFormatPlugin",
 	ModuleChunkFormatPlugin = "ModuleChunkFormatPlugin",

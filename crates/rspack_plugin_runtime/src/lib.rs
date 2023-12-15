@@ -25,6 +25,8 @@ pub use import_scripts_chunk_loading::ImportScriptsChunkLoadingPlugin;
 mod runtime_module;
 mod startup_chunk_dependencies;
 pub use startup_chunk_dependencies::StartupChunkDependenciesPlugin;
+mod chunk_prefetch_preload;
+pub use chunk_prefetch_preload::ChunkPrefetchPreloadPlugin;
 
 pub fn enable_chunk_loading_plugin(loading_type: ChunkLoadingType, plugins: &mut Vec<BoxPlugin>) {
   match loading_type {

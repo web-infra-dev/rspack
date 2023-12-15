@@ -293,6 +293,13 @@ impl ChunkGroupKind {
     }
   }
 
+  pub fn get_normal_options(&self) -> Option<&ChunkGroupOptions> {
+    match self {
+      ChunkGroupKind::Entrypoint { .. } => None,
+      ChunkGroupKind::Normal { options, .. } => Some(options),
+    }
+  }
+
   pub fn name(&self) -> Option<&str> {
     match self {
       ChunkGroupKind::Entrypoint { options, .. } => options.name.as_deref(),
@@ -315,12 +322,39 @@ pub struct EntryOptions {
   pub library: Option<LibraryOptions>,
 }
 
+#[derive(Debug, Hash, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ChunkGroupFetchPriority {
+  Disable,
+  Low,
+  Hight,
+  Auto,
+}
+
+#[derive(Debug, Hash, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ChunkGroupOrderKey {
+  Preload,
+  Prefetch,
+}
+
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ChunkGroupOptions {
   pub name: Option<String>,
+  pub preload_order: Option<u32>,
+  pub prefetch_order: Option<u32>,
 }
 
 impl ChunkGroupOptions {
+  pub fn new(
+    name: Option<String>,
+    preload_order: Option<u32>,
+    prefetch_order: Option<u32>,
+  ) -> Self {
+    Self {
+      name,
+      preload_order,
+      prefetch_order,
+    }
+  }
   pub fn name_optional(mut self, name: Option<String>) -> Self {
     self.name = name;
     self
@@ -345,6 +379,13 @@ impl GroupOptions {
     match self {
       GroupOptions::Entrypoint(e) => Some(e),
       GroupOptions::ChunkGroup(_) => None,
+    }
+  }
+
+  pub fn normal_options(&self) -> Option<&ChunkGroupOptions> {
+    match self {
+      GroupOptions::Entrypoint(_) => None,
+      GroupOptions::ChunkGroup(e) => Some(e),
     }
   }
 }
