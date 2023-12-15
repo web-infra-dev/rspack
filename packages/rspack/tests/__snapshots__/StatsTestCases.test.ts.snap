@@ -547,7 +547,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "46f54e617829bfd491ce",
+  "hash": "75d5cd091894cbf9461b",
   "logging": {},
   "modules": [
     {
@@ -791,7 +791,7 @@ webpack/runtime/require_chunk_loading {main}
 webpack/runtime/define_property_getters {main}
 webpack/runtime/get_chunk_filename/javascript {main}
   
-Rspack compiled successfully (46f54e617829bfd491ce)"
+Rspack compiled successfully (75d5cd091894cbf9461b)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -1519,7 +1519,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "c6559f6e73dc156f845f",
+      "hash": "9b462b58c92217733435",
       "logging": {},
       "modules": [
         {
@@ -2136,7 +2136,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "2a56f68ffba86871ad13",
+      "hash": "74258fb7200eb872b532",
       "logging": {},
       "modules": [
         {
@@ -2823,7 +2823,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "f0283a871516efd975ed",
+      "hash": "40e397925381bbea6df7",
       "logging": {},
       "modules": [
         {
@@ -3544,7 +3544,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "7365812901290effd35d",
+      "hash": "a73ba7d385f4e46d1904",
       "logging": {},
       "modules": [
         {
@@ -3915,7 +3915,7 @@ import(/* webpackChunkName: "c" */ "./c");
   ],
   "errors": [],
   "errorsCount": 0,
-  "hash": "c6559f6e73dc156f845f2a56f68ffba86871ad13f0283a871516efd975ed7365812901290effd35d",
+  "hash": "9b462b58c9221773343574258fb7200eb872b53240e397925381bbea6df7a73ba7d385f4e46d1904",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -3955,7 +3955,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
     
-  1 chunks compiled successfully (c6559f6e73dc156f845f)
+  1 chunks compiled successfully (9b462b58c92217733435)
 
 2 chunks:
   PublicPath: (none)
@@ -3994,7 +3994,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/javascript {main}
     
-  2 chunks compiled successfully (2a56f68ffba86871ad13)
+  2 chunks compiled successfully (74258fb7200eb872b532)
 
 3 chunks:
   PublicPath: (none)
@@ -4035,7 +4035,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/javascript {main}
     
-  3 chunks compiled successfully (f0283a871516efd975ed)
+  3 chunks compiled successfully (40e397925381bbea6df7)
 
 4 chunks:
   PublicPath: (none)
@@ -4078,7 +4078,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/javascript {main}
     
-  4 chunks compiled successfully (7365812901290effd35d)"
+  4 chunks compiled successfully (a73ba7d385f4e46d1904)"
 `;
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 1`] = `
@@ -5132,7 +5132,7 @@ Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflo
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "46c95146b583ac4ef950",
+  "hash": "52b8b881d7951db09212",
   "logging": {},
   "modules": [
     {
@@ -5333,7 +5333,7 @@ webpack/runtime/compat_get_default_export {main}
    ╰────
 
 
-Rspack compiled with 1 error (46c95146b583ac4ef950)"
+Rspack compiled with 1 error (52b8b881d7951db09212)"
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 1`] = `
@@ -5477,7 +5477,7 @@ console.log(a);
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "d2cecf88f2fdbd67623b",
+  "hash": "2b490d57b0f2f7155006",
   "logging": {},
   "modules": [
     {
@@ -5672,7 +5672,7 @@ webpack/runtime/compat_get_default_export {main}
   × Export should be relative path and start with "./", but got ../../index.js
 
 
-Rspack compiled with 1 error (d2cecf88f2fdbd67623b)"
+Rspack compiled with 1 error (2b490d57b0f2f7155006)"
 `;
 
 exports[`StatsTestCases should print correct stats for runtime-modules 1`] = `
@@ -5827,7 +5827,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "ad9a1eac4803b0948f93",
+  "hash": "aaa1fae93a3f1eb93934",
   "logging": {},
   "modules": [
     {
@@ -5951,7 +5951,7 @@ webpack/runtime/has_own_property {main}
 webpack/runtime/make_namespace_object {main}
 webpack/runtime/define_property_getters {main}
   
-Rspack compiled successfully (ad9a1eac4803b0948f93)"
+Rspack compiled successfully (aaa1fae93a3f1eb93934)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple-module-source 1`] = `
@@ -6115,7 +6115,7 @@ import rawModule from './raw.png';
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "7a6e65b1aedebf8e24aa",
+  "hash": "d52b18cfdbeb114e0ec4",
   "logging": {},
   "modules": [
     {
@@ -6321,7 +6321,7 @@ runtime modules 4 modules
 ./raw.png
 ./index.js
 ./stringModule.js
-Rspack compiled successfully (7a6e65b1aedebf8e24aa)"
+Rspack compiled successfully (d52b18cfdbeb114e0ec4)"
 `;
 
 exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
@@ -6416,7 +6416,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "ad9a1eac4803b0948f93",
+  "hash": "aaa1fae93a3f1eb93934",
   "logging": {},
   "modules": [
     {
@@ -6528,7 +6528,7 @@ asset bundle.js 589 bytes [emitted111] (name: main) [testA: aaaaaa]
 Entrypoint main 589 bytes = bundle.js
 runtime modules 3 modules
 ./index.js
-Rspack compiled successfully (ad9a1eac4803b0948f93)"
+Rspack compiled successfully (aaa1fae93a3f1eb93934)"
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 1`] = `

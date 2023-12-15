@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, CompilationArgs, CompilationParams, DependencyType,
-  ExternalType, FactorizeArgs, ModuleExt, ModuleFactoryResult, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginCompilationHookOutput, PluginContext,
-  PluginFactorizeHookOutput, RuntimeGlobals,
+  CompilationArgs, CompilationParams, DependencyType, ExternalType, FactorizeArgs, ModuleExt,
+  ModuleFactoryResult, Plugin, PluginCompilationHookOutput, PluginContext,
+  PluginFactorizeHookOutput, PluginRuntimeRequirementsInTreeOutput, RuntimeGlobals,
+  RuntimeRequirementsInTreeArgs,
 };
 
 use super::{
@@ -110,24 +110,24 @@ impl Plugin for ContainerReferencePlugin {
   fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    args: &mut RuntimeRequirementsInTreeArgs,
+  ) -> PluginRuntimeRequirementsInTreeOutput {
     if args
       .runtime_requirements
       .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
     {
-      args.runtime_requirements.insert(RuntimeGlobals::MODULE);
+      args.runtime_requirements_mut.insert(RuntimeGlobals::MODULE);
       args
-        .runtime_requirements
+        .runtime_requirements_mut
         .insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
       args
-        .runtime_requirements
+        .runtime_requirements_mut
         .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
       args
-        .runtime_requirements
+        .runtime_requirements_mut
         .insert(RuntimeGlobals::INITIALIZE_SHARING);
       args
-        .runtime_requirements
+        .runtime_requirements_mut
         .insert(RuntimeGlobals::SHARE_SCOPE_MAP);
       args
         .compilation

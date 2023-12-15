@@ -154,10 +154,19 @@ pub struct AdditionalChunkRuntimeRequirementsArgs<'a> {
 }
 
 #[derive(Debug)]
+pub struct RuntimeRequirementsInTreeArgs<'a> {
+  pub compilation: &'a mut Compilation,
+  pub chunk: &'a ChunkUkey,
+  pub runtime_requirements: &'a RuntimeGlobals,
+  pub runtime_requirements_mut: &'a mut RuntimeGlobals,
+}
+
+#[derive(Debug)]
 pub struct AdditionalModuleRequirementsArgs<'a> {
   pub compilation: &'a mut Compilation,
   pub module_identifier: &'a ModuleIdentifier,
-  pub runtime_requirements: &'a mut RuntimeGlobals,
+  pub runtime_requirements: &'a RuntimeGlobals,
+  pub runtime_requirements_mut: &'a mut RuntimeGlobals,
 }
 
 impl<'me> AdditionalChunkRuntimeRequirementsArgs<'me> {

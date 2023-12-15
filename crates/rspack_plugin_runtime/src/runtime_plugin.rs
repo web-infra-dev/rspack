@@ -5,8 +5,9 @@ use once_cell::sync::Lazy;
 use rspack_core::{
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ChunkLoading,
   JsChunkHashArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginAdditionalModuleRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput, PublicPath,
-  RuntimeGlobals, RuntimeModuleExt, SourceType, FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
+  PluginAdditionalModuleRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
+  PluginRuntimeRequirementsInTreeOutput, PublicPath, RuntimeGlobals, RuntimeModuleExt,
+  RuntimeRequirementsInTreeArgs, SourceType, FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
 };
 
 use crate::runtime_module::{
@@ -101,22 +102,26 @@ static TREE_DEPENDENCIES: Lazy<Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>> = Laz
   ]
 });
 
-fn handle_require_scope_globals(runtime_requirements: &mut RuntimeGlobals) {
+fn handle_require_scope_globals(
+  runtime_requirements: &RuntimeGlobals,
+  runtime_requirements_mut: &mut RuntimeGlobals,
+) {
   if GLOBALS_ON_REQUIRE
     .iter()
     .any(|requirement| runtime_requirements.contains(*requirement))
   {
-    runtime_requirements.insert(RuntimeGlobals::REQUIRE_SCOPE);
+    runtime_requirements_mut.insert(RuntimeGlobals::REQUIRE_SCOPE);
   }
 }
 
 fn handle_dependency_globals(
-  runtime_requirements: &mut RuntimeGlobals,
+  runtime_requirements: &RuntimeGlobals,
+  runtime_requirements_mut: &mut RuntimeGlobals,
   dependencies: &[(RuntimeGlobals, Vec<RuntimeGlobals>)],
 ) {
   for (requirement, dependencies) in dependencies.iter() {
     if runtime_requirements.contains(*requirement) {
-      runtime_requirements.extend(dependencies.clone());
+      runtime_requirements_mut.extend(dependencies.clone());
     }
   }
 }
@@ -161,10 +166,15 @@ impl Plugin for RuntimePlugin {
     _ctx: PluginContext,
     args: &mut AdditionalModuleRequirementsArgs,
   ) -> PluginAdditionalModuleRequirementsOutput {
-    let runtime_requirements = &mut args.runtime_requirements;
+    let runtime_requirements = args.runtime_requirements;
+    let runtime_requirements_mut = &mut args.runtime_requirements_mut;
 
-    handle_require_scope_globals(runtime_requirements);
-    handle_dependency_globals(runtime_requirements, &MODULE_DEPENDENCIES);
+    handle_require_scope_globals(runtime_requirements, runtime_requirements_mut);
+    handle_dependency_globals(
+      runtime_requirements,
+      runtime_requirements_mut,
+      &MODULE_DEPENDENCIES,
+    );
 
     Ok(())
   }
@@ -173,11 +183,12 @@ impl Plugin for RuntimePlugin {
   fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    args: &mut RuntimeRequirementsInTreeArgs,
+  ) -> PluginRuntimeRequirementsInTreeOutput {
     let compilation = &mut args.compilation;
     let chunk = args.chunk;
-    let runtime_requirements = &mut args.runtime_requirements;
+    let runtime_requirements = args.runtime_requirements;
+    let runtime_requirements_mut = &mut args.runtime_requirements_mut;
 
     if runtime_requirements.contains(RuntimeGlobals::EXPORT_STAR) {
       compilation.add_runtime_module(
@@ -192,12 +203,12 @@ impl Plugin for RuntimePlugin {
 
     if compilation.options.output.trusted_types.is_some() {
       if runtime_requirements.contains(RuntimeGlobals::LOAD_SCRIPT) {
-        runtime_requirements.insert(RuntimeGlobals::CREATE_SCRIPT_URL);
+        runtime_requirements_mut.insert(RuntimeGlobals::CREATE_SCRIPT_URL);
       }
       if runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT)
         || runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT_URL)
       {
-        runtime_requirements.insert(RuntimeGlobals::GET_TRUSTED_TYPES_POLICY);
+        runtime_requirements_mut.insert(RuntimeGlobals::GET_TRUSTED_TYPES_POLICY);
       }
     }
 
@@ -214,11 +225,15 @@ impl Plugin for RuntimePlugin {
           .hot_update_main_filename
           .has_hash_placeholder())
     {
-      runtime_requirements.insert(RuntimeGlobals::GET_FULL_HASH);
+      runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
     }
 
-    handle_require_scope_globals(runtime_requirements);
-    handle_dependency_globals(runtime_requirements, &TREE_DEPENDENCIES);
+    handle_require_scope_globals(runtime_requirements, runtime_requirements_mut);
+    handle_dependency_globals(
+      runtime_requirements,
+      runtime_requirements_mut,
+      &TREE_DEPENDENCIES,
+    );
 
     let public_path = {
       let chunk = compilation
@@ -234,14 +249,14 @@ impl Plugin for RuntimePlugin {
     if matches!(public_path, PublicPath::Auto)
       && runtime_requirements.contains(RuntimeGlobals::PUBLIC_PATH)
     {
-      runtime_requirements.insert(RuntimeGlobals::GLOBAL);
+      runtime_requirements_mut.insert(RuntimeGlobals::GLOBAL);
     }
 
     if runtime_requirements.contains(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME) {
       let chunk_filename = compilation.options.output.chunk_filename.template();
       if FULL_HASH_PLACEHOLDER.is_match(chunk_filename) || HASH_PLACEHOLDER.is_match(chunk_filename)
       {
-        runtime_requirements.insert(RuntimeGlobals::GET_FULL_HASH);
+        runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
       }
     }
 
@@ -249,7 +264,7 @@ impl Plugin for RuntimePlugin {
       let chunk_filename = compilation.options.output.css_chunk_filename.template();
       if FULL_HASH_PLACEHOLDER.is_match(chunk_filename) || HASH_PLACEHOLDER.is_match(chunk_filename)
       {
-        runtime_requirements.insert(RuntimeGlobals::GET_FULL_HASH);
+        runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
       }
     }
 
@@ -354,10 +369,8 @@ impl Plugin for RuntimePlugin {
         }
         RuntimeGlobals::DEFINE_PROPERTY_GETTERS => compilation
           .add_runtime_module(chunk, DefinePropertyGettersRuntimeModule::default().boxed()),
-        RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => compilation.add_runtime_module(
-          chunk,
-          GetTrustedTypesPolicyRuntimeModule::new(runtime_requirements).boxed(),
-        ),
+        RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => compilation
+          .add_runtime_module(chunk, Box::<GetTrustedTypesPolicyRuntimeModule>::default()),
         RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT => compilation.add_runtime_module(
           chunk,
           CreateFakeNamespaceObjectRuntimeModule::default().boxed(),

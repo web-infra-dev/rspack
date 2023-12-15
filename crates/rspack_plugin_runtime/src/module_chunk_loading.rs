@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, ChunkLoading, ChunkLoadingType, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeGlobals, RuntimeModuleExt,
+  ChunkLoading, ChunkLoadingType, Plugin, PluginContext, PluginRuntimeRequirementsInTreeOutput,
+  RuntimeGlobals, RuntimeModuleExt, RuntimeRequirementsInTreeArgs,
 };
 
 use crate::runtime_module::{
@@ -20,20 +20,21 @@ impl Plugin for ModuleChunkLoadingPlugin {
   fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    args: &mut RuntimeRequirementsInTreeArgs,
+  ) -> PluginRuntimeRequirementsInTreeOutput {
     let compilation = &mut args.compilation;
     let chunk = args.chunk;
     let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::Import);
     let is_enabled_for_chunk = is_enabled_for_chunk(chunk, &chunk_loading_value, compilation);
-    let runtime_requirements = &mut args.runtime_requirements;
+    let runtime_requirements = args.runtime_requirements;
+    let runtime_requirements_mut = &mut args.runtime_requirements_mut;
 
     let mut has_chunk_loading = false;
     for runtime_requirement in runtime_requirements.iter() {
       match runtime_requirement {
         RuntimeGlobals::ENSURE_CHUNK_HANDLERS if is_enabled_for_chunk => {
           has_chunk_loading = true;
-          runtime_requirements.insert(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME);
+          runtime_requirements_mut.insert(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME);
         }
         RuntimeGlobals::EXTERNAL_INSTALL_CHUNK if is_enabled_for_chunk => {
           has_chunk_loading = true;
@@ -47,12 +48,9 @@ impl Plugin for ModuleChunkLoadingPlugin {
     }
 
     if has_chunk_loading && is_enabled_for_chunk {
-      runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
-      runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-      compilation.add_runtime_module(
-        chunk,
-        ModuleChunkLoadingRuntimeModule::new(**runtime_requirements).boxed(),
-      );
+      runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
+      runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+      compilation.add_runtime_module(chunk, Box::<ModuleChunkLoadingRuntimeModule>::default());
     }
 
     Ok(())

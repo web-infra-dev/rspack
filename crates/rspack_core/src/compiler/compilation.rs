@@ -44,8 +44,8 @@ use crate::{
   FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger, Module, ModuleFactory,
   ModuleGraph, ModuleIdentifier, ModuleProfile, PathData, ProcessAssetsArgs,
   ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
-  Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver,
-  SourceType, Stats, TaskResult, WorkerTask,
+  Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeRequirementsInTreeArgs,
+  RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult, WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
@@ -1509,11 +1509,21 @@ impl Compilation {
 
     for (module_identifier, runtime_requirements) in module_runtime_requirements.iter_mut() {
       for (runtime, requirements) in runtime_requirements.iter_mut() {
-        plugin_driver.runtime_requirement_in_module(&mut AdditionalModuleRequirementsArgs {
-          compilation: self,
-          module_identifier,
-          runtime_requirements: requirements,
-        })?;
+        let mut runtime_requirements_mut = *requirements;
+        let mut runtime_requirements;
+        while !runtime_requirements_mut.is_empty() {
+          requirements.insert(runtime_requirements_mut);
+          runtime_requirements = runtime_requirements_mut;
+          runtime_requirements_mut = RuntimeGlobals::default();
+          plugin_driver.runtime_requirement_in_module(&mut AdditionalModuleRequirementsArgs {
+            compilation: self,
+            module_identifier,
+            runtime_requirements: &runtime_requirements,
+            runtime_requirements_mut: &mut runtime_requirements_mut,
+          })?;
+          runtime_requirements_mut = runtime_requirements_mut
+            .difference(requirements.intersection(runtime_requirements_mut));
+        }
         self.chunk_graph.add_module_runtime_requirements(
           *module_identifier,
           runtime,
@@ -1584,11 +1594,21 @@ impl Compilation {
         },
       )?;
 
-      plugin_driver.runtime_requirements_in_tree(&mut AdditionalChunkRuntimeRequirementsArgs {
-        compilation: self,
-        chunk: &entry_ukey,
-        runtime_requirements: &mut set,
-      })?;
+      let mut runtime_requirements_mut = set;
+      let mut runtime_requirements;
+      while !runtime_requirements_mut.is_empty() {
+        set.insert(runtime_requirements_mut);
+        runtime_requirements = runtime_requirements_mut;
+        runtime_requirements_mut = RuntimeGlobals::default();
+        plugin_driver.runtime_requirements_in_tree(&mut RuntimeRequirementsInTreeArgs {
+          compilation: self,
+          chunk: &entry_ukey,
+          runtime_requirements: &runtime_requirements,
+          runtime_requirements_mut: &mut runtime_requirements_mut,
+        })?;
+        runtime_requirements_mut =
+          runtime_requirements_mut.difference(set.intersection(runtime_requirements_mut));
+      }
 
       self
         .chunk_graph
