@@ -80,3 +80,6 @@ tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test
 tracing = { workspace = true }
 url = { workspace = true }
 ustr = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = { version = "1.4.0" }

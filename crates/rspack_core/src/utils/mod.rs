@@ -2,55 +2,42 @@ use std::{cmp::Ordering, fmt::Display};
 
 use itertools::Itertools;
 use rustc_hash::FxHashMap as HashMap;
-mod template;
-pub use template::*;
-
-mod extract_url_and_global;
-pub use extract_url_and_global::*;
-
-mod identifier;
-pub use identifier::*;
-
-mod runtime;
-pub use runtime::*;
-
-mod property_name;
-pub use property_name::*;
-
-mod property_access;
-pub use property_access::*;
-
-mod comment;
-pub use comment::*;
-
-mod source;
-pub use source::*;
-
-mod hash;
-pub use hash::*;
-
-mod import_var;
-pub use import_var::*;
-
-mod module_rules;
-pub use module_rules::*;
-
-mod fast_actions;
-pub use fast_actions::*;
-
-mod queue;
-pub use queue::*;
-
-mod find_graph_roots;
-pub use find_graph_roots::*;
-
-mod visitor;
-pub use visitor::*;
-
-mod to_path;
-pub use to_path::to_path;
 
 use crate::{ChunkGroupByUkey, ChunkGroupUkey};
+
+mod comment;
+mod extract_url_and_global;
+mod fast_actions;
+mod find_graph_roots;
+mod hash;
+mod identifier;
+mod import_var;
+mod module_rules;
+mod property_access;
+mod property_name;
+mod queue;
+mod runtime;
+mod source;
+mod template;
+mod to_path;
+mod visitor;
+
+pub use self::comment::*;
+pub use self::extract_url_and_global::*;
+pub use self::fast_actions::*;
+pub use self::find_graph_roots::*;
+pub use self::hash::*;
+pub use self::identifier::*;
+pub use self::import_var::*;
+pub use self::module_rules::*;
+pub use self::property_access::*;
+pub use self::property_name::*;
+pub use self::queue::*;
+pub use self::runtime::*;
+pub use self::source::*;
+pub use self::template::*;
+pub use self::to_path::to_path;
+pub use self::visitor::*;
 
 pub fn parse_to_url(url: &str) -> url::Url {
   if !url.contains(':') {
