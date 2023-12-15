@@ -364,6 +364,7 @@ const baseResolveOptions = z.strictObject({
 	mainFiles: z.array(z.string()).optional(),
 	modules: z.array(z.string()).optional(),
 	preferRelative: z.boolean().optional(),
+	symlinks: z.boolean().optional(),
 	tsConfigPath: z.string().optional(),
 	tsConfig: resolveTsconfig.optional(),
 	fullySpecified: z.boolean().optional(),
