@@ -46,8 +46,8 @@ var __WEBPACK_DEFAULT_EXPORT__ = "def";
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  track: function() { return track; },
-  log: function() { return log; }
+  log: function() { return log; },
+  track: function() { return track; }
 });
  function track(file) {
     log.push(file);

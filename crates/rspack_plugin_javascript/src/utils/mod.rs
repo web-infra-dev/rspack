@@ -9,7 +9,6 @@ use rspack_core::{ErrorSpan, ModuleType};
 use rspack_error::{DiagnosticKind, Error};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{SourceFile, Span, Spanned};
-use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::parser::{EsConfig, TsConfig};
 
@@ -155,18 +154,6 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
   )
   .with_kind(diagnostic_kind);
   traceable_error.into()
-}
-
-pub fn join_jsword(arr: &[JsWord], separator: &str) -> String {
-  let mut ret = String::new();
-  if let Some(item) = arr.first() {
-    ret.push_str(item);
-  }
-  for item in arr.iter().skip(1) {
-    ret.push_str(separator);
-    ret.push_str(item);
-  }
-  ret
 }
 
 pub fn is_diff_mode() -> bool {

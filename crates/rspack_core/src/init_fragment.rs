@@ -32,6 +32,7 @@ pub enum InitFragmentKey {
   HarmonyCompatibility,
   ModuleDecorator(String /* module_id */),
   Unique(InitFragmentKeyUKey),
+  HarmonyFakeNamespaceObjectFragment(String),
 }
 
 impl InitFragmentKey {
@@ -76,6 +77,7 @@ impl InitFragmentKey {
         AwaitDependenciesInitFragment::new(promises).boxed()
       }
       InitFragmentKey::HarmonyImport(_)
+      | InitFragmentKey::HarmonyFakeNamespaceObjectFragment(_)
       | InitFragmentKey::HarmonyExportStar(_)
       | InitFragmentKey::ExternalModule(_)
       | InitFragmentKey::ModuleDecorator(_) => first(fragments),
@@ -274,10 +276,10 @@ impl HarmonyExportInitFragment {
 }
 
 impl<C: InitFragmentRenderContext> InitFragment<C> for HarmonyExportInitFragment {
-  fn contents(self: Box<Self>, context: &mut C) -> Result<InitFragmentContents> {
+  fn contents(mut self: Box<Self>, context: &mut C) -> Result<InitFragmentContents> {
     context.add_runtime_requirements(RuntimeGlobals::EXPORTS);
     context.add_runtime_requirements(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-
+    self.export_map.sort_by(|a, b| a.0.cmp(&b.0));
     let exports = format!(
       "{{\n  {}\n}}",
       self

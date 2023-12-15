@@ -10,6 +10,7 @@ use rustc_hash::FxHashSet as HashSet;
 use serde::Serialize;
 use swc_core::ecma::atoms::JsWord;
 
+use crate::property_access;
 use crate::Nullable;
 use crate::{
   ConnectionState, DependencyCondition, DependencyId, ModuleGraph, ModuleGraphConnection,
@@ -573,6 +574,16 @@ impl ExportsInfo {
 pub enum UsedName {
   Str(JsWord),
   Vec(Vec<JsWord>),
+}
+
+pub fn string_of_used_name(used: Option<&UsedName>) -> String {
+  match used {
+    Some(UsedName::Str(str)) => str.to_string(),
+    Some(UsedName::Vec(value_key)) => property_access(value_key, 0)
+      .trim_start_matches('.')
+      .to_string(),
+    None => "/* unused export */ undefined".to_string(),
+  }
 }
 
 #[derive(Debug, Clone, Hash)]

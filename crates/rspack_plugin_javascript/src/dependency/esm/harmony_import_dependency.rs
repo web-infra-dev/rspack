@@ -64,9 +64,12 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   code_generatable_context: &mut TemplateContext,
   specifiers: &[Specifier],
 ) {
-  let compilation = &code_generatable_context.compilation;
-  let module = &code_generatable_context.module;
-  let runtime = code_generatable_context.runtime;
+  let TemplateContext {
+    compilation,
+    module,
+    runtime,
+    ..
+  } = code_generatable_context;
   let ref_mgm = compilation
     .module_graph
     .module_graph_module_by_dependency_id(module_dependency.id())
@@ -76,7 +79,7 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
       .module_graph
       .connection_by_dependency(module_dependency.id());
     if let Some(con) = connection {
-      con.is_target_active(&compilation.module_graph, runtime)
+      con.is_target_active(&compilation.module_graph, *runtime)
     } else {
       true
     }
@@ -199,7 +202,8 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
     )));
   }
 
-  if module_dependency.is_export_all() == Some(true) {
+  let is_new_tree_shaking = compilation.options.is_new_tree_shaking();
+  if module_dependency.is_export_all() == Some(true) && !is_new_tree_shaking {
     runtime_requirements.insert(RuntimeGlobals::EXPORT_STAR);
     let exports_argument = compilation
       .module_graph

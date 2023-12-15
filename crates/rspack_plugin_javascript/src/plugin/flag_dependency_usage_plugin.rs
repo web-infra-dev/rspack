@@ -9,16 +9,14 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_identifier::IdentifierMap;
+use rspack_util::swc::join_jsword;
 use rustc_hash::FxHashMap as HashMap;
-
-use crate::utils::join_jsword;
 
 #[derive(Debug)]
 enum ModuleOrAsyncDependenciesBlock {
   Module(ModuleIdentifier),
   AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
 }
-
 #[allow(unused)]
 pub struct FlagDependencyUsagePluginProxy<'a> {
   global: bool,
@@ -325,7 +323,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     force_side_effects: bool,
     queue: &mut VecDeque<(ModuleIdentifier, Option<RuntimeSpec>)>,
   ) {
-    // dbg!(&module_id, &used_exports);
     let mgm = self
       .compilation
       .module_graph
@@ -345,6 +342,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         }
         return;
       }
+
       for used_export_info in used_exports {
         let (can_mangle, used_exports) = match used_export_info {
           ExtendedReferencedExport::Array(used_exports) => (true, used_exports),
@@ -353,6 +351,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         if used_exports.is_empty() {
           let flag = mgm_exports_info_id
             .set_used_in_unknown_way(&mut self.compilation.module_graph, runtime.as_ref());
+
           if flag {
             queue.push_back((module_id, runtime.clone()));
           }
