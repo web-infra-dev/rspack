@@ -12,18 +12,15 @@ export interface ThreadsafeWritableNodeFS {
 function createThreadsafeNodeFSFromRaw(
 	fs: typeof import("fs")
 ): ThreadsafeWritableNodeFS {
+	let writeFile = util.promisify(fs.writeFile.bind(fs));
+	let removeFile = util.promisify(fs.unlink.bind(fs));
+	let mkdir = util.promisify(fs.mkdir.bind(fs));
 	return {
-		writeFile: (file, data) => {
-			return util.promisify(fs.writeFile.bind(fs))(file, data);
-		},
-		removeFile: file => {
-			return util.promisify(fs.unlink.bind(fs))(file);
-		},
-		mkdir: dir => {
-			return util.promisify(fs.mkdir.bind(fs))(dir);
-		},
+		writeFile,
+		removeFile,
+		mkdir,
 		mkdirp: dir => {
-			return util.promisify(fs.mkdir.bind(fs))(dir, {
+			return mkdir(dir, {
 				recursive: true
 			});
 		},
