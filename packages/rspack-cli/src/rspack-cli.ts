@@ -134,6 +134,11 @@ export class RspackCLI {
 					main: defaultEntryPath
 				};
 			}
+			// to set output.path
+			item.output = item.output || {};
+			if (options['output-path']) {
+				item.output.path = path.resolve(process.cwd(), options['output-path']);
+			}
 			if (options.analyze) {
 				const { BundleAnalyzerPlugin } = await import(
 					"webpack-bundle-analyzer"
@@ -180,8 +185,8 @@ export class RspackCLI {
 						item.builtins.progress && typeof item.builtins.progress === "object"
 							? item.builtins.progress
 							: item.builtins.progress === true
-							? {}
-							: undefined)
+								? {}
+								: undefined)
 				) {
 					(item.plugins ||= []).push(new rspackCore.ProgressPlugin(o));
 				}
