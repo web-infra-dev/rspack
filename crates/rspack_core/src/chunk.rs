@@ -450,8 +450,9 @@ impl Chunk {
 
   pub fn get_children_of_type_in_order(
     &self,
-    option_name: &ChunkGroupOrderKey,
+    order_key: &ChunkGroupOrderKey,
     compilation: &Compilation,
+    is_self_last_chunk: bool,
   ) -> Option<Vec<(Vec<ChunkUkey>, Vec<ChunkUkey>)>> {
     let mut list = vec![];
     let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
@@ -459,6 +460,12 @@ impl Chunk {
       let group = chunk_group_by_ukey
         .get(group_ukey)
         .expect("chunk group do not exists");
+      if let Some(last_chunk) = group.chunks.last() {
+        if is_self_last_chunk && !last_chunk.eq(&self.ukey) {
+          continue;
+        }
+      }
+
       for child_group_ukey in group
         .children
         .iter()
@@ -470,7 +477,7 @@ impl Chunk {
         let order = child_group
           .kind
           .get_normal_options()
-          .and_then(|o| match option_name {
+          .and_then(|o| match order_key {
             ChunkGroupOrderKey::Prefetch => o.prefetch_order,
             ChunkGroupOrderKey::Preload => o.preload_order,
           });
@@ -512,7 +519,6 @@ impl Chunk {
       result
         .iter()
         .map(|(group_ukey, chunks)| {
-          println!("result: {:?} {:?}", group_ukey, chunks.len());
           let group = chunk_group_by_ukey
             .get(group_ukey)
             .expect("chunk group do not exists");
@@ -545,7 +551,7 @@ impl Chunk {
         .chunk_by_ukey
         .get(chunk_ukey)
         .expect("chunk do not exists");
-      let order_children = chunk.get_children_of_type_in_order(order, compilation);
+      let order_children = chunk.get_children_of_type_in_order(order, compilation, true);
       if let (Some(chunk_id), Some(order_children)) = (chunk.id.to_owned(), order_children) {
         let child_chunk_ids = order_children
           .iter()
