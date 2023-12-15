@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{cmp::Ordering, fmt::Display};
 
 use itertools::Itertools;
 use rustc_hash::FxHashMap as HashMap;
@@ -49,6 +49,8 @@ pub use visitor::*;
 
 mod to_path;
 pub use to_path::to_path;
+
+use crate::{ChunkGroupByUkey, ChunkGroupUkey};
 
 pub fn parse_to_url(url: &str) -> url::Url {
   if !url.contains(':') {
@@ -106,4 +108,29 @@ pub fn stringify_map<T: Display>(map: &HashMap<String, T>) -> String {
         prev + format!(r#""{}": {},"#, cur, map.get(cur).expect("get key from map")).as_str()
       })
   )
+}
+
+pub fn sort_group_by_index(
+  ukey_a: &ChunkGroupUkey,
+  ukey_b: &ChunkGroupUkey,
+  chunk_group_by_ukey: &ChunkGroupByUkey,
+) -> Ordering {
+  let index_a = chunk_group_by_ukey
+    .get(ukey_a)
+    .expect("Group should exists")
+    .index;
+  let index_b = chunk_group_by_ukey
+    .get(ukey_b)
+    .expect("Group should exists")
+    .index;
+  match index_a {
+    None => match index_b {
+      None => Ordering::Equal,
+      Some(_) => Ordering::Greater,
+    },
+    Some(index_a) => match index_b {
+      None => Ordering::Less,
+      Some(index_b) => index_a.cmp(&index_b),
+    },
+  }
 }

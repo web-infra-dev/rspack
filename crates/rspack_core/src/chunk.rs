@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::hash::BuildHasherDefault;
 use std::{fmt::Debug, hash::Hash, sync::Arc};
 
@@ -8,7 +7,7 @@ use rspack_database::{DatabaseItem, Ukey};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
-use crate::{ChunkGraph, ChunkGroup};
+use crate::{sort_group_by_index, ChunkGraph, ChunkGroup};
 use crate::{ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, SourceType};
 use crate::{Compilation, EntryOptions, Filename, ModuleGraph, RuntimeSpec};
 
@@ -77,27 +76,10 @@ impl Chunk {
     &self,
     chunk_group_by_ukey: &ChunkGroupByUkey,
   ) -> impl Iterator<Item = &Ukey<ChunkGroup>> {
-    self.groups.iter().sorted_by(|ukey_a, ukey_b| {
-      let index_a = chunk_group_by_ukey
-        .get(ukey_a)
-        .expect("Group should exists")
-        .index;
-      let index_b = chunk_group_by_ukey
-        .get(ukey_b)
-        .expect("Group should exists")
-        .index;
-      // None should be greater than Some<_> to align with JavaScript
-      match index_a {
-        None => match index_b {
-          None => Ordering::Equal,
-          Some(_) => Ordering::Greater,
-        },
-        Some(index_a) => match index_b {
-          None => Ordering::Less,
-          Some(index_b) => index_a.cmp(&index_b),
-        },
-      }
-    })
+    self
+      .groups
+      .iter()
+      .sorted_by(|a, b| sort_group_by_index(a, b, chunk_group_by_ukey))
   }
 
   pub fn get_entry_options<'a>(
@@ -321,17 +303,22 @@ impl Chunk {
     let mut initial_queue = self
       .get_sorted_groups_iter(chunk_group_by_ukey)
       .map(|c| c.to_owned())
-      .collect::<FxHashSet<_>>();
+      .collect::<IndexSet<ChunkGroupUkey, BuildHasherDefault<FxHasher>>>();
+
     let mut visit_chunk_groups = HashSet::default();
 
     fn add_to_queue(
       chunk_group_by_ukey: &ChunkGroupByUkey,
       queue: &mut IndexSet<ChunkGroupUkey, BuildHasherDefault<FxHasher>>,
-      initial_queue: &mut HashSet<ChunkGroupUkey>,
+      initial_queue: &mut IndexSet<ChunkGroupUkey, BuildHasherDefault<FxHasher>>,
       chunk_group_ukey: &ChunkGroupUkey,
     ) {
       if let Some(chunk_group) = chunk_group_by_ukey.get(chunk_group_ukey) {
-        for child_ukey in chunk_group.children.iter() {
+        for child_ukey in chunk_group
+          .children
+          .iter()
+          .sorted_by(|a, b| sort_group_by_index(a, b, chunk_group_by_ukey))
+        {
           if let Some(chunk_group) = chunk_group_by_ukey.get(child_ukey) {
             if chunk_group.is_initial() && !initial_queue.contains(&chunk_group.ukey) {
               initial_queue.insert(chunk_group.ukey);

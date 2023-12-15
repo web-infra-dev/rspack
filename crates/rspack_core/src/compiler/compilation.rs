@@ -1,4 +1,5 @@
 use std::{
+  collections::VecDeque,
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
   path::PathBuf,
@@ -790,12 +791,12 @@ impl Compilation {
                 .build_dependencies
                 .extend(build_result.build_info.build_dependencies.clone());
 
-              let mut queue = vec![];
+              let mut queue = VecDeque::new();
               let mut all_dependencies = vec![];
               let mut handle_block =
                 |dependencies: Vec<BoxDependency>,
                  blocks: Vec<AsyncDependenciesBlock>,
-                 queue: &mut Vec<AsyncDependenciesBlock>,
+                 queue: &mut VecDeque<AsyncDependenciesBlock>,
                  module_graph: &mut ModuleGraph,
                  current_block: Option<AsyncDependenciesBlock>| {
                   for dependency in dependencies {
@@ -818,7 +819,7 @@ impl Compilation {
                     module_graph.add_block(current_block);
                   }
                   for block in blocks {
-                    queue.push(block);
+                    queue.push_back(block);
                   }
                 };
               handle_block(
@@ -828,7 +829,7 @@ impl Compilation {
                 &mut self.module_graph,
                 None,
               );
-              while let Some(mut block) = queue.pop() {
+              while let Some(mut block) = queue.pop_front() {
                 let dependencies = block.take_dependencies();
                 let blocks = block.take_blocks();
                 handle_block(
