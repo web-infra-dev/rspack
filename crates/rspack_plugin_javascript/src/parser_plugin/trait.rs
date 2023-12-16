@@ -1,4 +1,4 @@
-use crate::utils::BasicEvaluatedExpression;
+use crate::utils::eval::BasicEvaluatedExpression;
 
 pub trait JavascriptParserPlugin {
   fn evaluate_typeof(
