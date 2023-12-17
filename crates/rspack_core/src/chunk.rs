@@ -555,7 +555,7 @@ impl Chunk {
       if let (Some(chunk_id), Some(order_children)) = (chunk.id.to_owned(), order_children) {
         let child_chunk_ids = order_children
           .iter()
-          .map(|(_, child_chunks)| {
+          .flat_map(|(_, child_chunks)| {
             child_chunks.iter().filter_map(|chunk_ukey| {
               compilation
                 .chunk_by_ukey
@@ -565,7 +565,6 @@ impl Chunk {
                 .to_owned()
             })
           })
-          .flatten()
           .collect_vec();
 
         result
@@ -582,7 +581,7 @@ impl Chunk {
           compilation
             .chunk_group_by_ukey
             .get(chunk_group_ukey)
-            .and_then(|g| Some(g.chunks.to_owned()))
+            .map(|g| g.chunks.to_owned())
         })
         .flatten()
       {

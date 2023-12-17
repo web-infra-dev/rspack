@@ -326,7 +326,7 @@ pub struct EntryOptions {
 pub enum ChunkGroupFetchPriority {
   Disable,
   Low,
-  Hight,
+  High,
   Auto,
 }
 

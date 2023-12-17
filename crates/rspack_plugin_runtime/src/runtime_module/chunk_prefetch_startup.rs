@@ -16,7 +16,7 @@ pub struct ChunkPrefetchStartupRuntimeModule {
 impl ChunkPrefetchStartupRuntimeModule {
   pub fn new(startup_chunks: Vec<(Vec<ChunkUkey>, Vec<ChunkUkey>)>) -> Self {
     Self {
-      id: Identifier::from(format!("webpack/runtime/chunk_prefetch_startup")),
+      id: Identifier::from("webpack/runtime/chunk_prefetch_startup"),
       startup_chunks,
       chunk: None,
     }
@@ -45,7 +45,7 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
               if c.to_owned().eq(&chunk_ukey) {
                 compilation
                   .chunk_by_ukey
-                  .get(&c)
+                  .get(c)
                   .expect("group chunk not exists")
                   .id
                   .to_owned()
@@ -60,7 +60,7 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
             .filter_map(|c| {
               compilation
                 .chunk_by_ukey
-                .get(&c)
+                .get(c)
                 .expect("child chunk not exists")
                 .id
                 .to_owned()

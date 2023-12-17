@@ -146,8 +146,8 @@ pub fn compare_chunk_group(
     Ordering::Equal => compare_chunks_iterables(
       &compilation.chunk_graph,
       &compilation.module_graph,
-      &chunks_a,
-      &chunks_b,
+      chunks_a,
+      chunks_b,
     ),
   }
 }
@@ -177,8 +177,8 @@ pub fn compare_module_iterables(modules_a: &[&BoxModule], modules_b: &[&BoxModul
 pub fn compare_chunks_iterables(
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
-  a: &Vec<ChunkUkey>,
-  b: &Vec<ChunkUkey>,
+  a: &[ChunkUkey],
+  b: &[ChunkUkey],
 ) -> Ordering {
   let mut a_iter = a.iter();
   let mut b_iter = b.iter();

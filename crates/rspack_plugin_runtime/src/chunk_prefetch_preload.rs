@@ -63,9 +63,7 @@ impl Plugin for ChunkPrefetchPreloadPlugin {
       .chunk_by_ukey
       .get(chunk_ukey)
       .expect("chunk do not exists");
-    let chunk_map = chunk.get_child_ids_by_orders_map(false, &compilation);
-
-    println!("chunk map: {:?}", chunk_map);
+    let chunk_map = chunk.get_child_ids_by_orders_map(false, compilation);
 
     if let Some(prefetch_map) = chunk_map.get(&ChunkGroupOrderKey::Prefetch) {
       runtime_requirements.insert(RuntimeGlobals::PREFETCH_CHUNK);
