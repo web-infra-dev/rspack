@@ -1,5 +1,5 @@
 mod r#const;
-mod eval;
+pub mod eval;
 mod get_prop_from_obj;
 pub mod mangle_exports;
 
@@ -12,10 +12,6 @@ use swc_core::common::{SourceFile, Span, Spanned};
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::parser::{EsConfig, TsConfig};
 
-pub(crate) use self::eval::{
-  eval_binary_expression, eval_cond_expression, eval_lit_expr, eval_tpl_expression,
-  eval_unary_expression, evaluate_to_string, BasicEvaluatedExpression,
-};
 pub use self::get_prop_from_obj::*;
 pub use self::r#const::*;
 

@@ -27,5 +27,18 @@ it("should build success for logic op", () => {
 	expect(typeof require !== "function" && require("fail")).toBe(false);
 	expect(true && require("./a")).toBe("a");
 	expect(typeof require === "function" && require("./a")).toBe("a");
+
 	expect(!require("./a") && !require("./b")).toBe(false);
+
+	expect("hello" && (() => "value5")()).toBe("value5");
+	expect("" || (() => "value6")()).toBe("value6");
+	expect(
+		(function () {
+			return "value7" === typeof "value7" && "value7";
+		})()
+	).toBe(false);
+	expect([] != [] || require("fail")).toBe(true);
+	expect(null === 1 && require("fail")).toBe(false);
+	// NEXT:
+	// expect([] === [] && require("fail")).toBe(false);
 });

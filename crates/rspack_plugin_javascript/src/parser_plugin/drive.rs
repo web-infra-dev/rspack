@@ -1,5 +1,5 @@
 use super::{BoxJavascriptParserPlugin, JavascriptParserPlugin};
-use crate::utils::BasicEvaluatedExpression;
+use crate::utils::eval::BasicEvaluatedExpression;
 
 pub struct JavaScriptParserPluginDrive {
   plugins: Vec<BoxJavascriptParserPlugin>,

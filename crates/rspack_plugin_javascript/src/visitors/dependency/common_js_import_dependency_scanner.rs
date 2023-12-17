@@ -13,11 +13,8 @@ use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
 use crate::parser_plugin::{
   BoxJavascriptParserPlugin, JavaScriptParserPluginDrive, JavascriptParserPlugin,
 };
-use crate::utils::{
-  eval_binary_expression, eval_cond_expression, eval_lit_expr, eval_tpl_expression,
-  eval_unary_expression, evaluate_to_string, expression_logic_operator, BasicEvaluatedExpression,
-  Continue,
-};
+use crate::utils::eval::{self, BasicEvaluatedExpression};
+use crate::utils::{expression_logic_operator, Continue};
 
 struct CommonJsImportsParserPlugin;
 
@@ -30,7 +27,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     unresolved_mark: swc_core::common::SyntaxContext,
   ) -> Option<BasicEvaluatedExpression> {
     if expression.sym.as_str() == "require" && expression.span.ctxt == unresolved_mark {
-      Some(evaluate_to_string("function".to_string(), start, end))
+      Some(eval::evaluate_to_string("function".to_string(), start, end))
     } else {
       None
     }
@@ -294,11 +291,12 @@ impl CommonJsImportDependencyScanner<'_> {
   // FIXME: should mv it to plugin
   fn evaluating(&self, expr: &Expr) -> Option<BasicEvaluatedExpression> {
     match expr {
-      Expr::Tpl(tpl) => eval_tpl_expression(self, tpl),
-      Expr::Lit(lit) => eval_lit_expr(lit),
-      Expr::Cond(cond) => eval_cond_expression(self, cond),
-      Expr::Unary(unary) => eval_unary_expression(self, unary),
-      Expr::Bin(binary) => eval_binary_expression(self, binary),
+      Expr::Tpl(tpl) => eval::eval_tpl_expression(self, tpl),
+      Expr::Lit(lit) => eval::eval_lit_expr(lit),
+      Expr::Cond(cond) => eval::eval_cond_expression(self, cond),
+      Expr::Unary(unary) => eval::eval_unary_expression(self, unary),
+      Expr::Bin(binary) => eval::eval_binary_expression(self, binary),
+      Expr::Array(array) => eval::eval_array_expression(self, array),
       _ => None,
     }
   }

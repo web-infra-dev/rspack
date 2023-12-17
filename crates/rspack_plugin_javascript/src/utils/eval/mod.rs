@@ -1,3 +1,4 @@
+mod eval_array_expr;
 mod eval_binary_expr;
 mod eval_cond_expr;
 mod eval_lit_expr;
@@ -6,6 +7,7 @@ mod eval_unary_expr;
 
 use rspack_core::DependencyLocation;
 
+pub use self::eval_array_expr::eval_array_expression;
 pub use self::eval_binary_expr::eval_binary_expression;
 pub use self::eval_cond_expr::eval_cond_expression;
 pub use self::eval_lit_expr::eval_lit_expr;
@@ -23,7 +25,7 @@ enum Ty {
   Boolean,
   // RegExp,
   Conditional,
-  // TypeArray,
+  TypeArray,
   ConstArray,
   BigInt,
   // TypeIdentifier,
@@ -51,6 +53,7 @@ pub struct BasicEvaluatedExpression {
   string: Option<String>,
   bigint: Option<Bigint>,
   // regexp: Option<Regexp<'a>>,
+  items: Option<Vec<BasicEvaluatedExpression>>,
   quasis: Option<Vec<BasicEvaluatedExpression>>,
   parts: Option<Vec<BasicEvaluatedExpression>>,
   // array: Option<Array>
@@ -82,6 +85,7 @@ impl BasicEvaluatedExpression {
       template_string_kind: None,
       options: None,
       string: None,
+      items: None,
       // regexp: None,
     }
   }
@@ -106,6 +110,10 @@ impl BasicEvaluatedExpression {
 
   pub fn is_bool(&self) -> bool {
     matches!(self.ty, Ty::Boolean)
+  }
+
+  pub fn is_array(&self) -> bool {
+    matches!(self.ty, Ty::TypeArray)
   }
 
   pub fn is_compile_time_value(&self) -> bool {
@@ -182,6 +190,12 @@ impl BasicEvaluatedExpression {
 
   pub fn set_side_effects(&mut self, side_effects: bool) {
     self.side_effects = side_effects
+  }
+
+  pub fn set_items(&mut self, items: Vec<BasicEvaluatedExpression>) {
+    self.ty = Ty::TypeArray;
+    self.side_effects = items.iter().any(|item| item.could_have_side_effects());
+    self.items = Some(items);
   }
 
   pub fn options(&self) -> &Vec<BasicEvaluatedExpression> {
