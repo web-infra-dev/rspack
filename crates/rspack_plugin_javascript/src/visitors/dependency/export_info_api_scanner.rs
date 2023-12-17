@@ -1,4 +1,4 @@
-use rspack_core::{extract_member_expression_chain, DependencyTemplate, SpanExt};
+use rspack_core::{extract_member_expression_chain, ConstDependency, DependencyTemplate, SpanExt};
 use swc_core::{
   common::SyntaxContext,
   ecma::{
@@ -55,6 +55,18 @@ impl Visit for ExportInfoApiScanner<'_> {
       } else {
         // TODO: support other __webpack_exports_info__
       }
+    }
+  }
+
+  fn visit_ident(&mut self, n: &Ident) {
+    if n.sym == "__webpack_exports_info__" {
+      let dep = Box::new(ConstDependency::new(
+        n.span.real_lo(),
+        n.span.real_hi(),
+        "true".into(),
+        None,
+      ));
+      self.presentational_dependencies.push(dep);
     }
   }
 }
