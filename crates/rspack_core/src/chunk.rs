@@ -492,7 +492,7 @@ impl Chunk {
     }
 
     list.sort_by(|a, b| {
-      let order = a.0.cmp(&b.0);
+      let order = b.0.cmp(&a.0);
       match order {
         Ordering::Equal => compare_chunk_group(&a.1, &b.1, compilation),
         _ => order,

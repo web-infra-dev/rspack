@@ -150,7 +150,7 @@ impl<'a> ImportScanner<'a> {
           .rev()
           .filter(|c| matches!(c.kind, CommentKind::Block))
         {
-          if let Some(captures) = WEBPACK_MAGIC_COMMENT_REGEXP.captures(&comment.text) {
+          for captures in WEBPACK_MAGIC_COMMENT_REGEXP.captures_iter(&comment.text) {
             if let Some(item_name_match) = captures.name("_0") {
               let item_name = item_name_match.as_str();
               match item_name {

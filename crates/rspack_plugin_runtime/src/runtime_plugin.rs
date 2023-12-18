@@ -269,6 +269,14 @@ impl Plugin for RuntimePlugin {
       }
     }
 
+    if runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK) {
+      runtime_requirements_mut.insert(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS);
+    }
+
+    if runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK) {
+      runtime_requirements_mut.insert(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS);
+    }
+
     let library_type = {
       let chunk = compilation
         .chunk_by_ukey
