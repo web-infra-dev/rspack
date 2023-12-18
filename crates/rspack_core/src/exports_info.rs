@@ -295,6 +295,24 @@ impl ExportsInfoId {
     changed
   }
 
+  pub fn set_all_known_exports_used(
+    &self,
+    mg: &mut ModuleGraph,
+    runtime: Option<&RuntimeSpec>,
+  ) -> bool {
+    let mut changed = false;
+    let exports_info = mg.get_exports_info_mut_by_id(self);
+    let export_info_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    for export_info_id in export_info_id_list {
+      let export_info = export_info_id.get_export_info_mut(mg);
+      if !matches!(export_info.provided, Some(ExportInfoProvided::True)) {
+        continue;
+      }
+      changed |= export_info_id.set_used(mg, UsageState::Used, runtime);
+    }
+    changed
+  }
+
   pub fn set_used_in_unknown_way(
     &self,
     mg: &mut ModuleGraph,
