@@ -32,7 +32,8 @@ use super::{
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
-  is_source_equal,
+  compiler::compilation,
+  debug_all_exports_info, is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs,
   AdditionalModuleRequirementsArgs, AsyncDependenciesBlock, BoxDependency, BoxModule, BuildQueue,
@@ -986,9 +987,13 @@ impl Compilation {
         })
     };
 
-    // dbg!(&self.module_graph.module_identifier_to_module_graph_module);
+    let start = logger.time("finish compilation");
+    self.finish(self.plugin_driver.clone()).await?;
+    logger.time_end(start);
+    // debug_all_exports_info!(&self.module_graph);
 
     // add context module and context element module to bailout_module_identifiers
+    dbg!(&self.options.builtins.tree_shaking);
     if self.options.builtins.tree_shaking.enable() {
       self.bailout_module_identifiers = self
         .module_graph
