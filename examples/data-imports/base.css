@@ -1,0 +1,22 @@
+.red{color: red;}
+.b{color: green}
+.a { color: palegreen; };;;
+
+.bad {
+  a: url(data:text/bad-base64;base64,abcd?#iefix);
+  b: url("data:text/bad-base64;base64,    abcd?#iefix");
+}
+
+ /* .b{color: green} */
+
+
+
+.class {
+  a: url(a1ea596507b68c0f69bf.svg);
+  b: url(a1ea596507b68c0f69bf.svg);
+  c: url(a1ea596507b68c0f69bf);
+  d: url(a1ea596507b68c0f69bf);
+}
+
+
+/*# sourceMappingURL=main.css.map*/
