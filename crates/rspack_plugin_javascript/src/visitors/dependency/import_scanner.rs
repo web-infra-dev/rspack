@@ -6,6 +6,7 @@ use rspack_core::{
 use rspack_core::{BoxDependency, BuildMeta, ChunkGroupOptions, ContextMode};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
 use rspack_regex::{regexp_as_str, RspackRegex};
+use rustc_hash::FxHashMap as HashMap;
 use swc_core::common::comments::{CommentKind, Comments};
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, Lit};
@@ -13,7 +14,7 @@ use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use super::context_helper::scanner_context_module;
-use super::is_import_meta_context_call;
+use super::{is_import_meta_context_call, parse_order_string};
 use crate::dependency::{ImportContextDependency, ImportDependency};
 use crate::dependency::{ImportEagerDependency, ImportMetaContextDependency};
 use crate::utils::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop};
@@ -54,7 +55,7 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
       None
     })?;
   let reg = r"^\.\/.*$";
-  let reg_str = reg.to_string();
+  let reg_str: String = reg.to_string();
   let context_options = if let Some(obj) = node.args.get(1).and_then(|arg| arg.expr.as_object()) {
     let regexp = get_regex_by_obj_prop(obj, "regExp")
       .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"))
@@ -104,8 +105,16 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
   ))
 }
 
-static WEBPACK_CHUNK_NAME_CAPTURE_RE: Lazy<regex::Regex> = Lazy::new(|| {
-  regex::Regex::new(r#"webpackChunkName\s*:\s*("(?P<_1>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)"|'(?P<_2>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)'|`(?P<_3>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)`)"#)
+// Using vm.runInNewContext in webpack
+// _0 for name
+// _1 for "xxx"
+// _2 for 'xxx'
+// _3 for `xxx`
+// _4 for number
+// _5 for true/false
+// TODO: regexp/array
+static WEBPACK_MAGIC_COMMENT_REGEXP: Lazy<regex::Regex> = Lazy::new(|| {
+  regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*("(?P<_1>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)"|'(?P<_2>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)'|`(?P<_3>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false))"#)
     .expect("invalid regex")
 });
 
@@ -128,30 +137,51 @@ impl<'a> ImportScanner<'a> {
     }
   }
 
-  fn try_extract_webpack_chunk_name(&self, first_arg_span_of_import_call: &Span) -> Option<String> {
+  fn try_extract_webpack_magic_comments(
+    &self,
+    first_arg_span_of_import_call: &Span,
+  ) -> HashMap<String, String> {
+    let mut result = HashMap::default();
     self
       .comments
       .with_leading(first_arg_span_of_import_call.lo, |comments| {
-        let ret = comments
+        for comment in comments
           .iter()
           .rev()
           .filter(|c| matches!(c.kind, CommentKind::Block))
-          .find_map(|comment| {
-            WEBPACK_CHUNK_NAME_CAPTURE_RE
-              .captures(&comment.text)
-              .and_then(|captures| {
-                if let Some(cap) = captures.name("_1") {
-                  Some(cap)
-                } else if let Some(cap) = captures.name("_2") {
-                  Some(cap)
-                } else {
-                  captures.name("_3")
+        {
+          if let Some(captures) = WEBPACK_MAGIC_COMMENT_REGEXP.captures(&comment.text) {
+            if let Some(item_name_match) = captures.name("_0") {
+              let item_name = item_name_match.as_str();
+              match item_name {
+                "webpackChunkName" => {
+                  if let Some(item_value_match) = captures
+                    .name("_1")
+                    .or(captures.name("_2"))
+                    .or(captures.name("_3"))
+                  {
+                    result.insert(item_name.to_string(), item_value_match.as_str().to_string());
+                  }
                 }
-              })
-              .map(|mat| mat.as_str().to_string())
-          });
-        ret
-      })
+                "webpackPrefetch" => {
+                  if let Some(item_value_match) = captures.name("_4").or(captures.name("_5")) {
+                    result.insert(item_name.to_string(), item_value_match.as_str().to_string());
+                  }
+                }
+                "webpackPreload" => {
+                  if let Some(item_value_match) = captures.name("_4").or(captures.name("_5")) {
+                    result.insert(item_name.to_string(), item_value_match.as_str().to_string());
+                  }
+                }
+                _ => {
+                  // TODO: other magic comment
+                }
+              }
+            }
+          }
+        }
+      });
+    result
   }
 }
 
@@ -208,7 +238,16 @@ impl Visit for ImportScanner<'_> {
           self.dependencies.push(Box::new(dep));
           return;
         }
-        let chunk_name = self.try_extract_webpack_chunk_name(&imported.span);
+        let magic_comment_options = self.try_extract_webpack_magic_comments(&imported.span);
+        let chunk_name = magic_comment_options
+          .get("webpackChunkName")
+          .map(|x| x.to_owned());
+        let chunk_prefetch = magic_comment_options
+          .get("webpackPrefetch")
+          .and_then(|x| parse_order_string(x.as_str()));
+        let chunk_preload = magic_comment_options
+          .get("webpackPreload")
+          .and_then(|x| parse_order_string(x.as_str()));
         let span = ErrorSpan::from(node.span);
         let dep = Box::new(ImportDependency::new(
           node.span.real_lo(),
@@ -225,14 +264,23 @@ impl Visit for ImportScanner<'_> {
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
           chunk_name,
-          dynamic_import_preload,
-          dynamic_import_prefetch,
+          chunk_preload.or(dynamic_import_preload),
+          chunk_prefetch.or(dynamic_import_prefetch),
         )));
         block.add_dependency(dep);
         self.blocks.push(block);
       }
       Expr::Tpl(tpl) if tpl.quasis.len() == 1 => {
-        let chunk_name = self.try_extract_webpack_chunk_name(&tpl.span);
+        let magic_comment_options = self.try_extract_webpack_magic_comments(&tpl.span);
+        let chunk_name = magic_comment_options
+          .get("webpackChunkName")
+          .map(|x| x.to_owned());
+        let chunk_prefetch = magic_comment_options
+          .get("webpackPrefetch")
+          .and_then(|x| parse_order_string(x.as_str()));
+        let chunk_preload = magic_comment_options
+          .get("webpackPreload")
+          .and_then(|x| parse_order_string(x.as_str()));
         let request = JsWord::from(
           tpl
             .quasis
@@ -256,8 +304,8 @@ impl Visit for ImportScanner<'_> {
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
           chunk_name,
-          dynamic_import_preload,
-          dynamic_import_prefetch,
+          chunk_preload.or(dynamic_import_preload),
+          chunk_prefetch.or(dynamic_import_prefetch),
         )));
         block.add_dependency(dep);
         self.blocks.push(block);
@@ -266,7 +314,10 @@ impl Visit for ImportScanner<'_> {
         let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) else {
           return;
         };
-        let chunk_name = self.try_extract_webpack_chunk_name(&dyn_imported.span());
+        let magic_comment_options = self.try_extract_webpack_magic_comments(&dyn_imported.span());
+        let chunk_name = magic_comment_options
+          .get("webpackChunkName")
+          .map(|x| x.to_owned());
         self
           .dependencies
           .push(Box::new(ImportContextDependency::new(
