@@ -323,14 +323,6 @@ pub struct EntryOptions {
 }
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum ChunkGroupFetchPriority {
-  Disable,
-  Low,
-  High,
-  Auto,
-}
-
-#[derive(Debug, Hash, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkGroupOrderKey {
   Preload,
   Prefetch,
