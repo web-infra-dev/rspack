@@ -262,6 +262,6 @@ pub fn get_chunk_runtime_requirements<'a>(
 ) -> &'a RuntimeGlobals {
   &compilation
     .chunk_graph
-    .get_chunk_graph_chunk(&chunk_ukey)
+    .get_chunk_graph_chunk(chunk_ukey)
     .runtime_requirements
 }
