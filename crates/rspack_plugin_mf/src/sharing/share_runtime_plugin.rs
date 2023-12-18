@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginContext, RuntimeGlobals, RuntimeModuleExt,
+  Plugin, PluginContext, PluginRuntimeRequirementsInTreeOutput, RuntimeGlobals, RuntimeModuleExt,
+  RuntimeRequirementsInTreeArgs,
 };
 
 use crate::ShareRuntimeModule;
@@ -26,11 +26,11 @@ impl Plugin for ShareRuntimePlugin {
   fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    if dbg!(args
+    args: &mut RuntimeRequirementsInTreeArgs,
+  ) -> PluginRuntimeRequirementsInTreeOutput {
+    if args
       .runtime_requirements
-      .contains(RuntimeGlobals::SHARE_SCOPE_MAP))
+      .contains(RuntimeGlobals::SHARE_SCOPE_MAP)
     {
       args
         .compilation

@@ -108,7 +108,6 @@ impl RawOptionsApply for BuiltinPlugin {
     self,
     plugins: &mut Vec<BoxPlugin>,
   ) -> std::result::Result<Self::Options, rspack_error::Error> {
-    dbg!(self.name);
     match self.name {
       // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
@@ -207,10 +206,7 @@ impl RawOptionsApply for BuiltinPlugin {
         plugins.push(SplitChunksPlugin::new(options).boxed());
       }
       BuiltinPluginName::ShareRuntimePlugin => {
-        // panic!("??");
-        let s = downcast_into::<bool>(self.options)?;
-        dbg!(s);
-        plugins.push(ShareRuntimePlugin::new(s).boxed())
+        plugins.push(ShareRuntimePlugin::new(downcast_into::<bool>(self.options)?).boxed())
       }
       BuiltinPluginName::ContainerPlugin => {
         plugins.push(

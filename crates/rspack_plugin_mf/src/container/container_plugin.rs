@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, Compilation, CompilationArgs, CompilationParams,
-  Dependency, DependencyType, EntryOptions, EntryRuntime, Filename, LibraryOptions, MakeParam,
-  Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginCompilationHookOutput,
-  PluginContext, PluginMakeHookOutput, RuntimeGlobals,
+  Compilation, CompilationArgs, CompilationParams, Dependency, DependencyType, EntryOptions,
+  EntryRuntime, Filename, LibraryOptions, MakeParam, Plugin, PluginCompilationHookOutput,
+  PluginContext, PluginMakeHookOutput, PluginRuntimeRequirementsInTreeOutput, RuntimeGlobals,
+  RuntimeRequirementsInTreeArgs,
 };
 use serde::Serialize;
 
@@ -94,14 +94,14 @@ impl Plugin for ContainerPlugin {
   fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    args: &mut RuntimeRequirementsInTreeArgs,
+  ) -> PluginRuntimeRequirementsInTreeOutput {
     if args
       .runtime_requirements
       .contains(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE)
     {
       args
-        .runtime_requirements
+        .runtime_requirements_mut
         .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
       args.compilation.add_runtime_module(
         args.chunk,
