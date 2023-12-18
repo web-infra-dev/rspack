@@ -2,7 +2,6 @@
 module.exports = {
 	target: "web",
 	output: {
-		chunkFilename: "[name].js",
-		crossOriginLoading: "anonymous"
+		chunkFilename: "[name].js"
 	}
 };
