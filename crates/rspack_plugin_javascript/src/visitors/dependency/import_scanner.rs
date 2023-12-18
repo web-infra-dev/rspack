@@ -55,7 +55,7 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
       None
     })?;
   let reg = r"^\.\/.*$";
-  let reg_str: String = reg.to_string();
+  let reg_str = reg.to_string();
   let context_options = if let Some(obj) = node.args.get(1).and_then(|arg| arg.expr.as_object()) {
     let regexp = get_regex_by_obj_prop(obj, "regExp")
       .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"))
