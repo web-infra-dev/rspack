@@ -151,7 +151,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
           }
         }
       };
-      let script_type_link_pre = if script_type.eq("module") {
+      let script_type_link_pre = if script_type.eq("module") || script_type.eq("false") {
         "".to_string()
       } else {
         format!(
