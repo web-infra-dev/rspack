@@ -1,7 +1,6 @@
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, BoxPlugin, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginExt, RuntimeGlobals,
-  RuntimeModuleExt, WasmLoadingType,
+  BoxPlugin, Plugin, PluginContext, PluginExt, PluginRuntimeRequirementsInTreeOutput,
+  RuntimeGlobals, RuntimeModuleExt, RuntimeRequirementsInTreeArgs, WasmLoadingType,
 };
 
 use crate::AsyncWasmLoadingRuntimeModule;
@@ -26,12 +25,13 @@ impl Plugin for FetchCompileAsyncWasmPlugin {
   fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    let runtime_requirements = &mut args.runtime_requirements;
+    args: &mut RuntimeRequirementsInTreeArgs,
+  ) -> PluginRuntimeRequirementsInTreeOutput {
+    let runtime_requirements = args.runtime_requirements;
+    let runtime_requirements_mut = &mut args.runtime_requirements_mut;
 
     if runtime_requirements.contains(RuntimeGlobals::INSTANTIATE_WASM) {
-      runtime_requirements.insert(RuntimeGlobals::PUBLIC_PATH);
+      runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
       args.compilation.add_runtime_module(
         args.chunk,
         AsyncWasmLoadingRuntimeModule::new(
@@ -67,12 +67,13 @@ impl Plugin for ReadFileCompileAsyncWasmPlugin {
   fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
-    let runtime_requirements = &mut args.runtime_requirements;
+    args: &mut RuntimeRequirementsInTreeArgs,
+  ) -> PluginRuntimeRequirementsInTreeOutput {
+    let runtime_requirements = args.runtime_requirements;
+    let runtime_requirements_mut = &mut args.runtime_requirements_mut;
 
     if runtime_requirements.contains(RuntimeGlobals::INSTANTIATE_WASM) {
-      runtime_requirements.insert(RuntimeGlobals::PUBLIC_PATH);
+      runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
       args.compilation.add_runtime_module(
         args.chunk,
         AsyncWasmLoadingRuntimeModule::new(

@@ -7,21 +7,22 @@ use rspack_identifier::Identifier;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::utils::chunk_has_css;
-use crate::runtime_module::{render_condition_map, stringify_chunks};
+use crate::{
+  get_chunk_runtime_requirements,
+  runtime_module::{render_condition_map, stringify_chunks},
+};
 
-#[derive(Debug, Default, Eq)]
+#[derive(Debug, Eq)]
 pub struct CssLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
-  runtime_requirements: RuntimeGlobals,
 }
 
-impl CssLoadingRuntimeModule {
-  pub fn new(runtime_requirements: RuntimeGlobals) -> Self {
+impl Default for CssLoadingRuntimeModule {
+  fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/css_loading"),
       chunk: None,
-      runtime_requirements,
     }
   }
 }
@@ -37,14 +38,11 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         .chunk_by_ukey
         .get(&chunk_ukey)
         .expect("Chunk not found");
+      let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
 
-      let with_hmr = self
-        .runtime_requirements
-        .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+      let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
 
-      let with_loading = self
-        .runtime_requirements
-        .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+      let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
 
       let initial_chunks = chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey);
       let mut initial_chunk_ids_with_css = HashSet::default();

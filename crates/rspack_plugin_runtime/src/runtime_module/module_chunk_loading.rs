@@ -10,24 +10,27 @@ use super::{
   utils::{chunk_has_js, get_output_dir},
   BooleanMatcher,
 };
-use crate::runtime_module::utils::{get_initial_chunk_ids, stringify_chunks};
+use crate::{
+  get_chunk_runtime_requirements,
+  runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
+};
 
-#[derive(Debug, Default, Eq)]
+#[derive(Debug, Eq)]
 pub struct ModuleChunkLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
-  runtime_requirements: RuntimeGlobals,
 }
 
-impl ModuleChunkLoadingRuntimeModule {
-  pub fn new(runtime_requirements: RuntimeGlobals) -> Self {
+impl Default for ModuleChunkLoadingRuntimeModule {
+  fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/module_chunk_loading"),
       chunk: None,
-      runtime_requirements,
     }
   }
+}
 
+impl ModuleChunkLoadingRuntimeModule {
   fn generate_base_uri(
     &self,
     chunk: &Chunk,
@@ -58,20 +61,14 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       .chunk_by_ukey
       .get(&self.chunk.expect("The chunk should be attached."))
       .expect("Chunk is not found, make sure you had attach chunkUkey successfully.");
+    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey);
 
-    let with_base_uri = self.runtime_requirements.contains(RuntimeGlobals::BASE_URI);
-    let with_external_install_chunk = self
-      .runtime_requirements
-      .contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
-    let with_loading = self
-      .runtime_requirements
-      .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
-    let with_on_chunk_load = self
-      .runtime_requirements
-      .contains(RuntimeGlobals::ON_CHUNKS_LOADED);
-    let with_hmr = self
-      .runtime_requirements
-      .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+    let with_base_uri = runtime_requirements.contains(RuntimeGlobals::BASE_URI);
+    let with_external_install_chunk =
+      runtime_requirements.contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
+    let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+    let with_on_chunk_load = runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED);
+    let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
 
     let condition_map =
       compilation

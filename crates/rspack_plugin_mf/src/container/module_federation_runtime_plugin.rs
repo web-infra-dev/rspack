@@ -1,8 +1,8 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, ChunkUkey, Compilation, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeGlobals, RuntimeModule,
+  ChunkUkey, Compilation, Plugin, PluginContext, PluginRuntimeRequirementsInTreeOutput,
+  RuntimeGlobals, RuntimeModule, RuntimeRequirementsInTreeArgs,
 };
 use rspack_identifier::Identifier;
 
@@ -19,8 +19,8 @@ impl Plugin for ModuleFederationRuntimePlugin {
   fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    args: &mut RuntimeRequirementsInTreeArgs,
+  ) -> PluginRuntimeRequirementsInTreeOutput {
     if args
       .runtime_requirements
       .contains(RuntimeGlobals::SHARE_SCOPE_MAP)

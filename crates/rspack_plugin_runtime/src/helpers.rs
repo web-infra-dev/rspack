@@ -255,3 +255,13 @@ pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> String
       .hash_optional(hash),
   )
 }
+
+pub fn get_chunk_runtime_requirements<'a>(
+  compilation: &'a Compilation,
+  chunk_ukey: &ChunkUkey,
+) -> &'a RuntimeGlobals {
+  &compilation
+    .chunk_graph
+    .get_chunk_graph_chunk(chunk_ukey)
+    .runtime_requirements
+}

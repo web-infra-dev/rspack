@@ -6,24 +6,27 @@ use rspack_core::{
 use rspack_identifier::Identifier;
 
 use super::utils::{chunk_has_js, get_output_dir};
-use crate::runtime_module::utils::{get_initial_chunk_ids, render_condition_map, stringify_chunks};
+use crate::{
+  get_chunk_runtime_requirements,
+  runtime_module::utils::{get_initial_chunk_ids, render_condition_map, stringify_chunks},
+};
 
-#[derive(Debug, Default, Eq)]
+#[derive(Debug, Eq)]
 pub struct RequireChunkLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
-  runtime_requirements: RuntimeGlobals,
 }
 
-impl RequireChunkLoadingRuntimeModule {
-  pub fn new(runtime_requirements: RuntimeGlobals) -> Self {
+impl Default for RequireChunkLoadingRuntimeModule {
+  fn default() -> Self {
     Self {
       id: Identifier::from("webpack/runtime/require_chunk_loading"),
       chunk: None,
-      runtime_requirements,
     }
   }
+}
 
+impl RequireChunkLoadingRuntimeModule {
   fn generate_base_uri(
     &self,
     chunk: &Chunk,
@@ -62,17 +65,15 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
       .chunk_by_ukey
       .get(&self.chunk.expect("The chunk should be attached."))
       .expect("Chunk is not found, make sure you had attach chunkUkey successfully.");
-    let with_hmr = self
-      .runtime_requirements
-      .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
-    let with_external_install_chunk = self
-      .runtime_requirements
-      .contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
+    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey);
+    let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+    let with_external_install_chunk =
+      runtime_requirements.contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
     let root_output_dir = get_output_dir(chunk, compilation, true);
     let mut source = ConcatSource::default();
 
-    if self.runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
+    if runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
       source.add(self.generate_base_uri(chunk, compilation, &root_output_dir));
     }
 
@@ -91,12 +92,8 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
       )));
     }
 
-    let with_loading = self
-      .runtime_requirements
-      .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
-    let with_on_chunk_load = self
-      .runtime_requirements
-      .contains(RuntimeGlobals::ON_CHUNKS_LOADED);
+    let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+    let with_on_chunk_load = runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED);
 
     if with_loading || with_external_install_chunk {
       source.add(RawSource::from(
@@ -134,10 +131,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
       ));
     }
 
-    if self
-      .runtime_requirements
-      .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST)
-    {
+    if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST) {
       source.add(RawSource::from(include_str!(
         "runtime/require_chunk_loading_with_hmr_manifest.js"
       )));
