@@ -788,7 +788,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .module_graph
         .module_graph_module_by_identifier(&module)
         .unwrap_or_else(|| panic!("no module found: {:?}", &module));
-      let mut res: Vec<&Box<dyn Dependency>> = mgm
+      let mut filtered_dep: Vec<&Box<dyn Dependency>> = mgm
         .outgoing_connections_unordered(&self.compilation.module_graph)
         .expect("should have outgoing connections")
         .filter_map(|con: &ModuleGraphConnection| {
@@ -800,13 +800,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         })
         .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(&dep_id))
         .collect();
-      // keep the dependency original order if it does not has span, or sort the dependencies by
+      // keep the dependency original order if it does not have span, or sort the dependency by
       // the error span
-      res.sort_by(|a, b| match (a.span(), b.span()) {
+      filtered_dep.sort_by(|a, b| match (a.span(), b.span()) {
         (Some(a), Some(b)) => a.cmp(&b),
         _ => std::cmp::Ordering::Equal,
       });
-      res
+      filtered_dep
     } else {
       self
         .compilation
