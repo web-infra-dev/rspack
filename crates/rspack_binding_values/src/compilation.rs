@@ -8,6 +8,7 @@ use rspack_binding_macros::call_js_function_with_napi_objects;
 use rspack_binding_macros::convert_raw_napi_value_to_napi_value;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
+use rspack_core::DependencyCategory;
 use rspack_core::ModuleIdentifier;
 use rspack_core::{rspack_sources::SourceExt, NormalModuleSource};
 use rspack_error::Diagnostic;
@@ -16,6 +17,8 @@ use rspack_napi_shared::NapiResultExt;
 
 use super::module::ToJsModule;
 use super::PathWithInfo;
+use crate::raw_resolve;
+use crate::resolver::JsResolver;
 use crate::utils::callbackify;
 use crate::{
   chunk::JsChunk, module::JsModule, CompatSource, JsAsset, JsAssetInfo, JsChunkGroup,
@@ -42,7 +45,7 @@ impl JsCompilation {
     self
       .inner
       .update_asset(&filename, |original_source, original_info| {
-        let new_source: napi::Result<BoxSource> = try {
+        let new_source: Result<BoxSource> = try {
           let new_source = match new_source_or_function {
             Either::A(new_source) => Into::<CompatSource>::into(new_source).boxed(),
             Either::B(new_source_fn) => {
@@ -427,6 +430,28 @@ impl JsCompilation {
           .collect::<Vec<_>>(),
       )
     })
+  }
+
+  #[napi]
+  pub fn create_resolver(
+    &mut self,
+    options: raw_resolve::RawResolveOptionsWithDependencyType,
+  ) -> JsResolver {
+    let options = rspack_core::ResolveOptionsWithDependencyType {
+      resolve_options: Some(Box::new(
+        options
+          .resolve
+          .try_into()
+          .expect("the options of resolver is invalid"),
+      )),
+      resolve_to_context: options.resolve_to_context.unwrap_or_default(),
+      dependency_category: options
+        .dependency_category
+        .map(|category| DependencyCategory::from(category.as_str()))
+        .unwrap_or(DependencyCategory::Unknown),
+    };
+    let resolver = self.inner.resolver_factory.get(options);
+    JsResolver::new(resolver)
   }
 }
 

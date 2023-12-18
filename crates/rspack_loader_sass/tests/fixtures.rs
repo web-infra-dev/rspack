@@ -6,7 +6,8 @@ use std::{
 };
 
 use rspack_core::{
-  run_loaders, CompilerContext, CompilerOptions, Loader, LoaderRunnerContext, ResourceData,
+  run_loaders, CompilerContext, CompilerOptions, Loader, LoaderRunnerContext, Resolve,
+  ResolverFactory, ResourceData,
 };
 use rspack_loader_sass::{SassLoader, SassLoaderOptions};
 use rspack_testing::{fixture, test_fixture_css};
@@ -95,7 +96,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
         },
         profile: false,
       }),
-      resolver_factory: Default::default(),
+      resolver_factory: Arc::new(ResolverFactory::new(false, Resolve::default())),
       module: None,
       module_context: None,
     },

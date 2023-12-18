@@ -45,6 +45,11 @@ export class JsCompilation {
   addMissingDependencies(deps: Array<string>): void
   addBuildDependencies(deps: Array<string>): void
   rebuildModule(moduleIdentifiers: Array<string>, f: (...args: any[]) => any): void
+  createResolver(options: RawResolveOptionsWithDependencyType): JsResolver
+}
+
+export class JsResolver {
+  resolve(path: string, request: string): string | false
 }
 
 export class JsStats {
@@ -1102,6 +1107,12 @@ export interface RawResolveOptions {
   fullySpecified?: boolean
   exportsFields?: Array<string>
   extensionAlias?: Record<string, Array<string>>
+}
+
+export interface RawResolveOptionsWithDependencyType {
+  resolve: RawResolveOptions
+  dependencyCategory?: string
+  resolveToContext?: boolean
 }
 
 export interface RawResolveTsconfigOptions {

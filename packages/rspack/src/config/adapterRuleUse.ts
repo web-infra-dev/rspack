@@ -4,7 +4,7 @@ import type {
 	RawModuleRuleUse,
 	RawOptions
 } from "@rspack/binding";
-import { ResolveRequest } from "enhanced-resolve";
+import { type ResolveRequest } from "enhanced-resolve";
 
 import { Compiler } from "../Compiler";
 import { Logger } from "../logging/Logger";

@@ -354,7 +354,7 @@ export async function runLoaders(
 		};
 	};
 
-	const resolver = compiler.resolverFactory.get("normal");
+	const resolver = compiler.compilation.nativeResolverFactory.get("normal");
 	loaderContext.resolve = function resolve(context, request, callback) {
 		resolver.resolve({}, context, request, getResolveContext(), callback);
 	};

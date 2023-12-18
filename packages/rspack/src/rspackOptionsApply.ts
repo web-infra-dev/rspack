@@ -148,7 +148,7 @@ export function optionsApply_compat(
 }
 
 export class RspackOptionsApply {
-	constructor() { }
+	constructor() {}
 	process(options: RspackOptionsNormalized, compiler: Compiler) {
 		assert(
 			options.output.path,
@@ -243,6 +243,20 @@ export class RspackOptionsApply {
 			.tap("RspackOptionsApply", resolveOptions => {
 				resolveOptions = cleverMerge(options.resolve, resolveOptions);
 				resolveOptions.fileSystem = compiler.inputFileSystem;
+				resolveOptions.resolveToContext = true;
+				return resolveOptions;
+			});
+
+		compiler.nativeResolverFactory.hooks.resolveOptions
+			.for("normal")
+			.tap("RspackOptionsApply", resolveOptions => {
+				// Don't need the `cleverMerge` native resolver options because this process has already been handled on the Rust side.
+				return resolveOptions;
+			});
+		compiler.nativeResolverFactory.hooks.resolveOptions
+			.for("context")
+			.tap("RspackOptionsApply", resolveOptions => {
+				// Don't need the `cleverMerge` native resolver options because this process has already been handled on the Rust side.
 				resolveOptions.resolveToContext = true;
 				return resolveOptions;
 			});

@@ -106,7 +106,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
       .exports_fields
       .map(|v| v.into_iter().map(|s| vec![s]).collect());
     let extension_alias = value.extension_alias.map(|v| v.into_iter().collect());
-    Ok(Resolve {
+    let resolve = Resolve {
       modules,
       prefer_relative,
       extensions,
@@ -122,7 +122,8 @@ impl TryFrom<RawResolveOptions> for Resolve {
       fully_specified,
       exports_field,
       extension_alias,
-    })
+    };
+    Ok(resolve)
   }
 }
 
@@ -143,4 +144,13 @@ impl TryFrom<RawResolveTsconfigOptions> for TsconfigOptions {
       references,
     })
   }
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawResolveOptionsWithDependencyType {
+  pub resolve: RawResolveOptions,
+  pub dependency_category: Option<String>,
+  pub resolve_to_context: Option<bool>,
 }

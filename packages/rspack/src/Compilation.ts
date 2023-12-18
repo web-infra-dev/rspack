@@ -19,7 +19,8 @@ import type {
 	JsModule,
 	JsStatsChunk,
 	JsStatsError,
-	PathData
+	PathData,
+	RawResolveOptionsWithDependencyType
 } from "@rspack/binding";
 
 import {
@@ -55,8 +56,9 @@ import {
 import { NormalizedJsModule, normalizeJsModule } from "./util/normalization";
 import MergeCaller from "./util/MergeCaller";
 import { Chunk } from "./Chunk";
-import { CodeGenerationResult, Module } from "./Module";
+import { CodeGenerationResult } from "./Module";
 import { ChunkGraph } from "./ChunkGraph";
+import { NativeResolverFactory } from "./NativeResolverFactory";
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
@@ -130,6 +132,8 @@ export class Compilation {
 	outputOptions: OutputNormalized;
 	compiler: Compiler;
 	resolverFactory: ResolverFactory;
+	// TODO: maybe we can replace `resolverFactory` to `nativeResolverFactory`
+	nativeResolverFactory: NativeResolverFactory;
 	inputFileSystem: any;
 	logging: Map<string, LogEntry[]>;
 	name?: string;
@@ -192,6 +196,8 @@ export class Compilation {
 		this.logging = new Map();
 		this.chunkGraph = new ChunkGraph(this);
 		this.#inner = inner;
+		this.nativeResolverFactory = compiler.nativeResolverFactory;
+		this.nativeResolverFactory.compilation = this;
 		// Cache the current NormalModuleHooks
 	}
 
@@ -221,7 +227,7 @@ export class Compilation {
 						return this.__internal__getAssetSource(property);
 					}
 				},
-				set: (target, p, newValue, receiver) => {
+				set: (_target, p, newValue, receiver) => {
 					if (typeof p === "string") {
 						this.__internal__setAssetSource(p, newValue);
 						return true;
@@ -912,6 +918,12 @@ export class Compilation {
 
 	__internal_getInner() {
 		return this.#inner;
+	}
+
+	__internal_create_native_resolver(
+		options: RawResolveOptionsWithDependencyType
+	) {
+		return this.#inner.createResolver(options);
 	}
 
 	seal() {}
