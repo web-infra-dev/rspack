@@ -696,6 +696,8 @@ impl Compilation {
 
               module_graph_module.set_issuer_if_unset(original_module_identifier);
               module_graph_module.factory_meta = Some(factory_result.factory_meta);
+              // TODO: should use `dep.optional` to test whether these diagnostics should be warnings or errors.
+              // https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/Compilation.js#L1796
               self.push_batch_diagnostic(diagnostics);
 
               self
