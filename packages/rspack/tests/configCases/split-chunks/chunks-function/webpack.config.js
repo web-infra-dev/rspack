@@ -25,7 +25,7 @@ module.exports = {
 			cacheGroups: {
 				splitLib2: {
 					chunks(chunk) {
-						console.log(chunk);
+						// console.log(chunk);
 						return chunk.name !== "lib1";
 					},
 					test: /shared\.js/,
