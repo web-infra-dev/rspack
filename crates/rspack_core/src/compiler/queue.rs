@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_error::{Diagnostic, Result};
+use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result};
 
 use crate::{
   cache::Cache, BoxDependency, BuildContext, BuildResult, Compilation, CompilerContext,
@@ -257,7 +257,7 @@ impl WorkerTask for BuildTask {
             compiler_context: CompilerContext {
               options: compiler_options.clone(),
               resolver_factory: resolver_factory.clone(),
-              module: Some(module.identifier()),
+              module: module.identifier(),
               module_context: module.as_normal_module().and_then(|m| m.get_context()),
             },
             plugin_driver: plugin_driver.clone(),
@@ -270,7 +270,7 @@ impl WorkerTask for BuildTask {
           .await
           .unwrap_or_else(|e| panic!("Run succeed_module hook failed: {}", e));
 
-        result.map(|t| (t, module))
+        result.map(|t| (t.with_diagnostic(module.clone_diagnostics()), module))
       })
       .await
     {

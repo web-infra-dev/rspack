@@ -8,7 +8,7 @@ use rspack_core::{
   CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
   Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 
@@ -100,10 +100,7 @@ impl Module for FallbackModule {
     Some(compilation.chunk_graph.get_number_of_entry_modules(chunk) > 0)
   }
 
-  async fn build(
-    &mut self,
-    build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
 
@@ -118,16 +115,13 @@ impl Module for FallbackModule {
       dependencies.push(Box::new(FallbackItemDependency::new(request.clone())))
     }
 
-    Ok(
-      BuildResult {
-        build_info,
-        build_meta: Default::default(),
-        dependencies,
-        blocks: Vec::new(),
-        analyze_result: Default::default(),
-      }
-      .with_empty_diagnostic(),
-    )
+    Ok(BuildResult {
+      build_info,
+      build_meta: Default::default(),
+      dependencies,
+      blocks: Vec::new(),
+      analyze_result: Default::default(),
+    })
   }
 
   #[allow(clippy::unwrap_in_result)]
@@ -177,6 +171,8 @@ module.exports = loop();
     Ok(codegen)
   }
 }
+
+impl_empty_diagnosable_trait!(FallbackModule);
 
 impl Hash for FallbackModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

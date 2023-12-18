@@ -8,7 +8,7 @@ use crate::{CompilerOptions, Context, ModuleIdentifier, ResolverFactory};
 pub struct CompilerContext {
   pub options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
-  pub module: Option<ModuleIdentifier>,     // current module
+  pub module: ModuleIdentifier,             // current module
   pub module_context: Option<Box<Context>>, // current module context
 }
 

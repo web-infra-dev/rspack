@@ -430,6 +430,8 @@ impl napi::bindgen_prelude::TypeName for JsLoaderResult {
     napi::ValueType::Object
   }
 }
+
+// Manually convert
 impl napi::bindgen_prelude::FromNapiValue for JsLoaderResult {
   unsafe fn from_napi_value(
     env: napi::bindgen_prelude::sys::napi_env,
@@ -463,7 +465,7 @@ impl napi::bindgen_prelude::FromNapiValue for JsLoaderResult {
     })?;
     let source_map_: Option<Buffer> = obj.get("sourceMap")?;
     let additional_data_: Option<Buffer> = obj.get("additionalData")?;
-    // eagerly clone this field since `External<T>` might be dropped.
+    // change: eagerly clone this field since `External<T>` might be dropped.
     let additional_data_external_: External<AdditionalData> = obj
       .get("additionalDataExternal")?
       .map(|v: External<AdditionalData>| External::new(v.clone()))

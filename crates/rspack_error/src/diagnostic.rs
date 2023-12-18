@@ -106,6 +106,41 @@ impl Diagnostic {
   }
 }
 
+pub trait Diagnosable {
+  fn add_diagnostic(&self, _diagnostic: Diagnostic) {
+    unimplemented!("`<T as Diagnostable>::add_diagnostic` is not implemented")
+  }
+  fn add_diagnostics(&self, _diagnostics: Vec<Diagnostic>) {
+    unimplemented!("`<T as Diagnostable>::add_diagnostics` is not implemented")
+  }
+  fn clone_diagnostics(&self) -> Vec<Diagnostic> {
+    vec![]
+  }
+}
+
+#[macro_export]
+macro_rules! impl_empty_diagnosable_trait {
+  ($ty:ty) => {
+    impl $crate::Diagnosable for $ty {
+      fn add_diagnostic(&self, _diagnostic: $crate::Diagnostic) {
+        unimplemented!(
+          "`<{ty} as Diagnostable>::add_diagnostic` is not implemented",
+          ty = stringify!($ty)
+        )
+      }
+      fn add_diagnostics(&self, _diagnostics: Vec<$crate::Diagnostic>) {
+        unimplemented!(
+          "`<{ty} as Diagnostable>::add_diagnostics` is not implemented",
+          ty = stringify!($ty)
+        )
+      }
+      fn clone_diagnostics(&self) -> Vec<$crate::Diagnostic> {
+        vec![]
+      }
+    }
+  };
+}
+
 pub fn errors_to_diagnostics(errs: Vec<Error>) -> Vec<Diagnostic> {
   errs.into_iter().map(Diagnostic::from).collect()
 }

@@ -42,7 +42,7 @@ impl<T: RuntimeModule + 'static> RuntimeModuleExt for T {
 
 #[macro_export]
 macro_rules! impl_runtime_module {
-  ($ident: ident) => {
+  ($ident:ident) => {
     impl rspack_identifier::Identifiable for $ident {
       fn identifier(&self) -> rspack_identifier::Identifier {
         self.name()
@@ -116,5 +116,7 @@ macro_rules! impl_runtime_module {
         Ok(result)
       }
     }
+
+    impl rspack_error::Diagnosable for $ident {}
   };
 }
