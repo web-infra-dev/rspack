@@ -12,6 +12,12 @@ pub fn eval_lit_expr(expr: &Lit) -> Option<BasicEvaluatedExpression> {
       res.set_string(str.value.to_string());
       Some(res)
     }
+    Lit::Regex(regexp) => {
+      let mut res = BasicEvaluatedExpression::new();
+      res.set_range(regexp.span().real_lo(), regexp.span_hi().0);
+      res.set_regexp(regexp.exp.to_string(), regexp.flags.to_string());
+      Some(res)
+    }
     // TODO:
     _ => None,
   }
