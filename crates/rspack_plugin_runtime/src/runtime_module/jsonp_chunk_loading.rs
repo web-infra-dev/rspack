@@ -123,7 +123,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       let cross_origin = match cross_origin_loading {
         CrossOriginLoading::Disable => "".to_string(),
         CrossOriginLoading::Enable(_) => {
-          format!("link.crossOrigin = {}", cross_origin_loading.to_string())
+          format!("link.crossOrigin = {}", cross_origin_loading)
         }
       };
       source.add(RawSource::from(
@@ -146,7 +146,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
                 link.crossOrigin = {}
               }}
               "#,
-              cross_origin_loading.to_string()
+              cross_origin_loading
             )
           }
         }
