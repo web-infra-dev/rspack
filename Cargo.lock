@@ -2955,6 +2955,7 @@ dependencies = [
  "indicatif",
  "rspack_core",
  "rspack_error",
+ "rustc-hash",
 ]
 
 [[package]]

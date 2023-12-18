@@ -11,6 +11,7 @@ use rspack_core::{
   PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
 use rspack_error::Result;
+use rustc_hash::FxHashSet as HashSet;
 
 #[derive(Debug, Clone, Default)]
 pub struct ProgressPluginOptions {
@@ -27,11 +28,14 @@ pub struct ProgressPlugin {
   pub dependencies_done: AtomicU32,
   pub modules_count: AtomicU32,
   pub modules_done: AtomicU32,
+  pub active_modules: RwLock<HashSet<String>>,
   pub last_modules_count: RwLock<Option<u32>>,
   pub last_dependencies_count: RwLock<Option<u32>>,
   pub last_active_module: RwLock<Option<String>>,
   pub last_state_info: RwLock<Vec<ProgressPluginStateInfo>>,
   pub last_update_time: RwLock<Instant>,
+  pub sealing_hooks_report_index: AtomicU32,
+  pub number_of_sealing_hooks: u32,
 }
 #[derive(Debug)]
 pub struct ProgressPluginStateInfo {
@@ -57,11 +61,14 @@ impl ProgressPlugin {
       dependencies_count: AtomicU32::new(0),
       dependencies_done: AtomicU32::new(0),
       modules_done: AtomicU32::new(0),
+      active_modules: RwLock::new(HashSet::default()),
       last_modules_count: RwLock::new(None),
       last_dependencies_count: RwLock::new(None),
       last_active_module: RwLock::new(None),
       last_state_info: RwLock::new(vec![]),
       last_update_time: RwLock::new(Instant::now()),
+      sealing_hooks_report_index: AtomicU32::new(0),
+      number_of_sealing_hooks: 20,
     }
   }
   pub fn update_throttled(&self) {
@@ -94,18 +101,23 @@ impl ProgressPlugin {
     let mut items = vec![];
     let mut stat_items = vec![];
     {
+      // stat_items.push(format!(
+      //   "{}/{} dependencies",
+      //   dependencies_done,
+      //   self.dependencies_count.load(SeqCst)
+      // ));
+      // stat_items.push(format!(
+      //   "{}/{} modules",
+      //   modules_done,
+      //   self.modules_count.load(SeqCst)
+      // ));
       stat_items.push(format!(
-        "{}/{} dependencies",
-        dependencies_done,
-        self.dependencies_count.load(SeqCst)
-      ));
-      stat_items.push(format!(
-        "{}/{} modules",
-        modules_done,
-        self.modules_count.load(SeqCst)
+        "{} active",
+        self.active_modules.read().expect("TODO:").len()
       ));
       items.push(stat_items.join(" "));
       let last_active_module = self.last_active_module.read().expect("TODO:");
+
       if let Some(last_active_module) = last_active_module.clone() {
         items.push(last_active_module);
       }
@@ -139,6 +151,9 @@ impl ProgressPlugin {
           )
         } else if i + 1 > full_state.len() || last_state_info[i].value != full_state[i] {
           let diff = (now - last_state_info[i].time).as_millis();
+          if diff < 5 {
+            continue;
+          }
           let report_state = if i > 0 {
             last_state_info[i - 1].value.clone() + " > " + last_state_info[i].value.clone().as_str()
           } else {
@@ -168,12 +183,6 @@ impl ProgressPlugin {
           }
         }
       }
-      println!(
-        "{}% {} {}",
-        (percentage * 100.0) as u32,
-        msg,
-        items.join("")
-      );
     }
   }
   fn progress_bar_handler(&self, percent: f32, msg: String, state_items: Vec<String>) {
@@ -181,6 +190,17 @@ impl ProgressPlugin {
       .progress_bar
       .set_message(msg + " " + state_items.join(" ").as_str());
     self.progress_bar.set_position((percent * 100.0) as u64);
+  }
+
+  fn sealing_hooks_report(&self, name: &str) {
+    self.default_handler(
+      0.7
+        + 0.25
+          * (self.sealing_hooks_report_index.load(SeqCst) / self.number_of_sealing_hooks) as f32,
+      "sealing".to_string(),
+      vec![name.to_string()],
+    );
+    self.sealing_hooks_report_index.fetch_add(1, SeqCst);
   }
 }
 #[async_trait::async_trait]
@@ -239,6 +259,11 @@ impl Plugin for ProgressPlugin {
         .expect("TODO:")
         .replace(module.id().to_string());
     }
+    self
+      .active_modules
+      .write()
+      .expect("TODO:")
+      .insert(module.identifier().to_string());
     self.modules_count.fetch_add(1, SeqCst);
     self.update();
     Ok(())
@@ -246,7 +271,19 @@ impl Plugin for ProgressPlugin {
 
   async fn succeed_module(&self, module: &dyn Module) -> Result<()> {
     let id = module.identifier().to_string();
+    self.active_modules.write().expect("TODO:").remove(&id);
     self.modules_done.fetch_add(1, SeqCst);
+    let active_modules = self.active_modules.read().expect("TODO:");
+    // let mut last_active_module = self.last_active_module.write().expect("TODO:");
+    let mut last_active_module = String::new();
+    active_modules.iter().for_each(|module| {
+      last_active_module = module.to_string();
+    });
+    self
+      .last_active_module
+      .write()
+      .expect("TODO:")
+      .replace(last_active_module);
     if self
       .last_active_module
       .read()
@@ -258,6 +295,11 @@ impl Plugin for ProgressPlugin {
     } else if self.modules_done.load(SeqCst) < 50 || self.modules_done.load(SeqCst) % 100 == 0 {
       self.update_throttled();
     }
+    Ok(())
+  }
+
+  async fn finish_modules(&self, _modules: &mut Compilation) -> Result<()> {
+    self.sealing_hooks_report("finish modules");
     Ok(())
   }
 
