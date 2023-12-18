@@ -9,6 +9,7 @@ import {
 	launchJestWithArgs
 } from "./scripts/debug/launch.mjs";
 
+process.env.CARGO_TERM_COLOR = "always"; // Assume every terminal that using zx supports color
 process.env.FORCE_COLOR = 3; // Fix zx losing color output in subprocesses
 
 const program = new Command();

@@ -5,7 +5,7 @@ use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
 use json::JsonValue;
-use rspack_error::{Diagnosable, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{Diagnosable, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
@@ -161,10 +161,7 @@ pub trait Module:
 
   /// The actual build of the module, which will be called by the `Compilation`.
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
-  async fn build(
-    &mut self,
-    build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
 
@@ -173,16 +170,13 @@ pub trait Module:
       ..Default::default()
     };
 
-    Ok(
-      BuildResult {
-        build_info,
-        build_meta: Default::default(),
-        dependencies: Vec::new(),
-        blocks: Vec::new(),
-        analyze_result: Default::default(),
-      }
-      .with_diagnostic(self.take_diagnostics()),
-    )
+    Ok(BuildResult {
+      build_info,
+      build_meta: Default::default(),
+      dependencies: Vec::new(),
+      blocks: Vec::new(),
+      analyze_result: Default::default(),
+    })
   }
 
   /// The actual code generation of the module, which will be called by the `Compilation`.

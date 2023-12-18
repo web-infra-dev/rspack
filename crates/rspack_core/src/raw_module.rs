@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::hash::Hash;
 
-use rspack_error::{Diagnosable, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{Diagnosable, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
@@ -89,24 +89,18 @@ impl Module for RawModule {
     f64::max(1.0, self.source.size() as f64)
   }
 
-  async fn build(
-    &mut self,
-    build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
-    Ok(
-      BuildResult {
-        build_info: BuildInfo {
-          hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
-          cacheable: true,
-          ..Default::default()
-        },
-        dependencies: vec![],
+    Ok(BuildResult {
+      build_info: BuildInfo {
+        hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
+        cacheable: true,
         ..Default::default()
-      }
-      .with_empty_diagnostic(),
-    )
+      },
+      dependencies: vec![],
+      ..Default::default()
+    })
   }
 
   fn code_generation(

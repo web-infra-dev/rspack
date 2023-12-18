@@ -107,9 +107,13 @@ impl Diagnostic {
 }
 
 pub trait Diagnosable {
-  fn add_diagnostic(&self, _diagnostic: Diagnostic) {}
-  fn add_diagnostics(&self, _diagnostics: Vec<Diagnostic>) {}
-  fn take_diagnostics(&self) -> Vec<Diagnostic> {
+  fn add_diagnostic(&self, _diagnostic: Diagnostic) {
+    unimplemented!("`<T as Diagnostable>::add_diagnostic` is not implemented")
+  }
+  fn add_diagnostics(&self, _diagnostics: Vec<Diagnostic>) {
+    unimplemented!("`<T as Diagnostable>::add_diagnostics` is not implemented")
+  }
+  fn clone_diagnostics(&self) -> Vec<Diagnostic> {
     vec![]
   }
 }

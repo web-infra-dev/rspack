@@ -7,7 +7,7 @@ use rspack_core::{
   CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
   Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
-use rspack_error::{Diagnosable, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{Diagnosable, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 
@@ -126,10 +126,7 @@ impl Module for ConsumeSharedModule {
     Some(Box::new(self.context.clone()))
   }
 
-  async fn build(
-    &mut self,
-    build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
     let hash = hasher.digest(&build_context.compiler_options.output.hash_digest);
@@ -147,19 +144,16 @@ impl Module for ConsumeSharedModule {
       }
     }
 
-    Ok(
-      BuildResult {
-        build_info: BuildInfo {
-          hash: Some(hash),
-          ..Default::default()
-        },
-        build_meta: Default::default(),
-        dependencies,
-        blocks,
+    Ok(BuildResult {
+      build_info: BuildInfo {
+        hash: Some(hash),
         ..Default::default()
-      }
-      .with_empty_diagnostic(),
-    )
+      },
+      build_meta: Default::default(),
+      dependencies,
+      blocks,
+      ..Default::default()
+    })
   }
 
   #[allow(clippy::unwrap_in_result)]

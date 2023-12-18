@@ -2,9 +2,7 @@ use std::borrow::Cow;
 use std::hash::Hash;
 use std::iter;
 
-use rspack_error::{
-  internal_error, Diagnosable, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-};
+use rspack_error::{internal_error, Diagnosable, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rustc_hash::FxHashMap as HashMap;
@@ -347,10 +345,7 @@ impl Module for ExternalModule {
     42.0
   }
 
-  async fn build(
-    &mut self,
-    build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
 
@@ -378,7 +373,7 @@ impl Module for ExternalModule {
       }
       _ => build_result.build_meta.exports_type = BuildMetaExportsType::Dynamic,
     }
-    Ok(build_result.with_empty_diagnostic())
+    Ok(build_result)
   }
 
   fn code_generation(

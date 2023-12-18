@@ -10,9 +10,7 @@ use std::{
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
-use rspack_error::{
-  miette::IntoDiagnostic, Diagnosable, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-};
+use rspack_error::{miette::IntoDiagnostic, Diagnosable, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_regex::RspackRegex;
@@ -582,10 +580,7 @@ impl Module for ContextModule {
     Some(Cow::Owned(id))
   }
 
-  async fn build(
-    &mut self,
-    build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
     self.resolve_dependencies(build_context)
   }
 
@@ -748,10 +743,7 @@ impl ContextModule {
     Ok(())
   }
 
-  fn resolve_dependencies(
-    &self,
-    build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+  fn resolve_dependencies(&self, build_context: BuildContext<'_>) -> Result<BuildResult> {
     tracing::trace!("resolving context module path {}", self.options.resource);
 
     let resolver = &self.resolve_factory.get(ResolveOptionsWithDependencyType {
@@ -837,16 +829,13 @@ impl ContextModule {
       ..Default::default()
     };
 
-    Ok(
-      BuildResult {
-        build_info,
-        build_meta: BuildMeta::default(),
-        dependencies,
-        blocks,
-        analyze_result: Default::default(),
-      }
-      .with_diagnostic(vec![]),
-    )
+    Ok(BuildResult {
+      build_info,
+      build_meta: BuildMeta::default(),
+      dependencies,
+      blocks,
+      analyze_result: Default::default(),
+    })
   }
 }
 

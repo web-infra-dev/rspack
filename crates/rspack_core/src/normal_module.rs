@@ -11,10 +11,7 @@ use std::{
 use bitflags::bitflags;
 use dashmap::DashMap;
 use derivative::Derivative;
-use rspack_error::{
-  internal_error, Diagnosable, Diagnostic, IntoTWithDiagnosticArray, Result, Severity,
-  TWithDiagnosticArray,
-};
+use rspack_error::{internal_error, Diagnosable, Diagnostic, Result, Severity};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_loader_runner::{run_loaders, Content, ResourceData};
@@ -341,13 +338,11 @@ impl Module for NormalModule {
     }
   }
 
-  async fn build(
-    &mut self,
-    build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
+    self.clear_diagnostics();
+
     let mut build_info = BuildInfo::default();
     let mut build_meta = BuildMeta::default();
-    let mut diagnostics = Vec::new();
 
     build_context.plugin_driver.before_loaders(self).await?;
 
@@ -364,23 +359,21 @@ impl Module for NormalModule {
       Ok(r) => r.split_into_parts(),
       Err(e) => {
         self.source = NormalModuleSource::BuiltFailed(e.to_string());
+        self.add_diagnostic(e.into());
         let mut hasher = RspackHash::from(&build_context.compiler_options.output);
         self.update_hash(&mut hasher);
         build_meta.hash(&mut hasher);
         build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
-        return Ok(
-          BuildResult {
-            build_info,
-            build_meta: Default::default(),
-            dependencies: Vec::new(),
-            blocks: Vec::new(),
-            analyze_result: Default::default(),
-          }
-          .with_diagnostic(vec![e.into()]),
-        );
+        return Ok(BuildResult {
+          build_info,
+          build_meta: Default::default(),
+          dependencies: Vec::new(),
+          blocks: Vec::new(),
+          analyze_result: Default::default(),
+        });
       }
     };
-    diagnostics.extend(ds);
+    self.add_diagnostics(ds);
 
     let content = if self.module_type().is_binary() {
       Content::Buffer(loader_result.content.into_bytes())
@@ -415,11 +408,11 @@ impl Module for NormalModule {
         build_meta: &mut build_meta,
       })?
       .split_into_parts();
-    diagnostics.extend(ds);
+    self.add_diagnostics(ds);
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
     self.original_source = Some(source.clone());
-    self.source = NormalModuleSource::new_built(source, &diagnostics);
+    self.source = NormalModuleSource::new_built(source, &self.clone_diagnostics());
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
 
@@ -435,16 +428,13 @@ impl Module for NormalModule {
     build_info.build_dependencies = loader_result.build_dependencies;
     build_info.asset_filenames = loader_result.asset_filenames;
 
-    Ok(
-      BuildResult {
-        build_info,
-        build_meta,
-        dependencies,
-        blocks,
-        analyze_result,
-      }
-      .with_diagnostic(diagnostics),
-    )
+    Ok(BuildResult {
+      build_info,
+      build_meta,
+      dependencies,
+      blocks,
+      analyze_result,
+    })
   }
 
   fn code_generation(
@@ -589,7 +579,7 @@ impl Diagnosable for NormalModule {
     self
       .diagnostics
       .lock()
-      .expect("failed to lock diagnostics")
+      .expect("should be able to lock diagnostics")
       .push(diagnostic);
   }
 
@@ -597,16 +587,17 @@ impl Diagnosable for NormalModule {
     self
       .diagnostics
       .lock()
-      .expect("failed to lock diagnostics")
+      .expect("should be able to lock diagnostics")
       .append(&mut diagnostics);
   }
 
-  fn take_diagnostics(&self) -> Vec<Diagnostic> {
+  fn clone_diagnostics(&self) -> Vec<Diagnostic> {
     self
       .diagnostics
       .lock()
-      .expect("failed to lock diagnostics")
-      .drain(..)
+      .expect("should be able to lock diagnostics")
+      .iter()
+      .cloned()
       .collect()
   }
 }
@@ -643,6 +634,14 @@ impl NormalModule {
       return Ok(OriginalSource::new(content, self.request()).boxed());
     }
     Ok(RawSource::from(content.into_string_lossy()).boxed())
+  }
+
+  fn clear_diagnostics(&mut self) {
+    self
+      .diagnostics
+      .lock()
+      .expect("should be able to lock diagnostics")
+      .clear()
   }
 }
 
