@@ -10,7 +10,7 @@ use rspack_core::{
   LibIdentOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType, RuntimeGlobals,
   RuntimeSpec, SourceType,
 };
-use rspack_error::{Diagnosable, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 
@@ -224,7 +224,7 @@ impl Module for ContainerEntryModule {
   }
 }
 
-impl Diagnosable for ContainerEntryModule {}
+impl_empty_diagnosable_trait!(ContainerEntryModule);
 
 impl Hash for ContainerEntryModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

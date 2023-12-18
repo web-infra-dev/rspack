@@ -10,7 +10,7 @@ use std::{
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
-use rspack_error::{miette::IntoDiagnostic, Diagnosable, Result};
+use rspack_error::{impl_empty_diagnosable_trait, miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_regex::RspackRegex;
@@ -649,7 +649,7 @@ impl Module for ContextModule {
   }
 }
 
-impl Diagnosable for ContextModule {}
+impl_empty_diagnosable_trait!(ContextModule);
 
 impl Identifiable for ContextModule {
   fn identifier(&self) -> Identifier {

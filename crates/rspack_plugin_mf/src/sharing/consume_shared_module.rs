@@ -7,7 +7,7 @@ use rspack_core::{
   CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
   Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
-use rspack_error::{Diagnosable, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 
@@ -217,7 +217,7 @@ impl Module for ConsumeSharedModule {
   }
 }
 
-impl Diagnosable for ConsumeSharedModule {}
+impl_empty_diagnosable_trait!(ConsumeSharedModule);
 
 impl Hash for ConsumeSharedModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

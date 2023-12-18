@@ -8,7 +8,7 @@ use rspack_core::{
   CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
   Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
 };
-use rspack_error::{Diagnosable, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 
@@ -169,7 +169,7 @@ impl Module for RemoteModule {
   }
 }
 
-impl Diagnosable for RemoteModule {}
+impl_empty_diagnosable_trait!(RemoteModule);
 
 impl Hash for RemoteModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

@@ -335,7 +335,7 @@ mod test {
   use std::borrow::Cow;
   use std::hash::Hash;
 
-  use rspack_error::{Diagnosable, Result, TWithDiagnosticArray};
+  use rspack_error::{Diagnosable, Result};
   use rspack_identifier::{Identifiable, Identifier};
   use rspack_sources::Source;
 
@@ -425,10 +425,7 @@ mod test {
           (stringify!($ident).to_owned() + self.0).into()
         }
 
-        async fn build(
-          &mut self,
-          _build_context: BuildContext<'_>,
-        ) -> Result<TWithDiagnosticArray<BuildResult>> {
+        async fn build(&mut self, _build_context: BuildContext<'_>) -> Result<BuildResult> {
           unreachable!()
         }
 

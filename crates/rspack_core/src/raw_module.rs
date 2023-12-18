@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::hash::Hash;
 
-use rspack_error::{Diagnosable, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
@@ -120,7 +120,7 @@ impl Module for RawModule {
   }
 }
 
-impl Diagnosable for RawModule {}
+impl_empty_diagnosable_trait!(RawModule);
 
 impl Hash for RawModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

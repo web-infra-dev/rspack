@@ -770,7 +770,7 @@ impl ModuleGraph {
 mod test {
   use std::borrow::Cow;
 
-  use rspack_error::{Diagnosable, Result, TWithDiagnosticArray};
+  use rspack_error::{Diagnosable, Result};
   use rspack_identifier::Identifiable;
   use rspack_sources::Source;
 
@@ -835,10 +835,7 @@ mod test {
           unreachable!()
         }
 
-        async fn build(
-          &mut self,
-          _build_context: BuildContext<'_>,
-        ) -> Result<TWithDiagnosticArray<BuildResult>> {
+        async fn build(&mut self, _build_context: BuildContext<'_>) -> Result<BuildResult> {
           unreachable!()
         }
 
