@@ -1,0 +1,9 @@
+{
+	"entry": {
+		"index": {
+			"import": [
+				"./index.js"
+			]
+		}
+	}
+}
