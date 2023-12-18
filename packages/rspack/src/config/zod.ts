@@ -379,8 +379,7 @@ const resolveOptions: z.ZodType<ResolveOptions> = baseResolveOptions.extend({
 	byDependency: z.lazy(() => z.record(resolveOptions)).optional()
 });
 
-const resolve = resolveOptions;
-export type Resolve = z.infer<typeof resolve>;
+export type Resolve = z.infer<typeof resolveOptions>;
 //#endregion
 
 //#region Module
@@ -1169,8 +1168,8 @@ export const rspackOptions = z.strictObject({
 	stats: statsValue.optional(),
 	snapshot: snapshotOptions.optional(),
 	optimization: optimization.optional(),
-	resolve: resolve.optional(),
-	resolveLoader: resolve.optional(),
+	resolve: resolveOptions.optional(),
+	resolveLoader: resolveOptions.optional(),
 	plugins: plugins.optional(),
 	devServer: devServer.optional(),
 	builtins: builtins.optional(),

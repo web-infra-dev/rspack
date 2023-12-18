@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
-#[derive(Default, Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Default, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum DependencyCategory {
   #[default]
   Unknown,
@@ -12,6 +12,7 @@ pub enum DependencyCategory {
   CssCompose,
   Wasm,
   Worker,
+  Custom(Box<str>),
 }
 
 impl From<&str> for DependencyCategory {
@@ -25,13 +26,13 @@ impl From<&str> for DependencyCategory {
       "css-compose" => Self::CssCompose,
       "worker" => Self::Worker,
       "unknown" => Self::Unknown,
-      _ => unimplemented!("DependencyCategory {}", value),
+      _ => Self::Custom(value.into()),
     }
   }
 }
 
 impl DependencyCategory {
-  pub fn as_str(&self) -> &'static str {
+  pub fn as_str(&self) -> &str {
     match self {
       DependencyCategory::Unknown => "unknown",
       DependencyCategory::Esm => "esm",
@@ -41,6 +42,7 @@ impl DependencyCategory {
       DependencyCategory::CssCompose => "css-compose",
       DependencyCategory::Wasm => "wasm",
       DependencyCategory::Worker => "worker",
+      DependencyCategory::Custom(str) => str.as_ref(),
     }
   }
 }

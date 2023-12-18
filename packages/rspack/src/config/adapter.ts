@@ -134,9 +134,10 @@ function getRawTarget(target: Target | undefined): RawOptions["target"] {
 	return target;
 }
 
-function getRawAlias(
-	alias: Resolve["alias"] = {}
-): RawOptions["resolve"]["alias"] {
+function getRawAlias(alias: Resolve["alias"]): RawOptions["resolve"]["alias"] {
+	if (typeof alias === "undefined") {
+		return undefined;
+	}
 	const entires = Object.entries(alias).map(([key, value]) => {
 		if (Array.isArray(value)) {
 			return [key, value];
@@ -156,13 +157,23 @@ function getRawResolveByDependency(
 	);
 }
 
-function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
+export function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 	let references = resolve.tsConfig?.references;
 	let tsconfigConfigFile = resolve.tsConfigPath ?? resolve.tsConfig?.configFile;
 	return {
-		...resolve,
+		preferRelative: resolve.preferRelative,
+		extensions: resolve.extensions,
+		mainFiles: resolve.mainFiles,
+		mainFields: resolve.mainFields,
+		browserField: resolve.browserField,
+		conditionNames: resolve.conditionNames,
 		alias: getRawAlias(resolve.alias),
 		fallback: getRawAlias(resolve.fallback),
+		symlinks: resolve.symlinks,
+		modules: resolve.modules,
+		byDependency: getRawResolveByDependency(resolve.byDependency),
+		fullySpecified: resolve.fullySpecified,
+		exportsFields: resolve.exportsFields,
 		extensionAlias: getRawAlias(resolve.extensionAlias) as Record<
 			string,
 			Array<string>
@@ -174,8 +185,7 @@ function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 						references == "auto" ? "auto" : references ? "manual" : "disabled",
 					references: references == "auto" ? undefined : references
 			  }
-			: undefined,
-		byDependency: getRawResolveByDependency(resolve.byDependency)
+			: undefined
 	};
 }
 

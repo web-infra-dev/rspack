@@ -139,7 +139,6 @@ where
       .await?;
 
     let logger = self.compilation.get_logger("rspack.Compiler");
-    let option = self.options.clone();
     let start = logger.time("make");
     self.compilation.make(params).await?;
     logger.time_end(start);
@@ -163,8 +162,9 @@ where
       .cloned()
       .collect::<IdentifierSet>();
 
-    if option.builtins.tree_shaking.enable()
-      || option
+    if self.options.builtins.tree_shaking.enable()
+      || self
+        .options
         .output
         .enabled_library_types
         .as_ref()

@@ -47,10 +47,8 @@ import { FileSystemInfoEntry } from "./FileSystemInfo";
 import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
 import { CodeGenerationResult } from "./Module";
-import {
-	HOOKS_CAN_NOT_INHERENT_FROM_PARENT,
-	canInherentFromParent
-} from "./builtin-plugin/base";
+import { canInherentFromParent } from "./builtin-plugin/base";
+import { NativeResolverFactory } from "./NativeResolverFactory";
 
 class Compiler {
 	#_instance?: binding.Rspack;
@@ -63,6 +61,7 @@ class Compiler {
 	running: boolean;
 	idle: boolean;
 	resolverFactory: ResolverFactory;
+	nativeResolverFactory: NativeResolverFactory;
 	infrastructureLogger: any;
 	watching?: Watching;
 	outputPath!: string;
@@ -135,6 +134,7 @@ class Compiler {
 		this.idle = false;
 		this.context = context;
 		this.resolverFactory = new ResolverFactory();
+		this.nativeResolverFactory = new NativeResolverFactory();
 		this.modifiedFiles = undefined;
 		this.removedFiles = undefined;
 		this.hooks = {
@@ -213,7 +213,7 @@ class Compiler {
 
 		const processResource = (
 			loaderContext: LoaderContext,
-			resourcePath: string,
+			_resourcePath: string,
 			callback: any
 		) => {
 			const resource = loaderContext.resource;

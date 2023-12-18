@@ -90,6 +90,7 @@ pub enum Resolver {
 
 impl Resolver {
   pub fn new(new_resolver: bool, options: Resolve) -> Self {
+    let options = options.merge_by_dependency(&DependencyCategory::Unknown);
     if new_resolver {
       Self::new_oxc_resolver(options)
     } else {
@@ -99,14 +100,13 @@ impl Resolver {
 
   fn new_nodejs_resolver(options: Resolve) -> Self {
     let cache = Arc::new(nodejs_resolver::Cache::default());
-    let options =
-      to_nodejs_resolver_options(cache.clone(), options, false, DependencyCategory::Unknown);
+    let options = to_nodejs_resolver_options(cache.clone(), options, false);
     let resolver = nodejs_resolver::Resolver::new(options);
     Self::NodejsResolver(resolver, cache)
   }
 
   fn new_oxc_resolver(options: Resolve) -> Self {
-    let options = to_oxc_resolver_options(options, false, DependencyCategory::Unknown);
+    let options = to_oxc_resolver_options(options, false);
     let resolver = oxc_resolver::Resolver::new(options);
     Self::OxcResolver(resolver)
   }
@@ -125,23 +125,20 @@ impl Resolver {
     options: Resolve,
     options_with_dependency_type: &ResolveOptionsWithDependencyType,
   ) -> Self {
+    let options = options.merge_by_dependency(&options_with_dependency_type.dependency_category);
     match self {
       Self::NodejsResolver(_, cache) => {
         let options = to_nodejs_resolver_options(
           cache.clone(),
           options,
           options_with_dependency_type.resolve_to_context,
-          options_with_dependency_type.dependency_category,
         );
         let resolver = nodejs_resolver::Resolver::new(options);
         Self::NodejsResolver(resolver, cache.clone())
       }
       Self::OxcResolver(resolver) => {
-        let options = to_oxc_resolver_options(
-          options,
-          options_with_dependency_type.resolve_to_context,
-          options_with_dependency_type.dependency_category,
-        );
+        let options =
+          to_oxc_resolver_options(options, options_with_dependency_type.resolve_to_context);
         let resolver = resolver.clone_with_options(options);
         Self::OxcResolver(resolver)
       }
@@ -213,9 +210,7 @@ fn to_nodejs_resolver_options(
   cache: Arc<nodejs_resolver::Cache>,
   options: Resolve,
   resolve_to_context: bool,
-  dependency_type: DependencyCategory,
 ) -> nodejs_resolver::Options {
-  let options = options.merge_by_dependency(dependency_type);
   let tsconfig = options.tsconfig.map(|c| c.config_file);
   let enforce_extension = nodejs_resolver::EnforceExtension::Auto;
   let external_cache = Some(cache);
@@ -275,9 +270,7 @@ fn to_nodejs_resolver_options(
 fn to_oxc_resolver_options(
   options: Resolve,
   resolve_to_context: bool,
-  dependency_type: DependencyCategory,
 ) -> oxc_resolver::ResolveOptions {
-  let options = options.merge_by_dependency(dependency_type);
   let tsconfig = options.tsconfig.map(|c| c.into());
   let enforce_extension = oxc_resolver::EnforceExtension::Auto;
   let description_files = vec!["package.json".to_string()];

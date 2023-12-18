@@ -734,7 +734,7 @@ impl ContextModule {
               options.resource_fragment.clone().unwrap_or_default()
             ),
             user_request: r.request.to_string(),
-            category: options.context_options.category,
+            category: options.context_options.category.clone(),
             context: options.resource.clone().into(),
             options: options.context_options.clone(),
             resource_identifier: format!("context{}|{}", &options.resource, path.to_string_lossy()),
@@ -755,7 +755,7 @@ impl ContextModule {
     let resolver = &self.resolve_factory.get(ResolveOptionsWithDependencyType {
       resolve_options: self.options.resolve_options.clone(),
       resolve_to_context: false,
-      dependency_category: self.options.context_options.category,
+      dependency_category: self.options.context_options.category.clone(),
     });
 
     let mut context_element_dependencies = vec![];

@@ -23,12 +23,6 @@ pub struct ResolverFactory {
   resolvers: DashMap<ResolveOptionsWithDependencyType, Arc<Resolver>, BuildHasherDefault<FxHasher>>,
 }
 
-impl Default for ResolverFactory {
-  fn default() -> Self {
-    Self::new(false, Resolve::default())
-  }
-}
-
 impl ResolverFactory {
   pub fn clear_cache(&self) {
     self.resolver.clear_cache();

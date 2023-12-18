@@ -76,15 +76,12 @@ pub async fn resolve(
   let dep = ResolveOptionsWithDependencyType {
     resolve_options: args.resolve_options.take(),
     resolve_to_context: args.resolve_to_context,
-    dependency_category: *args.dependency_category,
+    dependency_category: args.dependency_category.clone(),
   };
-
-  let base_dir = args.context.clone();
-  let base_dir = base_dir.as_ref();
 
   let resolver = plugin_driver.resolver_factory.get(dep);
   let result = resolver
-    .resolve(base_dir, args.specifier)
+    .resolve(args.context.as_ref(), args.specifier)
     .map_err(|error| error.into_resolve_error(&args, plugin_driver));
 
   let (file_dependencies, missing_dependencies) = resolver.dependencies();

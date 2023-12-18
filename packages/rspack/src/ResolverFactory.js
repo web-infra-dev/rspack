@@ -37,6 +37,54 @@ const {
 const EMPTY_RESOLVE_OPTIONS = {};
 
 /**
+ *
+ * @param {Record<string, any>} dest
+ * @param {Record<string, any>} src
+ * @param {string} property
+ */
+function insertIfDefined(dest, src, property) {
+	if (typeof src[property] !== "undefined") {
+		dest[property] = src[property];
+	}
+}
+
+/**
+ * @param {any} value
+ * @returns {ResolveOptionsWithDependencyType}
+ */
+function reserveNativeResolverOptions(value) {
+	if (typeof value === "undefined") {
+		return value;
+	}
+
+	const dest = {};
+	insertIfDefined(dest, value, "dependencyType");
+	insertIfDefined(dest, value, "resolveToContext");
+	insertIfDefined(dest, value, "alias");
+	insertIfDefined(dest, value, "aliasFields");
+	insertIfDefined(dest, value, "byDependency");
+	insertIfDefined(dest, value, "conditionNames");
+	insertIfDefined(dest, value, "descriptionFiles");
+	insertIfDefined(dest, value, "enforceExtension");
+	insertIfDefined(dest, value, "exportsFields");
+	insertIfDefined(dest, value, "extensionAlias");
+	insertIfDefined(dest, value, "extensions");
+	insertIfDefined(dest, value, "fallback");
+	// insertIfDefined(dest, value, "fileSystem")
+	insertIfDefined(dest, value, "fullySpecified");
+	insertIfDefined(dest, value, "importsFields");
+	insertIfDefined(dest, value, "mainFields");
+	insertIfDefined(dest, value, "mainFiles");
+	insertIfDefined(dest, value, "modules");
+	insertIfDefined(dest, value, "preferAbsolute");
+	insertIfDefined(dest, value, "preferRelative");
+	insertIfDefined(dest, value, "restrictions");
+	insertIfDefined(dest, value, "roots");
+	insertIfDefined(dest, value, "symlinks");
+	return dest;
+}
+
+/**
  * @param {ResolveOptionsWithDependencyType} resolveOptionsWithDepType enhanced options
  * @returns {ResolveOptions} merged options
  */
@@ -55,11 +103,11 @@ const convertToResolveOptions = resolveOptionsWithDepType => {
 			)
 	};
 
-	if (!partialOptions.fileSystem) {
-		throw new Error(
-			"fileSystem is missing in resolveOptions, but it's required for enhanced-resolve"
-		);
-	}
+	// if (!partialOptions.fileSystem) {
+	// 	throw new Error(
+	// 		"fileSystem is missing in resolveOptions, but it's required for enhanced-resolve"
+	// 	);
+	// }
 	// These weird types validate that we checked all non-optional properties
 	const options =
 		/** @type {Partial<ResolveOptions> & Pick<ResolveOptions, "fileSystem">} */ (
@@ -97,9 +145,14 @@ module.exports = class ResolverFactory {
 	/**
 	 * @param {string} type type of resolver
 	 * @param {ResolveOptionsWithDependencyType=} resolveOptions options
+	 * @param {(options: ResolveOptions) => Resolver} factory options
 	 * @returns {ResolverWithOptions} the resolver
 	 */
-	get(type, resolveOptions = EMPTY_RESOLVE_OPTIONS) {
+	get(
+		type,
+		resolveOptions = EMPTY_RESOLVE_OPTIONS,
+		factory = enhancedResolverFactory
+	) {
 		let typedCaches = this.cache.get(type);
 		if (!typedCaches) {
 			typedCaches = {
@@ -118,7 +171,7 @@ module.exports = class ResolverFactory {
 			typedCaches.direct.set(resolveOptions, resolver);
 			return resolver;
 		}
-		const newResolver = this._create(type, resolveOptions);
+		const newResolver = this._create(type, resolveOptions, factory);
 		typedCaches.direct.set(resolveOptions, newResolver);
 		typedCaches.stringified.set(ident, newResolver);
 		return newResolver;
@@ -127,9 +180,10 @@ module.exports = class ResolverFactory {
 	/**
 	 * @param {string} type type of resolver
 	 * @param {ResolveOptionsWithDependencyType} resolveOptionsWithDepType options
+	 * @param {(options: ResolveOptions) => Resolver} factory options
 	 * @returns {ResolverWithOptions} the resolver
 	 */
-	_create(type, resolveOptionsWithDepType) {
+	_create(type, resolveOptionsWithDepType, factory) {
 		/** @type {ResolveOptionsWithDependencyType} */
 		const originalResolveOptions = { ...resolveOptionsWithDepType };
 
@@ -137,7 +191,7 @@ module.exports = class ResolverFactory {
 			this.hooks.resolveOptions.for(type).call(resolveOptionsWithDepType)
 		);
 		const resolver = /** @type {ResolverWithOptions} */ (
-			Factory.createResolver(resolveOptions)
+			factory(resolveOptions)
 		);
 		if (!resolver) {
 			throw new Error("No resolver created");
@@ -158,3 +212,14 @@ module.exports = class ResolverFactory {
 		return resolver;
 	}
 };
+
+module.exports.reserveNativeResolverOptions = reserveNativeResolverOptions;
+
+/**
+ *
+ * @param {ResolveOptions} options
+ * @returns {Resolver}
+ */
+function enhancedResolverFactory(options) {
+	return Factory.createResolver(options);
+}
