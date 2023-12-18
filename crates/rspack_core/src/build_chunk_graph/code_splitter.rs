@@ -852,7 +852,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .iter()
         .map(|c| self.compilation.chunk_by_ukey.expect_get(c))
         // ignore runtime chunk when try removing
-        .filter(|c| !matches!(chunk_group.runtime_chunk, Some(ref runtime) if runtime == &c.ukey))
+        .filter(|c| chunk_group.chunks.len() <= 1 || chunk_group.get_runtime_chunk() != c.ukey)
         .map(|c| c.ukey)
         .collect::<Vec<_>>();
 
