@@ -2,5 +2,5 @@
 __webpack_nonce__ = "nonce";
 __webpack_public_path__ = "https://example.com/public/path/";
 
-import(/* webpackChunkName: "chunk1", webpackPreload: true */ "./chunk1");
+import(/* webpackChunkName: "chunk1" */ "./chunk1");
 import(/* webpackChunkName: "chunk2" */ "./chunk2");

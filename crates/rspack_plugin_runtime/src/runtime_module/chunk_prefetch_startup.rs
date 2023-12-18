@@ -89,7 +89,7 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
 
           format!(
             r#"
-            {}(0, [{}], function() {{
+            {}(0, {}, function() {{
               {}
             }}, 5);
             "#,
