@@ -160,9 +160,9 @@ export const enum BuiltinPluginName {
   MergeDuplicateChunksPlugin = 'MergeDuplicateChunksPlugin',
   SplitChunksPlugin = 'SplitChunksPlugin',
   OldSplitChunksPlugin = 'OldSplitChunksPlugin',
+  ShareRuntimePlugin = 'ShareRuntimePlugin',
   ContainerPlugin = 'ContainerPlugin',
   ContainerReferencePlugin = 'ContainerReferencePlugin',
-  ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
   ProvideSharedPlugin = 'ProvideSharedPlugin',
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
@@ -644,6 +644,11 @@ export interface RawConsumeOptions {
   eager: boolean
 }
 
+export interface RawConsumeSharedPluginOptions {
+  consumes: Array<RawConsumeOptions>
+  enhanced: boolean
+}
+
 export interface RawContainerPluginOptions {
   name: string
   shareScope: string
@@ -651,12 +656,14 @@ export interface RawContainerPluginOptions {
   runtime?: string
   filename?: string
   exposes: Array<RawExposeOptions>
+  enhanced: boolean
 }
 
 export interface RawContainerReferencePluginOptions {
   remoteType: string
   remotes: Array<RawRemoteOptions>
   shareScope?: string
+  enhanced: boolean
 }
 
 export interface RawCopyGlobOptions {

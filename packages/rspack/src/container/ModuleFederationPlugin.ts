@@ -8,9 +8,7 @@ import {
 import { SharePlugin, Shared } from "../sharing/SharePlugin";
 import { isValidate } from "../util/validate";
 import { ContainerPlugin, Exposes } from "./ContainerPlugin";
-import { Remotes } from "./ContainerReferencePlugin";
-import { ContainerReferencePlugin } from "./ContainerReferencePlugin";
-import { ModuleFederationRuntimePlugin } from "./ModuleFederationRuntimePlugin";
+import { ContainerReferencePlugin, Remotes } from "./ContainerReferencePlugin";
 
 export interface ModuleFederationPluginOptions {
 	exposes?: Exposes;
@@ -22,15 +20,17 @@ export interface ModuleFederationPluginOptions {
 	runtime?: EntryRuntime;
 	shareScope?: string;
 	shared?: Shared;
-
-	runtimePlugins?: string[];
+	enhanced?: Enhanced;
 }
+export type Enhanced = boolean;
 
 export class ModuleFederationPlugin {
 	constructor(private _options: ModuleFederationPluginOptions) {}
 
 	apply(compiler: Compiler) {
 		const { _options: options } = this;
+		const enhanced = options.enhanced ?? false;
+
 		const library = options.library || { type: "var", name: options.name };
 		const remoteType =
 			options.remoteType ||
@@ -56,7 +56,8 @@ export class ModuleFederationPlugin {
 					filename: options.filename,
 					runtime: options.runtime,
 					shareScope: options.shareScope,
-					exposes: options.exposes
+					exposes: options.exposes,
+					enhanced
 				}).apply(compiler);
 			}
 			if (
@@ -68,18 +69,16 @@ export class ModuleFederationPlugin {
 				new ContainerReferencePlugin({
 					remoteType,
 					shareScope: options.shareScope,
-					remotes: options.remotes
+					remotes: options.remotes,
+					enhanced
 				}).apply(compiler);
 			}
 			if (options.shared) {
 				new SharePlugin({
 					shared: options.shared,
-					shareScope: options.shareScope
+					shareScope: options.shareScope,
+					enhanced
 				}).apply(compiler);
-			}
-			const runtimePlugins = options.runtimePlugins ?? [];
-			for (let plugin of runtimePlugins) {
-				ModuleFederationRuntimePlugin.addPlugin(compiler, plugin);
 			}
 		});
 	}

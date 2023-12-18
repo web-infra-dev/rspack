@@ -8,3 +8,4 @@ pub mod provide_shared_module;
 pub mod provide_shared_module_factory;
 pub mod provide_shared_plugin;
 pub mod share_runtime_module;
+pub mod share_runtime_plugin;

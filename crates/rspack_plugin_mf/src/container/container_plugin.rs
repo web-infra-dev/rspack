@@ -4,13 +4,15 @@ use async_trait::async_trait;
 use rspack_core::{
   Compilation, CompilationArgs, CompilationParams, Dependency, DependencyType, EntryOptions,
   EntryRuntime, Filename, LibraryOptions, MakeParam, Plugin, PluginCompilationHookOutput,
-  PluginContext, PluginMakeHookOutput,
+  PluginContext, PluginMakeHookOutput, PluginRuntimeRequirementsInTreeOutput, RuntimeGlobals,
+  RuntimeRequirementsInTreeArgs,
 };
 use serde::Serialize;
 
 use super::{
   container_entry_dependency::ContainerEntryDependency,
   container_entry_module_factory::ContainerEntryModuleFactory,
+  expose_runtime_module::ExposeRuntimeModule,
 };
 
 #[derive(Debug)]
@@ -21,6 +23,7 @@ pub struct ContainerPluginOptions {
   pub runtime: Option<EntryRuntime>,
   pub filename: Option<Filename>,
   pub exposes: Vec<(String, ExposeOptions)>,
+  pub enhanced: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -85,6 +88,26 @@ impl Plugin for ContainerPlugin {
       },
     );
     param.add_force_build_dependency(dependency_id, None);
+    Ok(())
+  }
+
+  fn runtime_requirements_in_tree(
+    &self,
+    _ctx: PluginContext,
+    args: &mut RuntimeRequirementsInTreeArgs,
+  ) -> PluginRuntimeRequirementsInTreeOutput {
+    if args
+      .runtime_requirements
+      .contains(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE)
+    {
+      args
+        .runtime_requirements_mut
+        .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+      args.compilation.add_runtime_module(
+        args.chunk,
+        Box::new(ExposeRuntimeModule::new(self.options.enhanced)),
+      );
+    }
     Ok(())
   }
 }

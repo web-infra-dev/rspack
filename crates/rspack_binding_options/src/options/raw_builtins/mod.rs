@@ -27,8 +27,8 @@ use rspack_plugin_library::enable_library_plugin;
 use rspack_plugin_limit_chunk_count::LimitChunkCountPlugin;
 use rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin;
 use rspack_plugin_mf::{
-  ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ModuleFederationRuntimePlugin,
-  ProvideSharedPlugin,
+  ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ProvideSharedPlugin,
+  ShareRuntimePlugin,
 };
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_runtime::{
@@ -41,7 +41,9 @@ use rspack_plugin_wasm::enable_wasm_loading_plugin;
 use rspack_plugin_web_worker_template::web_worker_template_plugin;
 use rspack_plugin_worker::WorkerPlugin;
 
-use self::raw_mf::{RawConsumeOptions, RawContainerReferencePluginOptions, RawProvideOptions};
+use self::raw_mf::{
+  RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions,
+};
 pub use self::{
   raw_banner::RawBannerPluginOptions, raw_copy::RawCopyRspackPluginOptions,
   raw_html::RawHtmlRspackPluginOptions, raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
@@ -78,9 +80,9 @@ pub enum BuiltinPluginName {
   MergeDuplicateChunksPlugin,
   SplitChunksPlugin,
   OldSplitChunksPlugin,
+  ShareRuntimePlugin,
   ContainerPlugin,
   ContainerReferencePlugin,
-  ModuleFederationRuntimePlugin,
   ProvideSharedPlugin,
   ConsumeSharedPlugin,
 
@@ -203,6 +205,9 @@ impl RawOptionsApply for BuiltinPlugin {
         let options = downcast_into::<RawSplitChunksOptions>(self.options)?.into();
         plugins.push(SplitChunksPlugin::new(options).boxed());
       }
+      BuiltinPluginName::ShareRuntimePlugin => {
+        plugins.push(ShareRuntimePlugin::new(downcast_into::<bool>(self.options)?).boxed())
+      }
       BuiltinPluginName::ContainerPlugin => {
         plugins.push(
           ContainerPlugin::new(downcast_into::<RawContainerPluginOptions>(self.options)?.into())
@@ -217,9 +222,6 @@ impl RawOptionsApply for BuiltinPlugin {
           .boxed(),
         );
       }
-      BuiltinPluginName::ModuleFederationRuntimePlugin => {
-        plugins.push(ModuleFederationRuntimePlugin::default().boxed())
-      }
       BuiltinPluginName::ProvideSharedPlugin => {
         let mut provides: Vec<_> = downcast_into::<Vec<RawProvideOptions>>(self.options)?
           .into_iter()
@@ -228,13 +230,12 @@ impl RawOptionsApply for BuiltinPlugin {
         provides.sort_unstable_by_key(|(k, _)| k.to_string());
         plugins.push(ProvideSharedPlugin::new(provides).boxed())
       }
-      BuiltinPluginName::ConsumeSharedPlugin => {
-        let consumes: Vec<_> = downcast_into::<Vec<RawConsumeOptions>>(self.options)?
-          .into_iter()
-          .map(Into::into)
-          .collect();
-        plugins.push(ConsumeSharedPlugin::new(consumes).boxed())
-      }
+      BuiltinPluginName::ConsumeSharedPlugin => plugins.push(
+        ConsumeSharedPlugin::new(
+          downcast_into::<RawConsumeSharedPluginOptions>(self.options)?.into(),
+        )
+        .boxed(),
+      ),
 
       // rspack specific plugins
       BuiltinPluginName::HttpExternalsRspackPlugin => {

@@ -74,8 +74,7 @@ import type {
 	GeneratorOptionsByModuleType,
 	IncrementalRebuildOptions,
 	RspackFutureOptions,
-	HotUpdateGlobal,
-	ScriptType
+	HotUpdateGlobal
 } from "./zod";
 
 export const getNormalizedRspackOptions = (

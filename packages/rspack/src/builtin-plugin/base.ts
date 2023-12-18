@@ -29,9 +29,9 @@ export enum BuiltinPluginName {
 	MergeDuplicateChunksPlugin = "MergeDuplicateChunksPlugin",
 	SplitChunksPlugin = "SplitChunksPlugin",
 	OldSplitChunksPlugin = "OldSplitChunksPlugin",
+	ShareRuntimePlugin = "ShareRuntimePlugin",
 	ContainerPlugin = "ContainerPlugin",
 	ContainerReferencePlugin = "ContainerReferencePlugin",
-	ModuleFederationRuntimePlugin = "ModuleFederationRuntimePlugin",
 	ProvideSharedPlugin = "ProvideSharedPlugin",
 	ConsumeSharedPlugin = "ConsumeSharedPlugin"
 }

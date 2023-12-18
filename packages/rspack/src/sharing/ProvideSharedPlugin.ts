@@ -6,11 +6,12 @@ import {
 } from "../builtin-plugin/base";
 import { parseOptions } from "../container/options";
 import { Compiler } from "../Compiler";
-import { ModuleFederationRuntimePlugin } from "../container/ModuleFederationRuntimePlugin";
+import { ShareRuntimePlugin } from "./ShareRuntimePlugin";
 
 export type ProvideSharedPluginOptions = {
 	provides: Provides;
 	shareScope?: string;
+	enhanced?: boolean;
 };
 export type Provides = (ProvidesItem | ProvidesObject)[] | ProvidesObject;
 export type ProvidesItem = string;
@@ -26,37 +27,44 @@ export type ProvidesConfig = {
 
 export class ProvideSharedPlugin extends RspackBuiltinPlugin {
 	name = BuiltinPluginName.ProvideSharedPlugin;
-	_options: RawProvideOptions[];
+	_options;
 
 	constructor(options: ProvideSharedPluginOptions) {
 		super();
-		this._options = parseOptions(
-			options.provides,
-			item => {
-				if (Array.isArray(item))
-					throw new Error("Unexpected array of provides");
-				const result = {
-					shareKey: item,
-					version: undefined,
-					shareScope: options.shareScope || "default",
-					eager: false
-				};
-				return result;
-			},
-			item => ({
-				shareKey: item.shareKey,
-				version: item.version,
-				shareScope: item.shareScope || options.shareScope || "default",
-				eager: !!item.eager
-			})
-		).map(([key, v]) => ({ key, ...v }));
+		this._options = {
+			provides: parseOptions(
+				options.provides,
+				item => {
+					if (Array.isArray(item))
+						throw new Error("Unexpected array of provides");
+					const result = {
+						shareKey: item,
+						version: undefined,
+						shareScope: options.shareScope || "default",
+						eager: false
+					};
+					return result;
+				},
+				item => ({
+					shareKey: item.shareKey,
+					version: item.version,
+					shareScope: item.shareScope || options.shareScope || "default",
+					eager: !!item.eager
+				})
+			),
+			enhanced: options.enhanced ?? false
+		};
 	}
 
 	raw(compiler: Compiler): BuiltinPlugin {
-		ModuleFederationRuntimePlugin.addPlugin(
-			compiler,
-			require.resolve("./initializeSharing.js")
+		new ShareRuntimePlugin(this._options.enhanced).apply(compiler);
+
+		const rawOptions: RawProvideOptions[] = this._options.provides.map(
+			([key, v]) => ({
+				key,
+				...v
+			})
 		);
-		return createBuiltinPlugin(this.name, this._options);
+		return createBuiltinPlugin(this.name, rawOptions);
 	}
 }
