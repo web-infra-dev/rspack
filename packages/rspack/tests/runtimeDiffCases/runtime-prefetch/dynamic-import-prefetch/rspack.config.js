@@ -8,7 +8,7 @@ module.exports = {
 	module: {
 		parser: {
 			javascript: {
-				dynamicImportPreload: true
+				dynamicImportPrefetch: true
 			}
 		}
 	}
