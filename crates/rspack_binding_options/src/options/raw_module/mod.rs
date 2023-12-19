@@ -629,7 +629,7 @@ impl RawOptionsApply for RawModuleRule {
       _ => Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(vec![])),
     });
 
-    let module_type = self.r#type.map(|t| (&*t).try_into()).transpose()?;
+    let module_type = self.r#type.map(|t| (&*t).into());
 
     let one_of = self
       .one_of
@@ -720,7 +720,7 @@ impl RawOptionsApply for RawModuleOptions {
         .parser
         .map(|x| {
           x.into_iter()
-            .map(|(k, v)| Ok((ModuleType::try_from(k.as_str())?, v.into())))
+            .map(|(k, v)| Ok((ModuleType::from(k.as_str()), v.into())))
             .collect::<std::result::Result<ParserOptionsByModuleType, rspack_error::Error>>()
         })
         .transpose()?,
@@ -728,7 +728,7 @@ impl RawOptionsApply for RawModuleOptions {
         .generator
         .map(|x| {
           x.into_iter()
-            .map(|(k, v)| Ok((ModuleType::try_from(k.as_str())?, v.into())))
+            .map(|(k, v)| Ok((ModuleType::from(k.as_str()), v.into())))
             .collect::<std::result::Result<GeneratorOptionsByModuleType, rspack_error::Error>>()
         })
         .transpose()?,
