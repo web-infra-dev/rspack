@@ -21,6 +21,10 @@ fn handle_strict_equality_comparison<'a>(
     res.set_bool(eql == left.compare_compile_time_value(&right));
     res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
     Some(res)
+  } else if left.is_array() && right.is_array() {
+    res.set_bool(!eql);
+    res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
+    Some(res)
   } else {
     None
   }

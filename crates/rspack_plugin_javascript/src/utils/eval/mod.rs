@@ -23,7 +23,7 @@ enum Ty {
   String,
   Number,
   Boolean,
-  // RegExp,
+  RegExp,
   Conditional,
   TypeArray,
   ConstArray,
@@ -37,9 +37,11 @@ type Boolean = bool;
 type Number = f64;
 type Bigint = num_bigint::BigInt;
 // type Array<'a> = &'a ast::ArrayLit;
-// type Regexp<'a> = &'a ast::Regex;
 type String = std::string::String;
+type Regexp = (String, String);
 
+// I really don't want there has many alloc, maybe this can be optimized after
+// parse finished.
 #[derive(Debug)]
 pub struct BasicEvaluatedExpression {
   ty: Ty,
@@ -52,7 +54,7 @@ pub struct BasicEvaluatedExpression {
   number: Option<Number>,
   string: Option<String>,
   bigint: Option<Bigint>,
-  // regexp: Option<Regexp<'a>>,
+  regexp: Option<Regexp>,
   items: Option<Vec<BasicEvaluatedExpression>>,
   quasis: Option<Vec<BasicEvaluatedExpression>>,
   parts: Option<Vec<BasicEvaluatedExpression>>,
@@ -86,7 +88,7 @@ impl BasicEvaluatedExpression {
       options: None,
       string: None,
       items: None,
-      // regexp: None,
+      regexp: None,
     }
   }
 
@@ -124,7 +126,7 @@ impl BasicEvaluatedExpression {
         | Ty::String
         | Ty::Number
         | Ty::Boolean
-        // | Ty::RegExp
+        | Ty::RegExp
         | Ty::ConstArray
         | Ty::BigInt
     )
@@ -169,10 +171,7 @@ impl BasicEvaluatedExpression {
           b.boolean.as_ref().expect("should not empty")
             == self.boolean.as_ref().expect("should not empty")
         }
-        // Ty::RegExp => std::ptr::eq(
-        //   b.regexp.as_ref().expect("should not empty"),
-        //   self.regexp.as_ref().expect("should not empty"),
-        // ),
+        Ty::RegExp => false, // FIXME: maybe we can use std::ptr::eq
         // Ty::ConstArray => {
         // },
         Ty::BigInt => {
@@ -244,6 +243,12 @@ impl BasicEvaluatedExpression {
   pub fn set_string(&mut self, string: String) {
     self.ty = Ty::String;
     self.string = Some(string);
+    self.side_effects = false;
+  }
+
+  pub fn set_regexp(&mut self, regexp: String, flags: String) {
+    self.ty = Ty::RegExp;
+    self.regexp = Some((regexp, flags));
     self.side_effects = false;
   }
 
