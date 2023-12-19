@@ -41,6 +41,19 @@ it("should build success for logic op", () => {
 	expect(null === 1 && require("fail")).toBe(false);
 	expect([] === [] && require("fail")).toBe(false);
 	expect(/a/ === /a/ && require("fail")).toBe(false);
+	expect(
+		`hello${Math.random()}` === `world${Math.random()}` && require("fail")
+	).toBe(false);
+	expect(
+		`${Math.random()}hello` != `${Math.random()}world` || require("fail")
+	).toBe(true);
+	let value95 = 1;
+	expect(`${value95++}hello` != `${value95++}world` || require("fail")).toBe(
+		true
+	);
 	// NEXT:
-	// expect(`hello${Math.random()}` === `world${Math.random()}` && require("fail")).toBe(false);
+	// if (`${value95++}hello` === `${value95++}world`) {
+	// 	require("fail");
+	// }
+	// expect(value95).toBe(5)
 });
