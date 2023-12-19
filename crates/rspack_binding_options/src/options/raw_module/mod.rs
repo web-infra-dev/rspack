@@ -3,8 +3,6 @@ mod js_loader;
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use derivative::Derivative;
-pub use js_loader::JsLoaderAdapter;
-pub use js_loader::*;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{
@@ -19,13 +17,12 @@ use rspack_error::{internal_error, miette::IntoDiagnostic};
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_sass::SASS_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
-use rspack_napi_shared::get_napi_env;
+use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
+use rspack_napi_shared::{get_napi_env, NapiResultExt};
 use serde::Deserialize;
-use {
-  rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  rspack_napi_shared::NapiResultExt,
-};
 
+pub use self::js_loader::JsLoaderAdapter;
+pub use self::js_loader::*;
 use crate::{RawOptionsApply, RawResolveOptions};
 
 pub fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {

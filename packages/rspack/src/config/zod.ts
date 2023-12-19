@@ -407,14 +407,14 @@ const ruleSetConditions: z.ZodType<RuleSetConditions> = z.lazy(() =>
 export type RuleSetLogicalConditions = {
 	and?: RuleSetConditions;
 	or?: RuleSetConditions;
-	not?: RuleSetConditions;
+	not?: RuleSetCondition;
 };
 
 const ruleSetLogicalConditions: z.ZodType<RuleSetLogicalConditions> =
 	z.strictObject({
 		and: ruleSetConditions.optional(),
 		or: ruleSetConditions.optional(),
-		not: ruleSetConditions.optional()
+		not: ruleSetCondition.optional()
 	});
 
 const ruleSetLoader = z.string();
