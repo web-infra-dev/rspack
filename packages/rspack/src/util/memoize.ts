@@ -17,3 +17,16 @@ export const memoize = <T>(fn: () => T): (() => T) => {
 		}
 	};
 };
+
+// Lazily init a function, and cache it afterwards.
+export const memoizeFn = <const T extends readonly unknown[], const P>(
+	fn: () => (...args: T) => P
+) => {
+	let cache: ((...args: T) => P) | null = null;
+	return (...args: T) => {
+		if (!cache) {
+			cache = fn();
+		}
+		return cache(...args);
+	};
+};

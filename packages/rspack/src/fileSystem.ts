@@ -1,5 +1,6 @@
 import util from "util";
 import { join } from "path";
+import { memoizeFn } from "./util/memoize";
 
 export interface ThreadsafeWritableNodeFS {
 	writeFile: (...args: any[]) => any;
@@ -12,9 +13,9 @@ export interface ThreadsafeWritableNodeFS {
 function createThreadsafeNodeFSFromRaw(
 	fs: typeof import("fs")
 ): ThreadsafeWritableNodeFS {
-	let writeFile = util.promisify(fs.writeFile.bind(fs));
-	let removeFile = util.promisify(fs.unlink.bind(fs));
-	let mkdir = util.promisify(fs.mkdir.bind(fs));
+	let writeFile = memoizeFn(() => util.promisify(fs.writeFile.bind(fs)));
+	let removeFile = memoizeFn(() => util.promisify(fs.unlink.bind(fs)));
+	let mkdir = memoizeFn(() => util.promisify(fs.mkdir.bind(fs)));
 	return {
 		writeFile,
 		removeFile,
