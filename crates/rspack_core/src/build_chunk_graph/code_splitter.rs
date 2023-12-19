@@ -9,7 +9,8 @@ use crate::dependencies_block::AsyncDependenciesToInitialChunkError;
 use crate::{
   get_entry_runtime, AsyncDependenciesBlockIdentifier, BoxDependency, ChunkGroup, ChunkGroupInfo,
   ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
-  DependenciesBlock, GroupOptions, Logger, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
+  DependenciesBlock, Dependency, GroupOptions, Logger, ModuleGraphConnection, ModuleIdentifier,
+  RuntimeSpec,
 };
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -793,7 +794,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .module_graph
         .module_graph_module_by_identifier(&module)
         .unwrap_or_else(|| panic!("no module found: {:?}", &module));
-      mgm
+      let mut filtered_dep: Vec<&Box<dyn Dependency>> = mgm
         .outgoing_connections_unordered(&self.compilation.module_graph)
         .expect("should have outgoing connections")
         .filter_map(|con: &ModuleGraphConnection| {
@@ -804,7 +805,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           }
         })
         .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(&dep_id))
-        .collect()
+        .collect();
+      // keep the dependency original order if it does not have span, or sort the dependency by
+      // the error span
+      filtered_dep.sort_by(|a, b| match (a.span(), b.span()) {
+        (Some(a), Some(b)) => a.cmp(&b),
+        _ => std::cmp::Ordering::Equal,
+      });
+      filtered_dep
     } else {
       self
         .compilation
@@ -815,6 +823,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(dep_id))
         .collect()
     };
+
     for dep in dependencies {
       if dep.as_module_dependency().is_none() && dep.as_context_dependency().is_none() {
         continue;
