@@ -150,6 +150,7 @@ export const enum BuiltinPluginName {
   EnableChunkLoadingPlugin = 'EnableChunkLoadingPlugin',
   EnableLibraryPlugin = 'EnableLibraryPlugin',
   EnableWasmLoadingPlugin = 'EnableWasmLoadingPlugin',
+  ChunkPrefetchPreloadPlugin = 'ChunkPrefetchPreloadPlugin',
   CommonJsChunkFormatPlugin = 'CommonJsChunkFormatPlugin',
   ArrayPushCallbackChunkFormatPlugin = 'ArrayPushCallbackChunkFormatPlugin',
   ModuleChunkFormatPlugin = 'ModuleChunkFormatPlugin',
@@ -840,6 +841,8 @@ export interface RawInfo {
 
 export interface RawJavascriptParserOptions {
   dynamicImportMode: string
+  dynamicImportPreload: string
+  dynamicImportPrefetch: string
   url: string
 }
 

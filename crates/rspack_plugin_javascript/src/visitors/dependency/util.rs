@@ -209,6 +209,20 @@ pub fn is_member_expr_starts_with_import_meta_webpack_hot(expr: &Expr) -> bool {
   }
 }
 
+pub fn parse_order_string(x: &str) -> Option<u32> {
+  match x {
+    "true" => Some(0),
+    "false" => None,
+    _ => {
+      if let Ok(order) = x.parse::<u32>() {
+        Some(order)
+      } else {
+        None
+      }
+    }
+  }
+}
+
 #[test]
 fn test() {
   use swc_core::common::DUMMY_SP;

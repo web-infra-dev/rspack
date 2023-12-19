@@ -12,15 +12,16 @@ use rspack_core::{
 
 use crate::runtime_module::{
   is_enabled_for_chunk, AsyncRuntimeModule, AutoPublicPathRuntimeModule, BaseUriRuntimeModule,
-  ChunkNameRuntimeModule, CompatGetDefaultExportRuntimeModule,
-  CreateFakeNamespaceObjectRuntimeModule, CreateScriptUrlRuntimeModule,
-  DefinePropertyGettersRuntimeModule, EnsureChunkRuntimeModule, GetChunkFilenameRuntimeModule,
-  GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule, GetMainFilenameRuntimeModule,
-  GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule, HarmonyModuleDecoratorRuntimeModule,
-  HasOwnPropertyRuntimeModule, LoadChunkWithBlockRuntimeModule, LoadScriptRuntimeModule,
-  MakeNamespaceObjectRuntimeModule, NodeModuleDecoratorRuntimeModule, NonceRuntimeModule,
-  NormalRuntimeModule, OnChunkLoadedRuntimeModule, PublicPathRuntimeModule,
-  RelativeUrlRuntimeModule, RuntimeIdRuntimeModule, SystemContextRuntimeModule,
+  ChunkNameRuntimeModule, ChunkPrefetchPreloadFunctionRuntimeModule,
+  CompatGetDefaultExportRuntimeModule, CreateFakeNamespaceObjectRuntimeModule,
+  CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule, EnsureChunkRuntimeModule,
+  GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
+  GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
+  HarmonyModuleDecoratorRuntimeModule, HasOwnPropertyRuntimeModule,
+  LoadChunkWithBlockRuntimeModule, LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule,
+  NodeModuleDecoratorRuntimeModule, NonceRuntimeModule, NormalRuntimeModule,
+  OnChunkLoadedRuntimeModule, PublicPathRuntimeModule, RelativeUrlRuntimeModule,
+  RuntimeIdRuntimeModule, SystemContextRuntimeModule,
 };
 
 static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
@@ -268,6 +269,14 @@ impl Plugin for RuntimePlugin {
       }
     }
 
+    if runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK) {
+      runtime_requirements_mut.insert(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS);
+    }
+
+    if runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK) {
+      runtime_requirements_mut.insert(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS);
+    }
+
     let library_type = {
       let chunk = compilation
         .chunk_by_ukey
@@ -404,6 +413,24 @@ impl Plugin for RuntimePlugin {
         RuntimeGlobals::RUNTIME_ID => {
           compilation.add_runtime_module(chunk, RuntimeIdRuntimeModule::default().boxed());
         }
+        RuntimeGlobals::PREFETCH_CHUNK => compilation.add_runtime_module(
+          chunk,
+          ChunkPrefetchPreloadFunctionRuntimeModule::new(
+            "prefetch",
+            RuntimeGlobals::PREFETCH_CHUNK,
+            RuntimeGlobals::PREFETCH_CHUNK_HANDLERS,
+          )
+          .boxed(),
+        ),
+        RuntimeGlobals::PRELOAD_CHUNK => compilation.add_runtime_module(
+          chunk,
+          ChunkPrefetchPreloadFunctionRuntimeModule::new(
+            "preload",
+            RuntimeGlobals::PRELOAD_CHUNK,
+            RuntimeGlobals::PRELOAD_CHUNK_HANDLERS,
+          )
+          .boxed(),
+        ),
         _ => {}
       }
     }

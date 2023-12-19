@@ -41,10 +41,16 @@ pub(super) struct CodeSplitter<'me> {
 }
 
 fn add_chunk_in_group(group_options: Option<&GroupOptions>, info: ChunkGroupInfo) -> ChunkGroup {
-  let options = ChunkGroupOptions::default().name_optional(
+  let options = ChunkGroupOptions::new(
     group_options
       .and_then(|x| x.name())
       .map(|name| name.to_string()),
+    group_options
+      .and_then(|x| x.normal_options())
+      .and_then(|x| x.preload_order),
+    group_options
+      .and_then(|x| x.normal_options())
+      .and_then(|x| x.prefetch_order),
   );
   let kind = ChunkGroupKind::Normal { options };
   ChunkGroup::new(kind, info)

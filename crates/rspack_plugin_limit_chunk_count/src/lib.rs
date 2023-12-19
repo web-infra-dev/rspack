@@ -1,67 +1,12 @@
 mod chunk_combination;
 
-use std::{
-  cmp::Ordering,
-  collections::{HashMap, HashSet},
-};
+use std::collections::{HashMap, HashSet};
 
 use chunk_combination::{ChunkCombination, ChunkCombinationBucket, ChunkCombinationUkey};
 use rspack_core::{
-  BoxModule, ChunkGraph, ChunkSizeOptions, ChunkUkey, ModuleGraph, OptimizeChunksArgs, Plugin,
+  compare_chunks_with_graph, ChunkSizeOptions, ChunkUkey, OptimizeChunksArgs, Plugin,
   PluginContext, PluginOptimizeChunksOutput,
 };
-use rspack_util::comparators::compare_ids;
-
-// TODO: we should remove this function to crate rspack_util
-fn compare_modules_by_identifier(a: &BoxModule, b: &BoxModule) -> std::cmp::Ordering {
-  compare_ids(&a.identifier(), &b.identifier())
-}
-
-fn compare_module_iterables(modules_a: &[&BoxModule], modules_b: &[&BoxModule]) -> Ordering {
-  let mut a_iter = modules_a.iter();
-  let mut b_iter = modules_b.iter();
-  loop {
-    match (a_iter.next(), b_iter.next()) {
-      (None, None) => return Ordering::Equal,
-      (None, Some(_)) => return Ordering::Greater,
-      (Some(_), None) => return Ordering::Less,
-      (Some(a_item), Some(b_item)) => {
-        let res = compare_modules_by_identifier(a_item, b_item);
-        if res != Ordering::Equal {
-          return res;
-        }
-      }
-    }
-  }
-}
-
-fn compare_chunks_with_graph(
-  chunk_graph: &ChunkGraph,
-  module_graph: &ModuleGraph,
-  chunk_a_ukey: &ChunkUkey,
-  chunk_b_ukey: &ChunkUkey,
-) -> Ordering {
-  let cgc_a = chunk_graph.get_chunk_graph_chunk(chunk_a_ukey);
-  let cgc_b = chunk_graph.get_chunk_graph_chunk(chunk_b_ukey);
-  if cgc_a.modules.len() > cgc_b.modules.len() {
-    return Ordering::Less;
-  }
-  if cgc_a.modules.len() < cgc_b.modules.len() {
-    return Ordering::Greater;
-  }
-
-  let modules_a: Vec<&BoxModule> = cgc_a
-    .modules
-    .iter()
-    .filter_map(|module_id| module_graph.module_by_identifier(module_id))
-    .collect();
-  let modules_b: Vec<&BoxModule> = cgc_b
-    .modules
-    .iter()
-    .filter_map(|module_id| module_graph.module_by_identifier(module_id))
-    .collect();
-  compare_module_iterables(&modules_a, &modules_b)
-}
 
 fn add_to_set_map(
   map: &mut HashMap<ChunkUkey, HashSet<ChunkCombinationUkey>>,

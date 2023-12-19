@@ -11,9 +11,9 @@ use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlOptions, AssetGeneratorOptions,
   AssetInlineGeneratorOptions, AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions,
   AssetResourceGeneratorOptions, BoxLoader, DescriptionData, DynamicImportMode, FuncUseCtx,
-  GeneratorOptions, GeneratorOptionsByModuleType, JavascriptParserOptions, JavascriptParserUrl,
-  ModuleOptions, ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType,
-  ParserOptions, ParserOptionsByModuleType,
+  GeneratorOptions, GeneratorOptionsByModuleType, JavascriptParserOptions, JavascriptParserOrder,
+  JavascriptParserUrl, ModuleOptions, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
+  ModuleRuleUseLoader, ModuleType, ParserOptions, ParserOptionsByModuleType,
 };
 use rspack_error::{internal_error, miette::IntoDiagnostic};
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
@@ -328,6 +328,8 @@ impl From<RawParserOptions> for ParserOptions {
 #[napi(object)]
 pub struct RawJavascriptParserOptions {
   pub dynamic_import_mode: String,
+  pub dynamic_import_preload: String,
+  pub dynamic_import_prefetch: String,
   pub url: String,
 }
 
@@ -335,6 +337,8 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
   fn from(value: RawJavascriptParserOptions) -> Self {
     Self {
       dynamic_import_mode: DynamicImportMode::from(value.dynamic_import_mode.as_str()),
+      dynamic_import_preload: JavascriptParserOrder::from(value.dynamic_import_preload.as_str()),
+      dynamic_import_prefetch: JavascriptParserOrder::from(value.dynamic_import_prefetch.as_str()),
       url: JavascriptParserUrl::from(value.url.as_str()),
     }
   }

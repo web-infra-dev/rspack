@@ -1,13 +1,14 @@
+use std::cmp::Ordering;
 use std::hash::BuildHasherDefault;
 use std::{fmt::Debug, hash::Hash, sync::Arc};
 
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rspack_database::{DatabaseItem, Ukey};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
-use crate::{sort_group_by_index, ChunkGraph, ChunkGroup};
+use crate::{compare_chunk_group, sort_group_by_index, ChunkGraph, ChunkGroup, ChunkGroupOrderKey};
 use crate::{ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, SourceType};
 use crate::{Compilation, EntryOptions, Filename, ModuleGraph, RuntimeSpec};
 
@@ -445,6 +446,176 @@ impl Chunk {
 
   pub fn remove_group(&mut self, chunk_group: &ChunkGroupUkey) {
     self.groups.remove(chunk_group);
+  }
+
+  pub fn get_children_of_type_in_order(
+    &self,
+    order_key: &ChunkGroupOrderKey,
+    compilation: &Compilation,
+    is_self_last_chunk: bool,
+  ) -> Option<Vec<(Vec<ChunkUkey>, Vec<ChunkUkey>)>> {
+    let mut list = vec![];
+    let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
+    for group_ukey in self.get_sorted_groups_iter(chunk_group_by_ukey) {
+      let group = chunk_group_by_ukey
+        .get(group_ukey)
+        .expect("chunk group do not exists");
+      if let Some(last_chunk) = group.chunks.last() {
+        if is_self_last_chunk && !last_chunk.eq(&self.ukey) {
+          continue;
+        }
+      }
+
+      for child_group_ukey in group
+        .children
+        .iter()
+        .sorted_by(|a, b| sort_group_by_index(a, b, chunk_group_by_ukey))
+      {
+        let child_group = chunk_group_by_ukey
+          .get(child_group_ukey)
+          .expect("child group do not exists");
+        let order = child_group
+          .kind
+          .get_normal_options()
+          .and_then(|o| match order_key {
+            ChunkGroupOrderKey::Prefetch => o.prefetch_order,
+            ChunkGroupOrderKey::Preload => o.preload_order,
+          });
+        if let Some(order) = order {
+          list.push((order, group_ukey.to_owned(), child_group_ukey.to_owned()));
+        }
+      }
+    }
+
+    if list.is_empty() {
+      return None;
+    }
+
+    list.sort_by(|a, b| {
+      let order = b.0.cmp(&a.0);
+      match order {
+        Ordering::Equal => compare_chunk_group(&a.1, &b.1, compilation),
+        _ => order,
+      }
+    });
+
+    let mut result: IndexMap<
+      ChunkGroupUkey,
+      IndexSet<ChunkUkey, BuildHasherDefault<FxHasher>>,
+      BuildHasherDefault<FxHasher>,
+    > = IndexMap::default();
+    for (_, group_ukey, child_group_ukey) in list.iter() {
+      let child_group = chunk_group_by_ukey
+        .get(child_group_ukey)
+        .expect("chunk group do not exists");
+
+      result
+        .entry(group_ukey.to_owned())
+        .or_default()
+        .extend(child_group.chunks.iter());
+    }
+
+    Some(
+      result
+        .iter()
+        .map(|(group_ukey, chunks)| {
+          let group = chunk_group_by_ukey
+            .get(group_ukey)
+            .expect("chunk group do not exists");
+          (
+            group.chunks.clone(),
+            chunks.iter().map(|x| x.to_owned()).collect_vec(),
+          )
+        })
+        .collect_vec(),
+    )
+  }
+
+  pub fn get_child_ids_by_orders_map(
+    &self,
+    include_direct_children: bool,
+    compilation: &Compilation,
+  ) -> HashMap<ChunkGroupOrderKey, IndexMap<String, Vec<String>, BuildHasherDefault<FxHasher>>> {
+    let mut result = HashMap::default();
+
+    fn add_child_ids_by_orders_to_map(
+      chunk_ukey: &ChunkUkey,
+      order: &ChunkGroupOrderKey,
+      result: &mut HashMap<
+        ChunkGroupOrderKey,
+        IndexMap<String, Vec<String>, BuildHasherDefault<FxHasher>>,
+      >,
+      compilation: &Compilation,
+    ) {
+      let chunk = compilation
+        .chunk_by_ukey
+        .get(chunk_ukey)
+        .expect("chunk do not exists");
+      let order_children = chunk.get_children_of_type_in_order(order, compilation, true);
+      if let (Some(chunk_id), Some(order_children)) = (chunk.id.to_owned(), order_children) {
+        let child_chunk_ids = order_children
+          .iter()
+          .flat_map(|(_, child_chunks)| {
+            child_chunks.iter().filter_map(|chunk_ukey| {
+              compilation
+                .chunk_by_ukey
+                .get(chunk_ukey)
+                .expect("chunk do not exists")
+                .id
+                .to_owned()
+            })
+          })
+          .collect_vec();
+
+        result
+          .entry(order.clone())
+          .or_default()
+          .insert(chunk_id, child_chunk_ids);
+      }
+    }
+
+    if include_direct_children {
+      for chunk_ukey in self
+        .get_sorted_groups_iter(&compilation.chunk_group_by_ukey)
+        .filter_map(|chunk_group_ukey| {
+          compilation
+            .chunk_group_by_ukey
+            .get(chunk_group_ukey)
+            .map(|g| g.chunks.to_owned())
+        })
+        .flatten()
+      {
+        add_child_ids_by_orders_to_map(
+          &chunk_ukey,
+          &ChunkGroupOrderKey::Prefetch,
+          &mut result,
+          compilation,
+        );
+        add_child_ids_by_orders_to_map(
+          &chunk_ukey,
+          &ChunkGroupOrderKey::Preload,
+          &mut result,
+          compilation,
+        );
+      }
+    }
+
+    for chunk_ukey in self.get_all_async_chunks(&compilation.chunk_group_by_ukey) {
+      add_child_ids_by_orders_to_map(
+        &chunk_ukey,
+        &ChunkGroupOrderKey::Prefetch,
+        &mut result,
+        compilation,
+      );
+      add_child_ids_by_orders_to_map(
+        &chunk_ukey,
+        &ChunkGroupOrderKey::Preload,
+        &mut result,
+        compilation,
+      );
+    }
+
+    result
   }
 }
 

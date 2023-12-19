@@ -36,7 +36,8 @@ import {
 	DefinePlugin,
 	MergeDuplicateChunksPlugin,
 	SplitChunksPlugin,
-	OldSplitChunksPlugin
+	OldSplitChunksPlugin,
+	ChunkPrefetchPreloadPlugin
 } from "./builtin-plugin";
 import { WorkerPlugin } from "./builtin-plugin/WorkerPlugin";
 
@@ -85,6 +86,8 @@ export function optionsApply_compat(
 				!!options.externalsPresets.webAsync
 			).apply(compiler);
 		}
+
+		new ChunkPrefetchPreloadPlugin().apply(compiler);
 
 		if (typeof options.output.chunkFormat === "string") {
 			switch (options.output.chunkFormat) {
@@ -148,7 +151,7 @@ export function optionsApply_compat(
 }
 
 export class RspackOptionsApply {
-	constructor() { }
+	constructor() {}
 	process(options: RspackOptionsNormalized, compiler: Compiler) {
 		assert(
 			options.output.path,

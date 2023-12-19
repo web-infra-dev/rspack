@@ -1,7 +1,8 @@
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  Chunk, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleStage,
 };
 use rspack_identifier::Identifier;
 
@@ -57,6 +58,10 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
     let with_hmr_manifest = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
     let with_callback = runtime_requirements.contains(RuntimeGlobals::CHUNK_CALLBACK);
+    let with_prefetch = runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS);
+    let with_preload = runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS);
+    let cross_origin_loading = &compilation.options.output.cross_origin_loading;
+    let script_type = &compilation.options.output.script_type;
 
     let condition_map =
       compilation
@@ -112,6 +117,64 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         "#,
         RuntimeGlobals::ENSURE_CHUNK_HANDLERS
       )));
+    }
+
+    if with_prefetch && !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
+      let cross_origin = match cross_origin_loading {
+        CrossOriginLoading::Disable => "".to_string(),
+        CrossOriginLoading::Enable(_) => {
+          format!("link.crossOrigin = {}", cross_origin_loading)
+        }
+      };
+      source.add(RawSource::from(
+        include_str!("runtime/jsonp_chunk_loading_with_prefetch.js")
+          .replace("$JS_MATCHER$", has_js_matcher.to_string().as_str())
+          .replace("$CROSS_ORIGIN$", cross_origin.as_str()),
+      ));
+    }
+
+    if with_preload && !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
+      let cross_origin = match cross_origin_loading {
+        CrossOriginLoading::Disable => "".to_string(),
+        CrossOriginLoading::Enable(cross_origin_value) => {
+          if cross_origin_value.eq("use-credentials") {
+            "link.crossOrigin = \"use-credentials\";".to_string()
+          } else {
+            format!(
+              r#"
+              if (link.href.indexOf(window.location.origin + '/') !== 0) {{
+                link.crossOrigin = {}
+              }}
+              "#,
+              cross_origin_loading
+            )
+          }
+        }
+      };
+      let script_type_link_pre = if script_type.eq("module") || script_type.eq("false") {
+        "".to_string()
+      } else {
+        format!(
+          "link.type = {}",
+          serde_json::to_string(script_type).expect("invalid json tostring")
+        )
+      };
+      let script_type_link_post = if script_type.eq("module") {
+        "link.rel = \"modulepreload\";"
+      } else {
+        r#"
+        link.rel = "preload";
+        link.as = "script";
+        "#
+      };
+
+      source.add(RawSource::from(
+        include_str!("runtime/jsonp_chunk_loading_with_preload.js")
+          .replace("$JS_MATCHER$", has_js_matcher.to_string().as_str())
+          .replace("$CROSS_ORIGIN$", cross_origin.as_str())
+          .replace("$SCRIPT_TYPE_LINK_PRE$", script_type_link_pre.as_str())
+          .replace("$SCRIPT_TYPE_LINK_POST$", script_type_link_post),
+      ));
     }
 
     if with_hmr {
