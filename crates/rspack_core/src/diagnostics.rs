@@ -57,7 +57,7 @@ impl ModuleParseError {
     if source.severity().unwrap_or(miette::Severity::Error) >= miette::Severity::Error {
       if loaders.is_empty() {
         help = format!("{help}\nYou may need an appropriate loader to handle this file type.");
-      } else if !loaders.is_empty() {
+      } else {
         let s = loaders
           .iter()
           .map(|l| {
@@ -66,8 +66,6 @@ impl ModuleParseError {
           })
           .join("");
         help = format!("{help}\nFile was processed with these loaders:{s}\nYou may need an additional loader to handle the result of these loaders.");
-      } else {
-        help = "\nYou may need an appropriate loader to handle this file type, currently no loaders are configured to process this file. See https://www.rspack.dev/guide/loader.html".to_string();
       }
     } else {
       title = "Module parse warning:"
