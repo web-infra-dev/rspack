@@ -345,7 +345,7 @@ function tryMatch(payload: string, condition: RuleSetCondition): boolean {
 		}
 
 		if (condition.not) {
-			return condition.not.every(c => !tryMatch(payload, c));
+			return !tryMatch(payload, condition.not);
 		}
 	}
 
