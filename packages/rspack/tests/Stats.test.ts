@@ -60,23 +60,29 @@ describe("Stats", () => {
 			stats?.toString({ timings: false, version: false }).replace(/\\/g, "/")
 		).toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 623 bytes [emitted] (name: main)
-		Entrypoint main 623 bytes = main.js
+		asset main.js 794 bytes [emitted] (name: main)
+		Entrypoint main 794 bytes = main.js
 		./fixtures/a.js
 		./fixtures/b.js
 		./fixtures/c.js
 		./fixtures/abc.js
 
-		ERROR in ./fixtures/b.js   × Error[javascript]: JavaScript parsing error
-		   ╭─[4:1]
-		 4 │ 
-		 5 │ // Test CJS top-level return
-		 6 │ return;
-		   · ───┬───
-		   ·    ╰── Return statement is not allowed here
-		   ╰────
+		ERROR in ./fixtures/b.js ModuleParseError
 
-		Rspack compiled with 1 error (584d0056cef886864930)"
+		  × Module parse failed:
+		  ╰─▶   × JavaScript parsing error
+		         ╭─[4:1]
+		       4 │
+		       5 │ // Test CJS top-level return
+		       6 │ return;
+		         · ───┬───
+		         ·    ╰── Return statement is not allowed here
+		         ╰────
+		      
+		  help: 
+		        You may need an appropriate loader to handle this file type.
+
+		Rspack compiled with 1 error (79a430f2fdbcdc199916)"
 	`);
 	});
 

@@ -7,6 +7,7 @@
 
 use std::{fmt, sync::Arc};
 mod dependencies_block;
+pub mod diagnostics;
 pub use dependencies_block::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock, DependencyLocation,
 };

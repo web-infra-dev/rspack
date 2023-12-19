@@ -41,8 +41,8 @@ pub struct AnyhowError(#[from] anyhow::Error);
 /// For a [TraceableError], the path is required.
 /// Because if the source code is missing when you construct a [TraceableError], we could read it from file system later
 /// when convert it into [crate::Diagnostic], but the reverse will not working.
-#[derive(Debug, Error)]
-#[error("{severity:?}[{kind}]: {title}")]
+#[derive(Debug, Clone, Error)]
+#[error("{title}")]
 pub struct TraceableError {
   title: String,
   kind: DiagnosticKind,
