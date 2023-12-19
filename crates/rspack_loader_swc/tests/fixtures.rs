@@ -9,10 +9,15 @@ use rspack_core::{
   run_loaders, CompilerContext, CompilerOptions, Loader, LoaderRunnerContext, ResourceData,
   SideEffectOption,
 };
+use rspack_loader_runner::LoaderContext;
 use rspack_loader_swc::{SwcLoader, SwcLoaderJsOptions};
 use rspack_testing::{fixture, test_fixture};
 use serde_json::json;
 use swc_core::base::config::PluginConfig;
+
+fn noop(_loader_context: &mut LoaderContext<LoaderRunnerContext>) -> rspack_error::Result<()> {
+  Ok(())
+}
 
 // UPDATE=1 cargo test --package rspack_loader_swc -- --nocapture
 #[allow(dead_code)]
@@ -100,6 +105,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
       module: "".into(),
       module_context: None,
     },
+    Box::new(noop),
   )
   .await
   .expect("TODO:")

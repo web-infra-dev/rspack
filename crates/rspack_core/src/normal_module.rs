@@ -14,7 +14,7 @@ use derivative::Derivative;
 use rspack_error::{internal_error, Diagnosable, Diagnostic, Result, Severity};
 use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
-use rspack_loader_runner::{run_loaders, Content, ResourceData};
+use rspack_loader_runner::{run_loaders, Content, LoaderContext, ResourceData};
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
@@ -27,9 +27,10 @@ use crate::{
   add_connection_states, contextify, get_context, AsyncDependenciesBlockIdentifier, BoxLoader,
   BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
   CompilerOptions, ConnectionState, Context, DependenciesBlock, DependencyId, DependencyTemplate,
-  GenerateContext, GeneratorOptions, LibIdentOptions, LoaderRunnerPluginProcessResource, Module,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, RuntimeSpec, SourceType,
+  GenerateContext, GeneratorOptions, LibIdentOptions, LoaderRunnerContext,
+  LoaderRunnerPluginProcessResource, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve, RuntimeSpec,
+  SourceType,
 };
 
 bitflags! {
@@ -344,6 +345,11 @@ impl Module for NormalModule {
         plugin_driver: build_context.plugin_driver.clone(),
       })],
       build_context.compiler_context,
+      Box::new(|loader_context: &mut LoaderContext<LoaderRunnerContext>| {
+        build_context
+          .plugin_driver
+          .normal_module_loader(loader_context, self)
+      }),
     )
     .await;
     let (loader_result, ds) = match loader_result {

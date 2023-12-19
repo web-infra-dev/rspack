@@ -399,12 +399,16 @@ impl<C> TryFrom<LoaderContext<'_, C>> for TWithDiagnosticArray<LoaderResult> {
   }
 }
 
-pub async fn run_loaders<C: Send>(
+pub async fn run_loaders<C: Send, F>(
   loaders: &[Arc<dyn Loader<C>>],
   resource_data: &ResourceData,
   plugins: &[Box<dyn LoaderRunnerPlugin>],
   context: C,
-) -> Result<TWithDiagnosticArray<LoaderResult>> {
+  callback: Box<F>,
+) -> Result<TWithDiagnosticArray<LoaderResult>>
+where
+  F: Fn(&mut LoaderContext<C>) -> Result<()> + Send,
+{
   let loaders = loaders
     .iter()
     .map(|i| i.clone().into())
@@ -412,6 +416,8 @@ pub async fn run_loaders<C: Send>(
 
   let mut loader_context =
     create_loader_context(&loaders[..], resource_data, plugins, context).await?;
+
+  callback(&mut loader_context)?;
 
   assert!(loader_context.content.is_none());
   iterate_pitching_loaders(&mut loader_context).await?;
@@ -436,6 +442,9 @@ mod test {
     runner::Scheme,
     DisplayWithSuffix,
   };
+  fn noop(_: &mut LoaderContext<()>) -> Result<()> {
+    Ok(())
+  }
 
   struct TestContentPlugin;
 
@@ -505,9 +514,15 @@ mod test {
       encoded_content: None,
     };
 
-    run_loaders(&[c1, p1, c2, c3], &rs, &[Box::new(TestContentPlugin)], ())
-      .await
-      .unwrap();
+    run_loaders(
+      &[c1, p1, c2, c3],
+      &rs,
+      &[Box::new(TestContentPlugin)],
+      (),
+      Box::new(noop),
+    )
+    .await
+    .unwrap();
 
     IDENTS.with(|i| {
       let i = i.borrow();
@@ -678,9 +693,15 @@ mod test {
       encoded_content: None,
     };
 
-    run_loaders::<()>(&[p1, p2, c1, c2], &rs, &[Box::new(TestContentPlugin)], ())
-      .await
-      .unwrap();
+    run_loaders(
+      &[p1, p2, c1, c2],
+      &rs,
+      &[Box::new(TestContentPlugin)],
+      (),
+      Box::new(noop),
+    )
+    .await
+    .unwrap();
     IDENTS.with(|i| assert_eq!(*i.borrow(), &["pitch1", "pitch2", "normal2", "normal1"]));
     IDENTS.with(|i| i.borrow_mut().clear());
 
@@ -688,9 +709,15 @@ mod test {
     let p2 = Arc::new(PitchNormal) as Arc<dyn Loader<()>>;
     let p3 = Arc::new(PitchNormal2) as Arc<dyn Loader<()>>;
 
-    run_loaders::<()>(&[p1, p2, p3], &rs, &[Box::new(TestContentPlugin)], ())
-      .await
-      .unwrap();
+    run_loaders(
+      &[p1, p2, p3],
+      &rs,
+      &[Box::new(TestContentPlugin)],
+      (),
+      Box::new(noop),
+    )
+    .await
+    .unwrap();
     IDENTS.with(|i| {
       // should not execute p3, as p2 pitched successfully.
       assert!(!i.borrow().contains(&"pitch-normal-normal-2".to_string()));
@@ -758,6 +785,7 @@ mod test {
       &rs,
       &[Box::new(TestContentPlugin)],
       (),
+      Box::new(noop),
     )
     .await
     .unwrap();

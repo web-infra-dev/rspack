@@ -8,9 +8,14 @@ use std::{
 use rspack_core::{
   run_loaders, CompilerContext, CompilerOptions, Loader, LoaderRunnerContext, ResourceData,
 };
+use rspack_loader_runner::LoaderContext;
 use rspack_loader_sass::{SassLoader, SassLoaderOptions};
 use rspack_testing::{fixture, test_fixture_css};
 use sass_embedded::Url;
+
+fn noop(_loader_context: &mut LoaderContext<LoaderRunnerContext>) -> rspack_error::Result<()> {
+  Ok(())
+}
 
 // UPDATE_SASS_LOADER_TEST=1 cargo test --package rspack_loader_sass test_fn_name -- --exact --nocapture
 async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
@@ -99,6 +104,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
       module: "".into(),
       module_context: None,
     },
+    Box::new(noop),
   )
   .await
   .expect("TODO:")
