@@ -82,8 +82,12 @@ const defaults = {
 		}
 	},
 	outputFileSystem: {
-		mkdir(dir, callback) {
-			callback();
+		mkdir(dir, maybeOptionOrCallback, maybeCallback) {
+			if (typeof maybeOptionOrCallback === "function") {
+				maybeOptionOrCallback();
+			} else if (typeof maybeCallback === "function") {
+				maybeCallback();
+			}
 		},
 		writeFile(file, content, callback) {
 			callback();
