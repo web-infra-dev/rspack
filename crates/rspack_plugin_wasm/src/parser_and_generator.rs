@@ -7,14 +7,14 @@ use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
   AssetInfo, BoxDependency, BuildMetaExportsType, Compilation, Filename, GenerateContext, Module,
   ModuleDependency, ModuleIdentifier, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
-  PathData, RuntimeGlobals, SourceType, UsedName,
+  PathData, RuntimeGlobals, SourceType, StaticExportsDependency, UsedName,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
-use crate::dependency::{StaticExportsDependency, WasmImportDependency};
+use crate::dependency::WasmImportDependency;
 use crate::ModuleIdToFileName;
 
 #[derive(Debug)]

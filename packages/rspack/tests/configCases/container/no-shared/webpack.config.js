@@ -1,4 +1,4 @@
-const { ModuleFederationPluginV1: ModuleFederationPlugin } = require("../../../../").container;
+const { ModuleFederationPlugin } = require("../../../../").container;
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {

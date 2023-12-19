@@ -1,85 +1,114 @@
+import { ExternalsType } from "../config";
 import { Compiler } from "../Compiler";
-import {
-	LibraryOptions,
-	EntryRuntime,
-	ExternalsType,
-	externalsType
-} from "../config";
-import { SharePlugin, Shared } from "../sharing/SharePlugin";
-import { isValidate } from "../util/validate";
-import { ContainerPlugin, Exposes } from "./ContainerPlugin";
-import { ContainerReferencePlugin, Remotes } from "./ContainerReferencePlugin";
+import { type ModuleFederationPluginV1Options } from "./ModuleFederationPluginV1";
 
-export interface ModuleFederationPluginOptions {
-	exposes?: Exposes;
-	filename?: string;
-	library?: LibraryOptions;
-	name: string;
-	remoteType?: ExternalsType;
-	remotes?: Remotes;
-	runtime?: EntryRuntime;
-	shareScope?: string;
-	shared?: Shared;
-	enhanced?: Enhanced;
+export interface ModuleFederationPluginOptions
+	extends Omit<ModuleFederationPluginV1Options, "enhanced"> {
+	runtimePlugins?: string[];
+	implementation?: string;
 }
-export type Enhanced = boolean;
 
 export class ModuleFederationPlugin {
 	constructor(private _options: ModuleFederationPluginOptions) {}
 
 	apply(compiler: Compiler) {
-		const { _options: options } = this;
-		const enhanced = options.enhanced ?? false;
-
-		const library = options.library || { type: "var", name: options.name };
-		const remoteType =
-			options.remoteType ||
-			(options.library && isValidate(options.library.type, externalsType)
-				? (options.library.type as ExternalsType)
-				: "script");
-		if (
-			library &&
-			!compiler.options.output.enabledLibraryTypes!.includes(library.type)
-		) {
-			compiler.options.output.enabledLibraryTypes!.push(library.type);
-		}
-		compiler.hooks.afterPlugins.tap("ModuleFederationPlugin", () => {
-			if (
-				options.exposes &&
-				(Array.isArray(options.exposes)
-					? options.exposes.length > 0
-					: Object.keys(options.exposes).length > 0)
-			) {
-				new ContainerPlugin({
-					name: options.name,
-					library,
-					filename: options.filename,
-					runtime: options.runtime,
-					shareScope: options.shareScope,
-					exposes: options.exposes,
-					enhanced
-				}).apply(compiler);
-			}
-			if (
-				options.remotes &&
-				(Array.isArray(options.remotes)
-					? options.remotes.length > 0
-					: Object.keys(options.remotes).length > 0)
-			) {
-				new ContainerReferencePlugin({
-					remoteType,
-					shareScope: options.shareScope,
-					remotes: options.remotes,
-					enhanced
-				}).apply(compiler);
-			}
-			if (options.shared) {
-				new SharePlugin({
-					shared: options.shared,
-					shareScope: options.shareScope,
-					enhanced
-				}).apply(compiler);
-			}
-		});
+		const { webpack } = compiler;
+		new webpack.EntryPlugin(
+			compiler.context,
+			defaultImplementation(this._options, compiler),
+			{ name: undefined }
+		).apply(compiler);
+		new webpack.container.ModuleFederationPluginV1({
+			...this._options,
+			enhanced: true
+		}).apply(compiler);
 	}
+}
+
+function defaultImplementation(
+	options: ModuleFederationPluginOptions,
+	compiler: Compiler
+) {
+	function extractUrlAndGlobal(urlAndGlobal: string) {
+		const index = urlAndGlobal.indexOf("@");
+		if (index <= 0 || index === urlAndGlobal.length - 1) {
+			return null;
+		}
+		return [
+			urlAndGlobal.substring(index + 1),
+			urlAndGlobal.substring(0, index)
+		] as const;
+	}
+
+	function getExternalTypeFromExternal(external: string) {
+		if (/^[a-z0-9-]+ /.test(external)) {
+			const idx = external.indexOf(" ");
+			return [external.slice(0, idx), external.slice(idx + 1)];
+		}
+		return null;
+	}
+
+	function getExternal(external: string, defaultExternalType: ExternalsType) {
+		const result = getExternalTypeFromExternal(external);
+		if (result === null) {
+			return [defaultExternalType, external];
+		}
+		return result;
+	}
+
+	const runtimeTemplate = compiler.webpack.Template.getFunctionContent(
+		require("./default.runtime.js")
+	);
+	const remotes = [];
+	const remoteType =
+		options.remoteType ||
+		(options.library ? (options.library.type as ExternalsType) : "script");
+	for (let [key, remote] of Object.entries(options.remotes ?? {})) {
+		const [externalType, external] = getExternal(
+			typeof remote === "string" ? remote : remote.external,
+			remoteType
+		);
+		const shareScope =
+			(typeof remote !== "string" && remote.shareScope) ||
+			options.shareScope ||
+			"default";
+		if (externalType === "script") {
+			const [url, global] = extractUrlAndGlobal(external)!;
+			remotes.push({
+				alias: key,
+				name: global,
+				entry: url,
+				externalType,
+				shareScope
+			});
+		} else {
+			remotes.push({
+				alias: key,
+				name: undefined,
+				entry: undefined,
+				externalType,
+				shareScope
+			});
+		}
+	}
+	const pluginImports = [];
+	const pluginVars = [];
+	const runtimePlugins = options.runtimePlugins ?? [];
+	for (let i = 0; i < runtimePlugins.length; i++) {
+		const pluginVar = `__MODULE_FEDERATION_RUNTIME_PLUGIN_${i}__`;
+		const pluginPath = JSON.stringify(runtimePlugins[i]);
+		pluginImports.push(
+			`const ${pluginVar} = getDefaultExport(require(${pluginPath}));`
+		);
+		pluginVars.push(`${pluginVar}()`);
+	}
+	const implementationPath =
+		options.implementation ??
+		require.resolve("@module-federation/webpack-bundler-runtime");
+	let implementation = runtimeTemplate
+		.replace("$RUNTIME_PACKAGE_PATH$", JSON.stringify(implementationPath))
+		.replace("$ALL_REMOTES$", JSON.stringify(remotes))
+		.replace("$INITOPTIONS_PLUGIN_IMPORTS$", pluginImports.join("\n"))
+		.replace("$INITOPTIONS_PLUGINS$", `[${pluginVars.join(", ")}]`);
+	return `data:text/javascript,${implementation}`;
 }

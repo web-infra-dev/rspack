@@ -1,8 +1,9 @@
-use rspack_core::{
-  AsContextDependency, AsDependencyTemplate, AsModuleDependency, Dependency, DependencyId,
-  DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ModuleGraph,
-};
 use swc_core::ecma::atoms::JsWord;
+
+use crate::{
+  AsContextDependency, AsDependencyTemplate, AsModuleDependency, Dependency, DependencyId,
+  DependencyType, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+};
 
 #[derive(Debug, Clone)]
 pub struct StaticExportsDependency {
@@ -34,8 +35,8 @@ impl Dependency for StaticExportsDependency {
     "StaticExportsDependency"
   }
 
-  fn get_exports(&self, _mg: &ModuleGraph) -> Option<rspack_core::ExportsSpec> {
-    Some(rspack_core::ExportsSpec {
+  fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
+    Some(ExportsSpec {
       exports: ExportsOfExportsSpec::Array(
         self
           .exports

@@ -1,10 +1,10 @@
-const { ModuleFederationPluginV1: ModuleFederationPlugin } = require("../../../../").container;
+const { ModuleFederationPlugin } = require("../../../../").container;
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	optimization: {
 		chunkIds: "named",
-		moduleIds: "named",
+		moduleIds: "named"
 	},
 	plugins: [
 		new ModuleFederationPlugin({
@@ -14,7 +14,7 @@ module.exports = {
 			exposes: ["./a", "./b", "./modules", "./modules-from-remote"],
 			remotes: {
 				"container-with-shared":
-					"../0-transitive-overriding/container-with-shared.js",
+					"../../0-transitive-overriding/dist/container-with-shared.js",
 				"container-no-shared": "./container-no-shared.js"
 			}
 		})

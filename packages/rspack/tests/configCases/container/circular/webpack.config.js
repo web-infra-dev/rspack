@@ -1,4 +1,4 @@
-const { ModuleFederationPluginV1: ModuleFederationPlugin } = require("../../../../packages/rspack").container;
+const { ModuleFederationPlugin } = require("../../../../").container;
 
 function createConfig() {
 	return {

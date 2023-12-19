@@ -1,5 +1,5 @@
 // eslint-disable-next-line node/no-unpublished-require
-const { ModuleFederationPlugin } = require("../../../../").container;
+const { ModuleFederationPluginV1: ModuleFederationPlugin } = require("../../../../").container;
 
 const common = {
 	entry: {
