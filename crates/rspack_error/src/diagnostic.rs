@@ -1,6 +1,7 @@
 use std::{fmt, ops::Deref, sync::Arc};
 
 use miette::{GraphicalReportHandler, GraphicalTheme, IntoDiagnostic, MietteDiagnostic};
+use rspack_identifier::Identifier;
 
 use crate::Error;
 
@@ -46,11 +47,11 @@ impl fmt::Display for RspackSeverity {
 }
 
 #[derive(Debug, Clone)]
-pub struct Diagnostic(Arc<miette::Error>);
+pub struct Diagnostic(Arc<miette::Error>, DiagnosticMeta);
 
 impl From<miette::Error> for Diagnostic {
   fn from(value: miette::Error) -> Self {
-    Self(value.into())
+    Self(value.into(), DiagnosticMeta::default())
   }
 }
 
@@ -63,12 +64,40 @@ impl Deref for Diagnostic {
 }
 
 impl Diagnostic {
+  pub fn warn(title: String, message: String) -> Self {
+    Self(
+      Error::from(
+        MietteDiagnostic::new(message)
+          .with_code(title)
+          .with_severity(miette::Severity::Warning),
+      )
+      .into(),
+      DiagnosticMeta::default(),
+    )
+  }
+
+  pub fn error(title: String, message: String) -> Self {
+    Self(
+      Error::from(
+        MietteDiagnostic::new(message)
+          .with_code(title)
+          .with_severity(miette::Severity::Error),
+      )
+      .into(),
+      DiagnosticMeta::default(),
+    )
+  }
+}
+
+impl Diagnostic {
   pub fn render_report(&self, colored: bool) -> crate::Result<String> {
-    let h = GraphicalReportHandler::new().with_theme(if colored {
-      GraphicalTheme::unicode()
-    } else {
-      GraphicalTheme::unicode_nocolor()
-    });
+    let h = GraphicalReportHandler::new()
+      .with_theme(if colored {
+        GraphicalTheme::unicode()
+      } else {
+        GraphicalTheme::unicode_nocolor()
+      })
+      .with_context_lines(2);
     let mut buf = String::new();
     h.render_report(&mut buf, self.as_ref()).into_diagnostic()?;
     Ok(buf)
@@ -82,35 +111,33 @@ impl Diagnostic {
     self.0.severity().unwrap_or_default().into()
   }
 
-  pub fn warn(title: String, message: String) -> Self {
-    Self(
-      Error::from(
-        MietteDiagnostic::new(message)
-          .with_code(title)
-          .with_severity(miette::Severity::Warning),
-      )
-      .into(),
-    )
+  pub fn module_identifier(&self) -> Option<Identifier> {
+    self.1.module_identifier
   }
 
-  pub fn error(title: String, message: String) -> Self {
-    Self(
-      Error::from(
-        MietteDiagnostic::new(message)
-          .with_code(title)
-          .with_severity(miette::Severity::Error),
-      )
-      .into(),
-    )
+  pub fn with_module_identifier(mut self, module_identifier: Option<Identifier>) -> Self {
+    self.1.set_module_identifier(module_identifier);
+    self
+  }
+}
+
+#[derive(Debug, Default, Clone)]
+struct DiagnosticMeta {
+  module_identifier: Option<Identifier>,
+}
+
+impl DiagnosticMeta {
+  fn set_module_identifier(&mut self, module_identifier: Option<Identifier>) {
+    self.module_identifier = module_identifier;
   }
 }
 
 pub trait Diagnosable {
   fn add_diagnostic(&self, _diagnostic: Diagnostic) {
-    unimplemented!("`<T as Diagnostable>::add_diagnostic` is not implemented")
+    unimplemented!("`<T as Diagnosable>::add_diagnostic` is not implemented")
   }
   fn add_diagnostics(&self, _diagnostics: Vec<Diagnostic>) {
-    unimplemented!("`<T as Diagnostable>::add_diagnostics` is not implemented")
+    unimplemented!("`<T as Diagnosable>::add_diagnostics` is not implemented")
   }
   fn clone_diagnostics(&self) -> Vec<Diagnostic> {
     vec![]
@@ -123,13 +150,13 @@ macro_rules! impl_empty_diagnosable_trait {
     impl $crate::Diagnosable for $ty {
       fn add_diagnostic(&self, _diagnostic: $crate::Diagnostic) {
         unimplemented!(
-          "`<{ty} as Diagnostable>::add_diagnostic` is not implemented",
+          "`<{ty} as Diagnosable>::add_diagnostic` is not implemented",
           ty = stringify!($ty)
         )
       }
       fn add_diagnostics(&self, _diagnostics: Vec<$crate::Diagnostic>) {
         unimplemented!(
-          "`<{ty} as Diagnostable>::add_diagnostics` is not implemented",
+          "`<{ty} as Diagnosable>::add_diagnostics` is not implemented",
           ty = stringify!($ty)
         )
       }

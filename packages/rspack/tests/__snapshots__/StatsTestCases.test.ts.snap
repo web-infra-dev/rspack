@@ -1079,35 +1079,41 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
   "errors": [
     {
       "formatted": "  × Error[javascript]: JavaScript parsing error
-   ╭─[tests/statsCases/identifier-let-strict-mode/index.js:1:1]
+   ╭────
  1 │ let let = let;
    ·           ─┬─
    ·            ╰── \`let\` cannot be used as an identifier in strict mode
    ╰────
 ",
       "message": "  × Error[javascript]: JavaScript parsing error
-   ╭─[tests/statsCases/identifier-let-strict-mode/index.js:1:1]
+   ╭────
  1 │ let let = let;
    ·           ─┬─
    ·            ╰── \`let\` cannot be used as an identifier in strict mode
    ╰────
 ",
+      "moduleId": "21",
+      "moduleIdentifier": "javascript/esm|<PROJECT_ROOT>/tests/statsCases/identifier-let-strict-mode/index.js",
+      "moduleName": "./index.js",
     },
     {
       "formatted": "  × Error[javascript]: JavaScript parsing error
-   ╭─[tests/statsCases/identifier-let-strict-mode/index.js:1:1]
+   ╭────
  1 │ let let = let;
    ·     ─┬─
    ·      ╰── \`let\` cannot be used as an identifier in strict mode
    ╰────
 ",
       "message": "  × Error[javascript]: JavaScript parsing error
-   ╭─[tests/statsCases/identifier-let-strict-mode/index.js:1:1]
+   ╭────
  1 │ let let = let;
    ·     ─┬─
    ·      ╰── \`let\` cannot be used as an identifier in strict mode
    ╰────
 ",
+      "moduleId": "21",
+      "moduleIdentifier": "javascript/esm|<PROJECT_ROOT>/tests/statsCases/identifier-let-strict-mode/index.js",
+      "moduleName": "./index.js",
     },
   ],
   "errorsCount": 2,
@@ -1118,21 +1124,19 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 2`] = `
-"  × Error[javascript]: JavaScript parsing error
-   ╭─[tests/statsCases/identifier-let-strict-mode/index.js:1:1]
+"ERROR in ./index.js   × Error[javascript]: JavaScript parsing error
+   ╭────
  1 │ let let = let;
    ·           ─┬─
    ·            ╰── \`let\` cannot be used as an identifier in strict mode
    ╰────
 
-
-  × Error[javascript]: JavaScript parsing error
-   ╭─[tests/statsCases/identifier-let-strict-mode/index.js:1:1]
+ERROR in ./index.js   × Error[javascript]: JavaScript parsing error
+   ╭────
  1 │ let let = let;
    ·     ─┬─
    ·      ╰── \`let\` cannot be used as an identifier in strict mode
    ╰────
-
 
 Rspack compiled with 2 errors"
 `;
@@ -4106,6 +4110,9 @@ exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin
 
   ⚠ Experimental plugins are not currently supported.
 ",
+      "moduleId": "498",
+      "moduleIdentifier": "builtin:swc-loader??ruleSet[1].rules[0].use[0]!<PROJECT_ROOT>/tests/statsCases/loader-builtin-swc-plugin-warn/index.js",
+      "moduleName": "./index.js",
     },
   ],
   "warningsCount": 1,
@@ -4113,10 +4120,9 @@ exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin
 `;
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 2`] = `
-"builtin:swc-loader
+"WARNING in ./index.js builtin:swc-loader
 
   ⚠ Experimental plugins are not currently supported.
-
 
 Rspack compiled with 1 warning"
 `;
@@ -4173,19 +4179,21 @@ exports[`StatsTestCases should print correct stats for minify-error-recovery 1`]
   "errors": [
     {
       "formatted": "  × Error[javascript]: JavaScript parsing error
-   ╭─[bundle.js:1:1]
+   ╭─[1:1]
  1 │ const a {}
    ·         ┬
    ·         ╰── Expected a semicolon
  2 │ (function() {
+ 3 │ var __webpack_modules__ = {
    ╰────
 ",
       "message": "  × Error[javascript]: JavaScript parsing error
-   ╭─[bundle.js:1:1]
+   ╭─[1:1]
  1 │ const a {}
    ·         ┬
    ·         ╰── Expected a semicolon
  2 │ (function() {
+ 3 │ var __webpack_modules__ = {
    ╰────
 ",
     },
@@ -4198,14 +4206,14 @@ exports[`StatsTestCases should print correct stats for minify-error-recovery 1`]
 `;
 
 exports[`StatsTestCases should print correct stats for minify-error-recovery 2`] = `
-"  × Error[javascript]: JavaScript parsing error
-   ╭─[bundle.js:1:1]
+"ERROR in × Error[javascript]: JavaScript parsing error
+   ╭─[1:1]
  1 │ const a {}
    ·         ┬
    ·         ╰── Expected a semicolon
  2 │ (function() {
+ 3 │ var __webpack_modules__ = {
    ╰────
-
 
 Rspack compiled with 1 error"
 `;
@@ -4268,14 +4276,14 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
   "errors": [
     {
       "formatted": "  × Error[internal]: Resolve error
-   ╭─[tests/statsCases/normal-errors/index.js:1:1]
+   ╭────
  1 │ import "not-exist";
    · ─────────┬─────────
    ·          ╰── Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/index.js
    ╰────
 ",
       "message": "  × Error[internal]: Resolve error
-   ╭─[tests/statsCases/normal-errors/index.js:1:1]
+   ╭────
  1 │ import "not-exist";
    · ─────────┬─────────
    ·          ╰── Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/index.js
@@ -4291,13 +4299,12 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for normal-errors 2`] = `
-"  × Error[internal]: Resolve error
-   ╭─[tests/statsCases/normal-errors/index.js:1:1]
+"ERROR in × Error[internal]: Resolve error
+   ╭────
  1 │ import "not-exist";
    · ─────────┬─────────
    ·          ╰── Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/index.js
    ╰────
-
 
 Rspack compiled with 1 error"
 `;
@@ -4873,23 +4880,30 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
   "errors": [
     {
       "formatted": "  × Error[javascript]: JavaScript parsing error
-   ╭─[tests/statsCases/parse-error/b.js:5:1]
+   ╭─[4:1]
+ 4 │ includes
  5 │ a
  6 │ parser )
    ·        ┬
    ·        ╰── Expected ';', '}' or <eof>
  7 │ error
+ 8 │ in
    ╰────
 ",
       "message": "  × Error[javascript]: JavaScript parsing error
-   ╭─[tests/statsCases/parse-error/b.js:5:1]
+   ╭─[4:1]
+ 4 │ includes
  5 │ a
  6 │ parser )
    ·        ┬
    ·        ╰── Expected ';', '}' or <eof>
  7 │ error
+ 8 │ in
    ╰────
 ",
+      "moduleId": "996",
+      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/parse-error/b.js",
+      "moduleName": "./b.js",
     },
   ],
   "errorsCount": 1,
@@ -4900,15 +4914,16 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for parse-error 2`] = `
-"  × Error[javascript]: JavaScript parsing error
-   ╭─[tests/statsCases/parse-error/b.js:5:1]
+"ERROR in ./b.js   × Error[javascript]: JavaScript parsing error
+   ╭─[4:1]
+ 4 │ includes
  5 │ a
  6 │ parser )
    ·        ┬
    ·        ╰── Expected ';', '}' or <eof>
  7 │ error
+ 8 │ in
    ╰────
-
 
 Rspack compiled with 1 error"
 `;
@@ -4935,6 +4950,9 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
   │ 
   ╰─▶ Syntax Error
 ",
+      "moduleId": "620",
+      "moduleIdentifier": "builtin:swc-loader??ruleSet[1].rules[0].use[0]!<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts",
+      "moduleName": "./index.ts",
     },
   ],
   "errorsCount": 1,
@@ -4945,7 +4963,7 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
 `;
 
 exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-loader 2`] = `
-"  × 
+"ERROR in ./index.ts   × 
   │   x Expected '{', got 'error'
   │    ,-[<PROJECT_ROOT>/tests/statsCases/parse-error-builtin-swc-loader/index.ts:1:1]
   │  1 | export error;
@@ -4953,7 +4971,6 @@ exports[`StatsTestCases should print correct stats for parse-error-builtin-swc-l
   │    \`----
   │ 
   ╰─▶ Syntax Error
-
 
 Rspack compiled with 1 error"
 `;
@@ -5150,7 +5167,7 @@ console.log(a);
   "errors": [
     {
       "formatted": "  × Error[internal]: Resolve error
-   ╭─[tests/statsCases/resolve-overflow/index.js:1:1]
+   ╭─[1:1]
  1 │ import { a } from "cycle-alias/a";
    · ─────────────────┬────────────────
    ·                  ╰── Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias
@@ -5158,7 +5175,7 @@ console.log(a);
    ╰────
 ",
       "message": "  × Error[internal]: Resolve error
-   ╭─[tests/statsCases/resolve-overflow/index.js:1:1]
+   ╭─[1:1]
  1 │ import { a } from "cycle-alias/a";
    · ─────────────────┬────────────────
    ·                  ╰── Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias
@@ -5361,14 +5378,13 @@ webpack/runtime/compat_get_default_export {main}
   esm import specifier cycle-alias/a [10]
   
 
-  × Error[internal]: Resolve error
-   ╭─[tests/statsCases/resolve-overflow/index.js:1:1]
+ERROR in × Error[internal]: Resolve error
+   ╭─[1:1]
  1 │ import { a } from "cycle-alias/a";
    · ─────────────────┬────────────────
    ·                  ╰── Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias
  2 │ console.log(a);
    ╰────
-
 
 Rspack compiled with 1 error (52b8b881d7951db09212)"
 `;
@@ -5706,8 +5722,7 @@ webpack/runtime/compat_get_default_export {main}
   esm import specifier pkg-a [10]
   
 
-  × Export should be relative path and start with "./", but got ../../index.js
-
+ERROR in × Export should be relative path and start with "./", but got ../../index.js
 
 Rspack compiled with 1 error (2b490d57b0f2f7155006)"
 `;
@@ -6576,21 +6591,23 @@ exports[`StatsTestCases should print correct stats for try-require--module 1`] =
   "warnings": [
     {
       "formatted": "  ⚠ Warning[internal]: Resolve error
-   ╭─[tests/statsCases/try-require--module/index.js:1:1]
+   ╭─[1:1]
  1 │     try {
  2 │ ╭─▶     require('./missing-module')
  3 │ ├─▶ } catch (e) {
    · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
  4 │     
+ 5 │     }
    ╰────
 ",
       "message": "  ⚠ Warning[internal]: Resolve error
-   ╭─[tests/statsCases/try-require--module/index.js:1:1]
+   ╭─[1:1]
  1 │     try {
  2 │ ╭─▶     require('./missing-module')
  3 │ ├─▶ } catch (e) {
    · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
  4 │     
+ 5 │     }
    ╰────
 ",
     },
@@ -6600,15 +6617,15 @@ exports[`StatsTestCases should print correct stats for try-require--module 1`] =
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 2`] = `
-"  ⚠ Warning[internal]: Resolve error
-   ╭─[tests/statsCases/try-require--module/index.js:1:1]
+"WARNING in ⚠ Warning[internal]: Resolve error
+   ╭─[1:1]
  1 │     try {
  2 │ ╭─▶     require('./missing-module')
  3 │ ├─▶ } catch (e) {
    · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
  4 │     
+ 5 │     }
    ╰────
-
 
 Rspack compiled with 1 warning"
 `;
@@ -6621,21 +6638,23 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-modul
   "warnings": [
     {
       "formatted": "  ⚠ Warning[internal]: Resolve error
-   ╭─[tests/statsCases/try-require-resolve-module/index.js:1:1]
+   ╭─[1:1]
  1 │     try {
  2 │ ╭─▶     require.resolve('./missing-module')
  3 │ ├─▶ } catch (e) {
    · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
  4 │     
+ 5 │     }
    ╰────
 ",
       "message": "  ⚠ Warning[internal]: Resolve error
-   ╭─[tests/statsCases/try-require-resolve-module/index.js:1:1]
+   ╭─[1:1]
  1 │     try {
  2 │ ╭─▶     require.resolve('./missing-module')
  3 │ ├─▶ } catch (e) {
    · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
  4 │     
+ 5 │     }
    ╰────
 ",
     },
@@ -6645,15 +6664,15 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-modul
 `;
 
 exports[`StatsTestCases should print correct stats for try-require-resolve-module 2`] = `
-"  ⚠ Warning[internal]: Resolve error
-   ╭─[tests/statsCases/try-require-resolve-module/index.js:1:1]
+"WARNING in ⚠ Warning[internal]: Resolve error
+   ╭─[1:1]
  1 │     try {
  2 │ ╭─▶     require.resolve('./missing-module')
  3 │ ├─▶ } catch (e) {
    · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
  4 │     
+ 5 │     }
    ╰────
-
 
 Rspack compiled with 1 warning"
 `;
@@ -6666,21 +6685,23 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-weak-
   "warnings": [
     {
       "formatted": "  ⚠ Warning[internal]: Resolve error
-   ╭─[tests/statsCases/try-require-resolve-weak-module/index.js:1:1]
+   ╭─[1:1]
  1 │     try {
  2 │ ╭─▶     require.resolveWeak('./missing-module')
  3 │ ├─▶ } catch (e) {
    · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
  4 │     
+ 5 │     }
    ╰────
 ",
       "message": "  ⚠ Warning[internal]: Resolve error
-   ╭─[tests/statsCases/try-require-resolve-weak-module/index.js:1:1]
+   ╭─[1:1]
  1 │     try {
  2 │ ╭─▶     require.resolveWeak('./missing-module')
  3 │ ├─▶ } catch (e) {
    · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
  4 │     
+ 5 │     }
    ╰────
 ",
     },
@@ -6690,15 +6711,15 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-weak-
 `;
 
 exports[`StatsTestCases should print correct stats for try-require-resolve-weak-module 2`] = `
-"  ⚠ Warning[internal]: Resolve error
-   ╭─[tests/statsCases/try-require-resolve-weak-module/index.js:1:1]
+"WARNING in ⚠ Warning[internal]: Resolve error
+   ╭─[1:1]
  1 │     try {
  2 │ ╭─▶     require.resolveWeak('./missing-module')
  3 │ ├─▶ } catch (e) {
    · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
  4 │     
+ 5 │     }
    ╰────
-
 
 Rspack compiled with 1 warning"
 `;

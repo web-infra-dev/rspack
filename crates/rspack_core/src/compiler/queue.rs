@@ -270,7 +270,14 @@ impl WorkerTask for BuildTask {
           .await
           .unwrap_or_else(|e| panic!("Run succeed_module hook failed: {}", e));
 
-        result.map(|t| (t.with_diagnostic(module.clone_diagnostics()), module))
+        result.map(|t| {
+          let diagnostics = module
+            .clone_diagnostics()
+            .into_iter()
+            .map(|d| d.with_module_identifier(Some(module.identifier())))
+            .collect();
+          (t.with_diagnostic(diagnostics), module)
+        })
       })
       .await
     {

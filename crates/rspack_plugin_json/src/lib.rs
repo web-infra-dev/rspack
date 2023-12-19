@@ -43,7 +43,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
   ) -> Result<TWithDiagnosticArray<rspack_core::ParseResult>> {
     let rspack_core::ParseContext {
       source: box_source,
-      resource_data,
       build_info,
       build_meta,
       ..
@@ -71,7 +70,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
             start_offset
           };
           TraceableError::from_file(
-            resource_data.resource_path.to_string_lossy().to_string(),
             source.into_owned(),
             // one character offset
             start_offset,
@@ -89,7 +87,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           // End offset of json file
           let offset = source.len() - 1;
           TraceableError::from_file(
-            resource_data.resource_path.to_string_lossy().to_string(),
             source.into_owned(),
             offset,
             offset,

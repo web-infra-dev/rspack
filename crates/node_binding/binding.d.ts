@@ -441,6 +441,9 @@ export interface JsStatsChunkGroupAsset {
 export interface JsStatsError {
   message: string
   formatted: string
+  moduleIdentifier?: string
+  moduleName?: string
+  moduleId?: string
 }
 
 export interface JsStatsGetAssets {
@@ -502,6 +505,9 @@ export interface JsStatsModuleReason {
 export interface JsStatsWarning {
   message: string
   formatted: string
+  moduleIdentifier?: string
+  moduleName?: string
+  moduleId?: string
 }
 
 export interface NodeFS {

@@ -301,13 +301,29 @@ impl Stats<'_> {
     self
       .compilation
       .get_errors()
-      .map(|d| StatsError {
-        message: diagnostic_displayer
-          .emit_diagnostic(d)
-          .expect("should print diagnostics"),
-        formatted: diagnostic_displayer
-          .emit_diagnostic(d)
-          .expect("should print diagnostics"),
+      .map(|d| {
+        let module_identifier = d.module_identifier();
+        let (module_name, module_id) = module_identifier
+          .and_then(|identifier| {
+            let module = self
+              .compilation
+              .module_graph
+              .module_by_identifier(&identifier)?;
+            Some(get_stats_module_name_and_id(module, self.compilation))
+          })
+          .unzip();
+
+        StatsError {
+          message: diagnostic_displayer
+            .emit_diagnostic(d)
+            .expect("should print diagnostics"),
+          formatted: diagnostic_displayer
+            .emit_diagnostic(d)
+            .expect("should print diagnostics"),
+          module_identifier: module_identifier.map(|i| i.to_string()),
+          module_name,
+          module_id: module_id.flatten(),
+        }
       })
       .collect()
   }
@@ -317,13 +333,29 @@ impl Stats<'_> {
     self
       .compilation
       .get_warnings()
-      .map(|d| StatsWarning {
-        message: diagnostic_displayer
-          .emit_diagnostic(d)
-          .expect("should print diagnostics"),
-        formatted: diagnostic_displayer
-          .emit_diagnostic(d)
-          .expect("should print diagnostics"),
+      .map(|d| {
+        let module_identifier = d.module_identifier();
+        let (module_name, module_id) = module_identifier
+          .and_then(|identifier| {
+            let module = self
+              .compilation
+              .module_graph
+              .module_by_identifier(&identifier)?;
+            Some(get_stats_module_name_and_id(module, self.compilation))
+          })
+          .unzip();
+
+        StatsWarning {
+          message: diagnostic_displayer
+            .emit_diagnostic(d)
+            .expect("should print diagnostics"),
+          formatted: diagnostic_displayer
+            .emit_diagnostic(d)
+            .expect("should print diagnostics"),
+          module_identifier: module_identifier.map(|i| i.to_string()),
+          module_name,
+          module_id: module_id.flatten(),
+        }
       })
       .collect()
   }
@@ -613,12 +645,18 @@ fn get_stats_module_name_and_id(
 pub struct StatsError {
   pub message: String,
   pub formatted: String,
+  pub module_identifier: Option<String>,
+  pub module_name: Option<String>,
+  pub module_id: Option<String>,
 }
 
 #[derive(Debug)]
 pub struct StatsWarning {
   pub message: String,
   pub formatted: String,
+  pub module_identifier: Option<String>,
+  pub module_name: Option<String>,
+  pub module_id: Option<String>,
 }
 
 #[derive(Debug)]

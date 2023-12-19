@@ -3,10 +3,7 @@ use std::{
   path::{Path, PathBuf},
 };
 
-use miette::{
-  Diagnostic, IntoDiagnostic, LabeledSpan, MietteDiagnostic, NamedSource, SourceCode, SourceSpan,
-};
-use rspack_util::swc::normalize_custom_filename;
+use miette::{Diagnostic, IntoDiagnostic, LabeledSpan, MietteDiagnostic, SourceCode, SourceSpan};
 use sugar_path::SugarPath;
 use swc_core::common::SourceFile;
 use thiserror::Error;
@@ -55,7 +52,7 @@ pub struct TraceableError {
   kind: DiagnosticKind,
   message: String,
   severity: miette::Severity,
-  src: NamedSource,
+  src: String,
   label: SourceSpan,
 }
 
@@ -98,8 +95,6 @@ impl TraceableError {
     title: String,
     message: String,
   ) -> Self {
-    let file_path = normalize_custom_filename(&source_file.name.to_string()).to_string();
-    let file_path = relative_to_pwd(PathBuf::from(file_path));
     let file_src = source_file.src.to_string();
     let start = if start >= file_src.len() { 0 } else { start };
     let end = if end >= file_src.len() { 0 } else { end };
@@ -108,26 +103,24 @@ impl TraceableError {
       kind: Default::default(),
       message,
       severity: Default::default(),
-      src: NamedSource::new(file_path.as_os_str().to_string_lossy(), file_src),
+      src: file_src,
       label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
     }
   }
 
   pub fn from_file(
-    file_path: String,
     file_src: String,
     start: usize,
     end: usize,
     title: String,
     message: String,
   ) -> Self {
-    let file_path = relative_to_pwd(PathBuf::from(file_path));
     Self {
       title,
       kind: Default::default(),
       message,
       severity: Default::default(),
-      src: NamedSource::new(file_path.as_os_str().to_string_lossy(), file_src),
+      src: file_src,
       label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
     }
   }
@@ -142,14 +135,7 @@ impl TraceableError {
     let file_src = std::fs::read_to_string(path).into_diagnostic()?;
     let start = if start >= file_src.len() { 0 } else { start };
     let end = if end >= file_src.len() { 0 } else { end };
-    Ok(Self::from_file(
-      path.to_string_lossy().into_owned(),
-      file_src,
-      start,
-      end,
-      title,
-      message,
-    ))
+    Ok(Self::from_file(file_src, start, end, title, message))
   }
 }
 
@@ -222,16 +208,6 @@ macro_rules! impl_diagnostic_transparent {
 }
 
 impl_diagnostic_transparent!(InternalError);
-
-/// # Panic
-///
-/// Panics if `current_dir` is not accessible.
-/// See [std::env::current_dir] for details.
-fn relative_to_pwd(file: impl AsRef<Path>) -> PathBuf {
-  file
-    .as_ref()
-    .relative(std::env::current_dir().expect("`current_dir` should exist"))
-}
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub enum DiagnosticKind {
