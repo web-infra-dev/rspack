@@ -55,7 +55,6 @@ export function describeCases(config: { name: string; casePath: string }) {
 										testRoot,
 										"webpack.config.js"
 									);
-									console.log(testRoot);
 									let config: any = {};
 									if (fs.existsSync(configFile)) {
 										config = require(configFile);
