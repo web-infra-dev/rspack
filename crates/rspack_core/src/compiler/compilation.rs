@@ -39,10 +39,10 @@ use crate::{
   BuildTask, BuildTaskResult, CacheCount, CacheOptions, Chunk, ChunkByUkey, ChunkContentHash,
   ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue,
   CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, ContentHashArgs, ContextDependency, DependencyId,
-  DependencyParents, DependencyType, Entry, EntryData, EntryOptions, Entrypoint, ErrorSpan,
-  FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger, Module, ModuleFactory,
-  ModuleGraph, ModuleIdentifier, ModuleProfile, PathData, ProcessAssetsArgs,
+  CompilationLogging, CompilerOptions, ContentHashArgs, ContextDependency, Dependency,
+  DependencyId, DependencyParents, DependencyType, Entry, EntryData, EntryOptions, Entrypoint,
+  ErrorSpan, FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger, Module,
+  ModuleFactory, ModuleGraph, ModuleIdentifier, ModuleProfile, PathData, ProcessAssetsArgs,
   ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
   Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeRequirementsInTreeArgs,
   RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult, WorkerTask,
@@ -1053,7 +1053,7 @@ impl Compilation {
     let current_profile = self.options.profile.then(Box::<ModuleProfile>::default);
     let dependency = dependencies[0].get_dependency(&self.module_graph).clone();
     queue.add_task(FactorizeTask {
-      module_factory: self.get_dependency_factory(dependency.dependency_type()),
+      module_factory: self.get_dependency_factory(&dependency),
       original_module_identifier,
       issuer,
       original_module_context,
@@ -1880,7 +1880,8 @@ impl Compilation {
       .insert(dependency_type, module_factory);
   }
 
-  pub fn get_dependency_factory(&self, dependency_type: &DependencyType) -> Arc<dyn ModuleFactory> {
+  pub fn get_dependency_factory(&self, dependency: &BoxDependency) -> Arc<dyn ModuleFactory> {
+    let dependency_type = dependency.dependency_type();
     self
       .dependency_factories
       .get(&match dependency_type {
@@ -1890,8 +1891,9 @@ impl Compilation {
       })
       .unwrap_or_else(|| {
         panic!(
-          "No module factory available for dependency type: {}",
-          dependency_type
+          "No module factory available for dependency type: {}, resourceIdentifier: {:?}",
+          dependency_type,
+          dependency.resource_identifier()
         )
       })
       .clone()

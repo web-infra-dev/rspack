@@ -130,7 +130,13 @@ module.exports = function () {
 					webpackRequire: __webpack_require__
 				}),
 			S: federation.bundlerRuntime.S,
-			installInitialConsumes: federation.bundlerRuntime.installInitialConsumes,
+			installInitialConsumes: initialConsumes =>
+				federation.bundlerRuntime.installInitialConsumes({
+					webpackRequire: __webpack_require__,
+					installedModules,
+					initialConsumes,
+					moduleToHandlerMapping
+				}),
 			initContainerEntry: (shareScope, initScope) =>
 				federation.bundlerRuntime.initContainerEntry({
 					shareScope,
@@ -172,5 +178,11 @@ module.exports = function () {
 			__webpack_require__.federation.runtime.init(
 				__webpack_require__.federation.initOptions
 			);
+
+		if (__webpack_require__.consumesLoadingData?.initialConsumes) {
+			__webpack_require__.federation.bundlerRuntime.installInitialConsumes(
+				__webpack_require__.consumesLoadingData.initialConsumes
+			);
+		}
 	}
 };

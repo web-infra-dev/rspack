@@ -28,7 +28,7 @@ impl Dependency for ConsumeSharedFallbackDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::ProvideModuleForShared
+    &DependencyType::ConsumeSharedFallback
   }
 
   fn category(&self) -> &DependencyCategory {
