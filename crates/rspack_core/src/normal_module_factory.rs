@@ -51,6 +51,10 @@ impl ModuleFactory for NormalModuleFactory {
 static MATCH_RESOURCE_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new("^([^!]+)!=!").expect("Failed to initialize `MATCH_RESOURCE_REGEX`"));
 
+static MATCH_WEBPACK_EXT_REGEX: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r#"\.webpack\[([^\]]+)\]$"#).expect("Failed to initialize `MATCH_WEBPACK_EXT_REGEX`")
+});
+
 impl NormalModuleFactory {
   pub fn new(
     options: Arc<CompilerOptions>,
@@ -173,6 +177,7 @@ impl NormalModuleFactory {
     let loader_resolver = self.get_loader_resolver();
 
     let mut match_resource_data: Option<ResourceData> = None;
+    let mut match_module_type = None;
     let mut inline_loaders: Vec<ModuleRuleUseLoader> = vec![];
     let mut no_pre_auto_loaders = false;
     let mut no_auto_loaders = false;
@@ -423,18 +428,32 @@ impl NormalModuleFactory {
       }
     };
 
-    //TODO: with contextScheme
-    let resolved_module_rules = self
-      .calculate_module_rules(
-        if let Some(match_resource_data) = match_resource_data.as_ref() {
-          match_resource_data
-        } else {
-          &resource_data
-        },
-        data.dependency.category(),
-        data.issuer.as_deref(),
-      )
-      .await?;
+    let resolved_module_rules = if let Some(match_resource_data) = &mut match_resource_data
+      && let Some(captures) = MATCH_WEBPACK_EXT_REGEX.captures(&match_resource_data.resource)
+      && let Some(module_type) = captures.get(1)
+    {
+      match_module_type = Some(module_type.as_str().into());
+      match_resource_data.resource = match_resource_data
+        .resource
+        .strip_suffix(&format!(".webpack[{}]", module_type.as_str()))
+        .expect("should success")
+        .to_owned();
+
+      vec![]
+    } else {
+      //TODO: with contextScheme
+      self
+        .calculate_module_rules(
+          if let Some(match_resource_data) = match_resource_data.as_ref() {
+            match_resource_data
+          } else {
+            &resource_data
+          },
+          data.dependency.category(),
+          data.issuer.as_deref(),
+        )
+        .await?
+    };
 
     let user_request = {
       let suffix = stringify_loaders_and_resource(&inline_loaders, &resource_data.resource);
@@ -595,7 +614,8 @@ impl NormalModuleFactory {
 
     let file_dependency = resource_data.resource_path.clone();
 
-    let resolved_module_type = self.calculate_module_type(&resolved_module_rules);
+    let resolved_module_type =
+      self.calculate_module_type(match_module_type, &resolved_module_rules);
     let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) =
       self.calculate_parser_and_generator_options(&resolved_module_rules);
@@ -748,8 +768,12 @@ impl NormalModuleFactory {
     (resolved_parser, resolved_generator)
   }
 
-  fn calculate_module_type(&self, module_rules: &[&ModuleRule]) -> ModuleType {
-    let mut resolved_module_type = ModuleType::Js;
+  fn calculate_module_type(
+    &self,
+    matched_module_type: Option<ModuleType>,
+    module_rules: &[&ModuleRule],
+  ) -> ModuleType {
+    let mut resolved_module_type = matched_module_type.unwrap_or(ModuleType::Js);
 
     module_rules.iter().for_each(|module_rule| {
       if let Some(module_type) = module_rule.r#type {
@@ -815,4 +839,14 @@ impl From<Span> for ErrorSpan {
       end: span.hi.0.saturating_sub(1),
     }
   }
+}
+
+#[test]
+fn match_webpack_ext() {
+  assert!(MATCH_WEBPACK_EXT_REGEX.is_match("foo.webpack[type/javascript]"));
+  let cap = MATCH_WEBPACK_EXT_REGEX
+    .captures("foo.webpack[type/javascript]")
+    .unwrap();
+
+  assert_eq!(cap.get(1).unwrap().as_str(), "type/javascript");
 }
