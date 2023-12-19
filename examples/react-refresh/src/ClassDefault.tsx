@@ -2,7 +2,7 @@ import { Component } from 'react'
 
 class ClassDefault extends Component {
   render() {
-    return <h1>Defef</h1>
+    return <h1>Default Export Class</h1>
   }
 }
 

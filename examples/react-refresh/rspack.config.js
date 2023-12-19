@@ -8,7 +8,6 @@ const config = {
 	experiments: {
 		rspackFuture: {
 			disableTransformByDefault: true,
-			newTreeshaking: true
 		}
 	},
 	mode: isProduction ? "production" : "development",
@@ -41,9 +40,7 @@ const config = {
 		]
 	},
 	optimization: {
-		providedExports: true,
 		minimize: false, // Disabling minification because it takes too long on CI
-		sideEffects: 'flag'
 	},
 	plugins: [
 		new rspack.HtmlRspackPlugin({ template: "./index.html" }),
