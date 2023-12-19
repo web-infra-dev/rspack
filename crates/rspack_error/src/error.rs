@@ -1,10 +1,6 @@
-use std::{
-  fmt,
-  path::{Path, PathBuf},
-};
+use std::{fmt, path::Path};
 
 use miette::{Diagnostic, IntoDiagnostic, LabeledSpan, MietteDiagnostic, SourceCode, SourceSpan};
-use sugar_path::SugarPath;
 use swc_core::common::SourceFile;
 use thiserror::Error;
 

@@ -557,7 +557,7 @@ fn make_traceable_error(title: &str, message: &str, span: &SourceSpan) -> Option
         .to_string_lossy()
         .to_string()
     })
-    .and_then(|path| std::fs::read_to_string(&path).ok().map(|source| source))
+    .and_then(|path| std::fs::read_to_string(path).ok())
     .map(|source| {
       let start = utf16::to_byte_idx(&source, span.start.offset);
       let end = utf16::to_byte_idx(&source, span.end.offset);
