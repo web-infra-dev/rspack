@@ -118,6 +118,10 @@ impl BasicEvaluatedExpression {
     matches!(self.ty, Ty::TypeArray)
   }
 
+  pub fn is_template_string(&self) -> bool {
+    matches!(self.ty, Ty::TemplateString)
+  }
+
   pub fn is_compile_time_value(&self) -> bool {
     matches!(
       self.ty,
@@ -253,11 +257,18 @@ impl BasicEvaluatedExpression {
   }
 
   pub fn string(&self) -> &String {
-    self.string.as_ref().expect("make sure string exists")
+    self.string.as_ref().expect("make sure string exist")
   }
 
   pub fn bool(&self) -> Boolean {
-    self.boolean.expect("make sure bool exists")
+    self.boolean.expect("make sure bool exist")
+  }
+
+  pub fn parts(&self) -> &Vec<BasicEvaluatedExpression> {
+    self
+      .parts
+      .as_ref()
+      .expect("make sure template string exist")
   }
 
   pub fn range(&self) -> (u32, u32) {

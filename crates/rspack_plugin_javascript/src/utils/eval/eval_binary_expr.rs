@@ -4,6 +4,64 @@ use swc_core::ecma::ast::{BinExpr, BinaryOp};
 use crate::utils::eval::BasicEvaluatedExpression;
 use crate::visitors::common_js_import_dependency_scanner::CommonJsImportDependencyScanner;
 
+fn handle_template_string_compare(
+  left: &BasicEvaluatedExpression,
+  right: &BasicEvaluatedExpression,
+  mut res: BasicEvaluatedExpression,
+  eql: bool,
+) -> Option<BasicEvaluatedExpression> {
+  let get_prefix = |parts: &Vec<BasicEvaluatedExpression>| {
+    let mut value = vec![];
+    for p in parts {
+      if let Some(s) = p.as_string() {
+        value.push(s);
+      } else {
+        break;
+      }
+    }
+    value.concat()
+  };
+  let get_suffix = |parts: &Vec<BasicEvaluatedExpression>| {
+    let mut value = vec![];
+    for p in parts.iter().rev() {
+      if let Some(s) = p.as_string() {
+        value.push(s);
+      } else {
+        break;
+      }
+    }
+    value.concat()
+  };
+
+  let prefix_res = {
+    let left_prefix = get_prefix(left.parts());
+    let right_prefix = get_prefix(right.parts());
+    let len_prefix = usize::min(left_prefix.len(), right_prefix.len());
+    len_prefix > 0 && left_prefix[0..len_prefix] != right_prefix[0..len_prefix]
+  };
+  if prefix_res {
+    res.set_bool(!eql);
+    res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
+    return Some(res);
+  }
+
+  let suffix_res = {
+    let left_suffix = get_suffix(left.parts());
+    let right_suffix = get_suffix(right.parts());
+    let len_suffix = usize::min(left_suffix.len(), right_suffix.len());
+    len_suffix > 0
+      && left_suffix[left_suffix.len() - len_suffix..]
+        != right_suffix[right_suffix.len() - len_suffix..]
+  };
+  if suffix_res {
+    res.set_bool(!eql);
+    res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
+    return Some(res);
+  }
+
+  None
+}
+
 /// `eql` is `true` for `===` and `false` for `!==`
 fn handle_strict_equality_comparison<'a>(
   eql: bool,
@@ -25,6 +83,8 @@ fn handle_strict_equality_comparison<'a>(
     res.set_bool(!eql);
     res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
     Some(res)
+  } else if left.is_template_string() && right.is_template_string() {
+    handle_template_string_compare(&left, &right, res, eql)
   } else {
     None
   }
@@ -50,6 +110,8 @@ fn handle_abstract_equality_comparison<'a>(
     res.set_bool(!eql);
     res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
     Some(res)
+  } else if left.is_template_string() && right.is_template_string() {
+    handle_template_string_compare(&left, &right, res, eql)
   } else {
     None
   }
