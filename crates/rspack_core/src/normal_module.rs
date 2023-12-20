@@ -128,26 +128,16 @@ pub struct NormalModule {
 pub enum NormalModuleSource {
   Unbuild,
   BuiltSucceed(BoxSource),
-  BuiltFailed(String),
+  BuiltFailed(Diagnostic),
 }
 
 impl NormalModuleSource {
-  pub fn new_built(source: BoxSource, diagnostics: &[Diagnostic]) -> Self {
-    if diagnostics.iter().any(|d| d.severity() == Severity::Error) {
-      NormalModuleSource::BuiltFailed(
-        diagnostics
-          .iter()
-          .filter(|d| d.severity() == Severity::Error)
-          .map(|d| {
-            format!(
-              "{message}\n{labels}",
-              message = d.message(),
-              labels = d.labels_string().unwrap_or_default()
-            )
-          })
-          .collect::<Vec<String>>()
-          .join("\n"),
-      )
+  pub fn new_built(source: BoxSource, mut diagnostics: Vec<Diagnostic>) -> Self {
+    diagnostics.retain(|d| d.severity() == Severity::Error);
+    // Use the first error as diagnostic
+    // See: https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModule.js#L878
+    if let Some(d) = diagnostics.into_iter().next() {
+      NormalModuleSource::BuiltFailed(d)
     } else {
       NormalModuleSource::BuiltSucceed(source)
     }
@@ -358,8 +348,9 @@ impl Module for NormalModule {
     let (loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
       Err(e) => {
-        self.source = NormalModuleSource::BuiltFailed(e.to_string());
-        self.add_diagnostic(e.into());
+        let d = Diagnostic::from(e);
+        self.source = NormalModuleSource::BuiltFailed(d.clone());
+        self.add_diagnostic(d);
         let mut hasher = RspackHash::from(&build_context.compiler_options.output);
         self.update_hash(&mut hasher);
         build_meta.hash(&mut hasher);
@@ -412,7 +403,7 @@ impl Module for NormalModule {
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
     self.original_source = Some(source.clone());
-    self.source = NormalModuleSource::new_built(source, &self.clone_diagnostics());
+    self.source = NormalModuleSource::new_built(source, self.clone_diagnostics());
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
 
@@ -471,9 +462,10 @@ impl Module for NormalModule {
       // If the module build failed and the module is able to emit JavaScript source,
       // we should emit an error message to the runtime, otherwise we do nothing.
       if self.source_types().contains(&SourceType::JavaScript) {
+        let error = error_message.render_report(compilation.options.stats.colors)?;
         code_generation_result.add(
           SourceType::JavaScript,
-          RawSource::from(format!("throw new Error({});\n", json!(error_message))).boxed(),
+          RawSource::from(format!("throw new Error({});\n", json!(error))).boxed(),
         );
       }
       code_generation_result.set_hash(

@@ -1,6 +1,6 @@
 use std::{fmt, ops::Deref, sync::Arc};
 
-use miette::MietteDiagnostic;
+use miette::{GraphicalReportHandler, GraphicalTheme, IntoDiagnostic, MietteDiagnostic};
 
 use crate::Error;
 
@@ -63,20 +63,19 @@ impl Deref for Diagnostic {
 }
 
 impl Diagnostic {
-  pub fn message(&self) -> String {
-    self.0.to_string()
+  pub fn render_report(&self, colored: bool) -> crate::Result<String> {
+    let h = GraphicalReportHandler::new().with_theme(if colored {
+      GraphicalTheme::unicode()
+    } else {
+      GraphicalTheme::unicode_nocolor()
+    });
+    let mut buf = String::new();
+    h.render_report(&mut buf, self.as_ref()).into_diagnostic()?;
+    Ok(buf)
   }
 
-  pub fn labels_string(&self) -> Option<String> {
-    self
-      .0
-      .labels()
-      .map(|l| {
-        l.into_iter()
-          .filter_map(|l| l.label().map(ToString::to_string))
-          .collect::<Vec<_>>()
-      })
-      .map(|s| s.join("\n"))
+  pub fn message(&self) -> String {
+    self.0.to_string()
   }
 
   pub fn severity(&self) -> Severity {
