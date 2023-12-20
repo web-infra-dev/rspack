@@ -14,7 +14,7 @@ use crate::parser_plugin::{
   BoxJavascriptParserPlugin, JavaScriptParserPluginDrive, JavascriptParserPlugin,
 };
 use crate::utils::eval::{self, BasicEvaluatedExpression};
-use crate::utils::{expression_logic_operator, Continue};
+use crate::utils::{expression_logic_operator, statement_if};
 
 struct CommonJsImportsParserPlugin;
 
@@ -154,6 +154,15 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
 
     Some((commonjs_require_deps, require_header_deps))
   }
+
+  pub fn walk_left_right_expression(&mut self, expr: &BinExpr) {
+    self.walk_expression(&expr.left);
+    self.walk_expression(&expr.right);
+  }
+
+  pub fn walk_expression(&mut self, expr: &Expr) {
+    expr.visit_children_with(self);
+  }
 }
 
 impl Visit for CommonJsImportDependencyScanner<'_> {
@@ -253,8 +262,21 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
 
   fn visit_if_stmt(&mut self, if_stmt: &IfStmt) {
     self.replace_require_resolve(&if_stmt.test, "true");
+
     self.in_if = true;
-    if_stmt.visit_children_with(self);
+    if let Some(result) = statement_if(self, if_stmt) {
+      if result {
+        if_stmt.cons.visit_children_with(self);
+      } else if let Some(alt) = &if_stmt.alt {
+        alt.visit_children_with(self)
+      }
+    } else {
+      self.walk_expression(&if_stmt.test);
+      if_stmt.cons.visit_children_with(self);
+      if let Some(alt) = &if_stmt.alt {
+        alt.visit_children_with(self)
+      }
+    }
     self.in_if = false;
   }
 
@@ -263,18 +285,12 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
     self.replace_require_resolve(&bin_expr.left, value);
     self.replace_require_resolve(&bin_expr.right, value);
 
-    let (deps, c) = expression_logic_operator(self, bin_expr);
-    if c.contains(Continue::LEFT) {
-      bin_expr.left.visit_children_with(self);
-    }
-    if c.contains(Continue::RIGHT) {
-      bin_expr.right.visit_children_with(self);
-    }
-    let Some(deps) = deps else {
-      return;
-    };
-    for dep in deps {
-      self.presentational_dependencies.push(Box::new(dep))
+    if let Some(keep_right) = expression_logic_operator(self, bin_expr) {
+      if keep_right {
+        self.walk_expression(&bin_expr.right);
+      }
+    } else {
+      self.walk_left_right_expression(bin_expr);
     }
   }
 }
