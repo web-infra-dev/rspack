@@ -832,6 +832,16 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         continue;
       }
       let dep_id = dep.id();
+      // Dependency created but no module is available.
+      // This could happen module factorization is failed, but `options.bail` set to `false`
+      if self
+        .compilation
+        .module_graph
+        .module_identifier_by_dependency_id(dep_id)
+        .is_none()
+      {
+        continue;
+      }
       let block_id = if let Some(block) = self.compilation.module_graph.get_parent_block(dep_id) {
         (*block).into()
       } else {

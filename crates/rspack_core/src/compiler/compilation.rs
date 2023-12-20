@@ -671,65 +671,76 @@ impl Compilation {
                 is_entry,
                 original_module_identifier,
                 factory_result,
-                mut module_graph_module,
+                module_graph_module,
                 diagnostics,
                 dependencies,
                 current_profile,
                 exports_info_related,
-                from_cache,
               } = task_result;
 
-              if let Some(counter) = &mut factorize_cache_counter {
-                if factory_result.from_cache {
-                  counter.hit();
-                } else {
-                  counter.miss();
-                }
-              }
-
-              let module_identifier = factory_result.module.identifier();
-
-              tracing::trace!("Module created: {}", &module_identifier);
               if !diagnostics.is_empty() {
                 make_failed_dependencies.insert((dependencies[0], original_module_identifier));
               }
 
-              module_graph_module.set_issuer_if_unset(original_module_identifier);
-              module_graph_module.factory_meta = Some(factory_result.factory_meta);
               // TODO: should use `dep.optional` to test whether these diagnostics should be warnings or errors.
               // https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/Compilation.js#L1796
               self.push_batch_diagnostic(diagnostics);
 
-              self
-                .file_dependencies
-                .extend(factory_result.file_dependencies);
-              self
-                .context_dependencies
-                .extend(factory_result.context_dependencies);
-              self
-                .missing_dependencies
-                .extend(factory_result.missing_dependencies);
-              self.module_graph.exports_info_map.insert(
-                exports_info_related.exports_info.id,
-                exports_info_related.exports_info,
-              );
-              self.module_graph.export_info_map.insert(
-                exports_info_related.side_effects_info.id,
-                exports_info_related.side_effects_info,
-              );
-              self.module_graph.export_info_map.insert(
-                exports_info_related.other_exports_info.id,
-                exports_info_related.other_exports_info,
-              );
+              if let Some(factory_result) = factory_result
+                && let Some(mut module_graph_module) = module_graph_module
+              {
+                if let Some(counter) = &mut factorize_cache_counter {
+                  if factory_result.from_cache {
+                    counter.hit();
+                  } else {
+                    counter.miss();
+                  }
+                }
 
-              add_queue.add_task(AddTask {
-                original_module_identifier,
-                module: factory_result.module,
-                module_graph_module,
-                dependencies,
-                is_entry,
-                current_profile,
-              });
+                let module_identifier = factory_result.module.identifier();
+
+                tracing::trace!("Module created: {}", &module_identifier);
+
+                module_graph_module.set_issuer_if_unset(original_module_identifier);
+                module_graph_module.factory_meta = Some(factory_result.factory_meta);
+
+                self
+                  .file_dependencies
+                  .extend(factory_result.file_dependencies);
+                self
+                  .context_dependencies
+                  .extend(factory_result.context_dependencies);
+                self
+                  .missing_dependencies
+                  .extend(factory_result.missing_dependencies);
+                self.module_graph.exports_info_map.insert(
+                  exports_info_related.exports_info.id,
+                  exports_info_related.exports_info,
+                );
+                self.module_graph.export_info_map.insert(
+                  exports_info_related.side_effects_info.id,
+                  exports_info_related.side_effects_info,
+                );
+                self.module_graph.export_info_map.insert(
+                  exports_info_related.other_exports_info.id,
+                  exports_info_related.other_exports_info,
+                );
+
+                add_queue.add_task(AddTask {
+                  original_module_identifier,
+                  module: factory_result.module,
+                  module_graph_module,
+                  dependencies,
+                  is_entry,
+                  current_profile,
+                });
+              } else {
+                let dep = self
+                  .module_graph
+                  .dependency_by_id(&dependencies[0])
+                  .expect("dep should available");
+                tracing::trace!("Module created with failure, but without bailout: {dep:?}");
+              }
             }
             Ok(TaskResult::Add(box task_result)) => match task_result {
               AddTaskResult::ModuleAdded {

@@ -983,6 +983,7 @@ export interface RawOptions {
   experiments: RawExperiments
   node?: RawNodeOption
   profile: boolean
+  bail: boolean
   builtins: RawBuiltins
 }
 

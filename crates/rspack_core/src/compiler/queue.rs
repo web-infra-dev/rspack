@@ -51,13 +51,32 @@ pub struct ExportsInfoRelated {
 #[derive(Debug)]
 pub struct FactorizeTaskResult {
   pub original_module_identifier: Option<ModuleIdentifier>,
-  pub factory_result: ModuleFactoryResult,
-  pub module_graph_module: Box<ModuleGraphModule>,
+  /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
+  pub factory_result: Option<ModuleFactoryResult>,
+  /// Module graph module will be available if [crate::ModuleFactory::create] returns `Ok`.
+  pub module_graph_module: Option<Box<ModuleGraphModule>>,
   pub dependencies: Vec<DependencyId>,
   pub diagnostics: Vec<Diagnostic>,
   pub is_entry: bool,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub exports_info_related: ExportsInfoRelated,
+}
+
+impl FactorizeTaskResult {
+  fn with_factory_result(mut self, factory_result: Option<ModuleFactoryResult>) -> Self {
+    self.factory_result = factory_result;
+    self
+  }
+
+  fn with_module_graph_module(mut self, module_graph_module: Option<ModuleGraphModule>) -> Self {
+    self.module_graph_module = module_graph_module.map(Box::new);
+    self
+  }
+
+  fn with_diagnostics(mut self, diagnostics: Vec<Diagnostic>) -> Self {
+    self.diagnostics = diagnostics;
+    self
+  }
 }
 
 #[async_trait::async_trait]
@@ -77,7 +96,29 @@ impl WorkerTask for FactorizeTask {
     }
     .clone();
 
-    let (result, diagnostics) = self
+    let other_exports_info = ExportInfo::new(None, UsageState::Unknown, None);
+    let side_effects_only_info = ExportInfo::new(
+      Some("*side effects only*".into()),
+      UsageState::Unknown,
+      None,
+    );
+    let exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
+    let factorize_task_result = FactorizeTaskResult {
+      is_entry: self.is_entry,
+      original_module_identifier: self.original_module_identifier,
+      dependencies: self.dependencies,
+      current_profile: self.current_profile,
+      exports_info_related: ExportsInfoRelated {
+        exports_info,
+        other_exports_info,
+        side_effects_info: side_effects_only_info,
+      },
+      diagnostics: vec![],
+      module_graph_module: None,
+      factory_result: None,
+    };
+
+    match self
       .module_factory
       .create(ModuleFactoryCreateData {
         resolve_options: self.resolve_options,
@@ -86,40 +127,43 @@ impl WorkerTask for FactorizeTask {
         issuer: self.issuer,
         issuer_identifier: self.original_module_identifier,
       })
-      .await?
-      .split_into_parts();
+      .await
+    {
+      Ok(res) => {
+        let (result, diagnostics) = res.split_into_parts();
 
-    let other_exports_info = ExportInfo::new(None, UsageState::Unknown, None);
-    let side_effects_only_info = ExportInfo::new(
-      Some("*side effects only*".into()),
-      UsageState::Unknown,
-      None,
-    );
-    let exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
-    let mgm = ModuleGraphModule::new(
-      result.module.identifier(),
-      *result.module.module_type(),
-      exports_info.id,
-    );
+        if let Some(current_profile) = &factorize_task_result.current_profile {
+          current_profile.mark_factory_end();
+        }
 
-    if let Some(current_profile) = &self.current_profile {
-      current_profile.mark_factory_end();
+        let mgm = ModuleGraphModule::new(
+          result.module.identifier(),
+          *result.module.module_type(),
+          factorize_task_result.exports_info_related.exports_info.id,
+        );
+
+        Ok(TaskResult::Factorize(Box::new(
+          factorize_task_result
+            .with_factory_result(Some(result))
+            .with_module_graph_module(Some(mgm))
+            .with_diagnostics(diagnostics),
+        )))
+      }
+      Err(e) => {
+        if let Some(current_profile) = &factorize_task_result.current_profile {
+          current_profile.mark_factory_end();
+        }
+        // Bail out if `options.bail` set to `true`,
+        // which means 'Fail out on the first error instead of tolerating it.'
+        if self.options.bail {
+          return Err(e);
+        }
+        // Continue bundling if `options.bail` set to `false`.
+        Ok(TaskResult::Factorize(Box::new(
+          factorize_task_result.with_diagnostics(vec![e.into()]),
+        )))
+      }
     }
-
-    Ok(TaskResult::Factorize(Box::new(FactorizeTaskResult {
-      is_entry: self.is_entry,
-      original_module_identifier: self.original_module_identifier,
-      factory_result: result,
-      module_graph_module: Box::new(mgm),
-      dependencies: self.dependencies,
-      diagnostics,
-      current_profile: self.current_profile,
-      exports_info_related: ExportsInfoRelated {
-        exports_info,
-        other_exports_info,
-        side_effects_info: side_effects_only_info,
-      },
-    })))
   }
 }
 

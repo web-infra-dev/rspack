@@ -118,7 +118,10 @@ export const getRawOptions = (
 		},
 		experiments,
 		node: getRawNode(options.node),
+		// SAFETY: applied default value in `applyRspackOptionsDefaults`.
 		profile: options.profile!,
+		// SAFETY: applied default value in `applyRspackOptionsDefaults`.
+		bail: options.bail!,
 		// TODO: remove this
 		builtins: options.builtins as any
 	};

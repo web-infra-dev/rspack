@@ -139,8 +139,12 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
 
     let reference_mgm = compilation
       .module_graph
-      .module_graph_module_by_dependency_id(&self.id)
-      .expect("should have ref module");
+      .module_graph_module_by_dependency_id(&self.id);
+
+    // TODO: export_expr should return missingModule
+    let Some(reference_mgm) = reference_mgm else {
+      return;
+    };
 
     let is_new_treeshaking = compilation.options.is_new_tree_shaking();
     if is_new_treeshaking {

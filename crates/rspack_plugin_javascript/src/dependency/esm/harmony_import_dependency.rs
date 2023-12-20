@@ -70,10 +70,10 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
     runtime,
     ..
   } = code_generatable_context;
+  // Only available when module factorization is successful.
   let ref_mgm = compilation
     .module_graph
-    .module_graph_module_by_dependency_id(module_dependency.id())
-    .expect("should have ref module");
+    .module_graph_module_by_dependency_id(module_dependency.id());
   let is_target_active = if compilation.options.is_new_tree_shaking() {
     let connection = compilation
       .module_graph
@@ -83,15 +83,19 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
     } else {
       true
     }
-  } else {
+  } else if let Some(ref_mgm) = ref_mgm {
     compilation
       .include_module_ids
       .contains(&ref_mgm.module_identifier)
+  } else {
+    true
   };
   if !is_target_active {
     return;
   }
-  if module_dependency.is_export_all() == Some(false) {
+  if let Some(ref_mgm) = ref_mgm
+    && module_dependency.is_export_all() == Some(false)
+  {
     let specifiers = specifiers
       .iter()
       .filter(|specifier| {
@@ -168,15 +172,16 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   } = code_generatable_context;
   let ref_module = compilation
     .module_graph
-    .module_identifier_by_dependency_id(module_dependency.id())
-    .expect("should have dependency referenced module");
-  let import_var = get_import_var(&compilation.module_graph, *module_dependency.id());
+    .module_identifier_by_dependency_id(module_dependency.id());
   //
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyImportDependency.js#L282-L285
-  let module_key = ref_module;
+  let module_key = ref_module
+    .map(|i| i.as_str())
+    .unwrap_or(module_dependency.request());
   let key = format!("harmony import {}", module_key);
-  let is_async_module = matches!(compilation.module_graph.is_async(ref_module), Some(true));
+  let is_async_module = matches!(ref_module, Some(ref_module) if compilation.module_graph.is_async(ref_module) == Some(true));
   if is_async_module {
+    let import_var = get_import_var(&compilation.module_graph, *module_dependency.id());
     init_fragments.push(Box::new(NormalInitFragment::new(
       content.0,
       InitFragmentStage::StageHarmonyImports,
@@ -203,7 +208,9 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   }
 
   let is_new_tree_shaking = compilation.options.is_new_tree_shaking();
-  if module_dependency.is_export_all() == Some(true) && !is_new_tree_shaking {
+  if ref_module.is_some() && module_dependency.is_export_all() == Some(true) && !is_new_tree_shaking
+  {
+    let import_var = get_import_var(&compilation.module_graph, *module_dependency.id());
     runtime_requirements.insert(RuntimeGlobals::EXPORT_STAR);
     let exports_argument = compilation
       .module_graph
