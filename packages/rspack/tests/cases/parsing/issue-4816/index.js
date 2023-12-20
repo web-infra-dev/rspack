@@ -51,9 +51,56 @@ it("should build success for logic op", () => {
 	expect(`${value95++}hello` != `${value95++}world` || require("fail")).toBe(
 		true
 	);
-	// NEXT:
-	// if (`${value95++}hello` === `${value95++}world`) {
-	// 	require("fail");
-	// }
-	// expect(value95).toBe(5)
+	if (`${value95++}hello` === `${value95++}world`) {
+		require("fail");
+	}
+	expect(value95).toBe(5);
 });
+
+it("should keep the variable in dead branch", () => {
+	if (/b/ === /b/) {
+		function f() {}
+		const g = function e() {};
+		var obj = { y: 3, z: 4 };
+		if (true) {
+			let a = 1;
+			var x = 2;
+			var { y, z } = obj;
+		}
+	}
+	/// FIXME: strict mode should be `expect(() => f).toThrowError();`
+	expect(f).toBeUndefined();
+	expect(x).toBeUndefined();
+	expect(y).toBeUndefined();
+	expect(z).toBeUndefined();
+	expect(obj).toBeUndefined();
+	expect(() => e0).toThrowError();
+	expect(() => e).toThrowError();
+	expect(() => e1).toThrowError();
+	expect(() => e2).toThrowError();
+	expect(() => g).toThrowError();
+	expect(() => a).toThrowError();
+	expect(() => a1).toThrowError();
+	expect(() => a2).toThrowError();
+	expect(() => a3).toThrowError();
+});
+
+it("shouldn't evaluate expression", function () {
+	const value = "";
+	const x = value + "" ? "fail" : "ok";
+	expect(x).toBe("ok");
+});
+
+it("should short-circuit evaluating", function () {
+	let expr;
+	const a = false && expr ? require("fail") : require("./a");
+	const b = true || expr ? require("./a") : require("fail");
+	expect(a).toBe("a");
+	expect(b).toBe("a");
+});
+
+// NEXT:
+// it("should evaluate __dirname and __resourceQuery with replace and substr", function () {
+// 	const result = require("./resourceQuery/index?" + __dirname);
+// 	expect(result).toEqual("?resourceQuery");
+// });
