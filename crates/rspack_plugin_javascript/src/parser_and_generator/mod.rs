@@ -22,6 +22,7 @@ use crate::utils::syntax_by_module_type;
 use crate::visitors::ScanDependenciesResult;
 use crate::visitors::{run_before_pass, scan_dependencies, swc_visitor::resolver};
 use crate::{SideEffectsFlagPluginVisitor, SyntaxContextInfo};
+
 #[derive(Debug)]
 pub struct JavaScriptParserAndGenerator;
 

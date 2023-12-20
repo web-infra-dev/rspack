@@ -2,7 +2,7 @@ use rspack_core::{context_reg_exp, ContextOptions, DependencyCategory};
 use rspack_core::{BoxDependency, ConstDependency, ContextMode, ContextNameSpaceObject};
 use rspack_core::{DependencyTemplate, SpanExt};
 use swc_core::common::{Spanned, SyntaxContext};
-use swc_core::ecma::ast::{BinExpr, CallExpr, Callee, Expr, IfStmt};
+use swc_core::ecma::ast::{BinExpr, BlockStmt, CallExpr, Callee, Expr, IfStmt};
 use swc_core::ecma::ast::{Lit, TryStmt, UnaryExpr, UnaryOp};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
@@ -40,7 +40,35 @@ pub struct CommonJsImportDependencyScanner<'a> {
   pub(crate) unresolved_ctxt: SyntaxContext,
   pub(crate) in_try: bool,
   pub(crate) in_if: bool,
+  pub(crate) is_strict: bool,
   pub(crate) plugin_drive: JavaScriptParserPluginDrive,
+}
+
+#[derive(Debug)]
+enum Mode {
+  Strict,
+  Nothing,
+}
+
+fn detect_mode(stmt: &BlockStmt) -> Mode {
+  let Some(Lit::Str(str)) = stmt
+    .stmts
+    .first()
+    .and_then(|stmt| stmt.as_expr())
+    .and_then(|expr_stmt| expr_stmt.expr.as_lit())
+  else {
+    return Mode::Nothing;
+  };
+
+  if str.value.as_str() == "use strict" {
+    Mode::Strict
+  } else {
+    Mode::Nothing
+  }
+}
+
+fn is_strict(stmt: &BlockStmt) -> bool {
+  matches!(detect_mode(stmt), Mode::Strict)
 }
 
 impl<'a> CommonJsImportDependencyScanner<'a> {
@@ -57,6 +85,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
       unresolved_ctxt,
       in_try: false,
       in_if: false,
+      is_strict: false,
       plugin_drive,
     }
   }
@@ -292,6 +321,14 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
     } else {
       self.walk_left_right_expression(bin_expr);
     }
+  }
+
+  fn visit_block_stmt(&mut self, n: &BlockStmt) {
+    let old_in_strict = self.is_strict;
+
+    self.is_strict = is_strict(n);
+    n.visit_children_with(self);
+    self.is_strict = old_in_strict;
   }
 }
 
