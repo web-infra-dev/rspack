@@ -23,7 +23,7 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, JavascriptParserUrl, ModuleIdentifier, ModuleType, ResourceData,
 };
-use rspack_error::{BatchErrors, Diagnostic};
+use rspack_error::miette::Diagnostic;
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::common::Span;
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
@@ -53,7 +53,7 @@ pub struct ScanDependenciesResult {
   // TODO: rename this name
   pub rewrite_usage_span: HashMap<Span, ExtraSpanInfo>,
   pub import_map: ImportMap,
-  pub warning_diagnostics: Vec<Diagnostic>,
+  pub warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -75,8 +75,8 @@ pub fn scan_dependencies(
   build_info: &mut BuildInfo,
   build_meta: &mut BuildMeta,
   module_identifier: ModuleIdentifier,
-) -> Result<ScanDependenciesResult, BatchErrors> {
-  let mut warning_diagnostics: Vec<Diagnostic> = vec![];
+) -> Result<ScanDependenciesResult, Vec<Box<dyn Diagnostic + Send + Sync>>> {
+  let mut warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
   let mut errors = vec![];
   let mut dependencies = vec![];
   let mut blocks = vec![];
@@ -242,6 +242,6 @@ pub fn scan_dependencies(
       warning_diagnostics,
     })
   } else {
-    Err(rspack_error::BatchErrors(errors))
+    Err(errors)
   }
 }

@@ -2,8 +2,8 @@
 source: crates/rspack_error/tests/fixtures.rs
 expression: sass-warnings
 ---
-  ⚠ Warning[scss]: Sass Warning
-   ╭─[tests/fixtures/sass-warnings/index.scss:1:1]
+  ⚠ Sass Warning
+   ╭─[1:1]
  1 │ .c {
  2 │   width: (12px/4px);
    ·           ────┬───
