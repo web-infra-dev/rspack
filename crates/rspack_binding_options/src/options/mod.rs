@@ -95,7 +95,6 @@ impl RawOptions {
           .then(IncrementalRebuildMakeState::default),
         emit_asset: self.experiments.incremental_rebuild.emit_asset,
       },
-      async_web_assembly: self.experiments.async_web_assembly,
       new_split_chunks: self.experiments.new_split_chunks,
       top_level_await: self.experiments.top_level_await,
       rspack_future: self.experiments.rspack_future.into(),
@@ -109,9 +108,6 @@ impl RawOptions {
     let node = self.node.map(|n| n.into());
     let dev_server: DevServerOptions = self.dev_server.into();
 
-    plugins.push(rspack_plugin_schemes::DataUriPlugin.boxed());
-    plugins.push(rspack_plugin_schemes::FileUriPlugin.boxed());
-
     plugins.push(
       rspack_plugin_asset::AssetPlugin::new(rspack_plugin_asset::AssetConfig {
         parse_options: module
@@ -122,16 +118,6 @@ impl RawOptions {
       })
       .boxed(),
     );
-    plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
-    plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
-    if experiments.lazy_compilation {
-      plugins.push(rspack_plugin_runtime::LazyCompilationPlugin {}.boxed());
-    }
-    if experiments.async_web_assembly {
-      plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
-    }
-    plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
-    plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin {}.boxed());
 
     if devtool.source_map() {
       plugins.push(

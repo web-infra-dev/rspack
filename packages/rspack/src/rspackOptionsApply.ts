@@ -45,7 +45,14 @@ import {
 	RealContentHashPlugin,
 	RemoveEmptyChunksPlugin,
 	EnsureChunkConditionsPlugin,
-	WarnCaseSensitiveModulesPlugin
+	WarnCaseSensitiveModulesPlugin,
+	DataUriPlugin,
+	FileUriPlugin,
+	JavascriptModulesPlugin,
+	JsonModulesPlugin,
+	AsyncWebAssemblyModulesPlugin,
+	RuntimePlugin,
+	InferAsyncModulesPlugin
 } from "./builtin-plugin";
 import { WorkerPlugin } from "./builtin-plugin/WorkerPlugin";
 import { deprecatedWarn, termlink } from "./util";
@@ -167,7 +174,77 @@ export function optionsApply_compat(
 		if (options.devServer?.hot) {
 			new compiler.webpack.HotModuleReplacementPlugin().apply(compiler);
 		}
+	}
+}
 
+export class RspackOptionsApply {
+	constructor() {}
+	process(options: RspackOptionsNormalized, compiler: Compiler) {
+		assert(
+			options.output.path,
+			"options.output.path should have value after `applyRspackOptionsDefaults`"
+		);
+		compiler.outputPath = options.output.path;
+		compiler.name = options.name;
+		compiler.outputFileSystem = fs;
+
+		const runtimeChunk = options.optimization
+			.runtimeChunk as OptimizationRuntimeChunkNormalized;
+		if (runtimeChunk) {
+			Object.entries(options.entry).forEach(([entryName, value]) => {
+				if (value.runtime === undefined) {
+					value.runtime = runtimeChunk.name({ name: entryName });
+				}
+			});
+		}
+
+		new JavascriptModulesPlugin().apply(compiler);
+		new JsonModulesPlugin().apply(compiler);
+		// new JsonModulesPlugin().apply(compiler);
+		if (options.experiments.asyncWebAssembly) {
+			new AsyncWebAssemblyModulesPlugin().apply(compiler);
+		}
+
+		if (options.experiments.rspackFuture!.disableApplyOptionsLazily) {
+			optionsApply_compat(compiler, options);
+		}
+
+		assert(
+			options.context,
+			"options.context should have value after `applyRspackOptionsDefaults`"
+		);
+		compiler.hooks.entryOption.call(options.context, options.entry);
+
+		new RuntimePlugin().apply(compiler);
+
+		new InferAsyncModulesPlugin().apply(compiler);
+
+		new DataUriPlugin().apply(compiler);
+		new FileUriPlugin().apply(compiler);
+
+		new EnsureChunkConditionsPlugin().apply(compiler);
+		if (options.optimization.mergeDuplicateChunks) {
+			new MergeDuplicateChunksPlugin().apply(compiler);
+		}
+
+		if (options.builtins.devFriendlySplitChunks) {
+			options.optimization.splitChunks = undefined;
+		}
+
+		if (
+			options.optimization.splitChunks &&
+			options.experiments.newSplitChunks === false
+		) {
+			new OldSplitChunksPlugin(options.optimization.splitChunks).apply(
+				compiler
+			);
+		} else if (options.optimization.splitChunks) {
+			new SplitChunksPlugin(options.optimization.splitChunks).apply(compiler);
+		}
+		// TODO: inconsistent: the plugin need to be placed after SplitChunksPlugin
+		if (options.optimization.removeEmptyChunks) {
+			new RemoveEmptyChunksPlugin().apply(compiler);
+		}
 		if (options.optimization.realContentHash) {
 			new RealContentHashPlugin().apply(compiler);
 		}
@@ -201,40 +278,11 @@ export function optionsApply_compat(
 					throw new Error(`chunkIds: ${chunkIds} is not implemented`);
 			}
 		}
-	}
-}
-
-export class RspackOptionsApply {
-	constructor() {}
-	process(options: RspackOptionsNormalized, compiler: Compiler) {
-		assert(
-			options.output.path,
-			"options.output.path should have value after `applyRspackOptionsDefaults`"
-		);
-		compiler.outputPath = options.output.path;
-		compiler.name = options.name;
-		compiler.outputFileSystem = fs;
-
-		const runtimeChunk = options.optimization
-			.runtimeChunk as OptimizationRuntimeChunkNormalized;
-		if (runtimeChunk) {
-			Object.entries(options.entry).forEach(([entryName, value]) => {
-				if (value.runtime === undefined) {
-					value.runtime = runtimeChunk.name({ name: entryName });
-				}
-			});
+		if (options.optimization.nodeEnv) {
+			new DefinePlugin({
+				"process.env.NODE_ENV": JSON.stringify(options.optimization.nodeEnv)
+			}).apply(compiler);
 		}
-
-		if (options.experiments.rspackFuture!.disableApplyOptionsLazily) {
-			optionsApply_compat(compiler, options);
-		}
-
-		assert(
-			options.context,
-			"options.context should have value after `applyRspackOptionsDefaults`"
-		);
-		compiler.hooks.entryOption.call(options.context, options.entry);
-
 		const { minimize, minimizer } = options.optimization;
 		if (minimize && minimizer) {
 			for (const item of minimizer) {
@@ -244,35 +292,6 @@ export class RspackOptionsApply {
 					item.apply(compiler);
 				}
 			}
-		}
-
-		new EnsureChunkConditionsPlugin().apply(compiler);
-		if (options.optimization.mergeDuplicateChunks) {
-			new MergeDuplicateChunksPlugin().apply(compiler);
-		}
-
-		if (options.builtins.devFriendlySplitChunks) {
-			options.optimization.splitChunks = undefined;
-		}
-
-		if (
-			options.optimization.splitChunks &&
-			options.experiments.newSplitChunks === false
-		) {
-			new OldSplitChunksPlugin(options.optimization.splitChunks).apply(
-				compiler
-			);
-		} else if (options.optimization.splitChunks) {
-			new SplitChunksPlugin(options.optimization.splitChunks).apply(compiler);
-		}
-		// TODO: inconsistent: the plugin need to be placed after SplitChunksPlugin
-		if (options.optimization.removeEmptyChunks) {
-			new RemoveEmptyChunksPlugin().apply(compiler);
-		}
-		if (options.optimization.nodeEnv) {
-			new DefinePlugin({
-				"process.env.NODE_ENV": JSON.stringify(options.optimization.nodeEnv)
-			}).apply(compiler);
 		}
 
 		new WarnCaseSensitiveModulesPlugin().apply(compiler);

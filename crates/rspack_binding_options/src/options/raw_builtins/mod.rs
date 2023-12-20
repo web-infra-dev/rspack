@@ -28,6 +28,8 @@ use rspack_plugin_externals::{
 };
 use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
+use rspack_plugin_javascript::{InferAsyncModulesPlugin, JsPlugin};
+use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
 use rspack_plugin_limit_chunk_count::LimitChunkCountPlugin;
 use rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin;
@@ -40,12 +42,13 @@ use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
 use rspack_plugin_runtime::{
   enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, ChunkPrefetchPreloadPlugin,
-  CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin,
+  CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin,
 };
+use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin};
 use rspack_plugin_swc_css_minimizer::SwcCssMinimizerRspackPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 use rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin;
-use rspack_plugin_wasm::enable_wasm_loading_plugin;
+use rspack_plugin_wasm::{enable_wasm_loading_plugin, AsyncWasmPlugin};
 use rspack_plugin_web_worker_template::web_worker_template_plugin;
 use rspack_plugin_worker::WorkerPlugin;
 
@@ -102,6 +105,13 @@ pub enum BuiltinPluginName {
   RemoveEmptyChunksPlugin,
   EnsureChunkConditionsPlugin,
   WarnCaseSensitiveModulesPlugin,
+  DataUriPlugin,
+  FileUriPlugin,
+  RuntimePlugin,
+  JsonModulesPlugin,
+  InferAsyncModulesPlugin,
+  JavascriptModulesPlugin,
+  AsyncWebAssemblyModulesPlugin,
 
   // rspack specific plugins
   HttpExternalsRspackPlugin,
@@ -270,6 +280,15 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::WarnCaseSensitiveModulesPlugin => {
         plugins.push(WarnCaseSensitiveModulesPlugin.boxed())
+      }
+      BuiltinPluginName::DataUriPlugin => plugins.push(DataUriPlugin.boxed()),
+      BuiltinPluginName::FileUriPlugin => plugins.push(FileUriPlugin.boxed()),
+      BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin.boxed()),
+      BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
+      BuiltinPluginName::InferAsyncModulesPlugin => plugins.push(InferAsyncModulesPlugin.boxed()),
+      BuiltinPluginName::JavascriptModulesPlugin => plugins.push(JsPlugin::new().boxed()),
+      BuiltinPluginName::AsyncWebAssemblyModulesPlugin => {
+        plugins.push(AsyncWasmPlugin::new().boxed())
       }
 
       // rspack specific plugins

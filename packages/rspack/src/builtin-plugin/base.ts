@@ -42,7 +42,14 @@ export enum BuiltinPluginName {
 	RealContentHashPlugin = "RealContentHashPlugin",
 	RemoveEmptyChunksPlugin = "RemoveEmptyChunksPlugin",
 	EnsureChunkConditionsPlugin = "EnsureChunkConditionsPlugin",
-	WarnCaseSensitiveModulesPlugin = "WarnCaseSensitiveModulesPlugin"
+	WarnCaseSensitiveModulesPlugin = "WarnCaseSensitiveModulesPlugin",
+	DataUriPlugin = "DataUriPlugin",
+	FileUriPlugin = "FileUriPlugin",
+	RuntimePlugin = "RuntimePlugin",
+	JsonModulesPlugin = "JsonModulesPlugin",
+	InferAsyncModulesPlugin = "InferAsyncModulesPlugin",
+	JavascriptModulesPlugin = "JavascriptModulesPlugin",
+	AsyncWebAssemblyModulesPlugin = "AsyncWebAssemblyModulesPlugin"
 }
 
 type AffectedHooks = keyof Compiler["hooks"];

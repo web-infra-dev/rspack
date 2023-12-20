@@ -29,6 +29,13 @@ export * from "./RealContentHashPlugin";
 export * from "./RemoveEmptyChunksPlugin";
 export * from "./EnsureChunkConditionsPlugin";
 export * from "./WarnCaseSensitiveModulesPlugin";
+export * from "./DataUriPlugin";
+export * from "./FileUriPlugin";
+export * from "./RuntimePlugin";
+export * from "./JsonModulesPlugin";
+export * from "./InferAsyncModulesPlugin";
+export * from "./JavascriptModulesPlugin";
+export * from "./AsyncWebAssemblyModulesPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";
