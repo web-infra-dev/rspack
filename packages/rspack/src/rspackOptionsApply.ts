@@ -40,11 +40,20 @@ import {
 	ChunkPrefetchPreloadPlugin
 } from "./builtin-plugin";
 import { WorkerPlugin } from "./builtin-plugin/WorkerPlugin";
+import { deprecatedWarn, termlink } from "./util";
 
 export function optionsApply_compat(
 	compiler: Compiler,
 	options: RspackOptionsNormalized
 ) {
+	if (!options.experiments.rspackFuture!.disableApplyOptionsLazily) {
+		deprecatedWarn(
+			`You are depend on ${termlink(
+				"apply options lazily",
+				"https://rspack.dev/config/experiments.html#experimentsrspackfuturedisableapplyoptionslazily"
+			)}, this behavior has been deprecated, you can setup 'experiments.rspackFuture.disableApplyOptionsLazily = true' to disable this behaivor, and this will enabled by default in v0.5+`
+		);
+	}
 	if (compiler.parentCompilation === undefined) {
 		if (options.externals) {
 			assert(
@@ -137,12 +146,15 @@ export function optionsApply_compat(
 			}
 		}
 
-		// TODO: change to new EntryOptionPlugin().apply(compiler);
-		EntryOptionPlugin.applyEntryOption(
-			compiler,
-			compiler.context,
-			options.entry
-		);
+		if (options.experiments.rspackFuture!.disableApplyOptionsLazily) {
+			new EntryOptionPlugin().apply(compiler);
+		} else {
+			EntryOptionPlugin.applyEntryOption(
+				compiler,
+				compiler.context,
+				options.entry
+			);
+		}
 
 		if (options.devServer?.hot) {
 			new compiler.webpack.HotModuleReplacementPlugin().apply(compiler);
@@ -170,7 +182,11 @@ export class RspackOptionsApply {
 				}
 			});
 		}
-		// new EntryOptionPlugin().apply(compiler);
+
+		if (options.experiments.rspackFuture!.disableApplyOptionsLazily) {
+			optionsApply_compat(compiler, options);
+		}
+
 		assert(
 			options.context,
 			"options.context should have value after `applyRspackOptionsDefaults`"

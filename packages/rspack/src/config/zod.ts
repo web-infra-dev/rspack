@@ -1052,7 +1052,8 @@ const rspackFutureOptions = z.strictObject({
 			return true;
 		}),
 	newTreeshaking: z.boolean().optional(),
-	disableTransformByDefault: z.boolean().optional()
+	disableTransformByDefault: z.boolean().optional(),
+	disableApplyOptionsLazily: z.boolean().optional()
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 

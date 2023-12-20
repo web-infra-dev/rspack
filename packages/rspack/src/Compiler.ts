@@ -231,8 +231,10 @@ class Compiler {
 		};
 
 		const options = this.options;
-		// TODO: remove this in v0.4
-		optionsApply_compat(this, options);
+		// TODO: remove this in v0.6
+		if (!options.experiments.rspackFuture!.disableApplyOptionsLazily) {
+			optionsApply_compat(this, options);
+		}
 		// TODO: remove this when drop support for builtins options
 		options.builtins = deprecated_resolveBuiltins(
 			options.builtins,

@@ -1744,6 +1744,9 @@ importers:
       concat-stream:
         specifier: ^2.0.0
         version: 2.0.0
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
       execa:
         specifier: ^5.0.0
         version: 5.1.1
