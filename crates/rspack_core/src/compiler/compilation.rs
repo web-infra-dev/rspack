@@ -680,7 +680,7 @@ impl Compilation {
               } = task_result;
 
               if let Some(counter) = &mut factorize_cache_counter {
-                if from_cache {
+                if factory_result.from_cache {
                   counter.hit();
                 } else {
                   counter.miss();

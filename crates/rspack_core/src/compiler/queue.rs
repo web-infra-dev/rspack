@@ -58,7 +58,6 @@ pub struct FactorizeTaskResult {
   pub is_entry: bool,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub exports_info_related: ExportsInfoRelated,
-  pub from_cache: bool,
 }
 
 #[async_trait::async_trait]
@@ -110,7 +109,6 @@ impl WorkerTask for FactorizeTask {
     Ok(TaskResult::Factorize(Box::new(FactorizeTaskResult {
       is_entry: self.is_entry,
       original_module_identifier: self.original_module_identifier,
-      from_cache: result.from_cache,
       factory_result: result,
       module_graph_module: Box::new(mgm),
       dependencies: self.dependencies,
