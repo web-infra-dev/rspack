@@ -60,8 +60,8 @@ describe("Stats", () => {
 			stats?.toString({ timings: false, version: false }).replace(/\\/g, "/")
 		).toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 464 bytes [emitted] (name: main)
-		Entrypoint main 464 bytes = main.js
+		asset main.js 458 bytes [emitted] (name: main)
+		Entrypoint main 458 bytes = main.js
 		./fixtures/a.js
 		./fixtures/b.js
 		./fixtures/c.js
@@ -76,7 +76,7 @@ describe("Stats", () => {
 		   ╰────
 
 
-		Rspack compiled with 1 error (d102369880762d1e05db)"
+		Rspack compiled with 1 error (55b8c86a5ff409c2bdd8)"
 	`);
 	});
 
@@ -140,7 +140,6 @@ describe("Stats", () => {
 		<t> module factorize task: X ms
 		<t> module build task: X ms
 		<t> finish modules: X ms
-		<t> optimize dependencies: X ms
 		<t> optimize dependencies: X ms
 		<t> create chunks: X ms
 		<t> optimize: X ms

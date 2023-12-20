@@ -549,6 +549,15 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
 
+  examples/harmony-circular-star-reexport:
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
+
   examples/library:
     devDependencies:
       '@rspack/cli':

@@ -55,7 +55,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 										testRoot,
 										"webpack.config.js"
 									);
-									let config = {};
+									let config: any = {};
 									if (fs.existsSync(configFile)) {
 										config = require(configFile);
 									}
@@ -72,6 +72,17 @@ export function describeCases(config: { name: string; casePath: string }) {
 										infrastructureLogging: {
 											debug: false
 										},
+										experiments: {
+											rspackFuture: {
+												newTreeshaking: true
+											}
+										},
+										optimization: {
+											sideEffects: true,
+											usedExports: true,
+											innerGraph: true,
+											providedExports: true
+										},
 										...config, // we may need to use deepMerge to handle config merge, but we may fix it until we need it
 										output: {
 											// @ts-ignore
@@ -82,6 +93,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 									if (fs.existsSync(outputPath)) {
 										fs.rmdirSync(outputPath, { recursive: true });
 									}
+									console.log(options.experiments);
 									const stats = await util.promisify(rspack)(options);
 									const statsJson = stats!.toJson();
 									if (category.name === "errors") {

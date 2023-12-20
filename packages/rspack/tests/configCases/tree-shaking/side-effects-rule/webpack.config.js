@@ -1,6 +1,7 @@
 /**@type {import('@rspack/cli').Configuration}*/
 module.exports = {
 	context: __dirname,
+	mode: "production",
 	module: {
 		rules: [
 			{
@@ -9,11 +10,8 @@ module.exports = {
 			}
 		]
 	},
-	builtins: {
-		treeShaking: true
-	},
 	optimization: {
-		sideEffects: true
+		minimize: false
 	},
 	externalsPresets: {
 		node: true

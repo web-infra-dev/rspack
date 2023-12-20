@@ -3,6 +3,9 @@ module.exports = {
 	output: {
 		libraryTarget: "system"
 	},
+	experiments: {
+		rspackFuture: { newTreeshaking: false }
+	},
 	externals: {
 		external1: "external1",
 		external2: "external2",

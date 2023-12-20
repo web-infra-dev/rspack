@@ -130,46 +130,13 @@ import rawModule from './raw.png';
 ",
           "type": "module",
         },
-        {
-          "assets": [],
-          "chunks": [
-            "main",
-          ],
-          "id": "151",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/stringModule.js",
-          "issuer": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
-          "issuerId": "10",
-          "issuerName": "./index.js",
-          "issuerPath": [
-            {
-              "id": "10",
-              "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
-              "name": "./index.js",
-            },
-          ],
-          "moduleType": "javascript/auto",
-          "name": "./stringModule.js",
-          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/stringModule.js",
-          "reasons": [
-            {
-              "moduleId": "10",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
-              "moduleName": "./index.js",
-              "type": "esm import",
-              "userRequest": "./stringModule",
-            },
-          ],
-          "size": 1,
-          "source": "",
-          "type": "module",
-        },
       ],
       "names": [
         "main",
       ],
       "parents": [],
       "siblings": [],
-      "size": 128,
+      "size": 127,
       "type": "chunk",
     },
   ],
@@ -191,7 +158,7 @@ import rawModule from './raw.png';
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "f06897c860985a12c8cc",
+  "hash": "6d8e097729e30d201cd0",
   "logging": {},
   "modules": [
     {
@@ -269,10 +236,8 @@ import rawModule from './raw.png';
     },
     {
       "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "151",
+      "chunks": [],
+      "id": undefined,
       "identifier": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/stringModule.js",
       "issuer": "<PROJECT_ROOT>/tests/statsCases/auxiliary-files-test/index.js",
       "issuerId": "10",
@@ -371,18 +336,16 @@ chunk {main} bundle.js (main) [entry]
     esm import ./raw.png [10]
   ./index.js [10] {main}
     entry ./index
-  ./stringModule.js [151] {main}
-    esm import ./stringModule [10]
 ./raw.png [193] {main}
   esm import ./raw.png [10]
 ./index.js [10] {main}
   entry ./index
-./stringModule.js [151] {main}
+./stringModule.js
   esm import ./stringModule [10]
 webpack/runtime/public_path {main}
 webpack/runtime/make_namespace_object {main}
   
-Rspack compiled successfully (f06897c860985a12c8cc)"
+Rspack compiled successfully (6d8e097729e30d201cd0)"
 `;
 
 exports[`StatsTestCases should print correct stats for filename 1`] = `
@@ -5750,7 +5713,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 589,
+      "size": 368,
       "type": "asset",
     },
   ],
@@ -5814,10 +5777,10 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 589,
+          "size": 368,
         },
       ],
-      "assetsSize": 589,
+      "assetsSize": 368,
       "chunks": [
         "main",
       ],
@@ -5827,7 +5790,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "aaa1fae93a3f1eb93934",
+  "hash": "cd5aad7c1faaf7696b3f",
   "logging": {},
   "modules": [
     {
@@ -5864,25 +5827,6 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
         "main",
       ],
       "id": "",
-      "identifier": "webpack/runtime/has_own_property",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/has_own_property",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
       "identifier": "webpack/runtime/make_namespace_object",
       "issuer": undefined,
       "issuerId": undefined,
@@ -5896,35 +5840,16 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "source": undefined,
       "type": "module",
     },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/define_property_getters",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/define_property_getters",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
   ],
   "namedChunkGroups": {
     "main": {
       "assets": [
         {
           "name": "bundle.js",
-          "size": 589,
+          "size": 368,
         },
       ],
-      "assetsSize": 589,
+      "assetsSize": 368,
       "chunks": [
         "main",
       ],
@@ -5940,18 +5865,16 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
 
 exports[`StatsTestCases should print correct stats for simple 2`] = `
 "PublicPath: (none)
-asset bundle.js 589 bytes {main} [emitted] (name: main)
-Entrypoint main 589 bytes = bundle.js
+asset bundle.js 368 bytes {main} [emitted] (name: main)
+Entrypoint main 368 bytes = bundle.js
 chunk {main} bundle.js (main) [entry]
   ./index.js [10] {main}
     entry ./index
 ./index.js [10] {main}
   entry ./index
-webpack/runtime/has_own_property {main}
 webpack/runtime/make_namespace_object {main}
-webpack/runtime/define_property_getters {main}
   
-Rspack compiled successfully (aaa1fae93a3f1eb93934)"
+Rspack compiled successfully (cd5aad7c1faaf7696b3f)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple-module-source 1`] = `
@@ -6054,46 +5977,13 @@ import rawModule from './raw.png';
 ",
           "type": "module",
         },
-        {
-          "assets": [],
-          "chunks": [
-            "main",
-          ],
-          "id": "151",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/stringModule.js",
-          "issuer": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
-          "issuerId": "10",
-          "issuerName": "./index.js",
-          "issuerPath": [
-            {
-              "id": "10",
-              "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
-              "name": "./index.js",
-            },
-          ],
-          "moduleType": "javascript/auto",
-          "name": "./stringModule.js",
-          "nameForCondition": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/stringModule.js",
-          "reasons": [
-            {
-              "moduleId": "10",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
-              "moduleName": "./index.js",
-              "type": "esm import",
-              "userRequest": "./stringModule",
-            },
-          ],
-          "size": 1,
-          "source": "",
-          "type": "module",
-        },
       ],
       "names": [
         "main",
       ],
       "parents": [],
       "siblings": [],
-      "size": 88,
+      "size": 87,
       "type": "chunk",
     },
   ],
@@ -6115,7 +6005,7 @@ import rawModule from './raw.png';
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "d52b18cfdbeb114e0ec4",
+  "hash": "f4dae5e57fd94903b818",
   "logging": {},
   "modules": [
     {
@@ -6183,10 +6073,8 @@ import rawModule from './raw.png';
     },
     {
       "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "151",
+      "chunks": [],
+      "id": undefined,
       "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/stringModule.js",
       "issuer": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
       "issuerId": "10",
@@ -6321,7 +6209,7 @@ runtime modules 4 modules
 ./raw.png
 ./index.js
 ./stringModule.js
-Rspack compiled successfully (d52b18cfdbeb114e0ec4)"
+Rspack compiled successfully (f4dae5e57fd94903b818)"
 `;
 
 exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
@@ -6340,7 +6228,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 589,
+      "size": 368,
       "testA": "aaaaaa",
       "type": "asset",
     },
@@ -6403,10 +6291,10 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 589,
+          "size": 368,
         },
       ],
-      "assetsSize": 589,
+      "assetsSize": 368,
       "chunks": [
         "main",
       ],
@@ -6416,7 +6304,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "aaa1fae93a3f1eb93934",
+  "hash": "cd5aad7c1faaf7696b3f",
   "logging": {},
   "modules": [
     {
@@ -6451,24 +6339,6 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
         "main",
       ],
       "id": "",
-      "identifier": "webpack/runtime/has_own_property",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/has_own_property",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
       "identifier": "webpack/runtime/make_namespace_object",
       "issuer": undefined,
       "issuerId": undefined,
@@ -6481,34 +6351,16 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
       "size": 160,
       "type": "module",
     },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/define_property_getters",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/define_property_getters",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "type": "module",
-    },
   ],
   "namedChunkGroups": {
     "main": {
       "assets": [
         {
           "name": "bundle.js",
-          "size": 589,
+          "size": 368,
         },
       ],
-      "assetsSize": 589,
+      "assetsSize": 368,
       "chunks": [
         "main",
       ],
@@ -6524,11 +6376,11 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
 
 exports[`StatsTestCases should print correct stats for stats-hooks 2`] = `
 "PublicPath: (none)
-asset bundle.js 589 bytes [emitted111] (name: main) [testA: aaaaaa]
-Entrypoint main 589 bytes = bundle.js
-runtime modules 3 modules
+asset bundle.js 368 bytes [emitted111] (name: main) [testA: aaaaaa]
+Entrypoint main 368 bytes = bundle.js
+runtime modules 1 module
 ./index.js
-Rspack compiled successfully (aaa1fae93a3f1eb93934)"
+Rspack compiled successfully (cd5aad7c1faaf7696b3f)"
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 1`] = `
