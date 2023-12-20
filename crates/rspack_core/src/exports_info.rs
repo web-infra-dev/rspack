@@ -1342,28 +1342,18 @@ impl ExportInfo {
         key,
         ExportInfoTargetValue {
           connection,
-          exports: Some(export_name.cloned().unwrap_or_default()),
+          exports: export_name.cloned(),
           priority: normalized_priority,
         },
       );
       self.target_is_set = true;
       return true;
     }
-    if let Some(old_target) = self.target.get_mut(&key) {
-      if old_target.connection != connection
-        || old_target.priority != normalized_priority
-        || old_target.exports.as_ref() != export_name
-      {
-        old_target.exports = Some(export_name.cloned().unwrap_or_default());
-        old_target.priority = normalized_priority;
-        old_target.connection = connection;
-        self.max_target.clear();
-        self.max_target_is_set = false;
-        return true;
+    let Some(old_target) = self.target.get_mut(&key) else {
+      if connection.is_none() {
+        return false;
       }
-    } else if connection.is_none() {
-      return false;
-    } else {
+
       self.target.insert(
         key,
         ExportInfoTargetValue {
@@ -1372,6 +1362,17 @@ impl ExportInfo {
           priority: normalized_priority,
         },
       );
+      self.max_target.clear();
+      self.max_target_is_set = false;
+      return true;
+    };
+    if old_target.connection != connection
+      || old_target.priority != normalized_priority
+      || old_target.exports.as_ref() != export_name
+    {
+      old_target.exports = export_name.cloned();
+      old_target.priority = normalized_priority;
+      old_target.connection = connection;
       self.max_target.clear();
       self.max_target_is_set = false;
       return true;
