@@ -84,33 +84,45 @@ describe("StatsTestCases", () => {
 			} else if (statsJson.errors) {
 				expect(statsJson.errors.length === 0);
 			}
+
+			function serializePath(s?: string): string {
+				if (!s) return "";
+				return s.replace(project_dir_reg, "<PROJECT_ROOT>").replace(/\\/g, "/");
+			}
+
 			statsJson.errors?.forEach(error => {
-				error.formatted = error.formatted
-					?.replace(project_dir_reg, "<PROJECT_ROOT>")
-					?.replace(/\\/g, "/");
+				error.message = serializePath(error.message);
+				error.formatted = serializePath(error.formatted);
+				if (error.moduleIdentifier) {
+					error.moduleIdentifier = serializePath(error.moduleIdentifier);
+				}
 			});
 			statsJson.warnings?.forEach(error => {
-				error.formatted = error.formatted
-					?.replace(project_dir_reg, "<PROJECT_ROOT>")
-					?.replace(/\\/g, "/");
+				error.message = serializePath(error.message);
+				error.formatted = serializePath(error.formatted);
+				if (error.moduleIdentifier) {
+					error.moduleIdentifier = serializePath(error.moduleIdentifier);
+				}
 			});
 			statsJson.children?.forEach(child => {
 				child.errors?.forEach(error => {
-					error.formatted = error.formatted
-						?.replace(project_dir_reg, "<PROJECT_ROOT>")
-						?.replace(/\\/g, "/");
+					error.message = serializePath(error.message);
+					error.formatted = serializePath(error.formatted);
+					if (error.moduleIdentifier) {
+						error.moduleIdentifier = serializePath(error.moduleIdentifier);
+					}
 				});
 				child.warnings?.forEach(error => {
-					error.formatted = error.formatted
-						?.replace(project_dir_reg, "<PROJECT_ROOT>")
-						?.replace(/\\/g, "/");
+					error.message = serializePath(error.message);
+					error.formatted = serializePath(error.formatted);
+					if (error.moduleIdentifier) {
+						error.moduleIdentifier = serializePath(error.moduleIdentifier);
+					}
 				});
 			});
 			expect(statsJson).toMatchSnapshot();
 			let statsString = stats.toString(statsOptions);
-			statsString = statsString
-				.replace(project_dir_reg, "<PROJECT_ROOT>")
-				.replace(/\\/g, "/");
+			statsString = serializePath(statsString);
 			expect(statsString).toMatchSnapshot();
 		});
 	});
