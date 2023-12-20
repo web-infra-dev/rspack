@@ -5,8 +5,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use rspack_core::{
-  debug_exports_info, Compilation, ConnectionState, ModuleGraph, ModuleIdentifier, Plugin,
-  ResolvedExportInfoTarget,
+  Compilation, ConnectionState, ModuleGraph, ModuleIdentifier, Plugin, ResolvedExportInfoTarget,
 };
 use rspack_error::Result;
 use rspack_identifier::IdentifierSet;
@@ -520,14 +519,6 @@ impl Plugin for SideEffectsFlagPlugin {
                 mg.update_module(&dep_id, &target.module);
                 // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
                 let ids = dep_id.get_ids(mg);
-
-                dbg!(
-                  &ids,
-                  dep_id
-                    .get_dependency(mg)
-                    .as_module_dependency()
-                    .map(|item| item.request())
-                );
                 let processed_ids = target
                   .export
                   .as_ref()
@@ -546,13 +537,7 @@ impl Plugin for SideEffectsFlagPlugin {
         }
 
         let ids = dep_id.get_ids(mg);
-        dbg!(
-          &ids,
-          dep_id
-            .get_dependency(mg)
-            .as_module_dependency()
-            .map(|item| item.request())
-        );
+        // dbg!(&ids);
 
         if !ids.is_empty() {
           let export_info_id = cur_exports_info_id.get_export_info(&ids[0], mg);
@@ -572,8 +557,7 @@ impl Plugin for SideEffectsFlagPlugin {
             continue;
           };
 
-          dbg!(&dep_id.get_dependency(mg));
-          dbg!(&mg.connection_by_dependency(&dep_id));
+          // dbg!(&mg.connection_by_dependency(&dep_id));
           mg.update_module(&dep_id, &target.module);
           // TODO: Explain https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/SideEffectsFlagPlugin.js#L303-L306
           let processed_ids = target
@@ -584,7 +568,7 @@ impl Plugin for SideEffectsFlagPlugin {
             })
             .unwrap_or_else(|| ids[1..].to_vec());
 
-          dbg!(&mg.connection_by_dependency(&dep_id), &processed_ids);
+          // dbg!(&mg.connection_by_dependency(&dep_id));
           dep_id.set_ids(processed_ids, mg);
         }
       }

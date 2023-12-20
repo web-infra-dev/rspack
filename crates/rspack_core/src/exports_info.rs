@@ -143,8 +143,6 @@ impl ExportsInfoId {
             .as_ref(),
           priority,
         );
-
-        dbg!(&export_info);
       }
     }
 
@@ -984,7 +982,6 @@ impl ExportInfo {
     let target = init_from
       .and_then(|item| {
         if item.target_is_set {
-          dbg!(&item);
           Some(
             item
               .target
@@ -1012,7 +1009,6 @@ impl ExportInfo {
         }
       })
       .unwrap_or_default();
-    dbg!(&target);
     let target_is_set = !target.is_empty();
     Self {
       name,
@@ -1194,7 +1190,6 @@ impl ExportInfo {
     resolve_filter: ResolveFilterFnTy,
     mg: &mut ModuleGraph,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
-    dbg!(&input_target);
     if let Some(input_target) = input_target {
       let mut target = ResolvedExportInfoTarget {
         module: input_target
@@ -1244,7 +1239,6 @@ impl ExportInfo {
           Some(ResolvedExportInfoTargetWithCircular::Target(t)) => {
             // SAFETY: if the target.exports is None, program will not reach here
             let target_exports = target.export.as_ref().expect("should have exports");
-            dbg!(&target);
             if target_exports.len() == 1 {
               target = t;
               if target.export.is_none() {
