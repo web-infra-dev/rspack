@@ -1,7 +1,7 @@
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
-use regex::Regex;
+use regex::{Captures, Regex};
 use rspack_core::{
   get_js_chunk_filename_template, stringify_map, Chunk, ChunkKind, ChunkLoading, ChunkUkey,
   Compilation, PathData, SourceType,
@@ -26,7 +26,9 @@ static QUOTE_META_REG: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("regexp init failed"));
 
 fn quote_meta(str: &str) -> String {
-  QUOTE_META_REG.replace_all(str, "\\$&").to_string()
+  QUOTE_META_REG
+    .replace_all(str, |caps: &Captures| format!("\\{}", &caps[0]))
+    .to_string()
 }
 
 fn render_condition_items_to_regex(items: Vec<&String>) -> String {
