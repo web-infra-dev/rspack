@@ -320,7 +320,7 @@ impl Plugin for RuntimePlugin {
             "javascript",
             SourceType::JavaScript,
             RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
-            false,
+            |_| false,
           )
           .boxed(),
         ),
@@ -330,7 +330,9 @@ impl Plugin for RuntimePlugin {
             "css",
             SourceType::Css,
             RuntimeGlobals::GET_CHUNK_CSS_FILENAME,
-            runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS),
+            |runtime_requirements| {
+              runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+            },
           )
           .boxed(),
         ),
