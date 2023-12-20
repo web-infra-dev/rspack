@@ -162,8 +162,11 @@ pub fn statement_if(
   };
 
   if let Some(branch_to_remove) = branch_to_remove {
-    // FIXME: `parser.scope.strict`
-    let declarations = get_hoisted_declarations(branch_to_remove, true);
+    let declarations = if scanner.is_strict {
+      get_hoisted_declarations(branch_to_remove, false)
+    } else {
+      get_hoisted_declarations(branch_to_remove, true)
+    };
     let replacement = if declarations.is_empty() {
       "{}".to_string()
     } else {

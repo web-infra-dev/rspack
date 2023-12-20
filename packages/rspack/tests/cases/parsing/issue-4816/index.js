@@ -59,7 +59,8 @@ it("should build success for logic op", () => {
 
 it("should keep the variable in dead branch", () => {
 	if (/b/ === /b/) {
-		function f() {}
+		function f1() {}
+		const f3 = () => {};
 		const g = function e() {};
 		var obj = { y: 3, z: 4 };
 		if (true) {
@@ -68,8 +69,24 @@ it("should keep the variable in dead branch", () => {
 			var { y, z } = obj;
 		}
 	}
-	/// FIXME: strict mode should be `expect(() => f).toThrowError();`
-	expect(f).toBeUndefined();
+
+	if (/a/ === /a/) {
+		("use strict");
+		function f2() {}
+	}
+
+	function f4() {
+		"use strict";
+		if (/a/ === /a/) {
+			function f5() {}
+		}
+		expect(() => f5).toThrowError();
+	}
+
+	f4();
+	expect(f1).toBeUndefined();
+	expect(f2).toBeUndefined();
+	expect(() => f3).toThrowError();
 	expect(x).toBeUndefined();
 	expect(y).toBeUndefined();
 	expect(z).toBeUndefined();
@@ -99,7 +116,32 @@ it("should short-circuit evaluating", function () {
 	expect(b).toBe("a");
 });
 
+it("should not evaluate new RegExp for redefined RegExp", () => {
+	const RegExp = function () {
+		return /other/;
+	};
+	expect(require("./regexp/" + "a".replace(new RegExp("a"), "wrong"))).toBe(1);
+});
+
 // NEXT:
+// it("should try to evaluate new RegExp()", function () {
+// 	function expectAOnly(r) {
+// 		r.keys().forEach(key => {
+// 			expect(r(key)).toBe(1);
+// 		});
+// 	}
+
+// 	expectAOnly(
+// 		require.context("./regexp", false, new RegExp("(?<!filtered)\\.js$", ""))
+// 	);
+// 	expectAOnly(
+// 		require.context("./regexp", false, new RegExp(`(?<!${"FILTERED"})\\.js$`, "i"))
+// 	);
+// 	expectAOnly(
+// 		require.context("./regexp", false, new RegExp("(?<!filtered)\\.js$"))
+// 	);
+// });
+
 // it("should evaluate __dirname and __resourceQuery with replace and substr", function () {
 // 	const result = require("./resourceQuery/index?" + __dirname);
 // 	expect(result).toEqual("?resourceQuery");
