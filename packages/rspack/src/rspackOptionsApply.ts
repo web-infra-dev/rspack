@@ -50,7 +50,7 @@ export function optionsApply_compat(
 		deprecatedWarn(
 			`You are depend on ${termlink(
 				"apply options lazily",
-				"TODO"
+				"https://rspack.dev/config/experiments.html#experimentsrspackfuturedisableapplyoptionslazily"
 			)}, this behavior has been deprecated, you can setup 'experiments.rspackFuture.disableApplyOptionsLazily = true' to disable this behaivor, and this will enabled by default in v0.5+`
 		);
 	}
