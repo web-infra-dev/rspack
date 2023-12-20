@@ -143,6 +143,8 @@ impl ExportsInfoId {
             .as_ref(),
           priority,
         );
+
+        dbg!(&export_info);
       }
     }
 
@@ -982,6 +984,7 @@ impl ExportInfo {
     let target = init_from
       .and_then(|item| {
         if item.target_is_set {
+          dbg!(&item);
           Some(
             item
               .target
@@ -1009,6 +1012,7 @@ impl ExportInfo {
         }
       })
       .unwrap_or_default();
+    dbg!(&target);
     let target_is_set = !target.is_empty();
     Self {
       name,
@@ -1190,6 +1194,7 @@ impl ExportInfo {
     resolve_filter: ResolveFilterFnTy,
     mg: &mut ModuleGraph,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
+    dbg!(&input_target);
     if let Some(input_target) = input_target {
       let mut target = ResolvedExportInfoTarget {
         module: input_target
@@ -1239,6 +1244,7 @@ impl ExportInfo {
           Some(ResolvedExportInfoTargetWithCircular::Target(t)) => {
             // SAFETY: if the target.exports is None, program will not reach here
             let target_exports = target.export.as_ref().expect("should have exports");
+            dbg!(&target);
             if target_exports.len() == 1 {
               target = t;
               if target.export.is_none() {
@@ -1342,28 +1348,18 @@ impl ExportInfo {
         key,
         ExportInfoTargetValue {
           connection,
-          exports: Some(export_name.cloned().unwrap_or_default()),
+          exports: export_name.cloned(),
           priority: normalized_priority,
         },
       );
       self.target_is_set = true;
       return true;
     }
-    if let Some(old_target) = self.target.get_mut(&key) {
-      if old_target.connection != connection
-        || old_target.priority != normalized_priority
-        || old_target.exports.as_ref() != export_name
-      {
-        old_target.exports = Some(export_name.cloned().unwrap_or_default());
-        old_target.priority = normalized_priority;
-        old_target.connection = connection;
-        self.max_target.clear();
-        self.max_target_is_set = false;
-        return true;
+    let Some(old_target) = self.target.get_mut(&key) else {
+      if connection.is_none() {
+        return false;
       }
-    } else if connection.is_none() {
-      return false;
-    } else {
+
       self.target.insert(
         key,
         ExportInfoTargetValue {
@@ -1372,6 +1368,17 @@ impl ExportInfo {
           priority: normalized_priority,
         },
       );
+      self.max_target.clear();
+      self.max_target_is_set = false;
+      return true;
+    };
+    if old_target.connection != connection
+      || old_target.priority != normalized_priority
+      || old_target.exports.as_ref() != export_name
+    {
+      old_target.exports = export_name.cloned();
+      old_target.priority = normalized_priority;
+      old_target.connection = connection;
       self.max_target.clear();
       self.max_target_is_set = false;
       return true;

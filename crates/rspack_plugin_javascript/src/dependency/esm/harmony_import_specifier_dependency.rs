@@ -169,6 +169,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     }
 
     let ids = self.get_ids(&compilation.module_graph);
+    dbg!(&ids, self.request(), &self.ids);
     compilation
       .module_graph
       .module_identifier_by_dependency_id(&self.id);
@@ -234,6 +235,7 @@ impl Dependency for HarmonyImportSpecifierDependency {
   }
 
   fn get_ids(&self, mg: &ModuleGraph) -> Vec<JsWord> {
+    dbg!(&mg.dep_meta_map);
     mg.get_dep_meta_if_existing(self.id)
       .map(|meta| meta.ids.clone())
       .unwrap_or_else(|| self.ids.clone())
