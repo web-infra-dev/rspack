@@ -37,7 +37,15 @@ import {
 	MergeDuplicateChunksPlugin,
 	SplitChunksPlugin,
 	OldSplitChunksPlugin,
-	ChunkPrefetchPreloadPlugin
+	ChunkPrefetchPreloadPlugin,
+	NamedModuleIdsPlugin,
+	DeterministicModuleIdsPlugin,
+	NamedChunkIdsPlugin,
+	DeterministicChunkIdsPlugin,
+	RealContentHashPlugin,
+	RemoveEmptyChunksPlugin,
+	EnsureChunkConditionsPlugin,
+	WarnCaseSensitiveModulesPlugin
 } from "./builtin-plugin";
 import { WorkerPlugin } from "./builtin-plugin/WorkerPlugin";
 import { deprecatedWarn, termlink } from "./util";
@@ -159,6 +167,40 @@ export function optionsApply_compat(
 		if (options.devServer?.hot) {
 			new compiler.webpack.HotModuleReplacementPlugin().apply(compiler);
 		}
+
+		if (options.optimization.realContentHash) {
+			new RealContentHashPlugin().apply(compiler);
+		}
+		const moduleIds = options.optimization.moduleIds;
+		if (moduleIds) {
+			switch (moduleIds) {
+				case "named": {
+					new NamedModuleIdsPlugin().apply(compiler);
+					break;
+				}
+				case "deterministic": {
+					new DeterministicModuleIdsPlugin().apply(compiler);
+					break;
+				}
+				default:
+					throw new Error(`moduleIds: ${moduleIds} is not implemented`);
+			}
+		}
+		const chunkIds = options.optimization.chunkIds;
+		if (chunkIds) {
+			switch (chunkIds) {
+				case "named": {
+					new NamedChunkIdsPlugin().apply(compiler);
+					break;
+				}
+				case "deterministic": {
+					new DeterministicChunkIdsPlugin().apply(compiler);
+					break;
+				}
+				default:
+					throw new Error(`chunkIds: ${chunkIds} is not implemented`);
+			}
+		}
 	}
 }
 
@@ -204,6 +246,7 @@ export class RspackOptionsApply {
 			}
 		}
 
+		new EnsureChunkConditionsPlugin().apply(compiler);
 		if (options.optimization.mergeDuplicateChunks) {
 			new MergeDuplicateChunksPlugin().apply(compiler);
 		}
@@ -222,12 +265,18 @@ export class RspackOptionsApply {
 		} else if (options.optimization.splitChunks) {
 			new SplitChunksPlugin(options.optimization.splitChunks).apply(compiler);
 		}
-
+		// TODO: inconsistent: the plugin need to be placed after SplitChunksPlugin
+		if (options.optimization.removeEmptyChunks) {
+			new RemoveEmptyChunksPlugin().apply(compiler);
+		}
 		if (options.optimization.nodeEnv) {
 			new DefinePlugin({
 				"process.env.NODE_ENV": JSON.stringify(options.optimization.nodeEnv)
 			}).apply(compiler);
 		}
+
+		new WarnCaseSensitiveModulesPlugin().apply(compiler);
+
 		if (options.devServer?.hot) {
 			options.output.strictModuleErrorHandling = true;
 		}

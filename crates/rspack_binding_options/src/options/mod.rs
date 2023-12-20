@@ -1,8 +1,8 @@
 use napi_derive::napi;
 use rspack_core::{
-  BoxPlugin, CompilerOptions, Context, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
-  IncrementalRebuildMakeState, MangleExportsOption, ModuleOptions, ModuleType, OutputOptions,
-  PluginExt, TreeShaking,
+  CompilerOptions, Context, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
+  IncrementalRebuildMakeState, MangleExportsOption, ModuleOptions, ModuleType, Optimization,
+  OutputOptions, PluginExt, Target, TreeShaking,
 };
 use rspack_plugin_javascript::{
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, MangleExportsPlugin,
@@ -12,9 +12,7 @@ use serde::Deserialize;
 
 mod raw_builtins;
 mod raw_cache;
-mod raw_context;
 mod raw_dev_server;
-mod raw_devtool;
 mod raw_entry;
 mod raw_experiments;
 mod raw_external;
@@ -27,13 +25,10 @@ mod raw_resolve;
 mod raw_snapshot;
 mod raw_split_chunks;
 mod raw_stats;
-mod raw_target;
 
 pub use raw_builtins::*;
 pub use raw_cache::*;
-pub use raw_context::*;
 pub use raw_dev_server::*;
-pub use raw_devtool::*;
 pub use raw_entry::*;
 pub use raw_experiments::*;
 pub use raw_external::*;
@@ -46,11 +41,10 @@ pub use raw_resolve::*;
 pub use raw_snapshot::*;
 pub use raw_split_chunks::*;
 pub use raw_stats::*;
-pub use raw_target::*;
 
 pub trait RawOptionsApply {
   type Options;
-  fn apply(self, plugins: &mut Vec<BoxPlugin>) -> Result<Self::Options, rspack_error::Error>;
+  fn apply(self) -> Result<Self::Options, rspack_error::Error>;
 }
 
 #[derive(Deserialize, Debug)]
@@ -59,16 +53,13 @@ pub trait RawOptionsApply {
 pub struct RawOptions {
   #[napi(ts_type = "undefined | 'production' | 'development' | 'none'")]
   pub mode: Option<RawMode>,
-  #[napi(ts_type = "Array<string>")]
-  pub target: RawTarget,
-  #[napi(ts_type = "string")]
-  pub context: RawContext,
+  pub target: Vec<String>,
+  pub context: String,
   pub output: RawOutputOptions,
   pub resolve: RawResolveOptions,
   pub resolve_loader: RawResolveOptions,
   pub module: RawModuleOptions,
-  #[napi(ts_type = "string")]
-  pub devtool: RawDevtool,
+  pub devtool: String,
   pub optimization: RawOptimizationOptions,
   pub stats: RawStatsOptions,
   pub dev_server: RawDevServer,
@@ -80,18 +71,19 @@ pub struct RawOptions {
   pub builtins: RawBuiltins,
 }
 
-impl RawOptionsApply for RawOptions {
-  type Options = CompilerOptions;
-
-  fn apply(self, plugins: &mut Vec<BoxPlugin>) -> Result<Self::Options, rspack_error::Error> {
+impl RawOptions {
+  pub fn apply(
+    self,
+    plugins: &mut Vec<rspack_core::BoxPlugin>,
+  ) -> rspack_error::Result<CompilerOptions> {
     let context: Context = self.context.into();
-    let output: OutputOptions = self.output.apply(plugins)?;
+    let output: OutputOptions = self.output.try_into()?;
     let resolve = self.resolve.try_into()?;
     let resolve_loader = self.resolve_loader.try_into()?;
     let devtool: Devtool = self.devtool.into();
     let mode = self.mode.unwrap_or_default().into();
-    let module: ModuleOptions = self.module.apply(plugins)?;
-    let target = self.target.apply(plugins)?;
+    let module: ModuleOptions = self.module.try_into()?;
+    let target = Target::new(&self.target)?;
     let cache = self.cache.into();
     let experiments = Experiments {
       lazy_compilation: self.experiments.lazy_compilation,
@@ -108,9 +100,10 @@ impl RawOptionsApply for RawOptions {
       top_level_await: self.experiments.top_level_await,
       rspack_future: self.experiments.rspack_future.into(),
     };
-    let optimization = IS_ENABLE_NEW_SPLIT_CHUNKS.set(&experiments.new_split_chunks, || {
-      self.optimization.apply(plugins)
-    })?;
+    let optimization: Optimization = IS_ENABLE_NEW_SPLIT_CHUNKS
+      .set(&experiments.new_split_chunks, || {
+        self.optimization.try_into()
+      })?;
     let stats = self.stats.into();
     let snapshot = self.snapshot.into();
     let node = self.node.map(|n| n.into());
@@ -176,20 +169,12 @@ impl RawOptionsApply for RawOptions {
       );
     }
 
-    // Notice the plugin need to be placed after SplitChunksPlugin
-    if optimization.remove_empty_chunks {
-      plugins.push(rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin.boxed());
-    }
-
-    plugins.push(rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin.boxed());
-
-    plugins.push(rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin.boxed());
     let mut builtins = self.builtins.apply(plugins)?;
     if experiments.rspack_future.new_treeshaking {
       builtins.tree_shaking = TreeShaking::False;
     }
 
-    Ok(Self::Options {
+    Ok(CompilerOptions {
       context,
       mode,
       module,

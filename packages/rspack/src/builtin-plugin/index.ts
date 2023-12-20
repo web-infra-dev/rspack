@@ -21,6 +21,14 @@ export * from "./WebWorkerTemplatePlugin";
 export * from "./LimitChunkCountPlugin";
 export * from "./MergeDuplicateChunksPlugin";
 export * from "./SplitChunksPlugin";
+export * from "./NamedModuleIdsPlugin";
+export * from "./DeterministicModuleIdsPlugin";
+export * from "./NamedChunkIdsPlugin";
+export * from "./DeterministicChunkIdsPlugin";
+export * from "./RealContentHashPlugin";
+export * from "./RemoveEmptyChunksPlugin";
+export * from "./EnsureChunkConditionsPlugin";
+export * from "./WarnCaseSensitiveModulesPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";

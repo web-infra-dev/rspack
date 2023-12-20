@@ -34,7 +34,15 @@ export enum BuiltinPluginName {
 	ContainerPlugin = "ContainerPlugin",
 	ContainerReferencePlugin = "ContainerReferencePlugin",
 	ProvideSharedPlugin = "ProvideSharedPlugin",
-	ConsumeSharedPlugin = "ConsumeSharedPlugin"
+	ConsumeSharedPlugin = "ConsumeSharedPlugin",
+	NamedModuleIdsPlugin = "NamedModuleIdsPlugin",
+	DeterministicModuleIdsPlugin = "DeterministicModuleIdsPlugin",
+	NamedChunkIdsPlugin = "NamedChunkIdsPlugin",
+	DeterministicChunkIdsPlugin = "DeterministicChunkIdsPlugin",
+	RealContentHashPlugin = "RealContentHashPlugin",
+	RemoveEmptyChunksPlugin = "RemoveEmptyChunksPlugin",
+	EnsureChunkConditionsPlugin = "EnsureChunkConditionsPlugin",
+	WarnCaseSensitiveModulesPlugin = "WarnCaseSensitiveModulesPlugin"
 }
 
 type AffectedHooks = keyof Compiler["hooks"];

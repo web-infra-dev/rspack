@@ -1,12 +1,9 @@
 use napi_derive::napi;
 use rspack_core::{
-  BoxPlugin, CrossOriginLoading, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
-  LibraryOptions,
+  CrossOriginLoading, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject, LibraryOptions,
 };
 use rspack_core::{LibraryAuxiliaryComment, OutputOptions, TrustedTypes};
 use serde::Deserialize;
-
-use crate::RawOptionsApply;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -192,45 +189,46 @@ pub struct RawOutputOptions {
   pub script_type: String,
 }
 
-impl RawOptionsApply for RawOutputOptions {
-  type Options = OutputOptions;
-  fn apply(self, _: &mut Vec<BoxPlugin>) -> Result<OutputOptions, rspack_error::Error> {
+impl TryFrom<RawOutputOptions> for OutputOptions {
+  type Error = rspack_error::Error;
+
+  fn try_from(value: RawOutputOptions) -> rspack_error::Result<Self> {
     Ok(OutputOptions {
-      path: self.path.into(),
-      clean: self.clean,
-      public_path: self.public_path.into(),
-      asset_module_filename: self.asset_module_filename.into(),
-      wasm_loading: self.wasm_loading.as_str().into(),
-      webassembly_module_filename: self.webassembly_module_filename.into(),
-      unique_name: self.unique_name,
-      chunk_loading: self.chunk_loading.as_str().into(),
-      chunk_loading_global: self.chunk_loading_global.as_str().into(),
-      filename: self.filename.into(),
-      chunk_filename: self.chunk_filename.into(),
-      cross_origin_loading: self.cross_origin_loading.into(),
-      css_filename: self.css_filename.into(),
-      css_chunk_filename: self.css_chunk_filename.into(),
-      hot_update_main_filename: self.hot_update_main_filename.into(),
-      hot_update_chunk_filename: self.hot_update_chunk_filename.into(),
-      hot_update_global: self.hot_update_global,
-      library: self.library.map(Into::into),
-      strict_module_error_handling: self.strict_module_error_handling,
-      enabled_library_types: self.enabled_library_types,
-      global_object: self.global_object,
-      import_function_name: self.import_function_name,
-      iife: self.iife,
-      module: self.module,
-      trusted_types: self.trusted_types.map(Into::into),
-      source_map_filename: self.source_map_filename.into(),
-      hash_function: self.hash_function.as_str().into(),
-      hash_digest: self.hash_digest.as_str().into(),
-      hash_digest_length: self.hash_digest_length as usize,
-      hash_salt: self.hash_salt.into(),
-      async_chunks: self.async_chunks,
-      worker_chunk_loading: self.worker_chunk_loading.as_str().into(),
-      worker_wasm_loading: self.worker_wasm_loading.as_str().into(),
-      worker_public_path: self.worker_public_path,
-      script_type: self.script_type,
+      path: value.path.into(),
+      clean: value.clean,
+      public_path: value.public_path.into(),
+      asset_module_filename: value.asset_module_filename.into(),
+      wasm_loading: value.wasm_loading.as_str().into(),
+      webassembly_module_filename: value.webassembly_module_filename.into(),
+      unique_name: value.unique_name,
+      chunk_loading: value.chunk_loading.as_str().into(),
+      chunk_loading_global: value.chunk_loading_global.as_str().into(),
+      filename: value.filename.into(),
+      chunk_filename: value.chunk_filename.into(),
+      cross_origin_loading: value.cross_origin_loading.into(),
+      css_filename: value.css_filename.into(),
+      css_chunk_filename: value.css_chunk_filename.into(),
+      hot_update_main_filename: value.hot_update_main_filename.into(),
+      hot_update_chunk_filename: value.hot_update_chunk_filename.into(),
+      hot_update_global: value.hot_update_global,
+      library: value.library.map(Into::into),
+      strict_module_error_handling: value.strict_module_error_handling,
+      enabled_library_types: value.enabled_library_types,
+      global_object: value.global_object,
+      import_function_name: value.import_function_name,
+      iife: value.iife,
+      module: value.module,
+      trusted_types: value.trusted_types.map(Into::into),
+      source_map_filename: value.source_map_filename.into(),
+      hash_function: value.hash_function.as_str().into(),
+      hash_digest: value.hash_digest.as_str().into(),
+      hash_digest_length: value.hash_digest_length as usize,
+      hash_salt: value.hash_salt.into(),
+      async_chunks: value.async_chunks,
+      worker_chunk_loading: value.worker_chunk_loading.as_str().into(),
+      worker_wasm_loading: value.worker_wasm_loading.as_str().into(),
+      worker_public_path: value.worker_public_path,
+      script_type: value.script_type,
     })
   }
 }
