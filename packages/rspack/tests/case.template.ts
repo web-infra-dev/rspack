@@ -58,12 +58,6 @@ export function describeCases(config: { name: string; casePath: string }) {
 									let config: any = {};
 									if (fs.existsSync(configFile)) {
 										config = require(configFile);
-										if (!config.experiments) {
-											config.experiments = {};
-										}
-										if (!config.experiments.rspackFuture) {
-											config.experiments.rspackFuture = {};
-										}
 									}
 									const options: RspackOptions = {
 										target: "node",
@@ -80,7 +74,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 										},
 										experiments: {
 											rspackFuture: {
-												newTreeshaking: false
+												newTreeshaking: true
 											}
 										},
 										optimization: {
