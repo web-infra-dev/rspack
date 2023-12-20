@@ -93,23 +93,31 @@ describe("StatsTestCases", () => {
 			statsJson.errors?.forEach(error => {
 				error.message = serializePath(error.message);
 				error.formatted = serializePath(error.formatted);
-				error.moduleIdentifier = serializePath(error.moduleIdentifier);
+				if (error.moduleIdentifier) {
+					error.moduleIdentifier = serializePath(error.moduleIdentifier);
+				}
 			});
 			statsJson.warnings?.forEach(error => {
 				error.message = serializePath(error.message);
 				error.formatted = serializePath(error.formatted);
-				error.moduleIdentifier = serializePath(error.moduleIdentifier);
+				if (error.moduleIdentifier) {
+					error.moduleIdentifier = serializePath(error.moduleIdentifier);
+				}
 			});
 			statsJson.children?.forEach(child => {
 				child.errors?.forEach(error => {
 					error.message = serializePath(error.message);
 					error.formatted = serializePath(error.formatted);
-					error.moduleIdentifier = serializePath(error.moduleIdentifier);
+					if (error.moduleIdentifier) {
+						error.moduleIdentifier = serializePath(error.moduleIdentifier);
+					}
 				});
 				child.warnings?.forEach(error => {
 					error.message = serializePath(error.message);
 					error.formatted = serializePath(error.formatted);
-					error.moduleIdentifier = serializePath(error.moduleIdentifier);
+					if (error.moduleIdentifier) {
+						error.moduleIdentifier = serializePath(error.moduleIdentifier);
+					}
 				});
 			});
 			expect(statsJson).toMatchSnapshot();
