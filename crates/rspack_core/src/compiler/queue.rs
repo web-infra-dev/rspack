@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result};
+use rspack_sources::BoxSource;
 
 use crate::{
   cache::Cache, BoxDependency, BuildContext, BuildResult, Compilation, CompilerContext,
@@ -26,6 +27,7 @@ pub trait WorkerTask {
 pub struct FactorizeTask {
   pub module_factory: Arc<dyn ModuleFactory>,
   pub original_module_identifier: Option<ModuleIdentifier>,
+  pub original_module_source: Option<BoxSource>,
   pub original_module_context: Option<Box<Context>>,
   pub issuer: Option<Box<str>>,
   pub dependency: BoxDependency,
@@ -149,9 +151,13 @@ impl WorkerTask for FactorizeTask {
             .with_diagnostics(diagnostics),
         )))
       }
-      Err(e) => {
+      Err(mut e) => {
         if let Some(current_profile) = &factorize_task_result.current_profile {
           current_profile.mark_factory_end();
+        }
+        // Wrap source code if available
+        if let Some(s) = self.original_module_source {
+          e = e.with_source_code(s.source().to_string());
         }
         // Bail out if `options.bail` set to `true`,
         // which means 'Fail out on the first error instead of tolerating it.'

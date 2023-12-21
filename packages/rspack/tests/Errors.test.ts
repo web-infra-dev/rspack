@@ -148,6 +148,9 @@ it("should emit warnings for resolve failure in esm", async () => {
 		    Object {
 		      "formatted": "  × Resolve error\\n   ╭────\\n 1 │ import { answer } from './answer'\\n   · ▲\\n   · ╰── Failed to resolve ./answer in javascript/esm|<cwd>/tests/fixtures/errors/resolve-fail-esm/index.js\\n   ╰────\\n",
 		      "message": "  × Resolve error\\n   ╭────\\n 1 │ import { answer } from './answer'\\n   · ▲\\n   · ╰── Failed to resolve ./answer in javascript/esm|<cwd>/tests/fixtures/errors/resolve-fail-esm/index.js\\n   ╰────\\n",
+		      "moduleId": "./resolve-fail-esm/index.js",
+		      "moduleIdentifier": "javascript/esm|<cwd>/tests/fixtures/errors/resolve-fail-esm/index.js",
+		      "moduleName": "./resolve-fail-esm/index.js",
 		    },
 		  ],
 		  "warnings": Array [],

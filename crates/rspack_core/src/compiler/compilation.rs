@@ -42,7 +42,7 @@ use crate::{
   CompilationLogging, CompilerOptions, ContentHashArgs, ContextDependency, DependencyId,
   DependencyParents, DependencyType, Entry, EntryData, EntryOptions, Entrypoint, ErrorSpan,
   FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger, Module, ModuleFactory,
-  ModuleGraph, ModuleIdentifier, ModuleProfile, PathData, ProcessAssetsArgs,
+  ModuleGraph, ModuleIdentifier, ModuleProfile, NormalModuleSource, PathData, ProcessAssetsArgs,
   ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
   Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeRequirementsInTreeArgs,
   RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult, WorkerTask,
@@ -684,7 +684,12 @@ impl Compilation {
 
               // TODO: should use `dep.optional` to test whether these diagnostics should be warnings or errors.
               // https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/Compilation.js#L1796
-              self.push_batch_diagnostic(diagnostics);
+              self.push_batch_diagnostic(
+                diagnostics
+                  .into_iter()
+                  .map(|d| d.with_module_identifier(original_module_identifier))
+                  .collect(),
+              );
 
               if let Some(factory_result) = factory_result
                 && let Some(mut module_graph_module) = module_graph_module
@@ -1063,9 +1068,20 @@ impl Compilation {
   ) {
     let current_profile = self.options.profile.then(Box::<ModuleProfile>::default);
     let dependency = dependencies[0].get_dependency(&self.module_graph).clone();
+    let original_module_source = original_module_identifier
+      .and_then(|i| self.module_graph.module_by_identifier(&i))
+      .and_then(|m| m.as_normal_module())
+      .and_then(|m| {
+        if let NormalModuleSource::BuiltSucceed(s) = m.source() {
+          Some(s.clone())
+        } else {
+          None
+        }
+      });
     queue.add_task(FactorizeTask {
       module_factory: self.get_dependency_factory(dependency.dependency_type()),
       original_module_identifier,
+      original_module_source,
       issuer,
       original_module_context,
       dependency,

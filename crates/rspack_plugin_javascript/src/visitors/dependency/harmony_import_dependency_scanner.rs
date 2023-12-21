@@ -47,14 +47,16 @@ pub type ImportMap = HashMap<Id, ImporterReferenceInfo>;
 #[derive(Debug)]
 pub struct ImporterInfo {
   pub span: Span,
+  pub source_span: Span,
   pub specifiers: Vec<Specifier>,
   pub exports_all: bool,
 }
 
 impl ImporterInfo {
-  pub fn new(span: Span, specifiers: Vec<Specifier>, exports_all: bool) -> Self {
+  pub fn new(span: Span, source_span: Span, specifiers: Vec<Specifier>, exports_all: bool) -> Self {
     Self {
       span,
+      source_span,
       specifiers,
       exports_all,
     }
@@ -168,6 +170,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
         request.clone(),
         source_order,
         Some(importer_info.span.into()),
+        Some(importer_info.source_span.into()),
         importer_info.specifiers,
         dependency_type,
         importer_info.exports_all,
@@ -248,9 +251,10 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
     if let Some(importer_info) = self.imports.get_mut(&key) {
       importer_info.specifiers.extend(specifiers);
     } else {
-      self
-        .imports
-        .insert(key, ImporterInfo::new(import_decl.span, specifiers, false));
+      self.imports.insert(
+        key,
+        ImporterInfo::new(import_decl.span, import_decl.src.span, specifiers, false),
+      );
     }
     self
       .presentational_dependencies
@@ -300,9 +304,10 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
       if let Some(importer_info) = self.imports.get_mut(&key) {
         importer_info.specifiers.extend(specifiers);
       } else {
-        self
-          .imports
-          .insert(key, ImporterInfo::new(named_export.span, specifiers, false));
+        self.imports.insert(
+          key,
+          ImporterInfo::new(named_export.span, src.span, specifiers, false),
+        );
       }
       self
         .presentational_dependencies
@@ -326,9 +331,10 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
     if let Some(importer_info) = self.imports.get_mut(&key) {
       importer_info.exports_all = true;
     } else {
-      self
-        .imports
-        .insert(key, ImporterInfo::new(export_all.span, vec![], true));
+      self.imports.insert(
+        key,
+        ImporterInfo::new(export_all.span, export_all.src.span, vec![], true),
+      );
     }
 
     self

@@ -11,6 +11,7 @@ use swc_core::common::Span;
 
 use crate::{
   cache::Cache,
+  diagnostics::EmptyDependency,
   module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
   tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
   BoxLoader, CompilerContext, CompilerOptions, DependencyCategory, FactorizeArgs, FactoryMeta,
@@ -260,7 +261,8 @@ impl NormalModuleFactory {
         let second_char = request.next();
 
         if first_char.is_none() {
-          Err(internal_error!("Empty dependency (no request)"))?
+          let span = dependency.source_span().unwrap_or_default();
+          return Err(EmptyDependency::new(span).into());
         }
 
         // See: https://webpack.js.org/concepts/loaders/#inline

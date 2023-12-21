@@ -13,6 +13,7 @@ use crate::{
 pub fn export_from_import(
   code_generatable_context: &mut TemplateContext,
   default_interop: bool,
+  request: &str,
   import_var: &str,
   mut export_name: Vec<JsWord>,
   id: &DependencyId,
@@ -27,10 +28,13 @@ pub fn export_from_import(
     runtime,
     ..
   } = code_generatable_context;
-  let module_identifier = *compilation
+  let Some(module_identifier) = compilation
     .module_graph
     .module_identifier_by_dependency_id(id)
-    .expect("should have module identifier");
+    .copied()
+  else {
+    return missing_module(request);
+  };
   let is_new_treeshaking = compilation.options.is_new_tree_shaking();
 
   let exports_type = get_exports_type(&compilation.module_graph, id, &module.identifier());
@@ -198,7 +202,6 @@ pub fn import_statement(
     module,
     ..
   } = code_generatable_context;
-
   if compilation
     .module_graph
     .module_identifier_by_dependency_id(id)

@@ -833,7 +833,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
       let dep_id = dep.id();
       // Dependency created but no module is available.
-      // This could happen module factorization is failed, but `options.bail` set to `false`
+      // This could happen when module factorization is failed, but `options.bail` set to `false`
       if self
         .compilation
         .module_graph
