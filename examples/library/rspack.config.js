@@ -1,33 +1,36 @@
-const path = require('path')
-const noNameLibraryTypes = ["amd-require", "module"];
+const noNameLibraryTypes = ["amd-require", "module"]
 
 /** @type {import('@rspack/cli').Configuration} */
-const config = ["umd"].map((type) => ({
+const config = [
+	"var",
+	"module",
+	"assign",
+	"assign-properties",
+	"this",
+	"window",
+	"self",
+	"global",
+	"commonjs",
+	"commonjs2",
+	"commonjs-module",
+	"commonjs-static",
+	"amd",
+	"amd-require",
+	"umd",
+	"umd2"
+].map(type => ({
 	context: __dirname,
-	mode: "production",
+	mode: "development",
 	devtool: false,
 	entry: {
-		main: "./src/index.js",
-	},
-	optimization: {
-		minimize: false,
+		main: "./src/index.js"
 	},
 	output: {
 		filename: `${type}.js`,
 		library: {
-			name: noNameLibraryTypes.includes(type) ? undefined : "myLib",
-			type: type,
-		},
-	},
-	builtins: {
-		html: [{
-			template: path.resolve(__dirname, "./index.html")
-		}],
-	},
-	experiments: {
-		rspackFuture: {
-			newTreeshaking: true,
-		},
-	},
+			name: noNameLibraryTypes.includes(type) ? undefined : "MyLibrary",
+			type: type
+		}
+	}
 }));
 module.exports = config;
