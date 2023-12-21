@@ -547,7 +547,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "86886b3bfef4721b57c6",
+  "hash": "ccf0aa4014db24570448",
   "logging": {},
   "modules": [
     {
@@ -791,7 +791,7 @@ webpack/runtime/require_chunk_loading {main}
 webpack/runtime/define_property_getters {main}
 webpack/runtime/get_chunk_filename/javascript {main}
   
-Rspack compiled successfully (86886b3bfef4721b57c6)"
+Rspack compiled successfully (ccf0aa4014db24570448)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -887,7 +887,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "7f2513d1c6f744cabf57",
+  "hash": "6eed24d98a02965a7721",
   "logging": {},
   "modules": [
     {
@@ -1071,7 +1071,7 @@ webpack/runtime/hot_module_replacement {main}
 webpack/runtime/get_chunk_update_filename {main}
 webpack/runtime/get_main_filename/update manifest {main}
   
-Rspack compiled successfully (7f2513d1c6f744cabf57)"
+Rspack compiled successfully (6eed24d98a02965a7721)"
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 1`] = `
@@ -2186,7 +2186,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "9f4cf40b0607c75798be",
+      "hash": "5eb6e2cc950e8704fa55",
       "logging": {},
       "modules": [
         {
@@ -2873,7 +2873,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "ecb5431d2c4b4e55c791",
+      "hash": "6f4b77678c9322ad7332",
       "logging": {},
       "modules": [
         {
@@ -3594,7 +3594,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "e29c3be45b45cbe67df7",
+      "hash": "129bf5e45fb1496ecac4",
       "logging": {},
       "modules": [
         {
@@ -3965,7 +3965,7 @@ import(/* webpackChunkName: "c" */ "./c");
   ],
   "errors": [],
   "errorsCount": 0,
-  "hash": "9b462b58c922177334359f4cf40b0607c75798beecb5431d2c4b4e55c791e29c3be45b45cbe67df7",
+  "hash": "6e5966ea5b430a83dcf25eb6e2cc950e8704fa556f4b77678c9322ad7332129bf5e45fb1496ecac4",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -4044,7 +4044,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/javascript {main}
     
-  2 chunks compiled successfully (9f4cf40b0607c75798be)
+  2 chunks compiled successfully (5eb6e2cc950e8704fa55)
 
 3 chunks:
   PublicPath: (none)
@@ -4085,7 +4085,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/javascript {main}
     
-  3 chunks compiled successfully (ecb5431d2c4b4e55c791)
+  3 chunks compiled successfully (6f4b77678c9322ad7332)
 
 4 chunks:
   PublicPath: (none)
@@ -4128,7 +4128,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/javascript {main}
     
-  4 chunks compiled successfully (e29c3be45b45cbe67df7)"
+  4 chunks compiled successfully (129bf5e45fb1496ecac4)"
 `;
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 1`] = `
