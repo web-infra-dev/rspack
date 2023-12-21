@@ -6,7 +6,7 @@ use rspack_core::{
 use rspack_identifier::Identifier;
 use rustc_hash::FxHashSet as HashSet;
 
-use super::utils::chunk_has_css;
+use super::{utils::chunk_has_css, BooleanMatcher};
 use crate::{
   get_chunk_runtime_requirements,
   runtime_module::{render_condition_map, stringify_chunks},
@@ -42,7 +42,17 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
 
-      let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+      let condition_map =
+        compilation
+          .chunk_graph
+          .get_chunk_condition_map(&chunk_ukey, compilation, chunk_has_css);
+      let css_matcher = render_condition_map(&condition_map, "chunkId");
+
+      let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+        && match css_matcher {
+          BooleanMatcher::Condition(c) => c,
+          BooleanMatcher::Matcher(_) => true,
+        };
 
       let initial_chunks = chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey);
       let mut initial_chunk_ids_with_css = HashSet::default();
@@ -83,10 +93,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       ));
 
       if with_loading {
-        let condition_map =
-          compilation
-            .chunk_graph
-            .get_chunk_condition_map(&chunk_ukey, compilation, chunk_has_css);
         let chunk_loading_global_expr = format!(
           "{}['{}']",
           &compilation.options.output.global_object,
@@ -95,10 +101,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         source.add(RawSource::from(
           include_str!("runtime/css_loading_with_loading.js")
             .replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
-            .replace(
-              "CSS_MATCHER",
-              &render_condition_map(&condition_map, "chunkId").to_string(),
-            ),
+            .replace("CSS_MATCHER", &css_matcher.to_string()),
         ));
       }
 

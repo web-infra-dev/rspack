@@ -201,6 +201,9 @@ pub fn render_runtime_modules(
     .collect::<Vec<_>>();
   runtime_modules.sort_unstable_by_key(|(_, m)| m.stage());
   runtime_modules.iter().for_each(|((_, source), module)| {
+    if source.size() == 0 {
+      return;
+    }
     if is_diff_mode() {
       sources.add(RawSource::from(format!(
         "/* start::{} */\n",
