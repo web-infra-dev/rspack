@@ -37,8 +37,12 @@ impl RspackRegex {
 
   pub fn with_flags(expr: &str, flags: &str) -> Result<Self, Error> {
     let mut chars = flags.chars().collect::<Vec<char>>();
-    chars.sort();
-    let raw = format!("{expr}|{}", chars.into_iter().collect::<String>());
+    chars.sort_unstable();
+    let raw = if chars.is_empty() {
+      expr.to_string()
+    } else {
+      format!("{expr}|{}", chars.into_iter().collect::<String>())
+    };
     Ok(Self {
       raw,
       algo: Algo::new(expr, flags)?,

@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use rspack_core::{context_reg_exp, ContextOptions, DependencyCategory};
 use rspack_core::{BoxDependency, ConstDependency, ContextMode, ContextNameSpaceObject};
 use rspack_core::{DependencyTemplate, SpanExt};
@@ -12,6 +14,7 @@ use crate::dependency::{CommonJsRequireContextDependency, RequireHeaderDependenc
 use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
 use crate::parser_plugin::{
   BoxJavascriptParserPlugin, JavaScriptParserPluginDrive, JavascriptParserPlugin,
+  RequireContextDependencyParserPlugin,
 };
 use crate::utils::eval::{self, BasicEvaluatedExpression};
 use crate::utils::{expression_logic_operator, statement_if};
@@ -41,7 +44,7 @@ pub struct CommonJsImportDependencyScanner<'a> {
   pub(crate) in_try: bool,
   pub(crate) in_if: bool,
   pub(crate) is_strict: bool,
-  pub(crate) plugin_drive: JavaScriptParserPluginDrive,
+  pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
 }
 
 #[derive(Debug)]
@@ -77,7 +80,10 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
   ) -> Self {
-    let plugins: Vec<BoxJavascriptParserPlugin> = vec![Box::new(CommonJsImportsParserPlugin)];
+    let plugins: Vec<BoxJavascriptParserPlugin> = vec![
+      Box::new(CommonJsImportsParserPlugin),
+      Box::new(RequireContextDependencyParserPlugin),
+    ];
     let plugin_drive = JavaScriptParserPluginDrive::new(plugins);
     Self {
       dependencies,
@@ -86,7 +92,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
       in_try: false,
       in_if: false,
       is_strict: false,
-      plugin_drive,
+      plugin_drive: Rc::new(plugin_drive),
     }
   }
 
@@ -206,6 +212,15 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
     let Callee::Expr(expr) = &call_expr.callee else {
       call_expr.visit_children_with(self);
+      return;
+    };
+
+    if self
+      .plugin_drive
+      .clone()
+      .call(self, call_expr)
+      .unwrap_or_default()
+    {
       return;
     };
 
@@ -341,7 +356,7 @@ impl CommonJsImportDependencyScanner<'_> {
   }
 
   // same as `JavascriptParser._initializeEvaluating` in webpack
-  // FIXME: should mv it to plugin
+  // FIXME: should mv it to plugin(for example `parse.hooks.evaluate for`)
   fn evaluating(&self, expr: &Expr) -> Option<BasicEvaluatedExpression> {
     match expr {
       Expr::Tpl(tpl) => eval::eval_tpl_expression(self, tpl),
@@ -350,6 +365,7 @@ impl CommonJsImportDependencyScanner<'_> {
       Expr::Unary(unary) => eval::eval_unary_expression(self, unary),
       Expr::Bin(binary) => eval::eval_binary_expression(self, binary),
       Expr::Array(array) => eval::eval_array_expression(self, array),
+      Expr::New(new) => eval::eval_new_expression(self, new),
       _ => None,
     }
   }

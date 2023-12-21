@@ -123,25 +123,33 @@ it("should not evaluate new RegExp for redefined RegExp", () => {
 	expect(require("./regexp/" + "a".replace(new RegExp("a"), "wrong"))).toBe(1);
 });
 
+it("should try to evaluate new RegExp()", function () {
+	function expectAOnly(r) {
+		r.keys().forEach(key => {
+			expect(key).toBe("./a.js");
+			expect(r(key)).toBe(1);
+		});
+	}
+
+	expectAOnly(
+		require.context("./regexp", false, new RegExp("(?<!filtered)\\.js$", ""))
+	);
+	expectAOnly(
+		require.context(
+			"./regexp",
+			false,
+			new RegExp(`(?<!${"FILTERED"})\\.js$`, "i")
+		)
+	);
+	expectAOnly(
+		require.context("./regexp", false, new RegExp("(?<!filtered)\\.js$"))
+	);
+	expectAOnly(
+		require.context(`./regexp`, false, new RegExp("(?<!filtered)\\.js$"))
+	);
+});
+
 // NEXT:
-// it("should try to evaluate new RegExp()", function () {
-// 	function expectAOnly(r) {
-// 		r.keys().forEach(key => {
-// 			expect(r(key)).toBe(1);
-// 		});
-// 	}
-
-// 	expectAOnly(
-// 		require.context("./regexp", false, new RegExp("(?<!filtered)\\.js$", ""))
-// 	);
-// 	expectAOnly(
-// 		require.context("./regexp", false, new RegExp(`(?<!${"FILTERED"})\\.js$`, "i"))
-// 	);
-// 	expectAOnly(
-// 		require.context("./regexp", false, new RegExp("(?<!filtered)\\.js$"))
-// 	);
-// });
-
 // it("should evaluate __dirname and __resourceQuery with replace and substr", function () {
 // 	const result = require("./resourceQuery/index?" + __dirname);
 // 	expect(result).toEqual("?resourceQuery");
