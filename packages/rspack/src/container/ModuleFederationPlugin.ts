@@ -91,24 +91,16 @@ function defaultImplementation(
 			});
 		}
 	}
-	const pluginImports = [];
-	const pluginVars = [];
 	const runtimePlugins = options.runtimePlugins ?? [];
-	for (let i = 0; i < runtimePlugins.length; i++) {
-		const pluginVar = `__MODULE_FEDERATION_RUNTIME_PLUGIN_${i}__`;
-		const pluginPath = JSON.stringify(runtimePlugins[i]);
-		pluginImports.push(
-			`const ${pluginVar} = getDefaultExport(require(${pluginPath}));`
-		);
-		pluginVars.push(`${pluginVar}()`);
-	}
+	const pluginImports = runtimePlugins.map(
+		p => `require(${JSON.stringify(p)})`
+	);
 	const implementationPath =
 		options.implementation ??
 		require.resolve("@module-federation/webpack-bundler-runtime");
 	let implementation = runtimeTemplate
 		.replace("$RUNTIME_PACKAGE_PATH$", JSON.stringify(implementationPath))
 		.replace("$ALL_REMOTES$", JSON.stringify(remotes))
-		.replace("$INITOPTIONS_PLUGIN_IMPORTS$", pluginImports.join("\n"))
-		.replace("$INITOPTIONS_PLUGINS$", `[${pluginVars.join(", ")}]`);
+		.replace("$INITOPTIONS_PLUGINS$", `[${pluginImports.join(", ")}]`);
 	return `data:text/javascript,${implementation}`;
 }
