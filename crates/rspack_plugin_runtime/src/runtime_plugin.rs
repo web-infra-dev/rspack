@@ -133,7 +133,7 @@ pub struct RuntimePlugin;
 #[async_trait]
 impl Plugin for RuntimePlugin {
   fn name(&self) -> &'static str {
-    "RuntimePlugin"
+    "rspack.RuntimePlugin"
   }
 
   fn additional_tree_runtime_requirements(
@@ -277,6 +277,22 @@ impl Plugin for RuntimePlugin {
       runtime_requirements_mut.insert(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS);
     }
 
+    if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK) {
+      let c = compilation
+        .chunk_by_ukey
+        .get(chunk)
+        .expect("should have chunk");
+      let has_async_chunks = c.has_async_chunks(&compilation.chunk_group_by_ukey);
+      if has_async_chunks {
+        runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+      }
+      compilation.add_runtime_module(chunk, EnsureChunkRuntimeModule::default().boxed());
+    }
+
+    if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES) {
+      runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+    }
+
     let library_type = {
       let chunk = compilation
         .chunk_by_ukey
@@ -298,9 +314,6 @@ impl Plugin for RuntimePlugin {
           if is_enabled_for_chunk(chunk, &ChunkLoading::Disable, compilation) =>
         {
           compilation.add_runtime_module(chunk, BaseUriRuntimeModule::default().boxed());
-        }
-        RuntimeGlobals::ENSURE_CHUNK => {
-          compilation.add_runtime_module(chunk, EnsureChunkRuntimeModule::new(true).boxed());
         }
         RuntimeGlobals::PUBLIC_PATH => {
           match &public_path {

@@ -186,7 +186,7 @@ const applyExperimentsDefaults = (
 		D(experiments.rspackFuture, "newResolver", true);
 		D(experiments.rspackFuture, "newTreeshaking", false);
 		D(experiments.rspackFuture, "disableTransformByDefault", true);
-		D(experiments.rspackFuture, "disableApplyOptionsLazily", false);
+		D(experiments.rspackFuture, "disableApplyEntryLazily", false);
 	}
 };
 
@@ -448,6 +448,7 @@ const applyOutputDefaults = (
 			return "";
 		}
 	});
+	F(output, "devtoolNamespace", () => output.uniqueName);
 
 	F(output, "chunkLoadingGlobal", () =>
 		Template.toIdentifier(

@@ -14,6 +14,10 @@ pub struct DataUriPlugin;
 
 #[async_trait::async_trait]
 impl Plugin for DataUriPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.DataUriPlugin"
+  }
+
   async fn normal_module_factory_resolve_for_scheme(
     &self,
     _ctx: PluginContext,

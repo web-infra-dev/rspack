@@ -285,6 +285,9 @@ export type HashSalt = z.infer<typeof hashSalt>;
 const sourceMapFilename = z.string();
 export type SourceMapFilename = z.infer<typeof sourceMapFilename>;
 
+const devtoolNamespace = z.string();
+export type DevtoolNamespace = z.infer<typeof devtoolNamespace>;
+
 const output = z.strictObject({
 	path: path.optional(),
 	clean: clean.optional(),
@@ -329,7 +332,8 @@ const output = z.strictObject({
 	workerChunkLoading: chunkLoading.optional(),
 	workerWasmLoading: wasmLoading.optional(),
 	workerPublicPath: workerPublicPath.optional(),
-	scriptType: scriptType.optional()
+	scriptType: scriptType.optional(),
+	devtoolNamespace: devtoolNamespace.optional()
 });
 export type Output = z.infer<typeof output>;
 //#endregion
@@ -1053,7 +1057,7 @@ const rspackFutureOptions = z.strictObject({
 		}),
 	newTreeshaking: z.boolean().optional(),
 	disableTransformByDefault: z.boolean().optional(),
-	disableApplyOptionsLazily: z.boolean().optional()
+	disableApplyEntryLazily: z.boolean().optional()
 });
 export type RspackFutureOptions = z.infer<typeof rspackFutureOptions>;
 

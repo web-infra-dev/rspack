@@ -73,12 +73,12 @@ impl Rspack {
 
     let disabled_hooks: DisabledHooks = Default::default();
     let mut plugins = Vec::new();
-    for bp in builtin_plugins {
-      bp.apply(&mut plugins)
-        .map_err(|e| Error::from_reason(format!("{e}")))?;
-    }
     if let Some(js_hooks) = js_hooks {
       plugins.push(JsHooksAdapter::from_js_hooks(env, js_hooks, disabled_hooks.clone())?.boxed());
+    }
+    for bp in builtin_plugins {
+      bp.append_to(&mut plugins)
+        .map_err(|e| Error::from_reason(format!("{e}")))?;
     }
 
     let js_loader_runner: JsLoaderRunner = JsLoaderRunner::try_from(js_loader_runner)?;

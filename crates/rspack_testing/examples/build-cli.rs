@@ -9,7 +9,7 @@
 
 use std::{env, path::PathBuf};
 
-use rspack_binding_options::{RawOptions, RawOptionsApply};
+use rspack_binding_options::RawOptions;
 use rspack_core::Compiler;
 use rspack_fs::AsyncNativeFileSystem;
 use rspack_testing::evaluate_to_json;

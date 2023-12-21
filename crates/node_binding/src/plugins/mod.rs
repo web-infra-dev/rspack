@@ -72,7 +72,7 @@ impl Debug for JsHooksAdapter {
 #[async_trait]
 impl rspack_core::Plugin for JsHooksAdapter {
   fn name(&self) -> &'static str {
-    "rspack_plugin_js_hooks_adapter"
+    "rspack.JsHooksAdapterPlugin"
   }
 
   async fn compilation(

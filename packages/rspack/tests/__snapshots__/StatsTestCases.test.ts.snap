@@ -191,7 +191,7 @@ import rawModule from './raw.png';
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "f06897c860985a12c8cc",
+  "hash": "d6dd2961487dd1281bc4",
   "logging": {},
   "modules": [
     {
@@ -382,7 +382,7 @@ chunk {main} bundle.js (main) [entry]
 webpack/runtime/public_path {main}
 webpack/runtime/make_namespace_object {main}
   
-Rspack compiled successfully (f06897c860985a12c8cc)"
+Rspack compiled successfully (d6dd2961487dd1281bc4)"
 `;
 
 exports[`StatsTestCases should print correct stats for filename 1`] = `
@@ -547,7 +547,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "75d5cd091894cbf9461b",
+  "hash": "c883e86b3bd4a577eead",
   "logging": {},
   "modules": [
     {
@@ -791,7 +791,7 @@ webpack/runtime/require_chunk_loading {main}
 webpack/runtime/define_property_getters {main}
 webpack/runtime/get_chunk_filename/javascript {main}
   
-Rspack compiled successfully (75d5cd091894cbf9461b)"
+Rspack compiled successfully (c883e86b3bd4a577eead)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -887,7 +887,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "a0e8b8e7a12183967b4c",
+  "hash": "8872fce688547e0a9460",
   "logging": {},
   "modules": [
     {
@@ -1071,7 +1071,7 @@ webpack/runtime/hot_module_replacement {main}
 webpack/runtime/get_chunk_update_filename {main}
 webpack/runtime/get_main_filename/update manifest {main}
   
-Rspack compiled successfully (a0e8b8e7a12183967b4c)"
+Rspack compiled successfully (8872fce688547e0a9460)"
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 1`] = `
@@ -1338,7 +1338,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
             "hotModuleReplacement": false,
           },
           "name": "bundle1.js",
-          "size": 1572,
+          "size": 1505,
           "type": "asset",
         },
       ],
@@ -1556,10 +1556,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1572,
+              "size": 1505,
             },
           ],
-          "assetsSize": 1572,
+          "assetsSize": 1505,
           "chunks": [
             "main",
           ],
@@ -1569,7 +1569,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "9b462b58c92217733435",
+      "hash": "6e5966ea5b430a83dcf2",
       "logging": {},
       "modules": [
         {
@@ -1871,10 +1871,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1572,
+              "size": 1505,
             },
           ],
-          "assetsSize": 1572,
+          "assetsSize": 1505,
           "chunks": [
             "main",
           ],
@@ -1884,10 +1884,10 @@ import(/* webpackChunkName: "c" */ "./c");
           "assets": [
             {
               "name": "bundle1.js",
-              "size": 1572,
+              "size": 1505,
             },
           ],
-          "assetsSize": 1572,
+          "assetsSize": 1505,
           "chunks": [
             "main",
           ],
@@ -2186,7 +2186,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "74258fb7200eb872b532",
+      "hash": "dc79bfe807f702f01c9d",
       "logging": {},
       "modules": [
         {
@@ -2873,7 +2873,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "40e397925381bbea6df7",
+      "hash": "d075fdd0bef2a02eb869",
       "logging": {},
       "modules": [
         {
@@ -3594,7 +3594,7 @@ import(/* webpackChunkName: "c" */ "./c");
       "errors": [],
       "errorsCount": 0,
       "filteredModules": undefined,
-      "hash": "a73ba7d385f4e46d1904",
+      "hash": "9929356f6978bb478dcc",
       "logging": {},
       "modules": [
         {
@@ -3965,7 +3965,7 @@ import(/* webpackChunkName: "c" */ "./c");
   ],
   "errors": [],
   "errorsCount": 0,
-  "hash": "9b462b58c9221773343574258fb7200eb872b53240e397925381bbea6df7a73ba7d385f4e46d1904",
+  "hash": "6e5966ea5b430a83dcf2dc79bfe807f702f01c9dd075fdd0bef2a02eb8699929356f6978bb478dcc",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -3974,9 +3974,9 @@ import(/* webpackChunkName: "c" */ "./c");
 exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 2`] = `
 "1 chunks:
   PublicPath: (none)
-  asset bundle1.js 1.54 KiB {main} [emitted] (name: main)
-  Entrypoint main 1.54 KiB = bundle1.js
-  Chunk Group c 1.54 KiB = bundle1.js
+  asset bundle1.js 1.47 KiB {main} [emitted] (name: main)
+  Entrypoint main 1.47 KiB = bundle1.js
+  Chunk Group c 1.47 KiB = bundle1.js
   chunk {main} bundle1.js (main) <{main}> >{main}< [entry]
     ./b.js [996] {main}
       cjs require ./b [10]
@@ -4005,7 +4005,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/define_property_getters {main}
   webpack/runtime/create_fake_namespace_object {main}
     
-  1 chunks compiled successfully (9b462b58c92217733435)
+  1 chunks compiled successfully (6e5966ea5b430a83dcf2)
 
 2 chunks:
   PublicPath: (none)
@@ -4044,7 +4044,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/javascript {main}
     
-  2 chunks compiled successfully (74258fb7200eb872b532)
+  2 chunks compiled successfully (dc79bfe807f702f01c9d)
 
 3 chunks:
   PublicPath: (none)
@@ -4085,7 +4085,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/javascript {main}
     
-  3 chunks compiled successfully (40e397925381bbea6df7)
+  3 chunks compiled successfully (d075fdd0bef2a02eb869)
 
 4 chunks:
   PublicPath: (none)
@@ -4128,7 +4128,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   webpack/runtime/create_fake_namespace_object {main}
   webpack/runtime/get_chunk_filename/javascript {main}
     
-  4 chunks compiled successfully (a73ba7d385f4e46d1904)"
+  4 chunks compiled successfully (9929356f6978bb478dcc)"
 `;
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 1`] = `
@@ -4406,14 +4406,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "e1~runtime.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e1.js",
           "size": 414,
         },
       ],
-      "assetsSize": 2841,
+      "assetsSize": 3514,
       "chunks": [
         "e1~runtime",
         "e1",
@@ -4424,14 +4424,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "e2~runtime.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e2.js",
           "size": 414,
         },
       ],
-      "assetsSize": 2841,
+      "assetsSize": 3514,
       "chunks": [
         "e2~runtime",
         "e2",
@@ -4445,14 +4445,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "e1~runtime.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e1.js",
           "size": 414,
         },
       ],
-      "assetsSize": 2841,
+      "assetsSize": 3514,
       "chunks": [
         "e1~runtime",
         "e1",
@@ -4463,14 +4463,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "e2~runtime.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e2.js",
           "size": 414,
         },
       ],
-      "assetsSize": 2841,
+      "assetsSize": 3514,
       "chunks": [
         "e2~runtime",
         "e2",
@@ -4482,8 +4482,8 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk 2`] = `
-"Entrypoint e1 2.77 KiB = e1~runtime.js 2.37 KiB e1.js 414 bytes
-Entrypoint e2 2.77 KiB = e2~runtime.js 2.37 KiB e2.js 414 bytes
+"Entrypoint e1 3.43 KiB = e1~runtime.js 3.03 KiB e1.js 414 bytes
+Entrypoint e2 3.43 KiB = e2~runtime.js 3.03 KiB e2.js 414 bytes
 chunk e1.js (e1) [entry]
 chunk e1~runtime.js (e1~runtime) [initial]
 chunk e2.js (e2) [entry]
@@ -4551,14 +4551,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e1.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e1.js",
           "size": 408,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3508,
       "chunks": [
         "runtime~e1",
         "e1",
@@ -4569,14 +4569,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e2.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e2.js",
           "size": 408,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3508,
       "chunks": [
         "runtime~e2",
         "e2",
@@ -4590,14 +4590,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e1.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e1.js",
           "size": 408,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3508,
       "chunks": [
         "runtime~e1",
         "e1",
@@ -4608,14 +4608,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e2.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e2.js",
           "size": 408,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3508,
       "chunks": [
         "runtime~e2",
         "e2",
@@ -4627,8 +4627,8 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-multiple 2`] = `
-"Entrypoint e1 2.77 KiB = runtime~e1.js 2.37 KiB e1.js 408 bytes
-Entrypoint e2 2.77 KiB = runtime~e2.js 2.37 KiB e2.js 408 bytes
+"Entrypoint e1 3.43 KiB = runtime~e1.js 3.03 KiB e1.js 408 bytes
+Entrypoint e2 3.43 KiB = runtime~e2.js 3.03 KiB e2.js 408 bytes
 chunk e1.js (e1) [entry]
 chunk e2.js (e2) [entry]
 chunk runtime~e1.js (runtime~e1) [initial]
@@ -4683,14 +4683,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime.js",
-          "size": 2424,
+          "size": 3102,
         },
         {
           "name": "e1.js",
           "size": 411,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3513,
       "chunks": [
         "runtime",
         "e1",
@@ -4701,14 +4701,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime.js",
-          "size": 2424,
+          "size": 3102,
         },
         {
           "name": "e2.js",
           "size": 411,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3513,
       "chunks": [
         "runtime",
         "e2",
@@ -4722,14 +4722,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime.js",
-          "size": 2424,
+          "size": 3102,
         },
         {
           "name": "e1.js",
           "size": 411,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3513,
       "chunks": [
         "runtime",
         "e1",
@@ -4740,14 +4740,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime.js",
-          "size": 2424,
+          "size": 3102,
         },
         {
           "name": "e2.js",
           "size": 411,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3513,
       "chunks": [
         "runtime",
         "e2",
@@ -4759,8 +4759,8 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-single 2`] = `
-"Entrypoint e1 2.77 KiB = runtime.js 2.37 KiB e1.js 411 bytes
-Entrypoint e2 2.77 KiB = runtime.js 2.37 KiB e2.js 411 bytes
+"Entrypoint e1 3.43 KiB = runtime.js 3.03 KiB e1.js 411 bytes
+Entrypoint e2 3.43 KiB = runtime.js 3.03 KiB e2.js 411 bytes
 chunk e1.js (e1) [entry]
 chunk e2.js (e2) [entry]
 chunk runtime.js (runtime) [initial]"
@@ -4827,14 +4827,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e1.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e1.js",
           "size": 408,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3508,
       "chunks": [
         "runtime~e1",
         "e1",
@@ -4845,14 +4845,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e2.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e2.js",
           "size": 408,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3508,
       "chunks": [
         "runtime~e2",
         "e2",
@@ -4866,14 +4866,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e1.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e1.js",
           "size": 408,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3508,
       "chunks": [
         "runtime~e1",
         "e1",
@@ -4884,14 +4884,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e2.js",
-          "size": 2427,
+          "size": 3100,
         },
         {
           "name": "e2.js",
           "size": 408,
         },
       ],
-      "assetsSize": 2835,
+      "assetsSize": 3508,
       "chunks": [
         "runtime~e2",
         "e2",
@@ -4903,8 +4903,8 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-true 2`] = `
-"Entrypoint e1 2.77 KiB = runtime~e1.js 2.37 KiB e1.js 408 bytes
-Entrypoint e2 2.77 KiB = runtime~e2.js 2.37 KiB e2.js 408 bytes
+"Entrypoint e1 3.43 KiB = runtime~e1.js 3.03 KiB e1.js 408 bytes
+Entrypoint e2 3.43 KiB = runtime~e2.js 3.03 KiB e2.js 408 bytes
 chunk e1.js (e1) [entry]
 chunk e2.js (e2) [entry]
 chunk runtime~e1.js (runtime~e1) [initial]
@@ -5240,7 +5240,7 @@ console.log(a);
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "52b8b881d7951db09212",
+  "hash": "367a7494798047b3e6ad",
   "logging": {},
   "modules": [
     {
@@ -5440,7 +5440,7 @@ ERROR in × Resolve error
  2 │ console.log(a);
    ╰────
 
-Rspack compiled with 1 error (52b8b881d7951db09212)"
+Rspack compiled with 1 error (367a7494798047b3e6ad)"
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 1`] = `
@@ -5584,7 +5584,7 @@ console.log(a);
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "2b490d57b0f2f7155006",
+  "hash": "89dcd0cfe638af0c8caa",
   "logging": {},
   "modules": [
     {
@@ -5778,7 +5778,7 @@ webpack/runtime/compat_get_default_export {main}
 
 ERROR in × Export should be relative path and start with "./", but got ../../index.js
 
-Rspack compiled with 1 error (2b490d57b0f2f7155006)"
+Rspack compiled with 1 error (89dcd0cfe638af0c8caa)"
 `;
 
 exports[`StatsTestCases should print correct stats for runtime-modules 1`] = `
@@ -5933,7 +5933,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "aaa1fae93a3f1eb93934",
+  "hash": "6792d81f6cf29aa1172a",
   "logging": {},
   "modules": [
     {
@@ -6057,7 +6057,7 @@ webpack/runtime/has_own_property {main}
 webpack/runtime/make_namespace_object {main}
 webpack/runtime/define_property_getters {main}
   
-Rspack compiled successfully (aaa1fae93a3f1eb93934)"
+Rspack compiled successfully (6792d81f6cf29aa1172a)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple-module-source 1`] = `
@@ -6221,7 +6221,7 @@ import rawModule from './raw.png';
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "d52b18cfdbeb114e0ec4",
+  "hash": "6fa2c05c8bebcd46512b",
   "logging": {},
   "modules": [
     {
@@ -6427,7 +6427,7 @@ runtime modules 4 modules
 ./raw.png
 ./index.js
 ./stringModule.js
-Rspack compiled successfully (d52b18cfdbeb114e0ec4)"
+Rspack compiled successfully (6fa2c05c8bebcd46512b)"
 `;
 
 exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
@@ -6522,7 +6522,7 @@ exports[`StatsTestCases should print correct stats for stats-hooks 1`] = `
   "errors": [],
   "errorsCount": 0,
   "filteredModules": undefined,
-  "hash": "aaa1fae93a3f1eb93934",
+  "hash": "6792d81f6cf29aa1172a",
   "logging": {},
   "modules": [
     {
@@ -6634,7 +6634,7 @@ asset bundle.js 589 bytes [emitted111] (name: main) [testA: aaaaaa]
 Entrypoint main 589 bytes = bundle.js
 runtime modules 3 modules
 ./index.js
-Rspack compiled successfully (aaa1fae93a3f1eb93934)"
+Rspack compiled successfully (6792d81f6cf29aa1172a)"
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 1`] = `

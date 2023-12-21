@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use cargo_rst::{helper::make_relative_from, rst::RstBuilder};
 use insta::{assert_snapshot, Settings};
 use itertools::Itertools;
-use rspack_binding_options::{RawOptions, RawOptionsApply};
+use rspack_binding_options::RawOptions;
 use rspack_core::{BoxPlugin, Compiler, CompilerOptions};
 use rspack_fs::AsyncNativeFileSystem;
 use rspack_tracing::enable_tracing_by_env;

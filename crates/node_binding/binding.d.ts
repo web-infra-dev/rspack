@@ -166,6 +166,28 @@ export const enum BuiltinPluginName {
   ContainerReferencePlugin = 'ContainerReferencePlugin',
   ProvideSharedPlugin = 'ProvideSharedPlugin',
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
+  NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
+  DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
+  NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
+  DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
+  RealContentHashPlugin = 'RealContentHashPlugin',
+  RemoveEmptyChunksPlugin = 'RemoveEmptyChunksPlugin',
+  EnsureChunkConditionsPlugin = 'EnsureChunkConditionsPlugin',
+  WarnCaseSensitiveModulesPlugin = 'WarnCaseSensitiveModulesPlugin',
+  DataUriPlugin = 'DataUriPlugin',
+  FileUriPlugin = 'FileUriPlugin',
+  RuntimePlugin = 'RuntimePlugin',
+  JsonModulesPlugin = 'JsonModulesPlugin',
+  InferAsyncModulesPlugin = 'InferAsyncModulesPlugin',
+  JavascriptModulesPlugin = 'JavascriptModulesPlugin',
+  AsyncWebAssemblyModulesPlugin = 'AsyncWebAssemblyModulesPlugin',
+  AssetModulesPlugin = 'AssetModulesPlugin',
+  SourceMapDevToolPlugin = 'SourceMapDevToolPlugin',
+  EvalSourceMapDevToolPlugin = 'EvalSourceMapDevToolPlugin',
+  SideEffectsFlagPlugin = 'SideEffectsFlagPlugin',
+  FlagDependencyExportsPlugin = 'FlagDependencyExportsPlugin',
+  FlagDependencyUsagePlugin = 'FlagDependencyUsagePlugin',
+  MangleExportsPlugin = 'MangleExportsPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -738,12 +760,9 @@ export interface RawEntryPluginOptions {
 }
 
 export interface RawExperiments {
-  lazyCompilation: boolean
   incrementalRebuild: RawIncrementalRebuild
-  asyncWebAssembly: boolean
   newSplitChunks: boolean
   topLevelAwait: boolean
-  css: boolean
   rspackFuture: RawRspackFuture
 }
 
@@ -954,15 +973,11 @@ export interface RawNodeOption {
 }
 
 export interface RawOptimizationOptions {
-  moduleIds: string
-  chunkIds: string
   removeAvailableModules: boolean
-  removeEmptyChunks: boolean
   sideEffects: string
   usedExports: string
   providedExports: boolean
   innerGraph: boolean
-  realContentHash: boolean
   mangleExports: string
 }
 
@@ -1148,6 +1163,15 @@ export interface RawSnapshotOptions {
 export interface RawSnapshotStrategy {
   hash: boolean
   timestamp: boolean
+}
+
+export interface RawSourceMapDevToolPluginOptions {
+  filename?: string
+  append?: boolean
+  namespace: string
+  columns: boolean
+  noSources: boolean
+  publicPath?: string
 }
 
 export interface RawSplitChunksOptions {
