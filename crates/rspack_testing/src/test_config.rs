@@ -445,7 +445,6 @@ impl TestConfig {
       }),
       optimization: c::Optimization {
         remove_available_modules: self.optimization.remove_available_modules,
-        remove_empty_chunks: self.optimization.remove_empty_chunks,
         side_effects: c::SideEffectOption::from(self.optimization.side_effects.as_str()),
         provided_exports: self.optimization.provided_exports,
         inner_graph: self.optimization.inner_graph,
@@ -500,12 +499,7 @@ impl TestConfig {
       })
       .boxed(),
     );
-    plugins.push(
-      rspack_plugin_asset::AssetPlugin::new(rspack_plugin_asset::AssetConfig {
-        parse_options: None,
-      })
-      .boxed(),
-    );
+    plugins.push(rspack_plugin_asset::AssetPlugin.boxed());
     plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
     plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {}.boxed());
     plugins.push(rspack_plugin_runtime::CssModulesPlugin {}.boxed());
@@ -514,22 +508,21 @@ impl TestConfig {
     if options.dev_server.hot {
       plugins.push(rspack_plugin_hmr::HotModuleReplacementPlugin.boxed());
     }
-    if options.experiments.lazy_compilation {
-      plugins.push(rspack_plugin_runtime::LazyCompilationPlugin {}.boxed());
-    }
     // plugins.push(rspack_plugin_externals::ExternalPlugin::default().boxed());
     plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
 
     if options.devtool.source_map() {
       plugins.push(
-        rspack_plugin_devtool::DevtoolPlugin::new(rspack_plugin_devtool::DevtoolPluginOptions {
-          inline: options.devtool.inline(),
-          append: !options.devtool.hidden(),
-          namespace: options.output.unique_name.clone(),
-          columns: !options.devtool.cheap(),
-          no_sources: options.devtool.no_sources(),
-          public_path: None,
-        })
+        rspack_plugin_devtool::SourceMapDevToolPlugin::new(
+          rspack_plugin_devtool::SourceMapDevToolPluginOptions {
+            filename: None,
+            append: Some(!options.devtool.hidden()),
+            namespace: options.output.unique_name.clone(),
+            columns: !options.devtool.cheap(),
+            no_sources: options.devtool.no_sources(),
+            public_path: None,
+          },
+        )
         .boxed(),
       );
     }

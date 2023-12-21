@@ -48,7 +48,7 @@ pub struct SourceMapDevToolPlugin {
 impl SourceMapDevToolPlugin {
   pub fn new(options: SourceMapDevToolPluginOptions) -> Self {
     Self {
-      filename: options.filename.map(|f| Filename::from(f)),
+      filename: options.filename.map(Filename::from),
       source_mapping_url_comment: (!matches!(options.append, Some(false)))
         .then(|| "# sourceMappingURL=[url]".to_string()),
       module_filename_template: "[resourcePath]".to_string(),

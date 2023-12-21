@@ -141,7 +141,7 @@ pub struct BuiltinPlugin {
 }
 
 impl BuiltinPlugin {
-  pub fn add(self, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
+  pub fn append_to(self, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
     match self.name {
       // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
@@ -321,10 +321,11 @@ impl BuiltinPlugin {
       BuiltinPluginName::FlagDependencyExportsPlugin => {
         plugins.push(FlagDependencyExportsPlugin::default().boxed())
       }
-      BuiltinPluginName::FlagDependencyUsagePlugin => plugins
-        .push(FlagDependencyUsagePlugin::new(downcast_into::<bool>(self.options)?.into()).boxed()),
+      BuiltinPluginName::FlagDependencyUsagePlugin => {
+        plugins.push(FlagDependencyUsagePlugin::new(downcast_into::<bool>(self.options)?).boxed())
+      }
       BuiltinPluginName::MangleExportsPlugin => {
-        plugins.push(MangleExportsPlugin::new(downcast_into::<bool>(self.options)?.into()).boxed())
+        plugins.push(MangleExportsPlugin::new(downcast_into::<bool>(self.options)?).boxed())
       }
 
       // rspack specific plugins

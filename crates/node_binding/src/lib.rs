@@ -77,7 +77,7 @@ impl Rspack {
       plugins.push(JsHooksAdapter::from_js_hooks(env, js_hooks, disabled_hooks.clone())?.boxed());
     }
     for bp in builtin_plugins {
-      bp.add(&mut plugins)
+      bp.append_to(&mut plugins)
         .map_err(|e| Error::from_reason(format!("{e}")))?;
     }
 
