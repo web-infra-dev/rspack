@@ -89,6 +89,7 @@ pub fn scan_dependencies(
   program.visit_with(&mut ApiScanner::new(
     unresolved_ctxt,
     resource_data,
+    &mut dependencies,
     &mut presentational_dependencies,
     compiler_options.output.module,
     build_info,
