@@ -1201,16 +1201,16 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
     },
     {
       "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/en.js",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-      "issuerName": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+      "issuerName": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
       "issuerPath": [
         {
           "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
           "name": "./index.js",
         },
         {
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-          "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+          "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
         },
       ],
       "moduleType": "javascript/auto",
@@ -1221,16 +1221,16 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
     },
     {
       "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-      "issuerName": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+      "issuerName": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
       "issuerPath": [
         {
           "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
           "name": "./index.js",
         },
         {
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-          "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+          "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
         },
       ],
       "moduleType": "javascript/auto",
@@ -1256,7 +1256,7 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
       "type": "module",
     },
     {
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
       "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
       "issuerName": "./index.js",
       "issuerPath": [
@@ -1266,7 +1266,7 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
         },
       ],
       "moduleType": "javascript/auto",
-      "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
+      "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
       "nameForCondition": undefined,
       "size": 160,
       "type": "module",
@@ -1281,7 +1281,7 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 2`] = `
 ./locals/en.js
 <PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh (missing)
 <PROJECT_ROOT>/tests/statsCases/ignore-plugin/./globalIndex.js (missing)
-<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$|")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }"
+<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }"
 `;
 
 exports[`StatsTestCases should print correct stats for ignore-warning 1`] = `

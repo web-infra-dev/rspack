@@ -64,16 +64,24 @@ impl ContextMode {
 
 impl From<&str> for ContextMode {
   fn from(value: &str) -> Self {
-    match value {
-      "sync" => ContextMode::Sync,
-      "eager" => ContextMode::Eager,
-      "weak" => ContextMode::Weak,
-      "lazy" => ContextMode::Lazy,
-      "lazy-once" => ContextMode::LazyOnce,
-      "async-weak" => ContextMode::AsyncWeak,
+    match try_convert_str_to_context_mode(value) {
+      Some(m) => m,
       // TODO should give warning
       _ => panic!("unknown context mode"),
     }
+  }
+}
+
+pub fn try_convert_str_to_context_mode(s: &str) -> Option<ContextMode> {
+  match s {
+    "sync" => Some(ContextMode::Sync),
+    "eager" => Some(ContextMode::Eager),
+    "weak" => Some(ContextMode::Weak),
+    "lazy" => Some(ContextMode::Lazy),
+    "lazy-once" => Some(ContextMode::LazyOnce),
+    "async-weak" => Some(ContextMode::AsyncWeak),
+    // TODO should give warning
+    _ => None,
   }
 }
 

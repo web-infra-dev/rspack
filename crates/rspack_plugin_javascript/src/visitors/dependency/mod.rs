@@ -13,7 +13,6 @@ mod hot_module_replacement_scanner;
 mod import_meta_scanner;
 mod import_scanner;
 mod node_stuff_scanner;
-mod require_context_scanner;
 mod url_scanner;
 mod util;
 mod worker_scanner;
@@ -42,8 +41,7 @@ use self::{
   harmony_top_level_this::HarmonyTopLevelThis,
   hot_module_replacement_scanner::HotModuleReplacementScanner,
   import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
-  node_stuff_scanner::NodeStuffScanner, require_context_scanner::RequireContextScanner,
-  url_scanner::UrlScanner, worker_scanner::WorkerScanner,
+  node_stuff_scanner::NodeStuffScanner, url_scanner::UrlScanner, worker_scanner::WorkerScanner,
 };
 
 pub struct ScanDependenciesResult {
@@ -116,7 +114,6 @@ pub fn scan_dependencies(
       &mut presentational_dependencies,
       unresolved_ctxt,
     ));
-    program.visit_with(&mut RequireContextScanner::new(&mut dependencies));
 
     program.visit_with(&mut CommonJsExportDependencyScanner::new(
       &mut dependencies,

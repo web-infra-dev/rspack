@@ -2,15 +2,18 @@ mod eval_array_expr;
 mod eval_binary_expr;
 mod eval_cond_expr;
 mod eval_lit_expr;
+mod eval_new_expr;
 mod eval_tpl_expr;
 mod eval_unary_expr;
 
+use bitflags::bitflags;
 use rspack_core::DependencyLocation;
 
 pub use self::eval_array_expr::eval_array_expression;
 pub use self::eval_binary_expr::eval_binary_expression;
 pub use self::eval_cond_expr::eval_cond_expression;
 pub use self::eval_lit_expr::eval_lit_expr;
+pub use self::eval_new_expr::eval_new_expression;
 pub use self::eval_tpl_expr::{eval_tpl_expression, TemplateStringKind};
 pub use self::eval_unary_expr::eval_unary_expression;
 
@@ -28,7 +31,7 @@ enum Ty {
   TypeArray,
   ConstArray,
   BigInt,
-  // TypeIdentifier,
+  // Identifier,
   // TypeWrapped,
   TemplateString,
 }
@@ -38,7 +41,7 @@ type Number = f64;
 type Bigint = num_bigint::BigInt;
 // type Array<'a> = &'a ast::ArrayLit;
 type String = std::string::String;
-type Regexp = (String, String);
+type Regexp = (String, String); // (expr, flags)
 
 // I really don't want there has many alloc, maybe this can be optimized after
 // parse finished.
@@ -102,6 +105,10 @@ impl BasicEvaluatedExpression {
   //   matches!(self.ty, Ty::Unknown)
   // }
 
+  // pub fn is_identifier(&self) -> bool {
+  //   matches!(self.ty, Ty::Identifier)
+  // }
+
   pub fn is_conditional(&self) -> bool {
     matches!(self.ty, Ty::Conditional)
   }
@@ -120,6 +127,10 @@ impl BasicEvaluatedExpression {
 
   pub fn is_template_string(&self) -> bool {
     matches!(self.ty, Ty::TemplateString)
+  }
+
+  pub fn is_regexp(&self) -> bool {
+    matches!(self.ty, Ty::RegExp)
   }
 
   pub fn is_compile_time_value(&self) -> bool {
@@ -260,6 +271,10 @@ impl BasicEvaluatedExpression {
     self.string.as_ref().expect("make sure string exist")
   }
 
+  pub fn regexp(&self) -> &Regexp {
+    self.regexp.as_ref().expect("make sure regexp exist")
+  }
+
   pub fn bool(&self) -> Boolean {
     self.boolean.expect("make sure bool exist")
   }
@@ -281,4 +296,54 @@ pub fn evaluate_to_string(value: String, start: u32, end: u32) -> BasicEvaluated
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
   eval.set_string(value);
   eval
+}
+
+bitflags! {
+  struct RegExpFlag: u8 {
+    const FLAG_Y = 1 << 0;
+    const FLAG_M = 1 << 1;
+    const FLAG_I = 1 << 2;
+    const FLAG_G = 1 << 3;
+  }
+}
+
+pub fn is_valid_reg_exp_flags(flags: &str) -> bool {
+  let chars = flags.chars().collect::<Vec<_>>();
+  if chars.is_empty() {
+    true
+  } else if chars.len() > 4 {
+    false
+  } else {
+    let mut remaining = RegExpFlag::empty();
+    for c in chars {
+      match c {
+        'g' => {
+          if remaining.contains(RegExpFlag::FLAG_G) {
+            return false;
+          }
+          remaining.insert(RegExpFlag::FLAG_G);
+        }
+        'i' => {
+          if remaining.contains(RegExpFlag::FLAG_I) {
+            return false;
+          }
+          remaining.insert(RegExpFlag::FLAG_I);
+        }
+        'm' => {
+          if remaining.contains(RegExpFlag::FLAG_M) {
+            return false;
+          }
+          remaining.insert(RegExpFlag::FLAG_M);
+        }
+        'y' => {
+          if remaining.contains(RegExpFlag::FLAG_Y) {
+            return false;
+          }
+          remaining.insert(RegExpFlag::FLAG_Y);
+        }
+        _ => return false,
+      }
+    }
+    true
+  }
 }
