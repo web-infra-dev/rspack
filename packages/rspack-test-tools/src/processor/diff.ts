@@ -8,7 +8,6 @@ import {
 	TModuleCompareResult
 } from "../type";
 import path from "path";
-import { createModulePlaceholderPlugin } from "../webpack/module-placeholder-plugin";
 import {
 	IFormatCodeOptions,
 	compareFile,
@@ -16,6 +15,7 @@ import {
 } from "../compare";
 import { readConfigFile, runBuild } from "../helper";
 import deepmerge from "deepmerge";
+import { RspackDiffConfigPlugin, WebpackDiffConfigPlugin } from "../plugin";
 
 export interface IDiffProcessorOptions extends IFormatCodeOptions {
 	webpackPath: string;
@@ -128,70 +128,27 @@ export class DiffProcessor implements ITestProcessor {
 		src: string,
 		dist: string
 	) {
-		let result = deepmerge<TCompilerOptions<T>>(options, {
-			entry: path.join(src, "./src/index.js"),
-			context: src,
-			output: {
-				filename: "bundle.js",
-				chunkFilename: "[name].chunk.js"
-			},
-			mode: "development",
-			devtool: false,
-			optimization: {
-				chunkIds: "named",
-				moduleIds: "named"
-			}
-		});
-		if (type === ECompilerType.Webpack) {
-			result = deepmerge<TCompilerOptions<ECompilerType.Webpack>>(
-				result as TCompilerOptions<ECompilerType.Webpack>,
-				{
-					output: {
-						pathinfo: false,
-						environment: {
-							arrowFunction: false,
-							bigIntLiteral: false,
-							const: false,
-							destructuring: false,
-							dynamicImport: false,
-							dynamicImportInWorker: false,
-							forOf: false,
-							globalThis: false,
-							module: false,
-							optionalChaining: false,
-							templateLiteral: false
-						},
-						path: dist
-					},
-					optimization: {
-						mangleExports: false,
-						concatenateModules: false
-					},
-					plugins: [createModulePlaceholderPlugin(this.options.webpackPath)]
+		let result = deepmerge<TCompilerOptions<T>>(
+			options,
+			{
+				entry: path.join(src, "./src/index.js"),
+				context: src,
+				output: {
+					path: dist,
+					filename: "bundle.js",
+					chunkFilename: "[name].chunk.js"
 				},
-				{
-					arrayMerge: (a, b) => [...a, ...b]
-				}
-			) as TCompilerOptions<T>;
-		}
-		if (type === ECompilerType.Rspack) {
-			result = deepmerge<TCompilerOptions<ECompilerType.Rspack>>(
-				result as TCompilerOptions<ECompilerType.Rspack>,
-				{
-					output: {
-						path: dist
-					},
-					optimization: {
-						mangleExports: false
-					},
-					experiments: {
-						rspackFuture: {
-							disableTransformByDefault: true
-						}
-					}
-				}
-			) as TCompilerOptions<T>;
-		}
+				plugins: [
+					type === ECompilerType.Webpack &&
+						new WebpackDiffConfigPlugin(this.options.webpackPath),
+					type === ECompilerType.Rspack &&
+						new RspackDiffConfigPlugin(this.options.rspackPath)
+				].filter(Boolean)
+			} as TCompilerOptions<T>,
+			{
+				arrayMerge: (a, b) => [...a, ...b]
+			}
+		);
 		return result;
 	}
 

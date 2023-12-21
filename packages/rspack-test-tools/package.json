@@ -19,7 +19,8 @@
   },
   "files": [
     "client",
-    "dist"
+    "dist",
+    "template"
   ],
   "publishConfig": {
     "access": "public"

@@ -53,7 +53,7 @@ jobs:
           link-when-local: true
 
       - name: Build node packages
-        run: pnpm run build:js && pnpm run build:viewer
+        run: pnpm run build:js
 
       - name: Run Diff
         run: node scripts/diff.cjs
