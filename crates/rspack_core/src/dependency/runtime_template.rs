@@ -10,6 +10,7 @@ use crate::{
   NormalInitFragment, RuntimeGlobals, TemplateContext,
 };
 
+#[allow(clippy::too_many_arguments)]
 pub fn export_from_import(
   code_generatable_context: &mut TemplateContext,
   default_interop: bool,

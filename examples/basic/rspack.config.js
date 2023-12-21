@@ -6,7 +6,6 @@ const config = {
 		new rspack.HtmlRspackPlugin({
 			template: "./index.html"
 		})
-	],
-	bail: true
+	]
 };
 module.exports = config;
