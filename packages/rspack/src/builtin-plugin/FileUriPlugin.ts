@@ -1,3 +1,7 @@
 import { BuiltinPluginName, create } from "./base";
 
-export const FileUriPlugin = create(BuiltinPluginName.FileUriPlugin, () => {});
+export const FileUriPlugin = create(
+	BuiltinPluginName.FileUriPlugin,
+	() => {},
+	"compilation"
+);

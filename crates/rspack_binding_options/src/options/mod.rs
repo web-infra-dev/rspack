@@ -1,8 +1,8 @@
 use napi_derive::napi;
 use rspack_core::{
   CompilerOptions, Context, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
-  IncrementalRebuildMakeState, MangleExportsOption, ModuleOptions, ModuleType, Optimization,
-  OutputOptions, PluginExt, Target, TreeShaking,
+  IncrementalRebuildMakeState, MangleExportsOption, ModuleOptions, Optimization, OutputOptions,
+  PluginExt, Target, TreeShaking,
 };
 use rspack_plugin_javascript::{
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, MangleExportsPlugin,
@@ -13,6 +13,7 @@ use serde::Deserialize;
 mod raw_builtins;
 mod raw_cache;
 mod raw_dev_server;
+mod raw_devtool;
 mod raw_entry;
 mod raw_experiments;
 mod raw_external;
@@ -29,6 +30,7 @@ mod raw_stats;
 pub use raw_builtins::*;
 pub use raw_cache::*;
 pub use raw_dev_server::*;
+pub use raw_devtool::*;
 pub use raw_entry::*;
 pub use raw_experiments::*;
 pub use raw_external::*;
@@ -86,7 +88,6 @@ impl RawOptions {
     let target = Target::new(&self.target)?;
     let cache = self.cache.into();
     let experiments = Experiments {
-      lazy_compilation: self.experiments.lazy_compilation,
       incremental_rebuild: IncrementalRebuild {
         make: self
           .experiments
@@ -107,53 +108,6 @@ impl RawOptions {
     let snapshot = self.snapshot.into();
     let node = self.node.map(|n| n.into());
     let dev_server: DevServerOptions = self.dev_server.into();
-
-    plugins.push(
-      rspack_plugin_asset::AssetPlugin::new(rspack_plugin_asset::AssetConfig {
-        parse_options: module
-          .parser
-          .as_ref()
-          .and_then(|x| x.get(&ModuleType::Asset))
-          .and_then(|x| x.get_asset(&ModuleType::Asset).cloned()),
-      })
-      .boxed(),
-    );
-
-    if devtool.source_map() {
-      plugins.push(
-        rspack_plugin_devtool::DevtoolPlugin::new(rspack_plugin_devtool::DevtoolPluginOptions {
-          inline: devtool.inline(),
-          append: !devtool.hidden(),
-          namespace: output.unique_name.clone(),
-          columns: !devtool.cheap(),
-          no_sources: devtool.no_sources(),
-          public_path: None,
-        })
-        .boxed(),
-      );
-    }
-
-    if experiments.rspack_future.new_treeshaking {
-      if optimization.side_effects.is_enable() {
-        plugins.push(SideEffectsFlagPlugin::default().boxed());
-      }
-      if optimization.provided_exports {
-        plugins.push(FlagDependencyExportsPlugin::default().boxed());
-      }
-      if optimization.used_exports.is_enable() {
-        plugins.push(FlagDependencyUsagePlugin::default().boxed());
-      }
-    }
-    if optimization.mangle_exports.is_enable() {
-      // We already know mangle_exports != false
-      plugins.push(
-        MangleExportsPlugin::new(!matches!(
-          optimization.mangle_exports,
-          MangleExportsOption::Size
-        ))
-        .boxed(),
-      );
-    }
 
     let mut builtins = self.builtins.apply(plugins)?;
     if experiments.rspack_future.new_treeshaking {

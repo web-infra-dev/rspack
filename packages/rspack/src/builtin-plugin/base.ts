@@ -49,7 +49,14 @@ export enum BuiltinPluginName {
 	JsonModulesPlugin = "JsonModulesPlugin",
 	InferAsyncModulesPlugin = "InferAsyncModulesPlugin",
 	JavascriptModulesPlugin = "JavascriptModulesPlugin",
-	AsyncWebAssemblyModulesPlugin = "AsyncWebAssemblyModulesPlugin"
+	AsyncWebAssemblyModulesPlugin = "AsyncWebAssemblyModulesPlugin",
+	AssetModulesPlugin = "AssetModulesPlugin",
+	SourceMapDevToolPlugin = "SourceMapDevToolPlugin",
+	EvalSourceMapDevToolPlugin = "EvalSourceMapDevToolPlugin",
+	SideEffectsFlagPlugin = "SideEffectsFlagPlugin",
+	FlagDependencyExportsPlugin = "FlagDependencyExportsPlugin",
+	FlagDependencyUsagePlugin = "FlagDependencyUsagePlugin",
+	MangleExportsPlugin = "MangleExportsPlugin"
 }
 
 type AffectedHooks = keyof Compiler["hooks"];

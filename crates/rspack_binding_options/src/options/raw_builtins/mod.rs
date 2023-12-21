@@ -19,8 +19,10 @@ use rspack_ids::{
   NamedModuleIdsPlugin,
 };
 use rspack_napi_shared::NapiResultExt;
+use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
+use rspack_plugin_devtool::{EvalSourceMapDevToolPlugin, SourceMapDevToolPlugin};
 use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
 use rspack_plugin_entry::EntryPlugin;
 use rspack_plugin_externals::{
@@ -28,7 +30,10 @@ use rspack_plugin_externals::{
 };
 use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
-use rspack_plugin_javascript::{InferAsyncModulesPlugin, JsPlugin};
+use rspack_plugin_javascript::{
+  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin,
+  MangleExportsPlugin, SideEffectsFlagPlugin,
+};
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
 use rspack_plugin_limit_chunk_count::LimitChunkCountPlugin;
@@ -63,7 +68,7 @@ pub use self::{
 };
 use crate::{
   RawEntryPluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
-  RawHttpExternalsRspackPluginOptions, RawSplitChunksOptions,
+  RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
 };
 
 #[napi(string_enum)]
@@ -112,6 +117,13 @@ pub enum BuiltinPluginName {
   InferAsyncModulesPlugin,
   JavascriptModulesPlugin,
   AsyncWebAssemblyModulesPlugin,
+  AssetModulesPlugin,
+  SourceMapDevToolPlugin,
+  EvalSourceMapDevToolPlugin,
+  SideEffectsFlagPlugin,
+  FlagDependencyExportsPlugin,
+  FlagDependencyUsagePlugin,
+  MangleExportsPlugin,
 
   // rspack specific plugins
   HttpExternalsRspackPlugin,
@@ -289,6 +301,30 @@ impl BuiltinPlugin {
       BuiltinPluginName::JavascriptModulesPlugin => plugins.push(JsPlugin::new().boxed()),
       BuiltinPluginName::AsyncWebAssemblyModulesPlugin => {
         plugins.push(AsyncWasmPlugin::new().boxed())
+      }
+      BuiltinPluginName::AssetModulesPlugin => plugins.push(AssetPlugin.boxed()),
+      BuiltinPluginName::SourceMapDevToolPlugin => plugins.push(
+        SourceMapDevToolPlugin::new(
+          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)?.into(),
+        )
+        .boxed(),
+      ),
+      BuiltinPluginName::EvalSourceMapDevToolPlugin => plugins.push(
+        EvalSourceMapDevToolPlugin::new(
+          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)?.into(),
+        )
+        .boxed(),
+      ),
+      BuiltinPluginName::SideEffectsFlagPlugin => {
+        plugins.push(SideEffectsFlagPlugin::default().boxed())
+      }
+      BuiltinPluginName::FlagDependencyExportsPlugin => {
+        plugins.push(FlagDependencyExportsPlugin::default().boxed())
+      }
+      BuiltinPluginName::FlagDependencyUsagePlugin => plugins
+        .push(FlagDependencyUsagePlugin::new(downcast_into::<bool>(self.options)?.into()).boxed()),
+      BuiltinPluginName::MangleExportsPlugin => {
+        plugins.push(MangleExportsPlugin::new(downcast_into::<bool>(self.options)?.into()).boxed())
       }
 
       // rspack specific plugins

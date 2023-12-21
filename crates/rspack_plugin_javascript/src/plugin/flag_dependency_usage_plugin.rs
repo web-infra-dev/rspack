@@ -5,7 +5,7 @@ use rspack_core::{
   is_exports_object_referenced, is_no_exports_referenced, merge_runtime,
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, Compilation, ConnectionState,
   DependenciesBlock, DependencyId, ExportsInfoId, ExtendedReferencedExport, GroupOptions,
-  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState, UsedExportsOption,
+  ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec, UsageState,
 };
 use rspack_error::Result;
 use rspack_identifier::IdentifierMap;
@@ -445,15 +445,21 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
   }
 }
 
-#[derive(Debug, Default)]
-pub struct FlagDependencyUsagePlugin;
+#[derive(Debug)]
+pub struct FlagDependencyUsagePlugin {
+  global: bool,
+}
+
+impl FlagDependencyUsagePlugin {
+  pub fn new(global: bool) -> Self {
+    Self { global }
+  }
+}
 
 #[async_trait::async_trait]
 impl Plugin for FlagDependencyUsagePlugin {
   async fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<()>> {
-    assert!(compilation.options.optimization.used_exports != UsedExportsOption::False);
-    let global = compilation.options.optimization.used_exports == UsedExportsOption::Global;
-    let mut proxy = FlagDependencyUsagePluginProxy::new(global, compilation);
+    let mut proxy = FlagDependencyUsagePluginProxy::new(self.global, compilation);
     proxy.apply();
     Ok(None)
   }

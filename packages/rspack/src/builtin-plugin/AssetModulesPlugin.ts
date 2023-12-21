@@ -1,7 +1,7 @@
 import { BuiltinPluginName, create } from "./base";
 
-export const RuntimePlugin = create(
-	BuiltinPluginName.RuntimePlugin,
+export const AssetModulesPlugin = create(
+	BuiltinPluginName.AssetModulesPlugin,
 	() => {},
 	"compilation"
 );

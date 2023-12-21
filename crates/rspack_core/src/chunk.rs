@@ -284,6 +284,10 @@ impl Chunk {
       .any(|group| group.kind.is_entrypoint() && group.get_runtime_chunk() == self.ukey)
   }
 
+  pub fn has_async_chunks(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> bool {
+    !self.get_all_async_chunks(chunk_group_by_ukey).is_empty()
+  }
+
   pub fn get_all_async_chunks(
     &self,
     chunk_group_by_ukey: &ChunkGroupByUkey,

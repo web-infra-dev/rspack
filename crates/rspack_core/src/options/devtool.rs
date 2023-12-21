@@ -8,7 +8,6 @@ bitflags! {
     const NO_SOURCES = 0b00001000;
     const HIDDEN = 0b00010000;
     const MODULE = 0b00100000;
-    // TODO: eval source map for better development (re)builds performance.
     const EVAL = 0b01000000;
   }
 }

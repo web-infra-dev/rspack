@@ -10,10 +10,10 @@ use rspack_core::{
   tree_shaking::{
     analyzer::OptimizeAnalyzer, asset_module::AssetModule, visitor::OptimizeAnalyzeResult,
   },
-  AssetGeneratorDataUrl, AssetParserDataUrl, AssetParserOptions, BuildExtraDataType,
-  BuildMetaDefaultObject, BuildMetaExportsType, CodeGenerationDataAssetInfo,
-  CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CompilerOptions, GenerateContext,
-  Module, NormalModule, ParseContext, ParserAndGenerator, PathData, Plugin, PluginContext,
+  AssetGeneratorDataUrl, AssetParserDataUrl, BuildExtraDataType, BuildMetaDefaultObject,
+  BuildMetaExportsType, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
+  CodeGenerationDataUrl, Compilation, CompilerOptions, GenerateContext, Module, ModuleType,
+  NormalModule, ParseContext, ParserAndGenerator, PathData, Plugin, PluginContext,
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, ResourceData,
   RuntimeGlobals, SourceType,
 };
@@ -22,20 +22,7 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::identifier::make_paths_relative;
 
 #[derive(Debug)]
-pub struct AssetConfig {
-  pub parse_options: Option<AssetParserOptions>,
-}
-
-#[derive(Debug)]
-pub struct AssetPlugin {
-  config: AssetConfig,
-}
-
-impl AssetPlugin {
-  pub fn new(config: AssetConfig) -> AssetPlugin {
-    AssetPlugin { config }
-  }
-}
+pub struct AssetPlugin;
 
 static ASSET_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
   &[SourceType::Asset, SourceType::JavaScript];
@@ -455,12 +442,14 @@ impl Plugin for AssetPlugin {
   fn apply(
     &self,
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &mut CompilerOptions,
+    options: &mut CompilerOptions,
   ) -> Result<()> {
-    let data_url_condition = self
-      .config
-      .parse_options
+    let data_url_condition = options
+      .module
+      .parser
       .as_ref()
+      .and_then(|x| x.get(&ModuleType::Asset))
+      .and_then(|x| x.get_asset(&ModuleType::Asset))
       .and_then(|x| x.data_url_condition.clone());
 
     ctx.context.register_parser_and_generator_builder(

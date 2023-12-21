@@ -700,10 +700,7 @@ function getRawOptimization(
 	optimization: Optimization
 ): RawOptions["optimization"] {
 	assert(
-		!isNil(optimization.moduleIds) &&
-			!isNil(optimization.chunkIds) &&
-			!isNil(optimization.removeAvailableModules) &&
-			!isNil(optimization.removeEmptyChunks) &&
+		!isNil(optimization.removeAvailableModules) &&
 			!isNil(optimization.sideEffects) &&
 			!isNil(optimization.realContentHash) &&
 			!isNil(optimization.providedExports) &&
@@ -712,12 +709,8 @@ function getRawOptimization(
 		"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash, optimization.providedExports, optimization.usedExports, optimization.innerGraph should not be nil after defaults"
 	);
 	return {
-		chunkIds: optimization.chunkIds,
-		moduleIds: optimization.moduleIds,
 		removeAvailableModules: optimization.removeAvailableModules,
-		removeEmptyChunks: optimization.removeEmptyChunks,
 		sideEffects: String(optimization.sideEffects),
-		realContentHash: optimization.realContentHash,
 		usedExports: String(optimization.usedExports),
 		providedExports: optimization.providedExports,
 		innerGraph: optimization.innerGraph,
@@ -753,32 +746,19 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: ExperimentsNormalized
 ): RawOptions["experiments"] {
-	const {
-		lazyCompilation,
-		incrementalRebuild,
-		asyncWebAssembly,
-		newSplitChunks,
-		topLevelAwait,
-		css,
-		rspackFuture
-	} = experiments;
+	const { incrementalRebuild, newSplitChunks, topLevelAwait, rspackFuture } =
+		experiments;
 	assert(
-		!isNil(lazyCompilation) &&
-			!isNil(incrementalRebuild) &&
-			!isNil(asyncWebAssembly) &&
+		!isNil(incrementalRebuild) &&
 			!isNil(newSplitChunks) &&
 			!isNil(topLevelAwait) &&
-			!isNil(css) &&
 			!isNil(rspackFuture)
 	);
 
 	return {
-		lazyCompilation,
 		incrementalRebuild: getRawIncrementalRebuild(incrementalRebuild),
-		asyncWebAssembly,
 		newSplitChunks,
 		topLevelAwait,
-		css,
 		rspackFuture: getRawRspackFutureOptions(rspackFuture)
 	};
 }
