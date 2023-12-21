@@ -188,7 +188,6 @@ pub fn run_before_pass(
   module_type: &ModuleType,
   source: &str,
 ) -> Result<()> {
-  println!("{}", source);
   let cm = ast.get_context().source_map.clone();
   ast
     .transform_with_handler(cm.clone(), |_handler, program, context| {

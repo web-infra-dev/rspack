@@ -47,7 +47,6 @@ pub fn define(opts: &Define) -> impl Fold {
     })
     .collect::<AHashMap<_, _>>();
 
-  dbg!(&defs);
   inline_globals2(
     Default::default(),
     Default::default(),
