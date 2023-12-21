@@ -1556,6 +1556,9 @@ importers:
 
   packages/rspack:
     dependencies:
+      '@module-federation/webpack-bundler-runtime':
+        specifier: 0.0.0-feat-apply-bundler-runtime-1702896801896
+        version: 0.0.0-feat-apply-bundler-runtime-1702896801896
       '@rspack/binding':
         specifier: workspace:*
         version: link:../../crates/node_binding
@@ -8265,6 +8268,23 @@ packages:
     resolution: {integrity: sha512-H1rQc1ZOHANWBvPcW+JpGwr+juXSxM8Q8YCkm3GhZd8REu1fHR3z99CErO1p9pkcfcxZnMdIZdIsXkOHY0NilA==}
     dev: true
 
+  /@module-federation/runtime@0.0.0-feat-apply-bundler-runtime-1702896801896:
+    resolution: {integrity: sha512-LTfEqjdzY+06zv7joji1hx7F8X4K7VXtNhsU+AjIqK81OyK1RuL86cF3snPYqOxz00Qz1OvYG4/FQarXDWgbMg==}
+    dependencies:
+      '@module-federation/sdk': 0.0.0-feat-apply-bundler-runtime-1702896801896
+      semver: 7.5.4
+    dev: false
+
+  /@module-federation/sdk@0.0.0-feat-apply-bundler-runtime-1702896801896:
+    resolution: {integrity: sha512-819tRkRvQibOUa+cAPddtgURaCtEYjD5VKdkwbR2FvCtk3QLZGmsbnTdwIPwhBRUtWkb6zWtCqHe1WRX9Qv79Q==}
+    dev: false
+
+  /@module-federation/webpack-bundler-runtime@0.0.0-feat-apply-bundler-runtime-1702896801896:
+    resolution: {integrity: sha512-DJInZbjhO39OOC+unHN3K9eEnAhvpBqsgzLgO2D21Gpf8ddTIs2vDykIMF5AT02r0mRBrgF8y9kL59PEWprmXQ==}
+    dependencies:
+      '@module-federation/runtime': 0.0.0-feat-apply-bundler-runtime-1702896801896
+    dev: false
+
   /@monaco-editor/loader@1.4.0(monaco-editor@0.34.1):
     resolution: {integrity: sha512-00ioBig0x642hytVspPl7DbQyaSWRaolYie/UFNjoTdvoKPzo6xrXLhTk9ixgIKcLH5b5vDOjVNiGyY+uDCUlg==}
     peerDependencies:
@@ -9103,7 +9123,7 @@ packages:
       ramda: /@pnpm/ramda@0.28.1
       right-pad: 1.0.1
       rxjs: 7.8.1
-      semver: 7.5.1
+      semver: 7.5.4
       stacktracey: 2.1.8
       string-length: 4.0.2
       strip-ansi: 6.0.1
@@ -9234,7 +9254,7 @@ packages:
       detect-libc: 2.0.1
       execa: /safe-execa@0.1.2
       mem: 8.1.1
-      semver: 7.5.1
+      semver: 7.5.4
     dev: false
 
   /@pnpm/pnpmfile@5.0.6(@pnpm/logger@5.0.0):
@@ -10361,7 +10381,7 @@ packages:
       prompts: 2.4.2
       puppeteer-core: 2.1.1
       read-pkg-up: 7.0.1
-      semver: 7.5.1
+      semver: 7.5.4
       shelljs: 0.8.5
       simple-update-notifier: 1.1.0
       strip-json-comments: 3.1.1
@@ -10562,7 +10582,7 @@ packages:
       pretty-hrtime: 1.0.3
       prompts: 2.4.2
       read-pkg-up: 7.0.1
-      semver: 7.5.1
+      semver: 7.5.4
       serve-favicon: 2.5.0
       telejson: 7.1.0
       ts-dedent: 2.2.0
@@ -10703,7 +10723,7 @@ packages:
       memoizerific: 1.11.3
       react: 17.0.2
       react-dom: 17.0.2(react@17.0.2)
-      semver: 7.5.1
+      semver: 7.5.4
       store2: 2.14.2
       telejson: 7.1.0
       ts-dedent: 2.2.0
@@ -10728,7 +10748,7 @@ packages:
       memoizerific: 1.11.3
       react: 17.0.2
       react-dom: 17.0.2(react@17.0.2)
-      semver: 7.5.1
+      semver: 7.5.4
       store2: 2.14.2
       telejson: 7.1.0
       ts-dedent: 2.2.0
@@ -18559,7 +18579,7 @@ packages:
       minimatch: 3.1.2
       node-abort-controller: 3.1.1
       schema-utils: 3.3.0
-      semver: 7.5.1
+      semver: 7.5.4
       tapable: 2.2.1
     dev: true
 
@@ -19597,6 +19617,7 @@ packages:
   /iconv-lite@0.6.3:
     resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
     engines: {node: '>=0.10.0'}
+    requiresBuild: true
     dependencies:
       safer-buffer: 2.1.2
 
@@ -20914,7 +20935,7 @@ packages:
       jest-util: 29.5.0
       natural-compare: 1.4.0
       pretty-format: 29.5.0
-      semver: 7.5.1
+      semver: 7.5.4
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -23940,6 +23961,7 @@ packages:
   /prepend-http@2.0.0:
     resolution: {integrity: sha512-ravE6m9Atw9Z/jjttRUZ+clIXogdghyZAuWJ3qEzjT+jI/dL1ifAqhZeC5VHzQp1MSt1+jxKkFNemj/iO7tVUA==}
     engines: {node: '>=4'}
+    requiresBuild: true
     dev: true
 
   /prettier@2.8.8:
@@ -25631,6 +25653,7 @@ packages:
 
   /sax@1.2.4:
     resolution: {integrity: sha512-NqVDv9TpANUjFm0N8uM5GxL36UgKi9/atZw+x7YFnQ8ckwFGKrl4xX4yWtrey3UJm5nP1kUbnYgLopqWNSRhWw==}
+    requiresBuild: true
     dev: true
 
   /scheduler@0.19.1:
@@ -25796,6 +25819,14 @@ packages:
 
   /semver@7.5.1:
     resolution: {integrity: sha512-Wvss5ivl8TMRZXXESstBA4uR5iXgEN/VC5/sOcuXdVLzcdkz4HWetIoRfG5gb5X+ij/G9rw9YoGn3QoQ8OCSpw==}
+    engines: {node: '>=10'}
+    hasBin: true
+    dependencies:
+      lru-cache: 6.0.0
+    dev: true
+
+  /semver@7.5.4:
+    resolution: {integrity: sha512-1bCSESV6Pv+i21Hvpxp3Dx+pSD8lIPt8uVjRrxAUt/nbswYc+tK6Y2btiULjd4+fnq15PX+nqQDC7Oft7WkwcA==}
     engines: {node: '>=10'}
     hasBin: true
     dependencies:
@@ -26433,7 +26464,7 @@ packages:
       react-dom: 17.0.2(react@17.0.2)
       remark-external-links: 9.0.1
       remark-slug: 7.0.1
-      semver: 7.5.1
+      semver: 7.5.4
       slash: 3.0.0
       style-loader: 3.3.3
       ts-dedent: 2.2.0
@@ -26484,7 +26515,7 @@ packages:
       react-docgen: 6.0.0-beta.6
       react-dom: 17.0.2(react@17.0.2)
       react-refresh: 0.11.0
-      semver: 7.5.1
+      semver: 7.5.4
       tinypool: 0.4.0
     transitivePeerDependencies:
       - '@types/webpack'
@@ -28282,7 +28313,7 @@ packages:
       is-yarn-global: 0.3.0
       latest-version: 5.1.0
       pupa: 2.1.1
-      semver: 7.5.1
+      semver: 7.5.4
       semver-diff: 3.1.1
       xdg-basedir: 4.0.0
     dev: true
