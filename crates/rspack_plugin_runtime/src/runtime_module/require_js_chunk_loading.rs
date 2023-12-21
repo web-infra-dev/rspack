@@ -127,14 +127,15 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
 
     if with_loading {
       if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
-        source.add(RawSource::from(format!(
+        source.add(RawSource::from(
           r#"
           // require() chunk loading for javascript
           __webpack_require__.f.require = function (chunkId, promises) {{
             installedChunks[chunkId] = 1;
           }}
           "#
-        )));
+          .to_string(),
+        ));
       } else {
         source.add(RawSource::from(
           include_str!("runtime/require_chunk_loading_with_loading.js")
