@@ -4,10 +4,12 @@
 
 [files]
 extend-exclude = [
-  "**/*.{css,map,json,txt,ts,tsx,js,snap,bak,diff,html}",
+  "**/*.{css,map,json,txt,snap,bak,diff,html}",
+  "packages/rspack-test-tools",
+  "packages/rspack/tests/hashCases",
   "webpack-examples",
   "webpack-test",
-  "./examples",
+  "examples",
   "**/CHANGELOG.md",
   "GOVERNANCE.md",
   "pnpm-lock.yaml",
