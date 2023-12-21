@@ -1,17 +1,20 @@
 use rspack_core::{
-  BuildInfo, ConstDependency, DependencyTemplate, ResourceData, RuntimeGlobals,
+  BuildInfo, ConstDependency, Dependency, DependencyTemplate, ResourceData, RuntimeGlobals,
   RuntimeRequirementsDependency, SpanExt,
 };
 use swc_core::{
   common::{Spanned, SyntaxContext},
   ecma::{
-    ast::{AssignExpr, AssignOp, Expr, Ident, Pat, PatOrExpr, VarDeclarator},
+    ast::{
+      AssignExpr, AssignOp, CallExpr, Callee, Expr, Ident, Lit, Pat, PatOrExpr, UnaryExpr, UnaryOp,
+      VarDeclarator,
+    },
     visit::{noop_visit_type, Visit, VisitWith},
   },
 };
 
 use super::expr_matcher;
-use crate::dependency::ModuleArgumentDependency;
+use crate::dependency::{ModuleArgumentDependency, WebpackIsIncludedDependency};
 
 pub const WEBPACK_HASH: &str = "__webpack_hash__";
 pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
@@ -27,6 +30,7 @@ pub const WEBPACK_INIT_SHARING: &str = "__webpack_init_sharing__";
 pub const WEBPACK_NONCE: &str = "__webpack_nonce__";
 pub const WEBPACK_CHUNK_NAME: &str = "__webpack_chunkname__";
 pub const WEBPACK_RUNTIME_ID: &str = "__webpack_runtime_id__";
+pub const WEBPACK_IS_INCLUDE: &str = "__webpack_is_included__";
 
 pub struct ApiScanner<'a> {
   pub unresolved_ctxt: SyntaxContext,
@@ -35,12 +39,14 @@ pub struct ApiScanner<'a> {
   pub enter_assign: bool,
   pub resource_data: &'a ResourceData,
   pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
+  pub dependencies: &'a mut Vec<Box<dyn Dependency>>,
 }
 
 impl<'a> ApiScanner<'a> {
   pub fn new(
     unresolved_ctxt: SyntaxContext,
     resource_data: &'a ResourceData,
+    dependencies: &'a mut Vec<Box<dyn Dependency>>,
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     module: bool,
     build_info: &'a mut BuildInfo,
@@ -52,6 +58,7 @@ impl<'a> ApiScanner<'a> {
       enter_assign: false,
       resource_data,
       presentational_dependencies,
+      dependencies,
     }
   }
 }
@@ -268,5 +275,58 @@ impl Visit for ApiScanner<'_> {
       return;
     }
     expr.visit_children_with(self);
+  }
+
+  fn visit_call_expr(&mut self, call_expr: &CallExpr) {
+    if let Callee::Expr(box Expr::Ident(ident)) = &call_expr.callee
+      && ident.sym == WEBPACK_IS_INCLUDE
+    {
+      if call_expr.args.len() != 1 {
+        return;
+      }
+      if let Some(arg) = call_expr.args.first() {
+        let request = if arg.spread.is_some() {
+          None
+        } else {
+          arg
+            .expr
+            .as_lit()
+            .and_then(|lit| match lit {
+              Lit::Str(str) => Some(str),
+              _ => None,
+            })
+            .map(|str| str.value.clone())
+        };
+
+        if let Some(request) = request {
+          self
+            .dependencies
+            .push(Box::new(WebpackIsIncludedDependency::new(
+              call_expr.span().real_lo(),
+              call_expr.span().real_hi(),
+              request,
+            )));
+        }
+      }
+    }
+    call_expr.visit_children_with(self);
+  }
+
+  fn visit_unary_expr(&mut self, unary_expr: &UnaryExpr) {
+    if matches!(unary_expr.op, UnaryOp::TypeOf) {
+      if let box Expr::Ident(ident) = &unary_expr.arg {
+        if ident.sym.as_ref() as &str == WEBPACK_IS_INCLUDE {
+          self
+            .presentational_dependencies
+            .push(Box::new(ConstDependency::new(
+              unary_expr.span.real_lo(),
+              unary_expr.span.real_hi(),
+              "\"function\"".into(),
+              None,
+            )));
+        }
+      }
+    }
+    unary_expr.visit_children_with(self);
   }
 }

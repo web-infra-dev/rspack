@@ -49,6 +49,8 @@ mod module_factory;
 pub use module_factory::*;
 mod normal_module_factory;
 pub use normal_module_factory::*;
+mod ignore_error_module_factory;
+pub use ignore_error_module_factory::*;
 mod compiler;
 pub use compiler::*;
 mod options;

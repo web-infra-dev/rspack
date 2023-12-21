@@ -1,13 +1,15 @@
 use std::hash::Hash;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::{
   get_js_chunk_filename_template, AdditionalChunkRuntimeRequirementsArgs, ChunkHashArgs, ChunkKind,
-  CompilationArgs, CompilationParams, CompilerOptions, DependencyType, ErrorSpan, ModuleType,
-  ParserAndGenerator, PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
-  PluginRenderManifestHookOutput, RenderManifestEntry, RuntimeGlobals, SourceType,
+  CompilationArgs, CompilationParams, CompilerOptions, DependencyType, ErrorSpan,
+  IgnoreErrorModuleFactory, ModuleType, ParserAndGenerator, PathData, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginChunkHashHookOutput,
+  PluginCompilationHookOutput, PluginContext, PluginRenderManifestHookOutput, RenderManifestEntry,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -144,6 +146,13 @@ impl Plugin for JsPlugin {
     args
       .compilation
       .set_dependency_factory(DependencyType::NewUrl, params.normal_module_factory.clone());
+
+    args.compilation.set_dependency_factory(
+      DependencyType::WebpackIsIncluded,
+      Arc::new(IgnoreErrorModuleFactory {
+        normal_module_factory: params.normal_module_factory.clone(),
+      }),
+    );
     Ok(())
   }
 
