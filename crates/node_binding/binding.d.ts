@@ -1142,7 +1142,6 @@ export interface RawResolveTsconfigOptions {
 }
 
 export interface RawRspackFuture {
-  newResolver: boolean
   newTreeshaking: boolean
   disableTransformByDefault: boolean
 }

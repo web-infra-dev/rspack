@@ -769,11 +769,9 @@ function getRawExperiments(
 function getRawRspackFutureOptions(
 	future: RspackFutureOptions
 ): RawRspackFuture {
-	assert(!isNil(future.newResolver));
 	assert(!isNil(future.newTreeshaking));
 	assert(!isNil(future.disableTransformByDefault));
 	return {
-		newResolver: future.newResolver,
 		newTreeshaking: future.newTreeshaking,
 		disableTransformByDefault: future.disableTransformByDefault
 	};
