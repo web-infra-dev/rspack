@@ -1,6 +1,10 @@
 import WebpackDevServer from "webpack-dev-server";
 import type { DevServer } from "@rspack/core";
 
+declare module "@rspack/core" {
+	interface DevServer extends WebpackDevServer.Configuration {}
+}
+
 export type { DevServer };
 
 export interface ResolvedDevServer extends DevServer {

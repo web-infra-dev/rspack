@@ -2,7 +2,6 @@ import { RawFuncUseCtx } from "@rspack/binding";
 import { z } from "zod";
 import { Compilation, Compiler } from "..";
 import type * as oldBuiltins from "../builtin-plugin";
-import type * as webpackDevServer from "webpack-dev-server";
 import { deprecatedWarn, termlink } from "../util";
 import { Module } from "../Module";
 import { Chunk } from "../Chunk";
@@ -1127,7 +1126,7 @@ export type WatchOptions = z.infer<typeof watchOptions>;
 //#endregion
 
 //#region DevServer
-export interface DevServer extends webpackDevServer.Configuration {
+export interface DevServer {
 	hot?: boolean;
 }
 const devServer = z.custom<DevServer>();

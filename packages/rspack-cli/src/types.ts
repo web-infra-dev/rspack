@@ -1,6 +1,6 @@
 import { Colorette } from "colorette";
 import { RspackCLI } from "./rspack-cli";
-import type { DevServer } from "@rspack/core";
+import type { Configuration as DevServer } from "@rspack/dev-server";
 export type { Configuration } from "@rspack/core";
 
 export interface IRspackCLI {
