@@ -67,7 +67,7 @@
     "webpack": "5.89.0"
   },
   "dependencies": {
-    "@module-federation/webpack-bundler-runtime": "0.0.0-next-20231222080837",
+    "@module-federation/runtime-tools": "0.0.0-next-20231222101023",
     "@rspack/binding": "workspace:*",
     "@swc/helpers": "0.5.1",
     "browserslist": "^4.21.3",

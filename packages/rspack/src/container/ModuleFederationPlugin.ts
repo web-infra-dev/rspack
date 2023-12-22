@@ -95,7 +95,7 @@ function getRuntimePlugins(options: ModuleFederationPluginOptions) {
 function getImplementation(options: ModuleFederationPluginOptions) {
 	return (
 		options.implementation ??
-		require.resolve("@module-federation/webpack-bundler-runtime")
+		require.resolve("@module-federation/runtime-tools/webpack-bundler-runtime")
 	);
 }
 

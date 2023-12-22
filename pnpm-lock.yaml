@@ -1556,9 +1556,9 @@ importers:
 
   packages/rspack:
     dependencies:
-      '@module-federation/webpack-bundler-runtime':
-        specifier: 0.0.0-next-20231222080837
-        version: 0.0.0-next-20231222080837
+      '@module-federation/runtime-tools':
+        specifier: 0.0.0-next-20231222101023
+        version: 0.0.0-next-20231222101023
       '@rspack/binding':
         specifier: workspace:*
         version: link:../../crates/node_binding
@@ -8268,21 +8268,28 @@ packages:
     resolution: {integrity: sha512-H1rQc1ZOHANWBvPcW+JpGwr+juXSxM8Q8YCkm3GhZd8REu1fHR3z99CErO1p9pkcfcxZnMdIZdIsXkOHY0NilA==}
     dev: true
 
-  /@module-federation/runtime@0.0.0-next-20231222080837:
-    resolution: {integrity: sha512-i3jBcj61QX1Nk2lge82EkYR2erHgJq5cWhnIvVIyamWQbb89a+oexSRzf+dF/OXFhaVREa4bvMjxgIaVI+iKVA==}
+  /@module-federation/runtime-tools@0.0.0-next-20231222101023:
+    resolution: {integrity: sha512-SXa70dv37jHrYJwuWi6R1DMzvEYBKSbkDJon7PoLBhXwPuj+wEJwNyctldfQehhUi7sDc2UMooRtklPSJYVQ2A==}
     dependencies:
-      '@module-federation/sdk': 0.0.0-next-20231222080837
+      '@module-federation/runtime': 0.0.0-next-20231222101023
+      '@module-federation/webpack-bundler-runtime': 0.0.0-next-20231222101023
     dev: false
 
-  /@module-federation/sdk@0.0.0-next-20231222080837:
-    resolution: {integrity: sha512-JFUEybglBeh2x/DkjbuZtoCmqVsm2P5QjXoEHh0nU0FfO/+aUpJkq6AYo6zsMrTMgif2VpcWwu35M5hoI7h1yw==}
+  /@module-federation/runtime@0.0.0-next-20231222101023:
+    resolution: {integrity: sha512-VmgotaMYTMWRqqTCBbad3sUxzm8Z6doMFgdMIGe/0r4Py3CfG9ySq4GWUO0eA++GSHHCLhGVAsGOnLNc9hfokA==}
+    dependencies:
+      '@module-federation/sdk': 0.0.0-next-20231222101023
     dev: false
 
-  /@module-federation/webpack-bundler-runtime@0.0.0-next-20231222080837:
-    resolution: {integrity: sha512-6BhSY+eaFAxE3/U4Xb9U+TIP2lq3jf3ErYVJmwJ+QZV0sEA6L+jZpicLIg9wxN7Z3AtLyDX/8tjaQWhrba+ZSA==}
+  /@module-federation/sdk@0.0.0-next-20231222101023:
+    resolution: {integrity: sha512-8YlOmc3P1bFtsLF/3lWGxsV4c2nLUWU9iE/fuBBcLwT70zvJOCk8/71wEJNgvMkXzrFp2eFWx0QXTFgvITtbRA==}
+    dev: false
+
+  /@module-federation/webpack-bundler-runtime@0.0.0-next-20231222101023:
+    resolution: {integrity: sha512-Uv5cXK853564KAKwZHFNj/ACOzJc98B+fsFIns6Cz2QCOFVsXzzbkVM9VMQVJ4EjcbEBolKRS+GjgsFKXEErIQ==}
     dependencies:
-      '@module-federation/runtime': 0.0.0-next-20231222080837
-      '@module-federation/sdk': 0.0.0-next-20231222080837
+      '@module-federation/runtime': 0.0.0-next-20231222101023
+      '@module-federation/sdk': 0.0.0-next-20231222101023
     dev: false
 
   /@monaco-editor/loader@1.4.0(monaco-editor@0.34.1):

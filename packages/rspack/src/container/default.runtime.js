@@ -31,7 +31,7 @@ module.exports = function () {
 			remotesLoadingModuleIdToRemoteDataMapping
 		)) {
 			const info = __module_federation_remote_infos__[remoteData[3]];
-			if (info) idToRemoteMap[id] = info;
+			if (info) idToRemoteMap[id] = [info];
 		}
 
 		const moduleToConsumeDataMapping =
