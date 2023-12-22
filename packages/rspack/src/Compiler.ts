@@ -331,6 +331,7 @@ class Compiler {
 				// No matter how it will be implemented, it will be copied to the child compiler.
 				compilation: this.#compilation.bind(this),
 				optimizeModules: this.#optimizeModules.bind(this),
+				afterOptimizeModules: this.#afterOptimizeModules.bind(this),
 				optimizeTree: this.#optimizeTree.bind(this),
 				optimizeChunkModules: this.#optimizeChunkModules.bind(this),
 				finishModules: this.#finishModules.bind(this),
@@ -647,6 +648,7 @@ class Compiler {
 			optimizeTree: this.compilation.hooks.optimizeTree,
 			finishModules: this.compilation.hooks.finishModules,
 			optimizeModules: this.compilation.hooks.optimizeModules,
+			afterOptimizeModules: this.compilation.hooks.afterOptimizeModules,
 			chunkAsset: this.compilation.hooks.chunkAsset,
 			beforeResolve: this.compilation.normalModuleFactory?.hooks.beforeResolve,
 			afterResolve: this.compilation.normalModuleFactory?.hooks.afterResolve,
@@ -786,6 +788,13 @@ class Compiler {
 
 	async #optimizeModules() {
 		await this.compilation.hooks.optimizeModules.promise(
+			this.compilation.modules
+		);
+		this.#updateDisabledHooks();
+	}
+
+	async #afterOptimizeModules() {
+		await this.compilation.hooks.afterOptimizeModules.promise(
 			this.compilation.modules
 		);
 		this.#updateDisabledHooks();

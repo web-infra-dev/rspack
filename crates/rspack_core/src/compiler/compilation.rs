@@ -1372,6 +1372,7 @@ impl Compilation {
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;
       plugin_driver.optimize_modules(compilation).await?;
+      plugin_driver.after_optimize_modules(compilation).await?;
       plugin_driver.optimize_chunks(compilation).await?;
       Ok(compilation)
     })

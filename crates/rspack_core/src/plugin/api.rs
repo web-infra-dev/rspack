@@ -404,6 +404,10 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn after_optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
+
   async fn optimize_dependencies(&self, _compilation: &mut Compilation) -> Result<Option<()>> {
     Ok(None)
   }

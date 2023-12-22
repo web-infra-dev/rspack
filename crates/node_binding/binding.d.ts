@@ -324,6 +324,7 @@ export interface JsHooks {
   afterEmit: (...args: any[]) => any
   make: (...args: any[]) => any
   optimizeModules: (...args: any[]) => any
+  afterOptimizeModules: (...args: any[]) => any
   optimizeTree: (...args: any[]) => any
   optimizeChunkModules: (...args: any[]) => any
   beforeCompile: (...args: any[]) => any
