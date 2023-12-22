@@ -32,10 +32,10 @@ describe("Stats", () => {
 		chunk {main} main.js (main) [entry]
 		  ./fixtures/a.js [585] {main}
 		    entry ./fixtures/a
-		./fixtures/a.js [585] {main}
+		./fixtures/a.js [585] {909}
 		  entry ./fixtures/a
 		  
-		Rspack compiled successfully (a62f45ec3d75aa689fa1)"
+		Rspack compiled successfully (57e46af248a1c1fe076f)"
 	`);
 	});
 

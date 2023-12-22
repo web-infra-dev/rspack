@@ -530,11 +530,15 @@ impl TestConfig {
 
     if self.optimization.module_ids == "named" {
       plugins.push(rspack_ids::NamedModuleIdsPlugin::default().boxed());
+    } else if self.optimization.module_ids == "natural" {
+      plugins.push(rspack_ids::NaturalModuleIdsPlugin::default().boxed());
     } else {
       plugins.push(rspack_ids::DeterministicModuleIdsPlugin::default().boxed());
     }
     if self.optimization.chunk_ids == "named" {
       plugins.push(rspack_ids::NamedChunkIdsPlugin::new(None, None).boxed());
+    } else if self.optimization.chunk_ids == "natural" {
+      plugins.push(rspack_ids::NaturalChunkIdsPlugin::new().boxed());
     } else {
       plugins.push(rspack_ids::DeterministicChunkIdsPlugin::default().boxed());
     }
