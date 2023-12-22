@@ -11,8 +11,8 @@ use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::{
-  AssetInfo, ChunkInitFragments, ModuleIdentifier, RuntimeGlobals, RuntimeMode, RuntimeSpec,
-  RuntimeSpecMap, SourceType,
+  AssetInfo, ChunkInitFragments, ModuleIdentifier, PublicPath, RuntimeGlobals, RuntimeMode,
+  RuntimeSpec, RuntimeSpecMap, SourceType,
 };
 
 #[derive(Clone, Debug)]
@@ -32,16 +32,24 @@ impl CodeGenerationDataUrl {
 
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataFilename {
-  inner: String,
+  filename: String,
+  public_path: PublicPath,
 }
 
 impl CodeGenerationDataFilename {
-  pub fn new(inner: String) -> Self {
-    Self { inner }
+  pub fn new(filename: String, public_path: PublicPath) -> Self {
+    Self {
+      filename,
+      public_path,
+    }
   }
 
-  pub fn inner(&self) -> &str {
-    &self.inner
+  pub fn filename(&self) -> &str {
+    &self.filename
+  }
+
+  pub fn public_path(&self) -> &PublicPath {
+    &self.public_path
   }
 }
 
