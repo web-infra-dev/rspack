@@ -1557,8 +1557,8 @@ importers:
   packages/rspack:
     dependencies:
       '@module-federation/webpack-bundler-runtime':
-        specifier: 0.0.0-feat-apply-bundler-runtime-1702896801896
-        version: 0.0.0-feat-apply-bundler-runtime-1702896801896
+        specifier: 0.0.0-next-20231222080837
+        version: 0.0.0-next-20231222080837
       '@rspack/binding':
         specifier: workspace:*
         version: link:../../crates/node_binding
@@ -8268,21 +8268,21 @@ packages:
     resolution: {integrity: sha512-H1rQc1ZOHANWBvPcW+JpGwr+juXSxM8Q8YCkm3GhZd8REu1fHR3z99CErO1p9pkcfcxZnMdIZdIsXkOHY0NilA==}
     dev: true
 
-  /@module-federation/runtime@0.0.0-feat-apply-bundler-runtime-1702896801896:
-    resolution: {integrity: sha512-LTfEqjdzY+06zv7joji1hx7F8X4K7VXtNhsU+AjIqK81OyK1RuL86cF3snPYqOxz00Qz1OvYG4/FQarXDWgbMg==}
+  /@module-federation/runtime@0.0.0-next-20231222080837:
+    resolution: {integrity: sha512-i3jBcj61QX1Nk2lge82EkYR2erHgJq5cWhnIvVIyamWQbb89a+oexSRzf+dF/OXFhaVREa4bvMjxgIaVI+iKVA==}
     dependencies:
-      '@module-federation/sdk': 0.0.0-feat-apply-bundler-runtime-1702896801896
-      semver: 7.5.4
+      '@module-federation/sdk': 0.0.0-next-20231222080837
     dev: false
 
-  /@module-federation/sdk@0.0.0-feat-apply-bundler-runtime-1702896801896:
-    resolution: {integrity: sha512-819tRkRvQibOUa+cAPddtgURaCtEYjD5VKdkwbR2FvCtk3QLZGmsbnTdwIPwhBRUtWkb6zWtCqHe1WRX9Qv79Q==}
+  /@module-federation/sdk@0.0.0-next-20231222080837:
+    resolution: {integrity: sha512-JFUEybglBeh2x/DkjbuZtoCmqVsm2P5QjXoEHh0nU0FfO/+aUpJkq6AYo6zsMrTMgif2VpcWwu35M5hoI7h1yw==}
     dev: false
 
-  /@module-federation/webpack-bundler-runtime@0.0.0-feat-apply-bundler-runtime-1702896801896:
-    resolution: {integrity: sha512-DJInZbjhO39OOC+unHN3K9eEnAhvpBqsgzLgO2D21Gpf8ddTIs2vDykIMF5AT02r0mRBrgF8y9kL59PEWprmXQ==}
+  /@module-federation/webpack-bundler-runtime@0.0.0-next-20231222080837:
+    resolution: {integrity: sha512-6BhSY+eaFAxE3/U4Xb9U+TIP2lq3jf3ErYVJmwJ+QZV0sEA6L+jZpicLIg9wxN7Z3AtLyDX/8tjaQWhrba+ZSA==}
     dependencies:
-      '@module-federation/runtime': 0.0.0-feat-apply-bundler-runtime-1702896801896
+      '@module-federation/runtime': 0.0.0-next-20231222080837
+      '@module-federation/sdk': 0.0.0-next-20231222080837
     dev: false
 
   /@monaco-editor/loader@1.4.0(monaco-editor@0.34.1):

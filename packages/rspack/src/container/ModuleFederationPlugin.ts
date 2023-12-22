@@ -15,7 +15,7 @@ export class ModuleFederationPlugin {
 		const { webpack } = compiler;
 		new webpack.EntryPlugin(
 			compiler.context,
-			defaultImplementation(this._options, compiler),
+			getDefaultEntryRuntime(this._options, compiler),
 			{ name: undefined }
 		).apply(compiler);
 		new webpack.container.ModuleFederationPluginV1({
@@ -25,10 +25,7 @@ export class ModuleFederationPlugin {
 	}
 }
 
-function defaultImplementation(
-	options: ModuleFederationPluginOptions,
-	compiler: Compiler
-) {
+function getRemoteInfos(options: ModuleFederationPluginOptions) {
 	function extractUrlAndGlobal(urlAndGlobal: string) {
 		const index = urlAndGlobal.indexOf("@");
 		if (index <= 0 || index === urlAndGlobal.length - 1) {
@@ -56,10 +53,7 @@ function defaultImplementation(
 		return result;
 	}
 
-	const runtimeTemplate = compiler.webpack.Template.getFunctionContent(
-		require("./default.runtime.js")
-	);
-	const remotes = [];
+	const remotes: Record<string, unknown> = {};
 	const remoteType =
 		options.remoteType ||
 		(options.library ? (options.library.type as ExternalsType) : "script");
@@ -74,33 +68,63 @@ function defaultImplementation(
 			"default";
 		if (externalType === "script") {
 			const [url, global] = extractUrlAndGlobal(external)!;
-			remotes.push({
+			remotes[key] = {
 				alias: key,
 				name: global,
 				entry: url,
 				externalType,
 				shareScope
-			});
+			};
 		} else {
-			remotes.push({
+			remotes[key] = {
 				alias: key,
 				name: undefined,
 				entry: undefined,
 				externalType,
 				shareScope
-			});
+			};
 		}
 	}
-	const runtimePlugins = options.runtimePlugins ?? [];
-	const pluginImports = runtimePlugins.map(
-		p => `require(${JSON.stringify(p)})`
-	);
-	const implementationPath =
+	return remotes;
+}
+
+function getRuntimePlugins(options: ModuleFederationPluginOptions) {
+	return options.runtimePlugins ?? [];
+}
+
+function getImplementation(options: ModuleFederationPluginOptions) {
+	return (
 		options.implementation ??
-		require.resolve("@module-federation/webpack-bundler-runtime");
-	let implementation = runtimeTemplate
-		.replace("$RUNTIME_PACKAGE_PATH$", JSON.stringify(implementationPath))
-		.replace("$ALL_REMOTES$", JSON.stringify(remotes))
-		.replace("$INITOPTIONS_PLUGINS$", `[${pluginImports.join(", ")}]`);
-	return `data:text/javascript,${implementation}`;
+		require.resolve("@module-federation/webpack-bundler-runtime")
+	);
+}
+
+function getDefaultEntryRuntime(
+	options: ModuleFederationPluginOptions,
+	compiler: Compiler
+) {
+	const implementationPath = getImplementation(options);
+	const runtimePlugins = getRuntimePlugins(options);
+	const remoteInfos = getRemoteInfos(options);
+	const runtimePluginImports = [];
+	const runtimePluginVars = [];
+	for (let i = 0; i < runtimePlugins.length; i++) {
+		const runtimePluginVar = `__module_federation_runtime_plugin_${i}__`;
+		runtimePluginImports.push(
+			`import ${runtimePluginVar} from ${JSON.stringify(runtimePlugins[i])}`
+		);
+		runtimePluginVars.push(`${runtimePluginVar}()`);
+	}
+	const content = [
+		`import __module_federation_runtime__ from ${JSON.stringify(
+			implementationPath
+		)}`,
+		...runtimePluginImports,
+		`const __module_federation_runtime_plugins__ = [${runtimePluginVars.join(
+			", "
+		)}]`,
+		`const __module_federation_remote_infos__ = ${JSON.stringify(remoteInfos)}`,
+		compiler.webpack.Template.getFunctionContent(require("./default.runtime"))
+	].join("\n");
+	return `data:text/javascript,${content}`;
 }

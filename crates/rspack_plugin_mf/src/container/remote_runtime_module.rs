@@ -41,7 +41,7 @@ impl RuntimeModule for RemoteRuntimeModule {
       .expect("should have chunk in <RemoteRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
     let mut chunk_to_remotes_mapping = FxHashMap::default();
-    let mut id_to_external_and_name_mapping = FxHashMap::default();
+    let mut id_to_remote_data_mapping = FxHashMap::default();
     for chunk in chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey) {
       let modules = compilation
         .chunk_graph
@@ -73,7 +73,10 @@ impl RuntimeModule for RemoteRuntimeModule {
           .as_deref()
           .expect("should have module_id at <RemoteRuntimeModule as RuntimeModule>::generate");
         remotes.push(id.to_string());
-        id_to_external_and_name_mapping.insert(id, vec![share_scope, name, external_module_id]);
+        id_to_remote_data_mapping.insert(
+          id,
+          vec![share_scope, name, external_module_id, m.remote_key.as_str()],
+        );
       }
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
       chunk_to_remotes_mapping.insert(
@@ -91,11 +94,11 @@ impl RuntimeModule for RemoteRuntimeModule {
     };
     RawSource::from(format!(
       r#"
-__webpack_require__.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_external_and_name_mapping} }};
+__webpack_require__.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_remote_data_mapping} }};
 {remotes_loading_impl}
 "#,
       chunk_mapping = json_stringify(&chunk_to_remotes_mapping),
-      id_to_external_and_name_mapping = json_stringify(&id_to_external_and_name_mapping),
+      id_to_remote_data_mapping = json_stringify(&id_to_remote_data_mapping),
       remotes_loading_impl = remotes_loading_impl,
     ))
     .boxed()

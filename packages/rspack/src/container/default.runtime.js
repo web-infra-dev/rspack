@@ -1,15 +1,12 @@
 // @ts-nocheck
+var __module_federation_runtime__,
+	__module_federation_runtime_plugins__,
+	__module_federation_remote_infos__;
 module.exports = function () {
 	if (
 		__webpack_require__.initializeSharingData ||
 		__webpack_require__.initializeExposesData
 	) {
-		const getDefaultExport = module =>
-			module.__esModule ? module.default : module;
-		const federation = require($RUNTIME_PACKAGE_PATH$);
-		const plugins = $INITOPTIONS_PLUGINS$.map(m => getDefaultExport(m)());
-		const allRemotes = $ALL_REMOTES$;
-
 		const scopeToInitDataMapping =
 			__webpack_require__.initializeSharingData?.scopeToSharingDataMapping ??
 			{};
@@ -27,23 +24,14 @@ module.exports = function () {
 			}
 		}
 
-		const idToExternalAndNameMapping =
+		const remotesLoadingModuleIdToRemoteDataMapping =
 			__webpack_require__.remotesLoadingData?.moduleIdToRemoteDataMapping ?? {};
 		const idToRemoteMap = {};
-		for (let [id, external] of Object.entries(idToExternalAndNameMapping)) {
-			for (let remote of allRemotes) {
-				if (
-					id.slice("webpack/container/remote/".length).startsWith(remote.alias)
-				) {
-					idToRemoteMap[id] = [
-						{
-							externalType: remote.externalType,
-							request: remote.entry,
-							remoteName: remote.name
-						}
-					];
-				}
-			}
+		for (let [id, remoteData] of Object.entries(
+			remotesLoadingModuleIdToRemoteDataMapping
+		)) {
+			const info = __module_federation_remote_infos__[remoteData[3]];
+			if (info) idToRemoteMap[id] = info;
 		}
 
 		const moduleToConsumeDataMapping =
@@ -77,35 +65,37 @@ module.exports = function () {
 		const containerShareScope =
 			__webpack_require__.initializeExposesData?.containerShareScope;
 
-		federation.initOptions = {
+		__module_federation_runtime__.initOptions = {
 			name: __webpack_require__.initializeSharingData?.uniqueName,
-			remotes: allRemotes.filter(remote => remote.externalType === "script"),
+			remotes: Object.values(__module_federation_remote_infos__).filter(
+				remote => remote.externalType === "script"
+			),
 			shared: shared,
-			plugins: plugins
+			plugins: __module_federation_runtime_plugins__
 		};
-		federation.bundlerRuntimeOptions = {
+		__module_federation_runtime__.bundlerRuntimeOptions = {
 			remotes: {
 				idToRemoteMap,
 				chunkMapping: remotesLoadingChunkMapping,
-				idToExternalAndNameMapping,
+				idToExternalAndNameMapping: remotesLoadingModuleIdToRemoteDataMapping,
 				webpackRequire: __webpack_require__
 			}
 		};
 
 		if (__webpack_require__.f?.remotes) {
 			__webpack_require__.f.remotes = (chunkId, promises) =>
-				federation.bundlerRuntime.remotes({
+				__module_federation_runtime__.bundlerRuntime.remotes({
 					chunkId,
 					promises,
 					chunkMapping: remotesLoadingChunkMapping,
-					idToExternalAndNameMapping,
+					idToExternalAndNameMapping: remotesLoadingModuleIdToRemoteDataMapping,
 					idToRemoteMap,
 					webpackRequire: __webpack_require__
 				});
 		}
 		if (__webpack_require__.f?.consumes) {
 			__webpack_require__.f.consumes = (chunkId, promises) =>
-				federation.bundlerRuntime.consumes({
+				__module_federation_runtime__.bundlerRuntime.consumes({
 					chunkId,
 					promises,
 					chunkMapping: consumesLoadingChunkMapping,
@@ -116,7 +106,7 @@ module.exports = function () {
 		}
 		if (__webpack_require__.I) {
 			__webpack_require__.I = (name, initScope) =>
-				federation.bundlerRuntime.I({
+				__module_federation_runtime__.bundlerRuntime.I({
 					shareScopeName: name,
 					initScope,
 					initPromises: initializeSharingInitPromises,
@@ -125,11 +115,11 @@ module.exports = function () {
 				});
 		}
 		if (__webpack_require__.S) {
-			__webpack_require__.S = federation.bundlerRuntime.S;
+			__webpack_require__.S = __module_federation_runtime__.bundlerRuntime.S;
 		}
 		if (__webpack_require__.initContainer) {
 			__webpack_require__.initContainer = (shareScope, initScope) =>
-				federation.bundlerRuntime.initContainerEntry({
+				__module_federation_runtime__.bundlerRuntime.initContainerEntry({
 					shareScope,
 					initScope,
 					shareScopeKey: containerShareScope,
@@ -152,12 +142,15 @@ module.exports = function () {
 			};
 		}
 
-		__webpack_require__.federation = federation;
+		__webpack_require__.federation = __module_federation_runtime__;
 
-		federation.instance = federation.runtime.init(federation.initOptions);
+		__module_federation_runtime__.instance =
+			__module_federation_runtime__.runtime.init(
+				__module_federation_runtime__.initOptions
+			);
 
 		if (__webpack_require__.consumesLoadingData?.initialConsumes) {
-			federation.bundlerRuntime.installInitialConsumes({
+			__module_federation_runtime__.bundlerRuntime.installInitialConsumes({
 				webpackRequire: __webpack_require__,
 				installedModules: consumesLoadinginstalledModules,
 				initialConsumes:
