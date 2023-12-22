@@ -371,7 +371,11 @@ impl Plugin for RuntimePlugin {
         ),
         RuntimeGlobals::LOAD_SCRIPT => compilation.add_runtime_module(
           chunk,
-          LoadScriptRuntimeModule::new(compilation.options.output.trusted_types.is_some()).boxed(),
+          LoadScriptRuntimeModule::new(
+            compilation.options.output.unique_name.clone(),
+            compilation.options.output.trusted_types.is_some(),
+          )
+          .boxed(),
         ),
         RuntimeGlobals::HAS_OWN_PROPERTY => {
           compilation.add_runtime_module(chunk, HasOwnPropertyRuntimeModule::default().boxed())
