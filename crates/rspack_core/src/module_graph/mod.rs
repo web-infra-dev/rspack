@@ -20,7 +20,7 @@ use crate::{
 };
 
 // TODO Here request can be used JsWord
-pub type ImportVarMap = HashMap<String /* request */, String /* import_var */>;
+pub type ImportVarMap = HashMap<Option<String> /* request */, String /* import_var */>;
 
 #[derive(Debug, Default)]
 pub struct DependencyParents {

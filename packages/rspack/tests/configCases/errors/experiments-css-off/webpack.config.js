@@ -7,6 +7,7 @@ module.exports = {
       }
     ]
   },
+	bail: true,
 	experiments: {
 		css: false
 	}

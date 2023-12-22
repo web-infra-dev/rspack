@@ -36,6 +36,7 @@ import type {
 	WatchOptions,
 	DevServer,
 	Profile,
+	Bail,
 	Builtins,
 	EntryRuntime,
 	ChunkLoading,
@@ -312,6 +313,7 @@ export const getNormalizedRspackOptions = (
 		watchOptions: cloneObject(config.watchOptions),
 		devServer: config.devServer,
 		profile: config.profile,
+		bail: config.bail,
 		builtins: nestedConfig(config.builtins, builtins => ({
 			...builtins
 		}))
@@ -542,5 +544,6 @@ export interface RspackOptionsNormalized {
 	devServer?: DevServer;
 	ignoreWarnings?: IgnoreWarningsNormalized;
 	profile?: Profile;
+	bail?: Bail;
 	builtins: Builtins;
 }

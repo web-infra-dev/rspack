@@ -32,6 +32,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     &[],
     CompilerContext {
       options: std::sync::Arc::new(CompilerOptions {
+        bail: false,
         context: rspack_core::Context::default(),
         dev_server: rspack_core::DevServerOptions::default(),
         devtool: rspack_core::Devtool::from("source-map".to_string()),

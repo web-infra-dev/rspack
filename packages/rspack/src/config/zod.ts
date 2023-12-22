@@ -1151,6 +1151,11 @@ const profile = z.boolean();
 export type Profile = z.infer<typeof profile>;
 //#endregion
 
+//#region Bail
+const bail = z.boolean();
+export type Bail = z.infer<typeof bail>;
+//#endregion
+
 //#region Builtins (deprecated)
 const builtins = z.custom<oldBuiltins.Builtins>();
 export type Builtins = z.infer<typeof builtins>;
@@ -1184,7 +1189,8 @@ export const rspackOptions = z.strictObject({
 	devServer: devServer.optional(),
 	builtins: builtins.optional(),
 	module: moduleOptions.optional(),
-	profile: profile.optional()
+	profile: profile.optional(),
+	bail: bail.optional()
 });
 export type RspackOptions = z.infer<typeof rspackOptions>;
 export type Configuration = RspackOptions;

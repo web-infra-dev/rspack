@@ -29,6 +29,7 @@ pub struct HarmonyImportSideEffectDependency {
   pub source_order: i32,
   pub id: DependencyId,
   pub span: Option<ErrorSpan>,
+  pub source_span: Option<ErrorSpan>,
   pub specifiers: Vec<Specifier>,
   pub dependency_type: DependencyType,
   pub export_all: bool,
@@ -40,6 +41,7 @@ impl HarmonyImportSideEffectDependency {
     request: JsWord,
     source_order: i32,
     span: Option<ErrorSpan>,
+    source_span: Option<ErrorSpan>,
     specifiers: Vec<Specifier>,
     dependency_type: DependencyType,
     export_all: bool,
@@ -50,6 +52,7 @@ impl HarmonyImportSideEffectDependency {
       source_order,
       request,
       span,
+      source_span,
       specifiers,
       dependency_type,
       export_all,
@@ -70,28 +73,36 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
     runtime,
     ..
   } = code_generatable_context;
+  // Only available when module factorization is successful.
   let ref_mgm = compilation
     .module_graph
-    .module_graph_module_by_dependency_id(module_dependency.id())
-    .expect("should have ref module");
+    .module_graph_module_by_dependency_id(module_dependency.id());
   let is_target_active = if compilation.options.is_new_tree_shaking() {
     let connection = compilation
       .module_graph
       .connection_by_dependency(module_dependency.id());
     if let Some(con) = connection {
-      con.is_target_active(&compilation.module_graph, *runtime)
+      Some(con.is_target_active(&compilation.module_graph, *runtime))
     } else {
-      true
+      Some(true)
     }
+  } else if let Some(ref_mgm) = ref_mgm {
+    Some(
+      compilation
+        .include_module_ids
+        .contains(&ref_mgm.module_identifier),
+    )
   } else {
-    compilation
-      .include_module_ids
-      .contains(&ref_mgm.module_identifier)
+    // This represents if module does not exist.
+    None
   };
-  if !is_target_active {
+  // Bailout only if the module does exist and not active.
+  if is_target_active.is_some_and(|x| !x) {
     return;
   }
-  if module_dependency.is_export_all() == Some(false) {
+  if let Some(ref_mgm) = ref_mgm
+    && module_dependency.is_export_all() == Some(false)
+  {
     let specifiers = specifiers
       .iter()
       .filter(|specifier| {
@@ -168,14 +179,15 @@ pub fn harmony_import_dependency_apply<T: ModuleDependency>(
   } = code_generatable_context;
   let ref_module = compilation
     .module_graph
-    .module_identifier_by_dependency_id(module_dependency.id())
-    .expect("should have dependency referenced module");
+    .module_identifier_by_dependency_id(module_dependency.id());
   let import_var = get_import_var(&compilation.module_graph, *module_dependency.id());
   //
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyImportDependency.js#L282-L285
-  let module_key = ref_module;
+  let module_key = ref_module
+    .map(|i| i.as_str())
+    .unwrap_or(module_dependency.request());
   let key = format!("harmony import {}", module_key);
-  let is_async_module = matches!(compilation.module_graph.is_async(ref_module), Some(true));
+  let is_async_module = matches!(ref_module, Some(ref_module) if compilation.module_graph.is_async(ref_module) == Some(true));
   if is_async_module {
     init_fragments.push(Box::new(NormalInitFragment::new(
       content.0,
@@ -280,6 +292,10 @@ impl ModuleDependency for HarmonyImportSideEffectDependency {
 
   fn user_request(&self) -> &str {
     &self.request
+  }
+
+  fn source_span(&self) -> Option<ErrorSpan> {
+    self.source_span
   }
 
   fn set_request(&mut self, request: String) {

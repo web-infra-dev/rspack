@@ -493,12 +493,13 @@ impl<'a> CodeSizeOptimizer<'a> {
                 .and_then(|module| module.as_normal_module())
                 .map(|normal_module| normal_module.source())
               {
-                Some(NormalModuleSource::BuiltFailed(_)) => {
-                  // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
-                  continue;
+                Some(NormalModuleSource::Unbuild) => {
+                  panic!("Failed to build module {module_identifier}");
                 }
                 Some(_) => {
-                  panic!("Failed to ast of {dependency_id:?}")
+                  // If module is failed to build, we know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
+                  // Also, if the referenced module of the dependency is not found, then it might failed to factorize in the first place. So let's skip it.
+                  continue;
                 }
                 None => {
                   panic!("Failed to get normal module of {module_identifier}");
@@ -641,11 +642,13 @@ impl<'a> CodeSizeOptimizer<'a> {
           .and_then(|module| module.as_normal_module())
           .map(|normal_module| normal_module.source())
           .unwrap_or_else(|| panic!("Failed to get normal module of {}", cur));
-        if matches!(ast_or_source, NormalModuleSource::BuiltFailed(_)) {
-          // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
-          continue;
+
+        if matches!(ast_or_source, NormalModuleSource::Unbuild) {
+          panic!("Failed to build module {cur}");
         } else {
-          panic!("Failed to resolve {dep:?}")
+          // If module is failed to build, we know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
+          // Also, if the referenced module of the dependency is not found, then it might failed to factorize in the first place. So let's skip it.
+          continue;
         }
       };
       module_ident_list.push(module_ident);

@@ -336,6 +336,37 @@ describe("Compiler", () => {
 			);
 		}
 	});
+	it("should bubble up errors when wrapped in a promise and bail is true (empty dependency)", async () => {
+		try {
+			const createCompiler = options => {
+				return new Promise((resolve, reject) => {
+					const c = rspack(options);
+					c.run((err, stats) => {
+						if (err) {
+							reject(err);
+						}
+						if (stats !== undefined && "errors" in stats) {
+							reject(err);
+						} else {
+							resolve(c);
+						}
+					});
+					return c;
+				});
+			};
+			compiler = await createCompiler({
+				context: path.join(__dirname, "fixtures"),
+				mode: "production",
+				entry: "./empty-dependency",
+				output: {
+					filename: "bundle.js"
+				},
+				bail: true
+			});
+		} catch (err) {
+			expect(err.toString()).toMatchInlineSnapshot(`"Error: Empty dependency"`);
+		}
+	});
 	it("should not emit compilation errors in async (watch)", async () => {
 		const createStats = options => {
 			return new Promise((resolve, reject) => {

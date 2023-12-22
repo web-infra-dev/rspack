@@ -1,4 +1,4 @@
-use std::{fmt, path::Path};
+use std::path::Path;
 
 use miette::{Diagnostic, IntoDiagnostic, LabeledSpan, MietteDiagnostic, SourceCode, SourceSpan};
 use swc_core::common::SourceFile;
@@ -121,6 +121,17 @@ impl TraceableError {
     }
   }
 
+  pub fn from_empty_file(start: usize, end: usize, title: String, message: String) -> Self {
+    Self {
+      title,
+      kind: Default::default(),
+      message,
+      severity: Default::default(),
+      src: "".to_string(),
+      label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
+    }
+  }
+
   pub fn from_real_file_path(
     path: &Path,
     start: usize,
@@ -165,10 +176,11 @@ impl From<Vec<miette::Error>> for BatchErrors {
   }
 }
 
+#[macro_export]
 macro_rules! impl_diagnostic_transparent {
   ($ty:ty) => {
     impl miette::Diagnostic for $ty {
-      fn code<'a>(&'a self) -> Option<Box<dyn fmt::Display + 'a>> {
+      fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
         (&*self.0).code()
       }
 
@@ -176,23 +188,25 @@ macro_rules! impl_diagnostic_transparent {
         (&*self.0).severity()
       }
 
-      fn help<'a>(&'a self) -> Option<Box<dyn fmt::Display + 'a>> {
+      fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
         (&*self.0).help()
       }
 
-      fn url<'a>(&'a self) -> Option<Box<dyn fmt::Display + 'a>> {
+      fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
         (&*self.0).url()
       }
 
-      fn source_code(&self) -> Option<&dyn SourceCode> {
+      fn source_code(&self) -> Option<&dyn miette::SourceCode> {
         (&*self.0).source_code()
       }
 
-      fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
+      fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
         (&*self.0).labels()
       }
 
-      fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn Diagnostic> + 'a>> {
+      fn related<'a>(
+        &'a self,
+      ) -> Option<Box<dyn Iterator<Item = &'a dyn miette::Diagnostic> + 'a>> {
         (&*self.0).related()
       }
 

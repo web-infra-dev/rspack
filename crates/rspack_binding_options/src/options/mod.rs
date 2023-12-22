@@ -65,6 +65,7 @@ pub struct RawOptions {
   pub experiments: RawExperiments,
   pub node: Option<RawNodeOption>,
   pub profile: bool,
+  pub bail: bool,
   pub builtins: RawBuiltins,
 }
 
@@ -126,6 +127,7 @@ impl RawOptions {
       node,
       dev_server,
       profile: self.profile,
+      bail: self.bail,
       builtins,
     })
   }

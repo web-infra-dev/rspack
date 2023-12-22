@@ -357,6 +357,7 @@ impl TestConfig {
     let root = c::Context::new(context.to_string_lossy().to_string());
 
     let options = CompilerOptions {
+      bail: false,
       context: root.clone(),
       output: c::OutputOptions {
         clean: self.output.clean,

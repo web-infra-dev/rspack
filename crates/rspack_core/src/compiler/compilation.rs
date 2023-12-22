@@ -42,7 +42,7 @@ use crate::{
   CompilationLogging, CompilerOptions, ContentHashArgs, ContextDependency, DependencyId,
   DependencyParents, DependencyType, Entry, EntryData, EntryOptions, Entrypoint, ErrorSpan,
   FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger, Module, ModuleFactory,
-  ModuleGraph, ModuleIdentifier, ModuleProfile, PathData, ProcessAssetsArgs,
+  ModuleGraph, ModuleIdentifier, ModuleProfile, NormalModuleSource, PathData, ProcessAssetsArgs,
   ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
   Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeRequirementsInTreeArgs,
   RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult, WorkerTask,
@@ -671,65 +671,81 @@ impl Compilation {
                 is_entry,
                 original_module_identifier,
                 factory_result,
-                mut module_graph_module,
+                module_graph_module,
                 diagnostics,
                 dependencies,
                 current_profile,
                 exports_info_related,
-                from_cache,
               } = task_result;
 
-              if let Some(counter) = &mut factorize_cache_counter {
-                if from_cache {
-                  counter.hit();
-                } else {
-                  counter.miss();
-                }
-              }
-
-              let module_identifier = factory_result.module.identifier();
-
-              tracing::trace!("Module created: {}", &module_identifier);
               if !diagnostics.is_empty() {
                 make_failed_dependencies.insert((dependencies[0], original_module_identifier));
               }
 
-              module_graph_module.set_issuer_if_unset(original_module_identifier);
-              module_graph_module.factory_meta = Some(factory_result.factory_meta);
               // TODO: should use `dep.optional` to test whether these diagnostics should be warnings or errors.
               // https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/Compilation.js#L1796
-              self.push_batch_diagnostic(diagnostics);
-
-              self
-                .file_dependencies
-                .extend(factory_result.file_dependencies);
-              self
-                .context_dependencies
-                .extend(factory_result.context_dependencies);
-              self
-                .missing_dependencies
-                .extend(factory_result.missing_dependencies);
-              self.module_graph.exports_info_map.insert(
-                exports_info_related.exports_info.id,
-                exports_info_related.exports_info,
-              );
-              self.module_graph.export_info_map.insert(
-                exports_info_related.side_effects_info.id,
-                exports_info_related.side_effects_info,
-              );
-              self.module_graph.export_info_map.insert(
-                exports_info_related.other_exports_info.id,
-                exports_info_related.other_exports_info,
+              self.push_batch_diagnostic(
+                diagnostics
+                  .into_iter()
+                  .map(|d| d.with_module_identifier(original_module_identifier))
+                  .collect(),
               );
 
-              add_queue.add_task(AddTask {
-                original_module_identifier,
-                module: factory_result.module,
-                module_graph_module,
-                dependencies,
-                is_entry,
-                current_profile,
-              });
+              if let Some(factory_result) = factory_result
+                && let Some(mut module_graph_module) = module_graph_module
+              {
+                if let Some(counter) = &mut factorize_cache_counter {
+                  if factory_result.from_cache {
+                    counter.hit();
+                  } else {
+                    counter.miss();
+                  }
+                }
+
+                let module_identifier = factory_result.module.identifier();
+
+                tracing::trace!("Module created: {}", &module_identifier);
+
+                module_graph_module.set_issuer_if_unset(original_module_identifier);
+                module_graph_module.factory_meta = Some(factory_result.factory_meta);
+
+                self
+                  .file_dependencies
+                  .extend(factory_result.file_dependencies);
+                self
+                  .context_dependencies
+                  .extend(factory_result.context_dependencies);
+                self
+                  .missing_dependencies
+                  .extend(factory_result.missing_dependencies);
+                self.module_graph.exports_info_map.insert(
+                  exports_info_related.exports_info.id,
+                  exports_info_related.exports_info,
+                );
+                self.module_graph.export_info_map.insert(
+                  exports_info_related.side_effects_info.id,
+                  exports_info_related.side_effects_info,
+                );
+                self.module_graph.export_info_map.insert(
+                  exports_info_related.other_exports_info.id,
+                  exports_info_related.other_exports_info,
+                );
+
+                add_queue.add_task(AddTask {
+                  original_module_identifier,
+                  module: factory_result.module,
+                  module_graph_module,
+                  dependencies,
+                  is_entry,
+                  current_profile,
+                });
+              } else {
+                let dep = self
+                  .module_graph
+                  .dependency_by_id(&dependencies[0])
+                  .expect("dep should available");
+                tracing::trace!("Module created with failure, but without bailout: {dep:?}");
+              }
             }
             Ok(TaskResult::Add(box task_result)) => match task_result {
               AddTaskResult::ModuleAdded {
@@ -1052,9 +1068,20 @@ impl Compilation {
   ) {
     let current_profile = self.options.profile.then(Box::<ModuleProfile>::default);
     let dependency = dependencies[0].get_dependency(&self.module_graph).clone();
+    let original_module_source = original_module_identifier
+      .and_then(|i| self.module_graph.module_by_identifier(&i))
+      .and_then(|m| m.as_normal_module())
+      .and_then(|m| {
+        if let NormalModuleSource::BuiltSucceed(s) = m.source() {
+          Some(s.clone())
+        } else {
+          None
+        }
+      });
     queue.add_task(FactorizeTask {
       module_factory: self.get_dependency_factory(&dependency),
       original_module_identifier,
+      original_module_source,
       issuer,
       original_module_context,
       dependency,

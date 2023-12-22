@@ -4325,6 +4325,9 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
    ·          ╰── Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/index.js
    ╰────
 ",
+      "moduleId": "10",
+      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/normal-errors/index.js",
+      "moduleName": "./index.js",
     },
   ],
   "errorsCount": 1,
@@ -4335,7 +4338,7 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for normal-errors 2`] = `
-"ERROR in × Resolve error
+"ERROR in ./index.js   × Resolve error
    ╭────
  1 │ import "not-exist";
    · ─────────┬─────────
@@ -5236,6 +5239,9 @@ console.log(a);
  2 │ console.log(a);
    ╰────
 ",
+      "moduleId": "10",
+      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+      "moduleName": "./index.js",
     },
   ],
   "errorsCount": 1,
@@ -5432,7 +5438,7 @@ webpack/runtime/compat_get_default_export {main}
   esm import specifier cycle-alias/a [10]
   
 
-ERROR in × Resolve error
+ERROR in ./index.js   × Resolve error
    ╭─[1:1]
  1 │ import { a } from "cycle-alias/a";
    · ─────────────────┬────────────────
@@ -5580,6 +5586,9 @@ console.log(a);
 ",
       "message": "  × Export should be relative path and start with "./", but got ../../index.js
 ",
+      "moduleId": "10",
+      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+      "moduleName": "./index.js",
     },
   ],
   "errorsCount": 1,
@@ -5776,7 +5785,7 @@ webpack/runtime/compat_get_default_export {main}
   esm import specifier pkg-a [10]
   
 
-ERROR in × Export should be relative path and start with "./", but got ../../index.js
+ERROR in ./index.js   × Export should be relative path and start with "./", but got ../../index.js
 
 Rspack compiled with 1 error (89dcd0cfe638af0c8caa)"
 `;
@@ -6664,6 +6673,9 @@ exports[`StatsTestCases should print correct stats for try-require--module 1`] =
  5 │     }
    ╰────
 ",
+      "moduleId": "10",
+      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/try-require--module/index.js",
+      "moduleName": "./index.js",
     },
   ],
   "warningsCount": 1,
@@ -6671,7 +6683,7 @@ exports[`StatsTestCases should print correct stats for try-require--module 1`] =
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 2`] = `
-"WARNING in ⚠ Resolve error
+"WARNING in ./index.js   ⚠ Resolve error
    ╭─[1:1]
  1 │     try {
  2 │ ╭─▶     require('./missing-module')
@@ -6711,6 +6723,9 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-modul
  5 │     }
    ╰────
 ",
+      "moduleId": "10",
+      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js",
+      "moduleName": "./index.js",
     },
   ],
   "warningsCount": 1,
@@ -6718,7 +6733,7 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-modul
 `;
 
 exports[`StatsTestCases should print correct stats for try-require-resolve-module 2`] = `
-"WARNING in ⚠ Resolve error
+"WARNING in ./index.js   ⚠ Resolve error
    ╭─[1:1]
  1 │     try {
  2 │ ╭─▶     require.resolve('./missing-module')
@@ -6758,6 +6773,9 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-weak-
  5 │     }
    ╰────
 ",
+      "moduleId": "10",
+      "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js",
+      "moduleName": "./index.js",
     },
   ],
   "warningsCount": 1,
@@ -6765,7 +6783,7 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-weak-
 `;
 
 exports[`StatsTestCases should print correct stats for try-require-resolve-weak-module 2`] = `
-"WARNING in ⚠ Resolve error
+"WARNING in ./index.js   ⚠ Resolve error
    ╭─[1:1]
  1 │     try {
  2 │ ╭─▶     require.resolveWeak('./missing-module')

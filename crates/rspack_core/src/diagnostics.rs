@@ -2,11 +2,35 @@ use std::fmt::Display;
 
 use itertools::Itertools;
 use rspack_error::{
+  impl_diagnostic_transparent,
   miette::{self, Diagnostic},
   thiserror::{self, Error},
+  DiagnosticExt, TraceableError,
 };
 
-use crate::BoxLoader;
+use crate::{BoxLoader, ErrorSpan};
+
+///////////////////// Module Factory /////////////////////
+
+#[derive(Debug, Error)]
+#[error(transparent)]
+pub struct EmptyDependency(Box<dyn Diagnostic + Send + Sync>);
+
+impl EmptyDependency {
+  pub fn new(span: ErrorSpan) -> Self {
+    Self(
+      TraceableError::from_empty_file(
+        span.start as usize,
+        span.end as usize,
+        "Empty dependency".to_string(),
+        "Expected a non-empty request".to_string(),
+      )
+      .boxed(),
+    )
+  }
+}
+
+impl_diagnostic_transparent!(EmptyDependency);
 
 ///////////////////// Module /////////////////////
 
