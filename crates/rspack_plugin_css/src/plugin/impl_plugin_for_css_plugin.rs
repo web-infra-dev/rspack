@@ -12,7 +12,7 @@ use rspack_core::{
 };
 use rspack_core::{
   Compilation, CompilationArgs, CompilationParams, CompilerOptions, DependencyType,
-  LibIdentOptions, PluginCompilationHookOutput,
+  LibIdentOptions, PluginCompilationHookOutput, PublicPath,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -251,12 +251,7 @@ impl Plugin for CssPlugin {
     let source = if !auto_public_path_matches.is_empty() {
       let mut replace = ReplaceSource::new(source);
       for (start, end) in auto_public_path_matches {
-        let relative = args
-          .compilation
-          .options
-          .output
-          .public_path
-          .render(args.compilation, &output_path);
+        let relative = PublicPath::render_auto_public_path(args.compilation, &output_path);
         replace.replace(start as u32, end as u32, &relative, None);
       }
       replace.boxed()

@@ -383,7 +383,14 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
           generate_context
             .data
-            .insert(CodeGenerationDataFilename::new(filename));
+            .insert(CodeGenerationDataFilename::new(
+              filename,
+              generate_context
+                .module_generator_options
+                .and_then(|x| x.asset_public_path(module_type))
+                .unwrap_or_else(|| &compilation.options.output.public_path)
+                .clone(),
+            ));
           generate_context
             .data
             .insert(CodeGenerationDataAssetInfo::new(asset_info));
@@ -533,7 +540,7 @@ impl Plugin for AssetPlugin {
             .data
             .get::<CodeGenerationDataFilename>()
             .expect("should have filename for asset module")
-            .inner();
+            .filename();
           let asset_info = code_gen_result
             .data
             .get::<CodeGenerationDataAssetInfo>()

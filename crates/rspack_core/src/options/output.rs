@@ -427,20 +427,10 @@ pub enum PublicPath {
 
 impl PublicPath {
   pub fn render(&self, compilation: &Compilation, filename: &str) -> String {
-    let public_path = match self {
-      Self::String(s) => s.clone(),
-      Self::Auto => match Path::new(filename).parent() {
-        None => "".to_string(),
-        Some(dirname) => compilation
-          .options
-          .output
-          .path
-          .relative(compilation.options.output.path.join(dirname).absolutize())
-          .to_string_lossy()
-          .to_string(),
-      },
-    };
-    Self::ensure_ends_with_slash(public_path)
+    match self {
+      Self::String(s) => Self::ensure_ends_with_slash(s.to_string()),
+      Self::Auto => Self::render_auto_public_path(compilation, filename),
+    }
   }
 
   pub fn ensure_ends_with_slash(public_path: String) -> String {
@@ -449,6 +439,20 @@ impl PublicPath {
     } else {
       public_path
     }
+  }
+
+  pub fn render_auto_public_path(compilation: &Compilation, filename: &str) -> String {
+    let public_path = match Path::new(filename).parent() {
+      None => "".to_string(),
+      Some(dirname) => compilation
+        .options
+        .output
+        .path
+        .relative(compilation.options.output.path.join(dirname).absolutize())
+        .to_string_lossy()
+        .to_string(),
+    };
+    Self::ensure_ends_with_slash(public_path)
   }
 }
 

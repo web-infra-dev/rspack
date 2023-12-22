@@ -38,9 +38,9 @@ impl CssUrlDependency {
     if let Some(code_gen_result) = code_gen_result {
       if let Some(url) = code_gen_result.data.get::<CodeGenerationDataUrl>() {
         Some(url.inner().to_string())
-      } else if let Some(filename) = code_gen_result.data.get::<CodeGenerationDataFilename>() {
-        let filename = filename.inner();
-        let public_path = match &compilation.options.output.public_path {
+      } else if let Some(data) = code_gen_result.data.get::<CodeGenerationDataFilename>() {
+        let filename = data.filename();
+        let public_path = match data.public_path() {
           PublicPath::String(p) => p,
           PublicPath::Auto => AUTO_PUBLIC_PATH_PLACEHOLDER,
         };
