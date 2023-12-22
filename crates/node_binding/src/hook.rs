@@ -33,6 +33,7 @@ pub enum Hook {
   AfterCompile,
   FinishModules,
   OptimizeModules,
+  AfterOptimizeModules,
   OptimizeTree,
   /// webpack `compilation.hooks.chunkAsset`
   ChunkAsset,
@@ -77,6 +78,7 @@ impl From<String> for Hook {
       "afterCompile" => Hook::AfterCompile,
       "finishModules" => Hook::FinishModules,
       "optimizeModules" => Hook::OptimizeModules,
+      "afterOptimizeModules" => Hook::AfterOptimizeModules,
       "optimizeTree" => Hook::OptimizeTree,
       "chunkAsset" => Hook::ChunkAsset,
       "normalModuleFactoryResolveForScheme" => Hook::NormalModuleFactoryResolveForScheme,
