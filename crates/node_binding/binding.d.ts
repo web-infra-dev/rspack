@@ -166,6 +166,7 @@ export const enum BuiltinPluginName {
   ContainerReferencePlugin = 'ContainerReferencePlugin',
   ProvideSharedPlugin = 'ProvideSharedPlugin',
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
+  SourceMapDevToolPlugin = 'SourceMapDevToolPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -1142,6 +1143,23 @@ export interface RawSnapshotOptions {
 export interface RawSnapshotStrategy {
   hash: boolean
   timestamp: boolean
+}
+
+export interface RawSourceMapDevToolPluginOptions {
+  append?: (false | null) | string | Function
+  columns?: boolean
+  exclude?: string | RegExp | (string | RegExp)[]
+  fallbackModuleFilenameTemplate?: string | false | Function
+  fileContext?: string
+  filename?: (false | null) | string
+  include?: string | RegExp | (string | RegExp)[]
+  module?: boolean
+  moduleFilenameTemplate?: string | false | Function
+  namespace?: string
+  noSources?: boolean
+  publicPath?: string
+  sourceRoot?: string
+  test?: string | RegExp | (string | RegExp)[]
 }
 
 export interface RawSplitChunksOptions {

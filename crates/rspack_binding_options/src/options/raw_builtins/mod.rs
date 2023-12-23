@@ -6,6 +6,7 @@ mod raw_mf;
 mod raw_progress;
 mod raw_swc_js_minimizer;
 mod raw_to_be_deprecated;
+mod rspack_binding_options;
 
 use napi::{
   bindgen_prelude::{FromNapiValue, ToNapiValue},
@@ -17,6 +18,7 @@ use rspack_error::Result;
 use rspack_napi_shared::NapiResultExt;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
+use rspack_plugin_devtool::DevtoolPlugin;
 use rspack_plugin_entry::EntryPlugin;
 use rspack_plugin_externals::{
   electron_target_plugin, http_externals_rspack_plugin, node_target_plugin, ExternalsPlugin,
@@ -41,14 +43,15 @@ use rspack_plugin_wasm::enable_wasm_loading_plugin;
 use rspack_plugin_web_worker_template::web_worker_template_plugin;
 use rspack_plugin_worker::WorkerPlugin;
 
-use self::raw_mf::{
-  RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions,
-};
 pub use self::{
   raw_banner::RawBannerPluginOptions, raw_copy::RawCopyRspackPluginOptions,
   raw_html::RawHtmlRspackPluginOptions, raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
   raw_mf::RawContainerPluginOptions, raw_progress::RawProgressPluginOptions,
   raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
+};
+use self::{
+  raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
+  rspack_binding_options::RawSourceMapDevToolPluginOptions,
 };
 use crate::{
   RawEntryPluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
@@ -86,6 +89,7 @@ pub enum BuiltinPluginName {
   ContainerReferencePlugin,
   ProvideSharedPlugin,
   ConsumeSharedPlugin,
+  SourceMapDevToolPlugin,
 
   // rspack specific plugins
   HttpExternalsRspackPlugin,
@@ -240,6 +244,13 @@ impl RawOptionsApply for BuiltinPlugin {
         )
         .boxed(),
       ),
+      BuiltinPluginName::SourceMapDevToolPlugin => {
+        let plugin = DevtoolPlugin::new(
+          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)?.into(),
+        )
+        .boxed();
+        plugins.push(plugin);
+      }
 
       // rspack specific plugins
       BuiltinPluginName::HttpExternalsRspackPlugin => {

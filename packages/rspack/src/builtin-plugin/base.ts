@@ -34,7 +34,8 @@ export enum BuiltinPluginName {
 	ContainerPlugin = "ContainerPlugin",
 	ContainerReferencePlugin = "ContainerReferencePlugin",
 	ProvideSharedPlugin = "ProvideSharedPlugin",
-	ConsumeSharedPlugin = "ConsumeSharedPlugin"
+	ConsumeSharedPlugin = "ConsumeSharedPlugin",
+	SourceMapDevToolPlugin = "SourceMapDevToolPlugin"
 }
 
 type AffectedHooks = keyof Compiler["hooks"];

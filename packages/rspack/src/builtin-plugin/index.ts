@@ -21,6 +21,7 @@ export * from "./WebWorkerTemplatePlugin";
 export * from "./LimitChunkCountPlugin";
 export * from "./MergeDuplicateChunksPlugin";
 export * from "./SplitChunksPlugin";
+export * from "./SourceMapDevToolPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";

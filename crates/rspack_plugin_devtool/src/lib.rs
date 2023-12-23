@@ -1,6 +1,7 @@
 #![feature(let_chains)]
 
 use std::collections::HashSet;
+use std::sync::Arc;
 use std::{hash::Hash, path::Path};
 
 use dashmap::DashMap;
@@ -29,11 +30,28 @@ static CSS_EXTENSION_DETECT_REGEXP: Lazy<Regex> = Lazy::new(|| {
 static URL_FORMATTING_REGEXP: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^\n\/\/(.*)$").expect("Failed to compile URL_FORMATTING_REGEXP regex"));
 
+type AppendFn = Arc<dyn for<'a> Fn() -> Option<String> + Send + Sync>;
+
 pub enum Append {
   Default,
   String(String),
-  // TODO: support function option
-  // Fn(AppendFn),
+  Fn(AppendFn),
+  Disabled,
+}
+
+type FallbackModuleFilenameTemplateFn = Arc<dyn for<'a> Fn() -> Option<String> + Send + Sync>;
+
+pub enum FallbackModuleFilenameTemplate {
+  String(String),
+  Fn(FallbackModuleFilenameTemplateFn),
+  Disabled,
+}
+
+type ModuleFilenameTemplateFn = Arc<dyn for<'a> Fn() -> Option<String> + Send + Sync>;
+
+pub enum ModuleFilenameTemplate {
+  String(String),
+  Fn(ModuleFilenameTemplateFn),
   Disabled,
 }
 
@@ -67,6 +85,7 @@ impl DevtoolPlugin {
     let source_mapping_url_comment = match options.append {
       Append::Default => Some("\n//# sourceMappingURL=[url]".to_string()),
       Append::String(s) => Some(s),
+      Append::Fn(_) => None, // TODO
       Append::Disabled => None,
     };
 
@@ -87,7 +106,7 @@ static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(Dash
 #[async_trait::async_trait]
 impl Plugin for DevtoolPlugin {
   fn name(&self) -> &'static str {
-    "rspack.DevtoolPlugin"
+    "SourceMapDevToolPlugin"
   }
 
   fn render_module_content<'a>(
