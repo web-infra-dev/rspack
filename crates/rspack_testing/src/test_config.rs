@@ -6,6 +6,7 @@ use std::{
 };
 
 use rspack_core::{BoxPlugin, CompilerOptions, ModuleType, PluginExt};
+use rspack_plugin_devtool::Append;
 use rspack_plugin_html::config::HtmlRspackPluginOptions;
 use rspack_regex::RspackRegex;
 use schemars::JsonSchema;
@@ -524,7 +525,11 @@ impl TestConfig {
       plugins.push(
         rspack_plugin_devtool::DevtoolPlugin::new(rspack_plugin_devtool::DevtoolPluginOptions {
           inline: options.devtool.inline(),
-          append: !options.devtool.hidden(),
+          append: if options.devtool.hidden() {
+            Append::Disabled
+          } else {
+            Append::Default
+          },
           namespace: options.output.unique_name.clone(),
           columns: !options.devtool.cheap(),
           no_sources: options.devtool.no_sources(),

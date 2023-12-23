@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use std::{hash::Hash, path::Path};
 
 use dashmap::DashMap;
+use derivative::Derivative;
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rayon::prelude::*;
@@ -22,12 +23,28 @@ use rspack_util::swc::normalize_custom_filename;
 use rustc_hash::FxHashMap as HashMap;
 use serde_json::json;
 
-static IS_CSS_FILE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\.css($|\?)").expect("TODO:"));
+static CSS_EXTENSION_DETECT_REGEXP: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"\.css($|\?)").expect("Failed to compile CSS_EXTENSION_DETECT_REGEXP regex")
+});
+static URL_FORMATTING_REGEXP: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^\n\/\/(.*)$").expect("Failed to compile URL_FORMATTING_REGEXP regex"));
 
-#[derive(Debug)]
+pub enum Append {
+  Default,
+  String(String),
+  // TODO: support function option
+  // Fn(AppendFn),
+  Disabled,
+}
+
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct DevtoolPluginOptions {
+  // Appends the given value to the original asset. Usually the #sourceMappingURL comment. [url] is replaced with a URL to the source map file. false disables the appending.
+  #[derivative(Debug = "ignore")]
+  pub append: Append,
+
   pub inline: bool,
-  pub append: bool,
   pub namespace: String,
   pub columns: bool,
   pub no_sources: bool,
@@ -47,11 +64,15 @@ pub struct DevtoolPlugin {
 
 impl DevtoolPlugin {
   pub fn new(options: DevtoolPluginOptions) -> Self {
+    let source_mapping_url_comment = match options.append {
+      Append::Default => Some("\n//# sourceMappingURL=[url]".to_string()),
+      Append::String(s) => Some(s),
+      Append::Disabled => None,
+    };
+
     Self {
       inline: options.inline,
-      source_mapping_url_comment: options
-        .append
-        .then(|| "# sourceMappingURL=[url]".to_string()),
+      source_mapping_url_comment,
       module_filename_template: "[resourcePath]".to_string(),
       namespace: options.namespace,
       columns: options.columns,
@@ -162,13 +183,15 @@ impl Plugin for DevtoolPlugin {
         args.compilation.emit_asset(filename, asset);
         continue;
       };
-      let is_css = IS_CSS_FILE.is_match(&filename);
+      let is_css = CSS_EXTENSION_DETECT_REGEXP.is_match(&filename);
       let current_source_mapping_url_comment =
         self.source_mapping_url_comment.as_ref().map(|comment| {
           if is_css {
-            format!("\n/*{comment}*/")
+            URL_FORMATTING_REGEXP
+              .replace_all(comment, "\n/*$1*/")
+              .to_string()
           } else {
-            format!("\n//{comment}")
+            comment.clone()
           }
         });
       if self.inline {

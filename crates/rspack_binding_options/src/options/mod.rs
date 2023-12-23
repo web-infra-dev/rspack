@@ -4,6 +4,7 @@ use rspack_core::{
   IncrementalRebuildMakeState, MangleExportsOption, ModuleOptions, ModuleType, OutputOptions,
   PluginExt, TreeShaking,
 };
+use rspack_plugin_devtool::Append;
 use rspack_plugin_javascript::{
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, MangleExportsPlugin,
   SideEffectsFlagPlugin,
@@ -144,7 +145,11 @@ impl RawOptionsApply for RawOptions {
       plugins.push(
         rspack_plugin_devtool::DevtoolPlugin::new(rspack_plugin_devtool::DevtoolPluginOptions {
           inline: devtool.inline(),
-          append: !devtool.hidden(),
+          append: if devtool.hidden() {
+            Append::Disabled
+          } else {
+            Append::Default
+          },
           namespace: output.unique_name.clone(),
           columns: !devtool.cheap(),
           no_sources: devtool.no_sources(),
