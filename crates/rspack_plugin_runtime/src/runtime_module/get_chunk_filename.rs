@@ -3,28 +3,29 @@ use std::{cmp::Ordering, fmt};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rspack_core::{
-  get_css_chunk_filename_template, get_filename_without_hash_length,
-  get_js_chunk_filename_template, impl_runtime_module,
+  get_filename_without_hash_length, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, SourceType,
+  Chunk, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, SourceType,
 };
 use rspack_identifier::Identifier;
 
 use super::create_fake_chunk;
 use super::stringify_dynamic_chunk_map;
 use super::stringify_static_chunk_map;
-use super::utils::chunk_has_css;
 use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
 
 type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Send>;
+type GetFilenameForChunk =
+  Box<dyn for<'me> Fn(&'me Chunk, &'me Compilation) -> Option<&'me Filename> + Sync + Send>;
 
 pub struct GetChunkFilenameRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
   content_type: &'static str,
   source_type: SourceType,
-  global: RuntimeGlobals,
+  global: String,
   all_chunks: GetChunkFilenameAllChunks,
+  filename_for_chunk: GetFilenameForChunk,
 }
 
 impl fmt::Debug for GetChunkFilenameRuntimeModule {
@@ -45,11 +46,15 @@ impl Eq for GetChunkFilenameRuntimeModule {}
 // It's render is different with webpack, rspack will only render chunk map<chunkId, chunkName>
 // and search it.
 impl GetChunkFilenameRuntimeModule {
-  pub fn new<F: Fn(&RuntimeGlobals) -> bool + Sync + Send + 'static>(
+  pub fn new<
+    F: Fn(&RuntimeGlobals) -> bool + Sync + Send + 'static,
+    T: for<'me> Fn(&'me Chunk, &'me Compilation) -> Option<&'me Filename> + Sync + Send + 'static,
+  >(
     content_type: &'static str,
     source_type: SourceType,
-    global: RuntimeGlobals,
+    global: String,
     all_chunks: F,
+    filename_for_chunk: T,
   ) -> Self {
     Self {
       id: Identifier::from(format!("webpack/runtime/get_chunk_filename/{content_type}")),
@@ -58,6 +63,7 @@ impl GetChunkFilenameRuntimeModule {
       source_type,
       global,
       all_chunks: Box::new(all_chunks),
+      filename_for_chunk: Box::new(filename_for_chunk),
     }
   }
 }
@@ -116,23 +122,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         .iter()
         .filter_map(|chunk_ukey| compilation.chunk_by_ukey.get(chunk_ukey))
         .for_each(|chunk| {
-          let filename_template = match self.source_type {
-            // TODO webpack different
-            // css chunk will generate a js chunk, so here add it.
-            SourceType::JavaScript => Some(get_js_chunk_filename_template(
-              chunk,
-              &compilation.options.output,
-              &compilation.chunk_group_by_ukey,
-            )),
-            SourceType::Css => chunk_has_css(&chunk.ukey, compilation).then(|| {
-              get_css_chunk_filename_template(
-                chunk,
-                &compilation.options.output,
-                &compilation.chunk_group_by_ukey,
-              )
-            }),
-            _ => unreachable!(),
-          };
+          let filename_template = (self.filename_for_chunk)(chunk, compilation);
 
           if let Some(filename_template) = filename_template {
             chunk_map.insert(&chunk.ukey, chunk);

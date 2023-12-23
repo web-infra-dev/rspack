@@ -3,6 +3,7 @@ use std::hash::Hash;
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use rspack_core::{
+  get_css_chunk_filename_template, get_js_chunk_filename_template,
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ChunkLoading,
   JsChunkHashArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
   PluginAdditionalModuleRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
@@ -11,8 +12,8 @@ use rspack_core::{
 };
 
 use crate::runtime_module::{
-  is_enabled_for_chunk, AsyncRuntimeModule, AutoPublicPathRuntimeModule, BaseUriRuntimeModule,
-  ChunkNameRuntimeModule, ChunkPrefetchPreloadFunctionRuntimeModule,
+  chunk_has_css, is_enabled_for_chunk, AsyncRuntimeModule, AutoPublicPathRuntimeModule,
+  BaseUriRuntimeModule, ChunkNameRuntimeModule, ChunkPrefetchPreloadFunctionRuntimeModule,
   CompatGetDefaultExportRuntimeModule, CreateFakeNamespaceObjectRuntimeModule,
   CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule, EnsureChunkRuntimeModule,
   GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
@@ -332,8 +333,15 @@ impl Plugin for RuntimePlugin {
           GetChunkFilenameRuntimeModule::new(
             "javascript",
             SourceType::JavaScript,
-            RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
+            RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME.to_string(),
             |_| false,
+            |chunk, compilation| {
+              Some(get_js_chunk_filename_template(
+                chunk,
+                &compilation.options.output,
+                &compilation.chunk_group_by_ukey,
+              ))
+            },
           )
           .boxed(),
         ),
@@ -342,9 +350,18 @@ impl Plugin for RuntimePlugin {
           GetChunkFilenameRuntimeModule::new(
             "css",
             SourceType::Css,
-            RuntimeGlobals::GET_CHUNK_CSS_FILENAME,
+            RuntimeGlobals::GET_CHUNK_CSS_FILENAME.to_string(),
             |runtime_requirements| {
               runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+            },
+            |chunk, compilation| {
+              chunk_has_css(&chunk.ukey, compilation).then(|| {
+                get_css_chunk_filename_template(
+                  chunk,
+                  &compilation.options.output,
+                  &compilation.chunk_group_by_ukey,
+                )
+              })
             },
           )
           .boxed(),
