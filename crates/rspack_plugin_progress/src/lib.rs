@@ -1,5 +1,4 @@
 use std::sync::atomic::Ordering::SeqCst;
-use std::sync::RwLock;
 use std::time::Duration;
 use std::{cmp, sync::atomic::AtomicU32, time::Instant};
 
@@ -12,6 +11,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rustc_hash::FxHashSet as HashSet;
+use tokio::sync::RwLock;
 
 #[derive(Debug, Clone, Default)]
 pub struct ProgressPluginOptions {
@@ -71,28 +71,24 @@ impl ProgressPlugin {
       number_of_sealing_hooks: 20,
     }
   }
-  pub fn update_throttled(&self) {
-    if *self.last_update_time.read().expect("TODO:") + Duration::from_millis(50) < Instant::now() {
+  pub async fn update_throttled(&self) {
+    if *self.last_update_time.read().await + Duration::from_millis(50) < Instant::now() {
       self.update();
     }
     // *self.last_update_time.write().expect("TODO:") = Instant::now();
   }
-  fn update(&self) {
+  async fn update(&self) {
     let modules_done = self.modules_done.load(SeqCst);
     let dependencies_done = self.dependencies_done.load(SeqCst);
     let percent_by_module = (modules_done as f32)
       / (cmp::max(
-        self.last_modules_count.read().expect("TODO:").unwrap_or(1),
+        self.last_modules_count.read().await.unwrap_or(1),
         self.modules_count.load(SeqCst),
       ) as f32);
 
     let percent_by_dependencies = (self.dependencies_done.load(SeqCst) as f32)
       / (cmp::max(
-        self
-          .last_dependencies_count
-          .read()
-          .expect("TODO:")
-          .unwrap_or(1),
+        self.last_dependencies_count.read().await.unwrap_or(1),
         self.dependencies_count.load(SeqCst),
       ) as f32);
 
@@ -111,33 +107,33 @@ impl ProgressPlugin {
       //   modules_done,
       //   self.modules_count.load(SeqCst)
       // ));
-      stat_items.push(format!(
-        "{} active",
-        self.active_modules.read().expect("TODO:").len()
-      ));
+      stat_items.push(format!("{} active", self.active_modules.read().await.len()));
       items.push(stat_items.join(" "));
-      let last_active_module = self.last_active_module.read().expect("TODO:");
+      let last_active_module = self.last_active_module.read().await;
 
       if let Some(last_active_module) = last_active_module.clone() {
         items.push(last_active_module);
       }
     }
 
-    self.handler(0.1 + percent * 0.55, String::from("building"), items);
-    *self.last_update_time.write().expect("TODO:") = Instant::now();
+    self
+      .handler(0.1 + percent * 0.55, String::from("building"), items)
+      .await;
+    *self.last_update_time.write().await = Instant::now();
   }
-  pub fn handler(&self, percent: f32, msg: String, state_items: Vec<String>) {
+  pub async fn handler(&self, percent: f32, msg: String, state_items: Vec<String>) {
     if self.options.profile {
-      self.default_handler(percent, msg, state_items);
+      self.default_handler(percent, msg, state_items).await;
     } else {
       self.progress_bar_handler(percent, msg, state_items);
     }
   }
-  fn default_handler(&self, percentage: f32, msg: String, items: Vec<String>) {
+  async fn default_handler(&self, percentage: f32, msg: String, items: Vec<String>) {
     let full_state = [vec![msg.clone()], items.clone()].concat();
     let now = Instant::now();
     {
-      let mut last_state_info = self.last_state_info.write().expect("TODO:");
+      let mut last_state_info = self.last_state_info.write().await;
+      println!("{:?} {:?}", full_state, last_state_info);
       let len = full_state.len().max(last_state_info.len());
       let original_last_state_info_len = last_state_info.len();
       for i in (0..len).rev() {
@@ -149,30 +145,32 @@ impl ProgressPlugin {
               time: now,
             },
           )
-        } else if i + 1 > full_state.len() || last_state_info[i].value != full_state[i] {
+        } else if i + 1 > full_state.len() || !last_state_info[i].value.eq(&full_state[i]) {
           let diff = (now - last_state_info[i].time).as_millis();
-          if diff < 5 {
-            continue;
-          }
+
           let report_state = if i > 0 {
             last_state_info[i - 1].value.clone() + " > " + last_state_info[i].value.clone().as_str()
           } else {
             last_state_info[i].value.clone()
           };
 
-          let mut color = "\x1b[32m";
-          if diff > 10000 {
-            color = "\x1b[31m"
-          } else if diff > 1000 {
-            color = "\x1b[33m"
+          if diff > 5 {
+            // TODO: color map
+            let mut color = "\x1b[32m";
+            if diff > 10000 {
+              color = "\x1b[31m"
+            } else if diff > 1000 {
+              color = "\x1b[33m"
+            }
+            println!(
+              "{}{} {} ms {}\x1B[0m",
+              color,
+              " | ".repeat(i),
+              diff,
+              report_state
+            );
           }
-          println!(
-            "{}{} {} ms {}\x1B[0m",
-            color,
-            " | ".repeat(i),
-            diff,
-            report_state
-          );
+
           if i + 1 > full_state.len() {
             last_state_info.truncate(i);
           } else {
@@ -192,14 +190,16 @@ impl ProgressPlugin {
     self.progress_bar.set_position((percent * 100.0) as u64);
   }
 
-  fn sealing_hooks_report(&self, name: &str) {
-    self.default_handler(
-      0.7
-        + 0.25
-          * (self.sealing_hooks_report_index.load(SeqCst) / self.number_of_sealing_hooks) as f32,
-      "sealing".to_string(),
-      vec![name.to_string()],
-    );
+  async fn sealing_hooks_report(&self, name: &str) {
+    self
+      .default_handler(
+        0.7
+          + 0.25
+            * (self.sealing_hooks_report_index.load(SeqCst) / self.number_of_sealing_hooks) as f32,
+        "sealing".to_string(),
+        vec![name.to_string()],
+      )
+      .await;
     self.sealing_hooks_report_index.fetch_add(1, SeqCst);
   }
 }
@@ -219,7 +219,7 @@ impl Plugin for ProgressPlugin {
       self.progress_bar.reset();
       self.progress_bar.set_prefix(self.options.prefix.clone());
     }
-    self.handler(0.01, String::from("make"), vec![]);
+    self.handler(0.01, String::from("make"), vec![]).await;
     self.modules_count.store(0, SeqCst);
     self.modules_done.store(0, SeqCst);
     Ok(())
@@ -233,7 +233,7 @@ impl Plugin for ProgressPlugin {
     self.dependencies_count.fetch_add(1, SeqCst);
     if self.dependencies_count.load(SeqCst) < 50 || self.dependencies_count.load(SeqCst) % 100 == 0
     {
-      self.update_throttled()
+      self.update_throttled().await
     };
     Ok(None)
   }
@@ -246,7 +246,7 @@ impl Plugin for ProgressPlugin {
   ) -> PluginNormalModuleFactoryModuleHookOutput {
     self.dependencies_done.fetch_add(1, SeqCst);
     if self.dependencies_done.load(SeqCst) < 50 || self.dependencies_done.load(SeqCst) % 100 == 0 {
-      self.update_throttled()
+      self.update_throttled().await
     };
     Ok(module)
   }
@@ -256,25 +256,42 @@ impl Plugin for ProgressPlugin {
       self
         .last_active_module
         .write()
-        .expect("TODO:")
+        .await
         .replace(module.id().to_string());
     }
     self
       .active_modules
       .write()
-      .expect("TODO:")
+      .await
       .insert(module.identifier().to_string());
     self.modules_count.fetch_add(1, SeqCst);
-    self.update();
+    self.update().await;
     Ok(())
   }
 
   async fn succeed_module(&self, module: &dyn Module) -> Result<()> {
+    // println!("succeed module {}", module.identifier());
     let id = module.identifier().to_string();
-    self.active_modules.write().expect("TODO:").remove(&id);
     self.modules_done.fetch_add(1, SeqCst);
-    let active_modules = self.active_modules.read().expect("TODO:");
+    let active_modules = self.active_modules.read().await;
     // let mut last_active_module = self.last_active_module.write().expect("TODO:");
+    // let mut last_active_module = String::new();
+    // active_modules.iter().for_each(|module| {
+    //   last_active_module = module.to_string();
+    // });
+
+    // if self
+    //   .last_active_module
+    //   .read()
+    //   .expect("TODO:")
+    //   .as_ref()
+    //   .is_some_and(|module| module.eq(&id))
+    // {
+    self.last_active_module.write().await.replace(id.clone());
+    // self.update().await;
+    // } else if self.modules_done.load(SeqCst) < 50 || self.modules_done.load(SeqCst) % 100 == 0 {
+    //   self.update_throttled();
+    // }
     let mut last_active_module = String::new();
     active_modules.iter().for_each(|module| {
       last_active_module = module.to_string();
@@ -282,24 +299,13 @@ impl Plugin for ProgressPlugin {
     self
       .last_active_module
       .write()
-      .expect("TODO:")
+      .await
       .replace(last_active_module);
-    if self
-      .last_active_module
-      .read()
-      .expect("TODO:")
-      .as_ref()
-      .is_some_and(|module| module.eq(&id))
-    {
-      self.update();
-    } else if self.modules_done.load(SeqCst) < 50 || self.modules_done.load(SeqCst) % 100 == 0 {
-      self.update_throttled();
-    }
     Ok(())
   }
 
   async fn finish_modules(&self, _modules: &mut Compilation) -> Result<()> {
-    self.sealing_hooks_report("finish modules");
+    self.sealing_hooks_report("finish modules").await;
     Ok(())
   }
 
@@ -310,7 +316,9 @@ impl Plugin for ProgressPlugin {
     _ctx: PluginContext,
     _args: OptimizeChunksArgs<'_>,
   ) -> PluginOptimizeChunksOutput {
-    self.handler(0.8, String::from("optimizing chunks"), vec![]);
+    self
+      .handler(0.8, String::from("optimizing chunks"), vec![])
+      .await;
     Ok(())
   }
 
@@ -319,7 +327,9 @@ impl Plugin for ProgressPlugin {
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
-    self.handler(0.9, String::from("processing assets"), vec![]);
+    self
+      .handler(0.9, String::from("processing assets"), vec![])
+      .await;
 
     Ok(())
   }
@@ -329,13 +339,12 @@ impl Plugin for ProgressPlugin {
     _ctx: PluginContext,
     _args: DoneArgs<'s, 'c>,
   ) -> PluginBuildEndHookOutput {
-    self.handler(1.0, String::from("done"), vec![]);
+    self.handler(1.0, String::from("done"), vec![]).await;
     if !self.options.profile {
       self.progress_bar.finish();
     }
-    *self.last_modules_count.write().expect("TODO:") = Some(self.modules_count.load(SeqCst));
-    *self.last_dependencies_count.write().expect("TODO:") =
-      Some(self.dependencies_count.load(SeqCst));
+    *self.last_modules_count.write().await = Some(self.modules_count.load(SeqCst));
+    *self.last_dependencies_count.write().await = Some(self.dependencies_count.load(SeqCst));
     Ok(())
   }
 }

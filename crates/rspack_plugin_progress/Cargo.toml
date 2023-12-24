@@ -13,3 +13,4 @@ indicatif    = "0.17.5"
 rspack_core  = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rustc-hash   = { workspace = true }
+tokio        = { workspace = true }
