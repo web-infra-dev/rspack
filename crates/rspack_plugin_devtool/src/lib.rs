@@ -47,7 +47,7 @@ pub struct ModuleFilenameTemplateFnCtx {
   pub loaders: String,
   pub all_loaders: String,
   pub query: String,
-  pub module_id: String, // TODO: string | number
+  pub module_id: String,
   pub hash: String,
   pub namespace: String,
 }

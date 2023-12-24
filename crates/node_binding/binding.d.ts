@@ -907,6 +907,20 @@ export interface RawLimitChunkCountPluginOptions {
   maxChunks: number
 }
 
+export interface RawModuleFilenameTemplateFnCtx {
+  identifier: string
+  shortIdentifier: string
+  resource: string
+  resourcePath: string
+  absoluteResourcePath: string
+  loaders: string
+  allLoaders: string
+  query: string
+  moduleId: string
+  hash: string
+  namespace: string
+}
+
 export interface RawModuleOptions {
   rules: Array<RawModuleRule>
   parser?: Record<string, RawParserOptions>
@@ -1174,6 +1188,7 @@ export interface RawSourceMapDevToolPluginOptions {
   columns: boolean
   noSources: boolean
   publicPath?: string
+  moduleFilenameTemplate?: string | Function
 }
 
 export interface RawSplitChunksOptions {
