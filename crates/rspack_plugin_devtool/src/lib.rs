@@ -73,7 +73,7 @@ pub struct SourceMapDevToolPluginOptions {
   pub module_filename_template: Option<ModuleFilenameTemplate>,
   pub filename: Option<String>,
   pub append: Option<bool>,
-  pub namespace: String,
+  pub namespace: Option<String>,
   pub columns: bool,
   pub no_sources: bool,
   pub public_path: Option<String>,
@@ -106,7 +106,7 @@ impl SourceMapDevToolPlugin {
       source_mapping_url_comment: (!matches!(options.append, Some(false)))
         .then(|| "# sourceMappingURL=[url]".to_string()),
       module_filename_template,
-      namespace: options.namespace,
+      namespace: options.namespace.unwrap_or("".to_string()),
       columns: options.columns,
       no_sources: options.no_sources,
       public_path: options.public_path,

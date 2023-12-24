@@ -10,6 +10,8 @@ use rspack_plugin_devtool::{
 };
 use serde::Deserialize;
 
+type RawFilename = Either<bool, String>;
+
 type RawModuleFilenameTemplate = Either<String, JsFunction>;
 
 #[derive(Debug, Clone)]
@@ -75,11 +77,13 @@ fn normalize_raw_module_filename_template(
 #[derivative(Debug)]
 #[napi(object)]
 pub struct RawSourceMapDevToolPluginOptions {
-  pub filename: Option<String>,
+  #[serde(skip_deserializing)]
+  #[napi(ts_type = "(false | null) | string")]
+  pub filename: Option<RawFilename>,
   pub append: Option<bool>,
-  pub namespace: String,
-  pub columns: bool,
-  pub no_sources: bool,
+  pub namespace: Option<String>,
+  pub columns: Option<bool>,
+  pub no_sources: Option<bool>,
   pub public_path: Option<String>,
   #[serde(skip_deserializing)]
   #[napi(ts_type = "string | Function")]
@@ -89,17 +93,35 @@ pub struct RawSourceMapDevToolPluginOptions {
 
 impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
   fn from(opts: RawSourceMapDevToolPluginOptions) -> Self {
+    let filename = match opts.filename {
+      Some(raw) => match raw {
+        Either::A(_) => None,
+        Either::B(s) => Some(s),
+      },
+      None => None,
+    };
+
     let module_filename_template = match opts.module_filename_template {
       Some(value) => normalize_raw_module_filename_template(value),
       None => None,
     };
 
+    let columns = match opts.columns {
+      Some(b) => b,
+      None => false,
+    };
+
+    let no_sources = match opts.no_sources {
+      Some(b) => b,
+      None => false,
+    };
+
     Self {
-      filename: opts.filename,
+      filename,
       append: opts.append,
       namespace: opts.namespace,
-      columns: opts.columns,
-      no_sources: opts.no_sources,
+      columns,
+      no_sources,
       public_path: opts.public_path,
       module_filename_template,
     }

@@ -189,3 +189,6 @@ export { SwcCssMinimizerRspackPlugin } from "./builtin-plugin";
 
 export { CopyRspackPlugin } from "./builtin-plugin";
 export type { CopyRspackPluginOptions } from "./builtin-plugin";
+
+export { SourceMapDevToolPlugin } from "./builtin-plugin";
+export type { SourceMapDevToolPluginOptions } from "./builtin-plugin";
