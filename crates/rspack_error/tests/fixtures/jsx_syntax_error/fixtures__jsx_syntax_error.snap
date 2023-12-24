@@ -2,16 +2,28 @@
 source: crates/rspack_error/tests/fixtures.rs
 expression: jsx_syntax_error
 ---
-  × Error[jsx]: JSX parsing error
-   ╭─[tests/fixtures/jsx_syntax_error/index.jsx:1:1]
- 1 │ let a = <test>/test>;
-   ·                    ▲
-   ·                    ╰── Unexpected token. Did you mean `{'>'}` or `&gt;`?
-   ╰────
-  × Error[jsx]: JSX parsing error
-   ╭─[tests/fixtures/jsx_syntax_error/index.jsx:1:1]
- 1 │ let a = <test>/test>;
-   · ▲
-   · ╰── Unexpected eof
-   ╰────
+ModuleParseError
+
+  × Module parse failed:
+  ╰─▶   × JSX parsing error
+         ╭────
+       1 │ let a = <test>/test>;
+         ·                    ▲
+         ·                    ╰── Unexpected token. Did you mean `{'>'}` or `&gt;`?
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+ModuleParseError
+
+  × Module parse failed:
+  ╰─▶   × JSX parsing error
+         ╭────
+       1 │ let a = <test>/test>;
+         · ▲
+         · ╰── Unexpected eof
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
 

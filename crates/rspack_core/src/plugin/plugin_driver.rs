@@ -22,9 +22,10 @@ use crate::{
   PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryCreateModuleHookOutput,
   PluginNormalModuleFactoryModuleHookOutput, PluginProcessAssetsOutput,
   PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
-  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput, PluginThisCompilationHookOutput,
-  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
-  RenderStartupArgs, Resolver, ResolverFactory, Stats, ThisCompilationArgs,
+  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
+  PluginRuntimeRequirementsInTreeOutput, PluginThisCompilationHookOutput, ProcessAssetsArgs,
+  RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs,
+  Resolver, ResolverFactory, RuntimeRequirementsInTreeArgs, Stats, ThisCompilationArgs,
 };
 
 pub struct PluginDriver {
@@ -459,8 +460,8 @@ impl PluginDriver {
   #[instrument(name = "plugin:runtime_requirements_in_tree", skip_all)]
   pub fn runtime_requirements_in_tree(
     &self,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    args: &mut RuntimeRequirementsInTreeArgs,
+  ) -> PluginRuntimeRequirementsInTreeOutput {
     for plugin in &self.plugins {
       plugin.runtime_requirements_in_tree(PluginContext::new(), args)?;
     }
@@ -539,6 +540,15 @@ impl PluginDriver {
   pub async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &self.plugins {
       plugin.optimize_modules(compilation).await?;
+    }
+    Ok(())
+  }
+
+  #[instrument(name = "plugin:after_optimize_modules", skip_all)]
+  pub async fn after_optimize_modules(&self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &self.plugins {
+      // `SyncHook`
+      plugin.after_optimize_modules(compilation).await?;
     }
     Ok(())
   }

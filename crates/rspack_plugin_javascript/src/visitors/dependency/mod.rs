@@ -13,7 +13,6 @@ mod hot_module_replacement_scanner;
 mod import_meta_scanner;
 mod import_scanner;
 mod node_stuff_scanner;
-mod require_context_scanner;
 mod url_scanner;
 mod util;
 mod worker_scanner;
@@ -21,9 +20,9 @@ mod worker_scanner;
 use rspack_ast::javascript::Program;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, ModuleIdentifier, ModuleType, ResourceData,
+  CompilerOptions, JavascriptParserUrl, ModuleIdentifier, ModuleType, ResourceData,
 };
-use rspack_error::{BatchErrors, Diagnostic};
+use rspack_error::miette::Diagnostic;
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::common::Span;
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
@@ -42,8 +41,7 @@ use self::{
   harmony_top_level_this::HarmonyTopLevelThis,
   hot_module_replacement_scanner::HotModuleReplacementScanner,
   import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
-  node_stuff_scanner::NodeStuffScanner, require_context_scanner::RequireContextScanner,
-  url_scanner::UrlScanner, worker_scanner::WorkerScanner,
+  node_stuff_scanner::NodeStuffScanner, url_scanner::UrlScanner, worker_scanner::WorkerScanner,
 };
 
 pub struct ScanDependenciesResult {
@@ -53,7 +51,7 @@ pub struct ScanDependenciesResult {
   // TODO: rename this name
   pub rewrite_usage_span: HashMap<Span, ExtraSpanInfo>,
   pub import_map: ImportMap,
-  pub warning_diagnostics: Vec<Diagnostic>,
+  pub warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -75,8 +73,8 @@ pub fn scan_dependencies(
   build_info: &mut BuildInfo,
   build_meta: &mut BuildMeta,
   module_identifier: ModuleIdentifier,
-) -> Result<ScanDependenciesResult, BatchErrors> {
-  let mut warning_diagnostics: Vec<Diagnostic> = vec![];
+) -> Result<ScanDependenciesResult, Vec<Box<dyn Diagnostic + Send + Sync>>> {
+  let mut warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
   let mut errors = vec![];
   let mut dependencies = vec![];
   let mut blocks = vec![];
@@ -89,6 +87,7 @@ pub fn scan_dependencies(
   program.visit_with(&mut ApiScanner::new(
     unresolved_ctxt,
     resource_data,
+    &mut dependencies,
     &mut presentational_dependencies,
     compiler_options.output.module,
     build_info,
@@ -115,7 +114,7 @@ pub fn scan_dependencies(
       &mut presentational_dependencies,
       unresolved_ctxt,
     ));
-    program.visit_with(&mut RequireContextScanner::new(&mut dependencies));
+
     program.visit_with(&mut CommonJsExportDependencyScanner::new(
       &mut dependencies,
       &mut presentational_dependencies,
@@ -184,7 +183,23 @@ pub fn scan_dependencies(
     blocks.append(&mut worker_scanner.blocks);
     dependencies.append(&mut worker_scanner.dependencies);
     presentational_dependencies.append(&mut worker_scanner.presentational_dependencies);
-    program.visit_with(&mut UrlScanner::new(&mut dependencies, worker_syntax_list));
+
+    let parse_url = &compiler_options
+      .module
+      .parser
+      .as_ref()
+      .and_then(|p| p.get(module_type))
+      .and_then(|p| p.get_javascript(module_type))
+      .map(|p| p.url)
+      .unwrap_or(JavascriptParserUrl::Enable);
+
+    if !matches!(parse_url, JavascriptParserUrl::Disable) {
+      program.visit_with(&mut UrlScanner::new(
+        &mut dependencies,
+        worker_syntax_list,
+        matches!(parse_url, JavascriptParserUrl::Relative),
+      ));
+    }
     program.visit_with(&mut ImportMetaScanner::new(
       &mut presentational_dependencies,
       resource_data,
@@ -225,6 +240,6 @@ pub fn scan_dependencies(
       warning_diagnostics,
     })
   } else {
-    Err(rspack_error::BatchErrors(errors))
+    Err(errors)
   }
 }

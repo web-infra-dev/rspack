@@ -1,11 +1,12 @@
+use std::iter;
+
+use itertools::Itertools;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeModule,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
-use rspack_plugin_javascript::runtime::stringify_chunks_to_array;
-use rustc_hash::FxHashSet as HashSet;
 
 #[derive(Debug, Eq)]
 pub struct StartupChunkDependenciesRuntimeModule {
@@ -45,13 +46,47 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
             .expect("Chunk not found");
           chunk.expect_id().to_string()
         })
-        .collect::<HashSet<_>>();
-      let source = if self.async_chunk_loading {
-        include_str!("runtime/startup_chunk_dependencies_with_async.js")
+        .collect::<Vec<_>>();
+
+      let body = if self.async_chunk_loading {
+        match chunk_ids.len() {
+          1 => format!(
+            r#"return {}("{}").then(next);"#,
+            RuntimeGlobals::ENSURE_CHUNK,
+            chunk_ids.first().expect("Should has at least one chunk")
+          ),
+          2 => format!(
+            r#"return Promise.all([{}]).then(next);"#,
+            chunk_ids
+              .iter()
+              .map(|cid| format!(r#"{}("{}")"#, RuntimeGlobals::ENSURE_CHUNK, cid))
+              .join(",\n")
+          ),
+          _ => format!(
+            r#"return Promise.all({}.map({}, {})).then(next);"#,
+            serde_json::to_string(&chunk_ids).expect("Invalid json to string"),
+            RuntimeGlobals::ENSURE_CHUNK,
+            RuntimeGlobals::REQUIRE
+          ),
+        }
       } else {
-        include_str!("runtime/startup_chunk_dependencies.js")
+        chunk_ids
+          .iter()
+          .map(|cid| format!(r#"{}("{}");"#, RuntimeGlobals::ENSURE_CHUNK, cid))
+          .chain(iter::once("return next();".to_string()))
+          .join("\n")
       };
-      RawSource::from(source.replace("$ChunkIds$", &stringify_chunks_to_array(&chunk_ids))).boxed()
+
+      RawSource::from(format!(
+        r#"var next = {};
+        {} = function() {{
+          {}
+        }};"#,
+        RuntimeGlobals::STARTUP,
+        RuntimeGlobals::STARTUP,
+        body
+      ))
+      .boxed()
     } else {
       unreachable!("should have chunk for StartupChunkDependenciesRuntimeModule")
     }

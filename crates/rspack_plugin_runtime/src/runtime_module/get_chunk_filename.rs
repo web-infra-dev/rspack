@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, fmt};
 
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
@@ -14,25 +14,42 @@ use super::create_fake_chunk;
 use super::stringify_dynamic_chunk_map;
 use super::stringify_static_chunk_map;
 use super::utils::chunk_has_css;
-use crate::runtime_module::unquoted_stringify;
+use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
 
-#[derive(Debug, Eq)]
+type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Send>;
+
 pub struct GetChunkFilenameRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
   content_type: &'static str,
   source_type: SourceType,
   global: RuntimeGlobals,
-  all_chunks: bool,
+  all_chunks: GetChunkFilenameAllChunks,
 }
+
+impl fmt::Debug for GetChunkFilenameRuntimeModule {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("GetChunkFilenameRuntimeModule")
+      .field("id", &self.id)
+      .field("chunk", &self.chunk)
+      .field("content_type", &self.content_type)
+      .field("source_type", &self.source_type)
+      .field("global", &self.global)
+      .field("all_chunks", &"...")
+      .finish()
+  }
+}
+
+impl Eq for GetChunkFilenameRuntimeModule {}
+
 // It's render is different with webpack, rspack will only render chunk map<chunkId, chunkName>
 // and search it.
 impl GetChunkFilenameRuntimeModule {
-  pub fn new(
+  pub fn new<F: Fn(&RuntimeGlobals) -> bool + Sync + Send + 'static>(
     content_type: &'static str,
     source_type: SourceType,
     global: RuntimeGlobals,
-    all_chunks: bool,
+    all_chunks: F,
   ) -> Self {
     Self {
       id: Identifier::from(format!("webpack/runtime/get_chunk_filename/{content_type}")),
@@ -40,7 +57,7 @@ impl GetChunkFilenameRuntimeModule {
       content_type,
       source_type,
       global,
-      all_chunks,
+      all_chunks: Box::new(all_chunks),
     }
   }
 }
@@ -59,7 +76,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       .chunk
       .and_then(|chunk_ukey| compilation.chunk_by_ukey.get(&chunk_ukey))
       .map(|chunk| {
-        if self.all_chunks {
+        let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey);
+        if (self.all_chunks)(runtime_requirements) {
           chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey)
         } else {
           let mut chunks = chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey);

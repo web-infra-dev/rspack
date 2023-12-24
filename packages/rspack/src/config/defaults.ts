@@ -43,6 +43,8 @@ import {
 import Template from "../Template";
 import { assertNotNill } from "../util/assertNotNil";
 import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
+import { SwcJsMinimizerRspackPlugin } from "../builtin-plugin/SwcJsMinimizerPlugin";
+import { SwcCssMinimizerRspackPlugin } from "../builtin-plugin/SwcCssMinimizerPlugin";
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized
@@ -74,6 +76,7 @@ export const applyRspackOptionsDefaults = (
 	F(options, "devtool", () => false as const);
 	D(options, "watch", false);
 	D(options, "profile", false);
+	D(options, "bail", false);
 
 	const futureDefaults = options.experiments.futureDefaults ?? false;
 	F(options, "cache", () => development);
@@ -184,6 +187,7 @@ const applyExperimentsDefaults = (
 		D(experiments.rspackFuture, "newResolver", true);
 		D(experiments.rspackFuture, "newTreeshaking", false);
 		D(experiments.rspackFuture, "disableTransformByDefault", true);
+		D(experiments.rspackFuture, "disableApplyEntryLazily", false);
 	}
 };
 
@@ -445,6 +449,7 @@ const applyOutputDefaults = (
 			return "";
 		}
 	});
+	F(output, "devtoolNamespace", () => output.uniqueName);
 
 	F(output, "chunkLoadingGlobal", () =>
 		Template.toIdentifier(
@@ -754,9 +759,14 @@ const applyOptimizationDefaults = (
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
 	A(optimization, "minimizer", () => [
-		// TODO: enable this when drop support for builtins options
-		// new SwcJsMinimizerPlugin(),
-		// new SwcCssMinimizerPlugin()
+		{
+			apply(compiler) {
+				if (!compiler.options.builtins.minifyOptions) {
+					new SwcJsMinimizerRspackPlugin().apply(compiler);
+					new SwcCssMinimizerRspackPlugin().apply(compiler);
+				}
+			}
+		}
 	]);
 	F(optimization, "nodeEnv", () => {
 		if (production) return "production";
@@ -768,7 +778,7 @@ const applyOptimizationDefaults = (
 		// A(splitChunks, "defaultSizeTypes", () =>
 		// 	css ? ["javascript", "css", "unknown"] : ["javascript", "unknown"]
 		// );
-		// D(splitChunks, "hidePathInfo", production);
+		D(splitChunks, "hidePathInfo", production);
 		D(splitChunks, "chunks", "async");
 		// D(splitChunks, "usedExports", optimization.usedExports === true);
 		D(splitChunks, "minChunks", 1);

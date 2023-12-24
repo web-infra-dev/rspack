@@ -21,8 +21,11 @@ var __WEBPACK_DEFAULT_EXPORT__ = Index;
 "./src/containers/containers.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  PlatformProvider: function() { return /* reexport safe */ _platform_container__WEBPACK_IMPORTED_MODULE_0__.PlatformProvider; },
+  usePlatform: function() { return /* reexport safe */ _platform_container__WEBPACK_IMPORTED_MODULE_0__.usePlatform; }
+});
 /* harmony import */var _platform_container__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./platform-container */"./src/containers/platform-container/index.js");
-__webpack_require__.es(_platform_container__WEBPACK_IMPORTED_MODULE_0__, __webpack_exports__);
 
 
 }),
@@ -30,8 +33,8 @@ __webpack_require__.es(_platform_container__WEBPACK_IMPORTED_MODULE_0__, __webpa
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  usePlatform: function() { return usePlatform; },
-  PlatformProvider: function() { return PlatformProvider; }
+  PlatformProvider: function() { return PlatformProvider; },
+  usePlatform: function() { return usePlatform; }
 });
  const usePlatform = 3;
  const PlatformProvider = 1000;

@@ -182,7 +182,13 @@ pub fn minify(
               errs
                 .dedup_ecma_errors()
                 .into_iter()
-                .map(|err| ecma_parse_error_deduped_to_rspack_error(err, &fm, &ModuleType::Js))
+                .map(|err| {
+                  rspack_error::miette::Error::new(ecma_parse_error_deduped_to_rspack_error(
+                    err,
+                    &fm,
+                    &ModuleType::Js,
+                  ))
+                })
                 .collect::<Vec<_>>(),
             )
           })?;

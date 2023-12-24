@@ -30,7 +30,6 @@ import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import Cache from "./lib/Cache";
 import CacheFacade from "./lib/CacheFacade";
-import ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
 import { runLoaders } from "./loader-runner";
 import { Logger } from "./logging/Logger";
 import { NormalModuleFactory } from "./NormalModuleFactory";
@@ -40,17 +39,18 @@ import { checkVersion } from "./util/bindingVersionCheck";
 import { Watching } from "./Watching";
 import { NormalModule } from "./NormalModule";
 import { normalizeJsModule } from "./util/normalization";
-import {
-	RspackBuiltinPlugin,
-	deprecated_resolveBuiltins
-} from "./builtin-plugin";
-import { optionsApply_compat } from "./rspackOptionsApply";
+import { deprecated_resolveBuiltins } from "./builtin-plugin";
+import { applyEntryOptions } from "./rspackOptionsApply";
 import { applyRspackOptionsDefaults } from "./config/defaults";
 import { assertNotNill } from "./util/assertNotNil";
 import { FileSystemInfoEntry } from "./FileSystemInfo";
 import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
 import { CodeGenerationResult } from "./Module";
+import {
+	HOOKS_CAN_NOT_INHERENT_FROM_PARENT,
+	canInherentFromParent
+} from "./builtin-plugin/base";
 
 class Compiler {
 	#_instance?: binding.Rspack;
@@ -231,8 +231,10 @@ class Compiler {
 		};
 
 		const options = this.options;
-		// TODO: remove this in v0.4
-		optionsApply_compat(this, options);
+		// TODO: remove this in v0.6
+		if (!options.experiments.rspackFuture!.disableApplyEntryLazily) {
+			applyEntryOptions(this, options);
+		}
 		// TODO: remove this when drop support for builtins options
 		options.builtins = deprecated_resolveBuiltins(
 			options.builtins,
@@ -329,6 +331,7 @@ class Compiler {
 				// No matter how it will be implemented, it will be copied to the child compiler.
 				compilation: this.#compilation.bind(this),
 				optimizeModules: this.#optimizeModules.bind(this),
+				afterOptimizeModules: this.#afterOptimizeModules.bind(this),
 				optimizeTree: this.#optimizeTree.bind(this),
 				optimizeChunkModules: this.#optimizeChunkModules.bind(this),
 				finishModules: this.#finishModules.bind(this),
@@ -405,21 +408,21 @@ class Compiler {
 		childCompiler.root = this.root;
 		if (Array.isArray(plugins)) {
 			for (const plugin of plugins) {
-				plugin.apply(childCompiler);
+				if (plugin) {
+					plugin.apply(childCompiler);
+				}
 			}
 		}
+
+		childCompiler.builtinPlugins = [
+			...childCompiler.builtinPlugins,
+			...this.builtinPlugins.filter(
+				plugin => plugin.canInherentFromParent === true
+			)
+		];
+
 		for (const name in this.hooks) {
-			if (
-				![
-					"make",
-					"compile",
-					"emit",
-					"afterEmit",
-					"invalid",
-					"done",
-					"thisCompilation"
-				].includes(name)
-			) {
+			if (canInherentFromParent(name as keyof Compiler["hooks"])) {
 				//@ts-ignore
 				if (childCompiler.hooks[name]) {
 					//@ts-ignore
@@ -647,6 +650,7 @@ class Compiler {
 			optimizeTree: this.compilation.hooks.optimizeTree,
 			finishModules: this.compilation.hooks.finishModules,
 			optimizeModules: this.compilation.hooks.optimizeModules,
+			afterOptimizeModules: this.compilation.hooks.afterOptimizeModules,
 			chunkAsset: this.compilation.hooks.chunkAsset,
 			beforeResolve: this.compilation.normalModuleFactory?.hooks.beforeResolve,
 			afterResolve: this.compilation.normalModuleFactory?.hooks.afterResolve,
@@ -793,6 +797,13 @@ class Compiler {
 
 	async #optimizeModules() {
 		await this.compilation.hooks.optimizeModules.promise(
+			this.compilation.modules
+		);
+		this.#updateDisabledHooks();
+	}
+
+	async #afterOptimizeModules() {
+		await this.compilation.hooks.afterOptimizeModules.promise(
 			this.compilation.modules
 		);
 		this.#updateDisabledHooks();

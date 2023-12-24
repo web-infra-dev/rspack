@@ -14,7 +14,7 @@ use crate::{
   ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
   NormalModuleCreateData, OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs,
   RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs,
-  Resolver, SourceType, ThisCompilationArgs,
+  Resolver, RuntimeRequirementsInTreeArgs, SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -37,6 +37,7 @@ pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
 pub type PluginProcessAssetsOutput = Result<()>;
 pub type PluginOptimizeChunksOutput = Result<()>;
 pub type PluginAdditionalChunkRuntimeRequirementsOutput = Result<()>;
+pub type PluginRuntimeRequirementsInTreeOutput = Result<()>;
 pub type PluginAdditionalModuleRequirementsOutput = Result<()>;
 pub type PluginRenderModuleContentOutput<'a> = Result<RenderModuleContentArgs<'a>>;
 pub type PluginRenderStartupHookOutput = Result<Option<BoxSource>>;
@@ -258,8 +259,8 @@ pub trait Plugin: Debug + Send + Sync {
   fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
-    _args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    _args: &mut RuntimeRequirementsInTreeArgs,
+  ) -> PluginRuntimeRequirementsInTreeOutput {
     Ok(())
   }
 
@@ -400,6 +401,10 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
+
+  async fn after_optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
 

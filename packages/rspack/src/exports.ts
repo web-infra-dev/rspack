@@ -121,10 +121,12 @@ export const webworker = { WebWorkerTemplatePlugin };
 import { LimitChunkCountPlugin } from "./builtin-plugin";
 export const optimize = { LimitChunkCountPlugin };
 
-import { ContainerPlugin } from "./container/ContainerPlugin";
-import { ContainerReferencePlugin } from "./container/ContainerReferencePlugin";
 import { ModuleFederationPlugin } from "./container/ModuleFederationPlugin";
 export type { ModuleFederationPluginOptions } from "./container/ModuleFederationPlugin";
+import { ModuleFederationPluginV1 } from "./container/ModuleFederationPluginV1";
+export type { ModuleFederationPluginV1Options } from "./container/ModuleFederationPluginV1";
+import { ContainerPlugin } from "./container/ContainerPlugin";
+import { ContainerReferencePlugin } from "./container/ContainerReferencePlugin";
 export type {
 	ContainerPluginOptions,
 	Exposes,
@@ -144,7 +146,8 @@ export type {
 export const container = {
 	ContainerPlugin,
 	ContainerReferencePlugin,
-	ModuleFederationPlugin
+	ModuleFederationPlugin,
+	ModuleFederationPluginV1
 };
 
 import { ProvideSharedPlugin } from "./sharing/ProvideSharedPlugin";

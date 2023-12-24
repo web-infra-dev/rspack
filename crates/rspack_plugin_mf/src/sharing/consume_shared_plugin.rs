@@ -135,20 +135,23 @@ fn get_required_version_from_description_file(
 }
 
 #[derive(Debug)]
+pub struct ConsumeSharedPluginOptions {
+  pub consumes: Vec<(String, Arc<ConsumeOptions>)>,
+  pub enhanced: bool,
+}
+
+#[derive(Debug)]
 pub struct ConsumeSharedPlugin {
-  consumes: Vec<(String, Arc<ConsumeOptions>)>,
+  options: ConsumeSharedPluginOptions,
   resolver: Mutex<Option<Arc<Resolver>>>,
   compiler_context: Mutex<Option<Context>>,
   matched_consumes: Mutex<Option<Arc<MatchedConsumes>>>,
 }
 
 impl ConsumeSharedPlugin {
-  pub fn new(consumes: Vec<(String, ConsumeOptions)>) -> Self {
+  pub fn new(options: ConsumeSharedPluginOptions) -> Self {
     Self {
-      consumes: consumes
-        .into_iter()
-        .map(|(k, v)| (k, Arc::new(v)))
-        .collect(),
+      options,
       resolver: Default::default(),
       compiler_context: Default::default(),
       matched_consumes: Default::default(),
@@ -188,7 +191,7 @@ impl ConsumeSharedPlugin {
     *lock = Some(Arc::new(resolve_matched_configs(
       compilation,
       resolver,
-      &self.consumes,
+      &self.options.consumes,
     )));
   }
 
@@ -378,9 +381,10 @@ impl Plugin for ConsumeSharedPlugin {
     args
       .runtime_requirements
       .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-    args
-      .compilation
-      .add_runtime_module(args.chunk, Box::<ConsumeSharedRuntimeModule>::default());
+    args.compilation.add_runtime_module(
+      args.chunk,
+      Box::new(ConsumeSharedRuntimeModule::new(self.options.enhanced)),
+    );
     Ok(())
   }
 }

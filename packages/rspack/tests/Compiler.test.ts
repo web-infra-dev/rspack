@@ -336,6 +336,37 @@ describe("Compiler", () => {
 			);
 		}
 	});
+	it("should bubble up errors when wrapped in a promise and bail is true (empty dependency)", async () => {
+		try {
+			const createCompiler = options => {
+				return new Promise((resolve, reject) => {
+					const c = rspack(options);
+					c.run((err, stats) => {
+						if (err) {
+							reject(err);
+						}
+						if (stats !== undefined && "errors" in stats) {
+							reject(err);
+						} else {
+							resolve(c);
+						}
+					});
+					return c;
+				});
+			};
+			compiler = await createCompiler({
+				context: path.join(__dirname, "fixtures"),
+				mode: "production",
+				entry: "./empty-dependency",
+				output: {
+					filename: "bundle.js"
+				},
+				bail: true
+			});
+		} catch (err) {
+			expect(err.toString()).toMatchInlineSnapshot(`"Error: Empty dependency"`);
+		}
+	});
 	it("should not emit compilation errors in async (watch)", async () => {
 		const createStats = options => {
 			return new Promise((resolve, reject) => {
@@ -1272,7 +1303,7 @@ describe("Compiler", () => {
 			compiler.build(err => {
 				const stats = new Stats(compiler.compilation);
 				expect(stats.toJson().errors[0].message).toMatchInlineSnapshot(`
-			"Conflict: Multiple assets emit different content to the same filename main.js
+			"  × Conflict: Multiple assets emit different content to the same filename main.js
 			"
 		`);
 				done();
@@ -1284,6 +1315,34 @@ describe("Compiler", () => {
 				apply(compiler: Compiler) {
 					compiler.hooks.compilation.tap("MyPlugin", compilation => {
 						compilation.hooks.optimizeModules.tap("MyPlugin", modules => {
+							expect(modules.length).toEqual(1);
+							expect(modules[0].resource.includes("d.js")).toBeTruthy();
+						});
+					});
+				}
+			}
+			const compiler = rspack({
+				entry: "./d",
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build(err => {
+				done(err);
+			});
+		});
+
+		it("should call afterOptimizeModules hook correctly", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					let a = 1;
+					compiler.hooks.compilation.tap("MyPlugin", compilation => {
+						compilation.hooks.optimizeModules.tap("MyPlugin", () => {
+							a += 1;
+						});
+
+						compilation.hooks.afterOptimizeModules.tap("MyPlugin", modules => {
+							expect(a).toBeGreaterThan(1);
 							expect(modules.length).toEqual(1);
 							expect(modules[0].resource.includes("d.js")).toBeTruthy();
 						});

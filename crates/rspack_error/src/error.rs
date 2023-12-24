@@ -1,13 +1,6 @@
-use std::{
-  fmt,
-  path::{Path, PathBuf},
-};
+use std::path::Path;
 
-use miette::{
-  Diagnostic, IntoDiagnostic, LabeledSpan, MietteDiagnostic, NamedSource, SourceCode, SourceSpan,
-};
-use rspack_util::swc::normalize_custom_filename;
-use sugar_path::SugarPath;
+use miette::{Diagnostic, IntoDiagnostic, LabeledSpan, MietteDiagnostic, SourceCode, SourceSpan};
 use swc_core::common::SourceFile;
 use thiserror::Error;
 
@@ -48,14 +41,14 @@ pub struct AnyhowError(#[from] anyhow::Error);
 /// For a [TraceableError], the path is required.
 /// Because if the source code is missing when you construct a [TraceableError], we could read it from file system later
 /// when convert it into [crate::Diagnostic], but the reverse will not working.
-#[derive(Debug, Error)]
-#[error("{severity:?}[{kind}]: {title}")]
+#[derive(Debug, Clone, Error)]
+#[error("{title}")]
 pub struct TraceableError {
   title: String,
   kind: DiagnosticKind,
   message: String,
   severity: miette::Severity,
-  src: NamedSource,
+  src: String,
   label: SourceSpan,
 }
 
@@ -98,8 +91,6 @@ impl TraceableError {
     title: String,
     message: String,
   ) -> Self {
-    let file_path = normalize_custom_filename(&source_file.name.to_string()).to_string();
-    let file_path = relative_to_pwd(PathBuf::from(file_path));
     let file_src = source_file.src.to_string();
     let start = if start >= file_src.len() { 0 } else { start };
     let end = if end >= file_src.len() { 0 } else { end };
@@ -108,26 +99,35 @@ impl TraceableError {
       kind: Default::default(),
       message,
       severity: Default::default(),
-      src: NamedSource::new(file_path.as_os_str().to_string_lossy(), file_src),
+      src: file_src,
       label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
     }
   }
 
   pub fn from_file(
-    file_path: String,
     file_src: String,
     start: usize,
     end: usize,
     title: String,
     message: String,
   ) -> Self {
-    let file_path = relative_to_pwd(PathBuf::from(file_path));
     Self {
       title,
       kind: Default::default(),
       message,
       severity: Default::default(),
-      src: NamedSource::new(file_path.as_os_str().to_string_lossy(), file_src),
+      src: file_src,
+      label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
+    }
+  }
+
+  pub fn from_empty_file(start: usize, end: usize, title: String, message: String) -> Self {
+    Self {
+      title,
+      kind: Default::default(),
+      message,
+      severity: Default::default(),
+      src: "".to_string(),
       label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
     }
   }
@@ -142,14 +142,7 @@ impl TraceableError {
     let file_src = std::fs::read_to_string(path).into_diagnostic()?;
     let start = if start >= file_src.len() { 0 } else { start };
     let end = if end >= file_src.len() { 0 } else { end };
-    Ok(Self::from_file(
-      path.to_string_lossy().into_owned(),
-      file_src,
-      start,
-      end,
-      title,
-      message,
-    ))
+    Ok(Self::from_file(file_src, start, end, title, message))
   }
 }
 
@@ -183,10 +176,11 @@ impl From<Vec<miette::Error>> for BatchErrors {
   }
 }
 
+#[macro_export]
 macro_rules! impl_diagnostic_transparent {
   ($ty:ty) => {
     impl miette::Diagnostic for $ty {
-      fn code<'a>(&'a self) -> Option<Box<dyn fmt::Display + 'a>> {
+      fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
         (&*self.0).code()
       }
 
@@ -194,23 +188,25 @@ macro_rules! impl_diagnostic_transparent {
         (&*self.0).severity()
       }
 
-      fn help<'a>(&'a self) -> Option<Box<dyn fmt::Display + 'a>> {
+      fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
         (&*self.0).help()
       }
 
-      fn url<'a>(&'a self) -> Option<Box<dyn fmt::Display + 'a>> {
+      fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
         (&*self.0).url()
       }
 
-      fn source_code(&self) -> Option<&dyn SourceCode> {
+      fn source_code(&self) -> Option<&dyn miette::SourceCode> {
         (&*self.0).source_code()
       }
 
-      fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
+      fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
         (&*self.0).labels()
       }
 
-      fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn Diagnostic> + 'a>> {
+      fn related<'a>(
+        &'a self,
+      ) -> Option<Box<dyn Iterator<Item = &'a dyn miette::Diagnostic> + 'a>> {
         (&*self.0).related()
       }
 
@@ -222,16 +218,6 @@ macro_rules! impl_diagnostic_transparent {
 }
 
 impl_diagnostic_transparent!(InternalError);
-
-/// # Panic
-///
-/// Panics if `current_dir` is not accessible.
-/// See [std::env::current_dir] for details.
-fn relative_to_pwd(file: impl AsRef<Path>) -> PathBuf {
-  file
-    .as_ref()
-    .relative(std::env::current_dir().expect("`current_dir` should exist"))
-}
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub enum DiagnosticKind {

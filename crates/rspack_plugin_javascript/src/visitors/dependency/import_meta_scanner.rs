@@ -1,5 +1,6 @@
 use rspack_core::{CompilerOptions, ConstDependency, DependencyTemplate, ResourceData, SpanExt};
-use rspack_error::Diagnostic;
+use rspack_error::miette::{diagnostic, Diagnostic, Severity};
+use rspack_error::DiagnosticExt;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{Expr, NewExpr, UnaryExpr, UnaryOp};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
@@ -20,7 +21,7 @@ pub struct ImportMetaScanner<'a> {
   pub presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
   pub compiler_options: &'a CompilerOptions,
   pub resource_data: &'a ResourceData,
-  pub warning_diagnostics: &'a mut Vec<Diagnostic>,
+  pub warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
 }
 
 impl<'a> ImportMetaScanner<'a> {
@@ -28,7 +29,7 @@ impl<'a> ImportMetaScanner<'a> {
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     resource_data: &'a ResourceData,
     compiler_options: &'a CompilerOptions,
-    warning_diagnostics: &'a mut Vec<Diagnostic>,
+    warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   ) -> Self {
     Self {
       presentational_dependencies,
@@ -91,13 +92,10 @@ impl Visit for ImportMetaScanner<'_> {
     // import.meta
     if expr_matcher::is_import_meta(expr) {
       // warn when access import.meta directly
-      self.warning_diagnostics.push(Diagnostic::warn(
-        String::from("import.meta warning"), 
-        String::from(
-          "Critical dependency: Accessing import.meta directly is unsupported (only property access or destructuring is supported)"), 
-          // expr.span().real_lo() as usize,
-          //  expr.span().real_hi()as usize
-          ));
+      self.warning_diagnostics.push(diagnostic!(
+        severity = Severity::Warning,
+        "Critical dependency: Accessing import.meta directly is unsupported (only property access or destructuring is supported)"
+      ).boxed());
       self
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(

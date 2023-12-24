@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "0.4.2",
+  "version": "0.4.4",
   "license": "MIT",
   "description": "CLI for rspack",
   "bin": {
@@ -9,9 +9,9 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "rimraf dist/ && tsc -b ./tsconfig.build.json --force",
+    "build": "tsc -b ./tsconfig.build.json",
     "dev": "tsc -b -w",
-    "test": "jest --runInBand"
+    "test": "cross-env RSPACK_DEP_WARNINGS=false jest --runInBand"
   },
   "files": [
     "bin",
@@ -32,6 +32,7 @@
     "@types/rechoir": "^0.6.1",
     "@types/webpack-bundle-analyzer": "^4.6.0",
     "concat-stream": "^2.0.0",
+    "cross-env": "^7.0.3",
     "execa": "^5.0.0",
     "internal-ip": "6.2.0",
     "source-map-support": "^0.5.19",

@@ -31,6 +31,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     &[],
     CompilerContext {
       options: std::sync::Arc::new(CompilerOptions {
+        bail: false,
         context: rspack_core::Context::default(),
         dev_server: rspack_core::DevServerOptions::default(),
         devtool: rspack_core::Devtool::default(),
@@ -86,7 +87,6 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
         node: Default::default(),
         optimization: rspack_core::Optimization {
           remove_available_modules: false,
-          remove_empty_chunks: true,
           side_effects: Default::default(),
           provided_exports: Default::default(),
           used_exports: Default::default(),
@@ -96,7 +96,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
         profile: false,
       }),
       resolver_factory: Default::default(),
-      module: None,
+      module: "".into(),
       module_context: None,
     },
   )

@@ -39,8 +39,6 @@ Read [Introduction](https://rspack.dev/guide/introduction.html) for details.
 
 ## Contribution
 
-> **This project is new and under active development. Although Rspack can already successfully bundle real world projects, its APIs are not yet stable, and many Webpack plugin hooks have not been implemented yet. If you have feedback, questions, or bug reports, please create a GitHub issue. Any contributions are greatly appreciated!**
-
 Please read the [contributing guide](./CONTRIBUTING.md) and let's build Rspack together.
 
 ### Code of Conduct

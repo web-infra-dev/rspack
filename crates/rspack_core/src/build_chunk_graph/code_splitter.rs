@@ -9,8 +9,8 @@ use crate::dependencies_block::AsyncDependenciesToInitialChunkError;
 use crate::{
   get_entry_runtime, AsyncDependenciesBlockIdentifier, BoxDependency, ChunkGroup, ChunkGroupInfo,
   ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
-  DependenciesBlock, GroupOptions, Logger, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
-  IS_NEW_TREESHAKING,
+  DependenciesBlock, Dependency, GroupOptions, Logger, ModuleGraphConnection, ModuleIdentifier,
+  RuntimeSpec,
 };
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -42,10 +42,16 @@ pub(super) struct CodeSplitter<'me> {
 }
 
 fn add_chunk_in_group(group_options: Option<&GroupOptions>, info: ChunkGroupInfo) -> ChunkGroup {
-  let options = ChunkGroupOptions::default().name_optional(
+  let options = ChunkGroupOptions::new(
     group_options
       .and_then(|x| x.name())
       .map(|name| name.to_string()),
+    group_options
+      .and_then(|x| x.normal_options())
+      .and_then(|x| x.preload_order),
+    group_options
+      .and_then(|x| x.normal_options())
+      .and_then(|x| x.prefetch_order),
   );
   let kind = ChunkGroupKind::Normal { options };
   ChunkGroup::new(kind, info)
@@ -566,9 +572,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     } else {
       Compilation::add_chunk(&mut self.compilation.chunk_by_ukey)
     };
-    self
-      .remove_parent_modules_context
-      .add_chunk_relation(item_chunk_ukey, chunk_ukey);
     self.compilation.chunk_graph.add_chunk(chunk_ukey);
 
     let entry_options = block.get_group_options().and_then(|o| o.entry_options());
@@ -785,35 +788,42 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .entry(runtime.cloned().into())
       .or_default()
       .insert(module.into(), Vec::new());
-    let dependencies: Vec<&BoxDependency> =
-      if IS_NEW_TREESHAKING.load(std::sync::atomic::Ordering::Relaxed) {
-        let mgm = self
-          .compilation
-          .module_graph
-          .module_graph_module_by_identifier(&module)
-          .unwrap_or_else(|| panic!("no module found: {:?}", &module));
-        mgm
-          .outgoing_connections_unordered(&self.compilation.module_graph)
-          .expect("should have outgoing connections")
-          .filter_map(|con: &ModuleGraphConnection| {
-            let active_state = con.get_active_state(&self.compilation.module_graph, runtime);
-            match active_state {
-              crate::ConnectionState::Bool(false) => None,
-              _ => Some(con.dependency_id),
-            }
-          })
-          .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(&dep_id))
-          .collect()
-      } else {
-        self
-          .compilation
-          .module_graph
-          .get_module_all_dependencies(&module)
-          .expect("should have module")
-          .iter()
-          .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(dep_id))
-          .collect()
-      };
+    let dependencies: Vec<&BoxDependency> = if self.compilation.options.is_new_tree_shaking() {
+      let mgm = self
+        .compilation
+        .module_graph
+        .module_graph_module_by_identifier(&module)
+        .unwrap_or_else(|| panic!("no module found: {:?}", &module));
+      let mut filtered_dep: Vec<&Box<dyn Dependency>> = mgm
+        .outgoing_connections_unordered(&self.compilation.module_graph)
+        .expect("should have outgoing connections")
+        .filter_map(|con: &ModuleGraphConnection| {
+          let active_state = con.get_active_state(&self.compilation.module_graph, runtime);
+          match active_state {
+            crate::ConnectionState::Bool(false) => None,
+            _ => Some(con.dependency_id),
+          }
+        })
+        .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(&dep_id))
+        .collect();
+      // keep the dependency original order if it does not have span, or sort the dependency by
+      // the error span
+      filtered_dep.sort_by(|a, b| match (a.span(), b.span()) {
+        (Some(a), Some(b)) => a.cmp(&b),
+        _ => std::cmp::Ordering::Equal,
+      });
+      filtered_dep
+    } else {
+      self
+        .compilation
+        .module_graph
+        .get_module_all_dependencies(&module)
+        .expect("should have module")
+        .iter()
+        .filter_map(|dep_id| self.compilation.module_graph.dependency_by_id(dep_id))
+        .collect()
+    };
+
     for dep in dependencies {
       if dep.as_module_dependency().is_none() && dep.as_context_dependency().is_none() {
         continue;
@@ -822,6 +832,16 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         continue;
       }
       let dep_id = dep.id();
+      // Dependency created but no module is available.
+      // This could happen when module factorization is failed, but `options.bail` set to `false`
+      if self
+        .compilation
+        .module_graph
+        .module_identifier_by_dependency_id(dep_id)
+        .is_none()
+      {
+        continue;
+      }
       let block_id = if let Some(block) = self.compilation.module_graph.get_parent_block(dep_id) {
         (*block).into()
       } else {
@@ -851,6 +871,34 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .expect_get_mut(&chunk_group_ukey);
       let runtime = chunk_group.info.runtime.clone();
       chunk_group.children.extend(targets.clone());
+
+      let parents = chunk_group
+        .chunks
+        .iter()
+        .map(|c| self.compilation.chunk_by_ukey.expect_get(c))
+        // ignore runtime chunk when try removing
+        .filter(|c| chunk_group.chunks.len() <= 1 || chunk_group.get_runtime_chunk() != c.ukey)
+        .map(|c| c.ukey)
+        .collect::<Vec<_>>();
+
+      targets
+        .iter()
+        .flat_map(|child| {
+          self
+            .compilation
+            .chunk_group_by_ukey
+            .expect_get(child)
+            .chunks
+            .clone()
+        })
+        .for_each(|child| {
+          parents.iter().for_each(|parent| {
+            self
+              .remove_parent_modules_context
+              .add_chunk_relation(*parent, child);
+          });
+        });
+
       for target_ukey in targets {
         let target = self
           .compilation

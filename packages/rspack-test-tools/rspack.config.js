@@ -15,7 +15,7 @@ module.exports = {
 	output: {
 		globalObject: "self",
 		filename: "[name].bundle.js",
-		path: path.resolve(__dirname, "dist/viewer")
+		path: path.resolve(__dirname, "template")
 	},
 	module: {
 		rules: [
@@ -70,7 +70,7 @@ module.exports = {
 	plugins: [
 		new rspack.HtmlRspackPlugin({
 			template: "./viewer/templates/diff.html",
-			filename: '[name].html'
+			filename: "[name].html"
 		})
 	]
 };

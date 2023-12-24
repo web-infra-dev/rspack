@@ -3,16 +3,13 @@ use std::collections::hash_map::Entry;
 use std::path::PathBuf;
 
 use dashmap::DashMap;
-use rspack_error::{internal_error, Result};
+use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_identifier::{Identifiable, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
 
-use crate::{
-  debug_all_exports_info, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
-  IS_NEW_TREESHAKING,
-};
+use crate::{debug_all_exports_info, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier};
 mod connection;
 pub use connection::*;
 
@@ -23,7 +20,7 @@ use crate::{
 };
 
 // TODO Here request can be used JsWord
-pub type ImportVarMap = HashMap<String /* request */, String /* import_var */>;
+pub type ImportVarMap = HashMap<Option<String> /* request */, String /* import_var */>;
 
 #[derive(Debug, Default)]
 pub struct DependencyParents {
@@ -33,6 +30,9 @@ pub struct DependencyParents {
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
+  // TODO: removed when new treeshaking is stable
+  is_new_treeshaking: bool,
+
   pub dependency_id_to_module_identifier: HashMap<DependencyId, ModuleIdentifier>,
 
   /// Module identifier to its module
@@ -73,6 +73,12 @@ pub struct DependencyExtraMeta {
 }
 
 impl ModuleGraph {
+  // TODO: removed when new treeshaking is stable
+  pub fn with_treeshaking(mut self, new_treeshaking: bool) -> Self {
+    self.is_new_treeshaking = new_treeshaking;
+    self
+  }
+
   /// Return an unordered iterator of modules
   pub fn modules(&self) -> &IdentifierMap<BoxModule> {
     &self.module_identifier_to_module
@@ -178,7 +184,7 @@ impl ModuleGraph {
     let dependency = dependency_id.get_dependency(self);
     let is_module_dependency =
       dependency.as_module_dependency().is_some() || dependency.as_context_dependency().is_some();
-    let condition = if IS_NEW_TREESHAKING.load(std::sync::atomic::Ordering::Relaxed) {
+    let condition = if self.is_new_treeshaking {
       dependency
         .as_module_dependency()
         .and_then(|dep| dep.get_condition())
@@ -230,11 +236,11 @@ impl ModuleGraph {
     {
       let mgm = self
         .module_graph_module_by_identifier_mut(&module_identifier)
-        .ok_or_else(|| {
-          internal_error!(
+        .unwrap_or_else(|| {
+          panic!(
             "Failed to set resolved module: Module linked to module identifier {module_identifier} cannot be found"
           )
-        })?;
+        });
 
       mgm.add_incoming_connection(connection_id);
     }
@@ -377,6 +383,22 @@ impl ModuleGraph {
           .filter_map(|id| self.module_identifier_by_dependency_id(id))
           .collect()
       })
+  }
+
+  pub(crate) fn get_module_dependencies_modules_and_blocks(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> (Vec<&ModuleIdentifier>, &[AsyncDependenciesBlockIdentifier]) {
+    let Some(m) = self.module_by_identifier(module_identifier) else {
+      unreachable!("cannot find the module correspanding to {module_identifier}");
+    };
+    let modules = m
+      .get_dependencies()
+      .iter()
+      .filter_map(|id| self.module_identifier_by_dependency_id(id))
+      .collect();
+    let blocks = m.get_blocks();
+    (modules, blocks)
   }
 
   pub fn dependency_by_connection_id(
@@ -748,7 +770,7 @@ impl ModuleGraph {
 mod test {
   use std::borrow::Cow;
 
-  use rspack_error::{Result, TWithDiagnosticArray};
+  use rspack_error::{Diagnosable, Result};
   use rspack_identifier::Identifiable;
   use rspack_sources::Source;
 
@@ -770,6 +792,8 @@ mod test {
           (stringify!($ident).to_owned() + "__" + self.0).into()
         }
       }
+
+      impl Diagnosable for $ident {}
 
       impl DependenciesBlock for $ident {
         fn add_block_id(&mut self, _: AsyncDependenciesBlockIdentifier) {
@@ -811,10 +835,7 @@ mod test {
           unreachable!()
         }
 
-        async fn build(
-          &mut self,
-          _build_context: BuildContext<'_>,
-        ) -> Result<TWithDiagnosticArray<BuildResult>> {
+        async fn build(&mut self, _build_context: BuildContext<'_>) -> Result<BuildResult> {
           unreachable!()
         }
 

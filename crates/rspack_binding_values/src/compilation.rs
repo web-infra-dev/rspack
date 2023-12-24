@@ -184,7 +184,7 @@ impl JsCompilation {
       Some(module) => match module.as_normal_module_mut() {
         Some(module) => {
           let compat_source = CompatSource::from(source).boxed();
-          *module.source_mut() = NormalModuleSource::new_built(compat_source, &[]);
+          *module.source_mut() = NormalModuleSource::new_built(compat_source, vec![]);
           true
         }
         None => false,

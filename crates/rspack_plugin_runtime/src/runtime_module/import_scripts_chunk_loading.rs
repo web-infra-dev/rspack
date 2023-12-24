@@ -6,22 +6,26 @@ use rspack_core::{
 use rspack_identifier::Identifier;
 
 use super::utils::{chunk_has_js, get_output_dir};
-use crate::runtime_module::utils::{get_initial_chunk_ids, render_condition_map, stringify_chunks};
+use crate::{
+  get_chunk_runtime_requirements,
+  runtime_module::{
+    utils::{get_initial_chunk_ids, render_condition_map, stringify_chunks},
+    BooleanMatcher,
+  },
+};
 
 #[derive(Debug, Default, Eq)]
 pub struct ImportScriptsChunkLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
-  runtime_requirements: RuntimeGlobals,
   with_create_script_url: bool,
 }
 
 impl ImportScriptsChunkLoadingRuntimeModule {
-  pub fn new(runtime_requirements: RuntimeGlobals, with_create_script_url: bool) -> Self {
+  pub fn new(with_create_script_url: bool) -> Self {
     Self {
       id: Identifier::from("webpack/runtime/import_scripts_chunk_loading"),
       chunk: None,
-      runtime_requirements,
       with_create_script_url,
     }
   }
@@ -57,13 +61,24 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       .chunk_by_ukey
       .get(&self.chunk.expect("The chunk should be attached."))
       .expect("Chunk is not found, make sure you had attach chunkUkey successfully.");
+
+    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey);
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
-    let with_hmr = self
-      .runtime_requirements
-      .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+
+    let with_base_uri = runtime_requirements.contains(RuntimeGlobals::BASE_URI);
+    let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+    let with_hmr_manifest = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
+    let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+
+    let condition_map =
+      compilation
+        .chunk_graph
+        .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
+    let has_js_matcher = render_condition_map(&condition_map, "chunkId");
+
     let mut source = ConcatSource::default();
 
-    if self.runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
+    if with_base_uri {
       source.add(self.generate_base_uri(chunk, compilation));
     }
 
@@ -84,38 +99,46 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       )));
     }
 
-    let with_loading = self
-      .runtime_requirements
-      .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
-
     if with_loading {
       let chunk_loading_global_expr = format!(
-        "{}['{}']",
+        "{}[\"{}\"]",
         &compilation.options.output.global_object, &compilation.options.output.chunk_loading_global
       );
-      let url = if self.with_create_script_url {
-        format!(
-          "{}({} + {}(chunkId))",
-          RuntimeGlobals::CREATE_SCRIPT_URL,
-          RuntimeGlobals::PUBLIC_PATH,
-          RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME
-        )
+
+      let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
+        "installedChunks[chunkId] = 1;".to_string()
       } else {
+        let url = if self.with_create_script_url {
+          format!(
+            "{}({} + {}(chunkId))",
+            RuntimeGlobals::CREATE_SCRIPT_URL,
+            RuntimeGlobals::PUBLIC_PATH,
+            RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME
+          )
+        } else {
+          format!(
+            "{} + {}(chunkId)",
+            RuntimeGlobals::PUBLIC_PATH,
+            RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME
+          )
+        };
         format!(
-          "{} + {}(chunkId)",
-          RuntimeGlobals::PUBLIC_PATH,
-          RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME
+          r#"
+          // "1" is the signal for "already loaded
+          if (!installedChunks[chunkId]) {{
+            if ({}) {{
+              importScripts({});
+            }}
+          }}
+          "#,
+          has_js_matcher, url
         )
       };
-      let condition_map =
-        compilation
-          .chunk_graph
-          .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
+
       // If chunkId not corresponding chunkName will skip load it.
       source.add(RawSource::from(
         include_str!("runtime/import_scripts_chunk_loading.js")
-          .replace("JS_MATCHER", &render_condition_map(&condition_map))
-          .replace("$URL$", &url)
+          .replace("$BODY$", body.as_str())
           .replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr),
       ));
     }
@@ -151,10 +174,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       ));
     }
 
-    if self
-      .runtime_requirements
-      .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST)
-    {
+    if with_hmr_manifest {
       // TODO: import_scripts_chunk_loading_with_hmr_manifest same as jsonp_chunk_loading_with_hmr_manifest
       source.add(RawSource::from(include_str!(
         "runtime/import_scripts_chunk_loading_with_hmr_manifest.js"

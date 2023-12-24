@@ -2,20 +2,21 @@ use std::{borrow::Cow, hash::Hash};
 
 use async_trait::async_trait;
 use rspack_core::{
-  basic_function, block_promise, module_raw, returning_function,
+  block_promise, module_raw, returning_function,
   rspack_sources::{RawSource, Source, SourceExt},
   throw_missing_module_error_block, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
-  BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions,
-  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, GroupOptions,
-  LibIdentOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType,
+  BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult,
+  ChunkGroupOptions, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
+  GroupOptions, LibIdentOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
 };
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 
 use super::{
   container_exposed_dependency::ContainerExposedDependency, container_plugin::ExposeOptions,
+  expose_runtime_module::CodeGenerationDataExpose,
 };
 use crate::utils::json_stringify;
 
@@ -82,7 +83,7 @@ impl Module for ContainerEntryModule {
   }
 
   fn source_types(&self) -> &[SourceType] {
-    &[SourceType::JavaScript]
+    &[SourceType::JavaScript, SourceType::Expose]
   }
 
   fn original_source(&self) -> Option<&dyn Source> {
@@ -97,44 +98,43 @@ impl Module for ContainerEntryModule {
     Some(self.lib_ident.as_str().into())
   }
 
-  async fn build(
-    &mut self,
-    build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
     let hash = hasher.digest(&build_context.compiler_options.output.hash_digest);
 
     let mut blocks = vec![];
+    let mut dependencies: Vec<BoxDependency> = vec![];
     for (name, options) in &self.exposes {
       let mut block = AsyncDependenciesBlock::new(self.identifier, name, None);
-      block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions {
-        name: options.name.clone(),
-      }));
+      block.set_group_options(GroupOptions::ChunkGroup(
+        ChunkGroupOptions::default().name_optional(options.name.clone()),
+      ));
       for request in options.import.iter() {
         let dep = ContainerExposedDependency::new(name.clone(), request.clone());
         block.add_dependency(Box::new(dep));
       }
       blocks.push(block);
     }
+    dependencies.push(Box::new(StaticExportsDependency::new(
+      vec!["get".into(), "init".into()],
+      false,
+    )));
 
-    Ok(
-      BuildResult {
-        build_info: BuildInfo {
-          hash: Some(hash),
-          strict: true,
-          ..Default::default()
-        },
-        build_meta: BuildMeta {
-          exports_type: BuildMetaExportsType::Namespace,
-          ..Default::default()
-        },
-        dependencies: vec![],
-        blocks,
+    Ok(BuildResult {
+      build_info: BuildInfo {
+        hash: Some(hash),
+        strict: true,
         ..Default::default()
-      }
-      .with_empty_diagnostic(),
-    )
+      },
+      build_meta: BuildMeta {
+        exports_type: BuildMetaExportsType::Namespace,
+        ..Default::default()
+      },
+      dependencies,
+      blocks,
+      ..Default::default()
+    })
   }
 
   #[allow(clippy::unwrap_in_result)]
@@ -149,11 +149,11 @@ impl Module for ContainerEntryModule {
       .insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     code_generation_result
       .runtime_requirements
-      .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+      .insert(RuntimeGlobals::EXPORTS);
     code_generation_result
       .runtime_requirements
-      .insert(RuntimeGlobals::EXPORTS);
-    let mut getters = vec![];
+      .insert(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);
+    let mut module_map = vec![];
     for block_id in self.get_blocks() {
       let block = block_id.expect_get(compilation);
       let modules_iter = block.get_dependencies().iter().map(|dependency_id| {
@@ -206,55 +206,30 @@ impl Module for ContainerEntryModule {
         );
         format!("return {}.then({});", block_promise, module_raw)
       };
-      getters.push(format!(
-        "{}: {}",
-        json_stringify(name),
-        basic_function("", &str)
-      ))
+      module_map.push((name.to_string(), str));
     }
     let source = format!(
-      r#"var moduleMap = {{
-  {getters}
-}};
-var get = function(module, getScope) {{
-  {current_remote_get_scope} = getScope;
-  getScope = (
-		{has_own_property}(moduleMap, module)
-			? moduleMap[module]()
-			: Promise.resolve().then(() => {{
-				throw new Error('Module "' + module + '" does not exist in container.');
-			}})
-	);
-	{current_remote_get_scope} = undefined;
-	return getScope;
-}};
-var init = (shareScope, initScope) => {{
-	if (!{share_scope_map}) return;
-	var name = {share_scope}
-	var oldScope = {share_scope_map}[name];
-	if(oldScope && oldScope !== shareScope) throw new Error("Container initialization failed as it has already been initialized with a different share scope");
-	{share_scope_map}[name] = shareScope;
-	return {initialize_sharing}(name, initScope);
-}};
-
-// This exports getters to disallow modifications
-{define_property_getters}(exports, {{
-	get: () => (get),
-	init: () => (init)
+      r#"
+{}(exports, {{
+	get: () => (__webpack_require__.getContainer),
+	init: () => (__webpack_require__.initContainer)
 }});"#,
-      getters = getters.join(",\n"),
-      current_remote_get_scope = RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
-      has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
-      share_scope_map = RuntimeGlobals::SHARE_SCOPE_MAP,
-      share_scope = json_stringify(&self.share_scope),
-      initialize_sharing = RuntimeGlobals::INITIALIZE_SHARING,
-      define_property_getters = RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+      RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
     );
     code_generation_result =
       code_generation_result.with_javascript(RawSource::from(source).boxed());
+    code_generation_result.add(SourceType::Expose, RawSource::from("").boxed());
+    code_generation_result
+      .data
+      .insert(CodeGenerationDataExpose {
+        module_map,
+        share_scope: self.share_scope.clone(),
+      });
     Ok(code_generation_result)
   }
 }
+
+impl_empty_diagnosable_trait!(ContainerEntryModule);
 
 impl Hash for ContainerEntryModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

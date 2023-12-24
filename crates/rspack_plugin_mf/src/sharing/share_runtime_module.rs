@@ -15,13 +15,15 @@ use crate::utils::json_stringify;
 pub struct ShareRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
+  enhanced: bool,
 }
 
-impl Default for ShareRuntimeModule {
-  fn default() -> Self {
+impl ShareRuntimeModule {
+  pub fn new(enhanced: bool) -> Self {
     Self {
       id: Identifier::from("webpack/runtime/sharing"),
       chunk: None,
+      enhanced,
     }
   }
 }
@@ -53,7 +55,7 @@ impl RuntimeModule for ShareRuntimeModule {
       for m in modules {
         let code_gen = compilation
           .code_generation_results
-          .get(&m.identifier(), Some(&chunk.runtime)).expect("should have code_generation_result of share-init sourceType module at <ShareRuntimeModule as RuntimeModule>::generate");
+          .get(&m.identifier(), Some(&chunk.runtime));
         let Some(data) = code_gen.data.get::<CodeGenerationDataShareInit>() else {
           continue;
         };
@@ -95,17 +97,21 @@ impl RuntimeModule for ShareRuntimeModule {
       })
       .collect::<Vec<_>>()
       .join(", ");
+    let initialize_sharing_impl = if self.enhanced {
+      "__webpack_require__.I = function() { throw new Error(\"should have __webpack_require__.I\") }"
+    } else {
+      include_str!("./initializeSharing.js")
+    };
     RawSource::from(format!(
       r#"
 {share_scope_map} = {{}};
-__webpack_require__.MF.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name} }};
-{initialize_sharing} = function(name, initScope) {{ return {initialize_sharing_fn}(name, initScope); }};
+__webpack_require__.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name} }};
+{initialize_sharing_impl}
 "#,
       share_scope_map = RuntimeGlobals::SHARE_SCOPE_MAP,
       scope_to_data_init = scope_to_data_init,
       unique_name = json_stringify(&compilation.options.output.unique_name),
-      initialize_sharing = RuntimeGlobals::INITIALIZE_SHARING,
-      initialize_sharing_fn = "__webpack_require__.MF.initializeSharing"
+      initialize_sharing_impl = initialize_sharing_impl,
     ))
     .boxed()
   }

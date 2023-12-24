@@ -13,6 +13,9 @@ module.exports = function (arr) {
 			return -1
 		}
 
-		return a.message.localeCompare(b.message);
+		// Sort errors with label, as `error.message` may contain different span locations,
+		// thus resulting the final message not stable.
+		let RE = /Failed to resolve (\w+)/;
+		return a.message.match(RE)[1].localeCompare(b.message.match(RE)[1])
 	});
 };

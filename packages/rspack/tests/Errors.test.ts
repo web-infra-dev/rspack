@@ -82,8 +82,12 @@ const defaults = {
 		}
 	},
 	outputFileSystem: {
-		mkdir(dir, callback) {
-			callback();
+		mkdir(dir, maybeOptionOrCallback, maybeCallback) {
+			if (typeof maybeOptionOrCallback === "function") {
+				maybeOptionOrCallback();
+			} else if (typeof maybeCallback === "function") {
+				maybeCallback();
+			}
 		},
 		writeFile(file, content, callback) {
 			callback();
@@ -142,8 +146,11 @@ it("should emit warnings for resolve failure in esm", async () => {
 		Object {
 		  "errors": Array [
 		    Object {
-		      "formatted": "  × Error[internal]: Resolve error\\n   ╭─[tests/fixtures/errors/resolve-fail-esm/index.js:1:1]\\n 1 │ import { answer } from './answer'\\n   · ▲\\n   · ╰── Failed to resolve ./answer in javascript/esm|<cwd>/tests/fixtures/errors/resolve-fail-esm/index.js\\n   ╰────\\n",
-		      "message": "Error[internal]: Resolve error\\nFailed to resolve ./answer in javascript/esm|<cwd>/tests/fixtures/errors/resolve-fail-esm/index.js",
+		      "formatted": "  × Resolve error\\n   ╭────\\n 1 │ import { answer } from './answer'\\n   · ▲\\n   · ╰── Failed to resolve ./answer in javascript/esm|<cwd>/tests/fixtures/errors/resolve-fail-esm/index.js\\n   ╰────\\n",
+		      "message": "  × Resolve error\\n   ╭────\\n 1 │ import { answer } from './answer'\\n   · ▲\\n   · ╰── Failed to resolve ./answer in javascript/esm|<cwd>/tests/fixtures/errors/resolve-fail-esm/index.js\\n   ╰────\\n",
+		      "moduleId": "./resolve-fail-esm/index.js",
+		      "moduleIdentifier": "javascript/esm|<cwd>/tests/fixtures/errors/resolve-fail-esm/index.js",
+		      "moduleName": "./resolve-fail-esm/index.js",
 		    },
 		  ],
 		  "warnings": Array [],

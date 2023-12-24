@@ -1,5 +1,9 @@
 import { BuiltinPlugin } from "@rspack/binding";
-import { BuiltinPluginName, RspackBuiltinPlugin } from "./base";
+import {
+	BuiltinPluginName,
+	RspackBuiltinPlugin,
+	createBuiltinPlugin
+} from "./base";
 import {
 	ChunkLoading,
 	OutputModule,
@@ -29,9 +33,6 @@ export class WorkerPlugin extends RspackBuiltinPlugin {
 		if (this.wasmLoading) {
 			new EnableWasmLoadingPlugin(this.wasmLoading).apply(compiler);
 		}
-		return {
-			name: this.name as any,
-			options: false
-		};
+		return createBuiltinPlugin(this.name, undefined);
 	}
 }

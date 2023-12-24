@@ -10,6 +10,7 @@ use rustc_hash::FxHashSet as HashSet;
 use serde::Serialize;
 use swc_core::ecma::atoms::JsWord;
 
+use crate::property_access;
 use crate::Nullable;
 use crate::{
   ConnectionState, DependencyCondition, DependencyId, ModuleGraph, ModuleGraphConnection,
@@ -182,6 +183,8 @@ impl ExportsInfoId {
     changed
   }
 
+  /// # Panic
+  /// this function would panic if name doesn't exists in current exportsInfo
   pub fn get_read_only_export_info<'a>(
     &self,
     name: &JsWord,
@@ -288,6 +291,24 @@ impl ExportsInfoId {
         other_export_info.can_mangle_use = Some(false);
         changed = true;
       }
+    }
+    changed
+  }
+
+  pub fn set_all_known_exports_used(
+    &self,
+    mg: &mut ModuleGraph,
+    runtime: Option<&RuntimeSpec>,
+  ) -> bool {
+    let mut changed = false;
+    let exports_info = mg.get_exports_info_mut_by_id(self);
+    let export_info_id_list = exports_info.exports.values().cloned().collect::<Vec<_>>();
+    for export_info_id in export_info_id_list {
+      let export_info = export_info_id.get_export_info_mut(mg);
+      if !matches!(export_info.provided, Some(ExportInfoProvided::True)) {
+        continue;
+      }
+      changed |= export_info_id.set_used(mg, UsageState::Used, runtime);
     }
     changed
   }
@@ -571,6 +592,16 @@ impl ExportsInfo {
 pub enum UsedName {
   Str(JsWord),
   Vec(Vec<JsWord>),
+}
+
+pub fn string_of_used_name(used: Option<&UsedName>) -> String {
+  match used {
+    Some(UsedName::Str(str)) => str.to_string(),
+    Some(UsedName::Vec(value_key)) => property_access(value_key, 0)
+      .trim_start_matches('.')
+      .to_string(),
+    None => "/* unused export */ undefined".to_string(),
+  }
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -1311,28 +1342,18 @@ impl ExportInfo {
         key,
         ExportInfoTargetValue {
           connection,
-          exports: Some(export_name.cloned().unwrap_or_default()),
+          exports: export_name.cloned(),
           priority: normalized_priority,
         },
       );
       self.target_is_set = true;
       return true;
     }
-    if let Some(old_target) = self.target.get_mut(&key) {
-      if old_target.connection != connection
-        || old_target.priority != normalized_priority
-        || old_target.exports.as_ref() != export_name
-      {
-        old_target.exports = Some(export_name.cloned().unwrap_or_default());
-        old_target.priority = normalized_priority;
-        old_target.connection = connection;
-        self.max_target.clear();
-        self.max_target_is_set = false;
-        return true;
+    let Some(old_target) = self.target.get_mut(&key) else {
+      if connection.is_none() {
+        return false;
       }
-    } else if connection.is_none() {
-      return false;
-    } else {
+
       self.target.insert(
         key,
         ExportInfoTargetValue {
@@ -1341,6 +1362,17 @@ impl ExportInfo {
           priority: normalized_priority,
         },
       );
+      self.max_target.clear();
+      self.max_target_is_set = false;
+      return true;
+    };
+    if old_target.connection != connection
+      || old_target.priority != normalized_priority
+      || old_target.exports.as_ref() != export_name
+    {
+      old_target.exports = export_name.cloned();
+      old_target.priority = normalized_priority;
+      old_target.connection = connection;
       self.max_target.clear();
       self.max_target_is_set = false;
       return true;
@@ -1364,7 +1396,6 @@ impl ExportInfo {
     );
     let new_exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
     let new_exports_info_id = new_exports_info.id;
-
     mg.exports_info_map
       .insert(new_exports_info_id, new_exports_info);
     mg.export_info_map

@@ -228,6 +228,23 @@ bitflags! {
     const SHARE_SCOPE_MAP = 1 << 52;
 
     const INITIALIZE_SHARING = 1 << 53;
+
+    const SCRIPT_NONCE = 1 << 54;
+
+    const RELATIVE_URL = 1 << 55;
+
+    const CHUNK_NAME = 1 << 56;
+
+    const RUNTIME_ID = 1 << 57;
+
+    // prefetch and preload
+    const PREFETCH_CHUNK = 1 << 58;
+
+    const PREFETCH_CHUNK_HANDLERS = 1 << 59;
+
+    const PRELOAD_CHUNK = 1 << 60;
+
+    const PRELOAD_CHUNK_HANDLERS = 1 << 61;
   }
 }
 
@@ -302,6 +319,14 @@ impl RuntimeGlobals {
       R::CURRENT_REMOTE_GET_SCOPE => "__webpack_require__.R",
       R::SHARE_SCOPE_MAP => "__webpack_require__.S",
       R::INITIALIZE_SHARING => "__webpack_require__.I",
+      R::SCRIPT_NONCE => "__webpack_require__.nc",
+      R::RELATIVE_URL => "__webpack_require__.U",
+      R::CHUNK_NAME => "__webpack_require__.cn",
+      R::RUNTIME_ID => "__webpack_require__.j",
+      R::PREFETCH_CHUNK => "__webpack_require__.E",
+      R::PREFETCH_CHUNK_HANDLERS => "__webpack_require__.F",
+      R::PRELOAD_CHUNK => "__webpack_require__.G",
+      R::PRELOAD_CHUNK_HANDLERS => "__webpack_require__.H",
       r => panic!(
         "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
       ),

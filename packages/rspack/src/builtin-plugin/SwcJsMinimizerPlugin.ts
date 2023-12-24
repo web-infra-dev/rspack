@@ -330,5 +330,6 @@ export const SwcJsMinimizerRspackPlugin = create(
 			include: options?.include,
 			exclude: options?.exclude
 		};
-	}
+	},
+	"compilation"
 );

@@ -34,8 +34,7 @@ pub fn render_chunk_modules(
     .filter_map(|mgm| {
       let code_gen_result = compilation
         .code_generation_results
-        .get(&mgm.module_identifier, Some(&chunk.runtime))
-        .expect("should have code generation result");
+        .get(&mgm.module_identifier, Some(&chunk.runtime));
       if let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) {
         let render_module_result = plugin_driver
           .render_module_content(RenderModuleContentArgs {
@@ -202,6 +201,9 @@ pub fn render_runtime_modules(
     .collect::<Vec<_>>();
   runtime_modules.sort_unstable_by_key(|(_, m)| m.stage());
   runtime_modules.iter().for_each(|((_, source), module)| {
+    if source.size() == 0 {
+      return;
+    }
     if is_diff_mode() {
       sources.add(RawSource::from(format!(
         "/* start::{} */\n",

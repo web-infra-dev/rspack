@@ -106,6 +106,7 @@ export class Compilation {
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
 		additionalAssets: any;
 		optimizeModules: tapable.SyncBailHook<Iterable<JsModule>, undefined>;
+		afterOptimizeModules: tapable.SyncHook<Iterable<JsModule>, undefined>;
 		optimizeTree: tapable.AsyncSeriesBailHook<
 			[Iterable<Chunk>, Iterable<JsModule>],
 			undefined
@@ -169,6 +170,7 @@ export class Compilation {
 			]),
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
 			optimizeModules: new tapable.SyncBailHook(["modules"]),
+			afterOptimizeModules: new tapable.SyncBailHook(["modules"]),
 			optimizeTree: new tapable.AsyncSeriesBailHook(["chunks", "modules"]),
 			optimizeChunkModules: new tapable.AsyncSeriesBailHook([
 				"chunks",
@@ -347,11 +349,13 @@ export class Compilation {
 		options.loggingDebug = []
 			.concat(optionsOrFallback(options.loggingDebug, []))
 			.map(normalizeFilter);
-
 		options.modulesSpace =
 			options.modulesSpace || (context.forToString ? 15 : Infinity);
-
 		options.ids = optionOrLocalFallback(options.ids, !context.forToString);
+		options.children = optionOrLocalFallback(
+			options.children,
+			!context.forToString
+		);
 
 		return options;
 	}

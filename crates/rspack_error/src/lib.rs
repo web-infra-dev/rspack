@@ -18,7 +18,7 @@ pub use thiserror;
 
 pub type Error = miette::Error;
 
-pub type Result<T> = std::result::Result<T, miette::Error>;
+pub type Result<T, E = miette::Error> = std::result::Result<T, E>;
 
 /// A helper struct for change logic from
 /// return something to something with diagnostics array

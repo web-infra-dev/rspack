@@ -1,5 +1,4 @@
 import type {
-	RawCacheGroupOptions,
 	RawModuleRule,
 	RawOptions,
 	RawRuleSetCondition,
@@ -18,7 +17,6 @@ import type {
 	RawRspackFuture,
 	RawLibraryName,
 	RawLibraryOptions,
-	JsModule,
 	RawModuleRuleUse
 } from "@rspack/binding";
 import assert from "assert";
@@ -54,7 +52,6 @@ import {
 	ParserOptionsByModuleType,
 	GeneratorOptionsByModuleType,
 	IncrementalRebuildOptions,
-	OptimizationSplitChunksOptions,
 	RspackFutureOptions,
 	JavascriptParserOptions,
 	LibraryName,
@@ -67,7 +64,6 @@ import {
 	OutputNormalized,
 	RspackOptionsNormalized
 } from "./normalization";
-import { Module } from "../Module";
 
 export type { LoaderContext, LoaderDefinition, LoaderDefinitionFunction };
 
@@ -122,7 +118,10 @@ export const getRawOptions = (
 		},
 		experiments,
 		node: getRawNode(options.node),
+		// SAFETY: applied default value in `applyRspackOptionsDefaults`.
 		profile: options.profile!,
+		// SAFETY: applied default value in `applyRspackOptionsDefaults`.
+		bail: options.bail!,
 		// TODO: remove this
 		builtins: options.builtins as any
 	};
@@ -349,7 +348,7 @@ function tryMatch(payload: string, condition: RuleSetCondition): boolean {
 		}
 
 		if (condition.not) {
-			return condition.not.every(c => !tryMatch(payload, c));
+			return !tryMatch(payload, condition.not);
 		}
 	}
 
@@ -586,7 +585,15 @@ function getRawParserOptions(
 
 function getRawJavascriptParserOptions(parser: JavascriptParserOptions) {
 	return {
-		dynamicImportMode: parser.dynamicImportMode ?? "lazy"
+		dynamicImportMode: parser.dynamicImportMode ?? "lazy",
+		dynamicImportPreload: parser.dynamicImportPreload?.toString() ?? "false",
+		dynamicImportPrefetch: parser.dynamicImportPrefetch?.toString() ?? "false",
+		url:
+			parser.url === false
+				? "false"
+				: parser.url === "relative"
+				? parser.url
+				: "true"
 	};
 }
 
@@ -696,10 +703,7 @@ function getRawOptimization(
 	optimization: Optimization
 ): RawOptions["optimization"] {
 	assert(
-		!isNil(optimization.moduleIds) &&
-			!isNil(optimization.chunkIds) &&
-			!isNil(optimization.removeAvailableModules) &&
-			!isNil(optimization.removeEmptyChunks) &&
+		!isNil(optimization.removeAvailableModules) &&
 			!isNil(optimization.sideEffects) &&
 			!isNil(optimization.realContentHash) &&
 			!isNil(optimization.providedExports) &&
@@ -708,82 +712,12 @@ function getRawOptimization(
 		"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash, optimization.providedExports, optimization.usedExports, optimization.innerGraph should not be nil after defaults"
 	);
 	return {
-		chunkIds: optimization.chunkIds,
-		splitChunks: toRawSplitChunksOptions(optimization.splitChunks),
-		moduleIds: optimization.moduleIds,
 		removeAvailableModules: optimization.removeAvailableModules,
-		removeEmptyChunks: optimization.removeEmptyChunks,
 		sideEffects: String(optimization.sideEffects),
-		realContentHash: optimization.realContentHash,
 		usedExports: String(optimization.usedExports),
 		providedExports: optimization.providedExports,
 		innerGraph: optimization.innerGraph,
 		mangleExports: String(optimization.mangleExports)
-	};
-}
-
-export function toRawSplitChunksOptions(
-	sc?: false | OptimizationSplitChunksOptions
-): RawOptions["optimization"]["splitChunks"] | undefined {
-	if (!sc) {
-		return;
-	}
-
-	function getName(name: any) {
-		interface Context {
-			module: JsModule;
-		}
-
-		if (typeof name === "function") {
-			return (ctx: Context) => {
-				if (typeof ctx.module === "undefined") {
-					return name(undefined);
-				} else {
-					return name(Module.__from_binding(ctx.module));
-				}
-			};
-		} else {
-			return name;
-		}
-	}
-
-	function getTest(test: any) {
-		interface Context {
-			module: JsModule;
-		}
-
-		if (typeof test === "function") {
-			return (ctx: Context) => {
-				if (typeof ctx.module === "undefined") {
-					return test(undefined);
-				} else {
-					return test(Module.__from_binding(ctx.module));
-				}
-			};
-		} else {
-			return test;
-		}
-	}
-
-	const { name, cacheGroups = {}, ...passThrough } = sc;
-
-	return {
-		name: getName(name),
-		cacheGroups: Object.entries(cacheGroups)
-			.filter(([_key, group]) => group !== false)
-			.map(([key, group]) => {
-				group = group as Exclude<typeof group, false>;
-
-				const { test, name, ...passThrough } = group;
-				const rawGroup: RawCacheGroupOptions = {
-					key,
-					test: getTest(test),
-					name: getName(name),
-					...passThrough
-				};
-				return rawGroup;
-			}),
-		...passThrough
 	};
 }
 
@@ -815,32 +749,19 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: ExperimentsNormalized
 ): RawOptions["experiments"] {
-	const {
-		lazyCompilation,
-		incrementalRebuild,
-		asyncWebAssembly,
-		newSplitChunks,
-		topLevelAwait,
-		css,
-		rspackFuture
-	} = experiments;
+	const { incrementalRebuild, newSplitChunks, topLevelAwait, rspackFuture } =
+		experiments;
 	assert(
-		!isNil(lazyCompilation) &&
-			!isNil(incrementalRebuild) &&
-			!isNil(asyncWebAssembly) &&
+		!isNil(incrementalRebuild) &&
 			!isNil(newSplitChunks) &&
 			!isNil(topLevelAwait) &&
-			!isNil(css) &&
 			!isNil(rspackFuture)
 	);
 
 	return {
-		lazyCompilation,
 		incrementalRebuild: getRawIncrementalRebuild(incrementalRebuild),
-		asyncWebAssembly,
 		newSplitChunks,
 		topLevelAwait,
-		css,
 		rspackFuture: getRawRspackFutureOptions(rspackFuture)
 	};
 }

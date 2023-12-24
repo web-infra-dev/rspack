@@ -1,7 +1,9 @@
 use async_trait::async_trait;
 use rspack_core::{
   AdditionalChunkRuntimeRequirementsArgs, ChunkLoading, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeGlobals, RuntimeModuleExt,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
+  PluginRuntimeRequirementsInTreeOutput, RuntimeGlobals, RuntimeModuleExt,
+  RuntimeRequirementsInTreeArgs,
 };
 
 use crate::runtime_module::{
@@ -56,16 +58,17 @@ impl Plugin for StartupChunkDependenciesPlugin {
   fn runtime_requirements_in_tree(
     &self,
     _ctx: PluginContext,
-    args: &mut AdditionalChunkRuntimeRequirementsArgs,
-  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    args: &mut RuntimeRequirementsInTreeArgs,
+  ) -> PluginRuntimeRequirementsInTreeOutput {
     let compilation = &mut args.compilation;
     let is_enabled_for_chunk = is_enabled_for_chunk(args.chunk, &self.chunk_loading, compilation);
-    let runtime_requirements = &mut args.runtime_requirements;
+    let runtime_requirements = args.runtime_requirements;
+    let runtime_requirements_mut = &mut args.runtime_requirements_mut;
 
     if runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT) && is_enabled_for_chunk {
-      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-      runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
-      runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
+      runtime_requirements_mut.insert(RuntimeGlobals::REQUIRE);
+      runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK);
+      runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
       compilation.add_runtime_module(
         args.chunk,
         StartupEntrypointRuntimeModule::new(self.async_chunk_loading).boxed(),

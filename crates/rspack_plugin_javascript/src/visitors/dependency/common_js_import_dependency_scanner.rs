@@ -1,8 +1,10 @@
+use std::rc::Rc;
+
 use rspack_core::{context_reg_exp, ContextOptions, DependencyCategory};
 use rspack_core::{BoxDependency, ConstDependency, ContextMode, ContextNameSpaceObject};
 use rspack_core::{DependencyTemplate, SpanExt};
 use swc_core::common::{Spanned, SyntaxContext};
-use swc_core::ecma::ast::{BinExpr, CallExpr, Callee, Expr, IfStmt};
+use swc_core::ecma::ast::{BinExpr, BlockStmt, CallExpr, Callee, Expr, IfStmt};
 use swc_core::ecma::ast::{Lit, TryStmt, UnaryExpr, UnaryOp};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
@@ -12,12 +14,10 @@ use crate::dependency::{CommonJsRequireContextDependency, RequireHeaderDependenc
 use crate::dependency::{CommonJsRequireDependency, RequireResolveDependency};
 use crate::parser_plugin::{
   BoxJavascriptParserPlugin, JavaScriptParserPluginDrive, JavascriptParserPlugin,
+  RequireContextDependencyParserPlugin,
 };
-use crate::utils::{
-  eval_binary_expression, eval_cond_expression, eval_lit_expr, eval_tpl_expression,
-  eval_unary_expression, evaluate_to_string, expression_logic_operator, BasicEvaluatedExpression,
-  Continue,
-};
+use crate::utils::eval::{self, BasicEvaluatedExpression};
+use crate::utils::{expression_logic_operator, statement_if};
 
 struct CommonJsImportsParserPlugin;
 
@@ -30,7 +30,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     unresolved_mark: swc_core::common::SyntaxContext,
   ) -> Option<BasicEvaluatedExpression> {
     if expression.sym.as_str() == "require" && expression.span.ctxt == unresolved_mark {
-      Some(evaluate_to_string("function".to_string(), start, end))
+      Some(eval::evaluate_to_string("function".to_string(), start, end))
     } else {
       None
     }
@@ -43,7 +43,35 @@ pub struct CommonJsImportDependencyScanner<'a> {
   pub(crate) unresolved_ctxt: SyntaxContext,
   pub(crate) in_try: bool,
   pub(crate) in_if: bool,
-  pub(crate) plugin_drive: JavaScriptParserPluginDrive,
+  pub(crate) is_strict: bool,
+  pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
+}
+
+#[derive(Debug)]
+enum Mode {
+  Strict,
+  Nothing,
+}
+
+fn detect_mode(stmt: &BlockStmt) -> Mode {
+  let Some(Lit::Str(str)) = stmt
+    .stmts
+    .first()
+    .and_then(|stmt| stmt.as_expr())
+    .and_then(|expr_stmt| expr_stmt.expr.as_lit())
+  else {
+    return Mode::Nothing;
+  };
+
+  if str.value.as_str() == "use strict" {
+    Mode::Strict
+  } else {
+    Mode::Nothing
+  }
+}
+
+fn is_strict(stmt: &BlockStmt) -> bool {
+  matches!(detect_mode(stmt), Mode::Strict)
 }
 
 impl<'a> CommonJsImportDependencyScanner<'a> {
@@ -52,7 +80,10 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
     presentational_dependencies: &'a mut Vec<Box<dyn DependencyTemplate>>,
     unresolved_ctxt: SyntaxContext,
   ) -> Self {
-    let plugins: Vec<BoxJavascriptParserPlugin> = vec![Box::new(CommonJsImportsParserPlugin)];
+    let plugins: Vec<BoxJavascriptParserPlugin> = vec![
+      Box::new(CommonJsImportsParserPlugin),
+      Box::new(RequireContextDependencyParserPlugin),
+    ];
     let plugin_drive = JavaScriptParserPluginDrive::new(plugins);
     Self {
       dependencies,
@@ -60,7 +91,8 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
       unresolved_ctxt,
       in_try: false,
       in_if: false,
-      plugin_drive,
+      is_strict: false,
+      plugin_drive: Rc::new(plugin_drive),
     }
   }
 
@@ -157,6 +189,15 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
 
     Some((commonjs_require_deps, require_header_deps))
   }
+
+  pub fn walk_left_right_expression(&mut self, expr: &BinExpr) {
+    self.walk_expression(&expr.left);
+    self.walk_expression(&expr.right);
+  }
+
+  pub fn walk_expression(&mut self, expr: &Expr) {
+    expr.visit_children_with(self);
+  }
 }
 
 impl Visit for CommonJsImportDependencyScanner<'_> {
@@ -171,6 +212,15 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
     let Callee::Expr(expr) = &call_expr.callee else {
       call_expr.visit_children_with(self);
+      return;
+    };
+
+    if self
+      .plugin_drive
+      .clone()
+      .call(self, call_expr)
+      .unwrap_or_default()
+    {
       return;
     };
 
@@ -256,8 +306,21 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
 
   fn visit_if_stmt(&mut self, if_stmt: &IfStmt) {
     self.replace_require_resolve(&if_stmt.test, "true");
+
     self.in_if = true;
-    if_stmt.visit_children_with(self);
+    if let Some(result) = statement_if(self, if_stmt) {
+      if result {
+        if_stmt.cons.visit_children_with(self);
+      } else if let Some(alt) = &if_stmt.alt {
+        alt.visit_children_with(self)
+      }
+    } else {
+      self.walk_expression(&if_stmt.test);
+      if_stmt.cons.visit_children_with(self);
+      if let Some(alt) = &if_stmt.alt {
+        alt.visit_children_with(self)
+      }
+    }
     self.in_if = false;
   }
 
@@ -266,21 +329,21 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
     self.replace_require_resolve(&bin_expr.left, value);
     self.replace_require_resolve(&bin_expr.right, value);
 
-    let (deps, c) = expression_logic_operator(self, bin_expr);
-    if c == Continue::NO {
-    } else if c == Continue::LEFT {
-      bin_expr.left.visit_children_with(self);
-    } else if c == Continue::RIGHT {
-      bin_expr.right.visit_children_with(self);
-    } else if c == Continue::LEFT_AND_RIGHT {
-      bin_expr.visit_children_with(self);
+    if let Some(keep_right) = expression_logic_operator(self, bin_expr) {
+      if keep_right {
+        self.walk_expression(&bin_expr.right);
+      }
+    } else {
+      self.walk_left_right_expression(bin_expr);
     }
-    let Some(deps) = deps else {
-      return;
-    };
-    for dep in deps {
-      self.presentational_dependencies.push(Box::new(dep))
-    }
+  }
+
+  fn visit_block_stmt(&mut self, n: &BlockStmt) {
+    let old_in_strict = self.is_strict;
+
+    self.is_strict = is_strict(n);
+    n.visit_children_with(self);
+    self.is_strict = old_in_strict;
   }
 }
 
@@ -293,14 +356,16 @@ impl CommonJsImportDependencyScanner<'_> {
   }
 
   // same as `JavascriptParser._initializeEvaluating` in webpack
-  // FIXME: should mv it to plugin
+  // FIXME: should mv it to plugin(for example `parse.hooks.evaluate for`)
   fn evaluating(&self, expr: &Expr) -> Option<BasicEvaluatedExpression> {
     match expr {
-      Expr::Tpl(tpl) => eval_tpl_expression(self, tpl),
-      Expr::Lit(lit) => eval_lit_expr(lit),
-      Expr::Cond(cond) => eval_cond_expression(self, cond),
-      Expr::Unary(unary) => eval_unary_expression(self, unary),
-      Expr::Bin(binary) => eval_binary_expression(self, binary),
+      Expr::Tpl(tpl) => eval::eval_tpl_expression(self, tpl),
+      Expr::Lit(lit) => eval::eval_lit_expr(lit),
+      Expr::Cond(cond) => eval::eval_cond_expression(self, cond),
+      Expr::Unary(unary) => eval::eval_unary_expression(self, unary),
+      Expr::Bin(binary) => eval::eval_binary_expression(self, binary),
+      Expr::Array(array) => eval::eval_array_expression(self, array),
+      Expr::New(new) => eval::eval_new_expression(self, new),
       _ => None,
     }
   }

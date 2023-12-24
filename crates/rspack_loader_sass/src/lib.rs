@@ -482,23 +482,20 @@ impl Loader<LoaderRunnerContext> for SassLoader {
       })?
       .render(sass_options)
       .map_err(sass_exception_to_error)?;
-    let source_map = result
-      .map
-      .map(|map| -> Result<SourceMap> {
-        let mut map = SourceMap::from_slice(&map).map_err(|e| internal_error!(e.to_string()))?;
-        for source in map.sources_mut() {
-          if source.starts_with("file:") {
-            *source = Url::parse(source)
-              .expect("TODO:")
-              .to_file_path()
-              .expect("TODO:")
-              .display()
-              .to_string();
-          }
+    let source_map = result.map.map(|map| {
+      let mut map = SourceMap::from_slice(&map).expect("should be able to generate source-map");
+      for source in map.sources_mut() {
+        if source.starts_with("file:") {
+          *source = Url::parse(source)
+            .expect("TODO:")
+            .to_file_path()
+            .expect("TODO:")
+            .display()
+            .to_string();
         }
-        Ok(map)
-      })
-      .transpose()?;
+      }
+      map
+    });
 
     loader_context.content = Some(result.css.into());
     loader_context.source_map = source_map;
@@ -560,21 +557,10 @@ fn make_traceable_error(title: &str, message: &str, span: &SourceSpan) -> Option
         .to_string_lossy()
         .to_string()
     })
-    .and_then(|path| {
-      std::fs::read_to_string(&path)
-        .ok()
-        .map(|source| (path, source))
-    })
-    .map(|(path, source)| {
+    .and_then(|path| std::fs::read_to_string(path).ok())
+    .map(|source| {
       let start = utf16::to_byte_idx(&source, span.start.offset);
       let end = utf16::to_byte_idx(&source, span.end.offset);
-      TraceableError::from_file(
-        path,
-        source,
-        start,
-        end,
-        title.to_string(),
-        message.to_string(),
-      )
+      TraceableError::from_file(source, start, end, title.to_string(), message.to_string())
     })
 }

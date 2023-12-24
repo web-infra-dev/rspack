@@ -9,6 +9,10 @@ pub struct FileUriPlugin;
 
 #[async_trait::async_trait]
 impl Plugin for FileUriPlugin {
+  fn name(&self) -> &'static str {
+    "rspack.FileUriPlugin"
+  }
+
   async fn normal_module_factory_resolve_for_scheme(
     &self,
     _ctx: PluginContext,

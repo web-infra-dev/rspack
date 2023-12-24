@@ -2,10 +2,16 @@
 source: crates/rspack_error/tests/fixtures.rs
 expression: tsx_syntax_error
 ---
-  × Error[tsx]: TSX parsing error
-   ╭─[tests/fixtures/tsx_syntax_error/index.tsx:1:1]
- 1 │ let c = <test>/test>;
-   ·          ──┬─
-   ·            ╰── Unexpected token `test`. Expected jsx identifier
-   ╰────
+ModuleParseError
+
+  × Module parse failed:
+  ╰─▶   × TSX parsing error
+         ╭────
+       1 │ let c = <test>/test>;
+         ·          ──┬─
+         ·            ╰── Unexpected token `test`. Expected jsx identifier
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
 

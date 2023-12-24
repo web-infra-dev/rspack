@@ -725,6 +725,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "diff"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1721,9 +1727,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.18.0"
+version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd8b5dd2ae5ed71462c540258bedcb51965123ad7e7ccf4b9a8cafaa4a63576d"
+checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
 
 [[package]]
 name = "oorandom"
@@ -1751,9 +1757,9 @@ checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 
 [[package]]
 name = "oxc_resolver"
-version = "0.6.0"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "312bc7937d6e403799b764b29f4c521c70f5c0489c5aaec2a0eeca1831498b2d"
+checksum = "7ac76a705bf7db9d1e43904ed4704039de8fa654b0f613cc729c09bb67fd89f6"
 dependencies = [
  "dashmap",
  "dunce",
@@ -2084,6 +2090,16 @@ dependencies = [
  "serde",
  "st-map",
  "tracing",
+]
+
+[[package]]
+name = "pretty_assertions"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af7cee1a6c8a5b9208b3cb1061f10c0cb689087b3d8ce85fb9d2dd7a29b6ba66"
+dependencies = [
+ "diff",
+ "yansi",
 ]
 
 [[package]]
@@ -2570,12 +2586,14 @@ dependencies = [
  "hashlink",
  "indexmap 1.9.3",
  "itertools",
+ "json",
  "mime_guess",
  "nodejs-resolver",
  "once_cell",
  "oxc_resolver",
  "paste",
  "petgraph",
+ "pretty_assertions",
  "rayon",
  "regex",
  "rkyv",
@@ -2628,6 +2646,7 @@ dependencies = [
  "rspack_binding_options",
  "rspack_core",
  "rspack_fs",
+ "rspack_identifier",
  "rspack_sources",
  "rspack_testing",
  "rspack_tracing",
@@ -3007,6 +3026,7 @@ dependencies = [
  "bitflags 1.3.2",
  "either",
  "indexmap 1.9.3",
+ "itertools",
  "linked_hash_set",
  "num-bigint",
  "once_cell",
@@ -3022,6 +3042,7 @@ dependencies = [
  "rspack_regex",
  "rspack_swc_visitors",
  "rspack_testing",
+ "rspack_util",
  "rustc-hash",
  "serde_json",
  "sourcemap",
@@ -3379,6 +3400,7 @@ dependencies = [
  "once_cell",
  "regex",
  "sugar_path",
+ "swc_core",
 ]
 
 [[package]]
@@ -5229,18 +5251,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.50"
+version = "1.0.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9a7210f5c9a7156bb50aa36aed4c95afb51df0df00713949448cf9e97d382d2"
+checksum = "f11c217e1416d6f036b870f14e0413d480dbf28edbee1f877abaf0206af43bb7"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.50"
+version = "1.0.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "266b2e40bc00e5a6c09c3584011e08b06f123c00362c92b975ba9843aaaa14b8"
+checksum = "01742297787513b79cf8e29d1056ede1313e2420b7b3b15d0a768b4921f549df"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5864,6 +5886,12 @@ checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
 dependencies = [
  "linked-hash-map",
 ]
+
+[[package]]
+name = "yansi"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09041cd90cf85f7f8b2df60c646f853b7f535ce68f85244eb6731cf89fa498ec"
 
 [[package]]
 name = "zerocopy"

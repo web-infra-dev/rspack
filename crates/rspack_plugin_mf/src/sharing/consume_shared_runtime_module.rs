@@ -14,13 +14,15 @@ use crate::utils::json_stringify;
 pub struct ConsumeSharedRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
+  enhanced: bool,
 }
 
-impl Default for ConsumeSharedRuntimeModule {
-  fn default() -> Self {
+impl ConsumeSharedRuntimeModule {
+  pub fn new(enhanced: bool) -> Self {
     Self {
       id: Identifier::from("webpack/runtime/consumes_loading"),
       chunk: None,
+      enhanced,
     }
   }
 }
@@ -49,11 +51,10 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .clone()
         .expect("should have moduleId at <ConsumeSharedRuntimeModule as RuntimeModule>::generate");
       ids.push(id.clone());
-      if let Ok(code_gen) = compilation
+      let code_gen = compilation
         .code_generation_results
-        .get(&module, Some(&chunk.runtime))
-        && let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>()
-      {
+        .get(&module, Some(&chunk.runtime));
+      if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
         module_id_to_consume_data_mapping.insert(id, format!(
           "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, fallback: {} }}",
           json_stringify(&data.share_scope),
@@ -111,22 +112,34 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       .join(", ");
     let mut source = format!(
       r#"
-__webpack_require__.MF.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {{ {module_to_consume_data_mapping} }}, initialConsumeModuleIds: {initial_consumes} }};
+__webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {{ {module_to_consume_data_mapping} }}, initialConsumes: {initial_consumes} }};
 "#,
       chunk_mapping = json_stringify(&chunk_to_module_mapping),
       module_to_consume_data_mapping = module_id_to_consume_data_mapping,
       initial_consumes = json_stringify(&initial_consumes),
     );
+    if self.enhanced {
+      if compilation
+        .chunk_graph
+        .get_chunk_graph_chunk(&chunk_ukey)
+        .runtime_requirements
+        .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+      {
+        source += "__webpack_require__.f.consumes = function() { throw new Error(\"should have __webpack_require__.f.consumes\") }";
+      }
+      return RawSource::from(source).boxed();
+    }
+    source += include_str!("./consumesCommon.js");
+    if !initial_consumes.is_empty() {
+      source += include_str!("./consumesInitial.js");
+    }
     if compilation
       .chunk_graph
       .get_chunk_graph_chunk(&chunk_ukey)
       .runtime_requirements
       .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
     {
-      source += &format!("{ensure_chunk_handlers}.consumes = function(chunkId, promises) {{ return {consumes_loading_fn}(chunkId, promises); }};",
-        ensure_chunk_handlers = RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
-        consumes_loading_fn = "__webpack_require__.MF.consumesLoading",
-      );
+      source += include_str!("./consumesLoading.js");
     }
     RawSource::from(source).boxed()
   }

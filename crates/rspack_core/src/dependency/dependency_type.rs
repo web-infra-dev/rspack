@@ -78,6 +78,8 @@ pub enum DependencyType {
   ProvideModuleForShared,
   /// consume shared fallback
   ConsumeSharedFallback,
+  /// Webpack is included
+  WebpackIsIncluded,
   Custom(Box<str>), // TODO it will increase large layout size
 }
 
@@ -125,6 +127,7 @@ impl DependencyType {
       DependencyType::ProvideSharedModule => Cow::Borrowed("provide shared module"),
       DependencyType::ProvideModuleForShared => Cow::Borrowed("provide module for shared"),
       DependencyType::ConsumeSharedFallback => Cow::Borrowed("consume shared fallback"),
+      DependencyType::WebpackIsIncluded => Cow::Borrowed("__webpack_is_included__"),
     }
   }
 }

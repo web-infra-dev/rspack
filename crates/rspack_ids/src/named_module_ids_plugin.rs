@@ -1,9 +1,9 @@
-use rspack_core::Plugin;
+use rspack_core::{compare_modules_by_identifier, Plugin};
 use rspack_error::Result;
 
 use crate::id_helpers::{
-  assign_ascending_module_ids, assign_names_par, compare_modules_by_identifier,
-  get_long_module_name, get_short_module_name, get_used_module_ids_and_modules,
+  assign_ascending_module_ids, assign_names_par, get_long_module_name, get_short_module_name,
+  get_used_module_ids_and_modules,
 };
 
 #[derive(Debug, Default)]

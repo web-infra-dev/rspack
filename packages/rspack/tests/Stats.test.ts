@@ -34,6 +34,7 @@ describe("Stats", () => {
 		    entry ./fixtures/a
 		./fixtures/a.js [585] {main}
 		  entry ./fixtures/a
+		  
 		Rspack compiled successfully (a62f45ec3d75aa689fa1)"
 	`);
 	});
@@ -59,23 +60,29 @@ describe("Stats", () => {
 			stats?.toString({ timings: false, version: false }).replace(/\\/g, "/")
 		).toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 464 bytes [emitted] (name: main)
-		Entrypoint main 464 bytes = main.js
+		asset main.js 794 bytes [emitted] (name: main)
+		Entrypoint main 794 bytes = main.js
 		./fixtures/a.js
 		./fixtures/b.js
 		./fixtures/c.js
 		./fixtures/abc.js
 
-		  × Error[javascript]: JavaScript parsing error
-		   ╭─[tests/fixtures/b.js:5:1]
-		 5 │ // Test CJS top-level return
-		 6 │ return;
-		   · ───┬───
-		   ·    ╰── Return statement is not allowed here
-		   ╰────
+		ERROR in ./fixtures/b.js ModuleParseError
 
+		  × Module parse failed:
+		  ╰─▶   × JavaScript parsing error
+		         ╭─[4:1]
+		       4 │
+		       5 │ // Test CJS top-level return
+		       6 │ return;
+		         · ───┬───
+		         ·    ╰── Return statement is not allowed here
+		         ╰────
+		      
+		  help: 
+		        You may need an appropriate loader to handle this file type.
 
-		Rspack compiled with 1 error (d102369880762d1e05db)"
+		Rspack compiled with 1 error (79a430f2fdbcdc199916)"
 	`);
 	});
 
@@ -380,6 +387,58 @@ describe("Stats", () => {
 		    ],
 		    "name": "main",
 		  },
+		}
+	`);
+	});
+
+	it("should have children when using childCompiler", async () => {
+		let statsJson;
+
+		class TestPlugin {
+			apply(compiler: Compiler) {
+				compiler.hooks.thisCompilation.tap(TestPlugin.name, compilation => {
+					compilation.hooks.processAssets.tapAsync(
+						TestPlugin.name,
+						async (assets, callback) => {
+							const child = compiler.createChildCompiler(
+								compilation,
+								"TestChild",
+								1,
+								compilation.outputOptions,
+								[
+									new compiler.webpack.EntryPlugin(
+										compiler.context,
+										"./fixtures/abc",
+										{ name: "TestChild" }
+									)
+								]
+							);
+							child.runAsChild(err => callback(err));
+						}
+					);
+				});
+				compiler.hooks.done.tap("test plugin", stats => {
+					statsJson = stats.toJson({
+						all: false,
+						children: true
+					});
+				});
+			}
+		}
+		await compile({
+			context: __dirname,
+			entry: "./fixtures/a",
+			plugins: [new TestPlugin()]
+		});
+
+		expect(statsJson).toMatchInlineSnapshot(`
+		{
+		  "children": [
+		    {
+		      "children": [],
+		      "name": "TestChild",
+		    },
+		  ],
 		}
 	`);
 	});

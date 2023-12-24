@@ -23,10 +23,10 @@ use crate::cache::Cache;
 use crate::tree_shaking::symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
 use crate::tree_shaking::visitor::SymbolRef;
 use crate::{
-  fast_set, AssetEmittedArgs, CompilerOptions, Logger, PluginDriver, ResolverFactory,
+  fast_set, AssetEmittedArgs, CompilerOptions, Logger, ModuleGraph, PluginDriver, ResolverFactory,
   SharedPluginDriver,
 };
-use crate::{BoxPlugin, ExportInfo, UsageState, IS_NEW_TREESHAKING};
+use crate::{BoxPlugin, ExportInfo, UsageState};
 use crate::{CompilationParams, ContextModuleFactory, NormalModuleFactory};
 
 #[derive(Debug)]
@@ -66,15 +66,13 @@ where
     ));
     let (plugin_driver, options) = PluginDriver::new(options, plugins, resolver_factory.clone());
     let cache = Arc::new(Cache::new(options.clone()));
-    if options.is_new_tree_shaking() {
-      IS_NEW_TREESHAKING.store(true, std::sync::atomic::Ordering::SeqCst);
-    }
+    let is_new_treeshaking = options.is_new_tree_shaking();
     assert!(!(options.is_new_tree_shaking() && options.builtins.tree_shaking.enable()), "Can't enable builtins.tree_shaking and `experiments.rspack_future.new_treeshaking` at the same time");
     Self {
       options: options.clone(),
       compilation: Compilation::new(
         options,
-        Default::default(),
+        ModuleGraph::default().with_treeshaking(is_new_treeshaking),
         plugin_driver.clone(),
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
@@ -106,7 +104,7 @@ where
       &mut self.compilation,
       Compilation::new(
         self.options.clone(),
-        Default::default(),
+        ModuleGraph::default().with_treeshaking(self.options.is_new_tree_shaking()),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),

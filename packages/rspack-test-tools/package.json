@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "0.4.2",
+  "version": "0.4.4",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -12,14 +12,15 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "rimraf dist/ && tsc -b ./tsconfig.build.json --force",
+    "build": "tsc -b ./tsconfig.build.json",
     "build:viewer": "rspack build",
     "dev:viewer": "rspack serve",
     "dev": "tsc -b -w"
   },
   "files": [
     "client",
-    "dist"
+    "dist",
+    "template"
   ],
   "publishConfig": {
     "access": "public"

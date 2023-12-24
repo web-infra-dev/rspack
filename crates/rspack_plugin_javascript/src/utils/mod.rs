@@ -1,22 +1,17 @@
 mod r#const;
-mod eval;
+pub mod eval;
 mod get_prop_from_obj;
 pub mod mangle_exports;
 
 use std::path::Path;
 
 use rspack_core::{ErrorSpan, ModuleType};
-use rspack_error::{DiagnosticKind, Error};
+use rspack_error::{DiagnosticKind, TraceableError};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{SourceFile, Span, Spanned};
-use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::parser::{EsConfig, TsConfig};
 
-pub(crate) use self::eval::{
-  eval_binary_expression, eval_cond_expression, eval_lit_expr, eval_tpl_expression,
-  eval_unary_expression, evaluate_to_string, BasicEvaluatedExpression,
-};
 pub use self::get_prop_from_obj::*;
 pub use self::r#const::*;
 
@@ -135,7 +130,7 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
   EcmaError(message, span): EcmaError,
   fm: &SourceFile,
   module_type: &ModuleType,
-) -> Error {
+) -> TraceableError {
   let (file_type, diagnostic_kind) = match module_type {
     ModuleType::Js | ModuleType::JsDynamic | ModuleType::JsEsm => {
       ("JavaScript", DiagnosticKind::JavaScript)
@@ -146,27 +141,14 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
     _ => unreachable!(),
   };
   let span: ErrorSpan = span.into();
-  let traceable_error = rspack_error::TraceableError::from_source_file(
+  rspack_error::TraceableError::from_source_file(
     fm,
     span.start as usize,
     span.end as usize,
     format!("{file_type} parsing error"),
     message,
   )
-  .with_kind(diagnostic_kind);
-  traceable_error.into()
-}
-
-pub fn join_jsword(arr: &[JsWord], separator: &str) -> String {
-  let mut ret = String::new();
-  if let Some(item) = arr.first() {
-    ret.push_str(item);
-  }
-  for item in arr.iter().skip(1) {
-    ret.push_str(separator);
-    ret.push_str(item);
-  }
-  ret
+  .with_kind(diagnostic_kind)
 }
 
 pub fn is_diff_mode() -> bool {

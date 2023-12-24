@@ -7,6 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack-dev-server/blob/b0f15ace0123c125d5870609ef4691c141a6d187/LICENSE
  */
+import path from "node:path";
 import { Compiler, MultiCompiler } from "@rspack/core";
 import type { Socket } from "net";
 import type { FSWatcher } from "chokidar";
@@ -162,6 +163,13 @@ export class RspackDevServer extends WebpackDevServer {
 				// enable hot by default
 				compiler.options.devServer ??= {};
 				compiler.options.devServer.hot = true;
+
+				// Apply modified version of `ansi-html-community`
+				compiler.options.resolve.alias = {
+					"ansi-html-community": path.resolve(__dirname, "./ansiHTML"),
+					...compiler.options.resolve.alias
+				};
+
 				if (
 					// @ts-expect-error
 					!compiler.options.experiments.rspackFuture.disableTransformByDefault

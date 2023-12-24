@@ -124,8 +124,6 @@ impl From<RawPresetEnv> for PresetEnv {
 
 use swc_core::ecma::transforms::react::Runtime;
 
-use crate::RawOptionsApply;
-
 #[derive(Deserialize, Debug, Serialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
@@ -235,13 +233,8 @@ pub struct RawBuiltins {
   pub relay: Option<RawRelayConfig>,
 }
 
-impl RawOptionsApply for RawBuiltins {
-  type Options = Builtins;
-
-  fn apply(
-    self,
-    plugins: &mut Vec<rspack_core::BoxPlugin>,
-  ) -> Result<Self::Options, rspack_error::Error> {
+impl RawBuiltins {
+  pub fn apply(self, plugins: &mut Vec<rspack_core::BoxPlugin>) -> rspack_error::Result<Builtins> {
     if let Some(css) = self.css {
       let options = CssConfig {
         modules: css.modules.try_into()?,

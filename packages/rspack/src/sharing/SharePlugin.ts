@@ -7,6 +7,7 @@ import { isRequiredVersion } from "./utils";
 export type SharePluginOptions = {
 	shareScope?: string;
 	shared: Shared;
+	enhanced: boolean;
 };
 export type Shared = (SharedItem | SharedObject)[] | SharedObject;
 export type SharedItem = string;
@@ -29,6 +30,7 @@ export class SharePlugin {
 	_shareScope;
 	_consumes;
 	_provides;
+	_enhanced;
 
 	constructor(options: SharePluginOptions) {
 		const sharedOptions = parseOptions(
@@ -74,16 +76,19 @@ export class SharePlugin {
 		this._shareScope = options.shareScope;
 		this._consumes = consumes;
 		this._provides = provides;
+		this._enhanced = options.enhanced ?? false;
 	}
 
 	apply(compiler: Compiler) {
 		new ConsumeSharedPlugin({
 			shareScope: this._shareScope,
-			consumes: this._consumes
+			consumes: this._consumes,
+			enhanced: this._enhanced
 		}).apply(compiler);
 		new ProvideSharedPlugin({
 			shareScope: this._shareScope,
-			provides: this._provides
+			provides: this._provides,
+			enhanced: this._enhanced
 		}).apply(compiler);
 	}
 }

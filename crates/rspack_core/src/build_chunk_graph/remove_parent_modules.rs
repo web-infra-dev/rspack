@@ -1,12 +1,12 @@
 // This is not a port of https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/optimize/RemoveParentModulesPlugin.js
 // But they do the same thing.
 
-use std::sync::Arc;
+use std::{hash::BuildHasherDefault, sync::Arc};
 
-use dashmap::DashMap;
+use dashmap::{DashMap, DashSet};
 use rayon::prelude::ParallelBridge;
 use rayon::prelude::*;
-use rspack_identifier::IdentifierSet;
+use rspack_identifier::{IdentifierHasher, IdentifierSet};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::code_splitter::CodeSplitter;
@@ -33,6 +33,7 @@ impl RemoveParentModulesContext {
 }
 
 impl<'me> CodeSplitter<'me> {
+  #[tracing::instrument(skip_all)]
   fn prepare_remove_parent_modules(&mut self) -> FxHashMap<ChunkUkey, DefinitelyLoadedModules> {
     #[derive(Debug, Clone)]
     struct AnalyzeContext<'a> {
@@ -89,18 +90,25 @@ impl<'me> CodeSplitter<'me> {
           return Some(loaded_modules.clone());
         }
 
-        let loaded_modules = loaded_modules_of_parents
-          .into_par_iter()
-          .fold(IdentifierSet::default, |mut acc, cur| {
-            // The word `Definitely` in `DefinitelyLoadedModules` infers that
-            // we need the intersection of all parent loaded modules.
-            acc.retain(|x| cur.contains(x));
-            acc
-          })
-          .flatten()
-          // With the module itself
-          .chain(ctx.chunk_modules(&ctx.target_ukey).par_iter().cloned())
-          .collect::<IdentifierSet>();
+        let loaded_modules: DashSet<
+          rspack_identifier::Identifier,
+          BuildHasherDefault<IdentifierHasher>,
+        > = DashSet::<ModuleIdentifier, BuildHasherDefault<IdentifierHasher>>::from_iter(
+          loaded_modules_of_parents
+            .first()
+            .map(|item| item.as_ref().clone())
+            .unwrap_or(IdentifierSet::default())
+            .into_iter(),
+        );
+        loaded_modules_of_parents.par_iter().for_each(|cur| {
+          // The word `Definitely` in `DefinitelyLoadedModules` infers that
+          // we need the intersection of all parent loaded modules.
+          loaded_modules.retain(|x| cur.contains(x));
+        });
+
+        let mut loaded_modules = IdentifierSet::from_iter(loaded_modules.into_iter());
+
+        loaded_modules.extend(ctx.chunk_modules(&ctx.target_ukey).iter().cloned());
 
         Some(Arc::new(loaded_modules))
       };
@@ -173,10 +181,11 @@ impl<'me> CodeSplitter<'me> {
           .into_par_iter()
           .cloned()
           .flat_map(move |module| {
-            let is_all_parents_load_this_module = parents_loaded_modules
-              .clone()
-              .iter()
-              .all(|loaded_modules| loaded_modules.contains(&module));
+            let is_all_parents_load_this_module = !parents_loaded_modules.is_empty()
+              && parents_loaded_modules
+                .clone()
+                .iter()
+                .all(|loaded_modules| loaded_modules.contains(&module));
 
             if is_all_parents_load_this_module {
               Some((chunk.ukey, module))

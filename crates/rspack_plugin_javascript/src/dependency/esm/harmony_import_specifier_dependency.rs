@@ -137,10 +137,10 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
       ..
     } = code_generatable_context;
 
+    // Only available when module factorization is successful.
     let reference_mgm = compilation
       .module_graph
-      .module_graph_module_by_dependency_id(&self.id)
-      .expect("should have ref module");
+      .module_graph_module_by_dependency_id(&self.id);
 
     let is_new_treeshaking = compilation.options.is_new_tree_shaking();
     if is_new_treeshaking {
@@ -155,9 +155,10 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
         return;
       }
     };
-    let used = self.check_used(reference_mgm, compilation);
 
-    if !used {
+    let used =
+      matches!(reference_mgm, Some(reference_mgm) if self.check_used(reference_mgm, compilation));
+    if reference_mgm.is_some() && !used {
       // TODO do this by PureExpressionDependency.
       let value = format!("/* \"{}\" unused */null", self.request);
       if self.shorthand {
@@ -186,6 +187,7 @@ impl DependencyTemplate for HarmonyImportSpecifierDependency {
     let export_expr = export_from_import(
       code_generatable_context,
       true,
+      &self.request,
       &import_var,
       ids,
       &self.id,
@@ -262,15 +264,7 @@ impl ModuleDependency for HarmonyImportSpecifierDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    // dbg!(
-    //   &self.ids,
-    //   &self.specifier,
-    //   self.request(),
-    //   self.used_by_exports.as_ref()
-    // );
-    let ret = get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref());
-    // dbg!(&ret);
-    ret
+    get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
   }
 
   fn get_referenced_exports(

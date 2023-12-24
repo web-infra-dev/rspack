@@ -12,14 +12,38 @@ export * from "./HttpExternalsRspackPlugin";
 export * from "./EnableChunkLoadingPlugin";
 export * from "./EnableLibraryPlugin";
 export * from "./EnableWasmLoadingPlugin";
+export * from "./ChunkPrefetchPreloadPlugin";
 export * from "./ArrayPushCallbackChunkFormatPlugin";
 export * from "./CommonJsChunkFormatPlugin";
 export * from "./ModuleChunkFormatPlugin";
 export * from "./HotModuleReplacementPlugin";
 export * from "./WebWorkerTemplatePlugin";
+export * from "./WorkerPlugin";
 export * from "./LimitChunkCountPlugin";
 export * from "./MergeDuplicateChunksPlugin";
 export * from "./SplitChunksPlugin";
+export * from "./NamedModuleIdsPlugin";
+export * from "./DeterministicModuleIdsPlugin";
+export * from "./NamedChunkIdsPlugin";
+export * from "./DeterministicChunkIdsPlugin";
+export * from "./RealContentHashPlugin";
+export * from "./RemoveEmptyChunksPlugin";
+export * from "./EnsureChunkConditionsPlugin";
+export * from "./WarnCaseSensitiveModulesPlugin";
+export * from "./DataUriPlugin";
+export * from "./FileUriPlugin";
+export * from "./RuntimePlugin";
+export * from "./JsonModulesPlugin";
+export * from "./InferAsyncModulesPlugin";
+export * from "./JavascriptModulesPlugin";
+export * from "./AsyncWebAssemblyModulesPlugin";
+export * from "./AssetModulesPlugin";
+export * from "./SourceMapDevToolPlugin";
+export * from "./EvalSourceMapDevToolPlugin";
+export * from "./SideEffectsFlagPlugin";
+export * from "./FlagDependencyExportsPlugin";
+export * from "./FlagDependencyUsagePlugin";
+export * from "./MangleExportsPlugin";
 
 export * from "./HtmlRspackPlugin";
 export * from "./CopyRspackPlugin";
@@ -272,6 +296,10 @@ export function deprecated_resolveBuiltins(
 					"https://www.rspack.dev/config/plugins.html#SwcCssMinimizerRspackPlugin"
 				)}`
 			);
+		if (options.optimization.minimize) {
+			new SwcJsMinimizerRspackPlugin(builtins.minifyOptions).apply(compiler);
+			new SwcCssMinimizerRspackPlugin().apply(compiler);
+		}
 	}
 	if (builtins.devFriendlySplitChunks) {
 		isRoot &&
@@ -280,13 +308,6 @@ export function deprecated_resolveBuiltins(
 					builtins.devFriendlySplitChunks
 				)}' has been deprecated, please switch to 'builtins.devFriendlySplitChunks = false' to use webpack's behavior.`
 			);
-	}
-	const disableMinify =
-		!options.optimization.minimize ||
-		options.optimization.minimizer!.some(item => item !== "...");
-	if (!disableMinify) {
-		new SwcJsMinimizerRspackPlugin(builtins.minifyOptions).apply(compiler);
-		new SwcCssMinimizerRspackPlugin().apply(compiler);
 	}
 
 	let noEmitAssets = false;

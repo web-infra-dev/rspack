@@ -8,7 +8,7 @@ use rspack_core::{
   CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
   Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
 };
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 
@@ -115,10 +115,7 @@ impl Module for RemoteModule {
     Some(self.request.as_str().into())
   }
 
-  async fn build(
-    &mut self,
-    build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+  async fn build(&mut self, build_context: BuildContext<'_>) -> Result<BuildResult> {
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
 
@@ -137,16 +134,13 @@ impl Module for RemoteModule {
       dependencies.push(Box::new(dep));
     }
 
-    Ok(
-      BuildResult {
-        build_info,
-        build_meta: Default::default(),
-        dependencies,
-        blocks: Vec::new(),
-        analyze_result: Default::default(),
-      }
-      .with_empty_diagnostic(),
-    )
+    Ok(BuildResult {
+      build_info,
+      build_meta: Default::default(),
+      dependencies,
+      blocks: Vec::new(),
+      analyze_result: Default::default(),
+    })
   }
 
   #[allow(clippy::unwrap_in_result)]
@@ -174,6 +168,8 @@ impl Module for RemoteModule {
     Ok(codegen)
   }
 }
+
+impl_empty_diagnosable_trait!(RemoteModule);
 
 impl Hash for RemoteModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
