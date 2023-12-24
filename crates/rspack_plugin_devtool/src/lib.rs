@@ -1,13 +1,15 @@
 #![feature(let_chains)]
 
 use std::collections::HashSet;
+use std::sync::Arc;
 use std::{hash::Hash, path::Path};
 
 use dashmap::DashMap;
+use derivative::Derivative;
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rayon::prelude::*;
-use regex::Regex;
+use regex::{Captures, Regex};
 use rspack_core::{
   contextify,
   rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap},
@@ -15,17 +17,60 @@ use rspack_core::{
   PluginJsChunkHashHookOutput, PluginProcessAssetsOutput, PluginRenderModuleContentOutput,
   ProcessAssetsArgs, RenderModuleContentArgs, SourceType,
 };
-use rspack_core::{Filename, Logger};
+use rspack_core::{ChunkGraph, Context, Filename, Logger, Module, ModuleIdentifier};
 use rspack_error::miette::IntoDiagnostic;
 use rspack_error::{Error, Result};
+use rspack_util::identifier::make_paths_absolute;
 use rspack_util::swc::normalize_custom_filename;
 use rustc_hash::FxHashMap as HashMap;
 use serde_json::json;
 
-static IS_CSS_FILE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\.css($|\?)").expect("TODO:"));
+static CSS_EXTENSION_DETECT_REGEXP: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\.css($|\?)").expect("Failed to compile CSS_EXTENSION_DETECT_REGEXP"));
 
-#[derive(Debug)]
+static REGEXP_ALL_LOADERS_RESOURCE: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"\[all-?loaders\]\[resource\]").expect("Failed to compile SQUARE_BRACKET_TAG_REGEXP")
+});
+static SQUARE_BRACKET_TAG_REGEXP: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"\[\\*([\w-]+)\\*\]").expect("Failed to compile SQUARE_BRACKET_TAG_REGEXP")
+});
+static REGEXP_LOADERS_RESOURCE: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"\[loaders\]\[resource\]").expect("Failed to compile SQUARE_BRACKET_TAG_REGEXP")
+});
+
+pub struct ModuleFilenameTemplateFnCtx {
+  pub identifier: String,
+  pub short_identifier: String,
+  pub resource: String,
+  pub resource_path: String,
+  pub absolute_resource_path: String,
+  pub loaders: String,
+  pub all_loaders: String,
+  pub query: String,
+  pub module_id: String, // TODO: string | number
+  pub hash: String,
+  pub namespace: String,
+}
+
+type ModuleFilenameTemplateFn =
+  Arc<dyn for<'a> Fn(ModuleFilenameTemplateFnCtx) -> String + Send + Sync>;
+
+pub enum ModuleFilenameTemplate {
+  String(String),
+  Fn(ModuleFilenameTemplateFn),
+}
+
+pub enum SourceOrModule {
+  Source(String),
+  Module(ModuleIdentifier),
+}
+
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct SourceMapDevToolPluginOptions {
+  // Generator string or function to create identifiers of modules for the 'sources' array in the SourceMap.
+  #[derivative(Debug = "ignore")]
+  pub module_filename_template: Option<ModuleFilenameTemplate>,
   pub filename: Option<String>,
   pub append: Option<bool>,
   pub namespace: String,
@@ -34,11 +79,13 @@ pub struct SourceMapDevToolPluginOptions {
   pub public_path: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct SourceMapDevToolPlugin {
   filename: Option<Filename>,
   source_mapping_url_comment: Option<String>,
-  module_filename_template: String,
+  #[derivative(Debug = "ignore")]
+  module_filename_template: ModuleFilenameTemplate,
   namespace: String,
   columns: bool,
   no_sources: bool,
@@ -47,11 +94,18 @@ pub struct SourceMapDevToolPlugin {
 
 impl SourceMapDevToolPlugin {
   pub fn new(options: SourceMapDevToolPluginOptions) -> Self {
+    let module_filename_template =
+      options
+        .module_filename_template
+        .unwrap_or(ModuleFilenameTemplate::String(
+          "webpack://[namespace]/[resourcePath]".to_string(),
+        ));
+
     Self {
       filename: options.filename.map(Filename::from),
       source_mapping_url_comment: (!matches!(options.append, Some(false)))
         .then(|| "# sourceMappingURL=[url]".to_string()),
-      module_filename_template: "[resourcePath]".to_string(),
+      module_filename_template,
       namespace: options.namespace,
       columns: options.columns,
       no_sources: options.no_sources,
@@ -69,14 +123,14 @@ impl Plugin for SourceMapDevToolPlugin {
   async fn process_assets_stage_dev_tooling(
     &self,
     _ctx: PluginContext,
-    args: ProcessAssetsArgs<'_>,
+    ProcessAssetsArgs { compilation }: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
-    let logger = args.compilation.get_logger(self.name());
+    let logger = compilation.get_logger(self.name());
     let start = logger.time("collect source maps");
-    let context = args.compilation.options.context.clone();
-    let maps: HashMap<String, (Vec<u8>, Option<Vec<u8>>)> = args
-      .compilation
-      .assets_mut()
+    let context = compilation.options.context.clone();
+
+    let maps: HashMap<String, (Vec<u8>, Option<Vec<u8>>)> = compilation
+      .assets()
       .par_iter()
       .filter_map(|(filename, asset)| asset.get_source().map(|s| (filename, s)))
       .map(|(filename, source)| {
@@ -85,12 +139,18 @@ impl Plugin for SourceMapDevToolPlugin {
           .map(|mut map| {
             map.set_file(Some(filename.clone()));
             for source in map.sources_mut() {
-              let resource_path = normalize_custom_filename(source);
-              let resource_path = contextify(&context, resource_path);
-              *source = self
-                .module_filename_template
-                .replace("[namespace]", &self.namespace)
-                .replace("[resourcePath]", &resource_path);
+              let module_or_source = if source.starts_with("webpack://") {
+                ModuleOrSource::Source(source.clone())
+              } else {
+                let source = make_paths_absolute(context.as_str(), &source[10..]);
+                // TODO: how to use source to find module
+                let identifier = ModuleIdentifier::from(source.clone());
+                match compilation.module_graph.module_by_identifier(&identifier) {
+                  Some(module) => ModuleOrSource::Module(module.as_ref()),
+                  None => ModuleOrSource::Source(source),
+                }
+              };
+              *source = self.create_filename(module_or_source, &context, &compilation.chunk_graph);
             }
             if self.no_sources {
               for content in map.sources_content_mut() {
@@ -113,8 +173,7 @@ impl Plugin for SourceMapDevToolPlugin {
 
     let start = logger.time("emit source map assets");
     for (filename, (code_buffer, map_buffer)) in maps {
-      let mut asset = args
-        .compilation
+      let mut asset = compilation
         .assets_mut()
         .remove(&filename)
         .expect("should have filename in compilation.assets");
@@ -122,10 +181,10 @@ impl Plugin for SourceMapDevToolPlugin {
       let raw_source = RawSource::from(code_buffer).boxed();
       let Some(map_buffer) = map_buffer else {
         asset.source = Some(raw_source);
-        args.compilation.emit_asset(filename, asset);
+        compilation.emit_asset(filename, asset);
         continue;
       };
-      let is_css = IS_CSS_FILE.is_match(&filename);
+      let is_css = CSS_EXTENSION_DETECT_REGEXP.is_match(&filename);
       let current_source_mapping_url_comment =
         self.source_mapping_url_comment.as_ref().map(|comment| {
           if is_css {
@@ -137,7 +196,7 @@ impl Plugin for SourceMapDevToolPlugin {
       if let Some(source_map_filename_config) = &self.filename {
         let mut source_map_filename = filename.to_owned() + ".map";
         // TODO(ahabhgk): refactor remove the for loop
-        for chunk in args.compilation.chunk_by_ukey.values() {
+        for chunk in compilation.chunk_by_ukey.values() {
           let files: HashSet<String> = chunk.files.union(&chunk.auxiliary_files).cloned().collect();
 
           for file in &files {
@@ -147,7 +206,7 @@ impl Plugin for SourceMapDevToolPlugin {
               } else {
                 &SourceType::JavaScript
               };
-              source_map_filename = args.compilation.get_asset_path(
+              source_map_filename = compilation.get_asset_path(
                 source_map_filename_config,
                 PathData::default()
                   .chunk(chunk)
@@ -156,7 +215,7 @@ impl Plugin for SourceMapDevToolPlugin {
                     chunk
                       .content_hash
                       .get(source_type)
-                      .map(|i| i.rendered(args.compilation.options.output.hash_digest_length)),
+                      .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
                   ),
               );
               break;
@@ -186,13 +245,13 @@ impl Plugin for SourceMapDevToolPlugin {
         } else {
           asset.source = Some(raw_source);
         }
-        args.compilation.emit_asset(filename.clone(), asset);
+        compilation.emit_asset(filename.clone(), asset);
         let mut source_map_asset_info = AssetInfo::default().with_development(true);
-        if let Some(asset) = args.compilation.assets().get(&filename) {
+        if let Some(asset) = compilation.assets().get(&filename) {
           // set source map asset version to be the same as the target asset
           source_map_asset_info.version = asset.info.version.clone();
         }
-        args.compilation.emit_asset(
+        compilation.emit_asset(
           source_map_filename,
           CompilationAsset::new(
             Some(RawSource::from(map_buffer).boxed()),
@@ -214,13 +273,186 @@ impl Plugin for SourceMapDevToolPlugin {
           ])
           .boxed(),
         );
-        args.compilation.emit_asset(filename, asset);
+        compilation.emit_asset(filename, asset);
         // TODO
         // chunk.auxiliary_files.add(filename);
       }
     }
     logger.time_end(start);
     Ok(())
+  }
+}
+
+enum ModuleOrSource<'a> {
+  Module(&'a dyn Module),
+  Source(String),
+}
+
+fn get_before(s: &str, token: &str) -> String {
+  match s.rfind(token) {
+    Some(idx) => s[..idx].to_string(),
+    None => "".to_string(),
+  }
+}
+
+fn get_after(s: &str, token: &str) -> String {
+  s.find(token)
+    .map(|idx| s[idx..].to_string())
+    .unwrap_or("".to_string())
+}
+
+impl SourceMapDevToolPlugin {
+  fn create_filename(
+    &self,
+    module_or_source: ModuleOrSource,
+    context: &Context,
+    chunk_graph: &ChunkGraph,
+  ) -> String {
+    let ctx = match module_or_source {
+      ModuleOrSource::Module(module) => {
+        let module_identifier = module.identifier();
+
+        let short_identifier = module.readable_identifier(context).to_string();
+        let identifier = contextify(&context, &module_identifier);
+        let module_id = chunk_graph
+          .get_module_id(module_identifier)
+          .clone()
+          .unwrap_or("".to_string());
+        // TODO: get resource from module
+        let absolute_resource_path = "".to_string();
+
+        let resource = short_identifier
+          .clone()
+          .split('!')
+          .last()
+          .unwrap_or("")
+          .to_string();
+
+        let loaders = get_before(&short_identifier, "!");
+        let all_loaders = get_before(&identifier, "!");
+        let query = get_after(&identifier, "!");
+
+        let q = query.len();
+        let resource_path = if q == 0 {
+          resource.clone()
+        } else {
+          resource[..resource.len().saturating_sub(q)].to_string()
+        };
+
+        ModuleFilenameTemplateFnCtx {
+          short_identifier,
+          identifier,
+          module_id,
+          absolute_resource_path,
+          hash: "".to_string(),
+          resource,
+          loaders,
+          all_loaders,
+          query,
+          resource_path,
+          namespace: self.namespace.clone(),
+        }
+      }
+      ModuleOrSource::Source(source) => {
+        let short_identifier = contextify(&context, &source);
+        let identifier = short_identifier.clone();
+
+        let resource = short_identifier
+          .clone()
+          .split('!')
+          .last()
+          .unwrap_or("")
+          .to_string();
+
+        let loaders = get_before(&short_identifier, "!");
+        let all_loaders = get_before(&identifier, "!");
+        let query = get_after(&identifier, "!");
+
+        let q = query.len();
+        let resource_path = if q == 0 {
+          resource.clone()
+        } else {
+          resource[..resource.len().saturating_sub(q)].to_string()
+        };
+
+        ModuleFilenameTemplateFnCtx {
+          short_identifier,
+          identifier,
+          module_id: "".to_string(),
+          absolute_resource_path: source.split('!').last().unwrap_or("").to_string(),
+          hash: "".to_string(),
+          resource,
+          loaders,
+          all_loaders,
+          query,
+          resource_path,
+          namespace: self.namespace.clone(),
+        }
+      }
+    };
+
+    return match &self.module_filename_template {
+      ModuleFilenameTemplate::Fn(f) => f(ctx),
+      ModuleFilenameTemplate::String(s) => {
+        let mut replacements: HashMap<String, &str> = HashMap::default();
+        replacements.insert("identifier".to_string(), &ctx.identifier);
+        replacements.insert("short-identifier".to_string(), &ctx.short_identifier);
+        replacements.insert("resource".to_string(), &ctx.resource);
+
+        replacements.insert("resource-path".to_string(), &ctx.resource_path);
+        replacements.insert("resourcepath".to_string(), &ctx.resource_path);
+
+        replacements.insert(
+          "absolute-resource-path".to_string(),
+          &ctx.absolute_resource_path,
+        );
+        replacements.insert("abs-resource-path".to_string(), &ctx.absolute_resource_path);
+        replacements.insert(
+          "absoluteresource-path".to_string(),
+          &ctx.absolute_resource_path,
+        );
+        replacements.insert("absresource-path".to_string(), &ctx.absolute_resource_path);
+        replacements.insert(
+          "absolute-resourcepath".to_string(),
+          &ctx.absolute_resource_path,
+        );
+        replacements.insert("abs-resourcepath".to_string(), &ctx.absolute_resource_path);
+        replacements.insert(
+          "absoluteresourcepath".to_string(),
+          &ctx.absolute_resource_path,
+        );
+        replacements.insert("absresourcepath".to_string(), &ctx.absolute_resource_path);
+
+        replacements.insert("all-loaders".to_string(), &ctx.all_loaders);
+        replacements.insert("allloaders".to_string(), &ctx.all_loaders);
+
+        replacements.insert("query".to_string(), &ctx.query);
+        replacements.insert("id".to_string(), &ctx.module_id);
+        replacements.insert("hash".to_string(), &ctx.hash);
+        replacements.insert("namespace".to_string(), &ctx.namespace);
+
+        let s = REGEXP_ALL_LOADERS_RESOURCE.replace_all(s, "[identifier]");
+        let s = REGEXP_LOADERS_RESOURCE.replace_all(&s, "[short-identifier]");
+        SQUARE_BRACKET_TAG_REGEXP
+          .replace_all(&s, |caps: &Captures| {
+            let full_match = caps.get(0).unwrap().as_str();
+            let content = caps.get(1).unwrap().as_str();
+
+            if content.len() + 2 == full_match.len() {
+              if let Some(replacement) = replacements.get(&content.to_lowercase()) {
+                replacement.to_string()
+              } else {
+                full_match.to_string()
+              }
+            } else if full_match.starts_with("[\\") && full_match.ends_with("\\]") {
+              format!("[{}]", &full_match[2..full_match.len() - 2])
+            } else {
+              full_match.to_string()
+            }
+          })
+          .to_string()
+      }
+    };
   }
 }
 
