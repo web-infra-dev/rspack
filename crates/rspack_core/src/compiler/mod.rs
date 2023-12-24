@@ -4,6 +4,7 @@ mod make;
 mod queue;
 
 use std::collections::hash_map::Entry;
+use std::fmt::Debug;
 use std::ops::Deref;
 use std::{path::Path, sync::Arc};
 
@@ -12,7 +13,7 @@ pub use hmr::{collect_changed_modules, CompilationRecords};
 pub use make::MakeParam;
 pub use queue::*;
 use rspack_error::Result;
-use rspack_fs::AsyncWritableFileSystem;
+use rspack_fs::{AsyncNativeFileSystem, AsyncReadableFileSystem, AsyncWritableFileSystem};
 use rspack_futures::FuturesResults;
 use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rustc_hash::FxHashMap as HashMap;
@@ -36,6 +37,7 @@ where
 {
   pub options: Arc<CompilerOptions>,
   pub output_filesystem: T,
+  pub input_filesystem: Box<dyn AsyncReadableFileSystem + Send + Sync>,
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -51,7 +53,12 @@ where
   T: AsyncWritableFileSystem + Send + Sync,
 {
   #[instrument(skip_all)]
-  pub fn new(options: CompilerOptions, plugins: Vec<BoxPlugin>, output_filesystem: T) -> Self {
+  pub fn new(
+    options: CompilerOptions,
+    plugins: Vec<BoxPlugin>,
+    output_filesystem: T,
+    input_filesystem: Option<Box<dyn AsyncReadableFileSystem + Send + Sync>>,
+  ) -> Self {
     #[cfg(debug_assertions)]
     {
       if let Ok(mut debug_info) = crate::debug_info::DEBUG_INFO.lock() {
@@ -80,6 +87,7 @@ where
         cache.clone(),
       ),
       output_filesystem,
+      input_filesystem: input_filesystem.unwrap_or(Box::new(AsyncNativeFileSystem)),
       plugin_driver,
       resolver_factory,
       loader_resolver_factory,

@@ -114,7 +114,7 @@ pub async fn test_fixture_share(
   if options.output.path.exists() {
     std::fs::remove_dir_all(&options.output.path).expect("should remove output");
   }
-  let mut compiler = Compiler::new(options, plugins, AsyncNativeFileSystem);
+  let mut compiler = Compiler::new(options, plugins, AsyncNativeFileSystem, None);
 
   compiler
     .build()
@@ -203,7 +203,7 @@ pub async fn test_rebuild_fixture(
   if options.output.path.exists() {
     std::fs::remove_dir_all(&options.output.path).expect("should remove output");
   }
-  let mut compiler = Compiler::new(options, plugins, AsyncNativeFileSystem);
+  let mut compiler = Compiler::new(options, plugins, AsyncNativeFileSystem, None);
   compiler
     .build()
     .await

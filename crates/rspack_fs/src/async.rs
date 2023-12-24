@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::path::Path;
 
 use futures::future::BoxFuture;
@@ -31,11 +32,11 @@ pub trait AsyncWritableFileSystem {
   fn remove_dir_all<P: AsRef<Path>>(&self, dir: P) -> BoxFuture<'_, Result<()>>;
 }
 
-pub trait AsyncReadableFileSystem {
+pub trait AsyncReadableFileSystem: Debug {
   /// Read the entire contents of a file into a bytes vector.
   ///
   /// Error: This function will return an error if path does not already exist.
-  fn read<P: AsRef<Path>>(&self, file: P) -> BoxFuture<'_, Result<Vec<u8>>>;
+  fn read(&self, file: &dyn AsRef<Path>) -> BoxFuture<'_, Result<Vec<u8>>>;
 }
 
 /// Async readable and writable file system representation.

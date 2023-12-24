@@ -10,14 +10,19 @@
 
 import util from "util";
 import Watchpack, { WatchOptions } from "watchpack";
-import { FileSystemInfoEntry, Watcher, WatchFileSystem } from "../util/fs";
+import {
+	FileSystemInfoEntry,
+	InputFileSystem,
+	Watcher,
+	WatchFileSystem
+} from "../util/fs";
 
 export default class NodeWatchFileSystem implements WatchFileSystem {
-	inputFileSystem: any;
+	inputFileSystem: InputFileSystem;
 	watcherOptions: WatchOptions;
 	watcher: Watchpack;
 
-	constructor(inputFileSystem: any) {
+	constructor(inputFileSystem: InputFileSystem) {
 		this.inputFileSystem = inputFileSystem;
 		this.watcherOptions = {
 			aggregateTimeout: 0
@@ -82,9 +87,9 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 		this.watcher.once("aggregated", (changes, removals) => {
 			// pause emitting events (avoids clearing aggregated changes and removals on timeout)
 			this.watcher.pause();
+			const fs = this.inputFileSystem;
 
-			if (this.inputFileSystem && this.inputFileSystem.purge) {
-				const fs = this.inputFileSystem;
+			if (fs && fs.purge) {
 				for (const item of changes) {
 					fs.purge(item);
 				}
@@ -126,9 +131,8 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 				() => {
 					const items = this.watcher && this.watcher.aggregatedRemovals;
 					if (items && this.inputFileSystem && this.inputFileSystem.purge) {
-						const fs = this.inputFileSystem;
 						for (const item of items) {
-							fs.purge(item);
+							this.inputFileSystem.purge(item);
 						}
 					}
 					return items;
@@ -140,9 +144,8 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 				() => {
 					const items = this.watcher && this.watcher.aggregatedChanges;
 					if (items && this.inputFileSystem && this.inputFileSystem.purge) {
-						const fs = this.inputFileSystem;
 						for (const item of items) {
-							fs.purge(item);
+							this.inputFileSystem.purge(item);
 						}
 					}
 					return items;
@@ -168,15 +171,14 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 				const removals = this.watcher && this.watcher.aggregatedRemovals;
 				const changes = this.watcher && this.watcher.aggregatedChanges;
 				if (this.inputFileSystem && this.inputFileSystem.purge) {
-					const fs = this.inputFileSystem;
 					if (removals) {
 						for (const item of removals) {
-							fs.purge(item);
+							this.inputFileSystem.purge(item);
 						}
 					}
 					if (changes) {
 						for (const item of changes) {
-							fs.purge(item);
+							this.inputFileSystem.purge(item);
 						}
 					}
 				}

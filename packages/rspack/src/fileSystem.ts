@@ -1,6 +1,7 @@
 import util from "util";
 import { join } from "path";
 import { memoizeFn } from "./util/memoize";
+import { InputFileSystem } from "./util/fs";
 
 export interface ThreadsafeWritableNodeFS {
 	writeFile: (...args: any[]) => any;
@@ -8,6 +9,24 @@ export interface ThreadsafeWritableNodeFS {
 	mkdir: (...args: any[]) => any;
 	mkdirp: (...args: any[]) => any;
 	removeDirAll: (...args: any[]) => any;
+}
+
+export interface ThreadsafeReadableNodeFS {
+	read(path: string): PromiseLike<Buffer>;
+}
+
+export function createThreadsafeReadableNodeFS(
+	inputFileSystem: Pick<InputFileSystem, "readFile">
+): ThreadsafeReadableNodeFS {
+	const asyncFS = {
+		readFile: memoizeFn(() =>
+			util.promisify(inputFileSystem.readFile.bind(inputFileSystem))
+		)
+	};
+	return {
+		read: (path: string) =>
+			asyncFS.readFile(path).then(a => Buffer.from(a || ""))
+	};
 }
 
 function createThreadsafeNodeFSFromRaw(

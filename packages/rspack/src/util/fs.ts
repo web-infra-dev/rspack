@@ -1,4 +1,7 @@
 import { WatchOptions } from "../config";
+import type * as FsModule from "node:fs";
+import { Buffer } from "buffer";
+import { Stats, StatsBase, StatsFsBase } from "node:fs";
 
 export interface Watcher {
 	close(): void; // closes the watcher and all underlying file watchers
@@ -38,4 +41,58 @@ export interface WatchFileSystem {
 		) => void,
 		callbackUndelayed: (fileName: string, changeTime: number) => void
 	): Watcher;
+}
+
+type IOException = null | NodeJS.ErrnoException;
+type IOData = string | Buffer;
+
+export interface IDirent
+	extends Pick<
+		StatsBase<unknown>,
+		| "isFile"
+		| "isDirectory"
+		| "isBlockDevice"
+		| "isCharacterDevice"
+		| "isSymbolicLink"
+		| "isFIFO"
+		| "isSocket"
+	> {
+	name: string | Buffer;
+}
+
+export interface IStats extends StatsBase<number | bigint> {}
+
+export interface InputFileSystem {
+	readFile: (
+		filepath: string,
+		callback: (error?: IOException, data?: IOData) => void
+	) => void;
+	readJson?: (
+		filepath: string,
+		callback: (error?: IOException | Error, data?: any) => void
+	) => void;
+	readlink: (
+		filepath: string,
+		callback: (error?: IOException, data?: IOData) => void
+	) => void;
+	readdir: (
+		path: string,
+		callback: (error?: IOException, stats?: IOData[] | IDirent[]) => void
+	) => void;
+	stat: (
+		path: string,
+		callback: (error?: IOException, stats?: IStats) => void
+	) => void;
+	lstat?: (
+		path: string,
+		callback: (error?: IOException, stats?: IStats) => void
+	) => void;
+	realpath?: (
+		path: string,
+		callback: (error?: IOException, data?: IOData) => void
+	) => void;
+	purge?: (path?: string) => void;
+	join?: (p0: string, p1: string) => string;
+	relative?: (from: string, to: string) => string;
+	dirname?: (path: string) => string;
 }

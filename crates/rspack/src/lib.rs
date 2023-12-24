@@ -9,5 +9,5 @@ pub fn rspack<T: AsyncWritableFileSystem + Send + Sync>(
   plugins: Vec<Box<dyn Plugin>>,
   output_filesystem: T,
 ) -> Compiler<T> {
-  Compiler::new(options, plugins, output_filesystem)
+  Compiler::new(options, plugins, output_filesystem, None)
 }

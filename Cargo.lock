@@ -2730,6 +2730,7 @@ dependencies = [
  "once_cell",
  "regex",
  "rspack_error",
+ "rspack_fs",
  "rspack_identifier",
  "rspack_sources",
  "rustc-hash",

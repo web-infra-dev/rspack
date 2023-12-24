@@ -1,3 +1,4 @@
+use std::fmt::Formatter;
 use std::{fs, path::Path};
 
 use super::{
@@ -30,6 +31,7 @@ impl ReadableFileSystem for NativeFileSystem {
 
 cfg_async! {
   use futures::future::BoxFuture;
+use std::fmt::Debug;
 
   use crate::{AsyncReadableFileSystem, AsyncWritableFileSystem};
   pub struct AsyncNativeFileSystem;
@@ -71,8 +73,14 @@ cfg_async! {
     }
   }
 
+  impl Debug for AsyncNativeFileSystem {
+    fn fmt(&self, _f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+  }
+
   impl AsyncReadableFileSystem for AsyncNativeFileSystem {
-    fn read<P: AsRef<Path>>(&self, file: P) -> BoxFuture<'_, Result<Vec<u8>>> {
+    fn read(&self, file: &dyn AsRef<Path>) -> BoxFuture<'_, Result<Vec<u8>>> {
       let file = file.as_ref().to_string_lossy().to_string();
       let fut = async move { tokio::fs::read(file).await.map_err(Error::from) };
       Box::pin(fut)

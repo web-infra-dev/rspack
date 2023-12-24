@@ -15,6 +15,7 @@ use rspack_binding_options::BuiltinPlugin;
 use rspack_binding_values::SingleThreadedHashMap;
 use rspack_core::PluginExt;
 use rspack_error::Diagnostic;
+use rspack_fs::AsyncNativeFileSystem;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
 
 mod hook;
@@ -96,6 +97,7 @@ impl Rspack {
       plugins,
       AsyncNodeWritableFileSystem::new(env, output_filesystem)
         .map_err(|e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)))?,
+      None,
     );
 
     let id = NEXT_COMPILER_ID.fetch_add(1, Ordering::SeqCst);
