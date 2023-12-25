@@ -8,7 +8,7 @@ use rspack_core::{
   NormalModuleCreateData, Plugin, PluginCompilationHookOutput, PluginContext,
   PluginNormalModuleFactoryModuleHookOutput,
 };
-use rspack_error::Result;
+use rspack_error::{Diagnosable, Diagnostic, Result};
 use rspack_loader_runner::ResourceData;
 use rustc_hash::FxHashMap;
 use tokio::sync::RwLock;
@@ -87,16 +87,16 @@ impl ProvideSharedPlugin {
   #[allow(clippy::too_many_arguments)]
   pub async fn provide_shared_module(
     &self,
-    _key: &str,
+    key: &str,
     share_key: &str,
     share_scope: &str,
     version: Option<&ProvideVersion>,
     eager: bool,
     resource: &str,
     resource_data: &ResourceData,
-  ) -> Result<()> {
-    // TODO: emit warning
-    // let error_header = "No version specified and unable to automatically determine one.";
+    add_diagnostic: impl Fn(Diagnostic),
+  ) {
+    let error_header = "No version specified and unable to automatically determine one.";
     if let Some(version) = version {
       self.resolved_provide_map.write().await.insert(
         resource.to_string(),
@@ -122,12 +122,11 @@ impl ProvideSharedPlugin {
           },
         );
       } else {
-        // return Err(Error::InternalError(InternalError::new(format!("{error_header} No version in description file (usually package.json). Add version to description file {}, or manually specify version in shared config. shared module {key} -> {resource}", description.path().display()), Severity::Warn)));
+        add_diagnostic(Diagnostic::warn(self.name().to_string(), format!("{error_header} No version in description file (usually package.json). Add version to description file {}, or manually specify version in shared config. shared module {key} -> {resource}", description.path().display())));
       }
     } else {
-      // return Err(Error::InternalError(InternalError::new(format!("{error_header} No description file (usually package.json) found. Add description file with name and version, or manually specify version in shared config. shared module {key} -> {resource}"), Severity::Warn)));
+      add_diagnostic(Diagnostic::warn(self.name().to_string(), format!("{error_header} No description file (usually package.json) found. Add description file with name and version, or manually specify version in shared config. shared module {key} -> {resource}")));
     }
-    Ok(())
   }
 }
 
@@ -148,7 +147,7 @@ impl Plugin for ProvideSharedPlugin {
     );
     args.compilation.set_dependency_factory(
       DependencyType::ProvideSharedModule,
-      Arc::new(ProvideSharedModuleFactory),
+      Arc::new(ProvideSharedModuleFactory::default()),
     );
 
     let mut resolved_provide_map = self.resolved_provide_map.write().await;
@@ -195,8 +194,9 @@ impl Plugin for ProvideSharedPlugin {
             config.eager,
             resource,
             resource_data,
+            |d| args.normal_module_factory.add_diagnostic(d),
           )
-          .await?;
+          .await;
       }
     }
     for (prefix, config) in self.prefix_match_provides.read().await.iter() {
@@ -211,8 +211,9 @@ impl Plugin for ProvideSharedPlugin {
             config.eager,
             resource,
             resource_data,
+            |d| args.normal_module_factory.add_diagnostic(d),
           )
-          .await?;
+          .await;
       }
     }
     Ok(module)

@@ -1,10 +1,11 @@
-use std::{path::Path, sync::Arc};
+use std::{
+  path::Path,
+  sync::{Arc, Mutex},
+};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_error::{
-  internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-};
+use rspack_error::{internal_error, Diagnosable, Diagnostic, Result};
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
 use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
@@ -29,6 +30,7 @@ pub struct NormalModuleFactory {
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
   cache: Arc<Cache>,
+  diagnostics: Mutex<Vec<Diagnostic>>,
 }
 
 #[async_trait::async_trait]
@@ -36,16 +38,24 @@ impl ModuleFactory for NormalModuleFactory {
   async fn create(
     &self,
     mut data: ModuleFactoryCreateData,
-  ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
+  ) -> Result<(ModuleFactoryResult, Vec<Diagnostic>)> {
+    let take_diagnostic = || {
+      self
+        .diagnostics
+        .lock()
+        .expect("should lock diagnostics")
+        .drain(..)
+        .collect::<Vec<_>>()
+    };
     if let Ok(Some(before_resolve_data)) = self.before_resolve(&mut data).await {
-      return Ok(before_resolve_data);
+      return Ok((before_resolve_data, take_diagnostic()));
     }
-    let (factory_result, diagnostics) = self.factorize(&mut data).await?.split_into_parts();
+    let factory_result = self.factorize(&mut data).await?;
     if let Ok(Some(after_resolve_data)) = self.after_resolve(&data, &factory_result).await {
-      return Ok(after_resolve_data);
+      return Ok((after_resolve_data, take_diagnostic()));
     }
 
-    Ok(factory_result.with_diagnostic(diagnostics))
+    Ok((factory_result, take_diagnostic()))
   }
 }
 
@@ -68,13 +78,14 @@ impl NormalModuleFactory {
       loader_resolver_factory,
       plugin_driver,
       cache,
+      diagnostics: Default::default(),
     }
   }
 
   async fn before_resolve(
     &self,
     data: &mut ModuleFactoryCreateData,
-  ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
+  ) -> Result<Option<ModuleFactoryResult>> {
     let dependency = data
       .dependency
       .as_module_dependency_mut()
@@ -99,9 +110,7 @@ impl NormalModuleFactory {
         format!("Failed to resolve {request_without_match_resource}"),
       )
       .boxed();
-      return Ok(Some(
-        ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
-      ));
+      return Ok(Some(ModuleFactoryResult::new(missing_module)));
     }
 
     data.context = before_resolve_args.context.into();
@@ -113,7 +122,7 @@ impl NormalModuleFactory {
     &self,
     data: &ModuleFactoryCreateData,
     factory_result: &ModuleFactoryResult,
-  ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
+  ) -> Result<Option<ModuleFactoryResult>> {
     let dependency = data
       .dependency
       .as_module_dependency()
@@ -140,9 +149,7 @@ impl NormalModuleFactory {
         format!("Failed to resolve {request_without_match_resource}"),
       )
       .boxed();
-      return Ok(Some(
-        ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
-      ));
+      return Ok(Some(ModuleFactoryResult::new(missing_module)));
     }
     Ok(None)
   }
@@ -160,7 +167,7 @@ impl NormalModuleFactory {
   pub async fn factorize_normal_module(
     &self,
     data: &mut ModuleFactoryCreateData,
-  ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
+  ) -> Result<Option<ModuleFactoryResult>> {
     let dependency = data
       .dependency
       .as_module_dependency()
@@ -354,9 +361,7 @@ impl NormalModuleFactory {
           .boxed();
 
           return Ok(Some(
-            ModuleFactoryResult::new(raw_module)
-              .from_cache(from_cache)
-              .with_empty_diagnostic(),
+            ModuleFactoryResult::new(raw_module).from_cache(from_cache),
           ));
         }
         Err(ResolveError(runtime_error, internal_error)) => {
@@ -364,7 +369,8 @@ impl NormalModuleFactory {
           let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
           let mut file_dependencies = Default::default();
           let mut missing_dependencies = Default::default();
-          let diagnostics: Vec<Diagnostic> = vec![internal_error.into()];
+          self.add_diagnostic(internal_error.into());
+
           let mut from_cache_result = from_cache;
           if !data
             .resolve_options
@@ -422,9 +428,7 @@ impl NormalModuleFactory {
           )
           .boxed();
           return Ok(Some(
-            ModuleFactoryResult::new(missing_module)
-              .from_cache(from_cache_result)
-              .with_diagnostic(diagnostics),
+            ModuleFactoryResult::new(missing_module).from_cache(from_cache_result),
           ));
         }
       }
@@ -651,6 +655,7 @@ impl NormalModuleFactory {
       resolve_data_request: dependency.request(),
       resource_resolve_data: resource_data.clone(),
       context: data.context.clone(),
+      normal_module_factory: self,
     };
     let module = if let Some(module) = self
       .plugin_driver
@@ -688,8 +693,7 @@ impl NormalModuleFactory {
         .file_dependencies(file_dependencies)
         .missing_dependencies(missing_dependencies)
         .factory_meta(factory_meta)
-        .from_cache(from_cache)
-        .with_empty_diagnostic(),
+        .from_cache(from_cache),
     ))
   }
 
@@ -786,10 +790,7 @@ impl NormalModuleFactory {
     resolved_module_type
   }
 
-  async fn factorize(
-    &self,
-    data: &mut ModuleFactoryCreateData,
-  ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
+  async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
     let dependency = data
       .dependency
       .as_module_dependency()
@@ -800,11 +801,12 @@ impl NormalModuleFactory {
         context: &data.context,
         dependency,
         plugin_driver: &self.plugin_driver,
+        module_factory: self,
       })
       .await?;
 
     if let Some(result) = result {
-      return Ok(result.with_empty_diagnostic());
+      return Ok(result);
     }
 
     if let Some(result) = self.factorize_normal_module(data).await? {
@@ -814,6 +816,34 @@ impl NormalModuleFactory {
     Err(internal_error!(
       "Failed to factorize module, neither hook nor factorize method returns"
     ))
+  }
+}
+
+impl Diagnosable for NormalModuleFactory {
+  fn add_diagnostic(&self, diagnostic: Diagnostic) {
+    self
+      .diagnostics
+      .lock()
+      .expect("should be able to lock diagnostics")
+      .push(diagnostic);
+  }
+
+  fn add_diagnostics(&self, mut diagnostics: Vec<Diagnostic>) {
+    self
+      .diagnostics
+      .lock()
+      .expect("should be able to lock diagnostics")
+      .append(&mut diagnostics);
+  }
+
+  fn clone_diagnostics(&self) -> Vec<Diagnostic> {
+    self
+      .diagnostics
+      .lock()
+      .expect("should be able to lock diagnostics")
+      .iter()
+      .cloned()
+      .collect()
   }
 }
 
