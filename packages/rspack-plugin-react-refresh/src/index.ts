@@ -52,7 +52,7 @@ class ReactRefreshRspackPlugin {
 		});
 
 		const definedModules = {
-			// For Mutiple Instance Mode
+			// For Multiple Instance Mode
 			__react_refresh_library__: JSON.stringify(
 				compiler.webpack.Template.toIdentifier(
 					this.options.library ||
