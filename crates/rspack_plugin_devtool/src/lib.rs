@@ -17,7 +17,10 @@ use rspack_core::{
   PluginJsChunkHashHookOutput, PluginProcessAssetsOutput, PluginRenderModuleContentOutput,
   ProcessAssetsArgs, RenderModuleContentArgs, SourceType,
 };
-use rspack_core::{ChunkGraph, Context, Filename, Logger, Module, ModuleIdentifier};
+use rspack_core::{
+  ChunkGraph, CompilationArgs, CompilationParams, Context, Filename, Logger, Module,
+  ModuleIdentifier, PluginCompilationHookOutput,
+};
 use rspack_error::miette::IntoDiagnostic;
 use rspack_error::{Error, Result};
 use rspack_util::identifier::make_paths_absolute;
@@ -120,6 +123,29 @@ impl Plugin for SourceMapDevToolPlugin {
     "rspack.SourceMapDevToolPlugin"
   }
 
+  async fn compilation(
+    &self,
+    _args: CompilationArgs<'_>,
+    _params: &CompilationParams,
+  ) -> PluginCompilationHookOutput {
+    // TODO: Temporarily use `devtool` to pass source map configuration information
+    let mut devtool = _args.compilation.options.devtool.lock().await;
+    devtool.add_source_map();
+    if self.filename.is_none() {
+      devtool.add_inline();
+    }
+    if self.source_mapping_url_comment.is_none() {
+      devtool.add_hidden();
+    }
+    if !self.columns {
+      devtool.add_cheap();
+    }
+    if self.no_sources {
+      devtool.add_no_sources();
+    }
+    Ok(())
+  }
+
   async fn process_assets_stage_dev_tooling(
     &self,
     _ctx: PluginContext,
@@ -173,6 +199,7 @@ impl Plugin for SourceMapDevToolPlugin {
 
     let start = logger.time("emit source map assets");
     for (filename, (code_buffer, map_buffer)) in maps {
+      println!("-------{}", filename);
       let mut asset = compilation
         .assets_mut()
         .remove(&filename)

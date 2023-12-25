@@ -108,7 +108,7 @@ impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
 
     let columns = match opts.columns {
       Some(b) => b,
-      None => false,
+      None => true,
     };
 
     let no_sources = match opts.no_sources {

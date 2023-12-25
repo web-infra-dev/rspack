@@ -79,6 +79,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       build_meta,
       code_generation_dependencies,
       loaders,
+      devtool,
       ..
     } = parse_context;
 
@@ -100,7 +101,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
       _ => false,
     };
 
-    let devtool = &compiler_options.devtool;
     let mut source_map = None;
     let mut diagnostic_vec = vec![];
 

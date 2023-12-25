@@ -373,12 +373,13 @@ impl SassLoader {
     Self { options }
   }
 
-  fn get_sass_options(
+  async fn get_sass_options(
     &self,
     loader_context: &LoaderContext<'_, LoaderRunnerContext>,
     content: String,
     logger: RspackLogger,
   ) -> LegacyOptions {
+    let devtool = loader_context.context.options.devtool.lock().await;
     let mut builder = LegacyOptionsBuilder::default()
       .data(
         if let Some(additional_data) = &self.options.additional_data {
@@ -389,12 +390,7 @@ impl SassLoader {
       )
       .logger(logger)
       .file(loader_context.resource_path)
-      .source_map(
-        self
-          .options
-          .source_map
-          .unwrap_or_else(|| loader_context.context.options.devtool.enabled()),
-      )
+      .source_map(self.options.source_map.unwrap_or_else(|| devtool.enabled()))
       .source_map_contents(true)
       // TODO: use OutputStyle::Compressed when loader_context.mode is production.
       // .output_style(
@@ -466,7 +462,9 @@ impl Loader<LoaderRunnerContext> for SassLoader {
       .expect("content should available");
     let (tx, rx) = mpsc::sync_channel(8);
     let logger = RspackLogger { tx };
-    let sass_options = self.get_sass_options(loader_context, content.try_into_string()?, logger);
+    let sass_options = self
+      .get_sass_options(loader_context, content.try_into_string()?, logger)
+      .await;
     let result = Sass::new(&self.options.__exe_path)
       .map_err(|e| {
         InternalError::new(

@@ -38,6 +38,7 @@ pub use raw_resolve::*;
 pub use raw_snapshot::*;
 pub use raw_split_chunks::*;
 pub use raw_stats::*;
+use tokio::sync::Mutex;
 
 pub trait RawOptionsApply {
   type Options;
@@ -78,7 +79,7 @@ impl RawOptions {
     let output: OutputOptions = self.output.try_into()?;
     let resolve = self.resolve.try_into()?;
     let resolve_loader = self.resolve_loader.try_into()?;
-    let devtool: Devtool = self.devtool.into();
+    let devtool = Devtool::default();
     let mode = self.mode.unwrap_or_default().into();
     let module: ModuleOptions = self.module.try_into()?;
     let target = Target::new(&self.target)?;
@@ -118,7 +119,7 @@ impl RawOptions {
       output,
       resolve,
       resolve_loader,
-      devtool,
+      devtool: Mutex::new(devtool),
       experiments,
       stats,
       cache,

@@ -153,7 +153,9 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
       };
       regexp.expect("Invalid extractComments")
     });
-    let emit_source_map_columns = !compilation.options.devtool.cheap();
+    let options = compilation.options.clone();
+    let devtool = options.devtool.lock().await;
+    let emit_source_map_columns = !devtool.cheap();
 
     compilation
       .assets_mut()

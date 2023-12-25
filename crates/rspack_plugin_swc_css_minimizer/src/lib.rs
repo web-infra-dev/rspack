@@ -22,10 +22,12 @@ impl Plugin for SwcCssMinimizerRspackPlugin {
   ) -> rspack_core::PluginProcessAssetsOutput {
     let compilation = args.compilation;
 
+    let options = compilation.options.clone();
+    let devtool = options.devtool.lock().await;
     let gen_source_map_config = SwcCssSourceMapGenConfig {
-      enable: compilation.options.devtool.source_map(),
-      inline_sources_content: !compilation.options.devtool.no_sources(),
-      emit_columns: !compilation.options.devtool.cheap(),
+      enable: devtool.source_map(),
+      inline_sources_content: !devtool.no_sources(),
+      emit_columns: !devtool.cheap(),
     };
 
     compilation

@@ -92,6 +92,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_identifier,
       loaders,
       mut additional_data,
+      devtool,
       ..
     } = parse_context;
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
@@ -101,9 +102,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       compiler_options.builtins.decorator.is_some(),
       compiler_options.should_transform_by_default(),
     );
-    let use_source_map = compiler_options.devtool.enabled();
-    let use_simple_source_map = compiler_options.devtool.source_map();
-    let original_map = source.map(&MapOptions::new(!compiler_options.devtool.cheap()));
+    let use_source_map = devtool.enabled();
+    let use_simple_source_map = devtool.source_map();
+    let original_map = source.map(&MapOptions::new(!devtool.cheap()));
     let source = source.source();
 
     let gen_terminate_res = |diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>| {
@@ -158,7 +159,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       &ast,
       additional_data
         .remove::<CodegenOptions>()
-        .unwrap_or_else(|| CodegenOptions::new(&compiler_options.devtool, Some(true))),
+        .unwrap_or_else(|| CodegenOptions::new(&devtool, Some(true))),
     )?;
 
     ast = match crate::ast::parse(

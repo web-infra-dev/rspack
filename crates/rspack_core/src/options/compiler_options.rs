@@ -1,3 +1,5 @@
+use tokio::sync::Mutex;
+
 use crate::{
   Builtins, CacheOptions, Context, DevServerOptions, Devtool, Experiments,
   IncrementalRebuildMakeState, Mode, ModuleOptions, NodeOption, Optimization, OutputOptions,
@@ -15,7 +17,7 @@ pub struct CompilerOptions {
   pub resolve: Resolve,
   pub resolve_loader: Resolve,
   pub module: ModuleOptions,
-  pub devtool: Devtool,
+  pub devtool: Mutex<Devtool>,
   pub stats: StatsOptions,
   pub snapshot: SnapshotOptions,
   pub cache: CacheOptions,

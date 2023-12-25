@@ -371,8 +371,12 @@ impl Module for NormalModule {
     } else {
       Content::String(loader_result.content.into_string_lossy())
     };
-    let original_source = self.create_source(content, loader_result.source_map)?;
+    let original_source = self
+      .create_source(content, loader_result.source_map)
+      .await?;
     let mut code_generation_dependencies: Vec<Box<dyn ModuleDependency>> = Vec::new();
+
+    let devtool = build_context.compiler_options.devtool.lock().await;
 
     let (
       ParseResult {
@@ -398,6 +402,7 @@ impl Module for NormalModule {
         code_generation_dependencies: &mut code_generation_dependencies,
         build_info: &mut build_info,
         build_meta: &mut build_meta,
+        devtool: &devtool,
       })?
       .split_into_parts();
     self.add_diagnostics(ds);
@@ -604,11 +609,16 @@ impl PartialEq for NormalModule {
 impl Eq for NormalModule {}
 
 impl NormalModule {
-  fn create_source(&self, content: Content, source_map: Option<SourceMap>) -> Result<BoxSource> {
+  async fn create_source(
+    &self,
+    content: Content,
+    source_map: Option<SourceMap>,
+  ) -> Result<BoxSource> {
     if content.is_buffer() {
       return Ok(RawSource::Buffer(content.into_bytes()).boxed());
     }
-    if self.options.devtool.enabled()
+    let devtool = self.options.devtool.lock().await;
+    if devtool.enabled()
       && let Some(source_map) = source_map
     {
       let content = content.into_string_lossy();
@@ -621,7 +631,7 @@ impl NormalModule {
         .boxed(),
       );
     }
-    if self.options.devtool.source_map()
+    if devtool.source_map()
       && let Content::String(content) = content
     {
       return Ok(OriginalSource::new(content, self.request()).boxed());
