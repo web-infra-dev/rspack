@@ -74,6 +74,8 @@ pub struct SourceMapDevToolPluginOptions {
   // Generator string or function to create identifiers of modules for the 'sources' array in the SourceMap.
   #[derivative(Debug = "ignore")]
   pub module_filename_template: Option<ModuleFilenameTemplate>,
+  // Indicates whether SourceMaps from loaders should be used (defaults to true).
+  pub module: bool,
   pub filename: Option<String>,
   pub append: Option<bool>,
   pub namespace: Option<String>,
@@ -93,6 +95,7 @@ pub struct SourceMapDevToolPlugin {
   columns: bool,
   no_sources: bool,
   public_path: Option<String>,
+  module: bool,
 }
 
 impl SourceMapDevToolPlugin {
@@ -113,6 +116,7 @@ impl SourceMapDevToolPlugin {
       columns: options.columns,
       no_sources: options.no_sources,
       public_path: options.public_path,
+      module: options.module,
     }
   }
 }
@@ -142,6 +146,9 @@ impl Plugin for SourceMapDevToolPlugin {
     }
     if self.no_sources {
       devtool.add_no_sources();
+    }
+    if self.module {
+      devtool.add_module();
     }
     Ok(())
   }
@@ -199,7 +206,6 @@ impl Plugin for SourceMapDevToolPlugin {
 
     let start = logger.time("emit source map assets");
     for (filename, (code_buffer, map_buffer)) in maps {
-      println!("-------{}", filename);
       let mut asset = compilation
         .assets_mut()
         .remove(&filename)

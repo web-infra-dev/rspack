@@ -85,6 +85,7 @@ pub struct RawSourceMapDevToolPluginOptions {
   pub columns: Option<bool>,
   pub no_sources: Option<bool>,
   pub public_path: Option<String>,
+  pub module: Option<bool>,
   #[serde(skip_deserializing)]
   #[napi(ts_type = "string | Function")]
   #[derivative(Debug = "ignore")]
@@ -124,6 +125,7 @@ impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
       no_sources,
       public_path: opts.public_path,
       module_filename_template,
+      module: opts.module.unwrap_or(false),
     }
   }
 }
