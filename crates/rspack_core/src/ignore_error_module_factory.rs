@@ -15,8 +15,8 @@ impl ModuleFactory for IgnoreErrorModuleFactory {
     &self,
     data: ModuleFactoryCreateData,
   ) -> Result<(ModuleFactoryResult, Vec<Diagnostic>)> {
-    let factory_result = self.normal_module_factory.create(data).await?;
-    Ok(factory_result)
+    let (factory_result, _) = self.normal_module_factory.create(data).await?;
+    Ok((factory_result, vec![]))
   }
 }
 
