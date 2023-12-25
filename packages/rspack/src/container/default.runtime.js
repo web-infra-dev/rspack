@@ -88,8 +88,8 @@ module.exports = function () {
 				initializeSharingScopeToInitDataMapping
 			)) {
 				for (let stage of stages) {
-					if (Array.isArray(stage)) {
-						const [name, version, factory, eager] = stage;
+					if (typeof stage === "object" && stage !== null) {
+						const { name, version, factory, eager } = stage;
 						if (shared[name]) {
 							shared[name].scope.push(scope);
 						} else {
@@ -101,9 +101,9 @@ module.exports = function () {
 			return shared;
 		});
 		merge(__webpack_require__.federation.initOptions, "remotes", () =>
-			Object.values(__module_federation_remote_infos__).filter(
-				remote => remote.externalType === "script"
-			)
+			Object.values(__module_federation_remote_infos__)
+				.flat()
+				.filter(remote => remote.externalType === "script")
 		);
 		merge(
 			__webpack_require__.federation.initOptions,
@@ -125,7 +125,20 @@ module.exports = function () {
 		early(
 			__webpack_require__.federation.bundlerRuntimeOptions.remotes,
 			"idToExternalAndNameMapping",
-			() => remotesLoadingModuleIdToRemoteDataMapping
+			() => {
+				const remotesLoadingIdToExternalAndNameMappingMapping = {};
+				for (let [moduleId, data] of Object.entries(
+					remotesLoadingModuleIdToRemoteDataMapping
+				)) {
+					remotesLoadingIdToExternalAndNameMappingMapping[moduleId] = [
+						data.shareScope,
+						data.name,
+						data.externalModuleId,
+						data.remoteName
+					];
+				}
+				return remotesLoadingIdToExternalAndNameMappingMapping;
+			}
 		);
 		early(
 			__webpack_require__.federation.bundlerRuntimeOptions.remotes,
@@ -140,8 +153,9 @@ module.exports = function () {
 				for (let [id, remoteData] of Object.entries(
 					remotesLoadingModuleIdToRemoteDataMapping
 				)) {
-					const info = __module_federation_remote_infos__[remoteData[3]];
-					if (info) idToRemoteMap[id] = [info];
+					const info =
+						__module_federation_remote_infos__[remoteData.remoteName];
+					if (info) idToRemoteMap[id] = info;
 				}
 				return idToRemoteMap;
 			}
@@ -157,7 +171,9 @@ module.exports = function () {
 				chunkId,
 				promises,
 				chunkMapping: remotesLoadingChunkMapping,
-				idToExternalAndNameMapping: remotesLoadingModuleIdToRemoteDataMapping,
+				idToExternalAndNameMapping:
+					__webpack_require__.federation.bundlerRuntimeOptions.remotes
+						.idToExternalAndNameMapping,
 				idToRemoteMap:
 					__webpack_require__.federation.bundlerRuntimeOptions.remotes
 						.idToRemoteMap,
