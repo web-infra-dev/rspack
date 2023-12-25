@@ -56,7 +56,7 @@ __webpack_require__.I = function(name, initScope) {
 	var scopeToSharingDataMapping = __webpack_require__.initializeSharingData.scopeToSharingDataMapping;
 	if (scopeToSharingDataMapping[name]) {
 		scopeToSharingDataMapping[name].forEach(function (stage) {
-			if (Array.isArray(stage)) register(stage[0], stage[1], stage[2], stage[3]);
+			if (typeof stage === "object") register(stage.name, stage.version, stage.factory, stage.eager);
 			else initExternal(stage)
 		});
 	}
