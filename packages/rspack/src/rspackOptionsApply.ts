@@ -70,10 +70,10 @@ export function applyEntryOptions(
 ) {
 	if (!options.experiments.rspackFuture!.disableApplyEntryLazily) {
 		deprecatedWarn(
-			`You are depend on ${termlink(
+			`You are depending on ${termlink(
 				"apply entry lazily",
 				"https://rspack.dev/config/experiments.html#experimentsrspackfuturedisableapplyentrylazily"
-			)}, this behavior has been deprecated, you can setup 'experiments.rspackFuture.disableApplyEntryLazily = true' to disable this behavior, and this will enabled by default in v0.5+`
+			)}, this behavior has been deprecated, you can setup 'experiments.rspackFuture.disableApplyEntryLazily = true' to disable this behavior, and this will be enabled by default in v0.5`
 		);
 	}
 	if (compiler.parentCompilation === undefined) {
