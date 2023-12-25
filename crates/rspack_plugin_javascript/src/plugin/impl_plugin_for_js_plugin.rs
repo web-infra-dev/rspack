@@ -9,7 +9,7 @@ use rspack_core::{
   IgnoreErrorModuleFactory, ModuleType, ParserAndGenerator, PathData, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginChunkHashHookOutput,
   PluginCompilationHookOutput, PluginContext, PluginRenderManifestHookOutput, RenderManifestEntry,
-  RuntimeGlobals, SourceType,
+  RuntimeGlobals, SelfModuleFactory, SourceType,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -152,6 +152,10 @@ impl Plugin for JsPlugin {
       Arc::new(IgnoreErrorModuleFactory {
         normal_module_factory: params.normal_module_factory.clone(),
       }),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::CjsSelfReference,
+      Arc::new(SelfModuleFactory {}),
     );
     Ok(())
   }
