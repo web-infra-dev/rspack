@@ -5,8 +5,11 @@
 [files]
 extend-exclude = [
   "**/*.{css,map,json,txt,snap,bak,diff,html}",
+  "**/tests/**",
+  "**/mock/**",
   "packages/rspack-test-tools",
   "packages/rspack/tests/hashCases",
+  "packages/rspack/src/util/hash",
   "webpack-examples",
   "webpack-test",
   "examples",
@@ -16,4 +19,6 @@ extend-exclude = [
 ]
 
 [default.extend-words]
-Nd = "Nd"
+Nd       = "Nd"
+fo       = "fo"
+splitted = "splitted"
