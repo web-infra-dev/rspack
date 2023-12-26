@@ -441,7 +441,8 @@ const applyOutputDefaults = (
 		try {
 			const packageInfo = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
 			return packageInfo.name || "";
-		} catch (e: any) {
+		} catch (err) {
+			const e = err as Error & { code: string };
 			if (e.code !== "ENOENT") {
 				e.message += `\nwhile determining default 'output.uniqueName' from 'name' in ${pkgPath}`;
 				throw e;
