@@ -423,13 +423,6 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
     node.visit_children_with(self);
     self.is_top_level = top_level;
   }
-
-  fn visit_arrow_expr(&mut self, node: &ArrowExpr) {
-    let top_level = self.is_top_level;
-    self.is_top_level = false;
-    node.visit_children_with(self);
-    self.is_top_level = top_level;
-  }
 }
 
 impl<'a> CommonJsExportDependencyScanner<'a> {
