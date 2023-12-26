@@ -4,6 +4,7 @@ use rspack_core::{
   IncrementalRebuildMakeState, ModuleOptions, Optimization, OutputOptions, Target, TreeShaking,
 };
 use serde::Deserialize;
+use tokio::sync::Mutex;
 
 mod raw_builtins;
 mod raw_cache;
@@ -38,7 +39,6 @@ pub use raw_resolve::*;
 pub use raw_snapshot::*;
 pub use raw_split_chunks::*;
 pub use raw_stats::*;
-use tokio::sync::Mutex;
 
 pub trait RawOptionsApply {
   type Options;

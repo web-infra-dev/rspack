@@ -101,7 +101,7 @@ fn normalize_raw_module_filename_template(
 }
 
 type RawRule = Either<String, JsRegExp>;
-type RawRules = Either<RawRule, Vec<RawRule>>;
+type RawSourceMapDevToolPluginRules = Either<RawRule, Vec<RawRule>>;
 
 fn normalize_raw_rule(raw: &RawRule) -> Rule {
   match raw {
@@ -110,7 +110,7 @@ fn normalize_raw_rule(raw: &RawRule) -> Rule {
   }
 }
 
-fn normalize_raw_rules(raw: &RawRules) -> Rules {
+fn normalize_raw_rules(raw: &RawSourceMapDevToolPluginRules) -> Rules {
   match raw {
     Either::A(raw_rule) => Rules::Single(normalize_raw_rule(raw_rule)),
     Either::B(raw_rules) => {
@@ -132,7 +132,7 @@ pub struct RawSourceMapDevToolPluginOptions {
   #[serde(skip_deserializing)]
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
   #[derivative(Debug = "ignore")]
-  pub exclude: Option<RawRules>,
+  pub exclude: Option<RawSourceMapDevToolPluginRules>,
   #[serde(skip_deserializing)]
   #[napi(ts_type = "string | Function")]
   #[derivative(Debug = "ignore")]
@@ -144,7 +144,7 @@ pub struct RawSourceMapDevToolPluginOptions {
   #[serde(skip_deserializing)]
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
   #[derivative(Debug = "ignore")]
-  pub include: Option<RawRules>,
+  pub include: Option<RawSourceMapDevToolPluginRules>,
   pub module: Option<bool>,
   #[serde(skip_deserializing)]
   #[napi(ts_type = "string | Function")]
@@ -157,7 +157,7 @@ pub struct RawSourceMapDevToolPluginOptions {
   #[serde(skip_deserializing)]
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
   #[derivative(Debug = "ignore")]
-  pub test: Option<RawRules>,
+  pub test: Option<RawSourceMapDevToolPluginRules>,
 }
 
 impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
