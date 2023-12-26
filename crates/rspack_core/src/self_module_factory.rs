@@ -1,7 +1,6 @@
 use rspack_error::impl_empty_diagnosable_trait;
-use rspack_error::IntoTWithDiagnosticArray;
+use rspack_error::Diagnostic;
 use rspack_error::Result;
-use rspack_error::TWithDiagnosticArray;
 
 use crate::SelfModule;
 use crate::{ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult};
@@ -14,11 +13,14 @@ impl ModuleFactory for SelfModuleFactory {
   async fn create(
     &self,
     data: ModuleFactoryCreateData,
-  ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
+  ) -> Result<(ModuleFactoryResult, Vec<Diagnostic>)> {
     let issur = data
       .issuer_identifier
       .expect("self module must have issuer");
-    Ok(ModuleFactoryResult::new(Box::new(SelfModule::new(issur))).with_empty_diagnostic())
+    Ok((
+      ModuleFactoryResult::new(Box::new(SelfModule::new(issur))),
+      vec![],
+    ))
   }
 }
 
