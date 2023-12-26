@@ -119,6 +119,10 @@ pub struct RawSourceMapDevToolPluginOptions {
   #[napi(ts_type = "string | Function")]
   #[derivative(Debug = "ignore")]
   pub module_filename_template: Option<RawModuleFilenameTemplate>,
+  #[serde(skip_deserializing)]
+  #[napi(ts_type = "string | Function")]
+  #[derivative(Debug = "ignore")]
+  pub fallback_module_filename_template: Option<RawModuleFilenameTemplate>,
 }
 
 impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
@@ -134,6 +138,11 @@ impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
     };
 
     let module_filename_template = match opts.module_filename_template {
+      Some(value) => normalize_raw_module_filename_template(value),
+      None => None,
+    };
+
+    let fallback_module_filename_template = match opts.fallback_module_filename_template {
       Some(value) => normalize_raw_module_filename_template(value),
       None => None,
     };
@@ -156,6 +165,7 @@ impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
       no_sources,
       public_path: opts.public_path,
       module_filename_template,
+      fallback_module_filename_template,
       module: opts.module.unwrap_or(false),
     }
   }

@@ -84,6 +84,9 @@ pub struct SourceMapDevToolPluginOptions {
   // Appends the given value to the original asset. Usually the #sourceMappingURL comment. [url] is replaced with a URL to the source map file. false disables the appending.
   #[derivative(Debug = "ignore")]
   pub append: Option<Append>,
+  // Generator string or function to create identifiers of modules for the 'sources' array in the SourceMap used only if 'moduleFilenameTemplate' would result in a conflict.
+  #[derivative(Debug = "ignore")]
+  pub fallback_module_filename_template: Option<ModuleFilenameTemplate>,
   // Generator string or function to create identifiers of modules for the 'sources' array in the SourceMap.
   #[derivative(Debug = "ignore")]
   pub module_filename_template: Option<ModuleFilenameTemplate>,
@@ -108,12 +111,21 @@ pub struct SourceMapDevToolPlugin {
   #[derivative(Debug = "ignore")]
   source_mapping_url_comment: Option<SourceMappingUrlComment>,
   #[derivative(Debug = "ignore")]
+  fallback_module_filename_template: ModuleFilenameTemplate,
+  #[derivative(Debug = "ignore")]
   module_filename_template: ModuleFilenameTemplate,
   namespace: String,
   columns: bool,
   no_sources: bool,
   public_path: Option<String>,
   module: bool,
+}
+
+struct Task<'a> {
+  file: &'a String,
+  asset: &'a Arc<dyn Source>,
+  source_map: Option<SourceMap>,
+  modules: Vec<ModuleOrSource<'a>>,
 }
 
 impl SourceMapDevToolPlugin {
@@ -129,6 +141,13 @@ impl SourceMapDevToolPlugin {
       )),
     };
 
+    let fallback_module_filename_template =
+      options
+        .fallback_module_filename_template
+        .unwrap_or(ModuleFilenameTemplate::String(
+          "webpack://[namespace]/[resourcePath]?[hash]".to_string(),
+        ));
+
     let module_filename_template =
       options
         .module_filename_template
@@ -139,6 +158,7 @@ impl SourceMapDevToolPlugin {
     Self {
       filename: options.filename.map(Filename::from),
       source_mapping_url_comment,
+      fallback_module_filename_template,
       module_filename_template,
       namespace: options.namespace.unwrap_or("".to_string()),
       columns: options.columns,
@@ -190,46 +210,160 @@ impl Plugin for SourceMapDevToolPlugin {
     let start = logger.time("collect source maps");
     let context = compilation.options.context.clone();
 
-    let maps: HashMap<String, (Vec<u8>, Option<Vec<u8>>)> = compilation
+    let mut tasks = vec![];
+    let mut module_to_source_name_mapping = HashMap::<ModuleOrSource, String>::default();
+
+    let assets: Vec<(&String, &Arc<dyn Source>)> = compilation
       .assets()
       .par_iter()
-      .filter_map(|(filename, asset)| asset.get_source().map(|s| (filename, s)))
-      .map(|(filename, source)| {
-        let map = source
-          .map(&MapOptions::new(self.columns))
-          .map(|mut map| {
-            map.set_file(Some(filename.clone()));
-            for source in map.sources_mut() {
-              let module_or_source = if source.starts_with("webpack://") {
-                let source = make_paths_absolute(context.as_str(), &source[10..]);
-                // TODO: how to use source to find module
-                let identifier = ModuleIdentifier::from(source.clone());
-                match compilation.module_graph.module_by_identifier(&identifier) {
-                  Some(module) => ModuleOrSource::Module(module.as_ref()),
-                  None => ModuleOrSource::Source(source),
-                }
-              } else {
-                ModuleOrSource::Source(source.clone())
-              };
-              *source = self.create_filename(module_or_source, &context, &compilation.chunk_graph);
+      .filter_map(|(file, asset)| asset.get_source().map(|source| (file, source)))
+      .collect();
+
+    for (file, asset) in assets {
+      let source_map = asset.map(&MapOptions::new(self.columns));
+
+      let mut modules = vec![];
+      if let Some(source_map) = &source_map {
+        for source in source_map.sources() {
+          let module_or_source = if source.starts_with("webpack://") {
+            let source = make_paths_absolute(context.as_str(), &source[10..]);
+            // TODO: how to use source to find module
+            let identifier = ModuleIdentifier::from(source.clone());
+            match compilation.module_graph.module_by_identifier(&identifier) {
+              Some(module) => ModuleOrSource::Module(module.as_ref()),
+              None => ModuleOrSource::Source(source),
+            }
+          } else {
+            ModuleOrSource::Source(source.clone())
+          };
+
+          let source_name = self.create_filename(
+            &module_or_source,
+            &context,
+            &compilation.chunk_graph,
+            &self.module_filename_template,
+          );
+          module_to_source_name_mapping.insert(module_or_source.clone(), source_name);
+          modules.push(module_or_source);
+        }
+      }
+      let task = Task {
+        file,
+        asset,
+        source_map,
+        modules,
+      };
+      tasks.push(task)
+    }
+
+    for task in &tasks {
+      if let Some(source_map) = &task.source_map {
+        for source in source_map.sources() {
+          let module_or_source = if source.starts_with("webpack://") {
+            let source = make_paths_absolute(context.as_str(), &source[10..]);
+            // TODO: how to use source to find module
+            let identifier = ModuleIdentifier::from(source.clone());
+            match compilation.module_graph.module_by_identifier(&identifier) {
+              Some(module) => ModuleOrSource::Module(module.as_ref()),
+              None => ModuleOrSource::Source(source),
+            }
+          } else {
+            ModuleOrSource::Source(source.clone())
+          };
+
+          let source_name = self.create_filename(
+            &module_or_source,
+            &context,
+            &compilation.chunk_graph,
+            &self.module_filename_template,
+          );
+          module_to_source_name_mapping.insert(module_or_source, source_name);
+        }
+      }
+    }
+
+    let mut used_names_set: HashSet<String> =
+      module_to_source_name_mapping.values().cloned().collect();
+    let mut conflict_detection_set = HashSet::<String>::new();
+
+    // all modules in defined order (longest identifier first)
+    let mut all_modules: Vec<ModuleOrSource> =
+      module_to_source_name_mapping.keys().cloned().collect();
+    all_modules.sort_by_key(|module| match module {
+      ModuleOrSource::Module(module) => module.identifier().len(),
+      ModuleOrSource::Source(source) => source.len(),
+    });
+
+    for module in all_modules {
+      let mut source_name = module_to_source_name_mapping.get(&module).unwrap().clone();
+      let mut has_name = conflict_detection_set.contains(&source_name);
+
+      if !has_name {
+        conflict_detection_set.insert(source_name);
+        continue;
+      }
+
+      // Try the fallback name first
+      source_name = self.create_filename(
+        &module,
+        &context,
+        &compilation.chunk_graph,
+        &self.fallback_module_filename_template,
+      );
+      has_name = used_names_set.contains(&source_name);
+      if !has_name {
+        module_to_source_name_mapping.insert(module, source_name.clone());
+        used_names_set.insert(source_name);
+        continue;
+      }
+
+      // Otherwise, append stars until we have a valid name
+      while has_name {
+        source_name.push('*');
+        has_name = used_names_set.contains(&source_name);
+      }
+      module_to_source_name_mapping.insert(module, source_name.clone());
+      used_names_set.insert(source_name);
+    }
+
+    let maps: HashMap<String, (Vec<u8>, Option<Vec<u8>>)> = tasks
+      .into_iter()
+      .map(|task| {
+        let Task {
+          file,
+          asset,
+          source_map,
+          modules,
+        } = task;
+
+        let source_map_buffer = source_map
+          .map(|mut source_map| {
+            source_map.set_file(Some(file.clone()));
+            let source_names = modules
+              .iter()
+              .map(|module| module_to_source_name_mapping.get(module).unwrap().clone())
+              .collect::<Vec<String>>();
+            for (idx, source) in source_map.sources_mut().iter_mut().enumerate() {
+              *source = source_names[idx].clone();
             }
             if self.no_sources {
-              for content in map.sources_content_mut() {
+              for content in source_map.sources_content_mut() {
                 *content = String::default();
               }
             }
-            let mut map_buffer = Vec::new();
-            map
-              .to_writer(&mut map_buffer)
+            let mut source_map_buffer = Vec::new();
+            source_map
+              .to_writer(&mut source_map_buffer)
               .unwrap_or_else(|e| panic!("{}", e.to_string()));
-            Ok::<Vec<u8>, Error>(map_buffer)
+            Ok::<Vec<u8>, Error>(source_map_buffer)
           })
           .transpose()?;
         let mut code_buffer = Vec::new();
-        source.to_writer(&mut code_buffer).into_diagnostic()?;
-        Ok((filename.to_owned(), (code_buffer, map)))
+        asset.to_writer(&mut code_buffer).into_diagnostic()?;
+        Ok((file.to_owned(), (code_buffer, source_map_buffer)))
       })
       .collect::<Result<_>>()?;
+
     logger.time_end(start);
 
     let start = logger.time("emit source map assets");
@@ -348,6 +482,7 @@ impl Plugin for SourceMapDevToolPlugin {
   }
 }
 
+#[derive(Eq, Hash, PartialEq, Clone)]
 enum ModuleOrSource<'a> {
   Module(&'a dyn Module),
   Source(String),
@@ -369,9 +504,10 @@ fn get_after(s: &str, token: &str) -> String {
 impl SourceMapDevToolPlugin {
   fn create_filename(
     &self,
-    module_or_source: ModuleOrSource,
+    module_or_source: &ModuleOrSource,
     context: &Context,
     chunk_graph: &ChunkGraph,
+    module_filename_template: &ModuleFilenameTemplate,
   ) -> String {
     let ctx = match module_or_source {
       ModuleOrSource::Module(module) => {
@@ -455,7 +591,7 @@ impl SourceMapDevToolPlugin {
       }
     };
 
-    return match &self.module_filename_template {
+    return match module_filename_template {
       ModuleFilenameTemplate::Fn(f) => f(ctx),
       ModuleFilenameTemplate::String(s) => {
         let mut replacements: HashMap<String, &str> = HashMap::default();
