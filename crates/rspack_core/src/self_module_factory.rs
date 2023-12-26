@@ -1,3 +1,4 @@
+use rspack_error::impl_empty_diagnosable_trait;
 use rspack_error::IntoTWithDiagnosticArray;
 use rspack_error::Result;
 use rspack_error::TWithDiagnosticArray;
@@ -20,3 +21,5 @@ impl ModuleFactory for SelfModuleFactory {
     Ok(ModuleFactoryResult::new(Box::new(SelfModule::new(issur))).with_empty_diagnostic())
   }
 }
+
+impl_empty_diagnosable_trait!(SelfModuleFactory);
