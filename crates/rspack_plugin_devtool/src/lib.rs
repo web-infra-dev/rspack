@@ -1,6 +1,7 @@
 #![feature(let_chains)]
 
 use std::collections::HashSet;
+use std::hash::Hasher;
 use std::sync::Arc;
 use std::{hash::Hash, path::Path};
 
@@ -19,10 +20,11 @@ use rspack_core::{
 };
 use rspack_core::{
   ChunkGraph, CompilationArgs, CompilationParams, Context, Filename, Logger, Module,
-  ModuleIdentifier, PluginCompilationHookOutput,
+  ModuleIdentifier, OutputOptions, PluginCompilationHookOutput,
 };
 use rspack_error::miette::IntoDiagnostic;
 use rspack_error::{Error, Result};
+use rspack_hash::RspackHash;
 use rspack_util::identifier::make_paths_absolute;
 use rspack_util::swc::normalize_custom_filename;
 use rustc_hash::FxHashMap as HashMap;
@@ -213,7 +215,8 @@ impl Plugin for SourceMapDevToolPlugin {
   ) -> PluginProcessAssetsOutput {
     let logger = compilation.get_logger(self.name());
     let start = logger.time("collect source maps");
-    let context = compilation.options.context.clone();
+    let context = &compilation.options.context;
+    let output_options = &compilation.options.output;
 
     let mut tasks = vec![];
     let mut module_to_source_name_mapping = HashMap::<ModuleOrSource, String>::default();
@@ -247,6 +250,7 @@ impl Plugin for SourceMapDevToolPlugin {
             &context,
             &compilation.chunk_graph,
             &self.module_filename_template,
+            &output_options,
           );
           module_to_source_name_mapping.insert(module_or_source.clone(), source_name);
           modules.push(module_or_source);
@@ -281,6 +285,7 @@ impl Plugin for SourceMapDevToolPlugin {
             &context,
             &compilation.chunk_graph,
             &self.module_filename_template,
+            &output_options,
           );
           module_to_source_name_mapping.insert(module_or_source, source_name);
         }
@@ -314,6 +319,7 @@ impl Plugin for SourceMapDevToolPlugin {
         &context,
         &compilation.chunk_graph,
         &self.fallback_module_filename_template,
+        &output_options,
       );
       has_name = used_names_set.contains(&source_name);
       if !has_name {
@@ -506,6 +512,17 @@ fn get_after(s: &str, token: &str) -> String {
     .unwrap_or("".to_string())
 }
 
+fn get_hash(text: &str, output_options: &OutputOptions) -> String {
+  let OutputOptions {
+    hash_function,
+    hash_salt,
+    ..
+  } = output_options;
+  let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
+  text.as_bytes().hash(&mut hasher);
+  format!("{:x}", hasher.finish())[..4].to_string()
+}
+
 impl SourceMapDevToolPlugin {
   fn create_filename(
     &self,
@@ -513,6 +530,7 @@ impl SourceMapDevToolPlugin {
     context: &Context,
     chunk_graph: &ChunkGraph,
     module_filename_template: &ModuleFilenameTemplate,
+    output_options: &OutputOptions,
   ) -> String {
     let ctx = match module_or_source {
       ModuleOrSource::Module(module) => {
@@ -525,6 +543,8 @@ impl SourceMapDevToolPlugin {
           .clone()
           .unwrap_or("".to_string());
         let absolute_resource_path = "".to_string();
+
+        let hash = get_hash(&identifier, output_options);
 
         let resource = short_identifier
           .clone()
@@ -549,8 +569,7 @@ impl SourceMapDevToolPlugin {
           identifier,
           module_id,
           absolute_resource_path,
-          // TODO: implement hash
-          hash: "".to_string(),
+          hash,
           resource,
           loaders,
           all_loaders,
@@ -562,6 +581,8 @@ impl SourceMapDevToolPlugin {
       ModuleOrSource::Source(source) => {
         let short_identifier = contextify(&context, &source);
         let identifier = short_identifier.clone();
+
+        let hash = get_hash(&identifier, output_options);
 
         let resource = short_identifier
           .clone()
@@ -586,7 +607,7 @@ impl SourceMapDevToolPlugin {
           identifier,
           module_id: "".to_string(),
           absolute_resource_path: source.split('!').last().unwrap_or("").to_string(),
-          hash: "".to_string(),
+          hash,
           resource,
           loaders,
           all_loaders,

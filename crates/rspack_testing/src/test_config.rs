@@ -531,6 +531,7 @@ impl TestConfig {
             public_path: None,
             module: false,
             module_filename_template: None,
+            fallback_module_filename_template: None,
           },
         )
         .boxed(),
