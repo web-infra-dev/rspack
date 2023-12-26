@@ -3,7 +3,7 @@ use std::{cmp::Ordering, fmt};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rspack_core::{
-  get_filename_without_hash_length, impl_runtime_module,
+  get_chunk_from_ukey, get_filename_without_hash_length, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Chunk, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, SourceType,
 };
@@ -80,7 +80,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
   fn generate(&self, compilation: &Compilation) -> BoxSource {
     let chunks = self
       .chunk
-      .and_then(|chunk_ukey| compilation.chunk_by_ukey.get(&chunk_ukey))
+      .and_then(|chunk_ukey| get_chunk_from_ukey(&chunk_ukey, &compilation.chunk_by_ukey))
       .map(|chunk| {
         let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey);
         if (self.all_chunks)(runtime_requirements) {
@@ -120,7 +120,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     if let Some(chunks) = chunks {
       chunks
         .iter()
-        .filter_map(|chunk_ukey| compilation.chunk_by_ukey.get(chunk_ukey))
+        .filter_map(|chunk_ukey| get_chunk_from_ukey(chunk_ukey, &compilation.chunk_by_ukey))
         .for_each(|chunk| {
           let filename_template = (self.filename_for_chunk)(chunk, compilation);
 

@@ -1,6 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
-use rspack_core::{Logger, OptimizeChunksArgs, Plugin, PluginContext, PluginOptimizeChunksOutput};
+use rspack_core::{
+  get_chunk_from_ukey, get_chunk_group_from_ukey, Logger, OptimizeChunksArgs, Plugin,
+  PluginContext, PluginOptimizeChunksOutput,
+};
 
 #[derive(Debug)]
 pub struct EnsureChunkConditionsPlugin;
@@ -47,7 +50,7 @@ impl Plugin for EnsureChunkConditionsPlugin {
     for (module_id, chunk_keys) in &source_module_chunks {
       let mut target_chunks = HashSet::new();
       for chunk_key in chunk_keys {
-        if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_key) {
+        if let Some(chunk) = get_chunk_from_ukey(chunk_key, &compilation.chunk_by_ukey) {
           let mut chunk_group_keys = chunk.groups.iter().collect::<Vec<_>>();
           let mut visited_chunk_group_keys = HashSet::new();
           'out: while let Some(chunk_group_key) = chunk_group_keys.pop() {
@@ -55,7 +58,9 @@ impl Plugin for EnsureChunkConditionsPlugin {
               continue;
             }
             visited_chunk_group_keys.insert(chunk_group_key);
-            if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group_key) {
+            if let Some(chunk_group) =
+              get_chunk_group_from_ukey(chunk_group_key, &compilation.chunk_group_by_ukey)
+            {
               for chunk in &chunk_group.chunks {
                 if let Some(module) = compilation.module_graph.module_by_identifier(module_id) {
                   if matches!(module.chunk_condition(chunk, compilation), Some(true)) {

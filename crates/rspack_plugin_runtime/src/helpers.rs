@@ -1,6 +1,7 @@
 use std::hash::Hash;
 
 use rspack_core::{
+  get_chunk_from_ukey, get_chunk_group_from_ukey,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Chunk, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData, RenderChunkArgs,
   RuntimeGlobals,
@@ -26,9 +27,7 @@ pub fn update_hash_for_entry_startup(
       module_id.hash(hasher);
     }
 
-    if let Some(runtime_chunk) = compilation
-      .chunk_group_by_ukey
-      .get(entry)
+    if let Some(runtime_chunk) = get_chunk_group_from_ukey(entry, &compilation.chunk_group_by_ukey)
       .map(|e| e.get_runtime_chunk())
     {
       for chunk_ukey in get_all_chunks(
@@ -37,7 +36,7 @@ pub fn update_hash_for_entry_startup(
         Some(&runtime_chunk),
         &compilation.chunk_group_by_ukey,
       ) {
-        if let Some(chunk) = compilation.chunk_by_ukey.get(&chunk_ukey) {
+        if let Some(chunk) = get_chunk_from_ukey(&chunk_ukey, &compilation.chunk_by_ukey) {
           chunk.id.hash(hasher);
         }
       }
@@ -59,7 +58,7 @@ pub fn get_all_chunks(
     exclude_chunk2: Option<&ChunkUkey>,
     visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
   ) {
-    if let Some(entrypoint) = chunk_group_by_ukey.get(entrypoint_ukey) {
+    if let Some(entrypoint) = get_chunk_group_from_ukey(entrypoint_ukey, chunk_group_by_ukey) {
       for chunk in &entrypoint.chunks {
         if chunk == exclude_chunk1 {
           continue;
@@ -77,7 +76,7 @@ pub fn get_all_chunks(
           continue;
         }
         visit_chunk_groups.insert(*parent);
-        if let Some(chunk_group) = chunk_group_by_ukey.get(parent) {
+        if let Some(chunk_group) = get_chunk_group_from_ukey(parent, chunk_group_by_ukey) {
           if chunk_group.is_initial() {
             add_chunks(
               chunk_group_by_ukey,
@@ -123,15 +122,13 @@ pub fn get_runtime_chunk_output_name(args: &RenderChunkArgs) -> Result<String> {
     args
       .compilation
       .chunk_group_by_ukey
-      .get(entry_point_ukey)
-      .ok_or_else(|| internal_error!("should has entry point"))?
+      .expect_get(entry_point_ukey)
   };
 
   let runtime_chunk = args
     .compilation
     .chunk_by_ukey
-    .get(&entry_point.get_runtime_chunk())
-    .ok_or_else(|| internal_error!("should has runtime chunk"))?;
+    .expect_get(&entry_point.get_runtime_chunk());
 
   Ok(get_chunk_output_name(runtime_chunk, args.compilation))
 }
@@ -155,9 +152,7 @@ pub fn generate_entry_startup(
       module_id_exprs.push(module_id_expr);
     }
 
-    if let Some(runtime_chunk) = compilation
-      .chunk_group_by_ukey
-      .get(entry)
+    if let Some(runtime_chunk) = get_chunk_group_from_ukey(entry, &compilation.chunk_group_by_ukey)
       .map(|e| e.get_runtime_chunk())
     {
       let chunks = get_all_chunks(
@@ -170,10 +165,7 @@ pub fn generate_entry_startup(
         chunks
           .iter()
           .map(|chunk_ukey| {
-            let chunk = compilation
-              .chunk_by_ukey
-              .get(chunk_ukey)
-              .expect("Chunk not found");
+            let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
             chunk.expect_id().to_string()
           })
           .collect::<HashSet<_>>(),

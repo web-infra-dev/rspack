@@ -45,10 +45,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
       None => "\" + wasmModuleHash + \"".to_string(),
     };
 
-    let chunk = compilation
-      .chunk_by_ukey
-      .get(&self.chunk)
-      .expect("chunk not found");
+    let chunk = compilation.chunk_by_ukey.expect_get(&self.chunk);
     let path = compilation.get_path(
       &fake_filename,
       PathData::default()

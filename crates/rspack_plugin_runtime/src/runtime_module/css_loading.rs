@@ -34,10 +34,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
     if let Some(chunk_ukey) = self.chunk {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get(&chunk_ukey)
-        .expect("Chunk not found");
+      let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
 
       let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
@@ -58,14 +55,15 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       let mut initial_chunk_ids_with_css = HashSet::default();
       let mut initial_chunk_ids_without_css = HashSet::default();
       for chunk_ukey in initial_chunks.iter() {
-        let chunk = compilation
+        let id = compilation
           .chunk_by_ukey
-          .get(chunk_ukey)
-          .expect("Chunk not found");
+          .expect_get(chunk_ukey)
+          .expect_id()
+          .to_string();
         if chunk_has_css(chunk_ukey, compilation) {
-          initial_chunk_ids_with_css.insert(chunk.expect_id().to_string());
+          initial_chunk_ids_with_css.insert(id);
         } else {
-          initial_chunk_ids_without_css.insert(chunk.expect_id().to_string());
+          initial_chunk_ids_without_css.insert(id);
         }
       }
 

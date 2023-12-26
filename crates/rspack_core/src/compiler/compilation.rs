@@ -32,7 +32,7 @@ use super::{
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
-  is_source_equal,
+  get_chunk_from_ukey, get_mut_chunk_from_ukey, is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs,
   AdditionalModuleRequirementsArgs, AsyncDependenciesBlock, BoxDependency, BoxModule, BuildQueue,
@@ -1219,11 +1219,7 @@ impl Compilation {
             .get_module_chunks(*module_identifier)
             .iter()
           {
-            let chunk = self
-              .chunk_by_ukey
-              .get_mut(chunk)
-              .expect("should have chunk");
-
+            let chunk = self.chunk_by_ukey.expect_get_mut(chunk);
             chunk.auxiliary_files.insert(asset.clone());
           }
           // already emitted asset by loader, so no need to re emit here
@@ -1262,10 +1258,7 @@ impl Compilation {
       for file_manifest in manifest.expect("We should return this error rathen expect") {
         let filename = file_manifest.filename().to_string();
 
-        let current_chunk = self
-          .chunk_by_ukey
-          .get_mut(&chunk_ukey)
-          .unwrap_or_else(|| panic!("chunk({chunk_ukey:?}) should be in chunk_by_ukey",));
+        let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);
 
         if file_manifest.auxiliary {
           current_chunk.auxiliary_files.insert(filename.clone());
@@ -1307,10 +1300,7 @@ impl Compilation {
     filename: String,
     plugin_driver: SharedPluginDriver,
   ) -> Result<()> {
-    let current_chunk = self
-      .chunk_by_ukey
-      .get(&chunk_ukey)
-      .unwrap_or_else(|| panic!("chunk({chunk_ukey:?}) should be in chunk_by_ukey",));
+    let current_chunk = self.chunk_by_ukey.expect_get(&chunk_ukey);
     _ = plugin_driver.chunk_asset(current_chunk, filename).await;
     Ok(())
   }
@@ -1337,10 +1327,7 @@ impl Compilation {
 
   pub fn entrypoint_by_name(&self, name: &str) -> &Entrypoint {
     let ukey = self.entrypoints.get(name).expect("entrypoint not found");
-    self
-      .chunk_group_by_ukey
-      .get(ukey)
-      .expect("entrypoint not found by ukey")
+    self.chunk_group_by_ukey.expect_get(ukey)
   }
 
   #[instrument(name = "compilation:finish", skip_all)]
@@ -1452,17 +1439,16 @@ impl Compilation {
       chunk_by_ukey: &ChunkByUkey,
       chunk_graph: &mut ChunkGraph,
     ) {
-      let entrypoint = chunk_group_by_ukey
-        .get(entrypoint_ukey)
-        .expect("chunk group not found");
+      let entrypoint = chunk_group_by_ukey.expect_get(entrypoint_ukey);
       let runtime = entrypoint
         .kind
         .get_entry_options()
         .and_then(|o| o.name.clone())
         .or(entrypoint.name().map(|n| n.to_string()));
-      if let (Some(runtime), Some(chunk)) =
-        (runtime, chunk_by_ukey.get(&entrypoint.get_runtime_chunk()))
-      {
+      if let (Some(runtime), Some(chunk)) = (
+        runtime,
+        get_chunk_from_ukey(&entrypoint.get_runtime_chunk(), chunk_by_ukey),
+      ) {
         chunk_graph.set_runtime_id(runtime, chunk.id.clone());
       }
     }
@@ -1486,17 +1472,11 @@ impl Compilation {
 
   pub fn get_chunk_graph_entries(&self) -> HashSet<ChunkUkey> {
     let entries = self.entrypoints.values().map(|entrypoint_ukey| {
-      let entrypoint = self
-        .chunk_group_by_ukey
-        .get(entrypoint_ukey)
-        .expect("chunk group not found");
+      let entrypoint = self.chunk_group_by_ukey.expect_get(entrypoint_ukey);
       entrypoint.get_runtime_chunk()
     });
     let async_entries = self.async_entrypoints.iter().map(|entrypoint_ukey| {
-      let entrypoint = self
-        .chunk_group_by_ukey
-        .get(entrypoint_ukey)
-        .expect("chunk group not found");
+      let entrypoint = self.chunk_group_by_ukey.expect_get(entrypoint_ukey);
       entrypoint.get_runtime_chunk()
     });
     HashSet::from_iter(entries.chain(async_entries))
@@ -1584,10 +1564,7 @@ impl Compilation {
         .chunk_graph
         .get_chunk_modules(&chunk_ukey, &self.module_graph)
       {
-        let chunk = self
-          .chunk_by_ukey
-          .get(&chunk_ukey)
-          .expect("should have chunk");
+        let chunk = self.chunk_by_ukey.expect_get(&chunk_ukey);
         if let Some(runtime_requirements) = self
           .chunk_graph
           .get_module_runtime_requirements(module.identifier(), &chunk.runtime)
@@ -1614,13 +1591,8 @@ impl Compilation {
 
     let start = logger.time("runtime requirements.entries");
     for entry_ukey in chunk_graph_entries {
-      let entry = self
-        .chunk_by_ukey
-        .get(&entry_ukey)
-        .expect("chunk not found by ukey");
-
+      let entry = self.chunk_by_ukey.expect_get(&entry_ukey);
       let mut set = RuntimeGlobals::default();
-
       for chunk_ukey in entry
         .get_all_referenced_chunks(&self.chunk_group_by_ukey)
         .iter()
@@ -1669,7 +1641,7 @@ impl Compilation {
     ) -> Result<()> {
       for hash_result in chunk_hash_results {
         let (chunk_ukey, (chunk_hash, content_hash)) = hash_result?;
-        if let Some(chunk) = compilation.chunk_by_ukey.get_mut(&chunk_ukey) {
+        if let Some(chunk) = get_mut_chunk_from_ukey(&chunk_ukey, &mut compilation.chunk_by_ukey) {
           chunk.rendered_hash = Some(
             chunk_hash
               .rendered(compilation.options.output.hash_digest_length)
@@ -1758,7 +1730,7 @@ impl Compilation {
     plugin_driver: &SharedPluginDriver,
   ) -> Result<(RspackHashDigest, ChunkContentHash)> {
     let mut hasher = RspackHash::from(&self.options.output);
-    if let Some(chunk) = self.chunk_by_ukey.get(&chunk_ukey) {
+    if let Some(chunk) = get_chunk_from_ukey(&chunk_ukey, &self.chunk_by_ukey) {
       chunk.update_hash(&mut hasher, self);
     }
     plugin_driver
@@ -1826,10 +1798,7 @@ impl Compilation {
 
   pub fn add_runtime_module(&mut self, chunk_ukey: &ChunkUkey, mut module: Box<dyn RuntimeModule>) {
     // add chunk runtime to prefix module identifier to avoid multiple entry runtime modules conflict
-    let chunk = self
-      .chunk_by_ukey
-      .get(chunk_ukey)
-      .expect("chunk not found by ukey");
+    let chunk = self.chunk_by_ukey.expect_get(chunk_ukey);
     let runtime_module_identifier =
       ModuleIdentifier::from(format!("{:?}/{}", chunk.runtime, module.identifier()));
     module.attach(*chunk_ukey);

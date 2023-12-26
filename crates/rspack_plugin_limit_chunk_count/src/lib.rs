@@ -4,8 +4,8 @@ use std::collections::{HashMap, HashSet};
 
 use chunk_combination::{ChunkCombination, ChunkCombinationBucket, ChunkCombinationUkey};
 use rspack_core::{
-  compare_chunks_with_graph, ChunkSizeOptions, ChunkUkey, OptimizeChunksArgs, Plugin,
-  PluginContext, PluginOptimizeChunksOutput,
+  compare_chunks_with_graph, get_chunk_from_ukey, get_chunk_group_from_ukey, ChunkSizeOptions,
+  ChunkUkey, OptimizeChunksArgs, Plugin, PluginContext, PluginOptimizeChunksOutput,
 };
 
 fn add_to_set_map(
@@ -157,9 +157,7 @@ impl Plugin for LimitChunkCountPlugin {
     let mut modified_chunks: HashSet<ChunkUkey> = HashSet::new();
 
     while let Some(combination_ukey) = combinations.pop_first() {
-      let combination = combinations
-        .get_mut(&combination_ukey)
-        .expect("chunk combination not found");
+      let combination = combinations.get_mut(&combination_ukey);
       combination.deleted = true;
       let a = combination.a;
       let b = combination.b;
@@ -168,16 +166,15 @@ impl Plugin for LimitChunkCountPlugin {
       // skip over pair when
       // one of the already merged chunks is a parent of one of the chunks
       if !modified_chunks.is_empty() {
-        let a_chunk = chunk_by_ukey.get(&a).expect("chunk not found");
-        let b_chunk = chunk_by_ukey.get(&b).expect("chunk not found");
+        let a_chunk = chunk_by_ukey.expect_get(&a);
+        let b_chunk = chunk_by_ukey.expect_get(&b);
         let mut queue = a_chunk.groups.iter().copied().collect::<HashSet<_>>();
         for group_ukey in b_chunk.groups.iter() {
           queue.insert(*group_ukey);
         }
         for group_ukey in queue.clone() {
           for modified_chunk_ukey in modified_chunks.clone() {
-            let m_chunk = chunk_by_ukey.get(&modified_chunk_ukey);
-            if let Some(m_chunk) = m_chunk {
+            if let Some(m_chunk) = get_chunk_from_ukey(&modified_chunk_ukey, &chunk_by_ukey) {
               if modified_chunk_ukey != a
                 && modified_chunk_ukey != b
                 && m_chunk.is_in_group(&group_ukey)
@@ -192,8 +189,7 @@ impl Plugin for LimitChunkCountPlugin {
               }
             }
           }
-          let group = chunk_group_by_ukey.get(&group_ukey);
-          if let Some(group) = group {
+          if let Some(group) = get_chunk_group_from_ukey(&group_ukey, &chunk_group_by_ukey) {
             for parent in group.parents_iterable() {
               queue.insert(*parent);
             }
@@ -225,9 +221,7 @@ impl Plugin for LimitChunkCountPlugin {
         let a_combinations = combinations_by_chunk.get_mut(&a);
         if let Some(a_combinations) = a_combinations {
           for ukey in a_combinations.clone() {
-            let combination = combinations
-              .get_mut(&ukey)
-              .expect("chunk combination not found");
+            let combination = combinations.get_mut(&ukey);
             if combination.deleted {
               continue;
             }
@@ -240,9 +234,7 @@ impl Plugin for LimitChunkCountPlugin {
         let b_combinations = combinations_by_chunk.get(&b);
         if let Some(b_combinations) = b_combinations {
           for ukey in b_combinations {
-            let combination = combinations
-              .get_mut(ukey)
-              .expect("chunk combination not found");
+            let combination = combinations.get_mut(ukey);
             if combination.deleted {
               continue;
             }
