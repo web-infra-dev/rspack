@@ -95,7 +95,7 @@ export type LibraryCustomUmdCommentObject = z.infer<
 >;
 
 const amdContainer = z.string();
-export type AmdComtainer = z.infer<typeof amdContainer>;
+export type AmdContainer = z.infer<typeof amdContainer>;
 
 const auxiliaryComment = z.string().or(libraryCustomUmdCommentObject);
 export type AuxiliaryComment = z.infer<typeof auxiliaryComment>;

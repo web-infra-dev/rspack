@@ -32,10 +32,7 @@ impl Plugin for ChunkPrefetchPreloadPlugin {
       .get_number_of_entry_modules(chunk_ukey)
       > 0
     {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get(chunk_ukey)
-        .expect("chunk do not exists");
+      let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
       if let Some(startup_child_chunks) =
         chunk.get_children_of_type_in_order(&ChunkGroupOrderKey::Prefetch, compilation, false)
       {
@@ -59,10 +56,7 @@ impl Plugin for ChunkPrefetchPreloadPlugin {
     let compilation = &mut args.compilation;
     let runtime_requirements = &mut args.runtime_requirements;
     let chunk_ukey = args.chunk;
-    let chunk = compilation
-      .chunk_by_ukey
-      .get(chunk_ukey)
-      .expect("chunk do not exists");
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let chunk_map = chunk.get_child_ids_by_orders_map(false, compilation);
 
     if let Some(prefetch_map) = chunk_map.get(&ChunkGroupOrderKey::Prefetch) {

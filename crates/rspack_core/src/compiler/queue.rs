@@ -131,9 +131,7 @@ impl WorkerTask for FactorizeTask {
       })
       .await
     {
-      Ok(res) => {
-        let (result, diagnostics) = res.split_into_parts();
-
+      Ok((result, diagnostics)) => {
         if let Some(current_profile) = &factorize_task_result.current_profile {
           current_profile.mark_factory_end();
         }

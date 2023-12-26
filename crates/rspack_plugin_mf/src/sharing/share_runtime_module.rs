@@ -83,7 +83,7 @@ impl RuntimeModule for ShareRuntimeModule {
             DataInitInfo::ExternalModuleId(Some(id)) => json_stringify(&id),
             DataInitInfo::ProvideSharedInfo(info) => {
               format!(
-                "[{}, {}, {}, {}]",
+                "{{ name: {}, version: {}, factory: {}, eager: {} }}",
                 json_stringify(&info.name),
                 json_stringify(&info.version.to_string()),
                 info.factory,

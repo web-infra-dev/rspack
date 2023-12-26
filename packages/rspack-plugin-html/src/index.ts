@@ -534,7 +534,7 @@ function hookIntoCompiler(
 						);
 				});
 
-				const templateExectutionPromise = Promise.all([
+				const templateExecutionPromise = Promise.all([
 					assetsPromise,
 					assetTagGroupsPromise,
 					templateEvaluationPromise
@@ -556,7 +556,7 @@ function hookIntoCompiler(
 
 				const injectedHtmlPromise = Promise.all([
 					assetTagGroupsPromise,
-					templateExectutionPromise
+					templateExecutionPromise
 				])
 					// Allow plugins to change the html before assets are injected
 					.then(([assetTags, html]) => {
@@ -778,14 +778,14 @@ function hookIntoCompiler(
 		excludedChunks: string[]
 	) {
 		return chunks.filter(chunkName => {
-			// Skip if the chunks should be filtered and the given chunk was not added explicity
+			// Skip if the chunks should be filtered and the given chunk was not added explicitly
 			if (
 				Array.isArray(includedChunks) &&
 				includedChunks.indexOf(chunkName) === -1
 			) {
 				return false;
 			}
-			// Skip if the chunks should be filtered and the given chunk was excluded explicity
+			// Skip if the chunks should be filtered and the given chunk was excluded explicitly
 			if (
 				Array.isArray(excludedChunks) &&
 				excludedChunks.indexOf(chunkName) !== -1

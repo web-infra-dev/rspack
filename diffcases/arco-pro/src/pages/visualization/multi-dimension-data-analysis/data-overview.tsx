@@ -30,7 +30,7 @@ export default () => {
     getData()
   }, [])
 
-  const formatedData = useMemo(() => {
+  const formattedData = useMemo(() => {
     return [
       {
         title: t['multiDAnalysis.dataOverview.contentProduction'],
@@ -65,8 +65,8 @@ export default () => {
 
   return (
     <Grid.Row justify="space-between">
-      {formatedData.map((item, index) => (
-        <Grid.Col span={24 / formatedData.length} key={`${index}`}>
+      {formattedData.map((item, index) => (
+        <Grid.Col span={24 / formattedData.length} key={`${index}`}>
           <Card className={styles.card} title={null}>
             <Title heading={6}>{item.title}</Title>
             <div className={styles.content}>

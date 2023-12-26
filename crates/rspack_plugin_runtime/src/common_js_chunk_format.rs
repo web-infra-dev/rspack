@@ -7,7 +7,6 @@ use rspack_core::{
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   PluginRenderChunkHookOutput, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
-use rspack_error::internal_error;
 use rspack_plugin_javascript::runtime::{render_chunk_runtime_modules, render_iife};
 
 use crate::{
@@ -32,10 +31,7 @@ impl Plugin for CommonJsChunkFormatPlugin {
     let compilation = &mut args.compilation;
     let chunk_ukey = args.chunk;
     let runtime_requirements = &mut args.runtime_requirements;
-    let chunk = compilation
-      .chunk_by_ukey
-      .get(chunk_ukey)
-      .ok_or_else(|| internal_error!("chunk not found"))?;
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
     if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
       return Ok(());

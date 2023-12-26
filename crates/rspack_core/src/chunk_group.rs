@@ -3,7 +3,7 @@ use rspack_database::DatabaseItem;
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey};
+use crate::{get_chunk_from_ukey, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey};
 use crate::{ChunkLoading, ChunkUkey, Compilation, Filename};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath, RuntimeSpec};
 
@@ -71,8 +71,7 @@ impl ChunkGroup {
       .iter()
       .flat_map(|chunk_ukey| {
         chunk_by_ukey
-          .get(chunk_ukey)
-          .unwrap_or_else(|| panic!("Chunk({chunk_ukey:?}) not found in ChunkGroup: {self:?}"))
+          .expect_get(chunk_ukey)
           .files
           .iter()
           .map(|file| file.to_string())
@@ -151,9 +150,7 @@ impl ChunkGroup {
         continue;
       }
       ancestors.insert(chunk_group_ukey);
-      let chunk_group = chunk_group_by_ukey
-        .get(&chunk_group_ukey)
-        .expect("should have chunk group");
+      let chunk_group = chunk_group_by_ukey.expect_get(&chunk_group_ukey);
       for parent in &chunk_group.parents {
         queue.push(*parent);
       }
@@ -240,10 +237,7 @@ impl ChunkGroup {
       .chunks
       .iter()
       .filter_map(|chunk| {
-        compilation
-          .chunk_by_ukey
-          .get(chunk)
-          .and_then(|chunk| chunk.id.as_ref())
+        get_chunk_from_ukey(chunk, &compilation.chunk_by_ukey).and_then(|item| item.id.as_ref())
       })
       .join("+")
   }
@@ -254,7 +248,7 @@ impl ChunkGroup {
   ) -> Vec<&'a ChunkGroup> {
     self
       .parents_iterable()
-      .map(|ukey| chunk_group_by_ukey.get(ukey).expect("parent must exists"))
+      .map(|ukey| chunk_group_by_ukey.expect_get(ukey))
       .collect_vec()
   }
 

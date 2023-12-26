@@ -31,6 +31,7 @@ pub struct RemoteModule {
   external_requests: Vec<String>,
   pub internal_request: String,
   pub share_scope: String,
+  pub remote_key: String,
 }
 
 impl RemoteModule {
@@ -39,6 +40,7 @@ impl RemoteModule {
     external_requests: Vec<String>,
     internal_request: String,
     share_scope: String,
+    remote_key: String,
   ) -> Self {
     let readable_identifier = format!("remote {}", &request);
     let lib_ident = format!("webpack/container/remote/{}", &request);
@@ -57,6 +59,7 @@ impl RemoteModule {
       external_requests,
       internal_request,
       share_scope,
+      remote_key,
     }
   }
 }

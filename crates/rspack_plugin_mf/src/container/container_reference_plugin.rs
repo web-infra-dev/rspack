@@ -99,6 +99,7 @@ impl Plugin for ContainerReferencePlugin {
               .collect(),
             format!(".{}", internal_request),
             config.share_scope.clone(),
+            key.to_string(),
           )
           .boxed();
           return Ok(Some(ModuleFactoryResult::new(remote)));
