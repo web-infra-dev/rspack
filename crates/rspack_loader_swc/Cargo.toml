@@ -38,3 +38,4 @@ xxhash-rust = { workspace = true, features = ["xxh32"] }
 [dev-dependencies]
 indexmap       = { workspace = true }
 rspack_testing = { path = "../rspack_testing" }
+tokio          = { workspace = true }

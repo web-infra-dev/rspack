@@ -6,10 +6,12 @@ use std::{
 };
 
 use rspack_core::{BoxPlugin, CompilerOptions, ModuleType, PluginExt};
+use rspack_plugin_devtool::Append;
 use rspack_plugin_html::config::HtmlRspackPluginOptions;
 use rspack_regex::RspackRegex;
 use schemars::JsonSchema;
 use serde::Deserialize;
+use tokio::sync::Mutex;
 
 macro_rules! impl_serde_default {
   ($name:ident) => {
@@ -356,6 +358,7 @@ impl TestConfig {
 
     let root = c::Context::new(context.to_string_lossy().to_string());
 
+    let devtool = c::Devtool::from(self.devtool);
     let options = CompilerOptions {
       bail: false,
       context: root.clone(),
@@ -433,7 +436,7 @@ impl TestConfig {
         rules,
         ..Default::default()
       },
-      devtool: c::Devtool::from(self.devtool),
+      devtool: Mutex::new(devtool.clone()),
       stats: Default::default(),
       snapshot: Default::default(),
       cache: c::CacheOptions::Disabled,
@@ -512,16 +515,22 @@ impl TestConfig {
     // plugins.push(rspack_plugin_externals::ExternalPlugin::default().boxed());
     plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
 
-    if options.devtool.source_map() {
+    if devtool.source_map() {
       plugins.push(
         rspack_plugin_devtool::SourceMapDevToolPlugin::new(
           rspack_plugin_devtool::SourceMapDevToolPluginOptions {
             filename: None,
-            append: Some(!options.devtool.hidden()),
-            namespace: options.output.unique_name.clone(),
-            columns: !options.devtool.cheap(),
-            no_sources: options.devtool.no_sources(),
+            append: if devtool.hidden() {
+              Some(Append::Disabled)
+            } else {
+              None
+            },
+            namespace: Some(options.output.unique_name.clone()),
+            columns: !devtool.cheap(),
+            no_sources: devtool.no_sources(),
             public_path: None,
+            module: false,
+            module_filename_template: None,
           },
         )
         .boxed(),

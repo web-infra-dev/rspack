@@ -13,6 +13,7 @@ use rspack_loader_swc::{SwcLoader, SwcLoaderJsOptions};
 use rspack_testing::{fixture, test_fixture};
 use serde_json::json;
 use swc_core::base::config::PluginConfig;
+use tokio::sync::Mutex;
 
 // UPDATE=1 cargo test --package rspack_loader_swc -- --nocapture
 #[allow(dead_code)]
@@ -35,7 +36,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
         bail: false,
         context: rspack_core::Context::default(),
         dev_server: rspack_core::DevServerOptions::default(),
-        devtool: rspack_core::Devtool::from("source-map".to_string()),
+        devtool: Mutex::new(rspack_core::Devtool::from("source-map".to_string())),
         mode: rspack_core::Mode::None,
         output: rspack_core::OutputOptions {
           clean: false,

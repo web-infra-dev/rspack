@@ -2794,6 +2794,7 @@ dependencies = [
  "swc_core",
  "swc_emotion",
  "swc_plugin_import",
+ "tokio",
  "xxhash-rust",
 ]
 

@@ -12,7 +12,7 @@ bitflags! {
   }
 }
 
-#[derive(Debug, Hash)]
+#[derive(Debug, Hash, Clone)]
 pub struct Devtool {
   inner: DevtoolFlags,
 }
