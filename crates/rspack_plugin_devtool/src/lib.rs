@@ -84,18 +84,23 @@ pub struct SourceMapDevToolPluginOptions {
   // Appends the given value to the original asset. Usually the #sourceMappingURL comment. [url] is replaced with a URL to the source map file. false disables the appending.
   #[derivative(Debug = "ignore")]
   pub append: Option<Append>,
+  // Indicates whether column mappings should be used (defaults to true).
+  pub columns: bool,
   // Generator string or function to create identifiers of modules for the 'sources' array in the SourceMap used only if 'moduleFilenameTemplate' would result in a conflict.
   #[derivative(Debug = "ignore")]
   pub fallback_module_filename_template: Option<ModuleFilenameTemplate>,
+  // Defines the output filename of the SourceMap (will be inlined if no value is provided).
+  pub filename: Option<String>,
+  // Indicates whether SourceMaps from loaders should be used (defaults to true).
+  pub module: bool,
   // Generator string or function to create identifiers of modules for the 'sources' array in the SourceMap.
   #[derivative(Debug = "ignore")]
   pub module_filename_template: Option<ModuleFilenameTemplate>,
-  // Indicates whether SourceMaps from loaders should be used (defaults to true).
-  pub module: bool,
-  pub filename: Option<String>,
+  // Namespace prefix to allow multiple webpack roots in the devtools.
   pub namespace: Option<String>,
-  pub columns: bool,
+  // Omit the 'sourceContents' array from the SourceMap.
   pub no_sources: bool,
+  // Provide a custom public path for the SourceMapping comment.
   pub public_path: Option<String>,
 }
 
@@ -261,7 +266,7 @@ impl Plugin for SourceMapDevToolPlugin {
         for source in source_map.sources() {
           let module_or_source = if source.starts_with("webpack://") {
             let source = make_paths_absolute(context.as_str(), &source[10..]);
-            // TODO: how to use source to find module
+            // TODO: is true way to use source to find module?
             let identifier = ModuleIdentifier::from(source.clone());
             match compilation.module_graph.module_by_identifier(&identifier) {
               Some(module) => ModuleOrSource::Module(module.as_ref()),
@@ -544,6 +549,7 @@ impl SourceMapDevToolPlugin {
           identifier,
           module_id,
           absolute_resource_path,
+          // TODO: implement hash
           hash: "".to_string(),
           resource,
           loaders,
