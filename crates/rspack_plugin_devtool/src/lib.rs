@@ -30,6 +30,8 @@ use serde_json::json;
 
 static CSS_EXTENSION_DETECT_REGEXP: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\.css($|\?)").expect("Failed to compile CSS_EXTENSION_DETECT_REGEXP"));
+static URL_FORMATTING_REGEXP: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^\n\/\/(.*)$").expect("Failed to compile URL_FORMATTING_REGEXP regex"));
 
 static REGEXP_ALL_LOADERS_RESOURCE: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"\[all-?loaders\]\[resource\]").expect("Failed to compile SQUARE_BRACKET_TAG_REGEXP")
@@ -68,27 +70,44 @@ pub enum SourceOrModule {
   Module(ModuleIdentifier),
 }
 
+type AppendFn = Arc<dyn for<'a> Fn() -> Option<String> + Send + Sync>;
+
+pub enum Append {
+  Default,
+  String(String),
+  Fn(AppendFn),
+  Disabled,
+}
+
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct SourceMapDevToolPluginOptions {
+  // Appends the given value to the original asset. Usually the #sourceMappingURL comment. [url] is replaced with a URL to the source map file. false disables the appending.
+  #[derivative(Debug = "ignore")]
+  pub append: Append,
   // Generator string or function to create identifiers of modules for the 'sources' array in the SourceMap.
   #[derivative(Debug = "ignore")]
   pub module_filename_template: Option<ModuleFilenameTemplate>,
   // Indicates whether SourceMaps from loaders should be used (defaults to true).
   pub module: bool,
   pub filename: Option<String>,
-  pub append: Option<bool>,
   pub namespace: Option<String>,
   pub columns: bool,
   pub no_sources: bool,
   pub public_path: Option<String>,
 }
 
+enum SourceMappingUrlComment {
+  String(String),
+  Fn(AppendFn),
+}
+
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct SourceMapDevToolPlugin {
   filename: Option<Filename>,
-  source_mapping_url_comment: Option<String>,
+  #[derivative(Debug = "ignore")]
+  source_mapping_url_comment: Option<SourceMappingUrlComment>,
   #[derivative(Debug = "ignore")]
   module_filename_template: ModuleFilenameTemplate,
   namespace: String,
@@ -100,6 +119,15 @@ pub struct SourceMapDevToolPlugin {
 
 impl SourceMapDevToolPlugin {
   pub fn new(options: SourceMapDevToolPluginOptions) -> Self {
+    let source_mapping_url_comment = match options.append {
+      Append::Default => Some(SourceMappingUrlComment::String(
+        "\n//# sourceMappingURL=[url]".to_string(),
+      )),
+      Append::String(s) => Some(SourceMappingUrlComment::String(s)),
+      Append::Fn(f) => Some(SourceMappingUrlComment::Fn(f)),
+      Append::Disabled => None,
+    };
+
     let module_filename_template =
       options
         .module_filename_template
@@ -109,8 +137,7 @@ impl SourceMapDevToolPlugin {
 
     Self {
       filename: options.filename.map(Filename::from),
-      source_mapping_url_comment: (!matches!(options.append, Some(false)))
-        .then(|| "# sourceMappingURL=[url]".to_string()),
+      source_mapping_url_comment,
       module_filename_template,
       namespace: options.namespace.unwrap_or("".to_string()),
       columns: options.columns,
@@ -217,15 +244,19 @@ impl Plugin for SourceMapDevToolPlugin {
         compilation.emit_asset(filename, asset);
         continue;
       };
-      let is_css = CSS_EXTENSION_DETECT_REGEXP.is_match(&filename);
-      let current_source_mapping_url_comment =
-        self.source_mapping_url_comment.as_ref().map(|comment| {
-          if is_css {
-            format!("\n/*{comment}*/")
-          } else {
-            format!("\n//{comment}")
-          }
-        });
+      let css_extension_detected = CSS_EXTENSION_DETECT_REGEXP.is_match(&filename);
+      let current_source_mapping_url_comment = if let Some(SourceMappingUrlComment::String(s)) =
+        self.source_mapping_url_comment.as_ref()
+      {
+        let s = if css_extension_detected {
+          URL_FORMATTING_REGEXP.replace_all(s, "\n/*$1*/").to_string()
+        } else {
+          s.clone()
+        };
+        Some(s)
+      } else {
+        None
+      };
       if let Some(source_map_filename_config) = &self.filename {
         let mut source_map_filename = filename.to_owned() + ".map";
         // TODO(ahabhgk): refactor remove the for loop
@@ -234,7 +265,7 @@ impl Plugin for SourceMapDevToolPlugin {
 
           for file in &files {
             if file == &filename {
-              let source_type = if is_css {
+              let source_type = if css_extension_detected {
                 &SourceType::Css
               } else {
                 &SourceType::JavaScript
@@ -351,7 +382,6 @@ impl SourceMapDevToolPlugin {
           .get_module_id(module_identifier)
           .clone()
           .unwrap_or("".to_string());
-        // TODO: get resource from module
         let absolute_resource_path = "".to_string();
 
         let resource = short_identifier

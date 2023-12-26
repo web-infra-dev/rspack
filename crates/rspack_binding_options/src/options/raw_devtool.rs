@@ -1,14 +1,45 @@
 use std::sync::Arc;
 
 use derivative::Derivative;
+use napi::bindgen_prelude::Either3;
 use napi::{Either, Env, JsFunction};
 use napi_derive::napi;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::{get_napi_env, NapiResultExt};
 use rspack_plugin_devtool::{
-  ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx, SourceMapDevToolPluginOptions,
+  Append, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx, SourceMapDevToolPluginOptions,
 };
 use serde::Deserialize;
+
+type RawAppend = Either3<String, bool, JsFunction>;
+
+#[inline]
+fn default_append() -> Append {
+  Append::Default
+}
+
+fn normalize_raw_append(raw: RawAppend) -> Append {
+  match raw {
+    Either3::A(str) => Append::String(str),
+    Either3::B(_) => Append::Disabled,
+    Either3::C(v) => {
+      let fn_payload: napi::Result<ThreadsafeFunction<(), Option<String>>> = try {
+        let env = get_napi_env();
+        rspack_binding_macros::js_fn_into_threadsafe_fn!(v, &Env::from(env))
+      };
+      let fn_payload = fn_payload.expect("convert to threadsafe function failed");
+      Append::Fn(Arc::new(move || {
+        fn_payload
+          .call((), ThreadsafeFunctionCallMode::NonBlocking)
+          .into_rspack_result()
+          .expect("into rspack result failed")
+          .blocking_recv()
+          .unwrap_or_else(|err| panic!("Failed to call external function: {err}"))
+          .expect("failed")
+      }))
+    }
+  }
+}
 
 type RawFilename = Either<bool, String>;
 
@@ -78,9 +109,12 @@ fn normalize_raw_module_filename_template(
 #[napi(object)]
 pub struct RawSourceMapDevToolPluginOptions {
   #[serde(skip_deserializing)]
+  #[napi(ts_type = "(false | null) | string | Function")]
+  #[derivative(Debug = "ignore")]
+  pub append: Option<RawAppend>,
+  #[serde(skip_deserializing)]
   #[napi(ts_type = "(false | null) | string")]
   pub filename: Option<RawFilename>,
-  pub append: Option<bool>,
   pub namespace: Option<String>,
   pub columns: Option<bool>,
   pub no_sources: Option<bool>,
@@ -94,6 +128,10 @@ pub struct RawSourceMapDevToolPluginOptions {
 
 impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
   fn from(opts: RawSourceMapDevToolPluginOptions) -> Self {
+    let append = opts
+      .append
+      .map_or(default_append(), |name| normalize_raw_append(name));
+
     let filename = match opts.filename {
       Some(raw) => match raw {
         Either::A(_) => None,
@@ -118,8 +156,8 @@ impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
     };
 
     Self {
+      append,
       filename,
-      append: opts.append,
       namespace: opts.namespace,
       columns,
       no_sources,

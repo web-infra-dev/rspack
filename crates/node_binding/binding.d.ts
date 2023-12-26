@@ -1182,12 +1182,13 @@ export interface RawSnapshotStrategy {
 }
 
 export interface RawSourceMapDevToolPluginOptions {
+  append?: (false | null) | string | Function
   filename?: (false | null) | string
-  append?: boolean
   namespace?: string
   columns?: boolean
   noSources?: boolean
   publicPath?: string
+  module?: boolean
   moduleFilenameTemplate?: string | Function
 }
 
