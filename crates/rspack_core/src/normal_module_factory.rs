@@ -801,7 +801,7 @@ impl NormalModuleFactory {
         context: &data.context,
         dependency,
         plugin_driver: &self.plugin_driver,
-        module_factory: self,
+        normal_module_factory: self,
       })
       .await?;
 

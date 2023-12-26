@@ -81,7 +81,7 @@ pub struct FactorizeArgs<'me> {
   pub context: &'me Context,
   pub dependency: &'me dyn ModuleDependency,
   pub plugin_driver: &'me SharedPluginDriver,
-  pub module_factory: &'me NormalModuleFactory,
+  pub normal_module_factory: &'me NormalModuleFactory,
 }
 
 #[derive(Debug, Clone)]

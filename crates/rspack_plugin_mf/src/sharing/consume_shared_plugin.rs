@@ -348,7 +348,7 @@ impl Plugin for ConsumeSharedPlugin {
     if let Some(matched) = consumes.unresolved.get(request) {
       let module = self
         .create_consume_shared_module(args.context, request, matched.clone(), |d| {
-          args.module_factory.add_diagnostic(d)
+          args.normal_module_factory.add_diagnostic(d)
         })
         .await;
       return Ok(Some(ModuleFactoryResult::new(module.boxed())));
@@ -371,7 +371,7 @@ impl Plugin for ConsumeSharedPlugin {
               singleton: options.singleton,
               eager: options.eager,
             }),
-            |d| args.module_factory.add_diagnostic(d),
+            |d| args.normal_module_factory.add_diagnostic(d),
           )
           .await;
         return Ok(Some(ModuleFactoryResult::new(module.boxed())));
