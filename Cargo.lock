@@ -2936,12 +2936,12 @@ dependencies = [
 name = "rspack_plugin_devtool"
 version = "0.1.0"
 dependencies = [
+ "async-recursion",
  "async-trait",
  "dashmap",
  "derivative",
  "once_cell",
  "pathdiff",
- "rayon",
  "regex",
  "rspack_base64",
  "rspack_core",

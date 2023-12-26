@@ -5,11 +5,11 @@ use std::hash::Hasher;
 use std::sync::Arc;
 use std::{hash::Hash, path::Path};
 
+use async_recursion::async_recursion;
 use dashmap::DashMap;
 use derivative::Derivative;
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
-use rayon::prelude::*;
 use regex::{Captures, Regex};
 use rspack_core::{
   contextify,
@@ -28,6 +28,7 @@ use rspack_hash::RspackHash;
 use rspack_regex::RspackRegex;
 use rspack_util::identifier::make_paths_absolute;
 use rspack_util::swc::normalize_custom_filename;
+use rspack_util::try_any_sync;
 use rustc_hash::FxHashMap as HashMap;
 use serde_json::json;
 
@@ -87,10 +88,29 @@ pub enum Rule {
   Regexp(RspackRegex),
 }
 
+impl Rule {
+  pub fn try_match(&self, data: &str) -> Result<bool> {
+    match self {
+      Self::String(s) => Ok(data.starts_with(s)),
+      Self::Regexp(r) => Ok(r.test(data)),
+    }
+  }
+}
+
 #[derive(Debug)]
 pub enum Rules {
   Single(Rule),
   Array(Vec<Rule>),
+}
+
+impl Rules {
+  #[async_recursion]
+  pub async fn try_match(&self, data: &str) -> Result<bool> {
+    match self {
+      Self::Single(s) => s.try_match(data),
+      Self::Array(l) => try_any_sync(l, |i| i.try_match(data)),
+    }
+  }
 }
 
 #[derive(Derivative)]
@@ -149,6 +169,9 @@ pub struct SourceMapDevToolPlugin {
   no_sources: bool,
   public_path: Option<String>,
   module: bool,
+  test: Option<Rules>,
+  include: Option<Rules>,
+  exclude: Option<Rules>,
 }
 
 struct Task<'a> {
@@ -195,6 +218,9 @@ impl SourceMapDevToolPlugin {
       no_sources: options.no_sources,
       public_path: options.public_path,
       module: options.module,
+      test: options.test,
+      include: options.include,
+      exclude: options.exclude,
     }
   }
 }
@@ -244,11 +270,16 @@ impl Plugin for SourceMapDevToolPlugin {
     let mut tasks = vec![];
     let mut module_to_source_name_mapping = HashMap::<ModuleOrSource, String>::default();
 
-    let assets: Vec<(&String, &Arc<dyn Source>)> = compilation
-      .assets()
-      .par_iter()
-      .filter_map(|(file, asset)| asset.get_source().map(|source| (file, source)))
-      .collect();
+    // TODO: maybe can be parallelized
+    let mut assets: Vec<(&String, &Arc<dyn Source>)> = vec![];
+    for (file, asset) in compilation.assets() {
+      let is_match = self.match_object(file).await.unwrap_or(false);
+      if is_match {
+        if let Some(source) = asset.get_source() {
+          assets.push((file, source));
+        }
+      }
+    }
 
     for (file, asset) in assets {
       let source_map = asset.map(&MapOptions::new(self.columns));
@@ -690,6 +721,27 @@ impl SourceMapDevToolPlugin {
           .to_string()
       }
     };
+  }
+
+  // TODO: together with Rules in rspack_plugin_banner
+  #[async_recursion]
+  async fn match_object(&self, str: &str) -> Result<bool> {
+    if let Some(condition) = &self.test {
+      if !condition.try_match(str).await? {
+        return Ok(false);
+      }
+    }
+    if let Some(condition) = &self.include {
+      if !condition.try_match(str).await? {
+        return Ok(false);
+      }
+    }
+    if let Some(condition) = &self.exclude {
+      if condition.try_match(str).await? {
+        return Ok(false);
+      }
+    }
+    Ok(true)
   }
 }
 
