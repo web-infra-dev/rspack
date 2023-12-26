@@ -73,7 +73,6 @@ pub enum SourceOrModule {
 type AppendFn = Arc<dyn for<'a> Fn() -> Option<String> + Send + Sync>;
 
 pub enum Append {
-  Default,
   String(String),
   Fn(AppendFn),
   Disabled,
@@ -84,7 +83,7 @@ pub enum Append {
 pub struct SourceMapDevToolPluginOptions {
   // Appends the given value to the original asset. Usually the #sourceMappingURL comment. [url] is replaced with a URL to the source map file. false disables the appending.
   #[derivative(Debug = "ignore")]
-  pub append: Append,
+  pub append: Option<Append>,
   // Generator string or function to create identifiers of modules for the 'sources' array in the SourceMap.
   #[derivative(Debug = "ignore")]
   pub module_filename_template: Option<ModuleFilenameTemplate>,
@@ -120,12 +119,14 @@ pub struct SourceMapDevToolPlugin {
 impl SourceMapDevToolPlugin {
   pub fn new(options: SourceMapDevToolPluginOptions) -> Self {
     let source_mapping_url_comment = match options.append {
-      Append::Default => Some(SourceMappingUrlComment::String(
+      Some(append) => match append {
+        Append::String(s) => Some(SourceMappingUrlComment::String(s)),
+        Append::Fn(f) => Some(SourceMappingUrlComment::Fn(f)),
+        Append::Disabled => None,
+      },
+      None => Some(SourceMappingUrlComment::String(
         "\n//# sourceMappingURL=[url]".to_string(),
       )),
-      Append::String(s) => Some(SourceMappingUrlComment::String(s)),
-      Append::Fn(f) => Some(SourceMappingUrlComment::Fn(f)),
-      Append::Disabled => None,
     };
 
     let module_filename_template =

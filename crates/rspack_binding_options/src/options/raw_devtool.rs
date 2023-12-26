@@ -13,11 +13,6 @@ use serde::Deserialize;
 
 type RawAppend = Either3<String, bool, JsFunction>;
 
-#[inline]
-fn default_append() -> Append {
-  Append::Default
-}
-
 fn normalize_raw_append(raw: RawAppend) -> Append {
   match raw {
     Either3::A(str) => Append::String(str),
@@ -128,9 +123,7 @@ pub struct RawSourceMapDevToolPluginOptions {
 
 impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
   fn from(opts: RawSourceMapDevToolPluginOptions) -> Self {
-    let append = opts
-      .append
-      .map_or(default_append(), |name| normalize_raw_append(name));
+    let append = opts.append.map(|name| normalize_raw_append(name));
 
     let filename = match opts.filename {
       Some(raw) => match raw {
