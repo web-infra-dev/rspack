@@ -13,17 +13,17 @@ pub struct CommonJsSelfReferenceDependency {
   range: (u32, u32),
   base: ExportsBase,
   names: Vec<Atom>,
-  call: bool,
+  is_call: bool,
 }
 
 impl CommonJsSelfReferenceDependency {
-  pub fn new(range: (u32, u32), base: ExportsBase, names: Vec<Atom>, call: bool) -> Self {
+  pub fn new(range: (u32, u32), base: ExportsBase, names: Vec<Atom>, is_call: bool) -> Self {
     Self {
       id: DependencyId::new(),
       range,
       base,
       names,
-      call,
+      is_call,
     }
   }
 }
@@ -52,7 +52,7 @@ impl ModuleDependency for CommonJsSelfReferenceDependency {
     _module_graph: &rspack_core::ModuleGraph,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
-    if self.call {
+    if self.is_call {
       vec![ExtendedReferencedExport::Array(
         self.names[0..self.names.len() - 1].to_vec(),
       )]
@@ -97,7 +97,7 @@ impl DependencyTemplate for CommonJsSelfReferenceDependency {
           *runtime,
           UsedName::Vec(self.names.clone()),
         )
-        .expect("Self-reference dependency has unused export name: This should not happen")
+        .unwrap_or_else(|| UsedName::Vec(self.names.clone()))
     } else {
       UsedName::Vec(self.names.clone())
     };
