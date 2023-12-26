@@ -201,8 +201,6 @@ impl Plugin for SourceMapDevToolPlugin {
             map.set_file(Some(filename.clone()));
             for source in map.sources_mut() {
               let module_or_source = if source.starts_with("webpack://") {
-                ModuleOrSource::Source(source.clone())
-              } else {
                 let source = make_paths_absolute(context.as_str(), &source[10..]);
                 // TODO: how to use source to find module
                 let identifier = ModuleIdentifier::from(source.clone());
@@ -210,6 +208,8 @@ impl Plugin for SourceMapDevToolPlugin {
                   Some(module) => ModuleOrSource::Module(module.as_ref()),
                   None => ModuleOrSource::Source(source),
                 }
+              } else {
+                ModuleOrSource::Source(source.clone())
               };
               *source = self.create_filename(module_or_source, &context, &compilation.chunk_graph);
             }
