@@ -4,7 +4,8 @@
 use std::{fmt::Debug, sync::Arc};
 
 use rspack_core::{
-  Chunk, ChunkGroupByUkey, ChunkUkey, Compilation, Module, Plugin, DEFAULT_DELIMITER,
+  get_chunk_from_ukey, get_chunk_group_from_ukey, Chunk, ChunkGroupByUkey, ChunkUkey, Compilation,
+  Module, Plugin, DEFAULT_DELIMITER,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -196,7 +197,7 @@ impl SplitChunksPlugin {
     let existing_chunk = name.clone().and_then(|name| {
       named_chunk
         .get(&name)
-        .and_then(|chunk_ukey| chunk_by_ukey.get(chunk_ukey))
+        .and_then(|chunk_ukey| get_chunk_from_ukey(chunk_ukey, chunk_by_ukey))
     });
     if let Some(existing_chunk) = existing_chunk {
       // Module can only be moved into the existing chunk if the existing chunk
@@ -208,7 +209,7 @@ impl SplitChunksPlugin {
           let groups = c
             .groups
             .iter()
-            .filter_map(|ukey| chunk_group_by_ukey.get(ukey))
+            .filter_map(|ukey| get_chunk_group_from_ukey(ukey, chunk_group_by_ukey))
             .collect::<Vec<_>>();
           let ancestors = groups
             .iter()
@@ -219,7 +220,7 @@ impl SplitChunksPlugin {
         .collect::<HashSet<_>>();
 
       for group in queue {
-        let group = chunk_group_by_ukey.get(&group).expect("group should exist");
+        let group = chunk_group_by_ukey.expect_get(&group);
         if existing_chunk.is_in_group(&group.ukey) {
           continue;
         }
@@ -328,7 +329,7 @@ impl SplitChunksPlugin {
 
           let selected_chunks = combinations
             .iter()
-            .filter_map(|c| compilation.chunk_by_ukey.get(c))
+            .filter_map(|c| get_chunk_from_ukey(c, &compilation.chunk_by_ukey))
             .filter(|c| (cache_group.chunks_filter)(c, &compilation.chunk_group_by_ukey))
             .collect::<Vec<_>>();
 
@@ -398,20 +399,17 @@ impl SplitChunksPlugin {
         }
       }
 
-      let chunk = compilation
-        .chunk_by_ukey
-        .get(chunk)
-        .expect("chunk should exist");
+      let chunk = compilation.chunk_by_ukey.expect_get(chunk);
       if new_chunk.is_none()
         || new_chunk
-          .and_then(|ukey| compilation.chunk_by_ukey.get(&ukey))
+          .and_then(|ukey| get_chunk_from_ukey(&ukey, &compilation.chunk_by_ukey))
           .as_ref()
           .map_or(false, |c| c.name.is_none())
       {
         new_chunk = Some(chunk.ukey);
       } else if chunk.name.as_ref().map_or(false, |chunk_name| {
         new_chunk
-          .and_then(|new_ukey| compilation.chunk_by_ukey.get(&new_ukey))
+          .and_then(|new_ukey| get_chunk_from_ukey(&new_ukey, &compilation.chunk_by_ukey))
           .and_then(|c| c.name.as_ref())
           .map_or(false, |new_chunk_name| {
             chunk_name.len() < new_chunk_name.len()
@@ -420,7 +418,7 @@ impl SplitChunksPlugin {
         new_chunk = Some(chunk.ukey);
       } else if chunk.name.as_ref().map_or(false, |chunk_name| {
         new_chunk
-          .and_then(|new_ukey| compilation.chunk_by_ukey.get(&new_ukey))
+          .and_then(|new_ukey| get_chunk_from_ukey(&new_ukey, &compilation.chunk_by_ukey))
           .and_then(|c| c.name.as_ref())
           .map_or(false, |new_chunk_name| {
             chunk_name.len() == new_chunk_name.len() && chunk_name < new_chunk_name
@@ -565,10 +563,7 @@ impl SplitChunksPlugin {
           .connect_chunk_and_module(new_chunk, *module_identifier);
         // Remove module from used chunks
         for used_chunk in used_chunks {
-          let used_chunk = compilation
-            .chunk_by_ukey
-            .get(used_chunk)
-            .expect("Chunk should exist");
+          let used_chunk = compilation.chunk_by_ukey.expect_get(used_chunk);
           compilation
             .chunk_graph
             .disconnect_chunk_and_module(&used_chunk.ukey, *module_identifier);
@@ -578,10 +573,7 @@ impl SplitChunksPlugin {
       // Remove all modules from used chunks
       for module_identifier in &item.modules {
         for used_chunk in used_chunks {
-          let used_chunk = compilation
-            .chunk_by_ukey
-            .get(used_chunk)
-            .expect("Chunk should exist");
+          let used_chunk = compilation.chunk_by_ukey.expect_get(used_chunk);
           compilation
             .chunk_graph
             .disconnect_chunk_and_module(&used_chunk.ukey, *module_identifier);
@@ -644,10 +636,7 @@ impl Plugin for SplitChunksPlugin {
         if let Some(chunk_name) = chunk_name.clone() {
           let chunk_by_name = compilation.named_chunks.get(&chunk_name);
           if let Some(chunk_by_name) = chunk_by_name {
-            let chunk = compilation
-              .chunk_by_ukey
-              .get_mut(chunk_by_name)
-              .expect("chunk should exist");
+            let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk_by_name);
             let old_size = item.chunks.len();
             item.chunks.remove(&chunk.ukey);
             is_existing_chunk = item.chunks.len() != old_size;
@@ -679,10 +668,7 @@ impl Plugin for SplitChunksPlugin {
               == u32::MAX)
         {
           for chunk in used_chunks.clone() {
-            let chunk = compilation
-              .chunk_by_ukey
-              .get(&chunk)
-              .expect("Chunk not found");
+            let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
             let max_requests = if chunk.is_only_initial(&compilation.chunk_group_by_ukey) {
               item_cache_group.max_initial_requests
             } else {
@@ -720,7 +706,7 @@ impl Plugin for SplitChunksPlugin {
           if used_chunks.len() >= item_cache_group.min_chunks as usize {
             let chunk_arr = used_chunks
               .iter()
-              .filter_map(|ukey| compilation.chunk_by_ukey.get(ukey))
+              .filter_map(|ukey| get_chunk_from_ukey(ukey, &compilation.chunk_by_ukey))
               .collect::<Vec<_>>();
             for module in &item.modules {
               self.add_module_to_chunks_info_map(
@@ -807,10 +793,7 @@ impl Plugin for SplitChunksPlugin {
         let new_chunk_ukey = new_chunk;
         self.split_used_chunks(&used_chunks, new_chunk, compilation);
 
-        let new_chunk = compilation
-          .chunk_by_ukey
-          .get_mut(&new_chunk_ukey)
-          .expect("Chunk should exist");
+        let new_chunk = compilation.chunk_by_ukey.expect_get_mut(&new_chunk_ukey);
         let new_chunk_ukey = new_chunk.ukey;
         new_chunk.chunk_reasons.push(if is_reused_with_all_modules {
           "reused as split chunk".to_string()

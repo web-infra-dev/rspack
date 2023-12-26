@@ -316,3 +316,36 @@ impl From<&str> for ModuleType {
 pub type ChunkByUkey = Database<Chunk>;
 pub type ChunkGroupByUkey = Database<ChunkGroup>;
 pub(crate) type SharedPluginDriver = Arc<PluginDriver>;
+
+pub fn get_chunk_group_from_ukey<'a>(
+  ukey: &ChunkGroupUkey,
+  chunk_group_by_ukey: &'a ChunkGroupByUkey,
+) -> Option<&'a ChunkGroup> {
+  if chunk_group_by_ukey.contains(ukey) {
+    Some(chunk_group_by_ukey.expect_get(ukey))
+  } else {
+    None
+  }
+}
+
+pub fn get_chunk_from_ukey<'a>(
+  ukey: &ChunkUkey,
+  chunk_by_ukey: &'a ChunkByUkey,
+) -> Option<&'a Chunk> {
+  if chunk_by_ukey.contains(ukey) {
+    Some(chunk_by_ukey.expect_get(ukey))
+  } else {
+    None
+  }
+}
+
+pub fn get_mut_chunk_from_ukey<'a>(
+  ukey: &ChunkUkey,
+  chunk_by_ukey: &'a mut ChunkByUkey,
+) -> Option<&'a mut Chunk> {
+  if chunk_by_ukey.contains(ukey) {
+    Some(chunk_by_ukey.expect_get_mut(ukey))
+  } else {
+    None
+  }
+}

@@ -40,11 +40,11 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
           &compilation.chunk_group_by_ukey,
         )
         .map(|chunk_ukey| {
-          let chunk = compilation
+          compilation
             .chunk_by_ukey
-            .get(&chunk_ukey)
-            .expect("Chunk not found");
-          chunk.expect_id().to_string()
+            .expect_get(&chunk_ukey)
+            .expect_id()
+            .to_string()
         })
         .collect::<Vec<_>>();
 

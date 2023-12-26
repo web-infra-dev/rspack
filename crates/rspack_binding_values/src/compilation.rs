@@ -6,6 +6,7 @@ use napi::NapiRaw;
 use napi_derive::napi;
 use rspack_binding_macros::call_js_function_with_napi_objects;
 use rspack_binding_macros::convert_raw_napi_value_to_napi_value;
+use rspack_core::get_chunk_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
 use rspack_core::ModuleIdentifier;
@@ -165,7 +166,7 @@ impl JsCompilation {
       .inner
       .named_chunks
       .get(&name)
-      .and_then(|c| self.inner.chunk_by_ukey.get(c).map(JsChunk::from))
+      .and_then(|c| get_chunk_from_ukey(c, &self.inner.chunk_by_ukey).map(JsChunk::from))
   }
 
   #[napi]

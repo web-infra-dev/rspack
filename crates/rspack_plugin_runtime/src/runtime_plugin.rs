@@ -237,16 +237,13 @@ impl Plugin for RuntimePlugin {
       &TREE_DEPENDENCIES,
     );
 
-    let public_path = {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get(chunk)
-        .expect("should have chunk");
-      chunk
-        .get_entry_options(&compilation.chunk_group_by_ukey)
-        .and_then(|options| options.public_path.clone())
-        .unwrap_or(compilation.options.output.public_path.clone())
-    };
+    let public_path = compilation
+      .chunk_by_ukey
+      .expect_get(chunk)
+      .get_entry_options(&compilation.chunk_group_by_ukey)
+      .and_then(|options| options.public_path.clone())
+      .unwrap_or_else(|| compilation.options.output.public_path.clone());
+
     // TODO check output.scriptType
     if matches!(public_path, PublicPath::Auto)
       && runtime_requirements.contains(RuntimeGlobals::PUBLIC_PATH)
@@ -279,10 +276,7 @@ impl Plugin for RuntimePlugin {
     }
 
     if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK) {
-      let c = compilation
-        .chunk_by_ukey
-        .get(chunk)
-        .expect("should have chunk");
+      let c = compilation.chunk_by_ukey.expect_get(chunk);
       let has_async_chunks = c.has_async_chunks(&compilation.chunk_group_by_ukey);
       if has_async_chunks {
         runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
@@ -295,10 +289,7 @@ impl Plugin for RuntimePlugin {
     }
 
     let library_type = {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get(chunk)
-        .expect("should have chunk");
+      let chunk = compilation.chunk_by_ukey.expect_get(chunk);
       chunk
         .get_entry_options(&compilation.chunk_group_by_ukey)
         .and_then(|options| options.library.as_ref())

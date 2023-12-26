@@ -59,8 +59,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
   fn generate(&self, compilation: &Compilation) -> BoxSource {
     let chunk = compilation
       .chunk_by_ukey
-      .get(&self.chunk.expect("The chunk should be attached."))
-      .expect("Chunk is not found, make sure you had attach chunkUkey successfully.");
+      .expect_get(&self.chunk.expect("The chunk should be attached."));
 
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey);
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);

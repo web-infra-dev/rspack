@@ -165,10 +165,7 @@ impl Plugin for CssPlugin {
     args: &rspack_core::ContentHashArgs<'_>,
   ) -> rspack_core::PluginContentHashHookOutput {
     let compilation = &args.compilation;
-    let chunk = compilation
-      .chunk_by_ukey
-      .get(&args.chunk_ukey)
-      .expect("should have chunk");
+    let chunk = compilation.chunk_by_ukey.expect_get(&args.chunk_ukey);
     let ordered_modules = Self::get_ordered_chunk_css_modules(
       chunk,
       &compilation.chunk_graph,

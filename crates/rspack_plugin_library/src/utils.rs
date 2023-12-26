@@ -57,10 +57,7 @@ pub fn get_options_for_chunk<'a>(
   {
     return None;
   }
-  let chunk = compilation
-    .chunk_by_ukey
-    .get(chunk_ukey)
-    .expect("chunk not found");
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   chunk
     .get_entry_options(&compilation.chunk_group_by_ukey)
     .and_then(|options| options.library.as_ref())

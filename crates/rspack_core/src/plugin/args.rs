@@ -35,11 +35,7 @@ pub struct ContentHashArgs<'c> {
 
 impl<'me> ContentHashArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
-    self
-      .compilation
-      .chunk_by_ukey
-      .get(&self.chunk_ukey)
-      .expect("chunk should exist in chunk_by_ukey")
+    self.compilation.chunk_by_ukey.expect_get(&self.chunk_ukey)
   }
 }
 
@@ -52,11 +48,7 @@ pub struct ChunkHashArgs<'c> {
 
 impl<'me> ChunkHashArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
-    self
-      .compilation
-      .chunk_by_ukey
-      .get(&self.chunk_ukey)
-      .expect("chunk should exist in chunk_by_ukey")
+    self.compilation.chunk_by_ukey.expect_get(&self.chunk_ukey)
   }
 }
 
@@ -68,11 +60,7 @@ pub struct RenderManifestArgs<'me> {
 
 impl<'me> RenderManifestArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
-    self
-      .compilation
-      .chunk_by_ukey
-      .get(&self.chunk_ukey)
-      .expect("chunk should exist in chunk_by_ukey")
+    self.compilation.chunk_by_ukey.expect_get(&self.chunk_ukey)
   }
 }
 
@@ -173,11 +161,7 @@ pub struct AdditionalModuleRequirementsArgs<'a> {
 
 impl<'me> AdditionalChunkRuntimeRequirementsArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
-    self
-      .compilation
-      .chunk_by_ukey
-      .get(self.chunk)
-      .expect("chunk should exist in chunk_by_ukey")
+    self.compilation.chunk_by_ukey.expect_get(self.chunk)
   }
 }
 
@@ -196,11 +180,7 @@ pub struct ChunkAssetArgs<'a> {
 
 impl<'me> RenderChunkArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
-    self
-      .compilation
-      .chunk_by_ukey
-      .get(self.chunk_ukey)
-      .expect("chunk should exist in chunk_by_ukey")
+    self.compilation.chunk_by_ukey.expect_get(self.chunk_ukey)
   }
 }
 
@@ -223,11 +203,7 @@ pub struct RenderStartupArgs<'a> {
 
 impl<'me> RenderStartupArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
-    self
-      .compilation
-      .chunk_by_ukey
-      .get(self.chunk)
-      .expect("chunk should exist in chunk_by_ukey")
+    self.compilation.chunk_by_ukey.expect_get(self.chunk)
   }
 }
 
@@ -240,11 +216,7 @@ pub struct RenderArgs<'a> {
 
 impl<'me> RenderArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
-    self
-      .compilation
-      .chunk_by_ukey
-      .get(self.chunk)
-      .expect("chunk should exist in chunk_by_ukey")
+    self.compilation.chunk_by_ukey.expect_get(self.chunk)
   }
 }
 
@@ -256,11 +228,7 @@ pub struct JsChunkHashArgs<'a> {
 
 impl<'me> JsChunkHashArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
-    self
-      .compilation
-      .chunk_by_ukey
-      .get(self.chunk_ukey)
-      .expect("chunk should exist in chunk_by_ukey")
+    self.compilation.chunk_by_ukey.expect_get(self.chunk_ukey)
   }
 }
 

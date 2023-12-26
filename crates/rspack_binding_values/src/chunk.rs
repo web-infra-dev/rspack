@@ -90,10 +90,7 @@ impl JsChunk {
 
 fn chunk(ukey: u32, compilation: &Compilation) -> &Chunk {
   let ukey = ChunkUkey::from(ukey as usize);
-  compilation
-    .chunk_by_ukey
-    .get(&ukey)
-    .expect("Chunk must exist")
+  compilation.chunk_by_ukey.expect_get(&ukey)
 }
 
 #[napi(js_name = "__chunk_inner_is_only_initial")]
