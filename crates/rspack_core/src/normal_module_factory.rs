@@ -35,27 +35,16 @@ pub struct NormalModuleFactory {
 
 #[async_trait::async_trait]
 impl ModuleFactory for NormalModuleFactory {
-  async fn create(
-    &self,
-    mut data: ModuleFactoryCreateData,
-  ) -> Result<(ModuleFactoryResult, Vec<Diagnostic>)> {
-    let take_diagnostic = || {
-      self
-        .diagnostics
-        .lock()
-        .expect("should lock diagnostics")
-        .drain(..)
-        .collect::<Vec<_>>()
-    };
+  async fn create(&self, mut data: ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
     if let Ok(Some(before_resolve_data)) = self.before_resolve(&mut data).await {
-      return Ok((before_resolve_data, take_diagnostic()));
+      return Ok(before_resolve_data);
     }
     let factory_result = self.factorize(&mut data).await?;
     if let Ok(Some(after_resolve_data)) = self.after_resolve(&data, &factory_result).await {
-      return Ok((after_resolve_data, take_diagnostic()));
+      return Ok(after_resolve_data);
     }
 
-    Ok((factory_result, take_diagnostic()))
+    Ok(factory_result)
   }
 }
 
@@ -843,6 +832,15 @@ impl Diagnosable for NormalModuleFactory {
       .expect("should be able to lock diagnostics")
       .iter()
       .cloned()
+      .collect()
+  }
+
+  fn take_diagnostics(&self) -> Vec<Diagnostic> {
+    self
+      .diagnostics
+      .lock()
+      .expect("should be able to lock diagnostics")
+      .drain(..)
       .collect()
   }
 }

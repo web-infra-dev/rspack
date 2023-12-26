@@ -20,22 +20,11 @@ pub struct ContextModuleFactory {
 #[async_trait::async_trait]
 impl ModuleFactory for ContextModuleFactory {
   #[instrument(name = "context_module_factory:create", skip_all)]
-  async fn create(
-    &self,
-    mut data: ModuleFactoryCreateData,
-  ) -> Result<(ModuleFactoryResult, Vec<Diagnostic>)> {
-    let take_diagnostic = || {
-      self
-        .diagnostics
-        .lock()
-        .expect("should lock diagnostics")
-        .drain(..)
-        .collect::<Vec<_>>()
-    };
+  async fn create(&self, mut data: ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
     if let Ok(Some(before_resolve_result)) = self.before_resolve(&mut data).await {
-      return Ok((before_resolve_result, take_diagnostic()));
+      return Ok(before_resolve_result);
     }
-    Ok((self.resolve(data).await?, take_diagnostic()))
+    Ok(self.resolve(data).await?)
   }
 }
 
@@ -192,6 +181,15 @@ impl Diagnosable for ContextModuleFactory {
       .expect("should be able to lock diagnostics")
       .iter()
       .cloned()
+      .collect()
+  }
+
+  fn take_diagnostics(&self) -> Vec<Diagnostic> {
+    self
+      .diagnostics
+      .lock()
+      .expect("should be able to lock diagnostics")
+      .drain(..)
       .collect()
   }
 }

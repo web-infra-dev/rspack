@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 
 use crate::{ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, NormalModuleFactory};
 
@@ -11,12 +11,9 @@ pub struct IgnoreErrorModuleFactory {
 
 #[async_trait::async_trait]
 impl ModuleFactory for IgnoreErrorModuleFactory {
-  async fn create(
-    &self,
-    data: ModuleFactoryCreateData,
-  ) -> Result<(ModuleFactoryResult, Vec<Diagnostic>)> {
-    let (factory_result, _) = self.normal_module_factory.create(data).await?;
-    Ok((factory_result, vec![]))
+  async fn create(&self, data: ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
+    let factory_result = self.normal_module_factory.create(data).await?;
+    Ok(factory_result)
   }
 }
 

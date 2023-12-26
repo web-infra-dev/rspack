@@ -131,7 +131,7 @@ impl WorkerTask for FactorizeTask {
       })
       .await
     {
-      Ok((result, diagnostics)) => {
+      Ok(result) => {
         if let Some(current_profile) = &factorize_task_result.current_profile {
           current_profile.mark_factory_end();
         }
@@ -146,7 +146,7 @@ impl WorkerTask for FactorizeTask {
           factorize_task_result
             .with_factory_result(Some(result))
             .with_module_graph_module(Some(mgm))
-            .with_diagnostics(diagnostics),
+            .with_diagnostics(self.module_factory.take_diagnostics()),
         )))
       }
       Err(mut e) => {

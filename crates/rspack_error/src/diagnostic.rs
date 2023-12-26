@@ -139,8 +139,20 @@ pub trait Diagnosable {
   fn add_diagnostics(&self, _diagnostics: Vec<Diagnostic>) {
     unimplemented!("`<T as Diagnosable>::add_diagnostics` is not implemented")
   }
+  /// Clone diagnostics from current [Diagnosable].
+  /// This does not drain the diagnostics from the current one.
   fn clone_diagnostics(&self) -> Vec<Diagnostic> {
     vec![]
+  }
+  /// Take diagnostics from current [Diagnosable].
+  /// This drains every diagnostic from the current one.
+  fn take_diagnostics(&self) -> Vec<Diagnostic> {
+    vec![]
+  }
+  /// Pipe diagnostics from the current [Diagnosable] to the target one.
+  /// This drains every diagnostic from current, and pipe into the target one.
+  fn pipe_diagnostics(&self, target: &dyn Diagnosable) {
+    target.add_diagnostics(self.take_diagnostics())
   }
 }
 
@@ -159,9 +171,6 @@ macro_rules! impl_empty_diagnosable_trait {
           "`<{ty} as Diagnosable>::add_diagnostics` is not implemented",
           ty = stringify!($ty)
         )
-      }
-      fn clone_diagnostics(&self) -> Vec<$crate::Diagnostic> {
-        vec![]
       }
     }
   };

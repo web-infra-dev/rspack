@@ -1,6 +1,6 @@
 use std::{fmt::Debug, path::PathBuf};
 
-use rspack_error::{Diagnosable, Diagnostic, Result};
+use rspack_error::{Diagnosable, Result};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{BoxDependency, BoxModule, Context, FactoryMeta, ModuleIdentifier, Resolve};
@@ -81,8 +81,5 @@ impl ModuleFactoryResult {
 
 #[async_trait::async_trait]
 pub trait ModuleFactory: Debug + Sync + Send + Diagnosable {
-  async fn create(
-    &self,
-    data: ModuleFactoryCreateData,
-  ) -> Result<(ModuleFactoryResult, Vec<Diagnostic>)>;
+  async fn create(&self, data: ModuleFactoryCreateData) -> Result<ModuleFactoryResult>;
 }
