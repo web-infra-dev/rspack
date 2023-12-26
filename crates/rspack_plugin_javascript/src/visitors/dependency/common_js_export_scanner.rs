@@ -7,9 +7,9 @@ use swc_core::{
   common::{Spanned, SyntaxContext},
   ecma::{
     ast::{
-      ArrowExpr, AssignExpr, CallExpr, Callee, ClassMember, Expr, ExprOrSpread, FnDecl, FnExpr,
-      Ident, Lit, MemberExpr, ModuleItem, ObjectLit, Pat, PatOrExpr, Program, Prop, PropName,
-      PropOrSpread, Stmt, UnaryOp,
+      AssignExpr, CallExpr, Callee, ClassMember, Expr, ExprOrSpread, FnDecl, FnExpr, Ident, Lit,
+      MemberExpr, ModuleItem, ObjectLit, Pat, PatOrExpr, Program, Prop, PropName, PropOrSpread,
+      Stmt, UnaryOp,
     },
     visit::{noop_visit_type, Visit, VisitWith},
   },
