@@ -28,9 +28,7 @@ pub static EXPORTS_INFO_ID: AtomicU32 = AtomicU32::new(0);
 
 impl ExportsHash for ExportsInfoId {
   fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {
-    if let Some(exports_info) = module_graph.exports_info_map.get(self) {
-      exports_info.export_info_hash(hasher, module_graph);
-    }
+    hasher.write_u32(self.0)
   }
 }
 
@@ -618,9 +616,10 @@ pub static EXPORT_INFO_ID: AtomicU32 = AtomicU32::new(0);
 
 impl ExportsHash for ExportInfoId {
   fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {
-    if let Some(export_info) = module_graph.export_info_map.get(self) {
-      export_info.export_info_hash(hasher, module_graph);
-    }
+    hasher.write_u32(self.0)
+    // if let Some(export_info) = module_graph.export_info_map.get(self) {
+
+    // }
   }
 }
 
