@@ -179,5 +179,3 @@ macro_rules! impl_empty_diagnosable_trait {
 pub fn errors_to_diagnostics(errs: Vec<Error>) -> Vec<Diagnostic> {
   errs.into_iter().map(Diagnostic::from).collect()
 }
-
-pub const DIAGNOSTIC_POS_DUMMY: usize = 0;

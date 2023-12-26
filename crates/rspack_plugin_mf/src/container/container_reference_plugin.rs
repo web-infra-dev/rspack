@@ -102,7 +102,7 @@ impl Plugin for ContainerReferencePlugin {
             key.to_string(),
           )
           .boxed();
-          return Ok(Some(ModuleFactoryResult::new(remote)));
+          return Ok(Some(ModuleFactoryResult::new_with_module(remote)));
         }
       }
     }

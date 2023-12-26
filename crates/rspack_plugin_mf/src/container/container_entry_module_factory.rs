@@ -17,7 +17,7 @@ impl ModuleFactory for ContainerEntryModuleFactory {
       .dependency
       .downcast_ref::<ContainerEntryDependency>()
       .expect("dependency of ContainerEntryModuleFactory should be ContainerEntryDependency");
-    Ok(ModuleFactoryResult::new(Box::new(
+    Ok(ModuleFactoryResult::new_with_module(Box::new(
       ContainerEntryModule::new(
         dep.name.clone(),
         dep.exposes.clone(),

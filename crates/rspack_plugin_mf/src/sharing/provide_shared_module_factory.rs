@@ -20,7 +20,7 @@ impl ModuleFactory for ProvideSharedModuleFactory {
       .dependency
       .downcast_ref::<ProvideSharedDependency>()
       .expect("dependency of ProvideSharedModuleFactory should be ProvideSharedDependency");
-    Ok(ModuleFactoryResult::new(Box::new(
+    Ok(ModuleFactoryResult::new_with_module(Box::new(
       ProvideSharedModule::new(
         dep.share_scope.clone(),
         dep.name.clone(),

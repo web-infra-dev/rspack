@@ -55,8 +55,6 @@ pub struct FactorizeTaskResult {
   pub original_module_identifier: Option<ModuleIdentifier>,
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
   pub factory_result: Option<ModuleFactoryResult>,
-  /// Module graph module will be available if [crate::ModuleFactory::create] returns `Ok`.
-  pub module_graph_module: Option<Box<ModuleGraphModule>>,
   pub dependencies: Vec<DependencyId>,
   pub diagnostics: Vec<Diagnostic>,
   pub is_entry: bool,
@@ -67,11 +65,6 @@ pub struct FactorizeTaskResult {
 impl FactorizeTaskResult {
   fn with_factory_result(mut self, factory_result: Option<ModuleFactoryResult>) -> Self {
     self.factory_result = factory_result;
-    self
-  }
-
-  fn with_module_graph_module(mut self, module_graph_module: Option<ModuleGraphModule>) -> Self {
-    self.module_graph_module = module_graph_module.map(Box::new);
     self
   }
 
@@ -116,7 +109,6 @@ impl WorkerTask for FactorizeTask {
         side_effects_info: side_effects_only_info,
       },
       diagnostics: vec![],
-      module_graph_module: None,
       factory_result: None,
     };
 
@@ -136,16 +128,9 @@ impl WorkerTask for FactorizeTask {
           current_profile.mark_factory_end();
         }
 
-        let mgm = ModuleGraphModule::new(
-          result.module.identifier(),
-          *result.module.module_type(),
-          factorize_task_result.exports_info_related.exports_info.id,
-        );
-
         Ok(TaskResult::Factorize(Box::new(
           factorize_task_result
             .with_factory_result(Some(result))
-            .with_module_graph_module(Some(mgm))
             .with_diagnostics(self.module_factory.take_diagnostics()),
         )))
       }

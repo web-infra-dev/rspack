@@ -123,7 +123,7 @@ impl Plugin for ExternalsPlugin {
 
           if let Some(value) = eh.get(request) {
             let maybe_module = self.handle_external(value, None, args.dependency);
-            return Ok(maybe_module.map(|i| ModuleFactoryResult::new(i.boxed())));
+            return Ok(maybe_module.map(|i| ModuleFactoryResult::new_with_module(i.boxed())));
           }
         }
         ExternalItem::RegExp(r) => {
@@ -134,7 +134,7 @@ impl Plugin for ExternalsPlugin {
               None,
               args.dependency,
             );
-            return Ok(maybe_module.map(|i| ModuleFactoryResult::new(i.boxed())));
+            return Ok(maybe_module.map(|i| ModuleFactoryResult::new_with_module(i.boxed())));
           }
         }
         ExternalItem::String(s) => {
@@ -145,7 +145,7 @@ impl Plugin for ExternalsPlugin {
               None,
               args.dependency,
             );
-            return Ok(maybe_module.map(|i| ModuleFactoryResult::new(i.boxed())));
+            return Ok(maybe_module.map(|i| ModuleFactoryResult::new_with_module(i.boxed())));
           }
         }
         ExternalItem::Fn(f) => {
@@ -159,7 +159,7 @@ impl Plugin for ExternalsPlugin {
           .await?;
           if let Some(r) = result.result {
             let maybe_module = self.handle_external(&r, result.external_type, args.dependency);
-            return Ok(maybe_module.map(|i| ModuleFactoryResult::new(i.boxed())));
+            return Ok(maybe_module.map(|i| ModuleFactoryResult::new_with_module(i.boxed())));
           }
         }
       }

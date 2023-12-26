@@ -42,10 +42,11 @@ use crate::{
   CompilationLogging, CompilerOptions, ContentHashArgs, ContextDependency, DependencyId,
   DependencyParents, DependencyType, Entry, EntryData, EntryOptions, Entrypoint, ErrorSpan,
   FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Logger, Module, ModuleFactory,
-  ModuleGraph, ModuleIdentifier, ModuleProfile, NormalModuleSource, PathData, ProcessAssetsArgs,
-  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
-  Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeRequirementsInTreeArgs,
-  RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult, WorkerTask,
+  ModuleGraph, ModuleGraphModule, ModuleIdentifier, ModuleProfile, NormalModuleSource, PathData,
+  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
+  RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule,
+  RuntimeRequirementsInTreeArgs, RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult,
+  WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
@@ -673,7 +674,6 @@ impl Compilation {
                 is_entry,
                 original_module_identifier,
                 factory_result,
-                module_graph_module,
                 diagnostics,
                 dependencies,
                 current_profile,
@@ -693,9 +693,7 @@ impl Compilation {
                   .collect(),
               );
 
-              if let Some(factory_result) = factory_result
-                && let Some(mut module_graph_module) = module_graph_module
-              {
+              if let Some(factory_result) = factory_result {
                 if let Some(counter) = &mut factorize_cache_counter {
                   if factory_result.from_cache {
                     counter.hit();
@@ -703,13 +701,6 @@ impl Compilation {
                     counter.miss();
                   }
                 }
-
-                let module_identifier = factory_result.module.identifier();
-
-                tracing::trace!("Module created: {}", &module_identifier);
-
-                module_graph_module.set_issuer_if_unset(original_module_identifier);
-                module_graph_module.factory_meta = Some(factory_result.factory_meta);
 
                 self
                   .file_dependencies
@@ -720,27 +711,46 @@ impl Compilation {
                 self
                   .missing_dependencies
                   .extend(factory_result.missing_dependencies);
-                self.module_graph.exports_info_map.insert(
-                  exports_info_related.exports_info.id,
-                  exports_info_related.exports_info,
-                );
-                self.module_graph.export_info_map.insert(
-                  exports_info_related.side_effects_info.id,
-                  exports_info_related.side_effects_info,
-                );
-                self.module_graph.export_info_map.insert(
-                  exports_info_related.other_exports_info.id,
-                  exports_info_related.other_exports_info,
-                );
 
-                add_queue.add_task(AddTask {
-                  original_module_identifier,
-                  module: factory_result.module,
-                  module_graph_module,
-                  dependencies,
-                  is_entry,
-                  current_profile,
-                });
+                if let Some(module) = factory_result.module {
+                  let module_identifier = module.identifier();
+                  let mut mgm = ModuleGraphModule::new(
+                    module.identifier(),
+                    *module.module_type(),
+                    exports_info_related.exports_info.id,
+                  );
+                  mgm.set_issuer_if_unset(original_module_identifier);
+                  mgm.factory_meta = Some(factory_result.factory_meta);
+
+                  self.module_graph.exports_info_map.insert(
+                    exports_info_related.exports_info.id,
+                    exports_info_related.exports_info,
+                  );
+                  self.module_graph.export_info_map.insert(
+                    exports_info_related.side_effects_info.id,
+                    exports_info_related.side_effects_info,
+                  );
+                  self.module_graph.export_info_map.insert(
+                    exports_info_related.other_exports_info.id,
+                    exports_info_related.other_exports_info,
+                  );
+
+                  add_queue.add_task(AddTask {
+                    original_module_identifier,
+                    module,
+                    module_graph_module: Box::new(mgm),
+                    dependencies,
+                    is_entry,
+                    current_profile,
+                  });
+                  tracing::trace!("Module created: {}", &module_identifier);
+                } else {
+                  let dep = self
+                    .module_graph
+                    .dependency_by_id(&dependencies[0])
+                    .expect("dep should available");
+                  tracing::trace!("Module ignored: {dep:?}")
+                }
               } else {
                 let dep = self
                   .module_graph

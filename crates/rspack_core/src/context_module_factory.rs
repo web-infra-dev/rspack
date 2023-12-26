@@ -4,10 +4,9 @@ use rspack_error::{Diagnosable, Diagnostic, Result};
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, MissingModule, ModuleExt,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
-  NormalModuleBeforeResolveArgs, RawModule, ResolveArgs, ResolveError, ResolveResult,
-  SharedPluginDriver,
+  cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, NormalModuleBeforeResolveArgs,
+  RawModule, ResolveArgs, ResolveError, ResolveResult, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -54,18 +53,9 @@ impl ContextModuleFactory {
       .context_module_before_resolve(&mut before_resolve_args)
       .await
     {
-      let specifier = dependency.request();
-      let ident = format!("{}{specifier}", data.context);
-
-      let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
-
-      let missing_module = MissingModule::new(
-        module_identifier,
-        format!("{ident} (missing)"),
-        format!("Failed to resolve {specifier}"),
-      )
-      .boxed();
-      return Ok(Some(ModuleFactoryResult::new(missing_module)));
+      // ignored
+      // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/ContextModuleFactory.js#L115
+      return Ok(Some(ModuleFactoryResult::default()));
     }
     data.context = before_resolve_args.context.into();
     dependency.set_request(before_resolve_args.request);
@@ -128,26 +118,15 @@ impl ContextModuleFactory {
           Default::default(),
         )
         .boxed();
-        return Ok(ModuleFactoryResult::new(raw_module));
+        return Ok(ModuleFactoryResult::new_with_module(raw_module));
       }
       Err(ResolveError(runtime_error, internal_error)) => {
-        let ident = format!("{}{specifier}", data.context);
-        let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
-
-        let missing_module = MissingModule::new(
-          module_identifier,
-          format!("{ident} (missing)"),
-          runtime_error,
-        )
-        .boxed();
-        self.add_diagnostic(internal_error.into());
-
-        return Ok(ModuleFactoryResult::new(missing_module));
+        return Err(internal_error);
       }
     };
 
     Ok(ModuleFactoryResult {
-      module,
+      module: Some(module),
       file_dependencies,
       missing_dependencies,
       context_dependencies,

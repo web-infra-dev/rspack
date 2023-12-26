@@ -14,9 +14,9 @@ pub struct ModuleFactoryCreateData {
   pub issuer_identifier: Option<ModuleIdentifier>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ModuleFactoryResult {
-  pub module: BoxModule,
+  pub module: Option<BoxModule>,
   pub file_dependencies: HashSet<PathBuf>,
   pub context_dependencies: HashSet<PathBuf>,
   pub missing_dependencies: HashSet<PathBuf>,
@@ -25,15 +25,20 @@ pub struct ModuleFactoryResult {
 }
 
 impl ModuleFactoryResult {
-  pub fn new(module: BoxModule) -> Self {
+  pub fn new_with_module(module: BoxModule) -> Self {
     Self {
-      module,
+      module: Some(module),
       file_dependencies: Default::default(),
       context_dependencies: Default::default(),
       missing_dependencies: Default::default(),
       factory_meta: Default::default(),
       from_cache: false,
     }
+  }
+
+  pub fn module(mut self, module: Option<BoxModule>) -> Self {
+    self.module = module;
+    self
   }
 
   pub fn file_dependency(mut self, file: PathBuf) -> Self {

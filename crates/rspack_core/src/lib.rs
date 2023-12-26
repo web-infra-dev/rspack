@@ -23,8 +23,6 @@ pub use external_module::*;
 mod logger;
 pub use logger::*;
 pub mod cache;
-mod missing_module;
-pub use missing_module::*;
 mod normal_module;
 mod raw_module;
 pub use raw_module::*;

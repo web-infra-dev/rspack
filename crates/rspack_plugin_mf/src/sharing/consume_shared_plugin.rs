@@ -351,7 +351,7 @@ impl Plugin for ConsumeSharedPlugin {
           args.normal_module_factory.add_diagnostic(d)
         })
         .await;
-      return Ok(Some(ModuleFactoryResult::new(module.boxed())));
+      return Ok(Some(ModuleFactoryResult::new_with_module(module.boxed())));
     }
     for (prefix, options) in &consumes.prefixed {
       if request.starts_with(prefix) {
@@ -374,7 +374,7 @@ impl Plugin for ConsumeSharedPlugin {
             |d| args.normal_module_factory.add_diagnostic(d),
           )
           .await;
-        return Ok(Some(ModuleFactoryResult::new(module.boxed())));
+        return Ok(Some(ModuleFactoryResult::new_with_module(module.boxed())));
       }
     }
     Ok(None)
