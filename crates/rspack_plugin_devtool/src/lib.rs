@@ -590,7 +590,7 @@ impl SourceMapDevToolPlugin {
 
         let loaders = get_before(&short_identifier, "!");
         let all_loaders = get_before(&identifier, "!");
-        let query = get_after(&identifier, "!");
+        let query = get_after(&resource, "?");
 
         let q = query.len();
         let resource_path = if q == 0 {
@@ -628,7 +628,7 @@ impl SourceMapDevToolPlugin {
 
         let loaders = get_before(&short_identifier, "!");
         let all_loaders = get_before(&identifier, "!");
-        let query = get_after(&identifier, "!");
+        let query = get_after(&resource, "?");
 
         let q = query.len();
         let resource_path = if q == 0 {
@@ -793,6 +793,18 @@ impl EvalSourceMapDevToolPlugin {
 impl Plugin for EvalSourceMapDevToolPlugin {
   fn name(&self) -> &'static str {
     "rspack.EvalSourceMapDevToolPlugin"
+  }
+
+  async fn compilation(
+    &self,
+    _args: CompilationArgs<'_>,
+    _params: &CompilationParams,
+  ) -> PluginCompilationHookOutput {
+    // TODO: Temporarily use `devtool` to pass source map configuration information
+    let mut devtool = _args.compilation.options.devtool.lock().await;
+    devtool.add_source_map();
+    devtool.add_eval();
+    Ok(())
   }
 
   fn render_module_content<'a>(
