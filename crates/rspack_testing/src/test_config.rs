@@ -532,6 +532,11 @@ impl TestConfig {
             module: false,
             module_filename_template: None,
             fallback_module_filename_template: None,
+            exclude: None,
+            file_context: None,
+            include: None,
+            source_root: None,
+            test: None,
           },
         )
         .boxed(),

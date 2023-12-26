@@ -25,6 +25,7 @@ use rspack_core::{
 use rspack_error::miette::IntoDiagnostic;
 use rspack_error::{Error, Result};
 use rspack_hash::RspackHash;
+use rspack_regex::RspackRegex;
 use rspack_util::identifier::make_paths_absolute;
 use rspack_util::swc::normalize_custom_filename;
 use rustc_hash::FxHashMap as HashMap;
@@ -80,6 +81,18 @@ pub enum Append {
   Disabled,
 }
 
+#[derive(Debug)]
+pub enum Rule {
+  String(String),
+  Regexp(RspackRegex),
+}
+
+#[derive(Debug)]
+pub enum Rules {
+  Single(Rule),
+  Array(Vec<Rule>),
+}
+
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct SourceMapDevToolPluginOptions {
@@ -88,11 +101,17 @@ pub struct SourceMapDevToolPluginOptions {
   pub append: Option<Append>,
   // Indicates whether column mappings should be used (defaults to true).
   pub columns: bool,
+  // Exclude modules that match the given value from source map generation.
+  pub exclude: Option<Rules>,
   // Generator string or function to create identifiers of modules for the 'sources' array in the SourceMap used only if 'moduleFilenameTemplate' would result in a conflict.
   #[derivative(Debug = "ignore")]
   pub fallback_module_filename_template: Option<ModuleFilenameTemplate>,
+  // Path prefix to which the [file] placeholder is relative to.
+  pub file_context: Option<String>,
   // Defines the output filename of the SourceMap (will be inlined if no value is provided).
   pub filename: Option<String>,
+  // Include source maps for module paths that match the given value.
+  pub include: Option<Rules>,
   // Indicates whether SourceMaps from loaders should be used (defaults to true).
   pub module: bool,
   // Generator string or function to create identifiers of modules for the 'sources' array in the SourceMap.
@@ -104,6 +123,10 @@ pub struct SourceMapDevToolPluginOptions {
   pub no_sources: bool,
   // Provide a custom public path for the SourceMapping comment.
   pub public_path: Option<String>,
+  // Provide a custom value for the 'sourceRoot' property in the SourceMap.
+  pub source_root: Option<String>,
+  // Include source maps for modules based on their extension (defaults to .js and .css).
+  pub test: Option<Rules>,
 }
 
 enum SourceMappingUrlComment {

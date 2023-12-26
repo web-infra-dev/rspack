@@ -5,9 +5,10 @@ use napi::bindgen_prelude::Either3;
 use napi::{Either, Env, JsFunction};
 use napi_derive::napi;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use rspack_napi_shared::{get_napi_env, NapiResultExt};
+use rspack_napi_shared::{get_napi_env, JsRegExp, JsRegExpExt, NapiResultExt};
 use rspack_plugin_devtool::{
-  Append, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx, SourceMapDevToolPluginOptions,
+  Append, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx, Rule, Rules,
+  SourceMapDevToolPluginOptions,
 };
 use serde::Deserialize;
 
@@ -76,9 +77,9 @@ impl From<ModuleFilenameTemplateFnCtx> for RawModuleFilenameTemplateFnCtx {
 
 fn normalize_raw_module_filename_template(
   raw: RawModuleFilenameTemplate,
-) -> Option<ModuleFilenameTemplate> {
+) -> ModuleFilenameTemplate {
   match raw {
-    Either::A(str) => Some(ModuleFilenameTemplate::String(str)),
+    Either::A(str) => ModuleFilenameTemplate::String(str),
     Either::B(v) => {
       let fn_payload: napi::Result<ThreadsafeFunction<RawModuleFilenameTemplateFnCtx, String>> = try {
         let env = get_napi_env();
@@ -86,7 +87,7 @@ fn normalize_raw_module_filename_template(
       };
       let fn_payload = fn_payload.expect("convert to threadsafe function failed");
 
-      Some(ModuleFilenameTemplate::Fn(Arc::new(move |ctx| {
+      ModuleFilenameTemplate::Fn(Arc::new(move |ctx| {
         fn_payload
           .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
           .into_rspack_result()
@@ -94,7 +95,27 @@ fn normalize_raw_module_filename_template(
           .blocking_recv()
           .unwrap_or_else(|err| panic!("Failed to call external function: {err}"))
           .expect("failed")
-      })))
+      }))
+    }
+  }
+}
+
+type RawRule = Either<String, JsRegExp>;
+type RawRules = Either<RawRule, Vec<RawRule>>;
+
+fn normalize_raw_rule(raw: &RawRule) -> Rule {
+  match raw {
+    Either::A(s) => Rule::String(s.clone()),
+    Either::B(r) => Rule::Regexp(r.to_rspack_regex()),
+  }
+}
+
+fn normalize_raw_rules(raw: &RawRules) -> Rules {
+  match raw {
+    Either::A(raw_rule) => Rules::Single(normalize_raw_rule(raw_rule)),
+    Either::B(raw_rules) => {
+      let rules = raw_rules.iter().map(normalize_raw_rule).collect();
+      Rules::Array(rules)
     }
   }
 }
@@ -107,66 +128,74 @@ pub struct RawSourceMapDevToolPluginOptions {
   #[napi(ts_type = "(false | null) | string | Function")]
   #[derivative(Debug = "ignore")]
   pub append: Option<RawAppend>,
+  pub columns: Option<bool>,
+  #[serde(skip_deserializing)]
+  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
+  #[derivative(Debug = "ignore")]
+  pub exclude: Option<RawRules>,
+  #[serde(skip_deserializing)]
+  #[napi(ts_type = "string | Function")]
+  #[derivative(Debug = "ignore")]
+  pub fallback_module_filename_template: Option<RawModuleFilenameTemplate>,
+  pub file_context: Option<String>,
   #[serde(skip_deserializing)]
   #[napi(ts_type = "(false | null) | string")]
   pub filename: Option<RawFilename>,
-  pub namespace: Option<String>,
-  pub columns: Option<bool>,
-  pub no_sources: Option<bool>,
-  pub public_path: Option<String>,
+  #[serde(skip_deserializing)]
+  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
+  #[derivative(Debug = "ignore")]
+  pub include: Option<RawRules>,
   pub module: Option<bool>,
   #[serde(skip_deserializing)]
   #[napi(ts_type = "string | Function")]
   #[derivative(Debug = "ignore")]
   pub module_filename_template: Option<RawModuleFilenameTemplate>,
+  pub namespace: Option<String>,
+  pub no_sources: Option<bool>,
+  pub public_path: Option<String>,
+  pub source_root: Option<String>,
   #[serde(skip_deserializing)]
-  #[napi(ts_type = "string | Function")]
+  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
   #[derivative(Debug = "ignore")]
-  pub fallback_module_filename_template: Option<RawModuleFilenameTemplate>,
+  pub test: Option<RawRules>,
 }
 
 impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
   fn from(opts: RawSourceMapDevToolPluginOptions) -> Self {
-    let append = opts.append.map(|name| normalize_raw_append(name));
+    let append = opts.append.map(normalize_raw_append);
+    let exclude = opts.exclude.map(|raw| normalize_raw_rules(&raw));
+    let include = opts.include.map(|raw| normalize_raw_rules(&raw));
+    let filename = opts.filename.and_then(|raw| match raw {
+      Either::A(_) => None,
+      Either::B(s) => Some(s),
+    });
 
-    let filename = match opts.filename {
-      Some(raw) => match raw {
-        Either::A(_) => None,
-        Either::B(s) => Some(s),
-      },
-      None => None,
-    };
+    let module_filename_template = opts
+      .module_filename_template
+      .map(normalize_raw_module_filename_template);
+    let fallback_module_filename_template = opts
+      .fallback_module_filename_template
+      .map(normalize_raw_module_filename_template);
 
-    let module_filename_template = match opts.module_filename_template {
-      Some(value) => normalize_raw_module_filename_template(value),
-      None => None,
-    };
-
-    let fallback_module_filename_template = match opts.fallback_module_filename_template {
-      Some(value) => normalize_raw_module_filename_template(value),
-      None => None,
-    };
-
-    let columns = match opts.columns {
-      Some(b) => b,
-      None => true,
-    };
-
-    let no_sources = match opts.no_sources {
-      Some(b) => b,
-      None => false,
-    };
+    let columns = opts.columns.unwrap_or(true);
+    let no_sources = opts.no_sources.unwrap_or(false);
+    let test = opts.test.map(|raw| normalize_raw_rules(&raw));
 
     Self {
       append,
-      filename,
-      namespace: opts.namespace,
       columns,
+      exclude,
+      fallback_module_filename_template,
+      file_context: opts.file_context,
+      filename,
+      include,
+      namespace: opts.namespace,
       no_sources,
       public_path: opts.public_path,
       module_filename_template,
-      fallback_module_filename_template,
       module: opts.module.unwrap_or(false),
+      source_root: opts.source_root,
+      test,
     }
   }
 }
