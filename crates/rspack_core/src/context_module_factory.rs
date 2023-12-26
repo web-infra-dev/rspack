@@ -1,6 +1,6 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{Diagnosable, Diagnostic, Result};
 use tracing::instrument;
 
 use crate::{
@@ -14,6 +14,7 @@ use crate::{
 pub struct ContextModuleFactory {
   plugin_driver: SharedPluginDriver,
   cache: Arc<Cache>,
+  diagnostics: Mutex<Vec<Diagnostic>>,
 }
 
 #[async_trait::async_trait]
@@ -22,11 +23,19 @@ impl ModuleFactory for ContextModuleFactory {
   async fn create(
     &self,
     mut data: ModuleFactoryCreateData,
-  ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
+  ) -> Result<(ModuleFactoryResult, Vec<Diagnostic>)> {
+    let take_diagnostic = || {
+      self
+        .diagnostics
+        .lock()
+        .expect("should lock diagnostics")
+        .drain(..)
+        .collect::<Vec<_>>()
+    };
     if let Ok(Some(before_resolve_result)) = self.before_resolve(&mut data).await {
-      return Ok(before_resolve_result);
+      return Ok((before_resolve_result, take_diagnostic()));
     }
-    Ok(self.resolve(data).await?)
+    Ok((self.resolve(data).await?, take_diagnostic()))
   }
 }
 
@@ -35,13 +44,14 @@ impl ContextModuleFactory {
     Self {
       plugin_driver,
       cache,
+      diagnostics: Default::default(),
     }
   }
 
   async fn before_resolve(
     &self,
     data: &mut ModuleFactoryCreateData,
-  ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
+  ) -> Result<Option<ModuleFactoryResult>> {
     let dependency = data
       .dependency
       .as_context_dependency_mut()
@@ -66,19 +76,14 @@ impl ContextModuleFactory {
         format!("Failed to resolve {specifier}"),
       )
       .boxed();
-      return Ok(Some(
-        ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
-      ));
+      return Ok(Some(ModuleFactoryResult::new(missing_module)));
     }
     data.context = before_resolve_args.context.into();
     dependency.set_request(before_resolve_args.request);
     Ok(None)
   }
 
-  async fn resolve(
-    &self,
-    data: ModuleFactoryCreateData,
-  ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
+  async fn resolve(&self, data: ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
     let dependency = data
       .dependency
       .as_context_dependency()
@@ -134,7 +139,7 @@ impl ContextModuleFactory {
           Default::default(),
         )
         .boxed();
-        return Ok(ModuleFactoryResult::new(raw_module).with_empty_diagnostic());
+        return Ok(ModuleFactoryResult::new(raw_module));
       }
       Err(ResolveError(runtime_error, internal_error)) => {
         let ident = format!("{}{specifier}", data.context);
@@ -146,23 +151,47 @@ impl ContextModuleFactory {
           runtime_error,
         )
         .boxed();
+        self.add_diagnostic(internal_error.into());
 
-        return Ok(
-          ModuleFactoryResult::new(missing_module).with_diagnostic(vec![internal_error.into()]),
-        );
+        return Ok(ModuleFactoryResult::new(missing_module));
       }
     };
 
-    Ok(
-      ModuleFactoryResult {
-        module,
-        file_dependencies,
-        missing_dependencies,
-        context_dependencies,
-        factory_meta,
-        from_cache,
-      }
-      .with_empty_diagnostic(),
-    )
+    Ok(ModuleFactoryResult {
+      module,
+      file_dependencies,
+      missing_dependencies,
+      context_dependencies,
+      factory_meta,
+      from_cache,
+    })
+  }
+}
+
+impl Diagnosable for ContextModuleFactory {
+  fn add_diagnostic(&self, diagnostic: Diagnostic) {
+    self
+      .diagnostics
+      .lock()
+      .expect("should be able to lock diagnostics")
+      .push(diagnostic);
+  }
+
+  fn add_diagnostics(&self, mut diagnostics: Vec<Diagnostic>) {
+    self
+      .diagnostics
+      .lock()
+      .expect("should be able to lock diagnostics")
+      .append(&mut diagnostics);
+  }
+
+  fn clone_diagnostics(&self) -> Vec<Diagnostic> {
+    self
+      .diagnostics
+      .lock()
+      .expect("should be able to lock diagnostics")
+      .iter()
+      .cloned()
+      .collect()
   }
 }
