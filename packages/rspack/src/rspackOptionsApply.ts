@@ -212,14 +212,19 @@ export class RspackOptionsApply {
 				const inline = options.devtool.includes("inline");
 				const evalWrapped = options.devtool.includes("eval");
 				const cheap = options.devtool.includes("cheap");
-				// TODO: const moduleMaps = options.devtool.includes("module");
+				const moduleMaps = options.devtool.includes("module");
 				const noSources = options.devtool.includes("nosources");
 				const Plugin = evalWrapped
 					? EvalSourceMapDevToolPlugin
 					: SourceMapDevToolPlugin;
 				new Plugin({
 					filename: inline ? null : options.output.sourceMapFilename,
+					// TODO:
+					// moduleFilenameTemplate: options.output.devtoolModuleFilenameTemplate,
+					// fallbackModuleFilenameTemplate:
+					// 	options.output.devtoolFallbackModuleFilenameTemplate,
 					append: hidden ? false : undefined,
+					module: moduleMaps ? true : cheap ? false : true,
 					columns: cheap ? false : true,
 					noSources: noSources,
 					namespace: options.output.devtoolNamespace

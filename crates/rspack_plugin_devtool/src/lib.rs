@@ -804,6 +804,12 @@ impl Plugin for EvalSourceMapDevToolPlugin {
     let mut devtool = _args.compilation.options.devtool.lock().await;
     devtool.add_source_map();
     devtool.add_eval();
+    if !self.columns {
+      devtool.add_cheap();
+    }
+    if self.no_sources {
+      devtool.add_no_sources();
+    }
     Ok(())
   }
 
