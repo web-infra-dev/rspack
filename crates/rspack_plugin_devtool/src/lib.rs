@@ -233,43 +233,8 @@ impl Plugin for SourceMapDevToolPlugin {
       let mut modules = vec![];
       if let Some(source_map) = &source_map {
         for source in source_map.sources() {
-          let module_or_source = if source.starts_with("webpack://") {
-            let source = make_paths_absolute(context.as_str(), &source[10..]);
-            // TODO: how to use source to find module
-            let identifier = ModuleIdentifier::from(source.clone());
-            match compilation.module_graph.module_by_identifier(&identifier) {
-              Some(module) => ModuleOrSource::Module(module.as_ref()),
-              None => ModuleOrSource::Source(source),
-            }
-          } else {
-            ModuleOrSource::Source(source.clone())
-          };
-
-          let source_name = self.create_filename(
-            &module_or_source,
-            &context,
-            &compilation.chunk_graph,
-            &self.module_filename_template,
-            &output_options,
-          );
-          module_to_source_name_mapping.insert(module_or_source.clone(), source_name);
-          modules.push(module_or_source);
-        }
-      }
-      let task = Task {
-        file,
-        asset,
-        source_map,
-        modules,
-      };
-      tasks.push(task)
-    }
-
-    for task in &tasks {
-      if let Some(source_map) = &task.source_map {
-        for source in source_map.sources() {
-          let module_or_source = if source.starts_with("webpack://") {
-            let source = make_paths_absolute(context.as_str(), &source[10..]);
+          let module_or_source = if let Some(stripped) = source.strip_prefix("webpack://") {
+            let source = make_paths_absolute(context.as_str(), stripped);
             // TODO: is true way to use source to find module?
             let identifier = ModuleIdentifier::from(source.clone());
             match compilation.module_graph.module_by_identifier(&identifier) {
@@ -282,14 +247,22 @@ impl Plugin for SourceMapDevToolPlugin {
 
           let source_name = self.create_filename(
             &module_or_source,
-            &context,
+            context,
             &compilation.chunk_graph,
             &self.module_filename_template,
-            &output_options,
+            output_options,
           );
-          module_to_source_name_mapping.insert(module_or_source, source_name);
+          module_to_source_name_mapping.insert(module_or_source.clone(), source_name);
+          modules.push(module_or_source);
         }
       }
+      let task = Task {
+        file,
+        asset,
+        source_map,
+        modules,
+      };
+      tasks.push(task)
     }
 
     let mut used_names_set: HashSet<String> =
@@ -305,7 +278,10 @@ impl Plugin for SourceMapDevToolPlugin {
     });
 
     for module in all_modules {
-      let mut source_name = module_to_source_name_mapping.get(&module).unwrap().clone();
+      let mut source_name = module_to_source_name_mapping
+        .get(&module)
+        .expect("Expected to find a source name for the module, but none was present.")
+        .clone();
       let mut has_name = conflict_detection_set.contains(&source_name);
 
       if !has_name {
@@ -316,10 +292,10 @@ impl Plugin for SourceMapDevToolPlugin {
       // Try the fallback name first
       source_name = self.create_filename(
         &module,
-        &context,
+        context,
         &compilation.chunk_graph,
         &self.fallback_module_filename_template,
-        &output_options,
+        output_options,
       );
       has_name = used_names_set.contains(&source_name);
       if !has_name {
@@ -352,7 +328,12 @@ impl Plugin for SourceMapDevToolPlugin {
             source_map.set_file(Some(file.clone()));
             let source_names = modules
               .iter()
-              .map(|module| module_to_source_name_mapping.get(module).unwrap().clone())
+              .map(|module| {
+                module_to_source_name_mapping
+                  .get(module)
+                  .expect("Expected to find a source name for the module, but none was present.")
+                  .clone()
+              })
               .collect::<Vec<String>>();
             for (idx, source) in source_map.sources_mut().iter_mut().enumerate() {
               *source = source_names[idx].clone();
@@ -537,7 +518,7 @@ impl SourceMapDevToolPlugin {
         let module_identifier = module.identifier();
 
         let short_identifier = module.readable_identifier(context).to_string();
-        let identifier = contextify(&context, &module_identifier);
+        let identifier = contextify(context, &module_identifier);
         let module_id = chunk_graph
           .get_module_id(module_identifier)
           .clone()
@@ -579,7 +560,7 @@ impl SourceMapDevToolPlugin {
         }
       }
       ModuleOrSource::Source(source) => {
-        let short_identifier = contextify(&context, &source);
+        let short_identifier = contextify(context, source);
         let identifier = short_identifier.clone();
 
         let hash = get_hash(&identifier, output_options);
@@ -662,8 +643,14 @@ impl SourceMapDevToolPlugin {
         let s = REGEXP_LOADERS_RESOURCE.replace_all(&s, "[short-identifier]");
         SQUARE_BRACKET_TAG_REGEXP
           .replace_all(&s, |caps: &Captures| {
-            let full_match = caps.get(0).unwrap().as_str();
-            let content = caps.get(1).unwrap().as_str();
+            let full_match = caps
+              .get(0)
+              .expect("The regex must match the whole tag, but it did not match anything.")
+              .as_str();
+            let content = caps
+              .get(1)
+              .expect("The regex must match the whole tag, but it did not match anything.")
+              .as_str();
 
             if content.len() + 2 == full_match.len() {
               if let Some(replacement) = replacements.get(&content.to_lowercase()) {

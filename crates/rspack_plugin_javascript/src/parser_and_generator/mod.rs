@@ -159,7 +159,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       &ast,
       additional_data
         .remove::<CodegenOptions>()
-        .unwrap_or_else(|| CodegenOptions::new(&devtool, Some(true))),
+        .unwrap_or_else(|| CodegenOptions::new(devtool, Some(true))),
     )?;
 
     ast = match crate::ast::parse(
