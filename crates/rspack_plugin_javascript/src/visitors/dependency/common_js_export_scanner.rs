@@ -203,7 +203,7 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
           self.enable();
         }
 
-        let remaining_members = self.extract_member_remaining(&expr, Some(is_module_exports_start));
+        let remaining_members = self.extract_member_remaining(expr, Some(is_module_exports_start));
 
         if remaining_members.is_empty() {
           self.enable();
@@ -357,7 +357,7 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
       let is_this_start: bool = self.is_this_member_expr_start(expr);
 
       if is_exports_start || is_module_exports_start || is_this_start {
-        let remaining_members = self.extract_member_remaining(&expr, Some(is_module_exports_start));
+        let remaining_members = self.extract_member_remaining(expr, Some(is_module_exports_start));
 
         // exports()
         // module.exports()
@@ -535,7 +535,7 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
   fn extract_member_remaining(&self, expr: &Expr, is_module_exports: Option<bool>) -> Vec<Atom> {
     let is_module_exports_start = match is_module_exports {
       Some(v) => v,
-      None => self.is_module_exports_member_expr_start(&expr),
+      None => self.is_module_exports_member_expr_start(expr),
     };
 
     let remaining_members = expr
