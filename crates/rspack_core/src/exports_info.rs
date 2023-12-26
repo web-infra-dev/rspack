@@ -26,12 +26,6 @@ pub struct ExportsInfoId(u32);
 
 pub static EXPORTS_INFO_ID: AtomicU32 = AtomicU32::new(0);
 
-impl ExportsHash for ExportsInfoId {
-  fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {
-    hasher.write_u32(self.0)
-  }
-}
-
 impl Default for ExportsInfoId {
   fn default() -> Self {
     Self::new()
@@ -432,21 +426,17 @@ pub struct ExportsInfo {
 }
 
 impl ExportsHash for ExportsInfo {
-  fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {
+  fn export_info_hash(&self, hasher: &mut dyn Hasher, _: &ModuleGraph) {
     for (name, export_info_id) in &self.exports {
       name.dyn_hash(hasher);
-      export_info_id.export_info_hash(hasher, module_graph);
+      hasher.write_u32(export_info_id.0);
     }
-    self
-      .other_exports_info
-      .export_info_hash(hasher, module_graph);
-    self
-      ._side_effects_only_info
-      .export_info_hash(hasher, module_graph);
+    hasher.write_u32(self.other_exports_info.0);
+    hasher.write_u32(self._side_effects_only_info.0);
     self._exports_are_ordered.dyn_hash(hasher);
 
     if let Some(redirect_to) = self.redirect_to {
-      redirect_to.export_info_hash(hasher, module_graph);
+      hasher.write_u32(redirect_to.0);
     }
   }
 }
@@ -613,15 +603,6 @@ pub struct ExportInfoTargetValue {
 pub struct ExportInfoId(u32);
 
 pub static EXPORT_INFO_ID: AtomicU32 = AtomicU32::new(0);
-
-impl ExportsHash for ExportInfoId {
-  fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {
-    hasher.write_u32(self.0)
-    // if let Some(export_info) = module_graph.export_info_map.get(self) {
-
-    // }
-  }
-}
 
 impl ExportInfoId {
   pub fn new() -> Self {
@@ -898,7 +879,7 @@ pub struct ExportInfo {
 }
 
 impl ExportsHash for ExportInfo {
-  fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {
+  fn export_info_hash(&self, hasher: &mut dyn Hasher, _: &ModuleGraph) {
     self.name.dyn_hash(hasher);
     self.module_identifier.dyn_hash(hasher);
     self.usage_state.dyn_hash(hasher);
@@ -917,7 +898,7 @@ impl ExportsHash for ExportInfo {
     self.target_is_set.dyn_hash(hasher);
     self.max_target_is_set.dyn_hash(hasher);
     if let Some(exports_info_id) = self.exports_info {
-      exports_info_id.export_info_hash(hasher, module_graph);
+      hasher.write_u32(exports_info_id.0);
     }
     self.exports_info_owned.dyn_hash(hasher);
   }
