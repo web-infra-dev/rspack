@@ -219,10 +219,9 @@ export class RspackOptionsApply {
 					: SourceMapDevToolPlugin;
 				new Plugin({
 					filename: inline ? null : options.output.sourceMapFilename,
-					// TODO:
-					// moduleFilenameTemplate: options.output.devtoolModuleFilenameTemplate,
-					// fallbackModuleFilenameTemplate:
-					// 	options.output.devtoolFallbackModuleFilenameTemplate,
+					moduleFilenameTemplate: options.output.devtoolModuleFilenameTemplate,
+					fallbackModuleFilenameTemplate:
+						options.output.devtoolFallbackModuleFilenameTemplate,
 					append: hidden ? false : undefined,
 					module: moduleMaps ? true : cheap ? false : true,
 					columns: cheap ? false : true,

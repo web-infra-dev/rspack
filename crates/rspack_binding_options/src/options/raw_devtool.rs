@@ -86,15 +86,15 @@ fn normalize_raw_module_filename_template(
         rspack_binding_macros::js_fn_into_threadsafe_fn!(v, &Env::from(env))
       };
       let fn_payload = fn_payload.expect("convert to threadsafe function failed");
-
-      ModuleFilenameTemplate::Fn(Arc::new(move |ctx| {
-        fn_payload
-          .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
-          .into_rspack_result()
-          .expect("into rspack result failed")
-          .blocking_recv()
-          .unwrap_or_else(|err| panic!("Failed to call external function: {err}"))
-          .expect("failed")
+      ModuleFilenameTemplate::Fn(Box::new(move |ctx| {
+        let fn_payload = fn_payload.clone();
+        Box::pin(async move {
+          fn_payload
+            .call(ctx.into(), ThreadsafeFunctionCallMode::NonBlocking)
+            .into_rspack_result()?
+            .await
+            .unwrap_or_else(|err| panic!("Failed to call external function: {err}"))
+        })
       }))
     }
   }

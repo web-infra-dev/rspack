@@ -8,6 +8,7 @@ use std::{hash::Hash, path::Path};
 use async_recursion::async_recursion;
 use dashmap::DashMap;
 use derivative::Derivative;
+use futures::future::BoxFuture;
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use regex::{Captures, Regex};
@@ -19,8 +20,8 @@ use rspack_core::{
   ProcessAssetsArgs, RenderModuleContentArgs, SourceType,
 };
 use rspack_core::{
-  ChunkGraph, CompilationArgs, CompilationParams, Context, Filename, Logger, Module,
-  ModuleIdentifier, OutputOptions, PluginCompilationHookOutput,
+  CompilationArgs, CompilationParams, Filename, Logger, ModuleIdentifier, OutputOptions,
+  PluginCompilationHookOutput,
 };
 use rspack_error::miette::IntoDiagnostic;
 use rspack_error::{Error, Result};
@@ -62,7 +63,7 @@ pub struct ModuleFilenameTemplateFnCtx {
 }
 
 type ModuleFilenameTemplateFn =
-  Arc<dyn for<'a> Fn(ModuleFilenameTemplateFnCtx) -> String + Send + Sync>;
+  Box<dyn Fn(ModuleFilenameTemplateFnCtx) -> BoxFuture<'static, Result<String>> + Sync + Send>;
 
 pub enum ModuleFilenameTemplate {
   String(String),
@@ -178,7 +179,7 @@ struct Task<'a> {
   file: &'a String,
   asset: &'a Arc<dyn Source>,
   source_map: Option<SourceMap>,
-  modules: Vec<ModuleOrSource<'a>>,
+  modules: Vec<ModuleOrSource>,
 }
 
 impl SourceMapDevToolPlugin {
@@ -292,20 +293,21 @@ impl Plugin for SourceMapDevToolPlugin {
             // TODO: is true way to use source to find module?
             let identifier = ModuleIdentifier::from(source.clone());
             match compilation.module_graph.module_by_identifier(&identifier) {
-              Some(module) => ModuleOrSource::Module(module.as_ref()),
+              Some(module) => ModuleOrSource::Module(module.identifier()),
               None => ModuleOrSource::Source(source),
             }
           } else {
             ModuleOrSource::Source(source.clone())
           };
 
-          let source_name = self.create_filename(
-            &module_or_source,
-            context,
-            &compilation.chunk_graph,
-            &self.module_filename_template,
-            output_options,
-          );
+          let source_name = self
+            .create_filename(
+              &module_or_source,
+              &compilation,
+              &self.module_filename_template,
+              output_options,
+            )
+            .await;
           module_to_source_name_mapping.insert(module_or_source.clone(), source_name);
           modules.push(module_or_source);
         }
@@ -327,7 +329,7 @@ impl Plugin for SourceMapDevToolPlugin {
     let mut all_modules: Vec<ModuleOrSource> =
       module_to_source_name_mapping.keys().cloned().collect();
     all_modules.sort_by_key(|module| match module {
-      ModuleOrSource::Module(module) => module.identifier().len(),
+      ModuleOrSource::Module(module_identifier) => module_identifier.len(),
       ModuleOrSource::Source(source) => source.len(),
     });
 
@@ -344,13 +346,14 @@ impl Plugin for SourceMapDevToolPlugin {
       }
 
       // Try the fallback name first
-      source_name = self.create_filename(
-        &module,
-        context,
-        &compilation.chunk_graph,
-        &self.fallback_module_filename_template,
-        output_options,
-      );
+      source_name = self
+        .create_filename(
+          &module,
+          &compilation,
+          &self.fallback_module_filename_template,
+          output_options,
+        )
+        .await;
       has_name = used_names_set.contains(&source_name);
       if !has_name {
         module_to_source_name_mapping.insert(module, source_name.clone());
@@ -529,8 +532,8 @@ impl Plugin for SourceMapDevToolPlugin {
 }
 
 #[derive(Eq, Hash, PartialEq, Clone)]
-enum ModuleOrSource<'a> {
-  Module(&'a dyn Module),
+enum ModuleOrSource {
+  Module(ModuleIdentifier),
   Source(String),
 }
 
@@ -559,22 +562,31 @@ fn get_hash(text: &str, output_options: &OutputOptions) -> String {
 }
 
 impl SourceMapDevToolPlugin {
-  fn create_filename(
+  async fn create_filename(
     &self,
     module_or_source: &ModuleOrSource,
-    context: &Context,
-    chunk_graph: &ChunkGraph,
+    compilation: &Compilation,
     module_filename_template: &ModuleFilenameTemplate,
     output_options: &OutputOptions,
   ) -> String {
+    let Compilation {
+      chunk_graph,
+      module_graph,
+      options,
+      ..
+    } = compilation;
+    let context = &options.context;
+
     let ctx = match module_or_source {
-      ModuleOrSource::Module(module) => {
-        let module_identifier = module.identifier();
+      ModuleOrSource::Module(module_identifier) => {
+        let module = module_graph
+          .module_by_identifier(module_identifier)
+          .expect("");
 
         let short_identifier = module.readable_identifier(context).to_string();
-        let identifier = contextify(context, &module_identifier);
+        let identifier = contextify(context, module_identifier);
         let module_id = chunk_graph
-          .get_module_id(module_identifier)
+          .get_module_id(module_identifier.clone())
           .clone()
           .unwrap_or("".to_string());
         let absolute_resource_path = "".to_string();
@@ -654,7 +666,7 @@ impl SourceMapDevToolPlugin {
     };
 
     return match module_filename_template {
-      ModuleFilenameTemplate::Fn(f) => f(ctx),
+      ModuleFilenameTemplate::Fn(f) => f(ctx).await.unwrap_or("".to_string()),
       ModuleFilenameTemplate::String(s) => {
         let mut replacements: HashMap<String, &str> = HashMap::default();
         replacements.insert("identifier".to_string(), &ctx.identifier);

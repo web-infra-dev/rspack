@@ -288,6 +288,16 @@ export type SourceMapFilename = z.infer<typeof sourceMapFilename>;
 const devtoolNamespace = z.string();
 export type DevtoolNamespace = z.infer<typeof devtoolNamespace>;
 
+const devtoolModuleFilenameTemplate = z.function(z.tuple([z.any()]), z.any());
+export type DevtoolModuleFilenameTemplate = z.infer<
+	typeof devtoolModuleFilenameTemplate
+>;
+
+const devtoolFallbackModuleFilenameTemplate = devtoolModuleFilenameTemplate;
+export type DevtoolFallbackModuleFilenameTemplate = z.infer<
+	typeof devtoolFallbackModuleFilenameTemplate
+>;
+
 const output = z.strictObject({
 	path: path.optional(),
 	clean: clean.optional(),
@@ -333,7 +343,10 @@ const output = z.strictObject({
 	workerWasmLoading: wasmLoading.optional(),
 	workerPublicPath: workerPublicPath.optional(),
 	scriptType: scriptType.optional(),
-	devtoolNamespace: devtoolNamespace.optional()
+	devtoolNamespace: devtoolNamespace.optional(),
+	devtoolModuleFilenameTemplate: devtoolModuleFilenameTemplate.optional(),
+	devtoolFallbackModuleFilenameTemplate:
+		devtoolFallbackModuleFilenameTemplate.optional()
 });
 export type Output = z.infer<typeof output>;
 //#endregion
