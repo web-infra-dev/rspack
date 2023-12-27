@@ -5068,7 +5068,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 779,
+      "size": 586,
       "type": "asset",
     },
   ],
@@ -5133,10 +5133,10 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 779,
+          "size": 586,
         },
       ],
-      "assetsSize": 779,
+      "assetsSize": 586,
       "chunks": [
         "main",
       ],
@@ -5225,10 +5225,10 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 779,
+          "size": 586,
         },
       ],
-      "assetsSize": 779,
+      "assetsSize": 586,
       "chunks": [
         "main",
       ],
@@ -5244,8 +5244,8 @@ console.log(a);
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
 "PublicPath: auto
-asset bundle.js 779 bytes {main} [emitted] (name: main)
-Entrypoint main 779 bytes = bundle.js
+asset bundle.js 586 bytes {main} [emitted] (name: main)
+Entrypoint main 586 bytes = bundle.js
 chunk {main} bundle.js (main) [entry]
   ./index.js [10] {main}
     entry ./index
@@ -5281,7 +5281,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 797,
+      "size": 570,
       "type": "asset",
     },
   ],
@@ -5346,10 +5346,10 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 797,
+          "size": 570,
         },
       ],
-      "assetsSize": 797,
+      "assetsSize": 570,
       "chunks": [
         "main",
       ],
@@ -5426,10 +5426,10 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 797,
+          "size": 570,
         },
       ],
-      "assetsSize": 797,
+      "assetsSize": 570,
       "chunks": [
         "main",
       ],
@@ -5445,8 +5445,8 @@ console.log(a);
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
 "PublicPath: (none)
-asset bundle.js 797 bytes {main} [emitted] (name: main)
-Entrypoint main 797 bytes = bundle.js
+asset bundle.js 570 bytes {main} [emitted] (name: main)
+Entrypoint main 570 bytes = bundle.js
 chunk {main} bundle.js (main) [entry]
   ./index.js [10] {main}
     entry ./index
