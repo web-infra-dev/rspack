@@ -190,12 +190,13 @@ impl Compilation {
       .unwrap_or_default()
   }
 
-  pub fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) {
+  pub fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
     self.module_graph.add_dependency(entry);
     if let Some(name) = options.name.clone() {
       if let Some(data) = self.entries.get_mut(&name) {
         data.dependencies.push(entry_id);
+        data.options.merge(options)?;
       } else {
         let data = EntryData {
           dependencies: vec![entry_id],
@@ -207,6 +208,7 @@ impl Compilation {
     } else {
       self.global_entry.dependencies.push(entry_id);
     }
+    Ok(())
   }
 
   pub async fn add_include(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
