@@ -286,7 +286,7 @@ impl NormalModuleFactory {
         specifier: request_without_match_resource,
         dependency_type: dependency.dependency_type(),
         dependency_category: dependency.category(),
-        span: dependency.span(),
+        span: dependency.source_span(),
         // take the options is safe here, because it
         // is not used in after_resolve hooks
         resolve_options: data.resolve_options.take(),
