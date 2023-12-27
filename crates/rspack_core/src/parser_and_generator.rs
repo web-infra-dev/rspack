@@ -9,8 +9,8 @@ use rspack_sources::BoxSource;
 use crate::{
   tree_shaking::visitor::OptimizeAnalyzeResult, AsyncDependenciesBlock, BoxDependency, BoxLoader,
   BuildExtraDataType, BuildInfo, BuildMeta, CodeGenerationData, Compilation, CompilerOptions,
-  DependencyTemplate, Devtool, GeneratorOptions, Module, ModuleDependency, ModuleIdentifier,
-  ModuleType, ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
+  DependencyTemplate, GeneratorOptions, Module, ModuleDependency, ModuleIdentifier, ModuleType,
+  ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 #[derive(Derivative)]
@@ -29,7 +29,6 @@ pub struct ParseContext<'a> {
   pub code_generation_dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
-  pub devtool: &'a Devtool,
 }
 
 #[derive(Debug)]

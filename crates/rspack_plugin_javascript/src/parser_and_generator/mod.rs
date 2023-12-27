@@ -92,9 +92,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_identifier,
       loaders,
       mut additional_data,
-      devtool,
       ..
     } = parse_context;
+    let devtool = compiler_options.devtool.lock().unwrap();
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
     let syntax = syntax_by_module_type(
       &resource_data.resource_path,
@@ -159,7 +159,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       &ast,
       additional_data
         .remove::<CodegenOptions>()
-        .unwrap_or_else(|| CodegenOptions::new(devtool, Some(true))),
+        .unwrap_or_else(|| CodegenOptions::new(&devtool, Some(true))),
     )?;
 
     ast = match crate::ast::parse(

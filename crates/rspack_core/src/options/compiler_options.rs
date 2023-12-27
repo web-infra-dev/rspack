@@ -1,4 +1,4 @@
-use tokio::sync::Mutex;
+use std::sync::Mutex;
 
 use crate::{
   Builtins, CacheOptions, Context, DevServerOptions, Devtool, Experiments,

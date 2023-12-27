@@ -23,7 +23,7 @@ impl Plugin for SwcCssMinimizerRspackPlugin {
     let compilation = args.compilation;
 
     let options = compilation.options.clone();
-    let devtool = options.devtool.lock().await;
+    let devtool = options.devtool.lock().unwrap();
     let gen_source_map_config = SwcCssSourceMapGenConfig {
       enable: devtool.source_map(),
       inline_sources_content: !devtool.no_sources(),

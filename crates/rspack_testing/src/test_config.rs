@@ -1,3 +1,4 @@
+use std::sync::Mutex;
 use std::{
   collections::HashMap,
   convert::TryFrom,
@@ -11,7 +12,6 @@ use rspack_plugin_html::config::HtmlRspackPluginOptions;
 use rspack_regex::RspackRegex;
 use schemars::JsonSchema;
 use serde::Deserialize;
-use tokio::sync::Mutex;
 
 macro_rules! impl_serde_default {
   ($name:ident) => {

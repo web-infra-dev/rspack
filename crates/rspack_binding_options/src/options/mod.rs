@@ -1,10 +1,11 @@
+use std::sync::Mutex;
+
 use napi_derive::napi;
 use rspack_core::{
   CompilerOptions, Context, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
   IncrementalRebuildMakeState, ModuleOptions, Optimization, OutputOptions, Target, TreeShaking,
 };
 use serde::Deserialize;
-use tokio::sync::Mutex;
 
 mod raw_builtins;
 mod raw_cache;

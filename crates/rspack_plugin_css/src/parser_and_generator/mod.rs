@@ -79,9 +79,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
       build_meta,
       code_generation_dependencies,
       loaders,
-      devtool,
       ..
     } = parse_context;
+
+    let devtool = compiler_options.devtool.lock().unwrap();
 
     build_info.strict = true;
     build_meta.exports_type = BuildMetaExportsType::Default;

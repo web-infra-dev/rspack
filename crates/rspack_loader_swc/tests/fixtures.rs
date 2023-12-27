@@ -1,3 +1,4 @@
+use std::sync::Mutex;
 use std::{
   env, fs,
   path::{Path, PathBuf},
@@ -13,7 +14,6 @@ use rspack_loader_swc::{SwcLoader, SwcLoaderJsOptions};
 use rspack_testing::{fixture, test_fixture};
 use serde_json::json;
 use swc_core::base::config::PluginConfig;
-use tokio::sync::Mutex;
 
 // UPDATE=1 cargo test --package rspack_loader_swc -- --nocapture
 #[allow(dead_code)]

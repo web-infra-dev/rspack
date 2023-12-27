@@ -376,8 +376,6 @@ impl Module for NormalModule {
       .await?;
     let mut code_generation_dependencies: Vec<Box<dyn ModuleDependency>> = Vec::new();
 
-    let devtool = build_context.compiler_options.devtool.lock().await;
-
     let (
       ParseResult {
         source,
@@ -402,7 +400,6 @@ impl Module for NormalModule {
         code_generation_dependencies: &mut code_generation_dependencies,
         build_info: &mut build_info,
         build_meta: &mut build_meta,
-        devtool: &devtool,
       })?
       .split_into_parts();
     self.add_diagnostics(ds);
@@ -617,7 +614,7 @@ impl NormalModule {
     if content.is_buffer() {
       return Ok(RawSource::Buffer(content.into_bytes()).boxed());
     }
-    let devtool = self.options.devtool.lock().await;
+    let devtool = self.options.devtool.lock().unwrap();
     if devtool.enabled()
       && let Some(source_map) = source_map
     {

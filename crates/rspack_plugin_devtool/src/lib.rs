@@ -206,7 +206,7 @@ impl Plugin for SourceMapDevToolPlugin {
     _params: &CompilationParams,
   ) -> PluginCompilationHookOutput {
     // TODO: Temporarily use `devtool` to pass source map configuration information
-    let mut devtool = _args.compilation.options.devtool.lock().await;
+    let mut devtool = _args.compilation.options.devtool.lock().unwrap();
     devtool.add_source_map();
     if self.filename.is_none() {
       devtool.add_inline();
@@ -762,7 +762,7 @@ impl Plugin for EvalSourceMapDevToolPlugin {
     _params: &CompilationParams,
   ) -> PluginCompilationHookOutput {
     // TODO: Temporarily use `devtool` to pass source map configuration information
-    let mut devtool = _args.compilation.options.devtool.lock().await;
+    let mut devtool = _args.compilation.options.devtool.lock().unwrap();
     devtool.add_source_map();
     devtool.add_eval();
     if !self.columns {

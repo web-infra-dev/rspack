@@ -1,3 +1,4 @@
+use std::sync::Mutex;
 use std::{
   env, fs,
   path::{Path, PathBuf},
@@ -11,7 +12,6 @@ use rspack_core::{
 use rspack_loader_sass::{SassLoader, SassLoaderOptions};
 use rspack_testing::{fixture, test_fixture_css};
 use sass_embedded::Url;
-use tokio::sync::Mutex;
 
 // UPDATE_SASS_LOADER_TEST=1 cargo test --package rspack_loader_sass test_fn_name -- --exact --nocapture
 async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
