@@ -224,11 +224,7 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
             self
               .dependencies
               .push(Box::new(CommonJsExportRequireDependency::new(
-                (
-                  assign_expr.right.span().real_lo(),
-                  assign_expr.right.span().real_hi(),
-                ),
-                None,
+                (expr.span().real_lo(), expr.span().real_hi()),
                 if is_exports_start {
                   ExportsBase::Exports
                 } else if is_module_exports_start {

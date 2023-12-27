@@ -104,6 +104,10 @@ impl Plugin for JsPlugin {
       params.normal_module_factory.clone(),
     );
     args.compilation.set_dependency_factory(
+      DependencyType::CjsExportRequire,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
       DependencyType::CommonJSRequireContext,
       params.context_module_factory.clone(),
     );
