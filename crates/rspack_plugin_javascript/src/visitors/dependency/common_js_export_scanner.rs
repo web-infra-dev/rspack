@@ -3,12 +3,13 @@ use rspack_core::{
   BuildMetaExportsType, DependencyTemplate, ModuleType, RuntimeGlobals, SpanExt,
 };
 use swc_core::{
+  atoms::Atom,
   common::{Spanned, SyntaxContext},
   ecma::{
     ast::{
-      ArrowExpr, AssignExpr, CallExpr, Callee, ClassMember, Expr, ExprOrSpread, FnDecl, FnExpr,
-      Ident, Lit, MemberExpr, ModuleItem, ObjectLit, Pat, PatOrExpr, Program, Prop, PropName,
-      PropOrSpread, Stmt, UnaryOp,
+      AssignExpr, CallExpr, Callee, ClassMember, Expr, ExprOrSpread, FnDecl, FnExpr, Ident, Lit,
+      MemberExpr, ModuleItem, ObjectLit, Pat, PatOrExpr, Program, Prop, PropName, PropOrSpread,
+      Stmt, UnaryOp,
     },
     visit::{noop_visit_type, Visit, VisitWith},
   },
@@ -17,8 +18,8 @@ use swc_core::{
 use super::{expr_matcher, is_require_call_expr};
 use crate::{
   dependency::{
-    CommonJsExportRequireDependency, CommonJsExportsDependency, ExportsBase,
-    ModuleDecoratorDependency,
+    CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsSelfReferenceDependency,
+    ExportsBase, ModuleDecoratorDependency,
   },
   ClassExt,
 };
@@ -108,16 +109,87 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
     {
       return;
     }
+    if self.is_harmony {
+      expr.visit_children_with(self);
+      return;
+    }
     // var a = exports/module.exports/this;
     // Object.setPrototypeOf(exports/module.exports/this, a);
     // ...
     if self.is_exports_or_module_exports_or_this_expr(expr) {
       self.bailout();
+      self
+        .dependencies
+        .push(Box::new(CommonJsSelfReferenceDependency::new(
+          (expr.span().real_lo(), expr.span().real_hi()),
+          if self.is_exports_expr(expr) {
+            ExportsBase::DefinePropertyExports
+          } else if expr_matcher::is_module_exports(expr) {
+            ExportsBase::DefinePropertyModuleExports
+          } else if self.is_this_expr(expr) {
+            ExportsBase::DefinePropertyThis
+          } else {
+            unreachable!()
+          },
+          vec![],
+          false,
+        )));
+
+      return;
     }
     expr.visit_children_with(self);
   }
 
+  fn visit_member_expr(&mut self, mem_expr: &MemberExpr) {
+    if self.is_harmony {
+      mem_expr.visit_children_with(self);
+      return;
+    }
+
+    let expr = Expr::Member(mem_expr.clone());
+
+    let is_exports_start = self.is_exports_member_expr_start(&expr);
+    let is_module_exports_start = self.is_module_exports_member_expr_start(&expr);
+    let is_this_start: bool = self.is_this_member_expr_start(&expr);
+
+    // exports.a.b
+    // module.exports.a.b
+    // this.a.b
+    if is_exports_start || is_module_exports_start || is_this_start {
+      let remaining_members = self.extract_member_remaining(&expr, Some(is_module_exports_start));
+
+      if remaining_members.is_empty() {
+        self.bailout();
+      }
+
+      self
+        .dependencies
+        .push(Box::new(CommonJsSelfReferenceDependency::new(
+          (expr.span().real_lo(), expr.span().real_hi()),
+          if is_exports_start {
+            ExportsBase::Exports
+          } else if is_module_exports_start {
+            ExportsBase::ModuleExports
+          } else if is_this_start {
+            ExportsBase::This
+          } else {
+            unreachable!()
+          },
+          remaining_members.to_owned(),
+          false,
+        )));
+
+      return;
+    }
+    mem_expr.visit_children_with(self);
+  }
+
   fn visit_assign_expr(&mut self, assign_expr: &AssignExpr) {
+    if self.is_harmony {
+      assign_expr.visit_children_with(self);
+      return;
+    }
+
     if let PatOrExpr::Pat(box Pat::Expr(box expr)) = &assign_expr.left {
       // exports.xxx = 1;
       // module.exports.xxx = 1;
@@ -131,52 +203,9 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
           self.enable();
         }
 
-        let remaining_members = expr.as_member().map(|expr: &MemberExpr| {
-          extract_member_expression_chain(expr)
-            .members()
-            .iter()
-            .skip(if is_module_exports_start { 2 } else { 1 })
-            .map(|n| n.0.clone())
-            .collect::<Vec<_>>()
-        });
+        let remaining_members = self.extract_member_remaining(expr, Some(is_module_exports_start));
 
-        if let Some(ref remaining_members) = remaining_members
-          && !remaining_members.is_empty()
-        {
-          // exports.__esModule = true;
-          // module.exports.__esModule = true;
-          // this.__esModule = true;
-          if let Some(first_member) = remaining_members.first()
-            && first_member == "__esModule"
-          {
-            self.check_namespace(
-              // const flagIt = () => (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = false
-              // const flagIt = () => { exports.__esModule = true }; => stmt_level = 2, last_stmt_is_expr_stmt = true
-              // (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = true
-              self.stmt_level == 1 && self.last_stmt_is_expr_stmt,
-              Some(&assign_expr.right),
-            );
-          }
-
-          self
-            .dependencies
-            .push(Box::new(CommonJsExportsDependency::new(
-              (expr.span().real_lo(), expr.span().real_hi()),
-              None,
-              if is_exports_start {
-                ExportsBase::Exports
-              } else if is_module_exports_start {
-                ExportsBase::ModuleExports
-              } else if is_this_start {
-                ExportsBase::This
-              } else {
-                panic!("Unexpected expr type");
-              },
-              remaining_members.clone(),
-            )));
-        }
-
-        if self.is_exports_or_module_exports_or_this_expr(expr) {
+        if remaining_members.is_empty() {
           self.enable();
 
           if is_require_call_expr(&assign_expr.right, self.unresolved_ctxt) {
@@ -191,6 +220,7 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
               .find(|item| item.is_span_equal(&assign_expr.right.span()))
               .map(|item| item.id())
               .cloned();
+
             self
               .dependencies
               .push(Box::new(CommonJsExportRequireDependency::new(
@@ -208,7 +238,7 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
                 } else {
                   panic!("Unexpected expr type");
                 },
-                remaining_members.unwrap_or_default(),
+                remaining_members.to_owned(),
                 related_require_dep,
               )));
           } else {
@@ -220,7 +250,43 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
               assign_expr.left.visit_children_with(self);
             }
           }
+        } else {
+          // exports.__esModule = true;
+          // module.exports.__esModule = true;
+          // this.__esModule = true;
+          if let Some(first_member) = remaining_members.first()
+            && first_member == "__esModule"
+          {
+            self.check_namespace(
+              // const flagIt = () => (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = false
+              // const flagIt = () => { exports.__esModule = true }; => stmt_level = 2, last_stmt_is_expr_stmt = true
+              // (exports.__esModule = true); => stmt_level = 1, last_stmt_is_expr_stmt = true
+              self.stmt_level == 1 && self.last_stmt_is_expr_stmt,
+              Some(&assign_expr.right),
+            );
+          }
+
+          // exports.a = 1;
+          // module.exports.a = 1;
+          // this.a = 1;
+          self
+            .dependencies
+            .push(Box::new(CommonJsExportsDependency::new(
+              (expr.span().real_lo(), expr.span().real_hi()),
+              None,
+              if is_exports_start {
+                ExportsBase::Exports
+              } else if is_module_exports_start {
+                ExportsBase::ModuleExports
+              } else if is_this_start {
+                ExportsBase::This
+              } else {
+                panic!("Unexpected expr type");
+              },
+              remaining_members.to_owned(),
+            )));
         }
+
         assign_expr.right.visit_children_with(self);
         return;
       }
@@ -229,6 +295,13 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
   }
 
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
+    if self.is_harmony {
+      self.enter_call += 1;
+      call_expr.visit_children_with(self);
+      self.enter_call -= 1;
+      return;
+    }
+
     if let Callee::Expr(expr) = &call_expr.callee {
       // Object.defineProperty(exports, "xxx", { value: 1 });
       // Object.defineProperty(module.exports, "xxx", { value: 1 });
@@ -278,11 +351,41 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
         self.enter_call -= 1;
         return;
       }
-      // exports()
-      // module.exports()
-      // this()
-      if self.is_exports_or_module_exports_or_this_expr(expr) {
-        self.bailout();
+
+      let is_exports_start = self.is_exports_member_expr_start(expr);
+      let is_module_exports_start = self.is_module_exports_member_expr_start(expr);
+      let is_this_start: bool = self.is_this_member_expr_start(expr);
+
+      if is_exports_start || is_module_exports_start || is_this_start {
+        let remaining_members = self.extract_member_remaining(expr, Some(is_module_exports_start));
+
+        // exports()
+        // module.exports()
+        // this()
+        if remaining_members.is_empty() {
+          self.bailout();
+        }
+
+        // exports.a.b()
+        // module.exports.a.b()
+        // this.a.b()
+        self
+          .dependencies
+          .push(Box::new(CommonJsSelfReferenceDependency::new(
+            (expr.span().real_lo(), expr.span().real_hi()),
+            if is_exports_start {
+              ExportsBase::Exports
+            } else if is_module_exports_start {
+              ExportsBase::ModuleExports
+            } else if is_this_start {
+              ExportsBase::This
+            } else {
+              panic!("Unexpected expr type");
+            },
+            remaining_members.to_owned(),
+            true,
+          )));
+
         self.enter_call += 1;
         call_expr.args.visit_children_with(self);
         self.enter_call -= 1;
@@ -315,13 +418,6 @@ impl Visit for CommonJsExportDependencyScanner<'_> {
   }
 
   fn visit_fn_expr(&mut self, node: &FnExpr) {
-    let top_level = self.is_top_level;
-    self.is_top_level = false;
-    node.visit_children_with(self);
-    self.is_top_level = top_level;
-  }
-
-  fn visit_arrow_expr(&mut self, node: &ArrowExpr) {
     let top_level = self.is_top_level;
     self.is_top_level = false;
     node.visit_children_with(self);
@@ -427,6 +523,27 @@ impl<'a> CommonJsExportDependencyScanner<'a> {
       return;
     }
     self.build_meta.exports_type = BuildMetaExportsType::Dynamic;
+  }
+
+  fn extract_member_remaining(&self, expr: &Expr, is_module_exports: Option<bool>) -> Vec<Atom> {
+    let is_module_exports_start = match is_module_exports {
+      Some(v) => v,
+      None => self.is_module_exports_member_expr_start(expr),
+    };
+
+    let remaining_members = expr
+      .as_member()
+      .map(|expr: &MemberExpr| {
+        extract_member_expression_chain(expr)
+          .members()
+          .iter()
+          .skip(if is_module_exports_start { 2 } else { 1 })
+          .map(|n| n.0.clone())
+          .collect::<Vec<_>>()
+      })
+      .unwrap_or_default();
+
+    remaining_members
   }
 }
 
