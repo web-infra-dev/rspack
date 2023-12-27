@@ -1,5 +1,4 @@
 import terminalLink from "terminal-link";
-import isCI from "is-ci";
 
 import type { JsAssetInfo, JsStatsError } from "@rspack/binding";
 
@@ -118,8 +117,7 @@ const getDeprecationStatus = () => {
 	const defaultEnableDeprecatedWarning = true;
 	if (
 		process.env.RSPACK_DEP_WARNINGS === "false" ||
-		process.env.RSPACK_DEP_WARNINGS === "0" ||
-		isCI
+		process.env.RSPACK_DEP_WARNINGS === "0"
 	) {
 		return false;
 	}
