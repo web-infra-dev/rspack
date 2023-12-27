@@ -1,7 +1,9 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result};
 use rspack_sources::BoxSource;
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   cache::Cache, BoxDependency, BuildContext, BuildResult, Compilation, CompilerContext,
@@ -56,10 +58,14 @@ pub struct FactorizeTaskResult {
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
   pub factory_result: Option<ModuleFactoryResult>,
   pub dependencies: Vec<DependencyId>,
-  pub diagnostics: Vec<Diagnostic>,
   pub is_entry: bool,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub exports_info_related: ExportsInfoRelated,
+
+  pub file_dependencies: HashSet<PathBuf>,
+  pub context_dependencies: HashSet<PathBuf>,
+  pub missing_dependencies: HashSet<PathBuf>,
+  pub diagnostics: Vec<Diagnostic>,
 }
 
 impl FactorizeTaskResult {
@@ -70,6 +76,21 @@ impl FactorizeTaskResult {
 
   fn with_diagnostics(mut self, diagnostics: Vec<Diagnostic>) -> Self {
     self.diagnostics = diagnostics;
+    self
+  }
+
+  pub fn with_file_dependencies(mut self, files: impl IntoIterator<Item = PathBuf>) -> Self {
+    self.file_dependencies.extend(files);
+    self
+  }
+
+  pub fn with_context_dependencies(mut self, contexts: impl IntoIterator<Item = PathBuf>) -> Self {
+    self.context_dependencies.extend(contexts);
+    self
+  }
+
+  pub fn with_missing_dependencies(mut self, missing: impl IntoIterator<Item = PathBuf>) -> Self {
+    self.missing_dependencies.extend(missing);
     self
   }
 }
@@ -99,17 +120,20 @@ impl WorkerTask for FactorizeTask {
     );
     let exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
     let factorize_task_result = FactorizeTaskResult {
-      is_entry: self.is_entry,
       original_module_identifier: self.original_module_identifier,
+      factory_result: None,
       dependencies: self.dependencies,
+      is_entry: self.is_entry,
       current_profile: self.current_profile,
       exports_info_related: ExportsInfoRelated {
         exports_info,
         other_exports_info,
         side_effects_info: side_effects_only_info,
       },
-      diagnostics: vec![],
-      factory_result: None,
+      file_dependencies: Default::default(),
+      context_dependencies: Default::default(),
+      missing_dependencies: Default::default(),
+      diagnostics: Default::default(),
     };
 
     // Error and result are not mutually exclusive in webpack module factorization.
@@ -120,7 +144,11 @@ impl WorkerTask for FactorizeTask {
       dependency,
       issuer: self.issuer,
       issuer_identifier: self.original_module_identifier,
-      diagnostics: vec![],
+
+      file_dependencies: Default::default(),
+      missing_dependencies: Default::default(),
+      context_dependencies: Default::default(),
+      diagnostics: Default::default(),
     };
 
     match self.module_factory.create(&mut create_data).await {
@@ -132,7 +160,10 @@ impl WorkerTask for FactorizeTask {
         Ok(TaskResult::Factorize(Box::new(
           factorize_task_result
             .with_factory_result(Some(result))
-            .with_diagnostics(diagnostics),
+            .with_diagnostics(diagnostics)
+            .with_file_dependencies(create_data.file_dependencies.drain())
+            .with_missing_dependencies(create_data.missing_dependencies.drain())
+            .with_context_dependencies(create_data.missing_dependencies.drain()),
         )))
       }
       Err(mut e) => {
@@ -153,7 +184,11 @@ impl WorkerTask for FactorizeTask {
         diagnostics.append(&mut create_data.diagnostics);
         // Continue bundling if `options.bail` set to `false`.
         Ok(TaskResult::Factorize(Box::new(
-          factorize_task_result.with_diagnostics(diagnostics),
+          factorize_task_result
+            .with_diagnostics(diagnostics)
+            .with_file_dependencies(create_data.file_dependencies.drain())
+            .with_missing_dependencies(create_data.missing_dependencies.drain())
+            .with_context_dependencies(create_data.missing_dependencies.drain()),
         )))
       }
     }
