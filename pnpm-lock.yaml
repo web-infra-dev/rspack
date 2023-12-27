@@ -36,6 +36,9 @@ importers:
       '@taplo/cli':
         specifier: ^0.5.2
         version: 0.5.2
+      '@types/is-ci':
+        specifier: ^3.0.4
+        version: 3.0.4
       '@types/jest':
         specifier: 29.1.0
         version: 29.1.0
@@ -12779,6 +12782,12 @@ packages:
     resolution: {integrity: sha512-HZ4d0m2Ebl8DmrOdYZHgYyipj/8Ftq1/ssB/oQR7fqfUrwtTP7IW3BDi2V445nhPBLzZjEkApaPVp83moSCXlA==}
     dependencies:
       '@types/node': 20.9.4
+    dev: true
+
+  /@types/is-ci@3.0.4:
+    resolution: {integrity: sha512-AkCYCmwlXeuH89DagDCzvCAyltI2v9lh3U3DqSg/GrBYoReAaWwxfXCqMx9UV5MajLZ4ZFwZzV4cABGIxk2XRw==}
+    dependencies:
+      ci-info: 3.3.2
     dev: true
 
   /@types/istanbul-lib-coverage@2.0.4:
