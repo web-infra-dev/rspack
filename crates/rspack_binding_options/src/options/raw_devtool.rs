@@ -4,11 +4,11 @@ use derivative::Derivative;
 use napi::bindgen_prelude::Either3;
 use napi::{Either, Env, JsFunction};
 use napi_derive::napi;
+use rspack_core::{Rule, Rules};
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::{get_napi_env, JsRegExp, JsRegExpExt, NapiResultExt};
 use rspack_plugin_devtool::{
-  Append, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx, Rule, Rules,
-  SourceMapDevToolPluginOptions,
+  Append, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx, SourceMapDevToolPluginOptions,
 };
 use serde::Deserialize;
 
