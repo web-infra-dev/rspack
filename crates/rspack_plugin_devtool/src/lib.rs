@@ -303,7 +303,7 @@ impl Plugin for SourceMapDevToolPlugin {
           let source_name = self
             .create_filename(
               &module_or_source,
-              &compilation,
+              compilation,
               &self.module_filename_template,
               output_options,
             )
@@ -349,7 +349,7 @@ impl Plugin for SourceMapDevToolPlugin {
       source_name = self
         .create_filename(
           &module,
-          &compilation,
+          compilation,
           &self.fallback_module_filename_template,
           output_options,
         )
@@ -586,7 +586,7 @@ impl SourceMapDevToolPlugin {
         let short_identifier = module.readable_identifier(context).to_string();
         let identifier = contextify(context, module_identifier);
         let module_id = chunk_graph
-          .get_module_id(module_identifier.clone())
+          .get_module_id(*module_identifier)
           .clone()
           .unwrap_or("".to_string());
         let absolute_resource_path = "".to_string();
