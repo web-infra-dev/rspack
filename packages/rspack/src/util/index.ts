@@ -1,6 +1,9 @@
-import type { JsAssetInfo, JsStatsError } from "@rspack/binding";
-import { AssetInfo } from "../Compilation";
 import terminalLink from "terminal-link";
+import isCI from "is-ci";
+
+import type { JsAssetInfo, JsStatsError } from "@rspack/binding";
+
+import { AssetInfo } from "../Compilation";
 import { LoaderObject } from "../config/adapterRuleUse";
 
 export function mapValues(
@@ -115,7 +118,8 @@ const getDeprecationStatus = () => {
 	const defaultEnableDeprecatedWarning = true;
 	if (
 		process.env.RSPACK_DEP_WARNINGS === "false" ||
-		process.env.RSPACK_DEP_WARNINGS === "0"
+		process.env.RSPACK_DEP_WARNINGS === "0" ||
+		isCI
 	) {
 		return false;
 	}
