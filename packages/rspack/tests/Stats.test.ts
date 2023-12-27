@@ -27,8 +27,8 @@ describe("Stats", () => {
 		expect(stats?.toJson(statsOptions)).toMatchSnapshot();
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 215 bytes {main} [emitted] (name: main)
-		Entrypoint main 215 bytes = main.js
+		asset main.js 211 bytes {main} [emitted] (name: main)
+		Entrypoint main 211 bytes = main.js
 		chunk {main} main.js (main) [entry]
 		  ./fixtures/a.js [585] {main}
 		    entry ./fixtures/a
@@ -60,8 +60,8 @@ describe("Stats", () => {
 			stats?.toString({ timings: false, version: false }).replace(/\\/g, "/")
 		).toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 794 bytes [emitted] (name: main)
-		Entrypoint main 794 bytes = main.js
+		asset main.js 785 bytes [emitted] (name: main)
+		Entrypoint main 785 bytes = main.js
 		./fixtures/a.js
 		./fixtures/b.js
 		./fixtures/c.js
@@ -353,7 +353,7 @@ describe("Stats", () => {
 		};
 		expect(stats?.toJson(options)).toMatchSnapshot();
 		expect(stats?.toString(options).replace(/\\/g, "/")).toMatchInlineSnapshot(`
-		"asset main.js 215 bytes {main} [emitted] (name: main)
+		"asset main.js 211 bytes {main} [emitted] (name: main)
 		chunk {main} main.js (main) [entry]
 		./fixtures/a.js [585] {main}"
 	`);
