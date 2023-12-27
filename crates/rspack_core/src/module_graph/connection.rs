@@ -145,10 +145,10 @@ pub fn add_connection_states(a: ConnectionState, b: ConnectionState) -> Connecti
     return ConnectionState::Bool(true);
   }
   if matches!(a, ConnectionState::Bool(false)) {
-    return ConnectionState::Bool(false);
+    return b;
   }
   if matches!(b, ConnectionState::Bool(false)) {
-    return ConnectionState::Bool(false);
+    return a;
   }
   if matches!(a, ConnectionState::TransitiveOnly) {
     return b;
