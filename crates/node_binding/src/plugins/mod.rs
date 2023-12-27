@@ -226,7 +226,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .into_rspack_result()?
       .await
       .map(|_| None)
-      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))
+      .or_else(|err| panic!("Failed to call this_compilation: {err}"))
   }
 
   async fn normal_module_factory_resolve_for_scheme(
