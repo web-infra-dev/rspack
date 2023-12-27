@@ -1,7 +1,6 @@
 use std::hash::Hash;
 
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
-use rspack_core::tree_shaking::webpack_ext::ExportInfoExt;
 use rspack_core::{
   property_access, to_identifier, ChunkUkey, Compilation, JsChunkHashArgs, LibraryOptions, Plugin,
   PluginContext, PluginJsChunkHashHookOutput, PluginRenderStartupHookOutput, RenderStartupArgs,
