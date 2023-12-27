@@ -40,28 +40,31 @@ module.exports = [
 				...commonMF
 			})
 		]
+	},
+	{
+		...common,
+		experiments: {
+			outputModule: true,
+			rspackFuture: {
+				newTreeshaking: true
+			}
+		},
+		output: {
+			filename: "module/[name].mjs",
+			uniqueName: "1-container-full-mjs"
+		},
+		plugins: [
+			new ModuleFederationPlugin({
+				name: "container",
+				library: { type: "module" },
+				filename: "module/container.mjs",
+				remotes: {
+					containerA: "../../../0-container-full/dist/module/container.mjs",
+					containerB: "./container.mjs"
+				},
+				...commonMF
+			})
+		],
+		target: "node14"
 	}
-	// {
-	// 	...common,
-	// 	experiments: {
-	// 		outputModule: true
-	// 	},
-	// 	output: {
-	// 		filename: "module/[name].mjs",
-	// 		uniqueName: "1-container-full-mjs"
-	// 	},
-	// 	plugins: [
-	// 		new ModuleFederationPlugin({
-	// 			name: "container",
-	// 			library: { type: "module" },
-	// 			filename: "module/container.mjs",
-	// 			remotes: {
-	// 				containerA: "../../0-container-full/module/container.mjs",
-	// 				containerB: "./container.mjs"
-	// 			},
-	// 			...commonMF
-	// 		})
-	// 	],
-	// 	target: "node14"
-	// }
 ];

@@ -52,7 +52,7 @@ impl Plugin for EntryPlugin {
       self.context.clone(),
     ));
     let dependency_id = *dependency.id();
-    compilation.add_entry(dependency, self.options.clone());
+    compilation.add_entry(dependency, self.options.clone())?;
     param.add_force_build_dependency(dependency_id, None);
     Ok(())
   }

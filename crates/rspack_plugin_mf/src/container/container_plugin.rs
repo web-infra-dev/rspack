@@ -86,7 +86,7 @@ impl Plugin for ContainerPlugin {
         library: Some(self.options.library.clone()),
         ..Default::default()
       },
-    );
+    )?;
     param.add_force_build_dependency(dependency_id, None);
     Ok(())
   }
