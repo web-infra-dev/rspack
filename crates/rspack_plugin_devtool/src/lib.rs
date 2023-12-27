@@ -206,7 +206,12 @@ impl Plugin for SourceMapDevToolPlugin {
     _params: &CompilationParams,
   ) -> PluginCompilationHookOutput {
     // TODO: Temporarily use `devtool` to pass source map configuration information
-    let mut devtool = _args.compilation.options.devtool.lock().unwrap();
+    let mut devtool = _args
+      .compilation
+      .options
+      .devtool
+      .lock()
+      .expect("Failed to acquire lock on devtool");
     devtool.add_source_map();
     if self.filename.is_none() {
       devtool.add_inline();
@@ -239,7 +244,6 @@ impl Plugin for SourceMapDevToolPlugin {
     let mut tasks = vec![];
     let mut module_to_source_name_mapping = HashMap::<ModuleOrSource, String>::default();
 
-    // TODO: maybe can be parallelized
     let mut assets: Vec<(&String, &Arc<dyn Source>)> = vec![];
     for (file, asset) in compilation.assets() {
       let is_match = match_object(&self.match_object, file)
@@ -762,7 +766,12 @@ impl Plugin for EvalSourceMapDevToolPlugin {
     _params: &CompilationParams,
   ) -> PluginCompilationHookOutput {
     // TODO: Temporarily use `devtool` to pass source map configuration information
-    let mut devtool = _args.compilation.options.devtool.lock().unwrap();
+    let mut devtool = _args
+      .compilation
+      .options
+      .devtool
+      .lock()
+      .expect("Failed to acquire lock on devtool");
     devtool.add_source_map();
     devtool.add_eval();
     if !self.columns {

@@ -614,7 +614,11 @@ impl NormalModule {
     if content.is_buffer() {
       return Ok(RawSource::Buffer(content.into_bytes()).boxed());
     }
-    let devtool = self.options.devtool.lock().unwrap();
+    let devtool = self
+      .options
+      .devtool
+      .lock()
+      .expect("Failed to acquire lock on devtool");
     if devtool.enabled()
       && let Some(source_map) = source_map
     {

@@ -379,7 +379,12 @@ impl SassLoader {
     content: String,
     logger: RspackLogger,
   ) -> LegacyOptions {
-    let devtool = loader_context.context.options.devtool.lock().unwrap();
+    let devtool = loader_context
+      .context
+      .options
+      .devtool
+      .lock()
+      .expect("Failed to acquire lock on devtool");
     let mut builder = LegacyOptionsBuilder::default()
       .data(
         if let Some(additional_data) = &self.options.additional_data {
