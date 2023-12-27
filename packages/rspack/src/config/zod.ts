@@ -276,7 +276,7 @@ export type HashDigest = z.infer<typeof hashDigest>;
 const hashDigestLength = z.number();
 export type HashDigestLength = z.infer<typeof hashDigestLength>;
 
-const hashFunction = z.string();
+const hashFunction = z.enum(["md4", "xxhash64"]);
 export type HashFunction = z.infer<typeof hashFunction>;
 
 const hashSalt = z.string();
