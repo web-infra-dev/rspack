@@ -15,7 +15,7 @@ pub struct ProvideSharedModuleFactory {
 
 #[async_trait]
 impl ModuleFactory for ProvideSharedModuleFactory {
-  async fn create(&self, data: ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
+  async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
     let dep = data
       .dependency
       .downcast_ref::<ProvideSharedDependency>()

@@ -31,12 +31,12 @@ pub struct NormalModuleFactory {
 
 #[async_trait::async_trait]
 impl ModuleFactory for NormalModuleFactory {
-  async fn create(&self, mut data: ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
-    if let Ok(Some(before_resolve_data)) = self.before_resolve(&mut data).await {
+  async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
+    if let Ok(Some(before_resolve_data)) = self.before_resolve(data).await {
       return Ok(before_resolve_data);
     }
-    let factory_result = self.factorize(&mut data).await?;
-    if let Ok(Some(after_resolve_data)) = self.after_resolve(&mut data, &factory_result).await {
+    let factory_result = self.factorize(data).await?;
+    if let Ok(Some(after_resolve_data)) = self.after_resolve(data, &factory_result).await {
       return Ok(after_resolve_data);
     }
 
@@ -86,9 +86,7 @@ impl NormalModuleFactory {
     {
       // ignored
       // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModuleFactory.js#L798
-      return Ok(Some(
-        ModuleFactoryResult::default().diagnostics(data.diagnostics.drain(..)),
-      ));
+      return Ok(Some(ModuleFactoryResult::default()));
     }
 
     data.context = before_resolve_args.context.into();
@@ -120,9 +118,7 @@ impl NormalModuleFactory {
     {
       // ignored
       // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModuleFactory.js#L301
-      return Ok(Some(
-        ModuleFactoryResult::default().diagnostics(data.diagnostics.drain(..)),
-      ));
+      return Ok(Some(ModuleFactoryResult::default()));
     }
     Ok(None)
   }

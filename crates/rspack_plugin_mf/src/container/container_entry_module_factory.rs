@@ -12,7 +12,7 @@ pub struct ContainerEntryModuleFactory;
 
 #[async_trait]
 impl ModuleFactory for ContainerEntryModuleFactory {
-  async fn create(&self, data: ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
+  async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
     let dep = data
       .dependency
       .downcast_ref::<ContainerEntryDependency>()

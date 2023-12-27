@@ -18,8 +18,8 @@ pub struct ContextModuleFactory {
 #[async_trait::async_trait]
 impl ModuleFactory for ContextModuleFactory {
   #[instrument(name = "context_module_factory:create", skip_all)]
-  async fn create(&self, mut data: ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
-    if let Ok(Some(before_resolve_result)) = self.before_resolve(&mut data).await {
+  async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
+    if let Ok(Some(before_resolve_result)) = self.before_resolve(data).await {
       return Ok(before_resolve_result);
     }
     Ok(self.resolve(data).await?)
@@ -53,16 +53,14 @@ impl ContextModuleFactory {
     {
       // ignored
       // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/ContextModuleFactory.js#L115
-      return Ok(Some(
-        ModuleFactoryResult::default().diagnostics(data.diagnostics.drain(..)),
-      ));
+      return Ok(Some(ModuleFactoryResult::default()));
     }
     data.context = before_resolve_args.context.into();
     dependency.set_request(before_resolve_args.request);
     Ok(None)
   }
 
-  async fn resolve(&self, mut data: ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
+  async fn resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
     let dependency = data
       .dependency
       .as_context_dependency()
@@ -103,7 +101,7 @@ impl ContextModuleFactory {
           resource: resource.path.to_string_lossy().to_string(),
           resource_query: resource.query,
           resource_fragment: resource.fragment,
-          resolve_options: data.resolve_options,
+          resolve_options: data.resolve_options.clone(),
           context_options: dependency.options().clone(),
         },
         plugin_driver.resolver_factory.clone(),
@@ -118,9 +116,7 @@ impl ContextModuleFactory {
           Default::default(),
         )
         .boxed();
-        return Ok(
-          ModuleFactoryResult::new_with_module(raw_module).diagnostics(data.diagnostics.drain(..)),
-        );
+        return Ok(ModuleFactoryResult::new_with_module(raw_module));
       }
       Err(ResolveError(_runtime_error, internal_error)) => {
         return Err(internal_error);
@@ -134,7 +130,6 @@ impl ContextModuleFactory {
       context_dependencies,
       factory_meta,
       from_cache,
-      diagnostics: data.diagnostics.drain(..).collect(),
     })
   }
 }

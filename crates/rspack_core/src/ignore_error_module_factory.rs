@@ -11,7 +11,7 @@ pub struct IgnoreErrorModuleFactory {
 
 #[async_trait::async_trait]
 impl ModuleFactory for IgnoreErrorModuleFactory {
-  async fn create(&self, data: ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
+  async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
     if let Ok(factory_result) = self.normal_module_factory.create(data).await {
       return Ok(factory_result);
     }

@@ -23,7 +23,6 @@ pub struct ModuleFactoryResult {
   pub missing_dependencies: HashSet<PathBuf>,
   pub factory_meta: FactoryMeta,
   pub from_cache: bool,
-  pub diagnostics: Vec<Diagnostic>,
 }
 
 impl ModuleFactoryResult {
@@ -35,13 +34,7 @@ impl ModuleFactoryResult {
       missing_dependencies: Default::default(),
       factory_meta: Default::default(),
       from_cache: false,
-      diagnostics: Default::default(),
     }
-  }
-
-  pub fn diagnostics(mut self, diagnostics: impl IntoIterator<Item = Diagnostic>) -> Self {
-    self.diagnostics.extend(diagnostics);
-    self
   }
 
   pub fn module(mut self, module: Option<BoxModule>) -> Self {
@@ -94,5 +87,5 @@ impl ModuleFactoryResult {
 
 #[async_trait::async_trait]
 pub trait ModuleFactory: Debug + Sync + Send {
-  async fn create(&self, data: ModuleFactoryCreateData) -> Result<ModuleFactoryResult>;
+  async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult>;
 }

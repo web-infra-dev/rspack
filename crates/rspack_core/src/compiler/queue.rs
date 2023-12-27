@@ -112,23 +112,23 @@ impl WorkerTask for FactorizeTask {
       factory_result: None,
     };
 
-    match self
-      .module_factory
-      .create(ModuleFactoryCreateData {
-        resolve_options: self.resolve_options,
-        context,
-        dependency,
-        issuer: self.issuer,
-        issuer_identifier: self.original_module_identifier,
-        diagnostics: vec![],
-      })
-      .await
-    {
-      Ok(mut result) => {
+    // Error and result are not mutually exclusive in webpack module factorization.
+    // Rspack puts results that need to be shared in both error and ok in [ModuleFactoryCreateData].
+    let mut create_data = ModuleFactoryCreateData {
+      resolve_options: self.resolve_options,
+      context,
+      dependency,
+      issuer: self.issuer,
+      issuer_identifier: self.original_module_identifier,
+      diagnostics: vec![],
+    };
+
+    match self.module_factory.create(&mut create_data).await {
+      Ok(result) => {
         if let Some(current_profile) = &factorize_task_result.current_profile {
           current_profile.mark_factory_end();
         }
-        let diagnostics = result.diagnostics.drain(..).collect();
+        let diagnostics = create_data.diagnostics.drain(..).collect();
         Ok(TaskResult::Factorize(Box::new(
           factorize_task_result
             .with_factory_result(Some(result))
@@ -148,9 +148,12 @@ impl WorkerTask for FactorizeTask {
         if self.options.bail {
           return Err(e);
         }
+        let mut diagnostics = Vec::with_capacity(create_data.diagnostics.len() + 1);
+        diagnostics.push(e.into());
+        diagnostics.append(&mut create_data.diagnostics);
         // Continue bundling if `options.bail` set to `false`.
         Ok(TaskResult::Factorize(Box::new(
-          factorize_task_result.with_diagnostics(vec![e.into()]),
+          factorize_task_result.with_diagnostics(diagnostics),
         )))
       }
     }
