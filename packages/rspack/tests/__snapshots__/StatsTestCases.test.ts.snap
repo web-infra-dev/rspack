@@ -1220,42 +1220,6 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
       "type": "module",
     },
     {
-      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-      "issuerName": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-      "issuerPath": [
-        {
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
-          "name": "./index.js",
-        },
-        {
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-          "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
-        },
-      ],
-      "moduleType": "javascript/auto",
-      "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh (missing)",
-      "nameForCondition": undefined,
-      "size": 160,
-      "type": "module",
-    },
-    {
-      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/ignore-plugin/./globalIndex.js",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
-      "issuerName": "./index.js",
-      "issuerPath": [
-        {
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
-          "name": "./index.js",
-        },
-      ],
-      "moduleType": "javascript/auto",
-      "name": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/./globalIndex.js (missing)",
-      "nameForCondition": undefined,
-      "size": 160,
-      "type": "module",
-    },
-    {
       "identifier": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }",
       "issuer": "<PROJECT_ROOT>/tests/statsCases/ignore-plugin/index.js",
       "issuerName": "./index.js",
@@ -1279,8 +1243,6 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 2`] = `
 "runtime modules 1 module
 ./index.js
 ./locals/en.js
-<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh (missing)
-<PROJECT_ROOT>/tests/statsCases/ignore-plugin/./globalIndex.js (missing)
 <PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: Some(RspackRegex("^//.///.*$")), reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals", namespace_object: Unset, chunk_name: None }"
 `;
 
@@ -5106,7 +5068,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 784,
+      "size": 586,
       "type": "asset",
     },
   ],
@@ -5156,53 +5118,13 @@ console.log(a);
 ",
           "type": "module",
         },
-        {
-          "assets": [],
-          "chunks": [
-            "main",
-          ],
-          "id": "751",
-          "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a",
-          "issuer": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-          "issuerId": "10",
-          "issuerName": "./index.js",
-          "issuerPath": [
-            {
-              "id": "10",
-              "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-              "name": "./index.js",
-            },
-          ],
-          "moduleType": "javascript/auto",
-          "name": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing)",
-          "nameForCondition": undefined,
-          "reasons": [
-            {
-              "moduleId": "10",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-              "moduleName": "./index.js",
-              "type": "esm import",
-              "userRequest": "cycle-alias/a",
-            },
-            {
-              "moduleId": "10",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-              "moduleName": "./index.js",
-              "type": "esm import specifier",
-              "userRequest": "cycle-alias/a",
-            },
-          ],
-          "size": 160,
-          "source": undefined,
-          "type": "module",
-        },
       ],
       "names": [
         "main",
       ],
       "parents": [],
       "siblings": [],
-      "size": 211,
+      "size": 51,
       "type": "chunk",
     },
   ],
@@ -5211,10 +5133,10 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 784,
+          "size": 586,
         },
       ],
-      "assetsSize": 784,
+      "assetsSize": 586,
       "chunks": [
         "main",
       ],
@@ -5246,7 +5168,7 @@ console.log(a);
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "367a7494798047b3e6ad",
+  "hash": "9b0142d5848973ce25b9",
   "logging": {},
   "modules": [
     {
@@ -5284,25 +5206,6 @@ console.log(a);
         "main",
       ],
       "id": "",
-      "identifier": "webpack/runtime/has_own_property",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/has_own_property",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
       "identifier": "webpack/runtime/make_namespace_object",
       "issuer": undefined,
       "issuerId": undefined,
@@ -5316,94 +5219,16 @@ console.log(a);
       "source": undefined,
       "type": "module",
     },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/define_property_getters",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/define_property_getters",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/compat_get_default_export",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/compat_get_default_export",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "751",
-      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-      "issuerId": "10",
-      "issuerName": "./index.js",
-      "issuerPath": [
-        {
-          "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-          "name": "./index.js",
-        },
-      ],
-      "moduleType": "javascript/auto",
-      "name": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing)",
-      "nameForCondition": undefined,
-      "reasons": [
-        {
-          "moduleId": "10",
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-          "moduleName": "./index.js",
-          "type": "esm import",
-          "userRequest": "cycle-alias/a",
-        },
-        {
-          "moduleId": "10",
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-          "moduleName": "./index.js",
-          "type": "esm import specifier",
-          "userRequest": "cycle-alias/a",
-        },
-      ],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
   ],
   "namedChunkGroups": {
     "main": {
       "assets": [
         {
           "name": "bundle.js",
-          "size": 784,
+          "size": 586,
         },
       ],
-      "assetsSize": 784,
+      "assetsSize": 586,
       "chunks": [
         "main",
       ],
@@ -5419,23 +5244,14 @@ console.log(a);
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
 "PublicPath: auto
-asset bundle.js 784 bytes {main} [emitted] (name: main)
-Entrypoint main 784 bytes = bundle.js
+asset bundle.js 586 bytes {main} [emitted] (name: main)
+Entrypoint main 586 bytes = bundle.js
 chunk {main} bundle.js (main) [entry]
   ./index.js [10] {main}
     entry ./index
-  <PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing) [751] {main}
-    esm import cycle-alias/a [10]
-    esm import specifier cycle-alias/a [10]
 ./index.js [10] {main}
   entry ./index
-webpack/runtime/has_own_property {main}
 webpack/runtime/make_namespace_object {main}
-webpack/runtime/define_property_getters {main}
-webpack/runtime/compat_get_default_export {main}
-<PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing) [751] {main}
-  esm import cycle-alias/a [10]
-  esm import specifier cycle-alias/a [10]
   
 
 ERROR in ./index.js   × Resolve error
@@ -5446,7 +5262,7 @@ ERROR in ./index.js   × Resolve error
  2 │ console.log(a);
    ╰────
 
-Rspack compiled with 1 error (367a7494798047b3e6ad)"
+Rspack compiled with 1 error (9b0142d5848973ce25b9)"
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 1`] = `
@@ -5465,7 +5281,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 802,
+      "size": 570,
       "type": "asset",
     },
   ],
@@ -5515,53 +5331,13 @@ console.log(a);
 ",
           "type": "module",
         },
-        {
-          "assets": [],
-          "chunks": [
-            "main",
-          ],
-          "id": "546",
-          "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a",
-          "issuer": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-          "issuerId": "10",
-          "issuerName": "./index.js",
-          "issuerPath": [
-            {
-              "id": "10",
-              "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-              "name": "./index.js",
-            },
-          ],
-          "moduleType": "javascript/auto",
-          "name": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing)",
-          "nameForCondition": undefined,
-          "reasons": [
-            {
-              "moduleId": "10",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-              "moduleName": "./index.js",
-              "type": "esm import",
-              "userRequest": "pkg-a",
-            },
-            {
-              "moduleId": "10",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-              "moduleName": "./index.js",
-              "type": "esm import specifier",
-              "userRequest": "pkg-a",
-            },
-          ],
-          "size": 160,
-          "source": undefined,
-          "type": "module",
-        },
       ],
       "names": [
         "main",
       ],
       "parents": [],
       "siblings": [],
-      "size": 199,
+      "size": 39,
       "type": "chunk",
     },
   ],
@@ -5570,10 +5346,10 @@ console.log(a);
       "assets": [
         {
           "name": "bundle.js",
-          "size": 802,
+          "size": 570,
         },
       ],
-      "assetsSize": 802,
+      "assetsSize": 570,
       "chunks": [
         "main",
       ],
@@ -5593,7 +5369,7 @@ console.log(a);
   ],
   "errorsCount": 1,
   "filteredModules": undefined,
-  "hash": "89dcd0cfe638af0c8caa",
+  "hash": "660067b0d769a99b766b",
   "logging": {},
   "modules": [
     {
@@ -5631,25 +5407,6 @@ console.log(a);
         "main",
       ],
       "id": "",
-      "identifier": "webpack/runtime/has_own_property",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/has_own_property",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
       "identifier": "webpack/runtime/make_namespace_object",
       "issuer": undefined,
       "issuerId": undefined,
@@ -5663,94 +5420,16 @@ console.log(a);
       "source": undefined,
       "type": "module",
     },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/define_property_getters",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/define_property_getters",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "",
-      "identifier": "webpack/runtime/compat_get_default_export",
-      "issuer": undefined,
-      "issuerId": undefined,
-      "issuerName": undefined,
-      "issuerPath": [],
-      "moduleType": "runtime",
-      "name": "webpack/runtime/compat_get_default_export",
-      "nameForCondition": undefined,
-      "reasons": [],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "546",
-      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-      "issuerId": "10",
-      "issuerName": "./index.js",
-      "issuerPath": [
-        {
-          "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-          "name": "./index.js",
-        },
-      ],
-      "moduleType": "javascript/auto",
-      "name": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing)",
-      "nameForCondition": undefined,
-      "reasons": [
-        {
-          "moduleId": "10",
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-          "moduleName": "./index.js",
-          "type": "esm import",
-          "userRequest": "pkg-a",
-        },
-        {
-          "moduleId": "10",
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-          "moduleName": "./index.js",
-          "type": "esm import specifier",
-          "userRequest": "pkg-a",
-        },
-      ],
-      "size": 160,
-      "source": undefined,
-      "type": "module",
-    },
   ],
   "namedChunkGroups": {
     "main": {
       "assets": [
         {
           "name": "bundle.js",
-          "size": 802,
+          "size": 570,
         },
       ],
-      "assetsSize": 802,
+      "assetsSize": 570,
       "chunks": [
         "main",
       ],
@@ -5766,28 +5445,19 @@ console.log(a);
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
 "PublicPath: (none)
-asset bundle.js 802 bytes {main} [emitted] (name: main)
-Entrypoint main 802 bytes = bundle.js
+asset bundle.js 570 bytes {main} [emitted] (name: main)
+Entrypoint main 570 bytes = bundle.js
 chunk {main} bundle.js (main) [entry]
   ./index.js [10] {main}
     entry ./index
-  <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing) [546] {main}
-    esm import pkg-a [10]
-    esm import specifier pkg-a [10]
 ./index.js [10] {main}
   entry ./index
-webpack/runtime/has_own_property {main}
 webpack/runtime/make_namespace_object {main}
-webpack/runtime/define_property_getters {main}
-webpack/runtime/compat_get_default_export {main}
-<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing) [546] {main}
-  esm import pkg-a [10]
-  esm import specifier pkg-a [10]
   
 
 ERROR in ./index.js   × Export should be relative path and start with "./", but got ../../index.js
 
-Rspack compiled with 1 error (89dcd0cfe638af0c8caa)"
+Rspack compiled with 1 error (660067b0d769a99b766b)"
 `;
 
 exports[`StatsTestCases should print correct stats for runtime-modules 1`] = `
@@ -6655,22 +6325,20 @@ exports[`StatsTestCases should print correct stats for try-require--module 1`] =
     {
       "formatted": "  ⚠ Resolve error
    ╭─[1:1]
- 1 │     try {
- 2 │ ╭─▶     require('./missing-module')
- 3 │ ├─▶ } catch (e) {
-   · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
- 4 │     
- 5 │     }
+ 1 │ try {
+ 2 │     require('./missing-module');
+   ·     ─────────────┬─────────────
+   ·                  ╰── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
+ 3 │ } catch (e) {}
    ╰────
 ",
       "message": "  ⚠ Resolve error
    ╭─[1:1]
- 1 │     try {
- 2 │ ╭─▶     require('./missing-module')
- 3 │ ├─▶ } catch (e) {
-   · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
- 4 │     
- 5 │     }
+ 1 │ try {
+ 2 │     require('./missing-module');
+   ·     ─────────────┬─────────────
+   ·                  ╰── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
+ 3 │ } catch (e) {}
    ╰────
 ",
       "moduleId": "10",
@@ -6685,12 +6353,11 @@ exports[`StatsTestCases should print correct stats for try-require--module 1`] =
 exports[`StatsTestCases should print correct stats for try-require--module 2`] = `
 "WARNING in ./index.js   ⚠ Resolve error
    ╭─[1:1]
- 1 │     try {
- 2 │ ╭─▶     require('./missing-module')
- 3 │ ├─▶ } catch (e) {
-   · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
- 4 │     
- 5 │     }
+ 1 │ try {
+ 2 │     require('./missing-module');
+   ·     ─────────────┬─────────────
+   ·                  ╰── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
+ 3 │ } catch (e) {}
    ╰────
 
 Rspack compiled with 1 warning"
@@ -6705,22 +6372,20 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-modul
     {
       "formatted": "  ⚠ Resolve error
    ╭─[1:1]
- 1 │     try {
- 2 │ ╭─▶     require.resolve('./missing-module')
- 3 │ ├─▶ } catch (e) {
-   · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
- 4 │     
- 5 │     }
+ 1 │ try {
+ 2 │     require.resolve('./missing-module');
+   ·     ─────────────────┬─────────────────
+   ·                      ╰── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
+ 3 │ } catch (e) {}
    ╰────
 ",
       "message": "  ⚠ Resolve error
    ╭─[1:1]
- 1 │     try {
- 2 │ ╭─▶     require.resolve('./missing-module')
- 3 │ ├─▶ } catch (e) {
-   · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
- 4 │     
- 5 │     }
+ 1 │ try {
+ 2 │     require.resolve('./missing-module');
+   ·     ─────────────────┬─────────────────
+   ·                      ╰── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
+ 3 │ } catch (e) {}
    ╰────
 ",
       "moduleId": "10",
@@ -6735,12 +6400,11 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-modul
 exports[`StatsTestCases should print correct stats for try-require-resolve-module 2`] = `
 "WARNING in ./index.js   ⚠ Resolve error
    ╭─[1:1]
- 1 │     try {
- 2 │ ╭─▶     require.resolve('./missing-module')
- 3 │ ├─▶ } catch (e) {
-   · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
- 4 │     
- 5 │     }
+ 1 │ try {
+ 2 │     require.resolve('./missing-module');
+   ·     ─────────────────┬─────────────────
+   ·                      ╰── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
+ 3 │ } catch (e) {}
    ╰────
 
 Rspack compiled with 1 warning"
@@ -6755,22 +6419,20 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-weak-
     {
       "formatted": "  ⚠ Resolve error
    ╭─[1:1]
- 1 │     try {
- 2 │ ╭─▶     require.resolveWeak('./missing-module')
- 3 │ ├─▶ } catch (e) {
-   · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
- 4 │     
- 5 │     }
+ 1 │ try {
+ 2 │     require.resolveWeak('./missing-module');
+   ·     ───────────────────┬───────────────────
+   ·                        ╰── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
+ 3 │ } catch (e) {}
    ╰────
 ",
       "message": "  ⚠ Resolve error
    ╭─[1:1]
- 1 │     try {
- 2 │ ╭─▶     require.resolveWeak('./missing-module')
- 3 │ ├─▶ } catch (e) {
-   · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
- 4 │     
- 5 │     }
+ 1 │ try {
+ 2 │     require.resolveWeak('./missing-module');
+   ·     ───────────────────┬───────────────────
+   ·                        ╰── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
+ 3 │ } catch (e) {}
    ╰────
 ",
       "moduleId": "10",
@@ -6785,12 +6447,11 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-weak-
 exports[`StatsTestCases should print correct stats for try-require-resolve-weak-module 2`] = `
 "WARNING in ./index.js   ⚠ Resolve error
    ╭─[1:1]
- 1 │     try {
- 2 │ ╭─▶     require.resolveWeak('./missing-module')
- 3 │ ├─▶ } catch (e) {
-   · ╰──── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
- 4 │     
- 5 │     }
+ 1 │ try {
+ 2 │     require.resolveWeak('./missing-module');
+   ·     ───────────────────┬───────────────────
+   ·                        ╰── Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
+ 3 │ } catch (e) {}
    ╰────
 
 Rspack compiled with 1 warning"

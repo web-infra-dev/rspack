@@ -120,7 +120,7 @@ impl Plugin for LazyCompilationPlugin {
   async fn normal_module_factory_create_module(
     &self,
     _ctx: PluginContext,
-    _args: &NormalModuleCreateData,
+    _args: &mut NormalModuleCreateData<'_>,
   ) -> PluginNormalModuleFactoryCreateModuleHookOutput {
     // if args.indentfiler.contains("rspack-dev-client")
     //   || args.lazy_visit_modules.contains(args.indentfiler.as_str())

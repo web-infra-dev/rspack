@@ -67,7 +67,7 @@ impl Plugin for ContainerReferencePlugin {
   async fn factorize(
     &self,
     _ctx: PluginContext,
-    args: FactorizeArgs<'_>,
+    args: &mut FactorizeArgs<'_>,
   ) -> PluginFactorizeHookOutput {
     let request = args.dependency.request();
     if !request.contains('!') {
@@ -102,7 +102,7 @@ impl Plugin for ContainerReferencePlugin {
             key.to_string(),
           )
           .boxed();
-          return Ok(Some(ModuleFactoryResult::new(remote)));
+          return Ok(Some(ModuleFactoryResult::new_with_module(remote)));
         }
       }
     }

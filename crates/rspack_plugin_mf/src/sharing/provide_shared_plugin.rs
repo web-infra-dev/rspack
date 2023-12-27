@@ -8,7 +8,7 @@ use rspack_core::{
   NormalModuleCreateData, Plugin, PluginCompilationHookOutput, PluginContext,
   PluginNormalModuleFactoryModuleHookOutput,
 };
-use rspack_error::{Diagnosable, Diagnostic, Result};
+use rspack_error::{Diagnostic, Result};
 use rspack_loader_runner::ResourceData;
 use rustc_hash::FxHashMap;
 use tokio::sync::RwLock;
@@ -94,7 +94,7 @@ impl ProvideSharedPlugin {
     eager: bool,
     resource: &str,
     resource_data: &ResourceData,
-    add_diagnostic: impl Fn(Diagnostic),
+    mut add_diagnostic: impl FnMut(Diagnostic),
   ) {
     let error_header = "No version specified and unable to automatically determine one.";
     if let Some(version) = version {
@@ -169,7 +169,7 @@ impl Plugin for ProvideSharedPlugin {
     &self,
     _ctx: PluginContext,
     module: BoxModule,
-    args: &NormalModuleCreateData,
+    args: &mut NormalModuleCreateData<'_>,
   ) -> PluginNormalModuleFactoryModuleHookOutput {
     let resource = &args.resource_resolve_data.resource;
     let resource_data = &args.resource_resolve_data;
@@ -194,7 +194,7 @@ impl Plugin for ProvideSharedPlugin {
             config.eager,
             resource,
             resource_data,
-            |d| args.normal_module_factory.add_diagnostic(d),
+            |d| args.diagnostics.push(d),
           )
           .await;
       }
@@ -211,7 +211,7 @@ impl Plugin for ProvideSharedPlugin {
             config.eager,
             resource,
             resource_data,
-            |d| args.normal_module_factory.add_diagnostic(d),
+            |d| args.diagnostics.push(d),
           )
           .await;
       }

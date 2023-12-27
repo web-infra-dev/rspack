@@ -1,11 +1,8 @@
-use std::{
-  path::Path,
-  sync::{Arc, Mutex},
-};
+use std::{path::Path, sync::Arc};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_error::{internal_error, Diagnosable, Diagnostic, Result};
+use rspack_error::{internal_error, Result};
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
 use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
@@ -16,12 +13,12 @@ use crate::{
   module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
   tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
   BoxLoader, CompilerContext, CompilerOptions, DependencyCategory, FactorizeArgs, FactoryMeta,
-  FuncUseCtx, GeneratorOptions, MissingModule, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
   ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
   ModuleRuleUseLoader, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
   NormalModuleBeforeResolveArgs, NormalModuleCreateData, ParserOptions, RawModule, Resolve,
-  ResolveArgs, ResolveError, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  ResolverFactory, ResourceData, ResourceParsedData, SharedPluginDriver,
+  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  ResourceData, ResourceParsedData, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -30,32 +27,20 @@ pub struct NormalModuleFactory {
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
   cache: Arc<Cache>,
-  diagnostics: Mutex<Vec<Diagnostic>>,
 }
 
 #[async_trait::async_trait]
 impl ModuleFactory for NormalModuleFactory {
-  async fn create(
-    &self,
-    mut data: ModuleFactoryCreateData,
-  ) -> Result<(ModuleFactoryResult, Vec<Diagnostic>)> {
-    let take_diagnostic = || {
-      self
-        .diagnostics
-        .lock()
-        .expect("should lock diagnostics")
-        .drain(..)
-        .collect::<Vec<_>>()
-    };
-    if let Ok(Some(before_resolve_data)) = self.before_resolve(&mut data).await {
-      return Ok((before_resolve_data, take_diagnostic()));
+  async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
+    if let Ok(Some(before_resolve_data)) = self.before_resolve(data).await {
+      return Ok(before_resolve_data);
     }
-    let factory_result = self.factorize(&mut data).await?;
-    if let Ok(Some(after_resolve_data)) = self.after_resolve(&data, &factory_result).await {
-      return Ok((after_resolve_data, take_diagnostic()));
+    let factory_result = self.factorize(data).await?;
+    if let Ok(Some(after_resolve_data)) = self.after_resolve(data, &factory_result).await {
+      return Ok(after_resolve_data);
     }
 
-    Ok((factory_result, take_diagnostic()))
+    Ok(factory_result)
   }
 }
 
@@ -78,7 +63,6 @@ impl NormalModuleFactory {
       loader_resolver_factory,
       plugin_driver,
       cache,
-      diagnostics: Default::default(),
     }
   }
 
@@ -100,17 +84,9 @@ impl NormalModuleFactory {
       .before_resolve(&mut before_resolve_args)
       .await
     {
-      let request_without_match_resource = dependency.request();
-      let ident = format!("{}/{request_without_match_resource}", &data.context);
-      let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
-
-      let missing_module = MissingModule::new(
-        module_identifier,
-        format!("{ident} (missing)"),
-        format!("Failed to resolve {request_without_match_resource}"),
-      )
-      .boxed();
-      return Ok(Some(ModuleFactoryResult::new(missing_module)));
+      // ignored
+      // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModuleFactory.js#L798
+      return Ok(Some(ModuleFactoryResult::default()));
     }
 
     data.context = before_resolve_args.context.into();
@@ -120,7 +96,7 @@ impl NormalModuleFactory {
 
   async fn after_resolve(
     &self,
-    data: &ModuleFactoryCreateData,
+    data: &mut ModuleFactoryCreateData,
     factory_result: &ModuleFactoryResult,
   ) -> Result<Option<ModuleFactoryResult>> {
     let dependency = data
@@ -129,27 +105,20 @@ impl NormalModuleFactory {
       .expect("should be module dependency");
     if let Ok(Some(false)) = self
       .plugin_driver
-      .after_resolve(NormalModuleAfterResolveArgs {
+      .after_resolve(&mut NormalModuleAfterResolveArgs {
         request: dependency.request(),
         context: data.context.as_ref(),
         file_dependencies: &factory_result.file_dependencies,
         context_dependencies: &factory_result.context_dependencies,
         missing_dependencies: &factory_result.missing_dependencies,
         factory_meta: &factory_result.factory_meta,
+        diagnostics: &mut data.diagnostics,
       })
       .await
     {
-      let request_without_match_resource = dependency.request();
-      let ident = format!("{}/{request_without_match_resource}", &data.context);
-      let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
-
-      let missing_module = MissingModule::new(
-        module_identifier,
-        format!("{ident} (missing)"),
-        format!("Failed to resolve {request_without_match_resource}"),
-      )
-      .boxed();
-      return Ok(Some(ModuleFactoryResult::new(missing_module)));
+      // ignored
+      // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModuleFactory.js#L301
+      return Ok(Some(ModuleFactoryResult::default()));
     }
     Ok(None)
   }
@@ -361,75 +330,63 @@ impl NormalModuleFactory {
           .boxed();
 
           return Ok(Some(
-            ModuleFactoryResult::new(raw_module).from_cache(from_cache),
+            ModuleFactoryResult::new_with_module(raw_module).from_cache(from_cache),
           ));
         }
-        Err(ResolveError(runtime_error, internal_error)) => {
-          let ident = format!("{}/{request_without_match_resource}", &data.context);
-          let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
-          let mut file_dependencies = Default::default();
-          let mut missing_dependencies = Default::default();
-          self.add_diagnostic(internal_error.into());
-
-          let mut from_cache_result = from_cache;
-          if !data
-            .resolve_options
-            .as_ref()
-            .and_then(|x| x.fully_specified)
-            .unwrap_or(false)
-          {
-            let new_args = ResolveArgs {
-              importer,
-              context: if context_scheme != Scheme::None {
-                self.options.context.clone()
-              } else {
-                data.context.clone()
-              },
-              specifier: request_without_match_resource,
-              dependency_type: dependency.dependency_type(),
-              dependency_category: dependency.category(),
-              resolve_options: data.resolve_options.take(),
-              span: dependency.span(),
-              resolve_to_context: false,
-              optional,
-              missing_dependencies: &mut missing_dependencies,
-              file_dependencies: &mut file_dependencies,
-            };
-            let (resource_data, from_cache) = match self
-              .cache
-              .resolve_module_occasion
-              .use_cache(new_args, |args| resolve(args, plugin_driver))
-              .await
-            {
-              Ok(result) => result,
-              Err(err) => (Err(err), false),
-            };
-            from_cache_result = from_cache;
-            if let Ok(ResolveResult::Resource(resource)) = resource_data {
-              // TODO: Here windows resolver will return normalized path.
-              // eg. D:\a\rspack\rspack\packages\rspack\tests\fixtures\errors\resolve-fail-esm\answer.js
-              if let Some(_extension) = resource.path.extension() {
-                // let resource = format!(
-                //   "{request_without_match_resource}.{}",
-                //   extension.to_string_lossy()
-                // );
-                // diagnostics[0].add_notes(vec![format!("Did you mean '{resource}'?
-                // BREAKING CHANGE: The request '{request_without_match_resource}' failed to resolve only because it was resolved as fully specified
-                // (probably because the origin is strict EcmaScript Module, e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\"type\": \"module\"').
-                // The extension in the request is mandatory for it to be fully specified.
-                // Add the extension to the request.")]);
-              }
-            }
-          }
-          let missing_module = MissingModule::new(
-            module_identifier,
-            format!("{ident} (missing)"),
-            runtime_error,
-          )
-          .boxed();
-          return Ok(Some(
-            ModuleFactoryResult::new(missing_module).from_cache(from_cache_result),
-          ));
+        Err(err) => {
+          // let mut file_dependencies = Default::default();
+          // let mut missing_dependencies = Default::default();
+          // let mut from_cache_result = from_cache;
+          // if !data
+          //   .resolve_options
+          //   .as_ref()
+          //   .and_then(|x| x.fully_specified)
+          //   .unwrap_or(false)
+          // {
+          //   let new_args = ResolveArgs {
+          //     importer,
+          //     context: if context_scheme != Scheme::None {
+          //       self.options.context.clone()
+          //     } else {
+          //       data.context.clone()
+          //     },
+          //     specifier: request_without_match_resource,
+          //     dependency_type: dependency.dependency_type(),
+          //     dependency_category: dependency.category(),
+          //     resolve_options: data.resolve_options.take(),
+          //     span: dependency.span(),
+          //     resolve_to_context: false,
+          //     optional,
+          //     missing_dependencies: &mut missing_dependencies,
+          //     file_dependencies: &mut file_dependencies,
+          //   };
+          //   let (resource_data, from_cache) = match self
+          //     .cache
+          //     .resolve_module_occasion
+          //     .use_cache(new_args, |args| resolve(args, plugin_driver))
+          //     .await
+          //   {
+          //     Ok(result) => result,
+          //     Err(err) => (Err(err), false),
+          //   };
+          //   from_cache_result = from_cache;
+          //   if let Ok(ResolveResult::Resource(resource)) = resource_data {
+          //     // TODO: Here windows resolver will return normalized path.
+          //     // eg. D:\a\rspack\rspack\packages\rspack\tests\fixtures\errors\resolve-fail-esm\answer.js
+          //     if let Some(_extension) = resource.path.extension() {
+          //       // let resource = format!(
+          //       //   "{request_without_match_resource}.{}",
+          //       //   extension.to_string_lossy()
+          //       // );
+          //       // diagnostics[0].add_notes(vec![format!("Did you mean '{resource}'?
+          //       // BREAKING CHANGE: The request '{request_without_match_resource}' failed to resolve only because it was resolved as fully specified
+          //       // (probably because the origin is strict EcmaScript Module, e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\"type\": \"module\"').
+          //       // The extension in the request is mandatory for it to be fully specified.
+          //       // Add the extension to the request.")]);
+          //     }
+          //   }
+          // }
+          return Err(err);
         }
       }
     };
@@ -650,16 +607,16 @@ impl NormalModuleFactory {
         internal_error!(e)
       })?();
 
-    let create_data = NormalModuleCreateData {
+    let mut create_data = NormalModuleCreateData {
       dependency_type: data.dependency.dependency_type().clone(),
       resolve_data_request: dependency.request(),
       resource_resolve_data: resource_data.clone(),
       context: data.context.clone(),
-      normal_module_factory: self,
+      diagnostics: &mut data.diagnostics,
     };
     let module = if let Some(module) = self
       .plugin_driver
-      .normal_module_factory_create_module(&create_data)
+      .normal_module_factory_create_module(&mut create_data)
       .await?
     {
       module
@@ -684,11 +641,11 @@ impl NormalModuleFactory {
 
     let module = self
       .plugin_driver
-      .normal_module_factory_module(module, &create_data)
+      .normal_module_factory_module(module, &mut create_data)
       .await?;
 
     Ok(Some(
-      ModuleFactoryResult::new(module)
+      ModuleFactoryResult::new_with_module(module)
         .file_dependency(file_dependency)
         .file_dependencies(file_dependencies)
         .missing_dependencies(missing_dependencies)
@@ -797,11 +754,11 @@ impl NormalModuleFactory {
       .expect("should be module dependency");
     let result = self
       .plugin_driver
-      .factorize(FactorizeArgs {
+      .factorize(&mut FactorizeArgs {
         context: &data.context,
         dependency,
         plugin_driver: &self.plugin_driver,
-        normal_module_factory: self,
+        diagnostics: &mut data.diagnostics,
       })
       .await?;
 
@@ -816,34 +773,6 @@ impl NormalModuleFactory {
     Err(internal_error!(
       "Failed to factorize module, neither hook nor factorize method returns"
     ))
-  }
-}
-
-impl Diagnosable for NormalModuleFactory {
-  fn add_diagnostic(&self, diagnostic: Diagnostic) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .push(diagnostic);
-  }
-
-  fn add_diagnostics(&self, mut diagnostics: Vec<Diagnostic>) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .append(&mut diagnostics);
-  }
-
-  fn clone_diagnostics(&self) -> Vec<Diagnostic> {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .iter()
-      .cloned()
-      .collect()
   }
 }
 
