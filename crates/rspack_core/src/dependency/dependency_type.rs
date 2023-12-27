@@ -26,6 +26,8 @@ pub enum DependencyType {
   CjsRequire,
   // cjs exports
   CjsExports,
+  // cjs export require
+  CjsExportRequire,
   // cjs self reference
   CjsSelfReference,
   // new URL("./foo", import.meta.url)
@@ -98,6 +100,7 @@ impl DependencyType {
       DependencyType::DynamicImport => Cow::Borrowed("dynamic import"),
       DependencyType::CjsRequire => Cow::Borrowed("cjs require"),
       DependencyType::CjsExports => Cow::Borrowed("cjs exports"),
+      DependencyType::CjsExportRequire => Cow::Borrowed("cjs export require"),
       DependencyType::CjsSelfReference => Cow::Borrowed("cjs self exports reference"),
       DependencyType::NewUrl => Cow::Borrowed("new URL()"),
       DependencyType::NewWorker => Cow::Borrowed("new Worker()"),
