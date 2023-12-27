@@ -15,7 +15,7 @@ use swc_core::ecma::atoms::JsWord;
 
 use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, ChunkUkey, CodeGenerationResult, Compilation,
+  AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
   CompilerContext, CompilerOptions, ConnectionState, Context, ContextModule, DependenciesBlock,
   DependencyId, DependencyTemplate, ExternalModule, ModuleDependency, ModuleGraph, ModuleType,
   NormalModule, RawModule, Resolve, RuntimeSpec, SharedPluginDriver, SourceType,
@@ -217,6 +217,13 @@ pub trait Module:
 
   fn get_presentational_dependencies(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
     None
+  }
+
+  fn get_concatenation_bailout_reason(&self, mg: &ModuleGraph, cg: &ChunkGraph) -> Option<String> {
+    Some(format!(
+      "Module Concatenation is not implemented for {}",
+      self.module_type()
+    ))
   }
 
   /// Resolve options matched by module rules.

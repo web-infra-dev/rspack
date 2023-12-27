@@ -5,6 +5,7 @@ pub mod impl_plugin_for_js_plugin;
 pub mod infer_async_modules_plugin;
 pub mod inner_graph_plugin;
 mod mangle_exports_plugin;
+pub mod module_concatenation_plugin;
 mod side_effects_flag_plugin;
 use std::hash::Hash;
 
