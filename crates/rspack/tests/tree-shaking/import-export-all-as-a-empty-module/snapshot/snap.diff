@@ -23,4 +23,4 @@
 +    answer: _answer__WEBPACK_IMPORTED_MODULE_1__.something
  };
  }),
- "./answer.js": (function (__unused_webpack_module, exports, __webpack_require__) {
+ "./answer.js": (function () {

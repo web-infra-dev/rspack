@@ -57,6 +57,7 @@ static GLOBALS_ON_REQUIRE: Lazy<Vec<RuntimeGlobals>> = Lazy::new(|| {
     RuntimeGlobals::LOAD_SCRIPT,
     RuntimeGlobals::SYSTEM_CONTEXT,
     RuntimeGlobals::ON_CHUNKS_LOADED,
+    RuntimeGlobals::LOAD_CHUNK_WITH_BLOCK,
   ]
 });
 

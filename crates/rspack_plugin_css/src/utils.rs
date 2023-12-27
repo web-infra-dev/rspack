@@ -115,7 +115,9 @@ pub fn css_modules_exports_to_string(
   exports: &IndexMap<Vec<String>, Vec<(String, Option<String>)>>,
   module: &dyn rspack_core::Module,
   compilation: &Compilation,
+  runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<String> {
+  runtime_requirements.insert(RuntimeGlobals::MODULE);
   let mut code = String::from("module.exports = {\n");
   for (key, elements) in exports {
     let content = elements
@@ -147,6 +149,7 @@ pub fn css_modules_exports_to_string(
             .expect("should have css from module");
 
           let from = serde_json::to_string(from.id(&compilation.chunk_graph)).expect("TODO:");
+          runtime_requirements.insert(RuntimeGlobals::REQUIRE);
           format!("{}({from})[{name}]", RuntimeGlobals::REQUIRE)
         }
       })

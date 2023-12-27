@@ -3,7 +3,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 ---
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": (function (__unused_webpack_module, exports, __webpack_require__) {
+"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 (async function() {
     return __webpack_require__.el("./index.js@31:49").then(__webpack_require__.bind(__webpack_require__, /*! ./module */"./module.js")).then(function(mod) {
         if (mod.result !== 42) throw new Error('panic');

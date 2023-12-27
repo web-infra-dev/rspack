@@ -28,7 +28,7 @@ __webpack_require__.d(__webpack_exports__, {
     });
 }
 }),
-"./index.js": (function (__unused_webpack_module, exports, __webpack_require__) {
+"./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 it("should generate correct code when pure expressions are in dead branches", ()=>{
     __webpack_require__(/*! ./import-module */"./import-module.js").test();
     return Promise.all([

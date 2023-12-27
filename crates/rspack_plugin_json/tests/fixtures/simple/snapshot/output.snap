@@ -10,7 +10,7 @@ __webpack_require__.r(__webpack_exports__);
 
 console.log(_json_json__WEBPACK_IMPORTED_MODULE_0__);
 }),
-"./json.json": (function (module, exports, __webpack_require__) {
+"./json.json": (function (module) {
 "use strict";
 module.exports = JSON.parse('{"hello":"world is better \'","b":"\\\\"}')}),
 

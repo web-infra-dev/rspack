@@ -132,6 +132,7 @@ impl Module for FallbackModule {
   ) -> Result<CodeGenerationResult> {
     let mut codegen = CodeGenerationResult::default();
     codegen.runtime_requirements.insert(RuntimeGlobals::MODULE);
+    codegen.runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     let ids: Vec<_> = self
       .get_dependencies()
       .iter()

@@ -3,7 +3,7 @@ source: crates/rspack_testing/src/run_fixture.rs
 ---
 ```js title=main.js
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./zh_locale.js": (function (__unused_webpack_module, exports, __webpack_require__) {
+"./zh_locale.js": (function (__unused_webpack_module, exports) {
 var __webpack_unused_export__;
 "use strict";
 __webpack_unused_export__ = ({
