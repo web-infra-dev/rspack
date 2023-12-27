@@ -155,5 +155,6 @@ function getDefaultEntryRuntime(
 		`const __module_federation_remote_infos__ = ${JSON.stringify(remoteInfos)}`,
 		compiler.webpack.Template.getFunctionContent(require("./default.runtime"))
 	].join("\n");
-	return `data:text/javascript,${content}`;
+	// use "application/node" to use moduleType "javascript/auto"
+	return `data:application/node,${content}`;
 }
