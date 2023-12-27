@@ -1,10 +1,13 @@
 use once_cell::sync::Lazy;
+use regex::Captures;
 use rspack_core::{
   clean_regexp_in_context_module, context_reg_exp, AsyncDependenciesBlock, DependencyLocation,
   DynamicImportMode, ErrorSpan, GroupOptions, JavascriptParserOptions, ModuleIdentifier,
 };
 use rspack_core::{BoxDependency, BuildMeta, ChunkGroupOptions, ContextMode};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
+use rspack_error::miette::{diagnostic, Diagnostic, Severity};
+use rspack_error::DiagnosticExt;
 use rspack_regex::{regexp_as_str, RspackRegex};
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::common::comments::{CommentKind, Comments};
@@ -26,6 +29,7 @@ pub struct ImportScanner<'a> {
   pub comments: Option<&'a dyn Comments>,
   pub build_meta: &'a BuildMeta,
   pub options: Option<&'a JavascriptParserOptions>,
+  pub warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
 }
 
 fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaContextDependency> {
@@ -105,6 +109,22 @@ fn create_import_meta_context_dependency(node: &CallExpr) -> Option<ImportMetaCo
   ))
 }
 
+fn add_magic_comment_warning(
+  comment_name: &str,
+  comment_type: &str,
+  captures: &Captures,
+  warning_diagnostics: &mut Vec<Box<dyn Diagnostic + Send + Sync>>,
+) {
+  warning_diagnostics.push(
+    diagnostic!(
+      severity = Severity::Warning,
+      "`{comment_name}` expected {comment_type}, but received: {}.",
+      captures.get(2).map_or("", |m| m.as_str())
+    )
+    .boxed(),
+  )
+}
+
 // Using vm.runInNewContext in webpack
 // _0 for name
 // _1 for "xxx"
@@ -126,6 +146,7 @@ impl<'a> ImportScanner<'a> {
     comments: Option<&'a dyn Comments>,
     build_meta: &'a BuildMeta,
     options: Option<&'a JavascriptParserOptions>,
+    warning_diagnostics: &'a mut Vec<Box<dyn Diagnostic + Send + Sync>>,
   ) -> Self {
     Self {
       module_identifier,
@@ -134,11 +155,12 @@ impl<'a> ImportScanner<'a> {
       comments,
       build_meta,
       options,
+      warning_diagnostics,
     }
   }
 
   fn try_extract_webpack_magic_comments(
-    &self,
+    &mut self,
     first_arg_span_of_import_call: &Span,
   ) -> HashMap<String, String> {
     let mut result = HashMap::default();
@@ -161,16 +183,37 @@ impl<'a> ImportScanner<'a> {
                     .or(captures.name("_3"))
                   {
                     result.insert(item_name.to_string(), item_value_match.as_str().to_string());
+                  } else {
+                    add_magic_comment_warning(
+                      item_name,
+                      "a string",
+                      &captures,
+                      self.warning_diagnostics,
+                    );
                   }
                 }
                 "webpackPrefetch" => {
                   if let Some(item_value_match) = captures.name("_4").or(captures.name("_5")) {
                     result.insert(item_name.to_string(), item_value_match.as_str().to_string());
+                  } else {
+                    add_magic_comment_warning(
+                      item_name,
+                      "true or a number",
+                      &captures,
+                      self.warning_diagnostics,
+                    );
                   }
                 }
                 "webpackPreload" => {
                   if let Some(item_value_match) = captures.name("_4").or(captures.name("_5")) {
                     result.insert(item_name.to_string(), item_value_match.as_str().to_string());
+                  } else {
+                    add_magic_comment_warning(
+                      item_name,
+                      "true or a number",
+                      &captures,
+                      self.warning_diagnostics,
+                    );
                   }
                 }
                 _ => {
