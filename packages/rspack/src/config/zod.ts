@@ -288,7 +288,10 @@ export type SourceMapFilename = z.infer<typeof sourceMapFilename>;
 const devtoolNamespace = z.string();
 export type DevtoolNamespace = z.infer<typeof devtoolNamespace>;
 
-const devtoolModuleFilenameTemplate = z.function(z.tuple([z.any()]), z.any());
+const devtoolModuleFilenameTemplate = z.union([
+	z.string(),
+	z.function(z.tuple([z.any()]), z.any())
+]);
 export type DevtoolModuleFilenameTemplate = z.infer<
 	typeof devtoolModuleFilenameTemplate
 >;

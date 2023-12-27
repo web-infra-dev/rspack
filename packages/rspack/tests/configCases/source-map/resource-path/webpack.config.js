@@ -4,6 +4,7 @@ module.exports = {
 		__dirname: false,
 		__filename: false
 	},
+	// TODO: Rspack currently doesnot support layers feature
 	// experiments: {
 	// 	layers: true
 	// },
