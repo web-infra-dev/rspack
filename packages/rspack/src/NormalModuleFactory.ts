@@ -24,6 +24,8 @@ type ResolveData = {
 	// dependencies: ModuleDependency[];
 };
 
+type CreateModuleData = binding.CreateModuleData & { settings: {} };
+
 export class NormalModuleFactory {
 	hooks: {
 		// TODO: second param resolveData
@@ -32,7 +34,7 @@ export class NormalModuleFactory {
 		>;
 		beforeResolve: AsyncSeriesBailHook<[ResolveData], boolean | void>;
 		afterResolve: AsyncSeriesBailHook<[ResolveData], boolean | void>;
-		createModule: AsyncSeriesBailHook<[binding.CreateModuleData], void>;
+		createModule: AsyncSeriesBailHook<[CreateModuleData, {}], void>;
 	};
 	constructor() {
 		this.hooks = {
@@ -53,7 +55,7 @@ export class NormalModuleFactory {
 			// /** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
 			afterResolve: new AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {AsyncSeriesBailHook<[ResolveData["createData"], ResolveData], Module | void>} */
-			createModule: new AsyncSeriesBailHook(["createData"])
+			createModule: new AsyncSeriesBailHook(["createData", "resolveData"])
 			// /** @type {SyncWaterfallHook<[Module, ResolveData["createData"], ResolveData], Module>} */
 			// module: new SyncWaterfallHook(["module", "createData", "resolveData"]),
 			// createParser: new HookMap(() => new SyncBailHook(["parserOptions"])),

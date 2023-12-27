@@ -762,7 +762,8 @@ class Compiler {
 
 	async #normalModuleFactoryCreateModule(createData: binding.CreateModuleData) {
 		await this.compilation.normalModuleFactory?.hooks.createModule.promise(
-			createData
+			{ ...createData, settings: {} },
+			{}
 		);
 	}
 
