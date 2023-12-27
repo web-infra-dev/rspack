@@ -765,6 +765,10 @@ impl ModuleGraph {
       .expect("should have export info");
     exports_info
   }
+
+  pub fn get_provided_exports(&self, module_id: ModuleIdentifier) -> bool {
+    todo!()
+  }
 }
 
 #[cfg(test)]

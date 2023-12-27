@@ -90,6 +90,10 @@ impl dyn Dependency + '_ {
   pub fn downcast_mut<D: Any>(&mut self) -> Option<&mut D> {
     self.as_any_mut().downcast_mut::<D>()
   }
+
+  pub fn is<D: Any>(&self) -> bool {
+    self.downcast_ref::<D>().is_some()
+  }
 }
 
 clone_trait_object!(Dependency);
