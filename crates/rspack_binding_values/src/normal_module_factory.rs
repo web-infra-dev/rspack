@@ -76,13 +76,13 @@ impl From<ResourceData> for JsResolveForSchemeInput {
   }
 }
 
-impl From<NormalModuleCreateData<'_>> for CreateModuleData {
-  fn from(value: NormalModuleCreateData) -> Self {
+impl From<&mut NormalModuleCreateData<'_>> for CreateModuleData {
+  fn from(value: &mut NormalModuleCreateData) -> Self {
     Self {
       context: value.context.to_string(),
       dependency_type: value.dependency_type.to_string(),
       resolve_data_request: value.resolve_data_request.into(),
-      resource_resolve_data: value.resource_resolve_data.into(),
+      resource_resolve_data: value.resource_resolve_data.clone().into(),
     }
   }
 }

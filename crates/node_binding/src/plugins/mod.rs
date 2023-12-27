@@ -218,11 +218,11 @@ impl rspack_core::Plugin for JsHooksAdapter {
   async fn normal_module_factory_create_module(
     &self,
     _ctx: rspack_core::PluginContext,
-    args: &NormalModuleCreateData,
+    args: &mut NormalModuleCreateData<'_>,
   ) -> PluginNormalModuleFactoryCreateModuleHookOutput {
     self
       .normal_module_factory_create_module
-      .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
+      .call(args.into(), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
       .map(|_| None)
