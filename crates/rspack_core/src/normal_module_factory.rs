@@ -1,11 +1,8 @@
-use std::{
-  path::Path,
-  sync::{Arc, Mutex},
-};
+use std::{path::Path, sync::Arc};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_error::{internal_error, Diagnosable, Diagnostic, Result};
+use rspack_error::{internal_error, Result};
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
 use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
@@ -30,7 +27,6 @@ pub struct NormalModuleFactory {
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
   cache: Arc<Cache>,
-  diagnostics: Mutex<Vec<Diagnostic>>,
 }
 
 #[async_trait::async_trait]
@@ -40,7 +36,7 @@ impl ModuleFactory for NormalModuleFactory {
       return Ok(before_resolve_data);
     }
     let factory_result = self.factorize(&mut data).await?;
-    if let Ok(Some(after_resolve_data)) = self.after_resolve(&data, &factory_result).await {
+    if let Ok(Some(after_resolve_data)) = self.after_resolve(&mut data, &factory_result).await {
       return Ok(after_resolve_data);
     }
 
@@ -67,7 +63,6 @@ impl NormalModuleFactory {
       loader_resolver_factory,
       plugin_driver,
       cache,
-      diagnostics: Default::default(),
     }
   }
 
@@ -91,7 +86,9 @@ impl NormalModuleFactory {
     {
       // ignored
       // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModuleFactory.js#L798
-      return Ok(Some(ModuleFactoryResult::default()));
+      return Ok(Some(
+        ModuleFactoryResult::default().diagnostics(data.diagnostics.drain(..)),
+      ));
     }
 
     data.context = before_resolve_args.context.into();
@@ -101,7 +98,7 @@ impl NormalModuleFactory {
 
   async fn after_resolve(
     &self,
-    data: &ModuleFactoryCreateData,
+    data: &mut ModuleFactoryCreateData,
     factory_result: &ModuleFactoryResult,
   ) -> Result<Option<ModuleFactoryResult>> {
     let dependency = data
@@ -110,19 +107,22 @@ impl NormalModuleFactory {
       .expect("should be module dependency");
     if let Ok(Some(false)) = self
       .plugin_driver
-      .after_resolve(NormalModuleAfterResolveArgs {
+      .after_resolve(&mut NormalModuleAfterResolveArgs {
         request: dependency.request(),
         context: data.context.as_ref(),
         file_dependencies: &factory_result.file_dependencies,
         context_dependencies: &factory_result.context_dependencies,
         missing_dependencies: &factory_result.missing_dependencies,
         factory_meta: &factory_result.factory_meta,
+        diagnostics: &mut data.diagnostics,
       })
       .await
     {
       // ignored
       // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModuleFactory.js#L301
-      return Ok(Some(ModuleFactoryResult::default()));
+      return Ok(Some(
+        ModuleFactoryResult::default().diagnostics(data.diagnostics.drain(..)),
+      ));
     }
     Ok(None)
   }
@@ -337,7 +337,7 @@ impl NormalModuleFactory {
             ModuleFactoryResult::new_with_module(raw_module).from_cache(from_cache),
           ));
         }
-        Err(ResolveError(runtime_error, internal_error)) => {
+        Err(ResolveError(_runtime_error, internal_error)) => {
           // let mut file_dependencies = Default::default();
           // let mut missing_dependencies = Default::default();
           // let mut from_cache_result = from_cache;
@@ -611,16 +611,16 @@ impl NormalModuleFactory {
         internal_error!(e)
       })?();
 
-    let create_data = NormalModuleCreateData {
+    let mut create_data = NormalModuleCreateData {
       dependency_type: data.dependency.dependency_type().clone(),
       resolve_data_request: dependency.request(),
       resource_resolve_data: resource_data.clone(),
       context: data.context.clone(),
-      normal_module_factory: self,
+      diagnostics: &mut data.diagnostics,
     };
     let module = if let Some(module) = self
       .plugin_driver
-      .normal_module_factory_create_module(&create_data)
+      .normal_module_factory_create_module(&mut create_data)
       .await?
     {
       module
@@ -645,7 +645,7 @@ impl NormalModuleFactory {
 
     let module = self
       .plugin_driver
-      .normal_module_factory_module(module, &create_data)
+      .normal_module_factory_module(module, &mut create_data)
       .await?;
 
     Ok(Some(
@@ -758,11 +758,11 @@ impl NormalModuleFactory {
       .expect("should be module dependency");
     let result = self
       .plugin_driver
-      .factorize(FactorizeArgs {
+      .factorize(&mut FactorizeArgs {
         context: &data.context,
         dependency,
         plugin_driver: &self.plugin_driver,
-        normal_module_factory: self,
+        diagnostics: &mut data.diagnostics,
       })
       .await?;
 
@@ -777,43 +777,6 @@ impl NormalModuleFactory {
     Err(internal_error!(
       "Failed to factorize module, neither hook nor factorize method returns"
     ))
-  }
-}
-
-impl Diagnosable for NormalModuleFactory {
-  fn add_diagnostic(&self, diagnostic: Diagnostic) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .push(diagnostic);
-  }
-
-  fn add_diagnostics(&self, mut diagnostics: Vec<Diagnostic>) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .append(&mut diagnostics);
-  }
-
-  fn clone_diagnostics(&self) -> Vec<Diagnostic> {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .iter()
-      .cloned()
-      .collect()
-  }
-
-  fn take_diagnostics(&self) -> Vec<Diagnostic> {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .drain(..)
-      .collect()
   }
 }
 

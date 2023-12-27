@@ -13,7 +13,7 @@ use rspack_core::{
   PluginThisCompilationHookOutput, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
   RuntimeGlobals, ThisCompilationArgs,
 };
-use rspack_error::{internal_error, Diagnosable, Diagnostic};
+use rspack_error::{internal_error, Diagnostic};
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -206,9 +206,9 @@ impl ConsumeSharedPlugin {
     context: &Context,
     request: &str,
     config: Arc<ConsumeOptions>,
-    add_diagnostic: impl Fn(Diagnostic),
+    mut add_diagnostic: impl FnMut(Diagnostic),
   ) -> Option<ConsumeVersion> {
-    let required_version_warning = |details: &str| {
+    let mut required_version_warning = |details: &str| {
       add_diagnostic(Diagnostic::warn(self.name().into(), format!("No required version specified and unable to automatically determine one. {details} file: shared module {request}")))
     };
     if let Some(version) = config.required_version.as_ref() {
@@ -257,7 +257,7 @@ impl ConsumeSharedPlugin {
     context: &Context,
     request: &str,
     config: Arc<ConsumeOptions>,
-    add_diagnostic: impl Fn(Diagnostic),
+    mut add_diagnostic: impl FnMut(Diagnostic),
   ) -> ConsumeSharedModule {
     let direct_fallback = matches!(&config.import, Some(i) if RELATIVE_REQUEST.is_match(i) | ABSOLUTE_REQUEST.is_match(i));
     let import_resolved = config
@@ -334,7 +334,7 @@ impl Plugin for ConsumeSharedPlugin {
   async fn factorize(
     &self,
     _ctx: PluginContext,
-    args: FactorizeArgs<'_>,
+    args: &mut FactorizeArgs<'_>,
   ) -> PluginFactorizeHookOutput {
     let dep = args.dependency;
     if matches!(
@@ -348,7 +348,7 @@ impl Plugin for ConsumeSharedPlugin {
     if let Some(matched) = consumes.unresolved.get(request) {
       let module = self
         .create_consume_shared_module(args.context, request, matched.clone(), |d| {
-          args.normal_module_factory.add_diagnostic(d)
+          args.diagnostics.push(d)
         })
         .await;
       return Ok(Some(ModuleFactoryResult::new_with_module(module.boxed())));
@@ -371,7 +371,7 @@ impl Plugin for ConsumeSharedPlugin {
               singleton: options.singleton,
               eager: options.eager,
             }),
-            |d| args.normal_module_factory.add_diagnostic(d),
+            |d| args.diagnostics.push(d),
           )
           .await;
         return Ok(Some(ModuleFactoryResult::new_with_module(module.boxed())));
@@ -383,7 +383,7 @@ impl Plugin for ConsumeSharedPlugin {
   async fn normal_module_factory_create_module(
     &self,
     _ctx: PluginContext,
-    args: &NormalModuleCreateData,
+    args: &mut NormalModuleCreateData<'_>,
   ) -> PluginNormalModuleFactoryCreateModuleHookOutput {
     if matches!(
       args.dependency_type,
@@ -396,7 +396,7 @@ impl Plugin for ConsumeSharedPlugin {
     if let Some(options) = consumes.resolved.get(resource) {
       let module = self
         .create_consume_shared_module(&args.context, resource, options.clone(), |d| {
-          args.normal_module_factory.add_diagnostic(d)
+          args.diagnostics.push(d)
         })
         .await;
       return Ok(Some(module.boxed()));

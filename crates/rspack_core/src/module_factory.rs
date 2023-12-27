@@ -1,6 +1,6 @@
 use std::{fmt::Debug, path::PathBuf};
 
-use rspack_error::{Diagnosable, Result};
+use rspack_error::{Diagnostic, Result};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{BoxDependency, BoxModule, Context, FactoryMeta, ModuleIdentifier, Resolve};
@@ -12,6 +12,7 @@ pub struct ModuleFactoryCreateData {
   pub dependency: BoxDependency,
   pub issuer: Option<Box<str>>,
   pub issuer_identifier: Option<ModuleIdentifier>,
+  pub diagnostics: Vec<Diagnostic>,
 }
 
 #[derive(Debug, Default)]
@@ -22,6 +23,7 @@ pub struct ModuleFactoryResult {
   pub missing_dependencies: HashSet<PathBuf>,
   pub factory_meta: FactoryMeta,
   pub from_cache: bool,
+  pub diagnostics: Vec<Diagnostic>,
 }
 
 impl ModuleFactoryResult {
@@ -33,7 +35,13 @@ impl ModuleFactoryResult {
       missing_dependencies: Default::default(),
       factory_meta: Default::default(),
       from_cache: false,
+      diagnostics: Default::default(),
     }
+  }
+
+  pub fn diagnostics(mut self, diagnostics: impl IntoIterator<Item = Diagnostic>) -> Self {
+    self.diagnostics.extend(diagnostics);
+    self
   }
 
   pub fn module(mut self, module: Option<BoxModule>) -> Self {
@@ -85,6 +93,6 @@ impl ModuleFactoryResult {
 }
 
 #[async_trait::async_trait]
-pub trait ModuleFactory: Debug + Sync + Send + Diagnosable {
+pub trait ModuleFactory: Debug + Sync + Send {
   async fn create(&self, data: ModuleFactoryCreateData) -> Result<ModuleFactoryResult>;
 }

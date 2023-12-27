@@ -1,6 +1,6 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use rspack_error::{Diagnosable, Diagnostic, Result};
+use rspack_error::Result;
 use tracing::instrument;
 
 use crate::{
@@ -13,7 +13,6 @@ use crate::{
 pub struct ContextModuleFactory {
   plugin_driver: SharedPluginDriver,
   cache: Arc<Cache>,
-  diagnostics: Mutex<Vec<Diagnostic>>,
 }
 
 #[async_trait::async_trait]
@@ -32,7 +31,6 @@ impl ContextModuleFactory {
     Self {
       plugin_driver,
       cache,
-      diagnostics: Default::default(),
     }
   }
 
@@ -55,14 +53,16 @@ impl ContextModuleFactory {
     {
       // ignored
       // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/ContextModuleFactory.js#L115
-      return Ok(Some(ModuleFactoryResult::default()));
+      return Ok(Some(
+        ModuleFactoryResult::default().diagnostics(data.diagnostics.drain(..)),
+      ));
     }
     data.context = before_resolve_args.context.into();
     dependency.set_request(before_resolve_args.request);
     Ok(None)
   }
 
-  async fn resolve(&self, data: ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
+  async fn resolve(&self, mut data: ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
     let dependency = data
       .dependency
       .as_context_dependency()
@@ -118,9 +118,11 @@ impl ContextModuleFactory {
           Default::default(),
         )
         .boxed();
-        return Ok(ModuleFactoryResult::new_with_module(raw_module));
+        return Ok(
+          ModuleFactoryResult::new_with_module(raw_module).diagnostics(data.diagnostics.drain(..)),
+        );
       }
-      Err(ResolveError(runtime_error, internal_error)) => {
+      Err(ResolveError(_runtime_error, internal_error)) => {
         return Err(internal_error);
       }
     };
@@ -132,43 +134,7 @@ impl ContextModuleFactory {
       context_dependencies,
       factory_meta,
       from_cache,
+      diagnostics: data.diagnostics.drain(..).collect(),
     })
-  }
-}
-
-impl Diagnosable for ContextModuleFactory {
-  fn add_diagnostic(&self, diagnostic: Diagnostic) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .push(diagnostic);
-  }
-
-  fn add_diagnostics(&self, mut diagnostics: Vec<Diagnostic>) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .append(&mut diagnostics);
-  }
-
-  fn clone_diagnostics(&self) -> Vec<Diagnostic> {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .iter()
-      .cloned()
-      .collect()
-  }
-
-  fn take_diagnostics(&self) -> Vec<Diagnostic> {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .drain(..)
-      .collect()
   }
 }

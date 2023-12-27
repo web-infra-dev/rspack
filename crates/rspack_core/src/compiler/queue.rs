@@ -120,18 +120,19 @@ impl WorkerTask for FactorizeTask {
         dependency,
         issuer: self.issuer,
         issuer_identifier: self.original_module_identifier,
+        diagnostics: vec![],
       })
       .await
     {
-      Ok(result) => {
+      Ok(mut result) => {
         if let Some(current_profile) = &factorize_task_result.current_profile {
           current_profile.mark_factory_end();
         }
-
+        let diagnostics = result.diagnostics.drain(..).collect();
         Ok(TaskResult::Factorize(Box::new(
           factorize_task_result
             .with_factory_result(Some(result))
-            .with_diagnostics(self.module_factory.take_diagnostics()),
+            .with_diagnostics(diagnostics),
         )))
       }
       Err(mut e) => {

@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use rspack_core::{ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult};
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::Result;
 
 use super::{
   container_entry_dependency::ContainerEntryDependency,
@@ -26,5 +26,3 @@ impl ModuleFactory for ContainerEntryModuleFactory {
     )))
   }
 }
-
-impl_empty_diagnosable_trait!(ContainerEntryModuleFactory);

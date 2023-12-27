@@ -114,7 +114,7 @@ impl Plugin for ExternalsPlugin {
   async fn factorize(
     &self,
     _ctx: PluginContext,
-    args: FactorizeArgs<'_>,
+    args: &mut FactorizeArgs<'_>,
   ) -> PluginFactorizeHookOutput {
     for external_item in &self.externals {
       match external_item {

@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use rspack_core::{ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult};
-use rspack_error::{impl_empty_diagnosable_trait, Result};
+use rspack_error::Result;
 
 use super::{fallback_dependency::FallbackDependency, fallback_module::FallbackModule};
 
@@ -19,5 +19,3 @@ impl ModuleFactory for FallbackModuleFactory {
     )))
   }
 }
-
-impl_empty_diagnosable_trait!(FallbackModuleFactory);

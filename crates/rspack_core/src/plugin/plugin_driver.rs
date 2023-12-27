@@ -323,9 +323,9 @@ impl PluginDriver {
     Ok(args)
   }
 
-  pub async fn factorize(&self, args: FactorizeArgs<'_>) -> PluginFactorizeHookOutput {
+  pub async fn factorize(&self, args: &mut FactorizeArgs<'_>) -> PluginFactorizeHookOutput {
     for plugin in &self.plugins {
-      if let Some(module) = plugin.factorize(PluginContext::new(), args.clone()).await? {
+      if let Some(module) = plugin.factorize(PluginContext::new(), args).await? {
         return Ok(Some(module));
       }
     }
@@ -334,7 +334,7 @@ impl PluginDriver {
 
   pub async fn normal_module_factory_create_module(
     &self,
-    args: &NormalModuleCreateData<'_>,
+    args: &mut NormalModuleCreateData<'_>,
   ) -> PluginNormalModuleFactoryCreateModuleHookOutput {
     for plugin in &self.plugins {
       tracing::trace!(
@@ -354,7 +354,7 @@ impl PluginDriver {
   pub async fn normal_module_factory_module(
     &self,
     mut module: BoxModule,
-    args: &NormalModuleCreateData<'_>,
+    args: &mut NormalModuleCreateData<'_>,
   ) -> PluginNormalModuleFactoryModuleHookOutput {
     for plugin in &self.plugins {
       tracing::trace!("running normal_module_factory_module:{}", plugin.name());
@@ -380,11 +380,11 @@ impl PluginDriver {
 
   pub async fn after_resolve(
     &self,
-    args: NormalModuleAfterResolveArgs<'_>,
+    args: &mut NormalModuleAfterResolveArgs<'_>,
   ) -> PluginNormalModuleFactoryAfterResolveOutput {
     for plugin in &self.plugins {
       tracing::trace!("running resolve for scheme:{}", plugin.name());
-      if let Some(data) = plugin.after_resolve(PluginContext::new(), &args).await? {
+      if let Some(data) = plugin.after_resolve(PluginContext::new(), args).await? {
         return Ok(Some(data));
       }
     }

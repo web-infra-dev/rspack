@@ -67,7 +67,7 @@ impl Plugin for ContainerReferencePlugin {
   async fn factorize(
     &self,
     _ctx: PluginContext,
-    args: FactorizeArgs<'_>,
+    args: &mut FactorizeArgs<'_>,
   ) -> PluginFactorizeHookOutput {
     let request = args.dependency.request();
     if !request.contains('!') {
