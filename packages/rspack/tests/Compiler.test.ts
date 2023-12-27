@@ -302,8 +302,7 @@ describe("Compiler", () => {
 			done();
 		});
 	});
-	// TODO: support `bail`
-	it.skip("should bubble up errors when wrapped in a promise and bail is true", async () => {
+	it("should bubble up errors when wrapped in a promise and bail is true", async () => {
 		try {
 			const createCompiler = options => {
 				return new Promise((resolve, reject) => {
@@ -332,7 +331,7 @@ describe("Compiler", () => {
 			});
 		} catch (err) {
 			expect(err.toString()).toMatchInlineSnapshot(
-				`"Error: InternalError("Failed to call process assets RecvError(())")"`
+				`"Error: Failed to resolve ./missing-file in project root"`
 			);
 		}
 	});
@@ -794,8 +793,7 @@ describe("Compiler", () => {
 			});
 		});
 	});
-	// TODO: Option `bail` is not supported.
-	it.skip("should call the failed-hook on error", done => {
+	it("should call the failed-hook on error", done => {
 		const failedSpy = jest.fn();
 		compiler = rspack({
 			bail: true,
