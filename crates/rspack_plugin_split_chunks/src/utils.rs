@@ -135,9 +135,7 @@ pub(crate) fn check_min_size_reduction(
 pub(crate) fn get_requests(chunk: &Chunk, chunk_group_by_ukey: &ChunkGroupByUkey) -> u32 {
   let mut requests = 0;
   for group in &chunk.groups {
-    let group = chunk_group_by_ukey
-      .get(group)
-      .expect("ChunkGroup not found");
+    let group = chunk_group_by_ukey.expect_get(group);
     requests = u32::max(requests, group.chunks.len() as u32)
   }
   requests

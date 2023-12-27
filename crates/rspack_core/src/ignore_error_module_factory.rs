@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
-use rspack_error::IntoTWithDiagnosticArray;
 use rspack_error::Result;
-use rspack_error::TWithDiagnosticArray;
 
 use crate::{ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, NormalModuleFactory};
 
@@ -13,15 +11,10 @@ pub struct IgnoreErrorModuleFactory {
 
 #[async_trait::async_trait]
 impl ModuleFactory for IgnoreErrorModuleFactory {
-  async fn create(
-    &self,
-    data: ModuleFactoryCreateData,
-  ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
-    let (factory_result, _) = self
-      .normal_module_factory
-      .create(data)
-      .await?
-      .split_into_parts();
-    Ok(factory_result.with_diagnostic(vec![]))
+  async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
+    if let Ok(factory_result) = self.normal_module_factory.create(data).await {
+      return Ok(factory_result);
+    }
+    Ok(Default::default())
   }
 }

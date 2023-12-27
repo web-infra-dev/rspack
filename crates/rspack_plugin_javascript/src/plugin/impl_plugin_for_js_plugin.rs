@@ -4,12 +4,12 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::{
-  get_js_chunk_filename_template, AdditionalChunkRuntimeRequirementsArgs, ChunkHashArgs, ChunkKind,
-  CompilationArgs, CompilationParams, CompilerOptions, DependencyType, ErrorSpan,
-  IgnoreErrorModuleFactory, ModuleType, ParserAndGenerator, PathData, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginChunkHashHookOutput,
+  get_js_chunk_filename_template, AdditionalChunkRuntimeRequirementsArgs, ChunkGraph,
+  ChunkHashArgs, ChunkKind, ChunkUkey, CompilationArgs, CompilationParams, CompilerOptions,
+  DependencyType, ErrorSpan, IgnoreErrorModuleFactory, ModuleGraph, ModuleType, ParserAndGenerator,
+  PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginChunkHashHookOutput,
   PluginCompilationHookOutput, PluginContext, PluginRenderManifestHookOutput, RenderManifestEntry,
-  RuntimeGlobals, SourceType,
+  RuntimeGlobals, SelfModuleFactory, SourceType,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -104,6 +104,10 @@ impl Plugin for JsPlugin {
       params.normal_module_factory.clone(),
     );
     args.compilation.set_dependency_factory(
+      DependencyType::CjsExportRequire,
+      params.normal_module_factory.clone(),
+    );
+    args.compilation.set_dependency_factory(
       DependencyType::CommonJSRequireContext,
       params.context_module_factory.clone(),
     );
@@ -152,6 +156,10 @@ impl Plugin for JsPlugin {
       Arc::new(IgnoreErrorModuleFactory {
         normal_module_factory: params.normal_module_factory.clone(),
       }),
+    );
+    args.compilation.set_dependency_factory(
+      DependencyType::CjsSelfReference,
+      Arc::new(SelfModuleFactory {}),
     );
     Ok(())
   }
@@ -248,6 +256,13 @@ impl Plugin for JsPlugin {
     } else if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
       self.render_main(&args).await?
     } else {
+      if !chunk_has_js(
+        &args.chunk_ukey,
+        &compilation.chunk_graph,
+        &compilation.module_graph,
+      ) {
+        return Ok(vec![]);
+      }
       self.render_chunk_impl(&args).await?
     };
 
@@ -301,4 +316,15 @@ impl Plugin for JsPlugin {
 pub struct ExtractedCommentsInfo {
   pub source: BoxSource,
   pub comments_file_name: String,
+}
+
+fn chunk_has_js(chunk: &ChunkUkey, chunk_graph: &ChunkGraph, module_graph: &ModuleGraph) -> bool {
+  if chunk_graph.get_number_of_entry_modules(chunk) > 0 {
+    true
+  } else {
+    chunk_graph
+      .get_chunk_modules_iterable_by_source_type(chunk, SourceType::JavaScript, module_graph)
+      .next()
+      .is_some()
+  }
 }

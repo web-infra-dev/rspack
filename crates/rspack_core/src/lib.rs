@@ -23,8 +23,6 @@ pub use external_module::*;
 mod logger;
 pub use logger::*;
 pub mod cache;
-mod missing_module;
-pub use missing_module::*;
 mod normal_module;
 mod raw_module;
 pub use raw_module::*;
@@ -51,6 +49,10 @@ mod normal_module_factory;
 pub use normal_module_factory::*;
 mod ignore_error_module_factory;
 pub use ignore_error_module_factory::*;
+mod self_module_factory;
+pub use self_module_factory::*;
+mod self_module;
+pub use self_module::*;
 mod compiler;
 pub use compiler::*;
 mod options;
@@ -175,6 +177,7 @@ pub enum ModuleType {
   Fallback,
   ProvideShared,
   ConsumeShared,
+  SelfReference,
   Custom(Ustr),
 }
 
@@ -264,6 +267,7 @@ impl ModuleType {
       ModuleType::Fallback => "fallback-module",
       ModuleType::ProvideShared => "provide-module",
       ModuleType::ConsumeShared => "consume-shared-module",
+      ModuleType::SelfReference => "self-reference-module",
 
       ModuleType::Custom(custom) => custom,
     }
@@ -316,3 +320,36 @@ impl From<&str> for ModuleType {
 pub type ChunkByUkey = Database<Chunk>;
 pub type ChunkGroupByUkey = Database<ChunkGroup>;
 pub(crate) type SharedPluginDriver = Arc<PluginDriver>;
+
+pub fn get_chunk_group_from_ukey<'a>(
+  ukey: &ChunkGroupUkey,
+  chunk_group_by_ukey: &'a ChunkGroupByUkey,
+) -> Option<&'a ChunkGroup> {
+  if chunk_group_by_ukey.contains(ukey) {
+    Some(chunk_group_by_ukey.expect_get(ukey))
+  } else {
+    None
+  }
+}
+
+pub fn get_chunk_from_ukey<'a>(
+  ukey: &ChunkUkey,
+  chunk_by_ukey: &'a ChunkByUkey,
+) -> Option<&'a Chunk> {
+  if chunk_by_ukey.contains(ukey) {
+    Some(chunk_by_ukey.expect_get(ukey))
+  } else {
+    None
+  }
+}
+
+pub fn get_mut_chunk_from_ukey<'a>(
+  ukey: &ChunkUkey,
+  chunk_by_ukey: &'a mut ChunkByUkey,
+) -> Option<&'a mut Chunk> {
+  if chunk_by_ukey.contains(ukey) {
+    Some(chunk_by_ukey.expect_get_mut(ukey))
+  } else {
+    None
+  }
+}

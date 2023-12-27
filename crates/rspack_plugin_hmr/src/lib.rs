@@ -263,10 +263,7 @@ impl Plugin for HotModuleReplacementPlugin {
           let filename = if entry.has_filename() {
             entry.filename().to_string()
           } else {
-            let chunk = compilation
-              .chunk_by_ukey
-              .get(&ukey)
-              .expect("should have update chunk");
+            let chunk = compilation.chunk_by_ukey.expect_get(&ukey);
             compilation.get_path(
               &compilation.options.output.hot_update_chunk_filename,
               PathData::default().chunk(chunk).hash_optional(

@@ -220,6 +220,7 @@ pub fn scan_dependencies(
       .as_ref()
       .and_then(|p| p.get(module_type))
       .and_then(|p| p.get_javascript(module_type)),
+    &mut warning_diagnostics,
   ));
 
   if compiler_options.dev_server.hot {

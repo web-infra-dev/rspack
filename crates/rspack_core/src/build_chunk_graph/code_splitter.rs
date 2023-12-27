@@ -146,11 +146,7 @@ impl<'me> CodeSplitter<'me> {
       let entrypoint = {
         let ukey = entrypoint.ukey;
         compilation.chunk_group_by_ukey.add(entrypoint);
-
-        compilation
-          .chunk_group_by_ukey
-          .get(&ukey)
-          .ok_or_else(|| internal_error!("no chunk group found"))?
+        compilation.chunk_group_by_ukey.expect_get(&ukey)
       };
 
       for module_identifier in module_identifiers {
@@ -213,10 +209,7 @@ impl<'me> CodeSplitter<'me> {
           .get(name)
           .ok_or_else(|| internal_error!("no entrypoints found"))?;
 
-        let entry_point = compilation
-          .chunk_group_by_ukey
-          .get_mut(ukey)
-          .ok_or_else(|| internal_error!("no chunk group found"))?;
+        let entry_point = compilation.chunk_group_by_ukey.expect_get_mut(ukey);
 
         let chunk = match compilation.named_chunks.get(runtime) {
           Some(ukey) => {
@@ -232,10 +225,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
               entry_point.set_runtime_chunk(entry_chunk);
               continue;
             }
-            compilation
-              .chunk_by_ukey
-              .get_mut(ukey)
-              .ok_or_else(|| internal_error!("no chunk found"))?
+            compilation.chunk_by_ukey.expect_get_mut(ukey)
           }
           None => {
             let chunk_ukey = Compilation::add_named_chunk(
@@ -275,8 +265,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let chunk_group = self
         .compilation
         .chunk_group_by_ukey
-        .get_mut(&chunk_group)
-        .ok_or_else(|| internal_error!("no chunk group found"))?;
+        .expect_get_mut(&chunk_group);
 
       self.next_chunk_group_index += 1;
       chunk_group.index = Some(self.next_chunk_group_index);
@@ -398,8 +387,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let chunk_group = self
       .compilation
       .chunk_group_by_ukey
-      .get_mut(&item.chunk_group)
-      .expect("chunk group not found");
+      .expect_get_mut(&item.chunk_group);
 
     if chunk_group
       .module_pre_order_indices
@@ -441,8 +429,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let chunk_group = self
       .compilation
       .chunk_group_by_ukey
-      .get_mut(&item.chunk_group)
-      .expect("chunk group not found");
+      .expect_get_mut(&item.chunk_group);
 
     if chunk_group
       .module_post_order_indices

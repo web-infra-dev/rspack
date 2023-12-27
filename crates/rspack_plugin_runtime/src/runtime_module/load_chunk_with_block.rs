@@ -29,11 +29,7 @@ impl RuntimeModule for LoadChunkWithBlockRuntimeModule {
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
     let chunk_ukey = self.chunk.expect("should have chunk");
-    let runtime = &compilation
-      .chunk_by_ukey
-      .get(&chunk_ukey)
-      .expect("should have chunk")
-      .runtime;
+    let runtime = &compilation.chunk_by_ukey.expect_get(&chunk_ukey).runtime;
 
     let blocks = compilation
       .module_graph
@@ -52,10 +48,7 @@ impl RuntimeModule for LoadChunkWithBlockRuntimeModule {
           .chunks
           .iter()
           .filter_map(|chunk_ukey| {
-            let chunk = compilation
-              .chunk_by_ukey
-              .get(chunk_ukey)
-              .expect("chunk should exist");
+            let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
             if chunk.runtime.is_superset(runtime) {
               Some(chunk.expect_id().to_string())
             } else {

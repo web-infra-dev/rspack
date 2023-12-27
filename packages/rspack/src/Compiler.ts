@@ -47,10 +47,7 @@ import { FileSystemInfoEntry } from "./FileSystemInfo";
 import { RuntimeGlobals } from "./RuntimeGlobals";
 import { tryRunOrWebpackError } from "./lib/HookWebpackError";
 import { CodeGenerationResult } from "./Module";
-import {
-	HOOKS_CAN_NOT_INHERENT_FROM_PARENT,
-	canInherentFromParent
-} from "./builtin-plugin/base";
+import { canInherentFromParent } from "./builtin-plugin/base";
 
 class Compiler {
 	#_instance?: binding.Rspack;

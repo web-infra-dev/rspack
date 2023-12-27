@@ -1,6 +1,6 @@
 use std::{fmt::Debug, path::PathBuf};
 
-use rspack_error::{Result, TWithDiagnosticArray};
+use rspack_error::{Diagnostic, Result};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{BoxDependency, BoxModule, Context, FactoryMeta, ModuleIdentifier, Resolve};
@@ -12,11 +12,12 @@ pub struct ModuleFactoryCreateData {
   pub dependency: BoxDependency,
   pub issuer: Option<Box<str>>,
   pub issuer_identifier: Option<ModuleIdentifier>,
+  pub diagnostics: Vec<Diagnostic>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ModuleFactoryResult {
-  pub module: BoxModule,
+  pub module: Option<BoxModule>,
   pub file_dependencies: HashSet<PathBuf>,
   pub context_dependencies: HashSet<PathBuf>,
   pub missing_dependencies: HashSet<PathBuf>,
@@ -25,15 +26,20 @@ pub struct ModuleFactoryResult {
 }
 
 impl ModuleFactoryResult {
-  pub fn new(module: BoxModule) -> Self {
+  pub fn new_with_module(module: BoxModule) -> Self {
     Self {
-      module,
+      module: Some(module),
       file_dependencies: Default::default(),
       context_dependencies: Default::default(),
       missing_dependencies: Default::default(),
       factory_meta: Default::default(),
       from_cache: false,
     }
+  }
+
+  pub fn module(mut self, module: Option<BoxModule>) -> Self {
+    self.module = module;
+    self
   }
 
   pub fn file_dependency(mut self, file: PathBuf) -> Self {
@@ -81,8 +87,5 @@ impl ModuleFactoryResult {
 
 #[async_trait::async_trait]
 pub trait ModuleFactory: Debug + Sync + Send {
-  async fn create(
-    &self,
-    data: ModuleFactoryCreateData,
-  ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>>;
+  async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult>;
 }

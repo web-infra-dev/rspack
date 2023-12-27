@@ -140,14 +140,14 @@ function getRawTarget(target: Target | undefined): RawOptions["target"] {
 function getRawAlias(
 	alias: Resolve["alias"] = {}
 ): RawOptions["resolve"]["alias"] {
-	const entires = Object.entries(alias).map(([key, value]) => {
+	const entries = Object.entries(alias).map(([key, value]) => {
 		if (Array.isArray(value)) {
 			return [key, value];
 		} else {
 			return [key, [value]];
 		}
 	});
-	return Object.fromEntries(entires);
+	return Object.fromEntries(entries);
 }
 
 function getRawResolveByDependency(

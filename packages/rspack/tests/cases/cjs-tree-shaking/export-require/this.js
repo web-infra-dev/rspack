@@ -1,0 +1,1 @@
+this["abc"] = require("./foo");

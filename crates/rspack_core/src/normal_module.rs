@@ -114,6 +114,7 @@ pub struct NormalModule {
   /// Generator options derived from [Rule.generator]
   generator_options: Option<GeneratorOptions>,
 
+  #[derivative(Debug = "ignore")]
   options: Arc<CompilerOptions>,
   #[allow(unused)]
   debug_id: usize,

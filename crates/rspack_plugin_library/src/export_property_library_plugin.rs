@@ -102,14 +102,17 @@ impl Plugin for ExportPropertyLibraryPlugin {
         .as_ref()
         .and_then(|item| item.first())
       {
-        let exports_info = compilation
+        let export_info_id = compilation
           .module_graph
           .get_export_info(module_of_last_dep.identifier(), &(export.as_str()).into());
-        exports_info.set_used(
+        export_info_id.set_used(
           &mut compilation.module_graph,
           UsageState::Used,
           Some(&runtime),
         );
+        export_info_id
+          .get_export_info_mut(&mut compilation.module_graph)
+          .can_mangle_use = Some(false);
       } else {
         let exports_info_id = compilation
           .module_graph

@@ -196,3 +196,22 @@ jobs:
 
       - name: Run test
         run: cargo test --workspace -- --nocapture
+
+  failure_notification:
+    name: Failure Notification
+    needs: [test-linux, test-windows, test-mac, rust_check, rust_test]
+    if: ${{ failure() && !cancelled() && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - shell: bash
+        run: ./scripts/alert/lark.js
+        env:
+          TITLE: CI failed on main branch
+          DESCRIPTION: |
+            commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
+          URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
+          LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}

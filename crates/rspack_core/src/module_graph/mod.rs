@@ -60,6 +60,7 @@ pub struct ModuleGraph {
   connections_map: HashMap<ModuleGraphConnection, ConnectionId>,
 
   pub import_var_map: DashMap<ModuleIdentifier, ImportVarMap>,
+  pub exports_info_hash: DashMap<ExportsInfoId, u64>,
   pub exports_info_map: HashMap<ExportsInfoId, ExportsInfo>,
   pub export_info_map: HashMap<ExportInfoId, ExportInfo>,
   connection_to_condition: HashMap<ModuleGraphConnection, DependencyCondition>,

@@ -3,8 +3,8 @@ use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rspack_core::{
-  get_js_chunk_filename_template, stringify_map, Chunk, ChunkKind, ChunkLoading, ChunkUkey,
-  Compilation, PathData, SourceType,
+  get_chunk_from_ukey, get_js_chunk_filename_template, stringify_map, Chunk, ChunkKind,
+  ChunkLoading, ChunkUkey, Compilation, PathData, SourceType,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -105,17 +105,14 @@ pub fn get_initial_chunk_ids(
   filter_fn: impl Fn(&ChunkUkey, &Compilation) -> bool,
 ) -> HashSet<String> {
   match chunk {
-    Some(chunk_ukey) => match compilation.chunk_by_ukey.get(&chunk_ukey) {
+    Some(chunk_ukey) => match get_chunk_from_ukey(&chunk_ukey, &compilation.chunk_by_ukey) {
       Some(chunk) => {
         let mut js_chunks = chunk
           .get_all_initial_chunks(&compilation.chunk_group_by_ukey)
           .iter()
           .filter(|key| !(chunk_ukey.eq(key) || filter_fn(key, compilation)))
           .map(|chunk_ukey| {
-            let chunk = compilation
-              .chunk_by_ukey
-              .get(chunk_ukey)
-              .expect("Chunk not found");
+            let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
             chunk.expect_id().to_string()
           })
           .collect::<HashSet<_>>();
@@ -135,7 +132,12 @@ pub fn stringify_chunks(chunks: &HashSet<String>, value: u8) -> String {
   format!(
     r#"{{{}}}"#,
     v.iter().fold(String::new(), |prev, cur| {
-      prev + format!(r#""{cur}": {value},"#).as_str()
+      prev
+        + format!(
+          r#"{}: {value},"#,
+          serde_json::to_string(cur).expect("chunk to_string failed")
+        )
+        .as_str()
     })
   )
 }
@@ -231,9 +233,7 @@ pub fn is_enabled_for_chunk(
   expected: &ChunkLoading,
   compilation: &Compilation,
 ) -> bool {
-  let chunk_loading = compilation
-    .chunk_by_ukey
-    .get(chunk_ukey)
+  let chunk_loading = get_chunk_from_ukey(chunk_ukey, &compilation.chunk_by_ukey)
     .and_then(|chunk| chunk.get_entry_options(&compilation.chunk_group_by_ukey))
     .and_then(|options| options.chunk_loading.as_ref())
     .unwrap_or(&compilation.options.output.chunk_loading);

@@ -96,8 +96,8 @@ impl From<NormalModuleBeforeResolveArgs> for BeforeResolveData {
   }
 }
 
-impl From<NormalModuleAfterResolveArgs<'_>> for AfterResolveData {
-  fn from(value: NormalModuleAfterResolveArgs) -> Self {
+impl From<&NormalModuleAfterResolveArgs<'_>> for AfterResolveData {
+  fn from(value: &NormalModuleAfterResolveArgs) -> Self {
     Self {
       context: value.context.to_owned(),
       request: value.request.to_string(),

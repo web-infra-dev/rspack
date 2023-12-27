@@ -55,22 +55,11 @@ impl Resource {
   }
 }
 
-/// A runtime error message and an error for rspack stats.
-#[derive(Debug)]
-pub struct ResolveError(pub String, pub Error);
-
-impl PartialEq for ResolveError {
-  fn eq(&self, other: &Self) -> bool {
-    self.0 == other.0
-  }
-}
-impl Eq for ResolveError {}
-
 /// Main entry point for module resolution.
 pub async fn resolve(
   args: ResolveArgs<'_>,
   plugin_driver: &SharedPluginDriver,
-) -> Result<ResolveResult, ResolveError> {
+) -> Result<ResolveResult, Error> {
   let mut args = args;
 
   let dep = ResolveOptionsWithDependencyType {
@@ -85,7 +74,7 @@ pub async fn resolve(
   let resolver = plugin_driver.resolver_factory.get(dep);
   let result = resolver
     .resolve(base_dir, args.specifier)
-    .map_err(|error| error.into_resolve_error(&args, plugin_driver));
+    .map_err(|error| error.into_resolve_error(&args));
 
   let (file_dependencies, missing_dependencies) = resolver.dependencies();
   args.file_dependencies.extend(file_dependencies);

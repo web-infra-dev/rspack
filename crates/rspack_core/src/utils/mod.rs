@@ -105,14 +105,8 @@ pub fn sort_group_by_index(
   ukey_b: &ChunkGroupUkey,
   chunk_group_by_ukey: &ChunkGroupByUkey,
 ) -> Ordering {
-  let index_a = chunk_group_by_ukey
-    .get(ukey_a)
-    .expect("Group should exists")
-    .index;
-  let index_b = chunk_group_by_ukey
-    .get(ukey_b)
-    .expect("Group should exists")
-    .index;
+  let index_a = chunk_group_by_ukey.expect_get(ukey_a).index;
+  let index_b = chunk_group_by_ukey.expect_get(ukey_b).index;
   match index_a {
     None => match index_b {
       None => Ordering::Equal,
@@ -130,16 +124,8 @@ pub fn compare_chunk_group(
   ukey_b: &ChunkGroupUkey,
   compilation: &Compilation,
 ) -> Ordering {
-  let chunks_a = &compilation
-    .chunk_group_by_ukey
-    .get(ukey_a)
-    .expect("Group should exists")
-    .chunks;
-  let chunks_b = &compilation
-    .chunk_group_by_ukey
-    .get(ukey_b)
-    .expect("Group should exists")
-    .chunks;
+  let chunks_a = &compilation.chunk_group_by_ukey.expect_get(ukey_a).chunks;
+  let chunks_b = &compilation.chunk_group_by_ukey.expect_get(ukey_b).chunks;
   match chunks_a.len().cmp(&chunks_b.len()) {
     Ordering::Less => Ordering::Greater,
     Ordering::Greater => Ordering::Less,

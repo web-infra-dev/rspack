@@ -7,9 +7,9 @@ it("should error when not fullySpecified for mjs", () => {
 		require("./not-fully-specified");
 	} catch (e) {
 		count += 1;
-		expect(e.message.includes("Failed to resolve ./not-fully-specified")).toBe(
-			true
-		);
+		expect(
+			e.message.includes("Cannot find module './not-fully-specified'")
+		).toBe(true);
 	}
 	expect(count).toBe(1);
 });

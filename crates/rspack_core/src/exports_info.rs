@@ -1,3 +1,4 @@
+use std::collections::hash_map::DefaultHasher;
 use std::collections::hash_map::Entry;
 use std::hash::Hasher;
 use std::sync::atomic::AtomicU32;
@@ -435,21 +436,29 @@ pub struct ExportsInfo {
 
 impl ExportsHash for ExportsInfo {
   fn export_info_hash(&self, hasher: &mut dyn Hasher, module_graph: &ModuleGraph) {
+    if let Some(hash) = module_graph.exports_info_hash.get(&self.id) {
+      hash.dyn_hash(hasher);
+      return;
+    };
+    let mut default_hash = DefaultHasher::default();
     for (name, export_info_id) in &self.exports {
-      name.dyn_hash(hasher);
-      export_info_id.export_info_hash(hasher, module_graph);
+      name.dyn_hash(&mut default_hash);
+      export_info_id.export_info_hash(&mut default_hash, module_graph);
     }
     self
       .other_exports_info
-      .export_info_hash(hasher, module_graph);
+      .export_info_hash(&mut default_hash, module_graph);
     self
       ._side_effects_only_info
-      .export_info_hash(hasher, module_graph);
-    self._exports_are_ordered.dyn_hash(hasher);
+      .export_info_hash(&mut default_hash, module_graph);
+    self._exports_are_ordered.dyn_hash(&mut default_hash);
 
     if let Some(redirect_to) = self.redirect_to {
-      redirect_to.export_info_hash(hasher, module_graph);
+      redirect_to.export_info_hash(&mut default_hash, module_graph);
     }
+    let hash = default_hash.finish();
+    module_graph.exports_info_hash.insert(self.id, hash);
+    hash.dyn_hash(hasher);
   }
 }
 

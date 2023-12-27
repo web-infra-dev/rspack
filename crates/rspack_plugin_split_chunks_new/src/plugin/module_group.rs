@@ -199,9 +199,7 @@ impl SplitChunksPlugin {
             chunk_combination
               .iter()
               .map(|c| {
-                chunk_db
-                  .get(c)
-                  .expect("This should never happen, please file an issue")
+                chunk_db.expect_get(c)
               })
               // Filter by `splitChunks.cacheGroups.{cacheGroup}.chunks`
               .filter(|c| (cache_group.chunk_filter)(c, chunk_group_db))

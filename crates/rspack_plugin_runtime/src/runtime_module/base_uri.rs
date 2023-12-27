@@ -1,5 +1,5 @@
 use rspack_core::{
-  impl_runtime_module,
+  get_chunk_from_ukey, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
@@ -23,7 +23,7 @@ impl RuntimeModule for BaseUriRuntimeModule {
   fn generate(&self, compilation: &Compilation) -> BoxSource {
     let base_uri = self
       .chunk
-      .and_then(|ukey| compilation.chunk_by_ukey.get(&ukey))
+      .and_then(|ukey| get_chunk_from_ukey(&ukey, &compilation.chunk_by_ukey))
       .and_then(|chunk| chunk.get_entry_options(&compilation.chunk_group_by_ukey))
       .and_then(|options| options.base_uri.as_ref())
       .and_then(|base_uri| serde_json::to_string(base_uri).ok())

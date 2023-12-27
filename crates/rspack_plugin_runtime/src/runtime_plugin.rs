@@ -3,6 +3,7 @@ use std::hash::Hash;
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use rspack_core::{
+  get_css_chunk_filename_template, get_js_chunk_filename_template,
   AdditionalChunkRuntimeRequirementsArgs, AdditionalModuleRequirementsArgs, ChunkLoading,
   JsChunkHashArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
   PluginAdditionalModuleRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
@@ -11,8 +12,8 @@ use rspack_core::{
 };
 
 use crate::runtime_module::{
-  is_enabled_for_chunk, AsyncRuntimeModule, AutoPublicPathRuntimeModule, BaseUriRuntimeModule,
-  ChunkNameRuntimeModule, ChunkPrefetchPreloadFunctionRuntimeModule,
+  chunk_has_css, is_enabled_for_chunk, AsyncRuntimeModule, AutoPublicPathRuntimeModule,
+  BaseUriRuntimeModule, ChunkNameRuntimeModule, ChunkPrefetchPreloadFunctionRuntimeModule,
   CompatGetDefaultExportRuntimeModule, CreateFakeNamespaceObjectRuntimeModule,
   CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule, EnsureChunkRuntimeModule,
   GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
@@ -236,16 +237,13 @@ impl Plugin for RuntimePlugin {
       &TREE_DEPENDENCIES,
     );
 
-    let public_path = {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get(chunk)
-        .expect("should have chunk");
-      chunk
-        .get_entry_options(&compilation.chunk_group_by_ukey)
-        .and_then(|options| options.public_path.clone())
-        .unwrap_or(compilation.options.output.public_path.clone())
-    };
+    let public_path = compilation
+      .chunk_by_ukey
+      .expect_get(chunk)
+      .get_entry_options(&compilation.chunk_group_by_ukey)
+      .and_then(|options| options.public_path.clone())
+      .unwrap_or_else(|| compilation.options.output.public_path.clone());
+
     // TODO check output.scriptType
     if matches!(public_path, PublicPath::Auto)
       && runtime_requirements.contains(RuntimeGlobals::PUBLIC_PATH)
@@ -278,10 +276,7 @@ impl Plugin for RuntimePlugin {
     }
 
     if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK) {
-      let c = compilation
-        .chunk_by_ukey
-        .get(chunk)
-        .expect("should have chunk");
+      let c = compilation.chunk_by_ukey.expect_get(chunk);
       let has_async_chunks = c.has_async_chunks(&compilation.chunk_group_by_ukey);
       if has_async_chunks {
         runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
@@ -294,10 +289,7 @@ impl Plugin for RuntimePlugin {
     }
 
     let library_type = {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get(chunk)
-        .expect("should have chunk");
+      let chunk = compilation.chunk_by_ukey.expect_get(chunk);
       chunk
         .get_entry_options(&compilation.chunk_group_by_ukey)
         .and_then(|options| options.library.as_ref())
@@ -332,8 +324,15 @@ impl Plugin for RuntimePlugin {
           GetChunkFilenameRuntimeModule::new(
             "javascript",
             SourceType::JavaScript,
-            RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
+            RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME.to_string(),
             |_| false,
+            |chunk, compilation| {
+              Some(get_js_chunk_filename_template(
+                chunk,
+                &compilation.options.output,
+                &compilation.chunk_group_by_ukey,
+              ))
+            },
           )
           .boxed(),
         ),
@@ -342,9 +341,18 @@ impl Plugin for RuntimePlugin {
           GetChunkFilenameRuntimeModule::new(
             "css",
             SourceType::Css,
-            RuntimeGlobals::GET_CHUNK_CSS_FILENAME,
+            RuntimeGlobals::GET_CHUNK_CSS_FILENAME.to_string(),
             |runtime_requirements| {
               runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+            },
+            |chunk, compilation| {
+              chunk_has_css(&chunk.ukey, compilation).then(|| {
+                get_css_chunk_filename_template(
+                  chunk,
+                  &compilation.options.output,
+                  &compilation.chunk_group_by_ukey,
+                )
+              })
             },
           )
           .boxed(),

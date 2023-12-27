@@ -189,14 +189,14 @@ impl rspack_core::Plugin for JsHooksAdapter {
   async fn after_resolve(
     &self,
     _ctx: rspack_core::PluginContext,
-    args: &NormalModuleAfterResolveArgs,
+    args: &mut NormalModuleAfterResolveArgs<'_>,
   ) -> PluginNormalModuleFactoryAfterResolveOutput {
     if self.is_hook_disabled(&Hook::AfterResolve) {
       return Ok(None);
     }
     self
       .after_resolve
-      .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
+      .call((&*args).into(), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
       .unwrap_or_else(|err| panic!("Failed to call this_compilation: {err}"))

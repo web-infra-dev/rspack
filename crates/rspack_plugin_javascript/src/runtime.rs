@@ -19,10 +19,7 @@ pub fn render_chunk_modules(
     SourceType::JavaScript,
     module_graph,
   );
-  let chunk = compilation
-    .chunk_by_ukey
-    .get(chunk_ukey)
-    .expect("chunk not found");
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
   let plugin_driver = &compilation.plugin_driver;
 

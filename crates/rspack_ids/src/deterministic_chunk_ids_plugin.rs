@@ -65,10 +65,7 @@ impl Plugin for DeterministicChunkIdsPlugin {
     );
 
     chunk_key_to_id.into_iter().for_each(|(chunk_ukey, id)| {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get_mut(&chunk_ukey)
-        .expect("Chunk should exists");
+      let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
       chunk.id = Some(id.to_string());
       chunk.ids = vec![id.to_string()];
     });

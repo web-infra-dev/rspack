@@ -55,8 +55,6 @@ pub struct FactorizeTaskResult {
   pub original_module_identifier: Option<ModuleIdentifier>,
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
   pub factory_result: Option<ModuleFactoryResult>,
-  /// Module graph module will be available if [crate::ModuleFactory::create] returns `Ok`.
-  pub module_graph_module: Option<Box<ModuleGraphModule>>,
   pub dependencies: Vec<DependencyId>,
   pub diagnostics: Vec<Diagnostic>,
   pub is_entry: bool,
@@ -67,11 +65,6 @@ pub struct FactorizeTaskResult {
 impl FactorizeTaskResult {
   fn with_factory_result(mut self, factory_result: Option<ModuleFactoryResult>) -> Self {
     self.factory_result = factory_result;
-    self
-  }
-
-  fn with_module_graph_module(mut self, module_graph_module: Option<ModuleGraphModule>) -> Self {
-    self.module_graph_module = module_graph_module.map(Box::new);
     self
   }
 
@@ -116,38 +109,29 @@ impl WorkerTask for FactorizeTask {
         side_effects_info: side_effects_only_info,
       },
       diagnostics: vec![],
-      module_graph_module: None,
       factory_result: None,
     };
 
-    match self
-      .module_factory
-      .create(ModuleFactoryCreateData {
-        resolve_options: self.resolve_options,
-        context,
-        dependency,
-        issuer: self.issuer,
-        issuer_identifier: self.original_module_identifier,
-      })
-      .await
-    {
-      Ok(res) => {
-        let (result, diagnostics) = res.split_into_parts();
+    // Error and result are not mutually exclusive in webpack module factorization.
+    // Rspack puts results that need to be shared in both error and ok in [ModuleFactoryCreateData].
+    let mut create_data = ModuleFactoryCreateData {
+      resolve_options: self.resolve_options,
+      context,
+      dependency,
+      issuer: self.issuer,
+      issuer_identifier: self.original_module_identifier,
+      diagnostics: vec![],
+    };
 
+    match self.module_factory.create(&mut create_data).await {
+      Ok(result) => {
         if let Some(current_profile) = &factorize_task_result.current_profile {
           current_profile.mark_factory_end();
         }
-
-        let mgm = ModuleGraphModule::new(
-          result.module.identifier(),
-          *result.module.module_type(),
-          factorize_task_result.exports_info_related.exports_info.id,
-        );
-
+        let diagnostics = create_data.diagnostics.drain(..).collect();
         Ok(TaskResult::Factorize(Box::new(
           factorize_task_result
             .with_factory_result(Some(result))
-            .with_module_graph_module(Some(mgm))
             .with_diagnostics(diagnostics),
         )))
       }
@@ -164,9 +148,12 @@ impl WorkerTask for FactorizeTask {
         if self.options.bail {
           return Err(e);
         }
+        let mut diagnostics = Vec::with_capacity(create_data.diagnostics.len() + 1);
+        diagnostics.push(e.into());
+        diagnostics.append(&mut create_data.diagnostics);
         // Continue bundling if `options.bail` set to `false`.
         Ok(TaskResult::Factorize(Box::new(
-          factorize_task_result.with_diagnostics(vec![e.into()]),
+          factorize_task_result.with_diagnostics(diagnostics),
         )))
       }
     }

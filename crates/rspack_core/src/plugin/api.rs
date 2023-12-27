@@ -104,7 +104,7 @@ pub trait Plugin: Debug + Send + Sync {
   async fn factorize(
     &self,
     _ctx: PluginContext,
-    _args: FactorizeArgs<'_>,
+    _args: &mut FactorizeArgs<'_>,
   ) -> PluginFactorizeHookOutput {
     Ok(None)
   }
@@ -120,7 +120,7 @@ pub trait Plugin: Debug + Send + Sync {
   async fn after_resolve(
     &self,
     _ctx: PluginContext,
-    _args: &NormalModuleAfterResolveArgs,
+    _args: &mut NormalModuleAfterResolveArgs<'_>,
   ) -> PluginNormalModuleFactoryAfterResolveOutput {
     Ok(None)
   }
@@ -136,7 +136,7 @@ pub trait Plugin: Debug + Send + Sync {
   async fn normal_module_factory_create_module(
     &self,
     _ctx: PluginContext,
-    _args: &NormalModuleCreateData,
+    _args: &mut NormalModuleCreateData<'_>,
   ) -> PluginNormalModuleFactoryCreateModuleHookOutput {
     Ok(None)
   }
@@ -145,7 +145,7 @@ pub trait Plugin: Debug + Send + Sync {
     &self,
     _ctx: PluginContext,
     module: BoxModule,
-    _args: &NormalModuleCreateData,
+    _args: &mut NormalModuleCreateData<'_>,
   ) -> PluginNormalModuleFactoryModuleHookOutput {
     Ok(module)
   }

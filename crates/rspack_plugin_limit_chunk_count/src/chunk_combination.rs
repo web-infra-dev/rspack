@@ -55,8 +55,8 @@ impl ChunkCombinationBucket {
     }
   }
 
-  pub fn get_mut(&mut self, ukey: &ChunkCombinationUkey) -> Option<&mut ChunkCombination> {
-    self.combinations_by_ukey.get_mut(ukey)
+  pub fn get_mut(&mut self, ukey: &ChunkCombinationUkey) -> &mut ChunkCombination {
+    self.combinations_by_ukey.expect_get_mut(ukey)
   }
 
   pub fn add(&mut self, combination: ChunkCombination) {
@@ -67,14 +67,8 @@ impl ChunkCombinationBucket {
 
   fn sort_combinations(&mut self) {
     self.sorted_combinations.sort_by(|a_ukey, b_ukey| {
-      let a = self
-        .combinations_by_ukey
-        .get(a_ukey)
-        .expect("chunk combination not found");
-      let b = self
-        .combinations_by_ukey
-        .get(b_ukey)
-        .expect("chunk combination not found");
+      let a = self.combinations_by_ukey.expect_get(a_ukey);
+      let b = self.combinations_by_ukey.expect_get(b_ukey);
       // Layer 1: ordered by largest size benefit
       if a.size_diff < b.size_diff {
         Ordering::Less
@@ -357,28 +351,28 @@ mod test {
     combinations.delete(&combination_6);
     combinations.delete(&combination_10);
 
-    let c = combinations.get_mut(&combination_2).unwrap();
+    let c = combinations.get_mut(&combination_2);
     c.a = chunk_1;
     c.integrated_size = 10074_f64;
     c.a_size = 10044_f64;
     c.size_diff = 10000_f64;
     combinations.update();
 
-    let c = combinations.get_mut(&combination_4).unwrap();
+    let c = combinations.get_mut(&combination_4);
     c.a = chunk_1;
     c.integrated_size = 10074_f64;
     c.a_size = 10044_f64;
     c.size_diff = 10000_f64;
     combinations.update();
 
-    let c = combinations.get_mut(&combination_7).unwrap();
+    let c = combinations.get_mut(&combination_7);
     c.a = chunk_1;
     c.integrated_size = 10066_f64;
     c.a_size = 10044_f64;
     c.size_diff = 10000_f64;
     combinations.update();
 
-    let c = combinations.get_mut(&combination_8).unwrap();
+    let c = combinations.get_mut(&combination_8);
     c.a = chunk_1;
     c.integrated_size = 11450_f64;
     c.a_size = 10044_f64;
