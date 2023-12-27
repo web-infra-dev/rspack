@@ -1,5 +1,6 @@
 use std::collections::hash_map::DefaultHasher;
 use std::collections::hash_map::Entry;
+use std::collections::BTreeMap;
 use std::hash::Hasher;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
@@ -430,7 +431,7 @@ impl ExportsInfoId {
 
 #[derive(Debug)]
 pub struct ExportsInfo {
-  pub exports: HashMap<JsWord, ExportInfoId>,
+  pub exports: BTreeMap<JsWord, ExportInfoId>,
   pub other_exports_info: ExportInfoId,
   pub _side_effects_only_info: ExportInfoId,
   pub _exports_are_ordered: bool,
@@ -466,16 +467,79 @@ impl ExportsHash for ExportsInfo {
   }
 }
 
+pub enum ProvidedExports {
+  Null,
+  True,
+  Vec(Vec<JsWord>),
+}
 impl ExportsInfo {
   pub fn new(other_exports_info: ExportInfoId, _side_effects_only_info: ExportInfoId) -> Self {
     Self {
-      exports: HashMap::default(),
+      exports: BTreeMap::default(),
       other_exports_info,
       _side_effects_only_info,
       _exports_are_ordered: false,
       redirect_to: None,
       id: ExportsInfoId::new(),
     }
+  }
+
+  pub fn get_provided_exports(&self, mg: &ModuleGraph) -> ProvidedExports {
+    if let Some(redirect_to) = self.redirect_to {
+      match self.other_exports_info.get_export_info(mg).provided {
+        Some(ExportInfoProvided::Null) => {
+          return ProvidedExports::True;
+        }
+        Some(ExportInfoProvided::True) => {
+          return ProvidedExports::True;
+        }
+        None => {
+          return ProvidedExports::Null;
+        }
+        _ => {}
+      }
+    }
+    // let mut ret = vec![];
+    todo!()
+  }
+
+  /// exports that are relevant (not unused and potential provided)
+  pub fn get_relevant_exports(
+    &self,
+    runtime: Option<&RuntimeSpec>,
+    mg: &ModuleGraph,
+  ) -> Vec<ExportInfoId> {
+    let mut list = vec![];
+    for export_info_id in self.exports.values() {
+      let export_info = export_info_id.get_export_info(mg);
+      let used = export_info.get_used(runtime);
+      if matches!(used, UsageState::Unused) {
+        continue;
+      }
+      if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
+        continue;
+      }
+      list.push(*export_info_id);
+    }
+    if let Some(redirect_to) = self.redirect_to {
+      for id in redirect_to
+        .get_exports_info(mg)
+        .get_relevant_exports(runtime, mg)
+      {
+        let name = id.get_export_info(mg).name.as_ref();
+        if !self.exports.contains_key(name.unwrap_or(&"".into())) {
+          list.push(id);
+        }
+      }
+    }
+
+    let other_export_info = self.other_exports_info.get_export_info(mg);
+    if !matches!(other_export_info.provided, Some(ExportInfoProvided::False))
+      && other_export_info.get_used(runtime) != UsageState::Unused
+    {
+      list.push(self.other_exports_info);
+    }
+    list
   }
 
   /// only used for old version tree shaking
@@ -1146,6 +1210,9 @@ impl ExportInfo {
     }
   }
 
+  pub fn is_reexport(&self) -> bool {
+    !self.terminal_binding && self.target_is_set && self.target.len() > 0
+  }
   pub fn can_mangle(&self) -> Option<bool> {
     match self.can_mangle_provide {
       Some(true) => self.can_mangle_use,

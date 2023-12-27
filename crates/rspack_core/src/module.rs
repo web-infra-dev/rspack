@@ -146,26 +146,26 @@ pub struct WrappedModuleIdentifier(ModuleIdentifier);
 impl WrappedModuleIdentifier {
   /// # Panic
   /// It would panic if the corresponding module is not exists in module_graph
-  fn module<'a>(&self, mg: &'a ModuleGraph) -> &'a BoxModule {
+  pub fn module<'a>(&self, mg: &'a ModuleGraph) -> &'a BoxModule {
     mg.module_by_identifier(&*self).expect("should have module")
   }
   /// # Panic
   /// It would panic if the corresponding module is not exists in module_graph
-  fn module_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut BoxModule {
+  pub fn module_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut BoxModule {
     mg.module_by_identifier_mut(&*self)
       .expect("should have module")
   }
 
   /// # Panic
   /// It would panic if the corresponding moduleGraphModule is not exists in module_graph
-  fn module_graph_module<'a>(&self, mg: &'a ModuleGraph) -> &'a ModuleGraphModule {
+  pub fn module_graph_module<'a>(&self, mg: &'a ModuleGraph) -> &'a ModuleGraphModule {
     mg.module_graph_module_by_identifier(&*self)
       .expect("should have module graph module")
   }
 
   /// # Panic
   /// It would panic if the corresponding moduleGraphModule is not exists in module_graph
-  fn module_graph_module_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ModuleGraphModule {
+  pub fn module_graph_module_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ModuleGraphModule {
     mg.module_graph_module_by_identifier_mut(&*self)
       .expect("should have module graph module")
   }

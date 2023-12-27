@@ -3,8 +3,11 @@ use std::os::unix::prelude::OpenOptionsExt;
 use std::sync::Arc;
 
 use rspack_core::{
-  BoxDependency, Compilation, ModuleIdentifier, RuntimeSpec, WrappedModuleIdentifier,
+  BoxDependency, Compilation, ExportInfoProvided, ExtendedReferencedExport, Logger,
+  ModuleIdentifier, OptimizeChunksArgs, Plugin, ProvidedExports, RuntimeSpec,
+  WrappedModuleIdentifier,
 };
+use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::dependency::{
@@ -27,9 +30,10 @@ struct ConcatConfiguration<'a> {
   warnings: HashMap<ModuleIdentifier, Warning>,
 }
 
+#[allow(unused)]
 impl<'a> ConcatConfiguration<'a> {
   fn new(root_module: ModuleIdentifier, runtime: &'a RuntimeSpec) -> Self {
-    let mut modules = HashSet::new();
+    let mut modules = HashSet::default();
     modules.insert(root_module);
 
     ConcatConfiguration {
@@ -83,6 +87,7 @@ impl<'a> ConcatConfiguration<'a> {
   }
 }
 
+#[derive(Debug)]
 struct ModuleConcatenationPlugin;
 
 impl ModuleConcatenationPlugin {
@@ -111,14 +116,116 @@ impl ModuleConcatenationPlugin {
       let module_dep = dep.as_module_dependency().expect("should be module dep");
       let imported_names = module_dep.get_referenced_exports(mg, None);
       if imported_names.iter().all(|item| match item {
-        rspack_core::ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
-        rspack_core::ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
-      }) || mg.get_provided_exports(module_id)
+        ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
+        ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
+      }) || matches!(mg.get_provided_exports(*mi), ProvidedExports::Vec(_))
       {
         set.insert(con.module_identifier);
       }
     }
-    todo!()
+    set
+  }
+}
+
+#[async_trait::async_trait]
+impl Plugin for ModuleConcatenationPlugin {
+  async fn optimize_chunk_modules(&self, args: OptimizeChunksArgs<'_>) -> Result<()> {
+    let OptimizeChunksArgs { compilation } = args;
+    let logger = compilation.get_logger("rspack.ModuleConcatenationPlugin");
+    let mut relevant_modules = vec![];
+    let mut possible_inners = HashSet::default();
+    let start = logger.time("select relevant modules");
+    let module_id_list = compilation
+      .module_graph
+      .module_graph_modules()
+      .keys()
+      .copied()
+      .map(WrappedModuleIdentifier::from)
+      .collect::<Vec<_>>();
+    let mg = &compilation.module_graph;
+    let Compilation {
+      module_graph: mg,
+      chunk_graph,
+      ..
+    } = compilation;
+    for module_id in module_id_list {
+      let mut can_be_root = true;
+      let mut can_be_inner = true;
+      let mgm = module_id.module_graph_module(mg);
+      // If the result is `None`, that means we have some differences with webpack,
+      // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L168-L171
+      if mg.is_async(&*module_id).expect("should have async result") {
+        // TODO: bailout
+        continue;
+      }
+      if !mgm
+        .build_info
+        .as_ref()
+        .expect("should have module graph module")
+        .strict
+      {
+        // TODO: bailout
+        continue;
+      }
+      if chunk_graph.get_number_of_module_chunks(*module_id) == 0 {
+        // TODO: bailout
+        continue;
+      }
+      let exports_info = mg.get_exports_info(&*module_id);
+      let relevnat_epxorts = exports_info.get_relevant_exports(None, mg);
+      let unknown_exports = relevnat_epxorts
+        .iter()
+        .filter(|id| {
+          let export_info = id.get_export_info_mut(mg).clone();
+          // export_info.is_reexport() && export_info.get_target(mg, None).is_none()
+          todo!()
+        })
+        .copied()
+        .collect::<Vec<_>>();
+      if unknown_exports.len() > 0 {
+        // TODO: bailout
+        continue;
+      }
+      let unknown_provided_exports = relevnat_epxorts
+        .iter()
+        .filter(|id| {
+          let export_info = id.get_export_info(mg);
+          !matches!(export_info.provided, Some(ExportInfoProvided::True))
+        })
+        .copied()
+        .collect::<Vec<_>>();
+
+      if unknown_provided_exports.len() > 0 {
+        // TODO: bailout
+        can_be_root = false;
+      }
+
+      if chunk_graph.is_entry_module(&*module_id) {
+        // TODO: bailout
+        can_be_inner = false;
+      }
+      if can_be_root {
+        relevant_modules.push(*module_id);
+      }
+      if can_be_inner {
+        possible_inners.insert(*module_id);
+      }
+    }
+
+    logger.time_end(start);
+    logger.debug(format!(
+      "{} potential root modules, {} potential inner modules",
+      relevant_modules.len(),
+      possible_inners.len(),
+    ));
+
+    let start = logger.time("sort relevant modules");
+    // relevant_modules.sort_by(|a, b| {
+    //
+    //
+    //     });
+    logger.time_end(start);
+    Ok(())
   }
 }
 

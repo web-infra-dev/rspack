@@ -9,7 +9,9 @@ use rspack_identifier::{Identifiable, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::atoms::JsWord;
 
-use crate::{debug_all_exports_info, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier};
+use crate::{
+  debug_all_exports_info, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, ProvidedExports,
+};
 mod connection;
 pub use connection::*;
 
@@ -766,8 +768,14 @@ impl ModuleGraph {
     exports_info
   }
 
-  pub fn get_provided_exports(&self, module_id: ModuleIdentifier) -> bool {
-    todo!()
+  pub fn get_provided_exports(&self, module_id: ModuleIdentifier) -> ProvidedExports {
+    let mgm = self
+      .module_graph_module_by_identifier(&module_id)
+      .expect("should have module graph module");
+    mgm
+      .exports
+      .get_exports_info(self)
+      .get_provided_exports(self)
   }
 }
 
