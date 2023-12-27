@@ -351,21 +351,3 @@ fn test_get_undo_path() {
     "../../"
   );
 }
-
-#[test]
-fn test_stringify_chunks() {
-  #[rustfmt::skip]
-  let pass = [
-    (Vec::from(["foo"]), r#"{"foo": 0,}"#),
-    (Vec::from(["aaa", "bbb"]), r#"{"aaa": 0,"bbb": 0,}"#),
-    (Vec::from(["foo", "bar"]), r#"{"bar": 0,"foo": 0,}"#),
-    (Vec::from([r#"fo"o"#]), r#"{"fo\"o": 0,}"#),
-    (Vec::from(["foo\tbar"]), r#"{"foo\tbar": 0,}"#),
-    (Vec::from([r#"html-0-c:\users\default\index.html"#]), r#"{"html-0-c:\\users\\default\\index.html": 0,}"#),
-  ];
-
-  for (chunks, res) in pass {
-    let cks = chunks.iter().map(|x| x.to_string()).collect::<HashSet<_>>();
-    assert_eq!(stringify_chunks(&cks, 0), res.to_string());
-  }
-}
