@@ -6,7 +6,7 @@ use tracing::instrument;
 use crate::{
   cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, NormalModuleBeforeResolveArgs,
-  RawModule, ResolveArgs, ResolveError, ResolveResult, SharedPluginDriver,
+  RawModule, ResolveArgs, ResolveResult, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -118,8 +118,8 @@ impl ContextModuleFactory {
         .boxed();
         return Ok(ModuleFactoryResult::new_with_module(raw_module));
       }
-      Err(ResolveError(_runtime_error, internal_error)) => {
-        return Err(internal_error);
+      Err(err) => {
+        return Err(err);
       }
     };
 

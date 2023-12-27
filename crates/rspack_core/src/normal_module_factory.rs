@@ -17,8 +17,8 @@ use crate::{
   ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
   ModuleRuleUseLoader, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
   NormalModuleBeforeResolveArgs, NormalModuleCreateData, ParserOptions, RawModule, Resolve,
-  ResolveArgs, ResolveError, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  ResolverFactory, ResourceData, ResourceParsedData, SharedPluginDriver,
+  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  ResourceData, ResourceParsedData, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -333,7 +333,7 @@ impl NormalModuleFactory {
             ModuleFactoryResult::new_with_module(raw_module).from_cache(from_cache),
           ));
         }
-        Err(ResolveError(_runtime_error, internal_error)) => {
+        Err(err) => {
           // let mut file_dependencies = Default::default();
           // let mut missing_dependencies = Default::default();
           // let mut from_cache_result = from_cache;
@@ -386,7 +386,7 @@ impl NormalModuleFactory {
           //     }
           //   }
           // }
-          return Err(internal_error);
+          return Err(err);
         }
       }
     };
