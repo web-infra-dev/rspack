@@ -6,6 +6,12 @@ const common = {
 	},
 	optimization: {
 		runtimeChunk: "single"
+	},
+	experiments: {
+		rspackFuture: {
+			newTreeshaking: true,
+			disableApplyEntryLazily: true
+		}
 	}
 };
 
@@ -30,11 +36,11 @@ module.exports = [
 		},
 		plugins: [
 			new ModuleFederationPlugin({
-				name: "container",
+				name: "container2",
 				library: { type: "commonjs-module" },
 				filename: "container.js",
 				remotes: {
-					containerA: "../0-container-full/container.js",
+					containerA: "../../0-container-full/dist/container.js",
 					containerB: "./container.js"
 				},
 				...commonMF
@@ -52,11 +58,11 @@ module.exports = [
 	// 	},
 	// 	plugins: [
 	// 		new ModuleFederationPlugin({
-	// 			name: "container",
+	// 			name: "container2",
 	// 			library: { type: "module" },
 	// 			filename: "module/container.mjs",
 	// 			remotes: {
-	// 				containerA: "../../0-container-full/module/container.mjs",
+	// 				containerA: "../../../0-container-full/dist/module/container.mjs",
 	// 				containerB: "./container.mjs"
 	// 			},
 	// 			...commonMF

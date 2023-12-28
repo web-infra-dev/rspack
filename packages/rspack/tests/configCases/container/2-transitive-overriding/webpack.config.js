@@ -6,6 +6,14 @@ module.exports = {
 		chunkIds: "named",
 		moduleIds: "named"
 	},
+	output: {
+		uniqueName: "2-transitive-overriding"
+	},
+	experiments: {
+		rspackFuture: {
+			newTreeshaking: true
+		}
+	},
 	plugins: [
 		new ModuleFederationPlugin({
 			remoteType: "commonjs-module",

@@ -145,7 +145,7 @@ function getDefaultEntryRuntime(
 		runtimePluginVars.push(`${runtimePluginVar}()`);
 	}
 	const content = [
-		`import __module_federation_runtime__ from ${JSON.stringify(
+		`import __module_federation_implementation__ from ${JSON.stringify(
 			implementationPath
 		)}`,
 		...runtimePluginImports,
@@ -153,6 +153,9 @@ function getDefaultEntryRuntime(
 			", "
 		)}]`,
 		`const __module_federation_remote_infos__ = ${JSON.stringify(remoteInfos)}`,
+		`const __module_federation_unique_name__ = ${JSON.stringify(
+			compiler.options.output.uniqueName
+		)}`,
 		compiler.webpack.Template.getFunctionContent(require("./default.runtime"))
 	].join("\n");
 	return `data:text/javascript,${content}`;
