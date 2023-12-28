@@ -4,8 +4,6 @@ export default fn => {
 		try {
 			switch (msg) {
 				case "next":
-					__webpack_require__
-					debugger
 					if (!(await import.meta.webpackHot.check(true)))
 						throw new Error("No update found");
 					await fn();
