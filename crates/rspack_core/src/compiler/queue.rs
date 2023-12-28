@@ -79,18 +79,18 @@ impl FactorizeTaskResult {
     self
   }
 
-  pub fn with_file_dependencies(mut self, files: impl IntoIterator<Item = PathBuf>) -> Self {
-    self.file_dependencies.extend(files);
+  fn with_file_dependencies(mut self, files: impl IntoIterator<Item = PathBuf>) -> Self {
+    self.file_dependencies = files.into_iter().collect();
     self
   }
 
-  pub fn with_context_dependencies(mut self, contexts: impl IntoIterator<Item = PathBuf>) -> Self {
-    self.context_dependencies.extend(contexts);
+  fn with_context_dependencies(mut self, contexts: impl IntoIterator<Item = PathBuf>) -> Self {
+    self.context_dependencies = contexts.into_iter().collect();
     self
   }
 
-  pub fn with_missing_dependencies(mut self, missing: impl IntoIterator<Item = PathBuf>) -> Self {
-    self.missing_dependencies.extend(missing);
+  fn with_missing_dependencies(mut self, missing: impl IntoIterator<Item = PathBuf>) -> Self {
+    self.missing_dependencies = missing.into_iter().collect();
     self
   }
 }
