@@ -108,9 +108,9 @@ impl NormalModuleFactory {
       .after_resolve(&mut NormalModuleAfterResolveArgs {
         request: dependency.request(),
         context: data.context.as_ref(),
-        file_dependencies: &factory_result.file_dependencies,
-        context_dependencies: &factory_result.context_dependencies,
-        missing_dependencies: &factory_result.missing_dependencies,
+        file_dependencies: &data.file_dependencies,
+        context_dependencies: &data.context_dependencies,
+        missing_dependencies: &data.missing_dependencies,
         factory_meta: &factory_result.factory_meta,
         diagnostics: &mut data.diagnostics,
       })
@@ -644,11 +644,12 @@ impl NormalModuleFactory {
       .normal_module_factory_module(module, &mut create_data)
       .await?;
 
+    data.add_file_dependencies(file_dependencies);
+    data.add_file_dependency(file_dependency);
+    data.add_missing_dependencies(missing_dependencies);
+
     Ok(Some(
       ModuleFactoryResult::new_with_module(module)
-        .file_dependency(file_dependency)
-        .file_dependencies(file_dependencies)
-        .missing_dependencies(missing_dependencies)
         .factory_meta(factory_meta)
         .from_cache(from_cache),
     ))
