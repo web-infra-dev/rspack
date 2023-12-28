@@ -6,6 +6,7 @@ import { rspack, RspackOptions } from "../src";
 import assert from "assert";
 import createLazyTestEnv from "./helpers/createLazyTestEnv";
 import { isValidTestCaseDir } from "./utils";
+const checkArrayExpectation = require("./checkArrayExpectation");
 
 // most of these could be removed when we support external builtins by default
 export function describeCases(config: { name: string; casePath: string }) {
@@ -50,7 +51,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 					) {
 						describe(category.name, () => {
 							describe(example, () => {
-								it(`${example} should compile`, async () => {
+								it(`${example} should compile`, done => {
 									const configFile = path.resolve(
 										testRoot,
 										"webpack.config.js"
@@ -82,24 +83,53 @@ export function describeCases(config: { name: string; casePath: string }) {
 									if (fs.existsSync(outputPath)) {
 										fs.rmdirSync(outputPath, { recursive: true });
 									}
-									const stats = await util.promisify(rspack)(options);
-									const statsJson = stats!.toJson();
-									if (category.name === "errors") {
-										assert(statsJson.errors!.length > 0);
-									} else if (category.name === "warnings") {
-										assert(statsJson.warnings!.length > 0);
-									} else {
-										if (statsJson.errors!.length > 0) {
-											console.log(
-												`case: ${example}\nerrors:\n`,
-												`${statsJson.errors!.map(x => x.message).join("\n")}`
+									rspack(options, (err, stats) => {
+										if (err) {
+											return done(err);
+										}
+										const statsJson = stats!.toJson();
+										if (category.name === "errors") {
+											assert(statsJson.errors!.length > 0);
+										} else if (category.name === "warnings") {
+											assert(statsJson.warnings!.length > 0);
+										} else {
+											if (statsJson.errors!.length > 0) {
+												console.log(
+													`case: ${example}\nerrors:\n`,
+													`${statsJson.errors!.map(x => x.message).join("\n")}`
+												);
+											}
+											assert(
+												statsJson.errors!.length === 0,
+												`${JSON.stringify(statsJson.errors, null, 2)}`
 											);
 										}
-										assert(
-											statsJson.errors!.length === 0,
-											`${JSON.stringify(statsJson.errors, null, 2)}`
-										);
-									}
+
+										if (
+											checkArrayExpectation(
+												testRoot,
+												statsJson,
+												"error",
+												"Error",
+												done
+											)
+										) {
+											return;
+										}
+										if (
+											checkArrayExpectation(
+												testRoot,
+												statsJson,
+												"warning",
+												"Warning",
+												done
+											)
+										) {
+											return;
+										}
+
+										Promise.resolve().then(done);
+									});
 								});
 								// this will run the compiled test code to test against itself, a genius idea from webpack
 								it(`${example} should load the compiled test`, async () => {
