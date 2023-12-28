@@ -1323,8 +1323,6 @@ impl ExportInfo {
         if already_visited.contains(&export_info_id) {
           return Some(ResolvedExportInfoTargetWithCircular::Circular);
         }
-        let export_info = mg.get_export_info_by_id(&export_info_id).clone();
-
         let new_target = export_info_id._get_target(mg, resolve_filter.clone(), already_visited);
 
         match new_target {
