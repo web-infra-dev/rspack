@@ -50,6 +50,10 @@ impl ExportsInfoId {
     mg.get_exports_info_by_id(self)
   }
 
+  pub fn get_exports_info_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ExportsInfo {
+    mg.get_exports_info_mut_by_id(self)
+  }
+
   /// # Panic
   /// it will panic if you provide a export info that does not exists in the module graph  
   pub fn set_has_provide_info(&self, mg: &mut ModuleGraph) {
@@ -651,6 +655,42 @@ impl ExportInfoId {
     self.get_export_info(mg).get_used(runtime)
   }
 
+  pub fn create_nested_exports_info(&self, mg: &mut ModuleGraph) -> ExportsInfoId {
+    let export_info = self.get_export_info(mg);
+
+    if export_info.exports_info_owned {
+      return export_info
+        .exports_info
+        .expect("should have exports_info when exports_info is true");
+    }
+    let export_info_mut = self.get_export_info_mut(mg);
+    export_info_mut.exports_info_owned = true;
+    let other_exports_info = ExportInfo::new(None, UsageState::Unknown, None);
+    let side_effects_only_info = ExportInfo::new(
+      Some("*side effects only*".into()),
+      UsageState::Unknown,
+      None,
+    );
+    let new_exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
+    let new_exports_info_id = new_exports_info.id;
+
+    let old_exports_info = export_info_mut.exports_info;
+    export_info_mut.exports_info_owned = true;
+    export_info_mut.exports_info = Some(new_exports_info_id);
+
+    mg.exports_info_map
+      .insert(new_exports_info_id, new_exports_info);
+    mg.export_info_map
+      .insert(other_exports_info.id, other_exports_info);
+    mg.export_info_map
+      .insert(side_effects_only_info.id, side_effects_only_info);
+
+    new_exports_info_id.set_has_provide_info(mg);
+    if let Some(exports_info) = old_exports_info {
+      exports_info.set_redirect_name_to(mg, Some(new_exports_info_id));
+    }
+    new_exports_info_id
+  }
   fn set_has_use_info(&self, mg: &mut ModuleGraph) {
     let export_info = mg.get_export_info_mut_by_id(self);
     if !export_info.has_use_in_runtime_info {
@@ -671,12 +711,74 @@ impl ExportInfoId {
     mg: &mut ModuleGraph,
     resolve_filter: Option<ResolveFilterFnTy>,
   ) -> Option<ResolvedExportInfoTarget> {
-    let mut export_info = mg.get_export_info_mut_by_id(self).clone();
+    let filter = resolve_filter.unwrap_or(Arc::new(|_, _| true));
 
-    let target = export_info.get_target(mg, resolve_filter);
-    // avoid use ref and mut ref at the same time
-    _ = std::mem::replace(mg.get_export_info_mut_by_id(self), export_info);
-    target
+    let mut already_visited = HashSet::default();
+    match self._get_target(mg, filter, &mut already_visited) {
+      Some(ResolvedExportInfoTargetWithCircular::Circular) => None,
+      Some(ResolvedExportInfoTargetWithCircular::Target(target)) => Some(target),
+      None => None,
+    }
+  }
+
+  pub fn _get_target(
+    &self,
+    mg: &mut ModuleGraph,
+    resolve_filter: ResolveFilterFnTy,
+    already_visited: &mut HashSet<ExportInfoId>,
+  ) -> Option<ResolvedExportInfoTargetWithCircular> {
+    let self_export_info = self.get_export_info(mg);
+    if self_export_info.target.is_empty() {
+      return None;
+    }
+    if already_visited.contains(self) {
+      return Some(ResolvedExportInfoTargetWithCircular::Circular);
+    }
+    already_visited.insert(*self);
+
+    let self_export_info_mut = self.get_export_info_mut(mg);
+    let values = self_export_info_mut
+      .get_max_target()
+      .values()
+      .map(|item| UnResolvedExportInfoTarget {
+        connection: item.connection,
+        export: item.exports.clone(),
+      })
+      .collect::<Vec<_>>();
+    let target = ExportInfo::resolve_target(
+      values.first().cloned(),
+      already_visited,
+      resolve_filter.clone(),
+      mg,
+    );
+
+    match target {
+      Some(ResolvedExportInfoTargetWithCircular::Circular) => {
+        Some(ResolvedExportInfoTargetWithCircular::Circular)
+      }
+      None => None,
+      Some(ResolvedExportInfoTargetWithCircular::Target(target)) => {
+        for val in values.into_iter().skip(1) {
+          let resolved_target =
+            ExportInfo::resolve_target(Some(val), already_visited, resolve_filter.clone(), mg);
+          match resolved_target {
+            Some(ResolvedExportInfoTargetWithCircular::Circular) => {
+              return Some(ResolvedExportInfoTargetWithCircular::Circular);
+            }
+            Some(ResolvedExportInfoTargetWithCircular::Target(tt)) => {
+              if target.module != tt.module {
+                return None;
+              }
+              if target.export != tt.export {
+                return None;
+              }
+            }
+            None => return None,
+          }
+        }
+        Some(ResolvedExportInfoTargetWithCircular::Target(target))
+      }
+    }
   }
 
   fn set_used_without_info(&self, mg: &mut ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
@@ -746,14 +848,14 @@ impl ExportInfoId {
     resolve_filter: ResolveFilterFnTy,
     update_original_connection: UpdateOriginalFunctionTy,
   ) -> Option<ResolvedExportInfoTarget> {
-    let mut export_info = mg.get_export_info_mut_by_id(self).clone();
-    let target = export_info._get_target(mg, resolve_filter, &mut HashSet::default());
+    let target = self._get_target(mg, resolve_filter, &mut HashSet::default());
     let target = match target {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => return None,
       Some(ResolvedExportInfoTargetWithCircular::Target(target)) => target,
       None => return None,
     };
-    let original_target = export_info
+    let export_info_mut = self.get_export_info_mut(mg);
+    let original_target = export_info_mut
       .get_max_target()
       .values()
       .next()
@@ -763,18 +865,21 @@ impl ExportInfoId {
     {
       return None;
     }
-    export_info.target.clear();
-    export_info.target_is_set = true;
-    export_info.target.insert(
+    export_info_mut.target.clear();
+    export_info_mut.target_is_set = true;
+    let updated_connection = update_original_connection(&target, mg);
+
+    // shadowning `export_info_mut` to reduce `&mut ModuleGraph` borrow life time, since
+    // `update_original_connection` also needs `&mut ModuleGraph`
+    let export_info_mut = self.get_export_info_mut(mg);
+    export_info_mut.target.insert(
       None,
       ExportInfoTargetValue {
-        connection: update_original_connection(&target, mg),
+        connection: updated_connection,
         exports: target.export.clone(),
         priority: 0,
       },
     );
-    // avoid use ref and mut ref at the same time
-    _ = std::mem::replace(mg.get_export_info_mut_by_id(self), export_info);
     Some(target)
   }
 
@@ -1177,21 +1282,6 @@ impl ExportInfo {
     &self.max_target
   }
 
-  pub fn get_target(
-    &mut self,
-    mg: &mut ModuleGraph,
-    resolve_filter: Option<ResolveFilterFnTy>,
-  ) -> Option<ResolvedExportInfoTarget> {
-    let filter = resolve_filter.unwrap_or(Arc::new(|_, _| true));
-
-    let mut already_visited = HashSet::default();
-    match self._get_target(mg, filter, &mut already_visited) {
-      Some(ResolvedExportInfoTargetWithCircular::Circular) => None,
-      Some(ResolvedExportInfoTargetWithCircular::Target(target)) => Some(target),
-      None => None,
-    }
-  }
-
   #[allow(clippy::unwrap_in_result)]
   fn resolve_target(
     input_target: Option<UnResolvedExportInfoTarget>,
@@ -1233,12 +1323,7 @@ impl ExportInfo {
         if already_visited.contains(&export_info_id) {
           return Some(ResolvedExportInfoTargetWithCircular::Circular);
         }
-        let mut export_info = mg.get_export_info_by_id(&export_info_id).clone();
-        // dbg!(&export_info);
-
-        let export_info_id = export_info.id;
-        let new_target = export_info._get_target(mg, resolve_filter.clone(), already_visited);
-        _ = std::mem::replace(mg.get_export_info_mut_by_id(&export_info_id), export_info);
+        let new_target = export_info_id._get_target(mg, resolve_filter.clone(), already_visited);
 
         match new_target {
           Some(ResolvedExportInfoTargetWithCircular::Circular) => {
@@ -1272,64 +1357,6 @@ impl ExportInfo {
       }
     } else {
       None
-    }
-  }
-
-  pub fn _get_target(
-    &mut self,
-    mg: &mut ModuleGraph,
-    resolve_filter: ResolveFilterFnTy,
-    already_visited: &mut HashSet<ExportInfoId>,
-  ) -> Option<ResolvedExportInfoTargetWithCircular> {
-    if self.target.is_empty() {
-      return None;
-    }
-    if already_visited.contains(&self.id) {
-      return Some(ResolvedExportInfoTargetWithCircular::Circular);
-    }
-    already_visited.insert(self.id);
-
-    let values = self
-      .get_max_target()
-      .values()
-      .map(|item| UnResolvedExportInfoTarget {
-        connection: item.connection,
-        export: item.exports.clone(),
-      })
-      .collect::<Vec<_>>();
-    let target = Self::resolve_target(
-      values.first().cloned(),
-      already_visited,
-      resolve_filter.clone(),
-      mg,
-    );
-
-    match target {
-      Some(ResolvedExportInfoTargetWithCircular::Circular) => {
-        Some(ResolvedExportInfoTargetWithCircular::Circular)
-      }
-      None => None,
-      Some(ResolvedExportInfoTargetWithCircular::Target(target)) => {
-        for val in values.into_iter().skip(1) {
-          let resolved_target =
-            Self::resolve_target(Some(val), already_visited, resolve_filter.clone(), mg);
-          match resolved_target {
-            Some(ResolvedExportInfoTargetWithCircular::Circular) => {
-              return Some(ResolvedExportInfoTargetWithCircular::Circular);
-            }
-            Some(ResolvedExportInfoTargetWithCircular::Target(tt)) => {
-              if target.module != tt.module {
-                return None;
-              }
-              if target.export != tt.export {
-                return None;
-              }
-            }
-            None => return None,
-          }
-        }
-        Some(ResolvedExportInfoTargetWithCircular::Target(target))
-      }
     }
   }
 
@@ -1388,38 +1415,6 @@ impl ExportInfo {
     }
 
     false
-  }
-
-  pub fn create_nested_exports_info(&mut self, mg: &mut ModuleGraph) -> ExportsInfoId {
-    if self.exports_info_owned {
-      return self
-        .exports_info
-        .expect("should have exports_info when exports_info is true");
-    }
-    self.exports_info_owned = true;
-    let other_exports_info = ExportInfo::new(None, UsageState::Unknown, None);
-    let side_effects_only_info = ExportInfo::new(
-      Some("*side effects only*".into()),
-      UsageState::Unknown,
-      None,
-    );
-    let new_exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
-    let new_exports_info_id = new_exports_info.id;
-    mg.exports_info_map
-      .insert(new_exports_info_id, new_exports_info);
-    mg.export_info_map
-      .insert(other_exports_info.id, other_exports_info);
-    mg.export_info_map
-      .insert(side_effects_only_info.id, side_effects_only_info);
-
-    let old_exports_info = self.exports_info;
-    new_exports_info_id.set_has_provide_info(mg);
-    self.exports_info_owned = true;
-    self.exports_info = Some(new_exports_info_id);
-    if let Some(exports_info) = old_exports_info {
-      exports_info.set_redirect_name_to(mg, Some(new_exports_info_id));
-    }
-    new_exports_info_id
   }
 
   pub fn has_used_name(&self) -> bool {
