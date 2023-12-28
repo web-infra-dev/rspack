@@ -1,7 +1,7 @@
 use rspack_core::{
   to_identifier, ChunkUkey, Compilation, ExternalModule, ExternalRequest, LibraryOptions,
 };
-use rspack_error::{internal_error, Result};
+use rspack_error::{error, Result};
 use rspack_identifier::Identifiable;
 
 pub fn externals_dep_array(modules: &[&ExternalModule]) -> Result<String> {
@@ -14,7 +14,7 @@ pub fn externals_dep_array(modules: &[&ExternalModule]) -> Result<String> {
       })
     })
     .collect::<Result<Vec<_>>>()?;
-  serde_json::to_string(&value).map_err(|e| internal_error!(e.to_string()))
+  serde_json::to_string(&value).map_err(|e| error!(e.to_string()))
 }
 
 fn inner_external_arguments(modules: &[&ExternalModule], compilation: &Compilation) -> Vec<String> {

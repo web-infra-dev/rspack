@@ -34,7 +34,7 @@ describe("Stats", () => {
 		    entry ./fixtures/a
 		./fixtures/a.js [585] {main}
 		  entry ./fixtures/a
-		  
+
 		Rspack compiled successfully (a62f45ec3d75aa689fa1)"
 	`);
 	});
@@ -60,8 +60,8 @@ describe("Stats", () => {
 			stats?.toString({ timings: false, version: false }).replace(/\\/g, "/")
 		).toMatchInlineSnapshot(`
 		"PublicPath: auto
-		asset main.js 785 bytes [emitted] (name: main)
-		Entrypoint main 785 bytes = main.js
+		asset main.js 832 bytes [emitted] (name: main)
+		Entrypoint main 832 bytes = main.js
 		./fixtures/a.js
 		./fixtures/b.js
 		./fixtures/c.js
@@ -70,7 +70,7 @@ describe("Stats", () => {
 		ERROR in ./fixtures/b.js ModuleParseError
 
 		  × Module parse failed:
-		  ╰─▶   × JavaScript parsing error
+		  ╰─▶   × JavaScript parsing error: Return statement is not allowed here
 		         ╭─[4:1]
 		       4 │
 		       5 │ // Test CJS top-level return
@@ -78,11 +78,11 @@ describe("Stats", () => {
 		         · ───┬───
 		         ·    ╰── Return statement is not allowed here
 		         ╰────
-		      
-		  help: 
+
+		  help:
 		        You may need an appropriate loader to handle this file type.
 
-		Rspack compiled with 1 error (79a430f2fdbcdc199916)"
+		Rspack compiled with 1 error (c5da8897b8969432ed0a)"
 	`);
 	});
 

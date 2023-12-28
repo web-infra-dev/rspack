@@ -7,9 +7,7 @@ use std::{
 use anymap::CloneAny;
 use derivative::Derivative;
 use once_cell::sync::OnceCell;
-use rspack_error::{
-  internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-};
+use rspack_error::{error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -241,7 +239,7 @@ async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) ->
           .resource_path
           .to_string_lossy()
           .to_string();
-        internal_error!("{e}, failed to read {r}")
+        error!("{e}, failed to read {r}")
       })?;
     loader_context.content = Some(Content::from(result));
   }
@@ -376,7 +374,7 @@ impl<C> TryFrom<LoaderContext<'_, C>> for TWithDiagnosticArray<LoaderResult> {
     let content = loader_context.content.ok_or_else(|| {
       if !loader_context.__loader_items.is_empty() {
         let loader = loader_context.__loader_items[0].to_string();
-        internal_error!("Final loader({loader}) didn't return a Buffer or String")
+        error!("Final loader({loader}) didn't return a Buffer or String")
       } else {
         panic!("content should be available");
       }

@@ -3,7 +3,7 @@ use std::{fmt::Debug, path::Path, sync::Arc};
 use rspack_core::{
   BoxLoader, CompilerOptions, NormalModule, Plugin, Resolver, BUILTIN_LOADER_PREFIX,
 };
-use rspack_error::{internal_error, Result};
+use rspack_error::{error, Result};
 use rspack_loader_sass::SASS_LOADER_IDENTIFIER;
 use rspack_loader_swc::SWC_LOADER_IDENTIFIER;
 
@@ -39,7 +39,7 @@ impl Plugin for BuiltinLoaderResolver {
     let contains_inline = module.contains_inline_loader();
 
     if contains_inline {
-      return Err(internal_error!(
+      return Err(error!(
         "Inline loaders are not supported for builtin loaders"
       ));
     }
@@ -59,7 +59,7 @@ impl Plugin for BuiltinLoaderResolver {
       return Ok(Some(get_builtin_loader(loader_request, loader_options)));
     }
 
-    Err(internal_error!(
+    Err(error!(
       "JS loaders are not supported in Rust tests: {loader_request}"
     ))
   }

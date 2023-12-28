@@ -2,7 +2,7 @@ use std::{path::Path, sync::Arc};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_error::{internal_error, Result};
+use rspack_error::{error, Result};
 use rspack_loader_runner::{get_scheme, Loader, Scheme};
 use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
@@ -267,7 +267,7 @@ impl NormalModuleFactory {
 
         request_without_match_resource = raw_elements
           .pop()
-          .ok_or_else(|| internal_error!("Invalid request: {request_without_match_resource}"))?;
+          .ok_or_else(|| error!("Invalid request: {request_without_match_resource}"))?;
 
         inline_loaders.extend(raw_elements.into_iter().map(|r| ModuleRuleUseLoader {
           loader: r.to_owned(),
@@ -557,7 +557,7 @@ impl NormalModuleFactory {
             loader_options,
           )
           .await?
-          .ok_or_else(|| internal_error!("Unable to resolve loader {}", loader_request))
+          .ok_or_else(|| error!("Unable to resolve loader {}", loader_request))
       }
 
       all_loaders
@@ -604,7 +604,7 @@ impl NormalModuleFactory {
           _ => (),
         }
 
-        internal_error!(e)
+        error!(e)
       })?();
 
     let mut create_data = NormalModuleCreateData {
@@ -771,7 +771,7 @@ impl NormalModuleFactory {
       return Ok(result);
     }
 
-    Err(internal_error!(
+    Err(error!(
       "Failed to factorize module, neither hook nor factorize method returns"
     ))
   }

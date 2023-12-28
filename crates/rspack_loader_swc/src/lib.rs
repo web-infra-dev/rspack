@@ -11,7 +11,7 @@ use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 use rspack_ast::RspackAst;
 use rspack_core::{rspack_sources::SourceMap, LoaderRunnerContext, Mode};
-use rspack_error::{internal_error, AnyhowError, Diagnostic, Result};
+use rspack_error::{error, AnyhowError, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use rspack_plugin_javascript::ast::{self, SourceMapConfig};
 use rspack_plugin_javascript::TransformOutput;
@@ -152,7 +152,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       loader_context.source_map = map
         .map(|m| SourceMap::from_json(&m))
         .transpose()
-        .map_err(|e| internal_error!(e.to_string()))?;
+        .map_err(|e| error!(e.to_string()))?;
     }
 
     Ok(())

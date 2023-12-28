@@ -16,8 +16,7 @@ use rspack_core::{
   UsageState,
 };
 use rspack_error::{
-  internal_error, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-  TraceableError,
+  error, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, TraceableError,
 };
 
 use crate::json_exports_dependency::JsonExportsDependency;
@@ -81,7 +80,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           .into()
         }
         ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => {
-          internal_error!(format!("{e}"))
+          error!(format!("{e}"))
         }
         UnexpectedEndOfJson => {
           // End offset of json file

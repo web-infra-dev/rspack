@@ -13,7 +13,7 @@ use rspack_core::{
   PluginContext, PluginJsChunkHashHookOutput, PluginRenderHookOutput,
   PluginRenderStartupHookOutput, RenderArgs, RenderStartupArgs, SourceType,
 };
-use rspack_error::{internal_error, internal_error_bail, Result};
+use rspack_error::{error, error_bail, Result};
 
 use crate::utils::{get_options_for_chunk, COMMON_LIBRARY_NAME_MESSAGE};
 
@@ -92,9 +92,7 @@ impl AssignLibraryPlugin {
         Some(LibraryName::NonUmdObject(LibraryNonUmdObject::Array(_)))
           | Some(LibraryName::NonUmdObject(LibraryNonUmdObject::String(_)))
       ) {
-        internal_error_bail!(
-          "Library name must be a string or string array. {COMMON_LIBRARY_NAME_MESSAGE}"
-        )
+        error_bail!("Library name must be a string or string array. {COMMON_LIBRARY_NAME_MESSAGE}")
       }
     } else if let Some(name) = &library.name
       && !matches!(
@@ -103,7 +101,7 @@ impl AssignLibraryPlugin {
           | LibraryName::NonUmdObject(LibraryNonUmdObject::String(_))
       )
     {
-      internal_error_bail!(
+      error_bail!(
         "Library name must be a string, string array or unset. {COMMON_LIBRARY_NAME_MESSAGE}"
       )
     }
@@ -180,7 +178,7 @@ impl Plugin for AssignLibraryPlugin {
       if !is_name_valid(base) {
         let base_identifier = to_identifier(base);
         return Err(
-          internal_error!("Library name base ({base}) must be a valid identifier when using a var declaring library type. Either use a valid identifier (e. g. {base_identifier}) or use a different library type (e. g. `type: 'global'`, which assign a property on the global scope instead of declaring a variable). {COMMON_LIBRARY_NAME_MESSAGE}"),
+          error!("Library name base ({base}) must be a valid identifier when using a var declaring library type. Either use a valid identifier (e. g. {base_identifier}) or use a different library type (e. g. `type: 'global'`, which assign a property on the global scope instead of declaring a variable). {COMMON_LIBRARY_NAME_MESSAGE}"),
         );
       }
       let mut source = ConcatSource::default();

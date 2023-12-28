@@ -6,7 +6,7 @@ use rspack_core::{
   Chunk, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData, RenderChunkArgs,
   RuntimeGlobals,
 };
-use rspack_error::{internal_error, Result};
+use rspack_error::{error, Result};
 use rspack_hash::RspackHash;
 use rspack_identifier::IdentifierLinkedMap;
 use rspack_plugin_javascript::runtime::stringify_chunks_to_array;
@@ -117,7 +117,7 @@ pub fn get_runtime_chunk_output_name(args: &RenderChunkArgs) -> Result<String> {
     let (_, entry_point_ukey) = entry_points
       .iter()
       .next()
-      .ok_or_else(|| internal_error!("should has entry point ukey"))?;
+      .ok_or_else(|| error!("should has entry point ukey"))?;
 
     args
       .compilation

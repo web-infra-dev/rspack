@@ -1,6 +1,8 @@
-use std::path::Path;
+use std::{fmt::Display, path::Path};
 
-use miette::{Diagnostic, IntoDiagnostic, LabeledSpan, MietteDiagnostic, SourceCode, SourceSpan};
+use miette::{
+  Diagnostic, IntoDiagnostic, LabeledSpan, MietteDiagnostic, Severity, SourceCode, SourceSpan,
+};
 use swc_core::common::SourceFile;
 use thiserror::Error;
 
@@ -42,20 +44,43 @@ pub struct AnyhowError(#[from] anyhow::Error);
 /// Because if the source code is missing when you construct a [TraceableError], we could read it from file system later
 /// when convert it into [crate::Diagnostic], but the reverse will not working.
 #[derive(Debug, Clone, Error)]
-#[error("{title}")]
+#[error("{title}: {message}")]
 pub struct TraceableError {
   title: String,
   kind: DiagnosticKind,
   message: String,
-  severity: miette::Severity,
+  severity: Severity,
   src: String,
   label: SourceSpan,
+  help: Option<String>,
+  url: Option<String>,
 }
 
-impl miette::Diagnostic for TraceableError {
-  fn severity(&self) -> Option<miette::Severity> {
+impl Diagnostic for TraceableError {
+  fn severity(&self) -> Option<Severity> {
     Some(self.severity)
   }
+
+  fn help(&self) -> Option<Box<dyn Display + '_>> {
+    self
+      .help
+      .as_ref()
+      .map(Box::new)
+      .map(|c| c as Box<dyn Display>)
+  }
+
+  fn url(&self) -> Option<Box<dyn Display + '_>> {
+    self
+      .url
+      .as_ref()
+      .map(Box::new)
+      .map(|c| c as Box<dyn Display>)
+  }
+
+  fn source_code(&self) -> Option<&dyn SourceCode> {
+    Some(&self.src)
+  }
+
   fn labels(&self) -> Option<Box<dyn Iterator<Item = LabeledSpan> + '_>> {
     use miette::macro_helpers::{OptionalWrapper, ToOption};
     let Self { message, .. } = self;
@@ -68,19 +93,26 @@ impl miette::Diagnostic for TraceableError {
       .flatten(),
     ))
   }
-  fn source_code(&self) -> Option<&dyn SourceCode> {
-    Some(&self.src)
-  }
 }
 
 impl TraceableError {
-  pub fn with_severity(mut self, severity: impl Into<miette::Severity>) -> Self {
+  pub fn with_severity(mut self, severity: impl Into<Severity>) -> Self {
     self.severity = severity.into();
     self
   }
 
   pub fn with_kind(mut self, kind: DiagnosticKind) -> Self {
     self.kind = kind;
+    self
+  }
+
+  pub fn with_help(mut self, help: Option<impl Into<String>>) -> Self {
+    self.help = help.map(|h| h.into());
+    self
+  }
+
+  pub fn with_url(mut self, url: Option<impl Into<String>>) -> Self {
+    self.url = url.map(|u| u.into());
     self
   }
 
@@ -101,6 +133,8 @@ impl TraceableError {
       severity: Default::default(),
       src: file_src,
       label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
+      help: None,
+      url: None,
     }
   }
 
@@ -118,6 +152,8 @@ impl TraceableError {
       severity: Default::default(),
       src: file_src,
       label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
+      help: None,
+      url: None,
     }
   }
 
@@ -129,6 +165,8 @@ impl TraceableError {
       severity: Default::default(),
       src: "".to_string(),
       label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
+      help: None,
+      url: None,
     }
   }
 

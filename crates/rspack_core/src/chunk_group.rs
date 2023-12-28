@@ -2,7 +2,7 @@ use std::fmt;
 
 use itertools::Itertools;
 use rspack_database::DatabaseItem;
-use rspack_error::{internal_error, Result};
+use rspack_error::{error, Result};
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -349,9 +349,9 @@ impl EntryOptions {
     key: &str,
   ) -> Result<bool> {
     match (a, b) {
-      (Some(a), Some(b)) if a != b => Err(internal_error!(
-        "Conflicting entry option {key} = ${a:?} vs ${b:?}"
-      )),
+      (Some(a), Some(b)) if a != b => {
+        Err(error!("Conflicting entry option {key} = ${a:?} vs ${b:?}"))
+      }
       (None, Some(_)) => Ok(true),
       _ => Ok(false),
     }
