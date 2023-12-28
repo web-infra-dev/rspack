@@ -207,7 +207,7 @@ module.exports = new Promise(function(resolve, reject) {{
             .boxed(),
           );
           format!(
-            "__WEBPACK_EXTERNAL_createRequire(import.meta.url)('{}')",
+            "module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)('{}')",
             request.primary()
           )
         } else {
