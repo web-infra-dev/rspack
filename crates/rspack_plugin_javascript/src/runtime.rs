@@ -101,13 +101,10 @@ fn render_module(
   module_id: &str,
 ) -> Result<BoxSource> {
   let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
-  // TODO: determine arguments by runtime requirements after aligning commonjs dependencies with webpack
-  // let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
-  // let need_require = runtime_requirements.is_some_and(|r| {
-  //   r.contains(RuntimeGlobals::REQUIRE) || r.contains(RuntimeGlobals::REQUIRE_SCOPE)
-  // });
-  let need_exports = true;
-  let need_require = true;
+  let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
+  let need_require = runtime_requirements.is_some_and(|r| {
+    r.contains(RuntimeGlobals::REQUIRE) || r.contains(RuntimeGlobals::REQUIRE_SCOPE)
+  });
 
   let mut args = Vec::new();
   if need_module || need_exports || need_require {

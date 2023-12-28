@@ -10,7 +10,7 @@ __webpack_require__.r(__webpack_exports__);
 
 console.log(_data_txt__WEBPACK_IMPORTED_MODULE_0__);
 }),
-"./data.txt": (function (module, exports, __webpack_require__) {
+"./data.txt": (function (module) {
 "use strict";
 module.exports = "- Isn't Rspack a gamechanging bundler?\n  - Hella yeah!";}),
 
